@@ -303,6 +303,38 @@ def test_il_formato_dentro_la_riga_arriva_fino_alla_revisione(niente_ocr):
     assert not cella["formato"]["sottolineato"] and "tratti" not in cella, "il bordo della cella non e' una sottolineatura"
 
 
+def test_una_parola_che_cambia_stile_a_meta_resta_una_parola(niente_ocr):
+    """«Anto» in neretto e «nio,» in neretto corsivo: nel PDF sono due span attaccati.
+
+    In produzione (Note scritte, fascicolo Affinito) il nome del cliente usciva
+    «Anto nio»: la lettura univa i due pezzi con uno spazio. Un apice di nota
+    attaccato a una parola e due parole distanziate senza spazio restano invece
+    separati.
+    """
+    documento = fitz.open()
+    pagina = documento.new_page(width=595, height=842)
+    x, y = 60.0, 120.0
+    for testo, font, corpo, scarto in (
+        ("Il Prof. Affinito Anto", "hebo", 11, 0.0),
+        ("nio,", "hebi", 11, 0.0),
+        (" nato a Bari; la sentenza", "helv", 11, 0.0),
+        ("1", "helv", 6, 0.0),
+        (" citata e parola", "helv", 11, 0.0),
+        ("staccata", "helv", 11, 3.0),
+    ):
+        x += scarto
+        pagina.insert_text((x, y), testo, fontsize=corpo, fontname=font)
+        x += fitz.get_text_length(testo, fontname=font, fontsize=corpo)
+    pagina.insert_textbox(fitz.Rect(60, 200, 535, 400), "Testo di riempimento del documento. " * 8, fontsize=11)
+    dati = documento.tobytes()
+    documento.close()
+
+    testo = riconoscimento.riconosci_pagina(dati, "note.pdf", 1).blocks[0]["testo"]
+    assert "Affinito Antonio," in testo and "Anto nio" not in testo
+    assert "sentenza 1 citata" in testo, "l'apice della nota non e' il seguito della parola"
+    assert "parola staccata" in testo, "due parole distanziate restano due parole"
+
+
 def test_il_testo_si_ricompone_nell_ordine_in_cui_si_legge(niente_ocr):
     """Regressione: le righe in corpo grande venivano lette prima di quelle sopra."""
     paragrafi = riconoscimento.riconosci_pagina(_pdf_formattato(), "atto.pdf", 1).paragraphs

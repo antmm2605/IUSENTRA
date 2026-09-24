@@ -341,6 +341,58 @@ def _parole_dello_span(
     return parole
 
 
+#: Fra due pezzi della stessa parola non c'e' distanza: una parola che cambia
+#: stile a meta' (Word mette «nio» in corsivo dentro «Antonio») arriva dal PDF
+#: in due span attaccati. Uno spazio vero misura un quarto del corpo.
+DISTANZA_DENTRO_LA_PAROLA = 0.1
+#: Un pezzo molto piu' piccolo attaccato a una parola e' un apice (il rimando
+#: a una nota), non il seguito della parola.
+RAPPORTO_CORPO_STESSA_PAROLA = 0.8
+
+
+def _continua_la_parola(prima: dict[str, Any], dopo: dict[str, Any]) -> bool:
+    """Vero se lo span `dopo` prosegue l'ultima parola dello span `prima`."""
+    testo_prima = str(prima.get("text") or "")
+    testo_dopo = str(dopo.get("text") or "")
+    if not testo_prima or not testo_dopo or testo_prima[-1].isspace() or testo_dopo[0].isspace():
+        return False
+    corpo_prima = float(prima.get("size") or 0.0)
+    corpo_dopo = float(dopo.get("size") or 0.0)
+    corpo = max(corpo_prima, corpo_dopo, 1.0)
+    if min(corpo_prima, corpo_dopo) < corpo * RAPPORTO_CORPO_STESSA_PAROLA:
+        return False
+    try:
+        distanza = float(dopo["bbox"][0]) - float(prima["bbox"][2])
+    except (KeyError, IndexError, TypeError, ValueError):
+        return False
+    return -corpo * 0.2 <= distanza <= corpo * DISTANZA_DENTRO_LA_PAROLA
+
+
+def _unisci_parole(prima: dict[str, Any], dopo: dict[str, Any]) -> dict[str, Any]:
+    """Una parola sola dai due pezzi: il formato e' quello del pezzo piu' lungo.
+
+    Il formato dentro una parola non passa (i tratti sono fatti di parole), ma
+    il testo si': nell'atto deve esserci «Antonio», non «Anto nio».
+    """
+    sinistra = min(float(prima["left"]), float(dopo["left"]))
+    destra = max(float(prima["left"]) + float(prima["width"]), float(dopo["left"]) + float(dopo["width"]))
+    alto = min(float(prima["top"]), float(dopo["top"]))
+    basso = max(float(prima["top"]) + float(prima["height"]), float(dopo["top"]) + float(dopo["height"]))
+    prevalente = dopo if len(str(dopo.get("text") or "")) > len(str(prima.get("text") or "")) else prima
+    fuori = dict(prima)
+    fuori.update(
+        text=f"{prima.get('text') or ''}{dopo.get('text') or ''}",
+        left=round(sinistra),
+        top=round(alto),
+        width=max(1, round(destra - sinistra)),
+        height=max(1, round(basso - alto)),
+    )
+    for chiave in ("corpo", "grassetto", "corsivo", "colore", "famiglia", "sottolineato", "barrato"):
+        if chiave in prevalente:
+            fuori[chiave] = prevalente[chiave]
+    return fuori
+
+
 def _parole_native(
     pagina, scala: float, filetti: Sequence[tuple[float, float, float]] = ()
 ) -> list[dict[str, Any]]:
@@ -360,8 +412,16 @@ def _parole_native(
     parole: list[dict[str, Any]] = []
     for numero_blocco, blocco in enumerate(contenuto.get("blocks") or []):
         for numero_riga, riga in enumerate(blocco.get("lines") or []):
+            precedente: dict[str, Any] | None = None
             for span in riga.get("spans") or []:
-                parole.extend(_parole_dello_span(span, scala, numero_blocco, numero_riga, len(parole), filetti))
+                nuove = _parole_dello_span(span, scala, numero_blocco, numero_riga, len(parole), filetti)
+                # una parola divisa in due span non diventa due parole
+                if nuove and parole and precedente is not None and _continua_la_parola(precedente, span):
+                    parole[-1] = _unisci_parole(parole[-1], nuove[0])
+                    nuove = nuove[1:]
+                parole.extend(nuove)
+                if str(span.get("text") or "").strip():
+                    precedente = span
     if parole:
         return parole
     # Un PDF senza struttura dichiarata (raro, ma capita nei tracciati vecchi)

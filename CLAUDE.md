@@ -582,7 +582,7 @@ python scripts/react-migration/generate_app_v2_area_requirements.py
 python tools/sync_packaging_files.py --check                      # verifica packaging (rigenera senza --check se fallisce)
 ```
 
-Quando si modifica `frontend/src/**` ricompilare e committare anche il bundle (`npm --prefix frontend run build`): Railway usa il bundle committato; il Dockerfile Hetzner lo rigenera comunque nello stage `frontend-builder`.
+Quando si modifica `frontend/src/**` ricompilare e committare anche il bundle (`npm --prefix frontend run build`) nello stesso push: il bundle committato in `web/static/react/` e' la fonte del rilascio anche su Hetzner. Il Dockerfile compila Vite nello stage `frontend-builder` solo come guardrail, poi cancella quella build e copia `web/static/react/` dal repository (istruzione 21/09/2026): un cambio ai sorgenti senza bundle ricompilato passa la CI ma in produzione non arriva.
 
 **La versione web è automaticamente sincronizzata** — `web/app.py` importa `pct.__version__` come `APP_VERSION` (riga 102) e la espone nel template `base.html` tramite `{{ app_version }}`. Non esiste una versione web separata.
 

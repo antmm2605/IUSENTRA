@@ -452,12 +452,35 @@ class GestioneEmailRicevute:
         if not archive_info:
             return False
         archivio, member = archive_info
+        return member in self._membri_archivio(archivio)
+
+    def _membri_archivio(self, archivio: Path) -> frozenset[str]:
+        """I nomi contenuti nell'archivio degli allegati, letti una volta sola.
+
+        Aprire lo zip per ogni allegato rileggeva l'indice di migliaia di voci
+        a ogni controllo: con tutte le PEC della finestra di sincronizzazione
+        erano decine di secondi di CPU, e il server restava fermo. L'indice si
+        rilegge solo quando l'archivio cambia (dimensione o data di modifica).
+        """
         try:
-            with zipfile.ZipFile(archivio, "r") as archive:
-                archive.getinfo(member)
-            return True
-        except (KeyError, OSError, zipfile.BadZipFile):
-            return False
+            stato = archivio.stat()
+        except OSError:
+            return frozenset()
+        versione = (stato.st_mtime_ns, stato.st_size)
+        memoria = getattr(self, "_indice_archivi", None)
+        if memoria is None:
+            memoria = {}
+            self._indice_archivi = memoria
+        letto = memoria.get(str(archivio))
+        if letto is None or letto[0] != versione:
+            try:
+                with zipfile.ZipFile(archivio, "r") as archive:
+                    membri = frozenset(archive.namelist())
+            except (OSError, zipfile.BadZipFile):
+                membri = frozenset()
+            letto = (versione, membri)
+            memoria[str(archivio)] = letto
+        return letto[1]
 
     def _allegato_salvato(self, info: dict) -> bool:
         return self._percorso_allegato_da_info(info) is not None or self._allegato_archiviato(info)

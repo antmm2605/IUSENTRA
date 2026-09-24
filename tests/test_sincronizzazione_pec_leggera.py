@@ -151,3 +151,33 @@ def test_la_risposta_della_sincronizzazione_dice_quanto_dura_ogni_passo():
 
     assert risposta["tempi"] == {"casella": 3.2, "esiti": 0.4}
     assert risposta["nuove"] == 2
+
+
+def test_l_archivio_degli_allegati_si_legge_una_volta_finche_non_cambia(tmp_path, monkeypatch):
+    import zipfile
+
+    import pct.email_client as email_runtime
+
+    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    archivio = ge.attachments_dir / "archivio-allegati.zip"
+    with zipfile.ZipFile(archivio, "w") as zip_file:
+        zip_file.writestr("pec/1/postacert.eml", b"x")
+
+    aperture = []
+    zip_originale = email_runtime.zipfile.ZipFile
+
+    def _zip_contato(*args, **kwargs):
+        aperture.append(args[0])
+        return zip_originale(*args, **kwargs)
+
+    monkeypatch.setattr(email_runtime.zipfile, "ZipFile", _zip_contato)
+    info = {"archivio_rel": "archivio-allegati.zip", "archivio_membro": "pec/1/postacert.eml"}
+    assert all(ge._allegato_salvato(info) for _ in range(50))
+    assert not ge._allegato_salvato({**info, "archivio_membro": "pec/2/postacert.eml"})
+    assert len(aperture) == 1
+
+    # l'archivio cambia: l'indice si rilegge
+    monkeypatch.setattr(email_runtime.zipfile, "ZipFile", zip_originale)
+    with zipfile.ZipFile(archivio, "a") as zip_file:
+        zip_file.writestr("pec/2/postacert.eml", b"y")
+    assert ge._allegato_salvato({**info, "archivio_membro": "pec/2/postacert.eml"})

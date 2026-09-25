@@ -240,3 +240,36 @@ def test_moduli_pat_importabili_senza_moduli_solo_posix():
         importati = {alias.name.split(".")[0] for nodo in ast.walk(albero) if isinstance(nodo, ast.Import) for alias in nodo.names}
         importati |= {(nodo.module or "").split(".")[0] for nodo in ast.walk(albero) if isinstance(nodo, ast.ImportFrom)}
         assert not importati & solo_posix, f"{percorso.name} importa {importati & solo_posix}"
+
+
+def test_sede_e_nrg_letti_dai_documenti_del_fascicolo():
+    from types import SimpleNamespace
+
+    from pct.pat_formweb import letture
+
+    assert letture.sede_da_testo("Il Tribunale Amministrativo Regionale per il Lazio (Sezione Seconda Ter) ha pronunciato") == "tar_rm"
+    assert letture.sede_da_testo("Tribunale Amministrativo Regionale per il Lazio sezione staccata di Latina") == "tar_lt"
+    assert letture.sede_da_testo("Il T.A.R. per la Calabria - Sezione staccata di Reggio Calabria") == "tar_rc"
+    assert letture.sede_da_testo("Tribunale Regionale di Giustizia Amministrativa di Trento") == "tar_tn"
+    assert letture.sede_da_testo("Il Consiglio di Stato in sede giurisdizionale (Sezione Quarta)") == "cds"
+    assert letture.sede_da_testo("Tribunale di Roma, sezione lavoro") == ""
+    assert letture.nrg_da_ruolo("10549/2025") == "202510549"
+
+    fatto = SimpleNamespace(categoria="ruolo", campo="numero_ruolo", valore="10549/2025", verifica="verificata", oggetto_id="S1",
+                            contesto="REPUBBLICA ITALIANA Il Tribunale Amministrativo Regionale per il Lazio (Sezione Seconda) "
+                                     "ha pronunciato la presente SENTENZA sul ricorso numero di registro generale 10549 del 2025")
+    respinto = SimpleNamespace(categoria="ruolo", campo="numero_ruolo", valore="1/2020", verifica="respinta", oggetto_id="X", contesto="")
+    dati = letture.dati_letti([fatto, respinto], {"S1": "Sentenza.PDF"})
+    assert dati["nrg"] == {"valore": "202510549", "rg": "10549/2025", "verifica": "verificata", "documenti": ["Sentenza.PDF"]}
+    assert dati["sede"]["valore"] == "tar_rm"
+    assert letture.dati_letti([respinto]) == {}
+
+
+def test_estensione_dal_file_conservato_non_dal_titolo():
+    from pct.pat_formweb import regole
+
+    assert regole.estensione("Atto di Precetto Spese legali Avv. Montagnese Giuseppe") == ""
+    assert regole.estensione("CONSEGNA: Notificazione [Notifica_ID:Cc25btuS]") == ""
+    assert regole.con_estensione("Atto di precetto Avv. Rossi", "", "documenti/ab12.pdf") == "Atto di precetto Avv. Rossi.pdf"
+    assert regole.nome_formweb(regole.con_estensione("Atto Avv. Rossi", "atto.PDF")) == "Atto Avv Rossi.pdf"
+    assert regole.estensione("Relata di notifica1.PDF") == "pdf"

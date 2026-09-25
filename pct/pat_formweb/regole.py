@@ -38,13 +38,26 @@ FILE_PER_CARICAMENTO = 5
 _TEDESCHE = "ÄäÖöÜüß"
 
 
+_ESTENSIONE = re.compile(r"\.([A-Za-z0-9]{1,5})$")
+
+
 def estensione(nome: str) -> str:
-    return nome.rsplit(".", 1)[-1].casefold() if "." in nome.strip(".") else ""
+    """L'estensione del file; «Avv. Rossi» o «[Notifica_ID:x]» non ne hanno una."""
+    trovata = _ESTENSIONE.search((nome or "").strip())
+    return trovata.group(1).casefold() if trovata and trovata.start() > 0 else ""
 
 
 def radice(nome: str) -> str:
-    punto = nome.rfind(".")
-    return nome[:punto] if punto > 0 else nome
+    trovata = _ESTENSIONE.search((nome or "").strip())
+    return nome.strip()[: trovata.start()] if trovata and trovata.start() > 0 else nome
+
+
+def con_estensione(nome: str, *riserve: str) -> str:
+    """Il nome con l'estensione del file conservato quando il titolo mostrato non la riporta."""
+    if estensione(nome):
+        return nome
+    ext = next((estensione(r) for r in riserve if estensione(r or "")), "")
+    return f"{nome.strip()}.{ext}" if ext else nome
 
 
 def nome_valido(nome: str) -> bool:

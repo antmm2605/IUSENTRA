@@ -8717,6 +8717,14 @@ def _telematic(fascicolo: Any) -> list[dict[str, Any]]:
     fid = _text(getattr(fascicolo, "id", ""))
     encoded_fid = quote(fid, safe="")
     tipo = _enum_value(getattr(fascicolo, "tipo", ""))
+    if tipo == "AMMINISTRATIVO":
+        # Processo amministrativo telematico (art. 136 c.p.a.): si deposita dal Formweb del Portale dell'Avvocato,
+        # non con la busta PCT né da PolisWeb.
+        return [
+            {"label": "Deposito telematico", "value": "Formweb PAT", "note": "dati, parti, file e verifica del riepilogo", "href": f"/fascicoli/{encoded_fid}#pat-formweb", "tone": "success"},
+            {"label": "PAT", "value": "Portale dell'Avvocato", "note": "fascicoli amministrativi e depositi", "href": "/pat", "tone": "info"},
+            {"label": "Modulo PEC", "value": "Canale residuale", "note": "modulo ministeriale XFA per la PEC", "href": "/pat?modulo=pec", "tone": "neutral"},
+        ]
     return [
         {"label": "Deposito telematico", "value": "Prepara", "note": "busta, firma, PEC e ricevute", "href": f"/fascicoli/{encoded_fid}/deposito/prepara", "tone": "success"},
         {"label": "PolisWeb / PST", "value": "Apri", "note": "consultazione e acquisizione guidata", "href": f"/polisWeb?id_fasc={fid}", "tone": "primary"},

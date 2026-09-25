@@ -191,3 +191,55 @@ def test_apertura_fascicolo_amministrativo_imposta_il_procedimento(tmp_path):
             "id_cliente": cliente.id, "titolo": "Sede errata", "tipo": TipoFascicolo.AMMINISTRATIVO.value, "oggetto": "x",
             "tribunale": "TAR Calabria - Reggio", "pat_sede": "tar_xx"}, follow_redirects=False)
         assert errato.status_code in {302, 303}  # il fascicolo nasce comunque; il PAT si completa dopo
+
+
+def test_ricorso_gia_depositato_dati_letti_e_deposito_registrato(tmp_path, monkeypatch):
+    """Fascicolo senza ufficio né NRG: sede e NRG arrivano dall'archivio delle letture, nessun documento riletto."""
+    from pct.registro_letture.fatti_repository import Fatto
+    from web.services import archivio_letture_runtime
+
+    app = _app(tmp_path)
+    with app.app_context():
+        gf = app.extensions["core_runtime"]["get_fascicoli"]()
+        f = gf.nuovo("Precetto Tar Roma", TipoFascicolo.AMMINISTRATIVO, nome_cliente="Verdi Anna")
+        sentenza = gf.aggiungi_documento(f.id, "Sentenza.PDF", TipoDocumento.ALLEGATO, pdf_testo("Sentenza"))
+        precetto = gf.aggiungi_documento(f.id, "Atto di precetto Avv. Verdi", TipoDocumento.ALLEGATO, pdf_testo("Precetto"),
+                                         nome_originale="Atto di precetto Avv. Verdi.pdf")
+        fid = f.id
+    fatto = Fatto(categoria="ruolo", campo="numero_ruolo", valore="10549/2025", verifica="verificata", oggetto_id=sentenza.id,
+                  tipo="documento", motore="documenti", fascicolo_id=fid, contesto="Il Tribunale Amministrativo Regionale per il Lazio (Sezione Seconda) ha pronunciato la presente "
+                                     "SENTENZA sul ricorso numero di registro generale 10549 del 2025")
+    chiamate = []
+    originale = archivio_letture_runtime.fatti_fascicolo
+
+    def fatti(fascicolo, **filtri):
+        if filtri != {"categoria": "ruolo"}:
+            return originale(fascicolo, **filtri)
+        chiamate.append(filtri)
+        return [fatto]  # nessuna lettura: i fatti vengono dall'archivio
+
+    monkeypatch.setattr(archivio_letture_runtime, "fatti_fascicolo", fatti)
+    base = f"/api/v1/ui/amministrativo/fascicoli/{fid}"
+    with app.test_client() as client:
+        quadro = client.get(f"{base}?tipo=atto-successivo", headers=H).get_json()
+        assert chiamate and chiamate[0] == {"categoria": "ruolo"}
+        assert quadro["letti"]["nrg"]["valore"] == "202510549" and quadro["letti"]["sede"]["valore"] == "tar_rm"
+        assert quadro["tipoSuggerito"] == "atto-successivo"
+        righe = {r["etichetta"]: r for r in quadro["scheda"]["sezioni"][0]["righe"]}
+        assert righe["Sede"]["valore"] == "TAR LAZIO - ROMA" and righe["Sede"]["stato"] == "verifica"
+        assert righe["NRG"]["valore"] == "202510549" and "«Sentenza.PDF»" in righe["NRG"]["nota"]
+        assert quadro["procedimento"]["nrg"] == ""  # proposta, non ancora confermata
+        documenti = {d["id"]: d for d in quadro["documenti"]}
+        assert documenti[precetto.id]["nomeProposto"] == "Atto di precetto Avv Verdi.pdf"
+        assert not [e for e in documenti[precetto.id]["esiti"] if e["codice"] == "FORMATO"]
+
+        confermato = client.post(f"{base}/procedimento?tipo=atto-successivo", headers=H, json={"sede": "tar_rm", "nrg": "202510549"}).get_json()
+        assert confermato["procedimento"]["nrg"] == "202510549" and "nrg" not in confermato["letti"]
+        registrato = client.post(f"{base}/depositi", headers=H, json={"tipo": "ricorso", "stato": "depositato", "note": "depositato prima di IUSENTRA"})
+        assert registrato.status_code == 200
+        quadro = client.get(base, headers=H).get_json()
+        assert quadro["depositi"][0]["stato"] == "depositato" and quadro["depositi"][0]["note"] == "depositato prima di IUSENTRA"
+
+        pagina = client.get(f"/api/v1/ui/fascicoli/{fid}", headers=H).get_json()
+        assert pagina["telematic"][0]["href"].endswith("#pat-formweb")
+        assert not any("PolisWeb" in voce["label"] for voce in pagina["telematic"])

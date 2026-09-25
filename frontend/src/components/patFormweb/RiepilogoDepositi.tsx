@@ -31,9 +31,10 @@ function Esito({ esito }: { esito: EsitoRiepilogo }) {
 }
 
 /** Verifica del riepilogo generato dal Formweb e registro dei depositi PAT del fascicolo. */
-export function RiepilogoDepositi({ fascicoloId, tipo, depositi, onAggiorna }: {
+export function RiepilogoDepositi({ fascicoloId, tipo, tipi, depositi, onAggiorna }: {
   fascicoloId: string
   tipo: string
+  tipi: Array<{ id: string; nome: string }>
   depositi: DepositoPat[]
   onAggiorna: () => void
 }) {
@@ -63,6 +64,19 @@ export function RiepilogoDepositi({ fascicoloId, tipo, depositi, onAggiorna }: {
       setMessaggio(e instanceof Error ? e.message : 'Aggiornamento non riuscito.')
     }
   }
+  const registra = async (evento: FormEvent<HTMLFormElement>) => {
+    evento.preventDefault()
+    const modulo = evento.currentTarget
+    const f = new FormData(modulo)
+    try {
+      await patApi.deposito(fascicoloId, { tipo: f.get('tipo'), stato: f.get('stato'), identificativo: String(f.get('identificativo') || '').trim(), note: String(f.get('note') || '').trim() })
+      setMessaggio('Deposito registrato nel fascicolo.')
+      modulo.reset()
+      onAggiorna()
+    } catch (e) {
+      setMessaggio(e instanceof Error ? e.message : 'Registrazione non riuscita.')
+    }
+  }
   return (
     <div className="iu-pat-riepilogo">
       <form className="iu-pat-carica" onSubmit={(e) => void verifica(e)}>
@@ -80,8 +94,8 @@ export function RiepilogoDepositi({ fascicoloId, tipo, depositi, onAggiorna }: {
         {depositi.map((d) => (
           <li key={d.id}>
             <div>
-              <strong>{d.tipo}</strong>
-              <span>{new Date(d.aggiornatoIl).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}{d.identificativo ? ` · identificativo ${d.identificativo}` : ''}</span>
+              <strong>{tipi.find((t) => t.id === d.tipo)?.nome || d.tipo}</strong>
+              <span>{new Date(d.aggiornatoIl).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}{d.identificativo ? ` · identificativo ${d.identificativo}` : ''}{d.note ? ` · ${d.note}` : ''}</span>
               <Badge tone={d.stato === 'depositato' ? 'success' : d.stato === 'rifiutato' ? 'danger' : 'info'}>{d.stato}</Badge>
             </div>
             <form className="iu-pat-doc__scelte" onSubmit={(e) => void aggiorna(e, d.id)}>
@@ -91,8 +105,19 @@ export function RiepilogoDepositi({ fascicoloId, tipo, depositi, onAggiorna }: {
             </form>
           </li>
         ))}
-        {!depositi.length ? <li>Nessun deposito registrato: nasce con la verifica del primo riepilogo.</li> : null}
+        {!depositi.length ? <li>Nessun deposito registrato: nasce con la verifica del riepilogo o si registra qui sotto se è già stato fatto.</li> : null}
       </ul>
+      <form className="iu-pat-carica" onSubmit={(e) => void registra(e)}>
+        <h5>Registra un deposito già fatto</h5>
+        <p className="iu-pat-nota">Per i depositi fatti prima di usare IUSENTRA o fuori dal fascicolo: stato e identificativo come li mostra «Elenco depositi» del portale. Nessun invio.</p>
+        <div className="iu-pat-form">
+          <label>Tipo di deposito<select name="tipo" defaultValue={tipo}>{tipi.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}</select></label>
+          <label>Stato sul portale<select name="stato" defaultValue="depositato">{STATI.map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
+          <label>Identificativo deposito<input name="identificativo" placeholder="dalla ricevuta del portale"/></label>
+          <label className="iu-pat-largo">Note<input name="note" maxLength={300} placeholder="es. ricorso depositato il …"/></label>
+        </div>
+        <div className="iu-pat-barra"><button type="submit" className="iu-pat-primario">Registra deposito</button></div>
+      </form>
     </div>
   )
 }

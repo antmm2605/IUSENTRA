@@ -21,6 +21,8 @@
 .iu-pat-avviso { border-color: rgba(180, 83, 9, .35); background: rgba(254, 243, 199, .55); color: #78350f; }
 .iu-pat-ok { border-color: rgba(15, 123, 87, .3); background: rgba(209, 250, 229, .55); color: #065f46; }
 .iu-pat-errore { border-color: rgba(185, 28, 28, .3); background: rgba(254, 226, 226, .55); color: #7f1d1d; }
+.iu-pat-letti { justify-content: space-between; flex-wrap: wrap; }
+.iu-pat-letti small { font-weight: 600; color: inherit; }
 .iu-pat-testo-errore { color: #b91c1c !important; }
 .iu-pat-testo-ok { color: #047857 !important; }
 

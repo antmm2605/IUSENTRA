@@ -101,7 +101,14 @@ export type QuadroPat = {
   scheda: Scheda
   tipiRicorso: Voce[]
   linkPortale: string
+  tipoSuggerito?: string
+  letti?: {
+    nrg?: DatoLetto & { rg: string; altri?: string[] }
+    sede?: DatoLetto
+  }
 }
+
+export type DatoLetto = { valore: string; verifica: string; documenti: string[] }
 
 export type CatalogoPat = {
   ok: boolean

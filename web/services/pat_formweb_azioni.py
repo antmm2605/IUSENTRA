@@ -145,7 +145,7 @@ def aggiorna_deposito(fid: str, dati: dict[str, Any]) -> dict[str, Any]:
     contesto.fascicolo_amministrativo(fid)
     if not dati.get("id"):
         catalogo.deposito(str(dati.get("tipo") or ""))
-    voce = {k: dati[k] for k in ("id", "tipo", "stato", "identificativo", "note") if k in dati}
+    voce = {k: str(dati[k] or "").strip()[:300] for k in ("id", "tipo", "stato", "identificativo", "note") if k in dati}
     return contesto.archivio().registra_deposito(fid, voce)
 
 

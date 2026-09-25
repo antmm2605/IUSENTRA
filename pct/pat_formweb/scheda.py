@@ -51,8 +51,24 @@ def _riga_file(etichetta: str, doc: dict[str, Any] | None, obbligatorio: bool = 
     return _riga(etichetta, doc.get("nomeProposto") or doc.get("nome"), stato, nota)
 
 
+def _proposta(ctx: dict[str, Any], campo: str) -> dict[str, Any] | None:
+    """Il dato letto dai documenti del fascicolo, se il procedimento non lo ha ancora."""
+    voce = (ctx.get("letti") or {}).get(campo)
+    return voce if voce and voce.get("valore") else None
+
+
+def _nota_letto(voce: dict[str, Any]) -> str:
+    fonti = ", ".join(f"«{nome}»" for nome in voce.get("documenti") or []) or "i documenti del fascicolo"
+    altri = f" Nei documenti compaiono anche: {', '.join(voce['altri'])}." if voce.get("altri") else ""
+    return f"Letto da {fonti} (archivio delle letture): conferma nel Procedimento.{altri}"
+
+
 def passi_iniziali(ctx: dict[str, Any], tipo: dict[str, Any]) -> dict[str, Any]:
     codice, etichetta = _sede(ctx)
+    sede_letta = None if codice else _proposta(ctx, "sede")
+    if sede_letta:
+        codice = sede_letta["valore"]
+        etichetta = next((e for c, e in catalogo.SEDI.values() if c == codice), "")
     proc, avv = ctx["procedimento"], ctx.get("avvocato") or {}
     righe = [_riga("Depositante", avv.get("nome"), OK if avv.get("nome") else VERIFICA,
                    "Il portale lo compila dal ReGIndE con la PEC dei registri di giustizia.", copia=False)]
@@ -62,9 +78,12 @@ def passi_iniziali(ctx: dict[str, Any], tipo: dict[str, Any]) -> dict[str, Any]:
                            VERIFICA if cassazionista and not proc.get("cassazionista") else OK,
                            "Solo per Consiglio di Stato e CGARS (art. 76 d.P.R. 445/2000).", copia=False))
     righe.append(_riga("Autorità giurisdizionale", catalogo.ambito(codice)))
-    righe.append(_riga("Sede", etichetta, nota="Scegli la sede con questa scrittura."))
+    righe.append(_riga("Sede", etichetta, VERIFICA if sede_letta else "",
+                       _nota_letto(sede_letta) if sede_letta else "Scegli la sede con questa scrittura."))
     if tipo["nrg"]:
-        righe.append(_riga("NRG", proc.get("nrg"), nota="Numero di registro generale, es. 202600123."))
+        nrg_letto = None if proc.get("nrg") else _proposta(ctx, "nrg")
+        righe.append(_riga("NRG", nrg_letto["valore"] if nrg_letto else proc.get("nrg"), VERIFICA if nrg_letto else "",
+                           _nota_letto(nrg_letto) if nrg_letto else "Numero di registro generale, es. 202600123."))
     if tipo["id"] == "ricorso":
         primo = next(iter(_per_ruolo(ctx["parti"], "ricorrente")), None)
         righe.append(_riga("Ricorrente (primo)", _parte_testo(primo) if primo else "",

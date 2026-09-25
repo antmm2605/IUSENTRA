@@ -18,7 +18,9 @@ export default function PatFormwebSezione({ fascicoloId, onDocumenti }: { fascic
   const [connessione, setConnessione] = useState<Connessione | null>(null)
   const [errore, setErrore] = useState('')
   const [tipo, setTipo] = useState('ricorso')
+  const [tipoScelto, setTipoScelto] = useState(false)
   const [scheda, setScheda] = useState<Scheda>('scheda')
+  const [conferma, setConferma] = useState('')
 
   const ricarica = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -36,6 +38,11 @@ export default function PatFormwebSezione({ fascicoloId, onDocumenti }: { fascic
   }, [ricarica])
 
   useEffect(() => {
+    // Con l'NRG già noto (anche letto dai documenti) il ricorso è depositato: si parte dai depositi successivi.
+    if (!tipoScelto && quadro?.tipoSuggerito && quadro.tipoSuggerito !== tipo) setTipo(quadro.tipoSuggerito)
+  }, [quadro?.tipoSuggerito, tipo, tipoScelto])
+
+  useEffect(() => {
     const abort = new AbortController()
     patApi.catalogo(abort.signal).then(setCatalogo).catch(() => undefined)
     patApi.connessione(abort.signal).then(setConnessione).catch(() => undefined)
@@ -49,6 +56,18 @@ export default function PatFormwebSezione({ fascicoloId, onDocumenti }: { fascic
   const sede = catalogo?.sedi.find((s) => s.codice === p.sede)?.descrizione || 'Sede da indicare'
   const tipoRicorso = quadro.tipiRicorso.find((t) => t.codice === p.tipoRicorso)?.descrizione
   const aggiorna = (nuovo: QuadroPat) => setQuadro(nuovo)
+  const scegliTipo = (nuovo: string) => { setTipoScelto(true); setTipo(nuovo) }
+  const letti = quadro.letti || {}
+  const sedeLetta = letti.sede ? catalogo?.sedi.find((s) => s.codice === letti.sede?.valore)?.descrizione || letti.sede.valore : ''
+  const fonti = Array.from(new Set([...(letti.nrg?.documenti || []), ...(letti.sede?.documenti || [])]))
+  const confermaLetti = async () => {
+    try {
+      aggiorna(await patApi.procedimento(fascicoloId, tipo, { ...(letti.sede ? { sede: letti.sede.valore } : {}), ...(letti.nrg ? { nrg: letti.nrg.valore } : {}) }))
+      setConferma('Dati confermati nel procedimento.')
+    } catch (e) {
+      setConferma(e instanceof Error ? e.message : 'Conferma non riuscita.')
+    }
+  }
   const schede: Array<{ id: Scheda; etichetta: string; icona: ReactNode; conta?: number }> = [
     { id: 'scheda', etichetta: 'Prepara il deposito', icona: <ClipboardList size={15}/> },
     { id: 'procedimento', etichetta: 'Procedimento', icona: <Landmark size={15}/> },
@@ -69,6 +88,17 @@ export default function PatFormwebSezione({ fascicoloId, onDocumenti }: { fascic
         </div>
         <a className="iu-pat-link" href={quadro.linkPortale} target="_blank" rel="noreferrer"><ExternalLink size={14}/> Portale dell’Avvocato</a>
       </header>
+      {letti.nrg || letti.sede ? (
+        <div className="iu-pat-avviso iu-pat-letti" role="status">
+          <span>
+            <strong>Letto dai documenti del fascicolo:</strong>{' '}
+            {[sedeLetta, letti.nrg ? `NRG ${letti.nrg.valore} (R.G. ${letti.nrg.rg})` : ''].filter(Boolean).join(' · ')}
+            {fonti.length ? <small> — da {fonti.map((f) => `«${f}»`).join(', ')}</small> : null}
+          </span>
+          <button type="button" className="iu-pat-primario" onClick={() => void confermaLetti()}>Conferma e usa</button>
+        </div>
+      ) : null}
+      {conferma ? <p className="iu-pat-nota" role="status">{conferma}</p> : null}
       <p className="iu-pat-nota">Dal 1° febbraio 2026 il deposito si fa dal Formweb del Portale dell’Avvocato (SPID, CIE o CNS). IUSENTRA prepara dati, parti e file e controlla il riepilogo: l’invio resta a te.</p>
       <div className="iu-pat-schede" role="tablist" aria-label="Deposito amministrativo">
         {schede.map((s) => (
@@ -78,11 +108,11 @@ export default function PatFormwebSezione({ fascicoloId, onDocumenti }: { fascic
         ))}
       </div>
       <div role="tabpanel">
-        {scheda === 'scheda' ? <SchedaFormweb fascicoloId={fascicoloId} scheda={quadro.scheda} catalogo={catalogo} tipo={tipo} onTipo={setTipo}/> : null}
+        {scheda === 'scheda' ? <SchedaFormweb fascicoloId={fascicoloId} scheda={quadro.scheda} catalogo={catalogo} tipo={tipo} onTipo={scegliTipo}/> : null}
         {scheda === 'procedimento' ? <ProcedimentoPat quadro={quadro} catalogo={catalogo} onSalva={async (dati) => aggiorna(await patApi.procedimento(fascicoloId, tipo, dati))}/> : null}
         {scheda === 'parti' ? <PartiPat fascicoloId={fascicoloId} parti={quadro.parti} onRuolo={async (id, ruolo) => aggiorna(await patApi.parte(fascicoloId, tipo, id, ruolo))}/> : null}
         {scheda === 'documenti' ? <DocumentiPat fascicoloId={fascicoloId} documenti={quadro.documenti} onSalva={async (id, ruolo, descr) => aggiorna(await patApi.documento(fascicoloId, tipo, id, ruolo, descr))}/> : null}
-        {scheda === 'riepilogo' ? <RiepilogoDepositi fascicoloId={fascicoloId} tipo={tipo} depositi={quadro.depositi} onAggiorna={() => { void ricarica(); onDocumenti?.() }}/> : null}
+        {scheda === 'riepilogo' ? <RiepilogoDepositi fascicoloId={fascicoloId} tipo={tipo} tipi={catalogo?.depositi || []} depositi={quadro.depositi} onAggiorna={() => { void ricarica(); onDocumenti?.() }}/> : null}
       </div>
     </div>
   )

@@ -17,6 +17,7 @@ from typing import Any
 from flask import current_app
 
 from pct.fascicoli import TipoFascicolo
+from pct.pat_formweb import letture as pat_letture
 from pct.pat_formweb import ArchivioPat, catalogo, contributo, parti, regole, scheda
 from pct.pat_formweb.archivio import RUOLI_DOCUMENTO
 from web.services.tenant_paths import tenant_data_path
@@ -117,25 +118,39 @@ def _versamento(fascicolo: Any) -> str:
 def documenti(fascicolo: Any, scelte: dict[str, Any]) -> list[dict[str, Any]]:
     """I documenti del fascicolo con ruolo, nome accettato dal Formweb e controlli dai metadati."""
     elenco = [d for d in getattr(fascicolo, "documenti", []) or [] if not getattr(d, "eliminato_il", "")]
-    nomi = regole.nomi_unici([d.nome for d in elenco])
+    nomi_file = [regole.con_estensione(d.nome, getattr(d, "nome_originale", ""), getattr(d, "percorso", "")) for d in elenco]
+    nomi = regole.nomi_unici(nomi_file)
     esito = []
-    for doc, proposto in zip(elenco, nomi):
+    for doc, nome_file, proposto in zip(elenco, nomi_file, nomi):
         scelta = scelte.get(doc.id) or {}
         ruolo = scelta.get("ruolo") or _ruolo_proposto(doc)
         firmato = bool(getattr(doc, "firmato_digitalmente", False))
+        ext = regole.estensione(nome_file)
         voce = regole.ControlloFile(doc.nome, ruolo, int(doc.dimensione_bytes or 0), str(doc.hash_sha256 or "").upper(),
-                                    "pades" if firmato and regole.estensione(doc.nome) == "pdf" else ("cades" if firmato else "assente"),
-                                    proposto)
-        if not regole.nome_valido(doc.nome):
+                                    "pades" if firmato and ext == "pdf" else ("cades" if firmato else "assente"), proposto)
+        if not regole.nome_valido(nome_file):
             voce.esiti.append(regole.EsitoFile("NOME_NON_VALIDO", "avviso", f"Nel pacchetto IUSENTRA diventa «{proposto}»."))
-        ext = regole.estensione(doc.nome)
         if ruolo in {"atto", "procura"} and (ext != "pdf" or not firmato):
             voce.esiti.append(regole.EsitoFile("FIRMA_MANCANTE", "errore", "Atto e procura: PDF firmato digitalmente (PAdES)."))
         elif ruolo != "escludi" and ext not in regole.ESTENSIONI_ALLEGATI:
-            voce.esiti.append(regole.EsitoFile("FORMATO", "avviso", f"Formato .{ext or '?'} ammesso solo se una norma lo richiede."))
+            voce.esiti.append(regole.EsitoFile("FORMATO", "avviso", f"Formato .{ext} ammesso solo se una norma lo richiede." if ext else
+                                               "Il nome del file non dice il formato: controlla che sia un PDF prima di caricarlo."))
         descrizione = str(scelta.get("descrizione") or regole.radice(proposto))[:regole.LIMITE_DESCRIZIONE]
         esito.append({**voce.to_dict(), "id": doc.id, "descrizione": descrizione, "sceltaAvvocato": bool(scelta)})
     return esito
+
+
+def letti(fascicolo: Any) -> dict[str, dict[str, Any]]:
+    """NRG e sede che l'archivio delle letture ha già trovato nei documenti del fascicolo (nessuna lettura qui)."""
+    try:
+        from web.services.archivio_letture_runtime import fatti_fascicolo
+
+        fatti = fatti_fascicolo(fascicolo, categoria="ruolo")
+    except Exception:
+        current_app.logger.warning("Archivio delle letture non consultabile per il PAT di %s", fascicolo.id, exc_info=True)
+        return {}
+    nomi = {d.id: d.nome for d in getattr(fascicolo, "documenti", []) or []}
+    return pat_letture.dati_letti(fatti, nomi)
 
 
 def contesto(fid: str) -> dict[str, Any]:
@@ -143,6 +158,7 @@ def contesto(fid: str) -> dict[str, Any]:
     salvato = archivio().fascicolo(fid)
     proc = {"sede": sede_da_ufficio(fascicolo.tribunale), "nrg": nrg(fascicolo), "posizione": "ricorrente",
             "oggetto": fascicolo.oggetto or fascicolo.titolo, **{k: v for k, v in salvato["procedimento"].items() if v not in (None, "")}}
+    proposte = {campo: voce for campo, voce in letti(fascicolo).items() if not proc.get(campo)}
     soggetti = [(getattr(p.ruolo, "value", str(p.ruolo)), _dati_soggetto(s))
                 for p, s in _runtime("get_soggetti").parti_fascicolo(fid)]
     elenco_parti = parti.parti_pat(_cliente(fascicolo), soggetti, proc.get("posizione") or "ricorrente", salvato["ruoli"])
@@ -157,15 +173,22 @@ def contesto(fid: str) -> dict[str, Any]:
         cu = {"importo": None, "nota": "Calcolo non disponibile: verifica la tabella art. 13 c. 6-bis."}
     cu["versamento"] = _versamento(fascicolo)
     return {"fascicolo": {"id": fid, "titolo": fascicolo.titolo, "oggetto": fascicolo.oggetto, "ufficio": fascicolo.tribunale},
-            "procedimento": proc, "avvocato": _avvocato(), "parti": elenco_parti, "contributo": cu,
+            "procedimento": proc, "letti": proposte, "avvocato": _avvocato(), "parti": elenco_parti, "contributo": cu,
             "documenti": documenti(fascicolo, salvato.get("documenti") or {}), "depositi": salvato["depositi"]}
+
+
+def tipo_suggerito(ctx: dict[str, Any]) -> str:
+    """Con un NRG (indicato o letto) il ricorso è già iscritto: i depositi da fare sono quelli successivi."""
+    ha_nrg = ctx["procedimento"].get("nrg") or (ctx.get("letti") or {}).get("nrg")
+    gia_depositato = any(d.get("tipo") == "ricorso" and d.get("stato") == "depositato" for d in ctx.get("depositi") or [])
+    return "atto-successivo" if ha_nrg or gia_depositato else "ricorso"
 
 
 def quadro(fid: str, tipo: str = "ricorso") -> dict[str, Any]:
     ctx = contesto(fid)
-    return {"ok": True, **ctx, "scheda": scheda.scheda(ctx, tipo),
-            "tipiRicorso": catalogo.tipi_ricorso(ctx["procedimento"].get("sede") or ""),
-            "linkPortale": catalogo.PORTALE}
+    sede = ctx["procedimento"].get("sede") or ((ctx.get("letti") or {}).get("sede") or {}).get("valore") or ""
+    return {"ok": True, **ctx, "scheda": scheda.scheda(ctx, tipo), "tipoSuggerito": tipo_suggerito(ctx),
+            "tipiRicorso": catalogo.tipi_ricorso(sede), "linkPortale": catalogo.PORTALE}
 
 
 __all__ = ["RUOLI_DOCUMENTO", "archivio", "contesto", "documenti", "fascicolo_amministrativo", "nrg", "quadro", "sede_da_ufficio"]

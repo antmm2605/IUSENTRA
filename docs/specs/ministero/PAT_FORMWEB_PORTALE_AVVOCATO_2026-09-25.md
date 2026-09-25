@@ -110,6 +110,19 @@ Il portale non offre un canale per i gestionali. IUSENTRA prepara e verifica, me
   - interfaccia in `frontend/src/components/patFormweb/`;
   - test in `tests/test_pat_formweb.py` e `tests/test_pat_formweb_api.py`.
 
+### Fascicoli con ricorso già depositato (2.405.0)
+
+Collaudo su un fascicolo reale già depositato: fascicolo importato, senza ufficio né NRG, con sentenza, precetto, relate e ricevute PEC.
+
+- **Dati letti dai documenti.** IUSENTRA propone l'NRG e la sede dai fatti «ruolo» dell'archivio delle letture (`pct/pat_formweb/letture.py`). Esempio: l'epigrafe «Tribunale Amministrativo Regionale per il Lazio (Sezione …) … registro generale 10549 del 2025» dà NRG 202510549 e sede TAR LAZIO - ROMA; le sezioni staccate vengono riconosciute.
+  - Non rilegge nessun documento: usa solo i fatti già estratti.
+  - Nella scheda i dati letti restano «da verificare», con il nome del documento da cui vengono.
+  - Diventano dati del procedimento solo con «Conferma e usa».
+- **Deposito proposto.** Se l'NRG è noto (indicato o letto) o c'è un ricorso depositato, la scheda parte da «Atto successivo».
+- **Depositi già fatti.** «Registra un deposito già fatto» li aggiunge con tipo, stato, identificativo e note. Non invia nulla.
+- **Formato dei file.** L'estensione viene dal file conservato (`nome_originale` o `percorso`) quando il titolo non la riporta. Un punto nel titolo, come in «Avv. Rossi», non è più scambiato per un formato.
+- **Servizi telematici del fascicolo amministrativo.** Portano al Formweb PAT (`#pat-formweb`), alla pagina /pat e al modulo PEC, non alla busta PCT né a PolisWeb.
+
 ## 5. Modulo XFA per il deposito via PEC (canale residuale, 2.404.0)
 
 Collaudo del 25/09/2026 sui moduli ufficiali forniti dallo studio (identici, per impronta SHA-256, a quelli in `pct/data/pat_moduli/`).

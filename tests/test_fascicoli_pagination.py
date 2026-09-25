@@ -1539,3 +1539,68 @@ def test_viste_compatta_e_schede_mantengono_i_dati_economici():
     assert '<td colSpan={4}><EconomicEvidenceStrip row={item}/></td>' in component
     assert ".iu-fas-economic-evidence-row .iu-fas-economic-evidence" in styles
     assert ".iu-fas-card-grid .iu-fas-collection-economic>.iu-fas-economic-summary-grid" in styles
+
+
+def test_la_base_dell_elenco_si_condivide_fra_i_worker(tmp_path, monkeypatch):
+    """Pagina 1 su un worker, pagina 3 su un altro: la base non si ricalcola.
+
+    In produzione (24/09/2026) le pagine 2 e 3, richieste subito dopo la
+    prima, finivano su worker con la memoria fredda e ricalcolavano tutto
+    l'elenco (2,4 s). La base resta anche su disco, nell'istanza.
+    """
+    app = _app(tmp_path)
+    _seed_fascicoli(app, 31)
+    api_v1_react._clear_fascicoli_list_payload_cache()
+    react_fascicoli_bridge.clear_react_fascicoli_base_cache()
+    calcoli = {"count": 0}
+    originale = react_fascicoli_bridge.duplicate_practice_groups
+
+    def contato(fascicoli):
+        calcoli["count"] += 1
+        return originale(fascicoli)
+
+    monkeypatch.setattr(react_fascicoli_bridge, "duplicate_practice_groups", contato)
+
+    with app.test_client() as client:
+        prima = client.get("/api/v1/ui/fascicoli?page=1&page_size=10&sort=cliente&view=operativa", headers={"X-API-Key": "react-test-key"})
+        # un altro worker: memoria vuota, stesso disco
+        with react_fascicoli_bridge._FASCICOLI_LIST_BASE_CACHE_LOCK:
+            react_fascicoli_bridge._FASCICOLI_LIST_BASE_CACHE.clear()
+        api_v1_react._FASCICOLI_LIST_PAYLOAD_CACHE.clear()
+        terza = client.get("/api/v1/ui/fascicoli?page=3&page_size=10&sort=cliente&view=operativa", headers={"X-API-Key": "react-test-key"})
+
+        assert prima.status_code == 200 and terza.status_code == 200
+        assert calcoli["count"] == 1
+        assert terza.get_json()["pagination"]["page"] == 3
+        assert prima.headers["X-IUSENTRA-Cache"] == "MISS"
+        assert prima.headers["Server-Timing"].startswith("elenco;dur=")
+
+        # una modifica svuota anche la copia su disco
+        react_fascicoli_bridge.clear_react_fascicoli_base_cache()
+        api_v1_react._clear_fascicoli_list_payload_cache()
+        client.get("/api/v1/ui/fascicoli?page=1&page_size=10&sort=cliente&view=operativa", headers={"X-API-Key": "react-test-key"})
+    assert calcoli["count"] == 2
+
+
+def test_una_modifica_su_un_worker_invalida_la_memoria_degli_altri(tmp_path, monkeypatch):
+    app = _app(tmp_path)
+    _seed_fascicoli(app, 12)
+    api_v1_react._clear_fascicoli_list_payload_cache()
+    calcoli = {"count": 0}
+    originale = react_fascicoli_bridge.duplicate_practice_groups
+
+    def contato(fascicoli):
+        calcoli["count"] += 1
+        return originale(fascicoli)
+
+    monkeypatch.setattr(react_fascicoli_bridge, "duplicate_practice_groups", contato)
+    url = "/api/v1/ui/fascicoli?page=1&page_size=10&sort=cliente&view=operativa"
+    with app.test_client() as client:
+        client.get(url, headers={"X-API-Key": "react-test-key"})
+        # un altro worker salva una modifica: cancella solo il disco
+        with app.app_context():
+            for voce in react_fascicoli_bridge._fascicoli_base_cache_dir().glob("*.json"):
+                voce.unlink()
+        api_v1_react._FASCICOLI_LIST_PAYLOAD_CACHE.clear()
+        client.get(url, headers={"X-API-Key": "react-test-key"})
+    assert calcoli["count"] == 2

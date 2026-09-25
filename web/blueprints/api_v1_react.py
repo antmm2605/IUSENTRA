@@ -178,6 +178,7 @@ from web.services.react_fascicoli_bridge import (
     build_react_fascicolo_detail_payload,
     build_react_fascicolo_form_payload,
     clear_react_fascicoli_base_cache,
+    fasi_lente,
     generate_react_fascicolo_proforma,
     run_react_fascicoli_economic_presidio,
     update_react_fascicolo_deposit_value,
@@ -8541,7 +8542,10 @@ def fascicoli_react_list():
     if cache_key is not None:
         cached = _FASCICOLI_LIST_PAYLOAD_CACHE.get(cache_key)
         if cached is not None:
-            return current_app.response_class(cached, mimetype="application/json")
+            response = current_app.response_class(cached, mimetype="application/json")
+            response.headers["X-IUSENTRA-Cache"] = "HIT"
+            return response
+    inizio = time.monotonic()
     response = jsonify(build_react_fascicoli_payload(
         get_fascicoli=_fascicoli_elenco_loader(),
         get_scadenziario=get_scadenziario,
@@ -8570,6 +8574,11 @@ def fascicoli_react_list():
         },
         field_filters=_fascicoli_request_field_filters(),
     ))
+    # Quanto costa l'elenco e dove: leggibile negli strumenti del browser.
+    fasi = ", ".join(f"{nome};dur={durata}" for nome, durata in list(fasi_lente(20).items())[:10])
+    totale = f"elenco;dur={round(1000 * (time.monotonic() - inizio))}"
+    response.headers["Server-Timing"] = f"{totale}, {fasi}" if fasi else totale
+    response.headers["X-IUSENTRA-Cache"] = "MISS"
     if cache_key is not None and response.status_code == 200:
         _FASCICOLI_LIST_PAYLOAD_CACHE.set(cache_key, response.get_data())
     return response

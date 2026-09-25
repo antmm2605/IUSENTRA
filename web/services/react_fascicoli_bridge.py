@@ -99,7 +99,8 @@ _FASCICOLI_LIST_BASE_MAX_ENTRIES = max(
     int(os.getenv("IUSENTRA_REACT_FASCICOLI_BASE_MAX_ENTRIES") or 64),
 )
 _FASCICOLI_LIST_BASE_CACHE_LOCK = threading.Lock()
-_FASCICOLI_LIST_BASE_CACHE: OrderedDict[tuple, tuple[float, str]] = OrderedDict()
+# chiave -> (scadenza, json, percorso su disco o None)
+_FASCICOLI_LIST_BASE_CACHE: OrderedDict[tuple, tuple[float, str, Path | None]] = OrderedDict()
 
 
 def _now() -> str:
@@ -145,6 +146,15 @@ def fasi_lente(soglia_ms: int = SOGLIA_FASE_LENTA_MS) -> dict[str, int]:
         return {}
     lente = {k: v for k, v in tempi.items() if v >= soglia_ms}
     return dict(sorted(lente.items(), key=lambda kv: kv[1], reverse=True))
+
+
+def _fase(label: str, func: Callable[[], Any]) -> Any:
+    """Esegue una fase e ne somma il tempo sulla richiesta (senza ripiego)."""
+    inizio = time.monotonic()
+    try:
+        return func()
+    finally:
+        _conta_tempo_fase(label, round(1000 * (time.monotonic() - inizio)))
 
 
 def _safe(label: str, func: Callable[[], Any], fallback: Any) -> Any:
@@ -240,10 +250,50 @@ def _current_cache_scope() -> str:
 
 
 def clear_react_fascicoli_base_cache() -> None:
-    """Svuota la base lista fascicoli usata per paginazione veloce."""
+    """Svuota la base lista fascicoli usata per paginazione veloce.
+
+    Anche la copia su disco: gli altri worker non devono servire l'elenco di
+    prima di una modifica.
+    """
 
     with _FASCICOLI_LIST_BASE_CACHE_LOCK:
         _FASCICOLI_LIST_BASE_CACHE.clear()
+    directory = _fascicoli_base_cache_dir()
+    if directory is None:
+        return
+    for voce in directory.glob("*.json"):
+        try:
+            voce.unlink()
+        except OSError:
+            continue
+
+
+def _fascicoli_base_cache_dir() -> Path | None:
+    """La base dell'elenco condivisa fra i worker del server.
+
+    Ogni worker gunicorn ha la sua memoria: con la sola cache in memoria la
+    pagina 1 scaldava un worker e le pagine 2 e 3, richieste subito dopo,
+    finivano su un altro worker che ricalcolava tutto da capo (2,4 s in
+    produzione il 24/09/2026). La base serializzata si tiene anche su disco,
+    nell'istanza dell'applicazione, con la stessa scadenza.
+    """
+    if not has_app_context():
+        return None
+    configurato = _text(current_app.config.get("FASCICOLI_ELENCO_CACHE_DIR")).strip()
+    base = Path(configurato) if configurato else Path(current_app.instance_path) / "cache" / "fascicoli-elenco"
+    try:
+        base.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        return None
+    return base
+
+
+def _fascicoli_base_cache_file(key: tuple) -> Path | None:
+    directory = _fascicoli_base_cache_dir()
+    if directory is None:
+        return None
+    raw = json.dumps(list(key), ensure_ascii=False, separators=(",", ":"), default=str).encode("utf-8")
+    return directory / f"{hashlib.sha256(raw).hexdigest()}.json"
 
 
 def _current_user_cache_id() -> str:
@@ -328,13 +378,18 @@ def _fascicoli_base_cache_get(key: tuple | None) -> dict[str, Any] | None:
     now = time.monotonic()
     with _FASCICOLI_LIST_BASE_CACHE_LOCK:
         entry = _FASCICOLI_LIST_BASE_CACHE.get(key)
+        # Una modifica su un altro worker cancella la copia su disco: senza
+        # la copia anche la memoria di questo worker non vale piu'.
+        if entry is not None and (entry[0] < now or (entry[2] is not None and not entry[2].exists())):
+            _FASCICOLI_LIST_BASE_CACHE.pop(key, None)
+            entry = None
+        if entry is not None:
+            _FASCICOLI_LIST_BASE_CACHE.move_to_end(key)
+    if entry is None:
+        entry = _fascicoli_base_cache_da_disco(key, now)
         if entry is None:
             return None
-        expires_at, payload_json = entry
-        if expires_at < now:
-            _FASCICOLI_LIST_BASE_CACHE.pop(key, None)
-            return None
-        _FASCICOLI_LIST_BASE_CACHE.move_to_end(key)
+    payload_json = entry[1]
     try:
         payload = json.loads(payload_json)
     except Exception:
@@ -344,6 +399,27 @@ def _fascicoli_base_cache_get(key: tuple | None) -> dict[str, Any] | None:
     return payload if isinstance(payload, dict) else None
 
 
+def _fascicoli_base_cache_da_disco(key: tuple, now: float) -> tuple[float, str, Path | None] | None:
+    """La base calcolata da un altro worker, se non e' scaduta."""
+    percorso = _fascicoli_base_cache_file(key)
+    if percorso is None:
+        return None
+    try:
+        eta = time.time() - percorso.stat().st_mtime
+        if eta < 0 or eta >= _FASCICOLI_LIST_BASE_TTL_SECONDS:
+            return None
+        payload_json = percorso.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    entry = (now + _FASCICOLI_LIST_BASE_TTL_SECONDS - eta, payload_json, percorso)
+    with _FASCICOLI_LIST_BASE_CACHE_LOCK:
+        _FASCICOLI_LIST_BASE_CACHE[key] = entry
+        _FASCICOLI_LIST_BASE_CACHE.move_to_end(key)
+        while len(_FASCICOLI_LIST_BASE_CACHE) > _FASCICOLI_LIST_BASE_MAX_ENTRIES:
+            _FASCICOLI_LIST_BASE_CACHE.popitem(last=False)
+    return entry
+
+
 def _fascicoli_base_cache_set(key: tuple | None, payload: dict[str, Any]) -> None:
     if key is None or _FASCICOLI_LIST_BASE_TTL_SECONDS <= 0:
         return
@@ -351,9 +427,17 @@ def _fascicoli_base_cache_set(key: tuple | None, payload: dict[str, Any]) -> Non
         payload_json = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     except Exception:
         return
+    percorso = _fascicoli_base_cache_file(key)
+    if percorso is not None:
+        try:
+            provvisorio = percorso.with_suffix(f".{os.getpid()}.tmp")
+            provvisorio.write_text(payload_json, encoding="utf-8")
+            os.replace(provvisorio, percorso)
+        except OSError:
+            percorso = None
     expires_at = time.monotonic() + _FASCICOLI_LIST_BASE_TTL_SECONDS
     with _FASCICOLI_LIST_BASE_CACHE_LOCK:
-        _FASCICOLI_LIST_BASE_CACHE[key] = (expires_at, payload_json)
+        _FASCICOLI_LIST_BASE_CACHE[key] = (expires_at, payload_json, percorso)
         _FASCICOLI_LIST_BASE_CACHE.move_to_end(key)
         while len(_FASCICOLI_LIST_BASE_CACHE) > _FASCICOLI_LIST_BASE_MAX_ENTRIES:
             _FASCICOLI_LIST_BASE_CACHE.popitem(last=False)
@@ -6316,11 +6400,11 @@ def build_react_fascicoli_payload(
         scadenze_by_fasc = _group_scadenze_by_fasc(scadenze_rows, fascicoli)
         resolved_scadenze = _resolved_scadenze_fascicolo_ids(scadenze_by_fasc)
         archived = _safe("fascicoli_archivio", lambda: gf.tutti(stato=StatoFascicolo.ARCHIVIATO, archiviati=True), [])
-        duplicate_groups = duplicate_practice_groups(fascicoli)
+        duplicate_groups = _fase("duplicati", lambda: duplicate_practice_groups(fascicoli))
         duplicate_groups_by_key = {_text(group.get("key")): group for group in duplicate_groups if _text(group.get("key"))}
         parcelle_by_fasc = _parcelle_by_fascicolo(get_fatturazione)
 
-        light_items = _annotate_duplicate_items(
+        light_items = _fase("righe_elenco", lambda: _annotate_duplicate_items(
             [
                 _item_light(
                     fascicolo,
@@ -6333,7 +6417,8 @@ def build_react_fascicoli_payload(
                 for fascicolo in fascicoli
             ],
             duplicate_groups_by_key,
-        )
+        ))
+        inizio_filtri = time.monotonic()
         filtered = [
             item for item in light_items
             if _matches_list_filters(
@@ -6356,6 +6441,8 @@ def build_react_fascicoli_payload(
             _sort_list_items(filtered, sort, secondary_sort),
             group_by,
         )
+        _conta_tempo_fase("filtri_ordinamento", round(1000 * (time.monotonic() - inizio_filtri)))
+        inizio_scadenze = time.monotonic()
         items_by_id = {item["id"]: item for item in light_items}
         urgent_deadlines = _deadline_rows_from_scadenze(
             scadenze_rows,
@@ -6378,6 +6465,7 @@ def build_react_fascicoli_payload(
             resolved_matter_ids=resolved_scadenze,
             include_overdue=False,
         )
+        _conta_tempo_fase("scadenze_elenco", round(1000 * (time.monotonic() - inizio_scadenze)))
         today = date.today()
         base = {
             "items": sorted_items,

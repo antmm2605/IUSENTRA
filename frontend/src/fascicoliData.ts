@@ -1561,8 +1561,9 @@ function normaliseType(value: unknown): Exclude<FascicoloTipo, 'tutti'> {
   const raw = text(value).toLowerCase()
   if (raw.includes('civ')) return 'civile'
   if (raw.includes('pen') || raw.includes('rgnr')) return 'penale'
-  if (raw.includes('amm') || raw.includes('tar') || raw.includes('consiglio')) return 'amministrativo'
+  // «tributario» contiene «tar»: il tributario si riconosce prima dell'amministrativo, e «tar» solo come parola.
   if (raw.includes('trib') || raw.includes('sigit') || raw.includes('ptt')) return 'tributario'
+  if (raw.includes('amm') || /\btar\b/.test(raw) || raw.includes('consiglio')) return 'amministrativo'
   if (raw.includes('stragiud') || raw.includes('mediazione') || raw.includes('negoziazione')) return 'stragiudiziale'
   if (raw.includes('consul')) return 'consulenza'
   if (raw.includes('lavor')) return 'lavoro'

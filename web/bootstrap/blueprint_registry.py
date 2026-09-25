@@ -56,6 +56,12 @@ BLUEPRINT_REGISTRY: tuple[BlueprintRegistration, ...] = (
         "/api/v1/ui/amministrativo",
     ),
     BlueprintRegistration(
+        "api_v1_tributario",
+        "web.blueprints.api_v1_tributario",
+        "api_v1_tributario",
+        "/api/v1/ui/tributario",
+    ),
+    BlueprintRegistration(
         "api_v1_notification_presidia",
         "web.blueprints.api_v1_notification_presidia",
         "api_v1_notification_presidia",

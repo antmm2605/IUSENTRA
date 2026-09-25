@@ -141,8 +141,8 @@ SURFACE_SPECS = {
         "title": "PTT Tributario",
         "eyebrow": "SIGIT e Telecontenzioso",
         "subtitle": (
-            "Preparazione del fascicolo tributario interno, acquisizione guidata da "
-            "SIGIT e presidio di ricevute, NIR, provvedimenti e scadenze."
+            "Nota di iscrizione a ruolo, file, CUT e termini preparati nel fascicolo tributario; "
+            "deposito dal PTT del SIGIT, acquisizione guidata e presidio di ricevute e provvedimenti."
         ),
         "tone": "warning",
     },

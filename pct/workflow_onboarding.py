@@ -6,6 +6,8 @@ raccolti in fase commerciale/contrattuale, in modo da ridurre click e duplicazio
 """
 from __future__ import annotations
 
+import re
+
 from typing import Any, Dict, List, Optional
 
 from pct.checklist_atti import CANALE_LABEL, get_template
@@ -102,10 +104,11 @@ def _infer_tipo_fascicolo(id_pratica: str = "", area_pratica: str = "", tipo_pro
     lowered = (tipo_procedimento or "").lower()
     if "penal" in lowered:
         return TipoFascicolo.PENALE
-    if "amministrativ" in lowered or "tar" in lowered or "consiglio di stato" in lowered:
-        return TipoFascicolo.AMMINISTRATIVO
+    # «tributario» contiene «tar»: prima il tributario, poi «tar» solo come parola intera.
     if "tribut" in lowered or "cgt" in lowered:
         return TipoFascicolo.TRIBUTARIO
+    if "amministrativ" in lowered or re.search(r"\btar\b", lowered) or "consiglio di stato" in lowered:
+        return TipoFascicolo.AMMINISTRATIVO
     if "lavoro" in lowered or "previdenz" in lowered:
         return TipoFascicolo.LAVORO
     if "mediazion" in lowered or "negoziazion" in lowered or "stragiud" in lowered:

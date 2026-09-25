@@ -189,6 +189,11 @@ def register_fascicoli_create_routes(
             return ""
         if not obbligatoria:
             return testo
+        from pct.ptt_sigit.catalogo import sede, sede_da_testo
+
+        corte = sede(sede_da_testo(testo))  # le Corti di giustizia tributaria non sono nel registro degli uffici giudiziari
+        if corte:
+            return corte["nome"]
         ufficio = risolvi_ufficio(testo, cache_path=_uffici_cache_path())
         if not ufficio:
             raise ValueError("Autorità giudiziaria non trovata nel registro. Cerca e seleziona una voce dell'elenco prima di creare il fascicolo veloce.")
@@ -310,6 +315,10 @@ def register_fascicoli_create_routes(
                         raise ValueError("Per creare la scheda soggetto della controparte serve il nome completo o la ragione sociale.")
                     if not (form.get("nuovo_soggetto_identificativo", "").strip() or cf_controparte):
                         raise ValueError("Per creare la scheda soggetto della controparte serve codice fiscale o partita IVA.")
+                if not tribunale_input and form.get("ptt_corte", "").strip():
+                    from pct.ptt_sigit.catalogo import sede as sede_ptt
+
+                    tribunale_input = (sede_ptt(form.get("ptt_corte", "").strip()) or {}).get("nome", "")
                 if fascicolo_veloce:
                     mancanti = []
                     if not titolo:
@@ -323,7 +332,8 @@ def register_fascicoli_create_routes(
                     # Nel penale non c'è controparte: il procedimento si identifica con ufficio e registro del PDP.
                     if not controparte and tipo_valore.upper() != "PENALE":
                         mancanti.append("controparte")
-                    if not cf_controparte and tipo_valore.upper() != "PENALE":
+                    # Nel tributario l'ente impositore si sceglie dall'elenco del SIGIT: basta il nome.
+                    if not cf_controparte and tipo_valore.upper() not in {"PENALE", "TRIBUTARIO"}:
                         mancanti.append("codice fiscale o partita IVA della controparte")
                     if mancanti:
                         raise ValueError("Per creare il fascicolo veloce mancano: " + ", ".join(mancanti) + ".")
@@ -501,12 +511,20 @@ def register_fascicoli_create_routes(
 
                     messaggio_creazione += applica_pat(fascicolo.id, request.form)
                 sync_pubblica("crea", "fascicoli", fascicolo.id)
+                tributario = fascicolo.tipo == TipoFascicolo.TRIBUTARIO
+                if tributario:
+                    from web.services.ptt_sigit_apertura import applica as applica_ptt
+
+                    messaggio_creazione += applica_ptt(fascicolo.id, request.form)
                 if fascicolo_veloce and penale:  # il deposito penale si prepara nella sezione PDP, non nella busta civile
                     target = url_for("dettaglio_fascicolo", id_fasc=fascicolo.id) + "#penale-pdp"
                     return _risposta_successo_form(messaggio_creazione + " Si apre il deposito penale.", target, id_fascicolo=fascicolo.id)
                 if fascicolo_veloce and amministrativo:  # il PAT si deposita dal Formweb, non con la busta civile
                     target = url_for("dettaglio_fascicolo", id_fasc=fascicolo.id) + "#pat-formweb"
                     return _risposta_successo_form(messaggio_creazione + " Si apre il deposito amministrativo.", target, id_fascicolo=fascicolo.id)
+                if fascicolo_veloce and tributario:  # il PTT si deposita dal SIGIT, non con la busta civile
+                    target = url_for("dettaglio_fascicolo", id_fasc=fascicolo.id) + "#ptt-sigit"
+                    return _risposta_successo_form(messaggio_creazione + " Si apre il deposito tributario.", target, id_fascicolo=fascicolo.id)
                 if fascicolo_veloce:
                     target = url_for("deposito_prepara", id_fasc=fascicolo.id)
                     messaggio_creazione += " Si apre il deposito assistito."

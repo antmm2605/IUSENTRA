@@ -167,6 +167,7 @@ import type { OfficeDocumentsOpenRequest } from './OfficeDocumentsPanel'
 import { beginLocalSignerForegroundGrant } from '../features/telematico/localSignerForeground'
 import { ProcedimentoPdpApertura } from './penalePdp/ProcedimentoPdpApertura'
 import { PatApertura } from './patFormweb/PatApertura'
+import { PttApertura } from './pttSigit/PttApertura'
 import './FascicoliPage.css'
 
 const FascicoloDepositoPage = lazy(() => import('./FascicoloDepositoPage').then((module) => ({ default: module.FascicoloDepositoPage })))
@@ -174,6 +175,7 @@ const OfficeDocumentsPanel = lazy(() => import('./OfficeDocumentsPanel').then((m
 const MediazioneFascicolo = lazy(() => import('./mediazione/MediazioneFascicolo'))
 const PenalePdpSezione = lazy(() => import('./penalePdp/PenalePdpSezione'))
 const PatFormwebSezione = lazy(() => import('./patFormweb/PatFormwebSezione'))
+const PttSezione = lazy(() => import('./pttSigit/PttSezione'))
 
 const PAGOPA_PST_URL = 'https://servizipst.giustizia.it/PST/it/pagopa_altripag.wp'
 const PAGOPA_PST_NEW_PAYMENT_URL = 'https://servizipst.giustizia.it/PST/it/pagopa_nuovarich.wp'
@@ -4798,6 +4800,7 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
   // Nel penale la «controparte» non c'è: il procedimento si identifica con ufficio e registro del PDP.
   const tipoPenale = (tipoScelto || getValue(data, 'typeRaw') || getValue(data, 'type')).toUpperCase() === 'PENALE'
   const tipoAmministrativo = (tipoScelto || getValue(data, 'typeRaw') || getValue(data, 'type')).toUpperCase() === 'AMMINISTRATIVO'
+  const tipoTributario = (tipoScelto || getValue(data, 'typeRaw') || getValue(data, 'type')).toUpperCase() === 'TRIBUTARIO'
   const subjectContextParams = new URLSearchParams()
   subjectContextParams.set('tab', 'soggetto')
   subjectContextParams.set('ruolo', 'CONTROPARTE')
@@ -4902,6 +4905,13 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
             <CollapsibleFormPanel title="Procedimento amministrativo (PAT)" subtitle="Sede, tipo di ricorso e contributo come li chiede il Formweb del Portale dell’Avvocato" icon={<Landmark size={17}/>}>
               <div className="iu-fas-form-grid">
                 <PatApertura/>
+              </div>
+            </CollapsibleFormPanel>
+          ) : null}
+          {mode === 'new' && tipoTributario ? (
+            <CollapsibleFormPanel title="Procedimento tributario (PTT)" subtitle="Corte, atto impugnato, valore della lite e notifica del ricorso come li chiede la nota di iscrizione a ruolo" icon={<Landmark size={17}/>}>
+              <div className="iu-fas-form-grid">
+                <PttApertura/>
               </div>
             </CollapsibleFormPanel>
           ) : null}
@@ -9785,6 +9795,7 @@ function DetailPage({ id }:{id:string}) {
   const [mediazioneVisited, setMediazioneVisited] = useState(() => currentDetailHashSectionId() === 'mediazione')
   const [penaleVisited, setPenaleVisited] = useState(() => currentDetailHashSectionId() === 'penale-pdp')
   const [patVisited, setPatVisited] = useState(() => currentDetailHashSectionId() === 'pat-formweb')
+  const [pttVisited, setPttVisited] = useState(() => currentDetailHashSectionId() === 'ptt-sigit')
   const [letturaOpen, setLetturaOpen] = useState(() => currentDetailHashSectionId() === 'lettura-fascicolo')
   useEffect(() => {
     let active = true
@@ -10051,11 +10062,11 @@ function DetailPage({ id }:{id:string}) {
     <main id="fascicolo-top" className="iu-content iu-fascicoli-page iu-fascicolo-detail-page" onContextMenu={openFascicoloContextMenu}>
       <section className="iu-fas-hero iu-fas-detail-hero">
         <div><span className="iu-fas-eyebrow"><FolderOpen size={16}/> Fascicolo</span><h1>{f.title}</h1><p><Badge tone={f.tone}>{formatFascicoloStatus(f.status)}</Badge><Badge tone="neutral">{formatFascicoloType(f.type)}</Badge>{f.archiveReady ? <Badge tone="warning">Pronto per archivio</Badge> : null}<span>{f.object || f.subtitle}</span></p></div>
-        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button>{f.type === 'penale' ? <a className="iu-button iu-button--primary" href="#penale-pdp" onClick={(event) => { setPenaleVisited(true); openSection('penale-pdp')(event) }}><Send size={15}/> Deposito penale (PDP)</a> : f.type === 'amministrativo' ? <a className="iu-button iu-button--primary" href="#pat-formweb" onClick={(event) => { setPatVisited(true); openSection('pat-formweb')(event) }}><Send size={15}/> Deposito amministrativo (PAT)</a> : <button className="iu-button iu-button--primary" type="button" onClick={() => openDocumentFlow('deposito')}><Send size={15}/> Deposito telematico</button>}<RecordOverlayButton icon={<UserRound size={15}/>} label="Cliente" title="Visualizza cliente nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'cliente', title: data.client?.name || f.client || 'Cliente', href: clientRecordHref })}/><RecordOverlayButton icon={<UsersRound size={15}/>} label="Soggetti" title="Visualizza soggetti e parti nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti', href: partiesRecordHref })}/><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href="#presidio-fascicolo"><Gauge size={15}/> Presidio fascicolo</Button><button className="iu-button iu-button--secondary" type="button" title="Prepara una notifica legale per questa pratica" onClick={() => openDocumentFlow('notifica')}><Bell size={15}/> Notifica</button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button><PagoPaActionButton onClick={openPagoPaModal}/></div>
+        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button>{f.type === 'penale' ? <a className="iu-button iu-button--primary" href="#penale-pdp" onClick={(event) => { setPenaleVisited(true); openSection('penale-pdp')(event) }}><Send size={15}/> Deposito penale (PDP)</a> : f.type === 'amministrativo' ? <a className="iu-button iu-button--primary" href="#pat-formweb" onClick={(event) => { setPatVisited(true); openSection('pat-formweb')(event) }}><Send size={15}/> Deposito amministrativo (PAT)</a> : f.type === 'tributario' ? <a className="iu-button iu-button--primary" href="#ptt-sigit" onClick={(event) => { setPttVisited(true); openSection('ptt-sigit')(event) }}><Send size={15}/> Deposito tributario (PTT)</a> : <button className="iu-button iu-button--primary" type="button" onClick={() => openDocumentFlow('deposito')}><Send size={15}/> Deposito telematico</button>}<RecordOverlayButton icon={<UserRound size={15}/>} label="Cliente" title="Visualizza cliente nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'cliente', title: data.client?.name || f.client || 'Cliente', href: clientRecordHref })}/><RecordOverlayButton icon={<UsersRound size={15}/>} label="Soggetti" title="Visualizza soggetti e parti nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti', href: partiesRecordHref })}/><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href="#presidio-fascicolo"><Gauge size={15}/> Presidio fascicolo</Button><button className="iu-button iu-button--secondary" type="button" title="Prepara una notifica legale per questa pratica" onClick={() => openDocumentFlow('notifica')}><Bell size={15}/> Notifica</button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button><PagoPaActionButton onClick={openPagoPaModal}/></div>
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : 'Dati aggiornati'}</span></section>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
-      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#presidio-fascicolo">Presidio fascicolo <b>{data.regia.documentSlots.length + operationalPresidio.actions.length}</b></a><a href="#lettura-fascicolo">Lettura</a><a href="#profilo">Anagrafica <b>{data.quickCounts.profilo || 0}</b></a>{f.type === 'penale' ? <a href="#penale-pdp">Deposito penale</a> : null}{f.type === 'amministrativo' ? <a href="#pat-formweb">Deposito amministrativo</a> : null}<a href="#documenti">Documenti e atti <b>{data.quickCounts.documenti || 0}</b></a><a href="#comunicazioni-notifica">Comunicazioni e notifica <b>{displayedCommunicationTotal + notificationRelataCount}</b></a><a href="#attivita">Cronologia <b>{data.quickCounts.attivita || 0}</b></a><a href="#udienze">Udienze / scadenze <b>{data.quickCounts.udienze_scadenze || 0}</b></a><a href="#mediazione">Mediazione</a><a href="#ctu">CTU</a><a href="#audit" title={auditNavigation.label}>Audit <b aria-label={auditNavigation.label}>{auditNavigation.value}</b></a><a href="#conformita">Controlli <b>{data.quickCounts.presidio_operativo || operationalPresidio.actions.length || 0}</b></a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a><a href="#telematico">Servizi telematici</a></nav>
+      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#presidio-fascicolo">Presidio fascicolo <b>{data.regia.documentSlots.length + operationalPresidio.actions.length}</b></a><a href="#lettura-fascicolo">Lettura</a><a href="#profilo">Anagrafica <b>{data.quickCounts.profilo || 0}</b></a>{f.type === 'penale' ? <a href="#penale-pdp">Deposito penale</a> : null}{f.type === 'amministrativo' ? <a href="#pat-formweb">Deposito amministrativo</a> : null}{f.type === 'tributario' ? <a href="#ptt-sigit">Deposito tributario</a> : null}<a href="#documenti">Documenti e atti <b>{data.quickCounts.documenti || 0}</b></a><a href="#comunicazioni-notifica">Comunicazioni e notifica <b>{displayedCommunicationTotal + notificationRelataCount}</b></a><a href="#attivita">Cronologia <b>{data.quickCounts.attivita || 0}</b></a><a href="#udienze">Udienze / scadenze <b>{data.quickCounts.udienze_scadenze || 0}</b></a><a href="#mediazione">Mediazione</a><a href="#ctu">CTU</a><a href="#audit" title={auditNavigation.label}>Audit <b aria-label={auditNavigation.label}>{auditNavigation.value}</b></a><a href="#conformita">Controlli <b>{data.quickCounts.presidio_operativo || operationalPresidio.actions.length || 0}</b></a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a><a href="#telematico">Servizi telematici</a></nav>
       <section className="iu-fas-detail-grid iu-fas-detail-grid--with-guide">
         <aside className="iu-fas-guide-column" aria-label="Guida pratica facoltativa del fascicolo">
           <GuidaPraticaSidebar fascicoloId={f.id || id} codice={f.codiceOggettoPst} fascicoloTitle={f.title}/>
@@ -10089,6 +10100,11 @@ function DetailPage({ id }:{id:string}) {
           {f.type === 'amministrativo' ? (
             <DetailSection id="pat-formweb" title="Deposito amministrativo (PAT)" icon={<Send size={17}/>} defaultOpen={activeHashSection === 'pat-formweb'} onOpen={() => setPatVisited(true)}>
               {patVisited ? <Suspense fallback={<p role="status">Caricamento deposito amministrativo…</p>}><PatFormwebSezione key={f.id || id} fascicoloId={f.id || id} onDocumenti={() => refreshDocuments()}/></Suspense> : null}
+            </DetailSection>
+          ) : null}
+          {f.type === 'tributario' ? (
+            <DetailSection id="ptt-sigit" title="Deposito tributario (PTT)" icon={<Send size={17}/>} defaultOpen={activeHashSection === 'ptt-sigit'} onOpen={() => setPttVisited(true)}>
+              {pttVisited ? <Suspense fallback={<p role="status">Caricamento deposito tributario…</p>}><PttSezione key={f.id || id} fascicoloId={f.id || id} onDocumenti={() => refreshDocuments()}/></Suspense> : null}
             </DetailSection>
           ) : null}
           <DetailSection id="documenti" title="Documenti e atti" icon={<FileText size={17}/>} count={data.quickCounts.documenti || 0} defaultOpen={activeHashSection === 'documenti'} onOpen={() => { loadLazySection('documenti') }}>

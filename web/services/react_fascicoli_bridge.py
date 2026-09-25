@@ -8725,6 +8725,13 @@ def _telematic(fascicolo: Any) -> list[dict[str, Any]]:
             {"label": "PAT", "value": "Portale dell'Avvocato", "note": "fascicoli amministrativi e depositi", "href": "/pat", "tone": "info"},
             {"label": "Modulo PEC", "value": "Canale residuale", "note": "modulo ministeriale XFA per la PEC", "href": "/pat?modulo=pec", "tone": "neutral"},
         ]
+    if tipo == "TRIBUTARIO":
+        # Processo tributario telematico (art. 16-bis D.Lgs. 546/1992): si deposita dall'area riservata del PTT sul SIGIT.
+        return [
+            {"label": "Deposito telematico", "value": "PTT / SIGIT", "note": "nota di iscrizione, file, CUT e termini", "href": f"/fascicoli/{encoded_fid}#ptt-sigit", "tone": "success"},
+            {"label": "PTT Tributario", "value": "Fascicoli tributari", "note": "termini, depositi e accesso al SIGIT", "href": "/sigit", "tone": "info"},
+            {"label": "Telecontenzioso", "value": "Stato del ricorso", "note": "udienze ed esito dal SIGIT", "href": "https://sigit.finanze.it/Sigit/index.do", "tone": "neutral"},
+        ]
     return [
         {"label": "Deposito telematico", "value": "Prepara", "note": "busta, firma, PEC e ricevute", "href": f"/fascicoli/{encoded_fid}/deposito/prepara", "tone": "success"},
         {"label": "PolisWeb / PST", "value": "Apri", "note": "consultazione e acquisizione guidata", "href": f"/polisWeb?id_fasc={fid}", "tone": "primary"},

@@ -979,7 +979,7 @@ def _matter_type(row: Mapping[str, Any]) -> TipoFascicolo:
         return TipoFascicolo.PENALE
     if "tribut" in text:
         return TipoFascicolo.TRIBUTARIO
-    if "amministr" in text or "tar" in text:
+    if "amministr" in text or re.search(r"\btar\b", text):
         return TipoFascicolo.AMMINISTRATIVO
     if "lavor" in text:
         return TipoFascicolo.LAVORO

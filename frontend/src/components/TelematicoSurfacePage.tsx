@@ -25,6 +25,7 @@ type LucideIcon,
 import { Badge, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
 import { PatPagina } from './patFormweb/PatPagina'
+import { PttPagina } from './pttSigit/PttPagina'
 import {
   emptyTelematicoSurface,
   getTelematicoSurfacePage,
@@ -7404,7 +7405,8 @@ export function TelematicoSurfacePage() {
 
   return (
     <main className={`iu-content iu-tel-surface-page iu-tel-surface-page--${data.surface.id}`}>
-      <section className={`iu-tel-surface-hero iu-tel-surface-hero--${tone}`}>
+      {data.surface.id === 'ptt' ? <PttPagina/> : null}
+      <section className={`iu-tel-surface-hero iu-tel-surface-hero--${tone}`} hidden={data.surface.id === 'ptt'}>
         <div>
           <span className="iu-tel-surface-hero__eyebrow"><ShieldCheck size={16}/> {data.surface.eyebrow}</span>
           <h1>{title}</h1>

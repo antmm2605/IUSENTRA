@@ -12,7 +12,7 @@ Questo registro è generato da `scripts/react-migration/generate_app_v2_page_reg
 - Route legacy operative: 17.
 - Route App V2 dichiarate in frontend: 16.
 - Alias legacy verso App V2 in frontend: 32.
-- Route Flask GET candidate rilevate fuori manifest: 295.
+- Route Flask GET candidate rilevate fuori manifest: 301.
 
 ### Distribuzione rischio
 
@@ -747,8 +747,10 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /calendario/completo/export.ics | GET | web/bootstrap/calendar_routes.py | impostazioni/calendario.html |
 | /casella-pec | GET | web/blueprints/api_v1_penale.py | non rilevato |
 | /catalogo | GET | web/blueprints/api_v1_amministrativo.py | non rilevato |
+| /catalogo | GET | web/blueprints/api_v1_tributario.py | non rilevato |
 | /catalogo-apertura | GET | web/blueprints/api_v1_amministrativo.py | non rilevato |
 | /catalogo-apertura | GET | web/blueprints/api_v1_penale.py | non rilevato |
+| /catalogo-apertura | GET | web/blueprints/api_v1_tributario.py | non rilevato |
 | /cerca | GET | web/bootstrap/search_routes.py | cerca.html |
 | /checklist/{id_template} | GET | web/bootstrap/checklist_routes.py | checklist/dettaglio.html, checklist/lista.html, fascicoli/wizard_atto.html, fascicoli/wizard_completa.html |
 | /clienti/export.csv | GET | web/bootstrap/export_routes.py | non rilevato |
@@ -765,6 +767,7 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /clienti/{id_cliente}/porta-via | GET | web/bootstrap/privacy_routes.py | privacy/registro.html |
 | /clienti/{id_cliente}/portale | GET | web/bootstrap/clienti_workspace_routes.py | clienti/copertina_faldone.html, clienti/faldone.html, clienti/portale_config.html |
 | /connessione | GET | web/blueprints/api_v1_amministrativo.py | non rilevato |
+| /connessione | GET | web/blueprints/api_v1_tributario.py | non rilevato |
 | /crm | GET | web/bootstrap/crm_routes.py | non rilevato |
 | /dashboard | GET | web/blueprints/api_v1_client_portal.py | non rilevato |
 | /email-ordinaria/api/stats | GET | web/blueprints/email_ordinaria.py | email/dettaglio.html, email/scrivi.html |
@@ -794,11 +797,13 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /fascicoli/export.pdf | GET | web/bootstrap/export_routes.py | non rilevato |
 | /fascicoli/{fid} | GET | web/blueprints/api_v1_amministrativo.py | non rilevato |
 | /fascicoli/{fid} | GET | web/blueprints/api_v1_penale.py | non rilevato |
+| /fascicoli/{fid} | GET | web/blueprints/api_v1_tributario.py | non rilevato |
 | /fascicoli/{fid}/accesso-atti | GET | web/blueprints/api_v1_penale.py | non rilevato |
 | /fascicoli/{fid}/atti | GET | web/blueprints/api_v1_penale.py | non rilevato |
 | /fascicoli/{fid}/depositi/{did} | GET | web/blueprints/api_v1_penale.py | non rilevato |
 | /fascicoli/{fid}/excel-parti/{ruolo} | GET | web/blueprints/api_v1_amministrativo.py | non rilevato |
 | /fascicoli/{fid}/pacchetto | GET | web/blueprints/api_v1_amministrativo.py | non rilevato |
+| /fascicoli/{fid}/pacchetto | GET | web/blueprints/api_v1_tributario.py | non rilevato |
 | /fascicoli/{id_fasc} | GET | web/bootstrap/fascicoli_core_routes.py | fascicoli/dettaglio.html |
 | /fascicoli/{id_fasc}/archivio/contenuto | GET | web/bootstrap/fascicoli_management_routes.py | fascicoli/copertina.html, fascicoli/form.html, fascicoli/quadro.html |
 | /fascicoli/{id_fasc}/archivio/file/{path:nome_file} | GET | web/bootstrap/fascicoli_management_routes.py | fascicoli/copertina.html, fascicoli/form.html, fascicoli/quadro.html |
@@ -829,11 +834,6 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /lex-operativo | GET | web/bootstrap/lex_operational_routes.py | lex_operational.html |
 | /login | GET,POST | web/services/auth_runtime.py | auth/login.html, auth/login_2fa.html |
 | /login/2fa | GET,POST | web/services/auth_runtime.py | auth/login.html, auth/login_2fa.html |
-| /manifest.json | GET | web/bootstrap/pwa_routes.py | offline.html |
-| /manifest.webmanifest | GET | web/bootstrap/pwa_routes.py | offline.html |
-| /messaggi/{id_msg} | GET | web/bootstrap/messages_routes.py | messaggi/dettaglio.html, messaggi/form.html, messaggi/lista.html |
-| /metrics | GET | web/bootstrap/health_routes.py | non rilevato |
-| /offline | GET | web/bootstrap/pwa_routes.py | offline.html |
 
 ## Regola operativa fase 4
 

@@ -450,9 +450,13 @@ def global_search_payload(user: Any, query: str, limit: int = 20) -> dict[str, A
     repository = GlobalSearchRepository(_global_search_db_path())
     service = GlobalSearchService(repository)
     try:
-        context = _global_search_context()
+        # La ricerca interroga esclusivamente l'indice centrale. Costruire qui
+        # il contesto completo apriva invece tutti i repository dello studio a
+        # ogni battuta nella top bar, anche con un indice gia' popolato.
+        context = {"tenant_id": _tenant_id()}
         stats = service.stats(context)
         if stats.get("total", 0) == 0:
+            context = _global_search_context()
             service.reindex(context)
         raw = service.search(context, q, limit=safe_limit, user=user)
     finally:

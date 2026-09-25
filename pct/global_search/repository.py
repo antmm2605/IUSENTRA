@@ -28,13 +28,43 @@ class GlobalSearchRepository:
         self._ensure_schema()
 
     def _ensure_schema(self) -> None:
-        with self._conn:
-            self._conn.executescript(SQLITE_SCHEMA)
-            try:
+        required_core_objects = {
+            "global_search_index",
+            "global_search_audit",
+            "idx_global_search_tenant_type",
+            "idx_global_search_fascicolo",
+            "idx_global_search_cliente",
+        }
+        rows = self._conn.execute(
+            "SELECT name FROM sqlite_master WHERE name IN ({})".format(
+                ",".join("?" for _ in required_core_objects)
+            ),
+            tuple(sorted(required_core_objects)),
+        ).fetchall()
+        present = {str(row["name"]) for row in rows}
+
+        # Su indici reali molto grandi, rieseguire a ogni apertura i DDL con
+        # IF NOT EXISTS costringe SQLite a riaprire anche la struttura FTS e
+        # puo' richiedere diversi secondi. Il DDL serve soltanto alla prima
+        # creazione o quando manca davvero un oggetto dello schema.
+        if not required_core_objects.issubset(present):
+            with self._conn:
+                self._conn.executescript(SQLITE_SCHEMA)
+
+        fts_row = self._conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1",
+            ("global_search_index_fts",),
+        ).fetchone()
+        if fts_row:
+            self.fts_enabled = True
+            return
+
+        try:
+            with self._conn:
                 self._conn.executescript(SQLITE_FTS_SCHEMA)
-                self.fts_enabled = True
-            except sqlite3.OperationalError:
-                self.fts_enabled = False
+            self.fts_enabled = True
+        except sqlite3.OperationalError:
+            self.fts_enabled = False
 
     def close(self) -> None:
         self._conn.close()

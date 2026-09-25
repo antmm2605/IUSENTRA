@@ -1,3 +1,5 @@
+import pct.global_search.repository as repository_module
+
 from pct.global_search.adapters import (
     ClientiSearchAdapter,
     DocumentiSearchAdapter,
@@ -95,3 +97,15 @@ def test_isolamento_tenant_nessun_leakage(tmp_path):
         assert len(results_b) == 1
     finally:
         repo.close()
+
+
+def test_riapertura_indice_pronto_non_riesegue_schema_core(tmp_path, monkeypatch):
+    repo = _repo(tmp_path)
+    repo.close()
+
+    monkeypatch.setattr(repository_module, "SQLITE_SCHEMA", "SQL NON VALIDO")
+    reopened = _repo(tmp_path)
+    try:
+        assert reopened.stats("tenant-a")["total"] == 0
+    finally:
+        reopened.close()

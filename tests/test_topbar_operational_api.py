@@ -271,6 +271,29 @@ def test_topbar_search_valida_query_auth_e_permessi(tmp_path: Path):
         assert denied.status_code == 403
 
 
+def test_topbar_search_non_riapre_i_repository_con_indice_pronto(tmp_path: Path, monkeypatch):
+    app = create_app(_cfg_web(tmp_path))
+    _create_user(app, "operatore", "Operatore123!")
+    _seed_domain(app)
+
+    with app.test_client() as client:
+        _login(client)
+        # Il primo accesso mantiene il bootstrap automatico dell'indice vuoto.
+        assert client.get("/api/search/global?q=Recupero").status_code == 200
+
+        def _contesto_completo_non_atteso():
+            raise AssertionError("indice pronto: i repository di dominio non vanno riaperti")
+
+        monkeypatch.setattr(
+            "web.services.topbar_operational._global_search_context",
+            _contesto_completo_non_atteso,
+        )
+        response = client.get("/api/search/global?q=Recupero")
+
+    assert response.status_code == 200
+    assert response.get_json()["total"] >= 1
+
+
 def test_topbar_today_notifications_deadlines_recent_and_timer(tmp_path: Path):
     app = create_app(_cfg_web(tmp_path))
     _create_user(app, "operatore", "Operatore123!")

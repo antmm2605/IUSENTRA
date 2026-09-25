@@ -58,7 +58,9 @@ def _esito(voce: dict[str, Any], ufficio_codice: str) -> dict[str, str]:
 def sede_pdp(nome_ufficio: str, uffici: Iterable[dict[str, Any]] = (), ufficio_codice: str = "PM-U") -> dict[str, str]:
     """{distretto, circondario, sede, codiceSede} come li mostra il PDP; vuoti se l'ufficio non si riconosce."""
     # «TRIBUNALE DI CUNEO ex TRIBUNALE DI MONDOVI»: conta l'ufficio attuale, non quello accorpato.
-    nome = _chiave(re.split(r"(?i)\s+ex\s+", str(nome_ufficio or ""))[0])
+    parole = str(nome_ufficio or "")[:200].split()
+    parole = parole[:next((i for i, p in enumerate(parole) if i and p.casefold() == "ex"), len(parole))]
+    nome = _chiave(" ".join(parole))
     if not nome:
         return dict(_VUOTO)
     # 1. Codice ministeriale della Procura nel bundle uffici = codice sede del PDP.

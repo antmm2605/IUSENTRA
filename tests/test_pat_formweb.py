@@ -224,3 +224,19 @@ def test_archivio_procedimento_ruoli_e_depositi(tmp_path):
                    lambda: archivio.aggiorna_procedimento("F1", {"posizione": "testimone"})):
         with pytest.raises(ValueError):
             errato()
+
+
+def test_moduli_pat_importabili_senza_moduli_solo_posix():
+    """IUSENTRA gira anche su Windows (installazione in studio e CI windows-latest): niente fcntl nei moduli PAT."""
+    import ast
+    from pathlib import Path
+
+    radice = Path(__file__).resolve().parents[1]
+    file = [*sorted((radice / "pct" / "pat_formweb").glob("*.py")), *sorted((radice / "web" / "services").glob("pat_formweb_*.py")),
+            radice / "web" / "blueprints" / "api_v1_amministrativo.py"]
+    solo_posix = {"fcntl", "pwd", "grp", "termios", "resource"}
+    for percorso in file:
+        albero = ast.parse(percorso.read_text(encoding="utf-8"))
+        importati = {alias.name.split(".")[0] for nodo in ast.walk(albero) if isinstance(nodo, ast.Import) for alias in nodo.names}
+        importati |= {(nodo.module or "").split(".")[0] for nodo in ast.walk(albero) if isinstance(nodo, ast.ImportFrom)}
+        assert not importati & solo_posix, f"{percorso.name} importa {importati & solo_posix}"

@@ -8,7 +8,6 @@ scrittura è atomica e serializzata: due richieste non si sovrascrivono.
 
 from __future__ import annotations
 
-import fcntl
 import json
 import os
 import tempfile
@@ -17,6 +16,8 @@ from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterator
+
+from pct.sync import FileLock
 
 CAMPI_PROCEDIMENTO = ("sede", "tipoRicorso", "nrg", "posizione", "materia", "pnrr", "anteCausam", "cuTipologia",
                       "esenzione", "valore", "oggetto", "attoImpugnato", "istanze", "cassazionista", "fax")
@@ -37,8 +38,7 @@ class ArchivioPat:
     @contextmanager
     def _blocco(self) -> Iterator[dict[str, Any]]:
         self.percorso.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.percorso.with_suffix(".lock"), "a+", encoding="utf-8") as lock:
-            fcntl.flock(lock, fcntl.LOCK_EX)
+        with FileLock(str(self.percorso)):  # blocco condiviso di IUSENTRA: vale su Linux e su Windows
             dati = self._leggi()
             yield dati
             fd, temporaneo = tempfile.mkstemp(dir=self.percorso.parent, suffix=".tmp")

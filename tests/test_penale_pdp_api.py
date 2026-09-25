@@ -133,3 +133,4 @@ def test_pagina_pdp_e_centro_telematico_con_la_nuova_logica(tmp_path):
         assert [m["label"] for m in pdp["metrics"]] == ["Procedimenti", "In attesa di esito", "Da fare"]
         assert pdp["metrics"][0]["value"] == 1 and pdp["quickActions"][0]["href"] == "/pdp"
         assert "acquisizione" not in pdp["importHref"]
+        assert pdp["lastSyncAt"] == "" and "CNS/CIE" in pdp["environmentLabel"]

@@ -278,6 +278,8 @@ def _canale_pdp(canale: dict[str, Any], logger: Any | None = None) -> dict[str, 
         "description": PORTAL_DESCRIPTIONS["pdp"],
         "statusText": "Pronto" if numeri.get("procedimenti") else "Nessun procedimento",
         "environmentLabel": "Accesso con CNS/CIE sul portale: nessuna configurazione in IUSENTRA.",
+        # Il PDP non si importa: niente «ultimo allineamento» del vecchio import.
+        "lastSyncAt": "",
         "tone": "warning" if numeri.get("daFare") else PORTAL_TONES["pdp"],
         "cases": _int(numeri.get("procedimenti")),
         "importCompleted": _int(numeri.get("accolti")),

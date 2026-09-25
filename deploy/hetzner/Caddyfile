@@ -32,7 +32,7 @@
 
 	# Rate limiting sulle route di autenticazione gestito da Flask-Limiter
 	# con backend Redis (RATELIMIT_STORAGE_URI=redis://redis:6379/1).
-	# Il modulo caddy-ratelimit non è incluso in caddy:2.8-alpine standard;
+	# Il modulo caddy-ratelimit non è incluso nell'immagine Caddy standard;
 	# per aggiungere rate limiting a livello reverse proxy usare un'immagine
 	# xcaddy custom oppure affidarsi al layer Flask (già operativo).
 
@@ -66,6 +66,20 @@
 	@sw path /sw.js /static/sw.js
 	header @sw Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
 	header @sw Service-Worker-Allowed "/"
+
+	# Le metriche applicative contengono nomi di route e tempi operativi. Il
+	# Prometheus interno interroga direttamente app:8080, quindi non serve
+	# pubblicarle su Internet attraverso il reverse proxy.
+	@public_metrics path /metrics
+	respond @public_metrics 404
+
+	# Gli asset pubblici hanno un processo dedicato e usano la stessa immagine
+	# immutabile della release applicativa. `handle_path` rimuove il prefisso
+	# /static prima di inoltrare la richiesta alla radice /app/web/static.
+	# In questo modo CSS e JavaScript non attendono un worker Gunicorn occupato.
+	handle_path /static/* {
+		reverse_proxy static-assets:8090
+	}
 
 	# SSE — timeout lungo, nessun buffering
 	@sse path /api/eventi

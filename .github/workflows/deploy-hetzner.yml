@@ -321,6 +321,23 @@ jobs:
                if [ "$running" != "true" ] || [ "$health" != "healthy" ]; then
                  echo "Container app non pronto: running=$running health=$health" >&2
                  exit 1
+               fi
+               static_id=$(docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml ps -q static-assets)
+               if [ -z "$static_id" ]; then
+                 echo "Container asset statici non rilevato" >&2
+                 exit 1
+               fi
+               static_running=$(docker inspect --format "{{.State.Running}}" "$static_id")
+               static_health=$(docker inspect --format "{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}" "$static_id")
+               if [ "$static_running" != "true" ] || [ "$static_health" != "healthy" ]; then
+                 echo "Container asset non pronto: running=$static_running health=$static_health" >&2
+                 exit 1
+               fi
+               app_image=$(docker inspect --format "{{.Image}}" "$app_id")
+               static_image=$(docker inspect --format "{{.Image}}" "$static_id")
+               if [ "$static_image" != "$app_image" ]; then
+                 echo "Immagine asset diversa dalla applicazione" >&2
+                 exit 1
                fi'
 
       - name: Verifiche post-deploy (rotte HTTPS pubbliche)
@@ -391,6 +408,7 @@ jobs:
             "/ricerca-legale"; do
             check_public_route "${path}"
           done
+          check_public_route "/static/manifest.json"
           # Portale Cliente pubblico: e' l'unica superficie che l'avvocato non
           # vede mai da solo, perche' ci entra il cliente con il proprio link.
           # Un 404 qui significa che il link d'invito mandato ai clienti non

@@ -10,3 +10,5 @@ services:
   ocr-worker:
     build: !reset null
     pull_policy: never
+  static-assets:
+    pull_policy: never

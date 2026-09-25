@@ -120,7 +120,7 @@ def test_deploy_pulisce_container_compose_temporanei_senza_toccare_dati():
     assert 'IUSENTRA_CLEANUP_RUNNING_TEMP:-1' in deploy_script
     assert "docker rm -f \"$container_id\"" in cleanup_script
     assert "docker ps -a --format" in cleanup_script
-    assert "^[0-9a-f]{8,64}_${PROJECT}-(app|scheduler-worker|ocr-worker|caddy|audit-worm-init)-[0-9]+$" in cleanup_script
+    assert "^[0-9a-f]{8,64}_${PROJECT}-(app|scheduler-worker|ocr-worker|static-assets|caddy|audit-worm-init)-[0-9]+$" in cleanup_script
     assert "audit-postgres" not in cleanup_script
     assert "volume" not in cleanup_script.lower().replace("volumi", "")
 

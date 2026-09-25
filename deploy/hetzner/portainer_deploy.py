@@ -59,7 +59,7 @@ def request(path, token=None, payload=None, method=None):
 def verify_release_containers(expected_image):
     """Verify the immutable release and return whether all app services are ready."""
     healthy = True
-    for service in ("app", "scheduler-worker", "ocr-worker"):
+    for service in ("app", "scheduler-worker", "ocr-worker", "static-assets"):
         ids = subprocess.check_output([
             "docker", "ps", "-q", "--filter", "label=com.docker.compose.project=iusentra",
             "--filter", f"label=com.docker.compose.service={service}",

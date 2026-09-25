@@ -1,5 +1,32 @@
 # Changelog
 
+## 2.401.3 — 25/09/2026
+
+**Ricerca globale piu' reattiva.** Quando l'indice dello studio e' gia'
+popolato, la ricerca della barra superiore interroga direttamente SQLite FTS e
+non inizializza piu' fascicoli, clienti, agenda, scadenze, comunicazioni e gli
+altri repository di dominio a ogni richiesta. Il caricamento completo resta
+attivo soltanto per la ricostruzione automatica di un indice vuoto.
+
+L'apertura di un indice esistente verifica con una query leggera la presenza
+di tabelle e indici: il DDL SQLite/FTS non viene piu' rieseguito a ogni ricerca.
+
+Un test di regressione impedisce che il percorso indicizzato torni ad aprire i
+repository applicativi.
+
+Le metriche Prometheus leggono ora i conteggi reali della coda OCR (`in_coda`
+ed `errori`) invece di pubblicare zero quando il payload operativo usa le
+chiavi italiane. Sul server i job legacy già letti sono stati riconciliati
+tramite la fonte SQL tenant-aware e conservati nell'audit, senza rileggere i
+documenti.
+
+La configurazione Hetzner predisposta introduce rotazione dei log Docker,
+rete interna per il presidio WORM, limiti di concorrenza Ollama, aggiornamento
+Caddy e rimozione dell'esposizione pubblica di `/metrics`. Gli asset statici
+vengono serviti da un processo isolato che usa la stessa immagine immutabile
+dell'applicazione, così CSS e JavaScript non restano in coda dietro richieste
+applicative lunghe e non possono appartenere a una release differente.
+
 ## 2.386.1 — 24/09/2026
 
 **Deposito telematico: ricevuta pagoPA e avanzamento persistente.** La RT XML

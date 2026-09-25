@@ -1,5 +1,11 @@
 name: iusentra
 
+x-iusentra-logging: &iusentra-logging
+  driver: local
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 x-iusentra-env: &iusentra-env
   TZ: ${TZ:-Europe/Rome}
   PCT_HTTPS: "true"
@@ -104,6 +110,7 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    logging: *iusentra-logging
     command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
     volumes:
       - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}/redis:/data
@@ -118,6 +125,7 @@ services:
     profiles: ["audit-worm"]
     image: quay.io/minio/minio:latest
     restart: unless-stopped
+    logging: *iusentra-logging
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
       MINIO_ROOT_USER: ${AUDIT_WORM_ACCESS_KEY:?Impostare AUDIT_WORM_ACCESS_KEY}
@@ -126,6 +134,8 @@ services:
       MINIO_API_OBJECT_LOCK: "on"
     volumes:
       - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}/audit-worm:/data
+    networks:
+      - audit-internal
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/ready"]
       interval: 15s
@@ -136,6 +146,7 @@ services:
     profiles: ["audit-worm"]
     image: quay.io/minio/mc:latest
     restart: "no"
+    logging: *iusentra-logging
     depends_on:
       audit-worm:
         condition: service_healthy
@@ -155,17 +166,22 @@ services:
         mc retention set --default "$AUDIT_WORM_MODE" "${AUDIT_WORM_RETENTION_YEARS}y" "audit-worm/$AUDIT_WORM_BUCKET"
         mc anonymous set none "audit-worm/$AUDIT_WORM_BUCKET"
         mc stat "audit-worm/$AUDIT_WORM_BUCKET"
+    networks:
+      - audit-internal
 
   audit-postgres:
     profiles: ["audit-worm"]
     image: postgres:16-alpine
     restart: unless-stopped
+    logging: *iusentra-logging
     environment:
       POSTGRES_DB: ${AUDIT_POSTGRES_DB:-iusentra_audit}
       POSTGRES_USER: ${AUDIT_POSTGRES_USER:-iusentra_audit}
       POSTGRES_PASSWORD: ${AUDIT_POSTGRES_PASSWORD:?Impostare AUDIT_POSTGRES_PASSWORD}
     volumes:
       - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}/audit-postgres:/var/lib/postgresql/data
+    networks:
+      - audit-internal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 15s
@@ -179,6 +195,7 @@ services:
       context: ../..
       dockerfile: Dockerfile
     restart: unless-stopped
+    logging: *iusentra-logging
     env_file:
       - ${IUSENTRA_ENV_FILE:-/opt/iusentra/.env.hetzner}
     environment:
@@ -191,6 +208,9 @@ services:
       - /run/pcscd:/run/pcscd
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      - audit-internal
     depends_on:
       redis:
         condition: service_healthy
@@ -208,6 +228,7 @@ services:
       context: ../..
       dockerfile: Dockerfile
     restart: unless-stopped
+    logging: *iusentra-logging
     command: ["python", "-m", "pct.scheduler_worker"]
     env_file:
       - ${IUSENTRA_ENV_FILE:-/opt/iusentra/.env.hetzner}
@@ -217,6 +238,9 @@ services:
       - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}:/data
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      - audit-internal
     depends_on:
       app:
         condition: service_healthy
@@ -237,6 +261,7 @@ services:
       context: ../..
       dockerfile: Dockerfile
     restart: unless-stopped
+    logging: *iusentra-logging
     command: ["python", "-m", "pct.ocr_worker"]
     env_file:
       - ${IUSENTRA_ENV_FILE:-/opt/iusentra/.env.hetzner}
@@ -245,6 +270,9 @@ services:
       PCT_OCR_WORKERS: ${PCT_OCR_WORKERS:-2}
     volumes:
       - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}:/data
+    networks:
+      - default
+      - audit-internal
     depends_on:
       app:
         condition: service_healthy
@@ -255,10 +283,43 @@ services:
       retries: 3
       start_period: 15s
 
+  # Asset pubblici serviti da un processo separato dai worker Gunicorn. Usa la
+  # stessa immagine immutabile della release: frontend e API non possono quindi
+  # appartenere a commit diversi, mentre una richiesta applicativa lunga non
+  # mette piu' in coda CSS, JavaScript, icone o immagini.
+  static-assets:
+    image: ${IUSENTRA_APP_IMAGE:-iusentra-app}
+    pull_policy: never
+    restart: unless-stopped
+    logging: *iusentra-logging
+    entrypoint: []
+    user: iusentra
+    read_only: true
+    command:
+      - python
+      - -m
+      - http.server
+      - "8090"
+      - --bind
+      - 0.0.0.0
+      - --directory
+      - /app/web/static
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/manifest.json', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
   # ── Core: Caddy HTTPS ────────────────────────────────────────────────────────
   caddy:
-    image: caddy:2.8-alpine
+    image: caddy:2.11.4-alpine
     restart: unless-stopped
+    logging: *iusentra-logging
     env_file:
       - ${IUSENTRA_ENV_FILE:-/opt/iusentra/.env.hetzner}
     ports:
@@ -272,6 +333,8 @@ services:
     depends_on:
       app:
         condition: service_healthy
+      static-assets:
+        condition: service_healthy
 
   # ── Opzionale: Ollama AI locale (profilo `ai`) ───────────────────────────────
   # Attivare con: docker compose ... --profile ai up
@@ -282,6 +345,16 @@ services:
     profiles: ["ai"]
     image: ollama/ollama:latest
     restart: unless-stopped
+    logging: *iusentra-logging
+    environment:
+      OLLAMA_NO_CLOUD: "1"
+      # Assistente (gemma) e catalogazione (qwen) possono restare residenti:
+      # evita il costo di reload senza consentire al runtime di caricare tutti
+      # i modelli presenti sul disco.
+      OLLAMA_MAX_LOADED_MODELS: ${OLLAMA_MAX_LOADED_MODELS:-2}
+      OLLAMA_NUM_PARALLEL: ${OLLAMA_NUM_PARALLEL:-1}
+      OLLAMA_MAX_QUEUE: ${OLLAMA_MAX_QUEUE:-32}
+      OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-8192}
     volumes:
       - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}/ollama:/root/.ollama
     healthcheck:
@@ -299,6 +372,7 @@ services:
     profiles: ["unlimited-ocr"]
     image: ${IUSENTRA_UNLIMITED_OCR_IMAGE:-lmsysorg/sglang:latest}
     restart: unless-stopped
+    logging: *iusentra-logging
     gpus: all
     shm_size: ${IUSENTRA_UNLIMITED_OCR_SHM_SIZE:-16gb}
     environment:
@@ -345,6 +419,7 @@ services:
     profiles: ["monitoring"]
     image: prom/prometheus:latest
     restart: unless-stopped
+    logging: *iusentra-logging
     volumes:
       - ${IUSENTRA_PROMETHEUS_CONFIG:-../../prometheus.yml}:/etc/prometheus/prometheus.yml:ro
       - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}/prometheus:/prometheus
@@ -356,6 +431,7 @@ services:
     profiles: ["monitoring"]
     image: grafana/grafana:latest
     restart: unless-stopped
+    logging: *iusentra-logging
     ports:
       - "127.0.0.1:3000:3000"
     volumes:
@@ -363,3 +439,7 @@ services:
       - ${IUSENTRA_MONITORING_CONFIG:-../../monitoring}:/etc/grafana/provisioning/dashboards:ro
     depends_on:
       - prometheus
+
+networks:
+  audit-internal:
+    internal: true

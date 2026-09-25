@@ -19,8 +19,18 @@ def prometheus_payload(observability: dict[str, Any]) -> str:
         lines.append(f'iusentra_http_request_avg_ms{{bucket="{label}"}} {float(bucket.get("avg_ms") or 0)}')
         lines.append(f'iusentra_http_request_p95_ms{{bucket="{label}"}} {float(bucket.get("p95_ms") or 0)}')
     ocr = dict(observability.get("ocr") or {})
-    lines.append(f"iusentra_ocr_queue_pending {int(ocr.get('pending') or ocr.get('pending_jobs') or 0)}")
-    lines.append(f"iusentra_ocr_jobs_failed {int(ocr.get('failed') or ocr.get('failed_jobs') or 0)}")
+    # ``OCRJobStore.status_snapshot`` espone le chiavi italiane usate dal
+    # pannello operativo. Manteniamo anche gli alias storici inglesi per i
+    # payload esterni, senza pubblicare uno zero fittizio quando esistono job
+    # da presidiare.
+    def first_count(*keys: str) -> int:
+        for key in keys:
+            if key in ocr and ocr[key] is not None:
+                return int(ocr[key])
+        return 0
+
+    lines.append(f"iusentra_ocr_queue_pending {first_count('in_coda', 'pending', 'pending_jobs')}")
+    lines.append(f"iusentra_ocr_jobs_failed {first_count('errori', 'failed', 'failed_jobs')}")
     alerts = list(observability.get("alerts") or [])
     lines.append(f"iusentra_alerts_total {len(alerts)}")
     return "\n".join(lines) + "\n"

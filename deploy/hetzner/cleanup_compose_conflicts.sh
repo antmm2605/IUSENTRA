@@ -9,7 +9,7 @@ ALLOW_RUNNING="${IUSENTRA_CLEANUP_RUNNING_TEMP:-1}"
 
 is_allowed_temporary_service() {
   local name="$1"
-  [[ "$name" =~ ^[0-9a-f]{8,64}_${PROJECT}-(app|scheduler-worker|ocr-worker|caddy|audit-worm-init)-[0-9]+$ ]]
+  [[ "$name" =~ ^[0-9a-f]{8,64}_${PROJECT}-(app|scheduler-worker|ocr-worker|static-assets|caddy|audit-worm-init)-[0-9]+$ ]]
 }
 
 removed=0

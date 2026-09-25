@@ -96,7 +96,7 @@ Non eseguire MAI `bash deploy/hetzner/deploy.sh` o `git push` aggirando il workf
 |---|---|---|
 | Deposito civile PCT (busta `.enc`, DatiAtto.xml, PEC) | `pct/deposito.py`, `busta.py`, `pec.py`, `validazione.py` | D.M. 44/2011 (artt. 12, 14, 18, 34) + Specifiche DGSIA rev. 04.01.24; D.P.R. 68/2005; D.L. 179/2012 |
 | Firma digitale CAdES/PAdES, PKCS#11 | `pct/firma.py`, `firma_pkcs11.py`, `firme_cades.py` | CAD D.Lgs. 82/2005; eIDAS 910/2014; D.M. 44/2011 art. 12 |
-| Deposito penale PDP | `pct/pdp.py`, `pdp_penale_workflow.py` | D.Lgs. 150/2022 (Cartabia); D.M. 217/2023; art. 56-bis disp. att. c.p.p. |
+| Deposito penale PDP | `pct/penale_pdp/`, `pdp_penale_workflow.py` | D.Lgs. 150/2022 (Cartabia); D.M. 217/2023; art. 56-bis disp. att. c.p.p. |
 | Processo amministrativo PAT/SIGA | `pct/pat.py` | D.Lgs. 104/2010 art. 136; D.P.C.M. 16/02/2016; D.P.C.S.G.A. 28/07/2021 |
 | Notifiche in proprio via PEC | `pct/notifiche_legali.py`, `notification_proof_matrix.py` | L. 53/1994 art. 3-bis; art. 196-undecies disp. att. c.p.c.; Corte Cost. 75/2019 (fasce orarie) |
 | Contributo unificato e spese | `pct/tariffario.py`, `strumenti_legali.py` | D.P.R. 115/2002 art. 13 (scaglioni versionati in docs/specs) |
@@ -222,7 +222,7 @@ iusentra/
 | `firma_pkcs11.py` | Firma via smart card (Aruba Key, PKCS#11) |
 | `pec.py` | Client PEC (SMTP/IMAP), invio + polling ricevute |
 | `polisWeb.py` | Integrazione portale PST/polisWeb (civile) |
-| `pdp.py` | Integrazione PDP REST API (penale, D.Lgs. 150/2022) |
+| `pdp.py` | Client PDP storico (invio diretto bloccato: il PDP non ha API); deposito penale reale in `pct/penale_pdp/` |
 | `pat.py` | Integrazione PAT SOAP/SIGA (amministrativo) |
 | `reginde.py` | Lookup ReGINde — PEC tribunali |
 | `uffici_giudiziari.py` | Bundle 648 uffici giudiziari italiani |
@@ -438,7 +438,7 @@ python -m pytest tests/test_fascicoli.py -v
 | Oggetto PEC | D.M. 44/2011 art. 14 c.3 | `"DEPOSITO TELEMATICO - {TipoAtto} - RG {n}/{anno}"` — riconosciuto automaticamente dal sistema PST |
 | Firma CAdES-BES | D.M. 44/2011 art. 12 | PKCS#7, hash SHA-256, detached, estensione `.p7m`, chain certificati inclusa |
 | Verifica scadenza certificato | D.M. 44/2011 art. 12 | Pre-deposito: blocca se certificato scaduto, avviso a 30 giorni |
-| PDP REST API | D.Lgs. 150/2022 + D.M. 217/2023 | Endpoint `/depositi`, multipart/form-data, mTLS (P12/PEM), risposta JSON |
+| PDP (penale) | art. 111-bis c.p.p.; D.M. 217/2023; provv. DGSIA 11/07/2023 | Il PDP è solo una maschera web dell'avvocato autenticato: nessuna API per i gestionali. IUSENTRA prepara, controlla e registra (`pct/penale_pdp/`, sezione «Deposito penale» del fascicolo); ricevute lette e confrontate col deposito preparato. `ClientPDP.deposita_atto` resta bloccato dalla guardia del portale diretto |
 | PAT SOAP SIGA | D.P.C.M. 16/02/2016 + D.P.C.S.G.A. 28/07/2021 | WSDL `depositoAtto`, atto in base64, autenticazione mTLS |
 | Stato machine PCT | D.M. 44/2011 flusso 4 fasi | 7 stati, serializzazione JSON, `from_dict` per ripristino |
 | Ricevute PEC (IMAP) | D.M. 44/2011 art. 15 | Polling accettazione + consegna, timeout 5 min |
@@ -454,7 +454,7 @@ python -m pytest tests/test_fascicoli.py -v
 1. **Mai cambiare il tag** `<Attoprincipale>` in `busta.py` — il vecchio `<AttoprincipAle>` era errato
 2. **Oggetto PEC** deve sempre iniziare con `"DEPOSITO TELEMATICO"` (riconosciuto dal parser PST)
 3. **Verifica scadenza certificato** deve essere chiamata prima di qualsiasi firma in `DepositoCivile.deposita()`
-4. **Risposta `deposita_atto`** deve sempre contenere: `codiceEsito`, `idDeposito`, `dataDeposito`, `stato`, `ricevutaAccettazione`, `esitoControlli`, `esitoCancelleria` — sia per PDP che per PAT
+4. **Risposta `deposita_atto`** deve sempre contenere: `codiceEsito`, `idDeposito`, `dataDeposito`, `stato`, `ricevutaAccettazione`, `esitoControlli`, `esitoCancelleria` — sia per PDP che per PAT (per il PDP vale solo per il client demo e i test: il portale non espone un servizio di deposito)
 
 ## Local Signer — Eseguibili per utenti finali
 
@@ -823,7 +823,7 @@ STUDIO_NOME / STUDIO_CF / STUDIO_PIVA  # Dati studio
 - **Audit log**: ogni azione su dati sensibili registrata in `EventoAudit`
 - **GDPR**: registro trattamenti dati in `privacy.py`, informative PDF per clienti
 - **Session cookie**: `SECRET_KEY` + `SESSION_COOKIE_SECURE=True` in produzione
-- **mTLS**: connessioni PDP/PAT autenticate con certificato client (P12/PEM)
+- **mTLS**: connessioni PAT autenticate con certificato client (P12/PEM); il PDP si usa solo dal browser dell'avvocato con CNS/CIE
 
 ## Registro delle letture — REGOLA OBBLIGATORIA (letture incrementali)
 

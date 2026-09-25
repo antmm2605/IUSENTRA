@@ -11,6 +11,7 @@ nello studio.
 """
 
 import os
+import re
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -574,6 +575,30 @@ def _dn_campo(asn1_name, campo_hf: str) -> str:
     return ""
 
 
+def _seriale_soggetto_asn1(asn1_name) -> str:
+    try:
+        return str((asn1_name.native or {}).get("serial_number") or "")
+    except Exception:
+        return ""
+
+
+def codice_fiscale_da_seriale(valore: str) -> str:
+    """Il codice fiscale del titolare dal serialNumber del certificato qualificato.
+
+    Nei certificati di firma italiani (Deliberazione CNIPA 45/2009, ETSI EN
+    319 412-1) il campo serialNumber del soggetto vale «TINIT-<codice fiscale>»
+    o, nei certificati più vecchi, «IT:<codice fiscale>». Serve al PDP, che
+    accetta l'atto solo se almeno una firma è dell'avvocato che deposita.
+    """
+    testo = str(valore or "").strip().upper()
+    for prefisso in ("TINIT-", "IT:", "TIN:IT-", "IT-"):
+        if testo.startswith(prefisso):
+            testo = testo[len(prefisso):]
+            break
+    testo = testo.strip()
+    return testo if re.fullmatch(r"[A-Z0-9]{11,16}", testo) else ""
+
+
 def _analizza_cades(data: bytes) -> list[dict]:
     """Estrae info certificati da un envelope CAdES (.p7m) con asn1crypto."""
     try:
@@ -675,6 +700,7 @@ def _analizza_cades(data: bytes) -> list[dict]:
                 "algoritmo": algo,
                 "formato": "CAdES",
                 "data_firma": firma_dt.isoformat() if firma_dt else "",
+                "codice_fiscale": codice_fiscale_da_seriale(_seriale_soggetto_asn1(cert.subject)),
             })
 
         return risultati
@@ -733,6 +759,9 @@ def _analizza_pades(data: bytes) -> list[dict]:
                     "algoritmo": "RSA + SHA-256",
                     "formato": "PAdES",
                     "data_firma": sig.self_reported_timestamp.isoformat() if sig.self_reported_timestamp else "",
+                    "codice_fiscale": codice_fiscale_da_seriale(
+                        next((a.value for a in cert.subject.get_attributes_for_oid(x509.NameOID.SERIAL_NUMBER)), "")
+                    ),
                     "field": sig.field_name,
                     "content_digest_verified": bool(intact),
                     "cryptographic_signature_verified": bool(valid),

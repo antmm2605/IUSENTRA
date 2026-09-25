@@ -1,0 +1,3773 @@
+{
+ "fonte": {
+  "titolo": "Portale Deposito atti Penali – tabelle codificate (tipi atto, tipi ufficio, tipi parte, fasi)",
+  "url": "https://servizipst.giustizia.it/PST/PAVVP/_ws/api/codificati/",
+  "versione_portale": "6.11.10",
+  "consultato_il": "2026-09-25",
+  "accesso": "area riservata PST, sessione avvocato (sola lettura)",
+  "ruoli": "Tabella 2 «Corrispondenze tra tipo atto e ruolo soggetto» del manuale utente PDP (i codificati non espongono i ruoli)",
+  "base_normativa": [
+   "art. 111-bis c.p.p.; art. 87 co. 6-bis D.Lgs. 150/2022",
+   "D.M. 29/12/2023 n. 217 e modifiche (D.M. 206/2024, 206/2025, 114/2026)",
+   "Provvedimento DGSIA 11/07/2023 - specifiche tecniche PDP"
+  ]
+ },
+ "uffici": [
+  {
+   "codice": "PM-U",
+   "descrizione": "Procura della Repubblica"
+  },
+  {
+   "codice": "GIP-U",
+   "descrizione": "Giudice indagini preliminari"
+  },
+  {
+   "codice": "DIB-U",
+   "descrizione": "Tribunale (Dibattimento)"
+  },
+  {
+   "codice": "CAS-U",
+   "descrizione": "Corte di Assise"
+  },
+  {
+   "codice": "PGCAP-U",
+   "descrizione": "Procura Generale"
+  },
+  {
+   "codice": "CAP-U",
+   "descrizione": "Corte d'Appello"
+  },
+  {
+   "codice": "CASAP-U",
+   "descrizione": "Corte d'Assise d'Appello"
+  },
+  {
+   "codice": "PM-G",
+   "descrizione": "Procura della Repubblica (Reati GdP)"
+  },
+  {
+   "codice": "GP-C",
+   "descrizione": "Giudice di Pace (art. 5 c. 2 D.Lvo 274/2000)"
+  },
+  {
+   "codice": "GP-G",
+   "descrizione": "Giudice di Pace"
+  },
+  {
+   "codice": "DIB-G",
+   "descrizione": "Tribunale (Appello Reati GdP)"
+  },
+  {
+   "codice": "RIE",
+   "descrizione": "Tribunale del Riesame"
+  }
+ ],
+ "uffici_minorili": [
+  "PMM-U",
+  "GIPM-U",
+  "GUPM-U",
+  "DIBM-U",
+  "CAPSM-U"
+ ],
+ "ruoli": [
+  {
+   "codice": "IND",
+   "descrizione": "Ind./Imp./Resp.Amm."
+  },
+  {
+   "codice": "OFF",
+   "descrizione": "Persona offesa"
+  },
+  {
+   "codice": "CIV",
+   "descrizione": "Parte civile"
+  },
+  {
+   "codice": "RES",
+   "descrizione": "Responsabile civile"
+  },
+  {
+   "codice": "COB",
+   "descrizione": "Civilmente obbligato"
+  },
+  {
+   "codice": "TER",
+   "descrizione": "Terzo interessato"
+  }
+ ],
+ "fasi": [
+  {
+   "codice": "IP",
+   "descrizione": "Indagini Preliminari"
+  },
+  {
+   "codice": "MC",
+   "descrizione": "Misure Cautelari"
+  },
+  {
+   "codice": "IC",
+   "descrizione": "Impugnazioni Cautelari"
+  },
+  {
+   "codice": "RO",
+   "descrizione": "Rito Ordinario"
+  },
+  {
+   "codice": "RS",
+   "descrizione": "Riti Speciali"
+  },
+  {
+   "codice": "PR",
+   "descrizione": "Processo"
+  },
+  {
+   "codice": "IM",
+   "descrizione": "Impugnazioni"
+  },
+  {
+   "codice": "SOG",
+   "descrizione": "Soggetti"
+  }
+ ],
+ "registri": [
+  {
+   "codice": "N",
+   "descrizione": "Registro noti"
+  },
+  {
+   "codice": "I",
+   "descrizione": "Registro ignoti"
+  },
+  {
+   "codice": "B",
+   "descrizione": "Impugnazioni reali"
+  },
+  {
+   "codice": "S",
+   "descrizione": "Impugnazioni personali"
+  }
+ ],
+ "denunce": [
+  {
+   "codice": "R24",
+   "descrizione": "Denuncia del privato (art. 333 cpp)"
+  },
+  {
+   "codice": "R25",
+   "descrizione": "Querela (art. 336 cpp)"
+  },
+  {
+   "codice": "R23",
+   "descrizione": "Istanza di Procedimento (art. 341 cpp)"
+  },
+  {
+   "codice": "R26",
+   "descrizione": "Integrazione Denuncia/Querela/Istanza Procedimento"
+  }
+ ],
+ "distretti": [
+  "ANCONA",
+  "BARI",
+  "BOLOGNA",
+  "BRESCIA",
+  "CAGLIARI",
+  "CALTANISSETTA",
+  "CAMPOBASSO",
+  "CATANIA",
+  "CATANZARO",
+  "FIRENZE",
+  "GENOVA",
+  "L'AQUILA",
+  "LECCE",
+  "MESSINA",
+  "MILANO",
+  "NAPOLI",
+  "PALERMO",
+  "PERUGIA",
+  "POTENZA",
+  "REGGIO CALABRIA",
+  "ROMA",
+  "SALERNO",
+  "TORINO",
+  "TRENTO",
+  "TRIESTE",
+  "VENEZIA"
+ ],
+ "atti": [
+  {
+   "codice": "PBH",
+   "descrizione": "Abbreviazione dei termini (art. 173 c3 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PBD",
+   "descrizione": "Accesso, copia e visione atti (art. 116 cpp)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "PM-G",
+    "GP-C",
+    "GP-G",
+    "DIB-G",
+    "CAP-U",
+    "CAS-U",
+    "CASAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P57",
+   "descrizione": "Accettazione della proposta di messa alla prova (art. 464 ter1 c2 cpp)",
+   "fase": "RS",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PMM-U",
+    "PM-G"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "P14",
+   "descrizione": "Accettazione remissione di querela (art. 340 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "DIBM-U",
+    "PMM-U",
+    "CAPSM-U",
+    "PM-U",
+    "PM-G",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "GIP-U",
+    "GP-C"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PAE",
+   "descrizione": "Acquisizione prove non rinviabili (artt. 420 quinquies, 464 sexies, 467, 598 ter c3, 721 c4 cpp, 18 D.Lvo 274/2000)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P64",
+   "descrizione": "Acquisizione tabulati (art. 132 c3 Dlgs. 196/2003)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P69",
+   "descrizione": "Ammissione al gratuito patrocinio (art. 78 TU 115/2002)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "GIP-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U",
+    "GP-C"
+   ],
+   "contestuali": [
+    "PAQ",
+    "PAR"
+   ],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PA4",
+   "descrizione": "Anticipazione o differimento udienza (art. 465 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "RIE",
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U",
+    "DIB-G"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PBA",
+   "descrizione": "Appello (artt. 593, 600 cpp)",
+   "fase": "IM",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-G",
+    "DIB-U",
+    "CAS-U",
+    "DIBM-U",
+    "GIPM-U"
+   ],
+   "contestuali": [
+    "PC1"
+   ],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PB4",
+   "descrizione": "Appello cautelare reale (art. 322 bis cpp)",
+   "fase": "IC",
+   "gruppo": "CONFERMARICEZIONE",
+   "uffici": [
+    "RIE"
+   ],
+   "contestuali": [
+    "P02"
+   ],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "TER"
+   ]
+  },
+  {
+   "codice": "PB1",
+   "descrizione": "Appello incidentale (art. 595 cpp)",
+   "fase": "IM",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "DIB-U",
+    "GP-G",
+    "CAS-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PB2",
+   "descrizione": "Appello misura personale (art. 310 cpp)",
+   "fase": "IC",
+   "gruppo": "CONFERMARICEZIONE",
+   "uffici": [
+    "RIE"
+   ],
+   "contestuali": [
+    "P02"
+   ],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PC4",
+   "descrizione": "Appello parte civile (art. 576 c1 cpp)",
+   "fase": "IM",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GUPM-U",
+    "DIB-U",
+    "CAS-U",
+    "DIBM-U",
+    "GP-G"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "CIV"
+   ]
+  },
+  {
+   "codice": "PC5",
+   "descrizione": "Appello querelante (art. 576 c2 cpp)",
+   "fase": "IM",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GUPM-U",
+    "DIB-U",
+    "CAS-U",
+    "DIBM-U",
+    "GP-G"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "CIV"
+   ]
+  },
+  {
+   "codice": "PAR",
+   "descrizione": "Attestazione consolato (art. 79 c2 TU 115/2002)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-G",
+    "GP-C",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PCF",
+   "descrizione": "Audizione persona che non ha reso dichiarazioni al difensore (art. 391 bis c10 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "PMM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF"
+   ]
+  },
+  {
+   "codice": "PAQ",
+   "descrizione": "Autocertificazione reddito (art. 79 c1 TU 115/2002)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-G",
+    "GP-C",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PCG",
+   "descrizione": "Autorizzazione accesso a luoghi privati o non aperti al pubblico (art. 391 septies cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GIPM-U",
+    "GUPM-U",
+    "GP-C"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF"
+   ]
+  },
+  {
+   "codice": "P51",
+   "descrizione": "Autorizzazione consulente di parte (art. 233 c1 bis cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "DIBM-U",
+    "PMM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "PM-U",
+    "PM-G",
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV"
+   ]
+  },
+  {
+   "codice": "P43",
+   "descrizione": "Autorizzazione investigazioni difensive - esame detenuto (art. 391 bis c7 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF"
+   ]
+  },
+  {
+   "codice": "PCD",
+   "descrizione": "Avviso accertamenti tecnici non ripetibili (art. 391 decies c3 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "PMM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF"
+   ]
+  },
+  {
+   "codice": "P29",
+   "descrizione": "Citazione Civilmente Obbligato (art. 89 c1 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "GP-G",
+    "DIB-U",
+    "CAS-U",
+    "GIP-U",
+    "GP-C"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "P32",
+   "descrizione": "Citazione Responsabile Civile (art. 83 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "GP-G",
+    "DIB-U",
+    "CAS-U",
+    "GIP-U",
+    "GP-C"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "CIV"
+   ]
+  },
+  {
+   "codice": "PD1",
+   "descrizione": "Citazione dei testimoni, periti e consulenti tecnici",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PA2",
+   "descrizione": "Colloqui (art. 18 L. 354/1975)",
+   "fase": "MC",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "DIB-U",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PAZ",
+   "descrizione": "Comunicazione impedimento (art. 420 ter c5 cpp)",
+   "fase": "SOG",
+   "gruppo": "CONFERMARICEZIONE",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U",
+    "RIE"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PC0",
+   "descrizione": "Comunicazione impedimento - gravidanza del difensore (art. 420 ter c5 bis cpp)",
+   "fase": "SOG",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "DIB-U",
+    "CAS-U",
+    "GIPM-U",
+    "GUPM-U",
+    "DIBM-U",
+    "RIE",
+    "GP-G",
+    "CAP-U",
+    "CASAP-U",
+    "DIB-G",
+    "CAPSM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PAG",
+   "descrizione": "Comunicazione mancata accettazione domiciliazione (art. 162 c4 bis cpp)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "PMM-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U",
+    "RIE"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PBX",
+   "descrizione": "Conclusioni della parte civile (art. 523 c2 cpp)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "DIB-U",
+    "DIBM-U",
+    "GP-G",
+    "CAS-U",
+    "GIP-U",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "CIV"
+   ]
+  },
+  {
+   "codice": "PAM",
+   "descrizione": "Concordato in appello (art. 599 bis cpp)",
+   "fase": "IM",
+   "gruppo": "CONFERMARICEZIONE",
+   "uffici": [
+    "CAP-U",
+    "CASAP-U",
+    "PGCAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PC6",
+   "descrizione": "Consenso a sostituzione pena detentiva (art. 598 bis c1 bis, 4 ter cpp)",
+   "fase": "IM",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-G",
+    "DIB-U",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "P50",
+   "descrizione": "Consenso richiesta patteggiamento (artt. 446, 447 cpp)",
+   "fase": "RS",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "DIB-U",
+    "GIP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PBE",
+   "descrizione": "Conversione sequestro probatorio in conservativo (art. 262 c2 cpp)",
+   "fase": "",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "DIB-U",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "CIV"
+   ]
+  },
+  {
+   "codice": "P46",
+   "descrizione": "Copia e trascrizione esiti intercettazioni (art. 268 c8 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": null
+  },
+  {
+   "codice": "P45",
+   "descrizione": "Copia intercettazioni (art. 415 bis c2 bis cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "PMM-U",
+    "PM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PCQ",
+   "descrizione": "Correzione atti - garanzia presunzione di innocenza (art. 115 bis cpp)",
+   "fase": "SOG",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "PMM-U",
+    "GIP-U",
+    "DIB-U",
+    "CAS-U",
+    "GIPM-U",
+    "RIE",
+    "GUPM-U",
+    "DIBM-U",
+    "GP-G",
+    "GP-C"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "P41",
+   "descrizione": "Correzione errore materiale (art. 130 cpp)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "DIBM-U",
+    "PMM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "RIE",
+    "PM-U",
+    "PM-G",
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P30",
+   "descrizione": "Costituzione Civilmente Obbligato (art. 89 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "GP-G",
+    "DIB-U",
+    "CAS-U",
+    "GIP-U"
+   ],
+   "contestuali": [
+    "P02",
+    "P05",
+    "P36",
+    "P37",
+    "P69",
+    "P78",
+    "PAQ",
+    "PAR",
+    "PCY",
+    "PD1",
+    "PD2"
+   ],
+   "ruoli": [
+    "COB"
+   ]
+  },
+  {
+   "codice": "P26",
+   "descrizione": "Costituzione Responsabile Civile (art. 84 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "GP-G",
+    "DIB-U",
+    "CAS-U",
+    "GIP-U"
+   ],
+   "contestuali": [
+    "P02",
+    "P05",
+    "P36",
+    "P37",
+    "P69",
+    "P78",
+    "PAQ",
+    "PAR",
+    "PCY",
+    "PD1",
+    "PD2"
+   ],
+   "ruoli": [
+    "RES"
+   ]
+  },
+  {
+   "codice": "P10",
+   "descrizione": "Costituzione di Parte Civile (artt. 76, 78 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "DIB-U",
+    "CAS-U",
+    "GP-G",
+    "GIP-U"
+   ],
+   "contestuali": [
+    "P05",
+    "PCX",
+    "PD1",
+    "PD2"
+   ],
+   "ruoli": [
+    "OFF",
+    "CIV"
+   ]
+  },
+  {
+   "codice": "P68",
+   "descrizione": "Deduzioni incidente probatorio (art. 396 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GIPM-U",
+    "PM-U",
+    "PMM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PBJ",
+   "descrizione": "Deduzioni sull'opposizione all'intervento degli enti esponenziali (art. 95 c1 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "CAS-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "OFF"
+   ]
+  },
+  {
+   "codice": "P11",
+   "descrizione": "Denuncia/Querela (artt. 333, 336 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "PMM-U",
+    "PM-U"
+   ],
+   "contestuali": [],
+   "ruoli": null
+  },
+  {
+   "codice": "P13",
+   "descrizione": "Costituzione di Parte Civile (artt. 76, 78 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-G",
+    "DIB-U",
+    "CAS-U"
+   ],
+   "contestuali": [
+    "P02",
+    "P05",
+    "P36",
+    "P37",
+    "P69",
+    "PAQ",
+    "PAR",
+    "PCX",
+    "PD1",
+    "PD2"
+   ],
+   "ruoli": [
+    "OFF",
+    "CIV"
+   ]
+  },
+  {
+   "codice": "P62",
+   "descrizione": "Determinazioni su azione penale (art. 415 bis c5 quater cpp)",
+   "fase": "RS",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF"
+   ]
+  },
+  {
+   "codice": "P84",
+   "descrizione": "Determinazioni su azione penale dopo deposito atti indagine (art. 415 ter c3 cpp)",
+   "fase": "RS",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF"
+   ]
+  },
+  {
+   "codice": "PBS",
+   "descrizione": "Dichiarazione di consenso della persona offesa (art. 93 c2 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "CAS-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "OFF"
+   ]
+  },
+  {
+   "codice": "P23",
+   "descrizione": "Dichiarazione domicilio (art. 162 cpp)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "DIBM-U",
+    "PMM-U",
+    "CAPSM-U",
+    "PM-U",
+    "PM-G",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "GIP-U",
+    "GP-C",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PCU",
+   "descrizione": "Dichiarazione domicilio terzo interessato",
+   "fase": "",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "RIE"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "TER"
+   ]
+  },
+  {
+   "codice": "P63",
+   "descrizione": "Distruzione intercettazioni (art. 269 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PBK",
+   "descrizione": "Eccezione di difetto di giurisdizione (art. 20 cpp)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PBL",
+   "descrizione": "Eccezione di incompetenza (art. 22 c1 cpp)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P24",
+   "descrizione": "Elezione domicilio (art. 162 cpp)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "DIBM-U",
+    "PMM-U",
+    "CAPSM-U",
+    "PM-U",
+    "PM-G",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "GIP-U",
+    "GP-C",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PCV",
+   "descrizione": "Elezione domicilio terzo interessato",
+   "fase": "",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "RIE"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "TER"
+   ]
+  },
+  {
+   "codice": "P47",
+   "descrizione": "Esame, ascolto, cognizione intercettazioni (art. 268 c6 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "PMM-U",
+    "PM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "P31",
+   "descrizione": "Esclusione Civilmente Obbligato (art. 89 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "GIP-U",
+    "GP-C"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "COB"
+   ]
+  },
+  {
+   "codice": "P25",
+   "descrizione": "Esclusione Parte Civile (art. 80 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "GP-G",
+    "DIB-U",
+    "CAS-U",
+    "GIP-U",
+    "GP-C"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P28",
+   "descrizione": "Esclusione Responsabile Civile (art. 86 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "GIP-U",
+    "GP-C"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "CIV",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P89",
+   "descrizione": "Esercizio diritto all'oblio (art. 64 ter disp. att. cpp)",
+   "fase": "",
+   "gruppo": "",
+   "uffici": [
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "GIP-U",
+    "CAPSM-U",
+    "DIBM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PCO",
+   "descrizione": "Estinzione del reato per pagamento oblazione (artt. 162, 162 bis cp - art. 141 disp. att. cpp)",
+   "fase": "RS",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "DIB-U",
+    "GIPM-U",
+    "GUPM-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GP-G",
+    "GP-C",
+    "CAP-U",
+    "CASAP-U",
+    "DIB-G",
+    "RIE"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "P17",
+   "descrizione": "Giudizio abbreviato (artt. 438, 458, 519, 520, 554 ter, 558 c8 cpp)",
+   "fase": "RS",
+   "gruppo": "",
+   "uffici": [
+    "DIBM-U",
+    "DIB-U",
+    "GIP-U",
+    "GIPM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "P48",
+   "descrizione": "Giudizio immediato (artt. 453 c3, 419 c5 cpp)",
+   "fase": "RS",
+   "gruppo": "",
+   "uffici": [
+    "PMM-U",
+    "PM-U",
+    "GIP-U",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PD4",
+   "descrizione": "Impugnazione per i soli interessi civili (art. 573 cpp)",
+   "fase": "",
+   "gruppo": "",
+   "uffici": [
+    "GP-G",
+    "DIB-U",
+    "CAS-U",
+    "DIBM-U",
+    "GIP-U",
+    "GIPM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "CIV",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P67",
+   "descrizione": "Incidente probatorio (art. 393 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "P39",
+   "descrizione": "Informazione su richiesta archiviazione (art. 408 c2 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "PMM-U",
+    "PM-U",
+    "PM-G"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF"
+   ]
+  },
+  {
+   "codice": "PAS",
+   "descrizione": "Integrazione documentale istanza ammissione al gratuito patrocinio (artt. 79 c3, 123 TU 115/2002)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "DIBM-U",
+    "GIPM-U",
+    "GUPM-U",
+    "GP-C",
+    "CAPSM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P27",
+   "descrizione": "Intervento Responsabile Civile (art. 85 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "GIP-U"
+   ],
+   "contestuali": [
+    "P02",
+    "P05",
+    "P36",
+    "P37",
+    "P69",
+    "P78",
+    "PAQ",
+    "PAR",
+    "PCY",
+    "PD1",
+    "PD2"
+   ],
+   "ruoli": [
+    "RES"
+   ]
+  },
+  {
+   "codice": "PBT",
+   "descrizione": "Intervento di ente esponenziale (art. 93 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "CAS-U"
+   ],
+   "contestuali": [
+    "PBS"
+   ],
+   "ruoli": [
+    "OFF"
+   ]
+  },
+  {
+   "codice": "PCE",
+   "descrizione": "Investigazioni difensive (art. 391 octies cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GIPM-U",
+    "GUPM-U",
+    "GP-C"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PCW",
+   "descrizione": "Istanza rinvio udienza",
+   "fase": "",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "RIE"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES",
+    "TER"
+   ]
+  },
+  {
+   "codice": "PC7",
+   "descrizione": "Istanza trattazione orale udienza - 598 bis c2, 601 c3 cpp",
+   "fase": "IM",
+   "gruppo": "",
+   "uffici": [
+    "CAP-U",
+    "CASAP-U",
+    "CAPSM-U",
+    "DIB-G"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PAU",
+   "descrizione": "Liquidazione onorario (art. 82 TU 115/2002)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PD0",
+   "descrizione": "Lista testi, periti o consulenti tecnici del Responsabile Amministrativo (artt. 468, 555 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "GP-G",
+    "DIB-U",
+    "CAS-U",
+    "GIP-U",
+    "GP-C"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PCY",
+   "descrizione": "Lista testi, periti o consulenti tecnici del Responsabile Civile e civilmente obbligato (artt. 468, 555 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "GP-G",
+    "DIB-U",
+    "CAS-U",
+    "GIP-U",
+    "GP-C"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PCZ",
+   "descrizione": "Lista testi, periti o consulenti tecnici dell'Imputato (artt. 468, 555 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "GP-G",
+    "DIB-U",
+    "CAS-U",
+    "GIP-U",
+    "GP-C"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PCX",
+   "descrizione": "Lista testi, periti o consulenti tecnici della Persona Offesa - Parte Civile (artt. 468, 555 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "GP-G",
+    "DIB-U",
+    "CAS-U",
+    "GIP-U",
+    "GP-C"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "OFF",
+    "CIV"
+   ]
+  },
+  {
+   "codice": "PC1",
+   "descrizione": "Mandato ad impugnare (art.581 c1 quater cpp)",
+   "fase": "SOG",
+   "gruppo": "",
+   "uffici": [
+    "DIB-U",
+    "CAS-U",
+    "GIPM-U",
+    "GUPM-U",
+    "DIBM-U",
+    "RIE",
+    "GP-G",
+    "CAP-U",
+    "CASAP-U",
+    "DIB-G",
+    "CAPSM-U",
+    "GIP-U"
+   ],
+   "contestuali": [
+    "PBA",
+    "PBB",
+    "P23",
+    "P24"
+   ],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PCI",
+   "descrizione": "Memoria difensiva dopo notifica istanza revoca o sostituzione misura cautelare (art. 299 c3 cpp)",
+   "fase": "MC",
+   "gruppo": "",
+   "uffici": [
+    "CAP-U",
+    "CASAP-U",
+    "CAPSM-U",
+    "GIP-U",
+    "GIPM-U",
+    "GUPM-U",
+    "DIB-U",
+    "CAS-U",
+    "DIBM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "OFF",
+    "CIV"
+   ]
+  },
+  {
+   "codice": "PA0",
+   "descrizione": "Memorie Reclamo (art. 410 bis c3 cpp)",
+   "fase": "IP",
+   "gruppo": "CONFERMARICEZIONE",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIBM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF"
+   ]
+  },
+  {
+   "codice": "PA7",
+   "descrizione": "Memorie consulente tecnico (art. 233 cpp)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "PMM-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PC8",
+   "descrizione": "Memorie di replica - trattazione camerale (art. 598 bis c1 cpp)",
+   "fase": "IM",
+   "gruppo": "",
+   "uffici": [
+    "CAP-U",
+    "CASAP-U",
+    "CAPSM-U",
+    "DIB-G"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P34",
+   "descrizione": "Memorie difensive (artt. 121, 367 cpp)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "DIBM-U",
+    "CAPSM-U",
+    "RIE",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "GIP-U",
+    "GP-C",
+    "PM-U",
+    "PM-G",
+    "PMM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES",
+    "TER"
+   ]
+  },
+  {
+   "codice": "P61",
+   "descrizione": "Memorie persona offesa sulla messa alla prova (art. 464 ter1 c3 cpp)",
+   "fase": "RS",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "OFF"
+   ]
+  },
+  {
+   "codice": "P75",
+   "descrizione": "Memorie retrodatazione iscrizione (Indagato) (art. 335 quater c6 cpp)",
+   "fase": "RS",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GIPM-U",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "GP-G",
+    "RIE"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "P66",
+   "descrizione": "Memorie su richiesta proroga indagini (art. 406 c3 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF"
+   ]
+  },
+  {
+   "codice": "P33",
+   "descrizione": "Memorie sull'avviso di conclusione indagini (art. 415 bis c3 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "PMM-U",
+    "PM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "P20",
+   "descrizione": "Messa alla prova (artt. 464 bis e ter cpp)",
+   "fase": "RS",
+   "gruppo": "",
+   "uffici": [
+    "DIBM-U",
+    "DIB-U",
+    "GIP-U",
+    "GIPM-U",
+    "GUPM-U",
+    "GP-C",
+    "GP-G",
+    "CAP-U",
+    "DIB-G",
+    "CAPSM-U"
+   ],
+   "contestuali": [
+    "P54"
+   ],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PA1",
+   "descrizione": "Modifica modalita' esecutive misure cautelari (art. 279 cpp)",
+   "fase": "MC",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "DIB-U",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PBM",
+   "descrizione": "Motivi nuovi (art. 585 c4 cpp)",
+   "fase": "IM",
+   "gruppo": "",
+   "uffici": [
+    "RIE",
+    "DIB-G",
+    "CAP-U",
+    "CASAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES",
+    "TER"
+   ]
+  },
+  {
+   "codice": "P36",
+   "descrizione": "Nomina Consulente Tecnico di Parte (artt. 225 e 233 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "DIBM-U",
+    "PMM-U",
+    "CAPSM-U",
+    "PM-U",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "PM-G",
+    "GIP-U",
+    "GP-C",
+    "GIPM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P02",
+   "descrizione": "Nomina difensore di fiducia (artt. 96, 100, 101 cpp)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "DIBM-U",
+    "PMM-U",
+    "CAPSM-U",
+    "GIP-U",
+    "GP-C",
+    "RIE",
+    "PM-U",
+    "DIB-U",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "PM-G",
+    "GP-G",
+    "DIB-G",
+    "PGCAP-U"
+   ],
+   "contestuali": "*",
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P49",
+   "descrizione": "Nomina difensore sostituto (art. 102 cpp)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "DIBM-U",
+    "PMM-U",
+    "CAPSM-U",
+    "GIP-U",
+    "RIE",
+    "PM-U",
+    "PM-G",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "PGCAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PC2",
+   "descrizione": "Non accettazione mandato (art. 107 cpp)",
+   "fase": "SOG",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "DIB-U",
+    "CAS-U",
+    "GIPM-U",
+    "GUPM-U",
+    "DIBM-U",
+    "RIE",
+    "GP-G",
+    "CAP-U",
+    "CASAP-U",
+    "DIB-G",
+    "CAPSM-U",
+    "PGCAP-U",
+    "PM-U",
+    "PM-G",
+    "PMM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P58",
+   "descrizione": "Notifica deposito istanza di retrodatazione iscrizione indagato (art. 335 quater c6 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PMM-U",
+    "PM-G"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "P19",
+   "descrizione": "Oblazione (artt. 162,162-bis cp - 141 disp. att. cpp)",
+   "fase": "RS",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "DIB-U",
+    "PM-G",
+    "GP-C",
+    "GP-G",
+    "GIP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PBF",
+   "descrizione": "Offerta di cauzione sequestro conservativo (art. 319 cpp)",
+   "fase": "",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "DIB-U",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P71",
+   "descrizione": "Opposizione a decreto penale di condanna (art. 461 cpp)",
+   "fase": "RS",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "COB"
+   ]
+  },
+  {
+   "codice": "P06",
+   "descrizione": "Opposizione a richiesta archiviazione (art. 410 cpp e art. 17 c2 dlgs 274/2000)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "PMM-U",
+    "PM-U",
+    "PM-G",
+    "GIP-U",
+    "GP-C",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF"
+   ]
+  },
+  {
+   "codice": "PA8",
+   "descrizione": "Opposizione al decreto del PM su richiesta di dissequestro (art. 263 c5 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "PMM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF"
+   ]
+  },
+  {
+   "codice": "PBO",
+   "descrizione": "Opposizione al decreto del PM sul ritardato deposito di atti di indagine (art. 366 c2 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PCK",
+   "descrizione": "Opposizione al diniego restituzione terzo interessato (art. 263 c5 cpp)",
+   "fase": "MC",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "GIP-U",
+    "PMM-U",
+    "GIPM-U",
+    "PM-G",
+    "GP-C"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "TER"
+   ]
+  },
+  {
+   "codice": "PA9",
+   "descrizione": "Opposizione al rigetto della autorizzazione del consulente tecnico (art. 233 c1 bis cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF"
+   ]
+  },
+  {
+   "codice": "PBN",
+   "descrizione": "Opposizione all'intervento dell'ente (art. 95 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "CAS-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "P56",
+   "descrizione": "Opposizione alla convalida della perquisizione (art. 352 c4 bis cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PMM-U",
+    "PM-G"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "P55",
+   "descrizione": "Opposizione alla perquisizione disposta dal PM (art. 252 bis c1 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PMM-U",
+    "PM-G"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "P91",
+   "descrizione": "Opposizione di segreto professionale o d'ufficio (art. 256 c1, 2 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "PMM-U",
+    "DIBM-U",
+    "GUPM-U",
+    "CAPSM-U",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P65",
+   "descrizione": "Pagamento oblazione (artt. 162, 162 bis cpp - art. 141 disp. att. cpp)",
+   "fase": "RS",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GIPM-U",
+    "GUPM-U",
+    "DIB-U",
+    "GP-G",
+    "CAP-U",
+    "CASAP-U",
+    "DIB-G",
+    "DIBM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PBV",
+   "descrizione": "Partecipazione a distanza (art. 133 ter cpp)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "PMM-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U",
+    "RIE"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P80",
+   "descrizione": "Partecipazione all'udienza (art. 598 bis c2 cpp)",
+   "fase": "",
+   "gruppo": "",
+   "uffici": [
+    "DIB-G",
+    "CAP-U",
+    "CASAP-U",
+    "CAPSM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P18",
+   "descrizione": "Patteggiamento (artt. 444, 447 c1, 458 bis, 438 c5 bis, 519, 520, 554 ter, 558 c8 cpp)",
+   "fase": "RS",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "DIB-U",
+    "GIP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PBP",
+   "descrizione": "Perdita di efficacia delle misure cautelari (artt. 27, 300 e segg. cpp)",
+   "fase": "MC",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "DIB-U",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PCH",
+   "descrizione": "Presentazione spontanea - interrogatorio (art. 374 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "PMM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PAA",
+   "descrizione": "Procura speciale (art. 122 cpp)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "PMM-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P54",
+   "descrizione": "Programma trattamento Messa alla Prova (art. 464 bis c4 cpp)",
+   "fase": "RS",
+   "gruppo": "",
+   "uffici": [
+    "DIB-U",
+    "DIBM-U",
+    "GIP-U",
+    "GIPM-U",
+    "GUPM-U",
+    "GP-C",
+    "GP-G",
+    "CAP-U",
+    "DIB-G",
+    "CAPSM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "P42",
+   "descrizione": "Promuovimento incidente probatorio (art. 394 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "PMM-U",
+    "PM-U",
+    "PM-G"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "OFF"
+   ]
+  },
+  {
+   "codice": "P98",
+   "descrizione": "Promuovimento sequestro probatorio (art. 368 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "PMM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF"
+   ]
+  },
+  {
+   "codice": "PD2",
+   "descrizione": "Prova avvenuta notificazione testimoni, periti e consulenti tecnici",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PBI",
+   "descrizione": "Prova di avvenuta notificazione",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P52",
+   "descrizione": "Reclamo decreto archiviazione (art. 410 bis c3 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "GP-C",
+    "GIP-U",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF"
+   ]
+  },
+  {
+   "codice": "P53",
+   "descrizione": "Reclamo ordinanza archiviazione (art. 410bis c3 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "GP-C",
+    "GIP-U",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF"
+   ]
+  },
+  {
+   "codice": "P21",
+   "descrizione": "Remissione querela (art. 340 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "DIBM-U",
+    "PMM-U",
+    "CAPSM-U",
+    "PM-U",
+    "PM-G",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "GIP-U",
+    "GP-C"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "OFF"
+   ]
+  },
+  {
+   "codice": "PB9",
+   "descrizione": "Rescissione del giudicato (art. 629 bis cpp)",
+   "fase": "",
+   "gruppo": "CONFERMARICEZIONE",
+   "uffici": [
+    "CAP-U",
+    "CAPSM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "P99",
+   "descrizione": "Restituzione beni sequestrati (art. 262 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "DIB-G",
+    "PM-U",
+    "PM-G",
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "PMM-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV"
+   ]
+  },
+  {
+   "codice": "PCJ",
+   "descrizione": "Restituzione beni terzo interessato (art. 263 cpp)",
+   "fase": "MC",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "GIP-U",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "GP-G",
+    "GP-C",
+    "PMM-U",
+    "DIBM-U",
+    "GIPM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "TER"
+   ]
+  },
+  {
+   "codice": "PAB",
+   "descrizione": "Restituzione nel termine (art. 175 cpp)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P59",
+   "descrizione": "Retrodatazione iscrizione indagato (art. 335 quater cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GIPM-U",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "GP-G",
+    "RIE"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PCC",
+   "descrizione": "Rettifica delle generalita' indagato/imputato",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GIPM-U",
+    "GUPM-U",
+    "DIB-U",
+    "DIB-G",
+    "DIBM-U",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "CAPSM-U",
+    "GP-G",
+    "PM-G",
+    "PM-U",
+    "PMM-U",
+    "PGCAP-U",
+    "RIE"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PB8",
+   "descrizione": "Revisione (art. 633 cpp)",
+   "fase": "",
+   "gruppo": "CONFERMARICEZIONE",
+   "uffici": [
+    "CAP-U",
+    "CAPSM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PC3",
+   "descrizione": "Revoca costituzione parte civile (art. 82 cpp)",
+   "fase": "SOG",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GIPM-U",
+    "GUPM-U",
+    "DIB-U",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "CAPSM-U",
+    "GP-G",
+    "DIB-G"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "CIV"
+   ]
+  },
+  {
+   "codice": "PBQ",
+   "descrizione": "Revoca del consenso della persona offesa (art. 92 c3 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "CAS-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "OFF"
+   ]
+  },
+  {
+   "codice": "PAC",
+   "descrizione": "Revoca del sequestro preventivo (art. 321 c3 cpp)",
+   "fase": "MC",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "PM-U",
+    "PM-G",
+    "PMM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES",
+    "TER"
+   ]
+  },
+  {
+   "codice": "P07",
+   "descrizione": "Revoca difensore (art. 107 cpp)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "DIBM-U",
+    "PMM-U",
+    "CAPSM-U",
+    "PM-U",
+    "DIB-U",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "PM-G",
+    "GP-G",
+    "DIB-G",
+    "GIP-U",
+    "GP-C",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PD3",
+   "descrizione": "Revoca sequestro conservativo (artt. 316, 317 cpp)",
+   "fase": "",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "P35",
+   "descrizione": "Revoca, sostituzione o modifica misura cautelare personale (art. 299 cpp)",
+   "fase": "MC",
+   "gruppo": "",
+   "uffici": [
+    "DIBM-U",
+    "CAPSM-U",
+    "DIB-U",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "GIP-U",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "P08",
+   "descrizione": "Richiesta accesso agli atti (art. 116 cpp)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "DIBM-U",
+    "PMM-U",
+    "PM-U",
+    "DIB-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PCT",
+   "descrizione": "Richiesta copia digitale atti (art. 116 cpp)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PMM-U",
+    "GIP-U",
+    "GIPM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": null
+  },
+  {
+   "codice": "PB3",
+   "descrizione": "Richiesta di avocazione al PG (art. 413 cpp)",
+   "fase": "IP",
+   "gruppo": "CONFERMARICEZIONE",
+   "uffici": [
+    "PGCAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF"
+   ]
+  },
+  {
+   "codice": "PA5",
+   "descrizione": "Richiesta di proporre impugnazione (art. 572 c1 cpp)",
+   "fase": "IM",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PMM-U",
+    "PGCAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "OFF",
+    "CIV"
+   ]
+  },
+  {
+   "codice": "PAT",
+   "descrizione": "Ricorso Cassazione (revoca Gratuito Patrocinio) (art. 113 TU 115/2002)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PAP",
+   "descrizione": "Ricorso Cassazione Ordinanze",
+   "fase": "IM",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PBG",
+   "descrizione": "Ricorso Cassazione decreto di sequestro preventivo (art. 325 c2 cpp)",
+   "fase": "IM",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PA3",
+   "descrizione": "Ricorso Cassazione ordinanza cautelare personale (art. 311 c2, 3 cpp)",
+   "fase": "IC",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "DIB-U",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PAO",
+   "descrizione": "Ricorso Cassazione ordinanza personale riesame (art. 311 cpp)",
+   "fase": "IC",
+   "gruppo": "CONFERMARICEZIONE",
+   "uffici": [
+    "RIE"
+   ],
+   "contestuali": [
+    "P02"
+   ],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PB5",
+   "descrizione": "Ricorso Cassazione ordinanza reale riesame (art. 325 cpp)",
+   "fase": "IC",
+   "gruppo": "CONFERMARICEZIONE",
+   "uffici": [
+    "RIE"
+   ],
+   "contestuali": [
+    "P02"
+   ],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "TER"
+   ]
+  },
+  {
+   "codice": "PCM",
+   "descrizione": "Ricorso per Cassazione - civilmente obbligato (art. 575 c2 cpp)",
+   "fase": "IM",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GIPM-U",
+    "GUPM-U",
+    "DIB-U",
+    "DIBM-U",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "CAPSM-U",
+    "GP-G",
+    "DIB-G"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "COB"
+   ]
+  },
+  {
+   "codice": "PC9",
+   "descrizione": "Ricorso per Cassazione - parte civile (art. 576 c1 cpp)",
+   "fase": "IM",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GUPM-U",
+    "DIB-U",
+    "CAS-U",
+    "DIBM-U",
+    "CAP-U",
+    "CASAP-U",
+    "CAPSM-U",
+    "GP-G",
+    "DIB-G"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "CIV"
+   ]
+  },
+  {
+   "codice": "PCA",
+   "descrizione": "Ricorso per Cassazione - querelante (art. 576 c2 cpp)",
+   "fase": "IM",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GUPM-U",
+    "DIB-U",
+    "CAS-U",
+    "DIBM-U",
+    "CAP-U",
+    "CASAP-U",
+    "CAPSM-U",
+    "GP-G",
+    "DIB-G"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "OFF"
+   ]
+  },
+  {
+   "codice": "PCL",
+   "descrizione": "Ricorso per Cassazione - responsabile civile (art. 575 c1 e 3 cpp)",
+   "fase": "IM",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GIPM-U",
+    "GUPM-U",
+    "DIB-U",
+    "DIBM-U",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "CAPSM-U",
+    "GP-G",
+    "DIB-G"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "RES"
+   ]
+  },
+  {
+   "codice": "PBB",
+   "descrizione": "Ricorso per cassazione (art. 607 cpp)",
+   "fase": "IM",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U"
+   ],
+   "contestuali": [
+    "PC1"
+   ],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "P22",
+   "descrizione": "Ricusazione del giudice (artt. 37, 38 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "DIBM-U",
+    "CAPSM-U",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "GIP-U",
+    "GP-C",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P37",
+   "descrizione": "Ricusazione del perito (art. 223 cpp)",
+   "fase": "RO",
+   "gruppo": "",
+   "uffici": [
+    "DIBM-U",
+    "PMM-U",
+    "CAPSM-U",
+    "RIE",
+    "PM-U",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "GIP-U",
+    "GP-C",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PB6",
+   "descrizione": "Riesame personale (art. 309 cpp)",
+   "fase": "IC",
+   "gruppo": "CONFERMARICEZIONE",
+   "uffici": [
+    "RIE"
+   ],
+   "contestuali": [
+    "P02"
+   ],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PB7",
+   "descrizione": "Riesame reale (artt. 257, 318, 322, 324, 355 cpp)",
+   "fase": "IC",
+   "gruppo": "CONFERMARICEZIONE",
+   "uffici": [
+    "RIE"
+   ],
+   "contestuali": [
+    "P02"
+   ],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PCB",
+   "descrizione": "Riesame reale terzo interessato (art. 257 cpp)",
+   "fase": "IC",
+   "gruppo": "CONFERMARICEZIONE",
+   "uffici": [
+    "RIE"
+   ],
+   "contestuali": [
+    "P02"
+   ],
+   "ruoli": [
+    "TER"
+   ]
+  },
+  {
+   "codice": "PAL",
+   "descrizione": "Rimessione del processo (art. 46 cpp)",
+   "fase": "",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-C",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PA6",
+   "descrizione": "Rinnovazione dell'istruttoria dibattimentale (art. 603 cpp)",
+   "fase": "IM",
+   "gruppo": "",
+   "uffici": [
+    "DIB-G",
+    "CAP-U",
+    "CASAP-U",
+    "CAPSM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PCR",
+   "descrizione": "Rinuncia a comparire in udienza (art. 420bis cpp)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "DIB-U",
+    "CAS-U",
+    "GIPM-U",
+    "GUPM-U",
+    "DIBM-U",
+    "GP-G",
+    "GP-C",
+    "CAP-U",
+    "DIB-G",
+    "CASAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PBC",
+   "descrizione": "Rinuncia a opposizione a decreto penale (art. 589 cpp)",
+   "fase": "RS",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "DIB-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "COB"
+   ]
+  },
+  {
+   "codice": "P09",
+   "descrizione": "Rinuncia al mandato difensivo (art. 107 cpp)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "DIBM-U",
+    "PMM-U",
+    "CAPSM-U",
+    "PM-U",
+    "DIB-U",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "PM-G",
+    "GP-G",
+    "DIB-G",
+    "GIP-U",
+    "GP-C",
+    "GIPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES",
+    "TER"
+   ]
+  },
+  {
+   "codice": "PAI",
+   "descrizione": "Rinuncia all'impugnazione (art. 589 cpp)",
+   "fase": "IM",
+   "gruppo": "CONFERMARICEZIONE",
+   "uffici": [
+    "GIP-U",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U",
+    "RIE"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P15",
+   "descrizione": "Rinuncia alla querela (art. 339 cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PMM-U",
+    "PM-G"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "OFF"
+   ]
+  },
+  {
+   "codice": "PCS",
+   "descrizione": "Riparazione dell'errore giudiziario (art. 643)",
+   "fase": "SOG",
+   "gruppo": "",
+   "uffici": [
+    "CAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PAD",
+   "descrizione": "Riparazione per ingiusta detenzione (artt. 314, 315 cpp)",
+   "fase": "",
+   "gruppo": "CONFERMARICEZIONE",
+   "uffici": [
+    "CAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "PD6",
+   "descrizione": "Riserva di incidente probatorio (art. 360 c 4 cpp)",
+   "fase": "",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PGCAP-U",
+    "PMM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF"
+   ]
+  },
+  {
+   "codice": "PCN",
+   "descrizione": "Riunione del procedimento",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GIPM-U",
+    "GUPM-U",
+    "DIB-U",
+    "DIBM-U",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "CAPSM-U",
+    "GP-G",
+    "DIB-G"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "P03",
+   "descrizione": "Sollecito",
+   "fase": "",
+   "gruppo": "",
+   "uffici": [
+    "DIBM-U",
+    "PMM-U",
+    "CAPSM-U",
+    "PM-U",
+    "DIB-U",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "PM-G",
+    "GP-G",
+    "DIB-G",
+    "GIP-U",
+    "GP-C"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF",
+    "CIV",
+    "COB",
+    "RES"
+   ]
+  },
+  {
+   "codice": "PBR",
+   "descrizione": "Sostituzione del pubblico ministero (art. 53 c2 cpp)",
+   "fase": "PR",
+   "gruppo": "",
+   "uffici": [
+    "PM-U",
+    "PM-G",
+    "PGCAP-U"
+   ],
+   "contestuali": [],
+   "ruoli": []
+  },
+  {
+   "codice": "PD5",
+   "descrizione": "Sostituzione pena con lavori di pubblica utilita' (art. 186 c9 bis dlgs 285/92)",
+   "fase": "",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U",
+    "GP-G",
+    "DIB-U",
+    "DIB-G",
+    "CAS-U",
+    "CAP-U",
+    "CASAP-U",
+    "DIBM-U",
+    "CAPSM-U",
+    "GIPM-U",
+    "GUPM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "P73",
+   "descrizione": "Sostituzione pena detentiva con lavoro pubblica utilita' (art. 459 c1 bis, 1 ter cpp)",
+   "fase": "RS",
+   "gruppo": "",
+   "uffici": [
+    "GIP-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND"
+   ]
+  },
+  {
+   "codice": "P97",
+   "descrizione": "Trasferimento competenza (art. 54 quater cpp)",
+   "fase": "IP",
+   "gruppo": "",
+   "uffici": [
+    "PGCAP-U",
+    "PM-U",
+    "PM-G",
+    "PMM-U"
+   ],
+   "contestuali": [],
+   "ruoli": [
+    "IND",
+    "OFF"
+   ]
+  }
+ ]
+}

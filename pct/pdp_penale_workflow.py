@@ -318,6 +318,11 @@ def ensure_pdp_penale_schema(conn: sqlite3.Connection) -> None:
     _ensure_column(conn, "criminal_cases", "current_ministry_status_canonical", "TEXT")
     _ensure_column(conn, "criminal_cases", "local_office_rule_source", "TEXT")
     _ensure_column(conn, "criminal_access_requests", "ministry_status_canonical", "TEXT")
+    # Procedimento penale telematico: registri, soggetti, depositi e udienze del PDP.
+    from pct.penale_pdp.schema import assicura_schema
+
+    assicura_schema(conn)
+    conn.commit()
 
 
 def _ensure_column(
@@ -487,6 +492,11 @@ class PDPPenaleWorkflowRepository:
         "last_sync_at",
         "notes",
         "archived",
+        "pdp_office_code",
+        "authorized",
+        "authorized_source",
+        "authorized_at",
+        "avocato_pg",
     }
     _ACCESS_REQUEST_MUTABLE_FIELDS = {
         "request_type",

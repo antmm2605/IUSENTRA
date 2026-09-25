@@ -821,7 +821,7 @@ def _save_notification_ids(values: set[str]) -> None:
 def _portal_acquisition_href_for_release(fascicolo: Any, release: dict[str, Any]) -> str:
     source = _clean_text(release.get("fontePortale") or release.get("servizioPortale") or "PST").upper()
     if "PDP" in source:
-        base = "/portali/pdp/acquisizione"
+        return f"/fascicoli/{_clean_text(getattr(fascicolo, 'id', ''))}#penale-pdp"
     elif "PAT" in source or "SIGA" in source:
         base = "/portali/pat/acquisizione"
     elif "PTT" in source or "SIGIT" in source:

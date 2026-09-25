@@ -163,7 +163,22 @@ def document_bytes_have_real_digital_signature(data: bytes, *display_names: Any)
     return False
 
 
+def cades_crittograficamente_valida(data: bytes) -> bool:
+    """Verifica crittografica di una busta CAdES con il documento incorporato."""
+    try:
+        from asn1crypto import cms
+
+        info = cms.ContentInfo.load(data)
+        if info["content_type"].native != "signed_data":
+            return False
+        signed_data = info["content"]
+        return _cades_signatures_are_cryptographically_valid(signed_data, _cades_embedded_content(signed_data))
+    except Exception:
+        return False
+
+
 __all__ = [
+    "cades_crittograficamente_valida",
     "SIGNED_CONTAINER_SUFFIXES",
     "document_bytes_have_real_digital_signature",
     "document_has_signed_container",

@@ -5511,7 +5511,7 @@ function depositGenerationBlockedReason(mainAct: FascicoloDocument | undefined, 
 
 function portalDepositHref(officialChannel: string, fallbackChannel: string): string {
   const text = normaliseText(`${officialChannel} ${fallbackChannel}`)
-  if (/pdp|penale/.test(text)) return '/portali/pdp/acquisizione'
+  if (/pdp|penale/.test(text)) return '/pdp'
   if (/pat|siga|amministrativ/.test(text)) return '/portali/pat/acquisizione'
   if (/ptt|sigit|tributar/.test(text)) return '/portali/ptt/acquisizione'
   if (/sigp|giudice di pace|gdp/.test(text)) return '/portali/pst/acquisizione'

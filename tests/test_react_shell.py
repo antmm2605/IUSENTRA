@@ -1701,7 +1701,8 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
 
     assert "const TelematicoSurfacePage" in app_source
     assert "isTelematicoSurfacePage" in app_source
-    assert "isTelematicoSurfacePage?<TelematicoSurfacePage/>" in app_source
+    # /pdp è la pagina dei depositi penali (il PDP non ha API per i gestionali); le altre superfici restano generiche.
+    assert "isTelematicoSurfacePage?(isPdpPenaleRoute(routeKey)?<PdpPenalePage/>:<TelematicoSurfacePage/>)" in app_source
     assert "function isTelematicoSurfaceRoute" in app_source
     assert "route.startsWith('/portali/pst')" in app_source
     assert "route.startsWith('/portali/pdp')" in app_source
@@ -1922,7 +1923,7 @@ def test_react_superfici_telematiche_api_payload_reale(tmp_path: Path):
     assert polisweb_payload["localSigner"]["latestVersion"]
     assert polisweb_payload["localSigner"]["windowsUrl"].endswith("/setup/windows")
     for surface, expected_href, expected_home in (
-        ("pdp", "/portali/pdp/acquisizione", "/pdp"),
+        ("pdp", "/pdp", "https://servizipst.giustizia.it/PST/PAVVP/"),
         ("pat", "/portali/pat/acquisizione", "/pat"),
         ("ptt", "/portali/ptt/acquisizione", "/sigit"),
     ):

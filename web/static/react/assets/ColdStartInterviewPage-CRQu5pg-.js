@@ -1,0 +1,1 @@
+import{t as e}from"./vendor-react-BqCao_7d.js";import{t}from"./LegalSkillsProfilePage-CkbhG_0n.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as ColdStartInterviewPage};

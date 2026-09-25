@@ -100,8 +100,9 @@ Stati (art. 7 co. 4 provv. DGSIA):
 6. **Errore tecnico** — il deposito va ripetuto
 
 Ricevute:
-- **Ricevuta di deposito**: identificativo nazionale AAAA/NNNNNNN, dati dell'avvocato, ufficio, data e ora, procedimento, magistrato, tipo atto, soggetti e ruoli, hash dell'atto e di ogni allegato.
-- **Ricevuta di esito**: generata quando lo stato diventa definitivo. L'esito arriva anche all'email ordinaria impostata nelle Preferenze.
+- **Ricevuta di deposito** (testo verificato il 25/09/2026 su una ricevuta reale, PDF IronPdf con testo nativo): «IDENTIFICATIVO AAAA/NNNNNNN … L'avvocato NOME CF ha inviato all'ufficio UFFICIO in data GG/MM/AAAA alle ore HH:MM:SS, in relazione al procedimento: REGISTRO NOTI PM nr. N/AAAA, indirizzato al Magistrato …, l'atto di TIPO ATTO, nell'interesse dei seguenti soggetti rappresentati, in qualità di RUOLO: SOGGETTI con nr. N allegati», con il richiamo all'art. 87 co. 6-bis. **Non riporta impronte hash** (il manuale le cita, la ricevuta reale no).
+- **Ricevuta di esito**: «Il deposito con IDENTIFICATIVO …, inviato all'ufficio … in data … alle ore …, è stato rifiutato|accettato in data … alle ore … con la seguente motivazione: …». L'esito arriva anche all'email ordinaria impostata nelle Preferenze.
+- Endpoint del portale (sessione dell'avvocato): `pratiche/ricevuta/{0|1|2}/{identificativoPratica}` e `pratiche/ricevuta-esito/{0|1|2}/{identificativoPratica}`.
 - **Sollecito**: possibile su una nomina «in verifica». Ha un suo elenco.
 
 ### 3.8 Accesso agli atti
@@ -132,19 +133,15 @@ Ricevute:
 | Composizione | atto principale e allegati | principale, contestuali, abilitante, allegati, eventuale procura speciale |
 | Consultazione | fascicolo informatico completo | stato del procedimento, udienze ed elenchi esportabili in xlsx; atti solo con accesso agli atti (link di 3 giorni e password via PEC) |
 
-## 6. IUSENTRA oggi
+## 6. IUSENTRA prima della 2.401.0
 
-- `pct/pdp.py` — `ClientPDP.deposita_atto` presuppone `POST {appweb.giustizia.it/snt}/depositi` con risposta `codiceEsito` ed esiti PEC in «fasi 4-7». **Nessuna di queste cose esiste nel PDP**: è lo schema civile trasposto. L'invio è già bloccato da `ensure_direct_portal_verified("pdp")`.
-- `pct/pdp_penale_workflow.py` (SQLite) — contiene già:
-  - `criminal_cases` con ufficio, registro, numero e anno, magistrato, stato della nomina e stato ministeriale (valori vicini a quelli ufficiali);
-  - eventi, documenti, `criminal_access_requests` con password PEC e scadenza del download;
-  - task e PEC collegate.
-  
-  È la base giusta, ma manca il modello **soggetti/ruoli per deposito**, la **composizione del deposito** e il **catalogo ufficiale**.
-- `web/bootstrap/fascicoli_pdp_routes.py` e `web/services/pdp_penale_runtime.py` gestiscono pratica, accesso agli atti, import del download e sincronizzazione PEC.
-- CLAUDE.md e AGENTS.md descrivono il PDP come «REST API /depositi, multipart, mTLS»: **da correggere**.
+- `pct/pdp.py` — `ClientPDP.deposita_atto` presuppone `POST {appweb.giustizia.it/snt}/depositi` con risposta `codiceEsito` ed esiti PEC in «fasi 4-7». **Nessuna di queste cose esiste nel PDP**: è lo schema civile trasposto. L'invio resta bloccato da `ensure_direct_portal_verified("pdp")`.
+- `pct/pdp_penale_workflow.py` (SQLite) conteneva già `criminal_cases`, eventi, documenti, `criminal_access_requests` (password PEC e scadenza del download), task e PEC collegate: è la base su cui si innesta il deposito.
+- CLAUDE.md e AGENTS.md descrivevano il PDP come «REST API /depositi, multipart, mTLS»: corretti nella 2.401.0.
 
-## 7. Come farlo in IUSENTRA
+## 7. Come funziona in IUSENTRA (2.401.0)
+
+Implementato in `pct/penale_pdp/` (dominio), `web/services/penale_pdp_*.py`, API `/api/v1/ui/penale/*` e sezione «Deposito penale (PDP)» del fascicolo penale.
 
 Principio: IUSENTRA **prepara, controlla, registra e sorveglia**. Il deposito resta un gesto dell'avvocato nel PDP.
 
@@ -162,7 +159,8 @@ Principio: IUSENTRA **prepara, controlla, registra e sorveglia**. Il deposito re
    - Atto abilitante richiesto se la nomina va in Procura e non risulta un avviso 408, 411 o 415-bis.
    - Scheda con i dati da ricopiare nella maschera del PDP, nell'ordine del portale.
 4. **Registrazione dell'esito.**
-   - Caricata la ricevuta di deposito (PDF), IUSENTRA legge identificativo AAAA/NNNNNNN, data e ora, hash e soggetti, e li confronta con gli hash dei file preparati.
+   - Caricata la ricevuta di deposito (PDF), IUSENTRA legge identificativo, avvocato e CF, ufficio, data e ora, procedimento, atto, soggetti e numero degli allegati, e li confronta con il deposito preparato (la ricevuta non ha impronte).
+   - Una ricevuta con identificativo diverso da quello già registrato viene respinta: va caricata sul deposito giusto.
    - Caricata la ricevuta di esito, aggiorna lo stato fra i sei ufficiali.
    - Il deposito fa fede dalla ricevuta di accettazione: il presidio delle scadenze usa quella data e le ore 24.
 5. **Import degli export xlsx** del PDP (procedimenti autorizzati, depositi, stato del procedimento, storico udienze).
@@ -176,5 +174,20 @@ Principio: IUSENTRA **prepara, controlla, registra e sorveglia**. Il deposito re
 
 Punti aperti:
 - confermare il calendario sul testo del D.M. 114/2026;
-- ottenere un export xlsx reale del PDP (procedimenti autorizzati e depositi) e una ricevuta reale per costruire i lettori sui campi veri;
+- ottenere un export xlsx reale del PDP (procedimenti autorizzati e depositi): il lettore segue le intestazioni di colonna viste nel portale, ma il file non è stato scaricato;
 - analizzare SIUS, Portale Notifiche e VPDF.
+
+## 8. Collaudo senza invio (25/09/2026)
+
+Svolto nel PDP 6.11.10 con la sessione dell'avvocato, in sola lettura: nessun invio, nessun caricamento, nessun file scaricato su disco.
+
+| Verifica | Esito |
+|---|---|
+| Catalogo `pdp_atti_penali.json` contro `codificati/tipi-atto` dal vivo | identico: 170 atti, stessa impronta (codice, fase, uffici) |
+| Ricevuta di deposito reale (identificativo 2023/0582463) letta nel browser | testo nativo con ToUnicode; formato riportato al §3.7; **nessun hash** → confronto ridisegnato sui campi della ricevuta |
+| Ricevuta di esito reale dello stesso deposito | «è stato rifiutato … motivazione: Ufficio destinatario non coerente» |
+| Causa del rigetto | nomina con registro PM inviata al Tribunale ordinario: IUSENTRA ora avvisa prima (`UFFICIO_NON_COERENTE`) e il confronto della ricevuta segnala l'ufficio |
+| Maschera «Ufficio Destinazione» | la scheda IUSENTRA indica ora anche Distretto e Circondario/Circolo (dal bundle uffici del Ministero; 169 tribunali su 26 distretti), Sede ufficio e Tipo legale |
+| Avvisi degli atti depositati in cancelleria | vuoto per il CF collegato; IUSENTRA misura la casella PEC con IMAP QUOTA (solo comandi di lettura: CAPABILITY, LOGIN, GETQUOTAROOT, LOGOUT, verificati con un server IMAP di prova) e rimanda all'elenco del PST |
+
+I test `tests/test_penale_pdp.py` riproducono le due ricevute con l'impaginazione reale (parole spezzate dalla crenatura) e nomi di fantasia.

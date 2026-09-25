@@ -1,0 +1,154 @@
+/* Deposito penale telematico (PDP) nella scheda del fascicolo. */
+.iu-pdp { display: grid; gap: 12px; min-width: 0; color: #0f172a; font-size: 13.5px; line-height: 1.45; }
+.iu-pdp h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 14px; font-weight: 850; }
+.iu-pdp h4 > span { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--iu-navy-900); color: #fff; font-size: 12px; }
+.iu-pdp h5 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 13.5px; font-weight: 850; }
+.iu-pdp h6 { margin: 10px 0 4px; color: var(--iu-slate-600); font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; }
+.iu-pdp button, .iu-pdp a.iu-pdp-primario { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 11px; border: 1px solid var(--iu-border); border-radius: 10px; background: #fff; color: #0f172a; font: inherit; font-weight: 750; cursor: pointer; text-decoration: none; }
+.iu-pdp button:disabled { opacity: .55; cursor: not-allowed; }
+.iu-pdp button:focus-visible, .iu-pdp a:focus-visible, .iu-pdp input:focus-visible, .iu-pdp select:focus-visible { outline: 3px solid rgba(37, 99, 235, .3); outline-offset: 2px; }
+.iu-pdp .iu-pdp-primario { border-color: transparent; background: var(--iu-navy-900); color: #fff; }
+.iu-pdp input:not([type=checkbox]):not([type=file]), .iu-pdp select { box-sizing: border-box; width: 100%; min-width: 0; min-height: 36px; padding: 6px 9px; border: 1px solid var(--iu-border); border-radius: 9px; background: #fff; color: inherit; font: inherit; }
+.iu-pdp label { display: grid; gap: 4px; min-width: 0; font-weight: 700; color: var(--iu-slate-700); }
+.iu-pdp small { color: var(--iu-slate-500); font-weight: 600; }
+
+.iu-pdp-testata { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border: 1px solid var(--iu-border); border-radius: 14px; background: var(--iu-bg-card); }
+.iu-pdp-testata__dati { display: grid; gap: 2px; min-width: 0; }
+.iu-pdp-testata__dati strong { font-size: 16px; letter-spacing: -.01em; }
+.iu-pdp-testata__dati span { color: var(--iu-slate-600); }
+.iu-pdp-testata__stati { display: flex; flex-wrap: wrap; gap: 6px; }
+.iu-pdp-testata__link { display: flex; flex-wrap: wrap; gap: 12px; }
+.iu-pdp-testata__link a { display: inline-flex; align-items: center; gap: 4px; color: var(--iu-blue-700); font-weight: 750; text-decoration: none; }
+
+.iu-pdp-nota { margin: 0; color: var(--iu-slate-600); }
+.iu-pdp-avviso, .iu-pdp-ok, .iu-pdp-errore { margin: 0; padding: 8px 11px; border-radius: 10px; border: 1px solid; }
+.iu-pdp-avviso { border-color: rgba(180, 83, 9, .35); background: rgba(254, 243, 199, .55); color: #78350f; }
+.iu-pdp-ok { border-color: rgba(15, 123, 87, .3); background: rgba(209, 250, 229, .55); color: #065f46; }
+.iu-pdp-errore { border-color: rgba(185, 28, 28, .3); background: rgba(254, 226, 226, .55); color: #7f1d1d; }
+
+.iu-pdp-casella { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0; padding: 8px 11px; border: 1px solid var(--iu-border); border-radius: 10px; color: var(--iu-slate-700); }
+.iu-pdp-casella label { display: flex; align-items: center; gap: 8px; }
+.iu-pdp-casella meter { width: 140px; height: 10px; }
+.iu-pdp-casella a { display: inline-flex; align-items: center; gap: 4px; color: var(--iu-blue-700); font-weight: 750; }
+.iu-pdp-casella--attenzione { border-color: rgba(180, 83, 9, .45); background: rgba(254, 243, 199, .45); }
+.iu-pdp-casella--critico { border-color: rgba(185, 28, 28, .45); background: rgba(254, 226, 226, .5); }
+
+.iu-pdp-schede { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--iu-border); padding-bottom: 8px; }
+.iu-pdp-schede button.is-attiva, .iu-pdp-segmenti button.is-attiva { border-color: var(--iu-navy-900); background: var(--iu-navy-900); color: #fff; }
+.iu-pdp-conta { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: rgba(15, 23, 42, .08); font-size: 11.5px; }
+.iu-pdp-schede button.is-attiva .iu-pdp-conta { background: rgba(255, 255, 255, .22); }
+
+.iu-pdp-procedimento, .iu-pdp-nuovo { display: grid; gap: 14px; }
+.iu-pdp-procedimento section, .iu-pdp-passo { padding: 12px 14px; border: 1px solid var(--iu-border); border-radius: 12px; background: #fff; }
+.iu-pdp-riga { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: end; }
+.iu-pdp-riga > label:not(.iu-pdp-spunta) { flex: 1 1 260px; }
+.iu-pdp .iu-pdp-spunta { display: flex; align-items: flex-start; gap: 8px; font-weight: 650; }
+.iu-pdp .iu-pdp-spunta.is-escluso { opacity: .55; }
+.iu-pdp-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end; margin-top: 10px; }
+.iu-pdp-lista { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.iu-pdp-lista li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 10px; border: 1px solid var(--iu-border); border-radius: 10px; }
+.iu-pdp-lista li span { color: var(--iu-slate-600); }
+.iu-pdp-lista li em { color: var(--iu-blue-700); font-style: normal; font-weight: 750; font-size: 12px; }
+.iu-pdp-lista li button { margin-left: auto; min-height: 28px; padding: 0 7px; }
+.iu-pdp-soggetti { display: grid; gap: 6px; margin-top: 10px; }
+
+.iu-pdp-catalogo { display: grid; gap: 8px; }
+.iu-pdp-filtri { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.iu-pdp-filtri select { width: auto; }
+.iu-pdp-segmenti { display: inline-flex; gap: 4px; }
+.iu-pdp-cerca { display: flex !important; align-items: center; gap: 6px; flex: 1 1 220px; }
+.iu-pdp-atti { display: grid; gap: 4px; max-height: 320px; overflow: auto; margin: 0; padding: 2px; list-style: none; }
+.iu-pdp-atti button { width: 100%; display: grid; justify-items: start; gap: 1px; min-height: 0; padding: 7px 10px; text-align: left; font-weight: 650; }
+.iu-pdp-atti button span { color: var(--iu-slate-500); font-size: 12px; font-weight: 600; }
+.iu-pdp-atti button.is-scelto { border-color: var(--iu-blue-700); background: rgba(37, 99, 235, .07); }
+
+.iu-pdp-documenti { display: grid; gap: 8px; }
+.iu-pdp-file { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.iu-pdp-file li { display: grid; grid-template-columns: auto minmax(160px, 1fr) minmax(150px, 220px) minmax(160px, 1fr) auto; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--iu-border); border-radius: 10px; }
+.iu-pdp-file__nome { display: grid; min-width: 0; }
+.iu-pdp-file__nome strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.iu-pdp-file__nome span { color: var(--iu-slate-500); font-size: 12px; }
+.iu-pdp-aggiungi { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.iu-pdp-aggiungi select { width: auto; flex: 1 1 200px; }
+.iu-pdp .iu-pdp-carica { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 11px; border: 1px dashed var(--iu-blue-600); border-radius: 10px; color: var(--iu-blue-700); cursor: pointer; }
+.iu-pdp-carica input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+
+.iu-pdp-dati { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 0; padding: 0; border: 0; }
+.iu-pdp-dati legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.iu-pdp-dati .iu-pdp-spunta, .iu-pdp-fonte { grid-column: 1 / -1; }
+.iu-pdp-azioni { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.iu-pdp-stato { display: flex !important; align-items: center; gap: 8px; }
+.iu-pdp-stato select { width: auto; }
+
+.iu-pdp-depositi { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.iu-pdp-depositi > li { border: 1px solid var(--iu-border); border-radius: 12px; background: #fff; }
+.iu-pdp-depositi > li.is-aperto { border-color: rgba(37, 99, 235, .35); }
+.iu-pdp .iu-pdp-deposito__testa { width: 100%; justify-content: flex-start; gap: 10px; min-height: 52px; border: 0; background: transparent; text-align: left; }
+.iu-pdp-deposito__atto { display: grid; flex: 1; min-width: 0; }
+.iu-pdp-deposito__atto strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.iu-pdp-deposito__atto small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.iu-pdp-dettaglio { display: grid; gap: 10px; padding: 0 14px 14px; }
+.iu-pdp-controlli ul { display: grid; gap: 4px; margin: 8px 0 0; padding: 0; list-style: none; }
+.iu-pdp-controlli li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.iu-pdp-controlli li.is-errore { color: #991b1b; }
+.iu-pdp-controlli li.is-avviso { color: #92400e; }
+.iu-pdp-controlli li.is-ok { color: #065f46; }
+.iu-pdp-controlli li.is-info { color: var(--iu-slate-600); }
+.iu-pdp-scheda { padding: 10px 12px; border: 1px solid var(--iu-border); border-radius: 12px; background: var(--iu-bg-card); }
+.iu-pdp-scheda h5 a { margin-left: auto; color: var(--iu-blue-700); font-size: 12.5px; }
+.iu-pdp-scheda dl { display: grid; gap: 3px; margin: 0; }
+.iu-pdp-scheda dl > div { display: grid; grid-template-columns: minmax(120px, 200px) 1fr; gap: 10px; align-items: center; }
+.iu-pdp-scheda dt { color: var(--iu-slate-600); font-weight: 700; }
+.iu-pdp-scheda dd { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; font-weight: 700; }
+.iu-pdp-scheda dd button { min-height: 26px; padding: 0 6px; }
+.iu-pdp-ricevuta { padding: 10px 12px; border: 1px dashed var(--iu-border); border-radius: 12px; }
+.iu-pdp-vuoto, .iu-pdp-importa { display: grid; gap: 10px; justify-items: start; }
+.iu-pdp-esito-import { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+
+@media (max-width: 720px) {
+  .iu-pdp-file li { grid-template-columns: auto 1fr auto; }
+  .iu-pdp-file li select, .iu-pdp-file li input { grid-column: 2 / -1; }
+  .iu-pdp-scheda dl > div { grid-template-columns: 1fr; gap: 0; }
+  .iu-pdp-testata { align-items: flex-start; }
+}
+.iu-pdp-verifica { display: grid; gap: 6px; }
+.iu-pdp-verifica ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.iu-pdp-verifica li { display: grid; grid-template-columns: 16px minmax(120px, 190px) 1fr; gap: 8px; align-items: start; font-size: .86rem; }
+.iu-pdp-verifica li.is-ok svg { color: #0f7b57; }
+.iu-pdp-verifica li.is-diverso svg, .iu-pdp-verifica li.is-diverso em { color: #b42318; }
+.iu-pdp-verifica__campo { color: var(--iu-text-muted, #5b6472); }
+@media (max-width: 640px) { .iu-pdp-verifica li { grid-template-columns: 16px 1fr; } .iu-pdp-verifica li > span:last-child { grid-column: 2; } }
+
+/* Pagina /pdp: procedimenti penali dello studio. */
+.iu-pdp-pagina { display: grid; gap: 16px; min-width: 0; color: #0f172a; font-size: 13.5px; }
+.iu-pdp-pagina h1 { margin: 4px 0 6px; font-size: 26px; letter-spacing: -.02em; }
+.iu-pdp-pagina h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 16px; font-weight: 850; }
+.iu-pdp-pagina a, .iu-pdp-pagina button { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border: 1px solid var(--iu-border); border-radius: 10px; background: #fff; color: #0f172a; font: inherit; font-weight: 750; text-decoration: none; cursor: pointer; }
+.iu-pdp-pagina a:focus-visible, .iu-pdp-pagina button:focus-visible, .iu-pdp-pagina input:focus-visible { outline: 3px solid rgba(37, 99, 235, .3); outline-offset: 2px; }
+.iu-pdp-pagina a.iu-pdp-pagina__primario { border-color: transparent; background: var(--iu-navy-900); color: #fff; }
+.iu-pdp-pagina__testa { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px; padding: 18px 20px; border: 1px solid var(--iu-border); border-radius: 16px; background: var(--iu-bg-card); }
+.iu-pdp-pagina__testa p { max-width: 760px; margin: 0; color: var(--iu-slate-600); }
+.iu-pdp-pagina__testa nav { display: flex; flex-wrap: wrap; gap: 8px; }
+.iu-pdp-pagina__occhiello { display: inline-flex; align-items: center; gap: 6px; color: #b42318; font-size: 11.5px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+.iu-pdp-pagina__tessere { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.iu-pdp-pagina__tessere > div { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 2px 10px; padding: 12px 14px; border: 1px solid var(--iu-border); border-radius: 14px; background: var(--iu-bg-card); }
+.iu-pdp-pagina__tessere svg { grid-row: span 2; color: var(--iu-slate-500); }
+.iu-pdp-pagina__tessere strong { font-size: 22px; line-height: 1.1; }
+.iu-pdp-pagina__tessere span { color: var(--iu-slate-600); font-weight: 700; }
+.iu-pdp-pagina__tessere .is-danger { border-color: rgba(185, 28, 28, .4); background: rgba(254, 226, 226, .45); }
+.iu-pdp-pagina__elenco, .iu-pdp-pagina__calendario { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--iu-border); border-radius: 16px; background: var(--iu-bg-card); min-width: 0; }
+.iu-pdp-pagina__elenco header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.iu-pdp-pagina__elenco header input { flex: 1 1 220px; min-height: 36px; padding: 6px 10px; border: 1px solid var(--iu-border); border-radius: 10px; font: inherit; }
+.iu-pdp-segmenti { display: flex; flex-wrap: wrap; gap: 6px; }
+.iu-pdp-procedimenti { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.iu-pdp-procedimenti li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 16px; padding: 12px 14px; border: 1px solid var(--iu-border); border-radius: 12px; background: #fff; }
+.iu-pdp-procedimenti__dati { display: grid; gap: 4px; min-width: 0; flex: 1 1 320px; }
+.iu-pdp-procedimenti__dati > a { padding: 0; border: 0; min-height: 0; background: none; color: #0f172a; }
+.iu-pdp-procedimenti__dati > span, .iu-pdp-procedimenti__dati small { color: var(--iu-slate-600); overflow-wrap: anywhere; }
+.iu-pdp-procedimenti__stati { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.iu-pdp-procedimenti__udienza { display: inline-flex; align-items: center; gap: 4px; color: var(--iu-slate-700); font-weight: 700; }
+.iu-pdp-procedimenti__azione { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.iu-pdp-pagina__calendario ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.iu-pdp-pagina__calendario li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.iu-pdp-pagina__calendario small { color: var(--iu-slate-500); }
+@media (max-width: 640px) { .iu-pdp-pagina__testa { padding: 14px; } .iu-pdp-pagina h1 { font-size: 22px; } .iu-pdp-procedimenti__azione { width: 100%; } }

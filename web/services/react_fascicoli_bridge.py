@@ -7228,7 +7228,8 @@ def _notifica_portal_acquisition_href(fascicolo: Any, release: dict[str, Any] | 
     release = release or {}
     source_text = _text(release.get("fontePortale") or release.get("servizioPortale")).upper()
     if "PDP" in source_text:
-        base = "/portali/pdp/acquisizione"
+        # Il PDP non ha API: si torna alla sezione «Deposito penale» del fascicolo.
+        return f"/fascicoli/{_text(getattr(fascicolo, 'id', ''))}#penale-pdp"
     elif "PAT" in source_text or "SIGA" in source_text:
         base = "/portali/pat/acquisizione"
     elif "PTT" in source_text or "SIGIT" in source_text:
@@ -7784,7 +7785,7 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
     def _portal_acquisition_href(row: dict[str, Any], dep: Any, source: str) -> str:
         source_text = _text(source).upper()
         if "PDP" in source_text:
-            base = "/portali/pdp/acquisizione"
+            return f"/fascicoli/{fid}#penale-pdp"
         elif "PAT" in source_text or "SIGA" in source_text:
             base = "/portali/pat/acquisizione"
         elif "PTT" in source_text or "SIGIT" in source_text:
@@ -8719,7 +8720,7 @@ def _telematic(fascicolo: Any) -> list[dict[str, Any]]:
     return [
         {"label": "Deposito telematico", "value": "Prepara", "note": "busta, firma, PEC e ricevute", "href": f"/fascicoli/{encoded_fid}/deposito/prepara", "tone": "success"},
         {"label": "PolisWeb / PST", "value": "Apri", "note": "consultazione e acquisizione guidata", "href": f"/polisWeb?id_fasc={fid}", "tone": "primary"},
-        {"label": "PDP Penale", "value": "Attivo" if tipo == "PENALE" else "Disponibile", "note": "percorso penale se applicabile", "href": f"/pdp/fascicoli/{fid}", "tone": "danger" if tipo == "PENALE" else "neutral"},
+        {"label": "PDP Penale", "value": "Deposito penale" if tipo == "PENALE" else "Solo fascicoli penali", "note": "prepara, controlla e registra i depositi del PDP" if tipo == "PENALE" else "il deposito penale si usa nei fascicoli penali", "href": f"/fascicoli/{fid}#penale-pdp" if tipo == "PENALE" else "/pdp", "tone": "info" if tipo == "PENALE" else "neutral"},
         {"label": "PAT", "value": "Collega", "note": "amministrativo", "href": "/pat", "tone": "info"},
         {"label": "PTT / SIGIT", "value": "Collega", "note": "tributario", "href": "/sigit", "tone": "warning"},
         {"label": "Checklist deposito", "value": "Verifica", "note": "busta, firme, PDF/A", "href": "/deposito/checklist", "tone": "success"},

@@ -37,7 +37,7 @@ PORTAL_TITLES = {
 }
 PORTAL_DESCRIPTIONS = {
     "pst": "Consultazione civile e import autorizzato dei fascicoli già scaricati.",
-    "pdp": "Percorso penale, esiti, documenti collegati e controllo dell'avvocato.",
+    "pdp": "Prepari e controlli il deposito penale nel fascicolo; l'invio lo fa l'avvocato sul PDP con CNS/CIE.",
     "pat": "Portale Avvocato / SIGA, Formweb, moduli ufficiali e import guidato di ricevute e documenti.",
     "ptt": "Telecontenzioso, SIGIT, fascicoli tributari e ricevute importate.",
 }
@@ -57,13 +57,13 @@ SURFACE_CANONICAL_HREFS = {
 }
 PORTAL_IMPORT_FALLBACKS = {
     "pst": "/portali/pst/acquisizione",
-    "pdp": "/portali/pdp/acquisizione",
+    "pdp": "/pdp",
     "pat": "/portali/pat/acquisizione",
     "ptt": "/portali/ptt/acquisizione",
 }
 PORTAL_IMPORT_LABELS = {
     "pst": "Importa pratica da PST",
-    "pdp": "Importa pratica da PDP",
+    "pdp": "Depositi penali",
     "pat": "Importa pratica da PAT",
     "ptt": "Importa pratica da PTT",
 }
@@ -73,13 +73,14 @@ PORTAL_IMPORT_DESCRIPTIONS = {
         "ottenuti dal Portale Servizi Telematici o da PolisWeb, senza accessi non autorizzati "
         "e senza credenziali salvate fuori dallo studio."
     ),
-    "pdp": "Avvia il percorso operativo per acquisire nel fascicolo penale file, cataloghi ed esiti ottenuti dal PDP.",
+    "pdp": ("Il PDP non ha servizi per i gestionali: IUSENTRA prepara e controlla il deposito nel fascicolo penale, "
+            "l'avvocato lo invia dal portale e carica qui la ricevuta."),
     "pat": "Avvia il percorso operativo per acquisire documenti, provvedimenti ed esiti dal Portale Avvocato / SIGA.",
     "ptt": "Avvia il percorso operativo per acquisire fascicoli, ricevute e provvedimenti tributari da SIGIT.",
 }
 PORTAL_OFFICIAL_URLS = {
     "pst": "https://pst.giustizia.it/PST/it/services.page",
-    "pdp": "https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp",
+    "pdp": "https://servizipst.giustizia.it/PST/PAVVP/",
     "pat": "https://pe.prod.cloud.giustizia-amministrativa.it",
     "ptt": "https://sigit.giustiziatributaria.gov.it/Sigit/index.do",
 }
@@ -118,8 +119,8 @@ SURFACE_SPECS = {
         "title": "PDP Penale",
         "eyebrow": "Deposito e fascicolo penale",
         "subtitle": (
-            "Percorso penale con accesso guidato, import fascicolo, ricevute, "
-            "attività operative e collegamento alla cabina fascicolo."
+            "Procedimenti penali dello studio: depositi preparati e controllati in IUSENTRA, "
+            "invio dell'avvocato sul PDP, ricevute ed esiti registrati nel fascicolo."
         ),
         "tone": "danger",
     },
@@ -263,6 +264,38 @@ def _portal_surface_href(portal: str, fragment: str = "") -> str:
 def _surface_id(value: str) -> str:
     raw = _text(value).strip().lower().replace("_", "-").replace("/", "-")
     return SURFACE_ALIASES.get(raw, raw)
+
+
+def _canale_pdp(canale: dict[str, Any], logger: Any | None = None) -> dict[str, Any]:
+    """La card PDP con i numeri del deposito penale: il PDP non si «configura» né si importa (nessuna API)."""
+    from web.services.penale_pdp_panoramica import per_centro_telematico
+
+    numeri = _safe("penale_pdp_panoramica", per_centro_telematico, {}, logger)
+    if not numeri:
+        return canale
+    return {
+        **canale,
+        "description": PORTAL_DESCRIPTIONS["pdp"],
+        "statusText": "Pronto" if numeri.get("procedimenti") else "Nessun procedimento",
+        "environmentLabel": "Accesso con CNS/CIE sul portale: nessuna configurazione in IUSENTRA.",
+        "tone": "warning" if numeri.get("daFare") else PORTAL_TONES["pdp"],
+        "cases": _int(numeri.get("procedimenti")),
+        "importCompleted": _int(numeri.get("accolti")),
+        "attentionNeeded": _int(numeri.get("daFare")),
+        "metrics": [
+            {"label": "Procedimenti", "value": _int(numeri.get("procedimenti"))},
+            {"label": "In attesa di esito", "value": _int(numeri.get("inAttesaEsito"))},
+            {"label": "Da fare", "value": _int(numeri.get("daFare"))},
+        ],
+        "badges": ["Prepara e controlla", "Invio dal PDP"],
+        "homeHref": "/pdp",
+        "importHref": "/pdp",
+        "quickActions": [
+            {"label": "Depositi penali", "href": "/pdp", "tone": "primary"},
+            {"label": "Apri il PDP", "href": PORTAL_OFFICIAL_URLS["pdp"], "tone": PORTAL_TONES["pdp"]},
+            {"label": "Avvisi in cancelleria", "href": "https://servizipst.giustizia.it/PST/AvvisiPenale", "tone": "warning"},
+        ],
+    }
 
 
 def _build_channel(portal: str, stats: dict[str, Any], access_payload: dict[str, Any]) -> dict[str, Any]:
@@ -597,16 +630,7 @@ def _portal_checklist_groups(portal: str) -> list[dict[str, Any]]:
             }
         )
     if portal == "pdp":
-        common.append(
-            {
-                "id": "pdp",
-                "title": "Passaggi penali",
-                "items": [
-                    {"id": "registro", "label": "Registro penale corretto", "description": "RGNR, GIP/GUP o dibattimento devono essere selezionati senza ambiguita.", "critical": True},
-                    {"id": "review", "label": "Manual review completata", "description": "Ogni richiesta di accesso o deposito deve restare validata dall'avvocato.", "critical": True},
-                ],
-            }
-        )
+        return _pdp_checklist_groups()
     if portal == "pat":
         common.extend(
             [
@@ -663,6 +687,39 @@ def _portal_checklist_groups(portal: str) -> list[dict[str, Any]]:
     return common
 
 
+def _pdp_checklist_groups() -> list[dict[str, Any]]:
+    """Controlli del deposito penale sul PDP (manuale PDP 6.11.10; provv. DGSIA 11/07/2023 artt. 5-7)."""
+    return [
+        {
+            "id": "pdp-procedimento",
+            "title": "Procedimento e ufficio",
+            "items": [
+                {"id": "autorizzato", "label": "Procedimento autorizzato o nomina da depositare", "description": "Gli atti successivi si depositano solo sui procedimenti autorizzati (art. 6).", "critical": True},
+                {"id": "ufficio-registro", "label": "Ufficio destinatario coerente con il registro", "description": "Con il solo registro della Procura la nomina va alla Procura o al GIP: il PDP rigetta con «Ufficio destinatario non coerente».", "critical": True},
+                {"id": "soggetti", "label": "Soggetti rappresentati e ruolo", "description": "Il catalogo degli atti dipende dal ruolo (indagato, persona offesa, parte civile…).", "critical": True},
+            ],
+        },
+        {
+            "id": "pdp-file",
+            "title": "Atto e documenti",
+            "items": [
+                {"id": "firma", "label": "Atto principale firmato dal difensore", "description": "PDF nativo A4 con firma PAdES o CAdES valida del codice fiscale dell'avvocato (art. 5).", "critical": True},
+                {"id": "limiti", "label": "Limiti del portale", "description": "50 MB per file, 500 MB per deposito, nome e oggetto entro 100 caratteri.", "critical": True},
+                {"id": "abilitante", "label": "Atto abilitante per la nomina in Procura", "description": "Serve se nel fascicolo non c'è un avviso 408, 411 o 415-bis (art. 5 co. 5).", "critical": False},
+            ],
+        },
+        {
+            "id": "pdp-ricevute",
+            "title": "Dopo l'invio dal PDP",
+            "items": [
+                {"id": "ricevuta", "label": "Ricevuta di accettazione caricata nel fascicolo", "description": "Il deposito vale dalla ricevuta ed è tempestivo entro le 24 (art. 87 co. 6-bis D.Lgs. 150/2022); IUSENTRA la confronta col deposito preparato.", "critical": True},
+                {"id": "esito", "label": "Esito registrato", "description": "Accolto, rigettato con motivazione o errore tecnico: un deposito rigettato va rifatto.", "critical": True},
+                {"id": "avvisi", "label": "Avvisi degli atti depositati in cancelleria", "description": "Con la PEC piena la notifica si perfeziona in cancelleria: controlla gli avvisi sul PST.", "critical": False},
+            ],
+        },
+    ]
+
+
 def _deposit_checklist_groups() -> list[dict[str, Any]]:
     return [
         {
@@ -689,7 +746,7 @@ def _deposit_checklist_groups() -> list[dict[str, Any]]:
             "title": "PDP, PAT e PTT",
             "items": [
                 {"id": "canale", "label": "Canale corretto per il rito", "description": "Penale su PDP, amministrativo su PAT/SIGA, tributario su PTT/SIGIT.", "critical": True},
-                {"id": "portale", "label": "Sessione o canale ufficiale presidiato", "description": "La consultazione avviene dalla procedura IUSENTRA con Local Signer quando richiesto.", "critical": True},
+                {"id": "portale", "label": "Sessione o canale ufficiale presidiato", "description": "Sul PDP l'invio lo fa l'avvocato dal portale con CNS/CIE; IUSENTRA prepara, controlla e registra ricevuta ed esito.", "critical": True},
                 {"id": "import", "label": "File importati nel fascicolo", "description": "Ricevute, provvedimenti ed esiti vanno collegati al fascicolo interno.", "critical": False},
             ],
         },
@@ -1338,6 +1395,7 @@ def build_react_telematico_payload(
         for portal in PORTALS
     }
     channels = [_build_channel(portal, stats, access_payloads[portal]) for portal in PORTALS]
+    channels[1] = _canale_pdp(channels[1], logger)
     telematico_repository = _safe(
         "telematico_truth_repository",
         lambda: get_legal_intelligence().telematico_repository_payload() if callable(get_legal_intelligence) else {},

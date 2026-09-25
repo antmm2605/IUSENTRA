@@ -23,6 +23,8 @@ export type TelematicoChannel = {
   pkcs11Mode: boolean
   badges: string[]
   quickActions: Array<{ label: string; href: string; tone?: Tone }>
+  /** Numeri propri del canale (PDP: procedimenti, in attesa di esito, da fare) al posto di casi/import. */
+  metrics?: Array<{ label: string; value: number }>
 }
 
 export type TelematicoCase = {
@@ -191,10 +193,10 @@ const channelDefaults: Record<TelematicoChannelId, Omit<TelematicoChannel, 'case
     id: 'pdp',
     label: 'PDP Penale',
     title: 'PDP Penale',
-    description: 'Flusso penale, esiti, documenti collegati e verifica manuale.',
+    description: "Prepari e controlli il deposito penale nel fascicolo; l'invio lo fa l'avvocato sul PDP con CNS/CIE.",
     tone: 'danger',
     homeHref: '/pdp',
-    importHref: '/portali/pdp/acquisizione',
+    importHref: '/pdp',
     presideHref: '/telematico?focus=pdp',
   },
   pat: {
@@ -404,6 +406,7 @@ function normaliseChannel(value: unknown, index: number): TelematicoChannel {
     pkcs11Mode: bool(item.pkcs11Mode ?? item.pkcs11_mode),
     badges: textArray(item.badges).length ? textArray(item.badges) : ['Operativo'],
     quickActions,
+    metrics: asList(item.metrics).filter(isRecord).map((m) => ({ label: display(m.label, ''), value: number(m.value) })).filter((m) => m.label) || undefined,
   }
 }
 

@@ -12,7 +12,7 @@ Questo registro è generato da `scripts/react-migration/generate_app_v2_page_reg
 - Route legacy operative: 17.
 - Route App V2 dichiarate in frontend: 16.
 - Alias legacy verso App V2 in frontend: 32.
-- Route Flask GET candidate rilevate fuori manifest: 280.
+- Route Flask GET candidate rilevate fuori manifest: 286.
 
 ### Distribuzione rischio
 
@@ -737,6 +737,7 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /app-v2/{path:spa_path} | GET | web/blueprints/react_shell.py | react_shell.html |
 | /app/portale-clienti/impostazioni | GET | web/blueprints/client_portal.py | non rilevato |
 | /applicazioni/{app_id} | GET | web/blueprints/applicazioni.py | applicazioni/index.html |
+| /atti/{codice} | GET | web/blueprints/api_v1_penale.py | non rilevato |
 | /audit/esporta.csv | GET | web/bootstrap/privacy_routes.py | privacy/registro.html |
 | /backup/{id_bk}/ripristina | GET,POST | web/bootstrap/backup_routes.py | backup/lista.html, backup/ripristina.html |
 | /backup/{id_bk}/scarica | GET | web/bootstrap/backup_routes.py | backup/lista.html, backup/ripristina.html |
@@ -744,6 +745,7 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /cal/{token}/completo.ics | GET | web/bootstrap/calendar_routes.py | impostazioni/calendario.html |
 | /cal/{token}/scadenze.ics | GET | web/bootstrap/calendar_routes.py | impostazioni/calendario.html |
 | /calendario/completo/export.ics | GET | web/bootstrap/calendar_routes.py | impostazioni/calendario.html |
+| /casella-pec | GET | web/blueprints/api_v1_penale.py | non rilevato |
 | /cerca | GET | web/bootstrap/search_routes.py | cerca.html |
 | /checklist/{id_template} | GET | web/bootstrap/checklist_routes.py | checklist/dettaglio.html, checklist/lista.html, fascicoli/wizard_atto.html, fascicoli/wizard_completa.html |
 | /clienti/export.csv | GET | web/bootstrap/export_routes.py | non rilevato |
@@ -786,6 +788,9 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /fascicoli/esporta | GET | web/bootstrap/fascicoli_create_routes.py | fascicoli/archivio.html, fascicoli/form.html, fascicoli/lista.html |
 | /fascicoli/export.csv | GET | web/bootstrap/export_routes.py | non rilevato |
 | /fascicoli/export.pdf | GET | web/bootstrap/export_routes.py | non rilevato |
+| /fascicoli/{fid} | GET | web/blueprints/api_v1_penale.py | non rilevato |
+| /fascicoli/{fid}/atti | GET | web/blueprints/api_v1_penale.py | non rilevato |
+| /fascicoli/{fid}/depositi/{did} | GET | web/blueprints/api_v1_penale.py | non rilevato |
 | /fascicoli/{id_fasc} | GET | web/bootstrap/fascicoli_core_routes.py | fascicoli/dettaglio.html |
 | /fascicoli/{id_fasc}/archivio/contenuto | GET | web/bootstrap/fascicoli_management_routes.py | fascicoli/copertina.html, fascicoli/form.html, fascicoli/quadro.html |
 | /fascicoli/{id_fasc}/archivio/file/{path:nome_file} | GET | web/bootstrap/fascicoli_management_routes.py | fascicoli/copertina.html, fascicoli/form.html, fascicoli/quadro.html |
@@ -825,15 +830,10 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /paga/{token} | GET | web/preventivi.py | pagamenti/checkout.html, pagamenti/gia_pagato.html, pagamenti/impostazioni.html, pagamenti/scaduto.html, pagamenti/successo.html, pagamenti/sumup_checkout.html |
 | /paga/{token}/successo | GET | web/blueprints/pagamenti.py | pagamenti/checkout.html, pagamenti/gia_pagato.html, pagamenti/impostazioni.html, pagamenti/scaduto.html, pagamenti/successo.html, pagamenti/sumup_checkout.html |
 | /paga/{token}/successo | GET | web/preventivi.py | pagamenti/checkout.html, pagamenti/gia_pagato.html, pagamenti/impostazioni.html, pagamenti/scaduto.html, pagamenti/successo.html, pagamenti/sumup_checkout.html |
+| /panoramica | GET | web/blueprints/api_v1_penale.py | non rilevato |
 | /pat/acquisizione | GET | web/bootstrap/portali_acquisizione_routes.py | portale/acquisizione_wizard.html |
 | /pat/documenti | GET | web/bootstrap/telematico_portali_routes.py | pat.html, pdp.html, pdp_documenti.html, sigit.html |
 | /pdp/acquisizione | GET | web/bootstrap/portali_acquisizione_routes.py | portale/acquisizione_wizard.html |
-| /pdp/documenti | GET | web/bootstrap/telematico_portali_routes.py | pat.html, pdp.html, pdp_documenti.html, sigit.html |
-| /polisWeb/acquisizione | GET | web/bootstrap/portali_acquisizione_routes.py | portale/acquisizione_wizard.html |
-| /polisWeb/documenti | GET | web/bootstrap/polisweb_routes.py | polisWeb.html, polisWeb_documenti.html, pst_wizard.html |
-| /polisWeb/fascicolo-wizard | GET | web/bootstrap/polisweb_routes.py | polisWeb.html, polisWeb_documenti.html, pst_wizard.html |
-| /polisWeb/local-signer/download | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
-| /polisWeb/local-signer/download/lex-document-context | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
 
 ## Regola operativa fase 4
 

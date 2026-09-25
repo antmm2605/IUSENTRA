@@ -196,7 +196,7 @@ def test_acquisizione_guidata_pdp_con_fascicolo_collegato_mostra_workflow(tmp_pa
     assert page.status_code == 200
     assert "react-shell-document" in html
     componenti = dict(_ROUTE_COMPONENTS)
-    assert componenti["/portali/pdp/acquisizione"] == "src/components/TelematicoSurfacePage.tsx"
+    assert componenti["/portali/pdp/acquisizione"] == "src/components/penalePdp/PdpPenalePage.tsx"
 
 
 def test_workspace_pdp_penale_registra_case_documenti_accesso_pec_e_task(tmp_path: Path):

@@ -143,14 +143,19 @@ function ChannelCard({
         {channel.badges.map((badge) => <Badge tone={channel.demoMode ? 'warning' : channel.pkcs11Mode ? 'success' : 'primary'} key={badge}>{badge}</Badge>)}
       </div>
       <dl>
-        <div><dt>Casi</dt><dd>{channel.cases}</dd></div>
-        <div><dt>Import completi</dt><dd>{channel.importCompleted}</dd></div>
-        <div><dt>Da presidiare</dt><dd>{channel.attentionNeeded}</dd></div>
+        {channel.metrics?.length ? channel.metrics.map((m) => <div key={m.label}><dt>{m.label}</dt><dd>{m.value}</dd></div>) : (
+          <>
+            <div><dt>Casi</dt><dd>{channel.cases}</dd></div>
+            <div><dt>Import completi</dt><dd>{channel.importCompleted}</dd></div>
+            <div><dt>Da presidiare</dt><dd>{channel.attentionNeeded}</dd></div>
+          </>
+        )}
       </dl>
       <small className="iu-tel-channel__sync">{channel.lastSyncAt ? `Ultimo allineamento: ${formatDateTimeIt(channel.lastSyncAt, 'Data da verificare')}` : channel.environmentLabel || 'Nessun allineamento ancora registrato.'}</small>
       <footer>
         {channel.quickActions.slice(0, 3).map((action, index) => (
-          <a className={index === 0 ? 'is-primary' : ''} href={action.href} onClick={(event) => onAction(event, channel, index)} key={`${channel.id}-${action.label}`}>
+          <a className={index === 0 ? 'is-primary' : ''} href={action.href} onClick={(event) => onAction(event, channel, index)} key={`${channel.id}-${action.label}`}
+            {...(action.href.startsWith('http') ? { target: '_blank', rel: 'noreferrer' } : {})}>
             {actionIcon(action, index)} {action.label}
           </a>
         ))}
@@ -184,9 +189,15 @@ function ActiveChannelPanel({
         </dl>
       </div>
       <div className="iu-tel-active-channel__actions">
-        <a href={importAction.href}>Importa pratica</a>
-        <a href={surfaceAction.href || channel.homeHref}>Apri pagina</a>
-        <a href={checkAction.href}>Controlli</a>
+        {channel.metrics?.length ? channel.quickActions.slice(0, 3).map((item) => (
+          <a key={item.label} href={item.href} {...(item.href.startsWith('http') ? { target: '_blank', rel: 'noreferrer' } : {})}>{item.label}</a>
+        )) : (
+          <>
+            <a href={importAction.href}>Importa pratica</a>
+            <a href={surfaceAction.href || channel.homeHref}>Apri pagina</a>
+            <a href={checkAction.href}>Controlli</a>
+          </>
+        )}
       </div>
     </section>
   )

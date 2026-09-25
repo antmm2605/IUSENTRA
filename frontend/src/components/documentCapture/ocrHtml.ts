@@ -153,5 +153,8 @@ function stileDelParagrafo(formato: OcrFormat, conColore = true): string {
   if (formato.colore && conColore) pezzi.push(`color:${formato.colore}`)
   if (formato.famiglia) pezzi.push(`font-family:'${formato.famiglia}'`)
   if (formato.corpo) pezzi.push(`font-size:${formato.corpo}pt`)
+  // interlinea e rientro scelti in revisione: il rientro in punti, come lo leggono Word e il PDF
+  if (formato.interlinea) pezzi.push(`line-height:${formato.interlinea}`)
+  if (formato.rientro) pezzi.push(`margin-left:${Math.round(formato.rientro * 72 / 25.4 * 10) / 10}pt`)
   return pezzi.length ? ` style="${pezzi.join(';')}"` : ''
 }

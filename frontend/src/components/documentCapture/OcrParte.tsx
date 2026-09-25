@@ -34,8 +34,12 @@ function stileDelBlocco(block: OcrBlock, disposizione?: CSSProperties) {
   if (block.format.famiglia) stile.fontFamily = `'${block.format.famiglia}', serif`
   // il corpo passa da una variabile: la dimensione la scrive il campo, non la parte
   if (block.format.corpo) stile['--iu-ocr-corpo'] = `${block.format.corpo}pt`
-  // dove sta sulla pagina (vedi ocrPagina): spazi, rientri, interlinea
-  return { ...stile, ...disposizione } as CSSProperties
+  // dove sta sulla pagina (vedi ocrPagina): spazi, rientri, interlinea;
+  // quello che si sceglie in revisione vale sopra quello misurato
+  const posto: Record<string, unknown> = { ...stile, ...disposizione }
+  if (block.format.interlinea) posto['--iu-ocr-interlinea'] = String(block.format.interlinea)
+  if (block.format.rientro) posto.marginLeft = `calc(${String(posto.marginLeft || '0mm')} + ${block.format.rientro}mm)`
+  return posto as CSSProperties
 }
 
 /** Un tratto nel foglio: come sarà nel documento, con le classi del foglio di stile. */

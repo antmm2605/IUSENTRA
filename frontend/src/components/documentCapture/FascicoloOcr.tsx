@@ -10,7 +10,8 @@ import {
 } from './ocrBlocks'
 import { OcrReview } from './OcrReview'
 import { OcrPageViewer } from './OcrPageViewer'
-import { OcrSaveChoices, type DestinazioneOcr } from './OcrSaveChoices'
+import { OcrSaveChoices, type DaStampare, type DestinazioneOcr, type FormatoSalvataggio } from './OcrSaveChoices'
+import { pdfOriginale, stampaPdf } from './ocrStampa'
 import { useSchermoIntero } from './useSchermoIntero'
 import { useScorrimentoAppaiato } from './ocrScorrimento'
 import {
@@ -181,7 +182,10 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
   )), [pagine])
   const secondoLettore = useMemo(() => pagine.find((pagina) => pagina.secondoLettore)?.secondoLettore || '', [pagine])
 
-  const documentoWord = async (): Promise<File> => documentoModificabile(blocksToHtml(blocchi), nome || reference)
+  /** Il documento riveduto, con le correzioni: Word modificabile o PDF impaginato. */
+  const documentoRiveduto = async (formato: FormatoSalvataggio): Promise<File> => (
+    documentoModificabile(blocksToHtml(blocchi), nome || reference, formato)
+  )
 
   const copiaRicercabile = async (): Promise<GeneratedDocument> => {
     const filename = nomeCopiaRicercabile(nome || reference)
@@ -193,46 +197,45 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
     return generateDocument('merge', file_, filename, [], [])
   }
 
+  const attesaDi = (destinazione: DestinazioneOcr): string => {
+    if (destinazione.tipo === 'editor') return 'Preparazione del documento per l’editor…'
+    if (destinazione.tipo === 'ricercabile') return 'Creazione della copia con testo ricercabile…'
+    if (destinazione.tipo === 'testo') return 'Preparazione del testo…'
+    const formato = destinazione.formato === 'pdf' ? 'PDF' : 'Word'
+    return destinazione.dove === 'fascicolo' ? `Salvataggio del documento ${formato} nel fascicolo…` : `Preparazione del documento ${formato}…`
+  }
+
   const salva = async (destinazione: DestinazioneOcr) => {
     setErrore(''); setAvviso('')
-    const attesa: Record<DestinazioneOcr, string> = {
-      editor: 'Preparazione del documento per l’editor…',
-      'fascicolo-documento': 'Salvataggio del documento nel fascicolo…',
-      'fascicolo-pdf': 'Creazione della copia con testo ricercabile…',
-      'computer-documento': 'Preparazione del documento Word…',
-      'computer-pdf': 'Preparazione del PDF con testo ricercabile…',
-      'computer-testo': 'Preparazione del testo…',
-    }
-    setOccupato(attesa[destinazione])
+    setOccupato(attesaDi(destinazione))
     let generato: GeneratedDocument | null = null
     try {
-      if (destinazione === 'editor' || destinazione === 'fascicolo-documento') {
-        const documento = await documentoWord()
+      if (destinazione.tipo === 'editor' || (destinazione.tipo === 'documento' && destinazione.dove === 'fascicolo')) {
+        const documento = await documentoRiveduto(destinazione.tipo === 'editor' ? 'docx' : destinazione.formato)
         const salvato = await salvaNelFascicolo(fascicoloId, documento)
         onSaved(`${documento.name}: ${salvato.messaggio}`)
-        if (destinazione === 'editor') {
+        if (destinazione.tipo === 'editor') {
           window.location.assign(indirizzoEditor(fascicoloId, salvato.documentoId))
           return
         }
         if (vivo.current) setAvviso(`${documento.name} salvato nei documenti del fascicolo.`)
         return
       }
-      if (destinazione === 'fascicolo-pdf') {
-        generato = await copiaRicercabile()
-        const esito = await saveGeneratedDocument(fascicoloId, generato)
-        if (!vivo.current) return
-        setAvviso(`${generato.filename}: ${esito}`)
-        onSaved(esito)
-        return
-      }
-      if (destinazione === 'computer-documento') {
-        const documento = await documentoWord()
+      if (destinazione.tipo === 'documento') {
+        const documento = await documentoRiveduto(destinazione.formato)
         scaricaSulComputer(documento, documento.name)
         if (vivo.current) setAvviso(`${documento.name} scaricato sul dispositivo.`)
         return
       }
-      if (destinazione === 'computer-pdf') {
+      if (destinazione.tipo === 'ricercabile') {
         generato = await copiaRicercabile()
+        if (destinazione.dove === 'fascicolo') {
+          const esito = await saveGeneratedDocument(fascicoloId, generato)
+          if (!vivo.current) return
+          setAvviso(`${generato.filename}: ${esito}`)
+          onSaved(esito)
+          return
+        }
         scaricaSulComputer(generato.blob, generato.filename)
         if (vivo.current) setAvviso(`${generato.filename} scaricato sul dispositivo.`)
         return
@@ -246,6 +249,29 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
       setErrore(testo); onError(testo)
     } finally {
       if (generato) URL.revokeObjectURL(generato.objectUrl)
+      if (vivo.current) setOccupato('')
+    }
+  }
+
+  /** Stampa il PDF nativo (l'atto che fa fede) o il documento modificato in revisione. */
+  const stampa = async (quale: DaStampare) => {
+    setErrore(''); setAvviso('')
+    setOccupato(quale === 'originale' ? 'Preparazione del PDF originale per la stampa…' : 'Preparazione del documento modificato per la stampa…')
+    try {
+      const pdf = quale === 'modificato'
+        ? await documentoRiveduto('pdf')
+        : await pdfOriginale(sorgente(), async () => {
+          const copia = await copiaRicercabile()
+          URL.revokeObjectURL(copia.objectUrl)
+          return copia.blob
+        })
+      stampaPdf(pdf)
+      if (vivo.current) setAvviso(quale === 'originale' ? 'PDF originale inviato alla stampa.' : 'Documento modificato inviato alla stampa.')
+    } catch (causa) {
+      if (!vivo.current) return
+      const testo = messaggio(causa, 'Stampa non preparata.')
+      setErrore(testo); onError(testo)
+    } finally {
       if (vivo.current) setOccupato('')
     }
   }
@@ -353,6 +379,9 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
           <div ref={affiancato} className={`iu-ocr-affiancato${schermoIntero.ripiego ? ' is-schermo-intero' : ''}`}>
             <div className="iu-ocr-affiancato__comandi">
               <div ref={setPostoComandi} className="iu-ocr-affiancato__pagina" />
+              {occupato || avviso || errore ? (
+                <span className={`iu-ocr-affiancato__esito${errore ? ' is-errore' : ''}`} role="status" aria-live="polite">{occupato || errore || avviso}</span>
+              ) : null}
               <Button type="button" tone="neutral" aria-pressed={schermoIntero.attivo} onClick={() => void schermoIntero.alterna()}>
                 {schermoIntero.attivo ? <Minimize2 size={15} aria-hidden="true" /> : <Maximize2 size={15} aria-hidden="true" />}
                 {schermoIntero.attivo ? 'Esci dallo schermo intero' : 'Schermo intero'}
@@ -379,16 +408,18 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
                 onSelect={setSelezionato}
                 pagine={geometrie}
                 barraIn={postoBarra}
+                azioni={(
+                  <OcrSaveChoices
+                    disabled={lavorando || !blocchi.length}
+                    copiaRicercabileDisponibile={daOcr.length > 0}
+                    onScegli={(destinazione) => void salva(destinazione)}
+                    onStampa={(quale) => void stampa(quale)}
+                  />
+                )}
               />
             </div>
             <div ref={setPostoRiferimenti} className="iu-ocr-affiancato__riferimenti" />
           </div>
-
-          <OcrSaveChoices
-            disabled={lavorando || !blocchi.length}
-            copiaRicercabileDisponibile={daOcr.length > 0}
-            onScegli={(destinazione) => void salva(destinazione)}
-          />
 
           <p className="iu-acq-hint">
             Il documento originale non viene mai modificato né sostituito: la copia per immagine resta l’atto che fa fede

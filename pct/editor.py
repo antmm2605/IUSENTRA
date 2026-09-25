@@ -737,7 +737,18 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
     def _nome(el) -> str:
         return (el.tag or "").lower().split("}")[-1] if isinstance(el.tag, str) else ""
 
+    def _spaziatura(paragraph, el) -> None:
+        """Interlinea (moltiplicatore) e rientro sinistro (punti) del capoverso."""
+        stile = (el.get("style") or "").lower()
+        m = re.search(r"(?<![-\w])line-height:\s*([0-9]+(?:\.[0-9]+)?)\s*(?:;|$)", stile)
+        if m and 0.8 <= float(m.group(1)) <= 4:
+            paragraph.paragraph_format.line_spacing = float(m.group(1))
+        m = re.search(r"(?<![-\w])margin-left:\s*([0-9]+(?:\.[0-9]+)?)pt", stile)
+        if m and 0 < float(m.group(1)) <= 400:
+            paragraph.paragraph_format.left_indent = Pt(float(m.group(1)))
+
     def _allinea(paragraph, el) -> None:
+        _spaziatura(paragraph, el)
         stile = (el.get("style") or "").lower()
         for chiave, valore in ALLINEAMENTI.items():
             if f"text-align:{chiave}" in stile.replace(" ", "") or f"align={chiave}" in stile:
@@ -781,7 +792,7 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
             return 0.0
         valore = float(m.group(1)) * (0.75 if m.group(2).lower() == "px" else 1.0)
         # al mezzo punto, come lo scrive Word
-        return round(valore * 2) / 2 if 4.0 <= valore <= 96.0 else 0.0
+        return round(valore * 2) / 2 if 2.0 <= valore <= 96.0 else 0.0
 
     def _stato_dello_stile(stato: dict, el) -> dict:
         """Colore, carattere e corpo dichiarati dall'elemento, sopra quelli ereditati."""
@@ -1457,7 +1468,7 @@ def html_to_pdf(
                 cambi["fontName"] = propri.get(taglio) or propri["normal"]
 
         corpo = _misura("font-size")
-        if corpo and 4 <= corpo <= 40:
+        if corpo and 2 <= corpo <= 96:
             cambi["fontSize"] = corpo
             cambi["leading"] = round(corpo * layout_cfg["line_height"], 1)
 

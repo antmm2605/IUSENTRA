@@ -110,3 +110,35 @@ def test_il_formato_dentro_la_riga_arriva_in_word_parola_per_parola():
     assert str(runs["studio@pec.it"].font.color.rgb) == "0000FF"
     assert runs["cancella"].font.strike
     assert not runs["Il Tribunale "].bold and runs["Il Tribunale "].font.color.type is None
+
+
+def test_interlinea_rientro_e_corpi_da_2_a_48_punti_arrivano_in_word_e_nel_pdf():
+    """Gli strumenti della revisione non restano sullo schermo: Word e PDF li ricevono."""
+    import fitz  # type: ignore
+
+    html = html_consentito(
+        '<p style="line-height:1.5;margin-left:28.3pt;font-size:2pt">nota minima</p>'
+        '<p style="font-size:48pt">TITOLO</p>'
+        '<p style="line-height:9;margin-left:900pt;font-size:1pt">fuori misura</p>'
+    )
+    assert 'line-height:1.5;margin-left:28.3pt;font-size:2pt' in html
+    assert 'line-height:9' not in html and 'margin-left:900pt' not in html and 'font-size:1pt' not in html
+    paragrafi = Document(io.BytesIO(html_to_docx(html, "prova", None))).paragraphs
+    assert paragrafi[0].paragraph_format.line_spacing == 1.5
+    assert round(paragrafi[0].paragraph_format.left_indent.pt, 1) == 28.3
+    assert paragrafi[0].runs[0].font.size.pt == 2.0
+    assert paragrafi[1].runs[0].font.size.pt == 48.0
+
+    dati, _ = pdf_da_testo(html, "nota.pdf")
+    documento = fitz.open(stream=dati, filetype="pdf")
+    try:
+        corpi = {
+            round(span["size"])
+            for blocco in documento[0].get_text("dict")["blocks"]
+            for riga in blocco.get("lines", [])
+            for span in riga["spans"]
+            if span["text"].strip() in {"nota minima", "TITOLO"}
+        }
+    finally:
+        documento.close()
+    assert corpi == {2, 48}

@@ -135,6 +135,13 @@ def test_nuovi_moduli_rispettano_i_budget_e_la_governance_css():
         "components/documentCapture/OcrPageViewer.tsx": 250,
         "components/documentCapture/ocrScorrimento.ts": 250,
         "components/documentCapture/ocrACapo.ts": 250,
+        "components/documentCapture/OcrBarra.tsx": 250,
+        "components/documentCapture/OcrSaveChoices.tsx": 250,
+        "components/documentCapture/OcrTrovaSostituisci.tsx": 250,
+        "components/documentCapture/ocrTrova.ts": 250,
+        "components/documentCapture/ocrStoria.ts": 250,
+        "components/documentCapture/useStoriaBlocchi.ts": 180,
+        "components/documentCapture/ocrStampa.ts": 250,
         "services/documentOcr.ts": 250,
         "services/fascicoloSearch.ts": 180,
     }

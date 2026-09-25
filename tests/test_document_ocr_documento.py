@@ -621,6 +621,7 @@ def test_la_sezione_acquisisci_del_fascicolo_espone_il_riconoscimento():
     visualizzatore = (radice / "components/documentCapture/OcrPageViewer.tsx").read_text(encoding="utf-8")
     destinazioni = (radice / "components/documentCapture/OcrSaveChoices.tsx").read_text(encoding="utf-8")
     revisione = (radice / "components/documentCapture/OcrReview.tsx").read_text(encoding="utf-8")
+    barra = (radice / "components/documentCapture/OcrBarra.tsx").read_text(encoding="utf-8")
     blocchi = (radice / "components/documentCapture/ocrHtml.ts").read_text(encoding="utf-8")
 
     assert "FascicoloOcr" in pagina, "il riconoscimento non e' montato nella sezione documenti del fascicolo"
@@ -631,7 +632,10 @@ def test_la_sezione_acquisisci_del_fascicolo_espone_il_riconoscimento():
     assert "iu-ocr-viewer__riquadro" in visualizzatore
     # La revisione modificabile precede qualunque uso del testo, e il formato si corregge.
     assert "OcrReview" in componente
-    assert "updateBlockFormat" in revisione and "Grassetto" in revisione and "Centra" in revisione
+    assert "updateBlockFormat" in revisione and "<OcrBarra" in revisione
+    assert "Grassetto" in barra and "Centra" in barra and "Interlinea" in barra and "Annulla (Ctrl+Z)" in barra
+    # trova e sostituisci, e la storia della revisione
+    assert "<OcrTrovaSostituisci" in revisione and "useStoriaBlocchi" in revisione
     # Il formato riconosciuto diventa formato del documento: allineamento,
     # livello del titolo e colore, quando un colore c'e' davvero.
     assert "text-align:center" in blocchi
@@ -640,14 +644,17 @@ def test_la_sezione_acquisisci_del_fascicolo_espone_il_riconoscimento():
     assert "color:${formato.colore}" in blocchi
     # e il formato dentro la riga, parola per parola
     assert "<u>${html}</u>" in blocchi and "<s>${html}</s>" in blocchi and "color:${tratto.colore}" in blocchi
-    # L'avvocato sceglie dove salvare: fascicolo o computer.
+    # Salva nella barra: fascicolo o computer, Word o PDF; Stampa: PDF nativo o modificato.
     assert "Nel fascicolo" in destinazioni and "Sul computer" in destinazioni
-    assert "Apri subito nell’editor" in destinazioni
+    assert "Word (.docx)" in destinazioni and "PDF — impaginato" in destinazioni
+    assert "apri nell’editor" in destinazioni
+    assert "PDF nativo" in destinazioni and "Documento modificato" in destinazioni
+    assert "azioni={(" in componente and "stampaPdf(pdf)" in componente and "pdfOriginale(" in componente
     assert "scaricaSulComputer" in componente
     assert "/documenti/${encodeURIComponent(documentoId)}/editor" in servizio
     assert "/api/v1/ui/document-tools/ocr-documento" in servizio
     assert "/api/v1/ui/document-tools/documento-testo-riconosciuto" in servizio
-    for sorgente in (componente, visualizzatore, destinazioni, revisione):
+    for sorgente in (componente, visualizzatore, destinazioni, revisione, barra):
         assert "style={{" not in sorgente, "gli stili in linea sono vietati dal gate design system"
 
 

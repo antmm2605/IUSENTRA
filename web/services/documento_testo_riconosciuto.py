@@ -90,8 +90,15 @@ _RE_COLORE = re.compile(r"^#[0-9a-f]{6}$")
 # Una famiglia sola, il nome e basta: niente url(), niente virgolette annidate.
 _RE_FAMIGLIA = re.compile(r"^['\"]?([A-Za-z0-9][A-Za-z0-9 \-]{0,59})['\"]?$")
 _RE_CORPO = re.compile(r"^(\d{1,2}(?:\.\d)?)pt$")
-CORPO_MINIMO = 4.0
+CORPO_MINIMO = 2.0
 CORPO_MASSIMO = 96.0
+# Interlinea come moltiplicatore del corpo (1, 1,15, 1,5, 2…) e rientro
+# sinistro in punti: sono impaginazione del capoverso, scelta in revisione.
+_RE_INTERLINEA = re.compile(r"^([0-9](?:\.[0-9]{1,2})?)$")
+INTERLINEA_MINIMA = 0.8
+INTERLINEA_MASSIMA = 4.0
+_RE_RIENTRO = re.compile(r"^([0-9]{1,3}(?:\.[0-9]{1,2})?)pt$")
+RIENTRO_MASSIMO_PT = 400.0
 
 
 def _numero_pulito(valore: float) -> str:
@@ -124,7 +131,16 @@ def stile_consentito(stile: str, *, solo_colore: bool = False) -> str:
             trovato = _RE_CORPO.match(valore.replace(" ", "").lower())
             if trovato and CORPO_MINIMO <= float(trovato.group(1)) <= CORPO_MASSIMO:
                 tenute[proprieta] = f"{_numero_pulito(float(trovato.group(1)))}pt"
+        elif proprieta == "line-height":
+            trovato = _RE_INTERLINEA.match(valore.replace(" ", ""))
+            if trovato and INTERLINEA_MINIMA <= float(trovato.group(1)) <= INTERLINEA_MASSIMA:
+                tenute[proprieta] = _numero_pulito(float(trovato.group(1)))
+        elif proprieta == "margin-left":
+            trovato = _RE_RIENTRO.match(valore.replace(" ", "").lower())
+            if trovato and 0 < float(trovato.group(1)) <= RIENTRO_MASSIMO_PT:
+                tenute[proprieta] = f"{_numero_pulito(float(trovato.group(1)))}pt"
     if solo_colore:
+        # dentro la riga passa il solo colore: il resto e' del capoverso
         tenute = {proprieta: valore for proprieta, valore in tenute.items() if proprieta == "color"}
     return ";".join(f"{proprieta}:{valore}" for proprieta, valore in tenute.items())
 

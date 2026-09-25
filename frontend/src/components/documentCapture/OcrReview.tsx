@@ -1,24 +1,21 @@
-import { useState, type MouseEvent } from 'react'
+import { useState, type KeyboardEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Italic, PaintBucket, Strikethrough, Trash2, Underline } from 'lucide-react'
-import { Button } from '../../ui/Button'
+import { OcrBarra, type ChiaveStile } from './OcrBarra'
 import { OcrFoglio } from './OcrFoglio'
-import { ETICHETTE, ParteDelFoglio, daControllare } from './OcrParte'
+import { ParteDelFoglio, daControllare } from './OcrParte'
+import { OcrTrovaSostituisci } from './OcrTrovaSostituisci'
 import type { GeometriaPagina } from './ocrPagina'
-import { CARATTERI_COMUNI, CORPI, ETICHETTE_MARCATORE, LIVELLI, fiducia } from './ocrBarraVoci'
-import { useSelezioneOcr } from './ocrSelezione'
+import { ATTRIBUTO_BLOCCO, useSelezioneOcr } from './ocrSelezione'
+import { useStoriaBlocchi } from './useStoriaBlocchi'
 import { stileTra, trattiDelBlocco } from './ocrTratti'
 import {
   changeBlockKind,
-  markerOf,
   removeBlock,
   updateBlockCell,
   updateBlockFormat,
   updateBlockText,
   updateSelectionFormat,
-  type OcrAlignment,
   type OcrBlock,
-  type OcrBlockKind,
   type OcrFigure,
   type OcrFormat,
 } from './ocrBlocks'
@@ -35,22 +32,9 @@ type Props = {
   pagine?: GeometriaPagina[]
   /** Dove mettere indicazioni e barra: nella vista affiancata stanno sopra entrambi i pannelli. */
   barraIn?: HTMLElement | null
+  /** Salva e Stampa nella barra degli strumenti. */
+  azioni?: ReactNode
 }
-
-/** Gli stili che si accendono e si spengono: sulla parte selezionata, o sul pezzo intero se non se ne seleziona una. */
-const STILI: { chiave: 'grassetto' | 'corsivo' | 'sottolineato' | 'barrato'; label: string; Icona: typeof Bold }[] = [
-  { chiave: 'grassetto', label: 'Grassetto', Icona: Bold },
-  { chiave: 'corsivo', label: 'Corsivo', Icona: Italic },
-  { chiave: 'sottolineato', label: 'Sottolineato', Icona: Underline },
-  { chiave: 'barrato', label: 'Barrato', Icona: Strikethrough },
-]
-
-const ALLINEAMENTI: { value: OcrAlignment; label: string; Icona: typeof AlignLeft }[] = [
-  { value: 'sinistra', label: 'Allinea a sinistra', Icona: AlignLeft },
-  { value: 'centro', label: 'Centra', Icona: AlignCenter },
-  { value: 'destra', label: 'Allinea a destra', Icona: AlignRight },
-  { value: 'giustificato', label: 'Giustifica', Icona: AlignJustify },
-]
 
 /**
  * Revisione del testo riconosciuto prima di portarlo nel documento.
@@ -60,161 +44,89 @@ const ALLINEAMENTI: { value: OcrAlignment; label: string; Icona: typeof AlignLef
  * nel documento — non come un elenco di schede — e si corregge scrivendoci
  * dentro. I comandi in alto agiscono sul pezzo in cui si sta scrivendo, e
  * quello che il riconoscimento ha letto con poca sicurezza resta segnato:
- * e' cosi' che si sa dove guardare, invece di rileggere tutto.
+ * e' cosi' che si sa dove guardare, invece di rileggere tutto. Ogni cambio si
+ * annulla e si ripete (Ctrl+Z, Ctrl+Y), e un errore ripetuto si corregge in
+ * tutto il documento con trova e sostituisci (Ctrl+F).
  */
-export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onSelect, pagine, barraIn }: Props) {
+export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onSelect, pagine, barraIn, azioni }: Props) {
   const [attivo, setAttivo] = useState('')
   const [ridisegno, setRidisegno] = useState(0)
+  const [trova, setTrova] = useState(false)
+  const storia = useStoriaBlocchi(blocks, onChange)
   const selezione = useSelezioneOcr('.iu-ocr-barra')
   const corrente = blocks.find((block) => block.id === (selectedId || attivo)) || null
   const incerti = blocks.filter(daControllare).length
+  const ridisegna = () => setRidisegno((valore) => valore + 1)
   // Con una parte del testo selezionata, neretto, corsivo, sottolineato,
   // barrato e colore valgono per quella; senza, per tutto il pezzo.
   const parziale = corrente && selezione?.blockId === corrente.id && selezione.fine > selezione.inizio ? selezione : null
   const applica = (patch: Partial<OcrFormat>, soloPezzo = false) => {
     if (!corrente) return
-    onChange(parziale && !soloPezzo
+    storia.cambia(parziale && !soloPezzo
       ? updateSelectionFormat(blocks, corrente.id, parziale.inizio, parziale.fine, patch)
       : updateBlockFormat(blocks, corrente.id, patch))
-    setRidisegno((valore) => valore + 1)
+    ridisegna()
   }
-  // la barra non si prende il fuoco: la selezione nel testo resta dov'e'
-  const tieniLaSelezione = (event: MouseEvent) => event.preventDefault()
+  const premuto = (chiave: ChiaveStile) => (corrente && parziale
+    ? stileTra(trattiDelBlocco(corrente.tratti, corrente.text, corrente.format), parziale.inizio, parziale.fine, chiave)
+    : Boolean(corrente && corrente.kind !== 'tabella' && corrente.format[chiave]))
+  const annulla = () => { if (storia.annulla()) ridisegna() }
+  const ripeti = () => { if (storia.ripeti()) ridisegna() }
 
   const scegli = (id: string) => {
     setAttivo(id)
     onSelect?.(id)
+  }
+  const vai = (id: string) => {
+    scegli(id)
+    document.querySelector(`[${ATTRIBUTO_BLOCCO}="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }
+  // Le scorciatoie di un programma di scrittura: la storia e' della revisione, non del campo.
+  const scorciatoie = (evento: KeyboardEvent) => {
+    if (!(evento.ctrlKey || evento.metaKey) || evento.altKey) return
+    const tasto = evento.key.toLowerCase()
+    if (tasto === 'z' && !evento.shiftKey) { evento.preventDefault(); annulla() }
+    else if (tasto === 'y' || (tasto === 'z' && evento.shiftKey)) { evento.preventDefault(); ripeti() }
+    else if (tasto === 'f') { evento.preventDefault(); setTrova(true) }
   }
 
   if (!blocks.length) {
     return <p className="iu-acq-hint">Nessun testo riconosciuto in questa acquisizione.</p>
   }
 
-  const formato = corrente && corrente.kind !== 'tabella' ? corrente.format : null
-  const famiglie = Array.from(new Set([...blocks.map((block) => block.format.famiglia).filter(Boolean), ...CARATTERI_COMUNI]))
-  const corpi = formato?.corpo && !CORPI.includes(formato.corpo) ? [...CORPI, formato.corpo].sort((a, b) => a - b) : CORPI
-  const premuto = (chiave: (typeof STILI)[number]['chiave']) => (corrente && parziale
-    ? stileTra(trattiDelBlocco(corrente.tratti, corrente.text, corrente.format), parziale.inizio, parziale.fine, chiave)
-    : Boolean(formato?.[chiave]))
   const intestazione = (
     <>
       <p className="iu-acq-hint">
         Rileggi e correggi scrivendo qui sotto: quello che vedi è esattamente ciò che verrà inserito
         nel documento.{incerti ? ` ${incerti} ${incerti === 1 ? 'parte è segnata' : 'parti sono segnate'} perché il riconoscimento non ne è sicuro.` : ''}
       </p>
-
-      <div className="iu-ocr-barra" role="toolbar" aria-label="Formato del testo selezionato">
-        <label className="iu-ocr-barra__livello">
-          <span className="iu-sr-only">Livello del testo</span>
-          <select
-            value={formato ? formato.livello : 0}
-            disabled={disabled || !formato}
-            onChange={(event) => applica({ livello: Number(event.target.value) }, true)}
-          >
-            {LIVELLI.map((voce) => <option key={voce.value} value={voce.value}>{voce.label}</option>)}
-          </select>
-        </label>
-        <label className="iu-ocr-barra__carattere">
-          <span className="iu-sr-only">Carattere</span>
-          <select
-            value={formato?.famiglia || ''}
-            disabled={disabled || !formato}
-            onChange={(event) => applica({ famiglia: event.target.value }, true)}
-          >
-            <option value="">Carattere del documento</option>
-            {famiglie.map((nome) => <option key={nome} value={nome}>{nome}</option>)}
-          </select>
-        </label>
-        <label className="iu-ocr-barra__corpo">
-          <span className="iu-sr-only">Dimensione del testo</span>
-          <select
-            value={formato?.corpo || 0}
-            disabled={disabled || !formato}
-            onChange={(event) => applica({ corpo: Number(event.target.value) }, true)}
-          >
-            <option value={0}>Corpo del documento</option>
-            {corpi.map((corpo) => <option key={corpo} value={corpo}>{`${String(corpo).replace('.', ',')} pt`}</option>)}
-          </select>
-        </label>
-        {STILI.map(({ chiave, label, Icona }) => (
-          <Button
-            key={chiave}
-            type="button"
-            tone="neutral"
-            disabled={disabled || !formato}
-            aria-pressed={premuto(chiave)}
-            aria-label={label}
-            onMouseDown={tieniLaSelezione}
-            onClick={() => applica({ [chiave]: !premuto(chiave) })}
-          >
-            <Icona size={14} aria-hidden="true" />
-          </Button>
-        ))}
-        {ALLINEAMENTI.map(({ value, label, Icona }) => (
-          <Button
-            key={value}
-            type="button"
-            tone="neutral"
-            disabled={disabled || !formato}
-            aria-pressed={formato?.allineamento === value}
-            aria-label={label}
-            onMouseDown={tieniLaSelezione}
-            onClick={() => applica({ allineamento: value }, true)}
-          >
-            <Icona size={14} aria-hidden="true" />
-          </Button>
-        ))}
-        <label className="iu-ocr-barra__colore" title="Colore del testo">
-          <span className="iu-sr-only">Colore del testo</span>
-          <input
-            type="color"
-            value={formato?.colore || '#111827'}
-            disabled={disabled || !formato}
-            onChange={(event) => applica({ colore: event.target.value.toLowerCase() })}
-          />
-        </label>
-        <Button
-          type="button"
-          tone="neutral"
-          disabled={disabled || !formato}
-          aria-label="Togli il colore e lascia quello del documento"
-          onMouseDown={tieniLaSelezione}
-          onClick={() => applica({ colore: '' })}
-        >
-          <PaintBucket size={14} aria-hidden="true" />
-        </Button>
-        <label className="iu-ocr-barra__tipo">
-          <span className="iu-sr-only">Tipo di parte</span>
-          <select
-            value={corrente ? corrente.kind : 'paragrafo'}
-            disabled={disabled || !corrente || corrente.kind === 'tabella'}
-            onChange={(event) => corrente && onChange(changeBlockKind(blocks, corrente.id, event.target.value as OcrBlockKind))}
-          >
-            {(['titolo', 'paragrafo', 'elenco', 'numero_pagina'] as OcrBlockKind[]).map((kind) => (
-              <option key={kind} value={kind}>{ETICHETTE[kind]}</option>
-            ))}
-            {corrente?.kind === 'tabella' ? <option value="tabella">{ETICHETTE.tabella}</option> : null}
-          </select>
-        </label>
-        <Button
-          type="button"
-          tone="neutral"
-          disabled={disabled || !corrente}
-          aria-label="Togli questa parte dal documento"
-          onClick={() => corrente && onChange(removeBlock(blocks, corrente.id))}
-        >
-          <Trash2 size={14} aria-hidden="true" />
-        </Button>
-        <span className="iu-ocr-barra__stato">
-          {corrente
-            ? `${ETICHETTE[corrente.kind]}${corrente.kind === 'elenco' && markerOf(corrente) ? ` · ${ETICHETTE_MARCATORE[markerOf(corrente)!.tipo]}` : ''}${corrente.kind === 'numero_pagina' ? ' · escluso dal documento' : ''}${corrente.confidence ? ` · ${fiducia(corrente.confidence)}` : ''}${parziale ? ` · ${parziale.fine - parziale.inizio} caratteri selezionati` : ''}`
-            : 'Clicca nel testo per scegliere su cosa agire'}
-        </span>
-      </div>
+      <OcrBarra
+        blocks={blocks}
+        corrente={corrente}
+        disabled={disabled}
+        selezionati={parziale ? parziale.fine - parziale.inizio : 0}
+        applica={applica}
+        premuto={premuto}
+        onTipo={(kind) => corrente && storia.cambia(changeBlockKind(blocks, corrente.id, kind))}
+        onTogli={() => corrente && storia.cambia(removeBlock(blocks, corrente.id))}
+        storia={{ annulla, ripeti, puoAnnullare: storia.puoAnnullare, puoRipetere: storia.puoRipetere }}
+        trovaAperto={trova}
+        onTrova={() => setTrova((aperto) => !aperto)}
+        azioni={azioni}
+      />
+      {trova ? (
+        <OcrTrovaSostituisci
+          blocks={blocks}
+          disabled={disabled}
+          onCambia={(nuovi) => { storia.cambia(nuovi); ridisegna() }}
+          onVai={vai}
+          onChiudi={() => setTrova(false)}
+        />
+      ) : null}
     </>
   )
   return (
-    <div className={`iu-ocr-review${barraIn === undefined ? '' : ' iu-ocr-review--senza-barra'}`}>
+    <div className={`iu-ocr-review${barraIn === undefined ? '' : ' iu-ocr-review--senza-barra'}`} onKeyDownCapture={scorciatoie}>
       {barraIn === undefined ? intestazione : barraIn ? createPortal(intestazione, barraIn) : null}
 
       <OcrFoglio
@@ -228,8 +140,8 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
             disabled={disabled}
             scelto={corrente?.id === block.id}
             ridisegno={ridisegno}
-            onText={(testo) => onChange(updateBlockText(blocks, block.id, testo))}
-            onCell={(riga, colonna, valore) => onChange(updateBlockCell(blocks, block.id, riga, colonna, valore))}
+            onText={(testo) => storia.cambia(updateBlockText(blocks, block.id, testo), `testo:${block.id}`)}
+            onCell={(riga, colonna, valore) => storia.cambia(updateBlockCell(blocks, block.id, riga, colonna, valore), `cella:${block.id}:${riga}:${colonna}`)}
             onSelect={() => scegli(block.id)}
           />
         )}

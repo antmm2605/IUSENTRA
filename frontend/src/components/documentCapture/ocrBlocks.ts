@@ -26,6 +26,10 @@ export type OcrFormat = {
   /** Nel PDF sono linee disegnate sopra il testo: vere solo se misurate. */
   sottolineato: boolean
   barrato: boolean
+  /** Interlinea scelta in revisione, multiplo del corpo. Zero: quella del documento. */
+  interlinea: number
+  /** Rientro sinistro aggiunto in revisione, in millimetri. */
+  rientro: number
 }
 
 /** Il segno che apre una voce di elenco, come lo ha letto il server. */
@@ -101,6 +105,8 @@ export const FORMATO_PREDEFINITO: OcrFormat = {
   corpo: 0,
   sottolineato: false,
   barrato: false,
+  interlinea: 0,
+  rientro: 0,
 }
 
 const ALLINEAMENTI: OcrAlignment[] = ['sinistra', 'centro', 'destra', 'giustificato']
@@ -128,7 +134,21 @@ function parseFormat(value: unknown): OcrFormat {
     corpo: corpoValido(voce.corpo),
     sottolineato: Boolean(voce.sottolineato),
     barrato: Boolean(voce.barrato),
+    interlinea: interlineaValida(voce.interlinea),
+    rientro: rientroValido(voce.rientro),
   }
+}
+
+/** Interlinea da 0,8 a 4 volte il corpo; fuori da li' vale quella del documento. */
+export function interlineaValida(value: unknown): number {
+  const numero = Math.round(Number(value) * 100) / 100
+  return Number.isFinite(numero) && numero >= 0.8 && numero <= 4 ? numero : 0
+}
+
+/** Rientro sinistro in millimetri, dentro la pagina. */
+export function rientroValido(value: unknown): number {
+  const numero = Math.round(Number(value) * 10) / 10
+  return Number.isFinite(numero) && numero > 0 && numero <= 100 ? numero : 0
 }
 
 /** Un colore si accetta solo nella forma che il documento sa rendere. */
@@ -143,10 +163,10 @@ export function famigliaValida(value: unknown): string {
   return /^[A-Za-z0-9][A-Za-z0-9 -]{0,59}$/.test(testo) ? testo : ''
 }
 
-/** Il corpo in punti, al mezzo punto, dentro quello che un atto usa davvero. */
+/** Il corpo in punti, al mezzo punto, dai 2 punti di una nota ai titoli piu' grandi. */
 export function corpoValido(value: unknown): number {
   const numero = Math.round(Number(value) * 2) / 2
-  return Number.isFinite(numero) && numero >= 4 && numero <= 96 ? numero : 0
+  return Number.isFinite(numero) && numero >= 2 && numero <= 96 ? numero : 0
 }
 
 function parseBox(value: unknown): [number, number, number, number] | null {

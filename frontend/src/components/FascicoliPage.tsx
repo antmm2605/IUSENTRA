@@ -165,6 +165,7 @@ import { useFileDropTarget } from './fascicoloDocumenti/useFileDropTarget'
 import { ID_SEZIONI_DOCUMENTO, SEZIONI_DOCUMENTO } from './fascicoloDocumenti/sezioniDocumento'
 import type { OfficeDocumentsOpenRequest } from './OfficeDocumentsPanel'
 import { beginLocalSignerForegroundGrant } from '../features/telematico/localSignerForeground'
+import { ProcedimentoPdpApertura } from './penalePdp/ProcedimentoPdpApertura'
 import './FascicoliPage.css'
 
 const FascicoloDepositoPage = lazy(() => import('./FascicoloDepositoPage').then((module) => ({ default: module.FascicoloDepositoPage })))
@@ -4182,8 +4183,8 @@ function Field({ label, name, defaultValue = '', type = 'text', required = false
   )
 }
 
-function SelectField({ label, name, options, defaultValue = '', required = false }:{label:string; name:string; options:SelectOption[]; defaultValue?:string; required?:boolean}) {
-  return <Field label={label} name={name} required={required}><select name={name} defaultValue={defaultValue} required={required}>{options.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></Field>
+function SelectField({ label, name, options, defaultValue = '', required = false, onChange }:{label:string; name:string; options:SelectOption[]; defaultValue?:string; required?:boolean; onChange?:(value:string) => void}) {
+  return <Field label={label} name={name} required={required}><select name={name} defaultValue={defaultValue} required={required} onChange={onChange ? (event) => onChange(event.currentTarget.value) : undefined}>{options.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></Field>
 }
 
 function TextAreaField({ label, name, defaultValue = '', rows = 3, placeholder = '', required = false }:{label:string; name:string; defaultValue?:string; rows?:number; placeholder?:string; required?:boolean}) {
@@ -4781,6 +4782,7 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
   const [data, setData] = useState<FascicoloFormData>(emptyFascicoloForm)
   const [loading, setLoading] = useState(true)
   const [fascicoloVeloce, setFascicoloVeloce] = useState(false)
+  const [tipoScelto, setTipoScelto] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
   useEffect(() => {
     let active = true
@@ -4791,6 +4793,8 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
     return () => { active = false }
   }, [id, mode, refreshKey])
   const labels = NUOVO_FASCICOLO_LABELS
+  // Nel penale la «controparte» non c'è: il procedimento si identifica con ufficio e registro del PDP.
+  const tipoPenale = (tipoScelto || getValue(data, 'typeRaw') || getValue(data, 'type')).toUpperCase() === 'PENALE'
   const subjectContextParams = new URLSearchParams()
   subjectContextParams.set('tab', 'soggetto')
   subjectContextParams.set('ruolo', 'CONTROPARTE')
@@ -4823,7 +4827,7 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
             <div className="iu-fas-form-grid">
               <Field label={labels.fields.pratica} name="titolo" defaultValue={getValue(data, 'title')} required placeholder="es. Rossi c/ Bianchi - Inadempimento contrattuale"/>
               <Field label={labels.fields.rifCartaceo} name="riferimento_cartaceo" defaultValue={getValue(data, 'riferimentoCartaceo')}/>
-              <SelectField label="Tipo fascicolo" name="tipo" options={data.types} defaultValue={getValue(data, 'typeRaw') || getValue(data, 'type').toUpperCase()} required/>
+              <SelectField label="Tipo fascicolo" name="tipo" options={data.types} defaultValue={getValue(data, 'typeRaw') || getValue(data, 'type').toUpperCase()} required onChange={setTipoScelto}/>
               <StatoPraticaField data={data}/>
               <Field label={labels.fields.dataApertura} name="data_apertura" type="date" defaultValue={getValue(data, 'dataAperturaIso') || new Date().toISOString().slice(0, 10)}/>
               <Field label={labels.fields.dataArchiviazione} name="data_chiusura" type="date" defaultValue={getValue(data, 'dataChiusuraIso')}/>
@@ -4844,7 +4848,7 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
               <ClientChoiceField data={data}/>
               <CounterpartyFields
                 data={data}
-                required={fascicoloVeloce}
+                required={fascicoloVeloce && !tipoPenale}
                 fascicoloId={mode === 'edit' ? id : undefined}
                 onSubjectLinked={() => setRefreshKey((value) => value + 1)}
               />
@@ -4884,6 +4888,13 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
               <Field label="Data notificazione citazione" name="data_notifica_citazione" type="date" defaultValue={getValue(data, 'citationNotificationIso') || getValue(data, 'citationNotification')}/>
             </div>
           </CollapsibleFormPanel>
+          {mode === 'new' && tipoPenale ? (
+            <CollapsibleFormPanel title="Procedimento penale (PDP)" subtitle="Ufficio, registro e soggetti come li chiede il Portale Deposito atti Penali" icon={<Landmark size={17}/>}>
+              <div className="iu-fas-form-grid">
+                <ProcedimentoPdpApertura annoPredefinito={String(new Date().getFullYear())}/>
+              </div>
+            </CollapsibleFormPanel>
+          ) : null}
           <CollapsibleFormPanel title={labels.sections.annotazioni} subtitle="Referente, dominus e note operative" icon={<BriefcaseBusiness size={17}/>}>
             <div className="iu-fas-form-grid">
               <Field label="Avvocato referente" name="avvocato_referente" defaultValue={getValue(data, 'leadLawyer')}/>

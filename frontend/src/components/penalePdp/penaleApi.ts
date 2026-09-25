@@ -1,6 +1,6 @@
 import { csrfHeader } from '../../api/csrf'
 import { apiPostJson, ensureJson } from '../../lib/apiClient'
-import type { AttoCatalogo, Deposito, FileScelto, PanoramicaPdp, Quadro, SchedaAtto, SchedaPortale } from './types'
+import type { AccessoAtti, AttoCatalogo, Deposito, FileScelto, PanoramicaPdp, Quadro, SchedaAtto, SchedaPortale } from './types'
 
 const radice = '/api/v1/ui/penale'
 const base = (fid: string) => `${radice}/fascicoli/${encodeURIComponent(fid)}`
@@ -20,6 +20,9 @@ async function carica<T>(url: string, dati: FormData): Promise<Esito<T>> {
 }
 
 export const penaleApi = {
+  accesso: (fid: string, signal?: AbortSignal) => ensureJson<AccessoAtti>(`${base(fid)}/accesso-atti`, { signal }),
+  azioneAccesso: (fid: string, azione: string, dati: FormData = new FormData()) =>
+    carica<{ messaggi: Array<{ tono: string; testo: string }> }>(`${base(fid)}/accesso-atti/${azione}`, dati),
   panoramica: (signal?: AbortSignal) => ensureJson<PanoramicaPdp>(`${radice}/panoramica`, { signal }),
   quadro: (fid: string, signal?: AbortSignal) => ensureJson<Quadro>(base(fid), { signal }),
   procedimento: (fid: string, dati: Record<string, unknown>) => invia<Quadro>(`${base(fid)}/procedimento`, dati),

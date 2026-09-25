@@ -788,7 +788,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Telematico | RBAC | tests/test_pdp_penale_web.py | file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | RBAC | tests/test_pdp_penale_workflow.py | tenant, contratto, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | RBAC | tests/test_penale_pdp.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| Telematico | RBAC | tests/test_penale_pdp_api.py | 401 anonimo, 403/RBAC | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Telematico | RBAC | tests/test_penale_pdp_api.py | 401 anonimo, 403/RBAC, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | RBAC | tests/test_pst_ministerial_tables.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | RBAC | tests/test_sigp_integration.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | RBAC | tests/test_sigp_sync.py | 401 anonimo, contratto, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |

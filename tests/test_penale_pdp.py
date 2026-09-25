@@ -294,10 +294,22 @@ def test_distretto_e_circondario_per_la_maschera_del_pdp():
     from pct.uffici_giudiziari import _build_bundle_completo
 
     uffici = _build_bundle_completo()
-    assert sede_pdp("Procura della Repubblica presso il Tribunale di Palmi", uffici) == {"distretto": "REGGIO CALABRIA", "circondario": "PALMI"}
+    # Scritture e codici dei codificati del PDP 6.11.10 (distretti/circondari/sediuffici).
+    assert sede_pdp("Procura della Repubblica presso il Tribunale di Palmi", uffici) == {
+        "distretto": "REGGIO CALABRIA", "circondario": "PALMI",
+        "sede": "PROCURA DELLA REPUBBLICA DI PALMI", "codiceSede": "08005702100"}
     assert sede_pdp("Tribunale di Reggio Calabria", uffici)["distretto"] == "REGGIO CALABRIA"
-    assert sede_pdp("Tribunale di Milano", uffici) == {"distretto": "MILANO", "circondario": "MILANO"}
-    assert sede_pdp("Ufficio sconosciuto", uffici) == {"distretto": "", "circondario": ""}
+    assert sede_pdp("Tribunale di Milano", uffici, "DIB-U")["sede"] == "TRIBUNALE DI MILANO"
+    assert sede_pdp("Tribunale di Bolzano", uffici)["circondario"] == "BOLZANO/BOZEN"
+    assert sede_pdp("Tribunale di Massa Carrara", uffici)["circondario"] == "MASSA"
+    assert sede_pdp("Tribunale di Napoli Nord", uffici)["circondario"] == "NAPOLI NORD"
+    assert sede_pdp("TRIBUNALE DI CUNEO ex TRIBUNALE DI MONDOVI", uffici)["circondario"] == "CUNEO"
+    assert sede_pdp("Tribunale di Chiavari", uffici)["circondario"] == "GENOVA"  # D.Lgs. 155/2012
+    gip = sede_pdp("Tribunale di Milano", uffici, "GIP-U")
+    assert gip["circondario"] == "MILANO" and gip["sede"] == ""  # sede non in catalogo: si sceglie sul PDP
+    assert sede_pdp("Ufficio sconosciuto", uffici) == {"distretto": "", "circondario": "", "sede": "", "codiceSede": ""}
+    tribunali = [u for u in uffici if u["tipo"] == "TRIBUNALE"]
+    assert all(sede_pdp(u["nome"], uffici, "DIB-U")["codiceSede"] for u in tribunali)
 
 
 def _server_imap(quota: bool, comandi: list[str]) -> tuple[int, object]:

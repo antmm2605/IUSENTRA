@@ -47,14 +47,14 @@ def _registro_label(registri: list[dict[str, Any]], ufficio: str) -> str:
 TIPO_LEGALE = {"P02": "Fiducia"}  # maschera di nomina del PDP: «Tipo Legale» (FIDUCIA)
 
 
-def _sede(nome: str) -> dict[str, str]:
+def _sede(nome: str, ufficio_codice: str) -> dict[str, str]:
     try:
         from pct.uffici_giudiziari import get_gestore
 
-        return sede_pdp(nome, get_gestore().carica())
+        return sede_pdp(nome, get_gestore().carica(), ufficio_codice)
     except Exception:
         current_app.logger.warning("Distretto PDP non ricavato per %s", nome, exc_info=True)
-        return {"distretto": "", "circondario": ""}
+        return {"distretto": "", "circondario": "", "sede": "", "codiceSede": ""}
 
 
 def scheda_portale(fid: str, deposito: dict[str, Any]) -> dict[str, Any]:
@@ -68,14 +68,14 @@ def scheda_portale(fid: str, deposito: dict[str, Any]) -> dict[str, Any]:
     percorso = (f"Depositi → {etichetta_menu(deposito['act_name']) or (voce.nome if voce else '')}" if principale
                 else "Consultazioni → Procedimenti Autorizzati → seleziona il procedimento → «Deposita Atto Successivo»")
     sede_nome = (registro or {}).get("office_name") or fascicolo.tribunale or ""
-    sede = _sede(sede_nome)
+    sede = _sede(sede_nome, deposito["office_code"])
     sezioni = [
         {"titolo": "Dove", "voci": [{"etichetta": "Percorso nel PDP", "valore": percorso}]},
         {"titolo": "Ufficio destinazione", "voci": [
             {"etichetta": "Tipo ufficio", "valore": catalogo.etichetta_ufficio(deposito["office_code"])},
             {"etichetta": "Distretto", "valore": sede["distretto"] or "da scegliere sul PDP"},
             {"etichetta": "Circondario/Circolo", "valore": sede["circondario"] or "da scegliere sul PDP"},
-            {"etichetta": "Sede/Ufficio", "valore": sede_nome},
+            {"etichetta": "Sede/Ufficio", "valore": sede["sede"] or sede_nome},
         ]},
     ]
     if principale and registro:

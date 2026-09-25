@@ -134,3 +134,84 @@ def test_pagina_pdp_e_centro_telematico_con_la_nuova_logica(tmp_path):
         assert pdp["metrics"][0]["value"] == 1 and pdp["quickActions"][0]["href"] == "/pdp"
         assert "acquisizione" not in pdp["importHref"]
         assert pdp["lastSyncAt"] == "" and "CNS/CIE" in pdp["environmentLabel"]
+
+
+def test_accesso_agli_atti_in_react_usa_le_rotte_collaudate(tmp_path):
+    app = _app(tmp_path)
+    fid, nomina, _verbale = _fascicolo(app)
+    base = f"/api/v1/ui/penale/fascicoli/{fid}/accesso-atti"
+    with app.test_client() as client:
+        vuoto = client.get(base, headers=H).get_json()
+        assert vuoto["ok"] and vuoto["casoId"] and vuoto["checklist"] and vuoto["richieste"] == []
+        assert "percorso" not in str(vuoto["documentiFascicolo"])
+
+        collega = client.post(f"{base}/collega-documento", headers=H,
+                              data={"local_doc_id": nomina, "document_role": "nomination", "title": "Nomina"})
+        assert collega.status_code == 200 and collega.get_json()["ok"], collega.get_json()
+        genera = client.post(f"{base}/genera-richiesta", headers=H)
+        assert genera.get_json()["ok"], genera.get_json()
+        cerca = client.post(f"{base}/cerca-pec", headers=H)
+        assert cerca.status_code in {200, 400} and "message" in cerca.get_json() or cerca.get_json()["ok"]
+        richiesta = client.post(f"{base}/richiesta", headers=H, data={
+            "request_type": "access_to_case_file", "request_status": "submitted", "request_reference": "RIF-1",
+            "download_available_until": "2026-10-01T18:00", "notes": "prova"})
+        assert richiesta.get_json()["ok"], richiesta.get_json()
+        pec = client.post(f"{base}/registra-pec", headers=H, data={
+            "subject": "Accesso atti autorizzato", "body_text": "Password: Abc123XY", "extracted_password": "Abc123XY",
+            "download_available_until": "2026-10-01T18:00"})
+        assert pec.get_json()["ok"], pec.get_json()
+        attivita = client.post(f"{base}/nuova-attivita", headers=H, data={
+            "task_type": "download_case_file", "title": "Scarica il fascicolo", "priority": "high"})
+        assert attivita.get_json()["ok"], attivita.get_json()
+
+        stato = client.get(base, headers=H).get_json()
+        assert any(r["statoEtichetta"] == "Depositata" and r["riferimento"] == "RIF-1" for r in stato["richieste"])
+        assert any(d["ruolo"] == "Richiesta di accesso" for d in stato["documentiCollegati"])
+        assert stato["pec"][0]["password"] == "Abc123XY" and stato["download"]["passwordDisponibile"]
+        assert any(d["ruolo"] == "Nomina" for d in stato["documentiCollegati"])
+        aperta = next(a for a in stato["attivita"] if a["titolo"] == "Scarica il fascicolo")
+        fatto = client.post(f"{base}/completa-attivita", headers=H, data={"task_id": aperta["id"], "completion_note": "ok"})
+        assert fatto.get_json()["ok"], fatto.get_json()
+        assert not next(a for a in client.get(base, headers=H).get_json()["attivita"] if a["id"] == aperta["id"])["aperta"]
+
+        errata = client.post(f"{base}/sconosciuta", headers=H)
+        assert errata.status_code == 400
+
+
+def test_apertura_fascicolo_penale_imposta_il_procedimento_pdp(tmp_path):
+    from pct.clienti import GestioneClienti, TipoCliente
+    from tests.test_react_shell import _crea_operatore, _login
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    cliente = GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
+        TipoCliente.PERSONA_FISICA, nome="Luca", cognome="Bianchi", codice_fiscale="BNCLCU80A01H501U")
+    with app.test_client() as client:
+        _login(client)
+        assert client.get("/api/v1/ui/penale/catalogo-apertura", headers=H).get_json()["uffici"]
+        normale = client.post("/fascicoli/nuovo", data={
+            "id_cliente": cliente.id, "titolo": "Stato c/ Bianchi", "tipo": TipoFascicolo.PENALE.value,
+            "oggetto": "Difesa nel procedimento", "tribunale": "Tribunale di Palmi", "numero_rg": "1096", "anno_rg": "2023",
+            "qualifica_giudiziale_titolare": "Parte civile",
+            "pdp_ufficio": "PM-U", "pdp_registro": "N", "pdp_numero": "", "pdp_anno": "", "pdp_magistrato": "Dott.ssa Verdi",
+            "pdp_ruolo": "IND", "pdp_altro_nome": "Anna Bianchi", "pdp_altro_ruolo": "OFF", "pdp_autorizzato": "1",
+        }, follow_redirects=False)
+        assert normale.status_code in {302, 303}
+        fid = normale.headers["Location"].split("/fascicoli/", 1)[1].split("/", 1)[0].split("#")[0]
+        quadro = client.get(f"/api/v1/ui/penale/fascicoli/{fid}", headers=H).get_json()
+        assert quadro["procedimento"]["ufficio"] == "PM-U" and quadro["procedimento"]["autorizzato"] is True
+        assert [r["protocollo"] for r in quadro["registri"]] == ["PM: N2023/1096"] and quadro["registri"][0]["magistrato"] == "Dott.ssa Verdi"
+        assert sorted((s["nome"], s["ruolo"]) for s in quadro["soggetti"]) == [("Anna Bianchi", "OFF"), ("Bianchi Luca", "IND")]
+
+        veloce = client.post("/fascicoli/nuovo", data={
+            "id_cliente": cliente.id, "titolo": "Veloce penale", "tipo": TipoFascicolo.PENALE.value, "oggetto": "Nomina",
+            "tribunale": "Procura della Repubblica presso il Tribunale di Palmi",
+            "fascicolo_veloce": "1", "pdp_ufficio": "PM-U", "pdp_numero": "55", "pdp_anno": "2026", "pdp_ruolo": "IND",
+        }, follow_redirects=False)
+        assert veloce.status_code in {302, 303}, veloce.get_data(as_text=True)[:300]
+        assert veloce.headers["Location"].endswith("#penale-pdp")
+
+        civile = client.post("/fascicoli/nuovo", data={
+            "id_cliente": cliente.id, "titolo": "Civile", "tipo": TipoFascicolo.CIVILE.value, "oggetto": "x",
+            "tribunale": "Tribunale di Milano", "pdp_ufficio": "PM-U"}, follow_redirects=False)
+        assert civile.status_code in {302, 303} and "#penale-pdp" not in civile.headers["Location"]

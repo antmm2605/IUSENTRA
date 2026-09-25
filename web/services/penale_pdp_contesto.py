@@ -194,7 +194,7 @@ def quadro(fid: str) -> dict[str, Any]:
         "uffici": catalogo.uffici(), "ruoli": catalogo.ruoli(), "fasi": catalogo.fasi(), "registriTipi": catalogo.registri(),
         "stati": [{"codice": c, "etichetta": e, "descrizione": d} for c, e, d in stati.STATI_LOCALI + stati.STATI_UFFICIALI],
         "fonte": catalogo.fonte(),
-        "link": {"pdp": LINK_PDP, "avvisi": LINK_AVVISI, "accessoAtti": f"/fascicoli/{fid}/penale/pdp"},
+        "link": {"pdp": LINK_PDP, "avvisi": LINK_AVVISI, "accessoAtti": f"/fascicoli/{fid}?pdp=accesso#penale-pdp"},
     }
 
 

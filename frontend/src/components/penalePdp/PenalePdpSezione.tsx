@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import { ExternalLink, FileUp, Gavel, ListChecks, RefreshCw, Send } from 'lucide-react'
+import { ExternalLink, FileUp, FolderOpen, Gavel, ListChecks, RefreshCw, Send } from 'lucide-react'
 import { Badge } from '../dashboard'
 import { penaleApi } from './penaleApi'
+import { AccessoAtti } from './AccessoAtti'
 import { CasellaPec } from './CasellaPec'
 import { DepositiElenco } from './DepositiElenco'
 import { ImportaPdp } from './ImportaPdp'
@@ -10,13 +11,22 @@ import { ProcedimentoPanel } from './ProcedimentoPanel'
 import type { Quadro } from './types'
 import './penalePdp.css'
 
-type Scheda = 'deposito' | 'depositi' | 'procedimento' | 'importa'
+type Scheda = 'deposito' | 'depositi' | 'procedimento' | 'accesso' | 'importa'
+
+const SCHEDE_VALIDE: Scheda[] = ['deposito', 'depositi', 'procedimento', 'accesso', 'importa']
+
+/** La scheda iniziale arriva dall'indirizzo (?pdp=accesso): i link della pagina /pdp aprono direttamente quella giusta. */
+function schedaIniziale(): Scheda {
+  if (typeof window === 'undefined') return 'deposito'
+  const richiesta = new URLSearchParams(window.location.search).get('pdp') as Scheda | null
+  return richiesta && SCHEDE_VALIDE.includes(richiesta) ? richiesta : 'deposito'
+}
 
 /** Deposito penale telematico (PDP): prepara, controlla, registra; l'invio lo fa l'avvocato sul portale. */
 export default function PenalePdpSezione({ fascicoloId, onDocumenti }: { fascicoloId: string; onDocumenti?: () => void }) {
   const [quadro, setQuadro] = useState<Quadro | null>(null)
   const [errore, setErrore] = useState('')
-  const [scheda, setScheda] = useState<Scheda>('deposito')
+  const [scheda, setScheda] = useState<Scheda>(schedaIniziale)
   const [depositoAperto, setDepositoAperto] = useState('')
 
   const ricarica = useCallback(async (signal?: AbortSignal) => {
@@ -44,6 +54,7 @@ export default function PenalePdpSezione({ fascicoloId, onDocumenti }: { fascico
     { id: 'deposito', etichetta: 'Nuovo deposito', icona: <Send size={15}/> },
     { id: 'depositi', etichetta: 'Depositi', icona: <ListChecks size={15}/>, conta: quadro.depositi.length },
     { id: 'procedimento', etichetta: 'Procedimento e soggetti', icona: <Gavel size={15}/>, conta: quadro.soggetti.length },
+    { id: 'accesso', etichetta: 'Accesso agli atti', icona: <FolderOpen size={15}/> },
     { id: 'importa', etichetta: 'Importa dal PDP', icona: <FileUp size={15}/> },
   ]
   const salvato = (id: string) => { setDepositoAperto(id); setScheda('depositi'); void ricarica(); onDocumenti?.() }
@@ -63,7 +74,7 @@ export default function PenalePdpSezione({ fascicoloId, onDocumenti }: { fascico
         <nav className="iu-pdp-testata__link" aria-label="Portali ministeriali">
           <a href={quadro.link.pdp} target="_blank" rel="noreferrer"><ExternalLink size={14}/> Apri il PDP</a>
           <a href={quadro.link.avvisi} target="_blank" rel="noreferrer"><ExternalLink size={14}/> Avvisi in cancelleria</a>
-          <a href={quadro.link.accessoAtti}>Accesso agli atti e PEC</a>
+          <button type="button" className="iu-pdp-link" onClick={() => setScheda('accesso')}><FolderOpen size={14}/> Accesso agli atti e PEC</button>
         </nav>
       </header>
       {quadro.canale ? <p className="iu-pdp-nota">{quadro.canale.nota}</p> : null}
@@ -83,6 +94,7 @@ export default function PenalePdpSezione({ fascicoloId, onDocumenti }: { fascico
         {scheda === 'deposito' ? <NuovoDeposito fascicoloId={fascicoloId} quadro={quadro} onSalvato={salvato} onDocumenti={() => { void ricarica(); onDocumenti?.() }}/> : null}
         {scheda === 'depositi' ? <DepositiElenco fascicoloId={fascicoloId} quadro={quadro} aperto={depositoAperto} onAggiorna={() => void ricarica()} onNuovo={() => setScheda('deposito')}/> : null}
         {scheda === 'procedimento' ? <ProcedimentoPanel fascicoloId={fascicoloId} quadro={quadro} onAggiorna={() => void ricarica()}/> : null}
+        {scheda === 'accesso' ? <AccessoAtti fascicoloId={fascicoloId} onDocumenti={onDocumenti}/> : null}
         {scheda === 'importa' ? <ImportaPdp fascicoloId={fascicoloId} onImportato={() => void ricarica()}/> : null}
       </div>
     </div>

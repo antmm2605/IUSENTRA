@@ -221,6 +221,34 @@ def importa_export(fid: str):
     return jsonify(ok=True, **esito)
 
 
+@api_v1_penale.get("/catalogo-apertura")
+@_richiedi_auth
+@_risposta
+def catalogo_apertura():
+    from web.services.penale_pdp_apertura import catalogo_apertura as costruisci
+
+    return jsonify(costruisci(request.args.get("ufficio", "")[:200], request.args.get("codice", "PM-U")[:12]))
+
+
+@api_v1_penale.get("/fascicoli/<fid>/accesso-atti")
+@_richiedi_auth
+@_risposta
+def accesso_atti(fid: str):
+    from web.services.penale_accesso_atti import quadro as quadro_accesso
+
+    return jsonify(quadro_accesso(fid))
+
+
+@api_v1_penale.post("/fascicoli/<fid>/accesso-atti/<azione>")
+@_richiedi_auth
+@_scrittura
+@_risposta
+def accesso_atti_azione(fid: str, azione: str):
+    from web.services.penale_accesso_atti import esegui
+
+    return jsonify(esegui(fid, azione, str(request.form.get("task_id") or "")))
+
+
 @api_v1_penale.get("/casella-pec")
 @_richiedi_auth
 @_risposta

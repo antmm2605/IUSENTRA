@@ -320,9 +320,10 @@ def register_fascicoli_create_routes(
                         mancanti.append("oggetto")
                     if not tribunale_input:
                         mancanti.append("autorità giudiziaria")
-                    if not controparte:
+                    # Nel penale non c'è controparte: il procedimento si identifica con ufficio e registro del PDP.
+                    if not controparte and tipo_valore.upper() != "PENALE":
                         mancanti.append("controparte")
-                    if not cf_controparte:
+                    if not cf_controparte and tipo_valore.upper() != "PENALE":
                         mancanti.append("codice fiscale o partita IVA della controparte")
                     if mancanti:
                         raise ValueError("Per creare il fascicolo veloce mancano: " + ", ".join(mancanti) + ".")
@@ -489,7 +490,15 @@ def register_fascicoli_create_routes(
                     messaggio_creazione += f" Caricati {documenti_iniziali} documenti e {email_iniziali} email EML."
                 if email_scartate:
                     messaggio_creazione += f" {email_scartate} file email non EML non sono stati importati."
+                penale = fascicolo.tipo == TipoFascicolo.PENALE
+                if penale:
+                    from web.services.penale_pdp_apertura import applica as applica_pdp
+
+                    messaggio_creazione += applica_pdp(fascicolo.id, request.form)
                 sync_pubblica("crea", "fascicoli", fascicolo.id)
+                if fascicolo_veloce and penale:  # il deposito penale si prepara nella sezione PDP, non nella busta civile
+                    target = url_for("dettaglio_fascicolo", id_fasc=fascicolo.id) + "#penale-pdp"
+                    return _risposta_successo_form(messaggio_creazione + " Si apre il deposito penale.", target, id_fascicolo=fascicolo.id)
                 if fascicolo_veloce:
                     target = url_for("deposito_prepara", id_fasc=fascicolo.id)
                     messaggio_creazione += " Si apre il deposito assistito."

@@ -79,7 +79,8 @@ export const RUOLI_FILE: Array<{ valore: string; etichetta: string }> = [
 
 export function dataOra(iso: string): string {
   if (!iso) return ''
-  const [giorno, ora] = iso.split('T')
+  const [giorno, ora] = iso.trim().replace(' ', 'T').split('T')
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(giorno)) return iso
   const [a, m, g] = giorno.split('-')
   return `${g}/${m}/${a}${ora ? ` ${ora.slice(0, 5)}` : ''}`
 }
@@ -104,4 +105,19 @@ export type PanoramicaPdp = {
   calendario: Array<{ dal: string; uffici: string[]; inVigore: boolean }>
   fonteCalendario: string
   link: { pdp: string; avvisi: string }
+}
+
+export type Opzione = { valore: string; etichetta: string }
+
+export type AccessoAtti = {
+  ok: boolean; casoId: string
+  checklist: Array<{ titolo: string; fatto: boolean; tono: string; dettaglio: string }>
+  download: { stato: string; finoAl: string; passwordDisponibile: boolean }
+  richieste: Array<{ id: string; tipo: string; stato: string; statoEtichetta: string; riferimento: string; depositataIl: string; downloadFinoAl: string; pagamento: boolean; importo: number | null; gratuitoPatrocinio: boolean; note: string }>
+  pec: Array<{ id: string; oggetto: string; data: string; mittente: string; password: string; avvisoDownload: boolean }>
+  attivita: Array<{ id: string; titolo: string; tipo: string; priorita: string; prioritaEtichetta: string; scadenza: string; aperta: boolean; descrizione: string }>
+  documentiCollegati: Array<{ id: string; titolo: string; ruolo: string; fonte: string; firmato: boolean; documentoId: string; quando: string }>
+  documentiFascicolo: Array<{ id: string; nome: string; firmato: boolean; ruoloSuggerito: string }>
+  cronologia: Array<{ id: string; quando: string; titolo: string; descrizione: string; fonte: string }>
+  opzioni: { tipiRichiesta: Opzione[]; statiRichiesta: Opzione[]; ruoliDocumento: Opzione[]; tipiAttivita: Opzione[]; priorita: Opzione[] }
 }

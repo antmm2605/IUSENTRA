@@ -401,7 +401,7 @@ function penalePdpPanoramicaPayload(): ApiPayload {
     totali: { procedimenti: 1, nonAutorizzati: 1, inPreparazione: 1, inAttesaEsito: 0, daRifare: 0, accolti: 0, rigettati: 0, udienze: 0 },
     procedimenti: [{
       id: 'FASC-MOCK-PEN', titolo: 'Procedimento penale fittizio', cliente: 'Cliente fittizio', tribunale: 'Procura della Repubblica fittizia',
-      href: '/fascicoli/FASC-MOCK-PEN#penale-pdp', accessoAttiHref: '/fascicoli/FASC-MOCK-PEN/penale/pdp', protocollo: 'PM: N2026/1',
+      href: '/fascicoli/FASC-MOCK-PEN#penale-pdp', accessoAttiHref: '/fascicoli/FASC-MOCK-PEN?pdp=accesso#penale-pdp', protocollo: 'PM: N2026/1',
       ufficio: 'PM-U', ufficioEtichetta: 'Procura della Repubblica', autorizzato: false,
       canale: { obbligatorio: true, etichetta: 'PDP obbligatorio', dal: '2025-01-01', nota: '', fonte: '' },
       conteggi: { BOZZA: 1 }, prossimaUdienza: '', ultimo: null,

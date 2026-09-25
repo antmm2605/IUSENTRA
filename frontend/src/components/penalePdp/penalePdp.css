@@ -152,3 +152,25 @@
 .iu-pdp-pagina__calendario li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .iu-pdp-pagina__calendario small { color: var(--iu-slate-500); }
 @media (max-width: 640px) { .iu-pdp-pagina__testa { padding: 14px; } .iu-pdp-pagina h1 { font-size: 22px; } .iu-pdp-procedimenti__azione { width: 100%; } }
+
+/* Accesso agli atti (art. 116 c.p.p.) nella sezione penale del fascicolo. */
+.iu-pdp-accesso { display: grid; gap: 12px; }
+.iu-pdp-accesso__stato { display: flex; flex-wrap: wrap; gap: 6px; }
+.iu-pdp-percorso { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; counter-reset: passo; }
+.iu-pdp-percorso li { counter-increment: passo; display: grid; gap: 2px; padding: 8px 10px; border: 1px solid var(--iu-border); border-radius: 10px; background: #fff; }
+.iu-pdp-percorso li strong::before { content: counter(passo) ". "; color: var(--iu-slate-500); }
+.iu-pdp-percorso li span { color: var(--iu-slate-600); font-size: 12.5px; }
+.iu-pdp-percorso li.is-fatto { border-color: rgba(15, 123, 87, .35); background: rgba(209, 250, 229, .35); }
+.iu-pdp-accesso__azioni { display: grid; gap: 8px; }
+.iu-pdp-accesso__elenchi { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.iu-pdp-accesso__elenchi section { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.iu-pdp-accesso__elenchi code { padding: 2px 6px; border-radius: 6px; background: rgba(15, 23, 42, .06); font-size: 12.5px; }
+.iu-pdp-accesso textarea { box-sizing: border-box; width: 100%; padding: 6px 9px; border: 1px solid var(--iu-border); border-radius: 9px; font: inherit; }
+.iu-pdp-form__largo { grid-column: 1 / -1; }
+.iu-pdp-spunta { display: flex !important; align-items: center; gap: 6px; }
+.iu-pdp-cronologia summary { cursor: pointer; font-weight: 800; color: var(--iu-slate-700); }
+.iu-pdp .iu-pdp-testata__link button.iu-pdp-link { min-height: 0; padding: 0; border: 0; background: none; color: var(--iu-blue-700); }
+
+/* Apertura fascicolo penale: dove scegliere l'ufficio sul PDP */
+.iu-pdp-apertura { margin: 0; }
+.iu-pdp-apertura__sede { display: block; line-height: 1.5; overflow-wrap: anywhere; }

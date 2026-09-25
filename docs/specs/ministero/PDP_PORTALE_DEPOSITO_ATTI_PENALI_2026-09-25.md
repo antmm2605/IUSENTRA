@@ -187,7 +187,39 @@ Svolto nel PDP 6.11.10 con la sessione dell'avvocato, in sola lettura: nessun in
 | Ricevuta di deposito reale (identificativo 2023/0582463) letta nel browser | testo nativo con ToUnicode; formato riportato al §3.7; **nessun hash** → confronto ridisegnato sui campi della ricevuta |
 | Ricevuta di esito reale dello stesso deposito | «è stato rifiutato … motivazione: Ufficio destinatario non coerente» |
 | Causa del rigetto | nomina con registro PM inviata al Tribunale ordinario: IUSENTRA ora avvisa prima (`UFFICIO_NON_COERENTE`) e il confronto della ricevuta segnala l'ufficio |
-| Maschera «Ufficio Destinazione» | la scheda IUSENTRA indica ora anche Distretto e Circondario/Circolo (dal bundle uffici del Ministero; 169 tribunali su 26 distretti), Sede ufficio e Tipo legale |
+| Maschera «Ufficio Destinazione» | la scheda IUSENTRA indica Distretto, Circondario/Circolo e Sede con le scritture del PDP (vedi §9), Sede ufficio e Tipo legale |
 | Avvisi degli atti depositati in cancelleria | vuoto per il CF collegato; IUSENTRA misura la casella PEC con IMAP QUOTA (solo comandi di lettura: CAPABILITY, LOGIN, GETQUOTAROOT, LOGOUT, verificati con un server IMAP di prova) e rimanda all'elenco del PST |
 
 I test `tests/test_penale_pdp.py` riproducono le due ricevute con l'impaginazione reale (parole spezzate dalla crenatura) e nomi di fantasia.
+
+## 9. Sedi, accesso agli atti e apertura del fascicolo (2.402.0)
+
+Collaudo in sola lettura sul PDP 6.11.10 (GET sui codificati, nessun invio, nessun caricamento).
+
+**Catalogo delle sedi.** `pct/data/cataloghi/pdp_sedi_penali.json` salva dai codificati del portale
+(`distretti`, `circondari?codiceTipoUfficioAmbito=…&codiceDistretto=…`,
+`sediuffici?codiceTipoUfficioAmbito=…&codiceCircondario=…`) i 140 circondari delle 26 corti d'appello con le sedi di Procura (PM-U) e Tribunale
+dibattimento (DIB-U); il PDP elenca 30 distretti, ma le sezioni distaccate (Bolzano, Sassari, Taranto)
+ed EPPO non hanno circondari propri per PM-U: Bolzano, per esempio, sta nel distretto TRENTO, nella scrittura del portale («BOLZANO/BOZEN», «PROCURA DELLA
+REPUBBLICA DI REGGIO DI CALABRIA»). Il codice sede della Procura coincide con il codice ministeriale
+dell'ufficio (es. 08005702100, Procura di Palmi). `pct/penale_pdp/sede.py` riconosce l'ufficio del
+fascicolo in quest'ordine: codice ministeriale, comune del tribunale (Massa Carrara → MASSA), tribunali
+soppressi dal D.Lgs. 155/2012 verso il circondario che li ha accorpati (Chiavari → GENOVA, Caserta →
+SANTA MARIA CAPUA VETERE), nome del circondario o della sede (Napoli Nord prima di Napoli). Per i nomi
+«X ex Y» conta l'ufficio attuale. Tutti i 169 tribunali del bundle trovano la sede; per GIP, minori e
+Procura generale la sede non è nel catalogo e resta «da scegliere sul PDP».
+
+**Accesso agli atti in React.** La scheda «Accesso agli atti» della sezione Deposito penale del
+fascicolo (`/fascicoli/<id>?pdp=accesso#penale-pdp`) sostituisce la vecchia pagina
+`/fascicoli/<id>/penale/pdp` nei collegamenti: richiesta (art. 116 c.p.p.), atto generato in PDF, PEC con
+link e password (link valido 3 giorni, §3.8), import del pacchetto scaricato, documenti collegati,
+attività e cronologia. Le azioni chiamano le stesse funzioni di rotta già collaudate
+(`web/bootstrap/fascicoli_pdp_routes.py`), che restano invariate.
+
+**Apertura del fascicolo penale.** Nel nuovo fascicolo di tipo Penale, completo o «Fascicolo Veloce»,
+il pannello «Procedimento penale (PDP)» chiede i dati delle maschere «Ufficio Destinazione» e
+«Identificazione Procedimento» (ufficio, registro, numero e anno, magistrato, ruolo dell'assistito,
+altro soggetto, procedimento già autorizzato) e mostra subito distretto → circondario → sede da
+scegliere sul PDP per l'ufficio indicato. Nel veloce penale controparte e codice fiscale non sono
+obbligatori (nel penale la parte avversa non è una controparte civile) e alla creazione si apre
+direttamente la sezione Deposito penale.

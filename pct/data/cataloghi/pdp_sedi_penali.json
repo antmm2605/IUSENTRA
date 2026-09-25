@@ -1,0 +1,2396 @@
+{
+ "fonte": {
+  "titolo": "Portale Deposito atti Penali – codificati distretti, circondari e sedi uffici (Procura PM-U, Tribunale DIB-U)",
+  "url": "https://servizipst.giustizia.it/PST/PAVVP/_ws/api/codificati/",
+  "versione_portale": "6.11.10",
+  "consultato_il": "2026-09-25",
+  "accesso": "area riservata PST, sessione avvocato, sola lettura (distretti, circondari?codiceTipoUfficioAmbito=…&codiceDistretto=…, sediuffici?codiceTipoUfficioAmbito=…&codiceCircondario=…)",
+  "note": "I codici delle sedi coincidono con il codice ministeriale degli uffici (es. 08005702100 Procura di Palmi). Distretti del PDP: 26 corti d'appello più le sezioni distaccate (Bolzano, Sassari, Taranto) ed EPPO, che per PM-U non hanno circondari propri."
+ },
+ "circondari": [
+  {
+   "distretto": "ANCONA",
+   "circondario": "ANCONA",
+   "codice": "015",
+   "procura": [
+    {
+     "codice": "04200202109",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI ANCONA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "04200202200",
+     "descrizione": "TRIBUNALE DI ANCONA"
+    }
+   ]
+  },
+  {
+   "distretto": "ANCONA",
+   "circondario": "ASCOLI PICENO",
+   "codice": "027",
+   "procura": [
+    {
+     "codice": "04400702101",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI ASCOLI PICENO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "04400702202",
+     "descrizione": "TRIBUNALE DI ASCOLI PICENO"
+    }
+   ]
+  },
+  {
+   "distretto": "ANCONA",
+   "circondario": "FERMO",
+   "codice": "132",
+   "procura": [
+    {
+     "codice": "04401902106",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI FERMO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "04401902207",
+     "descrizione": "TRIBUNALE DI FERMO"
+    }
+   ]
+  },
+  {
+   "distretto": "ANCONA",
+   "circondario": "MACERATA",
+   "codice": "213",
+   "procura": [
+    {
+     "codice": "04302302104",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI MACERATA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "04302302205",
+     "descrizione": "TRIBUNALE DI MACERATA"
+    }
+   ]
+  },
+  {
+   "distretto": "ANCONA",
+   "circondario": "PESARO",
+   "codice": "297",
+   "procura": [
+    {
+     "codice": "04104402106",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI PESARO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "04104402207",
+     "descrizione": "TRIBUNALE DI PESARO"
+    }
+   ]
+  },
+  {
+   "distretto": "ANCONA",
+   "circondario": "URBINO",
+   "codice": "438",
+   "procura": [
+    {
+     "codice": "04106702104",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI URBINO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "04106702205",
+     "descrizione": "TRIBUNALE DI URBINO"
+    }
+   ]
+  },
+  {
+   "distretto": "BARI",
+   "circondario": "BARI",
+   "codice": "039",
+   "procura": [
+    {
+     "codice": "07200602103",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI BARI"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "07200602204",
+     "descrizione": "TRIBUNALE DI BARI"
+    }
+   ]
+  },
+  {
+   "distretto": "BARI",
+   "circondario": "FOGGIA",
+   "codice": "141",
+   "procura": [
+    {
+     "codice": "07102402100",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI FOGGIA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "07102402201",
+     "descrizione": "TRIBUNALE DI FOGGIA"
+    }
+   ]
+  },
+  {
+   "distretto": "BARI",
+   "circondario": "TRANI",
+   "codice": "420",
+   "procura": [
+    {
+     "codice": "07204502105",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI TRANI"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "07204502206",
+     "descrizione": "TRIBUNALE DI TRANI"
+    }
+   ]
+  },
+  {
+   "distretto": "BOLOGNA",
+   "circondario": "BOLOGNA",
+   "codice": "057",
+   "procura": [
+    {
+     "codice": "03700602100",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI BOLOGNA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "03700602201",
+     "descrizione": "TRIBUNALE DI BOLOGNA"
+    }
+   ]
+  },
+  {
+   "distretto": "BOLOGNA",
+   "circondario": "FERRARA",
+   "codice": "135",
+   "procura": [
+    {
+     "codice": "03800802105",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI FERRARA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "03800802206",
+     "descrizione": "TRIBUNALE DI FERRARA"
+    }
+   ]
+  },
+  {
+   "distretto": "BOLOGNA",
+   "circondario": "FORLI'",
+   "codice": "144",
+   "procura": [
+    {
+     "codice": "04001202108",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI FORLI'"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "04001202209",
+     "descrizione": "TRIBUNALE DI FORLI'"
+    }
+   ]
+  },
+  {
+   "distretto": "BOLOGNA",
+   "circondario": "MODENA",
+   "codice": "240",
+   "procura": [
+    {
+     "codice": "03602302105",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI MODENA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "03602302206",
+     "descrizione": "TRIBUNALE DI MODENA"
+    }
+   ]
+  },
+  {
+   "distretto": "BOLOGNA",
+   "circondario": "PARMA",
+   "codice": "285",
+   "procura": [
+    {
+     "codice": "03402702101",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI PARMA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "03402702202",
+     "descrizione": "TRIBUNALE DI PARMA"
+    }
+   ]
+  },
+  {
+   "distretto": "BOLOGNA",
+   "circondario": "PIACENZA",
+   "codice": "303",
+   "procura": [
+    {
+     "codice": "03303202101",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI PIACENZA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "03303202202",
+     "descrizione": "TRIBUNALE DI PIACENZA"
+    }
+   ]
+  },
+  {
+   "distretto": "BOLOGNA",
+   "circondario": "RAVENNA",
+   "codice": "327",
+   "procura": [
+    {
+     "codice": "03901402109",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI RAVENNA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "03901402200",
+     "descrizione": "TRIBUNALE DI RAVENNA"
+    }
+   ]
+  },
+  {
+   "distretto": "BOLOGNA",
+   "circondario": "REGGIO EMILIA",
+   "codice": "333",
+   "procura": [
+    {
+     "codice": "03503302105",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI REGGIO NELL'EMILIA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "03503302206",
+     "descrizione": "TRIBUNALE DI REGGIO NELL'EMILIA"
+    }
+   ]
+  },
+  {
+   "distretto": "BOLOGNA",
+   "circondario": "RIMINI",
+   "codice": "339",
+   "procura": [
+    {
+     "codice": "09901402101",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI RIMINI"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "09901402202",
+     "descrizione": "TRIBUNALE DI RIMINI"
+    }
+   ]
+  },
+  {
+   "distretto": "BRESCIA",
+   "circondario": "BERGAMO",
+   "codice": "051",
+   "procura": [
+    {
+     "codice": "01602402103",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI BERGAMO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "01602402204",
+     "descrizione": "TRIBUNALE DI BERGAMO"
+    }
+   ]
+  },
+  {
+   "distretto": "BRESCIA",
+   "circondario": "BRESCIA",
+   "codice": "063",
+   "procura": [
+    {
+     "codice": "01702902104",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI BRESCIA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "01702902205",
+     "descrizione": "TRIBUNALE DI BRESCIA"
+    }
+   ]
+  },
+  {
+   "distretto": "BRESCIA",
+   "circondario": "CREMONA",
+   "codice": "120",
+   "procura": [
+    {
+     "codice": "01903602101",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI CREMONA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "01903602202",
+     "descrizione": "TRIBUNALE DI CREMONA"
+    }
+   ]
+  },
+  {
+   "distretto": "BRESCIA",
+   "circondario": "MANTOVA",
+   "codice": "216",
+   "procura": [
+    {
+     "codice": "02003002102",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI MANTOVA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "02003002203",
+     "descrizione": "TRIBUNALE DI MANTOVA"
+    }
+   ]
+  },
+  {
+   "distretto": "CAGLIARI",
+   "circondario": "CAGLIARI",
+   "codice": "072",
+   "procura": [
+    {
+     "codice": "09200902103",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI CAGLIARI"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "09200902204",
+     "descrizione": "TRIBUNALE DI CAGLIARI"
+    }
+   ]
+  },
+  {
+   "distretto": "CAGLIARI",
+   "circondario": "LANUSEI",
+   "codice": "183",
+   "procura": [
+    {
+     "codice": "09103702101",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI LANUSEI"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "09103702202",
+     "descrizione": "TRIBUNALE DI LANUSEI"
+    }
+   ]
+  },
+  {
+   "distretto": "CAGLIARI",
+   "circondario": "NUORO",
+   "codice": "264",
+   "procura": [
+    {
+     "codice": "09105102101",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI NUORO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "09105102202",
+     "descrizione": "TRIBUNALE DI NUORO"
+    }
+   ]
+  },
+  {
+   "distretto": "CAGLIARI",
+   "circondario": "ORISTANO",
+   "codice": "267",
+   "procura": [
+    {
+     "codice": "09503802107",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI ORISTANO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "09503802208",
+     "descrizione": "TRIBUNALE DI ORISTANO"
+    }
+   ]
+  },
+  {
+   "distretto": "CAGLIARI",
+   "circondario": "SASSARI",
+   "codice": "372",
+   "procura": [
+    {
+     "codice": "09006402107",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI SASSARI"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "09006402208",
+     "descrizione": "TRIBUNALE DI SASSARI"
+    }
+   ]
+  },
+  {
+   "distretto": "CAGLIARI",
+   "circondario": "TEMPIO PAUSANIA",
+   "codice": "399",
+   "procura": [
+    {
+     "codice": "09007002100",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI TEMPIO PAUSANIA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "09007002201",
+     "descrizione": "TRIBUNALE DI TEMPIO PAUSANIA"
+    }
+   ]
+  },
+  {
+   "distretto": "CALTANISSETTA",
+   "circondario": "CALTANISSETTA",
+   "codice": "078",
+   "procura": [
+    {
+     "codice": "08500402104",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI CALTANISSETTA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "08500402205",
+     "descrizione": "TRIBUNALE DI CALTANISSETTA"
+    }
+   ]
+  },
+  {
+   "distretto": "CALTANISSETTA",
+   "circondario": "ENNA",
+   "codice": "129",
+   "procura": [
+    {
+     "codice": "08600902105",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI ENNA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "08600902206",
+     "descrizione": "TRIBUNALE DI ENNA"
+    }
+   ]
+  },
+  {
+   "distretto": "CALTANISSETTA",
+   "circondario": "GELA",
+   "codice": "480",
+   "procura": [
+    {
+     "codice": "08500702100",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI GELA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "08500702201",
+     "descrizione": "TRIBUNALE DI GELA"
+    }
+   ]
+  },
+  {
+   "distretto": "CAMPOBASSO",
+   "circondario": "CAMPOBASSO",
+   "codice": "084",
+   "procura": [
+    {
+     "codice": "07000602101",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI CAMPOBASSO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "07000602202",
+     "descrizione": "TRIBUNALE DI CAMPOBASSO"
+    }
+   ]
+  },
+  {
+   "distretto": "CAMPOBASSO",
+   "circondario": "ISERNIA",
+   "codice": "162",
+   "procura": [
+    {
+     "codice": "09402302105",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI ISERNIA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "09402302206",
+     "descrizione": "TRIBUNALE DI ISERNIA"
+    }
+   ]
+  },
+  {
+   "distretto": "CAMPOBASSO",
+   "circondario": "LARINO",
+   "codice": "186",
+   "procura": [
+    {
+     "codice": "07003102104",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI LARINO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "07003102205",
+     "descrizione": "TRIBUNALE DI LARINO"
+    }
+   ]
+  },
+  {
+   "distretto": "CATANIA",
+   "circondario": "CALTAGIRONE",
+   "codice": "075",
+   "procura": [
+    {
+     "codice": "08701102101",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI CALTAGIRONE"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "08701102202",
+     "descrizione": "TRIBUNALE DI CALTAGIRONE"
+    }
+   ]
+  },
+  {
+   "distretto": "CATANIA",
+   "circondario": "CATANIA",
+   "codice": "096",
+   "procura": [
+    {
+     "codice": "08701502109",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI CATANIA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "08701502200",
+     "descrizione": "TRIBUNALE DI CATANIA"
+    }
+   ]
+  },
+  {
+   "distretto": "CATANIA",
+   "circondario": "RAGUSA",
+   "codice": "324",
+   "procura": [
+    {
+     "codice": "08800902107",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI RAGUSA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "08800902208",
+     "descrizione": "TRIBUNALE DI RAGUSA"
+    }
+   ]
+  },
+  {
+   "distretto": "CATANIA",
+   "circondario": "SIRACUSA",
+   "codice": "384",
+   "procura": [
+    {
+     "codice": "08901702105",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI SIRACUSA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "08901702206",
+     "descrizione": "TRIBUNALE DI SIRACUSA"
+    }
+   ]
+  },
+  {
+   "distretto": "CATANZARO",
+   "circondario": "CASTROVILLARI",
+   "codice": "093",
+   "procura": [
+    {
+     "codice": "07803302106",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI CASTROVILLARI"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "07803302207",
+     "descrizione": "TRIBUNALE DI CASTROVILLARI"
+    }
+   ]
+  },
+  {
+   "distretto": "CATANZARO",
+   "circondario": "CATANZARO",
+   "codice": "099",
+   "procura": [
+    {
+     "codice": "07902302106",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI CATANZARO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "07902302207",
+     "descrizione": "TRIBUNALE DI CATANZARO"
+    }
+   ]
+  },
+  {
+   "distretto": "CATANZARO",
+   "circondario": "COSENZA",
+   "codice": "114",
+   "procura": [
+    {
+     "codice": "07804502101",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI COSENZA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "07804502202",
+     "descrizione": "TRIBUNALE DI COSENZA"
+    }
+   ]
+  },
+  {
+   "distretto": "CATANZARO",
+   "circondario": "CROTONE",
+   "codice": "123",
+   "procura": [
+    {
+     "codice": "10101002108",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI CROTONE"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "10101002209",
+     "descrizione": "TRIBUNALE DI CROTONE"
+    }
+   ]
+  },
+  {
+   "distretto": "CATANZARO",
+   "circondario": "LAMEZIA TERME",
+   "codice": "177",
+   "procura": [
+    {
+     "codice": "07916002106",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI LAMEZIA TERME"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "07916002207",
+     "descrizione": "TRIBUNALE DI LAMEZIA TERME"
+    }
+   ]
+  },
+  {
+   "distretto": "CATANZARO",
+   "circondario": "PAOLA",
+   "codice": "282",
+   "procura": [
+    {
+     "codice": "07809102108",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI PAOLA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "07809102209",
+     "descrizione": "TRIBUNALE DI PAOLA"
+    }
+   ]
+  },
+  {
+   "distretto": "CATANZARO",
+   "circondario": "VIBO VALENTIA",
+   "codice": "465",
+   "procura": [
+    {
+     "codice": "10204702106",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI VIBO VALENTIA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "10204702207",
+     "descrizione": "TRIBUNALE DI VIBO VALENTIA"
+    }
+   ]
+  },
+  {
+   "distretto": "FIRENZE",
+   "circondario": "AREZZO",
+   "codice": "021",
+   "procura": [
+    {
+     "codice": "05100202100",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI AREZZO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "05100202201",
+     "descrizione": "TRIBUNALE DI AREZZO"
+    }
+   ]
+  },
+  {
+   "distretto": "FIRENZE",
+   "circondario": "FIRENZE",
+   "codice": "138",
+   "procura": [
+    {
+     "codice": "04801702106",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI FIRENZE"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "04801702207",
+     "descrizione": "TRIBUNALE DI FIRENZE"
+    }
+   ]
+  },
+  {
+   "distretto": "FIRENZE",
+   "circondario": "GROSSETO",
+   "codice": "156",
+   "procura": [
+    {
+     "codice": "05301102101",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI GROSSETO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "05301102202",
+     "descrizione": "TRIBUNALE DI GROSSETO"
+    }
+   ]
+  },
+  {
+   "distretto": "FIRENZE",
+   "circondario": "LIVORNO",
+   "codice": "198",
+   "procura": [
+    {
+     "codice": "04900902100",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI LIVORNO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "04900902201",
+     "descrizione": "TRIBUNALE DI LIVORNO"
+    }
+   ]
+  },
+  {
+   "distretto": "FIRENZE",
+   "circondario": "LUCCA",
+   "codice": "207",
+   "procura": [
+    {
+     "codice": "04601702104",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI LUCCA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "04601702205",
+     "descrizione": "TRIBUNALE DI LUCCA"
+    }
+   ]
+  },
+  {
+   "distretto": "FIRENZE",
+   "circondario": "PISA",
+   "codice": "309",
+   "procura": [
+    {
+     "codice": "05002602109",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI PISA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "05002602200",
+     "descrizione": "TRIBUNALE DI PISA"
+    }
+   ]
+  },
+  {
+   "distretto": "FIRENZE",
+   "circondario": "PISTOIA",
+   "codice": "312",
+   "procura": [
+    {
+     "codice": "04701402109",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI PISTOIA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "04701402200",
+     "descrizione": "TRIBUNALE DI PISTOIA"
+    }
+   ]
+  },
+  {
+   "distretto": "FIRENZE",
+   "circondario": "PRATO",
+   "codice": "321",
+   "procura": [
+    {
+     "codice": "10000502106",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI PRATO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "10000502207",
+     "descrizione": "TRIBUNALE DI PRATO"
+    }
+   ]
+  },
+  {
+   "distretto": "FIRENZE",
+   "circondario": "SIENA",
+   "codice": "381",
+   "procura": [
+    {
+     "codice": "05203202104",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI SIENA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "05203202205",
+     "descrizione": "TRIBUNALE DI SIENA"
+    }
+   ]
+  },
+  {
+   "distretto": "GENOVA",
+   "circondario": "GENOVA",
+   "codice": "150",
+   "procura": [
+    {
+     "codice": "01002502109",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI GENOVA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "01002502200",
+     "descrizione": "TRIBUNALE DI GENOVA"
+    }
+   ]
+  },
+  {
+   "distretto": "GENOVA",
+   "circondario": "IMPERIA",
+   "codice": "159",
+   "procura": [
+    {
+     "codice": "00803102108",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI IMPERIA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "00803102209",
+     "descrizione": "TRIBUNALE DI IMPERIA"
+    }
+   ]
+  },
+  {
+   "distretto": "GENOVA",
+   "circondario": "LA SPEZIA",
+   "codice": "171",
+   "procura": [
+    {
+     "codice": "01101502109",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI LA SPEZIA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "01101502200",
+     "descrizione": "TRIBUNALE DI LA SPEZIA"
+    }
+   ]
+  },
+  {
+   "distretto": "GENOVA",
+   "circondario": "MASSA",
+   "codice": "222",
+   "procura": [
+    {
+     "codice": "04501002109",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI MASSA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "04501002200",
+     "descrizione": "TRIBUNALE DI MASSA"
+    }
+   ]
+  },
+  {
+   "distretto": "GENOVA",
+   "circondario": "SAVONA",
+   "codice": "375",
+   "procura": [
+    {
+     "codice": "00905602101",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI SAVONA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "00905602202",
+     "descrizione": "TRIBUNALE DI SAVONA"
+    }
+   ]
+  },
+  {
+   "distretto": "L'AQUILA",
+   "circondario": "AVEZZANO",
+   "codice": "036",
+   "procura": [
+    {
+     "codice": "06600602105",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI AVEZZANO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "06600602206",
+     "descrizione": "TRIBUNALE DI AVEZZANO"
+    }
+   ]
+  },
+  {
+   "distretto": "L'AQUILA",
+   "circondario": "CHIETI",
+   "codice": "105",
+   "procura": [
+    {
+     "codice": "06902202102",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI CHIETI"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "06902202203",
+     "descrizione": "TRIBUNALE DI CHIETI"
+    }
+   ]
+  },
+  {
+   "distretto": "L'AQUILA",
+   "circondario": "L'AQUILA",
+   "codice": "168",
+   "procura": [
+    {
+     "codice": "06604902105",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI L'AQUILA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "06604902206",
+     "descrizione": "TRIBUNALE DI L'AQUILA"
+    }
+   ]
+  },
+  {
+   "distretto": "L'AQUILA",
+   "circondario": "LANCIANO",
+   "codice": "180",
+   "procura": [
+    {
+     "codice": "06904602102",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI LANCIANO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "06904602203",
+     "descrizione": "TRIBUNALE DI LANCIANO"
+    }
+   ]
+  },
+  {
+   "distretto": "L'AQUILA",
+   "circondario": "PESCARA",
+   "codice": "300",
+   "procura": [
+    {
+     "codice": "06802802103",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI PESCARA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "06802802204",
+     "descrizione": "TRIBUNALE DI PESCARA"
+    }
+   ]
+  },
+  {
+   "distretto": "L'AQUILA",
+   "circondario": "SULMONA",
+   "codice": "393",
+   "procura": [
+    {
+     "codice": "06609802108",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI SULMONA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "06609802209",
+     "descrizione": "TRIBUNALE DI SULMONA"
+    }
+   ]
+  },
+  {
+   "distretto": "L'AQUILA",
+   "circondario": "TERAMO",
+   "codice": "402",
+   "procura": [
+    {
+     "codice": "06704102100",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI TERAMO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "06704102201",
+     "descrizione": "TRIBUNALE DI TERAMO"
+    }
+   ]
+  },
+  {
+   "distretto": "L'AQUILA",
+   "circondario": "VASTO",
+   "codice": "447",
+   "procura": [
+    {
+     "codice": "06909902103",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI VASTO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "06909902204",
+     "descrizione": "TRIBUNALE DI VASTO"
+    }
+   ]
+  },
+  {
+   "distretto": "LECCE",
+   "circondario": "BRINDISI",
+   "codice": "066",
+   "procura": [
+    {
+     "codice": "07400102105",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI BRINDISI"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "07400102206",
+     "descrizione": "TRIBUNALE DI BRINDISI"
+    }
+   ]
+  },
+  {
+   "distretto": "LECCE",
+   "circondario": "LECCE",
+   "codice": "192",
+   "procura": [
+    {
+     "codice": "07503502107",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI LECCE"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "07503502208",
+     "descrizione": "TRIBUNALE DI LECCE"
+    }
+   ]
+  },
+  {
+   "distretto": "LECCE",
+   "circondario": "TARANTO",
+   "codice": "396",
+   "procura": [
+    {
+     "codice": "07302702108",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI TARANTO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "07302702209",
+     "descrizione": "TRIBUNALE DI TARANTO"
+    }
+   ]
+  },
+  {
+   "distretto": "MESSINA",
+   "circondario": "BARCELLONA POZZO DI GOTTO",
+   "codice": "483",
+   "procura": [
+    {
+     "codice": "08300502104",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI BARCELLONA POZZO DI GOTTO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "08300502205",
+     "descrizione": "TRIBUNALE DI BARCELLONA POZZO DI GOTTO"
+    }
+   ]
+  },
+  {
+   "distretto": "MESSINA",
+   "circondario": "MESSINA",
+   "codice": "231",
+   "procura": [
+    {
+     "codice": "08304802104",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI MESSINA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "08304802205",
+     "descrizione": "TRIBUNALE DI MESSINA"
+    }
+   ]
+  },
+  {
+   "distretto": "MESSINA",
+   "circondario": "PATTI",
+   "codice": "288",
+   "procura": [
+    {
+     "codice": "08306602102",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI PATTI"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "08306602203",
+     "descrizione": "TRIBUNALE DI PATTI"
+    }
+   ]
+  },
+  {
+   "distretto": "MILANO",
+   "circondario": "BUSTO ARSIZIO",
+   "codice": "069",
+   "procura": [
+    {
+     "codice": "01202602103",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI BUSTO ARSIZIO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "01202602204",
+     "descrizione": "TRIBUNALE DI BUSTO ARSIZIO"
+    }
+   ]
+  },
+  {
+   "distretto": "MILANO",
+   "circondario": "COMO",
+   "codice": "111",
+   "procura": [
+    {
+     "codice": "01307502107",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI COMO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "01307502208",
+     "descrizione": "TRIBUNALE DI COMO"
+    }
+   ]
+  },
+  {
+   "distretto": "MILANO",
+   "circondario": "LECCO",
+   "codice": "195",
+   "procura": [
+    {
+     "codice": "09704202108",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI LECCO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "09704202209",
+     "descrizione": "TRIBUNALE DI LECCO"
+    }
+   ]
+  },
+  {
+   "distretto": "MILANO",
+   "circondario": "LODI",
+   "codice": "204",
+   "procura": [
+    {
+     "codice": "09803102106",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI LODI"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "09803102207",
+     "descrizione": "TRIBUNALE DI LODI"
+    }
+   ]
+  },
+  {
+   "distretto": "MILANO",
+   "circondario": "MILANO",
+   "codice": "234",
+   "procura": [
+    {
+     "codice": "01514602100",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI MILANO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "01514602201",
+     "descrizione": "TRIBUNALE DI MILANO"
+    }
+   ]
+  },
+  {
+   "distretto": "MILANO",
+   "circondario": "MONZA",
+   "codice": "252",
+   "procura": [
+    {
+     "codice": "01514902106",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI MONZA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "01514902207",
+     "descrizione": "TRIBUNALE DI MONZA"
+    }
+   ]
+  },
+  {
+   "distretto": "MILANO",
+   "circondario": "PAVIA",
+   "codice": "291",
+   "procura": [
+    {
+     "codice": "01811002108",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI PAVIA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "01811002209",
+     "descrizione": "TRIBUNALE DI PAVIA"
+    }
+   ]
+  },
+  {
+   "distretto": "MILANO",
+   "circondario": "SONDRIO",
+   "codice": "387",
+   "procura": [
+    {
+     "codice": "01406102109",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI SONDRIO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "01406102200",
+     "descrizione": "TRIBUNALE DI SONDRIO"
+    }
+   ]
+  },
+  {
+   "distretto": "MILANO",
+   "circondario": "VARESE",
+   "codice": "444",
+   "procura": [
+    {
+     "codice": "01213302100",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI VARESE"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "01213302201",
+     "descrizione": "TRIBUNALE DI VARESE"
+    }
+   ]
+  },
+  {
+   "distretto": "NAPOLI",
+   "circondario": "AVELLINO",
+   "codice": "033",
+   "procura": [
+    {
+     "codice": "06400802107",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI AVELLINO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "06400802208",
+     "descrizione": "TRIBUNALE DI AVELLINO"
+    }
+   ]
+  },
+  {
+   "distretto": "NAPOLI",
+   "circondario": "BENEVENTO",
+   "codice": "048",
+   "procura": [
+    {
+     "codice": "06200802105",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI BENEVENTO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "06200802206",
+     "descrizione": "TRIBUNALE DI BENEVENTO"
+    }
+   ]
+  },
+  {
+   "distretto": "NAPOLI",
+   "circondario": "NAPOLI",
+   "codice": "255",
+   "procura": [
+    {
+     "codice": "06304902102",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI NAPOLI"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "06304902203",
+     "descrizione": "TRIBUNALE DI NAPOLI"
+    }
+   ]
+  },
+  {
+   "distretto": "NAPOLI",
+   "circondario": "NAPOLI NORD",
+   "codice": "498",
+   "procura": [
+    {
+     "codice": "06304912103",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI NAPOLI NORD"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "06304912204",
+     "descrizione": "TRIBUNALE DI NAPOLI NORD"
+    }
+   ]
+  },
+  {
+   "distretto": "NAPOLI",
+   "circondario": "NOLA",
+   "codice": "489",
+   "procura": [
+    {
+     "codice": "06305002105",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI NOLA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "06305002206",
+     "descrizione": "TRIBUNALE DI NOLA"
+    }
+   ]
+  },
+  {
+   "distretto": "NAPOLI",
+   "circondario": "SANTA MARIA CAPUA VETERE",
+   "codice": "369",
+   "procura": [
+    {
+     "codice": "06108302102",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI SANTA MARIA CAPUA VETERE"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "06108302203",
+     "descrizione": "TRIBUNALE DI SANTA MARIA CAPUA VETERE"
+    }
+   ]
+  },
+  {
+   "distretto": "NAPOLI",
+   "circondario": "TORRE ANNUNZIATA",
+   "codice": "492",
+   "procura": [
+    {
+     "codice": "06308302104",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI TORRE ANNUNZIATA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "06308302205",
+     "descrizione": "TRIBUNALE DI TORRE ANNUNZIATA"
+    }
+   ]
+  },
+  {
+   "distretto": "PALERMO",
+   "circondario": "AGRIGENTO",
+   "codice": "006",
+   "procura": [
+    {
+     "codice": "08400102107",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI AGRIGENTO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "08400102208",
+     "descrizione": "TRIBUNALE DI AGRIGENTO"
+    }
+   ]
+  },
+  {
+   "distretto": "PALERMO",
+   "circondario": "MARSALA",
+   "codice": "219",
+   "procura": [
+    {
+     "codice": "08101102105",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI MARSALA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "08101102206",
+     "descrizione": "TRIBUNALE DI MARSALA"
+    }
+   ]
+  },
+  {
+   "distretto": "PALERMO",
+   "circondario": "PALERMO",
+   "codice": "276",
+   "procura": [
+    {
+     "codice": "08205302104",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI PALERMO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "08205302205",
+     "descrizione": "TRIBUNALE DI PALERMO"
+    }
+   ]
+  },
+  {
+   "distretto": "PALERMO",
+   "circondario": "SCIACCA",
+   "codice": "378",
+   "procura": [
+    {
+     "codice": "08404102101",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI SCIACCA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "08404102202",
+     "descrizione": "TRIBUNALE DI SCIACCA"
+    }
+   ]
+  },
+  {
+   "distretto": "PALERMO",
+   "circondario": "TERMINI IMERESE",
+   "codice": "405",
+   "procura": [
+    {
+     "codice": "08207002100",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI TERMINI IMERESE"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "08207002201",
+     "descrizione": "TRIBUNALE DI TERMINI IMERESE"
+    }
+   ]
+  },
+  {
+   "distretto": "PALERMO",
+   "circondario": "TRAPANI",
+   "codice": "423",
+   "procura": [
+    {
+     "codice": "08102102106",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI TRAPANI"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "08102102207",
+     "descrizione": "TRIBUNALE DI TRAPANI"
+    }
+   ]
+  },
+  {
+   "distretto": "PERUGIA",
+   "circondario": "PERUGIA",
+   "codice": "294",
+   "procura": [
+    {
+     "codice": "05403902100",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI PERUGIA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "05403902201",
+     "descrizione": "TRIBUNALE DI PERUGIA"
+    }
+   ]
+  },
+  {
+   "distretto": "PERUGIA",
+   "circondario": "SPOLETO",
+   "codice": "390",
+   "procura": [
+    {
+     "codice": "05405102106",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI SPOLETO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "05405102207",
+     "descrizione": "TRIBUNALE DI SPOLETO"
+    }
+   ]
+  },
+  {
+   "distretto": "PERUGIA",
+   "circondario": "TERNI",
+   "codice": "408",
+   "procura": [
+    {
+     "codice": "05503202107",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI TERNI"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "05503202208",
+     "descrizione": "TRIBUNALE DI TERNI"
+    }
+   ]
+  },
+  {
+   "distretto": "POTENZA",
+   "circondario": "LAGONEGRO",
+   "codice": "174",
+   "procura": [
+    {
+     "codice": "07603902106",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI LAGONEGRO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "07603902207",
+     "descrizione": "TRIBUNALE DI LAGONEGRO"
+    }
+   ]
+  },
+  {
+   "distretto": "POTENZA",
+   "circondario": "MATERA",
+   "codice": "225",
+   "procura": [
+    {
+     "codice": "07701402105",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI MATERA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "07701402206",
+     "descrizione": "TRIBUNALE DI MATERA"
+    }
+   ]
+  },
+  {
+   "distretto": "POTENZA",
+   "circondario": "POTENZA",
+   "codice": "318",
+   "procura": [
+    {
+     "codice": "07606302107",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI POTENZA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "07606302208",
+     "descrizione": "TRIBUNALE DI POTENZA"
+    }
+   ]
+  },
+  {
+   "distretto": "REGGIO CALABRIA",
+   "circondario": "LOCRI",
+   "codice": "201",
+   "procura": [
+    {
+     "codice": "08004302101",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI LOCRI"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "08004302202",
+     "descrizione": "TRIBUNALE DI LOCRI"
+    }
+   ]
+  },
+  {
+   "distretto": "REGGIO CALABRIA",
+   "circondario": "PALMI",
+   "codice": "279",
+   "procura": [
+    {
+     "codice": "08005702100",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI PALMI"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "08005702201",
+     "descrizione": "TRIBUNALE DI PALMI"
+    }
+   ]
+  },
+  {
+   "distretto": "REGGIO CALABRIA",
+   "circondario": "REGGIO CALABRIA",
+   "codice": "330",
+   "procura": [
+    {
+     "codice": "08006302103",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI REGGIO DI CALABRIA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "08006302204",
+     "descrizione": "TRIBUNALE DI REGGIO DI CALABRIA"
+    }
+   ]
+  },
+  {
+   "distretto": "ROMA",
+   "circondario": "CASSINO",
+   "codice": "090",
+   "procura": [
+    {
+     "codice": "06001902106",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI CASSINO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "06001902207",
+     "descrizione": "TRIBUNALE DI CASSINO"
+    }
+   ]
+  },
+  {
+   "distretto": "ROMA",
+   "circondario": "CIVITAVECCHIA",
+   "codice": "108",
+   "procura": [
+    {
+     "codice": "05803202100",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI CIVITAVECCHIA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "05803202201",
+     "descrizione": "TRIBUNALE DI CIVITAVECCHIA"
+    }
+   ]
+  },
+  {
+   "distretto": "ROMA",
+   "circondario": "FROSINONE",
+   "codice": "147",
+   "procura": [
+    {
+     "codice": "06003802106",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI FROSINONE"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "06003802207",
+     "descrizione": "TRIBUNALE DI FROSINONE"
+    }
+   ]
+  },
+  {
+   "distretto": "ROMA",
+   "circondario": "LATINA",
+   "codice": "189",
+   "procura": [
+    {
+     "codice": "05901102107",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI LATINA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "05901102208",
+     "descrizione": "TRIBUNALE DI LATINA"
+    }
+   ]
+  },
+  {
+   "distretto": "ROMA",
+   "circondario": "RIETI",
+   "codice": "336",
+   "procura": [
+    {
+     "codice": "05705902105",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI RIETI"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "05705902206",
+     "descrizione": "TRIBUNALE DI RIETI"
+    }
+   ]
+  },
+  {
+   "distretto": "ROMA",
+   "circondario": "ROMA",
+   "codice": "342",
+   "procura": [
+    {
+     "codice": "05809102104",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI ROMA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "05809102205",
+     "descrizione": "TRIBUNALE DI ROMA"
+    },
+    {
+     "codice": "05809111901",
+     "descrizione": "SEZIONE DISTACCATA TRIB. DI ROMA"
+    }
+   ]
+  },
+  {
+   "distretto": "ROMA",
+   "circondario": "TIVOLI",
+   "codice": "495",
+   "procura": [
+    {
+     "codice": "05810402103",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI TIVOLI"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "05810402204",
+     "descrizione": "TRIBUNALE DI TIVOLI"
+    }
+   ]
+  },
+  {
+   "distretto": "ROMA",
+   "circondario": "VELLETRI",
+   "codice": "450",
+   "procura": [
+    {
+     "codice": "05811102108",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI VELLETRI"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "05811102209",
+     "descrizione": "TRIBUNALE DI VELLETRI"
+    }
+   ]
+  },
+  {
+   "distretto": "ROMA",
+   "circondario": "VITERBO",
+   "codice": "474",
+   "procura": [
+    {
+     "codice": "05605902104",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI VITERBO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "05605902205",
+     "descrizione": "TRIBUNALE DI VITERBO"
+    }
+   ]
+  },
+  {
+   "distretto": "SALERNO",
+   "circondario": "NOCERA INFERIORE",
+   "codice": "486",
+   "procura": [
+    {
+     "codice": "06507802105",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI NOCERA INFERIORE"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "06507802206",
+     "descrizione": "TRIBUNALE DI NOCERA INFERIORE"
+    }
+   ]
+  },
+  {
+   "distretto": "SALERNO",
+   "circondario": "SALERNO",
+   "codice": "357",
+   "procura": [
+    {
+     "codice": "06511602107",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI SALERNO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "06511602208",
+     "descrizione": "TRIBUNALE DI SALERNO"
+    }
+   ]
+  },
+  {
+   "distretto": "SALERNO",
+   "circondario": "VALLO DELLA LUCANIA",
+   "codice": "441",
+   "procura": [
+    {
+     "codice": "06515402107",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI VALLO DELLA LUCANIA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "06515402208",
+     "descrizione": "TRIBUNALE DI VALLO DELLA LUCANIA"
+    }
+   ]
+  },
+  {
+   "distretto": "TORINO",
+   "circondario": "ALESSANDRIA",
+   "codice": "012",
+   "procura": [
+    {
+     "codice": "00600302107",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI ALESSANDRIA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "00600302208",
+     "descrizione": "TRIBUNALE DI ALESSANDRIA"
+    }
+   ]
+  },
+  {
+   "distretto": "TORINO",
+   "circondario": "AOSTA",
+   "codice": "018",
+   "procura": [
+    {
+     "codice": "00700302108",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI AOSTA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "00700302209",
+     "descrizione": "TRIBUNALE DI AOSTA"
+    }
+   ]
+  },
+  {
+   "distretto": "TORINO",
+   "circondario": "ASTI",
+   "codice": "030",
+   "procura": [
+    {
+     "codice": "00500502100",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI ASTI"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "00500502201",
+     "descrizione": "TRIBUNALE DI ASTI"
+    }
+   ]
+  },
+  {
+   "distretto": "TORINO",
+   "circondario": "BIELLA",
+   "codice": "054",
+   "procura": [
+    {
+     "codice": "09600402107",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI BIELLA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "09600402208",
+     "descrizione": "TRIBUNALE DI BIELLA"
+    }
+   ]
+  },
+  {
+   "distretto": "TORINO",
+   "circondario": "CUNEO",
+   "codice": "126",
+   "procura": [
+    {
+     "codice": "00407802102",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI CUNEO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "00407802203",
+     "descrizione": "TRIBUNALE DI CUNEO"
+    }
+   ]
+  },
+  {
+   "distretto": "TORINO",
+   "circondario": "IVREA",
+   "codice": "165",
+   "procura": [
+    {
+     "codice": "00112502100",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI IVREA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "00112502201",
+     "descrizione": "TRIBUNALE DI IVREA"
+    }
+   ]
+  },
+  {
+   "distretto": "TORINO",
+   "circondario": "NOVARA",
+   "codice": "261",
+   "procura": [
+    {
+     "codice": "00310602102",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI NOVARA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "00310602203",
+     "descrizione": "TRIBUNALE DI NOVARA"
+    }
+   ]
+  },
+  {
+   "distretto": "TORINO",
+   "circondario": "TORINO",
+   "codice": "414",
+   "procura": [
+    {
+     "codice": "00127202101",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI TORINO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "00127202202",
+     "descrizione": "TRIBUNALE DI TORINO"
+    }
+   ]
+  },
+  {
+   "distretto": "TORINO",
+   "circondario": "VERBANIA",
+   "codice": "456",
+   "procura": [
+    {
+     "codice": "10307202100",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI VERBANIA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "10307202201",
+     "descrizione": "TRIBUNALE DI VERBANIA"
+    }
+   ]
+  },
+  {
+   "distretto": "TORINO",
+   "circondario": "VERCELLI",
+   "codice": "459",
+   "procura": [
+    {
+     "codice": "00215802100",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI VERCELLI"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "00215802201",
+     "descrizione": "TRIBUNALE DI VERCELLI"
+    }
+   ]
+  },
+  {
+   "distretto": "TRENTO",
+   "circondario": "BOLZANO/BOZEN",
+   "codice": "060",
+   "procura": [
+    {
+     "codice": "02100802106",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI BOLZANO/BOZEN"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "02100802207",
+     "descrizione": "TRIBUNALE DI BOLZANO/BOZEN"
+    }
+   ]
+  },
+  {
+   "distretto": "TRENTO",
+   "circondario": "ROVERETO",
+   "codice": "348",
+   "procura": [
+    {
+     "codice": "02216102101",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI ROVERETO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "02216102202",
+     "descrizione": "TRIBUNALE DI ROVERETO"
+    }
+   ]
+  },
+  {
+   "distretto": "TRENTO",
+   "circondario": "TRENTO",
+   "codice": "426",
+   "procura": [
+    {
+     "codice": "02220502105",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI TRENTO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "02220502206",
+     "descrizione": "TRIBUNALE DI TRENTO"
+    }
+   ]
+  },
+  {
+   "distretto": "TRIESTE",
+   "circondario": "GORIZIA",
+   "codice": "153",
+   "procura": [
+    {
+     "codice": "03100702106",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI GORIZIA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "03100702207",
+     "descrizione": "TRIBUNALE DI GORIZIA"
+    }
+   ]
+  },
+  {
+   "distretto": "TRIESTE",
+   "circondario": "PORDENONE",
+   "codice": "315",
+   "procura": [
+    {
+     "codice": "09303302105",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI PORDENONE"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "09303302206",
+     "descrizione": "TRIBUNALE DI PORDENONE"
+    }
+   ]
+  },
+  {
+   "distretto": "TRIESTE",
+   "circondario": "TRIESTE",
+   "codice": "432",
+   "procura": [
+    {
+     "codice": "03200602105",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI TRIESTE"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "03200602206",
+     "descrizione": "TRIBUNALE DI TRIESTE"
+    }
+   ]
+  },
+  {
+   "distretto": "TRIESTE",
+   "circondario": "UDINE",
+   "codice": "435",
+   "procura": [
+    {
+     "codice": "03012902103",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI UDINE"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "03012902204",
+     "descrizione": "TRIBUNALE DI UDINE"
+    }
+   ]
+  },
+  {
+   "distretto": "VENEZIA",
+   "circondario": "BELLUNO",
+   "codice": "045",
+   "procura": [
+    {
+     "codice": "02500602106",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI BELLUNO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "02500602207",
+     "descrizione": "TRIBUNALE DI BELLUNO"
+    }
+   ]
+  },
+  {
+   "distretto": "VENEZIA",
+   "circondario": "PADOVA",
+   "codice": "273",
+   "procura": [
+    {
+     "codice": "02806002103",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI PADOVA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "02806002204",
+     "descrizione": "TRIBUNALE DI PADOVA"
+    }
+   ]
+  },
+  {
+   "distretto": "VENEZIA",
+   "circondario": "ROVIGO",
+   "codice": "351",
+   "procura": [
+    {
+     "codice": "02904102104",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI ROVIGO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "02904102205",
+     "descrizione": "TRIBUNALE DI ROVIGO"
+    }
+   ]
+  },
+  {
+   "distretto": "VENEZIA",
+   "circondario": "TREVISO",
+   "codice": "429",
+   "procura": [
+    {
+     "codice": "02608602105",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI TREVISO"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "02608602206",
+     "descrizione": "TRIBUNALE DI TREVISO"
+    }
+   ]
+  },
+  {
+   "distretto": "VENEZIA",
+   "circondario": "VENEZIA",
+   "codice": "453",
+   "procura": [
+    {
+     "codice": "02704202104",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI VENEZIA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "02704202205",
+     "descrizione": "TRIBUNALE DI VENEZIA"
+    }
+   ]
+  },
+  {
+   "distretto": "VENEZIA",
+   "circondario": "VERONA",
+   "codice": "462",
+   "procura": [
+    {
+     "codice": "02309102103",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI VERONA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "02309102204",
+     "descrizione": "TRIBUNALE DI VERONA"
+    }
+   ]
+  },
+  {
+   "distretto": "VENEZIA",
+   "circondario": "VICENZA",
+   "codice": "468",
+   "procura": [
+    {
+     "codice": "02411602108",
+     "descrizione": "PROCURA DELLA REPUBBLICA DI VICENZA"
+    }
+   ],
+   "tribunale": [
+    {
+     "codice": "02411602209",
+     "descrizione": "TRIBUNALE DI VICENZA"
+    }
+   ]
+  }
+ ]
+}

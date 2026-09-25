@@ -112,6 +112,54 @@ def test_un_file_non_tracciato_viene_preservato(repository):
     assert (copia / "nuovo.py").read_text() == "residuo\n"
 
 
+def _release_senza(origine: Path, nome: str) -> str:
+    """Un terzo commit che toglie dal repository un file di runtime tracciato per errore."""
+
+    _git("rm", "-q", nome, cwd=origine)
+    _git("commit", "-qm", f"tolto {nome}", cwd=origine)
+    return _git("rev-parse", "HEAD", cwd=origine)
+
+
+def test_un_file_cancellato_sul_server_e_tolto_dalla_release_non_blocca(repository):
+    """Il caso reale del 25/09/2026: backup/config.json cancellato sul server e tolto dalla release."""
+
+    origine, copia, _primo, _secondo = repository
+    (origine / "runtime.json").write_text("{}\n", encoding="utf-8")
+    _git("add", ".", cwd=origine)
+    _git("commit", "-qm", "runtime tracciato per errore", cwd=origine)
+    _git("fetch", "-q", "origin", cwd=copia)
+    _git("checkout", "-q", "-B", "gemello", "origin/main", cwd=copia)
+    atteso = _release_senza(origine, "runtime.json")
+    (copia / "runtime.json").unlink()
+
+    esito = _sincronizza(copia, atteso)
+
+    assert esito.returncode == 0, esito.stderr
+    assert _git("rev-parse", "HEAD", cwd=copia) == atteso
+    assert _git("status", "--porcelain", cwd=copia) == ""
+
+
+def test_una_modifica_gia_uguale_alla_release_non_blocca(repository):
+    _origine, copia, _primo, secondo = repository
+    (copia / "app.py").write_text("versione due\n", encoding="utf-8")
+
+    esito = _sincronizza(copia, secondo)
+
+    assert esito.returncode == 0, esito.stderr
+    assert _git("rev-parse", "HEAD", cwd=copia) == secondo
+
+
+def test_un_file_cancellato_sul_server_ma_ancora_nella_release_blocca(repository):
+    _origine, copia, primo, secondo = repository
+    (copia / "app.py").unlink()
+
+    esito = _sincronizza(copia, secondo)
+
+    assert esito.returncode != 0
+    assert "modifiche locali da preservare" in esito.stderr
+    assert _git("rev-parse", "HEAD", cwd=copia) == primo
+
+
 def test_un_albero_pulito_arriva_al_commit_verificato(repository):
     _origine, copia, _primo, secondo = repository
 

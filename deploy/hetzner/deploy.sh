@@ -73,7 +73,27 @@ else
 
   # Una release non può cancellare hotfix o sorgenti non consolidati.
   # Richiedere l'allineamento prima di cambiare checkout o creare immagini.
-  DIRTY="$(git -C "$REPO_DIR" status --porcelain)"
+  # Un file tracciato già uguale alla release (anche cancellato qui e tolto
+  # dalla release) non è un hotfix: il checkout non perde nulla. Caso reale
+  # del 25/09/2026: backup/config.json e backup/registro.json, file di runtime
+  # entrati per errore nel repository, cancellati sul server e tolti in 2.401.2.
+  DIRTY=""
+  while IFS= read -r riga; do
+    [ -z "$riga" ] && continue
+    stato="${riga:0:2}"
+    percorso="${riga:3}"
+    if [[ "$stato" != "??" && "$stato" =~ ^[\ MD][\ MD]$ && "$percorso" != \"* && "$percorso" != *" -> "* ]]; then
+      if [ -e "$REPO_DIR/$percorso" ]; then
+        if git -C "$REPO_DIR" cat-file -e "$TARGET_REF:$percorso" 2>/dev/null \
+          && [ "$(git -C "$REPO_DIR" rev-parse "$TARGET_REF:$percorso")" = "$(git -C "$REPO_DIR" hash-object -- "$percorso")" ]; then
+          continue
+        fi
+      elif ! git -C "$REPO_DIR" cat-file -e "$TARGET_REF:$percorso" 2>/dev/null; then
+        continue
+      fi
+    fi
+    DIRTY+="$riga"$'\n'
+  done <<< "$(git -C "$REPO_DIR" status --porcelain)"
   if [ -n "$DIRTY" ]; then
     echo "Deploy bloccato: modifiche locali da preservare e consolidare in $REPO_DIR." >&2
     printf '%s\n' "$DIRTY" | head -50 >&2
@@ -94,7 +114,9 @@ else
     echo "Verifica pre-deploy superata; nessun checkout o riavvio eseguito."
     exit 0
   fi
-  git -C "$REPO_DIR" checkout -B "$BRANCH" "$TARGET_REF"
+  # Qui le sole differenze rimaste coincidono con la release: -f le allinea
+  # senza perdere nulla (senza -f git rifiuta un file già uguale alla release).
+  git -C "$REPO_DIR" checkout -f -B "$BRANCH" "$TARGET_REF"
 
 fi
 

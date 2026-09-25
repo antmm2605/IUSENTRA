@@ -1604,3 +1604,57 @@ def test_una_modifica_su_un_worker_invalida_la_memoria_degli_altri(tmp_path, mon
         api_v1_react._FASCICOLI_LIST_PAYLOAD_CACHE.clear()
         client.get(url, headers={"X-API-Key": "react-test-key"})
     assert calcoli["count"] == 2
+
+
+def test_elenco_legge_importi_ed_esenzioni_in_una_sola_interrogazione(tmp_path, monkeypatch):
+    """La prima costruzione dell'elenco chiedeva all'archivio due volte per fascicolo.
+
+    In produzione (25/09/2026, 309 fascicoli) la fase `righe_elenco` durava
+    3,6 s: 618 aperture del registro per leggere importi ed esenzioni. Ora una
+    lettura cumulativa li porta tutti, con lo stesso esito per ogni riga.
+    """
+    from pct.registro_letture import Fatto, RegistroLetture
+    from tests.test_react_shell import _semina_archivio
+
+    app = _app(tmp_path)
+    creati = _seed_fascicoli(app, 6)
+    importo = Fatto(categoria="importo", campo="contributo_unificato", valore="518.00", valore_letto="Contributo unificato",
+                    contesto="versato contributo unificato euro 518,00", verifica="verificata",
+                    prove=[{"codice": "stato", "esito": "ok", "dettaglio": "pagato"}], tipo="documento", motore="documenti")
+    esenzione = Fatto(categoria="evento", campo="esenzione_cu_dichiarata", valore="si", contesto="esente dal contributo unificato",
+                      verifica="verificata", tipo="documento", motore="documenti")
+    _semina_archivio(app, creati[0].id, "doc-cu", [importo])
+    _semina_archivio(app, creati[1].id, "doc-esenzione", [esenzione])
+
+    def righe():
+        api_v1_react._clear_fascicoli_list_payload_cache()
+        with app.app_context():
+            react_fascicoli_bridge.clear_react_fascicoli_base_cache()
+        with app.test_client() as client:
+            risposta = client.get("/api/v1/ui/fascicoli?page=1&page_size=25&view=operativa", headers={"X-API-Key": "react-test-key"})
+        assert risposta.status_code == 200
+        return {item["id"]: item.get("paymentSummary") or item.get("payments") for item in risposta.get_json()["items"]}
+
+    letture = {"singole": 0, "cumulative": 0}
+    singola, cumulativa = RegistroLetture.fatti, RegistroLetture.fatti_per_fascicoli
+
+    def contata(self, *args, **kwargs):
+        letture["singole"] += 1
+        return singola(self, *args, **kwargs)
+
+    def contata_cumulativa(self, *args, **kwargs):
+        letture["cumulative"] += 1
+        return cumulativa(self, *args, **kwargs)
+
+    monkeypatch.setattr(RegistroLetture, "fatti", contata)
+    monkeypatch.setattr(RegistroLetture, "fatti_per_fascicoli", contata_cumulativa)
+    con_precarico = righe()
+    assert letture == {"singole": 0, "cumulative": 1}
+
+    # stesso esito riga per riga delle letture per fascicolo
+    monkeypatch.setattr(RegistroLetture, "fatti_per_fascicoli", lambda self, *a, **k: (_ for _ in ()).throw(RuntimeError("giù")))
+    senza_precarico = righe()
+    assert letture["singole"] >= 2 * len(creati)
+    assert con_precarico == senza_precarico
+    assert "518" in str(con_precarico[creati[0].id])
+    assert "esenzione" in str(con_precarico[creati[1].id]).lower()

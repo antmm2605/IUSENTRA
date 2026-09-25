@@ -157,6 +157,14 @@ def _fase(label: str, func: Callable[[], Any]) -> Any:
         _conta_tempo_fase(label, round(1000 * (time.monotonic() - inizio)))
 
 
+def _righe_elenco_precaricate(fascicoli: list[Any], costruisci: Callable[[], Any]) -> Any:
+    """Le righe dell'elenco con importi ed esenzioni letti dall'archivio in un colpo solo."""
+    from web.services.archivio_fatti_precaricati import precaricati
+
+    with precaricati(fascicoli, ("importo", "evento")):
+        return costruisci()
+
+
 def _safe(label: str, func: Callable[[], Any], fallback: Any) -> Any:
     inizio = time.monotonic()
     try:
@@ -6404,7 +6412,7 @@ def build_react_fascicoli_payload(
         duplicate_groups_by_key = {_text(group.get("key")): group for group in duplicate_groups if _text(group.get("key"))}
         parcelle_by_fasc = _parcelle_by_fascicolo(get_fatturazione)
 
-        light_items = _fase("righe_elenco", lambda: _annotate_duplicate_items(
+        light_items = _fase("righe_elenco", lambda: _righe_elenco_precaricate(fascicoli, lambda: _annotate_duplicate_items(
             [
                 _item_light(
                     fascicolo,
@@ -6417,7 +6425,7 @@ def build_react_fascicoli_payload(
                 for fascicolo in fascicoli
             ],
             duplicate_groups_by_key,
-        ))
+        )))
         inizio_filtri = time.monotonic()
         filtered = [
             item for item in light_items

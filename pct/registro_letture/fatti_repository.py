@@ -207,6 +207,37 @@ class FattiMixin:
             esito.append(self._fatto(dati))
         return esito
 
+    def fatti_per_fascicoli(self, tenant_id: str, fascicolo_ids: Iterable[str], categorie: Iterable[str], *, verifiche: Iterable[str] | None = VERIFICHE_UTILI) -> dict[tuple[str, str], list[Fatto]]:
+        """I fatti di molti fascicoli in una sola lettura, divisi per (fascicolo, categoria).
+
+        L'elenco dei fascicoli chiedeva all'archivio due volte per fascicolo
+        (importi ed esenzioni): centinaia di interrogazioni per una pagina.
+        Qui la stessa selezione di `fatti()` con lo stesso ordine per fascicolo.
+        """
+        ids = list(dict.fromkeys(_testo(fid) for fid in fascicolo_ids if _testo(fid)))
+        cats = [c for c in dict.fromkeys(_testo(c) for c in categorie) if c in CATEGORIE]
+        ammesse = set(verifiche) if verifiche is not None else None
+        esito: dict[tuple[str, str], list[Fatto]] = {(fid, cat): [] for fid in ids for cat in cats}
+        if not ids or not cats:
+            return esito
+        segnaposto_cat = ", ".join("?" for _ in cats)
+        with self.connection() as conn:  # type: ignore[attr-defined]
+            for inizio in range(0, len(ids), 400):
+                blocco = ids[inizio:inizio + 400]
+                righe = conn.execute(
+                    'SELECT * FROM "letture_fatti" WHERE "tenant_id" = ? AND "fascicolo_id" IN (' + ", ".join("?" for _ in blocco) + ") "
+                    'AND "categoria" IN (' + segnaposto_cat + ') ORDER BY "fascicolo_id", "posizione", "letto_il"',
+                    (_testo(tenant_id), *blocco, *cats),
+                ).fetchall()
+                for riga in righe:
+                    dati = dict(riga)
+                    if ammesse is not None and str(dati.get("verifica") or "") not in ammesse:
+                        continue
+                    chiave = (str(dati.get("fascicolo_id") or ""), str(dati.get("categoria") or ""))
+                    if chiave in esito:
+                        esito[chiave].append(self._fatto(dati))
+        return esito
+
     def fatti_oggetto(self, tenant_id: str, tipo: str, oggetto_id: str) -> list[Fatto]:
         return [self._fatto(riga) for riga in self._seleziona_fatti("tenant_id = ? AND tipo = ? AND oggetto_id = ?", (_testo(tenant_id), _testo(tipo), _testo(oggetto_id)))]
 

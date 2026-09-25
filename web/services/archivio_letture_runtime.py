@@ -810,6 +810,11 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
 def fatti_fascicolo(fascicolo: Any, **filtri: Any) -> list[Fatto]:
     """I fatti utili del fascicolo dall'archivio (mai una lettura in questa chiamata)."""
     canonico = bool(filtri.pop("canonico", True))
+    from web.services.archivio_fatti_precaricati import fatti_precaricati
+
+    in_memoria = fatti_precaricati(_testo(getattr(fascicolo, "id", "")), filtri, canonico)
+    if in_memoria is not None:
+        return in_memoria
     try:
         fatti = registro_corrente().fatti(tenant_corrente(), _testo(getattr(fascicolo, "id", "")), **filtri)
         if not canonico or filtri.get("motore") or filtri.get("tipo"):

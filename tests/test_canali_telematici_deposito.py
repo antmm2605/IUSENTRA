@@ -109,7 +109,7 @@ def test_pat_siga_catalogo_moduli_e_formweb_da_fonti_ufficiali():
     assert atto_schema["templateFile"] == "ModuloDepositoAtto_4.02.pdf"
     assert atto_schema["rawFieldCount"] >= 180
     assert atto_schema["fieldCount"] >= 130
-    assert atto_schema["operationalFieldCount"] >= 100
+    assert atto_schema["operationalFieldCount"] >= 90  # allegati e firma li scrive il modulo in Adobe Reader
     assert atto_schema["technicalFieldCount"] >= 30
     assert atto_schema["fieldCount"] == atto_schema["operationalFieldCount"] + atto_schema["technicalFieldCount"]
     assert atto_schema["actionCount"] >= 29

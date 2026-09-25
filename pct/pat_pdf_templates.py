@@ -1,8 +1,10 @@
 """Compilazione dei moduli PAT ufficiali in formato XFA.
 
 I moduli della Giustizia Amministrativa sono PDF XFA/LiveCycle: non espongono
-campi AcroForm normali. Per questo IUSENTRA deve partire dal template
-ministeriale e aggiornare i valori XFA, preservando struttura e script del PDF.
+campi AcroForm normali. IUSENTRA calcola i valori sul modello ministeriale e li
+scrive nel pacchetto «datasets» con un salvataggio incrementale, come Adobe
+Reader: modello, script e firma UR3 dei diritti d'uso restano intatti
+(`pct/pat_xfa_dati.py`).
 """
 
 from __future__ import annotations
@@ -16,7 +18,10 @@ from typing import Any, Iterable, Mapping
 from xml.etree import ElementTree as ET
 
 from pypdf import PdfReader, PdfWriter
-from pypdf.generic import DecodedStreamObject, NameObject
+from pypdf.generic import ArrayObject, DecodedStreamObject, NameObject, TextStringObject
+
+from pct.pat_xfa_dati import datasets as xfa_datasets
+from pct.pat_xfa_dati import modello_compilato as xfa_compiled_template
 
 
 TEMPLATE_DIR = Path(__file__).resolve().parent / "data" / "pat_moduli"
@@ -56,6 +61,17 @@ PAT_PDF_TEMPLATES: dict[str, PatPdfTemplate] = {
 }
 
 
+# Campi che scrive solo il modulo in Adobe Reader: il nome dell'allegato e il suo identificativo li
+# imposta il pulsante «Carica …» quando incorpora il file, la firma la appone l'avvocato. Scriverli da
+# fuori dichiarerebbe allegati che nel PDF non ci sono.
+MODULE_ONLY_PREFIXES = ("txtAllegato", "tfAllegato")
+MODULE_ONLY_FIELDS = {"txtIdFile", "firmaDigitale"}
+
+
+def module_only_field(name: str) -> bool:
+    return name in MODULE_ONLY_FIELDS or name.startswith(MODULE_ONLY_PREFIXES)
+
+
 def _local_name(tag: Any) -> str:
     if not isinstance(tag, str):
         return ""
@@ -90,6 +106,8 @@ def _text_child(value: ET.Element) -> ET.Element:
 
 
 def _set_field_text(field: ET.Element, value: str) -> None:
+    if module_only_field(field.attrib.get("name") or ""):
+        return
     text_node = _text_child(_value_child(field))
     text_node.text = _clean(value)
 
@@ -410,19 +428,6 @@ def _set_ricorso_party(root: ET.Element, value: Any, fiscal_code: Any = "", *, t
     _set_first(root, "codiceFiscale", fiscal_code, path_contains=table_path)
 
 
-def _selected_document_names(documents: Iterable[Mapping[str, Any]], *roles: str) -> str:
-    role_set = {role for role in roles if role}
-    names: list[str] = []
-    for document in documents:
-        role = _clean(document.get("role") or document.get("ruolo") or document.get("suggestedRole"))
-        if role_set and role not in role_set:
-            continue
-        name = _clean(document.get("name") or document.get("nome") or document.get("filename"))
-        if name:
-            names.append(name)
-    return "; ".join(names)
-
-
 def _apply_common(root: ET.Element, fields: Mapping[str, Any], documents: list[Mapping[str, Any]]) -> None:
     _set_choice(root, "selectSede", fields.get("sede"))
     _set_first(root, "oggetto", fields.get("oggetto"), path_contains="tableOggetto")
@@ -432,17 +437,8 @@ def _apply_common(root: ET.Element, fields: Mapping[str, Any], documents: list[M
     _set_first(root, "numeroNRGRiferimento", fields.get("nrg") or fields.get("numero_rg"))
     _set_first(root, "annoNRGRiferimento", fields.get("anno_rg"))
 
-    atto = _selected_document_names(documents, "atto_principale", "ricorso", "istanza")
-    allegati = _selected_document_names(documents, "allegato", "documento", "ricevuta")
-    procura = _selected_document_names(documents, "procura")
-    notifiche = _selected_document_names(documents, "notifica", "relata")
-    pagamento = _selected_document_names(documents, "contributo", "ricevuta_pagamento")
-    _set_first(root, "txtAllegatoRicorso", atto)
-    _set_first(root, "txtAllegatoAtto", atto)
-    _set_first(root, "txtAllegatoIndice", allegati or _clean(fields.get("descrizione_allegati")))
-    _set_first(root, "txtAllegatoProcura", procura)
-    _set_first(root, "txtAllegatoRelazione", notifiche)
-    _set_first(root, "txtAllegatoVersamento", pagamento)
+    # Gli allegati si incorporano nel modulo con i pulsanti «Carica …» di Adobe Reader (il modulo è il
+    # contenitore firmato PAdES): qui non si scrive il loro nome, che il modulo imposta da sé.
 
 
 def _apply_ricorso(root: ET.Element, fields: Mapping[str, Any], documents: list[Mapping[str, Any]]) -> None:
@@ -557,34 +553,55 @@ def _parse_template_xml(data: bytes) -> ET.Element:
     return ET.fromstring(data, parser=parser)
 
 
+def _xfa_packets(xfa: Any) -> dict[str, Any]:
+    return {str(xfa[index]): xfa[index + 1] for index in range(0, len(xfa) - 1, 2)}
+
+
 def _build_xfa_pdf(template: PatPdfTemplate, module_id: str, fields: Mapping[str, Any], docs: list[Mapping[str, Any]]) -> bytes:
-    reader = PdfReader(str(template.path))
-    writer = PdfWriter(clone_from=reader)
+    """Compila il modulo come fa Adobe Reader: dati nel pacchetto «datasets», salvataggio incrementale.
+
+    Il modello ministeriale (pacchetto «template») e i byte originali restano intatti, quindi resta valida
+    la firma UR3 dei diritti d'uso: in Reader funzionano «Carica ricorso», «Carica documento» e il
+    salvataggio, e il modulo si firma PAdES con gli allegati dentro.
+    """
+    writer = PdfWriter(str(template.path), incremental=True)
     acro = writer._root_object["/AcroForm"].get_object()
     xfa = acro.get("/XFA")
     if not isinstance(xfa, list):
         raise ValueError("Il modulo PAT ufficiale non contiene il pacchetto XFA atteso.")
+    packets = _xfa_packets(xfa)
+    if "template" not in packets:
+        raise ValueError("Il modulo PAT ufficiale non contiene il modello XFA.")
 
-    for index in range(0, len(xfa), 2):
-        if str(xfa[index]) != "template":
+    root = _parse_template_xml(packets["template"].get_object().get_data())
+    _apply_module_values(module_id, root, fields, docs)
+    _apply_explicit_xfa_values(root, fields)
+    stream = DecodedStreamObject()
+    stream.set_data(xfa_datasets(root))
+    stream = stream.flate_encode()
+    reference = writer._add_object(stream)
+
+    compiled = ArrayObject()
+    for index in range(0, len(xfa) - 1, 2):
+        name = str(xfa[index])
+        if name == "datasets":
             continue
-        original_stream = xfa[index + 1].get_object()
-        root = _parse_template_xml(original_stream.get_data())
-        namespace = root.tag.split("}", 1)[0].strip("{") if root.tag.startswith("{") else ""
-        if namespace:
-            ET.register_namespace("", namespace)
-        _apply_module_values(module_id, root, fields, docs)
-        _apply_explicit_xfa_values(root, fields)
-        compiled_xml = ET.tostring(root, encoding="utf-8", xml_declaration=False)
-        stream = DecodedStreamObject()
-        stream.set_data(compiled_xml)
-        xfa[index + 1] = writer._add_object(stream)
-        break
-
-    acro[NameObject("/XFA")] = xfa
+        if name in {"xmpmeta", "xfdf", "form", "postamble"} and "datasets" not in [str(item) for item in compiled[::2]]:
+            compiled.extend([TextStringObject("datasets"), reference])
+        compiled.extend([xfa[index], xfa[index + 1]])
+    acro[NameObject("/XFA")] = compiled
     buffer = io.BytesIO()
     writer.write(buffer)
     return buffer.getvalue()
+
+
+def read_compiled_template(pdf_bytes: bytes) -> ET.Element:
+    """Il modello del modulo con i valori del pacchetto «datasets» già uniti (per controllo e anteprima dati)."""
+    packets = _xfa_packets(PdfReader(io.BytesIO(pdf_bytes)).trailer["/Root"]["/AcroForm"].get_object()["/XFA"])
+    root = _parse_template_xml(packets["template"].get_object().get_data())
+    if "datasets" not in packets:
+        return root
+    return xfa_compiled_template(root, packets["datasets"].get_object().get_data())
 
 
 def build_pat_official_pdf(module_id: str, fields: Mapping[str, Any], documents: Iterable[Mapping[str, Any]] = ()) -> tuple[io.BytesIO, str]:
@@ -602,4 +619,4 @@ def build_pat_official_pdf(module_id: str, fields: Mapping[str, Any], documents:
     return buffer, template.output_name
 
 
-__all__ = ["PAT_PDF_TEMPLATES", "build_pat_official_pdf"]
+__all__ = ["PAT_PDF_TEMPLATES", "build_pat_official_pdf", "module_only_field", "read_compiled_template"]

@@ -125,12 +125,13 @@ def _fatto_importo(campo: str, importo: float, *, etichetta: str = "", norma: st
 
 
 def _xfa_template_text(pdf_bytes: bytes) -> str:
-    reader = PdfReader(io.BytesIO(pdf_bytes))
-    xfa = reader.trailer["/Root"]["/AcroForm"].get_object()["/XFA"]
-    for index in range(0, len(xfa), 2):
-        if str(xfa[index]) == "template":
-            return xfa[index + 1].get_object().get_data().decode("utf-8", errors="ignore")
-    return ""
+    """Il modello del modulo con i dati del pacchetto «datasets» uniti, come lo vede Adobe Reader."""
+    from pct.pat_pdf_templates import read_compiled_template
+
+    root = read_compiled_template(pdf_bytes)
+    if root.tag.startswith("{"):
+        ET.register_namespace("", root.tag[1:].split("}", 1)[0])
+    return ET.tostring(root, encoding="unicode")
 
 
 def _xfa_template_root(pdf_bytes: bytes) -> ET.Element:
@@ -2058,6 +2059,27 @@ def test_react_pat_modulo_compilabile_produce_pdf(tmp_path: Path):
     assert not _embedded_file_names(response.data)
 
 
+def test_react_pat_modulo_compilato_come_adobe_reader_senza_toccare_il_modello():
+    """Dati nel pacchetto «datasets», salvataggio incrementale: modello e firma UR3 dei diritti d'uso intatti."""
+    from pct.pat_pdf_templates import PAT_PDF_TEMPLATES, _xfa_packets, build_pat_official_pdf
+
+    for module_id, template in PAT_PDF_TEMPLATES.items():
+        originale = template.path.read_bytes()
+        pdf, _nome = build_pat_official_pdf(module_id, {"sede": "TAR Lazio - Roma", "oggetto": "Oggetto di prova"}, [])
+        compilato = pdf.getvalue()
+        assert compilato[: len(originale)] == originale, module_id  # aggiornamento incrementale
+        firma = PdfReader(io.BytesIO(compilato)).trailer["/Root"]["/Perms"]["/UR3"].get_object()
+        inizio, primo, secondo, lunghezza = (int(valore) for valore in firma["/ByteRange"])
+        assert secondo + lunghezza <= len(originale), module_id  # la firma UR3 copre il file ministeriale
+        nuovi = _xfa_packets(PdfReader(io.BytesIO(compilato)).trailer["/Root"]["/AcroForm"].get_object()["/XFA"])
+        vecchi = _xfa_packets(PdfReader(io.BytesIO(originale)).trailer["/Root"]["/AcroForm"].get_object()["/XFA"])
+        assert nuovi["template"].get_object().get_data() == vecchi["template"].get_object().get_data(), module_id
+        dati = nuovi["datasets"].get_object().get_data().decode("utf-8")
+        assert dati.startswith("<xfa:datasets") and "<xfa:data>" in dati, module_id
+        assert "Oggetto di prova" in dati or module_id == "rimborso_contributo_unificato", module_id
+        assert "tar_rm" in dati, module_id
+
+
 def test_react_pat_modulo_atto_compila_path_xfa_e_righe_aggiunte(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()
@@ -2110,8 +2132,9 @@ def test_react_pat_modulo_atto_compila_path_xfa_e_righe_aggiunte(tmp_path: Path)
     assert "Istanza cautelare" in xfa_xml
     assert "Documento prova 1" in xfa_xml
     assert "Documento prova 2" in xfa_xml
-    assert "primo.pdf" in xfa_xml
-    assert "secondo.pdf" in xfa_xml
+    # I nomi degli allegati li scrive il modulo quando «Carica documento» incorpora il file in Adobe Reader.
+    assert "primo.pdf" not in xfa_xml
+    assert "secondo.pdf" not in xfa_xml
     assert "2026-06-20" in xfa_xml
     assert "2026-06-21" in xfa_xml
     assert "UNEP" in xfa_xml
@@ -2262,7 +2285,9 @@ def test_react_pat_modulo_compilabile_allega_documenti_del_fascicolo(tmp_path: P
     extracted_text = "\n".join(page.extract_text() or "" for page in reader.pages)
     assert "requires Adobe Reader" in extracted_text
     assert _xfa_template_has_text(response.data, "Impugnazione gara appalti PNRR")
-    assert _xfa_template_has_text(response.data, "Ricorso principale.pdf")
+    # Il ricorso si incorpora con «Carica ricorso» in Adobe Reader: dichiararne il nome senza il file
+    # renderebbe il modulo incoerente.
+    assert not _xfa_template_has_text(response.data, "Ricorso principale.pdf")
     assert not _embedded_file_names(response.data)
 
 

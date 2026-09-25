@@ -509,12 +509,12 @@ def build_pat_siga_payload() -> dict[str, Any]:
         "documents": documents,
         "chromePdfGuide": {
             "source": ISTRUZIONI_DOWNLOAD_PDF_URL,
-            "summary": "Il modello ministeriale XFA ufficiale viene compilato dentro IUSENTRA; gli allegati restano separati per il caricamento Formweb.",
+            "summary": "IUSENTRA scrive i dati nel modulo ministeriale XFA senza toccarne il modello: il modulo resta abilitato in Adobe Acrobat Reader, dove si incorporano gli allegati e si salva prima della firma PAdES.",
             "steps": (
                 "Compila i dati richiesti nella sezione Moduli compilabili.",
                 "Genera il PDF ministeriale XFA compilato da IUSENTRA.",
-                "Controlla allegati, firme PAdES e limiti Formweb.",
-                "Avvia la sessione ufficiale SIGA solo quando il fascicolo è pronto.",
+                "Apri il modulo con Adobe Acrobat Reader e incorpora ricorso, procura e documenti con i pulsanti «Carica».",
+                "Salva il modulo, firmalo in PAdES e invialo via PEC alla sede (canale residuale al Formweb).",
             ),
         },
         "suggestedModules": suggest_pat_modules("ricorso appalti pnrr atto successivo"),

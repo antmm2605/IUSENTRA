@@ -2241,7 +2241,7 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
       setPdfFileName(asText(payload.filename, `${activeModule.id}-compilato-iusentra.pdf`))
       const sizeBytes = asNumber(payload.sizeBytes)
       setPdfSizeLabel(sizeBytes ? formatFileSize(sizeBytes) : '')
-      setDraftMessage('Modulo ministeriale XFA compilato. Scarica il PDF ufficiale e carica in Formweb gli allegati selezionati.')
+      setDraftMessage('Modulo ministeriale compilato. Aprilo con Adobe Acrobat Reader, incorpora ricorso, procura e documenti con i pulsanti «Carica», salva e firma il modulo in PAdES prima dell’invio via PEC.')
     } catch (error: unknown) {
       setDraftMessage(asText(error instanceof Error ? error.message : error, 'Generazione PDF non riuscita.'))
     } finally {
@@ -2804,7 +2804,7 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
           {pdfPreviewUrl ? (
             <div className="iu-pat-pdf-ready">
               <strong>Modulo ufficiale pronto</strong>
-              <span>{pdfFileName || 'PDF PAT compilato'}; {selectedPatDocuments.length} allegati pronti per Formweb come file separati.</span>
+              <span>{pdfFileName || 'PDF PAT compilato'}: i {selectedPatDocuments.length} allegati selezionati si incorporano nel modulo con «Carica» in Adobe Acrobat Reader (per il Formweb restano file separati).</span>
               <div className="iu-pat-pdf-ready__actions">
                 <a href={pdfPreviewUrl} target="_blank" rel="noreferrer">Apri PDF compilato</a>
                 {pdfDownloadUrl ? <a href={pdfDownloadUrl} target="_blank" rel="noreferrer">Scarica PDF</a> : null}

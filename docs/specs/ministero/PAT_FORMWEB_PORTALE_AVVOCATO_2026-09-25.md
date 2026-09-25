@@ -110,7 +110,24 @@ Il portale non offre un canale per i gestionali. IUSENTRA prepara e verifica, me
   - interfaccia in `frontend/src/components/patFormweb/`;
   - test in `tests/test_pat_formweb.py` e `tests/test_pat_formweb_api.py`.
 
-## 5. Punti aperti
+## 5. Modulo XFA per il deposito via PEC (canale residuale, 2.404.0)
+
+Collaudo del 25/09/2026 sui moduli ufficiali forniti dallo studio (identici, per impronta SHA-256, a quelli in `pct/data/pat_moduli/`).
+
+- I moduli (ricorso e atto 4.02; istanza, richieste alla segreteria, ausiliari e rimborso 4.01) sono PDF XFA con la firma UR3 dei diritti d'uso di Adobe Reader. La firma consente compilazione (`/Form FillIn`), file incorporati (`/EF Create`) e salvataggio, non la modifica del modello.
+- Il modulo via PEC è il «contenitore» degli allegati e si firma in PAdES: gli allegati vi entrano con i pulsanti «Carica ricorso», «Carica documento», ecc. Lo script del modulo imposta nome (`txtAllegato*`) e identificativo (`txtIdFile`) del file incorporato.
+- **Difetti trovati e corretti:**
+  - una versione precedente produceva un riepilogo ReportLab di una pagina al posto del modulo ministeriale;
+  - fino alla 2.403.1 IUSENTRA scriveva i valori nel modello e riscriveva l'intero PDF, rendendo non valida la firma UR3;
+  - dichiarava nomi di allegati senza incorporare i file;
+  - considerava ripetibili righe che il modello non lascia ripetere.
+- **Dalla 2.404.0:**
+  - i dati vanno nel pacchetto `datasets` con un aggiornamento incrementale, come fa Adobe Reader: i byte del modulo ministeriale e il modello restano identici e la firma UR3 continua a coprirli (`pct/pat_xfa_dati.py`, `pct/pat_pdf_templates.py`);
+  - allegati e firma restano al modulo;
+  - le righe si aggiungono solo dove `occur max` lo consente.
+- Resta da confermare con un modulo compilato e salvato da Adobe Reader che il pacchetto dati coincida con quello prodotto da IUSENTRA.
+
+## 6. Punti aperti
 
 - Le schede dei depositi diversi dal ricorso si vedono solo dopo aver salvato una bozza. Per rispetto del vincolo di sola lettura non sono state aperte. La scheda IUSENTRA per quei tipi segue i dati dei moduli ufficiali corrispondenti.
 - Le liste dei codificati del portale (`anagrafica/v1/tipologie-*`) richiedono il token della sessione e non sono state lette. Si usano le stesse liste dei moduli XFA ufficiali.

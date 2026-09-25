@@ -14,7 +14,7 @@ from xml.etree import ElementTree as ET
 
 from pypdf import PdfReader
 
-from pct.pat_pdf_templates import PAT_PDF_TEMPLATES
+from pct.pat_pdf_templates import PAT_PDF_TEMPLATES, module_only_field
 
 
 def _local_name(tag: Any) -> str:
@@ -162,11 +162,25 @@ def _section_for(path: tuple[str, ...]) -> tuple[str, str]:
     return "altri-dati", "Altri dati ministeriali"
 
 
+_REPEATABLE: set[tuple[str, ...]] = set()
+
+
+def _repeatable_paths(named: list[tuple[ET.Element, tuple[str, ...]]]) -> set[tuple[str, ...]]:
+    """Sottomoduli che il modello lascia ripetere (``occur max`` diverso da 1): solo lì si aggiungono righe."""
+    paths: set[tuple[str, ...]] = set()
+    for element, path in named:
+        if _local_name(element.tag) != "subform":
+            continue
+        occur = next((child for child in element if _local_name(child.tag) == "occur"), None)
+        if occur is not None and (occur.get("max") or "1") != "1":
+            paths.add(path)
+    return paths
+
+
 def _repeatable_group(path: tuple[str, ...]) -> tuple[str, str] | tuple[None, None]:
-    for index, part in enumerate(path):
-        if part.lower().startswith("riga"):
-            group = "/".join(path[: index + 1])
-            return group, _humanise_name(part)
+    for index in range(len(path)):
+        if path[: index + 1] in _REPEATABLE:
+            return "/".join(path[: index + 1]), _humanise_name(path[index])
     return None, None
 
 
@@ -178,8 +192,10 @@ def _is_button(field: ET.Element) -> bool:
 
 def _is_technical(field: ET.Element, path: tuple[str, ...]) -> bool:
     name = field.attrib.get("name") or path[-1]
-    if name.startswith("txtAllegato") or name.startswith("tfAllegato"):
-        return False
+    if module_only_field(name):  # allegati e firma li imposta il modulo in Adobe Reader
+        return True
+    if any(_local_name(child.tag) == "bind" and child.get("match") == "none" for child in field):
+        return True
     if name in {"txtModuleName", "txtModuleVersion", "txtIdFile", "selectLingua"}:
         return True
     if field.attrib.get("presence") in {"hidden", "invisible"}:
@@ -324,6 +340,8 @@ def build_pat_xfa_schema_payload(module_id: str) -> dict[str, Any]:
         }
     root = _read_template_xml(module_id)
     named = _iter_named(root)
+    _REPEATABLE.clear()
+    _REPEATABLE.update(_repeatable_paths(named))
     field_rows = [(element, path) for element, path in named if _local_name(element.tag) == "field"]
     radio_groups: dict[tuple[str, ...], list[tuple[ET.Element, tuple[str, ...]]]] = {}
     for field, path in field_rows:

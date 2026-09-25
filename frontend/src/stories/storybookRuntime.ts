@@ -394,7 +394,27 @@ function presidiPayload(): ApiPayload {
     warnings: [],
   }
 }
+function penalePdpPanoramicaPayload(): ApiPayload {
+  return {
+    ok: true,
+    generatoIl: '2026-09-25T10:00:00+02:00',
+    totali: { procedimenti: 1, nonAutorizzati: 1, inPreparazione: 1, inAttesaEsito: 0, daRifare: 0, accolti: 0, rigettati: 0, udienze: 0 },
+    procedimenti: [{
+      id: 'FASC-MOCK-PEN', titolo: 'Procedimento penale fittizio', cliente: 'Cliente fittizio', tribunale: 'Procura della Repubblica fittizia',
+      href: '/fascicoli/FASC-MOCK-PEN#penale-pdp', accessoAttiHref: '/fascicoli/FASC-MOCK-PEN/penale/pdp', protocollo: 'PM: N2026/1',
+      ufficio: 'PM-U', ufficioEtichetta: 'Procura della Repubblica', autorizzato: false,
+      canale: { obbligatorio: true, etichetta: 'PDP obbligatorio', dal: '2025-01-01', nota: '', fonte: '' },
+      conteggi: { BOZZA: 1 }, prossimaUdienza: '', ultimo: null,
+      azione: { codice: 'COMPLETARE', testo: 'Bozza da completare', tono: 'warning' },
+    }],
+    calendario: [{ dal: '2025-01-01', uffici: ['Procura della Repubblica', 'Tribunale'], inVigore: true }],
+    fonteCalendario: 'art. 111-bis c.p.p.; D.M. 217/2023 e modifiche',
+    link: { pdp: 'https://servizipst.giustizia.it/PST/PAVVP/', avvisi: 'https://servizipst.giustizia.it/PST/AvvisiPenale' },
+  }
+}
+
 function payloadFor(url: URL): ApiPayload {
+  if (url.pathname === '/api/v1/ui/penale/panoramica') return penalePdpPanoramicaPayload()
   if (url.pathname.startsWith('/api/v1/ui/notifiche-legali/presidi')) return presidiPayload()
   if (url.pathname === '/api/v1/ui/strumenti-legali') return strumentiLegaliPayload()
   if (url.pathname.startsWith('/api/v1/ui/import/quickorganizer')) return importQuickOrganizerPayload()

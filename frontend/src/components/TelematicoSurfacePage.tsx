@@ -24,6 +24,7 @@ type LucideIcon,
 } from 'lucide-react'
 import { Badge, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
+import { PatPagina } from './patFormweb/PatPagina'
 import {
   emptyTelematicoSurface,
   getTelematicoSurfacePage,
@@ -7387,7 +7388,7 @@ export function TelematicoSurfacePage() {
   if (data.surface.id === 'pat') {
     return (
       <main className="iu-content iu-tel-surface-page iu-tel-surface-page--pat iu-tel-surface-page--pat-operativa">
-        <PatProcedureWorkspace data={data}/>
+        <PatPagina residuale={<PatProcedureWorkspace data={data}/>}/>
         <FloatingLex
           context={surfaceFallbacks[data.surface.id]?.context || surfaceFallbacks[surfaceId].context}
           title={`Lex AI - ${title}`}

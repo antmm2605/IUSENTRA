@@ -1,1 +1,0 @@
-import{t as e}from"./vendor-react-BqCao_7d.js";import{t}from"./ImpostazioniPage-Du95L-Pb.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as BackupPage};

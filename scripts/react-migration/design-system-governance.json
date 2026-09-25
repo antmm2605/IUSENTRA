@@ -26,7 +26,8 @@
     "frontend/src/components/fascicoli/letturaFascicolo.css": "Pannello «Lettura del fascicolo» richiesto dall'utente: prossimi passaggi con urgenza, norma e fonte, card dei presìdi (documenti, depositi, notifiche, PEC, scadenze, economico), oggetto, cronologia e schede procedurali con fonti ufficiali; token condivisi, nessuno stile inline, nessuna superficie modale.",
     "frontend/src/components/strumenti/OcrDocumentoTool.css": "Utility «Da scansione a Word o PDF» in Strumenti forensi richiesta dall'utente: passi dichiarati, destinazione (computer o fascicolo del cliente con stato), formato e conferma; riusa i pattern del riconoscimento del fascicolo, Button e token condivisi; nessuno stile inline.",
     "frontend/src/components/mediazione/PdfModulo.css": "Compilazione nel portale del modulo mandato dallo studio, richiesta dall'utente: caselle predisposte posizionate sul foglio, finestra a tutto schermo, comandi delle righe del nucleo familiare e avviso sugli importi di legge superati. Stili staccati da mediazione.css perche' viaggino col componente: nel Portale Cliente arrivava senza, e i campi non si posizionavano. Token condivisi, nessun tema alternativo, nessuno stile inline.",
-    "frontend/src/components/penalePdp/penalePdp.css": "Deposito penale telematico (PDP) nella scheda del fascicolo: catalogo atti, composizione, controlli, scheda per il portale e ricevute con token condivisi, senza stili inline."
+    "frontend/src/components/penalePdp/penalePdp.css": "Deposito penale telematico (PDP) nella scheda del fascicolo: catalogo atti, composizione, controlli, scheda per il portale e ricevute con token condivisi, senza stili inline.",
+    "frontend/src/components/patFormweb/patFormweb.css": "Deposito amministrativo telematico (Formweb PAT) nella scheda del fascicolo e nella pagina /pat: scheda del portale, parti, documenti e verifica del riepilogo con token condivisi, senza stili inline."
   },
   "approvedCssFiles": [
     "frontend/src/components/AdminDatabasePage.css",
@@ -97,6 +98,7 @@
     "frontend/src/components/layout/TopBar.css",
     "frontend/src/components/mediazione/PdfModulo.css",
     "frontend/src/components/mediazione/mediazione.css",
+    "frontend/src/components/patFormweb/patFormweb.css",
     "frontend/src/components/penalePdp/penalePdp.css",
     "frontend/src/components/strumenti/OcrDocumentoTool.css",
     "frontend/src/components/templateEditor/templateEditor.css",

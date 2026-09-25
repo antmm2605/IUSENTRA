@@ -495,10 +495,18 @@ def register_fascicoli_create_routes(
                     from web.services.penale_pdp_apertura import applica as applica_pdp
 
                     messaggio_creazione += applica_pdp(fascicolo.id, request.form)
+                amministrativo = fascicolo.tipo == TipoFascicolo.AMMINISTRATIVO
+                if amministrativo:
+                    from web.services.pat_formweb_apertura import applica as applica_pat
+
+                    messaggio_creazione += applica_pat(fascicolo.id, request.form)
                 sync_pubblica("crea", "fascicoli", fascicolo.id)
                 if fascicolo_veloce and penale:  # il deposito penale si prepara nella sezione PDP, non nella busta civile
                     target = url_for("dettaglio_fascicolo", id_fasc=fascicolo.id) + "#penale-pdp"
                     return _risposta_successo_form(messaggio_creazione + " Si apre il deposito penale.", target, id_fascicolo=fascicolo.id)
+                if fascicolo_veloce and amministrativo:  # il PAT si deposita dal Formweb, non con la busta civile
+                    target = url_for("dettaglio_fascicolo", id_fasc=fascicolo.id) + "#pat-formweb"
+                    return _risposta_successo_form(messaggio_creazione + " Si apre il deposito amministrativo.", target, id_fascicolo=fascicolo.id)
                 if fascicolo_veloce:
                     target = url_for("deposito_prepara", id_fasc=fascicolo.id)
                     messaggio_creazione += " Si apre il deposito assistito."

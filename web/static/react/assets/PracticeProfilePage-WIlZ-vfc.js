@@ -1,1 +1,0 @@
-import{t as e}from"./vendor-react-mZv3dxSr.js";import{t}from"./LegalSkillsProfilePage-qNboEwux.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as PracticeProfilePage};

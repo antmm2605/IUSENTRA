@@ -1,0 +1,83 @@
+/* Deposito amministrativo telematico (Formweb PAT) nella scheda del fascicolo. */
+.iu-pat { display: grid; gap: 12px; min-width: 0; color: #0f172a; font-size: 13.5px; line-height: 1.45; }
+.iu-pat h5 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 13.5px; font-weight: 850; }
+.iu-pat h5 > span { display: inline-grid; place-items: center; flex: 0 0 22px; width: 22px; height: 22px; border-radius: 50%; background: var(--iu-navy-900); color: #fff; font-size: 12px; }
+.iu-pat button, .iu-pat a.iu-pat-primario, .iu-pat .iu-pat-barra > a, .iu-pat-riga__azioni a { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 11px; border: 1px solid var(--iu-border); border-radius: 10px; background: #fff; color: #0f172a; font: inherit; font-weight: 750; cursor: pointer; text-decoration: none; }
+.iu-pat .iu-pat-primario { border-color: transparent; background: var(--iu-navy-900); color: #fff; }
+.iu-pat button:focus-visible, .iu-pat a:focus-visible, .iu-pat input:focus-visible, .iu-pat select:focus-visible, .iu-pat textarea:focus-visible { outline: 3px solid rgba(37, 99, 235, .3); outline-offset: 2px; }
+.iu-pat input:not([type=checkbox]):not([type=file]), .iu-pat select, .iu-pat textarea { box-sizing: border-box; width: 100%; min-width: 0; min-height: 36px; padding: 6px 9px; border: 1px solid var(--iu-border); border-radius: 9px; background: #fff; color: inherit; font: inherit; }
+.iu-pat label { display: grid; gap: 4px; min-width: 0; font-weight: 700; color: var(--iu-slate-700); }
+.iu-pat small { color: var(--iu-slate-500); font-weight: 600; }
+
+.iu-pat-testata { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border: 1px solid var(--iu-border); border-radius: 14px; background: var(--iu-bg-card); }
+.iu-pat-testata__dati { display: grid; gap: 2px; min-width: 0; }
+.iu-pat-testata__dati strong { font-size: 16px; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.iu-pat-testata__dati span { color: var(--iu-slate-600); }
+.iu-pat-testata__stati { display: flex; flex-wrap: wrap; gap: 6px; }
+.iu-pat-link { display: inline-flex; align-items: center; gap: 4px; color: var(--iu-blue-700); font-weight: 750; text-decoration: none; }
+
+.iu-pat-nota { margin: 0; color: var(--iu-slate-600); }
+.iu-pat-avviso, .iu-pat-ok, .iu-pat-errore { display: flex; align-items: center; gap: 6px; margin: 0; padding: 8px 11px; border-radius: 10px; border: 1px solid; }
+.iu-pat-avviso { border-color: rgba(180, 83, 9, .35); background: rgba(254, 243, 199, .55); color: #78350f; }
+.iu-pat-ok { border-color: rgba(15, 123, 87, .3); background: rgba(209, 250, 229, .55); color: #065f46; }
+.iu-pat-errore { border-color: rgba(185, 28, 28, .3); background: rgba(254, 226, 226, .55); color: #7f1d1d; }
+.iu-pat-testo-errore { color: #b91c1c !important; }
+.iu-pat-testo-ok { color: #047857 !important; }
+
+.iu-pat-schede, .iu-pat-tipi { display: flex; flex-wrap: wrap; gap: 6px; }
+.iu-pat-schede { border-bottom: 1px solid var(--iu-border); padding-bottom: 8px; }
+.iu-pat-schede button.is-attiva, .iu-pat-tipi button.is-attiva { border-color: var(--iu-navy-900); background: var(--iu-navy-900); color: #fff; }
+.iu-pat-conta { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: rgba(15, 23, 42, .08); font-size: 11.5px; }
+.iu-pat-schede button.is-attiva .iu-pat-conta { background: rgba(255, 255, 255, .22); }
+
+.iu-pat-scheda { display: grid; gap: 12px; }
+.iu-pat-avanzamento { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border: 1px solid var(--iu-border); border-radius: 12px; background: #fff; }
+.iu-pat-avanzamento > div:first-child { display: grid; gap: 3px; min-width: 0; flex: 1 1 240px; }
+.iu-pat-avanzamento meter { width: 100%; max-width: 360px; height: 10px; }
+.iu-pat-avanzamento__azioni { display: flex; flex-wrap: wrap; gap: 8px; }
+.iu-pat-sezioni { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.iu-pat-sezioni > li { padding: 12px 14px; border: 1px solid var(--iu-border); border-radius: 12px; background: #fff; }
+.iu-pat-righe { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.iu-pat-riga { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: start; gap: 8px; padding: 8px 10px; border: 1px solid var(--iu-border); border-radius: 10px; }
+.iu-pat-riga__stato { padding-top: 2px; }
+.iu-pat-riga--ok .iu-pat-riga__stato { color: #047857; }
+.iu-pat-riga--manca { border-color: rgba(185, 28, 28, .35); background: rgba(254, 242, 242, .6); }
+.iu-pat-riga--manca .iu-pat-riga__stato { color: #b91c1c; }
+.iu-pat-riga--verifica { border-color: rgba(180, 83, 9, .35); background: rgba(255, 251, 235, .7); }
+.iu-pat-riga--verifica .iu-pat-riga__stato { color: #b45309; }
+.iu-pat-riga--facoltativo .iu-pat-riga__stato { color: var(--iu-slate-500); }
+.iu-pat-riga__testo { display: grid; gap: 2px; min-width: 0; }
+.iu-pat-riga__testo span { overflow-wrap: anywhere; }
+.iu-pat-riga__descr { color: var(--iu-slate-600); }
+.iu-pat-riga__azioni { display: flex; flex-wrap: wrap; gap: 6px; }
+.iu-pat-riga__azioni button, .iu-pat-riga__azioni a { min-height: 30px; padding: 0 8px; }
+
+.iu-pat-procedimento, .iu-pat-parti, .iu-pat-documenti, .iu-pat-riepilogo { display: grid; gap: 12px; }
+.iu-pat-procedimento section, .iu-pat-carica { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--iu-border); border-radius: 12px; background: #fff; }
+.iu-pat-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; align-items: end; }
+.iu-pat-largo { grid-column: 1 / -1; }
+.iu-pat-spunte, .iu-pat-istanze { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 6px 14px; }
+.iu-pat .iu-pat-spunta { display: flex; align-items: flex-start; gap: 8px; font-weight: 650; }
+.iu-pat-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.iu-pat-elenco { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.iu-pat-elenco > li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 9px 11px; border: 1px solid var(--iu-border); border-radius: 10px; }
+.iu-pat-elenco > li > div:first-child { display: grid; gap: 2px; min-width: 0; flex: 1 1 260px; }
+.iu-pat-elenco > li > div:first-child span { color: var(--iu-slate-600); overflow-wrap: anywhere; }
+.iu-pat-elenco > li.is-escluso { opacity: .6; }
+.iu-pat-elenco small { display: inline-flex; align-items: center; gap: 4px; }
+.iu-pat-doc__scelte { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; flex: 1 1 320px; }
+.iu-pat .iu-pat-compatto { flex: 1 1 180px; font-size: 12.5px; }
+.iu-pat-esito { display: grid; gap: 8px; }
+.iu-pat-esito .iu-pat-elenco > li { justify-content: flex-start; }
+
+@media (max-width: 640px) {
+  .iu-pat-riga { grid-template-columns: 20px minmax(0, 1fr); }
+  .iu-pat-riga__azioni { grid-column: 2; }
+  .iu-pat-avanzamento__azioni, .iu-pat-avanzamento__azioni a { width: 100%; justify-content: center; }
+}
+
+/* Pagina /pat */
+.iu-pat-pagina { padding: 4px 0 24px; }
+.iu-pat-residuale { border: 1px solid var(--iu-border); border-radius: 12px; background: #fff; }
+.iu-pat-residuale > summary { display: flex; align-items: center; gap: 8px; padding: 12px 14px; font-weight: 800; cursor: pointer; }
+.iu-pat-residuale[open] > summary { border-bottom: 1px solid var(--iu-border); }

@@ -1,0 +1,3137 @@
+{
+ "fonte": {
+  "titolo": "Manuale utente PDP – Relazioni Atto-Ufficio-Soggetto",
+  "url": "https://servizipst.giustizia.it/PST/PAVVP/assets/documents/Content/Relazioni%20Atto-Ufficio-Soggetto.htm",
+  "consultato_il": "2026-09-25",
+  "accesso": "area riservata PST (sessione avvocato)",
+  "nota": "Se un procedimento è avocato dalla Procura Generale (numero di protocollo PGCAP presente fra i procedimenti autorizzati) presso la PGCAP si possono depositare tutti gli atti ammessi per l'ufficio PM, tranne «Richiesta di avocazione al PG (art. 413 cpp)».",
+  "base_normativa": [
+   "art. 111-bis c.p.p.; art. 87 co. 6-bis D.Lgs. 150/2022",
+   "D.M. 29 dicembre 2023 n. 217 e successive modifiche (D.M. 206/2024, D.M. 206/2025)",
+   "Provvedimento DGSIA 11 luglio 2023 – specifiche tecniche Portale deposito atti penali"
+  ]
+ },
+ "uffici": [
+  {
+   "codice": "PM",
+   "descrizione": "Procura della Repubblica presso il Tribunale",
+   "gruppo": "giudice_unico"
+  },
+  {
+   "codice": "GIP",
+   "descrizione": "Giudice per le indagini preliminari / udienza preliminare",
+   "gruppo": "giudice_unico"
+  },
+  {
+   "codice": "DIB",
+   "descrizione": "Tribunale – dibattimento",
+   "gruppo": "giudice_unico"
+  },
+  {
+   "codice": "CAS",
+   "descrizione": "Corte d'Assise",
+   "gruppo": "giudice_unico"
+  },
+  {
+   "codice": "CAP",
+   "descrizione": "Corte d'Appello",
+   "gruppo": "giudice_unico"
+  },
+  {
+   "codice": "CASAP",
+   "descrizione": "Corte d'Assise d'Appello",
+   "gruppo": "giudice_unico"
+  },
+  {
+   "codice": "PM_GDP",
+   "descrizione": "Procura della Repubblica per i reati di competenza del Giudice di Pace",
+   "gruppo": "giudice_di_pace"
+  },
+  {
+   "codice": "GDPC",
+   "descrizione": "Giudice di Pace circondariale",
+   "gruppo": "giudice_di_pace"
+  },
+  {
+   "codice": "GDP",
+   "descrizione": "Giudice di Pace",
+   "gruppo": "giudice_di_pace"
+  },
+  {
+   "codice": "APPGDP",
+   "descrizione": "Tribunale in funzione di giudice d'appello del Giudice di Pace",
+   "gruppo": "giudice_di_pace"
+  },
+  {
+   "codice": "PGCAP",
+   "descrizione": "Procura Generale presso la Corte d'Appello",
+   "gruppo": "altro"
+  },
+  {
+   "codice": "RIE",
+   "descrizione": "Tribunale del Riesame",
+   "gruppo": "altro"
+  }
+ ],
+ "ruoli": [
+  {
+   "codice": "IND",
+   "descrizione": "indagato / imputato / responsabile amministrativo"
+  },
+  {
+   "codice": "PO",
+   "descrizione": "persona offesa"
+  },
+  {
+   "codice": "PC",
+   "descrizione": "parte civile"
+  },
+  {
+   "codice": "CO",
+   "descrizione": "civilmente obbligato"
+  },
+  {
+   "codice": "RC",
+   "descrizione": "responsabile civile"
+  },
+  {
+   "codice": "TI",
+   "descrizione": "terzo interessato"
+  }
+ ],
+ "atto_ufficio": [
+  {
+   "atto": "Abbreviazione dei termini (art. 173 c3 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Accesso, copia e visione atti (art. 116 cpp)",
+   "ammessi": [
+    "GIP",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Accettazione della proposta di messa alla prova (art. 464 ter1 c2 cpp)",
+   "ammessi": [
+    "PM",
+    "PM_GDP"
+   ]
+  },
+  {
+   "atto": "Accettazione remissione di querela (art. 340 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Acquisizione prove non rinviabili (artt. 420 quinquies, 464 sexies, 467, 598 ter c3, 721 c4 cpp, 18 D.Lvo 274/2000)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Acquisizione tabulati (art. 132 c3 Dlgs. 196/2003)",
+   "ammessi": [
+    "GIP",
+    "GDPC"
+   ]
+  },
+  {
+   "atto": "Ammissione al gratuito patrocinio (art. 78 TU 115/2002)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Anticipazione o differimento udienza (art. 465 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP",
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Appello (artt. 593, 600 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Appello cautelare reale (art. 322 bis cpp)",
+   "ammessi": [
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Appello incidentale (art. 595 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Appello misura personale (art. 310 cpp)",
+   "ammessi": [
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Appello parte civile (art. 576 c1 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Appello querelante (art. 576 c2 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Attestazione consolato (art. 79 c2 TU 115/2002)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Audizione persona che non ha reso dichiarazioni al difensore (art. 391 bis c10 cpp)",
+   "ammessi": [
+    "PM",
+    "PM_GDP"
+   ]
+  },
+  {
+   "atto": "Autocertificazione reddito (art. 79 c1 TU 115/2002)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Autorizzazione accesso a luoghi privati o non aperti al pubblico (art. 391 septies cpp)",
+   "ammessi": [
+    "GIP",
+    "GDPC"
+   ]
+  },
+  {
+   "atto": "Autorizzazione consulente di parte (art. 233 c1-bis cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Autorizzazione investigazioni difensive - esame detenuto (art. 391 bis c7 cpp)",
+   "ammessi": [
+    "GIP"
+   ]
+  },
+  {
+   "atto": "Avviso accertamenti tecnici non ripetibili (art. 391 decies c3 cpp)",
+   "ammessi": [
+    "PM",
+    "PM_GDP"
+   ]
+  },
+  {
+   "atto": "Citazione civilmente obbligato (art. 89 c1 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "GDPC",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Citazione dei testimoni, periti e consulenti tecnici",
+   "ammessi": [
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Citazione responsabile civile (art. 83 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "GDPC",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Colloqui (art. 18 L. 354/1975)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP"
+   ]
+  },
+  {
+   "atto": "Comunicazione assunzione della difesa",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Comunicazione impedimento - gravidanza del difensore - (art. 420 ter c5 bis cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDP",
+    "APPGDP",
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Comunicazione impedimento (art. 420 ter c5 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDP",
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Comunicazione mancata accettazione domiciliazione (art. 162 c4 bis cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP",
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Conclusioni della parte civile (art. 523 c2 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Concordato in appello (art. 599 bis cpp)",
+   "ammessi": [
+    "CAP",
+    "CASAP",
+    "PGCAP"
+   ]
+  },
+  {
+   "atto": "Consenso a sostituzione pena detentiva (art. 598 bis c1 bis, 4 ter cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Consenso richiesta patteggiamento (artt. 446, 447 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB"
+   ]
+  },
+  {
+   "atto": "Conversione sequestro probatorio in conservativo (art. 262 c2 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP"
+   ]
+  },
+  {
+   "atto": "Copia intercettazioni (art. 415 bis c2 bis cpp)",
+   "ammessi": [
+    "PM"
+   ]
+  },
+  {
+   "atto": "Correzione atti - garanzia presunzione di innocenza (art. 115 bis cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Correzione errore materiale (art. 130 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP",
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Costituzione Civilmente Obbligato (art. 89 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Costituzione di Parte Civile (art. 76 e 78 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Costituzione Responsabile Civile (art. 84 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Deduzioni incidente probatorio (art. 396 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP"
+   ]
+  },
+  {
+   "atto": "Deduzioni sull'opposizione all'intervento degli enti esponenziali (art. 95 c1 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "PM_GDP",
+    "GDPC",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Denuncia conflitto di competenza (art. 30 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "GDPC",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Determinazioni su azione penale (art. 415 bis c5 quater cpp)",
+   "ammessi": [
+    "GIP",
+    "GDPC"
+   ]
+  },
+  {
+   "atto": "Determinazioni su azione penale dopo deposito atti indagine (art. 415 ter c3 cpp)",
+   "ammessi": [
+    "GIP"
+   ]
+  },
+  {
+   "atto": "Dichiarazione di consenso della persona offesa (art. 92 c2 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "PM_GDP",
+    "GDPC",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Dichiarazione domicilio (art. 162 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Dichiarazione domicilio terzo interessato",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP",
+    "PGCAP",
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Distruzione intercettazioni (art. 269 cpp)",
+   "ammessi": [
+    "GIP",
+    "GDPC"
+   ]
+  },
+  {
+   "atto": "Eccezione di difetto di giurisdizione (art. 20 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Eccezione di incompetenza (art. 22 c1 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Elezione domicilio (art. 162 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Elezione domicilio terzo interessato",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP",
+    "PGCAP",
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Esame, ascolto, cognizione intercettazioni (art. 268 c6 cpp)",
+   "ammessi": [
+    "PM"
+   ]
+  },
+  {
+   "atto": "Esclusione Civilmente Obbligato (art. 89 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Esclusione parte civile (art. 80 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "GDPC",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Esclusione Responsabile Civile (art. 86 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Esercizio diritto all’oblio (art. 64 ter disp. att. cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Estinzione del reato per pagamento oblazione (artt. 162, 162 bis cp - art. 141 disp. att. cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP",
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Giudizio abbreviato (artt. 438, 458, 519, 520, 554 ter, 558 c8 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB"
+   ]
+  },
+  {
+   "atto": "Giudizio immediato (artt. 453 c3, 419 c5 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP"
+   ]
+  },
+  {
+   "atto": "Impugnazione per i soli interessi civili (art. 573 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Incidente probatorio (art. 393 cpp)",
+   "ammessi": [
+    "GIP"
+   ]
+  },
+  {
+   "atto": "Informazione su richiesta archiviazione (art. 408 c2 cpp)",
+   "ammessi": [
+    "PM",
+    "PM_GDP"
+   ]
+  },
+  {
+   "atto": "Integrazione documentale istanza ammissione al gratuito patrocinio (artt. 79 c3, 123 TU 115/2002)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Intervento di ente esponenziale (art. 93 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "PM_GDP",
+    "GDPC",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Intervento Responsabile Civile (art. 85 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Investigazioni difensive (art. 391 octies cpp)",
+   "ammessi": [
+    "GIP",
+    "GDPC"
+   ]
+  },
+  {
+   "atto": "Istanza rinvio udienza",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP",
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Istanza trattazione orale udienza (artt. 598 bis c2, 601 c3 cpp)",
+   "ammessi": [
+    "CAP",
+    "CASAP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Liquidazione onorario (art. 82 TU 115/2002)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Lista testi, periti o consulenti tecnici del Responsabile Amministrativo (artt. 468, 555 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "GDPC",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Lista testi, periti o consulenti tecnici del Responsabile Civile e civilmente obbligato (artt. 468, 555 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "GDPC",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Lista testi, periti o consulenti tecnici dell'Imputato (artt. 468, 555 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "GDPC",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Lista testi, periti o consulenti tecnici della Persona Offesa - Parte Civile (artt. 468, 555 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "GDPC",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Mandato ad impugnare (art. 581 c1 quater cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDP",
+    "APPGDP",
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Memoria difensiva dopo notifica istanza revoca o sostituzione misura cautelare (art. 299 c3 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP"
+   ]
+  },
+  {
+   "atto": "Memorie consulente tecnico (art. 233 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Memorie di replica - trattazione camerale (art. 598 bis c1 cpp)",
+   "ammessi": [
+    "CAP",
+    "CASAP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Memorie difensive (artt. 121, 367 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP",
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Memorie persona offesa sulla messa alla prova (art. 464 ter.1 c3 cpp)",
+   "ammessi": [
+    "GIP",
+    "GDPC"
+   ]
+  },
+  {
+   "atto": "Memorie Reclamo (art. 410 bis c. 3 cpp)",
+   "ammessi": [
+    "DIB",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Memorie retrodatazione iscrizione (Indagato) (art. 335 quater c6 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP",
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Memorie su richiesta proroga indagini (art. 406 c3 cpp)",
+   "ammessi": [
+    "GIP",
+    "GDPC"
+   ]
+  },
+  {
+   "atto": "Memorie sull’avviso di conclusione indagini (art. 415 bis c3 cpp)",
+   "ammessi": [
+    "PM"
+   ]
+  },
+  {
+   "atto": "Messa alla prova (art. 464 bis e ter cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Modifica modalità esecutive misure cautelari (art. 279 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP"
+   ]
+  },
+  {
+   "atto": "Motivi nuovi (art. 585 c4 cpp)",
+   "ammessi": [
+    "CAP",
+    "CASAP",
+    "APPGDP",
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Nomina Consulente Tecnico di Parte (artt. 225 e 233 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Nomina difensore di fiducia (artt. 96, 100, 101 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Nomina difensore sostituto (art.102 cpp)",
+   "ammessi": [
+    "PM",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP",
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Non accettazione mandato (art. 107 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP",
+    "PGCAP",
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Notifica deposito istanza di retrodatazione iscrizione indagato (art. 335 quater c6 cpp)",
+   "ammessi": [
+    "PM",
+    "PM_GDP"
+   ]
+  },
+  {
+   "atto": "Oblazione (artt. 162, 162-bis cpp - 141 disp. att. cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "PM_GDP",
+    "GDPC",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Offerta di cauzione sequestro conservativo (art. 319 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP"
+   ]
+  },
+  {
+   "atto": "Opposizione a decreto penale di condanna (art. 461 cpp)",
+   "ammessi": [
+    "GIP"
+   ]
+  },
+  {
+   "atto": "Opposizione a richiesta archiviazione (art. 410 cpp e art. 17 c2 dlgs 274/2000)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "PM_GDP",
+    "GDPC"
+   ]
+  },
+  {
+   "atto": "Opposizione al decreto del PM su richiesta di dissequestro (art. 263 c5 cpp)",
+   "ammessi": [
+    "PM",
+    "PM_GDP"
+   ]
+  },
+  {
+   "atto": "Opposizione al decreto del PM sul ritardato deposito di atti di indagine (art. 366 c2 cpp)",
+   "ammessi": [
+    "PM",
+    "PM_GDP"
+   ]
+  },
+  {
+   "atto": "Opposizione al diniego restituzione terzo interessato (art. 263 c5 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "PM_GDP",
+    "GDPC"
+   ]
+  },
+  {
+   "atto": "Opposizione al rigetto (alla richiesta) della autorizzazione del consulente tecnico (art. 233 c1 bis cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "PM_GDP",
+    "GDPC"
+   ]
+  },
+  {
+   "atto": "Opposizione alla convalida della perquisizione (art. 352 c4 bis cpp)",
+   "ammessi": [
+    "PM",
+    "PM_GDP"
+   ]
+  },
+  {
+   "atto": "Opposizione alla perquisizione disposta dal PM (art. 252 bis c1 cpp)",
+   "ammessi": [
+    "PM",
+    "PM_GDP"
+   ]
+  },
+  {
+   "atto": "Opposizione all'intervento dell'ente (art. 95 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "PM_GDP",
+    "GDPC",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Opposizione di segreto professionale o d’ufficio (art. 256 c1, 2 c.p.p.)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Pagamento oblazione (artt. 162, 162 bis cp - art. 141 disp. att. cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAP",
+    "CASAP"
+   ]
+  },
+  {
+   "atto": "Partecipazione a distanza (art. 133 ter cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP",
+    "PGCAP",
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Partecipazione all’udienza (art. 598 bis c2 cpp)",
+   "ammessi": [
+    "CAP",
+    "CASAP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Patteggiamento (artt. 444, 447 c1, 458 bis, 438 c5 bis, 519, 520, 554 ter, 558 c8 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB"
+   ]
+  },
+  {
+   "atto": "Perdita di efficacia delle misure cautelari (artt. 27, 300 e segg. cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP"
+   ]
+  },
+  {
+   "atto": "Presentazione spontanea - interrogatorio (art. 374 cpp)",
+   "ammessi": [
+    "PM",
+    "PM_GDP"
+   ]
+  },
+  {
+   "atto": "Procura speciale (art. 122 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Programma trattamento Messa alla Prova (art. 464 bis c4 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Promuovimento incidente probatorio (art. 394 cpp)",
+   "ammessi": [
+    "PM",
+    "PM_GDP"
+   ]
+  },
+  {
+   "atto": "Promuovimento sequestro probatorio (art. 368 cpp)",
+   "ammessi": [
+    "PM",
+    "PM_GDP"
+   ]
+  },
+  {
+   "atto": "Prova avvenuta notificazione",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Prova avvenuta notificazione testimoni, periti e consulenti tecnici",
+   "ammessi": [
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Reclamo decreto archiviazione (art. 410-bis c3 cpp)",
+   "ammessi": [
+    "GIP"
+   ]
+  },
+  {
+   "atto": "Reclamo ordinanza archiviazione (art. 410-bis c3 cpp)",
+   "ammessi": [
+    "GIP"
+   ]
+  },
+  {
+   "atto": "Remissione querela (art. 340 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Rescissione del giudicato (Art. 629 bis cpp)",
+   "ammessi": [
+    "CAP"
+   ]
+  },
+  {
+   "atto": "Restituzione beni sequestrati (art. 262 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Restituzione beni terzo interessato (art. 263 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Restituzione nel termine (art. 175 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Retrodatazione iscrizione indagato (art. 335 quater cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP",
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Rettifica delle generalità indagato/imputato",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDP",
+    "APPGDP",
+    "PGCAP",
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Revisione (art. 633 cpp)",
+   "ammessi": [
+    "CAP"
+   ]
+  },
+  {
+   "atto": "Revoca costituzione parte civile (art. 82 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Revoca del consenso della persona offesa (art. 92 c3 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "PM_GDP",
+    "GDPC",
+    "GDP"
+   ]
+  },
+  {
+   "atto": "Revoca del sequestro preventivo (art. 321 c3 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Revoca difensore (art. 107 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Revoca sequestro conservativo (artt. 316, 317 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Revoca, sostituzione o modifica misura cautelare personale (art. 299 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP"
+   ]
+  },
+  {
+   "atto": "Riapertura indagini (art. 414 cpp)",
+   "ammessi": [
+    "PM",
+    "PM_GDP"
+   ]
+  },
+  {
+   "atto": "Richiesta accesso agli atti (art. 116 cpp)",
+   "ammessi": [
+    "PM",
+    "DIB"
+   ]
+  },
+  {
+   "atto": "Richiesta di avocazione al PG (art. 413 cpp)",
+   "ammessi": [
+    "PGCAP"
+   ]
+  },
+  {
+   "atto": "Richiesta di proporre impugnazione (art. 572 c1 cpp)",
+   "ammessi": [
+    "PM"
+   ]
+  },
+  {
+   "atto": "Ricorso Cassazione (revoca Gratuito Patrocinio) (art. 113 TU 115/2002)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Ricorso Cassazione decreto sequestro preventivo (art. 325 c2 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Ricorso Cassazione ordinanza cautelare personale (art. 311 c2 e 3 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP"
+   ]
+  },
+  {
+   "atto": "Ricorso Cassazione ordinanza personale riesame (art. 311 cpp)",
+   "ammessi": [
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Ricorso Cassazione ordinanza reale riesame (art. 325 cpp)",
+   "ammessi": [
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Ricorso Cassazione Ordinanze",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Ricorso per Cassazione - civilmente obbligato (art. 575 c2 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Ricorso per Cassazione - parte civile (art. 576 c1 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Ricorso per Cassazione - querelante (art. 576 c2 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Ricorso per Cassazione - responsabile civile (art. 575 c1 e 3 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Ricorso per cassazione (art. 607 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Ricusazione del giudice (artt. 37 e 38 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Ricusazione del perito (art. 223 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP",
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Riesame personale (art. 309 cpp)",
+   "ammessi": [
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Riesame reale (artt. 257, 318, 322, 324, 355 cpp)",
+   "ammessi": [
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Riesame reale terzo interessato (art. 257 cpp)",
+   "ammessi": [
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Rimessione del processo (art. 46 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Rinnovazione dell’istruttoria dibattimentale (art. 603 cpp)",
+   "ammessi": [
+    "CAP",
+    "CASAP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Rinuncia a comparire in udienza (art. 420bis cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Rinuncia a opposizione a decreto penale (art. 589 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB"
+   ]
+  },
+  {
+   "atto": "Rinuncia al mandato difensivo (art. 107 cpp)",
+   "ammessi": [
+    "PM",
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDPC",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Rinuncia all’impugnazione (art. 589 cpp)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDPC",
+    "GDP",
+    "APPGDP",
+    "RIE"
+   ]
+  },
+  {
+   "atto": "Rinuncia alla querela (art. 339 cpp)",
+   "ammessi": [
+    "PM"
+   ]
+  },
+  {
+   "atto": "Riparazione dell'errore giudiziario (art. 643 cpp)",
+   "ammessi": [
+    "CAP"
+   ]
+  },
+  {
+   "atto": "Riparazione per ingiusta detenzione (artt. 314, 315 cpp)",
+   "ammessi": [
+    "CAP"
+   ]
+  },
+  {
+   "atto": "Riserva di incidente probatorio (art. 360 c 4 cpp)",
+   "ammessi": [
+    "PM",
+    "PGCAP"
+   ]
+  },
+  {
+   "atto": "Riunione del procedimento",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Sollecito",
+   "ammessi": [
+    "PM",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "PM_GDP",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Sostituzione del pubblico ministero (art. 53 c2 cpp)",
+   "ammessi": [
+    "PM",
+    "PM_GDP",
+    "PGCAP"
+   ]
+  },
+  {
+   "atto": "Sostituzione pena con lavori di pubblica utilità (art. 186 c9 bis dlgs 285/92)",
+   "ammessi": [
+    "GIP",
+    "DIB",
+    "CAS",
+    "CAP",
+    "CASAP",
+    "GDP",
+    "APPGDP"
+   ]
+  },
+  {
+   "atto": "Sostituzione pena detentiva con lavoro pubblica utilità (art. 459 c1 bis, 1 ter cpp)",
+   "ammessi": [
+    "GIP"
+   ]
+  },
+  {
+   "atto": "Trasferimento competenza (art. 54 quater cpp)",
+   "ammessi": [
+    "PM",
+    "PM_GDP",
+    "PGCAP"
+   ]
+  }
+ ],
+ "atto_ruolo": [
+  {
+   "atto": "Abbreviazione dei termini (art. 173 c3 cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Accesso, copia e visione atti (art. 116 cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Accettazione della proposta di messa alla prova (art. 464 ter1 c2 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Accettazione remissione di querela (art. 340 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Acquisizione prove non rinviabili (artt. 420 quinquies, 464 sexies, 467, 598 ter c3, 721 c4 cpp, 18 D.Lvo 274/2000)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Acquisizione tabulati (art. 132 c3 Dlgs. 196/2003)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Ammissione al gratuito patrocinio (art. 78 TU 115/2002)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Anticipazione o differimento udienza (art. 465 cpp)",
+   "ammessi": [
+    "IND",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Appello (artt. 593, 600 cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Appello cautelare reale (art. 322 bis cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "TI"
+   ]
+  },
+  {
+   "atto": "Appello incidentale (art. 595 cpp)",
+   "ammessi": [
+    "IND",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Appello misura personale (art. 310 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Appello parte civile (art. 576 c1 cpp)",
+   "ammessi": [
+    "PC"
+   ]
+  },
+  {
+   "atto": "Appello querelante (art. 576 c2 cpp)",
+   "ammessi": [
+    "PC"
+   ]
+  },
+  {
+   "atto": "Attestazione consolato (art. 79 c2 TU 115/2002)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Audizione persona che non ha reso dichiarazioni al difensore (art. 391 bis c10 cpp)",
+   "ammessi": [
+    "IND",
+    "PO"
+   ]
+  },
+  {
+   "atto": "Autocertificazione reddito (art. 79 c1 TU 115/2002)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Autorizzazione accesso a luoghi privati o non aperti al pubblico (art. 391 septies cpp)",
+   "ammessi": [
+    "IND",
+    "PO"
+   ]
+  },
+  {
+   "atto": "Autorizzazione consulente di parte (art. 233 c1-bis cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC"
+   ]
+  },
+  {
+   "atto": "Autorizzazione investigazioni difensive - esame detenuto (art. 391 bis c7 cpp)",
+   "ammessi": [
+    "IND",
+    "PO"
+   ]
+  },
+  {
+   "atto": "Avvenuta notificazione",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Avviso accertamenti tecnici non ripetibili (art. 391 decies c3 cpp)",
+   "ammessi": [
+    "IND",
+    "PO"
+   ]
+  },
+  {
+   "atto": "Citazione civilmente obbligato (art. 89 c1 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Citazione dei testimoni, periti e consulenti tecnici",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Citazione responsabile civile (art. 83 cpp)",
+   "ammessi": [
+    "IND",
+    "PC"
+   ]
+  },
+  {
+   "atto": "Colloqui (art. 18 L. 354/1975)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Comunicazione assunzione della difesa",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Comunicazione impedimento - gravidanza del difensore - (art. 420 ter c5 bis cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Comunicazione impedimento (art. 420 ter c5 cpp)",
+   "ammessi": [
+    "IND",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Comunicazione mancata accettazione domiciliazione (art. 162 c4 bis cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Conclusioni della parte civile (art. 523 c2 cpp)",
+   "ammessi": [
+    "PC"
+   ]
+  },
+  {
+   "atto": "Concordato in appello (art. 599 bis cpp)",
+   "ammessi": [
+    "IND",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Consenso a sostituzione pena detentiva (art. 598 bis c1 bis, 4 ter cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Consenso richiesta patteggiamento (artt. 446, 447 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Conversione sequestro probatorio in conservativo (art. 262 c2 cpp)",
+   "ammessi": [
+    "PC"
+   ]
+  },
+  {
+   "atto": "Copia intercettazioni (art. 415 bis c2 bis cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Correzione atti - garanzia presunzione di innocenza (art. 115 bis cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Correzione errore materiale (art. 130 cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Costituzione Civilmente Obbligato (art. 89 cpp)",
+   "ammessi": [
+    "CO"
+   ]
+  },
+  {
+   "atto": "Costituzione di Parte Civile (art. 76 e 78 cpp)",
+   "ammessi": [
+    "PO",
+    "PC"
+   ]
+  },
+  {
+   "atto": "Costituzione Responsabile Civile (art. 84 cpp)",
+   "ammessi": [
+    "RC"
+   ]
+  },
+  {
+   "atto": "Deduzioni incidente probatorio (art. 396 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Deduzioni sull'opposizione all'intervento degli enti esponenziali (art. 95 c1 cpp)",
+   "ammessi": [
+    "PO"
+   ]
+  },
+  {
+   "atto": "Denuncia conflitto di competenza (art. 30 cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Determinazioni su azione penale (art. 415 bis c5 quater cpp)",
+   "ammessi": [
+    "IND",
+    "PO"
+   ]
+  },
+  {
+   "atto": "Determinazioni su azione penale dopo deposito atti indagine (art. 415 ter c3 cpp)",
+   "ammessi": [
+    "IND",
+    "PO"
+   ]
+  },
+  {
+   "atto": "Dichiarazione di consenso della persona offesa (art. 92 c2 cpp)",
+   "ammessi": [
+    "PO"
+   ]
+  },
+  {
+   "atto": "Dichiarazione domicilio (art. 162 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Dichiarazione domicilio terzo interessato",
+   "ammessi": [
+    "TI"
+   ]
+  },
+  {
+   "atto": "Distruzione intercettazioni (art. 269 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Eccezione di difetto di giurisdizione (art. 20 cpp)",
+   "ammessi": [
+    "IND",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Eccezione di incompetenza (art. 22 c1 cpp)",
+   "ammessi": [
+    "IND",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Elezione domicilio (art. 162 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Elezione domicilio terzo interessato",
+   "ammessi": [
+    "TI"
+   ]
+  },
+  {
+   "atto": "Esame, ascolto, cognizione intercettazioni (art. 268 c6 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Esclusione Civilmente Obbligato (art. 89 cpp)",
+   "ammessi": [
+    "IND",
+    "CO"
+   ]
+  },
+  {
+   "atto": "Esclusione parte civile (art. 80 cpp)",
+   "ammessi": [
+    "IND",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Esclusione Responsabile Civile (art. 86 cpp)",
+   "ammessi": [
+    "IND",
+    "PC",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Esercizio diritto all’oblio (art. 64 ter disp. att. cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Estinzione del reato per pagamento oblazione (artt. 162, 162 bis cp - art. 141 disp. att. cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Giudizio abbreviato (artt. 438, 458, 519, 520, 554 ter, 558 c8 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Giudizio immediato (artt. 453 c3, 419 c5 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Impugnazione per i soli interessi civili (art. 573 cpp)",
+   "ammessi": [
+    "PC",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Incidente probatorio (art. 393 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Informazione su richiesta archiviazione (art. 408 c2 cpp)",
+   "ammessi": [
+    "IND",
+    "PO"
+   ]
+  },
+  {
+   "atto": "Integrazione documentale istanza ammissione al gratuito patrocinio (artt. 79 c3, 123 TU 115/2002)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Intervento di ente esponenziale (art. 93 cpp)",
+   "ammessi": [
+    "PO"
+   ]
+  },
+  {
+   "atto": "Intervento Responsabile Civile (art. 85 cpp)",
+   "ammessi": [
+    "RC"
+   ]
+  },
+  {
+   "atto": "Investigazioni difensive (art. 391 octies cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Istanza rinvio udienza",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC",
+    "TI"
+   ]
+  },
+  {
+   "atto": "Istanza trattazione orale udienza (artt. 598 bis c2, 601 c3 cpp)",
+   "ammessi": [
+    "IND",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Liquidazione onorario (art. 82 TU 115/2002)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Lista testi, periti o consulenti tecnici del Responsabile Amministrativo (artt. 468, 555 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Lista testi, periti o consulenti tecnici del Responsabile Civile e civilmente obbligato (artt. 468, 555 cpp)",
+   "ammessi": [
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Lista testi, periti o consulenti tecnici dell'Imputato (artt. 468, 555 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Lista testi, periti o consulenti tecnici della Persona Offesa - Parte Civile (artt. 468, 555 cpp)",
+   "ammessi": [
+    "PO",
+    "PC"
+   ]
+  },
+  {
+   "atto": "Mandato ad impugnare (art. 581 c1 quater cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Memoria difensiva dopo notifica istanza revoca o sostituzione misura cautelare (art. 299 c3 cpp)",
+   "ammessi": [
+    "PO",
+    "PC"
+   ]
+  },
+  {
+   "atto": "Memorie consulente tecnico (art. 233 cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Memorie di replica - trattazione camerale (art. 598 bis c1 cpp)",
+   "ammessi": [
+    "IND",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Memorie difensive (artt. 121, 367 cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC",
+    "TI"
+   ]
+  },
+  {
+   "atto": "Memorie persona offesa sulla messa alla prova (art. 464 ter.1 c3 cpp)",
+   "ammessi": [
+    "PO"
+   ]
+  },
+  {
+   "atto": "Memorie Reclamo (art. 410 bis c. 3 cpp)",
+   "ammessi": [
+    "IND",
+    "PO"
+   ]
+  },
+  {
+   "atto": "Memorie retrodatazione iscrizione (Indagato) (art. 335 quater c6 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Memorie su richiesta proroga indagini (art. 406 c3 cpp)",
+   "ammessi": [
+    "IND",
+    "PO"
+   ]
+  },
+  {
+   "atto": "Memorie sull’avviso di conclusione indagini (art. 415 bis c3 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Messa alla prova (art. 464 bis e ter cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Modifica modalità esecutive misure cautelari (art. 279 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Motivi nuovi (art. 585 c4 cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC",
+    "TI"
+   ]
+  },
+  {
+   "atto": "Nomina Consulente Tecnico di Parte (artt. 225 e 233 cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Nomina difensore di fiducia (artt. 96, 100, 101 cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Nomina difensore sostituto (art.102 cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Non accettazione mandato (art. 107 cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Notifica deposito istanza di retrodatazione iscrizione indagato (art. 335 quater c6 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Oblazione (artt. 162, 162-bis cpp - 141 disp. att. cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Offerta di cauzione sequestro conservativo (art. 319 cpp)",
+   "ammessi": [
+    "IND",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Opposizione a decreto penale di condanna (art. 461 cpp)",
+   "ammessi": [
+    "IND",
+    "CO"
+   ]
+  },
+  {
+   "atto": "Opposizione a richiesta archiviazione (art. 410 cpp e art. 17 c2 dlgs 274/2000)",
+   "ammessi": [
+    "IND",
+    "PO"
+   ]
+  },
+  {
+   "atto": "Opposizione al decreto del PM su richiesta di dissequestro (art. 263 c5 cpp)",
+   "ammessi": [
+    "IND",
+    "PO"
+   ]
+  },
+  {
+   "atto": "Opposizione al decreto del PM sul ritardato deposito di atti di indagine (art. 366 c2 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Opposizione al diniego restituzione terzo interessato (art. 263 c5 cpp)",
+   "ammessi": [
+    "TI"
+   ]
+  },
+  {
+   "atto": "Opposizione al rigetto (alla richiesta) della autorizzazione del consulente tecnico (art. 233 c1 bis cpp)",
+   "ammessi": [
+    "IND",
+    "PO"
+   ]
+  },
+  {
+   "atto": "Opposizione alla convalida della perquisizione (art. 352 c4 bis cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Opposizione alla perquisizione disposta dal PM (art. 252 bis c1 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Opposizione all'intervento dell'ente (art. 95 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Opposizione di segreto professionale o d’ufficio (art. 256 c1, 2 c.p.p.)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Pagamento oblazione (artt. 162, 162 bis cp - art. 141 disp. att. cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Partecipazione a distanza (art. 133 ter cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Partecipazione all’udienza (art. 598 bis c2 cpp)",
+   "ammessi": [
+    "IND",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Patteggiamento (artt. 444, 447 c1, 458 bis, 438 c5 bis, 519, 520, 554 ter, 558 c8 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Perdita di efficacia delle misure cautelari (artt. 27, 300 e segg. cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Presentazione spontanea - interrogatorio (art. 374 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Procura speciale (art. 122 cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Programma trattamento Messa alla Prova (art. 464 bis c4 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Promuovimento incidente probatorio (art. 394 cpp)",
+   "ammessi": [
+    "PO"
+   ]
+  },
+  {
+   "atto": "Promuovimento sequestro probatorio (art. 368 cpp)",
+   "ammessi": [
+    "IND",
+    "PO"
+   ]
+  },
+  {
+   "atto": "Prova avvenuta notificazione",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Prova avvenuta notificazione testimoni, periti e consulenti tecnici",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Reclamo decreto archiviazione (art. 410-bis c3 cpp)",
+   "ammessi": [
+    "IND",
+    "PO"
+   ]
+  },
+  {
+   "atto": "Reclamo ordinanza archiviazione (art. 410-bis c3 cpp)",
+   "ammessi": [
+    "IND",
+    "PO"
+   ]
+  },
+  {
+   "atto": "Remissione querela (art. 340 cpp)",
+   "ammessi": [
+    "PO"
+   ]
+  },
+  {
+   "atto": "Rescissione del giudicato (Art. 629 bis cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Restituzione beni sequestrati (art. 262 cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC"
+   ]
+  },
+  {
+   "atto": "Restituzione beni terzo interessato (art. 263 cpp)",
+   "ammessi": [
+    "TI"
+   ]
+  },
+  {
+   "atto": "Restituzione nel termine (art. 175 cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Retrodatazione iscrizione indagato (art. 335 quater cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Rettifica delle generalità indagato/imputato",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Revisione (art. 633 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Revoca costituzione parte civile (art. 82 cpp)",
+   "ammessi": [
+    "PC"
+   ]
+  },
+  {
+   "atto": "Revoca del consenso della persona offesa (art. 92 c3 cpp)",
+   "ammessi": [
+    "PO"
+   ]
+  },
+  {
+   "atto": "Revoca del sequestro preventivo (art. 321 c3 cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC",
+    "TI"
+   ]
+  },
+  {
+   "atto": "Revoca difensore (art. 107 cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Revoca sequestro conservativo (artt. 316, 317 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Revoca, sostituzione o modifica misura cautelare personale (art. 299 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Riapertura indagini (art. 414 cpp)",
+   "ammessi": [
+    "PO"
+   ]
+  },
+  {
+   "atto": "Richiesta accesso agli atti (art. 116 cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Richiesta di avocazione al PG (art. 413 cpp)",
+   "ammessi": [
+    "IND",
+    "PO"
+   ]
+  },
+  {
+   "atto": "Richiesta di proporre impugnazione (art. 572 c1 cpp)",
+   "ammessi": [
+    "PO",
+    "PC"
+   ]
+  },
+  {
+   "atto": "Ricorso Cassazione (revoca Gratuito Patrocinio) (art. 113 TU 115/2002)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Ricorso Cassazione decreto sequestro preventivo (art. 325 c2 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Ricorso Cassazione ordinanza cautelare personale (art. 311 c2 e 3 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Ricorso Cassazione ordinanza personale riesame (art. 311 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Ricorso Cassazione ordinanza reale riesame (art. 325 cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "TI"
+   ]
+  },
+  {
+   "atto": "Ricorso Cassazione Ordinanze",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Ricorso per Cassazione - civilmente obbligato (art. 575 c2 cpp)",
+   "ammessi": [
+    "CO"
+   ]
+  },
+  {
+   "atto": "Ricorso per Cassazione - parte civile (art. 576 c1 cpp)",
+   "ammessi": [
+    "PC"
+   ]
+  },
+  {
+   "atto": "Ricorso per Cassazione - querelante (art. 576 c2 cpp)",
+   "ammessi": [
+    "PO"
+   ]
+  },
+  {
+   "atto": "Ricorso per Cassazione - responsabile civile (art. 575 c1 e 3 cpp)",
+   "ammessi": [
+    "RC"
+   ]
+  },
+  {
+   "atto": "Ricorso per cassazione (art. 607 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Ricusazione del giudice (artt. 37 e 38 cpp)",
+   "ammessi": [
+    "IND",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Ricusazione del perito (art. 223 cpp)",
+   "ammessi": [
+    "IND",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Riesame personale (art. 309 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Riesame reale (artt. 257, 318, 322, 324, 355 cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Riesame reale terzo interessato (art. 257 cpp)",
+   "ammessi": [
+    "TI"
+   ]
+  },
+  {
+   "atto": "Rimessione del processo (art. 46 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Rinnovazione dell’istruttoria dibattimentale (art. 603 cpp)",
+   "ammessi": [
+    "IND",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Rinuncia a comparire in udienza (art. 420bis cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Rinuncia a opposizione a decreto penale (art. 589 cpp)",
+   "ammessi": [
+    "IND",
+    "CO"
+   ]
+  },
+  {
+   "atto": "Rinuncia al mandato difensivo (art. 107 cpp)",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC",
+    "TI"
+   ]
+  },
+  {
+   "atto": "Rinuncia all’impugnazione (art. 589 cpp)",
+   "ammessi": [
+    "IND",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Rinuncia alla querela (art. 339 cpp)",
+   "ammessi": [
+    "PO"
+   ]
+  },
+  {
+   "atto": "Riparazione dell'errore giudiziario (art. 643 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Riparazione per ingiusta detenzione (artt. 314, 315 cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Riserva di incidente probatorio (art. 360 c 4 cpp)",
+   "ammessi": [
+    "IND",
+    "PO"
+   ]
+  },
+  {
+   "atto": "Riunione del procedimento",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Sollecito",
+   "ammessi": [
+    "IND",
+    "PO",
+    "PC",
+    "CO",
+    "RC"
+   ]
+  },
+  {
+   "atto": "Sostituzione del pubblico ministero (art. 53 c2 cpp)",
+   "ammessi": []
+  },
+  {
+   "atto": "Sostituzione pena con lavori di pubblica utilità (art. 186 c9 bis dlgs 285/92)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Sostituzione pena detentiva con lavoro pubblica utilità (art. 459 c1 bis, 1 ter cpp)",
+   "ammessi": [
+    "IND"
+   ]
+  },
+  {
+   "atto": "Trasferimento competenza (art. 54 quater cpp)",
+   "ammessi": [
+    "IND",
+    "PO"
+   ]
+  }
+ ],
+ "anomalie_fonte": {
+  "righe_duplicate_tabella_ruoli": [
+   "Reclamo decreto archiviazione (art. 410-bis c3 cpp)"
+  ],
+  "righe_duplicate_tabella_uffici": [],
+  "solo_in_tabella_ruoli": [
+   "Avvenuta notificazione"
+  ],
+  "solo_in_tabella_uffici": []
+ }
+}

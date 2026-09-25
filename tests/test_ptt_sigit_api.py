@@ -96,7 +96,7 @@ def test_non_tributario_e_connessione(tmp_path, monkeypatch):
         assert client.get(f"/api/v1/ui/tributario/fascicoli/{f.id}", headers=H).status_code == 400
         assert client.get("/api/v1/ui/tributario/fascicoli/ZZZ", headers=H).status_code == 404
         esito = client.get("/api/v1/ui/tributario/connessione", headers=H).get_json()
-        assert esito["raggiungibile"] is True and esito["url"].startswith("https://sigit.finanze.it")
+        assert esito["raggiungibile"] is True and esito["url"] == "https://sigit.finanze.it/NIRWeb/login.jsp"
         catalogo = client.get("/api/v1/ui/tributario/catalogo-apertura?ufficio=CTP%20Bari", headers=H).get_json()
         assert catalogo["corte"]["codice"] == "PBA"
 

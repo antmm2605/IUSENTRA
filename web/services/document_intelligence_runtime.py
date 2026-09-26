@@ -7,6 +7,7 @@ from typing import Any
 
 from flask import current_app, g, has_app_context, has_request_context, session
 
+from pct.document_crypto import doc_key
 from pct.document_intelligence import DocumentAIRepository, DocumentAIService, LexIndexingSummary
 from pct.document_intelligence.catalog_pipeline import FascicoloDocumentCatalogPipeline
 from pct.document_intelligence.catalog_resolver import REGISTRY_VERSION, RESOLVER_VERSION
@@ -180,13 +181,22 @@ def build_document_catalog_payload(
     # La lista è ordinata dalla versione più recente. Il vecchio dict
     # sovrascriveva l'esito nuovo con quello storico dello stesso documento.
     by_document = {}
+    latest_by_document: dict[str, Any] = {}
     for assignment in assignments:
         by_document.setdefault((assignment.document_id, assignment.document_sha256), assignment)
+        latest_by_document.setdefault(assignment.document_id, assignment)
+    # Senza leggere il file la lista conosce solo l'impronta del file cifrato a
+    # riposo, mentre la catalogazione usa quella del contenuto in chiaro: per i
+    # documenti di cui il registro non ha ancora imparato l'impronta (tipico dei
+    # .pdf.p7m) il catalogo risultava «non letto» pur essendo catalogato.
+    archive_hash = {str(doc.id): str(getattr(doc, "hash_sha256", "") or "") for doc in getattr(fascicolo, "documenti", []) or []}
     source_urls_by_rule: dict[str, dict[str, str]] = {}
     documents: list[dict[str, Any]] = []
     for source in sources:
         document_id = str(source.source_id or source.metadata.get("documento_id") or "")
         assignment = by_document.get((document_id, source.sha256))
+        if assignment is None and source.sha256 and source.sha256 == archive_hash.get(document_id) and doc_key() is not None:
+            assignment = latest_by_document.get(document_id)
         if assignment and assignment.rule_set_id not in source_urls_by_rule:
             source_urls_by_rule[assignment.rule_set_id] = _catalog_source_urls(service.repository, assignment)
         documents.append(

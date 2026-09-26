@@ -231,6 +231,30 @@ def _extract_via_magic_bytes(data: bytes) -> bytes | None:
     return None
 
 
+def der_da_base64(data: bytes) -> bytes:
+    """Una busta .p7m salvata in Base64 (con o senza intestazioni PEM) riportata in DER.
+
+    Alcuni software di firma e alcuni gestori PEC salvano il .p7m come testo
+    Base64 («MIAGCSqGSIb3DQEHAqCA…» o «-----BEGIN PKCS7-----»): il contenuto è
+    identico, ma asn1crypto e la ricerca dei marcatori leggono solo il DER.
+    """
+    if not data or data[:1] == b"\x30":
+        return data
+    testo = data.strip()
+    if testo.startswith(b"-----BEGIN"):
+        righe = [riga for riga in testo.splitlines() if riga and not riga.startswith(b"-----")]
+        testo = b"".join(righe)
+    if not testo.startswith(b"MI"):
+        return data
+    try:
+        import base64
+
+        der = base64.b64decode(b"".join(testo.split()), validate=True)
+    except Exception:
+        return data
+    return der if der[:1] == b"\x30" else data
+
+
 def extract_signed_payload(data: bytes) -> bytes | None:
     """Estrae il payload firmato da una busta CAdES (.p7m).
 
@@ -239,6 +263,7 @@ def extract_signed_payload(data: bytes) -> bytes | None:
     1. asn1crypto (con gestione double-wrap)
     2. ricerca diretta magic bytes nel blob ASN.1
     """
+    data = der_da_base64(data)
     result = _extract_via_asn1crypto(data)
     if result and len(result) <= MAX_SIGNED_PAYLOAD_BYTES:
         return result

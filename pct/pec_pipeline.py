@@ -40,6 +40,7 @@ from pct.scadenze_proposte_pec import (
 )
 from pct.pec_legal_event_understanding import RULEPACK_VERSION, build_legal_event_understanding
 from pct.pec_legal_workflow import classifica_pec_legale
+from pct import pec_profilo_ufficio
 from pct.pec_change_receipt import (
     PREVIOUS_DATE_LINE as CHANGE_RECEIPT_PREVIOUS_DATE_LINE,
     RECEIPT_AT_LINE as CHANGE_RECEIPT_AT_LINE,
@@ -1216,6 +1217,8 @@ def _trim_profile_label_value(value: Any, stop_labels: Iterable[str]) -> str:
         return ""
     pattern = r"\b(?:" + "|".join(re.escape(label) for label in stop_labels) + r")\s*:"
     parts = re.split(pattern, text, maxsplit=1, flags=re.I)
+    # La formula della cancelleria segue il nome senza etichetta: «… REGGIO CALABRIA Si da' atto che …».
+    parts = re.split(r"\bSi\s+d[aàá]\s*['’]?\s*atto\b", parts[0], maxsplit=1, flags=re.I)
     return clean_text(parts[0], 240).strip(" .;:-")
 
 
@@ -1783,9 +1786,19 @@ def build_pec_procedural_profile(
             r"\bCancelleria\s+(?:del|della|di)\s+([^\n]+)",
         ),
     )
+    avviso_ga = pec_profilo_ufficio.avviso_giustizia_amministrativa(readable)
+    if not office:
+        # Fonti certe prima dell'etichetta della regola: PEC della cancelleria,
+        # oggetto ministeriale del deposito, avviso della Giustizia amministrativa.
+        office = (
+            pec_profilo_ufficio.ufficio_da_pec(readable)
+            or pec_profilo_ufficio.ufficio_da_oggetto(subject)
+            or avviso_ga.get("ufficio", "")
+        )
     if not office:
         context = semantic_context or {}
-        office = clean_text(context.get("office_hint") or "", 160)
+        hint = clean_text(context.get("office_hint") or "", 160)
+        office = "" if pec_profilo_ufficio.ufficio_generico(hint) else hint
 
     codice_ufficio_value = xml_tag_value(xml_joined, ("CodiceUG", "codiceUG", "Ufficio"))
     resolved_office, office_registry = _resolve_profile_office_from_code(codice_ufficio_value, office)
@@ -1867,6 +1880,12 @@ def build_pec_procedural_profile(
         "evento_pec": event_type,
         "documenti_letti": sorted(str(name) for name in sources.keys() if str(name or "").strip()),
     }
+    if not profile["numero_rg"]:
+        profile["numero_rg"] = pec_profilo_ufficio.numero_ruolo(profile.get("numero_ruolo_certificato")) or avviso_ga.get("numero_rg", "")
+    if avviso_ga.get("nrg"):
+        profile["nrg_amministrativo"] = avviso_ga["nrg"]
+        if re.search(r"fissazione\s+udienza", subject or "", flags=re.I) and not profile.get("tipo_evento"):
+            profile["tipo_evento"] = "Avviso di fissazione udienza (Giustizia amministrativa)"
     profile["cliente"] = _trim_profile_label_value(
         profile.get("cliente"),
         ("Parte processuale", "Soggetto processuale", "Ufficio", "RG", "Numero Ruolo", "DEPOSITO TELEMATICO"),
@@ -1923,6 +1942,19 @@ def build_pec_procedural_profile(
         value=profile.get("convenuto_principale"),
         source=f"Comunicazione.xml: {convenuto_role}",
     )
+    if not profile.get("cliente") and not ricorrente:
+        dalla_relata = pec_profilo_ufficio.cliente_da_relata(readable)
+        assistito, avversario = pec_profilo_ufficio.parti_da_oggetto(subject)
+        if dalla_relata:
+            profile["cliente"] = dalla_relata
+            profile["cliente_origine"] = "relata di notifica: difensore per mandato di"
+            profile["cliente_da_verificare"] = True
+        elif assistito:
+            profile["cliente"] = assistito
+            profile["cliente_origine"] = "oggetto della PEC: «… c/ …»"
+            profile["cliente_da_verificare"] = True
+            if avversario and not profile.get("convenuto_principale"):
+                profile["convenuto_principale"] = avversario
     if not profile.get("cliente") and ricorrente:
         profile["cliente"] = ricorrente
         profile["cliente_origine"] = "Comunicazione.xml: Ricorr. principale"
@@ -1951,7 +1983,14 @@ def build_pec_procedural_profile(
     elif any(needle in lower for needle in ("udienza da remoto", "videoconferenza", "aula virtuale", "stanza virtuale")):
         profile["modalita_udienza"] = "da remoto"
     practice_phase = ""
-    if "sentenza" in lower:
+    oggetto_lower = (subject or "").lower()
+    if pec_profilo_ufficio.e_ricevuta_di_deposito(subject):
+        # Accettazione, consegna o esito del nostro deposito: i nomi dei file
+        # depositati («Sentenza_Tribunale_….PDF») non sono un provvedimento arrivato.
+        practice_phase = "deposito telematico da completare o monitorare"
+    elif avviso_ga or "fissazione udienza" in oggetto_lower or "avviso di udienza" in oggetto_lower:
+        practice_phase = "udienza o rinvio da calendarizzare"
+    elif "sentenza" in lower:
         practice_phase = "provvedimento/sentenza da leggere e notificare o presidiare"
     elif "deposito" in lower:
         practice_phase = "deposito telematico da completare o monitorare"

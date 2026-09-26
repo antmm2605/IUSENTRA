@@ -29,7 +29,13 @@ from .models import DocumentCatalogAssignment, DocumentCatalogCandidate, Documen
 from .titoli import REGOLE_TITOLO
 
 VERSIONE_LETTURA = "lex-catalogo-v1"
-MODELLO_PREDEFINITO = "qwen3:4b"
+# Spark-X2.5 4B (Apache 2.0, quantizzazione Q4_K_M da 2,6 GB): nel confronto del
+# 26/09/2026 su 19 documenti reali ha scelto la voce giusta 12 volte contro 11 di
+# qwen3:4b, applicando 2 sole etichette sbagliate contro 8 (le altre sue risposte
+# senza citazione verificabile non contano) ed è più veloce di un terzo. Se il
+# server Ollama non lo sa eseguire, la seconda lettura torna a qwen3:4b.
+MODELLO_PREDEFINITO = "maternion/spark-x2.5:4b"
+MODELLO_DI_RISERVA = "qwen3:4b"
 CONFIDENZA_LEX = 80
 CONFIDENZA_REGOLA_SICURA = 90
 CARATTERI_LETTI = 4000
@@ -296,6 +302,7 @@ __all__ = [
     "CONFIDENZA_LEX",
     "CONFIDENZA_REGOLA_SICURA",
     "LOCATORE_LEX",
+    "MODELLO_DI_RISERVA",
     "MODELLO_PREDEFINITO",
     "NESSUNA_VOCE",
     "VERSIONE_LETTURA",

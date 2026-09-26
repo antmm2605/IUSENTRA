@@ -54,7 +54,9 @@ def sede_da_ufficio(nome: str) -> str:
     voce = next((u for u in uffici if str(u.get("nome") or "").casefold() == testo), None)
     if voce and voce.get("codice") in catalogo.SEDI:
         return catalogo.SEDI[voce["codice"]][0]
-    return next((c for c, e in catalogo.SEDI.values() if e.casefold() == testo), "")
+    # L'ufficio scritto a mano nel fascicolo («TAR di Reggio Calabria», «Tribunale
+    # amministrativo del Veneto»): la sede si ricava da regione e città.
+    return next((c for c, e in catalogo.SEDI.values() if e.casefold() == testo), "") or pat_letture.sede_da_testo(nome)
 
 
 def nrg(fascicolo: Any) -> str:
@@ -159,6 +161,11 @@ def contesto(fid: str) -> dict[str, Any]:
     proc = {"sede": sede_da_ufficio(fascicolo.tribunale), "nrg": nrg(fascicolo), "posizione": "ricorrente",
             "oggetto": fascicolo.oggetto or fascicolo.titolo, **{k: v for k, v in salvato["procedimento"].items() if v not in (None, "")}}
     proposte = {campo: voce for campo, voce in letti(fascicolo).items() if not proc.get(campo)}
+    if not proc.get("sede") and "sede" not in proposte:
+        # Ufficio non impostato: la sede scritta nel titolo («Precetto … Tar Roma») è una proposta da confermare.
+        dal_titolo = pat_letture.sede_da_testo(f"{fascicolo.titolo or ''} {fascicolo.oggetto or ''}")
+        if dal_titolo:
+            proposte["sede"] = {"valore": dal_titolo, "verifica": "plausibile", "documenti": [], "fonte": "titolo del fascicolo"}
     soggetti = [(getattr(p.ruolo, "value", str(p.ruolo)), _dati_soggetto(s))
                 for p, s in _runtime("get_soggetti").parti_fascicolo(fid)]
     elenco_parti = parti.parti_pat(_cliente(fascicolo), soggetti, proc.get("posizione") or "ricorrente", salvato["ruoli"])

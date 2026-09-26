@@ -20,6 +20,7 @@ from urllib.parse import quote
 
 from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
 from pct.formatting import DISPLAY_TIMEZONE, parse_datetime_rome
+from pct import pec_profilo_ufficio
 from pct.pec_pipeline import (
     AttachmentPayload,
     build_pec_procedural_profile,
@@ -473,9 +474,14 @@ def _pec_audit_payload(summary: dict[str, Any] | None) -> dict[str, Any] | None:
     deadline_proposal = report.get("deadline_proposal") if isinstance(report.get("deadline_proposal"), dict) else {}
     semantic_context = report.get("semantic_context") if isinstance(report.get("semantic_context"), dict) else {}
     procedural_profile = report.get("procedural_profile") if isinstance(report.get("procedural_profile"), dict) else {}
-    event_type = _canonical_pec_event_type(report, procedural_profile)
     link = summary.get("fascicolo_link") if isinstance(summary.get("fascicolo_link"), dict) else {}
     fields = summary.get("fields") if isinstance(summary.get("fields"), dict) else {}
+    procedural_profile = pec_profilo_ufficio.riallinea_profilo(
+        procedural_profile,
+        mittente=_safe_text((fields.get("mittente") or {}).get("value") if isinstance(fields.get("mittente"), dict) else ""),
+        destinatari=_safe_text((fields.get("destinatari") or {}).get("value") if isinstance(fields.get("destinatari"), dict) else ""),
+    )
+    event_type = _canonical_pec_event_type(report, procedural_profile)
     attachments = summary.get("attachments") if isinstance(summary.get("attachments"), list) else []
     provisional = bool(summary.get("provisional"))
     source_email_id = _safe_text(summary.get("source_email_id"))

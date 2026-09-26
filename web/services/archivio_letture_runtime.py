@@ -270,22 +270,35 @@ def testi_indice_archivio(fascicolo: Any) -> dict[str, str]:
     tenant = document_ai_tenant_id()
     records = sorted(repository.list_documents(tenant, fid), key=lambda r: str(r.updated_at or ""), reverse=True)
     by_sha = {}
+    by_name: dict[str, list[Any]] = {}
     for record in records:
         if str(record.status) == "ready" and record.sha256:
             by_sha.setdefault(record.sha256, record)
+            by_name.setdefault(str(record.original_filename or "").casefold(), []).append(record)
     hashes = impronte_contenuto(fid)
-    text_by_sha, result = {}, {}
+    text_by_record: dict[str, str] = {}
+
+    def _testo(record: Any) -> str:
+        if record.id not in text_by_record:
+            extracted = repository.get_extracted_text(tenant, fid, record.id, record.current_version_id)
+            text = str(getattr(extracted, "text", "") or "")
+            # Un record letto dal file ancora cifrato («PCTENC…») non è il testo del documento.
+            text_by_record[record.id] = "" if text.lstrip().startswith("PCTENC") else text
+        return text_by_record[record.id]
+
+    result = {}
     for doc in fascicolo.documenti:
         sha = str(getattr(doc, "hash_contenuto_sha256", "") or "") or (hashes.nota(doc) if hashes else "") or str(getattr(doc, "hash_sha256", "") or "")
         record = by_sha.get(sha)
-        if record is None:
-            continue
-        if sha not in text_by_sha:
-            extracted = repository.get_extracted_text(tenant, fid, record.id, record.current_version_id)
-            text = str(getattr(extracted, "text", "") or "")
-            text_by_sha[sha] = "" if text.lstrip().startswith("PCTENC") else text
-        if text_by_sha[sha].strip():
-            result[str(doc.id)] = text_by_sha[sha]
+        testo = _testo(record) if record is not None else ""
+        if not testo.strip() and (record is None or sha == str(getattr(doc, "hash_sha256", "") or "")):
+            # L'impronta del file cifrato non è quella del contenuto (tipico dei .pdf.p7m
+            # indicizzati prima della decifratura): vale la lettura più recente dello
+            # stesso file in questo fascicolo, se ha un testo vero.
+            nomi = {Path(str(getattr(doc, campo, "") or "")).name.casefold() for campo in ("nome", "nome_originale")} - {""}
+            testo = next((t for nome in nomi for r in by_name.get(nome, []) if (t := _testo(r)).strip()), "")
+        if testo.strip():
+            result[str(doc.id)] = testo
     if has_app_context():
         cache[fid] = result
         g._archivio_testi_sql = cache

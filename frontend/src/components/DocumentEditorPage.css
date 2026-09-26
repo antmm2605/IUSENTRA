@@ -1,4 +1,6 @@
 .iu-doc-editor-page{display:grid;gap:14px;min-width:0}
+.iu-doc-editor-page:fullscreen,.iu-doc-editor-page.is-tutto-schermo{overflow:auto;background:var(--iu-surface-0,#f8fafc);padding:12px;align-content:start}
+.iu-doc-editor-page.is-tutto-schermo{position:fixed;inset:0;z-index:2000;max-width:none;margin:0}
 .iu-de-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:16px;border:1px solid var(--iu-border);border-radius:8px;background:#fff;box-shadow:var(--iu-shadow-soft)}
 .iu-de-hero h1{margin:5px 0 6px;color:#0f172a;font-size:27px;font-weight:950;line-height:1.14;letter-spacing:0;overflow-wrap:anywhere}
 .iu-de-hero p{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0;color:var(--iu-slate-600);font-size:13px;font-weight:800}

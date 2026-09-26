@@ -469,7 +469,51 @@ function searchWaitHint(seconds: number): string {
   return 'Il portale ministeriale sta rispondendo lentamente, ma l’operazione prosegue. Si interrompe da sola se supera i sei minuti.'
 }
 
-export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocumentsRequest = null }: Props) {
+const PORTALE_AVVOCATO_GA = 'https://pe.prod.cloud.giustizia-amministrativa.it'
+const TELECONTENZIOSO = 'https://sigit.finanze.it/Sigit/index.do'
+
+/**
+ * I documenti d'ufficio di un ricorso al TAR o alla Corte di giustizia tributaria non stanno nel PST
+ * (registri civili e penali): si consultano sul Portale dell'Avvocato della Giustizia amministrativa
+ * (art. 136 c.p.a.) o sul Telecontenzioso del SIGIT. Qui si mostra il registro già noto o letto e il portale giusto,
+ * invece di chiedere un codice ufficio PST che per questi giudici non esiste.
+ */
+function OfficeDocumentsFuoriPst({ data }: { data: FascicoloDetailData }) {
+  const tributario = data.fascicolo.type === 'tributario'
+  const source = data.fascicolo.sourceSnapshot
+  const ufficio = source.ufficioNome || (data.fascicolo.court !== 'Ufficio non impostato' ? data.fascicolo.court : '')
+  const registro = data.fascicolo.rgNumber && data.fascicolo.rgYear ? `${data.fascicolo.rgNumber}/${data.fascicolo.rgYear}` : ''
+  const letto = registro ? '' : data.fascicolo.rgLetto
+  return (
+    <section className="iu-fas-office-docs" aria-label="Documenti del fascicolo d’ufficio">
+      <header className="iu-fas-office-docs__head">
+        <div>
+          <span className="iu-fas-office-docs__eyebrow"><FolderSearch2 size={15}/> Fascicolo d’ufficio</span>
+          <strong>{tributario ? 'Documenti presso la Corte di giustizia tributaria' : 'Documenti presso il giudice amministrativo'}</strong>
+          <p>{ufficio || 'Ufficio da indicare'} · {tributario ? 'R.G.' : 'NRG'} {registro || (letto ? `${letto} (letto dai documenti, da confermare)` : 'da indicare')}</p>
+        </div>
+        <div className="iu-fas-office-docs__head-actions">
+          <a className="iu-btn iu-btn--primary" href={tributario ? TELECONTENZIOSO : PORTALE_AVVOCATO_GA} target="_blank" rel="noreferrer">
+            <FolderSearch2 size={15}/> {tributario ? 'Telecontenzioso' : 'Portale dell’Avvocato'}
+          </a>
+        </div>
+      </header>
+      <p className="iu-fas-office-docs__notice">
+        {tributario
+          ? 'Il PST non contiene i fascicoli tributari: atti e documenti del giudizio si consultano sul Telecontenzioso del SIGIT con le credenziali del PTT.'
+          : 'Il PST non contiene i ricorsi al TAR e al Consiglio di Stato: atti e documenti si consultano sul Portale dell’Avvocato della Giustizia amministrativa (SPID, CIE o CNS).'}
+        {letto ? ` ${tributario ? 'Il numero di ruolo' : 'Il NRG'} ${letto} è stato letto dai documenti del fascicolo: confermalo nella sezione ${tributario ? '«Deposito tributario (PTT)»' : '«Deposito amministrativo (PAT)»'}.` : ''}
+      </p>
+    </section>
+  )
+}
+
+export function OfficeDocumentsPanel(props: Props) {
+  const tipo = props.data.fascicolo.type
+  return tipo === 'amministrativo' || tipo === 'tributario' ? <OfficeDocumentsFuoriPst data={props.data}/> : <OfficeDocumentsPstPanel {...props}/>
+}
+
+function OfficeDocumentsPstPanel({ data, onDone, onError, openOfficeDocumentsRequest = null }: Props) {
   const [catalogDocuments, setDocuments] = useState<OfficeDocument[]>([])
   // Il catalogo ministeriale resta stabile; la presenza deriva sempre
   // dall'ultima risposta del fascicolo, anche dopo un'importazione parziale.
@@ -517,6 +561,23 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
   const rgNumber = source.numero || String(data.fascicolo.rgNumber || '')
   const rgYear = source.anno || data.fascicolo.rgYear
   const missing = [!officeCode && 'codice ufficio', !rgNumber && 'numero R.G.', !rgYear && 'anno R.G.'].filter(Boolean) as string[]
+  // L'R.G. letto da un provvedimento del fascicolo: una proposta, registrata solo quando l'avvocato la conferma.
+  const rgLetto = !rgNumber || !rgYear ? data.fascicolo.rgLetto : ''
+  const confermaRgLetto = async () => {
+    const [numeroRg, annoRg] = rgLetto.split('/')
+    try {
+      const response = await fetch(`/fascicoli/${encodeURIComponent(data.fascicolo.id)}/aggancia-rg`, {
+        method: 'POST', credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ numeroRg, annoRg: Number(annoRg) }),
+      })
+      const payload = await response.json() as { ok?: boolean; message?: string }
+      if (payload.ok) onDone(`R.G. ${rgLetto} registrato nel fascicolo.`)
+      else onError(payload.message || 'Registrazione del R.G. non riuscita.')
+    } catch {
+      onError('Registrazione del R.G. non riuscita.')
+    }
+  }
   const acquiredCount = useMemo(() => documents.filter((doc) => doc.acquired).length, [documents])
   const selectableDocuments = useMemo(() => documents.filter((doc) => !doc.acquired), [documents])
   const selectedDocuments = useMemo(() => documents.filter((doc) => selection.includes(doc.key)), [documents, selection])
@@ -969,6 +1030,12 @@ export function OfficeDocumentsPanel({ data, onDone, onError, openOfficeDocument
         </div>
       </header>
 
+      {missing.length && rgLetto ? (
+        <p className="iu-fas-office-docs__notice">
+          R.G. {rgLetto} letto dai documenti del fascicolo (archivio delle letture): confermalo per avviare la ricerca.{' '}
+          <button type="button" className="iu-btn" disabled={Boolean(busy)} onClick={() => void confermaRgLetto()}><CheckCircle2 size={14}/> Conferma e usa</button>
+        </p>
+      ) : null}
       {missing.length ? <p className="iu-fas-office-docs__notice iu-fas-office-docs__notice--warning">Completa {missing.join(', ')} nel fascicolo per avviare la ricerca.</p> : null}
       {message ? <p className="iu-fas-office-docs__notice" aria-live="polite">{message}</p> : null}
       {busy === 'search' ? (

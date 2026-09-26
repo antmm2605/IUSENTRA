@@ -85,6 +85,20 @@ def extract_document_text(file_path: str | Path, file_type: str) -> DocumentAITe
 
 
 def extract_text_from_document(content: bytes, filename: str, file_type: str) -> ExtractionResult:
+    from pct.document_crypto import ENC_MAGIC, decrypt_doc
+
+    if content.startswith(ENC_MAGIC):
+        # File conservato cifrato (AES-256-GCM a riposo) passato senza decifrarlo:
+        # leggerne i byte produceva «PCTENC…» come testo del documento, e per un
+        # .pdf.p7m la busta firmata non si apriva mai. Si decifra qui; senza
+        # chiave la lettura fallisce dichiarandolo, mai con testo spazzatura.
+        try:
+            content = decrypt_doc(content)
+        except Exception as exc:
+            return ExtractionResult(
+                ok=False, text="", pages=[], extraction_engine="document-crypto",
+                error_code="encrypted_document", error_message=f"Documento cifrato non decifrabile: {exc}",
+            )
     if _is_cades_signature_name(filename):
         payload, payload_name, unwrap_warnings = _unwrap_p7m_payload(content, filename)
         payload_type = _file_type_from_payload(payload, payload_name, fallback=file_type)
@@ -170,6 +184,9 @@ def extract_text_from_document(content: bytes, filename: str, file_type: str) ->
 
 
 def _unwrap_p7m_payload(content: bytes, filename: str) -> tuple[bytes, str, list[str]]:
+    from pct.firme_cades import der_da_base64
+
+    content = der_da_base64(content)
     inner_name = str(filename or "").strip()
     if _is_cades_signature_name(inner_name):
         inner_name = inner_name[:-4]

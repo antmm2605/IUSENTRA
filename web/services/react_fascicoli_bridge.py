@@ -5393,10 +5393,14 @@ def _ruolo_dall_archivio(fascicolo: Any) -> dict[str, str]:
         _text(getattr(fascicolo, "tribunale", ""))
         or _text(getattr(fascicolo, "ufficio_giudiziario", ""))
     )
-    for voce in ruoli_letti(
-        _fatti_archivio(fascicolo, categoria="ruolo"),
-        ufficio_giudiziario=ufficio,
-    ):
+    fatti = _fatti_archivio(fascicolo, categoria="ruolo")
+    if _text(getattr(getattr(fascicolo, "tipo", None), "value", getattr(fascicolo, "tipo", ""))).upper() == "AMMINISTRATIVO":
+        # Nel fascicolo amministrativo vale solo il registro del giudice
+        # amministrativo: l'R.G. della sentenza ordinaria da ottemperare no.
+        from pct.pat_formweb.letture import ruolo_amministrativo
+
+        fatti, ufficio = [fatto for fatto in fatti if ruolo_amministrativo(fatto)], ""
+    for voce in ruoli_letti(fatti, ufficio_giudiziario=ufficio):
         numero, _, anno = _text(voce.get("valore")).partition("/")
         if numero.strip() and anno.strip():
             oggetti = [str(o) for o in (voce.get("oggetti") or []) if str(o or "").strip()]
@@ -6808,7 +6812,22 @@ def _deposit_office_payload(fascicolo: Any) -> dict[str, Any]:
         )
 
     office = None
-    for term in wanted_terms:
+    # TAR, Consiglio di Stato e CGARS scritti a mano («TAR di Reggio Calabria»,
+    # «Tribunale amministrativo del Veneto»): la ricerca per somiglianza trovava
+    # uffici ordinari (Tribunale di Napoli Nord, Giudice di Pace di Taranto). La
+    # sede si ricava da regione e città; «TAR» senza luogo resta da indicare.
+    from pct.pat_formweb.letture import codice_ufficio_da_testo, giustizia_amministrativa
+
+    amministrativo = next((t for t in (profile_name, office_name) if _text(t) and giustizia_amministrativa(_text(t))), "")
+    if amministrativo:
+        codice_amministrativo = codice_ufficio_da_testo(amministrativo)
+        office = next((row for row in offices if _text(row.get("codice")) == codice_amministrativo), None) if codice_amministrativo else None
+        if office is None and not profile_complete:
+            return {
+                **base,
+                "message": f"«{office_name}» non indica la sede del giudice amministrativo: scrivi regione o città (es. «TAR Calabria - Reggio Calabria»).",
+            }
+    for term in ([] if amministrativo else wanted_terms):
         try:
             office = risolvi_ufficio(term, cache_path=_uffici_cache_path())
         except Exception:
@@ -6816,12 +6835,12 @@ def _deposit_office_payload(fascicolo: Any) -> dict[str, Any]:
         if office is not None:
             break
 
-    if office is None:
+    if office is None and not amministrativo:
         office = next(
         (row for row in offices if any(term in _office_field_values(row) for term in wanted_terms)),
         None,
         )
-    if office is None:
+    if office is None and not amministrativo:
         name_terms = [term for term in wanted_terms[:2] if term]
         office = next(
             (

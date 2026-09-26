@@ -34,7 +34,7 @@ x-iusentra-env: &iusentra-env
   PCT_LOCAL_AI_ENABLED: ${PCT_LOCAL_AI_ENABLED:-1}
   # Seconda lettura di Lex sulla catalogazione dei documenti (scheduler-worker).
   PCT_LEX_CATALOGO: ${PCT_LEX_CATALOGO:-1}
-  PCT_LEX_CATALOGO_MODELLO: ${PCT_LEX_CATALOGO_MODELLO:-qwen3:4b}
+  PCT_LEX_CATALOGO_MODELLO: ${PCT_LEX_CATALOGO_MODELLO:-maternion/spark-x2.5:4b}
   PCT_LEX_CATALOGO_THREAD: ${PCT_LEX_CATALOGO_THREAD:-4}
   PCT_STUDIO_NOME: ${PCT_STUDIO_NOME:-IUSENTRA}
   IUSENTRA_BACKUP_DIR: /opt/iusentra/backups
@@ -348,7 +348,7 @@ services:
     logging: *iusentra-logging
     environment:
       OLLAMA_NO_CLOUD: "1"
-      # Assistente (gemma) e catalogazione (qwen) possono restare residenti:
+      # Assistente (gemma) e catalogazione (Spark-X2.5, riserva qwen) possono restare residenti:
       # evita il costo di reload senza consentire al runtime di caricare tutti
       # i modelli presenti sul disco.
       OLLAMA_MAX_LOADED_MODELS: ${OLLAMA_MAX_LOADED_MODELS:-2}

@@ -91,7 +91,7 @@ export default function PatFormwebSezione({ fascicoloId, onDocumenti }: { fascic
       {letti.nrg || letti.sede ? (
         <div className="iu-pat-avviso iu-pat-letti" role="status">
           <span>
-            <strong>Letto dai documenti del fascicolo:</strong>{' '}
+            <strong>{fonti.length ? 'Letto dai documenti del fascicolo:' : `Letto dal ${letti.sede?.fonte || 'fascicolo'}:`}</strong>{' '}
             {[sedeLetta, letti.nrg ? `NRG ${letti.nrg.valore} (R.G. ${letti.nrg.rg})` : ''].filter(Boolean).join(' · ')}
             {fonti.length ? <small> — da {fonti.map((f) => `«${f}»`).join(', ')}</small> : null}
           </span>

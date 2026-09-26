@@ -108,7 +108,7 @@ export type QuadroPat = {
   }
 }
 
-export type DatoLetto = { valore: string; verifica: string; documenti: string[] }
+export type DatoLetto = { valore: string; verifica: string; documenti: string[]; fonte?: string }
 
 export type CatalogoPat = {
   ok: boolean

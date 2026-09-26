@@ -22,7 +22,9 @@ import {
   ListChecks,
   ListOrdered,
   LoaderCircle,
+  Maximize2,
   Mic,
+  Minimize2,
   Palette,
   Pilcrow,
   Redo2,
@@ -437,6 +439,33 @@ export function DocumentEditorPage() {
   const [pagePreset, setPagePreset] = useState<string>('a4')
   const [zoom, setZoom] = useState('100')
   const [editorAiOpen, setEditorAiOpen] = useState(false)
+  // Tutto schermo: la pagina dell'editor occupa lo schermo (API Fullscreen; dove manca, ad esempio
+  // su iPhone, la pagina copre comunque la finestra e si chiude con Esc o con lo stesso pulsante).
+  const paginaRef = useRef<HTMLElement | null>(null)
+  const [tuttoSchermo, setTuttoSchermo] = useState(false)
+  useEffect(() => {
+    const allinea = () => setTuttoSchermo(Boolean(document.fullscreenElement) || paginaRef.current?.classList.contains('is-tutto-schermo') === true)
+    const esci = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && paginaRef.current?.classList.contains('is-tutto-schermo')) {
+        paginaRef.current.classList.remove('is-tutto-schermo')
+        setTuttoSchermo(false)
+      }
+    }
+    document.addEventListener('fullscreenchange', allinea)
+    document.addEventListener('keydown', esci)
+    return () => { document.removeEventListener('fullscreenchange', allinea); document.removeEventListener('keydown', esci) }
+  }, [])
+  const cambiaTuttoSchermo = async () => {
+    const pagina = paginaRef.current
+    if (!pagina) return
+    if (document.fullscreenElement) { await document.exitFullscreen().catch(() => undefined); return }
+    if (pagina.classList.contains('is-tutto-schermo')) { pagina.classList.remove('is-tutto-schermo'); setTuttoSchermo(false); return }
+    if (pagina.requestFullscreen) {
+      try { await pagina.requestFullscreen(); return } catch { /* ripiego sotto */ }
+    }
+    pagina.classList.add('is-tutto-schermo')
+    setTuttoSchermo(true)
+  }
   const [editorAiBootstrapped, setEditorAiBootstrapped] = useState(false)
   const [editorAiLoading, setEditorAiLoading] = useState(false)
   const [editorAiError, setEditorAiError] = useState('')
@@ -1174,7 +1203,7 @@ export function DocumentEditorPage() {
   } as React.CSSProperties
 
   return (
-    <main className="iu-content iu-doc-editor-page">
+    <main className="iu-content iu-doc-editor-page" ref={paginaRef}>
       <section className="iu-de-hero">
         <div>
           <span className="iu-de-eyebrow"><FileText size={16}/> Editor professionale</span>
@@ -1186,6 +1215,9 @@ export function DocumentEditorPage() {
         </div>
         <nav aria-label="Azioni documento">
           <a href={data.fascicolo.detailHref}><ArrowLeft size={15}/> Fascicolo</a>
+          <button type="button" onClick={() => void cambiaTuttoSchermo()} aria-pressed={tuttoSchermo} title={tuttoSchermo ? 'Esci da tutto schermo (Esc)' : 'Apri l’editor a tutto schermo'}>
+            {tuttoSchermo ? <Minimize2 size={15}/> : <Maximize2 size={15}/>} {tuttoSchermo ? 'Esci da tutto schermo' : 'Tutto schermo'}
+          </button>
           {doc.actions.preview ? <a href={doc.actions.preview}><Eye size={15}/> Anteprima</a> : null}
           {doc.actions.sign ? <a href={doc.actions.sign}><ShieldCheck size={15}/> Firma</a> : null}
           {doc.actions.download ? <a href={doc.actions.download}><Download size={15}/> Scarica</a> : null}

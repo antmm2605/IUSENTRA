@@ -26,12 +26,15 @@ VERIFICHE_UTILI = ("verificata", "plausibile", "corretta")
 _REGIONI = {
     "piemonte": "PIEMONTE", "valle d aosta": "VALLE D'AOSTA", "lombardia": "LOMBARDIA", "liguria": "LIGURIA",
     "trentino alto adige": "TRENTINO ALTO ADIGE", "bolzano": "TRENTINO ALTO ADIGE", "trento": "TRENTINO ALTO ADIGE",
-    "veneto": "VENETO", "friuli venezia giulia": "FRIULI VENEZIA GIULIA", "emilia romagna": "EMILIA-ROMAGNA",
+    "veneto": "VENETO", "friuli venezia giulia": "FRIULI VENEZIA GIULIA", "friuli v g": "FRIULI VENEZIA GIULIA",
+    "friuli": "FRIULI VENEZIA GIULIA", "trentino a a": "TRENTINO ALTO ADIGE", "trentino": "TRENTINO ALTO ADIGE", "emilia romagna": "EMILIA-ROMAGNA",
     "toscana": "TOSCANA", "umbria": "UMBRIA", "marche": "MARCHE", "lazio": "LAZIO", "abruzzo": "ABRUZZO",
     "molise": "MOLISE", "campania": "CAMPANIA", "basilicata": "BASILICATA", "calabria": "CALABRIA",
     "sicilia": "SICILIA", "sardegna": "SARDEGNA", "puglia": "PUGLIA",
 }
-_TAR = re.compile(r"\b(?:tribunale amministrativo regionale|t a r|tar|tribunale regionale di giustizia amministrativa)\b")
+_TAR = re.compile(r"\b(?:tribunale amministrativo(?: regionale)?|t a r|tar|tribunale regionale di giustizia amministrativa)\b")
+# Città sedi dei TAR scritte in modo diverso dal Portale dell'Avvocato.
+_CITTA_ALIAS = {"reggio di calabria": "reggio calabria", "reggio": "reggio calabria", "l aquila": "l aquila", "aquila": "l aquila"}
 
 
 def _semplice(testo: str) -> str:
@@ -49,8 +52,25 @@ def _sedi_tar() -> list[tuple[str, str, str, str]]:
     return righe
 
 
+def _citta_nel_testo(testo: str, sedi: list[tuple[str, str, str, str]]) -> tuple[str, str, str, str] | None:
+    """La sede la cui città compare nel testo (la più lunga prima: «reggio calabria» prima di «reggio»)."""
+    for alias, citta in sorted(_CITTA_ALIAS.items(), key=lambda voce: -len(voce[0])):
+        testo = re.sub(rf"\b{alias}\b", citta, testo)
+    for sede in sorted(sedi, key=lambda voce: -len(voce[3])):
+        if re.search(rf"\b{re.escape(sede[3])}\b", testo):
+            return sede
+    return None
+
+
 def sede_da_testo(testo: str) -> str:
-    """Codice SIGA della sede nominata nel testo (TAR, Consiglio di Stato, CGARS); vuoto se non è chiara."""
+    """Codice SIGA della sede nominata nel testo (TAR, Consiglio di Stato, CGARS); vuoto se non è chiara.
+
+    Vale per l'epigrafe di un atto («Il T.A.R. per la Calabria - Sezione staccata di
+    Reggio Calabria») e per l'ufficio scritto a mano nel fascicolo («TAR VENEZIA»,
+    «Tribunale amministrativo del Veneto», «Tar della Calabria sede di Reggio
+    Calabria»): la regione dà la sede principale, la città la sezione staccata;
+    la sola città basta quando è sede di un TAR. «TAR» senza luogo non basta.
+    """
     semplice = _semplice(testo)
     if not semplice:
         return ""
@@ -61,21 +81,72 @@ def sede_da_testo(testo: str) -> str:
     trovato = _TAR.search(semplice)
     if not trovato:
         return ""
-    dopo = semplice[trovato.end():]
-    regione = next((_REGIONI[nome] for nome in sorted(_REGIONI, key=len, reverse=True) if re.search(rf"\b{nome}\b", dopo[:80])), "")
+    dopo = semplice[trovato.end():][:120]
+    tutte = _sedi_tar()
+    regione = next((_REGIONI[nome] for nome in sorted(_REGIONI, key=len, reverse=True) if re.search(rf"\b{nome}\b", dopo)), "")
     if not regione:
-        return ""
-    sedi = [s for s in _sedi_tar() if s[2] == _semplice(regione)]
-    staccata = re.search(r"\b(?:sezione staccata|sede staccata|sede) di ([a-z ]+)", dopo)
-    if staccata:
-        citta = next((s for s in sedi if staccata.group(1).startswith(s[3])), None)
-        if citta:
-            return citta[1]
-    for nome in ("bolzano", "trento"):
-        if regione == "TRENTINO ALTO ADIGE" and re.search(rf"\b{nome}\b", dopo[:80]):
-            return next((s[1] for s in sedi if s[3] == nome), "")
+        citta = _citta_nel_testo(dopo, tutte)
+        return citta[1] if citta else ""
+    sedi = [s for s in tutte if s[2] == _semplice(regione)]
+    senza_regione = dopo
+    for nome, valore in _REGIONI.items():
+        if valore == regione and nome not in {"bolzano", "trento"}:
+            senza_regione = re.sub(rf"\b{nome}\b", " ", senza_regione)
+    citta = _citta_nel_testo(senza_regione, sedi)
+    if citta:
+        return citta[1]
     principale = next((s for s in sedi if s[0].endswith("0000")), None)
     return principale[1] if principale else ""
+
+
+def codice_ufficio_da_testo(testo: str) -> str:
+    """Il codice del registro uffici IUSENTRA (T170001, CDS000000…) della sede nominata nel testo."""
+    sede = sede_da_testo(testo)
+    return next((codice for codice, (siga, _etichetta) in catalogo.SEDI.items() if siga == sede), "") if sede else ""
+
+
+def giustizia_amministrativa(testo: str) -> bool:
+    """Il testo nomina un giudice amministrativo (TAR, Consiglio di Stato, CGARS), anche senza sede."""
+    semplice = _semplice(testo)
+    return bool(_TAR.search(semplice)) or "consiglio di stato" in semplice or "consiglio di giustizia amministrativa" in semplice
+
+
+_UFFICIO_ORDINARIO = re.compile(
+    r"\b(?:tribunale(?! amministrativo| regionale di giustizia)(?: ordinario)?(?: di| del| della| per)?|corte d ?appello|corte di appello|"
+    r"giudice di pace|giudice del lavoro|sezione lavoro|corte di cassazione|corte suprema di cassazione|corte dei conti)\b"
+)
+_AMMINISTRATIVO = re.compile(
+    r"\b(?:tribunale amministrativo(?: regionale)?|t a r|tar|tribunale regionale di giustizia amministrativa|consiglio di stato|"
+    r"consiglio di giustizia amministrativa|reg ric|registro generale dei ricorsi)\b"
+)
+
+
+def ruolo_amministrativo(fatto: Any) -> bool:
+    """Il numero letto è il registro generale di un giudice amministrativo, non di un altro ufficio.
+
+    Il fascicolo di un'ottemperanza contiene la sentenza del giudice ordinario da
+    eseguire: il suo «R.G. 2914/2024» è del Tribunale di Palmi, non il NRG del TAR.
+    Il numero vale solo se l'ultimo ufficio nominato prima di esso è un giudice
+    amministrativo (o la sigla del registro ricorsi lo segue); le sigle del ruolo
+    civile (R.G.L., R.G.A.C.) lo escludono. Senza un giudice amministrativo nel
+    contesto non si propone nulla: meglio un dato da indicare che un NRG sbagliato.
+    """
+    letto = _semplice(getattr(fatto, "valore_letto", ""))
+    if re.match(r"^(?:r g l|rgl|r g a c|rgac)\b", letto):
+        return False
+    contesto = _semplice(getattr(fatto, "contesto", ""))
+    numero, _, anno = str(getattr(fatto, "valore", "") or "").partition("/")
+    posizione = -1
+    if numero and anno:
+        cercato = re.search(rf"\b0*{int(numero) if numero.isdigit() else re.escape(numero)} {anno[-4:]}\b", contesto)
+        posizione = cercato.start() if cercato else -1
+    prima = contesto if posizione < 0 else contesto[:posizione]
+    dopo = "" if posizione < 0 else contesto[posizione:posizione + 60]
+    ultimo_amm = max((m.start() for m in _AMMINISTRATIVO.finditer(prima)), default=-1)
+    ultimo_ord = max((m.start() for m in _UFFICIO_ORDINARIO.finditer(prima)), default=-1)
+    if ultimo_amm > ultimo_ord:
+        return True
+    return ultimo_ord < 0 and bool(_AMMINISTRATIVO.search(dopo)) and not _UFFICIO_ORDINARIO.search(dopo)
 
 
 def nrg_da_ruolo(valore: str) -> str:
@@ -94,7 +165,7 @@ def dati_letti(fatti: Iterable[Any], nomi: dict[str, str] | None = None) -> dict
         if getattr(fatto, "verifica", "") not in VERIFICHE_UTILI:
             continue
         nrg = nrg_da_ruolo(getattr(fatto, "valore", ""))
-        if not nrg:
+        if not nrg or not ruolo_amministrativo(fatto):
             continue
         voce = candidati.setdefault(nrg, {"valore": nrg, "rg": fatto.valore, "verifica": fatto.verifica,
                                           "documenti": [], "sede": ""})
@@ -116,4 +187,4 @@ def dati_letti(fatti: Iterable[Any], nomi: dict[str, str] | None = None) -> dict
     return esito
 
 
-__all__ = ["dati_letti", "nrg_da_ruolo", "sede_da_testo"]
+__all__ = ["codice_ufficio_da_testo", "dati_letti", "giustizia_amministrativa", "nrg_da_ruolo", "ruolo_amministrativo", "sede_da_testo"]

@@ -164,6 +164,8 @@ export type FascicoloRow = {
   rgMissing: boolean
   rgStatusLabel: string
   rgSourceLabel: string
+  /** R.G. letto dall'archivio delle letture, da confermare (es. «10549/2025»). */
+  rgLetto: string
   nextDeadline: string
   nextDeadlineIso: string
   status: Exclude<FascicoloStato, 'tutti'>
@@ -1480,7 +1482,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
   fascicolo: {
     id: '', ref: 'n.d.', internalRef: 'n.d.', title: 'Fascicolo non trovato', subtitle: '', type: 'altro', client: 'n.d.', court: 'n.d.',
     object: '', procedureType: '', register: '', section: '', sectionRole: '', judge: '', opposingLawyer: '', holder: '', responsible: '', counterparty: '', claimant: '', clerk: '', ctu: '', ctp: '', notes: '', operationalStatus: '', customText1: '', customText2: '', groupName: '', caseValue: 0, rg: 'n.d.',
-    rgNumber: 0, rgYear: 0, rgMissing: false, rgStatusLabel: '', rgSourceLabel: '', nextDeadline: 'n.d.', nextDeadlineIso: '', status: 'aperto', documents: 0, unreadCommunications: 0, alerts: 0, openedAt: '', closedAt: '', updatedAt: '',
+    rgNumber: 0, rgYear: 0, rgMissing: false, rgStatusLabel: '', rgSourceLabel: '', rgLetto: '', nextDeadline: 'n.d.', nextDeadlineIso: '', status: 'aperto', documents: 0, unreadCommunications: 0, alerts: 0, openedAt: '', closedAt: '', updatedAt: '',
     href: '/fascicoli', operationalHref: '/fascicoli', editHref: '/fascicoli', operationalEditHref: '/fascicoli', exportPdfHref: '', deleteHref: '', archiveZipHref: '', restoreAction: '', tone: 'neutral',
     relataStatus: '', relataStatusLabel: '', relataTone: 'warning', relataHref: '', relataPrimaryHref: '', relataPrimaryLabel: '', relataReleaseDetected: false, relataCount: 0,
     duplicateCount: 0, duplicateIds: [], duplicateKey: '', duplicateLabel: '', duplicateHref: '',
@@ -1789,6 +1791,7 @@ export function normalizeItem(value: unknown, index: number): FascicoloRow {
     rgMissing: bool(item.rgMissing ?? item.rg_missing),
     rgStatusLabel: text(item.rgStatusLabel ?? item.rg_status_label),
     rgSourceLabel: text(item.rgSourceLabel ?? item.rg_source_label),
+    rgLetto: text(item.rgLetto ?? item.rg_letto),
     nextDeadline: text(item.nextDeadline ?? item.prossima_scadenza_label ?? item.next_deadline, 'n.d.'),
     nextDeadlineIso: text(item.nextDeadlineIso ?? item.prossima_scadenza ?? item.next_deadline_iso, ''),
     status,

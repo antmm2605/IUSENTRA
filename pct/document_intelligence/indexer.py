@@ -158,6 +158,9 @@ def _ready_source_has_extracted_text(
                 continue
 
             engine = str(getattr(extracted, "extraction_engine", "") or "")
+            if str(extracted.text).lstrip().startswith("PCTENC"):
+                # Testo letto dal file ancora cifrato: il documento va riletto decifrato.
+                continue
             if engine == "email.message" or (engine == "bin.binary-best-effort" and str(extracted.text).startswith("MIME-Version:")):
                 # Corregge una sola volta i vecchi indici che includevano
                 # base64 o byte cifrati come se fossero testo dell'atto.

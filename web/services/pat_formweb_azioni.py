@@ -66,7 +66,37 @@ def salva_procedimento(fid: str, dati: dict[str, Any]) -> dict[str, Any]:
             pulito["valore"] = float(str(dati["valore"] or 0).replace(".", "").replace(",", ".")) or None
         except ValueError as exc:
             raise ValueError("Valore della controversia non valido.") from exc
-    return contesto.archivio().aggiorna_procedimento(fid, pulito)
+    salvato = contesto.archivio().aggiorna_procedimento(fid, pulito)
+    _allinea_fascicolo(fid, pulito)
+    return salvato
+
+
+def _allinea_fascicolo(fid: str, pulito: dict[str, Any]) -> None:
+    """NRG e sede confermati nel PAT diventano anche il registro e l'ufficio del fascicolo, se mancano.
+
+    Nel processo amministrativo il NRG è il numero di ruolo del fascicolo: senza
+    questo allineamento il fascicolo continuava a dire «RG letto, da confermare»
+    dopo la conferma nel Procedimento. Un dato già presente nel fascicolo non si tocca.
+    """
+    try:
+        fascicolo = contesto.fascicolo_amministrativo(fid)
+        campi: dict[str, Any] = {}
+        nrg = str(pulito.get("nrg") or "")
+        if len(nrg) == 9 and not str(fascicolo.numero_rg or "").strip():
+            campi.update(numero_rg=str(int(nrg[4:])), anno_rg=int(nrg[:4]))
+        sede = str(pulito.get("sede") or "")
+        ufficio = str(fascicolo.tribunale or "").strip()
+        if sede and (not ufficio or not contesto.sede_da_ufficio(ufficio)):
+            codice = next((c for c, (siga, _e) in catalogo.SEDI.items() if siga == sede), "")
+            from pct.uffici_giudiziari import get_gestore
+
+            nome = next((str(u.get("nome") or "") for u in get_gestore().carica() if u.get("codice") == codice), "")
+            if nome and not ufficio:
+                campi["tribunale"] = nome
+        if campi:
+            contesto._runtime("get_fascicoli").aggiorna(fid, **campi)
+    except Exception:
+        current_app.logger.warning("Allineamento del fascicolo %s dal PAT non riuscito", fid, exc_info=True)
 
 
 def ruolo_parte(fid: str, soggetto: str, ruolo: str) -> None:

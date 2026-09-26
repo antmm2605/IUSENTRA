@@ -198,3 +198,15 @@ def test_il_giro_rilegge_un_documento_e_si_ferma(tmp_path, monkeypatch):
     assert primo == {"lette": 1, "scelte": 1, "cambiate": 1, "errori": 0}
     assert secondo["lette"] == 0  # gia' letto per questo documento e questo modello
     assert repo.get_catalog_assignment("studio-test", "FASC-LEX", "DOC-LEX").document_label == "Note scritte ex art. 127-ter c.p.c."
+
+
+def test_modello_del_catalogo_spark_con_riserva_qwen(monkeypatch):
+    from web.services import catalogo_lex_runtime as runtime
+
+    monkeypatch.delenv("PCT_LEX_CATALOGO_MODELLO", raising=False)
+    monkeypatch.setattr(runtime, "_MODELLI_NON_ESEGUIBILI", set())
+    assert runtime.modello_catalogo() == "maternion/spark-x2.5:4b"
+    assert runtime._modello_non_eseguibile("llama runner: unknown model architecture: 'spark2_5'")
+    assert not runtime._modello_non_eseguibile("connection refused")
+    runtime._MODELLI_NON_ESEGUIBILI.add("maternion/spark-x2.5:4b")
+    assert runtime.modello_catalogo() == "qwen3:4b"

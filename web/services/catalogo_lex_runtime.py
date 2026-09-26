@@ -8,7 +8,7 @@ server.
 
 Variabili:
 - PCT_LEX_CATALOGO=0 spegne la seconda lettura;
-- PCT_LEX_CATALOGO_MODELLO sceglie il modello (predefinito qwen3:4b);
+- PCT_LEX_CATALOGO_MODELLO sceglie il modello (predefinito Spark-X2.5 4B, riserva qwen3:4b);
 - PCT_LEX_CATALOGO_PER_GIRO documenti per giro (predefinito 1);
 - PCT_LEX_CATALOGO_THREAD processori usati da Ollama (predefinito 4).
 """
@@ -24,6 +24,7 @@ from typing import Any
 from flask import Flask, g
 
 from pct.document_intelligence.catalog_lex import (
+    MODELLO_DI_RISERVA,
     MODELLO_PREDEFINITO,
     EsitoLex,
     applica_esito,
@@ -45,8 +46,18 @@ def _attiva() -> bool:
     ).strip().lower() not in {"0", "false", "no", "off"}
 
 
+_MODELLI_NON_ESEGUIBILI: set[str] = set()
+
+
 def modello_catalogo() -> str:
-    return os.getenv("PCT_LEX_CATALOGO_MODELLO", "").strip() or MODELLO_PREDEFINITO
+    scelto = os.getenv("PCT_LEX_CATALOGO_MODELLO", "").strip() or MODELLO_PREDEFINITO
+    return MODELLO_DI_RISERVA if scelto in _MODELLI_NON_ESEGUIBILI else scelto
+
+
+def _modello_non_eseguibile(errore: str) -> bool:
+    """Ollama non conosce l'architettura del modello o non riesce a scaricarlo: non si ritenta a ogni giro."""
+    testo = str(errore or "").casefold()
+    return any(segno in testo for segno in ("unknown model architecture", "file does not exist", "pull model manifest", "not found"))
 
 
 def _intero(nome: str, predefinito: int) -> int:
@@ -135,7 +146,13 @@ def seconda_lettura_studio_corrente(
             else:
                 if genera is None:
                     client = _client()
-                    _modello_pronto(client, modello)
+                    try:
+                        _modello_pronto(client, modello)
+                    except Exception as exc:
+                        if modello != MODELLO_DI_RISERVA and _modello_non_eseguibile(str(exc)):
+                            _MODELLI_NON_ESEGUIBILI.add(modello)
+                            logger.warning("[lex-catalogo] %s non scaricabile: si usa %s.", modello, MODELLO_DI_RISERVA)
+                        raise
                     genera = generatore(client, modello)
                 esito = leggi_con_lex(
                     testo, genera=genera, voci=voci,
@@ -147,6 +164,9 @@ def seconda_lettura_studio_corrente(
                 # Ollama non raggiungibile: si riprova al prossimo giro, senza segnare il documento.
                 report["errori"] += 1
                 logger.warning("[lex-catalogo] Seconda lettura non riuscita: %s", esito.motivo)
+                if modello != MODELLO_DI_RISERVA and _modello_non_eseguibile(esito.motivo):
+                    _MODELLI_NON_ESEGUIBILI.add(modello)
+                    logger.warning("[lex-catalogo] %s non eseguibile su questo Ollama: si usa %s.", modello, MODELLO_DI_RISERVA)
                 return report
             candidati = repository.list_catalog_candidates(assignment.id)
             evidenze = repository.list_catalog_evidence(assignment.id)

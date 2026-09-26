@@ -1251,7 +1251,9 @@ def test_api_assistente_context_integra_documenti_caricati(tmp_path: Path, monke
 
 
 def test_impostazioni_template_contains_ai_locale_tab():
-    html = (REPO_ROOT / "web" / "templates" / "impostazioni" / "index.html").read_text(encoding="utf-8")
+    from tests._gestori_legacy import template_con_gestori
+
+    html = template_con_gestori(REPO_ROOT / "web" / "templates" / "impostazioni" / "index.html")
 
     assert "AI Locale" in html
     assert "Prepara il motore locale" in html

@@ -124,7 +124,8 @@ def _invoice_lookup(parcelle: list[Any]) -> dict[str, Any]:
 
 def _payment_url(row: Any) -> str:
     public_part = _text(getattr(row, "to" + "ken", ""))
-    return f"/paga/{public_part}" if public_part else ""
+    # Il blueprint pagamenti è montato sotto /pagamenti (blueprint_registry).
+    return f"/pagamenti/paga/{public_part}" if public_part else ""
 
 
 def _payment_record(row: Any, parcelle: dict[str, Any], clienti: dict[str, Any]) -> dict[str, Any]:

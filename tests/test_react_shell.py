@@ -343,8 +343,9 @@ def test_react_shell_mobile_sblocca_scroll_e_compatta_card():
     assert 'data-iusentra-react-entry="{{ react_assets.entry_file }}?v={{ app_version }}"' in template
     assert "{{ react_assets.inline_entry_code | safe }}" in template
     assert '<script type="module" src="{{ js_file }}?v={{ app_version }}"' in template
-    assert "iusentraEntryScript='loaded'" in template
-    assert "iusentraEntryScript='error'" in template
+    assert "iusentraEntryScript = 'loaded'" in template
+    assert "iusentraEntryScript = 'error'" in template
+    assert "onload=" not in template and "onerror=" not in template
     assert "window.__IUSENTRA_REACT_BOOTSTRAP_STATE__" in template
     assert "entrySource()" in template
     assert "retryEntryUrl()" in template

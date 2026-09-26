@@ -263,7 +263,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 initPagination('tbl-fascicoli', 'page-size-fascicoli');
 </script>
 {% endblock %}

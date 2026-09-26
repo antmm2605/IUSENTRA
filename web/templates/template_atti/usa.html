@@ -135,7 +135,7 @@
           <button type="submit" class="btn btn-primary flex-grow-1">
             <i class="bi bi-stars me-2"></i>Crea bozza
           </button>
-          <button type="button" class="btn btn-outline-secondary" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })">
+          <button type="button" class="btn btn-outline-secondary" data-iu-on="click:ge9b23b2e13">
             <i class="bi bi-arrow-up"></i>
           </button>
         </div>
@@ -180,7 +180,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.getElementById('sel-cliente')?.addEventListener('change', function() {
   const id = this.value;
   const sel = document.getElementById('sel-fascicolo');

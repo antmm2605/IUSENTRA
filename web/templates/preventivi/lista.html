@@ -54,12 +54,12 @@
 <form method="get" class="ds-search-bar mb-3">
   <input type="hidden" name="tab" value="{{ tab }}">
   {% if filtro_rapido %}<input type="hidden" name="filtro" value="{{ filtro_rapido }}">{% endif %}
-  <select name="anno" class="form-select form-select-sm" style="max-width:100px" onchange="this.form.submit()">
+  <select name="anno" class="form-select form-select-sm" style="max-width:100px" data-iu-on="change:ga2c8f19ca1">
     {% for a in anni_disponibili %}
     <option value="{{ a }}" {% if a == anno %}selected{% endif %}>{{ a }}</option>
     {% endfor %}
   </select>
-  <select name="stato" class="form-select form-select-sm" style="max-width:150px" onchange="this.form.submit()">
+  <select name="stato" class="form-select form-select-sm" style="max-width:150px" data-iu-on="change:ga2c8f19ca1">
     <option value="">Tutti gli stati</option>
     {% if tab == 'preventivi' %}
       {% for s in ['BOZZA','INVIATO','ACCETTATO','RIFIUTATO','SCADUTO'] %}
@@ -71,7 +71,7 @@
       {% endfor %}
     {% endif %}
   </select>
-  <select name="id_cliente" class="form-select form-select-sm" style="max-width:200px" onchange="this.form.submit()">
+  <select name="id_cliente" class="form-select form-select-sm" style="max-width:200px" data-iu-on="change:ga2c8f19ca1">
     <option value="">Tutti i clienti</option>
     {% for id, cl in clienti_map.items() %}
     <option value="{{ id }}" {% if cliente_filtro == id %}selected{% endif %}>{{ cl.nome_completo }}</option>
@@ -276,7 +276,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 initPagination('tbl-prev', 'page-size-prev');
 initPagination('tbl-conf', 'page-size-conf');
 </script>

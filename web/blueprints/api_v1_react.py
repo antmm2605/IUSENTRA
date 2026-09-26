@@ -201,7 +201,7 @@ from web.services.react_scadenziario_bridge import (
     calculator_templates_for_guide,
     dedupe_calculator_templates,
 )
-from web.services.pdf_deadline_import import import_pdf_deadlines, preview_pdf_deadlines
+from web.services.pdf_deadline_import import import_pdf_deadlines
 from web.services.react_soggetti_bridge import build_react_soggetti_payload
 from web.services.react_statistiche_bridge import (
     build_react_statistiche_error_payload,
@@ -5746,15 +5746,15 @@ def _positive_int(value: Any, *, default: int = 0, maximum: int = 10000) -> int:
 @_richiedi_auth
 def scadenziario_pdf_scadenze_anteprima():
     id_fascicolo = str(request.args.get("id_fascicolo") or request.args.get("fascicoloId") or "").strip()
-    max_documents = _positive_int(request.args.get("max_documents") or request.args.get("maxDocuments"), default=0)
     try:
-        preview = preview_pdf_deadlines(
+        # I PDF si leggono in sfondo una volta sola: qui solo ciò che il registro conserva.
+        from web.services.scadenze_pdf_lettura import anteprima
+
+        return jsonify(anteprima(
             gestione_fascicoli=get_fascicoli(),
             gestione_scadenziario=get_scadenziario(),
             id_fascicolo=id_fascicolo,
-            max_documents=max_documents,
-        )
-        return jsonify(preview.to_dict())
+        ))
     except Exception as exc:
         current_app.logger.exception("Anteprima scadenze PDF non riuscita: %s", exc)
         return jsonify({"ok": False, "errore": "Scansione PDF non completata.", "message": "Scansione PDF non completata."}), 400
@@ -5772,6 +5772,8 @@ def scadenziario_pdf_scadenze_importa():
     id_fascicolo = str(payload.get("id_fascicolo") or payload.get("fascicoloId") or "").strip()
     max_documents = _positive_int(payload.get("max_documents") or payload.get("maxDocuments"), default=0)
     try:
+        from web.services.scadenze_pdf_lettura import candidati_per_import
+
         result = import_pdf_deadlines(
             gestione_fascicoli=get_fascicoli(),
             gestione_scadenziario=get_scadenziario(),
@@ -5780,6 +5782,11 @@ def scadenziario_pdf_scadenze_importa():
             id_fascicolo=id_fascicolo,
             max_documents=max_documents,
             user_id=_current_user_id(),
+            candidates=candidati_per_import(
+                gestione_fascicoli=get_fascicoli(),
+                gestione_scadenziario=get_scadenziario(),
+                id_fascicolo=id_fascicolo,
+            ),
         )
         if result.get("ok"):
             _audit_event("scadenziario.importa_pdf", "scadenza", "", str(result.get("message") or ""))

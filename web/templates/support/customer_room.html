@@ -2,6 +2,8 @@
 <html lang="it">
 <head>
   <meta charset="utf-8">
+  <script src="/static/js/iu-gestori.js?v={{ app_version|default('') }}"></script>
+  <script src="/static/js/iu-gestori-registro.js?v={{ app_version|default('') }}"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Assistenza remota cliente - IUSENTRA</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -133,7 +135,7 @@
     </section>
   </main>
 
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     window.SUPPORT_BOOTSTRAP = {{ bootstrap | tojson }};
   </script>
   <script id="support-customer-bootstrap" type="application/json">{{ bootstrap | tojson }}</script>

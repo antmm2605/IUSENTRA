@@ -59,7 +59,7 @@
               <div class="cp-chip-name" id="cp-chip-name"></div>
               <div class="cp-chip-email" id="cp-chip-email-txt"></div>
             </div>
-            <button type="button" class="cp-chip-clear" onclick="cpClear()">
+            <button type="button" class="cp-chip-clear" data-iu-on="click:g5744210d8f">
               <i class="bi bi-x"></i> Cambia
             </button>
           </div>
@@ -81,7 +81,7 @@
             <button type="button"
                     id="btn-cp-toggle"
                     class="btn btn-sm flex-shrink-0 mail-compose-toggle-btn"
-                    onclick="cpToggle()">
+                    data-iu-on="click:gfc75849b71">
               <i class="bi bi-person-lines-fill me-1"></i>
               <span class="d-none d-sm-inline">Clienti</span>
             </button>
@@ -99,7 +99,7 @@
                        class="form-control border-start-0 ps-1 mail-compose-picker-input"
                        placeholder="Cerca per nome, email, C.F...."
                        autocomplete="off"
-                       oninput="cpSearch(this.value)">
+                       data-iu-on="input:gce9c79c218">
               </div>
               <div class="text-muted mt-1 mail-compose-picker-note">
                 <i class="bi bi-lightbulb me-1"></i>Digita almeno 2 caratteri per cercare
@@ -190,7 +190,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function() {
   var _debTimer;
   function debounce(fn, ms) { clearTimeout(_debTimer); _debTimer = setTimeout(fn, ms); }
@@ -252,7 +252,7 @@
     container.innerHTML = items.map(function(c,i){
       var nome=nomeCompleto(c), em=emailC(c), tel=telC(c), av=avClass(c), sc=statoClass(c.stato);
       var cf=(c.tipo==='PERSONA_GIURIDICA'?c.partita_iva:c.codice_fiscale)||'';
-      return '<div class="cp-result-card" onclick="cpSelect('+i+')">'+
+      return '<div class="cp-result-card" data-idx="'+i+'">'+
         '<div class="cp-avatar '+av+'">'+esc(initials(nome))+'</div>'+
         '<div class="cp-body">'+
           '<div class="cp-name">'+esc(nome)+'</div>'+
@@ -265,6 +265,9 @@
         '</div>'+
       '</div>';
     }).join('');
+    container.querySelectorAll('.cp-result-card').forEach(function(card){
+      card.addEventListener('click', function(){ window.cpSelect(parseInt(card.getAttribute('data-idx'), 10)); });
+    });
   }
 
   window.cpSelect = function(idx) {

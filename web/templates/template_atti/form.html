@@ -193,7 +193,7 @@
   </div>
 </div>
 {% include "template_atti/_editor_assets.html" %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function initTemplateAttiForm() {
   function boot() {
   if (window.TemplateActEditors?.initAll) {

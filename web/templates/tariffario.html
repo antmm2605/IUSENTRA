@@ -662,7 +662,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 const GRADE_CATALOG = {{ grade_catalog|tojson }};
 const RULE_CATALOG = {{ rule_catalog|tojson }};
 const PHASE_CATALOG = {{ phase_catalog|tojson }};

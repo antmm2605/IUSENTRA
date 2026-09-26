@@ -4510,7 +4510,7 @@ def test_portale_acquisizione_wizard_renderizza_javascript_valido(tmp_path):
         ):
             response = client.get(f"{route}?_legacy=1", follow_redirects=True)
             body = response.data.decode("utf-8")
-            match = re.search(r"<script>\s*(const AW_BOOT = .*?)</script>", body, re.S)
+            match = re.search(r"<script[^>]*>\s*(const AW_BOOT = .*?)</script>", body, re.S)
             assert match, f"Script wizard non trovato per {route}"
             with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, encoding="utf-8") as handle:
                 handle.write(match.group(1))

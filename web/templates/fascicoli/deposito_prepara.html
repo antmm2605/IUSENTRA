@@ -136,16 +136,16 @@
               <button type="button" class="btn btn-outline-primary btn-sm"
                       style="font-size:.72rem;padding:.2rem .5rem"
                       id="btn_main_{{ doc.id }}"
-                      onclick="setMainDoc('{{ doc.id }}')">Principale</button>
+                      data-iu-on="click:g2333d65915" data-iu-v-click-0="{{ doc.id }}">Principale</button>
               <button type="button" class="btn btn-outline-success btn-sm"
                       style="font-size:.72rem;padding:.2rem .5rem"
                       id="btn_all_{{ doc.id }}"
-                      onclick="toggleAllegato('{{ doc.id }}')">+ Allegato</button>
+                      data-iu-on="click:g050cba4ca4" data-iu-v-click-0="{{ doc.id }}">+ Allegato</button>
               {% if not doc.firmato_digitalmente %}
               <button type="button" class="btn btn-outline-warning btn-sm"
                       style="font-size:.72rem;padding:.2rem .5rem"
                       id="btn_firma_{{ doc.id }}"
-                      onclick="firmaDocumento('{{ doc.id }}')"
+                      data-iu-on="click:g0c37d8d0a4" data-iu-v-click-0="{{ doc.id }}"
                       title="Firma digitale">
                 <i class="bi bi-pen-fill me-1"></i>Firma
               </button>
@@ -317,7 +317,7 @@
       {# TODO: sostituire avviaInvioPec(true) con avviaInvioPec(false) quando PEC studio attiva #}
       <div>
         <button type="button" class="btn btn-success fw-semibold w-100" id="btnInviaPecDiretto"
-                onclick="avviaInvioPec({{ 'false' if pec_tribunale and pec_configurata else 'true' }})">
+                data-iu-on="click:gd3caefc5fd" data-iu-v-click-0="{{ ('false' if pec_tribunale and pec_configurata else 'true') | forceescape }}">
           <i class="bi bi-send-fill me-2"></i>Invia ora via PEC
         </button>
         <div class="form-text text-center mt-1">
@@ -354,7 +354,7 @@
 
       {# — Prova senza invio reale — sempre visibile — #}
       <div>
-        <button type="button" class="btn btn-warning fw-semibold w-100" id="btnInviaPecDemo" onclick="avviaInvioPec(true)">
+        <button type="button" class="btn btn-warning fw-semibold w-100" id="btnInviaPecDemo" data-iu-on="click:g5761754b8a">
           <i class="bi bi-play-circle me-2"></i>Prova senza invio reale
         </button>
         <div class="form-text text-center mt-1">
@@ -365,7 +365,7 @@
       <div class="text-center text-muted small">— oppure —</div>
 
       <div>
-        <button type="button" class="btn btn-outline-primary w-100" id="btnScaricaBustaEnc" onclick="avviaGeneraBusta()">
+        <button type="button" class="btn btn-outline-primary w-100" id="btnScaricaBustaEnc" data-iu-on="click:gb603bcea8b">
           <i class="bi bi-download me-2"></i>Scarica busta .enc
         </button>
         <div class="form-text text-center mt-1">
@@ -498,9 +498,9 @@
           <div class="input-group mb-1">
             <input type="password" id="lsPinInput" class="form-control"
                    placeholder="PIN Aruba Key" autocomplete="off"
-                   onkeydown="if(event.key==='Enter') avviaFirmaLocalSigner()">
+                   data-iu-on="keydown:g60041637d9">
             <button type="button" class="btn btn-outline-secondary"
-                    onclick="this.previousElementSibling.type=this.previousElementSibling.type==='password'?'text':'password'">
+                    data-iu-on="click:g57dc4a3d09">
               <i class="bi bi-eye"></i>
             </button>
           </div>
@@ -522,7 +522,7 @@
             <div id="lsError" class="alert alert-danger small" style="display:none">
               <strong>Errore firma:</strong> <span id="lsErrorMsg"></span>
               <div class="mt-1">
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="resetLsStep()">
+                <button type="button" class="btn btn-sm btn-outline-danger" data-iu-on="click:g71626602d7">
                   Riprova
                 </button>
               </div>
@@ -544,9 +544,9 @@
             <div class="input-group mb-1">
               <input type="password" id="pkcs11PinInput" class="form-control"
                      placeholder="PIN Aruba Key" autocomplete="off"
-                     onkeydown="if(event.key==='Enter') avviaFirmaPkcs11()">
+                     data-iu-on="keydown:gf9f8e5e153">
               <button type="button" class="btn btn-outline-secondary"
-                      onclick="this.previousElementSibling.type=this.previousElementSibling.type==='password'?'text':'password'">
+                      data-iu-on="click:g57dc4a3d09">
                 <i class="bi bi-eye"></i>
               </button>
             </div>
@@ -570,7 +570,7 @@
             <div id="pkcs11Error" class="alert alert-danger small" style="display:none">
               <strong>Errore firma:</strong> <span id="pkcs11ErrorMsg"></span>
               <div class="mt-1">
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="resetPkcs11Step()">
+                <button type="button" class="btn btn-sm btn-outline-danger" data-iu-on="click:gdda51d7870">
                   Riprova
                 </button>
               </div>
@@ -621,7 +621,7 @@
               Carica il file <code>.p7m</code> firmato
             </p>
             <input type="file" id="p7mUploadInput" class="form-control form-control-sm"
-                   accept=".p7m,.sig,.pkcs7" onchange="caricaP7mFirmato(this)">
+                   accept=".p7m,.sig,.pkcs7" data-iu-on="change:g482cec4a86">
           </div>
 
           <div id="p7mUploadStatus" class="small mt-2" style="display:none"></div>
@@ -632,7 +632,7 @@
         <div id="switchPath" class="mt-3" style="display:none">
           <hr class="my-2">
           <button type="button" class="btn btn-link btn-sm p-0 text-muted"
-                  onclick="switchFirmaPath()">
+                  data-iu-on="click:gbee2d0a926">
             <i class="bi bi-arrow-left-right me-1"></i>
             <span id="switchPathLabel">Passa alla firma esterna (Windows)</span>
           </button>
@@ -641,15 +641,15 @@
       </div>
       <div class="modal-footer flex-column align-items-stretch gap-2">
         <button type="button" class="btn btn-warning fw-semibold d-none" id="btnAvviaFirmaLS"
-                onclick="avviaFirmaLocalSigner()">
+                data-iu-on="click:gff37b40a0a">
           <i class="bi bi-usb-symbol me-2"></i>Firma con Aruba Key (Local Signer)
         </button>
         <button type="button" class="btn btn-warning fw-semibold d-none" id="btnAvviaFirmaPkcs11"
-                onclick="avviaFirmaPkcs11()">
+                data-iu-on="click:gb42916ec87">
           <i class="bi bi-pen-fill me-2"></i>Firma con Aruba Key (in-device)
         </button>
         <button type="button" class="btn btn-success fw-semibold d-none" id="btnContinuaDopoFirma"
-                onclick="continuaDopoFirma()">
+                data-iu-on="click:ge8f2924301">
           <i class="bi bi-send-fill me-2"></i>Continua con il deposito
         </button>
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
@@ -722,7 +722,7 @@
 
 {% block extra_scripts %}
 <script src="/static/js/firma-visibile-mode.js?v={{ app_version }}"></script>
-<script>
+<script nonce="{{ csp_nonce() }}">
 let mainDocId = null;
 const allegatiSet = new Set();
 let _invioDemo = false;  // true = prova senza invio reale, false = invio reale

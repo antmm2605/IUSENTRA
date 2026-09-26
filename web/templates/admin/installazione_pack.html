@@ -143,7 +143,7 @@
         <span>Studio Local Pack</span>
         <form method="get" class="d-flex gap-2 align-items-center">
           <label class="small text-muted" for="studio-pack-slug">Studio</label>
-          <select name="slug" id="studio-pack-slug" class="form-select form-select-sm" onchange="this.form.submit()">
+          <select name="slug" id="studio-pack-slug" class="form-select form-select-sm" data-iu-on="change:ga2c8f19ca1">
             {% for item in payload.studios %}
             <option value="{{ item.slug }}" {{ 'selected' if item.selected else '' }}>{{ item.nome }}</option>
             {% endfor %}

@@ -1186,6 +1186,9 @@ def _extract_docx(content: bytes) -> ExtractionResult:
             )
 
 
+_OLE2_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+
+
 def _extract_doc(content: bytes) -> ExtractionResult:
     if bytes(content[:4]).startswith(b"PK\x03\x04"):
         result = _extract_docx(content)
@@ -1203,9 +1206,13 @@ def _extract_doc(content: bytes) -> ExtractionResult:
             warnings=["File .doc letto come documento RTF compatibile."],
         )
 
-    external_result = _extract_doc_with_external_tool(content)
-    if external_result is not None:
-        return external_result
+    # Un .doc Word 97-2003 è un file composto OLE2: solo allora ha senso chiedere
+    # la conversione a antiword/LibreOffice (che altrimenti leggerebbero come
+    # testo semplice qualunque contenuto, anche un file non Word).
+    if bytes(content[:8]) == _OLE2_MAGIC:
+        external_result = _extract_doc_with_external_tool(content)
+        if external_result is not None:
+            return external_result
 
     fallback_text = _extract_legacy_doc_binary_text(content)
     if fallback_text.strip():

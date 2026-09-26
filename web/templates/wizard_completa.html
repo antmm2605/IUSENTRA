@@ -139,10 +139,10 @@
           <div id="dropZone"
                class="border border-2 border-dashed rounded-3 text-center py-4 px-3 mb-3"
                style="cursor:pointer;border-color:#ced4da!important;transition:border-color .2s"
-               onclick="document.getElementById('fileInput').click()"
-               ondragover="event.preventDefault();this.style.borderColor='#0d6efd'"
-               ondragleave="this.style.borderColor='#ced4da'"
-               ondrop="handleDrop(event)">
+               data-iu-on="click:gd4f6713631 dragover:g58ad653eb6 dragleave:gb35840b6e3 drop:g3c0a86dff5"
+
+
+>
             <div id="dropZoneVisual">
               <i class="bi bi-cloud-arrow-up-fill fs-2 text-muted mb-2"></i>
               <div class="fw-semibold">Trascina qui il file oppure clicca per selezionarlo</div>
@@ -152,7 +152,7 @@
             </div>
             <input type="file" id="fileInput" name="file" class="d-none"
                    accept=".pdf,.p7m,.doc,.docx,.jpg,.jpeg,.png"
-                   onchange="mostraFileSelezionato(this)">
+                   data-iu-on="change:ga9d353113e">
           </div>
 
           {# Anteprima nome file #}
@@ -301,7 +301,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 function mostraFileSelezionato(input) {
   const btnCarica = document.getElementById('btnCarica');
   const preview   = document.getElementById('previewNome');

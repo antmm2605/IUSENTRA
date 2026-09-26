@@ -46,7 +46,7 @@
     </form>
     {% else %}
     <form method="post" action="{{ url_for('admin.sospendi_studio', slug=studio.slug) }}"
-          onsubmit="return confirm('Sospendere lo studio {{ studio.nome }}?')">
+          data-iu-on="submit:g2ebba1b883" data-iu-v-submit-0="{{ studio.nome }}">
       <button class="btn btn-outline-danger btn-sm"><i class="bi bi-pause-fill me-1"></i>Sospendi</button>
     </form>
     {% endif %}
@@ -354,7 +354,7 @@
           </button>
         </div>
         <form method="post" action="{{ url_for('admin.rigenera_api_key', slug=studio.slug) }}"
-              onsubmit="return confirm('Rigenerare la API key? La vecchia chiave sarà invalidata.')">
+              data-iu-on="submit:g804db1f866">
           <button type="submit" class="btn btn-sm btn-outline-danger w-100">
             <i class="bi bi-arrow-repeat me-1"></i>Rigenera API Key
           </button>
@@ -380,7 +380,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Toggle API key visibility
 document.getElementById('toggleApiKey').addEventListener('click', function() {
   const f = document.getElementById('apiKeyField');

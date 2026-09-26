@@ -42,9 +42,27 @@ def test_unique_ministerial_object_supplies_traceable_profile_without_mutation()
 
 
 @pytest.mark.parametrize('extra', [
-    {'area': 'Civile'}, {'branca': 'Scelta esplicita'}, {'sottobranca': 'Scelta esplicita'},
     {'canale': 'PDP'}, {'tipo_fascicolo': 'penale'}, {'codice_oggetto_pst': 'codice-sconosciuto'},
 ])
-def test_manual_partial_profiles_and_other_channels_are_not_overwritten(extra):
+def test_other_channels_are_not_overwritten(extra):
     context = {'oggetto': 'Vendita di cose immobili', **extra}
+    assert enrich_official_context(context) == context
+
+
+@pytest.mark.parametrize('extra', [
+    {'area': 'Civile'}, {'branca': 'Scelta esplicita'}, {'sottobranca': 'Scelta esplicita'},
+])
+def test_manual_partial_profiles_are_completed_without_overwriting(extra):
+    # Dalla 2.397.0 un profilo parziale si completa dal catalogo ministeriale,
+    # ma il valore scritto dall'avvocato resta com'è.
+    context = {'oggetto': 'Vendita di cose immobili', **extra}
+    enriched = enrich_official_context(context)
+    campo, valore = next(iter(extra.items()))
+    assert enriched[campo] == valore
+    assert all(enriched.get(k) for k in ('area', 'branca', 'sottobranca'))
+    assert enriched['_official_object_code'] == '140011'
+
+
+def test_complete_manual_profile_is_untouched():
+    context = {'oggetto': 'Vendita di cose immobili', 'area': 'A', 'branca': 'B', 'sottobranca': 'C'}
     assert enrich_official_context(context) == context

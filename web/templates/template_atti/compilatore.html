@@ -456,7 +456,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 const correctionContext = {{ correction_context|tojson }};
 const selCliente = document.getElementById('sel-cliente');
 const selFascicolo = document.getElementById('sel-fascicolo');

@@ -16,7 +16,7 @@
       </div>
       <form method="get" class="d-flex align-items-center gap-2 lexop-range-form">
         <label class="small fw-semibold text-white-50" for="lex-operativo-giorni">Orizzonte</label>
-        <select id="lex-operativo-giorni" name="giorni" class="form-select form-select-sm" onchange="this.form.submit()">
+        <select id="lex-operativo-giorni" name="giorni" class="form-select form-select-sm" data-iu-on="change:ga2c8f19ca1">
           {% for option in [7, 14, 30] %}
           <option value="{{ option }}" {% if horizon_days == option %}selected{% endif %}>{{ option }} giorni</option>
           {% endfor %}

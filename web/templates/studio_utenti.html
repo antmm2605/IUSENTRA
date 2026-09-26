@@ -242,7 +242,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Auto-genera slug dal nome
 document.querySelector('[name="nome"]').addEventListener('input', function() {
   const slug = document.getElementById('slugInput');

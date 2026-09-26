@@ -191,7 +191,7 @@
           <a href="{{ url_for('template_atti.modifica', id_template=t.id) }}" class="btn btn-sm btn-outline-secondary" title="Modifica">
             <i class="bi bi-pencil"></i>
           </a>
-          <form method="post" action="{{ url_for('template_atti.elimina', id_template=t.id) }}" onsubmit="return confirm('Eliminare questo modello?');">
+          <form method="post" action="{{ url_for('template_atti.elimina', id_template=t.id) }}" data-iu-on="submit:g15fe12a4ea">
             <button type="submit" class="btn btn-sm btn-outline-danger" title="Elimina">
               <i class="bi bi-trash"></i>
             </button>
@@ -204,7 +204,7 @@
   {% endif %}
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
   const cards = Array.from(document.querySelectorAll('.js-act-card'));
   const sections = Array.from(document.querySelectorAll('.acts-section'));

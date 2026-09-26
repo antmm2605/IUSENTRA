@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 from flask import Flask, abort, request, session
 
 from core.security.headers import apply_security_headers as apply_core_security_headers
+from core.security.headers import csp_nonce
 
 
 _INSECURE_SECRET_MARKERS = (
@@ -249,6 +250,10 @@ def apply_security_defaults(app: Flask, config: Mapping[str, object] | None = No
 
 def register_security_runtime(app: Flask) -> None:
     """Register CSRF protection for sensitive routes and security headers."""
+
+    # Nonce CSP dei blocchi <script> in linea: funzione globale, così è
+    # disponibile anche nelle macro e nei template inclusi senza contesto.
+    app.jinja_env.globals["csp_nonce"] = csp_nonce
 
     @app.context_processor
     def inject_security_template_context():

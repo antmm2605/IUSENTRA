@@ -139,7 +139,7 @@
         </a>
         <form method="post"
               action="{{ url_for('elimina_appuntamento', id_app=app.id) }}"
-              onsubmit="return confirm('Eliminare questo appuntamento?')">
+              data-iu-on="submit:g7b6e481962">
           <button class="list-group-item list-group-item-action text-danger w-100 text-start border-0 bg-transparent">
             <i class="bi bi-trash me-2"></i>Elimina appuntamento
           </button>

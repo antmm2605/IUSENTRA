@@ -79,7 +79,7 @@
         </button>
       </form>
       <form method="post" action="{{ url_for(email_elimina_endpoint, id_email=em.id) }}"
-            onsubmit="return confirm('Eliminare definitivamente questa email?')">
+            data-iu-on="submit:gae60c84a8b">
         <button class="btn btn-outline-danger btn-sm w-100">
           <i class="bi bi-trash3-fill me-1"></i>Elimina definitivamente
         </button>

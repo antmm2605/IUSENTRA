@@ -209,7 +209,7 @@
                   <select name="doc_stato_{{ loop.index0 }}"
                           class="form-select form-select-sm flex-shrink-0"
                           style="width:auto;min-width:9rem"
-                          onchange="aggiornaDocRow(this)">
+                          data-iu-on="change:g19fc0d7706">
                     <option value="da_portare" {% if doc.stato == 'da_portare' %}selected{% endif %}>
                       Da portare
                     </option>
@@ -302,12 +302,12 @@
             {% set val = sessione[name] if sessione is mapping else sessione | attr(name) %}
             <div class="p-3 rounded-3 border d-flex align-items-start gap-3 precheck-item
                         {% if val %}border-success bg-success bg-opacity-10{% endif %}"
-                 id="row_{{ name }}" style="cursor:pointer" onclick="toggleCheck('{{ name }}')">
+                 id="row_{{ name }}" style="cursor:pointer" data-iu-on="click:g30aa2817d8" data-iu-v-click-0="{{ name }}">
               <div class="form-check m-0 flex-shrink-0">
                 <input class="form-check-input precheck-cb" type="checkbox"
                        name="{{ name }}" id="{{ name }}" value="1"
                        {% if val %}checked{% endif %}
-                       onchange="aggiornaPrecheck(this)">
+                       data-iu-on="change:g5c373c0be6">
               </div>
               <div class="flex-grow-1">
                 <label class="form-check-label fw-semibold small" for="{{ name }}" style="cursor:pointer">
@@ -353,7 +353,7 @@
               <div class="col-6">
                 <input type="radio" class="btn-check" name="esito" id="esito_{{ val }}"
                        value="{{ val }}" {% if sessione.esito == val %}checked{% endif %}
-                       onchange="mostraRinvio(this.value)">
+                       data-iu-on="change:g115ebf94e2">
                 <label class="btn btn-outline-secondary w-100 text-start py-2 px-3" for="esito_{{ val }}"
                        style="font-size:.82rem">
                   {% if val == 'favorevole' %}<i class="bi bi-hand-thumbs-up-fill text-success me-2"></i>
@@ -582,7 +582,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // ── Step 2: aggiornamento visivo riga documento
 function aggiornaDocRow(sel) {
   const row = sel.closest('.list-group-item');

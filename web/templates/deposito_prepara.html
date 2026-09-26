@@ -2,6 +2,8 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
+  <script src="/static/js/iu-gestori.js?v={{ app_version|default('') }}"></script>
+  <script src="/static/js/iu-gestori-registro.js?v={{ app_version|default('') }}"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Copertina Fascicolo — {{ fascicolo.titolo }}</title>
   <style>
@@ -264,10 +266,10 @@
 
 <!-- Barra azioni (solo schermo) -->
 <div class="screen-actions">
-  <a href="javascript:history.back()" class="btn-action btn-back">
+  <a href="#" data-iu-on="click:g73d21adcd6" class="btn-action btn-back">
     ← Indietro
   </a>
-  <button class="btn-action btn-print" onclick="window.print()">
+  <button class="btn-action btn-print" data-iu-on="click:g320b883d1e">
     🖨️ Stampa
   </button>
 </div>

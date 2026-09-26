@@ -331,7 +331,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 const ID_FASCICOLO_PRE = {{ id_fascicolo_pre|tojson }};
 
 // Template voce

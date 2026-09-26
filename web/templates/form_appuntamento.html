@@ -203,7 +203,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
   const inputCliente = document.getElementById('input-cliente');
   const inputCF      = document.getElementById('input-cf');

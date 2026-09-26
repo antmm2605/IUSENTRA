@@ -90,10 +90,12 @@ function renderStartupError(target: HTMLElement, error: unknown) {
     '<p>Il modulo operativo non è stato caricato. Ricarica la pagina; se il problema resta, IUSENTRA registra il dettaglio tecnico senza modificare i dati dello studio.</p>',
     `<small>${escapeHtml(message)}</small>`,
     '<a href="/fascicoli">Apri fascicoli</a>',
-    '<button type="button" onclick="window.location.reload()">Ricarica</button>',
+    '<button type="button" data-iu-ricarica>Ricarica</button>',
     '</div>',
     '</main>',
   ].join('')
+  // Niente codice negli attributi: la CSP non ammette gestori in linea.
+  target.querySelector('[data-iu-ricarica]')?.addEventListener('click', () => window.location.reload())
 }
 
 async function bootReact() {

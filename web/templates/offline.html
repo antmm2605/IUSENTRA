@@ -2,6 +2,8 @@
 <html lang="it">
 <head>
   <meta charset="utf-8">
+  <script src="/static/js/iu-gestori.js?v={{ app_version|default('') }}"></script>
+  <script src="/static/js/iu-gestori-registro.js?v={{ app_version|default('') }}"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Offline — IUSENTRA</title>
   <style>
@@ -72,14 +74,14 @@
       Non riesci a raggiungere il server PCT.<br>
       Controlla la connessione Internet e riprova.
     </p>
-    <button class="btn" onclick="location.reload()">
+    <button class="btn" data-iu-on="click:gf603811aa1">
       Riprova
     </button>
     <p class="hint">
       I dati già aperti sono disponibili nella cache del browser.
     </p>
   </div>
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     // Ricarica automaticamente quando torna la connessione
     window.addEventListener('online', () => location.reload());
   </script>

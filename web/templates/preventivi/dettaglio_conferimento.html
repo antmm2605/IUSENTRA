@@ -312,7 +312,7 @@
 
   <div class="col-12 pb-4">
     <form method="post" action="{{ url_for('preventivi.elimina_conferimento', id_conferimento=c.id) }}"
-          onsubmit="return confirm('Eliminare il conferimento {{ c.numero }}?')">
+          data-iu-on="submit:g69d0078efa" data-iu-v-submit-0="{{ c.numero }}">
       <button type="submit" class="btn btn-sm btn-outline-danger">
         <i class="bi bi-trash me-1"></i>Elimina conferimento
       </button>

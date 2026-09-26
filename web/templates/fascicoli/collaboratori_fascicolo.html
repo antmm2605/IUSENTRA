@@ -62,7 +62,7 @@
                 {% endfor %}
               </td>
               <td>
-                <form method="post" onsubmit="return confirm('Revocare accesso a {{ ac.username }}?')">
+                <form method="post" data-iu-on="submit:gab9e4c17dd" data-iu-v-submit-0="{{ ac.username }}">
                   <input type="hidden" name="azione" value="revoca">
                   <input type="hidden" name="id_utente" value="{{ ac.id_utente }}">
                   <button type="submit" class="btn btn-xs btn-outline-danger">

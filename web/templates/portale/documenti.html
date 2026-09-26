@@ -43,7 +43,7 @@
       </label>
 
       <!-- Drag & drop / click zone -->
-      <div class="upload-zone mb-3" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <div class="upload-zone mb-3" id="drop-zone" data-iu-on="click:g48ab5b8a89">
         <i class="bi bi-cloud-arrow-up d-block mb-2"></i>
         <div class="fw-semibold" style="font-size:.9rem;">Tocca per scegliere i file</div>
         <div class="text-muted mt-1" style="font-size:.78rem;">
@@ -91,7 +91,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
   const input = document.getElementById('file-input');
   const camera = document.getElementById('file-camera');
   const dropZone = document.getElementById('drop-zone');

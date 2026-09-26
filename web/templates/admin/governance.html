@@ -55,7 +55,7 @@
     {% if payload.studios %}
     <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
       <label for="governanceStudio" class="small text-muted">Studio</label>
-      <select id="governanceStudio" class="form-select form-select-sm" name="slug" onchange="this.form.submit()">
+      <select id="governanceStudio" class="form-select form-select-sm" name="slug" data-iu-on="change:ga2c8f19ca1">
         {% for studio in payload.studios %}
         <option value="{{ studio.slug }}" {% if studio.selected %}selected{% endif %}>
           {{ studio.nome }} - {{ studio.slug }} - {{ studio.selected_mode }}

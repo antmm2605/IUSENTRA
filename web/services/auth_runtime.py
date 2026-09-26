@@ -83,6 +83,16 @@ def register_auth_runtime(
         "health_ready",
         "health_dependencies",
         "prometheus_metrics",
+        # Link di pagamento del cliente e notifiche dei gestori di pagamento:
+        # l'accesso è il token del link (o la firma/verifica del webhook), non
+        # la sessione dello studio. Prima reindirizzavano al login dello studio.
+        "pagamenti.checkout",
+        "pagamenti.avvia_pagamento",
+        "pagamenti.successo",
+        "pagamenti.webhook_stripe",
+        "pagamenti.webhook_paypal",
+        "pagamenti.webhook_satispay",
+        "pagamenti.webhook_sumup",
     }
     password_change_routes = {
         "profilo",

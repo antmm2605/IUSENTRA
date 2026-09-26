@@ -138,12 +138,12 @@
       {% if sc.stato.value == 'APERTO' %}
       <form method="post" action="{{ url_for('completa_scadenza', id_sc=sc.id) }}">
         <button type="submit" class="btn btn-success btn-sm w-100"
-                onclick="return confirm('Segnare come completata?')">
+                data-iu-on="click:gf04ee1469c">
           <i class="bi bi-check-lg me-1"></i>Segna come completata
         </button>
       </form>
       <form method="post" action="{{ url_for('elimina_scadenza', id_sc=sc.id) }}"
-            onsubmit="return confirm('Eliminare la scadenza?')">
+            data-iu-on="submit:g6cd4538720">
         <button type="submit" class="btn btn-outline-danger btn-sm w-100">
           <i class="bi bi-trash me-1"></i>Elimina
         </button>

@@ -305,7 +305,7 @@
   </section>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
   (() => {
     const taxonomy = {{ tassonomia_lookup|tojson }};
     const areaEl = document.getElementById("area");

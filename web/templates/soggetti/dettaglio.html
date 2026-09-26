@@ -263,7 +263,7 @@
           <i class="bi bi-pencil"></i>Modifica
         </a>
         <form method="post" action="{{ url_for('elimina_soggetto', id_soggetto=soggetto.id) }}"
-              onsubmit="return confirm('Eliminare definitivamente questo soggetto?')">
+              data-iu-on="submit:ga1b2027f33">
           <button class="ds-btn ds-btn-danger ds-btn-sm ds-btn-icon" title="Elimina soggetto">
             <i class="bi bi-trash"></i>
           </button>

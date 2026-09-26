@@ -823,6 +823,7 @@ STUDIO_NOME / STUDIO_CF / STUDIO_PIVA  # Dati studio
 - **Audit log**: ogni azione su dati sensibili registrata in `EventoAudit`
 - **GDPR**: registro trattamenti dati in `privacy.py`, informative PDF per clienti
 - **Session cookie**: `SECRET_KEY` + `SESSION_COOKIE_SECURE=True` in produzione
+- **CSP**: script solo dai file dello studio e dagli host dichiarati, blocchi in linea con nonce per richiesta (`{{ csp_nonce() }}`); nessun `onclick=` nei template (`scripts/csp_gestori_legacy.py`, `web/static/js/iu-gestori.js`); la shell React usa un nonce stabile per documento e sessione per la rivalidazione 304
 - **mTLS**: connessioni PAT autenticate con certificato client (P12/PEM); il PDP si usa solo dal browser dell'avvocato con CNS/CIE
 
 ## Registro delle letture — REGOLA OBBLIGATORIA (letture incrementali)

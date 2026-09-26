@@ -333,6 +333,9 @@ export type PdfDeadlinePreview = {
     newCandidates: number
     duplicates: number
     warnings: number
+    /** PDF nuovi o cambiati ancora da leggere: la lettura prosegue in sfondo. */
+    pending: number
+    scanning: boolean
   }
   warnings: string[]
 }
@@ -609,6 +612,8 @@ const emptyPdfDeadlinePreview: PdfDeadlinePreview = {
     newCandidates: 0,
     duplicates: 0,
     warnings: 0,
+    pending: 0,
+    scanning: false,
   },
   warnings: [],
 }
@@ -651,6 +656,8 @@ function normalizePdfDeadlinePreview(value: unknown): PdfDeadlinePreview {
       newCandidates: asNumber(summary.newCandidates ?? summary.new_candidates),
       duplicates: asNumber(summary.duplicates),
       warnings: asNumber(summary.warnings),
+      pending: asNumber(summary.pending),
+      scanning: asBoolean(summary.scanning),
     },
     warnings: asArray(payload.warnings).map((item) => asString(item)).filter(Boolean),
   }

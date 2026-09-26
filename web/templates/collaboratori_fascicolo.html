@@ -89,7 +89,7 @@
                    class="btn btn-outline-secondary"><i class="bi bi-eye"></i></a>
                 <form method="post"
                       action="{{ url_for('ripristina_fascicolo', id_fasc=f.id) }}"
-                      onsubmit="return confirm('Ripristinare il fascicolo?')">
+                      data-iu-on="submit:g3aee61e4bb">
                   <button class="btn btn-outline-success" title="Ripristina">
                     <i class="bi bi-arrow-counterclockwise"></i>
                   </button>

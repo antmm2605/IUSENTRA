@@ -34,7 +34,7 @@
     {% if utente_corrente and utente_corrente.ha_permesso('utenti.leggi') %}
     <span id="badge-uffici-stato" class="badge bg-secondary ms-auto small"
           style="cursor:pointer" title="Clicca per aggiornare il registro"
-          onclick="document.getElementById('panel-uffici-admin').classList.toggle('d-none')">
+          data-iu-on="click:g715d37a7a2">
       <i class="bi bi-database me-1"></i>
       <span id="badge-uffici-txt">Registro uffici</span>
     </span>
@@ -47,7 +47,7 @@
     <div class="card border-secondary shadow-sm">
       <div class="card-header d-flex align-items-center gap-2 py-2 small fw-semibold">
         <i class="bi bi-database text-primary"></i>Registro Uffici Giudiziari
-        <button class="btn-close ms-auto btn-sm" onclick="document.getElementById('panel-uffici-admin').classList.add('d-none')"></button>
+        <button class="btn-close ms-auto btn-sm" data-iu-on="click:g6af58d3619"></button>
       </div>
       <div class="card-body py-2 px-3 small" id="uffici-info-body">
         <div class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Caricamento…</div>
@@ -58,7 +58,7 @@
           <i class="bi bi-shield-check text-info"></i>
           <strong>Verifica variazioni PST</strong>
           <span id="variazioni-badge" class="badge bg-secondary ms-1">—</span>
-          <button class="btn btn-sm btn-outline-info ms-auto" id="btn-verifica-variazioni" onclick="eseguiVerificaVariazioni()">
+          <button class="btn btn-sm btn-outline-info ms-auto" id="btn-verifica-variazioni" data-iu-on="click:gd716d80b30">
             <i class="bi bi-search me-1"></i>Controlla ora
           </button>
         </div>
@@ -67,10 +67,10 @@
         </div>
       </div>
       <div class="card-footer py-2 px-3 d-flex flex-wrap gap-2 align-items-center">
-        <button class="btn btn-sm btn-outline-secondary" id="btn-ricarica-bundle" onclick="ricaricaBundle()">
+        <button class="btn btn-sm btn-outline-secondary" id="btn-ricarica-bundle" data-iu-on="click:gb6807d721d">
           <i class="bi bi-box-arrow-in-down me-1"></i>Ricarica bundle
         </button>
-        <button class="btn btn-sm btn-primary" id="btn-aggiorna-uffici" onclick="aggiornaUffici()">
+        <button class="btn btn-sm btn-primary" id="btn-aggiorna-uffici" data-iu-on="click:g6e4ef78d83">
           <i class="bi bi-arrow-clockwise me-1"></i>Aggiorna da remoto
         </button>
         <div class="input-group input-group-sm flex-grow-1" style="max-width:min(300px,100%)">
@@ -103,7 +103,7 @@
           <strong class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Local Signer attivo — problema token.</strong>
           <span id="ls-errore-msg" class="ms-1"></span>
           <div class="mt-1 d-flex gap-2 flex-wrap">
-            <button type="button" class="btn btn-sm btn-outline-warning" onclick="verificaLocalSigner()">
+            <button type="button" class="btn btn-sm btn-outline-warning" data-iu-on="click:gf820f166ea">
               <i class="bi bi-arrow-clockwise me-1"></i>Riprova
             </button>
             <a href="http://127.0.0.1:27272/diagnosi" target="_blank" rel="noopener"
@@ -119,14 +119,14 @@
             Installer desktop consigliato per Windows, macOS e Linux.
           </div>
           <div class="mt-1 d-flex gap-2 flex-wrap">
-            <button type="button" class="btn btn-sm btn-primary" onclick="avviaLocalSigner()">
+            <button type="button" class="btn btn-sm btn-primary" data-iu-on="click:g76474b32a1">
               <i class="bi bi-play-circle me-1"></i>Avvia Local Signer
             </button>
             <a href="{{ url_for('polis_local_signer_setup_windows') }}" download
                class="btn btn-sm btn-outline-primary" id="ls-install-link">
               <i class="bi bi-download me-1"></i><span id="ls-install-link-label">Installa o aggiorna</span>
             </a>
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="verificaLocalSigner()">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-iu-on="click:gf820f166ea">
               <i class="bi bi-arrow-clockwise me-1"></i>Riprova
             </button>
           </div>
@@ -296,7 +296,7 @@
             </button>
             <button type="button" id="btn-cerca-pst"
                     class="btn btn-primary w-100"
-                    onclick="cercaSuPst()"
+                    data-iu-on="click:g9a51596ff2"
                     title="Attiva il Local Signer e cerca nel PST reale">
               <i class="bi bi-usb-symbol me-1"></i>Attiva Local Signer e cerca
             </button>
@@ -420,7 +420,7 @@
               {# Form importazione #}
               <form method="post" action="{{ url_for('polisWeb_importa') }}"
                     class="d-inline js-polisweb-importa-form"
-                    onsubmit="return confirm('Importare RG {{ f.numero_rg }}/{{ f.anno_rg }} come nuovo fascicolo?')">
+                    data-iu-on="submit:gb58586cfd2" data-iu-v-submit-0="{{ f.numero_rg }}" data-iu-v-submit-1="{{ f.anno_rg }}">
                 <input type="hidden" name="demo_mode" value="{{ '1' if demo_mode else '0' }}">
                 <input type="hidden" name="apri_portale" value="0">
                 <input type="hidden" name="numero_rg" value="{{ f.numero_rg }}">
@@ -537,11 +537,11 @@
           </div>
           <div class="d-none d-lg-flex gap-1 ms-2">
             <button type="button" class="btn btn-sm btn-outline-light border-white-50 text-white"
-                    id="wiz-btn-drag" onclick="wizToggleDrag()" title="Attiva spostamento finestra">
+                    id="wiz-btn-drag" data-iu-on="click:g4e8d8fa77c" title="Attiva spostamento finestra">
               <i class="bi bi-arrows-move"></i>
             </button>
             <button type="button" class="btn btn-sm btn-outline-light border-white-50 text-white"
-                    id="wiz-btn-fullscreen" onclick="wizToggleFullscreen()" title="Apri a tutto schermo">
+                    id="wiz-btn-fullscreen" data-iu-on="click:g541874d64e" title="Apri a tutto schermo">
               <i class="bi bi-arrows-fullscreen"></i>
             </button>
           </div>
@@ -616,7 +616,7 @@
           </div>
           <div class="d-flex gap-2 justify-content-center">
             <button type="button" class="btn btn-outline-secondary btn-sm"
-                    onclick="wizRiverifca()">
+                    data-iu-on="click:g187d7d8d10">
               <i class="bi bi-arrow-clockwise me-1"></i>Riverifica
             </button>
           </div>
@@ -654,7 +654,7 @@
                   <input type="text" id="wiz-ufficio-input" class="form-control"
                          placeholder="Cerca per città o nome…" autocomplete="off">
                   <button type="button" class="btn btn-outline-secondary" id="wiz-ufficio-clear"
-                          style="display:none" onclick="wizClearUfficio()">
+                          style="display:none" data-iu-on="click:gb610bf1afd">
                     <i class="bi bi-x-lg"></i>
                   </button>
                 </div>
@@ -787,7 +787,7 @@
               <div id="wiz-cert-btn-area" class="mb-3">
                 <button type="button" class="btn btn-primary px-4 py-2"
                         id="btn-wiz-seleziona"
-                        onclick="wizApriPicker()">
+                        data-iu-on="click:gef49d83e93">
                   <i class="bi bi-credit-card-2-front me-2"></i>Seleziona certificato…
                 </button>
                 <span class="text-muted small ms-2">
@@ -846,7 +846,7 @@
                     </div>
                   </div>
                   <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0"
-                          onclick="wizApriPicker()" title="Cambia certificato">
+                          data-iu-on="click:gef49d83e93" title="Cambia certificato">
                     <i class="bi bi-arrow-repeat"></i>
                   </button>
                 </div>
@@ -917,7 +917,7 @@
                     <i class="bi bi-stethoscope me-1"></i>Diagnostica Local Signer
                   </a>
                   <button type="button" class="btn btn-sm btn-outline-secondary"
-                          onclick="wizTestConnessionePst()">
+                          data-iu-on="click:g0d1022576f">
                     <i class="bi bi-wifi me-1"></i>Testa connessione PST
                   </button>
                 </div>
@@ -962,7 +962,7 @@
             <span id="wiz-acq-errore-msg">Errore durante l'acquisizione.</span>
             <div class="mt-2">
               <button type="button" class="btn btn-sm btn-outline-danger"
-                      onclick="_wizStep=3;_wizAggiornaDot();_wizMostraStep(3);">
+                      data-iu-on="click:g6755326bd8">
                 <i class="bi bi-arrow-left me-1"></i>Torna ai risultati
               </button>
             </div>
@@ -973,14 +973,14 @@
 
       <div class="modal-footer border-top py-2 gap-2">
         <button type="button" class="btn btn-outline-secondary btn-sm" id="wiz-btn-indietro"
-                style="display:none" onclick="wizIndietro()">
+                style="display:none" data-iu-on="click:g2796b6bb06">
           <i class="bi bi-arrow-left me-1"></i>Indietro
         </button>
         <div class="me-auto small text-muted" id="wiz-footer-info"></div>
         <button type="button" class="btn btn-outline-secondary btn-sm"
                 data-bs-dismiss="modal">Annulla</button>
         <button type="button" class="btn btn-primary btn-sm" id="wiz-btn-avanti"
-                onclick="wizAvanti()">
+                data-iu-on="click:g1825a9fc71">
           Avanti <i class="bi bi-arrow-right ms-1"></i>
         </button>
       </div>
@@ -993,7 +993,7 @@
 
 {% block extra_scripts %}
 {# CSS uff-* ora in /static/css/app.css #}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Auto-uppercase CF
 document.querySelectorAll('input[name="cf_parte"]').forEach(el => {
   el.addEventListener('input', () => { el.value = el.value.toUpperCase(); });
@@ -2984,21 +2984,29 @@ async function wizEseguiRicerca() {
         <td>
           <div class="d-flex flex-wrap gap-2 justify-content-end">
             <button type="button" class="btn btn-xs btn-outline-primary btn-sm"
-                    onclick="wizImporta(${idx}, false)">
+                    data-wiz-importa="${idx}" data-wiz-modo="semplice">
               <i class="bi bi-download me-1"></i>Importa
             </button>
             <button type="button" class="btn btn-xs btn-outline-success btn-sm"
-                    onclick="wizImporta(${idx}, true)">
+                    data-wiz-importa="${idx}" data-wiz-modo="pst">
               <i class="bi bi-diagram-3 me-1"></i>Importa + Naviga PST
             </button>
             <button type="button" class="btn btn-xs btn-primary btn-sm"
-                    onclick='wizImporta(${idx}, { openPst: true, acquireAll: true, preserveOriginalTree: true })'
+                    data-wiz-importa="${idx}" data-wiz-modo="completo"
                     title="Importa il fascicolo e avvia subito l'acquisizione completa dei documenti ufficiali">
               <i class="bi bi-cloud-arrow-down me-1"></i>Importa + acquisisci fascicolo
             </button>
           </div>
         </td>
       </tr>`).join('');
+    tbody.onclick = (evento) => {
+      const pulsante = evento.target.closest('[data-wiz-importa]');
+      if (!pulsante || !tbody.contains(pulsante)) return;
+      const indice = parseInt(pulsante.getAttribute('data-wiz-importa'), 10);
+      const modo = pulsante.getAttribute('data-wiz-modo');
+      if (modo === 'completo') wizImporta(indice, { openPst: true, acquireAll: true, preserveOriginalTree: true });
+      else wizImporta(indice, modo === 'pst');
+    };
     if (content) content.style.display = 'block';
   })
   .catch(e => {

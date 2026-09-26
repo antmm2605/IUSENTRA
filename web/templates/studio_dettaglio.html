@@ -34,7 +34,7 @@
         <div class="db-option-card mb-3 p-3 rounded-3 {{ 'border border-primary bg-primary bg-opacity-10' if db.mode == mode_key else 'border' }}"
              id="option_{{ mode_key }}"
              style="cursor:pointer;transition:all .15s;"
-             onclick="selectMode('{{ mode_key }}')">
+             data-iu-on="click:g7ce0cfdd80" data-iu-v-click-0="{{ mode_key }}">
           <div class="d-flex align-items-center gap-2 mb-1">
             <i class="bi {{ mode_info.icona }} text-{{ mode_info.colore }} fs-5"></i>
             <span class="fw-semibold">{{ mode_info.nome }}</span>
@@ -181,7 +181,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 const TEST_URL = '{{ url_for("admin.testa_connessione_db", slug=studio.slug) }}';
 
 function setPanelInputsEnabled(panelId, enabled) {

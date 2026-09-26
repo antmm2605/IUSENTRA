@@ -152,7 +152,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Aggiorna visivamente la colonna "Effettivo" in tempo reale
 document.querySelectorAll('.perm-extra, .perm-negato').forEach(cb => {
   cb.addEventListener('change', function() {

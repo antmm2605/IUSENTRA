@@ -1,5 +1,55 @@
 # Changelog
 
+## 2.411.0 — 26/09/2026
+
+Chiusi i tre limiti noti della 2.410.0.
+
+**Scadenze dai PDF senza leggere nella richiesta.** L'anteprima «Scadenze dai
+PDF» dello Scadenziario non apre più i documenti: ogni PDF si legge una volta,
+in sfondo, e le scadenze trovate restano nel registro delle letture (lettore
+`scadenze_pdf`, impronta SHA-256 del documento). Un PDF nuovo o cambiato viene
+letto da solo; la pagina mostra quanti PDF restano da leggere e si aggiorna
+finché la lettura non finisce. L'importazione usa le stesse scadenze del
+registro, senza rileggere (`web/services/scadenze_pdf_lettura.py`).
+
+**Niente `unsafe-inline` per gli script.** La CSP ammette solo i file dello
+studio, gli host dichiarati e i blocchi `<script>` con il nonce della
+richiesta. I 356 gestori scritti negli attributi dei template legacy
+(`onclick=`, `onsubmit="return confirm(…)"`…) sono diventati `data-iu-on`, con
+il codice in `web/static/js/iu-gestori-registro.js` e la stessa semantica
+dell'attributo (`web/static/js/iu-gestori.js`); i valori del template arrivano
+come testo, così un nome con un apice non può più rompere lo script. Anche
+l'HTML costruito dagli script non usa più gestori in linea. La shell React ha
+un nonce stabile per documento e sessione, così la rivalidazione 304 resta
+valida. Verifica in Chromium: 216 pagine legacy e le pagine React senza
+violazioni; un `<img onerror>` o uno `<script>` iniettati non vengono eseguiti.
+Gli stili in linea restano ammessi (non eseguono codice).
+
+**Lex legge articoli e sentenze dagli archivi ufficiali.** «Testo dell'art.
+2043 c.c.», «cosa prevede l'art. 3-bis L. 53/1994», «art. 16-bis d.l.
+179/2012»: Lex riporta il testo dall'archivio Normattiva locale, aggiornato
+ogni notte, con il collegamento ufficiale all'articolo e la data di
+importazione (per il codice civile distingue l'articolo dalle preleggi). «Cass.
+n. 12345/2023» o «Corte cost. n. 75/2019»: massima e principio di diritto
+dall'archivio giurisprudenza, solo se numero, anno e organo coincidono, con la
+pagina ufficiale e lo stato di verifica della fonte. Se l'articolo o la
+sentenza non ci sono, Lex lo dice e dà il collegamento alla fonte ufficiale:
+non ricostruisce testi a memoria (`lex/testi_ufficiali.py`).
+
+**Pagamenti online del cliente.** Il link di pagamento (`/pagamenti/paga/…`)
+mandava il cliente alla pagina di accesso dello studio, e le notifiche di
+Stripe, PayPal, Satispay e SumUp venivano rimandate al login: il pagamento non
+risultava mai confermato. Ora link, avvio, esito e webhook sono raggiungibili
+senza sessione (l'accesso è il token del link o la verifica del gestore), e il
+link mostrato nella pagina Incassi punta all'indirizzo vero.
+
+Corretto anche: il wizard preventivi legacy si fermava per una funzione mai
+definita quando riceveva dati precompilati; un file `.doc` che non è un
+documento Word non viene più «letto» da LibreOffice come testo; l'ambiente di
+prova ha `python-pkcs11` per i test della firma su dispositivo; i test del
+catalogo documentale seguono il completamento dei profili parziali introdotto
+nella 2.397.0.
+
 ## 2.410.0 — 26/09/2026
 
 Revisione completa dell'applicazione: mappa in `docs/MAPPA_APPLICAZIONE.md`

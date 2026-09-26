@@ -324,7 +324,7 @@
     {% if soggetto %}
     <button type="submit" formaction="{{ url_for('elimina_soggetto', id_soggetto=soggetto.id) }}"
             class="ds-btn ds-btn-danger"
-            onclick="return confirm('Eliminare definitivamente questo soggetto?')">
+            data-iu-on="click:ga1b2027f33">
       <i class="bi bi-trash"></i>Elimina
     </button>
     {% endif %}
@@ -338,7 +338,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
   'use strict';
 

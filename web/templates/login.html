@@ -109,7 +109,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function() {
   const sel = document.getElementById('ruolo-select');
   const desc = document.getElementById('ruolo-desc');

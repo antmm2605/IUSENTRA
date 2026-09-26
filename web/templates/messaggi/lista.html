@@ -134,7 +134,7 @@
                    class="btn btn-sm btn-outline-secondary" title="Dettaglio"><i class="bi bi-eye"></i></a>
                 <form method="post"
                       action="{{ url_for('elimina_messaggio', id_msg=m.id) }}"
-                      onsubmit="return confirm('Eliminare il messaggio?')">
+                      data-iu-on="submit:ge38befa74a">
                   <button class="btn btn-sm btn-outline-danger" title="Elimina"><i class="bi bi-trash"></i></button>
                 </form>
               </div>
@@ -169,6 +169,6 @@
 {% endblock %}
 
 {% block scripts %}
-<script>initPagination('tbl-msg', 'page-size-msg');</script>
+<script nonce="{{ csp_nonce() }}">initPagination('tbl-msg', 'page-size-msg');</script>
 {% endblock %}
 

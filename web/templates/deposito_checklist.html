@@ -22,7 +22,7 @@
               Usa questa lista prima di ogni deposito per non dimenticare nessun passaggio.
             </p>
           </div>
-          <button class="btn btn-sm btn-outline-secondary ms-auto" onclick="resetTutte()">
+          <button class="btn btn-sm btn-outline-secondary ms-auto" data-iu-on="click:geecb05fddc">
             <i class="bi bi-arrow-counterclockwise me-1"></i>Reset tutte
           </button>
         </div>
@@ -51,7 +51,7 @@
         {% for id, icon, titolo, desc in kit %}
         <div class="form-check mb-3">
           <input class="form-check-input" type="checkbox" id="{{ id }}"
-                 onchange="salva('{{ id }}', this.checked)" style="width:1.2em;height:1.2em;margin-top:.15em">
+                 data-iu-on="change:g4dc7883e05" data-iu-v-change-0="{{ id }}" style="width:1.2em;height:1.2em;margin-top:.15em">
           <label class="form-check-label ms-2" for="{{ id }}">
             <span class="fw-semibold"><i class="bi {{ icon }} me-1 text-primary"></i>{{ titolo }}</span>
             <span class="d-block small text-muted">{{ desc }}</span>
@@ -87,7 +87,7 @@
         {% for id, titolo, desc in civile %}
         <div class="form-check mb-3">
           <input class="form-check-input" type="checkbox" id="{{ id }}"
-                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('civile', {{ civile|length }})"
+                 data-iu-on="change:g30586028be" data-iu-v-change-0="{{ id }}" data-iu-v-change-1="{{ (civile|length) | forceescape }}"
                  style="width:1.2em;height:1.2em;margin-top:.15em">
           <label class="form-check-label ms-2" for="{{ id }}">
             <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
@@ -127,7 +127,7 @@
         {% for id, titolo, desc in di %}
         <div class="form-check mb-3">
           <input class="form-check-input" type="checkbox" id="{{ id }}"
-                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('di', {{ di|length }})"
+                 data-iu-on="change:gacbe408ec0" data-iu-v-change-0="{{ id }}" data-iu-v-change-1="{{ (di|length) | forceescape }}"
                  style="width:1.2em;height:1.2em;margin-top:.15em">
           <label class="form-check-label ms-2" for="{{ id }}">
             <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
@@ -164,7 +164,7 @@
         {% for id, titolo, desc in ir %}
         <div class="form-check mb-3">
           <input class="form-check-input" type="checkbox" id="{{ id }}"
-                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('ir', {{ ir|length }})"
+                 data-iu-on="change:ga1203cd3c9" data-iu-v-change-0="{{ id }}" data-iu-v-change-1="{{ (ir|length) | forceescape }}"
                  style="width:1.2em;height:1.2em;margin-top:.15em">
           <label class="form-check-label ms-2" for="{{ id }}">
             <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
@@ -199,7 +199,7 @@
         {% for id, titolo, desc in all %}
         <div class="form-check mb-3">
           <input class="form-check-input" type="checkbox" id="{{ id }}"
-                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('all', {{ all|length }})"
+                 data-iu-on="change:gcc25304aec" data-iu-v-change-0="{{ id }}" data-iu-v-change-1="{{ (all|length) | forceescape }}"
                  style="width:1.2em;height:1.2em;margin-top:.15em">
           <label class="form-check-label ms-2" for="{{ id }}">
             <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
@@ -237,7 +237,7 @@
         {% for id, titolo, desc in pen %}
         <div class="form-check mb-3">
           <input class="form-check-input" type="checkbox" id="{{ id }}"
-                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('pen', {{ pen|length }})"
+                 data-iu-on="change:gc3f9e413f6" data-iu-v-change-0="{{ id }}" data-iu-v-change-1="{{ (pen|length) | forceescape }}"
                  style="width:1.2em;height:1.2em;margin-top:.15em">
           <label class="form-check-label ms-2" for="{{ id }}">
             <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
@@ -279,7 +279,7 @@
         {% for id, titolo, desc in amm %}
         <div class="form-check mb-3">
           <input class="form-check-input" type="checkbox" id="{{ id }}"
-                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('amm', {{ amm|length }})"
+                 data-iu-on="change:gd4850b6a9c" data-iu-v-change-0="{{ id }}" data-iu-v-change-1="{{ (amm|length) | forceescape }}"
                  style="width:1.2em;height:1.2em;margin-top:.15em">
           <label class="form-check-label ms-2" for="{{ id }}">
             <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
@@ -358,7 +358,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Chiavi localStorage per ogni checkbox
 const PREFIX = 'chk_deposito_';
 

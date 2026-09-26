@@ -2,6 +2,8 @@
 <html lang="it">
 <head>
   <meta charset="utf-8">
+  <script src="/static/js/iu-gestori.js?v={{ app_version|default('') }}"></script>
+  <script src="/static/js/iu-gestori-registro.js?v={{ app_version|default('') }}"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ payload.site.site_title or payload.site.site_name }}{% endblock %}</title>
   <meta name="description" content="{% block description %}{{ payload.site.site_description }}{% endblock %}">

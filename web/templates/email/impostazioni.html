@@ -240,7 +240,7 @@
 {% endblock %}{# /modals #}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 function _toast(tipo, msg) {
   const area = document.getElementById('toastArea');
   const id = 'toast_' + Date.now();
@@ -255,9 +255,10 @@ function _toast(tipo, msg) {
           <span style="font-size:.83rem;line-height:1.5">${msg}</span>
         </div>
         <button type="button" class="btn-close btn-close-white me-2 m-auto opacity-50"
-                onclick="document.getElementById('${id}').remove()"></button>
+                data-chiudi-avviso="${id}"></button>
       </div>
     </div>`);
+  document.querySelector(`[data-chiudi-avviso="${id}"]`)?.addEventListener('click', () => document.getElementById(id)?.remove());
   setTimeout(() => document.getElementById(id)?.remove(), 6000);
 }
 

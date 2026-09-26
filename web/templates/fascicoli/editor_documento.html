@@ -702,7 +702,7 @@
 
 <input type="file" id="replace-file-input" hidden accept=".txt,.html,.htm,.docx,.md">
 
-<script type="module">
+<script nonce="{{ csp_nonce() }}" type="module">
 import { Editor }       from 'https://esm.sh/@tiptap/core@2.4.0'
 import StarterKit       from 'https://esm.sh/@tiptap/starter-kit@2.4.0'
 import Underline        from 'https://esm.sh/@tiptap/extension-underline@2.4.0'
@@ -1296,7 +1296,7 @@ updateSelectionInfo()
 updateLastSaveLabel()
 </script>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Fallback: se l'editor non si carica entro 12 secondi, mostra un messaggio di errore.
 // (il modulo TipTap è importato da CDN esm.sh — se la rete lo blocca, il modulo non parte)
 setTimeout(function() {
@@ -1307,7 +1307,7 @@ setTimeout(function() {
       '<p class="fw-semibold mt-2 mb-1">Impossibile caricare l\'editor</p>' +
       '<p class="text-muted small mb-3">Il caricamento delle librerie esterne potrebbe essere bloccato dalla rete.<br>' +
       'Verifica la connessione internet e riprova.</p>' +
-      '<a href="javascript:location.reload()" class="btn btn-sm btn-outline-primary">' +
+      '<a href="" class="btn btn-sm btn-outline-primary">' +
       '<i class="bi bi-arrow-clockwise me-1"></i>Ricarica pagina</a>';
   }
 }, 12000);

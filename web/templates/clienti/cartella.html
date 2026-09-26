@@ -149,7 +149,7 @@
   <div class="col-6 col-lg-3">
     <div class="card border-0 shadow-sm h-100 cd-stat cd-stat-blue cd-stat-clickable"
          role="button" title="Vai alle pratiche attive"
-         onclick="attivaTab('tab-attivi-btn')">
+         data-iu-on="click:ga54d38bae5">
       <div class="card-body p-3 d-flex align-items-center gap-3">
         <div class="cd-stat-icon"><i class="bi bi-folder2-open"></i></div>
         <div>
@@ -162,7 +162,7 @@
   <div class="col-6 col-lg-3">
     <div class="card border-0 shadow-sm h-100 cd-stat cd-stat-purple cd-stat-clickable"
          role="button" title="Vai all'archivio"
-         onclick="attivaTab('tab-archivio-btn')">
+         data-iu-on="click:g46e00d9e47">
       <div class="card-body p-3 d-flex align-items-center gap-3">
         <div class="cd-stat-icon"><i class="bi bi-archive-fill"></i></div>
         <div>
@@ -175,7 +175,7 @@
   <div class="col-6 col-lg-3">
     <div class="card border-0 shadow-sm h-100 cd-stat cd-stat-green cd-stat-clickable"
          role="button" title="Apri faldone digitale"
-         onclick="window.location.href='{{ url_for('faldone_cliente', id_cliente=cliente.id) }}'">
+         data-iu-on="click:ge5ebcf2b87" data-iu-v-click-0="{{ url_for('faldone_cliente', id_cliente=cliente.id) }}">
       <div class="card-body p-3 d-flex align-items-center gap-3">
         <div class="cd-stat-icon"><i class="bi bi-file-earmark-fill"></i></div>
         <div>
@@ -187,7 +187,7 @@
   </div>
   <div class="col-6 col-lg-3">
     <div class="card border-0 shadow-sm h-100 cd-stat {% if scadenze_imminenti %}cd-stat-orange cd-stat-clickable{% else %}cd-stat-gray{% endif %}"
-         {% if scadenze_imminenti %}role="button" title="Vai all'agenda" onclick="attivaTab('tab-agenda-btn')"{% endif %}>
+         {% if scadenze_imminenti %}role="button" title="Vai all'agenda" data-iu-on="click:gcbae0dccd4"{% endif %}>
       <div class="card-body p-3 d-flex align-items-center gap-3">
         <div class="cd-stat-icon"><i class="bi bi-alarm-fill"></i></div>
         <div>
@@ -343,7 +343,7 @@
         <div class="card border-0 shadow-sm cd-pratica-card cd-pratica-{{ SC[f.stato.value] }} cd-card-clickable"
              role="button"
              data-href="{{ url_for('dettaglio_fascicolo', id_fasc=f.id) }}"
-             onclick="navigaCard(event, this)">
+             data-iu-on="click:ge7511ff617">
           <div class="card-body p-3">
             <div class="d-flex align-items-start gap-3">
 
@@ -521,7 +521,7 @@
                 {% if ha_zip %}
                   <button type="button"
                           class="btn btn-sm btn-outline-primary"
-                          onclick="sfogliaArchivio('{{ f.id }}', '{{ f.titolo|e }}')"
+                          data-iu-on="click:gca4bec162c" data-iu-v-click-0="{{ f.id }}" data-iu-v-click-1="{{ f.titolo|e }}"
                           title="Sfoglia contenuto ZIP">
                     <i class="bi bi-folder-symlink me-1"></i><span class="d-none d-lg-inline">Sfoglia</span>
                   </button>
@@ -536,7 +536,7 @@
                 </a>
                 <form method="post"
                       action="{{ url_for('ripristina_fascicolo', id_fasc=f.id) }}"
-                      onsubmit="return confirm('Ripristinare la pratica in lavorazione?\nVerrà rimossa dall\'archivio.')"
+                      data-iu-on="submit:gf9d717f35a"
                       class="d-inline">
                   <button class="btn btn-sm btn-outline-success" title="Ripristina pratica">
                     <i class="bi bi-arrow-counterclockwise"></i>
@@ -1039,7 +1039,7 @@
               <input type="text" name="controparte" id="ss-crt-nuovo-input"
                      class="ss-input" placeholder="Cerca o digita…" autocomplete="off">
               <button type="button" class="ss-btn-new"
-                      onclick="window.open('/soggetti/nuovo','_blank')" title="Crea nuovo soggetto">
+                      data-iu-on="click:g62030e1240" title="Crea nuovo soggetto">
                 <i class="bi bi-plus-lg"></i>
               </button>
             </div>
@@ -1151,7 +1151,7 @@
               <input type="text" name="controparte" id="ss-crt-modifica-input"
                      class="ss-input" placeholder="Cerca o digita…" autocomplete="off">
               <button type="button" class="ss-btn-new"
-                      onclick="window.open('/soggetti/nuovo','_blank')" title="Crea nuovo soggetto">
+                      data-iu-on="click:g62030e1240" title="Crea nuovo soggetto">
                 <i class="bi bi-plus-lg"></i>
               </button>
             </div>
@@ -1230,7 +1230,7 @@
 {# ═══════════════════════════════════════════════
    SCRIPT — sfogliaArchivio
    ═══════════════════════════════════════════════ #}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
   const EXT_ICON = {
     '.pdf':  'bi-file-pdf-fill text-danger',
@@ -1381,7 +1381,7 @@ function attivaTab(btnId) {
 </script>
 
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.addEventListener('DOMContentLoaded', function() {
   initSoggettoSearch({ uid: 'crt-nuovo',    allowFreeText: true });
   initSoggettoSearch({ uid: 'crt-modifica', allowFreeText: true });

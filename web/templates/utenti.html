@@ -101,7 +101,7 @@
                    placeholder="Conferma password" required>
           </div>
           <button type="submit" class="btn btn-outline-danger btn-sm"
-                  onclick="return confirm('Disattivare il 2FA?')">
+                  data-iu-on="click:ga9759b4f06">
             <i class="bi bi-shield-x me-1"></i>Disattiva 2FA
           </button>
         </div>
@@ -160,7 +160,7 @@
 {% block scripts %}
 {% if totp_uri_qr %}
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-<script>
+<script nonce="{{ csp_nonce() }}">
 QRCode.toCanvas(document.getElementById('qr-canvas'),
   {{ totp_uri_qr | tojson }},
   { width: 200, margin: 2 },

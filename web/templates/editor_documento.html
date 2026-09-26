@@ -171,7 +171,7 @@
                  data-doc-nome="{{ doc.nome }}"
                  data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                  data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                 onclick="apriVisualizzatore(this); return false;">
+                 data-iu-on="click:gbe6ae81957">
                 <i class="bi bi-file-earmark me-1 text-muted"></i>{{ doc.nome }}
               </a>
               {% else %}
@@ -236,7 +236,7 @@
                       data-doc-nome="{{ doc.nome }}"
                       data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                       data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                      onclick="apriVisualizzatore(this)">
+                      data-iu-on="click:g189cb90914">
                 <i class="bi bi-eye"></i>
               </button>
               {% endif %}
@@ -253,7 +253,7 @@
                       data-doc-nome="{{ doc.nome }}"
                       data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                       data-firma-url="{{ url_for('firma_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                      onclick="apriFirma(this)">
+                      data-iu-on="click:g0052c7a692">
                 <i class="bi bi-pen"></i>
               </button>
               {% endif %}
@@ -271,7 +271,7 @@
               {# Elimina #}
               <form method="post"
                     action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                    onsubmit="return confirm('Eliminare il documento?')">
+                    data-iu-on="submit:gd3a01e0f9d">
                 <button class="btn btn-outline-danger btn-sm" title="Elimina">
                   <i class="bi bi-trash"></i>
                 </button>
@@ -660,25 +660,13 @@
               <div class="flex-shrink-0 d-flex flex-column gap-1">
                 <button type="button" class="btn btn-sm btn-outline-primary"
                         title="Modifica deposito"
-                        onclick="apriModificaDeposito({
-                          id:'{{ dep.id }}',
-                          tipo_atto:{{ dep.tipo_atto | tojson }},
-                          stato:{{ dep.stato | tojson }},
-                          pec_destinatario:{{ dep.pec_destinatario | tojson }},
-                          messaggio:{{ dep.messaggio | tojson }},
-                          ricevuta_accettazione:{{ dep.ricevuta_accettazione | tojson }},
-                          ricevuta_consegna:{{ dep.ricevuta_consegna | tojson }},
-                          ricevuta_controlli_automatici:{{ (dep.ricevuta_controlli_automatici or '') | tojson }},
-                          esito_controlli:{{ (dep.esito_controlli or '') | tojson }},
-                          ricevuta_cancelleria:{{ (dep.ricevuta_cancelleria or '') | tojson }},
-                          note:{{ dep.note | tojson }}
-                        })">
+                        data-iu-on="click:g7b0c9cd6e5" data-iu-v-click-0="{{ dep.id }}" data-iu-v-click-1="{{ (dep.tipo_atto | tojson) | forceescape }}" data-iu-v-click-2="{{ (dep.stato | tojson) | forceescape }}" data-iu-v-click-3="{{ (dep.pec_destinatario | tojson) | forceescape }}" data-iu-v-click-4="{{ (dep.messaggio | tojson) | forceescape }}" data-iu-v-click-5="{{ (dep.ricevuta_accettazione | tojson) | forceescape }}" data-iu-v-click-6="{{ (dep.ricevuta_consegna | tojson) | forceescape }}" data-iu-v-click-7="{{ ((dep.ricevuta_controlli_automatici or '') | tojson) | forceescape }}" data-iu-v-click-8="{{ ((dep.esito_controlli or '') | tojson) | forceescape }}" data-iu-v-click-9="{{ ((dep.ricevuta_cancelleria or '') | tojson) | forceescape }}" data-iu-v-click-10="{{ (dep.note | tojson) | forceescape }}">
                   <i class="bi bi-pencil"></i>
                 </button>
                 {% if not is_finale %}
                 <button type="button" class="btn btn-sm btn-outline-secondary"
                         title="Controlla ricevute PEC"
-                        onclick="controllaRicevute('{{ fascicolo.id }}','{{ dep.id }}',this)">
+                        data-iu-on="click:g3e8a3a4b26" data-iu-v-click-0="{{ fascicolo.id }}" data-iu-v-click-1="{{ dep.id }}">
                   <i class="bi bi-arrow-repeat"></i>
                 </button>
                 {% endif %}
@@ -775,14 +763,14 @@
           {% endif %}
         {% else %}
         <form method="post" action="{{ url_for('ripristina_fascicolo', id_fasc=fascicolo.id) }}"
-              onsubmit="return confirm('Ripristinare il fascicolo dall\'archivio?')">
+              data-iu-on="submit:g505aece19f">
           <button class="list-group-item list-group-item-action text-success border-0 bg-transparent text-start w-100">
             <i class="bi bi-arrow-counterclockwise me-2"></i>Ripristina dall'archivio
           </button>
         </form>
         {% endif %}
         <form method="post" action="{{ url_for('elimina_fascicolo', id_fasc=fascicolo.id) }}"
-              onsubmit="return confirm('Eliminare definitivamente questo fascicolo?')">
+              data-iu-on="submit:g106e731ae2">
           <button class="list-group-item list-group-item-action text-danger border-0 bg-transparent text-start w-100">
             <i class="bi bi-trash me-2"></i>Elimina fascicolo
           </button>
@@ -899,7 +887,7 @@
             </div>
             <form method="post"
                   action="{{ url_for('rimuovi_parte_fascicolo', id_fasc=fascicolo.id, id_parte=parte.id) }}"
-                  onsubmit="return confirm('Rimuovere questa parte dal fascicolo?')">
+                  data-iu-on="submit:g65d0ee31ec">
               <button type="submit" class="btn btn-sm btn-outline-danger p-0 px-1" title="Rimuovi">
                 <i class="bi bi-x-lg" style="font-size:.7rem"></i>
               </button>
@@ -932,7 +920,7 @@
             </div>
             <form method="post"
                   action="{{ url_for('rimuovi_parte_fascicolo', id_fasc=fascicolo.id, id_parte=parte.id) }}"
-                  onsubmit="return confirm('Rimuovere questa parte dal fascicolo?')">
+                  data-iu-on="submit:g65d0ee31ec">
               <button type="submit" class="btn btn-sm btn-outline-danger p-0 px-1" title="Rimuovi">
                 <i class="bi bi-x-lg" style="font-size:.7rem"></i>
               </button>
@@ -965,7 +953,7 @@
             </div>
             <form method="post"
                   action="{{ url_for('rimuovi_parte_fascicolo', id_fasc=fascicolo.id, id_parte=parte.id) }}"
-                  onsubmit="return confirm('Rimuovere questa parte dal fascicolo?')">
+                  data-iu-on="submit:g65d0ee31ec">
               <button type="submit" class="btn btn-sm btn-outline-danger p-0 px-1" title="Rimuovi">
                 <i class="bi bi-x-lg" style="font-size:.7rem"></i>
               </button>
@@ -1082,7 +1070,7 @@
               <div id="drop-zone"
                    style="border:2px dashed #cbd5e1;border-radius:8px;padding:1.5rem;
                           text-align:center;cursor:pointer;transition:background .2s,border-color .2s"
-                   onclick="document.getElementById('fileInput').click()">
+                   data-iu-on="click:gd4f6713631">
                 <i class="bi bi-cloud-upload fs-2 text-muted d-block mb-1"></i>
                 <span id="drop-label" class="small text-muted">
                   Trascina qui il file oppure <strong>clicca per sceglierlo</strong>
@@ -1471,7 +1459,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // ---- Visualizzatore documenti inline ----
 function apriVisualizzatore(btn) {
   document.getElementById('visualizzatore-titolo').textContent = btn.dataset.docNome;

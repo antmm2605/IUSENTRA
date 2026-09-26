@@ -242,7 +242,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 const PRESETS = {{ preset_list | tojson }};
 const OFFICE_MODE_LABELS = {
   open: 'Aperto',

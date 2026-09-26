@@ -116,11 +116,11 @@
               <button type="button" class="btn btn-outline-primary btn-sm"
                       style="font-size:.72rem;padding:.2rem .5rem"
                       id="btn_main_{{ doc.id }}"
-                      onclick="setMainDoc('{{ doc.id }}')">Principale</button>
+                      data-iu-on="click:g2333d65915" data-iu-v-click-0="{{ doc.id }}">Principale</button>
               <button type="button" class="btn btn-outline-success btn-sm"
                       style="font-size:.72rem;padding:.2rem .5rem"
                       id="btn_all_{{ doc.id }}"
-                      onclick="toggleAllegato('{{ doc.id }}')">+ Allegato</button>
+                      data-iu-on="click:g050cba4ca4" data-iu-v-click-0="{{ doc.id }}">+ Allegato</button>
             </div>
           </div>
 
@@ -266,7 +266,7 @@
       {# — Invio via PEC — sempre visibile; demo=true finché PEC non configurata — #}
       {# TODO: sostituire avviaInvioPec(true) con avviaInvioPec(false) quando PEC studio attiva #}
       <div>
-        <button type="button" class="btn btn-success fw-semibold w-100" onclick="avviaInvioPec(true)">
+        <button type="button" class="btn btn-success fw-semibold w-100" data-iu-on="click:g5761754b8a">
           <i class="bi bi-send-fill me-2"></i>Invia ora via PEC
         </button>
         <div class="form-text text-center mt-1">
@@ -303,7 +303,7 @@
 
       {# — Modalità Demo — sempre visibile — #}
       <div>
-        <button type="button" class="btn btn-warning fw-semibold w-100" onclick="avviaInvioPec(true)">
+        <button type="button" class="btn btn-warning fw-semibold w-100" data-iu-on="click:g5761754b8a">
           <i class="bi bi-play-circle me-2"></i>Testa in Modalità Demo
         </button>
         <div class="form-text text-center mt-1">
@@ -314,7 +314,7 @@
       <div class="text-center text-muted small">— oppure —</div>
 
       <div>
-        <button type="button" class="btn btn-outline-primary w-100" onclick="avviaGeneraBusta()">
+        <button type="button" class="btn btn-outline-primary w-100" data-iu-on="click:gb603bcea8b">
           <i class="bi bi-download me-2"></i>Scarica busta .enc
         </button>
         <div class="form-text text-center mt-1">
@@ -462,7 +462,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 let mainDocId = null;
 const allegatiSet = new Set();
 let _invioDemo = false;  // true = modalità demo, false = invio reale

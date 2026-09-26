@@ -258,7 +258,7 @@
           <div class="input-group input-group-sm">
             <input type="text" class="form-control font-monospace" id="link-pag-val"
                    value="{{ pl.link }}" readonly style="font-size:.75rem;">
-            <button class="btn btn-outline-success" onclick="navigator.clipboard.writeText(document.getElementById('link-pag-val').value);this.innerHTML='<i class=\'bi bi-check\'></i>'">
+            <button class="btn btn-outline-success" data-iu-on="click:ge9f97f7525">
               <i class="bi bi-clipboard"></i>
             </button>
           </div>
@@ -341,7 +341,7 @@
     <!-- Elimina -->
     {% if p.stato.value == 'BOZZA' %}
     <form method="post" action="{{ url_for('fatturazione.elimina', id_parcella=p.id) }}"
-          onsubmit="return confirm('Eliminare definitivamente questa parcella?')">
+          data-iu-on="submit:g0e9e2bf7ef">
       <button type="submit" class="btn btn-outline-danger btn-sm w-100">
         <i class="bi bi-trash me-1"></i>Elimina bozza
       </button>
@@ -352,7 +352,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
   document.querySelector('[name="stato"]')?.addEventListener('change', function() {
     document.getElementById('pagamento-fields').classList.toggle('d-none', this.value !== 'PAGATA');
   });

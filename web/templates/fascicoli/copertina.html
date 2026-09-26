@@ -2,6 +2,8 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
+  <script src="/static/js/iu-gestori.js?v={{ app_version|default('') }}"></script>
+  <script src="/static/js/iu-gestori-registro.js?v={{ app_version|default('') }}"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Copertina fascicolo - {{ fascicolo.titolo }}</title>
   <style>
@@ -250,7 +252,7 @@
 
 <div class="screen-actions">
   <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}" class="btn-action">Indietro</a>
-  <button class="btn-action btn-print" type="button" onclick="window.print()">Stampa</button>
+  <button class="btn-action btn-print" type="button" data-iu-on="click:g320b883d1e">Stampa</button>
 </div>
 
 <div class="page-wrap">

@@ -166,7 +166,7 @@
     </span>
     {% if cartella == 'CESTINO' %}
     <form method="post" action="{{ url_for('email_client.svuota_cestino') }}"
-          onsubmit="return confirm('Svuotare definitivamente il cestino?')">
+          data-iu-on="submit:g14dcde31a8">
       <button class="btn btn-sm btn-outline-danger">
         <i class="bi bi-trash3 me-1"></i>Svuota cestino
       </button>
@@ -314,7 +314,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 function _fetchJsonWithTimeout(url, options = {}, timeoutMs = 25000) {
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), timeoutMs);
@@ -393,9 +393,10 @@ function _toast(tipo, msg) {
           <span style="font-size:.85rem;line-height:1.5">${msg}</span>
         </div>
         <button type="button" class="btn-close btn-close-white me-2 m-auto opacity-50"
-                onclick="document.getElementById('${id}').remove()"></button>
+                data-chiudi-avviso="${id}"></button>
       </div>
     </div>`);
+  document.querySelector(`[data-chiudi-avviso="${id}"]`)?.addEventListener('click', () => document.getElementById(id)?.remove());
   setTimeout(() => document.getElementById(id)?.remove(), 5500);
 }
 </script>

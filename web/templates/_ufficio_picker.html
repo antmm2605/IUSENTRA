@@ -170,7 +170,7 @@
       {% for nome, smtp, imap, sp, ip, link in providers_pec %}
       <div class="col-6 col-md-3">
         <div class="card border h-100" style="border-radius:12px; cursor:pointer;"
-             onclick="fillPEC('{{ smtp }}','{{ sp }}','{{ imap }}','{{ ip }}')"
+             data-iu-on="click:gdcdf0deb38" data-iu-v-click-0="{{ smtp }}" data-iu-v-click-1="{{ sp }}" data-iu-v-click-2="{{ imap }}" data-iu-v-click-3="{{ ip }}"
              title="Clicca per precompilare i parametri">
           <div class="card-body p-2 text-center">
             <div class="fw-semibold" style="font-size:.8rem;">{{ nome }}</div>
@@ -201,7 +201,7 @@
             <input type="password" name="pec_password" id="pec_password" class="form-control font-monospace"
                    placeholder="{{ '••••••••' if cfg.pec.password else 'Nessuna password salvata' }}"
                    autocomplete="new-password">
-            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('pec_password',this)">
+            <button type="button" class="btn btn-outline-secondary" data-iu-on="click:g2a87fad57f">
               <i class="bi bi-eye"></i>
             </button>
           </div>
@@ -264,11 +264,11 @@
         <div class="col-12">
           <div class="d-flex gap-2 flex-wrap align-items-center mt-1">
             <button type="button" class="btn btn-outline-primary btn-sm" id="btn-test-smtp"
-                    onclick="testConn('pec-smtp','btn-test-smtp','res-test-smtp')">
+                    data-iu-on="click:g42b8a505a6">
               <i class="bi bi-send-check me-1"></i>Testa SMTP
             </button>
             <button type="button" class="btn btn-outline-primary btn-sm" id="btn-test-imap"
-                    onclick="testConn('pec-imap','btn-test-imap','res-test-imap')">
+                    data-iu-on="click:g852120d29a">
               <i class="bi bi-inbox-fill me-1"></i>Testa IMAP
             </button>
             <span id="res-test-smtp" class="test-result"></span>
@@ -342,7 +342,7 @@
         <div class="d-flex gap-3 flex-wrap">
           <div class="form-check">
             <input class="form-check-input" type="radio" name="firma_formato" id="fmt_p12"
-                   value="p12" onchange="switchFirmaFmt('p12')"
+                   value="p12" data-iu-on="change:g1bd2160129"
                    {{ 'checked' if fmt != 'pem' }}>
             <label class="form-check-label" for="fmt_p12">
               <strong>P12 / PFX</strong>
@@ -351,7 +351,7 @@
           </div>
           <div class="form-check ms-4">
             <input class="form-check-input" type="radio" name="firma_formato" id="fmt_pem"
-                   value="pem" onchange="switchFirmaFmt('pem')"
+                   value="pem" data-iu-on="change:gef5c1c2b92"
                    {{ 'checked' if fmt == 'pem' }}>
             <label class="form-check-label" for="fmt_pem">
               <strong>PEM</strong>
@@ -388,7 +388,7 @@
             <input type="password" name="firma_password" id="firma_password" class="form-control font-monospace"
                    placeholder="{{ '••••••••' if cfg.firma.password else 'Password non impostata' }}"
                    autocomplete="new-password">
-            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('firma_password',this)">
+            <button type="button" class="btn btn-outline-secondary" data-iu-on="click:gf0fc3a1170">
               <i class="bi bi-eye"></i>
             </button>
           </div>
@@ -436,7 +436,7 @@
                    class="form-control font-monospace"
                    placeholder="{{ '••••••••' if cfg.firma.key_pem_password else 'Lascia vuoto se chiave non cifrata' }}"
                    autocomplete="new-password">
-            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('firma_key_pem_password',this)">
+            <button type="button" class="btn btn-outline-secondary" data-iu-on="click:g35db714243">
               <i class="bi bi-eye"></i>
             </button>
           </div>
@@ -479,7 +479,7 @@
   </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 function switchFirmaFmt(fmt) {
   document.getElementById('sezione_p12').classList.toggle('d-none', fmt !== 'p12');
   document.getElementById('sezione_pem').classList.toggle('d-none', fmt !== 'pem');
@@ -509,7 +509,7 @@ function switchFirmaFmt(fmt) {
       <div class="col-6 col-md-auto">
         <div class="card h-100 border"
              style="border-radius:12px; cursor:pointer;"
-             onclick="fillSMTP('{{ host }}','{{ porta }}','{{ tls }}')"
+             data-iu-on="click:gf8cc6a4066" data-iu-v-click-0="{{ host }}" data-iu-v-click-1="{{ porta }}" data-iu-v-click-2="{{ tls }}"
              title="Precompila parametri {{ nome }}">
           <div class="card-body p-2 text-center">
             <div class="fw-semibold" style="font-size:.8rem;">{{ nome }}</div>
@@ -567,7 +567,7 @@ function switchFirmaFmt(fmt) {
             <input type="password" name="smtp_password" id="smtp_password" class="form-control font-monospace"
                    placeholder="{{ '••••••••' if cfg.smtp.password else 'Nessuna password' }}"
                    autocomplete="new-password">
-            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('smtp_password',this)">
+            <button type="button" class="btn btn-outline-secondary" data-iu-on="click:g786a8a4dfb">
               <i class="bi bi-eye"></i>
             </button>
           </div>
@@ -589,7 +589,7 @@ function switchFirmaFmt(fmt) {
         <div class="col-12">
           <div class="d-flex gap-2 align-items-center">
             <button type="button" class="btn btn-outline-primary btn-sm" id="btn-test-email"
-                    onclick="testConn('smtp','btn-test-email','res-test-email')">
+                    data-iu-on="click:ga3395093a8">
               <i class="bi bi-send-check me-1"></i>Testa connessione SMTP
             </button>
             <span id="res-test-email" class="test-result"></span>
@@ -689,7 +689,7 @@ function switchFirmaFmt(fmt) {
             <input type="password" name="twilio_token" id="twilio_token" class="form-control font-monospace"
                    placeholder="{{ '••••••••' if cfg.whatsapp.twilio_token else 'Token non impostato' }}"
                    autocomplete="new-password">
-            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('twilio_token',this)">
+            <button type="button" class="btn btn-outline-secondary" data-iu-on="click:gb49a3b5c14">
               <i class="bi bi-eye"></i>
             </button>
           </div>
@@ -729,7 +729,7 @@ function switchFirmaFmt(fmt) {
           <i class="bi bi-floppy me-2"></i>Salva configurazione WhatsApp
         </button>
         <button type="button" class="btn btn-outline-success btn-sm" id="btn-test-wa"
-                onclick="testConn('whatsapp','btn-test-wa','res-test-wa')">
+                data-iu-on="click:g2eefeecf04">
           <i class="bi bi-whatsapp me-1"></i>Testa connessione WhatsApp
         </button>
         <span id="res-test-wa" class="test-result"></span>
@@ -826,7 +826,7 @@ function switchFirmaFmt(fmt) {
   .nav-pills .nav-link.active { background: var(--bs-primary); color:#fff; }
 </style>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 /* ── toggle password visibility ── */
 function togglePwd(id, btn) {
   const inp = document.getElementById(id);

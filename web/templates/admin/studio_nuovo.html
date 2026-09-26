@@ -246,7 +246,7 @@
 
 {% block scripts %}
 {{ super() }}
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.querySelector('[name="nome"]').addEventListener('input', function() {
   const slug = document.getElementById('slugInput');
   if (!slug.dataset.manual) {

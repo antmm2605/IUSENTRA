@@ -47,7 +47,27 @@ def test_csp_allows_governed_ui_assets_without_breaking_layout() -> None:
     assert _csp_has_source(csp, "font-src", "https://fonts.gstatic.com")
     assert _csp_has_source(csp, "frame-src", "blob:")
     assert _csp_has_source(csp, "style-src", "'unsafe-inline'")
-    assert _csp_has_source(csp, "script-src", "'unsafe-inline'")
+    # Gli script in linea passano solo con il nonce della richiesta.
+    assert not _csp_has_source(csp, "script-src", "'unsafe-inline'")
+
+
+def test_csp_nonce_per_richiesta_nei_template() -> None:
+    app = Flask(__name__)
+    app.config.update(TESTING=True, ENABLE_SECURITY_HEADERS=True, SECURITY_HEADERS_ENABLED=True, SECRET_KEY="nonce-test")
+    register_security_runtime(app)
+    app.add_url_rule(
+        "/pagina",
+        endpoint="pagina",
+        view_func=lambda: app.jinja_env.from_string('<script nonce="{{ csp_nonce() }}">1</script>').render(),
+    )
+    client = app.test_client()
+    prima = client.get("/pagina")
+    seconda = client.get("/pagina")
+    nonce_prima = prima.get_data(as_text=True).split('nonce="')[1].split('"')[0]
+    nonce_seconda = seconda.get_data(as_text=True).split('nonce="')[1].split('"')[0]
+    assert len(nonce_prima) >= 20 and nonce_prima != nonce_seconda
+    assert _csp_has_source(prima.headers["Content-Security-Policy"], "script-src", f"'nonce-{nonce_prima}'")
+    assert not _csp_has_source(prima.headers["Content-Security-Policy"], "script-src", "'unsafe-inline'")
 
 
 def test_security_headers_can_be_report_only() -> None:

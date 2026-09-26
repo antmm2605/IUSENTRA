@@ -29,7 +29,7 @@
       <input type="text" id="link-temp-url" class="form-control form-control-sm font-monospace"
              value="{{ nuovo_link_url }}" readonly>
       <button class="btn btn-outline-secondary btn-sm" type="button"
-              onclick="navigator.clipboard.writeText(document.getElementById('link-temp-url').value).then(()=>this.textContent='✓ Copiato!')">
+              data-iu-on="click:ge66b68b8df">
         <i class="bi bi-clipboard"></i> Copia
       </button>
     </div>
@@ -113,7 +113,7 @@
                           title="Modifica">
                     <i class="bi bi-pencil-square"></i>
                   </button>
-                  <form method="post" onsubmit="return confirm('Revocare accesso a {{ ac.username }}?')">
+                  <form method="post" data-iu-on="submit:gab9e4c17dd" data-iu-v-submit-0="{{ ac.username }}">
                     <input type="hidden" name="azione" value="revoca">
                     <input type="hidden" name="id_utente" value="{{ ac.id_utente }}">
                     <button type="submit" class="btn btn-xs btn-outline-danger" title="Revoca">
@@ -155,7 +155,7 @@
               <td class="text-muted">{{ lnk.scade_il[:10] if lnk.scade_il else '—' }}</td>
               <td>{% if lnk.monouso %}<i class="bi bi-check-circle text-success"></i>{% else %}—{% endif %}</td>
               <td>
-                <form method="post" onsubmit="return confirm('Revocare questo link?')">
+                <form method="post" data-iu-on="submit:gba04b558d1">
                   <input type="hidden" name="azione" value="revoca_link">
                   <input type="hidden" name="id_link" value="{{ lnk.id }}">
                   <button type="submit" class="btn btn-xs btn-outline-danger" title="Revoca">

@@ -172,20 +172,22 @@ def import_pdf_deadlines(
     id_fascicolo: str = "",
     max_documents: int = 0,
     user_id: str = "",
+    candidates: list[PdfDeadlineCandidate] | None = None,
 ) -> dict[str, Any]:
     selected = {str(item or "").strip() for item in selected_ids if str(item or "").strip()}
     if not selected:
         return {"ok": False, "message": "Seleziona almeno una scadenza da importare.", "created": 0, "skipped": 0}
-    preview = preview_pdf_deadlines(
-        gestione_fascicoli=gestione_fascicoli,
-        gestione_scadenziario=gestione_scadenziario,
-        id_fascicolo=id_fascicolo,
-        max_documents=max_documents,
-    )
+    if candidates is None:
+        candidates = preview_pdf_deadlines(
+            gestione_fascicoli=gestione_fascicoli,
+            gestione_scadenziario=gestione_scadenziario,
+            id_fascicolo=id_fascicolo,
+            max_documents=max_documents,
+        ).candidates
     created: list[dict[str, Any]] = []
     updated: list[dict[str, Any]] = []
     skipped = 0
-    for candidate in preview.candidates:
+    for candidate in candidates:
         if candidate.id not in selected:
             continue
         if candidate.duplicate:

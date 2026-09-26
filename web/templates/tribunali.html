@@ -97,7 +97,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
   const tbody     = document.getElementById('trib-tbody');
   const searchEl  = document.getElementById('trib-search');

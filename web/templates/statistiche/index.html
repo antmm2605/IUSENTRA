@@ -12,7 +12,7 @@
     <p class="ds-ph-sub" id="anno-label">Anno {{ oggi.year }}</p>
   </div>
   <div class="ds-ph-actions">
-    <button class="ds-btn ds-btn-outline" onclick="ricaricaTutto()" title="Ricarica dati">
+    <button class="ds-btn ds-btn-outline" data-iu-on="click:g53885e943d" title="Ricarica dati">
       <i class="bi bi-arrow-clockwise"></i>
     </button>
   </div>
@@ -212,7 +212,7 @@
 
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function() {
 'use strict';
 

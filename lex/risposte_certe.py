@@ -7,6 +7,9 @@ scaglioni dell'art. 13 D.P.R. 115/2002). Qui Lex riconosce la domanda, estrae
 date e importi scritti dall'avvocato e risponde con il calcolo e la sua base
 normativa. Se manca un dato necessario lo chiede, invece di supporlo.
 
+Il testo di un articolo di codice o di legge e una sentenza precisa si leggono
+dagli archivi ufficiali locali (``lex/testi_ufficiali.py``).
+
 Le domande non riconosciute con certezza tornano al percorso ordinario di Lex.
 """
 
@@ -246,7 +249,19 @@ def _risposta_contributo(testo: str, _date: list[date], strumenti: Callable[[], 
     return RispostaCerta("\n".join(righe), [{"title": "D.P.R. 115/2002, art. 13", "url": "https://www.normattiva.it/eli/id/2002/06/15/002G0139/CONSOLIDATED"}], "contributo_unificato")
 
 
-def risposta_certa(domanda: str, *, strumenti: Callable[[], Any] | None = None) -> RispostaCerta | None:
+def risposta_certa(
+    domanda: str,
+    *,
+    strumenti: Callable[[], Any] | None = None,
+    normattiva_db: str = "",
+    sentenze: Callable[[], Any] | None = None,
+) -> RispostaCerta | None:
+    """Calcoli (termini, contributo) e testi ufficiali (articoli, sentenze precise).
+
+    Il testo di un articolo viene dall'archivio Normattiva locale e una sentenza
+    precisa dall'archivio giurisprudenza (``lex/testi_ufficiali.py``): se non ci
+    sono, la risposta lo dice e indica la fonte ufficiale, senza inventare.
+    """
     testo = _norm(domanda)
     if not testo.strip():
         return None
@@ -255,4 +270,12 @@ def risposta_certa(domanda: str, *, strumenti: Callable[[], Any] | None = None) 
         esito = gestore(testo, date_)
         if esito is not None:
             return esito
-    return _risposta_contributo(testo, date_, strumenti)
+    esito = _risposta_contributo(testo, date_, strumenti)
+    if esito is not None:
+        return esito
+    from lex.testi_ufficiali import risposta_articolo, risposta_sentenza
+
+    trovato = risposta_articolo(domanda, normattiva_db) or risposta_sentenza(domanda, sentenze)
+    if trovato is None:
+        return None
+    return RispostaCerta(trovato["testo"], trovato["fonti"], trovato["tipo"])

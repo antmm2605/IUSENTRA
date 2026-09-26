@@ -2,6 +2,8 @@
 <html lang="it" data-bs-theme="light">
 <head>
   <meta charset="UTF-8">
+  <script src="/static/js/iu-gestori.js?v={{ app_version|default('') }}"></script>
+  <script src="/static/js/iu-gestori-registro.js?v={{ app_version|default('') }}"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <meta name="theme-color" content="#1a3a5c">
   <title>{% block title %}Portale Cliente{% endblock %} - {{ studio_nome }}</title>
@@ -18,7 +20,7 @@
   <i class="bi bi-briefcase-fill portale-topbar__icon"></i>
   <span class="studio-name">{{ studio_nome }}</span>
   <span class="badge-portale">Portale</span>
-  <button class="btn btn-sm btn-link p-0 ms-1 portale-theme-btn" onclick="toggleTheme()" title="Tema">
+  <button class="btn btn-sm btn-link p-0 ms-1 portale-theme-btn" data-iu-on="click:ge49f1020dd" title="Tema">
     <i class="bi bi-moon-stars-fill" id="btn-tema-icon"></i>
   </button>
 </header>
@@ -87,7 +89,7 @@
 {% endif %}
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
+<script nonce="{{ csp_nonce() }}">
   (function() {
     var theme = localStorage.getItem('pct-theme') || 'light';
     document.documentElement.setAttribute('data-bs-theme', theme);

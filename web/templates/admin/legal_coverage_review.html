@@ -244,7 +244,7 @@
 
 {% block scripts %}
 {{ super() }}
-<script>
+<script nonce="{{ csp_nonce() }}">
   window.REVIEW_API_BASE = "/admin/copertura-ai/api";
   window.REVIEW_TENANT_SLUG = "";
 </script>

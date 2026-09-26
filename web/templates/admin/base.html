@@ -2,9 +2,11 @@
 <html lang="it" data-bs-theme="light">
 <head>
   <meta charset="utf-8">
+  <script src="/static/js/iu-gestori.js?v={{ app_version|default('') }}"></script>
+  <script src="/static/js/iu-gestori-registro.js?v={{ app_version|default('') }}"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{% block title %}IUSENTRA Admin{% endblock %} - Pannello Amministrazione</title>
-  <script>(function(){var t=localStorage.getItem('pct-theme');if(t)document.documentElement.setAttribute('data-bs-theme',t);})();</script>
+  <script nonce="{{ csp_nonce() }}">(function(){var t=localStorage.getItem('pct-theme');if(t)document.documentElement.setAttribute('data-bs-theme',t);})();</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -196,7 +198,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{{ url_for('static', filename='js/support_launch.js') }}?v={{ app_version }}"></script>
-<script>
+<script nonce="{{ csp_nonce() }}">
   const btn = document.getElementById('themeToggle');
   const icon = document.getElementById('themeIcon');
   function applyTheme(t) {

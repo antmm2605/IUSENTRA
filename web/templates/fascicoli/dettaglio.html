@@ -341,7 +341,7 @@
                                   data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                   data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                   data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
-                                  onclick="apriVisualizzatore(this)">
+                                  data-iu-on="click:g189cb90914">
                             <i class="bi bi-eye"></i>
                           </button>
                           {% endif %}
@@ -366,7 +366,7 @@
                                   data-doc-nome="{{ _pnome }}"
                                   data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                   data-firma-url="{{ url_for('firma_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
-                                  onclick="apriFirma(this)">
+                                  data-iu-on="click:g0052c7a692">
                             <i class="bi bi-pen"></i>
                           </button>
                           {% endif %}
@@ -374,7 +374,7 @@
                           {% if _pext == 'pdf' and not pdoc.local_doc_firmato %}
                           <form method="post" class="d-inline"
                                 action="{{ url_for('converti_documento_pdfa', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
-                                onsubmit="return confirm('Convertire il documento in PDF/A-2B?')">
+                                data-iu-on="submit:ge0cdfd69a6">
                             <button class="btn btn-outline-warning btn-sm" title="Converti in PDF/A-2B">
                               <i class="bi bi-file-earmark-check"></i>
                             </button>
@@ -569,7 +569,7 @@
                         data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=_first_doc.id) }}"
                         data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_first_doc.id) }}"
                         data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=_first_doc.id) }}"
-                        onclick="apriVisualizzatore(this)">
+                        data-iu-on="click:g189cb90914">
                   <i class="bi bi-eye"></i>
                 </button>
                 {% endif %}
@@ -594,7 +594,7 @@
                         data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=att_single_doc.id) }}"
                         data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=att_single_doc.id) }}"
                         data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=att_single_doc.id) }}"
-                        onclick="apriVisualizzatore(this)">
+                        data-iu-on="click:g189cb90914">
                   <i class="bi bi-eye"></i>
                 </button>
                 {% endif %}
@@ -821,7 +821,7 @@
                  data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                  data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                  data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                 onclick="apriVisualizzatore(this); return false;">
+                 data-iu-on="click:gbe6ae81957">
                 <i class="bi bi-file-earmark me-1 text-muted"></i>{{ nome_ufficiale }}
               </a>
               {% else %}
@@ -1058,7 +1058,7 @@
                       data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                       data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                       data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                      onclick="apriVisualizzatore(this)">
+                      data-iu-on="click:g189cb90914">
                 <i class="bi bi-eye"></i>
               </button>
               {% endif %}
@@ -1076,7 +1076,7 @@
                       data-doc-nome="{{ doc.nome }}"
                       data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                       data-firma-url="{{ url_for('firma_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                      onclick="apriFirma(this)">
+                      data-iu-on="click:g0052c7a692">
                 <i class="bi bi-vector-pen"></i>
               </button>
               {% endif %}
@@ -1086,7 +1086,7 @@
               {%- set _pdfa_esito = doc.note and 'pdfa:ok' in doc.note %}
               <form method="post"
                     action="{{ url_for('converti_documento_pdfa', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                    onsubmit="return confirm('Convertire il documento in PDF/A-2B?\nIl file originale verrà sostituito.')">
+                    data-iu-on="submit:g5c2d6a97ed">
                 <button class="btn btn-outline-warning btn-sm"
                         title="Converti in PDF/A-2B (D.M. 44/2011 art. 12)">
                   <i class="bi bi-file-earmark-check"></i>
@@ -1351,7 +1351,7 @@
                           data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=_udoc.id) }}"
                           data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_udoc.id) }}"
                           data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=_udoc.id) }}"
-                          onclick="apriVisualizzatore(this)">
+                          data-iu-on="click:g189cb90914">
                     <i class="bi bi-eye"></i>
                   </button>
                   {% endif %}
@@ -1431,7 +1431,7 @@
                         data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=_uddoc0.id) }}"
                         data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_uddoc0.id) }}"
                         data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=_uddoc0.id) }}"
-                        onclick="apriVisualizzatore(this)">
+                        data-iu-on="click:g189cb90914">
                   <i class="bi bi-eye"></i>
                 </button>
                 {% endif %}
@@ -1631,7 +1631,7 @@
 
           <button class="btn btn-sm btn-outline-secondary" id="btnSyncPecCancelleria"
                   title="Sincronizza la casella PEC, aggiorna gli esiti del deposito e carica le comunicazioni di cancelleria"
-                  onclick="_syncPecCancelleria(this)">
+                  data-iu-on="click:g60b8d0fed2">
             <i class="bi bi-envelope-arrow-down me-1"></i><span class="d-none d-sm-inline">Sincronizza PEC</span>
           </button>
 
@@ -1686,7 +1686,7 @@
                           data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=_cdoc.id) }}"
                           data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_cdoc.id) }}"
                           data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=_cdoc.id) }}"
-                          onclick="apriVisualizzatore(this)">
+                          data-iu-on="click:g189cb90914">
                     <i class="bi bi-eye"></i>
                   </button>
                   {% endif %}
@@ -2001,7 +2001,7 @@
                                       data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
                                       data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
                                       data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
-                                      onclick="apriVisualizzatore(this)">
+                                      data-iu-on="click:g189cb90914">
                                 <i class="bi bi-eye"></i>
                               </button>
                               {% endif %}
@@ -2027,7 +2027,7 @@
                                       data-doc-nome="{{ ddoc.nome }}"
                                       data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
                                       data-firma-url="{{ url_for('firma_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
-                                      onclick="apriFirma(this)">
+                                      data-iu-on="click:g0052c7a692">
                                 <i class="bi bi-pen"></i>
                               </button>
                               {% endif %}
@@ -2035,7 +2035,7 @@
                               {% if _dext == 'pdf' and not ddoc.firmato_digitalmente %}
                               <form method="post" class="d-inline"
                                     action="{{ url_for('converti_documento_pdfa', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
-                                    onsubmit="return confirm('Convertire il documento in PDF/A-2B?')">
+                                    data-iu-on="submit:ge0cdfd69a6">
                                 <button class="btn btn-outline-warning btn-sm py-0 px-1" title="Converti PDF/A" style="font-size:.7rem">
                                   <i class="bi bi-file-earmark-check"></i>
                                 </button>
@@ -2135,7 +2135,7 @@
                                       data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                       data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                       data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
-                                      onclick="apriVisualizzatore(this)">
+                                      data-iu-on="click:g189cb90914">
                                 <i class="bi bi-eye"></i>
                               </button>
                               {% endif %}
@@ -2160,7 +2160,7 @@
                                       data-doc-nome="{{ _mn }}"
                                       data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                       data-firma-url="{{ url_for('firma_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
-                                      onclick="apriFirma(this)">
+                                      data-iu-on="click:g0052c7a692">
                                 <i class="bi bi-pen"></i>
                               </button>
                               {% endif %}
@@ -2168,7 +2168,7 @@
                               {% if _mext == 'pdf' and not pdoc.local_doc_firmato %}
                               <form method="post" class="d-inline"
                                     action="{{ url_for('converti_documento_pdfa', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
-                                    onsubmit="return confirm('Convertire il documento in PDF/A-2B?')">
+                                    data-iu-on="submit:ge0cdfd69a6">
                                 <button class="btn btn-outline-warning btn-sm" title="Converti in PDF/A-2B">
                                   <i class="bi bi-file-earmark-check"></i>
                                 </button>
@@ -2262,13 +2262,13 @@
                 <button type="button" class="btn btn-sm btn-outline-primary"
                         title="Modifica deposito"
                         data-dep="{{ _dep_data | tojson | forceescape }}"
-                        onclick="apriModificaDeposito(JSON.parse(this.dataset.dep))">
+                        data-iu-on="click:g997d59dba4">
                   <i class="bi bi-pencil"></i>
                 </button>
                 {% if not is_finale %}
                 <button type="button" class="btn btn-sm btn-outline-secondary"
                         title="Controlla ricevute PEC"
-                        onclick="controllaRicevute('{{ fascicolo.id }}','{{ dep.id }}',this)">
+                        data-iu-on="click:g3e8a3a4b26" data-iu-v-click-0="{{ fascicolo.id }}" data-iu-v-click-1="{{ dep.id }}">
                   <i class="bi bi-arrow-repeat"></i>
                 </button>
                 {% endif %}
@@ -2346,7 +2346,7 @@
                         data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                         data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                         data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                        onclick="apriVisualizzatore(this)">
+                        data-iu-on="click:g189cb90914">
                   <i class="bi bi-eye"></i>
                 </button>
                 {% endif %}
@@ -2398,7 +2398,7 @@
                         data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=_idoc0.id) }}"
                         data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_idoc0.id) }}"
                         data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=_idoc0.id) }}"
-                        onclick="apriVisualizzatore(this)">
+                        data-iu-on="click:g189cb90914">
                   <i class="bi bi-eye"></i>
                 </button>
                 {% endif %}
@@ -2550,7 +2550,7 @@
                 role="switch"
                 id="complianceControlsEnabled"
                 {{ 'checked' if rc_controls_enabled }}
-                onchange="this.form.enabled.value = this.checked ? '1' : '0'; this.form.submit();"
+                data-iu-on="change:g094a8d7112"
               >
               <label class="form-check-label small fw-semibold" for="complianceControlsEnabled">
                 Controlli attivi
@@ -2999,14 +2999,14 @@
           {% endif %}
         {% else %}
         <form method="post" action="{{ url_for('ripristina_fascicolo', id_fasc=fascicolo.id) }}"
-              onsubmit="return confirm('Ripristinare il fascicolo dall\'archivio?')">
+              data-iu-on="submit:g505aece19f">
           <button class="list-group-item list-group-item-action text-success border-0 bg-transparent text-start w-100">
             <i class="bi bi-arrow-counterclockwise me-2"></i>Ripristina dall'archivio
           </button>
         </form>
         {% endif %}
         <form method="post" action="{{ url_for('elimina_fascicolo', id_fasc=fascicolo.id) }}"
-              onsubmit="return confirm('Eliminare definitivamente questo fascicolo? I documenti non saranno cancellati.')">
+              data-iu-on="submit:g4d2f22f63c">
           <button class="list-group-item list-group-item-action text-danger border-0 bg-transparent text-start w-100">
             <i class="bi bi-trash me-2"></i>Elimina fascicolo
           </button>
@@ -3126,7 +3126,7 @@
             </div>
             <form method="post"
                   action="{{ url_for('rimuovi_parte_fascicolo', id_fasc=fascicolo.id, id_parte=parte.id) }}"
-                  onsubmit="return confirm('Rimuovere questa parte dal fascicolo?')">
+                  data-iu-on="submit:g65d0ee31ec">
               <button type="submit" class="btn btn-sm btn-outline-danger p-0 px-1" title="Rimuovi">
                 <i class="bi bi-x-lg" style="font-size:.7rem"></i>
               </button>
@@ -3159,7 +3159,7 @@
             </div>
             <form method="post"
                   action="{{ url_for('rimuovi_parte_fascicolo', id_fasc=fascicolo.id, id_parte=parte.id) }}"
-                  onsubmit="return confirm('Rimuovere questa parte dal fascicolo?')">
+                  data-iu-on="submit:g65d0ee31ec">
               <button type="submit" class="btn btn-sm btn-outline-danger p-0 px-1" title="Rimuovi">
                 <i class="bi bi-x-lg" style="font-size:.7rem"></i>
               </button>
@@ -3192,7 +3192,7 @@
             </div>
             <form method="post"
                   action="{{ url_for('rimuovi_parte_fascicolo', id_fasc=fascicolo.id, id_parte=parte.id) }}"
-                  onsubmit="return confirm('Rimuovere questa parte dal fascicolo?')">
+                  data-iu-on="submit:g65d0ee31ec">
               <button type="submit" class="btn btn-sm btn-outline-danger p-0 px-1" title="Rimuovi">
                 <i class="bi bi-x-lg" style="font-size:.7rem"></i>
               </button>
@@ -3315,7 +3315,7 @@
               <div id="drop-zone"
                    style="border:2px dashed #cbd5e1;border-radius:8px;padding:1.5rem;
                           text-align:center;cursor:pointer;transition:background .2s,border-color .2s"
-                   onclick="document.getElementById('fileInput').click()">
+                   data-iu-on="click:gd4f6713631">
                 <i class="bi bi-cloud-upload fs-2 text-muted d-block mb-1"></i>
                 <span id="drop-label" class="small text-muted">
                   Trascina qui il file oppure <strong>clicca per sceglierlo</strong>
@@ -3657,7 +3657,7 @@
         <div id="vis-firma-doc-badges" class="d-flex flex-wrap gap-1"></div>
         <div id="vis-firma-badges" class="d-flex flex-wrap gap-1"></div>
         <button type="button" class="btn btn-link btn-sm p-0 ms-auto text-decoration-none"
-                onclick="visToggleFirmaDetails()" id="vis-firma-toggle-btn">
+                data-iu-on="click:g6ca0582881" id="vis-firma-toggle-btn">
           <span id="vis-firma-toggle-lbl">Dettagli</span>
           <i class="bi bi-chevron-down ms-1" id="vis-firma-chevron"></i>
         </button>
@@ -3679,7 +3679,7 @@
           </div>
         </div>
         <iframe id="visualizzatore-iframe" src="" style="width:100%;flex:1;border:0;min-height:0;display:none"
-                allow="fullscreen" onload="visIframeLoaded()"></iframe>
+                allow="fullscreen" data-iu-on="load:g1cf297911b"></iframe>
       </div>
 
     </div>
@@ -3715,9 +3715,9 @@
           <div class="input-group mb-1">
             <input type="password" id="fLsPin" class="form-control"
                    placeholder="PIN Aruba Key" autocomplete="off"
-                   onkeydown="if(event.key==='Enter') _detFAvviaLS()">
+                   data-iu-on="keydown:g6d7b1cec5a">
             <button type="button" class="btn btn-outline-secondary"
-                    onclick="this.previousElementSibling.type=this.previousElementSibling.type==='password'?'text':'password'">
+                    data-iu-on="click:g57dc4a3d09">
               <i class="bi bi-eye"></i>
             </button>
           </div>
@@ -3735,7 +3735,7 @@
             </div>
             <div id="fLsError" class="alert alert-danger small" style="display:none">
               <strong>Errore firma:</strong> <span id="fLsErrorMsg"></span>
-              <div class="mt-1"><button type="button" class="btn btn-sm btn-outline-danger" onclick="_detFResetLS()">Riprova</button></div>
+              <div class="mt-1"><button type="button" class="btn btn-sm btn-outline-danger" data-iu-on="click:g513c5d93fb">Riprova</button></div>
             </div>
           </div>
         </div>
@@ -3749,9 +3749,9 @@
           <div class="input-group mb-1">
             <input type="password" id="fPkcs11Pin" class="form-control"
                    placeholder="PIN Aruba Key" autocomplete="off"
-                   onkeydown="if(event.key==='Enter') _detFAvviaPkcs11()">
+                   data-iu-on="keydown:geb05752127">
             <button type="button" class="btn btn-outline-secondary"
-                    onclick="this.previousElementSibling.type=this.previousElementSibling.type==='password'?'text':'password'">
+                    data-iu-on="click:g57dc4a3d09">
               <i class="bi bi-eye"></i>
             </button>
           </div>
@@ -3769,7 +3769,7 @@
             </div>
             <div id="fPkcs11Error" class="alert alert-danger small" style="display:none">
               <strong>Errore firma:</strong> <span id="fPkcs11ErrorMsg"></span>
-              <div class="mt-1"><button type="button" class="btn btn-sm btn-outline-danger" onclick="_detFResetPkcs11()">Riprova</button></div>
+              <div class="mt-1"><button type="button" class="btn btn-sm btn-outline-danger" data-iu-on="click:ge7c7d8939a">Riprova</button></div>
             </div>
           </div>
         </div>
@@ -3786,10 +3786,10 @@
               Il token Aruba risulta disponibile sul PC, ma il processo Local Signer attivo va riavviato per tornare alla firma integrata.
             </div>
             <div class="d-flex flex-wrap gap-2">
-              <button type="button" class="btn btn-warning btn-sm fw-semibold" onclick="_detFRiavviaLocalSigner()">
+              <button type="button" class="btn btn-warning btn-sm fw-semibold" data-iu-on="click:g07cd950612">
                 <i class="bi bi-arrow-repeat me-1"></i>Riavvia Local Signer
               </button>
-              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="_detFRiverificaLocalSigner()">
+              <button type="button" class="btn btn-outline-secondary btn-sm" data-iu-on="click:g10fadd7799">
                 <i class="bi bi-search me-1"></i>Riverifica
               </button>
             </div>
@@ -3810,7 +3810,7 @@
             <p class="small fw-semibold mb-1"><span class="badge bg-primary rounded-pill me-1">3</span>Carica il file <code>.p7m</code> firmato</p>
             <input type="file" id="fEsternaInput" class="form-control form-control-sm"
                    accept=".p7m,.sig,.pkcs7{{ ',.pdf' if 'pades' in firma_formati else '' }}"
-                   onchange="_detFCaricaP7m(this)">
+                   data-iu-on="change:gd0386c5bbd">
           </div>
           <div id="fEsternaStatus" class="small mt-2" style="display:none"></div>
           <div class="mt-3">
@@ -3823,20 +3823,20 @@
         {# ── Link cambio percorso ── #}
         <div id="fSwitchPath" class="mt-3" style="display:none">
           <hr class="my-2">
-          <button type="button" class="btn btn-link btn-sm p-0 text-muted" onclick="_detFSwitchPath()">
+          <button type="button" class="btn btn-link btn-sm p-0 text-muted" data-iu-on="click:g1e6cff06a7">
             <i class="bi bi-arrow-left-right me-1"></i><span id="fSwitchLabel">Passa alla firma esterna</span>
           </button>
         </div>
 
       </div>
       <div class="modal-footer flex-column align-items-stretch gap-2">
-        <button type="button" class="btn btn-warning fw-semibold d-none" id="fBtnLS" onclick="_detFAvviaLS()">
+        <button type="button" class="btn btn-warning fw-semibold d-none" id="fBtnLS" data-iu-on="click:gb029882820">
           <i class="bi bi-usb-symbol me-2"></i>Firma con Aruba Key (Local Signer)
         </button>
-        <button type="button" class="btn btn-warning fw-semibold d-none" id="fBtnPkcs11" onclick="_detFAvviaPkcs11()">
+        <button type="button" class="btn btn-warning fw-semibold d-none" id="fBtnPkcs11" data-iu-on="click:g738c4cfddb">
           <i class="bi bi-pen-fill me-2"></i>Firma con Aruba Key (in-device)
         </button>
-        <button type="button" class="btn btn-success fw-semibold d-none" id="fBtnDone" onclick="location.reload()">
+        <button type="button" class="btn btn-success fw-semibold d-none" id="fBtnDone" data-iu-on="click:gf603811aa1">
           <i class="bi bi-check2-circle me-2"></i>Fatto — Ricarica pagina
         </button>
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
@@ -4093,7 +4093,7 @@
 
 {% block scripts %}
 <script src="/static/js/firma-visibile-mode.js?v={{ app_version }}"></script>
-<script>
+<script nonce="{{ csp_nonce() }}">
 // ---- Visualizzatore documenti inline con pannello certificati ----
 
 var _visDettaglioAperto = false;
@@ -6026,7 +6026,8 @@ function _mostraToast(tipo, html) {
   el.setAttribute('role', 'alert');
   el.style.cssText = 'position:fixed;bottom:1.5rem;right:1rem;z-index:9999;max-width:360px';
   el.innerHTML = `<div class="d-flex"><div class="toast-body">${html}</div>
-    <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.closest('.toast').remove()"></button></div>`;
+    <button type="button" class="btn-close btn-close-white me-2 m-auto"></button></div>`;
+  el.querySelector('.btn-close')?.addEventListener('click', () => el.remove());
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 5000);
 }

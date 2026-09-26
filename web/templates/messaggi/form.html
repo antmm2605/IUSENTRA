@@ -75,7 +75,7 @@
 
       <div class="col-md-4">
         <label class="form-label fw-semibold">Canale <span class="text-danger">*</span></label>
-        <select name="canale" id="canale" class="form-select" required onchange="aggiornaForm()">
+        <select name="canale" id="canale" class="form-select" required data-iu-on="change:g763f99ea33">
           {% for c in canali %}
           <option value="{{ c.value }}"
             {{ 'selected' if c.value == canale_default }}>{{ c.value }}</option>
@@ -100,7 +100,7 @@
                value="{{ cliente_presel.nome_completo }}" readonly>
         <input type="hidden" name="id_cliente" value="{{ cliente_presel.id }}">
         {% else %}
-        <select name="id_cliente" id="sel-cliente" class="form-select" onchange="onClienteChange()">
+        <select name="id_cliente" id="sel-cliente" class="form-select" data-iu-on="change:g45e077e067">
           <option value="">— Nessun cliente —</option>
           {% for c in clienti %}
           <option value="{{ c.id }}"
@@ -167,7 +167,7 @@
 
 </div>{# /row #}
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Dati clienti per auto-fill destinatario
 const CLIENTI_MAP = {};
 {% for c in clienti %}

@@ -22,7 +22,7 @@
           {% if payload.context.tenant_choices %}
           <div class="col-12">
             <label class="form-label">Studio</label>
-            <select class="form-select" name="slug" onchange="this.form.submit()">
+            <select class="form-select" name="slug" data-iu-on="change:ga2c8f19ca1">
               {% for studio in payload.context.tenant_choices %}
               <option value="{{ studio.slug }}" {% if studio.selected %}selected{% endif %}>
                 {{ studio.nome }} - {{ studio.slug }} - {{ studio.selected_mode }}

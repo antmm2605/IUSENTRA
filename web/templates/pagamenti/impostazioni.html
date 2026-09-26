@@ -58,7 +58,7 @@
         <button class="accordion-button {{ '' if cfg.stripe.abilitato else 'collapsed' }}" type="button"
                 data-bs-toggle="collapse" data-bs-target="#acc-stripe">
           <div class="d-flex align-items-center gap-3 w-100">
-            <img src="https://cdn.brandfetch.io/idxAg10C0L/w/400/h/400/theme/dark/icon.png?c=1dxbfHSJFAPEwi6mRFH" alt="Stripe" style="width:24px;height:24px;object-fit:contain;" onerror="this.style.display='none'">
+            <img src="https://cdn.brandfetch.io/idxAg10C0L/w/400/h/400/theme/dark/icon.png?c=1dxbfHSJFAPEwi6mRFH" alt="Stripe" style="width:24px;height:24px;object-fit:contain;" data-iu-on="error:ga7041db96c">
             <span class="fw-semibold">Stripe</span>
             <span class="badge {% if cfg.stripe.abilitato %}bg-success{% else %}bg-secondary{% endif %} ms-2">
               {{ 'Attivo' if cfg.stripe.abilitato else 'Non attivo' }}

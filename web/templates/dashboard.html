@@ -434,7 +434,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 Chart.defaults.font.family = "'Helvetica Neue', Arial, sans-serif";
 Chart.defaults.font.size = 12;
 

@@ -95,7 +95,7 @@
               <!-- Elimina -->
               <form method="post" action="{{ url_for('admin.elimina_utente', slug=studio.slug, uid=u.id) }}"
                     class="d-inline"
-                    onsubmit="return confirm('Eliminare l\'utente {{ u.username }}? Azione irreversibile.')">
+                    data-iu-on="submit:g78385c0081" data-iu-v-submit-0="{{ u.username }}">
                 <button class="btn btn-outline-danger py-0 px-2" title="Elimina">
                   <i class="bi bi-trash"></i>
                 </button>
@@ -227,7 +227,7 @@
 {% endblock %}{# /modals #}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 function genPwd() {
   const c = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
   return Array.from({length:12}, () => c[Math.floor(Math.random()*c.length)]).join('');

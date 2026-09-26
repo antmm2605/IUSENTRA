@@ -13,7 +13,7 @@
   {% if app_domani_con_cell %}
   <div class="ds-ph-actions">
     <form method="post" action="{{ url_for('notifiche.promemoria_domani') }}"
-          onsubmit="return confirm('Inviare promemoria a {{ app_domani_con_cell|length }} cliente/i con appuntamenti domani?')">
+          data-iu-on="submit:g4d6aa86182" data-iu-v-submit-0="{{ app_domani_con_cell|length }}">
       <button type="submit" class="ds-btn ds-btn-primary">
         <i class="bi bi-alarm"></i>Promemoria domani ({{ app_domani_con_cell|length }})
       </button>
@@ -214,7 +214,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 const selCliente = document.getElementById('sel-cliente');
 const testoMsg   = document.getElementById('testo-msg');
 const charCount  = document.getElementById('char-count');

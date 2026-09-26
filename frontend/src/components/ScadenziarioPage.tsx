@@ -1291,18 +1291,30 @@ export function ScadenziarioPage() {
     maxDocuments: fascicoloId ? 0 : 25,
   })
 
-  const runPdfPreview = () => {
+  const runPdfPreview = (attempt = 0) => {
     setPdfPanelOpen(true)
     setPdfBusy(true)
-    setPdfStatus('Lettura dei PDF dei fascicoli in corso...')
+    if (attempt === 0) setPdfStatus('Ricerca delle scadenze nei PDF dei fascicoli...')
     previewPdfDeadlines(data.calculator.endpoints.pdfPreview, pdfRequestOptions())
       .then((payload) => {
         setPdfPreview(payload)
         setPdfSelectedIds(payload.candidates.filter((candidate) => candidate.selected && !candidate.duplicate).map((candidate) => candidate.id))
-        setPdfStatus(`Analisi completata: ${payload.summary.newCandidates} nuove scadenze e ${payload.summary.duplicates} già presenti.`)
+        const found = `${payload.summary.newCandidates} nuove scadenze e ${payload.summary.duplicates} già presenti`
+        // I PDF nuovi si leggono in sfondo: l'elenco si aggiorna finché la lettura non finisce.
+        if (payload.summary.pending > 0 && payload.summary.scanning && attempt < 90) {
+          setPdfStatus(`Trovate finora ${found}; ${payload.summary.pending} PDF ancora in lettura, l'elenco si aggiorna da solo.`)
+          window.setTimeout(() => runPdfPreview(attempt + 1), 4000)
+          return
+        }
+        setPdfBusy(false)
+        setPdfStatus(payload.summary.pending > 0
+          ? `Trovate ${found}; ${payload.summary.pending} PDF non ancora letti: riprova tra poco.`
+          : `Analisi completata: ${found}.`)
       })
-      .catch((error) => setPdfStatus(error instanceof Error ? error.message : 'Scansione PDF non completata'))
-      .finally(() => setPdfBusy(false))
+      .catch((error) => {
+        setPdfBusy(false)
+        setPdfStatus(error instanceof Error ? error.message : 'Scansione PDF non completata')
+      })
   }
 
   const togglePdfCandidate = (id: string) => {
@@ -1474,7 +1486,7 @@ export function ScadenziarioPage() {
           selectedIds={pdfSelectedIds}
           busy={pdfBusy}
           status={pdfStatus}
-          onScan={runPdfPreview}
+          onScan={() => runPdfPreview()}
           onImport={runPdfImport}
           onToggle={togglePdfCandidate}
           onToggleAll={toggleAllPdfCandidates}

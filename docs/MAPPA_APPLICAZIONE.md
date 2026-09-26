@@ -128,7 +128,7 @@ Ogni voce ha una correzione prevista; lo stato si aggiorna qui.
    - `POST /clienti/delete`, `/soggetti/delete`, `/email/bulk-action`;
    - fatti e anomalie non verificati come appartenenti al fascicolo;
    - voci di «Oggi» non verificate come appartenenti all'utente.
-10. ✅ (2.410.0: ogni scrittura con sessione rifiuta Origin/Referer di altri siti; i webhook PayPal, SumUp e Satispay valgono solo se il gestore conferma la transazione; il ritorno Stripe/PayPal verifica link e importo. Resta `unsafe-inline` nella CSP delle pagine legacy) CSRF verificato solo su una lista; CSP con `unsafe-inline`; webhook di pagamento senza firma.
+10. ✅ (2.410.0: ogni scrittura con sessione rifiuta Origin/Referer di altri siti; i webhook PayPal, SumUp e Satispay valgono solo se il gestore conferma la transazione; il ritorno Stripe/PayPal verifica link e importo. 2.411.0: la CSP non ammette più `unsafe-inline` per gli script: blocchi in linea con nonce per richiesta, 356 gestori `on…=` dei template convertiti in `data-iu-on` + registro statico, nessuna violazione su 216 pagine legacy e sulle pagine React aperte in Chromium) CSRF verificato solo su una lista; CSP con `unsafe-inline`; webhook di pagamento senza firma.
 
 ### Integrità dei dati e sincronizzazione
 
@@ -146,7 +146,7 @@ Ogni voce ha una correzione prevista; lo stato si aggiorna qui.
 
 20. ✅ (2.410.0: audit caricato solo quando si legge o si scrive un evento) Autenticazione: a ogni richiesta viene caricato l'audit (fino a 10.000 eventi) e `tenants.json` è letto più volte.
 21. ✅ (2.410.0: scrittura atomica e chiave di cache con nanosecondi e dimensione) `pct/cache.py` decifra e rifà il parsing a ogni lettura; le scritture non sono atomiche.
-22. ✅ (2.410.0: il riallineamento telematico si ripete solo se i fascicoli dei portali cambiano; la scansione PDF delle scadenze decifra i documenti. La scansione resta nella richiesta, con limite di tempo) `GET /telematico` riscrive SQLite a ogni apertura; `GET /scadenziario/pdf-scadenze/anteprima` legge i PDF nella richiesta.
+22. ✅ (2.410.0: il riallineamento telematico si ripete solo se i fascicoli dei portali cambiano; la scansione PDF delle scadenze decifra i documenti. 2.411.0: la richiesta non apre più i PDF: ogni PDF si legge una volta in sfondo e le scadenze trovate restano nel registro delle letture, `web/services/scadenze_pdf_lettura.py`) `GET /telematico` riscrive SQLite a ogni apertura; `GET /scadenziario/pdf-scadenze/anteprima` legge i PDF nella richiesta.
 23. ✅ (verificato: ogni sezione carica solo i propri dati) Ogni sezione del dettaglio fascicolo ricostruisce l'intero payload.
 24. ✅ (2.410.0: invalidazione per studio e tra worker) La cache della Panoramica si invalida per tutti gli studi; la cache della lista fascicoli vale per singolo worker.
 25. ✅ (2.410.0) `/oggi` scarica anche la Panoramica.
@@ -179,7 +179,7 @@ Ogni voce ha una correzione prevista; lo stato si aggiorna qui.
 37. ✅ L'indirizzo del cliente perdeva la parentesi di chiusura della provincia («70126 Bari (BA»).
 38. ✅ La scansione PDF delle scadenze leggeva i documenti cifrati come testo vuoto.
 39. ✅ Il gateway di Lex puntava a `127.0.0.1` e a un modello non installato: in Docker ogni chiamata dell'editor AI falliva.
-40. ✅ Lex, senza modello o con fonti estranee, rispondeva elencando impostazioni dello studio o schede del catalogo come «dato certo»: ora calcola termini e contributo con i motori di IUSENTRA e si astiene quando nessuna fonte riguarda la domanda.
+40. ✅ Lex, senza modello o con fonti estranee, rispondeva elencando impostazioni dello studio o schede del catalogo come «dato certo»: ora calcola termini e contributo con i motori di IUSENTRA e si astiene quando nessuna fonte riguarda la domanda. Dalla 2.411.0 riporta il testo di un articolo dall'archivio Normattiva locale e una sentenza precisa dall'archivio giurisprudenza (`lex/testi_ufficiali.py`); se non ci sono lo dice e indica la fonte ufficiale.
 41. ✅ La pagina Ricerca studio aveva il pulsante «Ricerche recenti» inerte e mostrava zero risultati quando l'aggiornamento dell'indice falliva.
 42. ✅ `web/preventivi.py`, copia non registrata del blueprint pagamenti con i webhook non verificati, è stata rimossa.
 43. ✅ `pct/search_index.py`: la funzione di escape era finita tra il decoratore `@dataclass` e la classe (errore di import, trovato dai test prima del rilascio).

@@ -1392,7 +1392,7 @@
   </div>
 </form>
 </div>
-<script>
+<script nonce="{{ csp_nonce() }}">
 const CATALOGO = {{ catalogo_per_area|tojson }};
 const AREE = {{ aree|tojson }};
 const ID_FASCICOLO_PRE = {{ id_fascicolo_pre|tojson }};
@@ -3611,7 +3611,7 @@ function applyWizardPrefill() {
   tassonomiaSelezione.area = resolveTaxonomyPrefill(WIZARD_PREFILL.area_tassonomica, 'area');
   tassonomiaSelezione.macro = resolveTaxonomyPrefill(WIZARD_PREFILL.macro_area_tassonomica, 'macro');
   tassonomiaSelezione.sub = resolveTaxonomyPrefill(WIZARD_PREFILL.sottobranca_tassonomica, 'sub');
-  ensureOperationalAreaForTaxonomy();
+  if (typeof ensureOperationalAreaForTaxonomy === 'function') ensureOperationalAreaForTaxonomy();
   renderTaxonomyFilters();
   if (Array.isArray(WIZARD_PREFILL.classificazioni_tassonomiche)) {
     classificazioniAggiuntive = WIZARD_PREFILL.classificazioni_tassonomiche.map((row) => normalizeClassificazioneAggiuntiva(row));
@@ -3757,7 +3757,7 @@ function syncWorkflowChecks() {
 }
 
 </script>
-<script>
+<script nonce="{{ csp_nonce() }}">
 function rowMarkup(desc = '', importo = '', tipo = 'Onorario', attrs = '') {
   return `
     <tr class="prev-voice-row" ${attrs}>

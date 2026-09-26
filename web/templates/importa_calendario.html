@@ -182,7 +182,7 @@
 
         {# Drop zone #}
         <div id="drop-zone" class="drop-zone mb-4"
-             onclick="document.getElementById('file_ics').click()">
+             data-iu-on="click:gc5a13f1cbb">
           <div class="drop-zone-icon">
             <i class="bi bi-cloud-upload"></i>
           </div>
@@ -557,7 +557,7 @@
 </style>
 
 {# ══════════════════════════════════════════ SCRIPT ═════════════ #}
-<script>
+<script nonce="{{ csp_nonce() }}">
 {% if fase == "upload_form" %}
 /* ── Sorgente selector ── */
 const ISTRUZIONI = {

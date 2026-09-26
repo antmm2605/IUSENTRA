@@ -64,6 +64,12 @@ LETTORI: dict[str, dict[str, Any]] = {
         "livello": "oggetto",
         "tipi": ("documento",),
     },
+    "scadenze_pdf": {
+        "etichetta": "Scadenze dai PDF",
+        "descrizione": "Udienze e termini letti nei PDF per la proposta allo scadenziario",
+        "livello": "oggetto",
+        "tipi": ("documento",),
+    },
     "motore_pec": {
         "etichetta": "Motore PEC (archivio)",
         "descrizione": "Udienze, termini, ricevute ed eventi dei messaggi PEC e dei loro allegati per l'archivio",
@@ -132,6 +138,7 @@ _VERSIONI: dict[str, Callable[[], str]] = {
     "proforma_automatica": _versione_presidio_economico,
     "motore_documenti": _versione_motore_documenti,
     "motore_pec": _versione_motore_pec,
+    "scadenze_pdf": lambda: "scadenze-pdf.v1",
 }
 
 

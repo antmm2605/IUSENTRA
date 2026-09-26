@@ -163,7 +163,7 @@
 
 {% block extra_scripts %}
 {% include "template_atti/_editor_assets.html" %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.getElementById('btn-copia-atto')?.addEventListener('click', () => {
   const testo = window.TemplateActEditors.getPlainText('compiler-preview-editor');
   navigator.clipboard.writeText(testo).then(() => {

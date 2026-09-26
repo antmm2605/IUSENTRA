@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Iterable
 from urllib.parse import quote, urlencode, urlsplit
 
-from flask import Blueprint, current_app, g, make_response, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, g, make_response, redirect, render_template, request, session, url_for
 
 from web.services.feature_flags import (
     app_v2_route_flag_for_path,
@@ -419,7 +419,11 @@ def render_react_shell_response(spa_path: str = "", *, bootstrap_texts: Iterable
         query["_legacy"] = "1"
         return redirect(_local_redirect_target(request.path, query), code=302)
 
-    response = make_response(render_template(
+    from core.security.headers import applica_nonce_documento_stabile, prepara_nonce_documento_stabile
+
+    # Nonce CSP stabile per (documento, sessione): serve alla rivalidazione 304 qui sotto.
+    prepara_nonce_documento_stabile()
+    response = make_response(applica_nonce_documento_stabile(render_template(
         "react_shell.html",
         react_assets=_vite_entry(request.path),
         react_spa_path=spa_path,
@@ -427,7 +431,7 @@ def render_react_shell_response(spa_path: str = "", *, bootstrap_texts: Iterable
         react_runtime_flags=_react_runtime_flags(),
         react_bootstrap_texts=[str(item) for item in (bootstrap_texts or []) if str(item or "").strip()],
         react_body_class=_react_body_class_for_path(request.path),
-    ))
+    ), segreto=str(current_app.secret_key or ""), seme=str(session.get("_csrf_token") or session.get("user_id") or "")))
     # Rivalidazione condizionata invece di `no-store`.
     #
     # Il corpo della shell è deterministico per (rotta, utente, studio, versione)

@@ -44,7 +44,7 @@
       <form method="get" class="d-flex gap-2 align-items-center">
         <input type="hidden" name="focus" value="{{ focus }}">
         <label class="small text-muted fw-semibold" for="giorni">Orizzonte</label>
-        <select id="giorni" name="giorni" class="form-select form-select-sm" onchange="this.form.submit()">
+        <select id="giorni" name="giorni" class="form-select form-select-sm" data-iu-on="change:ga2c8f19ca1">
           {% for option in [7, 14, 30] %}
           <option value="{{ option }}" {% if horizon_days == option %}selected{% endif %}>{{ option }} giorni</option>
           {% endfor %}
@@ -106,10 +106,10 @@
         <textarea id="workspace-ai-question" class="form-control" rows="3" placeholder="Esempio: quali sono le priorità operative dei prossimi 7 giorni e quali fascicoli devo presidiare per primi?"></textarea>
       </div>
       <div class="col-lg-4 d-grid gap-2">
-        <button type="button" class="btn btn-primary" id="workspace-ai-ask-btn" onclick="askWorkspaceAi()">
+        <button type="button" class="btn btn-primary" id="workspace-ai-ask-btn" data-iu-on="click:g1c357bf18f">
           <i class="bi bi-stars me-2"></i>Analizza regia operativa
         </button>
-        <button type="button" class="btn btn-outline-secondary hacs-local-ai-secondary-btn" onclick="refreshWorkspaceAiRuntime()">
+        <button type="button" class="btn btn-outline-secondary hacs-local-ai-secondary-btn" data-iu-on="click:gc885d832a4">
           <i class="bi bi-arrow-repeat me-2"></i>Aggiorna stato servizio
         </button>
       </div>

@@ -98,7 +98,7 @@
           <div class="checklist-eyebrow">Cartella consigliata</div>
           <div class="checklist-folder-preview mt-2" id="nome-cartella">{{ cartella }}/</div>
           <div class="d-flex flex-wrap gap-2 mt-3">
-            <button type="button" class="btn btn-outline-primary btn-sm" onclick="copiaNome()">
+            <button type="button" class="btn btn-outline-primary btn-sm" data-iu-on="click:g14e8d1914e">
               <i class="bi bi-clipboard" id="copy-icon"></i> Copia nome cartella
             </button>
             {% if tmpl.endpoint_deposito %}
@@ -184,7 +184,7 @@
         <div class="card-body p-4">
           <div class="d-flex justify-content-between align-items-center small mb-2">
             <span class="text-muted" id="doc-counter">0 / {{ tmpl.documenti|length }} selezionati</span>
-            <button type="button" class="btn btn-link btn-sm p-0" onclick="toggleAll()">Seleziona tutti i documenti</button>
+            <button type="button" class="btn btn-link btn-sm p-0" data-iu-on="click:g9ba801250f">Seleziona tutti i documenti</button>
           </div>
           <div class="progress checklist-progress mb-3"><div class="progress-bar bg-success" id="doc-progress" style="width:0%"></div></div>
           <div class="checklist-entry-list">
@@ -283,7 +283,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
   'use strict';
 

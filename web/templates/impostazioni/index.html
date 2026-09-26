@@ -213,7 +213,7 @@
       {% for nome, smtp, imap, sp, ip, link in providers_pec %}
       <div class="col-6 col-md-3">
         <div class="card border h-100" style="border-radius:12px; cursor:pointer;"
-             onclick="fillPEC('{{ smtp }}','{{ sp }}','{{ imap }}','{{ ip }}')"
+             data-iu-on="click:gdcdf0deb38" data-iu-v-click-0="{{ smtp }}" data-iu-v-click-1="{{ sp }}" data-iu-v-click-2="{{ imap }}" data-iu-v-click-3="{{ ip }}"
              title="Clicca per precompilare i parametri">
           <div class="card-body p-2 text-center">
             <div class="fw-semibold" style="font-size:.8rem;">{{ nome }}</div>
@@ -244,7 +244,7 @@
             <input type="password" name="pec_password" id="pec_password" class="form-control font-monospace"
                    placeholder="{{ '••••••••' if cfg.pec.password else 'Nessuna password salvata' }}"
                    autocomplete="new-password">
-            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('pec_password',this)">
+            <button type="button" class="btn btn-outline-secondary" data-iu-on="click:g2a87fad57f">
               <i class="bi bi-eye"></i>
             </button>
           </div>
@@ -311,11 +311,11 @@
           #}
           <div class="d-flex gap-2 flex-wrap align-items-center mt-1">
             <button type="button" class="btn btn-outline-success btn-sm" id="btn-test-smtp-locale"
-                    onclick="testPecSmtpLocale('btn-test-smtp-locale','res-test-smtp-locale')">
+                    data-iu-on="click:gc2a1ec0416">
               <i class="bi bi-pc-display-horizontal me-1"></i>Testa SMTP
             </button>
             <button type="button" class="btn btn-outline-primary btn-sm" id="btn-test-imap"
-                    onclick="testConn('pec-imap','btn-test-imap','res-test-imap')">
+                    data-iu-on="click:g852120d29a">
               <i class="bi bi-inbox-fill me-1"></i>Testa IMAP
             </button>
             <span id="res-test-smtp-locale" class="test-result"></span>
@@ -411,7 +411,7 @@
           <div class="card h-100 firma-card {{ 'border-primary' if fmt == 'pkcs11' else 'border' }}"
                id="card_pkcs11"
                style="border-radius:14px; cursor:pointer; border-width:2px !important;{{ ' background:rgba(var(--bs-primary-rgb),.04);' if fmt == 'pkcs11' }}"
-               onclick="scegliModalita('pkcs11')">
+               data-iu-on="click:ga2e1aedf18">
             <div class="card-body p-3">
               <div class="d-flex align-items-center gap-2 mb-2">
                 <input class="form-check-input mt-0" type="radio" name="firma_formato" id="fmt_pkcs11"
@@ -431,7 +431,7 @@
           <div class="card h-100 firma-card {{ 'border-primary' if fmt == 'p12' else 'border' }}"
                id="card_p12"
                style="border-radius:14px; cursor:pointer; border-width:2px !important;{{ ' background:rgba(var(--bs-primary-rgb),.04);' if fmt == 'p12' }}"
-               onclick="scegliModalita('p12')">
+               data-iu-on="click:gf14151925a">
             <div class="card-body p-3">
               <div class="d-flex align-items-center gap-2 mb-2">
                 <input class="form-check-input mt-0" type="radio" name="firma_formato" id="fmt_p12"
@@ -490,7 +490,7 @@
         </div>
         <div class="d-flex gap-2 align-items-center mb-3">
           <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTestPkcs11"
-                  onclick="testaPkcs11()">
+                  data-iu-on="click:gb3dd54df8b">
             <i class="bi bi-usb-symbol me-1"></i>Verifica token collegato
           </button>
           <span id="pkcs11TestResult" class="small"></span>
@@ -520,7 +520,7 @@
               <input type="password" name="firma_password" id="firma_password" class="form-control font-monospace"
                      placeholder="{{ '••••••••' if cfg.firma.password else 'Password del certificato' }}"
                      autocomplete="new-password">
-              <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('firma_password',this)">
+              <button type="button" class="btn btn-outline-secondary" data-iu-on="click:gf0fc3a1170">
                 <i class="bi bi-eye"></i>
               </button>
             </div>
@@ -585,7 +585,7 @@
               <div class="card-body p-3">
                 <div class="form-check mb-2">
                   <input class="form-check-input" type="radio" name="firma_formato" id="fmt_pem"
-                         value="pem" onchange="scegliModalita('pem')"
+                         value="pem" data-iu-on="change:gffec4922e2"
                          {{ 'checked' if fmt == 'pem' }}>
                   <label class="form-check-label fw-semibold" for="fmt_pem">
                     Certificato PEM (file .crt + .key separati)
@@ -614,7 +614,7 @@
                                class="form-control font-monospace"
                                placeholder="{{ '••••••••' if cfg.firma.key_pem_password else 'Vuoto se non cifrata' }}"
                                autocomplete="new-password">
-                        <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('firma_key_pem_password',this)">
+                        <button type="button" class="btn btn-outline-secondary" data-iu-on="click:g35db714243">
                           <i class="bi bi-eye"></i>
                         </button>
                       </div>
@@ -689,7 +689,7 @@
       <div class="col-6 col-md-auto">
         <div class="card h-100 border"
              style="border-radius:12px; cursor:pointer;"
-             onclick="fillSMTP('{{ host }}','{{ porta }}','{{ tls }}','{{ imap_host }}','{{ imap_port }}','{{ imap_ssl }}')"
+             data-iu-on="click:gad83731499" data-iu-v-click-0="{{ host }}" data-iu-v-click-1="{{ porta }}" data-iu-v-click-2="{{ tls }}" data-iu-v-click-3="{{ imap_host }}" data-iu-v-click-4="{{ imap_port }}" data-iu-v-click-5="{{ imap_ssl }}"
              title="Precompila parametri {{ nome }}">
           <div class="card-body p-2 text-center">
             <div class="fw-semibold" style="font-size:.8rem;">{{ nome }}</div>
@@ -769,7 +769,7 @@
             <input type="password" name="smtp_password" id="smtp_password" class="form-control font-monospace"
                    placeholder="{{ '••••••••' if cfg.smtp.password else 'Nessuna password' }}"
                    autocomplete="new-password">
-            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('smtp_password',this)">
+            <button type="button" class="btn btn-outline-secondary" data-iu-on="click:g786a8a4dfb">
               <i class="bi bi-eye"></i>
             </button>
           </div>
@@ -791,11 +791,11 @@
         <div class="col-12">
           <div class="d-flex gap-2 align-items-center flex-wrap">
             <button type="button" class="btn btn-outline-primary btn-sm" id="btn-test-email"
-                    onclick="testConn('smtp','btn-test-email','res-test-email')">
+                    data-iu-on="click:ga3395093a8">
               <i class="bi bi-send-check me-1"></i>Testa connessione SMTP
             </button>
             <button type="button" class="btn btn-outline-primary btn-sm" id="btn-test-email-imap"
-                    onclick="testConn('smtp-imap','btn-test-email-imap','res-test-email-imap')">
+                    data-iu-on="click:g699ffac91b">
               <i class="bi bi-inbox-fill me-1"></i>Testa connessione IMAP
             </button>
             <span id="res-test-email" class="test-result"></span>
@@ -896,7 +896,7 @@
             <input type="password" name="twilio_token" id="twilio_token" class="form-control font-monospace"
                    placeholder="{{ '••••••••' if cfg.whatsapp.twilio_token else 'Token non impostato' }}"
                    autocomplete="new-password">
-            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('twilio_token',this)">
+            <button type="button" class="btn btn-outline-secondary" data-iu-on="click:gb49a3b5c14">
               <i class="bi bi-eye"></i>
             </button>
           </div>
@@ -936,7 +936,7 @@
           <i class="bi bi-floppy me-2"></i>Salva configurazione WhatsApp
         </button>
         <button type="button" class="btn btn-outline-success btn-sm" id="btn-test-wa"
-                onclick="testConn('whatsapp','btn-test-wa','res-test-wa')">
+                data-iu-on="click:g2eefeecf04">
           <i class="bi bi-whatsapp me-1"></i>Testa connessione WhatsApp
         </button>
         <span id="res-test-wa" class="test-result"></span>
@@ -1126,13 +1126,13 @@
             <button type="submit" class="btn btn-primary">
               <i class="bi bi-floppy me-2"></i>Salva impostazioni AI
             </button>
-            <button type="button" class="btn btn-outline-primary" id="ai-bootstrap-btn" onclick="runLocalAiBootstrap()">
+            <button type="button" class="btn btn-outline-primary" id="ai-bootstrap-btn" data-iu-on="click:g563ab77e16">
               <i class="bi bi-rocket-takeoff me-2"></i>Prepara il motore locale
             </button>
-            <button type="button" class="btn btn-outline-secondary" id="ai-refresh-btn" onclick="refreshLocalAiStatus(true)">
+            <button type="button" class="btn btn-outline-secondary" id="ai-refresh-btn" data-iu-on="click:g5d0d3a4e07">
               <i class="bi bi-arrow-repeat me-2"></i>Aggiorna stato operativo
             </button>
-            <button type="button" class="btn btn-outline-secondary" id="ai-version-check-btn" onclick="openLocalAiVersionCheck()">
+            <button type="button" class="btn btn-outline-secondary" id="ai-version-check-btn" data-iu-on="click:g0ad1727b6b">
               <i class="bi bi-box-arrow-up-right me-2"></i>Apri controllo /api/version
             </button>
           </div>

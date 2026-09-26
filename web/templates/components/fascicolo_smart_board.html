@@ -260,7 +260,7 @@
             <div class="small text-muted">Domande operative sul fascicolo corrente usando documenti, scadenze, agenda e sentenze gia' collegate.</div>
           </div>
           <div class="d-flex gap-2 flex-wrap hacs-local-ai-actions">
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="reindexFascicoloAi('{{ fascicolo.id }}')">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-iu-on="click:g9e85f8531e" data-iu-v-click-0="{{ fascicolo.id }}">
               <i class="bi bi-arrow-repeat me-1"></i>Reindicizza documenti
             </button>
           </div>
@@ -270,7 +270,7 @@
             <textarea id="fascicolo-ai-question" class="form-control" rows="3" placeholder="Esempio: quali sono i prossimi rischi processuali di questa pratica e quali documenti devo richiamare nella prossima memoria?"></textarea>
           </div>
           <div class="col-lg-4 d-grid gap-2">
-            <button type="button" class="btn btn-primary" id="fascicolo-ai-ask-btn" onclick="askFascicoloAi('{{ fascicolo.id }}')">
+            <button type="button" class="btn btn-primary" id="fascicolo-ai-ask-btn" data-iu-on="click:gf6d80dc806" data-iu-v-click-0="{{ fascicolo.id }}">
               <i class="bi bi-stars me-2"></i>Analizza fascicolo
             </button>
             <div id="fascicolo-ai-runtime" class="small text-muted hacs-local-ai-runtime">Motore locale in attesa di verifica</div>

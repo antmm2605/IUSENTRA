@@ -132,7 +132,7 @@
                 {% endif %}
                 <form method="post"
                       action="{{ url_for('elimina_backup', id_bk=r.id) }}"
-                      onsubmit="return confirm('Eliminare definitivamente questo backup?')">
+                      data-iu-on="submit:g187b9c2fd9">
                   <button class="btn btn-outline-danger" title="Elimina">
                     <i class="bi bi-trash"></i>
                   </button>

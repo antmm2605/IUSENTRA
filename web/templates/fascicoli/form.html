@@ -160,7 +160,7 @@
                          placeholder="Cerca per nome, C.F. o digita"
                          autocomplete="off">
                   <button type="button" class="ss-btn-new"
-                          onclick="window.open('/soggetti/nuovo','_blank')"
+                          data-iu-on="click:g62030e1240"
                           title="Crea nuovo soggetto">
                     <i class="bi bi-plus-lg me-1"></i>Nuovo
                   </button>
@@ -223,7 +223,7 @@
               <label class="form-label fw-semibold">Tipo procedimento</label>
               <input type="text" name="tipo_procedimento" class="form-control"
                      value="{{ fascicolo.tipo_procedimento if fascicolo else (workflow_prefill.tipo_procedimento if workflow_prefill else '') }}"
-                     placeholder="es. Civile — fase di cognizione" readonly onfocus="this.removeAttribute('readonly')">
+                     placeholder="es. Civile — fase di cognizione" readonly data-iu-on="focus:g041e661627">
             </div>
             {% if workflow_prefill or (fascicolo and fascicolo.compenso_pattuito) %}
             <div class="col-md-6">
@@ -327,7 +327,7 @@
 </div>
 
 {% if correction_context and correction_context.active and correction_highlight %}
-<script>
+<script nonce="{{ csp_nonce() }}">
   document.addEventListener('DOMContentLoaded', function () {
     const target = document.getElementById('field-{{ correction_highlight }}');
     if (target) {
@@ -340,7 +340,7 @@
 </script>
 {% endif %}
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.addEventListener('DOMContentLoaded', function() {
   initSoggettoSearch({
     uid: 'controparte',

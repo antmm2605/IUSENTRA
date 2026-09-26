@@ -247,7 +247,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Template voce
 const vociContainer = document.getElementById('voci-container');
 

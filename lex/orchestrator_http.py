@@ -548,7 +548,7 @@ def document_response(orchestrator, *, data: dict[str, Any]):
 
 
 def _risposta_certa_http(domanda: str) -> str:
-    """Termini e contributo unificato: calcolo dei motori di IUSENTRA, non del modello."""
+    """Termini, contributo unificato, testo di articoli e sentenze precise: motori e archivi di IUSENTRA, non il modello."""
     try:
         from lex.risposte_certe import risposta_certa
 
@@ -560,7 +560,19 @@ def _risposta_certa_http(domanda: str) -> str:
             percorso = str(current_app.config.get("NORMATIVE_TABLES_DB") or "")
             return GestioneStrumentiLegali(normative_db_path=percorso) if percorso else GestioneStrumentiLegali()
 
-        esito = risposta_certa(domanda, strumenti=strumenti)
+        def sentenze():
+            from web.helpers import get_giurisprudenza_readonly
+
+            return get_giurisprudenza_readonly().cerca()
+
+        from flask import current_app as _app
+
+        esito = risposta_certa(
+            domanda,
+            strumenti=strumenti,
+            normattiva_db=str(_app.config.get("NORMATTIVA_DB") or ""),
+            sentenze=sentenze,
+        )
     except Exception:
         return ""
     if esito is None:

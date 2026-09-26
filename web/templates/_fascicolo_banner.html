@@ -48,7 +48,7 @@
             <input type="text" class="form-control font-monospace"
                    value="{{ feeds.completo }}" readonly id="url-completo">
             <button class="btn btn-outline-secondary" type="button"
-                    onclick="copiaUrl('url-completo', this)" title="Copia link">
+                    data-iu-on="click:g9024c13265" title="Copia link">
               <i class="bi bi-clipboard me-1"></i>Copia
             </button>
           </div>
@@ -71,7 +71,7 @@
             <input type="text" class="form-control font-monospace"
                    value="{{ feeds.agenda }}" readonly id="url-agenda">
             <button class="btn btn-outline-secondary" type="button"
-                    onclick="copiaUrl('url-agenda', this)" title="Copia link">
+                    data-iu-on="click:g29dd475986" title="Copia link">
               <i class="bi bi-clipboard me-1"></i>Copia
             </button>
           </div>
@@ -96,7 +96,7 @@
             <input type="text" class="form-control font-monospace"
                    value="{{ feeds.scadenze }}" readonly id="url-scadenze">
             <button class="btn btn-outline-secondary" type="button"
-                    onclick="copiaUrl('url-scadenze', this)" title="Copia link">
+                    data-iu-on="click:g94165df9f2" title="Copia link">
               <i class="bi bi-clipboard me-1"></i>Copia
             </button>
           </div>
@@ -119,7 +119,7 @@
       <div class="d-flex align-items-start gap-3">
         <img src="https://ssl.gstatic.com/calendar/images/dynamiclogo_2020q4/calendar_20_2x.png"
              alt="Google Calendar" width="32" height="32" class="flex-shrink-0 mt-1"
-             onerror="this.outerHTML='<i class=\'bi bi-google flex-shrink-0 mt-1 fs-4 text-danger\'></i>'">
+             data-iu-on="error:g1d5fccdde6">
         <div class="flex-grow-1">
           <div class="fw-semibold mb-1">Google Calendar</div>
           <ol class="small text-muted mb-2 ps-3">
@@ -132,7 +132,7 @@
               <i class="bi bi-box-arrow-up-right me-1"></i>Apri in Google Calendar
             </a>
             <button class="btn btn-sm btn-link text-muted p-0" type="button"
-                    onclick="copiaUrl('url-completo', this)" title="Copia il link per incollarlo manualmente">
+                    data-iu-on="click:g9024c13265" title="Copia il link per incollarlo manualmente">
               <i class="bi bi-clipboard me-1"></i><span style="font-size:.8rem">Copia link (backup)</span>
             </button>
           </div>
@@ -158,7 +158,7 @@
             <li>Su <strong>iPhone/iPad</strong>: Impostazioni → Calendario → Account → Aggiungi account → Altro → Aggiungi Cal. sottoscritto</li>
           </ol>
           <button class="btn btn-sm btn-outline-dark" type="button"
-                  onclick="copiaEApri('url-completo', '{{ feeds.completo|replace("https://","webcal://") }}')">
+                  data-iu-on="click:ga8e715d9ac" data-iu-v-click-0="{{ feeds.completo|replace("https://","webcal://") }}">
             <i class="bi bi-clipboard me-1"></i>Copia link WebCal
           </button>
         </div>
@@ -177,7 +177,7 @@
             <li><strong>Outlook web</strong>: Aggiungi calendario → Sottoscrivi da Web → incolla l'URL</li>
           </ol>
           <button class="btn btn-sm btn-outline-primary" type="button"
-                  onclick="copiaUrl('url-completo', this)">
+                  data-iu-on="click:g9024c13265">
             <i class="bi bi-clipboard me-1"></i>Copia link
           </button>
         </div>
@@ -214,7 +214,7 @@
           {% endif %}
         </div>
         <form method="post" action="{{ url_for('rigenera_token_calendario') }}"
-              onsubmit="return confirm('Rigenerare il token? Tutti i link esistenti nei calendari smetteranno di funzionare e dovranno essere aggiornati.')">
+              data-iu-on="submit:g3c09ede59d">
           <button class="btn btn-sm btn-outline-warning w-100" type="submit">
             <i class="bi bi-arrow-clockwise me-1"></i>Rigenera token
           </button>
@@ -245,7 +245,7 @@
 
 </div>{# /row #}
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 function copiaUrl(inputId, btn) {
   var el = document.getElementById(inputId);
   navigator.clipboard.writeText(el.value).then(function() {

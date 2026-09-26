@@ -232,7 +232,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 initPagination('tbl-clienti', 'page-size-clienti');
 </script>
 {% endblock %}

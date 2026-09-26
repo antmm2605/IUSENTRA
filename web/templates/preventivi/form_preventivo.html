@@ -56,7 +56,7 @@
             <div class="col-md-6">
               <label class="form-label">Cliente <span class="text-danger">*</span></label>
               <select name="id_cliente" id="selectCliente" class="form-select" required
-                      onchange="caricaFascicoli(this.value)">
+                      data-iu-on="change:gf9385a02f6">
                 <option value="">— Seleziona cliente —</option>
                 {% for cl in clienti %}
                 <option value="{{ cl.id }}"
@@ -105,7 +105,7 @@
             <div class="col-md-6">
               <label class="form-label">Tipo di compenso <span class="text-danger">*</span>
                 <small class="text-muted fw-normal">(art. 13 L. 247/2012)</small></label>
-              <select name="tipo_compenso" id="selTipoCompenso" class="form-select" onchange="aggiornaUiCompenso()">
+              <select name="tipo_compenso" id="selTipoCompenso" class="form-select" data-iu-on="change:ga55d3edb8c">
                 <option value="Compenso fisso">Compenso fisso</option>
                 <option value="Compenso orario">Compenso a tempo / orario (art. 22-bis D.M. 55/2014)</option>
                 <option value="Per fasi processuali (D.M. 55/2014)">Per fasi processuali (D.M. 55/2014)</option>
@@ -118,7 +118,7 @@
               <label class="form-label">Tipo procedimento
                 <small class="text-muted fw-normal">(D.M. 147/2022)</small></label>
               <select name="tipo_procedimento" id="selTipoProcedimento" class="form-select"
-                      onchange="aggiornaSezioneProcedimento(); aggiornaDM55()">
+                      data-iu-on="change:g865a3b39d6">
                 <option value="Civile — fase di cognizione">Civile — fase di cognizione</option>
                 <option value="Civile — fase esecutiva">Civile — fase esecutiva</option>
                 <option value="Lavoro">Lavoro / Previdenza</option>
@@ -135,7 +135,7 @@
               <label class="form-label">Valore controversia (€)
                 <small class="text-muted fw-normal">0 = indeterminabile</small></label>
               <input type="number" name="valore_controversia" id="inpValore" class="form-control"
-                     step="0.01" min="0" value="0" placeholder="0" oninput="aggiornaDM55()">
+                     step="0.01" min="0" value="0" placeholder="0" data-iu-on="input:g6dae5512db">
             </div>
             <div class="col-md-4" id="rowTariffaOraria" style="display:none">
               <label class="form-label">Tariffa oraria (€/ora)</label>
@@ -225,7 +225,7 @@
           <div class="row g-2 mb-3">
             <div class="col-md-4">
               <label class="form-label small fw-semibold mb-1">Grado di giudizio</label>
-              <select id="selGrado" class="form-select form-select-sm" onchange="aggiornaDM55()">
+              <select id="selGrado" class="form-select form-select-sm" data-iu-on="change:g6dae5512db">
                 <option value="Tribunale">Tribunale (1° grado)</option>
                 <option value="Giudice di Pace">Giudice di Pace</option>
                 <option value="Corte d'Appello">Corte d'Appello (2° grado)</option>
@@ -245,7 +245,7 @@
                 <input class="form-check-input" type="checkbox" name="fasi_incluse[]"
                        value="{{ fase[0] }}" id="fase_{{ fase[0] }}"
                        {% if fase[0] != 'esecutiva' %}checked{% endif %}
-                       onchange="aggiornaDM55()">
+                       data-iu-on="change:g6dae5512db">
                 <label class="form-check-label" for="fase_{{ fase[0] }}">{{ fase[1] }}</label>
               </div>
               {% endfor %}
@@ -258,10 +258,10 @@
               Tipo ADR:
               <span class="ms-2">
                 <input type="radio" class="form-check-input" name="tipoMediazione" id="rdMediazione"
-                       value="mediazione" checked onchange="aggiornaDM55()">
+                       value="mediazione" checked data-iu-on="change:g6dae5512db">
                 <label class="form-check-label me-3" for="rdMediazione">Mediazione (D.Lgs. 28/2010)</label>
                 <input type="radio" class="form-check-input" name="tipoMediazione" id="rdNegoziazione"
-                       value="negoziazione" onchange="aggiornaDM55()">
+                       value="negoziazione" data-iu-on="change:g6dae5512db">
                 <label class="form-check-label" for="rdNegoziazione">Negoziazione Assistita (D.L. 132/2014)</label>
               </span>
             </p>
@@ -281,7 +281,7 @@
             <div class="col-md-5">
               <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" id="chkBonusTelematico"
-                       value="1" onchange="aggiornaDM55()">
+                       value="1" data-iu-on="change:g6dae5512db">
                 <label class="form-check-label" for="chkBonusTelematico">
                   Bonus telematico +30%
                   <small class="text-muted">(deposito con ricerca testuale — art. DM 147/2022)</small>
@@ -291,7 +291,7 @@
             <div class="col-md-7">
               <div class="form-check form-switch d-inline-block me-2">
                 <input class="form-check-input" type="checkbox" id="chkSpeseGenerali"
-                       value="1" onchange="aggiornaSpeseGenerali()" checked>
+                       value="1" data-iu-on="change:g0fb221a631" checked>
                 <label class="form-check-label" for="chkSpeseGenerali">
                   Spese generali art. 2 D.M. 55/2014
                 </label>
@@ -299,7 +299,7 @@
               <div class="d-inline-flex align-items-center gap-1">
                 <input type="number" id="inpPercSpese" class="form-control form-control-sm"
                        style="width:70px" min="0" max="50" step="1" value="15"
-                       oninput="aggiornaDM55()">
+                       data-iu-on="input:g6dae5512db">
                 <span class="small text-muted">%</span>
               </div>
             </div>
@@ -324,7 +324,7 @@
             </div>
             <div class="text-muted mt-2" style="font-size:.75rem" id="notaDM55"></div>
             <div class="mt-2">
-              <button type="button" class="btn btn-sm btn-outline-primary" onclick="importaDM55()">
+              <button type="button" class="btn btn-sm btn-outline-primary" data-iu-on="click:g2dc86837b2">
                 <i class="bi bi-download me-1"></i>Importa come voce nel preventivo
               </button>
             </div>
@@ -339,7 +339,7 @@
       <div class="card">
         <div class="card-header d-flex align-items-center justify-content-between fw-semibold">
           <span><i class="bi bi-list-ul me-2"></i>Voci del preventivo</span>
-          <button type="button" class="btn btn-sm btn-outline-primary" onclick="aggiungiVoce()">
+          <button type="button" class="btn btn-sm btn-outline-primary" data-iu-on="click:g31d2b0d654">
             <i class="bi bi-plus-lg me-1"></i>Aggiungi voce
           </button>
         </div>
@@ -398,13 +398,13 @@
           <div class="d-flex flex-wrap gap-3 mb-3">
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" name="applica_cassa"
-                     id="chkCassa" value="1" checked onchange="ricalcola()">
+                     id="chkCassa" value="1" checked data-iu-on="change:g99845e5573">
               <label class="form-check-label" for="chkCassa">Contributo Previdenziale (CPA) 4%
                 <small class="text-muted">(Cassa Forense)</small></label>
             </div>
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" name="applica_iva"
-                     id="chkIva" value="1" checked onchange="ricalcola()">
+                     id="chkIva" value="1" checked data-iu-on="change:g99845e5573">
               <label class="form-check-label" for="chkIva">IVA 22%</label>
             </div>
           </div>
@@ -420,7 +420,7 @@
               </label>
               <input type="number" name="anticipazioni_art15" id="inpAnticipazioniArt15"
                      class="form-control" step="0.01" min="0" value="0" placeholder="0.00"
-                     oninput="ricalcola()">
+                     data-iu-on="input:g99845e5573">
             </div>
             <div class="col-md-7 text-muted small">
               <i class="bi bi-info-circle me-1"></i>
@@ -442,7 +442,7 @@
             <input class="form-check-input" type="checkbox" name="clausola_controversie_attiva"
                    id="chkClausolaControversieAttiva" value="1"
                    {{ 'checked' if clausola_state.attiva else '' }}
-                   onchange="syncClausolaControversie()">
+                   data-iu-on="change:g38fa382706">
             <label class="form-check-label" for="chkClausolaControversieAttiva">
               <strong>Proponi una clausola contrattuale da riportare poi nel conferimento</strong>
               <div class="text-muted small">
@@ -458,7 +458,7 @@
               <div class="col-md-6">
                 <label class="form-label">Modello clausola</label>
                 <select name="clausola_controversie_modello" id="selClausolaControversieModello"
-                        class="form-select" onchange="onClausolaControversieModelloChange()">
+                        class="form-select" data-iu-on="change:g35cee230cf">
                   {% for modello in clausola_catalogo %}
                   <option value="{{ modello.id }}" {{ 'selected' if clausola_state.modello == modello.id else '' }}>
                     {{ modello.label }}
@@ -484,7 +484,7 @@
               <div class="col-12">
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
                   <label class="form-label mb-0">Testo da adattare</label>
-                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="ripristinaClausolaControversie()">
+                  <button type="button" class="btn btn-sm btn-outline-secondary" data-iu-on="click:ge1de9a21a9">
                     <i class="bi bi-arrow-counterclockwise me-1"></i>Ripristina testo standard
                   </button>
                 </div>
@@ -522,7 +522,7 @@
   </div>{# /row #}
 </form>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 const TIPI = ['Onorario','Spesa forfettaria','Spesa viva'];
 const CLAUSOLA_CONTROVERSIE_CATALOGO = {{ clausola_catalogo|tojson }};
 const CLAUSOLA_CONTROVERSIE_DEFAULTS = Object.fromEntries(
@@ -548,13 +548,15 @@ function aggiungiVoce(desc='', imp=0, tipo='Onorario') {
     </td>
     <td>
       <input type="number" name="voce_importo[]" class="form-control form-control-sm text-end"
-             step="0.01" min="0" value="${imp || ''}" placeholder="0.00" oninput="ricalcola()">
+             step="0.01" min="0" value="${imp || ''}" placeholder="0.00">
     </td>
     <td>
-      <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove();ricalcola()">
+      <button type="button" class="btn btn-sm btn-outline-danger" data-rimuovi-voce>
         <i class="bi bi-trash"></i>
       </button>
     </td>`;
+  tr.querySelector('input[name="voce_importo[]"]').addEventListener('input', ricalcola);
+  tr.querySelector('[data-rimuovi-voce]').addEventListener('click', () => { tr.remove(); ricalcola(); });
   tbody.appendChild(tr);
   ricalcola();
 }
@@ -740,20 +742,23 @@ function costruisciFasiADR() {
           <div class="text-muted" style="font-size:.72rem">${f.note}</div>
           <div class="d-flex align-items-center gap-2 mt-2">
             <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-0"
-                    onclick="cambiaPercFase('${f.chiave}', -5)" style="font-size:.8rem">−5%</button>
+                    data-delta="-5" style="font-size:.8rem">−5%</button>
             <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-0"
-                    onclick="cambiaPercFase('${f.chiave}', -10)" style="font-size:.8rem">−10%</button>
+                    data-delta="-10" style="font-size:.8rem">−10%</button>
             <input type="number" id="pct_${f.chiave}" class="form-control form-control-sm text-center"
-                   style="width:70px" min="50" max="150" step="5" value="${f.pct}"
-                   oninput="clampPct('${f.chiave}'); aggiornaDM55()">
+                   style="width:70px" min="50" max="150" step="5" value="${f.pct}">
             <span class="small text-muted">%</span>
             <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-0"
-                    onclick="cambiaPercFase('${f.chiave}', 10)" style="font-size:.8rem">+10%</button>
+                    data-delta="10" style="font-size:.8rem">+10%</button>
             <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-0"
-                    onclick="cambiaPercFase('${f.chiave}', 5)" style="font-size:.8rem">+5%</button>
+                    data-delta="5" style="font-size:.8rem">+5%</button>
           </div>
         </div>
       </div>`;
+    colDiv.querySelectorAll('[data-delta]').forEach(pulsante => {
+      pulsante.addEventListener('click', () => cambiaPercFase(f.chiave, parseInt(pulsante.getAttribute('data-delta'), 10)));
+    });
+    colDiv.querySelector('input[type="number"]')?.addEventListener('input', () => { clampPct(f.chiave); aggiornaDM55(); });
     row.appendChild(colDiv);
   });
 }

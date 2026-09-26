@@ -39,7 +39,7 @@
              autocomplete="new-password"
              {{ 'required' if not db.password else '' }}>
       <button class="btn btn-outline-secondary" type="button"
-              onclick="toggleDbPwd('{{ db.mode }}')" title="Mostra/nascondi">
+              data-iu-on="click:g340b36f7e7" data-iu-v-click-0="{{ db.mode }}" title="Mostra/nascondi">
         <i class="bi bi-eye" id="eyeDbPwd_{{ db.mode }}"></i>
       </button>
     </div>
@@ -84,7 +84,7 @@
 </div>
 {% endif %}
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 function toggleDbPwd(mode) {
   const f = document.getElementById('dbPwd_' + mode);
   const i = document.getElementById('eyeDbPwd_' + mode);

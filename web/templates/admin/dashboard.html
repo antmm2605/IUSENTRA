@@ -222,7 +222,7 @@
 
 {% block scripts %}
 {{ super() }}
-<script>
+<script nonce="{{ csp_nonce() }}">
   document.querySelectorAll('[data-admin-progress-value]').forEach((node) => {
     const value = Number.parseInt(node.dataset.adminProgressValue || '0', 10);
     const normalized = Number.isFinite(value) ? Math.max(0, Math.min(value, 100)) : 0;

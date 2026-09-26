@@ -728,7 +728,7 @@
   </div>{# /modal-dialog #}
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.addEventListener('DOMContentLoaded', function () {
   const canaleDeposito = {{ tmpl.canale|tojson }};
   const tabBusta    = document.getElementById('tab-busta');

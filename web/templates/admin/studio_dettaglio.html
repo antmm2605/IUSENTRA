@@ -46,7 +46,7 @@
     </form>
     {% else %}
     <form method="post" action="{{ url_for('admin.sospendi_studio', slug=studio.slug) }}"
-          onsubmit="return confirm('Sospendere lo studio {{ studio.nome }}?')">
+          data-iu-on="submit:g2ebba1b883" data-iu-v-submit-0="{{ studio.nome }}">
       <button class="btn btn-outline-danger btn-sm"><i class="bi bi-pause-fill me-1"></i>Sospendi</button>
     </form>
     {% endif %}
@@ -361,7 +361,7 @@
           </button>
         </div>
         <form method="post" action="{{ url_for('admin.rigenera_api_key', slug=studio.slug) }}"
-              onsubmit="return confirm('Rigenerare la chiave riservata? La chiave precedente sara invalidata.')">
+              data-iu-on="submit:g90e51099af">
           <button type="submit" class="btn btn-sm btn-outline-danger w-100">
             <i class="bi bi-arrow-repeat me-1"></i>Rigenera chiave
           </button>
@@ -390,7 +390,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 const storageUsage = document.getElementById('studioStorageUsage');
 if (storageUsage) {
   const used = storageUsage.querySelector('[data-role="used"]');

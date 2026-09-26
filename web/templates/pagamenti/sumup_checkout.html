@@ -2,6 +2,8 @@
 <html lang="it">
 <head>
   <meta charset="utf-8">
+  <script src="/static/js/iu-gestori.js?v={{ app_version|default('') }}"></script>
+  <script src="/static/js/iu-gestori-registro.js?v={{ app_version|default('') }}"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pagamento SumUp — {{ studio_nome }}</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
@@ -43,7 +45,7 @@
 
   <!-- SumUp Web SDK -->
   <script src="https://gateway.sumup.com/gateway/ecom/card/v2/sdk.js"></script>
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     SumUpCard.mount({
       id:          'sumup-widget',
       checkoutId:  '{{ checkout_id }}',

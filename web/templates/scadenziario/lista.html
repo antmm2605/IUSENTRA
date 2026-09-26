@@ -129,7 +129,7 @@
   <input type="search" name="q" class="ds-search-input"
          placeholder="Cerca per titolo, descrizione…"
          value="{{ q|default('') }}" autocomplete="off">
-  <select name="tipo" class="form-select form-select-sm" style="max-width:160px" onchange="this.form.submit()">
+  <select name="tipo" class="form-select form-select-sm" style="max-width:160px" data-iu-on="change:ga2c8f19ca1">
     <option value="">Tutti i tipi</option>
     {% for t in tipi %}
     <option value="{{ t.value }}" {{ 'selected' if t.value == filtro_tipo }}>
@@ -137,7 +137,7 @@
     </option>
     {% endfor %}
   </select>
-  <select name="priorita" class="form-select form-select-sm" style="max-width:150px" onchange="this.form.submit()">
+  <select name="priorita" class="form-select form-select-sm" style="max-width:150px" data-iu-on="change:ga2c8f19ca1">
     <option value="">Tutte le priorità</option>
     {% for p in priorita_list %}
     <option value="{{ p.value }}" {{ 'selected' if p.value == filtro_priorita }}>
@@ -355,7 +355,7 @@
                 </button>
                 {% endif %}
                 <form method="post" action="{{ url_for('elimina_scadenza', id_sc=s.id) }}"
-                      onsubmit="return confirm('Eliminare la scadenza «{{ s.titolo }}»?')">
+                      data-iu-on="submit:g4206b5adcc" data-iu-v-submit-0="{{ s.titolo }}">
                   <button type="submit" class="btn btn-outline-danger btn-sm" title="Elimina">
                     <i class="bi bi-trash"></i>
                   </button>
@@ -371,7 +371,7 @@
 </div>
 </form>
 {% block extra_scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
   var allCb = document.getElementById('bulk-select-all');
   var btnBulk = document.getElementById('btn-bulk-completa');
@@ -428,5 +428,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script>initPagination('tbl-scadenze', 'page-size-scadenze');</script>
+<script nonce="{{ csp_nonce() }}">initPagination('tbl-scadenze', 'page-size-scadenze');</script>
 {% endblock %}

@@ -47,7 +47,7 @@
                 {% else %}
                   <form method="post"
                         action="{{ url_for('studio_site.create_client_from_contact', submission_id=item.id) }}"
-                        onsubmit="return confirm('Creare il cliente potenziale per {{ item.full_name|e }}?')">
+                        data-iu-on="submit:gf8b804708e" data-iu-v-submit-0="{{ item.full_name|e }}">
                     <button type="submit" class="btn btn-sm btn-outline-primary">
                       <i class="bi bi-person-plus me-1"></i>Crea cliente
                     </button>

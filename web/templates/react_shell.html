@@ -53,7 +53,7 @@ npm run build</code></pre>
   {% else %}
   <script id="iusentra-react-bootstrap" type="application/json">{{ react_bootstrap | tojson }}</script>
   <div id="root"></div>
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     window.__IUSENTRA_REACT_BOOTSTRAP_STATE__ = window.__IUSENTRA_REACT_BOOTSTRAP_STATE__ || { errors: [] };
     window.addEventListener("error", function(event) {
       var state = window.__IUSENTRA_REACT_BOOTSTRAP_STATE__ || { errors: [] };
@@ -81,22 +81,25 @@ npm run build</code></pre>
   </section>
   {% endif %}
   {% if react_assets.inline_entry_code %}
-  <script>
+  <script nonce="{{ csp_nonce() }}">
     window.__IUSENTRA_INLINE_REACT_ENTRY__ = true;
     document.documentElement.dataset.iusentraEntryScript = 'inline-armed';
   </script>
-  <script type="module" data-iusentra-react-entry="{{ react_assets.entry_file }}?v={{ app_version }}">
+  <script nonce="{{ csp_nonce() }}" type="module" data-iusentra-react-entry="{{ react_assets.entry_file }}?v={{ app_version }}">
 {{ react_assets.inline_entry_code | safe }}
 document.documentElement.dataset.iusentraEntryScript='loaded';
   </script>
   {% else %}
     {% for js_file in react_assets.js %}
-    <script type="module" src="{{ js_file }}?v={{ app_version }}"
-            onload="document.documentElement.dataset.iusentraEntryScript='loaded'"
-            onerror="document.documentElement.dataset.iusentraEntryScript='error'"></script>
+    <script type="module" src="{{ js_file }}?v={{ app_version }}" data-iusentra-react-src></script>
     {% endfor %}
   {% endif %}
-  <script>
+  <script nonce="{{ csp_nonce() }}">
+    // Esito del caricamento del modulo React (niente onload/onerror in linea: CSP).
+    Array.prototype.forEach.call(document.querySelectorAll('script[data-iusentra-react-src]'), function(modulo) {
+      modulo.addEventListener('load', function() { document.documentElement.dataset.iusentraEntryScript = 'loaded'; });
+      modulo.addEventListener('error', function() { document.documentElement.dataset.iusentraEntryScript = 'error'; });
+    });
     (function() {
       var root = document.getElementById("root");
       var state = window.__IUSENTRA_REACT_BOOTSTRAP_STATE__ || { errors: [] };
@@ -115,7 +118,9 @@ document.documentElement.dataset.iusentraEntryScript='loaded';
         var safeLastError = lastError.replace(/[<>&"]/g, function(char) {
           return { "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[char];
         });
-        root.innerHTML = '<main class="iu-content iu-react-error" role="alert" data-error-count="' + errorCount + '" data-last-error="' + safeLastError + '"><div><h1>Interfaccia non avviata</h1><p>' + message + '</p><a href="/fascicoli">Apri fascicoli</a><button type="button" onclick="window.location.reload()">Ricarica</button></div></main>';
+        root.innerHTML = '<main class="iu-content iu-react-error" role="alert" data-error-count="' + errorCount + '" data-last-error="' + safeLastError + '"><div><h1>Interfaccia non avviata</h1><p>' + message + '</p><a href="/fascicoli">Apri fascicoli</a><button type="button" data-iu-ricarica>Ricarica</button></div></main>';
+        var ricarica = root.querySelector('[data-iu-ricarica]');
+        if (ricarica) ricarica.addEventListener('click', function() { window.location.reload(); });
       }
       function retryEntryUrl() {
         var raw = entrySource();

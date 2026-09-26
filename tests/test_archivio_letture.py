@@ -102,8 +102,12 @@ def test_versione_motore_documenti_include_versione_importi():
         VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI,
     )
 
+    from pct.archivio_letture.motore_documenti import VERSIONE_MOTORE_DOCUMENTI_V14
+
     assert VERSIONE_ESTRAZIONE_IMPORTI in VERSIONE_MOTORE_DOCUMENTI
-    assert any(".v13+" in versione for versione in VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI)
+    # v15 legge le parti dell'epigrafe: i documenti letti prima si rileggono una volta.
+    assert ".v15+parti:" in VERSIONE_MOTORE_DOCUMENTI
+    assert VERSIONE_MOTORE_DOCUMENTI_V14 not in VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI
 
 
 def test_la_citazione_della_carta_non_rende_identita_un_decreto():

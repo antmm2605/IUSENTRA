@@ -17,6 +17,8 @@ import {
   type FattoDaConfermare,
   type LettureFascicolo,
 } from './lettureFascicolo'
+import { PartiLetteSection } from './PartiLetteSection'
+import { ObblighiNotificaSection } from './ObblighiNotificaSection'
 
 const OGGETTI_VISIBILI = 6
 
@@ -189,6 +191,8 @@ export function LettureFascicoloSection({ fascicoloId, active = true, refreshKey
           ))}
         </ul>
       ) : null}
+      <ObblighiNotificaSection fascicoloId={fascicoloId} active={active} refreshKey={refreshKey}/>
+      <PartiLetteSection fascicoloId={fascicoloId} active={active} refreshKey={refreshKey}/>
       {inAttesa.length ? (
         <div className="iu-fas-letture__attesa">
           <ul>

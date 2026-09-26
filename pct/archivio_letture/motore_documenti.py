@@ -19,17 +19,16 @@ from .estrazione_date import estrai_date
 from .estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI, estrai_importi
 from .estrazione_istituti import VERSIONE_ESTRAZIONE_ISTITUTI
 from .estrazione_notifiche import estrai_prove_notifica
+from .estrazione_parti import VERSIONE_ESTRAZIONE_PARTI
 from .estrazione_ruolo import estrai_ruoli
 
 VERSIONE_MOTORE_DOCUMENTI_V13 = f"2026.09.21.motore-documenti.v13+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
-VERSIONE_MOTORE_DOCUMENTI = f"2026.09.23.motore-documenti.v14+ufficio-rg+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
-VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI = (
-    VERSIONE_MOTORE_DOCUMENTI,
-    VERSIONE_MOTORE_DOCUMENTI_V13,
-    f"2026.09.18.motore-documenti.v12+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}",
-    f"2026.09.18.motore-documenti.v10+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+{VERSIONE_FORMULARIO}",
-    f"2026.09.16.motore-documenti.v7+{VERSIONE_FORMULARIO}",
-)
+VERSIONE_MOTORE_DOCUMENTI_V14 = f"2026.09.23.motore-documenti.v14+ufficio-rg+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
+# v15: le parti dell'epigrafe e il ruolo amministrativo (REG.RIC.). Le versioni
+# precedenti non sono compatibili: ogni documento si rilegge una volta per
+# alimentare le parti del fascicolo.
+VERSIONE_MOTORE_DOCUMENTI = f"2026.09.26.motore-documenti.v15+parti:{VERSIONE_ESTRAZIONE_PARTI}+ruolo-amministrativo+ufficio-rg+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
+VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI = (VERSIONE_MOTORE_DOCUMENTI,)
 FATTI_MASSIMI = 80
 ORDINE_VERIFICA = {"verificata": 0, "corretta": 0, "plausibile": 1, "respinta": 2, "ignorata": 3}
 
@@ -76,7 +75,11 @@ def leggi_testo(
     collaudati = applica_pertinenza(collaudati, testo, contesto=contesto, origine=origine)
     if not any(f.campo == "natura_documentale" and f.valore == "precedente_giurisprudenziale" for f in collaudati):
         from .estrazione_economica import estrai_controllo_economico
+        from .estrazione_parti import fatti_parti
         collaudati.extend(estrai_controllo_economico(testo, origine=origine, metadata=metadata or {}))
+        # Le parti si leggono solo negli atti di questa causa: un precedente
+        # allegato porta le parti di un altro processo.
+        collaudati.extend(collauda_tutti(fatti_parti(testo, origine=origine, avvocati_studio=list(contesto.avvocati_studio), cliente=contesto.cliente), contesto))
     collaudati.sort(key=lambda fatto: (ORDINE_VERIFICA.get(fatto.verifica, 9), fatto.posizione))
     return collaudati
 

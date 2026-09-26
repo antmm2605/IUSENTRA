@@ -1715,7 +1715,12 @@ def _sincronizza_metadati_fascicolo_polisweb(
         default=None,
     )
     if stato_portale and stato_portale != fascicolo_locale.stato:
-        campi_update["stato"] = stato_portale
+        from pct import stato_fascicolo
+
+        prova = stato_fascicolo.prova_registro(stato_portale, str(fascicolo_pw.stato or ""), "registro di cancelleria (PST)")
+        if stato_fascicolo.ammessa(fascicolo_locale.stato, prova):
+            campi_update["stato"] = stato_portale
+            campi_update["nota_stato"] = prova.nota()
 
     if campi_update:
         fascicolo_locale = gestione_fascicoli.aggiorna(fascicolo_locale.id, **campi_update)

@@ -1109,7 +1109,31 @@ class GestioneFascicoli:
         if migrato:
             self._salva()
 
+    def _allinea_stato_dalle_prove(self, fascicoli: Iterable["Fascicolo"]) -> None:
+        """Da «aperto» a «in corso» quando il fascicolo porta già la prova che la causa pende.
+
+        È il punto in cui passano tutti i salvataggi: il deposito accettato dalla
+        cancelleria (da PEC, portale, polling o registrazione a mano) e il numero
+        di ruolo assegnato spostano lo stato anche se chi li scrive non ci pensa.
+        La regola e le fonti sono in ``pct.stato_fascicolo``.
+        """
+        from pct import stato_fascicolo
+
+        for f in fascicoli:
+            if f.stato != StatoFascicolo.APERTO:
+                continue
+            prova = None
+            accettato = next((d for d in f.depositi_pct if str(d.stato or "") == "ACCETTATO_CANCELLERIA"), None)
+            if accettato is not None:
+                prova = stato_fascicolo.prova_deposito_accettato(accettato.tipo_atto, str(accettato.timestamp or "")[:10])
+            elif str(f.numero_rg or "").strip():
+                prova = stato_fascicolo.prova_iscrizione_a_ruolo(f.numero_rg, f.anno_rg or "")
+            if prova is not None and stato_fascicolo.ammessa(f.stato, prova):
+                f.avanzamento.append(stato_fascicolo.avanzamento(f.stato, prova))
+                f.stato = prova.stato
+
     def _salva(self) -> None:
+        self._allinea_stato_dalle_prove(self._fascicoli.values())
         if self._studio_db is not None and not self._archivio_completo:
             raise RuntimeError(
                 "Salvataggio integrale bloccato: l'archivio è stato caricato solo parzialmente. "
@@ -1243,6 +1267,7 @@ class GestioneFascicoli:
         import json as _json
 
         rows = list(fascicoli)
+        self._allinea_stato_dalle_prove(rows)
         if not rows:
             return
 
@@ -2167,10 +2192,22 @@ class GestioneFascicoli:
             campi["id_cliente"] = id_cliente
             campi["nome_cliente"] = nome_cliente
         tocchi_profilo = False
+        stato_prima = f.stato
         for k, v in campi.items():
             if hasattr(f, k):
                 setattr(f, k, v)
                 tocchi_profilo = tocchi_profilo or (k in _PROFILO_DEPOSITO_FASCICOLO_FIELDS)
+        if "stato" in campi and "avanzamento" not in campi and f.stato != stato_prima:
+            # Nessun cambio di stato senza traccia: anche quello scritto con i dati del fascicolo.
+            f.stato = f.stato if isinstance(f.stato, StatoFascicolo) else StatoFascicolo(str(f.stato))
+            f.avanzamento.append(AvanzamentoPratica(
+                data=datetime.now().isoformat(),
+                descrizione=f"Stato cambiato da {stato_prima.value} a {f.stato.value}",
+                stato_precedente=stato_prima.value, stato_nuovo=f.stato.value,
+                note=str(campi.get("nota_stato") or "Aggiornamento dei dati del fascicolo"),
+            ))
+            if f.stato in (StatoFascicolo.DEFINITO, StatoFascicolo.ARCHIVIATO) and not f.data_chiusura:
+                f.data_chiusura = date.today().isoformat()
         if tocchi_profilo and "profilo_deposito" not in campi:
             self._aggiorna_profilo_deposito_fascicolo(
                 f,

@@ -9169,6 +9169,61 @@ def fascicolo_react_letture_fatto(id_fasc: str, fatto_id: str):
         return _jsonify_public_payload({"ok": False, "errore": "Decisione non registrata."}, 200)
 
 
+@api_v1_react.get("/fascicoli/<id_fasc>/letture/parti")
+@_richiedi_auth
+def fascicolo_react_letture_parti(id_fasc: str):
+    """Le parti lette nell'epigrafe degli atti: chi è già nel fascicolo, chi è il cliente, chi si può aggiungere."""
+    try:
+        from web.services.parti_lette_runtime import parti_proposte
+
+        fascicolo = _fascicolo_singolo_loader()().get(str(id_fasc or "").strip())
+        if fascicolo is None:
+            return _jsonify_public_payload({"ok": False, "notFound": True, "errore": "Fascicolo non trovato."}, 404)
+        return _jsonify_public_payload({"ok": True, "parti": parti_proposte(fascicolo)})
+    except Exception as exc:
+        current_app.logger.exception("Parti lette del fascicolo %s non disponibili: %s", id_fasc, exc)
+        return _jsonify_public_payload({"ok": False, "errore": "Parti lette dagli atti non disponibili.", "parti": []}, 200)
+
+
+@api_v1_react.post("/fascicoli/<id_fasc>/letture/parti")
+@_richiedi_auth
+def fascicolo_react_letture_parti_aggiungi(id_fasc: str):
+    """L'avvocato aggiunge al fascicolo una parte letta dagli atti, con il ruolo che sceglie."""
+    try:
+        from web.services.parti_lette_runtime import aggiungi_parte_proposta, parti_proposte
+
+        fascicolo = _fascicolo_singolo_loader()().get(str(id_fasc or "").strip())
+        if fascicolo is None:
+            return _jsonify_public_payload({"ok": False, "notFound": True, "errore": "Fascicolo non trovato."}, 404)
+        payload = _request_payload()
+        try:
+            esito = aggiungi_parte_proposta(fascicolo, str(payload.get("nome") or ""), str(payload.get("ruolo") or "").strip())
+        except (ValueError, LookupError) as errore:
+            return _jsonify_public_payload({"ok": False, "errore": str(errore)}, 200)
+        _LETTURA_CACHE.invalidate(_lettura_cache_key(id_fasc))
+        _audit_event("fascicoli.letture.parte", "fascicolo", id_fasc, f"{esito['nome']} → {esito['ruolo']}")
+        return _jsonify_public_payload({"ok": True, "esito": esito, "parti": parti_proposte(fascicolo)})
+    except Exception as exc:
+        current_app.logger.exception("Parte letta non aggiunta al fascicolo %s: %s", id_fasc, exc)
+        return _jsonify_public_payload({"ok": False, "errore": "Parte non aggiunta al fascicolo."}, 200)
+
+
+@api_v1_react.get("/fascicoli/<id_fasc>/obblighi-notifica")
+@_richiedi_auth
+def fascicolo_react_obblighi_notifica(id_fasc: str):
+    """Che cosa va notificato, a chi ed entro quando, dai documenti del fascicolo (catalogo e archivio delle letture)."""
+    try:
+        from web.services.obblighi_notifica_runtime import obblighi_fascicolo
+
+        fascicolo = _fascicolo_singolo_loader()().get(str(id_fasc or "").strip())
+        if fascicolo is None:
+            return _jsonify_public_payload({"ok": False, "notFound": True, "errore": "Fascicolo non trovato."}, 404)
+        return _jsonify_public_payload({"ok": True, "obblighi": obblighi_fascicolo(fascicolo)})
+    except Exception as exc:
+        current_app.logger.exception("Obblighi di notifica del fascicolo %s non disponibili: %s", id_fasc, exc)
+        return _jsonify_public_payload({"ok": False, "errore": "Obblighi di notifica non disponibili.", "obblighi": []}, 200)
+
+
 @api_v1_react.get("/fascicoli/<id_fasc>/regia")
 @_richiedi_auth
 def fascicolo_regia_operativa(id_fasc: str):

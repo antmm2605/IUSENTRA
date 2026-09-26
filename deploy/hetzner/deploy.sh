@@ -325,13 +325,26 @@ if [ "$AI_ENABLED" != "0" ] && [ "$AI_ENABLED" != "false" ]; then
        -f "$COMPOSE_FILE" \
        "${PROFILE_ARGS[@]}" \
        ps --services 2>/dev/null | grep -q "^ollama$"; then
-    echo "Verifico modello Ollama locale: $OLLAMA_CHAT_MODEL"
-    docker compose \
-      --env-file "$ENV_FILE" \
-      -f "$COMPOSE_FILE" \
-      "${PROFILE_ARGS[@]}" \
-      exec -T ollama ollama pull "$OLLAMA_CHAT_MODEL" || \
-      echo "Attenzione: pull modello Ollama non riuscito — verificare manualmente."
+    # Ollama aggiornato all'ultima versione pubblicata: i modelli nuovi (per
+    # esempio l'architettura spark2_5 di Spark-X2.5, usata dalla catalogazione)
+    # richiedono un motore recente. Il container si ricrea solo se l'immagine cambia.
+    if [ "${IUSENTRA_DEPLOY_DRIVER:-compose}" = "portainer" ]; then
+      echo "Driver Portainer: aggiornare l'immagine Ollama dallo stack."
+    elif docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" pull ollama; then
+      docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" up -d --no-deps ollama \
+        || echo "Attenzione: Ollama non ricreato con l'immagine aggiornata." >&2
+    else
+      echo "Attenzione: aggiornamento dell'immagine Ollama non riuscito: resta la versione in uso." >&2
+    fi
+    for OLLAMA_MODEL in "$OLLAMA_CHAT_MODEL" "${PCT_LEX_CATALOGO_MODELLO:-maternion/spark-x2.5:4b}"; do
+      echo "Verifico modello Ollama locale: $OLLAMA_MODEL"
+      docker compose \
+        --env-file "$ENV_FILE" \
+        -f "$COMPOSE_FILE" \
+        "${PROFILE_ARGS[@]}" \
+        exec -T ollama ollama pull "$OLLAMA_MODEL" || \
+        echo "Attenzione: pull modello Ollama $OLLAMA_MODEL non riuscito — verificare manualmente."
+    done
   fi
 fi
 

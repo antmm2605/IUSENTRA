@@ -5220,7 +5220,12 @@ def update_react_fascicolo_status(
             "fascicolo": {"id": fid, "status": raw, "tone": _status_tone(target.value)},
         }, 200
     try:
-        if hasattr(repo, "cambia_stato"):
+        if target == StatoFascicolo.ARCHIVIATO and hasattr(repo, "archivia"):
+            # Archiviare è un atto: crea l'archivio ZIP con documenti e metadati.
+            fascicolo = repo.archivia(fid, avvocato=_text(actor, "Operatore"))
+        elif target == StatoFascicolo.DEFINITO and hasattr(repo, "definisci"):
+            fascicolo = repo.definisci(fid, note="Definito dall'elenco fascicoli", avvocato=_text(actor, "Operatore"))
+        elif hasattr(repo, "cambia_stato"):
             fascicolo = repo.cambia_stato(
                 fid,
                 target,

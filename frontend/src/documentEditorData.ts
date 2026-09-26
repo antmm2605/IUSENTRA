@@ -32,6 +32,8 @@ export type EditorDocument = {
   source: string
   editable: boolean
   pdfOverlayAllowed: boolean
+  /** Documento di prova (firmato, busta, email, da portale o PEC): si modifica solo in copia. */
+  pdfSoloCopia: boolean
   lockedReason: string
   portal: {
     name: string
@@ -133,6 +135,7 @@ export const emptyDocumentEditorPayload: DocumentEditorPayload = {
     source: '',
     editable: true,
     pdfOverlayAllowed: false,
+    pdfSoloCopia: true,
     lockedReason: '',
     portal: { name: '', class: '', sender: '', date: '' },
     actions: { preview: '', download: '', sign: '', detail: '/fascicoli' },
@@ -201,6 +204,7 @@ function normalizeDocument(value: unknown): EditorDocument {
     source: text(row.source),
     editable: row.editable !== false,
     pdfOverlayAllowed: bool(row.pdfOverlayAllowed),
+    pdfSoloCopia: row.pdfSoloCopia === undefined ? true : bool(row.pdfSoloCopia),
     lockedReason: text(row.lockedReason),
     portal: {
       name: text(portal.name),

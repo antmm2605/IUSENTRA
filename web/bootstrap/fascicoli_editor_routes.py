@@ -113,7 +113,9 @@ def register_fascicoli_editor_routes(
         try:
             fascicolo = gestore_fascicoli.get(id_fasc)
             documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None) if fascicolo else None
-            if documento and (documento.firmato_digitalmente or documento.nome.lower().endswith(".p7m")):
+            # Firmati e buste .p7m si aprono nell'editor React in «modifica su copia»:
+            # l'originale resta intatto. La vista classica non la gestisce.
+            if documento and _richiede_vista_classica() and (documento.firmato_digitalmente or documento.nome.lower().endswith(".p7m")):
                 return redirect(url_for("visualizza_documento", id_fasc=id_fasc, id_doc=id_doc))
         except Exception:
             fascicolo = None
@@ -361,15 +363,16 @@ def register_fascicoli_editor_routes(
         try:
             fascicolo = gestore_fascicoli.get(id_fasc)
             documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
-            if not documento or Path(documento.nome).suffix.lower() != ".pdf":
-                return jsonify({"ok": False, "errore": "Documento PDF non disponibile."}), 404
-            percorso = _percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
-            pdf_bytes = decrypt_doc(percorso.read_bytes())
+            if not documento:
+                return jsonify({"ok": False, "errore": "Documento non disponibile."}), 404
+            lavoro = _pdf_di_lavoro(gestore_fascicoli, id_fasc, id_doc, documento)
+            pdf_bytes = lavoro.dati
             pages = [
                 {"number": info.number, "width": info.width, "height": info.height}
                 for info in pdf_page_infos(pdf_bytes)
             ]
-            return jsonify({"ok": True, "pageCount": len(pages), "pages": pages})
+            return jsonify({"ok": True, "pageCount": len(pages), "pages": pages, "origine": lavoro.origine,
+                            "soloCopia": lavoro.solo_copia, "nomeCopia": lavoro.nome_copia})
         except PdfOverlayError as exc:
             return jsonify({"ok": False, "errore": str(exc)}), 400
         except Exception as exc:
@@ -384,16 +387,29 @@ def register_fascicoli_editor_routes(
         try:
             fascicolo = gestore_fascicoli.get(id_fasc)
             documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
-            if not documento or Path(documento.nome).suffix.lower() != ".pdf":
-                return jsonify({"ok": False, "errore": "Documento PDF non disponibile."}), 404
-            percorso = _percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
-            png_bytes = render_pdf_page_png(decrypt_doc(percorso.read_bytes()), page_number=page_number)
+            if not documento:
+                return jsonify({"ok": False, "errore": "Documento non disponibile."}), 404
+            png_bytes = render_pdf_page_png(_pdf_di_lavoro(gestore_fascicoli, id_fasc, id_doc, documento).dati, page_number=page_number)
             return send_file(io.BytesIO(png_bytes), mimetype="image/png", as_attachment=False)
         except PdfOverlayError as exc:
             return jsonify({"ok": False, "errore": str(exc)}), 400
         except Exception as exc:
             app.logger.exception("Errore api_editor_pdf_pagina_png: %s", exc)
             return jsonify({"ok": False, "errore": "Pagina PDF non renderizzata."}), 500
+
+    def _pdf_di_lavoro(gestore_fascicoli, id_fasc, id_doc, documento):
+        """Il PDF su cui lavora l'editor: il PDF stesso, quello dentro la busta .p7m o l'email impaginata."""
+        from web.services.pdf_modificabile import DocumentoNonConvertibile, pdf_di_lavoro
+        from web.services.pdf_overlay_editor import PdfOverlayError
+
+        percorso = _percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
+        try:
+            return pdf_di_lavoro(
+                documento, decrypt_doc(percorso.read_bytes()),
+                originale_modificabile=pdf_studio_modificabile(documento), studio_timbro=_current_studio_timbro(),
+            )
+        except DocumentoNonConvertibile as exc:
+            raise PdfOverlayError(str(exc)) from exc
 
     def _nome_della_copia(nome: str, fascicolo) -> str:
         """Un nome che dice che e' una copia, e che nel fascicolo non c'e' gia'.
@@ -427,15 +443,10 @@ def register_fascicoli_editor_routes(
                 return jsonify({"ok": False, "errore": "Modifiche PDF non valide."}), 400
             fascicolo = gestore_fascicoli.get(id_fasc)
             documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
-            if not documento or Path(documento.nome).suffix.lower() != ".pdf":
-                return jsonify({"ok": False, "errore": "Documento PDF non disponibile."}), 404
-            if getattr(documento, "firmato_digitalmente", False) or str(getattr(documento, "nome", "")).lower().endswith(".p7m"):
-                return jsonify({"ok": False, "errore": "Il documento firmato resta in sola consultazione."}), 403
-            if not pdf_studio_modificabile(documento):
-                return jsonify({"ok": False, "errore": motivo_blocco_editor(documento)}), 403
-            percorso = _percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
-            pdf_bytes = decrypt_doc(percorso.read_bytes())
-            contenuto_raw, count = apply_pdf_overlays(pdf_bytes, annotations)
+            if not documento:
+                return jsonify({"ok": False, "errore": "Documento non disponibile."}), 404
+            lavoro = _pdf_di_lavoro(gestore_fascicoli, id_fasc, id_doc, documento)
+            contenuto_raw, count = apply_pdf_overlays(lavoro.dati, annotations)
 
             # Dove finisce il risultato. Sovrascrivere e' comodo finche' si
             # aggiunge un timbro; per una copia da mandare a qualcuno, o per
@@ -443,6 +454,10 @@ def register_fascicoli_editor_routes(
             destinazione = str(body.get("destinazione") or "versione").strip().lower()
             if destinazione not in ("versione", "copia", "scarica"):
                 destinazione = "versione"
+            if destinazione == "versione" and lavoro.solo_copia:
+                # Firmati, buste .p7m, email e documenti arrivati da portali o PEC
+                # sono prove: l'originale non si sostituisce, il lavoro va in copia.
+                destinazione = "copia"
 
             if destinazione == "scarica":
                 audit("fascicoli.documento.editor_pdf_overlay", "fascicolo", id_fasc,
@@ -451,13 +466,13 @@ def register_fascicoli_editor_routes(
                     io.BytesIO(contenuto_raw),
                     mimetype="application/pdf",
                     as_attachment=True,
-                    download_name=_nome_della_copia(documento.nome, fascicolo),
+                    download_name=_nome_della_copia(lavoro.nome_copia, fascicolo),
                 )
 
             if destinazione == "copia":
                 doc_salvato = gestore_fascicoli.aggiungi_documento(
                     id_fasc,
-                    nome_file=_nome_della_copia(documento.nome, fascicolo),
+                    nome_file=_nome_della_copia(lavoro.nome_copia, fascicolo),
                     tipo=documento.tipo,
                     contenuto=encrypt_doc(contenuto_raw),
                     note=f"Copia con {count} interventi dell'editor PDF sicuro.",

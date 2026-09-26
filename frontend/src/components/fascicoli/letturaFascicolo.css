@@ -141,3 +141,15 @@
 .iu-fas-letture__archivio small.is-danger { color: var(--iu-danger, #b42318); font-weight: 600; }
 .iu-fas-letture__archivio small.is-success { color: var(--iu-success, #1f7a3a); }
 .iu-fas-letture__fatti h5 { margin-top: 0.4rem; }
+
+/* Parti lette dagli atti (epigrafe): proposte e parti entrate in anagrafica */
+.iu-fas-letture__parti{display:grid;gap:7px}
+.iu-fas-letture__parti h5{display:flex;align-items:center;gap:6px;margin:0;font-size:12.5px;font-weight:950;color:#13233a}
+.iu-fas-letture__parti ul{display:grid;gap:7px;margin:0;padding:0;list-style:none}
+.iu-fas-letture__parti li{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:8px;padding:9px 10px;border:1px solid #d9e7ef;border-radius:10px;background:#fff}
+.iu-fas-letture__parti li.is-warning{border-color:#f0d9a6;background:#fffaf0}
+.iu-fas-letture__parte-testo{display:grid;gap:3px;min-width:0;flex:1 1 260px;font-size:12px;color:#41617a}
+.iu-fas-letture__parte-testo b{color:#13233a;font-weight:950}
+.iu-fas-letture__parte-testo small{overflow-wrap:anywhere}
+.iu-fas-letture__parte-citazione{font-style:italic;color:#5b7489}
+.iu-fas-letture__parti select{min-height:30px;border:1px solid #c9dbe6;border-radius:8px;background:#fff;font-size:12px}

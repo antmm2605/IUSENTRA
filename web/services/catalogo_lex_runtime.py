@@ -9,7 +9,7 @@ server.
 Variabili:
 - PCT_LEX_CATALOGO=0 spegne la seconda lettura;
 - PCT_LEX_CATALOGO_MODELLO sceglie il modello (predefinito Spark-X2.5 4B, riserva qwen3:4b);
-- PCT_LEX_CATALOGO_PER_GIRO documenti per giro (predefinito 1);
+- PCT_LEX_CATALOGO_PER_GIRO documenti per giro (predefinito 2: Spark legge un documento in meno di un minuto sul server);
 - PCT_LEX_CATALOGO_THREAD processori usati da Ollama (predefinito 4).
 """
 
@@ -192,7 +192,7 @@ def seconda_lettura_catalogo(app: Flask) -> dict[str, Any]:
         return {"attiva": False}
     from web.services.fascicoli_presidi_runtime import _active_tenants, _attach_tenant_context
 
-    per_giro = _intero("PCT_LEX_CATALOGO_PER_GIRO", 1)
+    per_giro = _intero("PCT_LEX_CATALOGO_PER_GIRO", 2)
     totale = {"attiva": True, "lette": 0, "scelte": 0, "cambiate": 0, "errori": 0}
     studi = _active_tenants(app)
     if studi:

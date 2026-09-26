@@ -581,7 +581,8 @@ def apply_sentenza_tribunale_automation(
         fields["data_chiusura"] = extraction.sentence_date
 
     previous_status = _enum_value(getattr(fascicolo, "stato", ""))
-    if previous_status != StatoFascicolo.DEFINITO.value:
+    # Un fascicolo archiviato resta archiviato: la sentenza letta dopo non lo riapre.
+    if previous_status not in (StatoFascicolo.DEFINITO.value, StatoFascicolo.ARCHIVIATO.value):
         fields["stato"] = StatoFascicolo.DEFINITO
         changes["statusChanged"] = True
         advancement = list(getattr(fascicolo, "avanzamento", []) or [])

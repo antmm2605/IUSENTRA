@@ -35,6 +35,16 @@ from .validators import (
 )
 
 
+def _provenienza_bozza(modello: str, prompt: str, contenuto: str, plan: Any) -> dict[str, Any]:
+    from pct.provenienza_ai import Provenienza, impronta
+
+    return Provenienza(
+        azione="editor.bozza", modello=modello or "non indicato", versione_regole=str(getattr(plan, "template_id", "") or ""),
+        sha256_input=impronta(prompt), parametri={"tipo_atto": str(getattr(plan, "tipo_atto", "") or ""), "sha256_bozza": impronta(contenuto)},
+        approvazione="da_approvare",
+    ).to_dict()
+
+
 class EditorAIService:
     def __init__(
         self,
@@ -235,7 +245,12 @@ class EditorAIService:
             version_id=version.id,
             editor_document_id=record.editor_document_id,
             status=record.status,
-            payload={"sources": len(sources), "missing_fields": len(context["missing_fields"])},
+            payload={
+                "sources": len(sources), "missing_fields": len(context["missing_fields"]),
+                # Provenienza della bozza: modello, impronta della richiesta e del testo prodotto.
+                # La bozza resta da approvare: l'avvocato la rivede nell'editor.
+                "provenienza": _provenienza_bozza(getattr(self, "_modello_generazione", ""), prompt, content, plan),
+            },
             central_audit=self.central_audit,
         )
         return AttoAIGenerationResult(
@@ -616,6 +631,7 @@ class EditorAIService:
         user_id: str,
         plan: Any,
     ) -> tuple[str, str]:
+        self._modello_generazione = "generatore-configurato" if callable(self.ai_generator) else ""
         if callable(self.ai_generator):
             return str(self.ai_generator(prompt=prompt, system_prompt=system_prompt, user_id=user_id)), ""
         try:
@@ -628,8 +644,10 @@ class EditorAIService:
                 allow_external=False,
                 system_prompt=system_prompt,
             )
+            self._modello_generazione = f"{getattr(response, 'provider', '')}:{getattr(response, 'model', '')}".strip(":")
             return str(response.content or ""), ""
         except Exception:
+            self._modello_generazione = "bozza-strutturata-senza-modello"
             return self._fallback_structured_draft(plan), (
                 "Runtime Lex non disponibile: creata bozza strutturata governata da completare e verificare."
             )

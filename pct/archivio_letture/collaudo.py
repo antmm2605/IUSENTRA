@@ -57,6 +57,9 @@ class Contesto:
     # importo (due decimali, come stringa) -> etichette delle fonti che lo conoscono
     # (pagamenti registrati nel fascicolo, parcelle, preventivi)
     importi_noti: dict[str, list[str]] = field(default_factory=dict)
+    # chi difende per lo studio e chi è il cliente: dicono quale lato dell'epigrafe è il nostro
+    avvocati_studio: tuple[str, ...] = ()
+    cliente: str = ""
 
     def date_del_secondario(self) -> set[str]:
         return {voce.data.isoformat() for voce in trova_date(self.testo_secondario)} if self.testo_secondario else set()
@@ -306,6 +309,8 @@ def contesto_da_fascicolo(fascicolo: Any, *, oggi: date | None = None, date_note
             or campo("ufficio_giudiziario").strip()
         ),
         date_note=dict(date_note or {}),
+        avvocati_studio=tuple(dict.fromkeys(a for a in (campo("avvocato_referente").strip(), campo("avvocato_dominus").strip()) if a)),
+        cliente=campo("nome_cliente").strip(),
     )
 
 

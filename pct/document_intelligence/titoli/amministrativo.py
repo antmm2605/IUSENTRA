@@ -10,6 +10,15 @@ _AMMINISTRATIVO = r"\btribunale\s+amministrativo\b|\bt\.?\s*a\.?\s*r\.?\b|\bcons
 
 REGOLE = (
     regola(
+        "ricorso_ottemperanza",
+        r"(?:.*\b)?ricorso\s+per\s+(?:l[’'\s]*)?ottemperanza(?:\s+.*)?",
+        _AMMINISTRATIVO + r"|\bgiudicato\b|\b11[24]\b",
+        "Ricorso per l'ottemperanza (art. 114 c.p.a.)",
+        role="atto_principale", section="atti", tipo=TipoDocumento.RICORSO,
+        fonte="normattiva_cpa_ottemperanza", deposit_role="atto_principale",
+        evidence="titolo del ricorso e giudicato da eseguire (artt. 112 e 114 c.p.a.)",
+    ),
+    regola(
         "ricorso_tar",
         r"ricorso(?:\s+.*)?",
         r"\btribunale\s+amministrativo\s+regionale\b|\bt\.a\.r\.\b|\btar\s+(?:per\s+)?(?:il\s+|la\s+)?[a-z]+\b",

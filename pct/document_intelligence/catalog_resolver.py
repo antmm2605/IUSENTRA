@@ -35,7 +35,7 @@ from .models import (
 
 # Incrementato quando cambia l'evidenza persistita: il refresh deve sostituire
 # le prove automatiche precedenti senza toccare le correzioni manuali.
-RESOLVER_VERSION = "2026.09.24.catalogo-fascicolo.v29-intestazioni-20260924"
+RESOLVER_VERSION = "2026.09.26.catalogo-fascicolo.v30-pronuncia-procura-foliario-ottemperanza-citazione-tipo"
 
 # Triadi versionate nell'audit del 24/08/2026. I riferimenti ``snapshot:`` e
 # ``browser:`` sono prove archiviate/manuali, mai chiamate HTTP dal runtime.
@@ -409,6 +409,39 @@ def _content_identity(
     ):
         return result(role="provvedimento", label="Decreto di rinvio d'ufficio dell'udienza", section="provvedimenti", confidence=97, evidence="Il giudice rinvia d'ufficio la causa ad altra udienza, senza comparizione delle parti.", tipo_documento=TipoDocumento.DECRETO, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"rinvia d.ufficio")
 
+    # La formula con cui ogni giudice apre la decisione («… ha pronunciato la
+    # presente SENTENZA sul ricorso …», art. 132 c.p.c. e art. 88 c.p.a.): vale
+    # più di un «verbale» o di un'«ordinanza» citati nella motivazione.
+    pronuncia = re.search(r"\bha\s+pronunciato\s+la\s+presente\s+(sentenza|ordinanza|decreto)\b", _normalise(raw[:4000]))
+    if pronuncia:
+        tipo_pronuncia = pronuncia.group(1)
+        return result(
+            role="provvedimento", label={"sentenza": "Sentenza", "ordinanza": "Ordinanza dell'ufficio giudiziario", "decreto": "Provvedimento dell'ufficio"}[tipo_pronuncia],
+            section="provvedimenti", confidence=99,
+            evidence=f"formula di apertura della decisione: «ha pronunciato la presente {tipo_pronuncia}»",
+            tipo_documento={"sentenza": TipoDocumento.SENTENZA, "ordinanza": TipoDocumento.ORDINANZA, "decreto": TipoDocumento.DECRETO}[tipo_pronuncia],
+            deposit_role="allegato", deposit_candidate=True, excerpt_pattern=r"ha\s+pronunciato\s+la\s+presente",
+        )
+    # La procura preceduta dall'attestazione di conformità della sua copia
+    # informatica resta una procura: l'attestazione ne certifica la copia.
+    if re.search(r"(?im)^\s*procura\s+(?:alle\s+liti|speciale)\b", raw[:3000]) and re.search(r"\b(?:deleg[oa]|conferisc[oe]|rappresent\w* e difend\w*)\b", head):
+        titolo_procura = _normalise(raw[:3000])
+        return result(
+            role="procura", label="Procura alle liti" if "procura alle liti" in titolo_procura else "Procura speciale",
+            section="procure", confidence=97, evidence="titolo della procura e conferimento dei poteri (art. 83 c.p.c.)",
+            tipo_documento=TipoDocumento.PROCURA, deposit_role="procura", deposit_candidate=True,
+            excerpt_pattern=r"\bprocura\s+(?:alle\s+liti|speciale)\b",
+        )
+    # Il foliario del deposito PAT elenca atto principale e atti secondari:
+    # le parole «sentenza» o «procura» sono i nomi degli atti depositati.
+    if re.search(r"\bfoliario\b", _normalise(raw[:600])):
+        return result(
+            role="deposito", label="Nota di deposito", section="atti", confidence=96,
+            evidence="foliario del deposito: indice di atto principale e atti secondari depositati",
+            tipo_documento=TipoDocumento.DEPOSITO_PCT, deposit_role="fuori_busta", deposit_candidate=False,
+            excerpt_pattern=r"foliario",
+        )
+
     structural = structural_identity(raw)
     if structural is not None and str(structural.get("label") or "") not in _IDENTITA_STRUTTURALI_GENERICHE:
         return result(**structural)
@@ -748,6 +781,14 @@ def resolve_profile(context: dict[str, Any]) -> tuple[str | None, str]:
         reason = str(context.get("_profile_inference_reason") or "").strip()
         return inferred, reason or "sottofamiglia documentale verificabile del fascicolo"
 
+    # Il tipo dichiarato del fascicolo è un dato strutturato: basta a scegliere il
+    # profilo delle fonti quando area e materia non sono compilate. Prima i
+    # fascicoli amministrativi restavano tutti «da verificare» (confidenza 55).
+    tipo = _normalise(context.get("tipo_fascicolo"))
+    per_tipo = {"amministrativo": "PAT", "tributario": "TRIB", "penale": "PEN", "lavoro": "LAV", "famiglia": "FAM",
+                "stragiudiziale": "STR", "civile": "CIV-PCT"}
+    if tipo in per_tipo:
+        return per_tipo[tipo], f"tipo del fascicolo: {tipo}"
     channel = _normalise(context.get("canale") or context.get("canale_operativo") or context.get("source"))
     if channel in {"pat", "siga"}:
         return "PAT", "canale amministrativo del fascicolo"

@@ -170,6 +170,7 @@ class EsitoLex:
     citazione: str = ""
     motivo: str = ""
     voce: VoceCatalogo | None = None
+    sha_input: str = ""  # impronta del testo letto da Lex (provenienza)
 
     def come_dict(self) -> dict[str, str]:
         return {"esito": self.stato, "etichetta": self.etichetta, "citazione": self.citazione[:300], "motivo": self.motivo[:300]}
@@ -184,7 +185,24 @@ def leggi_con_lex(
     proposta: str = "",
 ) -> EsitoLex:
     """Chiede a Lex la voce del documento e verifica la risposta."""
+    from dataclasses import replace as _sostituisci
+
+    from pct.provenienza_ai import impronta
+
     voci = voci or voci_catalogo()
+    sha_input = impronta(str(testo or "")[:CARATTERI_LETTI])
+    esito = _leggi_con_lex(testo, genera=genera, voci=voci, contesto=contesto, proposta=proposta)
+    return _sostituisci(esito, sha_input=sha_input)
+
+
+def _leggi_con_lex(
+    testo: str,
+    *,
+    genera: Callable[[str, dict[str, Any]], str],
+    voci: list[VoceCatalogo],
+    contesto: str,
+    proposta: str,
+) -> EsitoLex:
     try:
         grezza = genera(domanda(testo, voci, contesto=contesto, proposta=proposta), schema_risposta(voci))
         risposta = json.loads(grezza or "{}")
@@ -237,6 +255,23 @@ def applica_esito(
     """La catalogazione dopo la lettura di Lex: mai automatica, sempre motivata."""
     adesso = utc_now()
     metadata = dict(assignment.metadata or {})
+    from pct.provenienza_ai import ESITO_AMMESSO, ESITO_BLOCCATO, Provenienza
+
+    citazione_ok = esito.stato == "scelta"
+    precedente = str(((metadata.get("lex_lettura") or {}).get("provenienza") or {}).get("sigillo") or "")
+    provenienza = Provenienza(
+        azione="catalogo.seconda_lettura", modello=modello, versione_regole=VERSIONE_LETTURA,
+        sha256_input=esito.sha_input, citazione=esito.citazione[:300],
+        parametri={"etichetta": esito.etichetta, "motivo": esito.motivo[:200]},
+        cancello={"ammesso": citazione_ok, "controlli": [
+            {"campo": "etichetta", "valore": esito.etichetta, "esito": ESITO_AMMESSO if esito.voce else ESITO_BLOCCATO,
+             "motivo": "voce del catalogo chiuso" if esito.voce else "voce fuori catalogo o nessuna voce"},
+            {"campo": "citazione", "valore": esito.citazione[:120], "esito": ESITO_AMMESSO if citazione_ok else ESITO_BLOCCATO,
+             "motivo": "frase presente nel documento" if citazione_ok else "frase non trovata nel documento: risposta scartata"},
+        ]},
+        # La voce di Lex resta una proposta: la conferma è dell'avvocato.
+        approvazione="da_approvare", precedente=precedente,
+    )
     metadata["lex_lettura"] = {
         **esito.come_dict(),
         "versione": VERSIONE_LETTURA,
@@ -244,6 +279,7 @@ def applica_esito(
         "sha256": assignment.document_sha256,
         "letto_il": adesso,
         "durata_s": round(float(durata_s), 1),
+        "provenienza": provenienza.to_dict(),
     }
     # Il tipo resta fra quelli ammessi dallo schema (vincolo CHECK): la lettura
     # di Lex si riconosce dalla sua collocazione.

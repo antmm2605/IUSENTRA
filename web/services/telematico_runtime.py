@@ -2104,7 +2104,13 @@ def build_telematico_runtime(
             default=None,
         )
         if stato_portale and stato_portale != target.stato:
-            update_fields["stato"] = stato_portale
+            from pct import stato_fascicolo
+
+            descrizione = str(identity.get("stato") or selection.get("stato") or payload.get("stato") or "")
+            prova = stato_fascicolo.prova_registro(stato_portale, descrizione, f"registro di {_portale_source_name(portale)}")
+            if stato_fascicolo.ammessa(target.stato, prova):
+                update_fields["stato"] = stato_portale
+                update_fields["nota_stato"] = prova.nota()
         updated = get_fascicoli().aggiorna(target.id, **update_fields)
         get_fascicoli().registra_onboarding(
             target.id,

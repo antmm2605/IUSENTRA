@@ -68,7 +68,7 @@ def test_ogni_presidio_dichiara_che_cosa_usa_e_se_scrive():
         assert presidio.categorie, f"{presidio.nome} non dichiara alcuna categoria"
         assert presidio.modo in {"scrive", "consulta"}
         assert presidio.descrizione, f"{presidio.nome} non dichiara che cosa ne fa"
-    assert {p.nome for p in PRESIDI_CHE_SCRIVONO} == {"scadenziario", "agenda"}
+    assert {p.nome for p in PRESIDI_CHE_SCRIVONO} == {"scadenziario", "agenda", "parti"}
     nomi = {p.nome for p in PRESIDI}
     assert {
         "agenda", "scadenziario", "calendario", "presidio_fascicolo",

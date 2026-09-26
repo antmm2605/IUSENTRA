@@ -105,8 +105,15 @@ def test_crea_fascicolo(fascicolo_base):
     assert f.id is not None
     assert f.numero.startswith(str(date.today().year))
     assert f.titolo == "Rossi c/ Bianchi"
-    assert f.stato == StatoFascicolo.APERTO
+    # Con il numero di ruolo la causa è iscritta: il fascicolo nasce «in corso» (art. 168 c.p.c.).
+    assert f.stato == StatoFascicolo.IN_CORSO
     assert f.rg_completo == "RG 1234/2024"
+    assert any(a.stato_nuovo == "IN_CORSO" and "R.G." in a.note for a in f.avanzamento)
+
+
+def test_fascicolo_senza_ruolo_resta_aperto(gf):
+    f = gf.nuovo(titolo="Consulenza", tipo=TipoFascicolo.CIVILE, nome_cliente="Mario Rossi")
+    assert f.stato == StatoFascicolo.APERTO
 
 
 def test_numerazione_progressiva(gf):
@@ -740,7 +747,8 @@ def test_archivia_senza_zip(gf, fascicolo_base):
 def test_ripristina_da_archivio(gf, fascicolo_base):
     gf.archivia(fascicolo_base.id, crea_zip=False)
     f = gf.ripristina_da_archivio(fascicolo_base.id)
-    assert f.stato == StatoFascicolo.APERTO
+    # Tolto dall'archivio, il fascicolo iscritto a ruolo torna subito «in corso».
+    assert f.stato == StatoFascicolo.IN_CORSO
     assert f.data_chiusura == ""
 
 
@@ -1658,8 +1666,9 @@ def test_aggiungi_attivita_persistendo_contenuto_email(gf, fascicolo_base):
     assert salvata.email_testo == "Corpo completo della PEC di cancelleria"
 
 
-def test_attivita_passa_in_corso(gf, fascicolo_base):
+def test_attivita_passa_in_corso(gf):
     """Aggiungere la prima attività porta il fascicolo IN_CORSO."""
+    fascicolo_base = gf.nuovo(titolo="Stragiudiziale", tipo=TipoFascicolo.CIVILE, nome_cliente="Mario Rossi")
     assert fascicolo_base.stato == StatoFascicolo.APERTO
     gf.aggiungi_attivita(
         fascicolo_base.id,

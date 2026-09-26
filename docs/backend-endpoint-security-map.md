@@ -8,9 +8,9 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 309.
-- Endpoint con `_richiedi_auth`: 309/309.
-- Endpoint con metodo di scrittura o cancellazione: 162.
+- Endpoint React API censiti: 312.
+- Endpoint con `_richiedi_auth`: 312/312.
+- Endpoint con metodo di scrittura o cancellazione: 163.
 - Endpoint con superficie file/upload/download/export/evidence: 16.
 - Route manifest censite: 119; critical: 18; high/P1: 77.
 - Parametri controllo bloccati: `tenant_id`, `tenant_slug`, `studio_id`, `studio_slug`, `user_id`, `api_key`, `token`, `access_token`, `refresh_token`, `redirect`, `redirect_url`, `return_url`, `next`, path filesystem.
@@ -113,8 +113,11 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `POST` | `/api/v1/ui/fascicoli/<id_fasc>/letture/aggiorna` | Fascicoli e documenti | P0 | `sessione/API tenant-aware` | fascicoli, documenti e depositi | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/fascicoli/<id_fasc>/letture/anomalie/<anomalia_id>` | Fascicoli e documenti | P0 | `sessione/API tenant-aware` | fascicoli, documenti e depositi | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/fascicoli/<id_fasc>/letture/fatti/<fatto_id>` | Fascicoli e documenti | P0 | `sessione/API tenant-aware` | fascicoli, documenti e depositi | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/fascicoli/<id_fasc>/letture/parti` | Fascicoli e documenti | P0 | `sessione/API tenant-aware` | fascicoli, documenti e depositi | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/fascicoli/<id_fasc>/letture/parti` | Fascicoli e documenti | P0 | `sessione/API tenant-aware` | fascicoli, documenti e depositi | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/fascicoli/<id_fasc>/lex` | Fascicoli e documenti | P0 | `sessione/API tenant-aware` | fascicoli, documenti e depositi | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/fascicoli/<id_fasc>/modifica` | Fascicoli e documenti | P0 | `sessione/API tenant-aware` | fascicoli, documenti e depositi | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/fascicoli/<id_fasc>/obblighi-notifica` | Fascicoli e documenti | P0 | `sessione/API tenant-aware` | fascicoli, documenti e depositi | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/fascicoli/<id_fasc>/pagamenti/<kind>` | Fascicoli e documenti | P0 | `sessione/API tenant-aware` | fascicoli, documenti e depositi | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET,POST` | `/api/v1/ui/fascicoli/<id_fasc>/pagopa/avvisi` | Fascicoli e documenti | P0 | `sessione/API tenant-aware` | fascicoli, documenti e depositi | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/fascicoli/<id_fasc>/pagopa/ricevuta` | Fascicoli e documenti | P0 | `sessione/API tenant-aware` | fascicoli, documenti e depositi | auth, tenant-aware, RBAC dominio, guardrail fase 5 |

@@ -194,3 +194,19 @@ def test_testo_del_p7m_dalla_lettura_decifrata_se_l_indice_ha_letto_il_file_cifr
     monkeypatch.setattr(registro_runtime, "impronte_contenuto", lambda fid: None)
     documento = SimpleNamespace(id="D1", nome="Ricorso.pdf.p7m", nome_originale="", hash_sha256="sha-cifrato", hash_contenuto_sha256="")
     assert runtime.testi_indice_archivio(SimpleNamespace(id="F1", documenti=[documento])) == {"D1": "RICORSO EX ART. 414 C.P.C."}
+
+
+def test_editor_lavora_sul_pdf_di_busta_firmata_ed_email_solo_in_copia():
+    from web.services.pdf_modificabile import modificabile_come_pdf, pdf_di_lavoro
+
+    pdf = _pdf("ATTO FIRMATO")
+    busta = SimpleNamespace(nome="Ricorso.pdf.p7m", firmato_digitalmente=True, tags=[])
+    lavoro = pdf_di_lavoro(busta, _p7m(pdf), originale_modificabile=False)
+    assert lavoro.dati == pdf and lavoro.origine == "busta_firmata" and lavoro.solo_copia and lavoro.nome_copia == "Ricorso.pdf"
+    email = SimpleNamespace(nome="ACCETTAZIONE: Notificazione [JQ329-L01] [Notifica_ID:Cc25btuS]", firmato_digitalmente=False, tags=["email"])
+    grezza = b"From: a@pec.it\r\nTo: b@pec.it\r\nSubject: ACCETTAZIONE\r\nDate: Thu, 24 Sep 2026 10:14:52 +0200\r\nMIME-Version: 1.0\r\n\r\nRicevuta di accettazione\r\n"
+    assert modificabile_come_pdf(email)
+    convertita = pdf_di_lavoro(email, grezza, originale_modificabile=False)
+    assert convertita.dati.startswith(b"%PDF") and convertita.origine == "convertito" and convertita.solo_copia
+    studio = SimpleNamespace(nome="Nota.pdf", firmato_digitalmente=False, tags=[])
+    assert not pdf_di_lavoro(studio, pdf, originale_modificabile=True).solo_copia

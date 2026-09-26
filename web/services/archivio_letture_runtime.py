@@ -422,6 +422,19 @@ def _attribuisci(fatti: Iterable[Fatto], oggetto: Oggetto, motore: str) -> list[
     return esito
 
 
+def _avvocati_dello_studio() -> list[str]:
+    """L'avvocato titolare dalle impostazioni dello studio: riconosce il nostro lato negli atti."""
+    nomi = [_testo(os.getenv("PCT_STUDIO_AVVOCATO", ""))]
+    try:
+        from flask import current_app, has_app_context
+
+        if has_app_context():
+            nomi.append(_testo(current_app.config.get("STUDIO_AVVOCATO", "")))
+    except Exception:  # pragma: no cover - fuori da Flask resta la variabile d'ambiente
+        pass
+    return [n for n in nomi if n]
+
+
 def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, contesto: Contesto, *, forza: bool, limite: int) -> dict[str, int]:
     fascicolo_id = _testo(getattr(fascicolo, "id", ""))
     conteggi = {"da_leggere": 0, "letti": 0, "senza_testo": 0, "assenti": 0, "fatti": 0, "verificati": 0}
@@ -472,6 +485,8 @@ def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, con
             ufficio_giudiziario=contesto.ufficio_giudiziario,
             date_note=contesto.date_note,
             importi_noti=contesto.importi_noti,
+            avvocati_studio=contesto.avvocati_studio,
+            cliente=contesto.cliente,
         )
         if len(letture) > 1:
             contesto_documento.testo_secondario, contesto_documento.etichetta_secondario = letture[1][1], {"ocr": "lettura OCR", "indice": "indice documentale", "nativo": "testo nativo del PDF"}[letture[1][0]]
@@ -723,6 +738,17 @@ def _consegna_ai_presidi(fascicolo: Any, registro: RegistroLetture) -> dict[str,
         return {"errore": f"{type(exc).__name__}: {exc}"[:200], "consegnati": 0, "non_pertinenti": 0, "rifiutati": 0}
 
 
+def _allinea_obblighi_notifica(fascicolo: Any) -> dict[str, Any]:
+    """Il presidio notifiche: dai documenti catalogati gli obblighi con scadenza entrano nello scadenziario."""
+    try:
+        from web.services.obblighi_notifica_runtime import allinea_scadenze
+
+        return allinea_scadenze(fascicolo)
+    except Exception as exc:
+        logger.exception("Obblighi di notifica non allineati per il fascicolo %s", getattr(fascicolo, "id", ""))
+        return {"errore": f"{type(exc).__name__}: {exc}"[:200]}
+
+
 def _aggiorna_catalogo_sql(fascicolo: Any, registro: RegistroLetture) -> dict[str, Any]:
     """Aggiorna il solo derivato catalogo dai testi SQL, senza riaprire documenti."""
     try:
@@ -784,6 +810,7 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
         inventario = aggiorna_inventario(fascicolo, registro=registro, con_pec=True)
         contesto = contesto_da_fascicolo(fascicolo, date_note=date_note_fascicolo(fascicolo, messaggi_pec=messaggi))
         contesto.importi_noti = importi_noti_fascicolo(fascicolo)
+        contesto.avvocati_studio = tuple(dict.fromkeys([*contesto.avvocati_studio, *_avvocati_dello_studio()]))
         riconvalidati = _riconvalida(fascicolo, registro, tenant)
         documenti = _leggi_documenti(fascicolo, registro, tenant, contesto, forza=forza, limite=limite)
         pec = _leggi_pec(fascicolo, registro, tenant, contesto, messaggi, limite=limite)
@@ -797,6 +824,7 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
     # loro confermano. Un fatto già consegnato non viene riproposto.
     consegne = _consegna_ai_presidi(fascicolo, registro)
     catalogo = _aggiorna_catalogo_sql(fascicolo, registro)
+    consegne["obblighi_notifica"] = _allinea_obblighi_notifica(fascicolo)
     from web.services.sentenza_economic_runtime import ensure_fascicolo_sentenza_economic_analysis
     economia = ensure_fascicolo_sentenza_economic_analysis(fascicolo_id)
     if documenti["letti"] or pec["letti"] or promossi or riconvalidati["anomalie"] or riconvalidati["fatti"]:

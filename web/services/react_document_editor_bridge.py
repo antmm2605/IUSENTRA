@@ -10,6 +10,7 @@ from flask import has_app_context
 
 from pct.editor import estensione_editabile
 from web.services.document_edit_policy import motivo_blocco_editor, pdf_studio_modificabile
+from web.services.pdf_modificabile import modificabile_come_pdf
 from pct.document_signature_state import document_has_real_digital_signature
 
 
@@ -130,11 +131,22 @@ def _document_payload(fascicolo_id: str, doc: Any) -> dict[str, Any]:
     suffix = Path(name).suffix.lower()
     signed = document_has_real_digital_signature(doc, name)
     pdf_preview_native = suffix == ".pdf"
-    pdf_overlay_allowed = bool(pdf_preview_native and pdf_studio_modificabile(doc))
+    # Ogni documento con una forma PDF si lavora con l'editor PDF (overlay sulle
+    # pagine). I PDF dello studio possono ricevere una nuova versione; firmati,
+    # buste .p7m, email e documenti di portali o PEC sono prove: si lavora su una
+    # copia PDF e l'originale non cambia.
+    studio_modificabile = bool(pdf_preview_native and pdf_studio_modificabile(doc))
+    pdf_overlay_allowed = studio_modificabile or modificabile_come_pdf(doc)
+    pdf_solo_copia = not studio_modificabile
     eml_preview = suffix == ".eml"
     editable = bool(estensione_editabile(name) and not signed and not pdf_preview_native and not eml_preview)
     locked_reason = ""
-    if signed:
+    if pdf_overlay_allowed and pdf_solo_copia and not editable:
+        locked_reason = (
+            "Documento di prova: l'originale resta intatto. Con «Modifica PDF» aggiungi testo, evidenziazioni o "
+            "coperture su una copia PDF che entra nel fascicolo come nuovo documento (o si scarica)."
+        )
+    elif signed:
         locked_reason = "Il documento risulta firmato digitalmente: aprilo in anteprima o usa la pagina firma per sostituirlo consapevolmente."
     elif pdf_preview_native:
         locked_reason = motivo_blocco_editor(doc)
@@ -161,6 +173,7 @@ def _document_payload(fascicolo_id: str, doc: Any) -> dict[str, Any]:
         "source": _text(getattr(doc, "fonte_documento", ""), "CARICAMENTO_STUDIO"),
         "editable": editable,
         "pdfOverlayAllowed": pdf_overlay_allowed,
+        "pdfSoloCopia": pdf_solo_copia,
         "lockedReason": locked_reason,
         "portal": {
             "name": _text(getattr(doc, "nome_portale", "")),
@@ -229,7 +242,7 @@ def build_react_document_editor_payload(
         )
     if document["extension"] == "eml":
         warnings.append(
-            "Formato EML rilevato: il messaggio viene visualizzato come email originale in sola consultazione."
+            "Formato EML rilevato: l'email originale resta intatta; con «Modifica PDF» lavori su una sua copia PDF."
         )
     if not document["editable"] and document["lockedReason"]:
         warnings.append(document["lockedReason"])

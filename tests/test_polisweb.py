@@ -3112,7 +3112,7 @@ def test_dettaglio_fascicolo_visualizzatore_prefetch_blob_per_pdf(tmp_path):
     assert "Impossibile caricare l\\'anteprima" in body
 
 
-def test_editor_documento_firmato_reindirizza_a_visualizzazione(tmp_path):
+def test_editor_documento_firmato_si_apre_in_modifica_su_copia(tmp_path):
     from asn1crypto import cms, algos
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app
@@ -3170,10 +3170,8 @@ def test_editor_documento_firmato_reindirizza_a_visualizzazione(tmp_path):
             follow_redirects=False,
         )
 
-    assert response.status_code == 302
-    assert response.headers["Location"].endswith(
-        f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/visualizza"
-    )
+    # L'editor React si apre: il firmato si lavora solo su una copia PDF.
+    assert response.status_code == 200
 
 
 def test_visualizza_documento_estrae_pdf_da_p7m(tmp_path):

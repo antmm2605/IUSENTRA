@@ -154,6 +154,15 @@ REGOLE = (
         evidence="titolo dell'atto e impugnazione della sentenza (art. 342 c.p.c.)",
     ),
     regola(
+        "atto_citazione",
+        r"atto\s+di\s+citazione(?:\s+.*)?",
+        r"\bcit\w*\b.{0,200}\bcomparire\b|\binvit\w*\b.{0,200}\bcostituir\w*\b|\b163\b|\b166\b|\bavvertiment\w*\b",
+        "Atto di citazione",
+        role="atto_principale", section="atti", tipo=TipoDocumento.CITAZIONE,
+        fonte="normattiva_cpc_citazione", deposit_role="atto_principale",
+        evidence="titolo dell'atto e invito a comparire e costituirsi (art. 163 c.p.c.)",
+    ),
+    regola(
         "cassazione_civile",
         r"ricorso\s+per\s+cassazione(?:\s+.*)?",
         r"\b360\b|\bcorte\s+di\s+cassazione\b|\bmotiv\w+\b|\bsentenza\s+impugnata\b",

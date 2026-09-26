@@ -82,6 +82,12 @@ PRESIDI: tuple[Presidio, ...] = (
         modo="scrive",
     ),
     Presidio(
+        "parti", "Parti del fascicolo", "2026.09.26.v1",
+        categorie=frozenset({"parte"}), campi=frozenset({"assistito", "controparte", "difensore_controparte"}),
+        descrizione="le parti lette nell'epigrafe degli atti entrano nell'anagrafica del fascicolo",
+        modo="scrive",
+    ),
+    Presidio(
         "presidio_notifiche", "Presidio notifiche", "2026.09.16.v1",
         categorie=frozenset({"prova_notifica"}),
         descrizione="relate, ricevute e atti notificati riconosciuti nel contenuto",

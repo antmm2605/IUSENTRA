@@ -52,6 +52,8 @@ FONTI_TITOLI: dict[str, dict[str, Any]] = {
     "normattiva_cpp_sequestro_identificazione": _fonte("c.p.p., artt. 161, 253 e 354: elezione di domicilio, sequestro e accertamenti urgenti", _CPP + "253"),
     "normattiva_dpr_313_2002_casellario": _fonte("D.P.R. 313/2002, artt. 24 e 27: certificati del casellario giudiziale e dei carichi pendenti", "decreto.del.presidente.della.repubblica:2002-11-14;313~art24"),
     # Amministrativo
+    "normattiva_cpc_citazione": _fonte("c.p.c., art. 163: contenuto dell'atto di citazione", _CPC + "163"),
+    "normattiva_cpa_ottemperanza": _fonte("c.p.a., artt. 112 e 114: giudizio di ottemperanza e procedimento", "decreto.legislativo:2010-07-02;104~art114"),
     "normattiva_cpa_ricorso": _fonte("c.p.a., artt. 40, 43, 55 e 100: ricorso, motivi aggiunti, domanda cautelare e appello", "decreto.legislativo:2010-07-02;104~art40"),
     "normattiva_dpr_1199_1971_ricorso_straordinario": _fonte("D.P.R. 1199/1971, art. 8: ricorso straordinario al Presidente della Repubblica", "decreto.del.presidente.della.repubblica:1971-11-24;1199~art8"),
     "normattiva_legge_241_1990_procedimento": _fonte("L. 241/1990, artt. 3, 10-bis e 22: motivazione, preavviso di rigetto e accesso ai documenti", "legge:1990-08-07;241~art22"),

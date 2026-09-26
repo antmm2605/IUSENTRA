@@ -1062,11 +1062,15 @@ export function DocumentEditorPage() {
     }
   }
 
+  // «Modifica» su un documento che non si edita come testo apre subito l'editor PDF.
   useEffect(() => {
-    if (pdfEditorOpen && data.document.extension === 'pdf' && data.endpoints.pdfMeta && !pdfMeta.pageCount) {
+    if (!data.document.editable && data.document.pdfOverlayAllowed) setPdfEditorOpen(true)
+  }, [data.document.id, data.document.editable, data.document.pdfOverlayAllowed])
+  useEffect(() => {
+    if (pdfEditorOpen && data.document.pdfOverlayAllowed && data.endpoints.pdfMeta && !pdfMeta.pageCount) {
       void loadPdfMeta()
     }
-  }, [data.document.extension, data.endpoints.pdfMeta, loadPdfMeta, pdfEditorOpen, pdfMeta.pageCount])
+  }, [data.document.pdfOverlayAllowed, data.endpoints.pdfMeta, loadPdfMeta, pdfEditorOpen, pdfMeta.pageCount])
 
   const insertLink = () => {
     const href = window.prompt('Inserisci URL del collegamento')
@@ -1361,17 +1365,18 @@ export function DocumentEditorPage() {
               <h2>{pdfPreviewMode ? 'Anteprima PDF fedele all\'originale' : emlPreviewMode ? 'Messaggio EML consultabile' : 'Documento non modificabile in editor'}</h2>
               <p>{lockedReason || 'Apri il documento in anteprima o scaricalo per lavorarlo con un applicativo esterno.'}</p>
               <a href={doc.actions.preview || data.fascicolo.detailHref}><Eye size={15}/>{pdfPreviewMode ? 'Apri PDF originale' : emlPreviewMode ? 'Apri email originale' : 'Apri anteprima'}</a>
-              {pdfPreviewMode && doc.pdfOverlayAllowed && data.endpoints.pdfOverlay ? (
+              {doc.pdfOverlayAllowed && data.endpoints.pdfOverlay ? (
                 <button type="button" onClick={() => setPdfEditorOpen((value) => !value)}><FileText size={15}/>{pdfEditorOpen ? 'Chiudi modifica PDF' : 'Modifica PDF sicura'}</button>
               ) : null}
               <button type="button" onClick={() => replaceFileRef.current?.click()}><UploadCloud size={15}/> Importa PDF/Word</button>
             </div>
           </section>
-          {pdfPreviewMode && pdfEditorOpen ? (
+          {doc.pdfOverlayAllowed && pdfEditorOpen ? (
             <section className="iu-de-pdf-editor" aria-label="Editor PDF sicuro">
               <div className="iu-de-pdf-editor__head">
                 <div>
                   <h2>Modifica PDF sicura</h2>
+                  {doc.pdfSoloCopia ? <p><strong>Documento di prova: l’originale resta intatto.</strong> Il risultato va in una copia PDF del fascicolo o si scarica.</p> : null}
                   <p>Gli interventi vengono applicati come overlay sul PDF originale. Per coprire o evidenziare tieni premuto dove comincia e trascina fin dove finisce: il riquadro e' quello che disegni. Poi scegli dove va il risultato — una nuova versione di questo documento, una copia nel fascicolo che lascia intatto l'originale, o una copia scaricata sul computer.</p>
                 </div>
                 <div className="iu-de-pdf-editor__actions">
@@ -1379,7 +1384,7 @@ export function DocumentEditorPage() {
                   <button type="button" onClick={() => setPdfAnnotations([])} disabled={!pdfAnnotations.length || pdfSaving}><XCircle size={15}/> Svuota</button>
                   <button type="button" onClick={() => void savePdfOverlay('copia')} disabled={!pdfAnnotations.length || pdfSaving} title="Crea un documento nuovo nel fascicolo e lascia intatto l'originale"><Copy size={15}/> Copia nel fascicolo</button>
                   <button type="button" onClick={() => void savePdfOverlay('scarica')} disabled={!pdfAnnotations.length || pdfSaving} title="Scarica la copia sul computer senza toccare il fascicolo"><Download size={15}/> Scarica copia</button>
-                  <button type="button" onClick={() => void savePdfOverlay('versione')} disabled={!pdfAnnotations.length || pdfSaving}><Save size={15}/>{pdfSaving ? 'Salvo...' : 'Salva versione PDF'}</button>
+                  {doc.pdfSoloCopia ? null : <button type="button" onClick={() => void savePdfOverlay('versione')} disabled={!pdfAnnotations.length || pdfSaving}><Save size={15}/>{pdfSaving ? 'Salvo...' : 'Salva versione PDF'}</button>}
                 </div>
               </div>
               <div className="iu-de-pdf-editor__toolbar">

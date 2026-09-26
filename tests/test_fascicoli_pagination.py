@@ -909,7 +909,7 @@ def test_fascicoli_api_filtri_q_tipo_stato_e_tribunale(tmp_path):
         by_status = client.get("/api/v1/ui/fascicoli?status=da_archiviare&page_size=25", headers={"X-API-Key": "react-test-key"}).get_json()
         by_defined = client.get("/api/v1/ui/fascicoli?status=definito&page_size=25", headers={"X-API-Key": "react-test-key"}).get_json()
         by_court = client.get("/api/v1/ui/fascicoli?court=TAR&page_size=25", headers={"X-API-Key": "react-test-key"}).get_json()
-        combined = client.get("/api/v1/ui/fascicoli?client=Cliente%2012&rg=1012&type=penale&status=aperto&court=Milano&page_size=25", headers={"X-API-Key": "react-test-key"}).get_json()
+        combined = client.get("/api/v1/ui/fascicoli?client=Cliente%2012&rg=1012&type=penale&status=in_corso&court=Milano&page_size=25", headers={"X-API-Key": "react-test-key"}).get_json()
 
     assert [item["title"] for item in by_query["items"]] == ["Pratica paginata 07"]
     assert [item["client"] for item in by_query_client["items"]] == ["Cliente 07"]

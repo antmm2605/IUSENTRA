@@ -293,7 +293,7 @@ def test_editor_pdf_overlay_versiona_e_preserva_pdf_originale(tmp_path: Path):
         assert "Nota studio verificata" in pdf[0].get_text()
 
 
-def test_editor_pdf_overlay_blocca_documento_portale(tmp_path: Path):
+def test_editor_pdf_overlay_su_documento_portale_crea_una_copia_e_lascia_l_originale(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
     fascicolo, documento = _seed_documento_pdf_valido(app)
@@ -324,10 +324,16 @@ def test_editor_pdf_overlay_blocca_documento_portale(tmp_path: Path):
 
     payload = payload_response.get_json()
     assert payload_response.status_code == 200
-    assert payload["document"]["pdfOverlayAllowed"] is False
-    assert "PDF caricati dallo studio" in payload["document"]["lockedReason"]
-    assert overlay_response.status_code == 403
-    assert "PDF caricati dallo studio" in overlay_response.get_json()["errore"]
+    assert payload["document"]["pdfOverlayAllowed"] is True
+    assert payload["document"]["pdfSoloCopia"] is True
+    assert "originale resta intatto" in payload["document"]["lockedReason"]
+    esito = overlay_response.get_json()
+    assert overlay_response.status_code == 200, esito
+    # Richiesta una «versione»: su una prova diventa comunque una copia.
+    assert esito["destinazione"] == "copia" and esito["documento"]["id"] != documento.id
+    with app.test_request_context("/"):
+        originale = next(doc for doc in get_fascicoli().get(fascicolo.id).documenti if doc.id == documento.id)
+    assert originale.hash_sha256 == documento.hash_sha256
 
 
 def test_editor_pdf_importa_nuova_versione_senza_conversione_html(tmp_path: Path):
@@ -373,7 +379,8 @@ def test_editor_documento_payload_eml_usa_anteprima_email_originale(tmp_path: Pa
     assert payload_response.status_code == 200
     assert payload["document"]["extension"] == "eml"
     assert payload["document"]["editable"] is False
-    assert "email originale" in payload["document"]["lockedReason"].lower()
+    assert "originale resta intatto" in payload["document"]["lockedReason"].lower()
+    assert payload["document"]["pdfOverlayAllowed"] is True and payload["document"]["pdfSoloCopia"] is True
     assert any("Formato EML" in warning for warning in payload["warnings"])
     assert html_response.status_code == 200
     assert html_payload["ok"] is True

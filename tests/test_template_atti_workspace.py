@@ -138,7 +138,7 @@ def test_scheda_modello_builtin_espone_metadati_e_campi_guidati(tmp_path):
 
     with app.test_client() as client:
         _login_client(client)
-        response = client.get(f"/template-atti/scheda/{modello.id}")
+        response = client.get(f"/template-atti/scheda/{modello.id}?_legacy=1")
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)

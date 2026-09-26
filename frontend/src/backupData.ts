@@ -97,6 +97,14 @@ export type VerifyBackupPayload = {
   confirm: boolean
 }
 
+export type RestoreBackupPayload = {
+  backupId: string
+  folder: string
+  components: string[]
+  overwrite: boolean
+  confirm: boolean
+}
+
 export type BackupMutationResult = {
   ok: boolean
   message: string
@@ -325,6 +333,14 @@ export async function createBackup(
 export async function verifyBackupIntegrity(
   payload: VerifyBackupPayload,
   endpoint = '/api/v1/ui/backup/verifica',
+): Promise<BackupMutationResult> {
+  const result = await apiPostJson<unknown>(endpoint, payload, emptyMutationResult)
+  return normaliseMutation(result)
+}
+
+export async function restoreBackup(
+  payload: RestoreBackupPayload,
+  endpoint = '/api/v1/ui/backup/ripristina',
 ): Promise<BackupMutationResult> {
   const result = await apiPostJson<unknown>(endpoint, payload, emptyMutationResult)
   return normaliseMutation(result)

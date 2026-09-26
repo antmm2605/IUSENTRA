@@ -34,7 +34,9 @@ def _parsed(subject: str = "Fissazione udienza da remoto", body: str = "", *, da
 
 def test_vista_unificata_aggrega_segnali():
     report = {"remote_hearing": {"detected": True, "mode_unified": "remoto", "links": [], "times": [], "pdf_required": False}}
-    u = build_legal_event_understanding(_parsed(), report)
+    # Il termine di opposizione nasce dal provvedimento che dispone la trattazione
+    # scritta (art. 127-ter co. 2 c.p.c.), non dalla sola citazione dell'articolo.
+    u = build_legal_event_understanding(_parsed(body="Si dispone la trattazione scritta ex art. 127-ter c.p.c. Il link verra' comunicato."), report)
     assert u["schema"] == SCHEMA
     assert u["classification"]["family"] == "comunicazione_cancelleria_civile"
     assert u["hearing"]["mode"] == "remoto"

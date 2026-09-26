@@ -411,6 +411,70 @@ def create_react_giurisprudenza_record(
     }, 201
 
 
+def _edit_defaults(manager: Any, record: Mapping[str, Any]) -> dict[str, Any]:
+    valori: dict[str, Any] = {}
+    for campo in _GIURISPRUDENZA_CREATE_FIELDS:
+        valore = record.get(campo, "")
+        if isinstance(valore, (list, tuple)):
+            valore = ", ".join(_text(item) for item in valore if _text(item))
+        valori[campo] = _text(valore)
+    try:
+        testo = manager._latest_text_row(_text(record.get("id"))) or {}
+        valori["text_original"] = _text(testo.get("text_original") or testo.get("text_cleaned"))
+    except Exception:
+        valori["text_original"] = ""
+    return valori
+
+
+def build_react_giurisprudenza_edit_payload(
+    *,
+    get_giurisprudenza: Callable[[], Any],
+    judgment_id: str,
+) -> tuple[dict[str, Any], int]:
+    """Modifica di una scheda esistente: stessi campi dell'inserimento, già compilati."""
+
+    manager = get_giurisprudenza()
+    record = manager.get(_text(judgment_id))
+    if not record:
+        return _error_response("Scheda non trovata.", {"id": "La scheda indicata non esiste nell'archivio."}), 404
+    base = build_react_giurisprudenza_new_payload(get_giurisprudenza=lambda: manager)
+    base["defaults"] = _edit_defaults(manager, record)
+    base["recordId"] = _text(record.get("id"))
+    base["forms"] = [{"id": "giurisprudenza_modifica", "method": "POST", "endpoint": f"/api/v1/ui/giurisprudenza/{_text(record.get('id'))}/modifica"}]
+    return base, 200
+
+
+def update_react_giurisprudenza_record(
+    *,
+    get_giurisprudenza: Callable[[], Any],
+    judgment_id: str,
+    payload: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    manager = get_giurisprudenza()
+    esistente = manager.get(_text(judgment_id))
+    if not esistente:
+        return _error_response("Scheda non trovata.", {"id": "La scheda indicata non esiste nell'archivio."}), 404
+    cleaned = {field: _text(payload.get(field)) for field in _GIURISPRUDENZA_CREATE_FIELDS}
+    cleaned["id"] = _text(esistente.get("id"))
+    cleaned["source_system"] = cleaned.get("source_system") or _text(esistente.get("source_system")) or "manuale_interno"
+    if not cleaned.get("titolo"):
+        return _error_response("Completa i campi richiesti prima di salvare.", {"titolo": "Indica un titolo riconoscibile per la scheda."}), 400
+    try:
+        record = manager.salva_da_form(cleaned)
+    except Exception:
+        return _error_response("Aggiornamento non riuscito. Controlla i dati e riprova.", {"salvataggio": "La scheda non è stata aggiornata."}), 400
+    sources = [_safe_source(row) for row in _list(manager.catalogo_fonti()) if isinstance(row, dict)]
+    source_lookup = {source["id"]: source for source in sources if source.get("id")}
+    public_record = _safe_record(manager.get(_text(record.get("id"))) or record, source_lookup, 1)
+    return {
+        "ok": True,
+        "message": "Scheda giurisprudenza aggiornata.",
+        "record": public_record,
+        "redirectHref": f"/giurisprudenza?scheda={public_record['id']}",
+        "warnings": [],
+    }, 200
+
+
 def _empty_payload(source: str, message: str) -> dict[str, Any]:
     return {
         "source": source,

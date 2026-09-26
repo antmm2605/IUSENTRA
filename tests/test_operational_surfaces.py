@@ -253,7 +253,9 @@ def test_lex_operativo_e_control_tower_renderizzano(tmp_path: Path):
         )
         assert login.status_code == 200
 
-        page = client.get("/lex-operativo", follow_redirects=True)
+        react = client.get("/lex-operativo", headers={"Accept": "text/html"})
+        assert "iusentra-react-bootstrap" in react.get_data(as_text=True)
+        page = client.get("/lex-operativo?_legacy=1", follow_redirects=True)
         api = client.get("/api/lex-operativo")
         telematico = client.get("/telematico", follow_redirects=True)
 

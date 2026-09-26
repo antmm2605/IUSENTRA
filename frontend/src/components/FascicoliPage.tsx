@@ -6860,9 +6860,9 @@ function EconomicControlModal({
             <strong>Registra bonifico ricevuto</strong>
             <span>La parcella aperta del fascicolo viene segnata pagata con metodo bonifico e data; se manca, viene creata dal presidio economico e segnata pagata. La voce «Liquidazione giudice» passa a «Pagato». Fatturazione e fascicolo leggono lo stesso record.</span>
             <div>
-              <label>Importo ricevuto (€)<input type="text" inputMode="decimal" value={bonifico.importo} onChange={(event) => setBonifico((current) => ({ ...current, importo: event.currentTarget.value }))} placeholder="es. 4500,00"/></label>
-              <label>Data del bonifico<input type="date" value={bonifico.data} max={new Date().toISOString().slice(0, 10)} onChange={(event) => setBonifico((current) => ({ ...current, data: event.currentTarget.value }))}/></label>
-              <label>Nota (facoltativa)<input type="text" value={bonifico.note} maxLength={400} onChange={(event) => setBonifico((current) => ({ ...current, note: event.currentTarget.value }))} placeholder="es. banca, causale"/></label>
+              <label>Importo ricevuto (€)<input type="text" inputMode="decimal" value={bonifico.importo} onChange={(event) => { const value = event.currentTarget.value; setBonifico((current) => ({ ...current, importo: value })) }} placeholder="es. 4500,00"/></label>
+              <label>Data del bonifico<input type="date" value={bonifico.data} max={new Date().toISOString().slice(0, 10)} onChange={(event) => { const value = event.currentTarget.value; setBonifico((current) => ({ ...current, data: value })) }}/></label>
+              <label>Nota (facoltativa)<input type="text" value={bonifico.note} maxLength={400} onChange={(event) => { const value = event.currentTarget.value; setBonifico((current) => ({ ...current, note: value })) }} placeholder="es. banca, causale"/></label>
             </div>
             {bonificoError ? <p role="alert">{bonificoError}</p> : null}
             <div>

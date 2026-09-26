@@ -778,8 +778,10 @@ def test_blueprint_archivio_sentenze_renderizza_indice_e_salvataggio(tmp_path: P
                 "massima": "L'accesso difensivo prevale nei limiti di stretta pertinenza.",
                 "uso_nel_software": "precedente forte",
             },
-            follow_redirects=True,
+            follow_redirects=False,
         )
+        # La scheda si apre nella shell React; qui si verifica la vista storica.
+        save = client.get(save.headers["Location"] + "?_legacy=1", follow_redirects=True)
         detail_html = save.get_data(as_text=True)
 
     assert save.status_code == 200
@@ -869,8 +871,10 @@ def test_blueprint_importa_materiale_cliente(tmp_path: Path):
                 "area_hint": "Civile",
                 "uso_nel_software_hint": "citabile in atto",
             },
-            follow_redirects=True,
+            follow_redirects=False,
         )
+        # La modifica si apre nella shell React; qui si verifica la vista storica.
+        response = client.get(response.headers["Location"] + "?_legacy=1", follow_redirects=True)
         html = response.get_data(as_text=True)
 
     assert response.status_code == 200

@@ -4860,24 +4860,21 @@ def _ensure_contributo_unificato_for_fascicolo(
             #  riapriva ogni documento a ogni giro, ogni quindici minuti,
             #  anche quando l'esito precedente era gia' completo.
             return {"status": "existing", "analysisUpdated": False, "readComplete": True}
-    scan_payments = dict(payments)
-    for other_kind in ("spese_esborsi", "liquidazione_giudice", "parcella"):
-        scan_payments.setdefault(other_kind, {"kind": other_kind, "status": "non_previsto", "previsto": False})
-    # Il presidio non legge: proietta l'archivio. Ma se l'archivio non ha
-    # ancora nulla per un documento che ha tutta l'aria di portare un dato
-    # economico, **chiede ai motori di leggerlo**. Dentro la richiesta la
-    # funzione non indicizza — mette in coda la lettura in sfondo e torna
-    # vuota — cosi' il clic dell'avvocato non resta senza effetto in attesa
-    # che il giro periodico arrivi da solo su quel fascicolo.
-    if needs_cu_value and documenti_da_leggere:
-        documenti = _documenti_per_identificativo(fascicolo)
-        da_leggere = [documenti[i] for i in documenti_da_leggere if i in documenti]
-        if da_leggere:
-            _ensure_economic_document_ai_texts_for_fascicolo(fascicolo, da_leggere)
+    # Il presidio non legge: proietta l'archivio. Se restano documenti che
+    # l'archivio non ha ancora letto, dentro la richiesta dell'avvocato si
+    # chiede ai motori di leggerli in sfondo (il clic non resta senza effetto);
+    # nel giro periodico non serve: la lettura automatica dello scheduler li
+    # prende da sola, una volta sola (registro delle letture).
+    #
+    # Le voci economiche si proiettano sui pagamenti reali del fascicolo: una
+    # voce assente va alimentata dall'archivio (liquidazione e spese lette da
+    # una sentenza), una voce «non prevista» decisa dall'avvocato resta tale.
+    if needs_cu_value and documenti_da_leggere and not _indicizzazione_consentita_qui():
+        _avvia_lettura_archivio_in_sfondo(fascicolo)
     letture: dict[str, dict[str, Any]] = {}
     automatic_sources = _automatic_payment_sources_for_fascicolo(
         fascicolo,
-        scan_payments,
+        payments,
         allow_full_document_scan=True,
         allow_document_extraction=False,
         force_revalidate_auto=force_revalidate_auto,

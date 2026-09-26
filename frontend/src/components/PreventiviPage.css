@@ -501,3 +501,33 @@
     justify-content: center;
   }
 }
+
+.iu-prev-next {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--iu-border);
+  border-radius: 10px;
+  background: var(--iu-surface-muted, #f6f8fb);
+}
+
+.iu-prev-next p {
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+}
+
+.iu-prev-next__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.iu-prev-post {
+  display: inline-flex;
+  margin: 0;
+}

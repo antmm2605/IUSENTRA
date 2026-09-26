@@ -159,32 +159,36 @@ class TestDannoParentale:
                 "dp_categoria": "nucleo_primario",
                 "dp_eta_vittima": "20",
                 "dp_eta_congiunto": "20",
-                "dp_convivenza": "1",
-                "dp_unico_superstite": "1",
-                "dp_qualita_relazione": "eccezionale",
+                "dp_convivenza": "convivenza",
+                "dp_superstiti": "0",
+                "dp_qualita_relazione": "massima",
             }
         )
-        assert result["punti_totali"] > result["punti_max"]
-        assert result["punti_liquidati"] == result["punti_max"]
-        assert result["importo"] == pytest.approx(result["massimale_categoria"], abs=0.01)
-        assert any("massimo" in warning.lower() for warning in result["warnings"])
+        # Tabelle Milano 2024: i punti si fermano al massimo e l'importo al tetto della categoria.
+        assert result["punti_liquidati"] == min(result["punti_totali"], result["punti_max"])
+        assert result["importo"] <= result["massimale_categoria"] + 0.01
+        lordo = result["punti_liquidati"] * result["valore_punto"]
+        if lordo > result["massimale_categoria"]:
+            assert result["importo"] == pytest.approx(result["massimale_categoria"], abs=0.01)
+            assert any("tetto" in warning.lower() for warning in result["warnings"])
 
     def test_categoria_altri_congiunti_ha_valore_punto_ridotto(self):
         base = {
             "dp_eta_vittima": "45",
             "dp_eta_congiunto": "48",
-            "dp_convivenza": "0",
-            "dp_unico_superstite": "0",
+            "dp_convivenza": "nessuna",
+            "dp_superstiti": "1",
             "dp_qualita_relazione": "ordinaria",
         }
+        # Tabelle Milano 2024: il rapporto tra fratelli e con i nipoti ha un valore punto inferiore.
         primario = danno_parentale.calcola({**base, "dp_categoria": "nucleo_primario"})
-        collaterale = danno_parentale.calcola({**base, "dp_categoria": "altri_congiunti"})
+        collaterale = danno_parentale.calcola({**base, "dp_categoria": "fratello_nipote"})
         assert collaterale["valore_punto"] < primario["valore_punto"]
         assert collaterale["importo"] < primario["importo"]
 
     def test_eta_obbligatorie(self):
         with pytest.raises(ValueError):
-            danno_parentale.calcola({"dp_categoria": "nucleo_primario", "dp_eta_vittima": "0", "dp_eta_congiunto": "40"})
+            danno_parentale.calcola({"dp_categoria": "nucleo_primario", "dp_eta_vittima": "", "dp_eta_congiunto": "40"})
 
 
 class TestUsufrutto:
@@ -376,8 +380,8 @@ class TestWiringApplicativo:
                 "dp_categoria": "nucleo_primario",
                 "dp_eta_vittima": "45",
                 "dp_eta_congiunto": "48",
-                "dp_convivenza": "1",
-                "dp_unico_superstite": "0",
+                "dp_convivenza": "convivenza",
+                "dp_superstiti": "0",
                 "dp_qualita_relazione": "intensa",
             },
             "usufrutto": {"usu_valore_piena": "150000", "usu_eta": "55", "usu_quota_perc": "100"},

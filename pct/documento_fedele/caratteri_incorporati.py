@@ -41,6 +41,7 @@ _SENZA_NOME = re.compile(r"^(?:cidfont\+)?[a-z]{1,3}\d{1,3}$", re.I)
 
 _serratura = threading.Lock()
 _registrati: dict[str, str] = {}
+_lettere: dict[str, frozenset[int]] = {}
 
 
 def _programma(descrittore: dict, risolvi) -> Optional[bytes]:
@@ -59,6 +60,30 @@ def _programma(descrittore: dict, risolvi) -> Optional[bytes]:
             return None
         return dati
     return None
+
+
+def _lettere_da_tounicode(voce: dict, resolve1) -> Optional[frozenset[int]]:
+    """Le lettere che il sottoinsieme incorporato sa disegnare, dalla sua /ToUnicode."""
+    try:
+        import io as _io
+
+        from pdfminer.cmapdb import CMapParser, FileUnicodeMap
+    except Exception:
+        return None
+    try:
+        flusso = resolve1(voce.get("ToUnicode"))
+        if flusso is None or not hasattr(flusso, "get_data"):
+            return None
+        mappa = FileUnicodeMap()
+        CMapParser(mappa, _io.BytesIO(flusso.get_data())).run()
+        lettere = set()
+        for testo in mappa.cid2unichr.values():
+            for lettera in str(testo or ""):
+                if lettera.isprintable():
+                    lettere.add(ord(lettera))
+        return frozenset(lettere) if lettere else None
+    except Exception:
+        return None
 
 
 def caratteri_della_pagina(pagina) -> dict:
@@ -95,8 +120,14 @@ def caratteri_della_pagina(pagina) -> dict:
             if not dati:
                 continue
             impronta = hashlib.sha1(dati).hexdigest()[:12]
+            alias = f"iu-{impronta}"
+            lettere = _lettere_da_tounicode(voce, resolve1)
+            if lettere is not None:
+                # Un sottoinsieme disegna solo le lettere che il PDF dichiara:
+                # la tabella del carattere può ancora elencare l'alfabeto intero.
+                _lettere[alias] = lettere
             fuori[nome.split("+")[-1]] = {
-                "alias": f"iu-{impronta}",
+                "alias": alias,
                 "dati": dati,
             }
         except Exception:
@@ -231,6 +262,7 @@ def registra(alias: str, dati: bytes) -> Optional[str]:
         return alias
 
 
+
 def copre(alias: str, testo: str) -> bool:
     """Vero se ogni lettera del testo esiste in questo carattere.
 
@@ -247,10 +279,13 @@ def copre(alias: str, testo: str) -> bool:
     mappa = getattr(faccia, "charToGlyph", None)
     if not mappa:
         return False
+    disegnabili = _lettere.get(alias)
     for lettera in set(testo):
         if lettera in ("\n", "\r", "\t"):
             continue
         if not mappa.get(ord(lettera)):
+            return False
+        if disegnabili is not None and ord(lettera) not in disegnabili and not lettera.isspace():
             return False
     return True
 
@@ -258,3 +293,4 @@ def copre(alias: str, testo: str) -> bool:
 def azzera_per_prova() -> None:
     """Svuota il registro: serve solo ai test."""
     _registrati.clear()
+    _lettere.clear()

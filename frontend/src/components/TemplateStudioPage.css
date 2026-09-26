@@ -1,0 +1,216 @@
+.iu-tstudio-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.iu-tstudio-field {
+  display: grid;
+  gap: 4px;
+  font-size: 0.88rem;
+}
+
+.iu-tstudio-field > span {
+  font-weight: 600;
+}
+
+.iu-tstudio-field input,
+.iu-tstudio-field select,
+.iu-tstudio-field textarea,
+.iu-tstudio-output {
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--iu-border);
+  border-radius: 8px;
+  font: inherit;
+  background: var(--iu-surface, #fff);
+}
+
+.iu-tstudio-field small {
+  color: var(--iu-danger, #b42318);
+}
+
+.iu-tstudio-field--wide {
+  grid-column: 1 / -1;
+}
+
+.iu-tstudio-section {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--iu-border);
+  border-radius: 10px;
+}
+
+.iu-tstudio-section legend {
+  padding: 0 4px;
+  font-weight: 700;
+}
+
+.iu-tstudio-form {
+  display: grid;
+  gap: 12px;
+}
+
+.iu-tstudio-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.iu-tstudio-post {
+  display: inline-flex;
+  margin: 0;
+}
+
+.iu-tstudio-note {
+  margin: 10px 0 0;
+  font-size: 0.88rem;
+}
+
+.iu-tstudio-fields,
+.iu-tstudio-related {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+.iu-tstudio-body {
+  max-height: 520px;
+  overflow: auto;
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.iu-tstudio-output {
+  min-height: 420px;
+  font-family: 'Times New Roman', Georgia, serif;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.iu-tstudio-message {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.iu-tstudio-message.is-error {
+  color: var(--iu-danger, #b42318);
+}
+
+@media (max-width: 720px) {
+  .iu-tstudio-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.iu-tstudio-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 12px;
+  align-items: start;
+}
+
+.iu-tstudio-rich {
+  display: grid;
+  border: 1px solid var(--iu-border);
+  border-radius: 8px;
+  background: var(--iu-surface, #fff);
+}
+
+.iu-tstudio-rich__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 4px;
+  border-bottom: 1px solid var(--iu-border);
+}
+
+.iu-tstudio-rich__toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.iu-tstudio-rich__toolbar button:hover,
+.iu-tstudio-rich__toolbar button:focus-visible {
+  background: var(--iu-surface-muted, #eef2f7);
+}
+
+.iu-tstudio-rich__area {
+  padding: 14px 18px;
+  overflow: auto;
+  font-family: 'Times New Roman', Georgia, serif;
+  font-size: 1rem;
+  line-height: 1.55;
+  outline: none;
+}
+
+.iu-tstudio-rich__area--r8 { min-height: 200px; }
+.iu-tstudio-rich__area--r18 { min-height: 440px; }
+.iu-tstudio-rich__area--r24 { min-height: 600px; }
+
+.iu-tstudio-vars {
+  display: grid;
+  gap: 8px;
+  max-height: 520px;
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid var(--iu-border);
+  border-radius: 8px;
+  font-size: 0.78rem;
+}
+
+.iu-tstudio-vars div {
+  display: grid;
+  gap: 3px;
+}
+
+.iu-tstudio-vars small {
+  color: var(--iu-muted);
+  font-weight: 600;
+}
+
+.iu-tstudio-vars button {
+  padding: 3px 6px;
+  border: 1px solid var(--iu-border);
+  border-radius: 6px;
+  background: var(--iu-surface-muted, #f6f8fb);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.74rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.iu-tstudio-import {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px dashed var(--iu-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.iu-tstudio-import input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+@media (max-width: 960px) {
+  .iu-tstudio-editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

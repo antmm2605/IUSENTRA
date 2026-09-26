@@ -29,6 +29,8 @@ import {
   createGiurisprudenzaRecord,
   emptyGiurisprudenzaPage,
   getGiurisprudenzaCreatePage,
+  getGiurisprudenzaEditPage,
+  updateGiurisprudenzaRecord,
   getGiurisprudenzaPage,
   type GiurisprudenzaCreateDefaults,
   type GiurisprudenzaCreateOption,
@@ -526,6 +528,12 @@ function RecordDetail({ record }: { record?: GiurisprudenzaRecord }) {
             Fascicolo collegato
           </ButtonLink>
         ) : null}
+        {record.id ? (
+          <ButtonLink href={`/giurisprudenza/${encodeURIComponent(record.id)}/modifica`} tone="neutral">
+            <FileText size={16} aria-hidden="true" />
+            Modifica scheda
+          </ButtonLink>
+        ) : null}
       </div>
     </aside>
   )
@@ -667,7 +675,7 @@ function CreateStatusPanel({ result }: { result: GiurisprudenzaCreateResponse | 
   )
 }
 
-function GiurisprudenzaCreatePage() {
+function GiurisprudenzaCreatePage({ editId = '' }: { editId?: string }) {
   const [page, setPage] = useState<GiurisprudenzaCreatePageData | null>(null)
   const [form, setForm] = useState<GiurisprudenzaCreateDefaults | null>(null)
   const [loading, setLoading] = useState(true)
@@ -676,7 +684,7 @@ function GiurisprudenzaCreatePage() {
 
   useEffect(() => {
     let active = true
-    getGiurisprudenzaCreatePage()
+    ;(editId ? getGiurisprudenzaEditPage(editId) : getGiurisprudenzaCreatePage())
       .then((payload) => {
         if (!active) return
         setPage(payload)
@@ -688,7 +696,7 @@ function GiurisprudenzaCreatePage() {
     return () => {
       active = false
     }
-  }, [])
+  }, [editId])
 
   const updateField = (field: CreateFieldName, value: string) => {
     setResult(null)
@@ -700,9 +708,9 @@ function GiurisprudenzaCreatePage() {
     if (!form || saving) return
     setSaving(true)
     try {
-      const response = await createGiurisprudenzaRecord(form)
+      const response = editId ? await updateGiurisprudenzaRecord(editId, form) : await createGiurisprudenzaRecord(form)
       setResult(response)
-      if (response.ok && response.record) {
+      if (response.ok && response.record && !editId) {
         setForm((current) => current ? { ...current, titolo: '', massima: '', principio_diritto: '', abstract: '', text_original: '' } : current)
       }
     } finally {
@@ -711,7 +719,7 @@ function GiurisprudenzaCreatePage() {
   }
 
   if (loading) {
-    return <LoadingState title="Caricamento nuova scheda" message="Preparo campi, fonti e classificazioni dello studio." />
+    return <LoadingState title={editId ? 'Caricamento scheda' : 'Caricamento nuova scheda'} message="Preparo campi, fonti e classificazioni dello studio." />
   }
 
   if (!page || !form) {
@@ -731,8 +739,8 @@ function GiurisprudenzaCreatePage() {
 
   return (
     <Page
-      title="Nuova scheda giurisprudenza"
-      subtitle="Registra una decisione, una massima o un precedente interno con fonte, classificazione e controllo d'uso."
+      title={editId ? 'Modifica scheda giurisprudenza' : 'Nuova scheda giurisprudenza'}
+      subtitle={editId ? 'Aggiorna dati, classificazione, contenuto e fonte della scheda.' : "Registra una decisione, una massima o un precedente interno con fonte, classificazione e controllo d'uso."}
       actions={(
         <ButtonLink href="/giurisprudenza" tone="neutral">
           <ArrowLeft size={16} aria-hidden="true" />
@@ -845,7 +853,8 @@ function GiurisprudenzaArchivePage() {
   const [grade, setGrade] = useState(initialParams.get('grado') || '')
   const [source, setSource] = useState(initialParams.get('fonte') || '')
   const [verification, setVerification] = useState(initialParams.get('status') || '')
-  const [selectedId, setSelectedId] = useState(initialParams.get('scheda') || '')
+  const schedaDaPercorso = window.location.pathname.replace(/\/+$/, '').match(/^\/giurisprudenza\/([^/]+)$/i)
+  const [selectedId, setSelectedId] = useState(initialParams.get('scheda') || (schedaDaPercorso && schedaDaPercorso[1] !== 'nuova' ? decodeURIComponent(schedaDaPercorso[1]) : ''))
   const [fullscreenOpen, setFullscreenOpen] = useState(false)
 
   useEffect(() => {
@@ -983,5 +992,8 @@ function GiurisprudenzaArchivePage() {
 
 export function GiurisprudenzaPage() {
   const routePath = window.location.pathname.replace(/\/+$/, '') || '/'
-  return routePath === '/giurisprudenza/nuova' ? <GiurisprudenzaCreatePage /> : <GiurisprudenzaArchivePage />
+  if (routePath === '/giurisprudenza/nuova') return <GiurisprudenzaCreatePage />
+  const modifica = routePath.match(/^\/giurisprudenza\/([^/]+)\/modifica$/)
+  if (modifica) return <GiurisprudenzaCreatePage editId={decodeURIComponent(modifica[1])} />
+  return <GiurisprudenzaArchivePage />
 }

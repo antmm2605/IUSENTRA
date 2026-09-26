@@ -52,13 +52,15 @@ def test_il_catalogo_propone_il_documento_d_identita_del_cliente():
     assert esito.document_nature == "documento_identita"
     assert esito.document_label == "Carta d'identità di Anna Bianchi"
     assert esito.status == "proposed" and esito.confidence == 99
-    assert esito.document_section == "allegati"
+    # Dalla 2.397.0 i documenti di riconoscimento hanno la loro sezione del faldone.
+    assert esito.document_section == "identita"
 
 
 def test_il_nome_inequivoco_basta_finche_il_contenuto_non_e_leggibile():
     senza_testo = _cataloga("", "Carta d'identità.PDF", cliente="Anna Bianchi")
     assert senza_testo.document_nature == "documento_identita" and senza_testo.status == "proposed"
-    assert senza_testo.document_label == "Carta d'identità di Anna Bianchi" and senza_testo.confidence == 78
+    # Senza contenuto letto non si sa di chi sia la carta: non si intesta al cliente.
+    assert senza_testo.document_label == "Carta d'identità" and senza_testo.confidence == 78
     assert any("nome del file inequivoco" in voce.reason for voce in senza_testo.candidates), [voce.reason for voce in senza_testo.candidates]
     # Un nome generico senza testo resta da verificare: il nome non cataloga.
     generico = _cataloga("", "allegato 3.pdf")

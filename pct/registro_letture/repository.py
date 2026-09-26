@@ -8,6 +8,7 @@ che cosa manca e registra che cosa è stato fatto.
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -143,6 +144,34 @@ def _lettore(valore: str) -> str:
     return lettore
 
 
+def _allinea_vincolo_categorie(conn: sqlite3.Connection, schema: str) -> None:
+    """Porta gli archivi SQLite già creati al vincolo delle categorie attuale.
+
+    `CREATE TABLE IF NOT EXISTS` non tocca una tabella esistente: un archivio
+    nato prima della 2.408.0 rifiutava la categoria «parte» e con lei l'intero
+    gruppo di fatti letti da un documento. SQLite non modifica un CHECK: la
+    tabella si ricostruisce con lo schema corrente, conservando le righe.
+    """
+    riga = conn.execute("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'letture_fatti'").fetchone()
+    if not riga or "'parte'" in str(riga[0] or ""):
+        return
+    crea = re.search(r"CREATE TABLE IF NOT EXISTS letture_fatti \(.*?\n\);", schema, re.S)
+    if not crea:
+        return
+    colonne = ", ".join(r[1] for r in conn.execute("PRAGMA table_info(letture_fatti)").fetchall())
+    conn.execute("BEGIN")
+    try:
+        conn.execute("ALTER TABLE letture_fatti RENAME TO letture_fatti_vincolo_precedente")
+        conn.execute(crea.group(0))
+        conn.execute(f"INSERT INTO letture_fatti ({colonne}) SELECT {colonne} FROM letture_fatti_vincolo_precedente")
+        conn.execute("DROP TABLE letture_fatti_vincolo_precedente")
+        conn.execute("COMMIT")
+    except Exception:
+        conn.execute("ROLLBACK")
+        raise
+    conn.executescript(schema)
+
+
 class RegistroLetture(FattiMixin, ConsegneMixin):
     """Il registro delle letture di uno studio (con l'archivio dei fatti letti dai motori)."""
 
@@ -155,8 +184,10 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
             self._pg = PostgresRepositoryBackend(self.postgres_dsn, SCHEMA_POSTGRES)
         else:
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
+            schema = SCHEMA_SQLITE.read_text(encoding="utf-8")
             with sqlite3.connect(str(self.db_path)) as conn:
-                conn.executescript(SCHEMA_SQLITE.read_text(encoding="utf-8"))
+                conn.executescript(schema)
+                _allinea_vincolo_categorie(conn, schema)
 
     # ---- primitive ---------------------------------------------------------
 

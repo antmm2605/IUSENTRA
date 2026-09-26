@@ -8,9 +8,9 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 314.
-- Endpoint con `_richiedi_auth`: 314/314.
-- Endpoint con metodo di scrittura o cancellazione: 163.
+- Endpoint React API censiti: 319.
+- Endpoint con `_richiedi_auth`: 319/319.
+- Endpoint con metodo di scrittura o cancellazione: 167.
 - Endpoint con superficie file/upload/download/export/evidence: 16.
 - Route manifest censite: 119; critical: 18; high/P1: 77.
 - Parametri controllo bloccati: `tenant_id`, `tenant_slug`, `studio_id`, `studio_slug`, `user_id`, `api_key`, `token`, `access_token`, `refresh_token`, `redirect`, `redirect_url`, `return_url`, `next`, path filesystem.
@@ -53,6 +53,7 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `GET` | `/api/v1/ui/audit/<id_evento>` | Registro attivita | P0 | `audit.leggi` | PII e log operativi redatti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/backup` | Backup | P0 | `backup.leggi/esegui` | archivi e verifiche integrita | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/backup/crea` | Backup | P0 | `backup.leggi/esegui` | archivi e verifiche integrita | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/backup/ripristina` | Backup | P0 | `backup.leggi/esegui` | archivi e verifiche integrita | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/backup/verifica` | Backup | P0 | `backup.leggi/esegui` | archivi e verifiche integrita | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/bootstrap` | Bootstrap React | P0 | `sessione/API tenant-aware` | menu, feature flag e contesto studio | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/calendari/accounts` | Sincronizzazione calendari | P0 | `admin.configura` | account calendari e feed tenant | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
@@ -159,6 +160,8 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `GET` | `/api/v1/ui/feature-flags` | Feature flag | P0 | `sessione/API tenant-aware` | capability studio e abilitazioni | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/fonti-procedurali/<source_id>/visualizza` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/giurisprudenza` | Giurisprudenza | P1 | `sessione/API tenant-aware` | archivio giurisprudenza | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/giurisprudenza/<judgment_id>/modifica` | Giurisprudenza | P1 | `sessione/API tenant-aware` | archivio giurisprudenza | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/giurisprudenza/<judgment_id>/modifica` | Giurisprudenza | P1 | `sessione/API tenant-aware` | archivio giurisprudenza | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/giurisprudenza/nuova` | Giurisprudenza | P1 | `sessione/API tenant-aware` | archivio giurisprudenza | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/giurisprudenza/nuova` | Giurisprudenza | P1 | `sessione/API tenant-aware` | archivio giurisprudenza | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/global-search` | Ricerca Studio | P1 | `sessione/API tenant-aware` | indici ricerca tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
@@ -240,6 +243,7 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `GET` | `/api/v1/ui/preventivi` | Preventivi | P0 | `fatturazione.leggi/scrivi` | offerte e conferimenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/preventivi/<id_preventivo>` | Preventivi | P0 | `fatturazione.leggi/scrivi` | offerte e conferimenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/preventivi/<id_preventivo>/stato` | Preventivi | P0 | `fatturazione.leggi/scrivi` | offerte e conferimenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/preventivi/<id_preventivo>/workflow/<azione>` | Preventivi | P0 | `fatturazione.leggi/scrivi` | offerte e conferimenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/preventivi/<preventivo_id>/apri-fascicolo` | Preventivi | P0 | `fatturazione.leggi/scrivi` | offerte e conferimenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/preventivi/conferimento/<id_conferimento>` | Preventivi | P0 | `fatturazione.leggi/scrivi` | offerte e conferimenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/preventivi/conferimento/<id_conferimento>/stato` | Preventivi | P0 | `fatturazione.leggi/scrivi` | offerte e conferimenti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
@@ -341,6 +345,7 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `GET` | `/api/v1/ui/territorio/comuni` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/timesheet` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/utenti` | Utenti | P0 | `utenti.leggi/scrivi` | account, ruoli, credenziali temporanee | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/utenti/<id_utente>/permessi` | Utenti | P0 | `utenti.leggi/scrivi` | account, ruoli, credenziali temporanee | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/utenti/<id_utente>/profilo` | Utenti | P0 | `utenti.leggi/scrivi` | account, ruoli, credenziali temporanee | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/utenti/<id_utente>/reset-password` | Utenti | P0 | `utenti.leggi/scrivi` | account, ruoli, credenziali temporanee | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/utenti/<id_utente>/ruolo` | Utenti | P0 | `utenti.leggi/scrivi` | account, ruoli, credenziali temporanee | auth, tenant-aware, RBAC dominio, guardrail fase 5 |

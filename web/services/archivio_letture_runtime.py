@@ -450,9 +450,14 @@ def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, con
             (l.esito or {}).get("estrattore_versione") != VERSIONE_ESTRAZIONE_FORMATI))
     }
     for oggetto in registro.oggetti(tenant, fascicolo_id):
-        if oggetto.tipo == "documento" and (oggetto.oggetto_id, oggetto.impronta) in letti_prima and oggetto not in da_leggere:
+        if oggetto.tipo != "documento" or oggetto in da_leggere:
+            continue
+        # Con «forza» si rileggono tutti i documenti di questo fascicolo (e solo
+        # di questo), anche quelli già letti con la versione corrente.
+        if forza or (oggetto.oggetto_id, oggetto.impronta) in letti_prima:
             da_leggere.append(oggetto)
     conteggi["da_leggere"] = len(da_leggere)
+    scaglioni_cu: list[Any] | None = None
     documenti = {str(getattr(d, "id", "")): d for d in list(getattr(fascicolo, "documenti", []) or [])}
     for oggetto in da_leggere[:limite]:
         documento = documenti.get(oggetto.oggetto_id)
@@ -493,9 +498,12 @@ def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, con
         if len(letture) > 1:
             contesto_documento.testo_secondario, contesto_documento.etichetta_secondario = letture[1][1], {"ocr": "lettura OCR", "indice": "indice documentale", "nativo": "testo nativo del PDF"}[letture[1][0]]
         metadata = {"tipo_documento": _testo(getattr(documento, "tipo", "")), "classification": _testo(getattr(documento, "classificazione_portale", ""))}
-        from web.services.sentenza_economic_runtime import _cu_tiers
+        if scaglioni_cu is None:
+            # Gli scaglioni del contributo unificato si leggono una volta per fascicolo.
+            from web.services.sentenza_economic_runtime import _cu_tiers
+            scaglioni_cu = _cu_tiers()
         metadata.update(fascicolo=fascicolo, documento_id=documento.id,
-                        document_hash_sha256=_testo(getattr(documento, "hash_sha256", "")), cu_tiers=_cu_tiers())
+                        document_hash_sha256=_testo(getattr(documento, "hash_sha256", "")), cu_tiers=scaglioni_cu)
         fatti = _attribuisci(leggi_testo(testo, origine=origine, contesto=contesto_documento, nome=oggetto.nome, metadata=metadata), oggetto, "documenti")
         registro.registra_fatti(tenant, fascicolo_id, oggetto, "documenti", fatti, versione=VERSIONE_MOTORE_DOCUMENTI)
         registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, esito={"origine": origine, "estrattore_versione": VERSIONE_ESTRAZIONE_FORMATI, "letture": [o for o, _ in letture], "fatti": len(fatti), "verificati": sum(1 for f in fatti if f.verifica == "verificata")}, versione=VERSIONE_MOTORE_DOCUMENTI)

@@ -212,6 +212,7 @@ from web.services.react_utenti_bridge import (
     build_react_utenti_payload,
     reset_react_utente_password,
     update_react_utente_profile,
+    update_react_utente_permessi,
     update_react_utente_role,
     update_react_utente_status,
 )
@@ -224,6 +225,7 @@ from web.services.react_backup_bridge import (
     build_react_backup_error_payload,
     build_react_backup_payload,
     create_react_backup,
+    restore_react_backup,
     verify_react_backup_integrity,
 )
 from web.services.react_sito_studio_bridge import (
@@ -374,6 +376,8 @@ from web.services.react_redazione_atti_bridge import (
 from web.services.react_giurisprudenza_bridge import (
     build_react_giurisprudenza_error_payload,
     build_react_giurisprudenza_new_payload,
+    build_react_giurisprudenza_edit_payload,
+    update_react_giurisprudenza_record,
     build_react_giurisprudenza_payload,
     create_react_giurisprudenza_record,
 )
@@ -11071,6 +11075,32 @@ def utenti_aggiorna_profilo(id_utente: str):
         )
 
 
+@api_v1_react.post("/utenti/<id_utente>/permessi")
+@_richiedi_auth
+def utenti_aggiorna_permessi(id_utente: str):
+    if not _puo_scrivere_utenti():
+        return _utenti_permission_response()
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    try:
+        result = update_react_utente_permessi(
+            get_utenti=get_utenti,
+            current_user=g.get("utente_corrente"),
+            user_id=id_utente,
+            payload=payload or {},
+            ip=request.remote_addr or "",
+        )
+        return _jsonify_redacted(result), _utenti_result_status(result)
+    except Exception as exc:
+        current_app.logger.exception("Errore permessi utente React JSON: %s", exc)
+        return _json_validation_error(
+            "Modifica permessi utente non disponibile dal runtime corrente.",
+            {"_form": "Errore server controllato. Riprova o usa il rollback tecnico."},
+            status=500,
+        )
+
+
 @api_v1_react.get("/profili")
 @_richiedi_auth
 def profili_page():
@@ -11188,6 +11218,32 @@ def backup_crea():
         return _json_validation_error(
             "Creazione backup non disponibile dal runtime corrente.",
             {"_form": "Errore server controllato. Riprova o usa il rollback tecnico."},
+            status=500,
+        )
+
+
+@api_v1_react.post("/backup/ripristina")
+@_richiedi_auth
+def backup_ripristina():
+    if not _puo_eseguire_backup():
+        return _backup_permission_response()
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    try:
+        result = restore_react_backup(
+            get_backup=_backup_loader(),
+            get_utenti=get_utenti,
+            current_user=g.get("utente_corrente"),
+            payload=payload or {},
+            ip=request.remote_addr or "",
+        )
+        return _jsonify_redacted(result), _backup_result_status(result)
+    except Exception as exc:
+        current_app.logger.exception("Errore ripristino backup React JSON: %s", exc)
+        return _json_validation_error(
+            "Ripristino backup non disponibile dal runtime corrente.",
+            {"_form": "Errore server controllato. Riprova più tardi."},
             status=500,
         )
 
@@ -14607,6 +14663,33 @@ def giurisprudenza_nuova_salva():
     return _jsonify_redacted(result), status
 
 
+@api_v1_react.get("/giurisprudenza/<judgment_id>/modifica")
+@_richiedi_auth
+def giurisprudenza_modifica_page(judgment_id: str):
+    if not g.get("utente_corrente"):
+        return jsonify(build_react_giurisprudenza_error_payload("Sessione utente richiesta.")), 403
+    try:
+        result, status = build_react_giurisprudenza_edit_payload(get_giurisprudenza=get_giurisprudenza, judgment_id=judgment_id)
+        return jsonify(result), status
+    except Exception as exc:
+        current_app.logger.exception("Errore Giurisprudenza modifica React bridge: %s", exc)
+        return jsonify(build_react_giurisprudenza_error_payload("Modifica della scheda non disponibile.")), 200
+
+
+@api_v1_react.post("/giurisprudenza/<judgment_id>/modifica")
+@_richiedi_auth
+def giurisprudenza_modifica_salva(judgment_id: str):
+    if not g.get("utente_corrente"):
+        return jsonify({"ok": False, "errors": {"sessione": "Sessione utente richiesta."}, "warnings": []}), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result, status = update_react_giurisprudenza_record(get_giurisprudenza=get_giurisprudenza, judgment_id=judgment_id, payload=payload or {})
+    if result.get("ok"):
+        _audit_event("giurisprudenza.scheda.modifica", "giurisprudenza", judgment_id, "Scheda giurisprudenza aggiornata da superficie React.")
+    return _jsonify_redacted(result), status
+
+
 _LEGAL_PAYLOAD_CACHE = ReactPayloadTTLCache(
     ttl_seconds=float(os.getenv("IUSENTRA_REACT_LEGAL_PAYLOAD_TTL_SECONDS") or 120),
     max_entries=8,
@@ -14876,6 +14959,15 @@ def preventivi_detail_page(id_preventivo: str):
         get_fascicoli=get_fascicoli,
         id_preventivo=id_preventivo,
     )
+    if status == 200 and isinstance(result.get("item"), dict):
+        # Workflow commerciale e azioni della scheda (stessa logica della vista storica).
+        try:
+            from web.blueprints.preventivi import prossimo_passo_preventivo
+
+            result["item"].update(prossimo_passo_preventivo(id_preventivo) or {})
+            result["item"]["canWrite"] = bool(_puo_scrivere_preventivi())
+        except Exception:
+            current_app.logger.exception("Workflow preventivo %s non disponibile", id_preventivo)
     return jsonify(result), status
 
 
@@ -14897,6 +14989,40 @@ def preventivi_conferimento_detail_page(id_conferimento: str):
         id_conferimento=id_conferimento,
     )
     return jsonify(result), status
+
+
+@api_v1_react.post("/preventivi/<id_preventivo>/workflow/<azione>")
+@_richiedi_auth
+def preventivi_workflow(id_preventivo: str, azione: str):
+    """Azioni della scheda preventivo in JSON: invio al cliente, accettazione in studio, eliminazione."""
+    if not g.get("utente_corrente") or not _puo_scrivere_preventivi():
+        return jsonify({"ok": False, "message": "Permesso fatturazione.scrivi richiesto.", "errors": {"permission": "Operazione non autorizzata."}}), 403
+    from web.blueprints import preventivi as preventivi_bp
+
+    azioni = {
+        "invia": preventivi_bp.esegui_invio_cliente,
+        "accetta-studio": preventivi_bp.esegui_accettazione_studio,
+        "elimina": preventivi_bp.esegui_eliminazione_preventivo,
+    }
+    esegui = azioni.get(azione)
+    if esegui is None:
+        return jsonify({"ok": False, "message": "Azione non prevista.", "errors": {"azione": azione}}), 404
+    try:
+        esito = esegui(id_preventivo)
+    except Exception:
+        current_app.logger.exception("Azione %s sul preventivo %s non riuscita", azione, id_preventivo)
+        return jsonify({"ok": False, "message": "Operazione non riuscita: riprova fra poco.", "errors": {}}), 500
+    if esito is None:
+        return jsonify({"ok": False, "message": "Preventivo non trovato.", "errors": {"id_preventivo": "Identificativo non valido."}}), 404
+    messaggi, destinazione = esito
+    _audit_event(f"preventivi.workflow.{azione}", "preventivo", id_preventivo, "Azione dalla scheda React.")
+    return jsonify({
+        "ok": True,
+        "message": " ".join(testo for testo, _categoria in messaggi),
+        "tone": "warning" if any(categoria == "warning" for _testo, categoria in messaggi) else "success",
+        "redirect_href": destinazione,
+        "errors": {},
+    }), 200
 
 
 @api_v1_react.post("/preventivi/<id_preventivo>/stato")

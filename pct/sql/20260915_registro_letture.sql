@@ -123,7 +123,7 @@ CREATE TABLE IF NOT EXISTS letture_fatti (
     sha256 TEXT NOT NULL DEFAULT '',
     motore TEXT NOT NULL CHECK (motore IN ('documenti', 'pec')),
     versione_motore TEXT NOT NULL DEFAULT '',
-    categoria TEXT NOT NULL CHECK (categoria IN ('data', 'ruolo', 'prova_notifica', 'importo', 'evento')),
+    categoria TEXT NOT NULL CHECK (categoria IN ('data', 'ruolo', 'prova_notifica', 'importo', 'evento', 'parte')),
     campo TEXT NOT NULL,
     valore_letto TEXT NOT NULL DEFAULT '',
     valore TEXT NOT NULL DEFAULT '',

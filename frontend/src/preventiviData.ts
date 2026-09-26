@@ -149,12 +149,31 @@ export type PreventiviPermissions = {
   canOpenMatterAfterSave: boolean
 }
 
+export type PreventivoWorkflowAction = {
+  label: string
+  href: string
+  method: 'GET' | 'POST'
+  tone: 'primary' | 'neutral' | 'success' | 'warning' | 'danger'
+}
+
 export type PreventivoDetail = PreventivoRow & {
   voci: Array<{
     descrizione: string
     tipo: string
     importoDisplay: string
   }>
+  nextStep: { kind: string; title: string; message: string; actions: PreventivoWorkflowAction[] }
+  pdfHref: string
+  pdfDownloadHref: string
+  deleteHref: string
+  invoiceHref: string
+  conferimenti: Array<{ id: string; number: string; state: string; href: string }>
+  canWrite: boolean
+}
+
+function workflowTone(value: unknown): PreventivoWorkflowAction['tone'] {
+  const raw = text(value)
+  return raw === 'primary' || raw === 'success' || raw === 'warning' || raw === 'danger' ? raw : 'neutral'
 }
 
 export type ConferimentoDetail = PreventivoRow & {
@@ -773,9 +792,11 @@ export async function getNuovoConferimentoPage(): Promise<NuovoConferimentoPageD
 export async function getPreventivoDetail(idPreventivo: string): Promise<{ ok: boolean; item: PreventivoDetail | null; message: string; errors: Record<string, string> }> {
   const payload = await apiJson<unknown>(`/api/v1/ui/preventivi/${encodeURIComponent(idPreventivo)}`, { ok: false, item: null })
   const page = asRecord(payload)
+  const raw = asRecord(page.item)
+  const step = asRecord(raw.nextStep)
   const item = page.item ? {
     ...normaliseRecord(page.item),
-    voci: list(asRecord(page.item).voci).map((voice) => {
+    voci: list(raw.voci).map((voice) => {
       const row = asRecord(voice)
       return {
         descrizione: text(row.descrizione),
@@ -783,6 +804,29 @@ export async function getPreventivoDetail(idPreventivo: string): Promise<{ ok: b
         importoDisplay: text(row.importoDisplay),
       }
     }),
+    nextStep: {
+      kind: text(step.kind),
+      title: text(step.title),
+      message: text(step.message),
+      actions: list(step.actions).map((action) => {
+        const row = asRecord(action)
+        return {
+          label: text(row.label),
+          href: safeHref(row.href),
+          method: (text(row.method).toUpperCase() === 'POST' ? 'POST' : 'GET') as 'GET' | 'POST',
+          tone: workflowTone(row.tone),
+        }
+      }).filter((action) => action.label && action.href),
+    },
+    pdfHref: safeHref(raw.pdfHref),
+    pdfDownloadHref: safeHref(raw.pdfDownloadHref),
+    deleteHref: safeHref(raw.deleteHref),
+    invoiceHref: safeHref(raw.invoiceHref),
+    conferimenti: list(raw.conferimenti).map((entry) => {
+      const row = asRecord(entry)
+      return { id: text(row.id), number: text(row.number), state: text(row.state), href: safeHref(row.href) }
+    }).filter((entry) => entry.href),
+    canWrite: raw.canWrite === true,
   } : null
   return {
     ok: page.ok === true,
@@ -842,4 +886,9 @@ export async function cancelPreventivo(): Promise<PreventivoMutationResult> {
 
 export async function duplicatePreventivo(): Promise<PreventivoMutationResult> {
   return { ...mutationFallback, message: 'Duplicazione non disponibile da questa vista.' }
+}
+
+export async function runPreventivoAction(endpoint: string): Promise<{ ok: boolean; message: string; redirectHref: string }> {
+  const payload = asRecord(await apiPostJson<unknown>(endpoint, {}, { ok: false, message: 'Operazione non riuscita.' }))
+  return { ok: payload.ok === true, message: text(payload.message), redirectHref: safeHref(payload.redirect_href) }
 }

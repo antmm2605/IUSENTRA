@@ -22,6 +22,7 @@ import {
   getNuovoPreventivoPage,
   getPreventiviPage,
   getPreventivoDetail,
+  runPreventivoAction,
   updateConferimentoStatus,
   updatePreventivoStatus,
   type ConferimentoDetail,
@@ -717,6 +718,25 @@ function NewConferimentoForm({ data }: { data: PreventiviPageData }) {
   )
 }
 
+function PostAction({ action, label, tone, confirmMessage }: { action: string; label: string; tone: 'primary' | 'neutral' | 'success' | 'warning' | 'danger'; confirmMessage?: string }) {
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState('')
+  async function run() {
+    if (confirmMessage && !window.confirm(confirmMessage)) return
+    setBusy(true)
+    const result = await runPreventivoAction(action)
+    setBusy(false)
+    setMessage(result.message)
+    if (result.ok && result.redirectHref) window.location.assign(result.redirectHref)
+  }
+  return (
+    <span className="iu-prev-post">
+      <Button tone={tone} type="button" disabled={busy} onClick={() => void run()}>{busy ? 'Attendere…' : label}</Button>
+      {message ? <small role="status">{message}</small> : null}
+    </span>
+  )
+}
+
 function DetailPanel({
   detail,
   status,
@@ -727,7 +747,32 @@ function DetailPanel({
   if (status === 'loading') return <LoadingState title="Caricamento dettaglio" message="Lettura della sintesi operativa." />
   if (!detail) return null
   return (
-    <Panel title={`Dettaglio ${detail.number || detail.id}`} subtitle={detail.subject}>
+    <Panel
+      title={`Dettaglio ${detail.number || detail.id}`}
+      subtitle={detail.subject}
+      actions={
+        <>
+          {detail.pdfHref ? <ButtonLink href={detail.pdfHref} tone="neutral" target="_blank" rel="noopener">PDF</ButtonLink> : null}
+          {detail.pdfDownloadHref ? <ButtonLink href={detail.pdfDownloadHref} tone="neutral">Scarica PDF</ButtonLink> : null}
+          {detail.invoiceHref && detail.canWrite ? <ButtonLink href={detail.invoiceHref} tone="neutral">Crea parcella</ButtonLink> : null}
+        </>
+      }
+    >
+      {detail.nextStep.title ? (
+        <div className="iu-prev-next" data-step={detail.nextStep.kind}>
+          <div>
+            <strong>{detail.nextStep.title}</strong>
+            {detail.nextStep.message ? <p>{detail.nextStep.message}</p> : null}
+          </div>
+          {detail.canWrite ? (
+            <div className="iu-prev-next__actions">
+              {detail.nextStep.actions.map((action) => action.method === 'POST'
+                ? <PostAction action={action.href} label={action.label} tone={action.tone} key={action.href} />
+                : <ButtonLink href={action.href} tone={action.tone} key={action.href}>{action.label}</ButtonLink>)}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       <div className="iu-prev-detail">
         <span>Cliente: {detail.customerName}</span>
         {detail.caseTitle ? <span>Fascicolo: {detail.caseTitle}</span> : null}
@@ -747,6 +792,22 @@ function DetailPanel({
       ) : (
         <EmptyState title="Nessuna voce di dettaglio" message="Non sono disponibili voci sintetiche per questo preventivo." />
       )}
+      {detail.conferimenti.length ? (
+        <div className="iu-prev-detail-lines">
+          <strong>Conferimenti collegati</strong>
+          {detail.conferimenti.map((entry) => (
+            <a className="iu-prev-detail-line" href={entry.href} key={entry.id}>
+              <span>{entry.number || entry.id}</span>
+              <small>{entry.state}</small>
+            </a>
+          ))}
+        </div>
+      ) : null}
+      {detail.canWrite && detail.deleteHref ? (
+        <div className="iu-prev-next__actions">
+          <PostAction action={detail.deleteHref} label="Elimina preventivo" tone="danger" confirmMessage={`Eliminare il preventivo ${detail.number || ''}? L'operazione non è reversibile.`} />
+        </div>
+      ) : null}
     </Panel>
   )
 }
@@ -986,10 +1047,23 @@ function RecordsPanel({ data, onReload }: { data: PreventiviPageData; onReload: 
   useEffect(() => {
     if (!requestedPreventivoId || autoOpenedId === requestedPreventivoId) return
     const record = data.records.find((item) => item.kind === 'preventivo' && item.id === requestedPreventivoId)
-    if (!record) return
     setAutoOpenedId(requestedPreventivoId)
-    setQuery(record.number || record.subject || '')
-    loadDetail(record)
+    if (record) {
+      setQuery(record.number || record.subject || '')
+      loadDetail(record)
+      return
+    }
+    // Preventivo fuori dall'elenco mostrato: la scheda si apre comunque dall'identificativo.
+    setDetailStatus('loading')
+    getPreventivoDetail(requestedPreventivoId).then((response) => {
+      if (response.ok) {
+        setDetail(response.item)
+        setDetailStatus('success')
+      } else {
+        setDetailStatus('error')
+        setMutationErrors(response.errors || { detail: response.message || 'Preventivo non trovato.' })
+      }
+    })
   }, [autoOpenedId, data.records, requestedPreventivoId])
 
   async function mutateStatus(record: PreventivoRow, stato: string) {

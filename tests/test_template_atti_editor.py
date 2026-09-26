@@ -157,7 +157,7 @@ def test_form_template_atti_renderizza_modal_importazione_con_variabili(tmp_path
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        response = client.get("/template-atti/nuovo")
+        response = client.get("/template-atti/nuovo?_legacy=1")
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)
@@ -244,7 +244,9 @@ def test_script_editor_template_atti_non_contiene_js_rotto():
     assert "setFeedback(\"Inquadra il documento e scatta quando l'immagine e nitida.\", 'info');" in editor_assets
     assert "document.readyState === 'loading'" in editor_assets
     assert "soggettoSearchSelect('' + uid + ''" not in base_template
-    assert "soggettoSearchSelect(\\'" in base_template
+    # 2.411.0: la selezione del soggetto non usa più onclick in linea (CSP) ma un ascoltatore.
+    assert "drop.addEventListener('click'" in base_template
+    assert 'onclick="soggettoSearchSelect' not in base_template
 
 
 def test_importa_documento_rtf_mantiene_accenti_e_font(tmp_path):

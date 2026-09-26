@@ -16,7 +16,7 @@ export function sectionFromUrl(): SettingsSection {
   if (path === '/impostazioni/sdi' || path === '/impostazioni/canali-sdi') return 'sdi'
   if (path === '/notifiche') return 'notifiche'
   if (path === '/notifiche-whatsapp') return 'whatsapp'
-  if (path === '/backup') return 'backup'
+  if (path === '/backup' || /^\/backup\/[^/]+\/ripristina$/.test(path)) return 'backup'
   if (path === '/impostazioni/calendario' || path === '/sincronizzazione-calendari') return 'calendari'
   const raw = new URLSearchParams(window.location.search).get('tab') || window.location.hash.replace('#', '')
   const normalized = raw.trim().toLowerCase()

@@ -38,6 +38,12 @@ BLUEPRINT_REGISTRY: tuple[BlueprintRegistration, ...] = (
     BlueprintRegistration("legal_audit", "audit.routes", "audit_blueprint", ""),
     BlueprintRegistration("api_v1_react", "web.blueprints.api_v1_react", "api_v1_react", "/api/v1/ui"),
     BlueprintRegistration(
+        "api_v1_template_studio",
+        "web.blueprints.api_v1_template_studio",
+        "api_v1_template_studio",
+        "/api/v1/ui/template-atti/studio",
+    ),
+    BlueprintRegistration(
         "api_v1_document_tools",
         "web.blueprints.api_v1_document_tools",
         "api_v1_document_tools",

@@ -51,7 +51,7 @@ from pct.deposito_studio_telematico_validation import (
 from pct.deposito_telematico_catalogo import CASSAZIONE_ROOT_ELIMINATA_STATUS, list_deposit_catalog_entries
 from pct.firma import estrai_contenuto_cades, profilo_cades_bes_valido
 from pct.firma_pkcs11 import _build_cades_bes
-from pct.pst_cifratura import crea_certificato_cifratura_test
+from pct.pst_cifratura import _codice_certificato_download, crea_certificato_cifratura_test
 from web.services.deposito_anagrafica_ministeriale import (
     _anagrafica_procedimento_deposito_xml,
     _namespace_anagrafica_per_generatore,
@@ -1092,11 +1092,15 @@ def _check_source_contracts(errors: list[str]) -> None:
             [
                 "deposito_catalogo_datiatto_extra",
                 "deposito_catalogo_busta_metadata",
-                "certificato-cifratura",
                 "local_pec_required_response",
                 "prova_senza_invio",
                 "simula_invio_pec",
             ],
+        ),
+        (
+            # La rotta del certificato di cifratura dell'ufficio vive nel suo modulo.
+            ROOT / "web" / "bootstrap" / "deposito_certificate_routes.py",
+            ["certificato-cifratura"],
         ),
         (
             ROOT / "web" / "services" / "deposito_catalogo_runtime.py",
@@ -1639,7 +1643,11 @@ def audit_deposit_catalog() -> dict[str, Any]:
         atto.write_bytes(_sign_cades_bes(atto_pdf.read_bytes(), identity))
         certificate_dir = tmp_root / "certificati-cifratura"
         for office_code in ("0580010", "80417740588"):
-            crea_certificato_cifratura_test(certificate_dir / f"{office_code}.cer")
+            # Il certificato si cerca con il codice di download del catalogo PST
+            # (per il Tribunale di Milano 0580010 -> 0151460094): senza questo
+            # nome l'audit chiedeva il certificato al portale a ogni tipo di atto.
+            for nome in dict.fromkeys((office_code, _codice_certificato_download(office_code))):
+                crea_certificato_cifratura_test(certificate_dir / f"{nome}.cer")
         for entry in entries:
             key = str(entry.get("key") or "")
             rules = _rules(entry)

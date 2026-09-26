@@ -1,0 +1,53 @@
+# Migrazione completa a React e rimozione delle route Flask storiche
+
+Obiettivo: tutte le pagine dello studio girano nella shell React; le route Flask
+che rendono template Jinja si eliminano solo quando la pagina React ha le stesse
+funzioni, verificate con test. Restano sul server, per natura, le risposte che
+non sono pagine: API JSON, download, documenti da stampare (copertine), PDF,
+azioni POST dei moduli esistenti e ingressi tecnici.
+
+Aggiornato: 26/09/2026 (2.412.0).
+
+## Regola
+
+1. Una pagina si dichiara migrata quando la shell React la serve all'indirizzo
+   storico e copre le azioni della vista Jinja (test in `tests/test_migrazione_react_*.py`).
+2. Finché il template storico esiste resta raggiungibile con `?_legacy=1`, solo
+   come ripiego; i collegamenti dell'applicazione non lo usano.
+3. La route storica e il suo template si eliminano nella release di pulizia,
+   dopo la verifica nel browser sulla macchina dello studio.
+
+## Migrate
+
+| Versione | Pagina | Dove in React |
+|---|---|---|
+| 2.412.0 | `/lex-operativo` | `LexOperativoPage` (API `/api/lex-operativo`) |
+| 2.412.0 | `/preventivi/p/<id>` | `PreventiviPage`: scheda con prossimo passo del workflow, PDF, parcella, conferimenti, eliminazione |
+| 2.412.0 | `/backup/<id>/ripristina` | Impostazioni › Backup: ripristino in una cartella dedicata (`ripristini/<nome>`) |
+| 2.412.0 | `/utenti/<id>/modifica`, `/utenti/<id>/permessi` | `UtentiPage`: profilo, ruolo, stato, credenziale, permessi personalizzati |
+| 2.412.0 | `/giurisprudenza/<id>`, `/giurisprudenza/<id>/modifica` | `GiurisprudenzaPage`: scheda dall'indirizzo, modifica con gli stessi campi dell'inserimento |
+| 2.412.0 | `/template-atti/nuovo`, `/template-atti/scheda/<id>`, `/template-atti/<id>/modifica`, `/template-atti/<id>/usa` | `TemplateStudioPage` (API `/api/v1/ui/template-atti/studio`) |
+| 2.412.0 | `/pagamenti/impostazioni/pagamenti` | Reindirizza a Impostazioni › Pagamenti (stessi campi) |
+
+## Documenti, non pagine
+
+- `/fascicoli/<id>/copertina` e `/clienti/<id>/faldone/copertina`: fogli da
+  stampare. Dalla 2.412.0 il gate React non li intercetta più (la copertina del
+  faldone finiva nella Panoramica React).
+
+## Ancora da migrare
+
+| Area | Pagine | Nota |
+|---|---|---|
+| Studio | `/applicazioni` (cabina con strumenti di calcolo interni) | Serve la stessa area di lavoro in React; «Strumenti operativi» mostra solo il catalogo |
+| Studio | `/checklist`, `/checklist/<id>`, `/fascicoli/<id>/wizard/<tpl>/step/<n>`, `/completa` | Flusso Controlli atti |
+| Studio | `/fatturazione/<id>` | Dettaglio parcella dedicato (oggi scheda nella lista) |
+| Studio | `/ricerca-legale/news/<slug>`, `/ricerca-legale/fonte/<id>`, `/ricerca-legale/daily/update/<id>/diff` | Dettagli e differenze |
+| Studio | `/polisWeb/documenti`, `/pdp/documenti`, `/polisWeb/fascicolo-wizard` | Vista a buste per sezione |
+| Studio | `/fascicoli/<id>/penale/pdp` | Già coperta da `PenalePdpSezione`: togliere i collegamenti storici |
+| Studio | `/fascicoli/<id>/collaboratori`, `/clienti/<id>/faldone`, `/clienti/<id>/portale` | Parità da verificare |
+| Sito Studio | impostazioni, pagine, servizi, professionisti, sedi, regole agenda, prenotazioni, anteprima, nuovo articolo | Parte già nel builder React |
+| Piattaforma | tutto `/admin/*` (studi, utenti piattaforma, governance, pianificazioni, salute, manutenzione, supporto, aggiornamenti legali, copertura AI, osservabilità…) | Area del superamministratore |
+| Pubbliche | `/login`, `/login/2fa`, profilo con password obbligatoria, `/portale/<token>/*`, `/pagamenti/paga/<token>`, `/support/join/<token>`, `/accesso/<token>` | Serve un ingresso React pubblico (come `/portale-cliente`) |
+| Pubbliche | sito dello studio `/web/<slug>/*` | Pagine pubbliche indicizzate dai motori di ricerca: restano rese dal server finché non c'è un rendering React lato server |
+| Tecniche | `/offline`, pagine di errore | Restano statiche: servono quando l'applicazione non risponde |

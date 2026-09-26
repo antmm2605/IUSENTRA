@@ -200,7 +200,9 @@ def test_document_ai_api_indicizza_pdf_p7m_automaticamente_e_una_sola_volta(tmp_
 
     with app.test_client() as client:
         _login(client)
-        first = client.get(f"/api/v1/ui/fascicoli/{fascicolo_id}/lex-indexing")
+        # La lettura del GET non indicizza (nessuna lettura nella richiesta, registro
+        # delle letture): indicizza l'aggiornamento, poi lo stato resta stabile.
+        first = client.post(f"/api/v1/ui/fascicoli/{fascicolo_id}/lex-indexing/aggiorna")
         second = client.get(f"/api/v1/ui/fascicoli/{fascicolo_id}/lex-indexing")
         documents = client.get(f"/api/v1/ui/fascicoli/{fascicolo_id}/documenti-ai")
 
@@ -429,7 +431,7 @@ def test_document_ai_api_blocca_fascicolo_di_altro_tenant_prima_di_indicizzare(t
         stato_cross = client.get(f"/api/v1/ui/fascicoli/{fascicolo_b.id}/lex-indexing", headers=headers_a)
         aggiorna_cross = client.post(f"/api/v1/ui/fascicoli/{fascicolo_b.id}/lex-indexing/aggiorna", headers=headers_a)
         lista_owner = client.get(f"/api/v1/ui/fascicoli/{fascicolo_b.id}/documenti-ai", headers=headers_b)
-        stato_owner = client.get(f"/api/v1/ui/fascicoli/{fascicolo_b.id}/lex-indexing", headers=headers_b)
+        stato_owner = client.post(f"/api/v1/ui/fascicoli/{fascicolo_b.id}/lex-indexing/aggiorna", headers=headers_b)
 
     for response in (lista_cross, stato_cross, aggiorna_cross):
         assert response.status_code == 404

@@ -21,6 +21,11 @@ API_BLUEPRINTS = (
         "api_v1_client_portal",
         "/api/v1/ui/client-portal",
     ),
+    (
+        REPO_ROOT / "web" / "blueprints" / "api_v1_template_studio.py",
+        "api_v1_template_studio",
+        "/api/v1/ui/template-atti/studio",
+    ),
     (REPO_ROOT / "web" / "bootstrap" / "condivisioni_routes.py", "app", ""),
 )
 FRONTEND_PAGES = REPO_ROOT / "docs" / "frontend-app-v2-pages.md"

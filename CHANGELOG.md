@@ -1,5 +1,76 @@
 # Changelog
 
+## 2.412.0 — 26/09/2026
+
+Primo blocco della migrazione completa a React (piano e avanzamento in
+`docs/MIGRAZIONE_REACT_COMPLETA.md`). Queste pagine non passano più dai
+template storici:
+
+- **Lex operativo** (`/lex-operativo`): fascicoli in presidio, udienze da
+  preparare, avvisi telematici e prossime azioni, con orizzonte 7/14/30 giorni.
+- **Scheda del preventivo** (`/preventivi/p/<id>`): il prossimo passo del
+  workflow commerciale (conferma dal portale o in studio, anagrafica da
+  completare, conferimento, apertura del fascicolo), PDF, parcella, conferimenti
+  collegati ed eliminazione; si apre anche se il preventivo non è nell'elenco.
+- **Ripristino di un backup** (`/backup/<id>/ripristina`), nella sezione Backup
+  delle impostazioni: la copia si estrae in una cartella dedicata
+  («ripristini/nome») accanto ai backup. La vista storica accettava qualsiasi
+  percorso del server; ora non è possibile scrivere altrove.
+- **Modifica e permessi del singolo utente** (`/utenti/<id>/modifica`,
+  `/utenti/<id>/permessi`): permessi aggiunti o tolti rispetto al ruolo, per
+  area. Non si concede un permesso che la propria sessione non ha, non si
+  modificano i propri permessi né il superamministratore.
+- **Giurisprudenza**: la scheda si apre dal suo indirizzo e si modifica con gli
+  stessi campi dell'inserimento.
+- **Modelli di studio** (`/template-atti/nuovo`, `/scheda/<id>`,
+  `/<id>/modifica`, `/<id>/usa`): testo con formattazione, variabili da
+  inserire nel cursore e importazione di DOCX, PDF, RTF o TXT; compilazione con
+  cliente e fascicolo, revisione del testo generato e PDF. I modelli integrati
+  si clonano prima di modificarli.
+- Le impostazioni dei pagamenti duplicate sotto `/pagamenti` portano alla
+  sezione Pagamenti delle impostazioni.
+
+Corretto anche:
+
+- la copertina del faldone del cliente mostrava la Panoramica: le copertine
+  sono documenti da stampare e non passano più dalla shell React;
+- l'archivio giurisprudenza non salvava una scheda con due norme scritte a mano
+  («art. 2043 c.c., art. 2059 c.c.»): i riferimenti finivano sulla stessa norma
+  e il salvataggio si fermava. Ora articolo, comma e atto si leggono dal testo.
+- le azioni della scheda del preventivo e dei modelli di studio (invio,
+  accettazione, eliminazione, clona) passano da API JSON invece che da moduli
+  HTML: la pagina resta nella shell React e mostra l'esito.
+
+Archivio delle letture e presìdi:
+
+- **le parti lette dagli atti non entravano nell'archivio**: dalla 2.408.0 i
+  motori producono fatti di categoria «parte», ma il vincolo della tabella
+  `letture_fatti` non la prevedeva. Il salvataggio dei fatti di quel documento
+  falliva per intero (anche date e importi letti insieme alle parti). Lo schema
+  SQLite e PostgreSQL ora ammette la categoria e gli archivi esistenti si
+  aggiornano da soli all'avvio, conservando le righe;
+- il nome di un ente letto nell'epigrafe si ferma alla fine della
+  denominazione: non più «Ministero. Il Giudice» o «Ministero alla rifusione
+  delle spese di lite». Cambia la versione del motore documenti, quindi i
+  documenti si rileggono una volta;
+- il presidio economico non riportava la liquidazione del giudice e le spese
+  lette da una sentenza: le voci non ancora presenti nel fascicolo erano
+  trattate come «non previste». Ora si alimentano dall'archivio; una voce che
+  l'avvocato ha segnato come non prevista resta tale;
+- il presidio economico schedulato non tenta più di indicizzare i documenti
+  (tentativo che fuori da una richiesta falliva comunque per mancanza di
+  utente): i documenti non ancora letti li prende la lettura automatica.
+
+Test della suite completa riallineati al codice (non erano strumenti mancanti):
+serie ISTAT FOI dal 2011, danno parentale tabelle di Milano 2024 (con i valori
+predefiniti corretti anche nel calcolatore), «note in sostituzione udienza»
+senza «dell'», rilettura forzata dei soli documenti presenti, controllo dei
+glifi con la tabella ToUnicode, catalogo del documento d'identità (sezione
+«identità», nessuna intestazione al cliente senza contenuto letto), indice di
+Lex che si aggiorna con l'azione dedicata e non con la sola lettura dello
+stato, Message-ID ripiegato della PEC locale, CSS mobile compresso, secondo
+motore di estrazione del testo nell'editor PDF.
+
 ## 2.411.0 — 26/09/2026
 
 Chiusi i tre limiti noti della 2.410.0.

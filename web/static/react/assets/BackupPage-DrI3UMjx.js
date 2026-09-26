@@ -1,0 +1,1 @@
+import{t as e}from"./vendor-react-BsxLamGb.js";import{t}from"./ImpostazioniPage-BpmMpb8C.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as BackupPage};

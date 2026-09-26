@@ -45,9 +45,12 @@ def test_indici_foi_2026_base_2025(norme, mese, atteso):
     assert norme.istat_index_pubblicato("foi", 2026, mese) == {"index": atteso, "base": 2025}
 
 
-def test_la_serie_copre_da_marzo_2022_a_giugno_2026(norme):
-    assert norme.istat_index("foi", 2022, 3) is not None
-    assert norme.istat_index("foi", 2022, 2) is None
+def test_la_serie_copre_da_gennaio_2011_a_giugno_2026(norme):
+    # Dalla 2.397.0 il seed comprende anche la serie storica 2011-2022
+    # (febbraio 2022: 108,8, variazione annua +5,6% come da comunicato ISTAT).
+    assert norme.istat_index("foi", 2011, 1) is not None
+    assert norme.istat_index("foi", 2010, 12) is None
+    assert norme.istat_index("foi", 2022, 2) == 108.8
     ultimo = norme.istat_last_available("foi")
     assert (ultimo["year"], ultimo["month"]) == (2026, 6)
 

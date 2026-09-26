@@ -7,7 +7,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from typing import Any, Callable
 
-from pct.auth import DESCRIZIONI_RUOLI, PERMESSI, RuoloUtente
+from pct.auth import DESCRIZIONI_RUOLI, PERMESSI, TUTTI_PERMESSI, RuoloUtente
 
 
 def _iso_now() -> str:
@@ -111,6 +111,9 @@ def _safe_user(user: Any, current_user: Any = None) -> dict[str, Any]:
         "hasOverride": bool(getattr(user, "ha_override", False)),
         "extraPermissionsCount": len(list(getattr(user, "permessi_extra", []) or [])),
         "deniedPermissionsCount": len(list(getattr(user, "permessi_negati", []) or [])),
+        "extraPermissions": sorted(_text(item) for item in list(getattr(user, "permessi_extra", []) or []) if _text(item)),
+        "deniedPermissions": sorted(_text(item) for item in list(getattr(user, "permessi_negati", []) or []) if _text(item)),
+        "rolePermissions": sorted(PERMESSI.get(role_enum, [])),
         "twoFactorEnabled": bool(getattr(user, "totp_attivato", False)),
         "isCurrentUser": bool(user_id and user_id == _current_user_id(current_user)),
     }
@@ -162,6 +165,9 @@ def _payload_from_manager(manager: Any, current_user: Any, warnings: list[dict[s
     can_write = _can(current_user, "utenti.scrivi")
     roles = _manageable_roles()
     return {
+        "permissionCatalog": [
+            {"key": chiave, "area": area, "label": etichetta} for area, chiave, etichetta in TUTTI_PERMESSI
+        ],
         "ok": True,
         "source": "repository_reali",
         "generated_at": _iso_now(),
@@ -536,3 +542,62 @@ def update_react_utente_profile(
         return _updated_result(manager, current_user, updated, "Profilo utente aggiornato.")
     except ValueError:
         return _validation("Profilo non aggiornato.", _operation_not_available(), manager=manager, current_user=current_user)
+
+
+def update_react_utente_permessi(
+    *,
+    get_utenti: Callable[[], Any],
+    current_user: Any,
+    user_id: str,
+    payload: dict[str, Any],
+    ip: str = "",
+) -> dict[str, Any]:
+    """Permessi aggiunti o tolti a un singolo utente rispetto al suo ruolo.
+
+    Non si può concedere un permesso che la sessione corrente non ha, né
+    modificare il SUPERADMIN o i propri permessi (evita l'autopromozione).
+    """
+    manager = get_utenti()
+    if not _can(current_user, "utenti.scrivi"):
+        return _permission_denied(manager, current_user)
+    errors = _reject_unknown(payload, {"extra", "denied"})
+    validi = {chiave for _area, chiave, _etichetta in TUTTI_PERMESSI}
+    extra_raw = payload.get("extra", [])
+    denied_raw = payload.get("denied", [])
+    if not isinstance(extra_raw, list) or not isinstance(denied_raw, list):
+        errors["payload"] = "Invia gli elenchi dei permessi aggiunti e negati."
+        extra_raw, denied_raw = [], []
+    extra = sorted({_text(item) for item in extra_raw if _text(item)})
+    denied = sorted({_text(item) for item in denied_raw if _text(item)})
+    sconosciuti = sorted((set(extra) | set(denied)) - validi)
+    if sconosciuti:
+        errors["permissions"] = "Permessi non riconosciuti: " + ", ".join(sconosciuti)
+    if set(extra) & set(denied):
+        errors["permissions"] = "Un permesso non può essere insieme aggiunto e negato."
+    propri = set(getattr(current_user, "permessi_effettivi", []) or [])
+    non_concedibili = sorted(set(extra) - propri)
+    if non_concedibili:
+        errors["extra"] = "Non puoi concedere permessi che la tua sessione non ha: " + ", ".join(non_concedibili)
+    if errors:
+        return _validation("Controlla i permessi indicati.", errors, manager=manager, current_user=current_user)
+    try:
+        target = _target_user(manager, user_id)
+    except ValueError:
+        return _validation("Utente non trovato.", _operation_not_available("id_utente"), manager=manager, current_user=current_user)
+    if _role_value(getattr(target, "ruolo", "")) == RuoloUtente.SUPERADMIN.value:
+        return _validation("SUPERADMIN non modificabile da questa superficie.", {"permission": "Usa il pannello piattaforma."}, manager=manager, current_user=current_user)
+    if _text(getattr(target, "id", "")) == _current_user_id(current_user):
+        return _validation("Non puoi modificare i tuoi permessi.", {"permission": "Chiedi a un altro amministratore."}, manager=manager, current_user=current_user)
+    try:
+        updated = manager.aggiorna_permessi(target.id, extra, denied)
+    except ValueError as exc:
+        return _validation("Permessi non aggiornati.", {"permissions": _text(exc)}, manager=manager, current_user=current_user)
+    _audit(
+        manager,
+        current_user,
+        "utenti.aggiorna_permessi",
+        updated,
+        {"username": getattr(updated, "username", ""), "extra": extra, "negati": denied},
+        ip,
+    )
+    return _updated_result(manager, current_user, updated, "Permessi dell'utente aggiornati.")

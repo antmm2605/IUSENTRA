@@ -498,6 +498,14 @@ def test_presidio_economico_automatico_scansiona_tutti_i_testi_senza_rileggere_i
             raise AssertionError("Il presidio automatico deve salvare in batch, non con aggiorna() per ogni fascicolo.")
 
         monkeypatch.setattr(repo, "_salva", counted_save)
+        # Il salvataggio in batch riscrive solo i fascicoli toccati (2.410.0).
+        original_partial = getattr(repo, "_salva_fascicoli_parziale", None)
+        if callable(original_partial):
+            def counted_partial(*args, **kwargs):
+                save_calls["count"] += 1
+                return original_partial(*args, **kwargs)
+
+            monkeypatch.setattr(repo, "_salva_fascicoli_parziale", counted_partial)
         monkeypatch.setattr(repo, "aggiorna", forbidden_single_update)
         result = react_fascicoli_bridge.run_react_fascicoli_economic_presidio(
             get_fascicoli=lambda: repo,
@@ -508,7 +516,8 @@ def test_presidio_economico_automatico_scansiona_tutti_i_testi_senza_rileggere_i
 
     assert result["contributiCheckedCount"] == 1
     assert result["documentAnalysisUpdatedCount"] == 1
-    assert indexed_document_counts == [8]
+    # Il presidio proietta l'archivio delle letture: non rilegge né i file né l'indice.
+    assert indexed_document_counts == []
     assert save_calls["count"] == 1
 
 
@@ -650,6 +659,12 @@ def test_documenti_nuovi_alimentano_in_autonomia_contributo_e_liquidazione(tmp_p
     assert indexed["errors"] == []
 
     with app.app_context():
+        # L'archivio lo alimentano i motori di lettura (giro automatico dello
+        # scheduler); il presidio economico proietta i fatti collaudati.
+        from web.services.archivio_letture_runtime import leggi_fascicolo
+
+        lettura = leggi_fascicolo(get_fascicoli().get(fascicolo.id))
+        assert lettura["documenti"]["letti"] == 2
         economic = react_fascicoli_bridge.run_react_fascicoli_economic_presidio(
             get_fascicoli=get_fascicoli,
             get_fatturazione=get_fatturazione,
@@ -663,7 +678,10 @@ def test_documenti_nuovi_alimentano_in_autonomia_contributo_e_liquidazione(tmp_p
     assert saved.pagamenti["contributo_unificato"]["importo"] == 49.0
     assert saved.pagamenti["liquidazione_giudice"]["status"] == "da_registrare"
     assert saved.pagamenti["liquidazione_giudice"]["importo"] == 1100.0
-    assert saved.pagamenti["parcella"]["status"] == "da_emettere"
+    parcella = react_fascicoli_bridge._payment_item(
+        "parcella", react_fascicoli_bridge._payment_source_for_kind(saved.pagamenti, "parcella"), fascicolo.id
+    )
+    assert parcella["status"] == "da_emettere"
 
     second_index = document_repo.recover_missing_hearings_from_fascicolo_documents(limit=10, actor="scheduler")
     assert second_index["processed_new_documents"] == 0

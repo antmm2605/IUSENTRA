@@ -587,3 +587,20 @@ export async function createGiurisprudenzaRecord(
   )
   return normaliseCreateResponse(payload)
 }
+
+export async function getGiurisprudenzaEditPage(recordId: string): Promise<GiurisprudenzaCreatePageData> {
+  const payload = await apiJson<unknown>(`/api/v1/ui/giurisprudenza/${encodeURIComponent(recordId)}/modifica`, emptyGiurisprudenzaCreatePage)
+  return normaliseCreatePage(payload)
+}
+
+export async function updateGiurisprudenzaRecord(
+  recordId: string,
+  form: GiurisprudenzaCreateDefaults,
+): Promise<GiurisprudenzaCreateResponse> {
+  const payload = await apiPostJson<unknown>(
+    `/api/v1/ui/giurisprudenza/${encodeURIComponent(recordId)}/modifica`,
+    form,
+    emptyGiurisprudenzaCreateResponse,
+  )
+  return normaliseCreateResponse(payload)
+}

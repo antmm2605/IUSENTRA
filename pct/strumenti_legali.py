@@ -584,8 +584,8 @@ class GestioneStrumentiLegali:
             "dp_categoria": "nucleo_primario",
             "dp_eta_vittima": "",
             "dp_eta_congiunto": "",
-            "dp_convivenza": "1",
-            "dp_unico_superstite": "0",
+            "dp_convivenza": "convivenza",
+            "dp_superstiti": "0",
             "dp_qualita_relazione": "ordinaria",
             # Usufrutto e nuda proprieta
             "usu_valore_piena": "",

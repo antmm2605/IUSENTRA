@@ -18,11 +18,22 @@ def _human(assignment: Any) -> bool:
 def prepara_catalogo(fascicolo: Any, oggetti: list[Any], repository: Any, tenant: str) -> tuple[list, dict, dict]:
     """Solo documenti presenti: l'ID del fascicolo resta distinto dall'ID DocumentAI."""
     fid = str(fascicolo.id)
-    hashes = {o.oggetto_id: o.sha256 for o in oggetti if o.tipo == 'documento' and o.presente and o.sha256}
+    # Un documento si riconosce dall'impronta del contenuto in chiaro quando è nota,
+    # altrimenti da quella del file conservato: DocumentAI registra l'una o l'altra
+    # a seconda che abbia letto il contenuto o solo l'inventario.
+    candidati: dict[str, list[str]] = {}
+    for o in oggetti:
+        if o.tipo != 'documento' or not o.presente:
+            continue
+        impronte = [i for i in dict.fromkeys((_text(o.sha256), _text(getattr(o, 'sha256_archivio', '')))) if i]
+        if impronte:
+            candidati[o.oggetto_id] = impronte
+    tutte = {i for impronte in candidati.values() for i in impronte}
     ready = {}
     for record in sorted(repository.list_documents(tenant, fid), key=lambda r: _text(r.updated_at), reverse=True):
-        if _text(record.status) == 'ready' and record.sha256 in hashes.values():
+        if _text(record.status) == 'ready' and record.sha256 in tutte:
             ready.setdefault(record.sha256, record)
+    hashes = {doc_id: next((i for i in impronte if i in ready), impronte[0]) for doc_id, impronte in candidati.items()}
     assignments = {}
     for assignment in sorted(repository.list_catalog_assignments(tenant, fid), key=lambda a: _text(a.updated_at), reverse=True):
         assignments.setdefault((assignment.document_id, assignment.document_sha256), assignment)

@@ -18,6 +18,7 @@ _COMPONENT_LABELS = {
 }
 _CREATE_KEYS = {"type", "components", "note", "confirm"}
 _VERIFY_KEYS = {"backupId", "confirm"}
+_RESTORE_KEYS = {"backupId", "folder", "components", "overwrite", "confirm"}
 
 
 def _iso_now() -> str:
@@ -97,7 +98,7 @@ def _record(row: Any) -> dict[str, Any]:
         "note": _text(getattr(row, "nota", "")),
         "error": _text(getattr(row, "errore", "")),
         "downloadHref": f"/backup/{record_id}/scarica" if can_download else "",
-        "restoreHref": f"/backup/{record_id}/ripristina?_legacy=1" if can_download else "",
+        "restoreHref": f"/backup/{record_id}/ripristina" if can_download else "",
     }
 
 
@@ -415,3 +416,91 @@ def verify_react_backup_integrity(
         backup=backup_payload,
         integrity=integrity,
     )
+
+
+def _restore_root(manager: Any) -> Path:
+    """Cartella dei ripristini: accanto a quella dei backup, mai un percorso scelto a mano."""
+    base = Path(_text(getattr(manager, "dir", "")) or _text(getattr(getattr(manager, "_config", None), "directory_backup", "")) or "./backup")
+    return base.parent / "ripristini"
+
+
+def restore_react_backup(
+    *,
+    get_backup: Callable[[], Any],
+    get_utenti: Callable[[], Any],
+    current_user: Any,
+    payload: dict[str, Any],
+    ip: str = "",
+) -> dict[str, Any]:
+    """Ripristino di un backup in una cartella dedicata, per il controllo prima dell'uso.
+
+    La vista storica accettava un percorso qualsiasi del server: qui la
+    destinazione è sempre una sottocartella di «ripristini» accanto ai backup,
+    con un nome fatto di lettere, cifre, trattini e trattini bassi. Una copia
+    cifrata si apre con la chiave configurata per i backup dello studio: la
+    schermata non chiede né trasmette segreti.
+    """
+    import re
+
+    errors = _forbidden_fields(payload, _RESTORE_KEYS)
+    backup_id = _text(payload.get("backupId", ""))
+    if not backup_id:
+        errors["backupId"] = "Seleziona la copia da ripristinare."
+    if payload.get("confirm") is not True:
+        errors["confirm"] = "Conferma esplicitamente il ripristino."
+    folder = _text(payload.get("folder", "")) or datetime.now().strftime("ripristino-%Y%m%d-%H%M%S")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}", folder):
+        errors["folder"] = "Usa solo lettere, cifre, trattini e trattini bassi (massimo 64 caratteri)."
+    raw_components = payload.get("components", [])
+    manager = get_backup()
+    allowed_components = set(_available_components(manager))
+    if raw_components in (None, "", []):
+        components: list[str] | None = None
+    elif isinstance(raw_components, list):
+        components = [_text(item) for item in raw_components if _text(item)]
+        if set(components) - allowed_components:
+            errors["components"] = "Alcune parti indicate non esistono nel backup."
+    else:
+        components = None
+        errors["components"] = "Invia una lista di componenti valida."
+    if errors:
+        return _result(ok=False, message="Controlla i campi evidenziati.", errors=errors)
+    record = manager.get(backup_id)
+    if record is None:
+        return _result(ok=False, message="Backup non trovato.", errors={"backupId": "La copia indicata non esiste nel registro backup."})
+    destinazione = _restore_root(manager) / folder
+    try:
+        esito = manager.ripristina(
+            backup_id,
+            str(destinazione),
+            componenti=components,
+            sovrascrivi=payload.get("overwrite") is True,
+        )
+    except (ValueError, FileNotFoundError) as exc:
+        return _result(ok=False, message="Ripristino non eseguito.", errors={"_form": _text(exc) or "Ripristino non riuscito."}, backup=_record(record))
+    _audit(
+        get_utenti=get_utenti,
+        current_user=current_user,
+        action="backup.ripristina",
+        resource_id=backup_id,
+        details=f"cartella={folder}; file={esito.get('file_ripristinati', 0)}; saltati={esito.get('file_saltati', 0)}",
+        ip=ip,
+    )
+    errori = [str(item) for item in list(esito.get("errori") or [])][:10]
+    return {
+        **_result(
+            ok=not errori,
+            message=(
+                f"Ripristino completato: {esito.get('file_ripristinati', 0)} file ripristinati, "
+                f"{esito.get('file_saltati', 0)} saltati, nella cartella «ripristini/{folder}»."
+            ),
+            errors={"_form": "; ".join(errori)} if errori else {},
+            backup=_record(record),
+        ),
+        "restore": {
+            "folder": f"ripristini/{folder}",
+            "restored": int(esito.get("file_ripristinati", 0) or 0),
+            "skipped": int(esito.get("file_saltati", 0) or 0),
+            "errors": errori,
+        },
+    }

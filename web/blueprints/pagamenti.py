@@ -100,6 +100,9 @@ def impostazioni_pagamenti():
         flash("Impostazioni pagamenti salvate.", "success")
         return redirect(url_for("pagamenti.impostazioni_pagamenti"))
 
+    if (request.args.get("_legacy") or "").strip().lower() not in {"1", "true", "si", "yes", "on"}:
+        # Le impostazioni dei pagamenti stanno nella sezione Pagamenti di Impostazioni (React).
+        return redirect("/impostazioni?tab=pagamenti")
     cfg = gp.config
     link_recenti = gp.tutti_link()[:20]
     return render_template(

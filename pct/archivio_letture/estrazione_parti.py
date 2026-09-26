@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 
 from pct.registro_letture.fatti_repository import Fatto
 
-VERSIONE_ESTRAZIONE_PARTI = "2026.09.26.parti-v2-lato"
+VERSIONE_ESTRAZIONE_PARTI = "2026.09.26.parti-v3-ente"
 _CF = re.compile(r"\b([A-Z]{3}\s?[A-Z]{3}\s?\d{2}[A-Z]\d{2}\s?[A-Z]\d{3}[A-Z])\b")
 _PIVA_ENTE = re.compile(r"\b(?:c\.?\s*f\.?|p\.?\s*iva|codice\s+fiscale)\s*:?\s*(\d{11})\b", re.IGNORECASE)
 # Un nome sta su una riga: le intestazioni sopra l'epigrafe non vi si attaccano.
@@ -144,6 +144,31 @@ def _blocchi(epigrafe: str, epigrafe_completa: dict[str, str] | None = None) -> 
     return blocchi
 
 
+# Le parole minuscole ammesse dentro la denominazione di un ente pubblico
+# («Ministero dell'Istruzione e del Merito», «Agenzia delle Entrate»).
+_CONNETTIVI_ENTE = {"di", "da", "del", "della", "delle", "dello", "dei", "degli", "e", "ed", "per", "la", "le", "il", "lo", "gli", "in", "sul", "sulla"}
+
+
+def _taglia_ente(denominazione: str) -> str:
+    """La denominazione dell'ente senza il seguito della frase.
+
+    «Ministero. Il Giudice…» e «Ministero alla rifusione delle spese» non sono
+    nomi di parte: la denominazione finisce al punto che chiude la frase o alla
+    prima parola minuscola che non è un connettivo della denominazione.
+    """
+    testo = re.split(r"\.\s+(?=[A-ZÀ-Ü][a-zà-ÿ])", " ".join(str(denominazione or "").split()), maxsplit=1)[0]
+    tenute: list[str] = []
+    for parola in testo.split(" "):
+        base = parola.strip(".,;:")
+        minuscola = base[:1].islower()
+        if minuscola and base.casefold() not in _CONNETTIVI_ENTE and not re.match(r"d(?:ell|all|ei|egli)?['’]", base, re.IGNORECASE):
+            break
+        tenute.append(parola)
+    while tenute and tenute[-1].strip(".,;:").casefold() in _CONNETTIVI_ENTE:
+        tenute.pop()
+    return " ".join(tenute).strip(" .;:-")
+
+
 _ANCORA_PERSONA = re.compile(
     rf"({_NOME})\s*,\s*(?:c\.?\s*f\.?|nat[oa]\b|codice\s+fiscale)"
     rf"|({_NOME}(?:[ \t]+e[ \t]+{_NOME})*)\s*,\s*(?:entramb\w+\s+)?rappresentat"
@@ -168,7 +193,7 @@ def _parte_del_blocco(lato: str, blocco: str) -> list[ParteLetta]:
         # sul pezzo che sembra un nome di persona dentro la sua denominazione.
         ancore = [(a, n) for a, n in ancore if not (m.start() <= a < m.end())]
         if not any(abs(m.start() - a) < 40 for a, _ in ancore):
-            ancore.append((m.start(), m.group(1)))
+            ancore.append((m.start(), _taglia_ente(m.group(1))))
     ancore.sort()
     if not ancore:
         # «Tizio e Caio, rappresentati e difesi…»: più persone nominate insieme in testa al blocco.

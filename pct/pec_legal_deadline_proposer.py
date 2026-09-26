@@ -77,6 +77,15 @@ _PROSPECTIVE_127_TER_MARKERS = (
     "puo' opporsi",
     "entro cinque giorni dalla comunicazione",
     "entro 5 giorni dalla comunicazione",
+    # Il provvedimento che dispone la trattazione scritta è quello da cui decorre
+    # l'opposizione (art. 127-ter co. 2 c.p.c.): «dispone» guarda avanti, una
+    # sentenza che richiama il 127-ter come modalità già svolta non lo usa.
+    "dispone la trattazione scritta",
+    "disposta la trattazione scritta",
+    "disporre la trattazione scritta",
+    "depositare le note scritte",
+    "assegna termine per note",
+    "assegna alle parti termine",
 )
 
 

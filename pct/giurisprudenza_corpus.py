@@ -68,6 +68,32 @@ def derive_corpus_db_path(storage_path: str) -> str:
     return str(target.with_name(f"{stem}_corpus.db"))
 
 
+
+_ARTICOLO_NORMA = re.compile(
+    r"\bart(?:icol[oi]|t?\.)?\s*(\d+(?:\s*[-]?\s*(?:bis|ter|quater|quinquies|sexies|septies|octies|novies|decies))?)",
+    re.IGNORECASE,
+)
+_COMMA_NORMA = re.compile(r"\bcomm[ai]\s*(\d+(?:\s*[-]?\s*(?:bis|ter|quater))?)", re.IGNORECASE)
+
+
+def _norma_da_testo(testo: Any) -> dict[str, str]:
+    """«art. 2043 c.c.» → articolo 2043, sigla «c.c.»; senza articolo la sigla è il testo."""
+    pulito = _clean_spaces(testo)
+    articolo = _ARTICOLO_NORMA.search(pulito)
+    if not articolo:
+        return {"sigla": pulito, "testo_riferimento": pulito}
+    comma = _COMMA_NORMA.search(pulito)
+    resto = pulito[articolo.end():]
+    if comma and comma.start() >= articolo.end():
+        resto = pulito[comma.end():]
+    sigla = _clean_spaces(re.sub(r"^[\s,;]+", "", resto)) or pulito
+    return {
+        "articolo": re.sub(r"\s+|-", "", articolo.group(1)).lower(),
+        "comma": re.sub(r"\s+|-", "", comma.group(1)).lower() if comma else "",
+        "sigla": sigla,
+        "testo_riferimento": pulito,
+    }
+
 class GestioneCorpusGiurisprudenza:
     def __init__(self, db_path: str, schema_path: Path | None = None):
         self.db_path = str(db_path)
@@ -369,6 +395,10 @@ class GestioneCorpusGiurisprudenza:
         conn.execute("DELETE FROM sentenza_norme WHERE sentenza_id = ?", (sentenza_id,))
         for row in rows:
             item = {"testo_riferimento": row} if isinstance(row, str) else dict(row or {})
+            if not _clean_spaces(item.get("sigla")) and not _clean_spaces(item.get("articolo")):
+                # Riferimento scritto a mano («art. 2043 c.c.»): articolo, comma e atto
+                # separati, altrimenti riferimenti diversi finivano sulla stessa norma.
+                item = {**_norma_da_testo(item.get("testo_riferimento") or item.get("riferimento") or ""), **{k: v for k, v in item.items() if v}}
             cursor = conn.execute(
                 """
                 INSERT OR IGNORE INTO norme (
@@ -388,7 +418,9 @@ class GestioneCorpusGiurisprudenza:
                     _normalize_url(item.get("url_ufficiale")),
                 ),
             )
-            if cursor.lastrowid:
+            # Con INSERT OR IGNORE lastrowid resta quello dell'inserimento precedente:
+            # vale solo se la riga è stata davvero inserita.
+            if cursor.rowcount and cursor.lastrowid:
                 norma_id = int(cursor.lastrowid)
             else:
                 norma_id = int(
@@ -412,7 +444,7 @@ class GestioneCorpusGiurisprudenza:
                 )
             conn.execute(
                 """
-                INSERT INTO sentenza_norme (
+                INSERT OR IGNORE INTO sentenza_norme (
                     sentenza_id, norma_id, tipo_richiamo, primaria, note
                 ) VALUES (?, ?, ?, ?, ?)
                 """,

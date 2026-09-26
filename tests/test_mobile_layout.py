@@ -59,9 +59,11 @@ def test_dashboard_classica_mobile_header_usa_griglia_coerente(tmp_path: Path):
 
     assert page.status_code == 200
     assert 'class="ds-ph-actions"' in html
-    assert "grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));" in css
-    assert ".ds-ph-actions .d-none.d-sm-inline" in css
-    assert ".topbar-actions .btn," in css
+    # Il CSS compilato e' compresso (dart-sass --style=compressed): si confronta senza spazi.
+    css_compatto = "".join(css.split())
+    assert "grid-template-columns:repeat(auto-fit,minmax(120px,1fr))" in css_compatto
+    assert ".ds-ph-actions.d-none.d-sm-inline" in css_compatto
+    assert ".topbar-actions.btn," in css_compatto
     assert "grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));" in scss
     assert ".ds-ph-actions .d-none.d-sm-inline" in scss
     assert ".topbar-actions .btn," in scss

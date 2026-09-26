@@ -400,7 +400,9 @@ def test_invio_locale_serializza_smtp_reale_con_nome_pc_accentato(monkeypatch):
     assert str(parsed["Subject"]) == subject
     assert parsed.get_body().get_content().strip() == body
     assert str(parsed["Message-ID"]).isascii()
-    assert result["message_id"] == parsed["Message-ID"]
+    # Un Message-ID lungo viene ripiegato su una riga di continuazione: il parser
+    # della libreria standard conserva lo spazio iniziale del ripiegamento.
+    assert result["message_id"] == str(parsed["Message-ID"]).strip()
     assert "@xn--pc-nicol-t3a.example.test>" in str(parsed["Message-ID"])
     attached = list(parsed.iter_attachments())
     assert attached[0].get_filename() == filename

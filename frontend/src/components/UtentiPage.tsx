@@ -17,6 +17,7 @@ import {
   emptyUtentiPage,
   getUtentiPage,
   resetUtentePassword,
+  updateUtentePermessi,
   updateUtenteProfile,
   updateUtenteRole,
   updateUtenteStatus,
@@ -419,6 +420,110 @@ function NewUserView({ data, onCreated }: { data: UtentiPageData; onCreated: () 
   )
 }
 
+type PermessoScelta = 'ruolo' | 'aggiungi' | 'nega'
+
+function utenteDaPercorso(): { id: string; sezione: string } {
+  if (typeof window === 'undefined') return { id: '', sezione: '' }
+  const match = window.location.pathname.replace(/\/+$/, '').match(/^\/utenti\/([^/]+)\/(modifica|permessi)$/i)
+  return match ? { id: decodeURIComponent(match[1]), sezione: match[2].toLowerCase() } : { id: '', sezione: '' }
+}
+
+function PermessiEditor({
+  data,
+  user,
+  onResult,
+}: {
+  data: UtentiPageData
+  user: UtenteRecord
+  onResult: (result: UtenteMutationResult) => void
+}) {
+  const iniziale = useMemo(() => {
+    const scelte: Record<string, PermessoScelta> = {}
+    for (const key of user.extraPermissions) scelte[key] = 'aggiungi'
+    for (const key of user.deniedPermissions) scelte[key] = 'nega'
+    return scelte
+  }, [user])
+  const [scelte, setScelte] = useState<Record<string, PermessoScelta>>(iniziale)
+  const [stato, setStato] = useState<SaveStatus>('idle')
+  const [messaggio, setMessaggio] = useState('')
+  const [errori, setErrori] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    setScelte(iniziale)
+    setStato('idle')
+    setMessaggio('')
+    setErrori({})
+  }, [iniziale])
+
+  const aree = useMemo(() => {
+    const gruppi = new Map<string, typeof data.permissionCatalog>()
+    for (const voce of data.permissionCatalog) {
+      gruppi.set(voce.area, [...(gruppi.get(voce.area) || []), voce])
+    }
+    return [...gruppi.entries()]
+  }, [data.permissionCatalog])
+
+  const modificabile = data.actions.canUpdate && !user.isCurrentUser && user.role !== 'SUPERADMIN'
+  const sporco = JSON.stringify(Object.entries(scelte).filter(([, v]) => v !== 'ruolo').sort()) !== JSON.stringify(Object.entries(iniziale).sort())
+
+  async function salva() {
+    setStato('saving')
+    setMessaggio('')
+    setErrori({})
+    const extra = Object.entries(scelte).filter(([, v]) => v === 'aggiungi').map(([k]) => k)
+    const denied = Object.entries(scelte).filter(([, v]) => v === 'nega').map(([k]) => k)
+    const result = await updateUtentePermessi(user.id, { extra, denied })
+    setStato(result.ok ? 'success' : 'error')
+    setMessaggio(result.message)
+    setErrori(result.errors)
+    onResult(result)
+  }
+
+  if (!data.permissionCatalog.length) return null
+  return (
+    <section className="iu-users-editor-section" id="permessi-utente">
+      <h3>Permessi personalizzati</h3>
+      <p className="iu-users-help">
+        Il ruolo {user.roleLabel} dà già i permessi segnati «dal ruolo». Qui puoi aggiungerne o toglierne singolarmente.
+        {user.isCurrentUser ? ' Non puoi modificare i tuoi permessi.' : ''}
+      </p>
+      <StatusMessage status={stato} message={messaggio} errors={errori} />
+      <div className="iu-users-perms">
+        {aree.map(([area, voci]) => (
+          <fieldset key={area}>
+            <legend>{area}</legend>
+            {voci.map((voce) => {
+              const dalRuolo = user.rolePermissions.includes(voce.key)
+              const scelta = scelte[voce.key] || 'ruolo'
+              return (
+                <label className="iu-users-perm" key={voce.key}>
+                  <span>{voce.label} <small>{voce.key}</small></span>
+                  <select
+                    value={scelta}
+                    disabled={!modificabile || stato === 'saving'}
+                    onChange={(event) => setScelte((correnti) => ({ ...correnti, [voce.key]: event.target.value as PermessoScelta }))}
+                    aria-label={`${area}: ${voce.label}`}
+                  >
+                    <option value="ruolo">{dalRuolo ? 'Dal ruolo: concesso' : 'Dal ruolo: non concesso'}</option>
+                    <option value="aggiungi" disabled={dalRuolo}>Aggiungi</option>
+                    <option value="nega" disabled={!dalRuolo}>Togli</option>
+                  </select>
+                </label>
+              )
+            })}
+          </fieldset>
+        ))}
+      </div>
+      <div className="iu-users-form-actions">
+        <Button type="button" tone="primary" onClick={salva} disabled={!modificabile || !sporco || stato === 'saving'}>
+          <ShieldCheck size={16} />
+          Salva permessi
+        </Button>
+      </div>
+    </section>
+  )
+}
+
 function UserEditor({
   data,
   selectedUser,
@@ -687,6 +792,7 @@ function UserEditor({
             {!data.actions.canResetPassword ? <small>Reimpostazione non autorizzata per la sessione corrente.</small> : null}
           </div>
         </section>
+        <PermessiEditor data={data} user={selectedUser} onResult={onResult} />
       </div>
     </Panel>
   )
@@ -696,7 +802,7 @@ export function UtentiPage() {
   const [data, setData] = useState<UtentiPageData>(emptyUtentiPage)
   const [loadStatus, setLoadStatus] = useState<LoadStatus>('loading')
   const [message, setMessage] = useState('')
-  const [selectedUserId, setSelectedUserId] = useState('')
+  const [selectedUserId, setSelectedUserId] = useState(() => utenteDaPercorso().id)
   const [query, setQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState<UserFilter>('tutti')
@@ -719,6 +825,11 @@ export function UtentiPage() {
   useEffect(() => {
     refreshData()
   }, [])
+
+  useEffect(() => {
+    if (loadStatus !== 'ready' || utenteDaPercorso().sezione !== 'permessi') return
+    document.getElementById('permessi-utente')?.scrollIntoView({ block: 'start' })
+  }, [loadStatus])
 
   const filteredUsers = useMemo(
     () => data.users.filter((user) => {

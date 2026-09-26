@@ -50,9 +50,16 @@ export type UtenteRecord = {
   hasOverride: boolean
   extraPermissionsCount: number
   deniedPermissionsCount: number
+  extraPermissions: string[]
+  deniedPermissions: string[]
+  rolePermissions: string[]
   twoFactorEnabled: boolean
   isCurrentUser: boolean
 }
+
+export type PermissionCatalogEntry = { key: string; area: string; label: string }
+
+export type UpdateUtentePermessiPayload = { extra: string[]; denied: string[] }
 
 export type UtenteRole = {
   value: string
@@ -140,6 +147,7 @@ export type UtentiPageData = {
   roles: UtenteRole[]
   forms: unknown[]
   warnings: UtentiWarning[]
+  permissionCatalog: PermissionCatalogEntry[]
 }
 
 export type UpdateUtenteStatusPayload = {
@@ -217,6 +225,7 @@ export const emptyUtentiPage: UtentiPageData = {
   roles: [],
   forms: [],
   warnings: [],
+  permissionCatalog: [],
 }
 
 const emptyMutation: UtenteMutationResult = {
@@ -322,6 +331,9 @@ function normaliseUser(raw: unknown): UtenteRecord {
     hasOverride: bool(item.hasOverride),
     extraPermissionsCount: number(item.extraPermissionsCount),
     deniedPermissionsCount: number(item.deniedPermissionsCount),
+    extraPermissions: list(item.extraPermissions).map((entry) => text(entry)).filter(Boolean),
+    deniedPermissions: list(item.deniedPermissions).map((entry) => text(entry)).filter(Boolean),
+    rolePermissions: list(item.rolePermissions).map((entry) => text(entry)).filter(Boolean),
     twoFactorEnabled: bool(item.twoFactorEnabled),
     isCurrentUser: bool(item.isCurrentUser),
   }
@@ -400,6 +412,10 @@ function normalisePage(raw: unknown): UtentiPageData {
     roles: list(page.roles).map(normaliseRole).filter((role) => role.value),
     forms: [],
     warnings: list(page.warnings).map(normaliseWarning),
+    permissionCatalog: list(page.permissionCatalog).map((raw) => {
+      const entry = asRecord(raw)
+      return { key: text(entry.key), area: display(entry.area), label: display(entry.label) }
+    }).filter((entry) => entry.key),
   }
 }
 
@@ -472,6 +488,12 @@ export async function updateUtenteProfile(
   endpointPatternValue = '/api/v1/ui/utenti/{id_utente}/profilo',
 ): Promise<UtenteMutationResult> {
   const endpoint = endpointFromPattern(endpointPatternValue, userId, '/api/v1/ui/utenti/{id_utente}/profilo')
+  const response = await apiPostJson<unknown>(endpoint, payload, emptyMutation)
+  return normaliseMutation(response)
+}
+
+export async function updateUtentePermessi(userId: string, payload: UpdateUtentePermessiPayload): Promise<UtenteMutationResult> {
+  const endpoint = `/api/v1/ui/utenti/${encodeURIComponent(userId)}/permessi`
   const response = await apiPostJson<unknown>(endpoint, payload, emptyMutation)
   return normaliseMutation(response)
 }

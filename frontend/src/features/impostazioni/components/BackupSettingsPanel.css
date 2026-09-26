@@ -179,3 +179,9 @@
     flex-direction: column;
   }
 }
+
+.iu-backup-settings__hint {
+  margin: 0 0 10px;
+  font-size: 0.86rem;
+  color: var(--iu-muted);
+}

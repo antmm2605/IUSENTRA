@@ -44,7 +44,7 @@ def _install_fake_pdfplumber(monkeypatch):
 
 def test_pdf_to_html_non_mostra_token_cid_quando_ocr_recupera_testo(monkeypatch):
     _install_fake_pdfplumber(monkeypatch)
-    monkeypatch.setattr(editor, "_estrai_testo_pymupdf", lambda _data, _page_index: "")
+    monkeypatch.setattr(editor, "_estrai_testo_secondo_motore", lambda _data, _page_index: "")
     monkeypatch.setattr(
         editor,
         "_ocr_pagina",
@@ -62,7 +62,7 @@ def test_pdf_to_html_non_mostra_token_cid_quando_ocr_recupera_testo(monkeypatch)
 
 def test_documento_to_html_blocca_pdf_cid_senza_fallback_affidabile(monkeypatch):
     _install_fake_pdfplumber(monkeypatch)
-    monkeypatch.setattr(editor, "_estrai_testo_pymupdf", lambda _data, _page_index: "")
+    monkeypatch.setattr(editor, "_estrai_testo_secondo_motore", lambda _data, _page_index: "")
     monkeypatch.setattr(editor, "_ocr_pagina", lambda _data, _page_index, _pagina=None: "")
 
     html, avvisi, meta = editor.documento_to_html(b"%PDF fake", "Ordinanza_32473463.pdf")

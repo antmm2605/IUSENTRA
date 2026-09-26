@@ -155,6 +155,7 @@ _ROUTE_COMPONENTS: tuple[tuple[str, str], ...] = (
     ("/legal-skills/prompt", "src/features/legal-skills/pages/PromptLibraryPage.tsx"),
     ("/legal-skills", "src/features/legal-skills/pages/LegalSkillsCatalogPage.tsx"),
     ("/lex-apprendimento", "src/components/LexLearningPage.tsx"),
+    ("/lex-operativo", "src/components/LexOperativoPage.tsx"),
     ("/procedure-completion", "src/features/procedure-completion/ProcedureCompletionPage.tsx"),
     ("/oggi", "src/pages/daily-plan/OggiPage.tsx"),
     ("/workflow-agents/approvals", "src/pages/workflow-agents/AgentApprovalQueue.tsx"),
@@ -200,6 +201,8 @@ def _route_component_key(path: str) -> str:
         return ""
     if lower.startswith("/clienti/") and lower.endswith("/collaboratori"):
         return "src/components/ClientiCollaboratoriPage.tsx"
+    if _modello_di_studio(lower):
+        return "src/components/TemplateStudioPage.tsx"
     for prefix, component in _ROUTE_COMPONENTS:
         if lower == prefix or lower.startswith(f"{prefix}/"):
             return component
@@ -479,6 +482,17 @@ def _react_runtime_flags() -> dict[str, bool]:
     }
 
 
+def _modello_di_studio(lower: str) -> bool:
+    parti = [parte for parte in lower.strip("/").split("/") if parte]
+    if parti[:1] != ["template-atti"]:
+        return False
+    if parti == ["template-atti", "nuovo"]:
+        return True
+    if len(parti) == 3 and parti[1] == "scheda":
+        return True
+    return len(parti) == 3 and parti[2] in {"modifica", "usa"} and parti[1] not in {"compila", "catalogo", "editor", "scheda"}
+
+
 def _deve_mantenere_vista_classica() -> bool:
     """Blocca promozioni React non validate fuori dalla shell progressiva."""
 
@@ -503,11 +517,15 @@ def _deve_mantenere_vista_classica() -> bool:
     ):
         return True
     if lower.startswith("/utenti/") and lower != "/utenti/nuovo":
-        return True
+        # Modifica e permessi del singolo utente: UtentiPage React.
+        parti = [parte for parte in lower.strip("/").split("/") if parte]
+        return not (len(parti) == 3 and parti[2] in {"modifica", "permessi"})
     if lower.startswith("/profili/"):
         return True
     if lower.startswith("/backup/"):
-        return True
+        # Il ripristino di una copia è nella sezione Backup delle impostazioni React.
+        parti = [parte for parte in lower.strip("/").split("/") if parte]
+        return not (len(parti) == 3 and parti[2] == "ripristina")
     if lower == "/scadenziario" or lower.startswith("/scadenziario/"):
         if not _scadenziario_react_allowed(lower):
             return True
@@ -528,16 +546,21 @@ def _deve_mantenere_vista_classica() -> bool:
     if lower.startswith("/sincronizzazione-calendari/"):
         return True
     is_conferimento_detail = lower.startswith("/preventivi/conferimento/") and lower.count("/") == 3
+    # Scheda del preventivo: React (PreventiviPage apre il dettaglio con workflow e azioni).
+    is_preventivo_detail = lower.startswith("/preventivi/p/") and lower.count("/") == 3
     if lower.startswith("/preventivi/") and lower not in {
         "/preventivi/nuovo",
         "/preventivi/wizard",
         "/preventivi/conferimento/nuovo",
-    } and not is_conferimento_detail:
+    } and not is_conferimento_detail and not is_preventivo_detail:
         return True
     if lower.startswith("/compensi-forensi/"):
         return True
     if lower.startswith("/tariffario/"):
         return True
+    # Modelli di studio (nuovo, scheda, modifica, compilazione): TemplateStudioPage React.
+    if _modello_di_studio(lower):
+        return False
     if lower == "/template-atti/nuovo":
         return True
     if lower in {"/template-atti/editor", "/template-atti/editor-libero"}:
@@ -553,7 +576,9 @@ def _deve_mantenere_vista_classica() -> bool:
     if lower.startswith("/deposito/checklist/"):
         return True
     if lower.startswith("/giurisprudenza/") and lower != "/giurisprudenza/nuova":
-        return True
+        # Scheda e modifica di una sentenza: GiurisprudenzaPage React.
+        parti = [parte for parte in lower.strip("/").split("/") if parte]
+        return not (len(parti) == 2 or (len(parti) == 3 and parti[2] == "modifica"))
     # /legal-intelligence/fonte/<id>/scarica e /daily/ restano legacy (download file e rendering server-side).
     if lower.startswith("/legal-intelligence/") and lower not in {
         "/legal-intelligence/mediazione",

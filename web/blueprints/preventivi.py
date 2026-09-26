@@ -809,6 +809,96 @@ def dettaglio_preventivo(id_preventivo: str):
     )
 
 
+def prossimo_passo_preventivo(id_preventivo: str) -> dict | None:
+    """Prossimo passo del workflow commerciale di un preventivo, per la vista React.
+
+    Stessa logica della scheda storica: fascicolo già aperto, conferma (portale
+    cliente o accettazione in studio), completamento anagrafica, conferimento,
+    apertura guidata del fascicolo. Le azioni POST restano le route esistenti.
+    """
+    from pct.preventivi import StatoPreventivo
+
+    gp = _get_gp()
+    p = gp.get_preventivo(id_preventivo)
+    if not p:
+        return None
+    cliente = get_clienti().get(p.id_cliente) if p.id_cliente else None
+    fascicolo = get_fascicoli().get(p.id_fascicolo) if p.id_fascicolo else None
+    conferimenti = gp.conferimenti_per_preventivo(id_preventivo)
+    conferimento_principale = conferimenti[0] if conferimenti else None
+    try:
+        portale_obj = _get_portale_mgr().get_by_cliente(cliente.id) if cliente else None
+    except Exception:
+        portale_obj = None
+    url_crea_conferimento = url_for("preventivi.nuovo_conferimento", id_cliente=p.id_cliente) + f"?id_preventivo={p.id}&from_page=preventivo"
+    accettato = p.stato in {StatoPreventivo.ACCETTATO, StatoPreventivo.CONVERTITO}
+    suggerisci_conferimento = accettato and not conferimenti
+    suggerisci_fascicolo = bool(not fascicolo and (conferimenti or accettato))
+    passo: dict = {"kind": "", "title": "", "message": "", "actions": []}
+    if fascicolo:
+        passo = {
+            "kind": "fascicolo",
+            "title": "Preventivo già trasformato in pratica operativa",
+            "message": "Cliente, preventivo e fascicolo sono collegati: da qui prosegui con atti, scadenze e depositi.",
+            "actions": [{"label": "Vai al fascicolo", "href": f"/fascicoli/{fascicolo.id}", "method": "GET", "tone": "primary"}],
+        }
+    elif not accettato:
+        azioni = []
+        if portale_obj is not None and getattr(portale_obj, "is_attivo", False):
+            azioni.append({"label": "Invia al cliente", "href": f"/api/v1/ui/preventivi/{p.id}/workflow/invia", "method": "POST", "tone": "neutral"})
+        azioni.append({"label": "Accettazione in studio", "href": f"/api/v1/ui/preventivi/{p.id}/workflow/accetta-studio", "method": "POST", "tone": "success"})
+        passo = {
+            "kind": "conferma",
+            "title": "Scegli il canale di conferma",
+            "message": "Invia il preventivo al portale del cliente oppure registra l'accettazione avvenuta in studio.",
+            "actions": azioni,
+        }
+    elif suggerisci_conferimento and _cliente_da_completare(cliente):
+        passo = {
+            "kind": "anagrafica",
+            "title": "Prima completa l'anagrafica del cliente",
+            "message": "Per il conferimento mancano: " + ", ".join(_campi_cliente_mancanti(cliente)) + ".",
+            "actions": [{"label": "Completa anagrafica", "href": _url_completa_cliente(cliente.id, next_url=url_crea_conferimento), "method": "GET", "tone": "warning"}],
+        }
+    elif suggerisci_conferimento:
+        passo = {
+            "kind": "conferimento",
+            "title": "Prossimo passo: conferimento di incarico",
+            "message": "Il preventivo è accettato: genera il conferimento per completare il passaggio commerciale.",
+            "actions": [{"label": "Crea conferimento", "href": url_crea_conferimento, "method": "GET", "tone": "success"}],
+        }
+    elif conferimento_principale:
+        passo = {
+            "kind": "firma",
+            "title": "Il conferimento è pronto",
+            "message": "Il prossimo passo è la firma del conferimento; poi il fascicolo si apre in automatico.",
+            "actions": [{"label": "Apri conferimento", "href": f"/preventivi/conferimento/{conferimento_principale.id}", "method": "GET", "tone": "success"}],
+        }
+    elif suggerisci_fascicolo:
+        passo = {
+            "kind": "apertura_fascicolo",
+            "title": "Prossimo passo: apertura guidata del fascicolo",
+            "message": "Il fascicolo verrà precompilato e collegato a questo preventivo.",
+            "actions": [{"label": "Apri fascicolo guidato", "href": _url_onboarding_fascicolo(p.id_cliente, id_preventivo=p.id, id_conferimento=conferimento_principale.id if conferimento_principale else "", from_page="preventivo"), "method": "GET", "tone": "primary"}],
+        }
+    return {
+        "nextStep": passo,
+        "pdfHref": url_for("preventivi.pdf_preventivo", id_preventivo=p.id),
+        "pdfDownloadHref": url_for("preventivi.pdf_preventivo", id_preventivo=p.id) + "?download=1",
+        "deleteHref": f"/api/v1/ui/preventivi/{p.id}/workflow/elimina",
+        "invoiceHref": url_for("fatturazione.da_preventivo", id_preventivo=p.id),
+        "conferimenti": [
+            {
+                "id": str(c.id),
+                "number": str(getattr(c, "numero", "") or ""),
+                "state": str(getattr(getattr(c, "stato", None), "value", "") or ""),
+                "href": f"/preventivi/conferimento/{c.id}",
+            }
+            for c in conferimenti
+        ],
+    }
+
+
 # ================================================================ CAMBIA STATO PREVENTIVO
 
 @preventivi.route("/p/<id_preventivo>/stato", methods=["GET", "POST"])
@@ -860,61 +950,58 @@ def cambia_stato_preventivo(id_preventivo: str):
 
 # ================================================================ WORKFLOW PREVENTIVO
 
-@preventivi.route("/p/<id_preventivo>/workflow/invia", methods=["POST"])
-@_richiedi_login
-def workflow_invia_cliente(id_preventivo: str):
+def esegui_invio_cliente(id_preventivo: str) -> tuple[list[tuple[str, str]], str] | None:
+    """Invio del preventivo al cliente: messaggi e pagina successiva (None se non esiste)."""
     gp = _get_gp()
     p = gp.get_preventivo(id_preventivo)
     if not p:
-        abort(404)
+        return None
     cliente = get_clienti().get(p.id_cliente)
     portale_obj = _get_portale_mgr().get_by_cliente(cliente.id) if cliente else None
-    channel = "ONLINE" if portale_obj and portale_obj.is_attivo else "STUDIO"
-    gp.registra_invio_preventivo(id_preventivo, workflow_channel=channel)
-    if portale_obj and portale_obj.is_attivo:
-        flash(
-            "Preventivo inviato al cliente. Il cliente può ora accettarlo dal portale e proseguire con il conferimento.",
-            "success",
-        )
-    else:
-        flash(
-            "Preventivo marcato come inviato. Per l'accettazione online attiva anche il portale cliente; in alternativa registra l'accettazione in studio.",
-            "success",
-        )
-    return redirect(url_for("preventivi.dettaglio_preventivo", id_preventivo=id_preventivo))
+    online = bool(portale_obj and portale_obj.is_attivo)
+    gp.registra_invio_preventivo(id_preventivo, workflow_channel="ONLINE" if online else "STUDIO")
+    messaggio = (
+        "Preventivo inviato al cliente. Il cliente può ora accettarlo dal portale e proseguire con il conferimento."
+        if online
+        else "Preventivo marcato come inviato. Per l'accettazione online attiva anche il portale cliente; in alternativa registra l'accettazione in studio."
+    )
+    return [(messaggio, "success")], url_for("preventivi.dettaglio_preventivo", id_preventivo=id_preventivo)
 
 
-@preventivi.route("/p/<id_preventivo>/workflow/accetta-studio", methods=["POST"])
-@_richiedi_login
-def workflow_accetta_studio(id_preventivo: str):
+def esegui_accettazione_studio(id_preventivo: str) -> tuple[list[tuple[str, str]], str] | None:
+    """Accettazione registrata in studio, con conferimento automatico se i dati bastano."""
     from pct.preventivi import StatoPreventivo
     gp = _get_gp()
     p = gp.get_preventivo(id_preventivo)
     if not p:
-        abort(404)
+        return None
     cliente = get_clienti().get(p.id_cliente)
     conferimento_esistente = gp.get_conferimento_principale_preventivo(id_preventivo)
     if conferimento_esistente:
         gp.cambia_stato_preventivo(id_preventivo, StatoPreventivo.ACCETTATO)
-        flash("Preventivo già accettato: il conferimento è pronto per la firma cliente.", "success")
-        return redirect(url_for("preventivi.dettaglio_conferimento", id_conferimento=conferimento_esistente.id))
+        return (
+            [("Preventivo già accettato: il conferimento è pronto per la firma cliente.", "success")],
+            url_for("preventivi.dettaglio_conferimento", id_conferimento=conferimento_esistente.id),
+        )
     if not cliente:
         gp.cambia_stato_preventivo(id_preventivo, StatoPreventivo.ACCETTATO)
-        flash(
-            "Preventivo accettato, ma il cliente collegato non e' piu' disponibile: "
-            "riallinea l'anagrafica prima del conferimento.",
-            "warning",
+        return (
+            [(
+                "Preventivo accettato, ma il cliente collegato non e' piu' disponibile: "
+                "riallinea l'anagrafica prima del conferimento.",
+                "warning",
+            )],
+            _url_nuovo_conferimento_preventivo(id_preventivo, p.id_cliente),
         )
-        return redirect(_url_nuovo_conferimento_preventivo(id_preventivo, p.id_cliente))
     if _cliente_da_completare(cliente):
         gp.cambia_stato_preventivo(id_preventivo, StatoPreventivo.ACCETTATO)
         missing = ", ".join(_campi_cliente_mancanti(cliente)) or "dati anagrafici obbligatori"
-        flash(
-            "Preventivo accettato, ma il conferimento e' sospeso: completa prima l'anagrafica cliente. "
-            f"Campi mancanti: {missing}.",
-            "warning",
-        )
-        return redirect(
+        return (
+            [(
+                "Preventivo accettato, ma il conferimento e' sospeso: completa prima l'anagrafica cliente. "
+                f"Campi mancanti: {missing}.",
+                "warning",
+            )],
             _url_completa_cliente(
                 p.id_cliente,
                 next_url=url_for(
@@ -923,7 +1010,7 @@ def workflow_accetta_studio(id_preventivo: str):
                     id_preventivo=id_preventivo,
                     from_page="preventivo",
                 ),
-            )
+            ),
         )
 
     studio_forense = _studio_forense_context()
@@ -949,17 +1036,48 @@ def workflow_accetta_studio(id_preventivo: str):
             gp.cambia_stato_preventivo(id_preventivo, StatoPreventivo.ACCETTATO)
         except Exception:
             current_app.logger.debug("Impossibile marcare il preventivo come accettato", exc_info=True)
-        flash(
-            "Accettazione registrata. Non ho potuto creare automaticamente il conferimento, "
-            "ma ho aperto la maschera guidata con i dati disponibili gia' precompilati.",
-            "warning",
+        return (
+            [(
+                "Accettazione registrata. Non ho potuto creare automaticamente il conferimento, "
+                "ma ho aperto la maschera guidata con i dati disponibili gia' precompilati.",
+                "warning",
+            )],
+            _url_nuovo_conferimento_preventivo(id_preventivo, p.id_cliente),
         )
-        return redirect(_url_nuovo_conferimento_preventivo(id_preventivo, p.id_cliente))
-    flash("Accettazione cliente registrata in studio.", "success")
+    messaggi = [("Accettazione cliente registrata in studio.", "success")]
     if conferimento:
-        flash("Conferimento creato automaticamente. Il prossimo passo è la firma del cliente.", "success")
-        return redirect(url_for("preventivi.dettaglio_conferimento", id_conferimento=conferimento.id))
-    return redirect(url_for("preventivi.dettaglio_preventivo", id_preventivo=id_preventivo))
+        messaggi.append(("Conferimento creato automaticamente. Il prossimo passo è la firma del cliente.", "success"))
+        return messaggi, url_for("preventivi.dettaglio_conferimento", id_conferimento=conferimento.id)
+    return messaggi, url_for("preventivi.dettaglio_preventivo", id_preventivo=id_preventivo)
+
+
+def esegui_eliminazione_preventivo(id_preventivo: str) -> tuple[list[tuple[str, str]], str] | None:
+    gp = _get_gp()
+    if not gp.get_preventivo(id_preventivo):
+        return None
+    gp.elimina_preventivo(id_preventivo)
+    return [("Preventivo eliminato.", "success")], url_for("preventivi.lista")
+
+
+def _esito_legacy(esito: tuple[list[tuple[str, str]], str] | None):
+    if esito is None:
+        abort(404)
+    messaggi, destinazione = esito
+    for messaggio, categoria in messaggi:
+        flash(messaggio, categoria)
+    return redirect(destinazione)
+
+
+@preventivi.route("/p/<id_preventivo>/workflow/invia", methods=["POST"])
+@_richiedi_login
+def workflow_invia_cliente(id_preventivo: str):
+    return _esito_legacy(esegui_invio_cliente(id_preventivo))
+
+
+@preventivi.route("/p/<id_preventivo>/workflow/accetta-studio", methods=["POST"])
+@_richiedi_login
+def workflow_accetta_studio(id_preventivo: str):
+    return _esito_legacy(esegui_accettazione_studio(id_preventivo))
 
 
 # ================================================================ ELIMINA PREVENTIVO
@@ -967,13 +1085,7 @@ def workflow_accetta_studio(id_preventivo: str):
 @preventivi.route("/p/<id_preventivo>/elimina", methods=["POST"])
 @_richiedi_login
 def elimina_preventivo(id_preventivo: str):
-    gp = _get_gp()
-    p = gp.get_preventivo(id_preventivo)
-    if not p:
-        abort(404)
-    gp.elimina_preventivo(id_preventivo)
-    flash("Preventivo eliminato.", "success")
-    return redirect(url_for("preventivi.lista"))
+    return _esito_legacy(esegui_eliminazione_preventivo(id_preventivo))
 
 
 # ================================================================ PDF PREVENTIVO

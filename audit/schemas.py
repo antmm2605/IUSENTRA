@@ -30,6 +30,10 @@ class AuditKind(str, Enum):
     INCIDENT_UPDATED = "INCIDENT_UPDATED"
     RECEIPT_ISSUED = "RECEIPT_ISSUED"
     CLIENT_SIGNATURE_ACQUIRED = "CLIENT_SIGNATURE_ACQUIRED"
+    # Registro di provenienza dell'AI (art. 12 Reg. UE 2024/1689): ogni uscita di
+    # un modello usata dal gestionale e ogni decisione dell'avvocato su di essa.
+    AI_OUTPUT_RECORDED = "AI_OUTPUT_RECORDED"
+    AI_OUTPUT_REVIEWED = "AI_OUTPUT_REVIEWED"
 
 
 class ActorType(str, Enum):

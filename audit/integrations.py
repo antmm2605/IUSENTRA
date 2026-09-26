@@ -401,3 +401,69 @@ def emit_receipt_issued(
         module="fatturazione.ricevute",
         idempotency_key=idempotency_key or f"RECEIPT_ISSUED:{fascicolo_id}:{receipt_id}",
     )
+
+
+def _payload_provenienza(provenienza: dict[str, Any]) -> dict[str, Any]:
+    """Solo impronte, versioni ed esiti: mai il testo letto né la citazione integrale."""
+    cancello = dict(provenienza.get("cancello") or {})
+    controlli = [c for c in list(cancello.get("controlli") or []) if isinstance(c, dict)]
+    return {
+        "azione": str(provenienza.get("azione") or "")[:80],
+        "modello": str(provenienza.get("modello") or "")[:120],
+        "versione_regole": str(provenienza.get("versione_regole") or "")[:120],
+        "sha256_input": str(provenienza.get("sha256_input") or "")[:64],
+        "sigillo": str(provenienza.get("sigillo") or "")[:64],
+        "precedente": str(provenienza.get("precedente") or "")[:64],
+        "cancello_ammesso": bool(cancello.get("ammesso")),
+        "controlli": len(controlli),
+        "campi_bloccati": sorted({str(c.get("campo") or "") for c in controlli if c.get("esito") == "bloccato"})[:20],
+        "approvazione": str(provenienza.get("approvazione") or "")[:80],
+        "creato_il": str(provenienza.get("creato_il") or "")[:40],
+    }
+
+
+def emit_ai_output_recorded(
+    *,
+    fascicolo_id: str,
+    provenienza: dict[str, Any],
+    oggetto: str = "",
+    tenant_id: str = "",
+) -> Any | None:
+    """L'uscita di un modello entra nella catena probatoria del fascicolo (una volta per sigillo)."""
+    sigillo = str(provenienza.get("sigillo") or "").strip()
+    if not str(fascicolo_id or "").strip() or not sigillo:
+        return None
+    return _emit(
+        kind=AuditKind.AI_OUTPUT_RECORDED,
+        tenant_id=tenant_id,
+        fascicolo_id=fascicolo_id,
+        payload={**_payload_provenienza(provenienza), "oggetto": str(oggetto or "")[:120]},
+        files=[],
+        module="provenienza_ai",
+        idempotency_key=f"AI_OUTPUT_RECORDED:{sigillo}",
+    )
+
+
+def emit_ai_output_reviewed(
+    *,
+    fascicolo_id: str,
+    sigillo: str,
+    esito: str,
+    oggetto: str = "",
+    tenant_id: str = "",
+    riferimento: str = "",
+) -> Any | None:
+    """La decisione dell'avvocato su un'uscita AI: confermata, corretta o respinta."""
+    sigillo = str(sigillo or "").strip()
+    if not str(fascicolo_id or "").strip() or not sigillo:
+        return None
+    esito = str(esito or "").strip()[:40]
+    return _emit(
+        kind=AuditKind.AI_OUTPUT_REVIEWED,
+        tenant_id=tenant_id,
+        fascicolo_id=fascicolo_id,
+        payload={"sigillo": sigillo[:64], "esito": esito, "oggetto": str(oggetto or "")[:120]},
+        files=[],
+        module="provenienza_ai",
+        idempotency_key=f"AI_OUTPUT_REVIEWED:{sigillo}:{esito}:{str(riferimento or '')[:60]}",
+    )

@@ -438,6 +438,36 @@ class EditorAIRepository:
             self._save_json()
         return proposal
 
+    def list_audit_events(self, tenant_id: str, fascicolo_id: str, *, event_types: tuple[str, ...] = ()) -> list[dict[str, Any]]:
+        """Gli eventi dell'editor AI del fascicolo (per la vista «Provenienza»), dal più vecchio."""
+        tipi = {str(t) for t in event_types if str(t)}
+        eventi: list[dict[str, Any]] = []
+        if self._backend:
+            righe = self._conn().execute(
+                """
+                SELECT id, tenant_id, fascicolo_id, atto_ai_id, version_id, editor_document_id,
+                       user_id, event_type, payload_json, created_at
+                FROM fascicolo_editor_ai_audit
+                WHERE tenant_id = ? AND fascicolo_id = ?
+                ORDER BY created_at ASC
+                """,
+                (tenant_id, fascicolo_id),
+            ).fetchall()
+            for riga in righe:
+                dati = self._dict_row(riga)
+                try:
+                    corpo = json.loads(str(dati.get("payload_json") or "{}"))
+                except ValueError:
+                    corpo = {}
+                eventi.append({**{k: v for k, v in dati.items() if k != "payload_json"},
+                               "status": corpo.get("status", ""), "payload": corpo.get("payload", {}),
+                               "timestamp": dati.get("created_at")})
+        else:
+            for evento in list(self._data.get("audit_events") or []):
+                if evento.get("tenant_id") == tenant_id and evento.get("fascicolo_id") == fascicolo_id:
+                    eventi.append(dict(evento))
+        return [e for e in eventi if not tipi or str(e.get("event_type") or "") in tipi]
+
     def append_audit_event(self, event: dict[str, Any]) -> None:
         clean = dict(event or {})
         clean.pop("text", None)

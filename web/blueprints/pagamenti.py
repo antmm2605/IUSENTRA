@@ -12,6 +12,13 @@ from __future__ import annotations
 
 from flask import (Blueprint, abort, flash, g, jsonify, redirect,
                    render_template, request, url_for, current_app)
+from pct.pagamenti_verifica import (
+    paypal_ordine_del_link,
+    paypal_pagamento_confermato,
+    satispay_pagamento_confermato,
+    stripe_sessione_del_link,
+    sumup_pagamento_confermato,
+)
 from web.helpers import get_fatturazione as _shared_get_fatturazione, get_pagamenti as _shared_get_pagamenti
 
 pagamenti = Blueprint("pagamenti", __name__)
@@ -242,7 +249,7 @@ def successo(token: str):
     if provider == "paypal" and lp.stato == "ATTESO":
         from flask import session
         order_id = request.args.get("token") or session.pop(f"paypal_order_{lp.id}", None)
-        if order_id and gp.paypal_cattura_ordine(order_id):
+        if order_id and paypal_ordine_del_link(gp, order_id, lp) and gp.paypal_cattura_ordine(order_id):
             gp.segna_pagato(lp.id, "PayPal", tx_id=order_id)
             _update_parcella_pagata(lp.id_parcella, "PayPal")
 
@@ -253,16 +260,11 @@ def successo(token: str):
             import stripe
             stripe.api_key = gp.config.stripe.sk
             sess = stripe.checkout.Session.retrieve(session_id)
-            if sess.payment_status == "paid":
+            if stripe_sessione_del_link(sess, lp):
                 gp.segna_pagato(lp.id, "Stripe", tx_id=session_id)
                 _update_parcella_pagata(lp.id_parcella, "Stripe")
         except Exception:
             pass
-
-    # Bonifico: segna come "in attesa conferma"
-    if provider == "bonifico":
-        lp = gp.get_by_token(token)  # ricarica
-        cfg_bonifico = gp.config.bonifico
 
     # Ricarica lp
     lp = gp.get_by_token(token)
@@ -297,47 +299,57 @@ def webhook_stripe():
     return jsonify({"received": True}), 200
 
 
+def _link_in_attesa(gp, link_id: str):
+    link_id = str(link_id or "").strip()
+    if not link_id:
+        return None
+    return next((l for l in gp.tutti_link() if l.id == link_id and l.stato == "ATTESO"), None)
+
+
+def _registra_se_confermato(gp, lp, provider: str, tx_id: str, confermato: bool):
+    """Segna pagata la parcella solo se il gestore ha confermato la transazione."""
+    if lp is None:
+        return jsonify({"received": True}), 200
+    if not confermato:
+        current_app.logger.warning(
+            "Webhook %s non confermato dal gestore per il link %s: nessuna modifica.", provider, lp.id
+        )
+        return jsonify({"received": True, "verified": False}), 200
+    gp.segna_pagato(lp.id, provider, tx_id=tx_id)
+    _update_parcella_pagata(lp.id_parcella, provider)
+    return jsonify({"received": True, "verified": True}), 200
+
+
 @pagamenti.route("/webhooks/paypal", methods=["POST"])
 def webhook_paypal():
-    # PayPal IPN / Webhook — verifica base
+    # La notifica PayPal non è firmata con un segreto dello studio: la cattura
+    # si rilegge da PayPal con le credenziali dello studio prima di registrarla.
     data = request.get_json(silent=True) or {}
-    if data.get("event_type") == "PAYMENT.CAPTURE.COMPLETED":
-        resource = data.get("resource", {})
-        custom_id = resource.get("custom_id", "")
-        tx_id     = resource.get("id", "")
-        if custom_id:
-            gp = _get_gp()
-            lp = next((l for l in gp.tutti_link() if l.id == custom_id), None)
-            if lp and lp.stato == "ATTESO":
-                gp.segna_pagato(lp.id, "PayPal", tx_id=tx_id)
-                _update_parcella_pagata(lp.id_parcella, "PayPal")
-    return jsonify({"received": True}), 200
+    if data.get("event_type") != "PAYMENT.CAPTURE.COMPLETED":
+        return jsonify({"received": True}), 200
+    resource = data.get("resource") or {}
+    gp = _get_gp()
+    lp = _link_in_attesa(gp, resource.get("custom_id"))
+    tx_id = str(resource.get("id") or "")
+    confermato = lp is not None and paypal_pagamento_confermato(gp, tx_id, lp)
+    return _registra_se_confermato(gp, lp, "PayPal", tx_id, confermato)
 
 
 @pagamenti.route("/webhooks/satispay", methods=["POST"])
 def webhook_satispay():
     data = request.get_json(silent=True) or {}
-    if data.get("status") == "ACCEPTED":
-        metadata = data.get("metadata", {})
-        link_id = metadata.get("link_id", "")
-        if link_id:
-            gp = _get_gp()
-            lp = next((l for l in gp.tutti_link() if l.id == link_id), None)
-            if lp and lp.stato == "ATTESO":
-                gp.segna_pagato(lp.id, "Satispay", tx_id=data.get("id", ""))
-                _update_parcella_pagata(lp.id_parcella, "Satispay")
-    return jsonify({"received": True}), 200
+    payment_id = str(data.get("id") or request.args.get("payment_id") or "")
+    gp = _get_gp()
+    lp = _link_in_attesa(gp, (data.get("metadata") or {}).get("link_id"))
+    confermato = lp is not None and satispay_pagamento_confermato(gp, payment_id, lp)
+    return _registra_se_confermato(gp, lp, "Satispay", payment_id, confermato)
 
 
 @pagamenti.route("/webhooks/sumup", methods=["POST"])
 def webhook_sumup():
     data = request.get_json(silent=True) or {}
-    if data.get("status") == "PAID":
-        ref = data.get("checkout_reference", "")
-        if ref:
-            gp = _get_gp()
-            lp = next((l for l in gp.tutti_link() if l.id == ref), None)
-            if lp and lp.stato == "ATTESO":
-                gp.segna_pagato(lp.id, "SumUp", tx_id=data.get("id", ""))
-                _update_parcella_pagata(lp.id_parcella, "SumUp")
-    return jsonify({"received": True}), 200
+    checkout_id = str(data.get("id") or "")
+    gp = _get_gp()
+    lp = _link_in_attesa(gp, data.get("checkout_reference"))
+    confermato = lp is not None and sumup_pagamento_confermato(gp, checkout_id, lp)
+    return _registra_se_confermato(gp, lp, "SumUp", checkout_id, confermato)

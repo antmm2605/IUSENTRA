@@ -7,6 +7,7 @@ import re
 from typing import Any
 
 from flask import current_app, g
+from web.services.tenant_paths import tenant_data_path
 
 from lex.research import build_request_profile_prompt, classify_request
 from lex.research.query_helpers import extract_entity_hint, is_exact_legal_reference_query
@@ -1407,8 +1408,8 @@ def _telematico_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]:
 def _load_legal_portali() -> list[Any]:
     try:
         gestore = GestionePortale(
-            db_path=current_app.config.get("PORTALE_DB", "./portale/portali.json"),
-            uploads_dir=current_app.config.get("PORTALE_UPLOADS", "./portale/uploads"),
+            db_path=tenant_data_path("PORTALE_DB", "./portale/portali.json"),
+            uploads_dir=tenant_data_path("PORTALE_UPLOADS", "./portale/uploads"),
         )
         return list(gestore.tutti(includi_inattivi=False) or [])
     except Exception:

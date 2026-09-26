@@ -251,6 +251,12 @@ def _collauda_importo(fatto: Fatto, contesto: Contesto) -> Fatto:
         fatto.prove = prove + [_prova("forma", "errore", "importo non leggibile come numero positivo")]
         return fatto
     prove.append(_prova("forma", "ok", f"importo {fatto.valore} ben formato"))
+    somma = next((p for p in prove if p.get("codice") == "somma"), None)
+    if somma is not None and somma.get("esito") == "errore":
+        # I conti del prospetto non tornano: errore del documento o della lettura.
+        fatto.verifica = "plausibile"
+        fatto.prove = prove + [_prova("conti", "attenzione", "le voci del prospetto non danno il totale scritto: da verificare")]
+        return fatto
     fonti = contesto.importi_noti.get(fatto.valore) or []
     if fonti:
         fatto.verifica = "verificata"

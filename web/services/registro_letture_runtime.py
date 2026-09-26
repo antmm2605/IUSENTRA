@@ -105,9 +105,14 @@ def _righe_pec_collegate(fascicolo_id: str) -> list[dict[str, Any]]:
                 riga["allegati"] = [dict(allegato) for allegato in allegati]
                 righe.append(riga)
         return righe
-    except Exception:
+    except Exception as exc:
         # Presidio non inizializzato o casella assente: l'inventario resta ai documenti.
-        return []
+        # Un guasto vero si propaga: le PEC già in inventario non devono sembrare rimosse.
+        from web.services.fascicolo_pec_presidio import _presidio_assente
+
+        if _presidio_assente(exc):
+            return []
+        raise
 
 
 def inventario_fascicolo(fascicolo: Any, *, con_pec: bool = True) -> list[Oggetto]:
@@ -119,7 +124,11 @@ def inventario_fascicolo(fascicolo: Any, *, con_pec: bool = True) -> list[Oggett
         if previous and not oggetto.sha256 and oggetto.sha256_archivio and previous.sha256_archivio == oggetto.sha256_archivio:
             oggetto.sha256 = previous.sha256
     if con_pec:
-        oggetti.extend(oggetti_da_pec(_righe_pec_collegate(str(getattr(fascicolo, "id", "") or "")), fascicolo))
+        try:
+            oggetti.extend(oggetti_da_pec(_righe_pec_collegate(str(getattr(fascicolo, "id", "") or "")), fascicolo))
+        except Exception:
+            # Presidio PEC non raggiungibile: le PEC restano come erano nell'inventario.
+            oggetti.extend(o for o in known.values() if o.tipo in {"pec", "allegato_pec"})
     return oggetti
 
 
@@ -403,9 +412,9 @@ def stato_letture_payload(fascicolo: Any, *, registro: RegistroLetture | None = 
     }
 
 
-def risolvi_anomalia(anomalia_id: str, *, esito: str, valore: str = "", registro: RegistroLetture | None = None) -> dict[str, Any]:
+def risolvi_anomalia(anomalia_id: str, *, esito: str, valore: str = "", registro: RegistroLetture | None = None, fascicolo_id: str = "") -> dict[str, Any]:
     registro = registro or registro_corrente()
-    anomalia = registro.risolvi_anomalia(tenant_corrente(), anomalia_id, esito=esito, utente_id=utente_corrente_id(), valore=valore)
+    anomalia = registro.risolvi_anomalia(tenant_corrente(), anomalia_id, esito=esito, utente_id=utente_corrente_id(), valore=valore, fascicolo_id=fascicolo_id)
     return anomalia.to_dict()
 
 

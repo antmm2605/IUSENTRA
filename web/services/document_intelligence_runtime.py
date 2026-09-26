@@ -305,7 +305,19 @@ def resolve_document_catalog_assignment(
             },
         }
     )
+    _revisione_lex(assignment, tenant_id, {"confirmed": "confermata", "rejected": "respinta"}.get(status, "da_rivedere"))
     return _catalog_assignment_payload(repository, assignment)
+
+
+def _revisione_lex(assignment: Any, tenant_id: str, esito: str) -> None:
+    """La decisione dell'avvocato su una voce proposta da Lex entra nella catena probatoria."""
+    provenienza = dict((dict(getattr(assignment, "metadata", None) or {}).get("lex_lettura") or {}).get("provenienza") or {})
+    if not provenienza.get("sigillo"):
+        return
+    from web.services.provenienza_runtime import registra_revisione
+
+    registra_revisione(str(assignment.fascicolo_id), provenienza, esito, oggetto=str(assignment.document_id),
+                       tenant_id=tenant_id, riferimento=str(assignment.updated_at or ""))
 
 
 def override_document_catalog_assignment(
@@ -345,6 +357,7 @@ def override_document_catalog_assignment(
     )
     if assignment is None:
         raise DocumentAINotFound("Catalogazione del documento non trovata")
+    _revisione_lex(assignment, tenant_id, "corretta")
     repository.append_audit_event(
         {
             "id": f"catalog-override-{assignment.id}-{assignment.updated_at}",

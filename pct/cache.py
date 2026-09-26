@@ -30,6 +30,7 @@ Utilizzo tipico:
 from __future__ import annotations
 
 import json
+import os
 import re
 import secrets
 import threading
@@ -38,7 +39,7 @@ from typing import Any, Dict, Optional, Tuple, Union
 
 # ------------------------------------------------------------------ stato globale
 
-_store: Dict[str, Tuple[float, bytes]] = {}
+_store: Dict[str, Tuple[Tuple[int, int], bytes]] = {}
 _lock = threading.Lock()
 _cache_key = secrets.token_bytes(32)
 _aesgcm_class: Any = None
@@ -176,9 +177,12 @@ def load(
         return fallback
 
     try:
-        mtime = p.stat().st_mtime
+        info = p.stat()
     except OSError:
         return fallback
+    # Nanosecondi e dimensione: due salvataggi nello stesso istante del file
+    # system (risoluzione di 1-2 s su alcuni dischi) non restano indistinguibili.
+    mtime = (info.st_mtime_ns, info.st_size)
 
     with _lock:
         entry = _store.get(str(p))
@@ -228,9 +232,21 @@ def save(
 
     serialized = json.dumps(data, ensure_ascii=False, indent=indent, default=str)
     _assert_serialized_json_has_no_clear_text_sensitive_keys(serialized, data)
-    with p.open("w", encoding="utf-8") as fh:
-        # codeql[py/clear-text-storage-sensitive-data]
-        fh.write(serialized)
+    # Scrittura atomica: file temporaneo nella stessa cartella e poi sostituzione.
+    # Un'interruzione a metà (riavvio, disco pieno) non lascia mai un JSON troncato
+    # e chi legge nello stesso momento vede il file vecchio o quello nuovo.
+    tmp = p.with_name(f".{p.name}.{secrets.token_hex(6)}.tmp")
+    try:
+        with tmp.open("w", encoding="utf-8") as fh:
+            # codeql[py/clear-text-storage-sensitive-data]
+            fh.write(serialized)
+        os.replace(tmp, p)
+    finally:
+        if tmp.exists():
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
 
     with _lock:
         _store.pop(str(p), None)

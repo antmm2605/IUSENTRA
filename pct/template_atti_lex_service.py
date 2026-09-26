@@ -242,6 +242,9 @@ class ActContext:
     utente: Any = None
     config: dict[str, Any] = field(default_factory=dict)
     parti: list[Any] = field(default_factory=list)
+    # Le parti del fascicolo per ruolo, nella forma che il compilatore legge
+    # (assistito_principale, controparte_principale, …).
+    parti_ruoli: dict[str, Any] = field(default_factory=dict)
     documents: list[Any] = field(default_factory=list)
     client_options: list[dict[str, Any]] = field(default_factory=list)
     case_options: list[dict[str, Any]] = field(default_factory=list)
@@ -470,6 +473,53 @@ def _live_records(context: dict[str, Any], key: str) -> list[Any]:
     return []
 
 
+_RUOLI_ASSISTITO = {"assistito", "cliente", "ricorrente", "attore"}
+_RUOLI_CONTROPARTE = {"controparte", "creditore", "debitore", "convenuto", "resistente"}
+
+
+def _parti_collegate(fascicolo_id: str) -> list[dict[str, Any]]:
+    """Le parti collegate al fascicolo nell'anagrafica dei soggetti, con il ruolo."""
+    try:
+        from web.helpers import get_soggetti
+
+        coppie = get_soggetti().parti_fascicolo(fascicolo_id)
+    except Exception:
+        return []
+    parti: list[dict[str, Any]] = []
+    for parte, soggetto in coppie:
+        ruolo = getattr(getattr(parte, "ruolo", None), "value", getattr(parte, "ruolo", "")) or ""
+        dati = _as_dict(soggetto)
+        dati.setdefault("nome_completo", _label(soggetto))
+        dati["ruolo"] = str(ruolo).lower()
+        parti.append(dati)
+    return parti
+
+
+def _parti_per_ruolo(parti: list[Any]) -> dict[str, Any]:
+    elenco = [p for p in parti if _label(p)]
+    ruolo = lambda p: clean_spaces(_value(p, "ruolo")).lower()  # noqa: E731
+    assistiti = [p for p in elenco if ruolo(p) in _RUOLI_ASSISTITO]
+    controparti = [p for p in elenco if ruolo(p) in _RUOLI_CONTROPARTE]
+    difensori = [p for p in elenco if ruolo(p) == "difensore_controparte"]
+    return {
+        "elenco": elenco, "assistiti": assistiti, "controparti": controparti, "difensori_controparte": difensori,
+        "altri": [p for p in elenco if p not in assistiti and p not in controparti and p not in difensori],
+        "assistito_principale": assistiti[0] if assistiti else None,
+        "controparte_principale": controparti[0] if controparti else None,
+        "difensore_controparte_principale": difensori[0] if difensori else None,
+    }
+
+
+def _config_studio() -> dict[str, Any]:
+    """I dati dello studio salvati in Impostazioni (nome, avvocato, indirizzo, PEC, CF)."""
+    try:
+        from web.blueprints.template_atti import _studio_config_for_prefill
+
+        return dict(_studio_config_for_prefill() or {})
+    except Exception:
+        return {}
+
+
 def _case_belongs_to_client(fascicolo: Any, cliente: Any) -> bool:
     client_id = _id(cliente)
     if not client_id:
@@ -581,13 +631,29 @@ def resolve_act_context(
     if not result.fascicolo:
         result.missing.append("fascicolo")
 
-    result.parti = list(parties or [])
+    # Le parti sono quelle collegate a QUESTO fascicolo, con il loro ruolo: non
+    # tutti i soggetti dello studio (un atto non può pescare una controparte
+    # di un'altra causa).
+    collegate = _parti_collegate(result.fascicolo_id) if result.fascicolo_id else []
+    if collegate:
+        result.parti = collegate
+    elif result.fascicolo:
+        result.parti = [p for p in _list_context_values(context, "parti", "soggetti", "parties") if isinstance(p, dict)]
+    else:
+        result.parti = list(parties or [])
     controparte = clean_spaces(_value(result.fascicolo, "controparte"))
     if controparte and not any(normalize_text(_label(row)) == normalize_text(controparte) for row in result.parti):
         result.parti.insert(0, {"id": "controparte", "nome_completo": controparte, "ruolo": "controparte"})
+    result.parti_ruoli = _parti_per_ruolo(result.parti)
     result.documents = documents
-    result.utente = users[0] if users else context.get("utente") or context.get("user")
-    result.config = dict(context.get("config") or context.get("studio_config") or {})
+    # Chi firma è l'utente che sta lavorando, non il primo utente attivo.
+    result.utente = (
+        _find_record_by_id(users, result.user_id)
+        or next((u for u in users if clean_spaces(_value(u, "username")) == result.user_id), None)
+        or context.get("utente") or context.get("user")
+        or (users[0] if users else None)
+    )
+    result.config = dict(context.get("config") or context.get("studio_config") or {}) or _config_studio()
     result.sources = [
         {"id": result.client_id, "title": _label(result.cliente), "kind": "cliente", "href": f"/clienti/{result.client_id}"}
         if result.cliente else {},
@@ -1186,7 +1252,8 @@ def run_template_act_workflow(request: Any, context: dict[str, Any], evidence: d
     created: CreatedDocumentResult | None = None
     compliance: Any = None
     if template.found and not lookup_only and not act_context.forbidden and not act_context.client_options and not act_context.case_options:
-        prefill = build_prefill(template.model_code, act_context.fascicolo, act_context.cliente, act_context.utente, act_context.config, act_context.parti)
+        prefill = build_prefill(template.model_code, act_context.fascicolo, act_context.cliente, act_context.utente, act_context.config,
+                                act_context.parti_ruoli or act_context.parti)
         manual_payload = metadata.get("template_payload") if isinstance(metadata.get("template_payload"), dict) else {}
         if manual_payload:
             prefill.payload.update(manual_payload)

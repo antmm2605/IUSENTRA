@@ -105,8 +105,9 @@ def test_versione_motore_documenti_include_versione_importi():
     from pct.archivio_letture.motore_documenti import VERSIONE_MOTORE_DOCUMENTI_V14
 
     assert VERSIONE_ESTRAZIONE_IMPORTI in VERSIONE_MOTORE_DOCUMENTI
-    # v15 legge le parti dell'epigrafe: i documenti letti prima si rileggono una volta.
-    assert ".v15+parti:" in VERSIONE_MOTORE_DOCUMENTI
+    # v15 legge le parti dell'epigrafe, v16 anche i prospetti a tabella: i documenti
+    # letti prima si rileggono una volta.
+    assert "+parti:" in VERSIONE_MOTORE_DOCUMENTI and ".v16+tabelle:" in VERSIONE_MOTORE_DOCUMENTI
     assert VERSIONE_MOTORE_DOCUMENTI_V14 not in VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI
 
 

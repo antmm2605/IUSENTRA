@@ -1043,6 +1043,9 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
                 bootstrap_admin_password=app.config.get("BOOTSTRAP_ADMIN_PASSWORD", ""),
                 bootstrap_admin_credentials_path=bootstrap_admin_credentials_path,
                 tenant_slug_context=tenant_slug,
+                # L'audit (fino a 10.000 eventi) si carica solo quando si legge o si
+                # scrive un evento: riconoscere l'utente a ogni richiesta non lo usa.
+                load_audit=False,
             )
         return g._utenti
 

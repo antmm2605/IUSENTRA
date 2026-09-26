@@ -170,6 +170,39 @@ def _csrf_token_value() -> str:
     return token
 
 
+def _chiave_persistente() -> str:
+    import os
+    from pathlib import Path
+
+    radice = str(os.getenv("PCT_DATA_DIR") or "").strip()
+    if not radice:
+        # Senza cartella dati dichiarata non si scrive nulla (Path("") sarebbe la
+        # cartella corrente, cioè la copia di lavoro del codice).
+        return ""
+    cartella = Path(radice).expanduser()
+    if not cartella.is_dir():
+        return ""
+    percorso = cartella / ".chiave_sessioni"
+    try:
+        if percorso.exists():
+            valore = percorso.read_text(encoding="utf-8").strip()
+            if len(valore) >= 64:
+                return valore
+        valore = secrets.token_hex(32)
+        descrittore = os.open(str(percorso), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(descrittore, "w", encoding="utf-8") as file:
+            file.write(valore)
+        return valore
+    except FileExistsError:
+        # Un altro worker l'ha appena creata: si legge la sua.
+        try:
+            return percorso.read_text(encoding="utf-8").strip()
+        except OSError:
+            return ""
+    except OSError:
+        return ""
+
+
 def apply_security_defaults(app: Flask, config: Mapping[str, object] | None = None) -> None:
     """Apply cookie/session defaults and resolve a safe secret key."""
 
@@ -181,8 +214,14 @@ def apply_security_defaults(app: Flask, config: Mapping[str, object] | None = No
         or ""
     ).strip()
     if _looks_like_placeholder(configured_secret, testing=testing):
-        configured_secret = secrets.token_hex(32)
-        app.config["SECRET_KEY_EPHEMERAL"] = True
+        # Senza PCT_SECRET_KEY ogni worker generava una chiave diversa: sessioni,
+        # token di reset e credenziali cifrate non valevano da un worker all'altro
+        # né dopo un riavvio. Si usa una chiave generata una volta e conservata
+        # nella cartella dati (permessi 0600), condivisa da tutti i worker.
+        persistente = "" if testing else _chiave_persistente()
+        configured_secret = persistente or secrets.token_hex(32)
+        app.config["SECRET_KEY_EPHEMERAL"] = not persistente
+        app.config["SECRET_KEY_PERSISTED"] = bool(persistente)
     else:
         app.config["SECRET_KEY_EPHEMERAL"] = False
 
@@ -222,6 +261,10 @@ def register_security_runtime(app: Flask) -> None:
         if not app.config.get("ENABLE_BROWSER_CSRF", True):
             return None
         if not request.endpoint or request.endpoint not in _CSRF_PROTECTED_ENDPOINTS:
+            # Tutte le altre scritture con la sessione dello studio: se il browser
+            # dichiara da dove arriva la richiesta, deve essere questa applicazione.
+            if session.get("user_id") and _origine_dichiarata_estranea():
+                abort(400, "Richiesta non valida: proviene da un sito diverso da IUSENTRA.")
             return None
 
         expected = session.get("_csrf_token", "")
@@ -264,4 +307,20 @@ def _same_origin_request() -> bool:
         parsed = urlparse(raw)
         if parsed.scheme == expected.scheme and parsed.netloc == expected.netloc:
             return True
+    return False
+
+
+def _origine_dichiarata_estranea() -> bool:
+    """Vero se Origin o Referer sono presenti e indicano un sito diverso da questo.
+
+    Si confronta solo il nome host: porta e schema possono differire dietro il
+    proxy (Caddy, Nginx) senza che la richiesta arrivi da un altro sito.
+    """
+    atteso = (urlparse(request.host_url).hostname or "").lower()
+    for header in ("Origin", "Referer"):
+        raw = request.headers.get(header, "").strip()
+        if not raw or raw == "null":
+            continue
+        host = (urlparse(raw).hostname or "").lower()
+        return bool(host) and host != atteso
     return False

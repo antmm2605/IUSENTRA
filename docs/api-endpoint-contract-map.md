@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 364.
-- Endpoint P0/P1 contrattualizzati: 310.
+- Endpoint React API contrattualizzati: 366.
+- Endpoint P0/P1 contrattualizzati: 312.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 337.
+- Endpoint con provider verification auth-error: 339.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 27.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
 
@@ -139,6 +139,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/letture/fatti/{fatto_id}` | `POST` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/letture/parti` | `GET` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/letture/parti` | `POST` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/letture/prospetti` | `GET` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/lex` | `GET` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/modifica` | `GET` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/obblighi-notifica` | `GET` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
@@ -148,6 +149,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/pagopa/ricevuta` | `POST` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/predeposito/check` | `POST` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/proforma/genera` | `POST` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/provenienza-ai` | `GET` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/regia` | `GET` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/regia/applica-profilo` | `POST` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}/regia/ricalcola` | `POST` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |

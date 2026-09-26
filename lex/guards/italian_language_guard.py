@@ -61,7 +61,9 @@ class ItalianLanguageGuard:
             try:
                 query = str(getattr(kwargs.get("request"), "query", "") or "").lower()
                 if any(kw in query for kw in ("diffida", "messa in mora", "sollecito", "lettera", "pec")):
-                    fallback = build_diffida_messa_in_mora_template({})
+                    # Bozza con i dati del fascicolo aperto; ciò che manca resta
+                    # un segnaposto esplicito fra parentesi quadre, mai inventato.
+                    fallback = build_diffida_messa_in_mora_template(context if isinstance(context, dict) else {})
                     return GuardVerdict(
                         allowed=True,
                         warnings=[

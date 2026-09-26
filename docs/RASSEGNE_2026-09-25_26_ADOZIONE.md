@@ -29,6 +29,8 @@ Si confrontano quattro misure:
 
 Una differenza oltre il 5% sui campi proposti rende obbligatorio tenere i marcatori fuori dal prompt, come già si fa.
 
+**Fatto in 2.409.0.** La prova è ripetibile (`pct/collaudo_ai/pec_ostili.py`, `scripts/collaudo_ai.py`) e i risultati sono in `docs/COLLAUDO_AI_2026-09-26.md`. Ha misurato anche le regole in produzione, ed è lì che il rischio era reale: undici PEC ostili su trenta creavano da sole un'udienza o una scadenza. Da questa versione un'azione automatica nasce solo da un ufficio; da ogni altro mittente le date restano proposte in bozza.
+
 ## 2. Registro di provenienza dell'AI (ICC, Appleton)
 
 **Che cosa dice.** Chi usa l'AI in ambito legale deve poter dire, per ogni uscita, quale modello l'ha prodotta, su quale input, con quale verifica e chi l'ha approvata.
@@ -50,7 +52,7 @@ Una differenza oltre il 5% sui campi proposti rende obbligatorio tenere i marcat
 - La seconda lettura del catalogo (`catalog_lex.applica_esito`) salva la provenienza in `metadata.lex_lettura.provenienza`. I controlli sono due: la voce appartiene al catalogo chiuso e la citazione si ritrova nel documento.
 - La bozza dell'editor AI registra nell'evento `editor_ai.generation.completed` tre dati: il modello (`provider:model` del gateway Lex), l'impronta della richiesta e l'impronta della bozza.
 
-**Resta da fare.** Una vista «Provenienza» nel fascicolo, che elenca le uscite AI con modello, esito del cancello e approvazione, e il loro invio nell'hash-chain di `audit/`. Serve un nuovo `AuditKind`.
+**Fatto in 2.409.0.** La vista «Provenienza» nel riquadro «Letture e verifiche» del fascicolo (`web/services/provenienza_runtime.py`, `ProvenienzaAISection`) elenca ogni uscita AI con modello, versione delle regole, esito del cancello, approvazione dell'avvocato, sigillo e verifica di integrità. Le uscite e le decisioni dell'avvocato entrano nell'hash-chain di `audit/` con i nuovi `AuditKind.AI_OUTPUT_RECORDED` e `AI_OUTPUT_REVIEWED`: nel payload vanno solo impronte, versioni ed esiti, mai il testo letto.
 
 ## 3. TX Text Control: AI probabilistica, modifiche deterministiche
 
@@ -94,7 +96,11 @@ Quando la prova manca, il dato resta «da verificare» con il motivo. Le nuove f
 
 **Esperimento previsto.** Su 30 pagine italiane anonimizzate si misura il cancello di ancoraggio: quanti valori numerici proposti dal modello blocca, e quanti ne blocca a torto. Obiettivo: nessun valore inventato che passa e meno del 2% di blocchi a torto.
 
-Le tabelle restano un punto aperto. Il testo delle tabelle PDF oggi è lineare: la rappresentazione doppia serve soprattutto al presidio economico (prospetti di liquidazione) e sarà il prossimo passo sul motore OCR.
+**Fatto in 2.409.0.**
+
+- La prova sulle 30 pagine (`pct/collaudo_ai/pagine_anonime.py`) ha trovato il limite del cancello v1: un valore vero riscritto in un'altra forma («18 luglio 2026», «1375», «n. 812/2026») veniva bloccato nel 37% dei casi. Il cancello v2 confronta per tipo; i risultati con i modelli sono in `docs/COLLAUDO_AI_2026-09-26.md`.
+- Le tabelle hanno ora due forme (`legal_ocr/tabelle.py`): il testo dell'autore resta com'è e ogni tabella disegnata lo segue come blocco di righe e celle, nell'indice documentale e nel motore di lettura unico. I prospetti senza linee si riconoscono nelle righe del testo, anche da OCR.
+- Il motore documenti v16 legge i prospetti (nota spese, liquidazione, proforma, precetto, interessi) con la tabella come prova e rifà i conti; il riquadro «Prospetti a tabella» li mostra (`pct/archivio_letture/estrazione_tabelle.py`).
 
 ## Che cosa la 2.408.0 porta nella logica del fascicolo
 

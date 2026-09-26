@@ -228,7 +228,8 @@ def test_assistente_chat_failure_returns_json_not_html(monkeypatch):
     )
 
     body = response.get_data(as_text=True)
-    assert response.status_code == 500
+    # Servizio non disponibile con astensione dichiarata, non un errore interno.
+    assert response.status_code == 503
     assert response.is_json
     assert "<html" not in body.lower()
     assert "<!doctype" not in body.lower()
@@ -236,3 +237,4 @@ def test_assistente_chat_failure_returns_json_not_html(monkeypatch):
     assert payload["ok"] is False
     assert payload["code"] == "LEX_CHAT_UNAVAILABLE"
     assert "Lex non ha completato la richiesta" in payload["message"]
+    assert payload["abstained"] is True

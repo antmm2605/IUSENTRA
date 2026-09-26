@@ -113,7 +113,7 @@ DEFAULT_PREFILL_BINDINGS: dict[str, list[str]] = {
     "ufficio_giudiziario": ["fascicolo.tribunale", "fascicolo.ufficio_giudiziario", "legacy.recipient_or_court"],
     "destinatario_ufficio_giudiziario": ["fascicolo.tribunale", "fascicolo.ufficio_giudiziario", "fascicolo.autorita", "legacy.recipient_or_court"],
     "rg": ["fascicolo.rg_completo", "fascicolo.numero_rg", "legacy.case_reference_display"],
-    "oggetto": ["fascicolo.titolo", "fascicolo.oggetto", "legacy.subject"],
+    "oggetto": ["fascicolo.oggetto", "fascicolo.titolo", "legacy.subject"],
     "data_atto": ["today", "legacy.document_date"],
     "pec_studio": ["studio_timbro.pec", "studio.pec", "legacy._lawyer_pec"],
     "codice_fiscale_studio": ["studio_timbro.codice_fiscale", "studio.codice_fiscale", "legacy._lawyer_tax_id"],
@@ -124,15 +124,16 @@ DEFAULT_PREFILL_BINDINGS: dict[str, list[str]] = {
     "lawyer": ["studio.avvocato_titolare", "studio.avvocato_nome", "utente.nome_completo", "utente.username", "legacy.lawyer"],
     "case_reference_display": ["fascicolo.practice_reference_display", "fascicolo.rg_completo", "fascicolo.numero_rg", "fascicolo.numero", "legacy.case_reference_display"],
     "matter": ["fascicolo.materia", "fascicolo.tipo.value", "fascicolo.tipo", "fascicolo.area", "fascicolo.branca", "legacy.matter"],
-    "subject": ["fascicolo.practice_subject_display", "fascicolo.oggetto", "fascicolo.titolo", "legacy.subject"],
+    "subject": ["fascicolo.oggetto", "fascicolo.practice_subject_display", "fascicolo.titolo", "legacy.subject"],
     "facts": ["fascicolo.note", "legacy.facts"],
     "document_date": ["today", "legacy.document_date"],
     "signature": ["studio.avvocato_titolare", "studio.avvocato_nome", "utente.nome_completo", "utente.username", "legacy.signature"],
     "attachments_list": ["documenti.nomi", "legacy.attachments_list"],
-    "place": ["studio.indirizzo", "studio_timbro.indirizzo_riga", "legacy.place"],
+    # Il luogo della sottoscrizione è la città dello studio, non la via.
+    "place": ["studio.citta", "legacy.place"],
     "_lawyer_pec": ["studio_timbro.pec", "studio.pec", "legacy._lawyer_pec"],
     "_lawyer_tax_id": ["studio_timbro.codice_fiscale", "studio.codice_fiscale", "legacy._lawyer_tax_id"],
-    "_studio_address": ["studio_timbro.indirizzo_riga", "studio.indirizzo", "legacy._studio_address"],
+    "_studio_address": ["studio.indirizzo", "studio_timbro.indirizzo_riga", "legacy._studio_address"],
     "court_name": ["fascicolo.tribunale", "fascicolo.ufficio_giudiziario", "legacy.court_name", "legacy.recipient_or_court"],
     "competent_court": ["fascicolo.tribunale", "fascicolo.ufficio_giudiziario", "legacy.competent_court", "legacy.recipient_or_court"],
     "proceeding_authority": ["fascicolo.tribunale", "fascicolo.ufficio_giudiziario", "legacy.proceeding_authority", "legacy.recipient_or_court"],
@@ -314,10 +315,12 @@ def _studio_payload(config: Any | None) -> dict[str, Any]:
         "nome": _first_config_value(config, "studio.nome", "STUDIO_NOME"),
         "avvocato_titolare": avvocato,
         "avvocato_nome": avvocato,
-        "indirizzo": _first_config_value(config, "studio.indirizzo", "STUDIO_INDIRIZZO"),
+        # STUDIO_INDIRIZZO è già completo di CAP e città (vedi _studio_config_for_prefill).
+        "indirizzo": _first_config_value(config, "STUDIO_INDIRIZZO", "studio.indirizzo"),
         "codice_fiscale": _first_config_value(config, "studio.cf", "STUDIO_CF"),
         "partita_iva": _first_config_value(config, "studio.piva", "STUDIO_PIVA"),
         "pec": _first_config_value(config, "pec.indirizzo", "PCT_STUDIO_PEC", "SMTP_FROM"),
+        "citta": _first_config_value(config, "studio.citta", "STUDIO_CITTA"),
     }
 
 

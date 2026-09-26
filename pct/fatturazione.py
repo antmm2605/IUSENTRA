@@ -819,6 +819,24 @@ class GestioneFatturazione:
 
     # ---------------------------------------------------------------- Statistiche
 
+    def crediti_aperti(self) -> Dict[str, Any]:
+        """Le parcelle emesse e non ancora pagate, di qualsiasi anno: l'unico «da incassare».
+
+        Le bozze non sono crediti (la parcella non è stata emessa) e le annullate
+        non sono più dovute. Una parcella del 2025 non pagata resta da incassare
+        anche nel 2026: il credito non si azzera con il cambio d'anno.
+        """
+        in_scadenza = [p for p in self._parcelle.values() if p.stato == StatoParcella.EMESSA]
+        scadute = [p for p in self._parcelle.values() if p.stato == StatoParcella.SCADUTA]
+        return {
+            "importo": round(sum(p.netto_a_pagare for p in in_scadenza + scadute), 2),
+            "parcelle": len(in_scadenza) + len(scadute),
+            "non_scaduto": round(sum(p.netto_a_pagare for p in in_scadenza), 2),
+            "parcelle_non_scadute": len(in_scadenza),
+            "scaduto": round(sum(p.netto_a_pagare for p in scadute), 2),
+            "parcelle_scadute": len(scadute),
+        }
+
     def statistiche(self, anno: Optional[int] = None) -> Dict[str, Any]:
         anno = anno or date.today().year
         prefix = f"{anno}/"

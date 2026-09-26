@@ -29,6 +29,8 @@ import {
   formatLastIndexed,
   loadStudioSearchStats,
   reindexStudioSearch,
+  ricercheRecenti,
+  ricordaRicerca,
   searchStudio,
   type SearchType,
   type StudioSearchFilter,
@@ -83,6 +85,8 @@ export function RicercaStudioPage({ initialQuery = '' }: RicercaStudioPageProps)
   const [loading, setLoading] = useState(false)
   const [isIndexing, setIsIndexing] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [reindexNotice, setReindexNotice] = useState('')
+  const [recenti, setRecenti] = useState<string[]>(() => ricercheRecenti())
   const inputRef = useRef<HTMLInputElement>(null)
 
   const results = payload.results
@@ -118,6 +122,7 @@ export function RicercaStudioPage({ initialQuery = '' }: RicercaStudioPageProps)
           setPayload(nextPayload)
           setStats(nextPayload.stats)
           setSelectedId(nextPayload.results[0]?.id ?? null)
+          if (nextPayload.results.length) setRecenti(ricordaRicerca(value))
         })
         .finally(() => {
           if (alive) setLoading(false)
@@ -162,10 +167,14 @@ export function RicercaStudioPage({ initialQuery = '' }: RicercaStudioPageProps)
 
   const handleReindex = async () => {
     setIsIndexing(true)
+    setReindexNotice('')
     try {
       const nextStats = await reindexStudioSearch()
       setStats(nextStats)
+      setReindexNotice('Ricerca aggiornata con gli ultimi dati dello studio.')
       if (query.trim()) setPayload(await searchStudio(query.trim(), activeFilter))
+    } catch (error) {
+      setReindexNotice(error instanceof Error ? error.message : 'Aggiornamento della ricerca non riuscito.')
     } finally {
       setIsIndexing(false)
     }
@@ -202,7 +211,10 @@ export function RicercaStudioPage({ initialQuery = '' }: RicercaStudioPageProps)
             loading={loading}
             indexing={isIndexing}
             onReindex={handleReindex}
+            recenti={recenti}
+            onRecente={setQuery}
           />
+          {reindexNotice ? <p className="iu-search-notice" role="status">{reindexNotice}</p> : null}
 
           <ResultsArea
             query={query}
@@ -314,6 +326,8 @@ function SearchMeta({
   loading,
   indexing,
   onReindex,
+  recenti,
+  onRecente,
 }: {
   query: string
   count: number
@@ -321,8 +335,11 @@ function SearchMeta({
   loading: boolean
   indexing: boolean
   onReindex: () => void
+  recenti: string[]
+  onRecente: (value: string) => void
 }) {
   const hasQuery = Boolean(query.trim())
+  const [recentiAperte, setRecentiAperte] = useState(false)
   return (
     <div className="iu-search-meta">
       <div>
@@ -331,10 +348,26 @@ function SearchMeta({
         {loading ? <Loader2 className="iu-search-spin" size={15} aria-label="Ricerca in corso" /> : null}
       </div>
       <div className="iu-search-meta__actions">
-        <button className="iu-search-ghost" type="button">
-          <History size={15} />
-          Ricerche recenti
-        </button>
+        <div className="iu-search-recenti">
+          <button
+            className="iu-search-ghost"
+            type="button"
+            aria-expanded={recentiAperte}
+            onClick={() => setRecentiAperte((value) => !value)}
+          >
+            <History size={15} />
+            Ricerche recenti
+          </button>
+          {recentiAperte ? (
+            <ul className="iu-search-recenti__lista" aria-label="Ricerche recenti">
+              {recenti.length ? recenti.map((item) => (
+                <li key={item}>
+                  <button type="button" onClick={() => { onRecente(item); setRecentiAperte(false) }}>{item}</button>
+                </li>
+              )) : <li className="iu-search-recenti__vuoto">Nessuna ricerca recente su questo dispositivo.</li>}
+            </ul>
+          ) : null}
+        </div>
         <button className="iu-search-ghost" type="button" onClick={onReindex} disabled={indexing}>
           <RefreshCw size={15} className={indexing ? 'iu-search-spin' : ''} />
           {indexing ? 'Aggiornamento ricerca...' : 'Aggiorna ricerca'}

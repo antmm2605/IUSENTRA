@@ -37,6 +37,7 @@ _FILTRI_FATTI = {
     "tenant_id = ? AND tipo = ? AND oggetto_id = ? AND motore = ?": '"tenant_id" = ? AND "tipo" = ? AND "oggetto_id" = ? AND "motore" = ?',
     "tenant_id = ? AND tipo = ? AND oggetto_id = ?": '"tenant_id" = ? AND "tipo" = ? AND "oggetto_id" = ?',
     "tenant_id = ? AND id = ?": '"tenant_id" = ? AND "id" = ?',
+    "tenant_id = ? AND id = ? AND fascicolo_id = ?": '"tenant_id" = ? AND "id" = ? AND "fascicolo_id" = ?',
 }
 
 
@@ -241,12 +242,19 @@ class FattiMixin:
     def fatti_oggetto(self, tenant_id: str, tipo: str, oggetto_id: str) -> list[Fatto]:
         return [self._fatto(riga) for riga in self._seleziona_fatti("tenant_id = ? AND tipo = ? AND oggetto_id = ?", (_testo(tenant_id), _testo(tipo), _testo(oggetto_id)))]
 
-    def decidi_fatto(self, tenant_id: str, fatto_id: str, *, verifica: str, valore: str = "", utente_id: str = "") -> Fatto:
-        """L'avvocato conferma (verificata), corregge (corretta, con il valore giusto) o ignora un fatto."""
+    def decidi_fatto(self, tenant_id: str, fatto_id: str, *, verifica: str, valore: str = "", utente_id: str = "", fascicolo_id: str = "") -> Fatto:
+        """L'avvocato conferma (verificata), corregge (corretta, con il valore giusto) o ignora un fatto.
+
+        Con `fascicolo_id` il fatto deve appartenere a quel fascicolo: dalla pagina
+        di un fascicolo non si decide un fatto di un altro.
+        """
         if verifica not in {"verificata", "corretta", "ignorata"}:
             raise ValueError("Decisione non valida.")
         tenant = _testo(tenant_id)
-        righe = self._seleziona_fatti("tenant_id = ? AND id = ?", (tenant, _testo(fatto_id)))
+        if _testo(fascicolo_id):
+            righe = self._seleziona_fatti("tenant_id = ? AND id = ? AND fascicolo_id = ?", (tenant, _testo(fatto_id), _testo(fascicolo_id)))
+        else:
+            righe = self._seleziona_fatti("tenant_id = ? AND id = ?", (tenant, _testo(fatto_id)))
         if not righe:
             raise ValueError("Fatto non trovato.")
         riga = righe[0]

@@ -212,6 +212,36 @@ def importi_letti(fatti: Iterable[Fatto]) -> dict[str, dict[str, Any]]:
     return migliori
 
 
+def prospetti_letti(fatti: Iterable[Fatto]) -> list[dict[str, Any]]:
+    """I prospetti a tabella letti nei documenti: righe, totale e prova dei conti.
+
+    Il presidio economico li mostra per documento, senza sceglierne uno: una
+    nota spese, una liquidazione e un precetto dello stesso fascicolo sono
+    prospetti diversi, e la voce da registrare la sceglie l'avvocato.
+    """
+    import json
+
+    voci: list[dict[str, Any]] = []
+    for fatto in fatti:
+        if fatto.categoria != "importo" or fatto.campo != "prospetto_tabellare" or fatto.verifica not in VERIFICHE_UTILI:
+            continue
+        tabella = next((p for p in fatto.prove if p.get("codice") == "tabella"), {})
+        somma = next((p for p in fatto.prove if p.get("codice") == "somma"), {})
+        try:
+            dati = json.loads(str(tabella.get("dettaglio") or "{}"))
+        except ValueError:
+            dati = {}
+        voci.append({
+            "fattoId": fatto.id, "documentoId": fatto.oggetto_id, "etichetta": fatto.etichetta,
+            "totale": fatto.valore, "righe": list(dati.get("righe") or []), "pagina": dati.get("pagina") or 0,
+            "origine": str(dati.get("origine") or ""), "somma": str(somma.get("esito") or ""),
+            "sommaDettaglio": str(somma.get("dettaglio") or ""),
+            "norma": next((str(p.get("dettaglio") or "") for p in fatto.prove if p.get("codice") == "norma"), ""),
+            "verifica": fatto.verifica, "verificaEtichetta": etichetta_verifica(fatto.verifica),
+        })
+    return voci
+
+
 # Gli eventi che il presidio PEC riconosce sono fatti della causa: il rinvio
 # d'ufficio, la fissazione, il deposito del provvedimento. Entrano in cronologia
 # con il giorno della PEC che li comunica.
@@ -291,4 +321,4 @@ def riassunto_archivio(fatti: Iterable[Fatto], *, oggi: date | None = None) -> d
     }
 
 
-__all__ = ["CAMPI_DA_CONFERMARE", "ETICHETTE_EVENTO", "FORZA_PROVA", "da_confermare_ora", "etichetta_verifica", "eventi_letti", "importi_letti", "prove_notifica_per_oggetto", "riassunto_archivio", "ruoli_letti", "udienze_e_termini"]
+__all__ = ["CAMPI_DA_CONFERMARE", "ETICHETTE_EVENTO", "FORZA_PROVA", "da_confermare_ora", "etichetta_verifica", "eventi_letti", "importi_letti", "prospetti_letti", "prove_notifica_per_oggetto", "riassunto_archivio", "ruoli_letti", "udienze_e_termini"]

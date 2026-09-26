@@ -12,7 +12,7 @@ import io
 from collections.abc import Callable
 from typing import Any
 
-from flask import Flask, flash, g, jsonify, redirect, request, send_file, url_for
+from flask import Flask, abort, flash, g, jsonify, redirect, request, send_file, url_for
 
 from web.bootstrap.fascicoli_document_helpers import (
     estrai_pdf_da_raw,
@@ -86,6 +86,9 @@ def register_fascicoli_document_view_routes(
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/scarica")
     def scarica_documento(id_fasc, id_doc):
+        utente = getattr(g, "utente_corrente", None)
+        if utente is None or not utente.ha_permesso("fascicoli.leggi"):
+            abort(403)
         gestore_fascicoli = get_fascicoli()
         try:
             percorso = percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
@@ -108,6 +111,9 @@ def register_fascicoli_document_view_routes(
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/visualizza")
     def visualizza_documento(id_fasc, id_doc):
+        utente = getattr(g, "utente_corrente", None)
+        if utente is None or not utente.ha_permesso("fascicoli.leggi"):
+            abort(403)
         gestore_fascicoli = get_fascicoli()
         try:
             percorso = percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)

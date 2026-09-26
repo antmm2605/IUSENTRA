@@ -6,6 +6,16 @@ from .contracts import LexRequest
 from .types import WorkflowType
 
 
+
+_REGEX_SEGNI = re.compile(r"[\\^$()\[\]|*+?{}]")
+
+
+def _contiene(testo: str, chiave: str) -> bool:
+    if _REGEX_SEGNI.search(chiave):
+        return re.search(chiave, testo) is not None
+    return re.search(rf"(?<![0-9a-zà-ÿ]){re.escape(chiave)}(?![0-9a-zà-ÿ])", testo) is not None
+
+
 class LexRouter:
     """Router intenti a 12 livelli di priorità.
 
@@ -442,7 +452,9 @@ class LexRouter:
 
     @staticmethod
     def _has_any(text: str, hints: tuple[str, ...]) -> bool:
-        return any(hint in text for hint in hints)
+        """Una parola chiave vale solo come parola intera: «tar» non è in «presentare»,
+        «pat» non è in «patrocinio». Le chiavi scritte come espressioni regolari si cercano come tali."""
+        return any(_contiene(text, hint) for hint in hints)
 
     def _looks_like_cliente_anagrafica(self, text: str) -> bool:
         for p in self._CLIENTE_ANAGRAFICA_PATTERNS:
@@ -483,7 +495,9 @@ class LexRouter:
     def _looks_like_giurisprudenza_specifica(text: str) -> bool:
         patterns = (
             r"\bcass(?:azione)?\.?\s*(?:civ|pen|lav|sez)\.?\s*[\dn]",
-            r"\bn\.\s*\d{3,}",
+            # «n. 1234» da solo è anche il numero di ruolo del fascicolo («R.G. n. 1234/2025»):
+            # vale come pronuncia solo accanto a Cassazione, Consiglio di Stato o Corte.
+            r"\b(?:cass(?:azione)?|cons(?:iglio)?\.?\s*(?:di\s+)?stato|corte)\b[^.\n]{0,40}\bn\.\s*\d{3,}",
             r"\bsentenza\s+n\.\s*\d+",
             r"\bpronuncia\s+n\.\s*\d+",
             r"\bord(?:inanza)?\s+n\.\s*\d+",
@@ -497,7 +511,7 @@ class LexRouter:
     @staticmethod
     def _looks_like_telematico(text: str) -> bool:
         return any(
-            token in text
+            _contiene(text, token)
             for token in (
                 "pst",
                 "pat",

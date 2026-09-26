@@ -488,7 +488,11 @@ def test_vista_utenti_leggera_non_carica_il_registro_audit(tmp_path):
     )
 
     assert lightweight.get_by_username("avvocato") is not None
-    assert lightweight.audit_log() == []
+    # Alla costruzione l'audit non si legge; si carica solo quando serve, e un
+    # nuovo evento non può mai sovrascrivere l'archivio con un elenco vuoto.
+    assert lightweight._audit == []
+    lightweight.registra_evento("agenda.chiudi", username="avvocato")
+    assert [e.azione for e in lightweight.audit_log()] == ["agenda.chiudi", "agenda.apri"]
 
 
 def test_tenant_scoped_auth_riallinea_sqlite_da_json_quando_diverge(tmp_path):

@@ -11,6 +11,8 @@ Struttura pensata per il software:
 """
 from __future__ import annotations
 
+import re
+
 
 from pct.formatting import format_euro_it
 import copy
@@ -1903,7 +1905,7 @@ def prefill_payload(
         "subject": _first_non_empty(getattr(fascicolo, "oggetto", ""), getattr(fascicolo, "titolo", ""), model["name"]),
         "facts": _first_non_empty(getattr(fascicolo, "note", ""), ""),
         "requests_or_conclusions": "",
-        "place": config.get("STUDIO_INDIRIZZO", ""),
+        "place": _first_non_empty(config.get("STUDIO_CITTA", ""), _citta_da_indirizzo(config.get("STUDIO_INDIRIZZO", ""))),
         "document_date": date.today().isoformat(),
         "signature": lawyer_name,
         "attachments_list": allegati,
@@ -1912,12 +1914,15 @@ def prefill_payload(
         "status": "BOZZA",
         "_client_tax_id": _resolve_cliente_tax_id(cliente),
         "_client_address": _resolve_cliente_address(cliente),
-        "_counterparty_tax_id": _resolve_controparte_tax_id(fascicolo),
-        "_counterparty_address": _resolve_controparte_address(fascicolo),
+        "_counterparty_tax_id": _first_non_empty(_parte_attr(parti, "controparte_principale", "partita_iva", "codice_fiscale", "identificativo"), _resolve_controparte_tax_id(fascicolo)),
+        "_counterparty_address": _first_non_empty(_parte_attr(parti, "controparte_principale", "indirizzo"), _resolve_controparte_address(fascicolo)),
+        "_counterparty_pec": _parte_attr(parti, "controparte_principale", "pec"),
         "_lawyer_tax_id": lawyer_cf,
         "_lawyer_pec": lawyer_pec,
         "_studio_address": _first_non_empty(config.get("STUDIO_INDIRIZZO", "")),
         "_court_heading": _resolve_court_heading(fascicolo),
+        "_case_value": getattr(fascicolo, "valore_causa", "") if fascicolo else "",
+        "_object_code": _first_non_empty(getattr(fascicolo, "codice_oggetto_pst", "")) if fascicolo else "",
     }
     for field_name in model["required_extra_fields"]:
         payload[field_name] = _prefill_extra_field(field_name, fascicolo=fascicolo, cliente=cliente, utente=utente, config=config, allegati=allegati)
@@ -1936,7 +1941,12 @@ def prefill_payload(
             parti=parti,
             legacy_payload=payload,
         )
+        campi_del_modello = {*BASE_REQUIRED_FIELDS, *model.get("required_extra_fields", []), "pec_studio", "codice_fiscale_studio", "partita_iva_studio"}
         for key, value in resolution.get("values", {}).items():
+            # Solo i campi del modello (e quelli interni «_…»): una procura non
+            # deve ricevere «attore», «convenuto» o la dichiarazione di valore.
+            if key not in payload and key not in campi_del_modello and not key.startswith("_"):
+                continue
             field_resolution = (resolution.get("fields") or {}).get(key, {})
             resolved_source = field_resolution.get("source", "")
             should_prefer_internal = bool(resolved_source and resolved_source not in {"legacy", "today"})
@@ -1951,10 +1961,43 @@ def prefill_payload(
             elif isinstance(studio_timbro, dict):
                 payload["_studio_timbro"] = studio_timbro
         payload["_prefill_resolution"] = resolution
+        _applica_ruoli_del_modello(model["code"], payload)
     except Exception:
         if studio_timbro is not None:
             payload["_studio_timbro"] = studio_timbro.to_payload() if hasattr(studio_timbro, "to_payload") else studio_timbro
     return payload
+
+
+# Modelli in cui l'assistito è il convenuto o l'appellato: i ruoli predefiniti
+# (cliente = attore, controparte = convenuto) vanno invertiti.
+MODEL_ROLE_OVERRIDES: dict[str, dict[str, str]] = {
+    "CIV_COM_001": {"defendant": "cliente", "plaintiff": "controparte"},
+    "CIV_IMP_001": {"appellee": "cliente", "appellant": "controparte"},
+}
+
+
+def _parte_attr(parti: Any, ruolo: str, *attrs: str) -> str:
+    parte = parti.get(ruolo) if isinstance(parti, dict) else getattr(parti, ruolo, None)
+    if parte is None:
+        return ""
+    for attr in attrs:
+        valore = parte.get(attr) if isinstance(parte, dict) else getattr(parte, attr, "")
+        if _first_non_empty(valore):
+            return _first_non_empty(valore)
+    return ""
+
+
+def _applica_ruoli_del_modello(model_code: str, payload: dict[str, Any]) -> None:
+    ruoli = MODEL_ROLE_OVERRIDES.get(model_code)
+    if not ruoli:
+        return
+    etichette = {
+        "cliente": _first_non_empty(payload.get("client_or_sender")),
+        "controparte": _first_non_empty(payload.get("counterparty_or_recipient")),
+    }
+    for campo, ruolo in ruoli.items():
+        if etichette.get(ruolo):
+            payload[campo] = etichette[ruolo]
 
 
 def merge_payload_with_form(model_code: str, *, initial_payload: dict[str, Any], form_data: dict[str, Any]) -> dict[str, Any]:
@@ -2002,7 +2045,12 @@ def render_compiled_act(model_code: str, payload: dict[str, Any], *, include_tim
         "generic_professional_v1": _render_generic_professional_act,
     }
     renderer = renderers.get(model.get("renderer", "generic_professional_v1"), _render_generic_professional_act)
+    if model["code"] not in MODEL_RENDERER_OVERRIDES:
+        from pct.compilatore_atti_renderer_civili import renderer_dedicato
+
+        renderer = renderer_dedicato(model) or renderer
     rendered = renderer(model, payload).strip()
+    rendered = _con_campi_non_stampati(model, payload, rendered)
     if not include_timbro:
         return rendered
     try:
@@ -2011,6 +2059,52 @@ def render_compiled_act(model_code: str, payload: dict[str, Any], *, include_tim
         return inject_timbro_text(rendered, payload.get("_studio_timbro"))
     except Exception:
         return rendered
+
+
+def _con_campi_non_stampati(model: dict[str, Any], payload: dict[str, Any], rendered: str) -> str:
+    """Nessun dato compilato dall'avvocato si perde: ciò che il renderer non ha
+    stampato va in coda, con la sua etichetta, prima della chiusura dell'atto."""
+    mancanti: list[str] = []
+    for field in campi_extra_modello(model["code"]):
+        valore = payload.get(field["name"])
+        if _is_empty_value(valore):
+            continue
+        testi = _to_string_list(valore)
+
+        def _stampato(testo: str) -> bool:
+            forme = {testo.strip()[:60]}
+            if re.fullmatch(r"[\d.,\s€]+", testo.strip()):
+                forme.add(_format_currency(testo))
+            if re.fullmatch(r"\d{4}-\d{2}-\d{2}.*", testo.strip()):
+                forme.add(_format_italian_date(testo))
+            ruolo = re.search(r"\d{1,7}\s*/\s*\d{4}", testo)
+            if ruolo and len(testo.strip()) <= 30:
+                forme.add(ruolo.group(0).replace(" ", ""))
+            if testo.strip().lower() in {"si", "sì", "true", "1", "no", "false", "0"}:
+                return True
+            def _compatto(valore: str) -> str:
+                return re.sub(r"[\W_]+", "", valore.casefold())
+
+            testo_atto = _compatto(rendered)
+            return any(forma and _compatto(forma) in testo_atto for forma in forme)
+
+        if all(_stampato(t) for t in testi):
+            continue
+        if mancanti:
+            mancanti.append("")
+        mancanti.append(f"{field['label']}:")
+        mancanti.extend(_render_field_value(valore))
+    if not mancanti:
+        return rendered
+    righe = rendered.splitlines()
+    # La chiusura (luogo, data e firma) resta in fondo.
+    taglio = len(righe)
+    for indice in range(len(righe) - 1, max(-1, len(righe) - 6), -1):
+        if re.search(r"\b\d{2}/\d{2}/\d{4}\b|\[data da indicare\]", righe[indice]):
+            taglio = indice
+            break
+    corpo = righe[:taglio] + ["", "ULTERIORI ELEMENTI", *mancanti, ""] + righe[taglio:]
+    return _clean_rendered_lines(corpo)
 
 
 def _prefill_extra_field(field_name: str, *, fascicolo: Any = None, cliente: Any = None, utente: Any = None, config: Optional[dict[str, Any]] = None, allegati: Optional[list[str]] = None) -> Any:
@@ -2025,15 +2119,17 @@ def _prefill_extra_field(field_name: str, *, fascicolo: Any = None, cliente: Any
         return _first_non_empty(getattr(fascicolo, "oggetto", ""), getattr(fascicolo, "titolo", "Mandato difensivo"))
     if field_name == "special_powers_requested":
         return (
-            "con facolta di rappresentanza e difesa in ogni fase e grado del procedimento, "
-            "di conciliare, transigere, rinunciare agli atti, chiamare terzi e proporre impugnazioni ove occorra"
+            "con ogni facoltà di legge, ivi comprese quelle di conciliare, transigere, quietanzare, "
+            "rinunciare agli atti e accettare rinunce, chiamare terzi in causa, proporre domande riconvenzionali "
+            "e farsi sostituire"
         )
     if field_name == "domicile_election_details":
         return _first_non_empty(config.get("STUDIO_INDIRIZZO", ""), "")
     if field_name == "substitute_or_domiciliatary":
-        return lawyer_name
+        # Il domiciliatario è un altro avvocato: non si propone il difensore stesso.
+        return ""
     if field_name == "revocation_or_renunciation_notes":
-        return _first_non_empty(getattr(fascicolo, "note", ""), "")
+        return ""
     if field_name == "notified_act_reference":
         return _first_non_empty(getattr(fascicolo, "titolo", ""), getattr(fascicolo, "oggetto", ""))
     if field_name == "notification_recipient":
@@ -2043,7 +2139,7 @@ def _prefill_extra_field(field_name: str, *, fascicolo: Any = None, cliente: Any
     if field_name == "notification_request_details":
         return _first_non_empty(getattr(fascicolo, "note", ""), "")
     if field_name == "conformity_attestation_notes":
-        return "Si attesta la conformita del documento analogico o informatico ai fini dell'utilizzo processuale e della notifica."
+        return "Si attesta la conformità del documento analogico o informatico ai fini dell'utilizzo processuale e della notifica."
     if field_name == "complainant_person":
         return _resolve_cliente_label(cliente, fascicolo)
     if field_name == "reported_person":
@@ -2055,7 +2151,7 @@ def _prefill_extra_field(field_name: str, *, fascicolo: Any = None, cliente: Any
     if field_name == "witnesses_and_evidence":
         return "\n".join(list(allegati or []))
     if field_name == "criminal_requests":
-        return "Si chiede che l'Autorita procedente voglia procedere nei confronti dei responsabili e svolgere ogni attivita investigativa utile."
+        return "Si chiede che l'Autorità procedente voglia procedere nei confronti dei responsabili e svolgere ogni attivita investigativa utile."
     if field_name == "civil_party":
         return _resolve_cliente_label(cliente, fascicolo)
     if field_name == "damage_description":
@@ -2092,12 +2188,16 @@ def _prefill_extra_field(field_name: str, *, fascicolo: Any = None, cliente: Any
     if field_name == "ritual_warnings":
         return (
             "La costituzione oltre i suddetti termini implica le decadenze di cui agli artt. 38 e 167 c.p.c.\n"
-            "La difesa tecnica mediante avvocato e obbligatoria nei giudizi davanti al tribunale, salvo i casi previsti dall'art. 86 c.p.c. o da leggi speciali.\n"
-            "La parte, sussistendone i presupposti di legge, puo presentare istanza per l'ammissione al patrocinio a spese dello Stato."
+            "La difesa tecnica mediante avvocato è obbligatoria nei giudizi davanti al tribunale, salvo i casi previsti dall'art. 86 c.p.c. o da leggi speciali.\n"
+            "La parte, sussistendone i presupposti di legge, può presentare istanza per l'ammissione al patrocinio a spese dello Stato."
         )
-    if field_name in {"case_value", "dispute_value", "requested_amount", "principal_amount", "interest_amount", "costs_amount", "expenses", "cpa_amount", "vat_amount", "total_amount"}:
+    if field_name in {"case_value", "dispute_value"}:
         value = getattr(fascicolo, "valore_causa", 0) if fascicolo else 0
         return value or ""
+    if field_name in {"requested_amount", "principal_amount", "interest_amount", "costs_amount", "expenses", "cpa_amount", "vat_amount", "total_amount"}:
+        # Il valore della causa non è il credito, né gli interessi, né le spese:
+        # questi importi si indicano dal titolo o dai conteggi, mai per copia.
+        return ""
     if field_name in {"claim_subject", "dispute_subject", "request_subject", "memo_subject", "assignment_object", "professional_activity_object", "credit_reason", "challenged_tax_act", "challenged_administrative_act", "challenged_measure", "appealed_judgment", "seized_asset"}:
         return _first_non_empty(getattr(fascicolo, "oggetto", ""), getattr(fascicolo, "titolo", ""))
     if field_name == "hearing_date":
@@ -2300,22 +2400,43 @@ def _render_civ_cit_001(model: dict[str, Any], payload: dict[str, Any]) -> str:
         defendant_text,
     ]
     _append_section(lines, "FATTO", _render_citation_facts(payload))
-    _append_section(lines, "DIRITTO", _render_text_block_lines(payload.get("legal_arguments")))
+    diritto = [riga for riga in _render_text_block_lines(payload.get("legal_arguments")) if riga != "-"]
+    _append_section(lines, "DIRITTO", diritto or ["[da indicare: ragioni di diritto della domanda (art. 163, comma 3, n. 4, c.p.c.)]"])
+    lines.extend([
+        "",
+        "[da indicare: se la domanda è soggetta a condizione di procedibilità (mediazione o negoziazione assistita), "
+        "l'indicazione del suo assolvimento (art. 163, comma 3, n. 3-bis, c.p.c.)]",
+    ])
+    udienza = payload.get("hearing_date")
+    udienza_txt = _format_italian_date(udienza) if not _is_empty_value(udienza) else (
+        "[data da indicare: almeno centoventi giorni liberi dalla notificazione, art. 163-bis c.p.c.]"
+    )
     lines.extend(
         [
             "",
-            "Tutto cio premesso, l'attore come sopra rappresentato e difeso",
+            "Tutto ciò premesso, l'attore come sopra rappresentato e difeso",
             "",
             "CITA",
             (
                 f"{defendant} a comparire dinanzi al {court_display or court_heading}, locali di rito, "
-                f"all'udienza del {_format_italian_date(payload.get('hearing_date'))}, ore di rito, "
+                f"all'udienza del {udienza_txt}, ore di rito, "
                 f"{_normalize_sentence(payload.get('appearance_notice') or '')}."
             ),
         ]
     )
+    try:
+        giorni = (date.fromisoformat(str(udienza)[:10]) - date.today()).days
+    except (TypeError, ValueError):
+        giorni = None
+    if giorni is not None and giorni < 120:
+        lines.extend([
+            "",
+            f"[verificare: mancano {giorni} giorni all'udienza indicata; tra la notificazione e l'udienza devono "
+            "intercorrere almeno centoventi giorni liberi (art. 163-bis c.p.c.)]",
+        ])
     _append_section(lines, "AVVERTIMENTI DI RITO", _render_bullet_lines(payload.get("ritual_warnings")))
-    _append_section(lines, "CONCLUSIONI", _render_text_block_lines(payload.get("requests_or_conclusions")))
+    conclusioni = [riga for riga in _render_text_block_lines(payload.get("requests_or_conclusions")) if riga != "-"]
+    _append_section(lines, "CONCLUSIONI", conclusioni or ["[da indicare: conclusioni (art. 163, comma 3, n. 4, c.p.c.)]"])
     if evidence_lines:
         _append_section(lines, "IN VIA ISTRUTTORIA", evidence_lines)
     case_value = _format_currency(payload.get("case_value"))
@@ -2323,7 +2444,7 @@ def _render_civ_cit_001(model: dict[str, Any], payload: dict[str, Any]) -> str:
         lines.extend(
             [
                 "",
-                f"Dichiarazione di valore: ai fini del contributo unificato, il valore della causa e di {case_value}.",
+                f"Dichiarazione di valore: ai fini del contributo unificato, il valore della causa è di {case_value}.",
             ]
         )
     lines.extend(["", _render_footer_line(payload), "", lawyer])
@@ -2331,12 +2452,17 @@ def _render_civ_cit_001(model: dict[str, Any], payload: dict[str, Any]) -> str:
 
 
 def _render_str_diff_001(model: dict[str, Any], payload: dict[str, Any]) -> str:
+    from pct.compilatore_atti_renderer_civili import blocco_parte, da_indicare
+
     recipient = _first_non_empty(payload.get("recipient"), payload.get("counterparty_or_recipient"), payload.get("recipient_or_court"))
     sender = _first_non_empty(payload.get("sender"), payload.get("client_or_sender"))
     lawyer = _normalize_lawyer_name(payload.get("lawyer") or payload.get("signature"))
     lines: list[str] = [
-        _first_non_empty(payload.get("_studio_address"), payload.get("place")).upper(),
-        "Diffida",
+        f"Spett.le {blocco_parte(recipient, payload.get('_counterparty_tax_id'), payload.get('_counterparty_address'), pec=payload.get('_counterparty_pec'))}",
+        "",
+        "Trasmessa a mezzo PEC / raccomandata A.R.",
+        "",
+        "DIFFIDA",
         "",
         f"Mittente: {sender}",
         f"Destinatario: {recipient}",
@@ -2348,14 +2474,24 @@ def _render_str_diff_001(model: dict[str, Any], payload: dict[str, Any]) -> str:
             f"Il sottoscritto {lawyer}, nell'interesse di {sender}, espone quanto segue.",
         ]
     )
-    _append_section(lines, "PREMESSA", _render_text_block_lines(payload.get("breach_description") or payload.get("facts")))
-    deadline = _format_italian_date(payload.get("deadline_assigned"))
-    request_lines = _render_text_block_lines(payload.get("specific_request") or payload.get("requests_or_conclusions"))
-    if deadline:
-        request_lines.append("")
-        request_lines.append(f"Si assegna termine fino al {deadline} per l'integrale adempimento.")
+    premessa = [r for r in _render_text_block_lines(payload.get("breach_description") or payload.get("facts")) if r != "-"]
+    _append_section(lines, "PREMESSA", premessa or [da_indicare("fatti e inadempimento contestato")])
+    request_lines = [r for r in _render_text_block_lines(payload.get("specific_request") or payload.get("requests_or_conclusions")) if r != "-"]
+    if not request_lines:
+        request_lines = [da_indicare("condotta o pagamento richiesto al destinatario")]
+    termine = payload.get("deadline_assigned")
+    request_lines.append("")
+    if _is_empty_value(termine):
+        request_lines.append(f"Si assegna il termine di {da_indicare('termine (es. quindici giorni dal ricevimento)')} per l'integrale adempimento.")
+    else:
+        request_lines.append(f"Si assegna termine fino al {_format_italian_date(termine)} per l'integrale adempimento.")
     _append_section(lines, "DIFFIDA E INVITO AD ADEMPIERE", request_lines)
-    _append_section(lines, "AVVERTIMENTO FINALE", _render_text_block_lines(payload.get("final_warning")))
+    avvertimento = [r for r in _render_text_block_lines(payload.get("final_warning")) if r != "-"]
+    _append_section(
+        lines,
+        "AVVERTIMENTO FINALE",
+        avvertimento or ["In difetto, il mio assistito agirà nelle sedi competenti senza ulteriore avviso, con aggravio di spese a carico del destinatario."],
+    )
     if payload.get("attachments_list"):
         _append_section(lines, "ALLEGATI RICHIAMATI", _render_numbered_list(_to_string_list(payload.get("attachments_list"))))
     lines.extend(["", _render_footer_line(payload), "", lawyer])
@@ -2593,7 +2729,7 @@ def _render_civil_judicial_act(model: dict[str, Any], payload: dict[str, Any]) -
     _append_section(lines, "IN DIRITTO", law_lines)
     _append_section(lines, "RICHIESTE E CONCLUSIONI", request_lines)
     _append_section(lines, "MEZZI ISTRUTTORI E DOCUMENTI", evidence_lines)
-    if payload.get("case_value"):
+    if payload.get("case_value") and "case_value" in (model.get("required_extra_fields") or []):
         lines.extend(
             [
                 "",
@@ -2916,17 +3052,18 @@ def _render_citation_actor_block(
     lawyer_pec: str,
     studio_address: str,
 ) -> str:
-    parts = [plaintiff]
-    if _first_non_empty(plaintiff_tax_id):
-        parts.append(f"(C.F. {_first_non_empty(plaintiff_tax_id)})")
-    if _first_non_empty(plaintiff_address):
-        parts.append(f"residente/con sede in {_first_non_empty(plaintiff_address)}")
-    base = ", ".join(parts)
-    difesa = f"rappresentato e difeso da {lawyer}"
+    from pct.compilatore_atti_renderer_civili import blocco_parte, e_ente
+
+    base = blocco_parte(plaintiff, plaintiff_tax_id, plaintiff_address).rstrip(".")
+    difesa = (
+        f"in persona del legale rappresentante pro tempore, rappresentata e difesa da {lawyer}"
+        if e_ente(plaintiff)
+        else f"rappresentato e difeso da {lawyer}"
+    )
     if lawyer_cf:
         difesa += f" (C.F. {lawyer_cf})"
     if studio_address:
-        difesa += f", ed elettivamente domiciliato presso il suo studio in {studio_address}"
+        difesa += f", ed elettivamente {'domiciliata' if e_ente(plaintiff) else 'domiciliato'} presso il suo studio in {studio_address}"
     difesa += ", come da procura alle liti."
     if lawyer_pec:
         difesa += f" Dichiara domicilio digitale all'indirizzo PEC {lawyer_pec}."
@@ -2934,12 +3071,9 @@ def _render_citation_actor_block(
 
 
 def _render_citation_defendant_block(defendant: str, defendant_tax_id: Any, defendant_address: Any) -> str:
-    parts = [defendant]
-    if _first_non_empty(defendant_tax_id):
-        parts.append(f"(C.F./P.IVA {_first_non_empty(defendant_tax_id)})")
-    if _first_non_empty(defendant_address):
-        parts.append(f"residente/con sede in {_first_non_empty(defendant_address)}")
-    return ", ".join(parts) + "."
+    from pct.compilatore_atti_renderer_civili import blocco_parte
+
+    return blocco_parte(defendant, defendant_tax_id, defendant_address)
 
 
 def _render_footer_line(payload: dict[str, Any]) -> str:
@@ -3012,7 +3146,9 @@ def _clean_rendered_lines(lines: list[str]) -> str:
 
 def _format_italian_date(value: Any) -> str:
     if _is_empty_value(value):
-        return date.today().strftime("%d/%m/%Y")
+        # Una data mancante non diventa «oggi»: udienze e termini inventati sono
+        # l'errore più pericoloso in un atto.
+        return "[data da indicare]"
     text = str(value).strip()
     try:
         return date.fromisoformat(text[:10]).strftime("%d/%m/%Y")
@@ -3059,6 +3195,21 @@ def _normalize_court_heading(value: Any) -> str:
     if not text:
         return "TRIBUNALE"
     return text.split(" - ")[0].strip().upper()
+
+
+def _citta_da_indirizzo(indirizzo: Any) -> str:
+    """«Via Sparano 100, 70121 Bari (BA)» → «Bari»; senza CAP non si indovina."""
+    import re as _re
+
+    testo = str(indirizzo or "").strip()
+    trovato = _re.search(r"\b\d{5}\s+([A-Za-zÀ-ÿ' .-]+?)(?:\s*\(|,|$)", testo)
+    if trovato:
+        return trovato.group(1).strip()
+    # «Palmi» o «Via Roma 1, Palmi»: l'ultimo tratto senza numeri né «via».
+    for tratto in reversed([t.strip() for t in testo.split(",") if t.strip()]):
+        if not _re.search(r"\d", tratto) and not _re.match(r"(?i)(via|viale|piazza|corso|largo|vicolo|contrada|strada)\b", tratto):
+            return tratto
+    return ""
 
 
 def _resolve_cliente_tax_id(cliente: Any) -> str:

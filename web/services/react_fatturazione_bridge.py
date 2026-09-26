@@ -1017,6 +1017,10 @@ def build_react_fatturazione_payload(
     try:
         manager = get_fatturazione()
         stats = manager.statistiche(anno) if callable(getattr(manager, "statistiche", None)) else {}
+        crediti = manager.crediti_aperti() if callable(getattr(manager, "crediti_aperti", None)) else {}
+        if crediti:
+            # I crediti aperti non si azzerano col cambio d'anno: stessa misura di Panoramica e Incassi.
+            stats = {**stats, "da_incassare": crediti.get("non_scaduto", 0), "scaduto": crediti.get("scaduto", 0)}
         parcelle = list(manager.tutte()) if callable(getattr(manager, "tutte", None)) else []
         numbering_loader = getattr(manager, "carica_numerazione", None)
         if callable(numbering_loader):
@@ -1102,8 +1106,8 @@ def build_react_fatturazione_payload(
         "metrics": [
             _metric("fatturato", "Fatturato anno", _money(stats.get("fatturato_lordo", 0)), f"Anno {stats.get('anno', anno)}", "primary"),
             _metric("incassato", "Incassato", _money(stats.get("incassato", 0)), "Valori dal servizio fatturazione", "success"),
-            _metric("da_incassare", "Da incassare", _money(stats.get("da_incassare", 0)), "Parcelle emesse non saldate", "warning"),
-            _metric("scaduto", "Scaduto", _money(stats.get("scaduto", 0)), "Parcelle già marcate scadute dal servizio", "danger" if stats.get("scaduto", 0) else "neutral"),
+            _metric("da_incassare", "Da incassare", _money(stats.get("da_incassare", 0)), "Parcelle emesse, non ancora scadute (tutti gli anni)", "warning"),
+            _metric("scaduto", "Scaduto", _money(stats.get("scaduto", 0)), "Parcelle scadute e non pagate (tutti gli anni)", "danger" if stats.get("scaduto", 0) else "neutral"),
         ],
         "sections": [
             _section("stati", "Stato parcelle", "distribution", state_items, "Nessuna parcella nell'archivio."),

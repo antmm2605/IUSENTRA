@@ -99,7 +99,13 @@ def _per_messaggio(conn: sqlite3.Connection, tenant_id: str, ids: list[str]) -> 
     return eventi, termini, udienze
 
 
-def messaggi_pec_per_fascicolo(fascicolo: Any, *, repository: Any = None, limit: int = MASSIMO_MESSAGGI) -> list[dict[str, Any]]:
+def _presidio_assente(exc: BaseException) -> bool:
+    """Il presidio PEC non esiste ancora (tabelle o file assenti): non è un guasto."""
+    testo = str(exc).casefold()
+    return "no such table" in testo or "unable to open database" in testo or isinstance(exc, (FileNotFoundError, ImportError))
+
+
+def messaggi_pec_per_fascicolo(fascicolo: Any, *, repository: Any = None, limit: int = MASSIMO_MESSAGGI, solleva: bool = False) -> list[dict[str, Any]]:
     """I messaggi del presidio che riguardano il fascicolo, già ridotti ai dati che la lettura usa."""
     fascicolo_id = _clean(getattr(fascicolo, "id", ""))
     if not fascicolo_id:
@@ -121,8 +127,12 @@ def messaggi_pec_per_fascicolo(fascicolo: Any, *, repository: Any = None, limit:
                 version = repository.latest_parsed_row(conn, str(row["id"]))
                 parsed[str(row["id"])] = json.loads(version["parsed_json"] or "{}") if version else {}
 
-    except Exception:
+    except Exception as exc:
         # Presidio non ancora inizializzato o registro assente: la lettura non deve fallire.
+        # Con `solleva` un errore vero (database bloccato, disco) si propaga: chi legge
+        # non deve scambiarlo per «nessuna PEC collegata» e chiudere le letture.
+        if solleva and not _presidio_assente(exc):
+            raise
         return []
     messaggi: list[dict[str, Any]] = []
     for riga in righe:

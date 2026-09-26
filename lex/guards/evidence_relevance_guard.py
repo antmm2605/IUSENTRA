@@ -83,6 +83,41 @@ _RELEVANT_FOR_TELEMATICO = (
 )
 
 
+_KNOWLEDGE_WORKFLOWS = {"question_answering", "normativa", "giurisprudenza", "prassi", "fonti", "research", "chat"}
+
+_STOPWORDS = frozenset(
+    """alla alle allo agli anche avere come cosa cose dalla dalle dallo degli della delle dello dell dopo dove
+    essere fare gli hanno questa queste questo questi quale quali quando quanto quanti quella quelle quello
+    sono sulla sulle sullo sugli tutto tutti tutte una uno nella nelle nello negli perche perché però sempre
+    ancora molto poco solo dice dicono prevede previsto prevista secondo mentre oppure senza verso
+    termine termini lex dammi dimmi spiegami vorrei sapere puoi potresti devo deve posso""".split()
+)
+
+
+def _parole_chiave(domanda: str) -> tuple[set[str], set[str]]:
+    import re as _re
+
+    testo = str(domanda or "").lower()
+    articoli = set(_re.findall(r"\bart(?:icol[oi]|t)?\.?\s*(\d{1,4}(?:-(?:bis|ter|quater))?)", testo))
+    numeri = articoli | {n for n in _re.findall(r"\b\d{3,5}\b", testo) if not (n.startswith(("19", "20")) and len(n) == 4)}
+    parole = {p[:6] for p in _re.findall(r"[a-zàèéìòù]{5,}", testo) if p not in _STOPWORDS}
+    return parole, numeri
+
+
+def evidenza_pertinente(domanda: str, testo_evidenza: str) -> bool:
+    """Una fonte è pertinente se cita l'articolo chiesto o condivide le parole centrali della domanda."""
+    parole, numeri = _parole_chiave(domanda)
+    if not parole and not numeri:
+        return True
+    testo = str(testo_evidenza or "").lower()
+    if numeri and any(n in testo for n in numeri):
+        return True
+    if not parole:
+        return False
+    trovate = sum(1 for p in parole if p in testo)
+    return trovate >= min(2, len(parole))
+
+
 def _text_of(item: Any) -> str:
     if isinstance(item, dict):
         return " ".join(str(v) for v in (
@@ -172,4 +207,32 @@ class EvidenceRelevanceGuard:
                 )
             return GuardVerdict(allowed=True)
 
+        return GuardVerdict(allowed=True)
+
+
+class PertinenzaFontiGuard:
+    """Domande di conoscenza: se nessuna fonte riguarda la domanda, Lex si astiene.
+
+    Gira dopo le guardie specifiche (citazioni, riferimenti, allucinazioni), così
+    il loro motivo, più preciso, resta quello mostrato quando bloccano.
+    """
+
+    def check(self, **kwargs: Any) -> GuardVerdict:
+        workflow = str(kwargs.get("workflow") or "chat").strip().lower()
+        if workflow not in _KNOWLEDGE_WORKFLOWS:
+            return GuardVerdict(allowed=True)
+        evidence = kwargs.get("evidence") or {}
+        items = list(
+            (evidence.get("items") if isinstance(evidence, dict) else getattr(evidence, "items", None)) or []
+        )
+        if not items:
+            return GuardVerdict(allowed=True)
+        request = kwargs.get("request")
+        domanda = str(getattr(request, "query", "") or (request.get("query") if isinstance(request, dict) else "") or "")
+        if domanda and not any(evidenza_pertinente(domanda, _text_of(item)) for item in items):
+            return GuardVerdict(
+                allowed=False,
+                reasons=["Le fonti trovate non riguardano la domanda: Lex non risponde senza una fonte pertinente."],
+                risk_level="medium",
+            )
         return GuardVerdict(allowed=True)

@@ -121,7 +121,7 @@ export type AgendaOggiEntry = {
 
 export type PianoGiornoPayload = {
   ok: boolean
-  stato: 'pronto' | 'non_generato'
+  stato: 'pronto' | 'non_generato' | 'errore'
   data: string
   data_label: string
   utente: string

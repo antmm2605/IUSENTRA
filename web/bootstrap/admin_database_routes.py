@@ -399,7 +399,7 @@ def register_admin_database_routes(
     def admin_database_verifica_ripara():
         """Verifica e ripara automaticamente i problemi risolvibili."""
         utente = g.utente_corrente
-        if not utente or not utente.ha_permesso("utenti.leggi"):
+        if not utente or not utente.ha_permesso("admin.configura"):
             return jsonify({"errore": "Non autorizzato"}), 403
         database = get_database()
         report = database.ripara_integrita()
@@ -428,7 +428,7 @@ def register_admin_database_routes(
     def admin_database_ottimizza():
         """Esegue ottimizzazione su tutti i moduli."""
         utente = g.utente_corrente
-        if not utente or not utente.ha_permesso("utenti.leggi"):
+        if not utente or not utente.ha_permesso("admin.configura"):
             return jsonify({"errore": "Non autorizzato"}), 403
         if _sql_operativo():
             percorso_db = _studio_db_path()
@@ -480,7 +480,7 @@ def register_admin_database_routes(
     def admin_database_migra():
         """Migra tutti i dati JSON verso un singolo database SQLite."""
         utente = g.utente_corrente
-        if not utente or not utente.ha_permesso("utenti.leggi"):
+        if not utente or not utente.ha_permesso("admin.configura"):
             return jsonify({"errore": "Non autorizzato"}), 403
         if _sql_operativo():
             percorso_db = _studio_db_path()
@@ -505,7 +505,7 @@ def register_admin_database_routes(
     def admin_database_preverifica_sqlite():
         """Esegue la pre-verifica anti-perdita senza modificare il database SQLite."""
         utente = g.utente_corrente
-        if not utente or not utente.ha_permesso("utenti.leggi"):
+        if not utente or not utente.ha_permesso("admin.configura"):
             return jsonify({"errore": "Non autorizzato"}), 403
         try:
             from pct.storage import StudioDB
@@ -539,7 +539,7 @@ def register_admin_database_routes(
     def admin_database_riconcilia_sqlite():
         """Riconcilia SQLite preservando il database operativo come base."""
         utente = g.utente_corrente
-        if not utente or not utente.ha_permesso("utenti.leggi"):
+        if not utente or not utente.ha_permesso("admin.configura"):
             return jsonify({"errore": "Non autorizzato"}), 403
         try:
             from pct.storage import StudioDB
@@ -585,7 +585,7 @@ def register_admin_database_routes(
         strategia storage dal SUPERADMIN sullo studio interessato.
         """
         utente = g.utente_corrente
-        if not utente or not utente.ha_permesso("utenti.leggi"):
+        if not utente or not utente.ha_permesso("admin.configura"):
             return jsonify({"errore": "Non autorizzato"}), 403
         try:
             from pct.storage import StudioDB
@@ -632,18 +632,16 @@ def register_admin_database_routes(
     def admin_database_export():
         """Esporta un archivio ZIP completo di tutti i dati."""
         utente = g.utente_corrente
-        if not utente or not utente.ha_permesso("utenti.leggi"):
+        if not utente or not utente.ha_permesso("admin.configura"):
             flash("Accesso riservato agli amministratori.", "danger")
             return redirect(url_for("dashboard"))
+        import shutil
         import tempfile
 
         output_dir = tempfile.mkdtemp(prefix="iusentra_export_")
         zip_path = get_database().esporta_tutto(output_dir)
-        nome_file = f"export_{date.today().isoformat()}.zip"
         audit("database.esporta_zip")
-        return send_file(
-            zip_path,
-            as_attachment=True,
-            download_name=nome_file,
-            mimetype="application/zip",
-        )
+        risposta = send_file(zip_path, as_attachment=True, download_name=f"export_{date.today().isoformat()}.zip", mimetype="application/zip")
+        # L'archivio contiene tutti i dati dello studio in chiaro: non resta sul disco.
+        risposta.call_on_close(lambda: shutil.rmtree(output_dir, ignore_errors=True))
+        return risposta

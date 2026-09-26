@@ -180,6 +180,11 @@ def seconda_lettura_studio_corrente(
                 "status": nuova.status,
                 "payload": {"esito": esito.stato, "etichetta": esito.etichetta, "modello": modello, "durata_s": round(durata, 1)},
             })
+            # La lettura di Lex entra nella catena probatoria del fascicolo (se attiva).
+            from web.services.provenienza_runtime import registra_uscita
+
+            registra_uscita(assignment.fascicolo_id, dict((nuova.metadata or {}).get("lex_lettura", {}).get("provenienza") or {}),
+                            oggetto=assignment.document_id, tenant_id=tenant_id)
             report["lette"] += 1
             report["scelte"] += int(esito.stato == "scelta")
             report["cambiate"] += int(nuova.document_label != assignment.document_label or nuova.status != assignment.status)

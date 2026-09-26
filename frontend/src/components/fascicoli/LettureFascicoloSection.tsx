@@ -19,6 +19,8 @@ import {
 } from './lettureFascicolo'
 import { PartiLetteSection } from './PartiLetteSection'
 import { ObblighiNotificaSection } from './ObblighiNotificaSection'
+import { ProspettiTabellaSection } from './ProspettiTabellaSection'
+import { ProvenienzaAISection } from './ProvenienzaAISection'
 
 const OGGETTI_VISIBILI = 6
 
@@ -193,6 +195,8 @@ export function LettureFascicoloSection({ fascicoloId, active = true, refreshKey
       ) : null}
       <ObblighiNotificaSection fascicoloId={fascicoloId} active={active} refreshKey={refreshKey}/>
       <PartiLetteSection fascicoloId={fascicoloId} active={active} refreshKey={refreshKey}/>
+      <ProspettiTabellaSection fascicoloId={fascicoloId} active={active} refreshKey={refreshKey}/>
+      <ProvenienzaAISection fascicoloId={fascicoloId} active={active} refreshKey={refreshKey}/>
       {inAttesa.length ? (
         <div className="iu-fas-letture__attesa">
           <ul>

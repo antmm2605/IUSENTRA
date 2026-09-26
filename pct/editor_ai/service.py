@@ -45,6 +45,16 @@ def _provenienza_bozza(modello: str, prompt: str, contenuto: str, plan: Any) -> 
     ).to_dict()
 
 
+def _nella_catena(fascicolo_id: str, provenienza: dict[str, Any], oggetto: str, tenant_id: str) -> None:
+    """La bozza entra nella catena probatoria del fascicolo, se il presidio è attivo; mai bloccante."""
+    try:
+        from audit.integrations import emit_ai_output_recorded
+
+        emit_ai_output_recorded(fascicolo_id=fascicolo_id, provenienza=provenienza, oggetto=oggetto, tenant_id=tenant_id)
+    except Exception:
+        pass
+
+
 class EditorAIService:
     def __init__(
         self,
@@ -148,6 +158,7 @@ class EditorAIService:
             document_ids=request.document_ids,
         )
         prompt = build_generation_prompt(request=request, template=template, context=context, plan=plan)
+        self._contesto_bozza = (fascicolo, template)
         content, generation_warning = self._generate_content(
             prompt=prompt,
             system_prompt=EDITOR_AI_SYSTEM_PROMPT,
@@ -235,6 +246,7 @@ class EditorAIService:
             payload={"filename": readback.get("filename", "")},
             central_audit=self.central_audit,
         )
+        provenienza = _provenienza_bozza(getattr(self, "_modello_generazione", ""), prompt, content, plan)
         record_editor_ai_event(
             self.repository,
             "editor_ai.generation.completed",
@@ -249,10 +261,11 @@ class EditorAIService:
                 "sources": len(sources), "missing_fields": len(context["missing_fields"]),
                 # Provenienza della bozza: modello, impronta della richiesta e del testo prodotto.
                 # La bozza resta da approvare: l'avvocato la rivede nell'editor.
-                "provenienza": _provenienza_bozza(getattr(self, "_modello_generazione", ""), prompt, content, plan),
+                "provenienza": provenienza,
             },
             central_audit=self.central_audit,
         )
+        _nella_catena(record.fascicolo_id, provenienza, record.id, record.tenant_id)
         return AttoAIGenerationResult(
             record=record,
             version=version,
@@ -647,10 +660,35 @@ class EditorAIService:
             self._modello_generazione = f"{getattr(response, 'provider', '')}:{getattr(response, 'model', '')}".strip(":")
             return str(response.content or ""), ""
         except Exception:
+            dal_modello = self._bozza_dal_modello_deterministico()
+            if dal_modello:
+                self._modello_generazione = "modello-atto-deterministico"
+                return dal_modello, (
+                    "Runtime Lex non disponibile: bozza compilata dal modello dell'atto con i dati del fascicolo; "
+                    "i dati mancanti sono indicati come «[da indicare]»."
+                )
             self._modello_generazione = "bozza-strutturata-senza-modello"
             return self._fallback_structured_draft(plan), (
                 "Runtime Lex non disponibile: creata bozza strutturata governata da completare e verificare."
             )
+
+    def _bozza_dal_modello_deterministico(self) -> str:
+        """Senza modello linguistico l'atto si compila dal catalogo dei modelli (nessun testo inventato)."""
+        import html as _html
+
+        fascicolo, template = getattr(self, "_contesto_bozza", (None, None)) or (None, None)
+        codice = clean_text((template or {}).get("codice") or (template or {}).get("id"))
+        try:
+            from pct import compilatore_atti
+
+            if not codice or not compilatore_atti.get_modello(codice):
+                return ""
+            payload = compilatore_atti.prefill_payload(codice, fascicolo=fascicolo)
+            testo = compilatore_atti.render_compiled_act(codice, payload, include_timbro=False)
+        except Exception:
+            return ""
+        blocchi = [b.strip() for b in testo.split("\n\n") if b.strip()]
+        return "\n".join(f"<p>{_html.escape(b).replace(chr(10), '<br>')}</p>" for b in blocchi)
 
     def _fallback_structured_draft(self, plan: Any) -> str:
         parts = [f"<h1>{plan.title}</h1>"]

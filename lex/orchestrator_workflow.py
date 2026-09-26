@@ -48,7 +48,9 @@ def run_workflow(orchestrator, request):
     draft = provider.generate(request=request, context=context, evidence=evidence, workflow=workflow)
 
     post = orchestrator.guard_orchestrator.run_post(request, context, workflow, evidence, draft)
-    if post.rewritten_draft is not None:
+    # Il blocco di una guardia prevale sempre sulla riscrittura della lingua:
+    # una bozza riscritta ma bloccata non arriva all'avvocato.
+    if post.allowed and post.rewritten_draft is not None:
         draft = SimpleNamespace(
             text=post.rewritten_draft,
             metadata={

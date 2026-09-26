@@ -233,6 +233,9 @@ def build_react_incassi_pagamenti_payload(
     try:
         fatturazione = get_fatturazione()
         fatt_stats = fatturazione.statistiche(anno) if callable(getattr(fatturazione, "statistiche", None)) else {}
+        crediti = fatturazione.crediti_aperti() if callable(getattr(fatturazione, "crediti_aperti", None)) else {}
+        if crediti:
+            fatt_stats = {**fatt_stats, "da_incassare": crediti.get("non_scaduto", 0), "scaduto": crediti.get("scaduto", 0)}
         parcelle = list(fatturazione.tutte()) if callable(getattr(fatturazione, "tutte", None)) else []
     except Exception as exc:
         warnings.append({
@@ -289,8 +292,8 @@ def build_react_incassi_pagamenti_payload(
         "contracts": _contracts(),
         "metrics": [
             _metric("incassato", "Incassato anno", _money(fatt_stats.get("incassato", 0)), f"Anno {fatt_stats.get('anno', anno)}", "success"),
-            _metric("da_incassare", "Da incassare", _money(fatt_stats.get("da_incassare", 0)), "Parcelle emesse non saldate", "warning"),
-            _metric("scaduto", "Scaduto", _money(fatt_stats.get("scaduto", 0)), "Parcelle gia' scadute.", "danger" if fatt_stats.get("scaduto", 0) else "neutral"),
+            _metric("da_incassare", "Da incassare", _money(fatt_stats.get("da_incassare", 0)), "Parcelle emesse, non ancora scadute (tutti gli anni)", "warning"),
+            _metric("scaduto", "Scaduto", _money(fatt_stats.get("scaduto", 0)), "Parcelle scadute e non pagate (tutti gli anni)", "danger" if fatt_stats.get("scaduto", 0) else "neutral"),
             _metric("link_attesi", "Link attesi", pay_stats.get("attesi", 0), "Collegamenti di pagamento aperti", "primary"),
         ],
         "payments": records,

@@ -21,13 +21,17 @@ from .estrazione_istituti import VERSIONE_ESTRAZIONE_ISTITUTI
 from .estrazione_notifiche import estrai_prove_notifica
 from .estrazione_parti import VERSIONE_ESTRAZIONE_PARTI
 from .estrazione_ruolo import estrai_ruoli
+from .estrazione_tabelle import VERSIONE_ESTRAZIONE_TABELLE
 
 VERSIONE_MOTORE_DOCUMENTI_V13 = f"2026.09.21.motore-documenti.v13+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
 VERSIONE_MOTORE_DOCUMENTI_V14 = f"2026.09.23.motore-documenti.v14+ufficio-rg+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
 # v15: le parti dell'epigrafe e il ruolo amministrativo (REG.RIC.). Le versioni
 # precedenti non sono compatibili: ogni documento si rilegge una volta per
 # alimentare le parti del fascicolo.
-VERSIONE_MOTORE_DOCUMENTI = f"2026.09.26.motore-documenti.v15+parti:{VERSIONE_ESTRAZIONE_PARTI}+ruolo-amministrativo+ufficio-rg+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
+VERSIONE_MOTORE_DOCUMENTI_V15 = f"2026.09.26.motore-documenti.v15+parti:{VERSIONE_ESTRAZIONE_PARTI}+ruolo-amministrativo+ufficio-rg+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
+# v16: i prospetti a tabella (voci, importi, prova dei conti). Si rilegge una
+# volta dal testo già indicizzato: nessuna nuova estrazione dai PDF.
+VERSIONE_MOTORE_DOCUMENTI = f"2026.09.26.motore-documenti.v16+tabelle:{VERSIONE_ESTRAZIONE_TABELLE}+parti:{VERSIONE_ESTRAZIONE_PARTI}+ruolo-amministrativo+ufficio-rg+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
 VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI = (VERSIONE_MOTORE_DOCUMENTI,)
 FATTI_MASSIMI = 80
 ORDINE_VERIFICA = {"verificata": 0, "corretta": 0, "plausibile": 1, "respinta": 2, "ignorata": 3}
@@ -69,6 +73,10 @@ def leggi_testo(
         # Gli importi economici (contributo unificato, compenso liquidato, spese)
         # si leggono qui una volta sola: il presidio economico li consulta.
         fatti.extend(estrai_importi(testo, metadata={**(metadata or {}), "filename": nome}, origine=origine))
+        # I prospetti a tabella: ogni importo resta con la sua voce, e i conti si rifanno.
+        from .estrazione_tabelle import fatti_prospetti
+
+        fatti.extend(fatti_prospetti(testo, origine=origine))
     collaudati = collauda_tutti(_senza_doppioni(fatti), contesto)
     from .pertinenza_documentale import applica_pertinenza
 

@@ -48,6 +48,22 @@ def _client() -> CacheClient | None:
     return _CLIENT
 
 
+def _chiave_invalidazione() -> str:
+    """Una scrittura invalida solo i quadri del proprio studio, non quelli degli altri."""
+    studio = "default"
+    try:
+        from flask import g, has_app_context
+
+        if has_app_context():
+            tenant = getattr(g, "tenant", None)
+            studio = str(
+                getattr(tenant, "slug", "") or getattr(g, "tenant_context_slug", "") or "default"
+            ).strip().lower() or "default"
+    except Exception:
+        studio = "default"
+    return f"{_INVALIDATION_KEY}:{studio}"
+
+
 def _entry_key(stable_key: str) -> str:
     digest = hashlib.sha256(str(stable_key or "default").encode("utf-8")).hexdigest()
     return f"{_KEY_PREFIX}{digest}"
@@ -87,7 +103,7 @@ def invalidate_shared_dashboards() -> None:
     if client is None:
         return
     try:
-        client.set(_INVALIDATION_KEY, {"at": time.time()}, ttl=int(DASHBOARD_SHARED_RETENTION_SECONDS))
+        client.set(_chiave_invalidazione(), {"at": time.time()}, ttl=int(DASHBOARD_SHARED_RETENTION_SECONDS))
     except Exception:
         return
 
@@ -97,7 +113,7 @@ def shared_invalidated_at() -> float:
     if client is None:
         return 0.0
     try:
-        entry = client.get(_INVALIDATION_KEY)
+        entry = client.get(_chiave_invalidazione())
     except Exception:
         return 0.0
     if isinstance(entry, dict):

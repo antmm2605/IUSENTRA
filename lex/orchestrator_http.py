@@ -547,6 +547,28 @@ def document_response(orchestrator, *, data: dict[str, Any]):
     )
 
 
+def _risposta_certa_http(domanda: str) -> str:
+    """Termini e contributo unificato: calcolo dei motori di IUSENTRA, non del modello."""
+    try:
+        from lex.risposte_certe import risposta_certa
+
+        def strumenti():
+            from flask import current_app
+
+            from pct.strumenti_legali import GestioneStrumentiLegali
+
+            percorso = str(current_app.config.get("NORMATIVE_TABLES_DB") or "")
+            return GestioneStrumentiLegali(normative_db_path=percorso) if percorso else GestioneStrumentiLegali()
+
+        esito = risposta_certa(domanda, strumenti=strumenti)
+    except Exception:
+        return ""
+    if esito is None:
+        return ""
+    fonti = "\n".join(f"- {f['title']}: {f['url']}" for f in esito.fonti)
+    return esito.testo + (f"\n\nFonti:\n{fonti}" if fonti else "")
+
+
 def chat_response(
     orchestrator,
     *,
@@ -597,6 +619,21 @@ def chat_response(
     )
     user_effective_question = str(followup.effective_query or base_question).strip() or "Richiesta operativa"
     social_prefix = str(routing.social_prefix or "").strip() if routing.is_social_with_request else ""
+    certa = _risposta_certa_http(user_effective_question)
+    if certa:
+        def generate_certa():
+            yield f"data: {json.dumps({'token': certa})}\n\n"
+            yield "data: [DONE]\n\n"
+
+        return Response(
+            stream_with_context(generate_certa()),
+            mimetype="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+                "Connection": "keep-alive",
+            },
+        )
     runtime = orchestrator.dependencies.resolved_runtime()
     api_base_url = str(runtime.get("api_base_url") or "").rstrip("/")
     base_url = str(runtime.get("base_url") or "").rstrip("/")

@@ -70,7 +70,7 @@
   <div class="card-body">
     {% if msg.corpo_html %}
       <div class="border rounded p-3 bg-light">
-        {{ msg.corpo_html | safe }}
+        {{ msg.corpo_html | html_sicuro }}
       </div>
     {% else %}
       <pre class="mb-0" style="white-space:pre-wrap">{{ msg.corpo }}</pre>

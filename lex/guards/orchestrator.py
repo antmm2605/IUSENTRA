@@ -3,7 +3,7 @@ from __future__ import annotations
 from lex.contracts import GuardVerdict
 
 from .citation_guard import CitationGuard
-from .evidence_relevance_guard import EvidenceRelevanceGuard
+from .evidence_relevance_guard import EvidenceRelevanceGuard, PertinenzaFontiGuard
 from .hallucination_guard import HallucinationGuard
 from .italian_language_guard import ItalianLanguageGuard
 from .legal_answer_quality_guard import LegalAnswerQualityGuard
@@ -19,6 +19,12 @@ from .tenant_guard import TenantGuard
 _RISK_ORDER = {"low": 0, "medium": 1, "high": 2, "critical": 3}
 
 
+def _con_testo(draft, testo: str):
+    from types import SimpleNamespace
+
+    return SimpleNamespace(text=testo, metadata={**dict(getattr(draft, "metadata", {}) or {}), "language_rewritten": True})
+
+
 class GuardOrchestrator:
     def __init__(self) -> None:
         self.pre_guards = [TenantGuard(), PermissionGuard(), PrivacyGuard(), RiskGuard()]
@@ -29,6 +35,7 @@ class GuardOrchestrator:
             LegalReferenceGuard(),
             HallucinationGuard(),
             LegalAnswerQualityGuard(),
+            PertinenzaFontiGuard(),
             TelematicoGuard(),
             OutputSchemaGuard(),
         ]
@@ -52,13 +59,16 @@ class GuardOrchestrator:
         risk_level = "low"
         rewritten_draft: str | None = None
 
+        corrente = draft
         for guard in self.post_guards:
+            # Le guardie successive controllano il testo che l'avvocato leggerà:
+            # se una guardia lo ha riscritto, si controlla la riscrittura.
             verdict = guard.check(
                 request=request,
                 context=context,
                 workflow=workflow,
                 evidence=evidence,
-                draft=draft,
+                draft=corrente,
             )
             warnings.extend(verdict.warnings)
             reasons.extend(verdict.reasons)
@@ -66,6 +76,7 @@ class GuardOrchestrator:
                 risk_level = str(verdict.risk_level or risk_level)
             if verdict.rewritten_draft is not None:
                 rewritten_draft = verdict.rewritten_draft
+                corrente = _con_testo(corrente, rewritten_draft)
             if not verdict.allowed:
                 return GuardVerdict(
                     allowed=False,

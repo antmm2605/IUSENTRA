@@ -38,5 +38,6 @@ def test_grounding_guard_marks_high_confidence_with_two_sources():
 
     assert result.grounded is True
     assert result.enough_sources is True
-    assert result.confidence == 0.85
-    assert result.warnings == []
+    assert result.confidence == 0.7
+    assert result.confidence_label == "media"
+    assert result.warnings == ["Fonti non classificate: verificare i passaggi citati prima dell'uso"]

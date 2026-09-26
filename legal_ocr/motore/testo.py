@@ -45,6 +45,14 @@ class PaginaTesto:
     origine: str
     confidenza: float
     avvisi: tuple[str, ...] = ()
+    # Le tabelle disegnate della pagina, come struttura (righe e celle): il testo
+    # resta quello dell'autore; chi vuole la forma testuale usa `testo_con_tabelle`.
+    tabelle: tuple = ()
+
+    def testo_con_tabelle(self, *, primo: int = 1) -> str:
+        from ..tabelle import con_blocchi
+
+        return con_blocchi(self.testo, self.tabelle, primo=primo)
 
 
 def _testo_nativo_affidabile(testo: str) -> bool:
@@ -113,6 +121,16 @@ def testo_da_immagine_bytes(data: bytes, *, pytesseract: object | None = None, l
         immagine.close()
 
 
+def _tabelle(pagina: Any, numero: int, testo: str) -> tuple:
+    """Le tabelle disegnate di una pagina con testo nativo e almeno tre importi o date."""
+    try:
+        from ..tabelle import da_pymupdf, pagina_con_numeri
+
+        return tuple(da_pymupdf(pagina, numero)) if pagina_con_numeri(testo) else ()
+    except Exception:
+        return ()
+
+
 def _max_pagine_predefinito() -> int:
     try:
         return max(0, int(os.environ.get("IUSENTRA_DOCUMENT_AI_OCR_MAX_PAGES", "0") or 0))
@@ -159,7 +177,7 @@ def testo_da_pdf(
             nativo = "" if solo_immagini else str(pagina.get_text("text") or "")
             if _testo_nativo_affidabile(nativo):
                 esito = applica_formulario(nativo)
-                pagine.append(PaginaTesto(indice + 1, esito.testo, ORIGINE_TESTO, 1.0))
+                pagine.append(PaginaTesto(indice + 1, esito.testo, ORIGINE_TESTO, 1.0, tabelle=_tabelle(pagina, indice + 1, nativo)))
                 continue
             try:
                 pixmap = pagina.get_pixmap(matrix=fitz.Matrix(scala, scala), alpha=False)

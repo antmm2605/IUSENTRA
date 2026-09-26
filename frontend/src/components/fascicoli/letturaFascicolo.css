@@ -153,3 +153,12 @@
 .iu-fas-letture__parte-testo small{overflow-wrap:anywhere}
 .iu-fas-letture__parte-citazione{font-style:italic;color:#5b7489}
 .iu-fas-letture__parti select{min-height:30px;border:1px solid #c9dbe6;border-radius:8px;background:#fff;font-size:12px}
+
+/* Prospetti a tabella (voci e importi con la prova dei conti) e provenienza delle uscite AI */
+.iu-fas-letture__prospetto{width:100%;max-width:520px;border-collapse:collapse;font-size:12px;color:#13233a}
+.iu-fas-letture__prospetto td{padding:3px 6px;border-bottom:1px solid #e3edf3}
+.iu-fas-letture__prospetto td:last-child{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.iu-fas-letture__prospetto tr.is-totale td{font-weight:900;border-top:1px solid #c9dbe6}
+.iu-fas-letture__provenienza-riepilogo{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0;font-size:12px;color:#41617a}
+.iu-fas-letture__provenienza li .iu-button{align-self:flex-start;min-height:30px;font-size:12px}
+.iu-fas-letture__provenienza small.is-danger{color:var(--iu-danger, #b42318);font-weight:700}

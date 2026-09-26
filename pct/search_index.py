@@ -14,6 +14,7 @@ Se l'indice viene cancellato può essere ricostruito in qualsiasi momento.
 
 import sqlite3
 import json
+import html as _html
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
@@ -21,6 +22,15 @@ from datetime import datetime
 
 
 # ------------------------------------------------------------------ Risultato
+
+def _snippet_sicuro(testo: str) -> str:
+    """Lo snippet della ricerca con il testo sottoposto a escape e solo <mark> come HTML.
+
+    Il testo indicizzato viene dai documenti e dalle note: un «<script>» scritto
+    in una nota non deve diventare codice nella pagina dei risultati.
+    """
+    return _html.escape(str(testo or ""), quote=False).replace("\ue000", "<mark>").replace("\ue001", "</mark>")
+
 
 @dataclass
 class RisultatoRicerca:
@@ -337,7 +347,7 @@ class IndiceRicerca:
 
         sql = f"""
             SELECT tipo, entity_id, titolo, meta,
-                   snippet(documenti, 3, '<mark>', '</mark>', '…', 12) AS snip,
+                   snippet(documenti, 3, '', '', '…', 12) AS snip,
                    bm25(documenti) AS rank
             FROM documenti
             WHERE documenti MATCH ?
@@ -367,7 +377,7 @@ class IndiceRicerca:
                 url=self._url(row["tipo"], row["entity_id"]),
                 icona=self._icona(row["tipo"]),
                 rank=row["rank"],
-                snippet=row["snip"] or "",
+                snippet=_snippet_sicuro(row["snip"] or ""),
             )
             risultati.append(r)
         return risultati

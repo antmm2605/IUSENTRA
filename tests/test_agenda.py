@@ -176,7 +176,10 @@ def test_route_eliminazione_agenda_restituisce_esito_json_per_react():
     source = Path("web/bootstrap/dashboard_routes.py").read_text(encoding="utf-8")
     assert 'message = "Voce eliminata dall\'agenda."' in source
     assert '"redirect": url_for("agenda_view")' in source
-    assert 'return jsonify({"ok": False, "message": str(e)}), 404' in source
+    assert 'return jsonify({"ok": False, "message": "Appuntamento non trovato."}), 404' in source
+    # Le rotte di scrittura dell'agenda esigono il permesso corrispondente.
+    assert source.count('_agenda_non_autorizzato("agenda.scrivi")') == 2
+    assert '_agenda_non_autorizzato("agenda.elimina")' in source
 
 
 def test_per_giorno(agenda):

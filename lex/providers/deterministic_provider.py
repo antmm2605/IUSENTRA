@@ -1095,6 +1095,17 @@ def build_diffida_messa_in_mora_template(context: Any) -> str:
     termine = "[X] giorni"
 
     if isinstance(context, dict):
+        # I dati del fascicolo aperto stanno sotto «fascicolo»: senza questa
+        # fusione controparte, cliente e oggetto restavano segnaposto.
+        fascicolo = context.get("fascicolo") if isinstance(context.get("fascicolo"), dict) else {}
+        context = {
+            **{k: v for k, v in {
+                "controparte": fascicolo.get("controparte"),
+                "cliente": fascicolo.get("nome_cliente") or fascicolo.get("cliente"),
+                "oggetto": fascicolo.get("oggetto") or fascicolo.get("titolo"),
+            }.items() if v},
+            **{k: v for k, v in context.items() if v},
+        }
         controparte = str(context.get("controparte") or controparte)
         indirizzo = str(context.get("indirizzo_controparte") or indirizzo)
         avvocato = str(context.get("avvocato") or avvocato)

@@ -1798,7 +1798,9 @@ def _parse_datetime(value: Any) -> datetime | None:
         try:
             parsed = datetime.fromisoformat(sample)
             if parsed.tzinfo:
-                parsed = parsed.astimezone().replace(tzinfo=None)
+                # Ora italiana, non quella del server (UTC): un appuntamento alle 00:30
+                # del giorno dopo non deve comparire come «oggi».
+                parsed = parsed.astimezone(ZoneInfo("Europe/Rome")).replace(tzinfo=None)
             return parsed
         except ValueError:
             continue
@@ -1904,15 +1906,10 @@ def _count_fascicoli_attivi() -> int:
 
 
 def _parcelle_da_incassare() -> float:
-    parcelle = _safe("fatturazione", lambda: gestore_panoramica(get_fatturazione).tutte(), [])
-    escluse = {StatoParcella.PAGATA.value, StatoParcella.ANNULLATA.value}
-    totale = 0.0
-    for parcella in parcelle:
-        stato = _enum_value(getattr(parcella, "stato", ""))
-        if stato in escluse:
-            continue
-        totale += float(getattr(parcella, "netto_a_pagare", 0.0) or getattr(parcella, "totale", 0.0) or 0.0)
-    return round(totale, 2)
+    # Stessa definizione di Fatturazione, Incassi e Statistiche: parcelle emesse
+    # e non pagate di qualsiasi anno (le bozze non sono crediti).
+    crediti = _safe("fatturazione", lambda: gestore_panoramica(get_fatturazione).crediti_aperti(), {})
+    return round(float((crediti or {}).get("importo") or 0.0), 2)
 
 
 def _workspace_overview() -> dict[str, Any]:
@@ -2315,7 +2312,7 @@ def _economic_rows() -> list[dict[str, Any]]:
     oggi = oggi_rome()
     anno = oggi.year
     month_prefix = f"{anno:04d}-{oggi.month:02d}"
-    stats = _safe("fatturazione", lambda: gestore_panoramica(get_fatturazione).statistiche(anno), {})
+    crediti = _safe("fatturazione", lambda: gestore_panoramica(get_fatturazione).crediti_aperti(), {}) or {}
     parcelle = _safe("fatturazione", lambda: gestore_panoramica(get_fatturazione).tutte(), [])
     month_parcelle = [
         item
@@ -2350,8 +2347,8 @@ def _economic_rows() -> list[dict[str, Any]]:
         },
         {
             "label": "Da incassare",
-            "value": _euro(float(stats.get("da_incassare", 0.0) or 0.0) + float(stats.get("scaduto", 0.0) or 0.0)),
-            "note": f"{int(stats.get('totale_in_attesa', 0) or 0) + int(stats.get('totale_scadute', 0) or 0)} parcelle aperte",
+            "value": _euro(float(crediti.get("importo", 0.0) or 0.0)),
+            "note": f"{int(crediti.get('parcelle', 0) or 0)} parcelle aperte",
         },
         {"label": "Ore lavorate", "value": f"{str(hours).replace('.', ',')} h", "note": f"{len(month_time)} voci timesheet"},
     ]
@@ -2826,20 +2823,35 @@ def clienti_react_delete():
     payload, error = _request_json_object()
     if error:
         return error
+    if not (_session_user_can("clienti.elimina") or _session_user_can("admin.configura")):
+        return jsonify({"ok": False, "message": "Non hai il permesso di eliminare clienti."}), 403
     ids = [str(item or "").strip() for item in list(payload.get("ids") or []) if str(item or "").strip()]
     if not ids:
         return _json_validation_error("Seleziona almeno un cliente da eliminare.", {"ids": "Nessun cliente selezionato."}, status=400)
     clienti_repo = get_clienti()
+    # Un cliente con fascicoli collegati non si elimina: i fascicoli resterebbero senza cliente.
+    try:
+        con_fascicoli = {str(getattr(f, "id_cliente", "") or "") for f in get_fascicoli().tutti()}
+    except Exception:
+        con_fascicoli = set()
     deleted: list[str] = []
     missing: list[str] = []
+    bloccati: list[str] = []
     for cliente_id in ids:
+        if cliente_id in con_fascicoli:
+            bloccati.append(cliente_id)
+            continue
         try:
             clienti_repo.elimina(cliente_id)
             _sync_event("elimina", "clienti", cliente_id)
+            _audit_event("clienti.elimina", "cliente", cliente_id, "")
             deleted.append(cliente_id)
         except KeyError:
             missing.append(cliente_id)
     if not deleted:
+        if bloccati:
+            return jsonify({"ok": False, "message": "Il cliente ha fascicoli collegati: archivia o riassegna prima i fascicoli.",
+                            "deleted": [], "missing": missing, "blocked": bloccati}), 409
         return jsonify({"ok": False, "message": "Nessun cliente eliminato.", "deleted": [], "missing": missing}), 404
     if len(deleted) == 1:
         message = "Cliente eliminato."
@@ -3170,6 +3182,8 @@ def soggetti_react_delete():
     payload, error = _request_json_object()
     if error:
         return error
+    if not (_session_user_can("clienti.elimina") or _session_user_can("admin.configura")):
+        return jsonify({"ok": False, "message": "Non hai il permesso di eliminare soggetti."}), 403
     ids = [str(item or "").strip() for item in list(payload.get("ids") or []) if str(item or "").strip()]
     if not ids:
         return _json_validation_error("Seleziona almeno un soggetto da eliminare.", {"ids": "Nessun soggetto selezionato."}, status=400)
@@ -3274,6 +3288,12 @@ def _email_bulk_action(
     if action not in {"trash", "delete"}:
         return _json_validation_error("Azione multipla non valida.", {"action": "Azione non riconosciuta."}, status=400)
 
+    # Spostare nel cestino è lavoro quotidiano; eliminare per sempre una PEC
+    # (che è una prova) spetta a chi amministra lo studio.
+    if action == "delete" and not _session_user_can("admin.configura"):
+        return jsonify({"ok": False, "message": "L'eliminazione definitiva dei messaggi è riservata all'amministratore dello studio."}), 403
+    if action == "trash" and not (_session_user_can("messaggi.scrivi") or _session_user_can("admin.configura")):
+        return jsonify({"ok": False, "message": "Non hai il permesso di modificare i messaggi."}), 403
     gestore = GestioneEmailRicevute(db_path=_tenant_cfg_value(db_key, default_db_path))
     if action == "trash":
         result = gestore.sposta_cestino_multipla(ids)
@@ -9098,8 +9118,9 @@ def fascicolo_react_letture(id_fasc: str):
         return _jsonify_public_payload(
             {
                 "ok": False,
-                "errore": f"Registro delle letture non disponibile: {type(exc).__name__}: {exc}"[:400],
-                "motivoTecnico": f"{type(exc).__name__}: {exc}"[:400],
+                # Il dettaglio tecnico resta nei log; all'avvocato un motivo comprensibile.
+                "errore": "Registro delle letture non disponibile in questo momento: la lettura automatica riprova da sola. Se il problema resta, segnalalo all'assistenza.",
+                "motivoTecnico": type(exc).__name__,
             },
             200,
         )
@@ -9136,7 +9157,7 @@ def fascicolo_react_letture_anomalia(id_fasc: str, anomalia_id: str):
         esito = str(payload.get("esito") or "").strip().lower()
         valore = str(payload.get("valore") or "").strip()
         try:
-            anomalia = risolvi_anomalia(anomalia_id, esito=esito, valore=valore)
+            anomalia = risolvi_anomalia(anomalia_id, esito=esito, valore=valore, fascicolo_id=str(id_fasc or "").strip())
         except RegistroLettureError as errore:
             return _jsonify_public_payload({"ok": False, "errore": str(errore)}, 200)
         _LETTURA_CACHE.invalidate(_lettura_cache_key(id_fasc))
@@ -9158,7 +9179,7 @@ def fascicolo_react_letture_fatto(id_fasc: str, fatto_id: str):
         esito = str(payload.get("esito") or "").strip().lower()
         valore = str(payload.get("valore") or "").strip()
         try:
-            fatto = decidi_fatto(fatto_id, esito=esito, valore=valore)
+            fatto = decidi_fatto(fatto_id, esito=esito, valore=valore, fascicolo_id=str(id_fasc or "").strip())
         except ValueError as errore:
             return _jsonify_public_payload({"ok": False, "errore": str(errore)}, 200)
         _LETTURA_CACHE.invalidate(_lettura_cache_key(id_fasc))
@@ -9222,6 +9243,38 @@ def fascicolo_react_obblighi_notifica(id_fasc: str):
     except Exception as exc:
         current_app.logger.exception("Obblighi di notifica del fascicolo %s non disponibili: %s", id_fasc, exc)
         return _jsonify_public_payload({"ok": False, "errore": "Obblighi di notifica non disponibili.", "obblighi": []}, 200)
+
+
+@api_v1_react.get("/fascicoli/<id_fasc>/letture/prospetti")
+@_richiedi_auth
+def fascicolo_react_letture_prospetti(id_fasc: str):
+    """I prospetti a tabella letti nei documenti: voci, importi, totale e prova dei conti."""
+    try:
+        from web.services.prospetti_runtime import prospetti_fascicolo
+
+        fascicolo = _fascicolo_singolo_loader()().get(str(id_fasc or "").strip())
+        if fascicolo is None:
+            return _jsonify_public_payload({"ok": False, "notFound": True, "errore": "Fascicolo non trovato."}, 404)
+        return _jsonify_public_payload({"ok": True, "prospetti": prospetti_fascicolo(fascicolo)})
+    except Exception as exc:
+        current_app.logger.exception("Prospetti a tabella del fascicolo %s non disponibili: %s", id_fasc, exc)
+        return _jsonify_public_payload({"ok": False, "errore": "Prospetti a tabella non disponibili.", "prospetti": []}, 200)
+
+
+@api_v1_react.get("/fascicoli/<id_fasc>/provenienza-ai")
+@_richiedi_auth
+def fascicolo_react_provenienza_ai(id_fasc: str):
+    """Le uscite AI del fascicolo: modello, esito del cancello, approvazione dell'avvocato, sigillo e catena probatoria."""
+    try:
+        from web.services.provenienza_runtime import provenienze_fascicolo
+
+        fascicolo = _fascicolo_singolo_loader()().get(str(id_fasc or "").strip())
+        if fascicolo is None:
+            return _jsonify_public_payload({"ok": False, "notFound": True, "errore": "Fascicolo non trovato."}, 404)
+        return _jsonify_public_payload({"ok": True, **provenienze_fascicolo(fascicolo)})
+    except Exception as exc:
+        current_app.logger.exception("Provenienza AI del fascicolo %s non disponibile: %s", id_fasc, exc)
+        return _jsonify_public_payload({"ok": False, "errore": "Provenienza delle uscite AI non disponibile.", "voci": []}, 200)
 
 
 @api_v1_react.get("/fascicoli/<id_fasc>/regia")

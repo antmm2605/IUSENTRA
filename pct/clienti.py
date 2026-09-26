@@ -51,7 +51,9 @@ class Indirizzo:
         if self.via:
             parts.append(f"{self.via} {self.civico}".strip())
         if self.cap or self.comune:
-            parts.append(f"{self.cap} {self.comune} ({self.provincia})".strip(" ()"))
+            localita = " ".join(v for v in (self.cap, self.comune) if v)
+            # La parentesi si apre e si chiude insieme: «70126 Bari (BA)».
+            parts.append(f"{localita} ({self.provincia})" if self.provincia else localita)
         if self.nazione and self.nazione != "Italia":
             parts.append(self.nazione)
         return ", ".join(p for p in parts if p)
@@ -390,7 +392,9 @@ class GestioneClienti:
             ragione_sociale=ragione_sociale,
             codice_fiscale=codice_fiscale,
             partita_iva=partita_iva,
-            **{k: v for k, v in kwargs.items() if hasattr(Cliente, k)},
+            # `hasattr` sulla classe non vede i campi con default_factory (sede,
+            # recapiti): venivano scartati in silenzio alla creazione.
+            **{k: v for k, v in kwargs.items() if k in Cliente.__dataclass_fields__},
         )
         self._clienti[cliente.id] = cliente
         self._salva()

@@ -110,6 +110,12 @@ def register_auth_management_routes(
                 else:
                     gu.cambia_password(u.id, pwd_new)
                     session["must_change_password"] = False
+                    # Questa sessione resta aperta; le altre dello stesso utente si chiudono.
+                    from web.services.auth_runtime import impronta_credenziali
+
+                    aggiornato = gu.get(u.id) if hasattr(gu, "get") else None
+                    if aggiornato is not None:
+                        session["credenziali"] = impronta_credenziali(aggiornato)
                     audit("auth.cambia_password")
                     if password_obbligatoria:
                         message = "Password aggiornata correttamente. Ora puoi continuare a usare il gestionale."

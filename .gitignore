@@ -90,6 +90,7 @@ indexes/normattiva/
 
 # Environment
 .env
+.chiave_sessioni
 .env.local
 .env.*
 !.env.example

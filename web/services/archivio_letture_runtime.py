@@ -403,13 +403,15 @@ def importi_noti_fascicolo(fascicolo: Any) -> dict[str, list[str]]:
     return noti
 
 
-def _messaggi_pec(fascicolo: Any) -> list[dict[str, Any]]:
+def _messaggi_pec(fascicolo: Any) -> list[dict[str, Any]] | None:
+    """Le PEC del fascicolo; None se il presidio non risponde (da non confondere con «nessuna PEC»)."""
     try:
         from web.services.fascicolo_pec_presidio import messaggi_pec_per_fascicolo
 
-        return messaggi_pec_per_fascicolo(fascicolo)
-    except Exception:
-        return []
+        return messaggi_pec_per_fascicolo(fascicolo, solleva=True)
+    except Exception as exc:
+        logger.warning("Presidio PEC non raggiungibile per %s: letture PEC rinviate (%s)", getattr(fascicolo, "id", ""), exc)
+        return None
 
 
 # ---- la lettura del fascicolo -----------------------------------------------------
@@ -549,9 +551,14 @@ def _allegato_tecnico(oggetto: Any, repository: Any, cache: dict[str, bytes]) ->
     return None
 
 
-def _leggi_pec(fascicolo: Any, registro: RegistroLetture, tenant: str, contesto: Contesto, messaggi: list[dict[str, Any]], *, limite: int) -> dict[str, int]:
+def _leggi_pec(fascicolo: Any, registro: RegistroLetture, tenant: str, contesto: Contesto, messaggi: list[dict[str, Any]] | None, *, limite: int) -> dict[str, int]:
     fascicolo_id = _testo(getattr(fascicolo, "id", ""))
-    conteggi = {"da_leggere": 0, "letti": 0, "assenti": 0, "fatti": 0, "verificati": 0}
+    conteggi = {"da_leggere": 0, "letti": 0, "assenti": 0, "fatti": 0, "verificati": 0, "rinviati": 0}
+    if messaggi is None:
+        # Il presidio PEC non ha risposto: nessuna lettura PEC si chiude in questo
+        # giro (un database bloccato non vuol dire «PEC scollegata»).
+        conteggi["rinviati"] = len(registro.da_leggere(tenant, fascicolo_id, LETTORE_PEC, tipi=("pec", "allegato_pec")))
+        return conteggi
     da_leggere = registro.da_leggere(tenant, fascicolo_id, LETTORE_PEC, tipi=("pec", "allegato_pec"))
     falliti = {(l.oggetto_id, l.sha256) for l in registro.letture(tenant, fascicolo_id, lettore=LETTORE_PEC) if l.tipo == "allegato_pec" and l.stato == "non_leggibile" and (l.esito or {}).get("estrattore_versione") != VERSIONE_ESTRAZIONE_FORMATI}
     da_leggere.extend(o for o in registro.oggetti(tenant, fascicolo_id) if o.tipo == "allegato_pec" and (o.oggetto_id, o.impronta) in falliti and o not in da_leggere)
@@ -678,8 +685,10 @@ def _impronta_viva(fascicolo: Any) -> str:
     try:
         return impronta_inventario(inventario_fascicolo(fascicolo, con_pec=True))
     except Exception as exc:
-        logger.debug("Impronta del fascicolo non calcolata per %s: %s", getattr(fascicolo, "id", ""), exc)
-        return ""
+        # Un errore non vuol dire «nulla è cambiato»: con un'impronta vuota il
+        # fascicolo risultava fermo e non si leggeva più. Si rilegge.
+        logger.warning("Impronta del fascicolo non calcolata per %s: %s", getattr(fascicolo, "id", ""), exc)
+        return "impronta-non-calcolata"
 
 
 def stato_ciclo_fascicolo(fascicolo_id: str, registro: RegistroLetture, tenant: str, *, impronta: str = "") -> StatoCiclo:
@@ -808,7 +817,7 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
     try:
         messaggi = _messaggi_pec(fascicolo)
         inventario = aggiorna_inventario(fascicolo, registro=registro, con_pec=True)
-        contesto = contesto_da_fascicolo(fascicolo, date_note=date_note_fascicolo(fascicolo, messaggi_pec=messaggi))
+        contesto = contesto_da_fascicolo(fascicolo, date_note=date_note_fascicolo(fascicolo, messaggi_pec=messaggi or []))
         contesto.importi_noti = importi_noti_fascicolo(fascicolo)
         contesto.avvocati_studio = tuple(dict.fromkeys([*contesto.avvocati_studio, *_avvocati_dello_studio()]))
         riconvalidati = _riconvalida(fascicolo, registro, tenant)
@@ -954,7 +963,7 @@ def stato_archivio_payload(
     return riassunto
 
 
-def decidi_fatto(fatto_id: str, *, esito: str, valore: str = "", registro: RegistroLetture | None = None) -> dict[str, Any]:
+def decidi_fatto(fatto_id: str, *, esito: str, valore: str = "", registro: RegistroLetture | None = None, fascicolo_id: str = "") -> dict[str, Any]:
     """L'avvocato conferma («verificata»), corregge («corretta», con il valore giusto) o ignora un fatto dell'archivio."""
     from web.services.registro_letture_runtime import utente_corrente_id
 
@@ -970,7 +979,7 @@ def decidi_fatto(fatto_id: str, *, esito: str, valore: str = "", registro: Regis
         if data is None:
             raise ValueError("Per correggere serve una data nel formato gg/mm/aaaa.")
         valore_iso = data.isoformat()
-    fatto = registro.decidi_fatto(tenant_corrente(), fatto_id, verifica=verifica, valore=valore_iso, utente_id=utente_corrente_id())
+    fatto = registro.decidi_fatto(tenant_corrente(), fatto_id, verifica=verifica, valore=valore_iso, utente_id=utente_corrente_id(), fascicolo_id=fascicolo_id)
     if fatto.fascicolo_id:
         invalida_lettura(fatto.fascicolo_id)
     return fatto.to_dict()
@@ -1336,6 +1345,24 @@ def lettura_automatica_per_tutti(app: Any, *, limite_oggetti: int = 150, usa_mar
     return {"ok": True, "job": "archivio_letture_automatico", "tenants": studi, "totals": totali}
 
 
+def _consegna_dopo_ocr(registro: RegistroLetture, tenant: str, fascicolo_id: str) -> None:
+    """I fatti letti dal worker OCR arrivano ai presìdi al giro successivo della coda.
+
+    Il worker OCR gira senza Flask e non può scrivere agenda e scadenziario: riapre
+    il ciclo del fascicolo (l'impronta dei documenti non cambia con l'OCR, quindi
+    senza questo il fascicolo resterebbe «fermo») e accoda l'evento che lo
+    scheduler riprende entro un minuto, con la consegna ai presìdi.
+    """
+    _segna_ciclo(
+        registro, tenant, fascicolo_id, impronta="", totali=0, letti=0, stato="parziale",
+        motivo="nuovi dati letti dall'OCR da consegnare ai presìdi",
+    )
+    try:
+        registro.accoda_evento(tenant, fascicolo_id)
+    except Exception as exc:
+        logger.warning("Evento di consegna dopo l'OCR non accodato per %s: %s", fascicolo_id, exc)
+
+
 def registra_lettura_ocr_nell_archivio(job: Any, testo: str) -> int:
     """Il worker OCR, a testo pronto, alimenta l'archivio da solo (senza Flask): il motore documenti legge quel documento."""
     registro_path = _testo(getattr(job, "registro_path", ""))
@@ -1376,6 +1403,8 @@ def registra_lettura_ocr_nell_archivio(job: Any, testo: str) -> int:
         )
         registro.registra_fatti(tenant, job.id_fasc, oggetto, "documenti", fatti, versione=VERSIONE_MOTORE_DOCUMENTI)
         registro.segna_letto(tenant, job.id_fasc, oggetto, LETTORE_DOCUMENTI, esito={"origine": "ocr", "fatti": len(fatti), "verificati": sum(1 for f in fatti if f.verifica == "verificata")}, versione=VERSIONE_MOTORE_DOCUMENTI)
+        if fatti:
+            _consegna_dopo_ocr(registro, tenant, job.id_fasc)
         return len(fatti)
     except Exception as exc:
         logger.debug("Archivio non alimentato dal job OCR %s: %s", getattr(job, "id", ""), exc)

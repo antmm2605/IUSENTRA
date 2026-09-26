@@ -51,6 +51,16 @@ class ProfessionalAnswerResult:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
+_ASTENSIONE = (
+    "non posso completare",
+    "non posso rispondere",
+    "non ho elementi sufficienti",
+    "lex non risponde",
+    "le fonti trovate non riguardano",
+    "non ho trovato fonti",
+)
+
+
 class ProfessionalAnswerComposer:
     """Rende le risposte Lex leggibili, verificabili e operative.
 
@@ -61,6 +71,11 @@ class ProfessionalAnswerComposer:
     Quando answer_mode='needs_review': risposta breve ma utile,
     missing_evidence valorizzato, next_actions concrete.
     """
+
+    @staticmethod
+    def _is_abstention(testo: str) -> bool:
+        inizio = str(testo or "").strip().lower()[:160]
+        return any(segnale in inizio for segnale in _ASTENSIONE)
 
     def compose(
         self,
@@ -132,7 +147,10 @@ class ProfessionalAnswerComposer:
             evidence_count=evidence_count,
             fallback_triggered=fallback_triggered,
         )
-        if fonti_lines:
+        # Un'astensione non si accompagna a «fonti consultate» e «dato certo»:
+        # elencare fonti che non rispondono alla domanda le farebbe sembrare pertinenti.
+        astensione = self._is_abstention(clean_draft)
+        if fonti_lines and not astensione:
             source_heading = "Quadro verificato" if workflow in PRACTICAL_WORKFLOWS else "Fonti consultate"
             sections.append((source_heading, fonti_lines))
 
@@ -147,7 +165,7 @@ class ProfessionalAnswerComposer:
             evidence_count=evidence_count,
             evidence_sufficient=evidence_sufficient,
         )
-        if dato_certo_lines:
+        if dato_certo_lines and not astensione:
             sections.append(("Dato certo", dato_certo_lines))
 
         # ------------------------------------------------------------------ #
@@ -161,7 +179,7 @@ class ProfessionalAnswerComposer:
             evidence_count=evidence_count,
             evidence_sufficient=evidence_sufficient,
         )
-        if ragionamento_lines:
+        if ragionamento_lines and not astensione:
             sections.append(("Ragionamento", ragionamento_lines))
 
         # ------------------------------------------------------------------ #
@@ -201,7 +219,7 @@ class ProfessionalAnswerComposer:
             quality_label=quality_label,
             human_review_required=human_review_required,
         )
-        if confidence_lines:
+        if confidence_lines and not astensione:
             sections.append(("Qualita della risposta", confidence_lines))
 
         # ------------------------------------------------------------------ #

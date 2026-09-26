@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import date, datetime
 from functools import wraps
 
-from flask import Blueprint, current_app, flash, g, redirect, render_template, request, url_for
+from flask import Blueprint, flash, g, redirect, render_template, request, url_for
+from web.services.tenant_paths import tenant_data_path
 from werkzeug.routing import BuildError
 
 from pct.applicazioni_catalogo import (
@@ -41,8 +42,8 @@ def _richiedi_login(fn):
 def _carica_portali():
     try:
         gestore = GestionePortale(
-            db_path=current_app.config.get("PORTALE_DB", "./portale/portali.json"),
-            uploads_dir=current_app.config.get("PORTALE_UPLOADS", "./portale/uploads"),
+            db_path=tenant_data_path("PORTALE_DB", "./portale/portali.json"),
+            uploads_dir=tenant_data_path("PORTALE_UPLOADS", "./portale/uploads"),
         )
         return gestore.tutti(includi_inattivi=False)
     except Exception:

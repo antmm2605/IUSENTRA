@@ -1418,6 +1418,10 @@ function firstMeaningfulSentence(value: string) {
   return (sentence?.[0] || clean.slice(0, 220)).trim()
 }
 
+// Azioni che cambiano il testo: passano dal modello locale con verifica sul testo
+// di partenza (pct/riscrittura_ancorata.py). Le altre sono indicazioni.
+const LEX_REWRITE_ACTIONS = new Set(['rendi_chiaro_cliente', 'rendi_incisivo', 'rendi_formale', 'rendi_professionale', 'espandi_premesse', 'correggi_refusi'])
+
 function buildLocalLexProposal(action: TemplateLexAction, data: TemplateCompilerData, draftText: string, fields: TemplateCompilerField[], customInstructions: string): TemplateLexProposal {
   const original = firstMeaningfulSentence(draftText) || '[TESTO_DOCUMENTO]'
   const missingPlaceholder = fields.flatMap(placeholderTokens).find((token) => draftText.includes(token))
@@ -2194,8 +2198,61 @@ function ProfessionalTemplateEditorWorkspace({
     setAuditRows((current) => [`${legalDateTimeNow()} - ${message}`, ...current].slice(0, 10))
   }
 
+  const runLexRewrite = (action: TemplateLexAction) => {
+    // Il passaggio è la selezione nell'editor; senza selezione, il primo paragrafo utile.
+    const selected = (savedSelectionRef.current?.toString() || '').trim()
+    const passage = selected || firstMeaningfulSentence(exportPlainText())
+    const note = (message: string): TemplateLexProposal => ({
+      id: `${action.id}_${Date.now()}`,
+      mode: action.mode,
+      title: action.label,
+      original: '',
+      proposed: message,
+      reason: 'Nessuna modifica al testo: indicazione per l’avvocato.',
+      risk: 'warning',
+      status: 'pending',
+      kind: 'nota',
+    })
+    if (!passage) {
+      setProposals((current) => [note('Seleziona nel testo il passaggio da riscrivere e ripeti l’azione.'), ...current])
+      return
+    }
+    setWorkspaceStatus('Lex sta riscrivendo il passaggio e controlla che non compaiano dati nuovi...')
+    const formData = new FormData()
+    formData.set('passaggio', passage)
+    formData.set('azione', action.id)
+    formData.set('istruzioni', customInstructions.trim())
+    submitFormJson('/template-atti/api/riscrivi-passaggio', formData)
+      .then((result) => {
+        const rewritten = String(result.text || '').trim()
+        if (!rewritten) throw new Error(result.message || 'Riscrittura non disponibile: il testo non è stato modificato.')
+        setProposals((current) => [{
+          id: `${action.id}_${Date.now()}`,
+          mode: action.mode,
+          title: action.label,
+          original: passage,
+          proposed: rewritten,
+          reason: result.message || 'Riscrittura verificata sul testo di partenza.',
+          risk: 'info',
+          status: 'pending',
+          kind: 'testo',
+        }, ...current])
+        addAudit(`Lex ha proposto una riscrittura "${action.label}" verificata sul testo.`)
+        setWorkspaceStatus('Proposta Lex pronta: confronta, modifica o rifiuta prima di applicarla.')
+      })
+      .catch((error: unknown) => {
+        const message = error instanceof Error && error.message ? error.message : 'Riscrittura non disponibile: il testo non è stato modificato.'
+        setProposals((current) => [note(message), ...current])
+        setWorkspaceStatus(message)
+      })
+  }
+
   const runLexAction = (action: TemplateLexAction) => {
-    const fallbackProposal = buildLocalLexProposal(action, data, exportPlainText(), fields, customInstructions)
+    if (LEX_REWRITE_ACTIONS.has(action.id)) {
+      runLexRewrite(action)
+      return
+    }
+    const fallbackProposal = { ...buildLocalLexProposal(action, data, exportPlainText(), fields, customInstructions), kind: 'nota' as const }
     const formData = new FormData()
     formData.set('model_code', data.model.code)
     formData.set('title', documentDisplayTitle)
@@ -2242,6 +2299,9 @@ function ProfessionalTemplateEditorWorkspace({
         const proposal: TemplateLexProposal = {
           ...fallbackProposal,
           id: `${action.id}_${Date.now()}`,
+          // L'analisi è un'indicazione per l'avvocato: non sostituisce nessuna frase dell'atto.
+          original: '',
+          kind: 'nota',
           proposed,
           reason: sourceSummary
             ? `Lex ha usato il profilo ${sourceSummary}, i campi del fascicolo e i controlli redazionali disponibili.`
@@ -2266,6 +2326,11 @@ function ProfessionalTemplateEditorWorkspace({
 
   const acceptProposal = (proposal: TemplateLexProposal) => {
     if (proposal.status === 'accepted') return
+    if (proposal.kind === 'nota') {
+      setProposals((current) => current.map((item) => item.id === proposal.id ? { ...item, status: 'accepted' } : item))
+      addAudit(`Indicazione presa in visione: ${proposal.title}.`)
+      return
+    }
     const currentText = editorPlainText()
     let nextText = currentText
     if (proposal.original && proposal.proposed && currentText.includes(proposal.original)) {
@@ -2800,7 +2865,7 @@ function ProfessionalTemplateEditorWorkspace({
                       <textarea value={proposal.proposed} onChange={(event) => updateProposal(proposal.id, event.currentTarget.value)} />
                       <p>{proposal.reason}</p>
                       <footer>
-                        <button type="button" onClick={() => acceptProposal(proposal)}>Accetta</button>
+                        <button type="button" onClick={() => acceptProposal(proposal)}>{proposal.kind === 'nota' ? 'Presa visione' : 'Accetta'}</button>
                         <button type="button" onClick={() => rejectProposal(proposal)}>Rifiuta</button>
                       </footer>
                     </article>

@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 import sqlite3
 
-from flask import Flask, flash, g, make_response, redirect, render_template, request, session, url_for
+from flask import Flask, flash, g, jsonify, make_response, redirect, render_template, request, session, url_for
 
 from core.security.login_guard import get_login_guard
 from pct.auth import GestioneUtenti, RuoloUtente, verifica_totp
@@ -16,6 +16,31 @@ from pct.core_storage_backend import build_core_storage_backend
 from web.services.app_v2_routing import is_safe_internal_path
 from web.services.storage_runtime import get_request_storage_runtime
 from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data
+
+
+# API raggiungibili senza sessione: preflight e descrizione dell'API esterna, webhook
+# dei calendari (verificati dal loro token). Le altre richiedono sessione o chiave API.
+TOTP_TENTATIVI_MASSIMI = 5
+
+API_PUBBLICHE = frozenset({
+    # Controlli di salute usati dal deploy (curl /api/pronto) e dal monitoraggio.
+    "api_ready",
+    "api_health",
+    "api_runtime_metrics",
+    "api_v1._preflight",
+    "api_v1.info",
+    "api_v1.calendar_webhook_google",
+    "api_v1.calendar_webhook_microsoft",
+})
+
+
+def impronta_credenziali(utente) -> str:
+    """Impronta di utente e password: cambia quando cambia la password."""
+    import hashlib
+
+    return f"{getattr(utente, 'id', '')}:" + hashlib.sha256(
+        f"{getattr(utente, 'id', '')}|{getattr(utente, 'password_hash', '')}".encode("utf-8")
+    ).hexdigest()[:24]
 
 
 def register_auth_runtime(
@@ -112,6 +137,7 @@ def register_auth_runtime(
                 crea_admin_se_vuoto=False,
                 studio_db=studio_db,
                 tenant_slug_context=tenant_slug,
+                load_audit=False,
             )
         except (OSError, sqlite3.Error):
             app.logger.warning(
@@ -125,6 +151,7 @@ def register_auth_runtime(
                 crea_admin_se_vuoto=False,
                 studio_db=None,
                 tenant_slug_context=tenant_slug,
+                load_audit=False,
             )
 
     def _runtime_multi_tenant_available() -> bool:
@@ -373,6 +400,24 @@ def register_auth_runtime(
 
         session["last_activity"] = datetime.now().isoformat()
         manager, user, auth_scope, auth_tenant_slug = _session_user_manager(uid)
+        if user is not None and not bool(getattr(user, "attivo", True)):
+            # Un utente disattivato perde subito l'accesso, anche con la sessione aperta.
+            session.clear()
+            if str(request.path or "").startswith("/api/"):
+                return jsonify({"ok": False, "errore": "Utente disattivato.", "code": "user_disabled"}), 401
+            return redirect(url_for("login"))
+        if user is not None:
+            impronta = impronta_credenziali(user)
+            salvata = str(session.get("credenziali") or "")
+            if not salvata or not salvata.startswith(f"{user.id}:"):
+                session["credenziali"] = impronta
+            elif salvata != impronta:
+                # La password è cambiata dopo l'accesso (da un altro dispositivo o
+                # dall'amministratore): le sessioni aperte si chiudono.
+                session.clear()
+                if str(request.path or "").startswith("/api/"):
+                    return jsonify({"ok": False, "errore": "Sessione scaduta: accedi di nuovo.", "code": "credentials_changed"}), 401
+                return redirect(url_for("login", timeout=1))
         g.utente_corrente = user
         g.utente_auth_manager = manager
         g.utente_auth_scope = auth_scope
@@ -517,8 +562,23 @@ def register_auth_runtime(
             )
         ):
             return None
-        if request.endpoint and request.endpoint.startswith(("api_", "portale")):
+        if request.endpoint and request.endpoint.startswith(("portale.", "portale_cliente.")):
+            # Portale del cliente: l'accesso è il token del link, verificato dalle sue route.
             return None
+        if request.endpoint and (request.endpoint.startswith("api_") or str(request.path or "").startswith("/api/")):
+            # Le API rispondono in JSON e non reindirizzano al login. Prima bastava il
+            # nome dell'endpoint («api_…», «portale…») per saltare il controllo: in
+            # modalità a studio singolo erano raggiungibili senza accesso.
+            if g.utente_corrente is not None or request.endpoint in API_PUBBLICHE:
+                return None
+            try:
+                from web.services.tenant_api_auth import api_key_valid_for_request
+
+                if api_key_valid_for_request():
+                    return None
+            except Exception:
+                pass
+            return jsonify({"ok": False, "errore": "Autenticazione richiesta.", "code": "authentication_required"}), 401
         if g.utente_corrente is None:
             return redirect(url_for("login", next=request.full_path.rstrip("?")))
         if (
@@ -872,6 +932,16 @@ def register_auth_runtime(
                 ip=request.remote_addr or "",
                 esito="ERRORE",
             )
+            # Cinque codici sbagliati: si torna alla password. Senza limite un
+            # codice a sei cifre si indovina per tentativi.
+            tentativi = int(session.get("totp_tentativi", 0) or 0) + 1
+            session["totp_tentativi"] = tentativi
+            if tentativi >= TOTP_TENTATIVI_MASSIMI:
+                for chiave in ("totp_pending_uid", "totp_pending_tenant_slug", "totp_pending_auth_scope",
+                               "totp_pending_auth_tenant_slug", "totp_pending_next", "totp_tentativi"):
+                    session.pop(chiave, None)
+                flash("Troppi codici non validi: accedi di nuovo con la password.", "danger")
+                return redirect(url_for("login"))
 
         return render_template(
             "auth/login_2fa.html",

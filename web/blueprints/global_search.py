@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import threading
+import time
 from functools import wraps
 from pathlib import Path
 from typing import Any
@@ -199,18 +201,40 @@ def api_suggest():
         service.repository.close()
 
 
+_REINDEX_ATTESA_SECONDI = 120
+_reindex_lock = threading.Lock()
+_reindex_ultimo: dict[str, float] = {}
+
+
+def _reindex_da_rimandare(tenant_id: str) -> int:
+    """Secondi da attendere prima di un nuovo aggiornamento completo dell'indice (0 = si può)."""
+    ultimo = _reindex_ultimo.get(tenant_id)
+    if ultimo is None:
+        return 0
+    return max(0, int(_REINDEX_ATTESA_SECONDI - (time.monotonic() - ultimo)))
+
+
 @global_search.post("/api/global-search/reindex")
 @_richiedi_login
 def api_reindex():
+    # Ricostruire l'indice legge tutto l'archivio dello studio: una sola ricostruzione
+    # alla volta e non più di una ogni due minuti, per non rallentare gli altri utenti.
+    tenant_id = _tenant_id()
+    attesa = _reindex_da_rimandare(tenant_id)
+    if attesa or not _reindex_lock.acquire(blocking=False):
+        messaggio = "L'indice è stato appena aggiornato: riprova tra qualche istante."
+        return jsonify({"ok": False, "message": messaggio, "retry_after": attesa or 30}), 429
     service = _service()
     try:
         payload = service.reindex(_context())
+        _reindex_ultimo[tenant_id] = time.monotonic()
         response_payload = dict(payload or {})
         response_payload["ok"] = True
         response_payload["stats"] = payload
         return jsonify(response_payload)
     finally:
         service.repository.close()
+        _reindex_lock.release()
 
 
 @global_search.post("/api/global-search/reindex/entity")

@@ -738,6 +738,77 @@ def extract_message_parts(msg: Message) -> tuple[str, str, list[AttachmentPayloa
     return "\n".join(part.strip() for part in text_parts if part.strip()), "\n".join(part.strip() for part in html_parts if part.strip()), attachments
 
 
+from html.parser import HTMLParser as _HTMLParser
+
+_HTML_VOID = frozenset({"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"})
+_HTML_NASCOSTI = frozenset({"script", "style", "head", "template", "noscript", "title"})
+_STILE_NASCOSTO = re.compile(r"display\s*:\s*none|visibility\s*:\s*hidden|font-size\s*:\s*0(?:\.0+)?(?:px|pt|em|%)?\s*(?:;|$)|opacity\s*:\s*0(?:\.0+)?\s*(?:;|$)|max-height\s*:\s*0", re.I)
+_HTML_A_CAPO = frozenset({"p", "div", "br", "tr", "li", "h1", "h2", "h3", "h4", "h5", "h6", "table", "section", "article"})
+
+
+class _TestoVisibile(_HTMLParser):
+    """Solo il testo che l'avvocato vede: fuori commenti, script e blocchi nascosti.
+
+    Un blocco con `display:none` o `hidden` non compare nella PEC aperta, ma
+    toglierne solo i tag lo farebbe leggere alle regole: è la via più semplice
+    per far arrivare a un lettore automatico un numero di ruolo o un'udienza
+    che nessuno vede (iniezione indiretta).
+    """
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.pila: list[tuple[str, bool]] = []
+        self.parti: list[str] = []
+
+    def _nascosto(self) -> bool:
+        return any(nascosto for _, nascosto in self.pila)
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        tag = tag.lower()
+        if tag in _HTML_A_CAPO and not self._nascosto():
+            self.parti.append("\n")
+        if tag in _HTML_VOID:
+            return
+        attributi = {str(k or "").lower(): str(v or "") for k, v in attrs}
+        nascosto = (
+            tag in _HTML_NASCOSTI
+            or "hidden" in attributi
+            or bool(_STILE_NASCOSTO.search(attributi.get("style", "")))
+        )
+        self.pila.append((tag, nascosto))
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag.lower() in _HTML_A_CAPO and not self._nascosto():
+            self.parti.append("\n")
+
+    def handle_endtag(self, tag: str) -> None:
+        tag = tag.lower()
+        for indice in range(len(self.pila) - 1, -1, -1):
+            if self.pila[indice][0] == tag:
+                del self.pila[indice:]
+                break
+        if tag in _HTML_A_CAPO and not self._nascosto():
+            self.parti.append("\n")
+
+    def handle_data(self, data: str) -> None:
+        if not self._nascosto():
+            self.parti.append(data)
+
+
+def html_visibile(html_body: str) -> str:
+    """Il testo visibile di una parte HTML (senza commenti né blocchi nascosti)."""
+    if not str(html_body or "").strip():
+        return ""
+    lettore = _TestoVisibile()
+    try:
+        lettore.feed(str(html_body))
+        lettore.close()
+    except Exception:
+        return clean_text(re.sub(r"<[^>]+>", " ", re.sub(r"<!--.*?-->", " ", str(html_body), flags=re.S)))
+    righe = (" ".join(riga.split()) for riga in "".join(lettore.parti).splitlines())
+    return "\n".join(riga for riga in righe if riga)
+
+
 _HTML_HREF_RE = re.compile(r'href\s*=\s*["\']([^"\']+)["\']', re.IGNORECASE)
 
 
@@ -1446,6 +1517,21 @@ def build_pct_deposit_receipt_profile(
     }
 
 
+#: Dopo la data: «l'udienza del 10/12/2026 è revocata», «… del 10/12/2026 è rinviata al …».
+#: Quella data non è più un appuntamento: non si propone e non si presidia.
+_DATA_SUPERATA = re.compile(
+    r"^\s*(?:(?:ore|h\.?)\s*)?(?:\d{1,2}[:.]\d{2}\s*)?[,)]?\s*"
+    r"(?:(?:e['’`]|è|é|viene|verr[aà]|sar[aà]|risulta|resta|deve\s+intendersi|stat[ao])\s+)*"
+    r"(?:revocat|annullat|sostituit|superat|rinviat|differit|spostat|anticipat|posticipat|cancellat|non\s+si\s+terr)",
+    re.IGNORECASE,
+)
+
+
+def data_superata(seguito: str) -> bool:
+    """Il testo che segue una data dice che quella data è stata revocata o spostata."""
+    return bool(_DATA_SUPERATA.match(str(seguito or "")))
+
+
 def extract_procedural_dates(sources: dict[str, str], plain_text: str = "") -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
     seen: set[tuple[str, str, str, str, str]] = set()
@@ -1489,7 +1575,10 @@ def extract_procedural_dates(sources: dict[str, str], plain_text: str = "") -> l
         context: str,
         confidence: float,
         event_time: str = "",
+        seguito: str = "",
     ) -> None:
+        if data_superata(seguito):
+            return
         iso_date = parse_italian_date(raw_date)
         if not iso_date:
             return
@@ -1596,6 +1685,7 @@ def extract_procedural_dates(sources: dict[str, str], plain_text: str = "") -> l
                     context=searchable[start:end],
                     confidence=0.88,
                     event_time=event_time_after_match(searchable, match),
+                    seguito=searchable[match.end("date"):match.end("date") + 80],
                 )
     if plain_text:
         searchable = searchable_text(plain_text)
@@ -1617,6 +1707,7 @@ def extract_procedural_dates(sources: dict[str, str], plain_text: str = "") -> l
                     context=searchable[start:end],
                     confidence=0.74,
                     event_time=event_time_after_match(searchable, match),
+                    seguito=searchable[match.end("date"):match.end("date") + 80],
                 )
     timed_keys = {
         (
@@ -1769,8 +1860,18 @@ def build_pec_procedural_profile(
     delivery_date: str = "",
     event_type: str = "",
     semantic_context: dict[str, Any] | None = None,
+    fonte_certa: str | None = None,
 ) -> dict[str, Any]:
-    """Estrae una scheda operativa da EML/XML per ragionamento da studio legale."""
+    """Estrae una scheda operativa da EML/XML per ragionamento da studio legale.
+
+    `fonte_certa` è la fonte ufficiale del mittente (vedi
+    `pec_profilo_ufficio.fonte_certa`): stringa vuota quando chi scrive non è
+    un ufficio. In quel caso un Comunicazione.xml allegato, un avviso della
+    Giustizia amministrativa copiato nel testo o l'indirizzo di una cancelleria
+    citato nel corpo non valgono come dati certificati. `None` (chiamanti che
+    non conoscono il mittente) conserva il comportamento precedente.
+    """
+    mittente_incerto = fonte_certa is not None and not fonte_certa
 
     sources = xml_texts or {}
     xml_joined = "\n".join(str(value or "") for value in sources.values())
@@ -1786,12 +1887,15 @@ def build_pec_procedural_profile(
             r"\bCancelleria\s+(?:del|della|di)\s+([^\n]+)",
         ),
     )
-    avviso_ga = pec_profilo_ufficio.avviso_giustizia_amministrativa(readable)
+    avviso_ga = (
+        {} if mittente_incerto or (fonte_certa and fonte_certa != "giustizia_amministrativa")
+        else pec_profilo_ufficio.avviso_giustizia_amministrativa(readable)
+    )
     if not office:
         # Fonti certe prima dell'etichetta della regola: PEC della cancelleria,
         # oggetto ministeriale del deposito, avviso della Giustizia amministrativa.
         office = (
-            pec_profilo_ufficio.ufficio_da_pec(readable)
+            ("" if mittente_incerto else pec_profilo_ufficio.ufficio_da_pec(readable))
             or pec_profilo_ufficio.ufficio_da_oggetto(subject)
             or avviso_ga.get("ufficio", "")
         )
@@ -1821,8 +1925,9 @@ def build_pec_procedural_profile(
         # Numero di ruolo letto dai tag ministeriali di Comunicazione.xml /
         # EsitoAtto.xml: e' un dato certificato dall'ufficio, non un'inferenza
         # sul testo, e come tale vale come prova nel collegamento al fascicolo.
-        "numero_ruolo_certificato": xml_tag_value(xml_joined, ("NumeroRuolo", "numeroRuolo")),
-        "numero_ruolo_fonte": "xml_ministeriale" if xml_tag_value(xml_joined, ("NumeroRuolo", "numeroRuolo")) else "testo",
+        # Un Comunicazione.xml allegato da chi non è un ufficio non certifica nulla.
+        "numero_ruolo_certificato": "" if mittente_incerto else xml_tag_value(xml_joined, ("NumeroRuolo", "numeroRuolo")),
+        "numero_ruolo_fonte": "xml_ministeriale" if not mittente_incerto and xml_tag_value(xml_joined, ("NumeroRuolo", "numeroRuolo")) else "testo",
         "giudice": _profile_value(readable, "Giudice"),
         "cliente": _profile_value(
             readable,
@@ -2065,7 +2170,11 @@ def build_pec_procedural_profile(
     profile["domande_lex"] = list(dict.fromkeys(questions))
     profile["messaggio_operativo"] = _procedural_operational_message(profile)
 
-    return {key: value for key, value in profile.items() if value not in ("", [], {})}
+    esito = {key: value for key, value in profile.items() if value not in ("", [], {})}
+    if fonte_certa is not None:
+        # Anche vuota: dice che il mittente è stato valutato e non è un ufficio.
+        esito["fonte_certa"] = fonte_certa
+    return esito
 
 
 REMOTE_HEARING_KEYWORDS = (
@@ -2906,6 +3015,11 @@ def _merge_legal_hearing_understanding(
         if isinstance(item, dict)
     ]
     if not hearings:
+        return merged_report
+    if isinstance(merged_report.get("deadline_proposal"), dict) and merged_report["deadline_proposal"].get("fonte_non_certa"):
+        # Mittente che non è un ufficio: le udienze lette restano proposte in
+        # bozza (create_draft_date_proposals), nessuna entra da sola in agenda.
+        merged_report["understood_hearings"] = hearings
         return merged_report
     hearing = hearings[0]
     mode = clean_text(hearing.get("mode") or "", 40)
@@ -4271,7 +4385,13 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
     sender_name = from_addresses[0]["name"] if from_addresses else ""
     html_href_urls = extract_html_hrefs(html_body)
     ics_readable = extract_ics_texts(attachments)
-    body_all = "\n".join([subject, text_body, clean_text(re.sub(r"<[^>]+>", " ", html_body)), " ".join(html_href_urls), ics_readable, xml_joined])
+    html_leggibile = html_visibile(html_body)
+    body_all = "\n".join([subject, text_body, clean_text(html_leggibile), " ".join(html_href_urls), ics_readable, xml_joined])
+    # Chi scrive davvero: un ufficio (dominio ministeriale o della giustizia
+    # amministrativa/tributaria, anche nel «Per conto di:» della busta) o no.
+    fonte_certa = pec_profilo_ufficio.fonte_certa(sender, sender_name) or pec_profilo_ufficio.fonte_dalla_busta(
+        sender, {name: text for name, text in xml_texts.items() if "daticert" in name.casefold()}
+    )
     procedural_dates = extract_procedural_dates(xml_texts, plain_text=body_all)
     receipt_xml_type = xml_tag_value(xml_joined, ("tipo", "tipoRicevuta", "ricevuta"))
     receipt_text_type, receipt_features = receipt_type_from_text(body_all)
@@ -4328,6 +4448,7 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
         delivery_date=delivery_date,
         event_type=str(legal_context.get("event_hint") or legal_workflow.get("event_type") or ""),
         semantic_context=legal_context,
+        fonte_certa=fonte_certa,
     )
     office_value = procedural_profile.get("ufficio") or ""
     judge_value = procedural_profile.get("giudice") or ""
@@ -4461,7 +4582,7 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
         "rg_candidates": rg_values,
         "body": {
             "text": clean_text(text_body, 20000),
-            "html_text": clean_text(re.sub(r"<[^>]+>", " ", html_body), 20000),
+            "html_text": clean_text(html_leggibile, 20000),
         },
     }
     pct_deposit_correlation = build_pct_deposit_correlation(parsed_for_deposit, xml_texts=xml_texts)
@@ -4492,7 +4613,7 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
         "rg_candidates": rg_values,
         "body": {
             "text": clean_text(text_body, 20000),
-            "html_text": clean_text(re.sub(r"<[^>]+>", " ", html_body), 20000),
+            "html_text": clean_text(html_leggibile, 20000),
             "href_urls": html_href_urls,
             "ics_text": clean_text(ics_readable, 8000),
         },
@@ -5443,6 +5564,29 @@ def _operational_presidio_key_for_proposal(
     )
 
 
+def _notifica_pec_collegata(fascicolo_id: str) -> None:
+    try:
+        from flask import has_app_context
+
+        if not has_app_context():
+            return
+        from web.services.registro_letture_runtime import pec_collegata
+
+        pec_collegata(fascicolo_id)
+    except Exception:  # pragma: no cover - l'evento non blocca il collegamento
+        pass
+
+
+def fonte_incerta(parsed: dict[str, Any]) -> bool:
+    """La PEC non viene da un ufficio: le date del testo sono proposte, non azioni.
+
+    Vale solo per le PEC lette con la regola del mittente (chiave `fonte_certa`
+    nel profilo); le PEC lette prima conservano il comportamento di allora.
+    """
+    profile = parsed.get("procedural_profile") if isinstance(parsed.get("procedural_profile"), dict) else {}
+    return "fonte_certa" in profile and not profile.get("fonte_certa")
+
+
 def build_deadline_proposal(
     parsed: dict[str, Any],
     *,
@@ -5450,8 +5594,51 @@ def build_deadline_proposal(
     issues: list[dict[str, Any]],
     deposit_lifecycle: dict[str, Any],
 ) -> dict[str, Any]:
-    """Produce una scadenza operativa automatica, distinta dal calcolo legale conclusivo."""
+    """Produce una scadenza operativa automatica, distinta dal calcolo legale conclusivo.
 
+    Un'udienza o un termine letti nel testo diventano da soli una voce di
+    agenda e scadenziario solo se la PEC viene da un ufficio (cancelleria,
+    Giustizia amministrativa o tributaria). Da qualunque altro mittente — un
+    collega, un privato, un indirizzo che imita una cancelleria — le stesse date
+    restano proposte in bozza da confermare: un testo che chiunque può scrivere
+    non decide l'agenda dello studio (le rassegne del 25-26/09/2026, prova sulle
+    PEC ostili). Il termine legale calcolato dalla norma e dalla data di
+    consegna certificata resta invariato.
+    """
+    if not fonte_incerta(parsed):
+        return _build_deadline_proposal_core(parsed, event_type=event_type, issues=issues, deposit_lifecycle=deposit_lifecycle)
+    senza_date = dict(parsed)
+    senza_date["procedural_dates"] = []
+    profilo = dict(parsed.get("procedural_profile") or {})
+    date_lette = sorted({
+        str(item.get("date") or "")[:10]
+        for item in list(parsed.get("procedural_dates") or [])
+        if isinstance(item, dict) and str(item.get("date") or "")[:10]
+    } | ({_date_from_iso_or_it(clean_text(profilo.get("udienza_data_ora") or "", 120)).isoformat()} if _date_from_iso_or_it(clean_text(profilo.get("udienza_data_ora") or "", 120)) else set()))
+    profilo["udienza_data_ora"] = ""
+    senza_date["procedural_profile"] = profilo
+    proposal = _build_deadline_proposal_core(senza_date, event_type=event_type, issues=issues, deposit_lifecycle=deposit_lifecycle)
+    proposal = dict(proposal)
+    proposal["fonte_non_certa"] = True
+    proposal["date_da_confermare"] = date_lette
+    if date_lette:
+        proposal["reason"] = clean_text(
+            "\n".join(part for part in (
+                str(proposal.get("reason") or ""),
+                "Il mittente non è un ufficio giudiziario: le date lette nel messaggio restano proposte in bozza da confermare.",
+            ) if part),
+            1600,
+        )
+    return proposal
+
+
+def _build_deadline_proposal_core(
+    parsed: dict[str, Any],
+    *,
+    event_type: str,
+    issues: list[dict[str, Any]],
+    deposit_lifecycle: dict[str, Any],
+) -> dict[str, Any]:
     source_date_iso = _field_date_value(parsed, "data_consegna", "data_invio")
     source_date = _date_only(source_date_iso)
     subject = clean_text(((parsed.get("headers") or {}).get("subject") or "PEC"), 90)
@@ -9947,6 +10134,10 @@ class PecAuditRepository:
         deposit_upsert: dict[str, Any] = {}
         presidia_dopo_collegamento: dict[str, Any] = {}
         if fascicolo_id:
+            # Il registro delle letture deve sapere subito che il fascicolo ha una
+            # PEC nuova: senza l'evento la lettura aspettava fino a 24 ore.
+            _notifica_pec_collegata(fascicolo_id)
+        if fascicolo_id:
             # Il presidio viene materializzato dal job "validate", che gira PRIMA
             # di questo: al suo passaggio il fascicolo non era ancora collegato e
             # la voce veniva scartata con "fascicolo non collegato, presidio non
@@ -10102,10 +10293,14 @@ class PecAuditRepository:
                 ).fetchone()
                 if row is None:
                     break
-                conn.execute(
-                    "UPDATE pec_jobs SET status='running', attempts=attempts+1, started_at=?, updated_at=? WHERE id=?",
+                # Il job si prende solo se è ancora in coda: lo scheduler e un
+                # avvio manuale possono cercare nello stesso istante.
+                preso = conn.execute(
+                    "UPDATE pec_jobs SET status='running', attempts=attempts+1, started_at=?, updated_at=? WHERE id=? AND status='queued'",
                     (iso_now(), iso_now(), row["id"]),
                 )
+                if getattr(preso, "rowcount", 1) == 0:
+                    continue
             try:
                 job_type = str(row["job_type"])
                 message_id = str(row["message_id"] or "")
@@ -15198,6 +15393,11 @@ class PecAuditRepository:
                     isinstance(item, dict) and clean_text(item.get("due_date") or "", 40)
                     for item in list(report.get("hearing_proposals") or [])
                 )
+                if proposal.get("fonte_non_certa") and not _report_has_legal_deadline(proposal):
+                    # Mittente non ufficiale: la rilettura non crea e non cancella
+                    # voci automatiche; quelle esistenti restano all'avvocato.
+                    skipped += 1
+                    continue
                 if not proposal.get("auto_create") and not _report_has_legal_deadline(proposal) and not has_hearing_proposal:
                     # Nessuna azione automatica confermata: riconciliare
                     # esplicitamente prima di qualsiasi arricchimento.  Non
@@ -15654,6 +15854,16 @@ class PecAuditRepository:
             )
             return summary
         proposal = report.get("deadline_proposal") if isinstance(report.get("deadline_proposal"), dict) else {}
+        if proposal.get("fonte_non_certa") and not due_date and not _report_has_legal_deadline(proposal):
+            # Nessuna voce automatica e nessuna riconciliazione: le date del
+            # messaggio sono già proposte in bozza, e le voci create prima di
+            # questa regola restano all'avvocato (non si cancellano da sole).
+            return {
+                "ok": False,
+                "fonte_non_certa": True,
+                "message": "Il mittente non è un ufficio giudiziario: le date lette restano proposte da confermare.",
+                "proposal": proposal,
+            }
         if due_date:
             proposal = dict(proposal)
             proposal["force_agenda_without_time"] = True

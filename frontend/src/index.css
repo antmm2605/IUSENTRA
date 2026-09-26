@@ -797,6 +797,12 @@ body.react-shell-page #root{
 .iu-search-meta>div:first-child{display:flex;align-items:center;gap:5px;min-width:0}
 .iu-search-meta strong{color:#111827}
 .iu-search-meta__actions{display:flex;gap:8px}
+.iu-search-recenti{position:relative}
+.iu-search-recenti__lista{position:absolute;right:0;top:calc(100% + 6px);z-index:20;min-width:240px;max-width:min(320px,90vw);margin:0;padding:6px;list-style:none;background:#fff;border:1px solid var(--iu-slate-200,#e2e8f0);border-radius:10px;box-shadow:0 12px 28px rgba(15,23,42,.12)}
+.iu-search-recenti__lista button{display:block;width:100%;padding:7px 9px;border:0;border-radius:7px;background:transparent;color:#111827;font-size:13px;font-weight:600;text-align:left;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iu-search-recenti__lista button:hover,.iu-search-recenti__lista button:focus-visible{background:var(--iu-slate-100,#f1f5f9)}
+.iu-search-recenti__vuoto{padding:7px 9px;color:var(--iu-slate-500,#64748b);font-size:13px;font-weight:600}
+.iu-search-notice{margin:-6px 0 12px;color:var(--iu-slate-600,#475569);font-size:13px;font-weight:600}
 .iu-search-ghost,.iu-search-primary,.iu-search-outline{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;border-radius:10px;font-size:13px;font-weight:850;transition:transform .16s ease,background .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease}
 .iu-search-ghost:hover,.iu-search-primary:hover,.iu-search-outline:hover{transform:translateY(-1px)}
 .iu-search-ghost{padding:0 12px;border:1px solid var(--iu-border);color:#111827;background:#fff}
@@ -880,6 +886,7 @@ body.react-shell-page #root{
   .iu-search-box kbd,.iu-search-box__hint{display:none}
   .iu-search-chip{min-height:36px;padding:0 11px;font-size:12px}
   .iu-search-meta{align-items:flex-start;flex-direction:column;gap:9px}
+  .iu-search-recenti__lista{left:0;right:auto}
   .iu-search-meta__actions{width:100%;overflow-x:auto;padding-bottom:2px}
   .iu-search-result{grid-template-columns:38px minmax(0,1fr);padding:12px}
   .iu-search-result__icon{width:38px;height:38px;border-radius:13px}
@@ -2976,6 +2983,7 @@ body:has(.iu-client-portal-public) #pct-ai-widget {
 /* ===== Controllo Studio: azioni rapide e coda "Da lavorare adesso" =====
    Voci numerate per urgenza reale; ogni riga apre l'evento specifico. */
 .iu-regia-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 16px}
+.iu-regia-errore{margin:0 0 12px;padding:9px 12px;border:1px solid #f0c7c2;border-radius:10px;background:#fff5f4;color:#8a1f11;font-size:13px;font-weight:700}
 .iu-regia-actions>a{min-height:68px;display:flex;align-items:center;gap:11px;padding:11px 13px;border:1px solid var(--iu-border);border-radius:10px;background:var(--iu-bg-card);box-shadow:var(--iu-shadow-soft);transition:border-color .18s,box-shadow .18s,transform .18s}
 .iu-regia-actions>a:hover{transform:translateY(-1px);border-color:rgba(37,99,235,.28);box-shadow:0 12px 26px rgba(15,23,42,.08)}
 .iu-regia-actions>a:focus-visible{outline:3px solid rgba(37,99,235,.24);outline-offset:2px}

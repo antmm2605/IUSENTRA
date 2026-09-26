@@ -221,13 +221,44 @@ export async function loadStudioSearchStats(): Promise<StudioSearchStats> {
   return mapStats(payload.stats)
 }
 
+export class ReindexNonEseguito extends Error {}
+
 export async function reindexStudioSearch(): Promise<StudioSearchStats> {
   const response = await fetch('/api/global-search/reindex', {
     method: 'POST',
     credentials: 'same-origin',
     headers: { Accept: 'application/json' },
   })
-  if (!response.ok) return emptyStats
-  const payload = asRecord(await response.json())
+  const payload = asRecord(await response.json().catch(() => ({})))
+  if (!response.ok) {
+    const message = typeof payload.message === 'string' && payload.message
+      ? payload.message
+      : 'Aggiornamento della ricerca non riuscito: riprova tra qualche istante.'
+    throw new ReindexNonEseguito(message)
+  }
   return mapStats(payload.stats)
+}
+
+const RECENTI_KEY = 'iusentra.ricerca.recenti'
+const RECENTI_MAX = 8
+
+export function ricercheRecenti(): string[] {
+  try {
+    const raw = JSON.parse(window.localStorage.getItem(RECENTI_KEY) || '[]')
+    return Array.isArray(raw) ? raw.filter((item): item is string => typeof item === 'string').slice(0, RECENTI_MAX) : []
+  } catch {
+    return []
+  }
+}
+
+export function ricordaRicerca(query: string): string[] {
+  const value = query.trim()
+  if (value.length < 2) return ricercheRecenti()
+  const next = [value, ...ricercheRecenti().filter((item) => item.toLowerCase() !== value.toLowerCase())].slice(0, RECENTI_MAX)
+  try {
+    window.localStorage.setItem(RECENTI_KEY, JSON.stringify(next))
+  } catch {
+    // Archivio del browser non disponibile: le ricerche recenti restano solo in questa pagina.
+  }
+  return next
 }

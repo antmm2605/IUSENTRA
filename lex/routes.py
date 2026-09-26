@@ -24,8 +24,11 @@ def register_routes(
                 "ok": False,
                 "code": "LEX_CHAT_UNAVAILABLE",
                 "message": "Lex non ha completato la richiesta. Riprova tra poco; se il problema resta, controlla la salute del sistema.",
+                # Astensione dichiarata: nessuna risposta parziale o inventata.
+                "answer": "Non posso rispondere in questo momento: Lex non ha completato la verifica delle fonti. Riprova tra poco.",
+                "abstained": True,
             },
-            500,
+            503,
             {"Cache-Control": "no-store"},
         )
 

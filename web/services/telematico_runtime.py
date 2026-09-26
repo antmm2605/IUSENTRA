@@ -41,6 +41,10 @@ from web.services.telematico_resilience import (
 )
 
 
+# Impronta dei fascicoli dei portali già riallineati, per archivio telematico.
+_BACKFILL_ESEGUITI: dict[str, str] = {}
+
+
 def _normalizza_data_portale(value: Any) -> str:
     text = str(value or "").strip()
     if not text:
@@ -3106,9 +3110,27 @@ def build_telematico_runtime(
 
     def _backfill_telematico_from_existing_fascicoli() -> dict[str, int]:
         summary = {"processed": 0, "failed": 0}
-        for fasc in get_fascicoli().tutti():
-            if str(getattr(fasc, "source", "") or "").strip().upper() not in {"PST", "PDP", "PAT", "PTT"}:
-                continue
+        portali = [
+            fasc for fasc in get_fascicoli().tutti()
+            if str(getattr(fasc, "source", "") or "").strip().upper() in {"PST", "PDP", "PAT", "PTT"}
+        ]
+        # Aprire la cabina telematica non deve riscrivere l'archivio SQLite ogni
+        # volta: il riallineamento si ripete solo se i fascicoli dei portali sono
+        # cambiati dall'ultimo giro riuscito in questo processo.
+        try:
+            chiave = str(_cfg_data_path("TELEMATICO_DB"))
+        except Exception:
+            chiave = str(getattr(getattr(g, "tenant", None), "slug", "") or "default")
+        impronta = "|".join(
+            sorted(
+                f"{getattr(f, 'id', '')}:{getattr(f, 'modificato_il', '')}:{getattr(f, 'sync_status', '')}:{getattr(f, 'import_log_id', '')}"
+                for f in portali
+            )
+        )
+        if _BACKFILL_ESEGUITI.get(chiave) == impronta:
+            summary["skipped"] = len(portali)
+            return summary
+        for fasc in portali:
             portale, selection, preview = _selection_preview_from_existing_fascicolo_telematico(fasc)
             if not portale or not selection:
                 continue
@@ -3133,6 +3155,8 @@ def build_telematico_runtime(
                     getattr(fasc, "numero", ""),
                     e,
                 )
+        if not summary["failed"]:
+            _BACKFILL_ESEGUITI[chiave] = impronta
         return summary
 
     def _telematico_dashboard_warning_message(error: Exception) -> str:

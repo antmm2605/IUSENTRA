@@ -109,6 +109,25 @@ def _target_user_id() -> tuple[str, Any]:
     return "", _forbidden()
 
 
+def _voce_non_accessibile(item_id: str):
+    """Una voce del piano è dell'utente a cui è assegnata (o della coda di studio):
+    la vede e la lavora lui, oppure chi amministra lo studio."""
+    if _can_all(ADMIN_PERMISSION) or _api_key_valida():
+        return None
+    try:
+        from web.services.daily_plan_runtime import repository_for_current_request
+
+        voce = repository_for_current_request().get_item(item_id)
+    except Exception:
+        return None  # la route risponde con il suo errore (voce non trovata)
+    if voce is None:
+        return None
+    assegnata = str(getattr(voce, "assigned_user_id", "") or "").strip()
+    if not assegnata or assegnata == _session_user_id():
+        return None
+    return _forbidden()
+
+
 def _audit(action: str, resource_id: str = "", details: str = "") -> None:
     core_runtime = current_app.extensions.get("core_runtime", {}) or {}
     audit = core_runtime.get("audit")
@@ -227,6 +246,9 @@ def daily_plan_item_detail(item_id: str):
         return blocked
     if not _can_all(*READ_PERMISSIONS):
         return _forbidden()
+    negata = _voce_non_accessibile(item_id)
+    if negata is not None:
+        return negata
     try:
         return jsonify(daily_plan_item_detail_payload(item_id))
     except Exception as exc:
@@ -244,6 +266,9 @@ def daily_plan_item_sources(item_id: str):
         return blocked
     if not _can_all(*READ_PERMISSIONS):
         return _forbidden()
+    negata = _voce_non_accessibile(item_id)
+    if negata is not None:
+        return negata
     try:
         response = jsonify(daily_plan_item_sources_payload(item_id))
         response.headers["Cache-Control"] = "private, no-store"
@@ -382,6 +407,9 @@ def daily_plan_item_action(item_id: str):
         request.headers.get("Idempotency-Key") or body.get("idempotency_key") or ""
     ).strip()[:120]
 
+    negata = _voce_non_accessibile(item_id)
+    if negata is not None:
+        return negata
     try:
         if action in STATUS_ACTIONS:
             result = apply_daily_plan_status_action(

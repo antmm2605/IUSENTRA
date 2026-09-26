@@ -184,6 +184,8 @@ export type TemplateLexProposal = {
   reason: string
   risk: AdminTone
   status: 'pending' | 'accepted' | 'rejected' | 'modified'
+  /** «nota»: indicazione per l'avvocato, non entra mai nel testo dell'atto. */
+  kind?: 'testo' | 'nota'
 }
 
 export type TemplateLexRevision = {

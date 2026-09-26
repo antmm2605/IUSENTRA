@@ -493,6 +493,9 @@ def _audit_kind_label(kind: str) -> str:
         "INCIDENT_OPENED": "Incidente aperto",
         "INCIDENT_UPDATED": "Incidente aggiornato",
         "RECEIPT_ISSUED": "Ricevuta cliente emessa",
+        "CLIENT_SIGNATURE_ACQUIRED": "Firma del cliente acquisita",
+        "AI_OUTPUT_RECORDED": "Uscita AI registrata",
+        "AI_OUTPUT_REVIEWED": "Uscita AI rivista dall'avvocato",
     }
     return labels.get(_text(kind).upper(), "Evento tracciato")
 
@@ -5078,6 +5081,20 @@ def run_react_fascicoli_economic_presidio(
     status_defined_updated = 0
     batch_save_payments = callable(getattr(fascicoli_repository, "_salva", None))
     payments_save_pending = False
+    # Si salvano solo i fascicoli toccati dal presidio: riscrivere l'intera tabella
+    # dalla fotografia iniziale cancellerebbe le modifiche fatte nel frattempo
+    # dagli avvocati o dagli altri presìdi.
+    da_salvare: dict[str, Any] = {}
+
+    def salva_toccati() -> None:
+        salva_parziale = getattr(fascicoli_repository, "_salva_fascicoli_parziale", None)
+        if callable(salva_parziale):
+            if da_salvare:
+                salva_parziale(list(da_salvare.values()), rigenera_mirror=False)
+        else:
+            getattr(fascicoli_repository, "_salva")()
+        da_salvare.clear()
+
     for fascicolo in fascicoli:
         if limit and contributi_checked >= limit:
             break
@@ -5093,6 +5110,8 @@ def run_react_fascicoli_economic_presidio(
             contributi_updated += 1
         elif cu_status == "missing":
             contributi_missing += 1
+        if cu_result.get("analysisUpdated") or cu_status == "updated":
+            da_salvare[_text(getattr(fascicolo, "id", ""))] = fascicolo
         if cu_result.get("analysisUpdated"):
             document_analysis_updated += 1
             payments_save_pending = payments_save_pending or batch_save_payments
@@ -5103,6 +5122,7 @@ def run_react_fascicoli_economic_presidio(
             persist=not batch_save_payments,
         )
         if status_result.get("updated"):
+            da_salvare[_text(getattr(fascicolo, "id", ""))] = fascicolo
             status_defined_updated += 1
             payments_save_pending = payments_save_pending or batch_save_payments
         if payments_save_pending and batch_save_payments and (
@@ -5110,7 +5130,7 @@ def run_react_fascicoli_economic_presidio(
             or status_result.get("updated")
             or document_analysis_updated % 25 == 0
         ):
-            getattr(fascicoli_repository, "_salva")()
+            salva_toccati()
             payments_save_pending = False
         if not _fascicolo_is_defined(fascicolo):
             skipped += 1
@@ -5137,7 +5157,7 @@ def run_react_fascicoli_economic_presidio(
         else:
             skipped += 1
     if payments_save_pending and batch_save_payments:
-        getattr(fascicoli_repository, "_salva")()
+        salva_toccati()
     document_analysis_pending = sum(
         1
         for fascicolo in fascicoli

@@ -11,6 +11,7 @@ from datetime import date
 
 from flask import (Blueprint, abort, flash, redirect, render_template,
                    request, url_for, current_app)
+from web.services.tenant_paths import tenant_data_path
 
 from web.helpers import get_clienti, get_fascicoli, get_agenda, get_scadenziario
 
@@ -22,8 +23,8 @@ portale = Blueprint("portale", __name__, url_prefix="/portale")
 def _get_portale():
     from pct.portale import GestionePortale
     return GestionePortale(
-        db_path=current_app.config.get("PORTALE_DB", "./portale/portali.json"),
-        uploads_dir=current_app.config.get("PORTALE_UPLOADS", "./portale/uploads"),
+        db_path=tenant_data_path("PORTALE_DB", "./portale/portali.json"),
+        uploads_dir=tenant_data_path("PORTALE_UPLOADS", "./portale/uploads"),
     )
 
 

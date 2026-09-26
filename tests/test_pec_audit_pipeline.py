@@ -391,7 +391,7 @@ def _pct_esito_mime(
 
 def _gdp_hearing_message(*, hearing_date: str = "09/10/2026", hearing_time: str = "09:15", event: str = "FISSAZIONE UDIENZA") -> bytes:
     msg = EmailMessage()
-    msg["From"] = "Giudice di Pace <gdp@example.test>"
+    msg["From"] = "Giudice di Pace <gdp.palmi@civile.ptel.giustiziacert.it>"
     msg["To"] = "studio@example.test"
     msg["Subject"] = "POSTA CERTIFICATA: GIUDICE DI PACE Notificazione ai sensi del D.L. 179/2012"
     msg["Date"] = "Mon, 1 Jun 2026 12:00:00 +0200"
@@ -1571,7 +1571,7 @@ def test_pec_repository_persists_remote_hearing_pdf_zip_ocr_and_exact_link(tmp_p
     """
     msg = EmailMessage()
     msg["Subject"] = "FISSAZIONE UDIENZA DI DISCUSSIONE"
-    msg["From"] = "Cancelleria <cancelleria@pec.example.test>"
+    msg["From"] = "Cancelleria <cancelleria@civile.ptel.giustiziacert.it>"
     msg["To"] = "studio@example.test"
     msg["Date"] = "Tue, 26 May 2026 15:09:00 +0200"
     msg["Message-ID"] = "<udienza-audiovisiva-1263@example.test>"
@@ -1606,7 +1606,7 @@ def test_refresh_validation_reports_repairs_stale_binary_zip_ocr_for_remote_hear
     repo = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="default")
     msg = EmailMessage()
     msg["Subject"] = "FISSAZIONE UDIENZA DI DISCUSSIONE"
-    msg["From"] = "Cancelleria <cancelleria@pec.example.test>"
+    msg["From"] = "Cancelleria <cancelleria@civile.ptel.giustiziacert.it>"
     msg["To"] = "studio@example.test"
     msg["Date"] = "Tue, 26 May 2026 15:09:00 +0200"
     msg["Message-ID"] = "<udienza-stale-zip-ocr@example.test>"
@@ -1666,7 +1666,7 @@ def test_scheduler_repairs_stale_zip_once_per_extraction_version(tmp_path):
     repo = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="default")
     msg = EmailMessage()
     msg["Subject"] = "FISSAZIONE UDIENZA DA REMOTO"
-    msg["From"] = "Cancelleria <cancelleria@pec.example.test>"
+    msg["From"] = "Cancelleria <cancelleria@civile.ptel.giustiziacert.it>"
     msg["To"] = "studio@example.test"
     msg["Date"] = "Tue, 26 May 2026 15:09:00 +0200"
     msg["Message-ID"] = "<udienza-scheduler-stale-zip@example.test>"
@@ -1724,7 +1724,7 @@ def test_pec_remote_hearing_link_arrives_in_scadenziario_and_agenda(tmp_path):
     )
     msg = EmailMessage()
     msg["Subject"] = "FISSAZIONE UDIENZA DI DISCUSSIONE"
-    msg["From"] = "Cancelleria <cancelleria@pec.example.test>"
+    msg["From"] = "Cancelleria <cancelleria@civile.ptel.giustiziacert.it>"
     msg["To"] = "studio@example.test"
     msg["Date"] = "Tue, 26 May 2026 15:09:00 +0200"
     msg["Message-ID"] = "<udienza-audiovisiva-scadenziario@example.test>"
@@ -1778,7 +1778,7 @@ def test_pec_remote_hearing_link_acquisition_instruction_arrives_in_scadenziario
     )
     msg = EmailMessage()
     msg["Subject"] = "POSTA CERTIFICATA: COMUNICAZIONE 393/2026/VG"
-    msg["From"] = "Cancelleria <cancelleria@pec.example.test>"
+    msg["From"] = "Cancelleria <cancelleria@civile.ptel.giustiziacert.it>"
     msg["To"] = "studio@example.test"
     msg["Date"] = "Mon, 6 Jul 2026 09:02:48 +0200"
     msg["Message-ID"] = "<udienza-link-da-acquisire@example.test>"
@@ -1990,7 +1990,7 @@ def test_schedule_deadline_persistito_materializza_tutte_le_udienze(tmp_path):
     second_link = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_persistita_pomeriggio/0"
     msg = EmailMessage()
     msg["Subject"] = "Comunicazione di cancelleria: due udienze"
-    msg["From"] = "cancelleria@pec.example.test"
+    msg["From"] = "cancelleria@civile.ptel.giustiziacert.it"
     msg["To"] = "studio@example.test"
     msg["Message-ID"] = "<due-udienze-persistite@iusentra.test>"
     msg.set_content(
@@ -2187,7 +2187,7 @@ def test_pec_remote_hearing_clickable_pdf_link_arrives_in_scadenziario_and_agend
     )
     msg = EmailMessage()
     msg["Subject"] = "POSTA CERTIFICATA: COMUNICAZIONE 3950/2026/LAV"
-    msg["From"] = "Cancelleria <cancelleria@pec.example.test>"
+    msg["From"] = "Cancelleria <cancelleria@civile.ptel.giustiziacert.it>"
     msg["To"] = "studio@example.test"
     msg["Date"] = "Wed, 27 May 2026 12:01:37 +0200"
     msg["Message-ID"] = "<udienza-audiovisiva-clickable-scadenziario@example.test>"
@@ -3022,7 +3022,7 @@ def test_refresh_validation_reports_repairs_clickable_pdf_link_for_existing_remo
     repo = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="default")
     msg = EmailMessage()
     msg["Subject"] = "POSTA CERTIFICATA: COMUNICAZIONE 3950/2026/LAV"
-    msg["From"] = "Cancelleria <cancelleria@pec.example.test>"
+    msg["From"] = "Cancelleria <cancelleria@civile.ptel.giustiziacert.it>"
     msg["To"] = "studio@example.test"
     msg["Date"] = "Wed, 27 May 2026 12:01:37 +0200"
     msg["Message-ID"] = "<udienza-audiovisiva-clickable-refresh@example.test>"
@@ -3116,7 +3116,7 @@ def test_refresh_validation_reports_rewrites_stale_remote_hearing_report(tmp_pat
     repo = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="default")
     msg = EmailMessage()
     msg["Subject"] = "FISSAZIONE UDIENZA DI DISCUSSIONE"
-    msg["From"] = "Cancelleria <cancelleria@pec.example.test>"
+    msg["From"] = "Cancelleria <cancelleria@civile.ptel.giustiziacert.it>"
     msg["To"] = "studio@example.test"
     msg["Date"] = "Tue, 26 May 2026 15:09:00 +0200"
     msg["Message-ID"] = "<udienza-refresh@example.test>"
@@ -6592,7 +6592,8 @@ def test_pec_api_schedula_duplicato_audit_senza_report_da_mime_locale(tmp_path, 
         return str(value)
 
     msg = EmailMessage()
-    msg["From"] = "posta-certificata@legalmail.it"
+    # Busta del gestore: l'ufficio vero sta nel «Per conto di:» (come nella casella dello studio).
+    msg["From"] = '"Per conto di: tribunale.santamariacapuavetere@civile.ptel.giustiziacert.it" <posta-certificata@legalmail.it>'
     msg["To"] = "studio@example.pec.it"
     msg["Subject"] = "POSTA CERTIFICATA: COMUNICAZIONE 3001/2025/LAV"
     msg["Message-ID"] = "<duplicato-audit-senza-report@example.test>"

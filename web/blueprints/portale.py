@@ -9,8 +9,9 @@ from __future__ import annotations
 import os
 from datetime import date
 
-from flask import (Blueprint, abort, flash, redirect, render_template,
+from flask import (Blueprint, abort, g, flash, redirect, render_template,
                    request, send_file, url_for, current_app)
+from web.services.tenant_paths import tenant_data_path
 
 from web.helpers import (
     get_agenda,
@@ -27,13 +28,55 @@ from pct.workflow_commerciale import apri_fascicolo_automatico, build_workflow_s
 portale = Blueprint("portale", __name__, url_prefix="/portale")
 
 
+# ---------------------------------------------------------------- studio del link
+
+_STUDIO_DEL_TOKEN: dict[str, str] = {}
+
+
+@portale.before_request
+def _studio_dal_token():
+    """Il cliente arriva senza sessione: lo studio si ricava dal token del link.
+
+    Con più studi sulla stessa installazione, senza questo passo il portale
+    leggeva l'archivio comune (`PORTALE_DB` globale) invece di quello dello
+    studio che ha creato il link.
+    """
+    if getattr(g, "data_paths", None) or not current_app.config.get("MULTI_TENANT"):
+        return None
+    token = str((request.view_args or {}).get("token") or "").strip()
+    if not token:
+        return None
+    try:
+        from pct.portale import GestionePortale
+        from pct.tenant import GestioneTenant, StatoTenant
+
+        tenants = GestioneTenant(registry_path=current_app.config["TENANTS_REGISTRY"])
+        impronta = GestionePortale._hash_token(token)
+        slug = _STUDIO_DEL_TOKEN.get(impronta, "")
+        studi = [tenants.get(slug)] if slug else [s for s in tenants.lista() if s.stato != StatoTenant.SOSPESO]
+        for studio in studi:
+            if studio is None:
+                continue
+            percorsi = tenants.percorsi_dati(studio.slug, reconcile_aliases=False, ensure_baseline=False)
+            gestore = GestionePortale(db_path=percorsi["PORTALE_DB"], uploads_dir=percorsi.get("PORTALE_UPLOADS", ""))
+            if gestore.verifica_token(token) is not None:
+                _STUDIO_DEL_TOKEN[impronta] = studio.slug
+                g.tenant = studio
+                g.tenant_context_slug = studio.slug
+                g.data_paths = percorsi
+                return None
+    except Exception:
+        current_app.logger.exception("Portale: studio del link non determinato")
+    return None
+
+
 # ---------------------------------------------------------------- helper locale
 
 def _get_portale():
     from pct.portale import GestionePortale
     return GestionePortale(
-        db_path=current_app.config.get("PORTALE_DB", "./portale/portali.json"),
-        uploads_dir=current_app.config.get("PORTALE_UPLOADS", "./portale/uploads"),
+        db_path=tenant_data_path("PORTALE_DB", "./portale/portali.json"),
+        uploads_dir=tenant_data_path("PORTALE_UPLOADS", "./portale/uploads"),
     )
 
 

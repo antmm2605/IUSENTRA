@@ -8,6 +8,7 @@ from datetime import date, datetime
 from typing import Any
 
 from flask import Flask, g, session
+from markupsafe import Markup
 
 from pct.formatting import format_date_it, format_datetime_it, format_euro_it, format_signed_euro_it, format_time_it
 from web.services.ui_localization import (
@@ -57,6 +58,13 @@ def register_template_runtime(
     @app.template_filter("ora_it")
     def ora_it(val: Any) -> str:
         return format_time_it(val)
+
+    @app.template_filter("html_sicuro")
+    def html_sicuro(val: Any) -> Markup:
+        """HTML di un messaggio ridotto a tag di sola formattazione (niente script, eventi, form)."""
+        from web.services.signed_attachment_preview_word import _safe_doc_html
+
+        return Markup(_safe_doc_html(str(val or "")))
 
     @app.template_filter("fmt_data")
     def fmt_data(val: Any) -> str:

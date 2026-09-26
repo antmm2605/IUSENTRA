@@ -9,6 +9,9 @@ from pct.economic_dashboard import build_studio_economic_dashboard
 from pct.studio_demo import build_studio_demo_snapshot
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.request_mode import richiede_json, richiede_vista_classica
+from web.bootstrap.agenda_api_routes import agenda_non_autorizzato as _agenda_non_autorizzato, register_agenda_api_routes
+
+
 
 def register_dashboard_routes(
     app: Flask,
@@ -242,8 +245,28 @@ def register_dashboard_routes(
             "bi-calendar-event",
         )
         return render_template("dettaglio_appuntamento.html", app=app_item)
+    def _allinea_scadenze_spostamento(id_app: str, data_prima: str, data_dopo: str) -> None:
+        # L'udienza spostata in agenda sposta anche la scadenza collegata.
+        try:
+            from web.services.agenda_scadenze_sync import allinea_dopo_spostamento
+
+            allinea_dopo_spostamento(get_scadenziario(), id_app, data_prima, data_dopo)
+        except Exception as exc:
+            app.logger.warning("Scadenze non allineate allo spostamento di %s: %s", id_app, exc)
+
+    def _allinea_scadenze_eliminazione(id_app: str, evento: str = "eliminato dall'agenda") -> None:
+        try:
+            from web.services.agenda_scadenze_sync import allinea_dopo_eliminazione
+
+            allinea_dopo_eliminazione(get_scadenziario(), id_app, evento=evento)
+        except Exception as exc:
+            app.logger.warning("Scadenze non scollegate dall'appuntamento %s: %s", id_app, exc)
+
     @app.route("/agenda/<id_app>/modifica", methods=["GET", "POST"])
     def modifica_appuntamento(id_app):
+        _negato = _agenda_non_autorizzato("agenda.scrivi")
+        if _negato is not None:
+            return _negato
         agenda = get_agenda()
         app_item = agenda.get(id_app)
         if not app_item:
@@ -270,7 +293,9 @@ def register_dashboard_routes(
                 "reminder_minuti": int(request.form.get("reminder", app_item.reminder_minuti)),
             }
             try:
+                data_prima = str(app_item.data_ora or "")
                 agenda.modifica(id_app, **campi)
+                _allinea_scadenze_spostamento(id_app, data_prima, str(campi.get("data_ora") or ""))
                 flash("Appuntamento aggiornato.", "success")
                 sync_pubblica("modifica", "agenda", id_app)
                 target = url_for("dettaglio_appuntamento", id_app=id_app)
@@ -288,10 +313,15 @@ def register_dashboard_routes(
         )
     @app.route("/agenda/<id_app>/stato", methods=["POST"])
     def cambia_stato(id_app):
+        _negato = _agenda_non_autorizzato("agenda.scrivi")
+        if _negato is not None:
+            return _negato
         agenda = get_agenda()
         nuovo = request.form.get("stato")
         try:
             aggiornato = agenda.cambia_stato(id_app, StatoAppuntamento(nuovo))
+            if aggiornato.stato == StatoAppuntamento.ANNULLATO:
+                _allinea_scadenze_eliminazione(id_app, evento="annullato in agenda")
             sync_pubblica("modifica", "agenda", id_app)
             message = f"Stato aggiornato: {aggiornato.stato.value.lower()}."
             flash(message, "success")
@@ -304,18 +334,22 @@ def register_dashboard_routes(
         return redirect(url_for("dettaglio_appuntamento", id_app=id_app))
     @app.route("/agenda/<id_app>/elimina", methods=["POST"])
     def elimina_appuntamento(id_app):
+        _negato = _agenda_non_autorizzato("agenda.elimina")
+        if _negato is not None:
+            return _negato
         agenda = get_agenda()
         try:
             agenda.elimina(id_app)
+            _allinea_scadenze_eliminazione(id_app)
             message = "Voce eliminata dall'agenda."
             flash(message, "success")
             sync_pubblica("elimina", "agenda", id_app)
             if richiede_json():
                 return jsonify({"ok": True, "id": id_app, "message": message, "redirect": url_for("agenda_view")})
-        except KeyError as e:
-            flash(str(e), "danger")
+        except KeyError:
+            flash("Appuntamento non trovato.", "danger")
             if richiede_json():
-                return jsonify({"ok": False, "message": str(e)}), 404
+                return jsonify({"ok": False, "message": "Appuntamento non trovato."}), 404
         return redirect(url_for("agenda_view"))
     @app.route("/agenda/importa", methods=["GET", "POST"])
     def importa_calendario():
@@ -585,66 +619,4 @@ def register_dashboard_routes(
             sorgente="generico",
             oggi=date.today(),
         )
-    @app.route("/api/agenda/<id_app>/sposta", methods=["POST"])
-    def api_sposta_appuntamento(id_app):
-        if not g.utente_corrente or not g.utente_corrente.ha_permesso("agenda.scrivi"):
-            return jsonify({"errore": "Non autorizzato"}), 403
-        agenda = get_agenda()
-        appt = agenda.get(id_app)
-        if not appt:
-            return jsonify({"errore": "Appuntamento non trovato"}), 404
-        payload = request.get_json(silent=True) or {}
-        nuova_data = payload.get("data")
-        nuova_data_ora = payload.get("data_ora")
-        if nuova_data and not nuova_data_ora:
-            ora_orig = appt.data_ora_dt.strftime("%H:%M:%S")
-            nuova_data_ora = f"{nuova_data}T{ora_orig}"
-        if not nuova_data_ora:
-            return jsonify({"errore": "Parametro 'data' o 'data_ora' richiesto"}), 400
-        try:
-            appt = agenda.modifica(id_app, data_ora=nuova_data_ora)
-            audit("agenda.sposta", "appuntamento", id_app, dettagli=f"→ {nuova_data_ora}")
-            return jsonify({"ok": True, "data_ora": appt.data_ora})
-        except (ValueError, KeyError) as e:
-            return jsonify({"errore": str(e)}), 409
-    @app.route("/api/agenda")
-    def api_agenda():
-        try:
-            agenda = get_agenda()
-            da_str = request.args.get("da")
-            a_str = request.args.get("a")
-            da = date.fromisoformat(da_str) if da_str else None
-            a = date.fromisoformat(a_str) if a_str else None
-            apps = agenda.cerca(da=da, a=a)
-            return jsonify([a.to_dict() for a in apps])
-        except Exception as e:
-            app.logger.exception("Errore api_agenda: %s", e)
-            return jsonify([])
-    @app.route("/api/agenda/<id_app>")
-    def api_appuntamento(id_app):
-        try:
-            agenda = get_agenda()
-            appt = agenda.get(id_app)
-            if not appt:
-                return jsonify({"errore": "Non trovato"}), 404
-            return jsonify(appt.to_dict())
-        except Exception as e:
-            app.logger.exception("Errore api_appuntamento: %s", e)
-            return jsonify({"errore": str(e)})
-    @app.route("/api/reminder")
-    def api_reminder():
-        try:
-            agenda = get_agenda()
-            entro = int(request.args.get("entro", 60))
-            apps = agenda.prossimi_reminder(entro_minuti=entro)
-            return jsonify([a.to_dict() for a in apps])
-        except Exception as e:
-            app.logger.exception("Errore api_reminder: %s", e)
-            return jsonify([])
-    @app.route("/api/statistiche")
-    def api_statistiche():
-        try:
-            return jsonify(get_agenda().statistiche())
-        except Exception as e:
-            app.logger.exception("Errore api_statistiche: %s", e)
-            return jsonify({"errore": str(e)})
+    register_agenda_api_routes(app, get_agenda=get_agenda, audit=audit, allinea_spostamento=_allinea_scadenze_spostamento)

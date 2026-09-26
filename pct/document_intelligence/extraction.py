@@ -881,16 +881,40 @@ def _extract_eml_attachment(filename: str, payload: bytes) -> tuple[str, list[st
     return f"[Allegato: {clean_name}]\n{result.text}", warnings
 
 
+def _tabelle_disegnate(page: Any, numero: int, testo: str) -> list[Any]:
+    """Le tabelle disegnate di una pagina con almeno tre importi o date (le altre non si cercano)."""
+    try:
+        from legal_ocr.tabelle import da_pdfplumber, pagina_con_numeri
+
+        return da_pdfplumber(page, numero) if pagina_con_numeri(testo) else []
+    except Exception:
+        return []
+
+
+def _con_tabelle(pages: list[DocumentAIPageText], tabelle_per_pagina: dict[int, list[Any]]) -> tuple[list[DocumentAIPageText], str]:
+    from legal_ocr.tabelle import con_blocchi
+
+    numerate: list[DocumentAIPageText] = []
+    primo = 1
+    for page in pages:
+        tabelle = tabelle_per_pagina.get(int(page.page_number or 0)) or []
+        numerate.append(DocumentAIPageText(page_number=page.page_number, text=con_blocchi(page.text, tabelle, primo=primo)))
+        primo += len(tabelle)
+    return numerate, "\n\n".join(page.text for page in numerate if page.text)
+
+
 def _extract_pdf(content: bytes) -> ExtractionResult:
     warnings: list[str] = []
     try:
         import pdfplumber  # type: ignore
 
         pages: list[DocumentAIPageText] = []
+        tabelle_per_pagina: dict[int, list[Any]] = {}
         with pdfplumber.open(BytesIO(content)) as pdf:
             for index, page in enumerate(pdf.pages, start=1):
                 text = page.extract_text() or ""
                 pages.append(DocumentAIPageText(page_number=index, text=text))
+                tabelle_per_pagina[index] = _tabelle_disegnate(page, index, text)
         pages, full_text, repair_warnings = _repair_pdf_text(pages)
         warnings.extend(repair_warnings)
         quality = score_extracted_text_quality(full_text)
@@ -907,6 +931,11 @@ def _extract_pdf(content: bytes) -> ExtractionResult:
             if signature_only:
                 return ExtractionResult(ok=False, text=full_text, pages=pages, extraction_engine="pdfplumber", warnings=warnings,
                                         error_code="pdf_body_ocr_required", error_message="È leggibile soltanto il timbro di firma: OCR del corpo del documento non completato.")
+        if any(tabelle_per_pagina.values()):
+            # Doppia rappresentazione: il testo dell'autore resta com'è, e ogni
+            # tabella disegnata segue la sua pagina come blocco di righe e celle
+            # (la qualità del testo si è misurata prima, senza i blocchi).
+            pages, full_text = _con_tabelle(pages, tabelle_per_pagina)
         return ExtractionResult(
             ok=True,
             text=full_text,

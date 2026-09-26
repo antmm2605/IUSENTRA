@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from collections import Counter, defaultdict
 from datetime import date, datetime, timezone
 from typing import Any, Callable
@@ -44,10 +46,11 @@ def _parse_date(value: Any) -> date | None:
 def _safe(label: str, warnings: list[dict[str, str]], loader: Callable[[], Any], fallback: Any) -> Any:
     try:
         return loader()
-    except Exception as exc:
+    except Exception:
+        logging.getLogger(__name__).exception("Statistiche: sorgente %s non disponibile", label)
         warnings.append({
             "code": f"{label}_non_disponibile",
-            "message": f"Sorgente {label} non disponibile: {type(exc).__name__}.",
+            "message": f"Dati «{label.replace('_', ' ')}» non disponibili in questo momento.",
         })
         return fallback
 
@@ -284,8 +287,13 @@ def build_react_statistiche_payload(
         {
             "id": "incassi",
             "label": "Da incassare",
-            "value": fatturazione_stats.get("da_incassare", 0),
-            "note": "Valore da fatturazione reale",
+            "value": _safe(
+                "fatturazione_crediti",
+                warnings,
+                lambda: float((fatturazione.crediti_aperti() or {}).get("importo") or 0) if fatturazione else 0,
+                fatturazione_stats.get("da_incassare", 0),
+            ),
+            "note": "Parcelle emesse e non pagate, scadute comprese",
             "tone": "primary",
         },
         {

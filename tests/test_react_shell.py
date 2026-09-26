@@ -1372,6 +1372,9 @@ def test_route_post_clienti_e_soggetti_restano_su_backend_operativo(tmp_path: Pa
 def test_react_autocomplete_clienti_usa_payload_minimale_sicuro(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()
+    # Le API rispondono solo con sessione o chiave API (2.410.0): prima l'elenco
+    # clienti era leggibile senza accesso.
+    client.environ_base["HTTP_X_API_KEY"] = "react-test-key"
     cliente = GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
         TipoCliente.PERSONA_FISICA,
         nome="Mario",
@@ -10543,6 +10546,9 @@ def test_react_agenda_in_evidenza_scorre_tutti_gli_impegni_e_dettaglio_mostra_fo
 def test_codice_fiscale_calcolo_e_decodifica_api_react(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()
+    # Le API rispondono solo con sessione o chiave API (2.410.0): prima l'elenco
+    # clienti era leggibile senza accesso.
+    client.environ_base["HTTP_X_API_KEY"] = "react-test-key"
 
     calculated = client.get(
         "/api/cf/calcola",

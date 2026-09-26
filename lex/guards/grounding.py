@@ -20,15 +20,21 @@ class GroundingGuard:
         tier_1 = sum(1 for row in rows if str(row.get("source_policy_tier") or "").strip() == "tier_1")
         verified = sum(1 for row in rows if bool(row.get("verified_reference")))
         if not has_policy_metadata:
+            # Fonti senza classificazione (documenti dello studio, note): bastano a
+            # rispondere, ma la fiducia non può essere «alta» senza sapere se sono
+            # fonti primarie o riferimenti verificati.
             enough_sources = len(rows) >= 2
-            confidence = 0.85 if enough_sources else 0.45 if has_sources else 0.1
-            confidence_label = "alta" if enough_sources else "media" if has_sources else "bassa"
+            confidence = 0.7 if enough_sources else 0.45 if has_sources else 0.1
+            confidence_label = "media" if has_sources else "bassa"
             reasoning = (
                 f"Base tradizionale: {len(rows)} fonti disponibili senza classificazione avanzata."
                 if has_sources
                 else "Nessuna fonte disponibile per sostenere la risposta."
             )
-            warnings = [] if enough_sources else (["Base documentale limitata"] if has_sources else ["Nessuna fonte disponibile"])
+            if enough_sources:
+                warnings = ["Fonti non classificate: verificare i passaggi citati prima dell'uso"]
+            else:
+                warnings = ["Base documentale limitata"] if has_sources else ["Nessuna fonte disponibile"]
         else:
             enough_sources = high >= 2 or (high >= 1 and medium >= 1) or (tier_1 >= 1 and verified >= 1)
             if enough_sources:

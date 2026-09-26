@@ -33,7 +33,17 @@ def _normalize(value: Any) -> str:
         .replace("codice di procedura penale", "c.p.p.")
         .replace("decreto legislativo", "d.lgs.")
         .replace("decreto ministeriale", "d.m.")
+        .replace("decreto del presidente della repubblica", "d.p.r.")
+        .replace("decreto-legge", "d.l.")
+        .replace("decreto legge", "d.l.")
+        .replace("corte di cassazione", "cassazione")
     )
+
+
+# Le forme con cui un modello scrive gli stessi estremi: «articolo 2043», «artt. 1218
+# e 1223», «Cass. n. 123/2020», «L. 689/1981», «d.P.R. 115/2002», «D.L. 179/2012».
+_ARTICOLO = re.compile(r"\b(?:artt?\.|articol[oi])\s*(\d+[a-z]*(?:[-/]\w+)?)(?:\s*(?:,|e)\s*(\d+[a-z]*))?(?:\s*(?:,|del|della|del\s+codice)?\s*)(c\.c\.|c\.p\.c\.|c\.p\.|c\.p\.p\.|cost\.)?")
+_CASSAZIONE_BREVE = re.compile(r"\bcass\.?\s*(?:civ\.|pen\.|sez\.?\s*un\.|s\.u\.)?[^.\n;]{0,40}?(?:n\.|numero)\s*(\d{1,7})(?:\s*/\s*|\s+del\s+)(\d{4})")
 
 
 def _add_reference(refs: list[_LegalReference], kind: str, key: str, label: str) -> None:
@@ -69,20 +79,23 @@ def extract_legal_references(text: Any) -> list[_LegalReference]:
     for match in re.finditer(r"\becli:[a-z0-9:.]+", normalized):
         _add_reference(refs, "ecli", match.group(0), match.group(0))
 
-    article_pattern = (
-        r"\bart\.?\s*(\d+[a-z]*(?:[-/]\w+)?)"
-        r"(?:\s*(?:,|del|della|del\s+codice)?\s*)"
-        r"(c\.c\.|c\.p\.c\.|c\.p\.|c\.p\.p\.|cost\.)?"
-    )
-    for match in re.finditer(article_pattern, normalized):
-        article, code = match.groups()
+    for match in _CASSAZIONE_BREVE.finditer(normalized):
+        number, year = match.groups()
+        _add_reference(refs, "case_law", f"cassazione:{number}:{year}", match.group(0))
+
+    for match in _ARTICOLO.finditer(normalized):
+        article, second, code = match.groups()
         code_key = code or ""
         _add_reference(refs, "article", f"art:{article}:{code_key}", match.group(0))
+        if second:
+            _add_reference(refs, "article", f"art:{second}:{code_key}", match.group(0))
 
     normative_patterns = (
-        ("legge", r"\blegge\s+(?:n\.|numero)\s*(\d{1,5})(?:\s*/\s*|\s+del\s+)(\d{4})"),
-        ("d_lgs", r"\bd\.lgs\.?\s*(?:n\.|numero)?\s*(\d{1,5})(?:\s*/\s*|\s+del\s+)(\d{4})"),
-        ("d_m", r"\bd\.m\.?\s*(?:n\.|numero)?\s*(\d{1,5})(?:\s*/\s*|\s+del\s+)(\d{4})"),
+        ("legge", r"(?<!\.)\b(?:legge|l\.)\s*(?:n\.|numero)?\s*(\d{1,5})(?:\s*/\s*|\s+del\s+)(\d{4})"),
+        ("d_lgs", r"\bd\.\s*lgs\.?\s*(?:n\.|numero)?\s*(\d{1,5})(?:\s*/\s*|\s+del\s+)(\d{4})"),
+        ("d_m", r"\bd\.\s*m\.?\s*(?:n\.|numero)?\s*(\d{1,5})(?:\s*/\s*|\s+del\s+)(\d{4})"),
+        ("d_p_r", r"\bd\.\s*p\.\s*r\.?\s*(?:n\.|numero)?\s*(\d{1,5})(?:\s*/\s*|\s+del\s+)(\d{4})"),
+        ("d_l", r"\bd\.\s*l\.\s*(?:n\.|numero)?\s*(\d{1,5})(?:\s*/\s*|\s+del\s+)(\d{4})"),
     )
     for kind, pattern in normative_patterns:
         for match in re.finditer(pattern, normalized):
@@ -199,12 +212,20 @@ class HallucinationGuard:
             )
 
         if missing:
-            labels = ", ".join(ref.label for ref in missing[:4])
+            labels = ", ".join(ref.label for ref in missing[:6])
+            # Nei workflow di redazione la bozza non si blocca, ma l'avvocato deve
+            # leggere nel testo stesso quali estremi non vengono dalle fonti:
+            # un riferimento non verificato non si presenta mai come certo.
+            avviso = (
+                "\n\n**Da verificare prima dell'uso** — questi riferimenti non si ritrovano nelle fonti consultate "
+                f"e vanno controllati sulla fonte ufficiale: {labels}."
+            )
             return GuardVerdict(
                 allowed=True,
                 warnings=[f"Riferimenti giuridici da verificare prima dell'uso: {labels}."],
                 reasons=["Riferimenti rilevati nella bozza non allineati alle evidenze disponibili."],
                 risk_level="medium",
+                rewritten_draft=None if "Da verificare prima dell'uso" in draft_text else draft_text + avviso,
             )
         return GuardVerdict(allowed=True)
 

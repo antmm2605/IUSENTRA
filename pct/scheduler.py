@@ -232,6 +232,7 @@ def start_scheduler(app):
                 logger.info(f"[scheduler] Backup completato: {zip_path}")
             except Exception as e:
                 logger.error(f"[scheduler] Backup fallito: {e}")
+                return {"ok": False, "error": str(e)[:300]}
 
     # ---- Aggiornamento scadenze scadute (ogni notte alle 00:05) ----
     @scheduler.scheduled_job(CronTrigger(hour=0, minute=5), id="aggiorna_scadute")
@@ -1003,6 +1004,7 @@ def start_scheduler(app):
                     )
             except Exception as e:
                 logger.error("[scheduler] Calendar sync fallito: %s", e)
+                return {"ok": False, "error": str(e)[:300]}
 
     @scheduler.scheduled_job(CronTrigger(minute="*/10"), id="calendar_sync_engine_polling")
     def _calendar_sync_engine_polling():
@@ -1049,6 +1051,7 @@ def start_scheduler(app):
                     logger.info("[scheduler] Calendar engine completato per %d account", processed_accounts)
             except Exception as e:
                 logger.error("[scheduler] Calendar engine fallito: %s", e)
+                return {"ok": False, "error": str(e)[:300]}
 
     @scheduler.scheduled_job(CronTrigger(minute=42), id="calendar_sync_engine_webcal")
     def _calendar_sync_engine_webcal():
@@ -1076,6 +1079,7 @@ def start_scheduler(app):
                     logger.info("[scheduler] Calendar WebCal engine completato per %d account", processed_accounts)
             except Exception as e:
                 logger.error("[scheduler] Calendar WebCal engine fallito: %s", e)
+                return {"ok": False, "error": str(e)[:300]}
 
     @scheduler.scheduled_job(CronTrigger(minute="*/5"), id="calendar_sync_engine_retry")
     def _calendar_sync_engine_retry():
@@ -1772,6 +1776,7 @@ def start_scheduler(app):
                     logger.info("[scheduler] Digest PEC creato per %d target", processed_targets)
             except Exception as e:
                 logger.error("[scheduler] Digest PEC fallito: %s", e)
+                return {"ok": False, "error": str(e)[:300]}
 
     @scheduler.scheduled_job(CronTrigger(minute="*/20"), id="workspace_intelligence_snapshot")
     def _workspace_intelligence_snapshot():
@@ -2428,6 +2433,7 @@ def start_scheduler(app):
                     )
             except Exception as e:
                 logger.error("[scheduler] Sync Polisweb registri fallito: %s", e)
+                return {"ok": False, "error": str(e)[:300]}
 
     try:
         from apscheduler.events import (

@@ -29,7 +29,9 @@ UFFICI_GENERICI = frozenset({
     "ufficio giudiziario civile", "tar o consiglio di stato", "giudice di pace", "unep", "ufficio giudiziario",
 })
 
-_PEC_UFFICIO = re.compile(r"\b([a-z0-9][a-z0-9._-]*@(?:civile|penale)\.ptel\.giustiziacert\.it)\b", re.IGNORECASE)
+# L'indirizzo finisce dove finisce il dominio: «…giustiziacert.it.notifiche-online.example»
+# non è una cancelleria (l'ancora `(?![\w.-])` esclude i domini che la imitano).
+_PEC_UFFICIO = re.compile(r"\b([a-z0-9][a-z0-9._-]*@(?:civile|penale)\.ptel\.giustiziacert\.it)(?![\w.-])", re.IGNORECASE)
 _UFFICIO_IN_OGGETTO = re.compile(
     r"\b((?:Tribunale(?:\s+(?:Ordinario|per i Minorenni|di Sorveglianza))?|Corte\s+d['’]\s*Appello|Giudice\s+di\s+Pace|"
     r"Ufficio\s+del\s+Giudice\s+di\s+Pace)\s+di\s+[A-ZÀ-Ü][\w'’À-ÿ]*(?:\s+(?:di\s+)?[A-ZÀ-Ü][\w'’À-ÿ]*){0,2})",
@@ -40,6 +42,70 @@ _OGGETTO_DEPOSITO = re.compile(
     r"rifiuto|mancata consegna)?\s*:?\s*(?:accettazione\s+)?deposito telematico\b",
     re.IGNORECASE,
 )
+
+
+# Domini da cui scrivono solo gli uffici: giustizia ordinaria (PEC di cancelleria,
+# UNEP, SNT), giustizia amministrativa (avvisi PAT), giustizia tributaria (PTT)
+# e Corte costituzionale. Una data o un numero letti in una PEC che viene da qui
+# sono dati dell'ufficio; da qualunque altro mittente sono testo da verificare.
+DOMINI_FONTE_CERTA: dict[str, str] = {
+    "giustiziacert.it": "giustizia",
+    "giustizia.it": "giustizia",
+    "ga-cert.it": "giustizia_amministrativa",
+    "giustiziatributaria.gov.it": "giustizia_tributaria",
+    "pce.finanze.it": "giustizia_tributaria",
+    "cortecostituzionale.it": "corte_costituzionale",
+}
+_INDIRIZZO = re.compile(r"[A-Za-z0-9._%+-]+@((?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,})(?![\w.-])")
+
+
+def dominio_certo(indirizzo: Any) -> str:
+    """La fonte ufficiale a cui appartiene l'indirizzo, o stringa vuota.
+
+    Il dominio si confronta per intero e dalla fine: «pec.ga-cert.it» sì,
+    «ga-cert.it.avvisi-online.example» no.
+    """
+    for dominio in _INDIRIZZO.findall(str(indirizzo or "")):
+        basso = dominio.casefold()
+        for certo, fonte in DOMINI_FONTE_CERTA.items():
+            if basso == certo or basso.endswith("." + certo):
+                return fonte
+    return ""
+
+
+def fonte_certa(email: Any, nome: Any = "") -> str:
+    """La fonte ufficiale del mittente di una PEC, dal suo indirizzo vero.
+
+    Nella busta di trasporto l'ufficio sta nel «Per conto di:» e l'indirizzo è
+    quello del gestore (``posta-certificata@…``): solo in quella forma il nome
+    visualizzato conta. Un nome visualizzato qualsiasi («Cancelleria Tribunale
+    di Bari» <avvisi@gmail…>) non prova nulla, e neppure un marcatore di
+    «provenienza verificata» nell'oggetto o nelle intestazioni.
+    """
+    diretta = dominio_certo(email)
+    if diretta:
+        return diretta
+    locale = str(email or "").split("@", 1)[0].strip().casefold()
+    if locale == "posta-certificata" and re.search(r"\bper\s+conto\s+di\b", str(nome or ""), re.IGNORECASE):
+        return dominio_certo(nome)
+    return ""
+
+
+def fonte_dalla_busta(email: Any, daticert: dict[str, str]) -> str:
+    """Il mittente vero scritto dal gestore nel daticert.xml della busta di trasporto.
+
+    Vale solo per la busta del gestore (``posta-certificata@…``): il daticert.xml
+    allegato a un messaggio qualsiasi è un file come un altro.
+    """
+    if str(email or "").split("@", 1)[0].strip().casefold() != "posta-certificata":
+        return ""
+    for testo in daticert.values():
+        if re.search(r"<postacert[^>]*\btipo\s*=\s*[\"']errore", str(testo or ""), re.IGNORECASE):
+            continue
+        trovato = re.search(r"<mittente>\s*([^<\s]+)\s*</mittente>", str(testo or ""), re.IGNORECASE)
+        if trovato and (fonte := dominio_certo(trovato.group(1))):
+            return fonte
+    return ""
 
 
 def ufficio_generico(valore: Any) -> bool:
@@ -79,9 +145,16 @@ def ufficio_da_oggetto(oggetto: str) -> str:
     return " ".join(nome.split()).rstrip(".")
 
 
-def avviso_giustizia_amministrativa(testo: str) -> dict[str, str]:
-    """NRG e sede dall'oggetto di un avviso della Giustizia amministrativa («ricorso 202500519 COD#tarrc…»)."""
+def avviso_giustizia_amministrativa(testo: str, *, mittente: str | None = None) -> dict[str, str]:
+    """NRG e sede dall'oggetto di un avviso della Giustizia amministrativa («ricorso 202500519 COD#tarrc…»).
+
+    Con `mittente` l'avviso vale solo se chi scrive è davvero la Giustizia
+    amministrativa: lo stesso oggetto copiato in un messaggio qualsiasi non è
+    un avviso.
+    """
     semplice = str(testo or "")
+    if mittente is not None and dominio_certo(mittente) != "giustizia_amministrativa":
+        return {}
     if "ga-cert.it" not in semplice.casefold():
         return {}
     trovato = _AVVISO_GA.search(semplice)
@@ -150,7 +223,7 @@ def riallinea_profilo(profilo: dict[str, Any], *, mittente: str = "", destinatar
     esito = dict(profilo)
     oggetto = str(esito.get("oggetto_evento") or "")
     fonti = " ".join((oggetto, str(mittente or ""), str(destinatari or ""), str(esito.get("messaggio_operativo") or "")))
-    avviso = avviso_giustizia_amministrativa(fonti)
+    avviso = avviso_giustizia_amministrativa(fonti, mittente=mittente) if mittente else avviso_giustizia_amministrativa(fonti)
     if not esito.get("ufficio") or ufficio_generico(esito.get("ufficio")):
         ufficio = ufficio_da_pec(fonti) or ufficio_da_oggetto(oggetto) or avviso.get("ufficio", "")
         if ufficio:
@@ -173,10 +246,14 @@ def riallinea_profilo(profilo: dict[str, Any], *, mittente: str = "", destinatar
 
 
 __all__ = [
+    "DOMINI_FONTE_CERTA",
     "UFFICI_GENERICI",
     "avviso_giustizia_amministrativa",
     "cliente_da_relata",
+    "dominio_certo",
     "e_ricevuta_di_deposito",
+    "fonte_certa",
+    "fonte_dalla_busta",
     "numero_ruolo",
     "parti_da_oggetto",
     "riallinea_profilo",

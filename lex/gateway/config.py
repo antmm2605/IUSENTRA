@@ -9,6 +9,32 @@ def _env_bool(name: str, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "si", "s", "on"}
 
 
+def _base_ollama() -> str:
+    """Stesso Ollama del runtime AI locale (PCT_LOCAL_AI_BASE_URL) se il gateway non ne ha uno suo.
+
+    In Docker Ollama è `http://ollama:11434`: il vecchio predefinito 127.0.0.1
+    faceva fallire ogni chiamata del gateway (editor AI, riscritture) in produzione.
+    """
+    esplicito = os.getenv("OLLAMA_BASE_URL", "").strip()
+    if esplicito:
+        return esplicito
+    locale = os.getenv("PCT_LOCAL_AI_BASE_URL", "").strip() or os.getenv("OLLAMA_URL", "").strip()
+    if locale:
+        radice = locale.split("/api/", 1)[0].rstrip("/")
+        if radice:
+            return radice
+    return "http://127.0.0.1:11434"
+
+
+def _modello_predefinito() -> str:
+    """Un modello realmente installato: quello di Lex, poi quello della catalogazione, poi la chat locale."""
+    for nome in ("LEX_DEFAULT_MODEL", "PCT_LEX_CATALOGO_MODELLO", "PCT_LOCAL_AI_CHAT_MODEL"):
+        valore = os.getenv(nome, "").strip()
+        if valore:
+            return valore
+    return "llama3.1:8b"
+
+
 @dataclass
 class ProviderConfig:
     name: str
@@ -35,13 +61,13 @@ class GatewayConfig:
             mode=os.getenv("LEX_AI_MODE", "local_first").strip(),
             external_allowed=_env_bool("LEX_EXTERNAL_ALLOWED", False),
             default_provider=os.getenv("LEX_DEFAULT_PROVIDER", "ollama").strip(),
-            default_model=os.getenv("LEX_DEFAULT_MODEL", "llama3.1:8b").strip(),
+            default_model=_modello_predefinito(),
         )
 
         cfg.providers["ollama"] = ProviderConfig(
             name="ollama",
             kind="ollama",
-            base_url=os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").strip(),
+            base_url=_base_ollama(),
             default_model=os.getenv("OLLAMA_DEFAULT_MODEL", cfg.default_model).strip(),
             is_local=True,
             enabled=_env_bool("OLLAMA_ENABLED", True),

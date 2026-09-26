@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import logging
+
 from datetime import datetime, timezone
 from typing import Any, Callable
 
 
 Loader = Callable[[], Any]
 
+
+logger = logging.getLogger(__name__)
 
 def _iso_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -60,6 +64,7 @@ def _safe_stats(loader: Loader | None, label: str, warnings: list[dict[str, str]
             data = stats()
             return data if isinstance(data, dict) else {}
     except Exception as exc:
+        logger.warning("Dati %s non disponibili: %s", label, exc)
         warnings.append({"code": f"{label}_non_disponibile", "message": f"Dati {label} non disponibili."})
     return {}
 
@@ -86,7 +91,8 @@ def _safe_count(loader: Loader | None, label: str, warnings: list[dict[str, str]
             except TypeError:
                 return len(list(func(False)))
     except Exception as exc:
-        warnings.append({"code": f"{label}_conteggio_non_disponibile", "message": f"Conteggio {label} non disponibile: {type(exc).__name__}."})
+        logger.warning("Conteggio %s non disponibile: %s", label, exc)
+        warnings.append({"code": f"{label}_conteggio_non_disponibile", "message": f"Conteggio {label} non disponibile in questo momento."})
     return 0
 
 
@@ -111,7 +117,8 @@ def _site_status(warnings: list[dict[str, str]]) -> dict[str, Any]:
             },
         }
     except Exception as exc:
-        warnings.append({"code": "sito_studio_non_disponibile", "message": f"Stato Sito Studio non disponibile: {type(exc).__name__}."})
+        logger.warning("Stato del sito dello studio non disponibile: %s", exc)
+        warnings.append({"code": "sito_studio_non_disponibile", "message": "Stato del sito dello studio non disponibile in questo momento."})
         return {
             "id": "sito-studio",
             "label": "Sito Studio",

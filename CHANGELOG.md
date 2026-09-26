@@ -1,5 +1,116 @@
 # Changelog
 
+## 2.410.0 — 26/09/2026
+
+Revisione completa dell'applicazione: mappa in `docs/MAPPA_APPLICAZIONE.md`
+(35 problemi, tutti corretti e coperti da test `tests/test_revisione_2410_*.py`).
+
+**Template che servono davvero.** Il ricorso per decreto ingiuntivo, il
+precetto, le procure, le memorie dell'art. 171-ter, la comparsa di
+costituzione, la messa in mora, la diffida e la nota di iscrizione a ruolo hanno
+un renderer dedicato con il contenuto che la norma richiede (artt. 633-642,
+480-481, 83, 171-ter, 166-167 c.p.c.; artt. 1219 e 2943 c.c.). Prima capitale,
+interessi e spese valevano tutti il valore della causa, un'udienza o un termine
+mancanti diventavano «oggi», la procura usciva come un atto di causa senza
+conferimento e i campi propri dell'atto venivano scartati. Ora un dato mancante
+resta visibile come «[da indicare: …]», nessun campo compilato si perde, la
+controparte porta P.IVA, sede e PEC dalle parti del fascicolo, il domicilio
+dello studio è completo di CAP e città, il luogo è la città e nella comparsa
+l'assistito è il convenuto. Le azioni Lex della pagina Template non inseriscono
+più frasi fisse o note tra parentesi: le analisi sono indicazioni per
+l'avvocato e le riscritture passano dal modello locale e sono scartate se
+contengono date, importi, numeri o norme assenti dal passaggio
+(`pct/riscrittura_ancorata.py`). Senza modello, l'editor AI compila la bozza dal
+modello dell'atto; il gateway di Lex usa l'Ollama e il modello del runtime.
+
+**Lex risponde con calcoli certi e si astiene senza fonti.** Termini di appello
+e cassazione (breve e lungo), opposizione a decreto ingiuntivo, memorie 171-ter
+e costituzione del convenuto si calcolano con il motore dei termini (sospensione
+feriale, festività, art. 155 c.p.c.); il contributo unificato con gli scaglioni
+dell'art. 13 D.P.R. 115/2002 (`lex/risposte_certe.py`). Se nessuna fonte
+riguarda la domanda Lex si astiene, senza elencare fonti estranee come «dato
+certo». Un blocco di guardia prevale su una riscrittura; la guardia sulle
+allucinazioni riconosce «articolo», «artt.», «Cass.», «L.», «d.P.R.»; il router
+confronta parole intere; il fallback della diffida legge controparte e oggetto
+del fascicolo; la fiducia non è più «alta» con fonti non classificate; un errore
+della chat è un'astensione (503), non un errore interno.
+
+**Sicurezza.** Tutte le API chiedono sessione o chiave (401 in JSON); utente
+disattivato o password cambiata chiudono la sessione; 2FA con cinque tentativi
+e confronto a tempo costante; chiave di sessione persistente se manca
+`PCT_SECRET_KEY`; CalDAV solo https verso server pubblici; HTML dei messaggi e
+snippet della ricerca ripuliti; permessi su eliminazione di clienti e soggetti,
+email, agenda legacy, amministrazione del database, download dei documenti,
+voci di «Oggi» e fatti del fascicolo; ogni scrittura con sessione respinge
+Origin/Referer di altri siti; i webhook PayPal, SumUp e Satispay registrano un
+pagamento solo se il gestore lo conferma, e al ritorno da Stripe/PayPal si
+verificano link e importo; il portale pubblico ricava lo studio dal token.
+
+**Dati sempre allineati.** L'udienza spostata in agenda sposta la scadenza
+collegata (gli altri termini ricevono una nota da verificare); appuntamento
+eliminato o annullato: scadenze scollegate, non cancellate. Un solo «da
+incassare» (parcelle emesse e non pagate di ogni anno, bozze escluse) in
+Panoramica, Fatturazione, Incassi e Statistiche. I fatti letti dal worker OCR
+arrivano ai presìdi entro un minuto; il collegamento automatico di una PEC
+avvia subito la lettura; errori SQL non chiudono più letture o collegamenti; i
+job in errore risultano in errore; un job della pipeline PEC non parte due
+volte; il presidio economico salva solo i fascicoli toccati; nuovo cliente e
+contatti dal sito non perdono più sede e recapiti; la scansione PDF delle
+scadenze legge anche i documenti cifrati.
+
+**Più veloce.** L'audit (fino a 10.000 eventi) non si carica più a ogni
+richiesta; scritture JSON atomiche; la cabina telematica non riscrive l'archivio
+a ogni apertura; cache della Panoramica invalidata per studio e tra worker;
+aggiornamento dell'indice di ricerca al massimo ogni due minuti; «Ricerche
+recenti» funzionante nella Ricerca studio.
+
+## 2.409.0 — 26/09/2026
+
+**Prove sul campo delle letture automatiche** (`pct/collaudo_ai/`,
+`scripts/collaudo_ai.py`, risultati in `docs/COLLAUDO_AI_2026-09-26.md`).
+
+- **30 PEC ostili anonimizzate** (rassegna Lasso): istruzioni nascoste,
+  marcatori di «provenienza verificata», mittenti che imitano una cancelleria,
+  XML ministeriali allegati da privati, numeri e date civetta. Con le regole
+  della 2.408.0 undici PEC creavano da sole un'udienza o una scadenza e quindici
+  valori ostili finivano in un'azione; con la 2.409.0 nessuno.
+- **30 pagine anonimizzate** (rassegna Reducto): il cancello di ancoraggio
+  bloccava a torto il 37% dei valori veri riscritti in un'altra forma («18
+  luglio 2026», «1375», «EUR 259.00», «n. 812/2026»). Il cancello v2 confronta
+  per tipo (data, importo, numero): nessun valore inventato passa e nessun
+  valore vero è bloccato a torto sul lettore simulato.
+
+**Presidio PEC: solo un ufficio decide l'agenda.** Un'udienza o un termine
+letti nel testo entrano da soli in agenda e scadenziario solo se la PEC viene
+da un ufficio (giustiziacert, Giustizia amministrativa e tributaria, anche nel
+«Per conto di:» o nel daticert della busta del gestore). Da un collega, da un
+privato o da un indirizzo che imita una cancelleria le stesse date restano
+proposte in bozza; le voci create prima non si cancellano da sole. Il termine
+legale calcolato dalla norma e dalla consegna certificata non cambia. Inoltre:
+testo HTML nascosto e commenti non arrivano più alle regole; le udienze
+revocate o spostate non si propongono; un Comunicazione.xml allegato da un
+privato non certifica il ruolo; un avviso della Giustizia amministrativa
+copiato nel testo non è un avviso; un dominio che imita giustiziacert non dà
+l'ufficio.
+
+**Vista «Provenienza» nel fascicolo.** Nel riquadro «Letture e verifiche»
+ogni uscita AI (seconda lettura del catalogo, bozze dell'editor) mostra
+modello, esito del cancello, approvazione dell'avvocato, sigillo con la
+verifica di integrità e l'evento della catena probatoria. Nuovi eventi
+`AI_OUTPUT_RECORDED` e `AI_OUTPUT_REVIEWED` nell'hash-chain di `audit/`
+(conferma, correzione o rifiuto della voce proposta da Lex). Endpoint
+`GET /api/v1/ui/fascicoli/<id>/provenienza-ai`.
+
+**Tabelle in due forme.** L'indice documentale e il motore di lettura unico
+conservano le tabelle disegnate dei PDF come blocco di righe e celle dopo il
+testo della pagina (`legal_ocr/tabelle.py`); i prospetti senza linee si
+riconoscono nelle righe del testo, anche da OCR. Il motore documenti v16 ne
+ricava un fatto per prospetto con la tabella come prova e il controllo dei
+conti (voci contro totale); se i conti non tornano il prospetto resta da
+verificare. Riquadro «Prospetti a tabella» e endpoint
+`GET /api/v1/ui/fascicoli/<id>/letture/prospetti`. I documenti si rileggono una
+volta dal testo già indicizzato.
+
 ## 2.401.3 — 25/09/2026
 
 **Ricerca globale piu' reattiva.** Quando l'indice dello studio e' gia'

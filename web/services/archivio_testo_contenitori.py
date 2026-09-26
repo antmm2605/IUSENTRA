@@ -27,7 +27,13 @@ def estrai_contenuto(data: bytes, nome: str, *, profondita: int = 0) -> TestoCon
             pagine = testo_da_pdf(data, max_pagine=0)
             if not pagine:
                 return TestoContenitore(errori=["PDF incompleto o privo di pagine: occorre recuperare la copia integrale dalla fonte originale."])
-            testo = "\n\n".join(p.testo for p in pagine if p.testo.strip())
+            # Testo e tabelle: ogni tabella disegnata segue la sua pagina come blocco.
+            testi, primo = [], 1
+            for pagina in pagine:
+                if pagina.testo.strip():
+                    testi.append(pagina.testo_con_tabelle(primo=primo))
+                    primo += len(pagina.tabelle)
+            testo = "\n\n".join(testi)
             errori = [str(a) for p in pagine if not p.testo.strip() for a in p.avvisi]
             return TestoContenitore(testo, "ocr" if any(p.origine == "ocr" for p in pagine) else "nativo", errori)
         except Exception:

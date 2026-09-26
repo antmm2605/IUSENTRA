@@ -15,6 +15,7 @@ from datetime import date, timedelta
 
 from flask import (Blueprint, abort, flash, g, redirect,
                    render_template, request, send_file, url_for, current_app)
+from web.services.tenant_paths import tenant_data_path
 
 from web.helpers import get_clienti, get_fascicoli, get_scadenziario, get_preventivi as _shared_get_preventivi
 from pct.economico_context import (
@@ -65,8 +66,8 @@ def _get_gp():
 def _get_portale_mgr():
     from pct.portale import GestionePortale
     return GestionePortale(
-        db_path=current_app.config.get("PORTALE_DB", "./portale/portali.json"),
-        uploads_dir=current_app.config.get("PORTALE_UPLOADS", "./portale/uploads"),
+        db_path=tenant_data_path("PORTALE_DB", "./portale/portali.json"),
+        uploads_dir=tenant_data_path("PORTALE_UPLOADS", "./portale/uploads"),
     )
 
 

@@ -22,11 +22,24 @@ _CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 _IN_FLIGHT: dict[str, Event] = {}
 
 
+# Quando (ora di sistema) il quadro è entrato nella cache di questo worker: serve
+# a scartarlo se un altro worker ha registrato una scrittura dopo.
+_SALVATO_IL: dict[str, float] = {}
+
+
 def _cached_payload_if_fresh(key: str, now: float) -> dict[str, Any] | None:
     cached = _CACHE.get(key)
     if cached and cached[0] > now:
         return deepcopy(cached[1])
     return None
+
+
+def _invalidata_altrove(key: str) -> bool:
+    """Un altro worker ha scritto dopo che questo quadro è stato messo in cache."""
+    try:
+        return shared_invalidated_at() >= _SALVATO_IL.get(key, 0.0) > 0.0
+    except Exception:
+        return False
 
 
 def get_dashboard_payload_cached(
@@ -77,6 +90,7 @@ def get_dashboard_payload_cached(
         for stale_key in [existing for existing, (expires_at, _) in _CACHE.items() if expires_at <= now]:
             _CACHE.pop(stale_key, None)
         _CACHE[key] = (now + max(1.0, float(ttl_seconds or DASHBOARD_CACHE_TTL_SECONDS)), deepcopy(payload))
+        _SALVATO_IL[key] = wall_time()
         active = _IN_FLIGHT.pop(key, None)
         if active is not None:
             active.set()
@@ -123,6 +137,12 @@ def get_dashboard_payload_swr(
     if not refresh:
         with _LOCK:
             cached_payload = _cached_payload_if_fresh(str(cache_key or "default"), monotonic())
+        if cached_payload is not None and _invalidata_altrove(str(cache_key or "default")):
+            # Scrittura registrata da un altro worker: il quadro locale non vale più.
+            with _LOCK:
+                _CACHE.pop(str(cache_key or "default"), None)
+            cached_payload = None
+            refresh = True
         if cached_payload is not None:
             meta["hit"] = True
             return cached_payload, meta
@@ -148,6 +168,7 @@ def get_dashboard_payload_swr(
                         monotonic() + max(1.0, float(ttl_seconds) - age),
                         deepcopy(payload),
                     )
+                    _SALVATO_IL[str(cache_key or "default")] = stored_at
                 meta.update({"hit": True, "shared": True, "age_seconds": int(age)})
                 return payload, meta
             # Dopo una scrittura esplicita (cache invalidata) si ricalcola: il

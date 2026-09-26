@@ -78,6 +78,7 @@ _FILTRI_SQL = {
     "tenant_id = ? AND fascicolo_id = ? AND utente_id = ?": '"tenant_id" = ? AND "fascicolo_id" = ? AND "utente_id" = ?',
     "tenant_id = ? AND fascicolo_id = ? AND stato = ?": '"tenant_id" = ? AND "fascicolo_id" = ? AND "stato" = ?',
     "tenant_id = ? AND id = ?": '"tenant_id" = ? AND "id" = ?',
+    "tenant_id = ? AND id = ? AND fascicolo_id = ?": '"tenant_id" = ? AND "id" = ? AND "fascicolo_id" = ?',
     "tenant_id = ? AND fascicolo_id = ? AND cache_key = ?": '"tenant_id" = ? AND "fascicolo_id" = ? AND "cache_key" = ?',
     "tenant_id = ? AND tipo = ? AND oggetto_id = ? AND sha256 = ? AND lettore = ? AND campo = ? AND valore_letto = ?": '"tenant_id" = ? AND "tipo" = ? AND "oggetto_id" = ? AND "sha256" = ? AND "lettore" = ? AND "campo" = ? AND "valore_letto" = ?',
 }
@@ -767,12 +768,15 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
             righe = self._seleziona("letture_anomalie", "tenant_id = ? AND fascicolo_id = ?", (_testo(tenant_id), _testo(fascicolo_id)), ordine="creata_il DESC")
         return [self._anomalia(riga) for riga in righe]
 
-    def risolvi_anomalia(self, tenant_id: str, anomalia_id: str, *, esito: str, utente_id: str, valore: str = "") -> Anomalia:
+    def risolvi_anomalia(self, tenant_id: str, anomalia_id: str, *, esito: str, utente_id: str, valore: str = "", fascicolo_id: str = "") -> Anomalia:
         """`confermata` (il dato letto è giusto), `corretta` (con il valore giusto) o `ignorata`."""
         if esito not in {"confermata", "corretta", "ignorata"}:
             raise RegistroLettureError("Esito non valido.")
         tenant = _testo(tenant_id)
-        righe = self._seleziona("letture_anomalie", "tenant_id = ? AND id = ?", (tenant, _testo(anomalia_id)))
+        if _testo(fascicolo_id):
+            righe = self._seleziona("letture_anomalie", "tenant_id = ? AND id = ? AND fascicolo_id = ?", (tenant, _testo(anomalia_id), _testo(fascicolo_id)))
+        else:
+            righe = self._seleziona("letture_anomalie", "tenant_id = ? AND id = ?", (tenant, _testo(anomalia_id)))
         if not righe:
             raise RegistroLettureError("Anomalia non trovata.")
         riga = righe[0]

@@ -13,6 +13,27 @@ from pct.ical_import import parse_ics
 from .base import CalendarProviderError, build_ics_event, normalise_provider_event
 
 
+def url_caldav_sicuro(url: str, *, base: str = "") -> str:
+    """Solo https verso un server pubblico, e gli indirizzi degli eventi sullo stesso server.
+
+    L'indirizzo del server lo scrive l'utente e gli indirizzi degli eventi li
+    restituisce il server: senza controllo le richieste (con le credenziali)
+    potevano raggiungere servizi interni (redis, ollama, indirizzi di rete locale).
+    """
+    from urllib.parse import urlsplit
+
+    from pct.calendar_sync import _host_is_public_calendar_target
+
+    parti = urlsplit(str(url or "").strip())
+    if parti.scheme != "https" or not parti.hostname:
+        raise CalendarProviderError("Il server CalDAV deve essere un indirizzo https.")
+    if base and parti.hostname.lower() != (urlsplit(base).hostname or "").lower():
+        raise CalendarProviderError("Il server CalDAV ha indicato un indirizzo fuori dal proprio dominio.")
+    if not _host_is_public_calendar_target(parti.hostname, resolve_dns=True):
+        raise CalendarProviderError("Il server CalDAV non è un indirizzo pubblico raggiungibile.")
+    return str(url).strip()
+
+
 class AppleCalDAVProvider:
     provider_name = "apple_caldav"
 
@@ -29,7 +50,7 @@ class AppleCalDAVProvider:
 
     def _base_url(self, account: dict[str, Any]) -> str:
         credentials = self._credentials(account)
-        return str(credentials.get("server_url") or "https://caldav.icloud.com").rstrip("/")
+        return url_caldav_sicuro(str(credentials.get("server_url") or "https://caldav.icloud.com").rstrip("/"))
 
     def list_calendars(self, account: dict[str, Any]) -> list[dict[str, Any]]:
         base = self._base_url(account)
@@ -37,7 +58,7 @@ class AppleCalDAVProvider:
 <d:propfind xmlns:d="DAV:" xmlns:cs="http://calendarserver.org/ns/">
   <d:prop><d:displayname/><d:resourcetype/></d:prop>
 </d:propfind>"""
-        response = requests.request("PROPFIND", base, data=body, auth=self._auth(account), headers={"Depth": "1"}, timeout=30)
+        response = requests.request("PROPFIND", base, data=body, auth=self._auth(account), headers={"Depth": "1"}, timeout=30, allow_redirects=False)
         if response.status_code >= 400:
             raise CalendarProviderError("Lista calendari CalDAV non disponibile.")
         calendars: list[dict[str, Any]] = []
@@ -60,13 +81,13 @@ class AppleCalDAVProvider:
     def pull_changes(self, account: dict[str, Any], calendar: dict[str, Any], cursor: str = "") -> dict[str, Any]:
         base = self._base_url(account)
         calendar_href = str(calendar.get("provider_calendar_id") or base)
-        url = calendar_href if calendar_href.startswith("http") else base + "/" + calendar_href.lstrip("/")
+        url = url_caldav_sicuro(calendar_href if calendar_href.startswith("http") else base + "/" + calendar_href.lstrip("/"), base=base)
         body = """<?xml version="1.0" encoding="utf-8"?>
 <c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
   <d:prop><d:getetag/><c:calendar-data/></d:prop>
   <c:filter><c:comp-filter name="VCALENDAR"><c:comp-filter name="VEVENT"/></c:comp-filter></c:filter>
 </c:calendar-query>"""
-        response = requests.request("REPORT", url, data=body, auth=self._auth(account), headers={"Depth": "1", "Content-Type": "application/xml"}, timeout=45)
+        response = requests.request("REPORT", url, data=body, auth=self._auth(account), headers={"Depth": "1", "Content-Type": "application/xml"}, timeout=45, allow_redirects=False)
         if response.status_code >= 400:
             raise CalendarProviderError("Lettura eventi CalDAV non riuscita.")
         events: list[dict[str, Any]] = []
@@ -98,12 +119,12 @@ class AppleCalDAVProvider:
     def push_event(self, account: dict[str, Any], calendar: dict[str, Any], event: dict[str, Any]) -> dict[str, Any]:
         base = self._base_url(account)
         calendar_href = str(calendar.get("provider_calendar_id") or base)
-        calendar_url = calendar_href if calendar_href.startswith("http") else base + "/" + calendar_href.lstrip("/")
+        calendar_url = url_caldav_sicuro(calendar_href if calendar_href.startswith("http") else base + "/" + calendar_href.lstrip("/"), base=base)
         binding = event.get("binding") if isinstance(event.get("binding"), dict) else {}
         uid = str(binding.get("external_uid") or event.get("uid") or f"iusentra-{re.sub('[^A-Za-z0-9]+', '-', str(event.get('title') or 'evento')).strip('-')}")
         href = str(binding.get("external_event_id") or "").strip()
-        target = href if href.startswith("http") else calendar_url.rstrip("/") + f"/{uid}.ics"
-        response = requests.put(target, data=build_ics_event(event, uid), auth=self._auth(account), headers={"Content-Type": "text/calendar; charset=utf-8"}, timeout=30)
+        target = url_caldav_sicuro(href if href.startswith("http") else calendar_url.rstrip("/") + f"/{uid}.ics", base=base)
+        response = requests.put(target, data=build_ics_event(event, uid), auth=self._auth(account), headers={"Content-Type": "text/calendar; charset=utf-8"}, timeout=30, allow_redirects=False)
         if response.status_code >= 400:
             raise CalendarProviderError("Scrittura evento CalDAV non riuscita.")
         remote = normalise_provider_event(
@@ -125,7 +146,8 @@ class AppleCalDAVProvider:
         href = str(binding.get("external_event_id") or "")
         if not href:
             return {"ok": True, "missing": True, "deleted": True}
-        response = requests.delete(href, auth=self._auth(account), timeout=20)
+        href = url_caldav_sicuro(href, base=self._base_url(account))
+        response = requests.delete(href, auth=self._auth(account), timeout=20, allow_redirects=False)
         if response.status_code >= 400 and response.status_code != 404:
             raise CalendarProviderError("Eliminazione evento CalDAV non riuscita.")
         return {"ok": True, "deleted": True}

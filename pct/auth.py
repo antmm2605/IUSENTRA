@@ -59,10 +59,13 @@ def verifica_totp(secret_b32: str, codice: str, finestra: int = 1) -> bool:
         return False
     t_now = int(_time.time()) // 30
     codice = codice.strip().replace(" ", "")
+    import hmac as _hmac
+
+    esito = False
     for delta in range(-finestra, finestra + 1):
-        if str(_hotp(key, t_now + delta)).zfill(6) == codice:
-            return True
-    return False
+        # Confronto a tempo costante, senza uscire prima: il tempo non rivela quale finestra coincide.
+        esito = _hmac.compare_digest(str(_hotp(key, t_now + delta)).zfill(6), codice) or esito
+    return esito
 
 
 def totp_uri(secret_b32: str, username: str, issuer: str = "IUSENTRA") -> str:
@@ -670,6 +673,7 @@ class GestioneUtenti:
         self._save_json_utenti()
 
     def _salva_audit(self):
+        self._assicura_audit()
         if self._studio_db is not None:
             cutoff = (datetime.now() - timedelta(days=self._retention_days)).isoformat()
             recenti = [e for e in self._audit if e.timestamp >= cutoff]
@@ -1293,6 +1297,35 @@ class GestioneUtenti:
 
     # ---- audit log
 
+    def _assicura_audit(self) -> None:
+        """Carica l'audit solo quando serve davvero (lettura o nuovo evento).
+
+        Il gestore creato a ogni richiesta per riconoscere l'utente non legge
+        l'audit (fino a 10.000 eventi): lo carica qui, prima di scriverlo, così
+        un salvataggio non può mai sovrascrivere l'archivio con un elenco vuoto.
+        """
+        if self._load_audit:
+            return
+        self._load_audit = True
+        audit = self._load_json_audit()
+        if self._studio_db is not None:
+            try:
+                righe = self._fetchall_structured(
+                    "SELECT id, timestamp, id_utente, username, azione, "
+                    "risorsa_tipo, risorsa_id, dettagli, ip, esito FROM audit_log"
+                )
+                da_sql = []
+                for riga in righe:
+                    try:
+                        da_sql.append(EventoAudit.from_dict(dict(riga)))
+                    except Exception:
+                        pass
+                if da_sql or not audit:
+                    audit = da_sql
+            except Exception as exc:
+                self._disable_studio_db(exc, operation="caricamento audit")
+        self._audit = audit + self._audit
+
     def registra_evento(
         self,
         azione: str,
@@ -1314,6 +1347,7 @@ class GestioneUtenti:
             ip=ip,
             esito=esito,
         )
+        self._assicura_audit()
         self._audit.append(evento)
         self._salva_audit()
         return evento
@@ -1326,6 +1360,7 @@ class GestioneUtenti:
         a: Optional[str] = None,
         limit: int = 100,
     ) -> List[EventoAudit]:
+        self._assicura_audit()
         result = list(self._audit)
         if id_utente:
             result = [e for e in result if e.id_utente == id_utente]
@@ -1348,7 +1383,7 @@ class GestioneUtenti:
                 for r in RuoloUtente
             },
             "con_override": sum(1 for u in self._utenti.values() if u.ha_override),
-            "totale_eventi_audit": len(self._audit),
+            "totale_eventi_audit": (self._assicura_audit(), len(self._audit))[1],
         }
 
     # ---- helper

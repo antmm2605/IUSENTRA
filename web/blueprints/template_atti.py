@@ -125,15 +125,31 @@ def _studio_config_for_prefill() -> dict:
             "cf": str(getattr(studio, "cf", "") or "").strip(),
             "piva": str(getattr(studio, "piva", "") or "").strip(),
             "codice_fiscale_avvocato": str(getattr(studio, "codice_fiscale_avvocato", "") or "").strip(),
+            "cap": str(getattr(studio, "cap", "") or "").strip(),
+            "citta": str(getattr(studio, "city", "") or "").strip(),
+            "provincia": str(getattr(studio, "province", "") or "").strip(),
+            "ordine_avvocati": str(getattr(studio, "ordine_avvocati", "") or "").strip(),
         }
         config["studio"] = studio_payload
+        if studio_payload["citta"]:
+            config["STUDIO_CITTA"] = studio_payload["citta"]
+        if studio_payload["codice_fiscale_avvocato"]:
+            config.setdefault("STUDIO_CF_AVVOCATO", studio_payload["codice_fiscale_avvocato"])
         if studio_payload["nome"]:
             config["STUDIO_NOME"] = studio_payload["nome"]
         if studio_payload["avvocato"]:
             config["STUDIO_AVVOCATO"] = studio_payload["avvocato"]
             config["PCT_STUDIO_AVVOCATO"] = studio_payload["avvocato"]
         if studio_payload["indirizzo"]:
-            config["STUDIO_INDIRIZZO"] = studio_payload["indirizzo"]
+            # Indirizzo completo per l'elezione di domicilio: via, CAP e città.
+            localita = " ".join(v for v in (studio_payload["cap"], studio_payload["citta"]) if v)
+            if studio_payload["provincia"]:
+                localita = f"{localita} ({studio_payload['provincia']})".strip()
+            indirizzo = studio_payload["indirizzo"]
+            gia_completo = bool(studio_payload["cap"]) and studio_payload["cap"] in indirizzo
+            if localita and not gia_completo:
+                indirizzo = f"{indirizzo}, {localita}"
+            config["STUDIO_INDIRIZZO"] = indirizzo
         if studio_payload["cf"]:
             config["STUDIO_CF"] = studio_payload["cf"]
         if studio_payload["piva"]:
@@ -2288,6 +2304,28 @@ def api_assistente_redazionale(model_code: str):
     except Exception as e:
         current_app.logger.exception("Errore api_assistente_redazionale: %s", e)
         return jsonify({"ok": False, "errore": "Analisi redazionale non completata."}), 200
+
+
+@template_atti.route("/api/riscrivi-passaggio", methods=["POST"])
+@_richiedi_login
+def api_riscrivi_passaggio():
+    """Riscrittura di un passaggio con il modello locale, verificata sul testo di partenza."""
+    try:
+        from pct.riscrittura_ancorata import genera_con_lex, riscrivi_passaggio
+
+        dati = request.get_json(silent=True) or request.form
+        utente = getattr(g, "utente_corrente", None)
+        esito = riscrivi_passaggio(
+            str(dati.get("passaggio") or ""),
+            str(dati.get("azione") or ""),
+            istruzioni=str(dati.get("istruzioni") or ""),
+            genera=genera_con_lex(str(getattr(utente, "id", "") or "")),
+        )
+        return jsonify(esito.to_dict()), 200
+    except Exception as e:
+        current_app.logger.exception("Errore api_riscrivi_passaggio: %s", e)
+        messaggio = "Riscrittura non disponibile: il testo non è stato modificato."
+        return jsonify({"ok": False, "messaggio": messaggio, "message": messaggio}), 200
 
 
 # ================================================================ helpers

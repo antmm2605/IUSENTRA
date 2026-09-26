@@ -270,7 +270,14 @@ def _candidates_from_document(
             return []
     except OSError:
         return []
-    content = path.read_bytes()
+    try:
+        # I documenti possono essere cifrati su disco (PCT_DOC_KEY): senza
+        # decifrarli la scansione non troverebbe mai testo.
+        from pct.document_crypto import decrypt_doc
+
+        content = decrypt_doc(path.read_bytes())
+    except Exception:
+        return []
     filename = str(getattr(documento, "nome", "") or path.name)
     pages, extraction_warnings = _quick_pdf_text_pages(content, filename)
     if not pages:

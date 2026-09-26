@@ -75,7 +75,16 @@ export async function fetchPianoGiorno(
     if (response.status === 304 && cached) {
       return cached.piano
     }
-    if (!response.ok) return pianoVuoto
+    // Un errore non è un «piano non ancora generato»: l'avvocato deve saperlo.
+    if (!response.ok) {
+      return {
+        ...pianoVuoto,
+        stato: 'errore',
+        message: response.status === 403
+          ? 'Non hai accesso a questo piano del giorno.'
+          : 'Piano del giorno non disponibile in questo momento: riprova tra poco.',
+      }
+    }
     const payload = (await response.json()) as PianoGiornoPayload
     const etag = response.headers.get('ETag')
     if (etag) {
@@ -84,7 +93,7 @@ export async function fetchPianoGiorno(
     return payload
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') throw error
-    return pianoVuoto
+    return { ...pianoVuoto, stato: 'errore', message: 'Connessione non riuscita: il piano del giorno non è stato caricato.' }
   }
 }
 

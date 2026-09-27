@@ -62,7 +62,7 @@ def test_dashboard_non_chiama_acquisite_le_sue_sole_letture(tmp_path: Path):
 
     with app.test_client() as client:
         login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
-        response = client.get("/admin/aggiornamenti-legali")
+        response = client.get("/admin/aggiornamenti-legali?_legacy=1")
 
     html = response.get_data(as_text=True)
     assert login.status_code == 302

@@ -17,6 +17,7 @@ from pct.legal_coverage_pipeline import (
 )
 from pct.legal_taxonomy_sql_generator import generate_sql
 from web.services.legal_coverage_surface import build_generator, build_repository, build_legal_coverage_surface, run_action
+from web.services.piattaforma_shell_runtime import render_piattaforma_shell, vista_classica_richiesta
 
 
 legal_coverage_admin = Blueprint(
@@ -53,6 +54,15 @@ def _selected_tenant_slug() -> str:
     return ""
 
 
+def _pannello_react() -> bool:
+    """Vista React solo per il superamministratore: l'API del pannello di
+    piattaforma (`/api/v1/ui/piattaforma`) è riservata a lui. Gli altri
+    amministratori ammessi dal decoratore di questa console restano sulla vista
+    classica, con le stesse funzioni di prima."""
+    utente = getattr(g, "utente_corrente", None)
+    return not vista_classica_richiesta() and bool(getattr(utente, "is_superadmin", False))
+
+
 def _review_payload(required_reason: bool = False) -> tuple[dict[str, Any], str, str, str]:
     body = request.get_json(silent=True) or {}
     reviewer = str(body.get("reviewer") or "superadmin").strip()
@@ -69,6 +79,8 @@ def _review_payload(required_reason: bool = False) -> tuple[dict[str, Any], str,
 @legal_coverage_admin.get("/")
 @coverage_admin_required
 def dashboard():
+    if _pannello_react():
+        return render_piattaforma_shell("copertura-ai", "Copertura AI")
     tenant_slug = _selected_tenant_slug()
     payload = build_legal_coverage_surface(tenant_slug=tenant_slug)
     return render_template(
@@ -110,12 +122,14 @@ def execute_action(action: str):
     except Exception as exc:
         current_app.logger.exception("Errore action coverage %s: %s", action, exc)
         flash(f"Errore durante l'azione {action}: {exc}", "danger")
-    return redirect(url_for("legal_coverage_admin.dashboard"))
+    return redirect(url_for("legal_coverage_admin.dashboard", _legacy=1))
 
 
 @legal_coverage_admin.get("/review")
 @coverage_admin_required
 def review_page():
+    if _pannello_react():
+        return render_piattaforma_shell("copertura-ai-revisione", "Revisione copertura AI")
     tenant_slug = _selected_tenant_slug()
     return render_template(
         "admin/legal_coverage_review.html",

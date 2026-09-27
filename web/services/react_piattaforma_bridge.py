@@ -62,7 +62,15 @@ class Pagina:
 
 
 def _pagine() -> list[Pagina]:
+    from web.services import react_piattaforma_pagina_aggiornamenti as aggiornamenti
+    from web.services import react_piattaforma_pagina_aggiornamenti_acquisizione as acquisizione
+    from web.services import react_piattaforma_pagina_aggiornamenti_analisi as analisi
+    from web.services import react_piattaforma_pagina_aggiornamenti_archivio as archivio_legale
+    from web.services import react_piattaforma_pagina_aggiornamenti_fonti as fonti
+    from web.services import react_piattaforma_pagina_aggiornamenti_revisione as revisione
     from web.services import react_piattaforma_pagina_assistente_migrazione as migrazione
+    from web.services import react_piattaforma_pagina_copertura_ai as copertura
+    from web.services import react_piattaforma_pagina_copertura_ai_revisione as copertura_revisione
     from web.services import react_piattaforma_pagina_crash_test as crash
     from web.services import react_piattaforma_pagina_installazione_pack as pack
     from web.services import react_piattaforma_pagina_pianificazioni as pianificazioni
@@ -71,6 +79,7 @@ def _pagine() -> list[Pagina]:
     from web.services import react_piattaforma_pagina_studio as studio
     from web.services import react_piattaforma_pagina_studio_database as archivio
     from web.services import react_piattaforma_pagina_studio_utenti as utenti_studio
+    from web.services import react_piattaforma_pagina_supporto as supporto
     from web.services import react_piattaforma_pagina_utenti_piattaforma as utenti_piattaforma
 
     return [
@@ -92,7 +101,21 @@ def _pagine() -> list[Pagina]:
         Pagina("siti-studio", "Siti degli studi", "/admin/siti-studio/", lambda: sistema.costruisci_siti(_arg("q")), sistema.siti_studio),
         Pagina("lex-scorecard", "Valutazione di Lex", "/admin/lex-scorecard", sistema.costruisci_scorecard, sistema.lex_scorecard),
         Pagina("osservabilita", "Osservabilità", "/admin/osservabilita", sistema.costruisci_osservabilita, sistema.osservabilita),
+        Pagina("supporto-remoto", "Assistenza remota", "/admin/supporto-remoto", lambda: supporto.costruisci(_arg("sessione"), _arg("stato"), _arg("q")), supporto.adatta, supporto.esegui),
+        Pagina("aggiornamenti-legali", "Aggiornamenti legali", "/admin/aggiornamenti-legali/", aggiornamenti.costruisci, aggiornamenti.adatta, aggiornamenti.esegui),
+        Pagina("aggiornamenti-fonti", "Fonti degli aggiornamenti", "/admin/aggiornamenti-legali/fonti", fonti.costruisci, fonti.adatta, fonti.esegui),
+        Pagina("aggiornamenti-staging", "Acquisizione dei documenti", "/admin/aggiornamenti-legali/staging", lambda: acquisizione.costruisci(_arg("source"), _arg("classification"), _arg("status")), acquisizione.adatta, acquisizione.esegui),
+        Pagina("aggiornamenti-staging-scheda", "Dettaglio acquisizione", "/admin/aggiornamenti-legali/staging/<id>", lambda: acquisizione.costruisci_scheda(_arg("id")), acquisizione.adatta_scheda, acquisizione.esegui_scheda, nel_menu=False),
+        Pagina("aggiornamenti-analisi", "Catalogazione", "/admin/aggiornamenti-legali/analisi", lambda: analisi.costruisci(_arg("classification"), _arg("materia")), analisi.adatta, analisi.esegui),
+        Pagina("aggiornamenti-archivio", "Archivio degli aggiornamenti", "/admin/aggiornamenti-legali/archivio", lambda: archivio_legale.costruisci(_arg("tab")), archivio_legale.adatta, archivio_legale.esegui),
+        Pagina("aggiornamenti-revisione", "Coda revisioni aggiornamenti", "/admin/aggiornamenti-legali/review", revisione.costruisci, revisione.adatta, revisione.esegui),
+        Pagina("copertura-ai", "Copertura AI", "/admin/copertura-ai/", copertura.costruisci, copertura.adatta, copertura.esegui),
+        Pagina("copertura-ai-revisione", "Revisione copertura AI", "/admin/copertura-ai/review", lambda: copertura_revisione.costruisci(_arg("draft"), _arg("q")), copertura_revisione.adatta, copertura_revisione.esegui),
     ]
+
+
+# Schede fuori menu che accendono la voce della pagina madre.
+MENU_DELLE_SCHEDE = {"aggiornamenti-staging-scheda": "aggiornamenti-staging"}
 
 
 def _registro() -> dict[str, Pagina]:
@@ -117,7 +140,7 @@ def pagina(chiave: str) -> tuple[dict[str, Any], int]:
     visti: set[str] = set()
     corpo["links"] = [c for c in corpo.get("links") or [] if not (c["href"] in visti or visti.add(c["href"]))]
     # Le schede di uno studio accendono la voce «Studi legali» del menu.
-    voce_menu = chiave if voce.nel_menu else ("studi" if chiave.startswith("studio") else "")
+    voce_menu = chiave if voce.nel_menu else ("studi" if chiave.startswith("studio") else MENU_DELLE_SCHEDE.get(chiave, ""))
     return {"ok": True, "page": chiave, "menuKey": voce_menu, "menu": menu(), **corpo}, 200
 
 

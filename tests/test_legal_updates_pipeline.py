@@ -1369,11 +1369,11 @@ def test_admin_surfaces_renderizzano_fonti_staging_analisi_e_archivio(tmp_path: 
         }
 
         for path, needle in routes.items():
-            response = client.get(path)
+            response = client.get(f"{path}?_legacy=1")
             assert response.status_code == 200, path
             assert needle in response.get_data(as_text=True)
 
-        dashboard_html = client.get("/admin/aggiornamenti-legali").get_data(as_text=True)
+        dashboard_html = client.get("/admin/aggiornamenti-legali?_legacy=1").get_data(as_text=True)
         assert "Dove finiscono i dati" in dashboard_html
         assert "Documenti letti" in dashboard_html
         assert "Evidenze lette" in dashboard_html
@@ -1403,8 +1403,8 @@ def test_admin_review_mostra_etichette_operative_senza_codici_grezzi(tmp_path: P
     with app.test_client() as client:
         login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
         assert login.status_code == 302
-        response = client.get("/admin/aggiornamenti-legali/review")
-        staging_response = client.get("/admin/aggiornamenti-legali/staging")
+        response = client.get("/admin/aggiornamenti-legali/review?_legacy=1")
+        staging_response = client.get("/admin/aggiornamenti-legali/staging?_legacy=1")
 
     html = response.get_data(as_text=True)
     staging_html = staging_response.get_data(as_text=True)
@@ -1433,7 +1433,7 @@ def test_admin_studio_accede_review_aggiornamenti_legali_senza_403(tmp_path: Pat
             follow_redirects=False,
         )
         assert login.status_code == 302
-        response = client.get("/admin/aggiornamenti-legali/review")
+        response = client.get("/admin/aggiornamenti-legali/review?_legacy=1")
 
     assert response.status_code == 200
     assert "Coda revisioni aggiornamenti" in response.get_data(as_text=True)
@@ -1448,7 +1448,7 @@ def test_pagina_fonti_mostra_catalogo_professionale_e_ciclo_giornaliero(tmp_path
         login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
         assert login.status_code == 302
 
-        response = client.get("/admin/aggiornamenti-legali/fonti")
+        response = client.get("/admin/aggiornamenti-legali/fonti?_legacy=1")
 
     html = response.get_data(as_text=True)
     assert response.status_code == 200
@@ -1698,7 +1698,7 @@ def test_dashboard_update_intelligence_mostra_presidio_condiviso_senza_selezione
         login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
         assert login.status_code == 302
 
-        response = client.get(f"/admin/aggiornamenti-legali?tenant_slug={studio.slug}")
+        response = client.get(f"/admin/aggiornamenti-legali?tenant_slug={studio.slug}&_legacy=1")
 
     html = response.get_data(as_text=True)
     assert response.status_code == 200
@@ -1733,7 +1733,7 @@ def test_dashboard_update_intelligence_ignora_nome_tenant_divergente_per_il_pres
         login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
         assert login.status_code == 302
 
-        response = client.get(f"/admin/aggiornamenti-legali?tenant_slug={studio.slug}")
+        response = client.get(f"/admin/aggiornamenti-legali?tenant_slug={studio.slug}&_legacy=1")
 
     html = response.get_data(as_text=True)
     assert response.status_code == 200

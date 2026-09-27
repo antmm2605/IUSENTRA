@@ -28,11 +28,24 @@ PAGINE = {
     "/admin/studi": "studi",
     "/admin/utenti-piattaforma": "utenti-piattaforma",
     "/admin/server-manutenzione": "server-manutenzione",
+    "/admin/aggiornamenti-legali/": "aggiornamenti-legali",
+    "/admin/aggiornamenti-legali/fonti": "aggiornamenti-fonti",
+    "/admin/aggiornamenti-legali/staging": "aggiornamenti-staging",
+    "/admin/aggiornamenti-legali/analisi": "aggiornamenti-analisi",
+    "/admin/aggiornamenti-legali/archivio": "aggiornamenti-archivio",
+    "/admin/aggiornamenti-legali/review": "aggiornamenti-revisione",
+    "/admin/copertura-ai/": "copertura-ai",
+    "/admin/copertura-ai/review": "copertura-ai-revisione",
+    "/admin/supporto-remoto": "supporto-remoto",
 }
 
 
 def _app(tmp_path: Path):
     cfg = _cfg_web(tmp_path)
+    # Archivi condivisi di aggiornamenti legali e copertura AI nella cartella del test
+    # (senza, il motore userebbe ./intelligence/ della copia di lavoro).
+    cfg["LEGAL_INTELLIGENCE_DB"] = str(tmp_path / "intelligence" / "motori.json")
+    cfg["LEGAL_COVERAGE_SQLITE_DB"] = str(tmp_path / "intelligence" / "legal_coverage.db")
     _write_studio_config(tmp_path / "config" / "studio.json")
     _seed_runtime(cfg)
     return create_app(cfg)

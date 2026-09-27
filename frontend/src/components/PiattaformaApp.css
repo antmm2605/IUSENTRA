@@ -319,6 +319,7 @@ body.piattaforma-react-page {
 }
 
 .iu-pf-table-wrap {
+  position: relative;
   overflow-x: auto;
 }
 

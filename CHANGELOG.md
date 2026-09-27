@@ -1,5 +1,33 @@
 # Changelog
 
+## 2.417.0 — 27/09/2026
+
+Sesto blocco della migrazione a React: il pannello di piattaforma è tutto in
+React.
+
+- **Aggiornamenti legali**: cruscotto con avvio di scansione, pubblicazione
+  automatica e pulizia; fonti (nuova, modifica, acquisizione, avvio
+  dell'agente pianificato); acquisizione dei documenti con filtri e scheda del
+  documento con analisi; catalogazione con filtri; archivio per schede
+  (normativa, giurisprudenza, prassi, notizie, registro); coda delle revisioni
+  (approva, modifica e approva, rifiuta, pubblica) con il nome dell'utente
+  come revisore.
+- **Copertura AI**: cruscotto con verifica, lacune, bozze e pubblicazione;
+  revisione delle bozze con anteprima SQL, storico, governo dell'AI, modifica
+  della specifica, approvazione e rifiuto con motivo e firma, pubblicazione.
+- **Assistenza remota**: sessioni con filtri, dettaglio, prossimo passo e
+  registro, creazione di una sessione con i collegamenti della stanza
+  dell'operatore e del cliente, stato, note, chiusura, cancellazione,
+  impostazioni di rete (la chiave del relay non torna mai nella pagina),
+  prova delle notifiche; resta aperta al superamministratore che è entrato in
+  uno studio, come la console storica.
+- Chi gestisce gli aggiornamenti legali o la copertura AI senza essere
+  superamministratore continua a usare la vista storica di quelle console.
+- Una fonte degli aggiornamenti si può finalmente disattivare dal modulo: la
+  casella non spuntata non veniva inviata e la fonte restava attiva.
+- Il menu del pannello elenca solo pagine React; le tabelle larghe scorrono
+  dentro la loro scheda senza allargare la pagina.
+
 ## 2.416.0 — 27/09/2026
 
 Quinto blocco della migrazione a React: studi, utenti e manutenzione del

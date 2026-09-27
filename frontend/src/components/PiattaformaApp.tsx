@@ -9,13 +9,6 @@ import { EmptyState } from '../ui/EmptyState'
 import { LoadingState } from '../ui/LoadingState'
 import './PiattaformaApp.css'
 
-// Sezioni del pannello ancora servite dalle viste classiche: restano nel menu
-// finché non passano all'applicazione React.
-const ALTRE_SEZIONI = [
-  { label: 'Aggiornamenti legali', href: '/admin/aggiornamenti-legali/' },
-  { label: 'Copertura AI', href: '/admin/copertura-ai/' },
-  { label: 'Supporto remoto', href: '/admin/supporto-remoto' },
-]
 
 type AzioniVista = { busy: boolean; onRun: EseguiAzione }
 
@@ -226,8 +219,6 @@ export default function PiattaformaApp() {
           {(data?.menu || []).map((item) => (
             <a key={item.key} href={item.href} aria-current={item.key === (data?.menuKey || pagina) ? 'page' : undefined}>{item.label}</a>
           ))}
-          <p>Altre sezioni</p>
-          {ALTRE_SEZIONI.map((item) => <a key={item.href} href={item.href}>{item.label}</a>)}
         </nav>
         <footer className="iu-pf-user">
           {data?.user ? <strong>{data.user}</strong> : null}

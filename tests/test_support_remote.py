@@ -258,7 +258,7 @@ def test_support_remote_console_and_routes_register_on_runtime(tmp_path: Path):
             session_tx["auth_tenant_slug"] = ""
             session_tx["last_activity"] = datetime.now().isoformat()
 
-        response = client.get("/admin/supporto-remoto")
+        response = client.get("/admin/supporto-remoto?_legacy=1")
 
     html = response.get_data(as_text=True)
     assert response.status_code == 200
@@ -445,7 +445,7 @@ def test_support_remote_studio_user_can_request_assistance_from_studio(tmp_path:
             session_tx["auth_tenant_slug"] = ""
             session_tx["last_activity"] = datetime.now().isoformat()
 
-        console = client.get(f"/admin/supporto-remoto?sessione={public_id}")
+        console = client.get(f"/admin/supporto-remoto?sessione={public_id}&_legacy=1")
         operator_room = client.get(f"/support/operatore/{public_id}")
         customer_state_after_operator = client.get(
             f"/support/api/{public_id}/state?role=client&token={client_token}"

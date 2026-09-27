@@ -290,11 +290,11 @@ def test_superadmin_product_surfaces_renderizzano(tmp_path: Path):
         server_manutenzione = client.get("/admin/server-manutenzione?_legacy=1", follow_redirects=False)
         pianificazioni = client.get("/admin/pianificazioni?_legacy=1", follow_redirects=False)
         crash_test = client.get("/admin/crash-test-operativo?_legacy=1", follow_redirects=True)
-        coverage = client.get("/admin/copertura-ai", follow_redirects=True)
-        coverage_review = client.get("/admin/copertura-ai/review", follow_redirects=True)
-        aggiornamenti = client.get("/admin/aggiornamenti-legali", follow_redirects=True)
-        aggiornamenti_fonti = client.get("/admin/aggiornamenti-legali/fonti", follow_redirects=True)
-        aggiornamenti_review = client.get("/admin/aggiornamenti-legali/review", follow_redirects=True)
+        coverage = client.get("/admin/copertura-ai?_legacy=1", follow_redirects=True)
+        coverage_review = client.get("/admin/copertura-ai/review?_legacy=1", follow_redirects=True)
+        aggiornamenti = client.get("/admin/aggiornamenti-legali?_legacy=1", follow_redirects=True)
+        aggiornamenti_fonti = client.get("/admin/aggiornamenti-legali/fonti?_legacy=1", follow_redirects=True)
+        aggiornamenti_review = client.get("/admin/aggiornamenti-legali/review?_legacy=1", follow_redirects=True)
         news = client.get("/legal-intelligence/news", follow_redirects=True)
 
     assert stato.status_code == 200

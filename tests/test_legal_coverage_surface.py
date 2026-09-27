@@ -79,7 +79,7 @@ def test_admin_copertura_ai_ignora_tenant_postgres_legacy_e_usa_archivio_condivi
         )
         assert login.status_code == 302
 
-        page = client.get("/admin/copertura-ai")
+        page = client.get("/admin/copertura-ai?_legacy=1")
 
     assert page.status_code == 200
     html = page.get_data(as_text=True)
@@ -115,7 +115,7 @@ def test_review_copertura_ai_spiega_il_flusso_e_mostra_la_coda(tmp_path: Path):
         )
         assert login.status_code == 302
 
-        page = client.get(f"/admin/copertura-ai/review?tenant_slug={studio.slug}")
+        page = client.get(f"/admin/copertura-ai/review?tenant_slug={studio.slug}&_legacy=1")
 
     assert page.status_code == 200
     html = page.get_data(as_text=True)
@@ -155,7 +155,7 @@ def test_admin_copertura_ai_sqlite_tenant_mostra_database_connesso(tmp_path: Pat
         )
         assert login.status_code == 302
 
-        page = client.get(f"/admin/copertura-ai?tenant_slug={studio.slug}")
+        page = client.get(f"/admin/copertura-ai?tenant_slug={studio.slug}&_legacy=1")
 
     assert page.status_code == 200
     html = page.get_data(as_text=True)
@@ -244,7 +244,7 @@ def test_admin_copertura_ai_single_studio_sqlite_mostra_runtime_connesso(tmp_pat
         )
         assert login.status_code == 302
 
-        page = client.get("/admin/copertura-ai")
+        page = client.get("/admin/copertura-ai?_legacy=1")
 
     assert page.status_code == 200
     html = page.get_data(as_text=True)

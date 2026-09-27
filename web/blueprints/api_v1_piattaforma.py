@@ -20,10 +20,31 @@ def _superadmin() -> bool:
     return bool(getattr(g.get("utente_corrente"), "is_superadmin", False))
 
 
+# Pagine che, come la console storica (`support_operator_identity_or_403`), restano
+# aperte al superamministratore anche mentre è entrato in uno studio.
+PAGINE_OPERATORE_ASSISTENZA = {"supporto-remoto"}
+
+
+def _autorizzato(pagina: str) -> bool:
+    if _superadmin():
+        return True
+    if pagina not in PAGINE_OPERATORE_ASSISTENZA:
+        return False
+    from werkzeug.exceptions import HTTPException
+
+    from web.services.support_runtime import support_operator_identity_or_403
+
+    try:
+        support_operator_identity_or_403()
+    except HTTPException:
+        return False
+    return True
+
+
 @api_v1_piattaforma.get("/<pagina>")
 @_richiedi_auth
 def pagina(pagina: str):
-    if not _superadmin():
+    if not _autorizzato(pagina):
         return jsonify(ok=False, message="Pannello riservato al superamministratore della piattaforma."), 403
     try:
         risultato, stato = bridge.pagina(pagina)
@@ -40,7 +61,7 @@ def pagina(pagina: str):
 @_richiedi_auth
 def azione(pagina: str, azione: str):
     """Esegue un'azione della pagina con gli stessi servizi della vista storica."""
-    if not _superadmin():
+    if not _autorizzato(pagina):
         return jsonify(ok=False, message="Pannello riservato al superamministratore della piattaforma."), 403
     corpo = request.get_json(silent=True) or {}
     try:

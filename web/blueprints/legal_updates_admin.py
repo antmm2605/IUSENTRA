@@ -12,6 +12,7 @@ from web.services.legal_update_surface import (
     build_legal_update_surface,
     run_legal_update_action,
 )
+from web.services.piattaforma_shell_runtime import render_piattaforma_shell, vista_classica_richiesta
 from web.services.security_redaction import redacted_json_response
 
 
@@ -152,13 +153,23 @@ def _reviewer_name() -> str:
     return str(getattr(user, "username", "") or "superadmin")
 
 
+def _pannello_react() -> bool:
+    """Vista React solo per il superamministratore: l'API del pannello di
+    piattaforma (`/api/v1/ui/piattaforma`) è riservata a lui. Gli altri
+    amministratori ammessi dal decoratore di questa console restano sulla vista
+    classica, con le stesse funzioni di prima."""
+    utente = getattr(g, "utente_corrente", None)
+    return not vista_classica_richiesta() and bool(getattr(utente, "is_superadmin", False))
+
+
 def _selected_tenant_slug() -> str:
     # Presidio condiviso: questa console non seleziona piu' uno studio.
     return ""
 
 
 def _redirect_kwargs(tenant_slug: str) -> dict[str, str]:
-    return {}
+    # Gli invii della vista classica tornano alla vista classica, dove si leggono i messaggi.
+    return {"_legacy": "1"}
 
 
 def _request_payload() -> dict[str, Any]:
@@ -234,6 +245,8 @@ def _upsert_source_from_payload(payload: dict[str, Any], *, current_source: dict
 @legal_updates_admin.get("/")
 @superadmin_required
 def dashboard():
+    if _pannello_react():
+        return render_piattaforma_shell("aggiornamenti-legali", "Aggiornamenti legali")
     tenant_slug = _selected_tenant_slug()
     pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
     payload = _serialize_surface(pipeline, tenant_slug=tenant_slug)
@@ -247,6 +260,8 @@ def dashboard():
 @legal_updates_admin.get("/fonti")
 @superadmin_required
 def sources_page():
+    if _pannello_react():
+        return render_piattaforma_shell("aggiornamenti-fonti", "Fonti degli aggiornamenti")
     tenant_slug = _selected_tenant_slug()
     pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
     payload = _serialize_surface(pipeline, tenant_slug=tenant_slug)
@@ -310,6 +325,8 @@ def fetch_source(source_id: int):
 @legal_updates_admin.get("/staging")
 @superadmin_required
 def staging_page():
+    if _pannello_react():
+        return render_piattaforma_shell("aggiornamenti-staging", "Acquisizione dei documenti")
     tenant_slug = _selected_tenant_slug()
     pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
     try:
@@ -336,6 +353,8 @@ def staging_page():
 @legal_updates_admin.get("/staging/<int:raw_document_id>")
 @superadmin_required
 def staging_detail_page(raw_document_id: int):
+    if _pannello_react():
+        return render_piattaforma_shell("aggiornamenti-staging-scheda", "Dettaglio acquisizione", {"id": str(raw_document_id)})
     tenant_slug = _selected_tenant_slug()
     pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
     document = pipeline.repository.get_staging_document(raw_document_id)
@@ -380,6 +399,8 @@ def analyze_staging_document(raw_document_id: int):
 @legal_updates_admin.get("/analisi")
 @superadmin_required
 def analysis_page():
+    if _pannello_react():
+        return render_piattaforma_shell("aggiornamenti-analisi", "Catalogazione")
     tenant_slug = _selected_tenant_slug()
     pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
     payload = _serialize_surface(pipeline, tenant_slug=tenant_slug)
@@ -401,6 +422,8 @@ def analysis_page():
 @legal_updates_admin.get("/archivio")
 @superadmin_required
 def archive_page():
+    if _pannello_react():
+        return render_piattaforma_shell("aggiornamenti-archivio", "Archivio degli aggiornamenti")
     tenant_slug = _selected_tenant_slug()
     pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
     selected = (request.args.get("tab") or "normative").strip().lower()
@@ -442,6 +465,8 @@ def execute_action(action: str):
 @legal_updates_admin.get("/review")
 @superadmin_required
 def review_page():
+    if _pannello_react():
+        return render_piattaforma_shell("aggiornamenti-revisione", "Coda revisioni aggiornamenti")
     tenant_slug = _selected_tenant_slug()
     pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
     payload = _serialize_surface(pipeline, tenant_slug=tenant_slug)

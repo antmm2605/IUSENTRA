@@ -13,6 +13,7 @@ from pct.support_remote import (
     issue_operator_token,
     verify_operator_token,
 )
+from web.services.piattaforma_shell_runtime import render_piattaforma_shell, vista_classica_richiesta
 from web.services.support_runtime import (
     audit_support_studio_action,
     audit_support_action,
@@ -70,6 +71,8 @@ SUPPORT_SESSION_STATUSES = {
 @support_remote.get("/admin/supporto-remoto")
 @superadmin_required
 def support_console():
+    if not vista_classica_richiesta():
+        return render_piattaforma_shell("supporto-remoto", "Assistenza remota")
     payload = build_support_console_payload(
         selected_public_id=str(request.args.get("sessione") or "").strip(),
         status_filter=str(request.args.get("stato") or "").strip(),
@@ -149,9 +152,9 @@ def save_support_config():
         save_support_configuration(request.form.to_dict())
     except Exception as exc:
         flash(f"Configurazione assistenza remota non salvata: {exc}", "danger")
-        return redirect(url_for("support_remote.support_console"))
+        return redirect(url_for("support_remote.support_console", _legacy=1))
     flash("Configurazione assistenza remota aggiornata.", "success")
-    return redirect(url_for("support_remote.support_console"))
+    return redirect(url_for("support_remote.support_console", _legacy=1))
 
 
 @support_remote.post("/admin/supporto-remoto/<public_id>/stato")
@@ -164,13 +167,13 @@ def change_console_status(public_id: str):
         if request.is_json:
             return _json_error(message, 400)
         flash(message, "danger")
-        return redirect(url_for("support_remote.support_console", sessione=public_id))
+        return redirect(url_for("support_remote.support_console", _legacy=1, sessione=public_id))
     repo = support_repository()
     if repo.get_session_by_public_id(public_id) is None:
         if request.is_json:
             return _json_error("Sessione assistenza non trovata.", 404)
         flash("Sessione assistenza non trovata.", "danger")
-        return redirect(url_for("support_remote.support_console"))
+        return redirect(url_for("support_remote.support_console", _legacy=1))
     updated = repo.update_session(public_id, status=next_status) or {}
     log_support_event(
         public_id,
@@ -187,7 +190,7 @@ def change_console_status(public_id: str):
     if request.is_json:
         return jsonify({"ok": True, "session": support_session_payload(updated)})
     flash("Stato assistenza aggiornato.", "success")
-    return redirect(url_for("support_remote.support_console", sessione=public_id))
+    return redirect(url_for("support_remote.support_console", _legacy=1, sessione=public_id))
 
 
 @support_remote.post("/admin/supporto-remoto/<public_id>/cancella")
@@ -200,7 +203,7 @@ def delete_from_console(public_id: str):
         if request.is_json:
             return _json_error("Sessione assistenza non trovata.", 404)
         flash("Sessione assistenza non trovata.", "danger")
-        return redirect(url_for("support_remote.support_console"))
+        return redirect(url_for("support_remote.support_console", _legacy=1))
     deleted = repo.delete_session(public_id)
     audit_support_action(
         "supporto_remoto.cancella_sessione",
@@ -210,7 +213,7 @@ def delete_from_console(public_id: str):
     if request.is_json:
         return jsonify({"ok": deleted, "deleted": 1 if deleted else 0})
     flash("Sessione assistenza cancellata." if deleted else "Sessione assistenza non cancellata.", "success" if deleted else "warning")
-    return redirect(url_for("support_remote.support_console"))
+    return redirect(url_for("support_remote.support_console", _legacy=1))
 
 
 @support_remote.post("/admin/supporto-remoto/prove/cancella")
@@ -225,7 +228,7 @@ def delete_test_sessions_from_console():
     if request.is_json:
         return jsonify({"ok": True, "deleted": deleted})
     flash(f"Sessioni di prova cancellate: {deleted}.", "success")
-    return redirect(url_for("support_remote.support_console"))
+    return redirect(url_for("support_remote.support_console", _legacy=1))
 
 
 @support_remote.post("/support/api/session")
@@ -662,7 +665,7 @@ def close_from_console(public_id: str):
     )
     if updated is None:
         flash("Sessione non trovata.", "warning")
-        return redirect(url_for("support_remote.support_console"))
+        return redirect(url_for("support_remote.support_console", _legacy=1))
     log_support_event(public_id, event_type="session_closed", actor_role="operator", actor_name=operator["name"])
     flash("Sessione di assistenza chiusa.", "success")
-    return redirect(url_for("support_remote.support_console", sessione=public_id))
+    return redirect(url_for("support_remote.support_console", _legacy=1, sessione=public_id))

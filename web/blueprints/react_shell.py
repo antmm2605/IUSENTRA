@@ -207,6 +207,8 @@ def _route_component_key(path: str) -> str:
         return "src/components/RicercaLegaleSchedaPage.tsx"
     if _checklist_atti(lower):
         return "src/components/ChecklistAttiPage.tsx"
+    if _applicazione_react(lower):
+        return "src/components/ApplicazionePage.tsx"
     if _contenuti_del_sito(lower):
         return "src/components/SitoStudioContenutiPage.tsx"
     for prefix, component in _ROUTE_COMPONENTS:
@@ -535,6 +537,12 @@ def _checklist_atti(lower: str) -> bool:
     return False
 
 
+def _applicazione_react(lower: str) -> bool:
+    """Catalogo e singola funzione della ex cabina applicazioni: ApplicazionePage React."""
+    parti = [parte for parte in lower.strip("/").split("/") if parte]
+    return parti[:1] == ["applicazioni"] and len(parti) <= 2
+
+
 def _deve_mantenere_vista_classica() -> bool:
     """Blocca promozioni React non validate fuori dalla shell progressiva."""
 
@@ -550,6 +558,9 @@ def _deve_mantenere_vista_classica() -> bool:
     lower = path.lower()
     # Checklist degli atti e raccolta guidata del fascicolo: ChecklistAttiPage React.
     if _checklist_atti(lower):
+        return False
+    # Catalogo e funzioni della ex cabina applicazioni: ApplicazionePage React.
+    if _applicazione_react(lower):
         return False
     if lower.startswith("/fascicoli/") and lower.endswith("/copertina"):
         return True

@@ -4,6 +4,7 @@ import {
   approvaVariazione,
   avviaControlloGiornaliero,
   getControlloGiornaliero,
+  importaRegistroMediazione,
   type ControlloGiornaliero,
 } from '../ricercaLegaleSchedeData'
 import { Badge } from '../ui/Badge'
@@ -60,6 +61,22 @@ export function ControlloGiornalieroPanel() {
     await load()
   }
 
+  async function operazione(action: string, label: string) {
+    if (!window.confirm(`${label}? L'operazione gira in sfondo e può richiedere alcuni minuti.`)) return
+    setBusy(action)
+    const esito = await avviaControlloGiornaliero(action)
+    setBusy('')
+    setMessage({ ok: esito.ok, text: esito.message })
+  }
+
+  async function importa(file: File | undefined) {
+    if (!file || !data?.importAction) return
+    setBusy('import')
+    const esito = await importaRegistroMediazione(data.importAction, file)
+    setBusy('')
+    setMessage({ ok: esito.ok, text: esito.message })
+  }
+
   async function approve(action: string) {
     if (!window.confirm('Approvare l\'applicazione di questa variazione della fonte ufficiale?')) return
     setBusy(action)
@@ -92,6 +109,28 @@ export function ControlloGiornalieroPanel() {
             <Button type="button" tone="primary" disabled={busy === 'run' || data.running} onClick={() => void run()}>
               <RefreshCw size={15} aria-hidden="true" /> {data.running ? 'Controllo in corso…' : 'Esegui il controllo ora'}
             </Button>
+          ) : null}
+          {data.operations.length ? (
+            <div className="iu-cg-panel__ops" aria-label="Operazioni sulle fonti">
+              {data.operations.map((op) => (
+                <div key={op.key} className="iu-cg-panel__op">
+                  <div>
+                    <strong>{op.label}</strong>
+                    <small>{op.detail}</small>
+                  </div>
+                  <Button type="button" tone="neutral" disabled={busy === op.action} onClick={() => void operazione(op.action, op.label)}>Avvia</Button>
+                </div>
+              ))}
+              {data.importAction ? (
+                <label className="iu-cg-panel__op">
+                  <div>
+                    <strong>Importa la pagina ufficiale del registro della mediazione</strong>
+                    <small>Se il sito del Ministero non è raggiungibile dal server, salva la pagina del registro (file HTML) e caricala qui.</small>
+                  </div>
+                  <input type="file" accept=".html,.htm,text/html" disabled={busy === 'import'} onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; void importa(file) }} />
+                </label>
+              ) : null}
+            </div>
           ) : null}
           {message ? <p className={message.ok ? 'iu-cg-panel__msg' : 'iu-cg-panel__msg is-error'} role="status">{message.text}</p> : null}
           {data.updates.length ? (

@@ -62,6 +62,12 @@ BLUEPRINT_REGISTRY: tuple[BlueprintRegistration, ...] = (
         "/api/v1/ui/checklist",
     ),
     BlueprintRegistration(
+        "api_v1_applicazioni",
+        "web.blueprints.api_v1_applicazioni",
+        "api_v1_applicazioni",
+        "/api/v1/ui/applicazioni",
+    ),
+    BlueprintRegistration(
         "api_v1_sito_studio_contenuti",
         "web.blueprints.api_v1_sito_studio_contenuti",
         "api_v1_sito_studio_contenuti",

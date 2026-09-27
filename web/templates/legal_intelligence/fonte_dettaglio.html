@@ -18,11 +18,11 @@
       </p>
     </div>
     <div class="ds-ph-actions li-header-actions">
-      <a href="{{ url_for('legal_intelligence.index', tab='fonti') }}" class="btn btn-outline-secondary">
+      <a href="{{ url_for('ricerca_legale.index', tab='fonti') }}" class="btn btn-outline-secondary">
         <i class="bi bi-arrow-left me-2"></i>Torna alle fonti
       </a>
       {% if latest and latest.normalized_text is not defined %}{# campo virtuale: useremo download sempre #}{% endif %}
-      <a href="{{ url_for('legal_intelligence.scarica_fonte', source_id=fonte.id) }}" class="btn btn-primary">
+      <a href="{{ url_for('ricerca_legale.scarica_fonte', source_id=fonte.id) }}" class="btn btn-primary">
         <i class="bi bi-download me-2"></i>Scarica testo archiviato
       </a>
       <a href="{{ fonte.official_url }}" target="_blank" rel="noopener" class="btn btn-outline-dark">
@@ -122,11 +122,11 @@
                 <span class="badge {% if update.status == 'applied' %}text-bg-success{% elif update.status == 'pending_review' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">{{ update.status|replace('_', ' ') }}</span>
               </div>
               <div class="d-flex flex-wrap gap-2 mt-2">
-                <a href="{{ url_for('legal_intelligence.diff_daily_update', update_id=update.id) }}" class="btn btn-sm btn-outline-secondary">
+                <a href="{{ url_for('ricerca_legale.diff_daily_update', update_id=update.id) }}" class="btn btn-sm btn-outline-secondary">
                   <i class="bi bi-eye me-1"></i>Vedi diff
                 </a>
                 {% if update.status == 'pending_review' %}
-                <form method="post" action="{{ url_for('legal_intelligence.approva_daily_update', update_id=update.id) }}">
+                <form method="post" action="{{ url_for('ricerca_legale.approva_daily_update', update_id=update.id) }}">
                   <button class="btn btn-sm btn-outline-success">
                     <i class="bi bi-check2-circle me-1"></i>Approva
                   </button>
@@ -190,7 +190,7 @@
             <dt class="col-5 text-muted">Last-Modified</dt>
             <dd class="col-7 text-muted small">{{ latest.last_modified or '-' }}</dd>
           </dl>
-          <a href="{{ url_for('legal_intelligence.scarica_fonte', source_id=fonte.id) }}" class="btn btn-primary w-100">
+          <a href="{{ url_for('ricerca_legale.scarica_fonte', source_id=fonte.id) }}" class="btn btn-primary w-100">
             <i class="bi bi-download me-2"></i>Scarica testo (txt)
           </a>
           <div class="small text-muted mt-2">Il file scaricato contiene l'intestazione con URL, hash, data e il testo normalizzato dell'ultimo snapshot acquisito.</div>

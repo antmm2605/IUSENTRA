@@ -158,7 +158,7 @@ def test_workflow_pdp_apre_acquisizione_guidata_nel_contesto_del_fascicolo(tmp_p
         )
         assert login.status_code == 200
 
-        page = client.get(f"/fascicoli/{fasc_id}/penale/pdp", follow_redirects=True)
+        page = client.get(f"/fascicoli/{fasc_id}/penale/pdp?_legacy=1", follow_redirects=True)
         html = page.get_data(as_text=True)
 
     assert page.status_code == 200
@@ -212,7 +212,7 @@ def test_workspace_pdp_penale_registra_case_documenti_accesso_pec_e_task(tmp_pat
         )
         assert login.status_code == 200
 
-        page = client.get(f"/fascicoli/{fasc_id}/penale/pdp", follow_redirects=True)
+        page = client.get(f"/fascicoli/{fasc_id}/penale/pdp?_legacy=1", follow_redirects=True)
         assert page.status_code == 200
         assert "Workflow PDP Penale" in page.get_data(as_text=True)
 

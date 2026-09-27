@@ -12,7 +12,7 @@ from urllib.parse import urlencode
 
 from flask import Flask, current_app, g, get_flashed_messages, redirect, request, url_for
 
-from web.blueprints.react_shell import render_react_shell_response
+from web.blueprints.react_shell import _applicazione_react, render_react_shell_response
 
 
 _REACT_PREFIXES = (
@@ -415,6 +415,9 @@ def _excluded(path: str) -> bool:
     if _scheda_ricerca_legale(lower):
         return False
     if _checklist_atti(lower):
+        return False
+    # Catalogo e funzioni della ex cabina applicazioni: ApplicazionePage React.
+    if _applicazione_react(lower):
         return False
     if lower == "/template-atti/nuovo":
         return True

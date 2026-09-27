@@ -1,5 +1,33 @@
 # Changelog
 
+## 2.418.0 — 27/09/2026
+
+Settimo blocco della migrazione a React e correzioni di sicurezza.
+
+- **Portale del cliente**: il caricamento dei documenti accetta solo le
+  pratiche del cliente del link (e solo se il portale le mostra). Prima
+  bastava indicare l'identificativo di un'altra pratica dello studio per
+  allegarvi un file. Gli errori di caricamento non mostrano più dettagli
+  tecnici; la pagina «link non valido» del portale vale solo per il portale
+  (prima rispondeva a ogni 410 dell'applicazione, anche ai pagamenti).
+- **Password provvisoria**: finché non è cambiata, le API dell'interfaccia non
+  modificano dati (le pagine erano già bloccate).
+- **Strumenti operativi** (`/applicazioni`): pagina React per le voci del
+  catalogo. Le utilità di calcolo (giorni lavorativi, età, frazioni, unità di
+  misura, minuti in centesimi, orari di attività, variazione del fatturato,
+  percentuali e IVA, ricerca dei comuni ISTAT) e le verifiche di partita IVA e
+  IBAN si usano in pagina; le voci di calcolo aprono lo strumento con i valori
+  predefiniti della voce e, dal fascicolo, con i dati della pratica; le voci
+  senza base certa sono dichiarate non disponibili invece di simulare un
+  risultato.
+- **Ricerca legale**: monitoraggio delle fonti, allineamento delle tabelle
+  normative, aggiornamento e importazione del registro degli organismi di
+  mediazione si avviano dal pannello del controllo giornaliero (in sfondo, con
+  il permesso di configurazione). Nella pagina storica i moduli puntavano a un
+  indirizzo che rispondeva con un rinvio e fallivano.
+- **Deposito penale**: `/fascicoli/<id>/penale/pdp` apre la sezione React
+  «Deposito penale (PDP)» del fascicolo.
+
 ## 2.417.0 — 27/09/2026
 
 Sesto blocco della migrazione a React: il pannello di piattaforma è tutto in

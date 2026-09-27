@@ -84,6 +84,7 @@
     "frontend/src/components/RicercaLegaleSchedaPage.css",
     "frontend/src/components/ControlloGiornalieroPanel.css",
     "frontend/src/components/ChecklistAttiPage.css",
+    "frontend/src/components/ApplicazionePage.css",
     "frontend/src/components/SitoStudioContenutiPage.css",
     "frontend/src/components/PiattaformaApp.css",
     "frontend/src/components/StatistichePage.css",

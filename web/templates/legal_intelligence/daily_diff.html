@@ -10,11 +10,11 @@
       <p class="ds-ph-sub">Confronto tracciato tra ultimo snapshot noto e nuova versione acquisita dal motore giornaliero.</p>
     </div>
     <div class="ds-ph-actions">
-      <a href="{{ url_for('legal_intelligence.index') }}" class="btn btn-outline-secondary">
+      <a href="{{ url_for('ricerca_legale.index') }}" class="btn btn-outline-secondary">
         <i class="bi bi-arrow-left me-2"></i>Torna ai Motori Legali
       </a>
       {% if update.status == 'pending_review' %}
-      <form method="post" action="{{ url_for('legal_intelligence.approva_daily_update', update_id=update.id) }}">
+      <form method="post" action="{{ url_for('ricerca_legale.approva_daily_update', update_id=update.id) }}">
         <button class="btn btn-success">
           <i class="bi bi-check2-circle me-2"></i>Approva applicazione
         </button>

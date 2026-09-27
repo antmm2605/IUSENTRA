@@ -3084,8 +3084,7 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
         for path in (
             f"/fascicoli/{fascicolo.id}/deposito/prepara?_legacy=1",
             f"/fascicoli/{fascicolo.id}/copertina",
-            f"/fascicoli/{fascicolo_penale.id}/penale/pdp",
-            "/applicazioni/fascicoli",
+            f"/fascicoli/{fascicolo_penale.id}/penale/pdp?_legacy=1",
             "/scadenziario/export.ics",
             f"/scadenziario/{scadenza.id}/completa",
             "/sito-studio/articoli/art-1/modifica",
@@ -3145,7 +3144,6 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
 
     legacy_first_routes = {
         "/admin/osservabilita",
-            "/applicazioni",
             "/database",
         }
 
@@ -3154,6 +3152,9 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
         assert _excluded(path), path
     # Checklist degli atti e percorso guidato: migrati in React nella 2.413.0.
     assert not _excluded("/checklist") and not _excluded("/checklist/decreto_ingiuntivo")
+    # Catalogo e funzioni della ex cabina applicazioni: ApplicazionePage React (2.419.0).
+    assert not _excluded("/applicazioni") and not _excluded("/applicazioni/verifica_iban")
+    assert _excluded("/applicazioni/verifica_iban/altro")
 
     for raw in (
         "/portali/pdp/acquisizione",

@@ -1,0 +1,110 @@
+/* Funzione del catalogo applicazioni: modulo e risultato affiancati, impilati su tablet e telefono. */
+
+.iu-app-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.iu-app-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.iu-app-field {
+  display: grid;
+  gap: 4px;
+  font-size: 0.86rem;
+}
+
+.iu-app-field input,
+.iu-app-field select {
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--iu-border);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.iu-app-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+
+.iu-app-basis,
+.iu-app-empty,
+.iu-app-warning {
+  margin: 12px 0 0;
+  color: var(--iu-muted);
+  font-size: 0.86rem;
+}
+
+.iu-app-basis {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.iu-app-warning {
+  margin: 0 0 12px;
+  color: var(--iu-warning, #b54708);
+}
+
+.iu-app-result__msg {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+}
+
+.iu-app-result__msg.is-error {
+  color: var(--iu-danger, #b42318);
+}
+
+.iu-app-result__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.iu-app-result__item {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--iu-border);
+  border-radius: 10px;
+}
+
+.iu-app-result__item dt {
+  color: var(--iu-muted);
+  font-size: 0.8rem;
+}
+
+.iu-app-result__item dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.iu-app-result__item small {
+  color: var(--iu-muted);
+}
+
+.iu-app-result__notes {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0 0;
+  padding-left: 20px;
+  color: var(--iu-muted);
+  font-size: 0.86rem;
+}
+
+@media (max-width: 900px) {
+  .iu-app-layout,
+  .iu-app-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

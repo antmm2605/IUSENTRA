@@ -12,7 +12,7 @@ Questo registro è generato da `scripts/react-migration/generate_app_v2_page_reg
 - Route legacy operative: 17.
 - Route App V2 dichiarate in frontend: 16.
 - Alias legacy verso App V2 in frontend: 32.
-- Route Flask GET candidate rilevate fuori manifest: 311.
+- Route Flask GET candidate rilevate fuori manifest: 313.
 
 ### Distribuzione rischio
 
@@ -769,6 +769,7 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /clienti/{id_cliente}/portale | GET | web/bootstrap/clienti_workspace_routes.py | clienti/copertina_faldone.html, clienti/faldone.html, clienti/portale_config.html |
 | /connessione | GET | web/blueprints/api_v1_amministrativo.py | non rilevato |
 | /connessione | GET | web/blueprints/api_v1_tributario.py | non rilevato |
+| /contesto-fascicolo | GET | web/blueprints/api_v1_applicazioni.py | non rilevato |
 | /controllo-giornaliero | GET | web/blueprints/api_v1_ricerca_legale.py | non rilevato |
 | /crm | GET | web/bootstrap/crm_routes.py | non rilevato |
 | /dashboard | GET | web/blueprints/api_v1_client_portal.py | non rilevato |
@@ -833,7 +834,6 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /guida-pratica/{codice} | GET | web/blueprints/api_v1_guida_pratica.py | non rilevato |
 | /health/dependencies | GET | web/bootstrap/health_routes.py | non rilevato |
 | /health/live | GET | web/bootstrap/health_routes.py | non rilevato |
-| /health/ready | GET | web/bootstrap/health_routes.py | non rilevato |
 
 ## Regola operativa fase 4
 

@@ -465,6 +465,22 @@ def carica_documento(token: str):
     caricati = []
     errori = []
 
+    # Il fascicolo scelto deve essere del cliente del link e visibile dal portale:
+    # prima il modulo accettava qualunque identificativo e il file finiva nel
+    # fascicolo di un altro cliente dello studio.
+    if id_fascicolo and (
+        not p.permessi.vedi_fascicoli
+        or id_fascicolo not in {f.id for f in _fascicoli_cliente(cliente.id)}
+    ):
+        return render_template(
+            "portale/documenti.html",
+            token=token, p=p, cliente=cliente,
+            fascicoli=_fascicoli_cliente(cliente.id),
+            max_mb=p.permessi.max_upload_mb,
+            studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA"),
+            errore="Pratica non disponibile per questo accesso.",
+        ), 403
+
     if id_fascicolo:
         # Allega al fascicolo specificato
         gf = get_fascicoli()
@@ -486,8 +502,9 @@ def carica_documento(token: str):
                     caricato_da=f"portale:{cliente.nome_completo}",
                 )
                 caricati.append(f.filename)
-            except Exception as e:
-                errori.append(f"{f.filename}: {e}")
+            except Exception:
+                current_app.logger.exception("Caricamento dal portale non riuscito")
+                errori.append(f"{f.filename}: caricamento non riuscito, riprova o contatta lo studio.")
     else:
         # Salva nella cartella upload portale (inbox per l'avvocato)
         upload_dir = gp.upload_dir(cliente.id)
@@ -706,7 +723,8 @@ def anagrafica(token: str):
 
 # ================================================================ 410 GONE
 
-@portale.app_errorhandler(410)
+# Solo per il portale: prima il gestore valeva per ogni 410 dell'applicazione.
+@portale.errorhandler(410)
 def link_scaduto(e):
     return render_template(
         "portale/scaduto.html",

@@ -13,20 +13,34 @@ import {
   type StrumentiLegaliPayload,
   type StrumentoForense,
 } from '../strumentiLegaliData'
+import { getContestoStrumento, type ContestoStrumento } from '../applicazioniData'
 import './StrumentiLegaliPage.css'
 
 const OcrDocumentoTool = lazy(() => import('./strumenti/OcrDocumentoTool'))
 
-function toolDallUrl(): string {
+function parametroUrl(nome: string): string {
   if (typeof window === 'undefined') return ''
-  return new URLSearchParams(window.location.search).get('tool') ?? ''
+  return (new URLSearchParams(window.location.search).get(nome) ?? '').trim()
 }
 
-function valoriIniziali(strumento: StrumentoForense | undefined): Record<string, string> {
+function toolDallUrl(): string {
+  return parametroUrl('tool')
+}
+
+/**
+ * Valori iniziali del modulo: default dello strumento, poi i campi ricavati
+ * dalla pratica (`?id_fascicolo=`) e, solo per lo strumento della voce del
+ * catalogo (`?app=`), il preset della voce.
+ */
+function valoriIniziali(strumento: StrumentoForense | undefined, contesto: ContestoStrumento | null): Record<string, string> {
   if (!strumento) return {}
   const stato: Record<string, string> = {}
   for (const campo of strumento.campi) {
     stato[campo.name] = campo.value ?? ''
+  }
+  const extra = { ...(contesto?.prefill ?? {}), ...(contesto && contesto.toolId === strumento.id ? contesto.preset : {}) }
+  for (const [nome, valore] of Object.entries(extra)) {
+    if (nome in stato) stato[nome] = valore
   }
   return stato
 }
@@ -291,6 +305,7 @@ export default function StrumentiLegaliPage() {
   const [esito, setEsito] = useState<EsitoCalcolo | null>(null)
   const [inCorso, setInCorso] = useState(false)
   const [filtro, setFiltro] = useState('')
+  const [contesto, setContesto] = useState<ContestoStrumento | null>(null)
   const abort = useRef<AbortController | null>(null)
 
   useEffect(() => {
@@ -304,15 +319,30 @@ export default function StrumentiLegaliPage() {
     return () => controller.abort()
   }, [])
 
+  // Voce del catalogo (`?app=`) e pratica (`?id_fascicolo=`): preset e precompilato dall'API applicazioni.
+  useEffect(() => {
+    const app = parametroUrl('app')
+    const idFascicolo = parametroUrl('id_fascicolo')
+    if (!app && !idFascicolo) return undefined
+    const controller = new AbortController()
+    getContestoStrumento(app, idFascicolo, controller.signal)
+      .then((dati) => {
+        setContesto(dati)
+        if (dati.toolId && !toolDallUrl()) setAttivo(dati.toolId)
+      })
+      .catch(() => undefined)
+    return () => controller.abort()
+  }, [])
+
   const strumento = useMemo(
     () => payload?.strumenti.find((voce) => voce.id === attivo),
     [payload, attivo],
   )
 
   useEffect(() => {
-    setValori(valoriIniziali(strumento))
+    setValori(valoriIniziali(strumento, contesto))
     setEsito(null)
-  }, [strumento])
+  }, [strumento, contesto])
 
   const visibili = useMemo(() => {
     const testo = filtro.trim().toLowerCase()
@@ -374,6 +404,16 @@ export default function StrumentiLegaliPage() {
             {payload.warning}
           </div>
         ) : null}
+        {contesto?.fascicolo ? (
+          <div className="iu-alert iu-alert--info" role="status">
+            Campi precompilati dalla pratica {contesto.fascicolo.label || contesto.fascicolo.id}: verificali prima di calcolare.
+          </div>
+        ) : null}
+        {(contesto?.warnings ?? []).map((avviso) => (
+          <div className="iu-alert iu-alert--warning" role="status" key={avviso}>
+            {avviso}
+          </div>
+        ))}
         <label className="iu-field__label" htmlFor="filtro-strumenti">
           Cerca uno strumento
         </label>

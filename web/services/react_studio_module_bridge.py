@@ -15,6 +15,7 @@ from typing import Any, Callable
 from pct.applicazioni_catalogo import catalogo_applicazioni, statistiche_catalogo
 from pct.applicazioni_runtime import TOOL_PRESET_OVERRIDES, TOOL_SCHEMAS, resolve_runtime
 from pct.strumenti_legali import GestioneStrumentiLegali
+from web.services.react_applicazioni_bridge import href_react_voce
 
 
 def _safe(label: str, loader: Callable[[], Any], fallback: Any) -> Any:
@@ -340,6 +341,11 @@ _CATALOG_ENDPOINT_PATHS = {
 def _catalog_entry_href(entry: dict[str, Any]) -> str:
     endpoint = _text(entry.get("endpoint"))
     entry_id = _text(entry.get("id"))
+    # Utility e verifiche della ex cabina `/applicazioni` e voci del catalogo
+    # senza strumento: pagina React della funzione o strumento corretto.
+    react_href = href_react_voce(entry)
+    if react_href:
+        return react_href
     if endpoint == "strumenti_legali.index":
         tool_id = _text(dict(entry.get("params") or {}).get("tool"))
         query = f"?app={entry_id}"

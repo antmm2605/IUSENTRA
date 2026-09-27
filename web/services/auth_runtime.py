@@ -572,6 +572,21 @@ def register_auth_runtime(
                 "/polisWeb/local-signer/",
             )
         ):
+            utente_api = g.get("utente_corrente")
+            if (
+                not app.testing
+                and utente_api is not None
+                and getattr(utente_api, "must_change_password", False)
+                and request.method not in {"GET", "HEAD", "OPTIONS"}
+                and str(request.path or "").startswith("/api/v1/ui/")
+            ):
+                # La password provvisoria va cambiata prima di modificare dati: le
+                # pagine erano già bloccate, le API di scrittura no.
+                return jsonify({
+                    "ok": False,
+                    "code": "password_change_required",
+                    "message": "Per motivi di sicurezza devi impostare una nuova password prima di continuare.",
+                }), 403
             return None
         if request.endpoint and request.endpoint.startswith(("portale.", "portale_cliente.")):
             # Portale del cliente: l'accesso è il token del link, verificato dalle sue route.

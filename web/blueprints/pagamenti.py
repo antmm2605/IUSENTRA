@@ -181,7 +181,8 @@ def avvia_pagamento(token: str):
     gp = _get_gp()
     lp = gp.get_by_token(token)
     if not lp or not lp.is_valido:
-        abort(410)
+        return render_template("pagamenti/scaduto.html",
+                               studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA")), 410
 
     provider = request.form.get("provider", "").strip()
     base = request.host_url.rstrip("/")

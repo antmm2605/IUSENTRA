@@ -42,6 +42,11 @@ API_BLUEPRINTS = (
         "/api/v1/ui/checklist",
     ),
     (
+        REPO_ROOT / "web" / "blueprints" / "api_v1_applicazioni.py",
+        "api_v1_applicazioni",
+        "/api/v1/ui/applicazioni",
+    ),
+    (
         REPO_ROOT / "web" / "blueprints" / "api_v1_sito_studio_contenuti.py",
         "api_v1_sito_studio_contenuti",
         "/api/v1/ui/sito-studio/contenuti",

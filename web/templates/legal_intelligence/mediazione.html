@@ -9,10 +9,10 @@
     <p class="ds-ph-sub">Consultazione interna del registro ministeriale con cache persistente, filtri operativi e stato del sincronismo.</p>
   </div>
   <div class="ms-auto d-flex gap-2">
-    <a href="{{ url_for('legal_intelligence.index') }}" class="btn btn-outline-secondary">
+    <a href="{{ url_for('ricerca_legale.index') }}" class="btn btn-outline-secondary">
       <i class="bi bi-arrow-left me-2"></i>Motori Legali
     </a>
-    <form method="post" action="{{ url_for('legal_intelligence.esegui_sync_registro_mediazione') }}">
+    <form method="post" action="{{ url_for('ricerca_legale.esegui_sync_registro_mediazione') }}">
       <button class="btn btn-primary">
         <i class="bi bi-arrow-repeat me-2"></i>Sincronizza registro
       </button>
@@ -156,7 +156,7 @@
             <button class="btn btn-primary flex-fill">
               <i class="bi bi-search me-2"></i>Filtra
             </button>
-            <a href="{{ url_for('legal_intelligence.registro_mediazione') }}" class="btn btn-outline-secondary">Reset</a>
+            <a href="{{ url_for('ricerca_legale.registro_mediazione') }}" class="btn btn-outline-secondary">Reset</a>
           </div>
         </form>
       </div>
@@ -168,7 +168,7 @@
           Se il registro diretto non e disponibile, apri la pagina ufficiale in Edge con modalita compatibilita Internet Explorer,
             salva la pagina come HTML e caricala qui. Il gestionale manterrà la cache persistente fino alla prossima sincronizzazione utile.
         </div>
-        <form method="post" action="{{ url_for('legal_intelligence.importa_registro_mediazione') }}" enctype="multipart/form-data" class="d-flex flex-column gap-3">
+        <form method="post" action="{{ url_for('ricerca_legale.importa_registro_mediazione') }}" enctype="multipart/form-data" class="d-flex flex-column gap-3">
           <div>
             <label class="form-label small text-muted">File HTML del registro</label>
             <input type="file" name="snapshot_file" class="form-control" accept=".html,.htm,text/html">

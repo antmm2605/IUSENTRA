@@ -6,17 +6,17 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 780.
+- File pytest censiti: 782.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
 | Tipo test | Conteggio |
 | --- | --- |
-| API contract | 102 |
+| API contract | 103 |
 | Backend | 92 |
 | E2E | 12 |
 | Frontend static gate | 1 |
-| Frontend/UI | 259 |
+| Frontend/UI | 260 |
 | RBAC | 95 |
 | Security | 43 |
 | Smoke CLI | 6 |
@@ -35,7 +35,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 74 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 174 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 320 |
+| 09-misc | Test non classificati dalle fasi principali | 322 |
 
 ## Suite CI aggiuntive
 
@@ -559,6 +559,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Frontend React | API contract | tests/test_data_consistency_react_api.py | 401 anonimo, 403/RBAC, tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | API contract | tests/test_guida_pratica_set33_import.py | tenant, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | API contract | tests/test_impostazioni_pec_local_signer_react.py | feature flag | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| Frontend React | API contract | tests/test_migrazione_react_2418.py | 403/RBAC | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | API contract | tests/test_product_readiness_react_api.py | 401 anonimo, 403/RBAC | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | API contract | tests/test_react_condivisioni.py | 403/RBAC | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | API contract | tests/test_react_crm_bridge.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
@@ -581,6 +582,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Frontend React | Frontend/UI | tests/test_impostazioni_ai_locale_react.py | feature flag, file | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Frontend React | Frontend/UI | tests/test_lex_tokenjuice.py | contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Frontend React | Frontend/UI | tests/test_migrazione_react_2413.py | file | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Frontend React | Frontend/UI | tests/test_migrazione_react_applicazioni.py | 401 anonimo, 403/RBAC | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Frontend React | Frontend/UI | tests/test_migrazione_react_checklist_portali.py | file | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Frontend React | Frontend/UI | tests/test_migrazione_react_piattaforma.py | 401 anonimo, 403/RBAC | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Frontend React | Frontend/UI | tests/test_migrazione_react_piattaforma_azioni.py | 401 anonimo, 403/RBAC | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |

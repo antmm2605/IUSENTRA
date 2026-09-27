@@ -182,6 +182,13 @@ def controllo_giornaliero(cruscotto: dict[str, Any], *, puo_eseguire: bool, in_c
         "running": in_corso,
         "canRun": puo_eseguire,
         "runAction": "/api/v1/ui/ricerca-legale/controllo-giornaliero/esegui" if puo_eseguire else "",
+        # Operazioni della pagina storica /ricerca-legale, ora avviate da qui.
+        "operations": [
+            {"key": "monitoraggio", "label": "Monitora le fonti", "detail": "Controlla disponibilità e aggiornamento delle fonti ufficiali registrate.", "action": "/api/v1/ui/ricerca-legale/monitoraggio/esegui"},
+            {"key": "tabelle-normative", "label": "Allinea le tabelle normative", "detail": "Aggiorna tariffe, scaglioni e tabelle dalle fonti ufficiali; le voci incerte restano da verificare.", "action": "/api/v1/ui/ricerca-legale/tabelle-normative/sincronizza"},
+            {"key": "registro-mediazione", "label": "Aggiorna il registro della mediazione", "detail": "Legge il registro ministeriale degli organismi di mediazione (D.Lgs. 28/2010).", "action": "/api/v1/ui/ricerca-legale/mediazione/sincronizza"},
+        ] if puo_eseguire else [],
+        "importAction": "/api/v1/ui/ricerca-legale/mediazione/importa" if puo_eseguire else "",
         "lastRun": {"startedAt": _t(ultimo.get("started_at")), "finishedAt": _t(ultimo.get("finished_at")), "status": _t(ultimo.get("status"))} if ultimo else None,
         "counts": {k: int(conteggi.get(k) or 0) for k in ("sources", "updates", "pending", "applied", "errors")},
         "sources": [

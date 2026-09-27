@@ -1,3 +1,4 @@
+import { csrfHeader } from './api/csrf'
 import { apiJson, apiPostJson } from './lib/apiClient'
 
 type Raw = Record<string, unknown>
@@ -205,6 +206,8 @@ export type ControlloGiornaliero = {
   running: boolean
   canRun: boolean
   runAction: string
+  operations: Array<{ key: string; label: string; detail: string; action: string }>
+  importAction: string
   lastRun: { startedAt: string; finishedAt: string; status: string } | null
   counts: Record<'sources' | 'updates' | 'pending' | 'applied' | 'errors', number>
   sources: Array<{ id: string; name: string; category: string; lastCheck: string; status: string; error: string; href: string }>
@@ -220,6 +223,11 @@ export async function getControlloGiornaliero(): Promise<ControlloGiornaliero> {
     running: payload.running === true,
     canRun: payload.canRun === true,
     runAction: internal(payload.runAction),
+    operations: list(payload.operations).map((raw) => {
+      const row = obj(raw)
+      return { key: text(row.key), label: text(row.label), detail: text(row.detail), action: internal(row.action) }
+    }).filter((row) => row.action),
+    importAction: internal(payload.importAction),
     lastRun: lastRun ? { startedAt: text(lastRun.startedAt), finishedAt: text(lastRun.finishedAt), status: text(lastRun.status) } : null,
     counts: {
       sources: Number(counts.sources) || 0,
@@ -239,4 +247,17 @@ export async function getControlloGiornaliero(): Promise<ControlloGiornaliero> {
 export async function avviaControlloGiornaliero(action: string): Promise<{ ok: boolean; message: string }> {
   const payload = obj(await apiPostJson<unknown>(action, {}, { ok: false, message: 'Controllo non avviato.' }))
   return { ok: payload.ok === true, message: text(payload.message) }
+}
+
+/** Importa la pagina ufficiale del registro della mediazione (file HTML salvato dal sito del Ministero). */
+export async function importaRegistroMediazione(action: string, file: File): Promise<{ ok: boolean; message: string }> {
+  const body = new FormData()
+  body.append('snapshot_file', file)
+  try {
+    const response = await fetch(action, { method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json', ...csrfHeader() }, body })
+    const payload = obj(await response.json().catch(() => ({})))
+    return { ok: response.ok && payload.ok === true, message: text(payload.message) || 'Importazione non riuscita.' }
+  } catch {
+    return { ok: false, message: 'Importazione non riuscita: riprova fra poco.' }
+  }
 }

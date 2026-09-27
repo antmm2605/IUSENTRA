@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: IUSENTRA API Contracts
-  version: 2.417.0
+  version: 2.418.0
   description: 'Contratti API fase 6 generati da endpoint Flask reali. Aggiornato: 2026-05-18.'
 servers:
 - url: https://app.iusentra.it
@@ -591,6 +591,159 @@ paths:
       description: 'Contratto fase 6 derivato da `amministrazione_product_readiness` in `web/blueprints/api_v1_react.py:12042`.
         Pagina/area collegata: API React operativa. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_amministrazione_product_readiness_get
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/PageSizeParam'
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/StatusParam'
+      responses:
+        '200':
+          description: Payload operativo API React operativa nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UiOperationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P2
+      x-rbac-permission: sessione/API tenant-aware
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
+  /api/v1/ui/applicazioni/{app_id}:
+    get:
+      tags:
+      - Sistema
+      summary: 'API React operativa: GET /api/v1/ui/applicazioni/{app_id}'
+      description: 'Contratto fase 6 derivato da `scheda` in `web/blueprints/api_v1_applicazioni.py:84`. Pagina/area collegata:
+        API React operativa. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_scheda_get
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
+      - name: app_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Parametro interno della risorsa, risolto nel tenant corrente.
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/PageSizeParam'
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/StatusParam'
+      responses:
+        '200':
+          description: Payload operativo API React operativa nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UiOperationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P2
+      x-rbac-permission: sessione/API tenant-aware
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
+  /api/v1/ui/applicazioni/{app_id}/esegui:
+    post:
+      tags:
+      - Sistema
+      summary: 'API React operativa: POST /api/v1/ui/applicazioni/{app_id}/esegui'
+      description: 'Contratto fase 6 derivato da `esegui` in `web/blueprints/api_v1_applicazioni.py:108`. Pagina/area collegata:
+        API React operativa. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_esegui_post
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
+      - name: app_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Parametro interno della risorsa, risolto nel tenant corrente.
+      responses:
+        '200':
+          description: Payload operativo API React operativa nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UiOperationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P2
+      x-rbac-permission: sessione/API tenant-aware
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/applicazioni/contesto-fascicolo:
+    get:
+      tags:
+      - Sistema
+      summary: 'API React operativa: GET /api/v1/ui/applicazioni/contesto-fascicolo'
+      description: 'Contratto fase 6 derivato da `contesto_fascicolo` in `web/blueprints/api_v1_applicazioni.py:72`. Pagina/area
+        collegata: API React operativa. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_contesto_fascicolo_get
       security:
       - cookieSession: []
       - apiKeyAuth: []
@@ -15523,6 +15676,153 @@ paths:
       x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
       x-provider-verification: auth-error
       x-contract-status: complete
+  /api/v1/ui/ricerca-legale/mediazione/importa:
+    post:
+      tags:
+      - Lex
+      summary: 'Ricerca legale: POST /api/v1/ui/ricerca-legale/mediazione/importa'
+      description: 'Contratto fase 6 derivato da `importa_registro_mediazione` in `web/blueprints/api_v1_ricerca_legale.py:225`.
+        Pagina/area collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_importa_registro_mediazione_post
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Payload operativo Ricerca legale nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalResearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: sessione/API tenant-aware
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/ricerca-legale/mediazione/sincronizza:
+    post:
+      tags:
+      - Lex
+      summary: 'Ricerca legale: POST /api/v1/ui/ricerca-legale/mediazione/sincronizza'
+      description: 'Contratto fase 6 derivato da `sincronizza_registro_mediazione` in `web/blueprints/api_v1_ricerca_legale.py:219`.
+        Pagina/area collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_sincronizza_registro_mediazione_post
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Payload operativo Ricerca legale nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalResearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: sessione/API tenant-aware
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
+  /api/v1/ui/ricerca-legale/monitoraggio/esegui:
+    post:
+      tags:
+      - Lex
+      summary: 'Ricerca legale: POST /api/v1/ui/ricerca-legale/monitoraggio/esegui'
+      description: 'Contratto fase 6 derivato da `esegui_monitoraggio` in `web/blueprints/api_v1_ricerca_legale.py:207`. Pagina/area
+        collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_esegui_monitoraggio_post
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Payload operativo Ricerca legale nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalResearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: sessione/API tenant-aware
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
   /api/v1/ui/ricerca-legale/news:
     get:
       tags:
@@ -15667,6 +15967,55 @@ paths:
       x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
       x-provider-verification: auth-error
       x-contract-status: complete
+  /api/v1/ui/ricerca-legale/tabelle-normative/sincronizza:
+    post:
+      tags:
+      - Lex
+      summary: 'Ricerca legale: POST /api/v1/ui/ricerca-legale/tabelle-normative/sincronizza'
+      description: 'Contratto fase 6 derivato da `sincronizza_tabelle_normative` in `web/blueprints/api_v1_ricerca_legale.py:213`.
+        Pagina/area collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_sincronizza_tabelle_normative_post
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Payload operativo Ricerca legale nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalResearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: sessione/API tenant-aware
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MutationRequest'
+        description: Payload validato dal dominio; campi di controllo server vietati dal guardrail fase 5.
   /api/v1/ui/scadenziario:
     get:
       tags:

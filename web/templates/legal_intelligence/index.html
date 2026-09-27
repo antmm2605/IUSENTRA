@@ -40,7 +40,7 @@
       <p class="ds-ph-sub">Punto unico per cercare nei contenuti ufficiali, consultare le fonti monitorate, scaricare gli snapshot archiviati e gestire gli aggiornamenti normativi.</p>
     </div>
     <div class="ds-ph-actions li-header-actions">
-      <form method="get" action="{{ url_for('legal_intelligence.ricerca_unificata') }}" class="li-search-form" role="search">
+      <form method="get" action="{{ url_for('ricerca_legale.ricerca_unificata') }}" class="li-search-form" role="search">
         <div class="input-group">
           <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
           <input type="search" name="q" class="form-control border-start-0" placeholder="Cerca in fonti, normativa, news, organismi…" aria-label="Ricerca legale">
@@ -135,7 +135,7 @@
                   <div class="li-section-title"><i class="bi bi-newspaper me-2 text-primary"></i>Ultime news pubblicate</div>
                   <div class="small li-muted">Output del motore di aggiornamento - sempre con fonte ufficiale e revisione manuale.</div>
                 </div>
-                <a href="{{ url_for('legal_intelligence.news') }}" class="btn btn-sm btn-outline-primary">Tutte le news</a>
+                <a href="{{ url_for('ricerca_legale.news') }}" class="btn btn-sm btn-outline-primary">Tutte le news</a>
               </div>
               {% if ultime_news %}
               <div class="li-news-stack">
@@ -147,7 +147,7 @@
                     <span class="small text-muted">{{ (item.published_at or item.created_at)|fmt_dataora if (item.published_at or item.created_at) else '-' }}</span>
                   </div>
                   <h3 class="h6 mb-1">
-                    <a href="{{ url_for('legal_intelligence.dettaglio_news', slug=item.slug) }}" class="text-decoration-none">{{ item.title }}</a>
+                    <a href="{{ url_for('ricerca_legale.dettaglio_news', slug=item.slug) }}" class="text-decoration-none">{{ item.title }}</a>
                   </h3>
                   <p class="small text-muted mb-0">{{ item.short_summary }}</p>
                 </article>
@@ -170,17 +170,17 @@
                 </div>
               </div>
               <div class="li-quick-actions">
-                <form method="post" action="{{ url_for('legal_intelligence.esegui_daily_sync') }}">
+                <form method="post" action="{{ url_for('ricerca_legale.esegui_daily_sync') }}">
                   <button class="btn btn-primary w-100 text-start">
                     <i class="bi bi-arrow-clockwise me-2"></i>Esegui controllo giornaliero fonti
                   </button>
                 </form>
-                <form method="post" action="{{ url_for('legal_intelligence.esegui_sync_normativo') }}">
+                <form method="post" action="{{ url_for('ricerca_legale.esegui_sync_normativo') }}">
                   <button class="btn btn-outline-primary w-100 text-start">
                     <i class="bi bi-database-gear me-2"></i>Sincronizza tabelle normative
                   </button>
                 </form>
-                <a href="{{ url_for('legal_intelligence.registro_mediazione') }}" class="btn btn-outline-secondary w-100 text-start">
+                <a href="{{ url_for('ricerca_legale.registro_mediazione') }}" class="btn btn-outline-secondary w-100 text-start">
                   <i class="bi bi-building-check me-2"></i>Apri elenco organismi mediazione
                 </a>
                 <a href="{{ url_for('giurisprudenza.index') }}" class="btn btn-outline-secondary w-100 text-start">
@@ -246,7 +246,7 @@
                 {% if fonti_da_rivedere %}<span class="text-warning fw-semibold">{{ fonti_da_rivedere }} da rivedere.</span>{% endif %}
               </div>
             </div>
-            <form method="post" action="{{ url_for('legal_intelligence.esegui_monitor') }}" class="d-inline-flex">
+            <form method="post" action="{{ url_for('ricerca_legale.esegui_monitor') }}" class="d-inline-flex">
               <button class="btn btn-primary">
                 <i class="bi bi-arrow-repeat me-2"></i>Esegui controllo ora
               </button>
@@ -293,10 +293,10 @@
                   </td>
                   <td class="text-end">
                     <div class="d-inline-flex flex-wrap gap-1 justify-content-end">
-                      <a href="{{ url_for('legal_intelligence.scheda_fonte', source_id=row.id) }}" class="btn btn-sm btn-outline-primary" title="Scheda della fonte con storico e download">
+                      <a href="{{ url_for('ricerca_legale.scheda_fonte', source_id=row.id) }}" class="btn btn-sm btn-outline-primary" title="Scheda della fonte con storico e download">
                         <i class="bi bi-file-earmark-text me-1"></i>Scheda
                       </a>
-                      <a href="{{ url_for('legal_intelligence.scarica_fonte', source_id=row.id) }}" class="btn btn-sm btn-outline-secondary" title="Scarica il testo archiviato dal motore">
+                      <a href="{{ url_for('ricerca_legale.scarica_fonte', source_id=row.id) }}" class="btn btn-sm btn-outline-secondary" title="Scarica il testo archiviato dal motore">
                         <i class="bi bi-download"></i>
                       </a>
                       <a href="{{ row.official_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-dark" title="Apri fonte ufficiale">
@@ -349,12 +349,12 @@
               <div class="small li-muted">Controllo con memoria, ETag/Last-Modified, hash SHA-256 e diff applicativo. Gli aggiornamenti restano in revisione manuale.</div>
             </div>
             <div class="d-flex flex-wrap gap-2">
-              <form method="post" action="{{ url_for('legal_intelligence.esegui_daily_sync') }}">
+              <form method="post" action="{{ url_for('ricerca_legale.esegui_daily_sync') }}">
                 <button class="btn btn-primary">
                   <i class="bi bi-arrow-clockwise me-2"></i>Esegui controllo ora
                 </button>
               </form>
-              <form method="post" action="{{ url_for('legal_intelligence.rigenera_indice_ai_daily') }}">
+              <form method="post" action="{{ url_for('ricerca_legale.rigenera_indice_ai_daily') }}">
                 <button class="btn btn-outline-primary">
                   <i class="bi bi-cpu me-2"></i>Rigenera indice AI
                 </button>
@@ -436,11 +436,11 @@
                       <span class="badge {% if update.status == 'applied' %}text-bg-success{% elif update.status == 'pending_review' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">{{ update.status|replace('_', ' ') }}</span>
                     </div>
                     <div class="d-flex flex-wrap gap-2 mt-2">
-                      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('legal_intelligence.diff_daily_update', update_id=update.id) }}">
+                      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('ricerca_legale.diff_daily_update', update_id=update.id) }}">
                         <i class="bi bi-file-diff me-1"></i>Vedi diff
                       </a>
                       {% if update.status == 'pending_review' %}
-                      <form method="post" action="{{ url_for('legal_intelligence.approva_daily_update', update_id=update.id) }}">
+                      <form method="post" action="{{ url_for('ricerca_legale.approva_daily_update', update_id=update.id) }}">
                         <button class="btn btn-sm btn-outline-success">
                           <i class="bi bi-check2-circle me-1"></i>Approva applicazione
                         </button>
@@ -471,7 +471,7 @@
               prassi archiviate: <strong>{{ updates_snapshot.headline.published_prassi }}</strong>
             </div>
           </div>
-          <a href="{{ url_for('legal_intelligence.news') }}" class="btn btn-primary">
+          <a href="{{ url_for('ricerca_legale.news') }}" class="btn btn-primary">
             <i class="bi bi-newspaper me-2"></i>Apri archivio news
           </a>
         </div>
@@ -489,7 +489,7 @@
               <div class="li-section-title"><i class="bi bi-database-gear me-2 text-primary"></i>Tabelle normative sincronizzate</div>
               <div class="small li-muted">{{ snapshot.normative_tables.totali }} tabelle e {{ snapshot.normative_tables.riferimenti_normativi_totali }} riferimenti verificati.</div>
             </div>
-            <form method="post" action="{{ url_for('legal_intelligence.esegui_sync_normativo') }}" class="d-inline-flex">
+            <form method="post" action="{{ url_for('ricerca_legale.esegui_sync_normativo') }}" class="d-inline-flex">
               <button class="btn btn-outline-primary">
                 <i class="bi bi-database-gear me-2"></i>Sincronizza tabelle
               </button>
@@ -600,7 +600,7 @@
               {% endif %}
             </div>
           </div>
-          <a href="{{ url_for('legal_intelligence.registro_mediazione') }}" class="btn btn-primary">
+          <a href="{{ url_for('ricerca_legale.registro_mediazione') }}" class="btn btn-primary">
             <i class="bi bi-search me-2"></i>Apri elenco completo
           </a>
         </div>

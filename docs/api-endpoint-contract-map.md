@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 402.
-- Endpoint P0/P1 contrattualizzati: 341.
+- Endpoint React API contrattualizzati: 409.
+- Endpoint P0/P1 contrattualizzati: 345.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 375.
+- Endpoint con provider verification auth-error: 382.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 27.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
 
@@ -29,6 +29,9 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | API React operativa | `/api/v1/ui/amministrazione` | `GET` | Amministrazione (/app/amministrazione) | P2 | complete | auth-error | `sessione/API tenant-aware` | `routes.appV2.admin.home` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/amministrazione/consistenza-dati` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/amministrazione/prontezza-prodotto` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/ui/applicazioni/{app_id}` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/ui/applicazioni/{app_id}/esegui` | `POST` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/ui/applicazioni/contesto-fascicolo` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Registro attivita | `/api/v1/ui/audit` | `GET` | Registro attivita | P0 | verified | success+auth-error | `audit.leggi` | `n/a` | current_tenant | verified |
 | Registro attivita | `/api/v1/ui/audit/{id_evento}` | `GET` | Registro attivita | P0 | complete | auth-error | `audit.leggi` | `n/a` | current_tenant | complete-auth-error |
 | Backup | `/api/v1/ui/backup` | `GET` | Backup | P0 | complete | auth-error | `backup.leggi/esegui` | `n/a` | current_tenant | complete-auth-error |
@@ -321,9 +324,13 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Ricerca legale | `/api/v1/ui/ricerca-legale/controllo-giornaliero/esegui` | `POST` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Ricerca legale | `/api/v1/ui/ricerca-legale/fonti/{source_id}` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Ricerca legale | `/api/v1/ui/ricerca-legale/mediazione` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Ricerca legale | `/api/v1/ui/ricerca-legale/mediazione/importa` | `POST` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Ricerca legale | `/api/v1/ui/ricerca-legale/mediazione/sincronizza` | `POST` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Ricerca legale | `/api/v1/ui/ricerca-legale/monitoraggio/esegui` | `POST` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Ricerca legale | `/api/v1/ui/ricerca-legale/news` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Ricerca legale | `/api/v1/ui/ricerca-legale/news/{slug}` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Ricerca legale | `/api/v1/ui/ricerca-legale/ricerca` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Ricerca legale | `/api/v1/ui/ricerca-legale/tabelle-normative/sincronizza` | `POST` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Scadenziario | `/api/v1/ui/scadenziario` | `GET` | Scadenziario | P1 | verified | success+auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | verified |
 | Scadenziario | `/api/v1/ui/scadenziario/nuova` | `GET` | Scadenziario | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Scadenziario | `/api/v1/ui/scadenziario/pdf-scadenze/anteprima` | `GET` | Scadenziario | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |

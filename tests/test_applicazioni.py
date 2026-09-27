@@ -83,7 +83,7 @@ def test_applicazioni_index_renderizza_workspace_operativo_reale(tmp_path: Path)
 
     with app.test_client() as client:
         _login(client)
-        response = client.get("/applicazioni/")
+        response = client.get("/applicazioni/?_legacy=1")
         body = response.get_data(as_text=True)
 
     assert response.status_code == 200
@@ -101,7 +101,7 @@ def test_applicazioni_index_filtra_per_query_e_area(tmp_path: Path):
 
     with app.test_client() as client:
         _login(client)
-        response = client.get("/applicazioni/?q=cedolare&sezione=proprieta_successioni&tipo=patrimonio")
+        response = client.get("/applicazioni/?q=cedolare&sezione=proprieta_successioni&tipo=patrimonio&_legacy=1")
         body = response.get_data(as_text=True)
 
     assert response.status_code == 200
@@ -115,7 +115,7 @@ def test_applicazioni_dettaglio_reindirizza_al_workspace_attivo(tmp_path: Path):
 
     with app.test_client() as client:
         _login(client)
-        response = client.get("/applicazioni/calcolo_interessi_legali", follow_redirects=False)
+        response = client.get("/applicazioni/calcolo_interessi_legali?_legacy=1", follow_redirects=False)
 
     assert response.status_code == 302
     location = response.headers["Location"]
@@ -156,7 +156,7 @@ def test_applicazioni_workspace_template_mostra_template_e_checklist(tmp_path: P
 
     with app.test_client() as client:
         _login(client)
-        response = client.get("/applicazioni/?app=procura_alle_liti")
+        response = client.get("/applicazioni/?app=procura_alle_liti&_legacy=1")
         body = response.get_data(as_text=True)
 
     assert response.status_code == 200
@@ -171,8 +171,8 @@ def test_applicazioni_workspace_telematico_ed_economico_espongono_pannelli_reali
 
     with app.test_client() as client:
         _login(client)
-        telematico = client.get("/applicazioni/?app=deposito_telematico_documenti")
-        economico = client.get("/applicazioni/?app=fatturazione_avvocati")
+        telematico = client.get("/applicazioni/?app=deposito_telematico_documenti&_legacy=1")
+        economico = client.get("/applicazioni/?app=fatturazione_avvocati&_legacy=1")
 
     telematico_body = telematico.get_data(as_text=True)
     economico_body = economico.get_data(as_text=True)
@@ -192,7 +192,7 @@ def test_sidebar_studio_include_link_applicazioni(tmp_path: Path):
 
     with app.test_client() as client:
         _login(client)
-        response = client.get("/applicazioni/")
+        response = client.get("/applicazioni/?_legacy=1")
         body = response.get_data(as_text=True)
 
     assert response.status_code == 200

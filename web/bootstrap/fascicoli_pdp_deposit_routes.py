@@ -136,7 +136,7 @@ def register_fascicoli_pdp_deposit_routes(
                 + str(esito.get("descrizioneEsito") or stato_canonical or "esito non disponibile"),
                 "success" if _pdp_deposit_success(esito) else "warning",
             )
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id))
+            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id, _legacy=1))
         except Exception as exc:
             app.logger.exception(
                 "Errore pdp_penale_deposit_request(%s, %s): %s",
@@ -145,7 +145,7 @@ def register_fascicoli_pdp_deposit_routes(
                 exc,
             )
             flash(str(exc), "danger")
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id))
+            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id, _legacy=1))
 
 
 def _run_pdp_preflight(

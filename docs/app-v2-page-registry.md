@@ -12,7 +12,7 @@ Questo registro è generato da `scripts/react-migration/generate_app_v2_page_reg
 - Route legacy operative: 17.
 - Route App V2 dichiarate in frontend: 16.
 - Alias legacy verso App V2 in frontend: 32.
-- Route Flask GET candidate rilevate fuori manifest: 313.
+- Route Flask GET candidate rilevate fuori manifest: 321.
 
 ### Distribuzione rischio
 
@@ -725,9 +725,9 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /admin/studi/{slug} | GET | web/blueprints/admin.py | admin/assistente_migrazione.html, admin/dashboard.html, admin/governance.html, admin/lex_scorecard.html, admin/osservabilita.html, admin/salute_sistema.html, admin/stato_installazione.html, admin/studi_lista.html, admin/studio_database.html, admin/studio_dettaglio.html, admin/studio_nuovo.html, admin/studio_utenti.html, admin/utenti_piattaforma.html |
 | /admin/studi/{slug}/database | GET,POST | web/blueprints/admin.py | admin/assistente_migrazione.html, admin/dashboard.html, admin/governance.html, admin/lex_scorecard.html, admin/osservabilita.html, admin/salute_sistema.html, admin/stato_installazione.html, admin/studi_lista.html, admin/studio_database.html, admin/studio_dettaglio.html, admin/studio_nuovo.html, admin/studio_utenti.html, admin/utenti_piattaforma.html |
 | /admin/studi/{slug}/utenti | GET | web/blueprints/admin.py | admin/assistente_migrazione.html, admin/dashboard.html, admin/governance.html, admin/lex_scorecard.html, admin/osservabilita.html, admin/salute_sistema.html, admin/stato_installazione.html, admin/studi_lista.html, admin/studio_database.html, admin/studio_dettaglio.html, admin/studio_nuovo.html, admin/studio_utenti.html, admin/utenti_piattaforma.html |
-| /admin/supporto-remoto | GET | web/blueprints/support_remote.py | admin/support_console.html, support/customer_room.html, support/operator_room.html |
-| /admin/supporto-remoto/api | GET | web/blueprints/support_remote.py | admin/support_console.html, support/customer_room.html, support/operator_room.html |
-| /admin/supporto-remoto/notifiche-dispositivo | GET | web/blueprints/support_remote.py | admin/support_console.html, support/customer_room.html, support/operator_room.html |
+| /admin/supporto-remoto | GET | web/blueprints/support_remote.py | admin/support_console.html, support/operator_room.html |
+| /admin/supporto-remoto/api | GET | web/blueprints/support_remote.py | admin/support_console.html, support/operator_room.html |
+| /admin/supporto-remoto/notifiche-dispositivo | GET | web/blueprints/support_remote.py | admin/support_console.html, support/operator_room.html |
 | /admin/system-health | GET | web/blueprints/admin.py | admin/assistente_migrazione.html, admin/dashboard.html, admin/governance.html, admin/lex_scorecard.html, admin/osservabilita.html, admin/salute_sistema.html, admin/stato_installazione.html, admin/studi_lista.html, admin/studio_database.html, admin/studio_dettaglio.html, admin/studio_nuovo.html, admin/studio_utenti.html, admin/utenti_piattaforma.html |
 | /admin/utenti-piattaforma | GET | web/blueprints/admin.py | admin/assistente_migrazione.html, admin/dashboard.html, admin/governance.html, admin/lex_scorecard.html, admin/osservabilita.html, admin/salute_sistema.html, admin/stato_installazione.html, admin/studi_lista.html, admin/studio_database.html, admin/studio_dettaglio.html, admin/studio_nuovo.html, admin/studio_utenti.html, admin/utenti_piattaforma.html |
 | /agenda/export.ics | GET | web/bootstrap/calendar_routes.py | impostazioni/calendario.html |

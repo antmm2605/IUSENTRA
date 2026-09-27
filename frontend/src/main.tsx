@@ -57,11 +57,36 @@ function canonicalEntryPath(): string {
 
 const appRoot = document.getElementById('root') ?? document.getElementById('iusentra-react-root')
 const supportOperatorRoot = document.getElementById('support-operator-react-root')
+const supportCustomerRoot = document.getElementById('support-customer-react-root')
 const piattaformaRoot = document.getElementById('piattaforma-react-root')
+const accessoRoot = document.getElementById('accesso-react-root')
+const portaleTokenRoot = document.getElementById('portale-token-react-root')
+const pagamentoRoot = document.getElementById('pagamento-react-root')
+
+// Applicazioni React fuori dalla cornice dello studio: una sola per pagina.
+// Stanza operatore e cliente dell'assistenza, pannello di piattaforma, accesso
+// (login, verifica in due passaggi, password obbligatoria), portale del cliente
+// con link personale e link di pagamento.
 const shouldMountSupportOperator = Boolean(supportOperatorRoot?.dataset.supportOperatorRoom === '1' && !appRoot)
-// Pannello del superamministratore: applicazione React propria, senza la cornice dello studio.
-const shouldMountPiattaforma = Boolean(piattaformaRoot?.dataset.piattaforma === '1' && !appRoot && !shouldMountSupportOperator)
-const root = shouldMountSupportOperator ? supportOperatorRoot : shouldMountPiattaforma ? piattaformaRoot : appRoot ?? supportOperatorRoot
+const shouldMountSupportCustomer = Boolean(supportCustomerRoot?.dataset.supportCustomerRoom === '1' && !appRoot && !shouldMountSupportOperator)
+const shouldMountPiattaforma = Boolean(piattaformaRoot?.dataset.piattaforma === '1' && !appRoot && !shouldMountSupportOperator && !shouldMountSupportCustomer)
+const shouldMountAccesso = Boolean(accessoRoot?.dataset.accesso === '1' && !appRoot && !shouldMountSupportOperator && !shouldMountSupportCustomer && !shouldMountPiattaforma)
+const shouldMountPortaleToken = Boolean(portaleTokenRoot?.dataset.token && !appRoot && !shouldMountSupportOperator && !shouldMountSupportCustomer && !shouldMountPiattaforma && !shouldMountAccesso)
+const shouldMountPagamento = Boolean(pagamentoRoot?.dataset.token && !appRoot && !shouldMountSupportOperator && !shouldMountSupportCustomer && !shouldMountPiattaforma && !shouldMountAccesso && !shouldMountPortaleToken)
+const isPublicTokenPage = shouldMountPortaleToken || shouldMountPagamento || shouldMountSupportCustomer
+const root = shouldMountSupportOperator
+  ? supportOperatorRoot
+  : shouldMountSupportCustomer
+    ? supportCustomerRoot
+    : shouldMountPiattaforma
+      ? piattaformaRoot
+      : shouldMountAccesso
+        ? accessoRoot
+        : shouldMountPortaleToken
+          ? portaleTokenRoot
+          : shouldMountPagamento
+            ? pagamentoRoot
+            : appRoot ?? supportOperatorRoot
 
 function escapeHtml(value: string): string {
   return value.replace(/[<>&"]/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[char] || char)
@@ -74,6 +99,15 @@ function startupErrorMessage(error: unknown): string {
 
 function renderLoadingShell(target: HTMLElement) {
   bootstrapState.shellRendered = true
+  if (shouldMountAccesso) {
+    // Nessun dato dello studio prima dell'accesso: messaggio neutro.
+    target.innerHTML = '<main class="iu-content iu-react-loading" aria-live="polite"><div><h1>Caricamento della pagina di accesso</h1></div></main>'
+    return
+  }
+  if (isPublicTokenPage) {
+    target.innerHTML = '<main class="iu-content iu-react-loading" aria-live="polite"><div><h1>Caricamento in corso</h1><p>Sto aprendo la pagina del tuo link personale.</p></div></main>'
+    return
+  }
   target.innerHTML = [
     '<main class="iu-content iu-react-loading" aria-live="polite">',
     '<div>',
@@ -84,15 +118,37 @@ function renderLoadingShell(target: HTMLElement) {
   ].join('')
 }
 
+function accessoFallbackHref(): string {
+  const raw = accessoRoot?.dataset.vistaClassica || ''
+  // Il server indica sempre l'indirizzo della vista classica; in sua assenza si torna all'accesso.
+  return raw.startsWith('/') && !raw.startsWith('//') ? raw : '/login'
+}
+
 function renderStartupError(target: HTMLElement, error: unknown) {
   const message = startupErrorMessage(error)
+  if (shouldMountAccesso) {
+    target.innerHTML = [
+      '<main class="iu-content iu-react-error" role="alert">',
+      '<div>',
+      '<h1>Pagina di accesso non avviata</h1>',
+      '<p>Ricarica la pagina oppure usa la vista classica di accesso.</p>',
+      `<small>${escapeHtml(message)}</small>`,
+      `<a href="${escapeHtml(accessoFallbackHref())}">Vista classica</a>`,
+      '<button type="button" data-iu-ricarica>Ricarica</button>',
+      '</div>',
+      '</main>',
+    ].join('')
+    target.querySelector('[data-iu-ricarica]')?.addEventListener('click', () => window.location.reload())
+    return
+  }
   target.innerHTML = [
     '<main class="iu-content iu-react-error" role="alert">',
     '<div>',
     '<h1>Interfaccia non avviata</h1>',
     '<p>Il modulo operativo non è stato caricato. Ricarica la pagina; se il problema resta, IUSENTRA registra il dettaglio tecnico senza modificare i dati dello studio.</p>',
     `<small>${escapeHtml(message)}</small>`,
-    '<a href="/fascicoli">Apri fascicoli</a>',
+    // Le pagine pubbliche del cliente non rimandano alle pagine dello studio.
+    isPublicTokenPage ? '' : '<a href="/fascicoli">Apri fascicoli</a>',
     '<button type="button" data-iu-ricarica>Ricarica</button>',
     '</div>',
     '</main>',
@@ -107,7 +163,7 @@ async function bootReact() {
   window.__IUSENTRA_REACT_ROOT_OWNER__ = moduleUrl.pathname
   renderLoadingShell(root)
   bootstrapState.renderScheduled = true
-  await mountReactApp({ root, shouldMountSupportOperator, shouldMountPiattaforma })
+  await mountReactApp({ root, shouldMountSupportOperator, shouldMountSupportCustomer, shouldMountPiattaforma, shouldMountAccesso, shouldMountPortaleToken, shouldMountPagamento })
   bootstrapState.renderCompleted = true
 }
 

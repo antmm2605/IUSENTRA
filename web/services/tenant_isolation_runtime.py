@@ -182,6 +182,13 @@ def _public_request() -> bool:
         return True
     if blueprint in {"studio_site_public"}:
         return True
+    if endpoint in {
+        "api_v1_accesso_pubblico.accesso_stato",
+        "api_v1_accesso_pubblico.accesso_login",
+        "api_v1_accesso_pubblico.accesso_login_2fa",
+    }:
+        # Pagina di accesso React: nessun dato di studio, prima della sessione.
+        return True
     if path in {
         "/login",
         "/logout",
@@ -197,6 +204,9 @@ def _public_request() -> bool:
     if path in {"/api/v1", "/api/v1/"}:
         return True
     if path == "/api/v1/ui/client-portal/public" or path.startswith("/api/v1/ui/client-portal/public/"):
+        return True
+    # Link personali (portale storico, pagamento): lo studio si ricava dal token.
+    if path.startswith(("/api/v1/pubblico/portale/", "/api/v1/pubblico/pagamenti/")):
         return True
     return path.startswith((
         "/static/",

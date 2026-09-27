@@ -178,6 +178,13 @@ def verify_provider() -> tuple[int, int, int, int]:
                 target = _sample_path(path)
                 response = _request(client, method=method, target=target)
                 provider = operation.get("x-provider-verification")
+                if provider == "public-session":
+                    # Stato della pagina pubblica di accesso: 200 anche senza sessione.
+                    if response.status_code != 200 or not response.is_json:
+                        raise AssertionError(f"{method} {target}: atteso 200 JSON anonimo, ottenuto {response.status_code}.")
+                    _assert_success_payload(response.get_json(silent=True), path=target)
+                    success += 1
+                    continue
                 if provider in {"client-token-error", "public-safe-error"}:
                     if response.status_code not in {400, 401, 403, 404, 410, 422}:
                         raise AssertionError(

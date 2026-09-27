@@ -22,7 +22,8 @@ def test_login_headers_e_bootstrap_password_forzata(tmp_path: Path):
     app = create_app(cfg)
 
     with app.test_client() as client:
-        page = client.get("/login")
+        # Vista classica: la pagina predefinita ora è React (test_migrazione_react_accesso).
+        page = client.get("/login?_legacy=1")
         html = page.get_data(as_text=True)
         token = _extract_csrf_token(html)
 
@@ -40,7 +41,7 @@ def test_login_headers_e_bootstrap_password_forzata(tmp_path: Path):
         assert 'class="brand-logo"' in html
         assert 'aria-label="Mostra o nascondi password"' in html
 
-        next_page = client.get("/login?next=/notifiche-legali")
+        next_page = client.get("/login?next=/notifiche-legali&_legacy=1")
         assert "Dopo l'accesso torni automaticamente alla pagina richiesta." in next_page.get_data(
             as_text=True
         )
@@ -73,7 +74,7 @@ def test_password_temporanea_blocca_navigazione_finche_non_viene_cambiata(tmp_pa
     app = create_app(cfg)
 
     with app.test_client() as client:
-        login_page = client.get("/login")
+        login_page = client.get("/login?_legacy=1")
         login_token = _extract_csrf_token(login_page.get_data(as_text=True))
 
         login = client.post(
@@ -92,7 +93,7 @@ def test_password_temporanea_blocca_navigazione_finche_non_viene_cambiata(tmp_pa
         assert blocked_dashboard.status_code == 302
         assert blocked_dashboard.headers["Location"].endswith("/profilo?password_obbligatoria=1")
 
-        profile_page = client.get("/profilo")
+        profile_page = client.get("/profilo?_legacy=1")
         profile_token = _extract_csrf_token(profile_page.get_data(as_text=True))
 
         changed = client.post(

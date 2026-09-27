@@ -131,7 +131,8 @@ def build_csp(app: Flask | None = None, *, nonce: str = "") -> str:
             f"font-src {font_src}",
             f"connect-src {connect_src}",
             "worker-src 'self' blob: https://cdn.jsdelivr.net",
-            "frame-src 'self' blob:",
+            # Il widget SumUp del link di pagamento monta i campi carta in iframe del gestore.
+            "frame-src 'self' blob: https://gateway.sumup.com",
             "frame-ancestors 'self'",
             "base-uri 'self'",
             "form-action 'self'",

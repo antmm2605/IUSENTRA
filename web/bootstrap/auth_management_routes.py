@@ -18,6 +18,7 @@ from pct.auth import (
     verifica_totp,
 )
 from web.blueprints.react_shell import render_react_shell_response
+from web.services.accesso_shell_runtime import render_accesso_shell
 from web.services.audit_surface import build_audit_view
 
 
@@ -130,7 +131,7 @@ def register_auth_management_routes(
                 segreto = session.get("totp_temp_secret", "")
                 codice = request.form.get("codice_2fa", "").strip()
                 if segreto and verifica_totp(segreto, codice):
-                    gu.aggiorna(u.id, totp_secret=segreto, totp_attivato=True)
+                    gu.imposta_verifica_due_passaggi(u.id, segreto=segreto, attiva=True)
                     session.pop("totp_temp_secret", None)
                     audit("auth.2fa_attivato")
                     message = "Verifica in due passaggi attivata con successo."
@@ -142,7 +143,7 @@ def register_auth_management_routes(
             elif azione == "2fa_disattiva":
                 pwd = request.form.get("pwd_disattiva", "")
                 if gu.autentica(u.username, pwd):
-                    gu.aggiorna(u.id, totp_secret="", totp_attivato=False)
+                    gu.imposta_verifica_due_passaggi(u.id, segreto="", attiva=False)
                     session.pop("totp_temp_secret", None)
                     audit("auth.2fa_disattivato")
                     message = "Verifica in due passaggi disattivata."
@@ -164,7 +165,11 @@ def register_auth_management_routes(
             request.args.get("password_obbligatoria")
             or getattr(u, "must_change_password", False)
         )
-        if not _richiede_vista_legacy() and not password_obbligatoria:
+        if not _richiede_vista_legacy():
+            if password_obbligatoria:
+                # Cambio obbligatorio della password: pagina React di accesso,
+                # senza la cornice dello studio (ancora inaccessibile).
+                return render_accesso_shell("password", titolo="Nuova password")
             return render_react_shell_response("profilo")
         totp_temp = session.get("totp_temp_secret", "")
         uri_qr = totp_uri(totp_temp, u.username) if totp_temp else ""

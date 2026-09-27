@@ -47,7 +47,7 @@ export async function submitFormJson(endpoint: string, formData: FormData): Prom
     headers: {
       Accept: 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
-      ...(token ? { 'X-CSRFToken': token } : {}),
+      ...(token ? { 'X-CSRF-Token': token } : {}),
     },
     body: formData,
   })

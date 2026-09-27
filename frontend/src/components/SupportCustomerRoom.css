@@ -1,0 +1,383 @@
+/* Stanza cliente dell'assistenza remota (/support/join/<token>): pagina React propria, senza la cornice dello studio. */
+
+body.support-customer-react-page {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--iu-bg-app, #eef3f8);
+  color: var(--iu-text-strong, #0f172a);
+  font-family: var(--iu-font-family-base, system-ui, sans-serif);
+}
+
+body.support-customer-page--fullscreen {
+  overflow: hidden;
+}
+
+.iu-support-customer {
+  box-sizing: border-box;
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.iu-support-customer *,
+.iu-support-customer *::before,
+.iu-support-customer *::after {
+  box-sizing: border-box;
+}
+
+.iu-support-customer p {
+  margin: 0;
+}
+
+.iu-support-customer__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Intestazione */
+
+.iu-support-customer__hero,
+.iu-support-customer__panel,
+.iu-support-customer__notice {
+  border: 1px solid var(--iu-border, rgba(15, 23, 42, .12));
+  border-radius: var(--iu-radius-panel, 8px);
+  background: var(--iu-surface-solid, #ffffff);
+  box-shadow: var(--iu-shadow-hairline, 0 1px 2px rgba(15, 23, 42, .06));
+}
+
+.iu-support-customer__hero {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+
+.iu-support-customer__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.iu-support-customer__mark {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #0b1b3a;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.iu-support-customer__wordmark {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .06em;
+}
+
+.iu-support-customer__subtitle,
+.iu-support-customer__text,
+.iu-support-customer__text-muted,
+.iu-support-customer__hint {
+  color: var(--iu-text-subtle, #475569);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.iu-support-customer__hint {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.iu-support-customer__title {
+  margin: 0;
+  font-size: clamp(1.2rem, 1rem + 1vw, 1.6rem);
+  line-height: 1.2;
+}
+
+.iu-support-customer__badges,
+.iu-support-customer__hero-actions,
+.iu-support-customer__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.iu-support-customer__actions {
+  margin-top: 12px;
+}
+
+.iu-support-customer .iu-btn {
+  gap: 6px;
+}
+
+/* Avvisi */
+
+.iu-support-customer__notice {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.iu-support-customer__notice-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.iu-support-customer__notice--info {
+  border-color: rgba(29, 78, 216, .35);
+  background: #eff6ff;
+}
+
+.iu-support-customer__notice--warning {
+  border-color: rgba(180, 83, 9, .35);
+  background: #fffbeb;
+}
+
+.iu-support-customer__notice--danger {
+  border-color: rgba(185, 28, 28, .35);
+  background: #fef2f2;
+}
+
+/* Pannelli */
+
+.iu-support-customer__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.iu-support-customer__panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+}
+
+.iu-support-customer__panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.iu-support-customer__consents {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.iu-support-customer__consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--iu-border, rgba(15, 23, 42, .12));
+  border-radius: var(--iu-radius-control, 8px);
+  background: var(--iu-surface-muted, #f8fafc);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.iu-support-customer__consent input {
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  flex: 0 0 auto;
+}
+
+.iu-support-customer__consents:disabled .iu-support-customer__consent {
+  cursor: not-allowed;
+  opacity: .7;
+}
+
+.iu-support-customer__audio {
+  display: none;
+}
+
+.iu-support-customer__spin {
+  animation: iu-support-customer-spin 1s linear infinite;
+}
+
+@keyframes iu-support-customer-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Chat */
+
+.iu-support-customer__chat-log {
+  min-height: 180px;
+  max-height: 340px;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--iu-border, rgba(15, 23, 42, .12));
+  border-radius: var(--iu-radius-control, 8px);
+  background: var(--iu-surface-muted, #f8fafc);
+}
+
+.iu-support-customer__chat-log .support-chat-log__message {
+  max-width: 92%;
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.iu-support-customer__chat-empty {
+  color: var(--iu-text-subtle, #64748b);
+  font-size: 13px;
+}
+
+.iu-support-customer__composer {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.iu-support-customer__label {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.iu-support-customer__input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.iu-support-customer__input {
+  min-width: 0;
+  flex: 1 1 auto;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--iu-border, rgba(15, 23, 42, .16));
+  border-radius: var(--iu-radius-control, 8px);
+  background: #ffffff;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+}
+
+.iu-support-customer__input:focus-visible,
+.iu-support-customer__chat-log:focus-visible,
+.iu-support-customer__consent:focus-within {
+  outline: 2px solid var(--iu-focus-ring, #2563eb);
+  outline-offset: 2px;
+}
+
+.iu-support-customer__input:disabled {
+  cursor: not-allowed;
+  opacity: .6;
+}
+
+/* Chat compatta: resta solo la riga di scrittura (come lo script legacy). */
+
+.iu-support-customer__chat--compact {
+  align-self: start;
+  padding: 10px;
+}
+
+.iu-support-customer__chat--compact .iu-support-customer__panel-title,
+.iu-support-customer__chat--compact .iu-support-customer__label,
+.iu-support-customer__chat--compact .iu-support-customer__chat-log {
+  display: none;
+}
+
+.iu-support-customer__chat--compact .iu-support-customer__composer {
+  margin-top: 0;
+}
+
+/* Schermo intero: la stanza occupa la finestra, la chat compatta resta in basso. */
+
+.iu-support-customer--fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  width: 100%;
+  max-width: none;
+  overflow-y: auto;
+  align-content: start;
+  background: var(--iu-bg-app, #eef3f8);
+}
+
+.iu-support-customer:fullscreen {
+  width: 100%;
+  max-width: none;
+  overflow-y: auto;
+  background: var(--iu-bg-app, #eef3f8);
+}
+
+/* Tablet e telefono */
+
+@media (max-width: 860px) {
+  .iu-support-customer {
+    padding: 12px;
+  }
+
+  .iu-support-customer__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .iu-support-customer__chat-log {
+    min-height: 140px;
+    max-height: 260px;
+  }
+}
+
+@media (max-width: 520px) {
+  .iu-support-customer {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .iu-support-customer__hero,
+  .iu-support-customer__panel {
+    padding: 12px;
+  }
+
+  .iu-support-customer__actions .iu-btn,
+  .iu-support-customer__hero-actions .iu-btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  .iu-support-customer__input-row {
+    flex-wrap: wrap;
+  }
+
+  .iu-support-customer__input-row .iu-btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iu-support-customer__spin {
+    animation: none;
+  }
+}

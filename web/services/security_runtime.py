@@ -25,6 +25,9 @@ _INSECURE_SECRET_MARKERS = (
 _CSRF_PROTECTED_ENDPOINTS = {
     "login",
     "login_2fa",
+    # Pagina React di accesso: stessi controlli CSRF di /login e /login/2fa.
+    "api_v1_accesso_pubblico.accesso_login",
+    "api_v1_accesso_pubblico.accesso_login_2fa",
     "logout",
     "profilo",
     "nuovo_utente",
@@ -108,6 +111,12 @@ _CSRF_PROTECTED_ENDPOINTS = {
     "api_v1_client_portal.public_notification_read",
     "api_v1_client_portal.public_questionnaire_submit",
     "api_v1_client_portal.public_survey_submit",
+    "api_v1_portale_token.portale_privacy_consenso",
+    "api_v1_portale_token.portale_documenti_upload",
+    "api_v1_portale_token.portale_preventivo_accetta",
+    "api_v1_portale_token.portale_conferimento_firma",
+    "api_v1_portale_token.portale_anagrafica_aggiorna",
+    "api_v1_portale_token.pagamento_avvia",
     "api_push_notifications.subscribe",
     "api_push_notifications.unsubscribe",
     "api_push_notifications.test_push",
@@ -170,6 +179,11 @@ def _csrf_token_value() -> str:
         token = secrets.token_urlsafe(32)
         session["_csrf_token"] = token
     return token
+
+
+def csrf_token_sessione() -> str:
+    """Token CSRF della sessione corrente (creato se manca), come nei template."""
+    return _csrf_token_value()
 
 
 def _chiave_persistente() -> str:

@@ -6,22 +6,49 @@ URL base:
   /paga/<token>            — pagina checkout cliente (no auth)
   /webhooks/stripe         — webhook Stripe
   /webhooks/paypal         — webhook PayPal
+  /webhooks/satispay       — webhook Satispay
   /webhooks/sumup          — webhook SumUp
+  /webhooks/<gestore>/<slug> — webhook con lo studio nell'indirizzo (solo con più studi)
 """
 from __future__ import annotations
+
+import json
 
 from flask import (Blueprint, abort, flash, g, jsonify, redirect,
                    render_template, request, url_for, current_app)
 from pct.pagamenti_verifica import (
-    paypal_ordine_del_link,
     paypal_pagamento_confermato,
     satispay_pagamento_confermato,
-    stripe_sessione_del_link,
     sumup_pagamento_confermato,
 )
 from web.helpers import get_fatturazione as _shared_get_fatturazione, get_pagamenti as _shared_get_pagamenti
+from web.services.pagamenti_link_azioni import (
+    aggiorna_parcella_pagata,
+    avvia_pagamento as _avvia_presso_gestore,
+    entra_studio_webhook,
+    indirizzo_webhook,
+    risolvi_studio_pagamento,
+    risolvi_studio_webhook,
+    verifica_ritorno,
+    vista_link,
+)
+from web.services.pubblico_token_shell import render_pagamento_shell, vista_classica_richiesta
 
 pagamenti = Blueprint("pagamenti", __name__)
+
+# Pagine del cliente raggiunte con il token del link (i webhook restano esclusi).
+_ENDPOINT_CON_TOKEN = {"pagamenti.checkout", "pagamenti.avvia_pagamento", "pagamenti.successo"}
+
+
+@pagamenti.before_request
+def _studio_dal_link():
+    """Con più studi, lo studio si ricava dal token del link (come nel portale)."""
+    if request.endpoint not in _ENDPOINT_CON_TOKEN:
+        return None
+    token = str((request.view_args or {}).get("token") or "").strip()
+    if token:
+        risolvi_studio_pagamento(token)
+    return None
 
 
 # ---------------------------------------------------------------- helpers
@@ -42,12 +69,7 @@ def _richiedi_login(f):
 
 def _update_parcella_pagata(id_parcella: str, metodo: str):
     """Segna la parcella come PAGATA nel modulo fatturazione."""
-    try:
-        from pct.fatturazione import StatoParcella
-        gf = _shared_get_fatturazione()
-        gf.cambia_stato(id_parcella, StatoParcella.PAGATA, metodo_pagamento=metodo)
-    except Exception:
-        pass
+    aggiorna_parcella_pagata(id_parcella, metodo)
 
 
 # ================================================================ PANNELLO IMPOSTAZIONI
@@ -110,6 +132,7 @@ def impostazioni_pagamenti():
         cfg=cfg,
         link_recenti=link_recenti,
         provider_attivi=cfg.provider_attivi(),
+        url_webhook_stripe=request.host_url.rstrip("/") + indirizzo_webhook("stripe"),
     )
 
 
@@ -145,31 +168,42 @@ def crea_link_pagamento(id_parcella: str):
 
 # ================================================================ CHECKOUT CLIENTE (no auth)
 
+def _studio_nome() -> str:
+    return current_app.config.get("STUDIO_NOME", "IUSENTRA")
+
+
+def _pagina_scaduto():
+    return render_template("pagamenti/scaduto.html", studio_nome=_studio_nome()), 410
+
+
+_TITOLI_VISTA = {"checkout": "Pagamento", "gia_pagato": "Già pagato", "scaduto": "Link scaduto"}
+
+
 @pagamenti.route("/paga/<token>", methods=["GET"])
 def checkout(token: str):
     gp = _get_gp()
-    lp = gp.get_by_token(token)
-    if not lp:
-        return render_template("pagamenti/scaduto.html",
-                               studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA")), 410
-    if not lp.is_valido:
-        if lp.stato == "PAGATO":
-            return render_template("pagamenti/gia_pagato.html", lp=lp,
-                                   studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA"))
-        return render_template("pagamenti/scaduto.html",
-                               studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA")), 410
+    stato = vista_link(gp, token)
+    if not vista_classica_richiesta():
+        # Pagina React (PagamentoLinkApp): dati da /api/v1/pubblico/pagamenti/<token>.
+        return render_pagamento_shell(
+            token, stato.vista, titolo=_TITOLI_VISTA[stato.vista], studio_nome=_studio_nome(), status=stato.status,
+        )
+    if stato.vista == "scaduto":
+        return _pagina_scaduto()
+    if stato.vista == "gia_pagato":
+        return render_template("pagamenti/gia_pagato.html", lp=stato.link, studio_nome=_studio_nome())
 
+    lp = stato.link
     cfg = gp.config
     from web.helpers import get_clienti
     cliente = get_clienti().get(lp.id_cliente)
-    studio_nome = current_app.config.get("STUDIO_NOME", "IUSENTRA")
 
     return render_template(
         "pagamenti/checkout.html",
         lp=lp,
         cfg=cfg,
         cliente=cliente,
-        studio_nome=studio_nome,
+        studio_nome=_studio_nome(),
         provider_attivi=cfg.provider_attivi(),
     )
 
@@ -179,62 +213,31 @@ def checkout(token: str):
 @pagamenti.route("/paga/<token>/avvia", methods=["POST"])
 def avvia_pagamento(token: str):
     gp = _get_gp()
-    lp = gp.get_by_token(token)
-    if not lp or not lp.is_valido:
-        return render_template("pagamenti/scaduto.html",
-                               studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA")), 410
+    stato = vista_link(gp, token)
+    if stato.vista != "checkout":
+        return _pagina_scaduto()
+    lp = stato.link
 
-    provider = request.form.get("provider", "").strip()
-    base = request.host_url.rstrip("/")
-    success_url = base + url_for("pagamenti.successo", token=token)
-    cancel_url  = base + url_for("pagamenti.checkout", token=token)
-
-    if provider == "stripe":
-        try:
-            url = gp.stripe_crea_sessione(lp, success_url, cancel_url)
-            return redirect(url)
-        except Exception as e:
-            flash(f"Errore Stripe: {e}", "danger")
-            return redirect(url_for("pagamenti.checkout", token=token))
-
-    elif provider == "paypal":
-        ordine = gp.paypal_crea_ordine(lp,
-                                        return_url=success_url + "?provider=paypal",
-                                        cancel_url=cancel_url)
-        if ordine and ordine.get("approve_url"):
-            # Salva order_id in sessione per la capture al ritorno
-            from flask import session
-            session[f"paypal_order_{lp.id}"] = ordine["id"]
-            return redirect(ordine["approve_url"])
-        flash("Errore nella creazione dell'ordine PayPal.", "danger")
-        return redirect(url_for("pagamenti.checkout", token=token))
-
-    elif provider == "sumup":
-        checkout = gp.sumup_crea_checkout(lp, return_url=success_url)
-        if checkout and checkout.get("checkout_id"):
-            return render_template(
-                "pagamenti/sumup_checkout.html",
-                lp=lp,
-                checkout_id=checkout["checkout_id"],
-                sumup_api_key=gp.config.sumup.api_key,
-                success_url=success_url,
-                studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA"),
-            )
-        flash("Errore SumUp.", "danger")
-        return redirect(url_for("pagamenti.checkout", token=token))
-
-    elif provider == "satispay":
-        callback = base + url_for("pagamenti.webhook_satispay")
-        risultato = gp.satispay_crea_pagamento(lp, callback_url=callback)
-        if risultato and risultato.get("redirect_url"):
-            return redirect(risultato["redirect_url"])
-        flash("Errore Satispay.", "danger")
-        return redirect(url_for("pagamenti.checkout", token=token))
-
-    elif provider == "bonifico":
-        return redirect(url_for("pagamenti.successo", token=token) + "?provider=bonifico")
-
-    abort(400)
+    esito = _avvia_presso_gestore(gp, lp, request.form.get("provider", ""))
+    if esito.tipo == "redirect":
+        return redirect(esito.url)
+    if esito.tipo == "bonifico":
+        return redirect(esito.url)
+    if esito.tipo == "sumup":
+        # Vista classica del widget SumUp: la chiave del gestore non serve al
+        # browser (il widget usa solo l'identificativo del checkout).
+        return render_template(
+            "pagamenti/sumup_checkout.html",
+            lp=lp,
+            checkout_id=esito.checkout_id,
+            success_url=esito.url,
+            studio_nome=_studio_nome(),
+        )
+    if esito.tipo == "provider_non_valido":
+        abort(400)
+    # Solo il messaggio per il cliente: il dettaglio dell'errore del gestore è nel log.
+    flash(esito.messaggio, "danger")
+    return redirect(url_for("pagamenti.checkout", token=token, _legacy=1))
 
 
 # ================================================================ SUCCESSO
@@ -242,62 +245,86 @@ def avvia_pagamento(token: str):
 @pagamenti.route("/paga/<token>/successo", methods=["GET"])
 def successo(token: str):
     gp = _get_gp()
-    lp = gp.get_by_token(token)
+    provider = request.args.get("provider", "")
+    # PayPal (cattura dell'ordine) e Stripe (sessione) si verificano qui, al ritorno.
+    lp = verifica_ritorno(gp, token, provider, request.args)
     if not lp:
         abort(404)
-
-    provider = request.args.get("provider", "")
-    studio_nome = current_app.config.get("STUDIO_NOME", "IUSENTRA")
-
-    # PayPal: cattura ordine al ritorno
-    if provider == "paypal" and lp.stato == "ATTESO":
-        from flask import session
-        order_id = request.args.get("token") or session.pop(f"paypal_order_{lp.id}", None)
-        if order_id and paypal_ordine_del_link(gp, order_id, lp) and gp.paypal_cattura_ordine(order_id):
-            gp.segna_pagato(lp.id, "PayPal", tx_id=order_id)
-            _update_parcella_pagata(lp.id_parcella, "PayPal")
-
-    # Stripe: verifica via session_id
-    session_id = request.args.get("session_id", "")
-    if session_id and lp.stato == "ATTESO":
-        try:
-            import stripe
-            stripe.api_key = gp.config.stripe.sk
-            sess = stripe.checkout.Session.retrieve(session_id)
-            if stripe_sessione_del_link(sess, lp):
-                gp.segna_pagato(lp.id, "Stripe", tx_id=session_id)
-                _update_parcella_pagata(lp.id_parcella, "Stripe")
-        except Exception:
-            pass
-
-    # Ricarica lp
-    lp = gp.get_by_token(token)
+    if not vista_classica_richiesta():
+        return render_pagamento_shell(
+            token, "esito", titolo="Pagamento", studio_nome=_studio_nome(), provider=provider,
+        )
     return render_template(
         "pagamenti/successo.html",
         lp=lp,
         provider=provider or lp.provider_usato or "",
         cfg_bonifico=gp.config.bonifico if provider == "bonifico" else None,
-        studio_nome=studio_nome,
+        studio_nome=_studio_nome(),
     )
 
 
 # ================================================================ WEBHOOKS
+#
+# Con più studi il webhook arriva senza sessione: lo studio si ricava dal
+# riferimento del link inviato dal gestore (lo stesso usato finora per trovare
+# il link) oppure dall'indirizzo `/webhooks/<gestore>/<slug>`. Solo dopo, nel
+# contesto di quello studio, si verifica la firma (Stripe) o si chiede conferma
+# al gestore (PayPal, Satispay, SumUp) con le chiavi dello studio. A studio
+# singolo nulla cambia.
 
-@pagamenti.route("/webhooks/stripe", methods=["POST"])
-def webhook_stripe():
+def _nessuno_studio():
+    """Link di nessuno studio: nulla da verificare né da registrare.
+
+    Risposta 200 come per un link sconosciuto a studio singolo, così il gestore
+    non ripete la notifica all'infinito.
+    """
+    return jsonify({"received": True}), 200
+
+
+def _riferimento_stripe() -> str:
+    """`link_id` nei metadata della sessione, letto solo per scegliere lo studio."""
+    try:
+        evento = json.loads(request.get_data() or b"{}")
+        oggetto = (evento.get("data") or {}).get("object") or {}
+        return str((oggetto.get("metadata") or {}).get("link_id") or "")
+    except Exception:
+        return ""
+
+
+def _dati_json() -> dict:
+    dati = request.get_json(silent=True)
+    return dati if isinstance(dati, dict) else {}
+
+
+def _riferimento_paypal() -> str:
+    return str((_dati_json().get("resource") or {}).get("custom_id") or "")
+
+
+def _riferimento_satispay() -> str:
+    return str((_dati_json().get("metadata") or {}).get("link_id") or "")
+
+
+def _riferimento_sumup() -> str:
+    return str(_dati_json().get("checkout_reference") or "")
+
+
+def _evento_stripe():
     gp = _get_gp()
     payload = request.get_data()
     sig_header = request.headers.get("Stripe-Signature", "")
-    event = gp.stripe_verifica_webhook(payload, sig_header)
-    if not event:
+    if not gp.stripe_verifica_webhook(payload, sig_header):
         return jsonify({"error": "invalid signature"}), 400
-    if event["type"] == "checkout.session.completed":
-        sess = event["data"]["object"]
+    # Firma valida: il contenuto è quello dell'evento verificato. Si legge come
+    # dizionario perché nelle librerie Stripe recenti l'evento non ha `.get`.
+    event = json.loads(payload)
+    if event.get("type") == "checkout.session.completed":
+        sess = (event.get("data") or {}).get("object") or {}
         if sess.get("payment_status") == "paid":
-            link_id = sess.get("metadata", {}).get("link_id", "")
-            id_parcella = sess.get("metadata", {}).get("parcella", "")
+            metadata = sess.get("metadata") or {}
+            link_id = metadata.get("link_id", "")
+            id_parcella = metadata.get("parcella", "")
             if link_id and link_id in {l.id for l in gp.tutti_link()}:
-                gp.segna_pagato(link_id, "Stripe", tx_id=sess["id"])
+                gp.segna_pagato(link_id, "Stripe", tx_id=sess.get("id", ""))
                 if id_parcella:
                     _update_parcella_pagata(id_parcella, "Stripe")
     return jsonify({"received": True}), 200
@@ -324,11 +351,10 @@ def _registra_se_confermato(gp, lp, provider: str, tx_id: str, confermato: bool)
     return jsonify({"received": True, "verified": True}), 200
 
 
-@pagamenti.route("/webhooks/paypal", methods=["POST"])
-def webhook_paypal():
+def _evento_paypal():
     # La notifica PayPal non è firmata con un segreto dello studio: la cattura
     # si rilegge da PayPal con le credenziali dello studio prima di registrarla.
-    data = request.get_json(silent=True) or {}
+    data = _dati_json()
     if data.get("event_type") != "PAYMENT.CAPTURE.COMPLETED":
         return jsonify({"received": True}), 200
     resource = data.get("resource") or {}
@@ -339,9 +365,8 @@ def webhook_paypal():
     return _registra_se_confermato(gp, lp, "PayPal", tx_id, confermato)
 
 
-@pagamenti.route("/webhooks/satispay", methods=["POST"])
-def webhook_satispay():
-    data = request.get_json(silent=True) or {}
+def _evento_satispay():
+    data = _dati_json()
     payment_id = str(data.get("id") or request.args.get("payment_id") or "")
     gp = _get_gp()
     lp = _link_in_attesa(gp, (data.get("metadata") or {}).get("link_id"))
@@ -349,11 +374,60 @@ def webhook_satispay():
     return _registra_se_confermato(gp, lp, "Satispay", payment_id, confermato)
 
 
-@pagamenti.route("/webhooks/sumup", methods=["POST"])
-def webhook_sumup():
-    data = request.get_json(silent=True) or {}
+def _evento_sumup():
+    data = _dati_json()
     checkout_id = str(data.get("id") or "")
     gp = _get_gp()
     lp = _link_in_attesa(gp, data.get("checkout_reference"))
     confermato = lp is not None and sumup_pagamento_confermato(gp, checkout_id, lp)
     return _registra_se_confermato(gp, lp, "SumUp", checkout_id, confermato)
+
+
+# gestore -> (riferimento del link nella notifica, gestione nel contesto dello studio)
+_WEBHOOK = {
+    "stripe": (_riferimento_stripe, _evento_stripe),
+    "paypal": (_riferimento_paypal, _evento_paypal),
+    "satispay": (_riferimento_satispay, _evento_satispay),
+    "sumup": (_riferimento_sumup, _evento_sumup),
+}
+
+
+def _webhook(gestore: str):
+    riferimento, gestisci = _WEBHOOK[gestore]
+    if not risolvi_studio_webhook(riferimento()):
+        return _nessuno_studio()
+    return gestisci()
+
+
+@pagamenti.route("/webhooks/stripe", methods=["POST"])
+def webhook_stripe():
+    return _webhook("stripe")
+
+
+@pagamenti.route("/webhooks/paypal", methods=["POST"])
+def webhook_paypal():
+    return _webhook("paypal")
+
+
+@pagamenti.route("/webhooks/satispay", methods=["POST"])
+def webhook_satispay():
+    return _webhook("satispay")
+
+
+@pagamenti.route("/webhooks/sumup", methods=["POST"])
+def webhook_sumup():
+    return _webhook("sumup")
+
+
+@pagamenti.route("/webhooks/<gestore>/<slug>", methods=["POST"])
+def webhook_studio(gestore: str, slug: str):
+    """Webhook configurato presso il gestore con l'indirizzo dello studio.
+
+    Lo studio è noto prima di leggere la notifica: la firma Stripe si verifica
+    con il segreto dello studio anche per eventi senza riferimento del link.
+    Studio sconosciuto o sospeso, o installazione a studio singolo: 404.
+    """
+    voce = _WEBHOOK.get(gestore)
+    if voce is None or not entra_studio_webhook(slug):
+        abort(404)
+    return voce[1]()

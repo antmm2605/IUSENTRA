@@ -7,15 +7,36 @@ import SupportOperatorRoom from './components/SupportOperatorRoom'
 type ReactEntryOptions = {
   root: HTMLElement
   shouldMountSupportOperator: boolean
+  shouldMountSupportCustomer?: boolean
   shouldMountPiattaforma?: boolean
+  shouldMountAccesso?: boolean
+  shouldMountPortaleToken?: boolean
+  shouldMountPagamento?: boolean
 }
 
-export async function mountReactApp({ root, shouldMountSupportOperator, shouldMountPiattaforma = false }: ReactEntryOptions) {
+export async function mountReactApp({
+  root,
+  shouldMountSupportOperator,
+  shouldMountSupportCustomer = false,
+  shouldMountPiattaforma = false,
+  shouldMountAccesso = false,
+  shouldMountPortaleToken = false,
+  shouldMountPagamento = false,
+}: ReactEntryOptions) {
   const reactRoot = ReactDOM.createRoot(root)
-  // Il pannello di piattaforma si carica solo quando serve: gli studi non lo scaricano.
+  // Le applicazioni fuori dalla cornice dello studio sono chunk separati,
+  // caricati solo quando servono: le pagine dello studio non li scaricano.
   const selected: unknown = shouldMountPiattaforma
     ? await import('./components/PiattaformaApp')
-    : shouldMountSupportOperator ? SupportOperatorRoom : App
+    : shouldMountSupportCustomer
+      ? await import('./components/SupportCustomerRoom')
+      : shouldMountAccesso
+        ? await import('./components/AccessoApp')
+        : shouldMountPortaleToken
+          ? await import('./components/PortaleTokenApp')
+          : shouldMountPagamento
+            ? await import('./components/PagamentoLinkApp')
+            : shouldMountSupportOperator ? SupportOperatorRoom : App
   const Component = resolveDefaultComponent(selected)
 
   reactRoot.render(

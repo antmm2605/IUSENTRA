@@ -59,12 +59,16 @@ def test_portale_non_carica_nelle_pratiche_di_altri_clienti(tmp_path):
 def test_link_scaduto_del_portale_resta_nel_portale(tmp_path):
     app = _app_sessione(tmp_path)
     with app.test_client() as client:
-        portale = client.get("/portale/token-inesistente")
+        portale = client.get("/portale/token-inesistente?_legacy=1")
+        portale_react = client.get("/portale/token-inesistente")
         pagamento = client.post("/pagamenti/paga/token-inesistente/avvia", data={"provider": "bonifico"})
     assert portale.status_code == 410
+    assert portale_react.status_code == 410
     assert pagamento.status_code == 410
     # Il pagamento scaduto ha la sua pagina, non quella del portale del cliente.
     assert "Link non valido" in portale.get_data(as_text=True)
+    # Pagina React del portale: stessa risposta 410, schermata «link scaduto» della shell.
+    assert 'data-stato="scaduto"' in portale_react.get_data(as_text=True)
     assert "Link scaduto" in pagamento.get_data(as_text=True)
 
 

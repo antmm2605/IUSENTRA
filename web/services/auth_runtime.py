@@ -10,18 +10,26 @@ import sqlite3
 
 from flask import Flask, flash, g, jsonify, make_response, redirect, render_template, request, session, url_for
 
-from core.security.login_guard import get_login_guard
-from pct.auth import GestioneUtenti, RuoloUtente, verifica_totp
+from pct.auth import GestioneUtenti, RuoloUtente
 from pct.core_storage_backend import build_core_storage_backend
-from web.services.app_v2_routing import is_safe_internal_path
+from web.services import auth_accesso_flow as accesso
+from web.services.accesso_shell_runtime import render_accesso_shell, vista_classica_accesso_richiesta
 from web.services.storage_runtime import get_request_storage_runtime
 from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data
 
 
+TOTP_TENTATIVI_MASSIMI = accesso.TOTP_TENTATIVI_MASSIMI
+
+# API pubbliche della pagina React di accesso: senza sessione per definizione,
+# protette da CSRF di sessione, login_guard e audit come /login e /login/2fa.
+API_ACCESSO_PUBBLICHE = frozenset({
+    "api_v1_accesso_pubblico.accesso_stato",
+    "api_v1_accesso_pubblico.accesso_login",
+    "api_v1_accesso_pubblico.accesso_login_2fa",
+})
+
 # API raggiungibili senza sessione: preflight e descrizione dell'API esterna, webhook
 # dei calendari (verificati dal loro token). Le altre richiedono sessione o chiave API.
-TOTP_TENTATIVI_MASSIMI = 5
-
 API_PUBBLICHE = frozenset({
     # Controlli di salute usati dal deploy (curl /api/pronto) e dal monitoraggio.
     "api_ready",
@@ -31,6 +39,22 @@ API_PUBBLICHE = frozenset({
     "api_v1.info",
     "api_v1.calendar_webhook_google",
     "api_v1.calendar_webhook_microsoft",
+}) | frozenset({
+    # Link personali del cliente (portale storico e link di pagamento): l'accesso è
+    # il token nell'indirizzo, verificato da ogni endpoint (410 se non valido).
+    "api_v1_portale_token.portale_home",
+    "api_v1_portale_token.portale_privacy",
+    "api_v1_portale_token.portale_privacy_consenso",
+    "api_v1_portale_token.portale_documenti",
+    "api_v1_portale_token.portale_documenti_upload",
+    "api_v1_portale_token.portale_economici",
+    "api_v1_portale_token.portale_preventivo_accetta",
+    "api_v1_portale_token.portale_conferimento_firma",
+    "api_v1_portale_token.portale_anagrafica",
+    "api_v1_portale_token.portale_anagrafica_aggiorna",
+    "api_v1_portale_token.pagamento_checkout",
+    "api_v1_portale_token.pagamento_avvia",
+    "api_v1_portale_token.pagamento_esito",
 })
 
 
@@ -93,6 +117,8 @@ def register_auth_runtime(
         "pagamenti.webhook_paypal",
         "pagamenti.webhook_satispay",
         "pagamenti.webhook_sumup",
+        "pagamenti.webhook_studio",
+        *API_ACCESSO_PUBBLICHE,
     }
     password_change_routes = {
         "profilo",
@@ -110,12 +136,7 @@ def register_auth_runtime(
         except Exception as exc:  # pragma: no cover - il login non deve fallire per un avviso accessorio
             app.logger.warning("Avviso certificato firma non mostrato: %s", exc)
 
-    def _safe_login_next(value: str) -> str:
-        candidate = str(value or "").strip()
-        return candidate if is_safe_internal_path(candidate) else ""
-
-    def _redirect_to_login_target(value: str, fallback: str):
-        target = _safe_login_next(value) or fallback
+    def _redirect_to_login_target(target: str):
         response = make_response("", 302)
         response.headers["Location"] = target
         return response
@@ -387,6 +408,20 @@ def register_auth_runtime(
             return "ambiguous"
         return None
 
+    accesso_runtime = accesso.AccessoRuntime(
+        app=app,
+        get_utenti=get_utenti,
+        gestione_utenti_studio=lambda studio_slug: _tenant_user_manager(studio_slug, include_studio_db=False),
+        allinea_multi_studio=_ensure_runtime_multi_tenant_alignment,
+        multi_studio_disponibile=_runtime_multi_tenant_available,
+        multi_studio_esplicito=multi_tenant_explicit,
+        risolvi_accesso_studio=_resolve_tenant_login,
+        unico_studio_attivo=_single_active_tenant_slug,
+        studi_attivi=_active_tenants,
+        avviso_certificato_firma=_flash_avviso_scadenza_certificato_firma,
+    )
+    accesso.registra_runtime_accesso(app, accesso_runtime)
+
     @app.before_request
     def carica_utente_corrente():
         """Inject g.utente_corrente for every request; logout after 8h inactivity."""
@@ -648,205 +683,45 @@ def register_auth_runtime(
             return redirect(url_for("profilo", password_obbligatoria=1))
         return None
 
+    def _pagina_login_legacy(errore, multi_tenant: bool, status: int = 200, retry_after: int = 0):
+        response = make_response(
+            render_template("auth/login.html", errore=errore, multi_tenant=multi_tenant),
+            status,
+        )
+        if retry_after:
+            response.headers["Retry-After"] = str(retry_after)
+        return response
+
+    def _risposta_login_html(esito: accesso.EsitoAccesso):
+        if esito.tipo == accesso.BLOCCATO:
+            return _pagina_login_legacy(esito.errore, esito.multi_studio, 429, esito.retry_after)
+        if esito.tipo in {accesso.SECONDO_FATTORE, accesso.PASSWORD_DA_CAMBIARE}:
+            return redirect(esito.destinazione)
+        if esito.tipo == accesso.ACCESSO:
+            return _redirect_to_login_target(esito.destinazione)
+        return render_template("auth/login.html", errore=esito.errore, multi_tenant=esito.multi_studio)
+
     @app.route("/login", methods=["GET", "POST"])
     def login():
-        if g.utente_corrente:
-            return redirect(url_for("dashboard"))
+        gia_autenticato = accesso.esito_gia_autenticato(g.utente_corrente)
+        if gia_autenticato is not None:
+            return redirect(gia_autenticato.destinazione)
 
-        errore = None
         if request.method == "POST":
-            multi_tenant_enabled = _ensure_runtime_multi_tenant_alignment()
-            username = request.form.get("username", "")
-            password = request.form.get("password", "")
-            studio_slug = request.form.get("studio_slug", "").strip().lower()
-
-            login_guard = get_login_guard(app)
-            client_ip = (
-                request.headers.get("X-Forwarded-For", request.remote_addr or "") or ""
-            ).split(",")[0].strip()
-            attempt_username = username.strip().lower()
-            locked_seconds = login_guard.lock_remaining_seconds(client_ip, attempt_username)
-            if locked_seconds > 0:
-                minuti = max(1, (locked_seconds + 59) // 60)
-                try:
-                    get_utenti().registra_evento(
-                        "auth.login_bloccato",
-                        username=attempt_username or username,
-                        ip=client_ip,
-                        dettagli=(
-                            "Accesso temporaneamente bloccato per troppi tentativi falliti "
-                            f"({locked_seconds}s residui)."
-                        ),
-                        esito="ERRORE",
-                    )
-                except Exception:
-                    app.logger.warning("Audit auth.login_bloccato non registrato", exc_info=True)
-                response = make_response(
-                    render_template(
-                        "auth/login.html",
-                        errore=(
-                            "Troppi tentativi di accesso falliti. "
-                            f"Per sicurezza l'accesso e' sospeso: riprova tra circa {minuti} "
-                            f"{'minuto' if minuti == 1 else 'minuti'}."
-                        ),
-                        multi_tenant=_runtime_multi_tenant_available(),
-                    ),
-                    429,
-                )
-                response.headers["Retry-After"] = str(locked_seconds)
-                return response
-            selected_tenant_slug = ""
-            manager = None
-            utente = None
-            auth_scope = "global"
-            auth_tenant_slug = ""
-
-            if studio_slug and multi_tenant_enabled:
-                from pct.tenant import GestioneTenant
-
-                tenants = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
-                studio = tenants.get(studio_slug)
-                if not studio:
-                    return render_template(
-                        "auth/login.html",
-                        errore="Studio non trovato.",
-                        multi_tenant=True,
-                    )
-                manager = _tenant_user_manager(studio_slug, include_studio_db=False)
-                utente = manager.autentica(username, password)
-                selected_tenant_slug = studio_slug
-                auth_scope = "tenant"
-                auth_tenant_slug = studio_slug
-            else:
-                manager = get_utenti()
-                if multi_tenant_enabled and not multi_tenant_explicit:
-                    try:
-                        manager.ensure_platform_superadmin()
-                    except Exception as exc:
-                        app.logger.exception("Errore riallineamento SUPERADMIN in login: %s", exc)
-                utente = manager.autentica(username, password)
-                if utente and multi_tenant_enabled:
-                    selected_tenant_slug = str(getattr(utente, "tenant_slug", "") or "")
-                    ruolo = str(getattr(utente, "ruolo", "") or "")
-                    if not selected_tenant_slug and ruolo != str(RuoloUtente.SUPERADMIN):
-                        selected_tenant_slug = _single_active_tenant_slug()
-                if not utente and multi_tenant_enabled:
-                    tenant_match = _resolve_tenant_login(username, password)
-                    if tenant_match == "ambiguous":
-                        errore = (
-                            "Sono stati trovati più studi per queste credenziali. "
-                            "Indica lo studio nel campo dedicato."
-                        )
-                    elif tenant_match:
-                        selected_tenant_slug, manager, utente = tenant_match
-                        auth_scope = "tenant"
-                        auth_tenant_slug = selected_tenant_slug
-            if utente:
-                resolved_tenant_slug = str(
-                    selected_tenant_slug or getattr(utente, "tenant_slug", "") or ""
-                ).strip().lower()
-                if (
-                    multi_tenant_enabled
-                    and not getattr(utente, "is_superadmin", False)
-                    and not resolved_tenant_slug
-                ):
-                    errore = (
-                        "Questo account non e' associato a uno studio. "
-                        "Usa l'amministratore dello studio corretto oppure accedi come SUPERADMIN."
-                    )
-                    manager.registra_evento(
-                        "auth.login_fallito",
-                        id_utente=getattr(utente, "id", ""),
-                        username=getattr(utente, "username", "") or username,
-                        dettagli="Login bloccato: account globale non consentito in ambiente multi-studio.",
-                        ip=request.remote_addr or "",
-                        esito="ERRORE",
-                    )
-                    utente = None
-
-            if utente:
-                # Credenziali corrette: azzera i tentativi falliti della coppia
-                # (IP, username) prima di proseguire con sessione o secondo fattore.
-                login_guard.register_success(client_ip, attempt_username)
-                if utente.totp_attivato:
-                    session.clear()
-                    session["totp_pending_uid"] = utente.id
-                    session["totp_pending_tenant_slug"] = (
-                        resolved_tenant_slug or ""
-                    )
-                    session["totp_pending_auth_scope"] = auth_scope
-                    session["totp_pending_auth_tenant_slug"] = auth_tenant_slug or ""
-                    session["totp_pending_next"] = _safe_login_next(
-                        request.args.get("next", "")
-                    ) or url_for("dashboard")
-                    session["totp_pending_force_password_change"] = bool(
-                        getattr(utente, "must_change_password", False)
-                    )
-                    return redirect(url_for("login_2fa"))
-
-                session.clear()
-                session["user_id"] = utente.id
-                session["tenant_slug"] = resolved_tenant_slug
-                session["auth_scope"] = auth_scope
-                session["auth_tenant_slug"] = auth_tenant_slug or ""
-                session["last_activity"] = datetime.now().isoformat()
-                session["must_change_password"] = bool(
-                    getattr(utente, "must_change_password", False)
-                )
-                session.permanent = True
-                manager.registra_evento(
-                    "auth.login",
-                    id_utente=utente.id,
-                    username=utente.username,
-                    ip=request.remote_addr or "",
-                )
-                _flash_avviso_scadenza_certificato_firma()
-                if session.get("must_change_password") and not app.testing:
-                    flash(
-                        "Password iniziale temporanea rilevata. Prima di usare il gestionale devi sostituirla.",
-                        "warning",
-                    )
-                    return redirect(url_for("profilo", password_obbligatoria=1))
-                default_next_url = (
-                    url_for("admin.dashboard")
-                    if utente.is_superadmin and not session.get("superadmin_user_id")
-                    else url_for("dashboard")
-                )
-                return _redirect_to_login_target(request.args.get("next", ""), default_next_url)
-
-            if not errore:
-                errore = "Credenziali non valide o utente disabilitato."
-            manager.registra_evento(
-                "auth.login_fallito",
-                username=username,
-                ip=request.remote_addr or "",
-                esito="ERRORE",
+            esito = accesso.esegui_login(
+                accesso_runtime,
+                username=request.form.get("username", ""),
+                password=request.form.get("password", ""),
+                studio_slug=request.form.get("studio_slug", ""),
+                next_richiesto=request.args.get("next", ""),
             )
-            # Tentativo non andato a buon fine (tutti i percorsi di successo hanno
-            # gia' restituito un redirect): conta il fallimento e, alla soglia,
-            # blocca temporaneamente questa coppia (IP, username) e l'IP.
-            locked_after = login_guard.register_failure(client_ip, attempt_username)
-            if locked_after > 0:
-                minuti = max(1, (locked_after + 59) // 60)
-                errore = (
-                    "Troppi tentativi di accesso falliti. "
-                    f"Per sicurezza l'accesso e' sospeso: riprova tra circa {minuti} "
-                    f"{'minuto' if minuti == 1 else 'minuti'}."
-                )
-                response = make_response(
-                    render_template(
-                        "auth/login.html",
-                        errore=errore,
-                        multi_tenant=_runtime_multi_tenant_available(),
-                    ),
-                    429,
-                )
-                response.headers["Retry-After"] = str(locked_after)
-                return response
+            return _risposta_login_html(esito)
 
+        if not vista_classica_accesso_richiesta():
+            return render_accesso_shell("login", titolo="Accesso")
         return render_template(
             "auth/login.html",
-            errore=errore,
+            errore=None,
             multi_tenant=_runtime_multi_tenant_available(),
         )
 
@@ -876,98 +751,23 @@ def register_auth_runtime(
     @app.route("/login/2fa", methods=["GET", "POST"])
     def login_2fa():
         """Second step of login: verify TOTP code."""
-        uid = session.get("totp_pending_uid")
-        if not uid:
+        attesa = accesso.attesa_secondo_fattore(accesso_runtime)
+        if attesa is None:
             return redirect(url_for("login"))
-
-        pending_tenant_slug = session.get("totp_pending_tenant_slug", "")
-        pending_auth_scope = str(session.get("totp_pending_auth_scope", "") or "").strip().lower()
-        pending_auth_tenant_slug = str(
-            session.get("totp_pending_auth_tenant_slug", "") or ""
-        ).strip().lower()
-        multi_tenant_enabled = _ensure_runtime_multi_tenant_alignment()
-        if (
-            pending_auth_scope == "tenant"
-            and pending_auth_tenant_slug
-            and multi_tenant_enabled
-        ):
-            manager = _tenant_user_manager(pending_auth_tenant_slug, include_studio_db=False)
-        elif pending_tenant_slug and multi_tenant_enabled:
-            manager = _tenant_user_manager(pending_tenant_slug, include_studio_db=False)
-        else:
-            manager = get_utenti()
-        utente = manager.get(uid)
-        if not utente or not utente.totp_attivato:
-            session.pop("totp_pending_uid", None)
-            session.pop("totp_pending_tenant_slug", None)
-            session.pop("totp_pending_auth_scope", None)
-            session.pop("totp_pending_auth_tenant_slug", None)
-            return redirect(url_for("login"))
+        manager, utente = attesa
 
         errore = None
         if request.method == "POST":
-            codice = request.form.get("codice", "").strip()
-            if verifica_totp(utente.totp_secret, codice):
-                next_url = _safe_login_next(session.pop("totp_pending_next", ""))
-                force_password_change = bool(
-                    session.pop("totp_pending_force_password_change", False)
-                )
-                tenant_slug = session.pop("totp_pending_tenant_slug", "")
-                auth_scope = str(session.pop("totp_pending_auth_scope", "") or "").strip().lower()
-                auth_tenant_slug = str(
-                    session.pop("totp_pending_auth_tenant_slug", "") or ""
-                ).strip().lower()
-                session.clear()
-                session["user_id"] = utente.id
-                session["tenant_slug"] = tenant_slug or utente.tenant_slug or ""
-                session["auth_scope"] = auth_scope or (
-                    "tenant" if auth_tenant_slug or utente.tenant_slug else "global"
-                )
-                session["auth_tenant_slug"] = (
-                    auth_tenant_slug or (utente.tenant_slug if session["auth_scope"] == "tenant" else "")
-                )
-                session["last_activity"] = datetime.now().isoformat()
-                session["must_change_password"] = force_password_change
-                session.permanent = True
-                if not next_url:
-                    next_url = (
-                        url_for("admin.dashboard")
-                        if utente.is_superadmin and not session.get("superadmin_user_id")
-                        else url_for("dashboard")
-                    )
-                manager.registra_evento(
-                    "auth.login",
-                    id_utente=utente.id,
-                    username=utente.username,
-                    ip=request.remote_addr or "",
-                )
-                _flash_avviso_scadenza_certificato_firma()
-                if force_password_change and not app.testing:
-                    flash(
-                        "Password iniziale temporanea rilevata. Prima di usare il gestionale devi sostituirla.",
-                        "warning",
-                    )
-                    return redirect(url_for("profilo", password_obbligatoria=1))
-                return _redirect_to_login_target(next_url, url_for("dashboard"))
-
-            errore = "Codice non valido. Riprova."
-            manager.registra_evento(
-                "auth.2fa_fallito",
-                id_utente=utente.id,
-                username=utente.username,
-                ip=request.remote_addr or "",
-                esito="ERRORE",
+            esito = accesso.verifica_secondo_fattore(
+                accesso_runtime, manager, utente, request.form.get("codice", "")
             )
-            # Cinque codici sbagliati: si torna alla password. Senza limite un
-            # codice a sei cifre si indovina per tentativi.
-            tentativi = int(session.get("totp_tentativi", 0) or 0) + 1
-            session["totp_tentativi"] = tentativi
-            if tentativi >= TOTP_TENTATIVI_MASSIMI:
-                for chiave in ("totp_pending_uid", "totp_pending_tenant_slug", "totp_pending_auth_scope",
-                               "totp_pending_auth_tenant_slug", "totp_pending_next", "totp_tentativi"):
-                    session.pop(chiave, None)
-                flash("Troppi codici non validi: accedi di nuovo con la password.", "danger")
-                return redirect(url_for("login"))
+            if esito.tipo == accesso.ACCESSO:
+                return _redirect_to_login_target(esito.destinazione)
+            if esito.tipo in {accesso.PASSWORD_DA_CAMBIARE, accesso.VERIFICA_ANNULLATA}:
+                return redirect(esito.destinazione)
+            errore = esito.errore
+        elif not vista_classica_accesso_richiesta():
+            return render_accesso_shell("2fa", titolo="Verifica identità")
 
         return render_template(
             "auth/login_2fa.html",

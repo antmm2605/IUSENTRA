@@ -56,7 +56,7 @@ def test_openapi_copre_endpoint_p0_p1_con_sicurezza():
     assert all(operation.get("x-rbac-permission") for operation in p0_p1)
     assert all(
         operation.get("x-provider-verification")
-        in {"auth-error", "success+auth-error", "client-token-error", "public-safe-error"}
+        in {"auth-error", "success+auth-error", "client-token-error", "public-safe-error", "public-session"}
         for operation in p0_p1
     )
 

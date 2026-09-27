@@ -48,7 +48,7 @@ def test_conferimento_da_preventivo_riallinea_cliente_stale_senza_500(tmp_path):
         _login(client)
         response = client.get(
             f"/preventivi/conferimento/nuovo/CLIENTE_ERRATO"
-            f"?id_preventivo={preventivo.id}&from_page=preventivo",
+            f"?id_preventivo={preventivo.id}&from_page=preventivo&_legacy=1",
             follow_redirects=False,
         )
 
@@ -56,7 +56,8 @@ def test_conferimento_da_preventivo_riallinea_cliente_stale_senza_500(tmp_path):
         assert f"/preventivi/conferimento/nuovo/{cliente.id}" in response.location
         assert f"id_preventivo={preventivo.id}" in response.location
 
-        final = client.get(response.location, follow_redirects=False)
+        destinazione = response.location
+        final = client.get(destinazione if "_legacy=1" in destinazione else f"{destinazione}&_legacy=1", follow_redirects=False)
         body = final.get_data(as_text=True)
 
     assert final.status_code == 200
@@ -105,7 +106,7 @@ def test_conferimento_prefilla_dati_forensi_da_impostazioni_studio(tmp_path):
     with app.test_client() as client:
         _login(client)
         response = client.get(
-            f"/preventivi/conferimento/nuovo/{cliente.id}",
+            f"/preventivi/conferimento/nuovo/{cliente.id}?_legacy=1",
             follow_redirects=False,
         )
         body = response.get_data(as_text=True)

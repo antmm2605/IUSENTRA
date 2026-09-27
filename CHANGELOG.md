@@ -1,5 +1,51 @@
 # Changelog
 
+## 2.419.0 — 27/09/2026
+
+Ottavo blocco della migrazione a React: le pagine pubbliche.
+
+- **Accesso**: `/login`, verifica in due passaggi e cambio obbligatorio della
+  password sono pagine React. La logica resta una sola
+  (`web/services/auth_accesso_flow.py`) per la pagina e per le nuove API
+  `/api/v1/pubblico/accesso/*`: stesso blocco dopo i tentativi falliti, stessi
+  messaggi che non rivelano se un utente esiste, stessa conferma di sicurezza
+  (CSRF), stesso registro di audit, stesso controllo dell'indirizzo di ritorno.
+  L'elenco degli studi non è pubblicato (salvo `LOGIN_ELENCO_STUDI_PUBBLICO`).
+- **Portale del cliente con link personale** (`/portale/<token>`) e **link di
+  pagamento** (`/pagamenti/paga/<token>`) in React, con le stesse regole: link
+  scaduto (410), permessi del portale, caricamento solo nelle pratiche del
+  cliente, avvio del pagamento solo con i gestori attivi dello studio; la
+  chiave SumUp non arriva più al browser e i campi carta di SumUp sono ammessi
+  dalla CSP (prima il widget era bloccato). Con più studi il link di pagamento
+  trova lo studio giusto (prima risultava sempre scaduto).
+- **Stanza del cliente dell'assistenza remota** (`/support/join/<token>`) in
+  React, con consensi, condivisione dello schermo, microfono, chat, richiesta
+  di controllo e chiusura; la pagina riceve solo il token del cliente.
+- Le viste storiche restano con `?_legacy=1`.
+
+Correzioni di sicurezza:
+- con l'archivio SQL degli utenti la verifica in due passaggi non veniva mai
+  chiesta all'accesso (i suoi dati non erano letti); attivarla o disattivarla
+  dal profilo dava errore;
+- lo stato della stanza di assistenza visto dal cliente conteneva le note
+  interne dell'operatore, i recapiti e la pratica: ora solo lo stato della
+  stanza;
+- un preventivo già accettato o un conferimento già firmato dal portale non
+  sovrascrivono più data, indirizzo e dispositivo registrati come prova (e un
+  preventivo convertito non torna «accettato»);
+- i moduli React inviavano la conferma di sicurezza con un nome di
+  intestazione che il server non leggeva;
+- **pagamenti con più studi**: le notifiche dei gestori (Stripe, PayPal,
+  Satispay, SumUp) cercavano il link e le chiavi nell'archivio comune e i
+  pagamenti confermati dal gestore non venivano registrati. Ora la notifica
+  trova lo studio del link, ne verifica la firma con la chiave di quello studio
+  e registra il pagamento nel suo archivio; in più ogni studio ha un indirizzo
+  di notifica dedicato `/pagamenti/webhooks/<gestore>/<studio>`. Con la
+  libreria Stripe attuale la notifica firmata dava errore e il pagamento non
+  veniva registrato;
+- l'errore di Stripe mostrato al cliente conteneva il testo interno
+  dell'eccezione: ora un messaggio generico (il dettaglio resta nei registri).
+
 ## 2.418.0 — 27/09/2026
 
 Settimo blocco della migrazione a React e correzioni di sicurezza.

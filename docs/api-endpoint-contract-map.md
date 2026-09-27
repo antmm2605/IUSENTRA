@@ -8,11 +8,12 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 409.
-- Endpoint P0/P1 contrattualizzati: 345.
+- Endpoint React API contrattualizzati: 425.
+- Endpoint P0/P1 contrattualizzati: 361.
 - Endpoint con provider verification 200 rappresentativa: 31.
 - Endpoint con provider verification auth-error: 382.
-- Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 27.
+- Endpoint pubblici della pagina di accesso (stato 200, scritture in errore sicuro senza credenziali): 3.
+- Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 40.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
 
 | Area | Endpoint | Metodo | Pagina | Priorita | OpenAPI | Provider Test | RBAC | Flag | Tenant | Stato |
@@ -22,6 +23,22 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | API React operativa | `/api/v1/clienti/{id_cliente}/condivisioni/{id_utente}` | `DELETE` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/condivisioni/pulizia-scaduti` | `POST` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/condivisioni/statistiche` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Accesso pubblico | `/api/v1/pubblico/accesso/2fa` | `POST` | Accesso pubblico | P0 | complete | public-safe-error | `pubblico: CSRF di sessione + login_guard + audit` | `n/a` | current_tenant | complete-public-safe-error |
+| Accesso pubblico | `/api/v1/pubblico/accesso/login` | `POST` | Accesso pubblico | P0 | complete | public-safe-error | `pubblico: CSRF di sessione + login_guard + audit` | `n/a` | current_tenant | complete-public-safe-error |
+| Accesso pubblico | `/api/v1/pubblico/accesso/stato` | `GET` | Accesso pubblico | P0 | complete | public-session | `pubblico: CSRF di sessione + login_guard + audit` | `n/a` | current_tenant | complete-public-session |
+| Link di pagamento cliente | `/api/v1/pubblico/pagamenti/{token}` | `GET` | Link di pagamento cliente | P1 | complete | client-token-error | `token del link valido (410 se scaduto)` | `n/a` | current_tenant | complete-client-token-error |
+| Link di pagamento cliente | `/api/v1/pubblico/pagamenti/{token}/avvia` | `POST` | Link di pagamento cliente | P1 | complete | client-token-error | `token del link valido (410 se scaduto)` | `n/a` | current_tenant | complete-client-token-error |
+| Link di pagamento cliente | `/api/v1/pubblico/pagamenti/{token}/esito` | `GET` | Link di pagamento cliente | P1 | complete | client-token-error | `token del link valido (410 se scaduto)` | `n/a` | current_tenant | complete-client-token-error |
+| Portale cliente con link personale | `/api/v1/pubblico/portale/{token}` | `GET` | Portale cliente con link personale | P1 | complete | client-token-error | `token del link valido (410 se scaduto) + permessi della scheda portale` | `n/a` | current_tenant | complete-client-token-error |
+| Portale cliente con link personale | `/api/v1/pubblico/portale/{token}/anagrafica` | `GET` | Portale cliente con link personale | P1 | complete | client-token-error | `token del link valido (410 se scaduto) + permessi della scheda portale` | `n/a` | current_tenant | complete-client-token-error |
+| Portale cliente con link personale | `/api/v1/pubblico/portale/{token}/anagrafica` | `POST` | Portale cliente con link personale | P1 | complete | client-token-error | `token del link valido (410 se scaduto) + permessi della scheda portale` | `n/a` | current_tenant | complete-client-token-error |
+| Portale cliente con link personale | `/api/v1/pubblico/portale/{token}/conferimenti/{id_conferimento}/firma` | `POST` | Portale cliente con link personale | P1 | complete | client-token-error | `token del link valido (410 se scaduto) + permessi della scheda portale` | `n/a` | current_tenant | complete-client-token-error |
+| Portale cliente con link personale | `/api/v1/pubblico/portale/{token}/documenti` | `GET` | Portale cliente con link personale | P1 | complete | client-token-error | `token del link valido (410 se scaduto) + permessi della scheda portale` | `n/a` | current_tenant | complete-client-token-error |
+| Portale cliente con link personale | `/api/v1/pubblico/portale/{token}/documenti/upload` | `POST` | Portale cliente con link personale | P1 | complete | client-token-error | `token del link valido (410 se scaduto) + permessi della scheda portale` | `n/a` | current_tenant | complete-client-token-error |
+| Portale cliente con link personale | `/api/v1/pubblico/portale/{token}/economici` | `GET` | Portale cliente con link personale | P1 | complete | client-token-error | `token del link valido (410 se scaduto) + permessi della scheda portale` | `n/a` | current_tenant | complete-client-token-error |
+| Portale cliente con link personale | `/api/v1/pubblico/portale/{token}/preventivi/{id_preventivo}/accetta` | `POST` | Portale cliente con link personale | P1 | complete | client-token-error | `token del link valido (410 se scaduto) + permessi della scheda portale` | `n/a` | current_tenant | complete-client-token-error |
+| Portale cliente con link personale | `/api/v1/pubblico/portale/{token}/privacy` | `GET` | Portale cliente con link personale | P1 | complete | client-token-error | `token del link valido (410 se scaduto) + permessi della scheda portale` | `n/a` | current_tenant | complete-client-token-error |
+| Portale cliente con link personale | `/api/v1/pubblico/portale/{token}/privacy` | `POST` | Portale cliente con link personale | P1 | complete | client-token-error | `token del link valido (410 se scaduto) + permessi della scheda portale` | `n/a` | current_tenant | complete-client-token-error |
 | Amministrazione database | `/api/v1/ui/admin/database` | `GET` | Amministrazione database | P0 | verified | success+auth-error | `utenti.leggi` | `n/a` | current_tenant | verified |
 | Agenda | `/api/v1/ui/agenda` | `GET` | Agenda (/app/agenda) | P1 | verified | success+auth-error | `sessione/API tenant-aware` | `routes.appV2.agenda.calendar` | current_tenant | verified |
 | Agenda | `/api/v1/ui/agenda/importa` | `GET` | Agenda | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
@@ -432,4 +449,5 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 - `auth-error` significa che l'endpoint e' invocato dal Flask test client senza credenziali e deve rispondere con errore controllato conforme allo schema errori.
 - `success+auth-error` aggiunge una chiamata autenticata 200 su endpoint statici rappresentativi di P0/P1 e delle aree principali.
 - `client-token-error` e `public-safe-error` coprono il Portale Cliente: senza token valido l'endpoint deve restare in errore sicuro, senza rivelare tenant, pratica o token.
+- `public-session` copre lo stato della pagina pubblica di accesso: risponde 200 senza sessione e senza dati di studio; le scritture di accesso restano `public-safe-error`.
 - Gli endpoint con path parametrici o mutazioni distruttive restano verificati sul contratto di autenticazione/errori e richiedono fixture dominio dedicate prima della promozione a provider success full.

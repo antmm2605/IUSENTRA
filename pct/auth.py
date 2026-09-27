@@ -582,6 +582,9 @@ class GestioneUtenti:
                 ]
                 if has_tenant_slug:
                     select_fields.append("tenant_slug")
+                has_dati_json = "dati_json" in user_cols
+                if has_dati_json:
+                    select_fields.append("dati_json")
                 rows = self._fetchall_structured(
                     f"SELECT {', '.join(select_fields)} FROM utenti"
                 )
@@ -592,6 +595,18 @@ class GestioneUtenti:
                     d["permessi_negati"] = _json.loads(d.get("permessi_negati") or "[]")
                     d["attivo"] = bool(d.get("attivo", 1))
                     d["must_change_password"] = bool(d.get("must_change_password", 0))
+                    # La verifica in due passaggi vive solo nella copia completa
+                    # dell'utente (dati_json): senza, con l'archivio SQL il codice
+                    # non veniva mai chiesto all'accesso.
+                    dati_completi = d.pop("dati_json", None)
+                    if dati_completi:
+                        try:
+                            completi = _json.loads(dati_completi) or {}
+                        except (TypeError, ValueError):
+                            completi = {}
+                        if isinstance(completi, dict):
+                            d["totp_secret"] = str(completi.get("totp_secret") or "")
+                            d["totp_attivato"] = bool(completi.get("totp_attivato"))
                     if (
                         self._tenant_slug_context
                         and not str(d.get("tenant_slug") or "").strip()
@@ -1164,6 +1179,14 @@ class GestioneUtenti:
         self._utenti[imported.id] = imported
         self._salva_utenti()
         return imported
+
+    def imposta_verifica_due_passaggi(self, id_utente: str, *, segreto: str, attiva: bool) -> Utente:
+        """Attiva o disattiva la verifica in due passaggi (TOTP) dell'utente."""
+        u = self._get_or_raise(id_utente)
+        u.totp_secret = str(segreto or "") if attiva else ""
+        u.totp_attivato = bool(attiva and segreto)
+        self._salva_utenti()
+        return u
 
     def aggiorna_permessi(
         self,

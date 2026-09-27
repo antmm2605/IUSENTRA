@@ -6,7 +6,7 @@ funzioni, verificate con test. Restano sul server, per natura, le risposte che
 non sono pagine: API JSON, download, documenti da stampare (copertine), PDF,
 azioni POST dei moduli esistenti e ingressi tecnici.
 
-Aggiornato: 27/09/2026 (2.418.0).
+Aggiornato: 27/09/2026 (2.419.0).
 
 ## Regola
 
@@ -45,6 +45,9 @@ Aggiornato: 27/09/2026 (2.418.0).
 | 2.418.0 | `/applicazioni`, `/applicazioni/<id>` | `ApplicazionePage` (API `/api/v1/ui/applicazioni`): utilità e verifiche in pagina, strumenti con valori predefiniti e dati della pratica |
 | 2.418.0 | Azioni della pagina storica `/ricerca-legale` (monitoraggio, tabelle normative, registro della mediazione) | `ControlloGiornalieroPanel` |
 | 2.418.0 | `/fascicoli/<id>/penale/pdp` | Sezione `#penale-pdp` del fascicolo React (`PenalePdpSezione`) |
+| 2.419.0 | `/login`, `/login/2fa`, `/profilo?password_obbligatoria=1` | `AccessoApp` (API `/api/v1/pubblico/accesso/*`, logica unica in `auth_accesso_flow.py`) |
+| 2.419.0 | `/portale/<token>/*`, `/pagamenti/paga/<token>` | `PortaleTokenApp`, `PagamentoLinkApp` (API `/api/v1/pubblico/portale|pagamenti/<token>/*`) |
+| 2.419.0 | `/support/join/<token>` | `SupportCustomerRoom` |
 
 ## Già React (verificato 27/09/2026)
 
@@ -63,7 +66,6 @@ Aggiornato: 27/09/2026 (2.418.0).
 | Area | Pagine | Nota |
 |---|---|---|
 | Studio | `/fascicoli/<id>/documenti/<doc>/editor` | Già React (`DocumentEditorPage`): resta da togliere il ramo `?_legacy=1` e il template storico |
-| Supporto | `/support/join/<token>` | Stanza del cliente (JavaScript storico); la stanza dell'operatore è React e dalla 2.414.0 si avvia davvero (prima il modulo senza parametro di versione non partiva e la stanza restava vuota) |
-| Pubbliche | `/login`, `/login/2fa`, profilo con password obbligatoria, `/portale/<token>/*`, `/pagamenti/paga/<token>`, `/support/join/<token>`, `/accesso/<token>` | Serve un ingresso React pubblico (come `/portale-cliente`) |
+| Pubbliche | `/accesso/<token>` | Link temporanei di condivisione: nessun codice li genera più; da eliminare con la pulizia |
 | Pubbliche | sito dello studio `/web/<slug>/*` | Pagine pubbliche indicizzate dai motori di ricerca: restano rese dal server finché non c'è un rendering React lato server |
 | Tecniche | `/offline`, pagine di errore | Restano statiche: servono quando l'applicazione non risponde |

@@ -199,6 +199,9 @@ def _route_component_key(path: str) -> str:
         lower = lower[len("/app-v2") :] or "/"
     if lower == "/":
         return ""
+    # Stanza cliente dell'assistenza remota: il server precarica solo il suo chunk e il suo CSS.
+    if lower.startswith("/support/join/"):
+        return "src/components/SupportCustomerRoom.tsx"
     if lower.startswith("/clienti/") and lower.endswith("/collaboratori"):
         return "src/components/ClientiCollaboratoriPage.tsx"
     if _modello_di_studio(lower):

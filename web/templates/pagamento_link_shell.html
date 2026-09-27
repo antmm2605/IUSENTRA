@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1a3a5c">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="csrf-token" content="{{ csrf_token if csrf_token is defined else '' }}">
+  <title>{{ titolo }} — {{ studio_nome }}</title>
+  <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+  {% for css_file in react_assets.css %}
+  <link rel="stylesheet" href="{{ css_file }}">
+  {% endfor %}
+  {% for css_file in react_assets.page_css %}
+  <link rel="stylesheet" href="{{ css_file }}">
+  {% endfor %}
+  {% for preload_file in react_assets.preload_js %}
+  <link rel="modulepreload" href="{{ preload_file }}">
+  {% endfor %}
+</head>
+<body class="pagamento-link-react-page">
+  <div id="pagamento-react-root"
+       data-token="{{ token }}"
+       data-vista="{{ vista }}"
+       data-provider="{{ provider }}"
+       data-studio="{{ studio_nome }}"
+       data-messaggi="{{ messaggi | tojson | forceescape }}"></div>
+  <noscript>
+    <main class="pagamento-link-noscript">
+      <h1>{{ titolo }}</h1>
+      {% if vista == 'scaduto' %}
+      <p>Questo link di pagamento non è più valido o è scaduto. Contatta lo studio per richiederne uno nuovo.</p>
+      {% else %}
+      <p>Abilita JavaScript per pagare, oppure apri la <a href="{{ percorso_classico }}?_legacy=1{% if provider %}&amp;provider={{ provider }}{% endif %}">vista classica</a>.</p>
+      {% endif %}
+    </main>
+  </noscript>
+  {% for js_file in react_assets.js %}
+  {# Il parametro di versione avvia il modulo (main.tsx) e rinnova la cache a ogni rilascio. #}
+  <script type="module" src="{{ js_file }}?v={{ app_version }}"></script>
+  {% endfor %}
+</body>
+</html>

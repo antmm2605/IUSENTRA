@@ -33,7 +33,8 @@ def test_api_senza_sessione_risponde_401_json(tmp_path):
             if not rule.rule.startswith("/api/") or "<" in rule.rule or "GET" not in rule.methods:
                 continue
             r = client.get(rule.rule)
-            if r.status_code < 300 and rule.rule not in {"/api/v1/", "/api/pronto", "/api/health", "/api/metriche/runtime"}:
+            # Lo stato della pagina di accesso è pubblico per definizione e non contiene dati.
+            if r.status_code < 300 and rule.rule not in {"/api/v1/", "/api/pronto", "/api/health", "/api/metriche/runtime", "/api/v1/pubblico/accesso/stato"}:
                 aperte.append(rule.rule)
         assert aperte == []
 

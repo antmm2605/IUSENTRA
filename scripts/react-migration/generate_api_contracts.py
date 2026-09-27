@@ -57,7 +57,20 @@ API_BLUEPRINTS = (
         "/api/v1/ui/piattaforma",
     ),
     (REPO_ROOT / "web" / "bootstrap" / "condivisioni_routes.py", "app", ""),
+    (
+        REPO_ROOT / "web" / "blueprints" / "api_v1_accesso_pubblico.py",
+        "api_v1_accesso_pubblico",
+        "/api/v1/pubblico/accesso",
+    ),
+    (
+        REPO_ROOT / "web" / "blueprints" / "api_v1_portale_token.py",
+        "api_v1_portale_token",
+        "/api/v1/pubblico",
+    ),
 )
+# Pagina pubblica di accesso: nessuna sessione per definizione (CSRF di sessione,
+# login_guard e audit come /login). La verifica provider cambia di conseguenza.
+ACCESSO_PUBBLICO_PREFIX = "/api/v1/pubblico/accesso"
 FRONTEND_PAGES = REPO_ROOT / "docs" / "frontend-app-v2-pages.md"
 OPENAPI_OUTPUT = REPO_ROOT / "docs" / "openapi.yaml"
 CONTRACT_MAP_OUTPUT = REPO_ROOT / "docs" / "api-endpoint-contract-map.md"
@@ -113,6 +126,39 @@ class ContractInfo:
 
 
 AREA_RULES: tuple[tuple[str, ContractInfo], ...] = (
+    (
+        ACCESSO_PUBBLICO_PREFIX,
+        ContractInfo(
+            "Accesso pubblico",
+            "pubblico: CSRF di sessione + login_guard + audit",
+            "P0",
+            "esito di accesso senza dati di studio",
+            "AccessoPubblicoResponse",
+            "Accesso",
+        ),
+    ),
+    (
+        "/api/v1/pubblico/portale",
+        ContractInfo(
+            "Portale cliente con link personale",
+            "token del link valido (410 se scaduto) + permessi della scheda portale",
+            "P1",
+            "pratiche, documenti economici, recapiti e consenso del solo cliente del link",
+            "ClientPortalResponse",
+            "Portale Cliente",
+        ),
+    ),
+    (
+        "/api/v1/pubblico/pagamenti",
+        ContractInfo(
+            "Link di pagamento cliente",
+            "token del link valido (410 se scaduto)",
+            "P1",
+            "importo, metodi attivi, indirizzo del gestore o coordinate del bonifico; nessun segreto",
+            "PaymentResponse",
+            "Mandato",
+        ),
+    ),
     (
         "/admin/database",
         ContractInfo("Amministrazione database", "utenti.leggi", "P0", "dati tecnici redatti", "AdminDatabaseResponse", "Admin"),
@@ -200,11 +246,18 @@ SUCCESS_PROVIDER_SAMPLES = {
 
 
 def _provider_for(endpoint: Endpoint) -> str:
+    if endpoint.full_path.startswith(ACCESSO_PUBBLICO_PREFIX + "/"):
+        # Lo stato della pagina risponde 200 anche senza sessione; le scritture
+        # senza credenziali valide restano in errore sicuro e generico.
+        return "public-session" if endpoint.method == "GET" else "public-safe-error"
     if endpoint.full_path in SUCCESS_PROVIDER_SAMPLES:
         return "success+auth-error"
     if endpoint.full_path.startswith("/api/v1/ui/client-portal/public/invites/"):
         return "public-safe-error"
     if endpoint.full_path.startswith("/api/v1/ui/client-portal/public/"):
+        return "client-token-error"
+    if endpoint.full_path.startswith("/api/v1/pubblico/"):
+        # Link personali: il token nel percorso e' la credenziale (410 se non valido).
         return "client-token-error"
     return "auth-error"
 
@@ -367,11 +420,12 @@ def _operation(endpoint: Endpoint, frontend_links: dict[str, tuple[str, str]]) -
     page = frontend[0] if frontend else info.area
     flag = frontend[1] if frontend else "non applicabile o governato dalla route collegata"
     provider = _provider_for(endpoint)
-    security = (
-        [{"clientPortalToken": []}]
-        if provider in {"client-token-error", "public-safe-error"}
-        else [{"cookieSession": []}, {"apiKeyAuth": []}]
-    )
+    if endpoint.full_path.startswith(ACCESSO_PUBBLICO_PREFIX + "/"):
+        security: list[dict[str, list[str]]] = []
+    elif provider in {"client-token-error", "public-safe-error"}:
+        security = [{"clientPortalToken": []}]
+    else:
+        security = [{"cookieSession": []}, {"apiKeyAuth": []}]
 
     operation: dict[str, Any] = {
         "tags": [info.tag],
@@ -660,6 +714,7 @@ def _components() -> dict[str, Any]:
         ("SearchResponse", "Ricerca globale tenant-aware.", "DomainRecord"),
         ("BootstrapResponse", "Bootstrap shell React, profilo e navigazione.", "CurrentUser"),
         ("FeatureFlagsResponse", "Feature flag risolti per lo studio corrente.", "DomainRecord"),
+        ("AccessoPubblicoResponse", "Esito della pagina pubblica di accesso, senza dati di studio.", "DomainRecord"),
     ):
         schemas[name] = _domain_response_schema(title, item)
 
@@ -785,7 +840,13 @@ def render_contract_map(report_date: str) -> str:
     rows = endpoints()
     p0_p1 = sum(1 for endpoint in rows if classify(endpoint.contract_path).priority in {"P0", "P1"})
     verified = sum(1 for endpoint in rows if _provider_for(endpoint) == "success+auth-error")
-    safe_public = sum(1 for endpoint in rows if _provider_for(endpoint) in {"client-token-error", "public-safe-error"})
+    safe_public = sum(
+        1
+        for endpoint in rows
+        if _provider_for(endpoint) in {"client-token-error", "public-safe-error"}
+        and not endpoint.full_path.startswith(ACCESSO_PUBBLICO_PREFIX + "/")
+    )
+    accesso_pubblico = sum(1 for endpoint in rows if endpoint.full_path.startswith(ACCESSO_PUBBLICO_PREFIX + "/"))
     lines = [
         "# API Endpoint Contract Map",
         "",
@@ -800,7 +861,8 @@ def render_contract_map(report_date: str) -> str:
         f"- Endpoint React API contrattualizzati: {len(rows)}.",
         f"- Endpoint P0/P1 contrattualizzati: {p0_p1}.",
         f"- Endpoint con provider verification 200 rappresentativa: {verified}.",
-        f"- Endpoint con provider verification auth-error: {len(rows) - safe_public}.",
+        f"- Endpoint con provider verification auth-error: {len(rows) - safe_public - accesso_pubblico}.",
+        f"- Endpoint pubblici della pagina di accesso (stato 200, scritture in errore sicuro senza credenziali): {accesso_pubblico}.",
         f"- Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: {safe_public}.",
         "- Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.",
         "",
@@ -825,6 +887,7 @@ def render_contract_map(report_date: str) -> str:
             "- `auth-error` significa che l'endpoint e' invocato dal Flask test client senza credenziali e deve rispondere con errore controllato conforme allo schema errori.",
             "- `success+auth-error` aggiunge una chiamata autenticata 200 su endpoint statici rappresentativi di P0/P1 e delle aree principali.",
             "- `client-token-error` e `public-safe-error` coprono il Portale Cliente: senza token valido l'endpoint deve restare in errore sicuro, senza rivelare tenant, pratica o token.",
+            "- `public-session` copre lo stato della pagina pubblica di accesso: risponde 200 senza sessione e senza dati di studio; le scritture di accesso restano `public-safe-error`.",
             "- Gli endpoint con path parametrici o mutazioni distruttive restano verificati sul contratto di autenticazione/errori e richiedono fixture dominio dedicate prima della promozione a provider success full.",
             "",
         ]
@@ -835,7 +898,13 @@ def render_contract_map(report_date: str) -> str:
 def _phase6_section(report_date: str, rows: list[Endpoint]) -> str:
     p0_p1 = sum(1 for endpoint in rows if classify(endpoint.contract_path).priority in {"P0", "P1"})
     verified = sum(1 for endpoint in rows if _provider_for(endpoint) == "success+auth-error")
-    safe_public = sum(1 for endpoint in rows if _provider_for(endpoint) in {"client-token-error", "public-safe-error"})
+    safe_public = sum(
+        1
+        for endpoint in rows
+        if _provider_for(endpoint) in {"client-token-error", "public-safe-error"}
+        and not endpoint.full_path.startswith(ACCESSO_PUBBLICO_PREFIX + "/")
+    )
+    accesso_pubblico = sum(1 for endpoint in rows if endpoint.full_path.startswith(ACCESSO_PUBBLICO_PREFIX + "/"))
     return f"""## Fase 6 API Contract Review
 
 Aggiornato: {report_date}.
@@ -856,8 +925,9 @@ Risultato di mappatura:
 - Endpoint React API contrattualizzati: {len(rows)}.
 - Endpoint P0/P1 con contratto OpenAPI: {p0_p1}.
 - Endpoint con provider verification rappresentativa non-auth-error: {verified} totali, includendo success-body autenticati e il controllo backend-security.
-- Endpoint con provider verification 401 reale o errore pubblico sicuro: {len(rows)}.
+- Endpoint con provider verification 401 reale o errore pubblico sicuro: {sum(1 for endpoint in rows if _provider_for(endpoint) != "public-session")}.
 - Endpoint pubblici Portale Cliente verificati senza token valido: {safe_public}.
+- Endpoint pubblici della pagina di accesso (CSRF di sessione, login_guard, audit): {accesso_pubblico}.
 
 Standard error schema:
 

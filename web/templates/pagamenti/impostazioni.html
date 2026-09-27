@@ -111,7 +111,7 @@
               <label class="form-label fw-semibold" style="font-size:.82rem;">Webhook Secret (whsec_...)</label>
               <input type="password" name="stripe_webhook_secret" class="form-control form-control-sm font-monospace"
                      value="{{ cfg.stripe.webhook_secret }}" placeholder="whsec_...">
-              <div class="form-text">URL webhook da configurare su Stripe: <code>{{ request.host_url }}webhooks/stripe</code></div>
+              <div class="form-text">URL webhook da configurare su Stripe: <code>{{ url_webhook_stripe }}</code></div>
             </div>
             <div class="col-12">
               <a href="https://dashboard.stripe.com/register" target="_blank" class="btn btn-sm btn-outline-primary me-2">

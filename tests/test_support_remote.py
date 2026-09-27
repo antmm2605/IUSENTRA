@@ -345,7 +345,12 @@ def test_support_remote_customer_link_and_state_work_without_login(tmp_path: Pat
         webrtc = client.get(f"/support/api/{public_id}/webrtc-config?role=client&token={client_token}")
 
     assert join_page.status_code == 200
-    assert "Assistenza remota con consenso esplicito" in join_page.get_data(as_text=True)
+    join_html = join_page.get_data(as_text=True)
+    assert "Assistenza remota con consenso esplicito" in join_html
+    # Stanza cliente React (migrazione 2.420): la vista classica resta con ?_legacy=1.
+    assert 'id="support-customer-react-root" data-support-customer-room="1"' in join_html
+    assert "window.SUPPORT_BOOTSTRAP" in join_html
+    assert "support_customer_room.js" not in join_html
     assert state.status_code == 200
     state_payload = state.get_json()
     assert state_payload["session"]["public_id"] == public_id
@@ -436,7 +441,8 @@ def test_support_remote_studio_user_can_request_assistance_from_studio(tmp_path:
         payload = request_response.get_json()
         public_id = payload["session"]["public_id"]
         client_token = payload["session"]["client_token"]
-        join_page = client.get(f"/support/join/{client_token}")
+        join_page = client.get(f"/support/join/{client_token}?_legacy=1")
+        join_page_react = client.get(f"/support/join/{client_token}")
 
         with client.session_transaction() as session_tx:
             session_tx.clear()
@@ -489,6 +495,10 @@ def test_support_remote_studio_user_can_request_assistance_from_studio(tmp_path:
     assert 'id="startBtn" type="button" disabled' in join_html
     assert "support-customer-shell--fullscreen" in join_html
     assert "support-customer-chat--compact" in join_html
+    assert join_page_react.status_code == 200
+    join_react_html = join_page_react.get_data(as_text=True)
+    assert 'id="support-customer-react-root" data-support-customer-room="1"' in join_react_html
+    assert 'id="startBtn"' not in join_react_html
     assert console.status_code == 200
     console_html = console.get_data(as_text=True)
     assert "Panoramica dello studio" in console_html
@@ -713,7 +723,8 @@ def test_support_remote_closed_customer_link_is_read_only(tmp_path: Path):
             f"/support/api/{public_id}/close?role=operator",
             json={},
         )
-        join_page = client.get(f"/support/join/{client_token}")
+        join_page = client.get(f"/support/join/{client_token}?_legacy=1")
+        join_page_react = client.get(f"/support/join/{client_token}")
 
     html = join_page.get_data(as_text=True)
     assert close_response.status_code == 200
@@ -722,6 +733,12 @@ def test_support_remote_closed_customer_link_is_read_only(tmp_path: Path):
     assert "Questo link appartiene a una sessione già chiusa" in html
     assert 'id="startBtn" type="button" disabled' in html
     assert '"closed": true' in html
+    react_html = join_page_react.get_data(as_text=True)
+    assert join_page_react.status_code == 200
+    assert 'id="support-customer-react-root"' in react_html
+    assert '"closed": true' in react_html
+    assert "Sessione conclusa" in react_html
+    assert "Questo link appartiene a una sessione già chiusa" in react_html
 
 
 def test_support_remote_pc_control_request_does_not_require_external_template(tmp_path: Path):

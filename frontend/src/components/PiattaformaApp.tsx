@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { ExternalLink, LayoutDashboard, LogOut, Menu, Search, X } from 'lucide-react'
 import { csrfHeader } from '../api/csrf'
-import { getPaginaPiattaforma, type PaginaPiattaforma, type Sezione } from '../piattaformaData'
+import { eseguiAzionePiattaforma, getPaginaPiattaforma, type AzionePf, type EsitoAzione, type PaginaPiattaforma, type Sezione, type ValoriAzione } from '../piattaformaData'
+import { ModuloAzione, PulsanteAzione, type EseguiAzione } from './PiattaformaAzioni'
 import { Badge } from '../ui/Badge'
 import { ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
@@ -15,15 +16,13 @@ const ALTRE_SEZIONI = [
   { label: 'Utenti di piattaforma', href: '/admin/utenti-piattaforma' },
   { label: 'Aggiornamenti legali', href: '/admin/aggiornamenti-legali/' },
   { label: 'Copertura AI', href: '/admin/copertura-ai/' },
-  { label: 'Pianificazioni', href: '/admin/pianificazioni' },
   { label: 'Server e manutenzione', href: '/admin/server-manutenzione' },
-  { label: 'Crash test operativo', href: '/admin/crash-test-operativo' },
-  { label: 'Pacchetto di installazione', href: '/admin/installazione-pack/' },
-  { label: 'Assistente migrazione', href: '/admin/assistente-migrazione' },
   { label: 'Supporto remoto', href: '/admin/supporto-remoto' },
 ]
 
-function SezioneView({ sezione }: { sezione: Sezione }) {
+type AzioniVista = { busy: boolean; onRun: EseguiAzione }
+
+function SezioneView({ sezione, busy, onRun }: { sezione: Sezione } & AzioniVista) {
   if (sezione.kind === 'metrics') {
     return (
       <section className="iu-pf-metrics" aria-label={sezione.title || 'Indicatori'}>
@@ -57,13 +56,14 @@ function SezioneView({ sezione }: { sezione: Sezione }) {
     )
   }
   if (sezione.kind === 'table') {
+    const conAzioni = sezione.rows.some((row) => row.actions.length > 0)
     return (
       <section className="iu-pf-card">
         <header><h2>{sezione.title}</h2>{sezione.subtitle ? <p>{sezione.subtitle}</p> : null}</header>
         {sezione.rows.length ? (
           <div className="iu-pf-table-wrap" role="region" aria-label={sezione.title} tabIndex={0}>
             <table className="iu-pf-table">
-              <thead><tr>{sezione.columns.map((c) => <th key={c.key} scope="col">{c.label}</th>)}</tr></thead>
+              <thead><tr>{sezione.columns.map((c) => <th key={c.key} scope="col">{c.label}</th>)}{conAzioni ? <th scope="col"><span className="iu-pf-sr">Azioni</span></th> : null}</tr></thead>
               <tbody>
                 {sezione.rows.map((row, index) => (
                   <tr key={index} className={row.tone !== 'neutral' ? `is-${row.tone}` : ''}>
@@ -74,6 +74,11 @@ function SezioneView({ sezione }: { sezione: Sezione }) {
                         ) : row.cells[c.key]}
                       </td>
                     ))}
+                    {conAzioni ? (
+                      <td className="iu-pf-row-actions">
+                        {row.actions.map((azione) => <PulsanteAzione key={`${azione.key}-${JSON.stringify(azione.params)}`} azione={azione} disabled={busy} onRun={onRun} compact />)}
+                      </td>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>
@@ -110,6 +115,24 @@ function SezioneView({ sezione }: { sezione: Sezione }) {
       </section>
     )
   }
+  if (sezione.kind === 'actions') {
+    return (
+      <section className="iu-pf-card">
+        <header><h2>{sezione.title}</h2>{sezione.subtitle ? <p>{sezione.subtitle}</p> : null}</header>
+        <div className="iu-pf-actions">
+          {sezione.items.map((azione) => <PulsanteAzione key={`${azione.key}-${JSON.stringify(azione.params)}`} azione={azione} disabled={busy} onRun={onRun} />)}
+        </div>
+      </section>
+    )
+  }
+  if (sezione.kind === 'form') {
+    return (
+      <section className="iu-pf-card">
+        <header><h2>{sezione.title}</h2>{sezione.subtitle ? <p>{sezione.subtitle}</p> : null}</header>
+        <ModuloAzione azione={sezione.action} fields={sezione.fields} disabled={busy} onRun={onRun} />
+      </section>
+    )
+  }
   return (
     <section className={`iu-pf-card iu-pf-notes is-${sezione.tone}`}>
       <header><h2>{sezione.title}</h2></header>
@@ -129,6 +152,30 @@ export default function PiattaformaApp() {
   const [filtro, setFiltro] = useState(new URLSearchParams(window.location.search).get('q') || '')
   const [menuAperto, setMenuAperto] = useState(false)
   const [uscita, setUscita] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [esito, setEsito] = useState<EsitoAzione | null>(null)
+
+  function ricerca(): string {
+    const params = new URLSearchParams(window.location.search)
+    params.delete('_legacy')
+    return params.toString() ? `?${params}` : ''
+  }
+
+  async function eseguiAzione(azione: AzionePf, values: ValoriAzione) {
+    setBusy(true)
+    setEsito({ ok: true, message: `${azione.label}: operazione in corso…`, tone: 'info', sections: [] })
+    try {
+      const risultato = await eseguiAzionePiattaforma(pagina, azione, values)
+      setEsito(risultato)
+      if (risultato.ok) {
+        const aggiornata = await getPaginaPiattaforma(pagina, ricerca())
+        setData(aggiornata)
+      }
+    } finally {
+      setBusy(false)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
 
   async function esci() {
     setUscita(true)
@@ -141,10 +188,7 @@ export default function PiattaformaApp() {
 
   useEffect(() => {
     let active = true
-    const params = new URLSearchParams(window.location.search)
-    params.delete('_legacy')
-    const search = params.toString() ? `?${params}` : ''
-    getPaginaPiattaforma(pagina, search).then((result) => { if (active) setData(result) })
+    getPaginaPiattaforma(pagina, ricerca()).then((result) => { if (active) setData(result) })
     return () => { active = false }
   }, [pagina])
 
@@ -219,7 +263,16 @@ export default function PiattaformaApp() {
                 <button type="submit"><Search size={15} aria-hidden="true" /> Cerca</button>
               </form>
             ) : null}
-            {data.sections.map((sezione, index) => <SezioneView key={`${sezione.kind}-${index}`} sezione={sezione} />)}
+            {esito ? (
+              <section className={`iu-pf-esito is-${esito.tone}`} role={esito.ok ? 'status' : 'alert'} aria-live="polite">
+                <div>
+                  <strong>{esito.message}</strong>
+                  <button type="button" onClick={() => setEsito(null)} aria-label="Chiudi il messaggio"><X size={15} aria-hidden="true" /></button>
+                </div>
+                {esito.sections.map((sezione, index) => <SezioneView key={`esito-${sezione.kind}-${index}`} sezione={sezione} busy={busy} onRun={eseguiAzione} />)}
+              </section>
+            ) : null}
+            {data.sections.map((sezione, index) => <SezioneView key={`${sezione.kind}-${index}`} sezione={sezione} busy={busy} onRun={eseguiAzione} />)}
           </>
         ) : null}
       </main>

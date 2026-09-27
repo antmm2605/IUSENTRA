@@ -37,7 +37,7 @@ def test_admin_assistente_migrazione_esegui_reindirizza_sullo_studio(tmp_path, m
 
     assert response.status_code == 302
     assert response.headers["Location"].endswith(
-        f"/admin/assistente-migrazione?slug={studio.slug}"
+        f"/admin/assistente-migrazione?slug={studio.slug}&_legacy=1"
     )
 
 

@@ -150,7 +150,7 @@ def test_crash_test_operativo_superficie_admin_renderizza(tmp_path: Path):
         )
         assert login.status_code == 200
 
-        response = client.get("/admin/crash-test-operativo", follow_redirects=True)
+        response = client.get("/admin/crash-test-operativo?_legacy=1", follow_redirects=True)
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)

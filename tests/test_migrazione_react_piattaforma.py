@@ -21,6 +21,10 @@ PAGINE = {
     "/admin/siti-studio/": "siti-studio",
     "/admin/lex-scorecard": "lex-scorecard",
     "/admin/osservabilita": "osservabilita",
+    "/admin/pianificazioni": "pianificazioni",
+    "/admin/crash-test-operativo": "crash-test",
+    "/admin/installazione-pack/": "installazione-pack",
+    "/admin/assistente-migrazione": "assistente-migrazione",
 }
 
 
@@ -61,7 +65,7 @@ def test_dati_delle_pagine_dal_servizio(tmp_path: Path):
             assert {voce["key"] for voce in corpo["menu"]} == set(PAGINE.values())
             assert corpo["user"] == "superadmin-operativo"
             for sezione in corpo["sections"]:
-                assert sezione["kind"] in {"metrics", "status", "table", "facts", "notes", "shortcuts"}
+                assert sezione["kind"] in {"metrics", "status", "table", "facts", "notes", "shortcuts", "actions", "form"}
         assert client.get("/api/v1/ui/piattaforma/sconosciuta").status_code == 404
 
 

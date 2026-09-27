@@ -430,3 +430,110 @@ body.piattaforma-react-page {
     width: 100%;
   }
 }
+
+.iu-pf-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.iu-pf-actions,
+.iu-pf-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.iu-pf-row-actions {
+  justify-content: flex-end;
+}
+
+.iu-pf-action.is-compact {
+  padding: 4px 10px;
+  font-size: 0.82rem;
+}
+
+.iu-pf-action-form {
+  display: grid;
+  gap: 12px;
+}
+
+.iu-pf-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px 14px;
+}
+
+.iu-pf-field {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+}
+
+.iu-pf-field input,
+.iu-pf-field select,
+.iu-pf-field textarea {
+  padding: 7px 10px;
+  border: 1px solid var(--iu-border, #d5dbe6);
+  border-radius: 6px;
+  background: #ffffff;
+  font: inherit;
+}
+
+.iu-pf-field small {
+  color: #52607a;
+}
+
+.iu-pf-field.is-checkbox {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.iu-pf-field.is-checkbox small {
+  grid-column: 1 / -1;
+}
+
+.iu-pf-confirm {
+  font-weight: 600;
+}
+
+.iu-pf-esito {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid #a9c1f5;
+  border-radius: 8px;
+  background: #f4f7ff;
+}
+
+.iu-pf-esito > div {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.iu-pf-esito > div button {
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.iu-pf-esito.is-success {
+  border-color: #9fd8b1;
+  background: #f3fbf5;
+}
+
+.iu-pf-esito.is-warning {
+  border-color: #f0c78a;
+  background: #fffaf0;
+}
+
+.iu-pf-esito.is-danger {
+  border-color: #f1b0b0;
+  background: #fdf3f3;
+}

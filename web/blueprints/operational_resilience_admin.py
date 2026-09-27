@@ -8,6 +8,7 @@ from typing import Any
 from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, url_for
 
 from web.blueprints.admin import superadmin_required
+from web.services.piattaforma_shell_runtime import render_piattaforma_shell, vista_classica_richiesta
 from web.services.operational_resilience_surface import (
     build_operational_crash_surface,
     execute_operational_backup_surface,
@@ -27,7 +28,7 @@ def _selected_slug() -> str:
 
 
 def _redirect_back() -> object:
-    return redirect(url_for("operational_resilience_admin.dashboard", slug=_selected_slug()))
+    return redirect(url_for("operational_resilience_admin.dashboard", slug=_selected_slug(), _legacy=1))
 
 
 def _admin_json_response(payload: Any):
@@ -40,6 +41,8 @@ def _admin_json_response(payload: Any):
 @operational_resilience_admin.get("")
 @superadmin_required
 def dashboard():
+    if not vista_classica_richiesta():
+        return render_piattaforma_shell("crash-test", "Crash test operativo")
     payload = build_operational_crash_surface(selected_slug=_selected_slug())
     return render_template("admin/crash_test_operativo.html", payload=payload)
 
@@ -83,7 +86,7 @@ def esegui():
     except Exception as exc:
         current_app.logger.exception("Errore crash test operativo: %s", exc)
         flash("Errore durante il crash test operativo.", "danger")
-    return redirect(url_for("operational_resilience_admin.dashboard", slug=selected_slug))
+    return redirect(url_for("operational_resilience_admin.dashboard", slug=selected_slug, _legacy=1))
 
 
 @operational_resilience_admin.post("/backup")
@@ -107,4 +110,4 @@ def backup():
     except Exception as exc:
         current_app.logger.exception("Errore backup blindato: %s", exc)
         flash("Errore durante il backup blindato.", "danger")
-    return redirect(url_for("operational_resilience_admin.dashboard", slug=selected_slug))
+    return redirect(url_for("operational_resilience_admin.dashboard", slug=selected_slug, _legacy=1))

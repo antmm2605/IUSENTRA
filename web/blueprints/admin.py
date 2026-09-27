@@ -571,6 +571,8 @@ def stato_installazione():
 @admin_bp.route("/assistente-migrazione")
 @superadmin_required
 def assistente_migrazione():
+    if not vista_classica_richiesta():
+        return render_piattaforma_shell("assistente-migrazione", "Assistente migrazione")
     payload = build_migration_assistant(
         selected_slug=request.args.get("slug", ""),
         execution_state=session.get("assistente_migrazione_last_execution"),
@@ -615,7 +617,7 @@ def assistente_migrazione_esegui():
             "error_message": public_error,
         }
         flash("Errore durante la migrazione completa.", "danger")
-    return redirect(url_for("admin.assistente_migrazione", slug=selected_slug))
+    return redirect(url_for("admin.assistente_migrazione", slug=selected_slug, _legacy=1))
 
 
 @admin_bp.route("/salute-sistema")

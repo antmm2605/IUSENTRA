@@ -283,13 +283,13 @@ def test_superadmin_product_surfaces_renderizzano(tmp_path: Path):
         assert login.status_code == 200
 
         stato = client.get("/admin/stato-installazione?_legacy=1", follow_redirects=True)
-        migrazione = client.get("/admin/assistente-migrazione", follow_redirects=True)
+        migrazione = client.get("/admin/assistente-migrazione?_legacy=1", follow_redirects=True)
         salute = client.get("/admin/salute-sistema?_legacy=1", follow_redirects=True)
         scorecard = client.get("/admin/lex-scorecard?_legacy=1", follow_redirects=True)
         osservabilita = client.get("/admin/osservabilita?_legacy=1", follow_redirects=True)
         server_manutenzione = client.get("/admin/server-manutenzione", follow_redirects=False)
-        pianificazioni = client.get("/admin/pianificazioni", follow_redirects=False)
-        crash_test = client.get("/admin/crash-test-operativo", follow_redirects=True)
+        pianificazioni = client.get("/admin/pianificazioni?_legacy=1", follow_redirects=False)
+        crash_test = client.get("/admin/crash-test-operativo?_legacy=1", follow_redirects=True)
         coverage = client.get("/admin/copertura-ai", follow_redirects=True)
         coverage_review = client.get("/admin/copertura-ai/review", follow_redirects=True)
         aggiornamenti = client.get("/admin/aggiornamenti-legali", follow_redirects=True)

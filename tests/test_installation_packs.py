@@ -211,7 +211,7 @@ def test_installation_pack_surface_e_route_admin_sono_accessibili_al_superadmin(
     with app.test_client() as client:
         client.get("/login")
         client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
-        page = client.get(f"/admin/installazione-pack/?slug={studio.slug}")
+        page = client.get(f"/admin/installazione-pack/?slug={studio.slug}&_legacy=1")
         api = client.get(f"/admin/installazione-pack/api?slug={studio.slug}")
 
     assert page.status_code == 200

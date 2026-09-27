@@ -128,7 +128,7 @@ def test_console_pianificazioni_traduce_esiti_legali_senza_falsi_positivi(tmp_pa
 
     with app.test_client() as client:
         login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
-        response = client.get("/admin/pianificazioni")
+        response = client.get("/admin/pianificazioni?_legacy=1")
 
     html = response.get_data(as_text=True)
     assert login.status_code == 302

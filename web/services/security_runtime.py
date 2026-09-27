@@ -32,6 +32,7 @@ _CSRF_PROTECTED_ENDPOINTS = {
     "elimina_utente",
     "permessi_utente",
     "admin.esci_impersonazione",
+    "api_v1_piattaforma.azione",
     "api_v1_documenti_ai.upload_documento_ai",
     "api_v1_documenti_ai.cerca_documento_ai",
     "api_v1_documenti_ai.aggiorna_indice_lex",

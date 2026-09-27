@@ -15,7 +15,7 @@ def test_superadmin_puo_aprire_console_pianificazioni(tmp_path: Path):
 
     with app.test_client() as client:
         login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
-        response = client.get("/admin/pianificazioni")
+        response = client.get("/admin/pianificazioni?_legacy=1")
         alias = client.get("/admin/cronjob", follow_redirects=False)
 
     assert login.status_code == 302

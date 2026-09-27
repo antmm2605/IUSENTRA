@@ -1,5 +1,27 @@
 # Changelog
 
+## 2.415.0 — 27/09/2026
+
+Quarto blocco della migrazione a React: le pagine del pannello di piattaforma
+con azioni.
+
+- **Azioni nel pannello React**: pulsanti con conferma, finestre con i campi
+  da compilare, moduli in pagina e azioni sulle righe delle tabelle, eseguiti
+  da `/api/v1/ui/piattaforma/<pagina>/azioni/<azione>` (solo
+  superamministratore, conferma di sicurezza CSRF) con gli stessi servizi
+  delle viste storiche; l'esito compare in cima alla pagina, che si aggiorna.
+- **Pianificazioni**: archivio legale verificato, totali, creazione da un
+  agente autorizzato, esecuzione e modifica di ogni pianificazione, annullo
+  dei controlli delle fonti legali, esecuzioni recenti.
+- **Crash test operativo**, **Pacchetti di installazione** e **Assistente
+  migrazione**: pagine React con la scelta dello studio e le loro azioni
+  (crash test, backup blindato, rigenerazione di avvio e manifesti,
+  migrazione su SQL locale o PostgreSQL).
+- Le viste storiche restano con `?_legacy=1` e i loro moduli tornano alla
+  vista storica dopo l'invio.
+- Il ponte del pannello è diviso in moduli: sezioni, registro delle pagine,
+  pagine di sistema, pagine di governo e un modulo per ogni pagina con azioni.
+
 ## 2.414.0 — 27/09/2026
 
 Terzo blocco della migrazione a React (`docs/MIGRAZIONE_REACT_COMPLETA.md`):

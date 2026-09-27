@@ -1,13 +1,13 @@
 """API React del pannello di piattaforma (superamministratore).
 
-Montato sotto `/api/v1/ui/piattaforma`; le pagine e le loro sezioni stanno in
-`web/services/react_piattaforma_bridge.py`. Solo il superamministratore della
+Montato sotto `/api/v1/ui/piattaforma`; le pagine, le loro sezioni e le loro
+azioni stanno in `web/services/react_piattaforma_bridge.py`. Solo il superamministratore della
 piattaforma, come le viste storiche `/admin/*`.
 """
 
 from __future__ import annotations
 
-from flask import Blueprint, current_app, g, jsonify
+from flask import Blueprint, current_app, g, jsonify, request
 
 from web.blueprints.api_v1_react import _richiedi_auth
 from web.services import react_piattaforma_bridge as bridge
@@ -34,3 +34,20 @@ def pagina(pagina: str):
     except Exception:
         current_app.logger.exception("Errore pagina del pannello di piattaforma %s", pagina)
         return jsonify(ok=False, message="Pagina non disponibile: riprova fra poco."), 500
+
+
+@api_v1_piattaforma.post("/<pagina>/azioni/<azione>")
+@_richiedi_auth
+def azione(pagina: str, azione: str):
+    """Esegue un'azione della pagina con gli stessi servizi della vista storica."""
+    if not _superadmin():
+        return jsonify(ok=False, message="Pannello riservato al superamministratore della piattaforma."), 403
+    corpo = request.get_json(silent=True) or {}
+    try:
+        risultato, stato = bridge.esegui(pagina, azione, corpo.get("params"), corpo.get("values"))
+        risposta = redacted_json_response(risultato)
+        risposta.status_code = stato
+        return risposta
+    except Exception:
+        current_app.logger.exception("Errore azione %s del pannello di piattaforma %s", azione, pagina)
+        return jsonify(ok=False, message="Operazione non completata: il dettaglio tecnico è nei log del server."), 500

@@ -5,6 +5,7 @@ from __future__ import annotations
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for, g
 
 from web.blueprints.admin import superadmin_required
+from web.services.piattaforma_shell_runtime import render_piattaforma_shell, vista_classica_richiesta
 from web.services.scheduler_admin_surface import (
     SchedulerConsoleError,
     build_scheduler_admin_surface,
@@ -27,6 +28,8 @@ def _username() -> str:
 @scheduler_admin.get("/admin/pianificazioni")
 @superadmin_required
 def dashboard():
+    if not vista_classica_richiesta():
+        return render_piattaforma_shell("pianificazioni", "Pianificazioni")
     return render_template("admin/pianificazioni.html", payload=build_scheduler_admin_surface())
 
 
@@ -53,7 +56,7 @@ def save_job(job_id: str):
     except Exception as exc:
         current_app.logger.exception("Errore salvataggio pianificazione %s: %s", job_id, exc)
         flash("Pianificazione non aggiornata. Dettaglio tecnico registrato nei log server.", "danger")
-    return redirect(url_for("scheduler_admin.dashboard"))
+    return redirect(url_for("scheduler_admin.dashboard", _legacy=1))
 
 
 @scheduler_admin.post("/admin/pianificazioni/crea")
@@ -65,7 +68,7 @@ def create_job():
     except Exception as exc:
         current_app.logger.exception("Errore creazione pianificazione: %s", exc)
         flash("Pianificazione non creata. Dettaglio tecnico registrato nei log server.", "danger")
-    return redirect(url_for("scheduler_admin.dashboard"))
+    return redirect(url_for("scheduler_admin.dashboard", _legacy=1))
 
 
 @scheduler_admin.post("/admin/pianificazioni/<string:job_id>/esegui")
@@ -77,7 +80,7 @@ def run_job(job_id: str):
     except Exception as exc:
         current_app.logger.exception("Errore richiesta esecuzione %s: %s", job_id, exc)
         flash("Esecuzione non richiesta. Dettaglio tecnico registrato nei log server.", "danger")
-    return redirect(url_for("scheduler_admin.dashboard"))
+    return redirect(url_for("scheduler_admin.dashboard", _legacy=1))
 
 
 @scheduler_admin.post("/admin/pianificazioni/fonti-legali/annulla")
@@ -96,4 +99,4 @@ def cancel_legal_sources():
     except Exception as exc:
         current_app.logger.exception("Errore annullamento controlli fonti legali: %s", exc)
         flash("Annullamento non completato. Dettaglio tecnico registrato nei log server.", "danger")
-    return redirect(url_for("scheduler_admin.dashboard"))
+    return redirect(url_for("scheduler_admin.dashboard", _legacy=1))

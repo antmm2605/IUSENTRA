@@ -26,6 +26,14 @@
     setTimeout(accendi, 500);
   }
 
+  /* Frasi dei comandi vocali. */
+  var frase = document.querySelector('[data-giro="voce"]');
+  if (frase && !ridotto) {
+    var frasi = ["«Apri lo scadenziario»", "«Nuovo cliente: Marco Rossi»", "«Nota vocale: richiamare il CTU domani»", "«Lex, quando scade l'appello?»"];
+    var f = 0;
+    setInterval(function () { f = (f + 1) % frasi.length; frase.textContent = frasi[f]; }, 2600);
+  }
+
   /* Ricevute del deposito. */
   var ricevute = document.querySelectorAll(".ricevute li");
   if (ricevute.length) {

@@ -538,3 +538,54 @@ button { font: inherit; }
 }
 .cta-mobile[hidden] { display: none !important; }
 .pannello[hidden] { display: none !important; }
+
+/* ---------- Cifre ---------- */
+.cifre { background: var(--notte); color: var(--bianco); padding-block: clamp(40px, 6vw, 72px); border-top: 1px solid var(--linea-notte); }
+.cifre-griglia { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; }
+.cifra { display: grid; gap: 8px; align-content: start; padding-left: 18px; border-left: 1px solid rgba(212, 175, 55, .45); }
+.cifra b { font: 400 clamp(52px, 6.4vw, 88px)/.9 var(--f-serif); color: var(--oro); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.cifra span { color: var(--testo-notte); font-size: 15px; max-width: 18em; }
+
+/* ---------- Calcolatori ---------- */
+.calcoli { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 16px; align-items: start; }
+.calcolo { display: grid; gap: 8px; padding: 18px; border-radius: var(--r-m); background: rgba(212, 175, 55, .08); border: 1px solid rgba(212, 175, 55, .4); }
+.calcolo small { font: 600 11px/1.2 var(--f-mono); color: var(--oro); text-transform: uppercase; letter-spacing: .1em; }
+.calcolo b { font: 600 18px/1.3 var(--f-mono); font-variant-numeric: tabular-nums; }
+.calcolo-barra { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.calcolo-barra i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, var(--oro), var(--oro-chiaro)); transform-origin: left; animation: riempi 2.4s ease-in-out infinite alternate; }
+.calcolo-esito { font-size: 13px; color: var(--testo-notte); }
+.calcoli-lista { display: flex; flex-wrap: wrap; gap: 8px; }
+.calcoli-lista span { padding: 8px 12px; border-radius: 10px; background: rgba(255, 255, 255, .04); border: 1px solid var(--linea-notte); font-size: 13px; color: var(--testo-notte); }
+
+/* ---------- Voce ---------- */
+.voce { display: grid; justify-items: center; gap: 18px; padding: 26px 18px; border-radius: var(--r-m); background: rgba(255, 255, 255, .03); border: 1px solid var(--linea-notte); text-align: center; }
+.voce-onda { display: flex; align-items: center; gap: 6px; height: 56px; }
+.voce-onda i { width: 6px; height: 100%; border-radius: 999px; background: linear-gradient(var(--oro-chiaro), var(--oro)); transform: scaleY(.3); animation: onda 1.1s ease-in-out infinite; }
+.voce-onda i:nth-child(2) { animation-delay: .1s; } .voce-onda i:nth-child(3) { animation-delay: .2s; }
+.voce-onda i:nth-child(4) { animation-delay: .3s; } .voce-onda i:nth-child(5) { animation-delay: .2s; }
+.voce-onda i:nth-child(6) { animation-delay: .1s; } .voce-onda i:nth-child(7) { animation-delay: 0s; }
+.voce-frase { font: 400 clamp(24px, 3vw, 34px)/1.2 var(--f-serif); font-style: italic; }
+.voce .chip-riga { justify-content: center; }
+
+/* ---------- Sito dello studio ---------- */
+.sito { border-radius: var(--r-m); overflow: hidden; background: var(--bianco); color: var(--inchiostro); border: 1px solid var(--linea-notte); }
+.sito-testa { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 12px 16px; border-bottom: 1px solid var(--linea); font-size: 13px; color: var(--grigio); }
+.sito-testa b { color: var(--inchiostro); margin-right: auto; font-size: 14px; }
+.sito-cta { padding: 6px 12px; border-radius: 999px; background: var(--istituzionale); color: var(--bianco); font-weight: 600; }
+.sito-eroe { display: grid; gap: 6px; padding: 30px 20px; background: linear-gradient(135deg, #eef2f8, #fbf6e3); }
+.sito-eroe b { font: 400 clamp(22px, 2.6vw, 30px)/1.15 var(--f-serif); }
+.sito-eroe span { font-size: 13px; color: var(--grigio); }
+.sito-blocchi { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 14px; }
+.sito-blocchi span { padding: 16px 10px; border-radius: 8px; border: 1px dashed var(--linea); font-size: 12px; text-align: center; color: var(--istituzionale); font-weight: 600; }
+
+@keyframes onda { 0%, 100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
+@keyframes riempi { from { transform: scaleX(.15); } to { transform: scaleX(1); } }
+
+@media (max-width: 1020px) {
+  .cifre-griglia { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 32px; }
+}
+@media (max-width: 640px) {
+  .calcoli { grid-template-columns: minmax(0, 1fr); }
+  .sito-blocchi { grid-template-columns: minmax(0, 1fr); }
+  .cifra span { font-size: 13.5px; }
+}

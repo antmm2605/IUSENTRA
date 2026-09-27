@@ -8,7 +8,7 @@ dal deploy Hetzner e non va messo sul server di produzione dell'applicazione.
 
 | File | Contenuto |
 |---|---|
-| `index.html` | Pagina unica: apertura, problema, funzioni, passi, conformità, prezzi, domande, demo |
+| `index.html` | Pagina unica: apertura con la catena animata, cifre, confronto, giornata tipo, vetrina a schede, funzioni, conformità, prezzi, domande, demo |
 | `assets/stile.css` | Stile (colori da `DESIGN.md`: legal-night, institutional-blue, judicial-gold) |
 | `assets/app.js` | Animazioni degli schizzi e controllo del modulo demo |
 | `favicon.svg` | Icona del sito |
@@ -22,6 +22,7 @@ Per vederlo in locale basta aprire `index.html` nel browser.
 - **Email commerciale** (ora `commerciale@iusentra.it`, da confermare).
 - **Invio del modulo demo**: `assets/app.js` controlla i campi ma non invia nulla; collegarlo al servizio scelto (email, CRM o modulo esterno).
 - **Informativa privacy** da collegare alla casella di consenso del modulo.
+- Le affermazioni sulle funzioni seguono l'inventario del codice: depositi PDP/PAT/PTT preparati ma inviati dall'avvocato, FatturaPA generata ma non inviata direttamente allo SdI, comandi vocali su Chrome/Edge.
 - **Dominio e hosting** statico (qualsiasi hosting di file statici va bene).
 
 Le schermate sono illustrazioni disegnate in HTML con dati di esempio: nessun dato reale di studi o clienti.

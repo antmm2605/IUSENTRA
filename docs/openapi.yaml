@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: IUSENTRA API Contracts
-  version: 2.413.0
+  version: 2.414.0
   description: 'Contratti API fase 6 generati da endpoint Flask reali. Aggiornato: 2026-05-18.'
 servers:
 - url: https://app.iusentra.it
@@ -13037,6 +13037,58 @@ paths:
         schema:
           type: string
         description: Parametro interno della risorsa, risolto nel tenant corrente.
+      responses:
+        '200':
+          description: Payload operativo API React operativa nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UiOperationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P2
+      x-rbac-permission: sessione/API tenant-aware
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
+  /api/v1/ui/piattaforma/{pagina}:
+    get:
+      tags:
+      - Sistema
+      summary: 'API React operativa: GET /api/v1/ui/piattaforma/{pagina}'
+      description: 'Contratto fase 6 derivato da `pagina` in `web/blueprints/api_v1_piattaforma.py:25`. Pagina/area collegata:
+        API React operativa. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_pagina_get
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
+      - name: pagina
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Parametro interno della risorsa, risolto nel tenant corrente.
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/PageSizeParam'
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/StatusParam'
       responses:
         '200':
           description: Payload operativo API React operativa nel tenant corrente.

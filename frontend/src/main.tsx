@@ -57,8 +57,11 @@ function canonicalEntryPath(): string {
 
 const appRoot = document.getElementById('root') ?? document.getElementById('iusentra-react-root')
 const supportOperatorRoot = document.getElementById('support-operator-react-root')
+const piattaformaRoot = document.getElementById('piattaforma-react-root')
 const shouldMountSupportOperator = Boolean(supportOperatorRoot?.dataset.supportOperatorRoom === '1' && !appRoot)
-const root = shouldMountSupportOperator ? supportOperatorRoot : appRoot ?? supportOperatorRoot
+// Pannello del superamministratore: applicazione React propria, senza la cornice dello studio.
+const shouldMountPiattaforma = Boolean(piattaformaRoot?.dataset.piattaforma === '1' && !appRoot && !shouldMountSupportOperator)
+const root = shouldMountSupportOperator ? supportOperatorRoot : shouldMountPiattaforma ? piattaformaRoot : appRoot ?? supportOperatorRoot
 
 function escapeHtml(value: string): string {
   return value.replace(/[<>&"]/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[char] || char)
@@ -104,7 +107,7 @@ async function bootReact() {
   window.__IUSENTRA_REACT_ROOT_OWNER__ = moduleUrl.pathname
   renderLoadingShell(root)
   bootstrapState.renderScheduled = true
-  await mountReactApp({ root, shouldMountSupportOperator })
+  await mountReactApp({ root, shouldMountSupportOperator, shouldMountPiattaforma })
   bootstrapState.renderCompleted = true
 }
 

@@ -1,0 +1,1 @@
+import{t as e}from"./vendor-react-BjtkRdSX.js";import{t}from"./ImpostazioniPage-CLSD2u50.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as BackupPage};

@@ -6,7 +6,7 @@ funzioni, verificate con test. Restano sul server, per natura, le risposte che
 non sono pagine: API JSON, download, documenti da stampare (copertine), PDF,
 azioni POST dei moduli esistenti e ingressi tecnici.
 
-Aggiornato: 27/09/2026 (2.413.0).
+Aggiornato: 27/09/2026 (2.414.0).
 
 ## Regola
 
@@ -38,6 +38,7 @@ Aggiornato: 27/09/2026 (2.413.0).
 | 2.413.0 | `/sito-studio/servizi`, `/professionisti`, `/sedi`, `/regole-agenda` (elenco, nuovo, modifica) | `SitoStudioContenutiPage` (API `/api/v1/ui/sito-studio/contenuti`) |
 | 2.413.0 | `/sito-studio/impostazioni`, `/sito-studio/articoli/nuovo` | `SitoStudioContenutiPage`: impostazioni complete del sito; bozza dell'articolo e apertura dell'editor React |
 | 2.413.0 | `/sito-studio/pagine/nuova`, `/sito-studio/pagine/<id>/modifica`, `/sito-studio/preview`, `/sito-studio/prenotazioni` | Builder React (`?page_id=`, anteprima per dispositivo) e contatti React (prenotazioni) |
+| 2.414.0 | `/admin/`, `/admin/governance`, `/admin/stato-installazione`, `/admin/salute-sistema`, `/admin/siti-studio/`, `/admin/lex-scorecard`, `/admin/osservabilita` | `PiattaformaApp`: applicazione React del superamministratore montata in `#piattaforma-react-root` (template `piattaforma_shell.html`), dati da `/api/v1/ui/piattaforma/<pagina>` con le sezioni di `web/services/react_piattaforma_bridge.py` |
 
 ## Già React (verificato 27/09/2026)
 
@@ -57,10 +58,10 @@ Aggiornato: 27/09/2026 (2.413.0).
 |---|---|---|
 | Studio | `/applicazioni` (cabina con strumenti di calcolo interni) | Serve la stessa area di lavoro in React; «Strumenti operativi» mostra solo il catalogo |
 | Studio | `/fascicoli/<id>/documenti/<doc>/editor` | Editor del documento del fascicolo |
-| Supporto | `/support/join/<token>`, `/support/operatore/<id>` | Stanze dell'assistenza remota |
+| Supporto | `/support/join/<token>` | Stanza del cliente (JavaScript storico); la stanza dell'operatore è React e dalla 2.414.0 si avvia davvero (prima il modulo senza parametro di versione non partiva e la stanza restava vuota) |
 | Studio | Azioni della pagina storica `/ricerca-legale`: monitoraggio delle fonti, sincronizzazione delle tabelle normative | Da portare nella pagina React prima di togliere la vista storica |
 | Studio | `/fascicoli/<id>/penale/pdp` | Già coperta da `PenalePdpSezione`: togliere i collegamenti storici |
-| Piattaforma | tutto `/admin/*` (studi, utenti piattaforma, governance, pianificazioni, salute, manutenzione, supporto, aggiornamenti legali, copertura AI, osservabilità…) | Area del superamministratore |
+| Piattaforma | `/admin/studi*`, `/admin/utenti-piattaforma`, `/admin/pianificazioni`, `/admin/server-manutenzione/`, `/admin/supporto-remoto`, `/admin/aggiornamenti-legali/*`, `/admin/copertura-ai/*`, `/admin/crash-test-operativo/`, `/admin/installazione-pack/`, `/admin/assistente-migrazione`, `/admin/database` | Pagine con azioni: entrano in `PiattaformaApp` con le loro API |
 | Pubbliche | `/login`, `/login/2fa`, profilo con password obbligatoria, `/portale/<token>/*`, `/pagamenti/paga/<token>`, `/support/join/<token>`, `/accesso/<token>` | Serve un ingresso React pubblico (come `/portale-cliente`) |
 | Pubbliche | sito dello studio `/web/<slug>/*` | Pagine pubbliche indicizzate dai motori di ricerca: restano rese dal server finché non c'è un rendering React lato server |
 | Tecniche | `/offline`, pagine di errore | Restano statiche: servono quando l'applicazione non risponde |

@@ -68,6 +68,12 @@ BLUEPRINT_REGISTRY: tuple[BlueprintRegistration, ...] = (
         "/api/v1/ui/sito-studio/contenuti",
     ),
     BlueprintRegistration(
+        "api_v1_piattaforma",
+        "web.blueprints.api_v1_piattaforma",
+        "api_v1_piattaforma",
+        "/api/v1/ui/piattaforma",
+    ),
+    BlueprintRegistration(
         "api_v1_document_tools",
         "web.blueprints.api_v1_document_tools",
         "api_v1_document_tools",

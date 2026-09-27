@@ -7,11 +7,16 @@ import SupportOperatorRoom from './components/SupportOperatorRoom'
 type ReactEntryOptions = {
   root: HTMLElement
   shouldMountSupportOperator: boolean
+  shouldMountPiattaforma?: boolean
 }
 
-export async function mountReactApp({ root, shouldMountSupportOperator }: ReactEntryOptions) {
+export async function mountReactApp({ root, shouldMountSupportOperator, shouldMountPiattaforma = false }: ReactEntryOptions) {
   const reactRoot = ReactDOM.createRoot(root)
-  const Component = resolveDefaultComponent(shouldMountSupportOperator ? SupportOperatorRoom : App)
+  // Il pannello di piattaforma si carica solo quando serve: gli studi non lo scaricano.
+  const selected: unknown = shouldMountPiattaforma
+    ? await import('./components/PiattaformaApp')
+    : shouldMountSupportOperator ? SupportOperatorRoom : App
+  const Component = resolveDefaultComponent(selected)
 
   reactRoot.render(
     <React.StrictMode>

@@ -396,11 +396,17 @@ def test_console_superadmin_siti_studio_espone_il_catalogo(tmp_path: Path):
         login = platform_client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=False)
         assert login.status_code == 302
         response = platform_client.get("/admin/siti-studio/")
+        dati = platform_client.get("/api/v1/ui/piattaforma/siti-studio")
+        classica = platform_client.get("/admin/siti-studio/?_legacy=1")
 
+    # Pagina React del pannello di piattaforma e dati dal suo endpoint.
     assert response.status_code == 200
-    html = response.get_data(as_text=True)
-    assert "Siti Studio" in html
-    assert "Studio Sito Test" in html
+    assert 'id="piattaforma-react-root"' in response.get_data(as_text=True)
+    assert dati.status_code == 200
+    righe = next(s for s in dati.get_json()["sections"] if s["kind"] == "table")["rows"]
+    assert any("Studio Sito Test" in r["cells"]["site"] for r in righe)
+    assert classica.status_code == 200
+    assert "Siti Studio" in classica.get_data(as_text=True)
 
 
 

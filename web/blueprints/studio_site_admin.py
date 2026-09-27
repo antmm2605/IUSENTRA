@@ -4,6 +4,7 @@ from functools import wraps
 
 from flask import Blueprint, render_template, request
 
+from web.services.piattaforma_shell_runtime import render_piattaforma_shell, vista_classica_richiesta
 from web.services.studio_site_runtime import build_platform_sites_payload, superadmin_identity_or_403
 
 
@@ -22,5 +23,7 @@ def superadmin_required(fn):
 @studio_site_admin.get("/")
 @superadmin_required
 def console():
+    if not vista_classica_richiesta():
+        return render_piattaforma_shell("siti-studio", "Siti degli studi")
     payload = build_platform_sites_payload(query=str(request.args.get("q") or "").strip())
     return render_template("admin/studio_site_console.html", payload=payload)

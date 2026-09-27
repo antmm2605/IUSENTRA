@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 400.
+- Endpoint React API contrattualizzati: 401.
 - Endpoint P0/P1 contrattualizzati: 341.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 373.
+- Endpoint con provider verification auth-error: 374.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 27.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
 
@@ -272,6 +272,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | API React operativa | `/api/v1/ui/pat/moduli/compila` | `POST` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/pat/moduli/prefill` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/pat/moduli/preview/{token}` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/ui/piattaforma/{pagina}` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Preventivi | `/api/v1/ui/preventivi` | `GET` | Mandato (/app/mandato) | P0 | verified | success+auth-error | `fatturazione.leggi/scrivi` | `routes.appV2.billing.quotes` | current_tenant | verified |
 | Preventivi | `/api/v1/ui/preventivi/{id_preventivo}` | `GET` | Preventivi | P0 | complete | auth-error | `fatturazione.leggi/scrivi` | `n/a` | current_tenant | complete-auth-error |
 | Preventivi | `/api/v1/ui/preventivi/{id_preventivo}/stato` | `POST` | Preventivi | P0 | complete | auth-error | `fatturazione.leggi/scrivi` | `n/a` | current_tenant | complete-auth-error |

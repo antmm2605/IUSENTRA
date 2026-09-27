@@ -57,6 +57,7 @@ from web.services.studio_installation_status import build_studio_installation_st
 from web.services.system_health_surface import build_system_health_surface
 from web.services.system_health_surface import build_system_health_api_payload
 from web.blueprints.react_shell import render_react_shell_response
+from web.services.piattaforma_shell_runtime import render_piattaforma_shell, vista_classica_richiesta
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -183,6 +184,8 @@ def superadmin_required(fn):
 @admin_bp.route("/")
 @superadmin_required
 def dashboard():
+    if not vista_classica_richiesta():
+        return render_piattaforma_shell("cruscotto", "Panoramica")
     tm = _tenant_manager()
     tm.verifica_scadenze()
     studi = tm.lista()
@@ -533,7 +536,11 @@ def osservabilita():
     utente = getattr(g, "utente_corrente", None)
     if not utente:
         return redirect(url_for("login", next=request.full_path.rstrip("?")))
-    if request.args.get("_legacy") != "1":
+    if not vista_classica_richiesta():
+        # Il superamministratore la apre nel pannello React di piattaforma;
+        # l'utente di studio con il permesso di audit nella shell dello studio.
+        if utente.is_superadmin:
+            return render_piattaforma_shell("osservabilita", "Osservabilità")
         if not utente.ha_permesso("audit.leggi"):
             abort(403)
         return render_react_shell_response("admin/osservabilita")
@@ -546,6 +553,8 @@ def osservabilita():
 @admin_bp.route("/governance")
 @superadmin_required
 def governance():
+    if not vista_classica_richiesta():
+        return render_piattaforma_shell("governance", "Governance del prodotto")
     payload = build_product_governance_surface(selected_slug=request.args.get("slug", ""))
     return render_template("admin/governance.html", payload=payload)
 
@@ -553,6 +562,8 @@ def governance():
 @admin_bp.route("/stato-installazione")
 @superadmin_required
 def stato_installazione():
+    if not vista_classica_richiesta():
+        return render_piattaforma_shell("stato-installazione", "Stato installazione")
     payload = build_studio_installation_status()
     return render_template("admin/stato_installazione.html", payload=payload)
 
@@ -610,6 +621,8 @@ def assistente_migrazione_esegui():
 @admin_bp.route("/salute-sistema")
 @superadmin_required
 def salute_sistema():
+    if not vista_classica_richiesta():
+        return render_piattaforma_shell("salute-sistema", "Salute del sistema")
     payload = build_system_health_surface()
     return render_template("admin/salute_sistema.html", payload=payload)
 
@@ -623,6 +636,8 @@ def system_health():
 @admin_bp.route("/lex-scorecard")
 @superadmin_required
 def lex_scorecard():
+    if not vista_classica_richiesta():
+        return render_piattaforma_shell("lex-scorecard", "Valutazione di Lex")
     payload = build_lex_eval_scorecard()
     return render_template("admin/lex_scorecard.html", payload=payload)
 

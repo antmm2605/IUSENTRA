@@ -508,6 +508,7 @@ def register_auth_runtime(
         path = str(request.path or "").strip().lower()
         allowed_blueprints = {
             "admin",
+            "api_v1_piattaforma",
             "assistente",
             "installation_pack_admin",
             "legal_coverage_admin",

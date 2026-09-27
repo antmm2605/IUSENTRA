@@ -217,6 +217,7 @@ def _platform_surface_for_superadmin() -> bool:
     endpoint = _text(request.endpoint).lower()
     allowed_blueprints = {
         "admin",
+        "api_v1_piattaforma",
         "assistente",
         "installation_pack_admin",
         "legal_coverage_admin",

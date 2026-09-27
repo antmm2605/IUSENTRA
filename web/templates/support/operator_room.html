@@ -36,7 +36,8 @@
     </main>
   </noscript>
   {% for js_file in react_assets.js %}
-  <script type="module" src="{{ js_file }}"></script>
+  {# Il parametro di versione avvia il modulo (main.tsx): senza, la stanza restava vuota. #}
+  <script type="module" src="{{ js_file }}?v={{ app_version }}"></script>
   {% endfor %}
 </body>
 </html>

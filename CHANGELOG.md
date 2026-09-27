@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.414.0 — 27/09/2026
+
+Terzo blocco della migrazione a React (`docs/MIGRAZIONE_REACT_COMPLETA.md`):
+il pannello del superamministratore diventa un'applicazione React propria.
+
+- **Pannello di piattaforma React** (`PiattaformaApp`): pagina minima senza la
+  cornice dello studio, menu delle pagine, menu che si apre sul telefono,
+  uscita dall'account. Le pagine si descrivono per sezioni (indicatori, esiti,
+  tabelle, dati, avvisi, collegamenti) calcolate dagli stessi servizi delle
+  viste storiche: `/api/v1/ui/piattaforma/<pagina>`, solo per il
+  superamministratore.
+- Pagine migrate: **Panoramica** (`/admin/`: studi, piani, scadenze a 14
+  giorni, studi recenti, sezioni del pannello), **Governance del prodotto**
+  (con la scelta dello studio), **Stato installazione**, **Salute del sistema**,
+  **Siti degli studi** (con la ricerca), **Valutazione di Lex** e
+  **Osservabilità** (l'utente di studio con il permesso di audit continua a
+  vederla nella shell dello studio). Date e ore in formato italiano.
+- **Stanza dell'operatore dell'assistenza remota**: il modulo React partiva
+  solo con il parametro di versione e la stanza restava vuota; ora si avvia.
+
 ## 2.413.0 — 27/09/2026
 
 Secondo blocco della migrazione a React (`docs/MIGRAZIONE_REACT_COMPLETA.md`):

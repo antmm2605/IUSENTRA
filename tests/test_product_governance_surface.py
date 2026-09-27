@@ -50,8 +50,16 @@ def test_admin_governance_page_e_api_sono_accessibili_al_superadmin(tmp_path):
     with app.test_client() as client:
         client.get("/login")
         client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
-        page = client.get(f"/admin/governance?slug={studio.slug}")
+        page = client.get(f"/admin/governance?slug={studio.slug}&_legacy=1")
         api = client.get(f"/admin/api/governance?slug={studio.slug}")
+        react = client.get(f"/admin/governance?slug={studio.slug}")
+        dati = client.get(f"/api/v1/ui/piattaforma/governance?slug={studio.slug}")
+
+    # Pagina React del pannello di piattaforma con i dati dello stesso servizio.
+    assert 'data-pagina="governance"' in react.get_data(as_text=True)
+    corpo = dati.get_json()
+    assert corpo["ok"] is True and corpo["filter"]["value"] == studio.slug
+    assert any(s["title"] == "Matrice degli archivi della piattaforma" and s["rows"] for s in corpo["sections"])
 
     assert page.status_code == 200
     html = page.get_data(as_text=True)

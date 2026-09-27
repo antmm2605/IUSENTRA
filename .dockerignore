@@ -66,3 +66,6 @@ Dockerfile
 docker-compose*.yml
 railway.toml
 render.yaml
+
+# Sito di vendita statico: non fa parte dell'applicazione
+sito-vendita/

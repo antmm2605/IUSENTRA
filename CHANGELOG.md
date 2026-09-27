@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.420.0 — 27/09/2026
+
+Correzioni dei link pubblici e dei pagamenti.
+
+- **Satispay**: la richiamata reale del gestore è una GET con
+  l'identificativo del pagamento; il gestionale la accetta (anche
+  sull'indirizzo dello studio) e registra il pagamento solo dopo averlo
+  riletto da Satispay con le chiavi dello studio. Prima la richiamata
+  riceveva «metodo non consentito» e il pagamento restava da confermare.
+- **Link sconosciuti**: con più studi un link inesistente faceva rileggere gli
+  archivi di tutti gli studi a ogni richiesta; per un minuto la risposta
+  «non trovato» resta memorizzata.
+- **Caricamenti dal portale**: un file oltre il limite non viene più letto
+  per intero in memoria.
+- Rimossa la pagina `/accesso/<token>` dei link temporanei: nessuna parte del
+  gestionale li generava più e la pagina non era raggiungibile senza accesso.
+- **Raccolta guidata dei documenti**: a percorso completo il pulsante porta al
+  deposito del canale del modello (PCT, penale PDP, amministrativo PAT,
+  tributario PTT) invece che sempre alla preparazione del deposito civile.
+- Test riallineati alla vista React e all'indirizzo di richiamata Satispay.
+
 ## 2.419.0 — 27/09/2026
 
 Ottavo blocco della migrazione a React: le pagine pubbliche.

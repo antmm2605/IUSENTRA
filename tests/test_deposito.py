@@ -1379,11 +1379,14 @@ def test_wizard_tributario_renderizza_prededeposito_sigit_demo(tmp_path):
             follow_redirects=True,
         )
         response = client.get(
-            f"/fascicoli/{fascicolo.id}/wizard/ricorso_tributario/completa",
+            f"/fascicoli/{fascicolo.id}/wizard/ricorso_tributario/completa?_legacy=1",
             follow_redirects=True,
         )
+        # Vista React: a percorso completo porta al pre-deposito PTT del fascicolo.
+        percorso = client.get(f"/api/v1/ui/checklist/percorso/{fascicolo.id}/ricorso_tributario").get_json()
 
     body = response.data.decode("utf-8")
+    assert percorso["matter"]["depositHref"].endswith(f"/fascicoli/{fascicolo.id}#ptt-sigit")
     assert response.status_code == 200
     assert "Pre-deposito PTT Tributario" in body
     assert "Verifica pre-deposito SIGIT" in body

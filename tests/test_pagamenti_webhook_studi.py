@@ -219,7 +219,9 @@ def test_callback_satispay_con_lo_studio_nell_indirizzo(due_studi, monkeypatch):
     with due_studi.app.test_client() as client:
         risposta = client.post(f"/api/v1/pubblico/pagamenti/{due_studi.b.link.token}/avvia", json={"provider": "satispay"})
     assert risposta.status_code == 200, risposta.get_data(as_text=True)
-    assert indirizzi and indirizzi[0].endswith(f"/pagamenti/webhooks/satispay/{due_studi.b.slug}")
+    assert indirizzi and indirizzi[0].split("?")[0].endswith(f"/pagamenti/webhooks/satispay/{due_studi.b.slug}")
+    # Satispay richiama con una GET: il link e il segnaposto del pagamento sono nell'indirizzo.
+    assert f"link_id={due_studi.b.link.id}" in indirizzi[0] and indirizzi[0].endswith("payment_id={uuid}")
 
 
 # ------------------------------------------------------------------ studio singolo

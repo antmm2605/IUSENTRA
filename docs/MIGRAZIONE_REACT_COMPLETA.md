@@ -6,7 +6,7 @@ funzioni, verificate con test. Restano sul server, per natura, le risposte che
 non sono pagine: API JSON, download, documenti da stampare (copertine), PDF,
 azioni POST dei moduli esistenti e ingressi tecnici.
 
-Aggiornato: 27/09/2026 (2.419.0).
+Aggiornato: 27/09/2026 (2.420.0).
 
 ## Regola
 
@@ -66,6 +66,5 @@ Aggiornato: 27/09/2026 (2.419.0).
 | Area | Pagine | Nota |
 |---|---|---|
 | Studio | `/fascicoli/<id>/documenti/<doc>/editor` | Già React (`DocumentEditorPage`): resta da togliere il ramo `?_legacy=1` e il template storico |
-| Pubbliche | `/accesso/<token>` | Link temporanei di condivisione: nessun codice li genera più; da eliminare con la pulizia |
 | Pubbliche | sito dello studio `/web/<slug>/*` | Pagine pubbliche indicizzate dai motori di ricerca: restano rese dal server finché non c'è un rendering React lato server |
 | Tecniche | `/offline`, pagine di errore | Restano statiche: servono quando l'applicazione non risponde |

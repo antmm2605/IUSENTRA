@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: IUSENTRA API Contracts
-  version: 2.419.0
+  version: 2.420.0
   description: 'Contratti API fase 6 generati da endpoint Flask reali. Aggiornato: 2026-05-18.'
 servers:
 - url: https://app.iusentra.it
@@ -50,7 +50,7 @@ paths:
       tags:
       - Sistema
       summary: 'API React operativa: GET /api/v1/clienti/{id_cliente}/condivisioni'
-      description: 'Contratto fase 6 derivato da `api_condivisioni_cliente` in `web/bootstrap/condivisioni_routes.py:151`.
+      description: 'Contratto fase 6 derivato da `api_condivisioni_cliente` in `web/bootstrap/condivisioni_routes.py:125`.
         Pagina/area collegata: API React operativa. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_api_condivisioni_cliente_get
       security:
@@ -101,7 +101,7 @@ paths:
       tags:
       - Sistema
       summary: 'API React operativa: POST /api/v1/clienti/{id_cliente}/condivisioni'
-      description: 'Contratto fase 6 derivato da `api_aggiungi_collaboratore` in `web/bootstrap/condivisioni_routes.py:174`.
+      description: 'Contratto fase 6 derivato da `api_aggiungi_collaboratore` in `web/bootstrap/condivisioni_routes.py:148`.
         Pagina/area collegata: API React operativa. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_api_aggiungi_collaboratore_post
       security:
@@ -156,7 +156,7 @@ paths:
       tags:
       - Sistema
       summary: 'API React operativa: DELETE /api/v1/clienti/{id_cliente}/condivisioni/{id_utente}'
-      description: 'Contratto fase 6 derivato da `api_revoca_collaboratore` in `web/bootstrap/condivisioni_routes.py:287`.
+      description: 'Contratto fase 6 derivato da `api_revoca_collaboratore` in `web/bootstrap/condivisioni_routes.py:261`.
         Pagina/area collegata: API React operativa. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_api_revoca_collaboratore_delete
       security:
@@ -217,7 +217,7 @@ paths:
       tags:
       - Sistema
       summary: 'API React operativa: POST /api/v1/condivisioni/pulizia-scaduti'
-      description: 'Contratto fase 6 derivato da `api_pulizia_scaduti` in `web/bootstrap/condivisioni_routes.py:364`. Pagina/area
+      description: 'Contratto fase 6 derivato da `api_pulizia_scaduti` in `web/bootstrap/condivisioni_routes.py:338`. Pagina/area
         collegata: API React operativa. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_api_pulizia_scaduti_post
       security:
@@ -266,7 +266,7 @@ paths:
       tags:
       - Sistema
       summary: 'API React operativa: GET /api/v1/condivisioni/statistiche'
-      description: 'Contratto fase 6 derivato da `api_statistiche_condivisioni` in `web/bootstrap/condivisioni_routes.py:351`.
+      description: 'Contratto fase 6 derivato da `api_statistiche_condivisioni` in `web/bootstrap/condivisioni_routes.py:325`.
         Pagina/area collegata: API React operativa. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_api_statistiche_condivisioni_get
       security:

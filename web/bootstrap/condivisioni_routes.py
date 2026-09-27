@@ -37,32 +37,6 @@ def register_condivisioni_routes(
         _ = id_cliente
         return render_react_shell_response("clienti-collaboratori")
 
-    @app.route("/accesso/<token>")
-    def accesso_link_temporaneo(token: str):
-        gcd = get_condivisioni()
-        link = gcd.verifica_link_temporaneo(token)
-        if not link:
-            return render_template("clienti/link_scaduto.html"), 410
-
-        cliente = get_clienti().get(link.id_cliente)
-        if not cliente:
-            return render_template("clienti/link_scaduto.html"), 404
-
-        fascicolo = get_fascicoli().get(link.id_fascicolo) if link.id_fascicolo else None
-        audit(
-            "condivisione.link_accesso",
-            "cliente",
-            link.id_cliente,
-            dettagli=f"link {link.id} desc={link.descrizione}",
-        )
-        return render_template(
-            "clienti/link_temporaneo.html",
-            cliente=cliente,
-            fascicolo=fascicolo,
-            link=link,
-            ruolo=link.ruolo,
-        )
-
     @app.route("/fascicoli/<id_fasc>/collaboratori", methods=["GET", "POST"])
     def gestione_collaboratori_fascicolo(id_fasc: str):
         fascicolo = get_fascicoli().get(id_fasc)

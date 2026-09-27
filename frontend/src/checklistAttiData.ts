@@ -99,7 +99,7 @@ export type WizardStep = {
 export type WizardData = {
   ok: boolean
   message: string
-  matter: { id: string; title: string; rg: string; client: string; counterpart: string; office: string; href: string; uploadAction: string; depositHref: string }
+  matter: { id: string; title: string; rg: string; client: string; counterpart: string; office: string; href: string; uploadAction: string; depositHref: string; depositLabel: string }
   template: ChecklistTemplateSummary & { checks: ChecklistCheck[] }
   folderName: string
   steps: WizardStep[]
@@ -216,6 +216,7 @@ function wizard(raw: unknown): WizardData {
       href: internal(matter.href),
       uploadAction: internal(matter.uploadAction),
       depositHref: internal(matter.depositHref),
+      depositLabel: text(matter.depositLabel) || 'Prepara il deposito',
     },
     template: { ...summary(template), checks: checks(template.checks) },
     folderName: text(payload.folderName),

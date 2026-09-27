@@ -113,7 +113,8 @@ def carica_documenti(contesto: ContestoPortale, files: list[Any], id_fascicolo: 
 
         gf = get_fascicoli()
         for f in _file_selezionati(files):
-            contenuto = f.read()
+            # Si legge al massimo un byte oltre il limite: un file enorme non finisce in memoria.
+            contenuto = f.read(max_bytes + 1)
             if len(contenuto) > max_bytes:
                 esito.errori.append(f"{f.filename}: supera il limite di {max_mb} MB")
                 continue
@@ -136,7 +137,8 @@ def carica_documenti(contesto: ContestoPortale, files: list[Any], id_fascicolo: 
     upload_dir = contesto.gestore.upload_dir(cliente.id)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     for f in _file_selezionati(files):
-        contenuto = f.read()
+        # Si legge al massimo un byte oltre il limite: un file enorme non finisce in memoria.
+        contenuto = f.read(max_bytes + 1)
         if len(contenuto) > max_bytes:
             esito.errori.append(f"{f.filename}: supera il limite di {max_mb} MB")
             continue

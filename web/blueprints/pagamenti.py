@@ -301,7 +301,8 @@ def _riferimento_paypal() -> str:
 
 
 def _riferimento_satispay() -> str:
-    return str((_dati_json().get("metadata") or {}).get("link_id") or "")
+    # La richiamata reale di Satispay è una GET con ?link_id=&payment_id=.
+    return str((_dati_json().get("metadata") or {}).get("link_id") or request.args.get("link_id") or "")
 
 
 def _riferimento_sumup() -> str:
@@ -369,7 +370,7 @@ def _evento_satispay():
     data = _dati_json()
     payment_id = str(data.get("id") or request.args.get("payment_id") or "")
     gp = _get_gp()
-    lp = _link_in_attesa(gp, (data.get("metadata") or {}).get("link_id"))
+    lp = _link_in_attesa(gp, (data.get("metadata") or {}).get("link_id") or request.args.get("link_id"))
     confermato = lp is not None and satispay_pagamento_confermato(gp, payment_id, lp)
     return _registra_se_confermato(gp, lp, "Satispay", payment_id, confermato)
 
@@ -409,7 +410,7 @@ def webhook_paypal():
     return _webhook("paypal")
 
 
-@pagamenti.route("/webhooks/satispay", methods=["POST"])
+@pagamenti.route("/webhooks/satispay", methods=["POST", "GET"])
 def webhook_satispay():
     return _webhook("satispay")
 
@@ -419,7 +420,7 @@ def webhook_sumup():
     return _webhook("sumup")
 
 
-@pagamenti.route("/webhooks/<gestore>/<slug>", methods=["POST"])
+@pagamenti.route("/webhooks/<gestore>/<slug>", methods=["POST", "GET"])
 def webhook_studio(gestore: str, slug: str):
     """Webhook configurato presso il gestore con l'indirizzo dello studio.
 
@@ -428,6 +429,8 @@ def webhook_studio(gestore: str, slug: str):
     Studio sconosciuto o sospeso, o installazione a studio singolo: 404.
     """
     voce = _WEBHOOK.get(gestore)
+    if request.method == "GET" and gestore != "satispay":
+        abort(405)
     if voce is None or not entra_studio_webhook(slug):
         abort(404)
     return voce[1]()

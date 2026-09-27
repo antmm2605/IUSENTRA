@@ -172,6 +172,23 @@ def _tipi_documento() -> list[dict[str, str]]:
     return [{"value": tipo.value, "label": tipo.value.replace("_", " ").capitalize()} for tipo in TipoDocumento]
 
 
+# Dove si deposita secondo il canale del modello: il PCT civile ha la sua pagina,
+# gli altri portali la loro sezione nel fascicolo React (la vista storica apriva
+# qui il pre-deposito del canale).
+_DEPOSITO_PER_CANALE = {
+    "PCT_TELEMATICO": ("/deposito/prepara", "Prepara il deposito telematico"),
+    "PDP_PENALE": ("#penale-pdp", "Deposito penale (PDP)"),
+    "PAT_AMMINISTRATIVO": ("#pat-formweb", "Deposito amministrativo (PAT)"),
+    "PTT_TRIBUTARIO": ("#ptt-sigit", "Pre-deposito tributario (PTT)"),
+}
+
+
+def _deposito(fascicolo: Any, template: Any) -> tuple[str, str]:
+    canale = _t(getattr(template, "canale", "")).upper() or "PCT_TELEMATICO"
+    suffisso, etichetta = _DEPOSITO_PER_CANALE.get(canale, ("", "Apri il fascicolo"))
+    return f"/fascicoli/{fascicolo.id}{suffisso}", etichetta
+
+
 def percorso(fascicolo: Any, id_modello: str, saltati: Iterable[int]) -> tuple[dict[str, Any], int]:
     template = catalogo_atti.get_template(id_modello)
     if fascicolo is None:
@@ -180,6 +197,7 @@ def percorso(fascicolo: Any, id_modello: str, saltati: Iterable[int]) -> tuple[d
         return {"ok": False, "message": "Modello di checklist non trovato."}, 404
     passi = _stato_passi(fascicolo, template, saltati)
     mancanti = [p for p in passi if p["required"] and p["status"] == "pending"]
+    deposito_href, deposito_etichetta = _deposito(fascicolo, template)
     return {
         "ok": True,
         "matter": {
@@ -191,7 +209,8 @@ def percorso(fascicolo: Any, id_modello: str, saltati: Iterable[int]) -> tuple[d
             "office": _t(getattr(fascicolo, "tribunale", "")),
             "href": f"/fascicoli/{fascicolo.id}",
             "uploadAction": f"/fascicoli/{fascicolo.id}/documenti/carica",
-            "depositHref": f"/fascicoli/{fascicolo.id}/deposito/prepara",
+            "depositHref": deposito_href,
+            "depositLabel": deposito_etichetta,
         },
         "template": {**_riassunto(template), "checks": [{"text": c.testo, "critical": bool(c.critico), "note": _t(c.note)} for c in template.checklist]},
         "folderName": catalogo_atti.nome_cartella_compilato(template, _t(getattr(fascicolo, "controparte", "")), _t(getattr(fascicolo, "numero_rg", ""))),

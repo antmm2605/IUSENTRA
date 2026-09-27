@@ -288,7 +288,7 @@ function CompleteView({ data, onReload }: { data: WizardData; onReload: (next?: 
         </ol>
         <div className="iu-chk-actions">
           <Button type="button" tone="neutral" disabled={busy} onClick={() => void index()}><FileText size={15} aria-hidden="true" /> {busy ? 'Preparazione…' : 'Aggiungi l\'indice dei documenti al fascicolo'}</Button>
-          {data.complete && data.matter.depositHref ? <ButtonLink href={data.matter.depositHref} tone="primary">Prepara il deposito</ButtonLink> : null}
+          {data.complete && data.matter.depositHref ? <ButtonLink href={data.matter.depositHref} tone="primary">{data.matter.depositLabel}</ButtonLink> : null}
         </div>
         {message ? <p className={message.ok ? 'iu-chk-msg' : 'iu-chk-msg is-error'} role="status">{message.text}</p> : null}
       </Panel>

@@ -13,6 +13,8 @@ di pagamento la usano con il riferimento del link al posto del token.
 from __future__ import annotations
 
 import hashlib
+import threading
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -24,6 +26,43 @@ VerificaToken = Callable[[Any, dict[str, str]], bool]
 
 _ATTRIBUTI_CONTESTO = ("tenant", "tenant_context_slug", "data_paths", "storage_runtime")
 _CACHE_ARCHIVIO = ("_storage_runtime_profile", "_runtime_studio_db", "_tenant_isolation_root_cache")
+
+# Link sconosciuti di recente: per un token che non esiste la ricerca legge gli
+# archivi di tutti gli studi; ripetuta a raffica (link inventati) moltiplicava il
+# lavoro per il numero di studi. Per un minuto la risposta resta «non trovato».
+DURATA_NEGATIVI_SECONDI = 60
+MASSIMO_NEGATIVI = 4096
+_NEGATIVI: dict[str, float] = {}
+_LOCK_NEGATIVI = threading.Lock()
+
+
+def _negativo_recente(chiave: str) -> bool:
+    adesso = time.monotonic()
+    with _LOCK_NEGATIVI:
+        scadenza = _NEGATIVI.get(chiave)
+        if scadenza is None:
+            return False
+        if scadenza < adesso:
+            _NEGATIVI.pop(chiave, None)
+            return False
+        return True
+
+
+def _registra_negativo(chiave: str) -> None:
+    adesso = time.monotonic()
+    with _LOCK_NEGATIVI:
+        if len(_NEGATIVI) >= MASSIMO_NEGATIVI:
+            for vecchia in [k for k, v in _NEGATIVI.items() if v < adesso]:
+                _NEGATIVI.pop(vecchia, None)
+            if len(_NEGATIVI) >= MASSIMO_NEGATIVI:
+                _NEGATIVI.clear()
+        _NEGATIVI[chiave] = adesso + DURATA_NEGATIVI_SECONDI
+
+
+def dimentica_negativi() -> None:
+    """Svuota i link sconosciuti ricordati (test e creazione di un nuovo link)."""
+    with _LOCK_NEGATIVI:
+        _NEGATIVI.clear()
 
 
 def impronta_token(token: str) -> str:
@@ -65,6 +104,9 @@ def risolvi_studio_da_token(token: str, *, verifica: VerificaToken, cache: dict[
         tenants = GestioneTenant(registry_path=current_app.config["TENANTS_REGISTRY"])
         impronta = impronta_token(token)
         slug = cache.get(impronta, "")
+        chiave_negativa = f"{etichetta}:{current_app.config.get('TENANTS_REGISTRY', '')}:{impronta}"
+        if not slug and _negativo_recente(chiave_negativa):
+            return False
         studi = [tenants.get(slug)] if slug else [s for s in tenants.lista() if s.stato != StatoTenant.SOSPESO]
         for studio in studi:
             if studio is None:
@@ -77,6 +119,8 @@ def risolvi_studio_da_token(token: str, *, verifica: VerificaToken, cache: dict[
                 cache[impronta] = studio.slug
                 _pulisci_cache_archivio()
                 return True
+        if not slug:
+            _registra_negativo(chiave_negativa)
     except Exception:
         current_app.logger.exception("%s: studio del link non determinato", etichetta)
     for nome, valore in precedente.items():

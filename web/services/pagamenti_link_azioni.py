@@ -211,7 +211,12 @@ def avvia_pagamento(gp, lp, provider: str) -> EsitoAvvio:
         return EsitoAvvio("errore", messaggio="Errore SumUp.")
 
     if provider == "satispay":
-        risultato = gp.satispay_crea_pagamento(lp, callback_url=ritorno["callback_satispay"])
+        # Satispay richiama l'indirizzo con una GET e sostituisce {uuid} con
+        # l'identificativo del pagamento; il link serve a trovare lo studio.
+        from urllib.parse import quote
+
+        richiamata = f"{ritorno['callback_satispay']}?link_id={quote(str(lp.id), safe='')}&payment_id={{uuid}}"
+        risultato = gp.satispay_crea_pagamento(lp, callback_url=richiamata)
         url = _url_esterno((risultato or {}).get("redirect_url"))
         if url:
             return EsitoAvvio("redirect", url=url)

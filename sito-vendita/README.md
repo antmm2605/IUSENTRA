@@ -28,3 +28,21 @@ Per vederlo in locale basta aprire `index.html` nel browser.
 Le schermate sono illustrazioni disegnate in HTML con dati di esempio: nessun dato reale di studi o clienti.
 I riferimenti normativi mostrati (D.M. 44/2011, art. 171-ter c.p.c., D.M. 55/2014 aggiornato dal D.M. 147/2022, ecc.)
 corrispondono alle basi normative dichiarate in `CLAUDE.md`.
+
+## Pubblicazione su Railway (progetto separato dal gestionale)
+
+La cartella contiene `Dockerfile`, `Caddyfile` e `railway.json`: Railway costruisce un'immagine Caddy
+che serve i file statici sulla porta `$PORT`, con intestazioni di sicurezza e compressione.
+
+Dal pannello Railway:
+1. **New Project → Deploy from GitHub repo** → `antmm2605/iusentra`.
+2. Nelle impostazioni del servizio: **Branch** `claude/software-sales-website-lkyzec`, **Root Directory** `sito-vendita`.
+3. **Settings → Networking → Generate Domain** (o collega il dominio commerciale).
+
+Dalla CLI (con un token di account in `RAILWAY_API_TOKEN`):
+```bash
+cd sito-vendita
+railway init --name iusentra-sito
+railway up --detach
+railway domain
+```

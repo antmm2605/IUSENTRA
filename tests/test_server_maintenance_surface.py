@@ -531,7 +531,7 @@ def test_superadmin_server_manutenzione_renderizza(tmp_path: Path):
             follow_redirects=True,
         )
         assert login.status_code == 200
-        response = client.get("/admin/server-manutenzione", follow_redirects=True)
+        response = client.get("/admin/server-manutenzione?_legacy=1", follow_redirects=True)
 
     html = response.get_data(as_text=True)
     assert response.status_code == 200

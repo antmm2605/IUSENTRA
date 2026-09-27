@@ -12,11 +12,8 @@ import './PiattaformaApp.css'
 // Sezioni del pannello ancora servite dalle viste classiche: restano nel menu
 // finché non passano all'applicazione React.
 const ALTRE_SEZIONI = [
-  { label: 'Studi', href: '/admin/studi' },
-  { label: 'Utenti di piattaforma', href: '/admin/utenti-piattaforma' },
   { label: 'Aggiornamenti legali', href: '/admin/aggiornamenti-legali/' },
   { label: 'Copertura AI', href: '/admin/copertura-ai/' },
-  { label: 'Server e manutenzione', href: '/admin/server-manutenzione' },
   { label: 'Supporto remoto', href: '/admin/supporto-remoto' },
 ]
 
@@ -146,8 +143,21 @@ function paginaIniziale(): string {
   return root?.dataset.pagina || ''
 }
 
+// Parti dell'indirizzo (es. lo studio di /admin/studi/<slug>) passate dal server.
+function parametriIniziali(): Record<string, string> {
+  const raw = document.getElementById('piattaforma-react-root')?.dataset.parametri || '{}'
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+    return Object.fromEntries(Object.entries(parsed as Record<string, unknown>).map(([k, v]) => [k, String(v ?? '')]))
+  } catch {
+    return {}
+  }
+}
+
 export default function PiattaformaApp() {
   const pagina = paginaIniziale()
+  const [parametri] = useState(parametriIniziali)
   const [data, setData] = useState<PaginaPiattaforma | null>(null)
   const [filtro, setFiltro] = useState(new URLSearchParams(window.location.search).get('q') || '')
   const [menuAperto, setMenuAperto] = useState(false)
@@ -158,15 +168,22 @@ export default function PiattaformaApp() {
   function ricerca(): string {
     const params = new URLSearchParams(window.location.search)
     params.delete('_legacy')
+    Object.entries(parametri).forEach(([chiave, valore]) => params.set(chiave, valore))
     return params.toString() ? `?${params}` : ''
   }
 
   async function eseguiAzione(azione: AzionePf, values: ValoriAzione) {
     setBusy(true)
-    setEsito({ ok: true, message: `${azione.label}: operazione in corso…`, tone: 'info', sections: [] })
+    setEsito({ ok: true, message: `${azione.label}: operazione in corso…`, tone: 'info', sections: [], navigate: '' })
     try {
-      const risultato = await eseguiAzionePiattaforma(pagina, azione, values)
+      const risultato = await eseguiAzionePiattaforma(pagina, azione, values, parametri)
       setEsito(risultato)
+      if (risultato.navigate) {
+        // Pagina da aprire dopo l'azione (studio creato, accesso allo studio, uscita):
+        // niente ricarica dei dati, che dopo un'uscita non sarebbero più accessibili.
+        window.location.assign(risultato.navigate)
+        return
+      }
       if (risultato.ok) {
         const aggiornata = await getPaginaPiattaforma(pagina, ricerca())
         setData(aggiornata)
@@ -207,7 +224,7 @@ export default function PiattaformaApp() {
         <nav>
           <p>Pagine</p>
           {(data?.menu || []).map((item) => (
-            <a key={item.key} href={item.href} aria-current={item.key === pagina ? 'page' : undefined}>{item.label}</a>
+            <a key={item.key} href={item.href} aria-current={item.key === (data?.menuKey || pagina) ? 'page' : undefined}>{item.label}</a>
           ))}
           <p>Altre sezioni</p>
           {ALTRE_SEZIONI.map((item) => <a key={item.href} href={item.href}>{item.label}</a>)}

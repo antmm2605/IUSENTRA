@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
 import type { AzionePf, CampoPf, ValoriAzione } from '../piattaformaData'
 import { Button } from '../ui/Button'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
@@ -15,7 +15,7 @@ function tonoPulsante(azione: AzionePf) {
 }
 
 export function CampoAzione({ campo, value, onChange }: { campo: CampoPf; value: string | boolean; onChange: (value: string | boolean) => void }) {
-  const id = `pf-campo-${campo.name}`
+  const id = `pf-campo-${campo.name}-${useId().replace(/:/g, '')}`
   if (campo.kind === 'checkbox') {
     return (
       <label className="iu-pf-field is-checkbox" htmlFor={id}>

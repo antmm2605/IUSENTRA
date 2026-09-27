@@ -58,6 +58,7 @@ class Pagina:
     costruisci: Costruttore
     adatta: Adattatore
     esegui: Esecutore | None = None
+    nel_menu: bool = True
 
 
 def _pagine() -> list[Pagina]:
@@ -65,13 +66,26 @@ def _pagine() -> list[Pagina]:
     from web.services import react_piattaforma_pagina_crash_test as crash
     from web.services import react_piattaforma_pagina_installazione_pack as pack
     from web.services import react_piattaforma_pagina_pianificazioni as pianificazioni
+    from web.services import react_piattaforma_pagina_server_manutenzione as server
+    from web.services import react_piattaforma_pagina_studi as studi
+    from web.services import react_piattaforma_pagina_studio as studio
+    from web.services import react_piattaforma_pagina_studio_database as archivio
+    from web.services import react_piattaforma_pagina_studio_utenti as utenti_studio
+    from web.services import react_piattaforma_pagina_utenti_piattaforma as utenti_piattaforma
 
     return [
         Pagina("cruscotto", "Panoramica", "/admin/", governo.costruisci_cruscotto, governo.cruscotto),
         Pagina("governance", "Governance del prodotto", "/admin/governance", lambda: governo.costruisci_governance(_arg("slug")), governo.governance),
+        Pagina("studi", "Studi legali", "/admin/studi", lambda: studi.costruisci_lista(_arg("q"), _arg("stato"), _arg("piano")), studi.adatta_lista, studi.esegui_lista),
+        Pagina("studio-nuovo", "Nuovo studio", "/admin/studi/nuovo", studi.costruisci_nuovo, studi.adatta_nuovo, studi.esegui_nuovo, nel_menu=False),
+        Pagina("studio", "Scheda dello studio", "/admin/studi/<slug>", lambda: studio.costruisci(_arg("slug")), studio.adatta, studio.esegui, nel_menu=False),
+        Pagina("studio-utenti", "Utenti dello studio", "/admin/studi/<slug>/utenti", lambda: utenti_studio.costruisci(_arg("slug")), utenti_studio.adatta, utenti_studio.esegui, nel_menu=False),
+        Pagina("studio-database", "Archivio dello studio", "/admin/studi/<slug>/database", lambda: archivio.costruisci(_arg("slug")), archivio.adatta, archivio.esegui, nel_menu=False),
+        Pagina("utenti-piattaforma", "Utenti di piattaforma", "/admin/utenti-piattaforma", utenti_piattaforma.costruisci, utenti_piattaforma.adatta, utenti_piattaforma.esegui),
         Pagina("stato-installazione", "Stato installazione", "/admin/stato-installazione", sistema.costruisci_installazione, sistema.stato_installazione),
         Pagina("salute-sistema", "Salute del sistema", "/admin/salute-sistema", sistema.costruisci_salute, sistema.salute_sistema),
         Pagina("pianificazioni", "Pianificazioni", "/admin/pianificazioni", pianificazioni.costruisci, pianificazioni.adatta, pianificazioni.esegui),
+        Pagina("server-manutenzione", "Server e manutenzione", "/admin/server-manutenzione", server.costruisci, server.adatta, server.esegui),
         Pagina("crash-test", "Crash test operativo", "/admin/crash-test-operativo", lambda: crash.costruisci(_arg("slug")), crash.adatta, crash.esegui),
         Pagina("installazione-pack", "Pacchetto di installazione", "/admin/installazione-pack/", lambda: pack.costruisci(_arg("slug")), pack.adatta, pack.esegui),
         Pagina("assistente-migrazione", "Assistente migrazione", "/admin/assistente-migrazione", lambda: migrazione.costruisci(_arg("slug")), migrazione.adatta, migrazione.esegui),
@@ -86,7 +100,7 @@ def _registro() -> dict[str, Pagina]:
 
 
 def menu() -> list[dict[str, str]]:
-    return [{"key": p.chiave, "label": p.titolo, "href": p.indirizzo} for p in _pagine()]
+    return [{"key": p.chiave, "label": p.titolo, "href": p.indirizzo} for p in _pagine() if p.nel_menu]
 
 
 def titolo(chiave: str) -> str:
@@ -102,7 +116,9 @@ def pagina(chiave: str) -> tuple[dict[str, Any], int]:
     corpo["sections"] = [s for s in corpo.get("sections") or [] if sezione_visibile(s)]
     visti: set[str] = set()
     corpo["links"] = [c for c in corpo.get("links") or [] if not (c["href"] in visti or visti.add(c["href"]))]
-    return {"ok": True, "page": chiave, "menu": menu(), **corpo}, 200
+    # Le schede di uno studio accendono la voce «Studi legali» del menu.
+    voce_menu = chiave if voce.nel_menu else ("studi" if chiave.startswith("studio") else "")
+    return {"ok": True, "page": chiave, "menuKey": voce_menu, "menu": menu(), **corpo}, 200
 
 
 def _testo(valore: Any) -> str:

@@ -5,6 +5,7 @@ from __future__ import annotations
 from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, url_for
 
 from web.blueprints.admin import superadmin_required
+from web.services.piattaforma_shell_runtime import render_piattaforma_shell, vista_classica_richiesta
 from web.services.server_maintenance_surface import (
     build_server_maintenance_surface,
     run_all_backup_retention,
@@ -40,6 +41,8 @@ def _radice_dati():
 @server_maintenance_admin.get("")
 @superadmin_required
 def dashboard():
+    if not vista_classica_richiesta():
+        return render_piattaforma_shell("server-manutenzione", "Server e manutenzione")
     payload = build_server_maintenance_surface()
     return render_template(
         "admin/server_manutenzione.html",
@@ -96,7 +99,7 @@ def analizza_copia_doppia_fascicoli():
     except Exception as exc:
         current_app.logger.exception("Analisi copia doppia fascicoli fallita: %s", exc)
         flash("Analisi non completata. Dettaglio tecnico nei log server.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/applica-copia-doppia-fascicoli")
@@ -120,7 +123,7 @@ def applica_copia_doppia_fascicoli():
     except Exception as exc:
         current_app.logger.exception("Riscrittura copia doppia fascicoli fallita: %s", exc)
         flash("Riscrittura non completata. Dettaglio tecnico nei log server.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/analizza-collegamenti-pec")
@@ -140,7 +143,7 @@ def analizza_collegamenti_pec():
     except Exception as exc:
         current_app.logger.exception("Analisi collegamenti PEC fallita: %s", exc)
         flash("Analisi non completata. Dettaglio tecnico nei log server.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/applica-collegamenti-pec")
@@ -162,7 +165,7 @@ def applica_collegamenti_pec():
     except Exception as exc:
         current_app.logger.exception("Ricollegamento PEC fallito: %s", exc)
         flash("Ricollegamento non completato. Dettaglio tecnico nei log server.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/analizza-chunk-rag")
@@ -182,7 +185,7 @@ def analizza_chunk_rag():
     except Exception as exc:
         current_app.logger.exception("Analisi chunk RAG fallita: %s", exc)
         flash("Analisi non completata. Dettaglio tecnico nei log server.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/applica-chunk-rag")
@@ -205,7 +208,7 @@ def applica_chunk_rag():
     except Exception as exc:
         current_app.logger.exception("Rispezzatura chunk RAG fallita: %s", exc)
         flash("Rispezzatura non completata. Dettaglio tecnico nei log server.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/analizza-spazio-database")
@@ -224,7 +227,7 @@ def analizza_spazio_database():
     except Exception as exc:
         current_app.logger.exception("Analisi spazio database fallita: %s", exc)
         flash("Analisi non completata. Dettaglio tecnico nei log server.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/applica-compattazione-database")
@@ -246,7 +249,7 @@ def applica_compattazione_database():
     except Exception as exc:
         current_app.logger.exception("Compattazione database fallita: %s", exc)
         flash("Compattazione non completata. Dettaglio tecnico nei log server.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/analizza-compattazione")
@@ -276,7 +279,7 @@ def analizza_compattazione():
     except Exception as exc:
         current_app.logger.exception("Errore analisi compattazione storage: %s", exc)
         flash("Errore durante l'analisi compattazione storage.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/compatta")
@@ -306,7 +309,7 @@ def compatta():
     except Exception as exc:
         current_app.logger.exception("Errore compattazione storage: %s", exc)
         flash("Errore durante la compattazione storage.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/analizza-ottimizzazione-massima")
@@ -334,7 +337,7 @@ def analizza_ottimizzazione_massima():
     except Exception as exc:
         current_app.logger.exception("Errore analisi ottimizzazione storage: %s", exc)
         flash("Errore durante l'analisi ottimizzazione storage.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/applica-ottimizzazione-massima")
@@ -362,7 +365,7 @@ def applica_ottimizzazione_massima():
     except Exception as exc:
         current_app.logger.exception("Errore ottimizzazione storage: %s", exc)
         flash("Errore durante l'ottimizzazione storage.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/analizza-retention-backup")
@@ -390,7 +393,7 @@ def analizza_retention_backup():
     except Exception as exc:
         current_app.logger.exception("Errore analisi retention backup: %s", exc)
         flash("Errore durante l'analisi retention backup.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/applica-retention-backup")
@@ -419,7 +422,7 @@ def applica_retention_backup():
     except Exception as exc:
         current_app.logger.exception("Errore retention backup: %s", exc)
         flash("Errore durante la retention backup.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/backup-ora")
@@ -434,7 +437,7 @@ def backup_ora():
     except Exception as exc:
         current_app.logger.exception("Errore avvio backup: %s", exc)
         flash("Errore durante l'avvio del backup.", "danger")
-    return redirect(url_for("server_maintenance_admin.dashboard"))
+    return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/docker-prune")
@@ -460,7 +463,7 @@ def docker_prune():
     except Exception as exc:
         current_app.logger.exception("Errore docker prune: %s", exc)
         flash("Errore durante docker prune.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/analizza-cartelle-escluse")
@@ -488,7 +491,7 @@ def analizza_cartelle_escluse():
     except Exception as exc:
         current_app.logger.exception("Errore analisi cartelle escluse: %s", exc)
         flash("Errore durante l'analisi delle cartelle escluse.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/elimina-cartelle-escluse")
@@ -517,7 +520,7 @@ def elimina_cartelle_escluse():
     except Exception as exc:
         current_app.logger.exception("Errore pulizia cartelle escluse: %s", exc)
         flash("Errore durante la pulizia delle cartelle escluse.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/analizza-manutenzione-professionale")
@@ -555,7 +558,7 @@ def analizza_manutenzione_professionale():
     except Exception as exc:
         current_app.logger.exception("Errore lettura censimento spazio: %s", exc)
         flash("Censimento dello spazio non leggibile. Dettaglio tecnico nei log server.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/applica-manutenzione-professionale")
@@ -583,7 +586,7 @@ def applica_manutenzione_professionale():
     except Exception as exc:
         current_app.logger.exception("Errore manutenzione professionale: %s", exc)
         flash("Errore durante la manutenzione professionale.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/pulisci-log-sistema")
@@ -607,7 +610,7 @@ def pulisci_log_sistema():
     except Exception as exc:
         current_app.logger.exception("Errore pulizia log sistema: %s", exc)
         flash("Errore durante la pulizia dei log sistema.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/analizza-normativa-globale")
@@ -635,7 +638,7 @@ def analizza_normativa_globale():
     except Exception as exc:
         current_app.logger.exception("Errore analisi normativa globale: %s", exc)
         flash("Errore durante l'analisi della normativa globale.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))
 
 
 @server_maintenance_admin.post("/pulisci-normativa-globale")
@@ -664,4 +667,4 @@ def pulisci_normativa_globale():
     except Exception as exc:
         current_app.logger.exception("Errore pulizia normativa globale: %s", exc)
         flash("Errore durante la pulizia della normativa globale.", "danger")
-        return redirect(url_for("server_maintenance_admin.dashboard"))
+        return redirect(url_for("server_maintenance_admin.dashboard", _legacy=1))

@@ -99,6 +99,7 @@ export type PaginaPiattaforma = {
   title: string
   subtitle: string
   user: string
+  menuKey: string
   menu: Array<{ key: string; label: string; href: string }>
   links: Array<{ label: string; href: string; tone: Tono; external: boolean }>
   filter: { name: string; label: string; value: string; options: Array<{ value: string; label: string }> } | null
@@ -153,6 +154,7 @@ export async function getPaginaPiattaforma(pagina: string, search: string): Prom
     title: text(payload.title),
     subtitle: text(payload.subtitle),
     user: text(payload.user),
+    menuKey: text(payload.menuKey) || text(payload.page),
     menu: list(payload.menu).map((m) => ({ key: text(obj(m).key), label: text(obj(m).label), href: href(obj(m).href) })),
     links: list(payload.links).map((l) => ({ label: text(obj(l).label), href: href(obj(l).href, true), tone: tono(obj(l).tone), external: obj(l).external === true })),
     filter: filter ? { name: text(filter.name), label: text(filter.label), value: text(filter.value), options: list(filter.options).map((o) => ({ value: text(obj(o).value), label: text(obj(o).label) })) } : null,
@@ -160,16 +162,17 @@ export async function getPaginaPiattaforma(pagina: string, search: string): Prom
   }
 }
 
-export type EsitoAzione = { ok: boolean; message: string; tone: Tono; sections: Sezione[] }
+export type EsitoAzione = { ok: boolean; message: string; tone: Tono; sections: Sezione[]; navigate: string }
 
-export async function eseguiAzionePiattaforma(pagina: string, azione: AzionePf, values: ValoriAzione): Promise<EsitoAzione> {
+export async function eseguiAzionePiattaforma(pagina: string, azione: AzionePf, values: ValoriAzione, parametri: Record<string, string> = {}): Promise<EsitoAzione> {
   const url = `/api/v1/ui/piattaforma/${encodeURIComponent(pagina)}/azioni/${encodeURIComponent(azione.key)}`
-  const payload = obj(await apiPostJson<unknown>(url, { params: azione.params, values }, { ok: false, message: 'Operazione non riuscita: riprova fra poco.' }))
+  const payload = obj(await apiPostJson<unknown>(url, { params: { ...parametri, ...azione.params }, values }, { ok: false, message: 'Operazione non riuscita: riprova fra poco.' }))
   const ok = payload.ok === true
   return {
     ok,
     message: text(payload.message) || (ok ? 'Operazione completata.' : 'Operazione non riuscita.'),
     tone: payload.tone ? tono(payload.tone) : ok ? 'success' : 'danger',
     sections: list(payload.sections).map(sezione).filter((s): s is Sezione => s !== null),
+    navigate: href(payload.navigate),
   }
 }

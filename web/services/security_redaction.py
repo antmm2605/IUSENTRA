@@ -49,26 +49,36 @@ _BASE64_PAYLOAD_KEYS = {
 }
 
 
-def _looks_technical(value: str) -> bool:
+_PATH_MARKERS = {"/opt/", "/home/", "\\users\\", "c:\\"}
+
+
+def _looks_technical(value: str, *, consenti_percorsi: bool = False) -> bool:
     lowered = value.lower()
-    return any(marker in lowered for marker in _TECHNICAL_MARKERS) or any(
+    marcatori = [m for m in _TECHNICAL_MARKERS if not (consenti_percorsi and m in _PATH_MARKERS)]
+    return any(marker in lowered for marker in marcatori) or any(
         pattern.search(value) for pattern in _TECHNICAL_PATTERNS
     )
 
 
-def redact_exception_details(value: Any) -> Any:
-    """Rimuove stack trace, eccezioni e path interni da payload esposti via API."""
+def redact_exception_details(value: Any, *, consenti_percorsi: bool = False) -> Any:
+    """Rimuove stack trace, eccezioni e path interni da payload esposti via API.
+
+    `consenti_percorsi` lascia i percorsi del server nei dati del pannello di
+    piattaforma: il superamministratore li vedeva già nelle viste storiche
+    (cartelle dei backup, archivi degli studi), mentre tracce ed eccezioni
+    restano comunque nascoste.
+    """
 
     if isinstance(value, BaseException):
         return "Operazione non completata."
     if isinstance(value, Path):
         return value.name
     if isinstance(value, str):
-        return "Operazione non completata." if _looks_technical(value) else value
+        return "Operazione non completata." if _looks_technical(value, consenti_percorsi=consenti_percorsi) else value
     if isinstance(value, list):
-        return [redact_exception_details(item) for item in value]
+        return [redact_exception_details(item, consenti_percorsi=consenti_percorsi) for item in value]
     if isinstance(value, tuple):
-        return [redact_exception_details(item) for item in value]
+        return [redact_exception_details(item, consenti_percorsi=consenti_percorsi) for item in value]
     if isinstance(value, dict):
         cleaned: dict[str, Any] = {}
         for key, item in value.items():
@@ -82,13 +92,13 @@ def redact_exception_details(value: Any) -> Any:
                 # alterati, altrimenti il browser consegna allegati non validi.
                 cleaned[key_text] = item
             else:
-                cleaned[key_text] = redact_exception_details(item)
+                cleaned[key_text] = redact_exception_details(item, consenti_percorsi=consenti_percorsi)
         return cleaned
     return value
 
 
-def redacted_json_response(payload: Any, status: int = 200):
+def redacted_json_response(payload: Any, status: int = 200, *, consenti_percorsi: bool = False):
     """Risposta JSON con payload sanificato prima della serializzazione."""
 
-    body = json.dumps(redact_exception_details(payload), ensure_ascii=False, default=str)
+    body = json.dumps(redact_exception_details(payload, consenti_percorsi=consenti_percorsi), ensure_ascii=False, default=str)
     return current_app.response_class(body, status=status, mimetype="application/json")

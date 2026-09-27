@@ -28,7 +28,7 @@ def pagina(pagina: str):
     try:
         risultato, stato = bridge.pagina(pagina)
         risultato["user"] = str(getattr(g.get("utente_corrente"), "username", "") or "")
-        risposta = redacted_json_response(risultato)
+        risposta = redacted_json_response(risultato, consenti_percorsi=True)
         risposta.status_code = stato
         return risposta
     except Exception:
@@ -45,7 +45,7 @@ def azione(pagina: str, azione: str):
     corpo = request.get_json(silent=True) or {}
     try:
         risultato, stato = bridge.esegui(pagina, azione, corpo.get("params"), corpo.get("values"))
-        risposta = redacted_json_response(risultato)
+        risposta = redacted_json_response(risultato, consenti_percorsi=True)
         risposta.status_code = stato
         return risposta
     except Exception:

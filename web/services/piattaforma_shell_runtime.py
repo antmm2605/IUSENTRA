@@ -17,7 +17,9 @@ def vista_classica_richiesta() -> bool:
     return (request.args.get("_legacy") or "").strip().lower() in VALORI_LEGACY
 
 
-def render_piattaforma_shell(pagina: str, titolo: str):
+def render_piattaforma_shell(pagina: str, titolo: str, parametri: dict[str, str] | None = None):
+    """Pagina React del pannello. `parametri` sono le parti dell'indirizzo (es. lo
+    studio di `/admin/studi/<slug>`): l'applicazione li passa ai dati e alle azioni."""
     from web.blueprints.react_shell import _vite_entry
 
     return render_template(
@@ -25,6 +27,7 @@ def render_piattaforma_shell(pagina: str, titolo: str):
         react_assets=_vite_entry(request.path),
         pagina=pagina,
         titolo=titolo,
+        parametri=dict(parametri or {}),
     )
 
 

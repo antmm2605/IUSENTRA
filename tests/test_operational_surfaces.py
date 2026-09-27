@@ -287,7 +287,7 @@ def test_superadmin_product_surfaces_renderizzano(tmp_path: Path):
         salute = client.get("/admin/salute-sistema?_legacy=1", follow_redirects=True)
         scorecard = client.get("/admin/lex-scorecard?_legacy=1", follow_redirects=True)
         osservabilita = client.get("/admin/osservabilita?_legacy=1", follow_redirects=True)
-        server_manutenzione = client.get("/admin/server-manutenzione", follow_redirects=False)
+        server_manutenzione = client.get("/admin/server-manutenzione?_legacy=1", follow_redirects=False)
         pianificazioni = client.get("/admin/pianificazioni?_legacy=1", follow_redirects=False)
         crash_test = client.get("/admin/crash-test-operativo?_legacy=1", follow_redirects=True)
         coverage = client.get("/admin/copertura-ai", follow_redirects=True)

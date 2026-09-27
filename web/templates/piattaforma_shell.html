@@ -18,7 +18,7 @@
   {% endfor %}
 </head>
 <body class="piattaforma-react-page">
-  <div id="piattaforma-react-root" data-piattaforma="1" data-pagina="{{ pagina }}"></div>
+  <div id="piattaforma-react-root" data-piattaforma="1" data-pagina="{{ pagina }}" data-parametri="{{ parametri | tojson | forceescape }}"></div>
   <noscript>
     <main class="piattaforma-noscript">
       <h1>{{ titolo }}</h1>

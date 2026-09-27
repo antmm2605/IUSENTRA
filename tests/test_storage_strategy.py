@@ -742,7 +742,7 @@ def test_superadmin_can_create_studio_with_sqlite_strategy(tmp_path: Path):
     conn.close()
 
     assert response.status_code == 302
-    assert response.headers["Location"].endswith("/admin/studi/studio-sqlite")
+    assert response.headers["Location"].endswith("/admin/studi/studio-sqlite?_legacy=1")
     assert studio is not None
     assert studio.database.normalized_mode == DbMode.SQLITE
     assert Path(paths["STUDIO_DB"]).exists()
@@ -1587,7 +1587,7 @@ def test_superadmin_database_ripara_accesso_studio_da_pannello(tmp_path: Path):
 
     client = app.test_client()
     _login_superadmin(client, username=superadmin.username, password="superpass123")
-    page = client.get(f"/admin/studi/{studio.slug}/database")
+    page = client.get(f"/admin/studi/{studio.slug}/database?_legacy=1")
     response = client.post(
         f"/admin/studi/{studio.slug}/database/ripara-runtime",
         follow_redirects=False,
@@ -1598,7 +1598,7 @@ def test_superadmin_database_ripara_accesso_studio_da_pannello(tmp_path: Path):
     assert page.status_code == 200
     assert "Ripara studio" in page.get_data(as_text=True)
     assert response.status_code == 302
-    assert response.headers["Location"].endswith(f"/admin/studi/{studio.slug}/database")
+    assert response.headers["Location"].endswith(f"/admin/studi/{studio.slug}/database?_legacy=1")
     assert persisted[tenant_user.id]["tenant_slug"] == studio.slug
     assert directory["users"]["admin"]["tenant_slug"] == studio.slug
     assert directory["emails"]["giuseppe.montagnese94@gmail.com"]["tenant_slug"] == studio.slug
@@ -1674,7 +1674,7 @@ def test_admin_utenti_studio_mostra_utenti_tenant_sqlite(tmp_path: Path):
     client = app.test_client()
     _login_superadmin(client, username=superadmin.username, password="superpass123")
 
-    response = client.get(f"/admin/studi/{studio.slug}/utenti")
+    response = client.get(f"/admin/studi/{studio.slug}/utenti?_legacy=1")
 
     assert response.status_code == 200
     assert b"roberto.montagnese" in response.data
@@ -2169,7 +2169,7 @@ def test_superadmin_can_create_studio_with_postgresql_strategy(tmp_path: Path):
     manifest = tm.storage_manifest("studio-postgresql")
 
     assert response.status_code == 302
-    assert response.headers["Location"].endswith("/admin/studi/studio-postgresql/database")
+    assert response.headers["Location"].endswith("/admin/studi/studio-postgresql/database?_legacy=1")
     assert studio is not None
     assert studio.database.normalized_mode == DbMode.POSTGRESQL
     assert manifest["selected_mode"] == DbMode.POSTGRESQL

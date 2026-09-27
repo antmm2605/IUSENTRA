@@ -60,7 +60,7 @@ def test_admin_dettaglio_studio_renderizza_anche_con_db_legacy(tmp_path):
         data={"username": "admin", "password": "superpass123"},
         follow_redirects=False,
     )
-    resp = client.get("/admin/studi/antonella-mammola")
+    resp = client.get("/admin/studi/antonella-mammola?_legacy=1")
 
     assert resp.status_code == 200
     assert b"Antonella Mammola" in resp.data
@@ -112,7 +112,7 @@ def test_admin_dettaglio_studio_non_va_in_500_se_backend_studio_non_e_disponibil
         data={"username": "admin", "password": "superpass123"},
         follow_redirects=False,
     )
-    resp = client.get("/admin/studi/antonella-mammola")
+    resp = client.get("/admin/studi/antonella-mammola?_legacy=1")
 
     assert resp.status_code == 200
     assert b"Antonella Mammola" in resp.data
@@ -268,7 +268,7 @@ def test_admin_dettaglio_studio_mostra_storage_root_canonico_e_non_slug_legacy(t
         data={"username": "admin", "password": "superpass123"},
         follow_redirects=False,
     )
-    resp = client.get("/admin/studi/antonella-mammola")
+    resp = client.get("/admin/studi/antonella-mammola?_legacy=1")
 
     html = resp.get_data(as_text=True)
 
@@ -330,7 +330,7 @@ def test_superadmin_ha_superficie_piattaforma_separata_dagli_utenti_studio(tmp_p
     )
     assert login.status_code == 302
 
-    response = client.get("/admin/utenti-piattaforma")
+    response = client.get("/admin/utenti-piattaforma?_legacy=1")
     html = response.get_data(as_text=True)
 
     assert response.status_code == 200
@@ -396,7 +396,7 @@ def test_superadmin_globale_ignora_ruolo_stale_nel_sql_locale(tmp_path):
     )
     assert login.status_code == 302
 
-    response = client.get("/admin/utenti-piattaforma")
+    response = client.get("/admin/utenti-piattaforma?_legacy=1")
     html = response.get_data(as_text=True)
 
     assert response.status_code == 200
@@ -623,7 +623,7 @@ def test_superadmin_puo_modificare_un_account_globale_dalla_piattaforma(tmp_path
         follow_redirects=False,
     )
     assert login.status_code == 302
-    page = client.get("/admin/utenti-piattaforma")
+    page = client.get("/admin/utenti-piattaforma?_legacy=1")
     assert page.status_code == 200
 
     response = client.post(
@@ -672,7 +672,7 @@ def test_superadmin_puo_generare_un_nuovo_account_piattaforma_e_trasferire_il_ru
         follow_redirects=False,
     )
     assert login.status_code == 302
-    page = client.get("/admin/utenti-piattaforma")
+    page = client.get("/admin/utenti-piattaforma?_legacy=1")
     assert page.status_code == 200
 
     response = client.post(
@@ -746,7 +746,7 @@ def test_superadmin_puo_trasferire_il_ruolo_a_un_account_globale_esistente(tmp_p
         follow_redirects=False,
     )
     assert login.status_code == 302
-    page = client.get("/admin/utenti-piattaforma")
+    page = client.get("/admin/utenti-piattaforma?_legacy=1")
     assert page.status_code == 200
 
     response = client.post(
@@ -810,7 +810,7 @@ def test_superadmin_piattaforma_viene_reindirizzato_al_pannello_admin_fuori_dall
     assert login.status_code == 302
 
     response = client.get("/", follow_redirects=False)
-    manutenzione = client.get("/admin/server-manutenzione", follow_redirects=False)
+    manutenzione = client.get("/admin/server-manutenzione?_legacy=1", follow_redirects=False)
 
     assert response.status_code == 302
     assert response.headers["Location"].endswith("/admin/")
@@ -877,7 +877,7 @@ def test_superadmin_puo_spostare_un_utente_globale_dentro_uno_studio(tmp_path):
     )
     assert login.status_code == 302
 
-    page = client.get("/admin/utenti-piattaforma")
+    page = client.get("/admin/utenti-piattaforma?_legacy=1")
     html = page.get_data(as_text=True)
 
     assert page.status_code == 200
@@ -893,7 +893,7 @@ def test_superadmin_puo_spostare_un_utente_globale_dentro_uno_studio(tmp_path):
     )
 
     assert response.status_code == 302
-    assert response.headers["Location"].endswith("/admin/utenti-piattaforma")
+    assert response.headers["Location"].endswith("/admin/utenti-piattaforma?_legacy=1")
 
     refreshed_platform = GestioneUtenti(
         db_path=app.config["AUTH_DB"],

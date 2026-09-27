@@ -25,6 +25,9 @@ PAGINE = {
     "/admin/crash-test-operativo": "crash-test",
     "/admin/installazione-pack/": "installazione-pack",
     "/admin/assistente-migrazione": "assistente-migrazione",
+    "/admin/studi": "studi",
+    "/admin/utenti-piattaforma": "utenti-piattaforma",
+    "/admin/server-manutenzione": "server-manutenzione",
 }
 
 

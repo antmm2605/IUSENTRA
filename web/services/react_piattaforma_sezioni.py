@@ -188,9 +188,14 @@ def link(label: str, href: str, *, tone: str = "neutral", external: bool = False
     return {"label": label, "href": href, "tone": tone, "external": external}
 
 
-def esito(ok: bool, message: str, *, tone: str = "", sections: list[dict[str, Any]] | None = None) -> dict[str, Any]:
-    """Risposta di un'azione: esito, messaggio in italiano ed eventuali sezioni di risultato."""
-    return {"ok": bool(ok), "message": message, "tone": tone or ("success" if ok else "danger"), "sections": list(sections or [])}
+def esito(ok: bool, message: str, *, tone: str = "", sections: list[dict[str, Any]] | None = None, navigate: str = "") -> dict[str, Any]:
+    """Risposta di un'azione: esito, messaggio in italiano, sezioni di risultato e
+    l'eventuale pagina interna da aprire dopo (studio creato, accesso allo studio,
+    uscita dall'account)."""
+    risposta = {"ok": bool(ok), "message": message, "tone": tone or ("success" if ok else "danger"), "sections": list(sections or [])}
+    if navigate.startswith("/") and not navigate.startswith("//"):
+        risposta["navigate"] = navigate
+    return risposta
 
 
 def sezione_visibile(sezione: dict[str, Any]) -> bool:

@@ -1,5 +1,36 @@
 # Changelog
 
+## 2.416.0 — 27/09/2026
+
+Quinto blocco della migrazione a React: studi, utenti e manutenzione del
+server nel pannello di piattaforma.
+
+- **Studi legali**: elenco con ricerca e filtri per stato e piano, creazione
+  dello studio (dati, piano, strategia di archivio, amministratore), scheda
+  dello studio con modifica dei dati, moduli, piano, sospensione e
+  riattivazione, rigenerazione della chiave riservata (mostrata una sola volta),
+  calcolo dello spazio e accesso allo studio; utenti dello studio (nuovo,
+  nuova password, attivazione, eliminazione); configurazione dell'archivio con
+  attivazione di PostgreSQL, riparazione e prova della connessione.
+- **Utenti di piattaforma**: modifica, nuova password, nuovo superamministratore,
+  trasferimento del ruolo e spostamento di un account dentro uno studio;
+  quando la sessione cambia si torna all'accesso.
+- **Server e manutenzione**: tutte le analisi e le operazioni della vista
+  storica (copie doppie dei fascicoli, collegamenti PEC, frammenti per la
+  ricerca, spazio e compattazione dei database, compattazione per studio,
+  ottimizzazione, conservazione dei backup, backup immediato, pulizia di
+  Docker, cartelle escluse, manutenzione professionale, registri di sistema,
+  normativa globale), con conferma per le operazioni che modificano dati.
+- Le pagine del pannello ricevono le parti dell'indirizzo (lo studio di
+  `/admin/studi/<slug>`) e le azioni possono aprire un'altra pagina al termine.
+- Il pannello mostra i percorsi del server come le viste storiche: la
+  sanificazione delle risposte li cancellava (resta per tracce ed eccezioni).
+- Le azioni dell'account che si cambia da solo (superamministratore) portano
+  all'accesso; i moduli storici tornano alla vista classica.
+- Corretti due difetti della vista storica: il messaggio di attivazione e
+  disattivazione di un utente dello studio era invertito, e la modifica del
+  superamministratore non si salvava mai.
+
 ## 2.415.0 — 27/09/2026
 
 Quarto blocco della migrazione a React: le pagine del pannello di piattaforma

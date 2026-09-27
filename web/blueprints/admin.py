@@ -209,6 +209,8 @@ def dashboard():
 @admin_bp.route("/utenti-piattaforma")
 @superadmin_required
 def utenti_piattaforma():
+    if not vista_classica_richiesta():
+        return render_piattaforma_shell("utenti-piattaforma", "Utenti di piattaforma")
     gu = _utenti_piattaforma()
     gu.ensure_platform_superadmin()
     utenti_globali = _utenti_globali_piattaforma(gu)
@@ -277,7 +279,7 @@ def genera_superadmin_piattaforma():
     except Exception as exc:
         current_app.logger.exception("Errore generazione superadmin piattaforma: %s", exc)
         flash(f"Errore durante la generazione del SUPERADMIN: {exc}", "danger")
-        return redirect(url_for("admin.utenti_piattaforma"))
+        return redirect(url_for("admin.utenti_piattaforma", _legacy=1))
 
     if current_superadmin_id and nuovo_superadmin.id != current_superadmin_id:
         session.clear()
@@ -292,7 +294,7 @@ def genera_superadmin_piattaforma():
         f"Account piattaforma '{nuovo_superadmin.username}' riallineato come SUPERADMIN.",
         "success",
     )
-    return redirect(url_for("admin.utenti_piattaforma"))
+    return redirect(url_for("admin.utenti_piattaforma", _legacy=1))
 
 
 @admin_bp.route("/utenti-piattaforma/<uid>/reset-password", methods=["POST"])
@@ -302,7 +304,7 @@ def reset_password_piattaforma(uid: str):
     nuova_password = request.form.get("nuova_password", "").strip()
     if not nuova_password:
         flash("La nuova password non puo' essere vuota.", "danger")
-        return redirect(url_for("admin.utenti_piattaforma"))
+        return redirect(url_for("admin.utenti_piattaforma", _legacy=1))
 
     utente = gu.get(uid)
     if not utente or str(getattr(utente, "tenant_slug", "") or "").strip():
@@ -313,7 +315,7 @@ def reset_password_piattaforma(uid: str):
         f"Password temporanea dell'account piattaforma '{utente.username}' aggiornata. Al prossimo accesso dovra cambiarla.",
         "success",
     )
-    return redirect(url_for("admin.utenti_piattaforma"))
+    return redirect(url_for("admin.utenti_piattaforma", _legacy=1))
 
 
 @admin_bp.route("/utenti-piattaforma/<uid>/modifica", methods=["POST"])
@@ -333,7 +335,7 @@ def modifica_utente_piattaforma(uid: str):
             "Il SUPERADMIN di piattaforma non puo' essere disattivato da qui. Trasferisci prima il ruolo a un altro account globale.",
             "danger",
         )
-        return redirect(url_for("admin.utenti_piattaforma"))
+        return redirect(url_for("admin.utenti_piattaforma", _legacy=1))
 
     try:
         aggiornato = gu.aggiorna(
@@ -360,7 +362,7 @@ def modifica_utente_piattaforma(uid: str):
     except Exception as exc:
         current_app.logger.exception("Errore modifica account piattaforma %s: %s", uid, exc)
         flash(f"Errore durante la modifica dell'account piattaforma: {exc}", "danger")
-    return redirect(url_for("admin.utenti_piattaforma"))
+    return redirect(url_for("admin.utenti_piattaforma", _legacy=1))
 
 
 @admin_bp.route("/utenti-piattaforma/<uid>/trasferisci-superadmin", methods=["POST"])
@@ -374,7 +376,7 @@ def trasferisci_superadmin_piattaforma(uid: str):
     sorgente = _superadmin_corrente_piattaforma(gu)
     if not sorgente:
         flash("Nessun SUPERADMIN globale attivo trovato in piattaforma.", "danger")
-        return redirect(url_for("admin.utenti_piattaforma"))
+        return redirect(url_for("admin.utenti_piattaforma", _legacy=1))
 
     ruolo_precedente_raw = str(
         request.form.get("ruolo_superadmin_precedente", RuoloUtente.AMMINISTRATORE.value) or ""
@@ -407,7 +409,7 @@ def trasferisci_superadmin_piattaforma(uid: str):
             exc,
         )
         flash(f"Errore durante il trasferimento del ruolo SUPERADMIN: {exc}", "danger")
-        return redirect(url_for("admin.utenti_piattaforma"))
+        return redirect(url_for("admin.utenti_piattaforma", _legacy=1))
 
     if getattr(getattr(g, "utente_corrente", None), "id", "") == sorgente.id:
         session.clear()
@@ -422,7 +424,7 @@ def trasferisci_superadmin_piattaforma(uid: str):
         f"Il ruolo SUPERADMIN ora appartiene all'account piattaforma '{nuovo_superadmin.username}'.",
         "success",
     )
-    return redirect(url_for("admin.utenti_piattaforma"))
+    return redirect(url_for("admin.utenti_piattaforma", _legacy=1))
 
 
 @admin_bp.route("/utenti-piattaforma/<uid>/sposta-nello-studio", methods=["POST"])
@@ -433,23 +435,23 @@ def sposta_utente_piattaforma_nello_studio(uid: str):
 
     if not tenant_slug:
         flash("Seleziona lo studio di destinazione.", "danger")
-        return redirect(url_for("admin.utenti_piattaforma"))
+        return redirect(url_for("admin.utenti_piattaforma", _legacy=1))
 
     try:
         ruolo_destinazione = RuoloUtente(ruolo_raw)
     except ValueError:
         flash("Ruolo di studio non valido.", "danger")
-        return redirect(url_for("admin.utenti_piattaforma"))
+        return redirect(url_for("admin.utenti_piattaforma", _legacy=1))
 
     if ruolo_destinazione == RuoloUtente.SUPERADMIN:
         flash("Il ruolo SUPERADMIN non puo' essere assegnato dentro uno studio.", "danger")
-        return redirect(url_for("admin.utenti_piattaforma"))
+        return redirect(url_for("admin.utenti_piattaforma", _legacy=1))
 
     tm = _tenant_manager()
     studio = tm.get(tenant_slug)
     if not studio:
         flash("Studio di destinazione non trovato.", "danger")
-        return redirect(url_for("admin.utenti_piattaforma"))
+        return redirect(url_for("admin.utenti_piattaforma", _legacy=1))
 
     gu_piattaforma = _utenti_piattaforma()
     utente = gu_piattaforma.get(uid)
@@ -460,7 +462,7 @@ def sposta_utente_piattaforma_nello_studio(uid: str):
             "Non puoi spostare fuori dalla piattaforma l'unico SUPERADMIN. Trasferisci prima il ruolo a un altro account.",
             "danger",
         )
-        return redirect(url_for("admin.utenti_piattaforma"))
+        return redirect(url_for("admin.utenti_piattaforma", _legacy=1))
 
     gu_tenant = _utenti_tenant(tenant_slug)
     if gu_tenant.get_by_username(utente.username):
@@ -468,7 +470,7 @@ def sposta_utente_piattaforma_nello_studio(uid: str):
             f"Nello studio '{studio.nome}' esiste gia' un utente con username '{utente.username}'.",
             "danger",
         )
-        return redirect(url_for("admin.utenti_piattaforma"))
+        return redirect(url_for("admin.utenti_piattaforma", _legacy=1))
 
     importato = None
     try:
@@ -528,7 +530,7 @@ def sposta_utente_piattaforma_nello_studio(uid: str):
                     rollback_exc,
                 )
         flash(f"Errore durante lo spostamento nello studio: {exc}", "danger")
-    return redirect(url_for("admin.utenti_piattaforma"))
+    return redirect(url_for("admin.utenti_piattaforma", _legacy=1))
 
 
 @admin_bp.route("/osservabilita")
@@ -649,6 +651,8 @@ def lex_scorecard():
 @admin_bp.route("/studi")
 @superadmin_required
 def lista_studi():
+    if not vista_classica_richiesta():
+        return render_piattaforma_shell("studi", "Studi legali")
     tm = _tenant_manager()
     tm.verifica_scadenze()
     filtro_stato = request.args.get("stato", "")
@@ -676,6 +680,8 @@ def lista_studi():
 @admin_bp.route("/studi/nuovo", methods=["GET", "POST"])
 @superadmin_required
 def nuovo_studio():
+    if request.method == "GET" and not vista_classica_richiesta():
+        return render_piattaforma_shell("studio-nuovo", "Nuovo studio")
     if request.method == "POST":
         nome         = request.form.get("nome", "").strip()
         slug         = request.form.get("slug", "").strip()
@@ -754,7 +760,7 @@ def nuovo_studio():
         except Exception as e:
             current_app.logger.exception("Errore creazione amministratore studio: %s", e)
             flash("Studio creato, ma la creazione dell'amministratore non è riuscita.", "warning")
-            return redirect(url_for("admin.dettaglio_studio", slug=slug))
+            return redirect(url_for("admin.dettaglio_studio", slug=slug, _legacy=1))
 
         provisioning = tm.provision_storage_backend(
             slug,
@@ -770,8 +776,8 @@ def nuovo_studio():
                 flash("SQLite attivato: studio.db è pronto per questo tenant.", "info")
         if db_mode == DbMode.POSTGRESQL:
             flash("Configura ora i parametri di connessione PostgreSQL.", "info")
-            return redirect(url_for("admin.database_studio", slug=slug))
-        return redirect(url_for("admin.dettaglio_studio", slug=slug))
+            return redirect(url_for("admin.database_studio", slug=slug, _legacy=1))
+        return redirect(url_for("admin.dettaglio_studio", slug=slug, _legacy=1))
 
     return render_template("admin/studio_nuovo.html", piani=PIANI,
                            db_mode_info=DB_MODE_INFO, db_mode_choices=_db_mode_choices(), form={})
@@ -784,6 +790,8 @@ def dettaglio_studio(slug: str):
     studio = tm.get(slug)
     if not studio:
         abort(404)
+    if not vista_classica_richiesta():
+        return render_piattaforma_shell("studio", studio.nome, {"slug": slug})
 
     gu = _utenti_tenant(slug)
     utenti = gu.lista()
@@ -830,7 +838,7 @@ def modifica_studio(slug: str):
         note_admin=request.form.get("note_admin", "").strip(),
     )
     flash("Dati studio aggiornati.", "success")
-    return redirect(url_for("admin.dettaglio_studio", slug=slug))
+    return redirect(url_for("admin.dettaglio_studio", slug=slug, _legacy=1))
 
 
 @admin_bp.route("/studi/<slug>/moduli", methods=["POST"])
@@ -844,7 +852,7 @@ def aggiorna_moduli(slug: str):
     moduli_selezionati = request.form.getlist("moduli")
     tm.aggiorna_moduli(slug, moduli_selezionati)
     flash(f"Moduli aggiornati: {len(moduli_selezionati)} attivi.", "success")
-    return redirect(url_for("admin.dettaglio_studio", slug=slug))
+    return redirect(url_for("admin.dettaglio_studio", slug=slug, _legacy=1))
 
 
 @admin_bp.route("/studi/<slug>/piano", methods=["POST"])
@@ -855,7 +863,7 @@ def aggiorna_piano(slug: str):
     studio = tm.aggiorna_piano(slug, piano)
     if studio:
         flash(f"Piano aggiornato a {PIANI[piano]['nome']}.", "success")
-    return redirect(url_for("admin.dettaglio_studio", slug=slug))
+    return redirect(url_for("admin.dettaglio_studio", slug=slug, _legacy=1))
 
 
 @admin_bp.route("/studi/<slug>/sospendi", methods=["POST"])
@@ -864,7 +872,7 @@ def sospendi_studio(slug: str):
     tm = _tenant_manager()
     tm.sospendi(slug)
     flash("Studio sospeso.", "warning")
-    return redirect(url_for("admin.dettaglio_studio", slug=slug))
+    return redirect(url_for("admin.dettaglio_studio", slug=slug, _legacy=1))
 
 
 @admin_bp.route("/studi/<slug>/riattiva", methods=["POST"])
@@ -873,7 +881,7 @@ def riattiva_studio(slug: str):
     tm = _tenant_manager()
     tm.riattiva(slug)
     flash("Studio riattivato.", "success")
-    return redirect(url_for("admin.dettaglio_studio", slug=slug))
+    return redirect(url_for("admin.dettaglio_studio", slug=slug, _legacy=1))
 
 
 @admin_bp.route("/studi/<slug>/rigenera-api-key", methods=["POST"])
@@ -883,7 +891,7 @@ def rigenera_api_key(slug: str):
     nuova = tm.rigenera_api_key(slug)
     if nuova:
         flash(f"Nuova API key generata: {nuova}", "info")
-    return redirect(url_for("admin.dettaglio_studio", slug=slug))
+    return redirect(url_for("admin.dettaglio_studio", slug=slug, _legacy=1))
 
 
 @admin_bp.route("/studi/<slug>/impersona", methods=["POST"])
@@ -906,7 +914,7 @@ def impersona_studio(slug: str):
     )
     if not admin_studio:
         flash("Nessun utente AMMINISTRATORE trovato per questo studio.", "danger")
-        return redirect(url_for("admin.dettaglio_studio", slug=slug))
+        return redirect(url_for("admin.dettaglio_studio", slug=slug, _legacy=1))
 
     # Salva sessione superadmin originale
     session["superadmin_user_id"]     = session.get("user_id")
@@ -952,6 +960,8 @@ def utenti_studio(slug: str):
     studio = tm.get(slug)
     if not studio:
         abort(404)
+    if not vista_classica_richiesta():
+        return render_piattaforma_shell("studio-utenti", f"Utenti di {studio.nome}", {"slug": slug})
     gu = _utenti_tenant(slug)
     utenti = [u for u in gu.lista() if _utente_del_tenant(u, slug)]
     return render_template(
@@ -978,7 +988,7 @@ def crea_utente(slug: str):
     limite = studio.limite_utenti
     if limite > 0 and len(utenti_esistenti) >= limite:
         flash(f"Limite utenti raggiunto ({limite}) per il piano {studio.piano}.", "danger")
-        return redirect(url_for("admin.utenti_studio", slug=slug))
+        return redirect(url_for("admin.utenti_studio", slug=slug, _legacy=1))
 
     username     = request.form.get("username", "").strip()
     password     = request.form.get("password", "").strip()
@@ -988,7 +998,7 @@ def crea_utente(slug: str):
 
     if not username or not password:
         flash("Username e password sono obbligatori.", "danger")
-        return redirect(url_for("admin.utenti_studio", slug=slug))
+        return redirect(url_for("admin.utenti_studio", slug=slug, _legacy=1))
 
     try:
         ruolo = RuoloUtente(ruolo_str)
@@ -1011,7 +1021,7 @@ def crea_utente(slug: str):
     except Exception as e:
         flash(f"Errore: {e}", "danger")
 
-    return redirect(url_for("admin.utenti_studio", slug=slug))
+    return redirect(url_for("admin.utenti_studio", slug=slug, _legacy=1))
 
 
 @admin_bp.route("/studi/<slug>/utenti/<uid>/reset-password", methods=["POST"])
@@ -1021,7 +1031,7 @@ def reset_password_utente(slug: str, uid: str):
     nuova_password = request.form.get("nuova_password", "").strip()
     if not nuova_password:
         flash("La nuova password non può essere vuota.", "danger")
-        return redirect(url_for("admin.utenti_studio", slug=slug))
+        return redirect(url_for("admin.utenti_studio", slug=slug, _legacy=1))
 
     u = gu.get(uid)
     if not u or not _utente_del_tenant(u, slug):
@@ -1033,7 +1043,7 @@ def reset_password_utente(slug: str, uid: str):
         f"Password temporanea di '{u.username}' aggiornata. Al prossimo accesso dovra cambiarla.",
         "success",
     )
-    return redirect(url_for("admin.utenti_studio", slug=slug))
+    return redirect(url_for("admin.utenti_studio", slug=slug, _legacy=1))
 
 
 @admin_bp.route("/studi/<slug>/utenti/<uid>/attiva-disattiva", methods=["POST"])
@@ -1047,7 +1057,7 @@ def toggle_utente(slug: str, uid: str):
     _sync_tenant_user_directory()
     stato = "attivato" if not u.attivo else "disattivato"
     flash(f"Utente '{u.username}' {stato}.", "info")
-    return redirect(url_for("admin.utenti_studio", slug=slug))
+    return redirect(url_for("admin.utenti_studio", slug=slug, _legacy=1))
 
 
 @admin_bp.route("/studi/<slug>/utenti/<uid>/elimina", methods=["POST"])
@@ -1060,7 +1070,7 @@ def elimina_utente(slug: str, uid: str):
     gu.elimina(uid)
     _sync_tenant_user_directory()
     flash(f"Utente '{u.username}' eliminato.", "warning")
-    return redirect(url_for("admin.utenti_studio", slug=slug))
+    return redirect(url_for("admin.utenti_studio", slug=slug, _legacy=1))
 
 
 # ============================================================= Database config
@@ -1072,6 +1082,8 @@ def database_studio(slug: str):
     studio = tm.get(slug)
     if not studio:
         abort(404)
+    if request.method == "GET" and not vista_classica_richiesta():
+        return render_piattaforma_shell("studio-database", f"Archivio di {studio.nome}", {"slug": slug})
 
     def _to_int(value, default: int) -> int:
         try:
@@ -1086,14 +1098,14 @@ def database_studio(slug: str):
 
         if mode not in _db_mode_choices(studio.database.mode):
             flash("Strategia storage non consentita per questo studio.", "danger")
-            return redirect(url_for("admin.database_studio", slug=slug))
+            return redirect(url_for("admin.database_studio", slug=slug, _legacy=1))
 
         if current_mode == DbMode.SQLITE and mode == DbMode.JSON:
             flash(
                 "Il ritorno diretto da SQLite a JSON non e' consentito senza una migrazione esplicita dei dati.",
                 "danger",
             )
-            return redirect(url_for("admin.database_studio", slug=slug))
+            return redirect(url_for("admin.database_studio", slug=slug, _legacy=1))
 
         cfg = DatabaseConfig(
             mode=mode,
@@ -1158,7 +1170,7 @@ def database_studio(slug: str):
                 flash("Dati JSON migrati in studio.db.", "info")
             elif provisioning.get("sqlite_ready"):
                 flash("SQLite pronto: studio.db disponibile per i moduli core compatibili.", "info")
-            return redirect(url_for("admin.database_studio", slug=slug))
+            return redirect(url_for("admin.database_studio", slug=slug, _legacy=1))
 
         if mode == DbMode.POSTGRESQL and action == "activate_postgres":
             provisioning = tm.provision_storage_backend(
@@ -1181,13 +1193,13 @@ def database_studio(slug: str):
                     or "Attivazione PostgreSQL non completata: verifica connessione e report di migrazione.",
                     "danger",
                 )
-            return redirect(url_for("admin.database_studio", slug=slug))
+            return redirect(url_for("admin.database_studio", slug=slug, _legacy=1))
 
         flash(
             "Configurazione PostgreSQL salvata. Esegui il test connessione e poi l'attivazione esplicita del backend core.",
             "success",
         )
-        return redirect(url_for("admin.database_studio", slug=slug))
+        return redirect(url_for("admin.database_studio", slug=slug, _legacy=1))
 
     return render_template(
         "admin/studio_database.html",
@@ -1245,7 +1257,7 @@ def ripara_runtime_studio(slug: str):
         )
         for errore in report.get("errors", [])[:3]:
             flash(str(errore), "warning")
-    return redirect(url_for("admin.database_studio", slug=slug))
+    return redirect(url_for("admin.database_studio", slug=slug, _legacy=1))
 
 
 @admin_bp.route("/studi/<slug>/database/test", methods=["POST"])

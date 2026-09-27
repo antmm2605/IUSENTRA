@@ -4,17 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>IUSENTRA per lo studio legale</title>
-<meta name="description" content="IUSENTRA è il gestionale per studi legali italiani: fascicoli, scadenze calcolate sul c.p.c., deposito telematico PCT, PEC collegate da sole e Lex AI che cita solo fonti ufficiali.">
+<meta name="description" content="IUSENTRA è il gestionale per studi legali italiani: PEC lette e collegate da sole, termini calcolati sul c.p.c., agenda, editor atti, deposito telematico, portale clienti, parcelle e Lex AI con fonti ufficiali.">
 <meta name="theme-color" content="#071329">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
 <link rel="stylesheet" href="assets/stile.css">
 </head>
 <body>
 <!--CONTENUTO-->
 <a class="salta" href="#contenuto">Vai al contenuto</a>
+<div class="avanzamento" aria-hidden="true"><span id="avanzamento"></span></div>
 
 <header class="barra">
   <div class="barra-in">
@@ -23,232 +24,341 @@
       <span class="marchio-nome">IUSENTRA</span>
     </a>
     <nav class="menu" aria-label="Sezioni">
-      <a href="#funzioni">Funzioni</a>
-      <a href="#fiducia">Conformità</a>
+      <a href="#giornata">Una giornata</a>
+      <a href="#vetrina">Il software</a>
+      <a href="#moduli">Funzioni</a>
       <a href="#prezzi">Prezzi</a>
-      <a href="#domande">Domande</a>
     </nav>
-    <a class="bottone bottone-oro bottone-piccolo" href="#demo">Richiedi una demo</a>
+    <a class="bottone bottone-oro bottone-piccolo" href="#demo">Prenota la demo</a>
   </div>
 </header>
 
 <main id="contenuto">
 
-  <!-- APERTURA -->
+  <!-- ============ APERTURA ============ -->
   <section class="apertura" id="inizio">
     <div class="apertura-griglia">
       <div class="apertura-testo">
         <p class="occhiello">Il gestionale per lo studio legale italiano</p>
-        <h1>Il tuo studio, <em>in ordine.</em><br>Ogni termine, <em>sotto controllo.</em></h1>
-        <p class="apertura-sotto">Fascicoli, scadenze, PEC, depositi telematici e parcelle in un solo posto. IUSENTRA legge, collega e ti avvisa. Tu decidi.</p>
+        <h1>Il lavoro dello studio, <em>riscritto.</em></h1>
+        <p class="apertura-sotto">Arriva una PEC. IUSENTRA la legge, la collega al fascicolo, calcola i termini, li mette in agenda e aggiorna il cliente. <strong>A te resta un clic: conferma.</strong></p>
         <div class="apertura-azioni">
-          <a class="bottone bottone-oro" href="#demo">Richiedi una demo gratuita</a>
-          <a class="bottone bottone-vetro" href="#funzioni">Guarda cosa fa</a>
+          <a class="bottone bottone-oro bottone-grande" href="#demo">Prenota la demo gratuita <span aria-hidden="true">→</span></a>
+          <a class="bottone bottone-vetro" href="#giornata">Guarda una giornata tipo</a>
         </div>
         <ul class="apertura-punti">
-          <li>Deposito PCT, PDP e PAT</li>
-          <li>Termini secondo il c.p.c. riformato</li>
-          <li>Dati in Italia, GDPR</li>
+          <li>30 minuti, sui tuoi fascicoli</li>
+          <li>Nessuna installazione</li>
+          <li>Nessun impegno</li>
         </ul>
       </div>
 
-      <!-- Schizzo: Panoramica -->
-      <div class="finestra finestra-grande" aria-label="Anteprima della Panoramica di IUSENTRA con dati di esempio" role="img">
+      <!-- La catena: il momento centrale della pagina -->
+      <div class="catena finestra" id="catena" aria-label="Esempio animato: da una PEC in arrivo all'agenda, con dati di esempio" role="img">
         <div class="finestra-barra">
           <span class="pallini" aria-hidden="true"><i></i><i></i><i></i></span>
-          <span class="finestra-titolo">Panoramica · Studio Legale Esempio</span>
+          <span class="finestra-titolo">IUSENTRA · lavoro automatico</span>
+          <span class="catena-orologio" id="catena-orologio">09:14</span>
         </div>
-        <div class="pano">
-          <div class="pano-saluto">
-            <strong>Buongiorno, Avv. Rossi</strong>
-            <span>Oggi hai 2 udienze e 3 scadenze</span>
-          </div>
-          <div class="pano-contatori">
-            <div><b>27</b><span>fascicoli attivi</span></div>
-            <div><b>3</b><span>scadenze oggi</span></div>
-            <div><b class="ok">4</b><span>PEC collegate</span></div>
-          </div>
-          <div class="pano-lista">
-            <div class="riga riga-urgente">
-              <span class="riga-giorno"><b>12</b>giorni</span>
-              <span class="riga-testo"><b>Memoria art. 171-ter n. 1</b><small>RG 4512/2026 · Trib. Milano</small></span>
-              <span class="chip chip-rosso">Urgente</span>
-            </div>
-            <div class="riga">
-              <span class="riga-giorno"><b>09:30</b>oggi</span>
-              <span class="riga-testo"><b>Udienza di prima comparizione</b><small>RG 1188/2026 · Trib. Monza</small></span>
-              <span class="chip chip-blu">Agenda</span>
-            </div>
-            <div class="riga">
-              <span class="riga-giorno"><b>3</b>giorni</span>
-              <span class="riga-testo"><b>Deposito note scritte</b><small>RG 732/2025 · C. App. Milano</small></span>
-              <span class="chip chip-oro">Da preparare</span>
-            </div>
-          </div>
-          <div class="pano-avviso" aria-hidden="true">
-            <span class="pano-avviso-punto"></span>
-            <span data-giro="avviso">Nuova PEC dalla cancelleria collegata a RG 4512/2026</span>
-          </div>
+        <ol class="catena-passi">
+          <li class="anello">
+            <span class="anello-icona icona-pec" aria-hidden="true"></span>
+            <span class="anello-testo"><small>PEC in arrivo</small><b>Cancelleria · Tribunale di Milano</b><i>Comunicazione, proc. n. 4512/2026 R.G.</i></span>
+          </li>
+          <li class="anello">
+            <span class="anello-icona icona-occhio" aria-hidden="true"></span>
+            <span class="anello-testo"><small>Letta e capita</small><b>Fissata udienza al 18 gennaio 2027</b><i>Prima comparizione, art. 183 c.p.c.</i></span>
+          </li>
+          <li class="anello">
+            <span class="anello-icona icona-cartella" aria-hidden="true"></span>
+            <span class="anello-testo"><small>Collegata</small><b>Fascicolo Rossi c/ Bianchi</b><i>PEC, allegati e ricevute archiviati</i></span>
+          </li>
+          <li class="anello">
+            <span class="anello-icona icona-bilancia" aria-hidden="true"></span>
+            <span class="anello-testo"><small>Termini calcolati</small><b>Memoria n. 1 entro il 9 dicembre 2026</b><i>art. 171-ter c.p.c. · poi 29 dicembre e 8 gennaio</i></span>
+          </li>
+          <li class="anello">
+            <span class="anello-icona icona-calendario" aria-hidden="true"></span>
+            <span class="anello-testo"><small>In agenda</small><b>Udienza e 3 scadenze con promemoria</b><i>Sincronizzate sul tuo calendario</i></span>
+          </li>
+          <li class="anello anello-finale">
+            <span class="anello-icona icona-persona" aria-hidden="true"></span>
+            <span class="anello-testo"><small>Tocca a te</small><b>Confermi e il cliente viene aggiornato</b><i>Sul portale clienti, senza telefonate</i></span>
+            <span class="anello-bottone">Conferma</span>
+          </li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="striscia" aria-label="Cosa sostituisce IUSENTRA">
+      <div class="striscia-nastro">
+        <span>Fascicoli</span><span>Agenda</span><span>Scadenziario</span><span>PEC</span><span>Deposito PCT · PDP · PAT</span><span>Editor atti</span><span>Firma digitale</span><span>Portale clienti</span><span>Notifiche in proprio</span><span>Preventivi</span><span>Fattura elettronica</span><span>Pagamenti</span><span>Lex AI</span>
+        <span aria-hidden="true">Fascicoli</span><span aria-hidden="true">Agenda</span><span aria-hidden="true">Scadenziario</span><span aria-hidden="true">PEC</span><span aria-hidden="true">Deposito PCT · PDP · PAT</span><span aria-hidden="true">Editor atti</span><span aria-hidden="true">Firma digitale</span><span aria-hidden="true">Portale clienti</span><span aria-hidden="true">Notifiche in proprio</span><span aria-hidden="true">Preventivi</span><span aria-hidden="true">Fattura elettronica</span><span aria-hidden="true">Pagamenti</span><span aria-hidden="true">Lex AI</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PRIMA / DOPO ============ -->
+  <section class="confronto">
+    <div class="contenitore">
+      <p class="occhiello">Cosa cambia da lunedì</p>
+      <h2 class="titolo-sezione">Le stesse ore. <em>Tutt'altro lavoro.</em></h2>
+      <div class="confronto-tabella" role="table" aria-label="Il lavoro dello studio oggi e con IUSENTRA">
+        <div class="confronto-riga confronto-intesta" role="row">
+          <span role="columnheader">Oggi</span>
+          <span role="columnheader">Con IUSENTRA</span>
+        </div>
+        <div class="confronto-riga" role="row">
+          <span role="cell" class="prima">Apri la PEC, scarichi, rinomini, archivi. Una per una.</span>
+          <span role="cell" class="dopo">La PEC è già nel fascicolo giusto, con allegati e ricevute.</span>
+        </div>
+        <div class="confronto-riga" role="row">
+          <span role="cell" class="prima">Conti i giorni sul calendario e speri di non sbagliare.</span>
+          <span role="cell" class="dopo">I termini sono calcolati sul c.p.c. e già in agenda.</span>
+        </div>
+        <div class="confronto-riga" role="row">
+          <span role="cell" class="prima">Copi i dati delle parti nell'atto, a mano, ogni volta.</span>
+          <span role="cell" class="dopo">L'editor compila l'atto con i dati del fascicolo.</span>
+        </div>
+        <div class="confronto-riga" role="row">
+          <span role="cell" class="prima">PDF/A, firma, busta, redattore esterno. Poi controlli le ricevute.</span>
+          <span role="cell" class="dopo">Deposito guidato e ricevute seguite fino alla cancelleria.</span>
+        </div>
+        <div class="confronto-riga" role="row">
+          <span role="cell" class="prima">Il cliente telefona per sapere a che punto è.</span>
+          <span role="cell" class="dopo">Il cliente lo vede sul suo portale. E carica i documenti lì.</span>
+        </div>
+        <div class="confronto-riga" role="row">
+          <span role="cell" class="prima">Parcelle su un foglio di calcolo, fatture su un altro programma.</span>
+          <span role="cell" class="dopo">Preventivo a norma, fattura elettronica e incasso online.</span>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- IL PROBLEMA -->
-  <section class="problema">
-    <div class="contenitore problema-griglia">
-      <h2 class="titolo-sezione">Lo studio perde tempo <em>dove non dovrebbe.</em></h2>
-      <div class="problema-voci">
-        <p><strong>Le PEC si accumulano.</strong> Ricevute, comunicazioni di cancelleria e notifiche vanno lette, capite e archiviate a mano, una per una.</p>
-        <p><strong>I termini si calcolano su carta.</strong> Dopo la riforma Cartabia un conteggio sbagliato costa caro, e nessuno vuole ricontrollarlo alle undici di sera.</p>
-        <p><strong>Il deposito è un percorso a ostacoli.</strong> PDF/A, firma, busta, quattro ricevute da seguire. Basta un passaggio saltato per ricominciare.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- FUNZIONI -->
-  <section class="funzioni" id="funzioni">
+  <!-- ============ UNA GIORNATA ============ -->
+  <section class="giornata" id="giornata">
     <div class="contenitore">
-      <p class="occhiello occhiello-scuro">Cosa fa IUSENTRA</p>
-      <h2 class="titolo-sezione titolo-scuro">Sei cose che oggi fai a mano. <em>Da domani no.</em></h2>
-
-      <div class="mosaico">
-
-        <!-- 1 Scadenziario (grande) -->
-        <article class="tessera tessera-larga">
-          <div class="tessera-testo">
-            <h3>Scadenze calcolate sul codice</h3>
-            <p>Inserisci l'udienza e IUSENTRA ricava i termini a ritroso secondo il c.p.c. riformato, con festività e sospensione feriale. Li mette in agenda e ti avvisa prima.</p>
-          </div>
-          <div class="schizzo schizzo-termini" aria-hidden="true">
-            <div class="termini-asse">
-              <div class="termine"><span class="termine-g">−40 gg</span><b>Memoria n. 1</b><small>art. 171-ter c.p.c.</small></div>
-              <div class="termine"><span class="termine-g">−20 gg</span><b>Memoria n. 2</b><small>art. 171-ter c.p.c.</small></div>
-              <div class="termine"><span class="termine-g">−10 gg</span><b>Memoria n. 3</b><small>art. 171-ter c.p.c.</small></div>
-              <div class="termine termine-udienza"><span class="termine-g">Udienza</span><b>Prima comparizione</b><small>art. 183 c.p.c.</small></div>
-            </div>
-          </div>
-        </article>
-
-        <!-- 2 Deposito -->
-        <article class="tessera tessera-alta">
-          <div class="tessera-testo">
-            <h3>Deposito telematico guidato</h3>
-            <p>Civile, penale e amministrativo. Controllo PDF/A, firma digitale, busta pronta. Poi segui le ricevute fino all'esito della cancelleria.</p>
-          </div>
-          <ol class="schizzo schizzo-ricevute" aria-label="Le quattro ricevute del deposito civile">
-            <li data-passo="0"><span class="spunta" aria-hidden="true"></span>Accettazione PEC</li>
-            <li data-passo="1"><span class="spunta" aria-hidden="true"></span>Avvenuta consegna</li>
-            <li data-passo="2"><span class="spunta" aria-hidden="true"></span>Esito controlli automatici</li>
-            <li data-passo="3"><span class="spunta" aria-hidden="true"></span>Accettazione della cancelleria</li>
-          </ol>
-        </article>
-
-        <!-- 3 PEC -->
-        <article class="tessera">
-          <div class="tessera-testo">
-            <h3>PEC che si archiviano da sole</h3>
-            <p>IUSENTRA legge le PEC in arrivo, riconosce il numero di ruolo e le collega al fascicolo giusto, con allegati e ricevute.</p>
-          </div>
-          <div class="schizzo schizzo-pec" aria-hidden="true">
-            <div class="pec-mail">
-              <span class="pec-da">Da: Cancelleria · Tribunale di Milano</span>
-              <b>Comunicazione di cancelleria</b>
-              <small>Proc. n. 4512/2026 R.G.</small>
-            </div>
-            <div class="pec-freccia"></div>
-            <div class="pec-fascicolo"><span class="chip chip-verde">Collegata</span> Fascicolo Rossi c/ Bianchi</div>
-          </div>
-        </article>
-
-        <!-- 4 Fascicoli -->
-        <article class="tessera">
-          <div class="tessera-testo">
-            <h3>Fascicoli e clienti in un posto</h3>
-            <p>Parti, documenti, udienze, note e storico. Cerchi una parola e la trovi anche dentro i PDF scansionati.</p>
-          </div>
-          <div class="schizzo schizzo-cerca" aria-hidden="true">
-            <div class="cerca-campo"><span class="cerca-lente"></span><span data-giro="cerca">decreto ingiuntivo</span><span class="cursore"></span></div>
-            <div class="cerca-risultato"><b>Ricorso per D.I.</b><small>Verdi Srl · pag. 3</small></div>
-            <div class="cerca-risultato"><b>Opposizione a D.I.</b><small>Neri c/ Alfa Spa · pag. 1</small></div>
-          </div>
-        </article>
-
-        <!-- 5 Preventivi -->
-        <article class="tessera">
-          <div class="tessera-testo">
-            <h3>Preventivi e parcelle a norma</h3>
-            <p>Compensi calcolati sui parametri forensi, preventivo pronto per il cliente, fattura elettronica verso lo SdI.</p>
-          </div>
-          <div class="schizzo schizzo-preventivo" aria-hidden="true">
-            <div class="prev-intesta">Tribunale · valore da € 5.201 a € 26.000</div>
-            <div class="prev-riga"><span>Fase di studio</span><span>€ 919</span></div>
-            <div class="prev-riga"><span>Fase introduttiva</span><span>€ 777</span></div>
-            <div class="prev-riga"><span>Fase istruttoria</span><span>€ 1.680</span></div>
-            <div class="prev-riga"><span>Fase decisionale</span><span>€ 1.701</span></div>
-            <div class="prev-riga prev-totale"><span>Compenso medio</span><span>€ 5.077</span></div>
-            <div class="prev-nota">Valori medi D.M. 55/2014 aggiornato dal D.M. 147/2022</div>
-          </div>
-        </article>
-
-        <!-- 6 Lex AI (larga) -->
-        <article class="tessera tessera-larga tessera-notte">
-          <div class="tessera-testo">
-            <h3>Lex AI. Risponde con la fonte, <em>o non risponde.</em></h3>
-            <p>L'assistente che conosce i tuoi fascicoli e cita solo norme e sentenze verificate su fonti ufficiali. Se la fonte non c'è, te lo dice invece di inventare.</p>
-          </div>
-          <div class="schizzo schizzo-lex" aria-hidden="true">
-            <div class="lex-domanda">Entro quando devo depositare la prima memoria nel fascicolo Rossi?</div>
-            <div class="lex-risposta">
-              <p>La memoria integrativa n. 1 va depositata <b>almeno 40 giorni prima</b> dell'udienza di prima comparizione del 18 gennaio 2027: entro il <b>9 dicembre 2026</b>.</p>
-              <div class="lex-fonti">
-                <span class="chip chip-fonte">art. 171-ter c.p.c.</span>
-                <span class="chip chip-fonte">Normattiva · fonte ufficiale</span>
-              </div>
-            </div>
-          </div>
-        </article>
-
-      </div>
-      <p class="nota-esempi">Le schermate sono illustrazioni con dati di esempio.</p>
-    </div>
-  </section>
-
-  <!-- COME FUNZIONA -->
-  <section class="passi">
-    <div class="contenitore">
-      <p class="occhiello occhiello-scuro">Come si parte</p>
-      <h2 class="titolo-sezione titolo-scuro">Operativi in tre passaggi.</h2>
-      <ol class="passi-lista">
-        <li>
-          <span class="passo-n">1</span>
-          <h3>Colleghi la PEC dello studio</h3>
-          <p>IUSENTRA inizia a leggere le comunicazioni e riconosce i procedimenti già in corso.</p>
+      <p class="occhiello occhiello-scuro">Una giornata con IUSENTRA</p>
+      <h2 class="titolo-sezione titolo-scuro">Dalle 8:30 alle 18:30, <em>senza rincorrere nulla.</em></h2>
+      <ol class="ore">
+        <li class="ora">
+          <span class="ora-segno">08:30</span>
+          <div><h3>Apri la Panoramica</h3><p>Udienze del giorno, scadenze in arrivo, PEC nuove. Tutto su una schermata, anche dal telefono.</p></div>
         </li>
-        <li>
-          <span class="passo-n">2</span>
-          <h3>Importi fascicoli e clienti</h3>
-          <p>Da file, dal gestionale precedente o partendo dalle PEC ricevute. Ti accompagniamo noi.</p>
+        <li class="ora">
+          <span class="ora-segno">09:15</span>
+          <div><h3>Le PEC sono già al loro posto</h3><p>Comunicazioni di cancelleria lette e collegate. Le nuove udienze ti aspettano solo per la conferma.</p></div>
         </li>
-        <li>
-          <span class="passo-n">3</span>
-          <h3>Lavori, e controlli tutto</h3>
-          <p>Scadenze in agenda, depositi guidati, parcelle pronte. Ogni proposta aspetta la tua conferma.</p>
+        <li class="ora">
+          <span class="ora-segno">11:00</span>
+          <div><h3>In udienza, con il fascicolo in tasca</h3><p>Atti, verbali e note a portata di mano. Il rinvio lo segni lì e i nuovi termini si ricalcolano.</p></div>
+        </li>
+        <li class="ora">
+          <span class="ora-segno">13:00</span>
+          <div><h3>Il cliente carica i documenti</h3><p>Dal portale clienti arrivano carta d'identità e contratto. Firma il mandato online. Tu non hai inseguito nessuno.</p></div>
+        </li>
+        <li class="ora">
+          <span class="ora-segno">15:00</span>
+          <div><h3>Scrivi l'atto nell'editor</h3><p>Parte da un modello, si compila con parti, ufficio e numero di ruolo. Lo firmi con la tua smart card.</p></div>
+        </li>
+        <li class="ora">
+          <span class="ora-segno">17:30</span>
+          <div><h3>Depositi in pochi passaggi</h3><p>Controllo PDF/A, busta, invio. Le quattro ricevute arrivano e si archiviano da sole.</p></div>
+        </li>
+        <li class="ora ora-fine">
+          <span class="ora-segno">18:30</span>
+          <div><h3>Chiudi la giornata</h3><p>La parcella è pronta, la fattura elettronica è partita. Domani la Panoramica ti dirà da dove ripartire.</p></div>
         </li>
       </ol>
     </div>
   </section>
 
-  <!-- FIDUCIA -->
+  <!-- ============ VETRINA INTERATTIVA ============ -->
+  <section class="vetrina" id="vetrina">
+    <div class="contenitore">
+      <p class="occhiello">Guardaci dentro</p>
+      <h2 class="titolo-sezione">Tutto lo studio. <em>Un solo software.</em></h2>
+      <p class="vetrina-sotto">Tocca una voce e guarda come si lavora.</p>
+
+      <div class="vetrina-corpo">
+        <div class="schede" role="tablist" aria-label="Funzioni di IUSENTRA">
+          <button class="scheda" role="tab" id="t-agenda" aria-controls="p-agenda" aria-selected="true">Agenda e scadenze</button>
+          <button class="scheda" role="tab" id="t-portale" aria-controls="p-portale" aria-selected="false" tabindex="-1">Portale clienti</button>
+          <button class="scheda" role="tab" id="t-editor" aria-controls="p-editor" aria-selected="false" tabindex="-1">Editor atti</button>
+          <button class="scheda" role="tab" id="t-deposito" aria-controls="p-deposito" aria-selected="false" tabindex="-1">Deposito telematico</button>
+          <button class="scheda" role="tab" id="t-pec" aria-controls="p-pec" aria-selected="false" tabindex="-1">PEC e notifiche</button>
+          <button class="scheda" role="tab" id="t-parcelle" aria-controls="p-parcelle" aria-selected="false" tabindex="-1">Parcelle e fatture</button>
+          <button class="scheda" role="tab" id="t-lex" aria-controls="p-lex" aria-selected="false" tabindex="-1">Lex AI</button>
+        </div>
+
+        <div class="finestra vetrina-finestra">
+          <div class="finestra-barra">
+            <span class="pallini" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="finestra-titolo" id="vetrina-titolo">iusentra · Agenda</span>
+          </div>
+
+          <!-- Agenda -->
+          <div class="pannello" role="tabpanel" id="p-agenda" aria-labelledby="t-agenda" data-titolo="Agenda">
+            <div class="pannello-testo">
+              <h3>Agenda e scadenziario che si scrivono da soli</h3>
+              <p>Udienze, scadenze e appuntamenti in una vista. I termini nascono dall'udienza, con festività e sospensione feriale. Si sincronizza con Google, Outlook e Apple.</p>
+            </div>
+            <div class="settimana" aria-hidden="true">
+              <div class="giorno"><span class="giorno-n">Lun <b>7</b></span><span class="ev ev-udienza">09:30 Udienza · Trib. Monza</span><span class="ev ev-app">15:00 Cliente Verdi</span></div>
+              <div class="giorno"><span class="giorno-n">Mar <b>8</b></span><span class="ev ev-app">10:00 Mediazione</span></div>
+              <div class="giorno giorno-oggi"><span class="giorno-n">Mer <b>9</b></span><span class="ev ev-scadenza">Memoria 171-ter n. 1 · Rossi</span><span class="ev ev-udienza">12:00 Udienza · GdP Milano</span></div>
+              <div class="giorno"><span class="giorno-n">Gio <b>10</b></span><span class="ev ev-scadenza">Note scritte · C. App.</span></div>
+              <div class="giorno"><span class="giorno-n">Ven <b>11</b></span><span class="ev ev-app">09:00 Riunione studio</span></div>
+            </div>
+            <div class="chip-riga" aria-hidden="true"><span class="chip chip-chiaro">Google Calendar</span><span class="chip chip-chiaro">Outlook</span><span class="chip chip-chiaro">Apple</span><span class="chip chip-chiaro">Promemoria sul telefono</span></div>
+          </div>
+
+          <!-- Portale clienti -->
+          <div class="pannello" role="tabpanel" id="p-portale" aria-labelledby="t-portale" data-titolo="Portale clienti" hidden>
+            <div class="pannello-testo">
+              <h3>Il cliente vede, carica, firma, paga</h3>
+              <p>Ogni cliente ha il suo accesso protetto: stato della pratica, documenti da caricare, mandato e preventivo da firmare, parcelle da pagare online e link per la videochiamata.</p>
+            </div>
+            <div class="telefono" aria-hidden="true">
+              <div class="telefono-schermo">
+                <span class="tel-saluto">Ciao Marco</span>
+                <div class="tel-card"><small>La tua pratica</small><b>Rossi c/ Bianchi</b><span>Prossima udienza: 18 gennaio 2027</span></div>
+                <div class="tel-card tel-azione"><small>Ti chiediamo</small><b>Carta d'identità</b><span class="tel-bottone">Carica</span></div>
+                <div class="tel-card tel-azione"><small>Da firmare</small><b>Mandato professionale</b><span class="tel-bottone">Firma</span></div>
+                <div class="tel-card tel-azione"><small>Da pagare</small><b>Acconto · € 800,00</b><span class="tel-bottone tel-bottone-oro">Paga</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Editor -->
+          <div class="pannello" role="tabpanel" id="p-editor" aria-labelledby="t-editor" data-titolo="Editor atti" hidden>
+            <div class="pannello-testo">
+              <h3>Scrivi l'atto dove sta il fascicolo</h3>
+              <p>Un editor completo con i modelli degli atti, compilati con i dati del fascicolo. Controlli sui requisiti di legge, timbro dello studio, esportazione in PDF/A e firma.</p>
+            </div>
+            <div class="editor" aria-hidden="true">
+              <div class="editor-strumenti"><i>B</i><i>I</i><i>U</i><span></span><em>Modello: Atto di citazione</em></div>
+              <div class="editor-pagina">
+                <p class="editor-centro">TRIBUNALE DI <mark>MILANO</mark></p>
+                <p class="editor-centro"><b>ATTO DI CITAZIONE</b></p>
+                <p>Il sig. <mark>Marco Rossi</mark>, C.F. <mark>RSSMRC80A01F205X</mark>, rappresentato e difeso dall'Avv. <mark>Laura Conti</mark>…</p>
+                <p class="editor-centro">CITA</p>
+                <p>il sig. <mark>Paolo Bianchi</mark> a comparire all'udienza del <mark>18 gennaio 2027</mark><span class="editor-cursore"></span></p>
+              </div>
+              <div class="editor-controlli">
+                <span class="spunta-mini"></span>Requisiti art. 163 c.p.c.
+                <span class="spunta-mini"></span>PDF/A
+                <span class="spunta-mini"></span>Pronto per la firma
+              </div>
+            </div>
+          </div>
+
+          <!-- Deposito -->
+          <div class="pannello" role="tabpanel" id="p-deposito" aria-labelledby="t-deposito" data-titolo="Deposito telematico" hidden>
+            <div class="pannello-testo">
+              <h3>Depositi civili, penali e amministrativi</h3>
+              <p>PCT, portale penale PDP e processo amministrativo PAT. Busta generata, firma controllata, e le ricevute seguite fino all'esito della cancelleria.</p>
+            </div>
+            <div class="busta" aria-hidden="true">
+              <div class="busta-intesta"><b>Memoria integrativa n. 1</b><span>RG 4512/2026 · Tribunale di Milano</span></div>
+              <ol class="ricevute">
+                <li data-passo="0"><span class="spunta"></span>Accettazione PEC</li>
+                <li data-passo="1"><span class="spunta"></span>Avvenuta consegna</li>
+                <li data-passo="2"><span class="spunta"></span>Esito controlli automatici</li>
+                <li data-passo="3"><span class="spunta"></span>Accettazione della cancelleria</li>
+              </ol>
+            </div>
+          </div>
+
+          <!-- PEC -->
+          <div class="pannello" role="tabpanel" id="p-pec" aria-labelledby="t-pec" data-titolo="PEC e notifiche" hidden>
+            <div class="pannello-testo">
+              <h3>La casella PEC che si ordina da sola</h3>
+              <p>Riconosce comunicazioni, ricevute e notifiche, trova il numero di ruolo e le collega al fascicolo. E con le notifiche in proprio via PEC prepari relata e prove di consegna.</p>
+            </div>
+            <div class="posta" aria-hidden="true">
+              <div class="posta-riga"><span class="chip chip-blu-chiaro">Comunicazione</span><b>Cancelleria · Trib. Milano</b><small>Proc. 4512/2026 → Rossi c/ Bianchi</small></div>
+              <div class="posta-riga"><span class="chip chip-verde">Ricevuta</span><b>Avvenuta consegna</b><small>Deposito memoria → Rossi c/ Bianchi</small></div>
+              <div class="posta-riga"><span class="chip chip-oro-chiaro">Notifica</span><b>Notifica in proprio L. 53/1994</b><small>Relata firmata · consegna ricevuta</small></div>
+              <div class="posta-riga"><span class="chip chip-blu-chiaro">Comunicazione</span><b>Corte d'Appello di Milano</b><small>RG 732/2025 → Verdi Srl</small></div>
+            </div>
+          </div>
+
+          <!-- Parcelle -->
+          <div class="pannello" role="tabpanel" id="p-parcelle" aria-labelledby="t-parcelle" data-titolo="Parcelle e fatture" hidden>
+            <div class="pannello-testo">
+              <h3>Dal preventivo all'incasso</h3>
+              <p>Compensi sui parametri forensi, preventivo inviato al cliente, fattura elettronica verso lo SdI e pagamento online con carta.</p>
+            </div>
+            <div class="preventivo" aria-hidden="true">
+              <div class="prev-intesta">Tribunale · valore da € 5.201 a € 26.000</div>
+              <div class="prev-riga"><span>Fase di studio</span><span>€ 919</span></div>
+              <div class="prev-riga"><span>Fase introduttiva</span><span>€ 777</span></div>
+              <div class="prev-riga"><span>Fase istruttoria</span><span>€ 1.680</span></div>
+              <div class="prev-riga"><span>Fase decisionale</span><span>€ 1.701</span></div>
+              <div class="prev-riga prev-totale"><span>Compenso medio</span><span>€ 5.077</span></div>
+              <div class="prev-stati"><span class="chip chip-verde">Preventivo accettato</span><span class="chip chip-blu-chiaro">Fattura consegnata SdI</span><span class="chip chip-oro-chiaro">Acconto incassato</span></div>
+              <div class="prev-nota">Valori medi D.M. 55/2014 aggiornato dal D.M. 147/2022</div>
+            </div>
+          </div>
+
+          <!-- Lex -->
+          <div class="pannello" role="tabpanel" id="p-lex" aria-labelledby="t-lex" data-titolo="Lex AI" hidden>
+            <div class="pannello-testo">
+              <h3>L'assistente che non inventa</h3>
+              <p>Lex AI conosce i tuoi fascicoli e cita solo norme e sentenze trovate su fonti ufficiali. Se la fonte non c'è, te lo dice.</p>
+            </div>
+            <div class="lex" aria-hidden="true">
+              <div class="lex-domanda">Entro quando devo depositare la prima memoria nel fascicolo Rossi?</div>
+              <div class="lex-risposta">
+                <p>La memoria integrativa n. 1 va depositata <b>almeno 40 giorni prima</b> dell'udienza del 18 gennaio 2027: entro il <b>9 dicembre 2026</b>.</p>
+                <div class="chip-riga"><span class="chip chip-fonte">art. 171-ter c.p.c.</span><span class="chip chip-fonte">Normattiva · fonte ufficiale</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="nota-esempi">Illustrazioni con dati di esempio.</p>
+    </div>
+  </section>
+
+  <!-- ============ TUTTE LE FUNZIONI ============ -->
+  <section class="moduli" id="moduli">
+    <div class="contenitore">
+      <p class="occhiello occhiello-scuro">E non finisce qui</p>
+      <h2 class="titolo-sezione titolo-scuro">Tutto quello che serve. <em>Già dentro.</em></h2>
+      <ul class="moduli-griglia">
+        <li><b>Fascicoli e clienti</b><span>Parti, documenti, udienze, storico. Anagrafiche con controllo del codice fiscale.</span></li>
+        <li><b>Ricerca nei documenti</b><span>Trovi una parola anche dentro i PDF scansionati, grazie all'OCR.</span></li>
+        <li><b>Firma digitale</b><span>CAdES e PAdES con smart card o chiavetta, su Windows, Mac e Linux.</span></li>
+        <li><b>Consultazione dei registri</b><span>Fascicoli dal Portale dei Servizi Telematici, con gli atti raggruppati per deposito.</span></li>
+        <li><b>648 uffici giudiziari</b><span>Tribunali, Corti, Procure, Giudici di pace e TAR, con le PEC ufficiali.</span></li>
+        <li><b>Messaggi ai clienti</b><span>Email, PEC, SMS e WhatsApp dallo stesso fascicolo, con lo storico.</span></li>
+        <li><b>Pagamenti online</b><span>Link di pagamento con carta per acconti e parcelle.</span></li>
+        <li><b>Mediazione e ADR</b><span>Indennità e procedure secondo il D.M. 150/2023.</span></li>
+        <li><b>Squadra e permessi</b><span>Avvocati, praticanti e segreteria, ognuno con il suo ruolo.</span></li>
+        <li><b>Privacy GDPR</b><span>Registro dei trattamenti e informative per i clienti.</span></li>
+        <li><b>Sul telefono</b><span>Si installa come un'app, con notifiche e agenda sempre con te.</span></li>
+        <li><b>Backup e registro azioni</b><span>Copie dei dati e ogni azione rilevante tracciata.</span></li>
+      </ul>
+      <div class="intermezzo">
+        <p>Fai il conto dei programmi che usi oggi. <strong>Da domani ne basta uno.</strong></p>
+        <a class="bottone bottone-notte" href="#demo">Voglio vederlo in azione <span aria-hidden="true">→</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FIDUCIA ============ -->
   <section class="fiducia" id="fiducia">
     <div class="contenitore fiducia-griglia">
       <div>
         <p class="occhiello">Nato dalle norme</p>
         <h2 class="titolo-sezione">Ogni funzione ha <em>la sua norma.</em></h2>
-        <p class="fiducia-testo">IUSENTRA non inventa nulla. Calcoli, flussi e testi derivano da leggi, decreti e specifiche tecniche del Ministero, conservati e datati. Ogni azione rilevante viene registrata e resta ricostruibile.</p>
+        <p class="fiducia-testo">IUSENTRA non inventa nulla. Calcoli, flussi e testi derivano da leggi, decreti e specifiche tecniche del Ministero, conservati e datati. Nulla cambia in agenda senza la tua conferma, e ogni azione rilevante resta ricostruibile.</p>
       </div>
       <ul class="norme">
-        <li><span>D.M. 44/2011</span>Deposito telematico civile e specifiche DGSIA</li>
+        <li><span>D.M. 44/2011</span>Deposito telematico e specifiche DGSIA</li>
         <li><span>D.Lgs. 149/2022</span>Termini del processo civile riformato</li>
         <li><span>D.M. 217/2023</span>Deposito penale sul portale PDP</li>
         <li><span>D.Lgs. 104/2010</span>Processo amministrativo telematico</li>
@@ -260,7 +370,7 @@
     </div>
   </section>
 
-  <!-- PREZZI -->
+  <!-- ============ PREZZI ============ -->
   <section class="prezzi" id="prezzi">
     <div class="contenitore">
       <p class="occhiello occhiello-scuro">Prezzi</p>
@@ -272,11 +382,11 @@
           <p class="piano-prezzo segnaposto">€ —<small>/mese</small></p>
           <ul>
             <li>1 utente</li>
-            <li>Fascicoli, clienti, agenda e scadenze</li>
+            <li>Fascicoli, agenda e scadenze</li>
             <li>PEC collegate ai fascicoli</li>
-            <li>Deposito telematico guidato</li>
+            <li>Editor atti e deposito telematico</li>
           </ul>
-          <a class="bottone bottone-contorno" href="#demo">Richiedi una demo</a>
+          <a class="bottone bottone-contorno" href="#demo">Prenota la demo</a>
         </article>
         <article class="piano piano-scelto">
           <span class="piano-etichetta">Il più scelto</span>
@@ -286,10 +396,11 @@
           <ul>
             <li>Tutto del piano Avvocato</li>
             <li>Utenti con ruoli e permessi</li>
+            <li>Portale clienti e pagamenti online</li>
             <li>Preventivi, parcelle e fattura elettronica</li>
             <li>Lex AI sui fascicoli dello studio</li>
           </ul>
-          <a class="bottone bottone-oro" href="#demo">Richiedi una demo</a>
+          <a class="bottone bottone-oro" href="#demo">Prenota la demo</a>
         </article>
         <article class="piano">
           <h3>Grande studio</h3>
@@ -308,7 +419,7 @@
     </div>
   </section>
 
-  <!-- DOMANDE -->
+  <!-- ============ DOMANDE ============ -->
   <section class="domande" id="domande">
     <div class="contenitore domande-griglia">
       <h2 class="titolo-sezione titolo-scuro">Domande <em>frequenti.</em></h2>
@@ -322,30 +433,41 @@
           <p>Prepara e controlla la busta, e per il civile la invia via PEC con il tuo consenso. Sul portale penale PDP il deposito resta nelle tue mani, perché il Ministero non lo consente ai gestionali: IUSENTRA prepara tutto e verifica poi le ricevute.</p>
         </details>
         <details>
-          <summary>L'intelligenza artificiale può sbagliare una citazione?</summary>
-          <p>Lex AI mostra solo riferimenti che trova nelle fonti ufficiali. Se non trova una fonte, non risponde e te lo dice. Le proposte su scadenze e date aspettano sempre la tua conferma.</p>
+          <summary>E se IUSENTRA legge male una data?</summary>
+          <p>Ogni data letta da PEC e documenti viene controllata. Le udienze e i termini che cambiano la tua agenda ti vengono sempre proposti per la conferma, prima di diventare scadenze.</p>
         </details>
         <details>
-          <summary>Dove sono conservati i miei dati?</summary>
-          <p>Su server nell'Unione europea, separati da quelli degli altri studi e cifrati. Il registro dei trattamenti GDPR è già incluso.</p>
+          <summary>L'intelligenza artificiale può inventare una citazione?</summary>
+          <p>Lex AI mostra solo riferimenti che trova nelle fonti ufficiali. Se non trova una fonte, non risponde e te lo dice.</p>
+        </details>
+        <details>
+          <summary>I miei clienti devono installare un'app?</summary>
+          <p>No. Ricevono un link personale e protetto al portale clienti, che si apre dal telefono o dal computer.</p>
         </details>
         <details>
           <summary>Posso portare i dati dal mio gestionale attuale?</summary>
-          <p>Sì. Importiamo clienti, fascicoli e scadenze e ti affianchiamo nei primi giorni.</p>
+          <p>Sì. Importiamo clienti, fascicoli e scadenze, anche dai calendari che usi oggi, e ti affianchiamo nei primi giorni.</p>
         </details>
       </div>
     </div>
   </section>
 
-  <!-- DEMO -->
+  <!-- ============ DEMO ============ -->
   <section class="chiusura" id="demo">
     <div class="contenitore chiusura-griglia">
       <div>
-        <h2 class="titolo-sezione">Vedi IUSENTRA <em>sui tuoi fascicoli.</em></h2>
-        <p class="chiusura-testo">Trenta minuti in videochiamata. Ti mostriamo scadenze, PEC e deposito su un caso reale del tuo lavoro. Nessun impegno.</p>
-        <p class="chiusura-contatto">Oppure scrivi a <span class="selezionabile segnaposto">commerciale@iusentra.it</span></p>
+        <p class="occhiello">La demo gratuita</p>
+        <h2 class="titolo-sezione chiusura-titolo">Trenta minuti. <em>Poi decidi tu.</em></h2>
+        <p class="chiusura-testo">In videochiamata ti mostriamo IUSENTRA su un caso vero del tuo lavoro: una PEC, un termine, un deposito. Vedrai la tua prossima settimana, già organizzata.</p>
+        <ul class="chiusura-punti">
+          <li>Senza installare nulla</li>
+          <li>Senza impegno e senza carta di credito</li>
+          <li>Con le risposte sul tuo modo di lavorare</li>
+        </ul>
+        <p class="chiusura-contatto">Preferisci scrivere? <span class="selezionabile segnaposto">commerciale@iusentra.it</span></p>
       </div>
       <form class="modulo" id="modulo-demo" novalidate>
+        <p class="modulo-titolo">Prenota la tua demo</p>
         <div class="campo">
           <label for="demo-nome">Nome e cognome</label>
           <input id="demo-nome" name="nome" autocomplete="name" required>
@@ -371,7 +493,7 @@
           <input id="demo-privacy" name="privacy" type="checkbox" required>
           <span>Ho letto l'informativa privacy e acconsento a essere ricontattato.</span>
         </label>
-        <button class="bottone bottone-oro bottone-pieno" type="submit">Prenota la demo</button>
+        <button class="bottone bottone-oro bottone-pieno bottone-grande" type="submit">Prenota la demo gratuita</button>
         <p class="modulo-esito" id="modulo-esito" role="status" aria-live="polite"></p>
       </form>
     </div>
@@ -385,6 +507,10 @@
     <span class="piede-link"><a href="#fiducia">Conformità</a><a href="#prezzi">Prezzi</a><a href="#demo">Contatti</a></span>
   </div>
 </footer>
+
+<div class="cta-mobile" id="cta-mobile" hidden>
+  <a class="bottone bottone-oro bottone-pieno" href="#demo">Prenota la demo gratuita</a>
+</div>
 <!--/CONTENUTO-->
 <script src="assets/app.js"></script>
 </body>

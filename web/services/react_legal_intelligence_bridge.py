@@ -1076,6 +1076,7 @@ def _safe_news_record(row: Mapping[str, Any], index: int) -> dict[str, Any]:
         "approvalLabel": status or "pubblicata",
         "approvalTone": _tone(status or "published"),
         "legacyHref": f"/ricerca-legale/news?scheda={slug}" if slug else "/ricerca-legale/news",
+        "detailHref": f"/ricerca-legale/news/{slug}" if slug else "",
         "evidenceType": "fonte ufficiale" if source_kind == "fonte ufficiale" else "fonte",
     }
 

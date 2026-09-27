@@ -12246,6 +12246,15 @@ def fatturazione_detail_page(id_documento: str):
         id_documento=id_documento,
         sdi_cfg=getattr(_studio_config_runtime(), "sdi", None),
     )
+    if status == 200 and isinstance(result.get("item"), dict):
+        # Link di pagamento ed eliminazione della bozza (ex vista /fatturazione/<id>).
+        from web.services.react_fatturazione_scheda_azioni import azioni_scheda
+
+        parcella = get_fatturazione().get(id_documento)
+        if parcella is not None:
+            result["item"]["sheetActions"] = azioni_scheda(
+                parcella, get_pagamenti=get_pagamenti, host_url=request.host_url, can_write=_puo_scrivere_fatturazione()
+            )
     return _jsonify_redacted(result), status
 
 

@@ -203,6 +203,12 @@ def _route_component_key(path: str) -> str:
         return "src/components/ClientiCollaboratoriPage.tsx"
     if _modello_di_studio(lower):
         return "src/components/TemplateStudioPage.tsx"
+    if _scheda_ricerca_legale(lower):
+        return "src/components/RicercaLegaleSchedaPage.tsx"
+    if _checklist_atti(lower):
+        return "src/components/ChecklistAttiPage.tsx"
+    if _contenuti_del_sito(lower):
+        return "src/components/SitoStudioContenutiPage.tsx"
     for prefix, component in _ROUTE_COMPONENTS:
         if lower == prefix or lower.startswith(f"{prefix}/"):
             return component
@@ -226,7 +232,22 @@ def _sito_studio_react_allowed(lower: str) -> bool:
     if lower in _SITO_STUDIO_REACT_SUBPATHS:
         return True
     parts = [part for part in lower.strip("/").split("/") if part]
-    return len(parts) == 4 and parts[0] == "sito-studio" and parts[1] == "articoli" and parts[2].isdigit() and parts[3] == "modifica"
+    if len(parts) == 4 and parts[0] == "sito-studio" and parts[1] == "articoli" and parts[2].isdigit() and parts[3] == "modifica":
+        return True
+    return _contenuti_del_sito(lower)
+
+
+def _contenuti_del_sito(lower: str) -> bool:
+    """Servizi, professionisti, sedi, orari, impostazioni e nuovo articolo: SitoStudioContenutiPage React."""
+    parts = [part for part in lower.strip("/").split("/") if part]
+    if parts[:1] != ["sito-studio"] or len(parts) < 2:
+        return False
+    if parts[1:] in (["impostazioni"], ["articoli", "nuovo"]):
+        return True
+    if parts[1] not in {"servizi", "professionisti", "sedi", "regole-agenda"}:
+        return False
+    coda = parts[2:]
+    return coda in ([], ["nuovo"], ["nuova"]) or (len(coda) == 2 and coda[0].isdigit() and coda[1] == "modifica")
 
 
 def _collect_manifest_assets(manifest: dict[str, Any], key: str) -> dict[str, list[str]]:
@@ -493,6 +514,27 @@ def _modello_di_studio(lower: str) -> bool:
     return len(parti) == 3 and parti[2] in {"modifica", "usa"} and parti[1] not in {"compila", "catalogo", "editor", "scheda"}
 
 
+def _scheda_ricerca_legale(lower: str) -> bool:
+    """News, scheda della fonte e variazione rilevata: RicercaLegaleSchedaPage React."""
+    parti = [parte for parte in lower.strip("/").split("/") if parte]
+    if parti[:1] != ["ricerca-legale"]:
+        return False
+    if len(parti) == 3 and parti[1] in {"news", "fonte"}:
+        return True
+    return len(parti) == 5 and parti[1:3] == ["daily", "update"] and parti[3].isdigit() and parti[4] == "diff"
+
+
+def _checklist_atti(lower: str) -> bool:
+    """Checklist degli atti e percorso guidato del fascicolo: ChecklistAttiPage React."""
+    parti = [parte for parte in lower.strip("/").split("/") if parte]
+    if parti[:1] == ["checklist"]:
+        return len(parti) <= 2
+    if len(parti) >= 4 and parti[0] == "fascicoli" and parti[2] == "wizard":
+        coda = parti[4:]
+        return coda in ([], ["completa"]) or (len(coda) == 2 and coda[0] == "step" and coda[1].isdigit())
+    return False
+
+
 def _deve_mantenere_vista_classica() -> bool:
     """Blocca promozioni React non validate fuori dalla shell progressiva."""
 
@@ -506,6 +548,9 @@ def _deve_mantenere_vista_classica() -> bool:
     if enabled:
         return False
     lower = path.lower()
+    # Checklist degli atti e raccolta guidata del fascicolo: ChecklistAttiPage React.
+    if _checklist_atti(lower):
+        return False
     if lower.startswith("/fascicoli/") and lower.endswith("/copertina"):
         return True
     if lower.startswith("/fascicoli/") and lower.endswith("/deposito/prepara"):
@@ -560,6 +605,8 @@ def _deve_mantenere_vista_classica() -> bool:
         return True
     # Modelli di studio (nuovo, scheda, modifica, compilazione): TemplateStudioPage React.
     if _modello_di_studio(lower):
+        return False
+    if _scheda_ricerca_legale(lower):
         return False
     if lower == "/template-atti/nuovo":
         return True

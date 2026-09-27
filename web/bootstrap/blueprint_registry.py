@@ -44,6 +44,30 @@ BLUEPRINT_REGISTRY: tuple[BlueprintRegistration, ...] = (
         "/api/v1/ui/template-atti/studio",
     ),
     BlueprintRegistration(
+        "api_v1_fatturazione_scheda",
+        "web.blueprints.api_v1_fatturazione_scheda",
+        "api_v1_fatturazione_scheda",
+        "/api/v1/ui/fatturazione",
+    ),
+    BlueprintRegistration(
+        "api_v1_ricerca_legale",
+        "web.blueprints.api_v1_ricerca_legale",
+        "api_v1_ricerca_legale",
+        "/api/v1/ui/ricerca-legale",
+    ),
+    BlueprintRegistration(
+        "api_v1_checklist",
+        "web.blueprints.api_v1_checklist",
+        "api_v1_checklist",
+        "/api/v1/ui/checklist",
+    ),
+    BlueprintRegistration(
+        "api_v1_sito_studio_contenuti",
+        "web.blueprints.api_v1_sito_studio_contenuti",
+        "api_v1_sito_studio_contenuti",
+        "/api/v1/ui/sito-studio/contenuti",
+    ),
+    BlueprintRegistration(
         "api_v1_document_tools",
         "web.blueprints.api_v1_document_tools",
         "api_v1_document_tools",

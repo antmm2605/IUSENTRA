@@ -1,0 +1,114 @@
+.iu-sitoc-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.iu-sitoc-tabs a {
+  padding: 6px 12px;
+  border: 1px solid var(--iu-border);
+  border-radius: 999px;
+  color: inherit;
+  font-size: 0.88rem;
+  text-decoration: none;
+}
+
+.iu-sitoc-tabs a[aria-current='page'] {
+  border-color: var(--iu-primary, #1d4ed8);
+  font-weight: 600;
+}
+
+.iu-sitoc-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.iu-sitoc-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.iu-sitoc-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--iu-border);
+  border-radius: 8px;
+}
+
+.iu-sitoc-list li.is-current {
+  border-color: var(--iu-primary, #1d4ed8);
+}
+
+.iu-sitoc-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.iu-sitoc-field {
+  display: grid;
+  gap: 4px;
+  font-size: 0.88rem;
+}
+
+.iu-sitoc-field--wide,
+.iu-sitoc-actions,
+.iu-sitoc-form .iu-sitoc-msg {
+  grid-column: 1 / -1;
+}
+
+.iu-sitoc-field input,
+.iu-sitoc-field select,
+.iu-sitoc-field textarea {
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--iu-border);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.iu-sitoc-field--check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.iu-sitoc-field--check input {
+  min-height: auto;
+}
+
+.iu-sitoc-field small {
+  color: var(--iu-muted);
+}
+
+.iu-sitoc-field small.is-error,
+.iu-sitoc-msg.is-error {
+  color: var(--iu-danger, #b42318);
+}
+
+.iu-sitoc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.iu-sitoc-msg {
+  margin: 0 0 12px;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 900px) {
+  .iu-sitoc-layout,
+  .iu-sitoc-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

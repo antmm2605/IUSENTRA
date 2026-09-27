@@ -362,7 +362,8 @@ def test_sito_studio_prenotazione_approvata_si_sincronizza_in_agenda(tmp_path: P
             follow_redirects=True,
         )
     assert response.status_code == 200
-    assert "Prenotazioni dal sito" in response.get_data(as_text=True)
+    # Dalla 2.413.0 l'elenco delle prenotazioni è la pagina React dei contatti del sito.
+    assert response.request.path == "/sito-studio/contatti"
 
     with app.app_context():
         repo = studio_site_repository()

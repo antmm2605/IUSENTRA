@@ -1,5 +1,61 @@
 # Changelog
 
+## 2.413.0 — 27/09/2026
+
+Secondo blocco della migrazione a React (`docs/MIGRAZIONE_REACT_COMPLETA.md`):
+
+- **Scheda della parcella** (`/fatturazione/<id>`): si apre nella pagina React
+  anche se il documento non è nell'elenco corrente. Dalla scheda si crea, si
+  rinnova e si copia il **link di pagamento** per il cliente (con invio per
+  email o WhatsApp) e si **elimina la bozza**. Una fattura emessa non si
+  elimina più: si annulla o si rettifica con nota di variazione (art. 21 e
+  art. 26 D.P.R. 633/1972). La vista storica cancellava qualsiasi parcella.
+- **Moduli per un cliente** (`/fatturazione/nuova/<cliente>`,
+  `/preventivi/nuovo/<cliente>`, `/preventivi/conferimento/nuovo/<cliente>`):
+  aprono il modulo React con il cliente già scelto.
+- **Ricerca legale**: la news, la scheda della fonte ufficiale (storico dei
+  controlli con impronta SHA-256, testo in archivio, variazioni rilevate) e le
+  differenze di un aggiornamento sono pagine React; le schede delle news hanno
+  un collegamento alla loro pagina. L'approvazione di una variazione, che la
+  applica al motore dello studio, richiede il permesso di configurazione.
+- **Controllo giornaliero delle fonti ufficiali** nella pagina React della
+  Ricerca legale: fonti controllate, variazioni da approvare con le loro
+  differenze e avvio del controllo, che ora gira in sfondo invece di tenere
+  ferma la richiesta. La scheda di una fonte del registro mostra lo storico e
+  le variazioni della fonte giornaliera dello stesso sito ufficiale: nella
+  vista storica i due elenchi avevano identificativi diversi e la scheda
+  restava sempre vuota.
+- **Checklist degli atti** (`/checklist`, `/checklist/<id>`): catalogo per
+  aree con filtri e scheda dell'atto (documenti da allegare, controlli
+  bloccanti, canale di deposito, nome della cartella).
+- **Raccolta guidata dei documenti** nel fascicolo
+  (`/fascicoli/<id>/wizard/<modello>`): un passo per documento; il file passa
+  dalla stessa via dei caricamenti dello studio (registro delle letture,
+  ricevute pagoPA, indice di Lex), che la vista storica saltava. I documenti
+  facoltativi si possono non allegare, l'indice dei documenti si aggiunge al
+  fascicolo e il deposito si prepara nella sua pagina React, senza duplicarne
+  i controlli.
+- **Consultazione dai portali** (`/polisWeb/documenti`, `/pdp/documenti`,
+  `/polisWeb/fascicolo-wizard`): porta all'acquisizione guidata React con
+  ufficio, numero e anno del ruolo. Il PDP non espone servizi ai gestionali
+  (art. 111-bis c.p.p., D.M. 217/2023).
+- **Sito dello studio**: servizi, professionisti, sedi e orari prenotabili si
+  gestiscono in una pagina React (elenco, nuovo, modifica, eliminazione), come
+  le impostazioni del sito e la bozza di un nuovo articolo. Gli orari si
+  controllano (fine dopo l'inizio, durata e richieste per fascia entro limiti)
+  e una sede con orari prenotabili non si elimina. Le statistiche di visita si
+  attivano solo con il banner dei cookie (Linee guida del Garante privacy,
+  10/06/2021). Pagine, anteprima e prenotazioni portano al builder e ai
+  contatti React.
+- Nel sito dello studio un campo svuotato si svuota davvero: prima un modulo
+  che cancellava una descrizione, un profilo social o gli orari di una sede
+  lasciava il valore precedente.
+
+Suite completa: gli ultimi test legati al calendario (anno ISTAT parziale
+letto dalla serie, non scritto a mano) e alla matrice di sicurezza delle API
+(eccezione dichiarata del token nello scarico pubblico del portale) sono
+allineati al codice.
+
 ## 2.412.0 — 26/09/2026
 
 Primo blocco della migrazione completa a React (piano e avanzamento in

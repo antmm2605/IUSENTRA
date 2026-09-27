@@ -43,6 +43,7 @@ export type LegalIntelligenceRecord = {
   statusDate: string
   isActive: boolean
   legacyHref: string
+  detailHref: string
   evidenceType: string
 }
 
@@ -414,6 +415,7 @@ function normaliseRecord(input: unknown): LegalIntelligenceRecord {
     statusDate: display(item.statusDate),
     isActive: item.isActive === true,
     legacyHref: safeHref(item.legacyHref, '/ricerca-legale'),
+    detailHref: typeof item.detailHref === 'string' && /^\/ricerca-legale\/(news|fonte)\/[^/]+$/.test(item.detailHref) ? item.detailHref : '',
     evidenceType: display(item.evidenceType) || 'informazione',
   }
 }

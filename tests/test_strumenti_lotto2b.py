@@ -11,6 +11,8 @@ catastali.
 
 from __future__ import annotations
 
+from datetime import date
+
 import pytest
 
 from pct.strumenti_legali import GestioneStrumentiLegali
@@ -111,17 +113,37 @@ class TestRivalutazioneMedia:
                 {"rivm_importo": "10000", "rivm_anno_base": "1990", "rivm_anno_target": "2024"}
             )
 
+    @staticmethod
+    def _anno_parziale(gestore) -> int:
+        """L'ultimo anno della serie FOI versionata, con meno di 12 mesi pubblicati.
+
+        Non si scrive l'anno a mano: con la pubblicazione di dicembre un anno
+        diventa definitivo e il test resterebbe fermo a un dato superato.
+        """
+        from pct.calcolatori.rivalutazione_media import _media_annua
+
+        for anno in range(date.today().year + 1, date.today().year - 3, -1):
+            try:
+                _media, mesi = _media_annua(gestore.norme, "foi", anno)
+            except ValueError:
+                continue
+            if mesi < 12:
+                return anno
+        pytest.skip("La serie FOI versionata non ha un anno parziale.")
+
     def test_anno_target_parziale_stima_provvisoria(self, gestore):
+        anno = self._anno_parziale(gestore)
         esito = gestore.calcola_rivalutazione_media(
-            {"rivm_importo": "10000", "rivm_anno_base": "2024", "rivm_anno_target": "2025"}
+            {"rivm_importo": "10000", "rivm_anno_base": str(anno - 1), "rivm_anno_target": str(anno)}
         )
         assert esito["stima_provvisoria"] is True
         assert any("PROVVISORIA" in w for w in esito["warnings"])
 
     def test_anno_base_parziale_fail_closed(self, gestore):
+        anno = self._anno_parziale(gestore)
         with pytest.raises(ValueError):
             gestore.calcola_rivalutazione_media(
-                {"rivm_importo": "10000", "rivm_anno_base": "2025", "rivm_anno_target": "2025"}
+                {"rivm_importo": "10000", "rivm_anno_base": str(anno), "rivm_anno_target": str(anno)}
             )
 
     def test_importo_liquidabile_mai_sotto_nominale(self, gestore):

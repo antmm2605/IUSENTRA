@@ -6,7 +6,7 @@ funzioni, verificate con test. Restano sul server, per natura, le risposte che
 non sono pagine: API JSON, download, documenti da stampare (copertine), PDF,
 azioni POST dei moduli esistenti e ingressi tecnici.
 
-Aggiornato: 26/09/2026 (2.412.0).
+Aggiornato: 27/09/2026 (2.413.0).
 
 ## Regola
 
@@ -28,6 +28,22 @@ Aggiornato: 26/09/2026 (2.412.0).
 | 2.412.0 | `/giurisprudenza/<id>`, `/giurisprudenza/<id>/modifica` | `GiurisprudenzaPage`: scheda dall'indirizzo, modifica con gli stessi campi dell'inserimento |
 | 2.412.0 | `/template-atti/nuovo`, `/template-atti/scheda/<id>`, `/template-atti/<id>/modifica`, `/template-atti/<id>/usa` | `TemplateStudioPage` (API `/api/v1/ui/template-atti/studio`) |
 | 2.412.0 | `/pagamenti/impostazioni/pagamenti` | Reindirizza a Impostazioni › Pagamenti (stessi campi) |
+| 2.413.0 | `/fatturazione/nuova/<cliente>`, `/preventivi/nuovo/<cliente>`, `/preventivi/conferimento/nuovo/<cliente>` | Modulo React con il cliente già scelto (`?id_cliente=`) |
+| 2.413.0 | `/fatturazione/<id>` | `FatturazionePage`: scheda aperta dall'indirizzo, link di pagamento (crea, rinnova, copia, email, WhatsApp), eliminazione della sola bozza |
+| 2.413.0 | `/ricerca-legale/news/<slug>`, `/ricerca-legale/fonte/<id>`, `/ricerca-legale/daily/update/<id>/diff` | `RicercaLegaleSchedaPage` (API `/api/v1/ui/ricerca-legale`): news, fonte con storico e variazioni, differenze con approvazione |
+| 2.413.0 | Controllo giornaliero delle fonti (pagina storica `/ricerca-legale`) | `ControlloGiornalieroPanel` in Ricerca legale: fonti, variazioni, approvazione, avvio in sfondo |
+| 2.413.0 | `/checklist`, `/checklist/<id>` | `ChecklistAttiPage`: catalogo per aree con filtri, scheda dell'atto (documenti, controlli bloccanti, canale, cartella) |
+| 2.413.0 | `/fascicoli/<id>/wizard/<modello>`, `/step/<n>`, `/completa` | `ChecklistAttiPage`: raccolta guidata con la via comune di caricamento dei documenti, passi facoltativi, indice, passaggio al deposito React |
+| 2.413.0 | `/polisWeb/documenti`, `/pdp/documenti`, `/polisWeb/fascicolo-wizard` | Acquisizione guidata React del portale (`/portali/<portale>/acquisizione`) con ufficio, numero e anno del ruolo |
+| 2.413.0 | `/sito-studio/servizi`, `/professionisti`, `/sedi`, `/regole-agenda` (elenco, nuovo, modifica) | `SitoStudioContenutiPage` (API `/api/v1/ui/sito-studio/contenuti`) |
+| 2.413.0 | `/sito-studio/impostazioni`, `/sito-studio/articoli/nuovo` | `SitoStudioContenutiPage`: impostazioni complete del sito; bozza dell'articolo e apertura dell'editor React |
+| 2.413.0 | `/sito-studio/pagine/nuova`, `/sito-studio/pagine/<id>/modifica`, `/sito-studio/preview`, `/sito-studio/prenotazioni` | Builder React (`?page_id=`, anteprima per dispositivo) e contatti React (prenotazioni) |
+
+## Già React (verificato 27/09/2026)
+
+`/portali/<portale>/acquisizione` (acquisizione guidata), `/fascicoli/<id>/deposito/prepara`
+(preparazione del deposito), `/clienti/<id>/faldone`, `/clienti/<id>/portale`,
+`/fascicoli/<id>/collaboratori`: il gate li serve già con la shell React.
 
 ## Documenti, non pagine
 
@@ -40,13 +56,10 @@ Aggiornato: 26/09/2026 (2.412.0).
 | Area | Pagine | Nota |
 |---|---|---|
 | Studio | `/applicazioni` (cabina con strumenti di calcolo interni) | Serve la stessa area di lavoro in React; «Strumenti operativi» mostra solo il catalogo |
-| Studio | `/checklist`, `/checklist/<id>`, `/fascicoli/<id>/wizard/<tpl>/step/<n>`, `/completa` | Flusso Controlli atti |
-| Studio | `/fatturazione/<id>` | Dettaglio parcella dedicato (oggi scheda nella lista) |
-| Studio | `/ricerca-legale/news/<slug>`, `/ricerca-legale/fonte/<id>`, `/ricerca-legale/daily/update/<id>/diff` | Dettagli e differenze |
-| Studio | `/polisWeb/documenti`, `/pdp/documenti`, `/polisWeb/fascicolo-wizard` | Vista a buste per sezione |
+| Studio | `/fascicoli/<id>/documenti/<doc>/editor` | Editor del documento del fascicolo |
+| Supporto | `/support/join/<token>`, `/support/operatore/<id>` | Stanze dell'assistenza remota |
+| Studio | Azioni della pagina storica `/ricerca-legale`: monitoraggio delle fonti, sincronizzazione delle tabelle normative | Da portare nella pagina React prima di togliere la vista storica |
 | Studio | `/fascicoli/<id>/penale/pdp` | Già coperta da `PenalePdpSezione`: togliere i collegamenti storici |
-| Studio | `/fascicoli/<id>/collaboratori`, `/clienti/<id>/faldone`, `/clienti/<id>/portale` | Parità da verificare |
-| Sito Studio | impostazioni, pagine, servizi, professionisti, sedi, regole agenda, prenotazioni, anteprima, nuovo articolo | Parte già nel builder React |
 | Piattaforma | tutto `/admin/*` (studi, utenti piattaforma, governance, pianificazioni, salute, manutenzione, supporto, aggiornamenti legali, copertura AI, osservabilità…) | Area del superamministratore |
 | Pubbliche | `/login`, `/login/2fa`, profilo con password obbligatoria, `/portale/<token>/*`, `/pagamenti/paga/<token>`, `/support/join/<token>`, `/accesso/<token>` | Serve un ingresso React pubblico (come `/portale-cliente`) |
 | Pubbliche | sito dello studio `/web/<slug>/*` | Pagine pubbliche indicizzate dai motori di ricerca: restano rese dal server finché non c'è un rendering React lato server |

@@ -1,0 +1,126 @@
+.iu-rls-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.iu-rls-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.iu-rls-text {
+  margin: 0 0 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.iu-rls-subtitle {
+  margin: 12px 0 6px;
+  font-size: 0.95rem;
+}
+
+.iu-rls-facts {
+  display: grid;
+  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+  gap: 6px 12px;
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.iu-rls-facts dt {
+  color: var(--iu-muted);
+}
+
+.iu-rls-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.iu-rls-table-wrap {
+  overflow-x: auto;
+}
+
+.iu-rls-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.iu-rls-table th,
+.iu-rls-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--iu-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.iu-rls-updates {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.iu-rls-updates li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 12px;
+  padding: 10px;
+  border: 1px solid var(--iu-border);
+  border-radius: 8px;
+}
+
+.iu-rls-updates li > div:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.iu-rls-updates small {
+  color: var(--iu-muted);
+}
+
+.iu-rls-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+
+.iu-rls-diff {
+  max-height: 560px;
+  margin: 12px 0 0;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid var(--iu-border);
+  border-radius: 8px;
+  background: var(--iu-surface-muted, #f6f8fb);
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+}
+
+.iu-rls-warning,
+.iu-rls-notice {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--iu-surface-muted, #f6f8fb);
+  font-size: 0.88rem;
+}
+
+.iu-rls-notice.is-error,
+.iu-rls-warning {
+  color: var(--iu-danger, #b42318);
+}
+
+@media (max-width: 900px) {
+  .iu-rls-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .iu-rls-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

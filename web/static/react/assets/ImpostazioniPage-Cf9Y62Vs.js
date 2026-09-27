@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-srYGT_5D.js";export{e as ImpostazioniPage};

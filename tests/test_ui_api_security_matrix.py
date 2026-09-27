@@ -196,7 +196,13 @@ def test_all_ui_api_endpoints_enforce_auth_tenant_denials_and_forbidden_context_
             raw_forced = forced.get_data(as_text=True)
             assert forced.status_code == 400, (method, path, forced.status_code, raw_forced)
             assert forced.get_json()["code"] == "backend_security_control_param"
-            assert set(forbidden_query).issubset({item["key"] for item in forced.get_json()["violations"]})
+            attese = set(forbidden_query)
+            if method == "GET" and "/public/documents/" in path and path.endswith("/download"):
+                # Lo scarico pubblico del portale si autentica con il token in query
+                # (link aperto da email/SMS): e' l'unica eccezione dichiarata in
+                # web/services/backend_security.violations_without_portal_download_token.
+                attese.discard("token")
+            assert attese.issubset({item["key"] for item in forced.get_json()["violations"]})
             assert not any(fragment in raw_forced for fragment in sensitive_fragments)
 
     global_audit = _audit_text(app.config["AUDIT_DB"])

@@ -42,6 +42,7 @@ import {
   type LegalIntelligencePageData,
   type LegalIntelligenceRecord,
 } from '../legalIntelligenceData'
+import { ControlloGiornalieroPanel } from './ControlloGiornalieroPanel'
 import './LegalIntelligencePage.css'
 import './MediazioneRegistryResponsive.css'
 type LegalIntelligenceView = 'dashboard' | 'news' | 'mediazione' | 'ricerca-legale'
@@ -579,10 +580,16 @@ function RecordCard({
           <BookOpen size={16} aria-hidden="true" />
           Leggi scheda
         </Button>
-        <ButtonLink href={`/legal-intelligence/fonte/${encodeURIComponent(record.id)}/scarica`} tone="neutral" download>
-          <Download size={16} aria-hidden="true" />
-          Scarica
-        </ButtonLink>
+        {record.detailHref ? (
+          <ButtonLink href={record.detailHref} tone="neutral">
+            Pagina della news
+          </ButtonLink>
+        ) : (
+          <ButtonLink href={`/ricerca-legale/fonte/${encodeURIComponent(record.id)}/scarica`} tone="neutral" download>
+            <Download size={16} aria-hidden="true" />
+            Scarica
+          </ButtonLink>
+        )}
         {record.sourceHref ? (
           <ButtonLink href={record.sourceHref} tone="neutral" target="_blank" rel="noreferrer" className="iu-li-official-link">
             <ExternalLink size={16} aria-hidden="true" />
@@ -1533,6 +1540,7 @@ export function LegalIntelligencePage() {
           {view !== 'mediazione' || !selectedRecord || !isImportedMediazioneRecord(selectedRecord) ? <RecordDetail record={selectedRecord} view={view} onSearchRelated={runSearch} /> : null}
         </div>
         {view === 'ricerca-legale' ? <CollapsibleSourceDashboard data={data} onArchiveSearch={runArchiveSearch} /> : null}
+        {view === 'ricerca-legale' ? <ControlloGiornalieroPanel /> : null}
       </div>
     </Page>
   )

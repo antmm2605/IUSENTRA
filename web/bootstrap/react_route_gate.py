@@ -7,6 +7,9 @@ GET HTML di aree migrate, evitando API, download e allegati.
 
 from __future__ import annotations
 
+import re
+from urllib.parse import urlencode
+
 from flask import Flask, current_app, g, get_flashed_messages, redirect, request, url_for
 
 from web.blueprints.react_shell import render_react_shell_response
@@ -244,6 +247,56 @@ _SCADENZIARIO_LEGACY_ACTIONS = {
 }
 
 
+# Indirizzi storici che la pagina React serve con un parametro: i moduli «nuovo
+# per questo cliente» leggono `?id_cliente=` (bridge fatturazione e preventivi),
+# la scheda parcella si apre da `?id_parcella=` (FatturazionePage).
+_REDIRECT_CON_PARAMETRO = (
+    (re.compile(r"^/fatturazione/nuova/([^/]+)$", re.IGNORECASE), "/fatturazione/nuova", "id_cliente"),
+    (re.compile(r"^/preventivi/nuovo/([^/]+)$", re.IGNORECASE), "/preventivi/nuovo", "id_cliente"),
+    (re.compile(r"^/preventivi/conferimento/nuovo/([^/]+)$", re.IGNORECASE), "/preventivi/conferimento/nuovo", "id_cliente"),
+    (re.compile(r"^/fatturazione/(?!nuova$|da-preventivo$|ajax$)([^/]+)$", re.IGNORECASE), "/fatturazione", "id_parcella"),
+    (re.compile(r"^/sito-studio/pagine/(\d+)/modifica$", re.IGNORECASE), "/sito-studio/builder", "page_id"),
+)
+
+# Viste del sito dello studio che il builder e i contatti React coprono già.
+_REDIRECT_SITO = {
+    "/sito-studio/pagine/nuova": "/sito-studio/builder",
+    "/sito-studio/preview": "/sito-studio/builder",
+    "/sito-studio/prenotazioni": "/sito-studio/contatti",
+}
+
+
+# Consultazione dai portali: l'acquisizione guidata React (`/portali/<portale>/acquisizione`)
+# legge ufficio, numero e anno del ruolo. Il PDP non espone servizi ai gestionali
+# (art. 111-bis c.p.p., D.M. 217/2023): anche la sua consultazione passa di lì.
+_REDIRECT_PORTALI = {
+    "/polisweb/documenti": "pst",
+    "/polisweb/fascicolo-wizard": "pst",
+    "/pdp/documenti": "pdp",
+}
+_PARAMETRI_PORTALI = (("codice_ufficio", "ufficio_codice"), ("numero_rg", "numero"), ("anno_rg", "anno"), ("id_fasc", "id_fasc"))
+
+
+def _redirect_portale(path: str):
+    portale = _REDIRECT_PORTALI.get(path.lower())
+    if not portale:
+        return None
+    parametri = {nuovo: request.args.get(storico, "").strip() for storico, nuovo in _PARAMETRI_PORTALI}
+    parametri = {chiave: valore for chiave, valore in parametri.items() if valore and valore != "0"}
+    query = urlencode(parametri)
+    return redirect(f"/portali/{portale}/acquisizione{'?' + query if query else ''}")
+
+
+def _redirect_con_parametro(path: str):
+    for pattern, target, parametro in _REDIRECT_CON_PARAMETRO:
+        trovato = pattern.match(path)
+        if trovato:
+            parametri = request.args.to_dict(flat=True)
+            parametri.setdefault(parametro, trovato.group(1))
+            return redirect(f"{target}?{urlencode(parametri)}")
+    return None
+
+
 def _legacy_requested() -> bool:
     return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
@@ -275,7 +328,22 @@ def _sito_studio_react_allowed(lower: str) -> bool:
     if lower in _SITO_STUDIO_REACT_SUBPATHS:
         return True
     parts = [part for part in lower.strip("/").split("/") if part]
-    return len(parts) == 4 and parts[0] == "sito-studio" and parts[1] == "articoli" and parts[2].isdigit() and parts[3] == "modifica"
+    if len(parts) == 4 and parts[0] == "sito-studio" and parts[1] == "articoli" and parts[2].isdigit() and parts[3] == "modifica":
+        return True
+    return _contenuti_del_sito(lower)
+
+
+def _contenuti_del_sito(lower: str) -> bool:
+    """Servizi, professionisti, sedi, orari, impostazioni e nuovo articolo: SitoStudioContenutiPage React."""
+    parts = [part for part in lower.strip("/").split("/") if part]
+    if parts[:1] != ["sito-studio"] or len(parts) < 2:
+        return False
+    if parts[1:] in (["impostazioni"], ["articoli", "nuovo"]):
+        return True
+    if parts[1] not in {"servizi", "professionisti", "sedi", "regole-agenda"}:
+        return False
+    coda = parts[2:]
+    return coda in ([], ["nuovo"], ["nuova"]) or (len(coda) == 2 and coda[0].isdigit() and coda[1] == "modifica")
 
 
 def _modello_di_studio(lower: str) -> bool:
@@ -287,6 +355,27 @@ def _modello_di_studio(lower: str) -> bool:
     if len(parti) == 3 and parti[1] == "scheda":
         return True
     return len(parti) == 3 and parti[2] in {"modifica", "usa"} and parti[1] not in {"compila", "catalogo", "editor", "scheda"}
+
+
+def _scheda_ricerca_legale(lower: str) -> bool:
+    """News, scheda della fonte e variazione rilevata: RicercaLegaleSchedaPage React."""
+    parti = [parte for parte in lower.strip("/").split("/") if parte]
+    if parti[:1] != ["ricerca-legale"]:
+        return False
+    if len(parti) == 3 and parti[1] in {"news", "fonte"}:
+        return True
+    return len(parti) == 5 and parti[1:3] == ["daily", "update"] and parti[3].isdigit() and parti[4] == "diff"
+
+
+def _checklist_atti(lower: str) -> bool:
+    """Checklist degli atti e percorso guidato del fascicolo: ChecklistAttiPage React."""
+    parti = [parte for parte in lower.strip("/").split("/") if parte]
+    if parti[:1] == ["checklist"]:
+        return len(parti) <= 2
+    if len(parti) >= 4 and parti[0] == "fascicoli" and parti[2] == "wizard":
+        coda = parti[4:]
+        return coda in ([], ["completa"]) or (len(coda) == 2 and coda[0] == "step" and coda[1].isdigit())
+    return False
 
 
 def _excluded(path: str) -> bool:
@@ -322,6 +411,10 @@ def _excluded(path: str) -> bool:
         return True
     # Modelli di studio (nuovo, scheda, modifica, compilazione): TemplateStudioPage React.
     if _modello_di_studio(lower):
+        return False
+    if _scheda_ricerca_legale(lower):
+        return False
+    if _checklist_atti(lower):
         return False
     if lower == "/template-atti/nuovo":
         return True
@@ -489,6 +582,15 @@ def register_react_route_gate(app: Flask) -> None:
             return None
         if raw_lower.rstrip("/") in _CANONICAL_ALIAS_PATHS:
             return None
+        con_parametro = _redirect_con_parametro(path)
+        if con_parametro is not None:
+            return con_parametro
+        portale = _redirect_portale(path)
+        if portale is not None:
+            return portale
+        sito = _REDIRECT_SITO.get(path.lower())
+        if sito is not None:
+            return redirect(sito)
         sito_path = raw_lower.rstrip("/") or "/"
         if raw_lower.startswith("/sito-studio/") and not _sito_studio_react_allowed(sito_path):
             return None

@@ -63,6 +63,7 @@ import {
 import { getSettings, saveSettingsSection } from '../features/impostazioni/api'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
+import { FatturazioneSheetActions } from './FatturazioneSheetActions'
 import { EmptyState } from '../ui/EmptyState'
 import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
@@ -2253,6 +2254,11 @@ function ArchiveDetailPanel({
                 <span>Importo: {detail.amountDisplay || 'non indicato'}</span>
                 {detail.paymentMethod ? <span>Pagamento: {detail.paymentMethod}</span> : null}
               </div>
+              <FatturazioneSheetActions
+                detail={detail}
+                onReloadDetail={onReloadDetail}
+                onDeleted={async () => { onClose(); await onReloadPage() }}
+              />
               <section className="iu-fatt-detail-settings" aria-label="Dati fiscali e pagamento">
                 <header>
                   <h3>Dati fiscali e pagamento</h3>
@@ -2744,8 +2750,12 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
   useEffect(() => {
     if (!requestedDetailId || autoOpenedId === requestedDetailId) return
     const record = data.records.find((item) => item.id === requestedDetailId)
-    if (!record) return
     setAutoOpenedId(requestedDetailId)
+    if (!record) {
+      // La scheda si apre dall'indirizzo anche se il documento non è nella pagina corrente.
+      loadDetail({ id: requestedDetailId } as FatturazioneRecord)
+      return
+    }
     setQuery(record.number || record.customerName || '')
     loadDetail(record)
   }, [autoOpenedId, data.records, requestedDetailId])

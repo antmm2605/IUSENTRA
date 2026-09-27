@@ -95,7 +95,7 @@ def test_checklist_route_renderizza_catalogo_professionale_completo(tmp_path: Pa
 
     with app.test_client() as client:
         _login_tenant_admin(app, client)
-        response = client.get("/checklist")
+        response = client.get("/checklist?_legacy=1")
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)
@@ -112,7 +112,7 @@ def test_checklist_dettaglio_mostra_cartella_con_data_italiana(tmp_path: Path):
 
     with app.test_client() as client:
         _login_tenant_admin(app, client)
-        response = client.get("/checklist/decreto_ingiuntivo?parte=Rossi%20Mario&data=2026-04-19")
+        response = client.get("/checklist/decreto_ingiuntivo?parte=Rossi%20Mario&data=2026-04-19&_legacy=1")
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)
@@ -127,7 +127,7 @@ def test_checklist_dettaglio_builtin_renderizza_template_professionale_derivato(
 
     with app.test_client() as client:
         _login_tenant_admin(app, client)
-        response = client.get("/checklist/builtin-tmp-proc-001?parte=Rossi%20Mario&data=2026-04-19")
+        response = client.get("/checklist/builtin-tmp-proc-001?parte=Rossi%20Mario&data=2026-04-19&_legacy=1")
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)
@@ -143,7 +143,7 @@ def test_checklist_dettaglio_builtin_pec_usa_endpoint_operativo_valido(tmp_path:
 
     with app.test_client() as client:
         _login_tenant_admin(app, client)
-        response = client.get("/checklist/builtin-tmp-str-008?parte=Rossi%20Mario&data=2026-04-19")
+        response = client.get("/checklist/builtin-tmp-str-008?parte=Rossi%20Mario&data=2026-04-19&_legacy=1")
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)

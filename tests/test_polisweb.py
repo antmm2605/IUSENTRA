@@ -1499,7 +1499,7 @@ def test_route_documenti_polisweb_consente_vista_completa_delle_buste(tmp_path):
             follow_redirects=True,
         )
         response = client.get(
-            "/polisWeb/documenti?codice_ufficio=0580010&numero_rg=1025&anno_rg=2026",
+            "/polisWeb/documenti?codice_ufficio=0580010&numero_rg=1025&anno_rg=2026&_legacy=1",
             follow_redirects=True,
         )
 
@@ -1578,7 +1578,7 @@ def test_route_documenti_pdp_raggruppa_buste_e_fallback_senza_id(tmp_path, monke
             follow_redirects=True,
         )
         response = client.get(
-            "/pdp/documenti?codice_ufficio=0580010&numero_rg=4521&anno_rg=2026&demo_mode=1",
+            "/pdp/documenti?codice_ufficio=0580010&numero_rg=4521&anno_rg=2026&demo_mode=1&_legacy=1",
             follow_redirects=True,
         )
 

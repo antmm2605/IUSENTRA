@@ -67,7 +67,14 @@ export type FatturazionePermissions = {
   canExport: boolean
 }
 
+export type FatturazioneSheetActions = {
+  paymentLink: { canCreate: boolean; href: string; expiresAt: string; state: string }
+  canDelete: boolean
+  deleteBlockedReason: string
+}
+
 export type FatturazioneDetail = FatturazioneRecord & {
+  sheetActions: FatturazioneSheetActions
   note: string
   dataEmissione: string
   dataScadenza: string
@@ -1231,6 +1238,47 @@ export async function getFatturazionePage(): Promise<FatturazionePageData> {
   return normalisePage(payload)
 }
 
+function safePublicHref(value: unknown): string {
+  const raw = text(value)
+  return /^https?:\/\/[^\s]+\/pagamenti\/paga\/[A-Za-z0-9_-]+$/.test(raw) ? raw : ''
+}
+
+function normaliseSheetActions(value: unknown): FatturazioneSheetActions {
+  const raw = asRecord(value)
+  const link = asRecord(raw.paymentLink)
+  return {
+    paymentLink: {
+      canCreate: link.canCreate === true,
+      href: safePublicHref(link.href),
+      expiresAt: text(link.expiresAt),
+      state: text(link.state),
+    },
+    canDelete: raw.canDelete === true,
+    deleteBlockedReason: display(raw.deleteBlockedReason),
+  }
+}
+
+export type SheetActionResult = { ok: boolean; message: string; paymentHref: string; redirectHref: string }
+
+async function sheetAction(path: string, body: Record<string, unknown>): Promise<SheetActionResult> {
+  const payload = asRecord(await apiPostJson<unknown>(path, body, { ok: false, message: 'Operazione non riuscita.' }))
+  const redirect = text(payload.redirect_href)
+  return {
+    ok: payload.ok === true,
+    message: display(payload.message),
+    paymentHref: safePublicHref(asRecord(payload.paymentLink).href),
+    redirectHref: redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '',
+  }
+}
+
+export function createFatturazionePaymentLink(idDocumento: string, giorniValidita: number): Promise<SheetActionResult> {
+  return sheetAction(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/link-pagamento`, { giorni_validita: giorniValidita })
+}
+
+export function deleteFatturazioneDraft(idDocumento: string): Promise<SheetActionResult> {
+  return sheetAction(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/elimina`, {})
+}
+
 export async function getFatturazioneDetail(idDocumento: string): Promise<{ ok: boolean; item: FatturazioneDetail | null; message: string; errors: Record<string, string> }> {
   const payload = await apiJson<unknown>(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}`, { ok: false, item: null })
   const page = asRecord(payload)
@@ -1254,6 +1302,7 @@ export async function getFatturazioneDetail(idDocumento: string): Promise<{ ok: 
       metodo_pagamento: text(rawPayment.metodo_pagamento, 'Non indicato'),
     },
     workflow: normaliseWorkflow(rawItem.workflow),
+    sheetActions: normaliseSheetActions(rawItem.sheetActions),
     voci: list(rawItem.voci).map((voice) => {
       const row = asRecord(voice)
       return {

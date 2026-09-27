@@ -26,6 +26,26 @@ API_BLUEPRINTS = (
         "api_v1_template_studio",
         "/api/v1/ui/template-atti/studio",
     ),
+    (
+        REPO_ROOT / "web" / "blueprints" / "api_v1_fatturazione_scheda.py",
+        "api_v1_fatturazione_scheda",
+        "/api/v1/ui/fatturazione",
+    ),
+    (
+        REPO_ROOT / "web" / "blueprints" / "api_v1_ricerca_legale.py",
+        "api_v1_ricerca_legale",
+        "/api/v1/ui/ricerca-legale",
+    ),
+    (
+        REPO_ROOT / "web" / "blueprints" / "api_v1_checklist.py",
+        "api_v1_checklist",
+        "/api/v1/ui/checklist",
+    ),
+    (
+        REPO_ROOT / "web" / "blueprints" / "api_v1_sito_studio_contenuti.py",
+        "api_v1_sito_studio_contenuti",
+        "/api/v1/ui/sito-studio/contenuti",
+    ),
     (REPO_ROOT / "web" / "bootstrap" / "condivisioni_routes.py", "app", ""),
 )
 FRONTEND_PAGES = REPO_ROOT / "docs" / "frontend-app-v2-pages.md"

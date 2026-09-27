@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.420.1 — 27/09/2026
+
+Correzioni della CI dopo la 2.420.0 (Storybook e CodeQL rossi, deploy fermo).
+
+- **Storybook**: l'anteprima della pagina «Funzione del catalogo applicazioni»
+  non aveva una funzione indicata e rimandava al catalogo, interrompendo la
+  prova di tutte le pagine «Documenti e ricerca». La pagina accetta ora la
+  funzione come proprietà (l'anteprima usa «Interessi legali» con dati di
+  prova); in produzione continua a leggerla dall'indirizzo.
+- **CodeQL**: il controllo dell'email nei contenuti del sito dello studio non
+  usa più un'espressione regolare che poteva rallentare su testi costruiti ad
+  arte; i filtri dei blocchi `<script>` (conversione CSP e test) riconoscono
+  anche le chiusure con attributi e i tag in maiuscolo.
+
 ## 2.420.0 — 27/09/2026
 
 Correzioni dei link pubblici e dei pagamenti.

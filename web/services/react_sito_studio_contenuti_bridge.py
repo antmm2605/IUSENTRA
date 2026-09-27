@@ -100,7 +100,17 @@ RACCOLTE: dict[str, Raccolta] = {
     ),
 }
 
-_EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+def _email_valida(valore: str) -> bool:
+    """Un solo «@», nessuno spazio, dominio con un punto interno (senza espressioni regolari:
+    un'espressione con quantificatori annidati può rallentare su testi costruiti ad arte)."""
+    if any(c.isspace() for c in valore) or valore.count("@") != 1:
+        return False
+    locale, dominio = valore.split("@")
+    parti = dominio.split(".")
+    return bool(locale) and len(parti) >= 2 and all(parti)
+
+
 _ORA = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
 
@@ -190,7 +200,7 @@ def _valida(r: Raccolta, payload: dict[str, Any], sedi: list[dict[str, Any]]) ->
             errori[campo.name] = f"Massimo {campo.max_length} caratteri."
         if campo.required and not valore:
             errori[campo.name] = "Campo obbligatorio."
-        elif valore and campo.kind == "email" and not _EMAIL.match(valore):
+        elif valore and campo.kind == "email" and not _email_valida(valore):
             errori[campo.name] = "Indirizzo email non valido."
         elif valore and campo.kind == "url" and not valore.startswith(("https://", "http://", "/")):
             errori[campo.name] = "Indica un indirizzo che inizia con https://."

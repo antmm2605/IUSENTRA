@@ -18,7 +18,7 @@ from scripts import csp_gestori_legacy as conv
 
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATES = ROOT / "web" / "templates"
-_BLOCCO_SCRIPT = re.compile(r"<script\b([^>]*)>(.*?)</script\s*>", re.S | re.I)
+_BLOCCO_SCRIPT = re.compile(r"<script\b([^>]*)>(.*?)</script\b[^>]*>", re.S | re.I)
 _COMMENTI = re.compile(r"<!--.*?-->|\{#.*?#\}", re.S)
 _ATTRIBUTO_EVENTO = re.compile(r"""(?<![\w-])on[a-z]+\s*=\s*["']""", re.I)
 

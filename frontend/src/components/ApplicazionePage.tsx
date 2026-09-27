@@ -78,8 +78,9 @@ function Risultato({ esito }: { esito: EsitoApplicazione }) {
   )
 }
 
-export function ApplicazionePage() {
-  const appId = useMemo(() => applicazioneDaUrl(window.location.pathname, window.location.search), [])
+/** `applicazione` indica la funzione senza leggerla dall'indirizzo (anteprime e test delle pagine). */
+export function ApplicazionePage({ applicazione = '' }: { applicazione?: string } = {}) {
+  const appId = useMemo(() => applicazione || applicazioneDaUrl(window.location.pathname, window.location.search), [applicazione])
   const idFascicolo = useMemo(() => (new URLSearchParams(window.location.search).get('id_fascicolo') || '').trim(), [])
   const [scheda, setScheda] = useState<SchedaApplicazione | null>(null)
   const [valori, setValori] = useState<Record<string, string>>({})

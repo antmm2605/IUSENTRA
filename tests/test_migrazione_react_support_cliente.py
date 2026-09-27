@@ -198,7 +198,7 @@ def test_stanza_cliente_intestazioni_sicurezza(tmp_path: Path, legacy: bool):
     assert "'unsafe-inline'" not in script_src
     nonce = _csp_nonce(response)
     # Ogni script in linea eseguibile porta il nonce della richiesta.
-    inline_scripts = re.findall(r"<script(?![^>]*\bsrc=)(?![^>]*application/json)([^>]*)>", html)
+    inline_scripts = re.findall(r"<script(?![^>]*\bsrc=)(?![^>]*application/json)([^>]*)>", html, re.I)
     assert inline_scripts
     for attributes in inline_scripts:
         assert f'nonce="{nonce}"' in attributes

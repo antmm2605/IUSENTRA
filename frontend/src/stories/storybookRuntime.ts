@@ -413,7 +413,40 @@ function penalePdpPanoramicaPayload(): ApiPayload {
   }
 }
 
+function applicazionePayload(): ApiPayload {
+  return {
+    ok: true,
+    message: '',
+    warnings: [],
+    item: {
+      id: 'interessi-legali',
+      title: 'Interessi legali',
+      description: 'Calcolo degli interessi al tasso legale tra due date.',
+      section: 'Calcoli economici',
+      status: 'attiva',
+      type: 'utility',
+      basis: 'Art. 1284 c.c.; tasso fissato con decreto del Ministro dell\'economia e delle finanze.',
+      href: '/applicazioni/interessi-legali',
+      form: {
+        action: '/api/v1/ui/applicazioni/interessi-legali/esegui',
+        submitLabel: 'Calcola',
+        fields: [
+          { name: 'capitale', label: 'Capitale (€)', kind: 'number', options: [], required: true, value: '10000', step: '0.01' },
+          { name: 'dal', label: 'Dal', kind: 'date', options: [], required: true, value: '2025-01-01', step: '' },
+          { name: 'al', label: 'Al', kind: 'date', options: [], required: true, value: '2025-12-31', step: '' },
+        ],
+      },
+      toolId: '',
+      preset: {},
+      prefill: {},
+      fascicolo: null,
+      unavailable: null,
+    },
+  }
+}
+
 function payloadFor(url: URL): ApiPayload {
+  if (url.pathname.startsWith('/api/v1/ui/applicazioni/')) return applicazionePayload()
   if (url.pathname === '/api/v1/ui/penale/panoramica') return penalePdpPanoramicaPayload()
   if (url.pathname.startsWith('/api/v1/ui/notifiche-legali/presidi')) return presidiPayload()
   if (url.pathname === '/api/v1/ui/strumenti-legali') return strumentiLegaliPayload()

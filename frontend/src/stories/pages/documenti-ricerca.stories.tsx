@@ -33,7 +33,7 @@ export const EditorProfessionale: Story = createPageStory({ sourcePath: 'src/com
 export const RicercaLegale: Story = createPageStory({ sourcePath: 'src/components/LegalIntelligencePage.tsx', title: 'Ricerca legale', render: () => <LegalIntelligencePage /> })
 export const ContenutiSitoStudio: Story = createPageStory({ sourcePath: 'src/components/SitoStudioContenutiPage.tsx', title: 'Contenuti del sito dello studio', render: () => <SitoStudioContenutiPage /> })
 export const ChecklistAtti: Story = createPageStory({ sourcePath: 'src/components/ChecklistAttiPage.tsx', title: 'Checklist degli atti', render: () => <ChecklistAttiPage /> })
-export const Applicazione: Story = createPageStory({ sourcePath: 'src/components/ApplicazionePage.tsx', title: 'Funzione del catalogo applicazioni', render: () => <ApplicazionePage /> })
+export const Applicazione: Story = createPageStory({ sourcePath: 'src/components/ApplicazionePage.tsx', title: 'Funzione del catalogo applicazioni', render: () => <ApplicazionePage applicazione="interessi-legali" /> })
 export const SchedaRicercaLegale: Story = createPageStory({ sourcePath: 'src/components/RicercaLegaleSchedaPage.tsx', title: 'Scheda della Ricerca legale', render: () => <RicercaLegaleSchedaPage /> })
 export const Giurisprudenza: Story = createPageStory({ sourcePath: 'src/components/GiurisprudenzaPage.tsx', title: 'Archivio giurisprudenza', render: () => <GiurisprudenzaPage /> })
 export const RedazioneAtti: Story = createPageStory({ sourcePath: 'src/components/RedazioneAttiPage.tsx', title: 'Redazione atti', render: () => <RedazioneAttiPage /> })

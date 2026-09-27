@@ -304,7 +304,7 @@ def aggiungi_nonce(testo: str) -> tuple[str, int]:
 
     risultato = []
     ultimo = 0
-    for blocco in re.finditer(r"<script\b[^>]*>.*?</script\s*>", testo, re.S | re.I):
+    for blocco in re.finditer(r"<script\b[^>]*>.*?</script\b[^>]*>", testo, re.S | re.I):
         risultato.append(testo[ultimo:blocco.start()])
         apertura = _SCRIPT_APERTURA.match(blocco.group(0))
         risultato.append(_SCRIPT_APERTURA.sub(sostituisci, blocco.group(0)[:apertura.end()], count=1))

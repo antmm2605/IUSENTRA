@@ -2,17 +2,17 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { ClipboardList, ExternalLink, FileText, Landmark, RefreshCw, ShieldCheck, UsersRound, Wifi, WifiOff } from 'lucide-react'
 import { Badge } from '../dashboard'
 import { patApi } from './patApi'
-import { DocumentiPat, PartiPat } from './PartiDocumenti'
+import { DocumentiPat, PartiPat, type AnteprimaDocumento } from './PartiDocumenti'
 import { ProcedimentoPat } from './ProcedimentoPat'
 import { RiepilogoDepositi } from './RiepilogoDepositi'
-import { SchedaFormweb } from './SchedaFormweb'
+import { SchedaFormweb, type Risolvi } from './SchedaFormweb'
 import type { CatalogoPat, Connessione, QuadroPat } from './types'
 import './patFormweb.css'
 
 type Scheda = 'scheda' | 'procedimento' | 'parti' | 'documenti' | 'riepilogo'
 
 /** Deposito amministrativo telematico: IUSENTRA prepara e verifica, l'avvocato compila e invia dal Formweb. */
-export default function PatFormwebSezione({ fascicoloId, onDocumenti }: { fascicoloId: string; onDocumenti?: () => void }) {
+export default function PatFormwebSezione({ fascicoloId, onDocumenti, onPreview }: { fascicoloId: string; onDocumenti?: () => void; onPreview?: (anteprima: AnteprimaDocumento) => void }) {
   const [quadro, setQuadro] = useState<QuadroPat | null>(null)
   const [catalogo, setCatalogo] = useState<CatalogoPat | null>(null)
   const [connessione, setConnessione] = useState<Connessione | null>(null)
@@ -21,6 +21,21 @@ export default function PatFormwebSezione({ fascicoloId, onDocumenti }: { fascic
   const [tipoScelto, setTipoScelto] = useState(false)
   const [scheda, setScheda] = useState<Scheda>('scheda')
   const [conferma, setConferma] = useState('')
+  const [ancora, setAncora] = useState('')
+
+  useEffect(() => {
+    // «Risolvi» apre la scheda giusta e porta al riquadro da completare.
+    if (!ancora) return undefined
+    const timer = window.setTimeout(() => {
+      const riquadro = document.getElementById(ancora)
+      if (riquadro) {
+        riquadro.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        riquadro.querySelector<HTMLElement>('input, select, textarea')?.focus({ preventScroll: true })
+      }
+      setAncora('')
+    }, 60)
+    return () => window.clearTimeout(timer)
+  }, [ancora, scheda])
 
   const ricarica = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -57,6 +72,10 @@ export default function PatFormwebSezione({ fascicoloId, onDocumenti }: { fascic
   const tipoRicorso = quadro.tipiRicorso.find((t) => t.codice === p.tipoRicorso)?.descrizione
   const aggiorna = (nuovo: QuadroPat) => setQuadro(nuovo)
   const scegliTipo = (nuovo: string) => { setTipoScelto(true); setTipo(nuovo) }
+  const risolvi = (azione: Risolvi) => {
+    if (azione.scheda) setScheda(azione.scheda as Scheda)
+    setAncora(azione.ancora || '')
+  }
   const letti = quadro.letti || {}
   const sedeLetta = letti.sede ? catalogo?.sedi.find((s) => s.codice === letti.sede?.valore)?.descrizione || letti.sede.valore : ''
   const fonti = Array.from(new Set([...(letti.nrg?.documenti || []), ...(letti.sede?.documenti || [])]))
@@ -108,10 +127,10 @@ export default function PatFormwebSezione({ fascicoloId, onDocumenti }: { fascic
         ))}
       </div>
       <div role="tabpanel">
-        {scheda === 'scheda' ? <SchedaFormweb fascicoloId={fascicoloId} scheda={quadro.scheda} catalogo={catalogo} tipo={tipo} onTipo={scegliTipo}/> : null}
+        {scheda === 'scheda' ? <SchedaFormweb fascicoloId={fascicoloId} scheda={quadro.scheda} catalogo={catalogo} tipo={tipo} onTipo={scegliTipo} onRisolvi={risolvi}/> : null}
         {scheda === 'procedimento' ? <ProcedimentoPat quadro={quadro} catalogo={catalogo} onSalva={async (dati) => aggiorna(await patApi.procedimento(fascicoloId, tipo, dati))}/> : null}
         {scheda === 'parti' ? <PartiPat fascicoloId={fascicoloId} parti={quadro.parti} onRuolo={async (id, ruolo) => aggiorna(await patApi.parte(fascicoloId, tipo, id, ruolo))}/> : null}
-        {scheda === 'documenti' ? <DocumentiPat fascicoloId={fascicoloId} documenti={quadro.documenti} onSalva={async (id, ruolo, descr) => aggiorna(await patApi.documento(fascicoloId, tipo, id, ruolo, descr))}/> : null}
+        {scheda === 'documenti' ? <DocumentiPat fascicoloId={fascicoloId} documenti={quadro.documenti} onPreview={onPreview} onCambiati={async () => { await ricarica(); onDocumenti?.() }} onSalva={async (id, ruolo, descr) => aggiorna(await patApi.documento(fascicoloId, tipo, id, ruolo, descr))}/> : null}
         {scheda === 'riepilogo' ? <RiepilogoDepositi fascicoloId={fascicoloId} tipo={tipo} tipi={catalogo?.depositi || []} depositi={quadro.depositi} onAggiorna={() => { void ricarica(); onDocumenti?.() }}/> : null}
       </div>
     </div>

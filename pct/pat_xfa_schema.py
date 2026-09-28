@@ -84,13 +84,25 @@ def _field_items(field: ET.Element) -> list[str]:
 
 
 def _field_options(field: ET.Element) -> list[dict[str, str]]:
-    items = _field_items(field)
-    if len(items) > 2 and len(items) % 2 == 0:
-        half = len(items) // 2
-        labels = items[:half]
-        exports = items[half:]
-        return [{"value": export, "label": label} for label, export in zip(labels, exports)]
-    return [{"value": item, "label": item} for item in items]
+    """Voci della tendina: etichette dal gruppo <items> visibile, valori salvati dal gruppo save="1".
+
+    Un solo gruppo di voci (es. «Tipo provvedimento» dell'atto impugnato: ALTRO, DPR, … ORDINANZA
+    MINISTERIALE) vale sia come etichetta sia come valore: non va diviso a metà, altrimenti «ALTRO»
+    verrebbe salvato come «DELIBERA».
+    """
+    etichette: list[str] = []
+    valori: list[str] = []
+    for child in list(field):
+        if _local_name(child.tag) != "items":
+            continue
+        voci = [item.text.strip() for item in list(child) if item.text and item.text.strip()]
+        if child.attrib.get("save") == "1":
+            valori = voci
+        elif not etichette:
+            etichette = voci
+    if etichette and valori and len(etichette) == len(valori):
+        return [{"value": valore, "label": etichetta} for etichetta, valore in zip(etichette, valori)]
+    return [{"value": voce, "label": voce} for voce in (valori or etichette)]
 
 
 def _field_type(field: ET.Element, path: tuple[str, ...], *, grouped_radio: bool = False) -> str:

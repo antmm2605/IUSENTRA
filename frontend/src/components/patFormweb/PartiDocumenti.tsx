@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { AlertTriangle, CheckCircle2, Download, FileSignature } from 'lucide-react'
+import { useRef, useState, type ChangeEvent } from 'react'
+import { AlertTriangle, CheckCircle2, Download, Eye, FilePlus2, FileSignature, Trash2 } from 'lucide-react'
+import { csrfHeader } from '../../api/csrf'
 import { patApi } from './patApi'
 import type { DocumentoPat, ParteFormweb } from './types'
 
@@ -25,7 +26,9 @@ export function PartiPat({ fascicoloId, parti, onRuolo }: { fascicoloId: string;
             <div>
               <strong>{nomeParte(p)}</strong>
               <span>{p.tipologia}{p.codiceFiscale ? ` · ${p.codiceFiscale}` : ' · senza codice fiscale'}{p.pec ? ` · ${p.pec}` : ''}</span>
+              {p.mancanti?.length ? <small className="iu-pat-testo-errore">Per il modulo manca: {p.mancanti.join(', ')}</small> : null}
             </div>
+            {p.mancanti?.length && p.modifica ? <a className="iu-pat-primario" href={p.modifica}>Completa l'anagrafica</a> : null}
             <label className="iu-pat-compatto">Ruolo nel Formweb
               <select value={p.ruolo} onChange={(e) => void onRuolo(p.id, e.target.value)}>
                 {RUOLI_PARTE.map(([v, e]) => <option key={v} value={v}>{e}</option>)}
@@ -38,8 +41,30 @@ export function PartiPat({ fascicoloId, parti, onRuolo }: { fascicoloId: string;
   )
 }
 
-function RigaDocumento({ doc, onSalva }: { doc: DocumentoPat; onSalva: (ruolo: string, descrizione: string) => Promise<void> }) {
+export type AnteprimaDocumento = { name: string; url: string; downloadUrl: string }
+
+const indirizzoDocumento = (fid: string, did: string, azione: string) =>
+  `/fascicoli/${encodeURIComponent(fid)}/documenti/${encodeURIComponent(did)}/${azione}`
+
+async function inviaModulo(url: string, dati?: FormData): Promise<string> {
+  const risposta = await fetch(url, {
+    method: 'POST', credentials: 'same-origin', body: dati,
+    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', ...csrfHeader() },
+  })
+  const esito = await risposta.json().catch(() => ({})) as { ok?: boolean; messaggio?: string }
+  if (!risposta.ok || esito.ok === false) throw new Error(esito.messaggio || 'Operazione non riuscita.')
+  return esito.messaggio || ''
+}
+
+function RigaDocumento({ fascicoloId, doc, onSalva, onPreview, onElimina }: {
+  fascicoloId: string
+  doc: DocumentoPat
+  onSalva: (ruolo: string, descrizione: string) => Promise<void>
+  onPreview?: (anteprima: AnteprimaDocumento) => void
+  onElimina: () => Promise<void>
+}) {
   const [descrizione, setDescrizione] = useState(doc.descrizione)
+  const [conferma, setConferma] = useState(false)
   const esclusa = doc.ruolo === 'escludi'
   return (
     <li className={esclusa ? 'is-escluso' : ''}>
@@ -51,6 +76,22 @@ function RigaDocumento({ doc, onSalva }: { doc: DocumentoPat; onSalva: (ruolo: s
           <small key={e.codice} className={e.livello === 'errore' ? 'iu-pat-testo-errore' : ''}><AlertTriangle size={12}/> {e.messaggio}</small>
         ))}
         {!doc.esiti.length && !esclusa ? <small className="iu-pat-testo-ok"><CheckCircle2 size={12}/> Accettato dal Formweb</small> : null}
+      </div>
+      <div className="iu-pat-doc__azioni">
+        {onPreview ? (
+          <button type="button" onClick={() => onPreview({ name: doc.nome, url: indirizzoDocumento(fascicoloId, doc.id, 'visualizza'), downloadUrl: indirizzoDocumento(fascicoloId, doc.id, 'scarica') })} aria-label={`Visualizza ${doc.nome} nel lettore`}>
+            <Eye size={14}/> Visualizza
+          </button>
+        ) : null}
+        {conferma ? (
+          <>
+            <span>Spostare nel cestino del fascicolo?</span>
+            <button type="button" className="iu-pat-pericolo" onClick={() => { setConferma(false); void onElimina() }}>Sì, elimina</button>
+            <button type="button" onClick={() => setConferma(false)}>Annulla</button>
+          </>
+        ) : (
+          <button type="button" className="iu-pat-pericolo" onClick={() => setConferma(true)} aria-label={`Elimina ${doc.nome} dal fascicolo`}><Trash2 size={14}/> Elimina</button>
+        )}
       </div>
       <div className="iu-pat-doc__scelte">
         <label className="iu-pat-compatto">Ruolo
@@ -67,23 +108,60 @@ function RigaDocumento({ doc, onSalva }: { doc: DocumentoPat; onSalva: (ruolo: s
 }
 
 /** I file del fascicolo come li vuole il Formweb: nome ammesso, formato, firma, ruolo e descrizione. */
-export function DocumentiPat({ fascicoloId, documenti, onSalva }: {
+export function DocumentiPat({ fascicoloId, documenti, onSalva, onPreview, onCambiati }: {
   fascicoloId: string
   documenti: DocumentoPat[]
   onSalva: (id: string, ruolo: string, descrizione: string) => Promise<void>
+  onPreview?: (anteprima: AnteprimaDocumento) => void
+  onCambiati: () => Promise<void> | void
 }) {
   const scelti = documenti.filter((d) => d.ruolo !== 'escludi')
   const bloccanti = scelti.filter((d) => d.bloccante).length
+  const [stato, setStato] = useState('')
+  const selettore = useRef<HTMLInputElement>(null)
+
+  const carica = async (evento: ChangeEvent<HTMLInputElement>) => {
+    const file = Array.from(evento.currentTarget.files || [])
+    evento.currentTarget.value = ''
+    if (!file.length) return
+    const dati = new FormData()
+    file.forEach((f) => dati.append('files', f))
+    setStato(`Carico ${file.length} file…`)
+    try {
+      const messaggio = await inviaModulo(`/fascicoli/${encodeURIComponent(fascicoloId)}/documenti/carica`, dati)
+      await onCambiati()
+      setStato(messaggio || `${file.length} file aggiunti al fascicolo.`)
+    } catch (errore) {
+      setStato(errore instanceof Error ? errore.message : 'Caricamento non riuscito.')
+    }
+  }
+
+  const elimina = async (doc: DocumentoPat) => {
+    try {
+      const messaggio = await inviaModulo(indirizzoDocumento(fascicoloId, doc.id, 'elimina'))
+      await onCambiati()
+      setStato(messaggio || `«${doc.nome}» spostato nel cestino.`)
+    } catch (errore) {
+      setStato(errore instanceof Error ? errore.message : 'Eliminazione non riuscita.')
+    }
+  }
+
   return (
     <div className="iu-pat-documenti">
       <div className="iu-pat-barra">
+        <button type="button" className="iu-pat-primario" onClick={() => selettore.current?.click()}><FilePlus2 size={15}/> Aggiungi documenti</button>
+        <input ref={selettore} type="file" multiple hidden onChange={(e) => void carica(e)} accept=".pdf,.p7m,.doc,.docx,.odt,.rtf,.txt,.jpg,.jpeg,.png,.tif,.tiff,.xml,.zip"/>
         <a className="iu-pat-primario" href={patApi.pacchetto(fascicoloId)} download><FileSignature size={15}/> Scarica i {scelti.length} file con i nomi del Formweb</a>
         <span className={bloccanti ? 'iu-pat-testo-errore' : 'iu-pat-testo-ok'}>{bloccanti ? `${bloccanti} file da sistemare prima del deposito` : 'Nessun file bloccante'}</span>
       </div>
-      <p className="iu-pat-nota">Il Formweb accetta nei nomi solo lettere, cifre, spazi e «_»: il pacchetto rinomina i file e aggiunge un indice con l’impronta SHA-256 di ciascuno. Si caricano fino a 5 file per volta.</p>
+      {stato ? <p className="iu-pat-nota" role="status">{stato}</p> : null}
+      <p className="iu-pat-nota">Per togliere un file dal deposito senza eliminarlo scegli il ruolo «Non depositare». Il Formweb accetta nei nomi solo lettere, cifre, spazi e «_»: il pacchetto rinomina i file e aggiunge un indice con l’impronta SHA-256 di ciascuno. Si caricano fino a 5 file per volta.</p>
       <ul className="iu-pat-elenco">
-        {documenti.map((doc) => <RigaDocumento key={doc.id} doc={doc} onSalva={(ruolo, descr) => onSalva(doc.id, ruolo, descr)}/>)}
-        {!documenti.length ? <li>Nessun documento nel fascicolo: caricali nella sezione «Documenti e atti».</li> : null}
+        {documenti.map((doc) => (
+          <RigaDocumento key={doc.id} fascicoloId={fascicoloId} doc={doc} onSalva={(ruolo, descr) => onSalva(doc.id, ruolo, descr)}
+            onPreview={onPreview} onElimina={() => elimina(doc)}/>
+        ))}
+        {!documenti.length ? <li>Nessun documento nel fascicolo: aggiungili con «Aggiungi documenti».</li> : null}
       </ul>
     </div>
   )

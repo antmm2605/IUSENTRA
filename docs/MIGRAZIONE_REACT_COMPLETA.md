@@ -6,7 +6,7 @@ funzioni, verificate con test. Restano sul server, per natura, le risposte che
 non sono pagine: API JSON, download, documenti da stampare (copertine), PDF,
 azioni POST dei moduli esistenti e ingressi tecnici.
 
-Aggiornato: 27/09/2026 (2.420.1).
+Aggiornato: 28/09/2026 (2.421.0).
 
 ## Regola
 

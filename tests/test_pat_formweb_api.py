@@ -65,6 +65,24 @@ def test_quadro_e_scheda_formweb_dal_fascicolo(tmp_path):
         bozza = {r["etichetta"]: r["valore"] for r in salvato["scheda"]["sezioni"][0]["righe"]}
         assert bozza["Tipologia"] == "ORDINARIO"
 
+        versato = client.post(f"{base}/procedimento", headers=H, json={
+            "versamento": {"data": "2026-09-25", "modalita": "MODELLO F23", "codiceTributo": "GA01", "estremi": "B01005032242812163493826",
+                           "importo": "650", "numeroRiga": "1", "elementi": "bncluc80a01h224x"},
+            "attoImpugnato": {"organo": "ignorato", "nonIndicato": True}}).get_json()
+        contributo = next(s for s in versato["scheda"]["sezioni"] if s["titolo"] == "Contributo unificato")
+        estremi = next(r for r in contributo["righe"] if r["etichetta"] == "Estremi del versamento")
+        # Istruzioni v9.6.2: modalità unica MODELLO F24, codice tributo dalla tendina del modulo.
+        assert estremi["valore"] == ("25/09/2026 · MODELLO F24 · cod. tributo GA01 · riga 1 · B01005032242812163493826 · € 650"
+                                     " · BNCLUC80A01H224X")
+        assert versato["procedimento"]["attoImpugnato"]["nonIndicato"] is True
+        assert versato["procedimento"]["attoImpugnato"]["organo"] == ""
+        vuoto = client.post(f"{base}/procedimento", headers=H, json={"versamento": {"numeroRiga": "1"}}).get_json()
+        assert vuoto["procedimento"].get("versamento") in (None, {})
+        for sbagliato in ({"versamento": {"data": "25/09"}}, {"versamento": {"codiceTributo": "941T"}},
+                          {"versamento": {"estremi": "X" * 25}}, {"attoImpugnato": {"anno": "3026"}},
+                          {"attoImpugnato": {"organo": "X" * 121}}):
+            assert client.post(f"{base}/procedimento", headers=H, json=sbagliato).status_code == 400
+
         errore = client.post(f"{base}/procedimento", headers=H, json={"tipoRicorso": "Z3"})
         assert errore.status_code == 400 and "non previsto" in errore.get_json()["message"]
         assert client.post(f"{base}/procedimento", headers=H, json={"nrg": "12"}).status_code == 400

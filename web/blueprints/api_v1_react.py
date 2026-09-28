@@ -7022,9 +7022,18 @@ def pat_moduli_compila_pdf():
     pdf_bytes = pdf.getvalue()
     if request.headers.get("X-IUSENTRA-PAT-Preview") == "1" or payload.get("previewSession") is True:
         preview = _pat_store_preview_pdf(pdf_bytes, download_name)
+        try:
+            from pct.pat_anteprima import anteprima as _pat_anteprima
+
+            # Dati riletti dal PDF generato: il modulo XFA si vede solo in Adobe Reader.
+            anteprima_modulo = _pat_anteprima(module.id, pdf_bytes)
+        except Exception as exc:
+            current_app.logger.warning("PAT compila: anteprima del modulo %s non disponibile: %s", module.id, exc)
+            anteprima_modulo = None
         return jsonify(
             {
                 "ok": True,
+                "anteprima": anteprima_modulo,
                 "filename": download_name,
                 "sizeBytes": len(pdf_bytes),
                 "documentCount": len(selected_documents),
@@ -7151,6 +7160,27 @@ def _pat_preview_from_session(token: str) -> tuple[Path, str] | None:
     except Exception:
         return None
     return resolved, _pat_safe_preview_filename(str(meta.get("filename") or ""))
+
+
+@api_v1_react.post("/pat/moduli/verifica")
+@_richiedi_auth
+def pat_moduli_verifica_firmato():
+    """Controlla il modulo PAT firmato in Adobe Reader prima dell'invio (versione, firma PAdES, allegati)."""
+    caricato = request.files.get("file")
+    if caricato is None or not caricato.filename:
+        return jsonify({"ok": False, "errore": "Carica il modulo firmato."}), 400
+    massimo = 60 * 1024 * 1024
+    dati = caricato.read(massimo + 1)
+    if len(dati) > massimo:
+        return jsonify({"ok": False, "errore": "Il file supera i 60 MB: non è un modulo di deposito PAT."}), 413
+    canale = "upload" if request.form.get("canale") == "upload" else "pec"
+    try:
+        from pct.pat_verifica_modulo import verifica as _verifica_modulo_pat
+
+        return jsonify(_verifica_modulo_pat(dati, canale))
+    except Exception as exc:
+        current_app.logger.exception("PAT verifica modulo firmato non riuscita: %s", exc)
+        return jsonify({"ok": False, "errore": "Verifica non riuscita: il file non è leggibile come modulo PAT."}), 422
 
 
 @api_v1_react.get("/pat/moduli/preview/<token>")

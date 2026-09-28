@@ -8,6 +8,8 @@ export type Riga = {
   copia: boolean
   excel?: string
   descrizione?: string
+  /** Dove si corregge il dato segnalato: una scheda del deposito (con il riquadro) o una pagina. */
+  risolvi?: { scheda?: string; ancora?: string; href?: string; etichetta: string }
 }
 
 export type Sezione = { titolo: string; righe: Riga[] }
@@ -49,6 +51,8 @@ export type ParteFormweb = {
   pec: string
   fonte: string
   sceltaAvvocato?: boolean
+  modifica?: string
+  mancanti?: string[]
 }
 
 export type Procedimento = {
@@ -64,7 +68,8 @@ export type Procedimento = {
   esenzione?: string
   valore?: number | null
   istanze?: string[]
-  attoImpugnato?: { organo?: string; tipo?: string; numero?: string; anno?: string }
+  attoImpugnato?: { organo?: string; tipo?: string; altroTipo?: string; numero?: string; anno?: string; nonIndicato?: boolean }
+  versamento?: { data?: string; modalita?: string; codiceTributo?: string; numeroRiga?: string; estremi?: string; importo?: string; elementi?: string; altroUfficio?: boolean }
 }
 
 export type EsitoRiepilogo = {
@@ -120,6 +125,9 @@ export type CatalogoPat = {
   esenzioniCds: Voce[]
   istanze: string[]
   contributo: string[]
+  modalitaVersamento?: string[]
+  codiciTributo?: Voce[]
+  tipiAttoImpugnato?: string[]
 }
 
 export type Connessione = { ok: boolean; raggiungibile: boolean; stato: number; millisecondi: number; messaggio: string }

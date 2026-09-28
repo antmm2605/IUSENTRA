@@ -3779,3 +3779,19 @@
     min-height:360px;
   }
 }
+
+.iu-pat-verifica-firmato{display:grid;gap:10px;padding:14px;border:1px solid var(--iu-border,#dbe3ee);border-radius:12px;background:#fff}
+.iu-pat-verifica-firmato header{display:grid;gap:4px}
+.iu-pat-verifica-firmato header strong{display:inline-flex;align-items:center;gap:6px}
+.iu-pat-verifica-firmato header span{color:#475569;font-size:.9rem}
+.iu-pat-verifica-firmato__azioni{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+.iu-pat-verifica-firmato__azioni label{display:grid;gap:4px;font-weight:700}
+.iu-pat-verifica-firmato__file{cursor:pointer}
+.iu-pat-verifica-firmato__esito{display:grid;gap:6px;padding:10px 12px;border-radius:10px;background:#f8fafc}
+.iu-pat-verifica-firmato__esito.is-ok{background:#ecfdf5;color:#065f46}
+.iu-pat-verifica-firmato__esito.is-errore{background:#fef2f2;color:#7f1d1d}
+.iu-pat-verifica-firmato__esito ul{display:grid;gap:4px;margin:0;padding:0;list-style:none}
+.iu-pat-verifica-firmato__esito li{display:flex;gap:6px;align-items:flex-start}
+.iu-pat-verifica-firmato__esito li.is-ok{color:#065f46}
+.iu-pat-verifica-firmato__esito li.is-errore{color:#991b1b}
+.iu-pat-verifica-firmato__esito li.is-avviso{color:#92400e}

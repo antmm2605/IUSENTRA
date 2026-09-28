@@ -202,6 +202,18 @@ def register_fascicoli_editor_routes(
                 esito = converti_pdfa(str(temp_path))
                 contenuto_convertito = temp_path.read_bytes() if esito.get("ok") else b""
             if esito["ok"]:
+                from pct.validazione import verifica_pdfa
+
+                with tempfile.TemporaryDirectory(prefix="iusentra-pdfa-") as tmp_dir:
+                    controllo_path = Path(tmp_dir) / "convertito.pdf"
+                    controllo_path.write_bytes(contenuto_convertito)
+                    controllo = verifica_pdfa(str(controllo_path))
+                if not controllo.get("conforme"):
+                    msg = "La conversione non ha prodotto un PDF/A riconoscibile: il documento non è stato modificato."
+                    if _wants_json_response():
+                        return jsonify({"ok": False, "messaggio": msg}), 422
+                    flash(msg, "warning")
+                    return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
                 utente = getattr(g, "utente_corrente", None)
                 gestore_fascicoli.sostituisci_documento(
                     id_fasc,
@@ -213,7 +225,14 @@ def register_fascicoli_editor_routes(
                     preserve_version_snapshot=True,
                     hash_contenuto_sha256=hashlib.sha256(contenuto_convertito).hexdigest(),
                 )
-                msg = "Documento convertito in PDF/A-2B con successo."
+                versione = str(controllo.get("versione") or "PDF/A-2B")
+                documento_aggiornato = next((d for d in gestore_fascicoli.get(id_fasc).documenti if d.id == id_doc), documento)
+                gestore_fascicoli.aggiorna_documento_metadati(
+                    id_fasc, id_doc, tags=[*(getattr(documento_aggiornato, "tags", []) or []), versione])
+                msg = f"Documento convertito in {versione}: la versione precedente resta nello storico del documento."
+                from web.services.react_fascicoli_cache import clear_react_fascicoli_list_cache
+
+                clear_react_fascicoli_list_cache()
                 flash(msg, "success")
                 audit(
                     "documento.converti_pdfa",
@@ -224,7 +243,7 @@ def register_fascicoli_editor_routes(
                 if _wants_json_response():
                     return jsonify({"ok": True, "messaggio": msg})
             else:
-                msg = "Conversione PDF/A non riuscita."
+                msg = str(esito.get("messaggio") or "Conversione PDF/A non riuscita.")
                 if _wants_json_response():
                     return jsonify({"ok": False, "messaggio": msg}), 400
                 flash(msg, "danger")

@@ -44,18 +44,18 @@ class PatPdfTemplate:
 
 
 PAT_PDF_TEMPLATES: dict[str, PatPdfTemplate] = {
-    "deposito_ricorso": PatPdfTemplate("deposito_ricorso", "ModuloDepositoRicorso_4.02.pdf", "DEPOSITO_RICORSO"),
-    "deposito_atto": PatPdfTemplate("deposito_atto", "ModuloDepositoAtto_4.02.pdf", "DEPOSITO_ATTO"),
-    "richieste_segreteria": PatPdfTemplate("richieste_segreteria", "ModuloDepositoRichiesteSegreteria_4.01.pdf", "DEPOSITO_RICHIESTE"),
+    "deposito_ricorso": PatPdfTemplate("deposito_ricorso", "ModuloDepositoRicorso_4.03.pdf", "DEPOSITO_RICORSO"),
+    "deposito_atto": PatPdfTemplate("deposito_atto", "ModuloDepositoAtto_4.03.pdf", "DEPOSITO_ATTO"),
+    "richieste_segreteria": PatPdfTemplate("richieste_segreteria", "ModuloDepositoRichiesteSegreteria_4.02.pdf", "DEPOSITO_RICHIESTE"),
     "ausiliari_parti_non_rituali": PatPdfTemplate(
         "ausiliari_parti_non_rituali",
-        "ModuloDepositoPerAusiliariDelGiudiceEPartiNonRituali_4.01.pdf",
+        "ModuloDepositoPerAusiliariDelGiudiceEPartiNonRituali_4.02.pdf",
         "DEPOSITO_NON_RITUALI",
     ),
-    "istanza_ante_causam": PatPdfTemplate("istanza_ante_causam", "ModuloDepositoIstanza_4.01.pdf", "DEPOSITO_ISTANZA"),
+    "istanza_ante_causam": PatPdfTemplate("istanza_ante_causam", "ModuloDepositoIstanza_4.02.pdf", "DEPOSITO_ISTANZA"),
     "rimborso_contributo_unificato": PatPdfTemplate(
         "rimborso_contributo_unificato",
-        "ModuloDepositoRimborso_4.01_2026.pdf",
+        "ModuloDepositoRimborso_4.02.pdf",
         "DEPOSITO_RIMBORSI",
     ),
 }
@@ -259,6 +259,24 @@ def _set_xfa_path_value(root: ET.Element, xfa_path: str, value: Any) -> bool:
     return False
 
 
+def _codici_atto_impugnato(root: ET.Element) -> dict[str, str]:
+    """Tipo provvedimento → codice, come lo calcola lo script «change» della tendina del modulo.
+
+    Scrivendo la tendina da fuori lo script non parte: il codice si ricava dallo stesso script del modello
+    ministeriale (ALTRO → XX, DPR → 01, …), non da una tabella copiata a mano.
+    """
+    for field, _path in _iter_fields(root):
+        if field.attrib.get("name") != "listTipoAtto":
+            continue
+        script = " ".join(node.text or "" for node in field.iter() if _local_name(node.tag) == "script")
+        codici: dict[str, str] = {}
+        for casi, codice in re.findall(r'((?:case\s+"[^"]+"\s*:\s*)+)oCodiceAtto\.rawValue\s*=\s*"([^"]*)"', script):
+            for voce in re.findall(r'case\s+"([^"]+)"', casi):
+                codici[voce] = codice
+        return codici
+    return {}
+
+
 def _apply_explicit_xfa_values(root: ET.Element, fields: Mapping[str, Any]) -> None:
     raw_values = fields.get("xfa_values") or fields.get("xfaValues")
     if not isinstance(raw_values, Mapping):
@@ -268,6 +286,10 @@ def _apply_explicit_xfa_values(root: ET.Element, fields: Mapping[str, Any]) -> N
         if not text:
             continue
         _set_xfa_path_value(root, str(xfa_path), text)
+        if str(xfa_path).endswith("/listTipoAtto"):
+            codice = _codici_atto_impugnato(root).get(text.upper())
+            if codice is not None:
+                _set_xfa_path_value(root, str(xfa_path).rsplit("/", 1)[0] + "/codiceAttoImpugnato", codice)
 
 
 def _set_first(root: ET.Element, name: str, value: Any, *, path_contains: str = "", allow_empty: bool = False) -> bool:
@@ -328,14 +350,17 @@ def _choice_export(field: ET.Element, wanted: str) -> str:
     for label, export in label_pairs:
         if _normalise(label) == cleaned or _normalise(export) == cleaned:
             return export
+    # Nessuna voce identica: si accetta la voce che condivide più parole, purché la scelta non sia ambigua.
+    # Un testo che non corrisponde a nessuna voce non si scrive: nel modulo resterebbe un valore che la
+    # tendina non conosce e che SIGA non saprebbe leggere; il campo resta da scegliere in Adobe Reader.
     wanted_tokens = set(cleaned.split())
-    best: tuple[int, str] = (0, "")
-    for label, export in label_pairs:
-        label_tokens = set(_normalise(label).split())
-        score = len(wanted_tokens & label_tokens)
-        if score > best[0]:
-            best = (score, export)
-    return best[1] if best[0] >= 2 else wanted
+    punteggi = sorted(((len(wanted_tokens & set(_normalise(label).split())), export) for label, export in label_pairs),
+                      key=lambda voce: voce[0], reverse=True)
+    migliore = punteggi[0] if punteggi else (0, "")
+    pari = [voce for voce in punteggi if voce[0] == migliore[0]]
+    if migliore[0] >= 2 or (migliore[0] == 1 and len(pari) == 1):
+        return migliore[1]
+    return ""
 
 
 def _set_choice(root: ET.Element, name: str, value: Any, *, path_contains: str = "") -> bool:

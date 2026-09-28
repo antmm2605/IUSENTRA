@@ -10,7 +10,7 @@ Consultazione in sola lettura del 25/09/2026, con la sessione dell'avvocato. Nes
 - Portale dell'Avvocato `https://pe.prod.cloud.giustizia-amministrativa.it`, versione 1.15.0. Accesso con SPID, CIE o CNS. L'avvocato viene profilato da ReGIndE.
 - Manuale «Portali Esterni nuovo SIGA-PAT», 53 pagine, archiviato in `fonti_ufficiali/2026-09-25/pat-manuale-portali-esterni-avvocato.pdf`.
 - Video ufficiale «Form Web» e slide del webinar del 26/05/2025, dalla pagina «Istruzioni sintetiche e video» di giustizia-amministrativa.it.
-- Moduli XFA ufficiali: ricorso e atto 4.02; istanza, richieste alla segreteria e rimborso 4.01. Si trovano in `pct/data/pat_moduli/` e da lì si leggono i codici SIGA.
+- Moduli XFA ufficiali 4.x del 18/07/2026: ricorso e atto 4.03; istanza, richieste alla segreteria, ausiliari e rimborso 4.02. Si trovano in `pct/data/pat_moduli/` (identici byte per byte a quelli pubblicati) e da lì si leggono i codici SIGA.
 - Foglio ufficiale «Excel_Parti.xlsx» (2025), in `pct/data/pat_moduli/Excel_Parti_2025.xlsx`.
 
 ## 2. Struttura del portale
@@ -127,7 +127,7 @@ Collaudo su un fascicolo reale già depositato: fascicolo importato, senza uffic
 
 Collaudo del 25/09/2026 sui moduli ufficiali forniti dallo studio (identici, per impronta SHA-256, a quelli in `pct/data/pat_moduli/`).
 
-- I moduli (ricorso e atto 4.02; istanza, richieste alla segreteria, ausiliari e rimborso 4.01) sono PDF XFA con la firma UR3 dei diritti d'uso di Adobe Reader. La firma consente compilazione (`/Form FillIn`), file incorporati (`/EF Create`) e salvataggio, non la modifica del modello.
+- I moduli (ricorso e atto 4.03; istanza, richieste alla segreteria, ausiliari e rimborso 4.02) sono PDF XFA con la firma UR3 dei diritti d'uso di Adobe Reader. La firma consente compilazione (`/Form FillIn`), file incorporati (`/EF Create`) e salvataggio, non la modifica del modello.
 - Il modulo via PEC è il «contenitore» degli allegati e si firma in PAdES: gli allegati vi entrano con i pulsanti «Carica ricorso», «Carica documento», ecc. Lo script del modulo imposta nome (`txtAllegato*`) e identificativo (`txtIdFile`) del file incorporato.
 - **Difetti trovati e corretti:**
   - una versione precedente produceva un riepilogo ReportLab di una pagina al posto del modulo ministeriale;
@@ -144,3 +144,19 @@ Collaudo del 25/09/2026 sui moduli ufficiali forniti dallo studio (identici, per
 
 - Le schede dei depositi diversi dal ricorso si vedono solo dopo aver salvato una bozza. Per rispetto del vincolo di sola lettura non sono state aperte. La scheda IUSENTRA per quei tipi segue i dati dei moduli ufficiali corrispondenti.
 - Le liste dei codificati del portale (`anagrafica/v1/tipologie-*`) richiedono il token della sessione e non sono state lette. Si usano le stesse liste dei moduli XFA ufficiali.
+
+## Aggiornamento del 28/09/2026: moduli 4.x del 18/07/2026 e Istruzioni v9.6.2
+
+Fonti: «Aggiornamento moduli di deposito (pubblicato il 18/07/2026)», «Istruzioni per la compilazione dei moduli di deposito» v9.6.2 (18/07/2026), «Manuale avvocato» del 18/07/2026 (documentazione operativa, modulistica e manualistica della Giustizia Amministrativa).
+
+- Novità dei moduli: PEC della parte fino a 100 caratteri (ricorso e atto); tolta la spunta «procura a margine»: la procura si allega sempre (anche come scansione asseverata ex art. 22 CAD della prima pagina); vincolo bloccante tra flag «Antistatario» e istanza di liquidazione delle spese al procuratore antistatario; nel modulo ausiliari flag «No C.F./P.IVA»; nomi degli allegati solo `A-Z a-z 0-9 _` e spazi.
+- Versione: «un modulo di una versione precedente a quella presente sul sito» può essere rifiutato. IUSENTRA compila solo il modello pubblicato e la verifica del modulo firmato (`pct/pat_verifica_modulo.py`) segnala una versione diversa.
+- Atto impugnato: servono autorità emanante (max 120), tipo (tendina ufficiale; «ALTRO» abilita il testo), anno di 4 cifre che inizia per 1 o 2, numero (max 20). Se anche uno solo non si conosce, o non c'è impugnazione, si spunta «Atto impugnato: non indicato/non conosciuto». Il codice del tipo (ALTRO → XX, DPR → 01 … ORDINANZA MINISTERIALE → 09) lo calcola lo script del modulo; IUSENTRA lo ricava dallo stesso script.
+- Contributo unificato: cinque scelte; con «Non esente» e pagamento non ancora fatto non servono altri dati. Se pagato: modalità unica MODELLO F24 (dal 1/1/2018), data, importo, estremi (protocollo telematico della quietanza, max 24), numero riga F24, codice tributo della tendina (GA01, GA02, GA03, GA04, GA05, GA0T, GA0S, GA0Z, letti dal modello), elementi identificativi (CF/P.IVA di chi versa), spunta «altro ufficio» e quietanza allegata.
+- Ricorrenti: persona fisica nome, cognome, PEC e codice fiscale; persona giuridica denominazione e CF/P.IVA; amministrazione descrizione e CF. Resistenti e controinteressati: cognome e nome oppure denominazione (CF facoltativo).
+- Firma: un solo campo firma PAdES-BES sul modulo, in Adobe Reader; prima della firma il modulo esegue i controlli bloccanti; «Blocca documento dopo la firma». La firma sul modulo si estende agli allegati incorporati. IUSENTRA non firma al posto dell'avvocato: rilegge il modulo generato (`pct/pat_anteprima.py`) e verifica quello firmato.
+- Limiti: allegato 10 MB e modulo 30 MB via PEC; 30 MB e 50 MB via upload.
+
+## Scheda del fascicolo nel Portale dell'Avvocato (v. 1.15.0), osservata il 28/09/2026
+
+Su un fascicolo reale e chiuso (TAR Reggio Calabria, ricorso del 2001, dati personali non riportati) la scheda mostra: Parti (tipo, parte, difensori, data costituzione, data procura, data rinuncia, PEC, amministrazione richiedente), Atti (atto, numero, data deposito, parte, lingua, asseverazione, con «Scarica gli elementi selezionati»), Provvedimenti adottati (collegiali: tipo, tipo udienza, data udienza, numero, relatore, data pubblicazione, esiti, provvedimento d'appello; monocratici: tipo, numero, relatore, pubblicazione, esiti), Atti impugnati (organo di emissione, tipo atto, numero, anno), Discussioni, Notifiche, Avvisi, e il pulsante «Deposito atto/documento successivo». In quel fascicolo la tabella «Atti impugnati» è vuota: conferma che un ricorso può non avere un atto impugnato indicato.

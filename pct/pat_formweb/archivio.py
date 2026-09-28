@@ -20,7 +20,8 @@ from typing import Any, Iterator
 from pct.sync import FileLock
 
 CAMPI_PROCEDIMENTO = ("sede", "tipoRicorso", "nrg", "posizione", "materia", "pnrr", "anteCausam", "cuTipologia",
-                      "esenzione", "valore", "oggetto", "attoImpugnato", "istanze", "cassazionista", "fax")
+                      "esenzione", "valore", "oggetto", "attoImpugnato", "istanze", "cassazionista", "fax",
+                      "versamento")
 POSIZIONI = ("ricorrente", "resistente", "controinteressato", "interveniente")
 RUOLI_PARTE = ("ricorrente", "resistente", "controinteressato", "escludi")
 RUOLI_DOCUMENTO = ("atto", "procura", "allegato", "notifica", "contributo", "escludi")

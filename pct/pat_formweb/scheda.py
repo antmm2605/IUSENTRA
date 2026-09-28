@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import Any
 
 from . import catalogo
+from . import parti as _parti
 from .regole import LIMITE_DESCRIZIONE, LIMITE_OGGETTO
 
 OK, MANCA, FACOLTATIVO, VERIFICA = "ok", "manca", "facoltativo", "verifica"
@@ -114,8 +115,50 @@ def _scheda_parti(ctx: dict[str, Any]) -> dict[str, Any]:
         stato = OK if parti else (FACOLTATIVO if ruolo == "controinteressato" else MANCA)
         nota = f"{len(parti)} parti: usa «Carica Excel» con il foglio preparato da IUSENTRA." if len(parti) > 1 else (
             "Se non ci sono, spunta «Il controinteressato è non indicato/non conosciuto»." if ruolo == "controinteressato" else "")
-        righe.append({**_riga(titolo, valore, stato, nota), "excel": ruolo if parti else ""})
+        incomplete = [(p, _parti.dati_mancanti(p)) for p in parti]
+        incomplete = [(p, m) for p, m in incomplete if m]
+        riga = {**_riga(titolo, valore, stato, nota), "excel": ruolo if parti else ""}
+        if incomplete:
+            nomi = "; ".join(f"{_parte_testo(p) or 'parte senza nome'}: manca {', '.join(m)}" for p, m in incomplete)
+            riga.update(stato=VERIFICA, nota=f"Dati richiesti dal modulo — {nomi}.")
+            if incomplete[0][0].get("modifica"):
+                riga["risolvi"] = {"href": incomplete[0][0]["modifica"], "etichetta": "Completa l'anagrafica"}
+        righe.append(riga)
     return {"titolo": "Parti", "righe": righe}
+
+
+# Ricorsi al TAR che di regola non impugnano un provvedimento amministrativo (c.p.a.): silenzio (art. 117),
+# ottemperanza (art. 112), azione risarcitoria autonoma (art. 30), regolamento preventivo di giurisdizione
+# (art. 10), riassunzione (art. 15), revocazione (artt. 106-107), opposizione di terzo (artt. 108-109),
+# opposizione a decreto ingiuntivo (art. 118). Qui l'atto impugnato non si cerca: si spunta
+# «non indicato/non conosciuto», salvo che l'avvocato indichi un atto.
+TIPI_SENZA_ATTO_IMPUGNATO = {"86", "4", "90", "93", "92", "89", "87", "88"}
+
+
+_ESTREMI_ATTO = (("organo", "autorità emanante"), ("tipo", "tipo"), ("numero", "numero"), ("anno", "anno"))
+
+
+def _riga_atto_impugnato(proc: dict[str, Any]) -> dict[str, Any]:
+    """Istruzioni v9.6.2, «Atti impugnati»: servono tutti gli estremi; se anche uno solo non si conosce, o non
+    c'è alcuna impugnazione, si spunta «Atto impugnato: non indicato/non conosciuto»."""
+    impugnato = dict(proc.get("attoImpugnato") or {})
+    if impugnato.get("tipo") == "ALTRO" and impugnato.get("altroTipo"):
+        impugnato["tipo"] = impugnato["altroTipo"]
+    testo = " · ".join(str(impugnato.get(k) or "") for k, _ in _ESTREMI_ATTO if impugnato.get(k))
+    spunta = "Spunta «Atto impugnato: non indicato/non conosciuto»."
+    mancano = [etichetta for campo, etichetta in _ESTREMI_ATTO if not impugnato.get(campo)]
+    if testo and not mancano:
+        return _riga("Atto impugnato", testo, nota="Autorità emanante, tipo, numero e anno.")
+    if testo:
+        return _riga("Atto impugnato", testo, MANCA, f"Manca: {', '.join(mancano)}. Completa gli estremi oppure, se non li "
+                     "conosci tutti, segna che l'atto non è indicato o non è conosciuto.")
+    if impugnato.get("nonIndicato"):
+        return _riga("Atto impugnato", "Non indicato/non conosciuto", OK, spunta, copia=False)
+    if str(proc.get("tipoRicorso") or "") in TIPI_SENZA_ATTO_IMPUGNATO:
+        return _riga("Atto impugnato", "Non richiesto per questo tipo di ricorso", FACOLTATIVO,
+                     f"Di regola non c'è un provvedimento impugnato: {spunta[0].lower()}{spunta[1:]}", copia=False)
+    return _riga("Atto impugnato", "", MANCA, "Indica denominazione organo, tipologia, anno e numero, "
+                 "oppure segna che l'atto non è indicato o non è conosciuto.")
 
 
 def _scheda_atti(ctx: dict[str, Any], principale: str) -> dict[str, Any]:
@@ -127,10 +170,7 @@ def _scheda_atti(ctx: dict[str, Any], principale: str) -> dict[str, Any]:
              _riga("Procura alle liti", "Procura a margine dell'atto introduttivo?", VERIFICA,
                    "Carica la procura o spunta «Procura a margine» nella finestra della procura.", copia=False)]
     if principale == "Ricorso":
-        impugnato = proc.get("attoImpugnato") or {}
-        testo = " · ".join(str(impugnato.get(k) or "") for k in ("organo", "tipo", "numero", "anno") if impugnato.get(k))
-        righe.append(_riga("Atto impugnato", testo, nota="Denominazione organo, tipologia, anno e numero; "
-                           "oppure «Atto impugnato: non indicato/non conosciuto»."))
+        righe.append(_riga_atto_impugnato(proc))
     for doc in _documenti(ctx, "allegato"):
         riga = _riga_file("Documento allegato", doc)
         riga["descrizione"] = (doc.get("descrizione") or doc.get("nome") or "")[:LIMITE_DESCRIZIONE]
@@ -157,9 +197,36 @@ def _scheda_contributo(ctx: dict[str, Any]) -> dict[str, Any]:
     if tipologia in {"", "Non esente"}:
         righe.append(_riga("Importo dovuto", f"€ {cu['importo']:.2f}".replace(".", ",") if cu.get("importo") else "",
                            VERIFICA if cu.get("importo") else MANCA, cu.get("nota", "")))
-        righe.append(_riga("Estremi del versamento", cu.get("versamento"),
-                           nota="Data, modalità, estremi, codice tributo e copia informatica della ricevuta."))
+        righe.append(_riga_versamento(ctx, cu))
     return {"titolo": "Contributo unificato", "righe": righe}
+
+
+# Dati del versamento F24 che il modulo esige prima della firma (script del modulo 4.03: «è necessario inserire
+# la data, l'importo, gli estremi, l'allegato, il numero riga e il codice tributo»).
+_DATI_VERSAMENTO = (("data", "data"), ("importo", "importo versato"), ("estremi", "estremi (protocollo telematico)"),
+                    ("numeroRiga", "numero riga"), ("codiceTributo", "codice tributo"))
+
+
+def _riga_versamento(ctx: dict[str, Any], cu: dict[str, Any]) -> dict[str, Any]:
+    """Istruzioni v9.6.2, «Contributo unificato»: se il pagamento non è ancora stato fatto basta «Non esente»;
+    se è stato fatto si indicano i dati del versamento e si allega la quietanza."""
+    versamento = cu.get("versamento") or ""
+    dati = cu.get("versamentoDati") or {}
+    ricevuta = next(iter(_documenti(ctx, "contributo")), None)
+    indica = {"scheda": "procedimento", "ancora": "pat-versamento", "etichetta": "Indica il pagamento"}
+    if not versamento:
+        return {**_riga("Estremi del versamento", "Pagamento non ancora indicato", FACOLTATIVO,
+                        "Se il contributo non è ancora pagato basta «Non esente». Se è pagato indica data, importo, "
+                        "protocollo telematico, riga e codice tributo dell'F24 e allega la quietanza.", copia=False),
+                "risolvi": indica}
+    mancano = [etichetta for campo, etichetta in _DATI_VERSAMENTO if dati and not dati.get(campo)]
+    if mancano or not ricevuta:
+        elenco = mancano + ([] if ricevuta else ["quietanza allegata (nei Documenti: «Ricevuta contributo»)"])
+        azione = indica if mancano else {"scheda": "documenti", "ancora": "", "etichetta": "Allega la quietanza"}
+        return {**_riga("Estremi del versamento", versamento, VERIFICA, f"Per firmare il modulo manca: {', '.join(elenco)}."),
+                "risolvi": azione}
+    return _riga("Estremi del versamento", versamento, OK,
+                 f"Quietanza: «{ricevuta.get('nomeProposto') or ricevuta.get('nome')}».")
 
 
 def _scheda_istanze(ctx: dict[str, Any]) -> dict[str, Any]:
@@ -176,6 +243,46 @@ def _invio() -> dict[str, Any]:
         _riga("3. Firma", "Firma digitale PAdES del riepilogo.", OK, copia=False),
         _riga("4. Invia deposito", "Carica il riepilogo firmato e conferma: l'invio lo fa solo l'avvocato.", OK, copia=False),
     ]}
+
+
+# Dove si risolve in IUSENTRA ogni dato segnalato: scheda del deposito e riquadro da aprire.
+_PROCEDIMENTO_RICORSO = ("procedimento", "pat-ricorso", "Completa nel Procedimento")
+_RISOLVI_PER_ETICHETTA = {
+    "Cassazionista": _PROCEDIMENTO_RICORSO,
+    "Autorità giurisdizionale": _PROCEDIMENTO_RICORSO,
+    "Sede": _PROCEDIMENTO_RICORSO,
+    "NRG": _PROCEDIMENTO_RICORSO,
+    "Oggetto": _PROCEDIMENTO_RICORSO,
+    "Atto impugnato": ("procedimento", "pat-atto-impugnato", "Indica l'atto impugnato"),
+    "Ricorrente (primo)": ("parti", "", "Scegli le parti"),
+    "Ricorrenti": ("parti", "", "Scegli le parti"),
+    "Resistenti": ("parti", "", "Scegli le parti"),
+    "Parte notificata": ("parti", "", "Scegli le parti"),
+    "Tipo esenzione": ("procedimento", "pat-contributo", "Indica l'esenzione"),
+    "Estremi del versamento": ("procedimento", "pat-versamento", "Indica il versamento"),
+}
+
+
+def _risolvi(sezione: str, riga: dict[str, Any], ctx: dict[str, Any]) -> dict[str, str] | None:
+    """L'azione che porta l'avvocato dove si corregge il dato: ogni segnalazione deve potersi risolvere."""
+    etichetta = riga["etichetta"]
+    if sezione == "Contributo unificato":
+        if etichetta == "Tipologia":
+            return {"scheda": "procedimento", "ancora": "pat-contributo", "etichetta": "Scegli la tipologia"}
+        if etichetta == "Importo dovuto":
+            senza_tipo = not ctx["procedimento"].get("tipoRicorso")
+            return {"scheda": "procedimento", "ancora": "pat-ricorso" if senza_tipo else "pat-contributo",
+                    "etichetta": "Indica il tipo di ricorso" if senza_tipo else "Controlla il contributo"}
+    if etichetta == "Tipologia":
+        return {"scheda": "procedimento", "ancora": "pat-ricorso", "etichetta": "Scegli il tipo di ricorso"}
+    if etichetta == "Depositante":
+        return {"href": "/profilo", "etichetta": "Completa il profilo"}
+    voce = _RISOLVI_PER_ETICHETTA.get(etichetta)
+    if voce:
+        return {"scheda": voce[0], "ancora": voce[1], "etichetta": voce[2]}
+    if etichetta.startswith(("Ricorso", "Atto", "Istanza", "Procura", "Documento", "Copia informatica")):
+        return {"scheda": "documenti", "ancora": "", "etichetta": "Apri i documenti"}
+    return None
 
 
 def scheda(ctx: dict[str, Any], tipo_id: str) -> dict[str, Any]:
@@ -199,6 +306,12 @@ def scheda(ctx: dict[str, Any], tipo_id: str) -> dict[str, Any]:
         sezioni += [{"titolo": "Richiesta", "righe": [_riga("Tipo di richiesta", "", MANCA,
                      "Attestazioni, copie, certificazioni: scegli la voce dal portale.", copia=False)]}]
     sezioni.append(_invio())
+    for sezione in sezioni:
+        for riga in sezione["righe"]:
+            if riga["stato"] in {MANCA, VERIFICA} and not riga.get("risolvi"):
+                azione = _risolvi(sezione["titolo"], riga, ctx)
+                if azione:
+                    riga["risolvi"] = azione
     mancanti = [f"{s['titolo']}: {r['etichetta']}" for s in sezioni for r in s["righe"] if r["stato"] == MANCA]
     da_verificare = [f"{s['titolo']}: {r['etichetta']}" for s in sezioni for r in s["righe"] if r["stato"] == VERIFICA]
     return {"tipo": tipo_id, "nome": tipo["nome"], "link": catalogo.link_deposito(tipo_id), "sezioni": sezioni,

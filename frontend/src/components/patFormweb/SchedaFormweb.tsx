@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertTriangle, CheckCircle2, CircleDashed, Copy, Download, ExternalLink, FileArchive } from 'lucide-react'
+import { AlertTriangle, ArrowRight, CheckCircle2, CircleDashed, Copy, Download, ExternalLink, FileArchive } from 'lucide-react'
 import { patApi } from './patApi'
 import type { CatalogoPat, Riga, Scheda } from './types'
 
@@ -10,7 +10,9 @@ const ICONE = {
   facoltativo: <CircleDashed size={15} aria-label="Facoltativo"/>,
 }
 
-function RigaScheda({ riga, fascicoloId }: { riga: Riga; fascicoloId: string }) {
+export type Risolvi = NonNullable<Riga['risolvi']>
+
+function RigaScheda({ riga, fascicoloId, onRisolvi }: { riga: Riga; fascicoloId: string; onRisolvi?: (azione: Risolvi) => void }) {
   const [copiato, setCopiato] = useState(false)
   const copia = async () => {
     try {
@@ -31,6 +33,10 @@ function RigaScheda({ riga, fascicoloId }: { riga: Riga; fascicoloId: string }) 
         {riga.nota ? <small>{riga.nota}</small> : null}
       </div>
       <div className="iu-pat-riga__azioni">
+        {riga.risolvi?.href ? <a className="iu-pat-risolvi" href={riga.risolvi.href}><ArrowRight size={14}/> {riga.risolvi.etichetta}</a> : null}
+        {riga.risolvi && !riga.risolvi.href && onRisolvi ? (
+          <button type="button" className="iu-pat-risolvi" onClick={() => onRisolvi(riga.risolvi as Risolvi)}><ArrowRight size={14}/> {riga.risolvi.etichetta}</button>
+        ) : null}
         {riga.excel ? <a href={patApi.excel(fascicoloId, riga.excel)} download><Download size={14}/> Excel</a> : null}
         {riga.copia ? <button type="button" onClick={() => void copia()} aria-label={`Copia ${riga.etichetta}`}><Copy size={14}/> {copiato ? 'Copiato' : 'Copia'}</button> : null}
       </div>
@@ -39,7 +45,8 @@ function RigaScheda({ riga, fascicoloId }: { riga: Riga; fascicoloId: string }) 
 }
 
 /** La scheda da seguire nel Formweb: stessi passi e stesse schede del portale, con i dati già pronti da copiare. */
-export function SchedaFormweb({ fascicoloId, scheda, catalogo, tipo, onTipo }: {
+export function SchedaFormweb({ fascicoloId, scheda, catalogo, tipo, onTipo, onRisolvi }: {
+  onRisolvi?: (azione: Risolvi) => void
   fascicoloId: string
   scheda: Scheda
   catalogo: CatalogoPat | null
@@ -73,7 +80,7 @@ export function SchedaFormweb({ fascicoloId, scheda, catalogo, tipo, onTipo }: {
           <li key={sezione.titolo}>
             <h5><span>{indice + 1}</span>{sezione.titolo}</h5>
             <ul className="iu-pat-righe">
-              {sezione.righe.map((riga, i) => <RigaScheda key={`${riga.etichetta}-${i}`} riga={riga} fascicoloId={fascicoloId}/>)}
+              {sezione.righe.map((riga, i) => <RigaScheda key={`${riga.etichetta}-${i}`} riga={riga} fascicoloId={fascicoloId} onRisolvi={onRisolvi}/>)}
             </ul>
           </li>
         ))}

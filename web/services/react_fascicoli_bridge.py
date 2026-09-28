@@ -1288,6 +1288,20 @@ def _portal_class_for_document(doc: Any) -> str:
     return portal_class
 
 
+def _e_pdf(doc: Any) -> bool:
+    return str(getattr(doc, "nome", "") or "").lower().endswith(".pdf")
+
+
+def _versione_pdfa(doc: Any) -> str:
+    """La versione PDF/A registrata dalla conversione (etichetta del documento), se c'è."""
+    return next((str(t) for t in getattr(doc, "tags", []) or [] if str(t).upper().startswith("PDF/A-")), "")
+
+
+def _pdfa_convertibile(doc: Any, signed: bool) -> bool:
+    portale = str(_enum_value(getattr(doc, "fonte_documento", "")) or "").strip().upper() == "PORTALE_TELEMATICO"
+    return _e_pdf(doc) and not signed and not portale and not _versione_pdfa(doc)
+
+
 def _visible_document_tags(doc: Any, *, display_name: str, technical_name: str) -> list[str]:
     out: list[str] = []
     seen: set[str] = set()
@@ -8012,6 +8026,7 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
                 "notes": _short(_italian_dates_in_text(getattr(doc, "note", "")), 180),
                 "tags": _visible_document_tags(doc, display_name=name, technical_name=original_name),
                 "signed": signed,
+                "pdfa": _versione_pdfa(doc),
                 "signatureProfile": signature_state["profile"],
                 "signatureReadyForDeposit": signature_state["ready"],
                 "signatureMissingAttributes": signature_state["missing"],
@@ -8045,8 +8060,10 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
                     "download": f"/fascicoli/{fid}/documenti/{did}/scarica",
                     "edit": f"/fascicoli/{fid}/documenti/{did}/editor",
                     "sign": f"/fascicoli/{fid}/documenti/{did}/firma",
-                    "pdfa": f"/fascicoli/{fid}/documenti/{did}/converti-pdfa",
-                    "attest": f"/fascicoli/{fid}/documenti/{did}/attestazione",
+                    # PDF/A e attestazione solo sui PDF; la conversione non si offre su un documento già
+                    # PDF/A, firmato (la firma si romperebbe) o acquisito dal portale (si conserva com'è).
+                    "pdfa": f"/fascicoli/{fid}/documenti/{did}/converti-pdfa" if _pdfa_convertibile(doc, signed) else "",
+                    "attest": f"/fascicoli/{fid}/documenti/{did}/attestazione" if _e_pdf(doc) else "",
                     "metadata": f"/fascicoli/{fid}/documenti/{did}/metadati",
                     "rename": f"/fascicoli/{fid}/documenti/{did}/rinomina",
                     "delete": f"/fascicoli/{fid}/documenti/{did}/elimina",

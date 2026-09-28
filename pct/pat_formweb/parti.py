@@ -40,7 +40,29 @@ def _voce(chiave: str, dati: dict[str, Any], ruolo: str, fonte: str) -> dict[str
         "denominazione": "" if fisica else denominazione,
         "codiceFiscale": str(dati.get("codice_fiscale") or dati.get("partita_iva") or "").strip().upper(),
         "pec": str(dati.get("pec") or "").strip().lower(),
+        "modifica": (f"/clienti/{dati['id']}/modifica" if fonte == "cliente" else f"/soggetti/{dati['id']}/modifica")
+        if dati.get("id") else "",
     }
+
+
+# Dati obbligatori delle parti nel modulo di deposito ricorso (Istruzioni per la compilazione dei moduli di
+# deposito v9.6.2, 18/07/2026, «Ricorrente» e «Resistente/Controinteressato»).
+_OBBLIGATORI_RICORRENTE = {
+    "Persona fisica": (("nome", "nome"), ("cognome", "cognome"), ("pec", "PEC"), ("codiceFiscale", "codice fiscale")),
+    "Persona giuridica": (("denominazione", "denominazione"), ("codiceFiscale", "codice fiscale o partita IVA")),
+    "Amministrazione": (("denominazione", "descrizione"), ("codiceFiscale", "codice fiscale")),
+    "Minore/Incapacità": (("denominazione", "denominazione"), ("codiceFiscale", "codice fiscale")),
+}
+
+
+def dati_mancanti(parte: dict[str, Any]) -> list[str]:
+    """I dati che il modulo esige per la parte: tutti per i ricorrenti; nome o denominazione per le altre."""
+    if parte.get("ruolo") == "ricorrente":
+        return [etichetta for campo, etichetta in _OBBLIGATORI_RICORRENTE.get(parte.get("tipologia") or "", ())
+                if not parte.get(campo)]
+    if parte.get("denominazione") or parte.get("cognome"):
+        return []
+    return ["cognome e nome oppure denominazione"]
 
 
 def parti_pat(cliente: dict[str, Any] | None, soggetti: Iterable[tuple[str, dict[str, Any]]],
@@ -50,7 +72,7 @@ def parti_pat(cliente: dict[str, Any] | None, soggetti: Iterable[tuple[str, dict
     posizione = posizione or "ricorrente"
     elenco: list[dict[str, Any]] = []
     if cliente:
-        elenco.append(_voce("cliente", cliente, posizione, "cliente"))
+        elenco.append({**_voce("cliente", cliente, posizione, "cliente"), "id": "cliente"})
     for ruolo_iusentra, dati in soggetti:
         ruolo_iusentra = (ruolo_iusentra or "").upper()
         if ruolo_iusentra == "ASSISTITO":

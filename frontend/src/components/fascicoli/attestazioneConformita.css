@@ -1,0 +1,9 @@
+.iu-attestazione { display: grid; gap: 12px; min-width: min(760px, 86vw); }
+.iu-attestazione label { display: grid; gap: 4px; font-weight: 700; color: #334155; font-size: .88rem; }
+.iu-attestazione input, .iu-attestazione select, .iu-attestazione textarea { box-sizing: border-box; width: 100%; min-height: 36px; padding: 6px 9px; border: 1px solid #cbd5e1; border-radius: 9px; font: inherit; font-weight: 500; color: #0f172a; background: #fff; }
+.iu-attestazione__griglia { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; align-items: end; }
+.iu-attestazione__nota { margin: 0; color: #475569; font-size: .85rem; }
+.iu-attestazione__avviso { margin: 0; padding: 8px 10px; border-radius: 9px; background: #fffbeb; color: #92400e; }
+.iu-attestazione__stato { margin: 0; color: #1d4ed8; }
+.iu-attestazione__anteprima { width: 100%; height: 60vh; border: 1px solid #e2e8f0; border-radius: 10px; }
+@media (max-width: 640px) { .iu-attestazione { min-width: 0; } }

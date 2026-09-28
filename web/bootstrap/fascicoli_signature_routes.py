@@ -3,16 +3,14 @@
 from __future__ import annotations
 
 import hashlib
-import io
 import os
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from flask import Flask, flash, g, jsonify, redirect, request, send_file, url_for
+from flask import Flask, flash, g, jsonify, redirect, request, url_for
 
 from pct.document_signature_state import document_has_real_digital_signature
-from web.services.fascicoli_signature_pdf import attestazione_conformita_pdf
 from web.services.fascicoli_signature_options import (
     messaggio_firma_pubblico as _messaggio_firma_pubblico,
     metadata_firma_cades as _metadata_firma_cades,
@@ -624,27 +622,9 @@ def register_fascicoli_signature_routes(
             app.logger.exception("Errore firma_documento(%s, %s): %s", id_fasc, id_doc, exc)
             return _chiudi_risposta(False, signature_storage_error_message(exc), "danger", status=500)
 
-    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/attestazione", methods=["POST"])
+    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/attestazione", methods=["GET", "POST"])
     def attestazione_conformita(id_fasc, id_doc):
-        gestore_fascicoli = get_fascicoli()
-        utente = g.utente_corrente
-        try:
-            percorso = gestore_fascicoli.percorso_documento(id_fasc, id_doc)
-            fascicolo = gestore_fascicoli.get(id_fasc)
-            documento = next(doc for doc in fascicolo.documenti if doc.id == id_doc)
-            data_raw = decrypt_doc(percorso.read_bytes())
-            nome_avvocato = (utente.nome_completo if hasattr(utente, "nome_completo") else utente.username) if utente else "Avvocato"
-            data_oggi = __import__("datetime").date.today().strftime("%d/%m/%Y")
-            testo = (
-                "Copia conforme all'originale\n"
-                "ai sensi dell'art. 22, co. 2, D.Lgs. 82/2005 (CAD)\n"
-                f"Avv. {nome_avvocato} — {data_oggi}"
-            )
-            attested = attestazione_conformita_pdf(data_raw, testo)
-            audit("fascicoli.documento.attestazione", "fascicolo", id_fasc, dettagli=f"doc {id_doc} — {documento.nome}")
-            nome_out = documento.nome.replace(".pdf", "_conf.pdf") if documento.nome.endswith(".pdf") else documento.nome + "_conf.pdf"
-            return send_file(io.BytesIO(attested), mimetype="application/pdf", as_attachment=True, download_name=nome_out)
-        except (KeyError, StopIteration, ValueError) as exc:
-            app.logger.warning("Attestazione documento non valida: %s", exc)
-            flash("Attestazione non generata. Verifica documento e fascicolo.", "danger")
-            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+        """Copia attestata conforme: dati e anteprima in GET/POST, salvataggio come nuovo documento."""
+        from web.services.attestazione_conformita_runtime import risposta_rotta
+
+        return risposta_rotta(get_fascicoli(), id_fasc, id_doc, decrypt_doc=decrypt_doc, encrypt_doc=encrypt_doc, audit=audit)

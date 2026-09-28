@@ -1,3 +1,4 @@
+import { VerificaModuloFirmato } from './patFormweb/VerificaModuloFirmato'
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type MouseEvent, type ReactNode } from 'react'
 import {
   AlertTriangle,
@@ -94,6 +95,13 @@ const surfacePortals: Partial<Record<TelematicoSurfaceId, 'pst' | 'pdp' | 'pat' 
   pdp: 'pdp',
   pat: 'pat',
   ptt: 'ptt',
+}
+
+type AnteprimaModuloPat = {
+  versione: string
+  modelloIntatto: boolean
+  impronta: string
+  sezioni: Array<{ titolo: string; righe: Array<{ etichetta: string; valore: string }> }>
 }
 
 function initialSurfaceData(surfaceId: TelematicoSurfaceId): TelematicoSurfaceData {
@@ -1893,6 +1901,7 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
   const [prefillMessage, setPrefillMessage] = useState('')
   const [pdfBusy, setPdfBusy] = useState(false)
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState('')
+  const [anteprimaModulo, setAnteprimaModulo] = useState<AnteprimaModuloPat | null>(null)
   const [pdfDownloadUrl, setPdfDownloadUrl] = useState('')
   const [pdfFileName, setPdfFileName] = useState('')
   const [pdfSizeLabel, setPdfSizeLabel] = useState('')
@@ -2232,6 +2241,19 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
         throw new Error(asText(payload.errore || payload.message, 'PDF non generato. Controlla i campi obbligatori.'))
       }
       const previewUrl = asText(payload.previewUrl)
+      const lette = asRecord(payload.anteprima)
+      setAnteprimaModulo(payload.anteprima ? {
+        versione: asText(lette.versione),
+        modelloIntatto: lette.modelloIntatto === true,
+        impronta: asText(lette.impronta),
+        sezioni: (Array.isArray(lette.sezioni) ? lette.sezioni : []).map((sezione) => {
+          const voce = asRecord(sezione)
+          return {
+            titolo: asText(voce.titolo),
+            righe: (Array.isArray(voce.righe) ? voce.righe : []).map((riga) => ({ etichetta: asText(asRecord(riga).etichetta), valore: asText(asRecord(riga).valore) })),
+          }
+        }),
+      } : null)
       const downloadUrl = asText(payload.downloadUrl || payload.previewUrl)
       if (!previewUrl) throw new Error('Anteprima PDF non disponibile. Rigenera il modulo PAT.')
       setPdfPreviewUrl((current) => {
@@ -2242,7 +2264,7 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
       setPdfFileName(asText(payload.filename, `${activeModule.id}-compilato-iusentra.pdf`))
       const sizeBytes = asNumber(payload.sizeBytes)
       setPdfSizeLabel(sizeBytes ? formatFileSize(sizeBytes) : '')
-      setDraftMessage('Modulo ministeriale compilato. Aprilo con Adobe Acrobat Reader, incorpora ricorso, procura e documenti con i pulsanti «Carica», salva e firma il modulo in PAdES prima dell’invio via PEC.')
+      setDraftMessage('Modulo ministeriale compilato. Aprilo con Adobe Acrobat Reader, incorpora ricorso, procura e documenti con i pulsanti «Allega» («Carica ricorso» per il ricorso), salva e firma in PAdES sul campo firma del modulo; poi caricalo qui sotto per la verifica.')
     } catch (error: unknown) {
       setDraftMessage(asText(error instanceof Error ? error.message : error, 'Generazione PDF non riuscita.'))
     } finally {
@@ -2805,31 +2827,34 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
           {pdfPreviewUrl ? (
             <div className="iu-pat-pdf-ready">
               <strong>Modulo ufficiale pronto</strong>
-              <span>{pdfFileName || 'PDF PAT compilato'}: i {selectedPatDocuments.length} allegati selezionati si incorporano nel modulo con «Carica» in Adobe Acrobat Reader (per il Formweb restano file separati).</span>
+              <span>{pdfFileName || 'PDF PAT compilato'}: i {selectedPatDocuments.length} allegati selezionati si incorporano nel modulo con i pulsanti «Allega» in Adobe Acrobat Reader (per il Formweb restano file separati).</span>
               <div className="iu-pat-pdf-ready__actions">
-                <a href={pdfPreviewUrl} target="_blank" rel="noreferrer">Apri PDF compilato</a>
-                {pdfDownloadUrl ? <a href={pdfDownloadUrl} target="_blank" rel="noreferrer">Scarica PDF</a> : null}
+                {pdfDownloadUrl ? <a href={pdfDownloadUrl} target="_blank" rel="noreferrer">Scarica il modulo (da aprire in Adobe Reader)</a> : null}
               </div>
             </div>
           ) : null}
           {pdfPreviewUrl ? (
             <div className="iu-pat-generated-pdf-viewer">
               <header>
-                <strong>Controllo dati per il modello ufficiale</strong>
-                <span>Il PDF generato è il modello ministeriale XFA; verifica dati e file da caricare prima della consegna SIGA.</span>
+                <strong>Anteprima del modulo compilato</strong>
+                <span>Dati riletti dal PDF generato{anteprimaModulo?.versione ? ` (modulo ${anteprimaModulo.versione})` : ''}: sono quelli che troverai aprendo il file in Adobe Reader. Il browser non mostra il modello ministeriale XFA; in Reader incorpori gli allegati con «Allega», poi firmi in PAdES sul campo firma del modulo, che prima esegue i suoi controlli.</span>
+                {anteprimaModulo && !anteprimaModulo.modelloIntatto ? <span className="iu-pat-testo-errore">Il file non parte dal modello ministeriale originale: rigeneralo.</span> : null}
               </header>
               <div className="iu-pat-generated-review">
-                <section>
-                  <strong>Dati compilati nel modulo ufficiale</strong>
-                  <dl>
-                    {(activeModule?.fillableFields || []).map((field) => (
-                      <div key={`review-${field.id}`}>
-                        <dt>{field.label}</dt>
-                        <dd>{draftValues[field.id] || 'Non indicato'}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </section>
+                {(anteprimaModulo?.sezioni || []).map((sezione) => (
+                  <section key={`anteprima-${sezione.titolo}`}>
+                    <strong>{sezione.titolo}</strong>
+                    <dl>
+                      {sezione.righe.map((riga, indice) => (
+                        <div key={`${sezione.titolo}-${riga.etichetta}-${indice}`}>
+                          <dt>{riga.etichetta}</dt>
+                          <dd>{riga.valore}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </section>
+                ))}
+                {!anteprimaModulo ? <section><strong>Anteprima non disponibile</strong><span>Scarica il modulo e controllalo in Adobe Reader prima di firmarlo.</span></section> : null}
                 <section>
                   <strong>Allegati pronti per Formweb</strong>
                   <span>{selectedPatDocuments.length} file selezionati dal fascicolo{pdfSizeLabel ? ` · modulo ${pdfSizeLabel}` : ''}</span>
@@ -2843,6 +2868,7 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
                   </ul>
                 </section>
               </div>
+              <VerificaModuloFirmato/>
             </div>
           ) : null}
         </section>

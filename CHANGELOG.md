@@ -1,6 +1,20 @@
 # Changelog
 
-## Non rilasciato — 28/09/2026
+## 2.421.0 — 28/09/2026
+
+Deposito amministrativo (PAT): moduli ministeriali del 18/07/2026, anteprima e verifica del modulo firmato, attestazione di conformità e PDF/A.
+
+- **Moduli PAT aggiornati** alla versione pubblicata il 18/07/2026 (ricorso e atto 4.03; istanza, richieste alla segreteria, ausiliari e rimborso 4.02), identici byte per byte a quelli del sito della Giustizia Amministrativa. Un modulo di una versione precedente può essere rifiutato.
+- **Il modulo compilato resta il modello ministeriale**: i byte originali sono l'inizio del file (salvataggio incrementale), quindi script, controlli e diritti d'uso di Adobe Reader restano validi.
+- **Anteprima del modulo**: il browser non mostra i PDF XFA; IUSENTRA rilegge il file generato e mostra, con le sezioni del modello, i dati davvero scritti (non quelli digitati nella pagina).
+- **Verifica del modulo firmato**: dopo aver incorporato gli allegati e firmato in Adobe Reader (la firma PAdES si appone sul campo firma del modulo, che prima esegue i suoi controlli), l'avvocato carica il file e IUSENTRA controlla versione, firma sull'intero file, certificato, nomi e dimensioni degli allegati (10/30 MB via PEC, 30/50 MB via upload).
+- **Correzioni nella compilazione**: una voce di tendina che non corrisponde a nessuna voce del modulo non si scrive più (prima finiva nel modulo un valore che SIGA non conosce); la tendina «Tipo provvedimento» dell'atto impugnato non viene più divisa a metà («ALTRO» diventava «DELIBERA») e il codice del tipo si ricava dallo script del modulo; il tipo di ricorso si sceglie con le voci esatte della tendina.
+- **Formweb, atto impugnato**: si può indicare «Atto impugnato: non indicato/non conosciuto»; per silenzio, ottemperanza, risarcimento autonomo, regolamento di giurisdizione, riassunzione, revocazione e opposizioni l'atto non è richiesto; estremi incompleti segnalati campo per campo (Istruzioni v9.6.2).
+- **Formweb, contributo unificato**: con «Non esente» e pagamento non ancora fatto non serve altro; se pagato si indicano i dati dell'F24 (modalità unica), il codice tributo della tendina del modulo (GA01…GA0Z) e la quietanza.
+- **Ogni segnalazione si risolve**: ogni dato «da indicare» o «da verificare» della scheda Formweb ha il pulsante che porta dove si corregge (Procedimento, Parti, Documenti, anagrafica della parte).
+- **Documenti del deposito PAT**: si aggiungono file, si aprono nel lettore del fascicolo e si spostano nel cestino direttamente dalla scheda Documenti.
+- **Attesta**: il pulsante non produceva nulla. Ora apre l'attestazione di conformità con nome dell'avvocato e città dello studio, data, testo modificabile, carattere e dimensione del testo e della firma scelti dall'avvocato, anteprima; la copia conforme si salva nel fascicolo accanto all'originale, pronta per la firma digitale (art. 22 e 23-bis CAD; art. 196-octies disp. att. c.p.c.; art. 136 c.p.a.).
+- **PDF/A**: la conversione avveniva ma la pagina non lo mostrava. Ora il documento porta l'indicazione «PDF/A-2B» (anche quando lo diventa al caricamento), il pulsante compare solo quando serve e i messaggi di errore sono quelli reali.
 
 - **Modulo PAT di deposito ricorso — contributo unificato**: con la scelta «Non esente» il modulo ministeriale compilato da IUSENTRA selezionava «Esente» (la parola è contenuta in «non esente»); ora ogni scelta (non esente, esente, prenotazione a debito, patrocinio a spese dello Stato, non dovuto) seleziona una sola voce, quella giusta. Stessa correzione nella precompilazione dal fascicolo e nei valori XFA indicati per percorso.
 - **Monitor eIDAS**: il registro della Trusted List italiana interpreta le cessioni storiche `TakenOverBy` dopo aver verificato la firma dell'XML originale e fallisce se trova errori di altra natura.

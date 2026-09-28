@@ -90,8 +90,8 @@ def test_pat_siga_catalogo_moduli_e_formweb_da_fonti_ufficiali():
         "requiresOfficialPortal": True,
     }
     assert {"deposito_ricorso", "deposito_atto", "richieste_segreteria", "foglio_excel_parti"} <= set(modules)
-    assert modules["deposito_ricorso"]["version"] == "4.02"
-    assert modules["deposito_atto"]["version"] == "4.02"
+    assert modules["deposito_ricorso"]["version"] == "4.03"
+    assert modules["deposito_atto"]["version"] == "4.03"
     assert modules["deposito_ricorso"]["fillable_fields"]
     assert any(field["id"] == "tipo_ricorso" for field in modules["deposito_ricorso"]["fillable_fields"])
     assert any(field["id"] == "contributo_unificato" for field in modules["deposito_ricorso"]["fillable_fields"])
@@ -106,7 +106,7 @@ def test_pat_siga_catalogo_moduli_e_formweb_da_fonti_ufficiali():
         for section in atto_schema["sections"]
         for action in section["actions"]
     }
-    assert atto_schema["templateFile"] == "ModuloDepositoAtto_4.02.pdf"
+    assert atto_schema["templateFile"] == "ModuloDepositoAtto_4.03.pdf"
     assert atto_schema["rawFieldCount"] >= 180
     assert atto_schema["fieldCount"] >= 130
     assert atto_schema["operationalFieldCount"] >= 90  # allegati e firma li scrive il modulo in Adobe Reader

@@ -54,7 +54,9 @@ def salva_procedimento(fid: str, dati: dict[str, Any]) -> dict[str, Any]:
         pulito["istanze"] = [i for i in dati["istanze"] or [] if i in catalogo.ISTANZE_SEGNALABILI]
     if "attoImpugnato" in dati:
         voce = dati["attoImpugnato"] or {}
-        pulito["attoImpugnato"] = {k: str(voce.get(k) or "").strip()[:200] for k in ("organo", "tipo", "numero", "anno")}
+        pulito["attoImpugnato"] = _atto_impugnato(voce)
+    if "versamento" in dati:
+        pulito["versamento"] = _versamento(dati["versamento"] or {})
     for chiave in ("posizione", "cuTipologia", "oggetto", "materia", "esenzione", "fax"):
         if chiave in dati:
             pulito[chiave] = str(dati[chiave] or "").strip()
@@ -69,6 +71,58 @@ def salva_procedimento(fid: str, dati: dict[str, Any]) -> dict[str, Any]:
     salvato = contesto.archivio().aggiorna_procedimento(fid, pulito)
     _allinea_fascicolo(fid, pulito)
     return salvato
+
+
+def _atto_impugnato(voce: dict[str, Any]) -> dict[str, Any]:
+    """Estremi dell'atto impugnato con i limiti del modulo (Istruzioni v9.6.2, «Atti impugnati»).
+
+    Autorità emanante fino a 120 caratteri, tipo dalla tendina (con «ALTRO» il tipo si scrive), anno di
+    4 cifre che inizia per 1 o 2, numero fino a 20 caratteri. La spunta «non indicato/non conosciuto»
+    esclude gli estremi.
+    """
+    if voce.get("nonIndicato"):
+        return {"organo": "", "tipo": "", "altroTipo": "", "numero": "", "anno": "", "nonIndicato": True}
+    pulito = {k: str(voce.get(k) or "").strip() for k in ("organo", "tipo", "altroTipo", "numero", "anno")}
+    tipi = set(catalogo.catalogo()["tipiAttoImpugnato"])
+    if pulito["tipo"] and pulito["tipo"].upper() not in tipi:
+        # Un tipo scritto a mano (dati salvati prima della tendina) diventa «ALTRO» con il testo indicato.
+        pulito["altroTipo"], pulito["tipo"] = pulito["tipo"], "ALTRO"
+    pulito["tipo"] = pulito["tipo"].upper()
+    if pulito["tipo"] != "ALTRO":
+        pulito["altroTipo"] = ""
+    if len(pulito["organo"]) > 120:
+        raise ValueError("Autorità emanante: al massimo 120 caratteri.")
+    if len(pulito["numero"]) > 20:
+        raise ValueError("Numero dell'atto impugnato: al massimo 20 caratteri.")
+    if pulito["anno"] and not re.fullmatch(r"[12]\d{3}", pulito["anno"]):
+        raise ValueError("Anno dell'atto impugnato: 4 cifre, la prima 1 o 2.")
+    return pulito
+
+
+def _versamento(voce: dict[str, Any]) -> dict[str, Any]:
+    """Il versamento F24 del contributo unificato con i campi e i limiti del modulo di deposito."""
+    pulito = {k: str(voce.get(k) or "").strip() for k in ("data", "estremi", "importo", "codiceTributo", "numeroRiga", "elementi")}
+    if not any(pulito[k] for k in ("data", "estremi", "importo", "codiceTributo", "elementi")):
+        return {}  # nessun pagamento indicato: il numero riga proposto (1) da solo non è un versamento
+    if pulito["data"] and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", pulito["data"]):
+        raise ValueError("Data del versamento non valida.")
+    if pulito["codiceTributo"] and pulito["codiceTributo"] not in {c["codice"] for c in catalogo.codici_tributo()}:
+        raise ValueError("Codice tributo non presente nella tendina del modulo (GA01, GA02…).")
+    if len(pulito["estremi"]) > 24:
+        raise ValueError("Estremi del versamento: il protocollo telematico della quietanza ha al massimo 24 caratteri.")
+    if pulito["numeroRiga"] and not pulito["numeroRiga"].isdigit():
+        raise ValueError("Numero riga del modello F24: solo cifre.")
+    if len(pulito["elementi"]) > 17:
+        raise ValueError("Elementi identificativi: codice fiscale o partita IVA di chi ha versato.")
+    if pulito["importo"]:
+        try:
+            float(pulito["importo"].replace(".", "").replace(",", "."))
+        except ValueError as exc:
+            raise ValueError("Importo versato non valido.") from exc
+    pulito["elementi"] = pulito["elementi"].upper()
+    pulito["modalita"] = catalogo.MODALITA_VERSAMENTO
+    pulito["altroUfficio"] = bool(voce.get("altroUfficio"))
+    return pulito
 
 
 def _allinea_fascicolo(fid: str, pulito: dict[str, Any]) -> None:

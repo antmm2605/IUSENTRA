@@ -12,7 +12,7 @@ Questo registro è generato da `scripts/react-migration/generate_app_v2_page_reg
 - Route legacy operative: 17.
 - Route App V2 dichiarate in frontend: 16.
 - Alias legacy verso App V2 in frontend: 32.
-- Route Flask GET candidate rilevate fuori manifest: 322.
+- Route Flask GET candidate rilevate fuori manifest: 323.
 
 ### Distribuzione rischio
 
@@ -815,6 +815,7 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /fascicoli/{id_fasc}/deposito/indice-documenti | GET,POST | web/bootstrap/deposito_routes.py | non rilevato |
 | /fascicoli/{id_fasc}/deposito/prepara | GET | web/bootstrap/deposito_prepara_routes.py | fascicoli/deposito_prepara.html |
 | /fascicoli/{id_fasc}/documenti-riconoscibili | GET | web/blueprints/api_v1_document_tools.py | non rilevato |
+| /fascicoli/{id_fasc}/documenti/{id_doc}/attestazione | GET,POST | web/bootstrap/fascicoli_signature_routes.py | non rilevato |
 | /fascicoli/{id_fasc}/documenti/{id_doc}/editor | GET | web/bootstrap/fascicoli_editor_routes.py | fascicoli/editor_documento.html |
 | /fascicoli/{id_fasc}/documenti/{id_doc}/firma | GET,POST | web/bootstrap/fascicoli_signature_routes.py | non rilevato |
 | /fascicoli/{id_fasc}/documenti/{id_doc}/scarica | GET | web/bootstrap/fascicoli_document_view_routes.py | non rilevato |
@@ -833,7 +834,6 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /guida-pratica/{codice} | GET | web/blueprints/api_v1_guida_pratica.py | non rilevato |
 | /health/dependencies | GET | web/bootstrap/health_routes.py | non rilevato |
 | /health/live | GET | web/bootstrap/health_routes.py | non rilevato |
-| /health/ready | GET | web/bootstrap/health_routes.py | non rilevato |
 
 ## Regola operativa fase 4
 

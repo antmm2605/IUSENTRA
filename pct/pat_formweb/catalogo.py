@@ -8,8 +8,8 @@ Fonti, tutte consultate in sola lettura il 25/09/2026:
 - video ufficiale «Form Web» (giustizia-amministrativa.it, «Istruzioni sintetiche
   e video»): schede del deposito ricorso e flusso Genera riepilogo → firma →
   Invia deposito;
-- moduli ministeriali XFA (Ricorso e Atto 4.02, Istanza, Richieste segreteria e
-  Rimborso 4.01) già archiviati in ``pct/data/pat_moduli``: le liste di scelta
+- moduli ministeriali XFA 4.x del 18/07/2026 (Ricorso e Atto 4.03, Istanza,
+  Richieste segreteria, Ausiliari e Rimborso 4.02) già archiviati in ``pct/data/pat_moduli``: le liste di scelta
   (tipi di ricorso, esenzioni, materie, organi, modalità di notifica) con i
   codici SIGA si leggono da lì, non si copiano a mano.
 """
@@ -25,7 +25,7 @@ FONTE = {
     "consultatoIl": "2026-09-25",
     "manuale": f"{PORTALE}/assets/pdf/Manuale_Avvocato.pdf",
     "video": "https://www.giustizia-amministrativa.it/web/guest/pillole-e-video",
-    "moduli": "Moduli di deposito XFA 4.02/4.01 (documentazione operativa e modulistica)",
+    "moduli": "Moduli di deposito XFA 4.x del 18/07/2026 (documentazione operativa e modulistica)",
 }
 
 # codice ufficio del bundle IUSENTRA → (codice sede SIGA del modulo, scrittura del Portale dell'Avvocato)
@@ -136,6 +136,32 @@ def tipi_ricorso(codice_sede: str) -> list[dict[str, str]]:
     return opzioni("tipoRicorsoCds" if ambito(codice_sede) in {"CDS", "CGARS"} else "tipoRicorsoTar")
 
 
+# «La Modalità versamento dal 1° gennaio 2018 è unica: MODELLO F24» (Istruzioni per la compilazione dei moduli
+# di deposito v9.6.2, § Contributo unificato); il modulo la imposta da sé con il valore 5.
+MODALITA_VERSAMENTO = "MODELLO F24"
+
+
+@lru_cache(maxsize=1)
+def codici_tributo() -> list[dict[str, str]]:
+    """I codici tributo F24 del contributo unificato come li propone il modulo ufficiale (GA01, GA02…).
+
+    La tendina del modulo si riempie da script: codici e descrizioni si leggono dalle risorse del modello
+    ministeriale, non si copiano a mano.
+    """
+    import re
+
+    from pypdf import PdfReader
+
+    from pct.pat_pdf_templates import PAT_PDF_TEMPLATES
+
+    lettore = PdfReader(str(PAT_PDF_TEMPLATES["deposito_ricorso"].path))
+    xfa = lettore.trailer["/Root"]["/AcroForm"]["/XFA"]
+    pacchetti = {str(xfa[i]): xfa[i + 1] for i in range(0, len(xfa) - 1, 2)}
+    testo = pacchetti["template"].get_object().get_data().decode("utf-8", "ignore")
+    voci = re.findall(r'var codiceTributo0[1-9]I = "((\w{4}) - [^"]+)"', testo)
+    return [{"codice": codice, "descrizione": descrizione} for descrizione, codice in voci]
+
+
 def catalogo() -> dict[str, Any]:
     sedi = {codice: etichetta for codice, etichetta in SEDI.values()}
     return {
@@ -147,9 +173,12 @@ def catalogo() -> dict[str, Any]:
         "materie": opzioni("materia"), "tipologieAmministrazione": opzioni("tipologia"),
         "tipiProvvedimento": opzioni("tipoProvvImpugnatoTar"), "richiesteSegreteria": opzioni("tipoAtto", "richieste_segreteria"),
         "istanze": list(ISTANZE_SEGNALABILI), "contributo": list(CONTRIBUTO), "tipologieParte": list(TIPOLOGIE_PARTE),
+        "modalitaVersamento": [MODALITA_VERSAMENTO], "codiciTributo": codici_tributo(),
+        "tipiAttoImpugnato": [v["descrizione"] for v in opzioni("tipoProvvImpugnatoTar")] + ["ALTRO"],
         "modalitaNotifica": [v["codice"] for v in opzioni("txtModalita")] or ["PEC", "POSTA", "MANI PROPRIE", "ALTRO", "UNEP"],
     }
 
 
-__all__ = ["DEPOSITI", "FONTE", "PORTALE", "SEDI", "ambito", "catalogo", "deposito", "descrizione", "link_deposito",
+__all__ = ["DEPOSITI", "FONTE", "MODALITA_VERSAMENTO", "PORTALE", "SEDI", "ambito", "catalogo", "codici_tributo",
+           "deposito", "descrizione", "link_deposito",
            "opzioni", "tipi_ricorso"]

@@ -1349,6 +1349,7 @@ def build_fascicoli_runtime(
         preserva_contenuto_originale: bool = False,
     ) -> Documento:
         contenuto_chiaro = raw
+        versione_pdfa = ""
         preserva_documento_portale = preserva_contenuto_originale or str(fonte_documento or "").strip().upper() == "PORTALE_TELEMATICO"
         if nome_file.lower().endswith(".pdf") and not firmato and not preserva_documento_portale:
             try:
@@ -1358,10 +1359,13 @@ def build_fascicoli_runtime(
                     tmp_path = Path(tmp_dir) / "documento.pdf"
                     tmp_path.write_bytes(raw)
                     esito_pdfa = verifica_pdfa(str(tmp_path))
+                    if esito_pdfa.get("conforme"):
+                        versione_pdfa = str(esito_pdfa.get("versione") or "")
                     if esito_pdfa.get("conforme") is False:
                         conv = converti_pdfa(str(tmp_path), pdfa_profile=pdfa_profile)
                         if conv.get("ok"):
                             contenuto_chiaro = tmp_path.read_bytes()
+                            versione_pdfa = str(verifica_pdfa(str(tmp_path)).get("versione") or "")
                             app.logger.info(
                                 "PDF/A auto-conversione: %s -> %s (%s)",
                                 nome_file,
@@ -1396,6 +1400,9 @@ def build_fascicoli_runtime(
                     "source": "portale",
                     "file_name": Path(nome_file).name,
                 }
+        if versione_pdfa.upper().startswith("PDF/A-"):
+            # La versione PDF/A resta visibile sul documento: il pulsante di conversione non serve più.
+            tags = [*(tags or []), versione_pdfa]
         contenuto = _encrypt_doc(contenuto_chiaro)
         doc = gf.aggiungi_documento(
             id_fasc,

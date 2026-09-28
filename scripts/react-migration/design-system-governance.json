@@ -110,6 +110,7 @@
     "frontend/src/components/documentCapture/acquisition.css",
     "frontend/src/components/documentCapture/documentCapture.css",
     "frontend/src/components/documentCapture/fascicoloOcr.css",
+    "frontend/src/components/fascicoli/attestazioneConformita.css",
     "frontend/src/components/fascicoli/letturaFascicolo.css",
     "frontend/src/components/fascicoloDocumenti/documentListToolbar.css",
     "frontend/src/components/layout/TopBar.css",

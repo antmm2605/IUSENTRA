@@ -1999,9 +1999,10 @@ def test_react_superfici_telematiche_api_payload_reale(tmp_path: Path):
     assert "X-IUSENTRA-PAT-Preview" in pat_workspace_source
     assert "pdfDownloadUrl" in pat_workspace_source
     assert "iu-pat-pdf-ready__actions" in pat_workspace_source
-    assert "href={pdfPreviewUrl}" in pat_workspace_source
+    # Il modulo XFA non si vede nel browser: si scarica per Adobe Reader e l'anteprima si rilegge dal PDF.
+    assert "href={pdfPreviewUrl}" not in pat_workspace_source
     assert "pdfDownloadUrl || pdfPreviewUrl" not in pat_workspace_source
-    assert "Scarica PDF" in pat_workspace_source
+    assert "Scarica il modulo (da aprire in Adobe Reader)" in pat_workspace_source
     css_source = Path("frontend/src/components/TelematicoSurfacePage.css").read_text(encoding="utf-8")
     assert "iu-pat-op-grid" in css_source
     assert "iu-pat-doc-row" in css_source
@@ -2013,8 +2014,8 @@ def test_react_superfici_telematiche_api_payload_reale(tmp_path: Path):
     assert "<iframe" not in pat_workspace_source
     assert "setPreviewDocument(doc)" in pat_workspace_source
     assert "Anteprima documento" in pat_workspace_source
-    assert "Controllo dati per il modello ufficiale" in pat_workspace_source
-    assert "Dati compilati nel modulo ufficiale" in pat_workspace_source
+    assert "Anteprima del modulo compilato" in pat_workspace_source
+    assert "Dati riletti dal PDF generato" in pat_workspace_source
     assert "Allegati pronti per Formweb" in pat_workspace_source
     assert "modello ministeriale XFA" in pat_workspace_source
     assert "Allegati inclusi nel PDF" not in pat_workspace_source
@@ -2050,7 +2051,7 @@ def test_react_pat_modulo_compilabile_produce_pdf(tmp_path: Path):
     assert response.mimetype == "application/pdf"
     assert response.data.startswith(b"%PDF")
     assert len(response.data) > 1_000_000
-    assert "ModuloDepositoRicorso_4.02_compilato_iusentra.pdf" in response.headers["Content-Disposition"]
+    assert "ModuloDepositoRicorso_4.03_compilato_iusentra.pdf" in response.headers["Content-Disposition"]
     reader = PdfReader(io.BytesIO(response.data))
     assert len(reader.pages) == 1
     extracted_text = "\n".join(page.extract_text() or "" for page in reader.pages)
@@ -2124,7 +2125,7 @@ def test_react_pat_modulo_atto_compila_path_xfa_e_righe_aggiunte(tmp_path: Path)
 
     assert response.status_code == 200
     assert response.mimetype == "application/pdf"
-    assert "ModuloDepositoAtto_4.02_compilato_iusentra.pdf" in response.headers["Content-Disposition"]
+    assert "ModuloDepositoAtto_4.03_compilato_iusentra.pdf" in response.headers["Content-Disposition"]
     xfa_xml = _xfa_template_text(response.data)
     assert re.search(r'name="selectSede"[\s\S]{0,900}<value><text>tar_rm</text></value>', xfa_xml)
     assert "Speranza" in xfa_xml
@@ -2320,7 +2321,13 @@ def test_react_pat_modulo_compilabile_espone_anteprima_sessione(tmp_path: Path):
     assert response.status_code == 200
     payload = response.get_json()
     assert payload["ok"] is True
-    assert payload["filename"] == "ModuloDepositoRicorso_4.02_compilato_iusentra.pdf"
+    assert payload["filename"] == "ModuloDepositoRicorso_4.03_compilato_iusentra.pdf"
+    # Anteprima riletta dal PDF generato: versione del modello, modello intatto e dati scritti.
+    anteprima = payload["anteprima"]
+    assert anteprima["versione"] == "4.03" and anteprima["modelloIntatto"] is True
+    righe = {r["etichetta"]: r["valore"] for s in anteprima["sezioni"] for r in s["righe"]}
+    assert righe["Tipologia di ricorso"] == "ORDINARIO" and righe["Contributo unificato"] == "Non esente"
+    assert righe["Resistente · Denominazione"] == "Comune di Roma"
     assert payload["previewUrl"].startswith("/api/v1/ui/pat/moduli/preview/")
     assert payload["downloadUrl"].endswith("?download=1")
 
@@ -8406,7 +8413,8 @@ def test_conversione_pdfa_preserva_documenti_portale_e_riallinea_metadati(tmp_pa
     fascicolo = fascicoli.nuovo("Conversione controllata", TipoFascicolo.CIVILE)
     portal_bytes = b"%PDF-1.4 documento portale"
     editable_bytes = b"%PDF-1.4 documento studio"
-    converted_bytes = b"%PDF-1.7 documento PDF/A-2B"
+    # La conversione si accetta solo se il risultato dichiara PDF/A nei metadati XMP (pdfaid).
+    converted_bytes = b"%PDF-1.7 documento <pdfaid:part>2</pdfaid:part><pdfaid:conformance>B</pdfaid:conformance>"
     portal_doc = fascicoli.aggiungi_documento(
         fascicolo.id,
         "provvedimento.pdf",
@@ -8460,6 +8468,7 @@ def test_conversione_pdfa_preserva_documenti_portale_e_riallinea_metadati(tmp_pa
     assert editable_after.dimensione_bytes == len(converted_bytes)
     assert editable_after.versioni[-1].hash_sha256 == hashlib.sha256(editable_bytes).hexdigest()
     assert (reloaded.documents_dir / editable_after.versioni[-1].percorso).read_bytes() == editable_bytes
+    assert "PDF/A-2B" in editable_after.tags
 
 
 def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
@@ -10807,6 +10816,8 @@ def _url_react_effettivamente_richiesti(html: str, assets_dir: Path) -> set[str]
         codice = file_chunk.read_text(encoding="utf-8", errors="replace")
         riferimenti = set(re.findall(r'from(?:"|`)\./([^"`]+)(?:"|`)', codice))
         riferimenti |= set(re.findall(r'import\((?:"|`)\./([^"`]+)(?:"|`)', codice))
+        # Import per soli effetti collaterali (`import"./chunk.js"`): anche questi il browser li scarica.
+        riferimenti |= set(re.findall(r'import(?:"|`)\./([^"`]+)(?:"|`)', codice))
         for rel in riferimenti:
             nuovo = "/static/react/assets/" + rel
             if nuovo not in visti:

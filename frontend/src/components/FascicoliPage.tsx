@@ -1,3 +1,4 @@
+import { AttestazioneConformitaAzione } from './fascicoli/AttestazioneConformita'
 import { Fragment, Suspense, lazy, useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import {
   Archive,
@@ -8433,14 +8434,14 @@ function DocumentRow({ doc, onPreview, onDone, onError, hideCatalogSummary = fal
           {renameMessage ? <small>{renameMessage}</small> : null}
         </form>
       ) : null}
-      <div className="iu-fas-doc-badges" hidden={onApriChiudi ? !aperto : false}><Badge tone={doc.signed ? doc.statusTone : 'neutral'}>{doc.signed ? (doc.statusLabel || 'Firmato') : 'Firma non verificata'}</Badge>{doc.catalogLabel ? <Badge tone={catalogTone}>{doc.catalogLabel}</Badge> : null}{doc.source ? <Badge tone="neutral">{doc.source}</Badge> : null}{doc.portalClass ? <Badge tone="info">{doc.portalClass}</Badge> : null}</div>
+      <div className="iu-fas-doc-badges" hidden={onApriChiudi ? !aperto : false}><Badge tone={doc.signed ? doc.statusTone : 'neutral'}>{doc.signed ? (doc.statusLabel || 'Firmato') : 'Firma non verificata'}</Badge>{doc.pdfa ? <Badge tone="success">{doc.pdfa}</Badge> : null}{doc.catalogLabel ? <Badge tone={catalogTone}>{doc.catalogLabel}</Badge> : null}{doc.source ? <Badge tone="neutral">{doc.source}</Badge> : null}{doc.portalClass ? <Badge tone="info">{doc.portalClass}</Badge> : null}</div>
       <div className="iu-fas-actions iu-fas-actions--wrap iu-fas-doc-actions" hidden={onApriChiudi ? !aperto : false} aria-label={`Azioni per ${doc.name}`}>
         {doc.actions.acquire ? <a className="iu-fas-doc-action" href={doc.actions.acquire} title="Acquisisci il file dal portale con sessione autenticata o Local Signer"><Download size={15}/><span>Acquisisci dal PST</span></a> : null}
         {doc.actions.preview ? <button type="button" className="iu-fas-doc-action" title="Apri il documento nel lettore interno" aria-label={`Apri ${doc.name} nel lettore interno`} onClick={() => onPreview({ name: doc.name, url: doc.actions.preview, downloadUrl: doc.actions.download })}><Eye size={15}/><span>Visualizza</span></button> : null}
         {doc.actions.download ? <DocumentDownloadAction downloadUrl={doc.actions.download} name={doc.name} onDone={onDone} onError={onError}/> : null}
         {doc.actions.edit ? <a className="iu-fas-doc-action" href={doc.actions.edit} title="Apri l’editor del documento" aria-label={`Modifica documento ${doc.name}`}><PencilLine size={15}/><span>Modifica</span></a> : null}
         {doc.actions.sign ? <a className="iu-fas-doc-action" href={doc.actions.sign} title="Apri la firma digitale del documento"><ShieldCheck size={15}/><span>Firma</span></a> : null}
-        {doc.actions.attest ? <PostAction action={doc.actions.attest} tone="secondary" onDone={onDone} onError={onError} title="Crea l’attestazione di conformità"><BadgeCheck size={14}/><span>Attesta</span></PostAction> : null}
+        {doc.actions.attest ? <AttestazioneConformitaAzione action={doc.actions.attest} documento={doc.name} onDone={onDone} onError={onError}/> : null}
         {doc.actions.pdfa ? <PostAction action={doc.actions.pdfa} tone="secondary" confirm="Convertire il documento in PDF/A-2B?" confirmTitle="Conversione PDF/A" onDone={onDone} onError={onError} title="Converti in PDF/A-2B"><FileCheck2 size={14}/><span>PDF/A</span></PostAction> : null}
         {doc.actions.delete ? <PostAction action={doc.actions.delete} tone="danger" confirm="Eliminare il documento dal fascicolo?" confirmTitle="Elimina documento" onDone={onDone} onError={onError} title="Elimina documento"><Trash2 size={14}/><span>Elimina</span></PostAction> : null}
       </div>
@@ -10171,7 +10172,7 @@ function DetailPage({ id }:{id:string}) {
           ) : null}
           {f.type === 'amministrativo' ? (
             <DetailSection id="pat-formweb" title="Deposito amministrativo (PAT)" icon={<Send size={17}/>} defaultOpen={activeHashSection === 'pat-formweb'} onOpen={() => setPatVisited(true)}>
-              {patVisited ? <Suspense fallback={<p role="status">Caricamento deposito amministrativo…</p>}><PatFormwebSezione key={f.id || id} fascicoloId={f.id || id} onDocumenti={() => refreshDocuments()}/></Suspense> : null}
+              {patVisited ? <Suspense fallback={<p role="status">Caricamento deposito amministrativo…</p>}><PatFormwebSezione key={f.id || id} fascicoloId={f.id || id} onDocumenti={() => refreshDocuments()} onPreview={setPreviewDoc}/></Suspense> : null}
             </DetailSection>
           ) : null}
           {f.type === 'tributario' ? (

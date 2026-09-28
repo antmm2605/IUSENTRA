@@ -53,6 +53,8 @@
 .iu-pat-riga__descr { color: var(--iu-slate-600); }
 .iu-pat-riga__azioni { display: flex; flex-wrap: wrap; gap: 6px; }
 .iu-pat-riga__azioni button, .iu-pat-riga__azioni a { min-height: 30px; padding: 0 8px; }
+.iu-pat .iu-pat-riga__azioni .iu-pat-risolvi { border-color: transparent; background: var(--iu-navy-900); color: #fff; }
+.iu-pat-procedimento section { scroll-margin-top: 80px; }
 
 .iu-pat-procedimento, .iu-pat-parti, .iu-pat-documenti, .iu-pat-riepilogo { display: grid; gap: 12px; }
 .iu-pat-procedimento section, .iu-pat-carica { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--iu-border); border-radius: 12px; background: #fff; }
@@ -83,3 +85,7 @@
 .iu-pat-residuale { border: 1px solid var(--iu-border); border-radius: 12px; background: #fff; }
 .iu-pat-residuale > summary { display: flex; align-items: center; gap: 8px; padding: 12px 14px; font-weight: 800; cursor: pointer; }
 .iu-pat-residuale[open] > summary { border-bottom: 1px solid var(--iu-border); }
+.iu-pat-versamento { display: grid; gap: 8px; }
+.iu-pat-doc__azioni { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.iu-pat-doc__azioni button { min-height: 30px; padding: 0 9px; }
+.iu-pat .iu-pat-pericolo { border-color: rgba(220, 38, 38, .35); color: #b91c1c; }

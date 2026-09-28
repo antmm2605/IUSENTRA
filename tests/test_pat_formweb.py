@@ -146,11 +146,13 @@ def _contesto(**kw):
     ctx = {"fascicolo": {"oggetto": "Annullamento della delibera"}, "avvocato": {"nome": "Avv. Prova"},
            "procedimento": {"sede": "tar_rc", "tipoRicorso": "1", "cuTipologia": "Non esente",
                             "attoImpugnato": {"organo": "Comune di Palmi", "tipo": "DELIBERA", "numero": "12", "anno": "2026"}},
-           "parti": parti.parti_pat({"tipo": "PERSONA_FISICA", "cognome": "Bianchi", "nome": "Luca"},
+           "parti": parti.parti_pat({"tipo": "PERSONA_FISICA", "cognome": "Bianchi", "nome": "Luca",
+                                     "codice_fiscale": "BNCLCU80A01H224X", "pec": "luca.bianchi@pec.it"},
                                     [("CONTROPARTE", {"id": "s1", "tipo": "PUBBLICA_AMMINISTRAZIONE", "ragione_sociale": "Comune"})]),
            "documenti": [{"ruolo": "atto", "nome": "Ricorso.pdf", "nomeProposto": "Ricorso.pdf", "esiti": [], "bloccante": False},
                          {"ruolo": "procura", "nome": "Procura.pdf", "nomeProposto": "Procura.pdf", "esiti": [], "bloccante": False},
-                         {"ruolo": "notifica", "nome": "Relata.pdf", "nomeProposto": "Relata.pdf", "esiti": [], "bloccante": False}],
+                         {"ruolo": "notifica", "nome": "Relata.pdf", "nomeProposto": "Relata.pdf", "esiti": [], "bloccante": False},
+                         {"ruolo": "contributo", "nome": "Ricevuta CU.pdf", "nomeProposto": "Ricevuta CU.pdf", "esiti": [], "bloccante": False}],
            "contributo": {"importo": 650.0, "nota": "", "versamento": "25/09/2026 · F24 · 650"}}
     ctx.update(kw)
     return ctx
@@ -273,3 +275,58 @@ def test_estensione_dal_file_conservato_non_dal_titolo():
     assert regole.con_estensione("Atto di precetto Avv. Rossi", "", "documenti/ab12.pdf") == "Atto di precetto Avv. Rossi.pdf"
     assert regole.nome_formweb(regole.con_estensione("Atto Avv. Rossi", "atto.PDF")) == "Atto Avv Rossi.pdf"
     assert regole.estensione("Relata di notifica1.PDF") == "pdf"
+
+
+def _riga(esito, sezione, etichetta):
+    blocco = next(s for s in esito["sezioni"] if s["titolo"] == sezione)
+    return next(r for r in blocco["righe"] if r["etichetta"] == etichetta)
+
+
+def test_atto_impugnato_non_indicato_o_non_richiesto():
+    # Formweb: estremi dell'atto oppure «Atto impugnato: non indicato/non conosciuto».
+    senza = _contesto(procedimento={"sede": "tar_rc", "tipoRicorso": "1", "cuTipologia": "Non esente"})
+    riga = _riga(scheda.scheda(senza, "ricorso"), "Ricorso, procura e allegati", "Atto impugnato")
+    assert riga["stato"] == "manca" and riga["risolvi"]["ancora"] == "pat-atto-impugnato"
+    spuntato = _contesto(procedimento={"sede": "tar_rc", "tipoRicorso": "1", "cuTipologia": "Non esente",
+                                       "attoImpugnato": {"nonIndicato": True}})
+    riga = _riga(scheda.scheda(spuntato, "ricorso"), "Ricorso, procura e allegati", "Atto impugnato")
+    assert riga["stato"] == "ok" and riga["valore"] == "Non indicato/non conosciuto" and "risolvi" not in riga
+    silenzio = _contesto(procedimento={"sede": "tar_rc", "tipoRicorso": "86", "cuTipologia": "Non esente"})
+    riga = _riga(scheda.scheda(silenzio, "ricorso"), "Ricorso, procura e allegati", "Atto impugnato")
+    assert riga["stato"] == "facoltativo"
+
+
+def test_ogni_segnalazione_del_contributo_si_puo_risolvere():
+    vuoto = _contesto(procedimento={"sede": "tar_rc", "cuTipologia": ""}, contributo={"importo": None, "nota": "", "versamento": ""})
+    esito = scheda.scheda(vuoto, "ricorso")
+    assert _riga(esito, "Contributo unificato", "Tipologia")["risolvi"]["ancora"] == "pat-contributo"
+    importo = _riga(esito, "Contributo unificato", "Importo dovuto")["risolvi"]
+    assert importo["ancora"] == "pat-ricorso" and importo["etichetta"] == "Indica il tipo di ricorso"
+    assert _riga(esito, "Contributo unificato", "Estremi del versamento")["risolvi"]["ancora"] == "pat-versamento"
+    # Ogni riga «da indicare» o «da verificare» porta dove si corregge.
+    for sezione in esito["sezioni"]:
+        for riga in sezione["righe"]:
+            if riga["stato"] in {"manca", "verifica"} and riga["etichetta"] != "Tipo di richiesta":
+                assert riga.get("risolvi"), (sezione["titolo"], riga["etichetta"])
+
+
+def test_versamento_senza_ricevuta_da_verificare():
+    documenti = [d for d in _contesto()["documenti"] if d["ruolo"] != "contributo"]
+    riga = _riga(scheda.scheda(_contesto(documenti=documenti), "ricorso"), "Contributo unificato", "Estremi del versamento")
+    assert riga["stato"] == "verifica" and riga["risolvi"]["scheda"] == "documenti"
+
+
+
+def test_atto_impugnato_estremi_incompleti():
+    # Istruzioni v9.6.2: servono autorità, tipo, numero e anno; se ne manca uno si spunta «non indicato/non conosciuto».
+    parziale = _contesto(procedimento={"sede": "tar_rc", "tipoRicorso": "1", "cuTipologia": "Non esente",
+                                       "attoImpugnato": {"organo": "Comune di Palmi", "tipo": "DELIBERA"}})
+    riga = _riga(scheda.scheda(parziale, "ricorso"), "Ricorso, procura e allegati", "Atto impugnato")
+    assert riga["stato"] == "manca" and "numero, anno" in riga["nota"] and riga["risolvi"]["ancora"] == "pat-atto-impugnato"
+
+
+def test_ricorrente_senza_pec_e_codice_fiscale_da_completare():
+    ctx = _contesto(parti=parti.parti_pat({"id": "C1", "tipo": "PERSONA_FISICA", "cognome": "Bianchi", "nome": "Luca"}, []))
+    riga = _riga(scheda.scheda(ctx, "ricorso"), "Parti", "Ricorrenti")
+    assert riga["stato"] == "verifica" and "PEC, codice fiscale" in riga["nota"]
+    assert riga["risolvi"] == {"href": "/clienti/C1/modifica", "etichetta": "Completa l'anagrafica"}

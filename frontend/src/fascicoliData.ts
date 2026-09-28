@@ -342,6 +342,7 @@ export type FascicoloDocument = {
   notes: string
   tags: string[]
   signed: boolean
+  pdfa: string
   signatureProfile: string
   signatureReadyForDeposit: boolean
   signatureMissingAttributes: string[]
@@ -2442,6 +2443,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
         uploadedAt: text(row.uploadedAt ?? row.data_caricamento), documentDate: text(row.documentDate ?? row.data_documento), notes: text(row.notes ?? row.note),
         tags: asArray(row.tags).map((tag) => text(tag)).filter(Boolean), signed,
         signatureProfile: text(row.signatureProfile ?? row.signature_profile),
+        pdfa: text(row.pdfa),
         signatureReadyForDeposit,
         signatureMissingAttributes: asArray(row.signatureMissingAttributes ?? row.signature_missing_attributes).map((item) => text(item)).filter(Boolean),
         signatureNeedsRefresh: row.signatureNeedsRefresh === undefined && row.signature_needs_refresh === undefined

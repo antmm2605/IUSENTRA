@@ -91,7 +91,7 @@ def _cliente(fascicolo: Any) -> dict[str, Any] | None:
     tipo = str(getattr(cliente.tipo, "value", cliente.tipo)).upper()
     recapiti = getattr(cliente, "recapiti", None)
     return {"tipo": "PERSONA_FISICA" if "FISIC" in tipo else ("PUBBLICA_AMMINISTRAZIONE" if "PUBBLIC" in tipo else "PERSONA_GIURIDICA"),
-            "nome": cliente.nome, "cognome": cliente.cognome, "ragione_sociale": cliente.ragione_sociale,
+            "id": cliente.id, "nome": cliente.nome, "cognome": cliente.cognome, "ragione_sociale": cliente.ragione_sociale,
             "codice_fiscale": cliente.codice_fiscale, "partita_iva": cliente.partita_iva,
             "pec": getattr(recapiti, "pec", "") or ""}
 
@@ -115,6 +115,20 @@ def _versamento(fascicolo: Any) -> str:
     if isinstance(voce, dict):
         return " · ".join(str(voce[k]) for k in ("data", "modalita", "iuv", "numero", "importo") if voce.get(k))
     return str(voce or "")
+
+
+def _versamento_procedimento(voce: Any) -> str:
+    """Gli estremi indicati dall'avvocato nel Procedimento, nell'ordine del modulo (data, modalità, codice, estremi, importo)."""
+    if not isinstance(voce, dict):
+        return ""
+    data = str(voce.get("data") or "")
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", data):
+        data = f"{data[8:10]}/{data[5:7]}/{data[:4]}"
+    parti = [data, voce.get("modalita"), f"cod. tributo {voce['codiceTributo']}" if voce.get("codiceTributo") else "",
+             f"riga {voce['numeroRiga']}" if voce.get("numeroRiga") else "", voce.get("estremi"),
+             f"€ {voce['importo']}" if voce.get("importo") else "", voce.get("elementi"),
+             "versato presso altro ufficio" if voce.get("altroUfficio") else ""]
+    return " · ".join(str(p) for p in parti if p)
 
 
 def documenti(fascicolo: Any, scelte: dict[str, Any]) -> list[dict[str, Any]]:
@@ -168,7 +182,8 @@ def contesto(fid: str) -> dict[str, Any]:
             proposte["sede"] = {"valore": dal_titolo, "verifica": "plausibile", "documenti": [], "fonte": "titolo del fascicolo"}
     soggetti = [(getattr(p.ruolo, "value", str(p.ruolo)), _dati_soggetto(s))
                 for p, s in _runtime("get_soggetti").parti_fascicolo(fid)]
-    elenco_parti = parti.parti_pat(_cliente(fascicolo), soggetti, proc.get("posizione") or "ricorrente", salvato["ruoli"])
+    elenco_parti = [{**p, "mancanti": parti.dati_mancanti(p)}
+                    for p in parti.parti_pat(_cliente(fascicolo), soggetti, proc.get("posizione") or "ricorrente", salvato["ruoli"])]
     appello = catalogo.ambito(proc.get("sede") or "") in {"CDS", "CGARS"}
     try:
         from web.services.react_preventivo_wizard_bridge import _strumenti_legali
@@ -178,7 +193,8 @@ def contesto(fid: str) -> dict[str, Any]:
     except Exception:
         current_app.logger.warning("Contributo unificato PAT non calcolato per %s", fid, exc_info=True)
         cu = {"importo": None, "nota": "Calcolo non disponibile: verifica la tabella art. 13 c. 6-bis."}
-    cu["versamento"] = _versamento(fascicolo)
+    cu["versamento"] = _versamento_procedimento(proc.get("versamento")) or _versamento(fascicolo)
+    cu["versamentoDati"] = proc.get("versamento") if isinstance(proc.get("versamento"), dict) else {}
     return {"fascicolo": {"id": fid, "titolo": fascicolo.titolo, "oggetto": fascicolo.oggetto, "ufficio": fascicolo.tribunale},
             "procedimento": proc, "letti": proposte, "avvocato": _avvocato(), "parti": elenco_parti, "contributo": cu,
             "documenti": documenti(fascicolo, salvato.get("documenti") or {}), "depositi": salvato["depositi"]}

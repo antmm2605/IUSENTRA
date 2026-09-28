@@ -11,6 +11,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import re
 from datetime import datetime, timezone
 
 import aiohttp
@@ -63,11 +64,23 @@ def _registro_con_cessioni(xml: str, tlso_certs: list) -> tuple[object, int, int
         extension = takeover.getparent()
         if extension is None or extension.tag != f"{{{tsl}}}Extension" or list(extension) != [takeover]:
             raise ValueError("Estensione TakenOverBy non riconosciuta nella TL.")
-        if [child.tag for child in takeover] != [
+        required_tags = [
             f"{{{additional}}}URI", f"{{{additional}}}TSPName",
             f"{{{tsl}}}SchemeOperatorName", f"{{{tsl}}}SchemeTerritory",
-        ]:
+        ]
+        children = list(takeover)
+        if [child.tag for child in children[:4]] != required_tags:
             raise ValueError("Attributi di cessione del servizio non riconosciuti nella TL.")
+        for qualifier in children[4:]:
+            if qualifier.tag != f"{{{additional}}}OtherQualifier" or len(qualifier) != 1:
+                raise ValueError("Qualificatore aggiuntivo TakenOverBy non riconosciuto.")
+            identifier = qualifier[0]
+            if (
+                identifier.tag != "{http://ep.nbu.gov.sk/kca/tsl/x509types#}TLServiceIdentifier"
+                or not re.fullmatch(r"TLI[A-Z]{2}-[0-9]+", (identifier.text or "").strip())
+                or len(identifier) or identifier.attrib
+            ):
+                raise ValueError("Identificativo del servizio cessionario non riconosciuto.")
         uri = takeover.findtext(f"{{{additional}}}URI")
         name = takeover.find(f"{{{additional}}}TSPName")
         operator = takeover.find(f"{{{tsl}}}SchemeOperatorName")
@@ -76,7 +89,7 @@ def _registro_con_cessioni(xml: str, tlso_certs: list) -> tuple[object, int, int
             uri and uri.startswith(("http://", "https://"))
             and name is not None and any((part.text or "").strip() for part in name)
             and operator is not None and any((part.text or "").strip() for part in operator)
-            and territory == "IT"
+            and bool(re.fullmatch(r"[A-Z]{2}", territory or ""))
         ):
             raise ValueError("Dati obbligatori della cessione TakenOverBy mancanti o non validi.")
         # ETSI TS 119 612 §5.5.9.3: la cessione non cambia l'esito della

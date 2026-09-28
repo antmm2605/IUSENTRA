@@ -8677,6 +8677,34 @@ type FirmaInfo = {
   signed_status?: Record<string, unknown>
   signed_ui?: { label?: string; tone?: FascicoloRow['tone']; detail?: string }
 }
+type EsitoEidas = {
+  numero: number
+  formato: string
+  esito: string
+  ades_subindicazione: string
+  integrita: boolean
+  catena_fidata: boolean
+  revoca_verificata: boolean
+  certificato_qualificato: boolean
+  qscd: boolean
+  tipo_certificato?: string | null
+  errore?: string | null
+}
+type VerificaEidas = {
+  fonte_fiducia?: string
+  verifica_al?: string
+  copertura?: { paesi_verificati: string[]; paesi_non_disponibili: string[] }
+  firme?: EsitoEidas[]
+  errore?: string
+}
+
+function esitoEidasIt(esito: string): string {
+  if (esito === 'firma_qualificata') return 'Firma elettronica qualificata'
+  if (esito === 'sigillo_qualificato') return 'Sigillo elettronico qualificato'
+  if (esito === 'certificato_qualificato') return 'Certificato qualificato; dispositivo da accertare'
+  if (esito === 'firma_non_valida') return 'Firma non valida'
+  return 'Qualifica non accertata'
+}
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer)
@@ -9049,6 +9077,8 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
   const [data, setData] = useState<FascicoloDetailData>(emptyFascicoloDetail)
   const [loading, setLoading] = useState(true)
   const [info, setInfo] = useState<FirmaInfo | null>(null)
+  const [eidas, setEidas] = useState<VerificaEidas | null>(null)
+  const [checkingEidas, setCheckingEidas] = useState(false)
   const [localSigner, setLocalSigner] = useState<LocalSignerStatus | null>(null)
   const [checkingSigner, setCheckingSigner] = useState(false)
   const [pin, setPin] = useState('')
@@ -9136,6 +9166,23 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
       .then((response) => response.json())
       .then((payload) => setInfo(payload as FirmaInfo))
       .catch(() => setInfo({ errore: 'Stato firma non disponibile.' }))
+  }
+
+  const verifyEidas = async () => {
+    setCheckingEidas(true)
+    setEidas(null)
+    try {
+      const response = await fetch(
+        `/api/fascicoli/${encodedId}/documenti/${encodedDocId}/verifica-eidas`,
+        { credentials: 'same-origin', headers: { Accept: 'application/json' } },
+      )
+      const payload = await response.json() as VerificaEidas
+      setEidas(response.ok ? payload : { errore: payload.errore || 'Verifica eIDAS non disponibile.' })
+    } catch {
+      setEidas({ errore: 'Verifica eIDAS non disponibile. Controlla la connessione e riprova.' })
+    } finally {
+      setCheckingEidas(false)
+    }
   }
 
   const checkLocalSigner = async (tryStart = false): Promise<LocalSignerStatus | null> => {
@@ -9430,6 +9477,31 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
               { label: 'Stato UI', value: info?.signed_ui?.label || doc?.statusLabel || 'n.d.' },
             ]}/>
             <button className="iu-fas-mini-action" type="button" onClick={refreshInfo}><RefreshCw size={14}/> Aggiorna verifica</button>
+          </div>
+        </Panel>
+
+        <Panel title="Verifica eIDAS" subtitle="Catena, revoca e qualifica dalla Trusted List UE" icon={<BadgeCheck size={17}/>}>
+          <div className="iu-fas-signature-box">
+            <p>Controllo online del documento salvato. Le liste nazionali devono avere una firma valida; un controllo non disponibile resta indeterminato.</p>
+            <button className="iu-fas-mini-action" type="button" onClick={() => void verifyEidas()} disabled={checkingEidas}>
+              <RefreshCw size={14}/> {checkingEidas ? 'Verifica in corso...' : 'Verifica catena, revoca e qualifica'}
+            </button>
+            {eidas?.errore ? <p role="alert">{eidas.errore}</p> : null}
+            {eidas && !eidas.errore ? <>
+              <KvGrid items={[
+                { label: 'Verifica eseguita', value: formatDateTimeIt(eidas.verifica_al, 'n.d.') },
+                { label: 'Trusted List utilizzabili', value: String(eidas.copertura?.paesi_verificati.length || 0) },
+                { label: 'Liste non disponibili', value: eidas.copertura?.paesi_non_disponibili.join(', ') || 'Nessuna' },
+              ]}/>
+              {eidas.firme?.length ? eidas.firme.map((firma) => (
+                <div className="iu-fas-signer-status" key={firma.numero}>
+                  <strong>Firma {firma.numero} · {firma.formato}: {esitoEidasIt(firma.esito)}</strong>
+                  <span>Integrità: {firma.integrita ? 'verificata' : 'non verificata'} · Catena: {firma.catena_fidata ? 'fidata' : 'non accertata'} · Revoca: {firma.revoca_verificata ? 'verificata' : 'non accertata'}</span>
+                  <span>Certificato qualificato: {firma.certificato_qualificato ? 'sì' : 'non accertato'} · QSCD: {firma.qscd ? 'sì' : 'non accertato'}</span>
+                  {firma.errore ? <small>La verifica non è conclusiva: controlla integrità, catena e revoca indicate sopra.</small> : null}
+                </div>
+              )) : <p>Nessuna firma digitale rilevata nel documento.</p>}
+            </> : null}
           </div>
         </Panel>
       </section>

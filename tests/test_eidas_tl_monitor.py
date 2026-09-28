@@ -75,8 +75,26 @@ def test_unknown_critical_takeover_content_fails_closed(monkeypatch):
             "Cannot process a critical extension in service named 'sample'.\nContent: TakenOverBy(...)"
         )]
     ))
-    with pytest.raises(ValueError, match="non riconosciuti"):
+    with pytest.raises(ValueError, match="non riconosciut"):
         monitor._registro_con_cessioni(_tl_with_takeover(extra="<a:FutureRule/>"), [])
+
+
+def test_takeover_service_identifier_is_interpreted_but_unknown_content_fails(monkeypatch):
+    monkeypatch.setattr(monitor, "trust_list_to_registry", lambda xml, certs: (
+        object(), [ValueError(
+            "Cannot process a critical extension in service named 'sample'.\nContent: TakenOverBy(...)"
+        )]
+    ))
+    monkeypatch.setattr(monitor, "trust_list_to_registry_unsafe", lambda xml: (object(), []))
+    known = (
+        '<a:OtherQualifier><TLServiceIdentifier '
+        'xmlns="http://ep.nbu.gov.sk/kca/tsl/x509types#">TLICZ-86'
+        '</TLServiceIdentifier></a:OtherQualifier>'
+    )
+    _, errors, count = monitor._registro_con_cessioni(_tl_with_takeover(extra=known), [])
+    assert (errors, count) == (1, 1)
+    with pytest.raises(ValueError, match="non riconosciuto"):
+        monitor._registro_con_cessioni(_tl_with_takeover(extra=known.replace("TLICZ-86", "invalid")), [])
 
 
 def test_other_service_error_cannot_be_hidden_by_projection(monkeypatch):

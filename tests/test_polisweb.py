@@ -3686,7 +3686,7 @@ def test_visualizza_documento_p7m_usa_posizione_firma_visibile_salvata_nel_pdf(t
         assert right_side > max(left_bottom, right_bottom) * 1.2
 
 
-def test_api_info_firma_documento_espone_stato_payload_p7m_detached(tmp_path):
+def test_api_info_firma_documento_espone_stato_payload_p7m_detached(tmp_path, monkeypatch):
     from asn1crypto import algos, cms
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app
@@ -3740,13 +3740,27 @@ def test_api_info_firma_documento_espone_stato_payload_p7m_detached(tmp_path):
     gestione_fascicoli.segna_firmato(fascicolo.id, documento.id)
 
     app = create_app(cfg)
+    from pct import eidas_document_validation
+
+    received = []
+    def verifica_controllata(data, filename):
+        received.append((data, filename))
+        return {"firme": [], "copertura": {"paesi_verificati": ["IT"], "paesi_non_disponibili": []}}
+
+    monkeypatch.setattr(eidas_document_validation, "verifica_documento_eidas", verifica_controllata)
     with app.test_client() as client:
+        unauthenticated = client.get(
+            f"/api/fascicoli/{fascicolo.id}/documenti/{documento.id}/verifica-eidas"
+        )
         client.post(
             "/login",
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
         response = client.get(f"/api/fascicoli/{fascicolo.id}/documenti/{documento.id}/info-firma")
+        eidas_response = client.get(
+            f"/api/fascicoli/{fascicolo.id}/documenti/{documento.id}/verifica-eidas"
+        )
 
     payload = response.get_json()
     assert response.status_code == 200
@@ -3754,6 +3768,10 @@ def test_api_info_firma_documento_espone_stato_payload_p7m_detached(tmp_path):
     assert payload["signed_status"]["detached_signature"] is True
     assert payload["signed_ui"]["content_label"] == "Contenuto estratto"
     assert payload["signed_ui"]["signature_label"] in {"Firma verificata", "Firma da verificare"}
+    assert unauthenticated.status_code == 401
+    assert eidas_response.status_code == 200
+    assert eidas_response.get_json()["copertura"]["paesi_verificati"] == ["IT"]
+    assert len(received) == 1 and received[0][1] == "comparsa.pdf.p7m"
 
 
 def test_route_home_sigit_mostra_hub_ptt_guidato(tmp_path):

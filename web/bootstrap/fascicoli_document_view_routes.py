@@ -61,8 +61,16 @@ def register_fascicoli_document_view_routes(
                 or ""
             ).strip()
             nome = str(getattr(documento, "nome", "") or "Documento del fascicolo").strip()
-            action = "download" if event_type == "DOC_DOWNLOADED" else "view"
-            label = "Documento scaricato" if action == "download" else "Documento consultato"
+            action = (
+                "download" if event_type == "DOC_DOWNLOADED"
+                else "verify_eidas" if event_type == "DOC_EIDAS_CHECKED"
+                else "view"
+            )
+            label = {
+                "download": "Documento scaricato",
+                "verify_eidas": "Verifica eIDAS richiesta",
+                "view": "Documento consultato",
+            }[action]
             get_practice_engine().audit(
                 str(fascicolo_id or ""),
                 event_type,
@@ -305,6 +313,39 @@ def register_fascicoli_document_view_routes(
         except Exception as exc:
             app.logger.exception("Errore api_info_firma_documento: %s", exc)
             return jsonify({"firme": [], "errore": "Lettura firme non completata. Verifica il documento e riprova."})
+
+    @app.route("/api/fascicoli/<id_fasc>/documenti/<id_doc>/verifica-eidas")
+    def api_verifica_eidas_documento(id_fasc, id_doc):
+        utente = getattr(g, "utente_corrente", None)
+        if utente is None:
+            return jsonify({"errore": "Non autenticato"}), 401
+        if not utente.ha_permesso("fascicoli.leggi"):
+            return jsonify({"errore": "Accesso non consentito"}), 403
+        try:
+            gestore_fascicoli = get_fascicoli()
+            fascicolo = gestore_fascicoli.get(id_fasc)
+            if not fascicolo:
+                return jsonify({"errore": "Fascicolo non trovato"}), 404
+            documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
+            if not documento:
+                return jsonify({"errore": "Documento non trovato"}), 404
+            percorso = gestore_fascicoli.percorso_documento(id_fasc, id_doc)
+            data = decrypt_doc(percorso.read_bytes())
+            from pct.eidas_document_validation import verifica_documento_eidas
+
+            result = verifica_documento_eidas(data, documento.nome)
+            _record_document_operational_audit(
+                fascicolo_id=id_fasc,
+                document_id=id_doc,
+                documento=documento,
+                event_type="DOC_EIDAS_CHECKED",
+            )
+            return jsonify(result)
+        except ValueError as exc:
+            return jsonify({"errore": str(exc)}), 422
+        except Exception as exc:
+            app.logger.exception("Errore api_verifica_eidas_documento: %s", exc)
+            return jsonify({"errore": "Trusted List o dati di revoca non disponibili. Riprova la verifica."}), 503
 
 
 __all__ = ["register_fascicoli_document_view_routes"]

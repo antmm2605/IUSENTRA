@@ -1,14 +1,17 @@
-"""Attestazione di conformità del difensore su una copia informatica.
+"""Attestazione di conformità del difensore, scritta sul PDF e poi firmata digitalmente.
 
 Base normativa: D.Lgs. 82/2005 (CAD) art. 22, comma 2 (copia informatica di documento analogico) e
 art. 23-bis, comma 2 (copia informatica di documento informatico); potere di attestazione del
 difensore: art. 196-octies disp. att. c.p.c. e, nel processo amministrativo, art. 136, comma 2-ter,
-c.p.a. L'attestazione si sottoscrive con firma digitale: IUSENTRA prepara la copia con il testo, il
-luogo e la data; la firma la appone l'avvocato (pulsante «Firma» del documento).
+c.p.a. L'attestazione si inserisce nella copia informatica e si sottoscrive con firma digitale.
 
-La copia attestata è un documento nuovo: le pagine dell'originale restano identiche e l'attestazione
-si aggiunge in una pagina finale o in fondo all'ultima pagina, con carattere e dimensioni scelti
-dall'avvocato.
+Come nella prassi (la procura attestata allegata dall'avvocato il 28/09/2026): l'avvocato apre il
+documento nel lettore e disegna col mouse due riquadri, uno per l'attestazione (titolo, formula,
+luogo e data, «Avv. Cognome Nome», «(sottoscrizione tramite firma digitale)») e uno per la firma
+testo, il suo nome e cognome sotto «Vera ed autentica». Carattere e dimensione si scelgono per
+ciascuno. Senza riquadro l'attestazione va nello spazio libero dell'ultima pagina o, se non c'è
+posto, in una pagina aggiunta. Poi il documento si firma in PAdES con la firma visibile
+«Per autentica e sottoscrizione» in basso. Le pagine restano quelle dell'originale: si aggiunge testo.
 """
 
 from __future__ import annotations
@@ -19,30 +22,50 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
+from pct.attestazione_disegno import CALLIGRAFICI, CARATTERI, STILI, blocco_nel_riquadro, blocco_testo, firma_nel_riquadro, font
+
 TIPI = {
-    "analogico": "all'originale analogico",
+    "analogico": "all’originale analogico",
     "informatico": "al documento informatico",
 }
-FORMULA = ("Il sottoscritto Avv. {avvocato} attesta, vera ed autentica ai sensi di legge, che la presente copia "
+TITOLO = "ATTESTAZIONE DI CONFORMITA’"
+FORMULA = ("Il sottoscritto Avv. {avvocato} attesta, ai sensi di legge, che la presente copia "
            "informatica è conforme {origine} dal quale è estratta.")
+DICITURA_FIRMA = "(sottoscrizione tramite firma digitale)"
+POSIZIONI = {"spazio_libero": "Nello spazio libero dell’ultima pagina", "pagina": "In una pagina aggiunta"}
+_ALIAS_POSIZIONE = {"fondo": "spazio_libero", "ultima": "spazio_libero"}
+MARGINE = 56.7  # 2 cm
+#: Il fondo della pagina resta alla firma visibile «Per autentica e sottoscrizione».
+RISERVA_FIRMA_VISIBILE = 72.0
+_LATO_MINIMO = 0.01
 
-# Caratteri proposti: equivalenti metrici aperti dei caratteri d'ufficio (registrati da pct.caratteri_reali,
-# incorporati nel PDF) con il ripiego sui caratteri base del PDF quando non sono installati.
-CARATTERI: dict[str, tuple[str, str, dict[str, str]]] = {
-    "times": ("Times New Roman", "liberation serif",
-              {"normale": "Times-Roman", "grassetto": "Times-Bold", "corsivo": "Times-Italic", "grassetto_corsivo": "Times-BoldItalic"}),
-    "arial": ("Arial", "liberation sans",
-              {"normale": "Helvetica", "grassetto": "Helvetica-Bold", "corsivo": "Helvetica-Oblique", "grassetto_corsivo": "Helvetica-BoldOblique"}),
-    "calibri": ("Calibri", "carlito",
-                {"normale": "Helvetica", "grassetto": "Helvetica-Bold", "corsivo": "Helvetica-Oblique", "grassetto_corsivo": "Helvetica-BoldOblique"}),
-    "cambria": ("Cambria", "caladea",
-                {"normale": "Times-Roman", "grassetto": "Times-Bold", "corsivo": "Times-Italic", "grassetto_corsivo": "Times-BoldItalic"}),
-    "courier": ("Courier New", "liberation mono",
-                {"normale": "Courier", "grassetto": "Courier-Bold", "corsivo": "Courier-Oblique", "grassetto_corsivo": "Courier-BoldOblique"}),
-}
-STILI = ("normale", "grassetto", "corsivo", "grassetto_corsivo")
-_TAGLI = {"normale": "normal", "grassetto": "bold", "corsivo": "italic", "grassetto_corsivo": "bold_italic"}
-POSIZIONI = {"pagina": "In una pagina finale", "fondo": "In fondo all'ultima pagina"}
+
+@dataclass(frozen=True)
+class Riquadro:
+    """Riquadro disegnato dall'avvocato: pagina (da 1) e frazioni della pagina dall'angolo in alto a sinistra."""
+
+    pagina: int
+    x: float
+    y: float
+    larghezza: float
+    altezza: float
+
+    @classmethod
+    def da_dati(cls, dati: Any, nome: str) -> "Riquadro | None":
+        if not dati:
+            return None
+        if not isinstance(dati, dict):
+            raise ValueError(f"Riquadro {nome} non valido.")
+        try:
+            riquadro = cls(pagina=int(dati.get("pagina") or 0), x=float(dati.get("x")), y=float(dati.get("y")),
+                           larghezza=float(dati.get("larghezza")), altezza=float(dati.get("altezza")))
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Riquadro {nome} non valido.") from exc
+        dentro = 0 <= riquadro.x and 0 <= riquadro.y and riquadro.x + riquadro.larghezza <= 1.0001 \
+            and riquadro.y + riquadro.altezza <= 1.0001
+        if riquadro.pagina < 1 or not dentro or min(riquadro.larghezza, riquadro.altezza) < _LATO_MINIMO:
+            raise ValueError(f"Riquadro {nome} fuori dalla pagina o troppo piccolo: disegnalo di nuovo.")
+        return riquadro
 
 
 @dataclass(frozen=True)
@@ -53,12 +76,15 @@ class Attestazione:
     data: date
     tipo: str = "analogico"
     testo: str = ""
-    carattere_testo: str = "times"
-    dimensione_testo: float = 11
-    carattere_firma: str = "times"
-    stile_firma: str = "corsivo"
-    dimensione_firma: float = 13
-    posizione: str = "pagina"
+    carattere_testo: str = "arial"
+    dimensione_testo: float = 12
+    testo_firma: str = ""
+    carattere_firma: str = "arial"
+    stile_firma: str = "normale"
+    dimensione_firma: float = 14
+    posizione: str = "spazio_libero"
+    riquadro_attestazione: Riquadro | None = None
+    riquadro_firma: Riquadro | None = None
 
     def testo_attestazione(self) -> str:
         """La formula (o il testo scritto dall'avvocato) con nome e tipo di originale."""
@@ -68,11 +94,39 @@ class Attestazione:
     def luogo_data(self) -> str:
         return f"{self.luogo}, {self.data.strftime('%d.%m.%Y')}"
 
+    def paragrafi(self) -> list[str]:
+        return [TITOLO, self.testo_attestazione(), self.luogo_data(), f"Avv. {self.firma}", DICITURA_FIRMA]
+
+
+@dataclass(frozen=True)
+class Esito:
+    pdf: bytes
+    pagina: int
+    pagina_aggiunta: bool
+    dimensione_testo: float
+    dimensione_firma: float | None = None
+    pagine: tuple[int, ...] = ()
+
+    def descrizione(self) -> str:
+        if self.pagina_aggiunta:
+            testo = "Nell’ultima pagina non c’era spazio: l’attestazione è in una pagina aggiunta."
+        else:
+            testo = f"Attestazione scritta a pagina {self.pagina}."
+        if self.dimensione_firma is not None:
+            testo += " Firma testo sotto «Vera ed autentica» inserita."
+        return testo
+
+
+def cognome_nome(nome: str) -> str:
+    """«Giuseppe Montagnese» → «Montagnese Giuseppe», come si firma l'attestazione."""
+    parti = nome.split()
+    return " ".join([parti[-1], *parti[:-1]]) if len(parti) == 2 else nome
+
 
 def da_dati(dati: dict[str, Any], *, avvocato: str = "", luogo: str = "") -> Attestazione:
-    """Valida le scelte dell'avvocato (valori ammessi, dimensioni ragionevoli, data reale)."""
+    """Valida le scelte dell'avvocato (valori ammessi, dimensioni ragionevoli, data reale, riquadri)."""
     def testo(chiave: str, predefinito: str = "", massimo: int = 200) -> str:
-        valore = re.sub(r"\s+", " ", str(dati.get(chiave) or predefinito)).strip()
+        valore = re.sub(r"[ \t]+", " ", str(dati.get(chiave) or predefinito)).strip()
         if len(valore) > massimo:
             raise ValueError(f"Il campo «{chiave}» è troppo lungo.")
         return valore
@@ -98,133 +152,126 @@ def da_dati(dati: dict[str, Any], *, avvocato: str = "", luogo: str = "") -> Att
     except ValueError as exc:
         raise ValueError("Data dell'attestazione non valida.") from exc
     tipo = testo("tipo", "analogico", 20)
-    carattere_testo, carattere_firma = testo("carattereTesto", "times", 20), testo("carattereFirma", "times", 20)
-    stile_firma, posizione = testo("stileFirma", "corsivo", 20), testo("posizione", "pagina", 20)
-    if tipo not in TIPI or carattere_testo not in CARATTERI or carattere_firma not in CARATTERI:
+    carattere_testo, carattere_firma = testo("carattereTesto", "arial", 20), testo("carattereFirma", "arial", 20)
+    stile_firma = testo("stileFirma", "normale", 20)
+    posizione = testo("posizione", "spazio_libero", 20)
+    posizione = _ALIAS_POSIZIONE.get(posizione, posizione)
+    if tipo not in TIPI or carattere_testo not in CARATTERI or carattere_firma not in {**CARATTERI, **CALLIGRAFICI}:
         raise ValueError("Scelta non prevista per tipo o carattere.")
     if stile_firma not in STILI or posizione not in POSIZIONI:
         raise ValueError("Scelta non prevista per stile della firma o posizione.")
+    riquadro_firma = Riquadro.da_dati(dati.get("riquadroFirma"), "della firma")
+    testo_firma = testo("testoFirma", nome, 120) or nome
     return Attestazione(
-        avvocato=nome, firma=testo("firma", nome, 120) or nome, luogo=sede, data=giorno, tipo=tipo,
-        testo=testo("testo", "", 1200), carattere_testo=carattere_testo,
-        dimensione_testo=numero("dimensioneTesto", 11, 8, 16), carattere_firma=carattere_firma,
-        stile_firma=stile_firma, dimensione_firma=numero("dimensioneFirma", 13, 8, 28), posizione=posizione,
+        avvocato=nome, firma=testo("firma", cognome_nome(nome), 120) or cognome_nome(nome), luogo=sede, data=giorno,
+        tipo=tipo, testo=testo("testo", "", 1200), carattere_testo=carattere_testo,
+        dimensione_testo=numero("dimensioneTesto", 12, 7, 16), testo_firma=testo_firma, carattere_firma=carattere_firma,
+        stile_firma=stile_firma, dimensione_firma=numero("dimensioneFirma", 14, 7, 40), posizione=posizione,
+        riquadro_attestazione=Riquadro.da_dati(dati.get("riquadroAttestazione"), "dell'attestazione"),
+        riquadro_firma=riquadro_firma,
     )
 
 
-def _font(carattere: str, stile: str) -> str:
-    """Il carattere registrato (incorporato nel PDF) oppure il carattere base equivalente."""
-    _etichetta, famiglia, base = CARATTERI[carattere]
-    try:
-        from pct.caratteri_reali import registro
-
-        tagli = registro().get(famiglia)
-        if tagli and tagli.get(_TAGLI[stile]):
-            return str(tagli[_TAGLI[stile]])
-    except Exception:
-        pass
-    return base[stile]
+def _in_punti(riquadro: Riquadro, pagina: Any) -> tuple[float, float, float, float]:
+    """Riquadro in punti PDF: x sinistra, y alto (origine in basso a sinistra), larghezza, altezza."""
+    box = pagina.cropbox
+    larghezza, altezza = float(box.width), float(box.height)
+    return (float(box.left) + riquadro.x * larghezza, float(box.bottom) + (1 - riquadro.y) * altezza,
+            riquadro.larghezza * larghezza, riquadro.altezza * altezza)
 
 
-def _righe(testo: str, font: str, dimensione: float, larghezza: float) -> list[str]:
-    from reportlab.pdfbase.pdfmetrics import stringWidth
-
-    righe: list[str] = []
-    for paragrafo in testo.split("\n"):
-        corrente = ""
-        for parola in paragrafo.split():
-            prova = f"{corrente} {parola}".strip()
-            if corrente and stringWidth(prova, font, dimensione) > larghezza:
-                righe.append(corrente)
-                corrente = parola
-            else:
-                corrente = prova
-        righe.append(corrente)
-    return righe
-
-
-def _riquadro(att: Attestazione, larghezza: float) -> tuple[float, Any]:
-    """Altezza del blocco e funzione che lo disegna a partire dall'alto (x, y_alto)."""
-    corpo = _font(att.carattere_testo, "normale")
-    titolo = _font(att.carattere_testo, "grassetto")
-    firma = _font(att.carattere_firma, att.stile_firma)
-    nota = _font(att.carattere_testo, "corsivo")
-    d = att.dimensione_testo
-    righe = _righe(att.testo_attestazione(), corpo, d, larghezza)
-    interlinea = d * 1.35
-    altezza = d * 1.6 + len(righe) * interlinea + interlinea * 2.2 + att.dimensione_firma * 1.4 + d * 1.3
-
-    def disegna(tela: Any, x: float, y: float) -> None:
-        from reportlab.pdfbase.pdfmetrics import stringWidth
-
-        tela.setFont(titolo, d + 1)
-        tela.drawString(x, y - d, "ATTESTAZIONE DI CONFORMITÀ")
-        y -= d * 1.6 + interlinea * 0.4
-        tela.setFont(corpo, d)
-        for riga in righe:
-            tela.drawString(x, y - d, riga)
-            y -= interlinea
-        y -= interlinea * 0.6
-        tela.drawString(x, y - d, att.luogo_data())
-        y -= interlinea * 1.6
-        destra = x + larghezza
-        testo_firma = f"Avv. {att.firma}"
-        tela.setFont(firma, att.dimensione_firma)
-        tela.drawString(destra - stringWidth(testo_firma, firma, att.dimensione_firma), y - att.dimensione_firma, testo_firma)
-        y -= att.dimensione_firma * 1.4
-        didascalia = "(sottoscrizione tramite firma digitale)"
-        tela.setFont(nota, d * 0.85)
-        tela.drawString(destra - stringWidth(didascalia, nota, d * 0.85), y - d * 0.85, didascalia)
-
-    return altezza, disegna
-
-
-def applica(pdf: bytes, att: Attestazione) -> bytes:
-    """La copia con l'attestazione: pagine originali identiche, attestazione in coda o in fondo all'ultima."""
-    from pypdf import PdfReader, PdfWriter
+def _sovrapponi(scrittore: Any, indice: int, disegni: list[Any]) -> None:
+    from pypdf import PdfReader
     from reportlab.pdfgen import canvas
+
+    pagina = scrittore.pages[indice]
+    box = pagina.mediabox
+    buffer = io.BytesIO()
+    tela = canvas.Canvas(buffer, pagesize=(float(box.right), float(box.top)))
+    for disegno in disegni:
+        disegno(tela)
+    tela.showPage()
+    tela.save()
+    pagina.merge_page(PdfReader(io.BytesIO(buffer.getvalue())).pages[0])
+
+
+def applica_con_esito(pdf: bytes, att: Attestazione, *, riserva_basso: float = RISERVA_FIRMA_VISIBILE) -> Esito:
+    """Scrive attestazione e firma testo nei riquadri scelti, o l'attestazione nello spazio libero."""
+    from pypdf import PdfReader, PdfWriter
+
+    from pct import attestazione_spazio
 
     lettore = PdfReader(io.BytesIO(pdf))
     if lettore.is_encrypted:
         raise ValueError("Il PDF è protetto da password: sbloccalo prima di attestarne la conformità.")
     scrittore = PdfWriter(clone_from=lettore)
-    ultima = scrittore.pages[-1]
-    larghezza_pagina, altezza_pagina = float(ultima.mediabox.width), float(ultima.mediabox.height)
-    margine = 56.7  # 2 cm
-    larghezza = larghezza_pagina - 2 * margine
-    altezza, disegna = _riquadro(att, larghezza)
-    buffer = io.BytesIO()
-    tela = canvas.Canvas(buffer, pagesize=(larghezza_pagina, altezza_pagina))
-    if att.posizione == "fondo":
-        from reportlab.lib.colors import white
+    totale = len(scrittore.pages)
+    for riquadro in (att.riquadro_attestazione, att.riquadro_firma):
+        if riquadro and riquadro.pagina > totale:
+            raise ValueError(f"Il documento ha {totale} pagine: il riquadro è a pagina {riquadro.pagina}.")
+    corpo = font(att.carattere_testo, "normale")
+    disegni: dict[int, list[Any]] = {}
+    pagina_aggiunta = False
 
-        alto = margine * 0.6 + altezza + 10
-        tela.setFillColor(white)
-        tela.rect(margine - 8, margine * 0.6 - 4, larghezza + 16, altezza + 14, stroke=0, fill=1)
-        tela.setFillColorRGB(0, 0, 0)
-        disegna(tela, margine, alto)
+    if att.riquadro_attestazione:
+        indice = att.riquadro_attestazione.pagina - 1
+        x, y, larghezza, altezza = _in_punti(att.riquadro_attestazione, scrittore.pages[indice])
+        blocco = blocco_nel_riquadro(att.paragrafi(), corpo, att.dimensione_testo, larghezza, altezza)
+        disegni.setdefault(indice, []).append(lambda tela, b=blocco, x=x, y=y: b.disegna(tela, x, y))
     else:
-        disegna(tela, margine, altezza_pagina - margine)
-    tela.showPage()
-    tela.save()
-    sovrapposta = PdfReader(io.BytesIO(buffer.getvalue())).pages[0]
-    if att.posizione == "fondo":
-        ultima.merge_page(sovrapposta)
-    else:
-        scrittore.add_page(sovrapposta)
+        ultima = scrittore.pages[-1]
+        larghezza_pagina = float(ultima.cropbox.width)
+        blocco = blocco_testo(att.paragrafi(), corpo, att.dimensione_testo,
+                              max(min(larghezza_pagina * 0.5, larghezza_pagina - 2 * MARGINE), 220.0))
+        spazio = None
+        if att.posizione == "spazio_libero":
+            spazio = attestazione_spazio.cerca(pdf, blocco.larghezza, blocco.altezza, riserva_basso=riserva_basso)
+        if spazio is not None:
+            x, y = float(ultima.cropbox.left) + spazio.x, float(ultima.cropbox.bottom) + spazio.y_alto
+            indice = totale - 1
+            disegni.setdefault(indice, []).append(lambda tela, b=blocco, x=x, y=y: b.disegna(tela, x, y))
+        else:
+            box = ultima.mediabox
+            scrittore.add_blank_page(width=float(box.width), height=float(box.height))
+            indice, pagina_aggiunta = totale, True
+            disegni.setdefault(indice, []).append(
+                lambda tela, b=blocco, a=float(box.height): b.disegna(tela, MARGINE, a - MARGINE))
+    pagina_attestazione = indice + 1
+
+    dimensione_firma = None
+    if att.riquadro_firma:
+        indice_firma = att.riquadro_firma.pagina - 1
+        x, y, larghezza, altezza = _in_punti(att.riquadro_firma, scrittore.pages[indice_firma])
+        firma = firma_nel_riquadro(att.testo_firma, font(att.carattere_firma, att.stile_firma),
+                                   att.dimensione_firma, larghezza, altezza)
+        dimensione_firma = firma.dimensione
+        disegni.setdefault(indice_firma, []).append(lambda tela, f=firma, x=x, y=y: f.disegna(tela, x, y))
+
+    for indice_pagina, elenco in sorted(disegni.items()):
+        _sovrapponi(scrittore, indice_pagina, elenco)
     uscita = io.BytesIO()
     scrittore.write(uscita)
-    return uscita.getvalue()
+    return Esito(pdf=uscita.getvalue(), pagina=pagina_attestazione, pagina_aggiunta=pagina_aggiunta,
+                 dimensione_testo=blocco.dimensione, dimensione_firma=dimensione_firma,
+                 pagine=tuple(sorted(indice_pagina + 1 for indice_pagina in disegni)))
+
+
+def applica(pdf: bytes, att: Attestazione) -> bytes:
+    return applica_con_esito(pdf, att).pdf
 
 
 def opzioni() -> dict[str, Any]:
     return {
         "tipi": [{"id": k, "etichetta": f"Copia informatica conforme {v}"} for k, v in TIPI.items()],
         "caratteri": [{"id": k, "etichetta": v[0]} for k, v in CARATTERI.items()],
+        "caratteriFirma": [{"id": k, "etichetta": v[0]} for k, v in {**CARATTERI, **CALLIGRAFICI}.items()],
         "stiliFirma": [{"id": s, "etichetta": s.replace("_", " ").capitalize()} for s in STILI],
         "posizioni": [{"id": k, "etichetta": v} for k, v in POSIZIONI.items()],
         "formula": FORMULA,
+        "titolo": TITOLO,
+        "dicituraFirma": DICITURA_FIRMA,
     }
 
 
-__all__ = ["Attestazione", "CARATTERI", "FORMULA", "applica", "da_dati", "opzioni"]
+__all__ = ["Attestazione", "CARATTERI", "Esito", "FORMULA", "Riquadro", "applica", "applica_con_esito",
+           "cognome_nome", "da_dati", "opzioni"]

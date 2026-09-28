@@ -624,7 +624,7 @@ def register_fascicoli_signature_routes(
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/attestazione", methods=["GET", "POST"])
     def attestazione_conformita(id_fasc, id_doc):
-        """Copia attestata conforme: dati e anteprima in GET/POST, salvataggio come nuovo documento."""
+        """Attestazione di conformità scritta sul PDF nei riquadri scelti, poi firma digitale del documento."""
         from web.services.attestazione_conformita_runtime import risposta_rotta
 
         return risposta_rotta(get_fascicoli(), id_fasc, id_doc, decrypt_doc=decrypt_doc, encrypt_doc=encrypt_doc, audit=audit)

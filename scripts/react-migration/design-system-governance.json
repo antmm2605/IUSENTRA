@@ -223,6 +223,13 @@
         "'--builder-panel-width': `${panelWidth}px`"
       ],
       "reason": "Builder sito studio: anteprima e pannelli devono seguire scelte live dell'utente."
+    },
+    {
+      "file": "frontend/src/components/fascicoli/AttestazioneConformita.tsx",
+      "snippets": [
+        "style={stileRiquadro("
+      ],
+      "reason": "Riquadri dell'attestazione e della firma testo disegnati dall'avvocato col mouse sul documento: la posizione passa come variabili CSS governate, l'aspetto resta nel foglio di stile."
     }
   ],
   "allowedBackdropFilters": [

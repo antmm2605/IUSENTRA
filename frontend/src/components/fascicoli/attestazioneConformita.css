@@ -1,9 +1,34 @@
-.iu-attestazione { display: grid; gap: 12px; min-width: min(760px, 86vw); }
+.iu-modal__panel:has(.iu-attestazione) { width: min(1280px, calc(100vw - 28px)); }
+.iu-attestazione { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, 1fr); gap: 16px; align-items: start; }
 .iu-attestazione label { display: grid; gap: 4px; font-weight: 700; color: #334155; font-size: .88rem; }
 .iu-attestazione input, .iu-attestazione select, .iu-attestazione textarea { box-sizing: border-box; width: 100%; min-height: 36px; padding: 6px 9px; border: 1px solid #cbd5e1; border-radius: 9px; font: inherit; font-weight: 500; color: #0f172a; background: #fff; }
-.iu-attestazione__griglia { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; align-items: end; }
+.iu-attestazione fieldset { display: grid; gap: 10px; margin: 0; padding: 10px 12px 12px; border: 1px solid #e2e8f0; border-radius: 10px; }
+.iu-attestazione legend { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0; padding: 0 4px; font-size: .95rem; font-weight: 800; line-height: 1.3; color: #0f172a; }
+.iu-attestazione legend small { font-weight: 500; color: #64748b; }
+.iu-attestazione__campi { display: grid; gap: 12px; }
+.iu-attestazione__lettore { display: grid; gap: 8px; position: sticky; top: 0; }
+.iu-attestazione__griglia { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end; }
+.iu-attestazione__strumenti { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.iu-attestazione__strumento { display: inline-flex; gap: 6px; align-items: center; min-height: 34px; padding: 5px 10px; border: 1px solid #cbd5e1; border-radius: 9px; background: #fff; color: #334155; font: inherit; font-weight: 700; cursor: pointer; }
+.iu-attestazione__strumento:disabled { opacity: .5; cursor: default; }
+.iu-attestazione__strumento--primario { border-color: #1d4ed8; background: #1d4ed8; color: #fff; }
+.iu-attestazione__azioni { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.iu-attestazione__strumento--attivo { border-color: #1d4ed8; background: #eff6ff; color: #1d4ed8; }
+.iu-attestazione__pagine { display: inline-flex; gap: 6px; align-items: center; margin-left: auto; color: #334155; font-weight: 700; }
+.iu-attestazione__pagine button, .iu-attestazione__togli { display: inline-flex; gap: 4px; align-items: center; min-height: 30px; padding: 3px 8px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #334155; font: inherit; font-size: .82rem; cursor: pointer; }
+.iu-attestazione__pagine button:disabled { opacity: .45; cursor: default; }
+.iu-attestazione__foglio { position: relative; justify-self: center; width: fit-content; max-width: 100%; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; cursor: crosshair; touch-action: none; user-select: none; }
+.iu-attestazione__foglio img { display: block; width: auto; max-width: 100%; height: auto; max-height: 74vh; pointer-events: none; }
+.iu-attestazione__riquadro { position: absolute; left: var(--iu-att-x); top: var(--iu-att-y); width: var(--iu-att-w); height: var(--iu-att-h); box-sizing: border-box; padding: 2px 4px; border: 2px dashed #1d4ed8; background: rgb(29 78 216 / 8%); color: #1d4ed8; font-size: .72rem; font-weight: 800; pointer-events: none; }
+.iu-attestazione__riquadro--firma { border-color: #047857; background: rgb(4 120 87 / 8%); color: #047857; }
+.iu-attestazione__riquadro--bozza { border-style: dotted; }
 .iu-attestazione__nota { margin: 0; color: #475569; font-size: .85rem; }
 .iu-attestazione__avviso { margin: 0; padding: 8px 10px; border-radius: 9px; background: #fffbeb; color: #92400e; }
 .iu-attestazione__stato { margin: 0; color: #1d4ed8; }
-.iu-attestazione__anteprima { width: 100%; height: 60vh; border: 1px solid #e2e8f0; border-radius: 10px; }
-@media (max-width: 640px) { .iu-attestazione { min-width: 0; } }
+.iu-attestazione__anteprima { display: grid; gap: 10px; justify-items: center; max-height: 78vh; overflow: auto; }
+.iu-attestazione__anteprima img { display: block; max-width: 100%; height: auto; border: 1px solid #cbd5e1; border-radius: 4px; }
+@media (max-width: 900px) {
+  .iu-attestazione { grid-template-columns: 1fr; }
+  .iu-attestazione__lettore { position: static; }
+  .iu-attestazione__foglio img { max-height: none; }
+}

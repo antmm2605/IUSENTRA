@@ -1,4 +1,4 @@
-import { AttestazioneConformitaAzione } from './fascicoli/AttestazioneConformita'
+import { AttestazioneConformitaAzione } from './fascicoli/AttestaPulsante'
 import { Fragment, Suspense, lazy, useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import {
   Archive,
@@ -9224,8 +9224,11 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
 
   useEffect(() => {
     const settings = data.signature
-    setVisibleSignatureMode(loadVisibleSignatureMode(settings?.visibleSignatureMode || 'laterale'))
-    setVisibleSignaturePlace(settings?.visibleSignaturePlace || '')
+    // Da «Attesta»: firma visibile in basso («Per autentica e sottoscrizione») e luogo dell'attestazione.
+    const richiesta = new URLSearchParams(window.location.search)
+    const modoRichiesto = richiesta.get('firma_visibile')
+    setVisibleSignatureMode(modoRichiesto ? normalizeVisibleSignatureMode(modoRichiesto) : loadVisibleSignatureMode(settings?.visibleSignatureMode || 'laterale'))
+    setVisibleSignaturePlace(richiesta.get('luogo') || settings?.visibleSignaturePlace || '')
     setVisibleSignatureDatetimeMode(loadVisibleSignatureDatetimeMode(settings?.visibleSignatureDatetimeMode || 'data_ora'))
   }, [data.signature?.visibleSignatureMode, data.signature?.visibleSignaturePlace, data.signature?.visibleSignatureDatetimeMode])
 

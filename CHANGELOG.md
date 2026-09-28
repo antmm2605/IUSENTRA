@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.422.0 — 28/09/2026
+
+Attestazione di conformità come nella prassi: scritta sul PDF dove sceglie l'avvocato e poi firmata digitalmente.
+
+- **«Attesta» apre il documento nel lettore**: l'avvocato disegna col mouse il riquadro dell'attestazione e quello della firma testo (nome e cognome sotto «Vera ed autentica»), anche su pagine diverse; carattere e dimensione si scelgono per ciascuno, con due corsivi calligrafici (Great Vibes e Allura, licenza SIL OFL 1.1) per la firma testo.
+- **Il testo è quello della prassi**: «ATTESTAZIONE DI CONFORMITA’», «Il sottoscritto Avv. … attesta, ai sensi di legge, che la presente copia informatica è conforme all’originale analogico dal quale è estratta.», luogo e data, «Avv. Cognome Nome», «(sottoscrizione tramite firma digitale)»; nome e città dalle Impostazioni dello studio, tutto modificabile.
+- **Senza riquadro** l'attestazione va sotto l'ultimo testo dell'ultima pagina, allineata al margine, anche sulle scansioni (si guarda l'inchiostro della pagina); se non c'è posto, in una pagina aggiunta.
+- **Anteprima nel lettore**: le pagine con l'attestazione si vedono come immagini prima di scrivere (prima l'anteprima PDF era bloccata dalla politica di sicurezza del browser).
+- **Applica e firma**: l'attestazione si scrive sul documento stesso (la versione precedente resta nello storico) e si apre subito la firma digitale con la firma visibile «Per autentica e sottoscrizione» in basso a destra e il luogo dell'attestazione; un documento già firmato non si attesta, perché la firma non sarebbe più valida.
+- La finestra si carica solo alla pressione di «Attesta» e si apre sopra la pagina, non dentro la riga del documento.
+
 ## 2.421.0 — 28/09/2026
 
 Deposito amministrativo (PAT): moduli ministeriali del 18/07/2026, anteprima e verifica del modulo firmato, attestazione di conformità e PDF/A.

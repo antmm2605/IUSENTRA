@@ -98,7 +98,8 @@ def _verify_asic(data: bytes, kind: str) -> None:
     with zipfile.ZipFile(io.BytesIO(data)) as container:
         names = container.namelist()
         assert len(names) == len(set(names))
-        assert names.count("mimetype") == 1
+        assert names[0] == "mimetype"
+        assert not container.getinfo("mimetype").extra
         assert container.getinfo("mimetype").compress_type == zipfile.ZIP_STORED
         assert container.read("mimetype") == f"application/vnd.etsi.asic-{kind}+zip".encode()
         signature_files = [n for n in names if n.startswith("META-INF/signatures") and n.endswith(".xml")]
@@ -141,10 +142,11 @@ def test_asic_xades_container_and_tampered_payload(kind, fixture):
     original = (FIXTURES / fixture).read_bytes()
     _verify_asic(original, kind)
     source = zipfile.ZipFile(io.BytesIO(original))
+    payload_name = next(name for name in source.namelist() if name != "mimetype" and not name.startswith("META-INF/"))
     altered = io.BytesIO()
     with zipfile.ZipFile(altered, "w") as output:
         for member in source.infolist():
             content = source.read(member.filename)
-            output.writestr(member, content + b"altered" if member.filename == "test.text" else content)
+            output.writestr(member, content + b"altered" if member.filename == payload_name else content)
     with pytest.raises(AssertionError):
         _verify_asic(altered.getvalue(), kind)

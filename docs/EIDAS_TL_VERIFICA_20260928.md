@@ -6,6 +6,7 @@
 - AgID, [chiarimenti transizione eIDAS 2](https://www.agid.gov.it/it/notizie/eidas-2-online-i-chiarimenti-di-agid-ladeguamento-dei-prestatori-di-servizi-fiduciari): indicazioni ai prestatori fiduciari, non prova che una firma individuale sia qualificata.
 - [Regolamento di esecuzione (UE) 2026/248](https://eur-lex.europa.eu/legal-content/IT/TXT/?uri=CELEX:32026R0248), artt. 1–6 e allegati I–II: formati di firme e sigilli avanzati da riconoscere nei servizi pubblici. Gli artt. 1(1) e 3(1) si applicano dal 23/02/2027; i formati dell'allegato II creati prima del 23/02/2028 restano oggetto della disposizione transitoria.
 - [ETSI TS 119 612 V2.1.1, §5.5.9.3](https://www.etsi.org/deliver/etsi_ts/119600_119699/119612/02.01.01_60/ts_119612v020101p.pdf): `TakenOverBy` identifica il prestatore che assume la responsabilità del servizio storico. Se l'estensione è critica, il verificatore deve comprenderla interamente; l'estensione non impone da sola un diverso esito di validazione della firma.
+- [ETSI EN 319 162-1, allegato A.1](https://www.etsi.org/deliver/etsi_en/319100_319199/31916201/01.01.00_30/en_31916201v010100v.pdf): nei contenitori ASiC con `mimetype`, questa voce è la prima del ZIP, non compressa e senza campi extra.
 - [EU DSS](https://github.com/esig/dss): campioni documentali indipendenti per XAdES, JAdES e ASiC, con provenienza e impronte in `tests/fixtures/eidas_formats/README.md`.
 
 ## Risultato della verifica sul codice e sulla fonte live
@@ -24,7 +25,7 @@ I percorsi applicativi esaminati (`pct/firma.py`, `pct/document_signature_state.
 | PAdES | Integrità crittografica esistente | Stessi controlli, più revisioni PDF e profili ETSI |
 | XAdES | Campione EU DSS Baseline B: firma XML, riferimenti al documento e `SignedProperties` verificati; manomissione respinta | Catena, revoca, tempo, qualifica e profili superiori |
 | JAdES | Campione EU DSS Baseline B: JWS RSA-SHA256, `x5c`, impronta certificato e manomissione verificati | Catena, revoca, tempo, qualifica e varianti detached/multiple |
-| ASiC | Campioni EU DSS ASiC-E e ASiC-S con XAdES: contenitore, firma e digest del file verificati; manomissione respinta | Contenitori CAdES, più file/firme, catena e qualifica |
+| ASiC | Campioni EU DSS ASiC-E e ASiC-S con XAdES: ordine e codifica di `mimetype`, firma e digest del file verificati; manomissione respinta | Contenitori CAdES, più file/firme, catena e qualifica |
 
 Servono inoltre prove per firme e sigilli dell'allegato II nel periodo transitorio, catena non affidabile, certificato scaduto/revocato, TL scaduta o manomessa e cambio del certificato TL. `tests/test_eidas_tl_monitor.py` copre i controlli negativi sul parser e sui metadati; il job live esercita le firme XML della LOTL e della TL. `tests/test_eidas_document_formats.py` controlla struttura e integrità crittografica di quattro file indipendenti. I certificati di prova EU DSS sono storici e scaduti: la suite non verifica attendibilità del certificato, revoca o qualifica eIDAS e non è una certificazione di conformità completa al regolamento.
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.424.0 — 29/09/2026
+
+«La mia firma»: ogni avvocato dello studio sceglie il proprio gestore o il proprio dispositivo, e la maschera si adatta al gestore scelto.
+
+- **Nuova scheda Impostazioni → «La mia firma»**, aperta a ogni utente che lavora sui fascicoli (non solo all'amministratore): «Come lo studio», «Il mio dispositivo» o «La mia firma remota». Nello stesso studio un avvocato può firmare con Aruba, un altro con Namirial o InfoCert, un terzo con la smart card: la firma è personale (CAD art. 1 lett. s e art. 24; Reg. eIDAS art. 26).
+- **La maschera cambia in base al gestore**: Aruba e Actalis chiedono utente e dominio del contratto e offrono il codice dall'app, per SMS o con ArubaCall; Namirial chiede il codice del dispositivo remoto (RHI…) e lascia scegliere tra SWS e CSC; InfoCert, Intesi e gli altri servizi CSC chiedono l'indirizzo rilasciato con il contratto (che deve terminare con /csc/v1 o /csc/v2). I gestori senza servizio per i gestionali (Poste, InfoCamere e altri) sono elencati a parte e spiegano la «Firma esterna»; non si possono salvare come firma remota.
+- **Prova del collegamento**: dopo il salvataggio l'avvocato digita la password e IUSENTRA chiede al gestore il certificato, mostrando intestatario, emittente e scadenza. La password serve solo per la prova e non si salva.
+- **Il dispositivo personale** indica chi l'ha rilasciato e il produttore: il Local Signer cerca prima quel driver.
+- La firma remota nel fascicolo, lo stato e l'invio del codice usano la firma di chi è collegato; senza scelta personale vale quella dello studio. Firma remota e invio del codice richiedono il permesso di lavorare sui fascicoli.
+- Le impostazioni dello studio controllano le stesse regole del gestore (codice OTP ammesso, indirizzo obbligatorio per i servizi CSC, prestatori senza servizio).
+- I profili stanno in `firme_avvocati.json` accanto alla configurazione dello studio (per ogni studio); non contengono password, PIN né codici.
+
 ## 2.423.0 — 28/09/2026
 
 Firma digitale: firma remota dei prestatori qualificati e dispositivi di tutti i produttori, scelti in Impostazioni.

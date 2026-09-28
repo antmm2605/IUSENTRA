@@ -768,8 +768,11 @@ def _signature_settings(get_config_studio: Callable[[], Any] | None) -> dict[str
     try:
         from visible_signature import normalize_visible_signature_mode, resolve_visible_signature_place
 
-        config = get_config_studio().config
-        firma_cfg = getattr(config, "firma", None)
+        from web.services.firma_profilo_runtime import firma_utente_corrente
+
+        gestore = get_config_studio()
+        config = gestore.config
+        firma_cfg = firma_utente_corrente(gestore)
         studio_cfg = getattr(config, "studio", None)
         mode = normalize_visible_signature_mode(getattr(firma_cfg, "visible_signature_mode", mode))
         canale = str(getattr(firma_cfg, "backend_preferito_normalizzato", "auto") or "auto")

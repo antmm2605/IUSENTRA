@@ -11755,6 +11755,52 @@ def impostazioni_page_update(section: str):
     return jsonify(result), 200 if result.get("ok") else 400
 
 
+@api_v1_react.get("/impostazioni/firma-personale")
+@_richiedi_auth
+def impostazioni_firma_personale():
+    from web.services.firma_profilo_runtime import payload_personale
+
+    if not g.get("utente_corrente"):
+        return jsonify({"ok": False, "message": "La firma personale si imposta dal proprio account."}), 403
+    try:
+        return jsonify(payload_personale())
+    except Exception as exc:
+        current_app.logger.exception("Errore firma personale: %s", exc)
+        return jsonify({"ok": False, "message": "La tua firma non è leggibile in questo momento."}), 200
+
+
+@api_v1_react.post("/impostazioni/firma-personale")
+@_richiedi_auth
+def impostazioni_firma_personale_update():
+    from web.services.firma_profilo_runtime import salva_personale
+
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    try:
+        corpo, stato = salva_personale(payload or {})
+    except Exception as exc:
+        current_app.logger.exception("Errore salvataggio firma personale: %s", exc)
+        corpo, stato = {"ok": False, "message": "La tua firma non è stata salvata."}, 500
+    return jsonify(corpo), stato
+
+
+@api_v1_react.post("/impostazioni/firma-personale/prova")
+@_richiedi_auth
+def impostazioni_firma_personale_prova():
+    from web.services.firma_profilo_runtime import prova_collegamento
+
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    try:
+        corpo, stato = prova_collegamento(payload or {})
+    except Exception as exc:
+        current_app.logger.exception("Errore prova firma remota: %s", exc)
+        corpo, stato = {"ok": False, "message": "Prova del collegamento non riuscita."}, 500
+    return jsonify(corpo), stato
+
+
 @api_v1_react.post("/impostazioni/firma/certificato")
 @_richiedi_auth
 def impostazioni_firma_certificato_update():

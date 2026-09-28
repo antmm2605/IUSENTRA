@@ -39,32 +39,68 @@ def _endpoint(valore: str) -> tuple[str, str]:
     return valore.rstrip("/"), ""
 
 
-def firma_da_richiesta(firma: ConfigFirma, data: dict[str, Any], *, percorso_caricato: Callable[..., str],
-                       normalizza_modo: Callable[[str], str]) -> tuple[ConfigFirma, dict[str, str]]:
-    """La nuova configurazione della firma (tutti i campi esistenti conservati) e gli eventuali errori."""
+def valida_gestore(data: dict[str, Any], attuale: Any, backend: str) -> tuple[dict[str, str], dict[str, str]]:
+    """Gestore, dispositivo e dati della firma remota scelti, validati sul catalogo AgID.
+
+    Vale per la firma dello studio e per quella personale dell'avvocato: il prestatore decide
+    quali protocolli, quali codici OTP e quali campi servono.
+    """
     errori: dict[str, str] = {}
-    backend = _testo(data.get("backend_preferito") or data.get("firma_formato"), "auto").lower()
-    if backend not in BACKEND_FIRMA:
-        backend = "auto"
-    prestatore = _scelta(data, "prestatore", firma.prestatore)
+    prestatore = _scelta(data, "prestatore", getattr(attuale, "prestatore", ""))
     if prestatore and firma_catalogo.prestatore(prestatore) is None:
         errori["prestatore"] = "Prestatore non presente nell'elenco AgID."
-    produttore = _scelta(data, "dispositivo_produttore", firma.dispositivo_produttore)
+    produttore = _scelta(data, "dispositivo_produttore", getattr(attuale, "dispositivo_produttore", ""))
     if produttore and firma_catalogo.produttore(produttore) is None:
         errori["dispositivo_produttore"] = "Produttore del dispositivo non riconosciuto."
-    protocollo = _scelta(data, "remota_protocollo", firma.remota_protocollo)
+    protocollo = _scelta(data, "remota_protocollo", getattr(attuale, "remota_protocollo", ""))
     if protocollo and protocollo not in firma_catalogo.PROTOCOLLI_REMOTI:
         errori["remota_protocollo"] = "Protocollo di firma remota non riconosciuto."
     elif protocollo and prestatore and protocollo not in firma_catalogo.protocolli_remoti(prestatore):
         errori["remota_protocollo"] = "Il prestatore scelto non usa questo protocollo."
-    endpoint, errore = _endpoint(_testo(data.get("remota_endpoint"), firma.remota_endpoint))
+    endpoint, errore = _endpoint(_testo(data.get("remota_endpoint"), getattr(attuale, "remota_endpoint", "")))
     if errore:
         errori["remota_endpoint"] = errore
-    tipo_otp = _testo(data.get("remota_tipo_otp"), firma.remota_tipo_otp or "app").lower()
+    tipo_otp = _testo(data.get("remota_tipo_otp"), getattr(attuale, "remota_tipo_otp", "") or "app").lower()
     if tipo_otp not in TIPI_OTP:
         errori["remota_tipo_otp"] = "Tipo di codice OTP non riconosciuto."
-    if backend == "remota" and not prestatore:
-        errori["prestatore"] = "Per la firma remota scegli il prestatore."
+    if backend == "remota":
+        if not prestatore:
+            errori["prestatore"] = "Per la firma remota scegli il prestatore."
+        elif "prestatore" not in errori:
+            protocolli = firma_catalogo.protocolli_remoti(prestatore)
+            effettivo = protocollo or (protocolli[0] if protocolli else "")
+            if not protocolli:
+                errori["prestatore"] = (f"{firma_catalogo.prestatore(prestatore)['nome']} non pubblica un servizio di firma "
+                                        "remota per i gestionali: firma dalla sua app e carica il file con «Firma esterna».")
+            elif effettivo in firma_catalogo.PROTOCOLLI_REMOTI:
+                ammessi = firma_catalogo.catalogo()["protocolli_remoti"][effettivo].get("otp") or list(TIPI_OTP)
+                if tipo_otp in TIPI_OTP and tipo_otp not in ammessi:
+                    errori["remota_tipo_otp"] = "Questo servizio non invia il codice in questo modo."
+                if effettivo == "csc" and endpoint and not endpoint.endswith(("/csc/v1", "/csc/v2")):
+                    errori["remota_endpoint"] = "L'indirizzo del servizio CSC termina con /csc/v1 o /csc/v2."
+                if not endpoint and "remota_endpoint" not in errori \
+                        and not firma_catalogo.endpoint_predefinito(prestatore, effettivo):
+                    errori["remota_endpoint"] = "Inserisci l'indirizzo del servizio rilasciato dal prestatore con il contratto."
+    campi = {
+        "prestatore": prestatore,
+        "dispositivo_produttore": produttore,
+        "remota_protocollo": protocollo,
+        "remota_endpoint": endpoint,
+        "remota_utente": _testo(data.get("remota_utente"), getattr(attuale, "remota_utente", "")),
+        "remota_dominio": _testo(data.get("remota_dominio"), getattr(attuale, "remota_dominio", "")),
+        "remota_credenziale": _testo(data.get("remota_credenziale"), getattr(attuale, "remota_credenziale", "")),
+        "remota_tipo_otp": tipo_otp,
+    }
+    return campi, errori
+
+
+def firma_da_richiesta(firma: ConfigFirma, data: dict[str, Any], *, percorso_caricato: Callable[..., str],
+                       normalizza_modo: Callable[[str], str]) -> tuple[ConfigFirma, dict[str, str]]:
+    """La nuova configurazione della firma (tutti i campi esistenti conservati) e gli eventuali errori."""
+    backend = _testo(data.get("backend_preferito") or data.get("firma_formato"), "auto").lower()
+    if backend not in BACKEND_FIRMA:
+        backend = "auto"
+    campi, errori = valida_gestore(data, firma, backend)
     if errori:
         return firma, errori
 
@@ -85,14 +121,7 @@ def firma_da_richiesta(firma: ConfigFirma, data: dict[str, Any], *, percorso_car
         cf_avvocato=_testo(data.get("cf_avvocato") or data.get("firma_cf_avvocato")).upper(),
         backend_preferito=backend,
         visible_signature_mode=normalizza_modo(_testo(data.get("visible_signature_mode"), firma.visible_signature_mode)),
-        prestatore=prestatore,
-        dispositivo_produttore=produttore,
-        remota_protocollo=protocollo,
-        remota_endpoint=endpoint,
-        remota_utente=_testo(data.get("remota_utente"), firma.remota_utente),
-        remota_dominio=_testo(data.get("remota_dominio"), firma.remota_dominio),
-        remota_credenziale=_testo(data.get("remota_credenziale"), firma.remota_credenziale),
-        remota_tipo_otp=tipo_otp,
+        **campi,
     )
     return nuova, {}
 

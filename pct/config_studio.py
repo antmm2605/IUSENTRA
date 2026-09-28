@@ -714,6 +714,11 @@ class GestioneConfigStudio:
     def file_esiste(self) -> bool:
         return self._path.exists()
 
+    @property
+    def percorso(self) -> Path:
+        """File della configurazione (per tenant): accanto vivono gli archivi collegati allo studio."""
+        return self._path
+
     def aggiorna(self, cfg: ConfigStudio) -> None:
         self._cfg = cfg
         self._salva(cfg)

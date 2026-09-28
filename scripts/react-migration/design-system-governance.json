@@ -127,6 +127,7 @@
     "frontend/src/features/impostazioni/components/BillingSettingsPanel.css",
     "frontend/src/features/impostazioni/components/CalendarSettingsPanel.css",
     "frontend/src/features/impostazioni/components/NotificationsSettingsPanel.css",
+    "frontend/src/features/impostazioni/components/MiaFirmaPanel.css",
     "frontend/src/features/impostazioni/components/PaymentsSettingsPanel.css",
     "frontend/src/features/notifiche-legali/PresidiNotifiche.css",
     "frontend/src/features/notifiche-legali/components/PresidioEvidenceModal.css",

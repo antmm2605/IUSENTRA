@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 426.
-- Endpoint P0/P1 contrattualizzati: 361.
+- Endpoint React API contrattualizzati: 429.
+- Endpoint P0/P1 contrattualizzati: 364.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 383.
+- Endpoint con provider verification auth-error: 386.
 - Endpoint pubblici della pagina di accesso (stato 200, scritture in errore sicuro senza credenziali): 3.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 40.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
@@ -244,6 +244,9 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Impostazioni | `/api/v1/ui/impostazioni/calendari/profili/{profile_id}/stato` | `POST` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
 | Impostazioni | `/api/v1/ui/impostazioni/calendari/rigenera-link` | `POST` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
 | Impostazioni | `/api/v1/ui/impostazioni/fatturazione/applica-proforme` | `POST` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
+| Impostazioni | `/api/v1/ui/impostazioni/firma-personale` | `GET` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
+| Impostazioni | `/api/v1/ui/impostazioni/firma-personale` | `POST` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
+| Impostazioni | `/api/v1/ui/impostazioni/firma-personale/prova` | `POST` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
 | Impostazioni | `/api/v1/ui/impostazioni/firma/certificato` | `POST` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
 | Impostazioni | `/api/v1/ui/impostazioni/notifiche/invia` | `POST` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
 | Impostazioni | `/api/v1/ui/impostazioni/notifiche/link` | `POST` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |

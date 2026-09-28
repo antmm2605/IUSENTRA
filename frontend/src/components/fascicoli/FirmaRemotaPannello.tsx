@@ -93,7 +93,7 @@ export default function FirmaRemotaPannello({ fascicoloId, documentoId, nomeDocu
   if (!stato.attiva) {
     return (
       <div className="iu-fas-signature-box">
-        <div className="iu-fas-signer-status is-warn"><strong>Firma remota non pronta</strong><span>{stato.messaggio}</span></div>
+        <div className="iu-fas-signer-status is-warn"><strong>Firma remota non pronta</strong><span>{stato.messaggio}</span><a href="/impostazioni?tab=mia_firma">Apri «La mia firma»</a></div>
       </div>
     )
   }

@@ -8,9 +8,9 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 320.
-- Endpoint con `_richiedi_auth`: 320/320.
-- Endpoint con metodo di scrittura o cancellazione: 168.
+- Endpoint React API censiti: 323.
+- Endpoint con `_richiedi_auth`: 323/323.
+- Endpoint con metodo di scrittura o cancellazione: 170.
 - Endpoint con superficie file/upload/download/export/evidence: 16.
 - Route manifest censite: 119; critical: 18; high/P1: 77.
 - Parametri controllo bloccati: `tenant_id`, `tenant_slug`, `studio_id`, `studio_slug`, `user_id`, `api_key`, `token`, `access_token`, `refresh_token`, `redirect`, `redirect_url`, `return_url`, `next`, path filesystem.
@@ -192,6 +192,9 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `POST` | `/api/v1/ui/impostazioni/calendari/profili/<profile_id>/stato` | Impostazioni | P0 | `admin.configura` | segreti redatti e configurazioni studio | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/impostazioni/calendari/rigenera-link` | Impostazioni | P0 | `admin.configura` | segreti redatti e configurazioni studio | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/impostazioni/fatturazione/applica-proforme` | Impostazioni | P0 | `admin.configura` | segreti redatti e configurazioni studio | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/impostazioni/firma-personale` | Impostazioni | P0 | `admin.configura` | segreti redatti e configurazioni studio | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/impostazioni/firma-personale` | Impostazioni | P0 | `admin.configura` | segreti redatti e configurazioni studio | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/impostazioni/firma-personale/prova` | Impostazioni | P0 | `admin.configura` | segreti redatti e configurazioni studio | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/impostazioni/firma/certificato` | Impostazioni | P0 | `admin.configura` | segreti redatti e configurazioni studio | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/impostazioni/notifiche/invia` | Impostazioni | P0 | `admin.configura` | segreti redatti e configurazioni studio | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/impostazioni/notifiche/link` | Impostazioni | P0 | `admin.configura` | segreti redatti e configurazioni studio | auth, tenant-aware, RBAC dominio, guardrail fase 5 |

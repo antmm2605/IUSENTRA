@@ -29,14 +29,27 @@ class Dipendenze:
 
 
 def _firma_config(dip: Dipendenze):
-    return dip.get_config_studio().config.firma
+    """La firma di chi è collegato: quella dello studio con il suo profilo personale sopra."""
+    from web.services.firma_profilo_runtime import firma_utente_corrente
+
+    return firma_utente_corrente(dip.get_config_studio())
+
+
+def _permesso_negato() -> tuple[dict[str, Any], int] | None:
+    from web.services.firma_profilo_runtime import PERMESSI_FIRMA
+
+    utente = getattr(g, "utente_corrente", None)
+    controllo = getattr(utente, "ha_permesso", None)
+    if utente is not None and callable(controllo) and not any(controllo(p) for p in PERMESSI_FIRMA):
+        return {"ok": False, "messaggio": "Serve il permesso di lavorare sui fascicoli per firmare."}, 403
+    return None
 
 
 def stato(dip: Dipendenze) -> dict[str, Any]:
     """Cosa serve all'avvocato per firmare: prestatore, utente e come arriva il codice."""
     cfg = _firma_config(dip)
     if getattr(cfg, "backend_preferito_normalizzato", "") != "remota":
-        return {"ok": True, "attiva": False, "messaggio": "La firma remota non è il canale scelto in Impostazioni → Firma digitale."}
+        return {"ok": True, "attiva": False, "messaggio": "La firma remota non è il tuo canale di firma: sceglila in Impostazioni → La mia firma."}
     try:
         conf = configurazione_da_firma(cfg)
     except FirmaRemotaNonConfigurata as exc:
@@ -63,6 +76,9 @@ def _credenziali(conf: ConfigurazioneRemota, dati: dict[str, Any]) -> Credenzial
 
 
 def invia_codice(dip: Dipendenze, dati: dict[str, Any]) -> tuple[dict[str, Any], int]:
+    negato = _permesso_negato()
+    if negato:
+        return negato
     cfg = _firma_config(dip)
     try:
         conf = configurazione_da_firma(cfg)
@@ -85,6 +101,9 @@ def firma_documento(dip: Dipendenze, dati: dict[str, Any], *, visibile: dict[str
     from pct.firma import analizza_firma_documento, busta_cades_valida
     from web.services.fascicoli_signature_options import metadata_firma_cades, metadata_firma_pades
 
+    negato = _permesso_negato()
+    if negato:
+        return negato
     id_fasc = str(dati.get("fascicolo_id") or "").strip()
     id_doc = str(dati.get("documento_id") or "").strip()
     if not id_fasc or not id_doc:
@@ -93,7 +112,7 @@ def firma_documento(dip: Dipendenze, dati: dict[str, Any], *, visibile: dict[str
         return {"ok": False, "messaggio": "Inserisci il codice OTP."}, 400
     cfg = _firma_config(dip)
     if getattr(cfg, "backend_preferito_normalizzato", "") != "remota":
-        return {"ok": False, "messaggio": "La firma remota non è il canale scelto in Impostazioni → Firma digitale."}, 400
+        return {"ok": False, "messaggio": "La firma remota non è il tuo canale di firma: sceglila in Impostazioni → La mia firma."}, 400
     gestore = dip.get_fascicoli()
     fascicolo = gestore.get(id_fasc)
     documento = next((d for d in getattr(fascicolo, "documenti", []) or [] if d.id == id_doc), None)

@@ -120,9 +120,19 @@ def test_firma_remota_non_scelta_o_prestatore_senza_api(ambiente):
     with _client(app) as client:
         stato = client.get("/api/firma/remota/stato", headers=intestazioni).get_json()
         assert stato["attiva"] is False
-        assert _salva_impostazioni(client, prestatore="poste").get_json()["ok"]
-        stato = client.get("/api/firma/remota/stato", headers=intestazioni).get_json()
-        assert stato["attiva"] is False and "Firma esterna" in stato["messaggio"]
+        # Un prestatore senza servizio per i gestionali non si può scegliere per la firma remota.
+        rifiutato = _salva_impostazioni(client, prestatore="poste").get_json()
+        assert rifiutato["ok"] is False and "Firma esterna" in rifiutato["errors"]["prestatore"]
         risposta = client.post("/api/firma/remota/firma-documento", headers=intestazioni, json={
             "fascicolo_id": id_fasc, "documento_id": id_pdf, "password": "x", "otp": "1"})
-        assert risposta.status_code == 400 and "Firma esterna" in json.dumps(risposta.get_json())
+        assert risposta.status_code == 400 and "La mia firma" in json.dumps(risposta.get_json(), ensure_ascii=False)
+
+
+def test_configurazione_salvata_prima_con_prestatore_senza_api():
+    """Una configurazione già salvata con un prestatore senza API continua a spiegare «Firma esterna»."""
+    from pct.config_studio import ConfigFirma
+    from pct.firma_remota import FirmaRemotaNonConfigurata
+    from pct.firma_remota.prestatori import configurazione_da_firma
+
+    with pytest.raises(FirmaRemotaNonConfigurata, match="Firma esterna"):
+        configurazione_da_firma(ConfigFirma(backend_preferito="remota", prestatore="poste"))

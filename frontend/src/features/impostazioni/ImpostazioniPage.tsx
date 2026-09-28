@@ -14,6 +14,7 @@ import { SETTINGS_FIELDS, SETTINGS_SECTIONS } from './constants'
 import { BackupSettingsPanel } from './components/BackupSettingsPanel'
 import { BillingSettingsPanel } from './components/BillingSettingsPanel'
 import { CalendarSettingsPanel } from './components/CalendarSettingsPanel'
+import { MiaFirmaPanel } from './components/MiaFirmaPanel'
 import { SettingsActions } from './components/SettingsActions'
 import { NotificationsSettingsPanel } from './components/NotificationsSettingsPanel'
 import { PaymentsSettingsPanel } from './components/PaymentsSettingsPanel'
@@ -124,6 +125,8 @@ export function ImpostazioniPage() {
                           onSave={settings.save}
                           onReload={settings.load}
                         />
+                      ) : section.id === 'mia_firma' ? (
+                        <MiaFirmaPanel />
                       ) : section.id === 'calendari' ? (
                         <CalendarSettingsPanel
                           data={settings.data}
@@ -178,7 +181,7 @@ export function ImpostazioniPage() {
         </div>
       ) : null}
 
-      {!settings.loading && settings.data.ok && !canUpdate ? (
+      {!settings.loading && settings.data.ok && !canUpdate && settings.activeSection !== 'mia_firma' ? (
         <Alert className="iu-settings-alert is-warning">
           <AlertTriangle />
           <AlertTitle>Permesso richiesto</AlertTitle>

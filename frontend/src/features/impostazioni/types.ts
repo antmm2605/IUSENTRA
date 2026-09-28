@@ -3,6 +3,7 @@ export type SettingsSection =
   | 'fatturazione'
   | 'pec'
   | 'firma'
+  | 'mia_firma'
   | 'smtp'
   | 'whatsapp'
   | 'scheduler'
@@ -74,6 +75,8 @@ export type SettingsPayload = {
   }
   pec: Record<string, string | number | boolean | SecretState>
   firma: Record<string, string | number | boolean | SecretState>
+  /** «La mia firma» ha un proprio endpoint: nel payload dello studio non c'è. */
+  mia_firma?: Record<string, unknown>
   smtp: Record<string, string | number | boolean | SecretState>
   whatsapp: Record<string, string | number | boolean | SecretState>
   scheduler: Record<string, string | number | boolean>

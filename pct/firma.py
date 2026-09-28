@@ -101,6 +101,10 @@ class FirmaDigitale:
                 "Backend PKCS#11 selezionato. "
                 "Usare pct.firma.crea_signer_da_config(..., pin=...) oppure il flusso Local Signer."
             )
+        if fmt == "remota":
+            raise ValueError(
+                "Firma remota selezionata: si firma dalla pagina «Firma» del documento con password e codice OTP."
+            )
         raise FileNotFoundError(
             "Nessun certificato di firma configurato. "
             "Configurare P12 (PCT_FIRMA_P12) oppure PEM (PCT_FIRMA_CERT + PCT_FIRMA_KEY) "

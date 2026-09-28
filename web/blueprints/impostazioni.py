@@ -396,7 +396,7 @@ def index():
 
         from pct.config_studio import (
             ConfigDatiStudio, ConfigPEC,
-            ConfigFirma, ConfigSMTP, ConfigWhatsApp, ConfigScheduler, ConfigLocalAI,
+            ConfigSMTP, ConfigWhatsApp, ConfigScheduler, ConfigLocalAI,
             ConfigSDI,
         )
         cfg = gs.config
@@ -436,12 +436,15 @@ def index():
                     use_ssl=bool(f.get("pec_use_ssl")),
                 )
             elif tab == "firma":
+                from dataclasses import replace
+
+                from pct.config_studio import BACKEND_FIRMA
                 from visible_signature import normalize_visible_signature_mode
 
                 pwd = f.get("firma_password", "").strip()
                 key_pwd = f.get("firma_key_pem_password", "").strip()
                 backend_preferito = (f.get("firma_formato") or cfg.firma.backend_preferito or "auto").strip().lower()
-                if backend_preferito not in {"auto", "pkcs11", "p12", "pem"}:
+                if backend_preferito not in BACKEND_FIRMA:
                     backend_preferito = "auto"
                 p12_path = f.get("firma_p12_path", "").strip()
                 cert_pem_path = f.get("firma_cert_pem_path", "").strip()
@@ -455,7 +458,8 @@ def index():
                     cert_pem_path = _salva_upload_firma(cert_upload, "firma_cert", {".crt", ".cer", ".pem"})
                 if key_upload and key_upload.filename:
                     key_pem_path = _salva_upload_firma(key_upload, "firma_key", {".key", ".pem"})
-                cfg.firma = ConfigFirma(
+                cfg.firma = replace(
+                    cfg.firma,
                     # P12
                     p12_path=p12_path,
                     password=pwd if pwd else cfg.firma.password,

@@ -755,11 +755,15 @@ def _notifiche_legali_operation_href(
 def _signature_settings(get_config_studio: Callable[[], Any] | None) -> dict[str, str]:
     mode = "laterale"
     place = ""
+    canale = "auto"
+    produttore = ""
     if not callable(get_config_studio):
         return {
             "visibleSignatureMode": mode,
             "visibleSignaturePlace": place,
             "visibleSignatureDatetimeMode": "data_ora",
+            "canale": canale,
+            "produttoreDispositivo": produttore,
         }
     try:
         from visible_signature import normalize_visible_signature_mode, resolve_visible_signature_place
@@ -768,6 +772,8 @@ def _signature_settings(get_config_studio: Callable[[], Any] | None) -> dict[str
         firma_cfg = getattr(config, "firma", None)
         studio_cfg = getattr(config, "studio", None)
         mode = normalize_visible_signature_mode(getattr(firma_cfg, "visible_signature_mode", mode))
+        canale = str(getattr(firma_cfg, "backend_preferito_normalizzato", "auto") or "auto")
+        produttore = str(getattr(firma_cfg, "dispositivo_produttore", "") or "")
         place = resolve_visible_signature_place(
             city=getattr(studio_cfg, "city", "") if studio_cfg else "",
             province=getattr(studio_cfg, "province", "") if studio_cfg else "",
@@ -779,6 +785,8 @@ def _signature_settings(get_config_studio: Callable[[], Any] | None) -> dict[str
         "visibleSignatureMode": mode,
         "visibleSignaturePlace": place,
         "visibleSignatureDatetimeMode": "data_ora",
+        "canale": canale,
+        "produttoreDispositivo": produttore,
     }
 
 

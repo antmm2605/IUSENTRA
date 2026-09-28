@@ -1,0 +1,1767 @@
+<?xml version='1.0' encoding='UTF-8'?><wsdl:definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:tns="http://service.ws.nam/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:ns1="http://schemas.xmlsoap.org/soap/http" name="SignService" targetNamespace="http://service.ws.nam/">
+  <wsdl:types>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://service.ws.nam/" attributeFormDefault="unqualified" elementFormDefault="unqualified" targetNamespace="http://service.ws.nam/">
+  <xs:element name="changePassword" type="tns:changePassword"/>
+  <xs:element name="changePasswordResponse" type="tns:changePasswordResponse"/>
+  <xs:element name="checkOTP" type="tns:checkOTP"/>
+  <xs:element name="checkOTPResponse" type="tns:checkOTPResponse"/>
+  <xs:element name="checkPassword" type="tns:checkPassword"/>
+  <xs:element name="checkPasswordResponse" type="tns:checkPasswordResponse"/>
+  <xs:element name="closeSession" type="tns:closeSession"/>
+  <xs:element name="closeSessionResponse" type="tns:closeSessionResponse"/>
+  <xs:element name="counterSignCAdES" type="tns:counterSignCAdES"/>
+  <xs:element name="counterSignCAdESResponse" type="tns:counterSignCAdESResponse"/>
+  <xs:element name="disable" type="tns:disable"/>
+  <xs:element name="disableResponse" type="tns:disableResponse"/>
+  <xs:element name="enable" type="tns:enable"/>
+  <xs:element name="enableResponse" type="tns:enableResponse"/>
+  <xs:element name="getAllSignatureFieldsWithPreferences" type="tns:getAllSignatureFieldsWithPreferences"/>
+  <xs:element name="getAllSignatureFieldsWithPreferencesResponse" type="tns:getAllSignatureFieldsWithPreferencesResponse"/>
+  <xs:element name="getAvailableSignatureFields" type="tns:getAvailableSignatureFields"/>
+  <xs:element name="getAvailableSignatureFieldsResponse" type="tns:getAvailableSignatureFieldsResponse"/>
+  <xs:element name="getAvailableSignatures" type="tns:getAvailableSignatures"/>
+  <xs:element name="getAvailableSignaturesResponse" type="tns:getAvailableSignaturesResponse"/>
+  <xs:element name="getAvailableTimestamps" type="tns:getAvailableTimestamps"/>
+  <xs:element name="getAvailableTimestampsResponse" type="tns:getAvailableTimestampsResponse"/>
+  <xs:element name="getCertificate" type="tns:getCertificate"/>
+  <xs:element name="getCertificateResponse" type="tns:getCertificateResponse"/>
+  <xs:element name="getErrors" type="tns:getErrors"/>
+  <xs:element name="getErrorsResponse" type="tns:getErrorsResponse"/>
+  <xs:element name="getOTPList" type="tns:getOTPList"/>
+  <xs:element name="getOTPListResponse" type="tns:getOTPListResponse"/>
+  <xs:element name="getRemainingTimeForSession" type="tns:getRemainingTimeForSession"/>
+  <xs:element name="getRemainingTimeForSessionResponse" type="tns:getRemainingTimeForSessionResponse"/>
+  <xs:element name="getRemoteDeviceListFromPrivateAreaUser" type="tns:getRemoteDeviceListFromPrivateAreaUser"/>
+  <xs:element name="getRemoteDeviceListFromPrivateAreaUserResponse" type="tns:getRemoteDeviceListFromPrivateAreaUserResponse"/>
+  <xs:element name="getSignatures" type="tns:getSignatures"/>
+  <xs:element name="getSignaturesResponse" type="tns:getSignaturesResponse"/>
+  <xs:element name="healthCheck" type="tns:healthCheck"/>
+  <xs:element name="healthCheckResponse" type="tns:healthCheckResponse"/>
+  <xs:element name="openSession" type="tns:openSession"/>
+  <xs:element name="openSessionResponse" type="tns:openSessionResponse"/>
+  <xs:element name="removeFromCertificateCache" type="tns:removeFromCertificateCache"/>
+  <xs:element name="removeFromCertificateCacheResponse" type="tns:removeFromCertificateCacheResponse"/>
+  <xs:element name="sendOtpByPUSH" type="tns:sendOtpByPUSH"/>
+  <xs:element name="sendOtpByPUSHResponse" type="tns:sendOtpByPUSHResponse"/>
+  <xs:element name="sendOtpByPUSHWithMessage" type="tns:sendOtpByPUSHWithMessage"/>
+  <xs:element name="sendOtpByPUSHWithMessageResponse" type="tns:sendOtpByPUSHWithMessageResponse"/>
+  <xs:element name="sendOtpBySMS" type="tns:sendOtpBySMS"/>
+  <xs:element name="sendOtpBySMSResponse" type="tns:sendOtpBySMSResponse"/>
+  <xs:element name="sign" type="tns:sign"/>
+  <xs:element name="signCAdES" type="tns:signCAdES"/>
+  <xs:element name="signCAdESList" type="tns:signCAdESList"/>
+  <xs:element name="signCAdESListResponse" type="tns:signCAdESListResponse"/>
+  <xs:element name="signCAdESMultiPreferences" type="tns:signCAdESMultiPreferences"/>
+  <xs:element name="signCAdESMultiPreferencesResponse" type="tns:signCAdESMultiPreferencesResponse"/>
+  <xs:element name="signCAdESResponse" type="tns:signCAdESResponse"/>
+  <xs:element name="signList" type="tns:signList"/>
+  <xs:element name="signListResponse" type="tns:signListResponse"/>
+  <xs:element name="signPAdES" type="tns:signPAdES"/>
+  <xs:element name="signPAdESList" type="tns:signPAdESList"/>
+  <xs:element name="signPAdESListResponse" type="tns:signPAdESListResponse"/>
+  <xs:element name="signPAdESMultiFieldName" type="tns:signPAdESMultiFieldName"/>
+  <xs:element name="signPAdESMultiFieldNameResponse" type="tns:signPAdESMultiFieldNameResponse"/>
+  <xs:element name="signPAdESMultiPreferences" type="tns:signPAdESMultiPreferences"/>
+  <xs:element name="signPAdESMultiPreferencesResponse" type="tns:signPAdESMultiPreferencesResponse"/>
+  <xs:element name="signPAdESResponse" type="tns:signPAdESResponse"/>
+  <xs:element name="signPkcs1" type="tns:signPkcs1"/>
+  <xs:element name="signPkcs1List" type="tns:signPkcs1List"/>
+  <xs:element name="signPkcs1ListResponse" type="tns:signPkcs1ListResponse"/>
+  <xs:element name="signPkcs1Response" type="tns:signPkcs1Response"/>
+  <xs:element name="signResponse" type="tns:signResponse"/>
+  <xs:element name="signXAdES" type="tns:signXAdES"/>
+  <xs:element name="signXAdESList" type="tns:signXAdESList"/>
+  <xs:element name="signXAdESListResponse" type="tns:signXAdESListResponse"/>
+  <xs:element name="signXAdESMultiPreferences" type="tns:signXAdESMultiPreferences"/>
+  <xs:element name="signXAdESMultiPreferencesResponse" type="tns:signXAdESMultiPreferencesResponse"/>
+  <xs:element name="signXAdESResponse" type="tns:signXAdESResponse"/>
+  <xs:element name="timestamp" type="tns:timestamp"/>
+  <xs:element name="timestampResponse" type="tns:timestampResponse"/>
+  <xs:complexType name="signPkcs1">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+      <xs:element minOccurs="0" name="hash" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="preferences" type="tns:signPreferences"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="credentials">
+    <xs:sequence>
+      <xs:element name="idOtp" type="xs:int"/>
+      <xs:element minOccurs="0" name="otp" type="xs:string"/>
+      <xs:element minOccurs="0" name="password" type="xs:string"/>
+      <xs:element minOccurs="0" name="securityCode" type="xs:string"/>
+      <xs:element minOccurs="0" name="sessionKey" type="xs:string"/>
+      <xs:element minOccurs="0" name="username" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signPreferences">
+    <xs:complexContent>
+      <xs:extension base="tns:timeStampPreferences">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="hashAlgorithm" type="xs:string"/>
+          <xs:element minOccurs="0" name="level" type="tns:level"/>
+          <xs:element name="signType" type="xs:int"/>
+          <xs:element name="withTimestamp" type="xs:boolean"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="timeStampPreferences">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="filenameInTSD" type="xs:string"/>
+      <xs:element name="outputAsPDF" type="xs:boolean"/>
+      <xs:element name="outputAsTSD" type="xs:boolean"/>
+      <xs:element name="outputBase64Encoded" type="xs:boolean"/>
+      <xs:element minOccurs="0" name="timestampHashAlgo" type="xs:string"/>
+      <xs:element minOccurs="0" name="timestampPassword" type="xs:string"/>
+      <xs:element minOccurs="0" name="timestampUrl" type="xs:string"/>
+      <xs:element minOccurs="0" name="timestampUsername" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signPkcs1Response">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="xs:base64Binary"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="wsFaultBean">
+    <xs:sequence>
+      <xs:element name="error" type="xs:int"/>
+      <xs:element minOccurs="0" name="message" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="sendOtpByPUSH">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+      <xs:element minOccurs="0" name="title" type="xs:string"/>
+      <xs:element minOccurs="0" name="body" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="sendOtpByPUSHResponse">
+    <xs:sequence/>
+  </xs:complexType>
+  <xs:complexType name="sendOtpByPUSHWithMessage">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+      <xs:element minOccurs="0" name="message" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="sendOtpByPUSHWithMessageResponse">
+    <xs:sequence/>
+  </xs:complexType>
+  <xs:complexType name="sendOtpBySMS">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="sendOtpBySMSResponse">
+    <xs:sequence/>
+  </xs:complexType>
+  <xs:complexType name="signCAdES">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+      <xs:element minOccurs="0" name="buffer" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="CAdESPreferences" type="tns:cAdESPreferences"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="cAdESPreferences">
+    <xs:complexContent>
+      <xs:extension base="tns:signPreferences">
+        <xs:sequence>
+          <xs:element name="counterSignature" type="xs:boolean"/>
+          <xs:element name="counterSignatureIndex" type="xs:int"/>
+          <xs:element name="detached" type="xs:boolean"/>
+          <xs:element minOccurs="0" name="serial" type="xs:boolean"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="signCAdESResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="xs:base64Binary"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getRemainingTimeForSession">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getRemainingTimeForSessionResponse">
+    <xs:sequence>
+      <xs:element name="return" type="xs:int"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="counterSignCAdES">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+      <xs:element minOccurs="0" name="buffer" type="xs:base64Binary"/>
+      <xs:element name="signatureIndex" type="xs:int"/>
+      <xs:element minOccurs="0" name="CAdESPreferences" type="tns:cAdESPreferences"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="counterSignCAdESResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="xs:base64Binary"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="changePassword">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+      <xs:element minOccurs="0" name="newPassword" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="changePasswordResponse">
+    <xs:sequence/>
+  </xs:complexType>
+  <xs:complexType name="getOTPList">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getOTPListResponse">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="return" type="tns:otp"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="otp">
+    <xs:sequence>
+      <xs:element name="idOtp" type="xs:int"/>
+      <xs:element minOccurs="0" name="serialNumber" type="xs:string"/>
+      <xs:element minOccurs="0" name="type" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signList">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="bufferList" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="AdESPreferences" type="tns:signPreferences"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signListResponse">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="return" type="xs:base64Binary"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="checkPassword">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="checkPasswordResponse">
+    <xs:sequence/>
+  </xs:complexType>
+  <xs:complexType name="disable">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="disableResponse">
+    <xs:sequence/>
+  </xs:complexType>
+  <xs:complexType name="healthCheck">
+    <xs:sequence/>
+  </xs:complexType>
+  <xs:complexType name="healthCheckResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:healthPayload"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="healthPayload">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="globalStatus" type="xs:string"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="serviceChecks" nillable="true" type="tns:serviceCheck"/>
+      <xs:element minOccurs="0" name="serviceUUID" type="xs:string"/>
+      <xs:element minOccurs="0" name="timestamp" type="xs:long"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="serviceCheck">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="name" type="xs:string"/>
+      <xs:element minOccurs="0" name="status" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="openSession">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="openSessionResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signCAdESMultiPreferences">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="bufferList" type="xs:base64Binary"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="CAdESPreferences" type="tns:cAdESPreferences"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signCAdESMultiPreferencesResponse">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="return" type="xs:base64Binary"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signPAdESMultiFieldName">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+      <xs:element minOccurs="0" name="buffer" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="PAdESPreferences" type="tns:pAdESPreferences"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="pAdESPreferences">
+    <xs:complexContent>
+      <xs:extension base="tns:signPreferences">
+        <xs:sequence>
+          <xs:element name="encryptInAnyCase" type="xs:boolean"/>
+          <xs:element minOccurs="0" name="encryptionPassword" type="xs:string"/>
+          <xs:element maxOccurs="unbounded" minOccurs="0" name="lockFields" nillable="true" type="xs:string"/>
+          <xs:element name="needAppearanceDisabled" type="xs:boolean"/>
+          <xs:element name="page" type="xs:int"/>
+          <xs:element minOccurs="0" name="signerImage" type="tns:signerImage"/>
+          <xs:element minOccurs="0" name="signerImageReference" type="xs:string"/>
+          <xs:element name="withSignatureField" type="xs:boolean"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="signerImage">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="fieldName" type="xs:string"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="fieldsNameList" nillable="true" type="xs:string"/>
+      <xs:element minOccurs="0" name="fontName" type="xs:string"/>
+      <xs:element name="fontSize" type="xs:int"/>
+      <xs:element name="height" type="xs:int"/>
+      <xs:element minOccurs="0" name="image" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="imageFilename" type="xs:string"/>
+      <xs:element minOccurs="0" name="imageURL" type="xs:string"/>
+      <xs:element name="imageVisible" type="xs:boolean"/>
+      <xs:element minOccurs="0" name="location" type="xs:string"/>
+      <xs:element minOccurs="0" name="reason" type="xs:string"/>
+      <xs:element name="scaled" type="xs:boolean"/>
+      <xs:element name="scaledText" type="xs:boolean"/>
+      <xs:element minOccurs="0" name="signAllFields" type="xs:boolean"/>
+      <xs:element minOccurs="0" name="signerName" type="xs:string"/>
+      <xs:element minOccurs="0" name="textPosition" type="tns:textPosition"/>
+      <xs:element name="textVisible" type="xs:boolean"/>
+      <xs:element name="width" type="xs:int"/>
+      <xs:element name="x" type="xs:int"/>
+      <xs:element name="y" type="xs:int"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signPAdESMultiFieldNameResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:padesWithMultiFieldName"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="padesWithMultiFieldName">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="remainingFieldNames" nillable="true" type="xs:string"/>
+      <xs:element minOccurs="0" name="serviceError" type="tns:serviceError"/>
+      <xs:element minOccurs="0" name="signedContent" type="xs:base64Binary"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="serviceError">
+    <xs:sequence>
+      <xs:element name="code" type="xs:int"/>
+      <xs:element minOccurs="0" name="message" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getSignatures">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getSignaturesResponse">
+    <xs:sequence>
+      <xs:element name="return" type="xs:long"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="sign">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+      <xs:element minOccurs="0" name="buffer" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="AdESPreferences" type="tns:signPreferences"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="xs:base64Binary"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getAvailableSignatures">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getAvailableSignaturesResponse">
+    <xs:sequence>
+      <xs:element name="return" type="xs:long"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getRemoteDeviceListFromPrivateAreaUser">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="username" type="xs:string"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="types" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getRemoteDeviceListFromPrivateAreaUserResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:getDeviceListFromPrivateAreaUserResponse"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getDeviceListFromPrivateAreaUserResponse">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="devices" nillable="true" type="tns:deviceDTO"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="deviceDTO">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="name" type="xs:string"/>
+      <xs:element minOccurs="0" name="type" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signXAdES">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+      <xs:element minOccurs="0" name="buffer" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="XAdESPreferences" type="tns:xAdESPreferences"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="xAdESPreferences">
+    <xs:complexContent>
+      <xs:extension base="tns:signPreferences">
+        <xs:sequence>
+          <xs:element name="detached" type="xs:boolean"/>
+          <xs:element minOccurs="0" name="detachedReferenceURI" type="xs:string"/>
+          <xs:element name="en319132" type="xs:boolean"/>
+          <xs:element minOccurs="0" name="forceUtf8" type="xs:boolean"/>
+          <xs:element minOccurs="0" name="sdiCompliant" type="xs:boolean"/>
+          <xs:element minOccurs="0" name="signElement" type="xs:string"/>
+          <xs:element minOccurs="0" name="signatureId" type="xs:string"/>
+          <xs:element name="withoutSignatureExclusion" type="xs:boolean"/>
+          <xs:element minOccurs="0" name="XPathQuery" type="xs:string"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="signXAdESResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="xs:base64Binary"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signXAdESList">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="bufferList" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="XAdESPreferences" type="tns:xAdESPreferences"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signXAdESListResponse">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="return" type="xs:base64Binary"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getErrors">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="lang" type="xs:string"/>
+      <xs:element minOccurs="0" name="errorCode" type="xs:int"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getErrorsResponse">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="return" type="tns:errorDetails"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="errorDetails">
+    <xs:sequence>
+      <xs:element name="errorCode" type="xs:int"/>
+      <xs:element minOccurs="0" name="errorLanguage" type="xs:string"/>
+      <xs:element minOccurs="0" name="errorLanguage2" type="xs:string"/>
+      <xs:element minOccurs="0" name="errorText" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getAvailableSignatureFields">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="buffer" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="encryptionPassword" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getAvailableSignatureFieldsResponse">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="return" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signPkcs1List">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="hashList" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="preferences" type="tns:signPreferences"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signPkcs1ListResponse">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="return" type="xs:base64Binary"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signCAdESList">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="bufferList" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="CAdESPreferences" type="tns:cAdESPreferences"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signCAdESListResponse">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="return" type="xs:base64Binary"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signPAdES">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+      <xs:element minOccurs="0" name="buffer" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="PAdESPreferences" type="tns:pAdESPreferences"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signPAdESResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="xs:base64Binary"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signPAdESMultiPreferences">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="bufferList" type="xs:base64Binary"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="PAdESPreferences" type="tns:pAdESPreferences"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signPAdESMultiPreferencesResponse">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="return" type="xs:base64Binary"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signXAdESMultiPreferences">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="bufferList" type="xs:base64Binary"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="XAdESPreferences" type="tns:xAdESPreferences"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signXAdESMultiPreferencesResponse">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="return" type="xs:base64Binary"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getCertificate">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getCertificateResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="xs:base64Binary"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getAllSignatureFieldsWithPreferences">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="buffer" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="preferences" type="tns:signatureFieldPreferences"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signatureFieldPreferences">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="encryptionPassword" type="xs:string"/>
+      <xs:element name="withCertificate" type="xs:boolean"/>
+      <xs:element name="withDetails" type="xs:boolean"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getAllSignatureFieldsWithPreferencesResponse">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="return" type="tns:signatureFieldName"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signatureFieldName">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="identifier" type="xs:string"/>
+      <xs:element minOccurs="0" name="signatureDetails" type="tns:signatureDetails"/>
+      <xs:element name="signed" type="xs:boolean"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signatureDetails">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="appearance" type="tns:pdfRectangle"/>
+      <xs:element minOccurs="0" name="certificate" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="location" type="xs:string"/>
+      <xs:element minOccurs="0" name="name" type="xs:string"/>
+      <xs:element name="page" type="xs:int"/>
+      <xs:element minOccurs="0" name="reason" type="xs:string"/>
+      <xs:element minOccurs="0" name="signDate" type="xs:dateTime"/>
+      <xs:element minOccurs="0" name="subjectDN" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="pdfRectangle">
+    <xs:sequence>
+      <xs:element name="height" type="xs:float"/>
+      <xs:element name="width" type="xs:float"/>
+      <xs:element name="x" type="xs:float"/>
+      <xs:element name="y" type="xs:float"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="enable">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="enableResponse">
+    <xs:sequence/>
+  </xs:complexType>
+  <xs:complexType name="removeFromCertificateCache">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="removeFromCertificateCacheResponse">
+    <xs:sequence/>
+  </xs:complexType>
+  <xs:complexType name="checkOTP">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="checkOTPResponse">
+    <xs:sequence/>
+  </xs:complexType>
+  <xs:complexType name="closeSession">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="closeSessionResponse">
+    <xs:sequence/>
+  </xs:complexType>
+  <xs:complexType name="getAvailableTimestamps">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="preferences" type="tns:timeStampPreferences"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getAvailableTimestampsResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="xs:long"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signPAdESList">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credentials" type="tns:credentials"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="bufferList" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="PAdESPreferences" type="tns:pAdESPreferences"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signPAdESListResponse">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="return" type="xs:base64Binary"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="timestamp">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="content" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="preferences" type="tns:timeStampPreferences"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="timestampResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="xs:base64Binary"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:simpleType name="level">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="B"/>
+      <xs:enumeration value="T"/>
+      <xs:enumeration value="LT"/>
+      <xs:enumeration value="LTA"/>
+      <xs:enumeration value="LTV"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="textPosition">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="TOP"/>
+      <xs:enumeration value="BOTTOM"/>
+      <xs:enumeration value="RIGHT"/>
+      <xs:enumeration value="LEFT"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:element name="WSException" nillable="true" type="tns:wsFaultBean"/>
+</xs:schema>
+  </wsdl:types>
+  <wsdl:message name="sendOtpByPUSH">
+    <wsdl:part element="tns:sendOtpByPUSH" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signPAdESResponse">
+    <wsdl:part element="tns:signPAdESResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signCAdES">
+    <wsdl:part element="tns:signCAdES" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getRemainingTimeForSession">
+    <wsdl:part element="tns:getRemainingTimeForSession" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="counterSignCAdES">
+    <wsdl:part element="tns:counterSignCAdES" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="changePassword">
+    <wsdl:part element="tns:changePassword" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getCertificateResponse">
+    <wsdl:part element="tns:getCertificateResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signList">
+    <wsdl:part element="tns:signList" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signXAdESResponse">
+    <wsdl:part element="tns:signXAdESResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="timestampResponse">
+    <wsdl:part element="tns:timestampResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signListResponse">
+    <wsdl:part element="tns:signListResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="disable">
+    <wsdl:part element="tns:disable" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="healthCheck">
+    <wsdl:part element="tns:healthCheck" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getErrorsResponse">
+    <wsdl:part element="tns:getErrorsResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="openSession">
+    <wsdl:part element="tns:openSession" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="checkOTPResponse">
+    <wsdl:part element="tns:checkOTPResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getAllSignatureFieldsWithPreferencesResponse">
+    <wsdl:part element="tns:getAllSignatureFieldsWithPreferencesResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="sendOtpByPUSHResponse">
+    <wsdl:part element="tns:sendOtpByPUSHResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="changePasswordResponse">
+    <wsdl:part element="tns:changePasswordResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getAvailableSignatureFieldsResponse">
+    <wsdl:part element="tns:getAvailableSignatureFieldsResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signPkcs1ListResponse">
+    <wsdl:part element="tns:signPkcs1ListResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signXAdESMultiPreferencesResponse">
+    <wsdl:part element="tns:signXAdESMultiPreferencesResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signCAdESResponse">
+    <wsdl:part element="tns:signCAdESResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getSignatures">
+    <wsdl:part element="tns:getSignatures" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signCAdESMultiPreferencesResponse">
+    <wsdl:part element="tns:signCAdESMultiPreferencesResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getRemoteDeviceListFromPrivateAreaUser">
+    <wsdl:part element="tns:getRemoteDeviceListFromPrivateAreaUser" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signXAdESList">
+    <wsdl:part element="tns:signXAdESList" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getOTPListResponse">
+    <wsdl:part element="tns:getOTPListResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getAvailableSignatureFields">
+    <wsdl:part element="tns:getAvailableSignatureFields" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signPAdESMultiPreferencesResponse">
+    <wsdl:part element="tns:signPAdESMultiPreferencesResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getSignaturesResponse">
+    <wsdl:part element="tns:getSignaturesResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signCAdESList">
+    <wsdl:part element="tns:signCAdESList" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="removeFromCertificateCacheResponse">
+    <wsdl:part element="tns:removeFromCertificateCacheResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="enableResponse">
+    <wsdl:part element="tns:enableResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signXAdESMultiPreferences">
+    <wsdl:part element="tns:signXAdESMultiPreferences" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getCertificate">
+    <wsdl:part element="tns:getCertificate" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getAllSignatureFieldsWithPreferences">
+    <wsdl:part element="tns:getAllSignatureFieldsWithPreferences" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="checkPasswordResponse">
+    <wsdl:part element="tns:checkPasswordResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="closeSession">
+    <wsdl:part element="tns:closeSession" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getAvailableTimestamps">
+    <wsdl:part element="tns:getAvailableTimestamps" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signXAdESListResponse">
+    <wsdl:part element="tns:signXAdESListResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="timestamp">
+    <wsdl:part element="tns:timestamp" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signPkcs1">
+    <wsdl:part element="tns:signPkcs1" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="closeSessionResponse">
+    <wsdl:part element="tns:closeSessionResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="sendOtpByPUSHWithMessage">
+    <wsdl:part element="tns:sendOtpByPUSHWithMessage" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="sendOtpBySMS">
+    <wsdl:part element="tns:sendOtpBySMS" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="counterSignCAdESResponse">
+    <wsdl:part element="tns:counterSignCAdESResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getOTPList">
+    <wsdl:part element="tns:getOTPList" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signPAdESMultiFieldNameResponse">
+    <wsdl:part element="tns:signPAdESMultiFieldNameResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="checkPassword">
+    <wsdl:part element="tns:checkPassword" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getAvailableSignaturesResponse">
+    <wsdl:part element="tns:getAvailableSignaturesResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signCAdESMultiPreferences">
+    <wsdl:part element="tns:signCAdESMultiPreferences" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="disableResponse">
+    <wsdl:part element="tns:disableResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signResponse">
+    <wsdl:part element="tns:signResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signPAdESMultiFieldName">
+    <wsdl:part element="tns:signPAdESMultiFieldName" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signPAdESListResponse">
+    <wsdl:part element="tns:signPAdESListResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signPkcs1Response">
+    <wsdl:part element="tns:signPkcs1Response" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="sign">
+    <wsdl:part element="tns:sign" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="sendOtpBySMSResponse">
+    <wsdl:part element="tns:sendOtpBySMSResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getAvailableSignatures">
+    <wsdl:part element="tns:getAvailableSignatures" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signXAdES">
+    <wsdl:part element="tns:signXAdES" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getErrors">
+    <wsdl:part element="tns:getErrors" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signPkcs1List">
+    <wsdl:part element="tns:signPkcs1List" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signCAdESListResponse">
+    <wsdl:part element="tns:signCAdESListResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getRemoteDeviceListFromPrivateAreaUserResponse">
+    <wsdl:part element="tns:getRemoteDeviceListFromPrivateAreaUserResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signPAdES">
+    <wsdl:part element="tns:signPAdES" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signPAdESMultiPreferences">
+    <wsdl:part element="tns:signPAdESMultiPreferences" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getAvailableTimestampsResponse">
+    <wsdl:part element="tns:getAvailableTimestampsResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="enable">
+    <wsdl:part element="tns:enable" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="healthCheckResponse">
+    <wsdl:part element="tns:healthCheckResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="removeFromCertificateCache">
+    <wsdl:part element="tns:removeFromCertificateCache" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="WSException">
+    <wsdl:part element="tns:WSException" name="WSException">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="checkOTP">
+    <wsdl:part element="tns:checkOTP" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="sendOtpByPUSHWithMessageResponse">
+    <wsdl:part element="tns:sendOtpByPUSHWithMessageResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="openSessionResponse">
+    <wsdl:part element="tns:openSessionResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getRemainingTimeForSessionResponse">
+    <wsdl:part element="tns:getRemainingTimeForSessionResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signPAdESList">
+    <wsdl:part element="tns:signPAdESList" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:portType name="Sign">
+    <wsdl:operation name="signPkcs1">
+      <wsdl:input message="tns:signPkcs1" name="signPkcs1">
+    </wsdl:input>
+      <wsdl:output message="tns:signPkcs1Response" name="signPkcs1Response">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="sendOtpByPUSH">
+      <wsdl:input message="tns:sendOtpByPUSH" name="sendOtpByPUSH">
+    </wsdl:input>
+      <wsdl:output message="tns:sendOtpByPUSHResponse" name="sendOtpByPUSHResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="sendOtpByPUSHWithMessage">
+      <wsdl:input message="tns:sendOtpByPUSHWithMessage" name="sendOtpByPUSHWithMessage">
+    </wsdl:input>
+      <wsdl:output message="tns:sendOtpByPUSHWithMessageResponse" name="sendOtpByPUSHWithMessageResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="sendOtpBySMS">
+      <wsdl:input message="tns:sendOtpBySMS" name="sendOtpBySMS">
+    </wsdl:input>
+      <wsdl:output message="tns:sendOtpBySMSResponse" name="sendOtpBySMSResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signCAdES">
+      <wsdl:input message="tns:signCAdES" name="signCAdES">
+    </wsdl:input>
+      <wsdl:output message="tns:signCAdESResponse" name="signCAdESResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getRemainingTimeForSession">
+      <wsdl:input message="tns:getRemainingTimeForSession" name="getRemainingTimeForSession">
+    </wsdl:input>
+      <wsdl:output message="tns:getRemainingTimeForSessionResponse" name="getRemainingTimeForSessionResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="counterSignCAdES">
+      <wsdl:input message="tns:counterSignCAdES" name="counterSignCAdES">
+    </wsdl:input>
+      <wsdl:output message="tns:counterSignCAdESResponse" name="counterSignCAdESResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="changePassword">
+      <wsdl:input message="tns:changePassword" name="changePassword">
+    </wsdl:input>
+      <wsdl:output message="tns:changePasswordResponse" name="changePasswordResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getOTPList">
+      <wsdl:input message="tns:getOTPList" name="getOTPList">
+    </wsdl:input>
+      <wsdl:output message="tns:getOTPListResponse" name="getOTPListResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signList">
+      <wsdl:input message="tns:signList" name="signList">
+    </wsdl:input>
+      <wsdl:output message="tns:signListResponse" name="signListResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="checkPassword">
+      <wsdl:input message="tns:checkPassword" name="checkPassword">
+    </wsdl:input>
+      <wsdl:output message="tns:checkPasswordResponse" name="checkPasswordResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="disable">
+      <wsdl:input message="tns:disable" name="disable">
+    </wsdl:input>
+      <wsdl:output message="tns:disableResponse" name="disableResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="healthCheck">
+      <wsdl:input message="tns:healthCheck" name="healthCheck">
+    </wsdl:input>
+      <wsdl:output message="tns:healthCheckResponse" name="healthCheckResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="openSession">
+      <wsdl:input message="tns:openSession" name="openSession">
+    </wsdl:input>
+      <wsdl:output message="tns:openSessionResponse" name="openSessionResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signCAdESMultiPreferences">
+      <wsdl:input message="tns:signCAdESMultiPreferences" name="signCAdESMultiPreferences">
+    </wsdl:input>
+      <wsdl:output message="tns:signCAdESMultiPreferencesResponse" name="signCAdESMultiPreferencesResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signPAdESMultiFieldName">
+      <wsdl:input message="tns:signPAdESMultiFieldName" name="signPAdESMultiFieldName">
+    </wsdl:input>
+      <wsdl:output message="tns:signPAdESMultiFieldNameResponse" name="signPAdESMultiFieldNameResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getSignatures">
+      <wsdl:input message="tns:getSignatures" name="getSignatures">
+    </wsdl:input>
+      <wsdl:output message="tns:getSignaturesResponse" name="getSignaturesResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="sign">
+      <wsdl:input message="tns:sign" name="sign">
+    </wsdl:input>
+      <wsdl:output message="tns:signResponse" name="signResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getAvailableSignatures">
+      <wsdl:input message="tns:getAvailableSignatures" name="getAvailableSignatures">
+    </wsdl:input>
+      <wsdl:output message="tns:getAvailableSignaturesResponse" name="getAvailableSignaturesResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getRemoteDeviceListFromPrivateAreaUser">
+      <wsdl:input message="tns:getRemoteDeviceListFromPrivateAreaUser" name="getRemoteDeviceListFromPrivateAreaUser">
+    </wsdl:input>
+      <wsdl:output message="tns:getRemoteDeviceListFromPrivateAreaUserResponse" name="getRemoteDeviceListFromPrivateAreaUserResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signXAdES">
+      <wsdl:input message="tns:signXAdES" name="signXAdES">
+    </wsdl:input>
+      <wsdl:output message="tns:signXAdESResponse" name="signXAdESResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signXAdESList">
+      <wsdl:input message="tns:signXAdESList" name="signXAdESList">
+    </wsdl:input>
+      <wsdl:output message="tns:signXAdESListResponse" name="signXAdESListResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getErrors">
+      <wsdl:input message="tns:getErrors" name="getErrors">
+    </wsdl:input>
+      <wsdl:output message="tns:getErrorsResponse" name="getErrorsResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getAvailableSignatureFields">
+      <wsdl:input message="tns:getAvailableSignatureFields" name="getAvailableSignatureFields">
+    </wsdl:input>
+      <wsdl:output message="tns:getAvailableSignatureFieldsResponse" name="getAvailableSignatureFieldsResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signPkcs1List">
+      <wsdl:input message="tns:signPkcs1List" name="signPkcs1List">
+    </wsdl:input>
+      <wsdl:output message="tns:signPkcs1ListResponse" name="signPkcs1ListResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signCAdESList">
+      <wsdl:input message="tns:signCAdESList" name="signCAdESList">
+    </wsdl:input>
+      <wsdl:output message="tns:signCAdESListResponse" name="signCAdESListResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signPAdES">
+      <wsdl:input message="tns:signPAdES" name="signPAdES">
+    </wsdl:input>
+      <wsdl:output message="tns:signPAdESResponse" name="signPAdESResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signPAdESMultiPreferences">
+      <wsdl:input message="tns:signPAdESMultiPreferences" name="signPAdESMultiPreferences">
+    </wsdl:input>
+      <wsdl:output message="tns:signPAdESMultiPreferencesResponse" name="signPAdESMultiPreferencesResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signXAdESMultiPreferences">
+      <wsdl:input message="tns:signXAdESMultiPreferences" name="signXAdESMultiPreferences">
+    </wsdl:input>
+      <wsdl:output message="tns:signXAdESMultiPreferencesResponse" name="signXAdESMultiPreferencesResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getCertificate">
+      <wsdl:input message="tns:getCertificate" name="getCertificate">
+    </wsdl:input>
+      <wsdl:output message="tns:getCertificateResponse" name="getCertificateResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getAllSignatureFieldsWithPreferences">
+      <wsdl:input message="tns:getAllSignatureFieldsWithPreferences" name="getAllSignatureFieldsWithPreferences">
+    </wsdl:input>
+      <wsdl:output message="tns:getAllSignatureFieldsWithPreferencesResponse" name="getAllSignatureFieldsWithPreferencesResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="enable">
+      <wsdl:input message="tns:enable" name="enable">
+    </wsdl:input>
+      <wsdl:output message="tns:enableResponse" name="enableResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="removeFromCertificateCache">
+      <wsdl:input message="tns:removeFromCertificateCache" name="removeFromCertificateCache">
+    </wsdl:input>
+      <wsdl:output message="tns:removeFromCertificateCacheResponse" name="removeFromCertificateCacheResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="checkOTP">
+      <wsdl:input message="tns:checkOTP" name="checkOTP">
+    </wsdl:input>
+      <wsdl:output message="tns:checkOTPResponse" name="checkOTPResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="closeSession">
+      <wsdl:input message="tns:closeSession" name="closeSession">
+    </wsdl:input>
+      <wsdl:output message="tns:closeSessionResponse" name="closeSessionResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getAvailableTimestamps">
+      <wsdl:input message="tns:getAvailableTimestamps" name="getAvailableTimestamps">
+    </wsdl:input>
+      <wsdl:output message="tns:getAvailableTimestampsResponse" name="getAvailableTimestampsResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signPAdESList">
+      <wsdl:input message="tns:signPAdESList" name="signPAdESList">
+    </wsdl:input>
+      <wsdl:output message="tns:signPAdESListResponse" name="signPAdESListResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="timestamp">
+      <wsdl:input message="tns:timestamp" name="timestamp">
+    </wsdl:input>
+      <wsdl:output message="tns:timestampResponse" name="timestampResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:WSException" name="WSException">
+    </wsdl:fault>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="SignServiceSoapBinding" type="tns:Sign">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="signPkcs1">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="signPkcs1">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="signPkcs1Response">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="sendOtpByPUSHWithMessage">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="sendOtpByPUSHWithMessage">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="sendOtpByPUSHWithMessageResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="sendOtpByPUSH">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="sendOtpByPUSH">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="sendOtpByPUSHResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="sendOtpBySMS">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="sendOtpBySMS">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="sendOtpBySMSResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signCAdES">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="signCAdES">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="signCAdESResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getRemainingTimeForSession">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="getRemainingTimeForSession">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="getRemainingTimeForSessionResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="counterSignCAdES">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="counterSignCAdES">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="counterSignCAdESResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="changePassword">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="changePassword">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="changePasswordResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getOTPList">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="getOTPList">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="getOTPListResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signList">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="signList">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="signListResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="checkPassword">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="checkPassword">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="checkPasswordResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="disable">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="disable">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="disableResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="healthCheck">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="healthCheck">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="healthCheckResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="openSession">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="openSession">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="openSessionResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signCAdESMultiPreferences">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="signCAdESMultiPreferences">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="signCAdESMultiPreferencesResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signPAdESMultiFieldName">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="signPAdESMultiFieldName">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="signPAdESMultiFieldNameResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getSignatures">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="getSignatures">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="getSignaturesResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="sign">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="sign">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="signResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getAvailableSignatures">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="getAvailableSignatures">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="getAvailableSignaturesResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getRemoteDeviceListFromPrivateAreaUser">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="getRemoteDeviceListFromPrivateAreaUser">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="getRemoteDeviceListFromPrivateAreaUserResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signXAdES">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="signXAdES">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="signXAdESResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signXAdESList">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="signXAdESList">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="signXAdESListResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getErrors">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="getErrors">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="getErrorsResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getAvailableSignatureFields">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="getAvailableSignatureFields">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="getAvailableSignatureFieldsResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signPkcs1List">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="signPkcs1List">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="signPkcs1ListResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signCAdESList">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="signCAdESList">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="signCAdESListResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signPAdES">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="signPAdES">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="signPAdESResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signPAdESMultiPreferences">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="signPAdESMultiPreferences">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="signPAdESMultiPreferencesResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signXAdESMultiPreferences">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="signXAdESMultiPreferences">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="signXAdESMultiPreferencesResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getCertificate">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="getCertificate">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="getCertificateResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getAllSignatureFieldsWithPreferences">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="getAllSignatureFieldsWithPreferences">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="getAllSignatureFieldsWithPreferencesResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="enable">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="enable">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="enableResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="removeFromCertificateCache">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="removeFromCertificateCache">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="removeFromCertificateCacheResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="checkOTP">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="checkOTP">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="checkOTPResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="closeSession">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="closeSession">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="closeSessionResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getAvailableTimestamps">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="getAvailableTimestamps">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="getAvailableTimestampsResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signPAdESList">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="signPAdESList">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="signPAdESListResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="timestamp">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="timestamp">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="timestampResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSException">
+        <soap:fault name="WSException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="SignService">
+    <wsdl:port binding="tns:SignServiceSoapBinding" name="SignPort">
+      <soap:address location="http://10.10.1.80:8080/SignEngineWeb/sign-services"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

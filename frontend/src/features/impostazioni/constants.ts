@@ -1,3 +1,4 @@
+import catalogoFirma from '@iusentra-data/cataloghi/firma_digitale.json'
 import {
   AtSign,
   Bell,
@@ -26,7 +27,7 @@ export const SETTINGS_SECTIONS: Array<{
   { id: 'studio', label: 'Dati Studio', description: 'Anagrafica, albo, recapiti e coordinate usate nei documenti.', icon: Building2, tone: 'primary' },
   { id: 'fatturazione', label: 'Fatturazione', description: 'Regole fiscali e pagamento proposti nei documenti economici.', icon: ReceiptText, tone: 'info' },
   { id: 'pec', label: 'PEC', description: 'Parametri certificati per invio e ricezione telematica.', icon: MailCheck, tone: 'success' },
-  { id: 'firma', label: 'Firma Digitale', description: 'P12, PEM o dispositivo di firma tramite IUSENTRA Local Signer.', icon: ShieldCheck, tone: 'warning' },
+  { id: 'firma', label: 'Firma Digitale', description: 'Dispositivo tramite IUSENTRA Local Signer, firma remota del prestatore, P12 o PEM.', icon: ShieldCheck, tone: 'warning' },
   { id: 'smtp', label: 'Email SMTP', description: 'Casella ordinaria separata dalla PEC.', icon: AtSign, tone: 'info' },
   { id: 'whatsapp', label: 'WhatsApp', description: 'Canale messaggi e promemoria cliente.', icon: MessageCircle, tone: 'success' },
   { id: 'scheduler', label: 'Scheduler', description: 'Backup e automazioni periodiche dello studio.', icon: Clock3, tone: 'neutral' },
@@ -101,10 +102,33 @@ export const SETTINGS_FIELDS: Record<SettingsSection, SettingsField[]> = {
   firma: [
     { name: 'backend_preferito', label: 'Canale firma', type: 'select', width: 'half', options: [
       { value: 'auto', label: 'Automatico' },
-      { value: 'pkcs11', label: 'Dispositivo USB tramite Local Signer' },
+      { value: 'pkcs11', label: 'Dispositivo (smart card o token USB) tramite Local Signer' },
+      { value: 'remota', label: 'Firma remota del prestatore (anche da telefono)' },
       { value: 'p12', label: 'Certificato P12/PFX' },
       { value: 'pem', label: 'Certificato PEM' },
     ] },
+    { name: 'prestatore', label: 'Gestore della firma (prestatore qualificato)', type: 'select', width: 'half', options: [
+      { value: 'nessuno', label: 'Non indicato' },
+      ...catalogoFirma.prestatori.map((voce) => ({ value: voce.id, label: voce.nome })),
+    ], help: 'Elenco AgID dei prestatori di servizi fiduciari qualificati attivi in Italia.' },
+    { name: 'dispositivo_produttore', label: 'Produttore del dispositivo', type: 'select', width: 'half', options: [
+      { value: 'automatico', label: 'Rilevamento automatico' },
+      ...catalogoFirma.produttori_dispositivo.map((voce) => ({ value: voce.id, label: voce.nome })),
+    ], enabledWhen: { field: 'backend_preferito', equals: 'pkcs11' }, help: 'Il Local Signer cerca prima le librerie di questo produttore.' },
+    { name: 'remota_protocollo', label: 'Servizio di firma remota', type: 'select', width: 'half', options: [
+      { value: 'predefinito', label: 'Quello del prestatore' },
+      ...Object.entries(catalogoFirma.protocolli_remoti).map(([value, voce]) => ({ value, label: voce.etichetta })),
+    ], enabledWhen: { field: 'backend_preferito', equals: 'remota' } },
+    { name: 'remota_utente', label: 'Utente o codice del dispositivo remoto', width: 'half', enabledWhen: { field: 'backend_preferito', equals: 'remota' } },
+    { name: 'remota_tipo_otp', label: 'Codice OTP', type: 'select', width: 'half', options: [
+      { value: 'app', label: 'App del prestatore' },
+      { value: 'sms', label: 'SMS' },
+      { value: 'chiamata', label: 'Chiamata (ArubaCall)' },
+      { value: 'notifica', label: 'Notifica sul telefono' },
+    ], enabledWhen: { field: 'backend_preferito', equals: 'remota' } },
+    { name: 'remota_dominio', label: 'Dominio del contratto (Aruba, Actalis)', width: 'half', enabledWhen: { field: 'backend_preferito', equals: 'remota' } },
+    { name: 'remota_credenziale', label: 'Identificativo del certificato (facoltativo)', width: 'half', enabledWhen: { field: 'backend_preferito', equals: 'remota' } },
+    { name: 'remota_endpoint', label: 'Indirizzo del servizio (se rilasciato dal prestatore)', type: 'url', width: 'full', placeholder: 'https://…/csc/v2', enabledWhen: { field: 'backend_preferito', equals: 'remota' }, help: 'Vuoto: si usa l’indirizzo pubblico del prestatore. Password, PIN e codici OTP non si salvano: si digitano a ogni firma.' },
     { name: 'visible_signature_mode', label: 'Posizione firma visibile', type: 'select', width: 'half', options: [
       { value: 'laterale', label: 'Laterale' },
       { value: 'basso_sinistra', label: 'In basso a sinistra' },

@@ -1,0 +1,1841 @@
+<?xml version='1.0' encoding='UTF-8'?><!-- Published by XML-WS Runtime (https://github.com/eclipse-ee4j/metro-jax-ws). Runtime's version is XML-WS Runtime 4.0.2 git-revision#0264419. --><wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://arubasignservice.arubapec.it/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" name="ArubaSignServiceService" targetNamespace="http://arubasignservice.arubapec.it/">
+  <wsdl:types>
+<xs:schema xmlns:tns="http://arubasignservice.arubapec.it/" xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xs="http://www.w3.org/2001/XMLSchema" attributeFormDefault="unqualified" elementFormDefault="unqualified" targetNamespace="http://arubasignservice.arubapec.it/" version="1.0">
+  <xs:import namespace="http://www.w3.org/2005/05/xmlmime"/>
+  <xs:element name="ArssReturn" type="tns:arssReturn"/>
+  <xs:element name="Auth" type="tns:auth"/>
+  <xs:element name="EncryptedEnvelopReq" type="tns:encryptedEnvelopReq"/>
+  <xs:element name="EncryptedEnvelopReturn" type="tns:encryptedEnvelopReturn"/>
+  <xs:element name="EncryptionAlgorithm" type="tns:encryptionAlgorithm"/>
+  <xs:element name="addpkcs7sign" type="tns:addpkcs7sign"/>
+  <xs:element name="addpkcs7signResponse" type="tns:addpkcs7signResponse"/>
+  <xs:element name="auth_methods" type="tns:auth_methods"/>
+  <xs:element name="auth_methodsResponse" type="tns:auth_methodsResponse"/>
+  <xs:element name="change_password" type="tns:change_password"/>
+  <xs:element name="change_passwordResponse" type="tns:change_passwordResponse"/>
+  <xs:element name="closesession" type="tns:closesession"/>
+  <xs:element name="closesessionResponse" type="tns:closesessionResponse"/>
+  <xs:element name="credentials_query" type="tns:credentials_query"/>
+  <xs:element name="credentials_queryResponse" type="tns:credentials_queryResponse"/>
+  <xs:element name="encryptedEnvelope" type="tns:encryptedEnvelope"/>
+  <xs:element name="encryptedEnvelopeResponse" type="tns:encryptedEnvelopeResponse"/>
+  <xs:element name="getVersion" type="tns:getVersion"/>
+  <xs:element name="getVersionResponse" type="tns:getVersionResponse"/>
+  <xs:element name="jwsSignature" type="tns:jwsSignature"/>
+  <xs:element name="jwsSignatureResponse" type="tns:jwsSignatureResponse"/>
+  <xs:element name="jwsSignature_multiple" type="tns:jwsSignature_multiple"/>
+  <xs:element name="jwsSignature_multipleResponse" type="tns:jwsSignature_multipleResponse"/>
+  <xs:element name="listCert" type="tns:listCert"/>
+  <xs:element name="listCertAuth" type="tns:listCertAuth"/>
+  <xs:element name="listCertAuthResponse" type="tns:listCertAuthResponse"/>
+  <xs:element name="listCertResponse" type="tns:listCertResponse"/>
+  <xs:element name="listprocess" type="tns:listprocess"/>
+  <xs:element name="listprocessResponse" type="tns:listprocessResponse"/>
+  <xs:element name="m7m" type="tns:m7m"/>
+  <xs:element name="m7mResponse" type="tns:m7mResponse"/>
+  <xs:element name="opensession" type="tns:opensession"/>
+  <xs:element name="opensessionResponse" type="tns:opensessionResponse"/>
+  <xs:element name="pdfsignature" type="tns:pdfsignature"/>
+  <xs:element name="pdfsignatureDTS" type="tns:pdfsignatureDTS"/>
+  <xs:element name="pdfsignatureDTSResponse" type="tns:pdfsignatureDTSResponse"/>
+  <xs:element name="pdfsignatureResponse" type="tns:pdfsignatureResponse"/>
+  <xs:element name="pdfsignatureV2" type="tns:pdfsignatureV2"/>
+  <xs:element name="pdfsignatureV2Response" type="tns:pdfsignatureV2Response"/>
+  <xs:element name="pdfsignatureV2_multiple" type="tns:pdfsignatureV2_multiple"/>
+  <xs:element name="pdfsignatureV2_multipleResponse" type="tns:pdfsignatureV2_multipleResponse"/>
+  <xs:element name="ping" type="tns:ping"/>
+  <xs:element name="pingResponse" type="tns:pingResponse"/>
+  <xs:element name="pkcs7sign" type="tns:pkcs7sign"/>
+  <xs:element name="pkcs7signResponse" type="tns:pkcs7signResponse"/>
+  <xs:element name="pkcs7signV2" type="tns:pkcs7signV2"/>
+  <xs:element name="pkcs7signV2Response" type="tns:pkcs7signV2Response"/>
+  <xs:element name="pkcs7signV2_multiple" type="tns:pkcs7signV2_multiple"/>
+  <xs:element name="pkcs7signV2_multipleResponse" type="tns:pkcs7signV2_multipleResponse"/>
+  <xs:element name="pkcs7signhash" type="tns:pkcs7signhash"/>
+  <xs:element name="pkcs7signhashResponse" type="tns:pkcs7signhashResponse"/>
+  <xs:element name="pkcs7signhash_multiple" type="tns:pkcs7signhash_multiple"/>
+  <xs:element name="pkcs7signhash_multipleResponse" type="tns:pkcs7signhash_multipleResponse"/>
+  <xs:element name="retriveCredential" type="tns:retriveCredential"/>
+  <xs:element name="retriveCredentialResponse" type="tns:retriveCredentialResponse"/>
+  <xs:element name="sendCredential" type="tns:sendCredential"/>
+  <xs:element name="sendCredentialAuth" type="tns:sendCredentialAuth"/>
+  <xs:element name="sendCredentialAuthResponse" type="tns:sendCredentialAuthResponse"/>
+  <xs:element name="sendCredentialResponse" type="tns:sendCredentialResponse"/>
+  <xs:element name="signhash" type="tns:signhash"/>
+  <xs:element name="signhashResponse" type="tns:signhashResponse"/>
+  <xs:element name="test_otp" type="tns:test_otp"/>
+  <xs:element name="test_otpResponse" type="tns:test_otpResponse"/>
+  <xs:element name="tsd" type="tns:tsd"/>
+  <xs:element name="tsdResponse" type="tns:tsdResponse"/>
+  <xs:element name="tsr" type="tns:tsr"/>
+  <xs:element name="tsrResponse" type="tns:tsrResponse"/>
+  <xs:element name="updateSignature" type="tns:updateSignature"/>
+  <xs:element name="updateSignatureResponse" type="tns:updateSignatureResponse"/>
+  <xs:element name="verify" type="tns:verify"/>
+  <xs:element name="verifyOtp" type="tns:verifyOtp"/>
+  <xs:element name="verifyOtpResponse" type="tns:verifyOtpResponse"/>
+  <xs:element name="verifyResponse" type="tns:verifyResponse"/>
+  <xs:element name="xmlsignature" type="tns:xmlsignature"/>
+  <xs:element name="xmlsignatureResponse" type="tns:xmlsignatureResponse"/>
+  <xs:element name="xmlsignature_multiple" type="tns:xmlsignature_multiple"/>
+  <xs:element name="xmlsignature_multipleResponse" type="tns:xmlsignature_multipleResponse"/>
+  <xs:complexType name="retriveCredential">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="identity" type="tns:auth"/>
+      <xs:element minOccurs="0" name="type" type="tns:credentialsType"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="auth">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="delegated_domain" type="xs:string"/>
+      <xs:element minOccurs="0" name="delegated_password" type="xs:string"/>
+      <xs:element minOccurs="0" name="delegated_user" type="xs:string"/>
+      <xs:element minOccurs="0" name="ext_auth_blobvalue" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="ext_auth_value" type="xs:string"/>
+      <xs:element minOccurs="0" name="ext_authtype" type="tns:credentialsType"/>
+      <xs:element minOccurs="0" name="otpPwd" type="xs:string"/>
+      <xs:element minOccurs="0" name="typeHSM" type="xs:string"/>
+      <xs:element minOccurs="0" name="typeOtpAuth" type="xs:string"/>
+      <xs:element minOccurs="0" name="user" type="xs:string"/>
+      <xs:element minOccurs="0" name="userPWD" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="retriveCredentialResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:retriveCredentialReturn"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="retriveCredentialReturn">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="blob" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="description" type="xs:string"/>
+      <xs:element minOccurs="0" name="return_code" type="xs:string"/>
+      <xs:element minOccurs="0" name="status" type="xs:string"/>
+      <xs:element minOccurs="0" name="textvalue" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="sendCredential">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="Identity" type="tns:auth"/>
+      <xs:element minOccurs="0" name="type" type="tns:credentialsType"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="sendCredentialResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:arssReturn"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="arssReturn">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="description" type="xs:string"/>
+      <xs:element minOccurs="0" name="return_code" type="xs:string"/>
+      <xs:element minOccurs="0" name="status" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="listCertAuth">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="Identity" type="tns:applicationAuth"/>
+      <xs:element minOccurs="0" name="domain" type="xs:string"/>
+      <xs:element minOccurs="0" name="username" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="applicationAuth">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="applicationpassword" type="xs:string"/>
+      <xs:element minOccurs="0" name="applicationuser" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="listCertAuthResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:userCertListAuth"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="userCertListAuth">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="certs" nillable="true" type="tns:cert"/>
+      <xs:element minOccurs="0" name="description" type="xs:string"/>
+      <xs:element minOccurs="0" name="status" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="cert">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="id" type="xs:string"/>
+      <xs:element minOccurs="0" name="value" type="xs:base64Binary"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="pdfsignatureV2_multiple">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="identity" type="tns:auth"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="SignRequestV2" type="tns:signRequestV2"/>
+      <xs:element minOccurs="0" name="Apparence" type="tns:pdfSignApparence"/>
+      <xs:element minOccurs="0" name="fieldName" type="xs:string"/>
+      <xs:element minOccurs="0" name="pdfprofile" type="tns:pdfProfile"/>
+      <xs:element minOccurs="0" name="dict_signed_attributes" type="tns:dictionarySignedAttributes"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signRequestV2">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="binaryinput" type="xs:base64Binary"/>
+      <xs:element name="certID" type="xs:string"/>
+      <xs:element minOccurs="0" name="dstName" type="xs:string"/>
+      <xs:element name="identity" type="tns:auth"/>
+      <xs:element minOccurs="0" name="notify_id" type="xs:string"/>
+      <xs:element minOccurs="0" name="notifymail" type="xs:string"/>
+      <xs:element minOccurs="0" name="profile" type="xs:string"/>
+      <xs:element name="requiredmark" type="xs:boolean"/>
+      <xs:element minOccurs="0" name="session_id" type="xs:string"/>
+      <xs:element minOccurs="0" name="signingTime" type="xs:string"/>
+      <xs:element minOccurs="0" name="srcName" type="xs:string"/>
+      <xs:element minOccurs="0" name="stream" type="xs:base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
+      <xs:element name="transport" type="tns:typeTransport"/>
+      <xs:element minOccurs="0" name="tsa_identity" type="tns:tsaAuth"/>
+      <xs:element minOccurs="0" name="signatureLevel" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="tsaAuth">
+    <xs:sequence>
+      <xs:element name="password" type="xs:string"/>
+      <xs:element name="user" type="xs:string"/>
+      <xs:element minOccurs="0" name="tsaurl" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="pdfSignApparence">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="image" type="xs:string"/>
+      <xs:element minOccurs="0" name="imageBin" type="xs:base64Binary"/>
+      <xs:element name="imageOnly" type="xs:boolean"/>
+      <xs:element name="leftx" type="xs:int"/>
+      <xs:element name="lefty" type="xs:int"/>
+      <xs:element minOccurs="0" name="location" type="xs:string"/>
+      <xs:element name="page" type="xs:int"/>
+      <xs:element minOccurs="0" name="reason" type="xs:string"/>
+      <xs:element name="rightx" type="xs:int"/>
+      <xs:element name="righty" type="xs:int"/>
+      <xs:element minOccurs="0" name="testo" type="xs:string"/>
+      <xs:element name="bScaleFont" type="xs:boolean"/>
+      <xs:element name="bShowDateTime" type="xs:boolean"/>
+      <xs:element minOccurs="0" name="pageToSign" type="xs:string"/>
+      <xs:element name="resizeMode" type="xs:int"/>
+      <xs:element name="preservePDFA" type="xs:boolean"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="dictionarySignedAttributes">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="t" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="pdfsignatureV2_multipleResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:signReturnV2Multiple"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signReturnV2Multiple">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="description" type="xs:string"/>
+      <xs:element minOccurs="0" name="return_code" type="xs:string"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="return_signs" nillable="true" type="tns:signReturnV2"/>
+      <xs:element minOccurs="0" name="status" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signReturnV2">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="binaryoutput" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="description" type="xs:string"/>
+      <xs:element minOccurs="0" name="dstPath" type="xs:string"/>
+      <xs:element minOccurs="0" name="return_code" type="xs:string"/>
+      <xs:element minOccurs="0" name="status" type="xs:string"/>
+      <xs:element minOccurs="0" name="stream" type="xs:base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getVersion">
+    <xs:sequence/>
+  </xs:complexType>
+  <xs:complexType name="getVersionResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="listprocess">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="Identity" type="tns:auth"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="listprocessResponse">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="return" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="xmlsignature_multiple">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="identity" type="tns:auth"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="SignRequestV2" type="tns:signRequestV2"/>
+      <xs:element minOccurs="0" name="parameter" type="tns:xmlSignatureParameter"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="xmlSignatureParameter">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="canonicalizedType" type="tns:canonicalizedType"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="transforms" nillable="true" type="tns:transform"/>
+      <xs:element minOccurs="0" name="type" type="tns:xmlSignatureType"/>
+      <xs:element minOccurs="0" name="signatureProfile" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="transform">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="type" type="tns:transformType"/>
+      <xs:element minOccurs="0" name="value" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="xmlsignature_multipleResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:signReturnV2Multiple"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="encryptedEnvelope">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="identity" type="tns:encryptedEnvelopReq"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="encryptedEnvelopReq">
+    <xs:sequence>
+      <xs:element name="user" type="xs:string"/>
+      <xs:element name="password" type="xs:string"/>
+      <xs:element name="transport" type="tns:typeTransport"/>
+      <xs:element minOccurs="0" name="binaryinput" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="srcName" type="xs:string"/>
+      <xs:element minOccurs="0" name="dstName" type="xs:string"/>
+      <xs:element minOccurs="0" name="notifymail" type="xs:string"/>
+      <xs:element minOccurs="0" name="notify_id" type="xs:string"/>
+      <xs:element minOccurs="0" name="stream" type="xs:base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
+      <xs:element maxOccurs="unbounded" name="recipients" type="xs:base64Binary"/>
+      <xs:element name="algorithm" type="tns:encryptionAlgorithm"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="encryptedEnvelopeResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:encryptedEnvelopReturn"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="encryptedEnvelopReturn">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="status" type="xs:string"/>
+      <xs:element minOccurs="0" name="description" type="xs:string"/>
+      <xs:element minOccurs="0" name="return_code" type="xs:string"/>
+      <xs:element minOccurs="0" name="binaryoutput" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="dstPath" type="xs:string"/>
+      <xs:element minOccurs="0" name="stream" type="xs:base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="pkcs7signhash">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="SignRequestV2" type="tns:signRequestV2"/>
+      <xs:element name="countersignature" type="xs:boolean"/>
+      <xs:element name="excludeSigningTime" type="xs:boolean"/>
+      <xs:element minOccurs="0" name="maxSignatureLevel" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="pkcs7signhashResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:signReturnV2"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="pkcs7sign">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="SignRequest" type="tns:signRequest"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signRequest">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="bynaryinput" type="xs:base64Binary"/>
+      <xs:element name="certID" type="xs:string"/>
+      <xs:element minOccurs="0" name="dstNmae" type="xs:string"/>
+      <xs:element name="identity" type="tns:auth"/>
+      <xs:element minOccurs="0" name="notity_id" type="xs:string"/>
+      <xs:element minOccurs="0" name="notitymail" type="xs:string"/>
+      <xs:element minOccurs="0" name="srcName" type="xs:string"/>
+      <xs:element name="transport" type="tns:typeTransport"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="pkcs7signResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:signReturn"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signReturn">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="bynaryoutput" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="description" type="xs:string"/>
+      <xs:element minOccurs="0" name="dstPath" type="xs:string"/>
+      <xs:element minOccurs="0" name="return_code" type="xs:string"/>
+      <xs:element minOccurs="0" name="status" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="pkcs7signV2_multiple">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="identity" type="tns:auth"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="SignRequestV2" type="tns:signRequestV2"/>
+      <xs:element name="detached" type="xs:boolean"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="pkcs7signV2_multipleResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:signReturnV2Multiple"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="auth_methods">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="identity" type="tns:auth"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="auth_methodsResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:authMethodsReturn"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="authMethodsReturn">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="methods" type="xs:string"/>
+      <xs:element minOccurs="0" name="status" type="xs:string"/>
+      <xs:element minOccurs="0" name="description" type="xs:string"/>
+      <xs:element minOccurs="0" name="return_code" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="sendCredentialAuth">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="identity" type="tns:applicationAuth"/>
+      <xs:element minOccurs="0" name="type" type="tns:credentialsType"/>
+      <xs:element minOccurs="0" name="domain" type="xs:string"/>
+      <xs:element minOccurs="0" name="username" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="sendCredentialAuthResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:arssReturn"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="updateSignature">
+    <xs:sequence>
+      <xs:element name="UpdateSignatureRequest" type="tns:UpdateSignatureRequest"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="UpdateSignatureRequest">
+    <xs:sequence>
+      <xs:element name="transport" type="tns:typeTransport"/>
+      <xs:element minOccurs="0" name="binaryinput" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="originalDataBinaryinput" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="stream" type="xs:base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
+      <xs:element minOccurs="0" name="originalDataStream" type="xs:base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
+      <xs:element minOccurs="0" name="srcName" type="xs:string"/>
+      <xs:element minOccurs="0" name="originalDataSrcName" type="xs:string"/>
+      <xs:element minOccurs="0" name="dstName" type="xs:string"/>
+      <xs:element minOccurs="0" name="signatureType" type="xs:string"/>
+      <xs:element name="signatureLevel" type="xs:string"/>
+      <xs:element name="signaturePath" type="xs:string"/>
+      <xs:element default="false" name="returnder" type="xs:boolean"/>
+      <xs:element minOccurs="0" name="tsa_identity" type="tns:tsaAuth"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="updateSignatureResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:signReturnV2"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="closesession">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="Identity" type="tns:auth"/>
+      <xs:element minOccurs="0" name="sessionid" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="closesessionResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="listCert">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="Identity" type="tns:auth"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="listCertResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:userCertList"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="userCertList">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="app1" nillable="true" type="tns:cert"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="app2" nillable="true" type="tns:cert"/>
+      <xs:element minOccurs="0" name="description" type="xs:string"/>
+      <xs:element minOccurs="0" name="status" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="jwsSignature_multiple">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="identity" type="tns:auth"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="SignRequestV2" type="tns:signRequestV2"/>
+      <xs:element minOccurs="0" name="parameter" type="tns:jwsSignatureParameter"/>
+      <xs:element name="detached" type="xs:boolean"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="jwsSignatureParameter">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="audience" type="xs:string"/>
+      <xs:element name="base64UrlEncodedPayload" type="xs:boolean"/>
+      <xs:element minOccurs="0" name="jwsSerializationType" type="tns:jwsSerializationType"/>
+      <xs:element minOccurs="0" name="jwtId" type="xs:string"/>
+      <xs:element minOccurs="0" name="signatureProfile" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="jwsSignature_multipleResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:signReturnV2Multiple"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="addpkcs7sign">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="SignRequestV2" type="tns:signRequestV2"/>
+      <xs:element name="detached" type="xs:boolean"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="addpkcs7signResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:signReturnV2"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="pkcs7signV2">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="SignRequestV2" type="tns:signRequestV2"/>
+      <xs:element name="detached" type="xs:boolean"/>
+      <xs:element name="returnder" type="xs:boolean"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="pkcs7signV2Response">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:signReturnV2"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="pdfsignature">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="SignRequest" type="tns:signRequest"/>
+      <xs:element minOccurs="0" name="Apparence" type="tns:pdfSignApparence"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="pdfsignatureResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:signReturn"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="ping">
+    <xs:sequence/>
+  </xs:complexType>
+  <xs:complexType name="pingResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="tsd">
+    <xs:sequence>
+      <xs:element name="MarkRequest" type="tns:MarkRequest"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="MarkRequest">
+    <xs:sequence>
+      <xs:element name="user" type="xs:string"/>
+      <xs:element name="password" type="xs:string"/>
+      <xs:element minOccurs="0" name="url" type="xs:string"/>
+      <xs:element name="transport" type="tns:typeTransport"/>
+      <xs:element minOccurs="0" name="binaryinput" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="srcName" type="xs:string"/>
+      <xs:element minOccurs="0" name="dstName" type="xs:string"/>
+      <xs:element minOccurs="0" name="notifymail" type="xs:string"/>
+      <xs:element minOccurs="0" name="notify_id" type="xs:string"/>
+      <xs:element minOccurs="0" name="stream" type="xs:base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="tsdResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:markReturn"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="markReturn">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="binaryoutput" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="description" type="xs:string"/>
+      <xs:element minOccurs="0" name="dstPath" type="xs:string"/>
+      <xs:element minOccurs="0" name="return_code" type="xs:string"/>
+      <xs:element minOccurs="0" name="status" type="xs:string"/>
+      <xs:element minOccurs="0" name="stream" type="xs:base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="m7m">
+    <xs:sequence>
+      <xs:element name="MarkRequest" type="tns:MarkRequest"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="m7mResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:markReturn"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="credentials_query">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="credential_query" type="tns:credentialListQuery"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="credentialListQuery">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="appidentity" type="tns:applicationAuth"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="constraints" nillable="true" type="tns:queryConstraint"/>
+      <xs:element minOccurs="0" name="domain" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="queryConstraint">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="field" type="xs:string"/>
+      <xs:element minOccurs="0" name="value" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="credentials_queryResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:credentialListReturn"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="credentialListReturn">
+    <xs:complexContent>
+      <xs:extension base="tns:gwReturn">
+        <xs:sequence>
+          <xs:element maxOccurs="unbounded" minOccurs="0" name="credentials" nillable="true" type="tns:credentialInfo"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="gwReturn">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="description" type="xs:string"/>
+      <xs:element minOccurs="0" name="return_code" type="xs:string"/>
+      <xs:element minOccurs="0" name="status" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="credentialInfo">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="certs" nillable="true" type="tns:certificato"/>
+      <xs:element minOccurs="0" name="status" type="xs:string"/>
+      <xs:element minOccurs="0" name="userid" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="certificato">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="content" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="id" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="pkcs7signhash_multiple">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="identity" type="tns:auth"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="SignRequestV2" type="tns:signRequestV2"/>
+      <xs:element name="countersignature" type="xs:boolean"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="pkcs7signhash_multipleResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:signReturnV2Multiple"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="xmlsignature">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="SignRequestV2" type="tns:signRequestV2"/>
+      <xs:element minOccurs="0" name="parameter" type="tns:xmlSignatureParameter"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="xmlsignatureResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:signReturnV2"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signhash">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="SignHashRequest" type="tns:signHashRequest"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signHashRequest">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="certID" type="xs:string"/>
+      <xs:element minOccurs="0" name="hash" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="hashtype" type="xs:string"/>
+      <xs:element minOccurs="0" name="identity" type="tns:auth"/>
+      <xs:element name="requirecert" type="xs:boolean"/>
+      <xs:element minOccurs="0" name="session_id" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signhashResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:signHashReturn"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signHashReturn">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="cert" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="certID" type="xs:string"/>
+      <xs:element minOccurs="0" name="description" type="xs:string"/>
+      <xs:element minOccurs="0" name="return_code" type="xs:string"/>
+      <xs:element minOccurs="0" name="signature" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="status" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="pdfsignatureV2">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="SignRequestV2" type="tns:signRequestV2"/>
+      <xs:element minOccurs="0" name="Apparence" type="tns:pdfSignApparence"/>
+      <xs:element minOccurs="0" name="fieldName" type="xs:string"/>
+      <xs:element minOccurs="0" name="pdfprofile" type="tns:pdfProfile"/>
+      <xs:element minOccurs="0" name="password" type="xs:string"/>
+      <xs:element minOccurs="0" name="dict_signed_attributes" type="tns:dictionarySignedAttributes"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="pdfsignatureV2Response">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:signReturnV2"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="pdfsignatureDTS">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="MarkRequest" type="tns:MarkRequest"/>
+      <xs:element minOccurs="0" name="password" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="pdfsignatureDTSResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:markReturn"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="verifyOtp">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="Identity" type="tns:auth"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="verifyOtpResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:arssReturn"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="jwsSignature">
+    <xs:sequence>
+      <xs:element name="SignRequestV2" type="tns:signRequestV2"/>
+      <xs:element minOccurs="0" name="parameter" type="tns:jwsSignatureParameter"/>
+      <xs:element name="detached" type="xs:boolean"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="jwsSignatureResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:signReturnV2"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="verify">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="request" type="tns:verifyRequest"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="verifyRequest">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="binaryinput" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="dstName" type="xs:string"/>
+      <xs:element minOccurs="0" name="notity_id" type="xs:string"/>
+      <xs:element minOccurs="0" name="notitymail" type="xs:string"/>
+      <xs:element minOccurs="0" name="srcName" type="xs:string"/>
+      <xs:element minOccurs="0" name="stream" type="xs:base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
+      <xs:element minOccurs="0" name="transport" type="tns:typeTransport"/>
+      <xs:element minOccurs="0" name="type" type="tns:documentType"/>
+      <xs:element minOccurs="0" name="verdate" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="verifyResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:verifyReturn"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="verifyReturn">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="binaryoutput" type="xs:base64Binary"/>
+      <xs:element minOccurs="0" name="description" type="xs:string"/>
+      <xs:element minOccurs="0" name="dstPath" type="xs:string"/>
+      <xs:element minOccurs="0" name="result" type="tns:verifySignatures"/>
+      <xs:element minOccurs="0" name="status" type="xs:string"/>
+      <xs:element minOccurs="0" name="stream" type="xs:base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="verifySignatures">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="description" type="xs:string"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="mark" type="tns:mark"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="signer" type="tns:signer"/>
+      <xs:element minOccurs="0" name="status" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="mark">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="description" type="xs:string"/>
+      <xs:element minOccurs="0" name="signername" type="xs:string"/>
+      <xs:element minOccurs="0" name="status" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signer">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="countersigners" nillable="true" type="tns:signer"/>
+      <xs:element minOccurs="0" name="description" type="xs:string"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="marks" nillable="true" type="tns:mark"/>
+      <xs:element minOccurs="0" name="result" type="xs:string"/>
+      <xs:element minOccurs="0" name="serialnumber" type="xs:string"/>
+      <xs:element minOccurs="0" name="signername" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="test_otp">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="test_credential" type="tns:testCredential"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="testCredential">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="appidentity" type="tns:applicationAuth"/>
+      <xs:element minOccurs="0" name="domain" type="xs:string"/>
+      <xs:element minOccurs="0" name="dummy_otp" type="xs:string"/>
+      <xs:element minOccurs="0" name="user" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="test_otpResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:gwReturn"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="tsr">
+    <xs:sequence>
+      <xs:element name="MarkRequest" type="tns:MarkRequest"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="tsrResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:markReturn"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="change_password">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="identity" type="tns:auth"/>
+      <xs:element minOccurs="0" name="newPassword" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="change_passwordResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:gwReturn"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="opensession">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="Identity" type="tns:auth"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="opensessionResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:simpleType name="credentialsType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="SMS"/>
+      <xs:enumeration value="ARUBACALL"/>
+      <xs:enumeration value="CNS2"/>
+      <xs:enumeration value="PAPERTOKEN"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="typeTransport">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="BYNARYNET"/>
+      <xs:enumeration value="FILENAME"/>
+      <xs:enumeration value="DIRECTORYNAME"/>
+      <xs:enumeration value="STREAM"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="pdfProfile">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="BASIC"/>
+      <xs:enumeration value="PADESBES"/>
+      <xs:enumeration value="PADESLTV"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="canonicalizedType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="ALGO_ID_C14N11_OMIT_COMMENTS"/>
+      <xs:enumeration value="ALGO_ID_C14N11_WITH_COMMENTS"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="transformType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="CANONICAL_WITH_COMMENT"/>
+      <xs:enumeration value="CANONICAL_OMIT_COMMENT"/>
+      <xs:enumeration value="BASE64"/>
+      <xs:enumeration value="XPATH2_INTERSECT"/>
+      <xs:enumeration value="XPATH2_SUBTRACT"/>
+      <xs:enumeration value="XPATH2_UNION"/>
+      <xs:enumeration value="XSLT"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="xmlSignatureType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="XMLENVELOPED"/>
+      <xs:enumeration value="XMLENVELOPING"/>
+      <xs:enumeration value="XMLDETACHED_INTERNAL"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="encryptionAlgorithm">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="DES_EDE3_CBC"/>
+      <xs:enumeration value="RC2_CBC"/>
+      <xs:enumeration value="IDEA_CBC"/>
+      <xs:enumeration value="CAST5_CBC"/>
+      <xs:enumeration value="AES128_CBC"/>
+      <xs:enumeration value="AES192_CBC"/>
+      <xs:enumeration value="AES256_CBC"/>
+      <xs:enumeration value="CAMELLIA128_CBC"/>
+      <xs:enumeration value="CAMELLIA192_CBC"/>
+      <xs:enumeration value="CAMELLIA256_CBC"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="jwsSerializationType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="COMPACT"/>
+      <xs:enumeration value="JSON_FLATTENED"/>
+      <xs:enumeration value="JSON"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="documentType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="PKCS7"/>
+      <xs:enumeration value="PDF"/>
+      <xs:enumeration value="XML"/>
+      <xs:enumeration value="TSD"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:element name="TypeOfTransportNotImplemented" type="tns:TypeOfTransportNotImplemented"/>
+  <xs:complexType name="TypeOfTransportNotImplemented">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="message" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:schema>
+  </wsdl:types>
+  <wsdl:message name="addpkcs7signResponse">
+    <wsdl:part name="parameters" element="tns:addpkcs7signResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="sendCredential">
+    <wsdl:part name="parameters" element="tns:sendCredential">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="jwsSignature_multipleResponse">
+    <wsdl:part name="parameters" element="tns:jwsSignature_multipleResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="encryptedEnvelopeResponse">
+    <wsdl:part name="parameters" element="tns:encryptedEnvelopeResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getVersion">
+    <wsdl:part name="parameters" element="tns:getVersion">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="pdfsignatureDTSResponse">
+    <wsdl:part name="parameters" element="tns:pdfsignatureDTSResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="pkcs7signV2Response">
+    <wsdl:part name="parameters" element="tns:pkcs7signV2Response">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="listprocess">
+    <wsdl:part name="parameters" element="tns:listprocess">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="xmlsignature_multiple">
+    <wsdl:part name="parameters" element="tns:xmlsignature_multiple">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="pingResponse">
+    <wsdl:part name="parameters" element="tns:pingResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="change_passwordResponse">
+    <wsdl:part name="parameters" element="tns:change_passwordResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="TypeOfTransportNotImplemented">
+    <wsdl:part name="TypeOfTransportNotImplemented" element="tns:TypeOfTransportNotImplemented">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="pkcs7signhash">
+    <wsdl:part name="parameters" element="tns:pkcs7signhash">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="retriveCredentialResponse">
+    <wsdl:part name="parameters" element="tns:retriveCredentialResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="m7mResponse">
+    <wsdl:part name="parameters" element="tns:m7mResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="xmlsignatureResponse">
+    <wsdl:part name="parameters" element="tns:xmlsignatureResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="auth_methods">
+    <wsdl:part name="parameters" element="tns:auth_methods">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="sendCredentialAuth">
+    <wsdl:part name="parameters" element="tns:sendCredentialAuth">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="closesession">
+    <wsdl:part name="parameters" element="tns:closesession">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="auth_methodsResponse">
+    <wsdl:part name="parameters" element="tns:auth_methodsResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="listCert">
+    <wsdl:part name="parameters" element="tns:listCert">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="jwsSignature_multiple">
+    <wsdl:part name="parameters" element="tns:jwsSignature_multiple">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="addpkcs7sign">
+    <wsdl:part name="parameters" element="tns:addpkcs7sign">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="tsdResponse">
+    <wsdl:part name="parameters" element="tns:tsdResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="listCertResponse">
+    <wsdl:part name="parameters" element="tns:listCertResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="pdfsignature">
+    <wsdl:part name="parameters" element="tns:pdfsignature">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getVersionResponse">
+    <wsdl:part name="parameters" element="tns:getVersionResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="ping">
+    <wsdl:part name="parameters" element="tns:ping">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="tsd">
+    <wsdl:part name="parameters" element="tns:tsd">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="pkcs7signV2_multipleResponse">
+    <wsdl:part name="parameters" element="tns:pkcs7signV2_multipleResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="pdfsignatureResponse">
+    <wsdl:part name="parameters" element="tns:pdfsignatureResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="pdfsignatureV2_multipleResponse">
+    <wsdl:part name="parameters" element="tns:pdfsignatureV2_multipleResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="m7m">
+    <wsdl:part name="parameters" element="tns:m7m">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="pkcs7signhash_multipleResponse">
+    <wsdl:part name="parameters" element="tns:pkcs7signhash_multipleResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="credentials_query">
+    <wsdl:part name="parameters" element="tns:credentials_query">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signhash">
+    <wsdl:part name="parameters" element="tns:signhash">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="verifyOtpResponse">
+    <wsdl:part name="parameters" element="tns:verifyOtpResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="pdfsignatureV2">
+    <wsdl:part name="parameters" element="tns:pdfsignatureV2">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="jwsSignatureResponse">
+    <wsdl:part name="parameters" element="tns:jwsSignatureResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="listCertAuthResponse">
+    <wsdl:part name="parameters" element="tns:listCertAuthResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="pdfsignatureDTS">
+    <wsdl:part name="parameters" element="tns:pdfsignatureDTS">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="verifyResponse">
+    <wsdl:part name="parameters" element="tns:verifyResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="jwsSignature">
+    <wsdl:part name="parameters" element="tns:jwsSignature">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="verify">
+    <wsdl:part name="parameters" element="tns:verify">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="test_otpResponse">
+    <wsdl:part name="parameters" element="tns:test_otpResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="test_otp">
+    <wsdl:part name="parameters" element="tns:test_otp">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="xmlsignature_multipleResponse">
+    <wsdl:part name="parameters" element="tns:xmlsignature_multipleResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="tsr">
+    <wsdl:part name="parameters" element="tns:tsr">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="opensessionResponse">
+    <wsdl:part name="parameters" element="tns:opensessionResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="sendCredentialAuthResponse">
+    <wsdl:part name="parameters" element="tns:sendCredentialAuthResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="opensession">
+    <wsdl:part name="parameters" element="tns:opensession">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="retriveCredential">
+    <wsdl:part name="parameters" element="tns:retriveCredential">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="listCertAuth">
+    <wsdl:part name="parameters" element="tns:listCertAuth">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="pdfsignatureV2_multiple">
+    <wsdl:part name="parameters" element="tns:pdfsignatureV2_multiple">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="pkcs7signhashResponse">
+    <wsdl:part name="parameters" element="tns:pkcs7signhashResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="encryptedEnvelope">
+    <wsdl:part name="parameters" element="tns:encryptedEnvelope">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="updateSignatureResponse">
+    <wsdl:part name="parameters" element="tns:updateSignatureResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="pkcs7sign">
+    <wsdl:part name="parameters" element="tns:pkcs7sign">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="pkcs7signV2_multiple">
+    <wsdl:part name="parameters" element="tns:pkcs7signV2_multiple">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="updateSignature">
+    <wsdl:part name="parameters" element="tns:updateSignature">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="pkcs7signV2">
+    <wsdl:part name="parameters" element="tns:pkcs7signV2">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="pkcs7signResponse">
+    <wsdl:part name="parameters" element="tns:pkcs7signResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="pkcs7signhash_multiple">
+    <wsdl:part name="parameters" element="tns:pkcs7signhash_multiple">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="xmlsignature">
+    <wsdl:part name="parameters" element="tns:xmlsignature">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="tsrResponse">
+    <wsdl:part name="parameters" element="tns:tsrResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="pdfsignatureV2Response">
+    <wsdl:part name="parameters" element="tns:pdfsignatureV2Response">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="listprocessResponse">
+    <wsdl:part name="parameters" element="tns:listprocessResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="verifyOtp">
+    <wsdl:part name="parameters" element="tns:verifyOtp">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="credentials_queryResponse">
+    <wsdl:part name="parameters" element="tns:credentials_queryResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="sendCredentialResponse">
+    <wsdl:part name="parameters" element="tns:sendCredentialResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="closesessionResponse">
+    <wsdl:part name="parameters" element="tns:closesessionResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="change_password">
+    <wsdl:part name="parameters" element="tns:change_password">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="signhashResponse">
+    <wsdl:part name="parameters" element="tns:signhashResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:portType name="ArubaSignService">
+    <wsdl:operation name="retriveCredential">
+      <wsdl:input name="retriveCredential" message="tns:retriveCredential">
+    </wsdl:input>
+      <wsdl:output name="retriveCredentialResponse" message="tns:retriveCredentialResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="sendCredential">
+      <wsdl:input name="sendCredential" message="tns:sendCredential">
+    </wsdl:input>
+      <wsdl:output name="sendCredentialResponse" message="tns:sendCredentialResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="listCertAuth">
+      <wsdl:input name="listCertAuth" message="tns:listCertAuth">
+    </wsdl:input>
+      <wsdl:output name="listCertAuthResponse" message="tns:listCertAuthResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="pdfsignatureV2_multiple">
+      <wsdl:input name="pdfsignatureV2_multiple" message="tns:pdfsignatureV2_multiple">
+    </wsdl:input>
+      <wsdl:output name="pdfsignatureV2_multipleResponse" message="tns:pdfsignatureV2_multipleResponse">
+    </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented" message="tns:TypeOfTransportNotImplemented">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getVersion">
+      <wsdl:input name="getVersion" message="tns:getVersion">
+    </wsdl:input>
+      <wsdl:output name="getVersionResponse" message="tns:getVersionResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="listprocess">
+      <wsdl:input name="listprocess" message="tns:listprocess">
+    </wsdl:input>
+      <wsdl:output name="listprocessResponse" message="tns:listprocessResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="xmlsignature_multiple">
+      <wsdl:input name="xmlsignature_multiple" message="tns:xmlsignature_multiple">
+    </wsdl:input>
+      <wsdl:output name="xmlsignature_multipleResponse" message="tns:xmlsignature_multipleResponse">
+    </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented" message="tns:TypeOfTransportNotImplemented">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="encryptedEnvelope">
+      <wsdl:input name="encryptedEnvelope" message="tns:encryptedEnvelope">
+    </wsdl:input>
+      <wsdl:output name="encryptedEnvelopeResponse" message="tns:encryptedEnvelopeResponse">
+    </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented" message="tns:TypeOfTransportNotImplemented">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="pkcs7signhash">
+      <wsdl:input name="pkcs7signhash" message="tns:pkcs7signhash">
+    </wsdl:input>
+      <wsdl:output name="pkcs7signhashResponse" message="tns:pkcs7signhashResponse">
+    </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented" message="tns:TypeOfTransportNotImplemented">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="pkcs7sign">
+      <wsdl:input name="pkcs7sign" message="tns:pkcs7sign">
+    </wsdl:input>
+      <wsdl:output name="pkcs7signResponse" message="tns:pkcs7signResponse">
+    </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented" message="tns:TypeOfTransportNotImplemented">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="pkcs7signV2_multiple">
+      <wsdl:input name="pkcs7signV2_multiple" message="tns:pkcs7signV2_multiple">
+    </wsdl:input>
+      <wsdl:output name="pkcs7signV2_multipleResponse" message="tns:pkcs7signV2_multipleResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="auth_methods">
+      <wsdl:input name="auth_methods" message="tns:auth_methods">
+    </wsdl:input>
+      <wsdl:output name="auth_methodsResponse" message="tns:auth_methodsResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="sendCredentialAuth">
+      <wsdl:input name="sendCredentialAuth" message="tns:sendCredentialAuth">
+    </wsdl:input>
+      <wsdl:output name="sendCredentialAuthResponse" message="tns:sendCredentialAuthResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="updateSignature">
+      <wsdl:input name="updateSignature" message="tns:updateSignature">
+    </wsdl:input>
+      <wsdl:output name="updateSignatureResponse" message="tns:updateSignatureResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="closesession">
+      <wsdl:input name="closesession" message="tns:closesession">
+    </wsdl:input>
+      <wsdl:output name="closesessionResponse" message="tns:closesessionResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="listCert">
+      <wsdl:input name="listCert" message="tns:listCert">
+    </wsdl:input>
+      <wsdl:output name="listCertResponse" message="tns:listCertResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="jwsSignature_multiple">
+      <wsdl:input name="jwsSignature_multiple" message="tns:jwsSignature_multiple">
+    </wsdl:input>
+      <wsdl:output name="jwsSignature_multipleResponse" message="tns:jwsSignature_multipleResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="addpkcs7sign">
+      <wsdl:input name="addpkcs7sign" message="tns:addpkcs7sign">
+    </wsdl:input>
+      <wsdl:output name="addpkcs7signResponse" message="tns:addpkcs7signResponse">
+    </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented" message="tns:TypeOfTransportNotImplemented">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="pkcs7signV2">
+      <wsdl:input name="pkcs7signV2" message="tns:pkcs7signV2">
+    </wsdl:input>
+      <wsdl:output name="pkcs7signV2Response" message="tns:pkcs7signV2Response">
+    </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented" message="tns:TypeOfTransportNotImplemented">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="pdfsignature">
+      <wsdl:input name="pdfsignature" message="tns:pdfsignature">
+    </wsdl:input>
+      <wsdl:output name="pdfsignatureResponse" message="tns:pdfsignatureResponse">
+    </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented" message="tns:TypeOfTransportNotImplemented">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="ping">
+      <wsdl:input name="ping" message="tns:ping">
+    </wsdl:input>
+      <wsdl:output name="pingResponse" message="tns:pingResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="tsd">
+      <wsdl:input name="tsd" message="tns:tsd">
+    </wsdl:input>
+      <wsdl:output name="tsdResponse" message="tns:tsdResponse">
+    </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented" message="tns:TypeOfTransportNotImplemented">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="m7m">
+      <wsdl:input name="m7m" message="tns:m7m">
+    </wsdl:input>
+      <wsdl:output name="m7mResponse" message="tns:m7mResponse">
+    </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented" message="tns:TypeOfTransportNotImplemented">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="credentials_query">
+      <wsdl:input name="credentials_query" message="tns:credentials_query">
+    </wsdl:input>
+      <wsdl:output name="credentials_queryResponse" message="tns:credentials_queryResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="pkcs7signhash_multiple">
+      <wsdl:input name="pkcs7signhash_multiple" message="tns:pkcs7signhash_multiple">
+    </wsdl:input>
+      <wsdl:output name="pkcs7signhash_multipleResponse" message="tns:pkcs7signhash_multipleResponse">
+    </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented" message="tns:TypeOfTransportNotImplemented">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="xmlsignature">
+      <wsdl:input name="xmlsignature" message="tns:xmlsignature">
+    </wsdl:input>
+      <wsdl:output name="xmlsignatureResponse" message="tns:xmlsignatureResponse">
+    </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented" message="tns:TypeOfTransportNotImplemented">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signhash">
+      <wsdl:input name="signhash" message="tns:signhash">
+    </wsdl:input>
+      <wsdl:output name="signhashResponse" message="tns:signhashResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="pdfsignatureV2">
+      <wsdl:input name="pdfsignatureV2" message="tns:pdfsignatureV2">
+    </wsdl:input>
+      <wsdl:output name="pdfsignatureV2Response" message="tns:pdfsignatureV2Response">
+    </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented" message="tns:TypeOfTransportNotImplemented">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="pdfsignatureDTS">
+      <wsdl:input name="pdfsignatureDTS" message="tns:pdfsignatureDTS">
+    </wsdl:input>
+      <wsdl:output name="pdfsignatureDTSResponse" message="tns:pdfsignatureDTSResponse">
+    </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented" message="tns:TypeOfTransportNotImplemented">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="verifyOtp">
+      <wsdl:input name="verifyOtp" message="tns:verifyOtp">
+    </wsdl:input>
+      <wsdl:output name="verifyOtpResponse" message="tns:verifyOtpResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="jwsSignature">
+      <wsdl:input name="jwsSignature" message="tns:jwsSignature">
+    </wsdl:input>
+      <wsdl:output name="jwsSignatureResponse" message="tns:jwsSignatureResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="verify">
+      <wsdl:input name="verify" message="tns:verify">
+    </wsdl:input>
+      <wsdl:output name="verifyResponse" message="tns:verifyResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="test_otp">
+      <wsdl:input name="test_otp" message="tns:test_otp">
+    </wsdl:input>
+      <wsdl:output name="test_otpResponse" message="tns:test_otpResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="tsr">
+      <wsdl:input name="tsr" message="tns:tsr">
+    </wsdl:input>
+      <wsdl:output name="tsrResponse" message="tns:tsrResponse">
+    </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented" message="tns:TypeOfTransportNotImplemented">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="change_password">
+      <wsdl:input name="change_password" message="tns:change_password">
+    </wsdl:input>
+      <wsdl:output name="change_passwordResponse" message="tns:change_passwordResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="opensession">
+      <wsdl:input name="opensession" message="tns:opensession">
+    </wsdl:input>
+      <wsdl:output name="opensessionResponse" message="tns:opensessionResponse">
+    </wsdl:output>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="ArubaSignServiceServiceSoapBinding" type="tns:ArubaSignService">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="retriveCredential">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="retriveCredential">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="retriveCredentialResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="sendCredential">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="sendCredential">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="sendCredentialResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="listCertAuth">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="listCertAuth">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="listCertAuthResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="pdfsignatureV2_multiple">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="pdfsignatureV2_multiple">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="pdfsignatureV2_multipleResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented">
+        <soap:fault name="TypeOfTransportNotImplemented" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getVersion">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="getVersion">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="getVersionResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="listprocess">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="listprocess">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="listprocessResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="xmlsignature_multiple">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="xmlsignature_multiple">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="xmlsignature_multipleResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented">
+        <soap:fault name="TypeOfTransportNotImplemented" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="encryptedEnvelope">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="encryptedEnvelope">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="encryptedEnvelopeResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented">
+        <soap:fault name="TypeOfTransportNotImplemented" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="pkcs7signhash">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="pkcs7signhash">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="pkcs7signhashResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented">
+        <soap:fault name="TypeOfTransportNotImplemented" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="pkcs7sign">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="pkcs7sign">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="pkcs7signResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented">
+        <soap:fault name="TypeOfTransportNotImplemented" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="pkcs7signV2_multiple">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="pkcs7signV2_multiple">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="pkcs7signV2_multipleResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="auth_methods">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="auth_methods">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="auth_methodsResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="sendCredentialAuth">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="sendCredentialAuth">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="sendCredentialAuthResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="updateSignature">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="updateSignature">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="updateSignatureResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="closesession">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="closesession">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="closesessionResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="listCert">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="listCert">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="listCertResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="jwsSignature_multiple">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="jwsSignature_multiple">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="jwsSignature_multipleResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="addpkcs7sign">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="addpkcs7sign">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="addpkcs7signResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented">
+        <soap:fault name="TypeOfTransportNotImplemented" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="pkcs7signV2">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="pkcs7signV2">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="pkcs7signV2Response">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented">
+        <soap:fault name="TypeOfTransportNotImplemented" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="pdfsignature">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="pdfsignature">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="pdfsignatureResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented">
+        <soap:fault name="TypeOfTransportNotImplemented" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="ping">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="ping">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="pingResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="tsd">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="tsd">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="tsdResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented">
+        <soap:fault name="TypeOfTransportNotImplemented" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="m7m">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="m7m">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="m7mResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented">
+        <soap:fault name="TypeOfTransportNotImplemented" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="credentials_query">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="credentials_query">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="credentials_queryResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="pkcs7signhash_multiple">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="pkcs7signhash_multiple">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="pkcs7signhash_multipleResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented">
+        <soap:fault name="TypeOfTransportNotImplemented" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="xmlsignature">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="xmlsignature">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="xmlsignatureResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented">
+        <soap:fault name="TypeOfTransportNotImplemented" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="signhash">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="signhash">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="signhashResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="pdfsignatureV2">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="pdfsignatureV2">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="pdfsignatureV2Response">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented">
+        <soap:fault name="TypeOfTransportNotImplemented" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="pdfsignatureDTS">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="pdfsignatureDTS">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="pdfsignatureDTSResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented">
+        <soap:fault name="TypeOfTransportNotImplemented" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="verifyOtp">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="verifyOtp">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="verifyOtpResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="jwsSignature">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="jwsSignature">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="jwsSignatureResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="verify">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="verify">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="verifyResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="test_otp">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="test_otp">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="test_otpResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="tsr">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="tsr">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="tsrResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="TypeOfTransportNotImplemented">
+        <soap:fault name="TypeOfTransportNotImplemented" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="change_password">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="change_password">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="change_passwordResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="opensession">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="opensession">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="opensessionResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="ArubaSignServiceService">
+    <wsdl:port name="ArubaSignServicePort" binding="tns:ArubaSignServiceServiceSoapBinding">
+      <soap:address location="https://arss.arubapec.it/ArubaSignService/ArubaSignService"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

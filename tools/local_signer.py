@@ -121,7 +121,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.135"
+VERSION = "1.6.136"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -369,6 +369,7 @@ _LOCAL_SIGNER_SOURCE_MOD_FILES: tuple[str, ...] = (
     "support_agent.py",
     "firma_pkcs11.py",
     "windows_signing_session.py",
+    "dispositivi_firma.py",
 )
 
 
@@ -923,6 +924,22 @@ _DEFAULT_LIBS = [
     "/Library/OpenSC/lib/opensc-pkcs11.so",
     "/usr/local/lib/opensc-pkcs11.so",
 ]
+
+# Librerie dei produttori del catalogo IUSENTRA (Bit4id, Athena, Incard, IDEMIA, Thales,
+# CardOS, Charismathics, OpenSC...). La tabella è opzionale: un'installazione che non la
+# ha ancora la riceve al primo aggiornamento e intanto usa l'elenco qui sopra.
+try:
+    from local_signer_mod.dispositivi_firma import (  # noqa: E402
+        nomi_librerie as _nomi_librerie_catalogo,
+        percorsi_candidati as _percorsi_catalogo,
+    )
+except Exception:  # pragma: no cover - installazioni precedenti alla 1.6.136
+    _nomi_librerie_catalogo = None
+    _percorsi_catalogo = None
+if _percorsi_catalogo is not None:
+    for _percorso_catalogo in _percorsi_catalogo():
+        if _percorso_catalogo not in _DEFAULT_LIBS:
+            _DEFAULT_LIBS.append(_percorso_catalogo)
 
 _lib_cache: Optional[str] = None
 _ultimo_certificato_windows: Optional[dict] = None
@@ -1993,6 +2010,8 @@ def _cerca_lib_glob_windows() -> Optional[str]:
         "OkiPKCS11.dll",
         "cvP11.dll",
         "cvcP11.dll",
+        *[nome for nome in (_nomi_librerie_catalogo("windows") if _nomi_librerie_catalogo else [])
+          if nome not in {"bit4xpki.dll", "OkiPKCS11.dll", "cvP11.dll", "cvcP11.dll"}],
         "*pkcs11*.dll",
     ]
     dirs_cerca   = [
@@ -2010,7 +2029,7 @@ def _cerca_lib_glob_windows() -> Optional[str]:
     return None
 
 
-def _candidate_pkcs11_libs(override: Optional[str] = None) -> list[str]:
+def _candidate_pkcs11_libs(override: Optional[str] = None, produttore: str = "") -> list[str]:
     candidati: list[str] = []
 
     def _add(path: Optional[str]):
@@ -2018,6 +2037,10 @@ def _candidate_pkcs11_libs(override: Optional[str] = None) -> list[str]:
             candidati.append(path)
 
     _add(override)
+    # Produttore scelto dall'avvocato in Impostazioni: le sue librerie per prime.
+    if produttore and _percorsi_catalogo is not None:
+        for percorso in _percorsi_catalogo(produttore):
+            _add(percorso)
     _add(_lib_cache if _lib_cache and os.path.exists(_lib_cache) else None)
 
     env = os.getenv("PCT_PKCS11_LIBRARY", "").strip()
@@ -2058,7 +2081,24 @@ def _score_pkcs11_lib(lib_path: str) -> int:
         return 1
 
 
-def _trova_libreria(override: Optional[str] = None) -> Optional[str]:
+def _produttore_richiesto(valore: Any) -> str:
+    """Solo un identificativo del catalogo: dal browser non arriva mai un percorso di libreria."""
+    chiave = str(valore or "").strip().lower()
+    if not chiave or not re.fullmatch(r"[a-z0-9_]{2,32}", chiave):
+        return ""
+    try:
+        from local_signer_mod.dispositivi_firma import PRODUTTORI
+    except Exception:
+        return ""
+    return chiave if chiave in PRODUTTORI else ""
+
+
+def _libreria_del_produttore(produttore: str) -> Optional[str]:
+    """La libreria del produttore indicato, o la ricerca consueta se non è indicato."""
+    return _trova_libreria(produttore=produttore) if produttore else _trova_libreria()
+
+
+def _trova_libreria(override: Optional[str] = None, produttore: str = "") -> Optional[str]:
     """
     Cerca la libreria PKCS#11 nell'ordine:
     1. Override esplicito (argomento o env PCT_PKCS11_LIBRARY)
@@ -2073,10 +2113,20 @@ def _trova_libreria(override: Optional[str] = None) -> Optional[str]:
         _lib_cache = override
         return override
 
+    if produttore and _percorsi_catalogo is not None:
+        propri = [p for p in _percorsi_catalogo(produttore) if os.path.exists(p)]
+        if _lib_cache in propri:
+            return _lib_cache
+        migliori = sorted(((p, _score_pkcs11_lib(p)) for p in propri), key=lambda item: item[1], reverse=True)
+        if migliori and migliori[0][1] > 0:
+            _lib_cache = migliori[0][0]
+            log.info("PKCS#11 del produttore %s: %s", produttore, _lib_cache)
+            return _lib_cache
+
     if _lib_cache and os.path.exists(_lib_cache):
         return _lib_cache
 
-    candidati = _candidate_pkcs11_libs()
+    candidati = _candidate_pkcs11_libs(produttore=produttore) if produttore else _candidate_pkcs11_libs()
     if not candidati:
         return None
 
@@ -13358,7 +13408,8 @@ class _Handler(BaseHTTPRequestHandler):
         self._send_json(send_pec_local(self._read_json()))
 
     def _ping(self):
-        lib = _trova_libreria()
+        query_ping = parse_qs(urlparse(getattr(self, "path", "")).query or "")
+        lib = _libreria_del_produttore(_produttore_richiesto((query_ping.get("produttore") or [""])[0]))
         prefs = _ping_query_preferences(getattr(self, "path", ""))
         light = _ping_is_light(getattr(self, "path", ""))
         resp: dict = {
@@ -13909,7 +13960,7 @@ class _Handler(BaseHTTPRequestHandler):
         visible_signature_place = str(data.get("visible_signature_place") or "").strip()
         visible_signature_datetime_mode = str(data.get("visible_signature_datetime_mode") or "data_ora").strip()
 
-        lib = _trova_libreria()
+        lib = _libreria_del_produttore(_produttore_richiesto(data.get("produttore")))
         if not lib and not _windows_store_puo_firmare(cert_thumbprint or None):
             self._send_json({
                 "ok": False,
@@ -13972,7 +14023,7 @@ class _Handler(BaseHTTPRequestHandler):
         visible_signature_place = str(data.get("visible_signature_place") or "").strip()
         visible_signature_datetime_mode = str(data.get("visible_signature_datetime_mode") or "data_ora").strip()
 
-        lib = _trova_libreria()
+        lib = _libreria_del_produttore(_produttore_richiesto(data.get("produttore")))
         if not lib and not _windows_store_puo_firmare(cert_thumbprint or None):
             self._send_json({
                 "ok": False,

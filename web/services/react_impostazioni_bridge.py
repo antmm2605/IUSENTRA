@@ -476,6 +476,7 @@ def _payload_from_config(cfg: Any, *, can_update: bool) -> dict[str, Any]:
             ),
             "password": _secret_state(firma.password),
             "key_pem_password": _secret_state(firma.key_pem_password),
+            **_firma_gestore_payload(firma),
         },
         "smtp": {
             "host": cfg.smtp.host,
@@ -562,6 +563,15 @@ def build_react_impostazioni_error_payload(message: str) -> dict[str, Any]:
     }
 
 
+def _firma_gestore_payload(firma: Any) -> dict[str, Any]:
+    try:
+        from web.services.impostazioni_firma import firma_payload
+
+        return firma_payload(firma)
+    except Exception:
+        return {}
+
+
 def update_react_impostazioni_firma_certificato(payload: dict[str, Any]) -> dict[str, Any]:
     if not _can("admin.configura"):
         return {"ok": False, "message": "Permesso admin.configura richiesto.", "errors": {"permission": "Permesso insufficiente."}}
@@ -580,25 +590,17 @@ def update_react_impostazioni_firma_certificato(payload: dict[str, Any]) -> dict
             "errors": {"certificato_scadenza": "Data scadenza mancante o non valida."},
         }
 
-    from pct.config_studio import ConfigFirma
+    from dataclasses import replace
+
     from web.blueprints.impostazioni import _applica_ad_app
 
     manager = _gestore_config()
     cfg = manager.config
     old = cfg.firma
     certificato_cf = _text(data.get("codice_fiscale") or data.get("certificato_codice_fiscale")).upper()
-    cfg.firma = ConfigFirma(
-        p12_path=old.p12_path,
-        password=old.password,
-        cert_pem_path=old.cert_pem_path,
-        key_pem_path=old.key_pem_path,
-        key_pem_password=old.key_pem_password,
-        pkcs11_library=old.pkcs11_library,
-        pkcs11_slot=old.pkcs11_slot,
-        pkcs11_label=old.pkcs11_label,
+    cfg.firma = replace(
+        old,
         cf_avvocato=old.cf_avvocato or certificato_cf,
-        backend_preferito=old.backend_preferito,
-        visible_signature_mode=old.visible_signature_mode,
         certificato_thumbprint=_text(data.get("thumbprint") or data.get("certificato_thumbprint")),
         certificato_soggetto=_text(data.get("soggetto") or data.get("subject") or data.get("certificato_soggetto")),
         certificato_codice_fiscale=certificato_cf,
@@ -679,7 +681,6 @@ def update_react_impostazioni_section(section: str, payload: dict[str, Any], *, 
     from pct.config_studio import (
         ConfigDatiStudio,
         ConfigFatturazione,
-        ConfigFirma,
         ConfigLocalAI,
         ConfigPEC,
         ConfigSDI,
@@ -796,32 +797,16 @@ def update_react_impostazioni_section(section: str, payload: dict[str, Any], *, 
             use_ssl=_bool(data.get("use_ssl"), cfg.pec.use_ssl),
         )
     elif section == "firma":
-        backend = _text(data.get("backend_preferito") or data.get("firma_formato") or "auto").lower()
-        if backend not in {"auto", "pkcs11", "p12", "pem"}:
-            backend = "auto"
-        password = _text(data.get("password") or data.get("firma_password"))
-        key_password = _text(data.get("key_pem_password") or data.get("firma_key_pem_password"))
-        cfg.firma = ConfigFirma(
-            p12_path=_upload_path(files, "firma_p12_file", "firma", {".p12", ".pfx"}, _text(data.get("p12_path"), cfg.firma.p12_path)),
-            password=password or cfg.firma.password,
-            cert_pem_path=_upload_path(files, "firma_cert_pem_file", "firma_cert", {".crt", ".cer", ".pem"}, _text(data.get("cert_pem_path"), cfg.firma.cert_pem_path)),
-            key_pem_path=_upload_path(files, "firma_key_pem_file", "firma_key", {".key", ".pem"}, _text(data.get("key_pem_path"), cfg.firma.key_pem_path)),
-            key_pem_password=key_password or cfg.firma.key_pem_password,
-            pkcs11_library=_text(data.get("pkcs11_library")),
-            pkcs11_slot=_text(data.get("pkcs11_slot")),
-            pkcs11_label=_text(data.get("pkcs11_label")),
-            cf_avvocato=_text(data.get("cf_avvocato") or data.get("firma_cf_avvocato")).upper(),
-            backend_preferito=backend,
-            visible_signature_mode=normalize_visible_signature_mode(_text(data.get("visible_signature_mode"), cfg.firma.visible_signature_mode)),
-            certificato_thumbprint=_text(getattr(cfg.firma, "certificato_thumbprint", "")),
-            certificato_soggetto=_text(getattr(cfg.firma, "certificato_soggetto", "")),
-            certificato_codice_fiscale=_text(getattr(cfg.firma, "certificato_codice_fiscale", "")),
-            certificato_emittente=_text(getattr(cfg.firma, "certificato_emittente", "")),
-            certificato_scadenza=_text(getattr(cfg.firma, "certificato_scadenza", "")),
-            certificato_scadenza_it=_text(getattr(cfg.firma, "certificato_scadenza_it", "")),
-            certificato_ultimo_controllo=_text(getattr(cfg.firma, "certificato_ultimo_controllo", "")),
-            certificato_giorni_preavviso=_int(getattr(cfg.firma, "certificato_giorni_preavviso", 20), 20, minimum=1, maximum=365),
+        from web.services.impostazioni_firma import firma_da_richiesta
+
+        nuova_firma, errori_firma = firma_da_richiesta(
+            cfg.firma, data,
+            percorso_caricato=lambda campo, prefisso, estensioni, attuale: _upload_path(files, campo, prefisso, estensioni, attuale),
+            normalizza_modo=normalize_visible_signature_mode,
         )
+        if errori_firma:
+            return {"ok": False, "message": "Controlla le impostazioni della firma digitale.", "errors": errori_firma}
+        cfg.firma = nuova_firma
     elif section == "smtp":
         password = _text(data.get("smtp_password") or data.get("password"))
         cfg.smtp = ConfigSMTP(

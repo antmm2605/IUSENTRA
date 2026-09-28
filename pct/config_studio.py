@@ -160,6 +160,10 @@ class ConfigPEC:
     username: str = ""
 
 
+#: Canali di firma selezionabili in Impostazioni → Firma digitale.
+BACKEND_FIRMA = ("auto", "pkcs11", "p12", "pem", "remota")
+
+
 @dataclass
 class ConfigFirma:
     # ── Formato P12/PFX (PKCS#12 — bundle cert+chiave in un unico file) ──────
@@ -183,9 +187,22 @@ class ConfigFirma:
     # NOTA: il PIN NON viene salvato qui per sicurezza — viene chiesto all'utente
     # ogni volta nella UI di deposito (modal "Firma con Aruba Key").
 
+    # ── Gestore e dispositivo (catalogo pct/data/cataloghi/firma_digitale.json) ──
+    prestatore: str = ""               # prestatore qualificato (elenco AgID), es. aruba, infocert, namirial
+    dispositivo_produttore: str = ""   # produttore del token/smart card: libreria PKCS#11 da cercare prima
+
+    # ── Firma remota (HSM del prestatore; eIDAS art. 29) ─────────────────────
+    # Password, PIN e OTP NON si salvano: li digita l'avvocato a ogni firma.
+    remota_protocollo: str = ""        # arss | sws | csc (vuoto = quello del prestatore)
+    remota_endpoint: str = ""          # vuoto = indirizzo pubblico del prestatore, se esiste
+    remota_utente: str = ""            # utente o codice del dispositivo remoto
+    remota_dominio: str = ""           # dominio ARSS (typeOtpAuth) indicato nel contratto
+    remota_credenziale: str = ""       # certID ARSS / credentialID CSC (vuoto = il primo)
+    remota_tipo_otp: str = "app"       # app | sms | chiamata | notifica
+
     # ── Comune a tutti i formati ─────────────────────────────────────────────
     cf_avvocato: str = ""
-    backend_preferito: str = "auto"  # auto | pkcs11 | p12 | pem
+    backend_preferito: str = "auto"  # auto | pkcs11 | p12 | pem | remota
     visible_signature_mode: str = "laterale"
     certificato_thumbprint: str = ""
     certificato_soggetto: str = ""
@@ -204,9 +221,13 @@ class ConfigFirma:
     @property
     def backend_preferito_normalizzato(self) -> str:
         valore = str(self.backend_preferito or "auto").strip().lower()
-        if valore in {"auto", "pkcs11", "p12", "pem"}:
+        if valore in BACKEND_FIRMA:
             return valore
         return "auto"
+
+    @property
+    def remota_configurata(self) -> bool:
+        return self.backend_preferito_normalizzato == "remota" and bool(str(self.prestatore or "").strip())
 
     @property
     def formato_attivo(self) -> str:
@@ -258,6 +279,10 @@ class ConfigFirma:
         import os as _os
 
         preferito = self.backend_preferito_normalizzato
+        if preferito == "remota":
+            if self.remota_configurata:
+                return "remota"
+            raise FileNotFoundError("Firma remota selezionata ma prestatore non indicato.")
         if preferito == "pkcs11":
             if self.pkcs11_configurato:
                 return "pkcs11"
@@ -322,7 +347,7 @@ class ConfigFirma:
         formato = self.backend_firma_effettivo_safe
         if formato == "pkcs11":
             return ["cades"]
-        if formato in ("p12", "pem"):
+        if formato in ("p12", "pem", "remota"):
             return ["cades", "pades"]
         return []
 

@@ -1043,7 +1043,7 @@ export type FascicoloDetailData = {
   depositReadiness: FascicoloDepositReadiness
   depositPreparation: FascicoloDepositPreparation
   initialLettura: unknown | null
-  signature: { visibleSignatureMode: string; visibleSignaturePlace: string; visibleSignatureDatetimeMode: string }
+  signature: { visibleSignatureMode: string; visibleSignaturePlace: string; visibleSignatureDatetimeMode: string; canale?: string; produttoreDispositivo?: string }
   auditTrail: FascicoloAuditTrail
   actions: {
     changeState: string
@@ -2561,6 +2561,8 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
       visibleSignatureMode: text(payload.signature.visibleSignatureMode ?? payload.signature.visible_signature_mode, 'laterale'),
       visibleSignaturePlace: text(payload.signature.visibleSignaturePlace ?? payload.signature.visible_signature_place),
       visibleSignatureDatetimeMode: text(payload.signature.visibleSignatureDatetimeMode ?? payload.signature.visible_signature_datetime_mode, 'data_ora'),
+      canale: text(payload.signature.canale, 'auto'),
+      produttoreDispositivo: text(payload.signature.produttoreDispositivo),
     } : emptyFascicoloDetail.signature,
     auditTrail: normalizeAuditTrail(payload.auditTrail ?? payload.audit_trail),
     actions: isRecord(payload.actions) ? {

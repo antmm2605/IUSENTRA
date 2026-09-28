@@ -1,5 +1,5 @@
 """Astrazione firma remota qualificata: registry fail-closed, credenziali mai
-esposte, adapter Aruba predisposto, mock riconoscibile e mai valido legalmente.
+esposte, adapter Aruba senza indirizzo fermo, mock riconoscibile e mai valido legalmente.
 """
 
 from __future__ import annotations
@@ -38,12 +38,7 @@ def test_mock_mai_selezionato_implicitamente(monkeypatch):
 
 def test_aruba_da_config_completa():
     provider = get_firma_remota_provider(
-        {
-            "PCT_FIRMA_REMOTA_PROVIDER": "aruba",
-            "ARUBA_ARSS_URL": "https://arss.example/service",
-            "ARUBA_ARSS_APP_ID": "app-1",
-            "ARUBA_ARSS_APP_SECRET": "s3cret",
-        }
+        {"PCT_FIRMA_REMOTA_PROVIDER": "aruba", "ARUBA_ARSS_URL": "https://arss.example/service"}
     )
     assert isinstance(provider, ArubaRemoteSignProvider)
     assert provider.disponibile() is True
@@ -76,17 +71,6 @@ def test_aruba_non_configurato_spiega_come_attivare():
         provider.firma_cades(b"%PDF-1.4", credenziali)
     with pytest.raises(FirmaRemotaNonConfigurata):
         provider.firma_pades(b"%PDF-1.4", credenziali)
-
-
-def test_aruba_configurato_ma_adapter_da_completare():
-    # Anche con endpoint e credenziali app, l'adapter non improvvisa payload:
-    # va completato dalle specifiche ufficiali ARSS (principio fonti certe).
-    provider = ArubaRemoteSignProvider(
-        endpoint="https://arss.example/service",
-        app_credentials={"app_id": "a", "app_secret": "b"},
-    )
-    with pytest.raises(FirmaRemotaNonConfigurata, match="specifiche ufficiali"):
-        provider.firma_cades(b"doc", CredenzialiFirmaRemota(username="u", otp="1"))
 
 
 # --- Mock riconoscibile -----------------------------------------------------------

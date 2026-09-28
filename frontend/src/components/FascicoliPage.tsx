@@ -177,6 +177,7 @@ const MediazioneFascicolo = lazy(() => import('./mediazione/MediazioneFascicolo'
 const PenalePdpSezione = lazy(() => import('./penalePdp/PenalePdpSezione'))
 const PatFormwebSezione = lazy(() => import('./patFormweb/PatFormwebSezione'))
 const PttSezione = lazy(() => import('./pttSigit/PttSezione'))
+const FirmaRemotaPannello = lazy(() => import('./fascicoli/FirmaRemotaPannello'))
 
 const PAGOPA_PST_URL = 'https://servizipst.giustizia.it/PST/it/pagopa_altripag.wp'
 const PAGOPA_PST_NEW_PAYMENT_URL = 'https://servizipst.giustizia.it/PST/it/pagopa_nuovarich.wp'
@@ -9277,6 +9278,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
           visible_signature_mode: visibleSignatureMode,
           visible_signature_place: visibleSignaturePlace,
           visible_signature_datetime_mode: visibleSignatureDatetimeMode,
+          produttore: data.signature?.produttoreDispositivo || undefined,
         }),
       }
       const signResponse = await fetch(localSignerEndpointForStatus('/firma', localSigner), signRequestOptions)
@@ -9406,6 +9408,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
                 ))}
               </div>
             </div>
+            {data.signature?.canale !== 'remota' ? (<>
             <div className={`iu-fas-signer-status ${localSignerCanSign ? 'is-ok' : 'is-warn'}`}>
               <strong>{localSignerStatusTitle}</strong>
               <span>{depositUserFacingMessage(localSignerStatusMessage)}</span>
@@ -9444,8 +9447,19 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
                 <span>{signerRestartRequired || localSignerOutdated ? 'Il PIN comparirà solo quando il dispositivo sarà pronto.' : 'Inserisci il dispositivo di firma: IUSENTRA gestisce avvio e aggiornamento del Local Signer.'}</span>
               </div>
             ) : null}
+            </>) : null}
           </div>
         </Panel>
+
+        {data.signature?.canale === 'remota' && doc ? (
+          <Panel title="Firma remota" subtitle="Password e codice OTP del prestatore, anche dal telefono" icon={<ShieldCheck size={17}/>}>
+            <Suspense fallback={<p role="status">Carico la firma remota…</p>}>
+              <FirmaRemotaPannello fascicoloId={id} documentoId={documentId} nomeDocumento={doc.name} giaFirmato={alreadySigned} confermaRifirma={confirmResign}
+                visibile={{ mode: visibleSignatureMode, place: visibleSignaturePlace, datetimeMode: visibleSignatureDatetimeMode }}
+                onFirmato={(testo) => { setMessage(testo); setError(''); refreshInfo(); getFascicoloDetail(id, { include: 'all' }).then(setData) }}/>
+            </Suspense>
+          </Panel>
+        ) : null}
 
         <Panel title="Firma esterna" subtitle="ArubaSign, Dike o altro software di firma" icon={<UploadCloud size={17}/>}>
           <JsonPostForm className="iu-fas-signature-form" action={firmaUrl} encType="multipart/form-data">

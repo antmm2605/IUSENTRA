@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.423.0 — 28/09/2026
+
+Firma digitale: firma remota dei prestatori qualificati e dispositivi di tutti i produttori, scelti in Impostazioni.
+
+- **Firma remota integrata**, anche da telefono: la chiave resta nell'HSM del prestatore (Reg. eIDAS art. 29); l'avvocato digita password (e PIN, se il servizio lo chiede) e il codice OTP, che non si salvano mai.
+  - Aruba e Actalis con ArubaSignService (ARSS), Namirial con Sign Web Services (SWS), InfoCert, Intesi Group e ogni prestatore con indirizzo CSC (Cloud Signature Consortium v1 e v2); WSDL pubblici e riferimenti in docs/specs/ministero/fonti_ufficiali/2026-09-28/firma.
+  - Al prestatore va solo l'impronta SHA-256: le buste CAdES-BES (.p7m, cofirma parallela) e PAdES (con timbro visibile «Per autentica e sottoscrizione») si costruiscono in IUSENTRA con lo stesso profilo della smart card; la firma ricevuta si verifica con il certificato prima di salvare, e un certificato scaduto blocca la firma.
+  - Invio del codice per SMS, chiamata o notifica quando il prestatore lo prevede; nella pagina «Firma» del documento compare il pannello «Firma remota».
+- **Impostazioni → Firma digitale**: canale (dispositivo, firma remota, P12, PEM), gestore scelto dall'elenco AgID dei prestatori qualificati attivi in Italia (23 voci), servizio e indirizzo della firma remota, utente, dominio, identificativo del certificato e tipo di OTP; scheda del gestore con servizio integrato e indirizzo pubblico. Per i prestatori senza API pubblica si indica la «Firma esterna».
+- **Dispositivi di tutti i produttori**: Bit4id, Athena/ASE, Incard, Oberthur/IDEMIA, CardOS, SafeNet eToken, IDPrime, Charismathics, Namirial (Oki), Italtel e OpenSC, con le librerie PKCS#11 per Windows, Linux e macOS; il produttore scelto nelle impostazioni ha la precedenza nel Local Signer (1.6.136) e nel server. Dal browser arriva solo il produttore, mai un percorso di libreria.
+
 ## 2.422.0 — 28/09/2026
 
 Attestazione di conformità come nella prassi: scritta sul PDF dove sceglie l'avvocato e poi firmata digitalmente.

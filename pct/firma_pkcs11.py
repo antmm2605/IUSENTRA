@@ -374,6 +374,14 @@ def _candidate_libraries() -> List[str]:
     _add(env_lib)
     for lib in _LIBRERIE_DEFAULT:
         _add(lib)
+    # Librerie di tutti i produttori del catalogo (Athena, Incard, IDEMIA, Thales, CardOS...).
+    try:
+        from local_signer_mod.dispositivi_firma import percorsi_candidati
+    except Exception:
+        percorsi_candidati = None
+    if percorsi_candidati is not None:
+        for lib in [*percorsi_candidati(os.environ.get("PCT_PKCS11_PRODUTTORE", "")), *percorsi_candidati()]:
+            _add(lib)
     return candidati
 
 

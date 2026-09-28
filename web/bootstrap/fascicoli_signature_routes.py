@@ -36,7 +36,17 @@ def register_fascicoli_signature_routes(
     luogo_timbro_firma_visibile: Callable[[], str],
     audit: Callable[..., None],
 ) -> None:
-    """Register PKCS#11, uploaded-signature, and attestazione routes."""
+    """Register PKCS#11, uploaded-signature, remote-signature and attestazione routes."""
+    from web.bootstrap.fascicoli_firma_remota_routes import register_firma_remota_routes
+    from web.services.firma_remota_runtime import Dipendenze
+
+    register_firma_remota_routes(
+        app,
+        dipendenze=Dipendenze(get_fascicoli, get_config_studio, decrypt_doc, encrypt_doc,
+                              salva_documento_firmato_resiliente, audit_and_sync_best_effort),
+        normalizza_modalita_firma_visibile=normalizza_modalita_firma_visibile,
+        luogo_timbro_firma_visibile=luogo_timbro_firma_visibile,
+    )
 
     @app.route("/api/firma/pkcs11/status", methods=["GET"])
     def api_pkcs11_status():

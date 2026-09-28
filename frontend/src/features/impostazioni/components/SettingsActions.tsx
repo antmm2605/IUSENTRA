@@ -600,8 +600,34 @@ export function SettingsActions({
       }
     }
 
+    const prestatoreInfo = record(firmaSettings.prestatore_info)
+    const nomePrestatore = asText(prestatoreInfo.nome)
+    const protocolliPrestatore = Array.isArray(prestatoreInfo.protocolli) ? prestatoreInfo.protocolli.map(String) : []
+    const librerieDispositivo = record(firmaSettings.librerie_dispositivo)
+    const librerieWindows = Array.isArray(librerieDispositivo.windows) ? librerieDispositivo.windows.map(String) : []
+
     return (
       <div className="iu-settings-actions-panel">
+        {nomePrestatore ? (
+          <article className="iu-settings-certificate">
+            <div className="iu-settings-certificate__head">
+              <ShieldCheck aria-hidden="true" />
+              <div>
+                <span>Gestore della firma</span>
+                <strong>{nomePrestatore}</strong>
+              </div>
+              <IusStatusBadge tone={protocolliPrestatore.length ? 'success' : 'neutral'}>
+                {protocolliPrestatore.length ? 'Firma remota integrata' : 'Firma remota dall’app del prestatore'}
+              </IusStatusBadge>
+            </div>
+            <dl>
+              {protocolliPrestatore.length ? <div><dt>Servizio</dt><dd>{protocolliPrestatore.map((p) => p.toUpperCase()).join(', ')}</dd></div> : null}
+              {asText(prestatoreInfo.endpoint_predefinito) ? <div><dt>Indirizzo pubblico</dt><dd>{asText(prestatoreInfo.endpoint_predefinito)}</dd></div> : null}
+              {librerieWindows.length ? <div><dt>Librerie del dispositivo (Windows)</dt><dd>{librerieWindows.slice(0, 2).join(', ')}</dd></div> : null}
+            </dl>
+            {asText(prestatoreInfo.nota) ? <p>{asText(prestatoreInfo.nota)}</p> : null}
+          </article>
+        ) : null}
         <header className="iu-settings-local-signer__head">
           <div>
             <strong>IUSENTRA Local Signer</strong>

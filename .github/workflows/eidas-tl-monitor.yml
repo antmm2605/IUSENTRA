@@ -22,4 +22,4 @@ jobs:
       - name: Verify EU LOTL and AgID TL signatures
         run: python scripts/check_eidas_tl.py
       - name: Test monitor failure states
-        run: python -m pytest -q tests/test_eidas_tl_monitor.py
+        run: python -m pytest -q --noconftest tests/test_eidas_tl_monitor.py

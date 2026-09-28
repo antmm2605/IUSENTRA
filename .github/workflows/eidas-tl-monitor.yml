@@ -1,0 +1,25 @@
+name: eIDAS Trusted List monitor
+
+on:
+  schedule:
+    - cron: "20 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-it-tl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ETSI verifier
+        run: pip install -c requirements/constraints.txt 'pyhanko[etsi]>=0.37,<0.38' 'pyhanko-certvalidator>=0.32,<0.33' aiohttp pytest
+      - name: Verify EU LOTL and AgID TL signatures
+        run: python scripts/check_eidas_tl.py
+      - name: Test monitor failure states
+        run: python -m pytest -q tests/test_eidas_tl_monitor.py

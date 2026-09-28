@@ -1,5 +1,10 @@
 # Changelog
 
+## Non rilasciato — 28/09/2026
+
+- **Monitor eIDAS**: il registro della Trusted List italiana interpreta le cessioni storiche `TakenOverBy` dopo aver verificato la firma dell'XML originale e fallisce se trova errori di altra natura.
+- **Regressioni documentali**: aggiunti campioni EU DSS XAdES, JAdES, ASiC-E e ASiC-S con verifica dell'integrità crittografica e prove di manomissione. Il verificatore operativo dei documenti resta invariato.
+
 ## 2.420.1 — 27/09/2026
 
 Correzioni della CI dopo la 2.420.0 (Storybook e CodeQL rossi, deploy fermo).

@@ -22,6 +22,7 @@ from pyhanko.sign.validation.qualified.eutl_fetch import (
 from pyhanko.sign.validation.qualified.eutl_parse import (
     validate_and_parse_lotl,
     trust_list_to_registry,
+    trust_list_to_registry_unsafe,
 )
 
 # Impronte pubblicate da AgID il 22/01/2026: solo controllo di rotazione.
@@ -35,6 +36,58 @@ AGID_TL_2026_SHA256 = {
 def _certificati_2026_nella_lotl(certs: list) -> dict[str, bool]:
     fingerprints = {hashlib.sha256(cert.dump()).hexdigest() for cert in certs}
     return {name: fingerprint in fingerprints for name, fingerprint in AGID_TL_2026_SHA256.items()}
+
+
+def _registro_con_cessioni(xml: str, tlso_certs: list) -> tuple[object, int, int]:
+    # La verifica della firma precede ogni trasformazione del contenuto XML.
+    original_registry, original_errors = trust_list_to_registry(xml, tlso_certs)
+    if not original_errors:
+        return original_registry, 0, 0
+    if any(
+        not str(error).startswith("Cannot process a critical extension in service named '")
+        or "\nContent: TakenOverBy(" not in str(error)
+        for error in original_errors
+    ):
+        raise ValueError("La TL contiene errori diversi dall'estensione TakenOverBy.")
+
+    root = etree.fromstring(
+        xml.encode("utf-8"),
+        parser=etree.XMLParser(resolve_entities=False, no_network=True),
+    )
+    tsl = "http://uri.etsi.org/02231/v2#"
+    additional = "http://uri.etsi.org/02231/v2/additionaltypes#"
+    takeovers = root.findall(f".//{{{additional}}}TakenOverBy")
+    if not takeovers:
+        raise ValueError("La TL contiene servizi non interpretabili senza cessioni riconosciute.")
+    for takeover in takeovers:
+        extension = takeover.getparent()
+        if extension is None or extension.tag != f"{{{tsl}}}Extension" or list(extension) != [takeover]:
+            raise ValueError("Estensione TakenOverBy non riconosciuta nella TL.")
+        if [child.tag for child in takeover] != [
+            f"{{{additional}}}URI", f"{{{additional}}}TSPName",
+            f"{{{tsl}}}SchemeOperatorName", f"{{{tsl}}}SchemeTerritory",
+        ]:
+            raise ValueError("Attributi di cessione del servizio non riconosciuti nella TL.")
+        uri = takeover.findtext(f"{{{additional}}}URI")
+        name = takeover.find(f"{{{additional}}}TSPName")
+        operator = takeover.find(f"{{{tsl}}}SchemeOperatorName")
+        territory = takeover.findtext(f"{{{tsl}}}SchemeTerritory")
+        if not (
+            uri and uri.startswith(("http://", "https://"))
+            and name is not None and any((part.text or "").strip() for part in name)
+            and operator is not None and any((part.text or "").strip() for part in operator)
+            and territory == "IT"
+        ):
+            raise ValueError("Dati obbligatori della cessione TakenOverBy mancanti o non validi.")
+        # ETSI TS 119 612 §5.5.9.3: la cessione non cambia l'esito della
+        # validazione. La proiezione serve solo al parser pyHanko, che non la
+        # interpreta; l'XML firmato originale resta la fonte della prova.
+        extension.getparent().remove(extension)
+
+    registry, errors = trust_list_to_registry_unsafe(etree.tostring(root, encoding="unicode"))
+    if errors:
+        raise ValueError(f"{len(errors)} servizi della TL restano non interpretabili.")
+    return registry, len(original_errors), len(takeovers)
 
 
 def _metadata(xml: str) -> dict[str, str | int]:
@@ -74,7 +127,7 @@ async def check() -> dict:
             response.raise_for_status()
             xml = await response.text()
     # Verifica la firma XML prima di usare qualsiasi dato della lista.
-    registry, errors = trust_list_to_registry(xml, ref.tlso_certs)
+    registry, recovered_errors, takeovers = _registro_con_cessioni(xml, ref.tlso_certs)
     metadata = _metadata(xml)
     return {
         "source_of_truth": "eu_lotl_signed",
@@ -86,8 +139,10 @@ async def check() -> dict:
         "tl_sequence": metadata["sequence"],
         "tl_next_update": metadata["next_update"],
         "registry_type": type(registry).__name__,
-        "service_parse_errors": len(errors),
-        "qualification_complete": not errors,
+        "original_service_parse_errors": recovered_errors,
+        "service_parse_errors": 0,
+        "takeover_extensions_interpreted": takeovers,
+        "registry_parse_complete": True,
     }
 
 
@@ -102,7 +157,7 @@ def main() -> int:
         print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False))
         return 1
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
-    return int(args.strict_services and not result["qualification_complete"])
+    return int(args.strict_services and not result["registry_parse_complete"])
 
 
 if __name__ == "__main__":

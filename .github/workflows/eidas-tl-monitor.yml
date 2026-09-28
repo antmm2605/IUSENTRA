@@ -23,3 +23,5 @@ jobs:
         run: python scripts/check_eidas_tl.py
       - name: Test monitor failure states
         run: python -m pytest -q --noconftest tests/test_eidas_tl_monitor.py
+      - name: Test XAdES JAdES and ASiC reference documents
+        run: python -m pytest -q --noconftest tests/test_eidas_document_formats.py

@@ -2,6 +2,7 @@
 
 ## Non rilasciato — 28/09/2026
 
+- **Modulo PAT di deposito ricorso — contributo unificato**: con la scelta «Non esente» il modulo ministeriale compilato da IUSENTRA selezionava «Esente» (la parola è contenuta in «non esente»); ora ogni scelta (non esente, esente, prenotazione a debito, patrocinio a spese dello Stato, non dovuto) seleziona una sola voce, quella giusta. Stessa correzione nella precompilazione dal fascicolo e nei valori XFA indicati per percorso.
 - **Monitor eIDAS**: il registro della Trusted List italiana interpreta le cessioni storiche `TakenOverBy` dopo aver verificato la firma dell'XML originale e fallisce se trova errori di altra natura.
 - **Regressioni documentali**: aggiunti campioni EU DSS XAdES, JAdES, ASiC-E e ASiC-S con verifica dell'integrità crittografica e prove di manomissione. Il verificatore operativo dei documenti resta invariato.
 

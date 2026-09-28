@@ -6661,11 +6661,14 @@ def _pat_contributo_unificato_from_fascicolo(fascicolo: Any) -> str:
     else:
         text = str(raw or "")
     normalized = text.lower()
+    pagato = any(token in normalized for token in ("pagat", "iuv", "f24", "versat"))
+    if "non esent" in normalized or "da pagare" in normalized:
+        return "Pagato" if pagato else "Da pagare"
     if "esent" in normalized:
         return "Esente"
     if "prenot" in normalized:
         return "Prenotato a debito"
-    if "pag" in normalized or "iuv" in normalized or "f24" in normalized:
+    if pagato:
         return "Pagato"
     return ""
 

@@ -225,7 +225,7 @@ def _set_radio_group_value(group: ET.Element, value: Any) -> bool:
     wanted = _normalise(_clean(value))
     if not wanted:
         return False
-    matched = False
+    opzioni: list[tuple[ET.Element, str, set[str]]] = []
     for child in list(group):
         if _local_name(child.tag) != "field":
             continue
@@ -233,11 +233,14 @@ def _set_radio_group_value(group: ET.Element, value: Any) -> bool:
         caption = _field_caption(child)
         exports = _field_items(child)
         export = exports[0] if exports else name
-        tokens = {_normalise(name), _normalise(caption), _normalise(export)}
-        selected = wanted in tokens or any(wanted and wanted in token for token in tokens)
-        _set_field_text(child, export if selected else "")
-        matched = matched or selected
-    return matched
+        opzioni.append((child, export, {_normalise(name), _normalise(caption), _normalise(export)}))
+    # Prima la corrispondenza esatta: «Esente» non deve selezionare anche «Non esente».
+    scelte = [child for child, _export, tokens in opzioni if wanted in tokens]
+    if not scelte:
+        scelte = [child for child, _export, tokens in opzioni if any(wanted in token for token in tokens)][:1]
+    for child, export, _tokens in opzioni:
+        _set_field_text(child, export if child in scelte else "")
+    return bool(scelte)
 
 
 def _set_xfa_path_value(root: ET.Element, xfa_path: str, value: Any) -> bool:
@@ -428,6 +431,29 @@ def _set_ricorso_party(root: ET.Element, value: Any, fiscal_code: Any = "", *, t
     _set_first(root, "codiceFiscale", fiscal_code, path_contains=table_path)
 
 
+# Scelte del riquadro «Contributo unificato» (art. 13 D.P.R. 115/2002): ogni voce del modulo con il suo
+# valore di esportazione. L'ordine conta: «non esente» contiene «esente», «da pagare» e «pagato» indicano
+# un contributo dovuto (voce «Non esente»).
+_CONTRIBUTO_VOCI = (
+    (("non esent", "da pagare", "pagat", "dovuto e"), "nonEsente", "3"),
+    (("non dovut",), "nonDovuto", "5"),
+    (("patrocinio",), "patrocinio", "4"),
+    (("prenot",), "prenotazioneADebito", "1"),
+    (("esent",), "esente", "2"),
+)
+
+
+def _set_contributo(root: ET.Element, value: Any) -> None:
+    testo = _normalise(_clean(value))
+    if not testo:
+        return
+    scelta = next((voce for chiavi, voce, _ in _CONTRIBUTO_VOCI if any(chiave in testo for chiave in chiavi)), "")
+    if not scelta:
+        return
+    for _chiavi, voce, esportazione in _CONTRIBUTO_VOCI:
+        _set_first(root, voce, esportazione if voce == scelta else "", path_contains="rbContributo", allow_empty=True)
+
+
 def _apply_common(root: ET.Element, fields: Mapping[str, Any], documents: list[Mapping[str, Any]]) -> None:
     _set_choice(root, "selectSede", fields.get("sede"))
     _set_first(root, "oggetto", fields.get("oggetto"), path_contains="tableOggetto")
@@ -458,15 +484,7 @@ def _apply_ricorso(root: ET.Element, fields: Mapping[str, Any], documents: list[
         radio_path="subFormResistente/rbTipoResistente",
         default_kind="giuridica",
     )
-    contributo = _normalise(_clean(fields.get("contributo_unificato")))
-    if "esente" in contributo:
-        _set_first(root, "esente", "2")
-        _set_first(root, "nonEsente", "")
-    elif "prenot" in contributo:
-        _set_first(root, "prenotazioneADebito", "1")
-        _set_first(root, "nonEsente", "")
-    elif contributo:
-        _set_first(root, "nonEsente", "3")
+    _set_contributo(root, fields.get("contributo_unificato"))
     _apply_common(root, fields, documents)
 
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.431.0 — 29/09/2026
+
+App mobile: IUSENTRA installabile su telefono, tablet e computer e pronta per la pubblicazione su Google Play, con lo stesso codice del gestionale.
+
+- **Manifest completo**: identificativo dell'app, icona *maskable* per Android (non più tagliata dalle forme rotonde), colori uniformi alla barra dell'app, scorciatoie dall'icona (Oggi, Scadenziario, Agenda, Fascicoli); icona e titolo per la schermata Home di iPhone e iPad.
+- **Pulsante «Installa IUSENTRA»** in Impostazioni → Notifiche, con le istruzioni per iPhone/iPad (Condividi → Aggiungi alla schermata Home) e l'indicazione quando si sta già usando l'app installata.
+- **Pagina «Sei offline»**: senza rete l'app installata mostra un avviso chiaro invece dell'errore del browser. Il service worker conserva solo la pagina offline e le icone: nessuna pagina né dato dello studio resta sul dispositivo. Si registra all'avvio (prima solo attivando le notifiche).
+- **Google Play (Trusted Web Activity)**: `/.well-known/assetlinks.json` e `/.well-known/apple-app-site-association` pubblici, configurati solo da variabili d'ambiente (`IUSENTRA_ANDROID_PACKAGE`, `IUSENTRA_ANDROID_SHA256`, `IUSENTRA_IOS_APP_IDS`); `mobile/android-twa/twa-manifest.json` pronto per Bubblewrap e guida passo passo in `docs/APP_MOBILE.md`. La pubblicazione richiede l'account sviluppatore dello studio; le chiavi di firma restano a chi pubblica.
+
 ## 2.430.0 — 29/09/2026
 
 Conservazione a norma: pacchetto di versamento del fascicolo per il conservatore, con le informazioni descrittive dell'Allegato 5 e il controllo dei formati dell'Allegato 2, e registro degli esiti.

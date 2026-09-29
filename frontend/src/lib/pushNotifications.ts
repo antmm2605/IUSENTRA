@@ -52,7 +52,7 @@ const fallbackAction: PushActionResult = {
   message: 'Operazione non completata.',
 }
 
-const SERVICE_WORKER_URL = '/sw.js?iusentra_sw=20260717_remote_hearing_v5'
+const SERVICE_WORKER_URL = '/sw.js?iusentra_sw=20260929_offline_v7'
 const SERVICE_WORKER_OPTIONS: RegistrationOptions = {
   scope: '/',
   updateViaCache: 'none',
@@ -116,6 +116,11 @@ async function publicKey(): Promise<PublicKeyPayload> {
 
 async function existingRegistration(): Promise<ServiceWorkerRegistration | undefined> {
   if (!browserSupportsPush()) return undefined
+  return ensureRegistration()
+}
+
+/** Registrazione unica del service worker (stesso URL e scope delle notifiche), usata anche all'avvio. */
+export async function registraServiceWorker(): Promise<ServiceWorkerRegistration> {
   return ensureRegistration()
 }
 

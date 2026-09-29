@@ -55,6 +55,7 @@ import {
 } from 'lucide-react'
 import { DashboardData, Row, Tone } from './data'
 import { useDashboardData } from './hooks/useDashboardData'
+import { avviaAppInstallabile } from './lib/appInstallabile'
 import { Badge, DossierCard, KpiCard, Panel, SourceCard } from './components/dashboard'
 import { FloatingLex } from './components/FloatingLex'
 import { IusAppSidebar, IusentraRoutePresetFrame } from './components/iusentra'
@@ -1427,6 +1428,7 @@ function DashboardPage({
 // montati tutti o non viene montata la funzione: React conta e ordina gli hook
 // ad ogni render e uno saltato chiude la pagina con l'errore #310.
 function AppStudio() {
+  useEffect(() => { avviaAppInstallabile() }, [])
   const activePath = window.location.pathname.replace(/\/+$/, '') || '/'
   const routePath = normaliseRoutePath(activePath)
   const routeKey = routePath.toLowerCase()

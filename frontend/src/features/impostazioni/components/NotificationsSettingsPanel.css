@@ -248,3 +248,32 @@
     align-items: flex-start;
   }
 }
+
+.iu-notify-install {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px dashed var(--iu-border, #cbd5e1);
+  border-radius: 10px;
+}
+
+.iu-notify-install p {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  flex: 1 1 280px;
+}
+
+.iu-notify-install b {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.iu-notify-install span {
+  color: #475569;
+  font-size: 12.5px;
+}

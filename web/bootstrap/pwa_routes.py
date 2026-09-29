@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from flask import Flask, render_template, send_file
+from flask import Flask, jsonify, render_template, send_file
 
 
 def register_pwa_routes(app: Flask) -> None:
@@ -38,3 +38,19 @@ def register_pwa_routes(app: Flask) -> None:
     @app.route("/offline")
     def offline():
         return render_template("offline.html")
+
+    @app.route("/.well-known/assetlinks.json")
+    def app_links_android():
+        from web.services.app_links import assetlinks
+
+        risposta = jsonify(assetlinks())
+        risposta.headers["Cache-Control"] = "public, max-age=3600"
+        return risposta
+
+    @app.route("/.well-known/apple-app-site-association")
+    def app_links_ios():
+        from web.services.app_links import apple_app_site_association
+
+        risposta = jsonify(apple_app_site_association())
+        risposta.headers["Cache-Control"] = "public, max-age=3600"
+        return risposta

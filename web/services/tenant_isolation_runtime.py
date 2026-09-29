@@ -174,6 +174,8 @@ def _public_request() -> bool:
         "service_worker",
         "web_manifest",
         "offline",
+        "app_links_android",
+        "app_links_ios",
         "health_live",
         "health_ready",
         "health_dependencies",

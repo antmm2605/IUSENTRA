@@ -87,6 +87,8 @@ def register_auth_runtime(
         "service_worker",
         "web_manifest",
         "offline",
+        "app_links_android",
+        "app_links_ios",
         "logout",
         "admin.esci_impersonazione",
         "polis_local_signer_download",

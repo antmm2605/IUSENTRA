@@ -1,12 +1,18 @@
 /* IUSENTRA service worker per PWA e notifiche dispositivo.
  *
- * Non memorizza dati operativi in cache e non contiene informazioni sensibili.
+ * Non memorizza dati operativi in cache e non contiene informazioni sensibili:
+ * tiene solo la pagina «Sei offline» e le icone, per mostrare un avviso chiaro
+ * quando l'app installata si apre senza rete. Le pagine e le API vanno sempre
+ * in rete, senza copie locali.
  */
 
 const DEFAULT_HREF = '/app-v2';
 const NOTIFICATION_ICON = '/static/icons/icon-192.png';
 const NOTIFICATION_BADGE = '/static/icons/badge-96.png';
-const SW_VERSION = '2026-07-17-remote-hearing-v6';
+const SW_VERSION = '2026-09-29-offline-v7';
+const SHELL_CACHE = `iusentra-shell-${SW_VERSION}`;
+const OFFLINE_URL = '/offline';
+const SHELL_ASSETS = [OFFLINE_URL, NOTIFICATION_ICON, '/static/icons/icon-512.png'];
 const REMOTE_HEARING_DOMAINS = [
   'teams.microsoft.com',
   'zoom.us',
@@ -53,12 +59,25 @@ function parsePushPayload(event) {
   }
 }
 
-self.addEventListener('install', () => {
-  self.skipWaiting();
+self.addEventListener('install', (event) => {
+  event.waitUntil((async () => {
+    try {
+      const cache = await caches.open(SHELL_CACHE);
+      await cache.addAll(SHELL_ASSETS.map((url) => new Request(url, { cache: 'reload', credentials: 'same-origin' })));
+    } catch (_) {
+      // Senza la pagina offline in cache il service worker resta utile per le notifiche.
+    }
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil((async () => {
+    const chiavi = await caches.keys();
+    await Promise.all(chiavi.filter((chiave) => chiave.startsWith('iusentra-shell-') && chiave !== SHELL_CACHE)
+      .map((chiave) => caches.delete(chiave)));
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener('push', (event) => {
@@ -121,4 +140,20 @@ self.addEventListener('notificationclick', (event) => {
   })());
 });
 
-self.addEventListener('fetch', () => undefined);
+// Solo le navigazioni: si prova sempre la rete; se manca, la pagina «Sei offline».
+self.addEventListener('fetch', (event) => {
+  const request = event.request;
+  if (request.method !== 'GET' || request.mode !== 'navigate') return;
+  event.respondWith((async () => {
+    try {
+      return await fetch(request);
+    } catch (_) {
+      const cache = await caches.open(SHELL_CACHE);
+      const offline = await cache.match(OFFLINE_URL);
+      return offline || new Response('Sei offline: IUSENTRA richiede la connessione.', {
+        status: 503,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      });
+    }
+  })());
+});

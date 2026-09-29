@@ -1,0 +1,8 @@
+# Chiavi di firma e build: mai nel repository
+*.keystore
+*.jks
+*.aab
+*.apk
+app/
+build/
+.gradle/

@@ -1,31 +1,33 @@
 {
+  "id": "/app-v2",
   "name": "IUSENTRA",
   "short_name": "IUSENTRA",
   "description": "Lo studio legale, in un unico sistema",
   "lang": "it-IT",
+  "dir": "ltr",
   "start_url": "/app-v2",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0f2443",
-  "theme_color": "#1a3a5c",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#0B1B3A",
+  "theme_color": "#0B1B3A",
+  "categories": ["business", "productivity"],
+  "prefer_related_applications": false,
   "icons": [
-    {
-      "src": "/static/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/static/icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/static/icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
+    {"src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "/static/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+    {"src": "/static/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}
+  ],
+  "shortcuts": [
+    {"name": "Oggi", "short_name": "Oggi", "description": "Udienze, scadenze e attività di oggi", "url": "/oggi",
+     "icons": [{"src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png"}]},
+    {"name": "Scadenziario", "short_name": "Scadenze", "description": "Termini e scadenze dello studio", "url": "/scadenziario",
+     "icons": [{"src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png"}]},
+    {"name": "Agenda", "short_name": "Agenda", "description": "Udienze e appuntamenti", "url": "/agenda",
+     "icons": [{"src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png"}]},
+    {"name": "Fascicoli", "short_name": "Fascicoli", "description": "Elenco dei fascicoli", "url": "/fascicoli",
+     "icons": [{"src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png"}]}
   ]
 }

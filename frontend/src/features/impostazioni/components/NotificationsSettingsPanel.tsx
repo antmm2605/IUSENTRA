@@ -21,6 +21,7 @@ import {
 } from '@/lib/pushNotifications'
 import { prepareNotificationLink, sendNotification, sendTomorrowReminders } from '../api'
 import type { NotificationActionPayload, SettingsPayload, SettingsSection } from '../types'
+import { InstallaAppSezione } from './InstallaAppSezione'
 import './NotificationsSettingsPanel.css'
 
 type Values = Record<string, unknown>
@@ -195,6 +196,7 @@ export function NotificationsSettingsPanel({
             <span>Su iPhone/iPad può essere necessario aggiungere IUSENTRA alla schermata Home e aprirla dall'icona installata.</span>
           </p>
         </div>
+        <InstallaAppSezione/>
         {serverNotConfigured && canConfigureServer ? (
           <div className="iu-notify-admin-note" role="note">
             <strong>Configurazione richiesta</strong>

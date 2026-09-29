@@ -112,6 +112,7 @@ _ROUTE_COMPONENTS: tuple[tuple[str, str], ...] = (
     ("/clienti", "src/components/AnagraficaClientiPage.tsx"),
     ("/crm", "src/components/CrmPage.tsx"),
     ("/prima-nota", "src/components/PrimaNotaPage.tsx"),
+    ("/recupero-crediti", "src/components/RecuperoCreditiPage.tsx"),
     ("/cartelle-condivise", "src/components/CartelleCondivisePage.tsx"),
     ("/soggetti/nuovo", "src/components/NuovoClientePage.tsx"),
     ("/soggetti", "src/components/SoggettiPage.tsx"),

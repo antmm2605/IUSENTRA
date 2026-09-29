@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.428.0 — 29/09/2026
+
+Recupero crediti in serie: dall'elenco dei debitori al decreto ingiuntivo e all'esecuzione, con le scadenze di legge e le bozze degli atti in blocco.
+
+- **Nuova pagina «Recupero crediti in serie»** (menu Fascicoli, `/recupero-crediti`): una posizione per debitore, con i documenti del credito, lo stato del percorso e il fascicolo collegato. Lettura con `fascicoli.leggi`, azioni con `fascicoli.scrivi`.
+- **Importazione da CSV** (anche da Excel con «Salva con nome»): una riga per fattura, raggruppate per debitore; colonne riconosciute anche con nomi alternativi, righe errate segnalate con il numero, posizioni già aperte non duplicate. Limite 5 MB e 5.000 righe.
+- **Fascicoli in blocco**: un fascicolo civile del creditore per ogni posizione, con oggetto «Recupero del credito (artt. 633 ss. c.p.c.)».
+- **Bozze in blocco dal compilatore** nei fascicoli: messa in mora e diffida (art. 1219 c.c.), ricorso per decreto ingiuntivo (art. 633 c.p.c.), atto di precetto (art. 480 c.p.c.), con debitore, fatture, importi e interessi già compilati. Sono bozze di lavoro da rileggere nell'editor: niente viene firmato, depositato o notificato in automatico.
+- **Percorso con i passaggi ammessi** (diffida → ricorso → decreto → notifica → esecutività → precetto → pignoramento → chiusura) e **scadenze di legge nello scadenziario** del fascicolo a ogni evento: notifica del decreto entro 60 giorni (art. 644), opposizione 40 giorni (art. 641), precetto 10 e 90 giorni (artt. 480-481), iscrizione a ruolo del pignoramento presso terzi (art. 543). Nessuna scadenza duplicata; data dell'evento non futura.
+- **Conteggio del credito** per posizione: interessi moratori (D.Lgs. 231/2002) per i crediti commerciali o legali negli altri casi, dalla scadenza o dal trentesimo giorno dalla fattura (art. 4 c. 2), acconti imputati ai documenti più vecchi e indennizzo forfettario di 40 euro per fattura (art. 6), con lo stesso motore degli Strumenti forensi.
+
 ## 2.427.0 — 29/09/2026
 
 Contabilità di studio (prima nota raggiungibile, riepilogo dell'anno, stima del reddito, registro delle fatture emesse) e antiriciclaggio dalla scheda del cliente.

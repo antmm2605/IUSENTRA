@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.432.1 — 29/09/2026
+
+Correzione per la CI (job «Storybook: pagine e accessibilità») dopo la 2.432.0.
+
+- **Preparazione udienza accessibile**: l'avanzamento dei passi nell'elenco è letto correttamente dagli screen reader («2 passi su 5») e i titoli delle udienze seguono l'ordine dei livelli di intestazione.
+- **Pagina della preparazione più robusta**: con dati incompleti mostra «Preparazione non disponibile» invece di interrompersi.
+- **Storie Storybook con dati di esempio** per Controllo Studio e Preparazione udienza (elenco e scheda).
+- **Gate locale allineato alla CI**: `scripts/ci_local_gate.sh` esegue anche i test delle storie con i controlli di accessibilità, che prima giravano solo su GitHub.
+
 ## 2.432.0 — 29/09/2026
 
 Tre strumenti di lavoro quotidiano rifatti da capo: Controllo Studio in un solo quadro, Preparazione udienza guidata in cinque passi con l'esito che crea da solo i seguiti, Timer attività collegato ai fascicoli per nome.

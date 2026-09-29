@@ -33,7 +33,7 @@ function RigaUdienza({ u, fascicoli, puoModificare }: { u: Udienza; fascicoli: A
         <span>{dataIt(u.dataOra)}</span>
       </div>
       <div className="iu-pu-udienza__testo">
-        <h3>{u.titolo}</h3>
+        <h2>{u.titolo}</h2>
         <p>
           {u.luogo ? <span><MapPin size={13}/> {u.luogo}</span> : null}
           {u.cliente ? <span><UserRound size={13}/> {u.cliente}</span> : null}
@@ -54,7 +54,7 @@ function RigaUdienza({ u, fascicoli, puoModificare }: { u: Udienza; fascicoli: A
         <span className={`iu-pu-stato ${u.stato === 'Da preparare' ? 'is-da-fare' : u.stato === 'Preparata' || u.stato === 'Esito registrato' ? 'is-fatto' : 'is-corso'}`}>
           {u.stato}
         </span>
-        <div className="iu-pu-avanzamento" aria-label={`${u.passiFatti} passi su 5`}>
+        <div className="iu-pu-avanzamento" role="img" aria-label={`${u.passiFatti} passi su 5`}>
           {[1, 2, 3, 4, 5].map((n) => <i key={n} className={n <= u.passiFatti ? 'is-fatto' : ''}/>)}
         </div>
         {u.href ? <a className="iu-pu-btn is-primario" href={u.href}><Play size={14}/> {u.stato === 'Esito registrato' ? 'Apri' : 'Continua'}</a>

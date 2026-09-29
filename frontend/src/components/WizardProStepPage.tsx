@@ -58,7 +58,7 @@ export function WizardProStepPage() {
   }, [azione, vaiA])
 
   if (!s) return <main className="iu-content iu-pu"><p className="iu-pu-stato-pagina">Caricamento della preparazione…</p></main>
-  if (!s.ok) return <main className="iu-content iu-pu"><p className="iu-pu-stato-pagina is-errore" role="alert">{s.message}</p></main>
+  if (!s.ok || !Array.isArray(s.passi) || !s.passi.length) return <main className="iu-content iu-pu"><p className="iu-pu-stato-pagina is-errore" role="alert">{s.message || 'Preparazione non disponibile.'}</p></main>
   const attuale = s.passi.find((p) => p.n === passo) || s.passi[0]
   const a: Azioni = { salvaCampi, azione, occupato }
   const Corpo = [PassoQuadro, PassoDocumenti, PassoStrategia, PassoPartenza, PassoEsito][passo - 1]

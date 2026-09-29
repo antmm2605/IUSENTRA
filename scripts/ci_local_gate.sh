@@ -171,6 +171,9 @@ step "Storybook page coverage"   node frontend/scripts/check-storybook-page-cove
 step "UI coverage"               python3 scripts/validate_ui_coverage.py
 step "TypeScript typecheck"      npm --prefix frontend run typecheck --silent
 step "Vite build"                npm --prefix frontend run build:vite --silent
+# Stesso gate del job CI «Storybook: pagine e accessibilità» (storie + controlli axe).
+# Richiede Chromium di Playwright: `npx --prefix frontend playwright install chromium`.
+step "Storybook accessibilità"   npm --prefix frontend run test:storybook --silent
 
 # ---------------------------------------------------------------------------
 # 3. Pytest dei gate (salta con --fast)

@@ -1,4 +1,5 @@
 import fixtures from '../test/fixtures/app-v2-ui-fixtures.json'
+import { controlloStudioPayload, elencoUdienzePayload, schedaUdienzaPayload } from './udienzaStoryData'
 
 type ApiPayload = Record<string, unknown>
 
@@ -446,6 +447,9 @@ function applicazionePayload(): ApiPayload {
 }
 
 function payloadFor(url: URL): ApiPayload {
+  if (url.pathname === '/api/v1/ui/controllo-studio') return controlloStudioPayload()
+  if (url.pathname === '/api/v1/ui/preparazione-udienza') return elencoUdienzePayload()
+  if (url.pathname.startsWith('/api/v1/ui/preparazione-udienza/')) return schedaUdienzaPayload()
   if (url.pathname.startsWith('/api/v1/ui/applicazioni/')) return applicazionePayload()
   if (url.pathname === '/api/v1/ui/penale/panoramica') return penalePdpPanoramicaPayload()
   if (url.pathname.startsWith('/api/v1/ui/notifiche-legali/presidi')) return presidiPayload()

@@ -382,3 +382,59 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.iu-tool-deadlines ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.iu-tool-deadlines li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--iu-od-border);
+  border-radius: var(--iu-od-radius-2);
+  background: var(--iu-od-surface-soft);
+}
+
+.iu-tool-deadlines li > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.iu-tool-deadlines li strong {
+  font-size: 13px;
+}
+
+.iu-tool-deadlines li span {
+  color: var(--iu-od-muted);
+  font-size: 0.8rem;
+}
+
+.iu-tool-deadlines li span.is-ok {
+  color: #067647;
+}
+
+.iu-tool-deadlines li span.is-error {
+  color: #b42318;
+}
+
+.iu-tool-deadlines button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 640px) {
+  .iu-tool-deadlines li button {
+    width: 100%;
+    justify-content: center;
+  }
+}

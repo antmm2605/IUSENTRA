@@ -38,6 +38,11 @@ def _si_no(nome: str, etichetta: str, *, aiuto: str = "") -> CampoSchema:
     return _scelta(nome, etichetta, [("0", "No"), ("1", "Sì")], aiuto=aiuto)
 
 
+def _quando(campo: CampoSchema, controllo: str, *valori: str) -> CampoSchema:
+    """Il campo si mostra solo quando ``controllo`` ha uno dei valori indicati (vuoto = primo valore)."""
+    return {**campo, "quando": {"campo": controllo, "valori": list(valori)}}
+
+
 def _data(nome: str, etichetta: str, *, aiuto: str = "") -> CampoSchema:
     return {"name": nome, "label": etichetta, "type": "date", "help": aiuto}
 
@@ -718,6 +723,81 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
             _data("adr_data_avvio", "Deposito della domanda o ricezione dell'invito", aiuto="Facoltativo: da qui si ricavano i termini del procedimento."),
         ],
     },
+    "termini_penali": {
+        "azione": "Calcola termine",
+        "campi": [
+            _scelta("tp_atto", "Atto", [
+                ("impugnazione_sentenza", "Appello o ricorso per cassazione contro la sentenza (art. 585)"),
+                ("opposizione_decreto_penale", "Opposizione al decreto penale di condanna (art. 461)"),
+                ("riesame_personale", "Riesame di misura coercitiva (art. 309)"),
+                ("appello_cautelare", "Appello cautelare (artt. 310 e 322-bis)"),
+                ("ricorso_cautelare", "Ricorso per cassazione in materia cautelare (art. 311)"),
+                ("riesame_reale", "Riesame di sequestro o misura reale (art. 324)"),
+                ("memorie_415bis", "Memorie dopo l'avviso di conclusione indagini (art. 415-bis)"),
+                ("opposizione_archiviazione", "Opposizione alla richiesta di archiviazione (art. 408)"),
+                ("motivi_nuovi", "Motivi nuovi (art. 585 c. 4)"),
+            ]),
+            _data("tp_data_evento", "Data di partenza", aiuto="Pronuncia, lettura, notificazione, esecuzione o udienza, secondo l'atto scelto."),
+            _quando(_scelta("tp_motivazione", "Deposito della motivazione", [
+                ("quindici_giorni", "Entro 15 giorni (art. 544 c. 2): 30 giorni per impugnare"),
+                ("contestuale", "Contestuale, letta in udienza (art. 544 c. 1): 15 giorni"),
+                ("termine_giudice", "Termine fissato dal giudice fino a 90 giorni (art. 544 c. 3): 45 giorni"),
+                ("camera_consiglio", "Provvedimento in camera di consiglio: 15 giorni dall'avviso di deposito"),
+            ]), "tp_atto", "impugnazione_sentenza"),
+            _quando(_intero("tp_giorni_deposito", "Giorni fissati dal giudice per la motivazione", massimo=90, aiuto="Termine dell'art. 544 c. 3."), "tp_motivazione", "termine_giudice"),
+            _quando(_data("tp_data_avviso_deposito", "Avviso di deposito della sentenza depositata in ritardo", aiuto="Art. 548 c. 2: se c'è, il termine decorre da qui."), "tp_atto", "impugnazione_sentenza"),
+            _quando(_si_no("tp_assente", "Imputato giudicato in assenza", aiuto="+15 giorni per l'impugnazione del difensore (art. 585 c. 1-bis)."), "tp_atto", "impugnazione_sentenza"),
+            _quando(_si_no("tp_violenza_persona", "Delitto con violenza alla persona o furto in abitazione", aiuto="Opposizione all'archiviazione: 30 giorni (art. 408 c. 3-bis)."), "tp_atto", "opposizione_archiviazione"),
+            _si_no("tp_detenuto_rinuncia", "Imputato in custodia che rinuncia alla sospensione feriale"),
+            _si_no("tp_criminalita_organizzata", "Reato di criminalità organizzata", aiuto="La sospensione feriale non opera (art. 2 L. 742/1969)."),
+            _si_no("tp_urgenza", "Urgenza dichiarata dal giudice"),
+        ],
+    },
+    "indagini_preliminari": {
+        "azione": "Calcola termini",
+        "campi": [
+            _data("ind_data_iscrizione", "Iscrizione del nome nel registro (art. 335)"),
+            _scelta("ind_tipo", "Reato", [("delitto", "Delitto"), ("contravvenzione", "Contravvenzione"), ("delitto_407", "Delitto dell'art. 407 c. 2")]),
+            _si_no("ind_proroga", "Proroga concessa (art. 406)"),
+            _data("ind_data_avviso_415bis", "Notifica dell'avviso di conclusione indagini", aiuto="Facoltativo (art. 415-bis)."),
+            _si_no("tp_detenuto_rinuncia", "Indagato in custodia che rinuncia alla sospensione feriale"),
+            _si_no("tp_criminalita_organizzata", "Reato di criminalità organizzata"),
+        ],
+    },
+    "custodia_durata": {
+        "azione": "Calcola durata",
+        "campi": [
+            _scelta("cus_fase", "Fase", [
+                ("indagini", "Indagini (lett. a)"),
+                ("giudizio", "Giudizio di primo grado (lett. b)"),
+                ("abbreviato", "Giudizio abbreviato (lett. b-bis)"),
+                ("appello", "Dopo la condanna di primo grado (lett. c)"),
+                ("cassazione", "Dopo la condanna in appello (lett. d)"),
+            ]),
+            _data("cus_data_inizio_fase", "Inizio della fase", aiuto="Esecuzione, provvedimento che dispone il giudizio, ordinanza di abbreviato o sentenza di condanna."),
+            _data("cus_data_inizio_esecuzione", "Inizio dell'esecuzione della custodia", aiuto="Per la durata complessiva (art. 303 c. 4)."),
+            _intero("cus_pena_massima_anni", "Pena massima prevista dalla legge — anni"),
+            _intero("cus_pena_massima_mesi", "Mesi", massimo=11),
+            _si_no("cus_ergastolo", "Delitto punito con l'ergastolo"),
+            _si_no("cus_delitto_407", "Delitto dell'art. 407 c. 2 lett. a)"),
+            _quando(_intero("cus_condanna_anni", "Pena inflitta — anni"), "cus_fase", "appello", "cassazione"),
+            _quando(_intero("cus_condanna_mesi", "Mesi", massimo=11), "cus_fase", "appello", "cassazione"),
+            _quando(_si_no("cus_condanna_ergastolo", "Condanna all'ergastolo"), "cus_fase", "appello", "cassazione"),
+        ],
+    },
+    "improcedibilita_penale": {
+        "azione": "Calcola termine",
+        "campi": [
+            _data("imp_data_fatto", "Data del fatto", aiuto="Si applica ai reati commessi dal 1° gennaio 2020."),
+            _scelta("imp_grado", "Giudizio", [("appello", "Appello"), ("cassazione", "Cassazione")]),
+            _data("imp_data_pronuncia", "Data della sentenza impugnata"),
+            _intero("imp_giorni_motivazione", "Giorni per la motivazione (0 se contestuale)", massimo=90),
+            _data("imp_data_impugnazione", "Data dell'impugnazione", aiuto="Entro il 31/12/2024: 3 anni in appello e 18 mesi in cassazione."),
+            _si_no("imp_atti_pervenuti_prima", "Atti già pervenuti al giudice il 19/10/2021"),
+            _intero("imp_proroghe_mesi", "Proroghe disposte (mesi)"),
+            _intero("imp_giorni_sospensione", "Giorni di sospensione (art. 344-bis c. 6)"),
+        ],
+    },
     "prescrizione_penale": {
         "azione": "Calcola termine",
         "campi": [
@@ -727,8 +807,19 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
             _intero("presc_massimo_edittale_mesi", "Mesi", massimo=11),
             _si_no("presc_contravvenzione", "Contravvenzione"),
             _si_no("presc_raddoppio", "Termini raddoppiati", aiuto="Art. 157, commi 6 e 7, c.p.: reati per i quali il termine e' raddoppiato."),
-            _numero("presc_coeff_interruzione", "Coefficiente di interruzione", minimo=1, passo="0.01"),
-            _intero("presc_giorni_sospensione", "Giorni di sospensione"),
+            _scelta("presc_interruzione", "Aumento massimo per interruzione (art. 161 c. 2)", [
+                ("quarto", "Un quarto"),
+                ("meta", "Metà: recidiva aggravata o reati contro la P.A. richiamati"),
+                ("due_terzi", "Due terzi: recidiva reiterata"),
+                ("doppio", "Doppio: delinquente abituale o professionale"),
+                ("nessun_limite", "Nessun limite: art. 51 c. 3-bis e 3-quater c.p.p."),
+            ]),
+            _intero("presc_giorni_sospensione", "Giorni di sospensione (art. 159 c. 1)"),
+            _data("presc_data_sentenza_primo_grado", "Sentenza di primo grado", aiuto="Reati dal 1/1/2020: la prescrizione si ferma qui (art. 161-bis c.p.)."),
+            _data("presc_scadenza_motivazione_primo", "Scadenza del termine per la motivazione della condanna di primo grado", aiuto="Reati dal 3/8/2017 al 31/12/2019 (L. 103/2017)."),
+            _data("presc_dispositivo_appello", "Dispositivo della sentenza di appello"),
+            _data("presc_scadenza_motivazione_appello", "Scadenza del termine per la motivazione della condanna in appello"),
+            _data("presc_dispositivo_cassazione", "Dispositivo della sentenza di cassazione"),
         ],
     },
     "successione_legittima": {

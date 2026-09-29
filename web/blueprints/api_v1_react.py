@@ -10754,6 +10754,48 @@ def strumenti_legali_calcola_react():
         return jsonify({"ok": False, "errore": "Calcolo non riuscito. Controlla i dati e riprova."}), 200
 
 
+@api_v1_react.post("/strumenti-legali/scadenza")
+@_richiedi_auth
+def strumenti_legali_scadenza_react():
+    """Porta nello scadenziario una scadenza proposta da un calcolatore, ricalcolata sul server."""
+
+    from pct.calcolatori.schema import schema_calcolatore
+    from pct.strumenti_legali import GestioneStrumentiLegali
+    from web.blueprints.strumenti_legali import TOOL_METHODS
+    from web.services.strumenti_scadenze_runtime import crea_scadenza
+
+    if not _scadenziario_can_write():
+        return jsonify({"ok": False, "errore": "Serve il permesso di scrittura sullo scadenziario."}), 403
+    payload = request.get_json(silent=True) or {}
+    tool = str(payload.get("tool") or "").strip()
+    if not schema_calcolatore(tool) or tool not in TOOL_METHODS:
+        return jsonify({"ok": False, "errore": "Strumento non disponibile."}), 400
+    dati = payload.get("dati") if isinstance(payload.get("dati"), dict) else {}
+    id_fascicolo = str(payload.get("id_fascicolo") or "").strip()
+    valido, errore = _validate_current_tenant_fascicolo_id(id_fascicolo)
+    if not valido:
+        return jsonify(errore or {"ok": False}), 404
+    try:
+        indice = int(payload.get("indice") or 0)
+    except (TypeError, ValueError):
+        indice = -1
+    gestore = GestioneStrumentiLegali(
+        normative_db_path=current_app.config.get("NORMATIVE_TABLES_DB", "./intelligence/tabelle_normative.json"))
+    try:
+        corpo, stato = crea_scadenza(
+            tool=tool, dati=dati, indice=indice, id_fascicolo=id_fascicolo,
+            calcola=lambda nome, valori: getattr(gestore, TOOL_METHODS[nome])(valori),
+            scadenziario=get_scadenziario(), oggi=_deadline_today_rome(), id_utente=_current_user_id(),
+            collega_agenda=_sync_calculated_deadline_to_agenda,
+        )
+    except ValueError as exc:
+        corpo, stato = {"ok": False, "errore": str(exc)}, 400
+    except Exception as exc:
+        current_app.logger.exception("Scadenza da strumento non creata: %s", exc)
+        corpo, stato = {"ok": False, "errore": "Scadenza non creata."}, 500
+    return jsonify(corpo), stato
+
+
 @api_v1_react.get("/dashboard")
 @_richiedi_auth
 def dashboard():

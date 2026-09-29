@@ -10,6 +10,8 @@ export type CampoStrumento = {
   max?: number
   step?: string
   options?: { value: string; label: string }[]
+  /** Il campo si mostra solo quando un altro campo ha uno di questi valori (vuoto = primo valore). */
+  quando?: { campo: string; valori: string[] }
 }
 
 export type StrumentoForense = {
@@ -71,7 +73,7 @@ export async function eseguiCalcolo(
 }
 
 /** Chiavi che il pannello rende in forma dedicata, non come riga di sintesi. */
-const CHIAVI_NON_SINTETICHE = new Set(['notes', 'warnings', 'sources'])
+const CHIAVI_NON_SINTETICHE = new Set(['notes', 'warnings', 'sources', 'scadenze_proposte', 'scadenza_iso'])
 
 /** Estrae le righe leggibili di un risultato, senza conoscere lo strumento. */
 export function righeRisultato(result: Record<string, unknown> | undefined): { label: string; value: string }[] {
@@ -153,4 +155,34 @@ export function fontiRisultato(result: Record<string, unknown> | undefined): { t
     .filter((voce): voce is { title?: string; url?: string } => typeof voce === 'object' && voce !== null)
     .map((voce) => ({ title: String(voce.title ?? ''), url: String(voce.url ?? '') }))
     .filter((voce) => voce.url)
+}
+
+export type ScadenzaProposta = { titolo: string; data: string; norma: string }
+
+export function scadenzeProposte(result: Record<string, unknown> | undefined): ScadenzaProposta[] {
+  const valore = result?.scadenze_proposte
+  if (!Array.isArray(valore)) return []
+  return valore
+    .filter((voce): voce is Record<string, unknown> => typeof voce === 'object' && voce !== null)
+    .map((voce) => ({ titolo: String(voce.titolo ?? ''), data: String(voce.data ?? ''), norma: String(voce.norma ?? '') }))
+    .filter((voce) => /^\d{4}-\d{2}-\d{2}$/.test(voce.data))
+}
+
+export type EsitoScadenza = { ok: boolean; messaggio?: string; errore?: string; href?: string; giaPresente?: boolean }
+
+export function aggiungiScadenza(tool: string, dati: Record<string, string>, indice: number, idFascicolo: string): Promise<EsitoScadenza> {
+  return apiPostJson<EsitoScadenza>(
+    '/api/v1/ui/strumenti-legali/scadenza',
+    { tool, dati, indice, id_fascicolo: idFascicolo },
+    { ok: false, errore: 'Scadenza non creata.' },
+  )
+}
+
+/** Un campo condizionato si mostra quando il campo di controllo ha uno dei valori (vuoto = prima opzione). */
+export function campoVisibile(campo: CampoStrumento, campi: CampoStrumento[], valori: Record<string, string>): boolean {
+  if (!campo.quando) return true
+  const controllo = campi.find((voce) => voce.name === campo.quando?.campo)
+  const valore = valori[campo.quando.campo] || controllo?.options?.[0]?.value || ''
+  if (controllo && !campoVisibile(controllo, campi, valori)) return false
+  return campo.quando.valori.includes(valore)
 }

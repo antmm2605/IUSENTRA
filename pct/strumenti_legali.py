@@ -203,7 +203,11 @@ class GestioneStrumentiLegali:
             {"id": "tfr", "title": "TFR", "subtitle": "Quota maturata, rivalutazione annuale e residuo operativo del trattamento di fine rapporto.", "icon": "bi-wallet2", "categoria": "Lavoro"},
             {"id": "onorari_forensi", "title": "Onorari Forensi", "subtitle": "Parametri DM 55/2014 e DM 147/2022 con fasi, complessità e bonus telematico.", "icon": "bi-briefcase", "categoria": "Professione"},
             {"id": "custodia_cautelare", "title": "Custodia Cautelare", "subtitle": "Monitor di interrogatorio, riesame, decisione e deposito motivazione.", "icon": "bi-shield-lock", "categoria": "Penale"},
-            {"id": "prescrizione_penale", "title": "Prescrizione Penale", "subtitle": "Decorrenza base, sospensioni e proiezione del termine massimo con assunzioni esplicite.", "icon": "bi-hourglass-split", "categoria": "Penale"},
+            {"id": "prescrizione_penale", "title": "Prescrizione Penale", "subtitle": "Art. 157-161 c.p. a calendario, sospensioni della L. 103/2017 e blocco dopo il primo grado (art. 161-bis).", "icon": "bi-hourglass-split", "categoria": "Penale"},
+            {"id": "termini_penali", "title": "Impugnazioni e opposizioni penali", "subtitle": "Artt. 585, 461, 309-311, 324, 408 e 415-bis c.p.p. con motivazione ex art. 544, assenza e sospensione feriale.", "icon": "bi-calendar-check", "categoria": "Penale"},
+            {"id": "indagini_preliminari", "title": "Durata delle indagini preliminari", "subtitle": "Artt. 405, 406, 407 e 407-bis c.p.p. dopo la riforma Cartabia.", "icon": "bi-search", "categoria": "Penale"},
+            {"id": "custodia_durata", "title": "Durata massima della custodia cautelare", "subtitle": "Termini di fase e complessivi dell'art. 303 c.p.p.", "icon": "bi-shield-lock", "categoria": "Penale"},
+            {"id": "improcedibilita_penale", "title": "Improcedibilità in appello e cassazione", "subtitle": "Art. 344-bis c.p.p. con la disciplina transitoria della L. 134/2021.", "icon": "bi-stopwatch", "categoria": "Penale"},
             {"id": "successione_legittima", "title": "Successione Legittima", "subtitle": "Riparto quote tra coniuge, figli, ascendenti e fratelli sull'asse ereditario.", "icon": "bi-diagram-3", "categoria": "Patrimonio"},
             {"id": "cedolare_secca", "title": "Cedolare Secca", "subtitle": "Imposta annua, costo pluriennale e confronto operativo con il registro ordinario.", "icon": "bi-house-check", "categoria": "Fiscale"},
             {"id": "indennita_licenziamento", "title": "Indennita Licenziamento", "subtitle": "Tutele crescenti, piccole imprese e stima mensilita riconoscibili.", "icon": "bi-person-x", "categoria": "Lavoro"},
@@ -509,7 +513,46 @@ class GestioneStrumentiLegali:
             "presc_contravvenzione": "0",
             "presc_raddoppio": "0",
             "presc_coeff_interruzione": "1.25",
+            "presc_interruzione": "quarto",
             "presc_giorni_sospensione": "0",
+            "presc_data_sentenza_primo_grado": "",
+            "presc_scadenza_motivazione_primo": "",
+            "presc_dispositivo_appello": "",
+            "presc_scadenza_motivazione_appello": "",
+            "presc_dispositivo_cassazione": "",
+            # Termini penali (pct.termini_penali)
+            "tp_atto": "impugnazione_sentenza",
+            "tp_data_evento": today,
+            "tp_motivazione": "quindici_giorni",
+            "tp_giorni_deposito": "",
+            "tp_data_avviso_deposito": "",
+            "tp_assente": "0",
+            "tp_violenza_persona": "0",
+            "tp_detenuto_rinuncia": "0",
+            "tp_criminalita_organizzata": "0",
+            "tp_urgenza": "0",
+            "ind_data_iscrizione": today,
+            "ind_tipo": "delitto",
+            "ind_proroga": "0",
+            "ind_data_avviso_415bis": "",
+            "cus_fase": "indagini",
+            "cus_data_inizio_fase": today,
+            "cus_data_inizio_esecuzione": "",
+            "cus_pena_massima_anni": "",
+            "cus_pena_massima_mesi": "0",
+            "cus_ergastolo": "0",
+            "cus_delitto_407": "0",
+            "cus_condanna_anni": "",
+            "cus_condanna_mesi": "0",
+            "cus_condanna_ergastolo": "0",
+            "imp_data_fatto": "",
+            "imp_grado": "appello",
+            "imp_data_pronuncia": "",
+            "imp_giorni_motivazione": "15",
+            "imp_data_impugnazione": "",
+            "imp_atti_pervenuti_prima": "0",
+            "imp_proroghe_mesi": "0",
+            "imp_giorni_sospensione": "0",
             # Perfezionamento della notifica
             "not_canale": "pec",
             "not_data_invio": today,
@@ -2810,21 +2853,39 @@ class GestioneStrumentiLegali:
                 "dell'art. 51, commi 3-bis e 3-quater, c.p.p. e reati sessuali ivi richiamati)."
             )
 
-        base_core_days = round(termine_base_anni * 365.25)
-        base_days = base_core_days + giorni_sospensione
-        massimo_days = round(base_core_days * coeff_interruzione) + giorni_sospensione
-        data_prescrizione_base = data_fatto + timedelta(days=base_days)
-        data_prescrizione_massima = data_fatto + timedelta(days=massimo_days)
+        from fractions import Fraction
 
+        from pct.termini_penali import prescrizione as regimi
+
+        scelta = regimi.coefficiente(payload)
+        if scelta is not None:
+            coeff_frazione, etichetta_interruzione = scelta
+        else:
+            coeff_frazione = Fraction(coeff_interruzione).limit_denominator(12)
+            etichetta_interruzione = f"Coefficiente indicato: {float(coeff_frazione):.2f}"
+        mesi_base = Fraction(round(termine_base_anni * 12 * 1000), 1000)
+        data_prescrizione_base = regimi.aggiungi_periodo(data_fatto, mesi_base) + timedelta(days=giorni_sospensione)
+        if coeff_frazione is None:
+            data_prescrizione_massima = None
+            notes.append("Reati dell'art. 51, commi 3-bis e 3-quater, c.p.p.: l'interruzione non ha limite massimo "
+                         "(art. 161, secondo comma, c.p.); il termine riparte da ogni atto interruttivo.")
+        else:
+            data_prescrizione_massima = regimi.aggiungi_periodo(data_fatto, mesi_base * coeff_frazione) + timedelta(days=giorni_sospensione)
+        dopo = regimi.dopo_la_sentenza(data_fatto, payload, data_prescrizione_massima)
+        if dopo["giorni_aggiunti"] and data_prescrizione_massima:
+            data_prescrizione_massima += timedelta(days=dopo["giorni_aggiunti"])
+            data_prescrizione_base += timedelta(days=dopo["giorni_aggiunti"])
         notes.extend(
             [
                 "Termine base calcolato sul massimo edittale indicato, con la soglia minima di sei "
                 "anni per i delitti e quattro per le contravvenzioni (art. 157, primo comma, c.p.).",
-                "Il termine massimo applica il coefficiente di interruzione e somma i giorni di "
-                "sospensione indicati (artt. 159 e 161 c.p.).",
+                "Anni e mesi si contano a calendario dalla data del fatto; una frazione di mese residua vale "
+                "trenta giorni. Il termine massimo applica l'aumento per interruzione e somma le sospensioni "
+                "(artt. 159 e 161 c.p.).",
                 "Il termine decorre dal giorno della consumazione; per il reato tentato dal giorno "
                 "dell'ultimo atto, per il permanente dalla cessazione della permanenza "
                 "(art. 158 c.p.): la data indicata va scelta di conseguenza.",
+                *dopo["note"],
             ]
         )
         warnings.append(
@@ -2832,31 +2893,60 @@ class GestioneStrumentiLegali:
             "sospensioni normativamente tipizzate: il modulo applica i parametri dichiarati, non "
             "ricostruisce il procedimento."
         )
+        warnings.extend(dopo["avvisi"])
         if not raddoppio:
             warnings.append(
                 "Raddoppio dei termini non applicato: controlla se il reato rientra fra quelli "
                 "dell'art. 157, commi 6 e 7, c.p."
             )
 
-        return {
+        risultato = {
             "data_fatto": data_fatto.isoformat(),
             "data_fatto_it": _fmt_date_it(data_fatto),
             "contravvenzione": contravvenzione,
             "regime_label": "Contravvenzione" if contravvenzione else "Delitto",
+            "regime_dopo_sentenza": dopo.get("etichetta", ""),
             "imprescrittibile": False,
             "raddoppio": raddoppio,
             "massimo_edittale_anni": round(massimo_edittale, 2),
             "termine_base_anni": round(termine_base_anni, 2),
-            "coeff_interruzione": round(coeff_interruzione, 2),
-            "giorni_sospensione": giorni_sospensione,
+            "interruzione": etichetta_interruzione,
+            "coeff_interruzione": round(float(coeff_frazione), 2) if coeff_frazione is not None else "senza limite",
+            "giorni_sospensione": giorni_sospensione + dopo["giorni_aggiunti"],
             "data_prescrizione_base": data_prescrizione_base.isoformat(),
             "data_prescrizione_base_it": _fmt_date_it(data_prescrizione_base),
-            "data_prescrizione_massima": data_prescrizione_massima.isoformat(),
-            "data_prescrizione_massima_it": _fmt_date_it(data_prescrizione_massima),
+            "data_prescrizione_massima": data_prescrizione_massima.isoformat() if data_prescrizione_massima else "",
+            "data_prescrizione_massima_it": _fmt_date_it(data_prescrizione_massima) if data_prescrizione_massima else "senza limite",
+            "effetto_sentenza_primo_grado": dopo.get("blocco", ""),
+            "sospensioni_dopo_condanna": dopo["periodi"],
             "notes": notes,
             "warnings": warnings,
             "sources": self._sources_for_codes("normattiva_portale", "cassazione_portale"),
         }
+        if data_prescrizione_massima and not dopo.get("cessata"):
+            risultato["scadenze_proposte"] = [{"titolo": "Prescrizione massima del reato (art. 161 c.p.)",
+                                               "data": data_prescrizione_massima.isoformat(), "norma": "artt. 157-161 c.p."}]
+        return risultato
+
+    def calcola_termini_penali(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        from pct.termini_penali import impugnazioni
+
+        return {**impugnazioni.calcola(payload), "sources": self._sources_for_codes("normattiva_portale", "cassazione_portale")}
+
+    def calcola_indagini_preliminari(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        from pct.termini_penali import indagini
+
+        return {**indagini.calcola(payload), "sources": self._sources_for_codes("normattiva_portale")}
+
+    def calcola_custodia_durata(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        from pct.termini_penali import custodia
+
+        return {**custodia.calcola(payload), "sources": self._sources_for_codes("normattiva_portale", "cassazione_portale")}
+
+    def calcola_improcedibilita_penale(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        from pct.termini_penali import improcedibilita
+
+        return {**improcedibilita.calcola(payload), "sources": self._sources_for_codes("normattiva_portale", "cassazione_portale")}
 
     def calcola_successione_legittima(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         asse = _safe_float(payload.get("successione_asse"))

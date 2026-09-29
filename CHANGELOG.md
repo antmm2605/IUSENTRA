@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.425.0 — 29/09/2026
+
+Termini penali calcolati come prevede il codice: impugnazioni, cautelari, indagini, custodia, prescrizione e improcedibilità, con la scadenza che va nello scadenziario del fascicolo.
+
+- **Nuovo motore `pct/termini_penali/`** con il computo dell'art. 172 c.p.p.: giorno di decorrenza escluso, proroga del termine a giorni che scade di domenica o in festività nazionale (il sabato nel penale non è festivo), sospensione feriale 1-31 agosto (L. 742/1969) anche per le indagini, esclusa per l'imputato in custodia che rinuncia, per la criminalità organizzata e con l'urgenza dichiarata.
+- **Impugnazioni e opposizioni penali** (Strumenti forensi): art. 585 con i 15/30/45 giorni secondo l'art. 544, la decorrenza dal deposito o dall'avviso tardivo (art. 548 c. 2), i 15 giorni in più per il difensore dell'assente (c. 1-bis) e i motivi nuovi; opposizione al decreto penale (461), riesame e appello cautelare (309, 310, 311, 324, 322-bis), memorie dopo il 415-bis e opposizione all'archiviazione (408, 30 giorni per i delitti con violenza).
+- **Durata delle indagini preliminari**: artt. 405, 406, 407 e 407-bis dopo la riforma Cartabia.
+- **Durata massima della custodia cautelare**: termini di fase e complessivi dell'art. 303.
+- **Improcedibilità in appello e cassazione** (art. 344-bis) con la disciplina transitoria della L. 134/2021.
+- **Prescrizione penale** a calendario (prima con anni di 365,25 giorni), aumento per interruzione scelto fra i casi dell'art. 161 c. 2, sospensioni della L. 103/2017 per i reati del 3/8/2017-31/12/2019 (Cass. Sez. Un. 20989/2025, Corte cost. 38/2026) e blocco con la sentenza di primo grado per i reati dal 2020 (art. 161-bis). La riforma in esame al Senato è segnalata.
+- **«Aggiungi allo scadenziario»** sotto il risultato: il server rifà il calcolo, crea la scadenza perentoria nel fascicolo (se la pagina è aperta da un fascicolo) e l'appuntamento in agenda, senza doppioni.
+- I campi dei moduli compaiono solo quando servono all'atto scelto. Lex risponde sui termini penali con lo stesso motore (prima: appello a 15 giorni fissi, senza festivi né agosto).
+- Fonti: docs/specs/ministero/fonti_ufficiali/2026-09-29/penale/README.md.
+
 ## 2.424.0 — 29/09/2026
 
 «La mia firma»: ogni avvocato dello studio sceglie il proprio gestore o il proprio dispositivo, e la maschera si adatta al gestore scelto.

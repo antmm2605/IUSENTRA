@@ -95,15 +95,41 @@ _TERMINI: dict[str, dict[str, Any]] = {
     },
     "appello_sentenza_penale": {
         "giorni": 15,
-        "label": "Appello sentenza penale (termine breve)",
+        "label": "Appello contro la sentenza penale",
         "norma": "art. 585 c.p.p.",
+        "penale": "impugnazione_sentenza",
     },
     "ricorso_cassazione_penale": {
-        "giorni": 30,
-        "label": "Ricorso in Cassazione penale",
+        "giorni": 15,
+        "label": "Ricorso per cassazione contro la sentenza penale",
         "norma": "art. 585 c.p.p.",
+        "penale": "impugnazione_sentenza",
     },
 }
+_TERMINI["impugnazione_decreto_penale"]["penale"] = "opposizione_decreto_penale"
+
+
+def _termine_penale(info: dict, decorrenza: date) -> str:
+    """Termini penali col motore deterministico (art. 172 c.p.p., L. 742/1969, art. 585 c.p.p.)."""
+    from pct.termini_penali import impugnazioni
+
+    righe = [f"**{info['label']}** ({info['norma']})", ""]
+    if info["penale"] == "impugnazione_sentenza":
+        righe.append("Il termine dipende da come è stata depositata la motivazione (art. 585 c. 1 c.p.p.):")
+        for modo, testo in (("contestuale", "motivazione letta in udienza: 15 giorni dalla lettura"),
+                            ("quindici_giorni", "motivazione entro 15 giorni (art. 544 c. 2): 30 giorni dalla scadenza del deposito")):
+            esito = impugnazioni.calcola({"tp_atto": "impugnazione_sentenza", "tp_motivazione": modo,
+                                          "tp_data_evento": decorrenza.isoformat()})
+            righe.append(f"- {testo}: scadenza **{esito['scadenza']}**")
+        righe.append("- termine più lungo fissato dal giudice (art. 544 c. 3): 45 giorni dalla sua scadenza")
+        righe.append("- +15 giorni per il difensore dell'imputato giudicato in assenza (art. 585 c. 1-bis)")
+    else:
+        esito = impugnazioni.calcola({"tp_atto": info["penale"], "tp_data_evento": decorrenza.isoformat()})
+        righe.append(f"- Decorrenza: {_format_data(decorrenza)}")
+        righe.append(f"- Scadenza: **{esito['scadenza']}**")
+    righe += ["", "Calcolo con art. 172 c.p.p. (proroga se festivo, il sabato non lo è) e sospensione feriale dal "
+              "1° al 31 agosto (L. 742/1969). Per i casi particolari usa Strumenti forensi → «Impugnazioni e opposizioni penali»."]
+    return "\n".join(righe)
 
 
 def _format_data(d: date) -> str:
@@ -135,6 +161,8 @@ def calcola_termine(
     else:
         decorrenza = oggi
 
+    if info.get("penale") and giorni_override is None:
+        return _termine_penale(info, decorrenza)
     giorni = giorni_override if giorni_override is not None else int(info["giorni"])
     scadenza = decorrenza + timedelta(days=giorni)
     restanti = (scadenza - oggi).days

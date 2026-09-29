@@ -1,7 +1,10 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Building2, Mail, MapPin, Phone } from 'lucide-react'
+import { Building2, CalendarPlus, Mail, MapPin, Phone } from 'lucide-react'
 import {
+  aggiungiScadenza,
+  campoVisibile,
   caricaStrumentiLegali,
+  scadenzeProposte,
   eseguiCalcolo,
   elencoTestuale,
   etichettaChiave,
@@ -10,6 +13,7 @@ import {
   tabelleRisultato,
   type CampoStrumento,
   type EsitoCalcolo,
+  type EsitoScadenza,
   type StrumentiLegaliPayload,
   type StrumentoForense,
 } from '../strumentiLegaliData'
@@ -152,7 +156,50 @@ function RisultatoUffici({ result }: { result: Record<string, unknown> }) {
   )
 }
 
-function Risultato({ esito }: { esito: EsitoCalcolo }) {
+function ScadenzeProposte({ esito, tool, dati }: { esito: EsitoCalcolo; tool: string; dati: Record<string, string> }) {
+  const proposte = scadenzeProposte(esito.result)
+  const [esiti, setEsiti] = useState<Record<number, EsitoScadenza>>({})
+  const [inCorso, setInCorso] = useState<number | null>(null)
+  if (!proposte.length) return null
+  const idFascicolo = parametroUrl('id_fascicolo')
+  const aggiungi = async (indice: number) => {
+    setInCorso(indice)
+    const risposta = await aggiungiScadenza(tool, dati, indice, idFascicolo).catch(() => ({ ok: false, errore: 'Scadenza non creata.' }))
+    setInCorso(null)
+    setEsiti((correnti) => ({ ...correnti, [indice]: risposta }))
+  }
+  return (
+    <div className="iu-tool-deadlines">
+      <h4 className="iu-tool-result__subtitle">Scadenze da riportare{idFascicolo ? ' nel fascicolo' : ''}</h4>
+      <ul>
+        {proposte.map((voce, indice) => {
+          const risposta = esiti[indice]
+          return (
+            <li key={`${voce.titolo}-${voce.data}`}>
+              <div>
+                <strong>{voce.titolo}</strong>
+                <span>{voce.data.split('-').reverse().join('/')} · {voce.norma}</span>
+                {risposta ? (
+                  <span role={risposta.ok ? 'status' : 'alert'} className={risposta.ok ? 'is-ok' : 'is-error'}>
+                    {risposta.ok ? risposta.messaggio : risposta.errore}
+                    {risposta.ok && risposta.href ? <> <a href={risposta.href}>Apri</a></> : null}
+                  </span>
+                ) : null}
+              </div>
+              <button className="iu-button iu-button--secondary" type="button" disabled={inCorso !== null || Boolean(risposta?.ok)}
+                onClick={() => void aggiungi(indice)}>
+                <CalendarPlus size={15} aria-hidden="true" />
+                {inCorso === indice ? 'Aggiunta…' : 'Aggiungi allo scadenziario'}
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
+function Risultato({ esito, tool, dati }: { esito: EsitoCalcolo; tool: string; dati: Record<string, string> }) {
   if (!esito.ok) {
     return (
       <div className="iu-alert iu-alert--danger" role="alert">
@@ -205,6 +252,8 @@ function Risultato({ esito }: { esito: EsitoCalcolo }) {
         </div>
       ))}
 
+      <ScadenzeProposte key={JSON.stringify(esito.result?.scadenze_proposte ?? '')} esito={esito} tool={tool} dati={dati} />
+
       {avvisi.map((avviso) => (
         <div className="iu-alert iu-alert--warning" key={avviso}>
           {avviso}
@@ -245,6 +294,7 @@ function PannelloStrumento({
   strumento,
   valori,
   esito,
+  datiCalcolo,
   inCorso,
   onCampo,
   onCalcola,
@@ -252,6 +302,7 @@ function PannelloStrumento({
   strumento: StrumentoForense
   valori: Record<string, string>
   esito: EsitoCalcolo | null
+  datiCalcolo: Record<string, string>
   inCorso: boolean
   onCampo: (name: string, value: string) => void
   onCalcola: () => void
@@ -284,7 +335,7 @@ function PannelloStrumento({
           onCalcola()
         }}
       >
-        {strumento.campi.map((campo) => (
+        {strumento.campi.filter((campo) => campoVisibile(campo, strumento.campi, valori)).map((campo) => (
           <CampoModulo key={campo.name} campo={campo} valore={valori[campo.name] ?? ''} onChange={onCampo} />
         ))}
         <div className="iu-strumenti__azioni">
@@ -293,7 +344,7 @@ function PannelloStrumento({
           </button>
         </div>
       </form>
-      {esito ? <Risultato esito={esito} /> : null}
+      {esito ? <Risultato esito={esito} tool={strumento.id} dati={datiCalcolo} /> : null}
     </section>
   )
 }
@@ -303,6 +354,7 @@ export default function StrumentiLegaliPage() {
   const [attivo, setAttivo] = useState<string>(toolDallUrl())
   const [valori, setValori] = useState<Record<string, string>>({})
   const [esito, setEsito] = useState<EsitoCalcolo | null>(null)
+  const [datiCalcolo, setDatiCalcolo] = useState<Record<string, string>>({})
   const [inCorso, setInCorso] = useState(false)
   const [filtro, setFiltro] = useState('')
   const [contesto, setContesto] = useState<ContestoStrumento | null>(null)
@@ -378,6 +430,7 @@ export default function StrumentiLegaliPage() {
     abort.current = controller
     setInCorso(true)
     try {
+      setDatiCalcolo(valori)
       setEsito(await eseguiCalcolo(strumento.id, valori, controller.signal))
     } finally {
       setInCorso(false)
@@ -448,6 +501,7 @@ export default function StrumentiLegaliPage() {
                   strumento={strumento}
                   valori={valori}
                   esito={esito}
+                  datiCalcolo={datiCalcolo}
                   inCorso={inCorso}
                   onCampo={cambiaCampo}
                   onCalcola={() => void calcola()}

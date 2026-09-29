@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 429.
+- Endpoint React API contrattualizzati: 430.
 - Endpoint P0/P1 contrattualizzati: 364.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 386.
+- Endpoint con provider verification auth-error: 387.
 - Endpoint pubblici della pagina di accesso (stato 200, scritture in errore sicuro senza credenziali): 3.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 40.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
@@ -404,6 +404,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | API React operativa | `/api/v1/ui/strumenti-legali` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/strumenti-legali/{tool_id}` | `POST` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/strumenti-legali/calcola` | `POST` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/ui/strumenti-legali/scadenza` | `POST` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/studio` | `GET` | API React operativa | P2 | verified | success+auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | verified |
 | API React operativa | `/api/v1/ui/studio-modules/{module_id}` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/studio/timbro` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |

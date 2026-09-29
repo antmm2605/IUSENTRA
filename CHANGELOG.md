@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.430.0 — 29/09/2026
+
+Conservazione a norma: pacchetto di versamento del fascicolo per il conservatore, con le informazioni descrittive dell'Allegato 5 e il controllo dei formati dell'Allegato 2, e registro degli esiti.
+
+- **Nuova sezione «Conservazione a norma» nel fascicolo**: elenco dei documenti con il formato riconosciuto e l'avviso per quelli non compresi nell'Allegato 2 delle Linee guida AgID (es. .doc, .zip), da convertire in PDF/A o concordare con il conservatore.
+- **Pacchetto di versamento (ZIP)**: documenti originali, per ciascuno le informazioni del documento informatico dell'Allegato 5 (impronta SHA-256, modalità di formazione, tipologia, dati di registrazione in entrata/uscita/interni, soggetti, oggetto, riservatezza, formato, firma e marca temporale, fascicolo di appartenenza, versione, tempo di conservazione), indice del pacchetto e file di impronte verificabile con `sha256sum -c`. Il pacchetto è deterministico e resta cifrato sul server: si riscarica identico, con controllo dell'impronta.
+- **Registro dei versamenti**: per ogni pacchetto chi l'ha preparato, quando, quali documenti e l'esito dato dal conservatore (accettato con il rapporto di versamento, o rifiutato); i documenti versati sono indicati nell'elenco.
+- IUSENTRA non si dichiara conservatore: la conservazione a norma (art. 44 CAD) la svolge il conservatore scelto dallo studio, che forma il pacchetto di archiviazione con l'indice UNI 11386 (SInCRO). Base: artt. 43-44 CAD; Linee guida AgID sulla formazione, gestione e conservazione dei documenti informatici (§ 4, Allegati 2 e 5).
+
 ## 2.429.0 — 29/09/2026
 
 Modulo CTU e ausiliari del giudice: operazioni peritali, compenso secondo la tabella del D.M. 30/05/2002, termini della liquidazione e istanza di liquidazione pronta per il deposito.

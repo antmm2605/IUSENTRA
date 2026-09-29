@@ -34,6 +34,7 @@
     "frontend/src/components/SupportCustomerRoom.css": "Stanza cliente dell'assistenza remota (/support/join/<token>) migrata da template e script legacy: consensi, avvio e chiusura, microfono, chat tecnica, richiesta di controllo PC, schermo intero e chat compatta; pagina pubblica senza cornice dello studio, token condivisi, nessuno stile inline, responsive fino al telefono."
   },
   "approvedCssFiles": [
+    "frontend/src/components/fascicoli/ConservazionePanel.css",
     "frontend/src/components/fascicoli/CtuIncaricoDettaglio.css",
     "frontend/src/components/AdminDatabasePage.css",
     "frontend/src/components/AgendaImportPage.css",

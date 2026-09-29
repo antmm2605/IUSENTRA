@@ -3,7 +3,7 @@ import './PagoPaAvvisiPanel.css'
 
 type Avviso = {
   numero_avviso: string; importo: string; tipologia: string; stato: string
-  checkout_url: string; documento_id?: string
+  checkout_url: string; documento_id?: string; codice_fiscale_debitore?: string
 }
 
 export function PagoPaAvvisiPanel({ fascicoloId, refreshKey, onHasAvvisi, onNuovo, onRicevute }: {
@@ -16,6 +16,8 @@ export function PagoPaAvvisiPanel({ fascicoloId, refreshKey, onHasAvvisi, onNuov
   const [recover, setRecover] = useState(false)
   const [numero, setNumero] = useState('')
   const [importo, setImporto] = useState('')
+  const [codiceFiscale, setCodiceFiscale] = useState('')
+  const [proposta, setProposta] = useState<{ importo: string; cf: string }>({ importo: '', cf: '' })
   const fileRef = useRef<HTMLInputElement>(null)
   const base = `/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/pagopa`
   const load = useCallback(async (signal?: AbortSignal) => {
@@ -25,6 +27,7 @@ export function PagoPaAvvisiPanel({ fascicoloId, refreshKey, onHasAvvisi, onNuov
       if (!response.ok || !data.ok) throw new Error(data.message || 'Avvisi non disponibili.')
       if (signal?.aborted) return
       setAvvisi(data.avvisi); onHasAvvisi(data.avvisi.length > 0)
+      setProposta({ importo: String(data.prefill?.importoContributo || ''), cf: String(data.prefill?.codiceFiscale || '') })
     } catch (error) {
       if (!signal?.aborted) setMessage(error instanceof Error ? error.message : 'Avvisi non disponibili.')
     }
@@ -39,7 +42,7 @@ export function PagoPaAvvisiPanel({ fascicoloId, refreshKey, onHasAvvisi, onNuov
     try {
       const response = await fetch(`${base}/avvisi`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ numero_avviso: numero, importo: importo.replace(',', '.') }),
+        body: JSON.stringify({ numero_avviso: numero, importo: importo.replace(',', '.'), codice_fiscale_debitore: codiceFiscale.trim().toUpperCase() }),
       })
       const data = await response.json()
       if (!response.ok || !data.ok) throw new Error(data.message || 'Avviso non conservato.')
@@ -59,13 +62,32 @@ export function PagoPaAvvisiPanel({ fascicoloId, refreshKey, onHasAvvisi, onNuov
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Ricevuta non acquisita.') }
     finally { setBusy(false) }
   }
+  const recupera = async (avviso: Avviso) => {
+    setBusy(true); setMessage('Cerco la ricevuta sul PST…')
+    try {
+      const response = await fetch(`${base}/recupera`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ numero_avviso: avviso.numero_avviso, codice_fiscale_debitore: avviso.codice_fiscale_debitore || codiceFiscale.trim().toUpperCase() }),
+      })
+      const data = await response.json()
+      if (!response.ok || !data.ok) throw new Error(data.message || 'Ricevuta non recuperata.')
+      setMessage(data.message); if (data.trovata) await load()
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Ricevuta non recuperata.') }
+    finally { setBusy(false) }
+  }
+  const apriCollega = () => {
+    if (!recover) { setImporto((attuale) => attuale || proposta.importo); setCodiceFiscale((attuale) => attuale || proposta.cf) }
+    setRecover(!recover)
+  }
   return <section className="iu-pagopa-avvisi" aria-label="Avvisi PagoPA del fascicolo">
     <header><strong>Avvisi conservati nel fascicolo</strong>
-      <button type="button" onClick={() => setRecover(!recover)} disabled={busy}>Collega avviso esistente</button>
+      <button type="button" onClick={apriCollega} disabled={busy}>Collega avviso esistente</button>
     </header>
     {recover && <form onSubmit={(event) => { event.preventDefault(); void registra() }}>
       <label>Numero avviso<input value={numero} onChange={(event) => setNumero(event.target.value)} inputMode="numeric" pattern="[0-9]{18}" maxLength={18} required /></label>
       <label>Importo dell’avviso (€)<input value={importo} onChange={(event) => setImporto(event.target.value)} inputMode="decimal" required /></label>
+      <label>Codice fiscale di chi paga<input value={codiceFiscale} onChange={(event) => setCodiceFiscale(event.target.value)} maxLength={16} autoComplete="off" /></label>
+      {proposta.importo ? <p>Contributo unificato del fascicolo: € {proposta.importo.replace('.', ',')}. Verifica che coincida con l’avviso.</p> : null}
       <button type="submit" disabled={busy}>Conserva avviso</button>
     </form>}
     {avvisi.map((avviso) => <article key={avviso.numero_avviso}>
@@ -73,6 +95,9 @@ export function PagoPaAvvisiPanel({ fascicoloId, refreshKey, onHasAvvisi, onNuov
         <p>{avviso.tipologia} · € {new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(avviso.importo))}</p>
         <p>{avviso.documento_id ? 'Ricevuta verificata e acquisita' : 'Ricevuta da acquisire · verifica l’esito sul portale ufficiale'}</p>
       </div>
+      {!avviso.documento_id && <button type="button" disabled={busy || !(avviso.codice_fiscale_debitore || codiceFiscale.trim())}
+        title={avviso.codice_fiscale_debitore ? undefined : 'Indica il codice fiscale di chi ha pagato in «Collega avviso esistente»'}
+        onClick={() => void recupera(avviso)}>Recupera ricevuta dal PST</button>}
       {!avviso.documento_id && /^https:\/\/checkout\.pagopa\.it\/\d{29}$/.test(avviso.checkout_url) &&
         <a href={avviso.checkout_url} target="_blank" rel="noopener noreferrer">Verifica avviso / prosegui su pagoPA</a>}
       {avviso.documento_id && <a href={`/fascicoli/${encodeURIComponent(fascicoloId)}#documenti`}>Documenti del fascicolo</a>}

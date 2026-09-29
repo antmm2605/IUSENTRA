@@ -7405,15 +7405,53 @@ def fascicolo_pagopa_ricevuta(id_fasc: str):
     if len(contenuto) > 2 * 1024 * 1024:
         return jsonify(ok=False, message="La ricevuta supera il limite di 2 MB."), 400
     try:
-        avviso = acquisisci_rt(_fascicoli_loader()(), id_fasc, contenuto, _actor_label())
+        gestore = _fascicoli_loader()()
+        avviso = acquisisci_rt(gestore, id_fasc, contenuto, _actor_label())
         _clear_fascicoli_list_payload_cache()
         _audit_event("pagopa.ricevuta_acquisita", "fascicolo", id_fasc,
                      "Ricevuta verificata per IUV e importo e archiviata nel fascicolo.")
-        return jsonify(ok=True, avviso=avviso, message="Ricevuta verificata e archiviata nel fascicolo.")
+        from web.services.pagopa_avvisi_runtime import avviso_riuso
+        avvertenza = avviso_riuso(gestore, id_fasc, str(avviso.get("iuv") or avviso.get("numero_avviso") or ""))
+        messaggio = "Ricevuta verificata e archiviata nel fascicolo." + (f" {avvertenza}" if avvertenza else "")
+        return jsonify(ok=True, avviso=avviso, avvertenza=avvertenza, message=messaggio)
     except LookupError as exc:
         return jsonify(ok=False, message=str(exc)), 404
     except ValueError as exc:
         return jsonify(ok=False, message=str(exc)), 400
+
+
+@api_v1_react.post("/fascicoli/<id_fasc>/pagopa/recupera")
+@_richiedi_auth
+def fascicolo_pagopa_recupera(id_fasc: str):
+    """Recupera dal PST pubblico la ricevuta dell'avviso (numero avviso + codice fiscale del pagatore)."""
+    from web.services.pagopa_avvisi_runtime import avviso_riuso, recupera_dal_pst
+    if not (_api_key_valida() or _session_user_can("fascicoli.scrivi")):
+        return jsonify(ok=False, message="Operazione non autorizzata."), 403
+    dati = _request_payload()
+    numero = str(dati.get("numero_avviso") or "").strip()
+    try:
+        gestore = _fascicoli_loader()()
+        esito = recupera_dal_pst(gestore, id_fasc, numero, str(dati.get("codice_fiscale_debitore") or ""),
+                                 _actor_label(), verify=_pst_pagopa_verify_bundle())
+    except LookupError as exc:
+        return jsonify(ok=False, message=str(exc)), 404
+    except ValueError as exc:
+        return jsonify(ok=False, message=str(exc)), 400
+    except requests.RequestException:
+        current_app.logger.warning("Recupero RT dal PST non riuscito per %s", id_fasc, exc_info=True)
+        return jsonify(ok=False, message="Il PST non risponde: riprova tra qualche minuto."), 502
+    if not esito["trovata"]:
+        return jsonify(ok=True, trovata=False, message="Il PST non pubblica ancora la ricevuta di questo avviso: "
+                       "se hai appena pagato riprova più tardi. Non significa che il pagamento manchi.")
+    _clear_fascicoli_list_payload_cache()
+    if not esito.get("gia_acquisita"):
+        _audit_event("pagopa.ricevuta_recuperata", "fascicolo", id_fasc,
+                     "Ricevuta recuperata dal PST, verificata per IUV e importo e archiviata nel fascicolo.")
+    avviso = esito["avviso"]
+    avvertenza = avviso_riuso(gestore, id_fasc, str(avviso.get("iuv") or avviso.get("numero_avviso") or ""))
+    messaggio = ("La ricevuta era già nel fascicolo." if esito.get("gia_acquisita")
+                 else "Ricevuta recuperata dal PST, verificata e archiviata nel fascicolo.") + (f" {avvertenza}" if avvertenza else "")
+    return jsonify(ok=True, trovata=True, avviso=avviso, avvertenza=avvertenza, message=messaggio)
 
 
 @api_v1_react.post("/local-signer/diagnostics")

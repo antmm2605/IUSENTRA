@@ -41,8 +41,9 @@ def registra_ricevuta_pagopa(gestore: Any, id_fasc: str, documento: Any, nome: s
     rt = riconosci_ricevuta_caricata(nome, contenuto)
     if rt is None:
         return 0
+    avviso_riuso = _avviso_riuso(gestore, id_fasc, rt)
     try:
-        note = "\n".join(filter(None, [str(getattr(documento, "note", "") or ""), nota_ricevuta(rt)]))
+        note = "\n".join(filter(None, [str(getattr(documento, "note", "") or ""), nota_ricevuta(rt), avviso_riuso]))
         gestore.aggiorna_documento_metadati(id_fasc, getattr(documento, "id", ""), note=note)
     except Exception:
         current_app.logger.info("Ricevuta pagoPA riconosciuta ma nota non aggiornata su %s", id_fasc)
@@ -59,12 +60,26 @@ def registra_ricevuta_pagopa(gestore: Any, id_fasc: str, documento: Any, nome: s
             "origine": "Ricevuta telematica pagoPA caricata nel fascicolo",
             "updated_by": "IUSENTRA automatico",
             "note": f"Versamento provato dalla ricevuta telematica (IUV {rt.iuv or 'n.d.'}).",
+            "iuv": str(rt.iuv or ""),
         }
+        if avviso_riuso:
+            pagamenti["contributo_unificato"]["avviso_riuso"] = avviso_riuso
         gestore.aggiorna(id_fasc, pagamenti=pagamenti)
     except Exception:
         current_app.logger.exception("Registrazione del pagamento pagoPA non riuscita su %s", id_fasc)
         return 0
     return 1
+
+
+def _avviso_riuso(gestore: Any, id_fasc: str, rt: Any) -> str:
+    """Avviso (mai blocco) se lo stesso IUV risulta già usato in un altro fascicolo dello studio."""
+    try:
+        from pct.pagamenti_giustizia_registro import avviso_riuso, usi_altrove
+
+        return avviso_riuso(usi_altrove(gestore.tutti(archiviati=True), str(getattr(rt, "iuv", "") or ""), escludi=id_fasc))
+    except Exception:
+        current_app.logger.info("Controllo di riuso della ricevuta pagoPA non disponibile su %s", id_fasc)
+        return ""
 
 
 __all__ = ["registra_ricevuta_pagopa"]

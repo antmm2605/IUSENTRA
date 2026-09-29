@@ -3457,7 +3457,8 @@ class BustaTelematica(CassazioneAttiV21DatiAttoMixin):
 
         Fonte: schema ministeriale PagamentiTelematiciGiustizia + vademecum
         pagamenti PST. Riconcilia l'importo provato dalle ricevute con il
-        contributo unificato dichiarato in DatiAtto; esiti negativi bloccano.
+        contributo unificato dichiarato in DatiAtto; gli esiti sono avvisi (WARN), mai blocchi:
+        con esenzione o prenotazione a debito il pagamento non è richiesto.
         """
 
         from pct.pagamenti_giustizia import riepilogo_rt_allegate  # noqa: PLC0415

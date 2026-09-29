@@ -95,3 +95,37 @@ def acquisisci_rt(gestore: Any, fascicolo_id: str, contenuto: bytes, actor: str)
     pagamenti[KEY] = sezione
     gestore.aggiorna(fascicolo_id, pagamenti=pagamenti)
     return avviso
+
+
+def avviso_riuso(gestore: Any, fascicolo_id: str, iuv: str) -> str:
+    """Avviso se la ricevuta risulta già usata in un altro fascicolo (non blocca nulla)."""
+    from pct.pagamenti_giustizia_registro import avviso_riuso as testo, usi_altrove
+
+    try:
+        return testo(usi_altrove(gestore.tutti(archiviati=True), iuv, escludi=fascicolo_id))
+    except Exception:
+        return ""
+
+
+def recupera_dal_pst(gestore: Any, fascicolo_id: str, numero: str, codice_fiscale: str, actor: str, *, verify: str) -> dict:
+    """Chiede al PST pubblico la ricevuta dell'avviso e, se c'è, la verifica e la archivia.
+
+    Stessa verifica dell'acquisizione manuale (IUV e importo dell'avviso conservato). Se il PST non la
+    pubblica ancora torna ``{"trovata": False}``: non significa che il pagamento manchi.
+    """
+    from web.services.pagopa_pst_receipts import recupera_rt
+
+    avvisi = leggi_avvisi(gestore, fascicolo_id)
+    avviso = next((a for a in avvisi if a.get("numero_avviso") == numero), None)
+    if avviso is None:
+        raise ValueError("Avviso non conservato in questo fascicolo.")
+    if avviso.get("documento_id"):
+        return {"trovata": True, "avviso": avviso, "gia_acquisita": True}
+    cf = str(codice_fiscale or avviso.get("codice_fiscale_debitore") or "").strip().upper()
+    contenuto = recupera_rt(numero, cf, verify=verify)
+    if contenuto is None:
+        return {"trovata": False, "avviso": avviso}
+    if cf and not avviso.get("codice_fiscale_debitore"):
+        avviso["codice_fiscale_debitore"] = cf
+    acquisito = acquisisci_rt(gestore, fascicolo_id, contenuto, actor)
+    return {"trovata": True, "avviso": acquisito}

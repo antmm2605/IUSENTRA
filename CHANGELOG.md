@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.426.0 — 29/09/2026
+
+Pagamenti telematici di giustizia (pagoPA): ricevuta recuperata dal PST, avviso se la stessa ricevuta è già usata altrove, importo del contributo proposto. Nessun nuovo blocco del deposito.
+
+- **«Recupera ricevuta dal PST»** su ogni avviso ancora senza ricevuta: IUSENTRA interroga la ricerca pubblica del PST con numero avviso e codice fiscale di chi ha pagato, verifica IUV e importo come nell'acquisizione manuale e archivia la ricevuta nel fascicolo. Se il PST non la pubblica ancora lo dice, senza dedurre che il pagamento manchi.
+- **Stessa ricevuta, due fascicoli**: quando si acquisisce o si carica una ricevuta telematica, se lo stesso IUV risulta già usato in un altro fascicolo dello studio compare un avviso (una ricevuta prova un solo versamento). È solo un avviso: non blocca nulla.
+- **Collega avviso esistente** propone l'importo del contributo unificato ancora dovuto dal fascicolo e chiede il codice fiscale di chi paga (serve al recupero). Con l'autocertificazione di esenzione o il contributo già pagato non propone nulla.
+- Il deposito e i controlli della busta restano quelli collaudati: con esenzione o prenotazione a debito il pagamento non è richiesto e le ricevute danno solo avvisi (docstring corretta).
+- Base: art. 4 c. 9 D.L. 193/2009; D.P.R. 115/2002 art. 13; vademecum pagamenti PST.
+
 ## 2.425.0 — 29/09/2026
 
 Termini penali calcolati come prevede il codice: impugnazioni, cautelari, indagini, custodia, prescrizione e improcedibilità, con la scadenza che va nello scadenziario del fascicolo.

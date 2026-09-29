@@ -1,1 +1,0 @@
-import{t as e}from"./vendor-react-D3vqdSQZ.js";import{yt as t}from"./index-V1EnL_4h.js";/* empty css           */var n=e();function r({title:e,message:r,action:i}){return(0,n.jsx)(t,{title:e,message:r,action:i,className:`iu-empty-state`})}export{r as t};

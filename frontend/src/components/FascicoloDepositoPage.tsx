@@ -54,6 +54,7 @@ import {
   type KeyValue,
 } from '../fascicoliData'
 import { csrfToken, redirectAfterSuccess, submitFormJson } from '../formSubmit'
+import { AvanzamentoCaricamento, caricaDocumentiConAvanzamento, type StatoCaricamento } from './fascicoli/caricaDocumenti'
 import './FascicoliPage.css'
 
 function normaliseText(value: string): string {
@@ -1703,75 +1704,149 @@ async function submitJsonPayload(endpoint: string, payload: Record<string, unkno
   return data
 }
 
-function DepositActionButton({
-  action,
-  payload,
-  children,
-  tone = 'primary',
+type InvioGuidatoStato = {
+  dryRunBustaAction: string
+  realSendAction: string
+  depositDryRunActionPayload: DepositActionPayload
+  depositSimulationActionPayload: DepositActionPayload
+  depositActionPayload: DepositActionPayload
+  prepareDepositBeforeSubmit: () => Promise<void>
+  completeDepositLocalSignature: (payload: ActionPayload, submittedPayload: DepositActionPayload) => Promise<LocalSignatureCompletion>
+  completeDepositLocalPec: (payload: ActionPayload, submittedPayload: DepositActionPayload) => Promise<string | void>
+  handlePackageReady: (payload: ActionPayload, stage: 'prova' | 'simulazione') => void
+  packageReadyAfterProof: boolean
+  depositSimulationCompleted: boolean
+  packageReadyForRealSend: boolean
+  depositSendCompleted: boolean
+  proofBlocksDirectSend: boolean
+  realSendBlocked: boolean
+  realSendDisabledReason: string
+}
+
+async function attendiCondizione(condizione: () => boolean, massimoMs = 15000): Promise<boolean> {
+  const fine = Date.now() + massimoMs
+  while (Date.now() < fine) {
+    if (condizione()) return true
+    await new Promise((resolve) => window.setTimeout(resolve, 120))
+  }
+  return condizione()
+}
+
+/** Unico comando del deposito: conferma, poi verifica, controllo PEC e invio in sequenza. */
+function InvioDepositoRealeButton({
   disabled,
-  confirm,
-  confirmTitle = 'Conferma deposito',
   disabledReason,
-  beforeSubmit,
-  onDone,
+  completed,
+  confirm,
+  onInvia,
   onError,
-  onPackageReady,
-  completeLocalSignature,
-  completeLocalPec,
-  progressItems = [],
-  progressLabel = 'Preparazione deposito in corso',
 }: {
-  action: string
-  payload: DepositActionPayload
-  children: ReactNode
-  tone?: 'primary' | 'secondary'
-  disabled?: boolean
-  confirm?: string
-  confirmTitle?: string
-  disabledReason?: string
-  beforeSubmit?: () => Promise<void>
-  onDone?: (message?: string) => void
+  disabled: boolean
+  disabledReason: string
+  completed: boolean
+  confirm: string
+  onInvia: (setFase: (fase: string) => void) => Promise<string>
   onError?: (message: string) => void
-  onPackageReady?: (payload: ActionPayload) => void
-  completeLocalSignature?: (payload: ActionPayload, submittedPayload: DepositActionPayload) => Promise<LocalSignatureCompletion>
-  completeLocalPec?: (payload: ActionPayload, submittedPayload: DepositActionPayload) => Promise<string | void>
-  progressItems?: string[]
-  progressLabel?: string
 }) {
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [fase, setFase] = useState('')
   const [error, setError] = useState('')
-  const [progressIndex, setProgressIndex] = useState(0)
-  const progressQueue = progressItems.length ? progressItems : DEPOSIT_PROGRESS_USER_STEPS
-  const currentProgressItem = depositUserFacingMessage(progressQueue[progressIndex % progressQueue.length] || 'Pacchetto deposito')
-  useEffect(() => {
-    if (!busy) {
-      setProgressIndex(0)
-      return undefined
+  const avvia = async () => {
+    setConfirming(false)
+    setBusy(true)
+    setError('')
+    try {
+      await onInvia(setFase)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Deposito non completato.'
+      const signatureMessage = signatureInputRequiredMessage(message)
+      const visibleMessage = depositUserFacingMessage(signatureMessage || message)
+      setError(visibleMessage)
+      // PIN da inserire o dati da completare: l'indicazione resta accanto al pulsante, senza avviso d'errore.
+      if (!signatureMessage && !message.startsWith('Completa i dati obbligatori del deposito:')) onError?.(visibleMessage)
+    } finally {
+      setBusy(false)
+      setFase('')
     }
-    const timer = window.setInterval(() => {
-      setProgressIndex((current) => (current + 1) % progressQueue.length)
-    }, 1100)
-    return () => window.clearInterval(timer)
-  }, [busy, progressQueue.length])
-  if (!action) return null
-  const handleJsonResult = async (result: ActionPayload, submittedPayload: DepositActionPayload, responseOk = true) => {
+  }
+  return (
+    <>
+      <button
+        className="iu-fas-post iu-fas-post--primary"
+        type="button"
+        onClick={() => setConfirming(true)}
+        disabled={busy || disabled}
+        title={disabled && disabledReason ? depositUserFacingMessage(disabledReason) : undefined}
+        aria-disabled={disabled ? true : undefined}
+      >
+        {completed ? <CheckCircle2 size={15}/> : <Send size={15}/>} {completed ? 'Deposito già inviato' : busy ? 'Invio in corso...' : 'Invia deposito reale'}
+      </button>
+      {busy ? (
+        <div className="iu-fas-package-progress" role="status" aria-live="polite">
+          <div className="iu-fas-package-progress__head">
+            <span>Invio deposito in corso</span>
+            <strong title={fase}>{fase || 'Preparazione'}</strong>
+          </div>
+          <div className="iu-fas-package-progress__bar" aria-hidden="true"><span/></div>
+          <div className="iu-fas-package-progress__ticker" aria-hidden="true">
+            <span>{DEPOSIT_PROGRESS_USER_STEPS.map(depositUserFacingMessage).join(' - ')}</span>
+          </div>
+        </div>
+      ) : null}
+      {error && !busy ? <small className="iu-fas-inline-error" role="alert">{error}</small> : null}
+      {confirming ? (
+        <div className="iu-fas-confirm-modal" role="dialog" aria-modal="true" aria-label="Invia deposito reale">
+          <div className="iu-fas-confirm-modal__box">
+            <strong>Invia deposito reale</strong>
+            <p>{confirm}</p>
+            <footer>
+              <button type="button" onClick={() => setConfirming(false)}>Annulla</button>
+              <button className="is-danger" type="button" onClick={() => void avvia()} disabled={disabled}>Conferma e invia</button>
+            </footer>
+          </div>
+        </div>
+      ) : null}
+    </>
+  )
+}
+
+type EsitoAzioneDeposito =
+  | { tipo: 'pacchetto'; risultato: ActionPayload }
+  | { tipo: 'fatto'; messaggio: string }
+
+/**
+ * Una chiamata del ciclo di deposito (verifica della busta, controllo PEC o invio reale) con
+ * firma dei dati e PEC dal PC locale quando il server li richiede. Stessa logica usata dai pulsanti.
+ */
+async function eseguiAzioneDeposito({
+  action,
+  payload,
+  beforeSubmit,
+  completeLocalSignature,
+  completeLocalPec,
+  onAttesaLocale,
+}: {
+  action: string
+  payload: DepositActionPayload
+  beforeSubmit?: () => Promise<void>
+  completeLocalSignature?: (payload: ActionPayload, submittedPayload: DepositActionPayload) => Promise<LocalSignatureCompletion>
+  completeLocalPec?: (payload: ActionPayload, submittedPayload: DepositActionPayload) => Promise<string | void>
+  onAttesaLocale?: () => void
+}): Promise<EsitoAzioneDeposito> {
+  const handleJsonResult = async (result: ActionPayload, submittedPayload: DepositActionPayload, responseOk = true): Promise<EsitoAzioneDeposito> => {
     if (result.requires_local_signature && completeLocalSignature) {
-      setConfirming(false)
+      onAttesaLocale?.()
       const completion = await completeLocalSignature(result, submittedPayload)
       return handleJsonResult(completion.payload, completion.submittedPayload, true)
     }
     if (result.requires_local_pec && completeLocalPec) {
-      setConfirming(false)
+      onAttesaLocale?.()
       const message = await completeLocalPec(result, submittedPayload)
-      onDone?.(message || String(result.messaggio || result.message || 'Invio PEC locale confermato.'))
-      return undefined
+      return { tipo: 'fatto', messaggio: message || String(result.messaggio || result.message || 'Invio PEC locale confermato.') }
     }
     if (result.package_ready || result.requires_guided_completion || result.requires_local_pec) {
-      setConfirming(false)
-      onPackageReady?.(result)
-      if (!onPackageReady) onDone?.(String(result.messaggio || result.message || 'Pacchetto deposito preparato.'))
-      return undefined
+      return { tipo: 'pacchetto', risultato: result }
     }
     if (!responseOk || result.ok === false) {
       const nextActions = Array.isArray(result.next_actions)
@@ -1780,101 +1855,39 @@ function DepositActionButton({
       const baseMessage = String(result.message || result.messaggio || result.errore || result.error || 'Deposito non completato.')
       throw new Error(nextActions.length ? `${baseMessage} Prossimi passi: ${nextActions.join(' ')}` : baseMessage)
     }
-    setConfirming(false)
-    onDone?.(String(result.messaggio || result.message || 'Operazione deposito completata.'))
-    return undefined
+    return { tipo: 'fatto', messaggio: String(result.messaggio || result.message || 'Operazione deposito completata.') }
   }
-  const run = async () => {
-    setBusy(true)
-    setError('')
-    try {
-      if (beforeSubmit) await beforeSubmit()
-      const form = new FormData()
-      Object.entries(payload).forEach(([key, value]) => {
-        if (Array.isArray(value)) value.forEach((item: string) => form.append(key, item))
-        else form.append(key, value)
-      })
-      const response = await fetch(action, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { Accept: 'application/json, application/octet-stream', 'X-Requested-With': 'XMLHttpRequest' },
-        body: form,
-      })
-      const contentType = response.headers.get('content-type') || ''
-      if (contentType.includes('application/json')) {
-        const result = (await response.json().catch(() => ({}))) as ActionPayload
-        await handleJsonResult(result, payload, response.ok)
-        return
-      }
-      if (!response.ok) throw new Error(`Operazione non riuscita: HTTP ${response.status}`)
-      const blob = await response.blob()
-      const header = response.headers.get('content-disposition') || ''
-      const match = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(header)
-      const filename = decodeURIComponent((match?.[1] || 'busta-deposito.enc').replace(/"/g, ''))
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = filename
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.URL.revokeObjectURL(url)
-      setConfirming(false)
-      onDone?.('Busta generata e scaricata.')
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Deposito non completato.'
-      const signatureMessage = signatureInputRequiredMessage(message)
-      const visibleMessage = depositUserFacingMessage(signatureMessage || message)
-      if (signatureMessage || message.startsWith('Completa i dati obbligatori del deposito:')) {
-        setConfirming(false)
-        setError(visibleMessage)
-      } else {
-        setError(visibleMessage)
-        onError?.(visibleMessage)
-      }
-    } finally {
-      setBusy(false)
-    }
+  if (beforeSubmit) await beforeSubmit()
+  const form = new FormData()
+  Object.entries(payload).forEach(([key, value]) => {
+    if (Array.isArray(value)) value.forEach((item: string) => form.append(key, item))
+    else form.append(key, value)
+  })
+  const response = await fetch(action, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json, application/octet-stream', 'X-Requested-With': 'XMLHttpRequest' },
+    body: form,
+  })
+  const contentType = response.headers.get('content-type') || ''
+  if (contentType.includes('application/json')) {
+    const result = (await response.json().catch(() => ({}))) as ActionPayload
+    return handleJsonResult(result, payload, response.ok)
   }
-  return (
-    <>
-      <button
-        className={`iu-fas-post iu-fas-post--${tone}`}
-        type="button"
-        onClick={() => confirm ? setConfirming(true) : void run()}
-        disabled={busy || disabled}
-        title={disabled && disabledReason ? depositUserFacingMessage(disabledReason) : undefined}
-        aria-disabled={disabled ? true : undefined}
-      >
-        {children}
-      </button>
-      {busy ? (
-        <div className="iu-fas-package-progress" role="status" aria-live="polite">
-          <div className="iu-fas-package-progress__head">
-            <span>{progressLabel}</span>
-            <strong title={currentProgressItem}>{currentProgressItem}</strong>
-          </div>
-          <div className="iu-fas-package-progress__bar" aria-hidden="true"><span/></div>
-          <div className="iu-fas-package-progress__ticker" aria-hidden="true">
-            <span>{progressQueue.map(depositUserFacingMessage).join(' - ')}</span>
-          </div>
-        </div>
-      ) : null}
-      {confirming ? (
-        <div className="iu-fas-confirm-modal" role="dialog" aria-modal="true" aria-label={confirmTitle}>
-          <div className="iu-fas-confirm-modal__box">
-            <strong>{confirmTitle}</strong>
-            <p>{confirm}</p>
-            {error ? <span className="iu-fas-inline-error">{depositUserFacingMessage(error)}</span> : null}
-            <footer>
-              <button type="button" onClick={() => setConfirming(false)} disabled={busy}>Annulla</button>
-              <button className="is-danger" type="button" onClick={run} disabled={busy || disabled}>{busy ? 'Operazione...' : 'Conferma'}</button>
-            </footer>
-          </div>
-        </div>
-      ) : null}
-    </>
-  )
+  if (!response.ok) throw new Error(`Operazione non riuscita: HTTP ${response.status}`)
+  const blob = await response.blob()
+  const header = response.headers.get('content-disposition') || ''
+  const match = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(header)
+  const filename = decodeURIComponent((match?.[1] || 'busta-deposito.enc').replace(/"/g, ''))
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.URL.revokeObjectURL(url)
+  return { tipo: 'fatto', messaggio: 'Busta generata e scaricata.' }
 }
 
 function DepositPdfPreviewButton({
@@ -2141,7 +2154,11 @@ function DepositPreparePage({ id }:{id:string}) {
   const batchSignaturePinSessionRef = useRef('')
   const batchSignatureTransientPinRef = useRef('')
   const suppressNextProofInvalidationRef = useRef(false)
+  const invioGuidatoRef = useRef<InvioGuidatoStato | null>(null)
   const requestedDocumentSelectionTokens = useMemo(() => documentSelectionTokensFromUrl(), [])
+  const requestedMainActToken = useMemo(() => (
+    typeof window === 'undefined' ? '' : String(new URLSearchParams(window.location.search).get('atto_principale') || '').trim()
+  ), [])
 
   const refreshDetail = (message?: string) => {
     if (message) {
@@ -2156,6 +2173,83 @@ function DepositPreparePage({ id }:{id:string}) {
   const failDetail = (message: string) => {
     setToast({ tone: 'danger', message })
     setDepositActionNotice({ tone: 'danger', message })
+  }
+  const aggiornaDettaglioDeposito = () => getFascicoloDetail(id, { include: [...DEPOSIT_DETAIL_INCLUDE] }).then(setData).catch(() => undefined)
+  /**
+   * «Invia deposito reale»: esegue in ordine verifica della busta (con firma dei dati del deposito),
+   * controllo del messaggio PEC senza invio e invio reale, con le stesse chiamate e gli stessi
+   * controlli del server. Si ferma al primo esito non positivo e lo mostra.
+   */
+  const inviaDepositoGuidato = async (setFase: (fase: string) => void): Promise<string> => {
+    const stato = () => {
+      if (!invioGuidatoRef.current) throw new Error('Pagina del deposito non ancora pronta: riprova tra un istante.')
+      return invioGuidatoRef.current
+    }
+    if (!stato().packageReadyAfterProof) {
+      setFase('Verifica di busta e documenti')
+      const corrente = stato()
+      const prova = await eseguiAzioneDeposito({
+        action: corrente.dryRunBustaAction,
+        payload: corrente.depositDryRunActionPayload,
+        beforeSubmit: corrente.prepareDepositBeforeSubmit,
+        completeLocalSignature: corrente.completeDepositLocalSignature,
+      })
+      if (prova.tipo !== 'pacchetto') {
+        refreshDetail(prova.messaggio)
+        return prova.messaggio
+      }
+      corrente.handlePackageReady(prova.risultato, 'prova')
+      if (!(prova.risultato.package_ready && !prova.risultato.requires_guided_completion)) {
+        throw new Error(String(prova.risultato.message || prova.risultato.messaggio || 'La verifica della busta ha segnalato controlli da completare: vedi il riepilogo.'))
+      }
+      await aggiornaDettaglioDeposito()
+      if (!(await attendiCondizione(() => stato().packageReadyAfterProof))) {
+        throw new Error('Verifica della busta non confermata: aggiorna la pagina e ripeti l’invio.')
+      }
+    }
+    if (stato().proofBlocksDirectSend) {
+      throw new Error('Invio reale sospeso: completa i controlli obbligatori indicati nella verifica della busta.')
+    }
+    if (!stato().depositSimulationCompleted) {
+      setFase('Controllo del messaggio PEC, senza invio')
+      const corrente = stato()
+      const simulazione = await eseguiAzioneDeposito({
+        action: corrente.dryRunBustaAction,
+        payload: corrente.depositSimulationActionPayload,
+        beforeSubmit: corrente.prepareDepositBeforeSubmit,
+        completeLocalSignature: corrente.completeDepositLocalSignature,
+      })
+      if (simulazione.tipo !== 'pacchetto') {
+        refreshDetail(simulazione.messaggio)
+        return simulazione.messaggio
+      }
+      corrente.handlePackageReady(simulazione.risultato, 'simulazione')
+      if (!(simulazione.risultato.package_ready && !simulazione.risultato.requires_guided_completion && simulazione.risultato.simulazione === true)) {
+        throw new Error(String(simulazione.risultato.message || simulazione.risultato.messaggio || 'Il controllo del messaggio PEC non è positivo: vedi il riepilogo.'))
+      }
+      await aggiornaDettaglioDeposito()
+      if (!(await attendiCondizione(() => stato().depositSimulationCompleted))) {
+        throw new Error('Controllo del messaggio PEC non confermato: aggiorna la pagina e ripeti l’invio.')
+      }
+    }
+    const pronto = stato()
+    if (pronto.realSendBlocked) {
+      throw new Error(depositUserFacingMessage(pronto.realSendDisabledReason || 'Invio reale non disponibile.'))
+    }
+    setFase('Invio del deposito all’ufficio giudiziario')
+    const invio = await eseguiAzioneDeposito({
+      action: pronto.realSendAction,
+      payload: pronto.depositActionPayload,
+      beforeSubmit: pronto.prepareDepositBeforeSubmit,
+      completeLocalSignature: pronto.completeDepositLocalSignature,
+      completeLocalPec: pronto.completeDepositLocalPec,
+    })
+    if (invio.tipo === 'pacchetto') {
+      pronto.handlePackageReady(invio.risultato, 'simulazione')
+      return String(invio.risultato.message || invio.risultato.messaggio || 'Pacchetto deposito preparato.')
+    }
+    refreshDetail(invio.messaggio)
+    return invio.messaggio
   }
   const handleDepositUploadDone = (message?: string, documentIds: string[] = []) => {
     const uploadedIds = Array.from(new Set(documentIds.map((item) => String(item || '').trim()).filter(Boolean)))
@@ -2363,6 +2457,13 @@ function DepositPreparePage({ id }:{id:string}) {
       .map((doc) => doc.id)
     : []
   const explicitDocumentSelection = requestedDocumentSelectionTokens.length > 0
+  // Un solo documento scelto dal fascicolo (pulsante «Deposito» del documento):
+  // è l'atto principale e la busta parte da lui, senza riprendere scelte precedenti.
+  const requestedMainActId = explicitDocumentSelection && requestedDepositSelectionIds.length === 1
+    ? requestedDepositSelectionIds[0]
+    : explicitDocumentSelection && requestedMainActToken
+      ? requestedDepositSelectionIds.find((docId) => docId === requestedMainActToken) || ''
+      : ''
   const defaultDepositSelectionIds = explicitDocumentSelection
     ? requestedDepositSelectionIds
     : data.depositPreparation.saved
@@ -2373,6 +2474,7 @@ function DepositPreparePage({ id }:{id:string}) {
     f.id || id,
     depositSelectableDocuments.map((doc) => doc.id).join('|'),
     requestedDocumentSelectionTokens.join('|'),
+    requestedMainActId,
     defaultDepositSelectionIds.join('|'),
     data.depositPreparation.documents.map((row) => `${row.documentId}:${row.selected}:${row.role}:${row.studioDocumentType}:${row.requiresSignature}`).join('|'),
     usableLinkedSlotDocuments.map((row) => `${recordText(row.slot, 'slotKey')}:${row.document.id}`).join('|'),
@@ -2389,7 +2491,14 @@ function DepositPreparePage({ id }:{id:string}) {
         const defaultSelected = proposed.has(doc.id)
         const defaultRole = defaultDepositRoleForDocument(doc, linkedSlotByDocumentId.get(doc.id), defaultMainActDocumentId === doc.id)
         const persistedRole = savedDepositDocumentRole(persistedRow?.role, defaultRole)
-        const row = currentRow || (persistedRow ? {
+        const forcedRole: DepositDocumentRole = doc.id === requestedMainActId ? 'atto_principale' : defaultRole === 'atto_principale' ? 'allegato' : defaultRole
+        const row = currentRow || (requestedMainActId ? {
+          selected: defaultSelected,
+          role: forcedRole,
+          studioDocumentType: persistedRow?.studioDocumentType || '',
+          alreadySigned: doc.signed,
+          requiresSignature: defaultSelected && defaultSignatureRequiredForDepositRole(doc, forcedRole),
+        } : persistedRow ? {
           selected: persistedRow.selected,
           role: persistedRole,
           studioDocumentType: persistedRow.studioDocumentType,
@@ -2772,7 +2881,7 @@ function DepositPreparePage({ id }:{id:string}) {
       : null
     let endpoint = recordText(localPec, 'endpoint', localSignerEndpoint('/pec/send'))
     if (!localPayload || !endpoint) {
-      throw new Error('Payload Local Signer PEC non disponibile. Ripeti la prova senza invio reale.')
+      throw new Error('Dati per la PEC dal PC locale non disponibili. Premi di nuovo «Invia deposito reale».')
     }
     assertLocalPecAttoEncBase64(localPayload)
     let signerStatus = await fetchLocalSignerStatus(LOCAL_SIGNER_BROWSER_PROBE_TIMEOUT_MS)
@@ -3152,13 +3261,10 @@ function DepositPreparePage({ id }:{id:string}) {
     ? 'Caricamento proposta busta in corso.'
     : 'Azione di prova deposito non disponibile.'
   const actionBlockedReason = !selectedDepositType
-    ? 'Scegli il tipo di deposito prima di preparare la prova.'
+    ? 'Scegli il tipo di deposito prima dell’invio.'
     : !officeRecipientReady
     ? officeRecipientBlockingReason
     : depositGenerationBlockedReason(mainActDocument, missingRequiredSlots)
-  const proofActionNotice = !proofActionBlocked && actionBlocked
-    ? `${actionBlockedReason} La prova resta eseguibile: il controllo segnalerà il requisito mancante senza inviare nulla.`
-    : ''
   const requiredChoicesNotice = missingRequiredSlots.length
     ? `${missingRequiredSlots.length === 1 ? 'Documento richiesto da verificare' : 'Documenti richiesti da verificare'}: ${missingDepositSlotsSummary(missingRequiredSlots) || `${missingRequiredSlots.length} scelte`}. La scelta salvata dall’avvocato nei Documenti da inviare resta prevalente e non blocca la prova.`
     : ''
@@ -3254,22 +3360,6 @@ function DepositPreparePage({ id }:{id:string}) {
         : 'Documenti obbligatori presenti.',
       ready: missingRequiredDocumentSlots.length === 0,
     }] : []),
-    {
-      key: 'prova-busta',
-      label: 'Prova della busta',
-      detail: packageReadyAfterProof
-        ? `Pacchetto verificato${compatibilityPercent >= 0 ? `: conformità ${compatibilityPercent}%` : ''}.`
-        : 'Esegui la prova senza invio reale.',
-      ready: packageReadyAfterProof,
-    },
-    {
-      key: 'simulazione-pec',
-      label: 'Simulazione PEC',
-      detail: depositSimulationCompleted
-        ? 'Simulazione completata con esito positivo.'
-        : 'Esegui Simula invio PEC dopo la prova della busta.',
-      ready: depositSimulationCompleted,
-    },
   ]
   const incompleteDepositRequirementChecks = depositRequirementChecks.filter((check) => !check.ready)
   const completedDepositRequirementChecks = depositRequirementChecks.length - incompleteDepositRequirementChecks.length
@@ -3278,7 +3368,7 @@ function DepositPreparePage({ id }:{id:string}) {
   const realSendDisabledReason = depositSendCompleted
     ? 'Deposito già inviato e registrato. Un secondo invio è bloccato.'
     : !selectedDepositType
-    ? 'Scegli il tipo di deposito prima di preparare la prova.'
+    ? 'Scegli il tipo di deposito prima dell’invio.'
     : !packageReadyAfterProof
     ? 'Esegui prima la prova senza invio reale.'
     : !depositSimulationCompleted
@@ -3288,12 +3378,51 @@ function DepositPreparePage({ id }:{id:string}) {
     : requiredDepositDataBlocked
       ? depositActionBlockedReason(ready, mainActDocument, missingRequiredSlots)
     : proofBlocksDirectSend
-      ? 'Invio reale sospeso: completa i controlli obbligatori indicati nella prova.'
+      ? 'Invio reale sospeso: completa i controlli obbligatori indicati nella verifica della busta.'
         : selectedDepositTypeBlocksRealSend
           ? selectedDepositType?.rules.real_send_blocker || 'Invio reale sospeso: verifica il canale del tipo selezionato.'
         : !pecWorkflowAvailable
           ? officeRecipientBlockingReason || 'IUSENTRA non ha risolto automaticamente la PEC dell’ufficio: aggiorna il catalogo uffici o verifica l’ufficio giudiziario della pratica.'
           : actionBlockedReason
+  // Un solo comando: verifica della busta e controllo PEC (senza invio) restano obbligatori
+  // e vengono eseguiti in automatico, nello stesso ordine, prima dell'invio reale.
+  const invioGuidatoDisabledReason = depositSendCompleted
+    ? 'Deposito già inviato e registrato. Un secondo invio è bloccato.'
+    : proofActionBlocked
+      ? proofActionBlockedReason
+    : !selectedDepositType
+      ? 'Scegli il tipo di deposito.'
+    : actionBlocked
+      ? actionBlockedReason
+    : missingRequiredDepositDataLabels.length
+      ? requiredSpecificDataNotice
+    : requiredDepositDataBlocked
+      ? depositActionBlockedReason(ready, mainActDocument, missingRequiredSlots)
+    : selectedDepositTypeBlocksRealSend
+      ? selectedDepositType?.rules.real_send_blocker || 'Invio reale sospeso: verifica il canale del tipo selezionato.'
+    : !pecWorkflowAvailable
+      ? officeRecipientBlockingReason || 'IUSENTRA non ha risolto automaticamente la PEC dell’ufficio: aggiorna il catalogo uffici o verifica l’ufficio giudiziario della pratica.'
+    : packageReadyAfterProof && proofBlocksDirectSend
+      ? 'Invio reale sospeso: completa i controlli obbligatori indicati nella verifica della busta.'
+    : ''
+  invioGuidatoRef.current = {
+    dryRunBustaAction,
+    realSendAction,
+    depositDryRunActionPayload,
+    depositSimulationActionPayload,
+    depositActionPayload,
+    prepareDepositBeforeSubmit,
+    completeDepositLocalSignature,
+    completeDepositLocalPec,
+    handlePackageReady,
+    packageReadyAfterProof,
+    depositSimulationCompleted,
+    packageReadyForRealSend,
+    depositSendCompleted,
+    proofBlocksDirectSend,
+    realSendBlocked: depositSendCompleted || actionBlocked || requiredDepositDataBlocked || !packageReadyForRealSend || !realSendAvailable,
+    realSendDisabledReason,
+  }
   const signaturesRequiredBeforeAction = false
   const depositStatusText = depositSendCompleted
     ? 'Deposito inviato'
@@ -3302,10 +3431,10 @@ function DepositPreparePage({ id }:{id:string}) {
     : 'Pronto per l’invio locale'
   const preparationTone: FascicoloRow['tone'] = depositSendCompleted || !incompleteDepositRequirementChecks.length ? 'success' : 'warning'
   const depositMessage = depositSendCompleted
-    ? 'Prova, simulazione PEC e invio reale risultano completati e memorizzati per questo deposito.'
+    ? 'Controlli della busta, del messaggio PEC e invio reale risultano completati e memorizzati per questo deposito.'
     : incompleteDepositRequirementChecks.length
     ? 'Completa i requisiti del deposito indicati sotto.'
-    : 'I requisiti, la prova della busta e la simulazione PEC risultano completi.'
+    : 'Requisiti completi: «Invia deposito reale» verifica busta e messaggio PEC e, se tutto è corretto, invia il deposito.'
   const documentPhaseTone: FascicoloRow['tone'] = !selectedDepositType ? 'warning' : !mainActDocument ? 'danger' : missingRequiredSlots.length ? 'warning' : packageDocuments.length ? 'success' : 'warning'
   const documentPhaseState = !selectedDepositType
     ? 'Tipo da scegliere'
@@ -3635,7 +3764,7 @@ function DepositPreparePage({ id }:{id:string}) {
         <StatCard icon={<FileText size={19}/>} label="Atto principale" value={mainActDocument ? 1 : 0} note={mainActDocument?.name || 'da selezionare'} tone={mainActDocument ? 'success' : 'warning'} href="#proposta-busta" onClick={openDepositPhase('#proposta-busta')}/>
         <StatCard icon={<FileCheck2 size={19}/>} label="Firma software" value={unsignedCandidateDocuments} note="nel comando busta" tone={unsignedCandidateDocuments ? 'warning' : 'success'} href="#firma-busta" onClick={openDepositPhase('#firma-busta')}/>
         <StatCard icon={<Landmark size={19}/>} label="Ufficio destinatario" value={officeRecipientReady ? 'OK' : '—'} note={data.depositOffice.name || 'da verificare'} tone={officeRecipientReady ? 'success' : 'warning'} href="#verifica-deposito" onClick={openDepositPhase('#verifica-deposito')}/>
-        <StatCard icon={<PackageCheck size={19}/>} label="Prova busta" value={packageReadyAfterProof ? 'OK' : '—'} note={packageReadyAfterProof ? (compatibilityPercent >= 0 ? `${compatibilityPercent}% conforme` : 'pacchetto pronto') : 'da eseguire'} tone={packageReadyAfterProof ? 'success' : 'warning'} href="#generazione-busta" onClick={openDepositPhase('#generazione-busta')}/>
+        <StatCard icon={<PackageCheck size={19}/>} label="Controllo busta" value={packageReadyAfterProof ? 'OK' : '—'} note={packageReadyAfterProof ? (compatibilityPercent >= 0 ? `${compatibilityPercent}% conforme` : 'pacchetto pronto') : 'automatico all’invio'} tone={packageReadyAfterProof ? 'success' : 'neutral'} href="#generazione-busta" onClick={openDepositPhase('#generazione-busta')}/>
         <StatCard icon={<Mail size={19}/>} label="Ricevute" value={recentDeposits.length} note={recentDeposits[0]?.status || 'nessuna PEC'} tone={recentDeposits.length ? 'purple' : 'neutral'} href="#verifica-deposito" onClick={openDepositPhase('#verifica-deposito')}/>
       </section>
 
@@ -3707,7 +3836,7 @@ function DepositPreparePage({ id }:{id:string}) {
               {explicitDocumentSelection ? (
                 <div className={`iu-fas-action-notice iu-fas-action-notice--${requestedDepositSelectionIds.length ? 'success' : 'danger'}`} role="status">
                   <Badge tone={requestedDepositSelectionIds.length ? 'success' : 'danger'}>{requestedDepositSelectionIds.length ? 'Scelta dal fascicolo' : 'Da controllare'}</Badge>
-                  <span>{requestedDepositSelectionIds.length ? `${requestedDepositSelectionIds.length === 1 ? '1 documento ricevuto' : `${requestedDepositSelectionIds.length} documenti ricevuti`} dal fascicolo come perimetro iniziale del deposito.` : 'I documenti scelti nel fascicolo non sono stati trovati nel deposito: apri i documenti del fascicolo e ripeti la selezione.'}</span>
+                  <span>{requestedMainActId && documentsById.get(requestedMainActId) ? `«${documentsById.get(requestedMainActId)?.name}» ricevuto dal fascicolo come atto principale del deposito.` : requestedDepositSelectionIds.length ? `${requestedDepositSelectionIds.length === 1 ? '1 documento ricevuto' : `${requestedDepositSelectionIds.length} documenti ricevuti`} dal fascicolo come perimetro iniziale del deposito.` : 'I documenti scelti nel fascicolo non sono stati trovati nel deposito: apri i documenti del fascicolo e ripeti la selezione.'}</span>
                 </div>
               ) : null}
               <DepositTypePreviewPanel
@@ -3869,7 +3998,7 @@ function DepositPreparePage({ id }:{id:string}) {
             <div className="iu-fas-deposit-phase-note">
               <Badge tone={signaturePhaseTone}>{signatureBatchRequired ? 'Firma software' : 'Documenti pronti'}</Badge>
               <strong>{signatureBatchRequired ? 'Il software firmerà i documenti necessari prima del pacchetto' : 'I documenti selezionati non richiedono altre firme'}</strong>
-              <span>{signatureBatchRequired ? 'Inserito il PIN una sola volta, IUSENTRA firma in lotto, salva gli esiti e prepara il pacchetto.' : 'Durante la prova il dispositivo firma i dati del deposito, poi il software genera indice e pacchetto.'}</span>
+              <span>{signatureBatchRequired ? 'Inserito il PIN una sola volta, IUSENTRA firma in lotto, salva gli esiti e prepara il pacchetto.' : 'All’invio il dispositivo firma i dati del deposito, poi il software genera indice e pacchetto.'}</span>
             </div>
             {packageDocuments.filter((doc) => doc.signed).map((doc) => (
               <div className="iu-fas-signature-alert iu-fas-signature-alert--ok" key={doc.id}>
@@ -4100,14 +4229,14 @@ function DepositPreparePage({ id }:{id:string}) {
             ) : (
               <div className="iu-fas-package-signing iu-fas-package-signing--ready">
                 <CheckCircle2 size={16}/>
-                <span>Documenti pronti. Durante la prova il dispositivo firma i dati del deposito e il software genera indice, pacchetto e controllo PEC.</span>
+                <span>Documenti pronti. All’invio il dispositivo firma i dati del deposito, il software genera indice e pacchetto e controlla la PEC prima di spedirla.</span>
               </div>
             )}
             <div className="iu-fas-package-pec-draft">
               <header>
                 <div>
                   <strong>Testo PEC</strong>
-                  <span>La bozza viene usata automaticamente; l'avvocato la modifica solo se vuole prima della prova o dell'invio.</span>
+                  <span>La bozza viene usata automaticamente; l'avvocato la modifica solo se vuole, prima dell'invio.</span>
                 </div>
                 <button type="button" onClick={() => setPecBodyEditorOpen((open) => !open)}>
                   {pecBodyEditorOpen ? 'Chiudi modifica' : 'Modifica testo PEC'}
@@ -4143,65 +4272,14 @@ function DepositPreparePage({ id }:{id:string}) {
               ) : null}
             </div>
             <div id="azioni-deposito" className="iu-fas-package-actions" aria-label="Azioni del deposito">
-              <DepositActionButton
-                action={dryRunBustaAction}
-                payload={depositDryRunActionPayload}
-                disabled={proofActionBlocked || depositProofCompleted}
-                disabledReason={depositProofCompleted ? 'Prova già completata con esito positivo per questo deposito.' : proofActionBlockedReason || actionBlockedReason}
-                beforeSubmit={prepareDepositBeforeSubmit}
-                progressItems={DEPOSIT_PROGRESS_USER_STEPS}
-                tone="primary"
-                confirm={
-                  signatureBatchRequired
-                      ? 'Firmare ora i documenti selezionati, salvare i file firmati nel fascicolo e poi generare indice, busta di controllo e testo PEC senza invio reale?'
-                      : 'Preparare busta, indice documenti, destinatario e testo PEC senza inviare nulla?'
-                }
-                confirmTitle={signatureBatchRequired ? 'Firma e prepara prova' : 'Prova senza invio'}
-                onDone={refreshDetail}
+              <InvioDepositoRealeButton
+                disabled={Boolean(invioGuidatoDisabledReason)}
+                disabledReason={invioGuidatoDisabledReason}
+                completed={depositSendCompleted}
+                confirm={`Inviare realmente il deposito${data.depositOffice.pec ? ` a ${data.depositOffice.pec}` : ''}${mainActDocument ? ` con atto principale «${mainActDocument.name}»` : ''}${packageDocuments.length > 1 ? ` e ${packageDocuments.length - 1} ${packageDocuments.length === 2 ? 'altro documento' : 'altri documenti'}` : ''}? ${signatureBatchRequired ? `IUSENTRA firma prima ${unsignedPackageDocuments.length === 1 ? 'il documento da firmare' : `i ${unsignedPackageDocuments.length} documenti da firmare`}, poi ` : 'IUSENTRA prima '}verifica busta, indice e messaggio PEC senza inviare nulla: se un controllo non è superato si ferma e indica cosa completare. Solo con tutti i controlli positivi invia la PEC di deposito.`}
+                onInvia={inviaDepositoGuidato}
                 onError={failDetail}
-                onPackageReady={(payload) => handlePackageReady(payload, 'prova')}
-                completeLocalSignature={completeDepositLocalSignature}
-              >
-                {depositProofCompleted ? <CheckCircle2 size={15}/> : <FileArchive size={15}/>} {depositProofCompleted ? 'Prova completata' : signatureBatchRequired ? 'Firma e prepara prova' : 'Prova senza invio reale'}
-              </DepositActionButton>
-              <DepositActionButton
-                action={dryRunBustaAction}
-                payload={depositSimulationActionPayload}
-                disabled={proofActionBlocked || !packageReadyAfterProof || depositSimulationCompleted}
-                disabledReason={depositSimulationCompleted ? 'Simulazione PEC già completata con esito positivo per questo deposito.' : !packageReadyAfterProof ? 'Esegui prima Prova senza invio reale e attendi l’esito positivo.' : proofActionBlockedReason || actionBlockedReason}
-                beforeSubmit={prepareDepositBeforeSubmit}
-                progressItems={DEPOSIT_PROGRESS_USER_STEPS}
-                progressLabel="Simulazione PEC in corso"
-                tone="secondary"
-                confirm="Simulare l'invio PEC senza spedire nulla all'esterno? Il software prepara il pacchetto deposito, controlla corpo e destinatario, confronta la prova con i campioni reali e registra solo una prova senza invio."
-                confirmTitle="Simula invio PEC"
-                onDone={refreshDetail}
-                onError={failDetail}
-                onPackageReady={(payload) => handlePackageReady(payload, 'simulazione')}
-                completeLocalSignature={completeDepositLocalSignature}
-              >
-                {depositSimulationCompleted ? <CheckCircle2 size={15}/> : <Mail size={15}/>} {depositSimulationCompleted ? 'Simulazione completata' : 'Simula invio PEC'}
-              </DepositActionButton>
-              {proofActionNotice ? <small>{depositUserFacingMessage(proofActionNotice)}</small> : null}
-              <DepositActionButton
-                action={realSendAction}
-                payload={depositActionPayload}
-                disabled={depositSendCompleted || actionBlocked || requiredDepositDataBlocked || !packageReadyForRealSend || !realSendAvailable}
-                disabledReason={realSendDisabledReason}
-                beforeSubmit={prepareDepositBeforeSubmit}
-                progressItems={DEPOSIT_PROGRESS_USER_STEPS}
-                progressLabel="Invio deposito in corso"
-                tone="secondary"
-                confirm="Inviare realmente il deposito con la PEC configurata? Usa questo comando solo dopo avere controllato indice, destinatario, oggetto, testo PEC e documenti della prova."
-                confirmTitle="Invia deposito reale"
-                onDone={refreshDetail}
-                onError={failDetail}
-                onPackageReady={(payload) => handlePackageReady(payload, 'simulazione')}
-                completeLocalSignature={completeDepositLocalSignature}
-                completeLocalPec={completeDepositLocalPec}
-              >
-                {depositSendCompleted ? <CheckCircle2 size={15}/> : <Send size={15}/>} {depositSendCompleted ? 'Deposito già inviato' : 'Invia deposito reale'}
-              </DepositActionButton>
+              />
               {depositSendCompleted ? (
                 <button
                   type="button"
@@ -4222,7 +4300,7 @@ function DepositPreparePage({ id }:{id:string}) {
             {packagePreview ? (
               <div className="iu-fas-package-preview" role="status">
                 <header>
-                  <Badge tone={packagePreview.packageReady ? 'success' : 'warning'}>Prova senza invio PEC</Badge>
+                  <Badge tone={packagePreview.packageReady ? 'success' : 'warning'}>Controllo busta e PEC</Badge>
                   <div>
                     <strong>{depositUserFacingMessage(packagePreview.message)}</strong>
                     <span>Controlla destinatario, oggetto, corpo PEC e documenti prima del deposito reale.</span>
@@ -4277,7 +4355,7 @@ function DepositPreparePage({ id }:{id:string}) {
                 {pecWorkflowAvailable ? (
                   proofBlocksDirectSend ? (
                     <p className="iu-fas-package-preview__confirm">
-                      Invio reale sospeso: completa i controlli obbligatori indicati nella prova.
+                      Invio reale sospeso: completa i controlli obbligatori indicati nella verifica della busta.
                     </p>
                   ) : (
                     <p className="iu-fas-package-preview__confirm">
@@ -5718,6 +5796,7 @@ function DocumentUploadWorkspace({
   const [files, setFiles] = useState<File[]>([])
   const [mode, setMode] = useState<'auto' | 'manuale'>('auto')
   const [busy, setBusy] = useState(false)
+  const [stato, setStato] = useState<StatoCaricamento | null>(null)
   if (!data.actions.uploadDocument) return null
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -5730,19 +5809,14 @@ function DocumentUploadWorkspace({
     }
     setBusy(true)
     try {
-      const result = await submitFormJson(data.actions.uploadDocument, formData)
+      const result = await caricaDocumentiConAvanzamento(data.actions.uploadDocument, formData, setStato)
       form.reset()
       setFiles([])
       setMode('auto')
-      const resultRecord = result as Record<string, unknown>
-      const createdIds = [
-        String(resultRecord.documento_id || '').trim(),
-        ...(Array.isArray(resultRecord.documenti_id)
-          ? resultRecord.documenti_id.map((item) => String(item || '').trim())
-          : []),
-      ].filter(Boolean)
-      onDone(String(resultRecord.message || resultRecord.messaggio || 'Documenti caricati.'), Array.from(new Set(createdIds)))
+      onDone(result.message, result.documentIds)
+      window.setTimeout(() => setStato(null), 2500)
     } catch (err) {
+      setStato(null)
       onError(err instanceof Error ? err.message : 'Caricamento non riuscito.')
     } finally {
       setBusy(false)
@@ -5798,7 +5872,8 @@ function DocumentUploadWorkspace({
             )) : <p className="iu-empty">Seleziona uno o più file per assegnare il tipo documento.</p>}
           </div>
         ) : null}
-        <button type="submit" disabled={busy}><UploadCloud size={15}/> {busy ? 'Caricamento...' : 'Carica documenti'}</button>
+        <button type="submit" disabled={busy}><UploadCloud size={15}/> {busy ? (stato?.fase === 'invio' ? `Caricamento ${stato.percento}%` : 'Registrazione nel fascicolo…') : 'Carica documenti'}</button>
+        {stato ? <AvanzamentoCaricamento stato={stato}/> : null}
       </form>
     </section>
   )
@@ -5892,23 +5967,23 @@ function assertLocalPecAttoEncBase64(localPayload: Record<string, unknown>): voi
     return recordText(item as Record<string, unknown>, 'filename').toLowerCase() === 'atto.enc'
   })
   if (!attoEnc || typeof attoEnc !== 'object' || Array.isArray(attoEnc)) {
-    throw new Error('Pacchetto deposito mancante. Rigenera la prova deposito prima dell’invio reale.')
+    throw new Error('Pacchetto deposito mancante. Premi di nuovo «Invia deposito reale»: il pacchetto viene rigenerato e ricontrollato.')
   }
   const contentBase64 = recordText(attoEnc as Record<string, unknown>, 'content_base64').trim()
   if (!contentBase64) {
-    throw new Error('Pacchetto deposito non leggibile. Rigenera la prova deposito prima dell’invio reale.')
+    throw new Error('Pacchetto deposito non leggibile. Premi di nuovo «Invia deposito reale»: il pacchetto viene rigenerato e ricontrollato.')
   }
   let decoded: Uint8Array
   try {
     decoded = base64ToUint8Array(contentBase64)
   } catch {
-    throw new Error('Pacchetto deposito non valido. Rigenera la prova deposito prima dell’invio reale.')
+    throw new Error('Pacchetto deposito non valido. Premi di nuovo «Invia deposito reale»: il pacchetto viene rigenerato e ricontrollato.')
   }
   if (!decoded.length || !looksLikeCmsEnvelopedData(decoded)) {
-    throw new Error('Pacchetto deposito non conforme. Rigenera la prova prima dell’invio reale.')
+    throw new Error('Pacchetto deposito non conforme. Premi di nuovo «Invia deposito reale»: il pacchetto viene rigenerato e ricontrollato.')
   }
   if (!recordBool(attoEnc as Record<string, unknown>, 'ministerial_busta_verified')) {
-    throw new Error('Pacchetto deposito non verificato. Ripeti Simula invio PEC prima dell’invio reale.')
+    throw new Error('Pacchetto deposito non verificato. Premi di nuovo «Invia deposito reale»: il controllo PEC viene rieseguito.')
   }
 }
 

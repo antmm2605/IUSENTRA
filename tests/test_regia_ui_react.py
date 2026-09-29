@@ -216,7 +216,9 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "includeDepositDocumentsByIds" in source
     assert "Carica da PC e inserisci nella busta" in source
     assert "onDone={handleDepositUploadDone}" in source
-    assert "resultRecord.documenti_id" in source
+    assert "onDone(result.message, result.documentIds)" in source
+    carica = Path("frontend/src/components/fascicoli/caricaDocumenti.tsx").read_text(encoding="utf-8")
+    assert "dati.documenti_id" in carica and "xhr.upload.onprogress" in carica
     assert ".iu-fas-package-document-tools" in css
     assert ".iu-fas-package-docs__actions button" in css
     assert ": []" in source
@@ -289,9 +291,9 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "Scegli documento" in source
     assert "Collega" in source
     assert "Atto principale" in source
-    assert "Prova senza invio reale" in source
-    assert "Simula invio PEC" in source
+    assert "Prova senza invio reale" not in source[source.index('id="azioni-deposito"'):source.index("{packagePreview ? (")]
     assert "Invia deposito reale" in source
+    assert "<InvioDepositoRealeButton" in source
     assert "IUSENTRA firma solo quelli scelti" in source
     assert "function DepositBatchSignaturePanel" in source
     assert "LOCAL_SIGNER_DEFAULT_BASE_URLS = ['http://127.0.0.1:27272', 'http://localhost:27272']" in source
@@ -330,7 +332,7 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "Da rifirmare in PAdES" not in source
     assert "function requiresStudioTelematicoPadesNormalization" not in source
     assert "if (requiresCadesBesRefresh(doc) || /\\.p7m$/i.test(doc.name)) return 'cades'" in source
-    assert "Firma e prepara prova" in source
+    assert "IUSENTRA firma prima" in source
     assert "Il software non seleziona se la classificazione non è certa." in source
     assert "portal_upload" not in source[source.index("function DepositPreparePage"):source.index("function DepositBatchSignaturePanel")]
 
@@ -420,8 +422,12 @@ def test_ui_deposito_local_signer_usa_alias_sano_e_una_sola_sessione_pin():
         deposit_page.index('className="iu-fas-package-actions"'):
         deposit_page.index("{packagePreview ? (")
     ]
-    assert package_actions.count("completeLocalPec={completeDepositLocalPec}") == 1
-    assert package_actions.index("completeLocalPec={completeDepositLocalPec}") > package_actions.index('confirmTitle="Invia deposito reale"')
+    assert package_actions.count("<InvioDepositoRealeButton") == 1
+    assert "onInvia={inviaDepositoGuidato}" in package_actions
+    # La PEC dal PC locale parte solo nell'ultima fase, dopo verifica e controllo PEC.
+    guidato = deposit_page[deposit_page.index("const inviaDepositoGuidato = async"):deposit_page.index("const handleDepositUploadDone")]
+    assert guidato.count("completeLocalPec: pronto.completeDepositLocalPec") == 1
+    assert guidato.index("completeLocalPec: pronto.completeDepositLocalPec") > guidato.index("setFase('Invio del deposito")
 
 
 def test_ui_deposito_avvisi_classificazione_non_spengono_prova_e_non_autoselezionano_tutto():
@@ -437,18 +443,20 @@ def test_ui_deposito_avvisi_classificazione_non_spengono_prova_e_non_autoselezio
     assert "caseValueRequired && !data.depositReadiness.valoreCausa.ready" in deposit_page
     assert "contributionRequired && !data.depositReadiness.contributoUnificato.ready" in deposit_page
     assert "missingRequiredSlots.length > 0 || missingRequiredDepositDataLabels.length > 0" not in deposit_page
-    assert "disabled={proofActionBlocked || depositProofCompleted}" in deposit_page
     assert "const [depositProofCompleted, setDepositProofCompleted] = useState(false)" in deposit_page
     assert "const [depositSimulationCompleted, setDepositSimulationCompleted] = useState(false)" in deposit_page
-    assert "disabled={proofActionBlocked || !packageReadyAfterProof || depositSimulationCompleted}" in deposit_page
-    assert "Esegui prima Prova senza invio reale e attendi l’esito positivo." in deposit_page
-    assert "Esegui prima Simula invio PEC e attendi l’esito positivo." in deposit_page
-    assert "onPackageReady={(payload) => handlePackageReady(payload, 'prova')}" in deposit_page
-    assert "onPackageReady={(payload) => handlePackageReady(payload, 'simulazione')}" in deposit_page
+    guidato = deposit_page[deposit_page.index("const inviaDepositoGuidato = async"):deposit_page.index("const handleDepositUploadDone")]
+    # Un solo comando, stesso ordine obbligatorio del server: prova, simulazione PEC, invio reale.
+    assert guidato.index("payload: corrente.depositDryRunActionPayload") < guidato.index("payload: corrente.depositSimulationActionPayload") < guidato.index("payload: pronto.depositActionPayload")
+    assert "if (!stato().packageReadyAfterProof)" in guidato
+    assert "if (!stato().depositSimulationCompleted)" in guidato
+    assert "corrente.handlePackageReady(prova.risultato, 'prova')" in guidato
+    assert "corrente.handlePackageReady(simulazione.risultato, 'simulazione')" in guidato
+    assert "simulazione.risultato.simulazione === true" in guidato
+    assert "if (pronto.realSendBlocked)" in guidato
+    assert "realSendBlocked: depositSendCompleted || actionBlocked || requiredDepositDataBlocked || !packageReadyForRealSend || !realSendAvailable" in deposit_page
     assert 'id="azioni-deposito"' in deposit_page
-    assert "disabled={depositSendCompleted || actionBlocked || requiredDepositDataBlocked || !packageReadyForRealSend || !realSendAvailable}" in deposit_page
-    assert "La prova resta eseguibile: il controllo segnalerà il requisito mancante senza inviare nulla." in deposit_page
-    assert "Durante la prova il dispositivo firma i dati del deposito" in deposit_page
+    assert "All’invio il dispositivo firma i dati del deposito" in deposit_page
     assert "Boolean(missingRequiredSlots.length) || !officeRecipientReady" not in deposit_page
     assert "requiredChoicesNotice" in deposit_page
     assert "La scelta salvata dall’avvocato nei Documenti da inviare resta prevalente" in deposit_page
@@ -465,7 +473,7 @@ def test_ui_deposito_avvisi_classificazione_non_spengono_prova_e_non_autoselezio
 
 def test_ui_deposito_tipo_e_documenti_richiedono_la_scelta_dell_avvocato():
     source = Path("frontend/src/components/FascicoloDepositoPage.tsx").read_text(encoding="utf-8")
-    panel = source[source.index("function DepositTypePreviewPanel"):source.index("function DepositActionButton")]
+    panel = source[source.index("function DepositTypePreviewPanel"):source.index("function isDepositPhaseId")]
 
     assert "if (selectedKey !== selectedType.key) onSelect(selectedType.key)" not in panel
     assert "const selectedType = selectedByKey?.type" in panel
@@ -474,7 +482,7 @@ def test_ui_deposito_tipo_e_documenti_richiedono_la_scelta_dell_avvocato():
     assert "suggestedDepositTypeKey" not in source
     assert "autoSelectedDepositTypeKeyRef" not in source
     assert "const actionBlocked = !selectedDepositType || !mainActDocument || !officeRecipientReady" in source
-    assert "Scegli il tipo di deposito prima di preparare la prova." in source
+    assert "Scegli il tipo di deposito prima dell’invio." in source
 
 
 def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
@@ -482,7 +490,8 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
 
     deposit_page = source[source.index("function DepositPreparePage"):source.index("function DepositBatchSignaturePanel")]
-    action_button = source[source.index("function DepositActionButton"):source.index("function DepositPdfPreviewButton")]
+    action_button = source[source.index("async function eseguiAzioneDeposito"):source.index("function DepositPdfPreviewButton")]
+    invio_button = source[source.index("function InvioDepositoRealeButton"):source.index("type EsitoAzioneDeposito")]
     preview_button = source[source.index("function DepositPdfPreviewButton"):source.index("function JsonPostForm")]
 
     assert "const officeRecipientReady" in deposit_page
@@ -503,7 +512,7 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "tribunale_pec: data.depositOffice.pec" in deposit_page
     assert "prova_senza_invio: '1'" in deposit_page
     assert "simula_invio_pec: '1'" in deposit_page
-    assert "Simulazione PEC in corso" in deposit_page
+    assert "Controllo del messaggio PEC, senza invio" in deposit_page
     assert "Message-ID fittizio" not in deposit_page
     assert "packageDocumentSignatureLabel" in deposit_page
     assert "isSignedContainerDocument" not in deposit_page
@@ -544,23 +553,25 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "url: previewUrl" in preview_button
     assert "downloadUrl: previewUrl" in preview_button
     assert "URL.createObjectURL" not in preview_button
-    assert "onPackageReady={(payload) => handlePackageReady(payload, 'prova')}" in deposit_page
-    assert "onPackageReady={(payload) => handlePackageReady(payload, 'simulazione')}" in deposit_page
-    assert "Prova senza invio PEC" in deposit_page
+    assert "corrente.handlePackageReady(prova.risultato, 'prova')" in deposit_page
+    assert "corrente.handlePackageReady(simulazione.risultato, 'simulazione')" in deposit_page
+    assert "Controllo busta e PEC" in deposit_page
     assert "Testo PEC predisposto" in deposit_page
     assert "Documenti indicati nel pacchetto" in deposit_page
-    assert "progressItems={DEPOSIT_PROGRESS_USER_STEPS}" in deposit_page
+    assert "DEPOSIT_PROGRESS_USER_STEPS.map(depositUserFacingMessage)" in invio_button
     assert "progressItems={['DatiAtto.xml'" not in deposit_page
-    assert "progressLabel=\"Invio deposito in corso\"" in deposit_page
-    assert "iu-fas-package-progress__ticker" in action_button
+    assert "<span>Invio deposito in corso</span>" in invio_button
+    assert "iu-fas-package-progress__ticker" in invio_button
+    assert "result.requires_local_signature && completeLocalSignature" in action_button
+    assert "result.requires_local_pec && completeLocalPec" in action_button
     assert 'id="dati-specifici-deposito"' in source
     assert "goToDepositPhase('proposta-busta', 'auto')" in deposit_page
-    assert "message.startsWith('Completa i dati obbligatori del deposito:')" in action_button
+    assert "message.startsWith('Completa i dati obbligatori del deposito:')" in invio_button
     assert "Completa dati deposito" in deposit_page
     assert "const pctJsonPackageChannel" in deposit_page
     assert "const realSendAction = (directPecReady || guidedCompletion || pctJsonPackageChannel) ? jsonPecAction : downloadBustaAction" in deposit_page
     assert "result.requires_local_signature && completeLocalSignature" in action_button
-    assert "setConfirming(false)\n      const completion = await completeLocalSignature(result, submittedPayload)" in action_button
+    assert "onAttesaLocale?.()\n      const completion = await completeLocalSignature(result, submittedPayload)" in action_button
     assert "setLocalSignaturePinRequest(null)\n    request.resolve(pinValue)" in deposit_page
     assert "localSignature.retry === true" in deposit_page
     assert "Firma nuovamente i dati del deposito" in deposit_page
@@ -574,7 +585,7 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "certificato_windows_firma_selezionato" in source
     assert "status?.certificato_windows_firma_selezionato || status?.certificato_windows_selezionato" in source
     assert "result.requires_local_pec && completeLocalPec" in action_button
-    assert "setConfirming(false)\n      const message = await completeLocalPec(result, submittedPayload)" in action_button
+    assert "onAttesaLocale?.()\n      const message = await completeLocalPec(result, submittedPayload)" in action_button
     assert "await completeLocalPec(result, submittedPayload)" in action_button
     assert "result.package_ready || result.requires_guided_completion || result.requires_local_pec" in action_button
     assert action_button.index("result.requires_local_pec && completeLocalPec") < action_button.index("result.package_ready || result.requires_guided_completion || result.requires_local_pec")
@@ -603,7 +614,7 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "Invia dal PC locale" in deposit_page
     assert "local_pec_confirmed" in deposit_page
     assert "local_pec_message_id" in deposit_page
-    assert "completeLocalPec={completeDepositLocalPec}" in deposit_page
+    assert "completeLocalPec: pronto.completeDepositLocalPec" in deposit_page
     assert "bustaAudit: payload.busta_audit" in deposit_page
     assert "const proofBlocksDirectSend = Boolean(" in deposit_page
     proof_start = deposit_page.index("const proofBlocksDirectSend = Boolean(")
@@ -617,7 +628,7 @@ def test_ui_deposito_prova_guidata_non_salta_firma_e_mostra_audit_pec_indice():
     assert "setDepositProofInvalidated(true)" in deposit_page
     assert "const packageReadyAfterProof = Boolean(depositProofCompleted && !depositProofInvalidated)" in deposit_page
     assert "const packageReadyForRealSend = Boolean(packageReadyAfterProof && depositSimulationCompleted && !depositSendCompleted)" in deposit_page
-    assert "disabled={depositSendCompleted || actionBlocked || requiredDepositDataBlocked || !packageReadyForRealSend || !realSendAvailable}" in deposit_page
+    assert "realSendBlocked: depositSendCompleted || actionBlocked || requiredDepositDataBlocked || !packageReadyForRealSend || !realSendAvailable" in deposit_page
     assert "const realSendAvailable = pecWorkflowAvailable && !proofBlocksDirectSend" in deposit_page
     assert "directPecReady && !guidedCompletion" not in deposit_page
     assert "Invio reale non attivo: manca ancora il trasporto ministeriale conforme." not in deposit_page

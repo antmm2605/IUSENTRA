@@ -1,4 +1,5 @@
 import { AttestazioneConformitaAzione } from './fascicoli/AttestaPulsante'
+import { AvanzamentoCaricamento, caricaDocumentiConAvanzamento, type StatoCaricamento } from './fascicoli/caricaDocumenti'
 import { Fragment, Suspense, lazy, useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import {
   Archive,
@@ -1915,10 +1916,14 @@ function CatalogazioneDocumentalePanel({
   onPreview,
   onDone,
   onError,
+  depositoHref = '',
+  notificaHref = '',
 }: {
   fascicoloId: string
   enabled: boolean
   documents: FascicoloDocument[]
+  depositoHref?: string
+  notificaHref?: string
   onPreview: (preview: PreviewDocument) => void
   onDone: (message?: string) => void
   onError: (message: string) => void
@@ -2020,6 +2025,10 @@ function CatalogazioneDocumentalePanel({
     setReviewedEvidenceDocumentIds(new Set())
     setEvidenceDocumentId('')
     setEditingDocumentId('')
+  }, [fascicoloId])
+  useEffect(() => {
+    // Un documento appena caricato compare subito: il catalogo precedente resta visibile
+    // mentre quello aggiornato si rilegge, invece di svuotare l'elenco.
     if (enabled) void load()
   }, [enabled, load, documentRevision])
 
@@ -2207,7 +2216,7 @@ function CatalogazioneDocumentalePanel({
             const aperto = catalogoAperto.has(item.document_id)
             return (
               <article key={item.document_id || item.filename} className="iu-fas-catalog__entry">
-                {document ? <DocumentRow doc={{ ...document, ...(assignment ? { type: assignment.document_label, catalogLabel: assignment.document_label, catalogSection: assignment.document_section } : {}) }} hideCatalogSummary aperto={aperto} onApriChiudi={() => apriChiudiCatalogo(item.document_id)} onPreview={onPreview} onDone={onDone} onError={onError}/> : null}
+                {document ? <DocumentRow doc={{ ...document, ...(assignment ? { type: assignment.document_label, catalogLabel: assignment.document_label, catalogSection: assignment.document_section } : {}) }} hideCatalogSummary aperto={aperto} onApriChiudi={() => apriChiudiCatalogo(item.document_id)} onPreview={onPreview} onDone={onDone} onError={onError} depositoHref={depositoHref} notificaHref={notificaHref}/> : null}
                 <div className={`iu-fas-catalog__row is-${assignment?.status || 'waiting'}`} hidden={document ? !aperto : false}>
                 <FolderSearch2 size={17}/>
                 <div className="iu-fas-catalog__copy">
@@ -8261,6 +8270,7 @@ function DocumentUploadWorkspace({
   const [files, setFiles] = useState<File[]>([])
   const [mode, setMode] = useState<'auto' | 'manuale'>('auto')
   const [busy, setBusy] = useState(false)
+  const [stato, setStato] = useState<StatoCaricamento | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { dragging, dropHandlers } = useFileDropTarget(fileInputRef, setFiles)
   if (!data.actions.uploadDocument) return null
@@ -8275,12 +8285,14 @@ function DocumentUploadWorkspace({
     }
     setBusy(true)
     try {
-      const result = await submitFormJson(data.actions.uploadDocument, formData)
+      const result = await caricaDocumentiConAvanzamento(data.actions.uploadDocument, formData, setStato)
       form.reset()
       setFiles([])
       setMode('auto')
       onDone(result.message || 'Documenti caricati.')
+      window.setTimeout(() => setStato(null), 2500)
     } catch (err) {
+      setStato(null)
       onError(err instanceof Error ? err.message : 'Caricamento non riuscito.')
     } finally {
       setBusy(false)
@@ -8341,7 +8353,8 @@ function DocumentUploadWorkspace({
             )) : <p className="iu-empty">Seleziona uno o più file per assegnare il tipo documento.</p>}
           </div>
         ) : null}
-        <button type="submit" disabled={busy}><UploadCloud size={15}/> {busy ? 'Caricamento...' : 'Carica documenti'}</button>
+        <button type="submit" disabled={busy}><UploadCloud size={15}/> {busy ? (stato?.fase === 'invio' ? `Caricamento ${stato.percento}%` : 'Registrazione nel fascicolo…') : 'Carica documenti'}</button>
+        {stato ? <AvanzamentoCaricamento stato={stato}/> : null}
       </form>
     </section>
   )
@@ -8354,12 +8367,13 @@ function documentCatalogMethodLabel(doc: FascicoloDocument): { label: string; to
   return { label: 'Da indicizzare: contenuto non letto', tone: 'warning', detail: doc.catalogEvidence || 'Esegui la lettura documentale prima di usare una classificazione.' }
 }
 
-function DocumentRow({ doc, onPreview, onDone, onError, hideCatalogSummary = false, aperto, onApriChiudi }:{doc:FascicoloDocument; onPreview:(preview:PreviewDocument)=>void; onDone:(message?:string)=>void; onError:(message:string)=>void; hideCatalogSummary?:boolean; aperto?:boolean; onApriChiudi?:()=>void}) {
+function DocumentRow({ doc, onPreview, onDone, onError, hideCatalogSummary = false, aperto, onApriChiudi, depositoHref = '', notificaHref = '' }:{doc:FascicoloDocument; onPreview:(preview:PreviewDocument)=>void; onDone:(message?:string)=>void; onError:(message:string)=>void; hideCatalogSummary?:boolean; aperto?:boolean; onApriChiudi?:()=>void; depositoHref?:string; notificaHref?:string}) {
   const [renaming, setRenaming] = useState(false)
   const [draftName, setDraftName] = useState(doc.name)
   const [renameBusy, setRenameBusy] = useState(false)
   const [renameMessage, setRenameMessage] = useState('')
   const tags = visibleDocumentTags(doc)
+  const documentoUtilizzabile = Boolean(doc.actions.download || doc.actions.preview)
   const catalogMethod = documentCatalogMethodLabel(doc)
   const catalogTone: FascicoloRow['tone'] =
     doc.catalogSection === 'atti' ? 'primary'
@@ -8452,6 +8466,9 @@ function DocumentRow({ doc, onPreview, onDone, onError, hideCatalogSummary = fal
         {doc.actions.sign ? <a className="iu-fas-doc-action" href={doc.actions.sign} title="Apri la firma digitale del documento"><ShieldCheck size={15}/><span>Firma</span></a> : null}
         {doc.actions.attest ? <AttestazioneConformitaAzione action={doc.actions.attest} documento={doc.name} onDone={onDone} onError={onError}/> : null}
         {doc.actions.pdfa ? <PostAction action={doc.actions.pdfa} tone="secondary" confirm="Convertire il documento in PDF/A-2B?" confirmTitle="Conversione PDF/A" onDone={onDone} onError={onError} title="Converti in PDF/A-2B"><FileCheck2 size={14}/><span>PDF/A</span></PostAction> : null}
+        {/* Deposito e notifica di questo solo documento: si apre direttamente la pagina, con il documento già scelto. */}
+        {documentoUtilizzabile && depositoHref ? <a className="iu-fas-doc-action" href={documentoSingoloHref(depositoHref, doc.id, true)} title="Prepara il deposito telematico con questo documento come atto principale" aria-label={`Deposita ${doc.name}`}><Send size={15}/><span>Deposito</span></a> : null}
+        {documentoUtilizzabile && notificaHref ? <a className="iu-fas-doc-action" href={documentoSingoloHref(notificaHref, doc.id, false)} title="Prepara la notifica di questo documento: relata e attestazione di conformità" aria-label={`Notifica ${doc.name}`}><Mail size={15}/><span>Notifica</span></a> : null}
         {doc.actions.delete ? <PostAction action={doc.actions.delete} tone="danger" confirm="Eliminare il documento dal fascicolo?" confirmTitle="Elimina documento" onDone={onDone} onError={onError} title="Elimina documento"><Trash2 size={14}/><span>Elimina</span></PostAction> : null}
       </div>
     </article>
@@ -8479,6 +8496,14 @@ function appendSelectedDocumentsToHref(href: string, documentIds: string[]): str
     const separator = href.includes('?') ? '&' : '?'
     return `${href}${separator}documenti=${encodeURIComponent(documentIds.join(','))}`
   }
+}
+
+/** Collegamento a deposito o notifica per un solo documento, senza passare dalla scelta dei documenti. */
+function documentoSingoloHref(href: string, documentId: string, attoPrincipale: boolean): string {
+  const conDocumento = appendSelectedDocumentsToHref(href, [documentId])
+  if (!attoPrincipale) return conDocumento
+  const separatore = conDocumento.includes('?') ? '&' : '?'
+  return `${conDocumento}${separatore}atto_principale=${encodeURIComponent(documentId)}`
 }
 
 function isNotificationSelectableDocument(doc: FascicoloDocument): boolean {
@@ -8762,23 +8787,23 @@ function assertLocalPecAttoEncBase64(localPayload: Record<string, unknown>): voi
     return recordText(item as Record<string, unknown>, 'filename').toLowerCase() === 'atto.enc'
   })
   if (!attoEnc || typeof attoEnc !== 'object' || Array.isArray(attoEnc)) {
-    throw new Error('Pacchetto deposito mancante. Rigenera la prova deposito prima dell’invio reale.')
+    throw new Error('Pacchetto deposito mancante. Premi di nuovo «Invia deposito reale»: il pacchetto viene rigenerato e ricontrollato.')
   }
   const contentBase64 = recordText(attoEnc as Record<string, unknown>, 'content_base64').trim()
   if (!contentBase64) {
-    throw new Error('Pacchetto deposito non leggibile. Rigenera la prova deposito prima dell’invio reale.')
+    throw new Error('Pacchetto deposito non leggibile. Premi di nuovo «Invia deposito reale»: il pacchetto viene rigenerato e ricontrollato.')
   }
   let decoded: Uint8Array
   try {
     decoded = base64ToUint8Array(contentBase64)
   } catch {
-    throw new Error('Pacchetto deposito non valido. Rigenera la prova deposito prima dell’invio reale.')
+    throw new Error('Pacchetto deposito non valido. Premi di nuovo «Invia deposito reale»: il pacchetto viene rigenerato e ricontrollato.')
   }
   if (!decoded.length || !looksLikeCmsEnvelopedData(decoded)) {
-    throw new Error('Pacchetto deposito non conforme. Rigenera la prova prima dell’invio reale.')
+    throw new Error('Pacchetto deposito non conforme. Premi di nuovo «Invia deposito reale»: il pacchetto viene rigenerato e ricontrollato.')
   }
   if (!recordBool(attoEnc as Record<string, unknown>, 'ministerial_busta_verified')) {
-    throw new Error('Pacchetto deposito non verificato. Ripeti Simula invio PEC prima dell’invio reale.')
+    throw new Error('Pacchetto deposito non verificato. Premi di nuovo «Invia deposito reale»: il controllo PEC viene rieseguito.')
   }
 }
 
@@ -10209,12 +10234,14 @@ function DetailPage({ id }:{id:string}) {
             <Suspense fallback={<p className="iu-empty">Preparazione ricerca documenti d’ufficio…</p>}>
               <OfficeDocumentsPanel data={data} onDone={refreshDocuments} onError={failDetail} openOfficeDocumentsRequest={officeDocumentsOpenRequest}/>
             </Suspense>
-            <DocumentUploadWorkspace data={data} onDone={refreshDetail} onError={failDetail}/>
+            <DocumentUploadWorkspace data={data} onDone={refreshDocuments} onError={failDetail}/>
             <LexIndexingPanel summary={data.lexIndexing} refreshAction={data.actions.refreshLexIndex} retryAction={data.actions.retryLexIndexErrors} onDone={refreshDetail} onError={failDetail}/>
             <CatalogazioneDocumentalePanel
               fascicoloId={f.id || id}
               enabled={lazyStatus.documenti === 'loaded'}
               documents={data.documents}
+              depositoHref={depositTelematicHref}
+              notificaHref={notificationHref}
               onPreview={setPreviewDoc}
               onDone={refreshDetail}
               onError={failDetail}

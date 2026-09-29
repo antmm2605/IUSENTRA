@@ -3481,3 +3481,81 @@ body.iu-fascicoli-table-expanded{
 .iu-fas-doc-toggle{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border:0;border-radius:6px;background:none;color:#0e7490;cursor:pointer}
 .iu-fas-doc-toggle:hover{background:#ecfeff}
 .iu-fas-doc-toggle:focus-visible{outline:3px solid rgba(14,116,144,.28);outline-offset:2px}
+
+/* Avanzamento del caricamento dei documenti sul server */
+.iu-fas-upload-progress {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(29, 78, 216, .2);
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+
+.iu-fas-upload-progress.is-fatto {
+  border-color: rgba(4, 120, 87, .25);
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.iu-fas-upload-progress__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.iu-fas-upload-progress__head span {
+  color: #475569;
+  font-size: 12px;
+}
+
+.iu-fas-upload-progress__bar {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(29, 78, 216, .12);
+  accent-color: #1d4ed8;
+  appearance: none;
+}
+
+.iu-fas-upload-progress__bar::-webkit-progress-bar {
+  border-radius: 999px;
+  background: rgba(29, 78, 216, .12);
+}
+
+.iu-fas-upload-progress__bar::-webkit-progress-value {
+  border-radius: 999px;
+  background: #1d4ed8;
+  transition: width .2s ease;
+}
+
+.iu-fas-upload-progress__bar::-moz-progress-bar {
+  border-radius: 999px;
+  background: #1d4ed8;
+}
+
+.iu-fas-upload-progress.is-fatto .iu-fas-upload-progress__bar::-webkit-progress-value {
+  background: #059669;
+}
+
+.iu-fas-upload-progress ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.iu-fas-upload-progress li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}

@@ -130,6 +130,9 @@ def register_fascicoli_document_routes(
                         "classificazione_modalita": "manuale" if manuale else "auto",
                         "tipo_documento": tipo_doc.value,
                     },
+                    # La lettura del contenuto non trattiene la richiesta dell'avvocato:
+                    # il documento compare subito e l'indicizzazione prosegue in sfondo.
+                    blocking=bool(app.config.get("LEX_INDEXING_SYNC", app.config.get("TESTING", False))),
                 )
             if not documenti_creati:
                 raise ValueError("I file selezionati sono vuoti o non leggibili.")

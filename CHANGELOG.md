@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.433.0 — 29/09/2026
+
+Deposito e notifica di un singolo documento con un clic, un solo comando per il deposito telematico e caricamento dei documenti più rapido.
+
+- **«Deposito» e «Notifica» sul documento**: nella riga di ogni documento del fascicolo, prima di «Elimina». «Deposito» apre direttamente *Deposito telematico — Prepara deposito* con quel documento già scelto come atto principale (niente finestra «Documenti del fascicolo»); «Notifica» apre direttamente *Notifiche e comunicazioni — Relata di notifica e attestazione di conformità* con il documento già selezionato.
+- **Un solo comando «Invia deposito reale»**: i pulsanti «Prova senza invio reale» e «Simula invio PEC» non ci sono più. I due controlli restano obbligatori e identici (stesse chiamate, stessi controlli del server sull'ordine prova → simulazione → invio, stessa firma dei dati del deposito e stessa PEC dal PC locale): li esegue in automatico «Invia deposito reale», che si ferma al primo esito non positivo e mostra cosa completare. La conferma indica ufficio destinatario, atto principale e documenti.
+- **Caricamento documenti**: la lettura del contenuto (indicizzazione) prosegue in sfondo e non trattiene più la richiesta, quindi il documento compare subito; durante l'invio un riquadro mostra la percentuale e i byte trasmessi, poi la registrazione nel fascicolo. Dopo il caricamento si aggiorna solo l'elenco dei documenti e il catalogo resta visibile mentre si rilegge.
+- Nel deposito, i documenti caricati da PC entrano subito nella busta (prima gli identificativi dei nuovi documenti andavano persi).
+
 ## 2.432.1 — 29/09/2026
 
 Correzione per la CI (job «Storybook: pagine e accessibilità») dopo la 2.432.0.

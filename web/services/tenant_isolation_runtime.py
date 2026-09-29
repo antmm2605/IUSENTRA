@@ -62,6 +62,8 @@ TENANT_SENSITIVE_PATH_KEYS = frozenset(
         "BACKUP_DIR",
         "CRM_DB",
         "ANTIRICICLAGGIO_DB",
+        "CTU_DB",
+        "PRIMA_NOTA_DB",
         "SEARCH_INDEX",
         "TELEMATICO_DB",
         "TELEMATICO_ACTIONS_REPOSITORY_DB",

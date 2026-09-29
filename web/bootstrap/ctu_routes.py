@@ -23,6 +23,13 @@ _STATO_LABEL = {
 }
 
 
+def _vacazioni_registro(incarico: Any) -> dict[str, Any]:
+    from pct.ctu_compensi.vacazioni import conteggio_giornaliero
+
+    esito = conteggio_giornaliero(incarico.operazioni)
+    return {"vacazioni": esito["vacazioni"], "escluse_per_tetto": esito["escluse_per_tetto"]}
+
+
 def _incarico_payload(incarico: Any) -> dict[str, Any]:
     return {
         "id": incarico.id,
@@ -39,7 +46,18 @@ def _incarico_payload(incarico: Any) -> dict[str, Any]:
             {"nome": ctp.nome, "parte": ctp.parte, "email": ctp.email}
             for ctp in incarico.consulenti_parte
         ],
+        "dataDepositoRelazione": incarico.data_deposito_relazione,
+        "dataComunicazioneDecreto": incarico.data_comunicazione_decreto,
+        "importoLiquidato": incarico.importo_liquidato,
+        "operazioni": incarico.operazioni,
+        "vacazioniRegistro": _vacazioni_registro(incarico),
+        "compensoInput": incarico.compenso_input,
+        "stati": [{"value": k, "label": v} for k, v in _STATO_LABEL.items()],
         "actions": {
+            "operazioni": f"/fascicoli/{incarico.fascicolo_id}/ctu/{incarico.id}/operazioni",
+            "compenso": f"/fascicoli/{incarico.fascicolo_id}/ctu/{incarico.id}/compenso",
+            "istanza": f"/fascicoli/{incarico.fascicolo_id}/ctu/{incarico.id}/istanza",
+            "deposito": f"/fascicoli/{incarico.fascicolo_id}/deposito/prepara",
             "aggiorna": f"/fascicoli/{incarico.fascicolo_id}/ctu/{incarico.id}/aggiorna",
             "proponiScadenze": f"/fascicoli/{incarico.fascicolo_id}/ctu/{incarico.id}/proponi-scadenze",
             "aggiungiCtp": f"/fascicoli/{incarico.fascicolo_id}/ctu/{incarico.id}/ctp",
@@ -107,6 +125,8 @@ def register_ctu_routes(app: Flask, core: dict[str, Any]) -> None:
                 "stato": "stato", "nomeCtu": "nome_ctu", "quesiti": "quesiti",
                 "dataGiuramento": "data_giuramento", "termineBozza": "termine_bozza",
                 "termineOsservazioni": "termine_osservazioni", "termineDeposito": "termine_deposito",
+                "dataDepositoRelazione": "data_deposito_relazione", "dataComunicazioneDecreto": "data_comunicazione_decreto",
+                "importoLiquidato": "importo_liquidato",
             }.items()
             if dati.get(chiave_js) is not None
         }

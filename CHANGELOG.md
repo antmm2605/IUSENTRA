@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.429.0 — 29/09/2026
+
+Modulo CTU e ausiliari del giudice: operazioni peritali, compenso secondo la tabella del D.M. 30/05/2002, termini della liquidazione e istanza di liquidazione pronta per il deposito.
+
+- **Gestione dell'incarico** dalla sezione «CTU e perizie» del fascicolo (pulsante «Operazioni, compenso e liquidazione»): stato, data di deposito della relazione, comunicazione del decreto di pagamento e importo liquidato.
+- **Registro delle operazioni peritali** (art. 194 c.p.c., art. 90 disp. att. c.p.c.): data, ora, luogo, attività e durata; le vacazioni si contano da sole con le regole dell'art. 4 L. 319/1980 (due ore, divisibili solo a metà, intera oltre un'ora e un quarto, massimo quattro al giorno salvo le attività davanti al giudice). Le operazioni future diventano proposte nello scadenziario.
+- **Compenso dell'ausiliario** (D.P.R. 115/2002, artt. 49-58) con **tutta la tabella del D.M. 30/05/2002** (artt. 2-28-ter: scaglioni progressivi, importi minimi, reperti successivi ridotti) o a vacazioni; posizione nella forbice (art. 51), aumento fino al doppio motivato (art. 52 c. 1), riduzione di un terzo per ritardo (art. 52 c. 2), collegio +40% per componente (art. 53), urgenza (termine fino a 5 o 15 giorni), spese documentate e di viaggio, contributo previdenziale e IVA.
+- **Vacazioni a 14,68 euro ciascuna**: Corte cost. 16/2025 ha dichiarato illegittima la tariffa ridotta delle vacazioni successive (8,15 euro); corretto anche lo strumento forense «CTU, vacazioni e compensi». Patrocinio a spese dello Stato: nessuna riduzione per l'ausiliario finché le tabelle non sono adeguate (Corte cost. 192/2015 e 166/2022).
+- **Termini della liquidazione** nello scadenziario (in bozza): istanza entro 100 giorni dal deposito della relazione, a pena di decadenza (art. 71), e opposizione al decreto entro 30 giorni dalla comunicazione (art. 170; art. 15 D.Lgs. 150/2011), calcolati in modo prudenziale.
+- **Bozza dell'istanza di liquidazione con la nota specifica** nell'editor del fascicolo, con ufficio, R.G., giudice, voci, operazioni e totale; si firma e si deposita con «Deposito istanza di liquidazione CTU» (collegamento «Prepara il deposito»). Il deposito telematico non cambia.
+- Pagina «Recupero crediti in serie» aggiunta al catalogo Storybook delle pagine.
+- **Dati CTU e prima nota nella cartella dello studio**: gli incarichi CTU e la prima nota si salvavano in un percorso relativo dell'applicazione, fuori dal volume dati e fuori dal perimetro dello studio; ora stanno nella cartella dati dello studio (anche in modalità multi-studio) come gli altri archivi.
+
 ## 2.428.0 — 29/09/2026
 
 Recupero crediti in serie: dall'elenco dei debitori al decreto ingiuntivo e all'esecuzione, con le scadenze di legge e le bozze degli atti in blocco.

@@ -280,11 +280,14 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     )
     app.config["CTU_DB"] = cfg.get(
         "CTU_DB",
-        os.getenv("PCT_CTU_DB", "./ctu/incarichi.json"),
+        os.getenv("PCT_CTU_DB", _runtime_data_default("ctu", "incarichi.json", fallback=_data_peer_path(app.config["CLIENTI_DB"], "ctu", "incarichi.json"))),
     )
     app.config["PRIMA_NOTA_DB"] = cfg.get(
         "PRIMA_NOTA_DB",
-        os.getenv("PCT_PRIMA_NOTA_DB", "./contabilita/prima_nota.json"),
+        os.getenv(
+            "PCT_PRIMA_NOTA_DB",
+            _runtime_data_default("contabilita", "prima_nota.json", fallback=_data_peer_path(app.config["CLIENTI_DB"], "contabilita", "prima_nota.json")),
+        ),
     )
     app.config["SEARCH_INDEX"] = cfg.get(
         "SEARCH_INDEX", os.getenv("PCT_SEARCH_INDEX", "./search/index.db")

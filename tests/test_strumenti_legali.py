@@ -391,7 +391,8 @@ def test_pignoramento_pensione_ordinario_usa_minimo_vitale_2026(tmp_path):
     assert result["quota_massima"] == 136.13
 
 
-def test_ctu_vacazioni_calcola_prima_e_successive(tmp_path):
+def test_ctu_vacazioni_tutte_al_valore_della_prima(tmp_path):
+    """Corte cost. 16/2025: le vacazioni successive valgono quanto la prima (14,68 euro)."""
     gestore = _gestore(tmp_path)
     result = gestore.calcola_ctu(
         {
@@ -403,8 +404,9 @@ def test_ctu_vacazioni_calcola_prima_e_successive(tmp_path):
         }
     )
 
-    assert result["onorario_base"] == 47.28
-    assert result["totale"] == 47.28
+    assert result["onorario_base"] == 73.4
+    assert result["totale"] == 73.4
+    assert any("16/2025" in nota for nota in result["notes"])
 
 
 def test_tfr_calcola_quota_rivalutazione_e_totale(tmp_path):

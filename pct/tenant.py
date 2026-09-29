@@ -1595,6 +1595,8 @@ class GestioneTenant:
             "TIME_TRACKING_DB":   f"{base}/timesheet/time_tracking.json",
             "CRM_DB":            f"{base}/crm/leads.json",
             "ANTIRICICLAGGIO_DB": f"{base}/antiriciclaggio/verifiche.json",
+            "CTU_DB":            f"{base}/ctu/incarichi.json",
+            "PRIMA_NOTA_DB":     f"{base}/contabilita/prima_nota.json",
             "SEARCH_INDEX":      f"{base}/search/index.db",
             "REGISTRO_LETTURE_DB": f"{base}/intelligence/registro_letture.db",
             "PRIVACY_DB":        f"{base}/privacy/registro.json",

@@ -244,3 +244,7 @@ htmlcov/
 
 # Cache su disco della Lettura del fascicolo: artefatto di runtime, mai versionato
 instance/cache/
+
+# Dati runtime creati in locale (incarichi CTU, prima nota): mai nel repository
+/ctu/
+/contabilita/

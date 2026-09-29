@@ -159,6 +159,7 @@ import { normaliseStudioRuntimeResult, type StudioRuntimeOffice, type StudioRunt
 import { CodiceOggettoPstSearch } from './CodiceOggettoPstSearch'
 import { GuidaPraticaSidebar } from './GuidaPraticaSidebar'
 import { LetturaFascicoloPanel } from './fascicoli/LetturaFascicoloPanel'
+import type { CtuDettaglio } from './fascicoli/CtuIncaricoDettaglio'
 import type { LetturaFascicolo } from './fascicoli/letturaFascicolo'
 import { DocumentListToolbar, type DocumentSectionOption } from './fascicoloDocumenti/DocumentListToolbar'
 import { useDocumentListControls, type DocumentListEntry } from './fascicoloDocumenti/useDocumentListControls'
@@ -176,6 +177,7 @@ const OfficeDocumentsPanel = lazy(() => import('./OfficeDocumentsPanel').then((m
 const MediazioneFascicolo = lazy(() => import('./mediazione/MediazioneFascicolo'))
 const PenalePdpSezione = lazy(() => import('./penalePdp/PenalePdpSezione'))
 const PatFormwebSezione = lazy(() => import('./patFormweb/PatFormwebSezione'))
+const CtuIncaricoDettaglio = lazy(() => import('./fascicoli/CtuIncaricoDettaglio'))
 const PttSezione = lazy(() => import('./pttSigit/PttSezione'))
 const FirmaRemotaPannello = lazy(() => import('./fascicoli/FirmaRemotaPannello'))
 
@@ -5015,15 +5017,13 @@ function RegistroSyncButton({ fascicoloId, lastSyncAt }:{fascicoloId:string; las
   )
 }
 
-type CtuIncarico = {
-  id: string
-  ruoloStudio: string
+type CtuIncarico = CtuDettaglio & {
   statoLabel: string
   nomeCtu: string
   timeline: Array<{ chiave: string; label: string; data: string }>
   avvisi: string[]
   consulentiParte: Array<{ nome: string; parte: string }>
-  actions: { proponiScadenze: string }
+  actions: CtuDettaglio['actions'] & { proponiScadenze: string }
 }
 
 function addDaysToIsoDate(base: string, days: string): string {
@@ -5046,6 +5046,7 @@ function CtuSection({ fascicoloId }:{fascicoloId:string}) {
   const [busy, setBusy] = useState(false)
   const [form, setForm] = useState({ ruoloStudio: 'PARTE', nomeCtu: '', dataNomina: '', termineBozza: '', termineOsservazioni: '', termineDeposito: '' })
   const [ctuCalc, setCtuCalc] = useState({ decorrenza: '', giorniBozza: '', giorniOsservazioni: '', giorniDeposito: '' })
+  const [gestito, setGestito] = useState('')
   const load = () => {
     fetch(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/ctu`, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
       .then((response) => response.ok ? response.json() : { incarichi: [] })
@@ -5108,7 +5109,13 @@ function CtuSection({ fascicoloId }:{fascicoloId:string}) {
           ) : null}
           <footer>
             <button type="button" disabled={busy} onClick={() => post(incarico.actions.proponiScadenze, {})}><CalendarDays size={14}/> Proponi scadenze</button>
+            <button type="button" aria-expanded={gestito === incarico.id} onClick={() => setGestito(gestito === incarico.id ? '' : incarico.id)}><Gavel size={14}/> {gestito === incarico.id ? 'Chiudi gestione' : 'Operazioni, compenso e liquidazione'}</button>
           </footer>
+          {gestito === incarico.id ? (
+            <Suspense fallback={<p className="iu-fas-ctu__msg">Caricamento…</p>}>
+              <CtuIncaricoDettaglio incarico={incarico} onAggiornato={load}/>
+            </Suspense>
+          ) : null}
         </article>
       ))}
       {formOpen ? (

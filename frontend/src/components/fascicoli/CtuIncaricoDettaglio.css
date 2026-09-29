@@ -1,0 +1,182 @@
+.iu-ctu-det {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding-top: 8px;
+  border-top: 1px dashed var(--iu-border, #e2e8f0);
+}
+
+.iu-ctu-det section {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.iu-ctu-det h4 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.iu-ctu-det__msg {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(2, 132, 199, 0.08);
+  color: #0c4a6e;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.iu-ctu-det__campi {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.iu-ctu-det label {
+  display: grid;
+  gap: 3px;
+  min-width: 140px;
+  color: #475569;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.iu-ctu-det .iu-ctu-det__largo {
+  flex: 1 1 260px;
+}
+
+.iu-ctu-det .iu-ctu-det__spunta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.iu-ctu-det .iu-ctu-det__forbice {
+  max-width: 420px;
+}
+
+.iu-ctu-det input:not([type='checkbox']):not([type='range']),
+.iu-ctu-det select {
+  width: 100%;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.iu-ctu-det button {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 6px;
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.iu-ctu-det button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.iu-ctu-det__azioni {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.iu-ctu-det__nota {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.iu-ctu-det__operazioni {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.iu-ctu-det__operazioni li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 2px 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-size: 12.5px;
+}
+
+.iu-ctu-det__operazioni small {
+  grid-column: 1;
+  color: #64748b;
+}
+
+.iu-ctu-det__operazioni button {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+}
+
+.iu-ctu-det__voci {
+  display: grid;
+  gap: 8px;
+}
+
+.iu-ctu-det__risultato dl {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+
+.iu-ctu-det__risultato dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0;
+  border-bottom: 1px dashed #e2e8f0;
+  font-size: 12.5px;
+}
+
+.iu-ctu-det__risultato dt {
+  min-width: 0;
+}
+
+.iu-ctu-det__risultato dd {
+  margin: 0;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.iu-ctu-det__risultato .is-totale {
+  font-size: 14px;
+}
+
+@media (max-width: 720px) {
+  .iu-ctu-det label {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .iu-ctu-det .iu-ctu-det__spunta {
+    flex-basis: auto;
+  }
+}

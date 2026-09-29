@@ -5,9 +5,9 @@ consulenti di parte); art. 195 c.3 c.p.c. come modificato dalla riforma
 Cartabia (D.Lgs. 149/2022): l'ordinanza di nomina fissa i tre termini —
 trasmissione della bozza di relazione alle parti, osservazioni delle parti,
 deposito della relazione finale con la valutazione delle osservazioni.
-Compensi dell'ausiliario: D.P.R. 115/2002 artt. 49-58 con onorari a vacazione
-del D.M. 30/05/2002 (il calcolo vive nel tool «CTU, vacazioni e compensi» di
-``pct/strumenti_legali.py``); i tipi atto per il deposito telematico
+Compensi dell'ausiliario: D.P.R. 115/2002 artt. 49-58 con la tabella e le vacazioni
+del D.M. 30/05/2002 (calcolo in ``pct/ctu_compensi/``; termini della liquidazione:
+art. 71, cento giorni per l'istanza, e art. 170, trenta giorni per l'opposizione); i tipi atto per il deposito telematico
 dell'ausiliario (DepositoRelazioneCTU, DepositoIntegrazioneCTU,
 DepositoIstanzaLiquidazioneCTU) sono gia' nel catalogo busta.
 
@@ -43,6 +43,10 @@ STATI_INCARICO = (
     "LIQUIDAZIONE",    # istanza di liquidazione / decreto
     "CHIUSO",
 )
+
+
+_CAMPI_DATA = ("data_nomina", "data_giuramento", "termine_bozza", "termine_osservazioni", "termine_deposito",
+               "data_deposito_relazione", "data_comunicazione_decreto")
 
 
 def _norm(value: Any) -> str:
@@ -91,6 +95,12 @@ class IncaricoCtu:
     termine_bozza: str = ""  # trasmissione bozza alle parti
     termine_osservazioni: str = ""  # osservazioni delle parti
     termine_deposito: str = ""  # deposito relazione finale
+    # Liquidazione (D.P.R. 115/2002): compimento delle operazioni e decreto di pagamento.
+    data_deposito_relazione: str = ""  # relazione depositata: decorre l'art. 71 (100 giorni)
+    data_comunicazione_decreto: str = ""  # decreto comunicato: decorre l'opposizione (art. 170)
+    importo_liquidato: str = ""
+    operazioni: list[dict[str, Any]] = field(default_factory=list)  # operazioni peritali (art. 90 disp. att. c.p.c.)
+    compenso_input: dict[str, Any] = field(default_factory=dict)  # ultimi dati del calcolo del compenso
     consulenti_parte: list[ConsulenteParte] = field(default_factory=list)
     note: str = ""
     fonte_normativa: str = FONTE_NORMATIVA
@@ -122,6 +132,11 @@ class IncaricoCtu:
             {"chiave": "bozza", "label": "Trasmissione bozza alle parti (art. 195 c.3)", "data": self.termine_bozza},
             {"chiave": "osservazioni", "label": "Osservazioni delle parti (art. 195 c.3)", "data": self.termine_osservazioni},
             {"chiave": "deposito", "label": "Deposito relazione finale (art. 195 c.3)", "data": self.termine_deposito},
+        ] + [
+            tappa for tappa in (
+                {"chiave": "relazione_depositata", "label": "Relazione depositata", "data": self.data_deposito_relazione},
+                {"chiave": "decreto", "label": "Decreto di liquidazione comunicato", "data": self.data_comunicazione_decreto},
+            ) if tappa["data"]
         ]
 
     def termini_incoerenti(self) -> list[str]:
@@ -176,6 +191,37 @@ def proposte_scadenze_incarico(incarico: IncaricoCtu) -> list[dict[str, str]]:
             "osservazioni",
         )
         _aggiungi(incarico.termine_deposito, "Deposito relazione CTU attesa", "deposito")
+    proposte.extend(_proposte_liquidazione_e_operazioni(incarico))
+    return proposte
+
+
+def _proposte_liquidazione_e_operazioni(incarico: IncaricoCtu) -> list[dict[str, str]]:
+    """Termini di legge della liquidazione (artt. 71 e 170 D.P.R. 115/2002) e operazioni future."""
+
+    from pct.ctu_compensi.termini import termine_istanza, termine_opposizione
+
+    termini = []
+    if incarico.ruolo_studio == "AUSILIARIO":
+        termini.append(termine_istanza(incarico.data_deposito_relazione))
+    termini.append(termine_opposizione(incarico.data_comunicazione_decreto))
+    proposte = [
+        {"chiave": f"ctu:{incarico.id}:{t['chiave']}", "titolo": f"{t['titolo']} — CTU {incarico.nome_ctu}".strip(),
+         "data_scadenza": t["data"], "fascicolo_id": incarico.fascicolo_id, "fonte": f"{t['norma']}. {t['nota']}"}
+        for t in termini if t
+    ]
+    from zoneinfo import ZoneInfo
+
+    oggi = datetime.now(ZoneInfo("Europe/Rome")).date().isoformat()
+    for operazione in incarico.operazioni:
+        if str(operazione.get("data") or "") >= oggi:
+            proposte.append({
+                "chiave": f"ctu:{incarico.id}:operazione-{operazione.get('id')}",
+                "titolo": f"Operazioni peritali CTU {incarico.nome_ctu}: {operazione.get('descrizione') or operazione.get('tipo') or ''}".strip(),
+                "data_scadenza": str(operazione["data"]), "fascicolo_id": incarico.fascicolo_id,
+                "fonte": "Operazioni peritali (art. 194 c.p.c.; art. 90 disp. att. c.p.c.)"
+                + (f" ore {operazione['ora']}" if operazione.get("ora") else "")
+                + (f", {operazione['luogo']}" if operazione.get("luogo") else ""),
+            })
     return proposte
 
 
@@ -207,7 +253,7 @@ class GestioneCtu:
             raise ValueError("L'incarico CTU va collegato a un fascicolo.")
         if incarico.ruolo_studio not in RUOLI_STUDIO:
             raise ValueError(f"Ruolo studio non valido: {incarico.ruolo_studio}.")
-        for campo in ("data_nomina", "data_giuramento", "termine_bozza", "termine_osservazioni", "termine_deposito"):
+        for campo in _CAMPI_DATA:
             valore = _norm(getattr(incarico, campo))
             if valore and not _iso_date(valore):
                 raise ValueError(f"Data non valida per {campo}: atteso formato ISO (YYYY-MM-DD).")
@@ -230,6 +276,10 @@ class GestioneCtu:
         aggiornato = IncaricoCtu.from_dict({**incarico.to_dict(), **campi, "id": incarico.id})
         if aggiornato.stato not in STATI_INCARICO:
             raise ValueError(f"Stato non valido: {aggiornato.stato}.")
+        for campo in _CAMPI_DATA:
+            valore = _norm(getattr(aggiornato, campo))
+            if valore and not _iso_date(valore):
+                raise ValueError(f"Data non valida per {campo}: atteso formato ISO (YYYY-MM-DD).")
         aggiornato.modificato_il = datetime.now().isoformat(timespec="seconds")
         self._incarichi[incarico.id] = aggiornato
         self._salva()
@@ -247,6 +297,53 @@ class GestioneCtu:
         incarico.modificato_il = datetime.now().isoformat(timespec="seconds")
         self._salva()
         return incarico
+
+    # ------------------------------------------------ operazioni e compenso
+    def aggiungi_operazione(self, incarico_id: str, dati: dict[str, Any]) -> IncaricoCtu:
+        incarico = self._incarichi.get(incarico_id)
+        if incarico is None:
+            raise KeyError(f"Incarico CTU {incarico_id} non trovato.")
+        giorno = _iso_date(dati.get("data"))
+        if not giorno:
+            raise ValueError("Indica la data dell'operazione peritale.")
+        try:
+            minuti = int(float(dati.get("minuti") or 0))
+        except (TypeError, ValueError):
+            minuti = 0
+        if minuti < 0 or minuti > 24 * 60:
+            raise ValueError("La durata dell'operazione non è valida.")
+        ora = _norm(dati.get("ora"))[:5]
+        incarico.operazioni.append({
+            "id": uuid.uuid4().hex[:10], "data": giorno, "ora": ora if len(ora) == 5 and ora[2] == ":" else "",
+            "tipo": _norm(dati.get("tipo"))[:30] or "operazione", "luogo": _norm(dati.get("luogo"))[:160],
+            "descrizione": _norm(dati.get("descrizione"))[:300], "minuti": minuti,
+            "presenza_giudice": bool(dati.get("presenza_giudice")),
+        })
+        incarico.operazioni.sort(key=lambda o: (o.get("data", ""), o.get("ora", "")))
+        incarico.modificato_il = datetime.now().isoformat(timespec="seconds")
+        self._salva()
+        return incarico
+
+    def rimuovi_operazione(self, incarico_id: str, operazione_id: str) -> bool:
+        incarico = self._incarichi.get(incarico_id)
+        if incarico is None:
+            return False
+        prima = len(incarico.operazioni)
+        incarico.operazioni = [o for o in incarico.operazioni if o.get("id") != operazione_id]
+        if len(incarico.operazioni) == prima:
+            return False
+        self._salva()
+        return True
+
+    def salva_compenso(self, incarico_id: str, dati: dict[str, Any]) -> None:
+        incarico = self._incarichi.get(incarico_id)
+        if incarico is None:
+            return
+        consentiti = {"modalita", "voci", "posizione", "vacazioni", "termine_giorni", "aumento_urgenza", "aumento_eccezionale",
+                      "motivazione_aumento", "componenti_collegio", "collegio_per_intero", "ritardo", "patrocinio",
+                      "spese_documentate", "spese_viaggio", "contributo_perc", "iva_perc"}
+        incarico.compenso_input = {k: v for k, v in (dati or {}).items() if k in consentiti}
+        self._salva()
 
     # ------------------------------------------------------------ scadenziario
     def proponi_scadenze(

@@ -1636,8 +1636,13 @@ class GestioneStrumentiLegali:
                 notes.append("Numero vacazioni ricavato arrotondando per eccesso ogni blocco di due ore.")
             if vacazioni <= 0:
                 raise ValueError("Indica le ore o il numero di vacazioni da liquidare.")
-            onorario_base = vacazioni_cfg["prima"] + max(vacazioni - 1, 0) * vacazioni_cfg["successiva"]
+            # Corte cost. 16/2025: le vacazioni successive non possono valere meno della prima.
+            successiva = max(vacazioni_cfg["successiva"], vacazioni_cfg["prima"])
+            onorario_base = vacazioni_cfg["prima"] + max(vacazioni - 1, 0) * successiva
             onorario_base = round(onorario_base, 2)
+            if successiva > vacazioni_cfg["successiva"]:
+                notes.append("Ogni vacazione vale quanto la prima: Corte cost. 16/2025 ha dichiarato illegittimo l'art. 4 "
+                             "c. 2 L. 319/1980 nella parte in cui liquida le successive con un importo inferiore.")
             warnings.append("Molti incarichi CTU seguono criteri tabellari specifici del D.P.R. 115/2002: qui e automatizzata la sola logica a vacazione / liquidazione manuale.")
         elif modalita == "manuale":
             if onorario_base <= 0:

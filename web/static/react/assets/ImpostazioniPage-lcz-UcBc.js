@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-C_xSIAuV.js";export{e as ImpostazioniPage};

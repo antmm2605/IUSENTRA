@@ -178,6 +178,9 @@ def test_crm_usa_percorso_tenant_e_rientra_nel_perimetro_isolato(tmp_path: Path)
     assert crm_path == tmp_path / "tenants" / "studio-crm" / "crm" / "leads.json"
     aml_path = Path(paths["ANTIRICICLAGGIO_DB"])
     assert aml_path == tmp_path / "tenants" / "studio-crm" / "antiriciclaggio" / "verifiche.json"
+    # Incarichi CTU e prima nota: dati dello studio, mai nella cartella dell'immagine applicativa.
+    assert Path(paths["CTU_DB"]) == tmp_path / "tenants" / "studio-crm" / "ctu" / "incarichi.json"
+    assert Path(paths["PRIMA_NOTA_DB"]) == tmp_path / "tenants" / "studio-crm" / "contabilita" / "prima_nota.json"
 
     with app.test_request_context("/crm"):
         g.multi_tenant_enabled = True

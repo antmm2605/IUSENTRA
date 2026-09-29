@@ -13,6 +13,7 @@ from flask import Flask
 
 from web.bootstrap.antiriciclaggio_cliente_routes import register_antiriciclaggio_cliente_routes
 from web.bootstrap.contabilita_routes import register_contabilita_routes
+from web.bootstrap.ctu_compensi_routes import register_ctu_compensi_routes
 from web.bootstrap.ctu_routes import register_ctu_routes
 from web.bootstrap.prima_nota_routes import register_prima_nota_routes
 from web.bootstrap.recupero_crediti_routes import register_recupero_crediti_routes
@@ -20,6 +21,7 @@ from web.bootstrap.recupero_crediti_routes import register_recupero_crediti_rout
 
 def register_studio_operations(app: Flask, core: dict[str, Any]) -> None:
     register_ctu_routes(app, core)
+    register_ctu_compensi_routes(app, core)
     register_prima_nota_routes(app, core)
     register_contabilita_routes(app, core)
     register_antiriciclaggio_cliente_routes(app, core)

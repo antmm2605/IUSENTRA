@@ -1,0 +1,346 @@
+{
+ "A5F1AE6E8A49": {
+  "id": "A5F1AE6E8A49",
+  "cliente_id": "97970B0C",
+  "lead_id": "",
+  "fascicolo_id": "",
+  "prestazione": "trasferimento_immobili",
+  "descrizione_prestazione": "",
+  "scopo_natura": "Acquisto della prima casa",
+  "cliente_pep": false,
+  "paese_alto_rischio": false,
+  "titolare_effettivo": {
+   "nome": "",
+   "codice_fiscale": "",
+   "criterio": "",
+   "note": ""
+  },
+  "indici": [
+   {
+    "macro_area": "CLIENTE",
+    "descrizione": "Identificazione del titolare effettivo e della struttura del cliente",
+    "punteggio": 4,
+    "note": ""
+   },
+   {
+    "macro_area": "CLIENTE",
+    "descrizione": "Trasparenza e collaborazione del cliente (identità, origine dei fondi, motivazioni)",
+    "punteggio": 1,
+    "note": ""
+   },
+   {
+    "macro_area": "CLIENTE",
+    "descrizione": "Precedenti, indagini o rapporti con soggetti a rischio",
+    "punteggio": 1,
+    "note": ""
+   },
+   {
+    "macro_area": "OPERAZIONE",
+    "descrizione": "Coerenza del prezzo e della struttura dell'operazione con gli standard del settore",
+    "punteggio": 1,
+    "note": ""
+   },
+   {
+    "macro_area": "OPERAZIONE",
+    "descrizione": "Tracciabilità dei pagamenti e origine dichiarata dei fondi",
+    "punteggio": 1,
+    "note": ""
+   },
+   {
+    "macro_area": "OPERAZIONE",
+    "descrizione": "Idoneità dell'operazione a occultare la titolarità di beni",
+    "punteggio": 1,
+    "note": ""
+   },
+   {
+    "macro_area": "AREA_GEOGRAFICA",
+    "descrizione": "Paesi delle parti: sanzioni, embarghi, presidi antiriciclaggio, corruzione",
+    "punteggio": 1,
+    "note": ""
+   }
+  ],
+  "livello_scelto": "SEMPLIFICATA",
+  "motivazione_scostamento": "",
+  "stato": "COMPLETATA",
+  "operatore": "avv.rossi",
+  "data_verifica": "2026-09-29",
+  "scadenza_controllo": "2029-09-29",
+  "fine_rapporto": "",
+  "documento_tipo": "carta_identita",
+  "documento_numero": "CA12345AB",
+  "documento_rilasciato_da": "",
+  "documento_data_rilascio": "",
+  "documento_scadenza": "2031-05-10",
+  "sos_valutazione": "non_ricorre",
+  "sos_data": "",
+  "sos_note": "",
+  "impossibile_completare": false,
+  "fonte_normativa": "D.Lgs. 231/2007 artt. 17-25, 31; Regole tecniche CNF 20/09/2019; CNF Criteri e metodologie (fonte versionata 2026-08-13)",
+  "note": "",
+  "creato_il": "2026-09-29T12:30:12",
+  "modificato_il": "2026-09-29T10:30:12+00:00",
+  "in_ambito": true,
+  "punteggio_totale": 10,
+  "punteggio_medio": 1.43,
+  "livello_suggerito": "SEMPLIFICATA",
+  "conservazione_fino_al": "2036-09-29"
+ },
+ "17F36C8FE296": {
+  "id": "17F36C8FE296",
+  "cliente_id": "58CA871F",
+  "lead_id": "",
+  "fascicolo_id": "",
+  "prestazione": "difesa_giudiziale",
+  "descrizione_prestazione": "",
+  "scopo_natura": "Difesa in appello",
+  "cliente_pep": false,
+  "paese_alto_rischio": false,
+  "titolare_effettivo": {
+   "nome": "",
+   "codice_fiscale": "",
+   "criterio": "",
+   "note": ""
+  },
+  "indici": [],
+  "livello_scelto": "",
+  "motivazione_scostamento": "",
+  "stato": "BOZZA",
+  "operatore": "operatore",
+  "data_verifica": "",
+  "scadenza_controllo": "",
+  "fine_rapporto": "",
+  "documento_tipo": "",
+  "documento_numero": "",
+  "documento_rilasciato_da": "",
+  "documento_data_rilascio": "",
+  "documento_scadenza": "",
+  "sos_valutazione": "",
+  "sos_data": "",
+  "sos_note": "",
+  "impossibile_completare": false,
+  "fonte_normativa": "D.Lgs. 231/2007 artt. 17-25, 31; Regole tecniche CNF 20/09/2019; CNF Criteri e metodologie (fonte versionata 2026-08-13)",
+  "note": "",
+  "creato_il": "2026-09-29T12:29:05",
+  "modificato_il": "2026-09-29T12:29:05",
+  "in_ambito": false,
+  "punteggio_totale": 0,
+  "punteggio_medio": 0.0,
+  "livello_suggerito": "ORDINARIA",
+  "conservazione_fino_al": ""
+ },
+ "BC60DF43FB23": {
+  "id": "BC60DF43FB23",
+  "cliente_id": "F89AADFC",
+  "lead_id": "",
+  "fascicolo_id": "",
+  "prestazione": "trasferimento_immobili",
+  "descrizione_prestazione": "",
+  "scopo_natura": "Acquisto di immobile",
+  "cliente_pep": false,
+  "paese_alto_rischio": false,
+  "titolare_effettivo": {
+   "nome": "",
+   "codice_fiscale": "",
+   "criterio": "",
+   "note": ""
+  },
+  "indici": [
+   {
+    "macro_area": "CLIENTE",
+    "descrizione": "Identificazione del titolare effettivo e della struttura del cliente",
+    "punteggio": 5,
+    "note": ""
+   },
+   {
+    "macro_area": "CLIENTE",
+    "descrizione": "Trasparenza e collaborazione del cliente (identità, origine dei fondi, motivazioni)",
+    "punteggio": 5,
+    "note": ""
+   },
+   {
+    "macro_area": "CLIENTE",
+    "descrizione": "Precedenti, indagini o rapporti con soggetti a rischio",
+    "punteggio": 5,
+    "note": ""
+   },
+   {
+    "macro_area": "OPERAZIONE",
+    "descrizione": "Coerenza del prezzo e della struttura dell'operazione con gli standard del settore",
+    "punteggio": 5,
+    "note": ""
+   },
+   {
+    "macro_area": "OPERAZIONE",
+    "descrizione": "Tracciabilità dei pagamenti e origine dichiarata dei fondi",
+    "punteggio": 5,
+    "note": ""
+   },
+   {
+    "macro_area": "OPERAZIONE",
+    "descrizione": "Idoneità dell'operazione a occultare la titolarità di beni",
+    "punteggio": 5,
+    "note": ""
+   },
+   {
+    "macro_area": "AREA_GEOGRAFICA",
+    "descrizione": "Paesi delle parti: sanzioni, embarghi, presidi antiriciclaggio, corruzione",
+    "punteggio": 5,
+    "note": ""
+   }
+  ],
+  "livello_scelto": "RAFFORZATA",
+  "motivazione_scostamento": "",
+  "stato": "COMPLETATA",
+  "operatore": "operatore",
+  "data_verifica": "2026-09-29",
+  "scadenza_controllo": "2027-09-29",
+  "fine_rapporto": "",
+  "documento_tipo": "carta_identita",
+  "documento_numero": "CA00000AA",
+  "documento_rilasciato_da": "",
+  "documento_data_rilascio": "",
+  "documento_scadenza": "2031-01-01",
+  "sos_valutazione": "in_valutazione",
+  "sos_data": "",
+  "sos_note": "",
+  "impossibile_completare": false,
+  "fonte_normativa": "D.Lgs. 231/2007 artt. 17-25, 31; Regole tecniche CNF 20/09/2019; CNF Criteri e metodologie (fonte versionata 2026-08-13)",
+  "note": "",
+  "creato_il": "2026-09-29T12:29:03",
+  "modificato_il": "2026-09-29T10:29:03+00:00",
+  "in_ambito": true,
+  "punteggio_totale": 35,
+  "punteggio_medio": 5.0,
+  "livello_suggerito": "RAFFORZATA",
+  "conservazione_fino_al": "2036-09-29"
+ },
+ "4C6560FEB768": {
+  "id": "4C6560FEB768",
+  "cliente_id": "0E179D19",
+  "lead_id": "",
+  "fascicolo_id": "",
+  "prestazione": "difesa_giudiziale",
+  "descrizione_prestazione": "",
+  "scopo_natura": "Difesa in appello",
+  "cliente_pep": false,
+  "paese_alto_rischio": false,
+  "titolare_effettivo": {
+   "nome": "",
+   "codice_fiscale": "",
+   "criterio": "",
+   "note": ""
+  },
+  "indici": [],
+  "livello_scelto": "",
+  "motivazione_scostamento": "",
+  "stato": "BOZZA",
+  "operatore": "operatore",
+  "data_verifica": "",
+  "scadenza_controllo": "",
+  "fine_rapporto": "",
+  "documento_tipo": "",
+  "documento_numero": "",
+  "documento_rilasciato_da": "",
+  "documento_data_rilascio": "",
+  "documento_scadenza": "",
+  "sos_valutazione": "",
+  "sos_data": "",
+  "sos_note": "",
+  "impossibile_completare": false,
+  "fonte_normativa": "D.Lgs. 231/2007 artt. 17-25, 31; Regole tecniche CNF 20/09/2019; CNF Criteri e metodologie (fonte versionata 2026-08-13)",
+  "note": "",
+  "creato_il": "2026-09-29T12:28:50",
+  "modificato_il": "2026-09-29T12:28:50",
+  "in_ambito": false,
+  "punteggio_totale": 0,
+  "punteggio_medio": 0.0,
+  "livello_suggerito": "ORDINARIA",
+  "conservazione_fino_al": ""
+ },
+ "994BEF7D5326": {
+  "id": "994BEF7D5326",
+  "cliente_id": "D3A912B8",
+  "lead_id": "",
+  "fascicolo_id": "",
+  "prestazione": "trasferimento_immobili",
+  "descrizione_prestazione": "",
+  "scopo_natura": "Acquisto di immobile",
+  "cliente_pep": false,
+  "paese_alto_rischio": false,
+  "titolare_effettivo": {
+   "nome": "",
+   "codice_fiscale": "",
+   "criterio": "",
+   "note": ""
+  },
+  "indici": [
+   {
+    "macro_area": "CLIENTE",
+    "descrizione": "Identificazione del titolare effettivo e della struttura del cliente",
+    "punteggio": 5,
+    "note": ""
+   },
+   {
+    "macro_area": "CLIENTE",
+    "descrizione": "Trasparenza e collaborazione del cliente (identità, origine dei fondi, motivazioni)",
+    "punteggio": 5,
+    "note": ""
+   },
+   {
+    "macro_area": "CLIENTE",
+    "descrizione": "Precedenti, indagini o rapporti con soggetti a rischio",
+    "punteggio": 5,
+    "note": ""
+   },
+   {
+    "macro_area": "OPERAZIONE",
+    "descrizione": "Coerenza del prezzo e della struttura dell'operazione con gli standard del settore",
+    "punteggio": 5,
+    "note": ""
+   },
+   {
+    "macro_area": "OPERAZIONE",
+    "descrizione": "Tracciabilità dei pagamenti e origine dichiarata dei fondi",
+    "punteggio": 5,
+    "note": ""
+   },
+   {
+    "macro_area": "OPERAZIONE",
+    "descrizione": "Idoneità dell'operazione a occultare la titolarità di beni",
+    "punteggio": 5,
+    "note": ""
+   },
+   {
+    "macro_area": "AREA_GEOGRAFICA",
+    "descrizione": "Paesi delle parti: sanzioni, embarghi, presidi antiriciclaggio, corruzione",
+    "punteggio": 5,
+    "note": ""
+   }
+  ],
+  "livello_scelto": "RAFFORZATA",
+  "motivazione_scostamento": "",
+  "stato": "COMPLETATA",
+  "operatore": "operatore",
+  "data_verifica": "2026-09-29",
+  "scadenza_controllo": "2027-09-29",
+  "fine_rapporto": "",
+  "documento_tipo": "carta_identita",
+  "documento_numero": "CA00000AA",
+  "documento_rilasciato_da": "",
+  "documento_data_rilascio": "",
+  "documento_scadenza": "2031-01-01",
+  "sos_valutazione": "in_valutazione",
+  "sos_data": "",
+  "sos_note": "",
+  "impossibile_completare": false,
+  "fonte_normativa": "D.Lgs. 231/2007 artt. 17-25, 31; Regole tecniche CNF 20/09/2019; CNF Criteri e metodologie (fonte versionata 2026-08-13)",
+  "note": "",
+  "creato_il": "2026-09-29T12:28:49",
+  "modificato_il": "2026-09-29T10:28:49+00:00",
+  "in_ambito": true,
+  "punteggio_totale": 35,
+  "punteggio_medio": 5.0,
+  "livello_suggerito": "RAFFORZATA",
+  "conservazione_fino_al": "2036-09-29"
+ }
+}

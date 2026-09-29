@@ -147,6 +147,18 @@ class AdeguataVerifica:
     data_verifica: str = ""  # ISO date della conferma
     scadenza_controllo: str = ""  # ISO date del rinnovo controllo costante
     fine_rapporto: str = ""  # ISO date cessazione (per conservazione decennale)
+    # Identificazione con documento valido (art. 19 c.1 lett. a).
+    documento_tipo: str = ""
+    documento_numero: str = ""
+    documento_rilasciato_da: str = ""
+    documento_data_rilascio: str = ""
+    documento_scadenza: str = ""
+    # Valutazione della segnalazione di operazione sospetta (art. 35; riservata, art. 39)
+    # e impossibilita' di completare la verifica (obbligo di astensione, art. 42).
+    sos_valutazione: str = ""  # "" | non_ricorre | in_valutazione | segnalata
+    sos_data: str = ""
+    sos_note: str = ""
+    impossibile_completare: bool = False
     fonte_normativa: str = FONTE_NORMATIVA
     note: str = ""
     creato_il: str = field(default_factory=lambda: datetime.now().isoformat(timespec="seconds"))

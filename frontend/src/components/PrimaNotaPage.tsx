@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ArrowDownCircle, ArrowUpCircle, Banknote, CheckCircle2, FileDown, Landmark, Link2, Plus, RefreshCw, RotateCcw, Scale, Upload } from 'lucide-react'
 import { FloatingLex } from './FloatingLex'
 import { emptyPrimaNotaData, getPrimaNotaPage, type PrimaNotaData, type PrimaNotaMovimento, type RiconciliazioneProposta } from '../primaNotaData'
+import { RiepilogoAnnuale } from './prima-nota/RiepilogoAnnuale'
 import './PrimaNotaPage.css'
 
 function csrfToken(): string {
@@ -233,7 +234,7 @@ export function PrimaNotaPage() {
         <div>
           <span className="iu-pn-kicker"><Scale size={16}/> Contabilità di studio</span>
           <h1>Prima nota</h1>
-          <p>Registro cronologico di incassi e pagamenti per principio di cassa: storni tracciati, riconciliazione con le parcelle, export per il commercialista.</p>
+          <p>Registro cronologico di incassi e pagamenti per principio di cassa: storni tracciati, riconciliazione con le parcelle, riepilogo dell'anno, registro delle fatture emesse ed export per il commercialista.</p>
         </div>
         <div className="iu-pn-hero__stats" aria-label="Saldi del periodo">
           <article><strong>{data.summary.incassiLabel}</strong><small>Incassi</small></article>
@@ -253,6 +254,8 @@ export function PrimaNotaPage() {
       </div>
 
       {message ? <p className="iu-pn-message" role="status"><CheckCircle2 size={15}/> {message}</p> : null}
+
+      <RiepilogoAnnuale />
 
       <BankReconciliation data={data} onDone={() => load()} onMessage={setMessage} />
 

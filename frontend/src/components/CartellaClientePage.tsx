@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
   Archive,
@@ -31,6 +31,8 @@ import {
   type CartellaClienteMatter,
 } from '../clientiCartellaData'
 import './CartellaClientePage.css'
+
+const ClienteAntiriciclaggio = lazy(() => import('./clienti/ClienteAntiriciclaggio'))
 
 function idClienteFromLocation(): string {
   const parts = window.location.pathname.split('/').filter(Boolean)
@@ -211,6 +213,9 @@ export function CartellaClientePage() {
             </article>
           ))}</div>
         ) : <EmptyBlock>Nessun documento d’identità con titolare riscontrato è collegato ai fascicoli della cliente.</EmptyBlock>}
+      </Panel>
+      <Panel title="Antiriciclaggio" icon={<ShieldCheck size={17}/>} subtitle="Adeguata verifica, profilatura del rischio e fascicolo da conservare dieci anni (D.Lgs. 231/2007).">
+        <Suspense fallback={<p>Carico l’adeguata verifica…</p>}><ClienteAntiriciclaggio idCliente={idCliente}/></Suspense>
       </Panel>
       <section className="iu-cart-grid">
         <div className="span4">

@@ -12,7 +12,7 @@ Questo registro è generato da `scripts/react-migration/generate_app_v2_page_reg
 - Route legacy operative: 17.
 - Route App V2 dichiarate in frontend: 16.
 - Alias legacy verso App V2 in frontend: 32.
-- Route Flask GET candidate rilevate fuori manifest: 323.
+- Route Flask GET candidate rilevate fuori manifest: 325.
 
 ### Distribuzione rischio
 
@@ -755,6 +755,7 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /checklist/{id_template} | GET | web/bootstrap/checklist_routes.py | checklist/dettaglio.html, checklist/lista.html, fascicoli/wizard_atto.html, fascicoli/wizard_completa.html |
 | /clienti/export.csv | GET | web/bootstrap/export_routes.py | non rilevato |
 | /clienti/export.pdf | GET | web/bootstrap/export_routes.py | non rilevato |
+| /clienti/{cliente_id}/antiriciclaggio/{verifica_id}/fascicolo.pdf | GET | web/bootstrap/antiriciclaggio_cliente_routes.py | non rilevato |
 | /clienti/{id_cliente} | GET | web/bootstrap/clienti_routes.py | clienti/dettaglio.html, clienti/form.html, clienti/lista.html |
 | /clienti/{id_cliente}/cartella | GET | web/bootstrap/clienti_workspace_routes.py | clienti/copertina_faldone.html, clienti/faldone.html, clienti/portale_config.html |
 | /clienti/{id_cliente}/collaboratori | GET | web/bootstrap/condivisioni_routes.py | fascicoli/collaboratori_fascicolo.html |
@@ -833,7 +834,6 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /guida-pratica/catalogo | GET | web/blueprints/api_v1_guida_pratica.py | non rilevato |
 | /guida-pratica/{codice} | GET | web/blueprints/api_v1_guida_pratica.py | non rilevato |
 | /health/dependencies | GET | web/bootstrap/health_routes.py | non rilevato |
-| /health/live | GET | web/bootstrap/health_routes.py | non rilevato |
 
 ## Regola operativa fase 4
 

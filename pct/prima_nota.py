@@ -42,7 +42,8 @@ CATEGORIE = {
         "anticipazioni_clienti",  # CU, marche, diritti pagati per conto del cliente
         "spese_studio",           # canoni, utenze, cancelleria
         "compensi_terzi",         # domiciliatari, CTP, collaboratori
-        "imposte_contributi",     # F24, Cassa Forense (registrati, non calcolati)
+        "imposte_contributi",     # F24 e altre imposte (registrate, non calcolate)
+        "contributi_previdenziali",  # Cassa Forense: deducibili (art. 10 TUIR; art. 1 c. 64 L. 190/2014)
         "altri_pagamenti",
     ),
 }

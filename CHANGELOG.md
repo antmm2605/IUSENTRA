@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.427.0 — 29/09/2026
+
+Contabilità di studio (prima nota raggiungibile, riepilogo dell'anno, stima del reddito, registro delle fatture emesse) e antiriciclaggio dalla scheda del cliente.
+
+- **Prima nota raggiungibile**: la pagina `/prima-nota` non era collegata all'applicazione e si apriva vuota; ora è nel menu Studio («Prima nota e contabilità») per chi ha il permesso di fatturazione.
+- **Riepilogo dell'anno per cassa** (art. 54 TUIR): compensi incassati, spese deducibili, contributi Cassa Forense versati e anticipazioni per i clienti (art. 15 D.P.R. 633/1972, escluse), con gli storni imputati alla categoria del movimento stornato; andamento per mese.
+- **Stima del reddito**: nel forfettario (RF19) compensi × 78% meno i contributi versati e imposta sostitutiva al 15% o al 5% nei primi cinque anni (L. 190/2014, stesso calcolatore degli Strumenti forensi); negli altri regimi compensi meno spese, con l'avviso che ammortamenti e spese a deducibilità limitata restano al commercialista.
+- **Registro delle fatture emesse** (art. 23 D.P.R. 633/1972) in CSV e **IVA a debito** per trimestre, con l'1% di interessi dei primi tre trimestri (art. 7 D.P.R. 542/1999): entrano solo le fatture trasmesse allo SdI; gli avvisi di parcella non trasmessi sono esclusi e contati; la scissione dei pagamenti (art. 17-ter) non va a debito.
+- Nuova categoria di pagamento «Contributi Cassa Forense», separata dalle imposte, perché si deduce dal reddito.
+- **Antiriciclaggio nella cartella del cliente** (prima solo dall'intake CRM): apertura, aggiornamento e conferma dell'adeguata verifica con lo stesso motore (D.Lgs. 231/2007, Regole tecniche CNF). Novità:
+  - **griglia CNF modificabile** (punteggi 1-5 per indice) con il livello suggerito ricalcolato; PEP e paese ad alto rischio impongono la rafforzata; scelta meno rigorosa solo con motivazione;
+  - **documento d'identità** con tipo, numero, rilascio e scadenza (art. 19 c. 1 lett. a), con avviso se scaduto;
+  - **segnalazione di operazione sospetta**: si registra l'esito della valutazione (art. 35, riservato ex art. 39) e, se la verifica non si può completare, il promemoria sull'obbligo di astensione (art. 42); la segnalazione si fa sul portale Infostat-UIF, IUSENTRA non invia nulla;
+  - **screening sulla lista consolidata UE delle sanzioni finanziarie** per cliente e titolare effettivo, con prova e impronta della fonte;
+  - **fascicolo antiriciclaggio in PDF** da conservare dieci anni (artt. 31-32): dati, griglia, livello, screening e registro delle modifiche.
+
 ## 2.426.0 — 29/09/2026
 
 Pagamenti telematici di giustizia (pagoPA): ricevuta recuperata dal PST, avviso se la stessa ricevuta è già usata altrove, importo del contributo proposto. Nessun nuovo blocco del deposito.

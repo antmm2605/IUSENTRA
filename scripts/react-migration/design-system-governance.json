@@ -41,6 +41,7 @@
     "frontend/src/components/AuditPage.css",
     "frontend/src/components/BackupPage.css",
     "frontend/src/components/CartellaClientePage.css",
+    "frontend/src/components/clienti/ClienteAntiriciclaggio.css",
     "frontend/src/components/CartelleCondivisePage.css",
     "frontend/src/components/ClientiCollaboratoriControls.css",
     "frontend/src/components/ClientiCollaboratoriPage.css",

@@ -68,3 +68,25 @@
 .iu-pn-recon__choose{display:flex;align-items:center;gap:6px}
 .iu-pn-recon__choose select{min-height:33px;padding:0 8px;border:1px solid var(--iu-border,#e2e8f0);border-radius:8px;font-size:12px;font-weight:700;max-width:260px}
 @media (max-width:768px){.iu-pn-recon__item{flex-direction:column;align-items:stretch}.iu-pn-recon__actions{justify-content:flex-end;flex-wrap:wrap}}
+.iu-pn-annual{display:grid;gap:12px;padding:14px;background:white;border:1px solid var(--iu-border,#e2e8f0);border-radius:14px}
+.iu-pn-annual header{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px}
+.iu-pn-annual header>div:first-child{display:grid;gap:3px}
+.iu-pn-annual header strong{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:900;color:#0f172a}
+.iu-pn-annual header span,.iu-pn-annual small{font-size:12px;color:#64748b}
+.iu-pn-annual__controls{display:flex;align-items:flex-end;gap:10px}
+.iu-pn-annual__controls label{display:grid;gap:3px;font-size:11px;font-weight:800;color:#64748b}
+.iu-pn-annual__controls select{min-height:34px;padding:4px 8px;border:1px solid var(--iu-border,#e2e8f0);border-radius:8px}
+.iu-pn-annual__check{display:flex!important;align-items:center;gap:6px}
+.iu-pn-annual__grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.iu-pn-annual__grid article{display:grid;gap:3px;padding:10px 12px;border:1px solid #f1f5f9;border-radius:10px;background:#f8fafc}
+.iu-pn-annual__grid strong{font-size:16px;font-weight:900;color:#0f172a}
+.iu-pn-annual__estimate{display:grid;gap:4px;margin:0}
+.iu-pn-annual__row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px dashed #e2e8f0;font-size:13px}
+.iu-pn-annual__row dt{color:#475569;font-weight:700}
+.iu-pn-annual__row dd{margin:0;font-weight:900;color:#0f172a}
+.iu-pn-annual__iva{display:grid;gap:6px;font-size:13px}
+.iu-pn-annual__iva ul{margin:0;padding-left:18px}
+.iu-pn-annual__iva a{display:inline-flex;align-items:center;gap:6px;font-weight:800;color:#1d4ed8}
+.iu-pn-annual__warn{margin:0;padding:8px 10px;border-radius:9px;background:#fffbeb;border:1px solid #fcd34d;color:#92400e;font-size:12px}
+.iu-pn-annual__notes{margin:0;padding-left:18px;font-size:11.5px;color:#64748b}
+@media (max-width:720px){.iu-pn-annual__grid{grid-template-columns:repeat(2,minmax(0,1fr))}}

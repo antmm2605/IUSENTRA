@@ -15,6 +15,7 @@ _CATEGORIA_LABEL = {
     "spese_studio": "Spese di studio",
     "compensi_terzi": "Compensi a terzi",
     "imposte_contributi": "Imposte e contributi",
+    "contributi_previdenziali": "Contributi Cassa Forense",
     "altri_pagamenti": "Altri pagamenti",
 }
 
@@ -104,7 +105,7 @@ def build_react_prima_nota_payload(
         },
         "nonRiconciliati": len(registro.non_riconciliati(dal=dal, al=al)),
         "avvertenza": (
-            "La prima nota registra ed esporta i movimenti: non calcola imposte, "
-            "ritenute o contributi. La qualificazione fiscale resta al professionista incaricato."
+            "La prima nota registra ed esporta i movimenti; il riepilogo dell'anno dà stime di supporto "
+            "(reddito, imposta sostitutiva, IVA a debito). Dichiarazioni e versamenti restano al commercialista."
         ),
     }

@@ -1,4 +1,9 @@
+// Collegamenti e percorsi non sono testo da mostrare: riscriverli (es. «wizard» → «Percorso guidato»)
+// rompe gli indirizzi, come accadeva ad «Avvia preparazione» (/wizard-pro/nuovo).
+const INDIRIZZO = /^(?:\/(?!\/)|#|\?|https?:\/\/|mailto:|tel:)\S*$/i
+
 export function sanitizeDisplayText(value: string): string {
+  if (INDIRIZZO.test(value.trim())) return value
   return value
     .replace(/\u00c3\u0083\u00c2\u00a0/g, '\u00e0')
     .replace(/\u00c3\u0083\u00c2\u00a8/g, '\u00e8')

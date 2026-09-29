@@ -1,270 +1,121 @@
-import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, CalendarDays, CheckCircle2, ClipboardCheck, FileText, Gavel, PenLine } from 'lucide-react'
-import { Badge } from './dashboard'
+import { useCallback, useEffect, useState } from 'react'
+import { ArrowRight, CalendarDays, Check, FolderOpen, Gavel, MapPin, Printer, Video } from 'lucide-react'
 import { FloatingLex } from './FloatingLex'
-import { JsonPostForm } from './JsonPostForm'
-import { MatterSummary, WizardStepper, csrfToken } from './WizardProShared'
-import { getWizardProStepPage, type WizardProDocument, type WizardProStepData } from '../wizardProData'
+import { PassoDocumenti, PassoEsito, PassoPartenza, PassoQuadro, PassoStrategia, type Azioni } from './PreparazioneUdienzaPassi'
+import { inviaPreparazione } from './preparazioneUdienzaApi'
+import type { SchedaUdienza } from './preparazioneUdienzaTipi'
 import './WizardProPage.css'
 
-const stepLexContext: Record<number, string> = {
-  1: 'preparazione-udienza-briefing',
-  2: 'preparazione-udienza-documenti',
-  3: 'preparazione-udienza-strategia',
-  4: 'preparazione-udienza-precheck',
-  5: 'preparazione-udienza-esito',
+function idDallIndirizzo(): { id: string; passo: number } {
+  const trovato = window.location.pathname.match(/\/wizard-pro\/([^/]+)\/(?:step\/([1-5])|completo)/)
+  return { id: decodeURIComponent(trovato?.[1] || ''), passo: trovato?.[2] ? Number(trovato[2]) : 5 }
 }
 
-function LinkedRows({ data }: { data: WizardProStepData }) {
-  return (
-    <section className="iu-wiz-panel">
-      <div className="iu-wiz-panel__head">
-        <div>
-          <span className="iu-wiz-kicker">Contesto operativo</span>
-          <h2>Udienze, scadenze e attivita</h2>
-        </div>
-      </div>
-      <div className="iu-wiz-context-grid">
-        <article>
-          <CalendarDays size={18}/>
-          <strong>{data.appointment?.title || 'Udienza non collegata'}</strong>
-          <span>{data.appointment?.dateLabel || data.case?.nextHearingLabel || 'Data non indicata'}</span>
-          {data.appointment?.href ? <a href={data.appointment.href}>Apri agenda</a> : <a href={data.actions.agenda}>Apri agenda</a>}
-        </article>
-        <article>
-          <ClipboardCheck size={18}/>
-          <strong>{data.deadlines.length} scadenze collegate</strong>
-          <span>{data.emptyStates.noDeadlines ? 'Nessuna scadenza aperta nel perimetro corrente.' : 'Verifica termini e avvisi prima dell udienza.'}</span>
-          <a href={data.actions.deadlines}>Apri scadenziario</a>
-        </article>
-        <article>
-          <FileText size={18}/>
-          <strong>{data.caseDocuments.length} documenti fascicolo</strong>
-          <span>{data.missingDocuments.length ? `${data.missingDocuments.length} documenti da presidiare` : 'Nessun documento mancante nella checklist.'}</span>
-          {data.case?.documentsHref ? <a href={data.case.documentsHref}>Apri documenti</a> : null}
-        </article>
-      </div>
-    </section>
-  )
-}
-
-function DocumentsList({ documents }: { documents: WizardProDocument[] }) {
-  if (!documents.length) {
-    return <div className="iu-wiz-empty small"><FileText size={22}/><strong>Nessun documento in checklist</strong><span>Puoi aggiungere un documento extra nel form.</span></div>
-  }
-  return (
-    <div className="iu-wiz-docs">
-      {documents.map((doc) => (
-        <article key={`${doc.index}-${doc.label}`}>
-          <div>
-            <strong>{doc.label}</strong>
-            <span>{doc.type || 'Tipo non indicato'}{doc.signed ? ' · firmato' : ''}</span>
-          </div>
-          <Badge tone={doc.statusTone}>{doc.statusLabel}</Badge>
-          {doc.href ? <a href={doc.href}>Apri documento</a> : null}
-        </article>
-      ))}
-    </div>
-  )
-}
-
-function Step1({ data }: { data: WizardProStepData }) {
-  return (
-    <JsonPostForm className="iu-wiz-panel iu-wiz-form" action={data.actions.form} successMessage="Briefing salvato.">
-      <input type="hidden" name="_csrf_token" value={csrfToken()} />
-      <label>
-        <span>Note briefing fascicolo</span>
-        <textarea name="step1_note" defaultValue={data.fields.step1_note} rows={7} placeholder="Punti da verificare, indicazioni del cliente, criticita del fascicolo." />
-      </label>
-      <div className="iu-wiz-actions">
-        <button type="submit">Salva e vai allo step 2</button>
-        {data.case?.href ? <a href={data.case.href}>Apri fascicolo</a> : null}
-        <a href={data.actions.agenda}>Apri agenda</a>
-      </div>
-    </JsonPostForm>
-  )
-}
-
-function Step2({ data }: { data: WizardProStepData }) {
-  return (
-    <JsonPostForm className="iu-wiz-panel iu-wiz-form" action={data.actions.form} successMessage="Documenti salvati.">
-      <input type="hidden" name="_csrf_token" value={csrfToken()} />
-      <DocumentsList documents={data.documents} />
-      <div className="iu-wiz-doc-edit">
-        {data.documents.map((doc) => (
-          <fieldset key={`edit-${doc.index}`}>
-            <legend>{doc.label}</legend>
-            <label>
-              <span>Stato documento</span>
-              <select name={`doc_stato_${doc.index}`} defaultValue={doc.status}>
-                <option value="da_portare">Da portare</option>
-                <option value="pronto">Pronto</option>
-                <option value="non_necessario">Non necessario</option>
-              </select>
-            </label>
-            <label>
-              <span>Note documento</span>
-              <input name={`doc_note_${doc.index}`} defaultValue={doc.notes} placeholder="Note operative" />
-            </label>
-          </fieldset>
-        ))}
-      </div>
-      <label>
-        <span>Documento extra</span>
-        <input name="doc_extra_label" placeholder="Aggiungi documento da portare" />
-      </label>
-      <div className="iu-wiz-actions">
-        <button type="submit">Salva e vai allo step 3</button>
-        {data.case?.href ? <a href={data.case.href}>Apri fascicolo</a> : null}
-      </div>
-    </JsonPostForm>
-  )
-}
-
-function Step3({ data }: { data: WizardProStepData }) {
-  return (
-    <JsonPostForm className="iu-wiz-panel iu-wiz-form" action={data.actions.form} successMessage="Strategia salvata.">
-      <input type="hidden" name="_csrf_token" value={csrfToken()} />
-      <div className="iu-wiz-warning">
-        <PenLine size={18}/>
-        <span>Compila strategia, richieste ed eccezioni in modo verificabile: il salvataggio resta tracciato nello studio.</span>
-      </div>
-      <label>
-        <span>Note preparazione</span>
-        <textarea name="note_preparazione" defaultValue={data.fields.note_preparazione} rows={4} />
-      </label>
-      <label>
-        <span>Argomenti principali</span>
-        <textarea name="argomenti_principali" defaultValue={data.fields.argomenti_principali} rows={4} />
-      </label>
-      <label>
-        <span>Richieste al giudice</span>
-        <textarea name="richieste_giudice" defaultValue={data.fields.richieste_giudice} rows={4} />
-      </label>
-      <label>
-        <span>Eccezioni da sollevare</span>
-        <textarea name="eccezioni_da_sollevare" defaultValue={data.fields.eccezioni_da_sollevare} rows={4} />
-      </label>
-      <div className="iu-wiz-actions"><button type="submit">Salva e vai allo step 4</button></div>
-    </JsonPostForm>
-  )
-}
-
-function Step4({ data }: { data: WizardProStepData }) {
-  const hasMissing = data.missingDocuments.length > 0
-  return (
-    <JsonPostForm className="iu-wiz-panel iu-wiz-form" action={data.actions.form} successMessage="Pre-controlli salvati.">
-      <input type="hidden" name="_csrf_token" value={csrfToken()} />
-      {hasMissing ? <div className="iu-wiz-warning danger"><AlertTriangle size={18}/><span>Ci sono documenti ancora da portare o verificare prima della partenza.</span></div> : null}
-      <div className="iu-wiz-precheck">
-        <label><input type="checkbox" name="precheck_firma_ok" value="1" defaultChecked={data.fields.precheck_firma_ok} /><span>Firma digitale verificata</span></label>
-        <label><input type="checkbox" name="precheck_docs_pronti" value="1" defaultChecked={data.fields.precheck_docs_pronti} /><span>Documenti pronti</span></label>
-        <label><input type="checkbox" name="precheck_cliente_notificato" value="1" defaultChecked={data.fields.precheck_cliente_notificato} /><span>Cliente notificato</span></label>
-        <label><input type="checkbox" name="precheck_trasporto_ok" value="1" defaultChecked={data.fields.precheck_trasporto_ok} /><span>Trasporto o collegamento confermato</span></label>
-      </div>
-      <label>
-        <span>Note pre-partenza</span>
-        <textarea name="precheck_note" defaultValue={data.fields.precheck_note} rows={4} />
-      </label>
-      <div className="iu-wiz-actions">
-        <button type="submit">Salva e vai allo step 5</button>
-        <a href={data.actions.signature}>Guida firma digitale</a>
-        <a href={data.actions.agenda}>Apri agenda</a>
-      </div>
-    </JsonPostForm>
-  )
-}
-
-function Step5({ data }: { data: WizardProStepData }) {
-  return (
-    <JsonPostForm className="iu-wiz-panel iu-wiz-form" action={data.actions.form} successMessage="Preparazione completata.">
-      <input type="hidden" name="_csrf_token" value={csrfToken()} />
-      <div className="iu-wiz-warning">
-        <Gavel size={18}/>
-        <span>Il completamento puo aggiornare il fascicolo se confermi il relativo campo.</span>
-      </div>
-      <label>
-        <span>Esito</span>
-        <select name="esito" defaultValue={data.fields.esito} required>
-          <option value="">Seleziona esito</option>
-          {data.esiti.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
-        </select>
-      </label>
-      <label>
-        <span>Data rinvio</span>
-        <input type="date" name="esito_rinvio_data" defaultValue={data.fields.esito_rinvio_data} />
-      </label>
-      <label>
-        <span>Note verbale</span>
-        <textarea name="esito_note_verbale" defaultValue={data.fields.esito_note_verbale} rows={4} />
-      </label>
-      <label>
-        <span>Azioni successive</span>
-        <textarea name="esito_azioni" defaultValue={data.fields.esito_azioni} rows={4} />
-      </label>
-      <label className="iu-wiz-check">
-        <input type="checkbox" name="esito_aggiorna_fascicolo" value="1" defaultChecked={data.fields.esito_aggiorna_fascicolo} />
-        <span>Aggiorna il fascicolo con l esito udienza</span>
-      </label>
-      <div className="iu-wiz-actions"><button type="submit">Completa preparazione</button></div>
-    </JsonPostForm>
-  )
-}
-
-function StepBody({ data }: { data: WizardProStepData }) {
-  if (data.currentStep === 2) return <Step2 data={data} />
-  if (data.currentStep === 3) return <Step3 data={data} />
-  if (data.currentStep === 4) return <Step4 data={data} />
-  if (data.currentStep === 5) return <Step5 data={data} />
-  return <Step1 data={data} />
-}
-
+/** Preparazione di una udienza: cinque passi in una sola pagina, con salvataggio immediato. */
 export function WizardProStepPage() {
-  const [data, setData] = useState<WizardProStepData | null>(null)
-  useEffect(() => {
-    let active = true
-    getWizardProStepPage().then((payload) => { if (active) setData(payload) })
-    return () => { active = false }
-  }, [])
-  const lexContext = useMemo(() => stepLexContext[data?.currentStep || 1] || 'preparazione-udienza', [data?.currentStep])
+  const [{ id, passo: passoIniziale }] = useState(idDallIndirizzo)
+  const [s, setS] = useState<SchedaUdienza | null>(null)
+  const [passo, setPasso] = useState(passoIniziale)
+  const [avviso, setAvviso] = useState<{ testo: string; ok: boolean } | null>(null)
+  const [occupato, setOccupato] = useState(false)
 
-  if (!data) {
-    return <main className="iu-wiz-page"><div className="iu-wiz-loading">Caricamento step preparazione...</div></main>
-  }
+  useEffect(() => {
+    fetch(`/api/v1/ui/preparazione-udienza/${encodeURIComponent(id)}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then((r) => r.json()).then((d: SchedaUdienza) => setS(d)).catch(() => setS({ ok: false, message: 'Preparazione non disponibile.' } as SchedaUdienza))
+  }, [id])
+
+  const vaiA = useCallback((n: number) => {
+    setPasso(n)
+    window.history.replaceState(window.history.state, '', `/wizard-pro/${encodeURIComponent(id)}/step/${n}`)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [id])
+
+  const azione: Azioni['azione'] = useCallback(async (nome, corpo) => {
+    // Risposta immediata sullo schermo; il server conferma o ripristina.
+    setS((attuale) => {
+      if (!attuale) return attuale
+      if (nome === 'verifica') return { ...attuale, verifiche: attuale.verifiche.map((v) => (v.id === corpo.id ? { ...v, fatta: Boolean(corpo.fatta) } : v)) }
+      if (nome === 'documento') return { ...attuale, documenti: attuale.documenti.map((d) => (d.indice === corpo.indice ? { ...d, stato: String(corpo.stato) } : d)) }
+      if (nome === 'passo' && corpo.campi) return { ...attuale, campi: { ...attuale.campi, ...(corpo.campi as Record<string, string | boolean>) } }
+      return attuale
+    })
+    setOccupato(true)
+    const r = await inviaPreparazione(`/api/v1/ui/preparazione-udienza/${encodeURIComponent(id)}/${nome}`, corpo)
+    setOccupato(false)
+    if (r.dati) setS({ ...(r.dati as SchedaUdienza), puoModificare: s?.puoModificare })
+    else if (!r.ok) {
+      const ricarica = await fetch(`/api/v1/ui/preparazione-udienza/${encodeURIComponent(id)}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } }).catch(() => null)
+      const dati = ricarica ? await ricarica.json().catch(() => null) as SchedaUdienza | null : null
+      if (dati?.ok) setS(dati)
+    }
+    if (!r.ok || nome === 'esito') setAvviso({ testo: String(r.message || ''), ok: Boolean(r.ok) })
+    return r
+  }, [id, s?.puoModificare])
+
+  const salvaCampi: Azioni['salvaCampi'] = useCallback(async (n, campi, conferma = false) => {
+    const r = await azione('passo', { passo: n, campi, conferma })
+    if (r.ok && conferma && n < 5) vaiA(n + 1)
+  }, [azione, vaiA])
+
+  if (!s) return <main className="iu-content iu-pu"><p className="iu-pu-stato-pagina">Caricamento della preparazione…</p></main>
+  if (!s.ok) return <main className="iu-content iu-pu"><p className="iu-pu-stato-pagina is-errore" role="alert">{s.message}</p></main>
+  const attuale = s.passi.find((p) => p.n === passo) || s.passi[0]
+  const a: Azioni = { salvaCampi, azione, occupato }
+  const Corpo = [PassoQuadro, PassoDocumenti, PassoStrategia, PassoPartenza, PassoEsito][passo - 1]
 
   return (
-    <main className="iu-wiz-page iu-wiz-step-page">
-      <section className="iu-wiz-hero">
-        <div>
-          <span className="iu-wiz-kicker"><Gavel size={16}/> Preparazione Udienza Guidata</span>
-          <h1>Step {data.currentStep}: {data.currentStepLabel}</h1>
-          <p>{data.session?.title || 'Sessione di preparazione udienza'}</p>
+    <main className="iu-content iu-pu iu-pu-sessione">
+      <header className="iu-pu-scheda">
+        <div className="iu-pu-scheda__titolo">
+          <span className="iu-pu-kicker"><Gavel size={15}/> Preparazione udienza · {s.stato}</span>
+          <h1>{s.titolo}</h1>
+          <p className="iu-pu-quando"><CalendarDays size={16}/> {s.udienza.quando}</p>
+          <p className="iu-pu-dove">
+            {s.udienza.luogo ? <span><MapPin size={13}/> {s.udienza.luogo}</span> : null}
+            {s.udienza.ufficio && s.udienza.ufficio !== s.udienza.luogo ? <span>{s.udienza.ufficio}</span> : null}
+            {s.udienza.rg ? <span>R.G. {s.udienza.rg}</span> : null}
+            {s.udienza.giudice ? <span>{s.udienza.giudice}</span> : null}
+            {s.udienza.collegamento ? <a href={s.udienza.collegamento} target="_blank" rel="noreferrer"><Video size={13}/> Collegamento da remoto</a> : null}
+          </p>
         </div>
-        <div className="iu-wiz-hero__actions">
-          {data.case?.href ? <a href={data.case.href}>Apri fascicolo</a> : null}
-          <a href={data.actions.agenda}>Agenda</a>
-          <a href={data.actions.deadlines}>Scadenziario</a>
+        <div className="iu-pu-scheda__azioni">
+          {s.causa.fascicolo?.href ? <a className="iu-pu-btn" href={s.causa.fascicolo.href}><FolderOpen size={14}/> Fascicolo</a> : null}
+          <a className="iu-pu-btn" href={s.udienza.agendaHref}><CalendarDays size={14}/> Agenda</a>
+          <button type="button" className="iu-pu-btn" onClick={() => window.print()}><Printer size={14}/> Stampa la scheda</button>
         </div>
-      </section>
-      <WizardStepper steps={data.steps} />
-      <section className="iu-wiz-step-layout">
-        <div className="iu-wiz-step-main">
-          <StepBody data={data} />
-        </div>
-        <aside className="iu-wiz-step-side">
-          <MatterSummary matter={data.case} />
-          <LinkedRows data={data} />
-        </aside>
-      </section>
-      <FloatingLex
-        context={lexContext}
-        title="Lex udienza"
-        body="Legge il contesto dello step corrente e aiuta a controllare fascicolo, documenti, strategia ed esito."
-        primaryHref={data.actions.lex}
-        primaryLabel="Apri Lex udienza"
-        secondaryHref={data.actions.folder}
-        secondaryLabel="Fascicolo"
-      />
+      </header>
+
+      {avviso ? <p className={`iu-pu-stato-pagina ${avviso.ok ? 'is-ok' : 'is-errore'}`} role="status">{avviso.testo}</p> : null}
+
+      <div className="iu-pu-corpo">
+        <nav className="iu-pu-passi" aria-label="Passi della preparazione">
+          <ol>
+            {s.passi.map((p) => (
+              <li key={p.n}>
+                <button type="button" className={`${p.n === passo ? 'is-attivo' : ''} ${p.fatto ? 'is-fatto' : ''}`} aria-current={p.n === passo ? 'step' : undefined} onClick={() => vaiA(p.n)}>
+                  <i>{p.fatto ? <Check size={13}/> : p.n}</i><span><strong>{p.titolo}</strong><small>{p.descrizione}</small></span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </nav>
+        <section className="iu-pu-contenuto" aria-label={attuale.titolo}>
+          <header><h2>{attuale.n}. {attuale.titolo}</h2><p>{attuale.descrizione}</p></header>
+          <Corpo key={`${passo}-${s.id}`} s={s} a={a}/>
+          {passo < 5 && s.puoModificare ? (
+            <footer className="iu-pu-piede">
+              <span>{attuale.fatto ? 'Passo completato: puoi ancora modificarlo.' : 'Le modifiche si salvano da sole.'}</span>
+              <button type="button" className="iu-pu-btn is-primario" disabled={occupato} onClick={() => void salvaCampi(passo, {}, true)}>
+                {attuale.fatto ? 'Avanti' : 'Fatto, passo successivo'} <ArrowRight size={14}/>
+              </button>
+            </footer>
+          ) : null}
+        </section>
+      </div>
+      <FloatingLex context="preparazione-udienza" title="Lex udienza" body="Legge fascicolo, termini e documenti dell'udienza e ti aiuta a preparare argomenti ed eccezioni."
+        primaryHref="#lex" primaryLabel="Apri Lex" secondaryHref={s.causa.fascicolo?.href || '/fascicoli'} secondaryLabel="Fascicolo"/>
     </main>
   )
 }
+
+export default WizardProStepPage

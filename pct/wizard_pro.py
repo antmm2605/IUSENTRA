@@ -133,6 +133,14 @@ class SessioneWizardPro:
     esito_aggiorna_fascicolo: bool = True
     step5_confermato: bool = False
 
+    # ── Tipo di udienza e seguiti dell'esito (preparazione 2.432) ──────
+    tipo_udienza: str = ""
+    verifiche_tipo: dict = field(default_factory=dict)       # verifica → fatta
+    esito_rinvio_ora: str = ""
+    termini_assegnati: List[dict] = field(default_factory=list)  # [{descrizione, data, id_scadenza}]
+    id_appuntamento_rinvio: str = ""
+    id_attivita_fascicolo: str = ""
+
     # ── Metadata ───────────────────────────────────────────────────────
     avvocato: str = ""
     creato_il: str = ""
@@ -195,6 +203,12 @@ class SessioneWizardPro:
             creato_il=d.get("creato_il", ""),
             modificato_il=d.get("modificato_il", ""),
             completato_il=d.get("completato_il", ""),
+            tipo_udienza=d.get("tipo_udienza", ""),
+            verifiche_tipo=dict(d.get("verifiche_tipo") or {}),
+            esito_rinvio_ora=d.get("esito_rinvio_ora", ""),
+            termini_assegnati=list(d.get("termini_assegnati") or []),
+            id_appuntamento_rinvio=d.get("id_appuntamento_rinvio", ""),
+            id_attivita_fascicolo=d.get("id_attivita_fascicolo", ""),
         )
 
     def to_dict(self) -> dict:

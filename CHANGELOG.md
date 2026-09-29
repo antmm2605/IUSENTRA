@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.432.0 — 29/09/2026
+
+Tre strumenti di lavoro quotidiano rifatti da capo: Controllo Studio in un solo quadro, Preparazione udienza guidata in cinque passi con l'esito che crea da solo i seguiti, Timer attività collegato ai fascicoli per nome.
+
+- **Controllo Studio — un solo quadro**: scadenze, udienze e appuntamenti, notifiche in proprio, comunicazioni (PEC da leggere, messaggi non consegnati) e incassi sono una sola lista ordinata per urgenza (scaduto, oggi, domani, prossimi 7 giorni, entro 30 giorni), con una frase di riepilogo in cima («1 termine scaduto da verificare, 4 cose da fare oggi…»), i riquadri per area che fanno da filtro e il riepilogo degli incassi. Ogni riga dice cosa fare e lo fa: «Apri il termine», «Segna fatto», «Leggi la PEC», «Segna letta», «Prepara l'udienza», «Registra incasso», sempre con il fascicolo collegato. Una fonte non disponibile viene segnalata invece di sparire in silenzio.
+- **Preparazione udienza guidata**: l'elenco parte dalle udienze reali in agenda e dalle prossime udienze dei fascicoli (60 giorni), con lo stato della preparazione e il fascicolo riconosciuto dal numero di ruolo. Cinque passi in una sola pagina con salvataggio immediato: quadro della causa (parti, giudice, termini aperti, ultime attività) con le **verifiche di legge per tipo di udienza** e il testo della norma (artt. 183, 171-ter, 189, 127-ter c.p.c.; avviso sull'art. 309 c.p.c.), documenti da portare con un clic per documento, strategia, controlli prima di uscire, esito. La scheda si stampa.
+- **Esito che crea i seguiti**: registrando l'esito (rinvio, trattenuta in decisione, riserva, conciliazione…) IUSENTRA crea l'udienza di rinvio in agenda, i termini assegnati dal giudice nello scadenziario, la nota dell'udienza nel fascicolo, segna l'udienza come tenuta e aggiorna la prossima udienza del fascicolo. Registrare di nuovo non duplica nulla.
+- **Timer attività nella top bar**: fascicolo o cliente si cercano per nome, numero o R.G. (niente più identificativi da digitare) e dalla pagina di un fascicolo il timer parte già collegato; ultimi fascicoli a un clic, tipo di attività a pulsanti, descrizione modificabile mentre il tempo scorre. «Stop e registra» conferma i minuti salvati nel timesheet, «Scarta senza registrare» ferma senza salvare; il pannello mostra le ore già registrate oggi. Il tempo trascorso non si raddoppia più ricaricando la pagina, e il timer resta raggiungibile anche da tablet e telefono.
+- **Collegamenti corretti**: gli indirizzi dei pulsanti non passano più dal correttore dei testi visibili (che poteva renderli irraggiungibili).
+
 ## 2.431.0 — 29/09/2026
 
 App mobile: IUSENTRA installabile su telefono, tablet e computer e pronta per la pubblicazione su Google Play, con lo stesso codice del gestionale.

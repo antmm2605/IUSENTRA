@@ -34,6 +34,8 @@
     "frontend/src/components/SupportCustomerRoom.css": "Stanza cliente dell'assistenza remota (/support/join/<token>) migrata da template e script legacy: consensi, avvio e chiusura, microfono, chat tecnica, richiesta di controllo PC, schermo intero e chat compatta; pagina pubblica senza cornice dello studio, token condivisi, nessuno stile inline, responsive fino al telefono."
   },
   "approvedCssFiles": [
+    "frontend/src/components/ControlloStudioPage.css",
+    "frontend/src/components/layout/TopBarTimeTracker.css",
     "frontend/src/components/fascicoli/ConservazionePanel.css",
     "frontend/src/components/fascicoli/CtuIncaricoDettaglio.css",
     "frontend/src/components/AdminDatabasePage.css",
@@ -198,13 +200,6 @@
         "style={{ width: `${width}%` }}"
       ],
       "reason": "Barre percentuali calcolate da metriche reali."
-    },
-    {
-      "file": "frontend/src/components/WizardProPage.tsx",
-      "snippets": [
-        "style={{ width: `${Math.min(Math.max(item.progress, 0), 100)}%` }}"
-      ],
-      "reason": "Progressione wizard calcolata dallo stato del percorso."
     },
     {
       "file": "frontend/src/components/SyncedTopScrollbar.tsx",

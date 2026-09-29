@@ -117,16 +117,20 @@ def test_payload_errore_mantiene_le_nuove_sezioni_vuote():
 
 
 def test_interfaccia_controllo_studio_collega_tutte_le_azioni_reali():
-    source = (REPO_ROOT / "frontend" / "src" / "App.tsx").read_text(encoding="utf-8")
+    app_source = (REPO_ROOT / "frontend" / "src" / "App.tsx").read_text(encoding="utf-8")
+    pagina = (REPO_ROOT / "frontend" / "src" / "components" / "ControlloStudioPage.tsx").read_text(encoding="utf-8")
+    fonti = (REPO_ROOT / "pct" / "controllo_studio" / "fonti.py").read_text(encoding="utf-8")
 
+    assert "isRegiaPage?<ControlloStudioPage/>" in app_source.replace(" ", "")
     for expected in (
         "Controllo Studio",
-        "Notifiche da presidiare",
-        "Parcelle e incassi",
-        '/notifiche-legali?section=operazioni',
-        '/notifiche-legali?section=presidi',
-        '/fatturazione/nuova',
-        '/incassi-pagamenti#registra-incasso',
-        "Bonifico o altro pagamento",
+        "/api/v1/ui/controllo-studio",
+        "/notifiche-legali?section=operazioni",
+        "/fatturazione/nuova",
+        "/incassi-pagamenti#registra-incasso",
+        "/scadenziario/nuova",
+        "/agenda/nuovo",
     ):
-        assert expected in source
+        assert expected in pagina
+    for azione in ("Segna fatto", "Segna letta", "Registra incasso", "Prepara l'udienza", "Leggi la PEC", "Apri il presidio"):
+        assert azione in fonti

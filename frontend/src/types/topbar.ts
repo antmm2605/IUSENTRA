@@ -153,12 +153,30 @@ export type TimeTrackingTimer = {
   endedAt: string | null
   elapsedSeconds: number
   status: 'running' | 'paused' | 'stopped'
+  caseLabel?: string | null
+  caseHref?: string | null
+  clientLabel?: string | null
 }
+
+export type TimeTrackingLink = { kind?: 'case' | 'client'; caseId: string | null; clientId: string | null; label: string; detail: string }
+
+export type TimeTrackingToday = {
+  minuti: number
+  voci: number
+  href: string
+  ultime: Array<{ descrizione: string; minuti: number; fascicolo: string | null; cliente: string | null }>
+}
+
+export type TimeTrackingSaved = { minutes: number; description: string; caseLabel: string | null; href: string }
 
 export type TimeTrackingPayload = {
   ok: boolean
   timer: TimeTrackingTimer | null
   timeEntry?: { id: string; href: string } | null
+  today?: TimeTrackingToday
+  recent?: TimeTrackingLink[]
+  saved?: TimeTrackingSaved | null
+  message?: string
 }
 
 export type TopbarCreateContext = {

@@ -2317,8 +2317,8 @@
       "status": "react_operational_full",
       "risk": "medium",
       "targetComponent": "frontend/src/components/WizardProPage.tsx",
-      "targetData": "frontend/src/wizardProData.ts",
-      "targetBridge": "web/services/react_wizard_pro_bridge.py",
+      "targetData": "frontend/src/components/preparazioneUdienzaTipi.ts",
+      "targetBridge": "web/services/preparazione_udienza_elenco.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/wizard-pro.json",
       "unlockFromGate": true,
       "mustPreserve": [

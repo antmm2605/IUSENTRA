@@ -225,4 +225,18 @@ def api_time_tracking_resume(timer_id: str):
 @topbar.patch("/api/time-tracking/<timer_id>/stop")
 @_require_auth
 def api_time_tracking_stop(timer_id: str):
-    return _handle(lambda: timer_service.stop_timer_payload(g.get("utente_corrente"), timer_id))
+    return _handle(lambda: timer_service.stop_timer_payload(g.get("utente_corrente"), timer_id, _json_payload()))
+
+
+@topbar.patch("/api/time-tracking/<timer_id>")
+@_require_auth
+def api_time_tracking_update(timer_id: str):
+    return _handle(lambda: timer_service.update_timer_payload(g.get("utente_corrente"), timer_id, _json_payload()))
+
+
+@topbar.get("/api/time-tracking/links")
+@_require_auth
+def api_time_tracking_links():
+    args = request.args
+    return _handle(lambda: timer_service.search_links_payload(
+        str(args.get("q") or "")[:80], str(args.get("caseId") or "")[:120], str(args.get("clientId") or "")[:120]))

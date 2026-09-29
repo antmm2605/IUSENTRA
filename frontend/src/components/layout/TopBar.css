@@ -1266,82 +1266,6 @@ textarea[data-iusentra-voice-preview="ascolto"]{
   font-size:11px;
   font-weight:900;
 }
-.iu-timer-panel{
-  width:min(390px,calc(100vw - 24px));
-}
-.iu-timer-form,
-.iu-timer-active{
-  display:grid;
-  gap:12px;
-  padding:14px;
-}
-.iu-timer-form label{
-  display:grid;
-  gap:6px;
-  color:#475569;
-  font-size:12px;
-  font-weight:850;
-}
-.iu-timer-form input,
-.iu-timer-form select{
-  width:100%;
-  min-height:38px;
-  border:1px solid var(--iu-border);
-  border-radius:9px;
-  padding:0 10px;
-  color:#111827;
-  background:#fff;
-  outline:0;
-}
-.iu-timer-form input:focus,
-.iu-timer-form select:focus{
-  border-color:rgba(37,99,235,.45);
-  box-shadow:0 0 0 3px rgba(37,99,235,.12);
-}
-.iu-timer-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-}
-.iu-timer-start,
-.iu-timer-actions button{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
-  min-height:38px;
-  border:0;
-  border-radius:10px;
-  background:var(--iu-navy-900);
-  color:#fff;
-  font-size:13px;
-  font-weight:900;
-  cursor:pointer;
-}
-.iu-timer-start:disabled{
-  opacity:.65;
-}
-.iu-timer-active strong{
-  color:#111827;
-  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  font-size:32px;
-  line-height:1;
-}
-.iu-timer-active small,
-.iu-timer-active p{
-  margin:0;
-  color:#64748b;
-  font-size:13px;
-  font-weight:700;
-}
-.iu-timer-actions{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:9px;
-}
-.iu-timer-actions button.is-danger{
-  background:#b91c1c;
-}
 .iu-command-backdrop{
   position:fixed;
   inset:0;
@@ -1560,7 +1484,7 @@ textarea[data-iusentra-voice-preview="ascolto"]{
   .iu-command-result{grid-template-columns:38px minmax(0,1fr)}
   .iu-command-result__action{display:none}
   .iu-topbar-panel{position:fixed;top:64px;right:10px;left:10px;width:auto;max-height:calc(100vh - 154px)}
-  .iu-today-summary,.iu-deadline-summary,.iu-timer-grid{grid-template-columns:1fr 1fr}
+  .iu-today-summary,.iu-deadline-summary{grid-template-columns:1fr 1fr}
   .iu-new.iu-topbar-new span{display:none}
   .iu-voice-panel{
     top:58px;

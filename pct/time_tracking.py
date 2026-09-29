@@ -241,6 +241,33 @@ class GestioneTimeTracking:
         self._salva()
         return timer
 
+    def aggiorna(
+        self,
+        timer_id: str,
+        user_id: str,
+        *,
+        description: str | None = None,
+        case_id: str | None = None,
+        client_id: str | None = None,
+        activity_type: str | None = None,
+    ) -> TimeTrackingTimer:
+        """Corregge descrizione, collegamenti o tipo di un timer non ancora fermato."""
+
+        timer = self._owned_timer(timer_id, user_id)
+        if timer.status == "stopped":
+            return timer
+        if description is not None:
+            timer.description = str(description or "").strip()[:500]
+        if case_id is not None:
+            timer.case_id = str(case_id or "").strip()
+        if client_id is not None:
+            timer.client_id = str(client_id or "").strip()
+        if activity_type is not None:
+            timer.activity_type = self._normalize_activity(activity_type)
+        timer.updated_at = utc_now_iso()
+        self._salva()
+        return timer
+
     def collega_timesheet(self, timer_id: str, user_id: str, entry_id: str) -> TimeTrackingTimer:
         timer = self._owned_timer(timer_id, user_id)
         timer.timesheet_entry_id = str(entry_id or "").strip()

@@ -1,6 +1,7 @@
 import type {
   GlobalSearchPayload,
   TimeTrackingActivityType,
+  TimeTrackingLink,
   TimeTrackingPayload,
   TopbarDeadlinesPayload,
   TopbarNotificationsPayload,
@@ -114,6 +115,21 @@ export function resumeTimer(id: string): Promise<TimeTrackingPayload> {
   return requestJson<TimeTrackingPayload>(`/api/time-tracking/${encodeURIComponent(id)}/resume`, { method: 'PATCH' })
 }
 
-export function stopTimer(id: string): Promise<TimeTrackingPayload> {
-  return requestJson<TimeTrackingPayload>(`/api/time-tracking/${encodeURIComponent(id)}/stop`, { method: 'PATCH' })
+export function stopTimer(id: string, options: { description?: string; discard?: boolean } = {}): Promise<TimeTrackingPayload> {
+  return requestJson<TimeTrackingPayload>(`/api/time-tracking/${encodeURIComponent(id)}/stop`, {
+    method: 'PATCH',
+    body: JSON.stringify(options),
+  })
+}
+
+export function updateTimer(id: string, changes: Partial<StartTimerInput>): Promise<TimeTrackingPayload> {
+  return requestJson<TimeTrackingPayload>(`/api/time-tracking/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(changes),
+  })
+}
+
+export function searchTimerLinks(query: string, ids: { caseId?: string; clientId?: string } = {}): Promise<{ ok: boolean; items: TimeTrackingLink[] }> {
+  const params = new URLSearchParams({ q: query, caseId: ids.caseId || '', clientId: ids.clientId || '' })
+  return requestJson<{ ok: boolean; items: TimeTrackingLink[] }>(`/api/time-tracking/links?${params.toString()}`)
 }

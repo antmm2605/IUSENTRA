@@ -1,235 +1,111 @@
-import { useEffect, useMemo, useState } from 'react'
-import {
-  AlertTriangle,
-  CalendarDays,
-  CheckCircle2,
-  ChevronRight,
-  ClipboardCheck,
-  FileText,
-  Gavel,
-  PlayCircle,
-  Search,
-  Sparkles,
-} from 'lucide-react'
-import { Badge } from './dashboard'
-import { FloatingLex } from './FloatingLex'
-import { JsonPostForm } from './JsonPostForm'
-import { csrfToken } from './WizardProShared'
-import { getWizardProPage, type WizardProCase, type WizardProData } from '../wizardProData'
+import { useEffect, useState } from 'react'
+import { CalendarClock, CheckCircle2, Gavel, MapPin, Play, UserRound } from 'lucide-react'
+import { inviaPreparazione } from './preparazioneUdienzaApi'
 import './WizardProPage.css'
 
-function CaseCard({ item, selected, onSelect }: { item: WizardProCase; selected: boolean; onSelect: (item: WizardProCase) => void }) {
-  const session = item.activeSession
+type Udienza = {
+  idAppuntamento: string; idFascicolo: string; titolo: string; dataOra: string; quando: string; luogo: string; cliente: string; giudice: string
+  fascicolo: { etichetta?: string; href?: string }; stato: string; passiFatti: number; href: string
+}
+type Elenco = {
+  ok: boolean; message?: string; udienze?: Udienza[]; concluse?: Array<{ id: string; titolo: string; esito: string; data: string; rinvio: string; href: string }>
+  riepilogo?: { settimana: number; daPreparare: number; preparate: number }; fascicoli?: Array<{ value: string; label: string }>; puoModificare?: boolean
+}
+
+const dataIt = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : '')
+
+function RigaUdienza({ u, fascicoli, puoModificare }: { u: Udienza; fascicoli: Array<{ value: string; label: string }>; puoModificare: boolean }) {
+  const [scelta, setScelta] = useState('')
+  const [errore, setErrore] = useState('')
+  const [occupato, setOccupato] = useState(false)
+  const imminente = /^(Oggi|Domani)/.test(u.quando)
+  const avvia = async () => {
+    setOccupato(true)
+    const esito = await inviaPreparazione('/api/v1/ui/preparazione-udienza/avvia', { idAppuntamento: u.idAppuntamento, idFascicolo: u.idFascicolo || scelta })
+    setOccupato(false)
+    if (esito.ok && esito.redirect) window.location.assign(String(esito.redirect))
+    else setErrore(String(esito.message || 'Non riesco ad aprire la preparazione.'))
+  }
   return (
-    <article className={`iu-wiz-case ${selected ? 'is-selected' : ''}`}>
-      <button type="button" onClick={() => onSelect(item)} aria-pressed={selected}>
-        <span className="iu-wiz-case__top">
-          <strong>{item.title}</strong>
-          <Badge tone={item.statusTone}>{item.statusLabel}</Badge>
-        </span>
-        <span>{item.client} · {item.court}</span>
-        <span className="iu-wiz-case__meta">
-          <CalendarDays size={14}/> {item.hearingLabel}
-        </span>
-      </button>
-      <div className="iu-wiz-progress" aria-label={`Avanzamento ${item.progress}%`}>
-        <span style={{ width: `${Math.min(Math.max(item.progress, 0), 100)}%` }} />
+    <article className={`iu-pu-udienza ${imminente && u.stato === 'Da preparare' ? 'is-urgente' : ''}`}>
+      <div className="iu-pu-udienza__quando">
+        <strong>{u.quando}</strong>
+        <span>{dataIt(u.dataOra)}</span>
       </div>
-      <div className="iu-wiz-case__badges">
-        {item.badges.length ? item.badges.map((badge) => <Badge key={badge.label} tone={badge.tone}>{badge.label}</Badge>) : <Badge tone="neutral">Da presidiare</Badge>}
-      </div>
-      <div className="iu-wiz-case__actions">
-        {session ? <a href={session.stepHref}><PlayCircle size={15}/> Riprendi</a> : (
-          <JsonPostForm action={item.startHref} successMessage="Avvio riuscito.">
-            <input type="hidden" name="_csrf_token" value={csrfToken()} />
-            <input type="hidden" name="id_fascicolo" value={item.startPayload.id_fascicolo} />
-            <input type="hidden" name="id_appuntamento" value={item.startPayload.id_appuntamento} />
-            <input type="hidden" name="titolo" value="" />
-            <button type="submit"><PlayCircle size={15}/> Avvia</button>
-          </JsonPostForm>
+      <div className="iu-pu-udienza__testo">
+        <h3>{u.titolo}</h3>
+        <p>
+          {u.luogo ? <span><MapPin size={13}/> {u.luogo}</span> : null}
+          {u.cliente ? <span><UserRound size={13}/> {u.cliente}</span> : null}
+          {u.giudice ? <span><Gavel size={13}/> {u.giudice}</span> : null}
+        </p>
+        {u.fascicolo?.href ? <a href={u.fascicolo.href}>{u.fascicolo.etichetta}</a> : (
+          puoModificare ? (
+            <label className="iu-pu-scelta"><span>Fascicolo dell'udienza</span>
+              <select value={scelta} onChange={(e) => setScelta(e.target.value)}>
+                <option value="">Scegli il fascicolo</option>{fascicoli.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+              </select>
+            </label>
+          ) : <em>Udienza non collegata a un fascicolo</em>
         )}
-        {item.completedSession ? <a href={item.completedSession.summaryHref}><CheckCircle2 size={15}/> Riepilogo</a> : null}
-        <a href={item.folderHref}><FileText size={15}/> Fascicolo</a>
+        {errore ? <p className="iu-pu-errore" role="alert">{errore}</p> : null}
+      </div>
+      <div className="iu-pu-udienza__azione">
+        <span className={`iu-pu-stato ${u.stato === 'Da preparare' ? 'is-da-fare' : u.stato === 'Preparata' || u.stato === 'Esito registrato' ? 'is-fatto' : 'is-corso'}`}>
+          {u.stato}
+        </span>
+        <div className="iu-pu-avanzamento" aria-label={`${u.passiFatti} passi su 5`}>
+          {[1, 2, 3, 4, 5].map((n) => <i key={n} className={n <= u.passiFatti ? 'is-fatto' : ''}/>)}
+        </div>
+        {u.href ? <a className="iu-pu-btn is-primario" href={u.href}><Play size={14}/> {u.stato === 'Esito registrato' ? 'Apri' : 'Continua'}</a>
+          : puoModificare ? <button type="button" className="iu-pu-btn is-primario" disabled={occupato || (!u.idFascicolo && !scelta)} onClick={() => void avvia()}><Play size={14}/> Prepara</button> : null}
       </div>
     </article>
   )
 }
 
-function SelectedPanel({ item, actions }: { item: WizardProCase | null; actions: WizardProData['actions'] }) {
-  if (!item) {
-    return (
-      <aside className="iu-wiz-selected">
-        <AlertTriangle size={24}/>
-        <h2>Nessun fascicolo disponibile</h2>
-        <p>Crea un fascicolo o collega un’udienza in agenda per avviare la preparazione guidata.</p>
-        <a className="iu-wiz-btn" href="/fascicoli/nuovo">Nuovo fascicolo</a>
-      </aside>
-    )
-  }
-  const session = item.activeSession
-  return (
-    <aside className="iu-wiz-selected">
-      <span className="iu-wiz-kicker">Riepilogo operativo</span>
-      <h2>{item.title}</h2>
-      <p>{item.client} contro {item.opponent}</p>
-      <div className="iu-wiz-selected__grid">
-        <span><b>RG</b>{item.rg || 'Da completare'}</span>
-        <span><b>Ufficio</b>{item.court}</span>
-        <span><b>Udienza</b>{item.hearingLabel}</span>
-        <span><b>Modalità</b>{item.hearingMode}</span>
-      </div>
-      <div className="iu-wiz-checks">
-        <span><ClipboardCheck size={16}/> Documenti acquisiti: <b>{item.documentsReady}</b></span>
-        <span><AlertTriangle size={16}/> Documenti mancanti: <b>{item.documentsMissing}</b></span>
-        <span><CalendarDays size={16}/> Scadenze collegate: <b>{item.linkedDeadlines}</b></span>
-      </div>
-      <div className="iu-wiz-selected__actions">
-        {session ? <a className="iu-wiz-btn primary" href={session.stepHref}>Riprendi step {session.step}</a> : (
-          <JsonPostForm action={item.startHref} successMessage="Preparazione creata.">
-            <input type="hidden" name="_csrf_token" value={csrfToken()} />
-            <input type="hidden" name="id_fascicolo" value={item.startPayload.id_fascicolo} />
-            <input type="hidden" name="id_appuntamento" value={item.startPayload.id_appuntamento} />
-            <input type="hidden" name="titolo" value="" />
-            <button className="iu-wiz-btn primary" type="submit">Avvia preparazione</button>
-          </JsonPostForm>
-        )}
-        <a className="iu-wiz-btn" href={item.agendaHref}>Apri udienza</a>
-        <a className="iu-wiz-btn" href={item.deadlineHref}>Termini collegati</a>
-        <a className="iu-wiz-btn" href={actions.lex} data-lex-open data-lex-context="preparazione-udienza">Chiedi a Lex</a>
-      </div>
-    </aside>
-  )
-}
-
+/** Preparazione udienza: le prossime udienze con lo stato della preparazione, e gli esiti registrati. */
 export function WizardProPage() {
-  const [data, setData] = useState<WizardProData | null>(null)
-  const [selected, setSelected] = useState<WizardProCase | null>(null)
-  const [loadError, setLoadError] = useState('')
-  const [query, setQuery] = useState('')
-  const [stateFilter, setStateFilter] = useState('tutti')
-  const [onlyUpcoming, setOnlyUpcoming] = useState(false)
-  const [onlyMissingDocs, setOnlyMissingDocs] = useState(false)
-
+  const [dati, setDati] = useState<Elenco | null>(null)
   useEffect(() => {
-    let active = true
-    getWizardProPage()
-      .then((payload) => {
-        if (!active) return
-        setData(payload)
-        setSelected(payload.selectedCase)
-        setLoadError('')
-      })
-      .catch(() => {
-        if (active) setLoadError('Errore durante il caricamento della preparazione udienza.')
-      })
-    return () => { active = false }
+    fetch('/api/v1/ui/preparazione-udienza', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then((r) => r.json()).then((d: Elenco) => setDati(d)).catch(() => setDati({ ok: false, message: 'Elenco non disponibile: riprova tra poco.' }))
   }, [])
-
-  const filtered = useMemo(() => {
-    const rows = data?.cases ?? []
-    const q = query.trim().toLowerCase()
-    return rows.filter((item) => {
-      if (q && ![item.title, item.client, item.opponent, item.court, item.rg].join(' ').toLowerCase().includes(q)) return false
-      if (stateFilter === 'bozze' && !item.activeSession) return false
-      if (stateFilter === 'complete' && !item.completedSession) return false
-      if (stateFilter === 'senza-sessione' && (item.activeSession || item.completedSession)) return false
-      if (onlyUpcoming && !(item.hearingDays !== null && item.hearingDays <= 7)) return false
-      if (onlyMissingDocs && item.documentsMissing <= 0) return false
-      return true
-    })
-  }, [data, query, stateFilter, onlyUpcoming, onlyMissingDocs])
-
-  if (loadError) {
-    return (
-      <main className="iu-wiz-page">
-        <aside className="iu-wiz-selected">
-          <AlertTriangle size={24}/>
-          <h2>Preparazione non disponibile</h2>
-          <p>{loadError}</p>
-          <button className="iu-wiz-btn primary" type="button" onClick={() => window.location.reload()}>Riprova</button>
-        </aside>
-      </main>
-    )
-  }
-
-  if (!data) {
-    return <main className="iu-wiz-page"><div className="iu-wiz-loading">Caricamento preparazioni udienza...</div></main>
-  }
-
+  if (!dati) return <main className="iu-content iu-pu"><p className="iu-pu-stato-pagina">Caricamento delle udienze…</p></main>
+  if (!dati.ok) return <main className="iu-content iu-pu"><p className="iu-pu-stato-pagina is-errore" role="alert">{dati.message}</p></main>
+  const r = dati.riepilogo || { settimana: 0, daPreparare: 0, preparate: 0 }
   return (
-    <main className="iu-wiz-page">
-      <section className="iu-wiz-hero">
+    <main className="iu-content iu-pu">
+      <header className="iu-pu-testa">
         <div>
-          <span className="iu-wiz-kicker"><Gavel size={16}/> Preparazione Udienza Guidata</span>
-          <h1>Preparazione Udienza Guidata</h1>
-          <p>Briefing fascicolo, documenti, strategia, pre-partenza ed esito in un unico percorso operativo.</p>
+          <span className="iu-pu-kicker"><Gavel size={15}/> Preparazione udienza</span>
+          <h1>Prossime udienze</h1>
+          <p>Per ogni udienza: quadro della causa con le verifiche di legge, documenti, strategia, controlli prima di uscire ed esito, che crea da solo il rinvio in agenda e i termini assegnati.</p>
         </div>
-        <div className="iu-wiz-hero__actions">
-          <a href={data.actions.newAppointment}>Nuova udienza</a>
-          <a href={data.actions.newDeadline}>Nuova scadenza</a>
+        <div className="iu-pu-numeri">
+          <span><strong>{r.settimana}</strong> nei prossimi 7 giorni</span>
+          <span className={r.daPreparare ? 'is-da-fare' : ''}><strong>{r.daPreparare}</strong> da preparare</span>
+          <span><strong>{r.preparate}</strong> preparate</span>
         </div>
+      </header>
+      <section className="iu-pu-elenco" aria-label="Prossime udienze">
+        {(dati.udienze || []).length ? (dati.udienze || []).map((u) => (
+          <RigaUdienza key={`${u.idAppuntamento}-${u.idFascicolo}-${u.dataOra}`} u={u} fascicoli={dati.fascicoli || []} puoModificare={Boolean(dati.puoModificare)}/>
+        )) : (
+          <div className="iu-pu-vuoto"><CalendarClock size={26}/><strong>Nessuna udienza nei prossimi 60 giorni.</strong>
+            <span>Le udienze inserite in agenda o come prossima udienza del fascicolo compaiono qui.</span><a href="/agenda/nuovo">Inserisci un'udienza</a></div>
+        )}
       </section>
-
-      <section className="iu-wiz-metrics">
-        <article><strong>{data.summary.totalCases}</strong><span>Fascicoli presidiati</span></article>
-        <article><strong>{data.summary.activeDrafts}</strong><span>Bozze attive</span></article>
-        <article><strong>{data.summary.completed}</strong><span>Completate</span></article>
-        <article><strong>{data.summary.upcomingHearings}</strong><span>Udienze imminenti</span></article>
-        <article><strong>{data.summary.documentsMissing}</strong><span>Documenti mancanti</span></article>
-        <article><strong>{data.summary.linkedDeadlines}</strong><span>Scadenze collegate</span></article>
-      </section>
-
-      <section className="iu-wiz-steps" aria-label="Fasi della preparazione">
-        {data.steps.map((step, index) => <span key={step}><CheckCircle2 size={15}/>{index + 1}. {step}</span>)}
-      </section>
-
-      <section className="iu-wiz-layout">
-        <div className="iu-wiz-list">
-          <label className="iu-wiz-search">
-            <Search size={17}/>
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca fascicolo, cliente, RG o ufficio..." />
-          </label>
-          <div className="iu-wiz-filterbar" aria-label="Filtri preparazione udienza">
-            <label>
-              <span>Stato preparazione</span>
-              <select value={stateFilter} onChange={(event) => setStateFilter(event.target.value)}>
-                <option value="tutti">Tutti</option>
-                <option value="bozze">Bozze attive</option>
-                <option value="complete">Completate</option>
-                <option value="senza-sessione">Da avviare</option>
-              </select>
-            </label>
-            <label className="iu-wiz-toggle">
-              <input type="checkbox" checked={onlyUpcoming} onChange={(event) => setOnlyUpcoming(event.target.checked)} />
-              <span>Udienze imminenti</span>
-            </label>
-            <label className="iu-wiz-toggle">
-              <input type="checkbox" checked={onlyMissingDocs} onChange={(event) => setOnlyMissingDocs(event.target.checked)} />
-              <span>Documenti mancanti</span>
-            </label>
-          </div>
-          {filtered.length ? filtered.map((item) => (
-            <CaseCard key={item.id} item={item} selected={selected?.id === item.id} onSelect={setSelected} />
-          )) : (
-            <div className="iu-wiz-empty">
-              <Sparkles size={24}/>
-              <strong>Nessun fascicolo trovato</strong>
-              <span>Modifica la ricerca o crea una nuova udienza dall’agenda.</span>
-            </div>
-          )}
-        </div>
-        <SelectedPanel item={selected} actions={data.actions} />
-      </section>
-
-      <FloatingLex
-        context="preparazione-udienza"
-        title="Lex udienza"
-        body="Posso preparare il briefing, controllare documenti mancanti e suggerire una checklist prudente prima della comparizione."
-        primaryHref={data.actions.lex}
-        primaryLabel="Apri Lex udienza"
-        secondaryHref={data.actions.deadlines}
-        secondaryLabel="Termini collegati"
-      />
+      {(dati.concluse || []).length ? (
+        <section className="iu-pu-concluse" aria-label="Esiti registrati">
+          <h2><CheckCircle2 size={16}/> Esiti registrati</h2>
+          <ul>{(dati.concluse || []).map((c) => (
+            <li key={c.id}><a href={c.href}><strong>{c.titolo}</strong></a><span>{c.esito}{c.rinvio ? ` al ${dataIt(c.rinvio)}` : ''} · {dataIt(c.data)}</span></li>
+          ))}</ul>
+        </section>
+      ) : null}
     </main>
   )
 }
+
+export default WizardProPage

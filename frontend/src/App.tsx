@@ -109,6 +109,7 @@ const DocumentEditorPage = lazyPage(() => import('./components/DocumentEditorPag
 const AnagraficaClientiPage = lazyPage(() => import('./components/AnagraficaClientiPage').then((module) => ({ default: module.AnagraficaClientiPage })))
 const CrmPage = lazyPage(() => import('./components/CrmPage').then((module) => ({ default: module.CrmPage })))
 const PrimaNotaPage = lazyPage(() => import('./components/PrimaNotaPage').then((module) => ({ default: module.PrimaNotaPage })))
+const ControlloStudioPage = lazyPage(() => import('./components/ControlloStudioPage'))
 const RecuperoCreditiPage = lazyPage(() => import('./components/RecuperoCreditiPage').then((module) => ({ default: module.RecuperoCreditiPage })))
 const CartellaClientePage = lazyPage(() => import('./components/CartellaClientePage').then((module) => ({ default: module.CartellaClientePage })))
 const ClientiCollaboratoriPage = lazyPage(() => import('./components/ClientiCollaboratoriPage').then((module) => ({ default: module.ClientiCollaboratoriPage })))
@@ -1180,91 +1181,6 @@ function Operations({ data }:{data:DashboardData}) {
   return <Panel title="Azioni urgenti di oggi" subtitle="Cosa lavorare per primo, dagli archivi operativi dello studio." icon={<AlertTriangle size={17}/>} count={data.operations.length}>{data.operations.length?<div className="iu-compact">{data.operations.map(action=><a className="iu-compact-row" href={action.href||'/workspace-intelligente'} key={action.id}><div><strong>{action.title}</strong><span>{action.subtitle}</span></div>{action.badge?<Badge tone={action.tone||'neutral'}>{action.badge}</Badge>:null}</a>)}</div>:<Empty>Nessuna azione urgente da lavorare adesso.</Empty>}<a className="iu-link" href="/workspace-intelligente">Apri Controllo Studio -&gt;</a></Panel>
 }
 
-/**
- * Coda «Da lavorare adesso»: la risposta della Regia alla domanda
- * dell'avvocato. Voci numerate in ordine di urgenza reale (scadute, di oggi,
- * critiche, udienze, PEC, conferimenti, azioni) e ognuna apre il suo evento.
- */
-
-type PanoramicaLetture = {
-  ok?: boolean
-  totali?: { fascicoli: number; fermi: number; da_leggere: number; in_errore: number; mai_letti: number; oggetti_letti: number; oggetti_non_leggibili: number; tutti_fermi?: boolean }
-  fascicoli?: { fascicoloId: string; numero: string; cliente: string; stato: string; documentiLetti: number; pecLette: number; nonLeggibili: number; ultimaLettura: string }[]
-}
-
-const ETICHETTA_LETTURA: Record<string, string> = {
-  fermo: 'letto, fermo',
-  da_leggere: 'da leggere',
-  in_errore: 'in errore',
-  mai_letto: 'mai esaminato',
-}
-
-/** Lo stato dei motori su tutti i fascicoli: una chiamata, non una scheda per volta. */
-function LettureStudio() {
-  const [dati, setDati] = useState<PanoramicaLetture | null>(null)
-  const [errore, setErrore] = useState('')
-  useEffect(() => {
-    let vivo = true
-    fetch('/api/v1/ui/letture/panoramica?soloDaFare=1&limite=25', { credentials: 'same-origin' })
-      .then((r) => r.json())
-      .then((j) => { if (vivo) setDati(j) })
-      .catch(() => { if (vivo) setErrore('Stato delle letture non disponibile.') })
-    return () => { vivo = false }
-  }, [])
-  if (errore) return <Panel title="Letture dei fascicoli" subtitle={errore} icon={<BookOpenCheck size={17}/>}><Empty>{errore}</Empty></Panel>
-  if (!dati) return <Panel title="Letture dei fascicoli" subtitle="Lettura del registro in corso." icon={<BookOpenCheck size={17}/>}><Empty>Un momento…</Empty></Panel>
-  const t = dati.totali
-  if (!t) return <Panel title="Letture dei fascicoli" subtitle="Registro non leggibile." icon={<BookOpenCheck size={17}/>}><Empty>Registro delle letture non leggibile.</Empty></Panel>
-  const daFare = (dati.fascicoli || []).filter((f) => f.stato !== 'fermo')
-  const sottotitolo = t.tutti_fermi
-    ? `Tutti i ${t.fascicoli} fascicoli sono stati letti: i motori restano fermi finché qualcosa cambia.`
-    : `${t.fermi} fascicoli su ${t.fascicoli} sono letti e fermi; ${t.da_leggere + t.mai_letti + t.in_errore} aspettano ancora.`
-  return (
-    <Panel title="Letture dei fascicoli" subtitle={sottotitolo} icon={<BookOpenCheck size={17}/>} count={daFare.length}>
-      <div className="iu-compact">
-        <div className="iu-compact-row"><div><strong>{t.fermi} letti e fermi</strong><span>{t.oggetti_letti} tra documenti e PEC letti in tutto</span></div><Badge tone={t.tutti_fermi ? 'success' : 'neutral'}>{t.fascicoli} fascicoli</Badge></div>
-        {t.da_leggere ? <div className="iu-compact-row"><div><strong>{t.da_leggere} con qualcosa da leggere</strong><span>documenti o PEC arrivati dopo l'ultimo giro</span></div><Badge tone="warning">da fare</Badge></div> : null}
-        {t.mai_letti ? <div className="iu-compact-row"><div><strong>{t.mai_letti} mai esaminati</strong><span>nessuna lettura registrata per questi fascicoli</span></div><Badge tone="warning">mai letti</Badge></div> : null}
-        {t.in_errore ? <div className="iu-compact-row"><div><strong>{t.in_errore} in errore</strong><span>la lettura si è interrotta e va ripresa</span></div><Badge tone="danger">errore</Badge></div> : null}
-        {t.oggetti_non_leggibili ? <div className="iu-compact-row"><div><strong>{t.oggetti_non_leggibili} documenti non leggibili</strong><span>restano dichiarati come tali, non bloccano il ciclo</span></div><Badge tone="neutral">dichiarati</Badge></div> : null}
-      </div>
-      {daFare.length ? (
-        <div className="iu-compact">
-          {daFare.slice(0, 8).map((f) => (
-            <a className="iu-compact-row" href={`/fascicoli/${f.fascicoloId}#lettura-fascicolo`} key={f.fascicoloId}>
-              <div><strong>{f.numero || f.fascicoloId}{f.cliente ? ` — ${f.cliente}` : ''}</strong><span>{ETICHETTA_LETTURA[f.stato] || f.stato}{f.ultimaLettura ? ` · ultima lettura ${f.ultimaLettura}` : ''}</span></div>
-              <Badge tone={f.stato === 'in_errore' ? 'danger' : 'warning'}>{ETICHETTA_LETTURA[f.stato] || f.stato}</Badge>
-            </a>
-          ))}
-        </div>
-      ) : <Empty>Nessun fascicolo in attesa: i motori hanno finito.</Empty>}
-    </Panel>
-  )
-}
-
-function Worklist({ data }:{data:DashboardData}) {
-  return (
-    <Panel title="Da lavorare adesso" subtitle="Tutti i processi aperti in ordine di urgenza: un clic apre l'evento." icon={<ListChecks size={17}/>} count={data.worklist.length}>
-      {data.worklist.length?(
-        <ol className="iu-worklist">
-          {data.worklist.map((row,index)=>(
-            <li key={row.id}>
-              <a className="iu-worklist-row" href={row.href||'/workspace-intelligente'}>
-                <i className={`iu-worklist-rank tone-${row.tone||'neutral'}`}>{index+1}</i>
-                <div><strong>{row.title}</strong><span>{row.subtitle}</span></div>
-                {row.time?<time>{row.time}</time>:null}
-                {row.badge?<Badge tone={row.tone||'neutral'}>{row.badge}</Badge>:null}
-              </a>
-            </li>
-          ))}
-        </ol>
-      ):<Empty>Nessun processo urgente in coda: la giornata è sotto controllo.</Empty>}
-      <a className="iu-link" href="/scadenziario">Apri Scadenze e Termini -&gt;</a>
-    </Panel>
-  )
-}
-
-/** Ora dell'ultimo allineamento nel fuso dell'utente (Europe/Rome). */
 function updateHour(generatedAt:string): string {
   if (!generatedAt) return ''
   const parsed = new Date(generatedAt)
@@ -1323,47 +1239,6 @@ function Dossiers({ data }:{data:DashboardData}) {
 
 function Sources({ data }:{data:DashboardData}) {
   return <Panel title="Fonti operative collegate" subtitle="Fonti applicative alimentate dai conteggi reali dello studio." icon={<BookOpen size={17}/>} count={data.sources.length}>{data.sources.length?<div className="iu-source-grid">{data.sources.map(source=><SourceCard source={source} key={source.id}/>)}</div>:<Empty>Nessuna fonte operativa disponibile.</Empty>}</Panel>
-}
-
-function RegiaOperativaPage({ data, loading }:{data:DashboardData; loading:boolean}) {
-  const agendaRows = data.agenda.slice(0,5)
-  const matterRows = data.matters.slice(0,5)
-  const pecRows = data.pec.slice(0,5)
-  const notificationRows = data.notificationPresidia.slice(0,5)
-  const billingRows = data.billingWork.slice(0,5)
-  return (
-    <main className="iu-content iu-regia-page">
-      <div className="iu-page-heading">
-        <div>
-          <h1>Controllo Studio</h1>
-          <p>Scadenze, notifiche, comunicazioni e incassi da lavorare in un solo quadro.</p>
-        </div>
-        <span className={`iu-sync ${loading || data.status === 'errore' ? '' : 'ok'}`} role="status" aria-live="polite">{loading ? 'Aggiornamento dati...' : data.status === 'errore' ? 'Dati non aggiornati' : 'Dati dello studio aggiornati'}</span>
-      </div>
-      {!loading && data.status === 'errore' ? <p className="iu-regia-errore" role="alert">{data.warning || 'Il quadro dello studio non è stato caricato: i numeri qui sotto non sono aggiornati.'}</p> : null}
-      <nav className="iu-regia-actions" aria-label="Azioni rapide dello studio">
-        <a href="/notifiche-legali?section=operazioni"><ShieldCheck size={18}/><span><strong>Prepara notifica</strong><small>Relata, firma e invio locale</small></span></a>
-        <a href="/fatturazione/nuova"><FileText size={18}/><span><strong>Nuova fattura</strong><small>Cliente, fascicolo e voci</small></span></a>
-        <a href="/incassi-pagamenti#registra-incasso"><Banknote size={18}/><span><strong>Registra incasso</strong><small>Bonifico o altro pagamento</small></span></a>
-        <a href="/incassi-pagamenti"><CreditCard size={18}/><span><strong>Pagamenti aperti</strong><small>Parcelle, link ed esiti</small></span></a>
-      </nav>
-      <section className="iu-metrics">{data.metrics.map(m=><KpiCard item={m} icon={metricIcon[m.tone] || Sparkles} key={m.id}/>)}</section>
-      <section className="iu-grid">
-        <div className="span6"><Worklist data={data}/></div>
-        <div className="span6"><LettureStudio/></div>
-        <div className="span6"><Panel title="Notifiche da presidiare" subtitle="Ogni riga apre il presidio e la prossima azione registrata." icon={<ShieldCheck size={17}/>} count={notificationRows.length}><List rows={notificationRows} href="/notifiche-legali?section=presidi"/><a className="iu-link" href="/notifiche-legali?section=presidi">Apri presidi notifiche -&gt;</a></Panel></div>
-        <div className="span6"><Panel title="Parcelle e incassi" subtitle="Scadenze di pagamento lette dall'archivio economico dello studio." icon={<Banknote size={17}/>} count={billingRows.length}><List rows={billingRows} href="/incassi-pagamenti"/><a className="iu-link" href="/incassi-pagamenti">Apri incassi e pagamenti -&gt;</a></Panel></div>
-        <div className="span6"><Panel title="Agenda da presidiare" subtitle="Udienze e appuntamenti dei prossimi giorni: un clic apre l'impegno." icon={<CalendarDays size={17}/>} count={agendaRows.length}><List rows={agendaRows} href="/agenda"/><a className="iu-link" href="/agenda">Apri agenda -&gt;</a></Panel></div>
-        <div className="span4"><Panel title="PEC da presidiare" subtitle="Ultime PEC ricevute: un clic apre il messaggio." icon={<Mail size={17}/>} count={pecRows.length}><List rows={pecRows} href="/email/"/><a className="iu-link" href="/email/">Apri casella PEC -&gt;</a></Panel></div>
-        <div className="span4"><Panel title="Comunicazioni clienti" subtitle="Messaggi recenti: un clic apre la conversazione." icon={<MessageCircle size={17}/>} count={data.messages.length}><List rows={data.messages} avatar href="/messaggi"/><a className="iu-link" href="/messaggi">Vai ai messaggi -&gt;</a></Panel></div>
-        <div className="span4"><Panel title="Fascicoli prioritari" subtitle="Pratiche con termini critici: un clic apre il fascicolo." icon={<BriefcaseBusiness size={17}/>} count={matterRows.length}>{matterRows.length?<div className="iu-compact">{matterRows.map(row=><a className="iu-compact-row" href={row.href||'/fascicoli'} key={row.id}><div><strong>{row.title}</strong><span>{row.subtitle}</span></div>{row.badge?<Badge tone={row.tone||'neutral'}>{row.badge}</Badge>:null}</a>)}</div>:<Empty>Nessun fascicolo ad alta priorità.</Empty>}<a className="iu-link" href="/fascicoli">Vai ai fascicoli -&gt;</a></Panel></div>
-        <div className="span6"><Economic data={data}/></div>
-        <div className="span6"><Compact title="Conferimenti incarico mancanti" icon={<UsersRound size={17}/>} count={data.engagements.length} rows={data.engagements} href="/preventivi"/></div>
-        <div className="span6"><Lex data={data}/></div>
-        <div className="span6"><Sources data={data}/></div>
-      </section>
-    </main>
-  )
 }
 
 function DashboardPage({
@@ -1615,7 +1490,7 @@ function AppStudio() {
           {!embeddedViewer?<TopBar onOpenMenu={()=>setMobileMenuOpen(true)} activePath={routeKey} supportEnabled={Boolean(shellBootstrap.user)} bootstrap={shellBootstrap}/>:null}
           <Suspense fallback={<PageLoading/>}>
             <IusentraRoutePresetFrame routeKey={routeKey} enabled={!isPresetExcludedPage} key={routeKey}>
-              {appV2UnknownRoute?<AppV2NotFoundPage/>:appV2FlagDenied?<FeatureUnavailablePage/>:isClientPortalStudioPage?<ClientPortalPage mode="studio"/>:isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isAgendaImportPage?<AgendaImportPage/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isChecklistAttiPage?<ChecklistAttiPage/>:isApplicazionePage?<ApplicazionePage/>:isDocumentEditorPage?<DocumentEditorPage/>:isFascicoliPage?<FascicoliPage/>:isCrmPage?<CrmPage/>:isPrimaNotaPage?<PrimaNotaPage/>:isRecuperoCreditiPage?<RecuperoCreditiPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientCollaboratorsPage?<ClientiCollaboratoriPage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isNotificheLegaliPage?<NotificheLegaliPage/>:isEmailOrdinariaComposePage?<EmailComposePage mode="ordinaria"/>:isEmailComposePage?<EmailComposePage mode="pec"/>:isEmailOrdinariaPage?<EmailOrdinariaPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isCalculatorPage?<CalcolaTerminiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isTimesheetPage?<TimesheetPage/>:isCartelleCondivisePage?<CartelleCondivisePage/>:isWizardProStep?<WizardProStepPage/>:isWizardProComplete?<WizardProCompletePage/>:isWizardProDashboard?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?(isPdpPenaleRoute(routeKey)?<PdpPenalePage/>:<TelematicoSurfacePage/>):isPrivacyRegistroPage?<PrivacyRegistroPage/>:isAdminDatabasePage?<AdminDatabasePage/>:isQuickOrganizerImportPage?<QuickOrganizerImportPage/>:isDocumentToolsPage?<DocumentToolsPage/>:isStatistichePage?<StatistichePage/>:isLexOperativoPage?<LexOperativoPage/>:isImpostazioniPage?<ImpostazioniPage/>:isAuditPage||isRegistroAttivitaPage?<AuditPage/>:isUtentiPage?<UtentiPage/>:isProfiliPage?<ProfiliPage/>:isProfiloPage?<ProfiloPage/>:isBackupPage?<BackupPage/>:isSitoStudioContenutiPage?<SitoStudioContenutiPage/>:isSitoStudioRedazioneAiPage?<SitoStudioRedazioneAiPage/>:isSitoStudioBuilderPage?<SitoStudioBuilderPage/>:isSitoStudioPage?<SitoStudioPage/>:isStudioPage?<StudioPage/>:isEditorProfessionalePage?<EditorProfessionalePage/>:isAmministrazionePage?<AmministrazionePage/>:isFatturazionePage?<FatturazionePage/>:isIncassiPagamentiPage?<IncassiPagamentiPage/>:isPreventivoWizardPage?<PreventivoWizardPage/>:isPreventiviPage?<PreventiviPage/>:isStrumentiLegaliPage?<StrumentiLegaliPage/>:isCompensiForensiPage?<CompensiForensiPage/>:isTariffarioPage?<TariffarioPage/>:isTemplateStudioPage?<TemplateStudioPage/>:isTemplateAttiPage?<TemplateAttiPage/>:isRedazioneAttiPage?<RedazioneAttiPage/>:isGiurisprudenzaPage?<GiurisprudenzaPage/>:isRicercaLegaleSchedaPage?<RicercaLegaleSchedaPage/>:isLegalIntelligencePage?<LegalIntelligencePage/>:isLexLearningPage?<LexLearningPage/>:isOggiPage?<OggiPage/>:isWorkflowAgentsRunPage?<AgentRunDetail/>:isWorkflowAgentsApprovalPage?<AgentApprovalQueue/>:isWorkflowAgentsHomePage?<WorkflowAgentsHome/>:isColdStartInterviewPage?<ColdStartInterviewPage/>:isLegalSkillsProfilePage?<PracticeProfilePage/>:isLegalSkillsRunPage?<LegalSkillRunPage/>:isLegalSkillsRunDetailPage?<SkillRunDetailPage/>:isLegalSkillsReviewQueuePage?<ReviewerQueuePage/>:isPromptPathwaysPage?<PromptPathwaysPage/>:isPromptLibraryPage?<PromptLibraryPage/>:isLegalSkillsCatalogPage?<LegalSkillsCatalogPage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading} revalidating={dashboardRevalidating} mailSyncing={mailSyncing} onRefresh={refreshDashboard} onSyncMailboxes={syncMailboxesNow}/>}
+              {appV2UnknownRoute?<AppV2NotFoundPage/>:appV2FlagDenied?<FeatureUnavailablePage/>:isClientPortalStudioPage?<ClientPortalPage mode="studio"/>:isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isAgendaImportPage?<AgendaImportPage/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<ControlloStudioPage/>:isChecklistAttiPage?<ChecklistAttiPage/>:isApplicazionePage?<ApplicazionePage/>:isDocumentEditorPage?<DocumentEditorPage/>:isFascicoliPage?<FascicoliPage/>:isCrmPage?<CrmPage/>:isPrimaNotaPage?<PrimaNotaPage/>:isRecuperoCreditiPage?<RecuperoCreditiPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientCollaboratorsPage?<ClientiCollaboratoriPage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isNotificheLegaliPage?<NotificheLegaliPage/>:isEmailOrdinariaComposePage?<EmailComposePage mode="ordinaria"/>:isEmailComposePage?<EmailComposePage mode="pec"/>:isEmailOrdinariaPage?<EmailOrdinariaPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isCalculatorPage?<CalcolaTerminiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isTimesheetPage?<TimesheetPage/>:isCartelleCondivisePage?<CartelleCondivisePage/>:isWizardProStep?<WizardProStepPage/>:isWizardProComplete?<WizardProCompletePage/>:isWizardProDashboard?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?(isPdpPenaleRoute(routeKey)?<PdpPenalePage/>:<TelematicoSurfacePage/>):isPrivacyRegistroPage?<PrivacyRegistroPage/>:isAdminDatabasePage?<AdminDatabasePage/>:isQuickOrganizerImportPage?<QuickOrganizerImportPage/>:isDocumentToolsPage?<DocumentToolsPage/>:isStatistichePage?<StatistichePage/>:isLexOperativoPage?<LexOperativoPage/>:isImpostazioniPage?<ImpostazioniPage/>:isAuditPage||isRegistroAttivitaPage?<AuditPage/>:isUtentiPage?<UtentiPage/>:isProfiliPage?<ProfiliPage/>:isProfiloPage?<ProfiloPage/>:isBackupPage?<BackupPage/>:isSitoStudioContenutiPage?<SitoStudioContenutiPage/>:isSitoStudioRedazioneAiPage?<SitoStudioRedazioneAiPage/>:isSitoStudioBuilderPage?<SitoStudioBuilderPage/>:isSitoStudioPage?<SitoStudioPage/>:isStudioPage?<StudioPage/>:isEditorProfessionalePage?<EditorProfessionalePage/>:isAmministrazionePage?<AmministrazionePage/>:isFatturazionePage?<FatturazionePage/>:isIncassiPagamentiPage?<IncassiPagamentiPage/>:isPreventivoWizardPage?<PreventivoWizardPage/>:isPreventiviPage?<PreventiviPage/>:isStrumentiLegaliPage?<StrumentiLegaliPage/>:isCompensiForensiPage?<CompensiForensiPage/>:isTariffarioPage?<TariffarioPage/>:isTemplateStudioPage?<TemplateStudioPage/>:isTemplateAttiPage?<TemplateAttiPage/>:isRedazioneAttiPage?<RedazioneAttiPage/>:isGiurisprudenzaPage?<GiurisprudenzaPage/>:isRicercaLegaleSchedaPage?<RicercaLegaleSchedaPage/>:isLegalIntelligencePage?<LegalIntelligencePage/>:isLexLearningPage?<LexLearningPage/>:isOggiPage?<OggiPage/>:isWorkflowAgentsRunPage?<AgentRunDetail/>:isWorkflowAgentsApprovalPage?<AgentApprovalQueue/>:isWorkflowAgentsHomePage?<WorkflowAgentsHome/>:isColdStartInterviewPage?<ColdStartInterviewPage/>:isLegalSkillsProfilePage?<PracticeProfilePage/>:isLegalSkillsRunPage?<LegalSkillRunPage/>:isLegalSkillsRunDetailPage?<SkillRunDetailPage/>:isLegalSkillsReviewQueuePage?<ReviewerQueuePage/>:isPromptPathwaysPage?<PromptPathwaysPage/>:isPromptLibraryPage?<PromptLibraryPage/>:isLegalSkillsCatalogPage?<LegalSkillsCatalogPage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading} revalidating={dashboardRevalidating} mailSyncing={mailSyncing} onRefresh={refreshDashboard} onSyncMailboxes={syncMailboxesNow}/>}
             </IusentraRoutePresetFrame>
           </Suspense>
         </div>

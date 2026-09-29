@@ -1409,9 +1409,9 @@ def test_react_regia_operativa_e_pagina_separata_non_in_panorama():
     app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
 
     assert "/workspace-intelligente" in app_source
-    assert "isRegiaPage?<RegiaOperativaPage" in app_source
+    assert "isRegiaPage?<ControlloStudioPage/>" in app_source
+    assert "import('./components/ControlloStudioPage')" in app_source
     assert "{ label: 'Controllo Studio', icon: Sparkles, href: '/workspace-intelligente' }" in app_source
-    assert "Agenda da presidiare" in app_source
     assert "Centro operativo di oggi" not in app_source
 
 
@@ -10586,7 +10586,8 @@ def test_codice_fiscale_calcolo_e_decodifica_api_react(tmp_path: Path):
 def test_react_wizard_pro_nav_route_api_e_card_operative(tmp_path: Path):
     app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
     page_source = Path("frontend/src/components/WizardProPage.tsx").read_text(encoding="utf-8")
-    data_source = Path("frontend/src/wizardProData.ts").read_text(encoding="utf-8")
+    step_source = Path("frontend/src/components/WizardProStepPage.tsx").read_text(encoding="utf-8")
+    passi_source = Path("frontend/src/components/PreparazioneUdienzaPassi.tsx").read_text(encoding="utf-8")
     css = Path("frontend/src/components/WizardProPage.css").read_text(encoding="utf-8")
     api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
     route_source = Path("web/blueprints/wizard_pro.py").read_text(encoding="utf-8")
@@ -10595,26 +10596,19 @@ def test_react_wizard_pro_nav_route_api_e_card_operative(tmp_path: Path):
     assert "isWizardProDashboard?<WizardProPage/>" in app_source
     assert "isWizardProStep?<WizardProStepPage/>" in app_source
     assert "isWizardProComplete?<WizardProCompletePage/>" in app_source
-    assert "WizardProPage" in app_source
-    assert "WizardProStepPage" in app_source
-    assert "WizardProCompletePage" in app_source
-    assert "getWizardProPage" in data_source
-    assert "getWizardProStepPage" in data_source
-    assert "getWizardProCompletePage" in data_source
-    assert "/api/v1/ui/wizard-pro" in data_source
-    assert '@api_v1_react.get("/wizard-pro")' in api_source
-    assert '@api_v1_react.get("/wizard-pro/session/<id_sessione>/step/<int:n>")' in api_source
-    assert '@api_v1_react.get("/wizard-pro/session/<id_sessione>/completo")' in api_source
-    assert "build_react_wizard_pro_payload" in api_source
-    assert "render_react_shell_response(\"wizard-pro\")" in route_source
+    assert "/api/v1/ui/preparazione-udienza" in page_source
+    assert "/api/v1/ui/preparazione-udienza/avvia" in page_source
+    assert "/api/v1/ui/preparazione-udienza/${encodeURIComponent(id)}" in step_source
+    for passo in ("PassoQuadro", "PassoDocumenti", "PassoStrategia", "PassoPartenza", "PassoEsito"):
+        assert passo in passi_source
+    assert "Registra l'esito" in passi_source
     assert "Vista classica" not in page_source
     assert "_legacy=1" not in page_source
-    assert "JsonPostForm action={item.startHref}" in page_source
-    assert "item.startHref" in page_source
-    assert "Termini collegati" in page_source
-    assert "data.actions.lex" in page_source
-    assert ".iu-wiz-page" in css
-    assert "@media(max-width:980px)" in css
+    assert '@api_v1_react.get("/wizard-pro")' in api_source
+    assert "build_react_wizard_pro_payload" in api_source
+    assert "render_react_shell_response(\"wizard-pro\")" in route_source
+    assert ".iu-pu-udienza" in css
+    assert "@media (max-width: 720px)" in css
 
     app = _app(tmp_path)
     _crea_operatore(app)

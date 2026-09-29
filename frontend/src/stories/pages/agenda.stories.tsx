@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
 import { AgendaImportPage } from '../../components/AgendaImportPage'
+import ControlloStudioPage from '../../components/ControlloStudioPage'
 import { AgendaPage } from '../../components/AgendaPage'
 import { NuovaScadenzaPage } from '../../components/NuovaScadenzaPage'
 import { NuovoAppuntamentoPage } from '../../components/NuovoAppuntamentoPage'
@@ -30,3 +31,4 @@ export const Timesheet: Story = createPageStory({ sourcePath: 'src/components/Ti
 export const PreparazioneUdienza: Story = createPageStory({ sourcePath: 'src/components/WizardProPage.tsx', title: 'Preparazione udienza guidata', render: () => <WizardProPage /> })
 export const StepUdienza: Story = createPageStory({ sourcePath: 'src/components/WizardProStepPage.tsx', title: 'Step udienza', render: () => <WizardProStepPage /> })
 export const RiepilogoUdienza: Story = createPageStory({ sourcePath: 'src/components/WizardProCompletePage.tsx', title: 'Riepilogo udienza', render: () => <WizardProCompletePage /> })
+export const ControlloStudio: Story = createPageStory({ sourcePath: 'src/components/ControlloStudioPage.tsx', title: 'Controllo Studio', render: () => <ControlloStudioPage /> })

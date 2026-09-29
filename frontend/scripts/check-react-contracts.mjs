@@ -243,9 +243,9 @@ const cartelleCondiviseBridge = read('../web/services/react_condivisioni_bridge.
 const wizardPro = read('src/components/WizardProPage.tsx')
 const wizardProStep = read('src/components/WizardProStepPage.tsx')
 const wizardProComplete = read('src/components/WizardProCompletePage.tsx')
-const wizardProShared = read('src/components/WizardProShared.tsx')
-const wizardProData = read('src/wizardProData.ts')
-const wizardProBridge = read('../web/services/react_wizard_pro_bridge.py')
+const wizardProShared = read('src/components/PreparazioneUdienzaPassi.tsx')
+const wizardProData = [read('src/components/preparazioneUdienzaTipi.ts'), read('src/components/preparazioneUdienzaApi.ts')].join('\n')
+const wizardProBridge = [read('../web/services/preparazione_udienza_runtime.py'), read('../web/services/preparazione_udienza_elenco.py'), read('../web/bootstrap/preparazione_udienza_routes.py')].join('\n')
 const css = read('src/index.css')
 const reactShell = read('../web/templates/react_shell.html')
 const topbar = read('src/components/layout/TopBar.tsx')
@@ -1555,7 +1555,7 @@ assertNotContains(lexUiSources, legacyLexHrefAttribute, 'sorgenti react/bridge s
 assertContains(app, "isSearchPage?<RicercaStudioPage", 'route ricerca studio')
 assertContains(app, "isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage", 'route nuovo/modifica appuntamento')
 assertContains(app, "isAgendaPage?<AgendaPage/>", 'route agenda')
-assertContains(app, "isRegiaPage?<RegiaOperativaPage", 'route regia operativa')
+assertContains(app, "isRegiaPage?<ControlloStudioPage/>", 'route Controllo Studio')
 assertContains(app, "isEmailPage?<EmailPecPage/>", 'route email pec')
 assertContains(app, "isMessagesPage?<MessaggiPage/>", 'route messaggi')
 assertContains(app, "isNewMessagePage?<NuovoMessaggioPage/>", 'route nuovo messaggio')
@@ -1634,6 +1634,10 @@ assertContains(topbarTimer, 'Avvia attività', 'timer start UI')
 assertContains(topbarTimer, 'Pausa', 'timer pausa UI')
 assertContains(topbarTimer, 'Riprendi', 'timer resume UI')
 assertContains(topbarTimer, 'Stop', 'timer stop UI')
+assertContains(topbarTimer, 'searchTimerLinks', 'timer: fascicolo e cliente scelti per nome, non per identificativo')
+assertContains(topbarTimer, 'Stop e registra', 'timer: lo stop registra il tempo nel timesheet')
+assertContains(topbarTimer, 'Scarta senza registrare', 'timer: scarto esplicito del tempo')
+assertContains(topbarTimer, 'Registrato oggi', 'timer: ore registrate oggi')
 assertContains(topbarApi, '/api/search/global', 'api ricerca top bar')
 assertContains(topbarApi, '/api/dashboard/today', 'api oggi top bar')
 assertContains(topbarApi, '/api/notifications', 'api notifiche top bar')
@@ -2107,29 +2111,20 @@ assertNotContains(cartelleCondiviseData, '_legacy=1', 'cartelle condivise data s
 assertContains(wizardPro, 'WizardProPage', 'WizardProPage presente')
 assertContains(wizardProStep, 'WizardProStepPage', 'WizardProStepPage presente')
 assertContains(wizardProComplete, 'WizardProCompletePage', 'WizardProCompletePage presente')
-assertContains(wizardProData, 'WizardProStepData', 'wizardProData step tipizzato')
-assertContains(wizardProData, 'WizardProCompleteData', 'wizardProData completo tipizzato')
-assertContains(apiBridge, '@api_v1_react.get("/wizard-pro")', 'endpoint /api/v1/ui/wizard-pro')
-assertContains(apiBridge, '@api_v1_react.get("/wizard-pro/session/<id_sessione>/step/<int:n>")', 'endpoint step wizard pro')
-assertContains(apiBridge, '@api_v1_react.get("/wizard-pro/session/<id_sessione>/completo")', 'endpoint completo wizard pro')
-assertContains(wizardProBridge, '"mock_fallback": False', 'wizard pro mock_fallback false')
-assertContains(wizardProBridge, '"writes": "operational_routes"', 'wizard pro writes operational_routes')
-assertContains(wizardProBridge, '"route_owner": "react_shell"', 'wizard pro route_owner react_shell')
+assertContains(wizardProData, 'SchedaUdienza', 'preparazione udienza tipizzata')
+assertContains(wizardPro, "'/api/v1/ui/preparazione-udienza'", 'elenco udienze da endpoint reale')
+assertContains(wizardPro, "'/api/v1/ui/preparazione-udienza/avvia'", 'avvio preparazione da endpoint reale')
+assertContains(wizardProStep, '/api/v1/ui/preparazione-udienza/${encodeURIComponent(id)}', 'scheda udienza da endpoint reale')
+assertContains(wizardProBridge, '@app.route("/api/v1/ui/preparazione-udienza")', 'endpoint elenco preparazione udienza')
+assertContains(wizardProBridge, '@app.route("/api/v1/ui/preparazione-udienza/<sid>/<azione>", methods=["POST"])', 'endpoint azioni preparazione udienza')
+assertContains(wizardProBridge, 'def registra_esito', 'esito con seguiti in agenda e scadenziario')
 assertNotContains(wizardBundle, 'actions.legacy', 'wizard pro senza actions.legacy')
 assertNotContains(wizardBundle, 'Vista classica', 'wizard pro senza vista classica')
 assertNotContains(wizardBundle, '_legacy=1', 'wizard pro senza link tecnico')
 assertNotContains(wizardBundle, 'legacy', 'wizard pro componenti/data senza stringa legacy')
 assertNotContains(wizardBundle, 'href="#"', 'wizard pro senza href vuoto')
-assertContains(wizardPro, '<JsonPostForm action={item.startHref}', 'submit React wizard pro nuovo')
-assertContains(wizardProData, "start: '/wizard-pro/nuovo'", 'azione /wizard-pro/nuovo')
-assertContains(wizardProBridge, 'f"/wizard-pro/{id_sessione}/step/{n}"', 'form /wizard-pro/<id>/step/<n>')
-assertContains(wizardProComplete, '<JsonPostForm action={data.actions.archive}', 'submit React wizard pro archivia')
-assertContains(wizardProComplete, '<JsonPostForm action={data.actions.delete}', 'submit React wizard pro elimina')
 for (const field of [
   'step1_note',
-  'doc_stato_',
-  'doc_note_',
-  'doc_extra_label',
   'note_preparazione',
   'argomenti_principali',
   'richieste_giudice',
@@ -2139,13 +2134,11 @@ for (const field of [
   'precheck_cliente_notificato',
   'precheck_trasporto_ok',
   'precheck_note',
-  'esito',
-  'esito_rinvio_data',
-  'esito_note_verbale',
-  'esito_azioni',
-  'esito_aggiorna_fascicolo',
+  'tipo_udienza',
+  'rinvioData',
+  'noteVerbale',
 ]) {
-  assertContains(wizardBundle, field, `campo wizard pro ${field}`)
+  assertContains(wizardBundle, field, `campo preparazione udienza ${field}`)
 }
 assertNotContains(newReactBundle, 'href="#"', 'nuove superfici senza href vuoto')
 assertNotContains(newReactBundle, '_legacy=1', 'nuove superfici senza route tecnica visibile')

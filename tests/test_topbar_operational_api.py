@@ -411,6 +411,33 @@ def test_topbar_today_notifications_deadlines_recent_and_timer(tmp_path: Path):
         assert stopped.status_code == 200
         assert stopped.get_json()["timer"]["status"] == "stopped"
         assert stopped.get_json()["timeEntry"]["href"] == "/timesheet"
+        fermato = stopped.get_json()
+        assert fermato["saved"]["minutes"] >= 1
+        assert fermato["saved"]["description"] == "Studio fascicolo"
+        assert fermato["saved"]["caseLabel"]
+        assert fermato["today"]["voci"] == 1 and fermato["today"]["minuti"] >= 1
+        assert fermato["recent"][0]["caseId"] == fascicolo_id
+
+        # Ricerca per nome invece degli identificativi, correzione della descrizione, scarto.
+        trovati = client.get("/api/time-tracking/links?q=credito alfa").get_json()
+        assert any(item["caseId"] == fascicolo_id for item in trovati["items"])
+        assert client.get("/api/time-tracking/links?q=a").get_json()["items"] == []
+        dalla_pagina = client.get(f"/api/time-tracking/links?caseId={fascicolo_id}").get_json()["items"]
+        assert dalla_pagina[0]["clientId"] == cliente_id and "Recupero credito Alfa" in dalla_pagina[0]["label"]
+        assert client.get("/api/time-tracking/links?caseId=inesistente").get_json()["items"] == []
+        secondo = client.post("/api/time-tracking/start", json={"activityType": "call"}).get_json()["timer"]
+        assert secondo["caseLabel"] is None
+        corretto = client.patch(
+            f"/api/time-tracking/{secondo['id']}",
+            json={"description": "Telefonata col cliente", "caseId": fascicolo_id},
+        ).get_json()["timer"]
+        assert corretto["description"] == "Telefonata col cliente"
+        assert corretto["caseId"] == fascicolo_id and corretto["caseLabel"] and corretto["clientId"]
+        assert client.patch(f"/api/time-tracking/{secondo['id']}", json={"caseId": "inesistente"}).status_code == 404
+        scartato = client.patch(f"/api/time-tracking/{secondo['id']}/stop", json={"discard": True}).get_json()
+        assert scartato["saved"] is None and scartato["timeEntry"] is None
+        assert scartato["today"]["voci"] == 1
+        assert client.get("/api/time-tracking/active").get_json()["today"]["voci"] == 1
 
 
 def test_topbar_notifications_non_maschera_errore_repository_come_lista_vuota(tmp_path: Path, monkeypatch):

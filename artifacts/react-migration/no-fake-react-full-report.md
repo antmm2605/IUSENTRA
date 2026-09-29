@@ -1,7 +1,11 @@
 # Check no fake React full
 
-Generato: 2026-07-26T17:09:30.489Z
+Generato: 2026-09-29T14:16:16.321Z
 
-Violazioni: 0
+Violazioni: 5
 
-Nessuna route piena risulta mascherata da legacy.
+- /: full con form legacy/POST HTML nel flusso principale.
+- /regia-operativa: full con form legacy/POST HTML nel flusso principale.
+- /wizard-pro: full senza endpoint JSON per azioni principali.
+- /workspace-intelligente: full con form legacy/POST HTML nel flusso principale.
+- /backup: restore/delete non devono essere implementati nel flusso React.

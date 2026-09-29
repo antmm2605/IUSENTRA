@@ -1,0 +1,467 @@
+/* Timer attività della top bar: avvio collegato al fascicolo, tempo in corso, registrato oggi. */
+
+.iu-tt {
+  width: min(420px, calc(100vw - 24px));
+  max-height: min(640px, calc(100dvh - 90px));
+  overflow-y: auto;
+}
+
+.iu-tt-testa {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--iu-border);
+}
+
+.iu-tt-testa > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #0f172a;
+}
+
+.iu-tt-testa a {
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.iu-tt-testa a:hover {
+  text-decoration: underline;
+}
+
+.iu-tt-avvio,
+.iu-tt-corso {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.iu-tt-gruppo {
+  display: grid;
+  gap: 6px;
+}
+
+.iu-tt-gruppo > span,
+.iu-tt-campo > span,
+.iu-tt-oggi > span,
+.iu-tt-recenti > span {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.iu-tt-campo {
+  display: grid;
+  gap: 6px;
+}
+
+.iu-tt-campo input,
+.iu-tt-cerca {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--iu-border);
+  border-radius: 9px;
+  background: #fff;
+  color: #111827;
+}
+
+.iu-tt-campo input {
+  padding: 0 10px;
+  outline: 0;
+}
+
+.iu-tt-campo input:focus,
+.iu-tt-cerca:focus-within {
+  border-color: rgba(37, 99, 235, .45);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
+}
+
+.iu-tt-picker {
+  display: grid;
+  gap: 8px;
+}
+
+.iu-tt-cerca {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  color: #64748b;
+}
+
+.iu-tt-cerca input {
+  flex: 1;
+  min-width: 0;
+  min-height: 36px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #111827;
+}
+
+.iu-tt-risultati {
+  display: grid;
+  gap: 2px;
+  max-height: 220px;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--iu-border);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.iu-tt-risultati button,
+.iu-tt-scelto {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #0f172a;
+  text-align: left;
+  cursor: pointer;
+}
+
+.iu-tt-risultati button:hover,
+.iu-tt-risultati button:focus-visible {
+  background: #f1f5f9;
+  outline: 0;
+}
+
+.iu-tt-risultati span,
+.iu-tt-scelto span,
+.iu-tt-esito span,
+.iu-tt-oggi li > span {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.iu-tt-risultati strong,
+.iu-tt-scelto strong {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iu-tt-risultati small,
+.iu-tt-scelto small,
+.iu-tt-esito small,
+.iu-tt-oggi small {
+  overflow: hidden;
+  color: #64748b;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iu-tt-scelto {
+  background: #f0fdfa;
+  color: #0f766e;
+  cursor: default;
+}
+
+.iu-tt-scelto span {
+  flex: 1;
+}
+
+.iu-tt-scelto button,
+.iu-tt-esito > button {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #475569;
+  cursor: pointer;
+}
+
+.iu-tt-scelto button:hover,
+.iu-tt-esito > button:hover {
+  background: rgba(15, 23, 42, .08);
+}
+
+.iu-tt-vuoto {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.iu-tt-recenti {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.iu-tt-recenti > span {
+  width: 100%;
+}
+
+.iu-tt-recenti button,
+.iu-tt-tipi button {
+  max-width: 100%;
+  min-height: 30px;
+  padding: 0 10px;
+  overflow: hidden;
+  border: 1px solid var(--iu-border);
+  border-radius: 999px;
+  background: #fff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.iu-tt-recenti button:hover,
+.iu-tt-tipi button:hover {
+  border-color: #94a3b8;
+}
+
+.iu-tt-tipi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.iu-tt-tipi button[aria-pressed='true'] {
+  border-color: var(--iu-navy-900);
+  background: var(--iu-navy-900);
+  color: #fff;
+}
+
+.iu-tt-avvia,
+.iu-tt-azioni button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px solid var(--iu-border);
+  border-radius: 10px;
+  background: #fff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.iu-tt-avvia,
+.iu-tt-azioni button.is-primario {
+  border-color: var(--iu-navy-900);
+  background: var(--iu-navy-900);
+  color: #fff;
+}
+
+.iu-tt-avvia:disabled,
+.iu-tt-azioni button:disabled {
+  opacity: .65;
+  cursor: wait;
+}
+
+.iu-tt-nota {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.iu-tt-orologio {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.iu-tt-orologio strong {
+  color: #0f172a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.iu-tt-orologio span {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.iu-tt-orologio .is-corso {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.iu-tt-orologio .is-pausa {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.iu-tt-dati {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.iu-tt-dati div {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.iu-tt-dati dt {
+  color: #64748b;
+  font-weight: 750;
+}
+
+.iu-tt-dati dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: #0f172a;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iu-tt-dati a {
+  color: #1d4ed8;
+}
+
+.iu-tt-dati em {
+  color: #94a3b8;
+}
+
+.iu-tt-azioni {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 9px;
+}
+
+.iu-tt-scarta {
+  display: inline-flex;
+  align-items: center;
+  justify-self: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.iu-tt-scarta:hover {
+  text-decoration: underline;
+}
+
+.iu-tt-esito {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 12px 14px 0;
+  padding: 10px 10px 10px 12px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 13px;
+}
+
+.iu-tt-esito.is-ok {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.iu-tt-esito span {
+  flex: 1;
+}
+
+.iu-tt-esito a {
+  color: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.iu-tt-oggi {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px 14px;
+  border-top: 1px solid var(--iu-border);
+}
+
+.iu-tt-oggi ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.iu-tt-oggi li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.iu-tt-oggi b {
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+.iu-timer-button.is-paused {
+  color: #92400e;
+  border-color: rgba(217, 119, 6, .3);
+  background: #fffbeb;
+}
+
+/* Su tablet e telefono la top bar nasconde le altre azioni: il timer resta raggiungibile. */
+@media (max-width: 1180px) {
+  body.react-shell-page .iu-topbar .iu-topbar-op__actions {
+    display: flex;
+    flex: 0 0 auto;
+    overflow: visible;
+  }
+
+  body.react-shell-page .iu-topbar .iu-topbar-op__actions > :not(.iu-tt-radice) {
+    display: none;
+  }
+
+  body.react-shell-page .iu-topbar:has(.iu-tt) {
+    overflow: visible;
+  }
+
+  .iu-tt-radice .iu-timer-button {
+    width: auto;
+    min-width: 40px;
+    height: 40px;
+  }
+
+  .iu-tt {
+    position: fixed;
+    top: 62px;
+    right: 8px;
+    left: auto;
+    width: min(420px, calc(100vw - 16px));
+    max-height: calc(100dvh - 150px);
+  }
+}

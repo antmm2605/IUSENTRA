@@ -27,6 +27,13 @@
 .iu-cs-scadute:hover, .iu-cs-paginazione button:not(:disabled):hover { background: #f1f5f9; color: #0f172a; }
 .iu-cs-scadute.is-attiva:hover { background: #123d72; color: #fff; }
 .iu-cs-contesto button:hover { text-decoration: underline; }
+.iu-cs-contesto .iu-cs-completa-tutte, .iu-cs-conferma .iu-cs-completa-tutte { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #0b1b3a; border-radius: 8px; background: #0b1b3a; color: #fff; }
+.iu-cs-contesto .iu-cs-completa-tutte:not(:disabled):hover, .iu-cs-conferma .iu-cs-completa-tutte:not(:disabled):hover { background: #123d72; color: #fff; text-decoration: none; }
+.iu-cs-conferma { padding: 16px; background: #fff; border: 1px solid #cbd5e1; border-radius: 10px; }
+.iu-cs-conferma h2 { margin: 0 0 8px; font-size: 16px; color: #0f172a; }
+.iu-cs-conferma p { margin: 0 0 12px; font-size: 13px; color: #475569; }
+.iu-cs-conferma > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.iu-cs-conferma button { min-height: 44px; padding: 8px 12px; font: inherit; font-size: 13px; font-weight: 700; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #0f172a; cursor: pointer; }
 .iu-cs-ricerca button:hover { background: #f1f5f9; color: #0f172a; border-radius: 6px; }
 .iu-cs-voce__quando { white-space: nowrap; }
 @media (max-width: 720px) { .iu-cs-periodo { flex: 1 1 180px; } .iu-cs-scadute { flex: 1 1 160px; } .iu-cs-ricerca { flex-basis: 100%; } .iu-cs-contesto { align-items: flex-start; } }

@@ -34,4 +34,4 @@ Nel caso aperto il pulsante invio segnala “Scegli il tipo di deposito”: tre 
 
 Firma multipla con dispositivo, PIN in primo piano, esito dei documenti della pratica e abilitazione finale dell’invio: **non verificato su macchina reale**. L’utente non ha il dispositivo e ha chiesto di proseguire senza altre simulazioni. Nessun invio reale è autorizzato in questo collaudo. Installer macOS/Linux generati e verificati nei contenuti, non eseguiti sui rispettivi sistemi.
 
-Le modifiche preesistenti di Controllo Studio rimangono separate da questo intervento e non sono incluse nel rilascio della firma.
+Durante il controllo pre-deploy sono state rilevate modifiche preesistenti di Controllo Studio nel container di produzione. Le impronte dei sorgenti runtime coincidono con quelle locali. Sono preservate nel consolidamento del rilascio per evitare una regressione; non sono state eseguite operazioni sulle scadenze e la loro accettazione resta quella, aperta, del dossier dedicato. Non fanno parte del collaudo della firma.

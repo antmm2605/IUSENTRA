@@ -16,7 +16,7 @@ type Area = { area: string; etichetta: string; totale: number; urgenti: number }
 type Dati = {
   ok: boolean; message?: string; oggi?: string; voci?: Voce[]; aree?: Area[]; fasce?: Array<{ fascia: string; etichetta: string }>
   incassi?: { da_incassare: number; scaduto: number; parcelle_scadute: number; incassato_mese: number }
-  fonti_non_disponibili?: string[]; riepilogo?: string; urgenti?: number
+  fonti_non_disponibili?: string[]; riepilogo?: string; urgenti?: number; puo_completare_scadenze?: boolean
 }
 
 const ICONE: Record<string, typeof Gavel> = { scadenze: CalendarClock, agenda: Gavel, notifiche: ShieldCheck, comunicazioni: Mail, incassi: Banknote }
@@ -59,11 +59,11 @@ function ElencoVoci({ voci, onFatto }: { voci: Voce[]; onFatto: (voce: Voce, azi
   </>
 }
 
-async function esegui(endpoint: string): Promise<{ ok: boolean; message: string }> {
+async function esegui(endpoint: string, payload: object = {}): Promise<{ ok: boolean; message: string }> {
   const risposta = await fetch(endpoint, {
     method: 'POST', credentials: 'same-origin',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-    body: '{}',
+    body: JSON.stringify(payload),
   }).catch(() => null)
   if (!risposta) return { ok: false, message: 'Connessione non riuscita.' }
   return await risposta.json().catch(() => ({ ok: false, message: 'Operazione non riuscita.' })) as { ok: boolean; message: string }
@@ -111,6 +111,10 @@ export default function ControlloStudioPage() {
   const [ricerca, setRicerca] = useState('')
   const [resetCoda, setResetCoda] = useState(0)
   const [avviso, setAvviso] = useState('')
+  const [erroreAzione, setErroreAzione] = useState(false)
+  const [completamento, setCompletamento] = useState(false)
+  const [confermaCollettiva, setConfermaCollettiva] = useState<{ ids: string[]; ricerca: string } | null>(null)
+  const confermaPulsante = useRef<HTMLButtonElement>(null)
   const [aperte, setAperte] = useState<Set<string>>(new Set(FASCE_APERTE))
   const [caricamento, setCaricamento] = useState(false)
 
@@ -122,6 +126,10 @@ export default function ControlloStudioPage() {
     setCaricamento(false)
   }, [])
   useEffect(() => { void carica() }, [carica])
+  useEffect(() => { setConfermaCollettiva(null) }, [area, periodo, ricerca])
+  useEffect(() => {
+    if (confermaCollettiva) { confermaPulsante.current?.focus(); confermaPulsante.current?.scrollIntoView({ block: 'nearest', behavior: 'instant' }) }
+  }, [confermaCollettiva])
 
   const indice = useMemo(() => (dati?.voci || []).map((voce) => ({ voce, testo: testoRicerca([
     voce.titolo, voce.dettaglio, voce.fascicolo?.etichetta, voce.area_etichetta, formatDateIt(voce.data), voce.ora,
@@ -135,13 +143,33 @@ export default function ControlloStudioPage() {
   const scadute = (dati?.voci || []).filter((v) => v.area === 'scadenze' && v.fascia === 'scaduto').length
   const filtriAttivi = Boolean(area || periodo || ricerca.trim())
   const tutteScadute = () => {
+    setConfermaCollettiva(null)
     setArea('scadenze'); setPeriodo('scaduto'); setRicerca(''); setAperte(new Set(['scaduto'])); setResetCoda((n) => n + 1)
   }
 
+  const preparaCompletamento = () => {
+    const ids = voci.filter((v) => v.area === 'scadenze' && v.fascia === 'scaduto').map((v) => v.id.replace(/^scadenza-/, ''))
+    if (ids.length) setConfermaCollettiva({ ids, ricerca: ricerca.trim() })
+  }
+  const completaTutte = async () => {
+    if (completamento || caricamento) return
+    const ids = confermaCollettiva?.ids || []
+    if (!ids.length) return
+    setCompletamento(true); setAvviso(''); setErroreAzione(false)
+    try {
+      const esito = await esegui('/api/v1/ui/controllo-studio/scadenze/completa-scadute', { ids, conferma_adempimento: true })
+      setAvviso(esito.message); setErroreAzione(!esito.ok)
+      setConfermaCollettiva(null)
+      await carica()
+    } finally { setCompletamento(false) }
+  }
+
   const fatto = async (voce: Voce, azione: Azione) => {
+    if (completamento) return
     if (azione.conferma && !window.confirm(azione.conferma)) return
     const esito = await esegui(azione.endpoint)
     setAvviso(esito.message)
+    setErroreAzione(!esito.ok)
     if (esito.ok) setDati((d) => (d ? { ...d, voci: (d.voci || []).filter((v) => v.id !== voce.id) } : d))
   }
 
@@ -157,11 +185,11 @@ export default function ControlloStudioPage() {
           <h1>Controllo Studio</h1>
           <p className={dati.urgenti ? 'is-urgente' : ''}>{dati.urgenti ? <AlertTriangle size={16}/> : <CheckCircle2 size={16}/>} {dati.riepilogo}</p>
         </div>
-        <button type="button" className="iu-cs-aggiorna" onClick={() => void carica()} disabled={caricamento}><RefreshCw size={15}/> {caricamento ? 'Aggiorno…' : 'Aggiorna'}</button>
+        <button type="button" className="iu-cs-aggiorna" onClick={() => void carica()} disabled={caricamento || completamento}><RefreshCw size={15}/> {caricamento ? 'Aggiorno…' : 'Aggiorna'}</button>
       </header>
 
       {dati.fonti_non_disponibili?.length ? <p className="iu-cs-stato is-avviso" role="status">Non disponibili in questo momento: {dati.fonti_non_disponibili.join(', ')}.</p> : null}
-      {avviso ? <p className="iu-cs-stato is-ok" role="status">{avviso}</p> : null}
+      {avviso ? <p className={`iu-cs-stato ${erroreAzione ? 'is-errore' : 'is-ok'}`} role={erroreAzione ? 'alert' : 'status'}>{avviso}</p> : null}
 
       <nav className="iu-cs-aree" aria-label="Filtra per area" data-iusentra-sequence-slot="filters">
         <button type="button" className={!area ? 'is-attiva' : ''} aria-pressed={!area} onClick={() => setArea('')}>
@@ -201,9 +229,18 @@ export default function ControlloStudioPage() {
       </section>
       <div className="iu-cs-contesto" data-iusentra-sequence-slot="context-filters">
         <span role="status">{voci.length} {voci.length === 1 ? 'risultato' : 'risultati'}{area === 'scadenze' && periodo === 'scaduto' ? ' nelle scadenze scadute' : ''}{ricerca.trim() ? ` per «${ricerca.trim()}»` : ''}</span>
+        {area === 'scadenze' && periodo === 'scaduto' && dati.puo_completare_scadenze && voci.length > 0 ? <button type="button" className="iu-cs-completa-tutte" disabled={completamento || caricamento}
+          onClick={preparaCompletamento}><CheckCircle2 size={17}/>{completamento ? 'Salvataggio delle scadenze…' : `Segna tutte come fatte (${voci.length})`}</button> : null}
         {filtriAttivi ? <button type="button" onClick={() => { setArea(''); setPeriodo(''); setRicerca(''); setAperte(new Set(FASCE_APERTE)) }}>Azzera filtri</button>
           : <span>Ricerca immediata su tutte le voci. Date: giorno/mese/anno.</span>}
       </div>
+
+      {confermaCollettiva ? <section className="iu-cs-conferma" role="region" aria-label="Conferma completamento collettivo" data-iusentra-sequence-slot="context-filters">
+        <h2>Segnare come fatte {confermaCollettiva.ids.length} scadenze?</h2>
+        <p>{confermaCollettiva.ricerca ? `Sono comprese tutte le scadenze della ricerca «${confermaCollettiva.ricerca}», anche nelle altre pagine.` : 'Sono comprese tutte le scadenze scadute nei risultati, anche nelle altre pagine.'} Conferma soltanto se gli adempimenti sono stati eseguiti. I termini resteranno consultabili nello Scadenziario tra le completate.</p>
+        <div><button ref={confermaPulsante} type="button" className="iu-cs-completa-tutte" disabled={completamento} onClick={() => void completaTutte()}>{completamento ? 'Salvataggio in corso…' : 'Confermo: sono tutte adempiute'}</button>
+          <button type="button" disabled={completamento} onClick={() => setConfermaCollettiva(null)}>Annulla</button></div>
+      </section> : null}
 
       <div className="iu-cs-corpo">
         <section className="iu-cs-coda" aria-label="Cose da lavorare">

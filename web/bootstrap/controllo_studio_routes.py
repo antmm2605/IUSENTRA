@@ -6,9 +6,10 @@ termine (``scadenziario.scrivi``) e «Segna letta» sulla PEC; il resto apre la 
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
-from flask import Flask, g, jsonify
+from flask import Flask, g, jsonify, request
 
 
 def register_controllo_studio_routes(app: Flask, core: dict[str, Any]) -> None:
@@ -37,10 +38,38 @@ def register_controllo_studio_routes(app: Flask, core: dict[str, Any]) -> None:
                  "wizard_pro": helpers.get_wizard_pro, "email_pec": helpers.get_email_pec, "messaggi": helpers.get_messaggi,
                  "fatturazione": helpers.get_fatturazione, "clienti": helpers.get_clienti}
         try:
-            return jsonify(costruisci(fonti, presidi_notifiche=_presidi, puo=_puo))
+            payload = costruisci(fonti, presidi_notifiche=_presidi, puo=_puo)
+            payload["puo_completare_scadenze"] = _puo("scadenziario.scrivi")
+            return jsonify(payload)
         except Exception:
             app.logger.exception("Controllo Studio non disponibile")
             return jsonify({"ok": False, "message": "Il quadro dello studio non si è caricato: riprova tra poco."}), 200
+
+    @app.route("/api/v1/ui/controllo-studio/scadenze/completa-scadute", methods=["POST"])
+    def controllo_studio_completa_scadute():
+        from pct.controllo_studio.completamento import completa_scadute
+        from web.helpers import _cfg, _studio_db
+
+        if not _puo("scadenziario.scrivi"):
+            return jsonify({"ok": False, "message": "Permesso insufficiente."}), 403
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict) or payload.get("conferma_adempimento") is not True:
+            return jsonify({"ok": False, "message": "Conferma prima che tutte le scadenze siano state adempiute."}), 400
+        try:
+            risultato = completa_scadute(_studio_db("SCADENZIARIO_DB"), _cfg("SCADENZIARIO_DB"), payload.get("ids"),
+                                        attore=str(getattr(g.utente_corrente, "username", "")))
+        except ValueError as exc:
+            return jsonify({"ok": False, "message": str(exc)}), 409
+        except RuntimeError as exc:
+            return jsonify({"ok": False, "message": str(exc)}), 503
+        n = len(risultato["completate"])
+        audit("scadenze.completamento_collettivo", "scadenziario", risultato["operazione_id"],
+              dettagli=json.dumps({"adempimento_confermato": True, "ids": risultato["completate"],
+                                   "completate": n, "gia_completate": risultato["gia_completate"]}, ensure_ascii=False))
+        message = f"{n} scadenze segnate come fatte. Restano consultabili nello Scadenziario tra le completate."
+        if not risultato["mirror_allineato"]:
+            message += " Salvataggio SQL riuscito; copia di archivio da riallineare."
+        return jsonify({"ok": True, "message": message, **risultato})
 
     @app.route("/api/v1/ui/controllo-studio/scadenze/<sid>/completa", methods=["POST"])
     def controllo_studio_completa_scadenza(sid: str):

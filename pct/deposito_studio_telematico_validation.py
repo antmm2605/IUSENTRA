@@ -10,6 +10,8 @@ import re
 from datetime import date, datetime, timedelta
 from typing import Any, Iterable
 
+from .deposito_sicid_campi import SICID_ATTI_SENZA_ISTANZA_MANUALE
+
 from .deposito_studio_telematico_contract import (
     studio_telematico_document_requirements,
     studio_telematico_rule,
@@ -390,7 +392,7 @@ def _validate_atto(
             else "VerificaCampiAttoDaDepositare:17653"
         )
         _append(findings, date_rule, "data_atto_deposito", missing_deposit_date)
-    if _enabled(controls, "cboIstanze"):
+    if _enabled(controls, "cboIstanze") and key not in SICID_ATTI_SENZA_ISTANZA_MANUALE:
         instance_rule = (
             "VerificaCampiAttoDaDepositare:17754"
             if key.startswith("Atti_UNEP::")

@@ -206,9 +206,7 @@ def test_catalogo_espone_i_campi_specifici_solo_sui_rami_pertinenti():
 
     assert memoria is not None
     assert [field["id"] for field in memoria["schema"]["inputFields"]] == [
-        "cci",
         "sub_procedimento",
-        "istanza",
     ]
 
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.434.4 — 30/09/2026
+
+- Per i dodici atti SICID richiesti, eliminata la richiesta impropria di CCI e Istanza manuale; sub-procedimento indicato come facoltativo.
+- Catalogo React e validazione concordano con gli XSD in esercizio. Preservati generatori XML, firma, posizione firma, PEC locale e requisiti degli altri depositi.
+- Verificati tutti i tipi nel browser reale online e dodici XML senza quei campi contro gli schemi ministeriali; nessuna firma o PEC inviata.
+
 ## 2.434.3 — 30/09/2026
 
 - Local Signer 1.6.138: ripristinata la sessione Windows persistente del backup del 22 settembre, con richiamo della finestra PIN in primo piano e attesa adeguata alla firma multipla.

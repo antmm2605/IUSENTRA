@@ -6172,3 +6172,6 @@ SMTP, AUTH UTF-8, Message-ID, firma, firma multipla o Local Signer.
 
 Stato: comportamento verificato sulla produzione reale; test automatici e
 rilascio `2.386.1` costituiscono il presidio anti-regressione.
+
+## 30/09/2026 — Campi dei dodici atti SICID
+Correzione limitata a CCI, Istanza manuale e presentazione del sub-procedimento facoltativo. Fonte XSD, confronto baseline e prove documentati in [campi-deposito-sicid-20260930.md](campi-deposito-sicid-20260930.md). Nessuna modifica a generatori XML, firme o PEC.

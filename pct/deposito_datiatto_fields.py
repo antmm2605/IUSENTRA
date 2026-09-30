@@ -19,6 +19,7 @@ from pct.cassazione_atti_v21 import (
 )
 from pct.cassazione_xsd_tables import cassazione_enumeration, cassazione_parte_child_enumeration
 from pct.deposito_studio_telematico_contract import studio_telematico_type_contract
+from pct.deposito_sicid_campi import SICID_ATTI_SENZA_ISTANZA_MANUALE
 from pct.pst_catalog import PST_CASSAZIONE_XSD_ACTIVE_VERSION
 
 
@@ -300,10 +301,15 @@ def datiatto_input_fields(catalog_key: str, generator_class: str, root_name: str
         return isinstance(state, dict) and str(state.get("Enabled") or "").casefold() == "true"
 
     common_group = "Dati richiesti dal tipo di deposito"
-    if enabled("txtCCI"):
+    scoped_sicid = key in SICID_ATTI_SENZA_ISTANZA_MANUALE
+    if enabled("txtCCI") and not scoped_sicid:
         _append_unique(fields, _field("cci", "Numero Codice della crisi d'impresa (CCI)", "integer", required=False, group=common_group))
     if enabled("txtSub_Procedimento"):
-        _append_unique(fields, _field("sub_procedimento", "Sub-procedimento", "integer", required=False, group=common_group))
+        _append_unique(fields, _field(
+            "sub_procedimento", "Sub-procedimento", "integer", required=False,
+            group="Dati facoltativi del deposito" if scoped_sicid else common_group,
+            note="Da indicare solo se il deposito riguarda un sub-procedimento." if scoped_sicid else "",
+        ))
     if enabled("cboRito"):
         _append_unique(fields, _field("rito", "Rito", group=common_group))
     if enabled("cboRiferimentoProvvedimento"):
@@ -318,7 +324,7 @@ def datiatto_input_fields(catalog_key: str, generator_class: str, root_name: str
         _append_unique(fields, _field("precedente_fascicolo_numero", "Numero del fascicolo precedente", group=common_group))
     if enabled("txtPrecedenteFascicoloAnno"):
         _append_unique(fields, _field("precedente_fascicolo_anno", "Anno del fascicolo precedente", "year", group=common_group))
-    if enabled("cboIstanze"):
+    if enabled("cboIstanze") and not scoped_sicid:
         _append_unique(fields, _field("istanza", "Istanza", group=common_group))
     if enabled("dtpDataAttoDaDepositare"):
         _append_unique(fields, _field("data_atto_deposito", "Data dell'atto", "date", group=common_group))

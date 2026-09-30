@@ -1,2 +1,2 @@
-pyhanko>=0.20.0
-pyhanko-certvalidator>=0.26.0
+pyhanko[etsi]>=0.37.0,<0.38
+pyhanko-certvalidator>=0.32.0,<0.33

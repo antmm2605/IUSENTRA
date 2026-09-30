@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.434.1 — 30/09/2026
+
+Aggiornamento mirato delle dipendenze Node segnalate da Dependabot: `brace-expansion` 5.0.12, `fast-uri` 3.1.8, `ip-address` 10.7.1 e `undici` 7.29.1. Override del workspace e manifest frontend coerenti; lockfile rigenerato con pnpm. Nessuna modifica alla logica di deposito, firma o PEC.
+
+L'audit locale completo, comprese le dipendenze di sviluppo, non segnala vulnerabilità su 744 dipendenze. Lo stato del rilascio e delle verifiche reali è registrato in `artifacts/security/dependabot-20260930.md`; l'audit locale non sostituisce la verifica GitHub e del deploy.
+
+Consolidati gli intervalli pyHanko 0.37 e certvalidator 0.32, con extra ETSI richiesto dalle API eIDAS già operative, e riallineato il contratto di packaging. Nessuna modifica al codice di firma.
+
 ## 2.434.0 — 30/09/2026
 
 Firma intelligente: IUSENTRA riconosce le firme già presenti sul documento e colloca da solo il nuovo timbro dove non copre nulla. Local Signer 1.6.137.

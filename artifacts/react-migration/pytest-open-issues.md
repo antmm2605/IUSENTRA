@@ -1,5 +1,9 @@
 # Pytest issue aperte e risoluzioni
 
+## Dipendenze Dependabot 2.434.1 — 30/09/2026
+
+Incoerenza PAdES consolidata e test mirati superati. Browser reale ripristinato dopo riavvio Codex; accesso locale effettuato dall'utente. Prova visibile su Docker 8080 healthy: Panoramica, fascicoli, catalogo SQL, lettore PDF controllato e viste mobile/tablet. Non eseguite firma fisica, deposito o invio PEC; nessuna modifica alla loro logica. Restano richiesti i gate del nuovo SHA, push/deploy e verifiche finali. Dettaglio in `artifacts/security/dependabot-20260930.md`.
+
 ## Rilascio 2.319.3 / Signer 1.6.132 — 15/09/2026
 
 - Firma multipla e assenza della finestra Bit4id durante il PIN: **non verificate su macchina reale**; token assente. Browser locale su schermata di accesso dopo ricostruzione.

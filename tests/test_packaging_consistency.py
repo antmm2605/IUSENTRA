@@ -83,8 +83,10 @@ def test_manifest_runtime_ed_extra_coprono_i_backend_e_gli_extra_ufficiali():
         "docling>=2.92.0",
     ]
     assert extras["pades"] == [
-        "pyhanko>=0.20.0",
-        "pyhanko-certvalidator>=0.26.0",
+        # Engine AdES/TL già usato da eidas_document_validation e dal monitor:
+        # stesso intervallo del runtime locale e di produzione verificato.
+        "pyhanko[etsi]>=0.37.0,<0.38",
+        "pyhanko-certvalidator>=0.32.0,<0.33",
     ]
     assert extras["pkcs11"] == [
         "python-pkcs11>=0.7.0",

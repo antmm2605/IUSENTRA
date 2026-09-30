@@ -1,5 +1,9 @@
 # Pytest shard confermati OK
 
+## Dipendenze Dependabot 2.434.1 predisposte — 30/09/2026
+
+Guardrail tecnici locali: audit pnpm completo su 744 dipendenze senza vulnerabilità, installazione frozen-lockfile, typecheck, 80 test JavaScript e contratti React, build Vite isolata (3,68 secondi), 100 test Storybook in 18 file dopo installazione del browser di test. Packaging flat, baseline Python e governance UTF-8 superati; 15 test packaging/eIDAS e 17 test PKCS#11/formati superati dopo consolidamento del manifest sulle versioni già operative. Copia Docker 2.434.1 healthy e prova reale visibile di Panoramica, navigazione fascicoli, catalogo SQL e lettore PDF controllato, comprese viste mobile/tablet; gate remoti e rilascio ancora da verificare: vedere `artifacts/security/dependabot-20260930.md` e il registro aperto.
+
 ## Verifiche aggiuntive ripristino — 15/09/2026
 
 Guardrail su Windows/Python 3.14: intero `test_local_signer.py` 266 superati prima della correzione finestra; deposito 31, busta 42, catalogo 19 (audit generale 254 secondi), anagrafica ministeriale 20, PolisWeb 109 su gruppi separati. `test_regia_ui_react.py`: 26 superati dopo aggiornamento delle aspettative obsolete del contatore documenti e della firma aggiuntiva esplicita.

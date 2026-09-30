@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle, Banknote, BellRing, CalendarClock, CheckCircle2, ChevronDown, FilePlus2, Gavel, Inbox, Mail,
-  Plus, RefreshCw, ShieldCheck, Wallet,
+  Plus, RefreshCw, Search, ShieldCheck, Wallet, X, ChevronLeft, ChevronRight,
 } from 'lucide-react'
+import { formatDateIt } from '../formatting'
 import './ControlloStudioPage.css'
 
 type Azione = { etichetta: string; href: string; endpoint: string; conferma: string; principale: boolean }
@@ -34,7 +35,29 @@ const dataEstesa = (iso: string | undefined) => {
   const testo = `${GIORNI[giorno.getDay()]} ${g} ${MESI[m - 1]} ${a}`
   return testo[0].toUpperCase() + testo.slice(1)
 }
-const dataBreve = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : '')
+const testoRicerca = (testo: string) => testo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('it').trim()
+const DIMENSIONE_PAGINA = 50
+
+function ElencoVoci({ voci, onFatto }: { voci: Voce[]; onFatto: (voce: Voce, azione: Azione) => void }) {
+  const [pagina, setPagina] = useState(0)
+  const elenco = useRef<HTMLUListElement>(null)
+  const ultima = Math.max(0, Math.ceil(voci.length / DIMENSIONE_PAGINA) - 1)
+  const attuale = Math.min(pagina, ultima)
+  const da = attuale * DIMENSIONE_PAGINA
+  const cambiaPagina = (numero: number) => {
+    setPagina(numero)
+    elenco.current?.scrollIntoView({ block: 'start', behavior: 'instant' })
+  }
+  return <>
+    <ul ref={elenco}>{voci.slice(da, da + DIMENSIONE_PAGINA).map((v) => <RigaVoce voce={v} key={v.id} onFatto={onFatto}/>)}</ul>
+    {ultima > 0 ? <nav className="iu-cs-paginazione" aria-label="Pagine dei risultati">
+      <span>{da + 1}–{Math.min(da + DIMENSIONE_PAGINA, voci.length)} di {voci.length}</span>
+      <button type="button" disabled={attuale === 0} onClick={() => cambiaPagina(attuale - 1)} aria-label="Pagina precedente"><ChevronLeft size={16}/></button>
+      <span>Pagina {attuale + 1} di {ultima + 1}</span>
+      <button type="button" disabled={attuale === ultima} onClick={() => cambiaPagina(attuale + 1)} aria-label="Pagina successiva"><ChevronRight size={16}/></button>
+    </nav> : null}
+  </>
+}
 
 async function esegui(endpoint: string): Promise<{ ok: boolean; message: string }> {
   const risposta = await fetch(endpoint, {
@@ -66,7 +89,7 @@ function RigaVoce({ voce, onFatto }: { voce: Voce; onFatto: (voce: Voce, azione:
       </div>
       <div className="iu-cs-voce__quando">
         {voce.ora ? <strong>{voce.ora}</strong> : null}
-        {voce.fascia !== 'oggi' ? <span>{dataBreve(voce.data)}</span> : null}
+        <span>{formatDateIt(voce.data)}</span>
       </div>
       <div className="iu-cs-voce__azioni">
         {principale ? (principale.endpoint
@@ -84,6 +107,9 @@ function RigaVoce({ voce, onFatto }: { voce: Voce; onFatto: (voce: Voce, azione:
 export default function ControlloStudioPage() {
   const [dati, setDati] = useState<Dati | null>(null)
   const [area, setArea] = useState('')
+  const [periodo, setPeriodo] = useState('')
+  const [ricerca, setRicerca] = useState('')
+  const [resetCoda, setResetCoda] = useState(0)
   const [avviso, setAvviso] = useState('')
   const [aperte, setAperte] = useState<Set<string>>(new Set(FASCE_APERTE))
   const [caricamento, setCaricamento] = useState(false)
@@ -97,8 +123,20 @@ export default function ControlloStudioPage() {
   }, [])
   useEffect(() => { void carica() }, [carica])
 
-  const voci = useMemo(() => (dati?.voci || []).filter((v) => !area || v.area === area), [dati, area])
+  const indice = useMemo(() => (dati?.voci || []).map((voce) => ({ voce, testo: testoRicerca([
+    voce.titolo, voce.dettaglio, voce.fascicolo?.etichetta, voce.area_etichetta, formatDateIt(voce.data), voce.ora,
+  ].join(' ')) })), [dati])
+  const voci = useMemo(() => {
+    const parole = testoRicerca(ricerca).split(/\s+/).filter(Boolean)
+    return indice.filter(({ voce, testo }) => (!area || voce.area === area)
+      && (!periodo || voce.fascia === periodo) && parole.every((p) => testo.includes(p))).map(({ voce }) => voce)
+  }, [indice, area, periodo, ricerca])
   const gruppi = useMemo(() => (dati?.fasce || []).map((f) => ({ ...f, voci: voci.filter((v) => v.fascia === f.fascia) })).filter((g) => g.voci.length), [dati, voci])
+  const scadute = (dati?.voci || []).filter((v) => v.area === 'scadenze' && v.fascia === 'scaduto').length
+  const filtriAttivi = Boolean(area || periodo || ricerca.trim())
+  const tutteScadute = () => {
+    setArea('scadenze'); setPeriodo('scaduto'); setRicerca(''); setAperte(new Set(['scaduto'])); setResetCoda((n) => n + 1)
+  }
 
   const fatto = async (voce: Voce, azione: Azione) => {
     if (azione.conferma && !window.confirm(azione.conferma)) return
@@ -113,7 +151,7 @@ export default function ControlloStudioPage() {
 
   return (
     <main className="iu-content iu-cs">
-      <header className="iu-cs-testa">
+      <header className="iu-cs-testa" data-iusentra-sequence-slot="page-header">
         <div>
           <span className="iu-cs-testa__data">{dataEstesa(dati.oggi)}</span>
           <h1>Controllo Studio</h1>
@@ -125,8 +163,8 @@ export default function ControlloStudioPage() {
       {dati.fonti_non_disponibili?.length ? <p className="iu-cs-stato is-avviso" role="status">Non disponibili in questo momento: {dati.fonti_non_disponibili.join(', ')}.</p> : null}
       {avviso ? <p className="iu-cs-stato is-ok" role="status">{avviso}</p> : null}
 
-      <nav className="iu-cs-aree" aria-label="Filtra per area">
-        <button type="button" className={!area ? 'is-attiva' : ''} onClick={() => setArea('')}>
+      <nav className="iu-cs-aree" aria-label="Filtra per area" data-iusentra-sequence-slot="filters">
+        <button type="button" className={!area ? 'is-attiva' : ''} aria-pressed={!area} onClick={() => setArea('')}>
           <span>Tutto</span><strong>{dati.voci?.length || 0}</strong>
         </button>
         {(dati.aree || []).map((a) => {
@@ -141,6 +179,32 @@ export default function ControlloStudioPage() {
         })}
       </nav>
 
+      <section className="iu-cs-filtri" aria-label="Ricerca e periodo" data-iusentra-sequence-slot="filters">
+        <div className="iu-cs-ricerca">
+          <label htmlFor="controllo-ricerca">Cerca scadenze e attività</label>
+          <div><Search size={18} aria-hidden="true"/>
+            <input id="controllo-ricerca" className="selection:bg-blue-100" type="search" value={ricerca} placeholder="Titolo, fascicolo, numero di ruolo o data…"
+              onChange={(e) => { setRicerca(e.target.value); setAperte(new Set((dati.fasce || []).map((f) => f.fascia))) }}/>
+            {ricerca ? <button type="button" aria-label="Cancella ricerca" onClick={() => setRicerca('')}><X size={16}/></button> : null}
+          </div>
+        </div>
+        <div className="iu-cs-periodo"><label htmlFor="controllo-periodo">Periodo</label>
+          <select id="controllo-periodo" value={periodo} onChange={(e) => { setPeriodo(e.target.value); setAperte(new Set((dati.fasce || []).map((f) => f.fascia))) }}>
+            <option value="">Tutti i periodi</option>
+            {(dati.fasce || []).map((f) => <option key={f.fascia} value={f.fascia}>{f.etichetta}</option>)}
+          </select>
+        </div>
+        <button type="button" className={`iu-cs-scadute ${area === 'scadenze' && periodo === 'scaduto' ? 'is-attiva' : ''}`}
+          aria-pressed={area === 'scadenze' && periodo === 'scaduto'} onClick={tutteScadute}>
+          <CalendarClock size={18}/> Tutte le scadute <strong>{scadute}</strong>
+        </button>
+      </section>
+      <div className="iu-cs-contesto" data-iusentra-sequence-slot="context-filters">
+        <span role="status">{voci.length} {voci.length === 1 ? 'risultato' : 'risultati'}{area === 'scadenze' && periodo === 'scaduto' ? ' nelle scadenze scadute' : ''}{ricerca.trim() ? ` per «${ricerca.trim()}»` : ''}</span>
+        {filtriAttivi ? <button type="button" onClick={() => { setArea(''); setPeriodo(''); setRicerca(''); setAperte(new Set(FASCE_APERTE)) }}>Azzera filtri</button>
+          : <span>Ricerca immediata su tutte le voci. Date: giorno/mese/anno.</span>}
+      </div>
+
       <div className="iu-cs-corpo">
         <section className="iu-cs-coda" aria-label="Cose da lavorare">
           {gruppi.length ? gruppi.map((g) => {
@@ -151,11 +215,11 @@ export default function ControlloStudioPage() {
                   onClick={() => setAperte((s) => { const n = new Set(s); if (n.has(g.fascia)) n.delete(g.fascia); else n.add(g.fascia); return n })}>
                   <h2>{g.etichetta}</h2><span>{g.voci.length}</span><ChevronDown size={16}/>
                 </button>
-                {aperta ? <ul>{g.voci.map((v) => <RigaVoce voce={v} key={v.id} onFatto={(voce, azione) => void fatto(voce, azione)}/>)}</ul> : null}
+                {aperta ? <ElencoVoci key={`${g.fascia}:${area}:${periodo}:${ricerca}:${resetCoda}`} voci={g.voci} onFatto={(voce, azione) => void fatto(voce, azione)}/> : null}
               </section>
             )
           }) : (
-            <div className="iu-cs-vuoto"><CheckCircle2 size={28}/><strong>Niente da lavorare {area ? 'in quest\'area' : 'nei prossimi 30 giorni'}.</strong><span>Le nuove scadenze, udienze, PEC e parcelle compariranno qui appena registrate.</span></div>
+            <div className="iu-cs-vuoto">{filtriAttivi ? <Search size={28}/> : <CheckCircle2 size={28}/>}<strong>{filtriAttivi ? 'Nessun risultato con questi filtri.' : 'Niente da lavorare nei prossimi 30 giorni.'}</strong><span>{filtriAttivi ? 'Prova un nome, un numero di ruolo o una data, oppure azzera i filtri.' : 'Le nuove scadenze, udienze, PEC e parcelle compariranno qui appena registrate.'}</span></div>
           )}
         </section>
 

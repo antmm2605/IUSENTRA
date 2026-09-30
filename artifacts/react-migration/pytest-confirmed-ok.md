@@ -1,5 +1,9 @@
 # Pytest shard confermati OK
 
+## Controllo Studio 2.434.2 — 30/09/2026
+
+Otto test mirati `test_regia_controllo_studio.py` e `test_controllo_studio_preparazione_udienza.py` superati. Build/typecheck, 80 test JavaScript frontend, contratti React, ordine hook, preset, governance grafica e copertura pagine superati. OpenAPI rigenerato e valido; integrità UTF-8 positiva. Prova materiale sul server e Docker locale 8080: filtro scadute con un clic, ricerca combinata/date, conteggi, paginazione, reset, focus e responsive desktop/tablet/telefono. Dettagli in `controllo-studio-scadute-20260930.md`; esiti finali del nuovo SHA nel dossier esterno del rilascio.
+
 ## Dipendenze Dependabot 2.434.1 predisposte — 30/09/2026
 
 Guardrail tecnici locali: audit pnpm completo su 744 dipendenze senza vulnerabilità, installazione frozen-lockfile, typecheck, 80 test JavaScript e contratti React, build Vite isolata (3,68 secondi), 100 test Storybook in 18 file dopo installazione del browser di test. Packaging flat, baseline Python e governance UTF-8 superati; 15 test packaging/eIDAS e 17 test PKCS#11/formati superati dopo consolidamento del manifest sulle versioni già operative. Copia Docker 2.434.1 healthy e prova reale visibile di Panoramica, navigazione fascicoli, catalogo SQL e lettore PDF controllato, comprese viste mobile/tablet; gate remoti e rilascio ancora da verificare: vedere `artifacts/security/dependabot-20260930.md` e il registro aperto.

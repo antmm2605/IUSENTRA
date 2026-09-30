@@ -1,5 +1,9 @@
 # Pytest issue aperte e risoluzioni
 
+## Controllo Studio 2.434.2 — 30/09/2026
+
+La prova reale del primo hotfix ha rilevato asset disallineati fra applicazione e servizio statico: riallineato il servizio statico prima della campagna di accettazione. Su telefono i nomi lunghi dei fascicoli risultavano troncati: corretta la resa su più righe e ripetuta la verifica. Ricerca, filtro, conteggi, paginazione e apertura termine provati sul server e sulla Docker reale 8080, con dati dei rispettivi studi. Nessun test mirato fallito. Il completamento del rilascio dipende dai gate reali del nuovo SHA e dal deploy finale; evidenze nel dossier esterno, report `controllo-studio-scadute-20260930.md`.
+
 ## Dipendenze Dependabot 2.434.1 — 30/09/2026
 
 Incoerenza PAdES consolidata e test mirati superati. Browser reale ripristinato dopo riavvio Codex; accesso locale effettuato dall'utente. Prova visibile su Docker 8080 healthy: Panoramica, fascicoli, catalogo SQL, lettore PDF controllato e viste mobile/tablet. Non eseguite firma fisica, deposito o invio PEC; nessuna modifica alla loro logica. Restano richiesti i gate del nuovo SHA, push/deploy e verifiche finali. Dettaglio in `artifacts/security/dependabot-20260930.md`.

@@ -1,5 +1,9 @@
 # Migrazione progressiva Flask + React
 
+## Controllo Studio: scadute e ricerca — 30/09/2026 — 2.434.2
+
+Filtro «Tutte le scadute» con un clic, ricerca immediata combinata su tutte le voci, periodo, conteggio e azzeramento; paginazione da 50 voci e date italiane complete. API, SQL e permessi invariati, nessuna modifica allo stato degli adempimenti. Prove reali sul server e sulla copia Docker locale 8080, desktop/tablet/telefono. [Rapporto e procedura di rilascio](../artifacts/react-migration/controllo-studio-scadute-20260930.md).
+
 ## Ripristino deposito accettato — 15/09/2026 — 2.319.2
 
 Recupero mirato della pagina React di deposito accettata, integrata mantenendo i successivi campi e schemi v21. Firma aggiuntiva esplicita e firma multipla recuperate insieme al backend e al pacchetto 1.6.131. [Rapporto di ripristino](../artifacts/react-migration/ripristino-deposito-1.6.131-20260915.md). Accettazione fisica della firma multipla ancora aperta per token assente; commit e deploy richiesti esplicitamente.

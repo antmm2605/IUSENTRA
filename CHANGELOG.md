@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.434.2 — 30/09/2026
+
+- Controllo Studio: «Tutte le scadute» applica in un clic il filtro sulle scadenze scadute e apre i risultati, senza modificarne lo stato.
+- Ricerca immediata per parole combinate, fascicolo, numero di ruolo e data italiana, con periodo, conteggio risultati, cancellazione e azzeramento filtri.
+- Elenchi suddivisi in pagine da 50 voci; ricerca sull’intero elenco e cambio pagina con ritorno all’inizio. Date complete di anno, controlli accessibili e layout desktop, tablet e telefono.
+
 ## 2.434.1 — 30/09/2026
 
 Aggiornamento mirato delle dipendenze Node segnalate da Dependabot: `brace-expansion` 5.0.12, `fast-uri` 3.1.8, `ip-address` 10.7.1 e `undici` 7.29.1. Override del workspace e manifest frontend coerenti; lockfile rigenerato con pnpm. Nessuna modifica alla logica di deposito, firma o PEC.

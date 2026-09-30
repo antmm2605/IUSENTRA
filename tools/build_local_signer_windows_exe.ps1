@@ -68,7 +68,12 @@ if (-not (Test-Path $iexpressExe)) {
 
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
 if (Test-Path $buildDir) {
-    Remove-Item -Recurse -Force $buildDir
+    $resolvedBuildDir = [System.IO.Path]::GetFullPath($buildDir)
+    $expectedBuildDir = [System.IO.Path]::GetFullPath((Join-Path $toolsDir ".iexpress-build"))
+    if ($resolvedBuildDir -ne $expectedBuildDir -or (Split-Path -Parent $resolvedBuildDir) -ne [System.IO.Path]::GetFullPath($toolsDir)) {
+        throw "Cartella temporanea di build fuori dal percorso previsto."
+    }
+    Remove-Item -LiteralPath $resolvedBuildDir -Recurse -Force
 }
 New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
 
@@ -100,7 +105,8 @@ $moduleFiles = @(
     "server_bootstrap.py",
     "support_agent.py",
     "firma_pkcs11.py",
-    "windows_signing_session.py"
+    "windows_signing_session.py",
+    "dispositivi_firma.py"
 )
 foreach ($moduleFile in $moduleFiles) {
     $source = Join-Path $localSignerModDir $moduleFile
@@ -171,6 +177,7 @@ SourceFiles0=$escapedSource
   %FILE17%=
 %FILE18%=
 %FILE19%=
+%FILE20%=
 [Strings]
 FILE0=installa_local_signer_locale.ps1
 FILE1=local_signer.py
@@ -192,6 +199,7 @@ FILE16=local_signer_mod__support_agent.py
 FILE17=local_signer_foreground_helper.py
 FILE18=local_signer_mod__firma_pkcs11.py
 FILE19=local_signer_mod__windows_signing_session.py
+FILE20=local_signer_mod__dispositivi_firma.py
 "@
 
 Set-Content -Path $sedFile -Value $sed -Encoding ASCII
@@ -268,6 +276,8 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_boo
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/support_agent.py" -o "$MOD_DIR/support_agent.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/firma_pkcs11.py" -o "$MOD_DIR/firma_pkcs11.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/windows_signing_session.py" -o "$MOD_DIR/windows_signing_session.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/dispositivi_firma.py" -o "$MOD_DIR/dispositivi_firma.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/dispositivi_firma.py" -o "$MOD_DIR/dispositivi_firma.py"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
 "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography pyhanko pyhanko-certvalidator zeep pdfplumber mammoth pypdf reportlab pillow
@@ -359,6 +369,8 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_boo
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/support_agent.py" -o "$MOD_DIR/support_agent.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/firma_pkcs11.py" -o "$MOD_DIR/firma_pkcs11.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/windows_signing_session.py" -o "$MOD_DIR/windows_signing_session.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/dispositivi_firma.py" -o "$MOD_DIR/dispositivi_firma.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/dispositivi_firma.py" -o "$MOD_DIR/dispositivi_firma.py"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
 "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography pyhanko pyhanko-certvalidator zeep pdfplumber mammoth pypdf reportlab pillow

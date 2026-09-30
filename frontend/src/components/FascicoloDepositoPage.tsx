@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
+import { formatDateIt } from '../formatting'
 import {
   AlertTriangle,
   ArrowLeft,
@@ -4598,7 +4599,7 @@ function DepositBatchSignaturePanel({
   const [error, setError] = useState('')
   const [visibleSignatureMode, setVisibleSignatureMode] = useState<VisibleSignatureMode>('laterale')
   const [visibleSignaturePlace, setVisibleSignaturePlace] = useState('')
-  const [visibleSignatureDatetimeMode, setVisibleSignatureDatetimeMode] = useState<VisibleSignatureDatetimeMode>('data_ora')
+  const [visibleSignatureDatetimeMode, setVisibleSignatureDatetimeMode] = useState<VisibleSignatureDatetimeMode>('nessuna')
   const pinInputRef = useRef<HTMLInputElement | null>(null)
 
   const primaryToken = localSigner?.token?.[0]
@@ -4620,9 +4621,8 @@ function DepositBatchSignaturePanel({
 
   useEffect(() => {
     setVisibleSignatureMode(loadVisibleSignatureMode(signature?.visibleSignatureMode || 'laterale'))
-    setVisibleSignaturePlace(signature?.visibleSignaturePlace || '')
-    setVisibleSignatureDatetimeMode(loadVisibleSignatureDatetimeMode(signature?.visibleSignatureDatetimeMode || 'data_ora'))
-  }, [signature?.visibleSignatureMode, signature?.visibleSignaturePlace, signature?.visibleSignatureDatetimeMode])
+    // Luogo, data e ora visibili si scelgono per questa operazione, senza precompilazione.
+  }, [signature?.visibleSignatureMode])
 
   const checkLocalSigner = async (tryStart = false): Promise<LocalSignerStatus | null> => {
     setCheckingSigner(true)
@@ -4767,7 +4767,7 @@ function DepositBatchSignaturePanel({
         }
       }))
       const controller = new AbortController()
-      const timeout = window.setTimeout(() => controller.abort(), LOCAL_SIGNER_BATCH_TIMEOUT_MS)
+      const timeout = window.setTimeout(() => controller.abort(), Math.max(LOCAL_SIGNER_BATCH_TIMEOUT_MS, documenti.length * 240000 + 60000))
       let signResponse: Response
       try {
         const requestOptions: LocalNetworkRequestInit = {
@@ -4789,7 +4789,7 @@ function DepositBatchSignaturePanel({
         signResponse = await fetch(localSignerEndpointForStatus('/firma-batch', localSigner), requestOptions)
       } catch (exc) {
         if (exc instanceof DOMException && exc.name === 'AbortError') {
-          throw new Error('Local Signer non ha risposto entro 45 secondi. Verifica dispositivo di firma, PIN e servizio locale, poi ripeti la firma.')
+          throw new Error('Tempo di attesa della firma esaurito. Verifica la finestra PIN e lo stato dei documenti prima di ripetere la firma: il dispositivo potrebbe avere ancora un’operazione in corso.')
         }
         throw exc
       } finally {
@@ -4885,7 +4885,7 @@ function DepositBatchSignaturePanel({
   const signerDetail = restartSuggested
     ? localSigner?.nota_riavvio_signer || 'Il dispositivo di firma è stato rilevato, IUSENTRA sta riallineando Local Signer prima della firma.'
     : selectedWindowsCertificate
-    ? `${localSignerWindowsCertificateLabel(selectedWindowsCertificate)}${selectedWindowsCertificate.scadenza ? ` - scadenza ${selectedWindowsCertificate.scadenza}` : ''}`
+    ? `${localSignerWindowsCertificateLabel(selectedWindowsCertificate)}${selectedWindowsCertificate.scadenza ? ` - scadenza ${formatDateIt(selectedWindowsCertificate.scadenza)}` : ''}`
     : displayToken
     ? (localSignerOutdated
         ? `Versione rilevata ${localSignerVersion || 'non disponibile'}: IUSENTRA avvia l'aggiornamento automatico prima della firma.`
@@ -4937,7 +4937,7 @@ function DepositBatchSignaturePanel({
             </label>
             <label>
               <span>Luogo firma</span>
-              <input value={visibleSignaturePlace} onChange={(event) => setVisibleSignaturePlace(event.target.value)} placeholder="Comune"/>
+              <input value={visibleSignaturePlace} onChange={(event) => setVisibleSignaturePlace(event.target.value)} placeholder="Comune, facoltativo" maxLength={48}/>
             </label>
             <label>
               <span>Posizione firma</span>
@@ -6003,7 +6003,7 @@ function sleep(ms: number): Promise<void> {
 
 const LOCAL_SIGNER_RESTART_URI = 'iusentra-local-signer://restart'
 const LOCAL_SIGNER_UPDATE_URI = 'iusentra-local-signer://update'
-const LOCAL_SIGNER_BATCH_TIMEOUT_MS = 45000
+const LOCAL_SIGNER_BATCH_TIMEOUT_MS = 300000
 const LOCAL_SIGNER_BROWSER_PROBE_TIMEOUT_MS = 9000
 const LOCAL_SIGNER_DEFAULT_BASE_URLS = ['http://127.0.0.1:27272', 'http://localhost:27272']
 let localSignerDetectedBaseUrl = ''
@@ -6333,15 +6333,6 @@ function loadVisibleSignatureMode(defaultMode: string): VisibleSignatureMode {
     return normalizeVisibleSignatureMode(stored || defaultMode)
   } catch {
     return normalizeVisibleSignatureMode(defaultMode)
-  }
-}
-
-function loadVisibleSignatureDatetimeMode(defaultMode: string): VisibleSignatureDatetimeMode {
-  try {
-    const stored = window.localStorage.getItem(visibleSignatureDatetimeStorageKey)
-    return normalizeVisibleSignatureDatetimeMode(stored || defaultMode)
-  } catch {
-    return normalizeVisibleSignatureDatetimeMode(defaultMode)
   }
 }
 

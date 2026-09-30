@@ -809,7 +809,7 @@ async function calculateSha256(file: File): Promise<string> {
 }
 
 const RELATA_LOCAL_SIGNER_RESTART_URI = 'iusentra-local-signer://restart'
-const RELATA_LOCAL_SIGNER_TIMEOUT_MS = 45000
+const RELATA_LOCAL_SIGNER_TIMEOUT_MS = 300000
 
 type RelataSignerToken = { slot_id?: number | string; label?: string; manufacturer?: string; model?: string }
 type RelataSignerCertificate = { thumbprint?: string; soggetto?: string; scadenza?: string; codice_fiscale?: string }
@@ -1767,6 +1767,8 @@ export function NotificheLegaliPage() {
   const [signatureMessage, setSignatureMessage] = useState('')
   const [signatureChecking, setSignatureChecking] = useState(false)
   const [signaturePin, setSignaturePin] = useState('')
+  const [signaturePlace, setSignaturePlace] = useState('')
+  const [signatureDatetimeMode, setSignatureDatetimeMode] = useState('nessuna')
   const [signatureStatus, setSignatureStatus] = useState<RelataSignerStatus | null>(null)
   const [signedRelata, setSignedRelata] = useState<SignedRelataRecord | null>(null)
   const signaturePinRef = useRef<HTMLInputElement | null>(null)
@@ -3987,6 +3989,8 @@ export function NotificheLegaliPage() {
           pin: signaturePin.trim(),
           slot_id: token?.slot_id,
           cert_thumbprint: certificate?.thumbprint,
+          visible_signature_place: signaturePlace,
+          visible_signature_datetime_mode: signatureDatetimeMode,
         }),
       }
       signerResponse = await fetch(relataLocalSignerEndpoint('/firma'), requestOptions)
@@ -4029,7 +4033,7 @@ export function NotificheLegaliPage() {
       await signCurrentRelataWithLocalSigner(signatureOverrides)
     } catch (error) {
       const message = error instanceof DOMException && error.name === 'AbortError'
-        ? 'Il dispositivo non ha risposto entro 45 secondi. Riprova la firma.'
+        ? 'Tempo di attesa della firma esaurito. Verifica la finestra PIN prima di ripetere: il dispositivo potrebbe avere ancora un’operazione in corso.'
         : error instanceof Error ? error.message : 'Firma della relata non completata.'
       setNotifica((current) => ({ ...current, relata_firmata: false }))
       setSignatureMessage(message)
@@ -5082,6 +5086,18 @@ export function NotificheLegaliPage() {
                     </div>
                   </div>
                   <small id="relata-signature-privacy" className="iu-legal-signature-privacy"><LockKeyhole size={13} /> Il PIN resta su questo PC e viene cancellato dopo la firma della relata.</small>
+                  <div className="iu-legal-grid">
+                    <Field label="Luogo firma, facoltativo">
+                      <input value={signaturePlace} onChange={(event) => setSignaturePlace(event.currentTarget.value)} placeholder="Comune" maxLength={48} disabled={signatureChecking}/>
+                    </Field>
+                    <Field label="Data e orario nel timbro">
+                      <select value={signatureDatetimeMode} onChange={(event) => setSignatureDatetimeMode(event.currentTarget.value)} disabled={signatureChecking}>
+                        <option value="nessuna">Senza data e ora</option>
+                        <option value="solo_data">Mostra data</option>
+                        <option value="data_ora">Mostra data e ora</option>
+                      </select>
+                    </Field>
+                  </div>
                   {signatureMessage ? <small id="relata-signature-status" role="status" aria-live="polite">{signatureMessage}</small> : null}
                   {signedRelata?.previewUrl ? (
                     <a className="iu-legal-signature-evidence" href={signedRelata.previewUrl} target="_blank" rel="noreferrer">

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.434.3 — 30/09/2026
+
+- Local Signer 1.6.138: ripristinata la sessione Windows persistente del backup del 22 settembre, con richiamo della finestra PIN in primo piano e attesa adeguata alla firma multipla.
+- Data, ora e luogo del timbro sono facoltativi e scelti dall’avvocato anche nella cofirma PAdES e nelle notifiche. Preservata la logica di posizionamento automatico.
+- Installer Windows, Linux e macOS allineati alla versione del servizio, con tutti i moduli necessari. Il download non propone più silenziosamente un installer Windows precedente.
+- Collaudo senza firma di documenti dello studio e senza invii PEC reali; accettazione del dispositivo e del PIN ancora da verificare sulla macchina reale.
+
 ## 2.434.2 — 30/09/2026
 
 - Controllo Studio: «Tutte le scadute» applica in un clic il filtro sulle scadenze scadute e apre i risultati, senza modificarne lo stato.

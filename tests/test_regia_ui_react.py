@@ -303,10 +303,12 @@ def test_ui_deposito_prepara_legge_intero_fascicolo_e_distingue_canale():
     assert "localSignerEndpointForPayload(endpoint, '/firma', signerStatus)" in source
     assert "localSignerEndpointForPayload(endpoint, '/pec/send', signerStatus)" in source
     assert "localSignerEndpointForStatus('/firma-batch', localSigner)" in source
-    assert "LOCAL_SIGNER_BATCH_TIMEOUT_MS = 45000" in source
+    assert "LOCAL_SIGNER_BATCH_TIMEOUT_MS = 300000" in source
+    assert "Math.max(LOCAL_SIGNER_BATCH_TIMEOUT_MS, documenti.length * 240000 + 60000)" in source
+    assert "Verifica la finestra PIN e lo stato dei documenti prima di ripetere" in source
     assert "new AbortController()" in source
     assert "signal: controller.signal" in source
-    assert "Local Signer non ha risposto entro 45 secondi" in source
+    assert "Tempo di attesa della firma esaurito." in source
     assert "Firma ${signableDocuments.length}" in source
     assert "signableDocuments.length === 1 ? 'documento' : 'documenti'" in source
     assert "pinInputRef.current?.focus()" in source

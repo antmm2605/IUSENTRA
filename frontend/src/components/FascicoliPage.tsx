@@ -8674,15 +8674,6 @@ function loadVisibleSignatureMode(defaultMode: string): VisibleSignatureMode {
   }
 }
 
-function loadVisibleSignatureDatetimeMode(defaultMode: string): VisibleSignatureDatetimeMode {
-  try {
-    const stored = window.localStorage.getItem(visibleSignatureDatetimeStorageKey)
-    return normalizeVisibleSignatureDatetimeMode(stored || defaultMode)
-  } catch {
-    return normalizeVisibleSignatureDatetimeMode(defaultMode)
-  }
-}
-
 function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
   const [data, setData] = useState<FascicoloDetailData>(emptyFascicoloDetail)
   const [loading, setLoading] = useState(true)
@@ -8695,7 +8686,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
   const [confirmResign, setConfirmResign] = useState(false)
   const [visibleSignatureMode, setVisibleSignatureMode] = useState<VisibleSignatureMode>('laterale')
   const [visibleSignaturePlace, setVisibleSignaturePlace] = useState('')
-  const [visibleSignatureDatetimeMode, setVisibleSignatureDatetimeMode] = useState<VisibleSignatureDatetimeMode>('data_ora')
+  const [visibleSignatureDatetimeMode, setVisibleSignatureDatetimeMode] = useState<VisibleSignatureDatetimeMode>('nessuna')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -8730,7 +8721,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
   const localSignerStatusMessage = restartSuggested
     ? localSigner?.nota_riavvio_signer || 'Il dispositivo di firma è stato rilevato da un controllo fresco. IUSENTRA sta riallineando Local Signer prima della firma.'
     : selectedWindowsCertificate
-    ? `${localSignerWindowsCertificateLabel(selectedWindowsCertificate)}${selectedWindowsCertificate.scadenza ? ` - scadenza ${selectedWindowsCertificate.scadenza}` : ''}`
+    ? `${localSignerWindowsCertificateLabel(selectedWindowsCertificate)}${selectedWindowsCertificate.scadenza ? ` - scadenza ${formatDateIt(selectedWindowsCertificate.scadenza)}` : ''}`
     : displayToken
     ? (localSignerOutdated
         ? `Versione rilevata ${localSignerVersion || 'non disponibile'}: IUSENTRA avvia l'aggiornamento automatico prima della firma.`
@@ -8837,9 +8828,8 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
     const richiesta = new URLSearchParams(window.location.search)
     const modoRichiesto = richiesta.get('firma_visibile')
     setVisibleSignatureMode(modoRichiesto ? normalizeVisibleSignatureMode(modoRichiesto) : loadVisibleSignatureMode(settings?.visibleSignatureMode || 'laterale'))
-    setVisibleSignaturePlace(richiesta.get('luogo') || settings?.visibleSignaturePlace || '')
-    setVisibleSignatureDatetimeMode(loadVisibleSignatureDatetimeMode(settings?.visibleSignatureDatetimeMode || 'data_ora'))
-  }, [data.signature?.visibleSignatureMode, data.signature?.visibleSignaturePlace, data.signature?.visibleSignatureDatetimeMode])
+    setVisibleSignaturePlace(richiesta.get('luogo') || '')
+  }, [data.signature?.visibleSignatureMode])
 
   useEffect(() => {
     refreshInfo()

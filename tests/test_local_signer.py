@@ -6746,7 +6746,8 @@ def test_firma_windows_store_cades_include_signing_certificate_v2(monkeypatch):
     assert captured["payload"]
 
 
-def test_firma_windows_store_pades_riproduce_profilo_studio_telematico(monkeypatch):
+@pytest.mark.parametrize("datetime_mode", ["nessuna", "solo_data", "data_ora"])
+def test_firma_windows_store_pades_riproduce_profilo_studio_telematico(monkeypatch, datetime_mode):
     from datetime import UTC, datetime, timedelta
     from io import BytesIO
 
@@ -6856,12 +6857,21 @@ def test_firma_windows_store_pades_riproduce_profilo_studio_telematico(monkeypat
         lambda _thumbprint, payload, _digest_algorithm: key_2.sign(payload, padding.PKCS1v15(), hashes.SHA256()),
     )
     second, _ = module._firma_documento_windows_store_pades(
-        firmato, visible_signature_place="Taurianova",
+        firmato, visible_signature_place="", visible_signature_datetime_mode=datetime_mode,
     )
     assert second.startswith(firmato)
     second_fields = PdfReader(BytesIO(second)).get_fields()
     assert set(second_fields) == {"Signature1", "Signature2"}
     assert second_fields["Signature1"]["/V"]["/Contents"] == field["/V"]["/Contents"]
+    assert not second_fields["Signature2"]["/V"].get("/Location")
+    second_reader = PdfReader(BytesIO(second))
+    widget = next(item.get_object() for item in second_reader.pages[-1]["/Annots"] if item.get_object().get("/T") == "Signature2")
+    from pypdf.generic import ContentStream
+    appearance = ContentStream(widget["/AP"]["/N"], second_reader)
+    visible_text = "\n".join(str(operands[0]) for operands, operator in appearance.operations if operator == b"Tj")
+    assert ("Data e ora firma:" in visible_text) == (datetime_mode != "nessuna")
+    assert ("alle ore" in visible_text) == (datetime_mode == "data_ora")
+    assert "Luogo firma:" not in visible_text
     evidence = analizza_firma_documento(second, "test.pdf")
     assert len(evidence) == 2
     assert all(item["content_digest_verified"] and item["cryptographic_signature_verified"] for item in evidence)
@@ -8679,8 +8689,6 @@ def test_pst_ricerca_snapshot_usa_batch_certificato_senza_preflight_separato():
         "_risolvi_ufficio_da_snapshot": module._risolvi_ufficio_da_snapshot,
         "_update_pst_session": module._update_pst_session,
         "_get_pst_session": module._get_pst_session,
-        "_pst_arricchisci_documenti_con_master_detail": module._pst_arricchisci_documenti_con_master_detail,
-        "_pst_carica_sezioni_fascicolo_qbuilder": module._pst_carica_sezioni_fascicolo_qbuilder,
         "_pst_arricchisci_documenti_con_master_detail": module._pst_arricchisci_documenti_con_master_detail,
         "_pst_carica_sezioni_fascicolo_qbuilder": module._pst_carica_sezioni_fascicolo_qbuilder,
     }

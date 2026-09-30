@@ -24,7 +24,6 @@ from pct.pst_servizi_catalogo import (
     SERVIZIO_PST_COMUNICAZIONE_CANCELLERIA,
     SERVIZIO_PST_DETTAGLIO_ISTANZE,
     SERVIZIO_PST_DOCUMENTI_FASCICOLO,
-    SERVIZIO_PST_RICERCA_SCADENZE,
 )
 from pct.scadenziario import TipoTermine
 from web.services.portal_integration_policy import (
@@ -5162,6 +5161,7 @@ Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/local-signer-mod/se
 Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/local-signer-mod/support_agent.py" -OutFile "$moduleDir\\support_agent.py" -UseBasicParsing
 Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/local-signer-mod/firma_pkcs11.py" -OutFile "$moduleDir\\firma_pkcs11.py" -UseBasicParsing
 Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/local-signer-mod/windows_signing_session.py" -OutFile "$moduleDir\\windows_signing_session.py" -UseBasicParsing
+Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/local-signer-mod/dispositivi_firma.py" -OutFile "$moduleDir\\dispositivi_firma.py" -UseBasicParsing
 
 try {{
     $v = python --version 2>&1
@@ -5412,6 +5412,8 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_boo
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/support_agent.py" -o "$MOD_DIR/support_agent.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/firma_pkcs11.py" -o "$MOD_DIR/firma_pkcs11.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/windows_signing_session.py" -o "$MOD_DIR/windows_signing_session.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/dispositivi_firma.py" -o "$MOD_DIR/dispositivi_firma.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/dispositivi_firma.py" -o "$MOD_DIR/dispositivi_firma.py"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
   "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab pillow
@@ -5497,6 +5499,8 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_boo
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/support_agent.py" -o "$MOD_DIR/support_agent.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/firma_pkcs11.py" -o "$MOD_DIR/firma_pkcs11.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/windows_signing_session.py" -o "$MOD_DIR/windows_signing_session.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/dispositivi_firma.py" -o "$MOD_DIR/dispositivi_firma.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/dispositivi_firma.py" -o "$MOD_DIR/dispositivi_firma.py"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
   "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab pillow

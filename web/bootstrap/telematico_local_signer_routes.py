@@ -56,21 +56,11 @@ def register_telematico_local_signer_routes(
         exe_path = local_signer_windows_exe_path()
         download_name = local_signer_windows_exe_name()
         if not exe_path.exists():
-            # L'EXE della versione corrente non e' stato ancora rigenerato da
-            # Windows (l'EXE IExpress si genera solo su Windows). Serviamo
-            # l'ultimo EXE Windows disponibile (alias non versionato): installa
-            # comunque Python portatile + venv + sorgenti, e al primo /update il
-            # Local Signer aggiorna i sorgenti .py alla versione corrente. Cosi'
-            # i nuovi clienti possono sempre scaricare un installer funzionante.
-            alias_path = local_signer_windows_exe_alias_path()
-            if alias_path.exists():
-                exe_path = alias_path
-                download_name = alias_path.name
-            else:
-                return (
-                    "Installer Windows .exe non ancora generato. Rigenerare i pacchetti Local Signer.",
-                    404,
-                )
+            # Non distribuire silenziosamente una release precedente a quella annunciata.
+            return (
+                "Installer Windows della versione corrente non disponibile. Rigenerare i pacchetti Local Signer.",
+                503,
+            )
         return send_file(
             exe_path,
             as_attachment=True,

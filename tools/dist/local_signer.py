@@ -110,7 +110,7 @@ except Exception:
 from local_signer_mod.ai_handlers import LocalAiHandlerFacade  # noqa: E402
 from local_signer_mod.security import (  # noqa: E402
     build_allowed_origins,
-    is_allowed_origin,
+    is_allowed_origin,  # noqa: F401 -- contratto pubblico verificato dagli adapter distribuiti
     is_allowed_origin_or_referer,
     is_loopback_origin,
     normalize_origin,
@@ -121,7 +121,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.137"
+VERSION = "1.6.138"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -3605,9 +3605,7 @@ def _prepare_documento_firma_visibile(
         from visible_signature import prepare_document_for_signature, resolve_visible_signature_place
 
         luogo = resolve_visible_signature_place(
-            city=visible_signature_place or os.getenv("PCT_STUDIO_CITY", ""),
-            province=os.getenv("PCT_STUDIO_PROVINCIA", ""),
-            address=os.getenv("PCT_STUDIO_INDIRIZZO", ""),
+            city=visible_signature_place,
         )
 
         return prepare_document_for_signature(
@@ -3918,59 +3916,23 @@ def _windows_store_sign_raw(thumbprint: str, payload: bytes, digest_algorithm: s
     algorithm = str(digest_algorithm or "").replace("-", "").lower()
     if algorithm != "sha256":
         raise RuntimeError("Studio Telematico richiede SHA-256 per la firma digitale.")
-    script = r'''
-param(
-  [Parameter(Mandatory=$true)][string]$Thumbprint,
-  [Parameter(Mandatory=$true)][string]$InputPath,
-  [Parameter(Mandatory=$true)][string]$OutputPath
-)
-$ErrorActionPreference = 'Stop'
-$clean = ($Thumbprint -replace ' ','').ToUpperInvariant()
-$cert = Get-ChildItem Cert:\CurrentUser\My | Where-Object { (($_.Thumbprint -replace ' ','').ToUpperInvariant()) -eq $clean } | Select-Object -First 1
-if (-not $cert) { throw 'Certificato Windows non trovato nello store utente.' }
-if (-not $cert.HasPrivateKey) { throw 'Certificato Windows senza chiave privata.' }
-$rsa = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPrivateKey($cert)
-if (-not $rsa) { throw 'Chiave privata RSA del certificato non disponibile.' }
-$content = [System.IO.File]::ReadAllBytes($InputPath)
-$signature = $rsa.SignData(
-  $content,
-  [System.Security.Cryptography.HashAlgorithmName]::SHA256,
-  [System.Security.Cryptography.RSASignaturePadding]::Pkcs1
-)
-[System.IO.File]::WriteAllBytes($OutputPath, $signature)
-'''
-    with tempfile.TemporaryDirectory(prefix="iusentra-win-pades-") as tmp_dir:
-        tmp = Path(tmp_dir)
-        input_path = tmp / "payload.bin"
-        output_path = tmp / "signature.bin"
-        script_path = tmp / "firma_pades_windows_store.ps1"
-        input_path.write_bytes(payload)
-        script_path.write_text(script, encoding="utf-8")
-        powershell = os.getenv("SystemRoot", r"C:\Windows")
-        powershell_path = Path(powershell) / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
-        result = _run_process_with_pin_foreground(
-            [
-                str(powershell_path if powershell_path.exists() else "powershell.exe"),
-                "-NoProfile",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                str(script_path),
-                "-Thumbprint",
-                clean,
-                "-InputPath",
-                str(input_path),
-                "-OutputPath",
-                str(output_path),
-            ],
-            capture_output=True,
-            text=True,
-            timeout=240,
-        )
-        if result.returncode != 0 or not output_path.exists():
-            detail = (result.stderr or result.stdout or "").strip()
-            raise RuntimeError(_firma_windows_store_error_message(detail))
-        return output_path.read_bytes()
+    from local_signer_mod.windows_signing_session import sign_raw
+
+    stop = threading.Event()
+    worker = threading.Thread(
+        target=_windows_pin_prompt_foreground_pump,
+        args=(stop, 240, _windows_visible_top_level_window_handles(), set()),
+        daemon=True,
+    )
+    _windows_prepare_foreground_for_process_start()
+    worker.start()
+    try:
+        return sign_raw(clean, payload)
+    except Exception as exc:
+        raise RuntimeError(_firma_windows_store_error_message(str(exc))) from exc
+    finally:
+        stop.set()
+        worker.join(timeout=0.5)
 
 
 def _signing_certificate_v2_value_der_inline(cert_der: bytes) -> bytes:
@@ -4050,6 +4012,7 @@ def _firma_documento_windows_store_pades(
     from pyhanko.stamp import TextStampStyle
     from pyhanko_certvalidator.registry import SimpleCertificateStore
     from visible_signature import (
+        build_visible_signature_text,
         has_pdf_signature,
         next_pdf_signature_field_name,
     )
@@ -4127,8 +4090,12 @@ def _firma_documento_windows_store_pades(
     output = io.BytesIO()
     stamp = (
         TextStampStyle(
-            stamp_text="%(signer)s\nPer autentica e sottoscrizione\n%(ts)s",
-            timestamp_format="%d/%m/%Y ore %H:%M",
+            stamp_text=(build_visible_signature_text(
+                intestatario=str(cert.get("soggetto") or cert.get("soggetto_completo") or ""),
+                luogo=visible_signature_place,
+                data_firma=datetime.now(UTC),
+                datetime_mode=visible_signature_datetime_mode,
+            ) + "\nPer autentica e sottoscrizione").replace("%", "%%"),
         )
         if had_existing_signature
         else None

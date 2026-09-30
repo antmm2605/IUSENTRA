@@ -745,9 +745,7 @@ class FirmaPKCS11:
         visible_signature_datetime_mode: str = "data_ora",
     ) -> bytes:
         luogo = resolve_visible_signature_place(
-            city=visible_signature_place or os.getenv("PCT_STUDIO_CITY", ""),
-            province=os.getenv("PCT_STUDIO_PROVINCIA", ""),
-            address=os.getenv("PCT_STUDIO_INDIRIZZO", ""),
+            city=visible_signature_place,
         )
         issuer_cn = ""
         cert = self._get_cert()
@@ -896,6 +894,7 @@ class FirmaPKCS11:
         from pyhanko.sign import fields, pkcs11 as pyhanko_pkcs11, signers
         from pyhanko.stamp import TextStampStyle
         from visible_signature import (
+            build_visible_signature_text,
             ha_timbro_visibile,
             has_pdf_signature,
             next_pdf_signature_field_name,
@@ -927,9 +926,7 @@ class FirmaPKCS11:
                 )
         reader = PdfReader(io.BytesIO(pdf_payload))
         location = resolve_visible_signature_place(
-            city=visible_signature_place or os.getenv("PCT_STUDIO_CITY", ""),
-            province=os.getenv("PCT_STUDIO_PROVINCIA", ""),
-            address=os.getenv("PCT_STUDIO_INDIRIZZO", ""),
+            city=visible_signature_place,
         )
 
         signing_cert = asn1_x509.Certificate.load(self._cert_der)
@@ -958,8 +955,12 @@ class FirmaPKCS11:
         )
         stamp = (
             TextStampStyle(
-                stamp_text="%(signer)s\nPer autentica e sottoscrizione\n%(ts)s",
-                timestamp_format="%d/%m/%Y ore %H:%M",
+                stamp_text=(build_visible_signature_text(
+                    intestatario=self.intestatario,
+                    luogo=location,
+                    data_firma=datetime.now(timezone.utc),
+                    datetime_mode=visible_signature_datetime_mode,
+                ) + "\nPer autentica e sottoscrizione").replace("%", "%%"),
             )
             if had_existing_signature
             else None

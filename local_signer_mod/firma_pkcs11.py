@@ -770,6 +770,17 @@ class FirmaPKCS11:
             datetime_mode=visible_signature_datetime_mode,
         )
 
+    def _verifica_firma_gia_presente(self, documento: bytes) -> None:
+        """Se questo certificato ha già firmato il documento, la firma non si ripete (FirmaGiaPresente)."""
+        from visible_signature import verifica_firma_gia_presente
+
+        cert = self._get_cert()
+        verifica_firma_gia_presente(
+            documento,
+            intestatario=self.intestatario,
+            serial=format(getattr(cert, "serial_number", 0), "X"),
+        )
+
     def firma_cades(
         self,
         documento: bytes,
@@ -794,6 +805,8 @@ class FirmaPKCS11:
         """
         from pkcs11 import Attribute, ObjectClass, Mechanism
 
+        if str(visible_signature_mode or "").strip().lower() != "nessuna":
+            self._verifica_firma_gia_presente(documento)
         existing_cades: bytes | None = None
         embedded_content = _cades_embedded_content_for_parallel_signature(documento)
         if embedded_content is not None:
@@ -883,9 +896,10 @@ class FirmaPKCS11:
         from pyhanko.sign import fields, pkcs11 as pyhanko_pkcs11, signers
         from pyhanko.stamp import TextStampStyle
         from visible_signature import (
+            ha_timbro_visibile,
             has_pdf_signature,
-            has_visible_signature_stamp,
             next_pdf_signature_field_name,
+            riquadro_firma_pades,
         )
 
         # Stessa registrazione del Local Signer accettato: una firma CAdES
@@ -895,6 +909,8 @@ class FirmaPKCS11:
         cms.CMSAttributeType._map[oid] = "signing_certificate_v2"
         cms.CMSAttributeType._reverse_map["signing_certificate_v2"] = oid
 
+        if str(visible_signature_mode or "").strip().lower() != "nessuna":
+            self._verifica_firma_gia_presente(documento)
         pdf_payload = self._pdf_da_firmare(documento)
         had_existing_signature = has_pdf_signature(pdf_payload)
         if not had_existing_signature:
@@ -904,12 +920,12 @@ class FirmaPKCS11:
                 visible_signature_place=visible_signature_place,
                 visible_signature_datetime_mode=visible_signature_datetime_mode,
             )
-            if not has_visible_signature_stamp(pdf_payload):
+            serial = format(getattr(self._get_cert(), "serial_number", 0), "X")
+            if not ha_timbro_visibile(pdf_payload, intestatario=self.intestatario, serial=serial):
                 raise RuntimeError(
                     "La firma PAdES non è stata applicata: manca il timbro visibile richiesto."
                 )
         reader = PdfReader(io.BytesIO(pdf_payload))
-        page_width = int(float(reader.pages[-1].mediabox.width))
         location = resolve_visible_signature_place(
             city=visible_signature_place or os.getenv("PCT_STUDIO_CITY", ""),
             province=os.getenv("PCT_STUDIO_PROVINCIA", ""),
@@ -938,7 +954,7 @@ class FirmaPKCS11:
         field = fields.SigFieldSpec(
             sig_field_name=signature_field_name,
             on_page=-1,
-            box=(20, 10, max(40, page_width - 20), 55) if had_existing_signature else None,
+            box=riquadro_firma_pades(pdf_payload) if had_existing_signature else None,
         )
         stamp = (
             TextStampStyle(

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.434.0 — 30/09/2026
+
+Firma intelligente: IUSENTRA riconosce le firme già presenti sul documento e colloca da solo il nuovo timbro dove non copre nulla. Local Signer 1.6.137.
+
+- **Stessa firma, niente doppione**: prima di firmare (fascicolo, deposito, notifiche) IUSENTRA legge le firme già apposte — buste CAdES `.p7m`, anche annidate, firme PAdES nel PDF e timbri visibili «Firmato Da: … Emesso Da: … Serial#: …» come quelli delle copie ministeriali. Se il documento è già firmato con lo stesso dispositivo (stesso numero di serie del certificato; senza seriale, stesso titolare) la firma non si ripete e compare il messaggio «Il documento è già firmato da … con lo stesso dispositivo e la firma è già visibile sul documento». Nella firma multipla del deposito i documenti già firmati si contano a parte e la sessione PIN resta valida per gli altri.
+- **Posizionamento automatico del timbro**: se sul documento c'è la firma di un altro titolare, il nuovo timbro va nella prima zona libera, nell'ordine margine destro, margine sinistro, fascia in basso dell'ultima pagina, fascia in alto dell'ultima pagina, senza sovrapporsi a testo o timbri esistenti. Sul modello con i timbri su entrambi i margini la nuova firma va in basso nell'ultima pagina. Il timbro riporta gli stessi dati dell'esempio (Firmato Da, Emesso Da, Serial#) più città, data in formato italiano e ora. Anche l'aspetto della firma PAdES si colloca in una fascia libera.
+- **Base normativa verificata**: le Specifiche tecniche DGSIA (art. 15 c. 2) ammettono firme multiple indipendenti o parallele in PAdES-BES o CAdES-BES e dichiarano non significativo l'ordine di apposizione; né le specifiche PCT né quelle PPT/PDP né le linee guida AgID prescrivono una posizione della firma visibile (la sola regola sulle coordinate riguarda il sigillo del gestore SPID nella firma con SPID, art. 20 CAD). Una busta CAdES `.p7m` già firmata riceve la cofirma senza nuovo timbro, perché modificare il PDF interno invaliderebbe la firma precedente.
+- La finestra «Calcola contributo unificato» si carica solo quando si apre: la pagina del fascicolo resta entro il limite di peso del bundle.
+- **Local Signer 1.6.137**: da aggiornare su ogni PC di firma (Impostazioni → Firma digitale → «Riverifica» dopo l'installazione).
+
 ## 2.433.0 — 29/09/2026
 
 Deposito e notifica di un singolo documento con un clic, un solo comando per il deposito telematico e caricamento dei documenti più rapido.

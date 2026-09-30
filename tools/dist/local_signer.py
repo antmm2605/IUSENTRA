@@ -121,7 +121,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.136"
+VERSION = "1.6.137"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -3625,6 +3625,65 @@ def _prepare_documento_firma_visibile(
         return documento
 
 
+def _firma_gia_presente(exc: BaseException) -> bool:
+    """Il documento reca già la firma dello stesso certificato (vedi visible_signature.FirmaGiaPresente)."""
+    current: Optional[BaseException] = exc
+    for _ in range(4):
+        if current is None:
+            return False
+        if type(current).__name__ == "FirmaGiaPresente":
+            return True
+        current = current.__cause__
+    return False
+
+
+def _eccezione_firma_gia_presente(exc: BaseException) -> BaseException:
+    current: Optional[BaseException] = exc
+    for _ in range(4):
+        if current is None:
+            break
+        if type(current).__name__ == "FirmaGiaPresente":
+            return current
+        current = current.__cause__
+    return exc
+
+
+def _verifica_firma_gia_presente(documento: bytes, intestatario: str, serial: str) -> None:
+    """Prima di firmare: se lo stesso certificato ha già firmato, la firma non si ripete."""
+    try:
+        from visible_signature import verifica_firma_gia_presente
+    except Exception:
+        return
+    verifica_firma_gia_presente(documento, intestatario=intestatario, serial=serial)
+
+
+def _timbro_visibile_presente(pdf_payload: bytes, intestatario: str, serial: str) -> bool:
+    try:
+        from visible_signature import ha_timbro_visibile
+    except Exception:
+        from visible_signature import has_visible_signature_stamp
+
+        return has_visible_signature_stamp(pdf_payload)
+    return ha_timbro_visibile(pdf_payload, intestatario=intestatario, serial=serial)
+
+
+def _riquadro_firma_pades(pdf_payload: bytes, page_width: int) -> tuple[int, int, int, int]:
+    try:
+        from visible_signature import riquadro_firma_pades
+    except Exception:
+        return (20, 10, max(40, page_width - 20), 55)
+    return riquadro_firma_pades(pdf_payload)
+
+
+def _seriale_certificato_der(cert_der: bytes) -> str:
+    try:
+        from cryptography import x509 as cx509
+
+        return format(cx509.load_der_x509_certificate(cert_der).serial_number, "X")
+    except Exception:
+        return ""
+
+
 def _windows_certificato_per_firma(cert_thumbprint: Optional[str] = None) -> dict:
     if sys.platform != "win32":
         return {}
@@ -3992,7 +4051,6 @@ def _firma_documento_windows_store_pades(
     from pyhanko_certvalidator.registry import SimpleCertificateStore
     from visible_signature import (
         has_pdf_signature,
-        has_visible_signature_stamp,
         next_pdf_signature_field_name,
     )
 
@@ -4004,6 +4062,11 @@ def _firma_documento_windows_store_pades(
         raise RuntimeError("Certificato Windows di firma non selezionato.")
     cert_der = _windows_store_certificate_der(thumbprint)
     chain_der = _windows_store_certificate_chain_der(thumbprint)
+    seriale_certificato = _seriale_certificato_der(cert_der) or str(cert.get("seriale") or thumbprint)
+    if visible_signature_mode != "nessuna":
+        _verifica_firma_gia_presente(
+            documento, str(cert.get("soggetto_completo") or cert.get("soggetto") or ""), seriale_certificato,
+        )
     pdf_payload = documento
     if not pdf_payload.lstrip().startswith(b"%PDF"):
         content_info = cms.ContentInfo.load(pdf_payload)
@@ -4019,12 +4082,14 @@ def _firma_documento_windows_store_pades(
             pdf_payload,
             str(cert.get("soggetto_completo") or cert.get("soggetto") or ""),
             str(cert.get("emittente_completo") or cert.get("emittente") or ""),
-            str(cert.get("seriale") or thumbprint),
+            seriale_certificato,
             visible_signature_mode=visible_signature_mode,
             visible_signature_place=visible_signature_place,
             visible_signature_datetime_mode=visible_signature_datetime_mode,
         )
-        if not has_visible_signature_stamp(pdf_payload):
+        if not _timbro_visibile_presente(
+            pdf_payload, str(cert.get("soggetto_completo") or cert.get("soggetto") or ""), seriale_certificato,
+        ):
             raise RuntimeError(
                 "La firma PAdES non è stata applicata: manca il timbro visibile richiesto."
             )
@@ -4075,7 +4140,7 @@ def _firma_documento_windows_store_pades(
         new_field_spec=fields.SigFieldSpec(
             sig_field_name=signature_field_name,
             on_page=-1,
-            box=(20, 10, max(40, page_width - 20), 55) if had_existing_signature else None,
+            box=_riquadro_firma_pades(pdf_payload, page_width) if had_existing_signature else None,
         ),
     ).sign_pdf(
         IncrementalPdfFileWriter(io.BytesIO(pdf_payload)),
@@ -4107,20 +4172,23 @@ def _firma_documento_windows_store(
             "Local Signer o usa il token PKCS#11, poi ripeti la simulazione deposito."
         )
     cert_der = _windows_store_certificate_der(thumbprint)
+    intestatario = str(cert.get("soggetto_completo") or cert.get("soggetto") or "")
+    issuer = str(cert.get("emittente_completo") or cert.get("emittente") or "")
+    scadenza = str(cert.get("scadenza") or "")
+    seriale_certificato = _seriale_certificato_der(cert_der) or thumbprint
+    if visible_signature_mode != "nessuna":
+        _verifica_firma_gia_presente(documento, intestatario, seriale_certificato)
     existing_cades: Optional[bytes] = None
     embedded_content = _cades_embedded_content_for_parallel_signature_inline(documento)
     if embedded_content is not None:
         existing_cades = documento
         documento = embedded_content
-    intestatario = str(cert.get("soggetto_completo") or cert.get("soggetto") or "")
-    issuer = str(cert.get("emittente_completo") or cert.get("emittente") or "")
-    scadenza = str(cert.get("scadenza") or "")
     if existing_cades is None:
         documento = _prepare_documento_firma_visibile(
             documento,
             intestatario,
             issuer,
-            thumbprint,
+            seriale_certificato,
             visible_signature_mode=visible_signature_mode,
             visible_signature_place=visible_signature_place,
             visible_signature_datetime_mode=visible_signature_datetime_mode,
@@ -4201,6 +4269,9 @@ def _firma_documento_via_sessione(
         )
         return firmato, info
     except Exception as exc:
+        if _firma_gia_presente(exc):
+            # Nessun errore del dispositivo: la sessione PIN resta valida per gli altri documenti.
+            raise _eccezione_firma_gia_presente(exc) from None
         _drop_pin_session(pin_session_id)
         raise RuntimeError(_pkcs11_firma_error_message(exc)) from exc
 
@@ -4282,6 +4353,10 @@ def _firma_documento(lib_path: str, documento: bytes, pin: str,
                         visible_signature_place=visible_signature_place,
                     )
         except Exception as exc:
+            if _firma_gia_presente(exc):
+                gia = _eccezione_firma_gia_presente(exc)
+                setattr(gia, "pin_session_id", session_id)
+                raise gia from None
             _drop_pin_session(session_id)
             raise RuntimeError(_pkcs11_firma_error_message(exc)) from exc
         info = _firma_info_dict(
@@ -4294,6 +4369,8 @@ def _firma_documento(lib_path: str, documento: bytes, pin: str,
     except ImportError:
         pass
     except Exception as exc:
+        if _firma_gia_presente(exc):
+            raise
         if sys.platform == "win32" and _errore_pkcs11_senza_token(exc):
             if formato == "pades":
                 return _firma_documento_windows_store_pades(
@@ -4325,6 +4402,8 @@ def _firma_documento(lib_path: str, documento: bytes, pin: str,
             visible_signature_datetime_mode=visible_signature_datetime_mode,
         )
     except Exception as exc:
+        if _firma_gia_presente(exc):
+            raise
         if sys.platform == "win32" and _errore_pkcs11_senza_token(exc):
             if formato == "pades":
                 return _firma_documento_windows_store_pades(
@@ -4407,6 +4486,8 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
             scadenza = ""
             issuer = ""
             serial = ""
+        if visible_signature_mode != "nessuna":
+            _verifica_firma_gia_presente(documento, intestatario, serial)
 
         if formato == "pades":
             _ensure_signing_certificate_v2_oid_registered()
@@ -4417,7 +4498,6 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
             from pyhanko.stamp import TextStampStyle
             from visible_signature import (
                 has_pdf_signature,
-                has_visible_signature_stamp,
                 next_pdf_signature_field_name,
             )
 
@@ -4440,7 +4520,7 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
                     visible_signature_place=visible_signature_place,
                     visible_signature_datetime_mode=visible_signature_datetime_mode,
                 )
-                if not has_visible_signature_stamp(pdf_payload):
+                if not _timbro_visibile_presente(pdf_payload, intestatario, serial):
                     raise RuntimeError(
                         "La firma PAdES non è stata applicata: manca il timbro visibile richiesto."
                     )
@@ -4473,7 +4553,7 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
             field = fields.SigFieldSpec(
                 sig_field_name=signature_field_name,
                 on_page=-1,
-                box=(20, 10, max(40, page_width - 20), 55) if had_existing_signature else None,
+                box=_riquadro_firma_pades(pdf_payload, page_width) if had_existing_signature else None,
             )
             stamp = (
                 TextStampStyle(
@@ -14003,6 +14083,16 @@ class _Handler(BaseHTTPRequestHandler):
                 **info,
             })
         except Exception as e:
+            if _firma_gia_presente(e):
+                gia = _eccezione_firma_gia_presente(e)
+                self._send_json({
+                    "ok": False,
+                    "gia_firmato": True,
+                    "firmatario": getattr(gia, "firmatario", ""),
+                    "errore": str(gia),
+                    **({"pin_session_id": getattr(gia, "pin_session_id")} if getattr(gia, "pin_session_id", "") else {}),
+                }, 409)
+                return
             msg = _firma_operational_error_message(e)
             log.exception("Errore firma: %s", msg)
             self._send_json({"ok": False, "errore": msg}, 500)
@@ -14044,6 +14134,7 @@ class _Handler(BaseHTTPRequestHandler):
         risultati = []
         firmati = 0
         falliti = 0
+        gia_firmati = 0
 
         for idx, raw_doc in enumerate(docs):
             item = raw_doc if isinstance(raw_doc, dict) else {}
@@ -14103,6 +14194,20 @@ class _Handler(BaseHTTPRequestHandler):
                 })
                 firmati += 1
             except Exception as e:
+                if _firma_gia_presente(e):
+                    gia = _eccezione_firma_gia_presente(e)
+                    current_session_id = str(getattr(gia, "pin_session_id", "") or current_session_id or "")
+                    risultati.append({
+                        "ok": True,
+                        "gia_firmato": True,
+                        "indice": idx,
+                        "nome": nome,
+                        "firmatario": getattr(gia, "firmatario", ""),
+                        "messaggio": str(gia),
+                        "formato": formato,
+                    })
+                    gia_firmati += 1
+                    continue
                 msg = _firma_operational_error_message(e)
                 current_session_id = ""
                 risultati.append({
@@ -14119,12 +14224,13 @@ class _Handler(BaseHTTPRequestHandler):
             "ok": falliti == 0,
             "firmati": firmati,
             "falliti": falliti,
+            "gia_firmati": gia_firmati,
             "risultati": risultati,
         }
         if current_session_id:
             payload["pin_session_id"] = current_session_id
             payload["pin_session_ttl_seconds"] = PIN_SESSION_TTL_SECONDS
-        self._send_json(payload, 200 if firmati or not falliti else 500)
+        self._send_json(payload, 200 if firmati or gia_firmati or not falliti else 500)
 
     def _pec_ipa(self):
         """Verifica una PEC attiva della pubblica amministrazione."""

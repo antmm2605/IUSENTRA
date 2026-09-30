@@ -865,7 +865,15 @@ def test_comando_pagopa_mostra_unicona_vettoriale_affidabile():
 
 
 def test_ui_fascicolo_menu_contestuale_azioni_reali():
-    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    # Il calcolo del contributo unificato vive in moduli propri (finestra caricata all'apertura).
+    source = "\n".join(
+        Path(percorso).read_text(encoding="utf-8")
+        for percorso in (
+            "frontend/src/components/FascicoliPage.tsx",
+            "frontend/src/components/fascicoli/ContributoUnificatoModal.tsx",
+            "frontend/src/components/fascicoli/contributoUnificato.ts",
+        )
+    )
     office_source = Path("frontend/src/components/OfficeDocumentsPanel.tsx").read_text(encoding="utf-8")
     css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
 

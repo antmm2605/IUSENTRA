@@ -267,6 +267,16 @@ class FirmaDigitale:
             datetime_mode=visible_signature_datetime_mode,
         )
 
+    def _verifica_firma_gia_presente(self, documento: bytes) -> None:
+        """Se questo certificato ha già firmato il documento, la firma non si ripete (FirmaGiaPresente)."""
+        from visible_signature import verifica_firma_gia_presente
+
+        verifica_firma_gia_presente(
+            documento,
+            intestatario=self.intestatario,
+            serial=format(getattr(self._certificate, "serial_number", 0), "X"),
+        )
+
     def firma_cades(
         self,
         documento: bytes,
@@ -286,6 +296,7 @@ class FirmaDigitale:
         Returns:
             Documento firmato in formato CAdES
         """
+        self._verifica_firma_gia_presente(documento)
         if not detached:
             documento = self._prepare_pdf_for_visible_signature(
                 documento,
@@ -334,6 +345,7 @@ class FirmaDigitale:
 
             source_path = pdf_path
             original_pdf = Path(pdf_path).read_bytes()
+            self._verifica_firma_gia_presente(original_pdf)
             prepared_pdf = self._prepare_pdf_for_visible_signature(
                 original_pdf,
                 visible_signature_mode=visible_signature_mode,

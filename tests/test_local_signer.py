@@ -6816,10 +6816,45 @@ def test_firma_windows_store_pades_riproduce_profilo_studio_telematico(monkeypat
     assert info["windows_cert_store"] is True
     assert info["formato"] == "pades"
 
-    # A second signature must preserve the first revision and CMS value.
+    # Lo stesso certificato non firma due volte lo stesso documento: lo comunica.
+    import pytest
+    from visible_signature import FirmaGiaPresente
+
+    with pytest.raises(FirmaGiaPresente, match="già firmato da GIUSEPPE MONTAGNESE con lo stesso dispositivo"):
+        module._firma_documento_windows_store_pades(firmato, visible_signature_place="Taurianova")
+
+    # A second signature (altro titolare) must preserve the first revision and CMS value.
     from pct.document_signature_state import verify_additional_signature
     from pct.firma import analizza_firma_documento
 
+    key_2 = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    subject_2 = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "ADRIANA SCHIAVONI")])
+    cert_2 = (
+        x509.CertificateBuilder()
+        .subject_name(subject_2)
+        .issuer_name(subject_2)
+        .public_key(key_2.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(datetime.now(UTC) - timedelta(days=1))
+        .not_valid_after(datetime.now(UTC) + timedelta(days=365))
+        .sign(key_2, hashes.SHA256())
+    )
+    monkeypatch.setattr(
+        module,
+        "_windows_certificato_per_firma",
+        lambda cert_thumbprint=None: {
+            "thumbprint": "B" * 40,
+            "soggetto": "ADRIANA SCHIAVONI",
+            "emittente": "Test CA",
+            "scadenza": "2027-08-11",
+        },
+    )
+    monkeypatch.setattr(module, "_windows_store_certificate_der", lambda _thumbprint: cert_2.public_bytes(serialization.Encoding.DER))
+    monkeypatch.setattr(
+        module,
+        "_windows_store_sign_raw",
+        lambda _thumbprint, payload, _digest_algorithm: key_2.sign(payload, padding.PKCS1v15(), hashes.SHA256()),
+    )
     second, _ = module._firma_documento_windows_store_pades(
         firmato, visible_signature_place="Taurianova",
     )
@@ -6831,7 +6866,6 @@ def test_firma_windows_store_pades_riproduce_profilo_studio_telematico(monkeypat
     assert len(evidence) == 2
     assert all(item["content_digest_verified"] and item["cryptographic_signature_verified"] for item in evidence)
     verify_additional_signature(firmato, second, "test.pdf")
-    import pytest
     with pytest.raises(ValueError, match="nuova firma"):
         verify_additional_signature(firmato, firmato, "test.pdf")
     with pytest.raises(ValueError, match="non conserva"):
@@ -10155,3 +10189,58 @@ def test_handler_scanner_locale_espone_endpoint_e_risposta(monkeypatch):
     assert captured["status"] == 200
     assert captured["payload"]["timeout"] == 60
     assert 'elif path == "/scanner/acquire":' in source
+
+
+def test_firma_batch_segnala_documento_gia_firmato_dallo_stesso_certificato():
+    """Specifiche tecniche DGSIA art. 15 c. 2: la cofirma è ammessa, la stessa firma ripetuta no."""
+    module = _load_local_signer()
+    captured = {}
+    orig_trova = module._trova_libreria
+    orig_firma = module._firma_documento
+
+    class FirmaGiaPresente(RuntimeError):
+        def __init__(self, messaggio, firmatario=""):
+            super().__init__(messaggio)
+            self.firmatario = firmatario
+            self.pin_session_id = "sess-9"
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "documenti": [
+                    {"documento": base64.b64encode(b"gia").decode(), "nome": "gia.pdf", "formato": "pades"},
+                    {"documento": base64.b64encode(b"nuovo").decode(), "nome": "nuovo.pdf", "formato": "pades"},
+                ],
+                "pin": "123456",
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    sessioni = []
+
+    def _fake_firma_documento(lib_path, documento, pin, slot_id, pin_session_id=None, **_kwargs):
+        sessioni.append(pin_session_id)
+        if documento == b"gia":
+            raise RuntimeError("Firma interrotta") from FirmaGiaPresente(
+                "Il documento è già firmato da MARIO ROSSI con lo stesso dispositivo: non viene firmato di nuovo.",
+                firmatario="MARIO ROSSI",
+            )
+        return documento + b"-firmato", {"pin_session_id": pin_session_id or "sess-new"}
+
+    try:
+        module._trova_libreria = lambda: "fake.dll"
+        module._firma_documento = _fake_firma_documento
+        module._Handler._firma_batch(_FakeHandler())
+    finally:
+        module._trova_libreria = orig_trova
+        module._firma_documento = orig_firma
+
+    payload = captured["payload"]
+    assert captured["status"] == 200 and payload["ok"] is True
+    assert payload["firmati"] == 1 and payload["gia_firmati"] == 1 and payload["falliti"] == 0
+    gia = payload["risultati"][0]
+    assert gia["gia_firmato"] is True and gia["firmatario"] == "MARIO ROSSI" and "firmato_b64" not in gia
+    # La sessione PIN resta valida: il documento successivo non chiede di nuovo il PIN.
+    assert sessioni == [None, "sess-9"]

@@ -4803,10 +4803,16 @@ function DepositBatchSignaturePanel({
         throw new Error(String(payload.errore || payload.messaggio || `Firma multipla non riuscita: HTTP ${signResponse.status}`))
       }
       const errors: string[] = []
+      const alreadySigned: string[] = []
       let saved = 0
       for (let index = 0; index < targetDocuments.length; index += 1) {
         const doc = targetDocuments[index]
         const result = risultati.find((item) => Number(item.indice) === index) || risultati[index]
+        if (result?.gia_firmato === true) {
+          // Stesso certificato: il documento reca già la firma dell'avvocato, non si firma di nuovo.
+          alreadySigned.push(doc.name)
+          continue
+        }
         if (!result || result.ok === false || !result.firmato_b64) {
           errors.push(`${doc.name}: ${String(result?.errore || result?.messaggio || 'firma non completata')}`)
           continue
@@ -4826,12 +4832,16 @@ function DepositBatchSignaturePanel({
       const usedWindowsStore = !pinSessionId && risultati.some((item) => item.windows_cert_store === true)
       let oneTimePin = usedWindowsStore ? pin.trim() : ''
       setPin('')
+      const alreadySignedNote = alreadySigned.length
+        ? ` ${alreadySigned.length === 1 ? `«${alreadySigned[0]}» ha già` : `${alreadySigned.length} documenti hanno già`} la firma dell’avvocato con lo stesso dispositivo: firma non ripetuta.`
+        : ''
       if (errors.length) {
         const prefix = saved ? `${saved} documenti firmati e salvati. ` : ''
-        throw new Error(`${prefix}Firma multipla da completare: ${errors.join(' ')}`)
+        throw new Error(`${prefix}Firma multipla da completare: ${errors.join(' ')}${alreadySignedNote}`)
       }
-      setMessage(`Firma multipla completata: ${saved} documenti firmati e salvati nel fascicolo.`)
-      if (refreshAfter) onDone(`Firma multipla completata: ${saved} documenti firmati e salvati nel fascicolo.`)
+      const completedMessage = `Firma multipla completata: ${saved} documenti firmati e salvati nel fascicolo.${alreadySignedNote}`
+      setMessage(completedMessage)
+      if (refreshAfter) onDone(completedMessage)
       return {
         pinSessionId: pinSessionId || undefined,
         pinSessionTtlSeconds: pinSessionTtlSeconds || undefined,

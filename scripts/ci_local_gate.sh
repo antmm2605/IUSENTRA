@@ -221,6 +221,10 @@ if [ "$FAST" -eq 0 ]; then
   # tools/, local_signer_mod/ o l'impacchettamento.
   step "Pytest packaging/dist"     python3 -m pytest -q tests/test_build_dist.py tests/test_packaging_consistency.py --tb=short
   step "Pytest local signer"       python3 -m pytest -q tests/test_local_signer.py --tb=short
+  # Banco di prova di Lex (docs/LEX_BANCO_PROVA.md): 46 domande reali sullo studio
+  # di esempio. Fallisce se una domanda gia' risolta (tests/lex_banco/soglia.json)
+  # torna sbagliata. Dopo un miglioramento: scripts/lex_banco_prova.py --aggiorna-soglia.
+  step "Lex banco di prova"        python3 -m pytest -q tests/test_lex_banco_prova.py --tb=short
 fi
 
 # ---------------------------------------------------------------------------

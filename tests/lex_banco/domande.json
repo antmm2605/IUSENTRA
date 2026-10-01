@@ -1,0 +1,703 @@
+{
+  "versione": 1,
+  "data_riferimento": "2026-10-05",
+  "nota": "Domande reali dell'avvocato con la risposta attesa sullo studio di esempio (tests/lex_banco/studio.py). 'data:AAAA-MM-GG' accetta la data scritta in italiano (20 ottobre 2026) o come 20/10/2026. 'solo': clienti di cui la risposta può parlare; i cognomi e le date degli altri clienti dello studio non devono comparire (niente elenchi indiscriminati).",
+  "vietate_sempre": [
+    "Non ho trovato dati reali sufficienti",
+    "La richiesta richiede una verifica aggiuntiva prima di produrre una risposta affidabile",
+    "ho bisogno del riferimento corretto della pratica"
+  ],
+  "domande": [
+    {
+      "id": "Q01",
+      "categoria": "quando",
+      "domanda": "quando devo fare deposito note scritte per la cliente Gramuglia Caterina",
+      "risposta_attesa": "Entro martedì 20 ottobre 2026 (tra 15 giorni): deposito delle note scritte ex art. 127-ter c.p.c. nel fascicolo Gramuglia c. INPS, R.G. 1500/2025, Tribunale di Palmi. Termine perentorio.",
+      "deve_contenere": [
+        "data:2026-10-20",
+        "Gramuglia"
+      ],
+      "non_deve_contenere": [
+        "data:2026-10-25",
+        "data:2026-10-22"
+      ],
+      "solo": [
+        "Gramuglia"
+      ]
+    },
+    {
+      "id": "Q02",
+      "categoria": "forma",
+      "domanda": "quando scadono le note scritte di Caterina Gramuglia?",
+      "risposta_attesa": "20 ottobre 2026, fascicolo Gramuglia c. INPS (R.G. 1500/2025).",
+      "deve_contenere": [
+        "data:2026-10-20"
+      ],
+      "non_deve_contenere": [
+        "data:2026-10-25"
+      ],
+      "solo": [
+        "Gramuglia"
+      ]
+    },
+    {
+      "id": "Q03",
+      "categoria": "forma",
+      "domanda": "entro quando vanno depositate le note per la Gramuglia",
+      "risposta_attesa": "Entro il 20 ottobre 2026 (note scritte ex art. 127-ter c.p.c., Gramuglia c. INPS).",
+      "deve_contenere": [
+        "data:2026-10-20"
+      ],
+      "non_deve_contenere": [
+        "data:2026-10-25"
+      ],
+      "solo": [
+        "Gramuglia"
+      ]
+    },
+    {
+      "id": "Q04",
+      "categoria": "forma",
+      "domanda": "GRAMUGLIA CATERINA scadenza note scritte",
+      "risposta_attesa": "20 ottobre 2026.",
+      "deve_contenere": [
+        "data:2026-10-20"
+      ],
+      "non_deve_contenere": [
+        "data:2026-10-25"
+      ],
+      "solo": [
+        "Gramuglia"
+      ]
+    },
+    {
+      "id": "Q05",
+      "categoria": "forma",
+      "domanda": "la sig.ra Gramuglia quando deve depositare le note?",
+      "risposta_attesa": "Il 20 ottobre 2026 scade il termine per le note scritte nel fascicolo Gramuglia c. INPS.",
+      "deve_contenere": [
+        "data:2026-10-20"
+      ],
+      "non_deve_contenere": [
+        "data:2026-10-25"
+      ],
+      "solo": [
+        "Gramuglia"
+      ]
+    },
+    {
+      "id": "Q06",
+      "categoria": "forma",
+      "domanda": "note 127 ter gramuglia",
+      "risposta_attesa": "Note scritte ex art. 127-ter c.p.c. — Gramuglia c. INPS: termine al 20 ottobre 2026.",
+      "deve_contenere": [
+        "data:2026-10-20"
+      ],
+      "non_deve_contenere": [
+        "data:2026-10-25"
+      ],
+      "solo": [
+        "Gramuglia"
+      ]
+    },
+    {
+      "id": "Q07",
+      "categoria": "forma",
+      "domanda": "caterina gramuglia scadenze",
+      "risposta_attesa": "Scadenza aperta: deposito note scritte ex art. 127-ter c.p.c., 20 ottobre 2026 (Gramuglia c. INPS).",
+      "deve_contenere": [
+        "data:2026-10-20"
+      ],
+      "non_deve_contenere": [
+        "data:2026-10-25"
+      ],
+      "solo": [
+        "Gramuglia"
+      ]
+    },
+    {
+      "id": "Q08",
+      "categoria": "forma",
+      "domanda": "quando scade il termine perentorio della Gramuglia",
+      "risposta_attesa": "20 ottobre 2026: note scritte ex art. 127-ter c.p.c., termine perentorio.",
+      "deve_contenere": [
+        "data:2026-10-20"
+      ],
+      "non_deve_contenere": [
+        "data:2026-10-25"
+      ],
+      "solo": [
+        "Gramuglia"
+      ]
+    },
+    {
+      "id": "Q09",
+      "categoria": "forma",
+      "domanda": "Gramuglia: prossimi adempimenti",
+      "risposta_attesa": "Deposito note scritte entro il 20 ottobre 2026; poi udienza di discussione il 12 gennaio 2027.",
+      "deve_contenere": [
+        "data:2026-10-20"
+      ],
+      "non_deve_contenere": [
+        "data:2026-10-25"
+      ],
+      "solo": [
+        "Gramuglia"
+      ]
+    },
+    {
+      "id": "Q10",
+      "categoria": "conteggio",
+      "domanda": "quanti giorni mancano alle note scritte della Gramuglia",
+      "risposta_attesa": "15 giorni: il termine scade il 20 ottobre 2026.",
+      "deve_contenere": [
+        "15 giorni",
+        "data:2026-10-20"
+      ],
+      "solo": [
+        "Gramuglia"
+      ]
+    },
+    {
+      "id": "Q11",
+      "categoria": "quando",
+      "domanda": "quando scade la memoria 171-ter per Mario Rossi del condominio Aurora",
+      "risposta_attesa": "9 ottobre 2026: memoria integrativa art. 171-ter n. 1 c.p.c., Rossi c. Condominio Aurora (R.G. 2210/2024).",
+      "deve_contenere": [
+        "data:2026-10-09"
+      ],
+      "non_deve_contenere": [
+        "data:2026-10-15"
+      ],
+      "solo": [
+        "Rossi"
+      ]
+    },
+    {
+      "id": "Q12",
+      "categoria": "quando",
+      "domanda": "quando devo depositare la comparsa conclusionale per Esposito Anna",
+      "risposta_attesa": "Entro il 7 ottobre 2026 (Esposito c. Verdi Costruzioni, R.G. 3301/2025).",
+      "deve_contenere": [
+        "data:2026-10-07"
+      ],
+      "solo": [
+        "Esposito"
+      ]
+    },
+    {
+      "id": "Q13",
+      "categoria": "quando",
+      "domanda": "quando scade la memoria di replica di Anna Esposito",
+      "risposta_attesa": "27 ottobre 2026.",
+      "deve_contenere": [
+        "data:2026-10-27"
+      ],
+      "solo": [
+        "Esposito"
+      ]
+    },
+    {
+      "id": "Q14",
+      "categoria": "quando",
+      "domanda": "quando devo notificare l'appello per De Luca Giovanni",
+      "risposta_attesa": "Entro il 30 ottobre 2026 (Appello De Luca c. Assicurazioni Sud, R.G. 512/2026, Corte d'Appello di Lecce).",
+      "deve_contenere": [
+        "data:2026-10-30"
+      ],
+      "solo": [
+        "De Luca"
+      ]
+    },
+    {
+      "id": "Q15",
+      "categoria": "conferma",
+      "domanda": "quando scadono le note scritte per Bianchi Impianti",
+      "risposta_attesa": "22 ottobre 2026, ma è un termine proposto dalla lettura della PEC di cancelleria e ancora da confermare.",
+      "deve_contenere": [
+        "data:2026-10-22",
+        "conferm"
+      ],
+      "solo": [
+        "Bianchi"
+      ]
+    },
+    {
+      "id": "Q16",
+      "categoria": "quando",
+      "domanda": "termine per l'opposizione al decreto ingiuntivo di Mario Rossi",
+      "risposta_attesa": "15 ottobre 2026 (Opposizione a decreto ingiuntivo Banca Levante, R.G. 880/2026, Tribunale di Napoli).",
+      "deve_contenere": [
+        "data:2026-10-15"
+      ],
+      "non_deve_contenere": [
+        "data:2026-10-09"
+      ],
+      "solo": [
+        "Rossi"
+      ]
+    },
+    {
+      "id": "Q17",
+      "categoria": "rg",
+      "domanda": "quando devo depositare le note nel procedimento RG 1500/2025",
+      "risposta_attesa": "20 ottobre 2026 (Gramuglia c. INPS).",
+      "deve_contenere": [
+        "data:2026-10-20"
+      ],
+      "non_deve_contenere": [
+        "data:2026-10-25"
+      ],
+      "solo": [
+        "Gramuglia"
+      ]
+    },
+    {
+      "id": "Q18",
+      "categoria": "rg",
+      "domanda": "scadenze del fascicolo RG 3301/2025",
+      "risposta_attesa": "Comparsa conclusionale 7 ottobre 2026; memoria di replica 27 ottobre 2026.",
+      "deve_contenere": [
+        "data:2026-10-07",
+        "data:2026-10-27"
+      ],
+      "solo": [
+        "Esposito"
+      ]
+    },
+    {
+      "id": "Q19",
+      "categoria": "rg",
+      "domanda": "prossima udienza RG 2210/2024",
+      "risposta_attesa": "12 novembre 2026, prima udienza art. 183 c.p.c. (Rossi c. Condominio Aurora, Tribunale di Bari).",
+      "deve_contenere": [
+        "data:2026-11-12"
+      ],
+      "solo": [
+        "Rossi"
+      ]
+    },
+    {
+      "id": "Q20",
+      "categoria": "rg",
+      "domanda": "a che punto è la causa 512/2026",
+      "risposta_attesa": "Appello De Luca c. Assicurazioni Sud: notifica dell'appello entro il 30 ottobre 2026, prima udienza il 3 dicembre 2026.",
+      "deve_contenere": [
+        "data:2026-10-30",
+        "data:2026-12-03"
+      ],
+      "solo": [
+        "De Luca"
+      ]
+    },
+    {
+      "id": "Q21",
+      "categoria": "rg",
+      "domanda": "chi è il giudice del fascicolo RG 1500/2025",
+      "risposta_attesa": "Dott. Russo (Tribunale di Palmi, Gramuglia c. INPS).",
+      "deve_contenere": [
+        "Russo"
+      ],
+      "solo": [
+        "Gramuglia"
+      ]
+    },
+    {
+      "id": "Q22",
+      "categoria": "udienza",
+      "domanda": "prossima udienza di Gramuglia Caterina",
+      "risposta_attesa": "20 ottobre 2026: udienza sostituita dal deposito di note scritte (art. 127-ter c.p.c.); la successiva è il 12 gennaio 2027.",
+      "deve_contenere": [
+        "data:2026-10-20"
+      ],
+      "solo": [
+        "Gramuglia"
+      ]
+    },
+    {
+      "id": "Q23",
+      "categoria": "udienza",
+      "domanda": "quando è la prossima udienza di De Luca",
+      "risposta_attesa": "3 dicembre 2026, Corte d'Appello di Lecce.",
+      "deve_contenere": [
+        "data:2026-12-03"
+      ],
+      "solo": [
+        "De Luca"
+      ]
+    },
+    {
+      "id": "Q24",
+      "categoria": "udienza",
+      "domanda": "prossima udienza Bianchi Impianti",
+      "risposta_attesa": "8 ottobre 2026, prima udienza di comparizione al Giudice di Pace di Bari.",
+      "deve_contenere": [
+        "data:2026-10-08"
+      ],
+      "solo": [
+        "Bianchi"
+      ]
+    },
+    {
+      "id": "Q25",
+      "categoria": "assenza",
+      "domanda": "quando è la prossima udienza di Esposito Anna",
+      "risposta_attesa": "Nessuna udienza futura: la causa è stata rimessa in decisione il 8 luglio 2026. Restano la memoria di replica al 27 ottobre 2026.",
+      "deve_contenere": [
+        "Esposito"
+      ],
+      "almeno_uno": [
+        "nessuna udienza",
+        "non risult",
+        "non ci sono udienze",
+        "non è fissata"
+      ],
+      "solo": [
+        "Esposito"
+      ]
+    },
+    {
+      "id": "Q26",
+      "categoria": "udienza",
+      "domanda": "quando ho l'ultima udienza della Gramuglia",
+      "risposta_attesa": "L'ultima udienza tenuta è del 15 maggio 2026; la prossima è il 20 ottobre 2026 (note scritte).",
+      "deve_contenere": [
+        "data:2026-05-15"
+      ],
+      "solo": [
+        "Gramuglia"
+      ]
+    },
+    {
+      "id": "Q27",
+      "categoria": "settimana",
+      "domanda": "cosa scade questa settimana",
+      "risposta_attesa": "7 ottobre 2026 comparsa conclusionale (Esposito c. Verdi Costruzioni); 9 ottobre 2026 memoria 171-ter n. 1 (Rossi c. Condominio Aurora).",
+      "deve_contenere": [
+        "data:2026-10-07",
+        "data:2026-10-09"
+      ],
+      "non_deve_contenere": [
+        "data:2026-10-20",
+        "data:2026-10-15"
+      ]
+    },
+    {
+      "id": "Q28",
+      "categoria": "settimana",
+      "domanda": "cosa scade questa settimana per Esposito Anna",
+      "risposta_attesa": "7 ottobre 2026: comparsa conclusionale.",
+      "deve_contenere": [
+        "data:2026-10-07"
+      ],
+      "non_deve_contenere": [
+        "data:2026-10-09"
+      ],
+      "solo": [
+        "Esposito"
+      ]
+    },
+    {
+      "id": "Q29",
+      "categoria": "settimana",
+      "domanda": "cosa scade questa settimana per la Gramuglia",
+      "risposta_attesa": "Niente questa settimana; il prossimo termine è il 20 ottobre 2026 (note scritte).",
+      "deve_contenere": [
+        "Gramuglia"
+      ],
+      "almeno_uno": [
+        "nessun",
+        "non ci sono",
+        "non risult",
+        "niente"
+      ],
+      "non_deve_contenere": [
+        "data:2026-10-07",
+        "data:2026-10-09"
+      ],
+      "solo": [
+        "Gramuglia"
+      ]
+    },
+    {
+      "id": "Q30",
+      "categoria": "settimana",
+      "domanda": "che udienze ho questa settimana",
+      "risposta_attesa": "8 ottobre 2026: prima udienza di comparizione Bianchi Impianti c. Lorusso, Giudice di Pace di Bari.",
+      "deve_contenere": [
+        "data:2026-10-08"
+      ],
+      "non_deve_contenere": [
+        "data:2026-11-12",
+        "data:2026-10-07",
+        "data:2026-10-09"
+      ]
+    },
+    {
+      "id": "Q31",
+      "categoria": "settimana",
+      "domanda": "qual è la prossima scadenza dello studio",
+      "risposta_attesa": "7 ottobre 2026: comparsa conclusionale Esposito c. Verdi Costruzioni.",
+      "deve_contenere": [
+        "data:2026-10-07"
+      ],
+      "non_deve_contenere": [
+        "data:2026-10-15",
+        "data:2026-10-20"
+      ]
+    },
+    {
+      "id": "Q32",
+      "categoria": "settimana",
+      "domanda": "scadenze dei prossimi 30 giorni",
+      "risposta_attesa": "7/10 Esposito, 9/10 Rossi (Aurora), 15/10 Rossi (Banca Levante), 20/10 Gramuglia, 22/10 Bianchi (da confermare), 25/10 Gramaglia, 27/10 Esposito, 30/10 De Luca.",
+      "deve_contenere": [
+        "data:2026-10-07",
+        "data:2026-10-20",
+        "data:2026-10-30"
+      ]
+    },
+    {
+      "id": "Q33",
+      "categoria": "omonimi",
+      "domanda": "scadenze di Mario Rossi",
+      "risposta_attesa": "Ci sono due clienti Mario Rossi: Rossi c. Condominio Aurora (memoria 171-ter al 9 ottobre 2026) e Opposizione a decreto ingiuntivo Banca Levante (15 ottobre 2026).",
+      "deve_contenere": [
+        "Condominio Aurora",
+        "Banca Levante"
+      ],
+      "solo": [
+        "Rossi"
+      ]
+    },
+    {
+      "id": "Q34",
+      "categoria": "omonimi",
+      "domanda": "prossima udienza di Mario Rossi",
+      "risposta_attesa": "Due clienti Mario Rossi: per Rossi c. Condominio Aurora il 12 novembre 2026; per l'opposizione Banca Levante nessuna udienza fissata.",
+      "deve_contenere": [
+        "Condominio Aurora",
+        "Banca Levante"
+      ],
+      "solo": [
+        "Rossi"
+      ]
+    },
+    {
+      "id": "Q35",
+      "categoria": "omonimi",
+      "domanda": "fascicoli di Rossi Mario",
+      "risposta_attesa": "Rossi c. Condominio Aurora (R.G. 2210/2024) e Opposizione a decreto ingiuntivo Banca Levante (R.G. 880/2026), di due clienti omonimi.",
+      "deve_contenere": [
+        "Condominio Aurora",
+        "Banca Levante"
+      ],
+      "solo": [
+        "Rossi"
+      ]
+    },
+    {
+      "id": "Q36",
+      "categoria": "omonimi",
+      "domanda": "dati del cliente Mario Rossi",
+      "risposta_attesa": "Due clienti con questo nome: RSSMRA70A01A662X e RSSMRA82C15F839Y. Quale?",
+      "deve_contenere": [
+        "RSSMRA70A01A662X",
+        "RSSMRA82C15F839Y"
+      ],
+      "solo": [
+        "Rossi"
+      ]
+    },
+    {
+      "id": "Q37",
+      "categoria": "omonimi",
+      "domanda": "quando scadono le note scritte per Gramaglia Roberto",
+      "risposta_attesa": "25 ottobre 2026 (Gramaglia c. Comune di Bari).",
+      "deve_contenere": [
+        "data:2026-10-25"
+      ],
+      "non_deve_contenere": [
+        "data:2026-10-20"
+      ],
+      "solo": [
+        "Gramaglia"
+      ]
+    },
+    {
+      "id": "Q38",
+      "categoria": "assenza",
+      "domanda": "quando devo depositare le note scritte per Ferraro Luca",
+      "risposta_attesa": "Ferraro Luca non ha fascicoli nello studio: non risulta alcun termine per note scritte.",
+      "deve_contenere": [
+        "Ferraro"
+      ],
+      "almeno_uno": [
+        "nessun fascicolo",
+        "non ha fascicoli",
+        "non risult",
+        "nessun termine"
+      ],
+      "solo": [
+        "Ferraro"
+      ]
+    },
+    {
+      "id": "Q39",
+      "categoria": "assenza",
+      "domanda": "quando devo depositare le note per il cliente Neri Paolo",
+      "risposta_attesa": "Nello studio non c'è un cliente Neri Paolo.",
+      "deve_contenere": [
+        "Neri Paolo"
+      ],
+      "almeno_uno": [
+        "non c'è",
+        "non trovo",
+        "nessun cliente",
+        "non risult"
+      ],
+      "non_deve_contenere": [
+        "data:2026-10-20",
+        "data:2026-10-25"
+      ],
+      "solo": []
+    },
+    {
+      "id": "Q40",
+      "categoria": "assenza",
+      "domanda": "quando devo depositare la memoria 171-ter per la Gramuglia",
+      "risposta_attesa": "Per Gramuglia c. INPS non risulta un termine per memorie 171-ter; l'unico termine aperto è il deposito delle note scritte al 20 ottobre 2026.",
+      "deve_contenere": [
+        "Gramuglia"
+      ],
+      "almeno_uno": [
+        "non risult",
+        "nessun",
+        "non c'è"
+      ],
+      "non_deve_contenere": [
+        "data:2026-10-09"
+      ],
+      "solo": [
+        "Gramuglia"
+      ]
+    },
+    {
+      "id": "Q41",
+      "categoria": "assenza",
+      "domanda": "quando dovevo depositare il ricorso della Gramuglia",
+      "risposta_attesa": "Il 1° marzo 2026: il deposito del ricorso introduttivo risulta completato.",
+      "deve_contenere": [
+        "data:2026-03-01"
+      ],
+      "solo": [
+        "Gramuglia"
+      ]
+    },
+    {
+      "id": "Q42",
+      "categoria": "fascicolo",
+      "domanda": "situazione del fascicolo Gramuglia c. INPS",
+      "risposta_attesa": "R.G. 1500/2025, Tribunale di Palmi, giudice Dott. Russo; note scritte entro il 20 ottobre 2026; udienza di discussione il 12 gennaio 2027.",
+      "deve_contenere": [
+        "1500/2025",
+        "data:2026-10-20"
+      ],
+      "solo": [
+        "Gramuglia"
+      ]
+    },
+    {
+      "id": "Q43",
+      "categoria": "fascicolo",
+      "domanda": "in quale tribunale è la causa di De Luca",
+      "risposta_attesa": "Corte d'Appello di Lecce (R.G. 512/2026).",
+      "deve_contenere": [
+        "Lecce"
+      ],
+      "solo": [
+        "De Luca"
+      ]
+    },
+    {
+      "id": "Q44",
+      "categoria": "fascicolo",
+      "domanda": "chi è la controparte di Esposito Anna",
+      "risposta_attesa": "Verdi Costruzioni S.r.l.",
+      "deve_contenere": [
+        "Verdi Costruzioni"
+      ],
+      "solo": [
+        "Esposito"
+      ]
+    },
+    {
+      "id": "Q45",
+      "categoria": "conferma",
+      "domanda": "quali scadenze sono ancora da confermare",
+      "risposta_attesa": "Una: deposito note scritte Bianchi Impianti c. Lorusso al 22 ottobre 2026, proposta dalla PEC di cancelleria del 28/09/2026.",
+      "deve_contenere": [
+        "data:2026-10-22",
+        "Bianchi"
+      ],
+      "solo": [
+        "Bianchi"
+      ],
+      "non_deve_contenere": [
+        "data:2026-10-20",
+        "data:2026-10-25"
+      ]
+    },
+    {
+      "id": "Q46",
+      "categoria": "conferma",
+      "domanda": "scadenze del cliente Bianchi Impianti",
+      "risposta_attesa": "Deposito note scritte al 22 ottobre 2026, da confermare (proposta dalla PEC di cancelleria).",
+      "deve_contenere": [
+        "data:2026-10-22"
+      ],
+      "solo": [
+        "Bianchi"
+      ]
+    }
+  ],
+  "clienti_studio": [
+    "Gramuglia",
+    "Gramaglia",
+    "Rossi",
+    "Esposito",
+    "De Luca",
+    "Bianchi",
+    "Ferraro"
+  ],
+  "date_clienti": {
+    "Gramuglia": [
+      "2026-10-20",
+      "2026-03-01",
+      "2027-01-12",
+      "2026-05-15"
+    ],
+    "Gramaglia": [
+      "2026-10-25"
+    ],
+    "Rossi": [
+      "2026-10-09",
+      "2026-11-12",
+      "2026-10-15"
+    ],
+    "Esposito": [
+      "2026-10-07",
+      "2026-10-27",
+      "2026-07-08"
+    ],
+    "De Luca": [
+      "2026-10-30",
+      "2026-12-03"
+    ],
+    "Bianchi": [
+      "2026-10-22",
+      "2026-10-08"
+    ],
+    "Ferraro": []
+  }
+}

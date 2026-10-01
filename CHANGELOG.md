@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.434.5 — 01/10/2026
+
+Banco di prova di Lex: si misura quante domande reali dell'avvocato Lex risolve sui dati dello studio, prima di cambiare il modo in cui capisce le domande.
+
+- **Studio di esempio e 46 domande con la risposta attesa** (`tests/lex_banco/`, `docs/LEX_BANCO_PROVA.md`): «quando devo…», «cosa scade questa settimana per…», «prossima udienza di…», R.G. al posto del nome, cognome e nome invertiti, clienti omonimi, cognomi quasi uguali, fascicolo collegato solo per nome, termini da confermare o già completati, dati assenti. Ogni domanda passa dal canale del browser (`/api/assistente/chat`) in una sessione nuova, con data di riferimento fissa, senza modello locale e senza rete esterna.
+- **Valutazione rigorosa**: la data deve comparire in italiano; in una domanda su un cliente non possono comparire nomi e date di altri clienti, quindi un elenco di tutte le scadenze dello studio non vale come risposta; le frasi generiche («Non ho trovato dati reali sufficienti…») contano sempre come errore.
+- **Misura di partenza: 1 domanda su 46.** Le cause osservate sono descritte in `docs/LEX_BANCO_PROVA.md`: classificazione della domanda per parole chiave in ordine fisso, ricerca del cliente con tutte le parole della domanda, risposte che elencano tutto lo studio, termini da confermare ignorati, ricerche web avviate per domande sui dati dello studio.
+- **Nel gate**: `scripts/ci_local_gate.sh` (passo «Lex banco di prova») e la CI falliscono se una domanda già risolta (`tests/lex_banco/soglia.json`) torna sbagliata; `python scripts/lex_banco_prova.py --aggiorna-soglia` alza la soglia dopo ogni miglioramento.
+
 ## 2.434.4 — 30/09/2026
 
 - Per i dodici atti SICID richiesti, eliminata la richiesta impropria di CCI e Istanza manuale; sub-procedimento indicato come facoltativo.

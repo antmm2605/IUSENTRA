@@ -88,3 +88,50 @@ def test_costruzione_in_flusso_uguale_alla_sequenziale(tmp_path):
     di_nuovo = iv.costruisci_indice(conn, tmp_path / "p", FintoParallelo(64), batch=4, progresso=lambda a, b, v: velocita.append((a, v)))
     assert di_nuovo.nuovi == 0 and di_nuovo.invariati == 6 and velocita == []
     conn.close()
+
+
+class _Risposta:
+    def __init__(self, codice):
+        self.status_code = codice
+
+
+def _errore_http(codice=500):
+    import requests
+
+    return requests.HTTPError(f"{codice} Server Error", response=_Risposta(codice))
+
+
+def test_testo_anomalo_isolato_e_accorciato(monkeypatch):
+    def finto(self, testi):
+        if any("VELENO" in t for t in testi):
+            raise _errore_http(500)
+        return _finto(testi)
+
+    monkeypatch.setattr(OllamaEmbedder, "_embed_una_volta", finto)
+    testi = [f"testo {i}" for i in range(16)]
+    testi[11] = "x" * 1000 + " VELENO"  # rifiutato intero, accettato accorciato a 800 caratteri
+    emb = OllamaEmbedder(modello="m", url="http://x", paralleli=1, attesa_s=0)
+    matrice = emb.embed_singolo(testi)
+    assert matrice.shape[0] == 16
+    assert np.allclose(np.delete(matrice, 11, axis=0), _finto([t for i, t in enumerate(testi) if i != 11]))
+    assert np.allclose(matrice[11], _finto(["x" * 800])[0])
+    assert emb.testi_ridotti == [(testi[11][:120], 1007, 800)]
+
+
+def test_ollama_spento_non_divide(monkeypatch):
+    import requests
+
+    chiamate = []
+
+    def finto(self, testi):
+        chiamate.append(len(testi))
+        raise requests.ConnectionError("rifiutata")
+
+    monkeypatch.setattr(OllamaEmbedder, "_embed_una_volta", finto)
+    emb = OllamaEmbedder(modello="m", url="http://x", tentativi=2, attesa_s=0)
+    try:
+        emb.embed_singolo(["a", "b", "c", "d"])
+        raise AssertionError("doveva fallire")
+    except RuntimeError:
+        pass
+    assert chiamate == [4, 4]

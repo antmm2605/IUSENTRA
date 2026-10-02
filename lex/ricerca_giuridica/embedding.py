@@ -17,14 +17,26 @@ import math
 import os
 import re
 import time
-from dataclasses import dataclass
+import logging
+from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 import numpy as np
 
 from .testo import termini_indice
 
+logger = logging.getLogger(__name__)
+
 MODELLO_PREDEFINITO = "embeddinggemma:300m"
+_RE_CONTROLLO = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f\ufffe\uffff]")
+
+
+def _errore_del_contenuto(exc: BaseException) -> bool:
+    """True se Ollama ha risposto con un errore HTTP (il problema e' nel testo), False se non risponde."""
+
+    causa = exc.__cause__ or exc
+    risposta = getattr(causa, "response", None)
+    return risposta is not None and getattr(risposta, "status_code", 0) >= 400
 PREFISSO_DOMANDA = "task: search result | query: "
 PREFISSO_DOCUMENTO = "title: {titolo} | text: "
 
@@ -80,6 +92,7 @@ class OllamaEmbedder:
     tentativi: int = 3
     attesa_s: float = 1.0
     dimensioni: int = 0  # >0: troncamento Matryoshka (embeddinggemma supporta 768/512/256/128)
+    testi_ridotti: list = field(default_factory=list)  # (inizio testo, caratteri originali, caratteri usati)
     paralleli: int = 0  # richieste contemporanee per batch (0 = LEX_EMBED_PARALLELI o 1); serve OLLAMA_NUM_PARALLEL sul server Ollama
 
     def __post_init__(self) -> None:
@@ -151,20 +164,46 @@ class OllamaEmbedder:
             return np.zeros((0, max(1, self.dimensioni)), dtype=np.float32)
         parti = max(1, min(int(self.paralleli or 1), len(testi)))
         if parti == 1:
-            return self._embed_con_tentativi(testi)
+            return self.embed_singolo(testi)
         # Il batch viene diviso in `parti` richieste contemporanee; l'ordine dei risultati e' preservato.
         from concurrent.futures import ThreadPoolExecutor
 
         passo = -(-len(testi) // parti)
         blocchi = [testi[i : i + passo] for i in range(0, len(testi), passo)]
         with ThreadPoolExecutor(max_workers=len(blocchi)) as esecutore:
-            risultati = list(esecutore.map(self._embed_con_tentativi, blocchi))
+            risultati = list(esecutore.map(self.embed_singolo, blocchi))
         return np.vstack(risultati)
 
     def embed_singolo(self, testi: list[str]) -> np.ndarray:
-        """Una sola richiesta (con tentativi), senza dividere: usata da chi gestisce le richieste in volo."""
+        """Una richiesta (con tentativi). Se Ollama rifiuta il lotto con un errore HTTP, il lotto viene
+        diviso a meta' fino a isolare il testo che lo fa fallire, che viene poi accorciato
+        (``_embed_testo_difficile``): un solo chunk anomalo non ferma la costruzione dell'indice."""
 
-        return self._embed_con_tentativi(testi)
+        try:
+            return self._embed_con_tentativi(testi)
+        except RuntimeError as exc:
+            if not _errore_del_contenuto(exc):
+                raise  # Ollama spento o irraggiungibile: inutile dividere
+            if len(testi) > 1:
+                meta = len(testi) // 2
+                return np.vstack([self.embed_singolo(testi[:meta]), self.embed_singolo(testi[meta:])])
+            return self._embed_testo_difficile(testi[0], exc)
+
+    def _embed_testo_difficile(self, testo: str, errore: Exception) -> np.ndarray:
+        pulito = _RE_CONTROLLO.sub(" ", str(testo or ""))
+        for limite in (len(pulito), 1500, 800, 300):
+            ridotto = pulito[:limite]
+            try:
+                vettore = self._embed_una_volta([ridotto])
+            except Exception:
+                continue
+            self.testi_ridotti.append((testo[:120], len(testo), len(ridotto)))
+            logger.warning(
+                "embedding: testo rifiutato da Ollama (%s), indicizzato accorciato a %d caratteri su %d: %r",
+                errore, len(ridotto), len(testo), testo[:120],
+            )
+            return vettore
+        raise RuntimeError(f"embedding non riuscito anche accorciando il testo: {testo[:120]!r}") from errore
 
     def _embed_con_tentativi(self, testi: list[str]) -> np.ndarray:
         ultimo: Exception | None = None

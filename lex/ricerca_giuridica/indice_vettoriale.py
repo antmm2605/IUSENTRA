@@ -515,7 +515,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.solo_esistente and IndiceVettoriale.apri(args.out) is None:
         print(f"Indice vettoriale assente in {args.out}: aggiornamento saltato (si crea con il pacchetto o a mano).")
         return 0
-    embedder = OllamaEmbedder(modello=args.modello, url=args.url, paralleli=getattr(args, "paralleli", 0) or 0)
+    # costruzione lunga: piu' tentativi e attese piu' lunghe (Ollama puo' ricaricare il modello dopo un errore)
+    embedder = OllamaEmbedder(
+        modello=args.modello, url=args.url, paralleli=getattr(args, "paralleli", 0) or 0, tentativi=4, attesa_s=2.0
+    )
     try:
         embedder.embed(["prova"])
     except Exception as exc:
@@ -544,6 +547,9 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         conn.close()
     print()
+    ridotti = list(getattr(embedder, "testi_ridotti", []) or [])
+    if ridotti:
+        print(f"Chunk indicizzati con testo accorciato perche' rifiutati da Ollama: {len(ridotti)}")
     print(json.dumps(esito.to_dict(), ensure_ascii=False))
     return 0
 

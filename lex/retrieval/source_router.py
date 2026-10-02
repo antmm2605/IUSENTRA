@@ -51,6 +51,7 @@ _LEGAL_RESEARCH_HINTS = (
     "organismi di mediazione",
     "registro mediazione",
 )
+_WORKFLOW_GIURIDICI = {"normativa", "giurisprudenza", "prassi", "research", "fonti"}
 _FASCICOLO_FIRST_WORKFLOWS = {"fascicolo", "documento", "udienza"}
 _FREE_WEB_MODES = {"free", "free_web", "web_libero", "web libero", "ricerca_libera", "ricerca libera", "libera"}
 
@@ -119,7 +120,8 @@ class SourceRouter:
         if _is_free_web_request(request):
             return [OfficialWebSource()]
 
-        local_sources = [StudioDatabaseSource(), GuidaPraticaSource()]
+        solo_giuridiche = workflow in _WORKFLOW_GIURIDICI and not request.fascicolo_id
+        local_sources = [] if solo_giuridiche else [StudioDatabaseSource(), GuidaPraticaSource()]
         legal_sources = []
         workflow_sources = []
 
@@ -130,7 +132,11 @@ class SourceRouter:
             # La memoria di apprendimento autonomo entra tra le fonti legali:
             # estratti gia' LETTI da fonti ufficiali (trust tier_1/2, ancora
             # all'URL ufficiale), prima del web governato.
-            legal_sources.extend([LegalUpdatesSource(), LegalIntelligenceSource(), NormativeSource(), LexMemorySource(), GiurisprudenzaSource()])
+            if solo_giuridiche:
+                # Il catalogo dei motori di intelligence non e' un'evidenza giuridica.
+                legal_sources.extend([LegalUpdatesSource(), NormativeSource(), LexMemorySource(), GiurisprudenzaSource()])
+            else:
+                legal_sources.extend([LegalUpdatesSource(), LegalIntelligenceSource(), NormativeSource(), LexMemorySource(), GiurisprudenzaSource()])
 
         if workflow in {"telematico", "telematico_status"}:
             workflow_sources.extend([TelematicoSource(), ComplianceSource()])

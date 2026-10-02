@@ -9,10 +9,12 @@ _WORKFLOW_WEIGHTS = {
     "fascicolo": {"base": 0.35, "trust": 0.10, "freshness": 0.10, "context": 0.30, "consensus": 0.15},
     "udienza": {"base": 0.25, "trust": 0.15, "freshness": 0.15, "context": 0.30, "consensus": 0.15},
     "telematico_status": {"base": 0.25, "trust": 0.20, "freshness": 0.20, "context": 0.20, "consensus": 0.15},
-    "normativa": {"base": 0.15, "trust": 0.30, "freshness": 0.20, "context": 0.15, "consensus": 0.20},
-    "giurisprudenza": {"base": 0.15, "trust": 0.30, "freshness": 0.15, "context": 0.15, "consensus": 0.25},
-    "prassi": {"base": 0.15, "trust": 0.25, "freshness": 0.20, "context": 0.15, "consensus": 0.25},
-    "research": {"base": 0.20, "trust": 0.25, "freshness": 0.15, "context": 0.15, "consensus": 0.25},
+    # Fonti testuali: domina la pertinenza (punteggio di ricerca + sovrapposizione con la domanda).
+    "normativa": {"base": 0.50, "trust": 0.15, "freshness": 0.05, "context": 0.25, "consensus": 0.05},
+    "giurisprudenza": {"base": 0.50, "trust": 0.15, "freshness": 0.05, "context": 0.25, "consensus": 0.05},
+    "prassi": {"base": 0.50, "trust": 0.15, "freshness": 0.05, "context": 0.25, "consensus": 0.05},
+    "research": {"base": 0.45, "trust": 0.15, "freshness": 0.05, "context": 0.25, "consensus": 0.10},
+    "fonti": {"base": 0.45, "trust": 0.15, "freshness": 0.05, "context": 0.25, "consensus": 0.10},
     "economico": {"base": 0.35, "trust": 0.10, "freshness": 0.10, "context": 0.30, "consensus": 0.15},
     "cabina": {"base": 0.30, "trust": 0.10, "freshness": 0.15, "context": 0.25, "consensus": 0.20},
 }

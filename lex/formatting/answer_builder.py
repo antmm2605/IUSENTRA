@@ -13,6 +13,11 @@ from lex.research.case_law_exact_search import parse_case_law_reference
 from lex.schemas import LexGroundingResult
 
 from .citations import build_citations
+from .esito_onesto import (
+    costruisci_esito_onesto,
+    e_domanda_giuridica_risposta,
+    evidenze_giuridiche_pertinenti,
+)
 from .professional_answer import ProfessionalAnswerComposer
 from .sections import build_sections
 
@@ -184,6 +189,19 @@ class AnswerBuilder:
                 confidence=max(confidence, 0.72),
             )
 
+        pertinenti_giuridiche = evidenze_giuridiche_pertinenti(list((evidence or {}).get("items") or []))
+        guard_bloccata = bool(draft_metadata.get("guard_blocked")) or getattr(verdict, "allowed", True) is False
+        if e_domanda_giuridica_risposta(request, workflow) and (guard_bloccata or not pertinenti_giuridiche):
+            return self._build_honest_outcome_response(
+                workflow=workflow,
+                verdict=verdict,
+                draft_metadata=draft_metadata,
+                guard_bloccata=guard_bloccata,
+                pertinenti=pertinenti_giuridiche,
+                evidence_count=evidence_count,
+                lacune=missing_evidence,
+            )
+
         professional = ProfessionalAnswerComposer().compose(
             request=request,
             context=dict(context or {}),
@@ -316,6 +334,60 @@ class AnswerBuilder:
                 "answer_mode": answer_mode,
                 "professional_answer": professional.metadata,
                 "provenance": provenance_envelope,
+            },
+        )
+
+    def _build_honest_outcome_response(
+        self,
+        *,
+        workflow: str,
+        verdict,
+        draft_metadata: dict[str, Any],
+        guard_bloccata: bool,
+        pertinenti: list[Any],
+        evidence_count: int,
+        lacune: list[str] | None = None,
+    ) -> WorkflowLexResponse:
+        testo, manca = costruisci_esito_onesto(
+            workflow=workflow, guard_bloccata=guard_bloccata, pertinenti=pertinenti, lacune=list(lacune or [])
+        )
+        warnings = self._unique_strings(
+            [*list(getattr(verdict, "warnings", []) or []), "Fonti insufficienti: nessuna risposta giuridica affidabile."]
+        )
+        return WorkflowLexResponse(
+            answer=testo,
+            citations=[],
+            warnings=warnings,
+            next_actions=["Importa l'archivio Normattiva o indica articolo e codice per una ricerca puntuale."],
+            risk_level="high",
+            legal_basis=[],
+            considered_sources=[],
+            compared_sources=[],
+            missing_evidence=manca,
+            confidence=0.0,
+            answer_mode="needs_review",
+            evidence_summary={
+                "evidence_count": evidence_count,
+                "pertinent_legal_count": len(pertinenti),
+                "official_count": 0,
+                "trusted_count": 0,
+                "evidence_sufficient": False,
+                "guard_blocked": guard_bloccata,
+            },
+            metadata={
+                "workflow": workflow,
+                "provider": str(draft_metadata.get("provider") or ""),
+                "esito_onesto": True,
+                "guard_blocked": guard_bloccata,
+                "evidence_sufficient": False,
+                "evidence_count": evidence_count,
+                "official_sources": [],
+                "trusted_sources": [],
+                "coverage_gaps": manca,
+                "confidence": 0.0,
+                "confidence_label": "non_valutabile",
+                "answer_mode": "needs_review",
+                "external_sources_used": False,
             },
         )
 

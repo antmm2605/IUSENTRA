@@ -526,6 +526,14 @@ def _resolve_intent(question: str, studio_context: dict[str, Any], request_profi
         return "summarize_fascicolo"
     if focus_topic == "telematico":
         return "explain_telematico_error"
+    try:
+        from lex.ricerca_giuridica.classificatore import classifica_domanda
+
+        esito = classifica_domanda(question)
+        if esito.giuridica:
+            return "research_giurisprudenza" if esito.tipo_ricerca == "giurisprudenza" else "research_normativa"
+    except Exception:
+        pass
     return "ask_lex"
 
 

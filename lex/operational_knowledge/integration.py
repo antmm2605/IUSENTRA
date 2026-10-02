@@ -202,6 +202,13 @@ def _should_defer_to_public_legal_research(
         return False
     if is_exact_legal_reference_query(text):
         return True
+    try:
+        from lex.ricerca_giuridica.classificatore import classifica_domanda
+
+        if classifica_domanda(text).giuridica:
+            return True
+    except Exception:
+        pass
 
     request_profile = dict(metadata.get("request_profile") or studio_context.get("request_profile") or {})
     intent = clean_spaces(request_profile.get("intent")).lower()

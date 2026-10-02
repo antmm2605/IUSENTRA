@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 
 from .contracts import LexRequest
+from .ricerca_giuridica.classificatore import classifica_domanda
 from .types import WorkflowType
 
 
@@ -433,6 +434,12 @@ class LexRouter:
             return "economico"
         if self._has_any(text, self._GUIDA_PRATICA_HINTS) and not getattr(request, "fascicolo_id", None):
             return "question_answering"
+        # P9b: domanda giuridica pura (istituti, articoli, "cosa prevede...") senza segnali di dati
+        # dello studio: ricerca giuridica, non livello operativo.
+        if not getattr(request, "fascicolo_id", None):
+            classificazione = classifica_domanda(text)
+            if classificazione.giuridica:
+                return classificazione.tipo_ricerca  # type: ignore[return-value]
         # P10: anagrafica cliente (ha priorità su fascicolo generico)
         if self._has_any(text, self._CLIENTE_ANAGRAFICA_HINTS) or self._looks_like_cliente_anagrafica(text):
             return "studio_data_lookup"

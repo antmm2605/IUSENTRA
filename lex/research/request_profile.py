@@ -433,6 +433,44 @@ def _default_profile(question: str) -> LexRequestProfile:
     )
 
 
+_INTENTI_GENERICI = {"domanda_generica", "sintesi_documento", "checklist_operativa", "spiegazione_cliente", "pratica_procedura"}
+
+
+def _instrada_domanda_giuridica(question: str, profile: LexRequestProfile, requested_mode: str) -> LexRequestProfile:
+    """Una domanda giuridica senza segnali di dati dello studio va alla ricerca giuridica."""
+
+    if profile.intent not in _INTENTI_GENERICI:
+        return profile
+    try:
+        from lex.ricerca_giuridica.classificatore import classifica_domanda
+
+        esito = classifica_domanda(question)
+    except Exception:
+        return profile
+    if not esito.giuridica:
+        return profile
+    ricerca = esito.tipo_ricerca or "normativa"
+    voce = next((item for item in _INTENT_CATALOG if item["intent"] == ricerca), None)
+    if voce is None:
+        return profile
+    source_mode = str(voce["source_mode"])
+    if _clean_spaces(requested_mode).lower() in {"strict", "balanced", "broad"}:
+        source_mode = _clean_spaces(requested_mode).lower()
+    return LexRequestProfile(
+        intent=str(voce["intent"]),
+        intent_label=str(voce["label"]),
+        area=profile.area,
+        area_confidence=profile.area_confidence,
+        risk_level=str(voce["risk"]),
+        source_mode=source_mode,
+        response_schema=tuple(voce["schema"]),
+        needs_internal_retrieval=bool(voce["internal"]),
+        needs_external_validation=bool(voce["external"]),
+        drafting_mode=False,
+        reasoning=tuple([*profile.reasoning, "Domanda giuridica senza dati dello studio: ricerca giuridica."]),
+    )
+
+
 def classify_request(question: str, *, requested_mode: str = "") -> LexRequestProfile:
     clean_question = _clean_spaces(question)
     inferred = infer_area_with_confidence(clean_question) or {"area": "default", "confidence": 0.25}
@@ -474,6 +512,8 @@ def classify_request(question: str, *, requested_mode: str = "") -> LexRequestPr
             drafting_mode=bool(matched["drafting"]),
             reasoning=tuple(reasoning),
         )
+
+    profile = _instrada_domanda_giuridica(clean_question, profile, requested_mode)
 
     if any(token in clean_question.lower() for token in ("parere", "valuta i rischi", "e' lecito", "si puo fare", "possiamo fare")):
         profile = LexRequestProfile(

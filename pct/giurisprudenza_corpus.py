@@ -62,6 +62,38 @@ def _escape_fts_query(value: Any) -> str:
     return " ".join(cleaned[:-1] + [f"{cleaned[-1]}*"])
 
 
+def _fts_or_query(value: Any) -> str:
+    """Query FTS5 in OR: senza stopword e accenti, con prefissi sulla radice (stemming leggero).
+
+    L'indice e' unicode61 sul testo originale, quindi la radice si usa come prefisso della parola
+    (``responsabil*`` trova «responsabilita'», «responsabile»). Senza termini utili: query storica.
+    """
+
+    try:
+        from lex.ricerca_giuridica.testo import PAROLE_DOMANDA, STOPWORD, parole, senza_accenti, stem
+    except Exception:  # pragma: no cover - ambienti ridotti
+        return _escape_fts_query(value)
+    termini: list[str] = []
+    for parola in parole(_clean_spaces(value)):
+        piana = senza_accenti(parola)
+        if piana in STOPWORD or piana in PAROLE_DOMANDA or len(piana) < 2:
+            continue
+        if piana.isdigit():
+            voce = f'"{piana}"'
+        elif len(piana) < 4:
+            voce = f'"{piana}"'
+        else:
+            radice = senza_accenti(stem(parola))
+            if not piana.startswith(radice):
+                radice = piana[: max(4, len(piana) - 2)]
+            voce = f'"{radice}"*' if len(radice) >= 3 else f'"{piana}"'
+        if voce not in termini:
+            termini.append(voce)
+    if not termini:
+        return _escape_fts_query(value)
+    return " OR ".join(termini[:16])
+
+
 def derive_corpus_db_path(storage_path: str) -> str:
     target = Path(storage_path)
     stem = target.stem or "giurisprudenza"
@@ -578,12 +610,13 @@ class GestioneCorpusGiurisprudenza:
                        s.data_deposito, s.titolo, s.massima_ufficiale, s.principio_sintetico,
                        s.stato_verifica, s.url_pagina_ufficiale, s.url_pdf_ufficiale,
                        s.pdf_ufficiale_presente, s.fonte_ufficiale_confermata, s.ecli,
-                       s.precedente_guida, s.sezioni_unite, s.nomofilattica, s.rilevanza
+                       s.precedente_guida, s.sezioni_unite, s.nomofilattica, s.rilevanza,
+                       ROUND(bm25(sentenze_fts, 3.0, 2.0, 2.0, 4.0, 4.0, 1.0), 3) AS punteggio_bm25
                 FROM sentenze s
                 JOIN sentenze_fts fts ON fts.rowid = s.id
                 WHERE sentenze_fts MATCH ?
             """
-            params.append(_escape_fts_query(q))
+            params.append(_fts_or_query(q))
         else:
             sql = """
                 SELECT s.id, s.organo_giudicante, s.sezione, s.numero_sentenza, s.anno_sentenza,
@@ -605,8 +638,12 @@ class GestioneCorpusGiurisprudenza:
             params.append(_clean_spaces(stato_verifica))
         if solo_con_pdf:
             sql += " AND s.pdf_ufficiale_presente = 1"
-        sql += """
+        # Con una ricerca testuale domina bm25 (piu' basso = piu' pertinente); i criteri di
+        # affidabilita' e recenza restano come spareggio.
+        ordine_bm25 = "punteggio_bm25 ASC," if _clean_spaces(q) else ""
+        sql += f"""
             ORDER BY
+                {ordine_bm25}
                 CASE s.stato_verifica
                     WHEN 'verificata' THEN 3
                     WHEN 'parzialmente_verificata' THEN 2

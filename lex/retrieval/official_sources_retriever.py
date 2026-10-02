@@ -187,6 +187,12 @@ def search_normattiva(
                 db_target, query, code_key=code_key, article_ref=_extract_article_reference(query), limit=limit
             )
         return []
+    import logging
+
+    logging.getLogger(__name__).warning(
+        "Normattiva: indice FTS5 assente o non utilizzabile in %s; uso la ricerca LIKE (ultimo ripiego, meno precisa).",
+        db_target,
+    )
     db_results = _search_normattiva_db(db_target, query, materia=materia, vigenza=vigenza, limit=limit)
     if db_results:
         return db_results[:limit]

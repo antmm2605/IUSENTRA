@@ -80,11 +80,17 @@ class OllamaEmbedder:
     tentativi: int = 3
     attesa_s: float = 1.0
     dimensioni: int = 0  # >0: troncamento Matryoshka (embeddinggemma supporta 768/512/256/128)
+    paralleli: int = 0  # richieste contemporanee per batch (0 = LEX_EMBED_PARALLELI o 1); serve OLLAMA_NUM_PARALLEL sul server Ollama
 
     def __post_init__(self) -> None:
         self.modello = self.modello or modello_configurato()
         self.url = base_ollama(self.url or url_configurato())
         self._digest: str | None = None
+        if not self.paralleli:
+            try:
+                self.paralleli = max(1, int(os.getenv("LEX_EMBED_PARALLELI", "1") or 1))
+            except ValueError:
+                self.paralleli = 1
 
     def versione(self) -> str:
         """Versione dei pesi: digest da ``/api/tags``, altrimenti ``modified_at`` da ``/api/show``."""
@@ -143,6 +149,19 @@ class OllamaEmbedder:
     def embed(self, testi: list[str]) -> np.ndarray:
         if not testi:
             return np.zeros((0, max(1, self.dimensioni)), dtype=np.float32)
+        parti = max(1, min(int(self.paralleli or 1), len(testi)))
+        if parti == 1:
+            return self._embed_con_tentativi(testi)
+        # Il batch viene diviso in `parti` richieste contemporanee; l'ordine dei risultati e' preservato.
+        from concurrent.futures import ThreadPoolExecutor
+
+        passo = -(-len(testi) // parti)
+        blocchi = [testi[i : i + passo] for i in range(0, len(testi), passo)]
+        with ThreadPoolExecutor(max_workers=len(blocchi)) as esecutore:
+            risultati = list(esecutore.map(self._embed_con_tentativi, blocchi))
+        return np.vstack(risultati)
+
+    def _embed_con_tentativi(self, testi: list[str]) -> np.ndarray:
         ultimo: Exception | None = None
         for tentativo in range(max(1, self.tentativi)):
             try:

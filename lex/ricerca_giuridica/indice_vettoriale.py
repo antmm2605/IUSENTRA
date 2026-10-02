@@ -423,6 +423,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--modello", default="", help="modello Ollama (default: LEX_EMBED_MODEL o embeddinggemma:300m)")
     parser.add_argument("--url", default="", help="URL di Ollama")
     parser.add_argument("--batch", type=int, default=32)
+    parser.add_argument("--paralleli", type=int, default=0, help="richieste Ollama contemporanee (0 = LEX_EMBED_PARALLELI o 1)")
     parser.add_argument("--massimo", type=int, default=None, help="si ferma dopo N chunk (prova o costruzione a tappe)")
     parser.add_argument("--ricomincia", action="store_true", help="cancella l'indice e ricostruisce (solo costruisci)")
     parser.add_argument(
@@ -454,7 +455,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.solo_esistente and IndiceVettoriale.apri(args.out) is None:
         print(f"Indice vettoriale assente in {args.out}: aggiornamento saltato (si crea con il pacchetto o a mano).")
         return 0
-    embedder = OllamaEmbedder(modello=args.modello, url=args.url)
+    embedder = OllamaEmbedder(modello=args.modello, url=args.url, paralleli=getattr(args, "paralleli", 0) or 0)
     try:
         embedder.embed(["prova"])
     except Exception as exc:

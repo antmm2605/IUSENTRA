@@ -342,7 +342,7 @@ def cmd_vettori(args: argparse.Namespace) -> int:
     if not p.db.exists():
         print(f"Database assente: {p.db}. Esegui prima 'importa'.")
         return 2
-    embedder = OllamaEmbedder(modello=args.modello, url=args.url)
+    embedder = OllamaEmbedder(modello=args.modello, url=args.url, paralleli=args.paralleli or 0)
     try:
         embedder.embed(["prova"])
     except Exception as exc:
@@ -368,6 +368,8 @@ def cmd_vettori(args: argparse.Namespace) -> int:
         return 0
 
     argv = ["costruisci", "--db", str(p.db), "--out", str(p.vettori), "--batch", str(args.batch)]
+    if args.paralleli:
+        argv += ["--paralleli", str(args.paralleli)]
     if args.modello:
         argv += ["--modello", args.modello]
     if args.url:
@@ -721,6 +723,7 @@ def costruisci_parser() -> argparse.ArgumentParser:
     v.add_argument("--modello", default="", help="default: LEX_EMBED_MODEL o embeddinggemma:300m")
     v.add_argument("--url", default="", help="default: LEX_EMBED_URL o http://127.0.0.1:11434")
     v.add_argument("--batch", type=int, default=32)
+    v.add_argument("--paralleli", type=int, default=0, help="richieste Ollama contemporanee (richiede OLLAMA_NUM_PARALLEL)")
     v.add_argument("--massimo", type=int, default=None, help="si ferma dopo N chunk (costruzione a tappe)")
     v.add_argument("--ricomincia", action="store_true", help="cancella l'indice e ricostruisce da zero")
     v.add_argument("--stima", action="store_true", help="misura la velocita' e stampa la stima dei tempi, senza costruire")

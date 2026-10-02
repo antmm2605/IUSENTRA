@@ -575,6 +575,10 @@ def start_scheduler(app):
                 "LEX_NORMATTIVA_VETTORI_DIR",
                 str(Path(normativa_db).parent / "vettori_normattiva"),
             )
+            # stessa vigenza del pacchetto caricato dal PC (testo in vigore); ORIGINALE solo se richiesto
+            vigenza_normattiva = str(os.getenv("IUSENTRA_NORMATTIVA_VIGENZA", "VIGENTE") or "VIGENTE").strip().upper()
+            if vigenza_normattiva not in {"VIGENTE", "ORIGINALE"}:
+                vigenza_normattiva = "VIGENTE"
             max_issues = _parse_positive_int(
                 app.config.get("LEGAL_UPDATES_GAZZETTA_MAX_ISSUES")
                 or os.getenv("IUSENTRA_GAZZETTA_MAX_ISSUES"),
@@ -616,6 +620,8 @@ def start_scheduler(app):
                         normativa_raw,
                         "--manifest",
                         normativa_manifest,
+                        "--vigenza",
+                        vigenza_normattiva,
                         "--sleep",
                         str(os.getenv("IUSENTRA_NORMATTIVA_DOWNLOAD_SLEEP_SECONDS", "1.0")),
                     ],
@@ -633,6 +639,8 @@ def start_scheduler(app):
                         normativa_jsonl,
                         "--report",
                         normativa_report,
+                        "--solo-vigenza",
+                        vigenza_normattiva,
                     ],
                 ),
                 (

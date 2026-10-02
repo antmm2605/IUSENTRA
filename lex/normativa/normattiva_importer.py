@@ -661,12 +661,18 @@ def import_raw_dir(
     max_chunk_chars: int = 1800,
     limit: int | None = None,
     indice_fts: bool = True,
+    solo_vigenza: str | None = None,
 ) -> ImportStats:
     stats = ImportStats()
     db_path.parent.mkdir(parents=True, exist_ok=True)
     jsonl_path.parent.mkdir(parents=True, exist_ok=True)
 
     zip_files = sorted(raw_dir.glob("*.zip"))
+    if solo_vigenza:
+        # i file scaricati si chiamano <collezione>_XML_<VIGENZA>_<data>.zip: si importa una sola vigenza,
+        # cosi' ZIP vecchi di un'altra vigenza rimasti nella cartella non finiscono nel database
+        marcatore = f"_{solo_vigenza.strip().upper()}_"
+        zip_files = [z for z in zip_files if marcatore in z.name.upper()]
     stats.zip_files = len(zip_files)
 
     conn = sqlite3.connect(str(db_path))
@@ -798,6 +804,12 @@ def cli_main() -> None:
     parser.add_argument("--max-chunk-chars", type=int, default=1800, help="Dimensione massima chunk RAG")
     parser.add_argument("--limit", type=int, default=None, help="Limita numero XML per test")
     parser.add_argument("--senza-indice-fts", action="store_true", help="Non aggiorna l'indice FTS5 di Lex")
+    parser.add_argument(
+        "--solo-vigenza",
+        choices=["ORIGINALE", "VIGENTE"],
+        default=None,
+        help="Importa solo gli ZIP di questa vigenza (nome file ..._XML_<VIGENZA>_...)",
+    )
     args = parser.parse_args()
 
     stats = import_raw_dir(
@@ -810,6 +822,7 @@ def cli_main() -> None:
         max_chunk_chars=args.max_chunk_chars,
         limit=args.limit,
         indice_fts=not args.senza_indice_fts,
+        solo_vigenza=args.solo_vigenza,
     )
     write_report(stats, Path(args.report))
     print("\nImport completato")

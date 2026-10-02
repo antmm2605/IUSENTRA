@@ -335,3 +335,45 @@ def test_script_server_sintassi():
     assert subprocess.run(["bash", "-n", str(SCRIPT_SH)]).returncode == 0
     if shutil.which("shellcheck"):
         assert subprocess.run(["shellcheck", str(SCRIPT_SH)], capture_output=True, text=True).returncode == 0
+
+
+def test_import_solo_vigenza_ignora_zip_di_altra_vigenza(tmp_path):
+    p = locale.Percorsi(tmp_path / "srv")
+    _zip(p.raw, "Codici_XML_ORIGINALE_2026-10-01.zip", NIR_CODE_XML, "RD_1942_262/a.xml")
+    stats = import_raw_dir(raw_dir=p.raw, db_path=p.db, jsonl_path=p.jsonl, min_score=0, solo_vigenza="VIGENTE")
+    assert stats.zip_files == 0 and stats.articles_imported == 0
+    stats = import_raw_dir(raw_dir=p.raw, db_path=p.db, jsonl_path=p.jsonl, min_score=0, solo_vigenza="ORIGINALE")
+    assert stats.zip_files == 1 and stats.articles_imported > 0
+
+
+def test_scheduler_notturno_usa_la_vigenza_del_pacchetto():
+    sorgente = (RADICE / "pct" / "scheduler.py").read_text(encoding="utf-8")
+    assert 'os.getenv("IUSENTRA_NORMATTIVA_VIGENZA", "VIGENTE")' in sorgente
+    assert sorgente.count("vigenza_normattiva,") == 2  # download (--vigenza) e import (--solo-vigenza)
+    assert '"--solo-vigenza",' in sorgente
+
+
+def test_bundle_ca_normattiva_include_l_intermedio(monkeypatch):
+    from lex.normativa import normattiva_client as nc
+
+    monkeypatch.delenv("LEX_NORMATTIVA_CA_BUNDLE", raising=False)
+    monkeypatch.delenv("REQUESTS_CA_BUNDLE", raising=False)
+    percorso = nc.bundle_ca_normattiva()
+    contenuto = Path(percorso).read_text(encoding="ascii", errors="ignore")
+    intermedio = (nc.CERTIFICATI_INTERMEDI / "globalsign_gcc_r46_ov_tls_ca_2025.pem").read_text(encoding="ascii")
+    assert intermedio.strip() in contenuto and contenuto.count("BEGIN CERTIFICATE") > 100
+    assert nc.NormattivaClient().session.verify == percorso
+    monkeypatch.setenv("LEX_NORMATTIVA_CA_BUNDLE", "/etc/ssl/mio.pem")
+    assert nc.bundle_ca_normattiva() == "/etc/ssl/mio.pem"
+
+
+def test_intermedio_normattiva_valido_e_firmato_da_globalsign_root_r46():
+    import subprocess
+
+    import certifi
+
+    pem = RADICE / "lex" / "normativa" / "certificati" / "globalsign_gcc_r46_ov_tls_ca_2025.pem"
+    if shutil.which("openssl") is None:
+        pytest.skip("openssl non installato")
+    esito = subprocess.run(["openssl", "verify", "-CAfile", certifi.where(), str(pem)], capture_output=True, text=True)
+    assert esito.returncode == 0, esito.stdout + esito.stderr

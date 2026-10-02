@@ -42,6 +42,49 @@ DEFAULT_HEADERS = {
 }
 
 
+CERTIFICATI_INTERMEDI = Path(__file__).resolve().parent / "certificati"
+
+
+def bundle_ca_normattiva() -> str | bool:
+    """CA di sistema + certificati intermedi che api.normattiva.it non invia.
+
+    Il server Normattiva presenta solo il proprio certificato, senza l'intermedio
+    "GlobalSign GCC R46 OV TLS CA 2025": Python (certifi) non completa la catena e la
+    connessione fallisce con CERTIFICATE_VERIFY_FAILED. L'intermedio pubblico e' incluso nel
+    repository; la verifica TLS resta attiva. ``LEX_NORMATTIVA_CA_BUNDLE`` permette di indicare
+    un bundle diverso.
+    """
+
+    import os
+    import tempfile
+
+    esplicito = str(os.getenv("LEX_NORMATTIVA_CA_BUNDLE", "") or "").strip()
+    if esplicito:
+        return esplicito
+    intermedi = sorted(CERTIFICATI_INTERMEDI.glob("*.pem"))
+    if not intermedi:
+        return True
+    base = str(os.getenv("REQUESTS_CA_BUNDLE", "") or "").strip()
+    if not base:
+        try:
+            import certifi
+
+            base = certifi.where()
+        except Exception:
+            return True
+    try:
+        contenuto = Path(base).read_bytes() + b"\n" + b"\n".join(p.read_bytes() for p in intermedi)
+        impronta = hashlib.sha256(contenuto).hexdigest()[:16]
+        destinazione = Path(tempfile.gettempdir()) / f"iusentra_normattiva_ca_{impronta}.pem"
+        if not destinazione.exists():
+            provvisorio = destinazione.with_suffix(f".{os.getpid()}.tmp")
+            provvisorio.write_bytes(contenuto)
+            os.replace(provvisorio, destinazione)
+        return str(destinazione)
+    except OSError:
+        return True
+
+
 @dataclass(frozen=True)
 class DownloadResult:
     collection_name: str
@@ -68,6 +111,8 @@ class NormattivaClient:
         self.sleep_seconds = sleep_seconds
         self.session = session or requests.Session()
         self.session.headers.update(DEFAULT_HEADERS)
+        if session is None:
+            self.session.verify = bundle_ca_normattiva()
 
     def list_collections_raw(self) -> Any:
         response = self.session.get(COLLECTIONS_URL, timeout=self.timeout)

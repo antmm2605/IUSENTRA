@@ -46,6 +46,8 @@ x-iusentra-env: &iusentra-env
   # Ricerca giuridica: indice vettoriale Normattiva (aggiornamento notturno nello scheduler-worker).
   LEX_EMBED_MODEL: ${LEX_EMBED_MODEL:-embeddinggemma:300m}
   LEX_VETTORI_NOTTURNO_MASSIMO: ${LEX_VETTORI_NOTTURNO_MASSIMO:-20000}
+  LEX_EMBED_KEEP_ALIVE: ${LEX_EMBED_KEEP_ALIVE:-24h}
+  IUSENTRA_NORMATTIVA_VIGENZA: ${IUSENTRA_NORMATTIVA_VIGENZA:-VIGENTE}
   PCT_LOCAL_AI_ENABLED: ${PCT_LOCAL_AI_ENABLED:-1}
   # Seconda lettura di Lex sulla catalogazione dei documenti (scheduler-worker).
   PCT_LEX_CATALOGO: ${PCT_LEX_CATALOGO:-1}

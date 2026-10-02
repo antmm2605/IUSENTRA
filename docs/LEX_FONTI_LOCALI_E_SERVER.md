@@ -174,8 +174,9 @@ devono comparire come fonti gli articoli del codice civile (art. 2043 c.c.), non
 
 Alle 23:00 (`legal_official_archives_daily` in `pct/scheduler.py`) il worker esegue in ordine:
 
-1. download delle collezioni **core** cambiate (confronto con il catalogo Normattiva; le invariate sono saltate);
-2. import con upsert: articoli con chiave `normattiva:<sha XML>:art<n>`, quindi nessuna duplicazione; indice FTS aggiornato solo per i chunk nuovi;
+1. download delle collezioni **core** cambiate nella vigenza `IUSENTRA_NORMATTIVA_VIGENZA` (default `VIGENTE`, come il pacchetto del PC;
+   confronto con il catalogo Normattiva, le invariate sono saltate);
+2. import con upsert dei soli ZIP di quella vigenza (`--solo-vigenza`: gli ZIP ORIGINALE rimasti in `raw/` da prima non entrano nel database): articoli con chiave `normattiva:<sha XML>:art<n>`, quindi nessuna duplicazione; indice FTS aggiornato solo per i chunk nuovi;
 3. **aggiornamento vettori** (`python -m lex.ricerca_giuridica.indice_vettoriale aggiorna --se-disponibile --solo-esistente`):
    vettorizza solo i chunk nuovi o modificati (impronta del testo), al massimo `LEX_VETTORI_NOTTURNO_MASSIMO` (20.000) per notte.
    Se Ollama non risponde, se manca il modello o se l'indice non esiste, il passaggio termina senza errore e la ricerca resta lessicale
@@ -205,7 +206,10 @@ calcola solo i chunk nuovi, `pacchetto` produce un nuovo `.tar.zst`.
 
 ## Problemi noti
 
-- La vigenza scaricata e' ORIGINALE (come il server). `--vigenza VIGENTE` e' sperimentale: il client Normattiva segnala che il codice `V` non e' ancora stato confermato.
+- Vigenza: il pacchetto di ottobre 2026 e' stato scaricato **VIGENTE** (`formatoRichiesta=V`, 22 collezioni, import senza errori) e da
+  2.436.8 anche l'aggiornamento notturno scarica e importa VIGENTE. Non mescolare vigenze nello stesso database.
+- `api.normattiva.it` non invia il certificato intermedio GlobalSign: Python fallisce con `CERTIFICATE_VERIFY_FAILED`. Da 2.436.8 l'intermedio
+  pubblico (`lex/normativa/certificati/`, valido fino al 2029) viene aggiunto alle CA del client Normattiva; la verifica TLS resta attiva.
 - I tempi di vettorizzazione dipendono da Ollama e dalla lunghezza dei chunk: i numeri di questo documento sono stime finche' non si esegue `vettori --stima`.
 - Se il digest di `embeddinggemma:300m` sul server e' diverso da quello del PC l'aggiornamento notturno rifiuta di mescolare i vettori (log del worker) e la ricerca usa
   l'indice caricato finche' il nome del modello coincide; per riallinearli ricostruire l'indice sul PC con lo stesso modello e ricaricare.

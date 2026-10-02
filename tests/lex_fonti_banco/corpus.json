@@ -1,0 +1,557 @@
+{
+ "_nota": "Mini-corpus di prova: testi sintetici di articoli del codice civile e del codice di procedura civile (fonte pubblica, Normattiva). Serve a misurare la ricerca, non e' un riferimento normativo.",
+ "documenti": [
+  {
+   "codice": "codice_civile",
+   "titolo": "Codice civile",
+   "numero": "262",
+   "data_atto": "1942-03-16",
+   "vigenza": "VIGENTE",
+   "xml_sha256": "corpus-cc-vigente",
+   "articoli": [
+    {
+     "numero": "2043",
+     "rubrica": "Risarcimento per fatto illecito",
+     "testo": "Qualunque fatto doloso o colposo, che cagiona ad altri un danno ingiusto, obbliga colui che ha commesso il fatto a risarcire il danno.",
+     "distrattore": false
+    },
+    {
+     "numero": "2044",
+     "rubrica": "Legittima difesa",
+     "testo": "Non è responsabile chi cagiona il danno per legittima difesa di sé o di altri.",
+     "distrattore": true
+    },
+    {
+     "numero": "2045",
+     "rubrica": "Stato di necessità",
+     "testo": "Quando chi ha compiuto il fatto dannoso vi è stato costretto dalla necessità di salvare sé od altri dal pericolo attuale di un danno grave alla persona, e il pericolo non è stato da lui volontariamente causato né era altrimenti evitabile, al danneggiato è dovuta un'indennità, la cui misura è rimessa all'equo apprezzamento del giudice.",
+     "distrattore": true
+    },
+    {
+     "numero": "2047",
+     "rubrica": "Danno cagionato dall'incapace",
+     "testo": "In caso di danno cagionato da persona incapace di intendere o di volere, il risarcimento è dovuto da chi è tenuto alla sorveglianza dell'incapace, salvo che provi di non aver potuto impedire il fatto.",
+     "distrattore": true
+    },
+    {
+     "numero": "2051",
+     "rubrica": "Danno cagionato da cosa in custodia",
+     "testo": "Ciascuno è responsabile del danno cagionato dalle cose che ha in custodia, salvo che provi il caso fortuito.",
+     "distrattore": true
+    },
+    {
+     "numero": "2059",
+     "rubrica": "Danni non patrimoniali",
+     "testo": "Il danno non patrimoniale deve essere risarcito solo nei casi determinati dalla legge.",
+     "distrattore": false
+    },
+    {
+     "numero": "2697",
+     "rubrica": "Onere della prova",
+     "testo": "Chi vuol far valere un diritto in giudizio deve provare i fatti che ne costituiscono il fondamento. Chi eccepisce l'inefficacia di tali fatti ovvero eccepisce che il diritto si è modificato o estinto deve provare i fatti su cui l'eccezione si fonda.",
+     "distrattore": false
+    },
+    {
+     "numero": "2729",
+     "rubrica": "Presunzioni semplici",
+     "testo": "Le presunzioni non stabilite dalla legge sono lasciate alla prudenza del giudice, il quale non deve ammettere che presunzioni gravi, precise e concordanti.",
+     "distrattore": false
+    },
+    {
+     "numero": "2740",
+     "rubrica": "Responsabilità patrimoniale",
+     "testo": "Il debitore risponde dell'adempimento delle obbligazioni con tutti i suoi beni presenti e futuri.",
+     "distrattore": false
+    },
+    {
+     "numero": "2935",
+     "rubrica": "Decorrenza della prescrizione",
+     "testo": "La prescrizione comincia a decorrere dal giorno in cui il diritto può essere fatto valere.",
+     "distrattore": false
+    },
+    {
+     "numero": "2943",
+     "rubrica": "Interruzione della prescrizione",
+     "testo": "La prescrizione è interrotta dalla notificazione dell'atto con il quale si inizia un giudizio, sia questo di cognizione ovvero conservativo o esecutivo. È interrotta altresì da ogni altro atto che valga a costituire in mora il debitore.",
+     "distrattore": false
+    },
+    {
+     "numero": "2946",
+     "rubrica": "Prescrizione ordinaria",
+     "testo": "Salvi i casi in cui la legge dispone diversamente, i diritti si estinguono per prescrizione con il decorso di dieci anni.",
+     "distrattore": false
+    },
+    {
+     "numero": "2947",
+     "rubrica": "Prescrizione del diritto al risarcimento del danno",
+     "testo": "Il diritto al risarcimento del danno derivante da fatto illecito si prescrive in cinque anni dal giorno in cui il fatto si è verificato.",
+     "distrattore": false
+    },
+    {
+     "numero": "2948",
+     "rubrica": "Prescrizione di cinque anni",
+     "testo": "Si prescrivono in cinque anni: le annualità delle rendite perpetue o vitalizie; le pigioni delle case, i fitti dei beni rustici e ogni altra prestazione periodica ad anno o in termini più brevi; gli interessi e, in generale, tutto ciò che deve pagarsi periodicamente ad anno o in termini più brevi.",
+     "distrattore": false
+    },
+    {
+     "numero": "2033",
+     "rubrica": "Indebito oggettivo",
+     "testo": "Chi ha eseguito un pagamento non dovuto ha diritto di ripetere ciò che ha pagato. Ha inoltre diritto ai frutti e agli interessi dal giorno del pagamento, se chi lo ha ricevuto era in mala fede, oppure, se questi era in buona fede, dal giorno della domanda.",
+     "distrattore": false
+    },
+    {
+     "numero": "2041",
+     "rubrica": "Azione generale di arricchimento",
+     "testo": "Chi, senza una giusta causa, si è arricchito a danno di un'altra persona è tenuto, nei limiti dell'arricchimento, a indennizzare quest'ultima della correlativa diminuzione patrimoniale.",
+     "distrattore": false
+    },
+    {
+     "numero": "2087",
+     "rubrica": "Tutela delle condizioni di lavoro",
+     "testo": "L'imprenditore è tenuto ad adottare nell'esercizio dell'impresa le misure che, secondo la particolarità del lavoro, l'esperienza e la tecnica, sono necessarie a tutelare l'integrità fisica e la personalità morale dei prestatori di lavoro.",
+     "distrattore": false
+    },
+    {
+     "numero": "2094",
+     "rubrica": "Prestatore di lavoro subordinato",
+     "testo": "È prestatore di lavoro subordinato chi si obbliga mediante retribuzione a collaborare nell'impresa, prestando il proprio lavoro intellettuale o manuale alle dipendenze e sotto la direzione dell'imprenditore.",
+     "distrattore": false
+    },
+    {
+     "numero": "2095",
+     "rubrica": "Categorie dei prestatori di lavoro",
+     "testo": "I prestatori di lavoro subordinato si distinguono in dirigenti, quadri, impiegati e operai.",
+     "distrattore": true
+    },
+    {
+     "numero": "2103",
+     "rubrica": "Prestazione del lavoro",
+     "testo": "Il lavoratore deve essere adibito alle mansioni per le quali è stato assunto o a quelle corrispondenti all'inquadramento superiore che abbia successivamente acquisito ovvero a mansioni riconducibili allo stesso livello e categoria legale di inquadramento delle ultime effettivamente svolte.",
+     "distrattore": false
+    },
+    {
+     "numero": "2105",
+     "rubrica": "Obbligo di fedeltà",
+     "testo": "Il prestatore di lavoro non deve trattare affari, per conto proprio o di terzi, in concorrenza con l'imprenditore, né divulgare notizie attinenti all'organizzazione e ai metodi di produzione dell'impresa, o farne uso in modo da poter recare ad essa pregiudizio.",
+     "distrattore": false
+    },
+    {
+     "numero": "2106",
+     "rubrica": "Sanzioni disciplinari",
+     "testo": "L'inosservanza delle disposizioni contenute nei due articoli precedenti può dar luogo all'applicazione di sanzioni disciplinari, secondo la gravità dell'infrazione.",
+     "distrattore": true
+    },
+    {
+     "numero": "2110",
+     "rubrica": "Infortunio, malattia, gravidanza, puerperio",
+     "testo": "In caso di infortunio, di malattia, di gravidanza o di puerperio, se la legge non stabilisce forme equivalenti di previdenza o di assistenza, è dovuta al prestatore di lavoro la retribuzione o un'indennità nella misura e per il tempo determinati dalle leggi speciali, dagli usi o secondo equità.",
+     "distrattore": false
+    },
+    {
+     "numero": "2118",
+     "rubrica": "Recesso dal contratto a tempo indeterminato",
+     "testo": "Ciascuno dei contraenti può recedere dal contratto di lavoro a tempo indeterminato, dando il preavviso nel termine e nei modi stabiliti dagli usi o secondo equità. In mancanza di preavviso, il recedente è tenuto verso l'altra parte a un'indennità equivalente all'importo della retribuzione che sarebbe spettata per il periodo di preavviso.",
+     "distrattore": false
+    },
+    {
+     "numero": "2119",
+     "rubrica": "Recesso per giusta causa",
+     "testo": "Ciascuno dei contraenti può recedere dal contratto prima della scadenza del termine, se il contratto è a tempo determinato, o senza preavviso, se il contratto è a tempo indeterminato, qualora si verifichi una causa che non consenta la prosecuzione, anche provvisoria, del rapporto. Se il contratto è a tempo indeterminato, il recedente deve corrispondere all'altra parte l'indennità sostitutiva del preavviso.",
+     "distrattore": false
+    },
+    {
+     "numero": "2120",
+     "rubrica": "Disciplina del trattamento di fine rapporto",
+     "testo": "In ogni caso di cessazione del rapporto di lavoro subordinato, il prestatore di lavoro ha diritto a un trattamento di fine rapporto. Tale trattamento si calcola sommando per ciascun anno di servizio una quota pari all'importo della retribuzione dovuta per l'anno stesso divisa per 13,5.",
+     "distrattore": false
+    },
+    {
+     "numero": "1158",
+     "rubrica": "Usucapione dei beni immobili",
+     "testo": "La proprietà di un bene immobile e gli altri diritti reali di godimento sul bene si acquistano in virtù del possesso continuato per venti anni.",
+     "distrattore": false
+    },
+    {
+     "numero": "1176",
+     "rubrica": "Diligenza nell'adempimento",
+     "testo": "Nell'adempiere l'obbligazione il debitore deve usare la diligenza del buon padre di famiglia. Nell'adempimento delle obbligazioni inerenti all'esercizio di un'attività professionale, la diligenza deve valutarsi con riguardo alla natura dell'attività esercitata.",
+     "distrattore": true
+    },
+    {
+     "numero": "1218",
+     "rubrica": "Responsabilità del debitore",
+     "testo": "Il debitore che non esegue esattamente la prestazione dovuta è tenuto al risarcimento del danno, se non prova che l'inadempimento o il ritardo è stato determinato da impossibilità della prestazione derivante da causa a lui non imputabile.",
+     "distrattore": false
+    },
+    {
+     "numero": "1219",
+     "rubrica": "Costituzione in mora",
+     "testo": "Il debitore è costituito in mora mediante intimazione o richiesta fatta per iscritto. Non è necessaria la costituzione in mora quando il debito deriva da fatto illecito, quando il debitore ha dichiarato per iscritto di non volere eseguire l'obbligazione, quando è scaduto il termine, se la prestazione deve essere eseguita al domicilio del creditore.",
+     "distrattore": false
+    },
+    {
+     "numero": "1223",
+     "rubrica": "Risarcimento del danno",
+     "testo": "Il risarcimento del danno per l'inadempimento o per il ritardo deve comprendere così la perdita subita dal creditore come il mancato guadagno, in quanto ne siano conseguenza immediata e diretta.",
+     "distrattore": false
+    },
+    {
+     "numero": "1224",
+     "rubrica": "Danni nelle obbligazioni pecuniarie",
+     "testo": "Nelle obbligazioni che hanno per oggetto una somma di danaro, sono dovuti dal giorno della mora gli interessi legali, anche se non erano dovuti precedentemente e anche se il creditore non prova di aver sofferto alcun danno.",
+     "distrattore": true
+    },
+    {
+     "numero": "1241",
+     "rubrica": "Estinzione per compensazione",
+     "testo": "Quando due persone sono obbligate l'una verso l'altra, i due debiti si estinguono per le quantità corrispondenti, secondo le norme degli articoli seguenti.",
+     "distrattore": false
+    },
+    {
+     "numero": "1337",
+     "rubrica": "Trattative e responsabilità precontrattuale",
+     "testo": "Le parti, nello svolgimento delle trattative e nella formazione del contratto, devono comportarsi secondo buona fede.",
+     "distrattore": false
+    },
+    {
+     "numero": "1341",
+     "rubrica": "Condizioni generali di contratto",
+     "testo": "Le condizioni generali di contratto predisposte da uno dei contraenti sono efficaci nei confronti dell'altro, se al momento della conclusione del contratto questi le ha conosciute o avrebbe dovuto conoscerle usando l'ordinaria diligenza. In ogni caso non hanno effetto, se non sono specificamente approvate per iscritto, le condizioni che stabiliscono, a favore di colui che le ha predisposte, limitazioni di responsabilità, facoltà di recedere dal contratto o di sospenderne l'esecuzione, ovvero sanciscono a carico dell'altro contraente decadenze, limitazioni alla facoltà di opporre eccezioni, tacita proroga o rinnovazione del contratto, clausole compromissorie o deroghe alla competenza dell'autorità giudiziaria.",
+     "distrattore": false
+    },
+    {
+     "numero": "1362",
+     "rubrica": "Intenzione dei contraenti",
+     "testo": "Nell'interpretare il contratto si deve indagare quale sia stata la comune intenzione delle parti e non limitarsi al senso letterale delle parole. Per determinare la comune intenzione delle parti, si deve valutare il loro comportamento complessivo anche posteriore alla conclusione del contratto.",
+     "distrattore": false
+    },
+    {
+     "numero": "1375",
+     "rubrica": "Esecuzione di buona fede",
+     "testo": "Il contratto deve essere eseguito secondo buona fede.",
+     "distrattore": true
+    },
+    {
+     "numero": "1382",
+     "rubrica": "Effetti della clausola penale",
+     "testo": "La clausola, con cui si conviene che, in caso di inadempimento o di ritardo nell'adempimento, uno dei contraenti è tenuto a una determinata prestazione, ha l'effetto di limitare il risarcimento alla prestazione promessa, se non è stata convenuta la risarcibilità del danno ulteriore. La penale è dovuta indipendentemente dalla prova del danno.",
+     "distrattore": false
+    },
+    {
+     "numero": "1384",
+     "rubrica": "Riduzione della penale",
+     "testo": "La penale può essere diminuita equamente dal giudice, se l'obbligazione principale è stata eseguita in parte ovvero se l'ammontare della penale è manifestamente eccessivo, avuto sempre riguardo all'interesse che il creditore aveva all'adempimento.",
+     "distrattore": false
+    },
+    {
+     "numero": "1385",
+     "rubrica": "Caparra confirmatoria",
+     "testo": "Se al momento della conclusione del contratto una parte dà all'altra, a titolo di caparra, una somma di danaro o una quantità di altre cose fungibili, la caparra, in caso di adempimento, deve essere restituita o imputata alla prestazione dovuta. Se la parte che ha dato la caparra è inadempiente, l'altra può recedere dal contratto, ritenendo la caparra; se inadempiente è invece la parte che l'ha ricevuta, l'altra può recedere ed esigere il doppio della caparra. Se però la parte che non è inadempiente preferisce domandare l'esecuzione o la risoluzione del contratto, il risarcimento del danno è regolato dalle norme generali.",
+     "distrattore": false
+    },
+    {
+     "numero": "1386",
+     "rubrica": "Dichiarazione di recesso",
+     "testo": "Se nel contratto è stipulato il diritto di recesso per una o per entrambe le parti, la caparra ha la sola funzione di corrispettivo del recesso.",
+     "distrattore": false
+    },
+    {
+     "numero": "1418",
+     "rubrica": "Cause di nullità del contratto",
+     "testo": "Il contratto è nullo quando è contrario a norme imperative, salvo che la legge disponga diversamente. Producono nullità del contratto la mancanza di uno dei requisiti indicati dall'articolo 1325, l'illiceità della causa, l'illiceità dei motivi nel caso indicato dall'articolo 1345 e la mancanza nell'oggetto dei requisiti stabiliti dall'articolo 1346.",
+     "distrattore": false
+    },
+    {
+     "numero": "1428",
+     "rubrica": "Rilevanza dell'errore",
+     "testo": "L'errore è causa di annullamento del contratto quando è essenziale ed è riconoscibile dall'altro contraente.",
+     "distrattore": false
+    },
+    {
+     "numero": "1439",
+     "rubrica": "Dolo",
+     "testo": "Il dolo è causa di annullamento del contratto quando i raggiri usati da uno dei contraenti sono stati tali che, senza di essi, l'altra parte non avrebbe contratto.",
+     "distrattore": false
+    },
+    {
+     "numero": "1453",
+     "rubrica": "Risolubilità del contratto per inadempimento",
+     "testo": "Nei contratti con prestazioni corrispettive, quando uno dei contraenti non adempie le sue obbligazioni, l'altro può a sua scelta chiedere l'adempimento o la risoluzione del contratto, salvo, in ogni caso, il risarcimento del danno. La risoluzione può essere domandata anche quando il giudizio è stato promosso per ottenere l'adempimento; ma non può più chiedersi l'adempimento quando è stata domandata la risoluzione. Dalla data della domanda di risoluzione l'inadempiente non può più adempiere la propria obbligazione.",
+     "distrattore": false
+    },
+    {
+     "numero": "1454",
+     "rubrica": "Diffida ad adempiere",
+     "testo": "Alla parte inadempiente l'altra può intimare per iscritto di adempiere in un congruo termine, con dichiarazione che, decorso inutilmente detto termine, il contratto s'intenderà senz'altro risoluto. Il termine non può essere inferiore a quindici giorni, salvo diversa pattuizione delle parti o salvo che, per la natura del contratto o secondo gli usi, risulti congruo un termine minore. Decorso il termine senza che il contratto sia stato adempiuto, questo è risoluto di diritto.",
+     "distrattore": false
+    },
+    {
+     "numero": "1455",
+     "rubrica": "Importanza dell'inadempimento",
+     "testo": "Il contratto non si può risolvere se l'inadempimento di una delle parti ha scarsa importanza, avuto riguardo all'interesse dell'altra.",
+     "distrattore": true
+    },
+    {
+     "numero": "1456",
+     "rubrica": "Clausola risolutiva espressa",
+     "testo": "I contraenti possono convenire espressamente che il contratto si risolva nel caso che una determinata obbligazione non sia adempiuta secondo le modalità stabilite. In questo caso, la risoluzione si verifica di diritto quando la parte interessata dichiara all'altra che intende valersi della clausola risolutiva.",
+     "distrattore": true
+    },
+    {
+     "numero": "1458",
+     "rubrica": "Effetto della risoluzione",
+     "testo": "La risoluzione del contratto per inadempimento ha effetto retroattivo tra le parti, salvo il caso di contratti ad esecuzione continuata o periodica, riguardo ai quali l'effetto della risoluzione non si estende alle prestazioni già eseguite.",
+     "distrattore": true
+    },
+    {
+     "numero": "1460",
+     "rubrica": "Eccezione d'inadempimento",
+     "testo": "Nei contratti con prestazioni corrispettive, ciascuno dei contraenti può rifiutarsi di adempiere la sua obbligazione, se l'altro non adempie o non offre di adempiere contemporaneamente la propria, salvo che termini diversi per l'adempimento siano stati stabiliti dalle parti o risultino dalla natura del contratto.",
+     "distrattore": false
+    },
+    {
+     "numero": "1463",
+     "rubrica": "Impossibilità totale",
+     "testo": "Nei contratti con prestazioni corrispettive, la parte liberata per la sopravvenuta impossibilità della prestazione non può chiedere la controprestazione, e deve restituire quella che abbia già ricevuta, secondo le norme relative alla ripetizione dell'indebito.",
+     "distrattore": true
+    },
+    {
+     "numero": "1467",
+     "rubrica": "Contratto con prestazioni corrispettive",
+     "testo": "Nei contratti a esecuzione continuata o periodica ovvero a esecuzione differita, se la prestazione di una delle parti è divenuta eccessivamente onerosa per il verificarsi di avvenimenti straordinari e imprevedibili, la parte che deve tale prestazione può domandare la risoluzione del contratto, con gli effetti stabiliti dall'articolo 1458.",
+     "distrattore": false
+    },
+    {
+     "numero": "1490",
+     "rubrica": "Garanzia per i vizi della cosa venduta",
+     "testo": "Il venditore è tenuto a garantire che la cosa venduta sia immune da vizi che la rendano inidonea all'uso a cui è destinata o ne diminuiscano in modo apprezzabile il valore. Il patto con cui si esclude o si limita la garanzia non ha effetto, se il venditore ha in mala fede taciuto al compratore i vizi della cosa.",
+     "distrattore": false
+    },
+    {
+     "numero": "1491",
+     "rubrica": "Esclusione della garanzia",
+     "testo": "Non è dovuta la garanzia se al momento del contratto il compratore conosceva i vizi della cosa; parimenti non è dovuta, se i vizi erano facilmente riconoscibili, salvo, in questo caso, che il venditore abbia dichiarato che la cosa era esente da vizi.",
+     "distrattore": true
+    },
+    {
+     "numero": "1492",
+     "rubrica": "Effetti della garanzia",
+     "testo": "Nei casi indicati dall'articolo 1490 il compratore può domandare a sua scelta la risoluzione del contratto ovvero la riduzione del prezzo, salvo che, per determinati vizi, gli usi escludano la risoluzione.",
+     "distrattore": true
+    },
+    {
+     "numero": "1495",
+     "rubrica": "Termini e condizioni per l'azione",
+     "testo": "Il compratore decade dal diritto alla garanzia, se non denuncia i vizi al venditore entro otto giorni dalla scoperta, salvo il diverso termine stabilito dalle parti o dalla legge. La denuncia non è necessaria se il venditore ha riconosciuto l'esistenza del vizio o l'ha occultato. L'azione si prescrive, in ogni caso, in un anno dalla consegna.",
+     "distrattore": false
+    },
+    {
+     "numero": "1571",
+     "rubrica": "Nozione di locazione",
+     "testo": "La locazione è il contratto col quale una parte si obbliga a far godere all'altra una cosa mobile o immobile per un dato tempo, verso un determinato corrispettivo.",
+     "distrattore": true
+    },
+    {
+     "numero": "1703",
+     "rubrica": "Nozione di mandato",
+     "testo": "Il mandato è il contratto col quale una parte si obbliga a compiere uno o più atti giuridici per conto dell'altra.",
+     "distrattore": true
+    },
+    {
+     "numero": "1803",
+     "rubrica": "Nozione di comodato",
+     "testo": "Il comodato è il contratto col quale una parte consegna all'altra una cosa mobile o immobile, affinché se ne serva per un tempo o per un uso determinato, con l'obbligo di restituire la stessa cosa ricevuta.",
+     "distrattore": true
+    },
+    {
+     "numero": "1813",
+     "rubrica": "Nozione di mutuo",
+     "testo": "Il mutuo è il contratto col quale una parte consegna all'altra una determinata quantità di danaro o di altre cose fungibili, e l'altra si obbliga a restituire altrettante cose della stessa specie e qualità.",
+     "distrattore": false
+    },
+    {
+     "numero": "1936",
+     "rubrica": "Nozione di fideiussione",
+     "testo": "È fideiussore colui che, obbligandosi personalmente verso il creditore, garantisce l'adempimento di un'obbligazione altrui. La fideiussione è efficace anche se il debitore non ne ha conoscenza.",
+     "distrattore": false
+    }
+   ]
+  },
+  {
+   "codice": "codice_procedura_civile",
+   "titolo": "Codice di procedura civile",
+   "numero": "1443",
+   "data_atto": "1940-10-28",
+   "vigenza": "VIGENTE",
+   "xml_sha256": "corpus-cpc-vigente",
+   "articoli": [
+    {
+     "numero": "91",
+     "rubrica": "Condanna alle spese",
+     "testo": "Il giudice, con la sentenza che chiude il processo davanti a lui, condanna la parte soccombente al rimborso delle spese a favore dell'altra parte e ne liquida l'ammontare insieme con gli onorari di difesa.",
+     "distrattore": false
+    },
+    {
+     "numero": "92",
+     "rubrica": "Condanna alle spese per singoli atti. Compensazione delle spese",
+     "testo": "Il giudice può escludere la ripetizione delle spese sostenute dalla parte vincitrice, se le ritiene eccessive o superflue. Se vi è soccombenza reciproca o concorrono gravi ed eccezionali ragioni, esplicitamente indicate nella motivazione, il giudice può compensare le spese tra le parti.",
+     "distrattore": false
+    },
+    {
+     "numero": "99",
+     "rubrica": "Principio della domanda",
+     "testo": "Chi vuole far valere un diritto in giudizio deve proporre domanda al giudice competente.",
+     "distrattore": true
+    },
+    {
+     "numero": "100",
+     "rubrica": "Interesse ad agire",
+     "testo": "Per proporre una domanda o per contraddire alla stessa è necessario avervi interesse.",
+     "distrattore": true
+    },
+    {
+     "numero": "115",
+     "rubrica": "Disponibilità delle prove",
+     "testo": "Salvi i casi previsti dalla legge, il giudice deve porre a fondamento della decisione le prove proposte dalle parti o dal pubblico ministero nonché i fatti non specificamente contestati dalla parte costituita.",
+     "distrattore": false
+    },
+    {
+     "numero": "163",
+     "rubrica": "Contenuto della citazione",
+     "testo": "La domanda si propone mediante citazione a comparire a udienza fissa. L'atto di citazione deve contenere l'indicazione del tribunale davanti al quale la domanda è proposta, la determinazione della cosa oggetto della domanda, l'esposizione dei fatti e degli elementi di diritto costituenti le ragioni della domanda, con le relative conclusioni.",
+     "distrattore": false
+    },
+    {
+     "numero": "167",
+     "rubrica": "Comparsa di risposta",
+     "testo": "Nella comparsa di risposta il convenuto deve proporre tutte le sue difese prendendo posizione sui fatti posti dall'attore a fondamento della domanda, indicare i mezzi di prova di cui intende avvalersi e i documenti che offre in comunicazione, formulare le conclusioni. A pena di decadenza deve proporre le eventuali domande riconvenzionali e le eccezioni processuali e di merito che non sono rilevabili d'ufficio.",
+     "distrattore": false
+    },
+    {
+     "numero": "325",
+     "rubrica": "Termini per le impugnazioni",
+     "testo": "Il termine per proporre l'appello, la revocazione e l'opposizione di terzo è di trenta giorni. Il termine per proporre il ricorso per cassazione è di sessanta giorni. I termini decorrono dalla notificazione della sentenza.",
+     "distrattore": false
+    },
+    {
+     "numero": "327",
+     "rubrica": "Decadenza dall'impugnazione",
+     "testo": "Indipendentemente dalla notificazione, l'appello, il ricorso per cassazione e la revocazione non possono proporsi dopo decorsi sei mesi dalla pubblicazione della sentenza.",
+     "distrattore": false
+    },
+    {
+     "numero": "342",
+     "rubrica": "Forma dell'appello",
+     "testo": "L'appello si propone con citazione contenente le indicazioni prescritte dall'articolo 163. L'appello deve essere motivato e, per ciascuno dei motivi, deve indicare a pena di inammissibilità le parti del provvedimento che si intende appellare e le modifiche richieste.",
+     "distrattore": false
+    },
+    {
+     "numero": "345",
+     "rubrica": "Domande ed eccezioni nuove",
+     "testo": "Nel giudizio d'appello non possono proporsi domande nuove e, se proposte, debbono essere dichiarate inammissibili d'ufficio. Possono tuttavia domandarsi gli interessi, i frutti e gli accessori maturati dopo la sentenza impugnata, nonché il risarcimento dei danni sofferti dopo la sentenza stessa. Non possono proporsi nuove eccezioni, che non siano rilevabili anche d'ufficio.",
+     "distrattore": false
+    },
+    {
+     "numero": "360",
+     "rubrica": "Sentenze impugnabili e motivi di ricorso",
+     "testo": "Possono essere impugnate con ricorso per cassazione le sentenze pronunciate in grado d'appello o in unico grado: per motivi attinenti alla giurisdizione; per violazione delle norme sulla competenza; per violazione o falsa applicazione di norme di diritto; per nullità della sentenza o del procedimento; per omesso esame circa un fatto decisivo per il giudizio.",
+     "distrattore": false
+    },
+    {
+     "numero": "409",
+     "rubrica": "Controversie individuali di lavoro",
+     "testo": "Si osservano le disposizioni del presente capo nelle controversie relative a rapporti di lavoro subordinato privato, anche se non inerenti all'esercizio di una impresa, a rapporti di agenzia, di rappresentanza commerciale ed altri rapporti di collaborazione che si concretino in una prestazione di opera continuativa e coordinata, prevalentemente personale, anche se non a carattere subordinato.",
+     "distrattore": false
+    },
+    {
+     "numero": "414",
+     "rubrica": "Forma della domanda",
+     "testo": "La domanda si propone con ricorso, il quale deve contenere l'indicazione del giudice, la determinazione dell'oggetto della domanda, l'esposizione dei fatti e degli elementi di diritto su cui si fonda la domanda, con le relative conclusioni, l'indicazione specifica dei mezzi di prova dei quali il ricorrente intende avvalersi e in particolare dei documenti che offre in comunicazione.",
+     "distrattore": false
+    },
+    {
+     "numero": "416",
+     "rubrica": "Costituzione del convenuto",
+     "testo": "Il convenuto deve costituirsi almeno dieci giorni prima dell'udienza, depositando in cancelleria una memoria difensiva nella quale devono essere proposte, a pena di decadenza, le eventuali domande in via riconvenzionale e le eccezioni processuali e di merito che non siano rilevabili d'ufficio.",
+     "distrattore": false
+    },
+    {
+     "numero": "474",
+     "rubrica": "Titolo esecutivo",
+     "testo": "L'esecuzione forzata non può avere luogo che in virtù di un titolo esecutivo per un diritto certo, liquido ed esigibile. Sono titoli esecutivi le sentenze, i provvedimenti e gli altri atti ai quali la legge attribuisce espressamente efficacia esecutiva; le scritture private autenticate relativamente alle obbligazioni di somme di danaro, le cambiali ed altri titoli di credito; gli atti ricevuti da notaio.",
+     "distrattore": false
+    },
+    {
+     "numero": "480",
+     "rubrica": "Forma del precetto",
+     "testo": "Il precetto consiste nell'intimazione di adempiere l'obbligo risultante dal titolo esecutivo entro un termine non minore di dieci giorni, con l'avvertimento che, in mancanza, si procederà a esecuzione forzata.",
+     "distrattore": true
+    },
+    {
+     "numero": "615",
+     "rubrica": "Forma dell'opposizione",
+     "testo": "Quando si contesta il diritto della parte istante a procedere ad esecuzione forzata e questa non è ancora iniziata, si può proporre opposizione al precetto con citazione davanti al giudice competente per materia o valore e per territorio.",
+     "distrattore": false
+    },
+    {
+     "numero": "633",
+     "rubrica": "Condizioni di ammissibilità",
+     "testo": "Su domanda di chi è creditore di una somma liquida di danaro o di una determinata quantità di cose fungibili, il giudice competente pronuncia ingiunzione di pagamento o di consegna se del diritto fatto valere si dà prova scritta.",
+     "distrattore": false
+    },
+    {
+     "numero": "641",
+     "rubrica": "Provvedimento",
+     "testo": "Il giudice, se ritiene fondata la domanda, pronuncia ingiunzione di pagamento, fissando il termine di quaranta giorni dalla notificazione per fare opposizione, con l'avvertimento che in mancanza si procederà a esecuzione forzata.",
+     "distrattore": false
+    },
+    {
+     "numero": "645",
+     "rubrica": "Opposizione",
+     "testo": "Se l'ingiunzione è stata pronunciata, l'opposizione si propone davanti all'ufficio giudiziario al quale appartiene il giudice che ha emesso il decreto, con atto di citazione notificato al ricorrente. In seguito all'opposizione il giudizio si svolge secondo le norme del procedimento ordinario davanti al giudice adito; ma i termini di comparizione sono ridotti a metà.",
+     "distrattore": false
+    },
+    {
+     "numero": "647",
+     "rubrica": "Esecutorietà per mancata opposizione",
+     "testo": "Se non è stata fatta opposizione nel termine stabilito, o se l'opponente non si è costituito in termine, il giudice che ha pronunciato l'ingiunzione, su istanza del ricorrente, dichiara esecutivo il decreto.",
+     "distrattore": false
+    },
+    {
+     "numero": "671",
+     "rubrica": "Sequestro conservativo",
+     "testo": "Il giudice, su istanza del creditore che ha fondato timore di perdere la garanzia del proprio credito, può autorizzare il sequestro conservativo di beni mobili o immobili del debitore o le somme e cose a lui dovute, nei limiti in cui la legge ne permette il pignoramento.",
+     "distrattore": false
+    },
+    {
+     "numero": "696",
+     "rubrica": "Accertamento tecnico e ispezione giudiziale",
+     "testo": "Chi ha urgenza di far verificare, prima del giudizio, lo stato di luoghi o la qualità o la condizione di cose, può chiedere che sia disposto un accertamento tecnico o un'ispezione giudiziale.",
+     "distrattore": false
+    },
+    {
+     "numero": "700",
+     "rubrica": "Condizioni per la concessione",
+     "testo": "Chi ha fondato motivo di temere che durante il tempo occorrente per far valere il suo diritto in via ordinaria, questo sia minacciato da un pregiudizio imminente e irreparabile, può chiedere con ricorso al giudice i provvedimenti d'urgenza, che appaiono, secondo le circostanze, più idonei ad assicurare provvisoriamente gli effetti della decisione sul merito.",
+     "distrattore": false
+    }
+   ]
+  },
+  {
+   "codice": "codice_civile",
+   "titolo": "Codice civile",
+   "numero": "262",
+   "data_atto": "1942-03-16",
+   "vigenza": "ORIGINALE",
+   "xml_sha256": "corpus-cc-originale",
+   "articoli": [
+    {
+     "numero": "2043",
+     "rubrica": "Risarcimento per fatto illecito",
+     "testo": "Qualunque fatto doloso o colposo, che cagiona ad altri un danno ingiusto, obbliga colui che ha commesso il fatto a risarcire il danno.",
+     "distrattore": false
+    }
+   ]
+  }
+ ]
+}

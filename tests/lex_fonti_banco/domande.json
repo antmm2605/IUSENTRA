@@ -1,0 +1,713 @@
+{
+ "_nota": "Domande in linguaggio naturale -> articoli attesi (codice, numero).",
+ "domande": [
+  {
+   "id": 1,
+   "domanda": "Quali sono i presupposti della responsabilità extracontrattuale?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "2043"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "domanda": "Se l'altra parte non adempie posso chiedere la risoluzione del contratto?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1453"
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "domanda": "Come si intima per iscritto alla controparte di adempiere entro un termine, a pena di risoluzione?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1454"
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "domanda": "Qual è il termine di prescrizione ordinaria dei diritti?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "2946"
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "domanda": "In quali casi è risarcibile il danno non patrimoniale?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "2059"
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "domanda": "Quando si può recedere dal rapporto di lavoro senza preavviso per giusta causa?",
+   "materia": "lavoro",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "2119"
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "domanda": "Qual è il termine breve per proporre appello dopo la notifica della sentenza?",
+   "materia": "processuale",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "325"
+    }
+   ]
+  },
+  {
+   "id": 8,
+   "domanda": "Come si propone opposizione a decreto ingiuntivo?",
+   "materia": "processuale",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "645"
+    }
+   ]
+  },
+  {
+   "id": 9,
+   "domanda": "Cosa succede alla caparra confirmatoria se chi l'ha versata è inadempiente?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1385"
+    }
+   ]
+  },
+  {
+   "id": 10,
+   "domanda": "Ho acquistato una cosa con vizi: quali sono le garanzie e i termini per la vendita con vizi della cosa venduta?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1490"
+    },
+    {
+     "codice": "codice_civile",
+     "articolo": "1495"
+    }
+   ]
+  },
+  {
+   "id": 11,
+   "domanda": "Chi deve provare i fatti posti a fondamento della domanda in giudizio?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "2697"
+    }
+   ]
+  },
+  {
+   "id": 12,
+   "domanda": "Che effetto ha la clausola penale sul risarcimento del danno?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1382"
+    }
+   ]
+  },
+  {
+   "id": 13,
+   "domanda": "Il giudice può ridurre una penale manifestamente eccessiva?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1384"
+    }
+   ]
+  },
+  {
+   "id": 14,
+   "domanda": "Entro quanto tempo si può impugnare una sentenza non notificata?",
+   "materia": "processuale",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "327"
+    }
+   ]
+  },
+  {
+   "id": 15,
+   "domanda": "In quanti anni si prescrive il diritto al risarcimento del danno da fatto illecito?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "2947"
+    }
+   ]
+  },
+  {
+   "id": 16,
+   "domanda": "Il debitore che non esegue la prestazione deve risarcire il danno?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1218"
+    }
+   ]
+  },
+  {
+   "id": 17,
+   "domanda": "Il risarcimento comprende il danno emergente e il lucro cessante?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1223"
+    }
+   ]
+  },
+  {
+   "id": 18,
+   "domanda": "Come si costituisce in mora il debitore?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1219"
+    }
+   ]
+  },
+  {
+   "id": 19,
+   "domanda": "Posso rifiutarmi di consegnare se l'altra parte non paga contemporaneamente?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1460"
+    }
+   ]
+  },
+  {
+   "id": 20,
+   "domanda": "Il contratto è diventato eccessivamente oneroso per eventi straordinari e imprevedibili: posso chiedere la risoluzione?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1467"
+    }
+   ]
+  },
+  {
+   "id": 21,
+   "domanda": "Le clausole vessatorie nelle condizioni generali di contratto devono essere approvate per iscritto?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1341"
+    }
+   ]
+  },
+  {
+   "id": 22,
+   "domanda": "Quando un contratto è nullo perché contrario a norme imperative?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1418"
+    }
+   ]
+  },
+  {
+   "id": 23,
+   "domanda": "Il contratto è annullabile se la controparte ha usato raggiri?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1439"
+    }
+   ]
+  },
+  {
+   "id": 24,
+   "domanda": "Quando l'errore essenziale e riconoscibile porta all'annullamento del contratto?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1428"
+    }
+   ]
+  },
+  {
+   "id": 25,
+   "domanda": "Come si interpreta un contratto: comune intenzione delle parti o senso letterale?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1362"
+    }
+   ]
+  },
+  {
+   "id": 26,
+   "domanda": "C'è responsabilità precontrattuale se rompo le trattative senza buona fede?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1337"
+    }
+   ]
+  },
+  {
+   "id": 27,
+   "domanda": "Dopo quanti anni di possesso si acquista un immobile per usucapione?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1158"
+    }
+   ]
+  },
+  {
+   "id": 28,
+   "domanda": "Ho pagato una somma non dovuta: posso ripetere il pagamento?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "2033"
+    }
+   ]
+  },
+  {
+   "id": 29,
+   "domanda": "Posso chiedere un indennizzo se qualcuno si è arricchito senza giusta causa a mio danno?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "2041"
+    }
+   ]
+  },
+  {
+   "id": 30,
+   "domanda": "Come funziona l'estinzione dei debiti per compensazione?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1241"
+    }
+   ]
+  },
+  {
+   "id": 31,
+   "domanda": "Quali atti interrompono la prescrizione?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "2943"
+    }
+   ]
+  },
+  {
+   "id": 32,
+   "domanda": "Da quando decorre la prescrizione di un diritto?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "2935"
+    }
+   ]
+  },
+  {
+   "id": 33,
+   "domanda": "Gli interessi e i canoni di locazione si prescrivono in cinque anni?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "2948"
+    }
+   ]
+  },
+  {
+   "id": 34,
+   "domanda": "Cos'è il contratto di mutuo e cosa deve restituire il mutuatario?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1813"
+    }
+   ]
+  },
+  {
+   "id": 35,
+   "domanda": "Chi è il fideiussore e cosa garantisce?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1936"
+    }
+   ]
+  },
+  {
+   "id": 36,
+   "domanda": "Il debitore risponde con tutti i suoi beni presenti e futuri?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "2740"
+    }
+   ]
+  },
+  {
+   "id": 37,
+   "domanda": "Qual è la funzione della caparra penitenziale quando è previsto il diritto di recesso?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "1386"
+    }
+   ]
+  },
+  {
+   "id": 38,
+   "domanda": "Il datore di lavoro può assegnare mansioni inferiori al dipendente?",
+   "materia": "lavoro",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "2103"
+    }
+   ]
+  },
+  {
+   "id": 39,
+   "domanda": "Come si calcola il trattamento di fine rapporto alla cessazione del lavoro subordinato?",
+   "materia": "lavoro",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "2120"
+    }
+   ]
+  },
+  {
+   "id": 40,
+   "domanda": "Quale preavviso spetta in caso di recesso dal contratto di lavoro a tempo indeterminato?",
+   "materia": "lavoro",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "2118"
+    }
+   ]
+  },
+  {
+   "id": 41,
+   "domanda": "L'imprenditore deve adottare misure per tutelare l'integrità fisica dei lavoratori?",
+   "materia": "lavoro",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "2087"
+    }
+   ]
+  },
+  {
+   "id": 42,
+   "domanda": "Il dipendente può lavorare in concorrenza con il datore di lavoro? Obbligo di fedeltà",
+   "materia": "lavoro",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "2105"
+    }
+   ]
+  },
+  {
+   "id": 43,
+   "domanda": "Chi è il lavoratore subordinato alle dipendenze dell'imprenditore?",
+   "materia": "lavoro",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "2094"
+    }
+   ]
+  },
+  {
+   "id": 44,
+   "domanda": "Cosa deve contenere il ricorso nel rito del lavoro?",
+   "materia": "lavoro",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "414"
+    }
+   ]
+  },
+  {
+   "id": 45,
+   "domanda": "Entro quanti giorni il convenuto deve costituirsi con memoria difensiva nel processo del lavoro?",
+   "materia": "lavoro",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "416"
+    }
+   ]
+  },
+  {
+   "id": 46,
+   "domanda": "Quali controversie seguono il rito del lavoro?",
+   "materia": "lavoro",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "409"
+    }
+   ]
+  },
+  {
+   "id": 47,
+   "domanda": "Si possono proporre domande nuove in appello?",
+   "materia": "processuale",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "345"
+    }
+   ]
+  },
+  {
+   "id": 48,
+   "domanda": "Per quali motivi si può ricorrere per cassazione contro le sentenze?",
+   "materia": "processuale",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "360"
+    }
+   ]
+  },
+  {
+   "id": 49,
+   "domanda": "Il giudice condanna la parte soccombente al rimborso delle spese di lite?",
+   "materia": "processuale",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "91"
+    }
+   ]
+  },
+  {
+   "id": 50,
+   "domanda": "Quando il giudice può compensare le spese tra le parti per soccombenza reciproca?",
+   "materia": "processuale",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "92"
+    }
+   ]
+  },
+  {
+   "id": 51,
+   "domanda": "In quanti giorni si può fare opposizione dopo la notifica del decreto ingiuntivo?",
+   "materia": "processuale",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "641"
+    }
+   ]
+  },
+  {
+   "id": 52,
+   "domanda": "A quali condizioni si può ottenere un decreto ingiuntivo con prova scritta del credito?",
+   "materia": "processuale",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "633"
+    }
+   ]
+  },
+  {
+   "id": 53,
+   "domanda": "Quando si può chiedere un provvedimento d'urgenza per pregiudizio imminente e irreparabile?",
+   "materia": "processuale",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "700"
+    }
+   ]
+  },
+  {
+   "id": 54,
+   "domanda": "Come si ottiene il sequestro conservativo dei beni del debitore?",
+   "materia": "processuale",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "671"
+    }
+   ]
+  },
+  {
+   "id": 55,
+   "domanda": "Quali sono i titoli esecutivi per l'esecuzione forzata?",
+   "materia": "processuale",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "474"
+    }
+   ]
+  },
+  {
+   "id": 56,
+   "domanda": "Come si propone opposizione al precetto prima dell'esecuzione?",
+   "materia": "processuale",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "615"
+    }
+   ]
+  },
+  {
+   "id": 57,
+   "domanda": "I fatti non specificamente contestati dalla parte costituita richiedono prova?",
+   "materia": "processuale",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "115"
+    }
+   ]
+  },
+  {
+   "id": 58,
+   "domanda": "Quali domande riconvenzionali devono essere proposte a pena di decadenza nella comparsa di risposta?",
+   "materia": "processuale",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "167"
+    }
+   ]
+  },
+  {
+   "id": 59,
+   "domanda": "Cosa deve contenere l'atto di citazione?",
+   "materia": "processuale",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "163"
+    }
+   ]
+  },
+  {
+   "id": 60,
+   "domanda": "Le presunzioni semplici devono essere gravi, precise e concordanti?",
+   "materia": "civile",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "2729"
+    }
+   ]
+  },
+  {
+   "id": 61,
+   "domanda": "Quando il decreto ingiuntivo diventa esecutivo per mancata opposizione?",
+   "materia": "processuale",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "647"
+    }
+   ]
+  },
+  {
+   "id": 62,
+   "domanda": "Come deve essere motivato l'atto di appello a pena di inammissibilità?",
+   "materia": "processuale",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "342"
+    }
+   ]
+  },
+  {
+   "id": 63,
+   "domanda": "Si può chiedere un accertamento tecnico preventivo prima della causa?",
+   "materia": "processuale",
+   "attesi": [
+    {
+     "codice": "codice_procedura_civile",
+     "articolo": "696"
+    }
+   ]
+  },
+  {
+   "id": 64,
+   "domanda": "In caso di malattia o infortunio il lavoratore ha diritto alla retribuzione?",
+   "materia": "lavoro",
+   "attesi": [
+    {
+     "codice": "codice_civile",
+     "articolo": "2110"
+    }
+   ]
+  }
+ ]
+}

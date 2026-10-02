@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Banco fonti di Lex: recall@5, recall@10 e MRR della ricerca Normattiva attuale (commit 50d9060) e della FTS.
 
-Uso: python scripts/lex_fonti_banco.py [--errori]
+Uso: python scripts/lex_fonti_banco.py [--errori] [--ollama]
+
+Colonne: attuale (50d9060), fts (lessicale), semantica e ibrida (embedding finto deterministico di
+default; con --ollama l'embedding reale se Ollama e' raggiungibile, altrimenti salta con un messaggio).
 """
 
 from __future__ import annotations
@@ -17,12 +20,27 @@ from tests.lex_fonti_banco.valutazione import esegui_banco, tabella  # noqa: E40
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--errori", action="store_true", help="elenca le domande in cui la ricerca FTS non trova l'articolo atteso nei primi 5")
+    parser.add_argument("--errori", action="store_true", help="elenca le domande in cui la ricerca scelta non trova l'articolo atteso nei primi 5")
+    parser.add_argument("--ollama", action="store_true", help="usa embeddinggemma reale (LEX_EMBED_MODEL) invece dell'embedding finto")
+    parser.add_argument("--classifica", default="fts", help="ricerca per --errori (fts, semantica, ibrida)")
     args = parser.parse_args()
-    esito = esegui_banco()
+    from lex.ricerca_giuridica.embedding import EmbedderFinto, OllamaEmbedder
+
+    embedder = EmbedderFinto(256)
+    if args.ollama:
+        reale = OllamaEmbedder(timeout=60.0)
+        try:
+            reale.embed(["prova"])
+            embedder = reale
+        except Exception as exc:
+            print(f"Ollama non raggiungibile ({reale.url}, {reale.modello}): {exc}\nColonne semantica/ibrida con embedding reale saltate.")
+            embedder = None
+    esito = esegui_banco(embedder=embedder)
+    if embedder is not None:
+        print(f"Embedding: {embedder.modello}" + (" (finto: misura la pipeline, non la semantica)" if isinstance(embedder, EmbedderFinto) else ""))
     print(tabella(esito))
     if args.errori:
-        classifiche = esito["ricerche"]["fts"]["classifiche"]
+        classifiche = esito["ricerche"].get(args.classifica, esito["ricerche"]["fts"])["classifiche"]
         for domanda, classifica in zip(esito["domande"], classifiche):
             attesi = [(a["codice"], a["articolo"]) for a in domanda["attesi"]]
             if not all(a in classifica[:5] for a in attesi):

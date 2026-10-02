@@ -113,8 +113,12 @@ def metriche(classifiche: list[list[tuple[str, str]]], domande: list[dict[str, A
     return {"recall@5": r5 / n, "recall@10": r10 / n, "mrr": mrr / n}
 
 
-def esegui_banco(cartella_tmp: Path | None = None) -> dict[str, Any]:
-    """Esegue il banco e restituisce metriche e classifiche di ogni ricerca."""
+def esegui_banco(cartella_tmp: Path | None = None, embedder: Any = None) -> dict[str, Any]:
+    """Esegue il banco e restituisce metriche e classifiche di ogni ricerca.
+
+    Con ``embedder`` (finto o Ollama) costruisce l'indice vettoriale del mini-corpus e misura anche
+    la ricerca ``semantica`` (solo vettori) e ``ibrida`` (FTS + vettori, RRF).
+    """
 
     os.environ.setdefault("LEX_RICERCA_SEMANTICA", "0")  # il banco 2A misura la parte lessicale
     domande = carica_domande()
@@ -130,6 +134,20 @@ def esegui_banco(cartella_tmp: Path | None = None) -> dict[str, Any]:
             "attuale": lambda q: vecchio.search_normattiva(q, limit=K_MAX, db_path=db, jsonl_path=inesistente),
             "fts": lambda q: cerca_normattiva_indicizzata(q, db, limite=K_MAX) or [],
         }
+        if embedder is not None:
+            from lex.ricerca_giuridica.ibrida import MotoreRicercaNormattiva
+            from lex.ricerca_giuridica.indice_vettoriale import costruisci_indice
+
+            conn_v = sqlite3.connect(str(db))
+            try:
+                costruisci_indice(conn_v, base / "vettori", embedder, batch=64)
+            finally:
+                conn_v.close()
+            motore = MotoreRicercaNormattiva(db, base / "vettori", embedder=embedder)
+            if not motore.stato()["semantica_attiva"]:
+                raise RuntimeError(motore.stato()["motivo_semantica"])
+            ricerche["semantica"] = lambda q: motore.cerca(q, limite=K_MAX, modalita="semantica")
+            ricerche["ibrida"] = lambda q: motore.cerca(q, limite=K_MAX, modalita="ibrida")
         risultati: dict[str, Any] = {}
         for nome, funzione in ricerche.items():
             righe_per_domanda = [funzione(d["domanda"]) for d in domande]

@@ -143,7 +143,7 @@ class MotoreRicercaNormattiva:
             return
         if self.embedder is None:
             timeout = float(str(os.getenv("LEX_EMBED_TIMEOUT_S", "4") or "4").replace(",", "."))
-            self.embedder = OllamaEmbedder(timeout=timeout, dimensioni=indice.dimensioni)
+            self.embedder = OllamaEmbedder(timeout=timeout, dimensioni=indice.dimensioni, tentativi=1)
         compatibile, motivo = indice.verifica_modello(self.embedder.modello)
         if not compatibile:
             self._motivo_semantica = f"indice vettoriale ignorato: {motivo}"

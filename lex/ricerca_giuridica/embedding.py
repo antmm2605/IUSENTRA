@@ -77,6 +77,8 @@ class OllamaEmbedder:
     modello: str = ""
     url: str = ""
     timeout: float = 120.0
+    tentativi: int = 3
+    attesa_s: float = 1.0
     dimensioni: int = 0  # >0: troncamento Matryoshka (embeddinggemma supporta 768/512/256/128)
 
     def __post_init__(self) -> None:
@@ -85,31 +87,37 @@ class OllamaEmbedder:
         self._digest: str | None = None
 
     def versione(self) -> str:
-        """Digest del modello in Ollama (``/api/tags``): identifica la versione esatta dei pesi."""
+        """Versione dei pesi: digest da ``/api/tags``, altrimenti ``modified_at`` da ``/api/show``."""
 
         if self._digest is not None:
             return self._digest
         import requests
 
-        digest = ""
+        versione = ""
         try:
             risposta = requests.get(f"{self.url}/api/tags", timeout=min(self.timeout, 10.0))
             risposta.raise_for_status()
             for voce in list((risposta.json() or {}).get("models") or []):
                 nomi = {str(voce.get("name") or ""), str(voce.get("model") or "")}
                 if self.modello in nomi or f"{self.modello}:latest" in nomi:
-                    digest = str(voce.get("digest") or "")
+                    versione = str(voce.get("digest") or "")
                     break
         except Exception:
-            digest = ""
-        self._digest = digest
-        return digest
+            versione = ""
+        if not versione:
+            try:
+                risposta = requests.post(f"{self.url}/api/show", json={"model": self.modello}, timeout=min(self.timeout, 10.0))
+                risposta.raise_for_status()
+                dati = risposta.json() or {}
+                versione = str(dati.get("digest") or dati.get("modified_at") or "")
+            except Exception:
+                versione = ""
+        self._digest = versione
+        return versione
 
-    def embed(self, testi: list[str]) -> np.ndarray:
+    def _embed_una_volta(self, testi: list[str]) -> np.ndarray:
         import requests
 
-        if not testi:
-            return np.zeros((0, max(1, self.dimensioni)), dtype=np.float32)
         corpo: dict[str, Any] = {"model": self.modello, "input": list(testi), "truncate": True, "keep_alive": "15m"}
         risposta = requests.post(f"{self.url}/api/embed", json=corpo, timeout=self.timeout)
         if risposta.status_code == 404:
@@ -131,6 +139,19 @@ class OllamaEmbedder:
         if self.dimensioni and matrice.shape[1] > self.dimensioni:
             matrice = matrice[:, : self.dimensioni]
         return normalizza_righe(matrice)
+
+    def embed(self, testi: list[str]) -> np.ndarray:
+        if not testi:
+            return np.zeros((0, max(1, self.dimensioni)), dtype=np.float32)
+        ultimo: Exception | None = None
+        for tentativo in range(max(1, self.tentativi)):
+            try:
+                return self._embed_una_volta(testi)
+            except Exception as exc:  # rete, timeout, 5xx: si riprova con attesa crescente
+                ultimo = exc
+                if tentativo + 1 < self.tentativi:
+                    time.sleep(self.attesa_s * (2**tentativo))
+        raise RuntimeError(f"embedding non riuscito dopo {self.tentativi} tentativi: {ultimo}") from ultimo
 
 
 class EmbedderFinto:

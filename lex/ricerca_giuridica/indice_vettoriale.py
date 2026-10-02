@@ -381,6 +381,7 @@ def costruisci_indice(
             del ids_file
             esito.eliminati = len(eliminati)
         meta["righe"] = righe
+        meta["chunk_totali"] = totale
         meta["aggiornato"] = _adesso()
         _scrivi_meta(percorso, meta)
     finally:
@@ -390,6 +391,90 @@ def costruisci_indice(
     return esito
 
 
+# ---------------------------------------------------------------------------------------------- #
+# Riga di comando                                                                                 #
+# ---------------------------------------------------------------------------------------------- #
+
+def _barra(fatti: int, totale: int, secondi: float) -> None:
+    larghezza = 30
+    quota = (fatti / totale) if totale else 1.0
+    pieni = int(larghezza * min(1.0, quota))
+    velocita = fatti / secondi if secondi > 0 else 0.0
+    resto = (totale - fatti) / velocita if velocita > 0 else 0.0
+    print(
+        f"\r[{'#' * pieni}{'.' * (larghezza - pieni)}] {fatti}/{totale} {quota * 100:5.1f}% "
+        f"{velocita:6.1f} chunk/s  ~{resto / 60:5.1f} min",
+        end="",
+        flush=True,
+    )
+
+
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+
+    from .embedding import OllamaEmbedder
+
+    parser = argparse.ArgumentParser(
+        prog="python -m lex.ricerca_giuridica.indice_vettoriale", description="Indice vettoriale dei chunk Normattiva."
+    )
+    parser.add_argument("comando", choices=["costruisci", "aggiorna", "info"])
+    parser.add_argument("--db", help="database normattiva.sqlite")
+    parser.add_argument("--out", required=True, help="cartella dell'indice vettoriale")
+    parser.add_argument("--modello", default="", help="modello Ollama (default: LEX_EMBED_MODEL o embeddinggemma:300m)")
+    parser.add_argument("--url", default="", help="URL di Ollama")
+    parser.add_argument("--batch", type=int, default=32)
+    parser.add_argument("--massimo", type=int, default=None, help="si ferma dopo N chunk (prova o costruzione a tappe)")
+    parser.add_argument("--ricomincia", action="store_true", help="cancella l'indice e ricostruisce (solo costruisci)")
+    args = parser.parse_args(argv)
+    logging.basicConfig(level=logging.WARNING, format="%(message)s")
+
+    if args.comando == "info":
+        indice = IndiceVettoriale.apri(args.out)
+        if indice is None:
+            print(f"Nessun indice vettoriale in {args.out}")
+            return 1
+        print(json.dumps(indice.meta, ensure_ascii=False, indent=2))
+        attive = int((np.fromfile(Path(args.out) / _FILE_IDS, dtype=np.int64, count=indice.righe) >= 0).sum()) if indice.righe else 0
+        print(f"righe attive: {attive} su {indice.righe}")
+        return 0
+
+    if not args.db or not Path(args.db).exists():
+        print("Database Normattiva non trovato: indica --db <normattiva.sqlite>")
+        return 2
+    embedder = OllamaEmbedder(modello=args.modello, url=args.url)
+    try:
+        embedder.embed(["prova"])
+    except Exception as exc:
+        print(f"Ollama non raggiungibile su {embedder.url} con il modello {embedder.modello}: {exc}")
+        return 3
+    conn = sqlite3.connect(args.db)
+    try:
+        esito = costruisci_indice(
+            conn,
+            args.out,
+            embedder,
+            batch=args.batch,
+            massimo=args.massimo,
+            ricomincia=bool(args.ricomincia and args.comando == "costruisci"),
+            progresso=_barra,
+        )
+    except IndiceIncompatibile as exc:
+        print(f"\n{exc}")
+        return 4
+    except KeyboardInterrupt:
+        print("\nInterrotto: rilancia lo stesso comando per riprendere dall'ultimo blocco salvato.")
+        return 130
+    finally:
+        conn.close()
+    print()
+    print(json.dumps(esito.to_dict(), ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
+
 __all__ = [
     "EsitoCostruzione",
     "FORMATO",
@@ -397,5 +482,6 @@ __all__ = [
     "IndiceVettoriale",
     "costruisci_indice",
     "impronta_testo",
+    "main",
     "quantizza",
 ]

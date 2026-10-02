@@ -6,18 +6,18 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 821.
+- File pytest censiti: 823.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
 | Tipo test | Conteggio |
 | --- | --- |
 | API contract | 107 |
-| Backend | 96 |
+| Backend | 97 |
 | E2E | 13 |
 | Frontend static gate | 1 |
 | Frontend/UI | 277 |
-| RBAC | 101 |
+| RBAC | 102 |
 | Security | 44 |
 | Smoke CLI | 6 |
 | Tenant isolation | 183 |
@@ -35,7 +35,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 80 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 182 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 347 |
+| 09-misc | Test non classificati dalle fasi principali | 349 |
 
 ## Suite CI aggiuntive
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.436.8 — 02/10/2026
+
+Lex, ricerca giuridica: archivio Normattiva completo preparato sul PC, indice vettoriale e aggiornamento notturno.
+
+- **Archivio Normattiva VIGENTE completo** costruito in locale: 83.678 atti, 554.790 articoli, 804.387 chunk, indice FTS e vettoriale al 100%, caricabile sul server con `carica_fonti_lex.sh` (backup e ripristino automatico).
+- **Aggiornamento notturno nella stessa vigenza del pacchetto** (`IUSENTRA_NORMATTIVA_VIGENZA`, default `VIGENTE`): l'import prende solo gli ZIP di quella vigenza, gli ZIP ORIGINALE rimasti in `raw/` non entrano nel database.
+- **Catena TLS di api.normattiva.it**: il server Normattiva non invia l'intermedio GlobalSign GCC R46 OV TLS CA 2025; il certificato pubblico è incluso nel repository e aggiunto alle CA del client (verifica TLS sempre attiva).
+- **Modello di embedding sempre pronto**: dopo un timeout della domanda il modello si carica in sottofondo e la ricerca torna ibrida; `LEX_EMBED_KEEP_ALIVE=24h`; il motore lo carica appena creato.
+- **Costruzione dell'indice vettoriale**: richieste sempre in volo, più istanze Ollama a turno (61 chunk/s su RTX 3060 con due istanze), velocità reale nella barra, testi rifiutati isolati e accorciati, nessuna divisione dei lotti quando il modello non si carica.
+- **Verifica onesta**: `verifica` segna KO una ricerca solo lessicale quando l'indice vettoriale è presente.
+- Banco fonti indipendente dall'hash del commit di base.
+
 ## 2.436.0 — 02/10/2026
 
 Lex, risanamento del RAG — modulo 2: ricerca giuridica (FTS, vettori, routing, esito onesto, banco fonti, archivio Normattiva dal PC).

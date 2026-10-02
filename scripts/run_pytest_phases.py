@@ -394,6 +394,19 @@ def discover_test_items(files: Iterable[Path]) -> list[str]:
     items: list[str] = []
     for path in files:
         relative = rel(path)
+        # Il banco usa casi caricati dal corpus: l'AST vede una sola funzione,
+        # mentre pytest conosce tutte le domande parametrizzate da distribuire.
+        if relative == "tests/test_lex_banco_prova.py":
+            collected = subprocess.run(
+                [sys.executable, "-m", "pytest", "-o", "addopts=", "--collect-only", "-q", relative],
+                cwd=REPO_ROOT, capture_output=True, text=True, timeout=60, check=False,
+            )
+            node_ids = [line.strip() for line in collected.stdout.splitlines()
+                        if line.startswith(f"{relative}::")]
+            if collected.returncode or not node_ids or len(node_ids) != len(set(node_ids)):
+                raise RuntimeError(f"Raccolta item del banco Lex fallita: {collected.stdout}\n{collected.stderr}")
+            items.extend(node_ids)
+            continue
         try:
             tree = ast.parse(path.read_text(encoding="utf-8-sig"))
         except SyntaxError:

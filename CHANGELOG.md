@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.434.9 — 02/10/2026
+
+- Correzione del runner CI: raccolta effettiva degli item parametrizzati del banco Lex, per distribuire tutte le 46 domande tra gli shard anziché concentrare la funzione intera in un solo shard. Nessuna domanda eliminata, soglia invariata e timeout di cinque minuti preservato.
+- La 2.434.8 ha superato i 40 gate locali; la sua coverage remota ha rilevato il timeout della parte 5/12. La nuova verifica controlla anche completezza e unicità delle domande distribuite.
+
 ## 2.434.8 — 02/10/2026
 
 - Contratti API, OpenAPI, documentazione generata e versione frontend riallineati al rilascio.

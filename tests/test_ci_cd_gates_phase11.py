@@ -10,6 +10,22 @@ from types import ModuleType
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_lex_bank_shards_distribute_every_collected_question() -> None:
+    from scripts.run_pytest_phases import discover_test_items, split_core_shards
+
+    corpus = json.loads(_read("tests/lex_banco/domande.json"))
+    prefix = "tests/test_lex_banco_prova.py::test_banco_di_prova_nessuna_regressione"
+    expected = {f"{prefix}[{case['id']}]" for case in corpus["domande"]}
+    items = discover_test_items([REPO_ROOT / "tests/test_lex_banco_prova.py"])
+    assert {item for item in items if item.startswith(prefix)} == expected
+    assert prefix not in items
+    shards = split_core_shards(items, 12)
+    flattened = [item for shard in shards for item in shard]
+    assert len(flattened) == len(set(flattened)) == len(items)
+    assert set(flattened) == set(items)
+    assert all(sum(item in expected for item in shard) <= 4 for shard in shards)
+
+
 def _read(relative: str) -> str:
     return (REPO_ROOT / relative).read_text(encoding="utf-8")
 

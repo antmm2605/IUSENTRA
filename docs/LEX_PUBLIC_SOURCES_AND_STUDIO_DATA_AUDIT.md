@@ -2,6 +2,21 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento 2.435.0 - 2 ottobre 2026: dati dello studio fuori dalle domande giuridiche
+
+Fino alla 2.434.5 il provider Ollama inseriva nel messaggio di ogni domanda,
+anche di diritto generale, `json.dumps` dell'intero contesto dello studio
+(agenda, dati economici, codici fiscali dei clienti: ~400.000 caratteri
+misurati), poi troncato in silenzio da Ollama a 4.096 token. Dalla 2.435.0:
+
+- workflow giuridici (normativa, giurisprudenza, prassi, ricerca fonti): nessun
+  dato dello studio nel prompt;
+- workflow sui dati dello studio: estratto compatto e pertinente, senza codici
+  fiscali, partite IVA, IBAN, PEC e impostazioni, entro un budget di caratteri;
+- testi delle fonti ripuliti da codici fiscali e IBAN prima dell'invio.
+
+Dettagli e misure in `docs/LEX_AI_RESPONSE_PIPELINE.md` (sezione 2.435.0).
+
 ## Aggiornamento gate reali Lex/RAG/Ricerca Legale - 7 giugno 2026
 
 Le verifiche di Lex non possono più limitarsi a controlli di presenza, conteggi

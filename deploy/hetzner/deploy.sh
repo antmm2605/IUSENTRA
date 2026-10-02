@@ -338,12 +338,29 @@ if [ "$AI_ENABLED" != "0" ] && [ "$AI_ENABLED" != "false" ]; then
     fi
     for OLLAMA_MODEL in "$OLLAMA_CHAT_MODEL" "${PCT_LEX_CATALOGO_MODELLO:-maternion/spark-x2.5:4b}"; do
       echo "Verifico modello Ollama locale: $OLLAMA_MODEL"
-      docker compose \
-        --env-file "$ENV_FILE" \
-        -f "$COMPOSE_FILE" \
-        "${PROFILE_ARGS[@]}" \
-        exec -T ollama ollama pull "$OLLAMA_MODEL" || \
-        echo "Attenzione: pull modello Ollama $OLLAMA_MODEL non riuscito — verificare manualmente."
+      # Un modello gia' installato (anche un tag creato in locale con
+      # `ollama create`, che nel registry non esiste) non blocca il deploy:
+      # se il pull fallisce si usa la copia locale.
+      if docker compose \
+          --env-file "$ENV_FILE" \
+          -f "$COMPOSE_FILE" \
+          "${PROFILE_ARGS[@]}" \
+          exec -T ollama ollama show "$OLLAMA_MODEL" >/dev/null 2>&1; then
+        OLLAMA_MODEL_PRESENTE=1
+      else
+        OLLAMA_MODEL_PRESENTE=0
+      fi
+      if docker compose \
+          --env-file "$ENV_FILE" \
+          -f "$COMPOSE_FILE" \
+          "${PROFILE_ARGS[@]}" \
+          exec -T ollama ollama pull "$OLLAMA_MODEL"; then
+        echo "Modello Ollama $OLLAMA_MODEL aggiornato."
+      elif [ "$OLLAMA_MODEL_PRESENTE" = "1" ]; then
+        echo "Modello Ollama $OLLAMA_MODEL non presente nel registry o registry non raggiungibile: uso la copia gia' installata."
+      else
+        echo "Attenzione: pull modello Ollama $OLLAMA_MODEL non riuscito e modello assente in locale — verificare manualmente."
+      fi
     done
   fi
 fi

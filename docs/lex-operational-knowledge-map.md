@@ -197,6 +197,15 @@ Integrazioni runtime:
 - Le risposte operative espongono `workflow=operational_knowledge`, `provider=deterministic`, `coverage_gaps`, `permissions_applied`, `operational_objects` e `audit_event_id`.
 - Le domande dispositive come invio PEC, deposito, firma, pagamento o cancellazione vengono bloccate e trasformate in richiesta di consultazione/revisione.
 
+## Prompt verso il modello locale (2.435.0)
+
+- I dati operativi dello studio arrivano al modello solo nei workflow che li
+  riguardano, come estratto compatto (`lex/providers/prompt_budget.py`,
+  `compact_studio_context`), mai nei workflow giuridici e mai con codici
+  fiscali, partite IVA o IBAN.
+- Formato fisso del messaggio: `Domanda` / `Dati dello studio` (facoltativo) /
+  `Fonti` numerate; parametri di generazione unici in `lex/settings.py`.
+
 ## Test prioritari
 
 - Default on: query cliente/fascicolo/scadenze/preventivi usano repository reali.

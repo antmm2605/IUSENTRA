@@ -1,20 +1,39 @@
 """Provider applicativo Ollama posseduto da Lex.
 
 Chiama in modo sincrono il runtime Ollama locale tramite l'HTTP client
-configurato. Costruisce un prompt completo (sistema + contesto + evidenze +
-domanda), esegue la generazione non-streaming e restituisce la bozza pronta
-per il passaggio successivo della pipeline Lex.
+configurato. Costruisce il prompt RAG (system prompt + messaggio
+"Domanda / [Dati dello studio] / Fonti") entro il budget di contesto
+(`lex.providers.prompt_budget`), con i parametri di generazione unici di
+`lex.settings.lex_generation_settings()`, esegue la generazione non-streaming e
+restituisce la bozza pronta per il passaggio successivo della pipeline Lex.
 """
 
 from __future__ import annotations
 
-import json
+import logging
 from typing import Any
+
+import requests
 
 from pct.local_ai import OllamaHttpClient
 
 from .base import BaseProvider
+from .prompt_budget import (
+    build_rag_prompt,
+    check_prompt_eval,
+    evidence_items as _budget_evidence_items,
+    format_evidence_item,
+    strip_think,
+)
 from lex.contracts import ProviderDraft
+from lex.prompts.legal_rag_prompt import (
+    LEGAL_AI_RESPONSE_CONTRACT,
+    LEX_LEGAL_RAG_SYSTEM_PROMPT,
+    is_legal_rag_workflow,
+)
+from lex.settings import lex_generation_settings
+
+logger = logging.getLogger("lex.providers.ollama")
 
 
 _FALLBACK_SYSTEM_PROMPT = (
@@ -25,15 +44,7 @@ _FALLBACK_SYSTEM_PROMPT = (
     "dati mancanti e suggerisci la verifica presso le fonti ufficiali."
 )
 
-_LEGAL_AI_RESPONSE_CONTRACT = (
-    "Contratto qualita' Lex AI:\n"
-    "- Non aprire con saluti o preamboli quando la richiesta e' tecnica o giuridica.\n"
-    "- Non usare frasi vaghe come 'iniziamo', 'ci sono diversi aspetti' o 'consulta un avvocato'.\n"
-    "- Distingui sempre dato certo, sintesi ricavata dalle fonti, punto da verificare ed effetto pratico.\n"
-    "- Se mancano fonti verificabili, scrivi 'non determinabile con le fonti disponibili' e indica cosa acquisire.\n"
-    "- Quando usi fonti, rendi riconoscibili titolo, provenienza, data o URL/path se presenti.\n"
-    "- Mantieni tono diretto, professionale e operativo per uno studio legale italiano."
-)
+_LEGAL_AI_RESPONSE_CONTRACT = LEGAL_AI_RESPONSE_CONTRACT
 
 _META_RESPONSE_MARKERS = (
     "ecco un esempio di risposta",
@@ -67,6 +78,10 @@ def _workflow_specialized_prompt(workflow: str) -> str:
 
 
 def _build_system_prompt(workflow: str, context: Any) -> str:
+    # Workflow giuridici: una sola stringa fissa (cache del prefisso di Ollama e
+    # stesso testo del dataset di fine-tuning).
+    if is_legal_rag_workflow(workflow):
+        return LEX_LEGAL_RAG_SYSTEM_PROMPT
     parts: list[str] = []
     prompt_builder = _safe_import_prompt_builder()
     base = ""
@@ -107,39 +122,22 @@ def _build_system_prompt(workflow: str, context: Any) -> str:
 
 
 def _evidence_items(evidence: Any) -> list[Any]:
-    if isinstance(evidence, dict):
-        return list(evidence.get("items") or [])
-    items = getattr(evidence, "items", None)
-    if callable(items):
-        return []
-    return list(items or [])
+    return _budget_evidence_items(evidence)
 
 
-def _format_evidence(evidence: Any, limit: int = 8) -> str:
-    items = _evidence_items(evidence)
+def _format_evidence(evidence: Any, limit: int | None = None) -> str:
+    """Evidenze nel formato unico "[n] Fonte · art. · URN/ECLI · vigenza · data".
+
+    Senza budget: il budget di contesto si applica in `build_rag_prompt`.
+    """
+    settings = lex_generation_settings()
+    max_items = settings.max_evidence_items if limit is None else int(limit)
     rows: list[str] = []
-    for idx, item in enumerate(items[:limit], start=1):
-        title = str(
-            (item.get("title") if isinstance(item, dict) else getattr(item, "title", "")) or ""
-        ).strip() or f"Evidenza {idx}"
-        content = str(
-            (item.get("content") if isinstance(item, dict) else getattr(item, "content", "")) or ""
-        ).strip()
-        if not content:
-            continue
-        rows.append(f"[{idx}] {title}\n{content}")
+    for item in _evidence_items(evidence)[:max_items]:
+        block, _ = format_evidence_item(len(rows) + 1, item, max_chars=settings.evidence_max_chars)
+        if block:
+            rows.append(block)
     return "\n\n".join(rows)
-
-
-def _format_context(context: Any) -> str:
-    if not context:
-        return ""
-    if isinstance(context, str):
-        return context.strip()
-    try:
-        return json.dumps(context, ensure_ascii=False, default=str, indent=2)
-    except Exception:
-        return str(context)
 
 
 def _resolve_runtime() -> dict[str, Any]:
@@ -156,28 +154,101 @@ def _resolve_runtime() -> dict[str, Any]:
         }
 
 
-def _call_ollama(payload: dict[str, Any], api_base_url: str, timeout: int = 120) -> str:
-    client = OllamaHttpClient(api_base_url, timeout=timeout)
-    response = client.chat(
-        str(payload.get("model") or "mistral"),
-        messages=list(payload.get("messages") or []),
-        keep_alive=str(payload.get("keep_alive") or "10m"),
-        options=dict(payload.get("options") or {}),
-        timeout=timeout,
-    )
-    return str(((response.get("message") or {}).get("content") or "")).strip()
+class _OllamaText(str):
+    """Testo della risposta con le statistiche di Ollama (prompt_eval_count, ...)."""
+
+    stats: dict[str, Any]
+
+    def __new__(cls, value: str, stats: dict[str, Any] | None = None):
+        obj = super().__new__(cls, value)
+        obj.stats = dict(stats or {})
+        return obj
+
+
+def _think_not_supported(exc: Exception) -> bool:
+    response = getattr(exc, "response", None)
+    if response is None or getattr(response, "status_code", None) != 400:
+        return False
+    try:
+        body = str(response.text or "")
+    except Exception:
+        body = ""
+    return "think" in body.lower()
+
+
+def _call_ollama(payload: dict[str, Any], api_base_url: str, timeout: int | None = None) -> str:
+    effective_timeout = int(timeout or lex_generation_settings().timeout_s)
+    client = OllamaHttpClient(api_base_url, timeout=effective_timeout)
+    kwargs: dict[str, Any] = {
+        "messages": list(payload.get("messages") or []),
+        "keep_alive": str(payload.get("keep_alive") or "10m"),
+        "options": dict(payload.get("options") or {}),
+        "timeout": effective_timeout,
+    }
+    if "think" in payload:
+        kwargs["think"] = bool(payload.get("think"))
+    model = str(payload.get("model") or "mistral")
+    try:
+        response = client.chat(model, **kwargs)
+    except requests.HTTPError as exc:
+        # Modelli senza supporto al ragionamento possono rifiutare il campo
+        # "think": si ripete una sola volta senza il campo.
+        if "think" not in kwargs or not _think_not_supported(exc):
+            raise
+        kwargs.pop("think", None)
+        response = client.chat(model, **kwargs)
+    text = str(((response.get("message") or {}).get("content") or "")).strip()
+    stats = {
+        key: response.get(key)
+        for key in ("prompt_eval_count", "eval_count", "total_duration", "prompt_eval_duration", "eval_duration", "load_duration")
+        if response.get(key) is not None
+    }
+    return _OllamaText(text, stats)
+
+
+def _model_error_kind(exc: Exception | None) -> str:
+    if exc is None:
+        return "errore"
+    if isinstance(exc, requests.Timeout) or "timeout" in exc.__class__.__name__.lower() or "timed out" in str(exc).lower():
+        return "timeout"
+    if isinstance(exc, requests.ConnectionError) or "connection" in exc.__class__.__name__.lower():
+        return "non_raggiungibile"
+    if "circuit" in exc.__class__.__name__.lower():
+        return "non_raggiungibile"
+    return "errore"
+
+
+def _model_error_notice(kind: str, timeout_s: int, *, has_content: bool) -> str:
+    """Avviso breve in italiano: il modello non ha risposto (mai un fallback silenzioso)."""
+    if kind == "timeout":
+        head = f"Il modello locale non ha risposto entro {timeout_s} secondi."
+    elif kind == "non_raggiungibile":
+        head = "Il modello locale non è raggiungibile in questo momento."
+    elif kind == "vuoto":
+        head = "Il modello locale non ha prodotto una risposta."
+    else:
+        head = "Il modello locale non ha risposto correttamente."
+    if has_content:
+        return head + " Di seguito solo quanto ricavato direttamente da dati e fonti, senza elaborazione del modello."
+    return head + " Riprova tra poco."
 
 
 def _deterministic_runtime_fallback(request, context, evidence, workflow, metadata: dict[str, Any]):
     from .deterministic_provider import DeterministicProvider
 
     draft = DeterministicProvider().generate(request, context, evidence, workflow or "chat")
+    deterministic_text = str(getattr(draft, "text", "") or "").strip()
+    kind = str(metadata.get("model_error_kind") or "errore")
+    timeout_s = int(metadata.get("timeout_s") or lex_generation_settings().timeout_s)
+    notice = _model_error_notice(kind, timeout_s, has_content=bool(deterministic_text))
+    draft.text = f"{notice}\n\n{deterministic_text}" if deterministic_text else notice
     draft.metadata = {
         **dict(getattr(draft, "metadata", {}) or {}),
         **metadata,
         "provider": "ollama",
         "fallback_provider": "deterministic",
         "status": "fallback_runtime_unavailable",
+        "model_error_notice": notice,
     }
     return draft
 
@@ -206,13 +277,17 @@ def _strict_legal_fallback(workflow: str) -> str:
     )
 
 
+class _EmptyModelResponse(RuntimeError):
+    """Il modello ha risposto senza testo utile (anche dopo la rimozione di <think>)."""
+
+
 class OllamaProvider(BaseProvider):
     provider_name = "ollama"
 
     def generate(self, request, context, evidence, workflow):
-        system_prompt = _build_system_prompt(workflow or "chat", context)
-        evidence_text = _format_evidence(evidence)
-        context_text = _format_context(context)
+        workflow_name = workflow or "chat"
+        settings = lex_generation_settings()
+        system_prompt = _build_system_prompt(workflow_name, context)
         evidence_items = _evidence_items(evidence)
         runtime = _resolve_runtime()
         model = str(runtime.get("chat_model") or "mistral").strip() or "mistral"
@@ -221,7 +296,7 @@ class OllamaProvider(BaseProvider):
         metadata: dict[str, Any] = {
             "provider": self.provider_name,
             "model": model,
-            "workflow": workflow or "chat",
+            "workflow": workflow_name,
             "evidence_count": len(evidence_items),
         }
         if (workflow or "") in _STRICT_WORKFLOWS and not evidence_items:
@@ -234,49 +309,50 @@ class OllamaProvider(BaseProvider):
             return ProviderDraft(text=_strict_legal_fallback(workflow or "chat"), metadata=metadata)
 
         case_law_rows: list[Any] = []
-        case_law_block = ""
         if (workflow or "") == "giurisprudenza":
             try:
-                from lex.reasoning.case_law_interpreter import (
-                    build_case_law_context,
-                    build_case_law_prompt_block,
-                )
+                from lex.reasoning.case_law_interpreter import build_case_law_context
 
                 case_law_rows = build_case_law_context(evidence_items)
-                case_law_block = build_case_law_prompt_block(evidence_items)
             except Exception:
                 case_law_rows = []
-                case_law_block = ""
 
-        user_sections: list[str] = []
-        if context_text:
-            user_sections.append(f"Contesto sessione:\n{context_text}")
-        if case_law_block:
-            user_sections.append(case_law_block)
-        if evidence_text:
-            user_sections.append(f"Evidenze rilevanti:\n{evidence_text}")
         query = str(getattr(request, "query", "") or "").strip()
-        if query:
-            user_sections.append(f"Domanda dell'utente:\n{query}")
-
-        user_message = "\n\n".join(user_sections) or query or ""
+        plan = build_rag_prompt(
+            system_prompt=system_prompt,
+            question=query,
+            evidence=evidence,
+            workflow=workflow_name,
+            context=context,
+            settings=settings,
+        )
+        metadata["prompt_budget"] = plan.metadata
+        metadata["generation"] = {
+            "num_ctx": settings.num_ctx,
+            "num_predict": settings.num_predict,
+            "temperature": settings.temperature,
+            "think": settings.think,
+            "timeout_s": settings.timeout_s,
+        }
+        metadata["timeout_s"] = settings.timeout_s
 
         payload = {
             "model": model,
             "keep_alive": keep_alive,
-            "options": {"temperature": 0.1, "num_ctx": 4096},
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message},
-            ],
+            "options": settings.ollama_options(),
+            "think": settings.think,
+            "messages": plan.messages(),
         }
         if isinstance(evidence, dict) and "evidence_sufficient" in evidence:
             metadata["evidence_sufficient"] = bool(evidence.get("evidence_sufficient"))
 
         try:
-            text = _call_ollama(payload, api_base_url)
+            raw = _call_ollama(payload, api_base_url, timeout=settings.timeout_s)
+            metadata["prompt_eval"] = check_prompt_eval(plan.metadata, dict(getattr(raw, "stats", {}) or {}))
+            text = strip_think(raw)
             if not text:
-                raise RuntimeError("Nessun contenuto generato da Ollama.")
+                metadata["model_error_kind"] = "vuoto"
+                raise _EmptyModelResponse("Nessun contenuto generato dal modello locale.")
             if _looks_like_meta_response(text):
                 metadata["status"] = "fallback_meta"
                 metadata["meta_response_filtered"] = True
@@ -329,6 +405,14 @@ class OllamaProvider(BaseProvider):
             return ProviderDraft(text=text, metadata=metadata)
         except Exception as exc:
             metadata["runtime_error_type"] = exc.__class__.__name__
+            if not isinstance(exc, _EmptyModelResponse):
+                metadata["model_error_kind"] = _model_error_kind(exc)
+            logger.warning(
+                "Lex: il modello locale non ha risposto (%s, workflow=%s, modello=%s).",
+                metadata.get("model_error_kind"),
+                workflow_name,
+                model,
+            )
             try:
                 from lex.providers.ollama_runtime import refresh_live_ollama_runtime
 
@@ -342,7 +426,7 @@ class OllamaProvider(BaseProvider):
                         "model": retry_model,
                         "keep_alive": retry_keep_alive,
                     }
-                    text = _call_ollama(retry_payload, retry_api_base_url)
+                    text = strip_think(_call_ollama(retry_payload, retry_api_base_url, timeout=settings.timeout_s))
                     if text:
                         metadata.update(
                             {

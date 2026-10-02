@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.435.0 — 02/10/2026
+
+Lex, risanamento del RAG — modulo 1: prompt e chiamata al modello locale.
+
+- **Domande di diritto senza i dati dello studio**: nei workflow normativa, giurisprudenza, prassi e ricerca fonti il modello non riceve più il contesto JSON dell'intero studio (agenda, dati economici, codici fiscali: ~400.000 caratteri, troncati in silenzio a 4.096 token). Nei workflow sui dati dello studio arriva un estratto compatto e pertinente, senza codici fiscali, partite IVA, IBAN e PEC.
+- **Fonti in formato unico** «[n] Fonte · articolo · URN/ECLI · vigenza · data» con il testo del passaggio (massimo 1.600 caratteri), fino a 12 fonti: la stessa lista controllata dalla guardia anti-allucinazione.
+- **System prompt giuridico fisso**: solo le fonti fornite, citazioni [n], astensione esplicita se le fonti non bastano, vigenza quando nota. Registrato il workflow normativa (con prassi, fonti e ricerca). Messaggio «Domanda / Fonti», lo stesso del futuro dataset di fine-tuning.
+- **Budget di contesto applicato prima della chiamata** (stima caratteri/3,5): si tolgono le fonti meno rilevanti, mai il system prompt o la domanda; token stimati, fonti incluse/escluse e `prompt_eval_count` nei metadati, con avviso «possibile troncamento».
+- **Parametri unici da variabili d'ambiente** per il percorso governato e lo streaming: `LEX_NUM_CTX=8192`, `LEX_NUM_PREDICT=700`, `LEX_TEMPERATURE=0.2`, `LEX_LLM_TIMEOUT_S=300`, `LEX_THINK=false`; `think: false` inviato a Ollama e blocchi `<think>` rimossi anche se non chiusi.
+- **Modello che non risponde**: l'avvocato legge che il modello locale non ha risposto (tempo scaduto, non raggiungibile o risposta vuota) prima del contenuto ricavato dai dati.
+- **Hetzner**: documentato il modello consigliato `qwen3.5:9b` (default invariato `gemma3:1b`, per non imporre download di diversi GB); `deploy.sh` usa la copia installata se il pull di un tag locale non riesce.
+- Misura della sonda: messaggio delle domande giuridiche da 375.802–434.566 a 1.351–6.260 caratteri; banco di prova invariato a 1/46.
+
 ## 2.434.9 — 02/10/2026
 
 - Correzione del runner CI: raccolta effettiva degli item parametrizzati del banco Lex, per distribuire tutte le 46 domande tra gli shard anziché concentrare la funzione intera in un solo shard. Nessuna domanda eliminata, soglia invariata e timeout di cinque minuti preservato.

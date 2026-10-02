@@ -10,6 +10,7 @@ from .giurisprudenza_workflow import GiurisprudenzaWorkflow
 from .intelligence_workflow import IntelligenceWorkflow
 from .lettera_workflow import LetteraWorkflow
 from .next_action_workflow import NextActionWorkflow
+from .normativa_workflow import NormativaWorkflow
 from .telematico_workflow import TelematicoWorkflow
 from .termini_processuali_workflow import TerminiProcessualiWorkflow
 from .udienza_workflow import UdienzaWorkflow
@@ -32,6 +33,11 @@ WORKFLOW_REGISTRY = {
     "giurisprudenza": GiurisprudenzaWorkflow,
     "giurisprudenza_specifica": GiurisprudenzaSpecificaWorkflow,
     "research_giurisprudenza": GiurisprudenzaWorkflow,
+    # Normativa, prassi e ricerca fonti (prompt giuridico fisso)
+    "normativa": NormativaWorkflow,
+    "prassi": NormativaWorkflow,
+    "fonti": NormativaWorkflow,
+    "research": NormativaWorkflow,
     # Telematico
     "telematico": TelematicoWorkflow,
     "telematico_status": TelematicoWorkflow,
@@ -67,6 +73,7 @@ __all__ = [
     "IntelligenceWorkflow",
     "LetteraWorkflow",
     "NextActionWorkflow",
+    "NormativaWorkflow",
     "TelematicoWorkflow",
     "TerminiProcessualiWorkflow",
     "UdienzaWorkflow",

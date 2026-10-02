@@ -2037,7 +2037,10 @@ def test_assistente_chat_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path)
     assert called["json"]["model"] == "gemma3:1b"
     assert called["json"]["keep_alive"] == "12m"
     assert called["stream"] is True
-    assert called["timeout"] == 180
+    # Timeout unico di Lex (LEX_LLM_TIMEOUT_S, default 300 s), uguale al percorso governato.
+    assert called["timeout"] == 300
+    assert called["json"]["options"]["num_ctx"] == 8192
+    assert called["json"]["think"] is False
     assert '"token": "Ciao"' in body
     assert "[DONE]" in body
 

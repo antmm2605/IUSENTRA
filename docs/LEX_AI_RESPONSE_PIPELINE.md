@@ -7,6 +7,75 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento 2.435.0 - 2 ottobre 2026: prompt e chiamata al modello (RAG modulo 1)
+
+Primo modulo del risanamento del RAG di Lex. Riguarda solo il modo in cui la
+domanda arriva al modello locale; retrieval e guardie restano invariati.
+
+- **Domande giuridiche senza dati dello studio.** Nei workflow `normativa`,
+  `giurisprudenza`, `giurisprudenza_specifica`, `research_giurisprudenza`,
+  `prassi`, `research`, `fonti` (`LEGAL_RAG_WORKFLOWS` in
+  `lex/prompts/legal_rag_prompt.py`) il messaggio non contiene più il JSON
+  dell'intero studio (prima ~400.000 caratteri con agenda, dati economici e
+  codici fiscali). Nei workflow sui dati dello studio entra un estratto
+  compatto (`compact_studio_context`): lettura del fascicolo, campi del
+  fascicolo, sezioni pertinenti del `prompt_block` dello studio, senza PEC,
+  impostazioni, policy, codici fiscali, partite IVA e IBAN; massimo
+  `LEX_STUDIO_CONTEXT_MAX_CHARS` (6.000) e metà dello spazio residuo.
+  In `chat`/`question_answering` i dati dello studio entrano solo se la domanda
+  riguarda clienti, fascicoli, udienze, scadenze o pratiche.
+- **Formato del messaggio utente (identico nel dataset di fine-tuning).**
+
+  ```text
+  Domanda:
+  <domanda>
+
+  Dati dello studio:          (solo workflow sui dati dello studio)
+  <estratto>
+
+  Fonti:
+  [1] <Fonte> · <art./riferimento> · <URN o ECLI> · <vigenza> · <data gg/mm/aaaa>
+  <testo, max 1.600 caratteri>
+  ```
+
+  Al massimo 12 fonti (`LEX_MAX_EVIDENCE_ITEMS`), la stessa lista che il
+  retrieval seleziona e che la guardia anti-allucinazione controlla.
+- **System prompt giuridico fisso** (`LEX_LEGAL_RAG_SYSTEM_PROMPT`): una sola
+  stringa per tutti i workflow giuridici (cache del prefisso di Ollama): solo
+  le fonti fornite, citazioni `[n]`, astensione esplicita («non determinabile
+  con le fonti disponibili»), vigenza quando nota, regole sui riferimenti
+  legali (`LEX_LEGAL_REFERENCE_RULES`, condivise con il prompt dell'assistente)
+  e contratto qualità. Il workflow `normativa` (con `prassi`, `fonti`,
+  `research`) è ora registrato in `WORKFLOW_REGISTRY` (`NormativaWorkflow`).
+- **Budget di contesto in Python** (`lex/providers/prompt_budget.py`): stima
+  token = caratteri / 3,5; budget = `num_ctx` − `num_predict` − 64. Se si
+  sfora si tolgono le fonti meno rilevanti (in coda alla lista ordinata dal
+  retrieval; l'ultima ammessa può essere accorciata), mai system prompt o
+  domanda. Nei metadati della bozza: `prompt_budget` (token stimati, fonti
+  incluse/escluse/troncate, mappa delle citazioni) e `prompt_eval`
+  (`prompt_eval_count` di Ollama). Se `prompt_eval_count` è meno della metà
+  dei token stimati del messaggio utente, log «possibile troncamento».
+- **Parametri unici** (`lex.settings.lex_generation_settings()`):
+  `LEX_NUM_CTX=8192`, `LEX_NUM_PREDICT=700`, `LEX_TEMPERATURE=0.2`,
+  `LEX_LLM_TIMEOUT_S=300`, `LEX_THINK=false`, usati dal percorso governato e
+  da quello in streaming (stesso `num_ctx`: niente ricaricamento del modello).
+- **`think`**: campo top-level `think` dell'API `/api/chat` (`false` di
+  default); se il modello lo rifiuta (HTTP 400) si ripete una volta senza.
+  I blocchi `<think>…</think>` (anche non chiusi o senza apertura) sono rimossi
+  sempre, anche in streaming.
+- **Errore o timeout del modello**: la risposta dice all'avvocato che il
+  modello locale non ha risposto (tempo scaduto, non raggiungibile, risposta
+  vuota) prima del contenuto ricavato dai dati; mai un fallback silenzioso.
+
+Misura con sonda (finto Ollama, studio del banco di prova): messaggio utente
+delle domande giuridiche da 375.802–434.566 a 1.351–6.260 caratteri; domande
+sui dati dello studio da ~390.000 a 3.097–9.592 caratteri.
+
+Punti aperti (moduli successivi): le fonti selezionate per molte domande
+giuridiche sono schede dei motori di ricerca e non testi di legge (qualità del
+retrieval); la guardia anti-allucinazione controlla tutte le 12 fonti anche
+quando il budget ne esclude alcune.
+
 ## Aggiornamento gate reali - 7 giugno 2026
 
 Ogni risposta Lex collegata al lavoro del 7 giugno deve essere verificata sul

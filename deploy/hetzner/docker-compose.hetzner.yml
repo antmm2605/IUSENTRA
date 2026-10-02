@@ -30,7 +30,19 @@ x-iusentra-env: &iusentra-env
   # altrimenti a http://host.docker.internal:11434 per istanza host-level.
   # Impostare PCT_LOCAL_AI_ENABLED=0 per disabilitare completamente l'AI locale.
   PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://ollama:11434/api/version}
+  # Modello di Lex: si cambia solo da .env.hetzner, senza toccare il codice.
+  # Consigliato su CPX42 (8 vCPU, niente GPU): PCT_LOCAL_AI_CHAT_MODEL=qwen3.5:9b
+  # (~11 token/s in generazione). Il default resta gemma3:1b perché deploy.sh
+  # esegue `ollama pull` del modello configurato: cambiarlo qui scaricherebbe
+  # diversi GB a ogni server senza scelta esplicita dell'amministratore.
   PCT_LOCAL_AI_CHAT_MODEL: ${PCT_LOCAL_AI_CHAT_MODEL:-gemma3:1b}
+  # Parametri di generazione di Lex (lex/settings.py, unico punto di verità).
+  # LEX_NUM_CTX deve restare uguale a OLLAMA_CONTEXT_LENGTH del servizio ollama.
+  LEX_NUM_CTX: ${LEX_NUM_CTX:-8192}
+  LEX_NUM_PREDICT: ${LEX_NUM_PREDICT:-700}
+  LEX_TEMPERATURE: ${LEX_TEMPERATURE:-0.2}
+  LEX_LLM_TIMEOUT_S: ${LEX_LLM_TIMEOUT_S:-300}
+  LEX_THINK: ${LEX_THINK:-false}
   PCT_LOCAL_AI_ENABLED: ${PCT_LOCAL_AI_ENABLED:-1}
   # Seconda lettura di Lex sulla catalogazione dei documenti (scheduler-worker).
   PCT_LEX_CATALOGO: ${PCT_LEX_CATALOGO:-1}

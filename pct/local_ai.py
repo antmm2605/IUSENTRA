@@ -584,7 +584,9 @@ class OllamaHttpClient:
         keep_alive: str = "10m",
         options: dict[str, Any] | None = None,
         timeout: float = 300,
+        think: bool | None = None,
     ) -> dict[str, Any]:
+        """`think` e' il campo top-level dell'API /api/chat: False spegne il ragionamento."""
         payload: dict[str, Any] = {
             "model": model_name,
             "messages": messages,
@@ -593,6 +595,8 @@ class OllamaHttpClient:
         }
         if options:
             payload["options"] = dict(options)
+        if think is not None:
+            payload["think"] = bool(think)
         return self._request("POST", "/chat", payload=payload, timeout=timeout)
 
 

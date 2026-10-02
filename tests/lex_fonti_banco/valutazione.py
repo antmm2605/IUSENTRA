@@ -68,11 +68,29 @@ def costruisci_db(percorso: Path, *, con_fts: bool = True) -> Path:
     return percorso
 
 
+def _risolvi_commit_base() -> str:
+    """Commit della versione 2.435.0 (modulo 1).
+
+    L'hash cambia quando le patch vengono applicate con ``git am`` su un'altra copia del repository:
+    si prova prima l'hash noto, poi il commit con il messaggio "2.435.0".
+    """
+
+    noto = subprocess.run(["git", "cat-file", "-e", f"{COMMIT_BASE}^{{commit}}"], cwd=RADICE, capture_output=True)
+    if noto.returncode == 0:
+        return COMMIT_BASE
+    trovato = subprocess.run(
+        ["git", "log", "--format=%H", "-1", "--grep=^2.435.0"], cwd=RADICE, capture_output=True, text=True
+    ).stdout.strip()
+    if not trovato:
+        raise RuntimeError("commit 2.435.0 non trovato: impossibile confrontare con la ricerca precedente")
+    return trovato
+
+
 def _carica_ricerca_attuale(cartella_tmp: Path):
     """Modulo ``official_sources_retriever`` come era nel commit 50d9060."""
 
     sorgente = subprocess.run(
-        ["git", "show", f"{COMMIT_BASE}:lex/retrieval/official_sources_retriever.py"],
+        ["git", "show", f"{_risolvi_commit_base()}:lex/retrieval/official_sources_retriever.py"],
         cwd=RADICE, capture_output=True, text=True, check=True,
     ).stdout
     file = cartella_tmp / "official_sources_retriever_50d9060.py"

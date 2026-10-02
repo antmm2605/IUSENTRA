@@ -11,6 +11,8 @@ Lex che usa l'orologio di sistema invece di quella data è un difetto da corregg
 from __future__ import annotations
 
 import json
+import gc
+import sqlite3
 import os
 import re
 import socket
@@ -196,15 +198,37 @@ def esegui_banco(tmp_path: Path | None = None, *, solo: set[str] | None = None) 
     with _ambiente(), tempfile.TemporaryDirectory(prefix="banco_lex_") as cartella:
         banco = crea_studio(Path(tmp_path or cartella))
         esiti: list[EsitoDomanda] = []
-        with banco.app.test_client() as client:
-            accedi(client, banco)
-            for caso in casi:
-                # Una sessione per domanda: nessuna domanda eredita il contesto della precedente.
-                risposta = client.post("/api/assistente/chat", json=corpo_richiesta(caso["domanda"], f"banco-{caso['id']}"))
-                testo = testo_da_eventi(risposta.get_data(as_text=True))
-                if risposta.status_code != 200:
-                    testo = f"[HTTP {risposta.status_code}] {testo}"
-                esiti.append(valuta(caso, testo, vietate, date_clienti))
+        try:
+            with banco.app.test_client() as client:
+                accedi(client, banco)
+                for caso in casi:
+                    # Una sessione per domanda: nessuna domanda eredita il contesto della precedente.
+                    risposta = client.post("/api/assistente/chat", json=corpo_richiesta(caso["domanda"], f"banco-{caso['id']}"))
+                    testo = testo_da_eventi(risposta.get_data(as_text=True))
+                    if risposta.status_code != 200:
+                        testo = f"[HTTP {risposta.status_code}] {testo}"
+                    esiti.append(valuta(caso, testo, vietate, date_clienti))
+        finally:
+            # Windows richiede che la coda SQLite sia chiusa prima di rimuovere
+            # la cartella del banco. La pulizia non deve mascherare gli esiti.
+            banco.app.extensions["ocr_runtime"].store.conn.close()
+            from pct.storage import StudioDB
+            for db_path in Path(tmp_path or cartella).rglob("studio.db"):
+                StudioDB.invalidate(str(db_path))
+            gc.collect()
+            # I repository verticali del banco mantengono connessioni proprie.
+            # Chiudere soltanto quelle appartenenti a questa cartella temporanea.
+            root = Path(tmp_path or cartella).resolve()
+            for connection in gc.get_objects():
+                if not isinstance(connection, sqlite3.Connection):
+                    continue
+                try:
+                    databases = connection.execute("PRAGMA database_list").fetchall()
+                except sqlite3.ProgrammingError:  # Connessione già chiusa.
+                    continue
+                if any(row[2] and Path(row[2]).resolve().is_relative_to(root) for row in databases):
+                    connection.close()
+            gc.collect()
         return esiti
 
 

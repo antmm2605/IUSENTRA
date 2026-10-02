@@ -78,6 +78,9 @@ def test_manifest_runtime_ed_extra_coprono_i_backend_e_gli_extra_ufficiali():
         "pdf-inspector==1.17.0",
         "opencv-python-headless==5.0.0.93",
         "numpy==2.5.2",
+        "striprtf==0.0.33",
+        "xlrd==2.0.2",
+        "extract-msg==0.56.1",
     ]
     assert extras["lex-docling"] == [
         "docling>=2.92.0",

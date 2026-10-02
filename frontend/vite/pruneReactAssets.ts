@@ -1,4 +1,6 @@
 import { readFile, readdir, stat, unlink } from 'node:fs/promises'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { basename, dirname, resolve } from 'node:path'
 import type { Plugin, ResolvedConfig } from 'vite'
 
@@ -10,6 +12,7 @@ type ManifestEntry = {
 
 const HASHED_ASSET = /-[A-Za-z0-9_-]{8,}\.[A-Za-z0-9]+$/
 const MAX_PREEXISTING_ASSETS_TO_RETAIN = 400
+const runFile = promisify(execFile)
 
 function collectAssetNames(rawManifest: string): Set<string> {
   const manifest = JSON.parse(rawManifest) as Record<string, ManifestEntry>
@@ -56,6 +59,21 @@ export function pruneReactAssets(): Plugin {
       try {
         const existingAssets = (await readdir(assetsDir, { withFileTypes: true }))
           .filter((entry) => entry.isFile() && HASHED_ASSET.test(entry.name))
+        // Le build intermedie non sono rilasci: il manifest precedente può
+        // appartenere a una build locale e non alla versione ancora in uso.
+        // Gli asset pubblicati in Git restano protetti a ogni build.
+        try {
+          const { stdout } = await runFile('git', ['ls-files', '-z', '--', assetsDir], {
+            cwd: config.root, maxBuffer: 4 * 1024 * 1024,
+          })
+          for (const trackedPath of stdout.split('\0')) {
+            if (trackedPath) previousAssets.add(basename(trackedPath))
+          }
+        } catch {
+          // Nelle immagini di build senza Git si conserva il seed del rilascio.
+          // Non si può stabilire in modo affidabile che un asset sia eliminabile.
+          for (const entry of existingAssets) previousAssets.add(entry.name)
+        }
         if (existingAssets.length <= MAX_PREEXISTING_ASSETS_TO_RETAIN) {
           for (const entry of existingAssets) previousAssets.add(entry.name)
         }

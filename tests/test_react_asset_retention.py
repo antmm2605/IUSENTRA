@@ -1,5 +1,8 @@
 import json
 import re
+import subprocess
+import shutil
+import pytest
 from pathlib import Path
 
 
@@ -61,12 +64,59 @@ def test_vite_pruning_preserva_release_in_cache_e_limita_lo_storico():
     assert "previousAssets.add(entry.name)" in source
     assert "new Set([...previousAssets, ...currentAssets])" in source
     assert "dirname(target) !== assetsDir" in source
+    assert "['ls-files', '-z', '--', assetsDir]" in source
+    assert "previousAssets.add(basename(trackedPath))" in source
 
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
     seed = "COPY web/static/react ./web/static/react"
     build = "pnpm --filter @iusentra/studio build:vite"
     assert seed in dockerfile
     assert dockerfile.index(seed) < dockerfile.index(build)
+
+
+def test_tutti_gli_asset_pubblicati_restano_disponibili_dopo_build_intermedie():
+    published = subprocess.check_output(
+        ["git", "ls-files", "-z", "--", "web/static/react/assets"], cwd=ROOT,
+    ).decode("utf-8").split("\0")
+    missing = [relative for relative in published if relative and not (ROOT / relative).is_file()]
+    assert not missing, "Asset pubblicati cancellati: " + ", ".join(missing[:20])
+
+
+@pytest.mark.parametrize("git_available", [True, False])
+def test_build_ripetute_preservano_asset_pubblicati_oltre_la_soglia(tmp_path, git_available):
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    asset_dir = tmp_path / "web/static/react/assets"
+    asset_dir.mkdir(parents=True)
+    published = asset_dir / "index-PUBLISHED.js"
+    published.write_text("export default 1", encoding="utf-8")
+    subprocess.run(["git", "-C", str(tmp_path), "add", "."], check=True)
+    # La soglia del vecchio comportamento causava la perdita del rilascio.
+    for index in range(401):
+        (asset_dir / f"draft-{index:08d}.js").write_text("", encoding="utf-8")
+    plugin_url = (ROOT / "frontend/vite/pruneReactAssets.ts").as_uri()
+    script = f"""
+        import {{ pruneReactAssets }} from {json.dumps(plugin_url)};
+        import {{ writeFile, mkdir, access }} from 'node:fs/promises';
+        import {{ join }} from 'node:path';
+        const root = {json.dumps(str(tmp_path))};
+        const out = join(root, 'web/static/react');
+        await mkdir(join(out, '.vite'));
+        if (!{str(git_available).lower()}) process.env.PATH = '';
+        for (const name of ['index-FIRSTNEW.js', 'index-SECONDNEW.js']) {{
+            const plugin = pruneReactAssets();
+            plugin.configResolved({{root, build: {{outDir: out}}, logger: {{info() {{}}}}}});
+            await plugin.buildStart();
+            await writeFile(join(out, 'assets', name), 'export default 2');
+            plugin.generateBundle({{}}, {{chunk: {{fileName: 'assets/' + name}}}});
+            await writeFile(join(out, '.vite/manifest.json'), JSON.stringify({{index: {{file: 'assets/' + name}}}}));
+            await plugin.closeBundle();
+            await access(join(out, 'assets/index-PUBLISHED.js'));
+        }}
+    """
+    subprocess.run([shutil.which("node"), "--experimental-strip-types", "--input-type=module", "-e", script],
+                   check=True, capture_output=True, text=True, timeout=30)
+    assert published.read_text(encoding="utf-8") == "export default 1"
+    assert (asset_dir / "index-FIRSTNEW.js").exists()
 
 
 def test_telematico_surface_bundle_contiene_copia_pst_aggiornata():

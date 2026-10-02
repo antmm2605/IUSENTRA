@@ -24,15 +24,19 @@ def test_registro_per_fascicolo_e_necessita_delle_verifiche(tmp_path: Path):
     adesso = datetime.now(ROME)
     servizio.scrivi_registro("F1", {"eseguita_il": adesso.isoformat(timespec="seconds"), "esiti": {"pec": {"esaminate": 2}}, "in_corso": True}, paths=paths)
     record = servizio.leggi_registro("F1", paths=paths)
-    assert record["esiti"]["pec"]["esaminate"] == 2 and record["in_corso"] is False
+    assert record["esiti"]["pec"]["esaminate"] == 2 and record["in_corso"] is True
     assert record["eseguita_il_it"].startswith(adesso.strftime("%d/%m/%Y"))
     assert servizio.verifiche_necessarie(record) is False
     assert servizio.verifiche_necessarie(record, forza=True) is True
+    servizio.scrivi_registro("F1", {**record, "in_corso": False}, paths=paths)
+    assert servizio.leggi_registro("F1", paths=paths)["in_corso"] is False
     vecchio = (adesso - timedelta(minutes=servizio.INTERVALLO_MINUTI + 1)).isoformat(timespec="seconds")
     servizio.scrivi_registro("F1", {"eseguita_il": vecchio, "esiti": {}}, paths=paths)
     assert servizio.verifiche_necessarie(servizio.leggi_registro("F1", paths=paths)) is True
-    assert (tmp_path / "dati" / "intelligence" / "lettura_verifiche.json").exists()
-    assert json.loads((tmp_path / "dati" / "intelligence" / "lettura_verifiche.json").read_text(encoding="utf-8"))["F1"]["eseguita_il"] == vecchio
+    assert (tmp_path / "dati" / "intelligence" / "registro_letture.db").exists()
+    mirror = tmp_path / "dati" / "intelligence" / "lettura_verifiche.json"
+    mirror.write_text(json.dumps({"F1": {"eseguita_il": adesso.isoformat()}}), encoding="utf-8")
+    assert servizio.leggi_registro("F1", paths=paths)["eseguita_il"] == vecchio
 
 
 def test_verifica_pec_collega_il_ruolo_citato_da_un_ufficio_e_lascia_da_confermare_il_resto(tmp_path: Path):
@@ -43,7 +47,7 @@ def test_verifica_pec_collega_il_ruolo_citato_da_un_ufficio_e_lascia_da_conferma
     with repository.connect() as conn:
         conn.execute("INSERT INTO pec_parsed_versions (id, message_id, version, parser_version, parsed_json, parsed_sha256, created_at) VALUES ('v1','M1',1,'1','{}','p1','2026-09-01T09:05:00')")
         conn.commit()
-    fascicolo = SimpleNamespace(id="F1", numero_rg="777", anno_rg=2026, nome_cliente="Anna Bianchi")
+    fascicolo = SimpleNamespace(id="F1", numero_rg="777", anno_rg=2026, nome_cliente="Anna Bianchi", depositi_pct=[])
 
     esito = servizio.verifica_pec(fascicolo, repository=repository)
 
@@ -69,7 +73,7 @@ def test_verifica_pec_non_collega_il_ruolo_se_il_mittente_non_e_un_ufficio(tmp_p
             (json.dumps({"headers": {"subject": "Vi scrivo per il ruolo 777/2026", "from": "controparte@pec.privato.it"}}),),
         )
         conn.commit()
-    esito = servizio.verifica_pec(SimpleNamespace(id="F1", numero_rg="777", anno_rg=2026, nome_cliente="Anna Bianchi"), repository=repository)
+    esito = servizio.verifica_pec(SimpleNamespace(id="F1", numero_rg="777", anno_rg=2026, nome_cliente="Anna Bianchi", depositi_pct=[]), repository=repository)
     assert esito["collegate"] == 0 and [voce["corrispondenza"] for voce in esito["da_confermare"]] == ["rg"]
 
 
@@ -109,7 +113,7 @@ def test_verifica_pec_collega_rg_da_profilo_ufficio_anche_con_mittente_legalmail
         )
         conn.commit()
 
-    esito = servizio.verifica_pec(SimpleNamespace(id="F1", numero_rg="777", anno_rg=2026, nome_cliente="Anna Bianchi"), repository=repository)
+    esito = servizio.verifica_pec(SimpleNamespace(id="F1", numero_rg="777", anno_rg=2026, nome_cliente="Anna Bianchi", depositi_pct=[]), repository=repository)
 
     assert esito["esaminate"] == 1 and esito["collegate"] == 1 and esito["da_confermare"] == []
     with repository.connect() as conn:

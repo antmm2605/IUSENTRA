@@ -1,17 +1,47 @@
 from __future__ import annotations
 
 import json
+import sqlite3
+from contextlib import closing
 from pathlib import Path
 
+import pytest
 from flask import Flask
 
 from pct.preventivi import GestionePreventivi, TipoVoce, VocePreventivo
 from pct.compensi_a_tempo import COMPENSO_A_TEMPO_CODE
 from web.services.assistente_studio_context import _preventivi_lines
+from pct.preventivi_repository import GestionePreventiviRepository
+
+
+@pytest.mark.parametrize("rollback", [False, True])
+def test_repository_rilascia_connessione_preservando_transazione(tmp_path, rollback):
+    repository = GestionePreventiviRepository(str(tmp_path / "preventivi_repository.db"))
+    with repository._connect() as connection:
+        connection.execute("CREATE TABLE lifecycle_probe (value TEXT NOT NULL)")
+    try:
+        with repository._connect() as connection:
+            connection.execute("INSERT INTO lifecycle_probe VALUES ('prova')")
+            if rollback:
+                raise ValueError("Rollback controllato")
+    except ValueError:
+        assert rollback
+    with pytest.raises(sqlite3.ProgrammingError, match="closed"):
+        connection.execute("SELECT 1")
+    with closing(sqlite3.connect(repository.db_path)) as verification:
+        assert verification.execute("SELECT COUNT(*) FROM lifecycle_probe").fetchone()[0] == (0 if rollback else 1)
 
 
 def _build_gestore(tmp_path) -> GestionePreventivi:
     return GestionePreventivi(str(tmp_path / "preventivi.json"))
+
+
+def test_repository_rilascia_database_non_valido(tmp_path):
+    database = tmp_path / "preventivi_repository.db"
+    database.write_bytes(b"Database non valido del banco controllato")
+    with pytest.raises(sqlite3.DatabaseError):
+        GestionePreventiviRepository(str(database))
+    database.unlink()
 
 
 def _create_preventivo(gestore: GestionePreventivi):

@@ -94,14 +94,14 @@ def _semina_leggendo_il_documento(app, fascicolo, documento, contenuto: bytes) -
             anno_rg=str(getattr(fascicolo, "anno_rg", "") or ""),
         ),
         nome=str(getattr(documento, "nome", "")),
-        metadata={"filename": str(getattr(documento, "nome", ""))},
+        metadata={"filename": str(getattr(documento, "nome", "")), "fascicolo": fascicolo},
     )
     _semina_archivio(app, str(getattr(fascicolo, "id", "")), documento, fatti)
     return fatti
 
 
 def _fatto_importo(campo: str, importo: float, *, etichetta: str = "", norma: str = "",
-                   stato: str = "", data: str = "") -> "Fatto":
+                   stato: str = "", data: str = "", fascicolo=None) -> "Fatto":
     """Un importo letto dai motori.
 
     `stato` e' la prova di che cosa quell'importo dimostri: una ricevuta pagoPA
@@ -117,6 +117,13 @@ def _fatto_importo(campo: str, importo: float, *, etichetta: str = "", norma: st
         prove.append({"codice": "stato", "esito": "ok", "dettaglio": stato})
     if data:
         prove.append({"codice": "data", "esito": "ok", "dettaglio": data})
+    if fascicolo is not None:
+        from pct.archivio_letture.verifica_economica import identita
+
+        # Fonte controllata con intestazione esplicita: non si deduce
+        # l'identità dal nome del file o dal semplice collegamento al fascicolo.
+        testo = f"{fascicolo.nome_cliente}. RG {fascicolo.numero_rg}/{fascicolo.anno_rg}. {etichetta}"
+        prove.extend(identita(testo, {"fascicolo": fascicolo}))
     return Fatto(
         categoria="importo", campo=campo, valore=f"{importo:.2f}", valore_letto=etichetta or campo,
         etichetta=etichetta or campo, verifica="verificata", origine="documento", confidenza=1.0,
@@ -1030,7 +1037,7 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "normalizedPath.startsWith('/api/v1/ui/email/source/')" in source_modal
     assert "normalizedPath.includes('/documenti/') && normalizedPath.includes('/visualizza')" in source_modal
     assert "Usa “Apri originale” o “Scarica”" in source_modal
-    assert "'allow-downloads allow-same-origin allow-scripts allow-top-navigation-by-user-activation'" in source_modal
+    assert "'allow-downloads allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-popups allow-popups-to-escape-sandbox'" in source_modal
     assert "'allow-downloads allow-scripts'" in source_modal
     assert "sandbox={sourceIframeSandbox(viewerHref)}" in source_modal
     assert 'referrerPolicy="no-referrer"' in source_modal
@@ -5568,9 +5575,11 @@ def test_react_agenda_presidio_notifica_sentenza_allineato_a_scadenziario(tmp_pa
 def test_react_presidio_documento_pst_scarica_dalla_rotta_viewer_download() -> None:
     drawer = Path("frontend/src/features/notifiche-legali/components/PresidioDetailDrawer.tsx").read_text(encoding="utf-8")
 
-    assert "function downloadHrefForPresidioDocument" in drawer
-    assert "viewerHref.includes('/documenti/') && viewerHref.includes('/visualizza')" in drawer
-    assert "parsed.searchParams.set('download', '1')" in drawer
+    presentation = Path("frontend/src/features/notifiche-legali/presentation.ts").read_text(encoding="utf-8")
+    assert "downloadHrefForPresidioDocument" in drawer
+    assert "function downloadHrefForPresidioDocument" in presentation
+    assert "viewerHref.includes('/documenti/') && viewerHref.includes('/visualizza')" in presentation
+    assert "parsed.searchParams.set('download', '1')" in presentation
     assert "href={download} download" in drawer
 
 
@@ -6476,7 +6485,7 @@ def test_react_fascicoli_lista_popola_economia_e_scadenza_da_documenti(monkeypat
     _semina_archivio(app, fascicolo.id, ricevuta, [_fatto_importo(
         "contributo_unificato", 21.5,
         etichetta="Contributo unificato versato con pagoPA",
-        norma="D.P.R. 115/2002 art. 13", stato="pagato",
+        norma="D.P.R. 115/2002 art. 13", stato="pagato", fascicolo=fascicolo, data="17/03/2026",
     )])
     _semina_archivio(app, fascicolo.id, decreto, [Fatto(
         categoria="data", campo="udienza", valore="2027-01-13", valore_letto="13/01/2027",
@@ -6541,14 +6550,14 @@ def test_react_fascicoli_economia_riconosce_cu_esente_da_autocertificazione_gene
     contributo = item["paymentSummary"]["items"]["contributo_unificato"]
 
     assert response.status_code == 200
-    # Per il contributo unificato le strade sono due: la ricevuta pagoPA del
-    # versamento, oppure l'autocertificazione di esenzione. Se c'e'
-    # l'autocertificazione, quello e' l'accertamento: il contributo non e'
-    # dovuto e il fascicolo non deve restare fra quelli da presidiare.
-    assert contributo["status"] == "non_previsto"
-    assert contributo["previsto"] is False
+    # Una dichiarazione riconosciuta non prova ancora tutti i requisiti.
+    assert contributo["status"] == "da_registrare"
+    assert contributo["richiedeConferma"] is True
+    assert any("sottoscrizione" in v for v in contributo["verificheMancanti"])
+    assert contributo["fontiVerifica"]
+    assert contributo["previsto"] is True
     assert contributo["importo"] is None
-    assert contributo["natura"] == "esenzione_contributo_unificato"
+    assert contributo["natura"] == "contributo_da_fonti_verificate"
     assert contributo["documentoFonte"] == "documento_001.pdf"
     assert "esenzione" in contributo["note"].casefold()
 
@@ -6585,7 +6594,7 @@ def test_react_fascicoli_economia_sostituisce_zero_storico_con_pagopa_generico(m
         "contributo_unificato", 21.5,
         etichetta="Contributo unificato versato con pagoPA",
         norma="D.P.R. 115/2002 art. 13",
-        stato="pagato",
+        stato="pagato", fascicolo=fascicolo, data="17/03/2026",
     )])
 
     response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
@@ -6710,7 +6719,7 @@ def test_react_fascicoli_economia_cu_classificato_avvia_ocr_mirato_e_popola_impo
     _semina_archivio(app, fascicolo.id, documento, [_fatto_importo(
         "contributo_unificato", 49.0,
         etichetta="Contributo unificato versato con pagoPA",
-        norma="D.P.R. 115/2002 art. 13", stato="pagato", data="17/03/2026",
+        norma="D.P.R. 115/2002 art. 13", stato="pagato", fascicolo=fascicolo, data="17/03/2026",
     )])
 
     response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
@@ -6748,12 +6757,13 @@ def test_react_fascicoli_economia_legge_rt_xml_pagopa_fisico_senza_document_ai(m
   <pay_j:identificativoMessaggioRicevuta>30003967997109978</pay_j:identificativoMessaggioRicevuta>
   <pay_j:dataOraMessaggioRicevuta>2026-05-12T12:20:29</pay_j:dataOraMessaggioRicevuta>
   <pay_j:datiPagamento>
+    <pay_j:identificativoUnivocoVersamento>30003967997109978</pay_j:identificativoUnivocoVersamento>
     <pay_j:codiceEsitoPagamento>0</pay_j:codiceEsitoPagamento>
     <pay_j:importoTotalePagato>49.00</pay_j:importoTotalePagato>
     <pay_j:datiSingoloPagamento>
       <pay_j:singoloImportoPagato>49.00</pay_j:singoloImportoPagato>
       <pay_j:dataEsitoSingoloPagamento>2026-05-12</pay_j:dataEsitoSingoloPagamento>
-      <pay_j:causaleVersamento>/RFB/30003967997109978//49.00/TXT/Contributo Ricorso carta docente Alfano Giuseppe</pay_j:causaleVersamento>
+      <pay_j:causaleVersamento>/RFB/30003967997109978//49.00/TXT/Contributo unificato Ricorso carta docente Alfano Giuseppe RG 1100/2026</pay_j:causaleVersamento>
       <pay_j:datiSpecificiRiscossione>9/0702100TS/CONTRIB</pay_j:datiSpecificiRiscossione>
       <pay_j:commissioniApplicatePSP>0.00</pay_j:commissioniApplicatePSP>
     </pay_j:datiSingoloPagamento>
@@ -6857,7 +6867,7 @@ def test_react_fascicoli_economia_legge_rt_xml_importato_come_atto_giudiziario(m
     _semina_archivio(app, fascicolo.id, documento, [_fatto_importo(
         "contributo_unificato", 49.0,
         etichetta="Contributo unificato versato (ricevuta telematica)",
-        norma="D.P.R. 115/2002 art. 13", stato="pagato",
+        norma="D.P.R. 115/2002 art. 13", stato="pagato", fascicolo=fascicolo, data="17/03/2026",
     )])
 
     response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
@@ -6921,7 +6931,7 @@ def test_react_fascicoli_economia_non_riapre_documenti_invariati(monkeypatch, tm
     _semina_archivio(app, fascicolo.id, documento, [_fatto_importo(
         "contributo_unificato", 49.0,
         etichetta="Contributo unificato versato con pagoPA",
-        norma="D.P.R. 115/2002 art. 13", stato="pagato",
+        norma="D.P.R. 115/2002 art. 13", stato="pagato", fascicolo=fascicolo, data="17/03/2026",
     )])
 
     for _ in range(2):
@@ -7051,10 +7061,13 @@ def test_react_fascicoli_economia_autocertificazione_generica_avvia_lettura_mira
 
     assert response.status_code == 200
     assert calls == [], "la lista non deve avviare letture: le fa il presidio, su richiesta"
-    assert contributo["status"] == "non_previsto"
-    assert contributo["previsto"] is False
+    assert contributo["status"] == "da_registrare"
+    assert contributo["richiedeConferma"] is True
+    assert any("sottoscrizione" in v for v in contributo["verificheMancanti"])
+    assert contributo["fontiVerifica"]
+    assert contributo["previsto"] is True
     assert contributo["importo"] is None
-    assert contributo["natura"] == "esenzione_contributo_unificato"
+    assert contributo["natura"] == "contributo_da_fonti_verificate"
     assert contributo["documentoFonte"] == "Autocertificazione reddituale.PDF"
 
 
@@ -7147,9 +7160,8 @@ def test_react_fascicoli_economia_usa_nome_documento_per_cu_esente_senza_ocr(mon
         pagamenti={"contributo_unificato": {"status": "da_registrare", "importo": 0, "updated_at": "2026-07-05"}},
     )
     monkeypatch.setattr(bridge, "_document_ai_texts_for_fascicolo", lambda item, documents=None: {})
-    # L'esenzione si riconosce dal nome del file, senza aprire il PDF: e' il
-    # motore documenti a produrne il fatto. Il presidio non legge — proietta
-    # l'archivio sui campi del fascicolo e li salva una volta sola.
+    # Il nome può suggerire una dichiarazione, ma non conferma l’esenzione.
+    # Il presidio conserva il riscontro e le verifiche mancanti.
     from pct.registro_letture import Fatto
 
     _semina_archivio(app, fascicolo.id, documento, [Fatto(
@@ -7179,7 +7191,10 @@ def test_react_fascicoli_economia_usa_nome_documento_per_cu_esente_senza_ocr(mon
     assert repeat.get_json()["contributiUpdatedCount"] == 0
     assert repeat.get_json()["documentAnalysisUpdatedCount"] == 0
     assert response.status_code == 200
-    assert contributo["status"] == "non_previsto"
+    assert contributo["status"] == "da_registrare"
+    assert contributo["richiedeConferma"] is True
+    assert any("sottoscrizione" in v for v in contributo["verificheMancanti"])
+    assert contributo["fontiVerifica"]
     assert contributo["importo"] is None
     assert contributo["importoLabel"] == ""
     assert contributo["documentoFonte"] == "Autocertificazione esenzione cu diritto lavoro.PDF"
@@ -7303,8 +7318,11 @@ def test_react_fascicoli_economia_legge_esenzione_da_documenti_ai_server_senza_d
     assert presidio.status_code == 200
     assert presidio.get_json()["contributiUpdatedCount"] == 1
     assert response.status_code == 200
-    assert contributo["status"] == "non_previsto"
-    assert contributo["previsto"] is False
+    assert contributo["status"] == "da_registrare"
+    assert contributo["richiedeConferma"] is True
+    assert any("sottoscrizione" in v for v in contributo["verificheMancanti"])
+    assert contributo["fontiVerifica"]
+    assert contributo["previsto"] is True
     assert contributo["importo"] is None
     assert contributo["documentoFonte"] == "Autocertificazione esenzione contributo server.pdf"
     assert item["paymentSummary"]["analysis"]["status"] == "aggiornato"
@@ -7339,7 +7357,7 @@ def test_react_fascicoli_economia_sostituisce_nota_storica_documenti_correnti() 
     assert "documenti correnti" not in items["contributo_unificato"]["note"]
 
 
-def test_react_fascicoli_economia_sposta_autocertificazione_importata_sul_cu(monkeypatch, tmp_path: Path):
+def test_react_fascicoli_economia_non_conferma_esenzione_da_sola_nota_importata(monkeypatch, tmp_path: Path):
     import web.services.react_fascicoli_bridge as bridge
 
     app = _app(tmp_path)
@@ -7391,14 +7409,14 @@ def test_react_fascicoli_economia_sposta_autocertificazione_importata_sul_cu(mon
     spese = item["paymentSummary"]["items"]["spese_esborsi"]
 
     assert presidio.status_code == 200
-    assert presidio.get_json()["contributiUpdatedCount"] == 1
+    assert presidio.get_json()["contributiUpdatedCount"] == 0
     assert response.status_code == 200
-    assert contributo["status"] == "non_previsto"
-    assert contributo["previsto"] is False
-    assert contributo["documentoFonte"] == "Autocertificazione esenzione cu diritto lavoro.PDF"
-    assert contributo["natura"] == "esenzione_contributo_unificato"
-    assert spese["status"] == "non_previsto"
-    assert spese["documentoFonte"] == "Autocertificazione riferita al contributo unificato"
+    assert contributo["status"] == "da_registrare"
+    assert contributo["previsto"] is True
+    assert contributo["documentoFonte"] == "Import pratiche"
+    assert spese["status"] == "da_registrare"
+    assert spese["documentoFonte"] == "Autocertificazione esenzione cu diritto lavoro.PDF"
+    assert fascicoli.get(fascicolo.id).pagamenti["spese_esborsi"]["importo"] == 0
 
 
 def test_react_fascicoli_lista_operativa_non_avvia_document_ai_automatico(monkeypatch, tmp_path: Path):

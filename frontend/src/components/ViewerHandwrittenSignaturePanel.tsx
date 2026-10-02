@@ -3,10 +3,11 @@ import type { PointerEvent } from 'react'
 import { ViewerColorPalette } from './ViewerColorPalette'
 import { drawSignatureInk } from './viewerSignatureInk'
 import type { SignaturePoint as Point, SignatureStroke as Stroke } from './viewerSignatureInk'
-export function ViewerHandwrittenSignaturePanel({disabled,onInsert,onClose}:{disabled:boolean;onInsert:(data:string,width:number,height:number)=>void;onClose:()=>void}) {
+export function ViewerHandwrittenSignaturePanel({disabled,onInsert,onClose,openRequest=0}:{disabled:boolean;onInsert:(data:string,width:number,height:number)=>void;onClose:()=>void;openRequest?:number}) {
   const canvas=useRef<HTMLCanvasElement>(null)
   const dialog=useRef<HTMLDialogElement>(null)
   const [expanded,setExpanded]=useState(true)
+  useEffect(()=>{setExpanded(true)},[openRequest])
   useEffect(()=>{const element=dialog.current;if(!element)return;if(expanded&&!element.open)element.showModal();else if(!expanded&&element.open)element.close();return()=>{if(element.open)element.close()}},[expanded])
   const resizeWindow=(large:boolean)=>{const element=dialog.current;if(!element)return;element.style.width=`${Math.min(window.innerWidth-32,large?1080:600)}px`;element.style.height=`${Math.min(window.innerHeight-32,large?760:540)}px`}
   const windowDrag=useRef<{x:number;y:number;width:number;height:number}|null>(null)

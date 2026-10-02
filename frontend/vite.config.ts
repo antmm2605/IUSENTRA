@@ -62,8 +62,8 @@ export default defineConfig({
     target: 'es2022',
     modulePreload: false,
     cssCodeSplit: true,
-    // Il plugin di pulizia mantiene il bundle corrente e quello precedente:
-    // le sessioni già aperte non ricevono 404 e gli asset storici non si accumulano.
+    // Il plugin mantiene gli asset pubblicati, oltre ai bundle corrente e precedente.
+    // Le build intermedie non devono cancellare chunk usati dalle sessioni aperte.
     emptyOutDir: false,
     manifest: true,
     rollupOptions: {

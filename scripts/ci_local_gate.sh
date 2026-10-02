@@ -53,10 +53,18 @@ pytest_core_ci() {
   # passo curato. La CI su 2.321.0 non l'aveva mostrato perche' il lint era
   # rosso e gli shard erano stati saltati; appena il lint e' tornato verde il
   # test e' fallito in CI con il gate locale verde.
-  local shard
+  local shard part parts
   for shard in $(seq 1 10); do
     printf '  core-%02d/10\n' "$shard"
-    python3 scripts/run_pytest_phases.py --core-shard "$shard" --core-total-shards 10 --timeout-minutes 10 || return 1
+    parts=$(python3 -c "from scripts.run_pytest_phases import CORE_CI_SUBSHARDS; print(CORE_CI_SUBSHARDS.get($shard, 1))") || return 1
+    for part in $(seq 1 "$parts"); do
+      if [ "$parts" -gt 1 ]; then
+        python3 scripts/run_pytest_phases.py --core-shard "$shard" --core-total-shards 10 \
+          --core-subshard "$part" --core-total-subshards "$parts" --core-subdivide-items --timeout-minutes 10 || return 1
+      else
+        python3 scripts/run_pytest_phases.py --core-shard "$shard" --core-total-shards 10 --timeout-minutes 10 || return 1
+      fi
+    done
   done
   return 0
 }

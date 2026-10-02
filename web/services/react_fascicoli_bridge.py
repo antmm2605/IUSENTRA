@@ -3468,7 +3468,7 @@ def _merge_auto_payment_source(
             merged["status"] = auto_status
             merged["pagato"] = auto_status == "pagato"
             merged["previsto"] = auto_status != "non_previsto"
-        if auto_amount is not None or auto_status == "non_previsto":
+        if "importo" in automatic or "amount" in automatic or auto_status == "non_previsto":
             merged["importo"] = auto_amount
         for field in (
             "label",
@@ -3503,7 +3503,6 @@ def _merge_auto_payment_source(
         "note",
         "documento_fonte",
         "origine",
-        "updated_by",
     ):
         value = automatic.get(field)
         if value not in {None, ""} and (raw_placeholder or merged.get(field) in {None, ""}):
@@ -3672,7 +3671,24 @@ def _automatic_payment_sources_for_fascicolo(
     giustifica l'azzeramento di altre spese. Si proiettano solo le prove lette.
     """
     # Un nome di file è un indizio, mai la prova dell'esenzione o del pagamento.
-    return _importi_dall_archivio(fascicolo, payments)
+    sources = _importi_dall_archivio(fascicolo, payments)
+    if read_collector is not None:
+        documents = {str(doc.id): doc for doc in getattr(fascicolo, "documenti", []) or []}
+        for payment in sources.values():
+            for proof in payment.get("fontiVerifica", []):
+                document_id = _text(proof.get("documentoId"))
+                document = documents.get(document_id)
+                digest = _text(proof.get("sha256")).lower()
+                if proof.get("tipo") != "documento" or document is None or not digest:
+                    continue
+                if digest != _text(getattr(document, "hash_sha256", "")).lower():
+                    continue
+                read_collector[document_id] = {
+                    "documentId": document_id, "fascicoloId": str(fascicolo.id),
+                    "sha256": digest, "filename": document.nome,
+                    "source": "Archivio delle letture", "mode": "text",
+                }
+    return sources
 
 
 def _payments_with_automatic_sources(

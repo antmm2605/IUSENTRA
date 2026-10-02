@@ -1292,6 +1292,16 @@ def _build_conferimento_record(conferimento: Any) -> dict[str, Any]:
     }
 
 
+class _ClosingSQLiteConnection(sqlite3.Connection):
+    """Conserva commit/rollback del contesto e rilascia sempre il database."""
+
+    def __exit__(self, *args):
+        try:
+            return super().__exit__(*args)
+        finally:
+            self.close()
+
+
 class GestionePreventiviRepository:
     def __init__(
         self,
@@ -1321,11 +1331,15 @@ class GestionePreventiviRepository:
         self._ensure_schema()
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA foreign_keys = ON")
-        conn.execute("PRAGMA journal_mode = WAL")
-        conn.execute("PRAGMA synchronous = NORMAL")
+        conn = sqlite3.connect(self.db_path, factory=_ClosingSQLiteConnection)
+        try:
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA foreign_keys = ON")
+            conn.execute("PRAGMA journal_mode = WAL")
+            conn.execute("PRAGMA synchronous = NORMAL")
+        except BaseException:
+            conn.close()
+            raise
         return conn
 
     def _ensure_table_columns(self, conn: sqlite3.Connection, table_name: str, columns: dict[str, str]) -> None:

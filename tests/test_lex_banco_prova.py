@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from datetime import date
 
+import pytest
+
 from tests.lex_banco.valutazione import carica_domande, carica_soglia, esegui_banco, forme_data, valuta
 
 CATEGORIE = {"quando", "forma", "conteggio", "rg", "udienza", "settimana", "omonimi", "assenza", "fascicolo", "conferma"}
@@ -47,12 +49,17 @@ def test_valutazione_accetta_solo_date_italiane_e_isola_il_cliente():
     assert not valuta(caso, "20 ottobre 2026. Non ho trovato dati", ["Non ho trovato dati"], date_clienti).superata
 
 
-def test_banco_di_prova_nessuna_regressione():
+@pytest.mark.parametrize("id_caso", [caso["id"] for caso in carica_domande()["domande"]])
+def test_banco_di_prova_nessuna_regressione(id_caso):
     soglia = set(carica_soglia().get("superate", []))
-    esiti = {esito.id: esito for esito in esegui_banco()}
+    # Ogni domanda resta eseguita e valutata, con una sessione indipendente.
+    # Gli item consentono agli shard esistenti di distribuire tutte le domande,
+    # anziché concentrare l'intero banco in un solo processo da cinque minuti.
+    esiti = {esito.id: esito for esito in esegui_banco(solo={id_caso})}
+    assert set(esiti) == {id_caso}
     perse = {
         id_caso: f"{esiti[id_caso].domanda} → {'; '.join(esiti[id_caso].motivi)}"
-        for id_caso in sorted(soglia)
+        for id_caso in sorted(soglia & set(esiti))
         if not esiti[id_caso].superata
     }
     assert not perse, f"Domande di Lex che prima erano giuste e ora sbagliano: {perse}"

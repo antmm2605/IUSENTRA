@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.434.8 — 02/10/2026
+
+- Contratti API, OpenAPI, documentazione generata e versione frontend riallineati al rilascio.
+- Protezione degli asset frontend pubblicati anche dopo build intermedie ripetute, con conservazione del seed nei builder senza Git.
+- Accesso diretto a firma grafica e modifica testo nel lettore; motivo della protezione visibile per PDF firmati o privi di provenienza dello studio verificata.
+- Verifiche economiche basate su contenuto, identità della pratica e provenienza: il nome di un’autocertificazione o una nota importata non confermano l’esenzione. Registrazione delle impronte delle fonti economiche e aggiornamenti senza duplicazioni.
+- Banco Lex distribuito per domanda senza eliminare casi o ridurre soglie, chiusura delle connessioni del banco su Windows e gate locale con la stessa suddivisione core della CI.
+- Repository dei preventivi: rilascio delle connessioni SQLite al termine del contesto, con commit e rollback preservati e chiusura anche in caso di errore durante l’apertura.
+
 ## 2.434.7 — 02/10/2026
 
 - Consolidamento dei sorgenti già verificati sul server: Controllo Studio, lettore interno, preparazione udienza, verificatori delle notifiche e del contesto economico.

@@ -11,6 +11,7 @@ import { ViewerColorSampling, useViewerColorSampler } from './useViewerColorSamp
 import { useViewerPageTools } from './useViewerPageTools'
 import { ViewerColorPalette } from './ViewerColorPalette'
 import { ViewerImageTools } from './ViewerImageTools'
+import { ViewerHandwrittenSignaturePanel } from './ViewerHandwrittenSignaturePanel'
 import { ViewerCanvasObjects } from './ViewerCanvasObjects'
 type TextSpan = { id: number; text: string; x: number; y: number; width: number; height: number }
 
@@ -18,6 +19,8 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
   const endpoint = editorEndpoint(source.href)
   const [policy, setPolicy] = useState<Policy | null>(null)
   const [open, setOpen] = useState(false)
+  const [signatureOpen, setSignatureOpen] = useState(false)
+  const [signatureOpenRequest, setSignatureOpenRequest] = useState(0)
   const [pages, setPages] = useState<PageInfo[]>([])
   const [page, setPage] = useState(1)
   const [zoom, setZoom] = useState(1)
@@ -178,6 +181,7 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
       {policy?.editable ? <button type="button" aria-expanded={open} aria-controls="iu-viewer-edit-workbench" onClick={() => {sampler.cancel();setArmed(false);setOpen((value) => !value)}} disabled={saving}><Pencil size={15}/>{open ? 'Chiudi strumenti di modifica' : policy.studio ? 'Modifica documento' : 'Prepara copia per condivisione'}</button>
         : <span>{policy?.reason || (error ? error : 'Verifica provenienza e permessi...')}</span>}
       {marks.length ? <span role="status">{marks.length} {marks.length === 1 ? 'intervento da salvare' : 'interventi da salvare'}</span> : null}
+      {policy?.editable ? <><button type="button" disabled={saving} aria-expanded={signatureOpen} onClick={() => {sampler.cancel();setArmed(false);setSignatureOpenRequest(value => value + 1);setSignatureOpen(true)}}>Firma grafica</button><button type="button" disabled={saving || !policy.studio} title={policy.studio ? 'Seleziona la riga da modificare nel documento' : 'La modifica del testo è riservata ai PDF prodotti dallo studio e non firmati.'} onClick={() => {sampler.cancel();setSelectedInsertion(null);setSelected(null);setDraft(null);setTool('replace');setOpen(true);setArmed(true)}}>Modifica testo</button>{!policy.studio ? <span>Testo protetto: PDF firmato, acquisito da fonte esterna o senza provenienza dello studio verificata.</span> : null}</> : null}
       {open || marks.length ? <div className="iu-viewer-edit__zoom" role="group" aria-label="Zoom della pagina"><button type="button" title="Riduci" aria-label="Riduci pagina" disabled={zoom<=.5} onClick={()=>setZoom(Math.max(.5,zoom-.25))}><ZoomOut size={16}/></button><button type="button" title="Adatta alla larghezza" onClick={()=>setZoom(1)}>Adatta</button><span>{Math.round(zoom*100)}%</span><button type="button" title="Ingrandisci" aria-label="Ingrandisci pagina" disabled={zoom>=2} onClick={()=>setZoom(Math.min(2,zoom+.25))}><ZoomIn size={16}/></button></div> : null}
     </div> : null}
     {(open || marks.length>0) && policy?.editable ? <section id="iu-viewer-edit-workbench" className={`iu-viewer-edit__workbench${open?'':' is-tools-closed'}`} aria-label={policy.studio ? 'Modifica documento dello studio' : 'Copia per condivisione'}>
@@ -233,5 +237,6 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
       </div>
     </section> : <SourceDocumentReader key={`${source.href}-${revision}`} href={readerUrl.toString()} label={source.label} rotation={readerRotation} readerRef={activeReaderRef}/>}
     <SourceDocumentModal source={copySource} onClose={() => setCopySource(null)}/>
+    {signatureOpen ? <ViewerHandwrittenSignaturePanel disabled={saving} openRequest={signatureOpenRequest} onClose={() => setSignatureOpen(false)} onInsert={(imageData, width, height) => {setImageOptions({imageData,imageName:'Firma grafica',width:.25,height:.25*(currentPage?.width||595)/(currentPage?.height||842)*height/width,keepRatio:true,imageBrightness:1,imageContrast:1,imageSharpness:1,imageGrayscale:false,imageAutocontrast:false});setSelectedInsertion(null);setTool('image');setOpen(true);setArmed(true);setSignatureOpen(false)}}/> : null}
   </div></ViewerColorSampling.Provider>
 }

@@ -419,6 +419,13 @@ def esegui_ricerche_di_prova(db: Path) -> list[dict[str, Any]]:
     from lex.ricerca_giuridica.ibrida import MotoreRicercaNormattiva, ricerca_semantica_abilitata
 
     motore = MotoreRicercaNormattiva(db, usa_semantica=ricerca_semantica_abilitata())
+    semantica = motore.stato()["semantica_attiva"]
+    if semantica:
+        inizio = time.monotonic()
+        pronto = motore.riscalda(180.0)
+        print(f"Modello di embedding {'pronto' if pronto else 'NON disponibile'} in {time.monotonic() - inizio:.1f}s")
+    else:
+        print(f"Ricerca semantica non attiva: {motore.stato()['motivo_semantica']}")
     esiti: list[dict[str, Any]] = []
     for domanda, articolo_atteso in RICERCHE_DI_PROVA:
         inizio = time.monotonic()
@@ -439,6 +446,10 @@ def esegui_ricerche_di_prova(db: Path) -> list[dict[str, Any]]:
             "errore": errore,
         }
         ok = bool(risultati) and not errore
+        if semantica and risultati and riga["modalita"] not in {"ibrida", "semantica"}:
+            # con l'indice vettoriale presente la ricerca deve usare anche i vettori
+            ok = False
+            riga["errore"] = riga["errore"] or f"ricerca solo {riga['modalita']}: {risultati[0]['ricerca'].get('motivo_semantica', '')}"
         if articolo_atteso:
             ok = ok and any(articolo_atteso in str(r.get("articolo_o_chunk") or "") for r in risultati)
         riga["ok"] = ok

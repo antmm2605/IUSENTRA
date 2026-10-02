@@ -276,3 +276,43 @@ def test_cli_info(conn, tmp_path, capsys):
     assert iv.main(["info", "--out", str(tmp_path / "v")]) == 0
     assert "righe attive: 6 su 6" in capsys.readouterr().out
     assert iv.main(["info", "--out", str(tmp_path / "vuoto")]) == 1
+
+
+def test_embedder_domande_riscalda_dopo_timeout():
+    import time as _time
+
+    import requests
+
+    class Lento:
+        modello = "x"
+        timeout = 4.0
+        tentativi = 1
+
+        def __init__(self):
+            self.timeout_usati = []
+
+        def embed(self, t):
+            self.timeout_usati.append(self.timeout)
+            if self.timeout < 100:
+                raise RuntimeError("non riuscito") from requests.ReadTimeout("Read timed out")
+            return np.ones((1, 4), dtype=np.float32)
+
+    lento = Lento()
+    d = EmbedderDomande(lento, pausa_dopo_errore_s=60)
+    with pytest.raises(Exception):
+        d.vettore("q")
+    d._riscaldamento.join(5)
+    # il riscaldamento ha usato un timeout lungo e ha tolto la pausa: la domanda successiva riprova subito
+    assert d._fermo_fino_a == 0.0 and d.ultimo_errore == ""
+    with pytest.raises(Exception):
+        d.vettore("q2")
+    assert lento.timeout_usati[:3] == [4.0, 180.0, 4.0]  # riscaldamento con timeout lungo, originale invariato
+    assert lento.timeout == 4.0
+
+
+def test_motore_riscalda_senza_indice(tmp_path):
+    c = sqlite3.connect(str(tmp_path / "n.db"))
+    imp.ensure_schema(c)
+    c.close()
+    motore = MotoreRicercaNormattiva(tmp_path / "n.db")
+    assert motore.riscalda(1.0) is False

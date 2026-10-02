@@ -12,11 +12,13 @@ domanda e ``title: … | text: `` per il documento. I prefissi fanno parte dei m
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import itertools
 import math
 import os
 import re
+import threading
 import time
 import logging
 from dataclasses import dataclass, field
@@ -125,11 +127,13 @@ class OllamaEmbedder:
     tentativi: int = 3
     attesa_s: float = 1.0
     dimensioni: int = 0  # >0: troncamento Matryoshka (embeddinggemma supporta 768/512/256/128)
+    keep_alive: str = ""  # "" = LEX_EMBED_KEEP_ALIVE o 24h: il modello resta caricato e la domanda non aspetta il caricamento
     testi_ridotti: list = field(default_factory=list)  # (inizio testo, caratteri originali, caratteri usati)
     paralleli: int = 0  # richieste contemporanee per batch (0 = LEX_EMBED_PARALLELI o 1); serve OLLAMA_NUM_PARALLEL sul server Ollama
 
     def __post_init__(self) -> None:
         self.modello = self.modello or modello_configurato()
+        self.keep_alive = str(self.keep_alive or os.getenv("LEX_EMBED_KEEP_ALIVE", "") or "24h").strip()
         # piu' istanze Ollama separate da virgola (stesso modello): le richieste vengono distribuite a turno.
         # Misurato: una singola istanza non accelera con OLLAMA_NUM_PARALLEL; piu' istanze lavorano davvero insieme.
         indirizzi = [base_ollama(u) for u in str(self.url or url_configurato()).split(",") if u.strip()]
@@ -186,7 +190,7 @@ class OllamaEmbedder:
     def _embed_una_volta(self, testi: list[str]) -> np.ndarray:
         import requests
 
-        corpo: dict[str, Any] = {"model": self.modello, "input": list(testi), "truncate": True, "keep_alive": "15m"}
+        corpo: dict[str, Any] = {"model": self.modello, "input": list(testi), "truncate": True, "keep_alive": self.keep_alive}
         url = self._prossimo_url()
         risposta = requests.post(f"{url}/api/embed", json=corpo, timeout=self.timeout)
         if risposta.status_code == 404:
@@ -302,13 +306,21 @@ class EmbedderNonDisponibile(RuntimeError):
 
 
 class EmbedderDomande:
-    """Embedding della domanda con timeout breve e pausa dopo un errore (Ollama spento o lento)."""
+    """Embedding della domanda con timeout breve e pausa dopo un errore (Ollama spento o lento).
 
-    def __init__(self, embedder: Embedder, *, pausa_dopo_errore_s: float = 60.0) -> None:
+    Se la domanda scade perche' il modello si sta ancora caricando (primo uso, server appena
+    riavviato), in sottofondo parte un riscaldamento con timeout lungo: appena il modello e'
+    pronto la pausa finisce e le domande successive usano di nuovo la ricerca semantica.
+    """
+
+    def __init__(self, embedder: Embedder, *, pausa_dopo_errore_s: float = 60.0, timeout_riscaldamento_s: float = 180.0) -> None:
         self.embedder = embedder
         self.pausa = pausa_dopo_errore_s
+        self.timeout_riscaldamento = timeout_riscaldamento_s
         self._fermo_fino_a = 0.0
         self.ultimo_errore = ""
+        self._riscaldamento: threading.Thread | None = None
+        self._lock = threading.Lock()
 
     def vettore(self, domanda: str) -> np.ndarray:
         if time.monotonic() < self._fermo_fino_a:
@@ -318,7 +330,50 @@ class EmbedderDomande:
         except Exception as exc:
             self.ultimo_errore = f"{type(exc).__name__}: {exc}"
             self._fermo_fino_a = time.monotonic() + self.pausa
+            if _e_timeout(exc):  # il modello si sta caricando: lo si aspetta in sottofondo
+                self.riscalda_in_sottofondo()
             raise EmbedderNonDisponibile(self.ultimo_errore) from exc
+
+    def riscalda(self, timeout: float | None = None) -> bool:
+        """Carica il modello in Ollama con un timeout lungo; True se pronto (e la pausa viene tolta)."""
+
+        lento = _copia_con_timeout(self.embedder, float(timeout or self.timeout_riscaldamento))
+        try:
+            lento.embed([PREFISSO_DOMANDA + "riscaldamento"])
+        except Exception as exc:
+            self.ultimo_errore = f"{type(exc).__name__}: {exc}"
+            return False
+        self._fermo_fino_a = 0.0
+        self.ultimo_errore = ""
+        return True
+
+    def riscalda_in_sottofondo(self) -> None:
+        with self._lock:
+            if self._riscaldamento is not None and self._riscaldamento.is_alive():
+                return
+            self._riscaldamento = threading.Thread(target=self.riscalda, name="lex-embed-riscaldamento", daemon=True)
+            self._riscaldamento.start()
+
+
+def _e_timeout(exc: BaseException | None) -> bool:
+    visti = 0
+    while exc is not None and visti < 6:
+        nome = type(exc).__name__.lower()
+        if "timeout" in nome or "timed out" in str(exc).lower():
+            return True
+        exc = exc.__cause__ or exc.__context__
+        visti += 1
+    return False
+
+
+def _copia_con_timeout(embedder: Any, timeout: float) -> Any:
+    if not hasattr(embedder, "timeout"):
+        return embedder
+    copia = copy.copy(embedder)
+    copia.timeout = max(float(getattr(embedder, "timeout", 0) or 0), timeout)
+    if hasattr(copia, "tentativi"):
+        copia.tentativi = 1
+    return copia
 
 
 def testo_documento(titolo: str, testo: str, *, massimo: int = 2400) -> str:

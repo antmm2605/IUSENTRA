@@ -153,6 +153,13 @@ class MotoreRicercaNormattiva:
         self._domande = EmbedderDomande(self.embedder)
 
     # ----------------------------------------------------------------------------------------
+    def riscalda(self, timeout: float = 180.0) -> bool:
+        """Carica il modello di embedding (bloccante). False se la semantica non e' attiva o Ollama non risponde."""
+
+        if self._domande is None:
+            return False
+        return self._domande.riscalda(timeout)
+
     def stato(self) -> dict[str, Any]:
         return {
             "db": str(self.db_path),
@@ -285,6 +292,8 @@ def motore_per_db(db_path: str | Path) -> MotoreRicercaNormattiva:
             for vecchia in [k for k in _MOTORI if k[0] == chiave[0]]:
                 _MOTORI.pop(vecchia, None)
             motore = MotoreRicercaNormattiva(percorso, cartella, usa_semantica=ricerca_semantica_abilitata())
+            if motore._domande is not None:
+                motore._domande.riscalda_in_sottofondo()  # il modello si carica prima della prima domanda
             _MOTORI[chiave] = motore
         return motore
 

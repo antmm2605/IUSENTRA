@@ -43,6 +43,9 @@ x-iusentra-env: &iusentra-env
   LEX_TEMPERATURE: ${LEX_TEMPERATURE:-0.2}
   LEX_LLM_TIMEOUT_S: ${LEX_LLM_TIMEOUT_S:-300}
   LEX_THINK: ${LEX_THINK:-false}
+  # Ricerca giuridica: indice vettoriale Normattiva (aggiornamento notturno nello scheduler-worker).
+  LEX_EMBED_MODEL: ${LEX_EMBED_MODEL:-embeddinggemma:300m}
+  LEX_VETTORI_NOTTURNO_MASSIMO: ${LEX_VETTORI_NOTTURNO_MASSIMO:-20000}
   PCT_LOCAL_AI_ENABLED: ${PCT_LOCAL_AI_ENABLED:-1}
   # Seconda lettura di Lex sulla catalogazione dei documenti (scheduler-worker).
   PCT_LEX_CATALOGO: ${PCT_LEX_CATALOGO:-1}

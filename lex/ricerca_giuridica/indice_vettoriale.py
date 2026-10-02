@@ -425,6 +425,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--batch", type=int, default=32)
     parser.add_argument("--massimo", type=int, default=None, help="si ferma dopo N chunk (prova o costruzione a tappe)")
     parser.add_argument("--ricomincia", action="store_true", help="cancella l'indice e ricostruisce (solo costruisci)")
+    parser.add_argument(
+        "--se-disponibile",
+        action="store_true",
+        help="aggiornamento notturno: se Ollama o il modello non rispondono esce con successo (0) senza fare nulla",
+    )
+    parser.add_argument(
+        "--solo-esistente",
+        action="store_true",
+        help="aggiornamento notturno: non crea un indice nuovo, aggiorna solo quello gia' presente",
+    )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.WARNING, format="%(message)s")
 
@@ -441,11 +451,17 @@ def main(argv: list[str] | None = None) -> int:
     if not args.db or not Path(args.db).exists():
         print("Database Normattiva non trovato: indica --db <normattiva.sqlite>")
         return 2
+    if args.solo_esistente and IndiceVettoriale.apri(args.out) is None:
+        print(f"Indice vettoriale assente in {args.out}: aggiornamento saltato (si crea con il pacchetto o a mano).")
+        return 0
     embedder = OllamaEmbedder(modello=args.modello, url=args.url)
     try:
         embedder.embed(["prova"])
     except Exception as exc:
         print(f"Ollama non raggiungibile su {embedder.url} con il modello {embedder.modello}: {exc}")
+        if args.se_disponibile:
+            print("Indice vettoriale non aggiornato: la ricerca resta lessicale (FTS) e riprovera' al prossimo giro.")
+            return 0
         return 3
     conn = sqlite3.connect(args.db)
     try:
@@ -460,7 +476,7 @@ def main(argv: list[str] | None = None) -> int:
         )
     except IndiceIncompatibile as exc:
         print(f"\n{exc}")
-        return 4
+        return 0 if args.se_disponibile else 4
     except KeyboardInterrupt:
         print("\nInterrotto: rilancia lo stesso comando per riprendere dall'ultimo blocco salvato.")
         return 130

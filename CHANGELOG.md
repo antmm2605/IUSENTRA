@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.436.0 — 02/10/2026
+
+Lex, risanamento del RAG — modulo 2: ricerca giuridica (FTS, vettori, routing, esito onesto, banco fonti, archivio Normattiva dal PC).
+
+- **Le domande di diritto vanno alla ricerca giuridica**: il routing non usa più parole chiave in ordine fisso; il livello operativo dello studio parte solo con segnali di dati dello studio (clienti, fascicoli, udienze, scadenze, R.G., PEC). Set etichettato di 40 domande (20 di diritto, 20 sui dati dello studio) in `tests/lex_routing/`. Evidenze giuridiche pulite: niente template di atti, impostazioni, PEC o dati clienti tra le fonti di una risposta giuridica.
+- **Indice FTS5 sui chunk Normattiva** (`lex/ricerca_giuridica/indice_fts.py`): accenti rimossi, stopword italiane, stemming leggero, OR con bm25, bonus per «art. N + codice» esatto, priorità alla versione VIGENTE; aggiornato dall'importer solo per i chunk nuovi. La giurisprudenza usa FTS5 con OR e bm25 invece dell'AND implicito.
+- **Importer senza duplicati**: ogni import ripetuto reinseriva gli articoli; ora chiave univoca per articolo (upsert) e migrazione sicura dei database esistenti (`migra_schema`: elimina i doppioni identici e riaggancia i chunk).
+- **Indice vettoriale e ricerca ibrida** (`indice_vettoriale.py`, `embedding.py`, `ibrida.py`): embeddinggemma:300m via Ollama (`LEX_EMBED_MODEL`), vettori int8 compatti, ricerca a blocchi con numpy, costruzione con checkpoint e ripresa, fusione RRF con bm25 e pertinenza dominante nel ranking. Modello e versione dei pesi sono nei metadati dell'indice: se diversi, l'indice è ignorato con un avviso e la ricerca resta lessicale. Senza Ollama nessun errore.
+- **Esito onesto**: se la risposta giuridica è bloccata dalla guardia o non ci sono fonti pertinenti, l'avvocato legge un messaggio chiaro; niente «Dato certo», niente percentuale di attendibilità, niente elenco di fonti interne.
+- **Banco fonti** (`tests/lex_fonti_banco/`, `scripts/lex_fonti_banco.py`): 64 domande in linguaggio naturale con gli articoli attesi, mini-corpus versionato (articoli VIGENTI, distrattori, una versione ORIGINALE). Con embedding finto deterministici (misurano la pipeline, non la semantica): recall@5 / recall@10 / MRR **prima 0,062 / 0,062 / 0,062; FTS 1,000 / 1,000 / 0,954; ibrida 0,969 / 0,984 / 0,911**. Con Ollama raggiungibile lo script misura anche embeddinggemma reale.
+- **Archivio Normattiva completo dal PC al server**: `scripts/lex_normattiva_locale.py` con `scarica` (stessi endpoint del server, ripresa, verifica di integrità degli ZIP), `importa`, `vettori` (checkpoint, stima dei tempi misurata), `verifica` (conteggi, data, tre ricerche) e `pacchetto` (`.tar.zst` con database, FTS, vettori, metadati e SHA-256). Sul server `deploy/hetzner/carica_fonti_lex.sh`: controllo checksum, backup datato, stop dello scheduler-worker, sostituzione atomica, permessi, riavvio, controllo (conteggi e ricerca «art. 2043 c.c.») e ripristino automatico se fallisce; `--dry-run` e `--ripristina`. Procedura in `docs/LEX_FONTI_LOCALI_E_SERVER.md`.
+- **Aggiornamento notturno**: dopo il download e l'import (upsert, FTS solo per i chunk nuovi) lo scheduler aggiorna l'indice vettoriale solo per i chunk nuovi o modificati (massimo `LEX_VETTORI_NOTTURNO_MASSIMO`, 20.000 a notte); se Ollama non c'è, l'indice non esiste o il modello è diverso il passaggio termina senza errori.
+- Nuove variabili: `LEX_EMBED_MODEL` (default `embeddinggemma:300m`), `LEX_VETTORI_NOTTURNO_MASSIMO`, `LEX_NORMATTIVA_VETTORI_DIR`, `LEX_RICERCA_SEMANTICA`, `LEX_EMBED_TIMEOUT_S`.
+
 ## 2.435.0 — 02/10/2026
 
 Lex, risanamento del RAG — modulo 1: prompt e chiamata al modello locale.

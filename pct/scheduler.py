@@ -128,6 +128,31 @@ def daily_plan_startup_recovery_allowed(
     )
 
 
+def comando_aggiornamento_vettori_normattiva(db: str, cartella_vettori: str) -> list[str]:
+    """Aggiornamento notturno dell'indice vettoriale Normattiva (solo chunk nuovi o modificati).
+
+    Il modello viene da ``LEX_EMBED_MODEL`` (default embeddinggemma:300m). Se Ollama non risponde,
+    se l'indice non esiste o e' di un altro modello il passaggio termina senza errori: la ricerca resta
+    lessicale (FTS). ``LEX_VETTORI_NOTTURNO_MASSIMO`` limita i chunk per notte (default 20.000).
+    """
+
+    massimo = _parse_positive_int(os.getenv("LEX_VETTORI_NOTTURNO_MASSIMO"), 20000)
+    return [
+        sys.executable,
+        "-m",
+        "lex.ricerca_giuridica.indice_vettoriale",
+        "aggiorna",
+        "--db",
+        db,
+        "--out",
+        cartella_vettori,
+        "--massimo",
+        str(massimo),
+        "--se-disponibile",
+        "--solo-esistente",
+    ]
+
+
 def _run_scheduler_command(label: str, command: list[str], *, timeout_seconds: int) -> dict[str, object]:
     try:
         completed = subprocess.run(
@@ -544,6 +569,12 @@ def start_scheduler(app):
                 "PCT_NORMATTIVA_DOWNLOAD_MANIFEST",
                 "/data/normativa/manifests/normattiva_download_manifest.json",
             )
+            normativa_vettori = _runtime_path(
+                app,
+                "LEX_NORMATTIVA_VETTORI_DIR",
+                "LEX_NORMATTIVA_VETTORI_DIR",
+                str(Path(normativa_db).parent / "vettori_normattiva"),
+            )
             max_issues = _parse_positive_int(
                 app.config.get("LEGAL_UPDATES_GAZZETTA_MAX_ISSUES")
                 or os.getenv("IUSENTRA_GAZZETTA_MAX_ISSUES"),
@@ -603,6 +634,10 @@ def start_scheduler(app):
                         "--report",
                         normativa_report,
                     ],
+                ),
+                (
+                    "normattiva vettori lex",
+                    comando_aggiornamento_vettori_normattiva(normativa_db, normativa_vettori),
                 ),
             ]
             results = [

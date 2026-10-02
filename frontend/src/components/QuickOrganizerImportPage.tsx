@@ -187,12 +187,13 @@ function MatterPreview({ analysis }: { analysis: StudioTelematicoAnalysis }) {
 function ImportResult({ result }: { result: StudioTelematicoImportResult }) {
   if (!result.ok) return null
   const summary = result.summary
+  const complete = result.complete === true && result.errors.length === 0
   return (
-    <ImportPanel title="Import completato" subtitle="Riepilogo delle acquisizioni nello studio">
+    <ImportPanel title={complete ? 'Acquisizione verificata' : 'Acquisizione da verificare'} subtitle="Riepilogo delle acquisizioni nello studio">
       <div className="iu-st-import-result">
-        <div className="iu-st-import-ok">
-          <CheckCircle2 size={18} />
-          <span>Le pratiche sono state acquisite in IUSENTRA. Le pratiche già presenti sono state aggiornate senza duplicati.</span>
+        <div className={complete ? 'iu-st-import-ok' : 'iu-st-import-warning'}>
+          {complete ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
+          <span>{complete ? 'I documenti collegati sono stati acquisiti e verificati.' : 'I dati disponibili sono stati acquisiti. Gli elementi indicati sotto richiedono ancora verifica; conserva il pacchetto originale.'}</span>
         </div>
         <section className="iu-st-import-result-grid" aria-label="Esito import">
           <span><strong>{formatImportNumber(summary.mattersCreated)}</strong> nuove pratiche</span>
@@ -203,7 +204,18 @@ function ImportResult({ result }: { result: StudioTelematicoImportResult }) {
           <span><strong>{formatImportNumber(summary.emailsImported)}</strong> email acquisite</span>
           <span><strong>{formatImportNumber(summary.activitiesImported)}</strong> appuntamenti registrati</span>
           <span><strong>{formatImportNumber(summary.duplicatesSkipped)}</strong> duplicati evitati</span>
+          {result.recovery ? <span><strong>{formatImportNumber(result.recovery.recovered)}</strong> originali recuperati dai file non collegati</span> : null}
         </section>
+        {result.recovery?.pending.length ? (
+          <div className="iu-st-import-warning">
+            <AlertTriangle size={18} />
+            <div>
+              <strong>{formatImportNumber(result.recovery.pending.length)} originali da associare o verificare</strong>
+              <p>Questi file restano nel pacchetto originale. Nessun documento è stato assegnato a un fascicolo senza una corrispondenza univoca.</p>
+              <ul>{result.recovery.pending.slice(0, 20).map((file) => <li key={file.name}>{file.name}: {file.reason}</li>)}</ul>
+            </div>
+          </div>
+        ) : null}
         {result.matters.length ? (
           <div className="iu-st-import-links">
             {result.matters.slice(0, 8).map((matter) => (
@@ -219,6 +231,15 @@ function ImportResult({ result }: { result: StudioTelematicoImportResult }) {
             <div>
               <strong>Elementi da controllare</strong>
               {result.errors.slice(0, 5).map((error) => <p key={error}>{importUiText(error)}</p>)}
+            </div>
+          </div>
+        ) : null}
+        {result.warnings.length ? (
+          <div className="iu-st-import-warning">
+            <AlertTriangle size={18} />
+            <div>
+              <strong>Avvisi dell'acquisizione</strong>
+              {result.warnings.map((warning) => <p key={warning.code}>{importUiText(warning.message)}</p>)}
             </div>
           </div>
         ) : null}
@@ -470,11 +491,11 @@ export function QuickOrganizerImportPage() {
     setImportState(imported.ok ? 'success' : 'error')
     setWorkProgress({
       active: false,
-      label: imported.ok ? 'Import completato' : 'Import non completato',
+      label: imported.ok ? (imported.complete ? 'Acquisizione verificata' : 'Acquisizione da verificare') : 'Import non completato',
       detail: imported.ok ? 'Riepilogo acquisizioni pronto' : (imported.errore || 'Controlla gli avvisi'),
       value: 100,
     })
-    setMessage(imported.ok ? 'Import completato.' : imported.errore || 'Import non completato.')
+    setMessage(imported.ok ? (imported.complete ? 'Acquisizione verificata.' : 'Acquisizione da verificare. Controlla gli elementi indicati nel riepilogo e conserva il pacchetto originale.') : imported.errore || 'Import non completato.')
   }
 
   return (
@@ -506,15 +527,40 @@ export function QuickOrganizerImportPage() {
               <span>Ogni pratica viene ricostruita con cliente, parti, documenti, comunicazioni e agenda quando i file sono presenti.</span>
             </div>
             <Badge tone={analysis ? completenessTone(analysis) : 'info'}>
-              {analysis ? (analysis.canImportComplete ? 'Pronto per importare' : 'Da completare') : 'In attesa pacchetto'}
+              {result.ok ? (result.complete ? 'Acquisizione verificata' : 'Da completare') : analysis ? (analysis.canImportComplete ? 'Pronto per importare' : 'Da completare') : 'In attesa pacchetto'}
             </Badge>
           </section>
           <GuidedSteps data={data} />
           <ImportPanel title="Pacchetto cliente" subtitle="Carica il file preparato dalla postazione autorizzata">
+            {data.storedPackages?.length ? (
+              <div className="iu-st-import-upload">
+                <label className="iu-st-import-local-path">
+                  <span>Pacchetto già disponibile nello studio</span>
+                  <select aria-label="Pacchetto già presente nello studio" defaultValue="" disabled={importState === 'loading'} onChange={(event) => {
+                    const stored = data.storedPackages?.find((item) => item.importId === event.currentTarget.value)
+                    if (!stored?.analysis) return
+                    setFile(null)
+                    setSourcePath('')
+                    setPreview({ ...stored, ok: true })
+                    setPreviewState('success')
+                    setImportState('idle')
+                    setAutoPrepare(null)
+                    autoImportStartedRef.current = false
+                    setWorkProgress({ active: false, label: '', detail: '', value: 0 })
+                    setAllowPartial(false)
+                    setResult(emptyStudioTelematicoResult)
+                    setMessage('Pacchetto già caricato selezionato. Verifica il riepilogo prima di procedere.')
+                  }}>
+                    <option value="">Seleziona un pacchetto già caricato</option>
+                    {data.storedPackages.map((stored) => <option key={stored.importId} value={stored.importId}>{stored.sourceName}</option>)}
+                  </select>
+                </label>
+              </div>
+            ) : null}
             <div className="iu-st-import-upload">
               <label className="iu-st-import-file">
                 <UploadCloud size={22} />
-                <span>{fileLabel(file)}</span>
+                <span>{file ? fileLabel(file) : preview?.sourceName || fileLabel(file)}</span>
                 <input
                   type="file"
                   accept={data.acceptedFiles}
@@ -577,6 +623,11 @@ export function QuickOrganizerImportPage() {
             <>
               <SummaryCards analysis={analysis} />
               <MissingFiles analysis={analysis} />
+              {!result.ok && analysis.warnings.length ? (
+                <ImportPanel title="Avvisi del controllo" subtitle="Elementi da verificare prima dell'acquisizione">
+                  {analysis.warnings.map((warning) => <p key={warning.code}>{importUiText(warning.message)}</p>)}
+                </ImportPanel>
+              ) : null}
               <ImportPanel
                 title="Conferma import"
                 subtitle={analysis.canImportComplete ? 'Il pacchetto risulta completo.' : 'Puoi attendere il pacchetto completo oppure acquisire solo i dati disponibili.'}

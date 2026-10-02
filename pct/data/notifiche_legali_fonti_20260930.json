@@ -1,0 +1,50 @@
+{
+  "version": "1.0.0",
+  "fonti": [
+    {
+      "id": "cpc_370",
+      "titolo": "Art. 370 c.p.c.",
+      "url": "https://def.giustiziatributaria.gov.it/DocTribFrontend/executePrintArticolo.do?codiceOrdinamento=0000000000003700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000&id=%7B57BBB567-1573-4FC0-BD87-BE4D68CB1B5F%7D",
+      "file": "docs/specs/notifiche-legali/fonti/cpc_370-20260930.pdf",
+      "sha256": "c62975f38cad0716b2eaae6b77f31702692d5b78d89624e8717946e08603ba17",
+      "verificata_il": "2026-09-30",
+      "reader_url": "/api/v1/ui/controllo-studio/conoscenza-notifiche/fonti/cpc_370"
+    },
+    {
+      "id": "cpa_45",
+      "titolo": "Art. 45 c.p.a.",
+      "url": "https://def.giustiziatributaria.gov.it/DocTribFrontend/executePrintArticolo.do?codiceOrdinamento=0000000000000450000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000&id=%7B262A34A3-13DD-4A8A-BAAD-84DA2D2F1B64%7D",
+      "file": "docs/specs/notifiche-legali/fonti/cpa_45-20260930.pdf",
+      "sha256": "75a57d27a2c575eafea144686ad116a9fd8ff9d05954062911f896fbba199f90",
+      "verificata_il": "2026-09-30",
+      "reader_url": "/api/v1/ui/controllo-studio/conoscenza-notifiche/fonti/cpa_45"
+    },
+    {
+      "id": "cpc_415",
+      "titolo": "Art. 415 c.p.c.",
+      "url": "https://def.giustiziatributaria.gov.it/DocTribFrontend/executePrintArticolo.do?codiceOrdinamento=0000000000004150000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000&id=%7B57BBB567-1573-4FC0-BD87-BE4D68CB1B5F%7D",
+      "file": "docs/specs/notifiche-legali/fonti/cpc_415-20260930.pdf",
+      "sha256": "60f09bda424342c1d844c7f46497fa6cb32e5f9a6e4b6cba86801df764d7877a",
+      "verificata_il": "2026-09-30",
+      "reader_url": "/api/v1/ui/controllo-studio/conoscenza-notifiche/fonti/cpc_415"
+    },
+    {
+      "id": "cpc_281undecies",
+      "titolo": "Art. 281-undecies c.p.c.",
+      "url": "https://def.giustiziatributaria.gov.it/DocTribFrontend/executePrintArticolo.do?codiceOrdinamento=0000000000002819999900011000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000&id=%7B57BBB567-1573-4FC0-BD87-BE4D68CB1B5F%7D",
+      "file": "docs/specs/notifiche-legali/fonti/cpc_281undecies-20260930.pdf",
+      "sha256": "c1e53aa44510ce62e0f72f51a81a47d9274847c19aadea8fcbf46c37f21fca4d",
+      "verificata_il": "2026-09-30",
+      "reader_url": "/api/v1/ui/controllo-studio/conoscenza-notifiche/fonti/cpc_281undecies"
+    },
+    {
+      "id": "cpc_669terdecies",
+      "titolo": "Art. 669-terdecies c.p.c.",
+      "url": "https://def.giustiziatributaria.gov.it/DocTribFrontend/executePrintArticolo.do?codiceOrdinamento=0000000000006699999900013000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000&id=%7B57BBB567-1573-4FC0-BD87-BE4D68CB1B5F%7D",
+      "file": "docs/specs/notifiche-legali/fonti/cpc_669terdecies-20260930.pdf",
+      "sha256": "5bf972cc5d72b06666a9bfa6930cef4fb3b562cb5703ed9e4fc1c11e7bd4b09e",
+      "verificata_il": "2026-09-30",
+      "reader_url": "/api/v1/ui/controllo-studio/conoscenza-notifiche/fonti/cpc_669terdecies"
+    }
+  ]
+}

@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 from html import escape
+from .pdf_reader_links import page_links, word_link, link_tag, non_text_links
 
 
-def text_layers(data: bytes) -> list[str]:
+def text_layers(data: bytes, original_links: list | None = None) -> list[str]:
     """Lo strato di testo selezionabile, pagina per pagina.
 
     E' un di piu' del lettore, non il lettore: se il PDF non si apre — un
@@ -28,7 +29,7 @@ def text_layers(data: bytes) -> list[str]:
     except Exception:
         return []
     with documento:
-        for pagina in documento.pages:
+        for page_index, pagina in enumerate(documento.pages):
             try:
                 larghezza, altezza = float(pagina.width), float(pagina.height)
                 # pdfplumber tiene gia' conto della rotazione dichiarata dalla
@@ -40,6 +41,9 @@ def text_layers(data: bytes) -> list[str]:
                 layers.append(senza_testo)
                 continue
             spans = []
+            links = page_links(pagina, documento)
+            if not links and original_links and page_index < len(original_links):
+                links = [dict(link) for link in original_links[page_index]]
             for parola in parole:
                 testo = str(parola.get("text") or "")
                 if not testo.strip() or larghezza <= 0 or altezza <= 0:
@@ -52,8 +56,12 @@ def text_layers(data: bytes) -> list[str]:
                     f"left:{100 * sinistra / larghezza:.5f}%;top:{100 * alto / altezza:.5f}%;"
                     f"width:{100 * largo / larghezza:.5f}%;height:{100 * alto_parola / altezza:.5f}%;"
                 )
-                spans.append(f'<span class="reader-word" style="{style}"><span>{escape(testo)} </span></span>')
-            layers.append('<div class="reader-text-layer">' + "".join(spans) + "</div>" if spans else senza_testo)
+                href = word_link(parola, links)
+                tag = "a" if href else "span"
+                attributes = " " + link_tag(href) if href else ""
+                spans.append(f'<{tag} class="reader-word{ " reader-document-link" if href else ""}"{attributes} style="{style}"><span>{escape(testo)} </span></{tag}>')
+            extra_links = non_text_links(links, larghezza, altezza)
+            layers.append('<div class="reader-text-layer">' + "".join(spans) + extra_links + "</div>" + (senza_testo if not spans else ""))
     return layers
 
 

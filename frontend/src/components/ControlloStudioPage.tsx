@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle, Banknote, BellRing, CalendarClock, CheckCircle2, ChevronDown, FilePlus2, Gavel, Inbox, Mail,
   Plus, RefreshCw, Search, ShieldCheck, Wallet, X, ChevronLeft, ChevronRight,
@@ -6,8 +6,9 @@ import {
 import { formatDateIt } from '../formatting'
 import './ControlloStudioPage.css'
 
-type Azione = { etichetta: string; href: string; endpoint: string; conferma: string; principale: boolean }
-type Voce = {
+const ControlloStudioDetail = lazy(() => import('./ControlloStudioDetail'))
+export type Azione = { etichetta: string; href: string; endpoint: string; conferma: string; principale: boolean }
+export type Voce = {
   id: string; area: string; area_etichetta: string; titolo: string; dettaglio: string; data: string; ora: string
   gravita: 'critica' | 'alta' | 'normale'; etichetta: string; fascicolo: { id?: string; etichetta?: string; href?: string }
   importo: number; azioni: Azione[]; fascia: string
@@ -38,7 +39,7 @@ const dataEstesa = (iso: string | undefined) => {
 const testoRicerca = (testo: string) => testo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('it').trim()
 const DIMENSIONE_PAGINA = 50
 
-function ElencoVoci({ voci, onFatto }: { voci: Voce[]; onFatto: (voce: Voce, azione: Azione) => void }) {
+function ElencoVoci({ voci, onFatto, onApri }: { voci: Voce[]; onFatto: (voce: Voce, azione: Azione) => void; onApri: (voce: Voce) => void }) {
   const [pagina, setPagina] = useState(0)
   const elenco = useRef<HTMLUListElement>(null)
   const ultima = Math.max(0, Math.ceil(voci.length / DIMENSIONE_PAGINA) - 1)
@@ -49,7 +50,7 @@ function ElencoVoci({ voci, onFatto }: { voci: Voce[]; onFatto: (voce: Voce, azi
     elenco.current?.scrollIntoView({ block: 'start', behavior: 'instant' })
   }
   return <>
-    <ul ref={elenco}>{voci.slice(da, da + DIMENSIONE_PAGINA).map((v) => <RigaVoce voce={v} key={v.id} onFatto={onFatto}/>)}</ul>
+    <ul ref={elenco}>{voci.slice(da, da + DIMENSIONE_PAGINA).map((v) => <RigaVoce voce={v} key={v.id} onFatto={onFatto} onApri={onApri}/>)}</ul>
     {ultima > 0 ? <nav className="iu-cs-paginazione" aria-label="Pagine dei risultati">
       <span>{da + 1}–{Math.min(da + DIMENSIONE_PAGINA, voci.length)} di {voci.length}</span>
       <button type="button" disabled={attuale === 0} onClick={() => cambiaPagina(attuale - 1)} aria-label="Pagina precedente"><ChevronLeft size={16}/></button>
@@ -69,7 +70,7 @@ async function esegui(endpoint: string, payload: object = {}): Promise<{ ok: boo
   return await risposta.json().catch(() => ({ ok: false, message: 'Operazione non riuscita.' })) as { ok: boolean; message: string }
 }
 
-function RigaVoce({ voce, onFatto }: { voce: Voce; onFatto: (voce: Voce, azione: Azione) => void }) {
+function RigaVoce({ voce, onFatto, onApri }: { voce: Voce; onFatto: (voce: Voce, azione: Azione) => void; onApri: (voce: Voce) => void }) {
   const Icona = ICONE[voce.area] || Inbox
   const principale = voce.azioni.find((a) => a.principale) || voce.azioni[0]
   const altre = voce.azioni.filter((a) => a !== principale)
@@ -94,7 +95,9 @@ function RigaVoce({ voce, onFatto }: { voce: Voce; onFatto: (voce: Voce, azione:
       <div className="iu-cs-voce__azioni">
         {principale ? (principale.endpoint
           ? <button type="button" className="is-primaria" onClick={() => onFatto(voce, principale)}>{principale.etichetta}</button>
-          : <a className="is-primaria" href={principale.href}>{principale.etichetta}</a>) : null}
+          : ['scadenze', 'notifiche'].includes(voce.area) || voce.id.startsWith('pec-')
+            ? <button type="button" className="is-primaria" onClick={() => onApri(voce)}>{principale.etichetta}</button>
+            : <a className="is-primaria" href={principale.href}>{principale.etichetta}</a>) : null}
         {altre.map((a) => a.endpoint
           ? <button type="button" key={a.etichetta} onClick={() => onFatto(voce, a)}><CheckCircle2 size={14}/> {a.etichetta}</button>
           : <a key={a.etichetta} href={a.href}>{a.etichetta}</a>)}
@@ -106,6 +109,7 @@ function RigaVoce({ voce, onFatto }: { voce: Voce; onFatto: (voce: Voce, azione:
 /** Controllo Studio: scadenze, udienze, notifiche, comunicazioni e incassi in un'unica coda ordinata per urgenza. */
 export default function ControlloStudioPage() {
   const [dati, setDati] = useState<Dati | null>(null)
+  const [selezionata, setSelezionata] = useState<Voce | null>(null)
   const [area, setArea] = useState('')
   const [periodo, setPeriodo] = useState('')
   const [ricerca, setRicerca] = useState('')
@@ -170,7 +174,7 @@ export default function ControlloStudioPage() {
     const esito = await esegui(azione.endpoint)
     setAvviso(esito.message)
     setErroreAzione(!esito.ok)
-    if (esito.ok) setDati((d) => (d ? { ...d, voci: (d.voci || []).filter((v) => v.id !== voce.id) } : d))
+    if (esito.ok) { setSelezionata(null); await carica() }
   }
 
   if (!dati) return <main className="iu-content iu-cs"><p className="iu-cs-stato">Caricamento del quadro dello studio…</p></main>
@@ -198,10 +202,10 @@ export default function ControlloStudioPage() {
         {(dati.aree || []).map((a) => {
           const Icona = ICONE[a.area] || Inbox
           return (
-            <button type="button" key={a.area} className={area === a.area ? 'is-attiva' : ''} onClick={() => setArea(area === a.area ? '' : a.area)} aria-pressed={area === a.area}>
+            <button type="button" key={a.area} className={area === a.area ? 'is-attiva' : ''} onClick={() => { setArea(area === a.area ? '' : a.area); setAperte(new Set((dati.fasce || []).map((f) => f.fascia))) }} aria-pressed={area === a.area}>
               <span><Icona size={15}/> {a.etichetta}</span>
               <strong>{a.totale}</strong>
-              {a.urgenti ? <small>{a.urgenti} urgenti</small> : <small>in ordine</small>}
+              {a.urgenti ? <small>{a.urgenti} urgenti</small> : <small>{a.totale && a.area === 'comunicazioni' ? 'da leggere' : a.area === 'notifiche' && a.totale ? 'da presidiare' : 'in ordine'}</small>}
             </button>
           )
         })}
@@ -252,7 +256,7 @@ export default function ControlloStudioPage() {
                   onClick={() => setAperte((s) => { const n = new Set(s); if (n.has(g.fascia)) n.delete(g.fascia); else n.add(g.fascia); return n })}>
                   <h2>{g.etichetta}</h2><span>{g.voci.length}</span><ChevronDown size={16}/>
                 </button>
-                {aperta ? <ElencoVoci key={`${g.fascia}:${area}:${periodo}:${ricerca}:${resetCoda}`} voci={g.voci} onFatto={(voce, azione) => void fatto(voce, azione)}/> : null}
+                {aperta ? <ElencoVoci key={`${g.fascia}:${area}:${periodo}:${ricerca}:${resetCoda}`} voci={g.voci} onFatto={(voce, azione) => void fatto(voce, azione)} onApri={setSelezionata}/> : null}
               </section>
             )
           }) : (
@@ -282,6 +286,9 @@ export default function ControlloStudioPage() {
           </section>
         </aside>
       </div>
+      {selezionata ? <Suspense fallback={<p role="status">Apertura del dettaglio…</p>}><ControlloStudioDetail
+        key={selezionata.id} voce={selezionata} onClose={() => setSelezionata(null)} onUpdated={() => void carica()}
+        onFatto={(voce, azione) => void fatto(voce, azione)}/></Suspense> : null}
     </main>
   )
 }

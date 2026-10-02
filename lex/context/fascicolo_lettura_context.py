@@ -381,7 +381,18 @@ def _verifiche(fascicolo: Any) -> dict[str, Any]:
     if pec:
         esiti["pec"] = {"esaminate": sum(o.get("letture", {}).get("motore_pec") == "letto" for o in messaggi), "collegate": len(messaggi), "da_confermare": []}
     esiti["depositi"] = {"esito": "controllate", "controllati": len([d for d in depositi_da_archivio(fascicolo) if "PROVA" not in str(d.stato)]), "aggiornati": 0}
-    return {"eseguita_il": ultima, "eseguita_il_it": format_datetime_it(ultima) if ultima else "", "esiti": esiti, "errori": {}, "source_of_truth": "archivio_letture_sql"}
+    # I motori attestano le letture; il registro SQL attesta i controlli successivi.
+    # «collegate» nel job è un delta, non il totale dei messaggi già collegati.
+    from web.services.fascicolo_lettura_verifiche import leggi_registro
+    controlli = leggi_registro(fascicolo.id)
+    controllo_pec = dict((controlli.get("esiti") or {}).get("pec") or {})
+    if controllo_pec:
+        esiti.setdefault("pec", {})["da_confermare"] = list(controllo_pec.get("da_confermare") or [])
+        esiti["pec"]["nuove_collegate"] = int(controllo_pec.get("collegate") or 0)
+    from datetime import datetime
+    orari = [v for v in (ultima, str(controlli.get("completata_il") or controlli.get("eseguita_il") or "")) if v]
+    ultima = max(orari, key=lambda v: datetime.fromisoformat(v.replace("Z", "+00:00")).timestamp()) if orari else ""
+    return {"eseguita_il": ultima, "eseguita_il_it": format_datetime_it(ultima) if ultima else "", "esiti": esiti, "errori": dict(controlli.get("errori") or {}), "in_corso": bool(controlli.get("in_corso")), "source_of_truth": "archivio_letture_sql", "controlli_source_of_truth": "letture_verifiche_esiti_sql"}
 
 
 def load_fascicolo_lettura_context(*, pratica_id: str = "", fascicolo_id: str = "") -> dict[str, Any]:

@@ -24,6 +24,7 @@ export type StudioTelematicoImportPage = {
   steps: StudioTelematicoStep[]
   acceptedFiles: string
   localPathEnabled?: boolean
+  storedPackages?: StudioTelematicoPreview[]
   actions: {
     refresh: string
     preview: string
@@ -108,6 +109,9 @@ export type StudioTelematicoPrepareStatus = {
 
 export type StudioTelematicoImportResult = {
   ok: boolean
+  complete?: boolean
+  fileCoverage?: { available: number; assigned: number; unassigned: number }
+  recovery?: { recovered: number; alreadyPreserved: number; technicalLogs: number; pending: Array<{ name: string; reason: string }> }
   importId: string
   sourceName: string
   generatedAt: string
@@ -496,8 +500,16 @@ export async function runStudioTelematicoImport(
   const summary = isRecord(record.summary) ? record.summary : {}
   const matters = Array.isArray(record.matters) ? record.matters : []
   const warnings = Array.isArray(record.warnings) ? record.warnings : []
+  const recovery = isRecord(record.recovery) ? record.recovery : {}
+  const coverage = isRecord(record.fileCoverage) ? record.fileCoverage : {}
   return {
     ok: boolValue(record.ok),
+    complete: boolValue(record.complete),
+    fileCoverage: { available: numberValue(coverage.available), assigned: numberValue(coverage.assigned), unassigned: numberValue(coverage.unassigned) },
+    recovery: {
+      recovered: numberValue(recovery.recovered), alreadyPreserved: numberValue(recovery.alreadyPreserved), technicalLogs: numberValue(recovery.technicalLogs),
+      pending: (Array.isArray(recovery.pending) ? recovery.pending : []).filter(isRecord).map((file) => ({ name: stringValue(file.name), reason: stringValue(file.reason) })),
+    },
     importId: stringValue(record.importId),
     sourceName: stringValue(record.sourceName),
     generatedAt: stringValue(record.generatedAt),

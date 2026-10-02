@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 431.
+- Endpoint React API contrattualizzati: 432.
 - Endpoint P0/P1 contrattualizzati: 365.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 388.
+- Endpoint con provider verification auth-error: 389.
 - Endpoint pubblici della pagina di accesso (stato 200, scritture in errore sicuro senza credenziali): 3.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 40.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
@@ -131,6 +131,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Conferimenti | `/api/v1/ui/conferimenti/{conferimento_id}/apri-fascicolo` | `POST` | Conferimenti | P0 | complete | auth-error | `fatturazione.leggi/scrivi` | `n/a` | current_tenant | complete-auth-error |
 | Panoramica | `/api/v1/ui/dashboard` | `GET` | Regia (/app/regia) | P1 | verified | success+auth-error | `sessione/API tenant-aware` | `routes.appV2.dashboard.regia` | current_tenant | verified |
 | Panoramica | `/api/v1/ui/dashboard/sync-mailboxes` | `POST` | Panoramica | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/ui/document-reader/web` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/editor-professionale` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Email PEC | `/api/v1/ui/email` | `GET` | Email PEC | P0 | verified | success+auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | verified |
 | Email ordinaria | `/api/v1/ui/email-ordinaria` | `GET` | Email ordinaria | P0 | verified | success+auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | verified |

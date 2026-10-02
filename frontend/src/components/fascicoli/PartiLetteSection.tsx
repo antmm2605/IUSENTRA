@@ -8,6 +8,8 @@ export type ParteLetta = {
   ruoloLabel: string
   codiceFiscale: string
   codiceFiscaleValido: boolean
+  codiceFiscaleAnagrafica?: string
+  codiceFiscaleDiscordante?: boolean
   difensore: string
   posizione: string
   verifica: string
@@ -95,8 +97,9 @@ export function PartiLetteSection({ fascicoloId, active = true, refreshKey = 0 }
                 <Badge tone={stato.tono}>{stato.testo}</Badge>
                 <b>{parte.nome}</b>
                 <span>{parte.ruoloLabel}{parte.posizione ? ` · ${parte.posizione}` : ''}</span>
+                {parte.codiceFiscaleAnagrafica ? <small><b>C.F. in anagrafica: {parte.codiceFiscaleAnagrafica}</b></small> : null}
                 <small>
-                  {parte.codiceFiscale ? `C.F. ${parte.codiceFiscale}${parte.codiceFiscaleValido ? '' : ' (controllo non valido)'}` : 'Codice fiscale non indicato'}
+                  {parte.codiceFiscale ? `${parte.codiceFiscaleAnagrafica ? 'C.F. nell’atto:' : 'C.F.'} ${parte.codiceFiscale}${parte.codiceFiscaleDiscordante ? ' · diverso dall’anagrafica: verifica il documento' : parte.codiceFiscaleValido ? '' : ' · da verificare: formato o carattere di controllo non valido'}` : 'Codice fiscale non letto nell’atto'}
                   {parte.difensore ? ` · difesa da ${parte.difensore}` : ''}
                   {` · in ${parte.documenti} document${parte.documenti === 1 ? 'o' : 'i'}`}
                 </small>

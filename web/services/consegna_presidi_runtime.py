@@ -79,14 +79,8 @@ def _dati_note_scritte(fatto: Any) -> dict[str, str]:
 # ---- scadenziario ----------------------------------------------------------
 
 def _modalita_termine(testo: str) -> str:
-    testo = _testo(testo).casefold()
-    if "opposizione" in testo:
-        return "opposizione"
-    if "note" in testo and any(v in testo for v in ("deposito", "sostituzione", "trattazione scritta")):
-        return "deposito_note"
-    if "costituzione" in testo:
-        return "costituzione"
-    return ""
+    from pct.archivio_letture.identita_eventi import adempimento_da_testo
+    return adempimento_da_testo(testo)
 
 
 def _stato(riga: Any) -> str:
@@ -99,14 +93,12 @@ def _stessa_scadenza(riga: Any, fatto: Any) -> bool:
     testo = _testo(getattr(riga, "titolo", "")) + " " + _testo(getattr(riga, "note", ""))
     if fatto.id and "ARCHIVIO_FATTO:" + fatto.id in testo:
         return True
-    # Una scadenza manuale già presente nello stesso giorno prevale sulla
-    # proposta del lettore; tra proposte automatiche serve identità semantica.
-    automatico = "ARCHIVIO_FATTO:" in testo or "PEC_AUDIT:" in testo or bool(_testo(getattr(riga, "deadline_profile_code", "")))
-    if not automatico:
-        return True
-    modalita = _modalita_termine(fatto.etichetta + " " + fatto.contesto)
+    # Anche una scadenza manuale richiede lo stesso adempimento: la sola data
+    # non autorizza a sopprimere una notifica o un altro termine distinto.
+    from pct.archivio_letture.identita_eventi import adempimento_fatto
+    modalita = adempimento_fatto(fatto)
     if modalita:
-        return modalita == _modalita_termine(testo)
+        return modalita == _modalita_termine(getattr(riga, "titolo", ""))
     return bool(fatto.oggetto_id and fatto.oggetto_id in testo and _testo(riga.titolo) == _testo(fatto.etichetta))
 
 

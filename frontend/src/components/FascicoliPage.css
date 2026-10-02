@@ -1272,7 +1272,7 @@ button.iu-fas-regia-action{width:100%;font:inherit;cursor:pointer}
 .iu-fas-embedded-modal--fullscreen .iu-fas-preview-modal__box{width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;border-radius:0}
 .iu-fas-pagopa-prefill{margin:0;padding:8px 14px;border-bottom:1px solid var(--iu-border);background:#f8fafc;color:#334155;font-size:12px;font-weight:820;line-height:1.35}.iu-fas-pagopa-prefill--filled{background:#ecfdf5;color:#166534}.iu-fas-pagopa-prefill--partial,.iu-fas-pagopa-prefill--waiting{background:#fffbeb;color:#92400e}.iu-fas-pagopa-prefill--blocked{background:#fef2f2;color:#991b1b}
 .iu-fas-economic-control-modal{position:fixed;inset:0;z-index:1135;display:grid;place-items:center;padding:18px;background:rgba(15,23,42,.52)}
-.iu-fas-economic-control-modal__box{width:min(940px,calc(100vw - 36px));max-height:min(90vh,850px);display:grid;grid-template-rows:auto auto minmax(0,1fr) auto auto;overflow:hidden;border-radius:16px;background:#fff;box-shadow:0 24px 90px rgba(15,23,42,.28);color:#111827}
+.iu-fas-economic-control-modal__box{width:min(940px,calc(100vw - 36px));max-height:min(90vh,850px);display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden;border-radius:16px;background:#fff;box-shadow:0 24px 90px rgba(15,23,42,.28);color:#111827}
 .iu-fas-economic-control-modal__box>header{min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid var(--iu-border)}
 .iu-fas-economic-control-modal__box>header>div{min-width:0;display:grid;gap:3px}.iu-fas-economic-control-modal__box>header span{display:inline-flex;align-items:center;gap:7px;color:var(--iu-blue-700);font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:0}.iu-fas-economic-control-modal__box>header strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;font-size:15px;font-weight:950}.iu-fas-economic-control-modal__box>header small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#64748b;font-size:12px;font-weight:800}
 .iu-fas-economic-control-modal__box nav,.iu-fas-economic-control-modal__box footer{display:flex;align-items:center;justify-content:flex-end;gap:8px}.iu-fas-economic-control-modal__box button,.iu-fas-economic-control-modal__box a{min-height:40px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--iu-border);border-radius:10px;background:#fff;color:#0f172a;padding:0 12px;font-size:12px;font-weight:900;text-decoration:none;cursor:pointer}.iu-fas-economic-control-modal__box button:hover,.iu-fas-economic-control-modal__box a:hover{border-color:rgba(37,99,235,.3);background:#f8fbff;color:var(--iu-blue-700)}.iu-fas-economic-control-modal__box button:focus-visible,.iu-fas-economic-control-modal__box a:focus-visible{outline:3px solid rgba(37,99,235,.24);outline-offset:2px}
@@ -3559,3 +3559,15 @@ body.iu-fascicoli-table-expanded{
   align-items: center;
   gap: 4px;
 }
+
+.iu-fas-preview-modal.iu-fas-preview-modal--fullscreen{padding:0;place-items:stretch}
+.iu-fas-preview-modal--fullscreen .iu-fas-preview-modal__box{width:100%;height:100dvh;max-width:none;max-height:none;border-radius:0}
+.iu-fas-preview-modal__box>header nav button[aria-pressed="true"]{background:var(--iu-blue-50);border-color:var(--iu-blue-600);color:var(--iu-blue-700)}
+.iu-fas-preview-modal__box>header nav button:hover,.iu-fas-preview-modal__box>header nav button:focus-visible{background:var(--iu-blue-50);color:var(--iu-blue-700);border-color:var(--iu-blue-600)}
+.iu-fas-preview-modal__box>header nav button:focus-visible{outline:2px solid var(--iu-blue-600);outline-offset:2px}
+
+.iu-fas-economic-control-modal__body{min-height:0;overflow:auto;overscroll-behavior:contain}
+.iu-fas-economic-control-modal__body .iu-fas-economic-control-modal__rows,.iu-fas-economic-control-modal__body .iu-fas-economic-control-modal__editor{overflow:visible;align-content:start}
+@media(max-width:900px){.iu-fas-economic-control-modal__box footer{grid-template-columns:repeat(2,minmax(0,1fr))}.iu-fas-economic-control-modal__box footer button,.iu-fas-economic-control-modal__box footer a{min-height:44px;padding:8px;white-space:normal;text-align:center}}
+
+.iu-fas-economic-control-modal__body .iu-fas-economic-control-modal__rows small{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.5}

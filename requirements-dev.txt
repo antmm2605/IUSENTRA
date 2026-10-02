@@ -31,6 +31,9 @@ reportlab>=4.0.0
 pdf-inspector==1.17.0
 opencv-python-headless==5.0.0.93
 numpy==2.5.2
+striprtf==0.0.33
+xlrd==2.0.2
+extract-msg==0.56.1
 stripe>=7.0.0
 twilio>=8.0.0
 pywebpush>=2.0.0

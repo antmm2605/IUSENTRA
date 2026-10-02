@@ -47,6 +47,10 @@ export type FascicoloPaymentItem = {
   updatedBy: string
   updateAction: string
   history: FascicoloPaymentHistoryItem[]
+  fontiVerifica?: Array<{ fattoId: string; documentoId: string; nome: string; contesto: string; previewHref: string; riscontri: string[] }>
+  verificheMancanti?: string[]
+  importiLetti?: string[]
+  richiedeConferma?: boolean
 }
 
 export type FascicoloProformaPresidio = {
@@ -1696,6 +1700,14 @@ export function normalizePaymentItem(value: unknown, kind: FascicoloPaymentKind,
     updatedBy: text(row.updatedBy ?? row.updated_by),
     updateAction: text(row.updateAction ?? row.update_action, id ? `/api/v1/ui/fascicoli/${encodeURIComponent(id)}/pagamenti/${kind}` : ''),
     history: normalizePaymentHistory(row.history ?? row.storico),
+    fontiVerifica: Array.isArray(row.fontiVerifica) ? row.fontiVerifica.filter(isRecord).map((source) => ({
+      fattoId: text(source.fattoId), documentoId: text(source.documentoId), nome: text(source.nome, 'Fonte economica'),
+      contesto: text(source.contesto), previewHref: text(source.previewHref),
+      riscontri: Array.isArray(source.riscontri) ? source.riscontri.map((item) => text(item)).filter(Boolean) : [],
+    })) : [],
+    verificheMancanti: Array.isArray(row.verificheMancanti) ? row.verificheMancanti.map((item) => text(item)).filter(Boolean) : [],
+    importiLetti: Array.isArray(row.importiLetti) ? row.importiLetti.map((item) => text(item)).filter(Boolean) : [],
+    richiedeConferma: bool(row.richiedeConferma),
   }
 }
 

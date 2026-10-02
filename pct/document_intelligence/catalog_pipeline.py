@@ -329,6 +329,7 @@ class FascicoloDocumentCatalogPipeline:
                     "reading_source": "archivio_letture" if self.text_provider else "document_ai_sql",
                     "filename": source.filename,
                     "source_type": source.source_type,
+                    "source_display_sha256": str(source.metadata.get("source_display_sha256") or ""),
                     "document_ai_status": str(getattr(record, "status", "") or ""),
                     "legal_source_count": sum(item.evidence_type == "legal_source" for item in resolution.evidence),
                     "profile_inferred_from_content": bool(context.get("_profile_inference_reason")),

@@ -2113,3 +2113,6 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Pytest locale | Non eseguibile nell’interprete disponibile | Python di sistema non include `pytest` e le dipendenze applicative; la `.venv` presente è incompleta. Non sono state installate dipendenze nel sistema né alterato l’ambiente dell’utente. I test mirati restano affidati all’ambiente CI governato prima del deploy. |
 | Codex quality gate sul worktree completo | Non verde per scope estraneo alla release | Il worktree contiene numerose modifiche e asset preesistenti non appartenenti al fix. Il commit selettivo include soltanto RT pagoPA, ciclo deposito, test, strumenti, documentazione e versione; le modifiche estranee restano intatte e fuori dal commit. |
 | Prova con dispositivo | Non richiesta per questo fix | La verifica non firma documenti e non invia PEC. Il dispositivo dello studio non viene utilizzato; resta preservato il canale di invio esclusivamente locale già accettato. |
+
+
+Consolidamento 02/10/2026: harness ui-support non superato per perimetro/protected manifest; non indebolito. Backup integrale non avviabile per spazio: eseguito snapshot SQL nativo separato. Restano i requisiti funzionali storici elencati nel rapporto Controllo Studio, senza dichiarazione di copertura integrale.

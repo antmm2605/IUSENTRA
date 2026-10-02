@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.434.7 — 02/10/2026
+
+- Consolidamento dei sorgenti già verificati sul server: Controllo Studio, lettore interno, preparazione udienza, verificatori delle notifiche e del contesto economico.
+- Esiti delle letture e discordanze del codice fiscale in SQL, con isolamento dello studio, revisioni, audit e riepilogo consultabile nella stessa pagina. Collegamento verificato delle ricevute PEC al relativo esito, senza inventare dati anagrafici.
+- Copia locale aggiornata; test mirati e guardrail grafici riallineati alle regole operative effettive. Preservato integralmente il flusso congelato di firma, deposito e invio PEC dal PC.
+- Il catalogo notifiche, la revisione dei dati storici e l’intero perimetro dell’editor professionale restano oggetto delle verifiche aperte nel rapporto operativo; questo rilascio non ne certifica la copertura integrale.
+
 ## 2.434.5 — 01/10/2026
 
 Banco di prova di Lex: si misura quante domande reali dell'avvocato Lex risolve sui dati dello studio, prima di cambiare il modo in cui capisce le domande.

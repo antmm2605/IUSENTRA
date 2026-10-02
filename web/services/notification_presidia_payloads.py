@@ -188,6 +188,7 @@ def _practice_payload(fascicolo_id: str) -> dict[str, str]:
             "subject": subject if subject != client else "",
             "rg": rg,
             "office": office,
+            "number": str(getattr(fascicolo, "numero", "") or ""),
         }
     )
     return result
@@ -429,6 +430,8 @@ def _try_link_existing_pst_document(
     docs: list[Mapping[str, Any]],
     portal_context: Mapping[str, Any],
 ) -> bool:
+    if str(row.get('resolution_code') or '') == 'SOURCE_CONTENT_REVIEW':
+        return False
     if _has_linked_portal_document(docs):
         return False
     if not str(row.get("fascicolo_id") or "").strip():
@@ -471,10 +474,13 @@ def _summary_projection(row: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def build_presidio_detail_payload(repo: Any, presidio_id: str) -> dict[str, Any]:
+    warnings = []
     permissions = presidio_permissions()
     if not permissions["can_read"]:
         raise PermissionError("Permesso messaggi.leggi richiesto.")
     row, docs, recipients = _detail_rows(repo, presidio_id)
+    if str(row.get('resolution_code') or '') == 'SOURCE_CONTENT_REVIEW':
+        warnings.append({'code': 'source_content_review', 'message': str(row.get('resolution_reason') or 'Le fonti contengono documenti diversi: verificare quale originale riguarda questa attività.')})
     assignees = _user_options()
     detail = _summary(_summary_projection(row), row, recipients, docs, assignees)
     practice = detail.get("practice") if isinstance(detail.get("practice"), Mapping) else {}
@@ -511,7 +517,9 @@ def build_presidio_detail_payload(repo: Any, presidio_id: str) -> dict[str, Any]
             fascicolo_id = str(row.get("fascicolo_id") or "")
             source_message_id = str(row.get("source_message_id") or "")
     except Exception:
-        pass
+        from flask import current_app
+        current_app.logger.exception("Riconciliazione delle prove di notifica non disponibile")
+        warnings.append({"code": "notification_proof_unavailable", "message": "Il confronto con le prove del fascicolo non è riuscito. Lo stato del presidio deve ancora essere verificato."})
     has_portal_original = _has_linked_portal_document(docs)
     detail["documents"] = [
         _public_document(
@@ -528,9 +536,23 @@ def build_presidio_detail_payload(repo: Any, presidio_id: str) -> dict[str, Any]
     detail["linkable_documents"] = _linkable_documents(str(row.get("fascicolo_id") or ""))
     detail["available_actions"] = _available_actions(row, permissions, bool(detail["linkable_documents"]))
     detail["source_pec_href"] = "/email"
+    if permissions.get("can_view_evidence"):
+        from web.services.notification_presidia_sources import correlated_sources
+        detail['correlated_sources'] = correlated_sources(repo, row)
+        try:
+            from web.helpers import get_fascicoli
+            from web.services.verifica_notifiche_runtime import verifica_fascicolo
+
+            fascicolo = get_fascicoli().get(fascicolo_id)
+            if fascicolo is not None:
+                detail["notification_verification"] = verifica_fascicolo(fascicolo)
+        except Exception:
+            from flask import current_app
+            current_app.logger.exception("Verificatore del presidio non disponibile")
+            warnings.append({"code": "notification_verification_unavailable", "message": "Verifica normativa non disponibile in questo momento. Non sono stati confermati obblighi o termini: riprova ad aprire il presidio."})
     if not permissions["can_write"]:
         detail["read_only_reason"] = "Permesso messaggi.scrivi non disponibile."
-    return {"ok": True, "presidio": detail, "permissions": public_permissions(permissions), "warnings": []}
+    return {"ok": True, "presidio": detail, "permissions": public_permissions(permissions), "warnings": warnings}
 
 
 def _public_recipient(item: Mapping[str, Any]) -> dict[str, Any]:
@@ -791,6 +813,7 @@ def _available_actions(row: Mapping[str, Any], permissions: Mapping[str, bool], 
     can_write = bool(permissions.get("can_write"))
     can_link = bool(permissions.get("can_link_document"))
     terminal = status in {"CLOSED", "NOT_REQUIRED", "CANCELLED"}
+    source_review = str(row.get("resolution_code") or "") == "SOURCE_CONTENT_REVIEW"
     actions = [
         {"id": "open-case", "label": "Apri fascicolo", "kind": "link", "href": _practice_payload(str(row.get("fascicolo_id") or ""))["href"], "enabled": bool(row.get("fascicolo_id"))},
         {
@@ -798,8 +821,10 @@ def _available_actions(row: Mapping[str, Any], permissions: Mapping[str, bool], 
             "label": "Conferma notifica",
             "kind": "mutation",
             "mutation": "confirm",
-            "enabled": can_write and status in {"DETECTED", "NEEDS_REVIEW", "ORIGINAL_ACQUIRED"},
+            "enabled": can_write and not source_review and status in {"DETECTED", "NEEDS_REVIEW", "ORIGINAL_ACQUIRED"},
             "disabled_reason": (
+                "Acquisisci e verifica l’originale riferito a questa attività prima di confermare."
+                if source_review else
                 "Decisione già registrata. Puoi modificarla qui sotto."
                 if status == "NOTIFICATION_CONFIRMED"
                 else "Prova notifica già depositata nel fascicolo. Non preparare una nuova relata."

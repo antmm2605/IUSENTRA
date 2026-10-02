@@ -297,6 +297,169 @@ def _sql_repositories(tmp_path: Path):
     return studio_db, fascicoli, clienti, soggetti
 
 
+def test_reimport_restores_missing_email_from_sql_without_duplicate(tmp_path: Path):
+    package = load_quickorganizer_package(_write_package(tmp_path / "source.zip"))
+    _, fascicoli, clienti, soggetti = _sql_repositories(tmp_path)
+    args = dict(fascicoli=fascicoli, clienti=clienti, soggetti=soggetti, actor="Test recupero")
+    import_quickorganizer_package(package, **args)
+    matter = fascicoli.tutti(archiviati=True)[0]
+    doc = next(d for d in matter.documenti if d.id_documento_portale == "quickorganizer:email:88")
+    path = fascicoli.percorso_documento(matter.id, doc.id)
+    original = path.read_bytes()
+    path.unlink()
+    assert audit_quickorganizer_import(package, fascicoli=fascicoli, clienti=clienti, soggetti=soggetti)["ok"] is False
+    result = import_quickorganizer_package(package, **args)
+    assert path.read_bytes() == original
+    assert result["summary"]["emailsImported"] == 1
+    assert len(fascicoli.get(matter.id).documenti) == 2
+    assert audit_quickorganizer_import(package, fascicoli=fascicoli, clienti=clienti, soggetti=soggetti)["ok"] is True
+    assert next(d for d in fascicoli.get(matter.id).documenti if d.id == doc.id).hash_sha256 == doc.hash_sha256
+
+
+def test_analysis_warns_about_unlinked_identity_original(tmp_path: Path):
+    source = _write_package(tmp_path / "source.zip")
+    with zipfile.ZipFile(source, "a") as archive:
+        archive.writestr("ATTI/carta-identita-non-collegata.pdf", b"%PDF-originale")
+    analysis = analyze_quickorganizer_package(load_quickorganizer_package(source))
+    warning = next(w for w in analysis["warnings"] if w["code"] == "file_senza_relazione_originale")
+    assert "documenti e delle email: 1." in warning["message"]
+    assert "identità" in warning["message"]
+    assert analysis["canImportComplete"] is False
+    assert analysis["fileCoverage"] == {"available": 3, "assigned": 2, "unassigned": 1}
+
+
+def test_unassigned_source_row_is_not_reported_as_complete(tmp_path: Path):
+    source = _write_package(tmp_path / "source.zip")
+    with zipfile.ZipFile(source) as archive:
+        payload = json.loads(archive.read("quickorganizer-export.json"))
+    payload["tables"]["TESTI"][0]["NUMEROPRATICA"] = 0
+    rebuilt = tmp_path / "unassigned.zip"
+    with zipfile.ZipFile(source) as source_zip, zipfile.ZipFile(rebuilt, "w") as archive:
+        for name in source_zip.namelist():
+            archive.writestr(name, json.dumps(payload) if name == "quickorganizer-export.json" else source_zip.read(name))
+    package = load_quickorganizer_package(rebuilt)
+    analysis = analyze_quickorganizer_package(package)
+    assert analysis["canImportComplete"] is False
+    assert analysis["fileCoverage"]["unassigned"] == 1
+    _, fascicoli, clienti, soggetti = _sql_repositories(tmp_path)
+    result = import_quickorganizer_package(package, fascicoli=fascicoli, clienti=clienti, soggetti=soggetti, actor="Test", allow_partial=True)
+    assert result["ok"] is True
+    assert result["complete"] is False
+    assert result["fileCoverage"]["unassigned"] == 1
+    assert any(w["code"] == "file_senza_pratica_valida" for w in result["warnings"])
+
+
+def test_unlinked_original_recovered_from_client_identity_and_reimport_idempotent(tmp_path: Path):
+    source = _write_package(tmp_path / "source.zip")
+    with zipfile.ZipFile(source) as archive:
+        payload = json.loads(archive.read("quickorganizer-export.json"))
+    payload["tables"]["NOMI"][0]["CODICE_FISCALE"] = "RSSMRA80A01H501U"
+    rebuilt = tmp_path / "with-original.zip"
+    raw = b"{\\rtf1\\ansi Documento originale di Rossi Mario, c.f. RSSMRA80A01H501U. Tribunale di Milano. R.G. 1234/2025.}"
+    with zipfile.ZipFile(source) as source_zip, zipfile.ZipFile(rebuilt, "w") as archive:
+        for name in source_zip.namelist():
+            archive.writestr(name, json.dumps(payload) if name == "quickorganizer-export.json" else source_zip.read(name))
+        archive.writestr("ATTI/originale-senza-relazione.rtf", raw)
+    package = load_quickorganizer_package(rebuilt)
+    _, fascicoli, clienti, soggetti = _sql_repositories(tmp_path)
+    args = dict(fascicoli=fascicoli, clienti=clienti, soggetti=soggetti, actor="Test recupero", allow_partial=True)
+    result = import_quickorganizer_package(package, **args)
+    assert result["recovery"]["recovered"] == 1
+    assert result["recovery"]["pending"] == []
+    matter = fascicoli.tutti(archiviati=True)[0]
+    original = next(d for d in matter.documenti if d.nome_originale == "originale-senza-relazione.rtf")
+    assert fascicoli.percorso_documento(matter.id, original.id).read_bytes() == raw
+    again = import_quickorganizer_package(package, **args)
+    assert again["recovery"]["recovered"] == 0
+    assert again["recovery"]["alreadyPreserved"] == 1
+    assert len(fascicoli.get(matter.id).documenti) == 3
+
+
+def test_reimport_matches_original_documents_and_preserves_portal_case(tmp_path: Path):
+    package = load_quickorganizer_package(_write_package(tmp_path / "source.zip"))
+    _, fascicoli, clienti, soggetti = _sql_repositories(tmp_path)
+    args = dict(fascicoli=fascicoli, clienti=clienti, soggetti=soggetti, actor="Test")
+    import_quickorganizer_package(package, **args)
+    matter = fascicoli.tutti(archiviati=True)[0]
+    fascicoli.aggiorna(matter.id, source="PST", source_external_id="pst:caso-verificato", numero_rg="4321", anno_rg=2026, note="Note aggiornate dall'avvocato")
+    result = import_quickorganizer_package(package, **args)
+    assert result["summary"]["mattersCreated"] == 0
+    assert result["summary"]["mattersUpdated"] == 1
+    assert len(fascicoli.tutti(archiviati=True)) == 1
+    current = fascicoli.get(matter.id)
+    assert current.source == "PST"
+    assert current.source_external_id == "pst:caso-verificato"
+    assert current.numero_rg == "4321"
+    assert current.anno_rg == 2026
+    assert current.note == "Note aggiornate dall'avvocato"
+    assert result["verification"]["ok"] is True
+
+
+def test_reimport_preserves_manual_changes_to_imported_case(tmp_path: Path):
+    package = load_quickorganizer_package(_write_package(tmp_path / "source.zip"))
+    _, fascicoli, clienti, soggetti = _sql_repositories(tmp_path)
+    args = dict(fascicoli=fascicoli, clienti=clienti, soggetti=soggetti, actor="Test")
+    import_quickorganizer_package(package, **args)
+    matter = fascicoli.tutti(archiviati=True)[0]
+    fascicoli.aggiorna(matter.id, numero_rg="4321", anno_rg=2026, note="Note aggiornate dallo studio")
+    result = import_quickorganizer_package(package, **args)
+    current = fascicoli.get(matter.id)
+    assert current.numero_rg == "4321"
+    assert current.anno_rg == 2026
+    assert current.note == "Note aggiornate dallo studio"
+    assert result["verification"]["ok"] is True
+
+
+def test_original_association_refuses_two_identical_case_owners():
+    from types import SimpleNamespace
+    from web.services.quickorganizer_recovery import resolve_original_case
+    client = SimpleNamespace(codice_fiscale="RSSMRA80A01H501U")
+    clients = SimpleNamespace(get=lambda _id: client)
+    base = dict(id_cliente="cliente", nome_cliente="Mario Rossi", numero_rg="1871", anno_rg=2023, tribunale="Tribunale di Roma")
+    cases = [SimpleNamespace(id="uno", **base), SimpleNamespace(id="due", **base)]
+    text = "Mario Rossi RSSMRA80A01H501U Tribunale ordinario di Roma 1871 2023 R.G."
+    assert resolve_original_case(text, cases, clients) is None
+    assert resolve_original_case(text, cases[:1], clients)[0] == "uno"
+
+
+def test_stored_packages_only_expose_current_studio_metadata(tmp_path: Path):
+    from web.services.quickorganizer_import import list_staged_packages
+    root = tmp_path / "studio" / "importazioni"
+    own = root / ("a" * 32)
+    own.mkdir(parents=True)
+    stage = {"importId": own.name, "sourceName": "Archivio studio.zip", "createdAt": "2026-10-01", "sourcePath": "riservato", "analysis": {"ok": True}}
+    (own / "stage.json").write_text(json.dumps(stage), encoding="utf-8")
+    outside = tmp_path / "altro-studio" / ("b" * 32)
+    outside.mkdir(parents=True)
+    (outside / "stage.json").write_text(json.dumps({**stage, "importId": outside.name, "sourceName": "Altro studio.zip"}), encoding="utf-8")
+    packages = list_staged_packages(root)
+    assert len(packages) == 1
+    assert packages[0]["sourceName"] == "Archivio studio.zip"
+    assert "sourcePath" not in packages[0]
+
+
+def test_reimport_keeps_changed_email_and_recovers_original_once(tmp_path: Path):
+    package = load_quickorganizer_package(_write_package(tmp_path / "source.zip"))
+    _, fascicoli, clienti, soggetti = _sql_repositories(tmp_path)
+    args = dict(fascicoli=fascicoli, clienti=clienti, soggetti=soggetti, actor="Test recupero")
+    import_quickorganizer_package(package, **args)
+    matter = fascicoli.tutti(archiviati=True)[0]
+    doc = next(d for d in matter.documenti if d.id_documento_portale == "quickorganizer:email:88")
+    path = fascicoli.percorso_documento(matter.id, doc.id)
+    original = path.read_bytes()
+    changed = b"From: lawyer@example.it\r\nSubject: versione conservata\r\n\r\nDiversa"
+    path.write_bytes(changed)
+    result = import_quickorganizer_package(package, **args)
+    variants = [d for d in fascicoli.get(matter.id).documenti if ":originale:" in d.id_documento_portale]
+    assert result["summary"]["emailsImported"] == 1
+    assert len(variants) == 1
+    assert fascicoli.percorso_documento(matter.id, variants[0].id).read_bytes() == original
+    assert path.read_bytes() == changed
+    import_quickorganizer_package(package, **args)
+    assert len(fascicoli.get(matter.id).documenti) == 3
+    assert path.read_bytes() == changed
+
+
 def test_import_studio_telematico_legge_documenti_da_atti_ed_emails(tmp_path: Path):
     package = load_quickorganizer_package(_write_package(tmp_path / "studio-telematico.zip"))
     analysis = analyze_quickorganizer_package(package)

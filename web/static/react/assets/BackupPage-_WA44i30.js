@@ -1,0 +1,1 @@
+import{t as e}from"./vendor-react-DWgtFKJv.js";import{t}from"./ImpostazioniPage-ZMaex-6B.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as BackupPage};

@@ -23,7 +23,7 @@ from pct.pec_pipeline import PecAuditRepository
 def test_rulepack_e_regex_sono_caricati_una_sola_volta():
     assert load_notification_rulepack() is load_notification_rulepack()
     assert compiled_notification_rules() is compiled_notification_rules()
-    assert load_notification_rulepack()["version"] == "legal_notification_detection_rules_v1.0.2"
+    assert load_notification_rulepack()["version"] == "legal_notification_detection_rules_v1.0.3"
 
 
 @pytest.mark.parametrize(
@@ -223,7 +223,7 @@ def test_hash_verificati_e_fonti_mancanti_falliscono_con_istruzione():
 def test_ogni_regola_eseguibile_cita_solo_fonti_censite():
     result = validate_rulepack_source_references()
 
-    assert result["rulepack_version"] == "legal_notification_detection_rules_v1.0.2"
+    assert result["rulepack_version"] == "legal_notification_detection_rules_v1.0.3"
     assert {
         "src.it.cpc.art133",
         "src.it.cpc.art285",

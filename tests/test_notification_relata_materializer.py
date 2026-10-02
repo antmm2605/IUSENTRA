@@ -11,6 +11,7 @@ import pytest
 from pct.notifications import NotificationRecord, NotificationRepository
 from pct.pec_notification_presidio import NotificationPresidioRepository, NotificationPresidioService, ReceiptKind
 from pct.scadenziario import GestioneScadenziario, StatoTermine, TipoTermine
+from pct.pec_notification_presidio.deadline_projection import deadline_matches, deadline_marker
 from pct.storage import StudioDB
 from web.services import notifications_runtime, react_agenda_bridge, react_scadenziario_bridge
 import pct.core_storage_backend as core_storage_backend
@@ -175,6 +176,7 @@ def _seed_advanced_presidio(
     tenant_id: str = "tenant-test",
     *,
     source_message_id: str = "pec_alfano",
+    explicit_due_at: str = "2026-07-30T10:00:00+02:00",
 ) -> str:
     repo = NotificationPresidioRepository(paths["PEC_AUDIT_DB"], tenant_id=tenant_id)
     try:
@@ -186,6 +188,7 @@ def _seed_advanced_presidio(
                 "source_parsed_version_id": "parsed-1",
                 "legal_event_id": f"event-{source_message_id}",
                 "source_effective_at": "2026-07-20T11:01:03Z",
+                "explicit_due_at": explicit_due_at,
                 "pec_official_delivery_at": "2026-07-20T11:01:03Z",
                 "event_or_order_at": "2026-07-20T11:01:03Z",
                 "live_pec_operational_event": True,
@@ -244,6 +247,7 @@ def _seed_paginated_advanced_presidia(
                     f"pytest-pagination-instance:{index:03d}",
                     timestamp,
                     timestamp,
+                    "2026-07-30T10:00:00+02:00",
                 )
             )
         with repo.connection() as conn:
@@ -252,8 +256,8 @@ def _seed_paginated_advanced_presidia(
                 INSERT INTO pec_legal_notification_presidia
                 (id, tenant_id, fascicolo_id, source_message_id, trigger_type,
                  notification_case, status, priority, rulepack_version, dedupe_key,
-                 notification_instance_key, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 notification_instance_key, created_at, updated_at, explicit_due_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 rows,
             )
@@ -509,7 +513,7 @@ def test_materializzatore_pagina_oltre_200_senza_scadere_topbar_web_push_o_scade
         tenant_id="tenant-test",
     )
     oldest_source_id = "legal-notification-presidio:page-presidio-000:da_preparare"
-    oldest_marker = f"IUSENTRA_LEGAL_NOTIFICATION:{oldest_source_id}"
+    oldest_marker = "IUSENTRA_LEGAL_NOTIFICATION:legal-notification-presidio:page-presidio-000"
     notification_repository = NotificationRepository(paths["NOTIFICATIONS_DB"])
     assert first["advanced_items"] == 1
     assert (
@@ -765,11 +769,8 @@ def test_materializzatore_notifiche_residue_alimenta_topbar_push_e_scadenziario(
     assert records[0].href.endswith("#relata-notifica") or "/notifiche-legali" in records[0].href
 
     deadlines = GestioneScadenziario(db_path=paths["SCADENZIARIO_DB"]).tutte(solo_aperte=False)
-    assert len(deadlines) == 1
-    assert deadlines[0].tipo == TipoTermine.NOTIFICA
-    assert deadlines[0].stato == StatoTermine.APERTO
-    assert deadlines[0].id_fascicolo == "FNEW"
-    assert "IUSENTRA_LEGAL_NOTIFICATION:legal-notification:FNEW:da_preparare" in deadlines[0].note
+    # Una data del documento non è una scadenza esplicita: resta un’attività nel presidio.
+    assert deadlines == []
 
     _write_fascicolo(
         Path(paths["STUDIO_DB"]),
@@ -803,7 +804,7 @@ def test_materializzatore_notifiche_residue_alimenta_topbar_push_e_scadenziario(
     assert second["to_notify"] == 0
     assert NotificationRepository(paths["NOTIFICATIONS_DB"]).list_notifications("tenant-test", "admin") == []
     closed = GestioneScadenziario(db_path=paths["SCADENZIARIO_DB"]).tutte(solo_aperte=False)
-    assert closed[0].stato == StatoTermine.COMPLETATO
+    assert closed == []
 
 
 def test_materializzatore_presidi_pec_avanzati_alimenta_topbar_push_e_scadenziario(monkeypatch, tmp_path: Path) -> None:
@@ -865,7 +866,7 @@ def test_materializzatore_presidi_pec_avanzati_alimenta_topbar_push_e_scadenziar
     assert deadlines[0].stato == StatoTermine.APERTO
     assert deadlines[0].id_fascicolo == "C3565650"
     assert deadlines[0].note.splitlines() == [
-        f"IUSENTRA_LEGAL_NOTIFICATION:legal-notification-presidio:{presidio_id}:da_preparare",
+        f"IUSENTRA_LEGAL_NOTIFICATION:legal-notification-presidio:{presidio_id}",
         "PEC_DOCUMENT_PRESIDIO:docpresidio:C3565650:DOC-ORIGINALE-PST:portal_original:linked",
         "PEC_AUDIT:pec_alfano",
         "Fonte documentale: sentenza-originale-pst.pdf",
@@ -922,8 +923,11 @@ def test_materializzatore_coalesce_legacy_sentenza_con_presidio_pec_autoritativo
         tenant_id="tenant-test",
     )
     assert first["items"] == 1
-    first_deadline = GestioneScadenziario(db_path=paths["SCADENZIARIO_DB"]).tutte(solo_aperte=False)[0]
-    assert "IUSENTRA_LEGAL_NOTIFICATION:legal-notification:C3565650:da_preparare" in first_deadline.note
+    assert GestioneScadenziario(db_path=paths["SCADENZIARIO_DB"]).tutte(solo_aperte=False) == []
+    # Riproduce una vecchia proiezione prodotta prima della verifica delle date.
+    first_deadline = GestioneScadenziario(db_path=paths["SCADENZIARIO_DB"]).nuova(
+        titolo="Vecchia proiezione da verificare", tipo=TipoTermine.NOTIFICA,
+        data_scadenza="2026-07-20", note="IUSENTRA_LEGAL_NOTIFICATION:legal-notification:C3565650:da_preparare")
 
     presidio_id = _seed_advanced_presidio(paths)
     with sqlite3.connect(paths["PEC_AUDIT_DB"]) as conn:
@@ -957,12 +961,13 @@ def test_materializzatore_coalesce_legacy_sentenza_con_presidio_pec_autoritativo
     active_deadlines = [row for row in all_deadlines if row.stato == StatoTermine.APERTO]
     assert len(active_deadlines) == 1
     assert active_deadlines[0].note.splitlines() == [
-        f"IUSENTRA_LEGAL_NOTIFICATION:legal-notification-presidio:{presidio_id}:da_preparare",
+        f"IUSENTRA_LEGAL_NOTIFICATION:legal-notification-presidio:{presidio_id}",
         "PEC_AUDIT:pec_alfano",
         "Fonte documentale: 19040620s.pdf.zip",
     ]
     legacy_deadline = next(row for row in all_deadlines if row.id == first_deadline.id)
-    assert legacy_deadline.stato == StatoTermine.COMPLETATO
+    assert legacy_deadline.stato == StatoTermine.ANNULLATO
+    assert "nessuna notifica è registrata come eseguita" in legacy_deadline.note
     assert second["calendar"]["completed"] == 1
 
 
@@ -1016,7 +1021,7 @@ def test_materializzatore_non_coalesce_fonti_distinte_nello_stesso_fascicolo_e_s
         == 2
     )
     active_deadlines = GestioneScadenziario(db_path=paths["SCADENZIARIO_DB"]).tutte(solo_aperte=True)
-    assert len(active_deadlines) == 2
+    assert len(active_deadlines) == 1  # la fonte distinta senza termine resta nel presidio
 
 
 def test_materializzatore_non_pubblica_proof_deposited_ma_mantiene_proof_to_deposit(
@@ -1062,7 +1067,8 @@ def test_materializzatore_non_pubblica_proof_deposited_ma_mantiene_proof_to_depo
     deadlines = {
         item.id: item for item in GestioneScadenziario(db_path=paths["SCADENZIARIO_DB"]).tutte(solo_aperte=False)
     }
-    assert deadlines[manual_deadline.id].stato == StatoTermine.APERTO
+    assert deadlines[manual_deadline.id].stato == StatoTermine.ANNULLATO
+    assert "nessuna notifica è registrata come eseguita" in deadlines[manual_deadline.id].note
 
     _advance_presidio_to_proof_deposited(paths, presidio_id)
     second = notifications_runtime.materialize_notification_relata_presidio_for_paths(
@@ -1075,7 +1081,7 @@ def test_materializzatore_non_pubblica_proof_deposited_ma_mantiene_proof_to_depo
     assert second["items"] == 0
     assert NotificationRepository(paths["NOTIFICATIONS_DB"]).list_notifications("tenant-test", "admin") == []
     closed = {item.id: item for item in GestioneScadenziario(db_path=paths["SCADENZIARIO_DB"]).tutte(solo_aperte=False)}
-    assert closed[manual_deadline.id].stato == StatoTermine.COMPLETATO
+    assert closed[manual_deadline.id].stato == StatoTermine.ANNULLATO
 
 
 def test_materializzatore_riconcilia_scaduti_e_sentenza_pec_storica(monkeypatch, tmp_path: Path) -> None:
@@ -1157,15 +1163,15 @@ def test_materializzatore_riconcilia_scaduti_e_sentenza_pec_storica(monkeypatch,
     deadlines = {
         item.id: item for item in GestioneScadenziario(db_path=paths["SCADENZIARIO_DB"]).tutte(solo_aperte=False)
     }
-    assert deadlines[old_marker.id].stato == StatoTermine.COMPLETATO
-    assert deadlines[legacy_sentence.id].stato == StatoTermine.COMPLETATO
-    assert deadlines[extra_legacy_sentence.id].stato == StatoTermine.COMPLETATO
+    assert deadlines[old_marker.id].stato == StatoTermine.ANNULLATO
+    assert deadlines[legacy_sentence.id].stato == StatoTermine.ANNULLATO
+    assert deadlines[extra_legacy_sentence.id].stato == StatoTermine.ANNULLATO
     assert deadlines[completed_same_marker.id].stato == StatoTermine.COMPLETATO
     assert deadlines[open_same_marker.id].stato == StatoTermine.APERTO
-    assert "Storico sentenze PEC riconciliato" in deadlines[legacy_sentence.id].note
+    assert "nessun termine esplicito nella fonte" in deadlines[legacy_sentence.id].note
     assert deadlines[hearing.id].stato == StatoTermine.SCADUTO
     current = [
-        item for item in deadlines.values() if active_marker in item.note and item.stato != StatoTermine.COMPLETATO
+        item for item in deadlines.values() if deadline_matches(item.note, deadline_marker(f"legal-notification-presidio:{presidio_id}")) and item.stato not in {StatoTermine.COMPLETATO, StatoTermine.ANNULLATO}
     ]
     assert len(current) == 1
     assert current[0].id == open_same_marker.id
@@ -1209,18 +1215,16 @@ def test_materializzatore_riapre_marker_attivo_se_resta_solo_scadenza_terminale(
         tenant_id="tenant-test",
     )
 
-    assert first["calendar"]["created"] == 1
+    assert first["calendar"]["created"] == 0
     assert second["calendar"]["created"] == 0
-    assert second["calendar"]["updated"] == 1
+    assert second["calendar"]["updated"] == 0
     deadlines = GestioneScadenziario(db_path=paths["SCADENZIARIO_DB"]).tutte(solo_aperte=False)
     active = [
         item
         for item in deadlines
         if active_marker in item.note and item.stato not in {StatoTermine.COMPLETATO, StatoTermine.ANNULLATO}
     ]
-    assert len(active) == 1
-    assert active[0].tipo == TipoTermine.NOTIFICA
-    assert active[0].id != terminal.id
+    assert active == []  # la decisione di completamento dello studio non viene riaperta
 
 
 def test_materializzatore_non_usa_studio_db_come_mirror_scadenziario(monkeypatch, tmp_path: Path) -> None:
@@ -1245,6 +1249,7 @@ def test_materializzatore_non_usa_studio_db_come_mirror_scadenziario(monkeypatch
         numero_rg="1100",
         anno_rg="2026",
     )
+    _seed_advanced_presidio(paths)
     paths["SCADENZIARIO_DB"] = paths["STUDIO_DB"]
     studio_db = Path(paths["STUDIO_DB"])
     monkeypatch.setattr(

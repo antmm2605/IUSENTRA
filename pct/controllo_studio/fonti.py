@@ -13,9 +13,10 @@ from typing import Any
 from urllib.parse import quote, urlencode
 
 from pct.controllo_studio.voce import Azione, Voce, quando_etichetta
+from pct.formatting import format_datetime_it, parse_datetime_rome
 
 ORIZZONTE_GIORNI = 30
-_RG = re.compile(r"(\d{1,7})\s*/\s*(\d{4})")
+_RG = re.compile(r"(?<![\d/])(\d{1,7})\s*/\s*(\d{4})(?!\d)")
 
 
 def _valore(oggetto: Any, campo: str, predefinito: Any = "") -> Any:
@@ -32,8 +33,13 @@ def rif_fascicolo(fascicolo: Any) -> dict[str, str]:
     if fascicolo is None:
         return {}
     rg = str(_valore(fascicolo, "numero_rg") or "")
-    etichetta = " — ".join(p for p in (f"R.G. {rg}" if rg else str(_valore(fascicolo, "numero") or ""),
-                                         str(_valore(fascicolo, "titolo") or "")) if p)
+    anno = str(_valore(fascicolo, "anno_rg") or "")
+    if rg and anno and "/" not in rg:
+        rg = f"{rg}/{anno}"
+    numero = str(_valore(fascicolo, "numero") or "")
+    nome = str(_valore(fascicolo, "nome_cliente") or "")
+    etichetta = " · ".join(p for p in (nome, f"Fascicolo {numero}" if numero else "",
+        f"R.G. {rg}" if rg else "", str(_valore(fascicolo, "titolo") or "") if not nome else "") if p)
     return {"id": str(fascicolo.id), "etichetta": etichetta, "href": f"/fascicoli/{quote(str(fascicolo.id))}"}
 
 
@@ -42,15 +48,23 @@ def indice_rg(fascicoli: list[Any]) -> dict[str, Any]:
 
     indice = {}
     for fascicolo in fascicoli:
-        trovato = _RG.search(str(_valore(fascicolo, "numero_rg") or ""))
+        numero = str(_valore(fascicolo, "numero_rg") or "").strip()
+        anno = str(_valore(fascicolo, "anno_rg") or "").strip()
+        if numero and anno and "/" not in numero:
+            numero = f"{numero}/{anno}"
+        trovato = _RG.search(numero)
         if trovato:
-            indice[f"{int(trovato.group(1))}/{trovato.group(2)}"] = fascicolo
+            chiave = f"{int(trovato.group(1))}/{trovato.group(2)}"
+            if chiave not in indice:
+                indice[chiave] = fascicolo
+            elif indice[chiave] is not None and str(indice[chiave].id) != str(fascicolo.id):
+                indice[chiave] = None  # stesso RG in uffici/registri diversi: mai scegliere l'ultimo
     return indice
 
 
 def fascicolo_da_testo(testo: str, per_rg: dict[str, Any]) -> Any:
-    trovato = _RG.search(str(testo or ""))
-    return per_rg.get(f"{int(trovato.group(1))}/{trovato.group(2)}") if trovato else None
+    chiavi = {f"{int(m.group(1))}/{m.group(2)}" for m in _RG.finditer(str(testo or ""))}
+    return per_rg.get(next(iter(chiavi))) if len(chiavi) == 1 else None
 
 
 def voci_scadenze(scadenze: list[Any], fascicoli: dict[str, Any], oggi: date) -> list[Voce]:
@@ -91,7 +105,7 @@ def voci_agenda(appuntamenti: list[Any], per_rg: dict[str, Any], sessioni_udienz
         if not giorno or giorno < oggi.isoformat() or giorno > limite:
             continue
         udienza = str(_valore(app, "tipo")) == "UDIENZA"
-        fascicolo = fascicolo_da_testo(str(_valore(app, "procedimento") or ""), per_rg)
+        fascicolo = fascicolo_da_testo(" ".join(str(_valore(app, campo) or "") for campo in ("procedimento", "titolo")), per_rg)
         luogo = str(_valore(app, "luogo") or "")
         azioni = [Azione("Apri in agenda", href=f"/agenda/{quote(str(app.id))}/modifica")]
         gravita = "normale"
@@ -146,15 +160,16 @@ def voci_incassi(parcelle: list[Any], clienti: dict[str, Any], oggi: date, fasci
 
 
 def _ricevuta(quando: str, oggi: date) -> str:
-    giorno = quando[:10]
-    if not giorno:
+    ricevuta = parse_datetime_rome(quando)
+    if ricevuta is None:
         return ""
-    if giorno == oggi.isoformat():
-        return f"ricevuta oggi alle {quando[11:16]}" if quando[11:16] else "ricevuta oggi"
-    return f"ricevuta il {giorno[8:10]}/{giorno[5:7]}/{giorno[:4]}"
+    if ricevuta.date() == oggi:
+        return f"ricevuta oggi alle {ricevuta:%H:%M}"
+    return f"ricevuta il {format_datetime_it(ricevuta)}"
 
 
-def voci_comunicazioni(pec_non_lette: list[Any], messaggi_falliti: list[Any], oggi: date) -> list[Voce]:
+def voci_comunicazioni(pec_non_lette: list[Any], messaggi_falliti: list[Any], oggi: date,
+                       fascicoli: dict[str, Any] | None = None, collegamenti: dict[str, str] | None = None) -> list[Voce]:
     voci = []
     for pec in pec_non_lette:
         ricevuta = str(_valore(pec, "data") or _valore(pec, "ricevuta_il") or "")
@@ -162,8 +177,10 @@ def voci_comunicazioni(pec_non_lette: list[Any], messaggi_falliti: list[Any], og
         voci.append(Voce(
             id=f"pec-{pec.id}", area="comunicazioni", titolo=str(_valore(pec, "oggetto") or "PEC senza oggetto"),
             dettaglio=" · ".join(p for p in (str(_valore(pec, "mittente_nome") or _valore(pec, "mittente") or ""), _ricevuta(ricevuta, oggi)) if p),
-            data=oggi.isoformat(), gravita="alta" if pst else "normale",  # da leggere: è lavoro di oggi
+            data=parse_datetime_rome(ricevuta).date().isoformat() if parse_datetime_rome(ricevuta) else "",
+            gravita="alta" if pst else "normale", fascia="da_leggere",
             etichetta="Esito deposito" if pst else "PEC da leggere",
+            fascicolo=rif_fascicolo((fascicoli or {}).get((collegamenti or {}).get(str(pec.id), ""))),
             azioni=[Azione("Leggi la PEC", href=f"/email/messaggio/{quote(str(pec.id))}", principale=True),
                     Azione("Segna letta", endpoint=f"/api/v1/ui/controllo-studio/pec/{quote(str(pec.id))}/letta")],
         ))
@@ -179,18 +196,22 @@ def voci_comunicazioni(pec_non_lette: list[Any], messaggi_falliti: list[Any], og
     return voci
 
 
-def voci_notifiche(presidi: list[dict[str, Any]], oggi: date) -> list[Voce]:
+def voci_notifiche(presidi: list[dict[str, Any]], oggi: date, fascicoli: dict[str, Any] | None = None) -> list[Voce]:
     """Presidi notifiche aperti (già letti dal registro): notifiche fallite o parziali in cima."""
 
     voci = []
     for riga in presidi:
         tono = str(riga.get("tone") or "")
         data_it = str(riga.get("time") or "")
-        giorno = f"{data_it[6:10]}-{data_it[3:5]}-{data_it[0:2]}" if re.fullmatch(r"\d{2}/\d{2}/\d{4}", data_it) else oggi.isoformat()
+        termine = parse_datetime_rome(str(riga.get("due_at") or ""))
+        giorno = termine.date().isoformat() if termine else ""
+        if not giorno and re.fullmatch(r"\d{2}/\d{2}/\d{4}", data_it):
+            giorno = f"{data_it[6:10]}-{data_it[3:5]}-{data_it[0:2]}"
         voci.append(Voce(id=str(riga.get("id") or ""), area="notifiche", titolo=str(riga.get("title") or "Notifica da verificare"),
                          dettaglio=str(riga.get("subtitle") or ""), data=giorno,
                          gravita="critica" if tono == "danger" else "alta" if tono == "warning" else "normale",
                          etichetta=str(riga.get("badge") or ""),
+                         fascicolo=rif_fascicolo((fascicoli or {}).get(str(riga.get("fascicolo_id") or ""))),
                          azioni=[Azione("Apri il presidio", href=str(riga.get("href") or "/notifiche-legali"), principale=True)]))
     return voci
 

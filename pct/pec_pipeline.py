@@ -1589,7 +1589,7 @@ def extract_procedural_dates(sources: dict[str, str], plain_text: str = "") -> l
         if _is_identity_document_expiry(clean_context):
             return
         if not event_time and not clean_context.casefold().startswith("nome documento:"):
-            time_match = re.search(r"\b(?:ore|h\.?)?\s*(\d{1,2}[:.]\d{2})\b", clean_context, flags=re.I)
+            time_match = re.search(r"(?<![\d./])\b(?:ore|h\.?)?\s*((?:[01]?\d|2[0-3])[:.][0-5]\d)(?!\d|[./]\d)\b", clean_context, flags=re.I)
             event_time = time_match.group(1) if time_match else ""
         event_time = clean_text(event_time, 10).replace(".", ":")
         url_match = re.search(r"https?://[^\s<>\"']+", clean_context, flags=re.I)
@@ -1625,7 +1625,7 @@ def extract_procedural_dates(sources: dict[str, str], plain_text: str = "") -> l
         trailing_context = searchable[match.end() : min(line_end, match.end() + 80)]
         trailing_context = re.split(r"[.;\n]", trailing_context, maxsplit=1)[0]
         local_context = f"{match.group(0)} {trailing_context}"
-        time_match = re.search(r"\b(?:ore|h\.?)?\s*(\d{1,2}[:.]\d{2})\b", local_context, flags=re.I)
+        time_match = re.search(r"(?<![\d./])\b(?:ore|h\.?)?\s*((?:[01]?\d|2[0-3])[:.][0-5]\d)(?!\d|[./]\d)\b", local_context, flags=re.I)
         return time_match.group(1) if time_match else ""
 
     def searchable_text(value: str) -> str:
@@ -11007,6 +11007,47 @@ class PecAuditRepository:
         )
         return candidates[0]
 
+    def _riusa_scadenza_correlata(self, marker, message, proposal, message_id, _source_message_id):
+        database = self._studio_db_for_data_path(self.scadenziario_db_path)
+        if database is not None:
+            from pct.eventi_unici_repository import EventiUniciRepository
+            from pct.scadenziario import Scadenza
+
+            event_day = str(proposal.get("due_date") or "")[:10]
+            event_time = str(proposal.get("event_time") or "").strip().replace(".", ":")
+            joined = EventiUniciRepository(database, self.tenant_id).risolvi_evento_documentale(
+                "scadenze", marker, fascicolo_id=str(message.get("linked_fascicolo_id") or ""),
+                data_ora=event_day + "T" + event_time if event_day and event_time else "",
+            )
+            if joined is not None:
+                binding, canonical = joined
+                existing = Scadenza.from_dict(canonical)
+                verified_proposal = dict(proposal)
+                verified_proposal["event_time"] = existing.hearing_time
+                return {
+                    "ok": True,
+                    "message": "Fonte già collegata alla scadenza verificata; conservati dati e fonti.",
+                    "deadline_id": existing.id,
+                    "due_date": existing.data_scadenza,
+                    "agenda": {"ok": True, "agenda_id": existing.id_appuntamento, "agenda_outcome": "verified_correlation_unchanged"},
+                    "calendar_sync": {"ok": True, "skipped": True, "reason": "verified_correlation_unchanged"},
+                    "already_exists": True,
+                    "proposal": verified_proposal,
+                    "remote_hearing": _remote_hearing_extra_from_persisted_item(existing, {}),
+                    "correlation_operation_id": binding["operazione_id"],
+                    "scheduled_message_id": message_id,
+                    "source_message_id": _source_message_id or message_id,
+                }
+        return None
+
+    def _evento_riunito_verificato(self, manager, area, identificativo):
+        database = getattr(manager, "_studio_db", None)
+        if database is None:
+            return False
+        from pct.eventi_unici_repository import EventiUniciRepository
+
+        return EventiUniciRepository(database, self.tenant_id).destinazione_verificata(area, identificativo)
+
     def _reconcile_document_presidio_deadlines(
         self,
         *,
@@ -11051,6 +11092,8 @@ class PecAuditRepository:
                 checked += 1
                 deadline_id = clean_text(getattr(deadline, "id", ""), 120)
                 if not deadline_id:
+                    continue
+                if self._evento_riunito_verificato(manager, "scadenze", deadline_id):
                     continue
                 if getattr(deadline, "stato", None) != StatoTermine.ANNULLATO:
                     audit_note = (
@@ -13568,6 +13611,26 @@ class PecAuditRepository:
 
             agenda = self._agenda_manager()
             event_uid = f"PEC_AUDIT:{message_id}:deadline"
+            if getattr(agenda, "_studio_db", None) is not None:
+                from pct.eventi_unici_repository import EventiUniciRepository
+
+                event_time = str(proposal.get("event_time") or "").strip().replace(".", ":")
+                event_date_time = str(target_date or "")
+                if "T" not in event_date_time and event_time:
+                    event_date_time = event_date_time[:10] + "T" + event_time
+                joined = EventiUniciRepository(agenda._studio_db, self.tenant_id).risolvi_evento_documentale(
+                    "agenda", event_uid, fascicolo_id=linked_fascicolo_id,
+                    data_ora=event_date_time,
+                )
+                if joined is not None:
+                    binding, canonical = joined
+                    return {
+                        "ok": True,
+                        "message": "Fonte già collegata all'udienza verificata; conservati orario e fonti.",
+                        "agenda_id": canonical["id"],
+                        "agenda_outcome": "verified_correlation_unchanged",
+                        "correlation_operation_id": binding["operazione_id"],
+                    }
             source_url = f"/api/pec/messages/{source_message_id or message_id}"
             current_appointment = agenda.trova_per_uid_esterno(
                 event_uid,
@@ -14648,6 +14711,8 @@ class PecAuditRepository:
                 deadline_id = clean_text(getattr(deadline, "id", ""), 120)
                 if not deadline_id:
                     continue
+                if self._evento_riunito_verificato(manager, "scadenze", deadline_id):
+                    continue
                 if getattr(deadline, "stato", None) != StatoTermine.ANNULLATO:
                     audit_note = (
                         "Presidio automatico annullato: l'elaborazione PEC piu' recente "
@@ -14689,6 +14754,8 @@ class PecAuditRepository:
                     if not source_owned or desired_appointment:
                         continue
                     if "IUSENTRA_LEGAL_NOTIFICATION:" in appointment_note:
+                        continue
+                    if self._evento_riunito_verificato(agenda, "agenda", appointment_id):
                         continue
                     if getattr(appointment, "stato", None) == StatoAppuntamento.ANNULLATO:
                         continue
@@ -15872,6 +15939,12 @@ class PecAuditRepository:
         target_date = due_date or clean_text(proposal.get("due_date")) or legal_fields["due_date"]
         source_message_id = self._canonical_pec_source_message_id(_source_message_id or message_id)
         marker = f"PEC_AUDIT:{message_id}"
+        try:
+            reused = self._riusa_scadenza_correlata(marker, message, proposal, message_id, _source_message_id)
+        except Exception as exc:
+            return {"ok": False, "message": f"Evento riunito da verificare: {exc}", "requires_review": True}
+        if reused is not None:
+            return reused
         reconciliation = self._reconcile_automatic_pec_deadlines(
             source_message_id=source_message_id,
             desired_markers={marker} if target_date else set(),

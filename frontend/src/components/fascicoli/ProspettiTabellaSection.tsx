@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, Table2 } from 'lucide-react'
 import { Badge } from '../dashboard'
+import { formatEuroIt } from '../../formatting'
 
 type Riga = { voce: string; importo: string; totale: boolean }
 
@@ -18,11 +19,9 @@ export type ProspettoLetto = {
   verificaEtichetta: string
 }
 
-const euro = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' })
-
 function importo(valore: string): string {
   const numero = Number(valore)
-  return Number.isFinite(numero) ? euro.format(numero) : valore
+  return Number.isFinite(numero) ? formatEuroIt(numero) : valore
 }
 
 const SOMMA: Record<string, { testo: string; tono: 'success' | 'danger' | 'warning' }> = {

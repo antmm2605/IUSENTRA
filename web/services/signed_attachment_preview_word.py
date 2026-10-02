@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import io
 from pathlib import PurePosixPath
-from urllib.parse import urlsplit
 import zipfile
 
 from web.services.signed_attachment_preview import (
@@ -108,10 +107,9 @@ def _safe_doc_href(value: object) -> str:
     if raw.startswith("#"):
         fragment = _safe_doc_fragment(raw[1:])
         return f"#{fragment}" if fragment else ""
-    parsed = urlsplit(raw)
-    if parsed.scheme.casefold() not in {"https", "mailto", "tel"}:
-        return ""
-    return raw
+    from web.services.document_reader_links import safe_link
+
+    return safe_link(raw)
 
 
 def _safe_doc_image_src(value: object) -> str:

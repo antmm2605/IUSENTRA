@@ -20,6 +20,9 @@ from .fase import (
     CODICE_FASE_DECISA,
     CODICE_FASE_ESECUTIVA,
     CODICE_FASE_ISCRITTA,
+    CODICE_FASE_TRATTAZIONE,
+    CODICE_FASE_ISTRUTTORIA,
+    CODICE_FASE_DECISORIA,
     CODICE_FASE_NOTIFICATA,
     CODICE_FASE_PREPARATORIA,
 )
@@ -212,15 +215,28 @@ def _passi_conformita(conformita: dict[str, Any]) -> list[Passo]:
     return passi
 
 
-def _passi_fase(fase_letta: dict[str, Any], depositi_letti: dict[str, Any], notifiche_lette: dict[str, Any], documenti_letti: dict[str, Any]) -> list[Passo]:
+def _passi_fase(fase_letta: dict[str, Any], depositi_letti: dict[str, Any], notifiche_lette: dict[str, Any], documenti_letti: dict[str, Any], *, intestazione: dict[str, Any] | None = None) -> list[Passo]:
     passi: list[Passo] = []
     codice = fase_letta.get("codice")
     if codice == CODICE_FASE_PREPARATORIA and not notifiche_lette["tutte"]:
         passi.append(Passo(2, "Notificare l'atto introduttivo alla controparte", "l'atto risulta redatto ma nessuna notifica è registrata; via PEC si perfeziona con le ricevute di accettazione e di consegna", "", "lettura del fascicolo", ("l53_art3bis", "cpc_147"), HREF_COMUNICAZIONI))
     if codice == CODICE_FASE_NOTIFICATA and not depositi_letti["tutti"]:
         passi.append(Passo(1, "Iscrivere la causa a ruolo depositando l'atto notificato", "costituzione dell'attore entro dieci giorni dalla notificazione della citazione", "", "lettura del fascicolo", ("cpc_165", "dispatt_196sexies"), HREF_COMUNICAZIONI, "CIV_COSTITUZIONE_ATTORE_165"))
-    if codice == CODICE_FASE_ISCRITTA and fase_letta.get("prossima_udienza"):
-        passi.append(Passo(2, f"Preparare l'udienza del {fase_letta['prossima_udienza']}", "memorie integrative a pena di decadenza: la prima almeno quaranta giorni prima dell'udienza", fase_letta["prossima_udienza"], "lettura del fascicolo", ("cpc_171ter", "cpc_183"), HREF_SCADENZE, "CIV_MEMORIA_171_TER_1"))
+    if codice in {CODICE_FASE_ISCRITTA, CODICE_FASE_TRATTAZIONE, CODICE_FASE_ISTRUTTORIA, CODICE_FASE_DECISORIA} and fase_letta.get("prossima_udienza"):
+        from pct.procedura_fasi.riti import rito_per_fascicolo
+        intestazione = intestazione or {}
+        rito = rito_per_fascicolo(intestazione.get("tipo", ""), intestazione.get("rito", ""))
+        giorno = fase_letta["prossima_udienza"]
+        if rito == "lavoro":
+            ragione = "Esamina ricorso, decreto e documenti; prepara la discussione secondo il rito del lavoro e le disposizioni del giudice."
+            fonti, template = ("cpc_414", "cpc_415"), ""
+        elif rito == "ordinario" and codice == CODICE_FASE_ISCRITTA and data_da(intestazione.get("prima_udienza")) == data_da(giorno) and data_da(giorno):
+            ragione = "Memorie integrative a pena di decadenza prima dell’udienza dell’art. 183: verifica i termini delle tre memorie nel rito ordinario."
+            fonti, template = ("cpc_171ter", "cpc_183"), "CIV_MEMORIA_171_TER_1"
+        else:
+            ragione = "Esamina il provvedimento che fissa questa udienza e gli adempimenti del rito: i termini delle memorie non si applicano automaticamente a un rinvio."
+            fonti, template = (), ""
+        passi.append(Passo(2, f"Preparare l'udienza del {giorno}", ragione, giorno, "lettura del fascicolo", fonti, HREF_SCADENZE, template))
     if codice == CODICE_FASE_DECISA:
         passi.append(Passo(1, "Valutare l'impugnazione o l'esecuzione della sentenza", "appello entro trenta giorni dalla notificazione della sentenza, o entro sei mesi dalla pubblicazione se non notificata", "", "lettura del fascicolo", ("cpc_325", "cpc_327"), HREF_DOCUMENTI, "CIV_APPELLO_BREVE"))
     if codice == CODICE_FASE_ESECUTIVA:
@@ -316,7 +332,7 @@ def prossimi_passi(
     passi.extend(_passi_notifiche(notifiche_lette))
     passi.extend(_passi_pec(pec_letto, giorno_oggi))
     passi.extend(_passi_conformita(conformita))
-    passi.extend(_passi_fase(fase_letta, depositi_letti, notifiche_lette, documenti_letti))
+    passi.extend(_passi_fase(fase_letta, depositi_letti, notifiche_lette, documenti_letti, intestazione=intestazione))
     passi.extend(_passi_documenti(documenti_letti, verifiche))
     passi.extend(_passi_economico(economico_letto))
 

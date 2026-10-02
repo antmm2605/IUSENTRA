@@ -11,8 +11,9 @@ from datetime import date, datetime, timedelta
 from typing import Any
 from urllib.parse import quote
 
-from pct.controllo_studio.fonti import fascicolo_da_testo, indice_rg, rif_fascicolo
+from pct.controllo_studio.fonti import rif_fascicolo
 from pct.udienze.preparazione import ESITI, quando, stato_etichetta
+from web.services.preparazione_udienza_associazione import fascicolo_udienza
 
 ORIZZONTE = 60
 
@@ -24,7 +25,6 @@ def _href(sessione: Any) -> str:
 
 def elenco(*, agenda: Any, fascicoli: Any, preparazioni: Any, oggi: date) -> dict[str, Any]:
     tutti_fascicoli = list(fascicoli.tutti())
-    per_rg = indice_rg(tutti_fascicoli)
     sessioni = [s for s in preparazioni.lista() if getattr(s, "stato", "") != "archiviato"]
     per_appuntamento = {str(s.id_appuntamento): s for s in sessioni if s.id_appuntamento}
     limite = (oggi + timedelta(days=ORIZZONTE)).isoformat()
@@ -36,7 +36,7 @@ def elenco(*, agenda: Any, fascicoli: Any, preparazioni: Any, oggi: date) -> dic
         giorno = str(app.data_ora or "")[:10]
         if not giorno or giorno < oggi.isoformat() or giorno > limite:
             continue
-        fascicolo = fascicolo_da_testo(str(app.procedimento or ""), per_rg)
+        fascicolo = fascicolo_udienza(app, tutti_fascicoli, sessioni)
         sessione = per_appuntamento.get(str(app.id))
         if fascicolo is not None:
             visti.add((str(fascicolo.id), giorno))
@@ -80,6 +80,7 @@ def avvia(*, agenda: Any, fascicoli: Any, preparazioni: Any, id_appuntamento: st
     """Riapre la preparazione dell'udienza se c'è già, altrimenti la crea con la lista dei documenti del fascicolo."""
 
     from pct.wizard_pro import DocumentoChecklist, SessioneWizardPro
+    from web.services.preparazione_udienza_documenti import nomi_documenti
 
     appuntamento = agenda.get(id_appuntamento) if id_appuntamento else None
     if id_appuntamento and appuntamento is None:
@@ -89,7 +90,7 @@ def avvia(*, agenda: Any, fascicoli: Any, preparazioni: Any, id_appuntamento: st
             return sessione
     fascicolo = fascicoli.get(id_fascicolo) if id_fascicolo else None
     if fascicolo is None and appuntamento is not None:
-        fascicolo = fascicolo_da_testo(str(appuntamento.procedimento or ""), indice_rg(list(fascicoli.tutti())))
+        fascicolo = fascicolo_udienza(appuntamento, list(fascicoli.tutti()), preparazioni.lista())
     if fascicolo is None:
         raise ValueError("Scegli il fascicolo dell'udienza.")
     if appuntamento is None:
@@ -99,7 +100,8 @@ def avvia(*, agenda: Any, fascicoli: Any, preparazioni: Any, id_appuntamento: st
     rg = str(getattr(fascicolo, "numero_rg", "") or "")
     sessione = SessioneWizardPro.nuova(id_fascicolo=fascicolo.id, titolo=f"Udienza {'R.G. ' + rg + ' — ' if rg else ''}{fascicolo.titolo}",
                                        id_appuntamento=str(getattr(appuntamento, "id", "") or ""), avvocato=avvocato)
-    sessione.checklist_documenti = [DocumentoChecklist(id_documento=d.id, label=d.nome_originale or d.nome,
+    nomi = nomi_documenti(fascicolo)
+    sessione.checklist_documenti = [DocumentoChecklist(id_documento=d.id, label=nomi[str(d.id)],
                                                        tipo=str(getattr(d.tipo, "value", d.tipo)), obbligatorio=False, stato="da_portare",
                                                        nome_file=d.nome, firmato=bool(d.firmato_digitalmente)).to_dict()
                                     for d in fascicolo.documenti if not getattr(d, "eliminato_il", "")]

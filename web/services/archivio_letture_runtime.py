@@ -1068,6 +1068,9 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                             raise RuntimeError("Derivati SQL del fascicolo non aggiornati.")
                         restano = int(report.get("restano") or 0)
                         if restano <= 0:
+                            from web.services.discordanze_letture_runtime import verifica_discordanze_fascicolo
+
+                            verifica_discordanze_fascicolo(fascicolo)
                             riuscito = True
                             break
                         documenti = dict(report.get("documenti") or {})

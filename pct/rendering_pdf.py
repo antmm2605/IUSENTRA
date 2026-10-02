@@ -66,7 +66,7 @@ def _scala_ammessa(valore: float | None, predefinita: float) -> float:
 def _png_da_pagina(pagina: Any, scala: float) -> bytes:
     immagine = pagina.render(scale=scala).to_pil()
     buffer = io.BytesIO()
-    immagine.save(buffer, format="PNG")
+    immagine.save(buffer, format="PNG", compress_level=1)
     return buffer.getvalue()
 
 

@@ -90,6 +90,7 @@ export type PresidioListFilters = PresidioFilterControls & {
 }
 
 export type PresidioPractice = {
+  number?: string
   id: string
   label: string
   client?: string
@@ -176,12 +177,14 @@ export type PresidioAvailableAction = {
 }
 
 export type PresidioDetail = PresidioSummary & {
+  notification_verification?: import('@/components/VerificaNotifichePanel').VerificaNotifiche
   recipients: PresidioRecipient[]
   documents: PresidioDocument[]
   available_actions: PresidioAvailableAction[]
   assignment_options: PresidioOption[]
   linkable_documents: PresidioOption[]
   source_pec_href?: string
+  correlated_sources?: Array<{ id: string; received_at?: string; name: string; href: string }>
   read_only_reason?: string
 }
 

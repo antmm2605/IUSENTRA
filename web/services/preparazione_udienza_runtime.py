@@ -31,6 +31,8 @@ def dettaglio(sessione: Any, *, agenda: Any, fascicoli: Any, scadenziario: Any, 
                      key=lambda s: s.data_scadenza or "")[:8]
     attivita = sorted(getattr(fascicolo, "attivita", []) or [], key=lambda a: a.data or "", reverse=True)[:4]
     documenti = {str(d.id): d for d in (getattr(fascicolo, "documenti", []) or [])}
+    from web.services.preparazione_udienza_documenti import nomi_documenti
+    nomi = nomi_documenti(fascicolo)
     remoto = str(getattr(app, "remote_hearing_url", "") or "")
     return {
         "ok": True, "id": sessione.id, "titolo": sessione.titolo, "stato": stato_etichetta(sessione), "completata": sessione.stato == "completato",
@@ -55,7 +57,7 @@ def dettaglio(sessione: Any, *, agenda: Any, fascicoli: Any, scadenziario: Any, 
         "tipoUdienza": sessione.tipo_udienza, "tipi": catalogo(), "verifiche": verifiche(sessione.tipo_udienza, sessione.verifiche_tipo),
         "avvisoAssenza": {"testo": AVVISO_ASSENZA[1], "fonte": fonte(AVVISO_ASSENZA[0])},
         "documenti": [{
-            "indice": i, "etichetta": d.get("label", ""), "stato": d.get("stato", "da_portare"),
+            "indice": i, "etichetta": nomi.get(str(d.get("id_documento") or ""), d.get("label", "")), "stato": d.get("stato", "da_portare"),
             "statoEtichetta": STATI_DOCUMENTO.get(d.get("stato", ""), "Da preparare"), "firmato": bool(d.get("firmato")),
             "href": f"/fascicoli/{quote(sessione.id_fascicolo)}/documenti/{quote(d['id_documento'])}/visualizza"
             if d.get("id_documento") in documenti else "",

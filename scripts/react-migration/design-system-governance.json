@@ -31,7 +31,11 @@
     "frontend/src/components/penalePdp/penalePdp.css": "Deposito penale telematico (PDP) nella scheda del fascicolo: catalogo atti, composizione, controlli, scheda per il portale e ricevute con token condivisi, senza stili inline.",
     "frontend/src/components/pttSigit/pttSigit.css": "Deposito tributario telematico (PTT/SIGIT) nella scheda del fascicolo e nella pagina /sigit: termini e atti impugnati, sopra gli stili condivisi del deposito PAT, senza stili inline.",
     "frontend/src/components/patFormweb/patFormweb.css": "Deposito amministrativo telematico (Formweb PAT) nella scheda del fascicolo e nella pagina /pat: scheda del portale, parti, documenti e verifica del riepilogo con token condivisi, senza stili inline.",
-    "frontend/src/components/SupportCustomerRoom.css": "Stanza cliente dell'assistenza remota (/support/join/<token>) migrata da template e script legacy: consensi, avvio e chiusura, microfono, chat tecnica, richiesta di controllo PC, schermo intero e chat compatta; pagina pubblica senza cornice dello studio, token condivisi, nessuno stile inline, responsive fino al telefono."
+    "frontend/src/components/SupportCustomerRoom.css": "Stanza cliente dell'assistenza remota (/support/join/<token>) migrata da template e script legacy: consensi, avvio e chiusura, microfono, chat tecnica, richiesta di controllo PC, schermo intero e chat compatta; pagina pubblica senza cornice dello studio, token condivisi, nessuno stile inline, responsive fino al telefono.",
+    "frontend/src/components/EconomicVerificationPanel.css": "Confronto degli importi e delle fonti nella stessa pagina del fascicolo, richiesto dall’utente; token condivisi e layout responsive.",
+    "frontend/src/components/VerificaNotifichePanel.css": "Verifica del contesto dell’atto e dei termini nel presidio senza perdere la pagina; token condivisi.",
+    "frontend/src/components/ViewerDocumentEditor.css": "Pannelli richiudibili, oggetti e firma nel lettore unico richiesti dall’utente; superficie documentale dedicata.",
+    "frontend/src/components/layout/DiscordanzeAccesso.css": "Avviso delle discordanze all’accesso con confronto delle fonti, focus visibile e layout mobile richiesto dall’utente."
   },
   "approvedCssFiles": [
     "frontend/src/components/ControlloStudioPage.css",
@@ -146,13 +150,18 @@
     "frontend/src/theme/layout.css",
     "frontend/src/theme/legal-ui.css",
     "frontend/src/theme/tokens.css",
-    "frontend/src/ui/ui.css"
+    "frontend/src/ui/ui.css",
+    "frontend/src/components/EconomicVerificationPanel.css",
+    "frontend/src/components/VerificaNotifichePanel.css",
+    "frontend/src/components/ViewerDocumentEditor.css",
+    "frontend/src/components/layout/DiscordanzeAccesso.css"
   ],
   "allowedInlineStyles": [
     {
       "file": "frontend/src/components/SourceDocumentModal.tsx",
       "snippets": [
-        "style={{ '--iu-source-reader-rotation': `${normalizedRotation}deg` } as CSSProperties}"
+        "style={{ '--iu-source-reader-rotation': `${normalizedRotation}deg` } as CSSProperties}",
+        "style={{ width: '100%', height: '100%', border: 0 }}"
       ],
       "reason": "Rotazione scelta dall'avvocato nel lettore interno: passa come variabile CSS governata, non come regola grafica; l'aspetto resta nel foglio di stile."
     },
@@ -230,6 +239,36 @@
         "style={stileRiquadro("
       ],
       "reason": "Riquadri dell'attestazione e della firma testo disegnati dall'avvocato col mouse sul documento: la posizione passa come variabili CSS governate, l'aspetto resta nel foglio di stile."
+    },
+    {
+      "file": "frontend/src/components/ViewerCanvasObjects.tsx",
+      "snippets": [
+        "style={{left:Math.max(8,Math.min(menu.x,window.innerWidth-220)),top:Math.max(8,Math.min(menu.y,window.innerHeight-235))}}"
+      ],
+      "reason": "Posizione del menu contestuale calcolata dalle coordinate del mouse e limitata alla finestra."
+    },
+    {
+      "file": "frontend/src/components/ViewerColorPalette.tsx",
+      "snippets": [
+        "style={{ background: color }}"
+      ],
+      "reason": "Campione del colore scelto dall’avvocato, senza tema grafico alternativo."
+    },
+    {
+      "file": "frontend/src/components/ViewerDocumentEditor.tsx",
+      "snippets": [
+        "style={{cursor:sampler.active||armed?'crosshair':'default',...(zoom===1?{}:{width:`${zoom*100}%`})}}",
+        "style={{ left: `${span.x * 100}%`, top: `${span.y * 100}%`, width: `${span.width * 100}%`, height: `${span.height * 100}%` }}",
+        "style={{ left: `${Math.min(draft.x, draft.x1) * 100}%`, top: `${Math.min(draft.y, draft.y1) * 100}%`, width: `${Math.abs(draft.x1 - draft.x) * 100}%`, height: `${Math.abs(draft.y1 - draft.y) * 100}%` }}"
+      ],
+      "reason": "Coordinate normalizzate degli oggetti PDF e zoom selezionato; conservano la geometria originale."
+    },
+    {
+      "file": "frontend/src/components/ViewerHandwrittenSignaturePanel.tsx",
+      "snippets": [
+        "style={{background:value}}"
+      ],
+      "reason": "Campione del colore della penna selezionata per la firma manoscritta."
     }
   ],
   "allowedBackdropFilters": [

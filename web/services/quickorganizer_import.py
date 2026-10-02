@@ -44,6 +44,8 @@ from pct.ical_import import EventoImportato
 from pct.path_security import UnsafeRuntimePath, resolve_runtime_path
 from pct.notifiche_legali import is_plausible_pec_address
 from pct.soggetti import GestioneSoggetti, RuoloSoggetto, TipoSoggetto
+from web.services.quickorganizer_originals import package_file_coverage, reconcile_existing_original, stored_original_is_readable, unlinked_file_warning
+from web.services.quickorganizer_recovery import recover_unassigned_originals
 
 
 PACKAGE_FORMAT = "iusentra.quickorganizer.v1"
@@ -845,7 +847,16 @@ def analyze_quickorganizer_package(package: QuickOrganizerPackage) -> dict[str, 
                 rg_summary["mattersRgFromAgenda"] += 1
     missing_fields = _missing_required_fields(tables)
     missing_core_tables = [table for table in CORE_RELATION_TABLES if not tables.get(table)]
-    warnings = []
+    warnings = unlinked_file_warning(package, [
+        _find_file(package, _normalise_filename(_row_value(row, "NOME_DOS")), section=section)
+        for section, rows in (("ATTI", testi), ("EMAILS", emails)) for row in rows
+    ])
+    file_coverage = package_file_coverage(package, lambda name, section: _find_file(package, _normalise_filename(name), section=section))
+    if pratiche and file_coverage["unassigned"] and not warnings:
+        warnings.append({
+            "code": "file_senza_pratica_valida",
+            "message": f"File senza una pratica valida nell'esportazione: {file_coverage['unassigned']}. Restano conservati nel pacchetto e devono essere verificati prima di considerare conclusa l'acquisizione.",
+        })
     if pratiche:
         for table in missing_core_tables:
             warnings.append(
@@ -959,6 +970,7 @@ def analyze_quickorganizer_package(package: QuickOrganizerPackage) -> dict[str, 
             ],
         },
         "warnings": warnings,
+        "fileCoverage": file_coverage,
         "canImportComplete": (
             document_missing == 0
             and email_missing == 0
@@ -966,6 +978,7 @@ def analyze_quickorganizer_package(package: QuickOrganizerPackage) -> dict[str, 
             and not missing_core_tables
             and not missing_fields
             and bool(tavola)
+            and file_coverage["unassigned"] == 0
         ),
     }
 
@@ -1346,12 +1359,19 @@ def _client_placeholder_from_matter(
     return clienti.aggiorna(cliente.id, tag=cliente.tag)
 
 
-def _existing_matter_by_source(fascicoli: GestioneFascicoli, source_external_id: str) -> Any:
+def _existing_matter_by_source(fascicoli: GestioneFascicoli, source_external_id: str, original_ids: set[str] | None = None) -> Any:
+    owners = []
     for item in fascicoli.tutti(stato=None, archiviati=True):
         if _text(getattr(item, "source_external_id", "")) == source_external_id:
             return item
         if _text(getattr(item, "id_pratica", "")) == source_external_id:
             return item
+        if original_ids and any(d.id_documento_portale in original_ids for d in item.documenti):
+            owners.append(item)
+    if len(owners) == 1:
+        return owners[0]
+    if len(owners) > 1:
+        raise QuickOrganizerImportError("I documenti della pratica risultano collegati a più fascicoli. Verifica le associazioni prima di acquisire nuovamente il pacchetto.")
     return None
 
 
@@ -1931,340 +1951,384 @@ def import_quickorganizer_package(
         soggetti=soggetti,
         agenda=agenda_repo,
     )
-    save_guard.__enter__()
-    reader_guard = _package_file_reader(package)
-    read_package_file = reader_guard.__enter__()
+    with save_guard, _package_file_reader(package) as read_package_file:
+        for num, row in nomi_by_id.items():
+            if _is_client_control(row):
+                try:
+                    client, created = _client_from_subject(clienti, row, provenance="Import pratiche")
+                    client_ids_by_num[num] = client.id
+                    counters["clientsCreated"] += 1 if created else 0
+                except Exception:
+                    errors.append(f"Cliente nominativo {num}: import non completato per dati non coerenti.")
+                continue
+            identity = _subject_identity(row)
+            subject_id = subject_index.get(identity)
+            if not subject_id:
+                payload = _subject_payload(row)
+                tipo = _subject_type(row)
+                subject = soggetti.crea(tipo, **payload)
+                subject_id = subject.id
+                subject_index[identity] = subject_id
+                counters["subjectsCreated"] += 1
+            subject_ids_by_num[num] = subject_id
 
-    for num, row in nomi_by_id.items():
-        if _is_client_control(row):
-            try:
-                client, created = _client_from_subject(clienti, row, provenance="Import pratiche")
-                client_ids_by_num[num] = client.id
-                counters["clientsCreated"] += 1 if created else 0
-            except Exception:
-                errors.append(f"Cliente nominativo {num}: import non completato per dati non coerenti.")
-            continue
-        identity = _subject_identity(row)
-        subject_id = subject_index.get(identity)
-        if not subject_id:
-            payload = _subject_payload(row)
-            tipo = _subject_type(row)
-            subject = soggetti.crea(tipo, **payload)
-            subject_id = subject.id
-            subject_index[identity] = subject_id
-            counters["subjectsCreated"] += 1
-        subject_ids_by_num[num] = subject_id
-
-    matters_by_number: dict[int, Any] = {}
-    matter_id_by_number: dict[int, str] = {}
-    pratiche_by_number = {_number(_row_value(row, "NUMEROPRATICA")): row for row in pratiche}
-    for row in pratiche:
-        number = _number(_row_value(row, "NUMEROPRATICA"))
-        source_external_id = f"quickorganizer:{number}"
-        client_id = ""
-        client_name = _text(_row_value(row, "TitolareName"))
-        titolare_id = _number(_row_value(row, "TitolareID"))
-        matter_links = links_by_matter.get(number, [])
-        client_row = nomi_by_id.get(titolare_id) or _fallback_client_from_title(nomi_by_id, matter_links)
-        if client_row:
-            try:
-                client_num = _number(_row_value(client_row, "NUM_NOM"))
-                client = clienti.get(client_ids_by_num.get(client_num, "")) if client_num else None
-                created = False
-                if client is None:
-                    client, created = _client_from_subject(clienti, client_row, provenance="Import pratiche")
-                    if client_num:
-                        client_ids_by_num[client_num] = client.id
+        matters_by_number: dict[int, Any] = {}
+        matter_id_by_number: dict[int, str] = {}
+        pratiche_by_number = {_number(_row_value(row, "NUMEROPRATICA")): row for row in pratiche}
+        for row in pratiche:
+            number = _number(_row_value(row, "NUMEROPRATICA"))
+            source_external_id = f"quickorganizer:{number}"
+            client_id = ""
+            client_name = _text(_row_value(row, "TitolareName"))
+            titolare_id = _number(_row_value(row, "TitolareID"))
+            matter_links = links_by_matter.get(number, [])
+            client_row = nomi_by_id.get(titolare_id) or _fallback_client_from_title(nomi_by_id, matter_links)
+            if client_row:
+                try:
+                    client_num = _number(_row_value(client_row, "NUM_NOM"))
+                    client = clienti.get(client_ids_by_num.get(client_num, "")) if client_num else None
+                    created = False
+                    if client is None:
+                        client, created = _client_from_subject(clienti, client_row, provenance="Import pratiche")
+                        if client_num:
+                            client_ids_by_num[client_num] = client.id
+                    client_id = client.id
+                    client_name = client.nome_completo
+                    counters["clientsCreated"] += 1 if created else 0
+                except Exception:  # noqa: BLE001 - import deve proseguire sui fascicoli
+                    errors.append(f"Cliente pratica {number}: import non completato per dati non coerenti.")
+            if not client_id:
+                client = _client_placeholder_from_matter(
+                    clienti,
+                    row,
+                    provenance="Import pratiche",
+                )
                 client_id = client.id
                 client_name = client.nome_completo
-                counters["clientsCreated"] += 1 if created else 0
-            except Exception as exc:  # noqa: BLE001 - import deve proseguire sui fascicoli
-                errors.append(f"Cliente pratica {number}: import non completato per dati non coerenti.")
-        if not client_id:
-            client = _client_placeholder_from_matter(
-                clienti,
-                row,
-                provenance="Import pratiche",
-            )
-            client_id = client.id
-            client_name = client.nome_completo
-            counters["clientsCreated"] += 1
-        existing = _existing_matter_by_source(fascicoli, source_external_id)
-        matter_agenda_rows = agenda_by_matter.get(number, [])
-        rg_info = _matter_rg_info(row, matter_agenda_rows)
-        if rg_info.get("missing"):
-            counters["mattersWithoutRg"] += 1
-        else:
-            counters["mattersWithRg"] += 1
-            if _text(rg_info.get("source")).startswith("AGENDA."):
-                counters["mattersRgFromAgenda"] += 1
-        first_hearing, next_hearing = _hearing_dates(matter_agenda_rows)
-        source_counts = _matter_counts(
-            number=number,
-            links_by_matter=links_by_matter,
-            testi_by_matter=testi_by_matter,
-            emails_by_matter=emails_by_matter,
-            agenda_by_matter=agenda_by_matter,
-        )
-        party_names = []
-        for link in matter_links:
-            subject_row = nomi_by_id.get(_number(_row_value(link, "NUM_NOM"))) or {}
-            full_name = " ".join(
-                part
-                for part in (
-                    _text(_row_value(subject_row, "COGNOME")),
-                    _text(_row_value(subject_row, "NOME")),
-                )
-                if part
-            )
-            if full_name:
-                party_names.append(full_name)
-        existing_payments = getattr(existing, "pagamenti", {}) if existing else {}
-        import_payments = _merge_import_economic_context(
-            existing_payments if isinstance(existing_payments, Mapping) else {},
-            row,
-            docs_rows=testi_by_matter.get(number, []),
-            email_rows=emails_by_matter.get(number, []),
-        )
-        payload = {
-            "stato": _matter_status(row),
-            "id_cliente": client_id,
-            "nome_cliente": client_name,
-            "controparte": _text(_row_value(row, "ConvenutoPrincipale")),
-            "tribunale": _text(_row_value(row, "AUT_GIUDIZ")),
-            "numero_rg": _text(rg_info.get("numero")),
-            "anno_rg": _number(rg_info.get("anno")),
-            "sezione": _text(_row_value(row, "SEZIONE")),
-            "ruolo_sezione": _text(_row_value(row, "RUOLO_SEZ")),
-            "giudice": _text(_row_value(row, "ISTRUTTORE")),
-            "avvocato_controparte": _text(_row_value(row, "AVV_CONTROP")),
-            "numero_attori": _number(_row_value(row, "NumeroAttori")),
-            "numero_convenuti": _number(_row_value(row, "NumeroConvenuti")),
-            "qualifica_giudiziale_titolare": _text(_row_value(row, "QualificaGiudizialeTitolarePratica")),
-            "link_cartella_esterna": _text(_row_value(row, "LinkCartellaEsterna")),
-            "nome_gruppo": _text(_row_value(row, "NomeGruppo")),
-            "numero_cci": _text(_row_value(row, "NumeroCCI")),
-            "cancelliere": _text(_row_value(row, "CANCELL")),
-            "ctu": _text(_row_value(row, "CTU")),
-            "ctp": _text(_row_value(row, "CTP")),
-            "oggetto": _text(_row_value(row, "OGGETTO_PRATICA")),
-            "valore_causa": _decimal(_row_value(row, "VALORE")),
-            "documenti_iniziali_count": source_counts["documenti_atti"],
-            "email_iniziali_count": source_counts["email"],
-            "riferimento_cartaceo": _text(_row_value(row, "RIF")),
-            "attore_principale": _text(_row_value(row, "AttorePrincipale")),
-            "stato_pratica_operativa": _text(_row_value(row, "Stato_Pratica")),
-            "testo_personalizzabile_1": _text(_row_value(row, "TXT_PERSONALIZZABILE1")),
-            "testo_personalizzabile_2": _text(_row_value(row, "TXT_PERSONALIZZABILE2")),
-            "data_apertura": _iso_date(_row_value(row, "DATA_APE")) or date.today().isoformat(),
-            "data_chiusura": _iso_date(_row_value(row, "DATA_ARC")),
-            "data_prima_udienza": first_hearing or _text(getattr(existing, "data_prima_udienza", "")),
-            "data_prossima_udienza": next_hearing or _text(getattr(existing, "data_prossima_udienza", "")),
-            "note": _text(_row_value(row, "NOTE")),
-            "pagamenti": import_payments,
-            "source": "IMPORT_PRATICHE",
-            "source_external_id": source_external_id,
-            "sync_status": "IMPORTATO",
-            "last_sync_at": _iso_now(),
-            "events_sync_enabled": True,
-            "source_snapshot": _matter_source_snapshot(
-                row,
+                counters["clientsCreated"] += 1
+            original_ids = {
+                f"quickorganizer:testi:{_number(_row_value(d, 'Counter')) or _normalise_filename(_row_value(d, 'NOME_DOS'))}"
+                for d in testi_by_matter.get(number, [])
+            } | {
+                f"quickorganizer:email:{_number(_row_value(d, 'Email_ID')) or _normalise_filename(_row_value(d, 'NOME_DOS'))}"
+                for d in emails_by_matter.get(number, [])
+            }
+            existing = _existing_matter_by_source(fascicoli, source_external_id, original_ids)
+            matter_agenda_rows = agenda_by_matter.get(number, [])
+            rg_info = _matter_rg_info(row, matter_agenda_rows)
+            if rg_info.get("missing"):
+                counters["mattersWithoutRg"] += 1
+            else:
+                counters["mattersWithRg"] += 1
+                if _text(rg_info.get("source")).startswith("AGENDA."):
+                    counters["mattersRgFromAgenda"] += 1
+            first_hearing, next_hearing = _hearing_dates(matter_agenda_rows)
+            source_counts = _matter_counts(
                 number=number,
-                counts=source_counts,
-                first_hearing=first_hearing,
-                next_hearing=next_hearing,
-                party_names=party_names,
-                rg_info=rg_info,
-            ),
-        }
-        counters["economicContextsPrepared"] += 1
-        counters["sourceContextsPrepared"] += 1
-        if existing:
-            matter = fascicoli.aggiorna(existing.id, **payload)
-            counters["mattersUpdated"] += 1
-        else:
-            title = _text(_row_value(row, "PRATICA")) or _text(_row_value(row, "OGGETTO_PRATICA")) or f"Pratica importata {number}"
-            matter = fascicoli.nuovo(
-                titolo=title,
-                tipo=_matter_type(row),
-                **payload,
+                links_by_matter=links_by_matter,
+                testi_by_matter=testi_by_matter,
+                emails_by_matter=emails_by_matter,
+                agenda_by_matter=agenda_by_matter,
             )
-            matter = fascicoli.aggiorna(matter.id, **payload)
-            counters["mattersCreated"] += 1
-        matters_by_number[number] = matter
-        matter_id_by_number[number] = matter.id
+            party_names = []
+            for link in matter_links:
+                subject_row = nomi_by_id.get(_number(_row_value(link, "NUM_NOM"))) or {}
+                full_name = " ".join(
+                    part
+                    for part in (
+                        _text(_row_value(subject_row, "COGNOME")),
+                        _text(_row_value(subject_row, "NOME")),
+                    )
+                    if part
+                )
+                if full_name:
+                    party_names.append(full_name)
+            existing_payments = getattr(existing, "pagamenti", {}) if existing else {}
+            import_payments = _merge_import_economic_context(
+                existing_payments if isinstance(existing_payments, Mapping) else {},
+                row,
+                docs_rows=testi_by_matter.get(number, []),
+                email_rows=emails_by_matter.get(number, []),
+            )
+            payload = {
+                "stato": _matter_status(row),
+                "id_cliente": client_id,
+                "nome_cliente": client_name,
+                "controparte": _text(_row_value(row, "ConvenutoPrincipale")),
+                "tribunale": _text(_row_value(row, "AUT_GIUDIZ")),
+                "numero_rg": _text(rg_info.get("numero")),
+                "anno_rg": _number(rg_info.get("anno")),
+                "sezione": _text(_row_value(row, "SEZIONE")),
+                "ruolo_sezione": _text(_row_value(row, "RUOLO_SEZ")),
+                "giudice": _text(_row_value(row, "ISTRUTTORE")),
+                "avvocato_controparte": _text(_row_value(row, "AVV_CONTROP")),
+                "numero_attori": _number(_row_value(row, "NumeroAttori")),
+                "numero_convenuti": _number(_row_value(row, "NumeroConvenuti")),
+                "qualifica_giudiziale_titolare": _text(_row_value(row, "QualificaGiudizialeTitolarePratica")),
+                "link_cartella_esterna": _text(_row_value(row, "LinkCartellaEsterna")),
+                "nome_gruppo": _text(_row_value(row, "NomeGruppo")),
+                "numero_cci": _text(_row_value(row, "NumeroCCI")),
+                "cancelliere": _text(_row_value(row, "CANCELL")),
+                "ctu": _text(_row_value(row, "CTU")),
+                "ctp": _text(_row_value(row, "CTP")),
+                "oggetto": _text(_row_value(row, "OGGETTO_PRATICA")),
+                "valore_causa": _decimal(_row_value(row, "VALORE")),
+                "documenti_iniziali_count": source_counts["documenti_atti"],
+                "email_iniziali_count": source_counts["email"],
+                "riferimento_cartaceo": _text(_row_value(row, "RIF")),
+                "attore_principale": _text(_row_value(row, "AttorePrincipale")),
+                "stato_pratica_operativa": _text(_row_value(row, "Stato_Pratica")),
+                "testo_personalizzabile_1": _text(_row_value(row, "TXT_PERSONALIZZABILE1")),
+                "testo_personalizzabile_2": _text(_row_value(row, "TXT_PERSONALIZZABILE2")),
+                "data_apertura": _iso_date(_row_value(row, "DATA_APE")) or date.today().isoformat(),
+                "data_chiusura": _iso_date(_row_value(row, "DATA_ARC")),
+                "data_prima_udienza": first_hearing or _text(getattr(existing, "data_prima_udienza", "")),
+                "data_prossima_udienza": next_hearing or _text(getattr(existing, "data_prossima_udienza", "")),
+                "note": _text(_row_value(row, "NOTE")),
+                "pagamenti": import_payments,
+                "source": "IMPORT_PRATICHE",
+                "source_external_id": source_external_id,
+                "sync_status": "IMPORTATO",
+                "last_sync_at": _iso_now(),
+                "events_sync_enabled": True,
+                "source_snapshot": _matter_source_snapshot(
+                    row,
+                    number=number,
+                    counts=source_counts,
+                    first_hearing=first_hearing,
+                    next_hearing=next_hearing,
+                    party_names=party_names,
+                    rg_info=rg_info,
+                ),
+            }
+            counters["economicContextsPrepared"] += 1
+            counters["sourceContextsPrepared"] += 1
+            if existing:
+                # Un reimport integra gli originali: i dati correnti dello studio
+                # possono essere stati aggiornati anche senza passare dal portale.
+                for field in tuple(payload):
+                    if field not in {"documenti_iniziali_count", "email_iniziali_count"}:
+                        payload.pop(field)
+                for field in payload:
+                    payload[field] = max(_number(getattr(existing, field, 0)), _number(payload[field]))
+                matter = fascicoli.aggiorna(existing.id, **payload)
+                counters["mattersUpdated"] += 1
+            else:
+                title = _text(_row_value(row, "PRATICA")) or _text(_row_value(row, "OGGETTO_PRATICA")) or f"Pratica importata {number}"
+                matter = fascicoli.nuovo(
+                    titolo=title,
+                    tipo=_matter_type(row),
+                    **payload,
+                )
+                matter = fascicoli.aggiorna(matter.id, **payload)
+                counters["mattersCreated"] += 1
+            matters_by_number[number] = matter
+            matter_id_by_number[number] = matter.id
 
-        for link in matter_links:
-            subject_num = _number(_row_value(link, "NUM_NOM"))
-            subject_id = subject_ids_by_num.get(subject_num)
-            if not subject_id:
+            for link in matter_links:
+                subject_num = _number(_row_value(link, "NUM_NOM"))
+                subject_id = subject_ids_by_num.get(subject_num)
+                if not subject_id:
+                    continue
+                subject_row = nomi_by_id.get(subject_num) or {}
+                role = _role_from_subject_row(subject_row, primary=subject_num == titolare_id)
+                before = len(soggetti.parti_fascicolo(matter.id))
+                soggetti.aggiungi_parte(
+                    matter.id,
+                    subject_id,
+                    role,
+                    note=f"Import pratiche: pratica {number}",
+                )
+                after = len(soggetti.parti_fascicolo(matter.id))
+                counters["partyLinksCreated"] += max(after - before, 0)
+
+        for row in testi:
+            matter_number = _number(_row_value(row, "NUMEROPRATICA"))
+            matter_id = matter_id_by_number.get(matter_number)
+            filename = _normalise_filename(_row_value(row, "NOME_DOS"))
+            if not matter_id or not filename:
                 continue
-            subject_row = nomi_by_id.get(subject_num) or {}
-            role = _role_from_subject_row(subject_row, primary=subject_num == titolare_id)
-            before = len(soggetti.parti_fascicolo(matter.id))
-            soggetti.aggiungi_parte(
-                matter.id,
-                subject_id,
-                role,
-                note=f"Import pratiche: pratica {number}",
+            matter = fascicoli.get(matter_id)
+            external_id = f"quickorganizer:testi:{_number(_row_value(row, 'Counter')) or filename}"
+            table_document_name = _document_name_from_table(row, DOCUMENT_TITLE_FIELDS, filename)
+            existing_doc = next(
+                (
+                    doc
+                    for doc in getattr(matter, "documenti", [])
+                    if _text(getattr(doc, "id_documento_portale", "")) == external_id
+                ),
+                None,
             )
-            after = len(soggetti.parti_fascicolo(matter.id))
-            counters["partyLinksCreated"] += max(after - before, 0)
-
-    for row in testi:
-        matter_number = _number(_row_value(row, "NUMEROPRATICA"))
-        matter_id = matter_id_by_number.get(matter_number)
-        filename = _normalise_filename(_row_value(row, "NOME_DOS"))
-        if not matter_id or not filename:
-            continue
-        matter = fascicoli.get(matter_id)
-        external_id = f"quickorganizer:testi:{_number(_row_value(row, 'Counter')) or filename}"
-        table_document_name = _document_name_from_table(row, DOCUMENT_TITLE_FIELDS, filename)
-        existing_doc = next(
-            (
-                doc
-                for doc in getattr(matter, "documenti", [])
-                if _text(getattr(doc, "id_documento_portale", "")) == external_id
-            ),
-            None,
-        )
-        if existing_doc:
-            if _repair_imported_document_metadata(existing_doc, filename=filename, table_name=table_document_name):
-                counters["documentsMetadataRepaired"] += 1
-            counters["duplicatesSkipped"] += 1
-            continue
-        source_file = _find_file(package, filename, section="ATTI")
-        if not source_file:
-            counters["documentsMissing"] += 1
-            continue
-        data = read_package_file(source_file)
-        document_name = _import_visible_document_name(table_document_name, filename)
-        fascicoli.aggiungi_documento(
-            matter_id,
-            document_name,
-            _document_type(table_document_name, filename),
-            data,
-            note=f"Import pratiche. {table_document_name}",
-            tags=["import-pratiche"],
-            data_documento=_iso_date(_row_value(row, "DATA_ATTO")),
-            firmato=_bool(_row_value(row, "signed")),
-            caricato_da=actor,
-            fonte_documento="IMPORT_ESTERNO",
-            nome_originale=filename,
-            nome_portale=document_name,
-            classificazione_portale="Gestionale precedente",
-            tipo_atto_portale=table_document_name,
-            id_documento_portale=external_id,
-            nome_archivio=filename,
-        )
-        counters["documentsImported"] += 1
-
-    for row in emails:
-        matter_number = _number(_row_value(row, "NumeroPratica"))
-        matter_id = matter_id_by_number.get(matter_number)
-        filename = _normalise_filename(_row_value(row, "NOME_DOS"))
-        if not matter_id or not filename:
-            continue
-        matter = fascicoli.get(matter_id)
-        external_id = f"quickorganizer:email:{_number(_row_value(row, 'Email_ID')) or filename}"
-        table_document_name = _document_name_from_table(row, EMAIL_TITLE_FIELDS, filename)
-        existing_doc = next(
-            (
-                doc
-                for doc in getattr(matter, "documenti", [])
-                if _text(getattr(doc, "id_documento_portale", "")) == external_id
-            ),
-            None,
-        )
-        if existing_doc:
-            if _repair_imported_document_metadata(existing_doc, filename=filename, table_name=table_document_name):
-                counters["emailsMetadataRepaired"] += 1
-            counters["duplicatesSkipped"] += 1
-            continue
-        source_file = _find_file(package, filename, section="EMAILS")
-        if not source_file:
-            counters["emailsMissing"] += 1
-            continue
-        data = read_package_file(source_file)
-        subject = _text(_row_value(row, "Subject"), filename)
-        document_name = _import_visible_document_name(table_document_name, filename)
-        fascicoli.aggiungi_documento(
-            matter_id,
-            document_name,
-            TipoDocumento.COMUNICAZIONE,
-            data,
-            note=f"Email importata dal pacchetto pratiche. Oggetto: {subject}",
-            tags=["import-pratiche", "email"],
-            data_documento=_iso_date(_row_value(row, "Data")),
-            firmato=_bool(_row_value(row, "IsSigned")),
-            caricato_da=actor,
-            fonte_documento="IMPORT_ESTERNO",
-            nome_originale=filename,
-            nome_portale=document_name,
-            classificazione_portale="Gestionale precedente",
-            tipo_atto_portale=table_document_name,
-            mittente_portale=_text(_row_value(row, "Mittente")),
-            id_documento_portale=external_id,
-            nome_archivio=filename,
-        )
-        counters["emailsImported"] += 1
-
-    for row in agenda_rows:
-        matter_number = _number(_row_value(row, "NumeroPratica"))
-        matter_id = matter_id_by_number.get(matter_number)
-        if not matter_id:
-            continue
-        task_id = _number(_row_value(row, "TaskID"))
-        matter = fascicoli.get(matter_id)
-        marker = f"[quickorganizer:agenda:{task_id}]"
-        existing_activity = next(
-            (
-                activity
-                for activity in getattr(matter, "attivita", [])
-                if marker in _text(getattr(activity, "note", ""))
-            ),
-            None,
-        )
-        agenda_id = ""
-        if agenda_repo is not None:
-            agenda_id, changed = _sync_agenda_from_import(
-                agenda_repo,
-                row=row,
-                matter=matter,
-                matter_row=pratiche_by_number.get(matter_number, {}),
-                client_name=_text(getattr(matter, "nome_cliente", "")),
-                actor=actor,
+            if existing_doc:
+                if _repair_imported_document_metadata(existing_doc, filename=filename, table_name=table_document_name):
+                    counters["documentsMetadataRepaired"] += 1
+                source_file = _find_file(package, filename, section="ATTI")
+                if not source_file:
+                    counters["documentsMissing"] += 1
+                elif reconcile_existing_original(fascicoli, matter_id, existing_doc, read_package_file(source_file), filename=filename, actor=actor) == "present":
+                    counters["duplicatesSkipped"] += 1
+                else:
+                    counters["documentsImported"] += 1
+                continue
+            source_file = _find_file(package, filename, section="ATTI")
+            if not source_file:
+                counters["documentsMissing"] += 1
+                continue
+            data = read_package_file(source_file)
+            document_name = _import_visible_document_name(table_document_name, filename)
+            fascicoli.aggiungi_documento(
+                matter_id,
+                document_name,
+                _document_type(table_document_name, filename),
+                data,
+                note=f"Import pratiche. {table_document_name}",
+                tags=["import-pratiche"],
+                data_documento=_iso_date(_row_value(row, "DATA_ATTO")),
+                firmato=_bool(_row_value(row, "signed")),
+                caricato_da=actor,
+                fonte_documento="IMPORT_ESTERNO",
+                nome_originale=filename,
+                nome_portale=document_name,
+                classificazione_portale="Gestionale precedente",
+                tipo_atto_portale=table_document_name,
+                id_documento_portale=external_id,
+                nome_archivio=filename,
             )
-            if changed:
-                counters["appointmentsImported"] += 1
-        if existing_activity:
-            if agenda_id and not _text(getattr(existing_activity, "id_appuntamento", "")):
-                existing_activity.id_appuntamento = agenda_id
-            counters["duplicatesSkipped"] += 1
-            continue
-        title = _text(_row_value(row, "Subject"), "Appuntamento importato")
-        fascicoli.aggiungi_attivita(
-            matter_id,
-            _activity_kind(row),
-            _iso_date(_row_value(row, "StartDateTime")) or date.today().isoformat(),
-            title,
-            descrizione=_text(_row_value(row, "Description")),
-            luogo=_text(_row_value(row, "Location")),
-            note=f"{marker} Import pratiche. {_text(_row_value(row, 'Provvedimento'))}",
-            id_appuntamento=agenda_id,
-            avvocato=actor,
-        )
-        counters["activitiesImported"] += 1
+            counters["documentsImported"] += 1
 
-    reader_guard.__exit__(None, None, None)
-    save_guard.__exit__(None, None, None)
+        for row in emails:
+            matter_number = _number(_row_value(row, "NumeroPratica"))
+            matter_id = matter_id_by_number.get(matter_number)
+            filename = _normalise_filename(_row_value(row, "NOME_DOS"))
+            if not matter_id or not filename:
+                continue
+            matter = fascicoli.get(matter_id)
+            external_id = f"quickorganizer:email:{_number(_row_value(row, 'Email_ID')) or filename}"
+            table_document_name = _document_name_from_table(row, EMAIL_TITLE_FIELDS, filename)
+            existing_doc = next(
+                (
+                    doc
+                    for doc in getattr(matter, "documenti", [])
+                    if _text(getattr(doc, "id_documento_portale", "")) == external_id
+                ),
+                None,
+            )
+            if existing_doc:
+                if _repair_imported_document_metadata(existing_doc, filename=filename, table_name=table_document_name):
+                    counters["emailsMetadataRepaired"] += 1
+                source_file = _find_file(package, filename, section="EMAILS")
+                if not source_file:
+                    counters["emailsMissing"] += 1
+                elif reconcile_existing_original(fascicoli, matter_id, existing_doc, read_package_file(source_file), filename=filename, actor=actor) == "present":
+                    counters["duplicatesSkipped"] += 1
+                else:
+                    counters["emailsImported"] += 1
+                continue
+            source_file = _find_file(package, filename, section="EMAILS")
+            if not source_file:
+                counters["emailsMissing"] += 1
+                continue
+            data = read_package_file(source_file)
+            subject = _text(_row_value(row, "Subject"), filename)
+            document_name = _import_visible_document_name(table_document_name, filename)
+            fascicoli.aggiungi_documento(
+                matter_id,
+                document_name,
+                TipoDocumento.COMUNICAZIONE,
+                data,
+                note=f"Email importata dal pacchetto pratiche. Oggetto: {subject}",
+                tags=["import-pratiche", "email"],
+                data_documento=_iso_date(_row_value(row, "Data")),
+                firmato=_bool(_row_value(row, "IsSigned")),
+                caricato_da=actor,
+                fonte_documento="IMPORT_ESTERNO",
+                nome_originale=filename,
+                nome_portale=document_name,
+                classificazione_portale="Gestionale precedente",
+                tipo_atto_portale=table_document_name,
+                mittente_portale=_text(_row_value(row, "Mittente")),
+                id_documento_portale=external_id,
+                nome_archivio=filename,
+            )
+            counters["emailsImported"] += 1
+
+        for row in agenda_rows:
+            matter_number = _number(_row_value(row, "NumeroPratica"))
+            matter_id = matter_id_by_number.get(matter_number)
+            if not matter_id:
+                continue
+            task_id = _number(_row_value(row, "TaskID"))
+            matter = fascicoli.get(matter_id)
+            marker = f"[quickorganizer:agenda:{task_id}]"
+            existing_activity = next(
+                (
+                    activity
+                    for activity in getattr(matter, "attivita", [])
+                    if marker in _text(getattr(activity, "note", ""))
+                ),
+                None,
+            )
+            agenda_id = ""
+            if agenda_repo is not None:
+                agenda_id, changed = _sync_agenda_from_import(
+                    agenda_repo,
+                    row=row,
+                    matter=matter,
+                    matter_row=pratiche_by_number.get(matter_number, {}),
+                    client_name=_text(getattr(matter, "nome_cliente", "")),
+                    actor=actor,
+                )
+                if changed:
+                    counters["appointmentsImported"] += 1
+            if existing_activity:
+                if agenda_id and not _text(getattr(existing_activity, "id_appuntamento", "")):
+                    existing_activity.id_appuntamento = agenda_id
+                counters["duplicatesSkipped"] += 1
+                continue
+            title = _text(_row_value(row, "Subject"), "Appuntamento importato")
+            fascicoli.aggiungi_attivita(
+                matter_id,
+                _activity_kind(row),
+                _iso_date(_row_value(row, "StartDateTime")) or date.today().isoformat(),
+                title,
+                descrizione=_text(_row_value(row, "Description")),
+                luogo=_text(_row_value(row, "Location")),
+                note=f"{marker} Import pratiche. {_text(_row_value(row, 'Provvedimento'))}",
+                id_appuntamento=agenda_id,
+                avvocato=actor,
+            )
+            counters["activitiesImported"] += 1
+
+        valid_numbers = set(pratiche_by_number)
+        assigned_files = [
+            _find_file(package, _normalise_filename(_row_value(row, "NOME_DOS")), section=section)
+            for section, rows, field in (("ATTI", testi, "NUMEROPRATICA"), ("EMAILS", emails, "NumeroPratica"))
+            for row in rows if _number(_row_value(row, field)) in valid_numbers
+        ]
+        recovery = recover_unassigned_originals(
+            package, fascicoli=fascicoli, clienti=clienti, assigned_files=assigned_files,
+            read_file=read_package_file, actor=actor,
+        )
+    verification = audit_quickorganizer_import(
+        package, fascicoli=fascicoli, clienti=clienti, soggetti=soggetti, agenda_repo=agenda_repo,
+    )
+    warnings = list(analysis.get("warnings", []))
+    accounted = recovery["recovered"] + recovery["alreadyPreserved"] + recovery["technicalLogs"]
+    if not recovery["pending"] and accounted == analysis.get("fileCoverage", {}).get("unassigned", 0):
+        # Gli avvisi del controllo iniziale si chiudono soltanto dopo aver
+        # verificato ogni originale senza relazione, conservando i registri.
+        warnings = [item for item in warnings if item["code"] not in {"file_senza_relazione_originale", "file_senza_pratica_valida"}]
 
     return {
         "ok": True,
+        "complete": not errors and verification["ok"] and not recovery["pending"],
+        "verification": verification,
+        "recovery": recovery,
+        "fileCoverage": analysis.get("fileCoverage", {}),
         "generatedAt": _iso_now(),
         "summary": counters,
-        "errors": errors,
-        "warnings": analysis.get("warnings", []),
+        "errors": errors + [item["message"] for item in verification["failures"]],
+        "warnings": warnings,
         "matters": [
             {"id": matter.id, "title": matter.titolo, "href": f"/fascicoli/{matter.id}"}
             for matter in matters_by_number.values()
@@ -2348,10 +2412,18 @@ def audit_quickorganizer_import(
             )
 
     matter_id_by_number: dict[int, str] = {}
+    preserved_portal_cases: list[str] = []
     for row in pratiche:
         number = _number(_row_value(row, "NUMEROPRATICA"))
         expected["matters"] += 1
-        matter = matters.get(f"quickorganizer:{number}")
+        original_ids = {
+            f"quickorganizer:testi:{_number(_row_value(d, 'Counter')) or _normalise_filename(_row_value(d, 'NOME_DOS'))}"
+            for d in testi if _number(_row_value(d, 'NUMEROPRATICA')) == number
+        } | {
+            f"quickorganizer:email:{_number(_row_value(d, 'Email_ID')) or _normalise_filename(_row_value(d, 'NOME_DOS'))}"
+            for d in emails if _number(_row_value(d, 'NumeroPratica')) == number
+        }
+        matter = matters.get(f"quickorganizer:{number}") or _existing_matter_by_source(fascicoli, f"quickorganizer:{number}", original_ids)
         if not matter:
             _append_audit_failure(
                 failures,
@@ -2361,32 +2433,26 @@ def audit_quickorganizer_import(
             continue
         found["matters"] += 1
         matter_id_by_number[number] = matter.id
-        expected["economicContexts"] += 1
-        pagamenti = getattr(matter, "pagamenti", {}) or {}
-        contesto = pagamenti.get("contesto_economico") if isinstance(pagamenti, Mapping) else None
-        if isinstance(contesto, Mapping) and _text(contesto.get("source")) == "import_pratiche":
-            found["economicContexts"] += 1
+        if _text(matter.source) == "IMPORT_PRATICHE":
+            expected["economicContexts"] += 1
+            pagamenti = getattr(matter, "pagamenti", {}) or {}
+            contesto = pagamenti.get("contesto_economico") if isinstance(pagamenti, Mapping) else None
+            if isinstance(contesto, Mapping) and _text(contesto.get("source")) == "import_pratiche":
+                found["economicContexts"] += 1
+            else:
+                _append_audit_failure(failures, "contesto_economico_mancante", f"Pratica importata {number} senza contesto economico automatico.")
+            expected["sourceContexts"] += 1
+            source_snapshot = getattr(matter, "source_snapshot", {}) or {}
+            counts = source_snapshot.get("counts") if isinstance(source_snapshot, Mapping) else None
+            if isinstance(source_snapshot, Mapping) and _text(source_snapshot.get("portale")) == "Import pratiche" and isinstance(counts, Mapping):
+                found["sourceContexts"] += 1
+            else:
+                _append_audit_failure(failures, "contesto_sorgente_mancante", f"Pratica importata {number} senza contesto sorgente e conteggi import.")
         else:
-            _append_audit_failure(
-                failures,
-                "contesto_economico_mancante",
-                f"Pratica importata {number} senza contesto economico automatico.",
-            )
-        expected["sourceContexts"] += 1
-        source_snapshot = getattr(matter, "source_snapshot", {}) or {}
-        counts = source_snapshot.get("counts") if isinstance(source_snapshot, Mapping) else None
-        if (
-            isinstance(source_snapshot, Mapping)
-            and _text(source_snapshot.get("portale")) == "Import pratiche"
-            and isinstance(counts, Mapping)
-        ):
-            found["sourceContexts"] += 1
-        else:
-            _append_audit_failure(
-                failures,
-                "contesto_sorgente_mancante",
-                f"Pratica importata {number} senza contesto sorgente e conteggi import.",
-            )
+            # Il fascicolo corrente e' governato dal portale: il controllo
+            # verifica clienti, parti e byte degli originali senza sostituire
+            # il suo contesto con quello dell'esportazione storica.
+            preserved_portal_cases.append(matter.id)
         expected["clientsLinked"] += 1
         linked_client = clienti.get(_text(getattr(matter, "id_cliente", "")))
         if linked_client and _text(getattr(matter, "nome_cliente", "")):
@@ -2442,6 +2508,7 @@ def audit_quickorganizer_import(
             and _text(getattr(doc, "nome_originale", "")) == filename
             and _text(getattr(doc, "nome_portale", "")) == expected_name
             and (not expected_name or _text(getattr(doc, "tipo_atto_portale", "")) == expected_name)
+            and stored_original_is_readable(fascicoli, matter_id, doc)
         ):
             found["documents"] += 1
         else:
@@ -2467,6 +2534,7 @@ def audit_quickorganizer_import(
             and _text(getattr(doc, "nome_originale", "")) == filename
             and _text(getattr(doc, "nome_portale", "")) == expected_name
             and (not expected_name or _text(getattr(doc, "tipo_atto_portale", "")) == expected_name)
+            and stored_original_is_readable(fascicoli, matter_id, doc)
         ):
             found["emails"] += 1
         else:
@@ -2521,6 +2589,8 @@ def audit_quickorganizer_import(
 
     return {
         "ok": not failures and expected == found,
+        "preservedPortalCases": preserved_portal_cases,
+        "complete": not failures and expected == found and analyze_quickorganizer_package(package).get("canImportComplete", False),
         "generatedAt": _iso_now(),
         "expected": expected,
         "found": found,
@@ -2961,6 +3031,28 @@ def complete_auto_prepare_upload(
     metadata["updatedAt"] = _iso_now()
     _write_prepare_metadata(index_root, session_id, metadata)
     return {"ok": True, **stage}
+
+
+def list_staged_packages(staging_root: str | Path) -> list[dict[str, Any]]:
+    """Pacchetti del solo tenant corrente, senza percorsi fisici esposti."""
+    root = _safe_runtime_dir(staging_root)
+    if not root.exists():
+        return []
+    results = []
+    for child in root.iterdir():
+        if child.is_symlink() or not child.is_dir() or not re.fullmatch(r"[a-f0-9]{32}", child.name):
+            continue
+        stage_path = _safe_child_path(child, "stage.json")
+        if stage_path.is_symlink() or not stage_path.is_file() or stage_path.stat().st_size > 1024 * 1024:
+            continue
+        try:
+            stage = json.loads(stage_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if not isinstance(stage, dict) or stage.get("importId") != child.name:
+            continue
+        results.append({key: stage.get(key) for key in ("importId", "sourceName", "sourceSha256", "createdAt", "analysis")})
+    return sorted(results, key=lambda item: str(item.get("createdAt") or ""), reverse=True)[:20]
 
 
 def stage_referenced_package(source_path: str | Path, staging_root: str | Path) -> dict[str, Any]:

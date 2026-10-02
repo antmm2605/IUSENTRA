@@ -76,6 +76,29 @@
   })
   const measure = document.createElement('canvas').getContext('2d')
   let rotation = 0
+  const pageRotationTools = new URL(window.location.href).searchParams.get('rotationScope') === 'page'
+  let selectedPage = 1
+  const openPageTools = () => window.parent.postMessage({type:'iusentra.document.openPageTools',page:selectedPage},window.location.origin)
+  if (pageRotationTools) {
+    // Le regole display della toolbar prevalgono sull'attributo hidden:
+    // nel lettore condiviso togliamo i comandi che ruotano tutto il PDF.
+    rotateLeft?.remove()
+    saveRotation?.remove()
+    rotationValue?.remove()
+    if (rotateRight) {
+      rotateRight.textContent = 'Ruota pagina 1'
+      rotateRight.setAttribute('aria-label','Ruota la pagina selezionata')
+      rotateRight.title = 'Apri gli strumenti della pagina selezionata'
+    }
+    pages.addEventListener('click',(event) => {
+      const internalLink = event.target.closest('a[href^="#reader-page-"]')
+      const destination = internalLink ? document.getElementById(internalLink.getAttribute('href').slice(1)) : null
+      const surface = destination?.querySelector('.reader-page-surface') || event.target.closest('.reader-page-surface')
+      const list = [...pages.querySelectorAll('.reader-page-surface')]
+      const index = list.indexOf(surface)
+      if (index >= 0) {selectedPage=index+1;if(rotateRight)rotateRight.textContent=`Ruota pagina ${selectedPage}`}
+    })
+  }
   const normalizedRotation = (value) => ((Number(value) % 360) + 360) % 360
   const rotationSaveUrl = saveRotation instanceof HTMLButtonElement ? String(saveRotation.dataset.documentSaveRotation || '') : ''
   const updateRotationControls = () => {
@@ -229,6 +252,7 @@
     status(`Documento ruotato a ${rotation} gradi. Premi “Salva rotazione” per registrare una copia nel fascicolo.`)
   })
   rotateRight?.addEventListener('click', () => {
+    if (pageRotationTools) {openPageTools();return}
     rotation = normalizedRotation(rotation + 90)
     layoutRotation()
     status(`Documento ruotato a ${rotation} gradi. Premi “Salva rotazione” per registrare una copia nel fascicolo.`)
@@ -278,6 +302,7 @@
   window.addEventListener('message', (event) => {
     if (event.origin !== window.location.origin || !event.data || typeof event.data !== 'object') return
     if (event.data.type !== 'iusentra.document.setRotation') return
+    if (pageRotationTools) return
     rotation = normalizedRotation(event.data.rotation)
     layoutRotation()
     if (rotation) {

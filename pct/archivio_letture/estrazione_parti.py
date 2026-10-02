@@ -27,15 +27,19 @@ from dataclasses import dataclass, field
 
 from pct.registro_letture.fatti_repository import Fatto
 
-VERSIONE_ESTRAZIONE_PARTI = "2026.09.26.parti-v3-ente"
+VERSIONE_ESTRAZIONE_PARTI = "2026.10.02.parti-v4.2-cf-dichiarato"
 _CF = re.compile(r"\b([A-Z]{3}\s?[A-Z]{3}\s?\d{2}[A-Z]\d{2}\s?[A-Z]\d{3}[A-Z])\b")
+# Conserva il codice esplicitamente dichiarato anche se il formato o il
+# carattere finale sono errati. La verifica resta separata dalla lettura:
+# non correggere il token né usare il codice del difensore per la parte.
+_CF_DICHIARATO = re.compile(r"\b(?:c\.?\s*f\.?|codice\s+fiscale)\s*[:=]?\s*([A-Z0-9]{16})\b", re.IGNORECASE)
 _PIVA_ENTE = re.compile(r"\b(?:c\.?\s*f\.?|p\.?\s*iva|codice\s+fiscale)\s*:?\s*(\d{11})\b", re.IGNORECASE)
 # Un nome sta su una riga: le intestazioni sopra l'epigrafe non vi si attaccano.
 _NOME = r"[A-ZÀ-Ü][\w'’À-ÿ.]+(?:[ \t]+(?:de|di|del|della|dello|dei|degli|la|lo|d['’])?[ \t]*[A-ZÀ-Ü][\w'’À-ÿ.]+){1,4}"
 # Parole che non stanno mai nel nome di una parte: intestazioni, titoli dell'atto, uffici.
 _NON_NOME = re.compile(
     r"\b(?:studio|legale|avvocat\w*|avv|tribunale|corte|giudice|sezione|atto|citazione|ricorso|memoria|comparsa|"
-    r"sentenza|ordinanza|decreto|repubblica|italiana|popolo|nome|reg|ric|oggetto|procura|udienza)\b",
+    r"sentenza|ordinanza|decreto|repubblica|italiana|popolo|nome|reg|ric|oggetto|procura|udienza|attestazione|conformit[aà])\b",
     re.IGNORECASE,
 )
 # Il nome del difensore può andare a capo dopo «Avv.»: qui il nome attraversa la riga.
@@ -119,6 +123,11 @@ def _pulisci_nome(nome: str) -> str:
 
 def _epigrafe(testo: str) -> str:
     zona = str(testo or "")[:7000]
+    # L'attestazione descrive le copie e il sottoscrittore: non ha un'epigrafe
+    # di parti. I nomi citati nell'elenco degli atti non sono nuove parti.
+    titolo_attestazione = re.search(r"(?:^|\n)\s*ATTESTAZIONE\s+DI\s+CONFORMIT[AÀ]\b", zona[:1200], re.IGNORECASE)
+    if titolo_attestazione and re.search(r"\bil\s+sottoscritto\s+(?:avv\.?|avvocato)\b", zona[titolo_attestazione.end():2000], re.IGNORECASE) and re.search(r"\battesta\b", zona[titolo_attestazione.end():2000], re.IGNORECASE):
+        return ""
     fine = _FINE_EPIGRAFE.search(zona, 200)
     return zona[: fine.start()] if fine else zona[:4500]
 
@@ -129,6 +138,11 @@ def _blocchi(epigrafe: str, epigrafe_completa: dict[str, str] | None = None) -> 
     blocchi: list[tuple[str, str]] = []
     contro = _CONTRO.search(epigrafe)
     per = _PER.search(epigrafe)
+    # «nell'interesse ...» nel mandato/domicilio non riapre il blocco: se la
+    # parte è già identificata prima, conservare tutta la sua epigrafe.
+    prima_parte = _ANCORA_PERSONA.search(epigrafe[:contro.start() if contro else len(epigrafe)])
+    if per and prima_parte and prima_parte.start() < per.start():
+        per = None
     if not contro:
         # Atto di citazione: «… CITA(NO) X … a comparire» (art. 163 c.p.c.).
         cita = re.search(r"\bcita(?:no)?\b\s*:?\s*(.{5,500}?)\ba\s+comparire\b", epigrafe_completa.get("testo", ""), re.IGNORECASE | re.DOTALL)
@@ -218,12 +232,12 @@ def _parte_del_blocco(lato: str, blocco: str) -> list[ParteLetta]:
         if nome_difensore and re.search(r"\b(?:entramb\w|tutt\w|congiuntamente)\b", pezzo[:difensore.start() if difensore else len(pezzo)], re.IGNORECASE):
             difensore_comune = nome_difensore
         dati = pezzo[: difensore.start()] if difensore else pezzo
-        cf = _CF.search(dati.upper())
+        cf = _CF_DICHIARATO.search(dati) or _CF.search(dati.upper())
         partita = _PIVA_ENTE.search(dati)
         posizione = _RUOLI_PROCESSUALI.search(pezzo)
         parti.append(ParteLetta(
             nome=nome, ruolo=lato,
-            codice_fiscale=re.sub(r"\s+", "", cf.group(1)) if cf else (partita.group(1) if partita else ""),
+            codice_fiscale=re.sub(r"\s+", "", cf.group(1)).upper() if cf else (partita.group(1) if partita else ""),
             posizione=posizione.group(1).lower() if posizione else "", difensore=nome_difensore,
             citazione=" ".join(pezzo.strip()[:220].split()),
         ))
@@ -252,6 +266,8 @@ def estrai_parti(testo: str, *, avvocati_studio: list[str] | None = None, client
     """Le parti dell'epigrafe, con il lato dello studio riconosciuto dal difensore o dal nome del cliente."""
     avvocati = [a for a in (avvocati_studio or []) if str(a or "").strip()]
     epigrafe = _epigrafe(testo)
+    if not epigrafe.strip():
+        return []
     lette: list[ParteLetta] = []
     for lato, blocco in _blocchi(epigrafe, {"testo": str(testo or "")[:12000]}):
         lette.extend(_parte_del_blocco(lato, blocco))

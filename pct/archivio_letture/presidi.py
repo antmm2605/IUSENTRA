@@ -66,6 +66,7 @@ def udienze_e_termini(fatti: Iterable[Fatto], *, oggi: date | None = None) -> li
         azione = {
             "id": f"{tipo}-{fatto.oggetto_id}-{giorno.isoformat()}",
             "type": tipo,
+            "campo": "termine" if note_scritte else fatto.campo,
             "title": istituto.titolo if istituto else ("Udienza letta dai documenti del fascicolo" if tipo == "udienza_documento" else "Termine processuale letto dai documenti del fascicolo"),
             "norma": istituto.norma if istituto else "",
             "description": f"Deposito note in sostituzione udienza del {giorno.strftime('%d/%m/%Y')}" if note_scritte else fatto.etichetta,

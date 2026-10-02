@@ -14,11 +14,13 @@ from typing import Iterable
 from legal_ocr.formulario import VERSIONE_FORMULARIO
 from pct.registro_letture.fatti_repository import Fatto
 
+from .ancoraggio import VERSIONE_DATE_PROCESSUALI
+from .copie_atti import VERSIONE_COPIE_ATTI, fatto_identita
 from .collaudo import Contesto, collauda_tutti
 from .estrazione_date import estrai_date
 from .estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI, estrai_importi
 from .estrazione_istituti import VERSIONE_ESTRAZIONE_ISTITUTI
-from .estrazione_notifiche import estrai_prove_notifica
+from .estrazione_notifiche import VERSIONE_PROVE_NOTIFICA, estrai_prove_notifica
 from .estrazione_parti import VERSIONE_ESTRAZIONE_PARTI
 from .estrazione_ruolo import estrai_ruoli
 from .estrazione_tabelle import VERSIONE_ESTRAZIONE_TABELLE
@@ -31,7 +33,9 @@ VERSIONE_MOTORE_DOCUMENTI_V14 = f"2026.09.23.motore-documenti.v14+ufficio-rg+mod
 VERSIONE_MOTORE_DOCUMENTI_V15 = f"2026.09.26.motore-documenti.v15+parti:{VERSIONE_ESTRAZIONE_PARTI}+ruolo-amministrativo+ufficio-rg+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
 # v16: i prospetti a tabella (voci, importi, prova dei conti). Si rilegge una
 # volta dal testo già indicizzato: nessuna nuova estrazione dai PDF.
-VERSIONE_MOTORE_DOCUMENTI = f"2026.09.26.motore-documenti.v16+tabelle:{VERSIONE_ESTRAZIONE_TABELLE}+parti:{VERSIONE_ESTRAZIONE_PARTI}+ruolo-amministrativo+ufficio-rg+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
+VERSIONE_MOTORE_DOCUMENTI = f"2026.09.26.motore-documenti.v16+tabelle:{VERSIONE_ESTRAZIONE_TABELLE}+parti:{VERSIONE_ESTRAZIONE_PARTI}+ruolo-amministrativo+ufficio-rg+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}+date:{VERSIONE_DATE_PROCESSUALI}"
+VERSIONE_MOTORE_DOCUMENTI += f"+copie:{VERSIONE_COPIE_ATTI}"
+VERSIONE_MOTORE_DOCUMENTI += f"+prove:{VERSIONE_PROVE_NOTIFICA}"
 VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI = (VERSIONE_MOTORE_DOCUMENTI,)
 FATTI_MASSIMI = 80
 ORDINE_VERIFICA = {"verificata": 0, "corretta": 0, "plausibile": 1, "respinta": 2, "ignorata": 3}
@@ -72,7 +76,7 @@ def leggi_testo(
     if con_importi:
         # Gli importi economici (contributo unificato, compenso liquidato, spese)
         # si leggono qui una volta sola: il presidio economico li consulta.
-        fatti.extend(estrai_importi(testo, metadata={**(metadata or {}), "filename": nome}, origine=origine))
+        fatti.extend(estrai_importi(testo, metadata={**(metadata or {}), "filename": nome, "testo_secondario": contesto.testo_secondario}, origine=origine))
         # I prospetti a tabella: ogni importo resta con la sua voce, e i conti si rifanno.
         from .estrazione_tabelle import fatti_prospetti
 
@@ -81,7 +85,10 @@ def leggi_testo(
     from .pertinenza_documentale import applica_pertinenza
 
     collaudati = applica_pertinenza(collaudati, testo, contesto=contesto, origine=origine)
-    if not any(f.campo == "natura_documentale" and f.valore == "precedente_giurisprudenziale" for f in collaudati):
+    identita = fatto_identita(testo, origine=origine, nome=nome)
+    if identita:
+        collaudati.append(identita)
+    if not any(f.campo == "natura_documentale" and f.valore in {"precedente_giurisprudenziale", "messaggio_pec"} for f in collaudati):
         from .estrazione_economica import estrai_controllo_economico
         from .estrazione_parti import fatti_parti
         collaudati.extend(estrai_controllo_economico(testo, origine=origine, metadata=metadata or {}))

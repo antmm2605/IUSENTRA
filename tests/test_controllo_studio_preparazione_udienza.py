@@ -100,7 +100,7 @@ def test_controllo_studio_un_solo_quadro_con_azioni_che_funzionano(tmp_path):
 
         scaduta = _voce(dati, "scadenze", "Notifica atto di precetto")
         assert scaduta["fascia"] == "scaduto" and scaduta["gravita"] == "critica"
-        assert scaduta["fascicolo"]["etichetta"].startswith("R.G. 1234/2026")
+        assert scaduta["fascicolo"]["etichetta"] == "Mario Bianchi · Fascicolo 2026/001 · R.G. 1234/2026"
         udienza = _voce(dati, "agenda", "Udienza Bianchi")
         assert udienza["fascia"] == "domani" and _azione(udienza, "Prepara l'udienza")["href"].startswith("/wizard-pro/")
         assert _azione(_voce(dati, "incassi", ""), "Registra incasso")["href"].startswith("/incassi-pagamenti?id_parcella=")

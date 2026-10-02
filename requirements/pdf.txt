@@ -10,3 +10,8 @@ reportlab>=4.0.0
 pdf-inspector==1.17.0
 opencv-python-headless==5.0.0.93
 numpy==2.5.2
+
+# Lettore documenti: formati RTF, Excel storico e Outlook.
+striprtf==0.0.33
+xlrd==2.0.2
+extract-msg==0.56.1

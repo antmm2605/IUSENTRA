@@ -19,6 +19,7 @@ FASCE = {
     "domani": "Domani",
     "settimana": "Nei prossimi 7 giorni",
     "prossimi": "Entro 30 giorni",
+    "da_leggere": "Comunicazioni da leggere",
     "senza_data": "Senza data",
 }
 GRAVITA = ("critica", "alta", "normale")
@@ -92,7 +93,8 @@ def quando_etichetta(giorno: str, oggi: date) -> str:
 def ordina(voci: list[Voce], oggi: date) -> list[Voce]:
     ordine_fasce = list(FASCE)
     for voce in voci:
-        voce.fascia = fascia(voce.data, oggi)
+        if voce.fascia != "da_leggere":
+            voce.fascia = fascia(voce.data, oggi)
     return sorted(voci, key=lambda v: (ordine_fasce.index(v.fascia), GRAVITA.index(v.gravita) if v.gravita in GRAVITA else 2,
                                        v.data or "9999", v.ora or "99:99", v.titolo))
 

@@ -3576,27 +3576,56 @@ def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str,
         from pct.archivio_letture.presidi import importi_letti
     except Exception:
         return {}
-    letti = importi_letti(_fatti_archivio(fascicolo, categoria="importo"))
+    fatti_importo = _fatti_archivio(fascicolo, categoria="importo")
+    letti = importi_letti(fatti_importo)
     esito: dict[str, dict[str, Any]] = {}
-    dichiarazioni = [f for f in _fatti_archivio(fascicolo, categoria="evento") if f.campo == "esenzione_cu_dichiarata"]
-    if dichiarazioni and _payment_source_needs_automatic_value(payments, "contributo_unificato"):
-        d = dichiarazioni[0]
-        # Per il contributo unificato le strade sono due: o il fascicolo porta
-        # la ricevuta pagoPA del versamento, o porta l'autocertificazione di
-        # esenzione (art. 9 co. 1-bis e art. 76 D.P.R. 115/2002). Se
-        # l'autocertificazione c'e', quello **e'** l'accertamento: a livello di
-        # studio non resta altro da appurare, e il contributo non e' dovuto.
-        # Lasciarlo «previsto» terrebbe il fascicolo fra quelli da presidiare
-        # per una somma che nessuno deve versare.
+    from pct.archivio_letture.presidio_economico import contributo_verificato
+    # Una voce economica unica mantiene tutte le ricevute/prove originarie:
+    # la vista canonica può riunire i fatti prima di verificare IUV e IUR.
+    contributo = contributo_verificato([
+        *_fatti_archivio(fascicolo, categoria="importo", canonico=False),
+        *_fatti_archivio(fascicolo, categoria="evento", canonico=False),
+    ])
+    if contributo and _payment_source_needs_automatic_value(payments, "contributo_unificato"):
+        documenti = {str(d.id): d for d in getattr(fascicolo, "documenti", []) or []}
+        for fonte in contributo["fontiVerifica"]:
+            doc_id = _text(fonte.get("documentoId"))
+            fonte["nome"] = _nome_oggetto_archivio(fascicolo, doc_id) or "Fonte economica"
+            fonte["contesto"] = _italian_dates_in_text(fonte.get("contesto"))
+            fonte["previewHref"] = (
+                f"/fascicoli/{quote(str(fascicolo.id), safe='')}/documenti/{quote(doc_id, safe='')}/visualizza"
+                if doc_id in documenti and fonte.get("tipo") == "documento" else ""
+            )
+            fonte_errore = ""
+            if fonte.get("tipo") == "allegato_pec":
+                from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+                oggetto = registro_corrente().oggetto(tenant_corrente(), str(fascicolo.id), "allegato_pec", doc_id)
+                if oggetto and oggetto.presente and oggetto.sha256 and oggetto.impronta == fonte.get("sha256") and oggetto.origine and oggetto.nome:
+                    fonte["nome"] = oggetto.nome
+                    fonte["previewHref"] = f"/api/v1/ui/email/source/{quote(oggetto.origine, safe='')}?name={quote(oggetto.nome, safe='')}&sha256={quote(oggetto.sha256, safe='')}"
+                else:
+                    fonte_errore = "Allegato PEC non collegato a un originale corrente con la stessa impronta: verifica la fonte nel fascicolo."
+            riscontri = []
+            for prova in fonte.get("prove", []):
+                if prova.get("codice") in {"cliente_economico", "rg_economico", "ricevuta_economica"}:
+                    riscontri.append(_text(prova.get("dettaglio")))
+                elif prova.get("codice") == "dichiarazione_economica":
+                    try:
+                        dichiarazione = json.loads(prova.get("dettaglio") or "{}")
+                        riscontri.append(_text(dichiarazione.get("motivo")))
+                        if dichiarazione.get("anno_reddito"):
+                            riscontri.append(f"Anno reddituale dichiarato: {dichiarazione['anno_reddito']}.")
+                    except (ValueError, TypeError):
+                        riscontri.append("Prova della dichiarazione da aggiornare nel registro delle letture.")
+            fonte["riscontri"] = list(dict.fromkeys(r for r in [*riscontri, fonte_errore] if r))
         esito["contributo_unificato"] = {
-            "kind": "contributo_unificato", "status": "non_previsto", "previsto": False, "pagato": False,
-            "importo": None, "natura": "esenzione_contributo_unificato",
-            "documento_fonte": _readable_document_source(_nome_oggetto_archivio(fascicolo, d.oggetto_id), default="Dichiarazione di esenzione"),
-            "documento_id": d.oggetto_id,
-            "origine": "Archivio delle letture", "updated_by": "IUSENTRA automatico", "fattoId": d.id,
-            "note": "Esenzione dal contributo unificato autocertificata nel fascicolo (art. 9 co. 1-bis e art. 76 D.P.R. 115/2002).",
+            **contributo, "kind": "contributo_unificato", "natura": "contributo_da_fonti_verificate",
+            "documento_fonte": next((f.get("nome") for f in contributo["fontiVerifica"] if f.get("documentoId") == contributo["documento_id"]), "") or _nome_oggetto_archivio(fascicolo, contributo["documento_id"]),
+            "origine": "Archivio delle letture", "updated_by": "IUSENTRA automatico",
         }
     for kind, (campo, etichetta) in _IMPORTO_ARCHIVIO_PER_VOCE.items():
+        if kind == "contributo_unificato":
+            continue  # Il verificatore comune decide anche su fonti discordanti.
         voce = letti.get(campo)
         if not voce or not _payment_source_needs_automatic_value(payments, kind):
             continue
@@ -3639,18 +3668,11 @@ def _automatic_payment_sources_for_fascicolo(
 ) -> dict[str, dict[str, Any]]:
     """The two reading motors own extraction; consumers only project current facts.
 
-    Prima della proiezione si rimette a posto un errore che l'import delle
-    pratiche lascia dietro di se': l'autocertificazione di esenzione archiviata
-    sotto «spese ed esborsi» invece che sul contributo unificato. Non e' una
-    lettura — si riconosce dal nome del documento — ma senza di essa il
-    contributo resta «da registrare» per una somma che non e' dovuta, e fra le
-    spese compare una voce che spesa non e'.
+    Il nome di un'autocertificazione importata non dimostra esenzione né
+    giustifica l'azzeramento di altre spese. Si proiettano solo le prove lette.
     """
-    from pct.fascicolo_esenzione_cu import sposta_esenzione_sul_contributo
-
-    esito = dict(sposta_esenzione_sul_contributo(payments))
-    esito.update(_importi_dall_archivio(fascicolo, payments))
-    return esito
+    # Un nome di file è un indizio, mai la prova dell'esenzione o del pagamento.
+    return _importi_dall_archivio(fascicolo, payments)
 
 
 def _payments_with_automatic_sources(
@@ -3809,6 +3831,10 @@ def _payment_item(kind: str, raw: dict[str, Any], fid: str) -> dict[str, Any]:
         "origine": _text(raw.get("origine") or raw.get("origin")),
         "documentoFonte": source_visible,
         "documentoFonteRaw": source_raw,
+        "fontiVerifica": raw.get("fontiVerifica") if isinstance(raw.get("fontiVerifica"), list) else [],
+        "verificheMancanti": raw.get("verificheMancanti") if isinstance(raw.get("verificheMancanti"), list) else [],
+        "importiLetti": [_amount_label(_payment_amount_value(value)) for value in (raw.get("importiLetti") if isinstance(raw.get("importiLetti"), list) else [])],
+        "richiedeConferma": bool(raw.get("richiedeConferma")),
         "updatedAt": _text(raw.get("updated_at") or raw.get("updatedAt")),
         "updatedAtLabel": _date_label(raw.get("updated_at") or raw.get("updatedAt")) if _text(raw.get("updated_at") or raw.get("updatedAt")) else "",
         "updatedBy": _text(raw.get("updated_by") or raw.get("updatedBy")),
@@ -5594,6 +5620,16 @@ def _document_presidio_for_fascicolo(fascicolo: Any, *, ensure_missing: bool = F
         consegna = next((c for c in consegne if c.fatto_id == azione.get("fattoId") and c.presidio == "scadenziario" and c.stato == "consegnato" and c.riferimento), None)
         if consegna:
             azione["registeredHref"] = "/scadenziario?focus=" + quote(consegna.riferimento, safe="")
+        else:
+            from web.helpers import _studio_db
+            from web.services.eventi_unici_runtime import collegamento_scadenza
+            try:
+                href = collegamento_scadenza(_studio_db("FASCICOLI_DB"), tenant, str(fascicolo.id), azione)
+                if href:
+                    azione["registeredHref"] = href
+            except ValueError as exc:
+                azione["requiresConfirmation"] = True
+                presidio.setdefault("warnings", []).append(str(exc))
         azione["requiresConfirmation"] = bool(azione.get("requiresConfirmation"))
 
     mancanti = sum(v.da_leggere for v in stato.lettori)

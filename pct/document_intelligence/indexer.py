@@ -10,6 +10,7 @@ from typing import Any
 
 from .models import LexIndexingSummary
 from .security import DocumentAIValidationError
+from .index_retry import index_source, native_engine_is_current
 from .sources import DocumentAISource
 
 _READY = "ready"
@@ -65,7 +66,11 @@ class DocumentAIIndexer:
         indexed = 0
         skipped = 0
         errors: list[str] = []
+        attempted_hashes: set[str] = set()
         for source in sources:
+            if source.sha256 and source.sha256 in attempted_hashes:
+                skipped += 1
+                continue
             state = _state_for_source(source, records)
             if state == _READY and _ready_source_has_extracted_text(
                 self.service,
@@ -87,16 +92,14 @@ class DocumentAIIndexer:
                 skipped += 1
                 continue
             try:
-                upload_filename = source.safe_filename if source.file_type == "bin" else source.filename
-                self.service.upload_document_bytes_for_fascicolo(
-                    tenant_id=tenant_id,
-                    fascicolo_id=fascicolo_id,
-                    filename=upload_filename,
-                    content=source.read_bytes(),
-                    mime_type=source.mime_type,
-                    user_context=user_context,
-                    source_metadata=source.public_metadata(),
-                )
+                if source.tenant_id != tenant_id or source.fascicolo_id != fascicolo_id:
+                    raise DocumentAIValidationError("La sorgente non appartiene al fascicolo richiesto.")
+                attempted_hashes.add(source.sha256)
+                record = index_source(self.service, source, records, user_context)
+                if record is not None:
+                    records = [item for item in records if item.id != record.id] + [record]
+                if record is None or record.status != _READY:
+                    raise DocumentAIValidationError("Lettura non completata: il documento non ha un indice pronto.")
                 indexed += 1
             except (OSError, DocumentAIValidationError) as exc:
                 errors.append(f"{source.filename}: {exc}")
@@ -149,7 +152,7 @@ def _ready_source_has_extracted_text(
                 version_id,
             )
         except Exception:
-            return True
+            return False
         if extracted is not None and str(getattr(extracted, "text", "") or "").strip():
             from .pdf_quality import has_only_signature_text
             from .pdf_inspector_engine import ENGINE_VERSION
@@ -158,6 +161,8 @@ def _ready_source_has_extracted_text(
                 continue
 
             engine = str(getattr(extracted, "extraction_engine", "") or "")
+            if not native_engine_is_current(source_names, engine):
+                continue
             if str(extracted.text).lstrip().startswith("PCTENC"):
                 # Testo letto dal file ancora cifrato: il documento va riletto decifrato.
                 continue

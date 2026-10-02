@@ -1,0 +1,5506 @@
+Sì. Ti preparo una **mappa generale delle notificazioni legali valida per lo studio legale italiano, aggiornata al 30 settembre 2026**, distinguendo civile, esecuzioni, famiglia, lavoro, amministrativo, penale e tributario.
+
+Una precisazione è importante: per “tutti i casi” non esiste un unico elenco chiuso, perché oltre ai quattro codici esistono centinaia di procedimenti speciali e, in molti casi, è lo stesso giudice a fissare un termine perentorio di notifica. Quello sotto è però il **catalogo-base che userei in IUSENTRA**, sul quale poi agganciare le discipline speciali.
+
+## 1. Regola generale: quando l'avvocato deve notificare
+
+Per gli avvocati la disciplina fondamentale è la **L. 21 gennaio 1994 n. 53**. Consente la notificazione degli atti civili, amministrativi e stragiudiziali, compresa la notifica tramite PEC. Il Portale dei Servizi Telematici conferma espressamente l'utilizzo della PEC per le notificazioni ex art. 3-bis L. 53/1994. :chatgpt-content-reference{index="0"}
+
+Occorre quindi distinguere quattro eventi che IUSENTRA non dovrebbe mai confondere:
+
+| Evento | Chi agisce | Effetto |
+|---|---|---|
+| **Notificazione di parte** | avvocato / UNEP | produce conoscenza legale dell'atto |
+| **Notificazione d'ufficio** | cancelleria / segreteria / autorità | viene ricevuta dallo studio |
+| **Comunicazione di cancelleria** | cancelleria | informa del deposito/provvedimento; non sempre equivale a notifica |
+| **Deposito telematico** | avvocato | è attività processuale diversa dalla notificazione |
+
+La distinzione è essenziale per il tuo sistema: una PEC proveniente dalla cancelleria non deve automaticamente diventare una pratica **“notifica da eseguire”**.
+
+---
+
+# A. PROCESSO CIVILE
+
+## 2. Atto di citazione ordinario
+
+### Cosa notificare
+**Atto di citazione.**
+
+### A chi
+Al convenuto o ai convenuti.
+
+### Termine
+Non c'è normalmente un termine di decadenza autonomo per effettuare la notifica, salvo prescrizione/decadenza sostanziale della domanda. Deve però essere rispettato il termine minimo tra notificazione e udienza:
+
+- **120 giorni liberi** se la notificazione avviene in Italia;
+- **150 giorni liberi** se avviene all'estero.
+
+Normativa: artt. **163 e 163-bis c.p.c.** Il testo vigente prevede espressamente questi termini. :chatgpt-content-reference{index="1"}
+
+### IUSENTRA
+Evento:
+
+`CITAZIONE_DA_NOTIFICARE`
+
+Controllo automatico:
+
+`data_udienza - data_notifica >= 120/150 giorni liberi`
+
+---
+
+# 3. Procedimento semplificato di cognizione
+
+### Atti
+- ricorso;
+- decreto di fissazione udienza.
+
+### Chi notifica
+Ricorrente.
+
+### A chi
+Convenuto.
+
+### Termine minimo
+
+- **40 giorni liberi** se notificazione in Italia;
+- **60 giorni liberi** se all'estero.
+
+Art. **281-undecies c.p.c.** :chatgpt-content-reference{index="2"}
+
+---
+
+# 4. Chiamata del terzo
+
+Quando il convenuto o l'attore vengono autorizzati a chiamare un terzo, deve essere notificato al terzo l'atto di chiamata/citazione.
+
+Nel procedimento semplificato è direttamente il giudice a stabilire un **termine perentorio** per la citazione del terzo. :chatgpt-content-reference{index="3"}
+
+Quindi IUSENTRA dovrebbe estrarre dal decreto:
+
+> “assegna termine perentorio fino al … per la notificazione…”
+
+e creare automaticamente la scadenza.
+
+---
+
+# 5. Integrazione del contraddittorio
+
+Quando il giudice rileva che manca un litisconsorte necessario:
+
+### Atto
+Atto di integrazione del contraddittorio + eventuale provvedimento.
+
+### Termine
+**Quello perentorio stabilito dal giudice.**
+
+Riferimenti principali:
+
+- art. **102 c.p.c.**;
+- art. **291 c.p.c.** per rinnovazione/ordine del giudice.
+
+Questa è una delle PEC/provvedimenti più importanti da intercettare automaticamente.
+
+---
+
+# 6. Rinnovazione della notificazione nulla
+
+Se la prima notifica è nulla, il giudice può ordinare la rinnovazione.
+
+### Termine
+Quello indicato nel provvedimento.
+
+Art. **291 c.p.c.**
+
+IUSENTRA dovrebbe classificare:
+
+`RINNOVAZIONE_NOTIFICA`
+
+con priorità **CRITICA**, perché normalmente il termine è perentorio.
+
+---
+
+# 7. Notificazione della sentenza
+
+È uno dei casi più importanti.
+
+### Atto
+Sentenza.
+
+### A chi
+Procuratore costituito della controparte, secondo le regole processuali.
+
+### Perché si notifica
+Per far decorrere il **termine breve di impugnazione**.
+
+### Termini che iniziano a decorrere
+
+In via generale:
+
+- **30 giorni** per appello;
+- **30 giorni** per revocazione ordinaria;
+- **60 giorni** per ricorso per Cassazione.
+
+Artt. **285, 325 e 326 c.p.c.**
+
+La riforma Cartabia ha inoltre precisato la decorrenza collegata al perfezionamento della notificazione della sentenza. :chatgpt-content-reference{index="4"}
+
+### Senza notifica
+Opera normalmente il termine lungo ex art. **327 c.p.c.**
+
+Quindi IUSENTRA deve differenziare:
+
+`SENTENZA_PUBBLICATA`
+
+da
+
+`SENTENZA_NOTIFICATA`
+
+perché producono scadenze completamente differenti.
+
+---
+
+# 8. Appello civile
+
+### Atto
+Atto di appello.
+
+### Termine breve
+**30 giorni dalla notificazione della sentenza.**
+
+### Termine lungo
+In assenza di notificazione opera l'art. **327 c.p.c.**
+
+Norme:
+
+- art. 325;
+- art. 326;
+- art. 327;
+- artt. 339 ss. c.p.c.
+
+---
+
+# 9. Ricorso per Cassazione
+
+### Atto
+Ricorso per Cassazione.
+
+### Termine
+**60 giorni dalla notificazione della sentenza**, nei casi ordinari.
+
+Art. **325 c.p.c.**
+
+La prova della notificazione PEC è particolarmente importante: in una decisione del 2025 la Cassazione ha ribadito la necessità di produrre messaggio, allegati e ricevute PEC per dimostrare il perfezionamento della notifica telematica. :chatgpt-content-reference{index="5"}
+
+---
+
+# 10. Controricorso in Cassazione
+
+Anche il controricorso deve essere notificato alla controparte secondo la disciplina specifica del giudizio di Cassazione.
+
+Normativa principale:
+
+- artt. **369-370 c.p.c.**.
+
+IUSENTRA deve pertanto creare una scadenza autonoma all'arrivo/notifica del ricorso per Cassazione.
+
+---
+
+# B. DECRETO INGIUNTIVO
+
+## 11. Notificazione del decreto ingiuntivo
+
+### Atti
+- ricorso;
+- decreto ingiuntivo.
+
+### A chi
+Debitore ingiunto.
+
+### Termine fondamentale
+Il decreto deve essere notificato entro il termine previsto dall'art. **644 c.p.c.**, altrimenti perde efficacia.
+
+La regola generale è:
+
+**60 giorni dalla pronuncia/deposito del decreto**, salvo le ipotesi previste per notificazioni fuori dal territorio della Repubblica e altre discipline applicabili.
+
+È una delle scadenze più importanti per un gestionale.
+
+### IUSENTRA
+
+`DECRETO_INGIUNTIVO_EMESSO`
+
+→ genera automaticamente:
+
+`NOTIFICARE_DECRETO_INGIUNTIVO`
+
+con countdown.
+
+---
+
+# 12. Opposizione a decreto ingiuntivo
+
+La parte ingiunta può proporre opposizione nel termine indicato dal decreto e previsto dagli artt. **641 e 645 c.p.c.**, normalmente:
+
+**40 giorni dalla notificazione**.
+
+Il sistema deve quindi leggere automaticamente:
+
+> “entro quaranta giorni dalla notificazione…”
+
+dal decreto.
+
+---
+
+# C. ESECUZIONE FORZATA
+
+## 13. Titolo esecutivo
+
+Prima dell'esecuzione occorre normalmente notificare il **titolo esecutivo**, secondo l'art. **479 c.p.c.**
+
+Il correttivo Cartabia ha aggiornato espressamente l'art. 479 anche per duplicati informatici e copie del titolo. :chatgpt-content-reference{index="6"}
+
+---
+
+# 14. Precetto
+
+### Atto
+Atto di precetto.
+
+### A chi
+Debitore.
+
+### Norma
+Artt. **479-480 c.p.c.**
+
+Il precetto intima al debitore di adempiere.
+
+Dopo la notifica deve normalmente trascorrere il termine previsto dall'art. 482 prima di procedere all'esecuzione, salvo autorizzazione all'esecuzione immediata.
+
+### Attenzione
+Il precetto non rimane efficace indefinitamente: l'esecuzione deve essere iniziata entro il termine previsto dall'art. **481 c.p.c.**
+
+Per IUSENTRA devono quindi essere generate due scadenze:
+
+`PRIMA_DATA_UTILE_ESECUZIONE`
+
+e
+
+`SCADENZA_EFFICACIA_PRECETTO`.
+
+---
+
+# 15. Pignoramento mobiliare
+
+L'atto viene eseguito/notificato tramite ufficiale giudiziario secondo il Libro III c.p.c.
+
+Norme principali:
+
+- artt. 491 ss.;
+- art. 492 c.p.c.
+
+Dopo il pignoramento decorrono ulteriori termini per iscrizione a ruolo e istanza di vendita/assegnazione.
+
+---
+
+# 16. Pignoramento immobiliare
+
+### Atti
+Pignoramento immobiliare notificato al debitore e successivamente trascritto.
+
+Norme principali:
+
+- artt. **555 ss. c.p.c.**.
+
+Da collegare automaticamente a:
+
+- iscrizione a ruolo;
+- deposito documentazione;
+- istanza di vendita;
+- eventuali avvisi ai creditori iscritti.
+
+---
+
+# 17. Pignoramento presso terzi
+
+È un'area che IUSENTRA dovrebbe presidiare in modo autonomo.
+
+### Destinatari
+- debitore;
+- terzo pignorato.
+
+### Norma
+Art. **543 c.p.c.**
+
+Dopo la notificazione esistono ulteriori adempimenti relativi all'iscrizione a ruolo e alla comunicazione al debitore e al terzo dei dati del procedimento nei casi previsti dalla disciplina vigente.
+
+Qui il software deve distinguere almeno:
+
+`NOTIFICA_PIGNORAMENTO_DEBITORE`
+
+`NOTIFICA_PIGNORAMENTO_TERZO`
+
+`ISCRIZIONE_RUOLO`
+
+`AVVISO_ISCRIZIONE_RUOLO_TERZO`
+
+---
+
+# 18. Opposizione all'esecuzione
+
+Artt. **615 ss. c.p.c.**
+
+Quando viene proposta prima dell'inizio dell'esecuzione, normalmente mediante opposizione al precetto, l'atto va notificato.
+
+---
+
+# 19. Opposizione agli atti esecutivi
+
+Art. **617 c.p.c.**
+
+Qui il termine è particolarmente breve:
+
+**20 giorni** nei casi disciplinati dalla norma.
+
+Per IUSENTRA: priorità **MASSIMA**.
+
+---
+
+# D. SFRATTO E LOCAZIONI
+
+## 20. Intimazione di sfratto per morosità
+
+### Atto
+Intimazione di sfratto + citazione per convalida.
+
+### A chi
+Conduttore.
+
+### Norma
+Artt. **657-660 c.p.c.**
+
+Se la notificazione non avviene personalmente, l'art. 660 prevede anche gli ulteriori adempimenti informativi previsti dalla norma.
+
+Il correttivo Cartabia conferma la disciplina dell'avviso in caso di intimazione non consegnata in mani proprie. :chatgpt-content-reference{index="7"}
+
+---
+
+# 21. Licenza per finita locazione
+
+Analogo procedimento:
+
+- intimazione;
+- citazione;
+- notificazione al conduttore.
+
+Artt. **657 ss. c.p.c.**
+
+---
+
+# E. PROCEDIMENTI CAUTELARI
+
+## 22. Cautelare con contraddittorio
+
+Ricorso e decreto di fissazione devono essere notificati secondo quanto stabilito dal giudice.
+
+---
+
+# 23. Cautelare inaudita altera parte
+
+Molto importante.
+
+Se il giudice emette il provvedimento senza convocare preventivamente la controparte:
+
+- fissa udienza entro un termine non superiore a **15 giorni**;
+- assegna all'istante un termine perentorio non superiore a **8 giorni** per notificare **ricorso + decreto**.
+
+Art. **669-sexies c.p.c.** :chatgpt-content-reference{index="8"}
+
+Questo deve diventare un trigger automatico:
+
+`CAUTELARE_INAUDITA_ALTERA_PARTE`
+
+→ `NOTIFICA_ENTRO_8_GIORNI_O_TERMINE_DECRETO`.
+
+---
+
+# 24. Sequestro
+
+Per sequestro giudiziario/conservativo:
+
+- artt. 670-687 c.p.c.;
+- procedimento cautelare uniforme.
+
+Quando il provvedimento è emesso ante causam o inaudita altera parte, possono sorgere sia obblighi di notificazione sia termini per l'attuazione.
+
+---
+
+# 25. Reclamo cautelare
+
+Art. **669-terdecies c.p.c.**
+
+Il provvedimento cautelare può essere reclamato secondo i termini richiamati dalla norma.
+
+---
+
+# F. FAMIGLIA, SEPARAZIONE, DIVORZIO, MINORI
+
+## 26. Ricorso nei procedimenti familiari
+
+La riforma Cartabia disciplina il procedimento negli artt. **473-bis ss. c.p.c.**
+
+### Da notificare
+- ricorso;
+- decreto di fissazione dell'udienza.
+
+### A chi
+Controparte.
+
+Tra notificazione e udienza deve intercorrere il termine previsto dalla disciplina; per le notifiche all'estero il termine è maggiore. :chatgpt-content-reference{index="9"}
+
+---
+
+# 27. Provvedimenti indifferibili familiari
+
+Art. **473-bis.15 c.p.c.**
+
+In presenza di pregiudizio imminente e irreparabile il giudice può adottare un decreto immediatamente esecutivo e:
+
+- fissare entro i successivi **15 giorni** l'udienza;
+- assegnare all'istante un **termine perentorio per la notificazione**. :chatgpt-content-reference{index="10"}
+
+
+Il termine concreto va quindi estratto dal decreto.
+
+---
+
+# 28. Ordini di protezione
+
+Nei casi urgenti il giudice può:
+
+- fissare udienza entro massimo **15 giorni**;
+- assegnare all'istante un termine non superiore a **8 giorni** per notificare ricorso e decreto. :chatgpt-content-reference{index="11"}
+
+
+---
+
+# G. LAVORO
+
+## 29. Ricorso nel rito del lavoro
+
+### Atti
+- ricorso;
+- decreto di fissazione dell'udienza.
+
+### A chi
+Convenuto.
+
+Normativa:
+
+- artt. **409 ss. c.p.c.**;
+- in particolare art. **415 c.p.c.**
+
+La notificazione è a cura dell'attore entro i termini stabiliti rispetto all'udienza.
+
+---
+
+# 30. Impugnazione licenziamento
+
+Qui occorre distinguere:
+
+### impugnazione stragiudiziale
+Normalmente entro:
+
+**60 giorni dalla comunicazione del licenziamento**.
+
+### fase successiva
+Entro il termine previsto dall'art. **6 L. 604/1966** deve seguire il deposito del ricorso o l'attivazione della procedura prevista.
+
+È quindi un caso che IUSENTRA deve trattare separatamente dalle notifiche processuali.
+
+---
+
+# H. SUCCESSIONI / VOLONTARIA GIURISDIZIONE
+
+Non tutti gli atti vengono notificati dalla parte, ma devono essere censiti:
+
+- ricorsi in volontaria giurisdizione;
+- accettazione con beneficio d'inventario;
+- procedimenti relativi all'eredità;
+- nomina curatore;
+- divisione giudiziale;
+- azioni ereditarie;
+- procedimenti relativi a persone scomparse/assenti.
+
+In diversi procedimenti è il giudice che fissa il termine di notificazione.
+
+Ad esempio la disciplina relativa allo scomparso prevede provvedimenti di pubblicità e successive notificazioni nel termine stabilito dal giudice. :chatgpt-content-reference{index="12"}
+
+---
+
+# I. PROCESSO AMMINISTRATIVO — TAR / CONSIGLIO DI STATO
+
+Qui serve un modulo separato.
+
+## 31. Ricorso ordinario al TAR
+
+### Atto
+Ricorso.
+
+### Destinatari
+Almeno:
+
+- amministrazione che ha emanato l'atto;
+- eventuali controinteressati.
+
+### Termine ordinario
+Generalmente:
+
+**60 giorni** secondo la disciplina del c.p.a., salvo riti speciali.
+
+Normativa principale:
+
+- art. **41 D.Lgs. 104/2010**;
+- Codice del processo amministrativo.
+
+---
+
+# 32. Deposito dopo la notificazione
+
+Fondamentale:
+
+il ricorso e gli altri atti soggetti a preventiva notificazione devono essere depositati entro:
+
+**30 giorni dal perfezionamento dell'ultima notificazione anche per il destinatario.**
+
+Art. **45 c.p.a.** :chatgpt-content-reference{index="13"}
+
+La giurisprudenza amministrativa nel 2026 ha ribadito che, in presenza della ricevuta di avvenuta consegna PEC, da quel perfezionamento decorre il termine perentorio di deposito. :chatgpt-content-reference{index="14"}
+
+Quindi IUSENTRA deve collegare:
+
+`ULTIMA_RAC_PEC`
+
+→ `DEPOSITO_PAT +30 GIORNI`.
+
+---
+
+# 33. Motivi aggiunti
+
+Se emergono:
+
+- nuovi atti;
+- nuovi vizi;
+- nuove circostanze impugnabili,
+
+i motivi aggiunti devono essere notificati secondo il c.p.a.
+
+Norme:
+
+- art. **43 c.p.a.**;
+- art. 45 per il deposito.
+
+---
+
+# 34. Ricorso incidentale
+
+Deve essere notificato alle altre parti secondo la disciplina dell'art. **42 c.p.a.**, con successivo deposito.
+
+---
+
+# 35. Integrazione del contraddittorio amministrativo
+
+Se il TAR ordina l'integrazione:
+
+### Termine
+Quello assegnato dal giudice.
+
+È perentorio.
+
+In una decisione del Consiglio di Stato del 5 giugno 2026 è stato ribadito che l'atto di integrazione deve essere notificato nel termine stabilito e poi depositato entro i 30 giorni previsti dall'art. 45 c.p.a.; la violazione può determinare improcedibilità. :chatgpt-content-reference{index="15"}
+
+---
+
+# 36. Appello amministrativo
+
+### Termine breve
+**60 giorni dalla notificazione della sentenza.**
+
+Art. **92 c.p.a.**
+
+In mancanza opera il termine lungo previsto dalla stessa disciplina.
+
+La giurisprudenza delle Sezioni Unite ha confermato il rilievo del termine di 60 giorni collegato alla notificazione. :chatgpt-content-reference{index="16"}
+
+---
+
+# 37. Appello cautelare
+
+Contro l'ordinanza cautelare:
+
+**30 giorni dalla notificazione**
+
+oppure
+
+**60 giorni dalla pubblicazione**, se non notificata.
+
+Art. **62 c.p.a.** :chatgpt-content-reference{index="17"}
+
+---
+
+# 38. Riti ex art. 119 c.p.a.
+
+Per determinate materie i termini processuali sono **dimezzati**, salvo le eccezioni previste dalla norma.
+
+Pertanto una regola generica “TAR = 60 giorni” sarebbe pericolosa.
+
+IUSENTRA deve prima classificare:
+
+`RITO_ORDINARIO`
+
+oppure
+
+`RITO_ART119`.
+
+---
+
+# 39. Appalti pubblici
+
+È uno dei casi più delicati.
+
+Art. **120 c.p.a.**
+
+Il termine per impugnare gli atti delle procedure di affidamento è normalmente:
+
+**30 giorni**.
+
+La giustizia amministrativa ha ribadito l'applicazione del termine decadenziale di 30 giorni nel rito appalti, con particolare attenzione alla conoscenza effettiva degli atti e all'accesso alla documentazione. :chatgpt-content-reference{index="18"}
+
+Per IUSENTRA:
+
+`APPALTI = ALERT ROSSO`.
+
+---
+
+# 40. Ottemperanza amministrativa
+
+Il ricorso per ottemperanza deve essere notificato alle parti secondo gli artt. **112-114 c.p.a.**
+
+Da gestire come procedimento autonomo.
+
+---
+
+# L. PROCESSO TRIBUTARIO
+
+**Attenzione temporale importante:** al 30 settembre 2026 molte disposizioni del D.Lgs. 546/1992 sono ancora quelle operative, mentre il **Testo unico della giustizia tributaria, D.Lgs. 175/2024**, comporta un riordino normativo con disposizioni destinate a operare secondo la relativa disciplina transitoria dal 2027. Per IUSENTRA conviene quindi versionare le regole per data e non sovrascriverle. Il portale ufficiale già segnala diverse disposizioni del D.Lgs. 546/1992 come abrogate dal nuovo Testo unico con decorrenza futura. :chatgpt-content-reference{index="19"}
+
+---
+
+# 41. Ricorso tributario
+
+### Termine
+Regola fondamentale:
+
+**60 giorni dalla notificazione dell'atto impugnato.**
+
+Art. **21 D.Lgs. 546/1992**. :chatgpt-content-reference{index="20"}
+
+### Atti tipicamente impugnabili
+Fra gli altri:
+
+- avviso di accertamento;
+- avviso di liquidazione;
+- provvedimento sanzionatorio;
+- ruolo/cartella;
+- intimazione nei casi impugnabili;
+- diniego espresso o tacito di rimborso;
+- diniego/revoca di agevolazioni;
+- atti catastali nei casi previsti;
+- ulteriori atti espressamente impugnabili.
+
+---
+
+# 42. Notificazione del ricorso tributario
+
+Il ricorso viene proposto mediante notificazione all'ente impositore/riscossore secondo le modalità previste dal processo tributario, oggi fortemente telematico.
+
+Normativa di riferimento:
+
+- artt. **16, 16-bis, 18, 20 D.Lgs. 546/1992**;
+- regole PTT/SIGIT.
+
+Il portale ufficiale ricorda che l'art. 20 disciplina la proposizione mediante notificazione. :chatgpt-content-reference{index="21"}
+
+---
+
+# 43. Costituzione dopo la notifica tributaria
+
+Alla notificazione segue la costituzione in giudizio.
+
+L'art. **22 D.Lgs. 546/1992**, nella disciplina vigente fino alla transizione al nuovo TU, prevede:
+
+**30 giorni dalla proposizione del ricorso.** :chatgpt-content-reference{index="22"}
+
+Quindi:
+
+`NOTIFICA RICORSO`
+
+→ automaticamente
+
+`DEPOSITO PTT`.
+
+---
+
+# 44. Notificazione della sentenza tributaria
+
+È una scelta processuale estremamente importante perché fa decorrere il termine breve di impugnazione.
+
+La giurisprudenza tributaria ricorda che la notificazione effettuata dalla parte determina la decorrenza del termine breve. :chatgpt-content-reference{index="23"}
+
+---
+
+# 45. Appello tributario
+
+La disciplina vigente prevede il termine breve collegato alla notificazione della sentenza.
+
+Nel sistema attuale:
+
+**60 giorni dalla notificazione della sentenza.**
+
+Il principio è confermato dalla documentazione ufficiale della giustizia tributaria. :chatgpt-content-reference{index="24"}
+
+Il nuovo Testo unico mantiene una disciplina espressa dei termini d'impugnazione e della relativa decorrenza dalla notificazione. :chatgpt-content-reference{index="25"}
+
+---
+
+# 46. Ricorso per Cassazione tributario
+
+Anche in materia tributaria la notificazione della decisione assume rilievo per la decorrenza del termine breve.
+
+La prova della notifica PEC deve essere conservata integralmente:
+
+- messaggio;
+- ricorso;
+- procura;
+- ricevuta di accettazione;
+- ricevuta di avvenuta consegna.
+
+La Cassazione lo ha ribadito anche nel 2025. :chatgpt-content-reference{index="26"}
+
+---
+
+# 47. Ottemperanza tributaria
+
+Nei casi di mancata esecuzione della sentenza da parte dell'amministrazione può rendersi necessario il giudizio di ottemperanza.
+
+La disciplina ha previsto anche ipotesi in cui la **notificazione della sentenza** e il decorso del termine costituiscono presupposti dell'azione. La documentazione ufficiale, ad esempio, richiama il termine di **90 giorni dalla notificazione della sentenza** in relazione a obblighi di rimborso contemplati dalla normativa. :chatgpt-content-reference{index="27"}
+
+---
+
+# M. PROCESSO PENALE
+
+Qui bisogna fare una distinzione radicale.
+
+Nel penale la maggior parte delle “notificazioni” non viene materialmente eseguita dal difensore come accade nel civile: sono effettuate dall'autorità giudiziaria secondo gli artt. **148 ss. c.p.p.**
+
+Per IUSENTRA occorrono quindi due categorie:
+
+### notificazioni ricevute
+dal PM, GIP, GUP, Tribunale, Corte ecc.
+
+### atti del difensore che devono essere notificati/comunicati
+nei casi specifici previsti dalla legge.
+
+---
+
+# 48. Prima notificazione all'imputato
+
+La materia è disciplinata dagli artt. **148 ss. c.p.p.**, profondamente modificati dalla riforma Cartabia.
+
+Devono essere monitorati:
+
+- prima notificazione;
+- domicilio dichiarato/eletto;
+- domicilio telematico nei casi previsti;
+- notificazioni successive;
+- notificazioni al difensore.
+
+---
+
+# 49. Notificazioni al difensore
+
+Il difensore riceve telematicamente numerosi atti:
+
+- avvisi;
+- decreti;
+- ordinanze;
+- fissazioni d'udienza;
+- avviso 415-bis;
+- richieste/provvedimenti cautelari;
+- sentenze/provvedimenti;
+- avvisi di deposito.
+
+IUSENTRA deve interpretare queste PEC come **notificazioni ricevute**, non come documenti generici.
+
+---
+
+# 50. Avviso conclusione indagini — art. 415-bis c.p.p.
+
+È una delle notifiche più importanti per uno studio penalista.
+
+La sua ricezione fa decorrere termini per:
+
+- presentare memorie;
+- produrre documenti;
+- depositare documentazione investigativa;
+- chiedere ulteriori indagini;
+- chiedere di essere interrogato.
+
+Va quindi classificata immediatamente.
+
+---
+
+# 51. Richiesta di archiviazione
+
+Nei casi in cui la persona offesa abbia diritto all'avviso, la richiesta di archiviazione deve essere comunicata/notificata secondo gli artt. **408 ss. c.p.p.**
+
+Da essa decorre il termine per l'eventuale opposizione.
+
+IUSENTRA dovrebbe avere:
+
+`RICHIESTA_ARCHIVIAZIONE_RICEVUTA`
+
+→ `TERMINE_OPPOSIZIONE`.
+
+---
+
+# 52. Decreto di citazione a giudizio
+
+Deve essere notificato:
+
+- all'imputato;
+- al difensore;
+- alla persona offesa,
+
+secondo i termini previsti dalla disciplina applicabile.
+
+Una disposizione del codice prevede, per le fattispecie indicate, notificazione almeno **60 giorni prima dell'udienza**, riducibili a **45 giorni per urgenza motivata**. :chatgpt-content-reference{index="28"}
+
+---
+
+# 53. Citazione di testimoni, periti e consulenti
+
+La difesa può dover curare la citazione dei testimoni autorizzati/ammessi nelle forme previste dal codice.
+
+Norme:
+
+- artt. **468 ss. c.p.p.**;
+- disciplina della citazione.
+
+Da non confondere con il semplice deposito della lista testi.
+
+---
+
+# 54. Investigazioni difensive
+
+Ai sensi degli artt. **391-bis ss. c.p.p.**, il difensore può:
+
+- conferire con persone informate;
+- ricevere dichiarazioni;
+- assumere informazioni;
+- inviare inviti/avvisi previsti dalla disciplina.
+
+Questi atti dovrebbero essere inseriti in IUSENTRA in una categoria distinta:
+
+`INVESTIGAZIONI_DIFENSIVE`.
+
+---
+
+# 55. Impugnazioni penali
+
+Nel penale il tema principale non è di regola “notificare la sentenza per far decorrere il termine” come nel civile.
+
+I termini di impugnazione sono disciplinati principalmente dagli artt. **581 ss. e 585 c.p.p.** e dipendono anche:
+
+- dal tipo di provvedimento;
+- dal termine per il deposito della motivazione;
+- dall'avviso di deposito;
+- dalle modalità previste dalla legge.
+
+Il sistema deve quindi **calcolare la scadenza dall'evento processuale corretto**, non applicare automaticamente il modello civile.
+
+---
+
+# 56. Processo penale telematico
+
+Nel 2026 il processo penale telematico ha raggiunto una fase molto avanzata di obbligatorietà. Il Ministero ha aggiornato il quadro con il **D.M. 30 dicembre 2025 n. 206**; sono previste specifiche decorrenze per il deposito telematico presso procure, tribunali, corti d'appello, Cassazione, minorenni e sorveglianza. :chatgpt-content-reference{index="29"}
+
+Per IUSENTRA è fondamentale separare:
+
+**DEPOSITO_PENALE_TELEMATICO**
+
+da
+
+**NOTIFICA_PENALE**.
+
+---
+
+# N. NOTIFICHE STRAGIUDIZIALI
+
+Un gestionale legale dovrebbe includerle, perché la L. 53/1994 riguarda anche gli atti **stragiudiziali**. :chatgpt-content-reference{index="30"}
+
+## 57. Diffida e messa in mora
+
+Norme principali:
+
+- artt. **1219 ss. c.c.**.
+
+La comunicazione deve poter provare ricezione e contenuto.
+
+PEC/raccomandata assumono quindi particolare importanza.
+
+---
+
+# 58. Interruzione della prescrizione
+
+Una diffida o richiesta idonea può interrompere la prescrizione nei casi previsti dagli artt.:
+
+- **2943 c.c.**;
+- **2945 c.c.**
+
+IUSENTRA dovrebbe associare sempre:
+
+`DATA_PRESCRIZIONE`
+
+alla pratica, indipendentemente dal processo.
+
+---
+
+# 59. Impugnazione stragiudiziale del licenziamento
+
+Come detto:
+
+**60 giorni** nei casi previsti dall'art. 6 L. 604/1966.
+
+---
+
+# 60. Recesso/disdetta contrattuale
+
+Il termine dipende:
+
+- dal contratto;
+- dal codice civile;
+- dalla legge speciale.
+
+Può riguardare:
+
+- locazioni;
+- agenzia;
+- comodato;
+- assicurazioni;
+- appalti;
+- forniture;
+- rapporti societari.
+
+Qui il termine non può essere ricavato da una tabella unica: deve dipendere dal **tipo di contratto**.
+
+---
+
+# 61. Mediazione
+
+D.Lgs. **28/2010**.
+
+Devono essere gestiti:
+
+- domanda di mediazione;
+- comunicazione della procedura;
+- convocazione;
+- eventuali atti successivi.
+
+In molte materie la mediazione costituisce condizione di procedibilità.
+
+---
+
+# 62. Negoziazione assistita
+
+D.L. **132/2014**, convertito in L. 162/2014.
+
+Devono essere tracciati:
+
+- invito a stipulare convenzione;
+- ricezione;
+- accettazione/rifiuto;
+- decorso del termine;
+- convenzione;
+- accordo.
+
+---
+
+# O. NOTIFICHE ALLA PUBBLICA AMMINISTRAZIONE
+
+Questa categoria merita una regola speciale.
+
+Quando una notifica ex L. 53/1994 è diretta a una P.A. occorre usare l'indirizzo corretto ricavato dagli elenchi legalmente utilizzabili.
+
+Per esempio, dal **14 aprile 2025** il Ministero della Giustizia indica che le notificazioni ex L. 53/1994 dirette al Ministero — salvo la specifica eccezione relativa al contenzioso del Dipartimento dell'amministrazione penitenziaria — devono essere inviate esclusivamente all'indirizzo PEC dedicato indicato dal Ministero, a pena di nullità. :chatgpt-content-reference{index="31"}
+
+Questo dimostra perché IUSENTRA non dovrebbe mai limitarsi a prendere una PEC “dal sito Internet”.
+
+Deve sapere **da quale registro legalmente utilizzabile proviene**.
+
+---
+
+# P. CASI IN CUI NON ESISTE UN TERMINE FISSO DI LEGGE
+
+Sono numerosissimi e costituiscono uno dei punti più importanti del sistema.
+
+Il provvedimento può contenere formule come:
+
+> “assegna termine di giorni 10 per la notificazione”
+
+oppure
+
+> “entro il…”
+
+oppure
+
+> “entro giorni 8 dalla comunicazione del presente decreto”.
+
+Sono frequenti in:
+
+- cautelari;
+- famiglia;
+- integrazione contraddittorio;
+- chiamata terzi;
+- rinnovazione notifiche;
+- volontaria giurisdizione;
+- amministrativo;
+- esecuzioni;
+- procedimenti speciali.
+
+Per questi casi IUSENTRA non deve cercare una scadenza in una tabella. Deve **leggere il provvedimento e trasformare il comando del giudice in scadenza**.
+
+---
+
+# Q. LE 4 CLASSI CHE USEREI IN IUSENTRA
+
+Per costruire il tuo agente specializzato sulle notifiche, non userei un semplice campo `notifica=true/false`.
+
+Userei almeno:
+
+| Codice | Significato |
+|---|---|
+| **N1 – NOTIFICA_DA_ESEGUIRE** | lo studio deve notificare |
+| **N2 – NOTIFICA_RICEVUTA** | cancelleria/controparte ha notificato allo studio |
+| **N3 – COMUNICAZIONE_RICEVUTA** | comunicazione senza equivalenza automatica alla notifica |
+| **N4 – NOTIFICA_DA_VERIFICARE** | Lex deve stabilire se dalla ricezione nasce un obbligo di notifica |
+
+E poi per ogni evento:
+
+**materia → procedimento → atto → soggetto mittente → destinatario → norma → dies a quo → termine → unità → giorni liberi sì/no → sospensione feriale sì/no → perentorietà → modalità PEC/UNEP/altro → registro PEC → ricevute → conseguenza omissione.**
+
+---
+
+# R. ESEMPIO CONCRETO DI DATABASE
+
+Per esempio:
+
+```text
+evento:
+DECRETO_INGIUNTIVO_EMESSO
+
+materia:
+CIVILE
+
+atto_da_notificare:
+RICORSO + DECRETO
+
+destinatario:
+DEBITORE
+
+norma:
+ART. 644 CPC
+
+dies_a_quo:
+DATA_PRONUNCIA_DECRETO
+
+termine:
+60 GIORNI
+
+tipo_termine:
+PERENTORIO
+
+azione:
+NOTIFICARE
+
+conseguenza:
+INEFFICACIA_DECRETO
+```
+
+Oppure:
+
+```text
+evento:
+PROVVEDIMENTO_CAUTELARE_INAUDITA
+
+norma:
+ART. 669-SEXIES CPC
+
+azione:
+NOTIFICARE RICORSO + DECRETO
+
+termine:
+QUELLO_INDICATO_DAL_GIUDICE
+
+limite_normativo:
+MAX 8 GIORNI
+
+priorità:
+CRITICA
+```
+
+Oppure:
+
+```text
+evento:
+RICORSO_TAR_NOTIFICATO
+
+norma:
+ART. 45 CPA
+
+trigger:
+ULTIMA NOTIFICA PERFEZIONATA PER DESTINATARIO
+
+azione:
+DEPOSITO PAT
+
+termine:
+30 GIORNI
+
+tipo:
+PERENTORIO
+```
+
+---
+
+# S. LA PARTE PIÙ IMPORTANTE PER IUSENTRA
+
+Per il progetto che stai costruendo, io **non farei un semplice agente che cerca la parola “notifica”**.
+
+Farei un vero **Presidio Notificazioni**, capace di stabilire automaticamente:
+
+**1.** È una notifica ricevuta oppure un atto che devo notificare?
+
+**2.** Chi deve notificare?
+
+**3.** Qual è l'atto da notificare?
+
+**4.** A chi va notificato?
+
+**5.** Qual è il domicilio corretto?
+
+**6.** La PEC è estratta da INI-PEC, ReGIndE, IPA o altro registro utilizzabile?
+
+**7.** Qual è il dies a quo?
+
+**8.** Il termine è 8, 10, 20, 30, 40, 60 giorni oppure stabilito dal giudice?
+
+**9.** Sono giorni liberi?
+
+**10.** Si applica la sospensione feriale?
+
+**11.** È termine perentorio o ordinatorio?
+
+**12.** La notifica è stata effettivamente perfezionata?
+
+**13.** Sono presenti RAC e RdAC?
+
+**14.** Il destinatario PEC coincide con CF/P.IVA/soggetto del fascicolo?
+
+**15.** Occorre depositare la prova della notifica nel PCT/PAT/PTT/PDP?
+
+**16.** Dopo la notifica nasce un'altra scadenza?
+
+È proprio quest'ultimo punto quello che spesso manca nei gestionali. **La notifica non è la fine dell'attività: frequentemente genera un secondo termine.**
+
+Per esempio:
+
+**Decreto ingiuntivo emesso → notifica → opposizione → eventuale esecutorietà**
+
+oppure:
+
+**Ricorso TAR → notifica → ultima RAC → 30 giorni per deposito**
+
+oppure:
+
+**Sentenza civile → notifica → 30 giorni appello / 60 Cassazione**
+
+oppure:
+
+**Provvedimento giudice → termine per notificare → notifica → deposito prova notificazione.**
+
+Questa struttura è molto più sicura di una semplice agenda.
+
+Inoltre, dal punto di vista tecnico, la **PEC è oggi solo uno dei canali da gestire**: il correttivo Cartabia ha introdotto anche meccanismi sostitutivi di notificazione tramite aree web/portali nei casi di impossibilità o mancato esito della notificazione telematica imputabile al destinatario, con perfezionamento, nelle ipotesi previste, al decimo giorno dall'inserimento o al precedente accesso del destinatario. :chatgpt-content-reference{index="32"}
+
+Quindi nel database IUSENTRA inserirei anche:
+
+`PEC`
+
+`UNEP`
+
+`POSTA`
+
+`CONSEGNA_DIRETTA`
+
+`PORTALE_AREA_RISERVATA`
+
+`PUBBLICI_PROCLAMI`
+
+`ALTRO_EX_PROVVEDIMENTO_GIUDICE`.
+
+Per integrarlo in IUSENTRA conviene però trattarlo come **catalogo normativo di eventi notificatori**, non come una semplice lista di atti.
+
+Ho verificato il quadro vigente al **30 settembre 2026**. Il c.p.c. disponibile su Normattiva risulta aggiornato agli interventi pubblicati fino a giugno 2026; il c.p.a. risulta aggiornato agli interventi pubblicati fino ad agosto 2026; il c.p.p. riporta aggiornamenti pubblicati fino a settembre 2026. La disciplina delle notifiche dell'avvocato resta imperniata sulla L. 53/1994, oggi comprensiva degli artt. 3-bis e 3-ter. :chatgpt-content-reference{index="0"}
+
+Una precisazione necessaria: **non può esistere un elenco statico che garantisca letteralmente “nessun caso escluso”**, perché moltissime notificazioni nascono da un ordine specifico del giudice (“notificare entro il…”), da leggi speciali o dal contenuto concreto del provvedimento. La soluzione corretta per IUSENTRA è quindi avere sia il catalogo normativo sia una categoria universale `TERMINE_IMPOSTO_DAL_PROVVEDIMENTO`.
+
+Di seguito ti do il **catalogo master** che utilizzerei.
+
+---
+
+# 1. REGOLE GENERALI DEL SISTEMA
+
+Prima degli eventi specifici creerei queste categorie.
+
+| Codice | Evento |
+|---|---|
+| N01 | Notifica da eseguire dalla parte |
+| N02 | Notifica da eseguire dall'avvocato |
+| N03 | Notifica da richiedere a UNEP |
+| N04 | Notifica eseguita dalla cancelleria |
+| N05 | Comunicazione di cancelleria |
+| N06 | Notifica ricevuta da controparte |
+| N07 | PEC con valore di notificazione |
+| N08 | PEC meramente informativa |
+| N09 | Notifica non perfezionata |
+| N10 | Notifica nulla |
+| N11 | Notifica inesistente |
+| N12 | Notifica da rinnovare |
+| N13 | Integrazione contraddittorio |
+| N14 | Notifica ordinata dal giudice |
+| N15 | Notifica con termine perentorio |
+| N16 | Notifica con termine ordinatorio |
+| N17 | Notifica all'estero |
+| N18 | Notifica per pubblici proclami |
+| N19 | Notifica a destinatario irreperibile |
+| N20 | Notifica via portale/area web |
+
+Il c.p.c. disciplina le notificazioni negli artt. **137-151**, inclusi PEC, destinatari particolari, irreperibilità, estero e pubblici proclami. :chatgpt-content-reference{index="1"}
+
+---
+
+# 2. MODALITÀ DI NOTIFICAZIONE
+
+IUSENTRA dovrebbe avere almeno:
+
+```text
+PEC
+SERCQ
+AREA_WEB
+UNEP_MANUALE
+UNEP_POSTALE
+POSTA_L53_1994
+CONSEGNA_DIRETTA_L53
+NOTIFICA_PERSONALE
+CASA_RESIDENZA_DIMORA
+PORTIERE
+VICINO
+SEDE_PERSONA_GIURIDICA
+IRREPERIBILE_140
+IRREPERIBILE_143
+PA
+AVVOCATURA_STATO
+ESTERO_UE
+ESTERO_EXTRAUE
+PUBBLICI_PROCLAMI
+DEPOSITO_PORTALE
+ALTRO
+```
+
+La L. 53/1994 consente all'avvocato le notificazioni civili, amministrative e stragiudiziali; il PST conferma l'uso della PEC ai sensi della disciplina telematica. :chatgpt-content-reference{index="2"}
+
+Il correttivo Cartabia ha inoltre disciplinato il ricorso all'**area web ex art. 359 CCII**, in determinate ipotesi di mancata notificazione telematica imputabile al destinatario; per imprese/professionisti la notificazione può perfezionarsi secondo la disciplina prevista dall'art. 3-ter L. 53/1994. :chatgpt-content-reference{index="3"}
+
+---
+
+# 3. DESTINATARI SPECIALI
+
+Catalogherei separatamente:
+
+1. persona fisica;
+2. persona giuridica;
+3. società;
+4. impresa individuale;
+5. professionista;
+6. condominio;
+7. amministratore condominio;
+8. incapace;
+9. minore;
+10. interdetto/amministrato;
+11. detenuto;
+12. militare;
+13. persona di residenza/dimora/domicilio sconosciuti;
+14. persona residente all'estero;
+15. defunto;
+16. eredi individualmente identificati;
+17. eredi collettivamente e impersonalmente;
+18. società cancellata;
+19. società in liquidazione;
+20. società in procedura concorsuale;
+21. curatore;
+22. commissario giudiziale;
+23. liquidatore;
+24. P.A.;
+25. amministrazione statale;
+26. Avvocatura dello Stato;
+27. ente locale;
+28. ente pubblico;
+29. controinteressato amministrativo;
+30. domiciliatario;
+31. procuratore costituito;
+32. difensore penale;
+33. persona offesa;
+34. imputato/indagato.
+
+---
+
+# 4. CIVILE — PROCESSO ORDINARIO
+
+| Evento | Atto | Termine/regola | Normativa |
+|---|---|---|---|
+| Introduzione causa | Citazione | rispetto termine comparizione | artt. 163-163-bis c.p.c. |
+| Citazione all'estero | Citazione | termine comparizione maggiorato | art. 163-bis |
+| Citazione nulla | rinnovo | termine fissato giudice | art. 164 |
+| Contumacia per vizio notifica | rinnovo | termine giudice | art. 291 |
+| Litisconsorte necessario | integrazione | termine giudice | art. 102 |
+| Chiamata terzo convenuto | citazione terzo | termine collegato nuova udienza | art. 269 |
+| Chiamata terzo attore | citazione terzo | termine giudice | art. 269 |
+| Successione processo | riassunzione/notifica | secondo provvedimento/norma | artt. 110 ss. |
+| Interruzione | riassunzione | 3 mesi nei casi applicabili | artt. 299 ss. |
+| Riassunzione dopo incompetenza | atto riassunzione | termine del giudice / art. 50 | art. 50 |
+| Riassunzione dopo cassazione | atto riassunzione | termine legale | art. 392 |
+| Querela di falso | atti conseguenti | secondo ordine giudice | artt. 221 ss. |
+| Verificazione scrittura | ricorso/atto | secondo procedimento | artt. 216 ss. |
+
+Per l'ordinario post-Cartabia è essenziale non confondere **notificazione della citazione**, costituzione e termini delle memorie ex art. 171-ter. :chatgpt-content-reference{index="4"}
+
+---
+
+# 5. PROCEDIMENTO SEMPLIFICATO
+
+Eventi da catalogare:
+
+- ricorso ex art. 281-undecies;
+- decreto di fissazione;
+- notificazione ricorso + decreto;
+- chiamata del terzo richiesta dal convenuto;
+- chiamata del terzo dell'attore;
+- spostamento udienza;
+- rinnovazione notifica;
+- integrazione contraddittorio.
+
+Per la chiamata del terzo il giudice assegna espressamente un **termine perentorio per la citazione**. :chatgpt-content-reference{index="5"}
+
+---
+
+# 6. GIUDICE DI PACE
+
+Creerei:
+
+```text
+GDP_RICORSO
+GDP_DECRETO_FISSAZIONE
+GDP_NOTIFICA_RICORSO_DECRETO
+GDP_CHIAMATA_TERZO
+GDP_RINNOVAZIONE_NOTIFICA
+GDP_IMPUGNAZIONE
+```
+
+Il procedimento davanti al giudice di pace è stato riallineato al modello semplificato dagli interventi Cartabia/correttivo. :chatgpt-content-reference{index="6"}
+
+---
+
+# 7. SENTENZE CIVILI
+
+## Notificazione sentenza
+
+Atto:
+
+`SENTENZA`
+
+Finalità tipica:
+
+`DECORRENZA_TERMINE_BREVE_IMPUGNAZIONE`
+
+### Termini
+
+- appello: **30 giorni**;
+- revocazione nei casi ordinari: **30 giorni**;
+- Cassazione: **60 giorni**.
+
+Norme:
+
+- art. 285;
+- art. 325;
+- art. 326 c.p.c.
+
+Dopo Cartabia l'art. 326 precisa il momento di decorrenza collegato al perfezionamento della notificazione per il destinatario. :chatgpt-content-reference{index="7"}
+
+### Senza notifica
+
+gestire:
+
+`TERMINE_LUNGO_ART_327`.
+
+---
+
+# 8. APPELLO CIVILE
+
+Eventi:
+
+```text
+APPELLO_DA_NOTIFICARE
+APPELLO_NOTIFICATO
+APPELLO_INCIDENTALE
+APPELLO_INCIDENTALE_TARDIVO
+INTEGRAZIONE_CONTRADDITTORIO_APPELLO
+RINNOVAZIONE_NOTIFICA_APPELLO
+```
+
+Norme principali:
+
+- artt. 325-327;
+- 330;
+- 331;
+- 332;
+- 342 ss. c.p.c.
+
+---
+
+# 9. CASSAZIONE CIVILE
+
+Inserire almeno:
+
+```text
+RICORSO_CASSAZIONE
+RICORSO_CASSAZIONE_DA_NOTIFICARE
+CONTRORICORSO
+RICORSO_INCIDENTALE
+RINNOVAZIONE_NOTIFICA_CASSAZIONE
+INTEGRAZIONE_CONTRADDITTORIO
+RIASSUNZIONE_DOPO_CASSAZIONE
+```
+
+Norme:
+
+- artt. 325;
+- 330;
+- 360 ss.;
+- 369;
+- 370;
+- 371;
+- 371-bis;
+- 392 ss. c.p.c.
+
+---
+
+# 10. REVOCAZIONE E OPPOSIZIONE DI TERZO
+
+Catalogare:
+
+- revocazione ordinaria;
+- revocazione straordinaria;
+- notificazione ricorso/atto;
+- opposizione di terzo;
+- notificazione alle parti;
+- eventuale integrazione.
+
+Norme:
+
+- artt. 395-408 c.p.c.
+
+---
+
+# 11. DECRETO INGIUNTIVO
+
+Questo deve diventare un modulo autonomo.
+
+| Evento | Termine |
+|---|---:|
+| Decreto emesso | trigger |
+| Notifica ricorso + decreto in Italia | **60 giorni** |
+| Notifica fuori Italia | **90 giorni** |
+| Opposizione ordinaria | normalmente **40 giorni** |
+| Opposizione tardiva | condizioni art. 650 |
+| Esecutorietà | artt. 642/647/648 |
+| Rinnovo notifica | se necessario |
+
+Norme:
+
+- artt. **633-656 c.p.c.**
+- specificamente 641, 642, 644, 645, 647, 648, 650.
+
+---
+
+# 12. PROCEDIMENTO EUROPEO D'INGIUNZIONE
+
+Da includere separatamente:
+
+- ingiunzione di pagamento europea;
+- notificazione al convenuto;
+- opposizione;
+- esecutività;
+- passaggio eventuale al procedimento ordinario.
+
+Riferimento:
+
+**Regolamento (CE) 1896/2006**.
+
+---
+
+# 13. PROCEDIMENTO EUROPEO PER CONTROVERSIE DI MODESTA ENTITÀ
+
+Riferimento:
+
+**Regolamento (CE) 861/2007**.
+
+Eventi:
+
+- domanda;
+- comunicazione/notifica al convenuto;
+- risposta;
+- domanda riconvenzionale;
+- sentenza;
+- esecuzione transfrontaliera.
+
+---
+
+# 14. SFRATTI
+
+Catalogo:
+
+```text
+LICENZA_FINITA_LOCAZIONE
+SFRATTO_FINITA_LOCAZIONE
+SFRATTO_MOROSITA
+CITAZIONE_CONVALIDA
+AVVISO_EX_ART_660
+ORDINANZA_CONVALIDA
+OPPOSIZIONE
+ORDINANZA_RILASCIO
+PRECETTO_RILASCIO
+PREAVVISO_ACCESSO_UNEP
+```
+
+Norme:
+
+- artt. **657-669 c.p.c.**
+
+Particolare attenzione all'art. 660 per la notificazione dell'intimazione.
+
+---
+
+# 15. PROCEDIMENTI CAUTELARI
+
+Inserire:
+
+- sequestro giudiziario;
+- sequestro conservativo;
+- denuncia nuova opera;
+- danno temuto;
+- provvedimenti d'urgenza art. 700;
+- istruzione preventiva;
+- ATP;
+- ATP ex 696-bis;
+- cautelari speciali.
+
+### Inaudita altera parte
+
+Il giudice:
+
+- fissa l'udienza entro massimo **15 giorni**;
+- assegna all'istante termine perentorio massimo **8 giorni** per notificare ricorso + decreto;
+- se all'estero i termini previsti dal comma sono triplicati. :chatgpt-content-reference{index="8"}
+
+Eventi:
+
+```text
+CAUTELARE_RICORSO_DECRETO
+CAUTELARE_INAUDITA
+CAUTELARE_RINNOVO
+CAUTELARE_RECLAMO
+CAUTELARE_ATTUAZIONE
+CAUTELARE_MERITO
+```
+
+---
+
+# 16. RECLAMO CAUTELARE
+
+Norma:
+
+**art. 669-terdecies c.p.c.**
+
+Da collegare al termine ex art. 739 richiamato dalla disposizione. :chatgpt-content-reference{index="9"}
+
+
+---
+
+# 17. PROCEDIMENTI POSSESSORI
+
+- reintegrazione;
+- manutenzione;
+- provvedimento immediato;
+- ricorso;
+- decreto;
+- notificazione;
+- eventuale prosecuzione di merito.
+
+Norme:
+
+- artt. 703 ss. c.p.c.;
+- artt. 1168 ss. c.c.
+
+---
+
+# 18. DENUNCIA DI NUOVA OPERA / DANNO TEMUTO
+
+- ricorso;
+- decreto;
+- eventuale provvedimento inaudita;
+- notificazione;
+- attuazione.
+
+Norme:
+
+- artt. 1171-1172 c.c.;
+- procedimento cautelare uniforme.
+
+---
+
+# 19. PROCEDIMENTI DI VOLONTARIA GIURISDIZIONE
+
+Creare eventi generici per:
+
+- ricorso;
+- decreto;
+- convocazione interessati;
+- notificazione a soggetti indicati dal giudice;
+- reclamo;
+- pubblicità.
+
+Norme:
+
+- artt. **737-742-bis c.p.c.**
+
+---
+
+# 20. RECLAMI CAMERA DI CONSIGLIO
+
+Art. 739 c.p.c.
+
+Catalogare:
+
+`RECLAMO_DECRETO_CAMERA_CONSIGLIO`.
+
+---
+
+# 21. FAMIGLIA
+
+Modulo autonomo **473-bis**.
+
+Comprendere:
+
+- separazione;
+- divorzio;
+- scioglimento unione civile;
+- affidamento;
+- mantenimento;
+- responsabilità genitoriale;
+- modifica condizioni;
+- figli nati fuori matrimonio;
+- procedimenti minorili;
+- limitazione responsabilità;
+- decadenza;
+- sottrazione internazionale nei casi collegati;
+- ordini di protezione;
+- provvedimenti indifferibili;
+- attuazione provvedimenti.
+
+Eventi:
+
+```text
+FAM_RICORSO
+FAM_DECRETO_FISSAZIONE
+FAM_NOTIFICA_RICORSO_DECRETO
+FAM_RINNOVAZIONE
+FAM_PROVVEDIMENTO_INDIFFERIBILE
+FAM_ORDINE_PROTEZIONE
+FAM_RECLAMO
+FAM_MODIFICA_PROVVEDIMENTI
+```
+
+Nei provvedimenti urgenti può essere il giudice a fissare direttamente un **termine perentorio di notificazione**: deve quindi esistere il trigger `TERMINE_ESTRATTO_DAL_DECRETO`.
+
+---
+
+# 22. ORDINI DI PROTEZIONE
+
+Comprendere:
+
+- ordine di cessazione;
+- allontanamento;
+- divieto avvicinamento;
+- intervento servizi;
+- assegno;
+- ricorso;
+- decreto;
+- notificazione urgente.
+
+Norme:
+
+- artt. 473-bis.69 ss. c.p.c.;
+- disciplina sostanziale applicabile.
+
+---
+
+# 23. LAVORO
+
+Catalogare:
+
+```text
+LAVORO_RICORSO
+LAVORO_DECRETO_UDIENZA
+LAVORO_NOTIFICA
+LAVORO_RINNOVO
+LAVORO_APPELLO
+PREVIDENZA_RICORSO
+PREVIDENZA_ATPO
+LICENZIAMENTO_IMPUGNAZIONE_STRAGIUDIZIALE
+LICENZIAMENTO_RICORSO
+```
+
+Norme:
+
+- artt. **409-441-bis c.p.c.**;
+- art. 415;
+- art. 434;
+- L. 604/1966;
+- L. 300/1970;
+- leggi speciali.
+
+---
+
+# 24. LICENZIAMENTO
+
+Prima scadenza fondamentale:
+
+**60 giorni** per l'impugnazione stragiudiziale nei casi disciplinati dall'art. 6 L. 604/1966.
+
+Poi deve essere gestita la successiva fase giudiziale/conciliativa prevista dalla stessa disciplina.
+
+Quindi:
+
+```text
+LICENZIAMENTO_RICEVUTO
+IMPUGNAZIONE_60GG
+SUCCESSIVO_RICORSO_O_CONCILIAZIONE
+```
+
+---
+
+# 25. PREVIDENZA E ASSISTENZA
+
+Comprendere:
+
+- controversie previdenziali;
+- invalidità;
+- ATPO ex art. 445-bis;
+- opposizione;
+- ricorsi INPS/INAIL;
+- eventuali fasi amministrative obbligatorie.
+
+---
+
+# 26. ESECUZIONE FORZATA — REGOLE GENERALI
+
+Modulo autonomo.
+
+```text
+TITOLO_ESECUTIVO
+NOTIFICA_TITOLO
+PRECETTO
+SCADENZA_PRECETTO
+PIGNORAMENTO
+ISCRIZIONE_RUOLO
+ISTANZA_VENDITA
+AVVISO_CREDITORI
+DISTRIBUZIONE
+OPPOSIZIONE
+```
+
+Norme principali:
+
+- artt. **474 ss. c.p.c.**
+
+---
+
+# 27. TITOLO ESECUTIVO
+
+Art. **479 c.p.c.**
+
+Gestire:
+
+`NOTIFICA_TITOLO_ESECUTIVO`
+
+eventualmente contestuale al precetto quando consentito.
+
+---
+
+# 28. PRECETTO
+
+Artt. **480-482 c.p.c.**
+
+Monitorare:
+
+- data notifica;
+- prima data normalmente utilizzabile per iniziare esecuzione;
+- perdita efficacia.
+
+L'art. **481** disciplina la cessazione dell'efficacia del precetto se non viene iniziata tempestivamente l'esecuzione.
+
+---
+
+# 29. PIGNORAMENTO MOBILIARE
+
+Norme:
+
+- artt. 513 ss.
+
+Eventi:
+
+- accesso UNEP;
+- pignoramento;
+- avvisi;
+- iscrizione;
+- istanza vendita;
+- comunicazioni.
+
+---
+
+# 30. PIGNORAMENTO IMMOBILIARE
+
+Norme:
+
+- artt. **555 ss.**
+
+Eventi:
+
+```text
+PIGN_IMM_NOTIFICA
+PIGN_IMM_TRASCRIZIONE
+PIGN_IMM_ISCRIZIONE_RUOLO
+PIGN_IMM_DEPOSITO_NOTA
+PIGN_IMM_ISTANZA_VENDITA
+PIGN_IMM_AVVISO_CREDITORI_ISCRITTI
+PIGN_IMM_UDIENZA
+PIGN_IMM_ORDINANZA_VENDITA
+```
+
+---
+
+# 31. PIGNORAMENTO PRESSO TERZI
+
+Art. **543 c.p.c.**
+
+Destinatari:
+
+- debitore;
+- terzo.
+
+Eventi indispensabili:
+
+```text
+PPT_NOTIFICA_DEBITORE
+PPT_NOTIFICA_TERZO
+PPT_ISCRIZIONE_RUOLO
+PPT_AVVISO_ISCRIZIONE
+PPT_DICHIARAZIONE_TERZO
+PPT_CONTESTAZIONE_DICHIARAZIONE
+PPT_ASSEGNAZIONE
+```
+
+---
+
+# 32. ESPROPRIAZIONE CONTRO TERZO PROPRIETARIO
+
+Artt. **602 ss. c.p.c.**
+
+Notificazioni al:
+
+- debitore;
+- terzo proprietario.
+
+---
+
+# 33. ESECUZIONE PER CONSEGNA O RILASCIO
+
+Artt. **605 ss.**
+
+Comprendere:
+
+- titolo;
+- precetto;
+- preavviso di accesso;
+- accesso UNEP;
+- eventuali rinvii.
+
+---
+
+# 34. OBBLIGHI DI FARE/NON FARE
+
+Artt. **612 ss.**
+
+- ricorso;
+- provvedimento;
+- eventuale notificazione;
+- esecuzione.
+
+---
+
+# 35. OPPOSIZIONE ALL'ESECUZIONE
+
+Art. **615**.
+
+Separare:
+
+- opposizione preventiva;
+- opposizione successiva all'inizio esecuzione.
+
+---
+
+# 36. OPPOSIZIONE AGLI ATTI ESECUTIVI
+
+Art. **617 c.p.c.**
+
+Termine tipico:
+
+**20 giorni** dall'evento previsto dalla norma.
+
+Priorità:
+
+`CRITICA`.
+
+---
+
+# 37. OPPOSIZIONE DI TERZO ALL'ESECUZIONE
+
+Art. **619 c.p.c.**
+
+Catalogare separatamente.
+
+---
+
+# 38. SOSPENSIONE E RIASSUNZIONE ESECUZIONE
+
+Artt. **623 ss.**
+
+Inserire notifiche/provvedimenti collegati e relativo termine assegnato dal giudice.
+
+---
+
+# 39. CONDOMINIO
+
+Comprendere:
+
+- impugnazione delibera;
+- decreto ingiuntivo condominiale;
+- recupero contributi;
+- mediazione obbligatoria;
+- notificazioni all'amministratore;
+- notifiche ai condomini quando necessarie.
+
+Norme:
+
+- artt. 1117 ss. c.c.;
+- art. 1137 c.c.;
+- D.Lgs. 28/2010.
+
+---
+
+# 40. LOCAZIONE
+
+Oltre allo sfratto:
+
+- disdetta;
+- diniego rinnovo;
+- recesso;
+- prelazione;
+- riscatto;
+- aggiornamenti/comunicazioni ove previsti;
+- mediazione;
+- azioni locatizie.
+
+Norme principali:
+
+- L. **392/1978**;
+- L. 431/1998;
+- c.c.
+
+---
+
+# 41. PRELAZIONE DEL CONDUTTORE
+
+Nelle ipotesi previste dalla L. 392/1978 deve essere gestita la **denuntiatio** e l'eventuale esercizio mediante atto notificato.
+
+La disciplina prevede, in determinate fattispecie, **60 giorni dalla ricezione della comunicazione** per esercitare la prelazione. :chatgpt-content-reference{index="10"}
+
+---
+
+# 42. SUCCESSIONI
+
+Catalogare:
+
+- accettazione;
+- beneficio inventario;
+- rinuncia;
+- eredità giacente;
+- curatore;
+- petizione eredità;
+- riduzione;
+- divisione;
+- testamento;
+- opposizione alla divisione;
+- convocazioni/notifiche ordinate dal giudice.
+
+---
+
+# 43. DIVISIONE
+
+Comprendere:
+
+- divisione ereditaria;
+- divisione ordinaria;
+- eventuale mediazione;
+- citazione;
+- creditori/opponenti;
+- vendita dei beni;
+- provvedimenti delegati.
+
+---
+
+# 44. DIRITTI REALI
+
+Catalogare procedimenti:
+
+- proprietà;
+- usucapione;
+- servitù;
+- confini;
+- apposizione termini;
+- comunione;
+- possesso.
+
+Molte di queste controversie comportano **mediazione obbligatoria**.
+
+---
+
+# 45. RESPONSABILITÀ MEDICA
+
+Gestire:
+
+- ATP 696-bis;
+- procedimento ex L. 24/2017;
+- mediazione alternativa nei casi previsti;
+- successiva causa;
+- assicurazioni;
+- strutture sanitarie.
+
+---
+
+# 46. SINISTRI STRADALI
+
+Prima della causa devono essere gestiti gli adempimenti stragiudiziali previsti dal **Codice delle assicurazioni private**, comprese richieste risarcitorie e termini dilatori.
+
+Catalogare:
+
+```text
+RCA_RICHIESTA_RISARCIMENTO
+RCA_DOCUMENTAZIONE_INCOMPLETA
+RCA_OFFERTA
+RCA_RIFIUTO
+RCA_CAUSA
+```
+
+---
+
+# 47. MEDIAZIONE
+
+D.Lgs. **28/2010**.
+
+Catalogare:
+
+- domanda;
+- comunicazione organismo;
+- convocazione;
+- primo incontro;
+- rinvio;
+- accordo;
+- mancato accordo;
+- termine disposto dal giudice;
+- mediazione demandata;
+- mediazione obbligatoria;
+- mediazione volontaria.
+
+Importante: tecnicamente molte comunicazioni sono effettuate dall'organismo, ma per IUSENTRA devono comunque diventare **eventi legali**.
+
+---
+
+# 48. NEGOZIAZIONE ASSISTITA
+
+D.L. **132/2014**, L. 162/2014.
+
+Eventi:
+
+```text
+INVITO_NEGOZIAZIONE
+RICEZIONE_INVITO
+ACCETTAZIONE
+RIFIUTO
+MANCATA_RISPOSTA
+CONVENZIONE
+ACCORDO
+TRASMISSIONE_ACCORDO
+NEGOZIAZIONE_FAMIGLIA
+```
+
+---
+
+# 49. ARBITRATO
+
+Non dimenticarlo.
+
+Comprendere:
+
+- domanda arbitrale;
+- nomina arbitro;
+- comunicazioni alle parti;
+- eccezioni;
+- lodo;
+- notificazione del lodo quando rilevante;
+- impugnazione;
+- exequatur.
+
+Norme:
+
+- artt. **806-840 c.p.c.**
+
+---
+
+# 50. AZIONE DI CLASSE
+
+Catalogare separatamente:
+
+- ricorso;
+- decreto;
+- pubblicità;
+- adesioni;
+- provvedimenti;
+- eventuali notificazioni.
+
+Norme:
+
+- artt. **840-bis ss. c.p.c.**
+
+---
+
+# 51. PROCEDURE CONCORSUALI / CCII
+
+Questo è un intero sottosistema.
+
+D.Lgs. **14/2019**.
+
+Comprendere almeno:
+
+### Liquidazione giudiziale
+- ricorso per apertura;
+- convocazione debitore;
+- sentenza di apertura;
+- comunicazione ai creditori;
+- avviso per insinuazione;
+- domanda di ammissione;
+- stato passivo;
+- comunicazione esito;
+- opposizione;
+- impugnazione;
+- revocazione.
+
+### Concordato preventivo
+- domanda;
+- decreto;
+- comunicazioni creditori;
+- voto;
+- omologazione;
+- opposizioni.
+
+### Accordi di ristrutturazione
+- domanda;
+- pubblicazione;
+- notifiche/avvisi;
+- opposizione;
+- omologazione.
+
+### Piano ristrutturazione soggetto a omologazione
+
+### Composizione negoziata
+- misure protettive;
+- pubblicazione;
+- ricorso;
+- notifiche ordinate;
+- conferma/modifica/revoca.
+
+### Liquidazione controllata
+
+### Concordato minore
+
+### Esdebitazione
+
+### Sovraindebitamento
+
+### Liquidazione coatta
+
+### Amministrazione straordinaria
+
+Qui è fondamentale non hardcodare tutto come PEC: il CCII utilizza anche **Registro imprese, area web e forme di pubblicità legale**.
+
+---
+
+# 52. AREA WEB CCII
+
+L'art. 3-ter L. 53/1994 oggi interagisce con l'**area web prevista dall'art. 359 CCII** in specifiche ipotesi.
+
+Per IUSENTRA:
+
+```text
+NOTIFICA_AREA_WEB_CCII
+DATA_INSERIMENTO
+DATA_ACCESSO_DESTINATARIO
+PERFEZIONAMENTO_DECIMO_GIORNO
+```
+
+La fonte ministeriale sul correttivo conferma questa nuova architettura. :chatgpt-content-reference{index="11"}
+
+---
+
+# 53. PROCEDIMENTO AMMINISTRATIVO — TAR
+
+Passiamo al PAT.
+
+Il Codice del processo amministrativo vigente è il D.Lgs. **104/2010**. :chatgpt-content-reference{index="12"}
+
+Catalogare:
+
+```text
+TAR_RICORSO
+TAR_NOTIFICA_PA
+TAR_NOTIFICA_CONTROINTERESSATO
+TAR_ULTIMA_NOTIFICA
+TAR_DEPOSITO
+TAR_MOTIVI_AGGIUNTI
+TAR_RICORSO_INCIDENTALE
+TAR_INTEGRAZIONE_CONTRADDITTORIO
+TAR_CAUTELARE
+TAR_APPELLO
+```
+
+---
+
+# 54. RICORSO TAR ORDINARIO
+
+Regola generale:
+
+**60 giorni**, fatte salve discipline speciali.
+
+Art. **41 c.p.a.**
+
+Destinatari:
+
+- amministrazione;
+- almeno uno dei controinteressati individuabili nei casi previsti.
+
+---
+
+# 55. DEPOSITO DOPO NOTIFICA TAR
+
+Art. **45 c.p.a.**
+
+Il sistema deve acquisire il perfezionamento dell'ultima notifica e generare la relativa scadenza di deposito.
+
+---
+
+# 56. RICORSO INCIDENTALE
+
+Art. **42 c.p.a.**
+
+Creare:
+
+`PAT_RICORSO_INCIDENTALE`.
+
+---
+
+# 57. MOTIVI AGGIUNTI
+
+Art. **43 c.p.a.**
+
+Eventi:
+
+- nuovo provvedimento;
+- nuovi vizi;
+- notificazione motivi;
+- deposito.
+
+---
+
+# 58. INTEGRAZIONE CONTRADDITTORIO TAR
+
+Art. 49 c.p.a.
+
+La scadenza può essere quella fissata nel provvedimento giudiziale.
+
+Usare:
+
+`PAT_TERMINE_GIUDICE_INTEGRAZIONE`.
+
+---
+
+# 59. CAUTELARE TAR
+
+Artt. **55 ss. c.p.a.**
+
+Comprendere:
+
+- domanda cautelare;
+- notifica;
+- deposito;
+- decreto monocratico;
+- collegiale;
+- notifiche ordinate;
+- esecuzione.
+
+---
+
+# 60. CAUTELARE ANTE CAUSAM AMMINISTRATIVO
+
+Art. **61 c.p.a.**
+
+Catalogo autonomo perché può generare notificazioni urgenti e successivo ricorso.
+
+---
+
+# 61. APPELLO CAUTELARE
+
+Art. **62 c.p.a.**
+
+Da monitorare autonomamente rispetto all'appello sul merito.
+
+---
+
+# 62. APPELLO AL CONSIGLIO DI STATO
+
+Art. **92 c.p.a.**
+
+Termine breve ordinario:
+
+**60 giorni dalla notificazione della sentenza**, salvo norme speciali.
+
+La disciplina processuale amministrativa usa termini perentori per le impugnazioni. :chatgpt-content-reference{index="13"}
+
+---
+
+# 63. RITI ABBREVIATI ART. 119 CPA
+
+Fondamentale creare:
+
+`PAT_RITO_119 = TRUE`
+
+perché numerosi termini sono ridotti rispetto all'ordinario.
+
+Non applicare automaticamente:
+
+`RICORSO_TAR = 60`.
+
+---
+
+# 64. APPALTI PUBBLICI
+
+Rito ex art. **120 c.p.a.**
+
+Termine di impugnazione tipico:
+
+**30 giorni**, ma il dies a quo deve essere individuato in funzione:
+
+- comunicazione;
+- pubblicazione;
+- conoscenza;
+- accesso alla documentazione;
+- tipo di atto.
+
+Non deve essere calcolato con una regola semplicistica.
+
+---
+
+# 65. ACCESSO DOCUMENTALE
+
+Art. **116 c.p.a.**
+
+Catalogare:
+
+```text
+DINIEGO_ACCESSO
+SILENZIO_ACCESSO
+RICORSO_ACCESSO
+NOTIFICA_PA
+NOTIFICA_CONTROINTERESSATI
+```
+
+---
+
+# 66. ACCESSO CIVICO / FOIA
+
+D.Lgs. **33/2013**.
+
+Prevedere:
+
+- diniego;
+- differimento;
+- silenzio;
+- controinteressati;
+- riesame;
+- eventuale ricorso.
+
+---
+
+# 67. SILENZIO DELLA PA
+
+Art. **31 e 117 c.p.a.**
+
+Catalogo:
+
+`RICORSO_AVVERSO_SILENZIO`.
+
+---
+
+# 68. OTTEMPERANZA AMMINISTRATIVA
+
+Artt. **112-115 c.p.a.**
+
+Comprendere:
+
+- ricorso;
+- notificazione;
+- deposito;
+- commissario ad acta;
+- reclami contro atti commissario.
+
+Per il reclamo contro atti del commissario la disciplina contempla una previa notifica ai controinteressati e termine specifico. :chatgpt-content-reference{index="14"}
+
+---
+
+# 69. ELETTORALE
+
+Creare un modulo autonomo.
+
+I termini possono essere di **pochissimi giorni** e prevalgono sulle regole ordinarie.
+
+Catalogare:
+
+```text
+ELETTORALE_RICORSO
+ELETTORALE_NOTIFICA
+ELETTORALE_DEPOSITO
+ELETTORALE_APPELLO
+```
+
+Mai applicare il generico 60 giorni.
+
+---
+
+# 70. ESPROPRIAZIONI / URBANISTICA / EDILIZIA
+
+Non sono necessariamente riti speciali quanto alla notifica, ma devono avere tipizzazione autonoma perché il dies a quo cambia secondo l'atto.
+
+---
+
+# 71. PUBBLICO IMPIEGO
+
+Separare:
+
+- pubblico impiego privatizzato → giudice ordinario/lavoro;
+- materie rimaste alla giurisdizione amministrativa → TAR.
+
+---
+
+# 72. CORTE DEI CONTI
+
+Da non escludere.
+
+Comprendere:
+
+- giudizi di responsabilità;
+- pensionistici;
+- conto;
+- appello;
+- revocazione;
+- notificazioni del PM contabile.
+
+Normativa:
+
+**D.Lgs. 174/2016 — Codice di giustizia contabile.**
+
+Deve essere un `jurisdiction_type` distinto.
+
+---
+
+# 73. TRIBUTARIO — PTT
+
+Per il 2026 il sistema deve mantenere versionamento temporale delle norme, anche in vista dell'entrata a regime del riordino della giustizia tributaria.
+
+Catalogare:
+
+```text
+TRIB_ATTO_IMPOSITIVO_RICEVUTO
+TRIB_RICORSO
+TRIB_NOTIFICA_RICORSO
+TRIB_DEPOSITO
+TRIB_MOTIVI_AGGIUNTI
+TRIB_APPELLO
+TRIB_CASSAZIONE
+TRIB_SENTENZA_NOTIFICATA
+TRIB_OTTEMPERANZA
+```
+
+---
+
+# 74. RICORSO TRIBUTARIO
+
+Regola storicamente fondamentale:
+
+**60 giorni dalla notificazione dell'atto impugnabile**, con le regole applicabili al caso concreto.
+
+Tra gli atti:
+
+- avviso di accertamento;
+- avviso di liquidazione;
+- provvedimento sanzionatorio;
+- ruolo;
+- cartella;
+- intimazione;
+- iscrizione ipotecaria nei casi impugnabili;
+- fermo nei casi impugnabili;
+- diniego rimborso;
+- diniego agevolazioni;
+- revoca agevolazioni;
+- atti catastali;
+- ulteriori atti previsti.
+
+---
+
+# 75. COSTITUZIONE PTT
+
+Dopo la notificazione del ricorso va gestito autonomamente il termine per la costituzione/deposito.
+
+Mai considerare:
+
+`ricorso notificato = causa iscritta`.
+
+---
+
+# 76. APPELLO TRIBUTARIO
+
+Creare:
+
+```text
+TRIB_SENTENZA
+TRIB_SENTENZA_NOTIFICATA
+TRIB_TERMINE_BREVE_APPELLO
+TRIB_TERMINE_LUNGO
+TRIB_APPELLO_NOTIFICATO
+TRIB_DEPOSITO_APPELLO
+```
+
+---
+
+# 77. CASSAZIONE TRIBUTARIA
+
+Applicare il sistema Cassazione con conservazione integrale delle prove telematiche:
+
+- messaggio PEC;
+- atto;
+- relazione;
+- procura se pertinente;
+- ricevuta accettazione;
+- ricevuta consegna;
+- allegati.
+
+---
+
+# 78. OTTEMPERANZA TRIBUTARIA
+
+Catalogare separatamente:
+
+`TRIB_OTTEMPERANZA`.
+
+---
+
+# 79. PENALE — PRINCIPIO GENERALE
+
+Nel penale la logica cambia completamente.
+
+Il Titolo V del Libro II c.p.p. contiene gli artt. **148-171** sulle notificazioni. :chatgpt-content-reference{index="15"}
+
+La maggioranza delle notificazioni viene effettuata:
+
+- dall'autorità giudiziaria;
+- dalla cancelleria/segreteria;
+- tramite sistemi telematici;
+- ufficiali giudiziari/polizia giudiziaria nei casi previsti.
+
+Quindi IUSENTRA deve soprattutto capire **quale termine nasce da una notifica ricevuta**.
+
+---
+
+# 80. NOTIFICAZIONI PENALI — DESTINATARI
+
+Catalogare:
+
+```text
+PEN_IMPUTATO
+PEN_INDAGATO
+PEN_DIFENSORE
+PEN_PERSONA_OFFESA
+PEN_PARTE_CIVILE
+PEN_RESP_CIVILE
+PEN_CIVILMENTE_OBBLIGATO
+PEN_TESTIMONE
+PEN_PERITO
+PEN_CONSULENTE
+PEN_INTERPRETE
+```
+
+---
+
+# 81. PRIMA NOTIFICA ALL'IMPUTATO
+
+Art. **157 c.p.p.** e seguenti.
+
+Deve essere distinta dalle notificazioni successive.
+
+---
+
+# 82. NOTIFICAZIONI SUCCESSIVE ALL'IMPUTATO
+
+La riforma Cartabia ha ampliato l'utilizzo del difensore per molte notificazioni successive.
+
+L'art. 161 distingue tuttavia atti particolarmente importanti — per esempio fissazione udienza preliminare, determinate citazioni a giudizio e decreto penale — rispetto alla regola generale delle notificazioni successive al difensore. :chatgpt-content-reference{index="16"}
+
+---
+
+# 83. PERSONA IRREPERIBILE PENALMENTE
+
+Catalogare:
+
+- ricerche;
+- decreto irreperibilità;
+- notificazioni conseguenti;
+- rinnovo verifiche ove prescritto.
+
+Norme:
+
+- artt. 159 ss. c.p.p.
+
+---
+
+# 84. LATITANTE
+
+Notifica secondo disciplina specifica c.p.p.
+
+Codice:
+
+`PEN_LATITANTE`.
+
+---
+
+# 85. DETENUTO
+
+Codice:
+
+`PEN_DETENUTO`.
+
+Gestione separata ex disciplina c.p.p.
+
+---
+
+# 86. NOTIFICHE AL DIFENSORE
+
+Ogni PEC/atto ricevuto deve essere classificato come evento processuale.
+
+Esempi:
+
+- decreto;
+- ordinanza;
+- avviso udienza;
+- avviso deposito;
+- fissazione;
+- provvedimento cautelare;
+- sentenza;
+- richiesta PM.
+
+---
+
+# 87. ART. 415-BIS
+
+Evento critico:
+
+`PEN_415BIS`.
+
+Destinatari:
+
+- indagato;
+- difensore;
+- in particolari reati anche soggetti collegati alla persona offesa previsti dalla norma.
+
+La norma impone al PM la notificazione dell'avviso di conclusione delle indagini. :chatgpt-content-reference{index="17"}
+
+Da esso derivano diritti e termini difensivi.
+
+---
+
+# 88. ARCHIVIAZIONE
+
+Art. **408 ss. c.p.p.**
+
+Catalogare:
+
+```text
+PEN_RICHIESTA_ARCHIVIAZIONE
+PEN_AVVISO_PERSONA_OFFESA
+PEN_OPPOSIZIONE_ARCHIVIAZIONE
+PEN_UDIENZA_ARCHIVIAZIONE
+```
+
+Il PM deve notificare l'avviso alla persona offesa che abbia dichiarato di voler essere informata, nei casi previsti. :chatgpt-content-reference{index="18"}
+
+---
+
+# 89. DECRETO DI CITAZIONE A GIUDIZIO
+
+Catalogare:
+
+- imputato;
+- difensore;
+- persona offesa.
+
+Per la disciplina risultante dalla riforma, in determinate ipotesi l'atto deve essere notificato almeno **60 giorni prima dell'udienza**, riducibili a **45 in caso di urgenza motivata**. :chatgpt-content-reference{index="19"}
+
+---
+
+# 90. UDIENZA PRELIMINARE
+
+Inserire:
+
+```text
+PEN_AVVISO_UDIENZA_PRELIMINARE
+PEN_RICHIESTA_RINVIO_GIUDIZIO
+PEN_DECRETO_FISSAZIONE_GUP
+```
+
+---
+
+# 91. GIUDIZIO IMMEDIATO
+
+Comprendere:
+
+- richiesta;
+- decreto;
+- notifica;
+- facoltà dell'imputato;
+- eventuale richiesta rito alternativo.
+
+---
+
+# 92. GIUDIZIO DIRETTISSIMO
+
+Creare procedimento autonomo perché termini e modalità sono incompatibili con quelli ordinari.
+
+---
+
+# 93. DECRETO PENALE DI CONDANNA
+
+Catalogare:
+
+```text
+PEN_DECRETO_PENALE
+PEN_NOTIFICA_DECRETO
+PEN_OPPOSIZIONE_DECRETO
+```
+
+Norme:
+
+- artt. **459 ss. c.p.p.**
+
+---
+
+# 94. MISURE CAUTELARI PERSONALI
+
+Eventi:
+
+- ordinanza;
+- esecuzione;
+- interrogatorio;
+- riesame;
+- appello;
+- ricorso Cassazione;
+- revoca/sostituzione.
+
+Artt. **272 ss. c.p.p.**
+
+Le notificazioni devono essere collegate alle specifiche scadenze di riesame/impugnazione.
+
+---
+
+# 95. MISURE CAUTELARI REALI
+
+- sequestro preventivo;
+- sequestro conservativo;
+- riesame;
+- appello;
+- Cassazione.
+
+---
+
+# 96. INCIDENTE PROBATORIO
+
+Catalogare:
+
+- richiesta;
+- notificazioni;
+- deduzioni;
+- decreto;
+- udienza.
+
+Artt. **392 ss. c.p.p.**
+
+---
+
+# 97. TESTIMONI PENALI
+
+Comprendere:
+
+- lista testimoniale;
+- autorizzazione/citazione;
+- intimazione del testimone;
+- perito;
+- consulente.
+
+Art. **468 c.p.p.** e disposizioni connesse.
+
+---
+
+# 98. INVESTIGAZIONI DIFENSIVE
+
+Artt. **391-bis ss.**
+
+Catalogare:
+
+```text
+INVITO_PERSONA_INFORMATA
+AVVISI_391BIS
+RICHIESTA_DOCUMENTI_PA
+ACCESSO_LUOGHI
+ATTI_NON_RIPETIBILI_DIFESA
+```
+
+---
+
+# 99. PERSONA OFFESA
+
+Creare triggers per:
+
+- avviso archiviazione;
+- 415-bis nei casi previsti;
+- udienze;
+- citazione a giudizio;
+- scarcerazione/evasione nelle fattispecie previste;
+- provvedimenti cautelari nei casi previsti;
+- sentenza quando dovuta.
+
+---
+
+# 100. PARTE CIVILE
+
+Catalogare:
+
+- costituzione;
+- citazione responsabile civile;
+- citazione civilmente obbligato;
+- esclusione;
+- impugnazione.
+
+---
+
+# 101. IMPUGNAZIONI PENALI
+
+Non utilizzare i termini civili.
+
+Creare un motore ex:
+
+- artt. **568 ss.**;
+- art. **585 c.p.p.**
+
+Input:
+
+```text
+tipo_provvedimento
+data_lettura
+data_deposito
+termine_deposito_motivazione
+data_avviso_deposito
+presenza_assente
+tipo_impugnazione
+```
+
+Output:
+
+`SCADENZA_IMPUGNAZIONE`.
+
+---
+
+# 102. ESECUZIONE PENALE
+
+Comprendere:
+
+- ordine esecuzione;
+- sospensione;
+- avvisi;
+- istanze;
+- incidente esecuzione;
+- misure alternative;
+- sorveglianza;
+- liberazione anticipata;
+- detenzione domiciliare;
+- affidamento;
+- semilibertà.
+
+---
+
+# 103. SORVEGLIANZA
+
+Creare:
+
+`PEN_SORVEGLIANZA_NOTIFICA_AVVISO_UDIENZA`.
+
+---
+
+# 104. GIUDICE DI PACE PENALE
+
+D.Lgs. **274/2000**.
+
+Procedimento autonomo:
+
+- ricorso immediato persona offesa;
+- citazione;
+- convocazione;
+- notificazioni;
+- impugnazioni.
+
+---
+
+# 105. PROCESSO MINORILE PENALE
+
+D.P.R. **448/1988**.
+
+Regole autonome.
+
+---
+
+# 106. PROCEDIMENTO PER REATI MINISTERIALI / DISCIPLINE SPECIALI
+
+Va prevista categoria:
+
+`PEN_LEGGE_SPECIALE`
+
+per procedimenti che derogano al modello ordinario.
+
+---
+
+# 107. NOTIFICAZIONI URGENTI PENALI
+
+Art. 149 c.p.p. contempla anche particolari forme urgenti per persone diverse dall'imputato; la comunicazione telefonica può avere valore di notificazione nei presupposti e con la conferma prevista dalla disposizione. :chatgpt-content-reference{index="20"}
+
+---
+
+# 108. SANZIONI AMMINISTRATIVE
+
+L. **689/1981**.
+
+Catalogare:
+
+- contestazione immediata;
+- notificazione verbale;
+- pagamento ridotto;
+- scritti difensivi;
+- ordinanza ingiunzione;
+- opposizione.
+
+La disciplina generale contempla il pagamento ridotto entro **60 giorni** dalla contestazione immediata o dalla notificazione, salvo discipline speciali. :chatgpt-content-reference{index="21"}
+
+---
+
+# 109. CODICE DELLA STRADA
+
+Procedimento speciale.
+
+Comprendere:
+
+```text
+CDS_VERBALE
+CDS_NOTIFICA_VERBALE
+CDS_RICORSO_PREFETTO
+CDS_RICORSO_GDP
+CDS_ORDINANZA_PREFETTO
+CDS_CARTELLA
+```
+
+Non usare automaticamente la disciplina L. 689/1981 senza verificare la norma speciale.
+
+---
+
+# 110. IMMIGRAZIONE
+
+Catalogare:
+
+- espulsione;
+- trattenimento;
+- protezione internazionale;
+- diniego commissione;
+- ricorso;
+- decreto;
+- impugnazione;
+- cittadinanza nei procedimenti competenti.
+
+---
+
+# 111. PROTEZIONE INTERNAZIONALE
+
+D.Lgs. **25/2008** e norme successive.
+
+Creare motore specifico perché i termini possono essere abbreviati a seconda del procedimento.
+
+---
+
+# 112. NOTIFICAZIONE ALLA PUBBLICA AMMINISTRAZIONE
+
+Destinatario da verificare con attenzione.
+
+Separare:
+
+```text
+PA_NON_STATALE
+AMMINISTRAZIONE_STATO
+AVVOCATURA_STATO
+DOMICILIO_DIGITALE_PA
+PEC_REGISTRO_GIUSTIZIA
+IPA_QUANDO_AMMESSO
+```
+
+L'indirizzo va tratto dall'elenco utilizzabile **per quella specifica notificazione**, non semplicemente trovato tramite motore di ricerca.
+
+---
+
+# 113. AVVOCATURA DELLO STATO
+
+Dove trova applicazione il **R.D. 1611/1933**, la notifica deve seguire le regole speciali relative alle amministrazioni dello Stato.
+
+IUSENTRA deve chiedere:
+
+`AMMINISTRAZIONE_DIFESA_DALL_AVVOCATURA = TRUE/FALSE`.
+
+---
+
+# 114. NOTIFICAZIONE A SOCIETÀ
+
+Art. **145 c.p.c.**
+
+Gestire:
+
+- sede;
+- PEC/domicilio digitale quando dovuta;
+- rappresentante;
+- eventuale impossibilità.
+
+---
+
+# 115. NOTIFICAZIONE A PERSONA FISICA
+
+Workflow:
+
+1. domicilio digitale obbligatorio/eletto utilizzabile?
+2. PEC possibile?
+3. mani proprie art. 138;
+4. residenza/dimora/domicilio art. 139;
+5. art. 140;
+6. art. 143.
+
+---
+
+# 116. IRREPERIBILITÀ RELATIVA
+
+Art. **140 c.p.c.**
+
+Deve essere distinta da:
+
+`IRREPERIBILITA_ASSOLUTA`.
+
+---
+
+# 117. IRREPERIBILITÀ ASSOLUTA
+
+Art. **143 c.p.c.**
+
+Caso autonomo.
+
+---
+
+# 118. NOTIFICA A PERSONE GIURIDICHE
+
+Art. **145 c.p.c.**
+
+---
+
+# 119. NOTIFICAZIONE ALL'ESTERO
+
+Art. **142 c.p.c.**, salve convenzioni e regolamenti sovranazionali.
+
+Non usare una sola regola.
+
+Prima domanda:
+
+`STATO_DESTINAZIONE`.
+
+---
+
+# 120. NOTIFICAZIONE UE
+
+Dal **1° luglio 2022** il riferimento centrale è il:
+
+**Regolamento (UE) 2020/1784** sulla notificazione e comunicazione negli Stati membri degli atti giudiziari ed extragiudiziali in materia civile o commerciale.
+
+IUSENTRA deve avere:
+
+```text
+SERVICE_EU_2020_1784
+STATO_DESTINAZIONE
+ORGANO_TRASMITTENTE
+ORGANO_RICEVENTE
+LINGUA
+TRADUZIONE
+RIFIUTO_RICEZIONE_LINGUA
+CERTIFICATO_NOTIFICA
+DATA_PERFEZIONAMENTO
+```
+
+---
+
+# 121. CONVENZIONE AJA 1965
+
+Per Stati extra UE aderenti:
+
+**Convenzione dell'Aja del 15 novembre 1965**.
+
+Gestire:
+
+- autorità centrale;
+- moduli;
+- traduzione;
+- certificato;
+- opposizioni/riserve dello Stato.
+
+---
+
+# 122. STATI NON UE/NON AJA
+
+Applicare:
+
+- convenzioni bilaterali;
+- art. 142 c.p.c.;
+- canali diplomatico-consolari dove applicabili.
+
+---
+
+# 123. PUBBLICI PROCLAMI
+
+Art. **150 c.p.c.**
+
+Codice:
+
+`NOTIFICA_PUBBLICI_PROCLAMI`.
+
+Termini/modalità sono stabiliti dal giudice.
+
+---
+
+# 124. FORME SPECIALI ORDINATE DAL GIUDICE
+
+Art. **151 c.p.c.**
+
+Essenziale:
+
+```text
+NOTIFICA_EX_ART_151
+MODALITA_STABILITA_GIUDICE
+TERMINE_STABILITO_GIUDICE
+```
+
+---
+
+# 125. PEC AVVOCATO EX L. 53/1994
+
+Il sistema deve verificare:
+
+- avvocato legittimato;
+- casella mittente;
+- indirizzo destinatario;
+- pubblico elenco;
+- atto;
+- relata;
+- oggetto PEC;
+- firma quando necessaria;
+- ricevuta accettazione;
+- ricevuta consegna;
+- allegati;
+- integrità;
+- prova successiva.
+
+---
+
+# 126. NOTIFICA PEC FALLITA
+
+Distinguere:
+
+### causa imputabile destinatario
+workflow art. **3-ter L. 53/1994**;
+
+### causa non imputabile destinatario
+modalità ordinarie.
+
+Questa distinzione è fondamentale. :chatgpt-content-reference{index="22"}
+
+---
+
+# 127. RAC E RDAC
+
+Conservare sempre:
+
+```text
+PEC_MESSAGGIO_ORIGINALE
+RELATA
+ATTO
+ALLEGATI
+RICEVUTA_ACCETTAZIONE
+RICEVUTA_AVVENUTA_CONSEGNA
+TIPO_RDAC
+DATA_RA
+DATA_RDAC
+HASH
+```
+
+---
+
+# 128. SCISSIONE SOGGETTIVA
+
+IUSENTRA deve conservare:
+
+```text
+PERFEZIONAMENTO_NOTIFICANTE
+PERFEZIONAMENTO_DESTINATARIO
+```
+
+perché possono coincidere o divergere.
+
+Il Ministero richiama espressamente il principio anche per la notificazione telematica dell'UNEP. :chatgpt-content-reference{index="23"}
+
+---
+
+# 129. SOSPENSIONE FERIALE
+
+Non basta conoscere il numero di giorni.
+
+Serve campo:
+
+`SOSPENSIONE_FERIALE = TRUE/FALSE/VERIFY`.
+
+Normativa principale:
+
+**L. 742/1969**.
+
+Esistono numerose eccezioni.
+
+---
+
+# 130. GIORNI LIBERI
+
+Campo obbligatorio:
+
+`GIORNI_LIBERI = TRUE/FALSE`.
+
+Per esempio il termine minimo di comparizione non deve essere trattato come un normale countdown.
+
+---
+
+# 131. PROROGA FESTIVO
+
+Campo:
+
+`PROROGA_SCADENZA_FESTIVO`.
+
+Riferimento generale civile:
+
+art. **155 c.p.c.**
+
+Ma deve essere parametrizzato per giurisdizione.
+
+---
+
+# 132. TERMINI A RITROSO
+
+Servono regole autonome.
+
+Un termine:
+
+`20 giorni prima dell'udienza`
+
+non è equivalente a:
+
+`entro 20 giorni`.
+
+Campo:
+
+```text
+direction:
+FORWARD
+BACKWARD
+```
+
+---
+
+# 133. TERMINI PERENTORI
+
+Campo obbligatorio:
+
+```text
+term_nature:
+PERENTORIO
+ORDINATORIO
+DECADENZIALE
+PRESCRIZIONALE
+DILATORIO
+UNKNOWN
+```
+
+---
+
+# 134. EVENTO NON È NOTIFICA MA GENERA TERMINE
+
+IUSENTRA deve leggere anche:
+
+- comunicazione cancelleria;
+- pubblicazione sentenza;
+- deposito;
+- conoscenza legale;
+- ricezione PEC;
+- lettura in udienza;
+- emanazione decreto;
+- accesso portale;
+- pubblicazione Registro imprese;
+- pubblicazione albo/sito;
+- consegna verbale.
+
+---
+
+# 135. STRAGIUDIZIALE — MESSA IN MORA
+
+Art. **1219 c.c.**
+
+Catalogo:
+
+`MESSA_IN_MORA`.
+
+---
+
+# 136. INTERRUZIONE PRESCRIZIONE
+
+Artt. **2943 ss. c.c.**
+
+Evento:
+
+`ATTO_INTERRUTTIVO_PRESCRIZIONE`.
+
+Non tutte le comunicazioni sono idonee: Lex deve verificarne contenuto, destinatario e prova della ricezione.
+
+---
+
+# 137. DIFFIDA AD ADEMPIERE
+
+Art. **1454 c.c.**
+
+Campi:
+
+```text
+DIFFIDA_ADEMPIMENTO
+TERMINE_ASSEGNATO
+DATA_RICEZIONE
+RISOLUZIONE_EVENTUALE
+```
+
+---
+
+# 138. COSTITUZIONE IN MORA
+
+Separata dalla diffida ad adempiere.
+
+---
+
+# 139. RECESSO
+
+Catalogare per:
+
+- contratto;
+- norma;
+- preavviso;
+- modalità;
+- destinatario.
+
+---
+
+# 140. DISDETTA
+
+Non sovrapporla al recesso.
+
+---
+
+# 141. DENUNTIATIO / PRELAZIONE
+
+Categoria generale per:
+
+- locazioni;
+- beni culturali;
+- prelazioni agrarie;
+- societarie;
+- ereditarie;
+- altre prelazioni legali.
+
+Ogni sottotipo ha termini propri.
+
+---
+
+# 142. PRELAZIONE AGRARIA
+
+Norme:
+
+- L. 590/1965;
+- L. 817/1971.
+
+Creare procedimento autonomo.
+
+---
+
+# 143. RETRATTO SUCCESSORIO
+
+Art. **732 c.c.**
+
+Notifica/denuntiatio da considerare separatamente.
+
+---
+
+# 144. ATTI SOCIETARI
+
+Comprendere almeno:
+
+- esclusione socio;
+- recesso;
+- convocazioni dove giuridicamente rilevanti;
+- impugnazione deliberazioni;
+- opposizione creditori;
+- trasferimenti con prelazione/statuto;
+- diffide.
+
+---
+
+# 145. PROTESTI / TITOLI DI CREDITO
+
+Catalogare:
+
+- cambiale;
+- assegno;
+- protesto;
+- precetto;
+- eventuali avvisi.
+
+---
+
+# 146. PROPRIETÀ INDUSTRIALE
+
+Procedimenti speciali:
+
+- brevetti;
+- marchi;
+- design;
+- cautelari;
+- descrizione;
+- sequestro;
+- inibitoria.
+
+Codice proprietà industriale:
+
+D.Lgs. **30/2005**.
+
+---
+
+# 147. DIRITTO D'AUTORE
+
+L. **633/1941**.
+
+Prevedere cautelari e notifiche speciali.
+
+---
+
+# 148. CONSUMATORI
+
+D.Lgs. **206/2005**.
+
+Catalogare:
+
+- diffida;
+- ADR;
+- azione individuale;
+- azioni rappresentative;
+- provvedimenti AGCM quando pertinenti;
+- class action/azioni collettive.
+
+---
+
+# 149. ANTIDISCRIMINAZIONE
+
+Esistono procedimenti speciali con disciplina accelerata.
+
+Categoria:
+
+`CIV_RITO_SPECIALISSIMO`.
+
+---
+
+# 150. OPPOSIZIONE SANZIONI
+
+D.Lgs. **150/2011** contiene numerosi riti speciali.
+
+Questo è fondamentale: non basta il c.p.c.
+
+IUSENTRA dovrebbe avere un catalogo specifico per:
+
+- ordinanza ingiunzione;
+- trattamento dati personali;
+- immigrazione;
+- espulsione;
+- elettorale;
+- protesti;
+- onorari avvocati;
+- discriminazione;
+- ulteriori procedimenti regolati dal decreto.
+
+---
+
+# 151. ONORARI AVVOCATI
+
+Procedimento speciale per controversie sulla liquidazione dei compensi.
+
+Va tipizzato separatamente.
+
+---
+
+# 152. EQUA RIPARAZIONE — LEGGE PINTO
+
+L. **89/2001**.
+
+Comprendere:
+
+- ricorso;
+- decreto;
+- notificazione;
+- opposizione.
+
+---
+
+# 153. ACCERTAMENTO TECNICO PREVENTIVO
+
+Artt. **696-696-bis c.p.c.**
+
+Catalogare:
+
+- ricorso;
+- decreto;
+- notifica;
+- consulenza;
+- eventuale successivo giudizio.
+
+---
+
+# 154. PROVVEDIMENTI MONITORI SPECIALI
+
+Oltre al decreto ingiuntivo ordinario possono esistere discipline settoriali.
+
+Usare:
+
+`MONITORIO_SPECIAL_LAW`.
+
+---
+
+# 155. RINNOVAZIONE NOTIFICA
+
+Categoria universale.
+
+Trigger:
+
+- nullità;
+- esito negativo;
+- destinatario errato;
+- ordine giudice;
+- contraddittorio non integro.
+
+Campi:
+
+```text
+original_notification_id
+reason
+new_deadline
+court_order
+preservation_of_effects
+```
+
+---
+
+# 156. MUTAMENTO DOMICILIO/PEC
+
+Creare evento:
+
+`DOMICILIO_DIGITALE_CHANGED`
+
+perché può influire sulle notifiche future ma non necessariamente invalidare quelle pregresse.
+
+---
+
+# 157. MORTE DELLA PARTE
+
+Generare controllo:
+
+```text
+DECESSO_PARTE
+INTERRUZIONE_PROCESSO?
+NOTIFICA_EREDI?
+RIASSUNZIONE?
+```
+
+---
+
+# 158. MORTE DEL PROCURATORE / RADIAZIONE / SOSPENSIONE
+
+Possibile evento interruttivo secondo disciplina processuale.
+
+---
+
+# 159. FALLIMENTO/LIQUIDAZIONE DELLA PARTE
+
+Controllare:
+
+- interruzione;
+- legittimazione;
+- curatore;
+- domicilio digitale procedura.
+
+---
+
+# 160. NOTIFICA ALL'EREDE
+
+Distinguere:
+
+```text
+EREDE_IDENTIFICATO
+EREDI_COLLETTIVAMENTE_IMPERSONALMENTE
+EREDITA_GIACENTE
+CURATORE_EREDITA
+```
+
+---
+
+# 161. NOTIFICAZIONE DI ATTO STRAGIUDIZIALE
+
+L. 53/1994 consente anche notificazioni **stragiudiziali**, non soltanto atti processuali. :chatgpt-content-reference{index="24"}
+
+---
+
+# 162. PROVA DELLA NOTIFICAZIONE
+
+Stati possibili:
+
+```text
+CREATED
+SENT
+ACCEPTED
+DELIVERED
+PERFECTED_SENDER
+PERFECTED_RECIPIENT
+FAILED_TEMPORARY
+FAILED_RECIPIENT_CAUSE
+FAILED_SENDER_CAUSE
+AREA_WEB
+MANUAL_SERVICE_REQUIRED
+RENEWAL_REQUIRED
+CONTESTED
+NULL
+INEFFECTIVE
+```
+
+---
+
+# 163. TERMINE IMPOSTO DAL GIUDICE
+
+Questa è la regola che evita di lasciare fuori migliaia di casi.
+
+IUSENTRA deve riconoscere frasi come:
+
+- “assegna termine di giorni 10”;
+- “entro il termine perentorio di…”;
+- “entro e non oltre…”;
+- “entro il…”;
+- “onera la parte di notificare…”;
+- “dispone l'integrazione del contraddittorio…”;
+- “provveda alla rinnovazione…”;
+- “a cura di parte…”;
+- “con onere di notificazione…”;
+- “notificare il ricorso e il presente decreto…”;
+- “almeno X giorni prima dell'udienza”.
+
+Questa categoria copre moltissimi casi che **nessuna tabella statica può conoscere prima dell'emissione del provvedimento**.
+
+---
+
+# 164. STRUTTURA DATABASE CHE TI CONSIGLIO
+
+Non userei una tabella con soltanto:
+
+```text
+atto
+termine
+```
+
+Userei almeno:
+
+```text
+notification_rule
+-----------------
+id
+code
+jurisdiction
+matter
+submatter
+procedure
+phase
+event
+source_event
+document_type
+notification_required
+notification_actor
+recipient_type
+recipient_role
+service_method
+digital_service_required
+public_register_required
+public_register_type
+legal_basis
+article
+secondary_basis
+deadline_value
+deadline_unit
+deadline_direction
+deadline_source
+dies_a_quo
+dies_ad_quem
+free_days
+calendar_days
+business_days
+holiday_extension
+summer_suspension
+summer_suspension_excluded
+term_nature
+mandatory
+judge_can_modify
+minimum_term
+maximum_term
+italy_term
+foreign_term
+consequence_if_omitted
+consequence_if_late
+requires_filing_after_service
+filing_deadline
+proof_required
+RA_required
+RAC_required
+service_report_required
+translation_required
+human_review_required
+valid_from
+valid_to
+law_version
+notes
+```
+
+---
+
+# 165. TABELLA `notification_event`
+
+Per il singolo fascicolo:
+
+```text
+id
+matter_id
+rule_id
+document_id
+sender
+recipient
+recipient_tax_code
+recipient_vat
+recipient_pec
+pec_registry
+registry_query_date
+registry_evidence
+service_requested_at
+sent_at
+RA_at
+RAC_at
+perfected_sender_at
+perfected_recipient_at
+deadline_at
+followup_deadline_at
+status
+failure_reason
+renewal_required
+proof_document_id
+audit_hash
+verified_by
+verified_at
+```
+
+---
+
+# 166. NON BASTA IL TERMINE DELLA NOTIFICA
+
+Ogni regola deve poter generare un **secondo evento**.
+
+Esempi:
+
+```text
+DECRETO_INGIUNTIVO
+→ NOTIFICA
+→ EVENTUALE OPPOSIZIONE
+```
+
+```text
+SENTENZA
+→ NOTIFICA
+→ TERMINE_BREVE_IMPUGNAZIONE
+```
+
+```text
+RICORSO_TAR
+→ NOTIFICA
+→ DEPOSITO_PAT
+```
+
+```text
+PRECETTO
+→ NOTIFICA
+→ PRIMA_DATA_ESECUZIONE
+→ SCADENZA_EFFICACIA
+```
+
+```text
+415BIS
+→ RICEZIONE
+→ TERMINE_DIFESE
+```
+
+Questo è il concetto più importante dell'intero motore.
+
+---
+
+# 167. GERARCHIA DELLE REGOLE
+
+Io imposterei:
+
+```text
+1. LEGGE_SPECIALE
+2. PROVVEDIMENTO_GIUDICE
+3. RITO_SPECIALE
+4. CODICE_SPECIFICO
+5. REGOLA_GENERALE
+```
+
+Quindi una regola speciale prevale automaticamente su quella generale.
+
+Esempio:
+
+```text
+AMMINISTRATIVO
+termine ordinario ricorso = 60
+```
+
+ma:
+
+```text
+APPALTI
+termine speciale = 30
+```
+
+quindi il sistema non deve applicare 60.
+
+---
+
+# 168. VERSIONAMENTO NORMATIVO
+
+Fondamentale per IUSENTRA.
+
+Ogni regola deve avere:
+
+```text
+valid_from
+valid_to
+law_version
+procedure_started_at
+event_occurred_at
+transitional_rule
+```
+
+Altrimenti una modifica legislativa futura potrebbe alterare retroattivamente le scadenze di vecchi fascicoli.
+
+---
+
+# 169. PRIORITÀ AUTOMATICHE
+
+### CRITICA
+
+- termine 1-10 giorni;
+- ordine giudice perentorio;
+- cautelare;
+- elettorale;
+- opposizione esecutiva;
+- impugnazione prossima;
+- notifica decreto ingiuntivo in scadenza;
+- rito appalti;
+- penale cautelare.
+
+### ALTA
+
+- 11-30 giorni.
+
+### MEDIA
+
+- 31-60.
+
+### ORDINARIA
+
+oltre 60.
+
+---
+
+# 170. COSA DEVE FARE L'AGENTE IUSENTRA
+
+Quando arriva una PEC/documento, Lex dovrebbe eseguire automaticamente:
+
+```text
+1. identificazione mittente
+2. identificazione destinatario
+3. identificazione fascicolo
+4. identificazione RG
+5. materia
+6. giurisdizione
+7. rito
+8. tipo documento
+9. provvedimento/notifica/comunicazione
+10. individuazione ordine giudice
+11. estrazione termine
+12. individuazione dies a quo
+13. verifica norma
+14. verifica legge speciale
+15. sospensione feriale
+16. giorni liberi
+17. festività
+18. termine a ritroso/in avanti
+19. perentorietà
+20. destinatari della futura notifica
+21. domicilio digitale
+22. fonte del domicilio digitale
+23. modalità legale utilizzabile
+24. preparazione relata
+25. controllo allegati
+26. esecuzione assistita
+27. verifica RA/RAC
+28. salvataggio prova
+29. deposito prova notifica
+30. generazione scadenza successiva
+```
+
+Sì. Rispetto al catalogo precedente, aggiungerei ancora questi **blocchi mancanti o da rendere molto più granulari**. Sono quelli che ti servono per evitare che IUSENTRA resti scoperto davanti a procedimenti meno frequenti o a notifiche che non rientrano nel civile ordinario.
+
+## 1. D.Lgs. 150/2011 — riti speciali da codificare singolarmente
+
+Non basta una voce generica “riti speciali”. Farei record autonomi per:
+
+- opposizione a ordinanza-ingiunzione ex L. 689/1981;
+- opposizione a verbale Codice della strada;
+- opposizione contro provvedimenti in materia di protezione dei dati personali;
+- controversie in materia di riconoscimento della protezione internazionale/immigrazione nei procedimenti disciplinati dal decreto;
+- opposizione alla convalida di trattamento sanitario obbligatorio, quando applicabile;
+- controversie elettorali previste dal decreto;
+- impugnazione dei provvedimenti sul registro dei protesti;
+- controversie sulla liquidazione degli onorari e diritti di avvocato;
+- discriminazione;
+- ulteriori controversie assoggettate dal decreto ai riti lavoro/sommario.
+
+Per l'opposizione a ordinanza-ingiunzione il termine ordinario è **30 giorni dalla notificazione**, elevato a **60 giorni se il ricorrente risiede all'estero**. :chatgpt-content-reference{index="0"}
+
+Codici:
+
+```text
+SP150_ORDINANZA_INGIUNZIONE
+SP150_CDS
+SP150_PRIVACY
+SP150_IMMIGRAZIONE
+SP150_PROTESTI
+SP150_COMPENSI_AVVOCATI
+SP150_DISCRIMINAZIONE
+SP150_ELETTORALE
+```
+
+---
+
+# 2. Privacy / Garante
+
+Questo manca come sottosistema autonomo.
+
+Devi gestire:
+
+```text
+PRIVACY_RECLAMO_GARANTE
+PRIVACY_AVVIO_PROCEDIMENTO_SANZIONATORIO
+PRIVACY_NOTIFICA_VIOLAZIONE
+PRIVACY_MEMORIE_DIFENSIVE
+PRIVACY_AUDIZIONE
+PRIVACY_PROVVEDIMENTO_GARANTE
+PRIVACY_ORDINANZA_INGIUNZIONE
+PRIVACY_OPPOSIZIONE_TRIBUNALE
+PRIVACY_PAGAMENTO_SANZIONE
+```
+
+Un provvedimento del Garante del 18 giugno 2026, per esempio, indica espressamente:
+
+- opposizione giudiziaria entro **30 giorni dalla comunicazione**;
+- **60 giorni** per il ricorrente residente all'estero;
+- pagamento dell'ingiunzione entro **30 giorni dalla notificazione**. :chatgpt-content-reference{index="1"}
+
+Norme da indicizzare:
+
+- GDPR Reg. UE 2016/679;
+- D.Lgs. 196/2003;
+- D.Lgs. 150/2011.
+
+---
+
+# 3. Codice della strada molto più dettagliato
+
+La voce precedente era troppo sintetica.
+
+Aggiungerei:
+
+```text
+CDS_CONTESTAZIONE_IMMEDIATA
+CDS_VERBALE_DA_NOTIFICARE
+CDS_NOTIFICA_PROPRIETARIO
+CDS_NOTIFICA_OBBLIGATO_SOLIDALE
+CDS_COMUNICAZIONE_DATI_CONDUCENTE
+CDS_PAGAMENTO_5_GIORNI
+CDS_PAGAMENTO_60_GIORNI
+CDS_RICORSO_PREFETTO
+CDS_TRASMISSIONE_RICORSO_PREFETTO
+CDS_ORDINANZA_INGIUNZIONE_PREFETTO
+CDS_OPPOSIZIONE_GDP
+CDS_SOSPENSIONE_PATENTE
+CDS_REVOCA_PATENTE
+CDS_DECURTAZIONE_PUNTI
+CDS_FERMO
+CDS_CONFISCA
+CDS_CARTELLA_RISCOSSIONE
+```
+
+Il quadro ordinario comprende ricorso al Prefetto entro **60 giorni** e ricorso al Giudice di pace entro **30 giorni**, salvo regole speciali e casi particolari. :chatgpt-content-reference{index="2"}
+
+---
+
+# 4. Procedimento disciplinare forense
+
+Molto importante per un gestionale destinato agli avvocati.
+
+Catalogherei:
+
+```text
+CNF_ESPOSTO
+CDD_APERTURA_PROCEDIMENTO
+CDD_CITAZIONE_INCOLPATO
+CDD_AVVISO_UDIENZA
+CDD_DECISIONE
+CDD_NOTIFICA_DECISIONE
+CNF_RICORSO
+CASSAZIONE_DECISIONE_CNF
+```
+
+Norme:
+
+- L. 247/2012;
+- regolamenti CNF;
+- codice deontologico;
+- disciplina del procedimento disciplinare.
+
+---
+
+# 5. Procedimenti disciplinari professionali
+
+Categoria generale separata:
+
+```text
+DISC_MEDICI
+DISC_COMMERCIALISTI
+DISC_INGEGNERI
+DISC_ARCHITETTI
+DISC_NOTAI
+DISC_GIORNALISTI
+DISC_ALTRI_ORDINI
+```
+
+Perché uno studio può assistere professionisti davanti ai rispettivi ordini.
+
+---
+
+# 6. Giustizia contabile — Corte dei conti
+
+Nel catalogo precedente era troppo generica.
+
+Creerei almeno:
+
+```text
+CDC_INVITO_DEDURRE
+CDC_ATTO_CITAZIONE
+CDC_NOTIFICA_CITAZIONE
+CDC_UDIENZA
+CDC_SENTENZA
+CDC_APPELLO
+CDC_REVOCAZIONE
+CDC_OPPOSIZIONE
+CDC_GIUDIZIO_CONTO
+CDC_CONTI_AGENTE_CONTABILE
+CDC_PENSIONISTICO
+CDC_RESPONSABILITA_ERARIALE
+CDC_SEQUESTRO_CONSERVATIVO
+```
+
+Norma base:
+
+**D.Lgs. 174/2016 — Codice di giustizia contabile**.
+
+---
+
+# 7. Giustizia sportiva
+
+Può sembrare marginale, ma per “catalogo completo” va prevista:
+
+```text
+SPORT_FEDERALE
+SPORT_APPELLO
+SPORT_COLLEGIO_GARANZIA_CONI
+SPORT_PROVVEDIMENTO_DISCIPLINARE
+SPORT_NOTIFICA_DECISIONE
+```
+
+Termini spesso molto brevi e stabiliti da regolamenti federali.
+
+Userei:
+
+`deadline_source = REGULATION`.
+
+---
+
+# 8. Arbitrato rituale
+
+Va ampliato molto.
+
+```text
+ARB_DOMANDA_ARBITRALE
+ARB_NOTIFICA_DOMANDA
+ARB_NOMINA_ARBITRO
+ARB_INVITO_NOMINA_ARBITRO
+ARB_RICORSO_PRESIDENTE_TRIBUNALE
+ARB_RICUSAZIONE
+ARB_ECCEZIONE_INCOMPETENZA
+ARB_LAUDO
+ARB_COMUNICAZIONE_LAUDO
+ARB_CORREZIONE_LAUDO
+ARB_IMPUGNAZIONE_NULLITA
+ARB_REVOCAZIONE
+ARB_OPPOSIZIONE_TERZO
+ARB_EXEQUATUR
+```
+
+Artt. **806-840 c.p.c.**
+
+---
+
+# 9. Arbitrato internazionale
+
+Separare:
+
+```text
+ARB_INT_CONVENZIONE_NEW_YORK
+ARB_INT_RICONOSCIMENTO_LODO
+ARB_INT_OPPOSIZIONE
+ARB_INT_NOTIFICA_ESTERO
+```
+
+Norma fondamentale:
+
+**Convenzione di New York del 1958**.
+
+---
+
+# 10. Riconoscimento ed esecuzione decisioni UE
+
+Manca un intero blocco.
+
+Regolamento Bruxelles I-bis:
+
+**Reg. UE 1215/2012**.
+
+Catalogare:
+
+```text
+EU_JUDGMENT_RECOGNITION
+EU_JUDGMENT_ENFORCEMENT
+EU_CERTIFICATE_1215
+EU_SERVICE_ENFORCEMENT
+EU_REFUSAL_RECOGNITION
+EU_REFUSAL_ENFORCEMENT
+```
+
+---
+
+# 11. Titolo esecutivo europeo
+
+**Reg. CE 805/2004**.
+
+```text
+TEE_CERTIFICAZIONE
+TEE_RETTIFICA
+TEE_REVOCA
+TEE_ESECUZIONE_ITALIA
+TEE_NOTIFICA_ESTERO
+```
+
+---
+
+# 12. Ordinanza europea di sequestro conservativo
+
+**Reg. UE 655/2014**.
+
+Catalogare:
+
+```text
+EAPO_APPLICATION
+EAPO_ORDER
+EAPO_SERVICE
+EAPO_BANK_IMPLEMENTATION
+EAPO_DEBTOR_NOTIFICATION
+EAPO_REMEDY
+```
+
+---
+
+# 13. Obbligazioni alimentari UE
+
+**Reg. CE 4/2009**.
+
+```text
+EU_MAINTENANCE_APPLICATION
+EU_MAINTENANCE_RECOGNITION
+EU_MAINTENANCE_ENFORCEMENT
+EU_MAINTENANCE_SERVICE
+```
+
+---
+
+# 14. Matrimoniale e responsabilità genitoriale transfrontaliera
+
+**Regolamento UE 2019/1111 — Bruxelles II-ter**.
+
+Aggiungere:
+
+```text
+EU_DIVORCE_JURISDICTION
+EU_PARENTAL_RESPONSIBILITY
+EU_CHILD_ABDUCTION
+EU_RECOGNITION_FAMILY_ORDER
+EU_ENFORCEMENT_FAMILY_ORDER
+EU_SERVICE_FAMILY
+```
+
+---
+
+# 15. Sottrazione internazionale di minori
+
+Convenzione Aja 1980 + disciplina UE.
+
+Codificare separatamente perché ha urgenza elevatissima:
+
+```text
+CHILD_ABDUCTION_APPLICATION
+CHILD_ABDUCTION_NOTICE
+CHILD_ABDUCTION_HEARING
+CHILD_ABDUCTION_RETURN_ORDER
+CHILD_ABDUCTION_APPEAL
+```
+
+---
+
+# 16. Convenzione Aja 1996 — responsabilità genitoriale
+
+Da inserire per rapporti extra UE.
+
+---
+
+# 17. Recupero crediti internazionale
+
+Distinguere:
+
+- debitore UE;
+- debitore extra UE;
+- decreto ingiuntivo nazionale notificato all'estero;
+- ingiunzione europea;
+- esecuzione di titolo italiano all'estero;
+- titolo estero eseguito in Italia.
+
+---
+
+# 18. Notifica UE — diritto di rifiuto per lingua
+
+Il Reg. UE **2020/1784** non va trattato come semplice “spedizione internazionale”. Il sistema deve verificare anche la lingua e gli eventuali diritti del destinatario. La disciplina UE è stata modernizzata proprio per uniformare la trasmissione degli atti fra organi mittenti e riceventi. :chatgpt-content-reference{index="3"}
+
+Aggiungerei:
+
+```text
+EU_SERVICE_LANGUAGE_CHECK
+EU_SERVICE_REFUSAL_LANGUAGE
+EU_SERVICE_RETRANSLATION
+EU_SERVICE_CERTIFICATE
+EU_SERVICE_DATE
+```
+
+---
+
+# 19. Processo societario / impugnazioni societarie
+
+Aggiungere:
+
+```text
+CORP_IMPUGNA_DELIBERA_ASSEMBLEA
+CORP_IMPUGNA_DELIBERA_CDA
+CORP_RECESSO_SOCIO
+CORP_ESCLUSIONE_SOCIO
+CORP_OPPOSIZIONE_CREDITORI
+CORP_RIDUZIONE_CAPITALE
+CORP_FUSIONE_OPPOSIZIONE
+CORP_SCISSIONE_OPPOSIZIONE
+CORP_TRASFORMAZIONE
+CORP_LIQUIDAZIONE
+CORP_REVOCA_LIQUIDATORE
+CORP_DENUNCIA_2409
+```
+
+Norme:
+
+- artt. 2377 ss.;
+- 2479-ter;
+- 2437 ss.;
+- 2445;
+- 2503;
+- 2409 c.c.
+
+---
+
+# 20. Impugnazione delibera condominiale
+
+Farei una regola specifica.
+
+```text
+CONDO_DELIBERA_RICEVUTA
+CONDO_IMPUGNAZIONE_30GG
+CONDO_MEDIAZIONE
+CONDO_RICORSO
+```
+
+Per l'art. 1137 c.c., il termine di decadenza è normalmente **30 giorni**, con dies a quo differente per presenti dissenzienti/astenuti e assenti.
+
+---
+
+# 21. Comunione
+
+Non solo condominio:
+
+```text
+COMUNIONE_DELIBERA
+COMUNIONE_IMPUGNAZIONE
+COMUNIONE_DIVISIONE
+COMUNIONE_VENDITA
+```
+
+---
+
+# 22. Impresa e proprietà industriale — procedimenti d'urgenza
+
+Dettagliare:
+
+```text
+IP_DESCRIZIONE
+IP_SEQUESTRO
+IP_INIBITORIA
+IP_RECALL
+IP_PENALITA_RITARDO
+IP_RECLAMO
+IP_CONTRAFFAZIONE
+IP_NULLITA_MARCHIO
+IP_NULLITA_BREVETTO
+```
+
+---
+
+# 23. Cause antitrust
+
+Prevedere:
+
+```text
+ANTITRUST_AGCM_PROCEDIMENTO
+ANTITRUST_PROVVEDIMENTO
+ANTITRUST_RICORSO_TAR
+ANTITRUST_FOLLOW_ON_DAMAGE
+```
+
+---
+
+# 24. AGCOM
+
+Procedimenti davanti all'Autorità per le garanzie nelle comunicazioni:
+
+```text
+AGCOM_CONCILIAZIONE
+AGCOM_CORECOM
+AGCOM_DEFINIZIONE_CONTROVERSIA
+AGCOM_PROVVEDIMENTO
+AGCOM_IMPUGNAZIONE_TAR
+```
+
+---
+
+# 25. ARERA
+
+Energia, gas, acqua:
+
+```text
+ARERA_RECLAMO
+ARERA_CONCILIAZIONE
+ARERA_PROVVEDIMENTO
+ARERA_IMPUGNAZIONE
+```
+
+---
+
+# 26. ABF — Arbitro Bancario Finanziario
+
+Non è propriamente una notificazione giudiziaria, ma per studio legale va catalogato.
+
+```text
+ABF_RECLAMO_BANCA
+ABF_RICORSO
+ABF_CONTRODEDUZIONI
+ABF_DECISIONE
+```
+
+---
+
+# 27. ACF — Arbitro per le Controversie Finanziarie
+
+```text
+ACF_RECLAMO_INTERMEDIARIO
+ACF_RICORSO
+ACF_DEDUZIONI
+ACF_DECISIONE
+```
+
+---
+
+# 28. Bancario
+
+Aggiungere:
+
+- revoca affidamento;
+- decadenza beneficio termine;
+- segnalazione sofferenza;
+- fideiussione;
+- escussione garanzia;
+- mutuo;
+- leasing;
+- factoring;
+- recupero credito.
+
+---
+
+# 29. Assicurazioni non RCA
+
+```text
+INS_CLAIM
+INS_DENUNCIA_SINISTRO
+INS_RICHIESTA_DOCUMENTI
+INS_RIFIUTO
+INS_PRESCRIZIONE
+INS_CAUSA
+```
+
+---
+
+# 30. Successioni — atti che meritano regole autonome
+
+Aggiungerei:
+
+```text
+SUCCESSIONE_INTERPELLO_481_CC
+SUCCESSIONE_ACCETTAZIONE_BENEFICIO
+SUCCESSIONE_INVENTARIO
+SUCCESSIONE_RINUNCIA
+SUCCESSIONE_ACTIO_INTERROGATORIA
+SUCCESSIONE_EREDITA_GIACENTE
+SUCCESSIONE_PUBBLICAZIONE_TESTAMENTO
+SUCCESSIONE_IMPUGNA_TESTAMENTO
+SUCCESSIONE_RIDUZIONE
+SUCCESSIONE_RESTITUZIONE
+SUCCESSIONE_DIVISIONE
+SUCCESSIONE_RETRATTO_732
+SUCCESSIONE_OPPOSIZIONE_DONAZIONE
+```
+
+---
+
+# 31. Donazioni
+
+Separare:
+
+```text
+DONAZIONE_REVOCA
+DONAZIONE_RIDUZIONE
+DONAZIONE_OPPOSIZIONE
+```
+
+---
+
+# 32. Amministrazione di sostegno
+
+Manca come blocco proprio:
+
+```text
+ADS_RICORSO
+ADS_NOTIFICA_BENEFICIARIO
+ADS_PARENTI
+ADS_DECRETO
+ADS_RECLAMO
+ADS_REVOCA
+ADS_SOSTITUZIONE_AMMINISTRATORE
+```
+
+---
+
+# 33. Interdizione e inabilitazione
+
+```text
+INTERDIZIONE_RICORSO
+INTERDIZIONE_NOTIFICA
+INTERDIZIONE_ESAME
+INTERDIZIONE_SENTENZA
+INABILITAZIONE_RICORSO
+```
+
+---
+
+# 34. Assenza e morte presunta
+
+```text
+SCOMPARSA
+ASSENZA
+MORTE_PRESUNTA
+PUBBLICAZIONE
+NOTIFICHE_PARENTI
+```
+
+Sono importanti perché possono comprendere forme di pubblicità oltre alla notifica ordinaria.
+
+---
+
+# 35. Stato delle persone
+
+Aggiungere:
+
+- disconoscimento paternità;
+- riconoscimento;
+- contestazione stato;
+- rettificazione atti stato civile;
+- cambio nome/cognome nei procedimenti rilevanti;
+- adozione;
+- procedimenti minorili.
+
+---
+
+# 36. Adozione
+
+Procedimento completamente separato:
+
+```text
+ADOZIONE_NAZIONALE
+ADOZIONE_INTERNAZIONALE
+ADOZIONE_MAGGIORENNE
+ADOZIONE_CASI_PARTICOLARI
+```
+
+---
+
+# 37. Violenza domestica
+
+Oltre agli ordini di protezione civili:
+
+- ammonimento questore;
+- misure penali;
+- divieto avvicinamento;
+- allontanamento;
+- comunicazioni alla persona offesa;
+- modifica/revoca misura.
+
+---
+
+# 38. Ammonimento del Questore
+
+Creare procedimento amministrativo autonomo per le fattispecie previste.
+
+---
+
+# 39. Immigrazione più granulare
+
+```text
+IMM_ESPULSIONE
+IMM_CONVALIDA
+IMM_TRATTENIMENTO_CPR
+IMM_PROROGA_TRATTENIMENTO
+IMM_RICORSO_DINIEGO_PERMESSO
+IMM_PROTEZIONE_INTERNAZIONALE
+IMM_DUBLINO
+IMM_CITTADINANZA
+IMM_RICONGIUNGIMENTO
+IMM_DINIEGO_VISTO
+```
+
+---
+
+# 40. Procedimenti elettorali
+
+Distingui almeno:
+
+```text
+ELETTORALE_ELETTORATO_ATTIVO
+ELETTORALE_ELEGGIBILITA
+ELETTORALE_INCOMPATIBILITA
+ELETTORALE_OPERAZIONI_ELETTORALI
+ELETTORALE_COMUNALE
+ELETTORALE_REGIONALE
+ELETTORALE_EUROPEE
+```
+
+Perché hanno termini eccezionalmente brevi.
+
+---
+
+# 41. Elezioni degli ordini professionali
+
+Altro sottosistema spesso dimenticato.
+
+---
+
+# 42. Appalti — sottoeventi mancanti
+
+Non basta `APPALTI 30 giorni`.
+
+Creerei:
+
+```text
+APPALTO_AGGIUDICAZIONE
+APPALTO_ESCLUSIONE
+APPALTO_AMMISSIONE
+APPALTO_ACCESSO_ATTI
+APPALTO_OSCURAMENTO_OFFERTA
+APPALTO_STANDSTILL
+APPALTO_RICORSO
+APPALTO_MOTIVI_AGGIUNTI
+APPALTO_RICORSO_INCIDENTALE
+APPALTO_CAUTELARE
+APPALTO_APPELLO
+APPALTO_SUBENTRO
+APPALTO_INEFFICACIA_CONTRATTO
+```
+
+---
+
+# 43. Pubblico impiego non privatizzato
+
+Specificare:
+
+- magistrati;
+- militari;
+- forze di polizia;
+- diplomatici;
+- professori universitari nei casi di giurisdizione amministrativa;
+- altre categorie ex art. 3 D.Lgs. 165/2001.
+
+---
+
+# 44. Militare
+
+Aggiungere:
+
+```text
+MIL_DISCIPLINARE
+MIL_SANZIONE
+MIL_TRASFERIMENTO
+MIL_STATO_GIURIDICO
+MIL_RICORSO_TAR
+MIL_RICORSO_STRAORDINARIO
+```
+
+---
+
+# 45. Ricorso straordinario al Presidente della Repubblica
+
+Importante e finora assente.
+
+```text
+RSPR_RICORSO
+RSPR_NOTIFICA_AMMINISTRAZIONE
+RSPR_NOTIFICA_CONTROINTERESSATI
+RSPR_TRASPOSIZIONE_TAR
+RSPR_DECISIONE
+```
+
+---
+
+# 46. Trasposizione del ricorso straordinario al TAR
+
+Va generato come evento separato perché la notificazione dell'opposizione del controinteressato/amministrazione può modificare completamente il percorso.
+
+---
+
+# 47. Processo tributario — atti specifici mancanti
+
+Espanderei:
+
+```text
+TRIB_AVVISO_ACCERTAMENTO
+TRIB_AVVISO_LIQUIDAZIONE
+TRIB_CARTELLA
+TRIB_INTIMAZIONE
+TRIB_IPOTECA
+TRIB_FERMO
+TRIB_DINIEGO_RIMBORSO
+TRIB_SILENZIO_RIMBORSO
+TRIB_DINIEGO_AGEVOLAZIONE
+TRIB_ATTO_CATASTALE
+TRIB_ACCERTAMENTO_ESECUTIVO
+TRIB_ATTO_RECUPERO_CREDITO
+TRIB_ATTO_DOGANALE
+TRIB_ATTO_ENTE_LOCALE
+```
+
+---
+
+# 48. Dogane e accise
+
+Sottosistema:
+
+```text
+DOGANA_ACCERTAMENTO
+DOGANA_RETTIFICA
+DOGANA_DAZI
+ACCISE
+RICORSO_TRIBUTARIO_DOGANE
+```
+
+---
+
+# 49. Tributi locali
+
+Distinguere:
+
+- IMU;
+- TARI;
+- TASI residua;
+- imposta soggiorno;
+- CUP/canone unico;
+- altri tributi locali.
+
+---
+
+# 50. Riscossione
+
+Sottosistema autonomo:
+
+```text
+RISC_CARTELLA
+RISC_INTIMAZIONE
+RISC_PREAVVISO_FERMO
+RISC_FERMO
+RISC_IPOTECA
+RISC_PIGNORAMENTO_TERZI
+RISC_PIGNORAMENTO_IMMOBILIARE
+RISC_RATEAZIONE
+RISC_DECADENZA_RATEAZIONE
+```
+
+---
+
+# 51. Penale — querela
+
+Manca:
+
+```text
+PEN_QUERELA
+PEN_REMISSIONE_QUERELA
+PEN_ACCETTAZIONE_REMISSIONE
+```
+
+Serve anche motore per termini di proposizione della querela, che possono variare per reato.
+
+---
+
+# 52. Denuncia ed esposto
+
+```text
+PEN_DENUNCIA
+PEN_ESPOSTO
+```
+
+Non sempre sono “notifiche”, ma sono eventi legali da distinguere.
+
+---
+
+# 53. Costituzione di parte civile
+
+Più granulare:
+
+```text
+PEN_PC_COSTITUZIONE
+PEN_PC_NOTIFICA_FUORI_UDIENZA
+PEN_PC_CITAZIONE_RESPONSABILE_CIVILE
+PEN_PC_CITAZIONE_CIVILMENTE_OBBLIGATO
+```
+
+---
+
+# 54. Citazione diretta a giudizio
+
+Separarla dall'udienza preliminare e dagli altri riti.
+
+---
+
+# 55. Predibattimento
+
+Dopo Cartabia il procedimento davanti al tribunale monocratico richiede una classificazione autonoma della fase predibattimentale.
+
+```text
+PEN_PREDIBATTIMENTALE
+PEN_SENTENZA_NON_LUOGO
+PEN_PROSECUZIONE_DIBATTIMENTO
+```
+
+---
+
+# 56. Riti alternativi penali
+
+Aggiungere:
+
+```text
+PEN_ABBREVIATO
+PEN_PATTEGGIAMENTO
+PEN_MESSA_PROVA
+PEN_OBLAZIONE
+PEN_CONDOTTE_RIPARATORIE
+```
+
+Ognuno genera termini differenti.
+
+---
+
+# 57. MAP — messa alla prova
+
+Gestire:
+
+- richiesta;
+- elaborazione programma UEPE;
+- udienza;
+- ordinanza;
+- esito;
+- eventuale revoca.
+
+---
+
+# 58. Esecuzione penale più dettagliata
+
+```text
+PEN_ORDINE_ESECUZIONE
+PEN_SOSPENSIONE_ORDINE
+PEN_ISTANZA_MISURA_ALTERNATIVA
+PEN_INCIDENTE_ESECUZIONE
+PEN_CUMULO_PENE
+PEN_REVOCA_BENEFICIO
+PEN_ESTINZIONE_REATO
+```
+
+---
+
+# 59. Mandato d'arresto europeo
+
+Mancava completamente.
+
+```text
+MAE_PASSIVO
+MAE_ATTIVO
+MAE_ARRESTO
+MAE_CONVALIDA
+MAE_CONSEGNA
+MAE_OPPOSIZIONE
+MAE_RICORSO_CASSAZIONE
+```
+
+---
+
+# 60. Estradizione
+
+```text
+ESTRADIZIONE_ATTIVA
+ESTRADIZIONE_PASSIVA
+ESTRADIZIONE_PROVVISORIA
+ESTRADIZIONE_DECISIONE
+```
+
+---
+
+# 61. Ordine europeo di indagine
+
+Direttiva 2014/41/UE.
+
+```text
+OEI_EMISSIONE
+OEI_ESECUZIONE
+OEI_IMPUGNAZIONE
+```
+
+---
+
+# 62. Riconoscimento sanzioni pecuniarie UE
+
+Altro modulo transfrontaliero.
+
+---
+
+# 63. Confisca e congelamento UE
+
+Inserire strumenti UE sul riconoscimento reciproco dei provvedimenti di congelamento/confisca.
+
+---
+
+# 64. Processo davanti alla Corte costituzionale
+
+Raro ma da includere.
+
+```text
+COST_ORDINANZA_RIMESSIONE
+COST_NOTIFICA_PARTI
+COST_NOTIFICA_PCM
+COST_COMUNICAZIONE_PRESIDENTI_CAMERE
+COST_COSTITUZIONE
+COST_UDIENZA
+COST_SENTENZA
+```
+
+---
+
+# 65. Corte EDU
+
+Per studi che seguono contenzioso sovranazionale:
+
+```text
+CEDU_RICORSO
+CEDU_COMUNICAZIONE_GOVERNO
+CEDU_OSSERVAZIONI
+CEDU_DECISIONE
+CEDU_SENTENZA
+```
+
+Non va confusa con le notificazioni processuali nazionali.
+
+---
+
+# 66. Corte di giustizia UE
+
+```text
+CGUE_RINVIO_PREGIUDIZIALE
+CGUE_RICORSO_DIRETTO
+CGUE_NOTIFICA_ATTI
+CGUE_MEMORIE
+```
+
+---
+
+# 67. Cassazione — regolamento di competenza
+
+Manca:
+
+```text
+CIV_REGOLAMENTO_COMPETENZA
+CIV_REGOLAMENTO_GIURISDIZIONE
+```
+
+---
+
+# 68. Regolamento preventivo di giurisdizione
+
+Categoria autonoma.
+
+---
+
+# 69. Correzione sentenza/provvedimento
+
+```text
+CIV_CORREZIONE_ERRORE_MATERIALE
+CIV_NOTIFICA_RICORSO_CORREZIONE
+```
+
+---
+
+# 70. Ricusazione giudice
+
+Civile, penale, amministrativo devono avere categorie separate.
+
+---
+
+# 71. Astensione / incompatibilità
+
+Evento processuale separato.
+
+---
+
+# 72. Intervento volontario
+
+Non è sempre una notifica ma può comportare nuovi obblighi di comunicazione/notifica alle parti.
+
+---
+
+# 73. Estromissione
+
+Generare evento processuale.
+
+---
+
+# 74. Contumacia
+
+Il sistema deve riconoscere:
+
+```text
+CONTUMACIA
+NOTIFICA_PERSONALE_ATTI_CONTUMACE
+```
+
+per gli atti che richiedono notificazione personale al contumace.
+
+---
+
+# 75. Disconoscimento scrittura privata
+
+Evento a termine collegato alla prima udienza/difesa.
+
+---
+
+# 76. Querela di falso
+
+Gestire anche notifiche al PM e alle parti nei casi previsti.
+
+---
+
+# 77. CTU
+
+Aggiungere:
+
+```text
+CTU_NOMINA
+CTU_GIURAMENTO
+CTU_INIZIO_OPERAZIONI
+CTU_COMUNICAZIONE_OPERAZIONI
+CTU_BOZZA
+CTU_OSSERVAZIONI
+CTU_DEPOSITO
+```
+
+Molte sono comunicazioni, non notifiche, ma Lex deve distinguerle.
+
+---
+
+# 78. CTP
+
+```text
+CTP_NOMINA
+CTP_COMUNICAZIONE
+```
+
+---
+
+# 79. Testimoni civili
+
+```text
+CIV_INTIMAZIONE_TESTIMONE
+CIV_INTIMAZIONE_UFFICIALE
+CIV_MANCATA_COMPARIZIONE
+```
+
+---
+
+# 80. Ordine di esibizione
+
+```text
+CIV_ORDINE_ESIBIZIONE_PARTE
+CIV_ORDINE_ESIBIZIONE_TERZO
+```
+
+---
+
+# 81. Richiesta informazioni PA ex art. 213 c.p.c.
+
+Da censire come comunicazione processuale.
+
+---
+
+# 82. Processo telematico — esiti che NON sono notifiche
+
+Questo è fondamentale per la PEC intelligence.
+
+Classifica separatamente:
+
+```text
+PCT_ACCETTAZIONE_PEC
+PCT_CONSEGNA_PEC
+PCT_ESITO_CONTROLLI_AUTOMATICI
+PCT_ESITO_CANCELLERIA
+PCT_RIFIUTO_DEPOSITO
+PCT_ACCETTAZIONE_DEPOSITO
+PCT_COMUNICAZIONE_CANCELLERIA
+PAT_RICEVUTA_DEPOSITO
+PTT_RICEVUTA_DEPOSITO
+PPT_RICEVUTA_DEPOSITO
+```
+
+Questi eventi **non devono mai essere automaticamente interpretati come notificazioni alla controparte**.
+
+---
+
+# 83. Avviso di deposito e notifica: relazione
+
+Aggiungi un campo:
+
+```text
+legal_effect:
+NONE
+KNOWLEDGE
+STARTS_DEADLINE
+INTERRUPTS_LIMITATION
+PREVENTS_FORFEITURE
+STARTS_SHORT_APPEAL_TERM
+CREATES_DUTY_TO_NOTIFY
+CREATES_DUTY_TO_FILE
+```
+
+Questo risolve moltissimi problemi.
+
+---
+
+# 84. Mediazione — correzione importante
+
+La precedente voce va resa più precisa perché la **comunicazione della domanda di mediazione** ha effetti autonomi su prescrizione e decadenza. La disciplina collega tali effetti alla comunicazione alle altre parti. :chatgpt-content-reference{index="4"}
+
+Quindi:
+
+```text
+MEDIAZIONE_DOMANDA_DEPOSITATA
+MEDIAZIONE_DOMANDA_COMUNICATA
+MEDIAZIONE_EFFETTO_PRESCRIZIONE
+MEDIAZIONE_EFFETTO_DECADENZA
+MEDIAZIONE_VERBALE_NEGATIVO
+MEDIAZIONE_RIPARTENZA_TERMINE
+```
+
+---
+
+# 85. Negoziazione assistita — effetti su prescrizione/decadenza
+
+Anche qui devi modellare:
+
+```text
+NEG_INVITO_INVIATO
+NEG_INVITO_RICEVUTO
+NEG_EFFETTO_PRESCRIZIONE
+NEG_EFFETTO_DECADENZA
+NEG_RIFIUTO
+NEG_MANCATA_RISPOSTA
+NEG_ACCORDO
+```
+
+---
+
+# 86. Comunicazione di cessione del credito
+
+Art. 1264 c.c.
+
+```text
+CESSIONE_CREDITO_NOTIFICA
+CESSIONE_CREDITO_ACCETTAZIONE
+```
+
+---
+
+# 87. Cessione contratto
+
+Gestire consenso/notifica quando rilevante.
+
+---
+
+# 88. Compensazione / diffide contrattuali
+
+Possono produrre effetti sostanziali e vanno classificate.
+
+---
+
+# 89. Garanzia per vizi
+
+Distinguere:
+
+- vendita;
+- appalto;
+- consumo.
+
+```text
+VIZI_DENUNCIA
+VIZI_DECADENZA
+```
+
+I termini cambiano completamente per disciplina.
+
+---
+
+# 90. Appalto privato
+
+```text
+APPALTO_DENUNCIA_VIZI
+APPALTO_DIFFIDA
+APPALTO_RISOLUZIONE
+APPALTO_COLLALDO
+```
+
+---
+
+# 91. Vendita
+
+```text
+VENDITA_DENUNCIA_VIZI
+VENDITA_EVIZIONE
+VENDITA_PRELAZIONE
+```
+
+---
+
+# 92. Trasporto
+
+Denunce e riserve hanno termini speciali.
+
+---
+
+# 93. Spedizione
+
+Separare dal trasporto.
+
+---
+
+# 94. Lavoro — procedimenti sindacali
+
+Art. **28 Statuto dei lavoratori**:
+
+```text
+LAVORO_CONDOTTA_ANTISINDACALE
+LAVORO_DECRETO_28
+LAVORO_OPPOSIZIONE_28
+```
+
+È un rito urgente e merita priorità critica.
+
+---
+
+# 95. Lavoro — trasferimenti e sanzioni disciplinari
+
+```text
+LAVORO_CONTESTAZIONE_DISCIPLINARE
+LAVORO_GIUSTIFICAZIONI
+LAVORO_SANZIONE
+LAVORO_IMPUGNAZIONE_SANZIONE
+```
+
+---
+
+# 96. Licenziamento collettivo
+
+Separarlo dal licenziamento individuale.
+
+---
+
+# 97. Cessione d'azienda
+
+Comunicazioni sindacali e procedimenti dedicati nei casi applicabili.
+
+---
+
+# 98. Previdenza — INPS
+
+Catalogare:
+
+```text
+INPS_PROVVEDIMENTO
+INPS_RICORSO_AMMINISTRATIVO
+INPS_DECADENZA
+INPS_RICORSO_GIUDIZIALE
+```
+
+---
+
+# 99. INAIL
+
+Procedimento autonomo:
+
+```text
+INAIL_PROVVEDIMENTO
+INAIL_OPPOSIZIONE
+INAIL_RICORSO
+```
+
+---
+
+# 100. Opposizione a cartella previdenziale
+
+Deve distinguere:
+
+- merito contributivo;
+- vizi esecutivi;
+- vizi della notificazione;
+- prescrizione.
+
+---
+
+## Quello che farei adesso nel database
+
+Con queste aggiunte, la tassonomia non dovrebbe fermarsi a `materia`.
+
+Aggiungerei:
+
+```text
+jurisdiction
+sub_jurisdiction
+procedure_family
+procedure
+subprocedure
+event
+legal_effect
+notification_type
+source_authority
+recipient_role
+deadline_class
+deadline_rule
+followup_event
+```
+
+e soprattutto un campo:
+
+```text
+rule_scope:
+NATIONAL_GENERAL
+NATIONAL_SPECIAL
+EU_REGULATION
+INTERNATIONAL_CONVENTION
+COURT_ORDER
+ADMINISTRATIVE_AUTHORITY
+PROFESSIONAL_REGULATION
+CONTRACTUAL
+```
+
+Così IUSENTRA può capire **perché** esiste quella scadenza.
+
+Con queste integrazioni siamo già nell'ordine di **oltre 300 possibili eventi atomici**. Per renderlo realmente “chiuso” per il software, il passo corretto successivo è scomporre ciascuno in una riga dati; ad esempio non `PENALE = 1 regola`, ma `415-bis ricevuto`, `avviso archiviazione`, `decreto penale`, `citazione diretta`, `MAE`, ecc., ognuno con il proprio termine e dies a quo.
+
+E aggiungerei sempre una regola finale universale:
+
+```text
+CUSTOM_LEGAL_DEADLINE
+
+source:
+COURT_ORDER / LAW / AUTHORITY / CONTRACT
+
+action_required:
+NOTIFY / FILE / APPEAL / RESPOND / SERVE / COMMUNICATE
+
+deadline:
+EXTRACT_FROM_DOCUMENT
+
+human_validation:
+REQUIRED
+```
+
+Questa è la rete di sicurezza che impedisce a IUSENTRA di dire erroneamente **“nessuna notifica prevista”** solo perché un caso nuovo o eccezionale non è ancora censito nel catalogo.

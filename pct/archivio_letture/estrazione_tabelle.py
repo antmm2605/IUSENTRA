@@ -28,10 +28,15 @@ from typing import Any
 
 from pct.registro_letture.fatti_repository import Fatto
 
-VERSIONE_ESTRAZIONE_TABELLE = "2026.09.26.tabelle.v1"
+VERSIONE_ESTRAZIONE_TABELLE = "2026.10.01.tabelle.v2+subtotali-compensi"
 CAMPO = "prospetto_tabellare"
 
-_TOTALE = re.compile(r"^(?:totale|tot\.|netto|saldo|imponibile(?:\s+iva)?|importo\s+complessivo|somma\s+complessiva|complessivo)\b", re.IGNORECASE)
+_TOTALE = re.compile(
+    r"^(?:totale|subtotale|tot\.|netto|saldo|imponibile(?:\s+iva)?|"
+    r"importo\s+complessivo|somma\s+complessiva|complessivo|"
+    r"compenso\s+tabellare|ipotesi\s+(?:di\s+)?compenso\s+liquidabile)\b",
+    re.IGNORECASE,
+)
 _SOTTRAZIONE = re.compile(r"ritenuta|acconto\s+(?:gi[aà]\s+)?versat|detrazion|sconto|riduzion|a\s+dedurre", re.IGNORECASE)
 _INTESTAZIONE = re.compile(r"^(?:voce|descrizione|importo|rata|periodo|data)\b", re.IGNORECASE)
 
@@ -108,7 +113,10 @@ def prospetto(tabella: Any) -> dict[str, Any] | None:
             errori.append(f"«{riga['voce']}» {_euro(riga['importo'])}: le voci sommano {_euro(vicina)}")
         ultimo_totale = riga["importo"]
         dall_ultimo = []
-    totale = righe[-1]["importo"] if righe[-1]["totale"] else sum((r["importo"] for r in voci), Decimal("0"))
+    # I subtotali riassumono le voci precedenti: non sono nuove prestazioni.
+    # Se seguono accessori senza un totale finale, si parte dall'ultimo
+    # subtotale e si aggiungono soltanto le righe successive.
+    totale = (ultimo_totale or Decimal("0")) + sum(dall_ultimo, Decimal("0"))
     testo_righe = " ".join(r["voce"] for r in righe)
     norma = next((n for schema, n in NORME if schema.search(testo_righe)), "prospetto del documento")
     esito = "errore" if errori else "ok" if controlli else "attenzione"

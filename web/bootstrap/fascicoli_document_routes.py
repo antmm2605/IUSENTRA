@@ -127,6 +127,7 @@ def register_fascicoli_document_routes(
                     source_type="documenti_fascicolo",
                     metadata={
                         "trigger": "upload_documenti_fascicolo",
+                        "source_display_sha256": str(getattr(documento, "hash_contenuto_sha256", "") or ""),
                         "classificazione_modalita": "manuale" if manuale else "auto",
                         "tipo_documento": tipo_doc.value,
                     },

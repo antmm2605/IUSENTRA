@@ -123,6 +123,8 @@ function initialFascicoloId(): string {
 
 function routeDeadlineId(): string {
   const parts = window.location.pathname.split('/').filter(Boolean)
+  const focus = new URLSearchParams(window.location.search).get('focus') || ''
+  if (parts[0] === 'scadenziario' && !parts[1] && /^[A-Za-z0-9-]{1,100}$/.test(focus)) return focus
   if (parts[0] !== 'scadenziario' || !parts[1] || parts[1] === 'nuova') return ''
   return decodeURIComponent(parts[1])
 }
@@ -914,6 +916,7 @@ function DeadlineFocusDetail({
   onComplete,
   onDelete,
   onClose,
+  embedded = false,
 }:{
   row: ScadenziarioRow
   notificationPresidio: boolean
@@ -921,6 +924,7 @@ function DeadlineFocusDetail({
   onComplete: (item: ScadenziarioRow) => void
   onDelete: (item: ScadenziarioRow) => void
   onClose: () => void
+  embedded?: boolean
 }) {
   const groups = deadlineFactGroups(row, { notificationPresidio })
   const description = deadlineWhatToDo(row)
@@ -951,7 +955,7 @@ function DeadlineFocusDetail({
         <button type="button" onClick={() => onComplete(row)}><CheckCircle2 size={15}/> Completa</button>
         <Button href={row.editHref}><Edit3 size={15}/> Modifica</Button>
         <button type="button" className="is-danger" onClick={() => onDelete(row)}><Trash2 size={15}/> Elimina</button>
-        <button type="button" className="iu-scad-focus-back" onClick={onClose}><ArrowLeft size={15}/> Torna allo scadenziario</button>
+        {!embedded ? <button type="button" className="iu-scad-focus-back" onClick={onClose}><ArrowLeft size={15}/> Torna allo scadenziario</button> : null}
       </div>
       <section className="iu-scad-focus-block" aria-label="Cosa fare">
         <h3><ListChecks size={15}/> Cosa fare</h3>
@@ -1133,7 +1137,7 @@ export function ScadenziarioPage() {
   const load = () => {
     setLoading(true)
     setBackgroundLoading(false)
-    getScadenziarioPage(buildQuery(false)).then((payload) => {
+    getScadenziarioPage(buildQuery(Boolean(routeDeadlineId()))).then((payload) => {
       setData(payload)
       setSelectedIds((current) => current.filter((id) => payload.items.some((item) => item.id === id)))
     }).finally(() => setLoading(false))
@@ -1405,11 +1409,33 @@ export function ScadenziarioPage() {
   }
 
   const closeDeadlineDetail = () => {
-    window.history.replaceState(window.history.state, '', `/scadenziario${window.location.search}`)
+    const params = new URLSearchParams(window.location.search)
+    params.delete('focus')
+    window.history.replaceState(window.history.state, '', `/scadenziario${params.size ? `?${params.toString()}` : ''}`)
     setDetailPreviewId('')
     if (data.query.compact) {
       load()
     }
+  }
+
+  if (routeDeadlineId() && new URLSearchParams(window.location.search).get('embed') === 'source') {
+    return (
+      <main className="iu-content iu-scad-page" aria-label="Dettaglio scadenza">
+        {loading ? <p role="status">Caricamento della scadenza selezionata…</p> : focusedRow ? <>
+          <header data-iusentra-sequence-slot="page-header">
+            <h1>{focusedRow.title}</h1>
+            <p>{[focusedRow.fascicoloLabel, focusedRow.clientLabel].filter(Boolean).join(' · ')}</p>
+          </header>
+          <DeadlineFocusDetail row={focusedRow} notificationPresidio={isNotificationPresidio} onOpenSource={setSourcePreview} onComplete={runComplete} onDelete={runDelete} onClose={closeDeadlineDetail} embedded/>
+        </> : <p role="alert">La scadenza selezionata non è disponibile. Chiudi il dettaglio e verifica il collegamento nel fascicolo.</p>}
+        <SourceDocumentModal source={sourcePreview ? {
+          href: sourcePreview.sourceHref,
+          label: sourcePreview.sourceLabel || 'Fonte originaria',
+          context: [sourcePreview.title, sourcePreview.fascicoloLabel, sourcePreview.clientLabel].filter(Boolean).join(' · '),
+          kind: sourcePreview.sourceKind,
+        } : null} onClose={() => setSourcePreview(null)}/>
+      </main>
+    )
   }
 
   return (

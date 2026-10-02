@@ -27,7 +27,7 @@ from pct.registro_letture.fatti_repository import Fatto
 
 from .ancoraggio import brano
 
-VERSIONE_ESTRAZIONE_IMPORTI = "2026.09.18.importi.v3+ricevuta-telematica"
+VERSIONE_ESTRAZIONE_IMPORTI = "2026.10.01.importi.v7+prove-economiche-pec"
 
 # Campo del fatto → etichetta italiana e norma che lo governa.
 CAMPI_IMPORTO: dict[str, tuple[str, str]] = {
@@ -197,12 +197,15 @@ def importi_dalla_sentenza(testo: str, *, metadata: dict[str, Any] | None = None
 def importo_contributo_unificato(testo: str, *, metadata: dict[str, Any] | None = None, origine: str = "") -> list[Fatto]:
     """Il contributo unificato da una ricevuta di pagamento o da un modello PagoPA."""
     from pct.fascicolo_sentenza_economica import extract_contributo_unificato_document_evidence
+    from .verifica_economica import identita, prova_dichiarazione, prova_ricevuta, ricevuta_xml
 
     grezzo = str(testo or "")
     if not grezzo.strip():
         return []
+    meta = metadata or {}
     try:
-        evidenza = extract_contributo_unificato_document_evidence(grezzo, metadata or {})
+        xml, dati_rt = ricevuta_xml(grezzo)
+        evidenza = dati_rt if xml else extract_contributo_unificato_document_evidence(grezzo, meta)
     except Exception:
         return []
     if not isinstance(evidenza, dict):
@@ -213,7 +216,13 @@ def importo_contributo_unificato(testo: str, *, metadata: dict[str, Any] | None 
             etichetta="Dichiarazione di esenzione dal contributo unificato",
             contesto=_testo(evidenza.get("titolo") or "Esenzione dichiarata nel documento"),
             origine=origine, verifica="verificata" if origine == "nativo" else "plausibile",
-            prove=[{"codice":"dichiarazione_esenzione", "esito":"ok", "dettaglio":"Dichiarazione presente; nessuna attestazione automatica dei requisiti reddituali."}])]
+            prove=[{"codice":"dichiarazione_esenzione", "esito":"ok", "dettaglio":"Dichiarazione presente; nessuna attestazione automatica dei requisiti reddituali."},
+                   prova_dichiarazione(grezzo, secondario=str(meta.get("testo_secondario") or "")), *identita(grezzo, meta)])]
+    if xml and (dati_rt.get("errore") or dati_rt.get("status") != "pagato"):
+        return [Fatto(categoria="evento", campo="pagamento_cu_non_verificato", valore="verifica_necessaria",
+            etichetta="Ricevuta del contributo unificato da verificare", origine=origine,
+            verifica="plausibile", contesto=prova_ricevuta(dati_rt)["dettaglio"],
+            prove=[prova_ricevuta(dati_rt), *identita(grezzo, meta)])]
     importo = _importo(evidenza.get("importo"))
     if importo is None:
         return []
@@ -228,6 +237,13 @@ def importo_contributo_unificato(testo: str, *, metadata: dict[str, Any] | None 
     quando = data_del_versamento(grezzo)
     if quando:
         fatto.prove = list(fatto.prove) + [{"codice": "data", "esito": "ok", "dettaglio": quando}]
+    fatto.prove = list(fatto.prove) + identita(grezzo, meta)
+    if xml:
+        fatto.prove += [prova_ricevuta(dati_rt),
+                        {"codice": "iuv_economico", "esito": "ok" if dati_rt.get("iuv") else "attenzione",
+                         "dettaglio": str(dati_rt.get("iuv") or "")},
+                        {"codice": "iur_economico", "esito": "ok" if dati_rt.get("iur") else "attenzione",
+                         "dettaglio": ", ".join(dati_rt.get("iur") or [])}]
     return [fatto]
 
 

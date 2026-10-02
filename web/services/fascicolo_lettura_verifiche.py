@@ -62,20 +62,30 @@ def _leggi_tutto(percorso: Path) -> dict[str, Any]:
 
 
 def leggi_registro(fascicolo_id: str, *, paths: dict[str, Any] | None = None, config: dict[str, Any] | None = None) -> dict[str, Any]:
-    record = dict(_leggi_tutto(registro_path(paths, config)).get(_clean(fascicolo_id)) or {})
+    from pct.discordanze_letture_repository import RegistroDiscordanze
+    from web.services.registro_letture_runtime import registro_per_percorsi, tenant_corrente
+
+    record, _ = RegistroDiscordanze(registro_per_percorsi(paths)).esito(tenant_corrente(),_clean(fascicolo_id))
     if record:
         record["eseguita_il_it"] = _data_it(record.get("eseguita_il", ""))
-    record["in_corso"] = _clean(fascicolo_id) in _IN_CORSO
+    record["in_corso"] = bool(record.get("in_corso"))
     return record
 
 
 def scrivi_registro(fascicolo_id: str, record: dict[str, Any], *, paths: dict[str, Any] | None = None, config: dict[str, Any] | None = None) -> None:
+    from pct.discordanze_letture_repository import RegistroDiscordanze
+    from web.services.registro_letture_runtime import registro_per_percorsi, tenant_corrente
+
+    RegistroDiscordanze(registro_per_percorsi(paths)).pubblica_esito(tenant_corrente(),_clean(fascicolo_id),record)
     percorso = registro_path(paths, config)
     with _LOCK:
         tutto = _leggi_tutto(percorso)
         tutto[_clean(fascicolo_id)] = {chiave: valore for chiave, valore in record.items() if chiave != "in_corso"}
         percorso.parent.mkdir(parents=True, exist_ok=True)
-        percorso.write_text(json.dumps(tutto, ensure_ascii=False, indent=1), encoding="utf-8")
+        try:
+            percorso.write_text(json.dumps(tutto, ensure_ascii=False, indent=1), encoding="utf-8")
+        except OSError:
+            logger.warning("Mirror JSON degli esiti non aggiornato; esito conservato in SQL per %s", fascicolo_id)
 
 
 def verifiche_necessarie(record: dict[str, Any], *, forza: bool = False) -> bool:
@@ -138,7 +148,9 @@ def verifica_pec(fascicolo: Any, *, repository: Any = None) -> dict[str, Any]:
 
         repository = repository_for_current_request()
     messaggi = messaggi_pec_per_fascicolo(fascicolo, repository=repository)
-    collegate: list[str] = []
+    from web.services.ricevute_collegamento_esito import collega_ricevute_da_esito
+
+    collegate: list[str] = collega_ricevute_da_esito(fascicolo, messaggi, repository)
     da_confermare: list[dict[str, str]] = []
     for messaggio in messaggi:
         if messaggio.get("collegata"):
@@ -345,6 +357,8 @@ def esegui_verifiche(app: Any, fascicolo_id: str, *, paths: dict[str, Any] | Non
             ("documenti", lambda: verifica_documenti(fascicolo_id, tenant_slug)),
             ("archivio", lambda: verifica_archivio(fascicolo)),
         )
+        record["in_corso"] = True
+        scrivi_registro(fascicolo_id, record, paths=paths, config=app.config)
         for nome, funzione in passi:
             try:
                 record["esiti"][nome] = funzione()
@@ -360,6 +374,7 @@ def esegui_verifiche(app: Any, fascicolo_id: str, *, paths: dict[str, Any] | Non
         except Exception as exc:
             record["errori"]["conoscenza"] = str(exc)[:200]
         record["completata_il"] = _adesso()
+        record["in_corso"] = False
         scrivi_registro(fascicolo_id, record, paths=paths, config=app.config)
     return record
 

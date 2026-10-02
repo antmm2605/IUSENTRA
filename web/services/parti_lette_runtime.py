@@ -156,7 +156,20 @@ def parti_proposte(fascicolo: Any, *, gestione: Any = None) -> list[dict[str, An
     fatti = fatti_fascicolo(fascicolo, categoria="parte")
     voci = confronta_con_fascicolo(parti_lette(fatti), nome_cliente=_testo(getattr(fascicolo, "nome_cliente", "")),
                                    parti_esistenti=gestione.parti_fascicolo(_testo(getattr(fascicolo, "id", ""))))
-    return [voce.to_dict() for voce in voci]
+    risultato = [voce.to_dict() for voce in voci]
+    # Il dato dello studio si legge dalla scheda collegata, non si ricava
+    # correggendo il testo dell'atto. Il confronto non scrive anagrafiche.
+    cliente_id = _testo(getattr(fascicolo, "id_cliente", ""))
+    if cliente_id and any(v["eIlCliente"] for v in risultato):
+        from web.helpers import get_clienti
+
+        cliente = get_clienti().get(cliente_id)
+        codice = _testo(getattr(cliente, "codice_fiscale", "")).upper()
+        for voce in risultato:
+            if voce["eIlCliente"] and codice:
+                voce["codiceFiscaleAnagrafica"] = codice
+                voce["codiceFiscaleDiscordante"] = bool(voce["codiceFiscale"] and voce["codiceFiscale"].upper() != codice)
+    return risultato
 
 
 def aggiungi_parte_proposta(fascicolo: Any, nome: str, ruolo: str, *, gestione: Any = None) -> dict[str, Any]:

@@ -420,6 +420,7 @@ from web.services.quickorganizer_import import (
     complete_chunked_upload,
     import_quickorganizer_package,
     load_staged_package,
+    list_staged_packages,
     max_chunked_upload_bytes,
     receive_auto_prepare_chunk,
     receive_chunked_upload,
@@ -1738,6 +1739,7 @@ def _studio_telematico_import_page(path: str = "/importa-pratiche") -> dict[str,
         ],
         "acceptedFiles": ".zip,.json,.mdb",
         "localPathEnabled": _studio_telematico_local_path_enabled(),
+        "storedPackages": list_staged_packages(_studio_telematico_staging_root()) if can_import else [],
         "actions": {
             "refresh": "/api/v1/ui/import/quickorganizer",
             "preview": "/api/v1/ui/import/quickorganizer/anteprima",
@@ -16108,6 +16110,11 @@ def email_source_attachment(message_id: str):
 
     requested_name = Path(str(request.args.get("name", "") or "").replace("\\", "/")).name.rstrip(" .").casefold()
 
+    expected_attachment_sha = str(request.args.get("sha256") or "").strip().lower()
+    if expected_attachment_sha and not re.fullmatch(r"[0-9a-f]{64}", expected_attachment_sha):
+        return Response("Impronta della fonte non valida.", status=400, mimetype="text/plain")
+    cache_requested_name = requested_name + ("|sha256:" + expected_attachment_sha if expected_attachment_sha else "")
+
     def matching_indices(names: list[str]) -> list[int]:
         normalized = [Path(name.replace("\\", "/")).name.rstrip(" .").casefold() for name in names]
         matches = [index for index, name in enumerate(normalized) if name == requested_name]
@@ -16146,7 +16153,7 @@ def email_source_attachment(message_id: str):
             cache_key = _email_source_cache_key(
                 tenant_id=tenant_id,
                 message_id=message_id,
-                requested_name=requested_name,
+                requested_name=cache_requested_name,
                 source_sha256=source_sha256,
             )
             cached_response = _serve_cached_email_source_preview(cache_key, message_id=message_id)
@@ -16168,6 +16175,9 @@ def email_source_attachment(message_id: str):
         _, _, audit_attachments = extract_message_parts(message_from_bytes(raw_mime_bytes))
         names = [attachment.filename for attachment in audit_attachments]
         matching = matching_indices(names)
+        if expected_attachment_sha:
+            matching = [index for index in matching
+                        if hashlib.sha256(audit_attachments[index].data).hexdigest() == expected_attachment_sha]
         if len(matching) != 1:
             return Response("L'allegato indicato non è stato trovato in modo univoco nella PEC.", status=404, mimetype="text/plain")
         audit_attachment = audit_attachments[matching[0]]
@@ -16209,7 +16219,7 @@ def email_source_attachment(message_id: str):
             cache_key = _email_source_cache_key(
                 tenant_id=tenant_id,
                 message_id=message_id,
-                requested_name=requested_name,
+                requested_name=cache_requested_name,
                 source_sha256=source_sha256,
             )
             cached_response = _serve_cached_email_source_preview(cache_key, message_id=message_id)
@@ -16222,6 +16232,8 @@ def email_source_attachment(message_id: str):
 
     if raw_data is None:
         return Response("L'allegato non è disponibile nello storico dello studio.", status=409, mimetype="text/plain")
+    if expected_attachment_sha and hashlib.sha256(raw_data).hexdigest() != expected_attachment_sha:
+        return Response("L’allegato non corrisponde alla fonte registrata. Verifica l’origine nel fascicolo.", status=409, mimetype="text/plain")
     if request.args.get("download") == "1":
         return send_file(
             io.BytesIO(raw_data),
@@ -16238,6 +16250,7 @@ def email_source_attachment(message_id: str):
                 "api_v1_react.email_source_attachment",
                 message_id=message_id,
                 name=original_name,
+                sha256=expected_attachment_sha or None,
                 download=1,
             )
             page_value = str(request.args.get("page") or "").strip()
@@ -16304,7 +16317,7 @@ def email_source_attachment(message_id: str):
         cache_key = _email_source_cache_key(
             tenant_id=tenant_id,
             message_id=message_id,
-            requested_name=requested_name,
+            requested_name=cache_requested_name,
             source_sha256=source_sha256 or hashlib.sha256(raw_data).hexdigest(),
         )
         cached_response = _serve_cached_email_source_preview(cache_key, message_id=message_id)
@@ -16392,3 +16405,12 @@ def agenda_nuovo_defaults():
 def fonte_procedurale_reader(source_id: str):
     from web.services.fonti_procedurali_reader import visualizza_fonte
     return visualizza_fonte(source_id)
+
+
+@api_v1_react.get("/document-reader/web")
+@_richiedi_auth
+def document_reader_web():
+    if not any(_session_user_can(permission) for permission in ("fascicoli.leggi", "messaggi.leggi", "agenda.leggi", "scadenziario.leggi")):
+        return jsonify({"ok": False, "message": "Non hai il permesso di leggere le fonti dello studio."}), 403
+    from web.services.document_web_reader import web_preview
+    return web_preview()

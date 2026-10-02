@@ -240,7 +240,7 @@ def _render_static_raster_preview(
     mimetype: str,
     signed: bool,
 ) -> AttachmentPreviewPayload:
-    labels = {"image/jpeg": "JPEG", "image/png": "PNG", "image/gif": "GIF"}
+    labels = {"image/jpeg": "JPEG", "image/png": "PNG", "image/gif": "GIF", "image/bmp": "BMP", "image/webp": "WebP"}
     mime = mimetype if mimetype in labels else "image/jpeg"
     format_label = labels[mime]
     try:
@@ -254,6 +254,8 @@ def _render_static_raster_preview(
                     "JPEG": "image/jpeg",
                     "PNG": "image/png",
                     "GIF": "image/gif",
+                    "BMP": "image/bmp",
+                    "WEBP": "image/webp",
                 }.get(str(image.format or "").upper())
                 if detected_mime:
                     mime = detected_mime
@@ -345,7 +347,7 @@ def render_image_preview(
     lower = str(nome_file or "").casefold()
     if mime == "image/tiff" or lower.endswith((".tif", ".tiff")):
         return _render_tiff_preview(nome_file, data, signed=signed)
-    if mime not in {"image/jpeg", "image/png", "image/gif"}:
+    if mime not in {"image/jpeg", "image/png", "image/gif", "image/bmp", "image/webp"}:
         mime = "image/png" if data.startswith(b"\x89PNG\r\n\x1a\n") else "image/jpeg"
     return _render_static_raster_preview(nome_file, data, mimetype=mime, signed=signed)
 

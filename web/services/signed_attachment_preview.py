@@ -99,6 +99,9 @@ def _textual_unavailable(
 
 
 def _preview_shell(*, title: str, subtitle: str, body: str) -> bytes:
+    from web.services.document_reader_links import activate_links
+
+    body = activate_links(body)
     html = (
         '<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -114,6 +117,7 @@ def _preview_shell(*, title: str, subtitle: str, body: str) -> bytes:
         "dt{font-weight:700;color:#42526b}dd{margin:0;word-break:break-word}"
         "pre{margin:0;white-space:pre-wrap;word-break:break-word;font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,'Liberation Mono',monospace;color:#111827}"
         ".body p{margin:0 0 12px}.body p:last-child{margin-bottom:0}ul{margin:0;padding-left:20px}.muted{color:var(--muted);font-size:13px}"
+        ".card a{color:var(--brand);text-decoration:underline;text-underline-offset:2px}.card a:hover{color:#123d72}.card a:focus-visible{outline:2px solid #2563eb;outline-offset:3px;border-radius:2px}"
         ".word-doc{font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.65;color:#111827}.word-doc p{margin:0 0 12px}.word-doc table{width:100%;border-collapse:collapse;margin:14px 0}.word-doc td,.word-doc th{border:1px solid #d7dde8;padding:8px;vertical-align:top}.image-reader{display:grid;gap:18px}.image-reader figure{margin:0;display:grid;gap:8px}.image-reader img{max-width:100%;height:auto;border:1px solid #d7dde8;border-radius:10px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.08)}"
         "@media(max-width:700px){.wrap{margin:12px auto;padding:0 12px}.card{padding:16px}dl{grid-template-columns:1fr;gap:4px}h1{font-size:19px}}"
         "</style></head><body><main class=\"wrap\">"
@@ -168,6 +172,7 @@ def _render_supported_textual_preview(
     signed: bool,
 ) -> AttachmentPreviewPayload | None:
     from web.services.signed_attachment_preview_images import render_image_preview
+    from web.services.signed_attachment_preview_office import OFFICE_EXTENSIONS, render_office_preview
     from web.services.signed_attachment_preview_text import (
         render_eml_preview,
         render_html_preview,
@@ -179,6 +184,8 @@ def _render_supported_textual_preview(
     lower = str(nome_file or "").lower()
     mime = str(mimetype or "").split(";", 1)[0].strip().lower()
     sample = data.lstrip()[:80]
+    if PurePosixPath(lower).suffix.lstrip(".") in OFFICE_EXTENSIONS:
+        return render_office_preview(nome_file, data, signed=signed)
     if lower.endswith(".eml") or mime == "message/rfc822":
         return render_eml_preview(nome_file, data, signed=signed)
     if lower.endswith(".xml") or mime in {"application/xml", "text/xml"} or sample.startswith(
@@ -195,11 +202,13 @@ def _render_supported_textual_preview(
         return render_docx_preview(nome_file, data, signed=signed)
     if lower.endswith(".doc") or mime == "application/msword":
         return render_doc_preview(nome_file, data, signed=signed)
-    if lower.endswith((".jpg", ".jpeg", ".png", ".gif", ".tif", ".tiff")) or mime in {
+    if lower.endswith((".jpg", ".jpeg", ".png", ".gif", ".tif", ".tiff", ".bmp", ".webp")) or mime in {
         "image/jpeg",
         "image/png",
         "image/gif",
         "image/tiff",
+        "image/bmp",
+        "image/webp",
     }:
         return render_image_preview(nome_file, data, mimetype=mime, signed=signed)
     return None
@@ -215,7 +224,7 @@ def _archive_member_priority(info: zipfile.ZipInfo) -> tuple[int, int, str]:
         format_rank = 2
     elif lower.endswith((".eml", ".xml", ".txt")):
         format_rank = 3
-    elif lower.endswith((".docx", ".doc", ".html", ".htm")):
+    elif lower.endswith((".docx", ".doc", ".html", ".htm", ".rtf", ".odt", ".ods", ".odp", ".xlsx", ".xls", ".pptx", ".msg", ".csv", ".json")):
         format_rank = 4
     else:
         format_rank = 9

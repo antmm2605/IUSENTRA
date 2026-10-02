@@ -144,6 +144,9 @@ def preview_eml_html(
     pdf_payload: bytes | None = None,
 ) -> tuple[str, int, dict[str, str]]:
     attachments = meta.get("allegati") if isinstance(meta, dict) else []
+    from web.services.document_reader_links import activate_links
+
+    html_body = activate_links(html_body)
     count = len(attachments) if isinstance(attachments, list) else 0
     html = (
         '<!DOCTYPE html><html><head><meta charset="utf-8">'
@@ -182,7 +185,9 @@ def preview_text_html(
     current: list[str] = []
     for line in str(text or "").splitlines():
         if line.strip():
-            current.append(escape(line))
+            from web.services.document_reader_links import linkify_text
+
+            current.append(linkify_text(line))
             continue
         if current:
             paragraphs.append("<p>" + "<br>".join(current) + "</p>")
@@ -265,17 +270,19 @@ def pdf_mobile_preview_html(
     scarica_url: str,
     rotation_save_url: str = "",
     pdf_payload: bytes | None = None,
+    original_links: list | None = None,
 ) -> tuple[str, int, dict[str, str]]:
     from web.services.pdf_reader_text import text_layers
 
-    layers = text_layers(pdf_payload) if pdf_payload else []
+    layers = text_layers(pdf_payload, original_links=original_links) if pdf_payload else []
     escaped_name = escape(nome_documento)
     escaped_download = escape(scarica_url, quote=True)
     escaped_rotation_save = escape(rotation_save_url, quote=True)
-    viewer_script = escape(url_for("static", filename="js/mobile-pdf-viewer.js"), quote=True)
+    script_url = url_for("static", filename="js/mobile-pdf-viewer.js", v="reader-links-pages-20261001")
+    viewer_script = escape(script_url, quote=True)
     if page_urls:
         pages = "".join(
-            '<figure class="page">'
+            f'<figure class="page" id="reader-page-{index}">'
             f'<figcaption>Pagina {index}</figcaption>'
             '<div class="reader-page-surface">'
             '<div class="reader-page-rotator">'
@@ -333,6 +340,7 @@ def pdf_mobile_preview_html(
         ".reader-text-layer{position:absolute;inset:0;overflow:hidden;user-select:text;-webkit-user-select:text;cursor:text}"
         ".reader-word{position:absolute;display:block;color:transparent;white-space:pre;line-height:1;transform-origin:0 0}.reader-word>span{display:inline-block;transform-origin:0 0}"
         ".reader-word ::selection{color:transparent;background:rgba(37,99,235,.32)}.reader-word.is-highlighted{background:rgba(250,204,21,.4);border-radius:2px}"
+        ".reader-document-link{position:absolute;display:block;cursor:pointer;color:transparent;text-decoration:none}.reader-document-link:hover{background:rgba(37,99,235,.12);box-shadow:inset 0 -1px #2563eb}.reader-document-link:focus-visible{outline:2px solid #2563eb;outline-offset:2px}.reader-word.reader-document-link{color:transparent}.page{scroll-margin-top:12px}"
         ".reader-no-text{display:block;padding:6px;color:#475569;font-size:12px}.pages:focus-visible{outline:2px solid #2563eb;outline-offset:-3px}"
         "@media print{.reader-text-layer,.reader-no-text{display:none}}"
         "</style></head><body>"
@@ -430,12 +438,14 @@ def mobile_pdf_preview_response(
         id_fasc,
         dettagli=f"doc {id_doc} - {documento.nome}",
     )
+    from web.services.document_reader_original_links import original_link_layers
     return pdf_mobile_preview_html(
         nome_documento=nome_download or documento.nome,
         page_urls=page_urls,
         scarica_url=scarica_url,
         rotation_save_url=url_for("salva_rotazione_documento", id_fasc=id_fasc, id_doc=id_doc),
         pdf_payload=preview_payload,
+        original_links=original_link_layers(preview_payload, id_fasc, id_doc),
     )
 
 

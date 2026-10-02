@@ -85,6 +85,34 @@ def test_nessuna_modifica_non_produce_un_file():
         apply_pdf_overlays(_pdf_di_prova(), [])
 
 
+def test_sostituzione_rimuove_vecchio_testo_e_conserva_righe_vicine():
+    originale = _pdf_di_prova()
+    modificato, count = apply_pdf_overlays(originale, [
+        {"type": "replace", "page": 1, "x": .1, "y": .1, "span": 0, "text": "Cliente: dato riservato"},
+    ])
+    assert count == 1
+    assert "Cliente: dato riservato" in _testo_estraibile(modificato)
+    assert TESTO_RISERVATO not in _testo_estraibile(modificato)
+    assert TESTO_NORMALE in _testo_estraibile(modificato)
+    assert TESTO_RISERVATO in _testo_estraibile(originale)
+    assert not modificato.startswith(originale)
+
+
+def test_sostituzione_troppo_lunga_non_produce_pdf_troncato():
+    with pytest.raises(PdfOverlayError, match="oltre il margine del documento"):
+        apply_pdf_overlays(_pdf_di_prova(), [
+            {"type": "replace", "page": 1, "x": .1, "y": .1, "span": 0, "text": "Testo troppo lungo " * 40},
+        ])
+
+
+@pytest.mark.parametrize("coordinate", [float("nan"), float("inf"), -float("inf")])
+def test_coordinate_non_finite_rifiutate(coordinate):
+    with pytest.raises(PdfOverlayError):
+        apply_pdf_overlays(_pdf_di_prova(), [
+            {"type": "replace", "page": 1, "x": coordinate, "y": .1, "span": 0, "text": "Testo"},
+        ])
+
+
 def test_una_pagina_inesistente_viene_rifiutata():
     with pytest.raises(PdfOverlayError):
         apply_pdf_overlays(

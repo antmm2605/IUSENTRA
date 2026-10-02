@@ -1,0 +1,15 @@
+.iu-economic-verification { padding:12px 14px; border-top:1px solid var(--iu-border); color:var(--iu-slate-700); }
+.iu-economic-verification summary { display:flex; align-items:center; gap:8px; min-height:44px; cursor:pointer; font-weight:800; color:var(--iu-blue-700); }
+.iu-economic-verification summary:hover { color:var(--iu-blue-900); }
+.iu-economic-verification summary:focus-visible,.iu-economic-verification button:focus-visible { outline:2px solid var(--iu-blue-600); outline-offset:3px; }
+.iu-economic-verification p { margin:6px 0; font-size:12px; line-height:1.5; overflow-wrap:anywhere; }
+.iu-economic-verification ul { margin:8px 0; padding-left:20px; font-size:12px; line-height:1.5; }
+.iu-economic-verification__sources { padding:0; margin:12px 0 0; list-style:none; }
+.iu-economic-verification__sources>li { display:flex; justify-content:space-between; align-items:start; gap:12px; padding:10px 0; border-top:1px solid var(--iu-border); }
+.iu-economic-verification__sources>li>div { min-width:0; }
+.iu-economic-verification strong { font-size:13px; overflow-wrap:anywhere; }
+.iu-economic-verification small { display:block; font-size:12px; line-height:1.5; overflow-wrap:anywhere; }
+.iu-fas-economic-control-modal__rows .iu-economic-verification strong,.iu-fas-economic-control-modal__rows .iu-economic-verification small { white-space:normal; overflow:visible; text-overflow:clip; }
+.iu-economic-verification button { flex-shrink:0; min-height:44px; border:1px solid var(--iu-border); border-radius:8px; padding:8px 12px; background:var(--iu-surface,#f8fbff); color:var(--iu-blue-700); cursor:pointer; font-weight:800; }
+.iu-economic-verification button:hover { background:var(--iu-blue-50); }
+@media(max-width:720px) { .iu-economic-verification__sources>li { flex-direction:column; } }

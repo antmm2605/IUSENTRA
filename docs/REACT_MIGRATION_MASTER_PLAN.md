@@ -3220,3 +3220,8 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 # Rilascio 2.319.3 — 15/09/2026
 
 Ripristino deposito accettato consolidato in `2e1ea5912f`; successiva richiesta sulla finestra Bit4id trattata da Local Signer 1.6.132. Escluso il solo identificatore tecnico dal richiamo del PIN; diagnostica aperta solo su richiesta. Firma multipla, PEC locale e Cassazione v21 preservate. Rapporto in `artifacts/react-migration/ripristino-deposito-1.6.131-20260915.md`; collaudo fisico con token ancora aperto.
+
+
+### 02/10/2026 — Consolidamento Controllo Studio 2.434.7
+
+Sorgenti server riallineati alla copia locale e verifiche mirate/visive sulla copia reale 8080. Registro esiti e discordanze SQL, apertura della singola PEC/termine e lettore interno; perimetro storico complessivo ancora aperto come descritto in artifacts/react-migration/controllo-studio-notifiche-20260930.md. Commit, CI e deploy seguono la procedura governata, senza certificazione preventiva.

@@ -45,7 +45,7 @@ def costruisci(helpers: dict[str, Callable[[], Any]], *, presidi_notifiche: Call
                puo: Callable[[str], bool] = lambda _p: True) -> dict[str, Any]:
     giorno = oggi or oggi_roma()
     mancanti: list[str] = []
-    fascicoli = _prova("Fascicoli", lambda: list(helpers["fascicoli"]().tutti()), mancanti)
+    fascicoli = _prova("Fascicoli", lambda: list(helpers["fascicoli"]().tutti()), mancanti) if puo("fascicoli.leggi") else []
     per_id = {str(f.id): f for f in fascicoli}
     voci = []
     if puo("scadenziario.leggi"):
@@ -56,14 +56,26 @@ def costruisci(helpers: dict[str, Callable[[], Any]], *, presidi_notifiche: Call
                         and getattr(s, "stato", "") != "archiviato"}
             return voci_agenda(list(helpers["agenda"]().tutti()), indice_rg(fascicoli), sessioni, giorno)
         voci += _prova("Agenda", agenda, mancanti)
-    voci += _prova("Notifiche", lambda: voci_notifiche(presidi_notifiche(), giorno), mancanti)
+    if puo("messaggi.leggi"):
+        voci += _prova("Notifiche", lambda: voci_notifiche(presidi_notifiche(), giorno, per_id), mancanti)
     if puo("messaggi.leggi"):
         def comunicazioni() -> list:
-            pec = [e for e in helpers["email_pec"]().tutte(cartella="INBOX", solo_non_lette=True)][:40]
+            # La casella applica la deduplica primaria; la pagina React pagina
+            # l'elenco senza tagliare ricerca e conteggi delle PEC da leggere.
+            pec = list(helpers["email_pec"]().tutte(cartella="INBOX", solo_non_lette=True))
             dal = giorno - timedelta(days=GIORNI_MESSAGGI)
             falliti = [m for m in helpers["messaggi"]().tutti() if str(getattr(getattr(m, "stato", ""), "value", "")) == "FALLITO"
                        and str(getattr(m, "creato_il", ""))[:10] >= dal.isoformat()]
-            return voci_comunicazioni(pec, falliti, giorno)
+            from web.services.controllo_studio_pec_context import collegamenti_pec
+
+            collegamenti = {}
+            if puo("fascicoli.leggi"):
+                try:
+                    collegamenti = collegamenti_pec(pec, per_id)
+                except Exception:
+                    LOG.warning("Controllo Studio: collegamenti PEC non disponibili", exc_info=True)
+                    mancanti.append("Collegamenti PEC ai fascicoli")
+            return voci_comunicazioni(pec, falliti, giorno, per_id, collegamenti)
         voci += _prova("Comunicazioni", comunicazioni, mancanti)
     incassi = {"da_incassare": 0.0, "scaduto": 0.0, "parcelle_scadute": 0, "incassato_mese": 0.0}
     if puo("fatturazione.leggi"):
@@ -99,6 +111,12 @@ def _frase(voci: list, incassi: dict[str, Any]) -> str:
     if incassi.get("parcelle_scadute"):
         n = int(incassi["parcelle_scadute"])
         parti.append(f"{n} {'parcella scaduta' if n == 1 else 'parcelle scadute'}")
+    da_leggere = sum(1 for v in voci if v.fascia == "da_leggere")
+    da_esaminare = sum(1 for v in voci if v.area == "notifiche" and not v.data)
+    if da_leggere:
+        parti.append(f"{da_leggere} {'comunicazione da leggere' if da_leggere == 1 else 'comunicazioni da leggere'}")
+    if da_esaminare:
+        parti.append(f"{da_esaminare} {'presidio senza termine da verificare' if da_esaminare == 1 else 'presidi senza termine da verificare'}")
     if not parti:
         return "Niente di urgente: lo studio è in ordine."
     frase = ", ".join(parti[:-1]) + (" e " if len(parti) > 1 else "") + parti[-1] + "."

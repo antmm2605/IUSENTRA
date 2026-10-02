@@ -875,7 +875,7 @@ def _advanced_notification_items(
                     for row in conn.execute(
                         f"""
                     SELECT p.id, p.fascicolo_id, p.source_message_id, p.status, p.priority, p.notification_case,
-                           p.detection_reason, p.source_effective_at, p.updated_at,
+                           p.detection_reason, p.source_effective_at, p.updated_at, p.explicit_due_at,
                            (
                                SELECT d.fascicolo_document_id
                                FROM pec_legal_notification_documents d
@@ -961,6 +961,7 @@ def _advanced_notification_items(
             # La sentenza resta nella PEC sorgente fino all'acquisizione dal
             # portale: la scadenza deve quindi conservare il riferimento PEC,
             # senza anticipare un collegamento a un documento del fascicolo.
+            "explicitDueAt": _notification_text(data.get("explicit_due_at")),
             "sourceMessageId": _notification_text(data.get("source_message_id")),
             "sourceDocumentId": _notification_text(data.get("source_document_id")),
             # Il viewer già usato dalle altre scadenze PEC può aprire in modo
@@ -985,8 +986,6 @@ def _sync_legal_notification_deadlines(
     reconcile_existing: bool = True,
     reconcile_source_prefixes: Iterable[str] | None = None,
 ) -> dict[str, int]:
-    from datetime import date, datetime
-
     from pct.scadenziario import GestioneScadenziario, StatoTermine, TipoTermine
 
     database_config = database or paths.get("_TENANT_DATABASE_CONFIG")
@@ -997,7 +996,10 @@ def _sync_legal_notification_deadlines(
         db_path=_tenant_json_mirror_path(paths, "SCADENZIARIO_DB", "scadenziario/scadenze.json"),
         studio_db=backend,
     )
-    active_markers = {f"IUSENTRA_LEGAL_NOTIFICATION:{item['id']}" for item in items}
+    from pct.pec_notification_presidio.deadline_projection import annotation, deadline_date, deadline_marker, deadline_matches
+
+    active_markers = {deadline_marker(item['id']) for item in items if deadline_date(item) and item['id'].split(':')[-1] in LEGAL_NOTIFICATION_TO_NOTIFY_STATUSES}
+    undated_markers = {deadline_marker(item['id']) for item in items if not deadline_date(item)}
     scoped_prefixes = tuple(
         sorted(
             {
@@ -1050,15 +1052,17 @@ def _sync_legal_notification_deadlines(
     completed = 0
     by_marker: dict[str, Any] = {}
     for marker in active_markers:
-        matches = [deadline for deadline in existing if marker in _notification_text(getattr(deadline, "note", ""))]
+        matches = [deadline for deadline in existing if deadline_matches(getattr(deadline, "note", ""), marker)]
         by_marker[marker] = next(
             (deadline for deadline in matches if _deadline_is_operational_open(deadline)), None
         ) or (matches[0] if matches else None)
-    today = date.today().isoformat()
     for item in items:
         if item["id"].split(":")[-1] not in LEGAL_NOTIFICATION_TO_NOTIFY_STATUSES:
             continue
-        marker = f"IUSENTRA_LEGAL_NOTIFICATION:{item['id']}"
+        due_date = deadline_date(item)
+        if not due_date:
+            continue
+        marker = deadline_marker(item['id'])
         source_message_id = _notification_text(item.get("sourceMessageId"))
         source_marker = f"PEC_AUDIT:{source_message_id}" if source_message_id else ""
         source_document_name = _notification_text(item.get("sourceDocumentName"))
@@ -1081,12 +1085,16 @@ def _sync_legal_notification_deadlines(
             if part
         )
         current = by_marker.get(marker)
+        if current and _deadline_status(current) == "COMPLETATO":
+            # Una decisione di completamento dello studio non va riaperta
+            # quando lo scheduler pubblica nuovamente lo stesso presidio.
+            continue
         if current and _deadline_is_operational_open(current):
             scadenziario.aggiorna(
                 current.id,
                 titolo=_notification_text(item.get("title"), "Notifica da presidiare"),
                 descrizione=_notification_text(item.get("message")),
-                data_scadenza=today,
+                data_scadenza=due_date,
                 id_fascicolo=fascicolo_id,
                 source_event_type=LEGAL_NOTIFICATION_SOURCE_TYPE,
                 note=note,
@@ -1096,7 +1104,7 @@ def _sync_legal_notification_deadlines(
             created_deadline = scadenziario.nuova(
                 titolo=_notification_text(item.get("title"), "Notifica da presidiare"),
                 tipo=TipoTermine.NOTIFICA,
-                data_scadenza=today,
+                data_scadenza=due_date,
                 id_fascicolo=fascicolo_id,
                 descrizione=_notification_text(item.get("message")),
                 note=note,
@@ -1113,12 +1121,14 @@ def _sync_legal_notification_deadlines(
                 continue
             if not _deadline_is_operational_open(deadline):
                 continue
-            matching_active_marker = next((marker for marker in active_markers if marker in note), "")
+            matching_active_marker = next((marker for marker in active_markers if deadline_matches(note, marker)), "")
             is_active_marker = bool(matching_active_marker)
             is_legacy_sentence_review = _is_legacy_sentence_review_note(note)
+            is_undated_review = any(deadline_matches(note, marker) for marker in undated_markers)
             should_complete = (
                 (not is_active_marker and "IUSENTRA_LEGAL_NOTIFICATION:" in note)
                 or is_legacy_sentence_review
+                or is_undated_review
                 or (
                     is_active_marker
                     and by_marker.get(matching_active_marker) is not None
@@ -1128,9 +1138,8 @@ def _sync_legal_notification_deadlines(
             if should_complete:
                 scadenziario.aggiorna(
                     deadline.id,
-                    stato=StatoTermine.COMPLETATO,
-                    completata_il=datetime.now().isoformat(timespec="seconds"),
-                    note=_legacy_sentence_completion_note(note) if is_legacy_sentence_review else note,
+                    stato=StatoTermine.ANNULLATO,
+                    note=f"{note.rstrip()}\n\n{annotation('nessun termine esplicito nella fonte; attività da verificare nel presidio' if is_undated_review or is_legacy_sentence_review else 'proiezione superata o duplicata del presidio')}",
                 )
                 completed += 1
     return {"created": created, "updated": updated, "completed": completed}
@@ -1333,6 +1342,19 @@ def _cartella_impronta_presidio(paths: Mapping[str, Any]) -> Path | None:
     return None
 
 
+def _correlate_notification_duplicates(paths, tenant_id, database=None, selected_ids=()):
+    from pct.pec_notification_presidio.duplicate_reconciliation import (
+        canonical_presidio_ids, reconcile_document_duplicates,
+    )
+    repo = _advanced_notification_repository_for_paths(paths, tenant_id=tenant_id, database=database)
+    try:
+        report = reconcile_document_duplicates(repo, apply=True)
+        report['selected_ids'] = canonical_presidio_ids(repo, selected_ids)
+        return report
+    finally:
+        repo.close()
+
+
 def materialize_notification_relata_presidio_for_paths(
     paths: Mapping[str, Any],
     *,
@@ -1364,6 +1386,9 @@ def materialize_notification_relata_presidio_for_paths(
         raise NotificationRuntimeUnavailable(
             "Archivio fascicoli tenant-aware non disponibile per il presidio notifiche."
         )
+    _correlate_notification_duplicates(paths, _notification_text(
+        presidio_tenant_id or paths.get('_TENANT_PRESIDIO_ID') or tenant_label or tenant_id or 'default'
+    ), database_config)
     cartella_impronta = _cartella_impronta_presidio(paths)
     impronta_attuale = None
     tempi_impronta: dict[str, int] = {}
@@ -1542,6 +1567,10 @@ def materialize_selected_advanced_notification_presidia_for_paths(
     resolved_presidio_tenant_id = _notification_text(
         presidio_tenant_id or paths.get("_TENANT_PRESIDIO_ID") or tenant_label or tenant_id or "default"
     )
+    correlation = _correlate_notification_duplicates(paths, resolved_presidio_tenant_id, database_config, selected_ids)
+    original_selected_ids = selected_ids
+    selected_ids = correlation['selected_ids']
+    superseded_ids = tuple(sorted(set(superseded_ids) | (set(original_selected_ids) - set(selected_ids)) | set(correlation['mapping'])))
     advanced_items = _advanced_notification_items(
         paths,
         tenant_id=resolved_presidio_tenant_id,
@@ -1651,12 +1680,12 @@ def materialize_selected_advanced_notification_presidia_for_paths(
         except Exception:
             errors += 1
     deadline_prefixes = {
-        f"IUSENTRA_LEGAL_NOTIFICATION:legal-notification-presidio:{presidio_id}:"
+        f"IUSENTRA_LEGAL_NOTIFICATION:legal-notification-presidio:{presidio_id}"
         for presidio_id in {*selected_ids, *superseded_ids}
     }
     deadline_prefixes.update(
         {
-            f"IUSENTRA_LEGAL_NOTIFICATION:legal-notification:{fascicolo_id}:"
+            f"IUSENTRA_LEGAL_NOTIFICATION:legal-notification:{fascicolo_id}"
             for fascicolo_id in selected_fascicolo_ids
         }
     )

@@ -44,6 +44,10 @@ SQL_DOCUMENT_AI_FILE_TYPES = (
     "htm",
     "rtf",
     "odt",
+    "ods",
+    "odp",
+    "pptx",
+    "webp",
     "xlsx",
     "xls",
     "png",
@@ -1214,6 +1218,15 @@ class DocumentAIRepository:
         sql += " ORDER BY updated_at DESC, document_label ASC"
         rows = self._conn().execute(sql, (tenant_id, fascicolo_id)).fetchall()
         return [assignment for row in rows if (assignment := self._catalog_assignment_from_row(row)) is not None]
+
+    def list_reader_source_assignments(self, tenant_id: str, fascicolo_id: str, document_id: str) -> list[DocumentCatalogAssignment]:
+        """Provenienza SQL di un documento, incluse le letture originali storiche."""
+        self._require_catalog_sql()
+        rows = self._conn().execute(
+            "SELECT * FROM document_catalog_assignments WHERE tenant_id = ? AND fascicolo_id = ? AND document_id = ? ORDER BY updated_at DESC",
+            (tenant_id, fascicolo_id, document_id),
+        ).fetchall()
+        return [self._catalog_assignment_from_row(row) for row in rows]
 
     def list_catalog_assignments_to_reread(self, tenant_id: str, *, limit: int = 200, offset: int = 0) -> list[DocumentCatalogAssignment]:
         """Le proposte incerte dello studio, dalle piu' dubbie: la coda della seconda lettura di Lex."""

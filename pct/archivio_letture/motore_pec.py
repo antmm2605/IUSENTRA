@@ -15,10 +15,14 @@ from typing import Any
 
 from pct.registro_letture.fatti_repository import Fatto
 
+from .ancoraggio import VERSIONE_DATE_PROCESSUALI
 from .collaudo import Contesto, collauda_tutti
 from .motore_documenti import leggi_testo
+from .estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI
+from .estrazione_notifiche import VERSIONE_PROVE_NOTIFICA
 
-VERSIONE_MOTORE_PEC = "2026.09.21.motore-pec.v10+modalita-note-scritte"
+VERSIONE_MOTORE_PEC = "2026.10.01.motore-pec.v11+contesto-economico+importi:" + VERSIONE_ESTRAZIONE_IMPORTI + "+date:" + VERSIONE_DATE_PROCESSUALI
+VERSIONE_MOTORE_PEC += "+prove:" + VERSIONE_PROVE_NOTIFICA
 _RICEVUTE = (
     ("rac", "accettazione", re.compile(r"^\s*(?:accettazione|posta certificata:\s*accettazione)\b", re.IGNORECASE)),
     ("rdac", "consegna", re.compile(r"^\s*(?:consegna|avvenuta consegna|posta certificata:\s*(?:avvenuta )?consegna)\b", re.IGNORECASE)),
@@ -216,7 +220,9 @@ def fatti_da_messaggio(messaggio: dict[str, Any], contesto: Contesto) -> list[Fa
 
 def fatti_da_allegato(testo: str, *, nome: str, contesto: Contesto) -> list[Fatto]:
     """Gli allegati PEC letti dal presidio (OCR) passano dal motore documenti con origine «pec_allegato»."""
-    return leggi_testo(testo, origine="pec_allegato", contesto=contesto, nome=nome)
+    return leggi_testo(testo, origine="pec_allegato", contesto=contesto, nome=nome,
+                      metadata={"cliente": contesto.cliente, "numero_rg": contesto.numero_rg,
+                                "anno_rg": contesto.anno_rg})
 
 
 __all__ = ["VERSIONE_MOTORE_PEC", "fatti_da_allegato", "fatti_da_messaggio"]

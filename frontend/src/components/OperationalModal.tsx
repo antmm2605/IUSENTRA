@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 
 const modalStack: symbol[] = []
@@ -15,6 +15,8 @@ export function OperationalModal({
   onClose,
   boxClassName = '',
   bodyClassName = '',
+  draggable = false,
+  fullscreen = false,
 }: {
   open: boolean
   ariaLabel: string
@@ -26,7 +28,12 @@ export function OperationalModal({
   onClose: () => void
   boxClassName?: string
   bodyClassName?: string
+  draggable?: boolean
+  fullscreen?: boolean
 }) {
+  const boxRef = useRef<HTMLElement>(null)
+  const dragRef = useRef<{ x: number; y: number; dx: number; dy: number } | null>(null)
+  const [position, setPosition] = useState({ x: 0, y: 0 })
   const tokenRef = useRef(Symbol('operational-modal'))
   const closeRef = useRef<HTMLButtonElement>(null)
   const onCloseRef = useRef(onClose)
@@ -34,6 +41,28 @@ export function OperationalModal({
   useEffect(() => {
     onCloseRef.current = onClose
   }, [onClose])
+
+  useEffect(() => {
+    setPosition({ x: 0, y: 0 })
+    dragRef.current = null
+  }, [open, fullscreen])
+
+  useEffect(() => {
+    const reset = () => setPosition({ x: 0, y: 0 })
+    window.addEventListener('resize', reset)
+    return () => window.removeEventListener('resize', reset)
+  }, [])
+
+  const move = (x: number, y: number) => {
+    const box = boxRef.current?.getBoundingClientRect()
+    if (!box) return
+    const baseX = box.left - position.x
+    const baseY = box.top - position.y
+    setPosition({
+      x: Math.max(4 - baseX, Math.min(window.innerWidth - box.width - 4 - baseX, x)),
+      y: Math.max(4 - baseY, Math.min(window.innerHeight - box.height - 4 - baseY, y)),
+    })
+  }
 
   useEffect(() => {
     if (!open) return undefined
@@ -78,8 +107,32 @@ export function OperationalModal({
         if (mouseEvent.target === mouseEvent.currentTarget && modalStack.at(-1) === tokenRef.current) onClose()
       }}
     >
-      <section className={`iu-ag-source-modal__box ${boxClassName}`.trim()}>
-        <header>
+      <section ref={boxRef} className={`iu-ag-source-modal__box ${boxClassName}`.trim()} style={draggable && !fullscreen ? { transform: `translate(${position.x}px, ${position.y}px)` } : undefined}>
+        <header
+          tabIndex={draggable && !fullscreen ? 0 : undefined}
+          title={draggable && !fullscreen ? 'Trascina questa barra per spostare il lettore. Usa le frecce quando la barra ha il focus.' : undefined}
+          style={draggable && !fullscreen ? { cursor: 'move', touchAction: 'none' } : undefined}
+          onPointerDown={(event) => {
+            if (!draggable || fullscreen || event.button !== 0 || (event.target as HTMLElement).closest('button,a,input,select,textarea')) return
+            dragRef.current = { x: event.clientX, y: event.clientY, dx: position.x, dy: position.y }
+            event.currentTarget.setPointerCapture(event.pointerId)
+            event.preventDefault()
+          }}
+          onPointerMove={(event) => {
+            const drag = dragRef.current
+            if (drag) move(drag.dx + event.clientX - drag.x, drag.dy + event.clientY - drag.y)
+          }}
+          onPointerUp={(event) => {
+            dragRef.current = null
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+          }}
+          onPointerCancel={() => { dragRef.current = null }}
+          onKeyDown={(event) => {
+            if (!draggable || fullscreen || event.target !== event.currentTarget || !event.key.startsWith('Arrow')) return
+            event.preventDefault()
+            move(position.x + (event.key === 'ArrowRight' ? 12 : event.key === 'ArrowLeft' ? -12 : 0), position.y + (event.key === 'ArrowDown' ? 12 : event.key === 'ArrowUp' ? -12 : 0))
+          }}
+        >
           <div>
             <span>{eyebrow}</span>
             <strong>{title}</strong>

@@ -12,6 +12,7 @@ import { trackRecentItem } from '../../services/topbarApi'
 import type { TopbarCreateContext } from '../../types/topbar'
 
 const StudioVoiceAssistant = lazy(() => import('../StudioVoiceAssistant'))
+const DiscordanzeAccesso = lazy(() => import('./DiscordanzeAccesso'))
 const VOICE_ASSISTANT_IDLE_TIMEOUT_MS = 2500
 const VOICE_ASSISTANT_FALLBACK_DELAY_MS = 900
 
@@ -202,6 +203,7 @@ export function TopBar({
         </div>
       ) : null}
       <div className="iu-topbar__actions iu-topbar-op__actions">
+        <Suspense fallback={null}><DiscordanzeAccesso sessionKey={`${bootstrap?.tenant?.slug || ''}:${bootstrap?.user?.username || ''}`} /></Suspense>
         <TopBarTimeTracker
           open={openPanel === 'timer'}
           onToggle={() => togglePanel('timer')}

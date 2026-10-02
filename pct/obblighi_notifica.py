@@ -55,6 +55,8 @@ class Termine:
     liberi: bool = False
     natura: str = "perentorio"  # perentorio | a_difesa | ordinatorio
     formula: str = ""
+    giorni_estero: int = 0
+    sospensione_feriale: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -77,18 +79,27 @@ REGOLE: tuple[RegolaNotifica, ...] = (
         "ricorso e decreto di fissazione dell'udienza", "controparti",
         ("art. 415, commi 4, 5 e 7, c.p.c.", "art. 417-bis c.p.c."),
         termini=(
-            Termine("udienza", giorni=30, prima=True, liberi=True, natura="a_difesa",
-                    formula="almeno 30 giorni prima dell'udienza di discussione (art. 415, quinto comma, c.p.c.; calcolato per prudenza come termine libero)"),
+            Termine("udienza", giorni=30, giorni_estero=40, prima=True, natura="a_difesa", sospensione_feriale=False,
+                    formula="almeno 30 giorni prima dell'udienza di discussione; 40 se la notifica è all'estero (art. 415, commi 5 e 6, c.p.c.)"),
+            Termine("pronuncia_decreto", giorni=10, natura="ordinatorio", sospensione_feriale=False,
+                    formula="entro 10 giorni dalla pronuncia del decreto di fissazione dell'udienza (art. 415, quarto comma, c.p.c.)"),
         ),
         avvertenze="Entro 10 giorni dalla pronuncia del decreto (art. 415, quarto comma: termine ordinatorio). "
                    "Pubblico impiego: notifica presso l'amministrazione (art. 144, secondo comma) o, per le amministrazioni statali, "
                    "presso l'Avvocatura dello Stato competente (art. 415, settimo comma); l'amministrazione può stare in giudizio con propri funzionari (art. 417-bis).",
     ),
     RegolaNotifica(
+        "semplificato_281undecies", ("Ricorso nel procedimento semplificato di cognizione", "Ricorso ex art. 281-undecies c.p.c.", "Ricorso ex art. 702-bis / rito semplificato"),
+        "ricorso e decreto di fissazione dell'udienza", "controparti", ("art. 281-undecies c.p.c.",),
+        termini=(Termine("udienza", giorni=40, giorni_estero=60, prima=True, liberi=True, natura="a_difesa",
+                        formula="almeno 40 giorni liberi prima dell'udienza in Italia; 60 all'estero (art. 281-undecies c.p.c.)"),),
+        avvertenze="Verifica il regime temporale: l'eventuale procedimento ex art. 702-bis introdotto nel regime precedente non va convertito automaticamente al rito semplificato vigente.",
+    ),
+    RegolaNotifica(
         "decreto_ingiuntivo_644", ("Decreto ingiuntivo",),
         "ricorso e decreto ingiuntivo", "controparti",
         ("art. 643 c.p.c.", "art. 644 c.p.c."),
-        termini=(Termine("pronuncia", giorni=60, natura="perentorio",
+        termini=(Termine("pronuncia", giorni=60, giorni_estero=90, natura="perentorio",
                          formula="entro 60 giorni dalla pronuncia, a pena di inefficacia del decreto (art. 644 c.p.c.; 90 giorni se la notifica è all'estero)"),),
         avvertenze="Il decreto va notificato con il ricorso (art. 643). Senza notifica nel termine il decreto perde efficacia.",
     ),
@@ -96,7 +107,7 @@ REGOLE: tuple[RegolaNotifica, ...] = (
         "citazione_163bis", ("Atto di citazione",),
         "atto di citazione", "controparti",
         ("art. 163-bis c.p.c.",),
-        termini=(Termine("udienza", giorni=120, prima=True, liberi=True, natura="a_difesa",
+        termini=(Termine("udienza", giorni=120, giorni_estero=150, prima=True, liberi=True, natura="a_difesa",
                          formula="almeno 120 giorni liberi prima dell'udienza indicata (150 se la notifica è all'estero, art. 163-bis c.p.c.)"),),
     ),
     RegolaNotifica(
@@ -192,6 +203,8 @@ class ObbligoNotifica:
     natura: str = ""
     formula: str = ""
     destinatari: list[dict[str, str]] = field(default_factory=list)
+    calcoli: list[dict[str, Any]] = field(default_factory=list)
+    dati_mancanti: list[dict[str, str]] = field(default_factory=list)
 
     @property
     def chiave(self) -> str:
@@ -204,6 +217,8 @@ class ObbligoNotifica:
             "scadenza": self.scadenza, "natura": self.natura, "formula": self.formula, "destinatari": list(self.destinatari),
             "fonti": list(self.regola.fonti), "dopo": self.regola.dopo, "avvertenze": self.regola.avvertenze,
             "facoltativa": self.regola.facoltativa,
+            "calcoli": list(self.calcoli),
+            "dati_mancanti": list(self.dati_mancanti),
         }
 
 
@@ -279,31 +294,25 @@ def _destinatari(regola: RegolaNotifica, parti: list[Parte], ufficio: str) -> li
 
 
 def _base(termine: Termine, documento: DocumentoCatalogato, contesto: dict[str, Any]) -> date | None:
+    if termine.base == "pronuncia_decreto":
+        return _giorno((contesto.get("decreti_collegati") or {}).get(documento.id, ""))
     if termine.base == "udienza":
         udienze = [g for g in (_giorno(u) for u in documento.udienze) if g]
-        if not udienze:
-            udienze = [g for g in (_giorno(u) for u in contesto.get("udienze_future", ())) if g]
-        return min(udienze) if udienze else None
+        return udienze[0] if len(set(udienze)) == 1 else None
     if termine.base in {"pronuncia", "pubblicazione"}:
         if termine.base == "pubblicazione":
-            sentenze = [g for g in (_giorno(d) for d in contesto.get("date_sentenze", ())) if g]
-            return max(sentenze) if sentenze else None
+            return _giorno((contesto.get("pubblicazioni_verificate") or {}).get(documento.id, ""))
         return _giorno(documento.data)
     if termine.base == "provvedimento_impugnato":
-        return _giorno(contesto.get("data_provvedimento_impugnato", ""))
+        return _giorno((contesto.get("conoscenze_verificate") or {}).get(documento.id, ""))
     return None
 
 
 def _notificato(regola: RegolaNotifica, documento: DocumentoCatalogato, contesto: dict[str, Any]) -> bool:
-    """Una prova di notifica successiva all'atto (relata o ricevuta di consegna) nel fascicolo."""
-    riferimento = _giorno(documento.data)
+    """Solo una prova verificata dell'atto preciso e di tutti i destinatari."""
     for prova in contesto.get("prove_notifica", ()):
-        giorno = _giorno(prova.get("data", ""))
-        if prova.get("documento_id") == documento.id:
-            return True
-        if riferimento and giorno and giorno >= riferimento:
-            return True
-        if not riferimento and prova.get("atto") and any(p in prova.get("atto", "").casefold() for p in regola.atti.casefold().split()[:2]):
+        if (prova.get("atto_documento_id") == documento.id
+                and prova.get("verificata") is True and prova.get("destinatari_completi") is True):
             return True
     return False
 
@@ -325,19 +334,63 @@ def obblighi_del_fascicolo(documenti: Iterable[DocumentoCatalogato], parti: Iter
                 continue
             elif regola.solo_se_nostro and documento.nostro is None:
                 obbligo.stato, obbligo.motivo = STATO_DA_VERIFICARE, "Dagli atti non risulta se l'atto è dello studio: confermare prima di notificare."
+                obbligo.dati_mancanti.append({"campo": "atto_studio", "documento_id": documento.id,
+                    "descrizione": "La posizione della parte assistita in questo atto non è univoca: verifica l’epigrafe."})
             if _notificato(regola, documento, contesto):
-                obbligo.stato, obbligo.motivo = STATO_NOTIFICATO, "Nel fascicolo c'è una prova di notifica successiva all'atto (relata o ricevuta di consegna): verificare che riguardi questo atto."
+                obbligo.stato, obbligo.motivo = STATO_NOTIFICATO, "Prova verificata per questo atto e per tutti i destinatari."
             for termine in regola.termini:
-                obbligo.natura, obbligo.formula = termine.natura, termine.formula
+                if not obbligo.formula:
+                    obbligo.natura, obbligo.formula = termine.natura, termine.formula
                 base = _base(termine, documento, contesto)
                 if base is None:
+                    descrizioni = {
+                        "udienza": "Manca un’udienza univoca riferita a questo atto: verifica il decreto di fissazione o di rinvio.",
+                        "pronuncia": "Manca la data documentata della pronuncia: la data del file o del deposito non la sostituisce.",
+                        "pronuncia_decreto": "Manca la pronuncia del decreto collegato a questo ricorso: verifica il provvedimento.",
+                        "pubblicazione": "Manca la pubblicazione della sentenza impugnata collegata a questo atto.",
+                        "provvedimento_impugnato": "Manca la data documentata di notificazione, comunicazione o piena conoscenza dell’atto impugnato.",
+                    }
+                    obbligo.dati_mancanti.append({"campo": termine.base, "documento_id": documento.id,
+                        "descrizione": descrizioni.get(termine.base, "Manca la data documentata dell’evento da cui decorre questo termine.")})
                     if obbligo.stato == STATO_DA_NOTIFICARE:
-                        obbligo.motivo = obbligo.motivo or "La data da cui decorre il termine non è stata letta: calcolare il termine a mano."
+                        obbligo.motivo = obbligo.motivo or "La decorrenza non è ancora documentata: verifica la fonte nella stessa pagina."
                     continue
-                obbligo.scadenza = scadenza(termine, base).isoformat()
-                break
+                from pct.termini_processuali import ItalianDeadlineCalculator
+
+                estero = contesto.get("notifica_estero")
+                feriale = termine.sospensione_feriale
+                if feriale is None:
+                    feriale = contesto.get("sospensione_feriale")
+                giorni = termine.giorni_estero if estero is True and termine.giorni_estero else termine.giorni
+                calcolo = ItalianDeadlineCalculator().calculate(
+                    base, termine.mesi or giorni, direction="backward" if termine.prima else "forward",
+                    period_type="months" if termine.mesi else "days", free_term=termine.liberi,
+                    suspend_august=feriale is True,
+                    ferial_suspension_policy="manual_review" if feriale is None else "applies" if feriale else "not_applicable",
+                    reference_law="; ".join(regola.fonti), template_code=regola.id + ":" + termine.base,
+                    case_reference=documento.id,
+                )
+                calcolo["formula"] = termine.formula
+                calcolo["evento_base"] = termine.base
+                calcolo["destinazione_da_verificare"] = bool(termine.giorni_estero and estero is None)
+                obbligo.calcoli.append(calcolo)
+                if feriale is None and not any(d["campo"] == "sospensione_feriale" for d in obbligo.dati_mancanti):
+                    obbligo.dati_mancanti.append({"campo": "sospensione_feriale", "documento_id": documento.id,
+                        "descrizione": "La sospensione feriale va verificata per questo procedimento."})
+                if calcolo["destinazione_da_verificare"] and not any(d["campo"] == "notifica_estero" for d in obbligo.dati_mancanti):
+                    obbligo.dati_mancanti.append({"campo": "notifica_estero", "documento_id": documento.id,
+                        "descrizione": "Verifica se la notificazione è in Italia o all’estero: la durata del termine cambia."})
+                if feriale is not None and not calcolo["destinazione_da_verificare"]:
+                    if not obbligo.scadenza or calcolo["deadline"] < obbligo.scadenza:
+                        obbligo.scadenza = calcolo["deadline"]
+                        obbligo.formula = termine.formula
+                        obbligo.natura = termine.natura
             if not obbligo.destinatari and obbligo.stato in {STATO_DA_NOTIFICARE, STATO_DA_VERIFICARE}:
                 obbligo.motivo = (obbligo.motivo + " " if obbligo.motivo else "") + "Controparte non ancora letta negli atti: completare le parti del fascicolo."
+                obbligo.dati_mancanti.append({"campo": "destinatari", "documento_id": documento.id,
+                    "descrizione": "Mancano i destinatari da collegare a questo atto: verifica le parti del procedimento."})
+            if obbligo.stato == STATO_NOTIFICATO:
+                obbligo.dati_mancanti.clear()
             esito.append(obbligo)
     ordine = {STATO_DA_NOTIFICARE: 0, STATO_DA_VERIFICARE: 1, STATO_FACOLTATIVO: 2, STATO_NOTIFICATO: 3}
     return sorted(esito, key=lambda o: (ordine.get(o.stato, 9), o.scadenza or "9999"))

@@ -11,6 +11,18 @@ def _documento_identita_strutturale(head: str) -> bool:
         porzione,
         re.I,
     )
+    # Le scansioni ruotate possono perdere il titolo. Si riconosce allora
+    # soltanto la struttura personale completa, mai il nome del file.
+    giudiziario = re.search(r"\b(?:tribunale|ricorso|ordinanza|sentenza|relata|procura|citazione)\b", porzione[:350], re.I)
+    campi_ocr = sum(bool(re.search(pattern, porzione, re.I)) for pattern in (
+        r'\bcognome', r'\bnome', r'\bcittadinanza|\bnazionalit',
+        r'\bscade\s+il|\bscadenza|expiry',
+        r'\bstatura|\bsesso|\bconnotati|\bcontrassegni',
+        r'\b[A-Z]{2}\s*\d{6,}\b|\bIDITA|P<ITA',
+    ))
+    personale = re.search(r'\bconnotati|\bcontrassegni|\bstatura|\bIDITA|P<ITA', porzione, re.I)
+    if not giudiziario and personale and campi_ocr >= 5:
+        return True
     if not tipo:
         return False
     intestazione_forte = re.search(
@@ -67,6 +79,9 @@ def _citta_dell_ufficio(ufficio: str) -> str:
 
 
 def natura_documentale(testo: str, numero_rg: str = "", anno_rg: str = "", ufficio: str = "") -> tuple[str, str]:
+    from .copie_atti import messaggio_strutturato
+    if messaggio_strutturato(testo):
+        return "messaggio_pec", "La fonte è un messaggio o una ricevuta: l’atto da notificare è l’allegato, non la busta email."
     head = " ".join(str(testo or "").split())[:4000]
     if re.search(r"(?:contratto individuale di lavoro|contratto di lavoro a tempo determinato)", head[:1800], re.I):
         return "contratto_lavoro", "Il documento disciplina il rapporto di lavoro: le sue date non sono termini processuali."
@@ -139,11 +154,11 @@ def applica_pertinenza(fatti: list[Fatto], testo: str, *, contesto, origine: str
                     "modalita": "note_scritte",
                     "ora_termine": ora,
                 }]
-    natura, motivo = natura_documentale(testo, contesto.numero_rg, contesto.anno_rg)
+    natura, motivo = natura_documentale(testo, contesto.numero_rg, contesto.anno_rg, contesto.ufficio_giudiziario)
     if not natura:
         return fatti
     for fatto in fatti:
-        if (fatto.categoria == "data" and fatto.campo in {"termine", "udienza", "costituzione"} and natura in {"contratto_lavoro", "documento_identita", "precedente_giurisprudenziale"}) or (natura == "precedente_giurisprudenziale" and (fatto.categoria == "importo" or fatto.campo == "domanda_atto")):
+        if (fatto.categoria == "data" and fatto.campo in {"termine", "udienza", "costituzione"} and natura in {"contratto_lavoro", "documento_identita", "precedente_giurisprudenziale"}) or (natura in {"precedente_giurisprudenziale", "messaggio_pec"} and fatto.campo == "domanda_atto") or (natura == "precedente_giurisprudenziale" and fatto.categoria == "importo"):
             fatto.verifica = "respinta"
             fatto.prove = list(fatto.prove) + [{"codice": "pertinenza_documentale", "esito": "respinta", "dettaglio": motivo}]
     fatti.append(Fatto(categoria="evento", campo="natura_documentale", valore=natura, etichetta=natura.replace("_", " ").capitalize(), contesto=motivo, origine=origine, confidenza=0.95, verifica="verificata", prove=[{"codice": "contenuto_identificativo", "esito": "ok", "dettaglio": motivo}]))

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 from datetime import date
+from dataclasses import replace
 from typing import Any
 
 from pct.obblighi_notifica import STATO_DA_NOTIFICARE, DocumentoCatalogato, Parte, obblighi_del_fascicolo
@@ -50,33 +51,30 @@ def raccogli(fascicolo: Any, fatti: list[Any], etichette: dict[str, str]) -> tup
     per_oggetto: dict[str, list[Any]] = {}
     for fatto in fatti:
         per_oggetto.setdefault(_testo(getattr(fatto, "oggetto_id", "")), []).append(fatto)
-    precedenti = {oid for oid, elenco in per_oggetto.items() if any(f.campo == "natura_documentale" and f.valore == "precedente_giurisprudenziale" for f in elenco)}
+    precedenti = {oid for oid, elenco in per_oggetto.items() if any(f.campo == "natura_documentale" and f.valore in {"precedente_giurisprudenziale", "messaggio_pec"} and f.verifica in {"verificata", "corretta"} for f in elenco)}
 
     def _data(oid: str, *campi: str) -> str:
         for campo in campi:
-            date_campo = sorted(_testo(f.valore)[:10] for f in per_oggetto.get(oid, []) if f.categoria == "data" and f.campo == campo)
+            date_campo = sorted({_testo(f.valore)[:10] for f in per_oggetto.get(oid, []) if f.categoria == "data" and f.campo == campo and f.verifica in {"verificata", "corretta"}})
             if date_campo:
-                return date_campo[0]
+                return date_campo[0] if len(date_campo) == 1 else ""
         return ""
 
     def _nostro(oid: str) -> bool | None:
-        lati = {_dettaglio(f, "lato") for f in per_oggetto.get(oid, []) if f.categoria == "parte" and f.campo == "assistito"}
-        if "agisce" in lati:
+        lati = {_dettaglio(f, "lato") for f in per_oggetto.get(oid, []) if f.categoria == "parte" and f.campo == "assistito" and f.verifica not in {"respinta", "ignorata"}}
+        if lati == {"agisce"}:
             return True
-        if "resiste" in lati:
+        if lati == {"resiste"}:
             return False
         return None
 
     nomi = {_testo(getattr(d, "id", "")): _testo(getattr(d, "nome", "")) for d in list(getattr(fascicolo, "documenti", []) or [])}
     documenti: list[DocumentoCatalogato] = []
-    ricorso_di_nostro = any(etichetta.casefold() == _ETICHETTA_RICORSO_DI and _nostro(oid) for oid, etichetta in etichette.items())
     for oid, etichetta in etichette.items():
         if oid in precedenti or oid not in nomi:
             continue
         nostro = _nostro(oid)
-        if nostro is None and etichetta.casefold() == "decreto ingiuntivo" and ricorso_di_nostro:
-            nostro = True
-        udienze = tuple(sorted({_testo(f.valore)[:10] for f in per_oggetto.get(oid, []) if f.categoria == "data" and f.campo == "udienza"}))
+        udienze = tuple(sorted({_testo(f.valore)[:10] for f in per_oggetto.get(oid, []) if f.categoria == "data" and f.campo == "udienza" and f.verifica in {"verificata", "corretta"}}))
         documenti.append(DocumentoCatalogato(id=oid, nome=nomi[oid], etichetta=etichetta, data=_data(oid, "provvedimento", "data_atto"), nostro=nostro, udienze=udienze))
 
     parti: list[Parte] = []
@@ -91,7 +89,7 @@ def raccogli(fascicolo: Any, fatti: list[Any], etichette: dict[str, str]) -> tup
         if any(f.categoria == "prova_notifica" and f.campo in {"relata", "rdac"} for f in elenco) or etichette.get(oid, "").casefold() == "relata di notifica":
             prove.append({"documento_id": oid, "data": _data(oid, "notifica", "data_atto"), "atto": " ".join(_testo(f.contesto)[:200] for f in elenco if f.categoria == "prova_notifica")})
     contesto = {
-        "udienze_future": sorted({_testo(f.valore)[:10] for f in fatti if f.categoria == "data" and f.campo == "udienza" and _testo(f.valore)[:10] >= oggi}),
+        "udienze_future": sorted({_testo(f.valore)[:10] for f in fatti if f.categoria == "data" and f.campo == "udienza" and f.verifica in {"verificata", "corretta"} and f.oggetto_id in nomi and f.oggetto_id not in precedenti and _testo(f.valore)[:10] >= oggi}),
         "date_sentenze": [d.data for d in documenti if d.etichetta.casefold() == "sentenza" and d.data],
         "data_provvedimento_impugnato": next((d.data for d in documenti if d.etichetta.casefold() == "provvedimento amministrativo" and d.data), ""),
         "prove_notifica": prove,
@@ -102,10 +100,51 @@ def raccogli(fascicolo: Any, fatti: list[Any], etichette: dict[str, str]) -> tup
 def obblighi_fascicolo(fascicolo: Any) -> list[dict[str, Any]]:
     from web.services.archivio_letture_runtime import fatti_fascicolo
 
-    fatti = fatti_fascicolo(fascicolo)
+    fatti = fatti_fascicolo(fascicolo, canonico=False)
     documenti, parti, contesto = raccogli(fascicolo, fatti, _catalogo(fascicolo))
+    from web.services.verifica_notifiche_contesto import repository
+
+    verifiche = repository().elenco(str(fascicolo.id))
+    verifiche_registrate = verifiche
+    from pct.archivio_letture.verifiche_atti import verifiche_per_atto
+    identita = {}
+    documenti_attuali = {str(d.id): d for d in fascicolo.documenti}
+    for oid, originale in documenti_attuali.items():
+        impronte = {_testo(getattr(originale, campo, "")) for campo in ("hash_sha256", "hash_contenuto_sha256")}
+        candidati = {f.valore for f in fatti if f.oggetto_id == oid and f.campo == "impronta_testo_atto"
+                     and f.verifica in {"verificata", "corretta"} and f.sha256 and f.sha256 in impronte}
+        if len(candidati) == 1:
+            identita[oid] = next(iter(candidati))
+    verifiche, revisioni = verifiche_per_atto(documenti_attuali, identita, verifiche)
     ufficio = _testo(getattr(fascicolo, "tribunale", "")) or _testo(getattr(fascicolo, "ufficio_giudiziario", ""))
-    return [o.to_dict() for o in obblighi_del_fascicolo(documenti, parti, ufficio=ufficio, contesto=contesto)]
+    esito = []
+    for documento in documenti:
+        verificata = verifiche.get(documento.id, {})
+        locale = dict(contesto)
+        if verificata:
+            documento = replace(documento, nostro=verificata["atto_studio"],
+                                udienze=(verificata["udienza"],) if verificata.get("udienza") else documento.udienze)
+            locale.update(notifica_estero=verificata["notifica_estero"], sospensione_feriale=verificata["sospensione_feriale"])
+            locale["decreti_collegati"] = {documento.id: verificata.get("pronuncia_decreto", "")}
+            locale["pubblicazioni_verificate"] = {documento.id: verificata.get("pubblicazione", "")}
+            locale["conoscenze_verificate"] = {documento.id: verificata.get("conoscenza", "")}
+        for obbligo in obblighi_del_fascicolo([documento], parti, ufficio=ufficio, contesto=locale):
+            item = obbligo.to_dict()
+            item["contesto_verificato"] = verificata
+            if documento.id in revisioni:
+                item.update(scadenza="", calcoli=[], stato="da_verificare", motivo=revisioni[documento.id])
+                item["dati_mancanti"].append({"campo": "verifica_attuale", "documento_id": documento.id, "descrizione": revisioni[documento.id]})
+                # La revisione resta quella SQL anche quando i vecchi valori
+                # non sono utilizzabili: la nuova conferma deve poter passare
+                # il controllo di concorrenza senza riproporre date obsolete.
+                precedente = verifiche_registrate.get(documento.id, {})
+                item["contesto_verificato"] = {"revisione": precedente.get("revisione", 0),
+                                              "verifica_documento_id": documento.id}
+            if verificata and not verificata["regime_corrente"]:
+                item.update(scadenza="", calcoli=[], stato="da_verificare", motivo="Regime precedente o speciale: verifica la norma applicabile prima di calcolare.")
+            esito.append(item)
+    from pct.archivio_letture.copie_atti import riunisci_obblighi
+    return riunisci_obblighi(esito, identita)
 
 
 def allinea_scadenze(fascicolo: Any, obblighi: list[dict[str, Any]] | None = None) -> dict[str, int]:
@@ -120,10 +159,11 @@ def allinea_scadenze(fascicolo: Any, obblighi: list[dict[str, Any]] | None = Non
     conteggi = {"creati": 0, "esistenti": 0}
     oggi = date.today().isoformat()
     for obbligo in obblighi:
-        if obbligo["stato"] != STATO_DA_NOTIFICARE or not obbligo["scadenza"] or obbligo["scadenza"] < oggi:
+        if obbligo["stato"] != STATO_DA_NOTIFICARE or obbligo.get("dati_mancanti") or not obbligo["scadenza"] or obbligo["scadenza"] < oggi:
             continue
         marcatore = MARCATORE + obbligo["chiave"]
-        if marcatore in esistenti:
+        marcatori = [marcatore, *(MARCATORE + fonte["chiave"] for fonte in obbligo.get("fonti_documentali", []))]
+        if any(m in esistenti for m in marcatori):
             conteggi["esistenti"] += 1
             continue
         destinatari = "; ".join(f"{d['nome']} {d['presso']}" for d in obbligo["destinatari"]) or "controparte da individuare"

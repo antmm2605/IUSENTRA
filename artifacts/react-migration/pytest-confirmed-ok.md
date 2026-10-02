@@ -6512,3 +6512,6 @@ Verifica finale correzione 1.6.132: intero `test_local_signer.py` 269 superati; 
 | Caso reale `0BAABCE0` | OK | Fonte di verità SQLite verificata dopo riapertura: prova `0404322C`, simulazione positiva e deposito `64381391` nello stato `CONSEGNATO`; il reinvio duplicato è bloccato. |
 | Interfaccia produzione | OK | Nella pagina reale autenticata sono visibili `Ricevuta di pagamento`, `Prova completata`, `Simulazione completata`, `Deposito già inviato` e l’azione esplicita `Avvia un nuovo deposito`. Nessun nuovo invio PEC è stato eseguito. |
 | Guardrail tecnici locali | OK | Compilazione Python, typecheck TypeScript e build Vite superati; la prova locale non ha richiesto né smart card né Local Signer. |
+
+
+Consolidamento 02/10/2026: 68 test mirati + 22 materializzatore, gate locale --fast 26/26 e 100 test accessibilità, build/typecheck e confine Local Signer. Evidenze conservate fuori repository nel percorso controllo-studio-20260930-work/evidence.

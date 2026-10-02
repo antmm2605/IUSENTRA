@@ -184,7 +184,8 @@ def test_preview_docx_rimuove_markup_eseguibile_da_conversione_mammoth(monkeypat
     assert "Contenuto leggibile" in html
     assert "fonte ammessa" in html
     assert 'href="https://www.normattiva.it/"' in html
-    assert 'rel="nofollow noopener noreferrer"' in html
+    assert 'rel="noopener noreferrer"' in html
+    assert 'referrerpolicy="no-referrer"' in html
     assert "<script" not in html.casefold()
     assert "<iframe" not in html.casefold()
     assert "<form" not in html.casefold()

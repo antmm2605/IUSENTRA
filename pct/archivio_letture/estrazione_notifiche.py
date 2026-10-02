@@ -26,6 +26,23 @@ PROVE: tuple[tuple[str, str, tuple[str, ...]], ...] = (
 )
 _PROVE_RE = tuple((campo, etichetta, tuple(re.compile(espressione, re.IGNORECASE) for espressione in espressioni)) for campo, etichetta, espressioni in PROVE)
 SEGNALI_PER_CERTEZZA = 2
+VERSIONE_PROVE_NOTIFICA = "2026.10.01.prove-v2-relata-operativa"
+_TITOLO_RELATA = re.compile(r"(?im)^\s*(?:relata|relazione)\s+di\s+notifica(?:zione)?(?:\s+[^\n]{0,80})?\s*$")
+_FORMULA_RELATA = re.compile(r"\b(?:ho\s+notificato|notifico|ha\s+notificato)\b", re.I)
+_ATTESTAZIONE = re.compile(r"(?im)^\s*attestazione\s+di\s+conformit[àa]\s*$")
+
+
+def _relata_operativa(testo: str) -> bool:
+    """Una norma citata non identifica una relazione di notificazione."""
+    testata = testo[:1500]
+    if _ATTESTAZIONE.search(testata):
+        return False
+    titolo = _TITOLO_RELATA.search(testata)
+    formula = _FORMULA_RELATA.search(testo)
+    # Il titolo basta a identificare il tipo; il perfezionamento e la firma
+    # restano verifiche separate. Una formula citata in una sentenza non basta.
+    return titolo is not None or bool(formula and re.search(
+        r"(?im)^\s*(?:io\s+)?(?:il\s+)?sottoscritto\s+(?:avv\.?|avvocato)\b", testata))
 
 
 def _brano(testo: str, posizione: int, raggio: int = 90) -> str:
@@ -38,6 +55,8 @@ def estrai_prove_notifica(testo: str, *, origine: str, nome: str = "") -> list[F
     testata = " ".join((str(nome or ""), testo[:4000]))
     fatti: list[Fatto] = []
     for campo, etichetta, espressioni in _PROVE_RE:
+        if campo == "relata" and not _relata_operativa(testo):
+            continue
         segnali: list[str] = []
         prima = -1
         for espressione in espressioni:

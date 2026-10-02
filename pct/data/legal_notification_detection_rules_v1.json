@@ -1,6 +1,6 @@
 {
   "schema": "iusentra.legal_notification_detection_rules.v1",
-  "version": "legal_notification_detection_rules_v1.0.2",
+  "version": "legal_notification_detection_rules_v1.0.3",
   "generated_at": "2026-07-19T00:00:00+02:00",
   "timezone": "Europe/Rome",
   "source_registry": "legal_sources_registry.json",
@@ -9,13 +9,23 @@
     "current_proceedings_rule": "procedimenti introdotti dopo il 28/02/2023",
     "historical_proceedings_rule": "procedimenti già pendenti al 28/02/2023",
     "standalone_event_current_from": "2023-03-01",
-    "selector_fields": ["proceeding_commenced_on", "context_kind", "notification_event_at"],
-    "forbidden_selector_fields": ["legacy_migration_cutoff"]
+    "selector_fields": [
+      "proceeding_commenced_on",
+      "context_kind",
+      "notification_event_at"
+    ],
+    "forbidden_selector_fields": [
+      "legacy_migration_cutoff"
+    ]
   },
   "legal_regimes": {
     "cartabia_current": {
       "reason": "Per i procedimenti introdotti dopo il 28 febbraio 2023 si applica l'art. 147, commi 2 e 3, c.p.c.",
-      "source_ids": ["src.it.l53_1994.art3bis", "src.it.cpc.art147", "src.it.dpr68_2005.art6_8"],
+      "source_ids": [
+        "src.it.l53_1994.art3bis",
+        "src.it.cpc.art147",
+        "src.it.dpr68_2005.art6_8"
+      ],
       "send_time_limit": null,
       "sender_effect": "actual_rac",
       "recipient_effect": "actual_rdac_with_21_07_deferral",
@@ -23,7 +33,12 @@
     },
     "pre_cartabia_historical": {
       "reason": "Per i procedimenti già pendenti al 28 febbraio 2023 resta il regime storico, coordinato con Corte cost. 75/2019.",
-      "source_ids": ["src.it.l53_1994.art3bis", "src.it.dl179_2012.art16septies.historical", "src.it.cortecost.75_2019", "src.it.dpr68_2005.art6_8"],
+      "source_ids": [
+        "src.it.l53_1994.art3bis",
+        "src.it.dl179_2012.art16septies.historical",
+        "src.it.cortecost.75_2019",
+        "src.it.dpr68_2005.art6_8"
+      ],
       "send_time_limit": "historical_07_21_with_corte_sender_split_21_24",
       "sender_effect": "actual_rac",
       "recipient_effect": "actual_rdac_with_historical_time_protection",
@@ -34,14 +49,25 @@
     "legacy_migration_cutoff": {
       "historical_cutoff": "2026-07-19T23:59:59+02:00",
       "strict_tracking_from": "2026-07-20T00:00:00+02:00",
-      "reference_precedence": ["explicit_action_at", "official_delivery_at", "event_order_at", "portal_release_at", "document_at", "event_at", "filesystem_at"],
+      "reference_precedence": [
+        "explicit_action_at",
+        "official_delivery_at",
+        "event_order_at",
+        "portal_release_at",
+        "document_at",
+        "event_at",
+        "filesystem_at"
+      ],
       "purpose": "Selezione della coda interna di migrazione e revisione dei dati pregressi.",
       "legal_regime_selector": false,
       "must_not_change_legal_effects": true
     },
     "night_send_prudential": {
       "default_mode": "warning",
-      "allowed_modes": ["warning", "block"],
+      "allowed_modes": [
+        "warning",
+        "block"
+      ],
       "configurable": true,
       "legal_rule": false,
       "purpose": "Policy interna opzionale; non trasforma la fascia 00:00-06:59 in un divieto del regime vigente."
@@ -56,8 +82,13 @@
     {
       "id": "notif.detect.comunicazione_xml_office_negative.v1",
       "priority": 1000,
-      "source_types": ["comunicazione_xml"],
-      "positive_any": ["notificat[oa]\\s+alla\\s+pec", "notificat[oa]\\s+in\\s+cancelleria"],
+      "source_types": [
+        "comunicazione_xml"
+      ],
+      "positive_any": [
+        "notificat[oa]\\s+alla\\s+pec",
+        "notificat[oa]\\s+in\\s+cancelleria"
+      ],
       "negative_any": [],
       "event_type": "office_communication_not_l53_notification",
       "confidence": 0.99,
@@ -67,67 +98,125 @@
       "human_review_required": false,
       "notification_case": "office_communication",
       "result_priority": "P2",
-      "legal_sources": ["src.it.dgsia.technical_rules_2024.bundle"],
+      "legal_sources": [
+        "src.it.dgsia.technical_rules_2024.bundle"
+      ],
       "portal_original": "conditional",
       "terminal_for_source": true
     },
     {
       "id": "notif.receipt.delivery_failure.v1",
       "priority": 900,
-      "source_types": ["message_subject", "message_body", "daticert_xml", "eml", "attachment"],
-      "positive_any": ["avviso\\s+di\\s+mancata\\s+consegna", "mancata\\s+consegna", "delivery\\s+failure"],
-      "negative_any": ["fac[- ]?simile", "esempio"],
+      "source_types": [
+        "message_subject",
+        "message_body",
+        "daticert_xml",
+        "eml",
+        "attachment"
+      ],
+      "positive_any": [
+        "avviso\\s+di\\s+mancata\\s+consegna",
+        "mancata\\s+consegna",
+        "delivery\\s+failure"
+      ],
+      "negative_any": [
+        "fac[- ]?simile",
+        "esempio"
+      ],
       "event_type": "notification_delivery_failure",
       "confidence": 0.96,
       "reason": "È presente un avviso di mancata consegna da collegare alla notifica e alla causa dell'insuccesso.",
       "proposed_action": "Aprire revisione urgente e valutare il percorso art. 3-ter soltanto se ne ricorrono i presupposti.",
-      "creates_notification_candidate": true,
+      "creates_notification_candidate": false,
       "human_review_required": true,
       "notification_case": "delivery_failure",
       "result_priority": "P0",
-      "legal_sources": ["src.it.l53_1994.art3ter", "src.it.dpr68_2005.art6_8"],
+      "legal_sources": [
+        "src.it.l53_1994.art3ter",
+        "src.it.dpr68_2005.art6_8"
+      ],
       "portal_original": "conditional"
     },
     {
       "id": "notif.receipt.rdac_complete.v1",
       "priority": 850,
-      "source_types": ["message_subject", "message_body", "daticert_xml", "eml", "attachment"],
-      "positive_any": ["ricevuta\\s+completa\\s+di\\s+avvenuta\\s+consegna", "ricevuta\\s+di\\s+avvenuta\\s+consegna"],
-      "negative_any": ["fac[- ]?simile", "esempio"],
+      "source_types": [
+        "message_subject",
+        "message_body",
+        "daticert_xml",
+        "eml",
+        "attachment"
+      ],
+      "positive_any": [
+        "ricevuta\\s+completa\\s+di\\s+avvenuta\\s+consegna",
+        "ricevuta\\s+di\\s+avvenuta\\s+consegna"
+      ],
+      "negative_any": [
+        "fac[- ]?simile",
+        "esempio"
+      ],
       "event_type": "notification_rdac",
       "confidence": 0.97,
       "reason": "La RdAC è evidenza della consegna e determina l'effetto per il destinatario secondo il regime applicabile.",
       "proposed_action": "Collegare la RdAC alla PEC inviata e alla RAC, verificando destinatario e timestamp effettivo.",
-      "creates_notification_candidate": true,
+      "creates_notification_candidate": false,
       "human_review_required": true,
       "notification_case": "delivery_receipt",
       "result_priority": "P1",
-      "legal_sources": ["src.it.l53_1994.art3bis", "src.it.cpc.art147", "src.it.dpr68_2005.art6_8", "src.it.dm44_2011.art18"],
+      "legal_sources": [
+        "src.it.l53_1994.art3bis",
+        "src.it.cpc.art147",
+        "src.it.dpr68_2005.art6_8",
+        "src.it.dm44_2011.art18"
+      ],
       "portal_original": "never"
     },
     {
       "id": "notif.receipt.rac.v1",
       "priority": 840,
-      "source_types": ["message_subject", "message_body", "daticert_xml", "eml", "attachment"],
-      "positive_any": ["ricevuta\\s+di\\s+accettazione"],
-      "negative_any": ["fac[- ]?simile", "esempio"],
+      "source_types": [
+        "message_subject",
+        "message_body",
+        "daticert_xml",
+        "eml",
+        "attachment"
+      ],
+      "positive_any": [
+        "ricevuta\\s+di\\s+accettazione"
+      ],
+      "negative_any": [
+        "fac[- ]?simile",
+        "esempio"
+      ],
       "event_type": "notification_rac",
       "confidence": 0.97,
       "reason": "La RAC prova l'accettazione e l'effetto per il notificante, ma non prova la consegna al destinatario.",
       "proposed_action": "Collegare la RAC alla PEC inviata e attendere la RdAC o l'avviso di mancata consegna.",
-      "creates_notification_candidate": true,
+      "creates_notification_candidate": false,
       "human_review_required": true,
       "notification_case": "acceptance_receipt",
       "result_priority": "P1",
-      "legal_sources": ["src.it.l53_1994.art3bis", "src.it.dpr68_2005.art6_8"],
+      "legal_sources": [
+        "src.it.l53_1994.art3bis",
+        "src.it.dpr68_2005.art6_8"
+      ],
       "portal_original": "never"
     },
     {
       "id": "notif.receipt.sent_l53.v1",
       "priority": 800,
-      "source_types": ["message_subject", "message_body", "eml"],
-      "positive_any": ["notificazione\\s+ai\\s+sensi\\s+della\\s+legge\\s+(?:n\\.?\\s*)?53\\s+del\\s+1994"],
-      "negative_any": ["fac[- ]?simile", "bozza"],
+      "source_types": [
+        "message_subject",
+        "message_body",
+        "eml"
+      ],
+      "positive_any": [
+        "notificazione\\s+ai\\s+sensi\\s+della\\s+legge\\s+(?:n\\.?\\s*)?53\\s+del\\s+1994"
+      ],
+      "negative_any": [
+        "fac[- ]?simile",
+        "bozza"
+      ],
       "event_type": "notification_l53_sent",
       "confidence": 0.95,
       "reason": "L'oggetto o il messaggio identifica una PEC di notificazione L. 53/1994.",
@@ -136,15 +225,29 @@
       "human_review_required": true,
       "notification_case": "l53_sent",
       "result_priority": "P1",
-      "legal_sources": ["src.it.l53_1994.art3bis", "src.it.dl179_2012.art16ter", "src.it.dm44_2011.art18"],
+      "legal_sources": [
+        "src.it.l53_1994.art3bis",
+        "src.it.dl179_2012.art16ter",
+        "src.it.dm44_2011.art18"
+      ],
       "portal_original": "never"
     },
     {
       "id": "notif.detect.explicit_order.v1",
       "priority": 700,
-      "source_types": ["message_body", "attachment", "validation_report"],
-      "positive_any": ["(?:ordina|dispone).{0,160}notific", "(?:atto|ricorso|decreto|provvedimento).{0,120}da\\s+notificare"],
-      "negative_any": ["notificat[oa]\\s+alla\\s+pec", "notificat[oa]\\s+in\\s+cancelleria"],
+      "source_types": [
+        "message_body",
+        "attachment",
+        "validation_report"
+      ],
+      "positive_any": [
+        "(?:ordina|dispone).{0,160}notific",
+        "(?:atto|ricorso|decreto|provvedimento).{0,120}da\\s+notificare"
+      ],
+      "negative_any": [
+        "notificat[oa]\\s+alla\\s+pec",
+        "notificat[oa]\\s+in\\s+cancelleria"
+      ],
       "event_type": "notification_to_prepare",
       "confidence": 0.86,
       "reason": "Il documento contiene un ordine o una prescrizione esplicita di notificazione.",
@@ -153,20 +256,34 @@
       "human_review_required": true,
       "notification_case": "explicit_order",
       "result_priority": "P1",
-      "legal_sources": ["src.it.l53_1994.art3bis", "src.it.cpc.arts137_149"],
+      "legal_sources": [
+        "src.it.l53_1994.art3bis",
+        "src.it.cpc.arts137_149"
+      ],
       "portal_original": "conditional"
     },
     {
       "id": "notif.detect.judgment_to_notify_review.v1",
       "priority": 675,
-      "source_types": ["message_body", "attachment", "validation_report"],
+      "source_types": [
+        "message_body",
+        "attachment",
+        "validation_report"
+      ],
       "positive_any": [
         "sentenza\\s+a\\s+verbale",
         "decide\\s+la\\s+causa\\s+con\\s+sentenza",
         "sentenza.{0,260}(?:definitivamente\\s+decidendo|condanna|accerta|rigetta|accoglie|liquida)",
         "(?:definitivamente\\s+decidendo|condanna|accerta|rigetta|accoglie|liquida).{0,260}sentenza"
       ],
-      "negative_any": ["originale\\s+notificat[oa]", "ricevuta\\s+di\\s+accettazione", "ricevuta\\s+completa\\s+di\\s+avvenuta\\s+consegna", "ricevuta\\s+di\\s+avvenuta\\s+consegna", "prova\\s+di\\s+notifica\\s+depositata", "fac[- ]?simile"],
+      "negative_any": [
+        "originale\\s+notificat[oa]",
+        "ricevuta\\s+di\\s+accettazione",
+        "ricevuta\\s+completa\\s+di\\s+avvenuta\\s+consegna",
+        "ricevuta\\s+di\\s+avvenuta\\s+consegna",
+        "prova\\s+di\\s+notifica\\s+depositata",
+        "fac[- ]?simile"
+      ],
       "event_type": "notification_strategic_review",
       "confidence": 0.86,
       "reason": "Sentenza o provvedimento decisorio ricevuto: aprire presidio per valutare o preparare la notifica; la comunicazione di cancelleria non prova una notifica dell'avvocato.",
@@ -175,15 +292,31 @@
       "human_review_required": true,
       "notification_case": "judgment_to_notify",
       "result_priority": "P1",
-      "legal_sources": ["src.it.l53_1994.art3bis", "src.it.cpc.arts137_149", "src.it.cpc.art133", "src.it.cpc.art285", "src.it.cpc.art325", "src.it.cpc.art326", "src.it.cpc.art429"],
+      "legal_sources": [
+        "src.it.l53_1994.art3bis",
+        "src.it.cpc.arts137_149",
+        "src.it.cpc.art133",
+        "src.it.cpc.art285",
+        "src.it.cpc.art325",
+        "src.it.cpc.art326",
+        "src.it.cpc.art429"
+      ],
       "portal_original": "conditional"
     },
     {
       "id": "notif.detect.strategic_judgment.v1",
       "priority": 650,
-      "source_types": ["message_body", "attachment"],
-      "positive_any": ["sentenza.{0,180}(?:termine\\s+breve|art\\.?\\s*325|art\\.?\\s*326)"],
-      "negative_any": ["mera\\s+comunicazione", "fac[- ]?simile"],
+      "source_types": [
+        "message_body",
+        "attachment"
+      ],
+      "positive_any": [
+        "sentenza.{0,180}(?:termine\\s+breve|art\\.?\\s*325|art\\.?\\s*326)"
+      ],
+      "negative_any": [
+        "mera\\s+comunicazione",
+        "fac[- ]?simile"
+      ],
       "event_type": "notification_strategic_review",
       "confidence": 0.72,
       "reason": "La sentenza richiama profili compatibili con una valutazione sulla notifica e sul termine breve; non è una decisione automatica.",
@@ -192,13 +325,19 @@
       "human_review_required": true,
       "notification_case": "judgment_short_term_review",
       "result_priority": "P1",
-      "legal_sources": ["src.it.l53_1994.art3bis", "src.it.cpc.arts137_149"],
+      "legal_sources": [
+        "src.it.l53_1994.art3bis",
+        "src.it.cpc.arts137_149"
+      ],
       "portal_original": "conditional"
     },
     {
       "id": "notif.detect.sentenza_verbale_429_review.v1",
       "priority": 645,
-      "source_types": ["message_body", "attachment"],
+      "source_types": [
+        "message_body",
+        "attachment"
+      ],
       "positive_any": [
         "sentenza\\s+a\\s+verbale",
         "sentenza.{0,220}(?:art\\.?\\s*429|429\\s*c\\.?p\\.?c\\.?).{0,260}(?:definitivamente\\s+decidendo|condanna|accerta|rigetta|accoglie|liquida)",
@@ -206,7 +345,11 @@
         "sentenza.{0,260}p\\.q\\.m\\..{0,260}(?:condanna|accerta|rigetta|accoglie|liquida)",
         "definitivamente\\s+decidendo.{0,260}(?:condanna|accerta|rigetta|accoglie|liquida).{0,260}sentenza"
       ],
-      "negative_any": ["fac[- ]?simile", "bozza", "massima\\s+giurisprudenziale"],
+      "negative_any": [
+        "fac[- ]?simile",
+        "bozza",
+        "massima\\s+giurisprudenziale"
+      ],
       "event_type": "notification_strategic_review",
       "confidence": 0.83,
       "reason": "Sentenza o sentenza a verbale già resa: la comunicazione di cancelleria non prova la notifica dell'avvocato e non fa decorrere da sola il termine breve; serve valutare/preparare notifica e prova.",
@@ -215,15 +358,31 @@
       "human_review_required": true,
       "notification_case": "judgment_to_notify_review",
       "result_priority": "P1",
-      "legal_sources": ["src.it.l53_1994.art3bis", "src.it.cpc.art133", "src.it.cpc.art285", "src.it.cpc.art325", "src.it.cpc.art326", "src.it.cpc.art429"],
+      "legal_sources": [
+        "src.it.l53_1994.art3bis",
+        "src.it.cpc.art133",
+        "src.it.cpc.art285",
+        "src.it.cpc.art325",
+        "src.it.cpc.art326",
+        "src.it.cpc.art429"
+      ],
       "portal_original": "conditional"
     },
     {
       "id": "notif.detect.communication_only.v1",
       "priority": 200,
-      "source_types": ["message_subject", "message_body", "attachment"],
-      "positive_any": ["comunicazione\\s+di\\s+cancelleria", "biglietto\\s+di\\s+cancelleria"],
-      "negative_any": ["notificazione\\s+ai\\s+sensi\\s+della\\s+legge"],
+      "source_types": [
+        "message_subject",
+        "message_body",
+        "attachment"
+      ],
+      "positive_any": [
+        "comunicazione\\s+di\\s+cancelleria",
+        "biglietto\\s+di\\s+cancelleria"
+      ],
+      "negative_any": [
+        "notificazione\\s+ai\\s+sensi\\s+della\\s+legge"
+      ],
       "event_type": "office_communication",
       "confidence": 0.88,
       "reason": "La comunicazione di cancelleria non è, da sola, prova di una notifica alla controparte.",
@@ -232,15 +391,28 @@
       "human_review_required": false,
       "notification_case": "office_communication",
       "result_priority": "P2",
-      "legal_sources": ["src.it.dgsia.technical_rules_2024.bundle"],
+      "legal_sources": [
+        "src.it.dgsia.technical_rules_2024.bundle"
+      ],
       "portal_original": "conditional"
     },
     {
       "id": "notif.negative.non_legal.v1",
       "priority": 100,
-      "source_types": ["message_subject", "message_body"],
-      "positive_any": ["newsletter", "pubblicit[aà]", "comunicazione\\s+commerciale"],
-      "negative_any": ["notificazione", "mancata\\s+consegna", "ricevuta\\s+di\\s+accettazione"],
+      "source_types": [
+        "message_subject",
+        "message_body"
+      ],
+      "positive_any": [
+        "newsletter",
+        "pubblicit[aà]",
+        "comunicazione\\s+commerciale"
+      ],
+      "negative_any": [
+        "notificazione",
+        "mancata\\s+consegna",
+        "ricevuta\\s+di\\s+accettazione"
+      ],
       "event_type": "non_legal_message",
       "confidence": 0.9,
       "reason": "Messaggio non legale escluso dalla coda notifiche.",
@@ -249,7 +421,9 @@
       "human_review_required": false,
       "notification_case": "none",
       "result_priority": "P3",
-      "legal_sources": ["src.it.dgsia.technical_rules_2024.bundle"],
+      "legal_sources": [
+        "src.it.dgsia.technical_rules_2024.bundle"
+      ],
       "portal_original": "never"
     }
   ]

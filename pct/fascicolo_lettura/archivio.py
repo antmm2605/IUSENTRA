@@ -18,7 +18,7 @@ def _azione(voce: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": pulisci(voce.get("id")),
         "prove": list(voce.get("prove") or []),
-        "tipo": "udienza" if pulisci(voce.get("type")) == "udienza_documento" else "termine",
+        "tipo": "udienza" if (pulisci(voce.get("campo")) == "udienza" or pulisci(voce.get("type")) == "udienza_documento") and pulisci(voce.get("hearingMode")) != "note_scritte" else "termine",
         "data": pulisci(voce.get("date")) or data_it(voce.get("dateIso")),
         "data_iso": pulisci(voce.get("dateIso")),
         "ora": pulisci(voce.get("time")),

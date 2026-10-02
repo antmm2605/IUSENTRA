@@ -14,6 +14,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+VERSIONE_DATE_PROCESSUALI = "2026.10.01.date-v3+identita-strutturale+sottoscrizione+ufficio-pertinente"
+
 FINESTRA_PRIMA = 110
 FINESTRA_DOPO = 45
 FINESTRA_NEGATIVA = 30
@@ -67,6 +69,17 @@ def _spazi(testo: str) -> str:
     return " ".join(str(testo or "").split())
 
 
+def _clausola_sottoscrizione(testo: str, inizio: int, fine: int) -> bool:
+    """Luogo e data seguiti dal sottoscrittore: non una relata citata prima."""
+    prima = testo[max(0, inizio - 160):inizio]
+    clausola = re.split(r'[.;\n]', prima)[-1].strip()
+    luogo = re.fullmatch(r"[A-ZÀ-Ý][A-Za-zÀ-ÿ'’ -]{1,65},?\s*(?:l[iì]\s*)?", clausola)
+    if not luogo or re.search(r'udienz|termin|rinvia|fissa|entro|deposit|notific|sentenza|ordinanza|decreto', clausola, re.I):
+        return False
+    dopo = testo[fine:fine + 100]
+    return bool(re.match(r"\s*[.*_]*\s*(?:(?:Il|La)\s+Giudice\b|Avv(?:ocato)?\.?\s)", dopo, re.I))
+
+
 def ancora_per(testo: str, inizio: int, fine: int, *, limite: int = 0, limite_dopo: int | None = None) -> Ancora | None:
     """L'ancora più vicina alla data che sta in testo[inizio:fine]; None se la data non ha campo.
 
@@ -75,6 +88,8 @@ def ancora_per(testo: str, inizio: int, fine: int, *, limite: int = 0, limite_do
     sfilza di date in tabella; l'ancora che segue la data vale solo sulla
     stessa riga e prima del punto.
     """
+    if _clausola_sottoscrizione(testo, inizio, fine):
+        return Ancora(campo="data_atto", testo="luogo, data e sottoscrittore", distanza=0)
     prima = testo[max(0, inizio - FINESTRA_PRIMA, limite, inizio_frase(testo, inizio, limite)):inizio]
     if _NEGATIVE.search(prima[-FINESTRA_NEGATIVA:]):
         return None
@@ -120,6 +135,8 @@ __all__ = ["ANCORE", "Ancora", "ancora_per", "brano", "inizio_frase", "ora_vicin
 
 def motivo_non_processuale(testo: str, inizio: int, fine: int) -> str:
     """Esclusione esplicita, verificabile anche sul brano storico salvato."""
+    if _clausola_sottoscrizione(testo, inizio, fine):
+        return "data di redazione e sottoscrizione dell’atto, non termine o notifica"
     prima = testo[max(0, inizio - 160):inizio]
     if re.search(r"(?:contratto|rapporto|servizio|assunzione).{0,120}decorrenza\s+(?:dal|da|del)\s*$", prima, re.I | re.S):
         return "decorrenza del rapporto di lavoro, non termine processuale"
@@ -134,7 +151,12 @@ def motivo_non_processuale(testo: str, inizio: int, fine: int) -> str:
             return "periodo di servizio scolastico o beneficio, non termine processuale"
     if re.search(r"cronol\.?(?:ogico)?\s*\d+/\d+\s+del\s*$", prima, re.I):
         return "data di registrazione del provvedimento, non data di udienza"
-    if re.search(r"(?:Messina|Palmi|Vicenza|Roma|Milano|Napoli|Torino|Bologna|Firenze|Reggio Calabria),?\s*(?:l[iì]\s*)?$", prima, re.I) and re.match(r"\s*(?:Il|La)\s+Giudice", dopo, re.I):
+    # La data di sottoscrizione vale anche per uffici non presenti in una
+    # lista di città. Deve esserci la clausola breve «Luogo, data. Il giudice»,
+    # distinta dalla frase che fissa l'udienza o impone il termine.
+    clausola = re.split(r'[.;\n]', prima)[-1].strip()
+    luogo = re.fullmatch(r"[A-ZÀ-Ý][A-Za-zÀ-ÿ'’ -]{1,65},\s*(?:l[iì]\s*)?", clausola)
+    if luogo and not re.search(r'udienz|termin|rinvia|fissa|entro|deposit|notific', clausola, re.I) and re.match(r"\s*\.?\s*(?:Il|La)\s+Giudice", dopo, re.I):
         return "data di redazione del provvedimento, non termine processuale"
     if re.search(r"EMISSIONE/ISSUING|SCADENZA/EXPIRY|HOLDER.?S.?SIGNATURE", vicino, re.I):
         return "data del documento di identità, non termine processuale"

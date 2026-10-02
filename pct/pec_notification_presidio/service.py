@@ -15,6 +15,11 @@ class NotificationPresidioService:
         self.repository = repository
 
     def create_candidate(self, payload: Mapping[str, Any]) -> dict[str, Any]:
+        from .receipt_policy import is_transport_receipt
+
+        if is_transport_receipt(payload):
+            return {"id": "", "created": False, "skipped": True,
+                    "reason": "Ricevuta di trasporto: correlare all'invio, senza creare una nuova notifica."}
         recipients = tuple(payload.get("recipients") or ())
         documents = tuple(payload.get("documents") or ())
         if not recipients:

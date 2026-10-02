@@ -1,6 +1,21 @@
 import type { BadgeTone } from '@/ui/Badge'
 import type { PresidioPriority, PresidioStatus, PresidioTabKey } from './types'
 
+export function downloadHrefForPresidioDocument(viewerHref: string, fallbackHref: string): string {
+  if (viewerHref.includes('/documenti/') && viewerHref.includes('/visualizza')) {
+    try {
+      const parsed = new URL(viewerHref, window.location.origin)
+      if (parsed.origin === window.location.origin) {
+        parsed.searchParams.set('download', '1')
+        return `${parsed.pathname}${parsed.search}${parsed.hash}`
+      }
+    } catch {
+      return fallbackHref
+    }
+  }
+  return fallbackHref
+}
+
 export type PresidioTabDefinition = {
   id: PresidioTabKey
   label: string

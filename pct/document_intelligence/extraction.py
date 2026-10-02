@@ -27,7 +27,7 @@ from pct.formatting import format_datetime_it
 
 _TEXT_EXTENSIONS = {"txt", "xml", "json", "csv"}
 _HTML_EXTENSIONS = {"html", "htm"}
-_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "tif", "tiff", "bmp", "gif"}
+_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "tif", "tiff", "bmp", "gif", "webp"}
 
 
 def _format_email_datetime_visible(value: Any) -> str:
@@ -135,6 +135,15 @@ def extract_text_from_document(content: bytes, filename: str, file_type: str) ->
         headers = BytesHeaderParser(policy=policy.default).parsebytes(content[:65536])
         if headers.get("From") and headers.get("Subject") and headers.get("MIME-Version"):
             return _extract_eml(content)
+    if ext == "bin":
+        # Sorgenti storiche: il nome originario conserva il formato prima di .bin.
+        original = str(filename).lower().removesuffix(".bin")
+        native_type = Path(original).suffix.lstrip(".")
+        if native_type in {"ods", "odp", "pptx", "webp"}:
+            ext = native_type
+    if ext in {"ods", "odp", "pptx"}:
+        from .office_native_text import extract_office_native_text
+        return extract_office_native_text(content, ext)
     if ext == "pdf":
         if not _looks_like_pdf(content):
             # Gli archivi storici possono conservare una busta CAdES con
@@ -237,6 +246,10 @@ def _file_type_from_payload(content: bytes, filename: str, *, fallback: str) -> 
         "htm",
         "rtf",
         "odt",
+        "ods",
+        "odp",
+        "pptx",
+        "webp",
         "xlsx",
         "xls",
         "png",

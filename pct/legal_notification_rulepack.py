@@ -714,6 +714,16 @@ def detect_notification_candidates(
             )
             if rule.get("terminal_for_source"):
                 break
+    # Il contenuto originale citato in una ricevuta non è un nuovo invio né
+    # un nuovo provvedimento. Conserviamo le evidenze e lasciamo la correlazione
+    # RAC/RdAC al registro ricevute dell'invio effettivo.
+    receipt = any(item["rule_id"] in {
+        "notif.receipt.rac.v1", "notif.receipt.rdac_complete.v1",
+        "notif.receipt.delivery_failure.v1",
+    } and item["source_locator"] in {"message_subject", "daticert_xml"} for item in findings)
+    if receipt:
+        for item in findings:
+            item["creates_notification_candidate"] = False
     return findings
 
 

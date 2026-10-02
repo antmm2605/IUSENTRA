@@ -267,6 +267,12 @@ def mutate_presidio(repo: Any, presidio_id: str, mutation: str, body: Mapping[st
         raise PermissionError("Permesso messaggi.scrivi richiesto.")
     actor = current_actor_id()
     if mutation == "confirm":
+        presidio = repo.get_presidio(presidio_id)
+        if str(presidio.get("resolution_code") or "") == "SOURCE_CONTENT_REVIEW":
+            raise ValueError(
+                "Prima della conferma occorre acquisire e verificare l’originale "
+                "riferito a questa attività: il documento precedente non prova la rettifica."
+            )
         from web.services.notification_presidia_fascicolo_reconciliation import (
             reconcile_presidio_with_fascicolo_notification_proof,
         )

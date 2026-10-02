@@ -150,6 +150,8 @@ def parti_lette(fatti: Iterable[Any]) -> list[ParteDelFascicolo]:
             continue
         cf_grezzo = str(getattr(fatto, "valore_letto", "") or "")
         cf = cf_grezzo if re.fullmatch(r"[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]|\d{11}", cf_grezzo) else ""
+        if not cf and re.fullmatch(r"[A-Z0-9]{16}", cf_grezzo) and _dettaglio(fatto, "codice_fiscale").startswith(cf_grezzo + " ("):
+            cf = cf_grezzo  # dichiarato nella fonte, non certificato valido
         chiave = (" ".join(sorted(_parole(nome))), ruolo)
         voce = voci.get(chiave)
         if voce is None:

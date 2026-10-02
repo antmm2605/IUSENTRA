@@ -14,25 +14,11 @@ import { StatusBadge } from '@/ui/StatusBadge'
 import { Toast } from '@/ui/Toast'
 import { classifyPresidioError, mutatePresidio } from '../api/presidiApi'
 import { usePresidioDetail } from '../hooks/usePresidioDetail'
-import { presidioStatusLabel, presidioStatusTone, priorityTone, safeInternalHref } from '../presentation'
+import { downloadHrefForPresidioDocument, presidioStatusLabel, presidioStatusTone, priorityTone, safeInternalHref } from '../presentation'
 import type { PresidioAvailableAction } from '../types'
 import { PresidioActions } from './PresidioActions'
 import { PresidioEvidence } from './PresidioEvidence'
-
-function downloadHrefForPresidioDocument(viewerHref: string, fallbackHref: string): string {
-  if (viewerHref.includes('/documenti/') && viewerHref.includes('/visualizza')) {
-    try {
-      const parsed = new URL(viewerHref, window.location.origin)
-      if (parsed.origin === window.location.origin) {
-        parsed.searchParams.set('download', '1')
-        return `${parsed.pathname}${parsed.search}${parsed.hash}`
-      }
-    } catch {
-      return fallbackHref
-    }
-  }
-  return fallbackHref
-}
+import VerificaNotifichePanel from '@/components/VerificaNotifichePanel'
 
 export default function PresidioDetailDrawer({
   id,
@@ -102,6 +88,7 @@ export default function PresidioDetailDrawer({
                 <div><dt>Cliente/parte</dt><dd>{detail.practice.client || 'Da completare'}</dd></div>
                 <div><dt>Pratica</dt><dd>{detail.practice.subject || detail.practice.label || 'Da completare'}</dd></div>
                 <div><dt>R.G.</dt><dd>{detail.practice.rg || 'Non indicato'}</dd></div>
+                <div><dt>Numero fascicolo</dt><dd>{detail.practice.number || 'Non indicato'}</dd></div>
                 <div><dt>Ufficio</dt><dd>{detail.practice.office || 'Non indicato'}</dd></div>
                 <div><dt>Caso</dt><dd>{detail.notification_case_label}</dd></div>
                 <div><dt>Canale</dt><dd>{detail.channel_label}</dd></div>
@@ -111,6 +98,16 @@ export default function PresidioDetailDrawer({
               <p><strong>Motivo:</strong> {detail.detection_reason}</p>
               <p><strong>Prossima azione:</strong> {detail.next_action}</p>
             </section>
+
+            {detail.notification_verification ? <VerificaNotifichePanel verifica={detail.notification_verification}/> : null}
+            {detail.correlated_sources?.length ? <section className="nlp-detail-section" aria-label="Fonti della stessa attività">
+              <h3>Fonti della stessa attività · {detail.correlated_sources.length}</h3>
+              {detail.correlated_sources.length > 1 ? <p>Le comunicazioni riferite allo stesso originale e agli stessi destinatari sono riunite in un’unica attività. Ogni fonte resta consultabile.</p> : null}
+              {detail.correlated_sources.map((source) => <div key={source.id}>
+                <span>PEC del {formatDateTimeIt(source.received_at, 'data da verificare')}</span>{' '}
+                {safeInternalHref(source.href) ? <Button type="button" tone="neutral" onClick={() => setDocumentSource({href:safeInternalHref(source.href),label:source.name,context:'Documento della PEC selezionata'})}><Eye size={15}/>Leggi il documento ricevuto</Button> : <small>Allegato utile non individuato: consulta le evidenze del presidio.</small>}
+              </div>)}
+            </section> : null}
 
             {readOnly ? (
               <InlineAlert tone="warning">

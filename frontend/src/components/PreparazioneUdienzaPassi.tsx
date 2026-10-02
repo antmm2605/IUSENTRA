@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AlertTriangle, BookOpen, CheckCircle2, ExternalLink, FileText, MessageSquare, Plus, Scale, Trash2 } from 'lucide-react'
 import { dataIt, type Fonte, type SchedaUdienza, type TermineAssegnato } from './preparazioneUdienzaTipi'
+import { SourceDocumentModal, type SourceDocument } from './SourceDocumentModal'
 
 export type Azioni = {
   salvaCampi: (passo: number, campi: Record<string, unknown>, conferma?: boolean) => Promise<void>
@@ -81,6 +82,7 @@ export function PassoQuadro({ s, a }: { s: SchedaUdienza; a: Azioni }) {
 
 export function PassoDocumenti({ s, a }: { s: SchedaUdienza; a: Azioni }) {
   const [extra, setExtra] = useState('')
+  const [fonte, setFonte] = useState<SourceDocument | null>(null)
   const utili = s.documenti.filter((d) => d.stato !== 'non_necessario')
   const pronti = utili.filter((d) => d.stato === 'pronto').length
   return (
@@ -96,7 +98,7 @@ export function PassoDocumenti({ s, a }: { s: SchedaUdienza; a: Azioni }) {
                   onClick={() => void a.azione('documento', { indice: d.indice, stato: valore })}>{etichetta}</button>
               ))}
             </div>
-            {d.href ? <a href={d.href} target="_blank" rel="noreferrer">Apri</a> : <span/>}
+            {d.href ? <button type="button" onClick={() => setFonte({ href: d.href, label: d.etichetta, context: s.titolo })}>Visualizza</button> : <span/>}
           </li>
         ))}
       </ul>
@@ -106,6 +108,7 @@ export function PassoDocumenti({ s, a }: { s: SchedaUdienza; a: Azioni }) {
           <button type="button" disabled={!extra.trim() || a.occupato} onClick={() => void a.azione('documento-extra', { etichetta: extra }).then((r) => { if (r.ok) setExtra('') })}><Plus size={14}/> Aggiungi</button>
         </div>
       ) : null}
+      <SourceDocumentModal source={fonte} onClose={() => setFonte(null)}/>
     </div>
   )
 }

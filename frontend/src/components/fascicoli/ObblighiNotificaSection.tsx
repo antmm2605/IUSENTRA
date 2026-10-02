@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
-import { AlertTriangle, Send } from 'lucide-react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { AlertTriangle, FileText, Send } from 'lucide-react'
 import { Badge } from '../dashboard'
+import { SourceDocumentModal, type SourceDocument } from '../SourceDocumentModal'
+const VerificaNotifichePanel = lazy(() => import('../VerificaNotifichePanel'))
 
 type Destinatario = { nome: string; ruolo: string; presso: string; fonte: string }
 
@@ -18,6 +20,9 @@ export type ObbligoNotifica = {
   fonti: string[]
   dopo: string
   avvertenze: string
+  documentoId: string
+  fonti_documentali?: { documentoId: string; documento: string; chiave: string }[]
+  dati_mancanti?: { campo: string; descrizione: string }[]
 }
 
 const STATI: Record<ObbligoNotifica['stato'], { testo: string; tono: 'danger' | 'warning' | 'info' | 'success' }> = {
@@ -38,13 +43,15 @@ function dataItaliana(iso: string): string {
 export function ObblighiNotificaSection({ fascicoloId, active = true, refreshKey = 0 }: { fascicoloId: string; active?: boolean; refreshKey?: number }) {
   const [obblighi, setObblighi] = useState<ObbligoNotifica[]>([])
   const [errore, setErrore] = useState('')
+  const [source, setSource] = useState<SourceDocument | null>(null)
+  const [verificaAtto, setVerificaAtto] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!active || !fascicoloId) return
     try {
       const response = await fetch(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/obblighi-notifica`, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
       const payload = await response.json()
-      if (!payload.ok) throw new Error(payload.errore || 'Obblighi di notifica non disponibili.')
+      if (!response.ok || !payload.ok) throw new Error(payload.errore || 'Obblighi di notifica non disponibili.')
       setObblighi(Array.isArray(payload.obblighi) ? payload.obblighi : [])
       setErrore('')
     } catch (requestError) {
@@ -68,7 +75,7 @@ export function ObblighiNotificaSection({ fascicoloId, active = true, refreshKey
                 <Badge tone={stato.tono}>{stato.testo}</Badge>
                 <b>Notificare {obbligo.atti}</b>
                 <span>{obbligo.etichetta} · {obbligo.documento}</span>
-                {obbligo.scadenza ? <small><strong>Entro il {dataItaliana(obbligo.scadenza)}</strong> — {obbligo.formula}</small> : obbligo.formula ? <small>{obbligo.formula}</small> : null}
+                {obbligo.scadenza ? <small><strong>{obbligo.dati_mancanti?.length ? 'Data parziale da verificare: ' : 'Entro il '}{dataItaliana(obbligo.scadenza)}</strong> — {obbligo.formula}</small> : obbligo.formula ? <small>{obbligo.formula}</small> : null}
                 {obbligo.destinatari.length ? (
                   <small>A: {obbligo.destinatari.map((d) => `${d.nome} ${d.presso} (${d.fonte})`).join('; ')}</small>
                 ) : null}
@@ -76,11 +83,34 @@ export function ObblighiNotificaSection({ fascicoloId, active = true, refreshKey
                 {obbligo.dopo ? <small>Dopo: {obbligo.dopo}</small> : null}
                 {obbligo.avvertenze ? <small className="iu-fas-letture__parte-citazione">{obbligo.avvertenze}</small> : null}
                 <small>Fonti: {obbligo.fonti.join(', ')}</small>
+                {obbligo.dati_mancanti?.length ? <div className="iu-fas-notifica-verifica">
+                  <strong>Dati da verificare per questo atto</strong>
+                  {obbligo.dati_mancanti.map((dato) => <p key={dato.campo}>{dato.descrizione}</p>)}
+                </div> : null}
+                <details>
+                  <summary>Atti e fonti ({obbligo.fonti_documentali?.length || 1})</summary>
+                  <div className="iu-fas-presidio-action-links">
+                  {(obbligo.fonti_documentali || [{ documentoId: obbligo.documentoId, documento: obbligo.documento, chiave: obbligo.chiave }]).map((fonte) => (
+                    <button type="button" className="iu-fas-inline-link" key={fonte.chiave}
+                      onClick={() => setSource({ href: `/fascicoli/${encodeURIComponent(fascicoloId)}/documenti/${encodeURIComponent(fonte.documentoId)}/visualizza`, label: fonte.documento, context: obbligo.atti })}>
+                      <FileText size={14} aria-hidden="true"/> Leggi {fonte.documento}
+                    </button>
+                  ))}
+                  </div>
+                </details>
+                <button type="button" className="iu-fas-inline-link" aria-expanded={verificaAtto === obbligo.documentoId}
+                  onClick={() => setVerificaAtto(verificaAtto === obbligo.documentoId ? null : obbligo.documentoId)}>
+                  {verificaAtto === obbligo.documentoId ? 'Chiudi la verifica del caso' : 'Verifica fonti e dati nella stessa pagina'}
+                </button>
+                {verificaAtto === obbligo.documentoId ? <Suspense fallback={<p role="status">Apertura della verifica…</p>}>
+                  <VerificaNotifichePanel fascicoloId={fascicoloId} documentoId={obbligo.documentoId} onSaved={() => { void load() }}/>
+                </Suspense> : null}
               </div>
             </li>
           )
         })}
       </ul>
+      <SourceDocumentModal source={source} onClose={() => setSource(null)}/>
     </div>
   )
 }

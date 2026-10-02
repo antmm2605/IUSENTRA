@@ -14,7 +14,8 @@ import hashlib
 import json
 import os
 import time
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Callable
 
@@ -218,10 +219,21 @@ class LetturaPayloadCache:
 LETTURA_CACHE = LetturaPayloadCache(ttl_seconds=24 * 60 * 60.0, max_entries=512)
 
 
-def chiave_lettura(tenant_id: str, fascicolo_id: str) -> tuple:
+def chiave_lettura(tenant_id: str, fascicolo_id: str, *, oggi: date | None = None) -> tuple:
     from pct.fascicolo_lettura import VERSIONE_LETTURA
 
-    return ("lettura", f"{tenant_id or 'single-studio'}@{VERSIONE_LETTURA}", str(fascicolo_id or ""))
+    # Il payload contiene giorni residui, scaduti e prossimi appuntamenti:
+    # cambia alla mezzanotte italiana, anche se i documenti sono immutati.
+    # Si rigenera il solo riepilogo alla prima apertura del nuovo giorno.
+    giorno = oggi or datetime.now(ZoneInfo("Europe/Rome")).date()
+    revisione_esito = ""
+    if has_app_context():
+        from pct.discordanze_letture_repository import RegistroDiscordanze
+        from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+        # La chiave cache include versione e ciclo; il registro usa lo studio reale.
+        _, revisione_esito = RegistroDiscordanze(registro_corrente()).esito(tenant_corrente(),str(fascicolo_id or ""))
+    return ("lettura", f"{tenant_id or 'single-studio'}@{VERSIONE_LETTURA}@{giorno.isoformat()}@esiti-sql-v2@{revisione_esito}", str(fascicolo_id or ""))
 
 
 def invalida_lettura(fascicolo_id: str) -> int:

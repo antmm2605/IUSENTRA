@@ -513,3 +513,14 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.iu-cs-dettaglio{padding:24px;overflow:auto;color:var(--iu-text);line-height:1.6}
+.iu-cs-dettaglio__fatti{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:0 0 24px}
+.iu-cs-dettaglio__fatti dt{font-size:12px;color:var(--iu-muted)}
+.iu-cs-dettaglio__fatti dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.iu-cs-dettaglio__note{white-space:pre-wrap;overflow-wrap:anywhere}
+.iu-cs-dettaglio .iu-cs-aggiorna{margin:12px 12px 0 0}
+@media(max-width:640px){.iu-cs-dettaglio{padding:16px}.iu-cs-dettaglio__fatti{grid-template-columns:1fr}}
+.iu-cs-verifica{color:var(--iu-text);line-height:1.6;overflow-wrap:anywhere}
+.iu-cs-verifica article{padding:16px 0;border-top:1px solid var(--iu-border)}
+.iu-cs-verifica h4{margin:0;font-size:16px}
+.iu-cs-verifica ul{padding-left:22px}

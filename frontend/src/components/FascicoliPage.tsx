@@ -1,6 +1,9 @@
 import { AttestazioneConformitaAzione } from './fascicoli/AttestaPulsante'
+import { useReaderDrag } from './useReaderDrag'
+import { EconomicVerificationPanel } from './EconomicVerificationPanel'
 import { AvanzamentoCaricamento, caricaDocumentiConAvanzamento, type StatoCaricamento } from './fascicoli/caricaDocumenti'
 import { Fragment, Suspense, lazy, useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
+const ViewerDocumentEditor = lazy(() => import('./ViewerDocumentEditor').then((module) => ({ default: module.ViewerDocumentEditor })))
 import {
   Archive,
   AlertTriangle,
@@ -5546,7 +5549,7 @@ function FascicoloUfficiCompetentiPanel({ fascicolo }:{fascicolo:FascicoloFull})
   )
 }
 
-type PreviewDocument = { name: string; url: string; downloadUrl: string; objectUrl?: string; mobileUrl?: string }
+type PreviewDocument = { name: string; url: string; downloadUrl: string; objectUrl?: string; mobileUrl?: string; operational?: boolean }
 type LazySectionStatus = 'idle' | 'loading' | 'loaded' | 'error'
 type EmbeddedRecordKind = 'cliente' | 'soggetti' | 'pagopa'
 type EmbeddedRecordState = { kind: EmbeddedRecordKind; title: string; href: string; externalHref?: string }
@@ -5687,6 +5690,36 @@ function DocumentDownloadAction({ downloadUrl, name, onDone, onError }:{download
 }
 
 function PdfPreviewModal({ preview, onClose, overDocumentFlow = false }:{preview:PreviewDocument | null; onClose:()=>void; overDocumentFlow?:boolean}) {
+  const [expandedReader, setExpandedReader] = useState(false)
+  const readerDrag = useReaderDrag(!expandedReader, preview?.url)
+  useEffect(() => {
+    setExpandedReader(false)
+  }, [preview?.url])
+  useEffect(() => {
+    if (!expandedReader) return
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); setExpandedReader(false) }
+    }
+    let frameDocument: Document | null = null
+    const attachFrame = () => {
+      frameDocument?.removeEventListener('keydown', escape)
+      try { frameDocument = iframeRef.current?.contentDocument || null } catch { frameDocument = null }
+      frameDocument?.addEventListener('keydown', escape)
+    }
+    const frame = iframeRef.current
+    attachFrame()
+    frame?.addEventListener('load', attachFrame)
+    document.addEventListener('keydown', escape)
+    return () => {
+      document.removeEventListener('keydown', escape)
+      frame?.removeEventListener('load', attachFrame)
+      frameDocument?.removeEventListener('keydown', escape)
+    }
+  }, [expandedReader])
+  const [editorDirty, setEditorDirty] = useState(false)
+  const [discardEditor, setDiscardEditor] = useState(false)
+  const [editorSaving, setEditorSaving] = useState(false)
+  useEffect(() => { setEditorDirty(false); setDiscardEditor(false); setEditorSaving(false) }, [preview?.url])
   const [downloadState, setDownloadState] = useState('')
   const [downloading, setDownloading] = useState(false)
   const [readerUrl, setReaderUrl] = useState('')
@@ -5818,27 +5851,33 @@ function PdfPreviewModal({ preview, onClose, overDocumentFlow = false }:{preview
   const activeDownloadUrl = readerDownloadUrl || preview.downloadUrl
   const mobileUrl = preview.mobileUrl || mobilePreviewUrl(activeUrl)
   const viewerUrl = mobileUrl || activeUrl
-  const previewModalClassName = ['iu-fas-preview-modal', overDocumentFlow ? 'iu-fas-preview-modal--over-document-flow' : ''].filter(Boolean).join(' ')
+  const previewModalClassName = ['iu-fas-preview-modal', overDocumentFlow ? 'iu-fas-preview-modal--over-document-flow' : '', expandedReader ? 'iu-fas-preview-modal--fullscreen' : ''].filter(Boolean).join(' ')
   return (
     <div className={previewModalClassName} role="dialog" aria-modal="true" aria-label={`Anteprima ${activeName}`}>
-      <div className="iu-fas-preview-modal__box">
-        <header>
+      <div ref={readerDrag.boxRef} style={readerDrag.boxStyle} className="iu-fas-preview-modal__box">
+        <header {...readerDrag.headerProps}>
           <div className="iu-fas-preview-modal__title">
-            <span><Eye size={14}/> Lettore documento</span>
+            <span><Eye size={14}/> {preview.operational ? 'Dettaglio scadenza' : 'Lettore documento'}</span>
             <strong>{activeName}</strong>
             {downloadState ? <small className="iu-fas-preview-download-status" role="status">{downloadState}</small> : null}
           </div>
           <nav>
+            {!preview.operational && (overDocumentFlow || !documentRotationSaveUrl(activeUrl)) ? <>
             <button type="button" onClick={() => rotatePreview(-90)} aria-label={`Ruota ${activeName} a sinistra`} title="Ruota a sinistra"><RotateCcw size={15}/> Ruota sx</button>
             <button type="button" onClick={() => rotatePreview(90)} aria-label={`Ruota ${activeName} a destra`} title="Ruota a destra"><RotateCw size={15}/> Ruota dx</button>
             <button type="button" onClick={() => void saveRotation()} disabled={!normalizedRotation || !rotationSaveUrl || savingRotation} title={rotationSaveUrl ? 'Salva una copia ruotata nel fascicolo' : 'Salvataggio disponibile solo per documenti PDF del fascicolo'} aria-label={`Salva rotazione di ${activeName}`}>
               <Save size={15}/> {savingRotation ? 'Salvo…' : 'Salva rotazione'}
             </button>
-            <button type="button" onClick={() => void startDownload(activeDownloadUrl, activeName)} disabled={downloading} aria-label={`Scarica ${activeName}`}><Download size={15}/> {downloading ? 'Preparo…' : 'Scarica'}</button>
-            <button type="button" onClick={onClose} aria-label="Chiudi anteprima">Chiudi</button>
+            </> : null}
+            <button type="button" onClick={() => setExpandedReader((value) => !value)} aria-pressed={expandedReader} aria-label={expandedReader ? 'Esci da tutto schermo' : 'Tutto schermo'} title={expandedReader ? 'Torna alla vista normale · Esc' : 'Espandi il lettore a tutto schermo'}>{expandedReader ? <Minimize2 size={15}/> : <Maximize2 size={15}/>} {expandedReader ? 'Riduci' : 'Tutto schermo'}</button>
+            {!preview.operational ? <button type="button" onClick={() => void startDownload(activeDownloadUrl, activeName)} disabled={downloading} aria-label={`Scarica ${activeName}`}><Download size={15}/> {downloading ? 'Preparo…' : 'Scarica'}</button> : null}
+            <button type="button" onClick={() => editorDirty || editorSaving ? setDiscardEditor(true) : onClose()} aria-label="Chiudi anteprima">Chiudi</button>
           </nav>
         </header>
-        <iframe ref={iframeRef} src={viewerUrl} title={`Anteprima documento ${activeName}`} onLoad={() => pushRotationToReader()}/>
+        {!overDocumentFlow && documentRotationSaveUrl(activeUrl) ? <div className="iu-fas-preview-editor-body">
+          {discardEditor ? <div className="iu-source-edit-discard" role="alert"><span>{editorSaving ? 'Salvataggio in corso. Attendi l’esito prima di chiudere.' : 'Ci sono modifiche non salvate.'}</span><button type="button" onClick={() => setDiscardEditor(false)}>Torna al documento</button><button type="button" disabled={editorSaving} onClick={onClose}>Scarta e chiudi</button></div> : null}
+          <Suspense fallback={<p role="status">Caricamento del visualizzatore...</p>}><ViewerDocumentEditor key={activeUrl} source={{ href: activeUrl, label: activeName, context: 'Documento del fascicolo' }} readerRotation={normalizedRotation} readerRef={iframeRef} onDirty={setEditorDirty} onSaving={setEditorSaving}/></Suspense>
+        </div> : <iframe ref={iframeRef} src={viewerUrl} title={`Anteprima documento ${activeName}`} onLoad={() => pushRotationToReader()}/>}
       </div>
     </div>
   )
@@ -6259,8 +6298,12 @@ function EconomicControlModal({
   onOpenDocuments: () => void
   onCalculateContribution: () => void
 }) {
+  const economicBodyRef = useRef<HTMLDivElement>(null)
+  const bonificoPanelRef = useRef<HTMLElement>(null)
+  const oggiIso = formatDateIt(new Date()).split("/").reverse().join("-")
   const [editing, setEditing] = useState(false)
   const [bonificoOpen, setBonificoOpen] = useState(false)
+  const [economicSourceOpen, setEconomicSourceOpen] = useState(false)
   const [bonificoBusy, setBonificoBusy] = useState(false)
   const [bonificoError, setBonificoError] = useState('')
   const [bonificoDone, setBonificoDone] = useState<{ message: string; href: string } | null>(null)
@@ -6268,7 +6311,7 @@ function EconomicControlModal({
   const liquidazioneItem = data.fascicolo.paymentSummary.items.liquidazione_giudice
   const importoSuggerito = liquidazioneItem.importo != null && liquidazioneItem.status !== 'pagato' ? String(liquidazioneItem.importo) : data.fascicolo.paymentSummary.items.parcella.importo != null ? String(data.fascicolo.paymentSummary.items.parcella.importo) : ''
   const openBonifico = () => {
-    setBonifico({ importo: importoSuggerito, data: new Date().toISOString().slice(0, 10), note: '' })
+    setBonifico({ importo: importoSuggerito, data: oggiIso, note: '' })
     setBonificoError('')
     setBonificoDone(null)
     setBonificoOpen(true)
@@ -6303,11 +6346,20 @@ function EconomicControlModal({
   useEffect(() => {
     if (!open) return undefined
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape' && !economicSourceOpen) onClose()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [open, onClose])
+  }, [open, onClose, economicSourceOpen])
+
+  useEffect(() => {
+    if (open && economicBodyRef.current) economicBodyRef.current.scrollTop = 0
+  }, [open, editing])
+  useEffect(() => {
+    if (!bonificoOpen) return
+    bonificoPanelRef.current?.scrollIntoView({ block: 'start', behavior: 'auto' })
+    bonificoPanelRef.current?.querySelector('input')?.focus({ preventScroll: true })
+  }, [bonificoOpen])
 
   if (!open) return null
   const f = data.fascicolo
@@ -6338,12 +6390,12 @@ function EconomicControlModal({
     ? 'Ricevuta presente'
     : contribution.status === 'non_previsto'
       ? 'Non prevista'
-      : 'Da allegare'
+      : contribution.documentoFonte ? 'Fonte da verificare' : 'Da allegare'
   const rows = [
     { ...economicControlPaymentRow(contribution, 'Contributo'), status: contributionStatusLabel },
     {
       key: 'ricevuta_pagopa',
-      label: 'Ricevuta pagoPA',
+      label: 'Fonte del contributo',
       value: cleanDisplayText(contribution.documentoFonte) || 'n.d.',
       status: receiptStatus,
       tone: contribution.status === 'pagato' ? 'success' : contribution.status === 'non_previsto' ? 'neutral' : 'warning',
@@ -6366,7 +6418,7 @@ function EconomicControlModal({
   const objectLabel = fascicoloOggettoRicorso(f)
   const chips = [
     { label: contributionStatusLabel, tone: contribution.status === 'non_previsto' ? 'neutral' : contribution.tone },
-    { label: 'Ricevuta pagoPA', tone: contribution.status === 'pagato' ? 'success' : contribution.status === 'non_previsto' ? 'neutral' : 'warning' },
+    { label: 'Fonte del contributo', tone: contribution.status === 'pagato' ? 'success' : contribution.status === 'non_previsto' ? 'neutral' : 'warning' },
     { label: items.parcella.status === 'da_emettere' || summary.parcelleDaEmettere ? 'Parcella da emettere' : items.parcella.statusLabel, tone: items.parcella.tone },
     { label: proformaStatus, tone: proformaNeedsConfirmation ? 'warning' : summary.proformaPresidio.tone },
   ]
@@ -6387,6 +6439,7 @@ function EconomicControlModal({
             <button type="button" onClick={onClose} aria-label="Chiudi controllo economico">Chiudi</button>
           </nav>
         </header>
+        <div ref={economicBodyRef} className="iu-fas-economic-control-modal__body">
         <section className="iu-fas-economic-control-modal__summary" aria-label="Riepilogo pratica">
           <span><strong>RG</strong>{f.ref || f.rg || 'n.d.'}</span>
           <span><strong>Cliente</strong>{data.client?.name || f.client || 'n.d.'}</span>
@@ -6417,6 +6470,7 @@ function EconomicControlModal({
                   <Badge tone={row.tone as FascicoloRow['tone']}>{row.status}</Badge>
                 </article>
               ))}
+              <EconomicVerificationPanel payment={items.contributo_unificato} onSourceOpenChange={setEconomicSourceOpen}/>
             </section>
             <section className="iu-fas-economic-control-modal__sentenze" aria-label="Evidenze economiche da provvedimenti">
               <header>
@@ -6450,12 +6504,12 @@ function EconomicControlModal({
           </>
         )}
         {bonificoOpen ? (
-          <section className="iu-fas-economic-control-modal__bonifico" aria-label="Registra bonifico ricevuto">
+          <section ref={bonificoPanelRef} className="iu-fas-economic-control-modal__bonifico" aria-label="Registra bonifico ricevuto">
             <strong>Registra bonifico ricevuto</strong>
             <span>La parcella aperta del fascicolo viene segnata pagata con metodo bonifico e data; se manca, viene creata dal presidio economico e segnata pagata. La voce «Liquidazione giudice» passa a «Pagato». Fatturazione e fascicolo leggono lo stesso record.</span>
             <div>
               <label>Importo ricevuto (€)<input type="text" inputMode="decimal" value={bonifico.importo} onChange={(event) => { const value = event.currentTarget.value; setBonifico((current) => ({ ...current, importo: value })) }} placeholder="es. 4500,00"/></label>
-              <label>Data del bonifico<input type="date" value={bonifico.data} max={new Date().toISOString().slice(0, 10)} onChange={(event) => { const value = event.currentTarget.value; setBonifico((current) => ({ ...current, data: value })) }}/></label>
+              <label>Data del bonifico<input type="date" value={bonifico.data} max={oggiIso} onChange={(event) => { const value = event.currentTarget.value; setBonifico((current) => ({ ...current, data: value })) }}/></label>
               <label>Nota (facoltativa)<input type="text" value={bonifico.note} maxLength={400} onChange={(event) => { const value = event.currentTarget.value; setBonifico((current) => ({ ...current, note: value })) }} placeholder="es. banca, causale"/></label>
             </div>
             {bonificoError ? <p role="alert">{bonificoError}</p> : null}
@@ -6466,6 +6520,7 @@ function EconomicControlModal({
           </section>
         ) : null}
         {bonificoDone ? <p className="iu-fas-economic-control-modal__done" role="status"><CheckCircle2 size={15}/> {bonificoDone.message} <a href={bonificoDone.href}>Apri in Fatturazione</a></p> : null}
+        </div>
         <footer>
           <button type="button" className="is-primary" onClick={openBonifico} disabled={bonificoBusy} title="Segna pagata la parcella del fascicolo con il bonifico ricevuto e aggiorna la liquidazione"><Landmark size={15}/> Registra bonifico ricevuto</button>
           <button type="button" onClick={onCalculateContribution}><Calculator size={15}/> Calcola contributo</button>
@@ -6751,6 +6806,9 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
         <span id="cabina-regia" className="iu-fas-anchor-alias" aria-hidden="true"/>
         <span id="regia-operativa" className="iu-fas-anchor-alias" aria-hidden="true"/>
         {loading ? <p className="iu-empty">Caricamento Presidio del fascicolo...</p> : <ProceduralProfileConfirmation data={data} onDone={onDone} onError={onError}/>}
+        <div className="iu-fas-regia__actions">
+          <button type="button" onClick={onOpenEconomicControl}><WalletCards size={15}/> Apri presidio economico</button>
+        </div>
       </DetailSection>
     )
   }
@@ -9286,7 +9344,11 @@ function DocumentPresidioPanel({ data, fascicoloId, onOpenDocuments, onPreview, 
                   ) : (
                     <a className="iu-fas-inline-link" href="#documenti" onClick={onOpenDocuments}><FolderOpen size={14}/> Cerca la fonte</a>
                   )}
-                  {action.registeredHref ? <a className="iu-fas-inline-link" href={action.registeredHref}><CalendarDays size={14}/> Apri scadenza</a> : action.historical ? <span className="iu-muted">Data storica</span> : null}
+                  {action.registeredHref ? <button type="button" className="iu-fas-inline-link" onClick={() => {
+                    const url = new URL(action.registeredHref!, window.location.origin)
+                    url.searchParams.set('embed', 'source')
+                    onPreview({ name: `${action.title} · ${action.date}`, url: url.pathname + url.search, downloadUrl: '', operational: true })
+                  }}><CalendarDays size={14}/> Apri scadenza</button> : action.historical ? <span className="iu-muted">Data storica</span> : null}
                   {canPrepareDeadline ? <a className="iu-fas-inline-link" href={documentPresidioDeadlineHref(action, fascicoloId)}><CalendarDays size={14}/> Prepara scadenza</a> : null}
                 </div>
                 {action.requiresCommunicationDate ? <p className="iu-fas-presidio-action-note">La data di comunicazione non è stata letta: apri la fonte e registrala prima di predisporre il termine.</p> : null}

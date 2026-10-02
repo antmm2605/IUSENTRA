@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from email import policy
 from email.parser import BytesParser
+from email.utils import parsedate_to_datetime
+
+from pct.formatting import format_datetime_it
 from html import escape
 from html.parser import HTMLParser
 from xml.dom import minidom
@@ -148,8 +151,10 @@ def render_text_preview(nome_file: str, data: bytes, *, signed: bool) -> Attachm
 
 
 def render_html_preview(nome_file: str, data: bytes, *, signed: bool) -> AttachmentPreviewPayload:
+    from web.services.signed_attachment_preview_word import _safe_doc_html
+
     source, truncated = _bounded_text(data)
-    text = _strip_html_to_text(source)
+    content = _safe_doc_html(source)
     subtitle = "Documento HTML firmato" if signed else "Documento HTML"
     note = (
         '<p class="muted">Il testo è stato abbreviato per mantenere rapido il lettore. '
@@ -161,7 +166,7 @@ def render_html_preview(nome_file: str, data: bytes, *, signed: bool) -> Attachm
         data=_preview_shell(
             title=nome_file,
             subtitle=subtitle,
-            body=f'{note}<article class="body">{_paragraphs_from_text(text)}</article>',
+            body=f'{note}<article class="body">{content}</article>',
         ),
         mimetype="text/html; charset=utf-8",
         download_name=nome_file,
@@ -208,9 +213,16 @@ def render_eml_preview(nome_file: str, data: bytes, *, signed: bool) -> Attachme
     ):
         value = str(message.get(key, "") or "").strip()[:MAX_MIME_HEADER_CHARACTERS]
         if value:
+            if key == "Date":
+                try:
+                    parsed = parsedate_to_datetime(value)
+                    value = format_datetime_it(parsed) if parsed.tzinfo is not None else "Fuso orario assente nel messaggio originale."
+                except (ValueError, TypeError, OverflowError):
+                    value = "Data non leggibile nel messaggio originale."
             headers.append((label, value))
 
     plain_parts: list[str] = []
+    html_parts: list[str] = []
     attachments: list[tuple[str, str, int]] = []
     body_bytes = 0
     preview_truncated = False
@@ -244,6 +256,9 @@ def render_eml_preview(nome_file: str, data: bytes, *, signed: bool) -> Attachme
                 if text:
                     plain_parts.append(text)
             elif content_type == "text/html":
+                from web.services.signed_attachment_preview_word import _safe_doc_html
+
+                html_parts.append(_safe_doc_html(_decode_text(bounded_payload)))
                 text = _strip_html_to_text(_decode_text(bounded_payload))
                 if text.strip():
                     plain_parts.append(text.strip())
@@ -270,6 +285,8 @@ def render_eml_preview(nome_file: str, data: bytes, *, signed: bool) -> Attachme
         if body_text
         else "<p><em>Il messaggio non contiene un corpo testuale leggibile.</em></p>"
     )
+    if any(html_parts):
+        body_html = "\n".join(html_parts)
     attachments_html = ""
     if attachments:
         rows = "".join(

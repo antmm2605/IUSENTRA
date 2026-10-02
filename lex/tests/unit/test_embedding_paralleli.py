@@ -135,3 +135,26 @@ def test_ollama_spento_non_divide(monkeypatch):
     except RuntimeError:
         pass
     assert chiamate == [4, 4]
+
+
+def test_modello_non_caricabile_non_divide(monkeypatch):
+    import requests
+
+    class _RispostaGuasto:
+        status_code = 500
+        text = '{"error":"llama-server process has terminated: signal: segmentation fault (core dumped)"}'
+
+    chiamate = []
+
+    def finto(self, testi):
+        chiamate.append(len(testi))
+        raise requests.HTTPError("500 Server Error", response=_RispostaGuasto())
+
+    monkeypatch.setattr(OllamaEmbedder, "_embed_una_volta", finto)
+    emb = OllamaEmbedder(modello="m", url="http://x", tentativi=2, attesa_s=0)
+    try:
+        emb.embed_singolo(["a", "b", "c", "d"])
+        raise AssertionError("doveva fallire")
+    except RuntimeError:
+        pass
+    assert chiamate == [4, 4]

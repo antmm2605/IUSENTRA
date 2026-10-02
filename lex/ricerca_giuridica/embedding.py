@@ -31,12 +31,25 @@ MODELLO_PREDEFINITO = "embeddinggemma:300m"
 _RE_CONTROLLO = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f\ufffe\uffff]")
 
 
+_SEGNI_GUASTO_SERVER = (
+    "llama-server", "process has terminated", "segmentation fault", "timed out waiting",
+    "unable to load", "failed to load", "cuda error", "out of memory", "no compatible gpu",
+)
+
+
 def _errore_del_contenuto(exc: BaseException) -> bool:
     """True se Ollama ha risposto con un errore HTTP (il problema e' nel testo), False se non risponde."""
 
     causa = exc.__cause__ or exc
     risposta = getattr(causa, "response", None)
-    return risposta is not None and getattr(risposta, "status_code", 0) >= 400
+    if risposta is None or getattr(risposta, "status_code", 0) < 400:
+        return False
+    try:
+        dettaglio = str(getattr(risposta, "text", "") or "").lower()
+    except Exception:
+        dettaglio = ""
+    # il modello non si carica (GPU non disponibile, driver, memoria): il problema non e' nel testo
+    return not any(segno in dettaglio for segno in _SEGNI_GUASTO_SERVER)
 PREFISSO_DOMANDA = "task: search result | query: "
 PREFISSO_DOCUMENTO = "title: {titolo} | text: "
 

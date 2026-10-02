@@ -78,6 +78,7 @@ class ImportStats:
     articles_imported: int = 0
     chunks_written: int = 0
     errors: int = 0
+    fts_indicizzati: int = 0
 
 
 def clean_text(value: str | None) -> str:
@@ -374,6 +375,92 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
         """
     )
     conn.commit()
+    migra_schema(conn)
+
+
+def migra_schema(conn: sqlite3.Connection) -> dict[str, int]:
+    """Migrazione sicura e idempotente dei database Normattiva esistenti.
+
+    Fino alla 2.435 ogni import ripetuto reinseriva gli articoli di un documento già presente
+    (nessun vincolo di unicità su ``normative_articles``). La migrazione:
+
+    1. aggiunge la colonna ``article_key`` («normattiva:<sha XML>:art<n>»);
+    2. elimina i doppioni identici (stesso documento, numero e testo), spostando prima sull'articolo
+       conservato (id minore) gli eventuali chunk che puntavano ai doppioni;
+    3. ricava ``article_key`` dalla chiave dei chunk (``...:art<n>:chunk<m>``);
+    4. crea l'indice univoco su ``article_key``.
+
+    Non tocca documenti e chunk. Restituisce il numero di doppioni rimossi e di chiavi assegnate.
+    """
+
+    esito = {"articoli_doppi_rimossi": 0, "chiavi_assegnate": 0}
+    colonne = {row[1] for row in conn.execute("PRAGMA table_info(normative_articles)").fetchall()}
+    if "article_key" not in colonne:
+        conn.execute("ALTER TABLE normative_articles ADD COLUMN article_key TEXT")
+    indice = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'ux_normative_articles_key'"
+    ).fetchone()
+    if indice and not conn.execute(
+        "SELECT 1 FROM normative_articles WHERE article_key IS NULL LIMIT 1"
+    ).fetchone():
+        return esito
+
+    conn.execute("DROP TABLE IF EXISTS temp._normative_articoli_doppi")
+    conn.execute(
+        """
+        CREATE TEMP TABLE _normative_articoli_doppi AS
+        SELECT a.id AS vecchio_id, k.tenuto_id
+        FROM normative_articles a
+        JOIN (
+            SELECT document_id, COALESCE(article_number, '') AS numero, article_text AS testo, MIN(id) AS tenuto_id
+            FROM normative_articles
+            GROUP BY document_id, COALESCE(article_number, ''), article_text
+            HAVING COUNT(*) > 1
+        ) k ON a.document_id = k.document_id
+           AND COALESCE(a.article_number, '') = k.numero
+           AND a.article_text IS k.testo
+        WHERE a.id <> k.tenuto_id
+        """
+    )
+    doppi = int(conn.execute("SELECT COUNT(*) FROM temp._normative_articoli_doppi").fetchone()[0])
+    if doppi:
+        conn.execute(
+            """
+            UPDATE normative_chunks
+            SET article_id = (SELECT tenuto_id FROM temp._normative_articoli_doppi WHERE vecchio_id = normative_chunks.article_id)
+            WHERE article_id IN (SELECT vecchio_id FROM temp._normative_articoli_doppi)
+            """
+        )
+        conn.execute("DELETE FROM normative_articles WHERE id IN (SELECT vecchio_id FROM temp._normative_articoli_doppi)")
+    conn.execute("DROP TABLE IF EXISTS temp._normative_articoli_doppi")
+    esito["articoli_doppi_rimossi"] = doppi
+
+    usate = {
+        str(row[0])
+        for row in conn.execute("SELECT article_key FROM normative_articles WHERE article_key IS NOT NULL").fetchall()
+    }
+    aggiornamenti: list[tuple[str, int]] = []
+    for article_id, chunk_key in conn.execute(
+        """
+        SELECT a.id, MIN(c.chunk_key)
+        FROM normative_articles a
+        LEFT JOIN normative_chunks c ON c.article_id = a.id
+        WHERE a.article_key IS NULL
+        GROUP BY a.id
+        """
+    ).fetchall():
+        chiave = re.sub(r":chunk\d+$", "", str(chunk_key or "")) if chunk_key else ""
+        if not chiave or chiave in usate:
+            chiave = f"legacy:{article_id}"
+        usate.add(chiave)
+        aggiornamenti.append((chiave, int(article_id)))
+    conn.executemany("UPDATE normative_articles SET article_key = ? WHERE id = ?", aggiornamenti)
+    esito["chiavi_assegnate"] = len(aggiornamenti)
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_normative_articles_key ON normative_articles(article_key)")
+    conn.commit()
+    if doppi:
+        print(f"Migrazione Normattiva: rimossi {doppi} articoli duplicati da import ripetuti.")
+    return esito
 
 
 def insert_document(conn: sqlite3.Connection, doc: DocumentRecord, *, store_full_text: bool) -> int | None:
@@ -447,23 +534,49 @@ def insert_articles_and_chunks(
         for index, article in enumerate(doc.articles, start=1):
             if only_relevant_articles and doc.is_relevant and article.relevance_score == 0 and doc.relevance_score < 3:
                 continue
-            cur = conn.execute(
-                """
-                INSERT INTO normative_articles
-                (document_id, article_number, article_title, article_text, topics, relevance_score)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    doc_id,
-                    article.article_number,
-                    article.article_title,
-                    article.article_text,
-                    safe_json(article.topics),
-                    article.relevance_score,
-                ),
-            )
-            article_id = int(cur.lastrowid)
-            articles_count += 1
+            article_key = f"normattiva:{doc.xml_sha256}:art{index}"
+            existing = conn.execute(
+                "SELECT id FROM normative_articles WHERE article_key = ?", (article_key,)
+            ).fetchone()
+            if existing:
+                # Import ripetuto dello stesso XML: si aggiorna l'articolo, non si duplica.
+                article_id = int(existing[0])
+                conn.execute(
+                    """
+                    UPDATE normative_articles
+                    SET document_id = ?, article_number = ?, article_title = ?, article_text = ?, topics = ?,
+                        relevance_score = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        doc_id,
+                        article.article_number,
+                        article.article_title,
+                        article.article_text,
+                        safe_json(article.topics),
+                        article.relevance_score,
+                        article_id,
+                    ),
+                )
+            else:
+                cur = conn.execute(
+                    """
+                    INSERT INTO normative_articles
+                    (document_id, article_number, article_title, article_text, topics, relevance_score, article_key)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        doc_id,
+                        article.article_number,
+                        article.article_title,
+                        article.article_text,
+                        safe_json(article.topics),
+                        article.relevance_score,
+                        article_key,
+                    ),
+                )
+                article_id = int(cur.lastrowid)
+                articles_count += 1
             meta = dict(base_meta)
             meta.update({
                 "article_number": article.article_number,
@@ -547,6 +660,7 @@ def import_raw_dir(
     store_full_text: bool = False,
     max_chunk_chars: int = 1800,
     limit: int | None = None,
+    indice_fts: bool = True,
 ) -> ImportStats:
     stats = ImportStats()
     db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -590,6 +704,8 @@ def import_raw_dir(
                             ),
                         )
                         conn.commit()
+                        if indice_fts:
+                            _sincronizza_indice_fts(conn, stats)
                         conn.close()
                         return stats
                     stats.xml_seen += 1
@@ -643,8 +759,24 @@ def import_raw_dir(
         ),
     )
     conn.commit()
+    if indice_fts:
+        _sincronizza_indice_fts(conn, stats)
     conn.close()
     return stats
+
+
+def _sincronizza_indice_fts(conn: sqlite3.Connection, stats: ImportStats) -> None:
+    """Aggiorna l'indice FTS5 di Lex con i soli chunk nuovi (vedi lex/ricerca_giuridica/indice_fts.py)."""
+
+    try:
+        from lex.ricerca_giuridica.indice_fts import sincronizza_fts
+
+        esito = sincronizza_fts(conn)
+        stats.fts_indicizzati = esito.indicizzati
+        print(f"Indice FTS Lex: {esito.indicizzati} chunk indicizzati in {esito.secondi:.1f}s")
+    except Exception as exc:  # l'import resta valido anche se l'indice non si aggiorna
+        stats.errors += 1
+        print(f"ERRORE indice FTS Lex: {exc}", file=sys.stderr)
 
 
 def write_report(stats: ImportStats, path: Path) -> None:
@@ -665,6 +797,7 @@ def cli_main() -> None:
     parser.add_argument("--store-full-text", action="store_true", help="Salva testo completo in SQLite; aumenta molto il DB")
     parser.add_argument("--max-chunk-chars", type=int, default=1800, help="Dimensione massima chunk RAG")
     parser.add_argument("--limit", type=int, default=None, help="Limita numero XML per test")
+    parser.add_argument("--senza-indice-fts", action="store_true", help="Non aggiorna l'indice FTS5 di Lex")
     args = parser.parse_args()
 
     stats = import_raw_dir(
@@ -676,6 +809,7 @@ def cli_main() -> None:
         store_full_text=args.store_full_text,
         max_chunk_chars=args.max_chunk_chars,
         limit=args.limit,
+        indice_fts=not args.senza_indice_fts,
     )
     write_report(stats, Path(args.report))
     print("\nImport completato")

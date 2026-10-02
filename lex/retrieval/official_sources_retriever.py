@@ -177,10 +177,55 @@ def search_normattiva(
         container_path=CONTAINER_NORMATTIVA_JSONL,
         repo_path=DEFAULT_NORMATTIVA_JSONL,
     )
+    indexed = _search_normattiva_indexed(db_target, query, materia=materia, vigenza=vigenza, limit=limit)
+    if indexed is not None:
+        if indexed:
+            return indexed[:limit]
+        code_key = _detect_code_target(query)
+        if code_key:
+            return _search_normattiva_raw_code_articles(
+                db_target, query, code_key=code_key, article_ref=_extract_article_reference(query), limit=limit
+            )
+        return []
     db_results = _search_normattiva_db(db_target, query, materia=materia, vigenza=vigenza, limit=limit)
     if db_results:
         return db_results[:limit]
     return _search_jsonl(jsonl_target, query, materia=materia, source="Normattiva", limit=limit, default_source="Normattiva")
+
+
+def _search_normattiva_indexed(
+    path: Path,
+    query: str,
+    *,
+    materia: str | None,
+    vigenza: str | None,
+    limit: int,
+) -> list[dict[str, Any]] | None:
+    """Ricerca con l'indice FTS5 (bm25, articolo esatto, vigenza) e l'eventuale indice vettoriale.
+
+    ``None`` quando il database non ha ancora l'indice: si usa la ricerca precedente (LIKE).
+    """
+
+    try:
+        from lex.ricerca_giuridica.ibrida import cerca_normattiva_indicizzata
+
+        rows = cerca_normattiva_indicizzata(query, path, limite=max(limit * 3, limit) if materia else limit, vigenza=vigenza)
+    except Exception:
+        import logging
+
+        logging.getLogger(__name__).exception("Ricerca Normattiva indicizzata non riuscita; uso la ricerca precedente.")
+        return None
+    if rows is None:
+        return None
+    materia_value = str(materia or "").strip().lower()
+    if materia_value:
+        rows = [
+            row
+            for row in rows
+            if materia_value in json.dumps(row.get("metadata") or {}, ensure_ascii=False).lower()
+            or materia_value in str(row.get("titolo") or "").lower()
+        ]
+    return rows[:limit]
 
 
 def search_gazzetta(

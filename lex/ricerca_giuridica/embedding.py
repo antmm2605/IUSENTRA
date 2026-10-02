@@ -13,6 +13,7 @@ domanda e ``title: … | text: `` per il documento. I prefissi fanno parte dei m
 from __future__ import annotations
 
 import hashlib
+import itertools
 import math
 import os
 import re
@@ -95,6 +96,25 @@ def normalizza_righe(matrice: np.ndarray) -> np.ndarray:
     return matrice / norme
 
 
+class IstanzeOllamaDiverse(RuntimeError):
+    """Le istanze Ollama indicate hanno pesi diversi dello stesso modello."""
+
+
+def _digest_istanza(url: str, modello: str, timeout: float) -> str:
+    import requests
+
+    try:
+        risposta = requests.get(f"{url}/api/tags", timeout=min(timeout, 10.0))
+        risposta.raise_for_status()
+        for voce in list((risposta.json() or {}).get("models") or []):
+            nomi = {str(voce.get("name") or ""), str(voce.get("model") or "")}
+            if modello in nomi or f"{modello}:latest" in nomi:
+                return str(voce.get("digest") or "")
+    except Exception:
+        return ""
+    return ""
+
+
 @dataclass
 class OllamaEmbedder:
     """Embedding via Ollama ``/api/embed`` (batch); ``/api/embeddings`` per le versioni vecchie."""
@@ -110,7 +130,12 @@ class OllamaEmbedder:
 
     def __post_init__(self) -> None:
         self.modello = self.modello or modello_configurato()
-        self.url = base_ollama(self.url or url_configurato())
+        # piu' istanze Ollama separate da virgola (stesso modello): le richieste vengono distribuite a turno.
+        # Misurato: una singola istanza non accelera con OLLAMA_NUM_PARALLEL; piu' istanze lavorano davvero insieme.
+        indirizzi = [base_ollama(u) for u in str(self.url or url_configurato()).split(",") if u.strip()]
+        self.urls: list[str] = indirizzi or [base_ollama("")]
+        self.url = self.urls[0]
+        self._turno = itertools.count()
         self._digest: str | None = None
         if not self.paralleli:
             try:
@@ -144,19 +169,31 @@ class OllamaEmbedder:
                 versione = str(dati.get("digest") or dati.get("modified_at") or "")
             except Exception:
                 versione = ""
+        if versione and len(self.urls) > 1:
+            for altro in self.urls[1:]:
+                diverso = _digest_istanza(altro, self.modello, self.timeout)
+                if diverso != versione:
+                    raise IstanzeOllamaDiverse(
+                        f"l'istanza Ollama {altro} ha una versione diversa del modello {self.modello} "
+                        f"({diverso or 'assente'} invece di {versione}): non si mescolano vettori diversi"
+                    )
         self._digest = versione
         return versione
+
+    def _prossimo_url(self) -> str:
+        return self.urls[next(self._turno) % len(self.urls)]
 
     def _embed_una_volta(self, testi: list[str]) -> np.ndarray:
         import requests
 
         corpo: dict[str, Any] = {"model": self.modello, "input": list(testi), "truncate": True, "keep_alive": "15m"}
-        risposta = requests.post(f"{self.url}/api/embed", json=corpo, timeout=self.timeout)
+        url = self._prossimo_url()
+        risposta = requests.post(f"{url}/api/embed", json=corpo, timeout=self.timeout)
         if risposta.status_code == 404:
             vettori = []
             for testo in testi:
                 vecchia = requests.post(
-                    f"{self.url}/api/embeddings",
+                    f"{url}/api/embeddings",
                     json={"model": self.modello, "prompt": testo},
                     timeout=self.timeout,
                 )
@@ -294,6 +331,7 @@ __all__ = [
     "EmbedderDomande",
     "EmbedderFinto",
     "EmbedderNonDisponibile",
+    "IstanzeOllamaDiverse",
     "MODELLO_PREDEFINITO",
     "OllamaEmbedder",
     "PREFISSO_DOCUMENTO",

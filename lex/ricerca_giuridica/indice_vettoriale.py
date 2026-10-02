@@ -33,7 +33,7 @@ from typing import Any
 
 import numpy as np
 
-from .embedding import PREFISSO_DOCUMENTO, PREFISSO_DOMANDA, Embedder, normalizza_righe, testo_documento
+from .embedding import PREFISSO_DOCUMENTO, PREFISSO_DOMANDA, Embedder, IstanzeOllamaDiverse, normalizza_righe, testo_documento
 from .testo import CODICI_PER_CHIAVE, VERSIONE_ANALIZZATORE, articolo_normalizzato, codice_da_atto
 
 logger = logging.getLogger(__name__)
@@ -285,6 +285,8 @@ def costruisci_indice(
     versione = ""
     try:
         versione = str(embedder.versione() or "")
+    except IstanzeOllamaDiverse:
+        raise
     except Exception:
         versione = ""
 

@@ -74,7 +74,15 @@ Importa gli ZIP con il nuovo importer (articoli con chiave univoca: si puo' rila
 ```bash
 python scripts/lex_normattiva_locale.py vettori --stima     # misura la velocita' e stampa i tempi, non costruisce
 python scripts/lex_normattiva_locale.py vettori             # costruisce (o riprende) l'indice
+python scripts/lex_normattiva_locale.py vettori --url http://127.0.0.1:11434,http://127.0.0.1:11435 --paralleli 4
+                                                            # piu' istanze Ollama a turno (vedi sotto)
 ```
+
+Misura su RTX 3060 (ottobre 2026): con `embeddinggemma:300m` la velocita' resta circa 40 chunk/s sia con
+`OLLAMA_NUM_PARALLEL` 1 sia con 4 o 6, con la GPU al 50-70%: una singola istanza Ollama non parallelizza gli embedding. Per la costruzione iniziale si possono avviare altre istanze
+`ollama serve` su porte diverse con la stessa cartella dei modelli e passarle tutte a `--url` separate da virgola:
+le richieste vengono distribuite a turno. Prima di iniziare si controlla che tutte le istanze abbiano lo stesso
+digest del modello, altrimenti la costruzione si ferma (non si mescolano vettori di pesi diversi).
 
 - Il checkpoint e' automatico: dopo ogni blocco di 32 chunk l'indice su disco e' valido. Ctrl-C ferma, lo stesso comando riprende.
 - `--massimo 100000` costruisce a tappe (utile per spezzare le ore di lavoro).

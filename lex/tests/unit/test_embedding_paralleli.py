@@ -158,3 +158,56 @@ def test_modello_non_caricabile_non_divide(monkeypatch):
     except RuntimeError:
         pass
     assert chiamate == [4, 4]
+
+
+def test_piu_istanze_a_turno(monkeypatch):
+    import requests
+
+    usati = []
+
+    class R:
+        status_code = 200
+
+        def __init__(self, n):
+            self.n = n
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"embeddings": [[1.0, 0.0, 0.0]] * self.n}
+
+    def post(url, json=None, timeout=None):
+        usati.append(url.split("/api/")[0])
+        return R(len(json["input"]))
+
+    monkeypatch.setattr(requests, "post", post)
+    emb = OllamaEmbedder(modello="m", url="http://127.0.0.1:11434, http://127.0.0.1:11435/api", paralleli=1)
+    assert emb.url == "http://127.0.0.1:11434" and emb.urls[1] == "http://127.0.0.1:11435"
+    for _ in range(4):
+        emb.embed_singolo(["a", "b"])
+    assert usati == ["http://127.0.0.1:11434", "http://127.0.0.1:11435"] * 2
+
+
+def test_istanze_con_modello_diverso_rifiutate(monkeypatch):
+    import requests
+
+    class T:
+        def __init__(self, digest):
+            self.digest = digest
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"models": [{"name": "m:latest", "digest": self.digest}]}
+
+    monkeypatch.setattr(requests, "get", lambda url, timeout=None: T("aaa" if ":11434" in url else "bbb"))
+    emb = OllamaEmbedder(modello="m", url="http://127.0.0.1:11434,http://127.0.0.1:11435")
+    try:
+        emb.versione()
+        raise AssertionError("doveva rifiutare")
+    except RuntimeError as exc:
+        assert "versione diversa" in str(exc)
+    from lex.ricerca_giuridica.embedding import IstanzeOllamaDiverse
+    assert issubclass(IstanzeOllamaDiverse, RuntimeError)

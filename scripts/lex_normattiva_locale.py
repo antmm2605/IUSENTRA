@@ -307,7 +307,7 @@ def cmd_importa(args: argparse.Namespace) -> int:
 # vettori                                                                                         #
 # ---------------------------------------------------------------------------------------------- #
 
-def stima_velocita(embedder: Any, db: Path, campioni: int = 96, batch: int = 32) -> float:
+def stima_velocita(embedder: Any, db: Path, campioni: int = 256, batch: int = 32) -> float:
     """Misura i chunk/secondo dell'Ollama locale su un campione sparso dei chunk reali."""
 
     from lex.ricerca_giuridica.embedding import testo_documento
@@ -327,9 +327,14 @@ def stima_velocita(embedder: Any, db: Path, campioni: int = 96, batch: int = 32)
     if not testi:
         return 0.0
     embedder.embed(testi[:2])  # riscaldamento: caricamento del modello in memoria
+    # stessa modalita' della costruzione: N richieste in volo, ognuna con batch/N chunk
+    from lex.ricerca_giuridica.indice_vettoriale import embed_in_flusso, richieste_contemporanee
+
+    passo = max(1, -(-batch // richieste_contemporanee(embedder)))
+    lotti = [testi[i : i + passo] for i in range(0, len(testi), passo)]
     inizio = time.monotonic()
-    for i in range(0, len(testi), batch):
-        embedder.embed(testi[i : i + batch])
+    for _lotto, _matrice in embed_in_flusso(embedder, lotti, lambda voce: voce):
+        pass
     secondi = max(time.monotonic() - inizio, 1e-6)
     return len(testi) / secondi
 
@@ -357,7 +362,7 @@ def cmd_vettori(args: argparse.Namespace) -> int:
     if esistente is not None and not args.ricomincia:
         gia = esistente.righe
     da_fare = max(0, totale - gia) if not args.ricomincia else totale
-    velocita = stima_velocita(embedder, p.db)
+    velocita = stima_velocita(embedder, p.db, batch=max(1, int(args.batch)))
     print(f"Chunk nel database: {totale}; gia' vettorizzati (righe indice): {gia}; da fare circa: {da_fare}")
     if velocita > 0:
         ore = da_fare / velocita / 3600

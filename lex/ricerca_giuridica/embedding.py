@@ -161,6 +161,11 @@ class OllamaEmbedder:
             risultati = list(esecutore.map(self._embed_con_tentativi, blocchi))
         return np.vstack(risultati)
 
+    def embed_singolo(self, testi: list[str]) -> np.ndarray:
+        """Una sola richiesta (con tentativi), senza dividere: usata da chi gestisce le richieste in volo."""
+
+        return self._embed_con_tentativi(testi)
+
     def _embed_con_tentativi(self, testi: list[str]) -> np.ndarray:
         ultimo: Exception | None = None
         for tentativo in range(max(1, self.tentativi)):

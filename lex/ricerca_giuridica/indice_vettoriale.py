@@ -23,7 +23,9 @@ import logging
 import os
 import sqlite3
 import time
-from collections.abc import Callable
+from collections import deque
+from collections.abc import Callable, Iterable, Iterator
+from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -222,6 +224,44 @@ class EsitoCostruzione:
         }
 
 
+def richieste_contemporanee(embedder: Any) -> int:
+    """Richieste di embedding da tenere in volo insieme (attributo ``paralleli`` dell'embedder, minimo 1)."""
+
+    try:
+        return max(1, int(getattr(embedder, "paralleli", 1) or 1))
+    except (TypeError, ValueError):
+        return 1
+
+
+def embed_in_flusso(embedder: Any, lotti: Iterable[list[Any]], testo: Callable[[Any], str]) -> Iterator[tuple[list[Any], np.ndarray]]:
+    """Calcola gli embedding dei lotti tenendo sempre ``paralleli`` richieste in volo.
+
+    I risultati escono nell'ordine dei lotti. A differenza della divisione di un batch in parti
+    che si aspettano a vicenda, appena un lotto termina ne parte un altro: la GPU di Ollama non
+    resta ferma mentre si scrive su disco o si aspetta la richiesta piu' lenta.
+    """
+
+    in_volo = richieste_contemporanee(embedder)
+    if in_volo <= 1:
+        for lotto in lotti:
+            yield lotto, embedder.embed([testo(voce) for voce in lotto])
+        return
+    singolo = getattr(embedder, "embed_singolo", None) or embedder.embed
+    esecutore = ThreadPoolExecutor(max_workers=in_volo, thread_name_prefix="embed")
+    coda: deque[tuple[list[Any], Future]] = deque()
+    try:
+        for lotto in lotti:
+            coda.append((lotto, esecutore.submit(singolo, [testo(voce) for voce in lotto])))
+            if len(coda) >= in_volo:
+                primo, futuro = coda.popleft()
+                yield primo, futuro.result()
+        while coda:
+            primo, futuro = coda.popleft()
+            yield primo, futuro.result()
+    finally:
+        esecutore.shutdown(wait=False, cancel_futures=True)
+
+
 def costruisci_indice(
     conn: sqlite3.Connection,
     cartella: str | Path,
@@ -232,7 +272,11 @@ def costruisci_indice(
     ricomincia: bool = False,
     progresso: Callable[[int, int, float], None] | None = None,
 ) -> EsitoCostruzione:
-    """Costruisce o aggiorna l'indice: solo chunk nuovi o con testo cambiato (ripresa automatica)."""
+    """Costruisce o aggiorna l'indice: solo chunk nuovi o con testo cambiato (ripresa automatica).
+
+    ``progresso(completati, totale, chunk_al_secondo)``: la velocita' conta solo i chunk calcolati
+    in questa sessione, non quelli gia' presenti nell'indice.
+    """
 
     inizio = time.monotonic()
     percorso = Path(cartella)
@@ -285,31 +329,28 @@ def costruisci_indice(
     try:
         totale = int(conn.execute("SELECT COUNT(*) FROM normative_chunks").fetchone()[0])
         ids_db: set[int] = set()
-        da_embeddare: list[tuple[int, str, int, int | None]] = []  # (chunk_id, testo, impronta, riga esistente)
-        fatti = 0
 
-        def scarica() -> None:
+        def scrivi(lotto: list[tuple[int, str, int, int | None]], matrice: np.ndarray) -> None:
             nonlocal righe, dimensioni
-            if not da_embeddare:
+            if not lotto:
                 return
-            matrice = embedder.embed([voce[1] for voce in da_embeddare])
             if dimensioni == 0:
                 dimensioni = int(matrice.shape[1])
                 meta["dimensioni"] = dimensioni
             if matrice.shape[1] != dimensioni:
                 raise IndiceIncompatibile(f"il modello restituisce {matrice.shape[1]} dimensioni, l'indice {dimensioni}")
             valori, scale = quantizza(matrice)
-            nuovi = [i for i, voce in enumerate(da_embeddare) if voce[3] is None]
-            vecchi = [i for i, voce in enumerate(da_embeddare) if voce[3] is not None]
+            nuovi = [i for i, voce in enumerate(lotto) if voce[3] is None]
+            vecchi = [i for i, voce in enumerate(lotto) if voce[3] is not None]
             if vecchi:
                 mappa = np.memmap(percorso / _FILE_VETTORI, dtype=np.int8, mode="r+", shape=(righe, dimensioni))
                 scale_file = np.memmap(percorso / _FILE_SCALE, dtype=np.float32, mode="r+", shape=(righe,))
                 impronte_file = np.memmap(percorso / _FILE_IMPRONTE, dtype=np.uint64, mode="r+", shape=(righe,))
                 for i in vecchi:
-                    posizione = int(da_embeddare[i][3])
+                    posizione = int(lotto[i][3])
                     mappa[posizione] = valori[i]
                     scale_file[posizione] = scale[i]
-                    impronte_file[posizione] = np.uint64(da_embeddare[i][2])
+                    impronte_file[posizione] = np.uint64(lotto[i][2])
                 mappa.flush()
                 scale_file.flush()
                 impronte_file.flush()
@@ -321,56 +362,76 @@ def costruisci_indice(
                 ).open("ab") as f_i, (percorso / _FILE_IMPRONTE).open("ab") as f_h:
                     valori[nuovi].tofile(f_v)
                     scale[nuovi].astype(np.float32).tofile(f_s)
-                    np.asarray([da_embeddare[i][0] for i in nuovi], dtype=np.int64).tofile(f_i)
-                    np.asarray([da_embeddare[i][2] for i in nuovi], dtype=np.uint64).tofile(f_h)
+                    np.asarray([lotto[i][0] for i in nuovi], dtype=np.int64).tofile(f_i)
+                    np.asarray([lotto[i][2] for i in nuovi], dtype=np.uint64).tofile(f_h)
                 for i in nuovi:
-                    esistenti[da_embeddare[i][0]] = righe
+                    esistenti[lotto[i][0]] = righe
                     righe += 1
                 esito.nuovi += len(nuovi)
             meta["righe"] = righe
             meta["aggiornato"] = _adesso()
             _scrivi_meta(percorso, meta)
-            da_embeddare.clear()
 
-        ultimo = 0
-        while True:
-            pagina = conn.execute(
-                """
-                SELECT c.id AS chunk_id, c.chunk_text, a.article_number, a.article_title,
-                       d.titolo, d.numero, d.data_atto
-                FROM normative_chunks c
-                JOIN normative_documents d ON d.id = c.document_id
-                LEFT JOIN normative_articles a ON a.id = c.article_id
-                WHERE c.id > ?
-                ORDER BY c.id
-                LIMIT 2000
-                """,
-                (ultimo,),
-            ).fetchall()
-            if not pagina:
-                break
-            for riga in pagina:
-                chunk_id = int(riga["chunk_id"])
-                ultimo = chunk_id
-                ids_db.add(chunk_id)
-                testo = testo_documento(_titolo_chunk(riga), riga["chunk_text"] or "")
-                impronta = impronta_testo(testo)
-                posizione = esistenti.get(chunk_id)
-                if posizione is not None and posizione < len(impronte) and int(impronte[posizione]) == impronta:
-                    esito.invariati += 1
-                    continue
-                if massimo is not None and esito.nuovi + esito.ricalcolati + len(da_embeddare) >= massimo:
-                    esito.interrotto_al_massimo = True
+        # Con N richieste in volo, ogni richiesta porta batch/N chunk: --batch resta il lavoro in corso.
+        in_volo = richieste_contemporanee(embedder)
+        passo = max(1, -(-max(1, int(batch)) // in_volo))
+        avvio_lavoro: list[float] = []
+
+        def lotti() -> Iterator[list[tuple[int, str, int, int | None]]]:
+            ultimo = 0
+            prodotti = 0
+            lotto: list[tuple[int, str, int, int | None]] = []
+            while True:
+                pagina = conn.execute(
+                    """
+                    SELECT c.id AS chunk_id, c.chunk_text, a.article_number, a.article_title,
+                           d.titolo, d.numero, d.data_atto
+                    FROM normative_chunks c
+                    JOIN normative_documents d ON d.id = c.document_id
+                    LEFT JOIN normative_articles a ON a.id = c.article_id
+                    WHERE c.id > ?
+                    ORDER BY c.id
+                    LIMIT 2000
+                    """,
+                    (ultimo,),
+                ).fetchall()
+                if not pagina:
                     break
-                da_embeddare.append((chunk_id, testo, impronta, posizione))
-                if len(da_embeddare) >= max(1, int(batch)):
-                    scarica()
-                    fatti = esito.nuovi + esito.ricalcolati
-                    if progresso is not None:
-                        progresso(esito.invariati + fatti, totale, time.monotonic() - inizio)
-            if esito.interrotto_al_massimo:
-                break
-        scarica()
+                for riga in pagina:
+                    chunk_id = int(riga["chunk_id"])
+                    ultimo = chunk_id
+                    ids_db.add(chunk_id)
+                    testo = testo_documento(_titolo_chunk(riga), riga["chunk_text"] or "")
+                    impronta = impronta_testo(testo)
+                    posizione = esistenti.get(chunk_id)
+                    if posizione is not None and posizione < len(impronte) and int(impronte[posizione]) == impronta:
+                        esito.invariati += 1
+                        continue
+                    if massimo is not None and prodotti >= massimo:
+                        esito.interrotto_al_massimo = True
+                        break
+                    lotto.append((chunk_id, testo, impronta, posizione))
+                    prodotti += 1
+                    if len(lotto) >= passo:
+                        if not avvio_lavoro:
+                            avvio_lavoro.append(time.monotonic())
+                        yield lotto
+                        lotto = []
+                if esito.interrotto_al_massimo:
+                    break
+            if lotto:
+                if not avvio_lavoro:
+                    avvio_lavoro.append(time.monotonic())
+                yield lotto
+
+        for lotto, matrice in embed_in_flusso(embedder, lotti(), lambda voce: voce[1]):
+            scrivi(lotto, matrice)
+            if progresso is not None:
+                fatti = esito.nuovi + esito.ricalcolati
+                secondi = time.monotonic() - (avvio_lavoro[0] if avvio_lavoro else inizio)
+                # velocita' solo sul lavoro di questa sessione: i chunk gia' presenti (ripresa) non contano
+                velocita = fatti / secondi if secondi > 0 else 0.0
+                progresso(esito.invariati + fatti, totale, velocita)
 
         if not esito.interrotto_al_massimo and righe:
             ids_file = np.memmap(percorso / _FILE_IDS, dtype=np.int64, mode="r+", shape=(righe,))
@@ -395,11 +456,10 @@ def costruisci_indice(
 # Riga di comando                                                                                 #
 # ---------------------------------------------------------------------------------------------- #
 
-def _barra(fatti: int, totale: int, secondi: float) -> None:
+def _barra(fatti: int, totale: int, velocita: float) -> None:
     larghezza = 30
     quota = (fatti / totale) if totale else 1.0
     pieni = int(larghezza * min(1.0, quota))
-    velocita = fatti / secondi if secondi > 0 else 0.0
     resto = (totale - fatti) / velocita if velocita > 0 else 0.0
     print(
         f"\r[{'#' * pieni}{'.' * (larghezza - pieni)}] {fatti}/{totale} {quota * 100:5.1f}% "

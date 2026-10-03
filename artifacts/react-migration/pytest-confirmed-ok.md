@@ -1,5 +1,9 @@
 # Pytest shard confermati OK
 
+## Inventario test 2.436.9 — 03/10/2026
+
+Rigenerazione canonica e `generate_app_v2_test_docs.py --check` positivi; 20 test inventario/piano App V2, CI/CD fase 11 e anti-regressione CI superati; packaging sync e git diff --check positivi. La nuova baseline censisce 824 file pytest (+1) e 71 target coverage-critical (+1), includendo il test di prova server della release. Nessuna riduzione della copertura; esito remoto da verificare sul nuovo SHA.
+
 ## Diagnosi post-deploy 2.436.9 — 03/10/2026
 
 Workflow Hetzner: verificati input booleano predefinito false, ordine dopo health/rotte e sintassi bash della diagnosi. 28 test su contratti anti-regressione CI, CI/CD fase 11 e sincronizzazione deploy superati. Esecuzione della diagnosi reale richiesta solo dopo i gate remoti e il deploy del nuovo SHA; esiti reali da leggere nei log del job.

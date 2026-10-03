@@ -1,5 +1,9 @@
 # Pytest issue aperte e risoluzioni
 
+## Inventario test 2.436.9 — 03/10/2026
+
+Il job Lint + syntax 111239067170 del run 37135492161 si ferma nel generatore App V2: inventario e piano test non includevano `tests/test_lex_prova_server_20261003.py` introdotto dal bundle 2.436.9. I fallimenti degli aggregatori Pytest core e Signer sono conseguenze degli shard non eseguiti dopo il gate quality fallito. Rigenerati `docs/test-inventory.md` e `docs/test-plan-app-v2.md` con il generatore canonico: --check, 20 contratti collegati e packaging positivi. Nessun test/soglia/gate eliminato; nuova CI completa, deploy e diagnosi reale ancora da verificare.
+
 ## Contratto stato Lex e archivio server — 03/10/2026
 
 Sul commit 176864fc4 la fase core 2 fallisce in `test_web_bootstrap.py`: il vecchio controllo pretende la deviazione dello stato verso `checkRemoteStatus()`, eliminata nel commit d95eed87c per allineare stato e chat. Aggiornato il contratto per richiedere endpoint canonico, modello attivo e assenza della deviazione nel solo `checkStatus`. Il deploy 37131658192 è stato bloccato dalla CI prima di backup/esecuzione; import fonti 37131352997 invece riuscito e verificato nel container: 83.678 documenti, 554.790 articoli, 804.387 chunk/FTS/vettori, semantica attiva, articolo 2043 c.c. trovato, app e worker healthy. Backup `/opt/iusentra/backups/fonti_lex_20261003-165817`. Aggiunta verifica manuale in sola lettura al workflow import. Restano da verificare i gate del nuovo SHA e il deploy; nessuna modifica al codice applicativo per questo fix.

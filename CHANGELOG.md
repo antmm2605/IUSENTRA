@@ -2,6 +2,8 @@
 
 ## 2.436.9 — 03/10/2026
 
+- **Inventario test CI (03/10/2026)**: rigenerati inventario e piano App V2 per includere i test della prova server 2.436.9; eliminato il disallineamento che fermava Lint + syntax e impediva gli shard dipendenti.
+
 - **Diagnosi post-deploy (03/10/2026)**: opzione manuale `diagnosi_lex` nel workflow Hetzner; esegue le domande di prova nel container applicativo dopo CI, deploy e verifiche riuscite, senza chiamare il modello.
 
 Lex: correzioni dalla prova sul server con l'archivio Normattiva VIGENTE completo e Qwen 3.5 9B.

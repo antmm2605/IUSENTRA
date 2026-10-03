@@ -1,5 +1,9 @@
 # Pytest shard confermati OK
 
+## Contratto stato Lex — 03/10/2026
+
+18 test mirati (contratto bootstrap, widget Lex e anti-regressione CI) superati; shard reale core 2/10 completo, 10 file, esito 0 in 119,2 s tramite `scripts/run_pytest_phases.py --core-shard 2 --core-total-shards 10 --timeout-minutes 5`. Ruff syntax e `git diff --check` positivi; sintassi bash del workflow verifica/import valida. Il nuovo SHA richiede i propri gate remoti prima del deploy.
+
 ## Import fonti Lex via GitHub — 03/10/2026
 
 Workflow manuale nuovo: YAML caricato e tutte le istruzioni `run` verificate con `bash -n`; 19 test `test_lex_fonti_locali.py` e 6 contratti `test_ci_no_regression_contract.py` superati. Pacchetto locale `lex-fonti-20261002-2246.tar.zst` (934.034.071 byte), checksum valido; trasferito in bozza privata temporanea GitHub, senza pubblicazione. Importazione reale e controlli server ancora da eseguire tramite workflow.

@@ -1,0 +1,133 @@
+name: Importazione fonti Lex Hetzner
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Tag della bozza temporanea contenente il pacchetto
+        required: true
+        type: string
+      package_name:
+        description: Nome del pacchetto Normattiva
+        required: true
+        type: string
+        default: lex-fonti-20261002-2246.tar.zst
+      package_sha256:
+        description: SHA-256 verificato sul PC
+        required: true
+        type: string
+
+# La bozza richiede accesso in scrittura; viene eliminata dopo importazione verificata.
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy-hetzner-production
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
+  HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
+  RELEASE_TAG: ${{ inputs.release_tag }}
+  PACKAGE_NAME: ${{ inputs.package_name }}
+  PACKAGE_SHA256: ${{ inputs.package_sha256 }}
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  import:
+    name: Trasferimento, dry-run e importazione Normattiva
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Verifica input e bozza privata
+        run: |
+          set -euo pipefail
+          [[ "$PACKAGE_NAME" =~ ^lex-fonti-[0-9]{8}-[0-9]{4}\.tar\.zst$ ]]
+          [[ "$PACKAGE_SHA256" =~ ^[a-f0-9]{64}$ ]]
+          [[ "$RELEASE_TAG" =~ ^lex-fonti-transfer-[a-zA-Z0-9-]+$ ]]
+          release=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}")
+          test "$(printf '%s' "$release" | jq -r .draft)" = true
+          printf 'RELEASE_ID=%s\n' "$(printf '%s' "$release" | jq -r .id)" >> "$GITHUB_ENV"
+
+      - name: Scarica pacchetto e verifica entrambi i checksum
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/lex-fonti"
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern "$PACKAGE_NAME" --pattern "$PACKAGE_NAME.sha256" \
+            --dir "$RUNNER_TEMP/lex-fonti"
+          cd "$RUNNER_TEMP/lex-fonti"
+          printf '%s  %s\n' "$PACKAGE_SHA256" "$PACKAGE_NAME" | sha256sum -c -
+          sha256sum -c "$PACKAGE_NAME.sha256"
+
+      - name: Setup SSH dai secrets del deploy
+        env:
+          HETZNER_SSH_PRIVATE_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          HETZNER_SSH_KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$HETZNER_SSH_PRIVATE_KEY"
+          test -n "$HETZNER_SSH_KNOWN_HOSTS"
+          install -d -m 700 ~/.ssh
+          umask 077
+          printf '%s\n' "$HETZNER_SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+          printf '%s\n' "$HETZNER_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh-keygen -y -f ~/.ssh/id_deploy > /dev/null
+
+      - name: Copia sul server
+        run: |
+          set -euo pipefail
+          export RSYNC_RSH="ssh -i $HOME/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
+            "${HETZNER_USER}@${HETZNER_HOST}" 'sudo -n mkdir -p /opt/iusentra/import'
+          rsync -avP --partial "$RUNNER_TEMP/lex-fonti/$PACKAGE_NAME" \
+            "$RUNNER_TEMP/lex-fonti/$PACKAGE_NAME.sha256" \
+            "${HETZNER_USER}@${HETZNER_HOST}:/opt/iusentra/import/"
+
+      - name: Dry-run sul server
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=40 \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
+            "${HETZNER_USER}@${HETZNER_HOST}" \
+            "sudo -n /opt/iusentra/repo/deploy/hetzner/carica_fonti_lex.sh --dry-run /opt/iusentra/import/$PACKAGE_NAME"
+
+      - name: Importazione con backup e controlli dello script canonico
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=40 \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
+            "${HETZNER_USER}@${HETZNER_HOST}" \
+            "sudo -n /opt/iusentra/repo/deploy/hetzner/carica_fonti_lex.sh /opt/iusentra/import/$PACKAGE_NAME"
+
+      - name: Verifica servizi e archivio sul server
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
+            "${HETZNER_USER}@${HETZNER_HOST}" \
+            'set -euo pipefail
+             cd /opt/iusentra/repo
+             docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml ps
+             for attempt in $(seq 1 30); do
+               if [ "$(docker inspect --format "{{.State.Health.Status}}" iusentra-app)" = healthy ]; then
+                 curl -fsS --max-time 15 https://app.iusentra.it/api/pronto
+                 exit 0
+               fi
+               sleep 5
+             done
+             echo "Applicazione non healthy dopo importazione" >&2
+             exit 1'
+
+      - name: Elimina la bozza temporanea dopo il successo
+        run: gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}"
+
+      - name: Pulizia credenziali runner
+        if: always()
+        run: |
+          shred -u ~/.ssh/id_deploy 2>/dev/null || rm -f ~/.ssh/id_deploy
+          rm -f ~/.ssh/known_hosts

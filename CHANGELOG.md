@@ -2,6 +2,8 @@
 
 ## 2.436.8 — 02/10/2026
 
+- **Import fonti da GitHub Actions (03/10/2026)**: workflow manuale per trasferire il pacchetto Normattiva da una bozza privata temporanea, verificarne checksum, eseguire dry-run e importazione sul server con le credenziali SSH già configurate. Backup e controlli restano nello script canonico; bozza eliminata dopo successo.
+
 - **Correzione CI del 03/10/2026**: checkout con cronologia completa negli shard Pytest core e coverage critica. Il banco fonti può confrontare la ricerca con il retriever storico 2.435.0 anche su GitHub Actions; test, soglie e codice applicativo invariati.
 
 Lex, ricerca giuridica: archivio Normattiva completo preparato sul PC, indice vettoriale e aggiornamento notturno.

@@ -2949,10 +2949,6 @@
 
   function checkStatus() {
     bridgeConfig = browserBridge() && widget ? browserBridge().rootConfig(widget) : null;
-    if (bridgeConfig && bridgeConfig.remoteHosted && !isPortableClient()) {
-      checkRemoteStatus();
-      return;
-    }
 
     fetch(widget.dataset.statusUrl || '/api/assistente/stato')
       .then(function (response) { return response.json(); })

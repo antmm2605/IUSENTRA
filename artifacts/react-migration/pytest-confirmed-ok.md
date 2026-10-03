@@ -1,5 +1,13 @@
 # Pytest shard confermati OK
 
+## Contratto stato Lex — 03/10/2026
+
+18 test mirati (contratto bootstrap, widget Lex e anti-regressione CI) superati; shard reale core 2/10 completo, 10 file, esito 0 in 119,2 s tramite `scripts/run_pytest_phases.py --core-shard 2 --core-total-shards 10 --timeout-minutes 5`. Ruff syntax e `git diff --check` positivi; sintassi bash del workflow verifica/import valida. Il nuovo SHA richiede i propri gate remoti prima del deploy.
+
+## Import fonti Lex via GitHub — 03/10/2026
+
+Workflow manuale nuovo: YAML caricato e tutte le istruzioni `run` verificate con `bash -n`; 19 test `test_lex_fonti_locali.py` e 6 contratti `test_ci_no_regression_contract.py` superati. Pacchetto locale `lex-fonti-20261002-2246.tar.zst` (934.034.071 byte), checksum valido; trasferito in bozza privata temporanea GitHub, senza pubblicazione. Importazione reale e controlli server ancora da eseguire tramite workflow.
+
 ## CI banco fonti 2.436.8 — 03/10/2026
 
 Python 3.12.3 su WSL, stesso minor della CI: banco fonti e contratti coverage/anti-regressione (14 test), contratti CI/CD fase 11 (11 test), Ruff sul test modificato, packaging sync, baseline Python e `git diff --check` positivi. Shard reali `scripts/run_pytest_phases.py --suite coverage-critical --suite-shard N --suite-total-shards 12 --suite-subdivide-items --timeout-minutes 5` con gli stessi target `--cov` e `config/coverage-critical.ini` della CI: 7/12 esito 0 in 210,4 s; 8/12 esito 0 in 176,3 s; 9/12 esito 0 in 196,2 s. Il confronto conserva il commit storico 2.435.0 `cdddf70c8a83798efb1600e5a4aec8fc396bdbc3`. Questi esiti locali non attestano il completamento della CI remota o del deploy.

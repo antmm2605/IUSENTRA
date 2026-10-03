@@ -1,5 +1,9 @@
 # Pytest issue aperte e risoluzioni
 
+## Contratto stato Lex e archivio server — 03/10/2026
+
+Sul commit 176864fc4 la fase core 2 fallisce in `test_web_bootstrap.py`: il vecchio controllo pretende la deviazione dello stato verso `checkRemoteStatus()`, eliminata nel commit d95eed87c per allineare stato e chat. Aggiornato il contratto per richiedere endpoint canonico, modello attivo e assenza della deviazione nel solo `checkStatus`. Il deploy 37131658192 è stato bloccato dalla CI prima di backup/esecuzione; import fonti 37131352997 invece riuscito e verificato nel container: 83.678 documenti, 554.790 articoli, 804.387 chunk/FTS/vettori, semantica attiva, articolo 2043 c.c. trovato, app e worker healthy. Backup `/opt/iusentra/backups/fonti_lex_20261003-165817`. Aggiunta verifica manuale in sola lettura al workflow import. Restano da verificare i gate del nuovo SHA e il deploy; nessuna modifica al codice applicativo per questo fix.
+
 ## CI banco fonti 2.436.8 — 03/10/2026
 
 I job coverage 7/12, 8/12 e 9/12 del run 37102763003 falliscono in setup: il checkout superficiale non contiene il commit 2.435.0 richiesto da `tests/lex_fonti_banco/valutazione.py`. Abilitata la cronologia completa per coverage e Pytest core, entrambi eseguono il banco. Nessuna soglia ridotta e nessun test escluso. Verifiche locali positive: banco fonti, contratti CI e shard coverage 7/12, 8/12, 9/12 (210,4 / 176,3 / 196,2 secondi, tutti entro 5 minuti). Restano da verificare i gate del nuovo SHA e il deploy automatico; produzione rilevata su 2.434.9. Nessuna modifica al comportamento applicativo; Docker locale e produzione sul nuovo SHA non ancora verificati.

@@ -1529,7 +1529,10 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "__companionStage" in widget_js
     assert "Preparazione richiesta non riuscita" in widget_js
     assert "Sessione scaduta o non autorizzata" in widget_js
-    assert "bridgeConfig && bridgeConfig.remoteHosted && !isPortableClient()" in widget_js
+    status_block = widget_js.split("function checkStatus()", 1)[1].split("function getSavedLayout", 1)[0]
+    assert "widget.dataset.statusUrl" in status_block
+    assert "data.modello_attivo" in status_block
+    assert "checkRemoteStatus();" not in status_block
     assert "Lex usa il motore AI dello studio su questo dispositivo." in widget_js
     assert "mobileFullscreen !== false" in widget_js
     assert "input && isDesktop()" in widget_js

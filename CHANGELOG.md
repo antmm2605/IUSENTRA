@@ -14,6 +14,10 @@ Lex: correzioni dalla prova sul server con l'archivio Normattiva VIGENTE complet
 
 ## 2.436.8 — 02/10/2026
 
+- **Contratti CI stato Lex (03/10/2026)**: aggiornato il controllo bootstrap al comportamento del pannello già introdotto (stato e chat sul backend canonico); aggiunta verifica server in sola lettura al workflow fonti. Nessuna modifica al codice applicativo.
+
+- **Import fonti da GitHub Actions (03/10/2026)**: workflow manuale per trasferire il pacchetto Normattiva da una bozza privata temporanea, verificarne checksum, eseguire dry-run e importazione sul server con le credenziali SSH già configurate. Backup e controlli restano nello script canonico; bozza eliminata dopo successo.
+
 - **Correzione CI del 03/10/2026**: checkout con cronologia completa negli shard Pytest core e coverage critica. Il banco fonti può confrontare la ricerca con il retriever storico 2.435.0 anche su GitHub Actions; test, soglie e codice applicativo invariati.
 
 Lex, ricerca giuridica: archivio Normattiva completo preparato sul PC, indice vettoriale e aggiornamento notturno.

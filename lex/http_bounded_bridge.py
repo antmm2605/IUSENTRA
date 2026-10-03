@@ -168,6 +168,21 @@ _TEMPLATE_ACT_TERMS = (
     "crea diffida",
     "template diffida",
 )
+_INTENTI_DOMANDA_DI_DIRITTO = frozenset({"normativa", "giurisprudenza", "giurisprudenza_specifica", "termini_processuali"})
+_VERBI_REDAZIONE = (
+    "crea",
+    "prepara",
+    "compila",
+    "redigi",
+    "scrivi",
+    "scrivimi",
+    "bozza",
+    "template",
+    "modello",
+    "catalogo",
+    "fac-simile",
+    "facsimile",
+)
 _TEMPLATE_ACT_LOOKUP_TERMS = (
     "quali atti",
     "mostrami template",
@@ -300,6 +315,10 @@ def _is_template_act_request(
         return True
     if _clean_spaces(active_context.get("model_code") or active_context.get("modelCode")):
         return True
+    # «Entro quanto si propone opposizione a decreto ingiuntivo?» e' una domanda di diritto:
+    # il nome dell'atto vale come richiesta di template solo con un verbo di redazione.
+    if profile_intent in _INTENTI_DOMANDA_DI_DIRITTO and not any(token in text for token in _VERBI_REDAZIONE):
+        return False
     return any(token in text for token in _TEMPLATE_ACT_TERMS)
 
 

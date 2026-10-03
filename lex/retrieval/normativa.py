@@ -50,15 +50,22 @@ def _official_archive_sources(message: str) -> list[LexSource]:
     sources: list[LexSource] = []
     if _search_normattiva is not None:
         try:
-            for row in _search_normattiva(query, limit=4):
+            # Si leggono 8 risultati e si tengono i primi 4 pertinenti: un risultato scartato
+            # non deve far perdere l'articolo che lo segue in classifica.
+            for row in _search_normattiva(query, limit=8):
                 if not _riga_pertinente(query, row):
                     continue
                 sources.append(_archive_row_to_source(row, source_type="normativa_normattiva", default_title="Normattiva"))
+                if len(sources) >= 4:
+                    break
         except Exception:
             pass
     if _search_gazzetta is not None:
         try:
             for row in _search_gazzetta(query, limit=2):
+                # La Gazzetta non ha l'indice di pertinenza: si controllano i termini sul testo.
+                if not _testo_pertinente(query, row):
+                    continue
                 sources.append(_archive_row_to_source(row, source_type="normativa_gazzetta", default_title="Gazzetta Ufficiale"))
         except Exception:
             pass
@@ -75,6 +82,16 @@ def _riga_pertinente(query: str, row: dict[str, Any]) -> bool:
 
         testo = " ".join(str(row.get(k) or "") for k in ("titolo", "testo", "excerpt"))
         return e_pertinente(query, testo, riferimento_esatto=bool(row.get("riferimento_esatto")))
+    except Exception:
+        return True
+
+
+def _testo_pertinente(query: str, row: dict[str, Any]) -> bool:
+    try:
+        from lex.ricerca_giuridica.pertinenza import e_pertinente
+
+        testo = " ".join(str(row.get(k) or "") for k in ("titolo", "testo", "excerpt", "summary"))
+        return e_pertinente(query, testo)
     except Exception:
         return True
 

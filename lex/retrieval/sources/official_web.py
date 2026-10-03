@@ -160,10 +160,23 @@ def _should_search_official_web(request, workflow: str) -> bool:
     if workflow in {"telematico", "intelligence", "atto"} and has_legal_lookup:
         return True
 
+    # Il registro delle fonti trova sempre qualcosa (anche per «organizzare la giornata con le pause»):
+    # la ricerca web ufficiale parte solo per una domanda giuridica.
+    if not (has_legal_lookup or _domanda_giuridica(text)):
+        return False
     if get_source_registry().search(text, limit=2):
         return True
 
     return False
+
+
+def _domanda_giuridica(text: str) -> bool:
+    try:
+        from lex.ricerca_giuridica.classificatore import classifica_domanda
+
+        return classifica_domanda(text).giuridica
+    except Exception:
+        return True
 
 
 class OfficialWebSource:

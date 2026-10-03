@@ -39,6 +39,13 @@ from .testo import AnalisiDomanda, analizza_domanda
 logger = logging.getLogger(__name__)
 
 RRF_K = 60
+# Domande senza un atto indicato: a parita' di pertinenza vengono prima i codici e la Costituzione.
+# Nell'archivio completo (83.000 atti) leggi speciali con le stesse parole (es. «responsabilita'
+# civile» per i danni nucleari) superavano l'art. 2043 c.c.
+BONUS_CODICE_FONDAMENTALE = 0.12
+CODICI_FONDAMENTALI = frozenset(
+    {"codice_civile", "codice_procedura_civile", "codice_penale", "codice_procedura_penale", "costituzione"}
+)
 _FALSI = {"0", "false", "no", "off", "disabilitato"}
 
 
@@ -106,6 +113,8 @@ def fondi_rrf(
         punteggio = r.rrf / migliore
         if r.chunk_id in esatti:
             punteggio += BONUS_ESATTO if r.esatto else BONUS_ARTICOLO_SENZA_CODICE
+        if r.codice in CODICI_FONDAMENTALI and not (analisi.codice or analisi.atto_numero):
+            punteggio += BONUS_CODICE_FONDAMENTALE
         if r.vigenza == "VIGENTE":
             punteggio += BONUS_VIGENTE / 2
         elif r.vigenza == "ORIGINALE":
@@ -320,6 +329,8 @@ def cerca_normattiva_indicizzata(
 
 
 __all__ = [
+    "BONUS_CODICE_FONDAMENTALE",
+    "CODICI_FONDAMENTALI",
     "MotoreRicercaNormattiva",
     "RRF_K",
     "RisultatoIbrido",

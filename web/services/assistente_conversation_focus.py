@@ -377,6 +377,18 @@ def _effective_question(question: str, rule: dict[str, Any] | None, *, is_follow
     return f"{topic} {clean_question}".strip()
 
 
+_TEMI_OPERATIVI = frozenset({"scadenze", "agenda", "udienze", "fascicoli", "documenti"})
+
+
+def _domanda_di_diritto(question: str) -> bool:
+    try:
+        from lex.ricerca_giuridica.classificatore import classifica_domanda
+
+        return classifica_domanda(question).giuridica
+    except Exception:
+        return False
+
+
 def resolve_conversation_focus(
     question: str,
     *,
@@ -402,6 +414,9 @@ def resolve_conversation_focus(
     web_intent = resolve_web_execution_intent(clean_question, messages=messages)
     base_question = _clean_spaces(web_intent.effective_query or clean_question)
     current_rule = _find_topic_rule(base_question)
+    if current_rule is not None and str(current_rule.get("topic") or "") in _TEMI_OPERATIVI and _domanda_di_diritto(base_question):
+        # «Entro quale termine va presentata la querela?»: «termine» non chiede lo scadenziario dello studio.
+        current_rule = None
     prior_rule = _recent_topic_rule(messages, clean_question)
     is_follow_up = _looks_like_follow_up(clean_question) or web_intent.inherited_previous_theme
 

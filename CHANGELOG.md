@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.436.9 — 03/10/2026
+
+Lex: correzioni dalla prova sul server con l'archivio Normattiva VIGENTE completo e Qwen 3.5 9B.
+
+- **Domande non giuridiche senza fonti a caso**: per una domanda senza istituti giuridici né dati dello studio («scrivi tre frasi sull'organizzazione della giornata») Lex non interroga più la Ricerca Studio né il web ufficiale. Il registro delle fonti trovava sempre qualcosa e arrivavano Gazzette, GDPR e sentenze fuori tema; la ricerca web ufficiale parte solo per domande giuridiche o con richiesta esplicita.
+- **Art. 2043 c.c. per la responsabilità extracontrattuale**: il filtro di pertinenza conta come presenti i termini della dottrina quando il testo usa le parole della legge indicate dal tesauro (almeno metà, minimo due), e «termine» quando la norma indica una durata. L'articolo era il primo risultato ma veniva scartato. Si leggono 8 risultati e si tengono i primi 4 pertinenti; anche la Gazzetta passa dal filtro.
+- **Codici prima delle leggi speciali**: senza un atto indicato nella domanda, c.c., c.p.c., c.p., c.p.p. e Costituzione ricevono un piccolo vantaggio (`BONUS_CODICE_FONDAMENTALE = 0.12`) a parità di rango; prima la legge sui danni nucleari superava l'art. 2043.
+- **Querela e domande sui termini di legge**: il classificatore riconosce gli istituti penali e processuali (querela, denuncia, archiviazione, patteggiamento, misure cautelari, precetto, sfratto, notificazione...) e le domande «entro quale termine / entro quanto»; «termine» in una domanda di diritto non apre più lo scadenziario dello studio. Tesauro: querela, remissione della querela, opposizione a decreto ingiuntivo.
+- **Nome dell'atto non è una richiesta di template**: «entro quanto si propone opposizione a decreto ingiuntivo?» va alla ricerca normativa; il catalogo atti resta per le richieste con un verbo di redazione (prepara, crea, compila, redigi, bozza, modello).
+- `deploy/hetzner/diagnosi_lex_domande.py`: diagnosi nel container (percorso, fonti, primi risultati Normattiva con pertinenza) senza chiamare il modello.
+- Test: `tests/test_lex_prova_server_20261003.py` (14 casi dalla prova del 03/10/2026).
+
 ## 2.436.8 — 02/10/2026
 
 - **Correzione CI del 03/10/2026**: checkout con cronologia completa negli shard Pytest core e coverage critica. Il banco fonti può confrontare la ricerca con il retriever storico 2.435.0 anche su GitHub Actions; test, soglie e codice applicativo invariati.

@@ -41,6 +41,7 @@ PAROLE_DOMANDA: frozenset[str] = frozenset(
     significa spiegami spiega dimmi indicami vorrei sapere sai mi quali quale qual cosa cos
     funziona funzionano succede accade applica applicano caso casi norma norme normativa legge
     riferimento riferimenti fonte fonti vigente vigenti italiano italiana ordinamento diritto
+    entro
     """.split()
 )
 
@@ -411,6 +412,9 @@ TESAURO: tuple[tuple[str, str], ...] = (
     ("termine lungo", "decorsi sei mesi pubblicazione sentenza"),
     ("ricorso per cassazione", "termine ricorso cassazione"),
     ("decreto ingiuntivo", "ingiunzione decreto opposizione"),
+    ("opposizione a decreto ingiuntivo", "opposizione ingiunzione quaranta giorni notificazione"),
+    ("querela", "querela diritto tre mesi notizia fatto reato"),
+    ("remissione della querela", "remissione querela estingue reato"),
     ("garanzia per vizi", "vizi cosa venduta compratore"),
     ("vizi della cosa venduta", "vizi cosa venduta garanzia compratore"),
     ("usucapione", "possesso continuato acquista proprieta"),
@@ -435,6 +439,17 @@ TESAURO: tuple[tuple[str, str], ...] = (
     ("annullabilita", "contratto annullabile incapacita"),
 )
 _TESAURO_NORMALIZZATO = tuple((senza_accenti(chiave), valore) for chiave, valore in TESAURO)
+
+
+def corrispondenze_tesauro(domanda: str) -> list[tuple[frozenset[str], frozenset[str]]]:
+    """Voci del tesauro presenti nella domanda: (radici della voce, radici con cui la scrive il legislatore)."""
+
+    normalizzato = " ".join(senza_accenti(parola) for parola in parole(normalizza_apostrofi(domanda)))
+    return [
+        (frozenset(termini_indice(chiave)), frozenset(termini_indice(valore)))
+        for chiave, valore in _TESAURO_NORMALIZZATO
+        if f" {chiave} " in f" {normalizzato} "
+    ]
 
 
 def analizza_domanda(domanda: str, *, usa_tesauro: bool = True) -> AnalisiDomanda:
@@ -514,6 +529,7 @@ __all__ = [
     "analizza_domanda",
     "articolo_normalizzato",
     "codice_da_atto",
+    "corrispondenze_tesauro",
     "normalizza_apostrofi",
     "parole",
     "senza_accenti",

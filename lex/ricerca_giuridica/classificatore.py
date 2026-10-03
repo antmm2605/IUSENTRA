@@ -147,6 +147,34 @@ _ISTITUTI = (
     "esecuzione forzata",
     "fallimento",
     "insolvenza",
+    # penale e procedura penale
+    "querela",
+    "denuncia",
+    "esposto",
+    "remissione",
+    "archiviazione",
+    "patteggiamento",
+    "rito abbreviato",
+    "messa alla prova",
+    "custodia cautelare",
+    "misure cautelari",
+    "misura cautelare",
+    "riesame",
+    "parte civile",
+    "imputato",
+    "indagato",
+    "persona offesa",
+    "prescrizione del reato",
+    "sospensione condizionale",
+    # procedura civile ed esecuzione
+    "precetto",
+    "sfratto",
+    "convalida",
+    "notificazione",
+    "costituzione in giudizio",
+    "sospensione feriale",
+    "termine perentorio",
+    "rimessione in termini",
 )
 _APERTURE_GIURIDICHE = tuple(
     re.compile(p)
@@ -164,6 +192,10 @@ _APERTURE_GIURIDICHE = tuple(
         r"\bspiega(?:mi)?\s+(?:la|il|le|i|l')\b",
         r"\bsi\s+puo\b",
         r"\bin\s+quali\s+casi\b",
+        # domande sui termini di legge («entro quale termine va presentata la querela?»)
+        r"\bentro\s+(?:quale|che|quanto)\s*(?:termine|tempo|giorni|mesi)?\b",
+        r"\bqual\s*e\s+il\s+termine\s+(?:per|di|entro)\b",
+        r"\b(?:in|dopo)\s+quant[oi]\s+(?:tempo|giorni|mesi|anni)\b",
     )
 )
 _TERMINI_GIURIDICI = (

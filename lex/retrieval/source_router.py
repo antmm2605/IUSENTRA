@@ -115,6 +115,19 @@ def _should_include_legal_sources(request, workflow: str) -> bool:
     return any(token in haystack for token in _LEGAL_RESEARCH_HINTS)
 
 
+def _domanda_senza_segnali(request, workflow: str) -> bool:
+    """Domanda generica senza fascicolo, senza dati dello studio e senza istituti giuridici."""
+
+    if workflow != "question_answering" or getattr(request, "fascicolo_id", None):
+        return False
+    try:
+        from lex.ricerca_giuridica.classificatore import INDETERMINATA, classifica_domanda
+
+        return classifica_domanda(str(getattr(request, "query", "") or "")).tipo == INDETERMINATA
+    except Exception:
+        return False
+
+
 class SourceRouter:
     def resolve(self, request, context, workflow: str):
         if _is_free_web_request(request):
@@ -122,6 +135,11 @@ class SourceRouter:
 
         solo_giuridiche = workflow in _WORKFLOW_GIURIDICI and not request.fascicolo_id
         local_sources = [] if solo_giuridiche else [StudioDatabaseSource(), GuidaPraticaSource()]
+        if _domanda_senza_segnali(request, workflow):
+            # «Scrivi tre frasi sull'organizzazione della giornata»: nessun dato dello studio e
+            # nessun istituto giuridico. La Ricerca Studio restituiva documenti qualsiasi
+            # (Gazzette, GDPR, sentenze caricate) con punteggio fisso alto: Lex risponde senza fonti.
+            local_sources = [GuidaPraticaSource()]
         legal_sources = []
         workflow_sources = []
 

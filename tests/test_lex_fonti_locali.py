@@ -349,8 +349,9 @@ def test_import_solo_vigenza_ignora_zip_di_altra_vigenza(tmp_path):
 def test_scheduler_notturno_usa_la_vigenza_del_pacchetto():
     sorgente = (RADICE / "pct" / "scheduler.py").read_text(encoding="utf-8")
     assert 'os.getenv("IUSENTRA_NORMATTIVA_VIGENZA", "VIGENTE")' in sorgente
-    assert sorgente.count("vigenza_normattiva,") == 2  # download (--vigenza) e import (--solo-vigenza)
+    assert sorgente.count("vigenza_normattiva,") == 3  # download (--vigenza), import (--solo-vigenza), integrazione leggi (--vigenza)
     assert '"--solo-vigenza",' in sorgente
+    assert '"normattiva integrazione leggi essenziali"' in sorgente and "tools/normattiva_integra_leggi.py" in sorgente
 
 
 def test_bundle_ca_normattiva_include_l_intermedio(monkeypatch):

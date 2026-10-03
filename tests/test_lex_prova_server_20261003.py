@@ -166,3 +166,23 @@ def test_richiesta_di_redazione_resta_al_template():
 
 def test_legge_nucleare_non_pertinente_per_la_querela():
     assert not e_pertinente(QUERELA, NUCLEARE)
+
+
+def test_nessun_vantaggio_ai_codici_quando_la_legge_speciale_e_molto_piu_pertinente():
+    # Sospensione feriale: la l. 742/1969 ha bm25 doppio rispetto all'articolo di codice. Il vantaggio ai codici
+    # scatta solo a parita' di rango (bm25 >= 60% del migliore o coseno entro 0,03): qui la legge resta prima.
+    from lex.ricerca_giuridica.indice_fts import RisultatoLessicale
+
+    analisi = analizza_domanda("sospensione feriale dei termini processuali dal 1 al 31 agosto")
+    lessicali = [
+        RisultatoLessicale(chunk_id=88, punteggio=1.0, bm25=-36.4, pertinenza=1.0, esatto=False, articolo="1", codice="",
+                           vigenza="VIGENTE", identita="atto:742/1969", parte=1),
+        RisultatoLessicale(chunk_id=46, punteggio=0.2, bm25=-6.1, pertinenza=0.17, esatto=False, articolo="1454",
+                           codice="codice_civile", vigenza="VIGENTE", identita="codice:codice_civile", parte=1),
+    ]
+    info = {
+        88: ("1", "", "742", "1969", "VIGENTE", "atto:742/1969", 1),
+        46: ("1454", "codice_civile", "262", "1942", "VIGENTE", "codice:codice_civile", 1),
+    }
+    fusi = fondi_rrf(lessicali, [], info, analisi=analisi, esatti=set())
+    assert [r.chunk_id for r in fusi] == [88, 46]

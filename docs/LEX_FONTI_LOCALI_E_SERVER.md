@@ -177,12 +177,40 @@ Alle 23:00 (`legal_official_archives_daily` in `pct/scheduler.py`) il worker ese
 1. download delle collezioni **core** cambiate nella vigenza `IUSENTRA_NORMATTIVA_VIGENZA` (default `VIGENTE`, come il pacchetto del PC;
    confronto con il catalogo Normattiva, le invariate sono saltate);
 2. import con upsert dei soli ZIP di quella vigenza (`--solo-vigenza`: gli ZIP ORIGINALE rimasti in `raw/` da prima non entrano nel database): articoli con chiave `normattiva:<sha XML>:art<n>`, quindi nessuna duplicazione; indice FTS aggiornato solo per i chunk nuovi;
-3. **aggiornamento vettori** (`python -m lex.ricerca_giuridica.indice_vettoriale aggiorna --se-disponibile --solo-esistente`):
+3. **integrazione delle leggi ordinarie essenziali** (`tools/normattiva_integra_leggi.py`, vedi sotto): Open Data non le distribuisce;
+   il file del repository le inserisce nello stesso formato degli altri atti (idempotente: nessuna modifica se gia' presenti e invariate);
+4. **aggiornamento vettori** (`python -m lex.ricerca_giuridica.indice_vettoriale aggiorna --se-disponibile --solo-esistente`):
    vettorizza solo i chunk nuovi o modificati (impronta del testo), al massimo `LEX_VETTORI_NOTTURNO_MASSIMO` (20.000) per notte.
    Se Ollama non risponde, se manca il modello o se l'indice non esiste, il passaggio termina senza errore e la ricerca resta lessicale
    fino alla notte successiva.
 
 Le collezioni scaricate dal PC ma fuori dal set core (storiche, abrogate ecc.) restano nell'archivio ma non sono aggiornate di notte.
+
+### 2.5 Le leggi ordinarie che Open Data non distribuisce
+
+Le collezioni predefinite di Normattiva Open Data sono per tipo di atto (codici, testi unici, decreti legislativi, d.P.R., decreti-legge con
+leggi di conversione, leggi costituzionali, leggi delega, di ratifica, di bilancio): **le leggi ordinarie non hanno una collezione**.
+Nell'archivio mancavano quindi la Costituzione, la l. 241/1990, la l. 53/1994 (notifiche degli avvocati), la l. 742/1969 (sospensione
+feriale), la l. 890/1982, la l. 689/1981, il d.l. 132/2014, la l. 898/1970, lo Statuto dei lavoratori, la l. 604/1966, le leggi sulle
+locazioni (392/1978 e 431/1998), la l. 247/2012, la l. 49/2023, la l. 24/2017, il d.P.R. 68/2005, la l. 54/2006, la l. 76/2016,
+la l. 104/1992 e il d.P.R. 1199/1971.
+
+Da 2.436.10 i loro testi vigenti (779 articoli, raccolti e controllati il 03/10/2026 da edizionieuropee.it e brocardi.it, resi nello stile
+di Normattiva) sono in `lex/normativa/integrazioni/leggi_essenziali.jsonl` e vengono inseriti nell'archivio da:
+
+```bash
+# sul server (nel container app o scheduler-worker); il job notturno lo fa da solo dopo l'import Open Data
+python tools/normattiva_integra_leggi.py --db /data/normativa/normattiva.sqlite --vettori
+python tools/normattiva_integra_leggi.py --db /data/normativa/normattiva.sqlite --verifica
+# sul PC (WSL), nell'archivio locale
+python tools/normattiva_integra_leggi.py --db ~/iusentra-lex-fonti/normativa/normattiva.sqlite --vettori
+```
+
+Collezione `Integrazione leggi essenziali`, vigenza VIGENTE, identita' `atto:<numero>/<anno>` (la Costituzione come codice `costituzione`):
+le ricerche "legge 53/1994 art. 3-bis" trovano l'articolo esatto come per i codici. Un atto gia' presente con lo stesso testo viene saltato;
+se il file cambia (nuova raccolta), la versione precedente viene sostituita, indice FTS compreso; i vettori dei chunk nuovi li calcola il
+passaggio notturno (o subito con `--vettori`). Con un archivio ORIGINALE non fa nulla. Per aggiornare i testi: ricostruire il JSONL
+(stesso formato: `chiave, atto, articolo, rubrica, testo "Art. N. (Rubrica). ...", titolo_atto, data_atto, urn`) e rilanciare.
 
 ## Tornare indietro
 

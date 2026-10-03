@@ -378,6 +378,21 @@ docker compose \
   ps || true
 
 # ---------------------------------------------------------------------------
+# 7b. Leggi ordinarie essenziali nell'archivio Normattiva (Open Data non le distribuisce)
+# ---------------------------------------------------------------------------
+# Idempotente: inserisce solo gli atti mancanti o cambiati rispetto a lex/normativa/integrazioni/leggi_essenziali.jsonl.
+# I vettori dei chunk nuovi li calcola il job notturno. Un errore qui non ferma il deploy.
+if docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" \
+     exec -T scheduler-worker test -f /data/normativa/normattiva.sqlite 2>/dev/null; then
+  echo "Integro le leggi ordinarie essenziali nell'archivio Normattiva..."
+  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" \
+    exec -T scheduler-worker python tools/normattiva_integra_leggi.py --db /data/normativa/normattiva.sqlite \
+    || echo "Attenzione: integrazione delle leggi essenziali non riuscita (ci riprova il job notturno)." >&2
+else
+  echo "Archivio Normattiva assente nel worker: integrazione delle leggi essenziali rinviata al job notturno."
+fi
+
+# ---------------------------------------------------------------------------
 # 8. Pulizia immagini e cache build Docker
 # ---------------------------------------------------------------------------
 echo "Pulizia immagini IUSENTRA obsolete e cache build Docker rigenerabile..."

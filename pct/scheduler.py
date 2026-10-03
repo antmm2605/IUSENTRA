@@ -644,6 +644,19 @@ def start_scheduler(app):
                     ],
                 ),
                 (
+                    # Leggi ordinarie essenziali (Costituzione, l. 241/1990, l. 53/1994, l. 742/1969...): Open Data
+                    # non le distribuisce; si integrano dal file del repository (idempotente, solo archivio VIGENTE).
+                    "normattiva integrazione leggi essenziali",
+                    [
+                        sys.executable,
+                        "tools/normattiva_integra_leggi.py",
+                        "--db",
+                        normativa_db,
+                        "--vigenza",
+                        vigenza_normattiva,
+                    ],
+                ),
+                (
                     "normattiva vettori lex",
                     comando_aggiornamento_vettori_normattiva(normativa_db, normativa_vettori),
                 ),

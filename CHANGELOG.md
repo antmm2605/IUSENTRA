@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.436.10 — 04/10/2026
+
+Lex, archivio Normattiva: le leggi ordinarie che Open Data non distribuisce e intestazioni delle fonti piu' chiare.
+
+- **Leggi ordinarie essenziali nell'archivio**: Normattiva Open Data ha collezioni solo per tipo di atto (codici, testi unici, decreti legislativi, d.P.R., decreti-legge, leggi costituzionali, delega, ratifica, bilancio) e **nessuna per le leggi ordinarie**: mancavano Costituzione, l. 241/1990, l. 53/1994 (notifiche PEC degli avvocati), l. 742/1969 (sospensione feriale), l. 890/1982, l. 689/1981, d.l. 132/2014, l. 898/1970, l. 300/1970, l. 604/1966, l. 392/1978, l. 431/1998, l. 247/2012, l. 49/2023, l. 24/2017, d.P.R. 68/2005, l. 54/2006, l. 76/2016, l. 104/1992, d.P.R. 1199/1971. I testi vigenti (779 articoli, raccolti il 03/10/2026 da edizionieuropee.it e brocardi.it, resi nello stile Normattiva) sono in `lex/normativa/integrazioni/leggi_essenziali.jsonl`; `tools/normattiva_integra_leggi.py` li inserisce nello stesso formato degli altri atti (documento, articoli, chunk, indice FTS; collezione «Integrazione leggi essenziali», identita' `atto:numero/anno`, la Costituzione come codice). Idempotente; se il testo cambia la versione precedente viene sostituita. Eseguito dal deploy (`deploy.sh`) e ogni notte dallo scheduler dopo l'import Open Data e prima dei vettori; `--verifica` controlla conteggi e tre ricerche.
+- **Intestazione delle fonti per il modello**: `[1] Codice civile (Normattiva) · art. 2043 · vigente · 16/03/1942` invece del titolo lungo dell'archivio senza articolo («Approvazione del testo del Codice civile. (042U0262)»); per gli altri atti `l. 53/1994, Facolta' di notificazioni…`. Il modello vede subito atto e articolo di ogni fonte anche quando il testo e' troncato (`etichetta_fonte_normattiva`).
+- **Classifica**: il vantaggio ai codici fondamentali (2.436.9) scatta solo a parita' di rango (bm25 almeno al 60% del migliore o coseno entro 0,03). Con la sola fusione RRF scavalcava qualsiasi legge speciale, anche quando era lei a rispondere (la l. 742/1969 per la sospensione feriale finiva dietro un articolo di codice qualsiasi).
+- Test: `tests/test_integrazione_leggi_essenziali.py` (inserimento, ricerca, idempotenza, sostituzione, file del repository coerente, etichette).
+
 ## 2.436.9 — 03/10/2026
 
 - **Inventario test CI (03/10/2026)**: rigenerati inventario e piano App V2 per includere i test della prova server 2.436.9; eliminato il disallineamento che fermava Lint + syntax e impediva gli shard dipendenti.

@@ -43,6 +43,8 @@ RRF_K = 60
 # Nell'archivio completo (83.000 atti) leggi speciali con le stesse parole (es. «responsabilita'
 # civile» per i danni nucleari) superavano l'art. 2043 c.c.
 BONUS_CODICE_FONDAMENTALE = 0.12
+SOGLIA_PARI_RANGO_BM25 = 0.6
+SOGLIA_PARI_RANGO_COSENO = 0.03
 CODICI_FONDAMENTALI = frozenset(
     {"codice_civile", "codice_procedura_civile", "codice_penale", "codice_procedura_penale", "costituzione"}
 )
@@ -100,6 +102,18 @@ def fondi_rrf(
         r.rrf += 1.0 / (k + posizione)
     filtro = str(vigenza or "").strip().upper()
     migliore = max((r.rrf for r in risultati.values()), default=0.0) or 1.0
+    # "parita' di rango" per il vantaggio ai codici: il risultato deve avere una pertinenza propria vicina
+    # alla migliore (bm25 almeno al 60% del migliore, oppure coseno entro 0,03 dal migliore). Con la sola
+    # fusione RRF le distanze tra i ranghi sono minime e il bonus scavalcherebbe qualsiasi legge speciale,
+    # anche quando e' lei a rispondere (es. l. 742/1969 per la sospensione feriale).
+    miglior_bm25 = min((r.bm25 for r in risultati.values() if r.bm25 < 0), default=0.0)
+    miglior_coseno = max((r.coseno for r in risultati.values() if r.coseno > 0), default=0.0)
+
+    def pari_rango(r: RisultatoIbrido) -> bool:
+        if miglior_bm25 < 0 and r.bm25 < 0 and r.bm25 / miglior_bm25 >= SOGLIA_PARI_RANGO_BM25:
+            return True
+        return miglior_coseno > 0 and r.coseno > 0 and r.coseno >= miglior_coseno - SOGLIA_PARI_RANGO_COSENO
+
     uscita: list[RisultatoIbrido] = []
     for r in risultati.values():
         dati = info.get(r.chunk_id)
@@ -113,7 +127,7 @@ def fondi_rrf(
         punteggio = r.rrf / migliore
         if r.chunk_id in esatti:
             punteggio += BONUS_ESATTO if r.esatto else BONUS_ARTICOLO_SENZA_CODICE
-        if r.codice in CODICI_FONDAMENTALI and not (analisi.codice or analisi.atto_numero):
+        if r.codice in CODICI_FONDAMENTALI and not (analisi.codice or analisi.atto_numero) and pari_rango(r):
             punteggio += BONUS_CODICE_FONDAMENTALE
         if r.vigenza == "VIGENTE":
             punteggio += BONUS_VIGENTE / 2

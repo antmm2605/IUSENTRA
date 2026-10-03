@@ -1,5 +1,9 @@
 # Pytest shard confermati OK
 
+## CI banco fonti 2.436.8 — 03/10/2026
+
+Python 3.12.3 su WSL, stesso minor della CI: banco fonti e contratti coverage/anti-regressione (14 test), contratti CI/CD fase 11 (11 test), Ruff sul test modificato, packaging sync, baseline Python e `git diff --check` positivi. Shard reali `scripts/run_pytest_phases.py --suite coverage-critical --suite-shard N --suite-total-shards 12 --suite-subdivide-items --timeout-minutes 5` con gli stessi target `--cov` e `config/coverage-critical.ini` della CI: 7/12 esito 0 in 210,4 s; 8/12 esito 0 in 176,3 s; 9/12 esito 0 in 196,2 s. Il confronto conserva il commit storico 2.435.0 `cdddf70c8a83798efb1600e5a4aec8fc396bdbc3`. Questi esiti locali non attestano il completamento della CI remota o del deploy.
+
 ## Controllo Studio 2.434.2 — 30/09/2026
 
 Otto test mirati `test_regia_controllo_studio.py` e `test_controllo_studio_preparazione_udienza.py` superati. Build/typecheck, 80 test JavaScript frontend, contratti React, ordine hook, preset, governance grafica e copertura pagine superati. OpenAPI rigenerato e valido; integrità UTF-8 positiva. Prova materiale sul server e Docker locale 8080: filtro scadute con un clic, ricerca combinata/date, conteggi, paginazione, reset, focus e responsive desktop/tablet/telefono. Dettagli in `controllo-studio-scadute-20260930.md`; esiti finali del nuovo SHA nel dossier esterno del rilascio.

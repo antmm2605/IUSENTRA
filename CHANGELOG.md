@@ -2,6 +2,8 @@
 
 ## 2.436.8 — 02/10/2026
 
+- **Correzione CI del 03/10/2026**: checkout con cronologia completa negli shard Pytest core e coverage critica. Il banco fonti può confrontare la ricerca con il retriever storico 2.435.0 anche su GitHub Actions; test, soglie e codice applicativo invariati.
+
 Lex, ricerca giuridica: archivio Normattiva completo preparato sul PC, indice vettoriale e aggiornamento notturno.
 
 - **Archivio Normattiva VIGENTE completo** costruito in locale: 83.678 atti, 554.790 articoli, 804.387 chunk, indice FTS e vettoriale al 100%, caricabile sul server con `carica_fonti_lex.sh` (backup e ripristino automatico).

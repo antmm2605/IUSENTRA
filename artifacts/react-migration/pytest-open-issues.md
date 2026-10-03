@@ -1,5 +1,9 @@
 # Pytest issue aperte e risoluzioni
 
+## CI banco fonti 2.436.8 — 03/10/2026
+
+I job coverage 7/12, 8/12 e 9/12 del run 37102763003 falliscono in setup: il checkout superficiale non contiene il commit 2.435.0 richiesto da `tests/lex_fonti_banco/valutazione.py`. Abilitata la cronologia completa per coverage e Pytest core, entrambi eseguono il banco. Nessuna soglia ridotta e nessun test escluso. Verifiche locali positive: banco fonti, contratti CI e shard coverage 7/12, 8/12, 9/12 (210,4 / 176,3 / 196,2 secondi, tutti entro 5 minuti). Restano da verificare i gate del nuovo SHA e il deploy automatico; produzione rilevata su 2.434.9. Nessuna modifica al comportamento applicativo; Docker locale e produzione sul nuovo SHA non ancora verificati.
+
 ## Controllo Studio 2.434.2 — 30/09/2026
 
 La prova reale del primo hotfix ha rilevato asset disallineati fra applicazione e servizio statico: riallineato il servizio statico prima della campagna di accettazione. Su telefono i nomi lunghi dei fascicoli risultavano troncati: corretta la resa su più righe e ripetuta la verifica. Ricerca, filtro, conteggi, paginazione e apertura termine provati sul server e sulla Docker reale 8080, con dati dei rispettivi studi. Nessun test mirato fallito. Il completamento del rilascio dipende dai gate reali del nuovo SHA e dal deploy finale; evidenze nel dossier esterno, report `controllo-studio-scadute-20260930.md`.

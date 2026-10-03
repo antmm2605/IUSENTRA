@@ -1,5 +1,8 @@
 from pathlib import Path
 
+import pytest
+import yaml
+
 
 def test_critical_coverage_gate_uses_governed_config():
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
@@ -25,3 +28,13 @@ def test_critical_coverage_config_excludes_optional_lex_adapters():
 
     for pattern in expected_omits:
         assert pattern in config
+
+
+@pytest.mark.parametrize("job", ["tests-core-shards", "coverage-critical-shards"])
+def test_shards_checkout_history_for_lex_source_benchmark(job):
+    workflow = yaml.safe_load(Path(".github/workflows/ci.yml").read_text(encoding="utf-8"))
+    checkout = next(step for step in workflow["jobs"][job]["steps"]
+                    if step.get("uses", "").startswith("actions/checkout@"))
+    assert checkout["with"].get("fetch-depth") == 0, (
+        "Il banco fonti deve poter caricare il retriever storico 2.435.0 tramite git show"
+    )

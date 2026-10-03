@@ -154,3 +154,13 @@ def test_unregistered_legacy_lex_files_removed():
 def test_lex_standalone_template_removed_from_repository():
     removed_template_name = "lex_" + "chat.html"
     assert not (REPO_ROOT / "web/templates" / removed_template_name).exists()
+
+
+def test_widget_status_uses_same_backend_as_chat_on_remote_desktop():
+    source = _widget_js()
+    match = re.search(r"function checkStatus\(\) \{(?P<body>.*?)\n  function getSavedLayout", source, re.S)
+    assert match
+    body = match.group("body")
+    assert "widget.dataset.statusUrl" in body
+    assert "data.modello_attivo" in body
+    assert "checkRemoteStatus();" not in body

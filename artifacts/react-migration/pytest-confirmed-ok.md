@@ -1,5 +1,9 @@
 # Pytest shard confermati OK
 
+## Diagnosi post-deploy 2.436.9 — 03/10/2026
+
+Workflow Hetzner: verificati input booleano predefinito false, ordine dopo health/rotte e sintassi bash della diagnosi. 28 test su contratti anti-regressione CI, CI/CD fase 11 e sincronizzazione deploy superati. Esecuzione della diagnosi reale richiesta solo dopo i gate remoti e il deploy del nuovo SHA; esiti reali da leggere nei log del job.
+
 ## Contratto stato Lex — 03/10/2026
 
 18 test mirati (contratto bootstrap, widget Lex e anti-regressione CI) superati; shard reale core 2/10 completo, 10 file, esito 0 in 119,2 s tramite `scripts/run_pytest_phases.py --core-shard 2 --core-total-shards 10 --timeout-minutes 5`. Ruff syntax e `git diff --check` positivi; sintassi bash del workflow verifica/import valida. Il nuovo SHA richiede i propri gate remoti prima del deploy.

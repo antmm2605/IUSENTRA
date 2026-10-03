@@ -27,6 +27,10 @@ on:
         description: Salta il backup preventivo
         type: boolean
         default: false
+      diagnosi_lex:
+        description: Esegui le domande di diagnosi Lex nel container dopo il deploy verificato
+        type: boolean
+        default: false
       branch_override:
         description: Branch da deployare (default Codex/legal-electronic-filing-kIxcV)
         type: string
@@ -424,6 +428,22 @@ jobs:
             "/portale-cliente/invito/cp1.verifica-deploy"; do
             check_public_route "${path}"
           done
+
+      - name: Diagnosi Lex sulle domande di prova
+        if: ${{ inputs.diagnosi_lex && steps.gate.outputs.superato != 'true' }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy \
+              -o BatchMode=yes \
+              -o ConnectTimeout=15 \
+              -o ServerAliveInterval=30 \
+              -o ServerAliveCountMax=20 \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              'set -euo pipefail
+               cd /opt/iusentra/repo/deploy/hetzner
+               sudo -n docker compose --env-file /opt/iusentra/.env.hetzner -f docker-compose.hetzner.yml exec -T app python - < diagnosi_lex_domande.py'
 
       - name: Pulizia immagini e cache build Docker
         if: ${{ always() && steps.setup_ssh.outcome == 'success' }}

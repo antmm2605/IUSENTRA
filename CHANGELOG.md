@@ -2,6 +2,8 @@
 
 ## 2.436.9 — 03/10/2026
 
+- **Diagnosi post-deploy (03/10/2026)**: opzione manuale `diagnosi_lex` nel workflow Hetzner; esegue le domande di prova nel container applicativo dopo CI, deploy e verifiche riuscite, senza chiamare il modello.
+
 Lex: correzioni dalla prova sul server con l'archivio Normattiva VIGENTE completo e Qwen 3.5 9B.
 
 - **Domande non giuridiche senza fonti a caso**: per una domanda senza istituti giuridici né dati dello studio («scrivi tre frasi sull'organizzazione della giornata») Lex non interroga più la Ricerca Studio né il web ufficiale. Il registro delle fonti trovava sempre qualcosa e arrivavano Gazzette, GDPR e sentenze fuori tema; la ricerca web ufficiale parte solo per domande giuridiche o con richiesta esplicita.

@@ -46,7 +46,8 @@ jobs:
           [[ "$PACKAGE_NAME" =~ ^lex-fonti-[0-9]{8}-[0-9]{4}\.tar\.zst$ ]]
           [[ "$PACKAGE_SHA256" =~ ^[a-f0-9]{64}$ ]]
           [[ "$RELEASE_TAG" =~ ^lex-fonti-transfer-[a-zA-Z0-9-]+$ ]]
-          release=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}")
+          release=$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" | \
+            jq -ce --arg tag "$RELEASE_TAG" '.[] | select(.tag_name == $tag and .draft == true)')
           test "$(printf '%s' "$release" | jq -r .draft)" = true
           printf 'RELEASE_ID=%s\n' "$(printf '%s' "$release" | jq -r .id)" >> "$GITHUB_ENV"
 
@@ -54,9 +55,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/lex-fonti"
-          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
-            --pattern "$PACKAGE_NAME" --pattern "$PACKAGE_NAME.sha256" \
-            --dir "$RUNNER_TEMP/lex-fonti"
+          assets=$(gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" --jq .assets)
+          for file in "$PACKAGE_NAME" "$PACKAGE_NAME.sha256"; do
+            asset_id=$(printf '%s' "$assets" | jq -er --arg file "$file" '.[] | select(.name == $file) | .id')
+            gh api -H 'Accept: application/octet-stream' \
+              "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}" \
+              > "$RUNNER_TEMP/lex-fonti/$file"
+          done
           cd "$RUNNER_TEMP/lex-fonti"
           printf '%s  %s\n' "$PACKAGE_SHA256" "$PACKAGE_NAME" | sha256sum -c -
           sha256sum -c "$PACKAGE_NAME.sha256"

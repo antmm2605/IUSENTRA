@@ -72,3 +72,12 @@ Controlli di sviluppo eseguiti con esito positivo:
 Esito di sviluppo: keep. La permanenza effettiva dei visitatori non è ancora
 misurata. La verifica della versione pubblicata verrà eseguita sul dominio
 Railway dopo il push; non è equiparata all'accettazione sulla macchina dell'utente.
+
+Prima pubblicazione verificata sul dominio Railway: HTML, CSS e JavaScript
+corrispondenti byte per byte al commit `36d9761`. Durante la verifica visiva
+mobile individuati e rifiniti due dettagli: allineamento orizzontale della
+scheda preselezionata e testo della toolbar dell'editor che ora va a capo.
+I percorsi rifiniti sono stati riprovati a 320, 390, 820 e 1440px, inclusi
+ritorno dal finale e tastiera. Il controllo della visibilità della scheda
+selezionata è stato aggiunto allo script ripetibile. La versione degli asset
+è aggiornata anche per questa rifinitura.

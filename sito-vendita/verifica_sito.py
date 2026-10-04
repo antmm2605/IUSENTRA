@@ -39,6 +39,11 @@ with sync_playwright() as p:
             expect(page.locator(f'#p-{key}')).to_be_visible()
             expect(page.locator('#percorso-finale')).to_have_text(title)
             assert abs(page.evaluate('scrollY') - before) < 3, 'La scelta ha interrotto la lettura'
+            if width <= 1020:
+                tab_box = page.locator(f'#t-{key}').bounding_box()
+                list_box = page.locator('.schede').bounding_box()
+                assert tab_box['x'] >= list_box['x'], 'Scheda selezionata fuori dalla fila'
+                assert tab_box['x'] + tab_box['width'] <= list_box['x'] + list_box['width']
         page.locator('#scelta-link').click()
         page.wait_for_timeout(800)
         page.screenshot(path=str(output / f'{device}-vetrina.png'))

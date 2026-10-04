@@ -276,11 +276,11 @@ button { font: inherit; }
 .tel-bottone-oro { background: var(--oro); color: var(--notte); }
 
 /* Editor */
-.editor { border-radius: var(--r-m); background: #e9edf4; color: var(--inchiostro); overflow: hidden; display: grid; }
+.editor { min-width: 0; border-radius: var(--r-m); background: #e9edf4; color: var(--inchiostro); overflow: hidden; display: grid; }
 .editor-strumenti { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: var(--bianco); border-bottom: 1px solid var(--linea); font-size: 13px; }
 .editor-strumenti i { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; font-style: normal; font-weight: 700; color: var(--grigio); }
 .editor-strumenti span { width: 1px; height: 18px; background: var(--linea); margin-inline: 4px; }
-.editor-strumenti em { font: 500 12px/1 var(--f-mono); color: var(--istituzionale); margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.editor-strumenti em { min-width: 0; font: 500 12px/1.4 var(--f-mono); color: var(--istituzionale); margin-left: auto; white-space: normal; overflow-wrap: anywhere; }
 .editor-pagina { margin: 14px auto 0; width: min(92%, 520px); background: var(--bianco); padding: 22px 26px; display: grid; gap: 10px; font: 400 13px/1.65 Georgia, "Times New Roman", serif; box-shadow: 0 8px 24px -12px rgba(15, 26, 46, .3); }
 .editor-centro { text-align: center; letter-spacing: .04em; }
 .editor-pagina mark { background: rgba(212, 175, 55, .25); color: inherit; padding: 0 3px; border-radius: 3px; }

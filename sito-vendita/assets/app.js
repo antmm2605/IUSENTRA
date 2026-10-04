@@ -56,6 +56,13 @@
   /* Le schede restano sotto il controllo del visitatore. */
   var schede = Array.from(document.querySelectorAll(".scheda"));
   var titolo = document.getElementById("vetrina-titolo");
+  var allineaScheda = function (scheda) {
+    var lista = scheda.parentElement;
+    if (lista.scrollWidth > lista.clientWidth) {
+      var scarto = scheda.getBoundingClientRect().left - lista.getBoundingClientRect().left;
+      lista.scrollTo({ left: lista.scrollLeft + scarto - 8, behavior: "instant" });
+    }
+  };
   var mostra = function (scheda) {
     schede.forEach(function (s) {
       var attiva = s === scheda;
@@ -65,11 +72,7 @@
       if (pannello) pannello.hidden = !attiva;
       if (attiva && pannello && titolo) titolo.textContent = "iusentra · " + pannello.getAttribute("data-titolo");
     });
-    var lista = scheda.parentElement;
-    if (lista.scrollWidth > lista.clientWidth) {
-      var scarto = scheda.getBoundingClientRect().left - lista.getBoundingClientRect().left;
-      lista.scrollTo({ left: lista.scrollLeft + scarto - 8, behavior: "instant" });
-    }
+    allineaScheda(scheda);
   };
   var mobileSchede = window.matchMedia("(max-width: 1020px)");
   var orientaSchede = function () {
@@ -116,6 +119,7 @@
         panel.hidden = !attiva;
         if (attiva && titolo) titolo.textContent = "iusentra · " + panel.getAttribute("data-titolo");
       });
+      allineaScheda(tab);
     }
   };
   document.querySelectorAll("[data-scelta]").forEach(function (b) { b.addEventListener("click", function () { aggiornaScelta(b.dataset.scelta); }); });

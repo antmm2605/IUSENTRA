@@ -80,6 +80,7 @@
   - `Codex/legal-electronic-filing-kIxcV`
   - `claude/legal-electronic-filing-kIxcV`
 - Eccezione remota protetta: `origin/chore/monorepo-foundation` puo' esistere su GitHub, ma non va mai creato localmente, cancellato, pushato o aggiornato da Codex.
+- Eccezione remota autorizzata (decisione utente 04/10/2026): `origin/claude/software-sales-website-lkyzec` contiene il sito di vendita statico (`sito-vendita/`), separato dal gestionale e pubblicato come progetto Railway a parte. Non va cancellato né fuso nel branch di sviluppo; non attiva il deploy Hetzner.
 - Non creare branch aggiuntivi per task temporanei. Tutto il lavoro deve confluire nel branch di sviluppo corrente e venire sincronizzato anche sul branch gemello.
 - A fine implementazione verificare sempre che:
   - `git worktree list` mostri solo `D:\legale\IUSENTRA`

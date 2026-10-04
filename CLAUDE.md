@@ -68,6 +68,7 @@ Non eseguire MAI `bash deploy/hetzner/deploy.sh` o `git push` aggirando il workf
   - `claude/legal-electronic-filing-kIxcV` (sviluppo, fonte di verità)
   - `Codex/legal-electronic-filing-kIxcV` (gemello protetto, sincronizzato dal workflow)
 - Il remoto protetto `origin/chore/monorepo-foundation` può esistere su GitHub, ma non va creato localmente, cancellato, pushato o aggiornato senza richiesta esplicita dell'utente.
+- Eccezione autorizzata (decisione utente 04/10/2026): `claude/software-sales-website-lkyzec` è il branch del sito di vendita statico (`sito-vendita/`), separato dal gestionale e pubblicato come progetto Railway a parte. Non va cancellato né fuso nel branch di sviluppo; non attiva il deploy Hetzner.
 - **NON creare MAI nuovi branch**, né locali né remoti, nemmeno temporanei o di sessione (`claude/<nome>-<suffisso>`): si lavora e si pusha direttamente su `claude/legal-electronic-filing-kIxcV`. Se un ambiente impone un branch di sessione, a fine task i commit vanno portati su `claude/legal-electronic-filing-kIxcV` e il branch di sessione va cancellato subito.
 - Worktree, cartelle duplicate, branch temporanei e cloni di supporto devono essere rimossi a fine lavoro.
 - A fine task verificare sempre che i due branch gemelli puntino allo **stesso commit**.

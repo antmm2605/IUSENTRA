@@ -5,7 +5,8 @@ param(
         "claude/legal-electronic-filing-kIxcV"
     ),
     [string[]]$ProtectedRemoteBranches = @(
-        "chore/monorepo-foundation"
+        "chore/monorepo-foundation",
+        "claude/software-sales-website-lkyzec"
     ),
     [switch]$DeleteRemoteExtras
 )

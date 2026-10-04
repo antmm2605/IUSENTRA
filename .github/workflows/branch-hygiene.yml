@@ -4,7 +4,10 @@
 #  Regola repository (CLAUDE.md, decisione utente 10/06/2026): i soli branch
 #  autorizzati sono claude/legal-electronic-filing-kIxcV (sviluppo),
 #  Codex/legal-electronic-filing-kIxcV (gemello protetto) e
-#  chore/monorepo-foundation. Nessun nuovo branch va creato; i branch di
+#  chore/monorepo-foundation, piu' il branch del sito di vendita
+#  claude/software-sales-website-lkyzec (sito statico separato dal gestionale,
+#  pubblicato come progetto Railway a parte; decisione utente 04/10/2026).
+#  Nessun nuovo branch va creato; i branch di
 #  sessione vanno portati sul branch di sviluppo e rimossi subito.
 #
 #  Solo avvio manuale (workflow_dispatch): nessuna pianificazione automatica,
@@ -42,6 +45,7 @@ jobs:
               'claude/legal-electronic-filing-kIxcV',
               'Codex/legal-electronic-filing-kIxcV',
               'chore/monorepo-foundation',
+              'claude/software-sales-website-lkyzec',
             ]);
             const dryRun = String(process.env.DRY_RUN || '').toLowerCase() === 'true';
             const { owner, repo } = context.repo;

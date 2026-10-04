@@ -80,10 +80,11 @@
   - `Codex/legal-electronic-filing-kIxcV`
   - `claude/legal-electronic-filing-kIxcV`
 - Eccezione remota protetta: `origin/chore/monorepo-foundation` puo' esistere su GitHub, ma non va mai creato localmente, cancellato, pushato o aggiornato da Codex.
+- **Sito di vendita Railway protetto (decisione utente 04/10/2026):** `origin/claude/software-sales-website-lkyzec` e la cartella `sito-vendita/` contengono il sito commerciale gia' pubblicato su Railway. Preservarli durante ogni pulizia, igiene repository, rimozione branch/worktree e riallineamento. Non cancellare il branch, non sovrascriverlo con il gestionale e non fonderlo nei branch gemelli. Preservare anche configurazioni, asset e servizio Railway; il sito resta separato dal deploy Hetzner. Questa eccezione prevale sulle regole che ammettono solo i due branch gemelli.
 - Non creare branch aggiuntivi per task temporanei. Tutto il lavoro deve confluire nel branch di sviluppo corrente e venire sincronizzato anche sul branch gemello.
 - A fine implementazione verificare sempre che:
   - `git worktree list` mostri solo `D:\legale\IUSENTRA`
-  - `git branch --all` mostri solo i due branch locali ammessi, i due remoti gemelli, `origin/HEAD` e l'eventuale remoto protetto `origin/chore/monorepo-foundation`
+  - `git branch --all` mostri solo i due branch locali ammessi, i due remoti gemelli, `origin/HEAD` e i remoti protetti `origin/chore/monorepo-foundation` e `origin/claude/software-sales-website-lkyzec`
   - i due branch locali e i due branch remoti puntino allo **stesso commit**
 - Per enforcement e cleanup usare lo script: `scripts/repo_hygiene.ps1`
 - **Processo obbligatorio commit/push:** prima di dichiarare concluso un lavoro bisogna seguire `docs/COMMIT_PUSH_REQUIRED_GATES.md`. La lista include CodeQL, code scanning, dependency review, supply chain, governance, lint, smoke, Frontend React, Coverage 12/12, Pytest core shardato, Local Signer/PKCS#11 su macOS/Ubuntu/Windows e CI Quality Overlay su `push` e, quando presente, su `pull_request`. Gli aggregatori non sono diagnosi primaria: se qualcosa è rosso o `Skipped`, controllare prima `Lint + syntax`, `Governance repo`, smoke upstream e lo shard reale. Non usare `python -m pytest -q` monolitico come sostituto e non reintrodurre il vecchio aggregatore `CI / Coverage moduli critici` senza `parte` come required check.

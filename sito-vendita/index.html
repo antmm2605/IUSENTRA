@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
-<link rel="stylesheet" href="assets/stile.css?v=20261004c">
+<link rel="stylesheet" href="assets/stile.css?v=20261004d">
 </head>
 <body>
 <!--CONTENUTO-->
@@ -26,7 +26,7 @@
     </a>
     <nav class="menu" aria-label="Sezioni">
       <a href="#giornata">La tua giornata</a>
-      <a href="#vetrina">Esplora il software</a>
+      <a href="#vetrina">Guarda dentro</a>
       <a href="#fiducia">Il tuo controllo</a>
       <a href="#prezzi">Per il tuo studio</a>
     </nav>
@@ -40,12 +40,12 @@
   <section class="apertura" id="inizio">
     <div class="apertura-griglia">
       <div class="apertura-testo">
-        <p class="occhiello">Il gestionale per lo studio legale italiano</p>
-        <h1>Una PEC arriva.<br>Il resto <em>si collega.</em></h1>
-        <p class="apertura-sotto">Dal messaggio al fascicolo, dai termini all’agenda. IUSENTRA prepara i passaggi che ripeti ogni giorno. <strong>Tu verifichi, confermi e vai avanti.</strong></p>
+        <p class="occhiello">Per chi vive di diritto, ogni giorno</p>
+        <h1>Il tuo tempo.<br><em>Di nuovo tuo.</em></h1>
+        <p class="apertura-sotto">PEC, scadenze, atti, clienti. <strong>E se tutto seguisse lo stesso filo?</strong> IUSENTRA collega il lavoro dello studio. Tu verifichi e decidi.</p>
         <div class="apertura-azioni">
-          <a class="bottone bottone-oro bottone-grande" href="#giornata">Segui una pratica <span aria-hidden="true">↓</span></a>
-          <a class="bottone bottone-vetro" href="#vetrina">Esplora il software</a>
+          <a class="bottone bottone-oro bottone-grande" href="#giornata">Scopri cosa cambia <span aria-hidden="true">↓</span></a>
+          <a class="bottone bottone-vetro" href="#vetrina">Guarda dentro</a>
         </div>
         <ul class="apertura-punti">
           <li>Un solo ambiente di lavoro</li>
@@ -61,6 +61,24 @@
           <span class="finestra-titolo">Una PEC. Sei passaggi collegati.</span>
           <span class="catena-orologio" id="catena-orologio">09:14</span>
         </div>
+        <div class="confronto-apertura" role="group" aria-label="Confronta due modi di seguire la pratica">
+          <button type="button" id="vista-prima" aria-pressed="false" aria-controls="pratica-dispersa">Passaggi separati</button>
+          <button type="button" id="vista-collegata" aria-pressed="true" aria-controls="pratica-collegata">Con IUSENTRA</button>
+        </div>
+        <div id="pratica-dispersa" class="pratica-dispersa" hidden>
+          <p class="dispersa-intro">La riconosci, questa giornata?</p>
+          <div class="dispersa-carte">
+            <span><small>09:14 · PEC</small><b>Leggi la comunicazione.</b></span>
+            <span><small>Fascicolo</small><b>Dove hai salvato l’allegato?</b></span>
+            <span><small>Agenda</small><b>Ricopia data e scadenze.</b></span>
+            <span><small>Atto</small><b>Riprendi i dati delle parti.</b></span>
+            <span><small>Cliente</small><b>«Ci sono novità?»</b></span>
+          </div>
+          <p class="dispersa-finale">La stessa pratica. Cinque punti da ritrovare.</p>
+          <button type="button" class="bottone bottone-oro" id="collega-pratica">Ora collega il filo <span aria-hidden="true">→</span></button>
+        </div>
+        <div id="pratica-collegata">
+        <p class="catena-promessa"><span class="segnale" aria-hidden="true"></span> Una comunicazione. Il lavoro prende forma.</p>
         <ol class="catena-passi">
           <li class="anello">
             <span class="anello-icona icona-pec" aria-hidden="true"></span>
@@ -92,11 +110,12 @@
           <button class="bottone bottone-oro" id="prova-catena" type="button">Guarda cosa succede <span aria-hidden="true">→</span></button>
           <p id="catena-esito" role="status" aria-live="polite">Prova il percorso. La conferma resta tua.</p>
         </div>
+        </div>
         <p class="esempio-nota">Illustrazione interattiva con dati di esempio.</p>
       </div>
     </div>
 
-    <a class="invito-scroll contenitore" href="#scelta"><span>Il lavoro che si ripete può cambiare.</span><b>Da dove inizieresti? <span aria-hidden="true">↓</span></b></a>
+    <a class="invito-scroll contenitore" href="#scelta"><span>Hai visto una PEC. Ora segui un’intera pratica.</span><b>Il prossimo passaggio ti riguarda. <span aria-hidden="true">↓</span></b></a>
   </section>
 
   <section class="scelta" id="scelta" aria-labelledby="scelta-titolo">
@@ -121,7 +140,7 @@
       <div class="racconto-intro">
         <p class="occhiello occhiello-scuro">01 / Segui il filo</p>
         <h2 class="titolo-sezione titolo-scuro" id="giornata-titolo">La stessa pratica.<br><em>Un’altra giornata.</em></h2>
-        <p>Non è una lista di funzioni. È il filo che le unisce: una comunicazione diventa lavoro organizzato, un atto, un aggiornamento al cliente.</p>
+        <p>Entra in una giornata di studio: la comunicazione del mattino, l’atto del pomeriggio, il cliente da aggiornare. Segui la stessa pratica fino all’ultimo passaggio.</p>
         <a class="link-freccia" href="#vetrina">Poi guarda dentro il software <span aria-hidden="true">↓</span></a>
         <div class="racconto-indice" aria-label="Momenti della pratica">
           <a href="#momento-1" class="attivo">01 <span>Ricevi e organizzi</span></a>
@@ -157,9 +176,16 @@
           <p>Condividi gli aggiornamenti dal portale. Documenti, preventivi e pagamenti restano collegati alla pratica, senza ricostruire tutto a fine giornata.</p>
           <div class="scena-cliente"><div class="cliente-avatar" aria-hidden="true">MR</div><div><small>Portale clienti · Marco Rossi</small><b>La tua pratica, in un posto solo.</b></div><ul><li><span>Documenti</span><b>Caricati dal cliente</b></li><li><span>Preventivo</span><b>Da consultare</b></li><li><span>Parcella</span><b>Link di pagamento</b></li></ul></div>
           <p class="scena-guadagno">Meno passaggi da ricostruire. Più continuità nel lavoro.</p>
-          <a class="link-freccia" href="#vetrina">Ora esplora le funzioni <span aria-hidden="true">↓</span></a>
+          <a class="link-freccia" href="#voce-esempio">C’è anche un altro modo di iniziare <span aria-hidden="true">↓</span></a>
         </article>
       </div>
+    </div>
+  </section>
+
+  <section class="voce-spot" id="voce-esempio" aria-labelledby="voce-spot-titolo">
+    <div class="contenitore voce-spot-griglia">
+      <div><p class="occhiello">Una cosa in più da scoprire</p><h2 class="titolo-sezione" id="voce-spot-titolo">E se bastasse <em>dirlo?</em></h2><p>Tra una telefonata e un’udienza, il prossimo comando può partire dalla tua voce. Guarda un esempio, poi esplora cosa puoi fare.</p><a class="link-freccia" href="#vetrina">Guarda tutte le funzioni <span aria-hidden="true">↓</span></a></div>
+      <div class="voce-prova finestra"><span class="voce-prova-etichetta">Esempio di comando vocale</span><div class="voce-onda" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><p class="voce-citazione">«Apri lo scadenziario»</p><button class="bottone bottone-oro" id="prova-voce" type="button">Prova l’esempio <span aria-hidden="true">→</span></button><div class="voce-esito" id="voce-esito" role="status" aria-live="polite">Un comando. Il prossimo impegno in vista.</div><p class="esempio-nota">Simulazione illustrativa: il microfono non viene attivato.</p></div>
     </div>
   </section>
 
@@ -167,8 +193,8 @@
   <section class="vetrina" id="vetrina">
     <div class="contenitore">
       <p class="occhiello">02 / Ora scegli tu</p>
-      <h2 class="titolo-sezione">La prossima mossa <em>la scegli tu.</em></h2>
-      <p class="vetrina-sotto">Scegli una funzione. La schermata resta ferma finché vuoi esplorarla.</p>
+      <h2 class="titolo-sezione">Ora guarda cosa <em>puoi collegare.</em></h2>
+      <p class="vetrina-sotto">Dieci porte sul tuo prossimo modo di lavorare. Apri quella che ti incuriosisce: ogni anteprima racconta un pezzo dello studio.</p>
 
       <div class="vetrina-corpo">
         <div class="schede" role="tablist" aria-orientation="vertical" aria-label="Funzioni di IUSENTRA">
@@ -580,6 +606,6 @@
   <a class="bottone bottone-oro bottone-pieno" href="#demo">Il prossimo passo</a>
 </div>
 <!--/CONTENUTO-->
-<script src="assets/app.js?v=20261004c"></script>
+<script src="assets/app.js?v=20261004d"></script>
 </body>
 </html>

@@ -90,3 +90,19 @@ Partono quando il pannello entra in vista, con sequenze finite e senza cambio
 automatico della scheda. Ricevute e testi rimangono leggibili al termine.
 Le scene del racconto entrano con lo stesso movimento delle altre sezioni.
 Il movimento ridotto mantiene le illustrazioni statiche.
+
+
+## Primo impatto e continuità dello scorrimento
+
+Apertura riscritta attorno al tempo dell’avvocato: “Il tuo tempo. Di nuovo tuo.”
+Confronto interattivo tra passaggi separati e pratica collegata, mantenendo
+visibili e leggibili tutti i passaggi dell’esempio. Segnale luminoso e icone
+animate all’ingresso; nessun dato reale o promessa di risparmio quantificata.
+Sul telefono anteprima e confronto sono già presenti nella prima schermata.
+Il racconto prosegue con un esempio vocale attivabile, senza microfono o AI
+reale, prima delle dieci funzioni. Inviti e testi anticipano il passo seguente.
+Resta esplicito che ordini e acquisti non sono aperti.
+Verifica browser comprende confronto reversibile, esempio vocale, cinque
+formati di schermo, tastiera, scorrimento, movimento ridotto e lettura senza JS.
+La curiosità e la permanenza effettiva richiedono osservazione di visitatori
+reali: i controlli tecnici verificano il comportamento del sito.

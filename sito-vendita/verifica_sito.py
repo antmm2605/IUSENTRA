@@ -18,8 +18,15 @@ with sync_playwright() as p:
         errors = []
         page.on('pageerror', lambda error: errors.append(str(error)))
         page.goto(args.url, wait_until='networkidle')
-        expect(page.locator('h1')).to_contain_text('Una PEC arriva.')
+        expect(page.locator('h1')).to_contain_text('Il tuo tempo.')
         page.screenshot(path=str(output / f'{device}-apertura.png'))
+        # First-screen comparison and voice example remain illustrative and reversible.
+        page.locator('#vista-prima').click()
+        expect(page.locator('#pratica-dispersa')).to_be_visible()
+        expect(page.locator('#pratica-collegata')).to_be_hidden()
+        page.locator('#collega-pratica').click()
+        expect(page.locator('#vista-collegata')).to_have_attribute('aria-pressed', 'true')
+        expect(page.locator('#pratica-collegata')).to_be_visible()
         # The illustration has distinct preparation, confirmation and replay states.
         page.locator('#prova-catena').click()
         expect(page.locator('#prova-catena')).to_have_text('Conferma nell’esempio →')
@@ -47,6 +54,9 @@ with sync_playwright() as p:
         page.locator('#scelta-link').click()
         page.wait_for_timeout(800)
         page.screenshot(path=str(output / f'{device}-vetrina.png'))
+        page.locator('#prova-voce').click()
+        expect(page.locator('#voce-esito')).to_contain_text('Termine da verificare e confermare.')
+        expect(page.locator('#prova-voce')).to_be_enabled()
         # All ten tabs keep the selected state; keyboard Home/End and arrows work.
         for tab in page.locator('.scheda').all():
             tab.click()

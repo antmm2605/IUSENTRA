@@ -6,6 +6,37 @@
   var ridotto = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   radice.classList.add("js");
 
+  /* Confronto nella prima schermata: nessuna modifica al gestionale. */
+  var vistaPrima = document.getElementById("vista-prima");
+  var vistaCollegata = document.getElementById("vista-collegata");
+  var cambiaVista = function (prima) {
+    document.getElementById("pratica-dispersa").hidden = !prima;
+    document.getElementById("pratica-collegata").hidden = prima;
+    vistaPrima.setAttribute("aria-pressed", String(prima));
+    vistaCollegata.setAttribute("aria-pressed", String(!prima));
+  };
+  vistaPrima.addEventListener("click", function () { cambiaVista(true); });
+  vistaCollegata.addEventListener("click", function () { cambiaVista(false); });
+  document.getElementById("collega-pratica").addEventListener("click", function () {
+    cambiaVista(false); vistaCollegata.focus({ preventScroll: true });
+  });
+  var provaVoce = document.getElementById("prova-voce");
+  provaVoce.addEventListener("click", function () {
+    var box = provaVoce.closest(".voce-prova");
+    var esito = document.getElementById("voce-esito");
+    box.classList.remove("in-ascolto");
+    void box.offsetWidth;
+    box.classList.add("in-ascolto");
+    provaVoce.disabled = true;
+    esito.textContent = "Nell’esempio: comando riconosciuto. Apro lo scadenziario…";
+    setTimeout(function () {
+      esito.textContent = "Agenda · Rossi c/ Bianchi — Memoria n. 1: 9 dicembre 2026. Termine da verificare e confermare.";
+      provaVoce.disabled = false;
+      provaVoce.textContent = "Rivedi l’esempio ↺";
+      box.classList.remove("in-ascolto");
+    }, ridotto ? 0 : 1600);
+  });
+
   /* Un esempio attivato dal visitatore, mai un'operazione sul gestionale. */
   var catena = document.getElementById("catena");
   var prova = document.getElementById("prova-catena");

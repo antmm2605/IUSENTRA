@@ -700,3 +700,54 @@ html:not(.js) .schede, html:not(.js) .scelta-opzioni, html:not(.js) #prova-caten
 @keyframes lampeggia { 50% { opacity: 0; } }
 @keyframes onda { 0%, 100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
 @keyframes riempi { from { transform: scaleX(.15); } to { transform: scaleX(1); } }
+
+/* Primo impatto: confronto diretto e filo luminoso della pratica. */
+.apertura h1 { font-size: clamp(52px, 6.3vw, 91px); line-height: .99; }
+.apertura h1 em { display: inline-block; font-size: 1em; }
+.confronto-apertura { display: flex; gap: 5px; margin: 16px 18px 0; padding: 4px; border: 1px solid var(--linea-notte); border-radius: 12px; background: rgba(0,0,0,.16); }
+.confronto-apertura button { flex: 1; padding: 10px 6px; border: 0; border-radius: 8px; color: var(--testo-notte); background: transparent; font: 600 12px/1.3 var(--f-testo); cursor: pointer; }
+.confronto-apertura button[aria-pressed="true"] { background: var(--oro); color: var(--notte); }
+.catena-promessa { display: flex; align-items: center; gap: 9px; padding: 16px 18px 0; color: var(--oro-chiaro); font: 500 12px/1.5 var(--f-mono); }
+.segnale { flex: none; width: 7px; height: 7px; background: var(--oro); border-radius: 50%; box-shadow: 0 0 15px var(--oro); animation: segnale 2s ease 3; }
+.catena:not(.in-corso) .anello-icona { animation: collega 1.2s ease both; }
+.catena:not(.in-corso) .anello:nth-child(2) .anello-icona { animation-delay: .2s; }
+.catena:not(.in-corso) .anello:nth-child(3) .anello-icona { animation-delay: .4s; }
+.catena:not(.in-corso) .anello:nth-child(4) .anello-icona { animation-delay: .6s; }
+.catena:not(.in-corso) .anello:nth-child(5) .anello-icona { animation-delay: .8s; }
+.catena:not(.in-corso) .anello:nth-child(6) .anello-icona { animation-delay: 1s; }
+.pratica-dispersa { padding: 22px 18px; }
+.dispersa-intro { font: 400 28px/1.2 var(--f-serif); color: var(--oro-chiaro); }
+.dispersa-carte { display: grid; gap: 16px; padding: 25px 6px; }
+.dispersa-carte span { display: grid; gap: 5px; padding: 14px; border: 1px dashed rgba(159,176,204,.45); border-radius: 10px; background: rgba(255,255,255,.04); transform: rotate(-2deg); }
+.dispersa-carte span:nth-child(even) { transform: rotate(2deg); margin-left: 18px; }
+.dispersa-carte small { font: 500 11px/1.4 var(--f-mono); color: var(--grigio-chiaro); }
+.dispersa-carte b { font-size: 14px; }
+.dispersa-finale { margin-bottom: 16px; color: var(--testo-notte); font-size: 14px; }
+.voce-spot { padding-block: clamp(56px,7vw,96px); background: radial-gradient(ellipse at 85% 50%,rgba(59,130,246,.18),transparent 65%),var(--notte); color: var(--bianco); }
+.voce-spot-griglia { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: clamp(28px,6vw,80px); }
+.voce-spot-griglia > div:first-child > p:not(.occhiello) { color: var(--testo-notte); margin: 22px 0; max-width: 35em; font-size: 17px; }
+.voce-spot .link-freccia { color: var(--oro-chiaro); }
+.voce-prova { padding: clamp(20px,3vw,36px); display: grid; justify-items: start; gap: 20px; }
+.voce-prova-etichetta { color: var(--grigio-chiaro); font: 500 11px/1.4 var(--f-mono); text-transform: uppercase; letter-spacing: .1em; }
+.voce-prova .voce-citazione { margin: 0; font: 400 clamp(26px,3vw,36px)/1.2 var(--f-serif); color: var(--bianco); }
+.voce-esito { width: 100%; padding: 14px; border: 1px solid var(--linea-notte); border-radius: 10px; font-size: 14px; line-height: 1.5; color: var(--testo-notte); }
+.voce-prova .esempio-nota { padding: 0; margin: 0; color: var(--grigio-chiaro); font-size: 11px; }
+.voce-prova.in-ascolto .voce-onda i { animation: onda 1s ease-in-out 2; }
+.voce-prova.in-ascolto .voce-onda i:nth-child(even) { animation-delay: .2s; }
+@keyframes collega { 50% { background-color: #675325; box-shadow: 0 0 22px rgba(212,175,55,.4); } }
+@keyframes segnale { 50% { box-shadow: 0 0 0 7px rgba(212,175,55,.08),0 0 20px var(--oro); } }
+@media (max-width: 1020px) { .voce-spot-griglia { grid-template-columns: 1fr; } }
+@media (max-width: 480px) { .apertura h1 { font-size: clamp(47px,12.6vw,62px); } .catena-promessa { font-size: 10px; } }
+
+.apertura-griglia { align-items: start; }
+.apertura-testo { padding-top: clamp(24px,4vw,58px); }
+@media (max-width: 1020px) { .apertura-testo { padding-top: 0; } }
+@media (max-width: 600px) {
+  .apertura-sotto { margin-top: 20px; }
+  .apertura-azioni { display: grid; grid-template-columns: 1.3fr 1fr; gap: 8px; margin-top: 24px; }
+  .apertura-azioni .bottone { padding: 14px 8px; font-size: 13px; }
+  .apertura-punti { margin-top: 18px; }
+  .apertura-punti li:nth-child(-n+2) { display: none; }
+}
+
+html:not(.js) .confronto-apertura, html:not(.js) #prova-voce { display: none; }

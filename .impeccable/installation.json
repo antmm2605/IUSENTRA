@@ -1,0 +1,9 @@
+{
+  "skill_version": "4.5.0",
+  "engine_version": "0.1.11",
+  "cli_version": "4.1.0",
+  "source": "https://github.com/pbakaus/impeccable/releases/tag/skill-v4.5.0",
+  "bundle_sha256": "a6877c158ec90c63560728553d2e737081afa8a79b86c507fa8d15a81fffd475",
+  "scope": "project",
+  "hooks_modified": false
+}

@@ -10,12 +10,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
-<link rel="stylesheet" href="assets/stile.css?v=20261004d">
+<link rel="stylesheet" href="assets/stile.css?v=20261004e">
 </head>
 <body>
 <!--CONTENUTO-->
 <noscript><p class="senza-js">Il percorso e le funzioni sono leggibili anche senza JavaScript. Per provare le illustrazioni interattive, abilitalo nel browser.</p></noscript>
 <a class="salta" href="#contenuto">Vai al contenuto</a>
+<nav hidden class="indice-esplorazione" aria-label="Il percorso nel sito"><a href="#giornata">La pratica</a><a href="#vetrina">Le funzioni</a><a href="#fiducia">Il controllo</a><a href="#demo">Il tuo studio</a></nav>
 <div class="avanzamento" aria-hidden="true"><span id="avanzamento"></span></div>
 
 <header class="barra">
@@ -40,7 +41,7 @@
   <section class="apertura" id="inizio">
     <div class="apertura-griglia">
       <div class="apertura-testo">
-        <p class="occhiello">Per chi vive di diritto, ogni giorno</p>
+
         <h1>Il tuo tempo.<br><em>Di nuovo tuo.</em></h1>
         <p class="apertura-sotto">PEC, scadenze, atti, clienti. <strong>E se tutto seguisse lo stesso filo?</strong> IUSENTRA collega il lavoro dello studio. Tu verifichi e decidi.</p>
         <div class="apertura-azioni">
@@ -55,10 +56,10 @@
       </div>
 
       <!-- La catena: il momento centrale della pagina -->
-      <div class="catena finestra" id="catena" aria-label="Esempio interattivo: dalla PEC all’agenda" role="group">
+      <div class="catena finestra esperienza-catena" id="catena" aria-label="Esempio interattivo: dalla PEC all’agenda" role="group">
         <div class="finestra-barra">
           <span class="pallini" aria-hidden="true"><i></i><i></i><i></i></span>
-          <span class="finestra-titolo">Una PEC. Sei passaggi collegati.</span>
+          <span class="finestra-titolo">Rossi c/ Bianchi · La pratica prende forma</span>
           <span class="catena-orologio" id="catena-orologio">09:14</span>
         </div>
         <div class="confronto-apertura" role="group" aria-label="Confronta due modi di seguire la pratica">
@@ -80,32 +81,33 @@
         <div id="pratica-collegata">
         <p class="catena-promessa"><span class="segnale" aria-hidden="true"></span> Una comunicazione. Il lavoro prende forma.</p>
         <ol class="catena-passi">
-          <li class="anello">
+          <li class="anello"><button class="nodo-dettaglio" type="button" data-nodo="0" aria-pressed="true" aria-controls="nodo-esito" aria-label="Esplora la PEC"></button>
             <span class="anello-icona icona-pec" aria-hidden="true"></span>
             <span class="anello-testo"><small>PEC in arrivo</small><b>Cancelleria · Tribunale di Milano</b><i>Comunicazione, proc. n. 4512/2026 R.G.</i></span>
           </li>
-          <li class="anello">
+          <li class="anello"><button class="nodo-dettaglio" type="button" data-nodo="1" aria-pressed="false" aria-controls="nodo-esito" aria-label="Esplora la lettura della comunicazione"></button>
             <span class="anello-icona icona-occhio" aria-hidden="true"></span>
             <span class="anello-testo"><small>Letta e capita</small><b>Fissata udienza al 18 gennaio 2027</b><i>Prima comparizione, art. 183 c.p.c.</i></span>
           </li>
-          <li class="anello">
+          <li class="anello"><button class="nodo-dettaglio" type="button" data-nodo="2" aria-pressed="false" aria-controls="nodo-esito" aria-label="Esplora il fascicolo collegato"></button>
             <span class="anello-icona icona-cartella" aria-hidden="true"></span>
             <span class="anello-testo"><small>Collegata</small><b>Fascicolo Rossi c/ Bianchi</b><i>PEC, allegati e ricevute archiviati</i></span>
           </li>
-          <li class="anello">
+          <li class="anello"><button class="nodo-dettaglio" type="button" data-nodo="3" aria-pressed="false" aria-controls="nodo-esito" aria-label="Esplora i termini proposti"></button>
             <span class="anello-icona icona-bilancia" aria-hidden="true"></span>
             <span class="anello-testo"><small>Termini proposti</small><b>Memoria n. 1 entro il 9 dicembre 2026</b><i>art. 171-ter c.p.c. · poi 29 dicembre e 8 gennaio</i></span>
           </li>
-          <li class="anello">
+          <li class="anello"><button class="nodo-dettaglio" type="button" data-nodo="4" aria-pressed="false" aria-controls="nodo-esito" aria-label="Esplora l’agenda"></button>
             <span class="anello-icona icona-calendario" aria-hidden="true"></span>
             <span class="anello-testo"><small>In agenda</small><b>Udienza e 3 scadenze con promemoria</b><i>Sincronizzate sul tuo calendario</i></span>
           </li>
-          <li class="anello anello-finale">
+          <li class="anello anello-finale"><button class="nodo-dettaglio" type="button" data-nodo="5" aria-pressed="false" aria-controls="nodo-esito" aria-label="Esplora la conferma e il cliente"></button>
             <span class="anello-icona icona-persona" aria-hidden="true"></span>
             <span class="anello-testo"><small>Tocca a te</small><b>Confermi e il cliente viene aggiornato</b><i>Sul portale clienti, senza telefonate</i></span>
             <span class="anello-bottone">Da confermare</span>
           </li>
         </ol>
+        <div class="nodo-esito" id="nodo-esito" role="status" aria-live="polite"><b>Una PEC è il punto di partenza.</b><span>Seleziona un passaggio e scopri cosa collega alla pratica.</span></div>
         <div class="catena-controlli">
           <button class="bottone bottone-oro" id="prova-catena" type="button">Guarda cosa succede <span aria-hidden="true">→</span></button>
           <p id="catena-esito" role="status" aria-live="polite">Prova il percorso. La conferma resta tua.</p>
@@ -115,12 +117,12 @@
       </div>
     </div>
 
-    <a class="invito-scroll contenitore" href="#scelta"><span>Hai visto una PEC. Ora segui un’intera pratica.</span><b>Il prossimo passaggio ti riguarda. <span aria-hidden="true">↓</span></b></a>
+    <a class="invito-scroll contenitore" href="#scelta"><span>Dalla PEC all’ultimo aggiornamento. Un unico filo.</span><b>Il prossimo passaggio ti riguarda. <span aria-hidden="true">↓</span></b></a>
   </section>
 
   <section class="scelta" id="scelta" aria-labelledby="scelta-titolo">
     <div class="contenitore">
-      <div class="scelta-intesta"><p class="occhiello occhiello-scuro">Partiamo dal tuo studio</p><span class="piccola-nota">Una scelta, un esempio da esplorare</span></div>
+      <div class="scelta-intesta"><span class="piccola-nota">Una scelta, un esempio da esplorare</span></div>
       <h2 id="scelta-titolo">Cosa vorresti <em>smettere di rincorrere?</em></h2>
       <div class="scelta-opzioni" role="group" aria-label="Scegli il lavoro che vuoi semplificare">
         <button type="button" class="scelta-voce" data-scelta="pec" aria-pressed="false" aria-controls="scelta-risposta"><span class="scelta-numero">01</span><b>PEC e scadenze</b><span>Leggere, archiviare, contare i giorni.</span><i aria-hidden="true">↗</i></button>
@@ -138,7 +140,7 @@
   <section class="giornata" id="giornata" aria-labelledby="giornata-titolo">
     <div class="contenitore racconto-griglia">
       <div class="racconto-intro">
-        <p class="occhiello occhiello-scuro">01 / Segui il filo</p>
+
         <h2 class="titolo-sezione titolo-scuro" id="giornata-titolo">La stessa pratica.<br><em>Un’altra giornata.</em></h2>
         <p>Entra in una giornata di studio: la comunicazione del mattino, l’atto del pomeriggio, il cliente da aggiornare. Segui la stessa pratica fino all’ultimo passaggio.</p>
         <a class="link-freccia" href="#vetrina">Poi guarda dentro il software <span aria-hidden="true">↓</span></a>
@@ -149,9 +151,9 @@
         </div>
         <p class="piccola-nota">Percorso illustrato con dati di esempio.</p>
       </div>
-      <div class="racconto-scene">
+      <div class="racconto-scene"><div class="filo-pratica" aria-hidden="true"><span id="filo-avanzamento"></span></div>
         <article class="scena" id="momento-1">
-          <div class="scena-kicker"><span>09:15</span><span>Ricevi e organizzi</span></div>
+          <div class="scena-kicker"><span>01 · 09:15</span><span>Ricevi e organizzi</span></div>
           <h3>La PEC entra.<br>Il fascicolo si aggiorna.</h3>
           <p>Allegati e ricevute trovano il loro posto. Udienze e termini vengono proposti con il riferimento da verificare. In agenda entrano dopo la tua conferma.</p>
           <div class="scena-documento">
@@ -164,14 +166,14 @@
           <p class="scena-guadagno">Il dato entra una volta. Lo ritrovi dove ti serve.</p>
         </article>
         <article class="scena" id="momento-2">
-          <div class="scena-kicker"><span>15:00</span><span>Scrivi e depositi</span></div>
+          <div class="scena-kicker"><span>02 · 15:00</span><span>Scrivi e depositi</span></div>
           <h3>L’atto parte<br>dal fascicolo.</h3>
           <p>Parti, ufficio e numero di ruolo sono già disponibili nell’editor. Lex propone, tu rivedi. Preparazione, firma e ricevute seguono lo stesso percorso.</p>
           <div class="scena-atto"><div class="atto-barra"><span>Rossi c/ Bianchi</span><span>Editor atti</span></div><div class="atto-foglio"><small>TRIBUNALE DI MILANO</small><b>Memoria integrativa</b><p>Nell’interesse di <mark>Marco Rossi</mark>, nel procedimento <mark>R.G. 4512/2026</mark>…</p></div><div class="atto-percorso"><span>Atto</span><i aria-hidden="true">→</i><span>Firma</span><i aria-hidden="true">→</i><span>Deposito</span><i aria-hidden="true">→</i><span>Ricevute</span></div></div>
           <p class="scena-guadagno">Prepari il lavoro. Mantieni il controllo su ogni passaggio.</p>
         </article>
         <article class="scena" id="momento-3">
-          <div class="scena-kicker"><span>18:30</span><span>Aggiorni e incassi</span></div>
+          <div class="scena-kicker"><span>03 · 18:30</span><span>Aggiorni e incassi</span></div>
           <h3>Il cliente sa.<br>Lo studio va avanti.</h3>
           <p>Condividi gli aggiornamenti dal portale. Documenti, preventivi e pagamenti restano collegati alla pratica, senza ricostruire tutto a fine giornata.</p>
           <div class="scena-cliente"><div class="cliente-avatar" aria-hidden="true">MR</div><div><small>Portale clienti · Marco Rossi</small><b>La tua pratica, in un posto solo.</b></div><ul><li><span>Documenti</span><b>Caricati dal cliente</b></li><li><span>Preventivo</span><b>Da consultare</b></li><li><span>Parcella</span><b>Link di pagamento</b></li></ul></div>
@@ -184,7 +186,7 @@
 
   <section class="voce-spot" id="voce-esempio" aria-labelledby="voce-spot-titolo">
     <div class="contenitore voce-spot-griglia">
-      <div><p class="occhiello">Una cosa in più da scoprire</p><h2 class="titolo-sezione" id="voce-spot-titolo">E se bastasse <em>dirlo?</em></h2><p>Tra una telefonata e un’udienza, il prossimo comando può partire dalla tua voce. Guarda un esempio, poi esplora cosa puoi fare.</p><a class="link-freccia" href="#vetrina">Guarda tutte le funzioni <span aria-hidden="true">↓</span></a></div>
+      <div><h2 class="titolo-sezione" id="voce-spot-titolo">E se bastasse <em>dirlo?</em></h2><p>Tra una telefonata e un’udienza, il prossimo comando può partire dalla tua voce. Guarda un esempio, poi esplora cosa puoi fare.</p><a class="link-freccia" href="#vetrina">Guarda tutte le funzioni <span aria-hidden="true">↓</span></a></div>
       <div class="voce-prova finestra"><span class="voce-prova-etichetta">Esempio di comando vocale</span><div class="voce-onda" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><p class="voce-citazione">«Apri lo scadenziario»</p><button class="bottone bottone-oro" id="prova-voce" type="button">Prova l’esempio <span aria-hidden="true">→</span></button><div class="voce-esito" id="voce-esito" role="status" aria-live="polite">Un comando. Il prossimo impegno in vista.</div><p class="esempio-nota">Simulazione illustrativa: il microfono non viene attivato.</p></div>
     </div>
   </section>
@@ -192,7 +194,7 @@
   <!-- ============ VETRINA INTERATTIVA ============ -->
   <section class="vetrina" id="vetrina">
     <div class="contenitore">
-      <p class="occhiello">02 / Ora scegli tu</p>
+
       <h2 class="titolo-sezione">Ora guarda cosa <em>puoi collegare.</em></h2>
       <p class="vetrina-sotto">Dieci porte sul tuo prossimo modo di lavorare. Apri quella che ti incuriosisce: ogni anteprima racconta un pezzo dello studio.</p>
 
@@ -247,6 +249,7 @@
                 <div class="tel-card tel-azione"><small>Da pagare</small><b>Acconto · € 800,00</b><span class="tel-bottone tel-bottone-oro">Paga</span></div>
               </div>
             </div>
+            <div class="anteprima-azione"><button type="button" class="bottone bottone-vetro" id="prova-portale" aria-pressed="false" aria-controls="portale-esito">Simula il documento caricato</button><p id="portale-esito" role="status" aria-live="polite">Nell’esempio, Marco deve ancora inviare il documento.</p></div>
           </div>
 
           <!-- Editor -->
@@ -270,6 +273,7 @@
                 <span class="spunta-mini"></span>Pronto per la firma
               </div>
             </div>
+            <div class="anteprima-azione"><button type="button" class="bottone bottone-vetro" id="prova-editor" aria-pressed="false" aria-controls="editor-esito">Evidenzia i dati del fascicolo</button><p id="editor-esito" role="status" aria-live="polite">Nell’esempio, parti, ufficio e udienza seguono lo stesso fascicolo.</p></div>
           </div>
 
           <!-- Deposito -->
@@ -301,6 +305,7 @@
               <div class="posta-riga"><span class="chip chip-oro-chiaro">Notifica</span><b>Notifica in proprio L. 53/1994</b><small>Relata firmata · consegna ricevuta</small></div>
               <div class="posta-riga"><span class="chip chip-blu-chiaro">Comunicazione</span><b>Corte d'Appello di Milano</b><small>RG 732/2025 → Verdi Srl</small></div>
             </div>
+            <div class="anteprima-azione"><button type="button" class="bottone bottone-vetro" id="prova-pec" aria-pressed="false" aria-controls="pec-esito">Segui il collegamento al fascicolo</button><p id="pec-esito" role="status" aria-live="polite">Seleziona l’esempio per vedere dove ritrovi comunicazione e allegati.</p></div>
           </div>
 
           <!-- Parcelle -->
@@ -389,7 +394,7 @@
   <!-- ============ PRIMA / DOPO ============ -->
   <section class="confronto" id="confronto">
     <div class="contenitore">
-      <p class="occhiello">Cosa cambia da lunedì</p>
+
       <h2 class="titolo-sezione">Riconosci questi passaggi? <em>Puoi unirli.</em></h2>
       <div class="confronto-tabella" role="table" aria-label="Il lavoro dello studio oggi e con IUSENTRA">
         <div class="confronto-riga confronto-intesta" role="row">
@@ -422,7 +427,7 @@
   <!-- ============ TUTTE LE FUNZIONI ============ -->
   <section class="moduli" id="moduli">
     <div class="contenitore">
-      <p class="occhiello occhiello-scuro">03 / Oltre la pratica</p>
+
       <h2 class="titolo-sezione titolo-scuro">E tutto quello <em>che c’è intorno.</em></h2>
       <p class="sezione-sotto">Dalla fotocamera al lavoro in squadra: esplora anche ciò che tiene insieme lo studio.</p>
       <ul class="moduli-griglia" id="moduli-lista">
@@ -455,7 +460,7 @@
   <section class="fiducia" id="fiducia">
     <div class="contenitore fiducia-griglia">
       <div>
-        <p class="occhiello">04 / Il controllo resta tuo</p>
+
         <h2 class="titolo-sezione">Il software collega.<br><em>Tu decidi.</em></h2>
         <p class="fiducia-testo">Le date proposte mostrano la fonte. Le modifiche di Lex si accettano o si rifiutano. Le azioni rilevanti restano ricostruibili. La continuità del lavoro nasce da regole verificabili e dalle tue decisioni.</p>
       </div>
@@ -477,7 +482,7 @@
   <!-- ============ PREZZI ============ -->
   <section class="prezzi" id="prezzi">
     <div class="contenitore">
-      <p class="occhiello occhiello-scuro">05 / A misura del tuo studio</p>
+
       <h2 class="titolo-sezione titolo-scuro">Da solo o in squadra.<br><em>Trova il tuo punto di partenza.</em></h2>
       <div class="piani">
         <article class="piano">
@@ -566,7 +571,7 @@
   <section class="chiusura" id="demo">
     <div class="contenitore chiusura-griglia">
       <div>
-        <p class="occhiello">06 / Il prossimo passo</p>
+
         <h2 class="titolo-sezione chiusura-titolo">Hai visto il filo.<br><em>Immaginalo nel tuo studio.</em></h2>
         <p class="chiusura-testo">Il prossimo passo sarà provarlo sul lavoro che conosci meglio. Stiamo svolgendo le verifiche prima del rilascio: prenotazioni, ordini e acquisti non sono ancora aperti.</p>
         <p class="demo-contesto" id="demo-contesto">Da quale passaggio vorresti cominciare?</p>
@@ -575,10 +580,11 @@
           <li>Dalla prima comunicazione all’incasso</li>
           <li>Le decisioni restano sempre tue</li>
         </ul>
+        <div class="ricordo-percorso"><p>Dentro lo stesso filo</p><ul><li>Ricevi e organizzi</li><li>Scrivi e depositi</li><li>Aggiorni il cliente</li></ul></div>
         <p class="stato-rilascio"><span aria-hidden="true"></span> Rilascio in preparazione</p>
       </div>
       <div class="percorso-finale-box">
-        <p class="occhiello">Il tuo percorso di esplorazione</p>
+
         <label for="percorso-select">Da dove vorresti iniziare?</label>
         <select id="percorso-select">
           <option value="pec">PEC e scadenze</option>
@@ -606,6 +612,6 @@
   <a class="bottone bottone-oro bottone-pieno" href="#demo">Il prossimo passo</a>
 </div>
 <!--/CONTENUTO-->
-<script src="assets/app.js?v=20261004d"></script>
+<script src="assets/app.js?v=20261004e"></script>
 </body>
 </html>

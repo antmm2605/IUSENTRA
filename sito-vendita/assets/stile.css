@@ -122,14 +122,7 @@ button { font: inherit; }
     var(--notte);
   padding-block: clamp(40px, 5vw, 72px) 0;
 }
-.apertura::before {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background-image: linear-gradient(var(--linea-notte) 1px, transparent 1px), linear-gradient(90deg, var(--linea-notte) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: radial-gradient(ellipse at 65% 30%, #000 15%, transparent 72%);
-  -webkit-mask-image: radial-gradient(ellipse at 65% 30%, #000 15%, transparent 72%);
-  opacity: .23;
-}
+
 .apertura-griglia {
   position: relative; max-width: var(--larghezza); margin-inline: auto; padding-inline: var(--gutter);
   display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: clamp(32px, 5vw, 72px); align-items: center;
@@ -751,3 +744,68 @@ html:not(.js) .schede, html:not(.js) .scelta-opzioni, html:not(.js) #prova-caten
 }
 
 html:not(.js) .confronto-apertura, html:not(.js) #prova-voce { display: none; }
+
+/* La pratica come segno di marca: una pagina editoriale e un unico filo. */
+::selection { background: var(--oro); color: var(--notte); }
+body { scrollbar-color: var(--istituzionale) var(--carta); }
+.apertura::before { display: none; }
+.apertura h1 { letter-spacing: -.035em; }
+.apertura-griglia { grid-template-columns: minmax(0,1fr) minmax(0,1.15fr); gap: clamp(28px,4vw,60px); }
+.apertura-testo { padding-top: clamp(20px,4vw,58px); }
+.esperienza-catena .catena-passi { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.esperienza-catena .catena-passi::before { display: none; }
+.esperienza-catena .anello { grid-template-columns: 30px minmax(0,1fr); align-content: start; gap: 10px; padding: 14px 10px; border: 1px solid var(--linea-notte); border-radius: 12px; background: rgba(255,255,255,.025); }
+.esperienza-catena .anello-icona { width: 30px; height: 30px; border-radius: 8px; }
+.esperienza-catena .anello-testo b { font-size: 13px; line-height: 1.4; }
+.esperienza-catena .anello-testo small { font: 600 10px/1.4 var(--f-testo); letter-spacing: .025em; }
+.js .esperienza-catena .anello-testo i { display: none; }
+.esperienza-catena .anello-bottone { grid-column: 1/-1; justify-self: start; font-size: 11px; padding: 4px 8px; }
+.nodo-dettaglio { position: absolute; inset: 0; z-index: 2; border: 0; border-radius: inherit; background: transparent; cursor: pointer; }
+.anello:has(.nodo-dettaglio[aria-pressed="true"]) { border-color: var(--oro); background: rgba(212,175,55,.09); }
+.anello:has(.nodo-dettaglio:hover) { background: rgba(212,175,55,.09); }
+.nodo-esito { display: grid; gap: 6px; min-height: 122px; margin: 0 18px; padding: 14px 0; border-top: 1px solid var(--linea-notte); }
+.nodo-esito b { font-size: 17px; line-height: 1.3; color: var(--oro-chiaro); }
+.nodo-esito span { font-size: 13px; color: var(--testo-notte); }
+.catena-controlli { padding-top: 4px; }
+.racconto-scene { position: relative; padding-left: 30px; }
+.filo-pratica { position: absolute; left: 0; top: 0; bottom: 0; width: 1px; background: var(--linea); overflow: hidden; }
+.filo-pratica span { display: block; height: 100%; background: var(--oro-scuro); transform: scaleY(0); transform-origin: top; }
+.scena h3 { font-family: var(--f-serif); font-size: clamp(38px,4.5vw,58px); font-weight: 400; line-height: 1.05; letter-spacing: -.02em; }
+.scena-guadagno { border-top: 1px solid var(--linea); padding-top: 16px; }
+.anteprima-azione { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; border-top: 1px solid var(--linea-notte); padding-top: 18px; }
+.anteprima-azione p { flex: 1 1 220px; color: var(--testo-notte); font-size: 13px; }
+.anteprima-azione .bottone { font-size: 13px; min-height: 44px; }
+#p-editor.esempio-attivo mark { background: var(--oro); outline: 2px solid rgba(184,134,11,.28); outline-offset: 2px; }
+#p-portale.esempio-attivo .tel-card:nth-child(3) { border-color: #15803d; background: #edf8f0; }
+#p-pec.esempio-attivo .posta-riga:nth-child(-n+2) { border-color: var(--oro); background: rgba(212,175,55,.09); }
+.ricordo-percorso { margin-top: 28px; border-top: 1px solid var(--linea-notte); padding-top: 20px; }
+.ricordo-percorso > p { font: 400 28px/1.2 var(--f-serif); color: var(--oro-chiaro); }
+.ricordo-percorso ul { display: flex; gap: 12px 24px; flex-wrap: wrap; padding-left: 18px; font-size: 13px; color: var(--testo-notte); }
+.indice-esplorazione { position: fixed; z-index: 40; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; padding: 5px; gap: 4px; background: var(--notte); border-radius: 14px; box-shadow: 0 12px 30px rgba(7,19,41,.2); }
+.indice-esplorazione a { display: grid; place-items: center; padding: 0 16px; min-height: 44px; font-size: 12px; text-decoration: none; color: var(--testo-notte); border-radius: 9px; white-space: nowrap; }
+.indice-esplorazione a[aria-current] { color: var(--notte); background: var(--oro); }
+.indice-esplorazione a:hover { color: var(--bianco); background: var(--notte-3); }
+.piede { padding-bottom: 100px; }
+@media (max-width: 1020px) { .apertura-griglia { grid-template-columns: 1fr; } .apertura-testo { padding-top: 0; } }
+@media (max-width: 600px) {
+ .esperienza-catena .catena-passi { padding: 14px; gap: 8px; }
+ .esperienza-catena .anello { grid-template-columns: 1fr; gap: 7px; padding: 10px; }
+ .esperienza-catena .anello-testo b { font-size: 12px; }
+ .esperienza-catena .anello-bottone { grid-column: auto; }
+ .nodo-esito { min-height: 156px; }
+ .racconto-scene { padding-left: 16px; }
+ .indice-esplorazione { bottom: 12px; width: calc(100% - 24px); justify-content: space-between; }
+ .indice-esplorazione a { flex: 1; padding: 0 5px; font-size: 11px; }
+ .cta-mobile { display: none !important; }
+ .piede { padding-bottom: 94px; }
+}
+html:not(.js) .nodo-dettaglio, html:not(.js) .anteprima-azione { display: none; }
+@media (prefers-reduced-motion: reduce) { .filo-pratica span { transform: none !important; } }
+
+.apertura h1 { font-size: clamp(52px,5.3vw,80px); }
+.apertura-testo::before { display: none; }
+.indice-esplorazione[hidden] { display: none !important; }
+.nodo-esito { align-content: start; }
+@media (max-width:600px) { .apertura h1 { font-size: clamp(47px,12.6vw,62px); } }
+
+.indice-esplorazione :focus-visible { outline-color: var(--oro-chiaro); }

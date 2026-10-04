@@ -6,6 +6,42 @@
   var ridotto = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   radice.classList.add("js");
 
+  /* Ogni nodo racconta una relazione, mantenendo la conferma separata. */
+  var nodi = Array.from(document.querySelectorAll("[data-nodo]"));
+  var dettagli = [
+    ["Una PEC è il punto di partenza.", "Comunicazione di cancelleria, procedimento R.G. 4512/2026. Da qui segui lo stesso fascicolo."],
+    ["La comunicazione diventa un’informazione da verificare.", "Nell’esempio viene individuata l’udienza del 18 gennaio 2027, con il suo riferimento."],
+    ["Sai subito dove ritrovarla.", "Comunicazione, allegati e ricevute sono collegati al fascicolo Rossi c/ Bianchi."],
+    ["Il termine porta con sé il riferimento.", "La prima memoria è proposta per il 9 dicembre 2026. La verifica e la conferma restano tue."],
+    ["La pratica entra nella tua giornata.", "Udienza e scadenze proposte si ritrovano in agenda dopo la conferma."],
+    ["L’ultimo passaggio resta nelle tue mani.", "Confermi il percorso e condividi l’aggiornamento con il cliente. È un esempio, senza invii reali."]
+  ];
+  nodi.forEach(function (b, i) {
+    b.addEventListener("click", function () {
+      nodi.forEach(function (n) { n.setAttribute("aria-pressed", String(n === b)); });
+      var esito = document.getElementById("nodo-esito");
+      esito.querySelector("b").textContent = dettagli[i][0];
+      esito.querySelector("span").textContent = dettagli[i][1];
+    });
+  });
+  var configuraEsempio = function (id, pannello, esitoId, testo, primo, secondo) {
+    var b = document.getElementById(id);
+    b.addEventListener("click", function () {
+      var attivo = document.getElementById(pannello).classList.toggle("esempio-attivo");
+      b.setAttribute("aria-pressed", String(attivo));
+      if (id === "prova-portale") {
+        var documento = document.querySelector("#p-portale .tel-card:nth-child(3)");
+        documento.querySelector("small").textContent = attivo ? "Ricevuto nell’esempio" : "Ti chiediamo";
+        documento.querySelector(".tel-bottone").textContent = attivo ? "Caricato" : "Carica";
+      }
+      b.textContent = attivo ? secondo : primo;
+      document.getElementById(esitoId).textContent = attivo ? testo : "L’esempio è pronto per essere esplorato di nuovo.";
+    });
+  };
+  configuraEsempio("prova-portale", "p-portale", "portale-esito", "Nell’esempio: documento caricato. Lo studio lo ritrova nella stessa pratica.", "Simula il documento caricato", "Ripristina l’esempio");
+  configuraEsempio("prova-editor", "p-editor", "editor-esito", "I campi evidenziati provengono dal fascicolo: parti, codice fiscale, difensore, ufficio e udienza.", "Evidenzia i dati del fascicolo", "Rivedi l’atto");
+  configuraEsempio("prova-pec", "p-pec", "pec-esito", "Nell’esempio: comunicazione e ricevuta appartengono a Rossi c/ Bianchi. Il fascicolo conserva lo stesso filo.", "Segui il collegamento al fascicolo", "Ripristina l’esempio");
+
   /* Confronto nella prima schermata: nessuna modifica al gestionale. */
   var vistaPrima = document.getElementById("vista-prima");
   var vistaCollegata = document.getElementById("vista-collegata");
@@ -232,7 +268,7 @@
 
   /* Comparsa leggera delle sezioni: il contenuto resta sempre visibile. */
   if (!ridotto && "IntersectionObserver" in window) {
-    var daMostrare = document.querySelectorAll(".confronto-tabella, .scena, .vetrina-corpo, .moduli-griglia li, .intermezzo, .norme, .piano, .percorso-finale-box");
+    var daMostrare = document.querySelectorAll(".confronto-tabella, .vetrina-corpo, .moduli-griglia li, .intermezzo, .norme, .piano, .percorso-finale-box");
     var osservatore = new IntersectionObserver(function (voci) {
       voci.forEach(function (v) {
         if (v.isIntersecting) { v.target.classList.add("visto"); osservatore.unobserve(v.target); }
@@ -258,6 +294,18 @@
       var allaDemo = demo.getBoundingClientRect().top < window.innerHeight;
       ctaMobile.hidden = !oltreApertura || allaDemo;
     }
+    var indiceFisso = document.querySelector(".indice-esplorazione");
+    indiceFisso.hidden = apertura.getBoundingClientRect().bottom > innerHeight * .3 || demo.getBoundingClientRect().top < innerHeight * .5;
+    var scene = document.querySelector(".racconto-scene");
+    var filo = document.getElementById("filo-avanzamento");
+    if (scene && filo) {
+      var r = scene.getBoundingClientRect();
+      filo.style.transform = "scaleY(" + Math.max(0, Math.min(1, (innerHeight * .55 - r.top) / r.height)) + ")";
+    }
+    var passaggio = null;
+    var indice = Array.from(document.querySelectorAll(".indice-esplorazione a"));
+    indice.forEach(function (a) { if (document.querySelector(a.hash).getBoundingClientRect().top < innerHeight * .55) passaggio = a; });
+    indice.forEach(function (a) { if (a === passaggio) a.setAttribute("aria-current", "location"); else a.removeAttribute("aria-current"); });
     var capitolo = null;
     capitoli.forEach(function (link) {
       var sezione = document.querySelector(link.hash);
@@ -268,7 +316,13 @@
       else link.removeAttribute("aria-current");
     });
   };
-  window.addEventListener("scroll", aggiorna, { passive: true });
+  var frameInAttesa = false;
+  window.addEventListener("scroll", function () {
+    if (!frameInAttesa) {
+      frameInAttesa = true;
+      requestAnimationFrame(function () { aggiorna(); frameInAttesa = false; });
+    }
+  }, { passive: true });
   window.addEventListener("resize", aggiorna);
   aggiorna();
 

@@ -27,6 +27,10 @@ with sync_playwright() as p:
         page.locator('#collega-pratica').click()
         expect(page.locator('#vista-collegata')).to_have_attribute('aria-pressed', 'true')
         expect(page.locator('#pratica-collegata')).to_be_visible()
+        for node in page.locator('[data-nodo]').all():
+            node.click()
+            expect(node).to_have_attribute('aria-pressed', 'true')
+            expect(page.locator('#nodo-esito span')).not_to_be_empty()
         # The illustration has distinct preparation, confirmation and replay states.
         page.locator('#prova-catena').click()
         expect(page.locator('#prova-catena')).to_have_text('Conferma nell’esempio →')
@@ -62,6 +66,14 @@ with sync_playwright() as p:
             tab.click()
             expect(tab).to_have_attribute('aria-selected', 'true')
             expect(page.locator('#' + tab.get_attribute('aria-controls'))).to_be_visible()
+        for key in ['portale', 'editor', 'pec']:
+            page.locator('#t-' + key).click()
+            action = page.locator('#prova-' + key)
+            action.click()
+            expect(action).to_have_attribute('aria-pressed', 'true')
+            expect(page.locator('#p-' + key)).to_have_class(__import__('re').compile('esempio-attivo'))
+            action.click()
+            expect(action).to_have_attribute('aria-pressed', 'false')
         page.locator('#t-sito').focus()
         page.keyboard.press('Home')
         expect(page.locator('#t-agenda')).to_be_focused()

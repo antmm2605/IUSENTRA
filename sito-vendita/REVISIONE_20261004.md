@@ -106,3 +106,31 @@ Verifica browser comprende confronto reversibile, esempio vocale, cinque
 formati di schermo, tastiera, scorrimento, movimento ridotto e lettura senza JS.
 La curiosità e la permanenza effettiva richiedono osservazione di visitatori
 reali: i controlli tecnici verificano il comportamento del sito.
+
+## Revisione con Impeccable 4.5 — esperienza completa
+
+Apertura trasformata in una pratica a sei nodi selezionabili: ogni nodo
+racconta la relazione tra PEC, lettura, fascicolo, termini, agenda e cliente.
+La sequenza illustrativa e la conferma rimangono separate. La composizione
+usa il blu e l’oro già presenti, con tipografia editoriale nei tre momenti
+della giornata. Rimossi la griglia decorativa del fondale e i titoletti di
+sezione ripetitivi. Il filo della pratica segue lo scorrimento normale.
+
+Aggiunte tre interazioni reversibili nelle anteprime: documento cliente
+caricato, dati del fascicolo evidenziati nell’atto, PEC e ricevuta collegate.
+Gli esiti descrivono esplicitamente una simulazione. L’indice di esplorazione
+compare dopo l’apertura e lascia libera la chiusura. Gli eventi di scorrimento
+sono riuniti in un singolo aggiornamento per frame; nessuna nuova dipendenza.
+
+Creati contesti PRODUCT.md e DESIGN.md specifici del sito commerciale: il
+sistema del gestionale e il suo deploy restano separati. Rilascio in
+preparazione, nessun ordine o prenotazione attivo.
+
+Il detector Impeccable è stato eseguito una volta: 144 avvisi consultivi e 77
+warning, prevalentemente confronto con il design operativo ereditato e
+interpretazione dei fondi trasparenti. Corretti la dimensione del testo della
+nuova navigazione e il suo focus; rimossa la griglia decorativa effettiva.
+Le differenze tipografiche della superficie commerciale sono intenzionali e
+documentate nel suo DESIGN.md. Non si dichiara il detector privo di avvisi né
+una certificazione completa WCAG. Ispezione visiva con un passaggio di
+correzione e una conferma; verifiche funzionali sui cinque formati di schermo.

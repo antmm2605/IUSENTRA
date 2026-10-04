@@ -3,17 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>IUSENTRA per lo studio legale</title>
+<title>IUSENTRA | Meno passaggi, più spazio al lavoro legale</title>
 <meta name="description" content="IUSENTRA è il gestionale per studi legali italiani: PEC lette e collegate da sole, termini calcolati sul c.p.c., agenda, editor atti, deposito telematico, portale clienti, parcelle e Lex AI con fonti ufficiali.">
 <meta name="theme-color" content="#071329">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
-<link rel="stylesheet" href="assets/stile.css">
+<link rel="stylesheet" href="assets/stile.css?v=20261004">
 </head>
 <body>
 <!--CONTENUTO-->
+<noscript><p class="senza-js">Il percorso e le funzioni sono leggibili anche senza JavaScript. Per provare le illustrazioni interattive, abilitalo nel browser.</p></noscript>
 <a class="salta" href="#contenuto">Vai al contenuto</a>
 <div class="avanzamento" aria-hidden="true"><span id="avanzamento"></span></div>
 
@@ -24,12 +25,12 @@
       <span class="marchio-nome">IUSENTRA</span>
     </a>
     <nav class="menu" aria-label="Sezioni">
-      <a href="#giornata">Una giornata</a>
-      <a href="#vetrina">Il software</a>
-      <a href="#moduli">Funzioni</a>
-      <a href="#prezzi">Prezzi</a>
+      <a href="#giornata">La tua giornata</a>
+      <a href="#vetrina">Esplora il software</a>
+      <a href="#fiducia">Il tuo controllo</a>
+      <a href="#prezzi">Per il tuo studio</a>
     </nav>
-    <a class="bottone bottone-oro bottone-piccolo" href="#demo">Prenota la demo</a>
+    <a class="bottone bottone-oro bottone-piccolo" href="#demo">Il prossimo passo</a>
   </div>
 </header>
 
@@ -40,24 +41,24 @@
     <div class="apertura-griglia">
       <div class="apertura-testo">
         <p class="occhiello">Il gestionale per lo studio legale italiano</p>
-        <h1>Il lavoro dello studio, <em>riscritto.</em></h1>
-        <p class="apertura-sotto">Arriva una PEC. IUSENTRA la legge, la collega al fascicolo, calcola i termini, li mette in agenda e aggiorna il cliente. <strong>A te resta un clic: conferma.</strong></p>
+        <h1>Una PEC arriva.<br>Il resto <em>si collega.</em></h1>
+        <p class="apertura-sotto">Dal messaggio al fascicolo, dai termini all’agenda. IUSENTRA prepara i passaggi che ripeti ogni giorno. <strong>Tu verifichi, confermi e vai avanti.</strong></p>
         <div class="apertura-azioni">
-          <a class="bottone bottone-oro bottone-grande" href="#demo">Prenota la demo gratuita <span aria-hidden="true">→</span></a>
-          <a class="bottone bottone-vetro" href="#giornata">Guarda una giornata tipo</a>
+          <a class="bottone bottone-oro bottone-grande" href="#giornata">Segui una pratica <span aria-hidden="true">↓</span></a>
+          <a class="bottone bottone-vetro" href="#vetrina">Esplora il software</a>
         </div>
         <ul class="apertura-punti">
-          <li>30 minuti, sui tuoi fascicoli</li>
-          <li>Nessuna installazione</li>
-          <li>Nessun impegno</li>
+          <li>Un solo ambiente di lavoro</li>
+          <li>Dal browser, anche sul telefono</li>
+          <li>Le decisioni restano tue</li>
         </ul>
       </div>
 
       <!-- La catena: il momento centrale della pagina -->
-      <div class="catena finestra" id="catena" aria-label="Esempio animato: da una PEC in arrivo all'agenda, con dati di esempio" role="img">
+      <div class="catena finestra" id="catena" aria-label="Esempio interattivo: dalla PEC all’agenda" role="group">
         <div class="finestra-barra">
           <span class="pallini" aria-hidden="true"><i></i><i></i><i></i></span>
-          <span class="finestra-titolo">IUSENTRA · lavoro automatico</span>
+          <span class="finestra-titolo">Una PEC. Sei passaggi collegati.</span>
           <span class="catena-orologio" id="catena-orologio">09:14</span>
         </div>
         <ol class="catena-passi">
@@ -84,119 +85,93 @@
           <li class="anello anello-finale">
             <span class="anello-icona icona-persona" aria-hidden="true"></span>
             <span class="anello-testo"><small>Tocca a te</small><b>Confermi e il cliente viene aggiornato</b><i>Sul portale clienti, senza telefonate</i></span>
-            <span class="anello-bottone">Conferma</span>
+            <span class="anello-bottone">Da confermare</span>
           </li>
         </ol>
+        <div class="catena-controlli">
+          <button class="bottone bottone-oro" id="prova-catena" type="button">Guarda cosa succede <span aria-hidden="true">→</span></button>
+          <p id="catena-esito" role="status" aria-live="polite">Prova il percorso. La conferma resta tua.</p>
+        </div>
+        <p class="esempio-nota">Illustrazione interattiva con dati di esempio.</p>
       </div>
     </div>
 
-    <div class="striscia" aria-label="Cosa sostituisce IUSENTRA">
-      <div class="striscia-nastro">
-        <span>Fascicoli</span><span>Agenda</span><span>Scadenziario</span><span>PEC</span><span>Deposito PCT · PDP · PAT</span><span>Editor atti</span><span>Firma digitale</span><span>Portale clienti</span><span>Notifiche in proprio</span><span>Preventivi</span><span>Fattura elettronica</span><span>Pagamenti</span><span>Lex AI</span><span>60+ calcolatori</span><span>Comandi vocali</span><span>Sito dello studio</span><span>Antiriciclaggio</span>
-        <span aria-hidden="true">Fascicoli</span><span aria-hidden="true">Agenda</span><span aria-hidden="true">Scadenziario</span><span aria-hidden="true">PEC</span><span aria-hidden="true">Deposito PCT · PDP · PAT</span><span aria-hidden="true">Editor atti</span><span aria-hidden="true">Firma digitale</span><span aria-hidden="true">Portale clienti</span><span aria-hidden="true">Notifiche in proprio</span><span aria-hidden="true">Preventivi</span><span aria-hidden="true">Fattura elettronica</span><span aria-hidden="true">Pagamenti</span><span aria-hidden="true">Lex AI</span><span aria-hidden="true">60+ calcolatori</span><span aria-hidden="true">Comandi vocali</span><span aria-hidden="true">Sito dello studio</span><span aria-hidden="true">Antiriciclaggio</span>
-      </div>
-    </div>
+    <a class="invito-scroll contenitore" href="#scelta"><span>Il lavoro che si ripete può cambiare.</span><b>Da dove inizieresti? <span aria-hidden="true">↓</span></b></a>
   </section>
 
-  <!-- ============ CIFRE ============ -->
-  <section class="cifre" aria-label="IUSENTRA in cifre">
-    <div class="contenitore cifre-griglia">
-      <div class="cifra"><b data-conta="600">600+</b><span>modelli di atto già pronti, aggiornati alla riforma Cartabia</span></div>
-      <div class="cifra"><b data-conta="60">60+</b><span>calcolatori legali e fiscali, compilati dai dati del fascicolo</span></div>
-      <div class="cifra"><b data-conta="648">648</b><span>uffici giudiziari con le PEC ufficiali</span></div>
-      <div class="cifra"><b data-conta="59">59</b><span>comandi vocali per muoverti nello studio parlando</span></div>
-    </div>
-  </section>
-
-  <!-- ============ PRIMA / DOPO ============ -->
-  <section class="confronto">
+  <section class="scelta" id="scelta" aria-labelledby="scelta-titolo">
     <div class="contenitore">
-      <p class="occhiello">Cosa cambia da lunedì</p>
-      <h2 class="titolo-sezione">Le stesse ore. <em>Tutt'altro lavoro.</em></h2>
-      <div class="confronto-tabella" role="table" aria-label="Il lavoro dello studio oggi e con IUSENTRA">
-        <div class="confronto-riga confronto-intesta" role="row">
-          <span role="columnheader">Oggi</span>
-          <span role="columnheader">Con IUSENTRA</span>
-        </div>
-        <div class="confronto-riga" role="row">
-          <span role="cell" class="prima">Apri la PEC, scarichi, rinomini, archivi. Una per una.</span>
-          <span role="cell" class="dopo">La PEC è già nel fascicolo giusto, con allegati e ricevute.</span>
-        </div>
-        <div class="confronto-riga" role="row">
-          <span role="cell" class="prima">Conti i giorni sul calendario e speri di non sbagliare.</span>
-          <span role="cell" class="dopo">I termini sono calcolati sul c.p.c. e già in agenda.</span>
-        </div>
-        <div class="confronto-riga" role="row">
-          <span role="cell" class="prima">Copi i dati delle parti nell'atto, a mano, ogni volta.</span>
-          <span role="cell" class="dopo">L'editor compila l'atto con i dati del fascicolo.</span>
-        </div>
-        <div class="confronto-riga" role="row">
-          <span role="cell" class="prima">PDF/A, firma, busta, redattore esterno. Poi controlli le ricevute.</span>
-          <span role="cell" class="dopo">Deposito guidato e ricevute seguite fino alla cancelleria.</span>
-        </div>
-        <div class="confronto-riga" role="row">
-          <span role="cell" class="prima">Interessi, danni, successioni: un sito diverso per ogni calcolo.</span>
-          <span role="cell" class="dopo">Oltre 60 calcolatori dentro il fascicolo, con i suoi dati.</span>
-        </div>
-        <div class="confronto-riga" role="row">
-          <span role="cell" class="prima">Il cliente telefona per sapere a che punto è.</span>
-          <span role="cell" class="dopo">Il cliente lo vede sul suo portale. E carica i documenti lì.</span>
-        </div>
-        <div class="confronto-riga" role="row">
-          <span role="cell" class="prima">Parcelle su un foglio di calcolo, fatture su un altro programma, ore lavorate a memoria.</span>
-          <span role="cell" class="dopo">Preventivo a norma, FatturaPA pronta e link di pagamento al cliente.</span>
-        </div>
+      <div class="scelta-intesta"><p class="occhiello occhiello-scuro">Partiamo dal tuo studio</p><span class="piccola-nota">Una scelta, un esempio da esplorare</span></div>
+      <h2 id="scelta-titolo">Cosa vorresti <em>smettere di rincorrere?</em></h2>
+      <div class="scelta-opzioni" role="group" aria-label="Scegli il lavoro che vuoi semplificare">
+        <button type="button" class="scelta-voce" data-scelta="pec" aria-pressed="false" aria-controls="scelta-risposta"><span class="scelta-numero">01</span><b>PEC e scadenze</b><span>Leggere, archiviare, contare i giorni.</span><i aria-hidden="true">↗</i></button>
+        <button type="button" class="scelta-voce" data-scelta="editor" aria-pressed="false" aria-controls="scelta-risposta"><span class="scelta-numero">02</span><b>Atti e depositi</b><span>Ricopiare dati, preparare, controllare.</span><i aria-hidden="true">↗</i></button>
+        <button type="button" class="scelta-voce" data-scelta="portale" aria-pressed="false" aria-controls="scelta-risposta"><span class="scelta-numero">03</span><b>Clienti e parcelle</b><span>Chiedere documenti, aggiornare, incassare.</span><i aria-hidden="true">↗</i></button>
+      </div>
+      <div class="scelta-risposta" id="scelta-risposta">
+        <p id="scelta-testo" role="status" aria-live="polite">Scegli ciò che ti occupa di più. Oppure segui la pratica, dall’inizio alla fine.</p>
+        <a class="link-freccia" href="#giornata" id="scelta-link">Segui la pratica <span aria-hidden="true">↓</span></a>
       </div>
     </div>
   </section>
 
-  <!-- ============ UNA GIORNATA ============ -->
-  <section class="giornata" id="giornata">
-    <div class="contenitore">
-      <p class="occhiello occhiello-scuro">Una giornata con IUSENTRA</p>
-      <h2 class="titolo-sezione titolo-scuro">Dalle 8:30 alle 18:30, <em>senza rincorrere nulla.</em></h2>
-      <ol class="ore">
-        <li class="ora">
-          <span class="ora-segno">08:30</span>
-          <div><h3>Apri la Panoramica</h3><p>Udienze del giorno, scadenze in arrivo, PEC nuove. Tutto su una schermata, anche dal telefono.</p></div>
-        </li>
-        <li class="ora">
-          <span class="ora-segno">09:15</span>
-          <div><h3>Le PEC sono già al loro posto</h3><p>Comunicazioni di cancelleria lette e collegate. Le nuove udienze ti aspettano solo per la conferma.</p></div>
-        </li>
-        <li class="ora">
-          <span class="ora-segno">11:00</span>
-          <div><h3>In udienza, con il fascicolo in tasca</h3><p>Atti e verbali dal telefono. Il rinvio lo detti a voce, con una nota e il promemoria.</p></div>
-        </li>
-        <li class="ora">
-          <span class="ora-segno">13:00</span>
-          <div><h3>Il cliente fa la sua parte</h3><p>Dal portale carica i documenti, accetta il preventivo e firma il mandato con codice OTP. Tu non hai inseguito nessuno.</p></div>
-        </li>
-        <li class="ora">
-          <span class="ora-segno">15:00</span>
-          <div><h3>Scrivi l'atto nell'editor</h3><p>Scegli tra oltre 600 modelli: si compila con parti, ufficio e numero di ruolo. Lex AI propone, tu accetti. Firmi con la smart card.</p></div>
-        </li>
-        <li class="ora">
-          <span class="ora-segno">17:30</span>
-          <div><h3>Depositi in pochi passaggi</h3><p>Controllo PDF/A, busta pronta, invio dal tuo computer. Le quattro ricevute arrivano e si archiviano da sole.</p></div>
-        </li>
-        <li class="ora ora-fine">
-          <span class="ora-segno">18:30</span>
-          <div><h3>Chiudi la giornata</h3><p>Le ore lavorate sono già proposte, la parcella e la FatturaPA sono pronte. Domani il Piano del giorno ti dirà da dove ripartire.</p></div>
-        </li>
-      </ol>
+  <!-- ============ UNA PRATICA, TRE MOMENTI ============ -->
+  <section class="giornata" id="giornata" aria-labelledby="giornata-titolo">
+    <div class="contenitore racconto-griglia">
+      <div class="racconto-intro">
+        <p class="occhiello occhiello-scuro">01 / Segui il filo</p>
+        <h2 class="titolo-sezione titolo-scuro" id="giornata-titolo">La stessa pratica.<br><em>Un’altra giornata.</em></h2>
+        <p>Non è una lista di funzioni. È il filo che le unisce: una comunicazione diventa lavoro organizzato, un atto, un aggiornamento al cliente.</p>
+        <a class="link-freccia" href="#vetrina">Poi guarda dentro il software <span aria-hidden="true">↓</span></a>
+        <div class="racconto-indice" aria-label="Momenti della pratica">
+          <a href="#momento-1" class="attivo">01 <span>Ricevi e organizzi</span></a>
+          <a href="#momento-2">02 <span>Scrivi e depositi</span></a>
+          <a href="#momento-3">03 <span>Aggiorni e incassi</span></a>
+        </div>
+        <p class="piccola-nota">Percorso illustrato con dati di esempio.</p>
+      </div>
+      <div class="racconto-scene">
+        <article class="scena" id="momento-1">
+          <div class="scena-kicker"><span>09:15</span><span>Ricevi e organizzi</span></div>
+          <h3>La PEC entra.<br>Il fascicolo si aggiorna.</h3>
+          <p>Allegati e ricevute trovano il loro posto. Udienze e termini vengono proposti con il riferimento da verificare. In agenda entrano dopo la tua conferma.</p>
+          <div class="scena-documento">
+            <div class="documento-testa"><span class="anello-icona icona-pec" aria-hidden="true"></span><div><b>Comunicazione di cancelleria</b><small>Tribunale di Milano · R.G. 4512/2026</small></div></div>
+            <div class="documento-riga"><span>Collegata a</span><b>Rossi c/ Bianchi</b></div>
+            <div class="documento-riga"><span>Udienza proposta</span><b>18 gennaio 2027</b></div>
+            <div class="documento-riga"><span>Prima memoria</span><b>9 dicembre 2026</b></div>
+            <div class="documento-fonte">art. 171-ter c.p.c. <span>Da verificare e confermare</span></div>
+          </div>
+          <p class="scena-guadagno">Il dato entra una volta. Lo ritrovi dove ti serve.</p>
+        </article>
+        <article class="scena" id="momento-2">
+          <div class="scena-kicker"><span>15:00</span><span>Scrivi e depositi</span></div>
+          <h3>L’atto parte<br>dal fascicolo.</h3>
+          <p>Parti, ufficio e numero di ruolo sono già disponibili nell’editor. Lex propone, tu rivedi. Preparazione, firma e ricevute seguono lo stesso percorso.</p>
+          <div class="scena-atto"><div class="atto-barra"><span>Rossi c/ Bianchi</span><span>Editor atti</span></div><div class="atto-foglio"><small>TRIBUNALE DI MILANO</small><b>Memoria integrativa</b><p>Nell’interesse di <mark>Marco Rossi</mark>, nel procedimento <mark>R.G. 4512/2026</mark>…</p></div><div class="atto-percorso"><span>Atto</span><i aria-hidden="true">→</i><span>Firma</span><i aria-hidden="true">→</i><span>Deposito</span><i aria-hidden="true">→</i><span>Ricevute</span></div></div>
+          <p class="scena-guadagno">Prepari il lavoro. Mantieni il controllo su ogni passaggio.</p>
+        </article>
+        <article class="scena" id="momento-3">
+          <div class="scena-kicker"><span>18:30</span><span>Aggiorni e incassi</span></div>
+          <h3>Il cliente sa.<br>Lo studio va avanti.</h3>
+          <p>Condividi gli aggiornamenti dal portale. Documenti, preventivi e pagamenti restano collegati alla pratica, senza ricostruire tutto a fine giornata.</p>
+          <div class="scena-cliente"><div class="cliente-avatar" aria-hidden="true">MR</div><div><small>Portale clienti · Marco Rossi</small><b>La tua pratica, in un posto solo.</b></div><ul><li><span>Documenti</span><b>Caricati dal cliente</b></li><li><span>Preventivo</span><b>Da consultare</b></li><li><span>Parcella</span><b>Link di pagamento</b></li></ul></div>
+          <p class="scena-guadagno">Meno passaggi da ricostruire. Più continuità nel lavoro.</p>
+          <a class="link-freccia" href="#vetrina">Ora esplora le funzioni <span aria-hidden="true">↓</span></a>
+        </article>
+      </div>
     </div>
   </section>
 
   <!-- ============ VETRINA INTERATTIVA ============ -->
   <section class="vetrina" id="vetrina">
     <div class="contenitore">
-      <p class="occhiello">Guardaci dentro</p>
-      <h2 class="titolo-sezione">Tutto lo studio. <em>Un solo software.</em></h2>
-      <p class="vetrina-sotto">Tocca una voce e guarda come si lavora.</p>
+      <p class="occhiello">02 / Ora scegli tu</p>
+      <h2 class="titolo-sezione">La prossima mossa <em>la scegli tu.</em></h2>
+      <p class="vetrina-sotto">Scegli una funzione. La schermata resta ferma finché vuoi esplorarla.</p>
 
       <div class="vetrina-corpo">
-        <div class="schede" role="tablist" aria-label="Funzioni di IUSENTRA">
+        <div class="schede" role="tablist" aria-orientation="vertical" aria-label="Funzioni di IUSENTRA">
           <button class="scheda" role="tab" id="t-agenda" aria-controls="p-agenda" aria-selected="true">Agenda e scadenze</button>
           <button class="scheda" role="tab" id="t-portale" aria-controls="p-portale" aria-selected="false" tabindex="-1">Portale clienti</button>
           <button class="scheda" role="tab" id="t-editor" aria-controls="p-editor" aria-selected="false" tabindex="-1">Editor atti</button>
@@ -216,7 +191,7 @@
           </div>
 
           <!-- Agenda -->
-          <div class="pannello" role="tabpanel" id="p-agenda" aria-labelledby="t-agenda" data-titolo="Agenda">
+          <div class="pannello" tabindex="0" role="tabpanel" id="p-agenda" aria-labelledby="t-agenda" data-titolo="Agenda">
             <div class="pannello-testo">
               <h3>Agenda e scadenziario che si scrivono da soli</h3>
               <p>Udienze, scadenze e appuntamenti in una vista. I termini nascono dall'udienza, con festività e sospensione feriale. Si sincronizza con Google, Outlook e Apple.</p>
@@ -232,7 +207,7 @@
           </div>
 
           <!-- Portale clienti -->
-          <div class="pannello" role="tabpanel" id="p-portale" aria-labelledby="t-portale" data-titolo="Portale clienti" hidden>
+          <div class="pannello" tabindex="0" role="tabpanel" id="p-portale" aria-labelledby="t-portale" data-titolo="Portale clienti" hidden>
             <div class="pannello-testo">
               <h3>Il cliente vede, carica, firma, paga</h3>
               <p>Ogni cliente ha il suo accesso protetto: stato della pratica, documenti da caricare, chat con lo studio, preventivo da accettare, mandato da firmare con OTP e parcella da pagare online.</p>
@@ -249,7 +224,7 @@
           </div>
 
           <!-- Editor -->
-          <div class="pannello" role="tabpanel" id="p-editor" aria-labelledby="t-editor" data-titolo="Editor atti" hidden>
+          <div class="pannello" tabindex="0" role="tabpanel" id="p-editor" aria-labelledby="t-editor" data-titolo="Editor atti" hidden>
             <div class="pannello-testo">
               <h3>Scrivi l'atto dove sta il fascicolo</h3>
               <p>Oltre 600 modelli di atto, compilati con i dati del fascicolo. Lex AI propone modifiche che accetti o rifiuti, il timbro dello studio si applica da solo. Esporti in PDF/A, DOCX o RTF e firmi.</p>
@@ -272,7 +247,7 @@
           </div>
 
           <!-- Deposito -->
-          <div class="pannello" role="tabpanel" id="p-deposito" aria-labelledby="t-deposito" data-titolo="Deposito telematico" hidden>
+          <div class="pannello" tabindex="0" role="tabpanel" id="p-deposito" aria-labelledby="t-deposito" data-titolo="Deposito telematico" hidden>
             <div class="pannello-testo">
               <h3>Depositi civili, penali e amministrativi</h3>
               <p>Civile e Cassazione, penale su PDP, amministrativo su PAT, tributario su PTT. IUSENTRA prepara e controlla tutto: busta, PDF/A, firma. Poi segue le ricevute fino all'esito della cancelleria.</p>
@@ -289,7 +264,7 @@
           </div>
 
           <!-- PEC -->
-          <div class="pannello" role="tabpanel" id="p-pec" aria-labelledby="t-pec" data-titolo="PEC e notifiche" hidden>
+          <div class="pannello" tabindex="0" role="tabpanel" id="p-pec" aria-labelledby="t-pec" data-titolo="PEC e notifiche" hidden>
             <div class="pannello-testo">
               <h3>La PEC letta al posto tuo</h3>
               <p>Ogni PEC viene letta, classificata e collegata al fascicolo, allegati compresi grazie all'OCR. Da una sentenza ti propone il termine per impugnare. Con le notifiche in proprio prepari relata, attestazioni e prove di consegna.</p>
@@ -303,7 +278,7 @@
           </div>
 
           <!-- Parcelle -->
-          <div class="pannello" role="tabpanel" id="p-parcelle" aria-labelledby="t-parcelle" data-titolo="Parcelle e fatture" hidden>
+          <div class="pannello" tabindex="0" role="tabpanel" id="p-parcelle" aria-labelledby="t-parcelle" data-titolo="Parcelle e fatture" hidden>
             <div class="pannello-testo">
               <h3>Dal preventivo all'incasso</h3>
               <p>Compensi sui parametri forensi, preventivo accettato dal portale, FatturaPA generata, link di pagamento con carta, PayPal o Satispay. E le ore lavorate le propone lui.</p>
@@ -321,7 +296,7 @@
           </div>
 
           <!-- Lex -->
-          <div class="pannello" role="tabpanel" id="p-lex" aria-labelledby="t-lex" data-titolo="Lex AI" hidden>
+          <div class="pannello" tabindex="0" role="tabpanel" id="p-lex" aria-labelledby="t-lex" data-titolo="Lex AI" hidden>
             <div class="pannello-testo">
               <h3>L'assistente che non inventa</h3>
               <p>Lex AI conosce i tuoi fascicoli e cita solo norme e sentenze trovate su fonti ufficiali. Se la fonte non c'è, te lo dice. Ogni mattina ti prepara il Piano del giorno, e può girare anche in locale sul tuo server.</p>
@@ -336,7 +311,7 @@
           </div>
 
           <!-- Strumenti -->
-          <div class="pannello" role="tabpanel" id="p-strumenti" aria-labelledby="t-strumenti" data-titolo="Strumenti legali" hidden>
+          <div class="pannello" tabindex="0" role="tabpanel" id="p-strumenti" aria-labelledby="t-strumenti" data-titolo="Strumenti legali" hidden>
             <div class="pannello-testo">
               <h3>Oltre 60 calcolatori, dentro il fascicolo</h3>
               <p>Interessi legali e di mora, rivalutazione ISTAT, contributo unificato, danno biologico con le Tabelle di Milano, successioni, pignoramenti, prescrizione, termini di impugnazione. Si compilano con i dati della pratica.</p>
@@ -355,7 +330,7 @@
           </div>
 
           <!-- Voce -->
-          <div class="pannello" role="tabpanel" id="p-voce" aria-labelledby="t-voce" data-titolo="Comandi vocali" hidden>
+          <div class="pannello" tabindex="0" role="tabpanel" id="p-voce" aria-labelledby="t-voce" data-titolo="Comandi vocali" hidden>
             <div class="pannello-testo">
               <h3>Parli, e lo studio si muove</h3>
               <p>Apri le sezioni a voce, detti nel campo che stai compilando, inserisci un cliente parlando, registra una nota vocale con promemoria o fai una domanda a Lex. In italiano.</p>
@@ -368,7 +343,7 @@
           </div>
 
           <!-- Sito -->
-          <div class="pannello" role="tabpanel" id="p-sito" aria-labelledby="t-sito" data-titolo="Sito dello studio" hidden>
+          <div class="pannello" tabindex="0" role="tabpanel" id="p-sito" aria-labelledby="t-sito" data-titolo="Sito dello studio" hidden>
             <div class="pannello-testo">
               <h3>Anche il sito del tuo studio</h3>
               <p>Un editor a blocchi per pagine, servizi, professionisti e sedi, con prenotazione online e modulo contatti. Lex AI ti aiuta a scrivere gli articoli e puoi pubblicare i calcolatori per i tuoi visitatori.</p>
@@ -381,16 +356,50 @@
           </div>
         </div>
       </div>
-      <p class="nota-esempi">Illustrazioni con dati di esempio.</p>
+      <div class="vetrina-coda"><p class="nota-esempi">Illustrazioni con dati di esempio, non schermate del tuo studio.</p><a class="link-freccia" href="#moduli">E il resto del lavoro? <span aria-hidden="true">↓</span></a></div>
+    </div>
+  </section>
+
+  <!-- ============ PRIMA / DOPO ============ -->
+  <section class="confronto" id="confronto">
+    <div class="contenitore">
+      <p class="occhiello">Cosa cambia da lunedì</p>
+      <h2 class="titolo-sezione">Riconosci questi passaggi? <em>Puoi unirli.</em></h2>
+      <div class="confronto-tabella" role="table" aria-label="Il lavoro dello studio oggi e con IUSENTRA">
+        <div class="confronto-riga confronto-intesta" role="row">
+          <span role="columnheader">Oggi</span>
+          <span role="columnheader">Con IUSENTRA</span>
+        </div>
+        <div class="confronto-riga" role="row">
+          <span role="cell" class="prima">Apri la PEC, scarichi, rinomini, archivi. Una per una.</span>
+          <span role="cell" class="dopo">La PEC è già nel fascicolo giusto, con allegati e ricevute.</span>
+        </div>
+
+        <div class="confronto-riga" role="row">
+          <span role="cell" class="prima">Copi i dati delle parti nell'atto, a mano, ogni volta.</span>
+          <span role="cell" class="dopo">L'editor compila l'atto con i dati del fascicolo.</span>
+        </div>
+        <div class="confronto-riga" role="row">
+          <span role="cell" class="prima">PDF/A, firma, busta, redattore esterno. Poi controlli le ricevute.</span>
+          <span role="cell" class="dopo">Deposito guidato e ricevute seguite fino alla cancelleria.</span>
+        </div>
+
+        <div class="confronto-riga" role="row">
+          <span role="cell" class="prima">Il cliente telefona per sapere a che punto è.</span>
+          <span role="cell" class="dopo">Il cliente lo vede sul suo portale. E carica i documenti lì.</span>
+        </div>
+
+      </div>
     </div>
   </section>
 
   <!-- ============ TUTTE LE FUNZIONI ============ -->
   <section class="moduli" id="moduli">
     <div class="contenitore">
-      <p class="occhiello occhiello-scuro">E non finisce qui</p>
-      <h2 class="titolo-sezione titolo-scuro">Tutto quello che serve. <em>Già dentro.</em></h2>
-      <ul class="moduli-griglia">
+      <p class="occhiello occhiello-scuro">03 / Oltre la pratica</p>
+      <h2 class="titolo-sezione titolo-scuro">E tutto quello <em>che c’è intorno.</em></h2>
+      <p class="sezione-sotto">Dalla fotocamera al lavoro in squadra: esplora anche ciò che tiene insieme lo studio.</p>
+      <ul class="moduli-griglia" id="moduli-lista">
         <li><b>Lettura del fascicolo</b><span>Un riassunto di cosa tratta la pratica, a che punto è e cosa fare dopo, con la prova di ogni frase.</span></li>
         <li><b>Documenti da fotocamera</b><span>Fotografi un foglio: i bordi si raddrizzano e l'OCR lo rende ricercabile.</span></li>
         <li><b>Lettore interno</b><span>Apri PDF e file firmati .p7m senza uscire dal fascicolo, con verifica della firma.</span></li>
@@ -408,8 +417,9 @@
         <li><b>Sul telefono</b><span>Si installa come un'app, con notifiche push e agenda sempre con te.</span></li>
         <li><b>Backup cifrati</b><span>Copie complete o incrementali cifrate, con ripristino selettivo.</span></li>
       </ul>
+      <button class="bottone bottone-contorno moduli-toggle" type="button" id="moduli-toggle" aria-expanded="false" aria-controls="moduli-lista" hidden>Scopri le altre 8 funzioni <span aria-hidden="true">+</span></button>
       <div class="intermezzo">
-        <p>Fai il conto dei programmi che usi oggi. <strong>Da domani ne basta uno.</strong></p>
+        <p>Una pratica, tante attività. <strong>Il valore è tenerle insieme.</strong></p>
         <a class="bottone bottone-notte" href="#demo">Voglio vederlo in azione <span aria-hidden="true">→</span></a>
       </div>
     </div>
@@ -419,11 +429,11 @@
   <section class="fiducia" id="fiducia">
     <div class="contenitore fiducia-griglia">
       <div>
-        <p class="occhiello">Nato dalle norme</p>
-        <h2 class="titolo-sezione">Ogni funzione ha <em>la sua norma.</em></h2>
-        <p class="fiducia-testo">IUSENTRA non inventa nulla. Calcoli, flussi e testi derivano da leggi, decreti e specifiche tecniche del Ministero, conservati e datati. Nulla cambia in agenda senza la tua conferma, e ogni azione rilevante resta ricostruibile.</p>
+        <p class="occhiello">04 / Il controllo resta tuo</p>
+        <h2 class="titolo-sezione">Il software collega.<br><em>Tu decidi.</em></h2>
+        <p class="fiducia-testo">Le date proposte mostrano la fonte. Le modifiche di Lex si accettano o si rifiutano. Le azioni rilevanti restano ricostruibili. La continuità del lavoro nasce da regole verificabili e dalle tue decisioni.</p>
       </div>
-      <ul class="norme">
+      <details class="norme-dettaglio"><summary>Le basi normative, funzione per funzione <span aria-hidden="true">+</span></summary><ul class="norme">
         <li><span>D.M. 44/2011</span>Deposito telematico e specifiche DGSIA</li>
         <li><span>D.Lgs. 149/2022</span>Termini del processo civile riformato</li>
         <li><span>D.M. 217/2023</span>Deposito penale sul portale PDP</li>
@@ -434,20 +444,20 @@
         <li><span>GDPR 2016/679</span>Registro dei trattamenti e dati protetti</li>
         <li><span>D.Lgs. 231/2007</span>Adeguata verifica antiriciclaggio</li>
         <li><span>FatturaPA 1.3.1</span>Fattura elettronica secondo le specifiche</li>
-      </ul>
+      </ul></details>
     </div>
   </section>
 
   <!-- ============ PREZZI ============ -->
   <section class="prezzi" id="prezzi">
     <div class="contenitore">
-      <p class="occhiello occhiello-scuro">Prezzi</p>
-      <h2 class="titolo-sezione titolo-scuro">Un piano per ogni studio.</h2>
+      <p class="occhiello occhiello-scuro">05 / A misura del tuo studio</p>
+      <h2 class="titolo-sezione titolo-scuro">Da solo o in squadra.<br><em>Trova il tuo punto di partenza.</em></h2>
       <div class="piani">
         <article class="piano">
           <h3>Avvocato</h3>
           <p class="piano-per">Per chi lavora da solo</p>
-          <p class="piano-prezzo segnaposto">€ —<small>/mese</small></p>
+          <p class="piano-prezzo piano-su-misura">Parliamone</p>
           <ul>
             <li>1 utente</li>
             <li>Fascicoli, agenda e scadenze</li>
@@ -455,13 +465,13 @@
             <li>Editor con oltre 600 modelli di atto</li>
             <li>Deposito telematico e 60+ calcolatori</li>
           </ul>
-          <a class="bottone bottone-contorno" href="#demo">Prenota la demo</a>
+          <a class="bottone bottone-contorno" href="#demo">Il prossimo passo</a>
         </article>
         <article class="piano piano-scelto">
-          <span class="piano-etichetta">Il più scelto</span>
+          <span class="piano-etichetta">Per lavorare in squadra</span>
           <h3>Studio</h3>
           <p class="piano-per">Per studi fino a 10 persone</p>
-          <p class="piano-prezzo segnaposto">€ —<small>/mese</small></p>
+          <p class="piano-prezzo piano-su-misura">Parliamone</p>
           <ul>
             <li>Tutto del piano Avvocato</li>
             <li>Utenti con ruoli e permessi</li>
@@ -470,7 +480,7 @@
             <li>Lex AI e comandi vocali</li>
             <li>Sito dello studio</li>
           </ul>
-          <a class="bottone bottone-oro" href="#demo">Prenota la demo</a>
+          <a class="bottone bottone-oro" href="#demo">Il prossimo passo</a>
         </article>
         <article class="piano">
           <h3>Grande studio</h3>
@@ -485,7 +495,7 @@
           <a class="bottone bottone-contorno" href="#demo">Parliamone</a>
         </article>
       </div>
-      <p class="nota-esempi">Prezzi IVA esclusa. Importi in definizione.</p>
+      <p class="nota-esempi">Piani e prezzi sono in definizione. Gli acquisti saranno disponibili dopo il rilascio.</p>
     </div>
   </section>
 
@@ -511,7 +521,7 @@
           <p>Lex AI mostra solo riferimenti che trova nelle fonti ufficiali. Se non trova una fonte, non risponde e te lo dice.</p>
         </details>
         <details>
-          <summary>Posso usare IUSENTRA senza mani, mentre sono in macchina o in udienza?</summary>
+          <summary>Posso usare i comandi vocali?</summary>
           <p>Con i comandi vocali apri le sezioni, detti testi e note e fai domande a Lex parlando. Funzionano nei browser Chrome ed Edge.</p>
         </details>
         <details>
@@ -530,46 +540,30 @@
   <section class="chiusura" id="demo">
     <div class="contenitore chiusura-griglia">
       <div>
-        <p class="occhiello">La demo gratuita</p>
-        <h2 class="titolo-sezione chiusura-titolo">Trenta minuti. <em>Poi decidi tu.</em></h2>
-        <p class="chiusura-testo">In videochiamata ti mostriamo IUSENTRA su un caso vero del tuo lavoro: una PEC, un termine, un deposito. Vedrai la tua prossima settimana, già organizzata.</p>
+        <p class="occhiello">06 / Il prossimo passo</p>
+        <h2 class="titolo-sezione chiusura-titolo">Hai visto il filo.<br><em>Immaginalo nel tuo studio.</em></h2>
+        <p class="chiusura-testo">Il prossimo passo sarà provarlo sul lavoro che conosci meglio. Stiamo svolgendo le verifiche prima del rilascio: prenotazioni, ordini e acquisti non sono ancora aperti.</p>
+        <p class="demo-contesto" id="demo-contesto">Da quale passaggio vorresti cominciare?</p>
         <ul class="chiusura-punti">
-          <li>Senza installare nulla</li>
-          <li>Senza impegno e senza carta di credito</li>
-          <li>Con le risposte sul tuo modo di lavorare</li>
+          <li>Un percorso centrato sul tuo lavoro</li>
+          <li>Dalla prima comunicazione all’incasso</li>
+          <li>Le decisioni restano sempre tue</li>
         </ul>
-        <p class="chiusura-contatto">Preferisci scrivere? <span class="selezionabile segnaposto">commerciale@iusentra.it</span></p>
+        <p class="stato-rilascio"><span aria-hidden="true"></span> Rilascio in preparazione</p>
       </div>
-      <form class="modulo" id="modulo-demo" novalidate>
-        <p class="modulo-titolo">Prenota la tua demo</p>
-        <div class="campo">
-          <label for="demo-nome">Nome e cognome</label>
-          <input id="demo-nome" name="nome" autocomplete="name" required>
-        </div>
-        <div class="campo">
-          <label for="demo-studio">Studio</label>
-          <input id="demo-studio" name="studio" autocomplete="organization">
-        </div>
-        <div class="campo">
-          <label for="demo-email">Email</label>
-          <input id="demo-email" name="email" type="email" autocomplete="email" required>
-        </div>
-        <div class="campo">
-          <label for="demo-persone">Persone nello studio</label>
-          <select id="demo-persone" name="persone">
-            <option>Solo io</option>
-            <option>Da 2 a 5</option>
-            <option>Da 6 a 10</option>
-            <option>Più di 10</option>
-          </select>
-        </div>
-        <label class="consenso" for="demo-privacy">
-          <input id="demo-privacy" name="privacy" type="checkbox" required>
-          <span>Ho letto l'informativa privacy e acconsento a essere ricontattato.</span>
-        </label>
-        <button class="bottone bottone-oro bottone-pieno bottone-grande" type="submit">Prenota la demo gratuita</button>
-        <p class="modulo-esito" id="modulo-esito" role="status" aria-live="polite"></p>
-      </form>
+      <div class="percorso-finale-box">
+        <p class="occhiello">Il tuo percorso di esplorazione</p>
+        <label for="percorso-select">Da dove vorresti iniziare?</label>
+        <select id="percorso-select">
+          <option value="pec">PEC e scadenze</option>
+          <option value="editor">Atti e depositi</option>
+          <option value="portale">Clienti e parcelle</option>
+        </select>
+        <h3 id="percorso-finale">PEC e scadenze</h3>
+        <p id="percorso-descrizione" role="status" aria-live="polite">Una PEC, il fascicolo collegato e una scadenza da confermare. Esplora l’esempio con calma.</p>
+        <a class="bottone bottone-oro" href="#vetrina" id="rivedi-percorso">Rivedi il tuo punto di partenza <span aria-hidden="true">↑</span></a>
+        <p class="piccola-nota">La scelta resta in questa pagina. Non raccogliamo dati con questo selettore.</p>
+      </div>
     </div>
   </section>
 </main>
@@ -578,14 +572,14 @@
   <div class="contenitore piede-in">
     <span class="marchio marchio-piede"><span class="marchio-segno" aria-hidden="true">§</span><span class="marchio-nome">IUSENTRA</span></span>
     <span>Gestionale per studi legali italiani</span>
-    <span class="piede-link"><a href="#fiducia">Conformità</a><a href="#prezzi">Prezzi</a><a href="#demo">Contatti</a></span>
+    <span class="piede-link"><a href="#inizio">Torna all’inizio ↑</a><a href="#fiducia">Conformità</a><a href="#prezzi">Per il tuo studio</a><a href="#demo">Il prossimo passo</a></span>
   </div>
 </footer>
 
 <div class="cta-mobile" id="cta-mobile" hidden>
-  <a class="bottone bottone-oro bottone-pieno" href="#demo">Prenota la demo gratuita</a>
+  <a class="bottone bottone-oro bottone-pieno" href="#demo">Il prossimo passo</a>
 </div>
 <!--/CONTENUTO-->
-<script src="assets/app.js"></script>
+<script src="assets/app.js?v=20261004"></script>
 </body>
 </html>

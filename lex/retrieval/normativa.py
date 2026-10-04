@@ -106,6 +106,7 @@ _SIGLE_URN = {
     "regio.decreto": "r.d.",
     "decreto.ministeriale": "d.m.",
     "costituzione": "Cost.",
+    "regolamento": "Reg. UE",
 }
 _LUNGHEZZA_TITOLO_FONTE = 70
 
@@ -129,7 +130,8 @@ def etichetta_fonte_normattiva(row: dict[str, Any]) -> str:
     if codice in CODICI_PER_CHIAVE:
         return CODICI_PER_CHIAVE[codice].etichetta
     urn = str(row.get("url_origine") or metadata.get("urn") or "")
-    m = re.match(r"urn:nir:stato:([a-z.]+):(\d{4})-\d{2}-\d{2}(?:;(\d+))?", urn.strip().lower())
+    m = re.match(r"urn:nir:(?:stato|unione\.europea|consiglio\.nazionale\.forense):([a-z.]+):(\d{4})-\d{2}-\d{2}(?:;(\d+))?",
+                 urn.strip().lower())
     breve = re.sub(r"\s*\(\d{2}[A-Z]\d{4,5}\)\.?$", "", titolo).strip()  # codice redazionale tra parentesi
     if len(breve) > _LUNGHEZZA_TITOLO_FONTE:
         breve = breve[:_LUNGHEZZA_TITOLO_FONTE].rsplit(" ", 1)[0].rstrip(",;:") + "…"

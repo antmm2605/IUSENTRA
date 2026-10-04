@@ -26,6 +26,16 @@ except Exception:  # pragma: no cover
     import xml.etree.ElementTree as ET
 
 from lex.normativa.relevance_rules import detect_topics, relevance_score, topic_names
+from lex.normativa.articoli_testuali import (  # noqa: E402
+    INTESTAZIONE_ARTICOLO_RE,
+    SOLO_INTESTAZIONE_MAX,
+    Segmento,
+    chiave_numero,
+    deduplica,
+    dividi_in_articoli,
+    etichetta_numero,
+    solo_intestazione,
+)
 
 
 NIR_NS = {
@@ -33,10 +43,8 @@ NIR_NS = {
     "h": "http://www.w3.org/HTML/1998/html4",
 }
 
-TEXTUAL_ARTICLE_RE = re.compile(
-    r"\bArt\.\s*(?P<number>\d{1,4})(?:[\s.-]+(?P<suffix>bis|ter|quater|quinquies|sexies|septies|octies|nonies|decies))?\s*[.)-]",
-    flags=re.I,
-)
+# Intestazione d'articolo nel corpo del testo (vedi lex/normativa/articoli_testuali.py)
+TEXTUAL_ARTICLE_RE = INTESTAZIONE_ARTICOLO_RE
 
 
 @dataclass
@@ -228,26 +236,21 @@ def extract_textual_article_records(
 ) -> list[ArticleRecord]:
     """Estrae articoli quando Normattiva codifica il corpo come paragrafi HTML.
 
-    Alcuni codici storici arrivano con pochi nodi NIR ``articolo`` e il testo
-    vero dentro paragrafi ``h:p``. Questo splitter conserva il comportamento
-    XML esistente ma rende indicizzabili gli articoli del corpo normativo.
+    Alcuni codici storici e gli allegati (es. il codice del processo amministrativo) arrivano con pochi nodi NIR
+    ``articolo`` e il testo vero dentro paragrafi ``h:p``: si divide sulle intestazioni «Art. N» del testo
+    (vedi ``lex/normativa/articoli_testuali.py``: niente tagli sui rimandi «dell'art. N.», intestazioni senza
+    punteggiatura, suffissi oltre «decies», articoli «473-bis.14»).
     """
-    cleaned = clean_text(text)
-    matches = list(TEXTUAL_ARTICLE_RE.finditer(cleaned))
     records: list[ArticleRecord] = []
-    for index, match in enumerate(matches):
-        end = matches[index + 1].start() if index + 1 < len(matches) else len(cleaned)
-        article_text = clean_text(cleaned[match.start() : end])
-        if len(article_text) < 24:
-            continue
-        number = _article_number_from_match(match)
-        article_title = _guess_article_title(article_text, number)
-        matches_topics = detect_topics(source_title, article_text, collection_name=collection_name)
+    for segmento in dividi_in_articoli(clean_text(text)):
+        number = f"Art. {segmento.numero}."
+        article_title = _guess_article_title(segmento.testo, number)
+        matches_topics = detect_topics(source_title, segmento.testo, collection_name=collection_name)
         records.append(
             ArticleRecord(
                 article_number=number,
                 article_title=article_title,
-                article_text=article_text,
+                article_text=segmento.testo,
                 topics=topic_names(matches_topics),
                 relevance_score=relevance_score(matches_topics),
             )
@@ -256,29 +259,29 @@ def extract_textual_article_records(
 
 
 def _article_number_from_match(match: re.Match[str]) -> str:
-    suffix = clean_text(match.group("suffix")).lower()
-    number = clean_text(match.group("number"))
-    return f"Art. {number}{f' {suffix}' if suffix else ''}."
+    return f"Art. {etichetta_numero(match)}."
 
 
 def _merge_textual_articles(existing: list[ArticleRecord], textual: list[ArticleRecord]) -> list[ArticleRecord]:
+    """Unisce gli articoli dei nodi NIR e quelli ricavati dal testo.
+
+    I nodi NIR con il solo titolo («Art. 29 - Azione di annullamento») sono sostituiti dall'articolo ricavato dal
+    testo con lo stesso numero; un articolo testuale gia' contenuto in un articolo NIR con lo stesso numero non si
+    ripete.
+    """
     if not textual:
         return existing
-    seen = {
-        (
-            clean_text(article.article_number).lower(),
-            clean_text(article.article_text)[:220].lower(),
-        )
-        for article in existing
-    }
-    merged = list(existing)
-    for article in textual:
-        key = (clean_text(article.article_number).lower(), clean_text(article.article_text)[:220].lower())
-        if key in seen:
-            continue
-        seen.add(key)
-        merged.append(article)
-    return merged
+    chiavi_testuali = {chiave_numero(a.article_number or "") for a in textual if len(a.article_text) > SOLO_INTESTAZIONE_MAX}
+    base = [
+        a for a in existing
+        if not (solo_intestazione(a.article_text) and chiave_numero(a.article_number or a.article_text) in chiavi_testuali)
+    ]
+    segmenti = [Segmento(a.article_number or "", a.article_text) for a in base] + [
+        Segmento(a.article_number or "", a.article_text) for a in textual
+    ]
+    tenuti = {id(seg) for seg in deduplica(segmenti)}
+    tutti = base + textual
+    return [articolo for articolo, seg in zip(tutti, segmenti) if id(seg) in tenuti]
 
 
 def _local_name(tag: str) -> str:

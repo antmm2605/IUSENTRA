@@ -323,15 +323,25 @@ CODICI: tuple[Codice, ...] = (
            ("codice privacy", "codice della privacy", "codice in materia di protezione dei dati personali"), "d.lgs. 196/2003"),
     Codice("statuto_lavoratori", "Statuto dei lavoratori", "300", "1970-05-20",
            ("statuto dei lavoratori", "statuto lavoratori"), "l. 300/1970"),
+    # atti integrati nell'archivio (lex/normativa/integrazioni/leggi_essenziali.jsonl): non sono su Normattiva Open Data
+    Codice("gdpr", "Regolamento (UE) 2016/679 (GDPR)", "679", "2016-04-27",
+           ("gdpr", "rgpd", "regolamento ue 2016/679", "regolamento 2016/679", "regolamento generale sulla protezione dei dati",
+            "regolamento europeo sulla privacy", "regolamento privacy"), "GDPR"),
+    Codice("codice_deontologico_forense", "Codice deontologico forense", "", "2014-01-31",
+           ("codice deontologico forense", "codice deontologico", "deontologia forense", "deontologico forense"), "c.d.f."),
 )
 CODICI_PER_CHIAVE = {codice.chiave: codice for codice in CODICI}
-_SUFFISSI_ARTICOLO = "bis|ter|quater|quinquies|sexies|septies|octies|novies|nonies|decies"
+# Suffissi latini degli articoli aggiunti: le forme lunghe prima delle corte (altrimenti «terdecies» diventa «ter»)
+_SUFFISSI_ARTICOLO = (
+    "quinquiesdecies|sexiesdecies|septiesdecies|octiesdecies|noviesdecies|quaterdecies|terdecies|duodecies|"
+    "undecies|vicies|decies|novies|nonies|octies|septies|sexies|quinquies|quater|ter|bis"
+)
 _ARTICOLO_RE = re.compile(
     rf"\b(?:art(?:t)?\.?|articol[oi])\s*(?P<lista>\d{{1,4}}(?:[\s-]*(?:{_SUFFISSI_ARTICOLO}))?"
     rf"(?:\s*(?:,|e|ed|-)\s*\d{{1,4}}(?:[\s-]*(?:{_SUFFISSI_ARTICOLO}))?)*)",
     re.I,
 )
-_NUMERO_ARTICOLO_RE = re.compile(rf"(\d{{1,4}})(?:[\s-]*({_SUFFISSI_ARTICOLO}))?", re.I)
+_NUMERO_ARTICOLO_RE = re.compile(rf"(\d{{1,4}})(?:[\s-]*({_SUFFISSI_ARTICOLO})(?![a-z]))?(?:\.(\d{{1,3}})(?!\d))?", re.I)
 _ARTICOLO_SIGLA_RE = re.compile(
     rf"\b(?P<numero>\d{{1,4}})(?:[\s-]*(?P<suffisso>{_SUFFISSI_ARTICOLO}))?\s+(?P<sigla>cc|cpc|cp|cpp|cpa|cds)\b",
     re.I,
@@ -349,14 +359,16 @@ def articolo_normalizzato(valore: str) -> str:
     if not match:
         return ""
     suffisso = (match.group(2) or "").lower().replace("nonies", "novies")
-    return f"{int(match.group(1))}{suffisso}"
+    # «473-bis.14» (rito di famiglia): il sottonumero distingue gli articoli che condividono il suffisso
+    sotto = f".{int(match.group(3))}" if suffisso and match.group(3) else ""
+    return f"{int(match.group(1))}{suffisso}{sotto}"
 
 
 def codice_da_atto(numero: str | None, data_atto: str | None, titolo: str | None = "") -> str:
     numero = str(numero or "").strip()
     data_atto = str(data_atto or "").strip()[:10]
     for codice in CODICI:
-        if numero == codice.numero and data_atto == codice.data_atto:
+        if numero == codice.numero and data_atto == codice.data_atto and (numero or data_atto):
             return codice.chiave
     if "costituzione" in senza_accenti(str(titolo or "")).lower() and data_atto == "1947-12-27":
         return "costituzione"

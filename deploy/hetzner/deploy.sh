@@ -384,6 +384,17 @@ docker compose \
 # I vettori dei chunk nuovi li calcola il job notturno. Un errore qui non ferma il deploy.
 if docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" \
      exec -T scheduler-worker test -f /data/normativa/normattiva.sqlite 2>/dev/null; then
+  # Riallineamento degli articoli divisi male (c.p.a., articoli -bis/-ter fusi, articoli troncati sui rimandi).
+  # Prima volta: copia di sicurezza del database se c'e' spazio (una sola, non si sovrascrive).
+  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" exec -T scheduler-worker sh -c '
+    db=/data/normativa/normattiva.sqlite; copia=/data/normativa/normattiva.prima_riallineamento.sqlite
+    if [ ! -f "$copia" ]; then
+      serve=$(( $(stat -c %s "$db") / 1024 * 2 )); libero=$(df -k --output=avail /data/normativa | tail -1 | tr -dc 0-9)
+      if [ "${libero:-0}" -gt "$serve" ]; then sqlite3 "$db" ".backup $copia" 2>/dev/null || cp "$db" "$copia"; echo "Copia di sicurezza: $copia";
+      else echo "Spazio insufficiente per la copia di sicurezza: riallineamento rinviato al job notturno"; exit 0; fi
+    fi
+    python tools/normattiva_riallinea.py --db "$db"' \
+    || echo "Attenzione: riallineamento degli articoli non riuscito (ci riprova il job notturno)." >&2
   echo "Integro le leggi ordinarie essenziali nell'archivio Normattiva..."
   docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" \
     exec -T scheduler-worker python tools/normattiva_integra_leggi.py --db /data/normativa/normattiva.sqlite \

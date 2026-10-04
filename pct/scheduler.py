@@ -644,6 +644,17 @@ def start_scheduler(app):
                     ],
                 ),
                 (
+                    # Articoli divisi male dalla vecchia regola testuale (c.p.a., 669-terdecies dentro 669, art. 2317
+                    # c.c. troncato...): riallineamento idempotente, tocca solo i documenti con difetti.
+                    "normattiva riallineamento articoli",
+                    [
+                        sys.executable,
+                        "tools/normattiva_riallinea.py",
+                        "--db",
+                        normativa_db,
+                    ],
+                ),
+                (
                     # Leggi ordinarie essenziali (Costituzione, l. 241/1990, l. 53/1994, l. 742/1969...): Open Data
                     # non le distribuisce; si integrano dal file del repository (idempotente, solo archivio VIGENTE).
                     "normattiva integrazione leggi essenziali",

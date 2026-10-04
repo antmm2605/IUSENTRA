@@ -164,3 +164,19 @@ def test_file_senza_campo_obbligatorio_viene_rifiutato(tmp_path, campo):
     file = _scrivi(tmp_path, [riga])
     with pytest.raises(ValueError):
         leggi_jsonl(file)
+
+
+def test_atti_non_statali_gdpr_e_codice_deontologico():
+    from lex.normativa.integrazione_leggi import _numero_e_tipo
+    from lex.ricerca_giuridica.testo import analizza_domanda, codice_da_atto
+
+    assert _numero_e_tipo("urn:nir:unione.europea:regolamento:2016-04-27;679") == ("679", "Regolamento (UE)")
+    assert _numero_e_tipo("urn:nir:consiglio.nazionale.forense:codice.deontologico:2014-01-31") == (None, "Codice deontologico")
+    assert etichetta_fonte_normattiva({"titolo": "Regolamento (UE) 2016/679 ...", "data": "2016-04-27",
+                                       "metadata": {"numero": "679"}}) == "Regolamento (UE) 2016/679 (GDPR)"
+    assert etichetta_fonte_normattiva({"titolo": "Codice deontologico forense", "data": "2014-01-31",
+                                       "metadata": {"numero": None}}) == "Codice deontologico forense"
+    assert codice_da_atto("267", "1942-03-16") == ""  # legge fallimentare: stessa data del codice civile, altro numero
+    assert codice_da_atto("", "") == ""
+    assert analizza_domanda("art. 82 GDPR risarcimento").codice == "gdpr"
+    assert analizza_domanda("cosa dice l'art. 27 del codice deontologico forense?").codice == "codice_deontologico_forense"

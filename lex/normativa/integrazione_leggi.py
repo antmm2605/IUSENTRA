@@ -52,6 +52,8 @@ _TIPO_DA_URN = {
     "decreto.del.presidente.della.repubblica": "Decreto del Presidente della Repubblica",
     "regio.decreto": "Regio decreto",
     "costituzione": "Costituzione",
+    "regolamento": "Regolamento (UE)",
+    "codice.deontologico": "Codice deontologico",
 }
 
 
@@ -94,7 +96,8 @@ def leggi_jsonl(percorso: Path) -> dict[str, list[dict[str, Any]]]:
 def _numero_e_tipo(urn: str) -> tuple[str | None, str | None]:
     """'urn:nir:stato:legge:1994-01-21;53' -> ('53', 'Legge'); la Costituzione non ha numero."""
 
-    m = re.match(r"urn:nir:stato:([a-z.]+):(\d{4}-\d{2}-\d{2})(?:;(\d+))?", urn.strip().lower())
+    m = re.match(r"urn:nir:(?:stato|unione\.europea|consiglio\.nazionale\.forense):([a-z.]+):(\d{4}-\d{2}-\d{2})(?:;(\d+))?",
+                 urn.strip().lower())
     if not m:
         return None, None
     tipo = _TIPO_DA_URN.get(m.group(1), m.group(1).replace(".", " ").title())

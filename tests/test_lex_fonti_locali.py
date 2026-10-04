@@ -352,6 +352,9 @@ def test_scheduler_notturno_usa_la_vigenza_del_pacchetto():
     assert sorgente.count("vigenza_normattiva,") == 3  # download (--vigenza), import (--solo-vigenza), integrazione leggi (--vigenza)
     assert '"--solo-vigenza",' in sorgente
     assert '"normattiva integrazione leggi essenziali"' in sorgente and "tools/normattiva_integra_leggi.py" in sorgente
+    # il riallineamento degli articoli gira dopo l'import e prima dell'integrazione delle leggi
+    assert sorgente.index('"normattiva riallineamento articoli"') < sorgente.index('"normattiva integrazione leggi essenziali"')
+    assert "tools/normattiva_riallinea.py" in sorgente
 
 
 def test_bundle_ca_normattiva_include_l_intermedio(monkeypatch):

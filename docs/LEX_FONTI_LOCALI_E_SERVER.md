@@ -177,9 +177,10 @@ Alle 23:00 (`legal_official_archives_daily` in `pct/scheduler.py`) il worker ese
 1. download delle collezioni **core** cambiate nella vigenza `IUSENTRA_NORMATTIVA_VIGENZA` (default `VIGENTE`, come il pacchetto del PC;
    confronto con il catalogo Normattiva, le invariate sono saltate);
 2. import con upsert dei soli ZIP di quella vigenza (`--solo-vigenza`: gli ZIP ORIGINALE rimasti in `raw/` da prima non entrano nel database): articoli con chiave `normattiva:<sha XML>:art<n>`, quindi nessuna duplicazione; indice FTS aggiornato solo per i chunk nuovi;
-3. **integrazione delle leggi ordinarie essenziali** (`tools/normattiva_integra_leggi.py`, vedi sotto): Open Data non le distribuisce;
+3. **riallineamento degli articoli** (`tools/normattiva_riallinea.py`, vedi 2.6): corregge solo i documenti divisi male dalla vecchia regola;
+4. **integrazione delle leggi ordinarie essenziali** (`tools/normattiva_integra_leggi.py`, vedi sotto): Open Data non le distribuisce;
    il file del repository le inserisce nello stesso formato degli altri atti (idempotente: nessuna modifica se gia' presenti e invariate);
-4. **aggiornamento vettori** (`python -m lex.ricerca_giuridica.indice_vettoriale aggiorna --se-disponibile --solo-esistente`):
+5. **aggiornamento vettori** (`python -m lex.ricerca_giuridica.indice_vettoriale aggiorna --se-disponibile --solo-esistente`):
    vettorizza solo i chunk nuovi o modificati (impronta del testo), al massimo `LEX_VETTORI_NOTTURNO_MASSIMO` (20.000) per notte.
    Se Ollama non risponde, se manca il modello o se l'indice non esiste, il passaggio termina senza errore e la ricerca resta lessicale
    fino alla notte successiva.
@@ -195,8 +196,10 @@ feriale), la l. 890/1982, la l. 689/1981, il d.l. 132/2014, la l. 898/1970, lo S
 locazioni (392/1978 e 431/1998), la l. 247/2012, la l. 49/2023, la l. 24/2017, il d.P.R. 68/2005, la l. 54/2006, la l. 76/2016,
 la l. 104/1992 e il d.P.R. 1199/1971.
 
-Da 2.436.10 i loro testi vigenti (779 articoli, raccolti e controllati il 03/10/2026 da edizionieuropee.it e brocardi.it, resi nello stile
-di Normattiva) sono in `lex/normativa/integrazioni/leggi_essenziali.jsonl` e vengono inseriti nell'archivio da:
+Da 2.436.10 i loro testi vigenti (raccolti e controllati il 03-04/10/2026 da edizionieuropee.it e brocardi.it, resi nello stile
+di Normattiva; in tutto 30 atti e 1.937 articoli, con lo Statuto del contribuente, la l. 184/1983, la l. 633/1941, la l. 218/1995,
+la l. 354/1975, la l. 219/2017, la l. 194/1978, la legge fallimentare, il **GDPR** (Reg. UE 2016/679) e il **Codice deontologico
+forense** dal PDF ufficiale del CNF aggiornato al 2026) sono in `lex/normativa/integrazioni/leggi_essenziali.jsonl` e vengono inseriti nell'archivio da:
 
 ```bash
 # sul server (nel container app o scheduler-worker); il job notturno lo fa da solo dopo l'import Open Data
@@ -211,6 +214,22 @@ le ricerche "legge 53/1994 art. 3-bis" trovano l'articolo esatto come per i codi
 se il file cambia (nuova raccolta), la versione precedente viene sostituita, indice FTS compreso; i vettori dei chunk nuovi li calcola il
 passaggio notturno (o subito con `--vettori`). Con un archivio ORIGINALE non fa nulla. Per aggiornare i testi: ricostruire il JSONL
 (stesso formato: `chiave, atto, articolo, rubrica, testo "Art. N. (Rubrica). ...", titolo_atto, data_atto, urn`) e rilanciare.
+
+### 2.6 Articoli divisi male (riallineamento)
+
+L'importatore divideva il testo in articoli con una regola troppo larga: tagliava sui rimandi interni («dell'art. 2297.»: art. 2317 e
+1815 c.c. troncati), non riconosceva «Art. 29 Azione di annullamento» (il c.p.a. finiva dentro pochi articoli), ne' «Art. 183-ter (...)»,
+«669-terdecies», «5-bis», «2-ter» (finiti dentro l'articolo base). La nuova divisione (`lex/normativa/articoli_testuali.py`) vale per i nuovi
+import; per gli archivi gia' importati:
+
+```bash
+python tools/normattiva_riallinea.py --db /data/normativa/normattiva.sqlite --analizza   # resoconto, nessuna modifica
+python tools/normattiva_riallinea.py --db /data/normativa/normattiva.sqlite --vettori    # corregge e aggiorna i vettori
+```
+
+Tocca solo i documenti con difetti; se i controlli di coerenza non passano (numeri d'articolo persi, testo ridotto) il documento resta com'e'
+e compare nel resoconto. Idempotente. Il deploy lo esegue una volta (con copia di sicurezza `normattiva.prima_riallineamento.sqlite` se c'e'
+spazio), poi lo ripete il job notturno.
 
 ## Tornare indietro
 

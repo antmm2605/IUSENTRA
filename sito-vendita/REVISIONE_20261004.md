@@ -81,3 +81,12 @@ I percorsi rifiniti sono stati riprovati a 320, 390, 820 e 1440px, inclusi
 ritorno dal finale e tastiera. Il controllo della visibilità della scheda
 selezionata è stato aggiunto allo script ripetibile. La versione degli asset
 è aggiornata anche per questa rifinitura.
+
+## Ripristino del movimento nelle anteprime
+
+Su richiesta dell’utente, ripristinate le animazioni illustrative di scadenze,
+cursore dell’editor, barra di calcolo, onda e frasi vocali, ricevute del deposito.
+Partono quando il pannello entra in vista, con sequenze finite e senza cambio
+automatico della scheda. Ricevute e testi rimangono leggibili al termine.
+Le scene del racconto entrano con lo stesso movimento delle altre sezioni.
+Il movimento ridotto mantiene le illustrazioni statiche.

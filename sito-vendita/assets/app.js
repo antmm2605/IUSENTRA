@@ -1,4 +1,4 @@
-/* IUSENTRA — sito di vendita: animazioni, vetrina a schede e modulo demo. */
+/* IUSENTRA — sito di vendita: animazioni e percorsi illustrativi. */
 (function () {
   "use strict";
 
@@ -52,6 +52,48 @@
   }
 
   document.querySelectorAll(".ricevute li").forEach(function (li) { li.classList.add("fatto"); });
+
+  /* Le illustrazioni si animano quando visibili, senza cambiare scheda.
+     Ogni sequenza si conclude: nessun movimento continuo durante la lettura. */
+  if (!ridotto && "IntersectionObserver" in window) {
+    var animazioni = new Map();
+    var fermaPannello = function (pannello) {
+      (animazioni.get(pannello) || []).forEach(clearTimeout);
+      animazioni.delete(pannello);
+      pannello.classList.remove("animato");
+      pannello.querySelectorAll(".ricevute li").forEach(function (li) {
+        li.classList.remove("attesa"); li.classList.add("fatto");
+      });
+    };
+    var osservaPannelli = new IntersectionObserver(function (voci) {
+      voci.forEach(function (v) {
+        var pannello = v.target;
+        fermaPannello(pannello);
+        if (!v.isIntersecting) return;
+        pannello.classList.add("animato");
+        var timer = [];
+        var ricevute = Array.from(pannello.querySelectorAll(".ricevute li"));
+        ricevute.forEach(function (li, i) {
+          li.classList.remove("fatto");
+          if (i === 0) li.classList.add("attesa");
+          timer.push(setTimeout(function () {
+            li.classList.remove("attesa"); li.classList.add("fatto");
+            if (ricevute[i + 1]) ricevute[i + 1].classList.add("attesa");
+          }, (i + 1) * 850));
+        });
+        var frase = pannello.querySelector('[data-giro="voce"]');
+        if (frase) {
+          var frasi = ["«Apri lo scadenziario»", "«Nuovo cliente: Marco Rossi»", "«Nota vocale: richiamare il CTU domani»", "«Lex, quando scade l’appello?»"];
+          frase.textContent = frasi[0];
+          frasi.slice(1).forEach(function (testo, i) {
+            timer.push(setTimeout(function () { frase.textContent = testo; }, (i + 1) * 2600));
+          });
+        }
+        animazioni.set(pannello, timer);
+      });
+    }, { threshold: .15 });
+    document.querySelectorAll(".pannello").forEach(function (pannello) { osservaPannelli.observe(pannello); });
+  }
 
   /* Le schede restano sotto il controllo del visitatore. */
   var schede = Array.from(document.querySelectorAll(".scheda"));
@@ -159,7 +201,7 @@
 
   /* Comparsa leggera delle sezioni: il contenuto resta sempre visibile. */
   if (!ridotto && "IntersectionObserver" in window) {
-    var daMostrare = document.querySelectorAll(".confronto-tabella, .vetrina-corpo, .moduli-griglia li, .intermezzo, .norme, .piano, .percorso-finale-box");
+    var daMostrare = document.querySelectorAll(".confronto-tabella, .scena, .vetrina-corpo, .moduli-griglia li, .intermezzo, .norme, .piano, .percorso-finale-box");
     var osservatore = new IntersectionObserver(function (voci) {
       voci.forEach(function (v) {
         if (v.isIntersecting) { v.target.classList.add("visto"); osservatore.unobserve(v.target); }

@@ -685,3 +685,18 @@ html:not(.js) .schede, html:not(.js) .scelta-opzioni, html:not(.js) #prova-caten
 @media (prefers-reduced-motion: reduce) {
   .catena.in-corso .anello { transform: none; }
 }
+
+/* Movimento delle anteprime: sequenze brevi, testi sempre leggibili. */
+.pannello.animato .ev-scadenza { animation: pulsa 2.6s ease-in-out 3; }
+.pannello.animato .editor-cursore { animation: lampeggia 1s steps(1) 6; }
+.pannello.animato .calcolo-barra i { animation: riempi 2.4s ease-in-out 3 alternate; }
+.pannello.animato .voce-onda i { animation: onda 1.1s ease-in-out 7; }
+.pannello.animato .voce-onda i:nth-child(2), .pannello.animato .voce-onda i:nth-child(6) { animation-delay: .1s; }
+.pannello.animato .voce-onda i:nth-child(3), .pannello.animato .voce-onda i:nth-child(5) { animation-delay: .2s; }
+.pannello.animato .voce-onda i:nth-child(4) { animation-delay: .3s; }
+.pannello.animato .telefono, .pannello.animato .editor, .pannello.animato .posta-riga,
+.pannello.animato .lex-risposta, .pannello.animato .preventivo { animation: entra .65s ease both; }
+@keyframes pulsa { 0%, 100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0); } 50% { box-shadow: 0 0 0 4px rgba(248, 113, 113, .2); } }
+@keyframes lampeggia { 50% { opacity: 0; } }
+@keyframes onda { 0%, 100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
+@keyframes riempi { from { transform: scaleX(.15); } to { transform: scaleX(1); } }

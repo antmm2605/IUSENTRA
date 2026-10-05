@@ -133,7 +133,8 @@ def _data_italiana(value: Any) -> str:
     return text[:40]
 
 
-def _riferimento(item: Any) -> str:
+def _riferimento(item: Any, fonte: str = "") -> str:
+    """Estremi (articolo o numero/anno, sezione); non ripete il numero se il titolo lo contiene gia'."""
     article = _clean(_item_get(item, "articolo", "article", "article_number", "numero_articolo"))
     if article:
         return article if article.lower().startswith("art") else f"art. {article}"
@@ -141,8 +142,12 @@ def _riferimento(item: Any) -> str:
     anno = _clean(_item_get(item, "anno_sentenza", "anno_decisione", "anno"))
     if numero:
         rif = f"n. {numero}/{anno}" if anno and "/" not in numero else f"n. {numero}"
+        if fonte and re.search(rf"(?<![\w/]){re.escape(rif)}(?![\w/])", fonte, re.IGNORECASE):
+            rif = ""
         sezione = _clean(_item_get(item, "sezione"))
-        return f"{rif}, sez. {sezione}" if sezione else rif
+        if sezione:
+            return f"{rif}, sez. {sezione}" if rif else f"sez. {sezione}"
+        return rif
     return ""
 
 
@@ -177,8 +182,8 @@ def _data(item: Any) -> str:
             item,
             "data",
             "data_atto",
-            "data_decisione",
             "data_deposito",
+            "data_decisione",
             "data_pubblicazione",
             "published_at",
         )
@@ -207,7 +212,8 @@ def _testo(item: Any) -> str:
         ("Principio", ("principio_sintetico", "massima_ufficiale")),
     ):
         value = _clean(_item_get(item, *keys))
-        if value and value.lower() not in content.lower():
+        # gia' presente nel testo (anche solo l'inizio, se il retrieval l'ha accorciato): non si ripete
+        if value and value[:200].lower() not in content.lower():
             extra.append(f"{label}: {value}")
     return " ".join(part for part in [content, *extra] if part)
 
@@ -223,7 +229,8 @@ def _tronca(text: str, max_chars: int) -> tuple[str, bool]:
 
 
 def evidence_header(index: int, item: Any) -> str:
-    parts = [_fonte(item), _riferimento(item), _identificativo(item), _vigenza(item), _data(item)]
+    fonte = _fonte(item)
+    parts = [fonte, _riferimento(item, fonte), _identificativo(item), _vigenza(item), _data(item)]
     return f"[{index}] " + _SEPARATORE.join(part for part in parts if part)
 
 

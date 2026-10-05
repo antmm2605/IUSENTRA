@@ -23,8 +23,15 @@ def _clean(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
 
 
+# «Corte cost.», «C. cost.», «Corte Cost.» → «corte costituzionale»; «sent.»/«ord.» → sentenza/ordinanza.
+_CORTE_COST_BREVE = re.compile(r"\b(?:corte|c\.)\s*cost\.(?!\w)")
+_SENT_ORD_BREVE = re.compile(r"\b(sent|ord)\.(?=\s*(?:n\.|numero))")
+
+
 def _normalize(value: Any) -> str:
     text = _clean(value).lower()
+    text = _CORTE_COST_BREVE.sub("corte costituzionale", text)
+    text = _SENT_ORD_BREVE.sub(lambda m: "sentenza" if m.group(1) == "sent" else "ordinanza", text)
     return (
         text.replace("codice civile", "c.c.")
         .replace("codice di procedura civile", "c.p.c.")
@@ -72,9 +79,9 @@ def extract_legal_references(text: Any) -> list[_LegalReference]:
         key = f"{authority}:{number}:{year or ''}"
         _add_reference(refs, "case_law", key, match.group(0))
 
-    for match in re.finditer(r"\bsentenza\s+(?:n\.|numero)\s*(\d{1,7})(?:\s*/\s*|\s+del\s+)(\d{4})", normalized):
-        number, year = match.groups()
-        _add_reference(refs, "case_law", f"sentenza:{number}:{year}", match.group(0))
+    for match in re.finditer(r"\b(sentenza|ordinanza)\s+(?:n\.|numero)\s*(\d{1,7})(?:\s*/\s*|\s+del\s+)(\d{4})", normalized):
+        kind, number, year = match.groups()
+        _add_reference(refs, "case_law", f"{kind}:{number}:{year}", match.group(0))
 
     for match in re.finditer(r"\becli:[a-z0-9:.]+", normalized):
         _add_reference(refs, "ecli", match.group(0), match.group(0))

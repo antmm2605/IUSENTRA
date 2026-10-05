@@ -138,6 +138,8 @@ def etichetta_fonte_normattiva(row: dict[str, Any]) -> str:
     if m and m.group(3):
         sigla = _SIGLE_URN.get(m.group(1), m.group(1).replace(".", " "))
         riferimento = f"{sigla} {m.group(3)}/{m.group(2)}"
+        if m.group(1) == "regolamento" and int(m.group(2)) >= 2015:
+            riferimento = f"{sigla} {m.group(2)}/{m.group(3)}"  # dal 2015 i regolamenti UE sono «anno/numero»
         return f"{riferimento}, {breve}" if breve else riferimento
     return breve or titolo
 

@@ -302,6 +302,85 @@ class Codice:
     sigla: str
 
 
+def _regolamento_ue(chiave: str, tipo: str, numero: str, anno: str, data_atto: str, nome: str,
+                    alias: tuple[str, ...]) -> Codice:
+    """Regolamento UE integrato: etichetta «Reg. UE 1215/2012 (Bruxelles I-bis)», alias nella forma normalizzata.
+
+    Dal 2015 il numero ufficiale e' «anno/numero» (Reg. UE 2015/848); negli alias valgono entrambi gli ordini, perche'
+    nelle domande si trovano tutti e due. Gli alias sono gia' normalizzati come fa ``parole`` (minuscole, senza accenti,
+    «/» e punteggiatura come spazi): «Reg. (UE) n. 1215/2012» -> «reg ue n 1215 2012».
+    """
+
+    riferimento = f"{anno}/{numero}" if int(anno) >= 2015 else f"{numero}/{anno}"
+    sigla = f"Reg. {tipo} {riferimento}"
+    numerici: list[str] = []
+    for coppia in (f"{numero} {anno}", f"{anno} {numero}"):
+        for prefisso in ("reg", "regolamento", "reg ue", "reg ce", "regolamento ue", "regolamento ce"):
+            numerici.append(f"{prefisso} {coppia}")
+            numerici.append(f"{prefisso} n {coppia}")
+    tutti = tuple(dict.fromkeys((*alias, *numerici)))
+    return Codice(chiave, f"{sigla} ({nome})", numero, data_atto, tutti, sigla)
+
+
+# Regolamenti UE integrati (2.436.11, testo GUUE: lex/normativa/ue_regolamenti.py). Niente alias ambigui: «roma i» da
+# solo e' anche «Roma i giudici...» (vedi _ALIAS_CON_MAIUSCOLA), «regolamento ai» e' anche «regolamento ai sensi».
+REGOLAMENTI_UE: tuple[Codice, ...] = (
+    _regolamento_ue("reg_ue_2012_1215", "UE", "1215", "2012", "2012-12-12", "Bruxelles I-bis",
+                    ("bruxelles i bis", "bruxelles ibis", "bruxelles 1 bis", "regolamento bruxelles i bis",
+                     "regolamento bruxelles 1 bis")),
+    _regolamento_ue("reg_ue_2007_861", "CE", "861", "2007", "2007-07-11", "controversie di modesta entità",
+                    ("small claims", "regolamento small claims", "procedimento europeo per le controversie di modesta entita",
+                     "regolamento sulle controversie di modesta entita", "regolamento controversie di modesta entita")),
+    _regolamento_ue("reg_ue_2006_1896", "CE", "1896", "2006", "2006-12-12", "ingiunzione di pagamento europea",
+                    ("procedimento europeo d ingiunzione di pagamento", "ingiunzione di pagamento europea",
+                     "ingiunzione europea di pagamento", "decreto ingiuntivo europeo", "regolamento ingiunzione europea")),
+    _regolamento_ue("reg_ue_2004_805", "CE", "805", "2004", "2004-04-21", "titolo esecutivo europeo",
+                    ("titolo esecutivo europeo", "regolamento titolo esecutivo europeo",
+                     "titolo esecutivo europeo per i crediti non contestati")),
+    _regolamento_ue("reg_ue_2014_655", "UE", "655", "2014", "2014-05-15", "sequestro conservativo su conti bancari",
+                    ("ordinanza europea di sequestro conservativo", "sequestro conservativo europeo su conti bancari",
+                     "sequestro conservativo su conti bancari", "regolamento eapo", "eapo")),
+    _regolamento_ue("reg_ue_2008_593", "CE", "593", "2008", "2008-06-17", "Roma I",
+                    ("regolamento roma i", "reg roma i", "roma 1", "regolamento roma 1",
+                     "legge applicabile alle obbligazioni contrattuali")),
+    _regolamento_ue("reg_ue_2007_864", "CE", "864", "2007", "2007-07-11", "Roma II",
+                    ("roma ii", "roma 2", "regolamento roma ii", "regolamento roma 2",
+                     "legge applicabile alle obbligazioni extracontrattuali")),
+    _regolamento_ue("reg_ue_2019_1111", "UE", "1111", "2019", "2019-06-25", "Bruxelles II-ter",
+                    ("bruxelles ii ter", "bruxelles iiter", "bruxelles 2 ter", "regolamento bruxelles ii ter",
+                     "regolamento bruxelles 2 ter")),
+    _regolamento_ue("reg_ue_2010_1259", "UE", "1259", "2010", "2010-12-20", "Roma III",
+                    ("roma iii", "roma 3", "regolamento roma iii", "regolamento roma 3",
+                     "legge applicabile al divorzio e alla separazione personale")),
+    _regolamento_ue("reg_ue_2012_650", "UE", "650", "2012", "2012-07-04", "successioni",
+                    ("regolamento successioni", "regolamento europeo sulle successioni", "regolamento ue successioni",
+                     "regolamento sulle successioni", "regolamento successioni internazionali")),
+    _regolamento_ue("reg_ue_2020_1784", "UE", "1784", "2020", "2020-11-25", "notificazione degli atti",
+                    ("regolamento notificazioni", "regolamento notifiche", "regolamento notificazione atti",
+                     "regolamento sulla notificazione degli atti", "regolamento europeo notifiche")),
+    _regolamento_ue("reg_ue_2020_1783", "UE", "1783", "2020", "2020-11-25", "assunzione delle prove",
+                    ("regolamento prove", "regolamento assunzione prove", "regolamento sull assunzione delle prove",
+                     "regolamento assunzione delle prove", "regolamento europeo prove")),
+    _regolamento_ue("reg_ue_2004_261", "CE", "261", "2004", "2004-02-11", "diritti dei passeggeri aerei",
+                    ("regolamento passeggeri", "regolamento passeggeri aerei", "regolamento sui diritti dei passeggeri",
+                     "regolamento sui diritti dei passeggeri aerei", "regolamento overbooking",
+                     "regolamento compensazione passeggeri")),
+    _regolamento_ue("reg_ue_2015_848", "UE", "848", "2015", "2015-05-20", "insolvenza",
+                    ("regolamento insolvenza", "regolamento europeo insolvenza", "regolamento sulle procedure di insolvenza",
+                     "regolamento insolvenza transfrontaliera", "regolamento ue insolvenza")),
+    _regolamento_ue("reg_ue_2014_910", "UE", "910", "2014", "2014-07-23", "eIDAS",
+                    ("eidas", "regolamento eidas", "eidas 2")),
+    _regolamento_ue("reg_ue_2024_1689", "UE", "1689", "2024", "2024-06-13", "intelligenza artificiale",
+                    ("ai act", "artificial intelligence act", "regolamento ia", "regolamento intelligenza artificiale",
+                     "regolamento sull intelligenza artificiale", "regolamento europeo sull intelligenza artificiale",
+                     "legge europea sull intelligenza artificiale")),
+)
+_CHIAVI_REGOLAMENTI_UE = frozenset(c.chiave for c in REGOLAMENTI_UE)
+# alias che valgono solo con la maiuscola nel testo originale della domanda («art. 4 Roma I», non «a Roma i giudici»)
+_ALIAS_CON_MAIUSCOLA: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("reg_ue_2008_593", re.compile(r"\bRoma\s*I(?![\w-])|\bROMA\s+I(?![\w-])")),
+)
+
 CODICI: tuple[Codice, ...] = (
     Codice("codice_civile", "Codice civile", "262", "1942-03-16",
            ("codice civile", "cod civ", "cc"), "c.c."),
@@ -326,9 +405,13 @@ CODICI: tuple[Codice, ...] = (
     # atti integrati nell'archivio (lex/normativa/integrazioni/leggi_essenziali.jsonl): non sono su Normattiva Open Data
     Codice("gdpr", "Regolamento (UE) 2016/679 (GDPR)", "679", "2016-04-27",
            ("gdpr", "rgpd", "regolamento ue 2016/679", "regolamento 2016/679", "regolamento generale sulla protezione dei dati",
-            "regolamento europeo sulla privacy", "regolamento privacy"), "GDPR"),
+            "regolamento europeo sulla privacy", "regolamento privacy",
+            # forme normalizzate (parole() separa «2016/679» in «2016 679»)
+            "regolamento ue 2016 679", "regolamento 2016 679", "reg ue 2016 679", "regolamento ue n 2016 679",
+            "reg ue 679 2016", "regolamento ue 679 2016"), "GDPR"),
     Codice("codice_deontologico_forense", "Codice deontologico forense", "", "2014-01-31",
            ("codice deontologico forense", "codice deontologico", "deontologia forense", "deontologico forense"), "c.d.f."),
+    *REGOLAMENTI_UE,
 )
 CODICI_PER_CHIAVE = {codice.chiave: codice for codice in CODICI}
 # Suffissi latini degli articoli aggiunti: le forme lunghe prima delle corte (altrimenti «terdecies» diventa «ter»)
@@ -390,12 +473,15 @@ class AnalisiDomanda:
         return bool(self.articoli and (self.codice or self.atto_numero))
 
 
-def _codice_in_testo(testo_normalizzato: str) -> str:
+def _codice_in_testo(testo_normalizzato: str, testo_originale: str = "") -> str:
     valore = f" {testo_normalizzato} "
     for codice in sorted(CODICI, key=lambda c: -max(len(a) for a in c.alias)):
         for alias in codice.alias:
             if f" {alias} " in valore:
                 return codice.chiave
+    for chiave, schema in _ALIAS_CON_MAIUSCOLA:
+        if testo_originale and schema.search(testo_originale):
+            return chiave
     if re.search(r"\bcost(?:ituzione)?\b", valore):
         return "costituzione"
     return ""
@@ -483,7 +569,7 @@ def analizza_domanda(domanda: str, *, usa_tesauro: bool = True) -> AnalisiDomand
             articoli.append(valore)
         sigla_codice = sigla_codice or match.group("sigla").lower()
     analisi.articoli = articoli
-    analisi.codice = _codice_in_testo(normalizzato)
+    analisi.codice = _codice_in_testo(normalizzato, testo)
     atto = _ATTO_RE.search(normalizzato)
     if atto and not analisi.codice:
         analisi.atto_numero = str(int(atto.group("numero")))
@@ -492,7 +578,12 @@ def analizza_domanda(domanda: str, *, usa_tesauro: bool = True) -> AnalisiDomand
     escluse = set(STOPWORD) | set(PAROLE_DOMANDA)
     if analisi.codice:
         codice = CODICI_PER_CHIAVE.get(analisi.codice)
-        for alias in codice.alias if codice else ("costituzione", "cost"):
+        alias_esclusi = codice.alias if codice else ("costituzione", "cost")
+        if analisi.codice in _CHIAVI_REGOLAMENTI_UE:
+            # solo gli alias presenti nella domanda: «legge applicabile alle obbligazioni contrattuali» e' un alias di
+            # Roma I, ma in «art. 4 Roma I vendita» le parole del contenuto devono restare termini di ricerca
+            alias_esclusi = tuple(a for a in alias_esclusi if f" {a} " in f" {normalizzato} ") + ("roma", "i")
+        for alias in alias_esclusi:
             escluse.update(alias.split())
         escluse.update({"civile", "penale", "procedura", "processo", "amministrativo", "strada"})
     if articoli:
@@ -535,6 +626,7 @@ __all__ = [
     "CODICI",
     "CODICI_PER_CHIAVE",
     "Codice",
+    "REGOLAMENTI_UE",
     "STOPWORD",
     "TESAURO",
     "VERSIONE_ANALIZZATORE",

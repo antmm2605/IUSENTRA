@@ -215,6 +215,63 @@ se il file cambia (nuova raccolta), la versione precedente viene sostituita, ind
 passaggio notturno (o subito con `--vettori`). Con un archivio ORIGINALE non fa nulla. Per aggiornare i testi: ricostruire il JSONL
 (stesso formato: `chiave, atto, articolo, rubrica, testo "Art. N. (Rubrica). ...", titolo_atto, data_atto, urn`) e rilanciare.
 
+#### Regolamenti UE dalla Gazzetta ufficiale dell'Unione europea (2.436.11)
+
+Nello stesso file, con la stessa integrazione, ci sono 16 regolamenti UE di diritto processuale civile internazionale e
+d'uso frequente (892 articoli): Bruxelles I-bis (Reg. UE 1215/2012), controversie di modesta entita' (Reg. CE 861/2007),
+ingiunzione di pagamento europea (Reg. CE 1896/2006), titolo esecutivo europeo (Reg. CE 805/2004), sequestro conservativo
+su conti bancari (Reg. UE 655/2014), Roma I (Reg. CE 593/2008), Roma II (Reg. CE 864/2007), Bruxelles II-ter
+(Reg. UE 2019/1111), Roma III (Reg. UE 1259/2010), successioni (Reg. UE 650/2012), notificazione degli atti
+(Reg. UE 2020/1784), assunzione delle prove (Reg. UE 2020/1783), passeggeri aerei (Reg. CE 261/2004), insolvenza
+(Reg. UE 2015/848), eIDAS (Reg. UE 910/2014), intelligenza artificiale (Reg. UE 2024/1689).
+
+**Fonte**: Ufficio delle pubblicazioni dell'Unione europea (fonte ufficiale), `https://publications.europa.eu/resource/celex/<CELEX>`
+con `Accept: application/xhtml+xml` e `Accept-Language: ita` (XHTML della GUUE in italiano; per gli atti anteriori a maggio 2004
+c'e' solo la manifestazione `text/html`). eur-lex.europa.eu risponde con una challenge anti-bot e **non** si usa.
+Nel JSONL: `fonte_testo` = `publications.europa.eu (GUUE)`, `url` = URI CELEX effettivamente usato, URN
+`urn:nir:unione.europea:regolamento:AAAA-MM-GG;N`, `atto` = `Reg. UE 1215/2012` / `Reg. CE 861/2007` / `Reg. UE 2015/848`
+(dal 2015 il numero ufficiale e' anno/numero).
+
+**Versione del testo** (indicata alla fine di `titolo_atto`):
+
+- `[Testo consolidato al GG/MM/AAAA, Ufficio delle pubblicazioni UE]`: per ogni atto si cerca il consolidato piu' recente
+  (CELEX `0AAAARNNNN-AAAAMMGG`, elenco dall'endpoint SPARQL ufficiale `publications.europa.eu/webapi/rdf/sparql`); si usa se
+  l'URI risponde e la divisione in articoli passa i controlli. I consolidati sono strumenti di documentazione: fanno fede i
+  testi pubblicati in GUUE. Gli articoli soppressi non compaiono nel consolidato e quindi non sono nel file (ammessi solo se
+  esistono nel testo originale): art. 32 Reg. 805/2004, artt. 17-19 Reg. 910/2014.
+- `[Testo originale pubblicato in GUUE: modifiche successive non incluse]`: quando non c'e' un consolidato utilizzabile.
+  Al 05/10/2026 vale per Roma II (l'unico consolidato, 02007R0864-20090111, risponde 404) e Roma III (nessun consolidato);
+  nessuno dei due ha modifiche successive.
+
+Versioni usate al 05/10/2026: 1215/2012 al 26/02/2015, 861/2007, 1896/2006, 805/2004, 655/2014 e 2020/1784 al 01/05/2025,
+593/2008 al 24/07/2008, 2019/1111 al 02/07/2019, 650/2012 al 05/07/2012, 2020/1783 al 02/12/2020, 261/2004 al 17/02/2005,
+2015/848 al 06/11/2025, 910/2014 al 18/10/2024, 2024/1689 al 27/07/2026.
+
+**Divisione in articoli** (`lex/normativa/ue_regolamenti.py`): formati GUUE `oj-` (div `art_N`, `oj-ti-art`/`oj-sti-art`, elenchi
+in tabelle a due colonne), GUUE vecchio (`ti-art`/`sti-art`), consolidato (`title-article-norm`/`stitle-article-norm`, `.norm`,
+elenchi in `div` rientrati o `grid-container`, marcatori `►M1 ▼B ◄` tolti) e HTML semplice (`<p>Articolo N</p><p>Rubrica</p>`).
+Esclusi considerando, formula finale, firme, note e allegati. Testo nello stile Normattiva: `Art. N. (Rubrica). 1. ... a) ...`
+(numerazione dei paragrafi e lettere conservate, articoli `bis` come `Art. 71-bis.`). Controlli bloccanti: numerazione da 1
+all'ultimo «Articolo N» senza buchi, intestazioni trovate = articoli letti, nessun articolo vuoto, nessuna intestazione
+d'articolo dentro il testo di un altro, nessun testo duplicato.
+
+**Riconoscimento** (`lex/ricerca_giuridica/testo.py`, `REGOLAMENTI_UE`): ogni regolamento e' un «codice» con etichetta
+`Reg. UE 1215/2012 (Bruxelles I-bis)` e alias numerici in tutte le forme («Reg. UE 1215/2012», «regolamento (UE) n. 1215/2012»,
+«reg. 848/2015» e «2015/848») e d'uso («Bruxelles I bis», «Roma I/II/III», «Bruxelles II-ter», «regolamento passeggeri»,
+«eIDAS», «AI Act», «decreto ingiuntivo europeo», ...). «Roma I» vale solo con la maiuscola nella domanda (non «a Roma i
+giudici...»). Le ricerche «art. 7 Reg. UE 1215/2012» o «art. 4 Roma I» trovano l'articolo esatto.
+
+Aggiornamento dei testi (sul PC; la rete del server non serve):
+
+```bash
+python tools/ue_regolamenti_scarica.py --cache ~/iusentra-lex-fonti/ue --aggiorna          # scarica, divide, controlla, riscrive il JSONL
+python tools/ue_regolamenti_scarica.py --cache ~/iusentra-lex-fonti/ue --offline --solo 32012R1215   # solo dalla cache
+python tools/normattiva_integra_leggi.py --db ~/iusentra-lex-fonti/normativa/normattiva.sqlite --vettori
+```
+
+Un atto con errori non viene scritto (codice di uscita 1). Dopo il commit del JSONL, il deploy e il job notturno inseriscono
+i nuovi testi come per le altre leggi integrate.
+
 ### 2.6 Articoli divisi male (riallineamento)
 
 L'importatore divideva il testo in articoli con una regola troppo larga: tagliava sui rimandi interni («dell'art. 2297.»: art. 2317 e

@@ -600,6 +600,41 @@ class OllamaHttpClient:
         return self._request("POST", "/chat", payload=payload, timeout=timeout)
 
 
+def _think_non_supportato(exc: Exception) -> bool:
+    """Ollama risponde 400 citando «think» se il modello non supporta il campo."""
+
+    response = getattr(exc, "response", None)
+    if response is None or getattr(response, "status_code", None) != 400:
+        return False
+    try:
+        return "think" in str(response.text or "").lower()
+    except Exception:
+        return False
+
+
+def _genera_risposta_completa(client: Any, model_name: str, prompt: str, *, keep_alive: str) -> dict[str, Any]:
+    """/api/generate con lo stesso contesto di Lex (num_ctx) e senza ragionamento (think=False).
+
+    Senza ``num_ctx`` Ollama usa il contesto predefinito del modello (2048/4096 token) e tronca in
+    silenzio il prompt lungo di «Chiedi al fascicolo» e della regia operativa; senza ``think=False``
+    i modelli con ragionamento consumano tempo e token prima di rispondere. Se il modello rifiuta
+    il campo ``think`` si ripete una volta senza; i client minimi senza ``generate_completion``
+    (test, ponti locali) usano ``generate``.
+    """
+
+    if not hasattr(client, "generate_completion"):
+        return client.generate(model_name, prompt, keep_alive=keep_alive)
+    from lex.settings import lex_generation_settings
+
+    options = {"num_ctx": lex_generation_settings().num_ctx}
+    try:
+        return client.generate_completion(model_name, prompt, keep_alive=keep_alive, options=options, think=False)
+    except requests.HTTPError as exc:
+        if not _think_non_supportato(exc):
+            raise
+        return client.generate_completion(model_name, prompt, keep_alive=keep_alive, options=options)
+
+
 class GeminiEmbeddingHttpClient:
     """Minimal REST client for the Gemini Embedding family."""
 
@@ -3400,7 +3435,7 @@ class LocalAIService:
         client = self._ollama_client(self._load_settings())
         chat_model = str(runtime.get("chat_model") or self._active_model("chat") or "")
         started = time.time()
-        response = client.generate(chat_model, str(prepared.get("prompt") or ""), keep_alive=keep_alive)
+        response = _genera_risposta_completa(client, chat_model, str(prepared.get("prompt") or ""), keep_alive=keep_alive)
         answer = str(response.get("response") or "").strip()
         if str(prepared.get("query_type") or "") == "fascicolo_ai":
             answer = self._polish_fascicolo_answer(answer)

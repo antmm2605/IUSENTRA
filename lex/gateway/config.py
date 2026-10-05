@@ -26,9 +26,38 @@ def _base_ollama() -> str:
     return "http://127.0.0.1:11434"
 
 
+def _modello_chat_lex() -> str:
+    """Il modello chat che usa Lex in questo momento (impostazioni studio, modello attivo, policy).
+
+    Serve il contesto applicativo Flask; fuori (script, test) restituisce stringa vuota.
+    """
+    try:
+        from flask import has_app_context
+
+        if not has_app_context():
+            return ""
+        from lex.providers.ollama_runtime import resolved_ollama_runtime
+
+        return str((resolved_ollama_runtime(default_model="") or {}).get("chat_model") or "").strip()
+    except Exception:
+        return ""
+
+
 def _modello_predefinito() -> str:
-    """Un modello realmente installato: quello di Lex, poi quello della catalogazione, poi la chat locale."""
-    for nome in ("LEX_DEFAULT_MODEL", "PCT_LEX_CATALOGO_MODELLO", "PCT_LOCAL_AI_CHAT_MODEL"):
+    """Modello del gateway (editor atti, riscrittura passaggio: task draft_act_support).
+
+    Ordine: 1) ``LEX_DEFAULT_MODEL`` esplicito; 2) il modello chat di Lex a runtime (lo stesso della
+    chat e del dataset di addestramento); 3) ``PCT_LOCAL_AI_CHAT_MODEL``; 4) ``PCT_LEX_CATALOGO_MODELLO``
+    (il 4B della catalogazione, solo come riserva: prima stava al secondo posto e in produzione
+    l'editor atti finiva sul modello piccolo); 5) ``llama3.1:8b``.
+    """
+    esplicito = os.getenv("LEX_DEFAULT_MODEL", "").strip()
+    if esplicito:
+        return esplicito
+    lex_runtime = _modello_chat_lex()
+    if lex_runtime:
+        return lex_runtime
+    for nome in ("PCT_LOCAL_AI_CHAT_MODEL", "PCT_LEX_CATALOGO_MODELLO"):
         valore = os.getenv(nome, "").strip()
         if valore:
             return valore

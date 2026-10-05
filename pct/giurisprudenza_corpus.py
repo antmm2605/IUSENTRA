@@ -69,10 +69,19 @@ def _fts_or_query(value: Any) -> str:
     (``responsabil*`` trova «responsabilita'», «responsabile»). Senza termini utili: query storica.
     """
 
+    termini = _termini_fts(value)
+    if not termini:
+        return _escape_fts_query(value)
+    return " OR ".join(termini)
+
+
+def _termini_fts(value: Any) -> list[str]:
+    """Termini FTS5 della domanda (al massimo 16): radici con prefisso, numeri e parole corte esatte."""
+
     try:
         from lex.ricerca_giuridica.testo import PAROLE_DOMANDA, STOPWORD, parole, senza_accenti, stem
     except Exception:  # pragma: no cover - ambienti ridotti
-        return _escape_fts_query(value)
+        return []
     termini: list[str] = []
     for parola in parole(_clean_spaces(value)):
         piana = senza_accenti(parola)
@@ -89,9 +98,7 @@ def _fts_or_query(value: Any) -> str:
             voce = f'"{radice}"*' if len(radice) >= 3 else f'"{piana}"'
         if voce not in termini:
             termini.append(voce)
-    if not termini:
-        return _escape_fts_query(value)
-    return " OR ".join(termini[:16])
+    return termini[:16]
 
 
 def derive_corpus_db_path(storage_path: str) -> str:
@@ -99,6 +106,166 @@ def derive_corpus_db_path(storage_path: str) -> str:
     stem = target.stem or "giurisprudenza"
     return str(target.with_name(f"{stem}_corpus.db"))
 
+
+
+# ---------------------------------------------------------------------------
+# Classifica delle ricerche testuali e ricerca per estremi
+# ---------------------------------------------------------------------------
+
+_COLONNE_RICERCA = """
+    s.id, s.organo_giudicante, s.sezione, s.numero_sentenza, s.anno_sentenza,
+    s.data_deposito, s.titolo, s.massima_ufficiale, s.principio_sintetico,
+    s.stato_verifica, s.url_pagina_ufficiale, s.url_pdf_ufficiale,
+    s.pdf_ufficiale_presente, s.fonte_ufficiale_confermata, s.ecli,
+    s.precedente_guida, s.sezioni_unite, s.nomofilattica, s.rilevanza,
+    s.tipo_provvedimento, s.relatore, s.data_decisione, s.esito, s.oggetto,
+    s.url_html_ufficiale
+"""
+
+_ORDINE_STORICO = """
+    CASE s.stato_verifica
+        WHEN 'verificata' THEN 3
+        WHEN 'parzialmente_verificata' THEN 2
+        ELSE 0
+    END DESC,
+    s.pdf_ufficiale_presente DESC,
+    s.fonte_ufficiale_confermata DESC,
+    CASE WHEN COALESCE(s.ecli, '') <> '' THEN 1 ELSE 0 END DESC,
+    s.precedente_guida DESC,
+    s.sezioni_unite DESC,
+    s.nomofilattica DESC,
+    COALESCE(s.rilevanza, 0) DESC,
+    COALESCE(s.data_deposito, '') DESC,
+    COALESCE(s.data_pubblicazione, '') DESC,
+    COALESCE(s.anno_sentenza, 0) DESC,
+    s.id DESC
+"""
+
+# Pesi bm25 per colonna (titolo, oggetto, abstract, principio, massima, testo integrale): titoli e
+# massime contano piu' del testo integrale, che altrimenti vince per accumulo di termini.
+_PESI_BM25 = "3.0, 2.0, 3.0, 2.0, 3.0, 0.5"
+# Classifica finale: bm25 relativo al migliore della rosa, copertura dei termini della domanda.
+_PESO_BM25 = 0.4
+_PESO_COPERTURA = 0.4
+
+# Dispositivo solo processuale: rinvio della trattazione, restituzione degli atti, correzione di
+# errore materiale, estinzione del giudizio.
+_DISPOSITIVO_PROCESSUALE = re.compile(
+    r"^\s*(?:riuniti i giudizi,?\s*)?(?:1\)\s*)?(?:"
+    r"rinvia\b|ordina la restituzione|restituisce gli atti|dispone la restituzione"
+    r"|dispone (?:che .{0,80})?(?:la )?corre[gz]|corregge\b|dispone la correzione"
+    r"|dichiara (?:l'|la )?estin|dichiara estint)",
+    re.IGNORECASE,
+)
+_DOMANDA_PROCESSUALE = re.compile(
+    r"\b(?:rinvi|restitu|correzion|errore materiale|estin)", re.IGNORECASE
+)
+
+_ECLI_RE = re.compile(r"\bECLI:[A-Z]{2}:[A-Z]+:\d{4}:[0-9A-Z.]+", re.IGNORECASE)
+_ESTREMI_RE = re.compile(
+    r"(?:\b(?:sent(?:enza|\.)?|ord(?:inanza|\.)?|pronuncia|decisione|cost(?:ituzionale|\.)?|consulta"
+    r"|cass(?:azione|\.)?)\s*,?\s*(?:(?:sent|ord)\.\s*)?(?:n\.|nr\.?|numero)?\s*)"
+    r"(\d{1,6})\s*(?:/|\s+del(?:l'anno)?\s+)((?:19|20)\d{2})\b",
+    re.IGNORECASE,
+)
+_SOLO_ESTREMI_RE = re.compile(r"^\s*(?:n\.\s*)?(\d{1,6})\s*/\s*((?:19|20)\d{2})\s*$")
+_ATTO_NORMATIVO_PRIMA = re.compile(
+    r"(?:\blegge|\bl\.|d\.\s*lgs|d\.\s*l\.|decreto|d\.\s*p\.\s*r|\bdpr|\bart|regolamento|direttiva)\W{0,4}(?:n\.\s*)?$",
+    re.IGNORECASE,
+)
+
+
+def estremi_dalla_domanda(value: Any) -> dict[str, Any]:
+    """ECLI e coppie (numero, anno) di pronunce citate nella domanda, con l'organo se indicato.
+
+    «sentenza n. 194/2018», «Corte cost. 253/2019», «ord. n. 97 del 2021», «ECLI:IT:COST:2019:253».
+    Non sono estremi di pronunce «legge n. 40/2004», «d.lgs. 23/2015», «art. 2/2010».
+    """
+
+    testo = _clean_spaces(value)
+    ecli = [match.group(0).upper() for match in _ECLI_RE.finditer(testo)]
+    coppie: list[tuple[str, int]] = []
+    solo = _SOLO_ESTREMI_RE.match(testo)
+    if solo:
+        coppie.append((str(int(solo.group(1))), int(solo.group(2))))
+    for match in _ESTREMI_RE.finditer(testo):
+        if _ATTO_NORMATIVO_PRIMA.search(testo[max(0, match.start() - 30):match.start()]):
+            continue
+        coppia = (str(int(match.group(1))), int(match.group(2)))
+        if coppia not in coppie:
+            coppie.append(coppia)
+    minuscolo = testo.lower()
+    organo = ""
+    if re.search(r"corte\s+cost|c\.\s*cost|consulta|costituzional|ecli:it:cost", minuscolo):
+        organo = "costituzionale"
+    elif re.search(r"\bcass", minuscolo):
+        organo = "cassazione"
+    return {"ecli": ecli, "coppie": coppie, "organo": organo}
+
+
+def _radici_regex(termini: list[str]) -> list[re.Pattern[str]]:
+    regole: list[re.Pattern[str]] = []
+    for termine in termini:
+        prefisso = termine.endswith("*")
+        parola = termine.strip("*").strip('"').lower()
+        if not parola:
+            continue
+        coda = "" if prefisso else r"\b"
+        regole.append(re.compile(r"\b" + re.escape(parola) + coda))
+    return regole
+
+
+_SENZA_ACCENTI = str.maketrans(
+    "àáâäãèéêëìíîïòóôöõùúûüçÀÁÂÄÃÈÉÊËÌÍÎÏÒÓÔÖÕÙÚÛÜÇ",
+    "aaaaaeeeeiiiiooooouuuucaaaaaeeeeiiiiooooouuuuc",
+)
+
+
+def _testo_piano(*valori: Any) -> str:
+    """Minuscolo senza accenti (tabella di traduzione: veloce anche su testi lunghi)."""
+
+    return " ".join(str(valore or "") for valore in valori).lower().translate(_SENZA_ACCENTI)
+
+
+def _copertura(regole: list[re.Pattern[str]], testo: str) -> float:
+    if not regole:
+        return 0.0
+    return sum(1 for regola in regole if regola.search(testo)) / len(regole)
+
+
+def _e_processuale(row: dict[str, Any]) -> bool:
+    dispositivo = _clean_spaces(row.get("esito") or row.get("principio_sintetico"))
+    return bool(_DISPOSITIVO_PROCESSUALE.search(dispositivo[:200]))
+
+
+def _riordina(righe: list[dict[str, Any]], domanda: str, termini: list[str]) -> list[dict[str, Any]]:
+    """Classifica: bm25 relativo, copertura dei termini nei campi brevi e nelle massime, sentenze della
+    Consulta prima delle ordinanze, pronunce solo processuali in fondo (se la domanda non le cerca)."""
+
+    if not righe:
+        return []
+    regole = _radici_regex(termini)
+    migliore = min((float(row.get("punteggio_bm25") or 0.0) for row in righe), default=0.0)
+    penalizza_processuali = not _DOMANDA_PROCESSUALE.search(domanda or "")
+    for row in righe:
+        bm25 = float(row.get("punteggio_bm25") or 0.0)
+        relativo = (bm25 / migliore) if migliore < 0 else 0.0
+        testa = _copertura(regole, _testo_piano(row.get("titolo"), row.get("oggetto"), row.get("abstract"), row.get("principio_sintetico")))
+        massima = _copertura(regole, _testo_piano(str(row.get("massima_ufficiale") or "")[:6000]))
+        punteggio = _PESO_BM25 * relativo + _PESO_COPERTURA * max(testa, massima) + (1 - _PESO_BM25 - _PESO_COPERTURA) * (testa + massima) / 2
+        consulta = "costituzional" in str(row.get("organo_giudicante") or "").lower()
+        if consulta and str(row.get("tipo_provvedimento") or "") == "sentenza":
+            punteggio += 0.08
+        if penalizza_processuali and _e_processuale(row):
+            punteggio -= 0.3
+        if str(row.get("stato_verifica") or "") == "verificata":
+            punteggio += 0.01
+        row["_punteggio"] = punteggio
+    ordinate = sorted(righe, key=lambda row: (-row["_punteggio"], float(row.get("punteggio_bm25") or 0.0)))
+    for row in ordinate:
+        row.pop("_punteggio", None)
+        row.pop("abstract", None)
+    return ordinate
 
 
 _ARTICOLO_NORMA = re.compile(
@@ -723,72 +890,120 @@ class GestioneCorpusGiurisprudenza:
         solo_con_pdf: bool = False,
         limit: int = 20,
     ) -> list[dict[str, Any]]:
-        params: list[Any] = []
-        if _clean_spaces(q):
-            sql = """
-                SELECT s.id, s.organo_giudicante, s.sezione, s.numero_sentenza, s.anno_sentenza,
-                       s.data_deposito, s.titolo, s.massima_ufficiale, s.principio_sintetico,
-                       s.stato_verifica, s.url_pagina_ufficiale, s.url_pdf_ufficiale,
-                       s.pdf_ufficiale_presente, s.fonte_ufficiale_confermata, s.ecli,
-                       s.precedente_guida, s.sezioni_unite, s.nomofilattica, s.rilevanza,
-                       s.tipo_provvedimento, s.relatore, s.data_decisione, s.esito, s.oggetto,
-                       s.url_html_ufficiale,
-                       ROUND(bm25(sentenze_fts, 3.0, 2.0, 2.0, 4.0, 4.0, 1.0), 3) AS punteggio_bm25
+        filtri = ""
+        filtri_params: list[Any] = []
+        if _clean_spaces(organo_giudicante):
+            filtri += " AND s.organo_giudicante = ?"
+            filtri_params.append(_clean_spaces(organo_giudicante))
+        if _clean_spaces(materia_principale):
+            filtri += " AND s.materia_principale = ?"
+            filtri_params.append(_clean_spaces(materia_principale))
+        if _clean_spaces(stato_verifica):
+            filtri += " AND s.stato_verifica = ?"
+            filtri_params.append(_clean_spaces(stato_verifica))
+        if solo_con_pdf:
+            filtri += " AND s.pdf_ufficiale_presente = 1"
+        limite = max(1, int(limit))
+        domanda = _clean_spaces(q)
+        with self._connect() as conn:
+            if not domanda:
+                sql = f"SELECT {_COLONNE_RICERCA} FROM sentenze s WHERE 1 = 1 {filtri} ORDER BY {_ORDINE_STORICO} LIMIT ?"
+                return [dict(row) for row in conn.execute(sql, (*filtri_params, limite)).fetchall()]
+            per_estremi = self._righe_per_estremi(conn, domanda, filtri, filtri_params)
+            termini = _termini_fts(domanda)
+            # Prima tutti i termini (AND), poi almeno uno (OR): le pronunce che li contengono tutti
+            # entrano nella rosa anche se il loro bm25 in OR e' inferiore a quello di massime lunghe.
+            ricerche = [" AND ".join(termini), " OR ".join(termini)] if len(termini) > 1 else [termini[0] if termini else _escape_fts_query(domanda)]
+            rosa = max(limite * 10, 100)
+            sql = f"""
+                SELECT {_COLONNE_RICERCA}, s.abstract,
+                       ROUND(bm25(sentenze_fts, {_PESI_BM25}), 3) AS punteggio_bm25
                 FROM sentenze s
                 JOIN sentenze_fts fts ON fts.rowid = s.id
-                WHERE sentenze_fts MATCH ?
+                WHERE sentenze_fts MATCH ? {filtri}
+                ORDER BY punteggio_bm25 ASC
+                LIMIT ?
             """
-            params.append(_fts_or_query(q))
-        else:
-            sql = """
-                SELECT s.id, s.organo_giudicante, s.sezione, s.numero_sentenza, s.anno_sentenza,
-                       s.data_deposito, s.titolo, s.massima_ufficiale, s.principio_sintetico,
-                       s.stato_verifica, s.url_pagina_ufficiale, s.url_pdf_ufficiale,
-                       s.pdf_ufficiale_presente, s.fonte_ufficiale_confermata, s.ecli,
-                       s.precedente_guida, s.sezioni_unite, s.nomofilattica, s.rilevanza,
-                       s.tipo_provvedimento, s.relatore, s.data_decisione, s.esito, s.oggetto,
-                       s.url_html_ufficiale
-                FROM sentenze s
-                WHERE 1 = 1
-            """
-        if _clean_spaces(organo_giudicante):
-            sql += " AND s.organo_giudicante = ?"
-            params.append(_clean_spaces(organo_giudicante))
-        if _clean_spaces(materia_principale):
-            sql += " AND s.materia_principale = ?"
-            params.append(_clean_spaces(materia_principale))
-        if _clean_spaces(stato_verifica):
-            sql += " AND s.stato_verifica = ?"
-            params.append(_clean_spaces(stato_verifica))
-        if solo_con_pdf:
-            sql += " AND s.pdf_ufficiale_presente = 1"
-        # Con una ricerca testuale domina bm25 (piu' basso = piu' pertinente); i criteri di
-        # affidabilita' e recenza restano come spareggio.
-        ordine_bm25 = "punteggio_bm25 ASC," if _clean_spaces(q) else ""
-        sql += f"""
-            ORDER BY
-                {ordine_bm25}
-                CASE s.stato_verifica
-                    WHEN 'verificata' THEN 3
-                    WHEN 'parzialmente_verificata' THEN 2
-                    ELSE 0
-                END DESC,
-                s.pdf_ufficiale_presente DESC,
-                s.fonte_ufficiale_confermata DESC,
-                CASE WHEN COALESCE(s.ecli, '') <> '' THEN 1 ELSE 0 END DESC,
-                s.precedente_guida DESC,
-                s.sezioni_unite DESC,
-                s.nomofilattica DESC,
-                COALESCE(s.rilevanza, 0) DESC,
-                COALESCE(s.data_deposito, '') DESC,
-                COALESCE(s.data_pubblicazione, '') DESC,
-                COALESCE(s.anno_sentenza, 0) DESC,
-                s.id DESC
-            LIMIT ?
-        """
-        params.append(max(1, int(limit)))
-        with self._connect() as conn:
-            return [dict(row) for row in conn.execute(sql, tuple(params)).fetchall()]
+            candidati: dict[int, dict[str, Any]] = {}
+            for ricerca in ricerche:
+                try:
+                    for row in conn.execute(sql, (ricerca, *filtri_params, rosa)).fetchall():
+                        candidati.setdefault(int(row["id"]), dict(row))
+                except sqlite3.OperationalError:
+                    continue
+            gia = {int(row["id"]) for row in per_estremi}
+            ordinate = _riordina([row for key, row in candidati.items() if key not in gia], domanda, termini)
+            risultato = (per_estremi + ordinate)[:limite]
+            self._massime_pertinenti_prima(conn, risultato, termini)
+            return risultato
+
+    def _righe_per_estremi(
+        self,
+        conn: sqlite3.Connection,
+        domanda: str,
+        filtri: str,
+        filtri_params: list[Any],
+    ) -> list[dict[str, Any]]:
+        """Pronunce citate per ECLI o per numero e anno: vanno in testa ai risultati."""
+
+        estremi = estremi_dalla_domanda(domanda)
+        righe: list[dict[str, Any]] = []
+        visti: set[int] = set()
+
+        def _aggiungi(rows: list[sqlite3.Row]) -> None:
+            for row in rows:
+                if int(row["id"]) not in visti:
+                    visti.add(int(row["id"]))
+                    record = dict(row)
+                    record["punteggio_bm25"] = None
+                    record["trovata_per_estremi"] = True
+                    righe.append(record)
+
+        for ecli in estremi["ecli"]:
+            _aggiungi(conn.execute(
+                f"SELECT {_COLONNE_RICERCA} FROM sentenze s WHERE UPPER(s.ecli) = ? {filtri}",
+                (ecli, *filtri_params),
+            ).fetchall())
+        organo_sql = ""
+        if estremi["organo"] == "costituzionale":
+            organo_sql = " AND LOWER(s.organo_giudicante) LIKE '%costituzional%'"
+        elif estremi["organo"] == "cassazione":
+            organo_sql = " AND LOWER(s.organo_giudicante) LIKE '%cassazione%'"
+        for numero, anno in estremi["coppie"][:4]:
+            _aggiungi(conn.execute(
+                f"""
+                SELECT {_COLONNE_RICERCA} FROM sentenze s
+                WHERE s.anno_sentenza = ? AND s.numero_sentenza IN (?, ?) {organo_sql} {filtri}
+                ORDER BY {_ORDINE_STORICO}
+                LIMIT 5
+                """,
+                (anno, numero, f"{numero}/{anno}", *filtri_params),
+            ).fetchall())
+        return righe
+
+    def _massime_pertinenti_prima(self, conn: sqlite3.Connection, righe: list[dict[str, Any]], termini: list[str]) -> None:
+        """Per le pronunce con piu' massime, prima quella con piu' termini della domanda."""
+
+        regole = _radici_regex(termini)
+        if not regole or not righe:
+            return
+        ids = [int(row["id"]) for row in righe]
+        segnaposto = ",".join("?" for _ in ids)
+        per_sentenza: dict[int, list[str]] = {}
+        for row in conn.execute(
+            f"SELECT sentenza_id, testo FROM massime WHERE sentenza_id IN ({segnaposto}) ORDER BY id",
+            tuple(ids),
+        ).fetchall():
+            per_sentenza.setdefault(int(row["sentenza_id"]), []).append(str(row["testo"] or ""))
+        for row in righe:
+            massime = per_sentenza.get(int(row["id"])) or []
+            if len(massime) < 2:
+                continue
+            punteggi = [
+                (-_copertura(regole, _testo_piano(testo)), indice, testo)
+                for indice, testo in enumerate(massime)
+            ]
+            row["massima_ufficiale"] = " ".join(testo for _p, _i, testo in sorted(punteggi))
 
     def can_cite_sentenza(self, record: dict[str, Any] | None) -> bool:
         if not record:

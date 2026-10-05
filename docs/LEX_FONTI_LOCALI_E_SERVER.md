@@ -277,6 +277,12 @@ Per Lex ogni pronuncia e' una fonte giurisprudenziale verificata: intestazione `
 ECLI:IT:COST:2025:6 · 27/01/2025` (data di deposito) e testo con prima la massima ufficiale, poi il dispositivo, entro i 1.600
 caratteri del blocco. La guardia anti-allucinazione riconosce «ordinanza n. X/AAAA» e «Corte cost., sent./ord. n. X/AAAA».
 
+Classifica delle ricerche (`GestioneCorpusGiurisprudenza.cerca_sentenze`): estremi citati nella domanda (ECLI o numero/anno dopo
+«sentenza», «ord.», «Corte cost.», «Cass.»; non dopo «legge», «d.lgs.», «art.») in testa; poi i candidati FTS (AND dei termini, poi OR)
+riordinati per bm25 relativo e copertura dei termini nei titoli e nelle massime; sentenze della Consulta prima delle ordinanze; pronunce
+solo processuali (rinvio, restituzione degli atti, correzione di errore materiale, estinzione) in fondo, salvo domanda esplicita.
+Le pronunce di sola inammissibilita' non sono penalizzate: molte sono decisioni con monito di grande rilievo (es. 32 e 33/2021).
+
 ## Tornare indietro
 
 Backup creato a ogni caricamento: `/opt/iusentra/backups/fonti_lex_AAAAMMGG-HHMMSS/`.

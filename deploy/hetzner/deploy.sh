@@ -404,6 +404,20 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 7c. Archivio completo della Corte costituzionale nel corpus giurisprudenziale di Lex (una tantum)
+# ---------------------------------------------------------------------------
+# Open data ufficiali (CC BY-SA 3.0): ~22.400 pronunce con massime, ~5 minuti e ~800 MB per corpus.
+# Gira in background nel worker solo per i corpus (globale e di ogni studio) che non hanno ancora registrato
+# l'import completo; un import interrotto riparte al deploy successivo. Se il download dal sito ufficiale
+# non riesce il deploy prosegue: ci riprova il deploy successivo, il job settimanale tiene aggiornati gli anni recenti.
+echo "Corte costituzionale: import una tantum dell'archivio open data (in background, solo se manca)..."
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" exec -d -T scheduler-worker sh -c '
+  cartella=/data/fonti_ufficiali/cortecost; mkdir -p "$cartella"
+  python tools/cortecost_importa.py --cartella "$cartella" --scarica --tutti-i-tenant --se-assente \
+    >> "$cartella/import.log" 2>&1' \
+  || echo "Attenzione: import dell'archivio della Corte costituzionale non avviato (ci riprova il deploy successivo)." >&2
+
+# ---------------------------------------------------------------------------
 # 8. Pulizia immagini e cache build Docker
 # ---------------------------------------------------------------------------
 echo "Pulizia immagini IUSENTRA obsolete e cache build Docker rigenerabile..."

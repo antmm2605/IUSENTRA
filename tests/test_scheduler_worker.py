@@ -39,6 +39,19 @@ def test_start_scheduler_worker_registra_job_core(monkeypatch, tmp_path: Path):
         assert scheduler.get_job("lex_dataset_nightly") is not None
         assert scheduler.get_job("legal_official_archives_daily") is not None
         assert scheduler.get_job("legal_updates_batch") is not None
+        cortecost = scheduler.get_job("corte_costituzionale_opendata_weekly")
+        assert cortecost is not None
+        assert "day_of_week='sat'" in str(cortecost.trigger)
+        comandi: list[list[str]] = []
+        monkeypatch.setattr(
+            "pct.scheduler._run_scheduler_command",
+            lambda label, command, timeout_seconds: comandi.append(command) or {"ok": True},
+        )
+        cortecost.func()
+        assert comandi and comandi[0][1] == "tools/cortecost_importa.py"
+        assert {"--scarica", "--tutti-i-tenant"} <= set(comandi[0])
+        assert comandi[0][comandi[0].index("--periodi") + 1] == "2001_oggi"
+        assert comandi[0][comandi[0].index("--anni-recenti") + 1] == "2"
         registry_tick = scheduler.get_job("scheduler_registry_reload")
         assert registry_tick is not None
         # Lo scheduler qui e' avviato davvero, e questo job ha un trigger al

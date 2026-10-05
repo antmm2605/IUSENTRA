@@ -209,10 +209,110 @@ class GestioneCorpusGiurisprudenza:
         return int(cursor.lastrowid)
 
     def salva_sentenza(self, payload: dict[str, Any]) -> dict[str, Any]:
+        with self._connect() as conn:
+            sentenza_id, _stato = self._salva_in_connessione(conn, payload)
+            conn.commit()
+        return self.get_sentenza(sentenza_id) or {}
+
+    def salva_sentenze_blocco(
+        self,
+        payloads: list[dict[str, Any]],
+        *,
+        salta_invariate: bool = True,
+        chiave_naturale: bool = False,
+    ) -> dict[str, int]:
+        """Scrive molte sentenze in una sola transazione (import massivi).
+
+        Idempotente: la chiave e' ``uuid_interno``/ECLI; con ``chiave_naturale`` si riconosce anche una
+        riga gia' presente dello stesso organo con lo stesso numero e anno (es. importata dal vecchio
+        sincronizzatore). Con ``salta_invariate`` le righe con lo stesso ``hash_contenuto`` non si toccano.
+        """
+
+        conteggi = {"inserite": 0, "aggiornate": 0, "invariate": 0}
+        if not payloads:
+            return conteggi
+        fonti: dict[str, int] = {}
+        with self._connect() as conn:
+            try:
+                for payload in payloads:
+                    _id, stato = self._salva_in_connessione(
+                        conn,
+                        payload,
+                        fonti=fonti,
+                        salta_invariate=salta_invariate,
+                        chiave_naturale=chiave_naturale,
+                    )
+                    conteggi[stato] += 1
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
+        return conteggi
+
+    def ottimizza_fts(self) -> None:
+        """Compatta l'indice FTS dopo un import massivo (facoltativo, idempotente)."""
+
+        with self._connect() as conn:
+            conn.execute("INSERT INTO sentenze_fts(sentenze_fts) VALUES ('optimize')")
+            conn.commit()
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+
+    def registra_importazione(
+        self,
+        *,
+        fonte_codice: str,
+        tipo_importazione: str,
+        stato: str,
+        query_origine: str = "",
+        url_origine: str = "",
+        file_origine: str = "",
+        record_letti: int = 0,
+        record_creati: int = 0,
+        record_aggiornati: int = 0,
+        record_scartati: int = 0,
+        log_errore: str = "",
+    ) -> None:
+        with self._connect() as conn:
+            row = conn.execute("SELECT id FROM fonti_giurisprudenza WHERE codice = ?", (fonte_codice,)).fetchone()
+            conn.execute(
+                """
+                INSERT INTO importazioni_giurisprudenza (
+                    fonte_id, tipo_importazione, stato, query_origine, url_origine, file_origine,
+                    record_letti, record_creati, record_aggiornati, record_scartati, log_errore, finished_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                """,
+                (
+                    int(row["id"]) if row else None,
+                    tipo_importazione,
+                    stato,
+                    query_origine,
+                    url_origine,
+                    file_origine,
+                    int(record_letti),
+                    int(record_creati),
+                    int(record_aggiornati),
+                    int(record_scartati),
+                    log_errore,
+                ),
+            )
+            conn.commit()
+
+    def _salva_in_connessione(
+        self,
+        conn: sqlite3.Connection,
+        payload: dict[str, Any],
+        *,
+        fonti: dict[str, int] | None = None,
+        salta_invariate: bool = False,
+        chiave_naturale: bool = False,
+    ) -> tuple[int, str]:
         normalized = dict(payload or {})
         normalized["uuid_interno"] = _derive_uuid(normalized)
         fonte_payload = dict(normalized.get("fonte") or {})
-        with self._connect() as conn:
+        codice_fonte = _clean_spaces(fonte_payload.get("codice") or normalized.get("fonte_codice") or "manuale_interno")
+        if fonti is not None and codice_fonte in fonti:
+            fonte_id = fonti[codice_fonte]
+        else:
             fonte_id = self._upsert_fonte(
                 conn,
                 {
@@ -228,111 +328,131 @@ class GestioneCorpusGiurisprudenza:
                     "note": fonte_payload.get("note"),
                 },
             )
-            ecli = _clean_spaces(normalized.get("ecli")) or None
+            if fonti is not None:
+                fonti[codice_fonte] = fonte_id
+        ecli = _clean_spaces(normalized.get("ecli")) or None
+        current = conn.execute(
+            "SELECT id, hash_contenuto, fonte_id FROM sentenze WHERE uuid_interno = ?",
+            (normalized["uuid_interno"],),
+        ).fetchone()
+        if not current and ecli:
             current = conn.execute(
-                "SELECT id FROM sentenze WHERE uuid_interno = ?",
-                (normalized["uuid_interno"],),
+                "SELECT id, hash_contenuto, fonte_id FROM sentenze WHERE ecli = ?",
+                (ecli,),
             ).fetchone()
-            if not current and ecli:
-                current = conn.execute(
-                    "SELECT id FROM sentenze WHERE ecli = ?",
-                    (ecli,),
-                ).fetchone()
-            numero = _clean_spaces(normalized.get("numero_sentenza"))
-            if not numero:
-                numero = _clean_spaces(normalized.get("numero_provvedimento"))
-            anno = _to_int(normalized.get("anno_sentenza"))
-            if not anno and "/" in numero:
-                tail = numero.split("/")[-1].strip()
-                anno = _to_int(tail if len(tail) == 4 else f"20{tail}", 0)
-            base_values = (
-                fonte_id,
-                normalized["uuid_interno"],
-                ecli,
-                numero,
-                anno or None,
-                _clean_spaces(normalized.get("numero_ruolo")),
-                _clean_spaces(normalized.get("numero_registro")),
-                _clean_spaces(normalized.get("organo_giudicante")) or "Organo non indicato",
-                _clean_spaces(normalized.get("sezione")),
-                _clean_spaces(normalized.get("collegio")),
-                _clean_spaces(normalized.get("relatore")),
-                _clean_spaces(normalized.get("presidente")),
-                _clean_spaces(normalized.get("data_decisione")),
-                _clean_spaces(normalized.get("data_deposito")),
-                _clean_spaces(normalized.get("data_pubblicazione")),
-                _clean_spaces(normalized.get("area_diritto")),
-                _clean_spaces(normalized.get("materia_principale")),
-                _clean_spaces(normalized.get("sottomateria_principale")),
-                _clean_spaces(normalized.get("rito")),
-                _clean_spaces(normalized.get("grado_giudizio")),
-                _clean_spaces(normalized.get("tipo_provvedimento") or "provvedimento"),
-                _clean_spaces(normalized.get("titolo")),
-                _clean_spaces(normalized.get("oggetto")),
-                _clean_spaces(normalized.get("abstract")),
-                _clean_spaces(normalized.get("principio_sintetico")),
-                _clean_spaces(normalized.get("massima_ufficiale")),
-                _clean_spaces(normalized.get("testo_integrale")),
-                _clean_spaces(normalized.get("esito")),
-                _clean_spaces(normalized.get("orientamento") or "non_classificato"),
-                _to_int(normalized.get("rilevanza"), 0),
-                _bool_int(normalized.get("precedente_guida")),
-                _bool_int(normalized.get("sezioni_unite")),
-                _bool_int(normalized.get("nomofilattica")),
-                _clean_spaces(normalized.get("stato_verifica") or "da_verificare"),
-                _bool_int(normalized.get("fonte_ufficiale_confermata")),
-                _bool_int(normalized.get("pdf_ufficiale_presente")),
-                _bool_int(normalized.get("testo_integrale_presente") or normalized.get("testo_integrale")),
-                _normalize_url(normalized.get("url_pagina_ufficiale")),
-                _normalize_url(normalized.get("url_pdf_ufficiale")),
-                _normalize_url(normalized.get("url_html_ufficiale")),
-                _clean_spaces(normalized.get("hash_contenuto")),
-                _clean_spaces(normalized.get("hash_pdf")),
+        numero = _clean_spaces(normalized.get("numero_sentenza"))
+        if not numero:
+            numero = _clean_spaces(normalized.get("numero_provvedimento"))
+        anno = _to_int(normalized.get("anno_sentenza"))
+        if not anno and "/" in numero:
+            tail = numero.split("/")[-1].strip()
+            anno = _to_int(tail if len(tail) == 4 else f"20{tail}", 0)
+        organo = _clean_spaces(normalized.get("organo_giudicante")) or "Organo non indicato"
+        if not current and chiave_naturale and numero and anno:
+            current = conn.execute(
+                """
+                SELECT id, hash_contenuto, fonte_id FROM sentenze
+                WHERE organo_giudicante = ? AND anno_sentenza = ? AND numero_sentenza IN (?, ?)
+                ORDER BY id LIMIT 1
+                """,
+                (organo, anno, numero, f"{numero}/{anno}"),
+            ).fetchone()
+        hash_nuovo = _clean_spaces(normalized.get("hash_contenuto"))
+        if (
+            current
+            and salta_invariate
+            and hash_nuovo
+            and _clean_spaces(current["hash_contenuto"]) == hash_nuovo
+            and int(current["fonte_id"] or 0) == fonte_id
+        ):
+            return int(current["id"]), "invariate"
+        base_values = (
+            fonte_id,
+            normalized["uuid_interno"],
+            ecli,
+            numero,
+            anno or None,
+            _clean_spaces(normalized.get("numero_ruolo")),
+            _clean_spaces(normalized.get("numero_registro")),
+            organo,
+            _clean_spaces(normalized.get("sezione")),
+            _clean_spaces(normalized.get("collegio")),
+            _clean_spaces(normalized.get("relatore")),
+            _clean_spaces(normalized.get("presidente")),
+            _clean_spaces(normalized.get("data_decisione")),
+            _clean_spaces(normalized.get("data_deposito")),
+            _clean_spaces(normalized.get("data_pubblicazione")),
+            _clean_spaces(normalized.get("area_diritto")),
+            _clean_spaces(normalized.get("materia_principale")),
+            _clean_spaces(normalized.get("sottomateria_principale")),
+            _clean_spaces(normalized.get("rito")),
+            _clean_spaces(normalized.get("grado_giudizio")),
+            _clean_spaces(normalized.get("tipo_provvedimento") or "provvedimento"),
+            _clean_spaces(normalized.get("titolo")),
+            _clean_spaces(normalized.get("oggetto")),
+            _clean_spaces(normalized.get("abstract")),
+            _clean_spaces(normalized.get("principio_sintetico")),
+            _clean_spaces(normalized.get("massima_ufficiale")),
+            _clean_spaces(normalized.get("testo_integrale")),
+            _clean_spaces(normalized.get("esito")),
+            _clean_spaces(normalized.get("orientamento") or "non_classificato"),
+            _to_int(normalized.get("rilevanza"), 0),
+            _bool_int(normalized.get("precedente_guida")),
+            _bool_int(normalized.get("sezioni_unite")),
+            _bool_int(normalized.get("nomofilattica")),
+            _clean_spaces(normalized.get("stato_verifica") or "da_verificare"),
+            _bool_int(normalized.get("fonte_ufficiale_confermata")),
+            _bool_int(normalized.get("pdf_ufficiale_presente")),
+            _bool_int(normalized.get("testo_integrale_presente") or normalized.get("testo_integrale")),
+            _normalize_url(normalized.get("url_pagina_ufficiale")),
+            _normalize_url(normalized.get("url_pdf_ufficiale")),
+            _normalize_url(normalized.get("url_html_ufficiale")),
+            _clean_spaces(normalized.get("hash_contenuto")),
+            _clean_spaces(normalized.get("hash_pdf")),
+        )
+        if current:
+            sentenza_id = int(current["id"])
+            conn.execute(
+                """
+                UPDATE sentenze
+                SET fonte_id = ?, uuid_interno = ?, ecli = ?, numero_sentenza = ?, anno_sentenza = ?,
+                    numero_ruolo = ?, numero_registro = ?, organo_giudicante = ?, sezione = ?, collegio = ?,
+                    relatore = ?, presidente = ?, data_decisione = ?, data_deposito = ?, data_pubblicazione = ?,
+                    area_diritto = ?, materia_principale = ?, sottomateria_principale = ?, rito = ?, grado_giudizio = ?,
+                    tipo_provvedimento = ?, titolo = ?, oggetto = ?, abstract = ?, principio_sintetico = ?,
+                    massima_ufficiale = ?, testo_integrale = ?, esito = ?, orientamento = ?, rilevanza = ?,
+                    precedente_guida = ?, sezioni_unite = ?, nomofilattica = ?, stato_verifica = ?,
+                    fonte_ufficiale_confermata = ?, pdf_ufficiale_presente = ?, testo_integrale_presente = ?,
+                    url_pagina_ufficiale = ?, url_pdf_ufficiale = ?, url_html_ufficiale = ?, hash_contenuto = ?,
+                    hash_pdf = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                base_values + (sentenza_id,),
             )
-            if current:
-                sentenza_id = int(current["id"])
-                conn.execute(
-                    """
-                    UPDATE sentenze
-                    SET fonte_id = ?, uuid_interno = ?, ecli = ?, numero_sentenza = ?, anno_sentenza = ?,
-                        numero_ruolo = ?, numero_registro = ?, organo_giudicante = ?, sezione = ?, collegio = ?,
-                        relatore = ?, presidente = ?, data_decisione = ?, data_deposito = ?, data_pubblicazione = ?,
-                        area_diritto = ?, materia_principale = ?, sottomateria_principale = ?, rito = ?, grado_giudizio = ?,
-                        tipo_provvedimento = ?, titolo = ?, oggetto = ?, abstract = ?, principio_sintetico = ?,
-                        massima_ufficiale = ?, testo_integrale = ?, esito = ?, orientamento = ?, rilevanza = ?,
-                        precedente_guida = ?, sezioni_unite = ?, nomofilattica = ?, stato_verifica = ?,
-                        fonte_ufficiale_confermata = ?, pdf_ufficiale_presente = ?, testo_integrale_presente = ?,
-                        url_pagina_ufficiale = ?, url_pdf_ufficiale = ?, url_html_ufficiale = ?, hash_contenuto = ?,
-                        hash_pdf = ?, updated_at = CURRENT_TIMESTAMP
-                    WHERE id = ?
-                    """,
-                    base_values + (sentenza_id,),
-                )
-            else:
-                cursor = conn.execute(
-                    """
-                    INSERT INTO sentenze (
-                        fonte_id, uuid_interno, ecli, numero_sentenza, anno_sentenza, numero_ruolo, numero_registro,
-                        organo_giudicante, sezione, collegio, relatore, presidente, data_decisione, data_deposito,
-                        data_pubblicazione, area_diritto, materia_principale, sottomateria_principale, rito,
-                        grado_giudizio, tipo_provvedimento, titolo, oggetto, abstract, principio_sintetico,
-                        massima_ufficiale, testo_integrale, esito, orientamento, rilevanza, precedente_guida,
-                        sezioni_unite, nomofilattica, stato_verifica, fonte_ufficiale_confermata,
-                        pdf_ufficiale_presente, testo_integrale_presente, url_pagina_ufficiale, url_pdf_ufficiale,
-                        url_html_ufficiale, hash_contenuto, hash_pdf
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    base_values,
-                )
-                sentenza_id = int(cursor.lastrowid)
-            self._replace_documenti(conn, sentenza_id, normalized.get("documenti") or [])
-            self._replace_massime(conn, sentenza_id, normalized.get("massime") or [])
-            self._replace_principi(conn, sentenza_id, normalized.get("principi_diritto") or [])
-            self._replace_norme(conn, sentenza_id, normalized.get("norme") or [])
-            self._replace_precedenti(conn, sentenza_id, normalized.get("precedenti") or [])
-            self._replace_verifiche(conn, sentenza_id, fonte_id, normalized.get("verifiche") or [])
-            conn.commit()
-        return self.get_sentenza(sentenza_id) or {}
+        else:
+            cursor = conn.execute(
+                """
+                INSERT INTO sentenze (
+                    fonte_id, uuid_interno, ecli, numero_sentenza, anno_sentenza, numero_ruolo, numero_registro,
+                    organo_giudicante, sezione, collegio, relatore, presidente, data_decisione, data_deposito,
+                    data_pubblicazione, area_diritto, materia_principale, sottomateria_principale, rito,
+                    grado_giudizio, tipo_provvedimento, titolo, oggetto, abstract, principio_sintetico,
+                    massima_ufficiale, testo_integrale, esito, orientamento, rilevanza, precedente_guida,
+                    sezioni_unite, nomofilattica, stato_verifica, fonte_ufficiale_confermata,
+                    pdf_ufficiale_presente, testo_integrale_presente, url_pagina_ufficiale, url_pdf_ufficiale,
+                    url_html_ufficiale, hash_contenuto, hash_pdf
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                base_values,
+            )
+            sentenza_id = int(cursor.lastrowid)
+        self._replace_documenti(conn, sentenza_id, normalized.get("documenti") or [])
+        self._replace_massime(conn, sentenza_id, normalized.get("massime") or [])
+        self._replace_principi(conn, sentenza_id, normalized.get("principi_diritto") or [])
+        self._replace_norme(conn, sentenza_id, normalized.get("norme") or [])
+        self._replace_precedenti(conn, sentenza_id, normalized.get("precedenti") or [])
+        self._replace_verifiche(conn, sentenza_id, fonte_id, normalized.get("verifiche") or [])
+        return sentenza_id, ("aggiornate" if current else "inserite")
 
     def _replace_documenti(self, conn: sqlite3.Connection, sentenza_id: int, rows: list[Any]) -> None:
         conn.execute("DELETE FROM documenti_sentenza WHERE sentenza_id = ?", (sentenza_id,))
@@ -611,6 +731,8 @@ class GestioneCorpusGiurisprudenza:
                        s.stato_verifica, s.url_pagina_ufficiale, s.url_pdf_ufficiale,
                        s.pdf_ufficiale_presente, s.fonte_ufficiale_confermata, s.ecli,
                        s.precedente_guida, s.sezioni_unite, s.nomofilattica, s.rilevanza,
+                       s.tipo_provvedimento, s.relatore, s.data_decisione, s.esito, s.oggetto,
+                       s.url_html_ufficiale,
                        ROUND(bm25(sentenze_fts, 3.0, 2.0, 2.0, 4.0, 4.0, 1.0), 3) AS punteggio_bm25
                 FROM sentenze s
                 JOIN sentenze_fts fts ON fts.rowid = s.id
@@ -623,7 +745,9 @@ class GestioneCorpusGiurisprudenza:
                        s.data_deposito, s.titolo, s.massima_ufficiale, s.principio_sintetico,
                        s.stato_verifica, s.url_pagina_ufficiale, s.url_pdf_ufficiale,
                        s.pdf_ufficiale_presente, s.fonte_ufficiale_confermata, s.ecli,
-                       s.precedente_guida, s.sezioni_unite, s.nomofilattica, s.rilevanza
+                       s.precedente_guida, s.sezioni_unite, s.nomofilattica, s.rilevanza,
+                       s.tipo_provvedimento, s.relatore, s.data_decisione, s.esito, s.oggetto,
+                       s.url_html_ufficiale
                 FROM sentenze s
                 WHERE 1 = 1
             """

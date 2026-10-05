@@ -412,6 +412,46 @@ def start_scheduler(app):
                 logger.error("[scheduler] Certificati PST cifratura falliti: %s", e)
                 return {"ok": False, "error": str(e), "job": "pst_certificati_cifratura_weekly"}
 
+    # ---- Corte costituzionale open data (settimanale) ----
+    # Riscarica P_json2001_oggi.zip e CC_OpenMassime_2001_oggi.zip dal sito ufficiale e importa nel
+    # corpus giurisprudenziale (globale e di ogni studio) solo l'anno corrente e il precedente: le righe
+    # invariate si saltano. L'archivio storico completo lo carica il deploy una tantum (passo 7c).
+    cortecost_h, cortecost_m = _parse_hhmm(os.getenv("PCT_CORTECOST_SYNC_ORA", "04:20"), "04:20")
+    cortecost_day = str(os.getenv("PCT_CORTECOST_SYNC_GIORNO", "sat") or "sat").strip() or "sat"
+
+    @scheduler.scheduled_job(
+        CronTrigger(day_of_week=cortecost_day, hour=cortecost_h, minute=cortecost_m),
+        id="corte_costituzionale_opendata_weekly",
+    )
+    def _corte_costituzionale_opendata_weekly():
+        with app.app_context():
+            cartella = _runtime_path(
+                app,
+                "CORTECOST_OPENDATA_DIR",
+                "PCT_CORTECOST_OPENDATA_DIR",
+                "/data/fonti_ufficiali/cortecost",
+            )
+            comando = [
+                sys.executable,
+                "tools/cortecost_importa.py",
+                "--cartella",
+                cartella,
+                "--scarica",
+                "--periodi",
+                "2001_oggi",
+                "--anni-recenti",
+                "2",
+                "--tutti-i-tenant",
+                "--registry",
+                str(app.config.get("TENANTS_REGISTRY") or os.getenv("PCT_TENANTS_REGISTRY") or "/data/tenants.json"),
+                "--json",
+            ]
+            return _run_scheduler_command(
+                "corte costituzionale open data",
+                comando,
+                timeout_seconds=_parse_positive_int(os.getenv("PCT_CORTECOST_SYNC_TIMEOUT_SECONDS"), 3600),
+            )
+
     def _run_legal_monitor(source_ids, label):
         with app.app_context():
             try:

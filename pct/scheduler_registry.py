@@ -447,6 +447,8 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
         or os.getenv("PCT_PST_CERTIFICATI_CIFRATURA_SYNC_GIORNO")
         or "sun"
     ).strip() or "sun"
+    cortecost_h, cortecost_m = _hhmm(os.getenv("PCT_CORTECOST_SYNC_ORA"), "04:20")
+    cortecost_day = str(os.getenv("PCT_CORTECOST_SYNC_GIORNO") or "sat").strip() or "sat"
     builtins = (
         SchedulerTemplate(
             "backup_giornaliero",
@@ -464,6 +466,18 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
         SchedulerTemplate("aggiorna_parcelle_scadute", "Parcelle scadute", "Economia", "Aggiorna stati delle parcelle scadute.", "cron", "1", "0", built_in=True),
         SchedulerTemplate("sync_uffici", "Uffici giudiziari", "Fonti e tabelle", "Sincronizza uffici giudiziari da fonti ufficiali.", "cron", uffici_h, uffici_m, built_in=True),
         SchedulerTemplate("pst_certificati_cifratura_weekly", "Certificati PST cifratura", "Depositi telematici", "Controlla e aggiorna ogni settimana i certificati .cer degli uffici giudiziari per Atto.enc.", "cron", pst_cert_h, pst_cert_m, 0, pst_cert_day, built_in=True),
+        SchedulerTemplate(
+            "corte_costituzionale_opendata_weekly",
+            "Corte costituzionale open data",
+            "Aggiornamenti legali",
+            "Ogni settimana riscarica pronunce e massime ufficiali (2001-oggi) e aggiorna nel corpus di Lex l'anno corrente e il precedente.",
+            "cron",
+            cortecost_h,
+            cortecost_m,
+            0,
+            cortecost_day,
+            built_in=True,
+        ),
         SchedulerTemplate("legal_official_archives_daily", "Archivi Normattiva e Gazzetta", "Aggiornamenti legali", "Aggiorna archivi ufficiali locali senza duplicare pacchetti invariati.", "cron", "23", "0", built_in=True),
         SchedulerTemplate("legal_monitor_daily", "Monitor legale giornaliero", "Aggiornamenti legali", "Presidia le fonti legali principali.", "cron", "5", "45", built_in=True),
         SchedulerTemplate("legal_monitor_pst", "Monitor PST", "Aggiornamenti legali", "Controlla aggiornamenti PST durante la giornata.", "cron", "6,12,18", "15", built_in=True),

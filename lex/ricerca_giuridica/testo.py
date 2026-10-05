@@ -447,6 +447,23 @@ def articolo_normalizzato(valore: str) -> str:
     return f"{int(match.group(1))}{suffisso}{sotto}"
 
 
+# Provenienza degli atti dell'archivio normativo, dalla URN: gli atti integrati non statali non vengono da Normattiva.
+_PROVENIENZA_DA_URN: tuple[tuple[str, str], ...] = (
+    ("urn:nir:unione.europea:", "GUUE"),
+    ("urn:nir:consiglio.nazionale.forense:", "CNF"),
+)
+
+
+def provenienza_atto(urn: str | None, predefinita: str = "Normattiva") -> str:
+    """«GUUE» per i regolamenti UE (GDPR compreso), «CNF» per il codice deontologico forense, altrimenti ``predefinita``."""
+
+    valore = str(urn or "").strip().lower()
+    for prefisso, provenienza in _PROVENIENZA_DA_URN:
+        if valore.startswith(prefisso):
+            return provenienza
+    return predefinita
+
+
 def codice_da_atto(numero: str | None, data_atto: str | None, titolo: str | None = "") -> str:
     numero = str(numero or "").strip()
     data_atto = str(data_atto or "").strip()[:10]
@@ -635,6 +652,7 @@ __all__ = [
     "codice_da_atto",
     "corrispondenze_tesauro",
     "normalizza_apostrofi",
+    "provenienza_atto",
     "parole",
     "senza_accenti",
     "stem",

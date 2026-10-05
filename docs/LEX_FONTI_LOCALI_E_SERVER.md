@@ -269,6 +269,10 @@ python tools/ue_regolamenti_scarica.py --cache ~/iusentra-lex-fonti/ue --offline
 python tools/normattiva_integra_leggi.py --db ~/iusentra-lex-fonti/normativa/normattiva.sqlite --vettori
 ```
 
+Nell'intestazione della fonte mostrata al modello questi atti hanno provenienza `(GUUE)` (anche il GDPR) e il codice
+deontologico forense `(CNF)`, ricavata dalla URN (`provenienza_atto`): `[1] Reg. UE 1215/2012 (Bruxelles I-bis) (GUUE) · art. 7 ·
+vigente · 12/12/2012`. Gli atti di Normattiva restano `(Normattiva)`.
+
 Un atto con errori non viene scritto (codice di uscita 1). Dopo il commit del JSONL, il deploy e il job notturno inseriscono
 i nuovi testi come per le altre leggi integrate.
 

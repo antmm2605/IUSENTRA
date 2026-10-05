@@ -161,12 +161,19 @@ def _articolo_fonte(row: dict[str, Any]) -> str:
 
 def _archive_row_to_source(row: dict[str, Any], *, source_type: str, default_title: str) -> LexSource:
     title = etichetta_fonte_normattiva(row) if source_type == "normativa_normattiva" else str(row.get("titolo") or default_title)
+    autorita = row.get("fonte") or default_title
+    if source_type == "normativa_normattiva":
+        from lex.ricerca_giuridica.testo import provenienza_atto
+
+        # regolamenti UE e codice deontologico integrati nell'archivio: «GUUE» / «CNF», non «Normattiva»
+        metadata_riga = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
+        autorita = provenienza_atto(str(row.get("url_origine") or metadata_riga.get("urn") or ""), str(autorita))
     title = title or str(row.get("titolo") or default_title)
     excerpt = str(row.get("testo") or row.get("excerpt") or "")[:1600]
     source_id = str(row.get("chunk_id") or row.get("document_id") or title)
     metadata: dict[str, Any] = {
         "official_url": row.get("url_origine") or row.get("url") or "",
-        "authority": row.get("fonte") or default_title,
+        "authority": autorita,
         "published_at": row.get("data") or "",
         "verified_reference": True,
         "archive_context": True,

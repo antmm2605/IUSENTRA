@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 from zipfile import BadZipFile, ZipFile
 
+from lex.ricerca_giuridica.testo import provenienza_atto
+
 DEFAULT_OFFICIAL_DB = Path("data/fonti_ufficiali/lex_sources.sqlite")
 DEFAULT_NORMATTIVA_DB = Path("data/normativa/normattiva.sqlite")
 DEFAULT_OFFICIAL_JSONL = Path("data/fonti_ufficiali/index/lex_sources_chunks.jsonl")
@@ -394,7 +396,7 @@ def _get_normattiva_document(document_id: int | str, path: Path) -> dict[str, An
             return None
         return {
             "document_id": row["id"],
-            "fonte": "Normattiva",
+            "fonte": provenienza_atto(row["urn"]),
             "titolo": row["titolo"],
             "data": row["data_atto"] or row["data_pubblicazione"],
             "url_origine": row["urn"] or row["zip_path"],
@@ -662,7 +664,7 @@ def _row_to_normattiva_chunk(row: sqlite3.Row) -> dict[str, Any]:
     return {
         "chunk_id": row["chunk_key"] or row["chunk_id"],
         "document_id": row["document_id"],
-        "fonte": "Normattiva",
+        "fonte": provenienza_atto(row["urn"]),
         "titolo": row["titolo"],
         "data": row["data_atto"] or row["data_pubblicazione"],
         "url_origine": row["urn"] or row["zip_path"],

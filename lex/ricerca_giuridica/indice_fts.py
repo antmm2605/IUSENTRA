@@ -33,6 +33,7 @@ from .testo import (
     AnalisiDomanda,
     articolo_normalizzato,
     codice_da_atto,
+    provenienza_atto,
     testo_indice,
 )
 
@@ -496,7 +497,7 @@ def carica_chunk(conn: sqlite3.Connection, ids: list[int]) -> dict[int, dict[str
                     "chunk_id": riga["chunk_key"] or riga["chunk_id"],
                     "chunk_rowid": int(riga["chunk_id"]),
                     "document_id": riga["document_id"],
-                    "fonte": "Normattiva",
+                    "fonte": provenienza_atto(riga["urn"]),
                     "titolo": riga["titolo"],
                     "data": riga["data_atto"] or riga["data_pubblicazione"],
                     "url_origine": riga["urn"] or riga["zip_path"],

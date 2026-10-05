@@ -370,3 +370,48 @@ def test_file_del_repository_contiene_i_regolamenti_ue():
     assert "in materia contrattuale, davanti all'autorità giurisdizionale del luogo di esecuzione" in art7
     roma2 = gruppi["reg_ue_2007_864"][0]["titolo_atto"]
     assert roma2.endswith("[Testo originale pubblicato in GUUE: modifiche successive non incluse]")
+
+
+def _intestazione(riga: dict) -> str:
+    from lex.providers.prompt_budget import format_evidence_item
+    from lex.retrieval.normativa import _archive_row_to_source
+    from lex.retrieval.sources import row_to_evidence
+
+    fonte = _archive_row_to_source(riga, source_type="normativa_normattiva", default_title="Normattiva")
+    evidenza = row_to_evidence(fonte.to_dict() if hasattr(fonte, "to_dict") else fonte.__dict__, "normativa")
+    return format_evidence_item(1, evidenza, max_chars=1600)[0].splitlines()[0]
+
+
+def _riga(urn: str, titolo: str, data: str, numero: str, articolo: str) -> dict:
+    return {"chunk_id": "c1", "document_id": 1, "fonte": "Normattiva", "titolo": titolo, "data": data, "url_origine": urn,
+            "articolo_o_chunk": f"Art. {articolo}.", "testo": f"Art. {articolo}. Testo.", "vigenza": "VIGENTE",
+            "metadata": {"numero": numero, "data_atto": data, "article_number": f"Art. {articolo}.", "urn": urn}}
+
+
+def test_provenienza_guue_e_cnf_nell_intestazione_della_fonte():
+    from lex.ricerca_giuridica.testo import provenienza_atto
+
+    assert provenienza_atto("urn:nir:unione.europea:regolamento:2012-12-12;1215") == "GUUE"
+    assert provenienza_atto("urn:nir:consiglio.nazionale.forense:codice.deontologico:2014-01-31") == "CNF"
+    assert provenienza_atto("urn:nir:stato:legge:1994-01-21;53") == "Normattiva"
+    assert provenienza_atto("") == "Normattiva"
+    assert _intestazione(_riga("urn:nir:unione.europea:regolamento:2012-12-12;1215", "Regolamento (UE) n. 1215/2012",
+                               "2012-12-12", "1215", "7")) == "[1] Reg. UE 1215/2012 (Bruxelles I-bis) (GUUE) · art. 7 · vigente · 12/12/2012"
+    assert _intestazione(_riga("urn:nir:unione.europea:regolamento:2016-04-27;679", "Regolamento (UE) 2016/679",
+                               "2016-04-27", "679", "6")).startswith("[1] Regolamento (UE) 2016/679 (GDPR) (GUUE) · art. 6 · vigente")
+    assert _intestazione(_riga("urn:nir:consiglio.nazionale.forense:codice.deontologico:2014-01-31", "Codice deontologico forense",
+                               "2014-01-31", "", "1")).startswith("[1] Codice deontologico forense (CNF) · art. 1 · vigente")
+    # gli atti Normattiva restano come prima
+    assert _intestazione(_riga("urn:nir:stato:regio.decreto:1942-03-16;262", "Approvazione del testo del Codice civile.",
+                               "1942-03-16", "262", "2043")) == "[1] Codice civile (Normattiva) · art. 2043 · vigente · 16/03/1942"
+
+
+def test_ricerca_nell_archivio_porta_la_provenienza_guue(tmp_path):
+    atto = dividi(CONSOLIDATO.encode("utf-8"))
+    righe = righe_jsonl(atto, chiave="reg_ue_2012_1215", url="u", consolidato_al="2015-02-26")
+    file = tmp_path / "ue.jsonl"
+    file.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in righe), encoding="utf-8")
+    db = tmp_path / "normattiva.sqlite"
+    integra(db, jsonl=file)
+    trovati = cerca_normattiva_indicizzata("art. 8 Reg. UE 1215/2012", db, limite=1)
+    assert trovati and trovati[0]["fonte"] == "GUUE" and trovati[0]["vigenza"] == "VIGENTE"

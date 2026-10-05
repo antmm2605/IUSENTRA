@@ -231,6 +231,52 @@ Tocca solo i documenti con difetti; se i controlli di coerenza non passano (nume
 e compare nel resoconto. Idempotente. Il deploy lo esegue una volta (con copia di sicurezza `normattiva.prima_riallineamento.sqlite` se c'e'
 spazio), poi lo ripete il job notturno.
 
+### 2.7 Corte costituzionale: archivio completo delle pronunce e delle massime
+
+Fonte: open data ufficiali della Corte costituzionale, <https://dati.cortecostituzionale.it> («Scarica i dati»).
+**Licenza Creative Commons BY-SA 3.0**: l'uso e' libero con **attribuzione** («Fonte: Corte costituzionale,
+dati.cortecostituzionale.it») e, se si redistribuiscono i dati rielaborati, con la stessa licenza. Ogni pronuncia nel corpus
+rimanda alla scheda ufficiale `https://www.cortecostituzionale.it/scheda-pronuncia/AAAA/N`; la fonte `corte_costituzionale`
+del corpus riporta la licenza nelle note.
+
+File usati (zip di zip annuali, tre periodi `1956_1980`, `1981_2000`, `2001_oggi`):
+
+- pronunce JSON: `https://dati.cortecostituzionale.it/opendata/distribuzione/pronunce/P_json<periodo>.zip`
+  (`Cc_Opendata_Pronunce_AAAA.json`, cp1252, `elenco_pronunce`: numero, anno, tipologia S/O, date, collegio, relatore,
+  presidente, epigrafe, testo, dispositivo, ECLI);
+- massime XML: `https://dati.cortecostituzionale.it/opendata/distribuzione/CC_OpenMassime_<periodo>.zip`
+  (`Cc_OpenData_Massime_AAAA.xml`, UTF-8: tipologia del giudizio, titolo e testo di ogni massima).
+
+`pct/corte_costituzionale_opendata.py` unisce pronunce e massime per (anno, numero) e scrive nel corpus giurisprudenziale
+(`giurisprudenza_corpus.db`, lo stesso che Lex interroga con FTS5): organo «Corte costituzionale», sentenza/ordinanza, numero e anno,
+ECLI, relatore, presidente, collegio, date ISO, titolo «Corte costituzionale, sentenza n. X/AAAA», oggetto (tipologia del giudizio),
+titoli delle massime, massime ufficiali (anche nella tabella `massime`), dispositivo (`principio_sintetico` ed `esito`, senza formula
+d'apertura e firme), testo integrale (epigrafe, testo, dispositivo), stato `verificata`, fonte ufficiale confermata. Scrittura a blocchi
+di 500 righe per transazione, chiave ECLI, righe invariate saltate (impronta del contenuto): rilanciarlo non duplica nulla.
+
+```bash
+# sul server (container scheduler-worker): scarica e importa nel corpus globale e in quello di ogni studio
+python tools/cortecost_importa.py --cartella /data/fonti_ufficiali/cortecost --scarica --tutti-i-tenant
+# un corpus preciso, zip gia' scaricati, riepilogo JSON
+python tools/cortecost_importa.py --cartella ~/cortecost --db /data/intelligence/giurisprudenza_corpus.db --json
+# uno studio: --tenant-dir /data/tenants/<slug>   ·   solo dal 2020: --dal-anno 2020   ·   prova: --dry-run
+```
+
+Misurato il 05/10/2026 sul dataset completo (22.395 pronunce: 11.715 sentenze e 10.680 ordinanze; 46.561 massime su 22.313
+pronunce): import in un corpus vuoto **circa 5 minuti** (285 s), rilancio senza modifiche circa 1 minuto, corpus di **circa 770 MB**
+(testo integrale e indice FTS compresi). Lo spazio vale per ogni corpus: con `--tutti-i-tenant` il globale e ogni studio.
+
+- **Deploy** (`deploy.sh`, passo 7c): una tantum, in background nel worker, solo per i corpus che non hanno ancora registrato l'import
+  completo (`importazioni_giurisprudenza`, `cortecost_opendata:completo`); log in `/data/fonti_ufficiali/cortecost/import.log`.
+  Se il download non riesce il deploy prosegue e ci riprova il deploy successivo; un import interrotto riparte da capo saltando le righe
+  gia' scritte. Un lock nella cartella impedisce due import contemporanei.
+- **Settimanale** (job `corte_costituzionale_opendata_weekly`, sabato 04:20; `PCT_CORTECOST_SYNC_GIORNO`, `PCT_CORTECOST_SYNC_ORA`,
+  cartella `PCT_CORTECOST_OPENDATA_DIR`): riscarica `2001_oggi` e importa solo anno corrente e precedente (`--anni-recenti 2`).
+
+Per Lex ogni pronuncia e' una fonte giurisprudenziale verificata: intestazione `[n] Corte costituzionale, sentenza n. 6/2025 ·
+ECLI:IT:COST:2025:6 · 27/01/2025` (data di deposito) e testo con prima la massima ufficiale, poi il dispositivo, entro i 1.600
+caratteri del blocco. La guardia anti-allucinazione riconosce «ordinanza n. X/AAAA» e «Corte cost., sent./ord. n. X/AAAA».
+
 ## Tornare indietro
 
 Backup creato a ogni caricamento: `/opt/iusentra/backups/fonti_lex_AAAAMMGG-HHMMSS/`.

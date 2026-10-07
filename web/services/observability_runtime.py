@@ -26,12 +26,22 @@ def register_observability_runtime(app: Flask) -> RuntimeMetricsRegistry:
     def _runtime_metrics_after_request(response):
         started = getattr(g, "_request_started_monotonic", None)
         if started is not None:
+            duration_ms = (monotonic() - started) * 1000
             registry.observe_http(
                 method=request.method,
                 endpoint=_endpoint_bucket(),
                 status_code=response.status_code,
-                duration_ms=(monotonic() - started) * 1000,
+                duration_ms=duration_ms,
             )
+            if request.method == "GET" and request.path.startswith("/api/v1/ui/"):
+                timing = f"iusentra;dur={duration_ms:.1f}"
+                existing = response.headers.get("Server-Timing", "")
+                response.headers["Server-Timing"] = f"{existing}, {timing}" if existing else timing
+                current_app.logger.info(
+                    "UI lettura: endpoint=%s durata_ms=%.1f stato=%s byte=%s",
+                    request.endpoint or "non_disponibile", duration_ms,
+                    response.status_code, response.calculate_content_length(),
+                )
         return response
 
     return registry

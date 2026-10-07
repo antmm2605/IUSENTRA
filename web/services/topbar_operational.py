@@ -48,6 +48,7 @@ from web.helpers import (
     get_timesheet,
     tenant_corrente,
 )
+from web.services.email_storage_runtime import create_email_mailbox
 
 ROME_TZ = ZoneInfo("Europe/Rome")
 SEARCH_MIN_LENGTH = 2
@@ -290,8 +291,12 @@ def _deadline_date(scadenza: Any) -> date | None:
 
 def _deadline_status(scadenza: Any, today: date | None = None) -> str:
     state = _enum_value(getattr(scadenza, "stato", ""))
+    if state == StatoTermine.ANNULLATO.value:
+        return "cancelled"
     if state == StatoTermine.COMPLETATO.value:
         return "completed"
+    if state == StatoTermine.SCADUTO.value:
+        return "overdue"
     due = _deadline_date(scadenza)
     if due and due < (today or datetime.now(ROME_TZ).date()) and state != StatoTermine.COMPLETATO.value:
         return "overdue"
@@ -356,7 +361,7 @@ def _duplicate_practice_today_items(fascicoli: dict[str, Any], day: date) -> lis
 
 
 def _email_manager() -> GestioneEmailRicevute:
-    return GestioneEmailRicevute(_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"))
+    return create_email_mailbox(_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"))
 
 
 def _is_raw_pct_deposit_receipt_email(email: Any) -> bool:
@@ -533,7 +538,7 @@ def today_payload(user: Any, date_value: str | None = None) -> dict[str, Any]:
                     item_type = "hearing"
                 else:
                     item_type = "appointment"
-                dt = getattr(appointment, "data_ora_dt", None) or _parse_iso(getattr(appointment, "data_ora", ""))
+                dt = _parse_iso(getattr(appointment, "data_ora", ""))
                 items.append(
                     {
                         "id": appointment.id,
@@ -561,7 +566,7 @@ def today_payload(user: Any, date_value: str | None = None) -> dict[str, Any]:
                     continue
                 status = _deadline_status(scadenza, day)
                 days = (due - day).days
-                if status == "completed":
+                if status in {"completed", "cancelled"}:
                     continue
                 if due == day:
                     summary["deadlinesToday"] += 1
@@ -645,10 +650,10 @@ def today_payload(user: Any, date_value: str | None = None) -> dict[str, Any]:
 
     items = _dedupe_items(items)
     items.sort(key=lambda item: (_priority_weight(item["priority"]), item.get("date") or "", item.get("time") or ""))
-    return {"ok": True, "date": day.isoformat(), "summary": summary, "items": items[:30]}
+    return {"ok": True, "date": day.isoformat(), "summary": summary, "items": items}
 
 
-def quick_deadlines_payload(user: Any) -> dict[str, Any]:
+def quick_deadlines_payload(user: Any, *, full: bool = False) -> dict[str, Any]:
     _require_any_permission(user, ["scadenziario.leggi"])
     today = datetime.now(ROME_TZ).date()
     tomorrow = today + timedelta(days=1)
@@ -674,7 +679,7 @@ def quick_deadlines_payload(user: Any) -> dict[str, Any]:
             summary["drafts"] += 1
             continue
         status = _deadline_status(scadenza, today)
-        if status == "completed":
+        if status in {"completed", "cancelled"}:
             continue
         priority = _priority_from_deadline(scadenza, today)
         if due == today:
@@ -710,13 +715,24 @@ def quick_deadlines_payload(user: Any) -> dict[str, Any]:
             )
     rows = _dedupe_items(rows)
     rows.sort(key=lambda item: (_priority_weight(item["priority"]), item["dueDate"], item["title"]))
-    return {"ok": True, "summary": summary, "deadlines": rows[:25]}
+    from web.services.scadenze_rapide_letture import aggiungi_letture
+    aggiungi_letture(rows, summary)
+    rows.sort(key=lambda item: (item["letta"], _priority_weight(item["priority"]), item["dueDate"]))
+    return {"ok": True, "summary": summary, "deadlines": rows if full else rows[:25]}
 
 
-def notifications_payload(user: Any) -> dict[str, Any]:
-    items = _dedupe_items(_persistent_notification_items(user))
-    unread_count = sum(1 for item in items if not item["read"])
-    return {"ok": True, "unreadCount": unread_count, "items": items[:30]}
+def notifications_payload(user: Any, *, page: int = 1, state: str = "all", query: str = "") -> dict[str, Any]:
+    if state not in {"all", "read", "unread"}:
+        raise TopbarApiError("Filtro notifiche non valido.", 400)
+    try:
+        result = build_notification_service().repository.notification_page(
+            _notification_tenant_id(), _notification_user_id(user), page=page, state=state, query=query,
+        )
+        records = result.pop("records")
+        return {"ok": True, **result, "items": [_record_to_topbar_item(record) for record in records]}
+    except Exception as exc:
+        current_app.logger.info("Top bar notifiche: repository persistente non disponibile", exc_info=True)
+        raise TopbarApiError("Centro notifiche non disponibile.", 503) from exc
 
 
 def mark_notification_read(notification_id: str, user: Any) -> dict[str, Any]:
@@ -727,15 +743,9 @@ def mark_notification_read(notification_id: str, user: Any) -> dict[str, Any]:
         return notifications_payload(user)
     except NotificationServiceError as exc:
         raise TopbarApiError(str(exc), exc.status_code) from exc
-    except Exception:
-        current_app.logger.info("Top bar notifiche: repository persistente non disponibile", exc_info=True)
-        known = {item["id"] for item in _notification_items(user)}
-        if safe_id not in known:
-            raise TopbarApiError("Notifica non trovata.", 404)
-        read_ids = _read_notification_ids()
-        read_ids.add(safe_id)
-        _save_notification_ids(read_ids)
-        return _session_notifications_payload(user)
+    except Exception as exc:
+        current_app.logger.info("Top bar notifiche: presa visione non salvata", exc_info=True)
+        raise TopbarApiError("Presa visione non salvata. Riprova.", 503) from exc
 
 
 def mark_all_notifications_read(user: Any) -> dict[str, Any]:
@@ -743,11 +753,9 @@ def mark_all_notifications_read(user: Any) -> dict[str, Any]:
         service = build_notification_service()
         service.mark_all_read(_notification_tenant_id(), _notification_user_id(user))
         return notifications_payload(user)
-    except Exception:
-        current_app.logger.info("Top bar notifiche: lettura massiva su sessione per fallback", exc_info=True)
-        ids = {item["id"] for item in _notification_items(user)}
-        _save_notification_ids(_read_notification_ids() | ids)
-        return _session_notifications_payload(user)
+    except Exception as exc:
+        current_app.logger.info("Top bar notifiche: lettura massiva non salvata", exc_info=True)
+        raise TopbarApiError("Presa visione non salvata. Riprova.", 503) from exc
 
 
 def _session_notifications_payload(user: Any) -> dict[str, Any]:
@@ -890,6 +898,8 @@ def agenda_scadenziario_notification_items(
             for appointment in agenda.tutti():
                 if is_legacy_pec_agenda_item(appointment):
                     continue
+                if _enum_value(getattr(appointment, "stato", "")) not in {"PROGRAMMATO", "CONFERMATO"}:
+                    continue
                 dt = getattr(appointment, "data_ora_dt", None) or _parse_iso(
                     getattr(appointment, "data_ora", "")
                 )
@@ -916,7 +926,7 @@ def agenda_scadenziario_notification_items(
                 )
                 due = _deadline_date(scadenza)
                 status = _deadline_status(scadenza, today)
-                if due is None or status == "completed":
+                if due is None or status in {"completed", "cancelled"}:
                     continue
                 days = (due - today).days
                 if days > 2 and _priority_from_deadline(scadenza, today) != "urgent":
@@ -957,7 +967,7 @@ def agenda_scadenziario_notification_items(
     if include_agenda:
         try:
             for appointment in upcoming_appointments:
-                dt = getattr(appointment, "data_ora_dt", None) or _parse_iso(getattr(appointment, "data_ora", ""))
+                dt = _parse_iso(getattr(appointment, "data_ora", ""))
                 if dt and dt.tzinfo is None:
                     dt = dt.replace(tzinfo=ROME_TZ)
                 if not dt:
@@ -971,10 +981,10 @@ def agenda_scadenziario_notification_items(
                         appointment_message = f"{appointment_message} · {remote_label}"
                 pec_key = _pec_deadline_notification_key(appointment)
                 notification_key = (
-                    pec_key
-                    or linked_notification_keys.get(
+                    linked_notification_keys.get(
                         _clean_text(getattr(appointment, "id", ""), limit=220)
                     )
+                    or pec_key
                     or f"{kind}:{appointment.id}:{dt.isoformat()}"
                 )
                 items.append(

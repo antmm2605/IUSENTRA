@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
+import { SourceAlternatives } from './SourceAlternatives'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
+import { publishMutationRefresh } from '../operationalRefresh'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
 import {
   AlertTriangle,
   Bell,
@@ -35,6 +38,8 @@ import {
   Video,
   Trash2,
 } from 'lucide-react'
+import { AgendaResearchFilters, emptyAgendaFilters, matchesAgendaFilters, type AgendaFilters } from './AgendaResearchFilters'
+import './AgendaResearch.css'
 import { Badge, Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
 import { JsonPostForm } from './JsonPostForm'
@@ -58,6 +63,8 @@ import {
   startOfWeek,
   toDateKey,
 } from '../agendaData'
+
+const AgendaPreparation = lazy(() => import('./ControlloStudioAgendaDetail'))
 
 const kindLabels: Record<AgendaKind, string> = {
   tutti: 'Tutti',
@@ -95,14 +102,14 @@ function eventIcon(kind: AgendaEvent['kind']) {
   return <CalendarDays size={14}/>
 }
 
-function Kpi({ icon, label, value, note }:{icon:ReactNode; label:string; value:string|number; note:string}) {
+function Kpi({ icon, label, value, note, active, onClick }:{icon:ReactNode; label:string; value:string|number; note:string; active:boolean; onClick:()=>void}) {
   return (
-    <article className="iu-ag-kpi">
+    <button type="button" className="iu-ag-kpi" aria-pressed={active} onClick={onClick}>
       <div>{icon}</div>
       <span>{label}</span>
       <strong>{value}</strong>
-      <small>{note}</small>
-    </article>
+      <small>{note} · Filtra</small>
+    </button>
   )
 }
 
@@ -284,18 +291,20 @@ function EventCard({
   clusteredEvents = [event],
   onOpenSource,
   onOpenDetail,
+  onOpenGroup,
 }:{
   event:AgendaEvent
   clusteredEvents?:AgendaEvent[]
   onOpenSource:(event:AgendaEvent)=>void
   onOpenDetail:(event:AgendaEvent)=>void
+  onOpenGroup:(events:AgendaEvent[])=>void
 }) {
   const isCluster = clusteredEvents.length > 1
   const label = agendaLegalLabel(event)
   const title = agendaTitle(event)
   const subjectLine = agendaSubjectLine(event)
   const detailLines = agendaDetailLines(event)
-  const whenLabel = `${new Date(event.start).toLocaleDateString('it-IT')} ${event.timeLabel}${event.durationLabel ? ` · ${event.durationLabel}` : ''}`
+  const whenLabel = `${formatDateIt(event.start)} ${event.timeLabel}${event.durationLabel ? ` · ${event.durationLabel}` : ''}`
   const remoteUrl = event.remoteHearingVerified ? event.remoteHearingUrl : ''
   const remotePlatform = readablePlatform(event.remoteHearingPlatform, Boolean(remoteUrl))
   const remotePasscode = plausiblePasscode(event.remoteHearingPasscode)
@@ -365,7 +374,8 @@ function EventCard({
       <a className="iu-ag-event__target" href={href} aria-label={accessibleLabel} onClick={(clickEvent) => {
         if (clickEvent.button !== 0 || clickEvent.metaKey || clickEvent.ctrlKey || clickEvent.shiftKey || clickEvent.altKey) return
         clickEvent.preventDefault()
-        onOpenDetail(event)
+        if (isCluster) onOpenGroup(clusteredEvents)
+        else onOpenDetail(event)
       }}>
         <span className="iu-ag-event__content">
           <strong>{event.completed ? <CheckCircle2 size={14}/> : eventIcon(event.kind)} <span>{isCluster ? `${clusteredEvents.length} eventi ${clusterWhen}` : label}</span></strong>
@@ -454,6 +464,7 @@ function DayColumn({
   onDropEvent,
   onOpenSource,
   onOpenDetail,
+  onOpenGroup,
 }:{
   day:ReturnType<typeof buildAgendaPageData>['days'][number]
   view:AgendaView
@@ -461,6 +472,7 @@ function DayColumn({
   onDropEvent:(eventId:string, dayIso:string, time?:string)=>void
   onOpenSource:(event:AgendaEvent)=>void
   onOpenDetail:(event:AgendaEvent)=>void
+  onOpenGroup:(events:AgendaEvent[])=>void
 }) {
   if (view === 'month') {
     return (
@@ -473,7 +485,7 @@ function DayColumn({
           if (eventId) onDropEvent(eventId, day.iso)
         }}
       >
-        <button className="iu-ag-month-head" type="button" onClick={() => onCreateSlot(day.iso, '09:00')} aria-label={`Nuovo appuntamento il ${day.iso}`}>
+        <button className="iu-ag-month-head" type="button" onClick={() => onCreateSlot(day.iso, '09:00')} aria-label={`Nuovo appuntamento il ${formatDateIt(day.iso)}`}>
           <span>{day.weekday}</span>
           <strong>{day.label}</strong>
           <small>{day.month}</small>
@@ -497,11 +509,6 @@ function DayColumn({
         if (eventId) onDropEvent(eventId, day.iso)
       }}
     >
-      <header>
-        <span>{day.weekday}</span>
-        <strong>{day.label}</strong>
-        <small>{day.month}</small>
-      </header>
       <div className="iu-ag-day__body">
         {timelineSlots.map((slot) => (
           <button
@@ -516,12 +523,12 @@ function DayColumn({
               const eventId = event.dataTransfer.getData('application/x-iusentra-agenda-event') || event.dataTransfer.getData('text/plain')
               if (eventId) onDropEvent(eventId, day.iso, slot)
             }}
-            aria-label={`Nuovo appuntamento il ${day.iso} alle ${slot}`}
+            aria-label={`Nuovo appuntamento il ${formatDateIt(day.iso)} alle ${slot}`}
           >
             <span>{slot.endsWith(':00') ? slot : ''}</span>
           </button>
         ))}
-        {layoutEvents(day.events).map(({ event, clusteredEvents }) => <EventCard event={event} clusteredEvents={clusteredEvents} onOpenSource={onOpenSource} onOpenDetail={onOpenDetail} key={event.id}/>)}
+        {layoutEvents(day.events).map(({ event, clusteredEvents }) => <EventCard event={event} clusteredEvents={clusteredEvents} onOpenSource={onOpenSource} onOpenDetail={onOpenDetail} onOpenGroup={onOpenGroup} key={event.id}/>)}
         {!day.events.length ? <button className="iu-ag-drop" type="button" onClick={() => onCreateSlot(day.iso, '09:00')}><Move size={15}/> Spazio disponibile</button> : null}
       </div>
     </section>
@@ -592,11 +599,16 @@ function AgendaInspector({ events, nextEvent, unsynced, onOpenDetail }:{events:A
       <Panel title="Briefing agenda" subtitle="Priorità operative e prossime mosse" icon={<Sparkles size={17}/>}>
         <div className="iu-ag-brief">
           {focusEvent ? (
-            <article>
+            <a className="iu-ag-brief__event" href={focusEvent.href || '/agenda'} onClick={(clickEvent) => {
+              if (clickEvent.button !== 0 || clickEvent.metaKey || clickEvent.ctrlKey || clickEvent.shiftKey || clickEvent.altKey) return
+              clickEvent.preventDefault()
+              onOpenDetail(focusEvent)
+            }}>
               <span>{nextEvent ? 'Prossimo impegno' : 'Da presidiare nel periodo'}</span>
-              <strong>{focusEvent.timeLabel} - {agendaLegalLabel(focusEvent)} · {agendaSubjectLine(focusEvent)}</strong>
+              <strong>{formatDateIt(focusEvent.date)} · {focusEvent.timeLabel} · {agendaLegalLabel(focusEvent)} · {agendaSubjectLine(focusEvent)}</strong>
               <small>{focusEvent.subtitle || focusEvent.location || 'Apri il dettaglio per le attività collegate.'}</small>
-            </article>
+              <span className="iu-ag-brief__action">Apri dettaglio e attività <ChevronRight size={15}/></span>
+            </a>
           ) : <p className="iu-empty">Nessun impegno imminente.</p>}
           <div className="iu-ag-quick-actions">
             <Button variant="primary" href="/agenda/nuovo"><CalendarPlus size={15}/> Nuovo</Button>
@@ -664,11 +676,12 @@ function AgendaDeleteAction({ event }:{event:AgendaEvent}) {
 function AgendaSourceCard({ event, onOpenSource }:{event:AgendaEvent; onOpenSource:(event:AgendaEvent)=>void}) {
   const kindLabel = agendaSourceLabel(event.source, event)
   if (!event.sourceHref) {
+    if (event.sourceCandidates?.length) return <SourceAlternatives candidates={event.sourceCandidates} onOpen={source => onOpenSource({ ...event, sourceHref: source.href, sourceLabel: source.label, sourceVerified: false, sourceCandidates: [] })}/>
     return (
       <div className="iu-ag-focus__source is-missing">
         <span><FileSearch size={14}/> Fonte</span>
         <strong>{kindLabel}</strong>
-        <small>Nessun documento sorgente collegato a questo impegno.</small>
+        <small>{event.sourceLabel === 'Più fonti PEC: collegamento da verificare' ? 'Fonti storiche non disponibili: collegamento da verificare.' : 'Nessun documento sorgente collegato a questo impegno.'}</small>
         {event.href ? <a href={event.href}>Apri origine</a> : null}
       </div>
     )
@@ -713,25 +726,27 @@ function AgendaProposedActions({ event, steps, onOpenSource }:{event:AgendaEvent
   )
 }
 
-function AgendaFocus({
+export function AgendaFocus({
   event,
   onOpenSource,
   position,
   total,
   onNavigate,
+  onPrepare,
 }:{
   event:AgendaEvent
   onOpenSource:(event:AgendaEvent)=>void
   position?:number
   total?:number
   onNavigate?:(delta:-1|1)=>void
+  onPrepare?:(event:AgendaEvent)=>void
 }) {
   const isDeadline = event.source === 'scadenziario' || event.id.startsWith('scadenza-')
   const editHref = isDeadline ? event.href : `/agenda/${encodeURIComponent(event.id)}/modifica`
   const completeHref = isDeadline ? event.href : `/agenda/${encodeURIComponent(event.id)}/stato`
   const activity = agendaActivityText(event)
   const proposedSteps = agendaProposedSteps(event, activity, { editHref, isDeadline, clientReminderHref: messageReminderHref(event) })
-  const visibleDetails = event.detailLines.filter((line) => line.trim() && !AGENDA_ACTIVITY_PREFIX.test(line.trim())).slice(0, 12)
+  const visibleDetails = event.detailLines.map(line => line.replace(/\s*ARCHIVIO_FATTO:[\w-]+/g, '').replace(/Stato: PROGRAMMATO/g, 'Stato: Programmato').replace(/Stato: COMPLETATO/g, 'Stato: Completato').replace(/Stato: ANNULLATO/g, 'Stato: Annullato').replace(/Stato: RINVIATO/g, 'Stato: Rinviato').trim()).filter((line) => line.trim() && !AGENDA_ACTIVITY_PREFIX.test(line.trim())).slice(0, 12)
   const remotePlatform = readablePlatform(event.remoteHearingPlatform, Boolean(event.remoteHearingUrl))
   const remotePasscode = plausiblePasscode(event.remoteHearingPasscode)
   const remoteAccessInfo = cleanAccessInfo(event.remoteHearingAccessInfo)
@@ -760,7 +775,7 @@ function AgendaFocus({
       <div className="iu-ag-focus__side">
       <AgendaSourceCard event={event} onOpenSource={onOpenSource}/>
       <dl>
-        <div><dt>Data</dt><dd>{new Date(event.start).toLocaleDateString('it-IT')}</dd></div>
+        <div><dt>Data</dt><dd>{formatDateIt(event.start)}</dd></div>
         <div><dt>Orario</dt><dd>{event.timeLabel} · {event.durationLabel}</dd></div>
         <div><dt>Cliente/parte</dt><dd>{event.client || 'Da collegare'}</dd></div>
         <div><dt>Fascicolo/RG</dt><dd>{event.matter || 'Da indicare'}</dd></div>
@@ -772,6 +787,7 @@ function AgendaFocus({
       </dl>
       </div>
       <div className="iu-ag-focus__actions">
+        {onPrepare && event.kind === 'udienza' ? <button type="button" onClick={() => onPrepare(event)}><BriefcaseBusiness size={15}/>Prepara l’udienza</button> : null}
         {event.remoteHearingVerified && event.remoteHearingUrl ? <a href={event.remoteHearingUrl} target="_blank" rel="noreferrer"><Video size={15}/>Collegati all'udienza</a> : null}
         {event.matterId ? <a href={`/fascicoli/${encodeURIComponent(event.matterId)}`}><BriefcaseBusiness size={15}/>Apri fascicolo</a> : null}
         <a href={editHref}><Settings2 size={15}/>Modifica</a>
@@ -861,15 +877,24 @@ function MessageCircleIcon() {
 
 export function AgendaPage() {
   const plannerRef = useRef<HTMLElement>(null)
+  const calendarGridRef = useRef<HTMLDivElement>(null)
+  const calendarHeadsRef = useRef<HTMLDivElement>(null)
+  const calendarHeadTrackRef = useRef<HTMLDivElement>(null)
   const [anchorDate, setAnchorDate] = useState(initialAgendaDate)
   const [view, setView] = useState<AgendaView>(initialAgendaView)
   const [kind, setKind] = useState<AgendaKind>(initialAgendaKind)
   const [query, setQuery] = useState(initialAgendaQuery)
+  const [filters, setFilters] = useState<AgendaFilters>(emptyAgendaFilters)
+  const [quickFilter, setQuickFilter] = useState('periodo')
+  const [groupPreview, setGroupPreview] = useState<AgendaEvent[]>([])
+  const [prepareEvent, setPrepareEvent] = useState<AgendaEvent | null>(null)
   const [loading, setLoading] = useState(true)
   const [events, setEvents] = useState<AgendaEvent[]>([])
   const [dataDiagnostic, setDataDiagnostic] = useState('')
   const [dataSource, setDataSource] = useState('iniziale')
   const [moveStatus, setMoveStatus] = useState('')
+  const loadingRequest = useRef(0)
+  const movingEvents = useRef(new Set<string>())
   const [plannerExpanded, setPlannerExpanded] = useState(false)
   const [sourcePreview, setSourcePreview] = useState<AgendaEvent | null>(null)
   const [detailPreview, setDetailPreview] = useState<AgendaEvent | null>(null)
@@ -901,35 +926,39 @@ export function AgendaPage() {
   }, [anchorDate, view, kind, query])
 
   const refresh = () => {
+    const request = ++loadingRequest.current
     setLoading(true)
-    getAgendaPage(anchorDate, view).then((payload) => {
-      setEvents(payload.events)
+    return getAgendaPage(anchorDate, view).then((payload) => {
+      if (request !== loadingRequest.current) return
+      if (payload.source !== 'errore_controllato') setEvents(payload.events)
       setDataDiagnostic(payload.diagnostic)
       setDataSource(payload.source)
-    }).finally(() => setLoading(false))
+    }).finally(() => { if (request === loadingRequest.current) setLoading(false) })
   }
 
   useEffect(() => {
-    let active = true
-    setLoading(true)
-    getAgendaPage(anchorDate, view).then((payload) => {
-      if (active) {
-        setEvents(payload.events)
-        setDataDiagnostic(payload.diagnostic)
-        setDataSource(payload.source)
-      }
-    }).finally(() => {
-      if (active) setLoading(false)
-    })
-    return () => { active = false }
+    void refresh()
+    return () => { loadingRequest.current += 1 }
   }, [anchorDate, view])
 
-  const filteredEvents = useMemo(() => events.filter((event) => {
-    const kindOk = kind === 'tutti' || event.kind === kind
-    return kindOk && isSameText(event, query)
-  }), [events, kind, query])
-
+  useOperationalRefresh(['agenda', 'scadenze', 'fascicoli'], refresh)
+  const researchedEvents = useMemo(() => events.filter((event) =>
+    isSameText(event, query) && matchesAgendaFilters(event, filters)), [events, query, filters])
+  const counts = buildAgendaPageData(researchedEvents, anchorDate, 'client', view).summary
+  const filteredEvents = useMemo(() => researchedEvents.filter((event) => {
+    if (kind !== 'tutti' && event.kind !== kind) return false
+    if (quickFilter === 'oggi') return event.date === toDateKey(new Date())
+    if (quickFilter === 'udienze') return event.kind === 'udienza'
+    if (quickFilter === 'scadenze') return event.kind === 'scadenza' || event.kind === 'deposito'
+    if (quickFilter === 'alert') return event.priority === 'alta' || event.priority === 'critica'
+    return true
+  }), [researchedEvents, kind, quickFilter])
   const agenda = useMemo(() => buildAgendaPageData(filteredEvents, anchorDate, 'client', view), [filteredEvents, anchorDate, view])
+  const applyQuickFilter = (value: string) => {
+    setQuickFilter(value)
+    setKind('tutti')
+    if (value === 'oggi') { setAnchorDate(new Date()); setView('day') }
+  }
   const highlightEvents = useMemo(
     () => [...filteredEvents].sort((left, right) => new Date(left.start).getTime() - new Date(right.start).getTime()),
     [filteredEvents],
@@ -985,7 +1014,20 @@ export function AgendaPage() {
   const visibleRange = agendaRange(anchorDate, view)
   const today = new Date()
   const displayDays = agenda.days
-  const sourceLabel = loading ? 'Sincronizzazione agenda...' : 'Dati agenda aggiornati'
+  useEffect(() => {
+    const grid = calendarGridRef.current
+    const track = calendarHeadTrackRef.current
+    if (!grid || !track || view === 'month' || view === 'timeline') return
+    const align = () => { track.style.width = `${grid.scrollWidth}px`; if (calendarHeadsRef.current) calendarHeadsRef.current.scrollLeft = grid.scrollLeft }
+    const observer = new ResizeObserver(align)
+    observer.observe(grid)
+    align()
+    return () => observer.disconnect()
+  }, [view, displayDays.length, plannerExpanded])
+  const agendaUnavailable = dataSource === 'errore_controllato' || dataSource === 'parziale'
+  const sourceLabel = loading ? 'Aggiornamento agenda…' : dataSource === 'errore_controllato'
+    ? 'Agenda non aggiornata. Riprova tra poco.' : dataSource === 'parziale'
+      ? 'Alcune attività non sono disponibili. Riprova.' : 'Dati agenda aggiornati'
   const dateLabel = view === 'day'
     ? anchorDate.toLocaleDateString('it-IT')
     : view === 'month' || view === 'timeline'
@@ -1002,21 +1044,8 @@ export function AgendaPage() {
   }
 
   const togglePlannerExpanded = async () => {
-    if (plannerExpanded) {
-      if (document.fullscreenElement === plannerRef.current) await document.exitFullscreen()
-      setPlannerExpanded(false)
-      return
-    }
-    if (plannerRef.current?.requestFullscreen) {
-      try {
-        await plannerRef.current.requestFullscreen()
-        setPlannerExpanded(true)
-        return
-      } catch {
-        // La classe espansa mantiene il planner operativo quando il browser nega il fullscreen nativo.
-      }
-    }
-    setPlannerExpanded(true)
+    if (document.fullscreenElement === plannerRef.current) await document.exitFullscreen()
+    setPlannerExpanded((current) => !current)
   }
 
   const openNewAppointment = (dayIso: string, time: string) => {
@@ -1025,20 +1054,30 @@ export function AgendaPage() {
 
   const persistMove = async (event: AgendaEvent) => {
     if (!isWritableAgendaEvent(event)) {
-      setMoveStatus('Spostamento applicato solo alla vista: la fonte non e modificabile da Agenda.')
+      setMoveStatus('Questa attività si modifica dalla sua fonte. La data in agenda è invariata.')
       return
     }
+    if (movingEvents.current.has(event.id)) return
+    movingEvents.current.add(event.id)
+    setMoveStatus('Salvataggio dello spostamento…')
+    const endpoint = `/api/agenda/${encodeURIComponent(event.id)}/sposta`
     try {
-      const response = await fetch(`/api/agenda/${encodeURIComponent(event.id)}/sposta`, {
+      const response = await fetch(endpoint, {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ data_ora: localDateTimePayload(event.start) }),
       })
-      if (!response.ok) throw new Error('spostamento non salvato')
-      setMoveStatus('Spostamento salvato nell agenda reale.')
+      const result: unknown = await response.json()
+      if (!response.ok || !result || typeof result !== 'object' || Array.isArray(result)
+        || (result as Record<string, unknown>).ok !== true) throw new Error('Spostamento non confermato')
+      setMoveStatus('Spostamento salvato. L’agenda si aggiorna automaticamente.')
+      publishMutationRefresh(endpoint)
     } catch {
-      setMoveStatus('Spostamento preparato nella vista, ma il salvataggio non e riuscito.')
+      setMoveStatus('Salvataggio non confermato. Verifica la data nell’agenda aggiornata e riprova.')
+      void refresh()
+    } finally {
+      movingEvents.current.delete(event.id)
     }
   }
 
@@ -1046,9 +1085,40 @@ export function AgendaPage() {
     const sourceEvent = events.find((event) => event.id === eventId)
     if (!sourceEvent) return
     const movedEvent = time ? moveEventToDateTime(sourceEvent, dayIso, time) : moveEventToDay(sourceEvent, dayIso)
-    setEvents((current) => current.map((event) => event.id === eventId ? movedEvent : event))
-    setMoveStatus(`Spostato a ${movedEvent.timeLabel} del ${new Date(`${dayIso}T12:00:00`).toLocaleDateString('it-IT')}.`)
     void persistMove(movedEvent)
+  }
+
+  const openPreparation = (event: AgendaEvent) => {
+    if (window.parent !== window && new URLSearchParams(window.location.search).get('embed') === 'source') {
+      window.dispatchEvent(new CustomEvent('iusentra:open-work-window', { detail: {
+        href: `/wizard-pro/?id_appuntamento=${encodeURIComponent(event.id)}&id_fascicolo=${encodeURIComponent(event.matterId)}`,
+        title: `Preparazione udienza · ${agendaSubjectLine(event)}`,
+      } }))
+    } else setPrepareEvent(event)
+  }
+
+  const contextualPanels = <>
+      {prepareEvent ? <Suspense fallback={<div role="status">Apertura preparazione…</div>}><AgendaPreparation
+        voce={{ id: `agenda-${prepareEvent.id}`, area: 'agenda', area_etichetta: 'Agenda', titolo: prepareEvent.title, dettaglio: '', data: prepareEvent.date, ora: prepareEvent.timeLabel,
+          gravita: 'normale', etichetta: '', fascicolo: { id: prepareEvent.matterId }, data_riferimento: '', tipo_data_riferimento: '', importo: 0, azioni: [], fascia: '' }}
+        azione={{ etichetta: 'Prepara l’udienza', href: `/wizard-pro/?id_appuntamento=${encodeURIComponent(prepareEvent.id)}&id_fascicolo=${encodeURIComponent(prepareEvent.matterId)}`, endpoint: '', conferma: '', principale: true }}
+        onClose={() => setPrepareEvent(null)} onUpdated={refresh}/></Suspense> : null}
+      <SourceDocumentModal
+        source={sourcePreview ? {
+          href: sourcePreview.sourceHref,
+          label: sourcePreview.sourceLabel || agendaTitle(sourcePreview),
+          context: `${agendaHeadline(sourcePreview)} · ${agendaSubjectLine(sourcePreview)}`,
+          kind: sourcePreview.sourceKind,
+        } : null}
+        onClose={() => setSourcePreview(null)}
+      />
+  </>
+
+  if (new URLSearchParams(window.location.search).get('embed') === 'source' && selectedId) {
+    return <main className="iu-agenda-context-detail" aria-label="Dettaglio operativo agenda">
+      {loading ? <p role="status">Caricamento dell’impegno selezionato…</p> : selectedEvent ? <AgendaFocus event={selectedEvent} onOpenSource={setSourcePreview} onPrepare={openPreparation} /> : <section role="alert"><p>L’impegno selezionato non è disponibile in questo momento.</p><button type="button" className="iu-button" onClick={refresh}>Riprova</button></section>}
+      {contextualPanels}
+    </main>
   }
 
   return (
@@ -1057,7 +1127,7 @@ export function AgendaPage() {
         <div>
           <span className="iu-ag-eyebrow"><CalendarDays size={16}/> Agenda</span>
           <h1>Agenda</h1>
-          <p>Appuntamenti, udienze, scadenze, sincronizzazioni e priorita dello studio in una vista unica.</p>
+          <p>Appuntamenti, udienze, scadenze, sincronizzazioni e priorità dello studio in una vista unica.</p>
         </div>
         <div className="iu-ag-hero__actions">
           <Button href="/workspace-intelligente"><Sparkles size={15}/> Controllo studio</Button>
@@ -1094,7 +1164,7 @@ export function AgendaPage() {
           </label>
           <label className="iu-ag-filter">
             <Filter size={16}/>
-            <select aria-label="Tipo di evento" value={kind} onChange={(event) => setKind(event.target.value as AgendaKind)}>
+            <select aria-label="Tipo di evento" value={kind} onChange={(event) => { setKind(event.target.value as AgendaKind); setQuickFilter('periodo') }}>
               {(Object.keys(kindLabels) as AgendaKind[]).map((item) => <option value={item} key={item}>{kindLabels[item]}</option>)}
             </select>
           </label>
@@ -1114,8 +1184,11 @@ export function AgendaPage() {
         </div>
       </section>
 
+      <AgendaResearchFilters events={events} value={filters} onChange={setFilters} count={filteredEvents.length}
+        onReset={() => { setFilters(emptyAgendaFilters); setQuery(''); setKind('tutti'); setQuickFilter('periodo') }}/>
       <section className="iu-ag-status-line">
-        <span className={loading ? '' : 'is-ok'}>{sourceLabel}</span>
+        <span className={loading || agendaUnavailable ? '' : 'is-ok'} role={agendaUnavailable ? 'alert' : 'status'}>{sourceLabel}</span>
+        {agendaUnavailable ? <button type="button" onClick={() => void refresh()} disabled={loading}>Riprova</button> : null}
         <AgendaHighlightCarousel
           events={highlightEvents}
           index={highlightIndex}
@@ -1128,7 +1201,7 @@ export function AgendaPage() {
           }}
         />
         <small><ListChecks size={14}/>{filteredEvents.length} {filteredEvents.length === 1 ? 'elemento' : 'elementi'} nel periodo selezionato.</small>
-        {moveStatus ? <small className="iu-ag-move-status">{moveStatus}</small> : null}
+        {moveStatus ? <small className="iu-ag-move-status" role="status">{moveStatus}</small> : null}
       </section>
       <section className="iu-ag-layout">
         <div className="iu-ag-calendar-card">
@@ -1154,12 +1227,25 @@ export function AgendaPage() {
           {view === 'timeline' ? (
             <AgendaTimeline days={displayDays} onCreateSlot={openNewAppointment} onOpenDetail={openAgendaDetail}/>
           ) : (
+          <>
+          {view !== 'month' ? <div className="iu-ag-day-heads" aria-label="Giorni del calendario">
+            <div ref={calendarHeadsRef} className="iu-ag-day-heads__viewport">
+              <div ref={calendarHeadTrackRef} className="iu-ag-day-heads__track" style={{ gridTemplateColumns: `repeat(${displayDays.length}, minmax(var(--iu-ag-day-min-width, 118px), 1fr))` }}>
+                {displayDays.map(day => <div key={day.id} className={`iu-ag-day-label ${day.isToday ? 'is-today' : ''} ${day.isWeekend ? 'is-weekend' : ''}`} title={formatDateIt(day.iso)}>
+                  <span>{day.weekday}</span><strong>{day.label}</strong><small>{day.month}</small>
+                </div>)}
+              </div>
+            </div>
+          </div> : null}
           <div
+            ref={calendarGridRef}
+            onScroll={event => { if (calendarHeadsRef.current) calendarHeadsRef.current.scrollLeft = event.currentTarget.scrollLeft }}
             className={`iu-ag-week ${view === 'month' ? 'iu-ag-week--month' : view === 'week' ? 'iu-ag-week--week' : 'iu-ag-week--day'}`}
             style={{ gridTemplateColumns: view === 'month' ? undefined : `repeat(${displayDays.length}, minmax(var(--iu-ag-day-min-width, 118px), 1fr))` }}
           >
-            {displayDays.map((day) => <DayColumn day={day} key={day.id} view={view} onCreateSlot={openNewAppointment} onDropEvent={moveEvent} onOpenSource={setSourcePreview} onOpenDetail={openAgendaDetail}/>)}
+            {displayDays.map((day) => <DayColumn day={day} key={day.id} view={view} onCreateSlot={openNewAppointment} onDropEvent={moveEvent} onOpenSource={setSourcePreview} onOpenDetail={openAgendaDetail} onOpenGroup={setGroupPreview}/>)}
           </div>
+          </>
           )}
         </div>
         <AgendaInspector events={filteredEvents} nextEvent={agenda.summary.nextEvent} unsynced={agenda.summary.unsynced} onOpenDetail={openAgendaDetail}/>
@@ -1169,11 +1255,13 @@ export function AgendaPage() {
 
       <section className="iu-ag-lower-grid">
         <Panel title="Preparazione udienza guidata" subtitle="Controlli prima dell'impegno" icon={<BriefcaseBusiness size={17}/>}>
+          {automationTarget ? <p className="iu-ag-checks-context">{agendaSubjectLine(automationTarget)} · {formatDateIt(automationTarget.date)} · {automationTarget.timeLabel}</p> : null}
           <div className="iu-ag-checks">
-            <span><CalendarCheck size={16}/> Verifica orario, aula e collegamento fascicolo</span>
-            <span><MapPin size={16}/> Conferma luogo o collegamento da remoto</span>
-            <span><ListChecks size={16}/> Allinea scadenze, note e documenti da portare</span>
+            <button type="button" disabled={!automationTarget} onClick={() => { if (automationTarget) openAgendaDetail(automationTarget) }}><CalendarCheck size={16}/> Verifica orario, aula e fascicolo</button>
+            <button type="button" disabled={!automationTarget} onClick={() => { if (automationTarget) openAgendaDetail(automationTarget) }}><MapPin size={16}/> Consulta luogo e collegamento da remoto</button>
+            <button type="button" disabled={!automationTarget?.matterId || automationTarget.kind !== 'udienza'} title={!automationTarget?.matterId || automationTarget.kind !== 'udienza' ? 'Seleziona un’udienza collegata a un fascicolo.' : undefined} onClick={() => { if (automationTarget?.matterId && automationTarget.kind === 'udienza') openPreparation(automationTarget) }}><ListChecks size={16}/> Prepara scadenze, note e documenti</button>
           </div>
+          {!automationTarget ? <p className="iu-empty">Seleziona un impegno in agenda per consultarne i dati.</p> : null}
         </Panel>
         <Panel title="Automazioni consigliate" subtitle="Azioni utili per l'agenda professionale" icon={<Sparkles size={17}/>}>
           <div className="iu-ag-automations">
@@ -1201,14 +1289,20 @@ export function AgendaPage() {
       </section>
 
       <section className="iu-ag-kpis">
-        <Kpi icon={<Clock3 size={19}/>} label="Oggi" value={agenda.summary.today} note="impegni in giornata"/>
-        <Kpi icon={<CalendarCheck size={19}/>} label="Settimana" value={agenda.summary.week} note="eventi nel periodo"/>
-        <Kpi icon={<Landmark size={19}/>} label="Udienze" value={agenda.summary.hearings} note="da presidiare"/>
-        <Kpi icon={<ListChecks size={19}/>} label="Scadenze" value={agenda.summary.deadlines} note="termini e depositi"/>
-        <Kpi icon={<Bell size={19}/>} label="Alert" value={agenda.summary.critical} note="priorità alta o critica"/>
+        <Kpi icon={<Clock3 size={19}/>} label="Oggi" active={quickFilter === 'oggi'} onClick={() => applyQuickFilter('oggi')} value={counts.today} note="impegni in giornata"/>
+        <Kpi icon={<CalendarCheck size={19}/>} label="Periodo" active={quickFilter === 'periodo'} onClick={() => applyQuickFilter('periodo')} value={counts.week} note="eventi nel periodo"/>
+        <Kpi icon={<Landmark size={19}/>} label="Udienze" active={quickFilter === 'udienze'} onClick={() => applyQuickFilter('udienze')} value={counts.hearings} note="da presidiare"/>
+        <Kpi icon={<ListChecks size={19}/>} label="Scadenze" active={quickFilter === 'scadenze'} onClick={() => applyQuickFilter('scadenze')} value={counts.deadlines} note="termini e depositi"/>
+        <Kpi icon={<Bell size={19}/>} label="Alert" active={quickFilter === 'alert'} onClick={() => applyQuickFilter('alert')} value={counts.critical} note="priorità alta o critica"/>
       </section>
 
       <FloatingLex />
+      <OperationalModal open={Boolean(groupPreview.length)} ariaLabel="Attività coincidenti" eyebrow="Agenda" title={`${groupPreview.length} attività da affrontare`}
+        subtitle={groupPreview[0] ? formatDateIt(groupPreview[0].start) : ''} onClose={() => setGroupPreview([])}>
+        <div className="iu-ag-case-list">{groupPreview.map((event) => <button type="button" key={event.id} onClick={() => openAgendaDetail(event)}>
+          <time>{event.timeLabel}</time><span><strong>{agendaLegalLabel(event)}</strong><small>{agendaSubjectLine(event)}</small><small>{event.court || event.location}</small></span><ChevronRight size={18}/>
+        </button>)}</div>
+      </OperationalModal>
       <OperationalModal
         open={Boolean(detailPreview)}
         ariaLabel="Dettaglio operativo agenda"
@@ -1226,18 +1320,11 @@ export function AgendaPage() {
             position={detailPosition}
             total={detailPosition >= 0 ? highlightEvents.length : 0}
             onNavigate={navigateAgendaDetail}
+            onPrepare={openPreparation}
           />
         ) : null}
       </OperationalModal>
-      <SourceDocumentModal
-        source={sourcePreview ? {
-          href: sourcePreview.sourceHref,
-          label: sourcePreview.sourceLabel || agendaTitle(sourcePreview),
-          context: `${agendaHeadline(sourcePreview)} · ${agendaSubjectLine(sourcePreview)}`,
-          kind: sourcePreview.sourceKind,
-        } : null}
-        onClose={() => setSourcePreview(null)}
-      />
+      {contextualPanels}
     </main>
   )
 }

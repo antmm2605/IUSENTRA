@@ -1235,3 +1235,7 @@
     width: 100%;
   }
 }
+
+/* I campi mantengono misure stabili anche nelle finestre affiancate. */
+.iu-tar-field{align-content:start;grid-template-rows:44px 42px auto}
+.iu-tar-field input,.iu-tar-field select{height:42px;min-width:0;max-width:100%;align-self:start}

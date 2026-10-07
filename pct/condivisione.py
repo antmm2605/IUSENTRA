@@ -19,6 +19,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import logging
 import secrets
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -282,12 +283,16 @@ class GestioneCondivisioni:
     - Condivisioni singoli fascicoli (CondivisioneFascicolo)
     - Link temporanei di accesso esterno (LinkTemporaneo)
 
-    Persistenza: file JSON unico con sezioni 'cartelle', 'fascicoli', 'link'.
+    Persistenza: repository SQL quando configurato; JSON solo mirror/bootstrap.
     """
 
-    def __init__(self, db_path: str, secret_key: str = ""):
+    def __init__(self, db_path: str, secret_key: str = "", *, studio_db=None, tenant_key: str = ""):
         self.db_path = Path(db_path)
         self._secret = secret_key or "condivisione-default-secret"
+        self._repository = None
+        if studio_db is not None:
+            from pct.condivisioni_repository import CondivisioniRepository
+            self._repository = CondivisioniRepository(studio_db, tenant_key, self.db_path)
         # id_cliente → CondivisioneCartella
         self._cartelle: Dict[str, CondivisioneCartella] = {}
         # id_fascicolo → CondivisioneFascicolo
@@ -299,6 +304,12 @@ class GestioneCondivisioni:
     # ---------------------------------------------------------------- I/O
 
     def _carica(self) -> None:
+        if self._repository is not None:
+            raw = self._repository.load()
+            self._cartelle = {k: CondivisioneCartella.from_dict(v) for k, v in raw["cartelle"].items()}
+            self._fascicoli = {k: CondivisioneFascicolo.from_dict(v) for k, v in raw["fascicoli"].items()}
+            self._link = {k: LinkTemporaneo.from_dict(v) for k, v in raw["link"].items()}
+            return
         if not self.db_path.exists():
             return
         try:
@@ -324,6 +335,27 @@ class GestioneCondivisioni:
             pass
 
     def _salva(self) -> None:
+        if self._repository is not None:
+            payload = {
+                "cartelle": {k: v.to_dict() for k, v in self._cartelle.items()},
+                "fascicoli": {k: v.to_dict() for k, v in self._fascicoli.items()},
+                "link": {k: v.to_dict() for k, v in self._link.items()},
+            }
+            self._repository.save(payload)
+            mirror_tmp = self.db_path.with_suffix(f".{uuid.uuid4().hex}.tmp")
+            try:
+                self.db_path.parent.mkdir(parents=True, exist_ok=True)
+                current = self._repository.load(update_original=False)
+                mirror_tmp.write_text(json.dumps(current, ensure_ascii=False, indent=2), encoding="utf-8")
+                mirror_tmp.replace(self.db_path)
+            except Exception:
+                logging.getLogger(__name__).warning("Condivisioni salvate in SQL; mirror JSON da rigenerare", exc_info=True)
+            finally:
+                try:
+                    mirror_tmp.unlink(missing_ok=True)
+                except OSError:
+                    logging.getLogger(__name__).warning("Condivisioni: mirror temporaneo da ripulire")
+            return
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.db_path.write_text(
             json.dumps(

@@ -111,7 +111,7 @@ def pec_message_source(
 
 def scadenza_sources(scadenza_id: str, *, paths: Any, tenant_label: str) -> list[dict[str, Any]]:
     from web.services.daily_plan_runtime import _scadenziario_store
-    from web.services.pec_source_links import control_tower_source_key, latest_control_tower_sources
+    from web.services.pec_source_links import control_tower_source_key, latest_control_tower_sources, pec_profile_for_item
     from web.services.react_scadenziario_bridge import (
         _legal_scadenza_detail_description,
         _pec_audit_message_id,
@@ -134,7 +134,7 @@ def scadenza_sources(scadenza_id: str, *, paths: Any, tenant_label: str) -> list
         scadenza,
         fascicolo_id=fascicolo_id,
         control_tower_source=tower.get(control_tower_source_key(scadenza)),
-        pec_profile=profiles.get(_pec_audit_message_id(scadenza)),
+        pec_profile=pec_profile_for_item(scadenza, profiles),
     )
     out: list[dict[str, Any]] = []
     kind = str(origin.get("sourceKind") or "")
@@ -171,7 +171,7 @@ def scadenza_sources(scadenza_id: str, *, paths: Any, tenant_label: str) -> list
 
 def agenda_sources(appuntamento_id: str, *, paths: Any, tenant_label: str) -> list[dict[str, Any]]:
     from web.services.daily_plan_runtime import _agenda_store
-    from web.services.pec_source_links import pec_profile_source_name
+    from web.services.pec_source_links import pec_profile_source_name, pec_profile_for_item
     from web.services.react_agenda_bridge import _source_evidence
 
     evento = _agenda_store(paths).get(appuntamento_id) if appuntamento_id else None
@@ -186,7 +186,7 @@ def agenda_sources(appuntamento_id: str, *, paths: Any, tenant_label: str) -> li
         if part
     )
     profiles = pec_profiles_for([evento], paths=paths, tenant_label=tenant_label)
-    profile = next(iter(profiles.values()), None)
+    profile = pec_profile_for_item(evento, profiles)
     origin = _source_evidence(
         notes,
         matter_id=str(getattr(evento, "id_fascicolo", "") or ""),
@@ -194,6 +194,7 @@ def agenda_sources(appuntamento_id: str, *, paths: Any, tenant_label: str) -> li
         external_uid=str(getattr(evento, "external_uid", "") or ""),
         source_name=str(getattr(evento, "remote_hearing_source", "") or ""),
         indexed_source_name=pec_profile_source_name(profile),
+        resolved_source_profile=profile,
     )
     out: list[dict[str, Any]] = []
     kind = str(origin.get("sourceKind") or "")

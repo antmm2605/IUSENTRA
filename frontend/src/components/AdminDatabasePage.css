@@ -6,6 +6,9 @@
 .iu-db-hero p{max-width:900px;margin:0;color:var(--iu-slate-600);font-size:14px;font-weight:680;line-height:1.45}
 .iu-db-hero__actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
 .iu-db-hero__actions .iu-button{gap:8px}
+/* Il preset operativo forza flex con !important: questa sola intestazione conserva la griglia responsive. */
+.iusentra-preset-active main.iu-db-page.iusentra-route-sequence>.iu-db-hero[data-iusentra-sequence-slot="page-header"]{display:grid!important}
+@media(max-width:760px){.iusentra-preset-active main.iu-db-page .iu-db-hero__actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;justify-self:stretch}.iusentra-preset-active main.iu-db-page .iu-db-hero__actions .iu-button{white-space:nowrap;min-width:0;padding-inline:10px}}
 .iu-db-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
 .iu-db-stat{min-height:112px;display:grid;grid-template-columns:46px 1fr;grid-template-areas:"icon label" "icon value" "icon note";align-items:center;gap:3px 12px;padding:15px;border:1px solid var(--iu-border);border-radius:16px;background:var(--iu-bg-card);box-shadow:var(--iu-shadow-soft)}
 .iu-db-stat>div{grid-area:icon;width:46px;height:46px;display:grid;place-items:center;border-radius:15px;background:rgba(37,99,235,.1);color:var(--iu-blue-600)}
@@ -17,6 +20,22 @@
 .iu-db-stat--danger>div{background:rgba(239,68,68,.12);color:var(--iu-danger-500)}
 .iu-db-stat--purple>div{background:rgba(168,85,247,.12);color:var(--iu-purple-500)}
 .iu-db-stat--info>div{background:rgba(56,189,248,.13);color:#0284c7}
+.iusentra-preset-active main.iu-db-page .iu-db-stat{min-width:0;min-height:88px;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"label value" "note note";gap:5px 8px;padding:10px 12px;text-align:left;font:inherit;cursor:pointer;box-shadow:none;border-radius:var(--iusentra-radius-md,10px)}
+.iusentra-preset-active main.iu-db-page .iu-db-stat>div{display:none}
+.iusentra-preset-active main.iu-db-page .iu-db-stat>span{text-transform:none;letter-spacing:0;line-height:1.3;font-size:12px}
+.iusentra-preset-active main.iu-db-page .iu-db-stat>strong{font-size:21px;white-space:nowrap}
+.iusentra-preset-active main.iu-db-page .iu-db-stat>small{line-height:1.4}
+.iusentra-preset-active main.iu-db-page .iu-db-stat:hover,.iusentra-preset-active main.iu-db-page .iu-db-stat:focus-visible,.iusentra-preset-active main.iu-db-page .iu-db-stat[aria-pressed="true"]{outline:2px solid var(--iu-blue-600);outline-offset:2px;color:var(--iu-text-strong);background:var(--iu-bg-card)}
+.iu-db-filters{display:flex;align-items:end;gap:10px;flex-wrap:wrap}
+.iu-db-filters label{display:grid;gap:6px;font-size:12px;font-weight:750;min-width:0;flex:1 1 200px}
+.iu-db-filters input,.iu-db-filters select{width:100%;min-width:0;min-height:44px;padding:10px 12px;border:1px solid var(--iu-border);border-radius:var(--iusentra-radius-md,10px);background:var(--iu-bg-card);color:var(--iu-text-strong);font:inherit}
+.iu-db-filters input:focus-visible,.iu-db-filters select:focus-visible,.iu-db-table-wrap:focus-visible{outline:3px solid var(--iu-blue-600);outline-offset:2px}
+.iu-db-filter-count{margin:0 0 12px;font-size:12px;line-height:1.5;color:var(--iu-slate-600)}
+.iu-db-space-details{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:0}
+.iu-db-space-details dt{font-size:12px;color:var(--iu-slate-600)}
+.iu-db-space-details dd{margin:4px 0 0;font-weight:750}
+@media(min-width:761px){.iusentra-preset-active main.iu-db-page .iu-db-table{min-width:1000px;table-layout:auto}.iusentra-preset-active main.iu-db-page .iu-db-table th,.iusentra-preset-active main.iu-db-page .iu-db-table td{white-space:nowrap;word-break:normal;overflow-wrap:normal}.iusentra-preset-active main.iu-db-page .iu-db-table th:first-child,.iusentra-preset-active main.iu-db-page .iu-db-table td:first-child{min-width:300px}.iusentra-preset-active main.iu-db-page .iu-db-table td:first-child span{max-width:330px}}
+@media(max-width:760px){.iusentra-preset-active main.iu-db-page .iu-db-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.iu-db-filters{display:grid;grid-template-columns:minmax(0,1fr)}.iu-db-filters label{width:100%}.iusentra-preset-active main.iu-db-page .iu-db-hero{grid-template-columns:minmax(0,1fr)}.iu-db-hero__icon{display:none}.iu-db-hero__actions{justify-content:stretch}.iu-db-hero__actions>*{flex:1}}
 .iu-db-layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
 .iu-db-maincol,.iu-db-sidecol{display:grid;gap:16px;min-width:0}
 .iu-db-sidecol{position:sticky;top:92px}
@@ -114,6 +133,8 @@
   .iu-db-table tbody,.iu-db-table tr,.iu-db-table td{display:block;width:100%}
   .iu-db-table tr{padding:10px;border:1px solid var(--iu-border);border-radius:14px;background:#fff;box-shadow:0 8px 22px rgba(15,23,42,.045)}
   .iu-db-table td{padding:5px 2px;border:0;background:transparent;box-shadow:none!important}
+  .iu-db-table td[data-label]{display:flex;gap:10px;justify-content:space-between;white-space:nowrap}
+  .iu-db-table td[data-label]::before{content:attr(data-label);font-weight:650;color:var(--iu-slate-500)}
   .iu-db-table td:first-child,.iu-db-table td:last-child{border-radius:0}
   .iu-db-table td span{max-width:100%;white-space:normal;overflow-wrap:anywhere}
 }

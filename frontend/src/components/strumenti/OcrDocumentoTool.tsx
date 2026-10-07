@@ -151,10 +151,10 @@ export default function OcrDocumentoTool() {
     setErrore(''); setAvviso('')
     setOccupato(formato === 'pdf' ? 'Preparazione del PDF…' : 'Preparazione del documento Word…')
     try {
-      const documento = await documentoModificabile(blocksToHtml(blocchi), nome || 'documento', formato)
+      const documento = await documentoModificabile(blocksToHtml(blocchi), nome || 'documento', formato, destinazione === 'computer')
       if (destinazione === 'computer') {
         scaricaSulComputer(documento, documento.name)
-        if (vivo.current) setEsitoSalvataggio({ testo: `${documento.name} scaricato sul computer.` })
+        if (vivo.current) setEsitoSalvataggio({ testo: `Download avviato: ${documento.name}.` })
         return
       }
       const salvato = await salvaNelFascicolo(fascicoloId, documento)
@@ -264,7 +264,7 @@ export default function OcrDocumentoTool() {
             <div><dt>Dal testo del documento</dt><dd>{pagine.length - daOcr.length}</dd></div>
             <div><dt>Con riconoscimento ottico</dt><dd>{daOcr.length}{fiducia ? ` · ${Math.round(fiducia * 100)}%` : ''}</dd></div>
             <div><dt>Caratteri riconosciuti</dt><dd>{caratteri.toLocaleString('it-IT')}</dd></div>
-            {secondoLettore ? <div><dt>Secondo lettore</dt><dd>{consenso ? `${consenso} ${consenso === 1 ? 'parola confermata' : 'parole confermate'}` : 'in accordo'}</dd></div> : null}
+            {secondoLettore ? <div><dt>Secondo lettore</dt><dd>{consenso ? `${consenso} ${consenso === 1 ? 'parola riletta nel confronto' : 'parole rilette nel confronto'}` : 'Confronto eseguito'}</dd></div> : null}
           </dl>
           {correzioni.length ? (
             <p className="iu-acq-hint">

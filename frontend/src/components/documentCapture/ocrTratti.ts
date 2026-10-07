@@ -23,9 +23,11 @@ export type OcrTratto = {
   colore: string
   /** Corpo in punti come lo dichiara il documento (intestazioni, apici). Assente: quello del blocco. */
   corpo?: number
+  /** Famiglia dichiarata nella singola parola del PDF. Assente: quella del blocco. */
+  famiglia?: string
 }
 
-const CHIAVI_TRATTO = ['grassetto', 'corsivo', 'sottolineato', 'barrato', 'colore'] as const
+const CHIAVI_TRATTO = ['grassetto', 'corsivo', 'sottolineato', 'barrato', 'colore', 'famiglia', 'corpo'] as const
 
 function stessoStile(primo: OcrTratto, secondo: OcrTratto): boolean {
   return CHIAVI_TRATTO.every((chiave) => primo[chiave] === secondo[chiave]) && (primo.corpo || 0) === (secondo.corpo || 0)
@@ -50,6 +52,7 @@ export function parseTratti(value: unknown, testo: string): OcrTratto[] {
     if (!raw || typeof raw !== 'object') return []
     const voce = raw as Record<string, unknown>
     const colore = String(voce.colore ?? '').trim().toLowerCase()
+    const famiglia = String(voce.famiglia ?? '').trim()
     return [{
       testo: String(voce.testo ?? ''),
       grassetto: Boolean(voce.grassetto),
@@ -58,6 +61,7 @@ export function parseTratti(value: unknown, testo: string): OcrTratto[] {
       barrato: Boolean(voce.barrato),
       colore: /^#[0-9a-f]{6}$/.test(colore) ? colore : '',
       ...(Number(voce.corpo) > 0 ? { corpo: Number(voce.corpo) } : {}),
+      ...(/^[A-Za-z0-9][A-Za-z0-9 -]{0,59}$/.test(famiglia) ? { famiglia } : {}),
     }]
   })
   // il testo del blocco arriva ripulito dagli spazi ai bordi: anche i tratti
@@ -133,6 +137,8 @@ export function trattiDelBlocco(tratti: OcrTratto[] | undefined, testo: string, 
         sottolineato: formato.sottolineato,
         barrato: formato.barrato,
         colore: formato.colore,
+        ...(formato.corpo > 0 ? { corpo: formato.corpo } : {}),
+        ...(formato.famiglia ? { famiglia: formato.famiglia } : {}),
       }]
     : []
 }

@@ -19,6 +19,7 @@ from flask import current_app, has_app_context
 from pct.email_attachments import deduplicate_attachment_tree, discover_email_attachment_roots
 from pct.formatting import format_datetime_it
 from scripts.compact_iusentra_storage import discover_backup_roots
+from web.services.email_storage_runtime import create_email_mailbox
 
 DEFAULT_BACKUP_RETENTION_DAYS = 14
 DEFAULT_BACKUP_RETENTION_COUNT = 1
@@ -2770,14 +2771,14 @@ def run_mail_attachment_archive_compression(
     data_root: str | Path | None = None,
     tenant_slug: str = "",
 ) -> dict[str, Any]:
-    from pct.email_client import GestioneEmailRicevute
+
 
     root = Path(data_root) if data_root else resolve_data_root()
     files = _iter_mailbox_databases(root, tenant_slug=tenant_slug)
     results: list[dict[str, Any]] = []
     for path in files:
         try:
-            gestore = GestioneEmailRicevute(str(path))
+            gestore = create_email_mailbox(str(path))
             result = gestore.comprimi_allegati(apply=apply)
             result["display_path"] = _display_storage_path(str(path.relative_to(root)).replace("\\", "/"))
         except Exception as exc:

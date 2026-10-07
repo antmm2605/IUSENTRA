@@ -169,12 +169,13 @@ function normalizePayload(payload: unknown): SoggettiPageData {
   }
 }
 
-export async function getSoggettiPage(): Promise<SoggettiPageData> {
+export async function getSoggettiPage(strict = false): Promise<SoggettiPageData> {
   try {
     const response = await fetch('/api/v1/ui/soggetti', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
-    if (!response.ok) return emptySoggettiPage
+    if (!response.ok) { if (strict) throw new Error('Dati anagrafici non disponibili. Riprova l’aggiornamento.'); return emptySoggettiPage }
     return normalizePayload(await response.json())
-  } catch {
+  } catch (error) {
+    if (strict) throw error
     return emptySoggettiPage
   }
 }

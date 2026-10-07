@@ -73,7 +73,9 @@ export function blocksToHtml(blocks: OcrBlock[]): string {
       } else {
         elencoAperto = { tag: elencoAperto.tag, marker }
       }
-      pezzi.push(`<li>${contenutoDelBlocco(block, voceSenzaMarcatore(testo, marker))}</li>`)
+      // Il segno letto fa parte del testo: «5)» non può diventare «5.».
+      const segno = marker?.testo ? ` data-iu-ocr-marker="${escapeHtml(marker.testo)}"` : ''
+      pezzi.push(`<li${segno}>${contenutoDelBlocco(block, voceSenzaMarcatore(testo, marker))}</li>`)
       continue
     }
     chiudiElenco()
@@ -120,7 +122,17 @@ function trattoHtml(tratto: OcrTratto, titolo: boolean): string {
   if (tratto.sottolineato) html = `<u>${html}</u>`
   if (tratto.corsivo) html = `<em>${html}</em>`
   if (tratto.grassetto && !titolo) html = `<strong>${html}</strong>`
-  if (tratto.colore) html = `<span style="color:${tratto.colore}">${html}</span>`
+  const stili: string[] = []
+  if (tratto.colore) stili.push(`color:${tratto.colore}`)
+  if (tratto.famiglia && /^[A-Za-z0-9][A-Za-z0-9 -]{0,59}$/.test(tratto.famiglia)) {
+    stili.push(`font-family:'${tratto.famiglia}'`)
+  }
+  // Il corpo dichiarato dal PDF può cambiare nella stessa riga, anche senza
+  // cambiare grassetto o colore. Non sostituirlo con quello del capoverso.
+  if (typeof tratto.corpo === 'number' && Number.isFinite(tratto.corpo) && tratto.corpo >= 2 && tratto.corpo <= 96) {
+    stili.push(`font-size:${tratto.corpo}pt`)
+  }
+  if (stili.length) html = `<span style="${stili.join(';')}">${html}</span>`
   return html
 }
 
@@ -151,6 +163,8 @@ function stileDelParagrafo(formato: OcrFormat, conColore = true): string {
   else if (formato.allineamento === 'destra') pezzi.push('text-align:right')
   else if (formato.allineamento === 'giustificato') pezzi.push('text-align:justify')
   if (formato.colore && conColore) pezzi.push(`color:${formato.colore}`)
+  // Il blu predefinito dei titoli Word non è un colore dell'originale OCR.
+  else if (formato.livello >= 1 && formato.livello <= 4) pezzi.push('color:#000000')
   if (formato.famiglia) pezzi.push(`font-family:'${formato.famiglia}'`)
   if (formato.corpo) pezzi.push(`font-size:${formato.corpo}pt`)
   // interlinea e rientro scelti in revisione: il rientro in punti, come lo leggono Word e il PDF

@@ -1,3 +1,4 @@
+import { publishMutationRefresh } from '../operationalRefresh'
 import { csrfHeader } from './csrf'
 import { ApiClientError, normaliseErrorPayload } from './errors'
 import type { ApiMutationOptions, ApiRequestOptions } from './types'
@@ -20,6 +21,7 @@ async function requestJson<T>(url: string, init: RequestInit, fallback: T): Prom
     if (!response.ok) {
       return normaliseErrorPayload(payload, response.status, fallback) as T
     }
+    if (payload && typeof payload === 'object' && 'ok' in payload && payload.ok === true) publishMutationRefresh(url)
     return payload as T
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {

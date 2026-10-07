@@ -216,7 +216,7 @@ def riconcilia_consegne(
     *,
     applica: bool = True,
 ) -> dict[str, Any]:
-    """Rettifica solo proposte automatiche intatte sostenute da fonti respinte.
+    """Rettifica proposte automatiche intatte con fonti respinte o rimosse.
 
     La ricerca usa sia i fatti grezzi sia la vista canonica. Se l'identità
     canonica è cambiata dopo la riconvalida, il riferimento della consegna e
@@ -231,6 +231,10 @@ def riconcilia_consegne(
     grezzi = registro.fatti(tenant, fid, verifiche=None)
     canonici = fatti_canonici(grezzi)
     fatti = {f.id: f for f in [*grezzi, *canonici]}
+    oggetti = {(o.tipo, o.oggetto_id): o for o in registro.oggetti(tenant, fid, solo_presenti=False)}
+    def fonte_rimossa(fatto: Any) -> bool:
+        oggetto = oggetti.get((fatto.tipo, fatto.oggetto_id))
+        return oggetto is not None and not oggetto.presente and fatto.verifica != 'corretta'
     scadenziario, agenda = get_scadenziario(), get_agenda()
     scadenze = {s.id: s for s in scadenziario.tutte(id_fascicolo=fid, solo_aperte=False)}
     appuntamenti = {a.id: a for a in agenda.tutti()}
@@ -245,18 +249,18 @@ def riconcilia_consegne(
     def fonti_respinte(consegna: Any, riga: Any) -> list[Any]:
         fatto = fatti.get(consegna.fatto_id)
         if fatto is not None:
-            return [fatto] if fatto.verifica in {"respinta", "ignorata"} else []
+            return [fatto] if fatto.verifica in {"respinta", "ignorata"} or fonte_rimossa(fatto) else []
         giorno = _giorno(getattr(riga, "data_scadenza", "") if consegna.presidio == "scadenziario" else getattr(riga, "data_ora", ""))
         campi = {"termine", "costituzione"} if consegna.presidio == "scadenziario" else {"udienza"}
         fonti = [f for f in grezzi if f.categoria == "data" and f.campo in campi and _giorno(f.valore) == giorno]
-        return fonti if fonti and all(f.verifica in {"respinta", "ignorata"} for f in fonti) else []
+        return fonti if fonti and all(f.verifica in {"respinta", "ignorata"} or fonte_rimossa(f) for f in fonti) else []
 
     def riga_automatica_integra(consegna: Any, riga: Any, fonti: list[Any]) -> bool:
         if riga is None:
             return False
         stato = _stato(riga)
         atteso = "APERTO" if consegna.presidio == "scadenziario" else "PROGRAMMATO"
-        if stato != atteso:
+        if stato != atteso or getattr(riga, 'id_utente_responsabile', ''):
             return False
         nota = str(getattr(riga, "note", "") or "")
         prime_righe = (
@@ -281,11 +285,11 @@ def riconcilia_consegne(
         if not riga_automatica_integra(consegna, riga, fonti):
             conti["da_verificare"] += 1
             continue
-        motivo = next((
+        motivo = ('Il documento sorgente è stato rimosso dal fascicolo; la proposta automatica non è più sostenuta da una fonte corrente.' if any(fonte_rimossa(f) for f in fonti) else next((
             str(p.get("dettaglio") or "")
             for fatto in fonti for p in reversed(fatto.prove)
             if p.get("esito") in {"respinta", "errore"} and p.get("dettaglio")
-        ), "La fonte corrente non conferma più il dato consegnato.")
+        ), "La fonte corrente non conferma più il dato consegnato."))
         conti["da_rettificare"].append({
             "presidio": consegna.presidio,
             "riferimento": consegna.riferimento,
@@ -294,9 +298,46 @@ def riconcilia_consegne(
         })
         if not applica:
             continue
+        import json
+        import uuid
+        from pct.document_intelligence.models import utc_now
+        from web.services.document_intelligence_runtime import build_document_ai_service
+        repository = build_document_ai_service().repository
+        if repository.backend_kind not in {'sqlite', 'postgresql'}:
+            raise RuntimeError('Rettifica interrotta: il registro delle operazioni SQL non è disponibile.')
+        audit_id = "rettifica-consegna-" + uuid.uuid4().hex
+        evidenza = {
+            "versione": "2026.10.05.riconciliazione.v3", "presidio": consegna.presidio,
+            "riferimento": riga.id, "fatto_id": consegna.fatto_id, "motivo": motivo,
+            "stato_precedente": _stato(riga),
+            "fonti": [{"fatto_id": f.id, "tipo": f.tipo, "oggetto_id": f.oggetto_id,
+                       "sha256": f.sha256, "verifica": f.verifica,
+                       "rimossa": fonte_rimossa(f)} for f in fonti],
+        }
+        repository.append_audit_event({
+            "id": audit_id, "tenant_id": tenant, "fascicolo_id": fid,
+            "document_id": None, "user_id": "archivio_letture",
+            "event_type": "archive.delivery_reconciliation", "timestamp": utc_now(),
+            "status": "planned", "payload": evidenza,
+        })
         nota = str(getattr(riga, "note", "") or "") + "\nRettifica automatica della lettura: " + motivo
         if consegna.presidio == "scadenziario":
-            scadenziario.aggiorna(riga.id, stato="ANNULLATO", note=nota)
+            originale_trace = str(getattr(riga, "trace_json", "") or "[]")
+            try:
+                traccia = json.loads(originale_trace)
+            except (TypeError, ValueError):
+                traccia = [{"storico": originale_trace}]
+            if not isinstance(traccia, list):
+                traccia = [{"storico": traccia}]
+            traccia.append({"operazione": evidenza["versione"], "audit_id": audit_id, **evidenza})
+            from pct.scadenze_rettifiche_repository import ScadenzeRettificheRepository
+            from web.helpers import _studio_db
+            backend = _studio_db('SCADENZIARIO_DB')
+            ScadenzeRettificheRepository(backend).annulla_proposta(riga, nota=nota, traccia=traccia)
+            # Il JSON è soltanto il mirror rigenerato dopo la scrittura primaria.
+            from pct import cache as mirror_cache
+            righe_correnti = backend.fetchall_readonly('SELECT id,dati_json FROM scadenze')
+            mirror_cache.save(scadenziario.db_path, {str(item['id']): json.loads(item['dati_json']) for item in righe_correnti})
             conti["scadenze_rettificate"] += 1
         else:
             from pct.agenda import StatoAppuntamento
@@ -306,8 +347,14 @@ def riconcilia_consegne(
             tenant, fid, consegna.fatto_id, consegna.presidio,
             stato="non_pertinente", riferimento=riga.id,
             motivo="Proposta automatica annullata: " + motivo,
-            versione_presidio="2026.09.21.riconciliazione.v2",
+            versione_presidio="2026.10.05.riconciliazione.v3",
         )
+        repository.append_audit_event({
+            "id": audit_id + "-esito", "tenant_id": tenant, "fascicolo_id": fid,
+            "document_id": None, "user_id": "archivio_letture",
+            "event_type": "archive.delivery_reconciliation", "timestamp": utc_now(),
+            "status": "applied", "payload": {"audit_id": audit_id, **evidenza},
+        })
     if applica and (conti["scadenze_rettificate"] or conti["agenda_rettificata"]):
         from web.services.lettura_cache import invalida_lettura
         invalida_lettura(fid)

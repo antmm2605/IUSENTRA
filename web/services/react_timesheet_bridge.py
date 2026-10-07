@@ -164,6 +164,9 @@ def _filter_entries(entries: list[Any], filters: dict[str, str]) -> list[Any]:
             continue
         if filters["stato"] and _enum_value(getattr(entry, "stato", "")) != filters["stato"]:
             continue
+        billable_filter = filters.get("fatturabile", "")
+        if billable_filter in {"0", "1"} and bool(getattr(entry, "fatturabile", False)) != (billable_filter == "1"):
+            continue
         if filters["utente"]:
             user = _safe_text(getattr(entry, "username", "") or getattr(entry, "id_utente", ""))
             if user != filters["utente"]:
@@ -250,12 +253,18 @@ def build_react_timesheet_payload(
         "q": _safe_text(params.get("q") or params.get("ricerca")),
         "data_da": _safe_text(params.get("data_da") or params.get("dal")),
         "data_a": _safe_text(params.get("data_a") or params.get("al")),
+        "fatturabile": _safe_text(params.get("fatturabile")) if _safe_text(params.get("fatturabile")) in {"0", "1"} else "",
+        "ordina": _safe_text(params.get("ordina")) if _safe_text(params.get("ordina")) in {"tempo", "valore"} else "",
     }
     timesheet = get_timesheet()
     clienti_manager = get_clienti()
     fascicoli_manager = get_fascicoli()
     all_entries = list(timesheet.tutte())
     entries = _filter_entries(all_entries, filters)
+    if filters["ordina"] == "tempo":
+        entries.sort(key=lambda entry: int(getattr(entry, "minuti", 0) or 0), reverse=True)
+    elif filters["ordina"] == "valore":
+        entries.sort(key=lambda entry: float(getattr(entry, "valore_totale", 0) or 0), reverse=True)
 
     clienti_options = _options_clienti(clienti_manager)
     fascicoli_options = _options_fascicoli(fascicoli_manager)

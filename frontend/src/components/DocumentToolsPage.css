@@ -1,10 +1,11 @@
 @import '../theme/impeccable-open-design.css';
 
 .iu-document-tools {
+  --iu-od-primary: var(--iu-navy-900, oklch(0.24 0.035 255));
   color: var(--iu-od-text);
   display: grid;
   gap: 14px;
-  padding-bottom: 32px;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
 }
 
 .iu-document-tools__header {
@@ -196,6 +197,10 @@
   grid-template-columns: minmax(0, 1fr) minmax(300px, 38%);
   min-height: 280px;
 }
+.iu-document-tools__body:not(:has(.iu-document-tools__preview)) {
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+}
 
 .iu-document-tools__list {
   border-top: 1px solid var(--iu-od-border);
@@ -314,6 +319,16 @@
   padding: 8px 10px 8px 14px;
 }
 
+.iu-document-tools__preview--link {
+  min-height: 0;
+  align-content: start;
+  grid-template-rows: auto auto;
+}
+.iu-document-tools__preview--link > button {
+  margin: 10px;
+  justify-self: start;
+}
+
 .iu-document-tools__preview header strong {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -346,6 +361,28 @@
 .iu-document-tools__footer {
   border-top: 1px solid var(--iu-od-border);
 }
+
+.iu-document-tools__page-selection {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+}
+.iu-document-tools__page-selection > span { font-size: 13px; font-weight: 800; }
+.iu-document-tools__page-selection input {
+  width: min(100%, 520px);
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid var(--iu-od-border);
+  border-radius: 8px;
+  background: var(--iu-od-surface);
+  color: var(--iu-od-text);
+  font: inherit;
+}
+.iu-document-tools__page-selection input:focus-visible {
+  outline: 2px solid var(--iu-od-primary);
+  outline-offset: 2px;
+}
+.iu-document-tools__page-selection small { color: var(--iu-od-muted); }
 
 .iu-document-tools__footer > label {
   display: grid;
@@ -388,6 +425,18 @@
   border: 1px solid var(--iu-od-primary);
   color: #f8fafc;
 }
+
+.iu-document-tools__primary:hover:not(:disabled),
+.iu-document-tools__result-actions button:hover:not(:disabled) {
+  background: var(--iu-navy-800, oklch(0.3 0.04 255));
+  color: var(--iu-text-inverse, oklch(0.98 0.006 255));
+}
+.iu-document-tools button:focus-visible,
+.iu-document-tools a:focus-visible {
+  outline: 2px solid var(--iu-od-focus);
+  outline-offset: 2px;
+}
+.iu-document-tools button:disabled { opacity: .55; cursor: not-allowed; }
 
 .iu-document-tools__message {
   border: 1px solid;

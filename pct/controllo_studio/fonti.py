@@ -119,7 +119,7 @@ def voci_agenda(appuntamenti: list[Any], per_rg: dict[str, Any], sessioni_udienz
                 etichetta_prep = "Da preparare"
             href = (f"/wizard-pro/{quote(str(sessione.id))}/step/{int(_valore(sessione, 'step_corrente', 1) or 1)}" if sessione is not None
                     else f"/wizard-pro/?{urlencode({'id_fascicolo': fascicolo.id, 'id_appuntamento': app.id})}" if fascicolo is not None
-                    else "/wizard-pro/")
+                    else f"/wizard-pro/?{urlencode({'id_appuntamento': app.id})}")
             azioni.insert(0, Azione("Prepara l'udienza" if sessione is None else "Continua la preparazione", href=href, principale=True))
             gravita = "alta" if giorno <= (oggi + timedelta(days=1)).isoformat() and etichetta_prep == "Da preparare" else "normale"
             dettaglio = luogo
@@ -209,6 +209,7 @@ def voci_notifiche(presidi: list[dict[str, Any]], oggi: date, fascicoli: dict[st
             giorno = f"{data_it[6:10]}-{data_it[3:5]}-{data_it[0:2]}"
         voci.append(Voce(id=str(riga.get("id") or ""), area="notifiche", titolo=str(riga.get("title") or "Notifica da verificare"),
                          dettaglio=str(riga.get("subtitle") or ""), data=giorno,
+                         data_riferimento=str(riga.get("reference_at") or ""), tipo_data_riferimento=str(riga.get("reference_label") or ""),
                          gravita="critica" if tono == "danger" else "alta" if tono == "warning" else "normale",
                          etichetta=str(riga.get("badge") or ""),
                          fascicolo=rif_fascicolo((fascicoli or {}).get(str(riga.get("fascicolo_id") or ""))),

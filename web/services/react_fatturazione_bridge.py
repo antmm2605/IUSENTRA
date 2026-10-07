@@ -1059,7 +1059,22 @@ def build_react_fatturazione_payload(
                 "la trasmissione deve avvenire tramite portale, canale accreditato o intermediario."
             ),
         })
-    records = [_invoice_record(item, clienti, fascicoli) for item in parcelle[:120]]
+    records = []
+    for item in parcelle:
+        record = _invoice_record(item, clienti, fascicoli)
+        status = record["state"]
+        same_year = _text(getattr(item, "data_emissione", "")).startswith(str(anno))
+        memberships = []
+        if same_year and status not in {"BOZZA", "ANNULLATA"}:
+            memberships.append("fatturato")
+        if same_year and status == "PAGATA":
+            memberships.append("incassato")
+        if status == "EMESSA":
+            memberships.append("da_incassare")
+        if status == "SCADUTA":
+            memberships.append("scaduto")
+        record["metricFilters"] = memberships
+        records.append(record)
     state_items: list[dict[str, Any]] = []
     for code in ("BOZZA", "EMESSA", "PAGATA", "SCADUTA", "ANNULLATA"):
         count = len([record for record in records if record["state"] == code])

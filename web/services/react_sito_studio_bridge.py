@@ -336,7 +336,7 @@ def _safe_clients(get_clienti: Loader | None, current_user: Any) -> list[dict[st
                 "id": _text(getattr(row, "id", "")),
                 "label": _text(getattr(row, "nome_completo", "")) or _text(getattr(row, "ragione_sociale", "")),
             }
-            for row in list(rows)[:80]
+            for row in list(rows)
             if _text(getattr(row, "id", ""))
         ]
     except Exception:
@@ -354,7 +354,7 @@ def _safe_matters(get_fascicoli: Loader | None, current_user: Any) -> list[dict[
                 "id": _text(getattr(row, "id", "")),
                 "label": _text(getattr(row, "oggetto", "")) or _text(getattr(row, "numero_ruolo", "")),
             }
-            for row in list(rows)[:80]
+            for row in list(rows)
             if _text(getattr(row, "id", ""))
         ]
     except Exception:
@@ -362,7 +362,16 @@ def _safe_matters(get_fascicoli: Loader | None, current_user: Any) -> list[dict[
 
 
 def _base_dashboard() -> dict[str, Any]:
-    return build_studio_site_dashboard_payload()
+    dashboard = build_studio_site_dashboard_payload()
+    # Il cruscotto storico contiene anteprime (6 articoli / 10 richieste).
+    # Le card React filtrano il catalogo SQL autorizzato, non quelle anteprime.
+    site_id = _int((dashboard.get("site") or {}).get("id"))
+    if site_id:
+        repo = studio_site_repository()
+        dashboard["articles"] = repo.list_articles(site_id, limit=None)
+        dashboard["contact_submissions"] = repo.list_contact_submissions(site_id, limit=None)
+        dashboard["booking_requests"] = repo.list_booking_requests(site_id, limit=None)
+    return dashboard
 
 
 def build_react_sito_studio_payload(

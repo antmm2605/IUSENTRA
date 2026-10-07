@@ -2,6 +2,8 @@
 
 ## 2.436.11 — 05/10/2026
 
+- **Deploy Lex v2 (07/10/2026)**: trasferimento riservato e verificato di `iusentra-lex-v2:9b`, configurazione server con backup, controllo del modello risolto da chat e gateway e generazione reale post-deploy. Preservati gli aggiornamenti studio già presenti su GitHub. Lex v3 resta previsto solo per la 2.436.12.
+
 Lex: archivio completo della Corte costituzionale come fonte giurisprudenziale, 16 regolamenti UE dal testo della GUUE, fonti rese con estremi completi, stesso contesto del modello in tutti i percorsi.
 
 - **Corte costituzionale, archivio completo** (open data ufficiali, licenza CC BY-SA 3.0 con attribuzione): `pct/corte_costituzionale_opendata.py` e `tools/cortecost_importa.py` leggono gli zip di zip annuali delle pronunce (JSON) e delle massime (XML), li uniscono per anno e numero e scrivono nel corpus giurisprudenziale FTS5 tutte le 22.395 pronunce dal 1956 (11.715 sentenze, 10.680 ordinanze) con 46.561 massime ufficiali: ECLI, relatore, presidente, collegio, date, tipologia del giudizio, massime (anche nella tabella `massime`), dispositivo, testo integrale ripulito, scheda ufficiale `scheda-pronuncia/AAAA/N`, stato `verificata`. Scrittura a blocchi (una transazione ogni 500 righe), idempotente (chiave ECLI, righe invariate saltate, ripresa delle righe del vecchio sincronizzatore per numero e anno). Misurato: ~5 minuti e ~770 MB per corpus vuoto, ~40 s per un rilancio senza modifiche. Opzioni `--db`, `--tenant-dir`, `--tutti-i-tenant` (registro tenant), `--dal-anno`, `--anni-recenti`, `--se-assente`, `--scarica`, `--dry-run`, `--json`. Il vecchio sincronizzatore restava a 12 pronunce dell'anno corrente, senza massime ne' testo.
@@ -28,6 +30,15 @@ Lex, archivio Normattiva: le leggi ordinarie che Open Data non distribuisce, art
 - **Numeri d'articolo**: `articolo_normalizzato` riconosce i suffissi da «undecies» a «noviesdecies» (prima «669-terdecies» diventava «669ter») e il sottonumero «473-bis.14».
 - **Altri atti integrati** (1.937 articoli, 30 atti): Statuto del contribuente (l. 212/2000), adozione (l. 184/1983), diritto d'autore (l. 633/1941), diritto internazionale privato (l. 218/1995), ordinamento penitenziario (l. 354/1975), consenso informato e DAT (l. 219/2017), l. 194/1978, legge fallimentare (r.d. 267/1942, per le procedure anteriori al CCII), **Regolamento (UE) 2016/679 (GDPR)** e **Codice deontologico forense** (testo ufficiale CNF aggiornato al 2026). GDPR e codice deontologico sono riconosciuti come «codici» nelle domande («art. 82 GDPR», «art. 27 codice deontologico»). Le URN `urn:nir:unione.europea:...` e `urn:nir:consiglio.nazionale.forense:...` sono accettate dall'integrazione e dalle intestazioni delle fonti.
 - Test: `tests/test_integrazione_leggi_essenziali.py` (inserimento, ricerca, idempotenza, sostituzione, file del repository coerente, etichette, GDPR e codice deontologico), `tests/test_riallinea_articoli_normattiva.py` (divisione in articoli, testo citato negli atti di modifica, riallineamento idempotente).
+
+## [2.436.10] - 2026-10-07
+
+- Riallineamento della copia locale alle modifiche in uso su Hetzner: card operative compatte, filtri, selezione e letture massive, aggiornamento automatico e finestre contestuali ridimensionabili e affiancabili.
+- Presa visione delle verifiche documentali persistente per utente e revisione; la discordanza resta consultabile.
+- Filtri economici, cataloghi contestuali, strumenti documentali e OCR; cronologia telematica in ora italiana.
+- Scheduler: indice per identificativo esecuzione e riconciliazione indicizzata senza cambiare i criteri di cancellazione.
+- La conversione Word con identica impaginazione e la campagna completa di accettazione restano aperte; il prototipo delle dimensioni pagina non è incluso.
+
 
 ## 2.436.9 — 03/10/2026
 

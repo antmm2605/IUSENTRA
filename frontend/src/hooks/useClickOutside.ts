@@ -10,6 +10,8 @@ export function useClickOutside<T extends HTMLElement>(
     const handlePointerDown = (event: PointerEvent) => {
       const node = ref.current
       if (!node || node.contains(event.target as Node)) return
+      if (node.querySelector('button[aria-haspopup=dialog][aria-expanded=true]')) return
+      if (node.matches('[data-managed-existing-window]') || node.querySelector('[data-managed-existing-window]')) return
       onOutside()
     }
     document.addEventListener('pointerdown', handlePointerDown)

@@ -9,6 +9,7 @@ from typing import Any
 from flask import Flask, Response, abort, flash, g, jsonify, redirect, request, session, url_for
 
 from web.services.tenant_paths import tenant_data_path
+from web.services.email_storage_runtime import create_email_mailbox
 
 
 def register_sync_runtime_routes(
@@ -98,11 +99,7 @@ def register_sync_runtime_routes(
     def api_pec_poll_cancelleria():
         try:
             from pct.config_studio import GestioneConfigStudio
-            from pct.email_client import (
-                GestioneEmailRicevute,
-                riassunto_auto_esiti,
-                sincronizza_pec_e_fascicoli,
-            )
+            from pct.email_client import riassunto_auto_esiti, sincronizza_pec_e_fascicoli
 
             utente = _current_user()
             if not utente or not utente.ha_permesso("fascicoli.scrivi"):
@@ -137,7 +134,7 @@ def register_sync_runtime_routes(
                 )
 
             gf = get_fascicoli()
-            ge = GestioneEmailRicevute(
+            ge = create_email_mailbox(
                 db_path=_cfg_path(
                     "EMAIL_CASELLA_DB",
                     os.environ.get("PCT_EMAIL_DB", "./email/casella.json"),

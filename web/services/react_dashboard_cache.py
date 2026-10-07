@@ -29,7 +29,7 @@ _SALVATO_IL: dict[str, float] = {}
 
 def _cached_payload_if_fresh(key: str, now: float) -> dict[str, Any] | None:
     cached = _CACHE.get(key)
-    if cached and cached[0] > now:
+    if cached and cached[0] > now and not _invalidata_altrove(key):
         return deepcopy(cached[1])
     return None
 

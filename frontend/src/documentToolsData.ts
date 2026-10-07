@@ -1,6 +1,6 @@
 import { csrfHeader } from './api/csrf'
 
-export type DocumentToolMode = 'merge' | 'zip' | 'multipage'
+export type DocumentToolMode = 'merge' | 'zip' | 'multipage' | 'split'
 
 export type GeneratedDocument = {
   blob: Blob
@@ -8,6 +8,9 @@ export type GeneratedDocument = {
   objectUrl: string
   pages: number
   files: number
+  previewHref?: string
+  downloadHref?: string
+  expiresAt?: number
 }
 
 type ApiErrorPayload = {
@@ -40,6 +43,20 @@ async function errorMessage(response: Response): Promise<string> {
   }
 }
 
+export async function previewUploadedPdf(file: File, signal?: AbortSignal): Promise<{ href: string; expiresAt: number }> {
+  const body = new FormData()
+  body.append('files', file, file.name)
+  const response = await fetch('/api/v1/ui/document-tools/preview', {
+    method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json', ...csrfHeader() }, body, signal,
+  })
+  if (!response.ok) throw new Error(await errorMessage(response))
+  const payload = await response.json() as { ok?: boolean; previewHref?: string; expiresAt?: number }
+  if (!payload.ok || !payload.previewHref?.startsWith('/api/v1/ui/document-tools/results/') || payload.previewHref.includes('\\') || !Number.isFinite(payload.expiresAt)) {
+    throw new Error('Anteprima non ricevuta. Verifica l’accesso a IUSENTRA e riprova.')
+  }
+  return { href: payload.previewHref, expiresAt: payload.expiresAt! }
+}
+
 export async function generateDocument(
   mode: DocumentToolMode,
   files: File[],
@@ -47,10 +64,12 @@ export async function generateDocument(
   logicalNames: string[],
   rotations: number[],
   pageFormat: '' | 'a4' = '',
+  pages = '',
 ): Promise<GeneratedDocument> {
   const body = new FormData()
   files.forEach((file) => body.append('files', file, file.name))
   body.append('output_name', outputName)
+  if (mode === 'split') body.append('pages', pages)
   if (pageFormat) body.append('page_format', pageFormat)
   logicalNames.forEach((name) => body.append('logical_names', name))
   rotations.forEach((rotation) => body.append('rotations', String(rotation)))
@@ -61,6 +80,7 @@ export async function generateDocument(
     headers: {
       Accept: 'application/pdf, application/zip, application/json',
       ...csrfHeader(),
+      'X-Iusentra-Result-Links': '1',
     },
     body,
   })
@@ -69,6 +89,10 @@ export async function generateDocument(
   const expectedType = mode === 'zip' ? 'application/zip' : 'application/pdf'
   if (!response.headers.get('content-type')?.toLowerCase().startsWith(expectedType)) throw new Error('Documento non ricevuto. Verifica l’accesso a IUSENTRA e riprova.')
 
+  const downloadHref = response.headers.get('x-iusentra-download') || ''
+  const previewHref = response.headers.get('x-iusentra-preview') || undefined
+  const internalResult = (href: string) => href.startsWith('/api/v1/ui/document-tools/results/') && !href.includes('\\')
+  if (!internalResult(downloadHref) || (previewHref && !internalResult(previewHref))) throw new Error('I collegamenti alla copia generata non sono disponibili. Riprova.')
   const blob = await response.blob()
   if (!blob.size) throw new Error('Il documento preparato è vuoto e non può essere salvato.')
   const fallback = mode === 'zip' ? 'documenti.zip' : 'documento.pdf'
@@ -76,6 +100,9 @@ export async function generateDocument(
     blob,
     filename: filenameFromDisposition(response.headers.get('content-disposition'), fallback),
     objectUrl: URL.createObjectURL(blob),
+    expiresAt: Number(response.headers.get('x-iusentra-expires') || 0) * 1000 || undefined,
+    downloadHref,
+    previewHref,
     pages: Number(response.headers.get('x-iusentra-pages') || 0),
     files: Number(response.headers.get('x-iusentra-files') || files.length),
   }

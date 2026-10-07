@@ -1,0 +1,27 @@
+
+.ius-metric-trigger{display:block;min-width:0;width:100%;padding:0;border:0;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer;border-radius:10px}
+.ius-metric-trigger:focus-visible,.ius-card-link:focus-visible{outline:3px solid #2563eb;outline-offset:3px}
+.ius-metric-trigger:hover .ius-metric-card{border-color:#8ba4c5;background:#f4f8fe;color:#0f172a}
+.ius-metric-trigger[aria-pressed=true] .ius-metric-card{border-color:#123d72;box-shadow:inset 0 0 0 1px #123d72;background:#edf4fc}
+.ius-metric-card .ius-metric-card__content{padding:10px 12px;gap:9px;min-height:70px}
+.ius-metric-card .ius-metric-card__icon{width:28px;height:28px;min-width:28px}
+.ius-metric-card .ius-metric-card__main>strong{font-size:20px;line-height:1.15}
+.ius-metric-card .ius-metric-card__main>small{font-size:11px;line-height:1.25}
+.ius-metric-card .ius-metric-card__main>em{font-size:10px;line-height:1.1;margin-top:4px}
+
+.ius-metric-trigger,.ius-card-link,.ius-metric-card{height:100%}.ius-metric-card .ius-metric-card__content{height:100%;align-items:flex-start}.ius-metric-card .ius-metric-card__main{display:grid;grid-template-rows:minmax(24px,auto) 23px minmax(14px,auto) auto;gap:2px;min-width:0;flex:1}.ius-metric-card .ius-metric-card__top{align-items:flex-start;min-width:0}.ius-metric-card .ius-metric-card__top>span{overflow-wrap:anywhere;line-height:12px}.ius-metric-card .ius-metric-card__main>strong{grid-row:2}.ius-metric-card .ius-metric-card__main>small{grid-row:3}.ius-metric-card .ius-metric-card__main>em{grid-row:4}
+
+/* Una sola griglia governa dimensioni e allineamenti dei riepiloghi condivisi. */
+.iusentra-preset-active .ius-metric-card.iu-kpi-card{display:block;min-height:0;padding:0!important;padding-block:0!important;padding-inline:0!important;gap:0;border-radius:10px}
+.iusentra-preset-active .ius-metric-card.iu-kpi-card .ius-metric-card__content{display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;min-height:0;padding:10px 12px!important;padding-block:10px!important;padding-inline:12px!important;align-items:start;height:100%}
+.iusentra-preset-active .ius-metric-card.iu-kpi-card .ius-metric-card__icon{width:28px;height:28px;min-width:28px;flex-basis:28px;align-self:start}
+.iusentra-preset-active .ius-metric-card.iu-kpi-card .ius-metric-card__icon svg{width:17px;height:17px}
+.iusentra-preset-active .ius-metric-card.iu-kpi-card .ius-metric-card__main{min-width:0;height:100%;grid-template-rows:minmax(44px,auto) 23px minmax(14px,auto) auto}
+.iusentra-preset-active .ius-metric-card.iu-kpi-card .ius-metric-card__top{display:flex;flex-wrap:wrap;align-content:start;align-items:start;gap:4px;min-width:0}
+.iusentra-preset-active .ius-metric-card.iu-kpi-card .ius-metric-card__top>span:first-child{flex:0 0 100%;min-width:0;line-height:1.3;font-size:12px;letter-spacing:0;text-transform:none;overflow-wrap:normal}
+.iusentra-preset-active .ius-metric-card.iu-kpi-card .ius-metric-card__top>.ius-status-badge{flex:none;max-width:100%;min-height:18px;padding:1px 6px;font-size:10px;line-height:1.2}
+.iusentra-preset-active .ius-metric-card.iu-kpi-card .ius-status-badge>.iu-badge{padding:0;min-height:0;border:0;background:transparent;color:inherit;font:inherit}
+.iusentra-preset-active .ius-metric-card.iu-kpi-card .ius-metric-card__main>strong{font-size:20px;line-height:1.15;min-width:0;overflow-wrap:anywhere}
+
+/* Le classi Bootstrap py-4/px-4 dei componenti di base non devono aggiungere un secondo padding. */
+.ius-card-link>.ius-metric-card{width:100%;flex:1;min-width:0}

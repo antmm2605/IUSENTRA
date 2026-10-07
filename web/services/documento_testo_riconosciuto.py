@@ -71,12 +71,13 @@ ATTRIBUTI_CONSENTITI = {
     "h2": {"style"},
     "h3": {"style"},
     "h4": {"style"},
-    # dentro la riga passa solo il colore: il resto e' del capoverso
+    # Colore, carattere e corpo possono cambiare anche dentro la stessa riga.
     "span": {"style"},
     "hr": {"class", "data-iu-page-break"},
     # Tipo e numero di partenza dell'elenco: sono forma del documento
     # riconosciuto (a), b), c); I., II.; 3., 4.), non decorazione.
     "ol": {"type", "start"},
+    "li": {"data-iu-ocr-marker"},
 }
 TIPI_ELENCO = {"1", "a", "A", "i", "I"}
 
@@ -105,11 +106,12 @@ def _numero_pulito(valore: float) -> str:
     return f"{valore:g}"
 
 
-def stile_consentito(stile: str, *, solo_colore: bool = False) -> str:
+def stile_consentito(stile: str, *, solo_colore: bool = False, inline: bool = False) -> str:
     """Le sole dichiarazioni di formato del documento, nei valori ammessi.
 
-    `solo_colore` vale per i pezzi dentro la riga: il colore di una parola si,
-    ma allineamento, carattere e corpo sono del capoverso intero.
+    I tratti inline mantengono carattere, corpo e colore dichiarati dalla fonte;
+    allineamento, interlinea e rientro appartengono al capoverso.
+    `solo_colore` conserva il contratto dei chiamanti che richiedono solo colore.
     """
     tenute: dict[str, str] = {}
     for dichiarazione in str(stile or "").split(";"):
@@ -139,6 +141,9 @@ def stile_consentito(stile: str, *, solo_colore: bool = False) -> str:
             trovato = _RE_RIENTRO.match(valore.replace(" ", "").lower())
             if trovato and 0 < float(trovato.group(1)) <= RIENTRO_MASSIMO_PT:
                 tenute[proprieta] = f"{_numero_pulito(float(trovato.group(1)))}pt"
+    if inline:
+        tenute = {proprieta: valore for proprieta, valore in tenute.items()
+                  if proprieta in {"color", "font-family", "font-size"}}
     if solo_colore:
         # dentro la riga passa il solo colore: il resto e' del capoverso
         tenute = {proprieta: valore for proprieta, valore in tenute.items() if proprieta == "color"}
@@ -174,13 +179,18 @@ class _Ripulitore(HTMLParser):
             if nome == "data-iu-page-break" and str(valore).strip().lower() not in {"true", "1"}:
                 continue
             if nome == "style":
-                stile = stile_consentito(str(valore), solo_colore=tag == "span")
+                stile = stile_consentito(str(valore), inline=tag == "span")
                 if stile:
                     pezzi.append(f' style="{_attributo(stile)}"')
                 continue
             if nome == "type" and str(valore).strip() not in TIPI_ELENCO:
                 continue
             if nome == "start" and not str(valore).strip().isdigit():
+                continue
+            if nome == "data-iu-ocr-marker" and not re.fullmatch(
+                r"(?:[-•·–—*▪■●○◦►➢✓]|\(?[0-9A-Za-z]{1,12}[.)°]|[0-9]{1,2}(?:\.[0-9]{1,2}){1,3}[.)]?)",
+                str(valore).strip(),
+            ):
                 continue
             pezzi.append(f' {nome}="{_attributo(valore)}"')
         coppie = "".join(pezzi)

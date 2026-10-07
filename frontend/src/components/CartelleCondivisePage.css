@@ -42,3 +42,35 @@
 @media(max-width:1180px){.iu-share-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.iu-share-warnings{grid-template-columns:repeat(2,minmax(0,1fr))}.iu-share-grid{grid-template-columns:1fr}}
 @media(max-width:720px){.iu-share-page{padding:16px 14px 96px}.iu-share-hero{flex-direction:column}.iu-share-hero__actions{justify-content:flex-start}.iu-share-stats,.iu-share-warnings,.iu-share-card__facts,.iu-share-card.compact{grid-template-columns:1fr}.iu-share-warnings.ok{align-items:start}.iu-share-warnings.ok svg{align-self:start}.iu-share-accesses>div{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.iu-share-page *{scroll-behavior:auto;transition:none!important}}
+
+.iusentra-preset-active main.iu-share-page .iu-share-hero__actions :is(a,button){min-height:44px;gap:8px;padding:8px 14px;border:1px solid var(--iu-border);border-radius:9px;background:#fff;color:#0f172a;font-family:inherit;font-size:13px;font-weight:850;box-shadow:none}
+.iusentra-preset-active main.iu-share-page .iu-share-hero__actions :is(a,button):hover,.iusentra-preset-active main.iu-share-page .iu-share-hero__actions :is(a,button):focus-visible{color:#0f172a;background:var(--iu-surface-muted);border-color:var(--iu-blue-600)}
+.iusentra-preset-active main.iu-share-page .iu-share-hero__actions button.iu-share-cleanup{color:#b91c1c;border-color:#fecaca;background:#fff}
+.iusentra-preset-active main.iu-share-page .iu-share-hero__actions button.iu-share-cleanup:hover,.iusentra-preset-active main.iu-share-page .iu-share-hero__actions button.iu-share-cleanup:focus-visible{color:#991b1b;border-color:#b91c1c;background:#fef2f2}
+.iu-share-hero__actions :is(a,button):focus-visible,.iu-share-actions a:focus-visible{outline:3px solid var(--iu-blue-600);outline-offset:3px}
+.iusentra-preset-active main .iu-share-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.iusentra-preset-active main button.iu-share-stat{min-height:72px;min-width:0;padding:10px 12px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px;font:inherit;text-align:left;cursor:pointer}
+.iu-share-stat>span{display:none}
+.iu-share-stat>strong{grid-column:2;grid-row:1;font-size:21px}
+.iu-share-stat>small{grid-column:1;grid-row:1;line-height:1.4;letter-spacing:0;text-transform:none;font-size:12px}
+.iu-share-stat[aria-pressed="true"]{border-color:var(--iu-blue-600);box-shadow:inset 0 0 0 1px var(--iu-blue-600)}
+.iu-share-stat:hover,.iu-share-stat:focus-visible{outline:2px solid var(--iu-blue-600);outline-offset:2px}
+.iu-share-filters{display:flex;align-items:end;flex-wrap:wrap;gap:12px}
+.iu-share-filters label{display:grid;gap:6px;flex:1 1 260px;min-width:0;font-size:13px}
+.iu-share-filters input{min-height:44px;width:100%;border:1px solid var(--iu-border);border-radius:9px;background:var(--iu-bg-card);padding:8px 12px;color:var(--iu-text-strong);font:inherit}
+.iu-share-filters input:focus-visible{outline:3px solid var(--iu-blue-600);outline-offset:2px}
+.iu-share-empty{min-height:110px;padding:18px}
+.iu-share-warnings.ok{grid-template-columns:20px minmax(0,1fr);gap:6px 10px;align-items:start}
+.iu-share-warnings.ok>svg{grid-column:1;grid-row:1/3}
+.iu-share-warnings.ok>strong,.iu-share-warnings.ok>span{grid-column:2;justify-self:start;text-align:left}
+@media(min-width:1280px){.iusentra-preset-active main .iu-share-stats{grid-template-columns:repeat(6,minmax(0,1fr))}}
+@media(max-width:720px){.iusentra-preset-active main .iu-share-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.iu-share-filters label{flex-basis:100%}}
+
+.iusentra-preset-active main.iu-share-page .iu-share-hero__actions button:disabled{color:#334155;border-color:#cbd5e1;background:#f8fafc;opacity:1;cursor:not-allowed;box-shadow:none;transform:none}
+.iu-share-actions .iu-button,.iu-share-card.compact .iu-button{border-radius:9px;font-weight:850;box-shadow:none}
+
+@media(max-width:720px){
+  .iusentra-preset-active main.iu-share-page.iusentra-route-sequence > .iu-share-hero[data-iusentra-sequence-slot="page-header"] .iu-share-hero__actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;justify-content:stretch;gap:8px}
+  .iusentra-preset-active main.iu-share-page .iu-share-hero__actions :is(a,button){width:100%;min-width:0;padding-inline:8px}
+  .iusentra-preset-active main.iu-share-page .iu-share-hero__actions .iu-share-cleanup{grid-column:1/-1}
+}

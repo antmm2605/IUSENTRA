@@ -34,6 +34,7 @@ import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
 import { displaySourceLabel, displayWritesLabel } from '../displayText'
+import { formatDateTimeIt } from '../formatting'
 import './UtentiPage.css'
 
 type LoadStatus = 'loading' | 'ready' | 'error'
@@ -51,7 +52,7 @@ type ProfileDraft = {
   email: string
 }
 
-type UserFilter = 'tutti' | 'attivi' | 'disabilitati'
+type UserFilter = 'tutti' | 'attivi' | 'disabilitati' | 'override' | 'secondo-fattore'
 
 function formatValue(value: string | number): string {
   if (typeof value === 'number') return new Intl.NumberFormat('it-IT').format(value)
@@ -60,23 +61,11 @@ function formatValue(value: string | number): string {
 
 function formatDate(value: string): string {
   if (!value) return 'Mai'
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return value.replace('T', ' ').slice(0, 16)
-  return new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', dateStyle: 'short', timeStyle: 'short' }).format(parsed)
+  return formatDateTimeIt(value, 'Data non disponibile')
 }
 
 function formatGeneratedAt(value: string): string {
-  if (!value) return 'non disponibile'
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return value
-  return new Intl.DateTimeFormat('it-IT', {
-    timeZone: 'Europe/Rome',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(parsed)
+  return formatDateTimeIt(value, 'Data non disponibile')
 }
 
 function firstRole(roles: RoleOption[]): string {
@@ -222,6 +211,7 @@ function UserFilters({
             <Search size={16} />
             <input
               type="search"
+              aria-label="Cerca utenti"
               value={query}
               onChange={(event) => onQuery(event.target.value)}
               placeholder="Nome, username, email o ruolo"
@@ -230,7 +220,7 @@ function UserFilters({
         </label>
         <label className="iu-users-field">
           <span>Ruolo</span>
-          <select value={role} onChange={(event) => onRole(event.target.value)}>
+          <select aria-label="Ruolo" value={role} onChange={(event) => onRole(event.target.value)}>
             <option value="">Tutti i ruoli</option>
             {roles.map((item) => (
               <option value={item.value} key={item.value}>{item.label}</option>
@@ -239,10 +229,11 @@ function UserFilters({
         </label>
         <label className="iu-users-field">
           <span>Stato account</span>
-          <select value={status} onChange={(event) => onStatus(event.target.value as UserFilter)}>
+          <select aria-label="Stato account" value={status} onChange={(event) => onStatus(event.target.value as UserFilter)}>
             <option value="tutti">Tutti</option>
             <option value="attivi">Solo attivi</option>
-            <option value="disabilitati">Solo disabilitati</option>
+            <option value="disabilitati">Solo disabilitati</option><option value="override">Permessi personalizzati</option>
+            <option value="secondo-fattore">Secondo fattore attivo</option>
           </select>
         </label>
       </div>
@@ -804,8 +795,8 @@ export function UtentiPage() {
   const [message, setMessage] = useState('')
   const [selectedUserId, setSelectedUserId] = useState(() => utenteDaPercorso().id)
   const [query, setQuery] = useState('')
-  const [roleFilter, setRoleFilter] = useState('')
-  const [statusFilter, setStatusFilter] = useState<UserFilter>('tutti')
+  const [roleFilter, setRoleFilter] = useState(() => new URLSearchParams(window.location.search).get('ruolo') || '')
+  const [statusFilter, setStatusFilter] = useState<UserFilter>(() => { const raw = new URLSearchParams(window.location.search).get('stato') || ''; return ['attivi','disabilitati','override','secondo-fattore'].includes(raw) ? raw as UserFilter : 'tutti' })
   const isNewUser = typeof window !== 'undefined' && window.location.pathname.toLowerCase() === '/utenti/nuovo'
 
   const refreshData = async () => {
@@ -837,11 +828,13 @@ export function UtentiPage() {
       if (roleFilter && user.role !== roleFilter) return false
       if (statusFilter === 'attivi' && !user.active) return false
       if (statusFilter === 'disabilitati' && user.active) return false
+      if (statusFilter === 'override' && !user.hasOverride) return false
+      if (statusFilter === 'secondo-fattore' && !user.twoFactorEnabled) return false
       return true
     }),
     [data.users, query, roleFilter, statusFilter],
   )
-  const selectedUser = data.users.find((user) => user.id === selectedUserId) || filteredUsers[0] || null
+  const selectedUser = filteredUsers.find((user) => user.id === selectedUserId) || filteredUsers[0] || null
   const hasData = data.metrics.length > 0 || data.users.length > 0
 
   const handleMutationResult = (result: UtenteMutationResult) => {
@@ -853,6 +846,7 @@ export function UtentiPage() {
         const nextUsers = current.users.map((user) => user.id === result.user?.id ? result.user : user)
         return { ...current, users: nextUsers, records: nextUsers }
       })
+      void getUtentiPage().then(setData).catch(() => setMessage('Account aggiornato. Il riepilogo non si è ricaricato: riprova.'))
     }
   }
 
@@ -910,7 +904,8 @@ export function UtentiPage() {
                 label={metric.label}
                 value={formatValue(metric.value)}
                 note={metric.note}
-                badge={<Badge tone={metric.tone}>{metric.tone}</Badge>}
+                onClick={() => { setQuery(''); setRoleFilter(''); setStatusFilter(metric.id === 'totale' ? 'tutti' : metric.id as UserFilter) }}
+                active={!query && !roleFilter && (metric.id === 'totale' ? statusFilter === 'tutti' : statusFilter === metric.id)}
                 key={metric.id}
               />
             ))}
@@ -952,15 +947,23 @@ export function UtentiPage() {
               </section>
               <section className="iu-users-grid" aria-label="Distribuzioni utenti">
                 {data.sections.map((section) => (
-                  <Panel title={section.title} subtitle={section.kind} key={section.id}>
+                  <Panel title={section.title} subtitle={section.id === 'ruoli' ? 'Filtra gli account per ruolo' : 'Consulta i permessi degli account'} key={section.id}>
                     {section.items.length ? (
                       <div className="iu-users-distribution">
                         {section.items.map((item) => (
-                          <div className="iu-users-distribution__item" key={item.id}>
+                          section.id === 'ruoli' ? <button type="button" className="iu-users-distribution__item" key={item.id} onClick={() => {
+                            setRoleFilter(item.id.replace(/^ruolo-/, ''))
+                            setStatusFilter('tutti')
+                            setQuery('')
+                            document.querySelector('.iu-users-filters')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                          }}>
                             <span>{item.label}</span>
                             <strong>{formatValue(item.value)}</strong>
                             {item.note ? <small>{item.note}</small> : null}
-                          </div>
+                          </button> : <ButtonLink className="iu-users-distribution__item" href={`/profili?vista=permessi&q=${encodeURIComponent(`utenti.${item.id}`)}`} key={item.id}>
+                            <span>{item.label}</span><strong>{formatValue(item.value)}</strong>
+                            {item.note ? <small>{item.note}</small> : null}
+                          </ButtonLink>
                         ))}
                       </div>
                     ) : (
@@ -976,7 +979,7 @@ export function UtentiPage() {
               <span>Origine: {displaySourceLabel(data.source)}</span>
               <span>Generato: {formatGeneratedAt(data.generated_at)}</span>
               <span>Azioni: {displayWritesLabel(data.contracts.writes)}</span>
-              <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'si'}</span>
+              <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'sì'}</span>
             </div>
           </Panel>
           {data.actions.rollback ? (

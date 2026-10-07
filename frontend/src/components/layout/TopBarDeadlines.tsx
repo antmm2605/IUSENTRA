@@ -1,13 +1,13 @@
+import { WorkPanelPortal } from './WorkPanelPortal'
+import { formatDateIt } from '../../formatting'
 import { Loader2 } from 'lucide-react'
-import { useCallback, useMemo, useRef, type ReactNode } from 'react'
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
+import { QuickDeadlineList, type QuickDeadlinePeriod } from './QuickDeadlineList'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut'
 import { useQuickDeadlines } from '../../hooks/useQuickDeadlines'
 
-function formatDate(value: string) {
-  if (!value) return ''
-  return new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: 'short' })
-}
+function formatDate(value: string) { return formatDateIt(value) }
 
 export function TopBarDeadlines({
   open,
@@ -20,10 +20,11 @@ export function TopBarDeadlines({
   onClose: () => void
   icon: ReactNode
 }) {
+  const [period, setPeriod] = useState<QuickDeadlinePeriod | null>(null)
   const ref = useRef<HTMLDivElement | null>(null)
   const { data, loading, error } = useQuickDeadlines(open)
-  const deadlines = useMemo(() => dedupeDeadlines(data?.deadlines ?? []), [data?.deadlines])
-  const urgent = (data?.summary.urgent ?? 0) + (data?.summary.overdue ?? 0)
+  const deadlines = useMemo(() => dedupeDeadlines(data?.deadlines ?? []).filter(v => !v.letta), [data?.deadlines])
+  const urgent = data?.summary.unreadUrgent ?? ((data?.summary.urgent ?? 0) + (data?.summary.overdue ?? 0))
   const matchAnyKey = useCallback(() => true, [])
   const handleEscape = useCallback((event: KeyboardEvent) => {
     if (event.key === 'Escape' && open) onClose()
@@ -32,12 +33,13 @@ export function TopBarDeadlines({
   useClickOutside(ref, open, onClose)
 
   return (
+    <>
     <div className="iu-topbar-popover" ref={ref}>
       <button className="iu-icon notify" type="button" onClick={onToggle} aria-label="Scadenze rapide" aria-haspopup="dialog" aria-expanded={open} title="Scadenze rapide">
         {icon}
         {urgent > 0 ? <span>{urgent > 99 ? '99+' : urgent}</span> : null}
       </button>
-      {open ? (
+      {open ? (<WorkPanelPortal onClose={onClose}>
         <div className="iu-topbar-panel iu-deadline-panel" role="dialog" aria-label="Scadenze rapide">
           <header>
             <strong>Scadenze rapide</strong>
@@ -48,10 +50,10 @@ export function TopBarDeadlines({
           {data ? (
             <>
               <div className="iu-deadline-summary">
-                <span><strong>{data.summary.today}</strong> oggi</span>
-                <span><strong>{data.summary.tomorrow}</strong> domani</span>
-                <span><strong>{data.summary.nextSevenDays}</strong> 7 giorni</span>
-                <span><strong>{data.summary.overdue}</strong> scadute</span>
+                <button type="button" onClick={() => setPeriod('today')}><strong>{data.summary.today}</strong> oggi</button>
+                <button type="button" onClick={() => setPeriod('tomorrow')}><strong>{data.summary.tomorrow}</strong> domani</button>
+                <button type="button" onClick={() => setPeriod('week')}><strong>{data.summary.nextSevenDays}</strong> 7 giorni</button>
+                <button type="button" onClick={() => setPeriod('overdue')}><strong>{data.summary.overdue}</strong> {data.summary.overdue === 1 ? 'scaduta' : 'scadute'}<small>{data.summary.unreadOverdue ?? data.summary.overdue} da leggere</small></button>
                 {(data.summary.drafts ?? 0) > 0 ? (
                   <a className="iu-deadline-summary__drafts" href="/scadenziario#proposte">
                     <strong>{data.summary.drafts}</strong> proposte da confermare
@@ -60,20 +62,22 @@ export function TopBarDeadlines({
               </div>
               <div className="iu-panel-list">
                 {deadlines.length ? deadlines.map((deadline) => (
-                  <a className={`iu-panel-item is-${deadline.status === 'overdue' ? 'urgent' : deadline.priority}`} href={deadline.href} key={deadline.id} onClick={onClose}>
+                  <a className={`iu-panel-item is-${deadline.status === 'overdue' ? 'urgent' : deadline.priority}`} href={deadline.href} key={deadline.id} >
                     <span>{formatDate(deadline.dueDate)}</span>
                     <span>
                       <strong>{deadline.title}</strong>
-                      <small>{deadline.caseTitle ?? deadline.clientName ?? 'Scadenziario'}</small>
+                      <small>{deadline.caseTitle ?? deadline.clientName ?? 'Scadenziario'} · Da leggere</small>
                     </span>
                   </a>
-                )) : <p className="iu-panel-state">Nessuna scadenza aperta nei prossimi giorni.</p>}
+                )) : <p className="iu-panel-state">Nessuna scadenza da leggere nell’anteprima. Le card permettono di consultare anche quelle già lette.</p>}
               </div>
             </>
           ) : null}
-        </div>
+        </div></WorkPanelPortal>
       ) : null}
     </div>
+    {period && <QuickDeadlineList period={period} onClose={() => setPeriod(null)}/>}
+    </>
   )
 }
 

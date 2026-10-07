@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 432.
-- Endpoint P0/P1 contrattualizzati: 365.
+- Endpoint React API contrattualizzati: 437.
+- Endpoint P0/P1 contrattualizzati: 370.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 389.
+- Endpoint con provider verification auth-error: 394.
 - Endpoint pubblici della pagina di accesso (stato 200, scritture in errore sicuro senza credenziali): 3.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 40.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
@@ -137,8 +137,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Email ordinaria | `/api/v1/ui/email-ordinaria` | `GET` | Email ordinaria | P0 | verified | success+auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | verified |
 | Email ordinaria | `/api/v1/ui/email-ordinaria/bulk-action` | `POST` | Email ordinaria | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Email ordinaria | `/api/v1/ui/email-ordinaria/messaggio/{id_email}` | `GET` | Email ordinaria | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Email ordinaria | `/api/v1/ui/email-ordinaria/selection-ids` | `GET` | Email ordinaria | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Email PEC | `/api/v1/ui/email/bulk-action` | `POST` | Email PEC | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Email PEC | `/api/v1/ui/email/messaggio/{id_email}` | `GET` | Email PEC | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Email PEC | `/api/v1/ui/email/selection-ids` | `GET` | Email PEC | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Email PEC | `/api/v1/ui/email/source/{message_id}` | `GET` | Email PEC | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli` | `GET` | Fascicoli (/app/fascicoli) | P0 | verified | success+auth-error | `sessione/API tenant-aware` | `routes.appV2.cases.list` | current_tenant | verified |
 | Fascicoli e documenti | `/api/v1/ui/fascicoli/{id_fasc}` | `GET` | Fascicoli e documenti | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
@@ -258,6 +260,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Incassi e pagamenti | `/api/v1/ui/incassi-pagamenti/{id_pagamento}/collega` | `POST` | Incassi e pagamenti | P0 | complete | auth-error | `fatturazione.leggi/scrivi` | `n/a` | current_tenant | complete-auth-error |
 | Incassi e pagamenti | `/api/v1/ui/incassi-pagamenti/{id_pagamento}/link-pagamento` | `POST` | Incassi e pagamenti | P0 | complete | auth-error | `fatturazione.leggi/scrivi` | `n/a` | current_tenant | complete-auth-error |
 | Incassi e pagamenti | `/api/v1/ui/incassi-pagamenti/{id_pagamento}/stato` | `POST` | Incassi e pagamenti | P0 | complete | auth-error | `fatturazione.leggi/scrivi` | `n/a` | current_tenant | complete-auth-error |
+| Incassi e pagamenti | `/api/v1/ui/incassi-pagamenti/esporta` | `POST` | Incassi e pagamenti | P0 | complete | auth-error | `fatturazione.leggi/scrivi` | `n/a` | current_tenant | complete-auth-error |
 | Incassi e pagamenti | `/api/v1/ui/incassi-pagamenti/incasso` | `POST` | Incassi e pagamenti | P0 | complete | auth-error | `fatturazione.leggi/scrivi` | `n/a` | current_tenant | complete-auth-error |
 | Ricerca legale | `/api/v1/ui/legal-intelligence` | `GET` | Lex (/app/lex) | P1 | verified | success+auth-error | `sessione/API tenant-aware` | `routes.appV2.legalResearch.home` | current_tenant | verified |
 | Ricerca legale | `/api/v1/ui/legal-intelligence/mediazione` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
@@ -417,6 +420,8 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Tariffario | `/api/v1/ui/tariffario/calcola` | `POST` | Tariffario | P1 | complete | auth-error | `fatturazione.leggi` | `n/a` | current_tenant | complete-auth-error |
 | Telematico | `/api/v1/ui/telematico` | `GET` | Telematico (/app/telematico) | P0 | verified | success+auth-error | `sessione/API tenant-aware` | `routes.appV2.telematico.center` | current_tenant | verified |
 | Telematico | `/api/v1/ui/telematico/depositi/catalogo` | `GET` | Telematico | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Telematico | `/api/v1/ui/telematico/pratiche` | `GET` | Telematico | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Telematico | `/api/v1/ui/telematico/pratiche/esporta` | `POST` | Telematico | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Telematico | `/api/v1/ui/telematico/pst/schema-hint` | `GET` | Telematico | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Telematico | `/api/v1/ui/telematico/surface/{surface}` | `GET` | Telematico | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Template atti | `/api/v1/ui/template-atti` | `GET` | Documenti (/app/documenti) | P1 | verified | success+auth-error | `sessione/API tenant-aware` | `routes.appV2.documents.list` | current_tenant | verified |

@@ -155,6 +155,76 @@ def normalize_pec_audit_message_id(value: Any) -> str:
     return message_id
 
 
+def pec_audit_message_ids(item: Any) -> list[str]:
+    """Preserva tutti i riferimenti storici, senza scegliere il primo caso."""
+    def value(key: str) -> str:
+        return str((item.get(key, "") if isinstance(item, Mapping) else getattr(item, key, "")) or "")
+
+    context = item if isinstance(item, str) else "\n".join(
+        value(key) for key in ("note", "descrizione", "titolo", "external_uid", "dedupe_key", "event_uid")
+    )
+    candidates = [] if isinstance(item, str) else [value("source_message_id")]
+    candidates.extend(match.group(1) for match in PEC_AUDIT_REF_RE.finditer(context))
+    if not isinstance(item, str):
+        external = re.fullmatch(r"/api/pec/messages/([^/]+)", value("external_source_url").strip())
+        if external:
+            candidates.append(external.group(1))
+    return list(dict.fromkeys(
+        mid for candidate in candidates
+        if (mid := normalize_pec_audit_message_id(candidate))
+        and not mid.casefold().startswith("docpresidio:")
+    ))
+
+
+def pec_profile_for_item(item: Any, profiles: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
+    """Seleziona la fonte SQL per procedimento; i casi ambigui restano espliciti."""
+    ids = pec_audit_message_ids(item)
+    if not ids:
+        return {}
+    def value(key: str) -> str:
+        return str((item.get(key, "") if isinstance(item, Mapping) else getattr(item, key, "")) or "")
+    explicit = normalize_pec_audit_message_id(value("source_message_id"))
+    context = "\n".join(value(key) for key in ("titolo", "descrizione", "procedimento", "numero_rg"))
+    rg_pattern = r"\b(?:R\.?\s*G\.?|Ruolo generale)\s*(?:n\.?|numero|:)?\s*(\d{1,7})\s*/\s*(\d{4})\b"
+    rgs = {(str(int(a)), b) for a, b in re.findall(rg_pattern, context, re.IGNORECASE)}
+    court = re.sub(r"\s+", " ", value("tribunale").strip()).casefold()
+    candidates = []
+    for mid in ids:
+        profile = profiles.get(mid)
+        if profile is None:
+            continue
+        if explicit:
+            if mid != explicit:
+                continue
+            bound_rg = re.fullmatch(r"\s*(\d{1,7})\s*/\s*(\d{4})(?:\s*/\s*[A-Z]+)?\s*", str(profile.get("numero_rg") or ""), re.IGNORECASE)
+            if rgs and (len(rgs) != 1 or not bound_rg or (str(int(bound_rg.group(1))), bound_rg.group(2)) not in rgs):
+                continue
+            if court and court != re.sub(r"\s+", " ", str(profile.get("ufficio") or "").strip()).casefold():
+                continue
+            candidates.append(mid)
+            continue
+        if len(ids) == 1:
+            candidates.append(mid)
+            continue
+        profile_rg = re.fullmatch(r"\s*(\d{1,7})\s*/\s*(\d{4})(?:\s*/\s*[A-Z]+)?\s*", str(profile.get("numero_rg") or ""), re.IGNORECASE)
+        if len(rgs) != 1 or not profile_rg or (str(int(profile_rg.group(1))), profile_rg.group(2)) not in rgs:
+            continue
+        if court and court != re.sub(r"\s+", " ", str(profile.get("ufficio") or "").strip()).casefold():
+            continue
+        candidates.append(mid)
+    if len(candidates) != 1:
+        return {"_source_resolution": "ambiguous", "_source_message_id": "",
+                "_source_candidates": [
+                    {"href": pec_source_href(mid, pec_profile_source_name(profiles[mid])),
+                     "label": pec_original_label(pec_profile_source_name(profiles[mid])),
+                     "receivedAt": str(profiles[mid].get("_source_received_at") or ""),
+                     "receiptKind": str(profiles[mid].get("_source_receipt_type") or "")}
+                    for mid in ids if mid in profiles
+                ]}
+    mid = candidates[0]
+    return {**profiles[mid], "_source_resolution": "resolved", "_source_message_id": mid, "_source_multiple": len(ids) > 1}
+
+
 def pec_audit_message_id(item: Any) -> str:
     """Estrae l'audit PEC stabile da una riga agenda/scadenziario.
 
@@ -328,7 +398,9 @@ def latest_pec_profiles(
     riaprire MIME, ZIP o allegati riga per riga durante il rendering.
     """
 
-    message_ids = sorted({pec_audit_message_id(item) for item in items} - {""})
+    references = [pec_audit_message_ids(item) for item in items]
+    message_ids = sorted({mid for refs in references for mid in refs})
+    multiple_ids = {mid for refs in references if len(refs) > 1 for mid in refs}
     db_path = Path(str(pec_audit_db or "")).resolve()
     if not message_ids or not db_path.is_file():
         return {}
@@ -366,6 +438,36 @@ def latest_pec_profiles(
                     profile = report.get("procedural_profile") if isinstance(report, dict) else None
                     if isinstance(profile, dict):
                         profiles[str(row["message_id"])] = dict(profile)
+
+                try:
+                    metadata_rows = connection.execute(
+                        f"SELECT id, received_at FROM pec_messages WHERE tenant_id = ? AND id IN ({placeholders})",
+                        [str(tenant_id or "default"), *chunk],
+                    ).fetchall()
+                except sqlite3.Error:
+                    metadata_rows = []
+                for row in metadata_rows:
+                    profiles.setdefault(str(row["id"]), {})["_source_received_at"] = str(row["received_at"] or "")
+
+                receipt_ids = [mid for mid in chunk if mid in multiple_ids]
+                if receipt_ids:
+                    receipt_placeholders = ",".join("?" for _ in receipt_ids)
+                    try:
+                        receipt_rows = connection.execute(
+                            f"""SELECT r.message_id, COALESCE(json_extract(p.parsed_json, '$.pec_receipt.type'),
+                                json_extract(p.parsed_json, '$.fields.tipo_ricevuta.value')) AS receipt_type
+                            FROM pec_validation_reports r
+                            INNER JOIN pec_parsed_versions p ON p.id = r.parsed_version_id
+                            INNER JOIN pec_messages m ON m.id = r.message_id
+                            WHERE m.tenant_id = ? AND r.message_id IN ({receipt_placeholders})
+                            AND NOT EXISTS (SELECT 1 FROM pec_validation_reports newer
+                                WHERE newer.message_id = r.message_id AND newer.rowid > r.rowid)""",
+                            [str(tenant_id or "default"), *receipt_ids],
+                        ).fetchall()
+                    except sqlite3.Error:
+                        receipt_rows = []
+                    for row in receipt_rows:
+                        profiles.setdefault(str(row["message_id"]), {})["_source_receipt_type"] = str(row["receipt_type"] or "")
 
                 try:
                     attachment_rows = connection.execute(

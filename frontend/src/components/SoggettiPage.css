@@ -9,9 +9,9 @@
 .iu-sogg-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
 .iu-sogg-stat{min-height:112px;display:grid;gap:4px;padding:15px;border:1px solid var(--iu-border);border-radius:18px;background:var(--iu-bg-card);box-shadow:var(--iu-shadow-soft)}
 .iu-sogg-stat svg{color:var(--iu-blue-600)}
-.iu-sogg-stat span{color:var(--iu-slate-500);font-size:12px;font-weight:900;text-transform:uppercase}
+.iu-sogg-stat span{color:var(--iu-slate-600);font-size:12px;font-weight:900;text-transform:uppercase}
 .iu-sogg-stat strong{font-size:28px;font-weight:950;color:#0f172a}
-.iu-sogg-stat small{color:var(--iu-slate-500);font-size:12px;font-weight:750}
+.iu-sogg-stat small{color:var(--iu-slate-600);font-size:12px;font-weight:750}
 
 .iu-sogg-toolbar{display:grid;grid-template-columns:minmax(260px,1fr) repeat(3,minmax(160px,220px)) auto;gap:10px;margin-bottom:14px;padding:10px;border:1px solid var(--iu-border);border-radius:18px;background:#fff;box-shadow:var(--iu-shadow-soft)}
 .iu-sogg-toolbar label{min-height:42px;display:flex;align-items:center;gap:8px;padding:0 10px;border:1px solid var(--iu-border);border-radius:12px;background:#fff;color:var(--iu-slate-500)}
@@ -154,3 +154,29 @@
   .iu-sogg-mobile-list{display:grid;gap:12px}
   .iu-sogg-mobile-card dl{grid-template-columns:1fr}
 }
+
+/* Otto colonne reali: natura e qualità non devono invadere i campi vicini. */
+.iusentra-preset-active .iu-sogg-hero>div>span{color:#785900}
+@media(min-width:761px){
+ .iu-sogg-table-wrap{overflow-x:auto}
+ .iu-sogg-table{min-width:1080px;table-layout:fixed}
+ .iu-sogg-table th,.iu-sogg-table td{overflow-wrap:anywhere;padding-inline:9px}
+ .iu-sogg-table th{white-space:normal}
+ .iu-sogg-table th:nth-child(1),.iu-sogg-table td:nth-child(1){width:34px}
+ .iu-sogg-table th:nth-child(2),.iu-sogg-table td:nth-child(2){width:28%}
+ .iu-sogg-table th:nth-child(3),.iu-sogg-table td:nth-child(3){width:150px}
+ .iu-sogg-table th:nth-child(4),.iu-sogg-table td:nth-child(4){width:100px}
+ .iu-sogg-table th:nth-child(5),.iu-sogg-table td:nth-child(5){width:150px}
+ .iu-sogg-table th:nth-child(6),.iu-sogg-table td:nth-child(6){width:175px}
+ .iu-sogg-table th:nth-child(7),.iu-sogg-table td:nth-child(7){width:84px;text-align:center}
+ .iu-sogg-table th:nth-child(8),.iu-sogg-table td:nth-child(8){width:106px;text-align:left}
+ .iu-sogg-table td .iu-badge{white-space:normal;max-width:100%;overflow-wrap:anywhere;line-height:1.3}
+}
+/* Le etichette del componente condiviso devono rispettare la colonna. */
+.iu-sogg-table td [data-slot="badge"]{max-width:100%;height:auto;min-height:20px;white-space:normal;overflow-wrap:anywhere;line-height:1.3;text-align:center;vertical-align:middle}
+.iu-sogg-table th:nth-child(7){white-space:nowrap}
+@media(min-width:761px){.iu-sogg-table td:nth-child(5){white-space:nowrap}}
+.iu-sogg-insights button{font:inherit;text-align:left;display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--iu-border);border-radius:10px;background:#fff;color:#0f172a;cursor:pointer}
+.iu-sogg-insights button:hover{background:#f4f8fe;border-color:#8ca5c7}
+.iu-sogg-insights button:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+.iu-sogg-insights button[aria-pressed=true]{background:#edf4fc;border-color:#123d72}

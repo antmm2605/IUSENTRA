@@ -248,6 +248,35 @@ jobs:
                  --min-free-gib 2 \
                  --prune-legacy-single-db'
 
+      - name: Installa e configura Lex v2 per il rilascio 2.436.11
+        if: ${{ steps.gate.outputs.superato != 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^__version__ = "\([^"]*\)"/\1/p' pct/__init__.py)
+          if [ "$version" != '2.436.11' ]; then exit 0; fi
+          ssh_args=(-i "$HOME/.ssh/id_deploy" -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes)
+          target="${HETZNER_USER}@${HETZNER_HOST}"
+          installed=$(ssh "${ssh_args[@]}" "$target" "docker exec iusentra-app python -c \"import urllib.request; print(urllib.request.urlopen('http://ollama:11434/api/tags').read().decode())\"")
+          if ! printf '%s' "$installed" | jq -e '.models[] | select(.name == "iusentra-lex-v2:9b" and .digest == "a079f24b41a203f59bbd1482248c138b126de02dfeffe1cc57d3fe4387e1a3cb")' > /dev/null; then
+            release=$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" | jq -ce '.[] | select(.tag_name == "lex-v2-transfer-20261007" and .draft == true)')
+            mkdir -p "$RUNNER_TEMP/lex-v2"
+            for name in SHA256SUMS lex-v2.tar.part00 lex-v2.tar.part01 lex-v2.tar.part02; do
+              asset=$(printf '%s' "$release" | jq -er --arg name "$name" '.assets[] | select(.name == $name) | .id')
+              gh api -H 'Accept: application/octet-stream' "repos/${GITHUB_REPOSITORY}/releases/assets/$asset" > "$RUNNER_TEMP/lex-v2/$name"
+            done
+            cd "$RUNNER_TEMP/lex-v2"
+            printf '%s  SHA256SUMS\n' '5cc4a7c37adf022865078e081fbfefbb2dcdfb150b06f671377957c959f1492f' | sha256sum -c -
+            sha256sum -c SHA256SUMS
+            ssh "${ssh_args[@]}" "$target" 'sudo -n mkdir -p /opt/iusentra/import/lex-v2'
+            export RSYNC_RSH="ssh -i $HOME/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes"
+            rsync -avP --partial ./ "$target:/opt/iusentra/import/lex-v2/"
+            ssh "${ssh_args[@]}" "$target" 'cd /opt/iusentra/import/lex-v2 && sha256sum -c SHA256SUMS'
+          fi
+          scp "${ssh_args[@]}" "$GITHUB_WORKSPACE/deploy/hetzner/install_lex_v2.py" "$target:/tmp/iusentra-install-lex-v2.py"
+          ssh "${ssh_args[@]}" "$target" 'sudo -n python3 /tmp/iusentra-install-lex-v2.py; result=$?; rm -f /tmp/iusentra-install-lex-v2.py; exit "$result"'
+
       - name: Esegui deploy
         id: deploy
         if: ${{ steps.gate.outputs.superato != 'true' }}
@@ -444,6 +473,16 @@ jobs:
               'set -euo pipefail
                cd /opt/iusentra/repo/deploy/hetzner
                sudo -n docker compose --env-file /opt/iusentra/.env.hetzner -f docker-compose.hetzner.yml exec -T app python - < diagnosi_lex_domande.py'
+
+      - name: Verifica reale Lex v2 dopo il deploy
+        if: ${{ steps.gate.outputs.superato != 'true' }}
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^__version__ = "\([^" ]*\)"/\1/p' pct/__init__.py)
+          if [ "$version" != '2.436.11' ]; then exit 0; fi
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "${HETZNER_USER}@${HETZNER_HOST}" 'docker exec -i iusentra-app python -' \
+            < deploy/hetzner/verify_lex_v2.py
 
       - name: Pulizia immagini e cache build Docker
         if: ${{ always() && steps.setup_ssh.outcome == 'success' }}

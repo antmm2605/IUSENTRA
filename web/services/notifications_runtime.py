@@ -243,6 +243,46 @@ def notification_recipients_for_paths(
     return list(gestore.tutti(solo_attivi=True))
 
 
+def _superseded_pec_notification_keys(agenda: Any, scadenziario: Any, items: list[dict[str, Any]]) -> set[str]:
+    """Scadenza esplicita di proiezioni inattive o sostituite da un legame SQL.
+
+    Le notifiche PEC della pipeline restano valide fuori dall'orizzonte 48 ore.
+    Non vengono scadute soltanto perché assenti dalla selezione della topbar.
+    """
+    from web.services.topbar_operational import _enum_value, _pec_deadline_notification_key
+
+    appointments = list(agenda.tutti())
+    deadlines = list(scadenziario.tutte(solo_aperte=False))
+    active_items = {str(item.get("id") or "") for item in items}
+    active_keys: set[str] = set()
+    inactive_keys: set[str] = set()
+    linked_deadlines: dict[str, str] = {}
+    for deadline in deadlines:
+        key = _pec_deadline_notification_key(deadline)
+        status = _enum_value(getattr(deadline, "stato", ""))
+        if status in {"COMPLETATO", "ANNULLATO"}:
+            if key:
+                inactive_keys.add(key)
+        elif status in {"APERTO", "SCADUTO"} and key:
+            active_keys.add(key)
+            appointment_id = str(getattr(deadline, "id_appuntamento", "") or "")
+            if appointment_id and key in active_items:
+                linked_deadlines[appointment_id] = key
+    aliases: set[str] = set()
+    for appointment in appointments:
+        key = _pec_deadline_notification_key(appointment)
+        status = _enum_value(getattr(appointment, "stato", ""))
+        if status in {"COMPLETATO", "ANNULLATO", "RINVIATO"}:
+            if key:
+                inactive_keys.add(key)
+        elif status in {"PROGRAMMATO", "CONFERMATO"} and key:
+            active_keys.add(key)
+            replacement = linked_deadlines.get(str(getattr(appointment, "id", "") or ""))
+            if replacement and replacement != key:
+                aliases.add(key)
+    return ((inactive_keys - active_keys) | aliases) - active_items
+
+
 def materialize_agenda_scadenziario_notifications_for_paths(
     paths: Mapping[str, Any],
     *,
@@ -258,8 +298,8 @@ def materialize_agenda_scadenziario_notifications_for_paths(
 
     database_config = database or paths.get("_TENANT_DATABASE_CONFIG")
     backend = _core_backend_for_paths(paths, database_config)
-    if _database_mode_value(database_config) == "POSTGRESQL" and backend is None:
-        raise NotificationRuntimeUnavailable("Backend core PostgreSQL non disponibile per Agenda e Scadenziario.")
+    if _database_mode_value(database_config) in {"SQLITE", "POSTGRESQL"} and backend is None:
+        raise NotificationRuntimeUnavailable("Archivio SQL non disponibile per Agenda e Scadenziario.")
     config = _runtime_config()
     notification_repository = build_notification_repository_for_paths(
         paths,
@@ -287,6 +327,7 @@ def materialize_agenda_scadenziario_notifications_for_paths(
         "recipients": 0,
         "items": 0,
         "errors": 0,
+        "expiredSupersededSources": 0,
     }
     for user in recipients:
         try:
@@ -309,10 +350,16 @@ def materialize_agenda_scadenziario_notifications_for_paths(
                 items=items,
                 expire_source_types={"deadline", "hearing", "task"},
             )
+            superseded = sorted(_superseded_pec_notification_keys(agenda, scadenziario, items))
+            for start in range(0, len(superseded), 400):
+                report["expiredSupersededSources"] += notification_repository.expire_notifications_by_source_ids(
+                    resolved_tenant_id, user_id, source_type="pec_deadline", source_ids=set(superseded[start:start + 400]),
+                )
             report["recipients"] += 1
             report["items"] += len(items)
         except Exception:
             report["errors"] += 1
+            current_app.logger.exception("Materializzazione notifiche Agenda/Scadenziario fallita per lo studio %s", tenant_label)
     report["ok"] = report["errors"] == 0
     return report
 

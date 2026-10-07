@@ -285,3 +285,20 @@ body.iu-comp-fullscreen {
     grid-template-columns: 1fr;
   }
 }
+
+@media(max-width:520px){
+ .iu-comp-page .iu-comp-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .iu-comp-page .iu-comp-hero{display:flex!important;flex-direction:column!important;gap:12px!important;padding:16px!important}
+ .iu-comp-page .iu-comp-hero>div{width:100%;min-width:0}
+ .iu-comp-page .iu-comp-actions{display:flex;flex-wrap:wrap;width:100%;gap:8px}
+ .iu-comp-page .iu-comp-actions>a,.iu-comp-page .iu-comp-actions>button{flex:1 1 130px;min-width:0}
+ .iu-comp-page .iu-comp-metrics .ius-metric-card__content{grid-template-columns:22px minmax(0,1fr);gap:6px;padding:10px 8px!important}
+ .iu-comp-page .iu-comp-metrics .ius-metric-card__icon{width:22px;height:22px;min-width:22px;flex-basis:22px}
+ .iu-comp-page .iu-comp-metrics .ius-metric-card__main{grid-template-rows:minmax(54px,auto) 23px minmax(42px,auto) auto}
+ .iu-comp-page .iu-comp-metrics .ius-metric-card__top>span:first-child{font-size:11px;overflow-wrap:anywhere}
+}
+.iu-comp-page .iu-comp-form>*{min-width:0}
+.iu-comp-page .iu-comp-form select,.iu-comp-page .iu-comp-form input{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+@media(max-width:520px){
+ .iusentra-preset-active .iu-comp-page .iu-comp-metrics .ius-metric-card.iu-kpi-card .ius-metric-card__main{grid-template-rows:54px 23px 42px auto;align-content:start}
+}

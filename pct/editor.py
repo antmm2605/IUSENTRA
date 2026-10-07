@@ -119,7 +119,7 @@ def pdf_to_html(data: bytes) -> tuple[str, list[str], bool, int]:
                 )
                 html_parti.append(_html_pdf_non_modificabile(1, "layout PDF complesso", visuale=True))
                 return "\n".join(html_parti), avvisi, is_scanned, n_pagine
-            
+
             for i, pagina in enumerate(pdf.pages):
                 # ── Estrae tabelle con formattazione ──────────────
                 tabelle = pagina.extract_tables()
@@ -197,9 +197,9 @@ def _estrai_tabella_html(tabella: list) -> str:
     """
     if not tabella:
         return ""
-    
+
     html = '<table class="pdf-table" style="border-collapse:collapse;width:100%;margin:1rem 0;">\n'
-    
+
     for ri, riga in enumerate(tabella):
         html += '  <tr>\n'
         for cella in riga:
@@ -208,7 +208,7 @@ def _estrai_tabella_html(tabella: list) -> str:
                 contenuto = _escape_html(str(cella).strip())
                 html += f'    <{tag} style="border:1px solid #999;padding:6px 8px;">{contenuto}</{tag}>\n'
         html += '  </tr>\n'
-    
+
     html += '</table>\n'
     return html
 
@@ -896,7 +896,10 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
             if _nome(voce) != "li":
                 continue
             annidati = [figlio for figlio in voce if _nome(figlio) in ("ul", "ol")]
-            marcatore = _marcatore_esplicito(el, ordinato, posizione)
+            # Solo il testo OCR dichiara il segno effettivamente riconosciuto.
+            # Gli elenchi ordinari mantengono la numerazione già prevista.
+            segno_ocr = (voce.get("data-iu-ocr-marker") or "").strip()
+            marcatore = segno_ocr or _marcatore_esplicito(el, ordinato, posizione)
             posizione += 1
             if marcatore:
                 paragraph = doc.add_paragraph()
@@ -2074,7 +2077,17 @@ def html_to_pdf(
                         f"{segno_elenco} ", base_voce.fontName, corpo_voce)
                 except Exception:
                     rientro_voce = 18
-            for li in el.findall("li"):
+            voci = el.findall("li")
+            if voci and all((li.get("data-iu-ocr-marker") or "").strip() for li in voci):
+                # La lista OCR dichiara ogni segno: nessuna rinumerazione implicita.
+                for li in voci:
+                    segno_ocr = li.get("data-iu-ocr-marker").strip()
+                    story.append(Paragraph(
+                        f"{_escape_html(segno_ocr)} {_node_to_rich(li)}",
+                        _stile_del_paragrafo(li, base_voce),
+                    ))
+                return
+            for li in voci:
                 rich = _node_to_rich(li)
                 voce = {"bulletType": tipo_elenco}
                 if tipo_elenco == "bullet":

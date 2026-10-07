@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 
-from pct.formatting import format_euro_it
+from pct.formatting import format_euro_it, format_date_it, format_datetime_it, parse_datetime_rome
 from datetime import date, datetime, timezone
 from typing import Any, Callable
+from time import perf_counter
+import logging
 
 from pct.fatturazione import StatoParcella
 
@@ -34,14 +36,9 @@ def _date_label(value: Any) -> str:
     raw = _text(value)
     if not raw:
         return ""
-    try:
-        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
-        return parsed.strftime("%d/%m/%Y %H:%M")
-    except ValueError:
-        try:
-            return date.fromisoformat(raw[:10]).strftime("%d/%m/%Y")
-        except ValueError:
-            return raw[:16]
+    if parse_datetime_rome(raw) is None:
+        return "Data da verificare"
+    return format_date_it(raw) if len(raw) == 10 else format_datetime_it(raw)
 
 
 def _tone(status: str) -> str:
@@ -67,6 +64,8 @@ def _label(status: str) -> str:
         "EMESSA": "Emessa",
         "PAGATA": "Pagata",
         "SCADUTA": "Scaduta",
+        "BOZZA": "Bozza",
+        "ANNULLATA": "Annullata",
     }.get(status.upper(), status or "Non indicato")
 
 
@@ -195,6 +194,46 @@ def _receipt_record(parcella: Any, clienti: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _card_records(parcelle: list[Any], payment_rows: list[Any], clienti: dict[str, Any], anno: int) -> list[dict[str, Any]]:
+    """Proiezione completa dei repository SQL, con gli stessi predicati dei riepiloghi."""
+    records: list[dict[str, Any]] = []
+    for parcella in parcelle:
+        pid = _text(getattr(parcella, "id", ""))
+        if not pid:
+            continue
+        state = _enum(getattr(parcella, "stato", "")).upper()
+        metric_ids = []
+        if state == "PAGATA" and _text(getattr(parcella, "data_emissione", "")).startswith(str(anno)):
+            metric_ids.append("incassato")
+        if state == "EMESSA":
+            metric_ids.append("da_incassare")
+        if state == "SCADUTA":
+            metric_ids.append("scaduto")
+        amount = getattr(parcella, "netto_a_pagare", 0) if state in {"EMESSA", "SCADUTA"} else getattr(parcella, "totale", 0)
+        records.append({
+            "id": f"parcella:{pid}", "label": _text(getattr(parcella, "numero", "")) or "Parcella senza numero",
+            "customer": _client_label(clienti.get(_text(getattr(parcella, "id_cliente", "")))),
+            "kind": "Parcella", "state": state, "stateLabel": _label(state), "stateTone": _tone(state),
+            "amountDisplay": _money(amount), "dateLabel": _date_label(getattr(parcella, "data_emissione", "")),
+            "href": f"/fatturazione/{pid}", "metricIds": metric_ids,
+        })
+    for payment in payment_rows:
+        pid = _text(getattr(payment, "id", ""))
+        if not pid:
+            continue
+        state = _enum(getattr(payment, "stato", "")).upper()
+        invoice_id = _text(getattr(payment, "id_parcella", ""))
+        records.append({
+            "id": f"pagamento:{pid}", "label": _text(getattr(payment, "descrizione", "")) or "Collegamento di pagamento",
+            "customer": _client_label(clienti.get(_text(getattr(payment, "id_cliente", "")))),
+            "kind": "Collegamento", "state": state, "stateLabel": _label(state), "stateTone": _tone(state),
+            "amountDisplay": _money(getattr(payment, "importo", 0)), "dateLabel": _date_label(getattr(payment, "creato_il", "")),
+            "href": f"/fatturazione/{invoice_id}" if invoice_id else "",
+            "metricIds": ["link_totali"] + ({"ATTESO": ["link_attesi"], "PAGATO": ["link_pagati"], "FALLITO": ["link_falliti"]}.get(state, [])),
+        })
+    return records
+
+
 def _contracts() -> dict[str, Any]:
     return {
         "mock_fallback": False,
@@ -205,6 +244,29 @@ def _contracts() -> dict[str, Any]:
         "webhooks": "legacy_backend",
         "legacy_contract": "artifacts/react-migration/legacy-contracts/incassi-pagamenti.json",
     }
+
+
+def export_incassi_selection_csv(rows: list[dict[str, Any]], selection: Any) -> str:
+    """Esporta soltanto ID presenti nella proiezione autorizzata corrente."""
+    import csv
+    import io
+    if not isinstance(selection, list) or not selection or len(selection) > 10000:
+        raise ValueError("Seleziona da 1 a 10.000 documenti da esportare.")
+    if any(not isinstance(item, str) or len(item) > 100 for item in selection):
+        raise ValueError("Selezione non valida. Ripeti la ricerca.")
+    ids = set(selection)
+    available = {row["id"]: row for row in rows}
+    if ids - available.keys():
+        raise ValueError("Alcuni documenti non sono più disponibili. Aggiorna la ricerca e ripeti la selezione.")
+    output = io.StringIO(newline="")
+    writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_ALL)
+    writer.writerow(["Tipo", "Documento", "Cliente", "Stato", "Importo", "Data"])
+    for row in rows:
+        if row["id"] not in ids:
+            continue
+        values = [str(row.get(key) or "") for key in ("kind", "label", "customer", "stateLabel", "amountDisplay", "dateLabel")]
+        writer.writerow(["'" + value if value.startswith(("=", "+", "@", "-", "\t", "\r")) else value for value in values])
+    return "\ufeff" + output.getvalue()
 
 
 def _permissions(current_user: Any | None) -> dict[str, bool]:
@@ -228,6 +290,7 @@ def build_react_incassi_pagamenti_payload(
     query: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     warnings: list[dict[str, str]] = []
+    started = perf_counter()
     anno = date.today().year
     fatt_stats: dict[str, Any] = {}
     parcelle: list[Any] = []
@@ -244,6 +307,8 @@ def build_react_incassi_pagamenti_payload(
             "message": "Archivio fatturazione non disponibile in questo momento.",
         })
 
+    fatturazione_ms = (perf_counter() - started) * 1000
+    payments_started = perf_counter()
     pay_stats: dict[str, Any] = {}
     payment_rows: list[Any] = []
     provider_items: list[dict[str, Any]] = []
@@ -258,6 +323,8 @@ def build_react_incassi_pagamenti_payload(
             "message": "Archivio pagamenti non disponibile in questo momento.",
         })
 
+    pagamenti_ms = (perf_counter() - payments_started) * 1000
+    clients_started = perf_counter()
     try:
         clienti = {_text(getattr(cliente, "id", "")): cliente for cliente in get_clienti().tutti()}
     except Exception as exc:
@@ -267,8 +334,10 @@ def build_react_incassi_pagamenti_payload(
         })
         clienti = {}
 
+    clienti_ms = (perf_counter() - clients_started) * 1000
+    logging.getLogger(__name__).info("Incassi lettura archivi: fatturazione_ms=%.1f pagamenti_ms=%.1f clienti_ms=%.1f", fatturazione_ms, pagamenti_ms, clienti_ms)
     parcelle_map = _invoice_lookup(parcelle)
-    payments = [_payment_record(row, parcelle_map, clienti) for row in payment_rows[:120]]
+    payments = [_payment_record(row, parcelle_map, clienti) for row in payment_rows]
     payment_invoice_ids = {row["invoiceId"] for row in payments if row.get("invoiceId")}
     manual_invoices = [
         _manual_invoice_record(parcella, clienti)
@@ -276,7 +345,7 @@ def build_react_incassi_pagamenti_payload(
         if _text(getattr(parcella, "id", "")) not in payment_invoice_ids and _invoice_needs_payment(parcella)
     ]
     selected_invoice_id = _text((query or {}).get("id_parcella"))
-    records = (payments + manual_invoices)[:160]
+    records = payments + manual_invoices
     if selected_invoice_id:
         records.sort(key=lambda row: 0 if row.get("invoiceId") == selected_invoice_id else 1)
     receipts = [
@@ -297,6 +366,7 @@ def build_react_incassi_pagamenti_payload(
             _metric("scaduto", "Scaduto", _money(fatt_stats.get("scaduto", 0)), "Parcelle scadute e non pagate (tutti gli anni)", "danger" if fatt_stats.get("scaduto", 0) else "neutral"),
             _metric("link_attesi", "Link attesi", pay_stats.get("attesi", 0), "Collegamenti di pagamento aperti", "primary"),
         ],
+        "cardRecords": _card_records(parcelle, payment_rows, clienti, anno),
         "payments": records,
         "receipts": receipts,
         "providers": provider_items,

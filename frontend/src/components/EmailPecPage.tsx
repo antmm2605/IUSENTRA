@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { publishMutationRefresh } from '../operationalRefresh'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import {
   AlertTriangle,
   ArrowLeft,
@@ -53,6 +55,7 @@ import {
   getEmailPecEmbeddedSourceDetail,
   getEmailPecSourceDetail,
   submitEmailBulkAction,
+  getEmailSelectionIds,
   type EmailFolder,
   type EmailDetailData,
   type EmailPecPageData,
@@ -68,6 +71,7 @@ import './EmailPecPage.css'
 import { MailboxPagination } from '../features/comunicazioni/MailboxPagination'
 
 type MailboxMode = 'pec' | 'ordinaria'
+type MailboxMetric = 'totali' | 'arrivo' | 'nonlette' | 'inviate' | 'cestino' | 'pst' | 'allegati' | 'collegate'
 type SortKey = 'recenti' | 'mittente' | 'oggetto' | 'pct'
 type JsonRecord = Record<string, unknown>
 const MAILBOX_PAGE_LIMIT = 80
@@ -137,8 +141,8 @@ const mailboxCopy: Record<MailboxMode, {
     emptyData: emptyEmailOrdinariaPage,
     title: 'Email ordinaria',
     eyebrow: 'Email ordinaria',
-    heroTitle: 'Casella email ordinaria dello studio',
-    heroText: 'Messaggi ordinari ricevuti e inviati tramite la configurazione SMTP/IMAP dello studio, separati dalla PEC e consultabili senza confondere gli esiti telematici.',
+    heroTitle: 'Email ordinaria',
+    heroText: 'Ricevute, inviate e allegati dello studio nella stessa pagina.',
     openLabel: 'Apri email',
     composeLabel: 'Componi email',
     syncLabel: 'Sincronizzazione email ordinaria',
@@ -253,19 +257,15 @@ function appendAddress(current: string, next: string): string {
   return [...parts, address].join(', ')
 }
 
-function StatCard({ icon, label, value, note, tone = 'primary' }: { icon: ReactNode; label: string; value: number | string; note: string; tone?: EmailPecRow['tone'] }) {
+function StatCard({ icon, label, value, note, tone = 'primary', onClick, active, loading, unavailable = false }: { icon: ReactNode; label: string; value: number | string; note: string; tone?: EmailPecRow['tone']; onClick: () => void; active: boolean; loading: boolean; unavailable?: boolean }) {
   return (
-    <article className={`iu-mail-stat iu-mail-stat--${tone}`}>
+    <button type="button" className={`iu-mail-stat iu-mail-stat--${tone}`} onClick={onClick} aria-pressed={active} disabled={loading || unavailable} aria-busy={loading}>
       <div>{icon}</div>
       <span>{label}</span>
-      <strong>{value}</strong>
-      <small>{note}</small>
-    </article>
+      <strong>{loading ? '…' : unavailable ? '—' : value}</strong>
+      <small>{unavailable ? 'Dati non disponibili' : note}</small>
+    </button>
   )
-}
-
-function normaliseText(value: string): string {
-  return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
 function folderIcon(folder: EmailFolder) {
@@ -282,20 +282,6 @@ function rowPerson(item: EmailPecRow): string {
 function initials(value: string, fallback: string): string {
   const parts = value.replace(/[<>@.]/g, ' ').split(/\s+/).filter(Boolean)
   return parts.slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || fallback
-}
-
-function isInsideQuery(item: EmailPecRow, query: string): boolean {
-  const needle = normaliseText(query.trim())
-  if (!needle) return true
-  return normaliseText([
-    item.sender,
-    item.senderName,
-    item.recipients,
-    item.subject,
-    item.preview,
-    item.pctStatus,
-    item.origin,
-  ].join(' ')).includes(needle)
 }
 
 function isPecOperationalWarning(item: EmailPecRow): boolean {
@@ -1031,13 +1017,14 @@ async function postMailActionPayload(url: string, label: string): Promise<MailAc
   const response = await fetch(url, {
     method: 'POST',
     credentials: 'same-origin',
-    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken() },
   })
   if (!response.ok) throw new Error(`${label}: operazione non completata`)
   const contentType = response.headers.get('content-type') || ''
-  if (!contentType.includes('application/json')) return { ok: true, message: `${label}: operazione eseguita.` }
+  if (!contentType.includes('application/json')) throw new Error(`${label}: operazione non confermata. Ricarica la vista e riprova.`)
   const payload = await response.json() as MailActionPayload
-  if (payload.ok === false) throw new Error(payload.errore || `${label}: errore operativo`)
+  if (payload.ok !== true) throw new Error(payload.message || payload.errore || `${label}: operazione non confermata`)
+  if (payload.ok === true) publishMutationRefresh(url)
   return payload
 }
 
@@ -1107,6 +1094,7 @@ function EmailListRow({
   onToggleChecked,
   includeTelematic,
   fallbackInitials,
+  loading,
 }: {
   item: EmailPecRow
   selected: boolean
@@ -1115,14 +1103,15 @@ function EmailListRow({
   onToggleChecked: () => void
   includeTelematic: boolean
   fallbackInitials: string
+  loading: boolean
 }) {
   const person = rowPerson(item)
   return (
     <div className={`iu-mail-row ${selected ? 'is-selected' : ''} ${item.unread ? 'is-unread' : ''}`}>
       <span className="iu-mail-row__check" onClick={(event) => event.stopPropagation()}>
-        <input type="checkbox" checked={checked} disabled={item.auditOnly} onChange={onToggleChecked} aria-label={`Seleziona ${item.subject || person}`} />
+        <input type="checkbox" checked={checked} disabled={item.auditOnly || loading} onChange={onToggleChecked} aria-label={`Seleziona ${item.subject || person}`} />
       </span>
-      <button className="iu-mail-row__open" type="button" onClick={onSelect} aria-label={`Apri ${item.subject || person}`}>
+      <button className="iu-mail-row__open" type="button" disabled={loading} onClick={onSelect} aria-label={`Apri ${item.subject || person}`}>
         <span className="iu-mail-avatar">{initials(person, fallbackInitials)}</span>
       <span className="iu-mail-main">
         <span className="iu-mail-row__top">
@@ -1249,7 +1238,7 @@ function EmailPreview({
   }
   const person = rowPerson(item)
   const hasTelematicBanner = copy.includeTelematic && (item.pctStatus || item.isPst)
-  const visibleTime = item.timeLabel || formatDateTimeIt(item.timestamp, '', { includeTimezone: true }) || '-'
+  const visibleTime = formatDateTimeIt(item.timestamp, '', { includeTimezone: true }) || item.timeLabel || '-'
   return (
     <section className="iu-mail-preview-card">
       <header>
@@ -1302,9 +1291,15 @@ function EmailPreview({
 function PecInspector({
   data,
   rows,
+  onSelect,
+  selected,
+  loading,
 }: {
   data: EmailPecPageData
   rows: EmailPecRow[]
+  onSelect: (metric: MailboxMetric) => void
+  selected: MailboxMetric | null
+  loading: boolean
 }) {
   const pstWaiting = rows.filter((item) => item.isPst && !item.pctStatus && !item.pecPresidiata).slice(0, 4)
   const pctAlerts = rows.filter((item) => !item.pecPresidiata && item.pctStatus && (item.pctStatus.includes('RIFIUT') || item.pctStatus.includes('ERRORE') || item.pctStatus.includes('WARN'))).slice(0, 4)
@@ -1313,16 +1308,8 @@ function PecInspector({
     <aside className="iu-mail-inspector">
       <Panel title="Cabina PEC" subtitle="Controlli utili per studio legale" icon={<ShieldCheck size={17} />}>
         <div className="iu-mail-briefing">
-          <article>
-            <span>PEC/PST riconosciute</span>
-            <strong>{data.summary.pst}</strong>
-            <small>Messaggi con valore operativo telematico nella casella.</small>
-          </article>
-          <article>
-            <span>Auto-collegate</span>
-            <strong>{data.summary.autoLinked}</strong>
-            <small>Esiti o comunicazioni già registrati nei fascicoli.</small>
-          </article>
+          <StatCard icon={<ShieldCheck size={19} />} label="PEC/PST" value={data.summary.pst} note="Messaggi telematici." onClick={() => onSelect('pst')} active={selected === 'pst'} loading={loading} tone="purple" />
+          <StatCard icon={<CheckCircle2 size={19} />} label="Collegate" value={data.summary.autoLinked} note="Esiti nei fascicoli." onClick={() => onSelect('collegate')} active={selected === 'collegate'} loading={loading} tone="success" />
         </div>
       </Panel>
       <Panel title="Controlli automatici" icon={<FileCheck2 size={17} />} count={auditAlerts.length}>
@@ -1376,30 +1363,22 @@ function PecInspector({
   )
 }
 
-function OrdinaryInspector({ data, rows }: { data: EmailPecPageData; rows: EmailPecRow[] }) {
+function OrdinaryInspector({ data, rows, onSelect, selected, loading, onAction }: { data: EmailPecPageData; rows: EmailPecRow[]; onSelect: (metric: MailboxMetric) => void; selected: MailboxMetric | null; loading: boolean; onAction: (url: string, label: string) => void }) {
   const unread = rows.filter((item) => item.unread).slice(0, 4)
   const withAttachments = rows.filter((item) => item.attachmentCount > 0).slice(0, 4)
   return (
     <aside className="iu-mail-inspector">
       <Panel title="Cabina email" subtitle="Posta ordinaria separata dalla PEC" icon={<Mail size={17} />}>
         <div className="iu-mail-briefing">
-          <article>
-            <span>Da leggere</span>
-            <strong>{data.summary.unread}</strong>
-            <small>Messaggi ordinari non ancora lavorati.</small>
-          </article>
-          <article>
-            <span>Allegati</span>
-            <strong>{data.summary.attachments}</strong>
-            <small>File recuperati dalla casella ordinaria.</small>
-          </article>
+          <StatCard icon={<MailCheck size={19} />} label="Da leggere" value={data.summary.unread} note="Messaggi non letti." onClick={() => onSelect('nonlette')} active={selected === 'nonlette'} loading={loading} tone="warning" />
+          <StatCard icon={<Paperclip size={19} />} label="Allegati" value={data.summary.attachments} note="File recuperati." onClick={() => onSelect('allegati')} active={selected === 'allegati'} loading={loading} tone="orange" />
         </div>
       </Panel>
-      <Panel title="Email da leggere" icon={<MailCheck size={17} />} count={unread.length}>
+      <Panel title="Email da leggere" subtitle="Prime quattro nella vista corrente" icon={<MailCheck size={17} />} count={unread.length}>
         {unread.length ? (
           <div className="iu-mail-alerts">
             {unread.map((item) => (
-              <a href={item.detailHref} key={item.id}>
+              <a href={item.detailHref} key={item.id} title={item.subject}>
                 <Badge tone="primary">non letta</Badge>
                 <strong>{item.subject}</strong>
                 <span>{rowPerson(item)}</span>
@@ -1412,7 +1391,7 @@ function OrdinaryInspector({ data, rows }: { data: EmailPecPageData; rows: Email
         {withAttachments.length ? (
           <div className="iu-mail-alerts">
             {withAttachments.map((item) => (
-              <a href={item.detailHref} key={item.id}>
+              <a href={item.detailHref} key={item.id} title={item.subject}>
                 <Badge tone="orange">{item.attachmentCount} allegati</Badge>
                 <strong>{item.subject}</strong>
                 <span>{item.timeLabel}</span>
@@ -1425,7 +1404,7 @@ function OrdinaryInspector({ data, rows }: { data: EmailPecPageData; rows: Email
         <div className="iu-mail-quick-actions">
           <a href={data.actions.compose}><Send size={15} /> Nuova email</a>
           <a href={data.actions.settings}><Settings2 size={15} /> Parametri SMTP/IMAP</a>
-          <a href={data.actions.sync}><RefreshCw size={15} /> Aggiorna casella</a>
+          <button type="button" className="iu-mail-filter-btn" disabled={loading} onClick={() => onAction(data.actions.sync, 'Aggiorna casella')}><RefreshCw size={15} /> Aggiorna casella</button>
         </div>
       </Panel>
     </aside>
@@ -1466,29 +1445,29 @@ function PecAutomaticNotice({
   )
 }
 
-function MailboxStats({ data, mode }: { data: EmailPecPageData; mode: MailboxMode }) {
+function MailboxStats({ data, mode, onSelect, selected, loading, unavailable }: { data: EmailPecPageData; mode: MailboxMode; onSelect: (metric: MailboxMetric) => void; selected: MailboxMetric | null; loading: boolean; unavailable: boolean }) {
   if (mode === 'ordinaria') {
     return (
       <section className="iu-mail-stats" aria-label={mailboxCopy.ordinaria.statsAria} data-iusentra-sequence-slot="primary-actions">
-        <StatCard icon={<Mail size={19} />} label="Totali" value={data.summary.total} note="email ordinarie archiviate" tone="primary" />
-        <StatCard icon={<Inbox size={19} />} label="In arrivo" value={data.summary.inbox} note="ricevute via IMAP" tone="info" />
-        <StatCard icon={<MailCheck size={19} />} label="Non lette" value={data.summary.unread} note="da lavorare" tone={data.summary.unread ? 'warning' : 'success'} />
-        <StatCard icon={<Send size={19} />} label="Inviate" value={data.summary.sent} note="email inviate dallo studio" tone="success" />
-        <StatCard icon={<Trash2 size={19} />} label="Cestino" value={data.summary.trash} note="spostate localmente" tone="neutral" />
-        <StatCard icon={<Paperclip size={19} />} label="Allegati" value={data.summary.attachments} note="file recuperati" tone="orange" />
+        <StatCard icon={<Mail size={19} />} label="Totali" onClick={() => onSelect('totali')} active={selected === 'totali'} loading={loading} unavailable={unavailable} value={data.summary.total} note="email ordinarie archiviate" tone="primary" />
+        <StatCard icon={<Inbox size={19} />} label="In arrivo" onClick={() => onSelect('arrivo')} active={selected === 'arrivo'} loading={loading} unavailable={unavailable} value={data.summary.inbox} note="ricevute via IMAP" tone="info" />
+        <StatCard icon={<MailCheck size={19} />} label="Non lette" onClick={() => onSelect('nonlette')} active={selected === 'nonlette'} loading={loading} unavailable={unavailable} value={data.summary.unread} note="da lavorare" tone={data.summary.unread ? 'warning' : 'success'} />
+        <StatCard icon={<Send size={19} />} label="Inviate" onClick={() => onSelect('inviate')} active={selected === 'inviate'} loading={loading} unavailable={unavailable} value={data.summary.sent} note="email inviate dallo studio" tone="success" />
+        <StatCard icon={<Trash2 size={19} />} label="Cestino" onClick={() => onSelect('cestino')} active={selected === 'cestino'} loading={loading} unavailable={unavailable} value={data.summary.trash} note="spostate localmente" tone="neutral" />
+        <StatCard icon={<Paperclip size={19} />} label="Allegati" onClick={() => onSelect('allegati')} active={selected === 'allegati'} loading={loading} unavailable={unavailable} value={data.summary.attachments} note="file recuperati" tone="orange" />
       </section>
     )
   }
   return (
     <section className="iu-mail-stats" aria-label={mailboxCopy.pec.statsAria} data-iusentra-sequence-slot="primary-actions">
-      <StatCard icon={<Mail size={19} />} label="Totali" value={data.summary.total} note="messaggi archiviati" tone="primary" />
-      <StatCard icon={<Inbox size={19} />} label="In arrivo" value={data.summary.inbox} note="ricevute in casella" tone="info" />
-      <StatCard icon={<MailCheck size={19} />} label="Non lette" value={data.summary.unread} note="da lavorare" tone={data.summary.unread ? 'warning' : 'success'} />
-      <StatCard icon={<Send size={19} />} label="Inviate" value={data.summary.sent} note="PEC inviate dallo studio" tone="success" />
-      <StatCard icon={<Trash2 size={19} />} label="Cestino" value={data.summary.trash} note="spostate localmente" tone="neutral" />
-      <StatCard icon={<ShieldCheck size={19} />} label="PST/PCT" value={data.summary.pst} note="messaggi telematici" tone="purple" />
-      <StatCard icon={<Paperclip size={19} />} label="Allegati" value={data.summary.attachments} note="file recuperati" tone="orange" />
-      <StatCard icon={<CheckCircle2 size={19} />} label="Collegate" value={data.summary.autoLinked} note="auto-esiti registrati" tone="success" />
+      <StatCard icon={<Mail size={19} />} label="Totali" onClick={() => onSelect('totali')} active={selected === 'totali'} loading={loading} unavailable={unavailable} value={data.summary.total} note="messaggi archiviati" tone="primary" />
+      <StatCard icon={<Inbox size={19} />} label="In arrivo" onClick={() => onSelect('arrivo')} active={selected === 'arrivo'} loading={loading} unavailable={unavailable} value={data.summary.inbox} note="ricevute in casella" tone="info" />
+      <StatCard icon={<MailCheck size={19} />} label="Non lette" onClick={() => onSelect('nonlette')} active={selected === 'nonlette'} loading={loading} unavailable={unavailable} value={data.summary.unread} note="da lavorare" tone={data.summary.unread ? 'warning' : 'success'} />
+      <StatCard icon={<Send size={19} />} label="Inviate" onClick={() => onSelect('inviate')} active={selected === 'inviate'} loading={loading} unavailable={unavailable} value={data.summary.sent} note="PEC inviate dallo studio" tone="success" />
+      <StatCard icon={<Trash2 size={19} />} label="Cestino" onClick={() => onSelect('cestino')} active={selected === 'cestino'} loading={loading} unavailable={unavailable} value={data.summary.trash} note="spostate localmente" tone="neutral" />
+      <StatCard icon={<ShieldCheck size={19} />} label="PST/PCT" onClick={() => onSelect('pst')} active={selected === 'pst'} loading={loading} unavailable={unavailable} value={data.summary.pst} note="messaggi telematici" tone="purple" />
+      <StatCard icon={<Paperclip size={19} />} label="Allegati" onClick={() => onSelect('allegati')} active={selected === 'allegati'} loading={loading} unavailable={unavailable} value={data.summary.attachments} note="file recuperati" tone="orange" />
+      <StatCard icon={<CheckCircle2 size={19} />} label="Collegate" onClick={() => onSelect('collegate')} active={selected === 'collegate'} loading={loading} unavailable={unavailable} value={data.summary.autoLinked} note="auto-esiti registrati" tone="success" />
     </section>
   )
 }
@@ -1499,6 +1478,11 @@ function EmailSourceView({ mode }: { mode: MailboxMode }) {
   const embeddedDetail = mode === 'pec' ? getEmailPecEmbeddedSourceDetail(sourceId) : null
   const [detail, setDetail] = useState<EmailDetailData | null>(embeddedDetail)
   const [loading, setLoading] = useState(Boolean(sourceId) && !embeddedDetail?.item)
+  const [sourceReloadKey, setSourceReloadKey] = useState(0)
+  const [sourceError, setSourceError] = useState('')
+  const [sourceWorking, setSourceWorking] = useState(false)
+  const [sourceStatus, setSourceStatus] = useState('')
+  useOperationalRefresh(['comunicazioni'], () => setSourceReloadKey((value) => value + 1), { relayedOnly: true })
 
   useEffect(() => {
     if (!sourceId) {
@@ -1506,8 +1490,9 @@ function EmailSourceView({ mode }: { mode: MailboxMode }) {
       setLoading(false)
       return undefined
     }
+    setSourceError('')
     const embedded = mode === 'pec' ? getEmailPecEmbeddedSourceDetail(sourceId) : null
-    if (embedded?.item) {
+    if (embedded?.item && sourceReloadKey === 0) {
       setDetail(embedded)
       setLoading(false)
       return undefined
@@ -1519,27 +1504,42 @@ function EmailSourceView({ mode }: { mode: MailboxMode }) {
       .then((payload) => {
         if (active) setDetail(payload.item ? payload : null)
       })
-      .catch(() => {
-        if (active) setDetail(null)
+      .catch((error) => {
+        if (active) {
+          setDetail(null)
+          setSourceError(error instanceof Error ? error.message : 'Caricamento del messaggio non riuscito.')
+        }
       })
       .finally(() => {
         if (active) setLoading(false)
       })
     return () => { active = false }
-  }, [mode, sourceId])
+  }, [mode, sourceId, sourceReloadKey])
 
   const item = detail?.item
   if (!sourceId) {
     return <main className="iu-mail-source-view"><p className="iu-mail-source-empty">La fonte indicata non contiene un identificativo del messaggio.</p></main>
   }
-  if (loading) {
+  if (loading && !detail?.item) {
     return <main className="iu-mail-source-view"><p className="iu-mail-source-loading">Caricamento della {mode === 'pec' ? 'PEC' : 'email'} originale...</p></main>
+  }
+  if (sourceError) {
+    return <main className="iu-mail-source-view"><section className="iu-mail-empty" role="alert"><AlertTriangle size={26} /><strong>Caricamento del messaggio non riuscito</strong><span>{sourceError}</span><button type="button" className="iu-mail-filter-btn" onClick={() => setSourceReloadKey(value => value + 1)}><RefreshCw size={16} /> Riprova</button></section></main>
   }
   if (!item) {
     return <main className="iu-mail-source-view"><p className="iu-mail-source-empty">Il messaggio indicato come fonte non è più disponibile nella casella.</p></main>
   }
 
-  const visibleTime = item.timeLabel || formatDateTimeIt(item.timestamp, '', { includeTimezone: true }) || '-'
+  const markSourceRead = () => {
+    if (sourceWorking || loading || !item.unread || item.auditOnly) return
+    setSourceWorking(true)
+    setSourceStatus('Registrazione della lettura in corso…')
+    postMailAction(item.markReadHref, 'Segna letta')
+      .then(message => { setSourceStatus(message); setSourceReloadKey(value => value + 1) })
+      .catch(error => setSourceStatus(error instanceof Error ? error.message : 'Lettura non registrata. Riprova.'))
+      .finally(() => setSourceWorking(false))
+  }
+  const visibleTime = formatDateTimeIt(item.timestamp, '', { includeTimezone: true }) || item.timeLabel || '-'
   return (
     <main className="iu-mail-source-view" aria-label={mode === 'pec' ? 'PEC originale' : 'Email originale'}>
       <article className="iu-mail-source-message">
@@ -1549,11 +1549,13 @@ function EmailSourceView({ mode }: { mode: MailboxMode }) {
             <h1>{item.subject || '(nessun oggetto)'}</h1>
           </div>
           <div className="iu-mail-source-message__status">
+            {item.unread && !item.auditOnly ? <button type="button" className="iu-mail-filter-btn" onClick={markSourceRead} disabled={sourceWorking || loading}><MailCheck size={15} /> {sourceWorking ? 'Registrazione…' : 'Segna letta'}</button> : null}
             {item.unread ? <Badge tone="primary">Non letta</Badge> : <Badge tone="success">Letta</Badge>}
             {mode === 'pec' && item.isPst ? <Badge tone="primary"><ShieldCheck size={12} /> PST</Badge> : null}
             {mode === 'pec' ? <PecAuditBadges audit={detail?.pecAudit ?? item.pecAudit} /> : null}
           </div>
         </header>
+        {sourceStatus ? <p className="iu-mail-operation-status" role="status">{sourceStatus}</p> : null}
         <div className="iu-mail-meta iu-mail-source-message__meta">
           <div><span>{item.folder === 'INVIATI' ? 'A' : 'Da'}</span><strong>{rowPerson(item)}</strong></div>
           <div><span>{item.folder === 'INVIATI' ? 'Mittente' : 'Destinatari'}</span><strong>{item.folder === 'INVIATI' ? (item.sender || '-') : (item.recipients || '-')}</strong></div>
@@ -1570,22 +1572,27 @@ function EmailSourceView({ mode }: { mode: MailboxMode }) {
 function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   const copy = mailboxCopy[mode]
   const [data, setData] = useState<EmailPecPageData>(copy.emptyData)
-  const [loading, setLoading] = useState(true)
+  const [fetching, setLoading] = useState(true)
+  const [commandWorking, setCommandWorking] = useState(false)
+  const [pageError, setPageError] = useState('')
+  const pageRequestRef = useRef(0)
   const [page, setPage] = useState({ key: '', offset: 0 })
   const listRef = useRef<HTMLDivElement>(null)
   // Deep-link: /email/?q=... apre la casella gia' filtrata (es. dal pannello
   // rapido del fascicolo: RG + cliente); ?cartella= seleziona la cartella.
   const initialParams = useMemo(() => new URLSearchParams(window.location.search), [])
   const folderParam = (initialParams.get('cartella') || '').toUpperCase()
-  const initialFolder: EmailFolder = folderParam === 'INVIATI' || folderParam === 'CESTINO' ? folderParam : 'INBOX'
+  const initialFolder: EmailFolder = folderParam === 'INVIATI' || folderParam === 'CESTINO' || folderParam === 'TUTTE' ? folderParam : 'INBOX'
   const initialQuery = initialParams.get('q') || ''
   const [folder, setFolder] = useState<EmailFolder>(initialFolder)
   const [query, setQuery] = useState(initialQuery)
   const [deferredQuery, setDeferredQuery] = useState(initialQuery)
+  const loading = fetching || commandWorking || query.trim() !== deferredQuery
   const [status, setStatus] = useState<EmailStatus>('tutti')
   const [sort, setSort] = useState<SortKey>('recenti')
   const [onlyPst, setOnlyPst] = useState(false)
   const [onlyAttachments, setOnlyAttachments] = useState(false)
+  const [onlyLinked, setOnlyLinked] = useState(false)
   const [onlyWarnings, setOnlyWarnings] = useState(false)
   const [pctStatus, setPctStatus] = useState('')
   const [advancedOpen, setAdvancedOpen] = useState(false)
@@ -1593,9 +1600,14 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [detail, setDetail] = useState<EmailDetailData | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState('')
   const [detailReloadKey, setDetailReloadKey] = useState(0)
   const [statusLine, setStatusLine] = useState('')
   const [bulkWorking, setBulkWorking] = useState(false)
+  const [bulkActionActive, setBulkActionActive] = useState<'read' | 'trash' | 'delete' | null>(null)
+  const [selectionWorking, setSelectionWorking] = useState(false)
+  const [allResultsSelected, setAllResultsSelected] = useState(false)
+  const selectionRequestRef = useRef(0)
   const [presidioWorking, setPresidioWorking] = useState(false)
   const [mobileReaderOpen, setMobileReaderOpen] = useState(false)
   const [saveMatterRequest, setSaveMatterRequest] = useState<PecSaveMatterRequest | null>(null)
@@ -1604,7 +1616,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   const auditSelectionHandledRef = useRef('')
 
   const fetchPage = mode === 'ordinaria' ? getEmailOrdinariaPage : getEmailPecPage
-  const pageKey = JSON.stringify([mode, folder, deferredQuery, status, onlyPst, onlyAttachments, pctStatus])
+  const pageKey = JSON.stringify([mode, folder, deferredQuery, status, onlyPst, onlyAttachments, onlyLinked, pctStatus, onlyWarnings])
   const pageOffset = page.key === pageKey ? page.offset : 0
   useEffect(() => { setPage({ key: pageKey, offset: 0 }) }, [pageKey])
   const fetchParams = {
@@ -1613,10 +1625,14 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
     stato: status,
     pst: copy.includeTelematic ? onlyPst : false,
     conAllegati: onlyAttachments,
+    collegate: copy.includeTelematic && onlyLinked,
+    daPresidiare: copy.includeTelematic && onlyWarnings,
     statoPct: copy.includeTelematic ? pctStatus : '',
     limit: MAILBOX_PAGE_LIMIT,
     offset: pageOffset,
   }
+  const latestPageRef = useRef({ fetchPage, fetchParams })
+  latestPageRef.current = { fetchPage, fetchParams }
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDeferredQuery(query.trim()), 280)
@@ -1624,30 +1640,34 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   }, [query])
 
   const load = () => {
+    const request = ++pageRequestRef.current
     setLoading(true)
-    fetchPage(fetchParams)
-      .then(setData)
-      .finally(() => setLoading(false))
+    latestPageRef.current.fetchPage(latestPageRef.current.fetchParams)
+      .then((payload) => {
+        if (request !== pageRequestRef.current) return
+        setData(payload)
+        setPageError('')
+      })
+      .catch((error) => {
+        if (request === pageRequestRef.current) setPageError(error instanceof Error ? error.message : 'Caricamento della posta non riuscito.')
+      })
+      .finally(() => { if (request === pageRequestRef.current) setLoading(false) })
   }
 
+  // La vista che esegue il comando si aggiorna gia' nel suo percorso di successo.
+  // Qui si ricevono solo le scritture confermate dalle altre finestre.
+  useOperationalRefresh(['comunicazioni'], () => {
+    load()
+    setDetailReloadKey((value) => value + 1)
+  }, { relayedOnly: true })
+
   const markReadOnOpen = (item?: EmailPecRow | null) => {
+    if (loading || pageError) return
     if (!item?.id || !item.unread || item.auditOnly || markingReadRef.current.has(item.id)) return
     markingReadRef.current.add(item.id)
-    setData((current) => {
-      const wasUnread = current.items.some((row) => row.id === item.id && row.unread)
-      return {
-        ...current,
-        summary: wasUnread
-          ? { ...current.summary, unread: Math.max(0, current.summary.unread - 1) }
-          : current.summary,
-        items: current.items.map((row) => row.id === item.id ? { ...row, unread: false } : row),
-      }
-    })
-    setDetail((current) => current?.item?.id === item.id
-      ? { ...current, item: { ...current.item, unread: false } }
-      : current)
     postMailAction(item.markReadHref, 'Segna letta')
-      .then(() => {
+      .then((message) => {
+        setStatusLine(message)
         load()
         setDetailReloadKey((value) => value + 1)
       })
@@ -1660,24 +1680,29 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   }
 
   useEffect(() => {
-    let active = true
+    const request = ++pageRequestRef.current
     setLoading(true)
     fetchPage(fetchParams)
-      .then((payload) => { if (active) setData(payload) })
-      .finally(() => { if (active) setLoading(false) })
-    return () => { active = false }
-  }, [folder, status, onlyPst, onlyAttachments, pctStatus, deferredQuery, pageOffset])
+      .then((payload) => {
+        if (request !== pageRequestRef.current) return
+        setData(payload)
+        setPageError('')
+      })
+      .catch((error) => {
+        if (request === pageRequestRef.current) setPageError(error instanceof Error ? error.message : 'Caricamento della posta non riuscito.')
+      })
+      .finally(() => { if (request === pageRequestRef.current) setLoading(false) })
+    return () => { pageRequestRef.current += 1 }
+  }, [folder, status, onlyPst, onlyAttachments, onlyLinked, pctStatus, deferredQuery, pageOffset, onlyWarnings])
 
   const visible = useMemo(
-    () => sortRows(
-      data.items
-        .filter((item) => isInsideQuery(item, query))
-        .filter((item) => !onlyWarnings || isPecOperationalWarning(item)),
+    () => pageError ? [] : sortRows(
+      data.items,
       sort,
     ),
-    [data.items, query, onlyWarnings, sort],
+    [data.items, sort, pageError],
   )
-  const selected = detail?.item && detail.item.id === selectedId ? detail.item : visible.find((item) => item.id === selectedId) || visible[0]
+  const selected = pageError ? undefined : detail?.item && detail.item.id === selectedId ? detail.item : visible.find((item) => item.id === selectedId) || visible[0]
   const visibleIds = useMemo(() => visible.filter((item) => !item.auditOnly).map((item) => item.id), [visible])
   const selectedVisibleCount = useMemo(() => visibleIds.filter((id) => selectedIds.has(id)).length, [selectedIds, visibleIds])
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id))
@@ -1685,20 +1710,32 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   const bulkActionLabel = folder === 'CESTINO' ? 'Elimina selezione' : 'Sposta nel cestino'
   const selectedAudit = detail?.pecAudit ?? selected?.pecAudit
   const loadedRows = data.items.length
-  const listCountLabel = data.summary.filtered > loadedRows || pageOffset > 0
+  const listCountLabel = loading ? 'Caricamento dei messaggi…' : pageError ? 'Vista non disponibile' : data.summary.filtered === 0 ? '0 messaggi' : pageOffset >= data.summary.filtered ? 'Aggiornamento dei messaggi…' : data.summary.filtered > loadedRows || pageOffset > 0
     ? `Messaggi ${loadedRows ? pageOffset + 1 : 0}–${pageOffset + loadedRows} di ${data.summary.filtered}`
     : `${visible.length} messaggi`
 
+  useEffect(() => {
+    if (loading || pageError) return
+    // Dopo una lettura filtrata l'ultima pagina può non esistere più.
+    // Conserva i filtri e torna alla pagina più vicina ancora disponibile.
+    const lastOffset = Math.max(0, Math.ceil(data.summary.filtered / MAILBOX_PAGE_LIMIT) - 1) * MAILBOX_PAGE_LIMIT
+    if (pageOffset > lastOffset) {
+      setLoading(true)
+      setPage({ key: pageKey, offset: lastOffset })
+    }
+  }, [data.summary.filtered, loading, pageError, pageOffset, pageKey])
+
   const changePage = (offset: number) => {
-    if (loading) return
+    if (loading || pageError) return
     setLoading(true)
-    setSelectedIds(new Set())
+    if (!allResultsSelected) setSelectedIds(new Set())
     setMobileReaderOpen(false)
     setPage({ key: pageKey, offset })
     listRef.current?.scrollTo({ top: 0 })
   }
 
   const selectMessage = (id: string) => {
+    if (loading || pageError) return
     markReadOnOpen(data.items.find((item) => item.id === id) || detail?.item)
     setSelectedId(id)
     setMobileReaderOpen(true)
@@ -1712,7 +1749,27 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
     writeMailboxSelection(mode, nextFolder, '')
   }
 
+  const selectMetric = (metric: MailboxMetric) => {
+    setQuery('')
+    setPctStatus('')
+    setOnlyWarnings(false)
+    setOnlyPst(metric === 'pst')
+    setOnlyAttachments(metric === 'allegati')
+    setOnlyLinked(metric === 'collegate')
+    setStatus(metric === 'nonlette' ? 'NON_LETTA' : 'tutti')
+    setAdvancedOpen(!['totali', 'arrivo', 'inviate', 'cestino'].includes(metric))
+    setSelectedIds(new Set())
+    changeFolder(metric === 'arrivo' || metric === 'nonlette' ? 'INBOX' : metric === 'inviate' ? 'INVIATI' : metric === 'cestino' ? 'CESTINO' : 'TUTTE')
+    setStatusLine(metric === 'allegati' ? 'Elenco dei messaggi con allegati. La card conta i file recuperati.' : 'Filtro applicato: elenco e selezione disponibili nella stessa pagina.')
+    window.requestAnimationFrame(() => listRef.current?.parentElement?.scrollIntoView({ block: 'start', behavior: 'auto' }))
+  }
+  const selectedMetric: MailboxMetric | null = query || pctStatus || onlyWarnings ? null
+    : onlyLinked ? 'collegate' : onlyPst ? 'pst' : onlyAttachments ? 'allegati'
+    : status === 'NON_LETTA' && folder === 'INBOX' ? 'nonlette' : status !== 'tutti' ? null
+    : folder === 'TUTTE' ? 'totali' : folder === 'INVIATI' ? 'inviate' : folder === 'CESTINO' ? 'cestino' : 'arrivo'
+
   useEffect(() => {
+    if (allResultsSelected) return
     setSelectedIds((current) => {
       const validIds = new Set(data.items.map((item) => item.id))
       const next = new Set<string>()
@@ -1722,7 +1779,14 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
       if (next.size === current.size) return current
       return next
     })
-  }, [data.items])
+  }, [data.items, allResultsSelected])
+
+  useEffect(() => {
+    selectionRequestRef.current += 1
+    setSelectedIds(new Set())
+    setAllResultsSelected(false)
+    setStatusLine((current) => current.includes('messaggi selezionati in tutti i risultati filtrati.') ? 'Filtri aggiornati: selezione azzerata.' : current)
+  }, [pageKey, query])
 
   useEffect(() => {
     const auditId = currentPecAuditSelectionId(mode)
@@ -1757,6 +1821,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
       return
     }
     let active = true
+    setDetailError('')
     setDetailLoading(true)
     const loader = mode === 'ordinaria' ? getEmailOrdinariaDetail : getEmailPecDetail
     loader(id)
@@ -1768,6 +1833,12 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
           markReadOnOpen(payload.item)
         }
       })
+      .catch((error) => {
+        if (active) {
+          setDetail(null)
+          setDetailError(error instanceof Error ? error.message : 'Caricamento del messaggio non riuscito.')
+        }
+      })
       .finally(() => {
         if (active) setDetailLoading(false)
       })
@@ -1775,19 +1846,26 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   }, [mode, selectedId, detailReloadKey])
 
   const runAction = (url: string, label: string) => {
+    if (loading || bulkWorking || selectionWorking) return
+    if (pageError && url !== data.actions.sync) { setStatusLine('Ricarica la vista prima di eseguire questa azione.'); return }
     if (copy.includeTelematic && url.includes('/salva-fascicolo')) {
       setSaveMatterRequest({ url, subject: selected?.subject || detail?.item?.subject || 'PEC selezionata' })
       setStatusLine('Verifica cliente e fascicolo proposti, poi conferma il salvataggio.')
       return
     }
-    setStatusLine(`${label} in corso...`)
+    setCommandWorking(true)
+    setStatusLine(`${label} in corso…`)
     postMailAction(url, label)
       .then((message) => {
         setStatusLine(message)
         load()
         setDetailReloadKey((value) => value + 1)
       })
-      .catch((error) => setStatusLine(error instanceof Error ? error.message : `${label}: errore operativo`))
+      .catch((error) => {
+        setStatusLine(error instanceof Error ? error.message : `${label}: operazione non confermata`)
+        load()
+      })
+      .finally(() => setCommandWorking(false))
   }
 
   const openPresidio = (id: string) => {
@@ -1795,6 +1873,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
     setStatus('tutti')
     setOnlyPst(false)
     setOnlyAttachments(false)
+    setOnlyLinked(false)
     setOnlyWarnings(true)
     setPctStatus('')
     setAdvancedOpen(true)
@@ -1850,6 +1929,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   }
 
   const toggleSelection = (id: string) => {
+    if (loading || pageError || bulkWorking || selectionWorking) return
     setSelectedIds((current) => {
       const next = new Set(current)
       if (next.has(id)) next.delete(id)
@@ -1859,6 +1939,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   }
 
   const toggleAllVisible = () => {
+    if (loading || pageError || bulkWorking || selectionWorking) return
     setSelectedIds((current) => {
       const next = new Set(current)
       if (allVisibleSelected) {
@@ -1870,13 +1951,54 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
     })
   }
 
+  const selectAllResults = async () => {
+    if (loading || pageError || bulkWorking || selectionWorking) return
+    const request = pageRequestRef.current
+    const selectionRequest = ++selectionRequestRef.current
+    setSelectionWorking(true)
+    try {
+      const ids = await getEmailSelectionIds(mode, fetchParams)
+      if (request !== pageRequestRef.current || selectionRequest !== selectionRequestRef.current) return
+      setSelectedIds(new Set(ids))
+      setAllResultsSelected(true)
+      setStatusLine(ids.length ? `${ids.length} messaggi selezionati in tutti i risultati filtrati.` : 'Nessun messaggio selezionabile con questi filtri.')
+    } catch (error) {
+      setStatusLine(error instanceof Error ? error.message : 'Selezione non caricata. Riprova.')
+    } finally {
+      setSelectionWorking(false)
+    }
+  }
+
+  const runBulkRead = async () => {
+    if (loading || pageError || bulkWorking || selectionWorking || folder !== 'INBOX' || !selectedIds.size) return
+    setBulkWorking(true)
+    setBulkActionActive('read')
+    setStatusLine('Registrazione delle letture in corso…')
+    try {
+      const message = await submitEmailBulkAction(data.actions.bulkAction, [...selectedIds], 'read')
+      setStatusLine(message)
+      setSelectedIds(new Set())
+      setAllResultsSelected(false)
+      setDetailReloadKey((value) => value + 1)
+      load()
+    } catch (error) {
+      setStatusLine(error instanceof Error ? error.message : 'Lettura non registrata. Riprova.')
+      load()
+    } finally {
+      setBulkWorking(false)
+      setBulkActionActive(null)
+    }
+  }
+
   const runBulkAction = () => {
+    if (loading || pageError || bulkWorking) return
     const ids = visibleIds.filter((id) => selectedIds.has(id))
     if (!ids.length) {
       setStatusLine('Seleziona almeno un messaggio.')
       return
     }
     setBulkWorking(true)
+    setBulkActionActive(bulkActionKind)
     setStatusLine(`${bulkActionLabel} in corso...`)
     submitEmailBulkAction(data.actions.bulkAction, ids, bulkActionKind)
       .then((message) => {
@@ -1888,8 +2010,11 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
         })
         load()
       })
-      .catch((error) => setStatusLine(error instanceof Error ? error.message : `${bulkActionLabel}: errore operativo`))
-      .finally(() => setBulkWorking(false))
+      .catch((error) => {
+        setStatusLine(error instanceof Error ? error.message : `${bulkActionLabel}: operazione non riuscita`)
+        load()
+      })
+      .finally(() => { setBulkWorking(false); setBulkActionActive(null) })
   }
 
   const runSync = () => runAction(data.actions.sync, copy.syncLabel)
@@ -1909,8 +2034,8 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
         <div className="iu-mail-hero__actions">
           <Button href={data.actions.operationalInbox}><Archive size={15} /> {copy.openLabel}</Button>
           <Button href={data.actions.settings}><Settings2 size={15} /> Impostazioni</Button>
-          {data.actions.autoEsiti ? <button type="button" onClick={runAutoEsiti}><Sparkles size={15} /> Auto-esiti</button> : null}
-          <button type="button" onClick={runSync}><RefreshCw size={15} /> Aggiorna</button>
+          {data.actions.autoEsiti ? <button type="button" onClick={runAutoEsiti} disabled={loading || bulkWorking || selectionWorking}><Sparkles size={15} /> Auto-esiti</button> : null}
+          <button type="button" onClick={runSync} disabled={loading || bulkWorking || selectionWorking}><RefreshCw size={15} /> {commandWorking ? 'Aggiornamento…' : 'Aggiorna'}</button>
           <Button
             variant="primary"
             href={data.actions.compose}
@@ -1922,57 +2047,66 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
         </div>
       </section>
 
-      <MailboxStats data={data} mode={mode} />
+      <MailboxStats data={data} mode={mode} onSelect={selectMetric} selected={selectedMetric} loading={loading} unavailable={Boolean(pageError)} />
 
       <section className="iu-mail-toolbar" aria-label={copy.filtersAria} data-iusentra-sequence-slot="filters">
-        <FolderTabs data={data} folder={folder} onChange={changeFolder} ariaLabel={copy.folderAria} />
-        <label className="iu-mail-search"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') load() }} placeholder="Cerca mittente, destinatario, oggetto, riferimento..." /></label>
+        {!pageError ? <FolderTabs data={data} folder={folder} onChange={changeFolder} ariaLabel={copy.folderAria} /> : null}
+        <label className="iu-mail-search"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); if (query.trim() !== deferredQuery) setDeferredQuery(query.trim()); else load() } }} placeholder="Cerca mittente, destinatario, oggetto, riferimento..." /></label>
         <button className="iu-mail-filter-btn" type="button" onClick={() => setAdvancedOpen((value) => !value)} aria-expanded={advancedOpen}><SlidersHorizontal size={16} /> Filtri</button>
         <button className="iu-mail-icon-btn" type="button" onClick={load} aria-label="Aggiorna vista"><RefreshCw size={17} /></button>
       </section>
 
-      {advancedOpen ? (
+      {advancedOpen && !pageError ? (
         <section className="iu-mail-advanced" aria-label={`Filtri avanzati ${copy.title}`} data-iusentra-sequence-slot="context-filters">
           <label><span>Stato lettura</span><select value={status} onChange={(event) => setStatus(event.target.value as EmailStatus)}>{data.facets.statuses.map((facet) => <option value={facet.value} key={facet.value}>{facet.label} ({facet.count})</option>)}</select></label>
           {copy.includeTelematic ? <label><span>Esito PCT</span><select value={pctStatus} onChange={(event) => setPctStatus(event.target.value)}>{data.facets.pctStatuses.map((facet) => <option value={facet.value} key={facet.value || 'all'}>{facet.label} ({facet.count})</option>)}</select></label> : null}
           <label><span>Ordinamento</span><select value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>{sortOptions.map((item) => <option value={item} key={item}>{sortLabels[item]}</option>)}</select></label>
           {copy.includeTelematic ? <label className="iu-mail-check"><input type="checkbox" checked={onlyPst} onChange={(event) => setOnlyPst(event.target.checked)} /><span>Solo PEC/PST</span></label> : null}
           <label className="iu-mail-check"><input type="checkbox" checked={onlyAttachments} onChange={(event) => setOnlyAttachments(event.target.checked)} /><span>Solo con allegati</span></label>
+          {copy.includeTelematic ? <label className="iu-mail-check"><input type="checkbox" checked={onlyLinked} onChange={(event) => setOnlyLinked(event.target.checked)} /><span>Solo con auto-esiti registrati</span></label> : null}
           {copy.includeTelematic ? <label className="iu-mail-check"><input type="checkbox" checked={onlyWarnings} onChange={(event) => setOnlyWarnings(event.target.checked)} /><span>Solo da presidiare</span></label> : null}
-          <button type="button" onClick={() => { setStatus('tutti'); setOnlyPst(false); setOnlyAttachments(false); setOnlyWarnings(false); setPctStatus(''); setQuery(''); setMobileReaderOpen(false) }}>Reset</button>
+          <button type="button" onClick={() => { setStatus('tutti'); setOnlyPst(false); setOnlyAttachments(false); setOnlyLinked(false); setOnlyWarnings(false); setPctStatus(''); setQuery(''); setMobileReaderOpen(false) }}>Azzera filtri</button>
         </section>
       ) : null}
 
       <section className="iu-mail-status-line" data-iusentra-sequence-slot="main-content">
-        <span className={loading ? '' : 'is-ok'}>{loading ? copy.syncingLabel : copy.updatedLabel}</span>
+        <span className={loading || pageError ? '' : 'is-ok'}>{loading ? copy.syncingLabel : pageError ? 'Casella non aggiornata' : copy.updatedLabel}</span>
         <small><Clock3 size={14} /> Le azioni sono tracciate e separate tra PEC ed email ordinaria.</small>
-        {selectedVisibleCount ? <small>{selectedVisibleCount} messaggi selezionati nella vista corrente.</small> : null}
-        {statusLine ? <small className="iu-mail-operation-status">{statusLine}</small> : null}
+        {selectedVisibleCount ? <small>{selectedVisibleCount === 1 ? '1 messaggio selezionato' : `${selectedVisibleCount} messaggi selezionati`} nella vista corrente.</small> : null}
+        {statusLine ? <small className="iu-mail-operation-status">{allResultsSelected && !bulkWorking && !selectionWorking ? `${selectedIds.size} messaggi selezionati in tutti i risultati filtrati.` : statusLine}</small> : null}
       </section>
 
-      {copy.includeTelematic ? <PecAutomaticNotice rows={visible} summary={data.summary} onOpenPresidio={openPresidio} onRunPresidio={runPresidio} running={presidioWorking} /> : null}
+      {pageError ? <section className="iu-mail-empty" role="alert"><AlertTriangle size={26} /><strong>Caricamento della posta non riuscito</strong><span>{pageError}</span><button type="button" className="iu-mail-filter-btn" onClick={load} disabled={loading}><RefreshCw size={16} /> {loading ? 'Caricamento…' : 'Riprova'}</button></section> : null}
 
-      <section className="iu-mail-layout" data-iusentra-sequence-slot="main-content">
+      {copy.includeTelematic && !pageError ? <PecAutomaticNotice rows={visible} summary={data.summary} onOpenPresidio={openPresidio} onRunPresidio={runPresidio} running={presidioWorking} /> : null}
+
+      {!pageError ? <section className="iu-mail-layout" data-iusentra-sequence-slot="main-content">
         <div className="iu-mail-list-card">
           <header>
             <div><strong>{listCountLabel}</strong><span>{folderLabel(folder)} · {sourceLabel(data.source, copy.sourceFallback)}</span></div>
             <a href={`${data.actions.operationalInbox}?cartella=${folder}`}><Download size={15} /> Apri cartella</a>
           </header>
-          <MailboxPagination position="top" offset={pageOffset} total={data.summary.filtered} limit={MAILBOX_PAGE_LIMIT} loading={loading} onChange={changePage} />
+          {!pageError ? <MailboxPagination position="top" offset={pageOffset} total={data.summary.filtered} limit={MAILBOX_PAGE_LIMIT} loading={loading} onChange={changePage} /> : null}
           {visible.length ? (
             <div className="iu-mail-list-select-all">
               <label>
-                <input type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} />
-                <span>Seleziona tutti i messaggi visibili</span>
+                <input type="checkbox" checked={allVisibleSelected} disabled={loading || bulkWorking || selectionWorking} onChange={toggleAllVisible} />
+                <span>Seleziona questa pagina</span>
               </label>
+              {folder === 'INBOX' ? <button type="button" className="iu-mail-filter-btn" onClick={selectAllResults} disabled={loading || bulkWorking || selectionWorking}>
+                <CheckCircle2 size={15} /> {selectionWorking ? 'Caricamento selezione…' : 'Seleziona tutti i risultati'}
+              </button> : null}
             </div>
           ) : null}
-          {selectedVisibleCount ? (
+          {selectedIds.size ? (
             <div className="iu-mail-bulkbar">
-              <strong>{selectedVisibleCount} selezionati</strong>
-              <span>{folder === 'CESTINO' ? "Nel cestino puoi eliminare definitivamente piu' messaggi insieme." : "Puoi spostare nel cestino piu' messaggi della vista corrente."}</span>
-              <button type="button" onClick={runBulkAction} disabled={bulkWorking}>
-                <Trash2 size={15} /> {bulkWorking ? `${bulkActionLabel}...` : bulkActionLabel}
+              <strong>{selectedIds.size} {selectedIds.size === 1 ? 'selezionato' : 'selezionati'}{allResultsSelected ? ' in tutti i risultati' : ''}</strong>
+              {folder === 'INBOX' ? <button type="button" className="iu-mail-filter-btn" onClick={runBulkRead} disabled={bulkWorking || loading || selectionWorking}>
+                <MailCheck size={15} /> {bulkActionActive === 'read' ? 'Registrazione…' : 'Segna lette le selezionate'}
+              </button> : null}
+              <button type="button" className="iu-mail-filter-btn" onClick={() => { setSelectedIds(new Set()); setAllResultsSelected(false); setStatusLine('Selezione annullata.') }} disabled={bulkWorking || loading || selectionWorking}>Annulla selezione</button>
+              <button type="button" onClick={runBulkAction} disabled={bulkWorking || loading || allResultsSelected}>
+                <Trash2 size={15} /> {bulkActionActive === bulkActionKind ? `${bulkActionLabel}…` : bulkActionLabel}
               </button>
             </div>
           ) : null}
@@ -1986,18 +2120,19 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
                 onToggleChecked={() => toggleSelection(item.id)}
                 includeTelematic={copy.includeTelematic}
                 fallbackInitials={mode === 'pec' ? 'PEC' : 'EM'}
+                loading={loading || bulkWorking || selectionWorking}
                 key={item.id}
               />
             ))}
-            {!visible.length ? (
+            {!visible.length && !pageError ? (
               <div className="iu-mail-empty">
                 <Mail size={34} />
-                <strong>{copy.emptyTitle}</strong>
-                <span>{copy.emptyText}</span>
+                <strong>{loading ? 'Caricamento dei messaggi…' : copy.emptyTitle}</strong>
+                <span>{loading ? 'Attendi il caricamento della vista selezionata.' : copy.emptyText}</span>
               </div>
             ) : null}
           </div>
-          <MailboxPagination position="bottom" offset={pageOffset} total={data.summary.filtered} limit={MAILBOX_PAGE_LIMIT} loading={loading} onChange={changePage} />
+          {!pageError ? <MailboxPagination position="bottom" offset={pageOffset} total={data.summary.filtered} limit={MAILBOX_PAGE_LIMIT} loading={loading} onChange={changePage} /> : null}
         </div>
         <div className={`iu-mail-reader-pane${mobileReaderOpen ? ' is-open' : ''}`} aria-label="Lettura email selezionata">
           <div className="iu-mail-reader-pane__bar">
@@ -2006,17 +2141,17 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
             </button>
             <span>Lettura email</span>
           </div>
-          <EmailPreview item={selected} detail={detail} detailLoading={detailLoading} onAction={runAction} copy={copy} />
+          {!pageError ? detailError ? <section className="iu-mail-empty" role="alert"><AlertTriangle size={26} /><strong>Caricamento del messaggio non riuscito</strong><span>{detailError}</span><button type="button" className="iu-mail-filter-btn" onClick={() => setDetailReloadKey(value => value + 1)} disabled={detailLoading}><RefreshCw size={16} /> {detailLoading ? 'Caricamento…' : 'Riprova'}</button></section> : <EmailPreview item={selected} detail={detail} detailLoading={detailLoading} onAction={runAction} copy={copy} /> : null}
         </div>
-        {mode === 'pec' && selectedAudit ? (
+        {!pageError && mode === 'pec' && selectedAudit ? (
           <section className="iu-mail-selected-pec-panel" aria-label="Profilo PEC selezionata">
             <PecAuditSidebarPanel audit={selectedAudit} item={selected} onAction={runAction} />
           </section>
         ) : null}
-        {mode === 'pec'
-          ? <PecInspector data={data} rows={visible} />
-          : <OrdinaryInspector data={data} rows={visible} />}
-      </section>
+        {!pageError ? mode === 'pec'
+          ? <PecInspector data={data} rows={visible} onSelect={selectMetric} selected={selectedMetric} loading={loading} />
+          : <OrdinaryInspector data={data} rows={visible} onSelect={selectMetric} selected={selectedMetric} loading={loading} onAction={runAction} /> : null}
+      </section> : null}
 
       <section className="iu-mail-lower-grid" data-iusentra-sequence-slot="support-sidebar">
         <Panel title={mode === 'pec' ? 'Qualità PEC' : 'Qualità email'} subtitle={mode === 'pec' ? 'Controlli prima di deposito, cancelleria e fascicolo' : 'Controlli su casella ordinaria, allegati e risposte'} icon={<ShieldCheck size={17} />}>
@@ -2060,7 +2195,8 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
 }
 
 function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
-  return new URLSearchParams(window.location.search).get('embed') === 'source'
+  const params = new URLSearchParams(window.location.search)
+  return params.get('embed') === 'source' && params.get('view') !== 'mailbox'
     ? <EmailSourceView mode={mode} />
     : <EmailMailboxWorkspace mode={mode} />
 }

@@ -36,6 +36,7 @@ x-iusentra-env: &iusentra-env
   # esegue `ollama pull` del modello configurato: cambiarlo qui scaricherebbe
   # diversi GB a ogni server senza scelta esplicita dell'amministratore.
   PCT_LOCAL_AI_CHAT_MODEL: ${PCT_LOCAL_AI_CHAT_MODEL:-gemma3:1b}
+  LEX_DEFAULT_MODEL: ${LEX_DEFAULT_MODEL:-}
   # Parametri di generazione di Lex (lex/settings.py, unico punto di verità).
   # LEX_NUM_CTX deve restare uguale a OLLAMA_CONTEXT_LENGTH del servizio ollama.
   LEX_NUM_CTX: ${LEX_NUM_CTX:-8192}

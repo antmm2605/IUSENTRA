@@ -1,3 +1,4 @@
+import { WorkPanelPortal } from './WorkPanelPortal'
 import { CheckCircle2, Clock3, FolderOpen, Loader2, Pause, Play, Search, Square, Trash2, UserRound, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useClickOutside } from '../../hooks/useClickOutside'
@@ -173,7 +174,7 @@ export function TopBarTimeTracker({
         {icon}
         {timer ? <small>{timer.status === 'paused' ? 'Pausa ' : ''}{formatElapsed(elapsedSeconds)}</small> : null}
       </button>
-      {open ? (
+      {open ? (<WorkPanelPortal onClose={onClose}>
         <div className="iu-topbar-panel iu-timer-panel iu-tt" role="dialog" aria-label="Timer attività">
           <header className="iu-tt-testa">
             <span><Clock3 size={16}/><strong>Timer attività</strong></span>
@@ -258,7 +259,7 @@ export function TopBarTimeTracker({
               </ul>
             </footer>
           ) : null}
-        </div>
+        </div></WorkPanelPortal>
       ) : null}
     </div>
   )

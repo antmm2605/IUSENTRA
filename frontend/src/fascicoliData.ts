@@ -234,6 +234,8 @@ export type FascicoliSummary = {
   invoiceDraftsToReview: number
   invoicesPresent: number
   invoiceWorkTotal: number
+  invoiceMattersToReview: number
+  communicationMatters: number
   registeredAmount: number
   advancesToRecover: number
   duplicatePractices: number
@@ -282,6 +284,7 @@ export type FascicoliPageParams = {
   view?: 'operativa' | 'economica' | string
   fieldFilters?: FascicoliFieldFilters
   alertsOnly?: boolean
+  communicationsOnly?: boolean
   paymentsOnly?: boolean
   missingRgOnly?: boolean
   duplicatesOnly?: boolean
@@ -304,6 +307,7 @@ export type FascicoliFilterPreferences = {
   court: string
   fieldFilters: FascicoliFieldFilters
   alertsOnly: boolean
+  communicationsOnly: boolean
   paymentsOnly: boolean
   missingRgOnly: boolean
   duplicatesOnly: boolean
@@ -326,6 +330,7 @@ export type FascicoliPageData = {
   generatedAt: string
   contracts: { mock_fallback: boolean; read_only: boolean; writes: 'operational_routes' | 'api' }
   summary: FascicoliSummary
+  cardSummary: FascicoliSummary
   items: FascicoloRow[]
   pagination: FascicoliPagination
   facets: {
@@ -1188,6 +1193,8 @@ const emptySummary: FascicoliSummary = {
   invoiceDraftsToReview: 0,
   invoicesPresent: 0,
   invoiceWorkTotal: 0,
+  invoiceMattersToReview: 0,
+  communicationMatters: 0,
   registeredAmount: 0,
   advancesToRecover: 0,
   duplicatePractices: 0,
@@ -1306,6 +1313,7 @@ export const emptyFascicoliPage: FascicoliPageData = {
   generatedAt: '',
   contracts: { mock_fallback: false, read_only: true, writes: 'operational_routes' },
   summary: emptySummary,
+  cardSummary: emptySummary,
   items: [],
   pagination: { page: 1, pageSize: 5, total: 0, pages: 0 },
   facets: {
@@ -1328,6 +1336,7 @@ export const defaultFascicoliFilterPreferences: FascicoliFilterPreferences = {
   court: '',
   fieldFilters: {},
   alertsOnly: false,
+  communicationsOnly: false,
   paymentsOnly: false,
   missingRgOnly: false,
   duplicatesOnly: false,
@@ -1866,6 +1875,8 @@ function normalizeSummary(value: unknown, items: FascicoloRow[]): FascicoliSumma
       invoiceDraftsToReview: number(value.invoiceDraftsToReview ?? value.invoice_drafts_to_review),
       invoicesPresent: number(value.invoicesPresent ?? value.invoices_present),
       invoiceWorkTotal: number(value.invoiceWorkTotal ?? value.invoice_work_total ?? value.invoicesToIssue ?? value.invoices_to_issue),
+      invoiceMattersToReview: number(value.invoiceMattersToReview),
+      communicationMatters: number(value.communicationMatters),
       registeredAmount: number(value.registeredAmount ?? value.registered_amount),
       advancesToRecover: number(value.advancesToRecover ?? value.advances_to_recover),
       duplicatePractices: number(value.duplicatePractices ?? value.duplicate_practices),
@@ -1902,6 +1913,8 @@ function normalizeSummary(value: unknown, items: FascicoloRow[]): FascicoliSumma
     invoiceDraftsToReview,
     invoicesPresent,
     invoiceWorkTotal: invoicesToIssue + invoiceDraftsToReview,
+    invoiceMattersToReview: items.filter((item) => item.paymentSummary.parcelleDaEmettere > 0 || item.paymentSummary.proformaPresidio.existingDraftCount > 0).length,
+    communicationMatters: items.filter((item) => item.unreadCommunications > 0).length,
     registeredAmount: items.reduce((total, item) => total + item.paymentSummary.totaleRegistrato, 0),
     advancesToRecover: items.reduce((total, item) => total + item.paymentSummary.anticipazioniDaRecuperare, 0),
     duplicatePractices: duplicateKeys.size,
@@ -1943,6 +1956,7 @@ function normalizePagePayload(payload: unknown): FascicoliPageData {
   const rawItems = Array.isArray(payload.items) ? payload.items : Array.isArray(payload.fascicoli) ? payload.fascicoli : []
   const items = rawItems.map(normalizeItem)
   const summary = normalizeSummary(payload.summary, items)
+  if (!isRecord(payload.cardSummary)) throw new Error('Indicatori fascicoli non disponibili. Riprova il caricamento.')
   return {
     source: text(payload.source, 'repository_reali'),
     generatedAt: text(payload.generatedAt ?? payload.generated_at, ''),
@@ -1952,6 +1966,7 @@ function normalizePagePayload(payload: unknown): FascicoliPageData {
       writes: text(payload.contracts.writes, 'operational_routes') as 'operational_routes' | 'api',
     } : { mock_fallback: false, read_only: true, writes: 'operational_routes' },
     summary,
+    cardSummary: normalizeSummary(payload.cardSummary, []),
     items,
     pagination: normalizePagination(payload.pagination, items, summary),
     facets: normalizeFacets(payload.facets, items),
@@ -2015,6 +2030,7 @@ function normalizeFascicoliFilterPreferences(value: unknown): FascicoliFilterPre
     court: text(row.court, ''),
     fieldFilters,
     alertsOnly: bool(row.alertsOnly ?? row.alerts_only),
+    communicationsOnly: bool(row.communicationsOnly ?? row.communications_only),
     paymentsOnly: bool(row.paymentsOnly ?? row.payments_only),
     missingRgOnly: bool(row.missingRgOnly ?? row.missing_rg_only),
     duplicatesOnly: bool(row.duplicatesOnly ?? row.duplicates_only),
@@ -3060,6 +3076,7 @@ function buildFascicoliQuery(params: FascicoliPageParams = {}): string {
     if (value?.trim()) query.set(`f_${key}`, value.trim())
   })
   if (params.alertsOnly) query.set('alerts_only', '1')
+  if (params.communicationsOnly) query.set('communications_only', '1')
   if (params.paymentsOnly) query.set('payments_only', '1')
   if (params.missingRgOnly) query.set('missing_rg_only', '1')
   if (params.duplicatesOnly) query.set('duplicates_only', '1')
@@ -3153,7 +3170,7 @@ export async function runFascicoliEconomicPresidio(limit = 500): Promise<Fascico
 }
 
 export function getFascicoliArchive(): Promise<FascicoliPageData> {
-  return safeFetch('/api/v1/ui/fascicoli/archivio', normalizePagePayload, emptyFascicoliPage)
+  return strictFetch('/api/v1/ui/fascicoli/archivio', normalizePagePayload)
 }
 
 export function getFascicoloDetail(id: string, options: { include?: 'all' | FascicoloDetailSection[] } = {}): Promise<FascicoloDetailData> {
@@ -3301,3 +3318,117 @@ export async function generateFascicoloProforma(
     paymentSummary: normalizePaymentSummary(raw.paymentSummary ?? raw.payment_summary, id),
   }
 }
+
+
+// Metadati di presentazione della lista, senza chiamate o modifiche ai dati.
+export type SortKey = 'recenti' | 'rg' | 'cliente' | 'scadenza' | 'documenti' | 'titolo' | 'ufficio' | 'apertura' | 'stato' | 'gruppo' | 'responsabile' | 'valore'
+
+export const sortLabels: Record<SortKey, string> = {
+  recenti: 'Aggiornati di recente',
+  rg: 'Anno e numero RG',
+  cliente: 'Cliente',
+  scadenza: 'Prossima scadenza',
+  documenti: 'Documenti',
+  titolo: 'Titolo',
+  ufficio: 'Ufficio giudiziario',
+  apertura: 'Data di apertura',
+  stato: 'Stato',
+  gruppo: 'Gruppo',
+  responsabile: 'Responsabile',
+  valore: 'Valore causa',
+}
+
+export type PracticeFilterSection = 'pratica' | 'procedimento' | 'persone'
+
+export const practiceFieldFilters: Array<{
+  key: FascicoliFieldFilterKey
+  label: string
+  placeholder: string
+  section: PracticeFilterSection
+  inputMode?: 'text' | 'numeric' | 'decimal'
+}> = [
+  { key: 'register', label: 'Registro', placeholder: 'Civile, lavoro, SICID...', section: 'pratica' },
+  { key: 'value', label: 'Valore causa', placeholder: 'Importo', section: 'pratica', inputMode: 'decimal' },
+  { key: 'object', label: 'Oggetto', placeholder: 'Oggetto della pratica', section: 'pratica' },
+  { key: 'denomination', label: 'Denominazione', placeholder: 'Titolo del fascicolo', section: 'pratica' },
+  { key: 'internal_ref', label: 'Riferimento cartaceo', placeholder: 'Riferimento interno', section: 'pratica' },
+  { key: 'opened_year', label: 'Anno apertura', placeholder: 'es. 2026', section: 'pratica', inputMode: 'numeric' },
+  { key: 'archived_year', label: 'Anno archiviazione', placeholder: 'es. 2025', section: 'pratica', inputMode: 'numeric' },
+  { key: 'operational_status', label: 'Stato pratica', placeholder: 'Stato operativo', section: 'pratica' },
+  { key: 'custom_1', label: 'Campo personalizzato 1', placeholder: 'Valore', section: 'pratica' },
+  { key: 'custom_2', label: 'Campo personalizzato 2', placeholder: 'Valore', section: 'pratica' },
+  { key: 'group', label: 'Gruppo', placeholder: 'Nome gruppo', section: 'pratica' },
+  { key: 'rg_year', label: 'Anno RG', placeholder: 'es. 2026', section: 'procedimento', inputMode: 'numeric' },
+  { key: 'rg', label: 'Numero RG', placeholder: 'Numero o RG completo', section: 'procedimento' },
+  { key: 'section', label: 'Sezione', placeholder: 'Sezione giudiziaria', section: 'procedimento' },
+  { key: 'section_role', label: 'Ruolo di sezione', placeholder: 'Numero di ruolo', section: 'procedimento' },
+  { key: 'judge', label: 'Giudice', placeholder: 'Nome del giudice', section: 'procedimento' },
+  { key: 'notes', label: 'Annotazioni', placeholder: 'Testo nelle annotazioni', section: 'procedimento' },
+  { key: 'clerk', label: 'Cancelliere', placeholder: 'Nome del cancelliere', section: 'procedimento' },
+  { key: 'holder', label: 'Titolare', placeholder: 'Avvocato titolare', section: 'persone' },
+  { key: 'responsible', label: 'Responsabile', placeholder: 'Avvocato responsabile', section: 'persone' },
+  { key: 'opposing_lawyer', label: 'Avvocato controparte', placeholder: 'Nome dell’avvocato', section: 'persone' },
+  { key: 'ctu', label: 'CTU', placeholder: 'Consulente tecnico', section: 'persone' },
+  { key: 'ctp', label: 'CTP', placeholder: 'Consulente di parte', section: 'persone' },
+  { key: 'claimant', label: 'Attore o ricorrente', placeholder: 'Nome della parte', section: 'persone' },
+  { key: 'respondent', label: 'Convenuto o resistente', placeholder: 'Nome della parte', section: 'persone' },
+]
+
+export type FascicoliTableColumnGroup = 'Pratica' | 'Procedimento' | 'Persone' | 'Controlli'
+
+export type FascicoliTableColumnDefinition = {
+  key: FascicoliTableColumnKey
+  label: string
+  group: FascicoliTableColumnGroup
+  width: number
+  required?: boolean
+}
+
+export const fascicoliTableColumns: FascicoliTableColumnDefinition[] = [
+  { key: 'ref', label: 'Riferimento', group: 'Pratica', width: 118, required: true },
+  { key: 'internal_ref', label: 'Rif. cartaceo', group: 'Pratica', width: 130 },
+  { key: 'title', label: 'Titolo / oggetto', group: 'Pratica', width: 300, required: true },
+  { key: 'object', label: 'Oggetto', group: 'Pratica', width: 240 },
+  { key: 'type', label: 'Tipo', group: 'Pratica', width: 105 },
+  { key: 'client', label: 'Cliente', group: 'Persone', width: 170 },
+  { key: 'court', label: 'Ufficio giudiziario', group: 'Procedimento', width: 190 },
+  { key: 'procedure_type', label: 'Procedimento', group: 'Procedimento', width: 160 },
+  { key: 'register', label: 'Registro', group: 'Procedimento', width: 130 },
+  { key: 'section', label: 'Sezione', group: 'Procedimento', width: 130 },
+  { key: 'section_role', label: 'Ruolo di sezione', group: 'Procedimento', width: 135 },
+  { key: 'judge', label: 'Giudice', group: 'Persone', width: 160 },
+  { key: 'opposing_lawyer', label: 'Avvocato controparte', group: 'Persone', width: 180 },
+  { key: 'holder', label: 'Titolare', group: 'Persone', width: 160 },
+  { key: 'responsible', label: 'Responsabile', group: 'Persone', width: 160 },
+  { key: 'counterparty', label: 'Controparte', group: 'Persone', width: 180 },
+  { key: 'claimant', label: 'Attore / ricorrente', group: 'Persone', width: 180 },
+  { key: 'clerk', label: 'Cancelliere', group: 'Persone', width: 150 },
+  { key: 'ctu', label: 'CTU', group: 'Persone', width: 150 },
+  { key: 'ctp', label: 'CTP', group: 'Persone', width: 150 },
+  { key: 'notes', label: 'Annotazioni', group: 'Pratica', width: 260 },
+  { key: 'operational_status', label: 'Stato operativo', group: 'Controlli', width: 150 },
+  { key: 'custom_1', label: 'Campo personalizzato 1', group: 'Pratica', width: 180 },
+  { key: 'custom_2', label: 'Campo personalizzato 2', group: 'Pratica', width: 180 },
+  { key: 'group', label: 'Gruppo', group: 'Pratica', width: 140 },
+  { key: 'case_value', label: 'Valore causa', group: 'Pratica', width: 125 },
+  { key: 'rg', label: 'N. causa', group: 'Procedimento', width: 130 },
+  { key: 'rg_number', label: 'Numero RG', group: 'Procedimento', width: 110 },
+  { key: 'rg_year', label: 'Anno RG', group: 'Procedimento', width: 95 },
+  { key: 'next_deadline', label: 'Prossima scadenza', group: 'Controlli', width: 135 },
+  { key: 'status', label: 'Stato', group: 'Controlli', width: 120 },
+  { key: 'documents', label: 'Documenti', group: 'Controlli', width: 95 },
+  { key: 'unread_communications', label: 'Comunicazioni', group: 'Controlli', width: 120 },
+  { key: 'alerts', label: 'Avvisi', group: 'Controlli', width: 85 },
+  { key: 'opened_at', label: 'Data apertura', group: 'Pratica', width: 120 },
+  { key: 'closed_at', label: 'Data archiviazione', group: 'Pratica', width: 135 },
+  { key: 'updated_at', label: 'Ultimo aggiornamento', group: 'Controlli', width: 155 },
+]
+
+export const defaultFascicoliTableColumns = defaultFascicoliFilterPreferences.visibleColumns
+export const fascicoliTableColumnGroups: FascicoliTableColumnGroup[] = ['Pratica', 'Procedimento', 'Persone', 'Controlli']
+export const fascicoliTableColumnPresets: Array<{ label: string; columns: FascicoliTableColumnKey[] }> = [
+  { label: 'Essenziali', columns: defaultFascicoliTableColumns },
+  { label: 'Procedimento', columns: ['ref', 'title', 'court', 'register', 'section', 'section_role', 'rg', 'judge', 'next_deadline', 'status'] },
+  { label: 'Persone', columns: ['ref', 'title', 'client', 'counterparty', 'claimant', 'opposing_lawyer', 'holder', 'responsible', 'ctu', 'ctp', 'status'] },
+  { label: 'Tutte', columns: fascicoliTableColumns.map((column) => column.key) },
+]

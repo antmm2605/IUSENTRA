@@ -41,8 +41,11 @@ from web.services.mailbox_sync_runtime import run_pec_mailbox_sync
 from web.services.signed_attachment_preview import attachment_mimetype, build_attachment_preview_payload
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
 from werkzeug.utils import secure_filename
+from web.services.email_storage_runtime import create_email_mailbox
+from web.services.email_storage_errors import MAILBOX_STORAGE_ERRORS, register_mailbox_errors
 
 email_client = Blueprint("email_client", __name__, url_prefix="/email")
+register_mailbox_errors(email_client)
 
 
 # ─────────────────────────────────────────────────────────── Helpers
@@ -102,12 +105,11 @@ def _save_compose_attachments() -> list[str]:
 
 def _get_gestore():
     """Ritorna GestioneEmailRicevute con path configurato."""
-    from pct.email_client import GestioneEmailRicevute
     db_path = _cfg_path(
         "EMAIL_CASELLA_DB",
         os.environ.get("PCT_EMAIL_DB", "./email/casella.json"),
     )
-    return GestioneEmailRicevute(db_path=db_path)
+    return create_email_mailbox(db_path=db_path)
 
 
 def _attachment_pdf_viewer_requested() -> bool:
@@ -423,6 +425,8 @@ def allegato(id_email: str, indice_allegato: int):
 
 
 def _redirect_email_next(default_cartella: str):
+    if request.accept_mimetypes.best == "application/json" or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify({"ok": True, "messaggio": "Operazione eseguita.", "cartella": default_cartella})
     return redirect(url_for("email_client.casella", cartella=default_cartella))
 
 
@@ -832,6 +836,8 @@ def _sync_inviati(ge) -> None:
             if m.stato.value in ("INVIATO", "CONSEGNATO", "LETTO")
         ]
         ge.sincronizza_inviati(inviati)
+    except MAILBOX_STORAGE_ERRORS:
+        raise
     except Exception:
         pass
 

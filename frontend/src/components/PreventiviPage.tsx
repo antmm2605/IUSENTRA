@@ -259,12 +259,14 @@ function StatusMessage({
 }
 
 
-function MetricGrid({ data }: { data: PreventiviPageData }) {
+function MetricGrid({ data, metricFilter, onSelect }: { data: PreventiviPageData; metricFilter: string; onSelect: (id: string) => void }) {
   if (!data.metrics.length) return null
   return (
     <section className="iu-prev-kpis" aria-label="Indicatori preventivi e incarichi">
       {data.metrics.map((metric) => (
         <KpiCard
+          onClick={() => onSelect(metric.id)}
+          active={metricFilter === metric.id}
           label={metric.label}
           value={displayValue(metric.value)}
           note={metric.note}
@@ -1013,7 +1015,7 @@ function RecordRow({
   )
 }
 
-function RecordsPanel({ data, onReload }: { data: PreventiviPageData; onReload: (data: PreventiviPageData) => void }) {
+function RecordsPanel({ data, onReload, metricFilter }: { data: PreventiviPageData; onReload: (data: PreventiviPageData) => void; metricFilter: string }) {
   const [query, setQuery] = useState('')
   const [detail, setDetail] = useState<PreventivoDetail | null>(null)
   const [detailStatus, setDetailStatus] = useState<SaveStatus>('idle')
@@ -1023,7 +1025,12 @@ function RecordsPanel({ data, onReload }: { data: PreventiviPageData; onReload: 
   const [autoOpenedId, setAutoOpenedId] = useState('')
   const lowered = query.trim().toLowerCase()
   const requestedPreventivoId = preventivoIdFromLocation()
+  useEffect(() => { setQuery('') }, [metricFilter])
   const filtered = data.records.filter((record) => {
+    if (metricFilter === 'preventivi_totali' && record.kind !== 'preventivo') return false
+    if (metricFilter === 'preventivi_aperti' && (record.kind !== 'preventivo' || !['BOZZA','GENERATO','INVIATO','APERTO'].includes(record.state))) return false
+    if (metricFilter === 'preventivi_accettati' && (record.kind !== 'preventivo' || !['ACCETTATO','CONVERTITO'].includes(record.state))) return false
+    if (metricFilter === 'conferimenti' && record.kind !== 'conferimento') return false
     if (!lowered) return true
     return [record.number, record.subject, record.customerName, record.caseTitle, record.stateLabel]
       .join(' ')
@@ -1145,10 +1152,15 @@ function RecordsPanel({ data, onReload }: { data: PreventiviPageData; onReload: 
 
 
 function ArchiveView({ data, onReload }: { data: PreventiviPageData; onReload: (data: PreventiviPageData) => void }) {
+  const [metricFilter, setMetricFilter] = useState(() => {
+    const value = new URLSearchParams(window.location.search).get('metric') || ''
+    return ['preventivi_totali', 'preventivi_aperti', 'preventivi_accettati', 'conferimenti'].includes(value) ? value : ''
+  })
   return (
     <>
-      <MetricGrid data={data} />
-      <RecordsPanel data={data} onReload={onReload} />
+      <MetricGrid data={data} metricFilter={metricFilter} onSelect={setMetricFilter} />
+      {metricFilter && <div role="status">Filtro: {data.metrics.find(v => v.id === metricFilter)?.label} <button type="button" onClick={() => setMetricFilter('')}>Mostra tutti</button></div>}
+      <RecordsPanel data={data} onReload={onReload} metricFilter={metricFilter} />
     </>
   )
 }

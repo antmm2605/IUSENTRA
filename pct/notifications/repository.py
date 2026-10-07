@@ -171,6 +171,43 @@ class NotificationRepository:
             ).fetchone()
         return NotificationRecord.from_mapping(self._dict_row(row)) if row is not None else None
 
+    @staticmethod
+    def _notification_filter(tenant_id: str, user_id: str, *, state: str = "all", query: str = ""):
+        clauses = ["tenant_id = ?", "user_id = ?", "(expires_at = '' OR expires_at IS NULL OR expires_at > ?)"]
+        params: list[Any] = [str(tenant_id or ""), str(user_id or ""), utc_now_iso()]
+        if state == "unread":
+            clauses.append("(read_at = '' OR read_at IS NULL)")
+        elif state == "read":
+            clauses.append("(read_at <> '' AND read_at IS NOT NULL)")
+        elif state != "all":
+            raise ValueError("Filtro notifiche non valido.")
+        text = str(query or "").strip()[:200]
+        if text:
+            escaped = text.lower().replace("!", "!!").replace("%", "!%").replace("_", "!_")
+            clauses.append("(LOWER(title) LIKE ? ESCAPE '!' OR LOWER(body) LIKE ? ESCAPE '!')")
+            params.extend([f"%{escaped}%", f"%{escaped}%"])
+        return " AND ".join(clauses), params
+
+    def notification_page(self, tenant_id: str, user_id: str, *, page: int = 1, page_size: int = 30, state: str = "all", query: str = "") -> dict[str, Any]:
+        """Conteggi reali e pagina bounded, con lo stesso perimetro SQL per SQLite/PostgreSQL."""
+        safe_size = max(1, min(int(page_size), 100))
+        where, params = self._notification_filter(tenant_id, user_id, state=state, query=query)
+        total_where, total_params = self._notification_filter(tenant_id, user_id)
+        with self._connect() as conn:
+            summary = self._dict_row(conn.execute(
+                f"SELECT COUNT(*) AS total, SUM(CASE WHEN read_at='' OR read_at IS NULL THEN 1 ELSE 0 END) AS unread FROM notifications WHERE {total_where}",
+                tuple(total_params),
+            ).fetchone())
+            filtered = self._dict_row(conn.execute(f"SELECT COUNT(*) AS total FROM notifications WHERE {where}", tuple(params)).fetchone())
+            count = int(filtered.get("total") or 0)
+            pages = max(1, (count + safe_size - 1) // safe_size)
+            safe_page = max(1, min(int(page), pages))
+            rows = conn.execute(
+                f"SELECT * FROM notifications WHERE {where} ORDER BY CASE priority WHEN 'urgent' THEN 0 WHEN 'important' THEN 1 ELSE 2 END, created_at DESC, id LIMIT ? OFFSET ?",
+                (*params, safe_size, (safe_page - 1) * safe_size),
+            ).fetchall()
+        return {"records": [NotificationRecord.from_mapping(self._dict_row(row)) for row in rows], "totalCount": int(summary.get("total") or 0), "unreadCount": int(summary.get("unread") or 0), "filteredCount": count, "page": safe_page, "pageSize": safe_size, "pageCount": pages}
+
     def list_notifications(self, tenant_id: str, user_id: str, *, limit: int = 50) -> list[NotificationRecord]:
         safe_limit = max(1, min(int(limit or 50), 200))
         now = utc_now_iso()

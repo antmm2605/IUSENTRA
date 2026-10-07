@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import type { FormEvent, ReactNode } from 'react'
 import { ArrowLeft, Bot, CalendarDays, CheckCircle2, ExternalLink, FileText, Globe2, ImagePlus, Link2, Mail, PenLine, RefreshCw, Save, XCircle } from 'lucide-react'
 import {
@@ -22,11 +23,11 @@ import { buttonTone } from '../studioData'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
-import { KpiCard } from '../ui/KpiCard'
 import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
 import { displaySourceLabel, displayWritesLabel } from '../displayText'
+import { formatDateTimeIt } from '../formatting'
 import './SitoStudioPage.css'
 
 function routeKey(): string {
@@ -39,10 +40,13 @@ function formatValue(value: string | number): string {
 }
 
 function formatDate(value: string): string {
-  if (!value) return 'Data non indicata'
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return value.replace('T', ' ').slice(0, 16)
-  return new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', dateStyle: 'short', timeStyle: 'short' }).format(parsed)
+  return formatDateTimeIt(value, 'Data non indicata')
+}
+
+function contentHref(item: SitoStudioPageData['pages'][number]): string {
+  if (item.kind === 'page') return `/sito-studio/builder?page_id=${encodeURIComponent(item.id)}`
+  const collection = { article: 'articoli', service: 'servizi', professional: 'professionisti', office: 'sedi' }[item.kind as 'article' | 'service' | 'professional' | 'office']
+  return `/sito-studio/${collection}/${encodeURIComponent(item.id)}/modifica`
 }
 
 function bodyTextToBlocks(value: string): string {
@@ -95,7 +99,11 @@ function WarningList({ warnings }: { warnings: SitoStudioPageData['warnings'] })
 }
 
 function DashboardContent({ data }: { data: SitoStudioPageData }) {
-  const content = data.pages.filter((item) => ['page', 'article', 'service'].includes(item.kind))
+  const [filter, setFilter] = useState('')
+  const [query, setQuery] = useState('')
+  const kindByMetric: Record<string, string> = { pages: 'page', articles: 'article', services: 'service' }
+  const needle = query.trim().toLocaleLowerCase('it-IT')
+  const content = data.pages.filter(item => ['page', 'article', 'service'].includes(item.kind) && (!filter || item.kind === kindByMetric[filter]) && `${item.title} ${item.subtitle}`.toLocaleLowerCase('it-IT').includes(needle))
   const studio = data.pages.filter((item) => ['professional', 'office'].includes(item.kind))
   const publicAction = data.actions.find((action) => action.id === 'public' && data.preview.safe)
 
@@ -107,16 +115,14 @@ function DashboardContent({ data }: { data: SitoStudioPageData }) {
       </section>
       <WarningList warnings={data.warnings} />
       <section className="iu-sito-kpis" aria-label="Indicatori Sito Studio">
-        {data.metrics.map((metric) => (
-          <KpiCard
-            label={metric.label}
-            value={formatValue(metric.value)}
-            note={metric.note}
-            badge={<Badge tone={metric.tone}>{metric.value ? 'attivo' : 'vuoto'}</Badge>}
-            key={metric.id}
-          />
-        ))}
+        {data.metrics.map(metric => {
+          const content = <><span>{metric.label}</span><strong>{formatValue(metric.value)}</strong><small>{metric.note}</small><em>{metric.id === 'contacts' || metric.id === 'bookings' ? 'Apri richieste →' : 'Filtra contenuti →'}</em></>
+          return metric.id === 'contacts' || metric.id === 'bookings'
+            ? <ButtonLink className="iu-sito-metric" tone="neutral" key={metric.id} aria-label={metric.id === 'contacts' ? 'Contatti ricevuti dal sito' : 'Prenotazioni in attesa'} href={`/sito-studio/contatti?vista=${metric.id === 'contacts' ? 'contatti' : 'prenotazioni'}${metric.id === 'bookings' ? '&stato=pending' : ''}`}>{content}</ButtonLink>
+            : <Button className="iu-sito-metric" tone="neutral" type="button" key={metric.id} aria-pressed={filter === metric.id} onClick={() => setFilter(current => current === metric.id ? '' : metric.id)}>{content}</Button>
+        })}
       </section>
+      <section className="iu-sito-content-filters" aria-label="Filtri contenuti sito"><label>Cerca contenuti<input className="iu-sito-input" type="search" value={query} onChange={event => setQuery(event.currentTarget.value)} placeholder="Titolo o descrizione…"/></label><Button type="button" tone="neutral" disabled={!filter && !query} onClick={() => {setFilter(''); setQuery('')}}>Azzera filtri</Button><span role="status">{content.length} {content.length === 1 ? 'contenuto' : 'contenuti'}</span></section>
       <Panel title="Stato pubblicazione" subtitle={data.site.publicSlug || 'Slug pubblico non indicato'}>
         <div className="iu-sito-status">
           <div>
@@ -128,7 +134,7 @@ function DashboardContent({ data }: { data: SitoStudioPageData }) {
             <Badge tone={data.site.published ? 'success' : 'warning'}>{data.site.published ? 'pubblicato' : 'bozza'}</Badge>
           </div>
           <div>
-            <span>Operativita</span>
+            <span>Operatività</span>
             <Badge tone={data.site.active ? 'success' : 'warning'}>{data.site.active ? 'attivo' : 'disattivo'}</Badge>
           </div>
           <div>
@@ -147,42 +153,44 @@ function DashboardContent({ data }: { data: SitoStudioPageData }) {
       </Panel>
       <Panel
         title="Contenuti pubblici sicuri"
-        subtitle={`${content.length} contenuti letti dall'archivio`}
+        subtitle={`${content.length} ${content.length === 1 ? "contenuto letto dall'archivio" : "contenuti letti dall'archivio"}`}
         actions={publicAction ? <ButtonLink href={publicAction.href} tone="success" target="_blank" rel="noopener">Anteprima pubblica</ButtonLink> : null}
       >
         {content.length ? (
           <div className="iu-sito-records">
             {content.map((item) => (
-              <article className="iu-sito-record" key={`${item.kind}-${item.id}`}>
+              <ButtonLink className="iu-sito-record" tone="neutral" href={contentHref(item)} aria-label={`Apri ${item.title}`} key={`${item.kind}-${item.id}`}>
                 <header className="iu-sito-record__head">
                   <div>
-                    <span>{item.kind}</span>
+                    <span>{{ page: 'Pagina', article: 'Articolo', service: 'Servizio' }[item.kind as 'page' | 'article' | 'service'] || item.kind}</span>
                     <h3>{item.title}</h3>
                     {item.subtitle ? <p>{item.subtitle}</p> : null}
                   </div>
-                  <Badge tone={item.statusTone}>{item.status || 'stato non indicato'}</Badge>
+                  <Badge tone={item.statusTone}>{{ published: 'Pubblicato', draft: 'Bozza', visible: 'Visibile', hidden: 'Nascosto' }[item.status as 'published' | 'draft' | 'visible' | 'hidden'] || 'Stato non indicato'}</Badge>
                 </header>
-              </article>
+                <span className="iu-sito-record__action">Apri nel contesto →</span>
+              </ButtonLink>
             ))}
           </div>
         ) : (
-          <EmptyState title="Nessun contenuto pubblico configurato" />
+          <EmptyState title={filter || query ? 'Nessun contenuto corrisponde ai filtri' : 'Nessun contenuto pubblico configurato'} />
         )}
       </Panel>
       <Panel title="Studio e sedi" subtitle={`${studio.length} elementi pubblici`}>
         {studio.length ? (
           <div className="iu-sito-records">
             {studio.map((item) => (
-              <article className="iu-sito-record" key={`${item.kind}-${item.id}`}>
+              <ButtonLink className="iu-sito-record" tone="neutral" href={contentHref(item)} aria-label={`Apri ${item.title}`} key={`${item.kind}-${item.id}`}>
                 <header className="iu-sito-record__head">
                   <div>
-                    <span>{item.kind}</span>
+                    <span>{item.kind === 'professional' ? 'Professionista' : 'Sede'}</span>
                     <h3>{item.title}</h3>
                     {item.subtitle ? <p>{item.subtitle}</p> : null}
                   </div>
-                  <Badge tone={item.statusTone}>{item.status || 'stato non indicato'}</Badge>
+                  <Badge tone={item.statusTone}>{item.status === 'visible' || item.status === 'published' ? 'Visibile' : item.status === 'hidden' || item.status === 'draft' ? 'Non pubblicato' : item.status === 'active' ? 'Attivo' : 'Stato non indicato'}</Badge>
                 </header>
-              </article>
+                <span className="iu-sito-record__action">Apri nel contesto →</span>
+              </ButtonLink>
             ))}
           </div>
         ) : (
@@ -232,7 +240,7 @@ function ContactCard({
   onCreateLead: (id: string) => void
   onLinkClient: (id: string) => void
 }) {
-  const disabledReason = contact.leadClienteId ? 'Cliente gia collegato' : 'Azione non supportata per questo profilo'
+  const disabledReason = contact.leadClienteId ? 'Cliente già collegato' : 'Azione non supportata per questo profilo'
   return (
     <article className="iu-sito-contact">
       <header className="iu-sito-contact__head">
@@ -341,7 +349,7 @@ function BookingCard({
         </div>
         <div>
           <dt>Richiesta</dt>
-          <dd>{booking.requestedAt || 'non indicata'}</dd>
+          <dd>{formatDate(booking.requestedAt)}</dd>
         </div>
         <div>
           <dt>Sede</dt>
@@ -373,8 +381,10 @@ function BookingCard({
   )
 }
 
-function ContactsContent({ data, reload }: { data: SitoStudioContattiPageData; reload: () => void }) {
+function ContactsContent({ data }: { data: SitoStudioContattiPageData }) {
   const [query, setQuery] = useState('')
+  const [view, setView] = useState(() => new URLSearchParams(window.location.search).get('vista') === 'prenotazioni' ? 'prenotazioni' : 'contatti')
+  const [statusFilter, setStatusFilter] = useState(() => new URLSearchParams(window.location.search).get('stato') || '')
   const [selectedClients, setSelectedClients] = useState<Record<string, string>>({})
   const [savingId, setSavingId] = useState('')
   const [success, setSuccess] = useState('')
@@ -382,11 +392,14 @@ function ContactsContent({ data, reload }: { data: SitoStudioContattiPageData; r
   const [validation, setValidation] = useState<Record<string, string>>({})
   const visibleContacts = useMemo(() => {
     const needle = query.trim().toLowerCase()
-    if (!needle) return data.contacts
     return data.contacts.filter((contact) => (
-      `${contact.fullName} ${contact.email} ${contact.phone} ${contact.subject} ${contact.statusLabel}`.toLowerCase().includes(needle)
+      (!statusFilter || contact.status === statusFilter) && `${contact.fullName} ${contact.email} ${contact.phone} ${contact.subject} ${contact.statusLabel}`.toLowerCase().includes(needle)
     ))
-  }, [data.contacts, query])
+  }, [data.contacts, query, statusFilter])
+  const visibleBookings = data.bookings.filter(booking => (!statusFilter || booking.status === statusFilter) && `${booking.customerName} ${booking.email} ${booking.phone} ${booking.subject} ${booking.officeName} ${booking.statusLabel}`.toLocaleLowerCase('it-IT').includes(query.trim().toLocaleLowerCase('it-IT')))
+  const statuses = view === 'prenotazioni'
+    ? [{value:'pending',label:'In attesa'}, {value:'approved',label:'Approvate'}, {value:'rejected',label:'Rifiutate'}]
+    : Array.from(new Map(data.contacts.map(contact => [contact.status, {value:contact.status,label:contact.statusLabel}])).values())
   const entrypointActions = [
     {
       id: 'contatto',
@@ -424,7 +437,6 @@ function ContactsContent({ data, reload }: { data: SitoStudioContattiPageData; r
     setSavingId('')
     if (result.ok) {
       setSuccess(result.message)
-      reload()
       return
     }
     setError(result.message)
@@ -445,7 +457,6 @@ function ContactsContent({ data, reload }: { data: SitoStudioContattiPageData; r
     setSavingId('')
     if (result.ok) {
       setSuccess(result.message)
-      reload()
       return
     }
     setError(result.message)
@@ -465,7 +476,6 @@ function ContactsContent({ data, reload }: { data: SitoStudioContattiPageData; r
     setSavingId('')
     if (result.ok) {
       setSuccess(result.message)
-      reload()
       return
     }
     setError(result.message)
@@ -500,15 +510,21 @@ function ContactsContent({ data, reload }: { data: SitoStudioContattiPageData; r
           {Object.entries(validation).map(([key, message]) => <span key={key}>{message}</span>)}
         </div>
       ) : null}
-      <Panel title="Ricerca contatti" subtitle={`${visibleContacts.length} richieste visibili`}>
-        <input
+      <section className="iu-sito-kpis iu-sito-kpis--requests" aria-label="Categorie richieste">
+        <Button className="iu-sito-metric" tone="neutral" type="button" aria-pressed={view === 'contatti'} onClick={() => {setView('contatti'); setStatusFilter('')}}><span>Contatti ricevuti</span><strong>{formatValue(data.contacts.length)}</strong><em>Filtra contatti →</em></Button>
+        <Button className="iu-sito-metric" tone="neutral" type="button" aria-pressed={view === 'prenotazioni' && !statusFilter} onClick={() => {setView('prenotazioni'); setStatusFilter('')}}><span>Prenotazioni</span><strong>{formatValue(data.bookings.length)}</strong><em>Filtra prenotazioni →</em></Button>
+        <Button className="iu-sito-metric" tone="neutral" type="button" aria-pressed={view === 'prenotazioni' && statusFilter === 'pending'} onClick={() => {setView('prenotazioni'); setStatusFilter('pending')}}><span>Prenotazioni da valutare</span><strong>{formatValue(data.bookings.filter(item => item.status === 'pending').length)}</strong><em>Apri richieste in attesa →</em></Button>
+      </section>
+      <Panel title="Ricerca richieste" subtitle={`${view === 'contatti' ? visibleContacts.length : visibleBookings.length} richieste visibili`}>
+        <div className="iu-sito-content-filters"><label>Cerca richieste<input
           className="iu-sito-input"
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Cerca per nominativo, email, telefono, oggetto o stato"
-        />
+        /></label><label>Stato<select className="iu-sito-input" value={statusFilter} onChange={event => setStatusFilter(event.currentTarget.value)}><option value="">Tutti gli stati</option>{statuses.map(status => <option key={status.value} value={status.value}>{status.label}</option>)}</select></label><Button type="button" tone="neutral" disabled={!query && !statusFilter} onClick={() => {setQuery(''); setStatusFilter('')}}>Azzera filtri</Button></div>
       </Panel>
+      {view === 'contatti' ? (
       <Panel title="Richieste contatto" subtitle={`${data.contacts.length} richieste reali`}>
         {visibleContacts.length ? (
           <div className="iu-sito-records">
@@ -528,16 +544,17 @@ function ContactsContent({ data, reload }: { data: SitoStudioContattiPageData; r
           </div>
         ) : (
           <EmptyState
-            title="Nessuna richiesta contatto ricevuta"
+            title={query || statusFilter ? 'Nessun contatto corrisponde ai filtri' : 'Nessuna richiesta contatto ricevuta'}
             message="Quando un visitatore invia il modulo pubblico, la richiesta compare qui con le azioni di collegamento cliente."
             action={data.entrypoints.publicContact ? <ButtonLink href={data.entrypoints.publicContact} tone="primary" target="_blank" rel="noopener">Apri modulo contatti</ButtonLink> : undefined}
           />
         )}
       </Panel>
-      <Panel title="Prenotazioni" subtitle={`${data.bookings.length} richieste reali`}>
-        {data.bookings.length ? (
+      ) : (
+      <Panel title={statusFilter === 'pending' ? 'Prenotazioni da valutare' : 'Prenotazioni'} subtitle={`${visibleBookings.length} di ${data.bookings.length} richieste reali`}>
+        {visibleBookings.length ? (
           <div className="iu-sito-records">
-            {data.bookings.map((booking) => (
+            {visibleBookings.map((booking) => (
               <BookingCard
                 booking={booking}
                 canUpdate={data.actions.canUpdateBookingStatus}
@@ -549,12 +566,13 @@ function ContactsContent({ data, reload }: { data: SitoStudioContattiPageData; r
           </div>
         ) : (
           <EmptyState
-            title="Nessuna prenotazione ricevuta"
+            title={query || statusFilter ? 'Nessuna prenotazione corrisponde ai filtri' : 'Nessuna prenotazione ricevuta'}
             message="Quando un visitatore richiede un appuntamento, puoi approvarlo o rifiutarlo da questa scheda."
             action={data.entrypoints.publicBooking ? <ButtonLink href={data.entrypoints.publicBooking} tone="success" target="_blank" rel="noopener">Apri prenotazione</ButtonLink> : undefined}
           />
         )}
       </Panel>
+      )}
       {data.actions.rollback ? (
         <Panel title="Percorso di recupero" subtitle={data.actions.unsupportedReason || 'Percorso disponibile solo per assistenza controllata'}>
           <div className="iu-sito-actions">
@@ -594,6 +612,7 @@ function ArticleEditContent({ data, reload }: { data: SitoArticleEditPageData; r
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
+
   const [validation, setValidation] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -826,10 +845,10 @@ function ContractPanel({ data }: { data: SitoStudioPageData | SitoStudioContatti
     <Panel title="Stato dati" subtitle="Dati e azioni disponibili per questa pagina.">
       <div className="iu-sito-contract">
         <span>Origine: {displaySourceLabel(data.source)}</span>
-        <span>Generato: {data.generated_at || 'non disponibile'}</span>
+        <span>Generato: {formatDateTimeIt(data.generated_at, 'Non disponibile')}</span>
         <span>Azioni: {displayWritesLabel(data.contracts.writes)}</span>
-        <span>Operativo: {data.contracts.operational ? 'si' : 'no'}</span>
-        <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'si'}</span>
+        <span>Operativo: {data.contracts.operational ? 'sì' : 'no'}</span>
+        <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'sì'}</span>
       </div>
     </Panel>
   )
@@ -848,6 +867,11 @@ export function SitoStudioPage() {
   const [reloadCounter, setReloadCounter] = useState(0)
   const [error, setError] = useState('')
 
+  useOperationalRefresh(['sito'], () => {
+    // Un editor aperto conserva la bozza: il proprio salvataggio ricarica il dato.
+    if (!articleRoute) setReloadCounter(value => value + 1)
+  })
+
   useEffect(() => {
     let active = true
     setLoading(true)
@@ -862,18 +886,18 @@ export function SitoStudioPage() {
         if (!active) return
         if (articleRoute) {
           const articlePayload = payload as SitoArticleEditPageData
-          setArticleData(articlePayload)
+          if (articlePayload.ok || articlePayload.notFound) setArticleData(articlePayload)
           setError(articlePayload.ok || articlePayload.notFound ? '' : articlePayload.warnings[0]?.message || 'Articolo Sito Studio non disponibile.')
           return
         }
         if (contactsRoute) {
           const contactsPayload = payload as SitoStudioContattiPageData
-          setContactsData(contactsPayload)
+          if (contactsPayload.ok) setContactsData(contactsPayload)
           setError(contactsPayload.ok ? '' : contactsPayload.warnings[0]?.message || 'Contatti Sito Studio non disponibili.')
           return
         }
         const dashboardPayload = payload as SitoStudioPageData
-        setDashboardData(dashboardPayload)
+        if (dashboardPayload.ok) setDashboardData(dashboardPayload)
         setError(dashboardPayload.ok ? '' : dashboardPayload.warnings[0]?.message || 'Sito Studio non disponibile.')
       })
       .catch(() => {
@@ -906,15 +930,17 @@ export function SitoStudioPage() {
             {articleRoute || contactsRoute ? <Globe2 size={16} /> : <Mail size={16} />}
             {articleRoute || contactsRoute ? 'Cruscotto sito' : 'Contatti sito'}
           </ButtonLink>
-          <Button tone="neutral" onClick={() => setReloadCounter((value) => value + 1)}>
+          <Button tone="neutral" disabled={loading} onClick={() => setReloadCounter((value) => value + 1)}>
             <RefreshCw size={16} />
             Aggiorna
           </Button>
         </>
       }
     >
-      {loading ? <LoadingState title="Caricamento Sito Studio" message="Lettura dei dati reali del sito in corso." /> : null}
-      {!loading && error ? (
+      {loading && !hasData ? <LoadingState title="Caricamento Sito Studio" message="Lettura dei dati reali del sito in corso." /> : null}
+      {loading && hasData ? <p role="status">Aggiornamento dei dati in corso…</p> : null}
+      {!loading && error && hasData ? <div className="iu-sito-flash iu-sito-flash--danger" role="alert">Aggiornamento non riuscito: {error} Sono ancora mostrati i dati dell’ultima lettura riuscita. Usa “Aggiorna” per riprovare.</div> : null}
+      {!loading && error && !hasData ? (
         <EmptyState
           title={articleRoute ? 'Articolo non disponibile' : contactsRoute ? 'Contatti non disponibili' : 'Sito Studio non disponibile'}
           message={error}
@@ -928,14 +954,14 @@ export function SitoStudioPage() {
           action={<ButtonLink href="/sito-studio/contatti" tone="primary">Contatti sito</ButtonLink>}
         />
       ) : null}
-      {!loading && !error && hasData ? (
+      {hasData ? (
         articleRoute
           ? <ArticleEditContent data={articleData} reload={() => setReloadCounter((value) => value + 1)} />
           : contactsRoute
-          ? <ContactsContent data={contactsData} reload={() => setReloadCounter((value) => value + 1)} />
+          ? <ContactsContent data={contactsData} />
           : <DashboardContent data={dashboardData} />
       ) : null}
-      {!loading && !error && hasData ? <ContractPanel data={articleRoute ? articleData : contactsRoute ? contactsData : dashboardData} /> : null}
+      {hasData ? <ContractPanel data={articleRoute ? articleData : contactsRoute ? contactsData : dashboardData} /> : null}
     </Page>
   )
 }

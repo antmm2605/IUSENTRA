@@ -35,7 +35,20 @@
     "frontend/src/components/EconomicVerificationPanel.css": "Confronto degli importi e delle fonti nella stessa pagina del fascicolo, richiesto dall’utente; token condivisi e layout responsive.",
     "frontend/src/components/VerificaNotifichePanel.css": "Verifica del contesto dell’atto e dei termini nel presidio senza perdere la pagina; token condivisi.",
     "frontend/src/components/ViewerDocumentEditor.css": "Pannelli richiudibili, oggetti e firma nel lettore unico richiesti dall’utente; superficie documentale dedicata.",
-    "frontend/src/components/layout/DiscordanzeAccesso.css": "Avviso delle discordanze all’accesso con confronto delle fonti, focus visibile e layout mobile richiesto dall’utente."
+    "frontend/src/components/layout/DiscordanzeAccesso.css": "Avviso delle discordanze all’accesso con confronto delle fonti, focus visibile e layout mobile richiesto dall’utente.",
+    "frontend/src/components/TelematicoCardsPanel.css": "Riepilogo operativo delle card telematiche richiesto: filtri, selezione, consultazione SQL ed esportazione nella finestra condivisa spostabile e ridimensionabile. Token IUSENTRA e controlli compatti, nessun tema alternativo o stile inline.",
+    "frontend/src/components/AgendaResearch.css": "Ricerca e filtri compatti dell’agenda richiesti dall’utente, con token condivisi.",
+    "frontend/src/components/CompensiCatalogWindow.css": "Cataloghi operativi dei compensi nel contesto della pagina, con token condivisi.",
+    "frontend/src/components/ControlloStudioContext.css": "Pannelli contestuali del Controllo Studio senza abbandonare la pagina.",
+    "frontend/src/components/ManagedWindows.css": "Finestre spostabili, ridimensionabili, minimizzabili e affiancabili richieste dall’utente.",
+    "frontend/src/components/OperationalCards.css": "Card compatte e operative per preservare spazio al contenuto della pagina.",
+    "frontend/src/components/SoggettoContextDetails.css": "Consultazione contestuale dei soggetti con comandi e token condivisi.",
+    "frontend/src/components/SourceAlternatives.css": "Confronto esplicito delle fonti quando l’origine non è univoca.",
+    "frontend/src/components/iusentra/OperationalMetric.css": "Indicatori utilizzabili come filtri e accesso ai cataloghi nel loro contesto.",
+    "frontend/src/components/layout/QuickDeadlineList.css": "Selezione e presa visione delle scadenze rapide nella finestra condivisa.",
+    "frontend/src/components/layout/TopBarMobileMenu.css": "Comandi della topbar accessibili su schermi piccoli senza overflow.",
+    "frontend/src/components/layout/TopBarNotifications.css": "Notifiche operative selezionabili con presa visione e stato esplicito.",
+    "frontend/src/components/strumenti/DocumentChecksTool.css": "Verifiche documentali negli strumenti forensi con token condivisi."
   },
   "approvedCssFiles": [
     "frontend/src/components/ControlloStudioPage.css",
@@ -154,7 +167,20 @@
     "frontend/src/components/EconomicVerificationPanel.css",
     "frontend/src/components/VerificaNotifichePanel.css",
     "frontend/src/components/ViewerDocumentEditor.css",
-    "frontend/src/components/layout/DiscordanzeAccesso.css"
+    "frontend/src/components/layout/DiscordanzeAccesso.css",
+    "frontend/src/components/TelematicoCardsPanel.css",
+    "frontend/src/components/AgendaResearch.css",
+    "frontend/src/components/CompensiCatalogWindow.css",
+    "frontend/src/components/ControlloStudioContext.css",
+    "frontend/src/components/ManagedWindows.css",
+    "frontend/src/components/OperationalCards.css",
+    "frontend/src/components/SoggettoContextDetails.css",
+    "frontend/src/components/SourceAlternatives.css",
+    "frontend/src/components/iusentra/OperationalMetric.css",
+    "frontend/src/components/layout/QuickDeadlineList.css",
+    "frontend/src/components/layout/TopBarMobileMenu.css",
+    "frontend/src/components/layout/TopBarNotifications.css",
+    "frontend/src/components/strumenti/DocumentChecksTool.css"
   ],
   "allowedInlineStyles": [
     {
@@ -269,6 +295,28 @@
         "style={{background:value}}"
       ],
       "reason": "Campione del colore della penna selezionata per la firma manoscritta."
+    },
+    {
+      "file": "frontend/src/components/ContextWorkWindows.tsx",
+      "snippets": [
+        "style={{ display: 'contents' }}"
+      ],
+      "reason": "Wrapper senza ingombro per conservare la finestra documentale nel gestore contestuale richiesto."
+    },
+    {
+      "file": "frontend/src/components/WindowResizeHandles.tsx",
+      "snippets": [
+        "style={{ ...bounds, position: 'fixed', zIndex: zIndex + 1 }}"
+      ],
+      "reason": "Dimensioni e sovrapposizione dei bordi di ridimensionamento calcolate dalla finestra realmente selezionata; colori e aspetto nel CSS condiviso."
+    },
+    {
+      "file": "frontend/src/components/OperationalModal.tsx",
+      "snippets": [
+        "style={{ zIndex: managed.zIndex }}",
+        "style={{ maxWidth: Math.max(0, document.documentElement.clientWidth - 12)"
+      ],
+      "reason": "Geometria e ordine delle finestre calcolati dal gestore condiviso in risposta a spostamento, ridimensionamento, affiancamento e schermo intero richiesti dall’utente; grafica nel CSS condiviso."
     }
   ],
   "allowedBackdropFilters": [

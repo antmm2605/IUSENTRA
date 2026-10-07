@@ -1,0 +1,7 @@
+.iu-source-alternatives{max-width:100%;margin:6px 0;font-size:12px;color:var(--iu-text,#1e293b)}
+.iu-source-alternatives summary{cursor:pointer;font-weight:700;padding:6px 0;color:#1e40af}
+.iu-source-alternatives summary:focus-visible,.iu-source-alternatives button:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+.iu-source-alternatives p{margin:4px 0 8px;line-height:1.5;color:#475569}
+.iu-source-alternatives ul{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.iu-source-alternatives button{width:100%;text-align:left;padding:8px 10px;border:1px solid var(--iu-border,#cbd5e1);border-radius:8px;background:#f8fafc;color:#1e40af;font:inherit;font-weight:600;overflow-wrap:anywhere;cursor:pointer}
+.iu-source-alternatives button:hover{background:#e8f0fb;color:#102e58}

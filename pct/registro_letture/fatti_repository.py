@@ -292,7 +292,7 @@ class FattiMixin:
             allineati += 1
         return allineati
 
-    def riconvalida_fatti(self, tenant_id: str, fascicolo_id: str, *, esclusioni_oggetto: dict[str, str] | None = None) -> list[Fatto]:
+    def riconvalida_fatti(self, tenant_id: str, fascicolo_id: str, *, esclusioni_oggetto: dict[str, str] | None = None, fatti_ids: Iterable[str] | None = None, impronte_attese: dict[str, str] | None = None) -> list[Fatto]:
         """Respinge i fatti che le regole correnti non estrarrebbero più.
 
         Un fatto registrato prima che una regola si stringesse resta
@@ -306,8 +306,16 @@ class FattiMixin:
         tenant = _testo(tenant_id)
         respinti: list[Fatto] = []
         adesso = self._adesso()  # type: ignore[attr-defined]
-        for fatto in self.fatti(tenant, fascicolo_id, verifiche=("plausibile", "verificata")):
-            if fatto.categoria != "data" or any(p.get("codice") == "decisione_avvocato" for p in fatto.prove):
+        selected = {_testo(identifier) for identifier in fatti_ids} if fatti_ids is not None else None
+        for raw in self._seleziona_fatti("tenant_id = ? AND fascicolo_id = ?", (tenant, fascicolo_id)):
+            if raw.get("verifica") not in {"plausibile", "verificata"} or (selected is not None and raw.get("id") not in selected):
+                continue
+            if raw.get("risolta_da") or raw.get("risolta_il"):
+                continue
+            fatto = self._fatto(raw)
+            if impronte_attese is not None and impronte_attese.get(fatto.id) != fatto.sha256:
+                raise RuntimeError("L’impronta della lettura è cambiata. Ricarica i dati prima di riprovare.")
+            if fatto.categoria != "data" or any(isinstance(p, dict) and p.get("codice") == "decisione_avvocato" for p in fatto.prove):
                 continue
             letto = _testo(fatto.valore_letto)
             riferimento = e_riferimento_normativo(letto, 0, len(letto)) if letto else ""
@@ -323,11 +331,32 @@ class FattiMixin:
                 "esito": "respinta",
                 "dettaglio": motivo,
             }]
+            # Compare-and-swap sull'intera riga: una decisione dell'avvocato o
+            # una nuova lettura concorrente non può essere sovrascritta.
+            conditions = ' AND '.join(f'("{column}" = ? OR ("{column}" IS NULL AND ? IS NULL))' for column in COLONNE_FATTI)
+            expected = tuple(value for column in COLONNE_FATTI for value in (raw.get(column), raw.get(column)))
             with self.connection() as conn:  # type: ignore[attr-defined]
-                conn.execute(
-                    'UPDATE "letture_fatti" SET "verifica" = ?, "prove_json" = ?, "aggiornato_il" = ? WHERE "tenant_id" = ? AND "id" = ?',
-                    ("respinta", json.dumps(prove, ensure_ascii=False, sort_keys=True), adesso, tenant, fatto.id),
+                source_condition = ""
+                source_expected: tuple[Any, ...] = ()
+                if impronte_attese is not None:
+                    from .modello import impronta_oggetto
+                    source = conn.execute(
+                        'SELECT * FROM "letture_oggetti" WHERE "tenant_id" = ? AND "fascicolo_id" = ? AND "tipo" = ? AND "oggetto_id" = ?',
+                        (tenant, fascicolo_id, fatto.tipo, fatto.oggetto_id),
+                    ).fetchone()
+                    if source is None or not source["presente"] or impronta_oggetto(dict(source)) != fatto.sha256:
+                        raise RuntimeError("La fonte è cambiata o non è più presente. Ricarica i dati prima di riprovare.")
+                    source_columns = ("tenant_id", "fascicolo_id", "tipo", "oggetto_id", "sha256", "sha256_archivio", "dimensione", "presente")
+                    source_condition = ' AND EXISTS (SELECT 1 FROM "letture_oggetti" WHERE ' + ' AND '.join(
+                        f'("{column}" = ? OR ("{column}" IS NULL AND ? IS NULL))' for column in source_columns
+                    ) + ')'
+                    source_expected = tuple(value for column in source_columns for value in (source[column], source[column]))
+                cursor = conn.execute(
+                    f'UPDATE "letture_fatti" SET "verifica" = ?, "prove_json" = ?, "aggiornato_il" = ? WHERE {conditions}{source_condition} RETURNING "id"',
+                    ("respinta", json.dumps(prove, ensure_ascii=False, sort_keys=True), adesso, *expected, *source_expected),
                 )
+                if cursor.fetchone() is None:
+                    raise RuntimeError("La lettura è cambiata durante la riconvalida. Ricarica i dati prima di riprovare.")
             fatto.verifica, fatto.prove = "respinta", prove
             respinti.append(fatto)
         return respinti

@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useOperationalRefresh } from './useOperationalRefresh'
+import { formatDateIt } from '../formatting'
 import { fetchTodaySummary } from '../services/topbarApi'
 import type { TopbarTodayPayload } from '../types/topbar'
 
@@ -6,20 +8,25 @@ export function useTodaySummary(open: boolean) {
   const [data, setData] = useState<TopbarTodayPayload | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const generation = useRef(0)
 
   const load = useCallback(() => {
+    const ticket = ++generation.current
     setLoading(true)
     setError('')
-    const today = new Date().toISOString().slice(0, 10)
+    const today = formatDateIt(new Date()).split('/').reverse().join('-')
     fetchTodaySummary(today)
-      .then(setData)
-      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Riepilogo non disponibile.'))
-      .finally(() => setLoading(false))
+      .then(result => { if (ticket === generation.current) setData(result) })
+      .catch((reason: unknown) => { if (ticket === generation.current) setError(reason instanceof Error ? reason.message : 'Riepilogo non disponibile.') })
+      .finally(() => { if (ticket === generation.current) setLoading(false) })
   }, [])
 
   useEffect(() => {
-    if (open && data === null && !loading && !error) load()
-  }, [data, error, load, loading, open])
+    if (open) load()
+    return () => { ++generation.current }
+  }, [load, open])
+
+  useOperationalRefresh(['agenda', 'scadenze', 'comunicazioni', 'timesheet', 'fascicoli'], () => { if (open) load() })
 
   return { data, loading, error, reload: load }
 }

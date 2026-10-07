@@ -241,12 +241,13 @@ export function formatClienteStatus(value: ClienteRow['status']): string {
   return statusLabels[value] || 'Attivo'
 }
 
-export async function getClientiPage(): Promise<ClientiPageData> {
+export async function getClientiPage(strict = false): Promise<ClientiPageData> {
   try {
     const response = await fetch('/api/v1/ui/clienti', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
-    if (!response.ok) return emptyClientiPage
+    if (!response.ok) { if (strict) throw new Error('Dati anagrafici non disponibili. Riprova l’aggiornamento.'); return emptyClientiPage }
     return normalisePayload(await response.json())
-  } catch {
+  } catch (error) {
+    if (strict) throw error
     return emptyClientiPage
   }
 }

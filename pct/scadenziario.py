@@ -1078,6 +1078,8 @@ class GestioneScadenziario:
 
     def completa(self, id_sc: str, note: str = "") -> Scadenza:
         scadenza = self._get_or_raise(id_sc)
+        if scadenza.stato == StatoTermine.ANNULLATO:
+            raise ValueError("Una scadenza annullata resta nello storico e non può essere completata.")
         scadenza.stato = StatoTermine.COMPLETATO
         scadenza.completata_il = datetime.now().isoformat(timespec="seconds")
         if note:

@@ -22,6 +22,8 @@ export function KpiCard({
   note,
   badge,
   href,
+  onClick,
+  active,
   area,
   icon,
   tone = 'primary',
@@ -32,6 +34,8 @@ export function KpiCard({
   note?: string
   badge?: ReactNode
   href?: string
+  onClick?: () => void
+  active?: boolean
   area?: IusLegalArea
   icon?: LucideIcon
   tone?: IusTone
@@ -46,6 +50,8 @@ export function KpiCard({
       note={note}
       badge={meaningfulBadge}
       href={href}
+      onClick={onClick}
+      active={active}
       area={area}
       icon={icon}
       tone={tone}

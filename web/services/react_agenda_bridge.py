@@ -15,6 +15,7 @@ from web.services.pec_source_links import (
     latest_control_tower_sources,
     latest_pec_profiles,
     pec_audit_message_id,
+    pec_profile_for_item,
     pec_profile_source_name,
     pec_original_label,
     pec_source_href,
@@ -159,6 +160,7 @@ def _source_evidence(
     external_uid: str = "",
     source_name: str = "",
     indexed_source_name: str = "",
+    resolved_source_profile: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Collega ogni dato automatico alla PEC o al documento che lo ha prodotto."""
 
@@ -182,12 +184,16 @@ def _source_evidence(
         }
 
     event_source_name = resolve_pec_source_name(source_name, notes, limit=140)
-    if event_source_name and not is_generic_pec_source_label(event_source_name):
+    if resolved_source_profile and resolved_source_profile.get("_source_multiple"):
+        source_name = resolve_pec_source_name(indexed_source_name, limit=140)
+    elif event_source_name and not is_generic_pec_source_label(event_source_name):
         source_name = event_source_name
     else:
         source_name = resolve_pec_source_name(indexed_source_name, limit=140) or event_source_name
 
-    message_id = pec_audit_message_id("\n".join(part for part in (notes, external_uid) if part))
+    if resolved_source_profile and resolved_source_profile.get("_source_resolution") == "ambiguous":
+        return {"sourceHref": "", "sourceLabel": "Più fonti PEC: collegamento da verificare", "sourceKind": "pec", "sourceVerified": False, "sourceCandidates": resolved_source_profile.get("_source_candidates", [])}
+    message_id = str((resolved_source_profile or {}).get("_source_message_id") or pec_audit_message_id("\n".join(part for part in (notes, external_uid) if part)))
     if message_id:
         source_label = _clean_text(source_name, limit=120)
         return {
@@ -858,7 +864,7 @@ def _decorate_event(row: dict[str, Any]) -> dict[str, Any]:
     row["notes"] = notes
     subtitle = _visible_legal_text(row.get("subtitle"), limit=160)
     if not subtitle:
-        subtitle = " · ".join(part for part in (matter, _clean_text(row.get("court"), limit=80), _clean_text(row.get("location"), limit=80)) if part)
+        subtitle = " · ".join(dict.fromkeys(part for part in (matter, _clean_text(row.get("court"), limit=80), _clean_text(row.get("location"), limit=80)) if part))
     row["subtitle"] = subtitle
     row["detailTitle"] = label
     row["detailLines"] = _detail_lines(row, original_title=origin_title, legal_label=label)
@@ -989,6 +995,7 @@ def _agenda_event(item: Any, *, pec_profile: Mapping[str, Any] | None = None) ->
         external_uid=str(getattr(item, "external_uid", "") or ""),
         source_name=str(getattr(item, "remote_hearing_source", "") or ""),
         indexed_source_name=pec_profile_source_name(pec_profile),
+        resolved_source_profile=pec_profile,
     )
     return _decorate_event({
         "id": item_id,
@@ -1157,9 +1164,11 @@ def _deadline_event(
             or ""
         ),
         indexed_source_name=pec_profile_source_name(pec_profile),
+        resolved_source_profile=pec_profile,
     )
     if (
         not source_payload.get("sourceHref")
+        and not source_payload.get("sourceCandidates")
         and control_tower_source
         and control_tower_source.get("sourceHref")
     ):
@@ -1379,6 +1388,11 @@ def _enrich_agenda_event_from_fascicolo(event: dict[str, Any], fascicolo: Any) -
         if value and not _clean_text(enriched.get(key), limit=160):
             enriched[key] = value
             changed = True
+    from web.services.agenda_archivio_source import fonte_corrente
+    archive_source = fonte_corrente(enriched, fascicolo)
+    if archive_source:
+        enriched.update(archive_source)
+        changed = True
     if not changed:
         return event
     enriched["notes"] = str(event.get("technicalNotes") or event.get("notes") or "")
@@ -1461,7 +1475,7 @@ def build_react_agenda_payload(
 
     events: list[dict[str, Any]] = []
     for item in appointments:
-        event = _agenda_event(item, pec_profile=pec_profiles.get(pec_audit_message_id(item)))
+        event = _agenda_event(item, pec_profile=pec_profile_for_item(item, pec_profiles))
         if event:
             if fascicoli_repo is not None:
                 matter_id = _clean_text(event.get("matterId"), limit=120)
@@ -1488,18 +1502,18 @@ def build_react_agenda_payload(
             events.append(event)
     agenda_contexts = list(events)
     for item in context_appointments:
-        context_event = _agenda_event(item, pec_profile=pec_profiles.get(pec_audit_message_id(item)))
+        context_event = _agenda_event(item, pec_profile=pec_profile_for_item(item, pec_profiles))
         if context_event:
             agenda_contexts.append(context_event)
     if selected is not None:
-        event = _agenda_event(selected, pec_profile=pec_profiles.get(pec_audit_message_id(selected)))
+        event = _agenda_event(selected, pec_profile=pec_profile_for_item(selected, pec_profiles))
         if event and not any(str(row.get("id") or "") == str(event.get("id") or "") for row in events):
             events.append(event)
     for item in deadlines:
         event = _deadline_event(
             item,
             control_tower_source=control_tower_sources.get(control_tower_source_key(item)),
-            pec_profile=pec_profiles.get(pec_audit_message_id(item)),
+            pec_profile=pec_profile_for_item(item, pec_profiles),
         )
         if event:
             event_date = _parse_date(event["start"], start)
@@ -1522,7 +1536,7 @@ def build_react_agenda_payload(
                             item,
                             fascicolo,
                             control_tower_source=control_tower_sources.get(control_tower_source_key(item)),
-                            pec_profile=pec_profiles.get(pec_audit_message_id(item)),
+                            pec_profile=pec_profile_for_item(item, pec_profiles),
                         ) or event
                 event = _enrich_deadline_from_agenda(event, agenda_contexts)
                 events.append(event)

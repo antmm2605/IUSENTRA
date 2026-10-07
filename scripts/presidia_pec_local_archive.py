@@ -16,6 +16,7 @@ from pct.notifications import NotificationRepository, NotificationService  # noq
 from pct.pec_control_tower import PecControlTowerRepository, _reconstruct_email_archive_mime  # noqa: E402
 from pct.pec_pipeline import PecAuditRepository, parse_pec_message  # noqa: E402
 from pct.tenant import GestioneTenant  # noqa: E402
+from web.services.email_storage_runtime import create_email_mailbox  # noqa: E402
 
 
 def _registry_path(value: str = "") -> Path:
@@ -269,7 +270,7 @@ def presidia_studio(
     control_tower_backfill: bool = False,
 ) -> dict[str, Any]:
     email_db = Path(paths["EMAIL_CASELLA_DB"])
-    gestore = GestioneEmailRicevute(str(email_db))
+    gestore = create_email_mailbox(str(email_db))
     repo = PecAuditRepository(
         email_db.parent / "pec_audit.sqlite",
         tenant_id=studio_slug,

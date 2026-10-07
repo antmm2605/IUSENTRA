@@ -332,6 +332,7 @@ def _fascicoli_base_cache_key(
     group_by: str,
     view: str,
     alerts_only: bool,
+    communications_only: bool = False,
     payments_only: bool,
     missing_rg_only: bool,
     duplicates_only: bool,
@@ -372,6 +373,7 @@ def _fascicoli_base_cache_key(
         _text(group_by).strip().lower(),
         _text(view).strip().lower(),
         bool(alerts_only),
+        bool(communications_only),
         bool(payments_only),
         bool(missing_rg_only),
         bool(duplicates_only),
@@ -6181,6 +6183,11 @@ def _summary(
         "invoiceDraftsToReview": invoice_drafts_to_review,
         "invoicesPresent": invoices_present,
         "invoiceWorkTotal": invoices_to_issue + invoice_drafts_to_review,
+        "invoiceMattersToReview": sum(
+            1 for item in items
+            if _matches_list_filters(item, payment_filters={"parcella": "da_emettere"})
+        ),
+        "communicationMatters": sum(1 for item in items if int(item.get("unreadCommunications") or 0) > 0),
         "registeredAmount": registered_amount,
         "advancesToRecover": advances_to_recover,
         "duplicatePractices": len(duplicate_keys),
@@ -6294,6 +6301,7 @@ def _matches_list_filters(
     status_filter: str = "",
     court: str = "",
     alerts_only: bool = False,
+    communications_only: bool = False,
     payments_only: bool = False,
     missing_rg_only: bool = False,
     duplicates_only: bool = False,
@@ -6339,6 +6347,8 @@ def _matches_list_filters(
     if court_needle and court_needle not in _text(item.get("court")).lower():
         return False
     if alerts_only and not (int(item.get("alerts") or 0) or int(item.get("unreadCommunications") or 0)):
+        return False
+    if communications_only and int(item.get("unreadCommunications") or 0) <= 0:
         return False
     if payments_only and (item.get("paymentSummary") or {}).get("stato") not in {"da_presidiare", "parziale"}:
         return False
@@ -6478,6 +6488,7 @@ def build_react_fascicoli_payload(
     group_by: str = "",
     view: str = "",
     alerts_only: bool = False,
+    communications_only: bool = False,
     payments_only: bool = False,
     missing_rg_only: bool = False,
     duplicates_only: bool = False,
@@ -6497,6 +6508,7 @@ def build_react_fascicoli_payload(
         group_by=group_by,
         view=view,
         alerts_only=alerts_only,
+        communications_only=communications_only,
         payments_only=payments_only,
         missing_rg_only=missing_rg_only,
         duplicates_only=duplicates_only,
@@ -6541,6 +6553,7 @@ def build_react_fascicoli_payload(
                 status_filter=status_filter,
                 court=court,
                 alerts_only=alerts_only,
+                communications_only=communications_only,
                 payments_only=payments_only,
                 missing_rg_only=missing_rg_only,
                 duplicates_only=duplicates_only,
@@ -6595,6 +6608,15 @@ def build_react_fascicoli_payload(
         _fascicoli_base_cache_set(base_cache_key, base)
     sorted_items = list(base.get("items") or [])
     light_items = list(base.get("lightItems") or [])
+    # Gli indicatori cambiano categoria, mantenendo la ricerca e i filtri
+    # trasversali. Riutilizziamo le righe SQL già caricate, senza nuove letture.
+    card_items = [
+        item for item in light_items
+        if _matches_list_filters(
+            item, query=query, client_filter=client_filter, rg_filter=rg_filter,
+            type_filter=type_filter, court=court, field_filters=field_filters,
+        )
+    ]
     page_size = _positive_int(page_size, 5, maximum=100)
     page = _positive_int(page, 1, maximum=100000)
     pagination = _pagination(page, page_size, len(sorted_items))
@@ -6670,6 +6692,7 @@ def build_react_fascicoli_payload(
             overdue_deadlines=int(base.get("overdueDeadlines") or 0),
             urgent_deadlines=int(base.get("urgentDeadlines") or 0),
         ),
+        "cardSummary": _summary(card_items, archived_count=int(base.get("archivedCount") or 0)),
         "items": items,
         "pagination": pagination,
         "facets": _facets(light_items),
@@ -6691,6 +6714,7 @@ def build_react_archivio_payload(*, get_fascicoli: Callable[[], Any], get_scaden
         "generatedAt": _now(),
         "contracts": _contracts(),
         "summary": _summary(items, archived_count=0, deadlines30=0, deadlines7=0, overdue_deadlines=0, urgent_deadlines=0),
+        "cardSummary": _summary(items, archived_count=0, deadlines30=0, deadlines7=0, overdue_deadlines=0, urgent_deadlines=0),
         "items": items,
         "facets": _facets(items),
         "deadlines": [],
@@ -9513,6 +9537,16 @@ def _lex_indexing_summary(fid: str) -> dict[str, Any]:
         status = "stale" if stale else "error" if errors else "not_indexed"
     else:
         status = "ready"
+    from pct.document_intelligence.extraction_audit_repository import DocumentAIExtractionAuditRepository
+    failed_sources = [
+        (source, records_by_sha.get(str(source.sha256 or "")))
+        for source in sources
+        if str(getattr(records_by_sha.get(str(source.sha256 or "")), "status", "")) == "error"
+    ][:12]
+    error_messages = DocumentAIExtractionAuditRepository(service.repository).error_messages(
+        tenant_id, fid,
+        {str(record.id): str(source.sha256 or "") for source, record in failed_sources if record is not None},
+    )
     payload = {
         "total_documents": len(sources),
         "ready": ready,
@@ -9525,9 +9559,8 @@ def _lex_indexing_summary(fid: str) -> dict[str, Any]:
         "last_indexed_at": last_indexed_at or None,
         "status": status,
         "warnings": [
-            f"{source.filename}: indicizzazione non completata."
-            for source in sources
-            if str(getattr(records_by_sha.get(str(source.sha256 or "")), "status", "")) == "error"
+            f"{source.filename}: {error_messages.get(str(record.id)) or 'Indicizzazione non completata.'}"
+            for source, record in failed_sources
         ],
     }
     return {

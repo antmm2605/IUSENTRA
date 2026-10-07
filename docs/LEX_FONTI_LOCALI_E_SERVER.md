@@ -383,3 +383,22 @@ Il parametro `operation=verify` del workflow esegue solo accesso SSH, conteggi d
 ## Diagnosi Lex dopo il deploy
 
 Il workflow `deploy-hetzner.yml` accetta `diagnosi_lex=true` per eseguire `deploy/hetzner/diagnosi_lex_domande.py` dentro il container `app` solo dopo CI richiesta superata, deploy riuscito e verifiche post-deploy. Lo script stampa classificazione, percorso, fonti e risultati Normattiva delle sei domande di prova, senza chiamare il modello. I log della step conservano i risultati; il valore predefinito resta `false`.
+
+
+## Deploy 2.436.11 con Lex v2 — 07/10/2026
+
+Il workflow Hetzner attende tutti i gate CI del commit corrente. Per la versione
+2.436.11 verifica `iusentra-lex-v2:9b` e il digest del modello accettato sul PC
+`a079f24b41a203f59bbd1482248c138b126de02dfeffe1cc57d3fe4387e1a3cb`.
+Se manca, importa solo manifest e blob Ollama da una bozza GitHub riservata,
+con checksum dei segmenti, manifest e singoli blob verificati prima dell'installazione.
+Il backup applicativo precede l'operazione; la configurazione precedente rimane in
+`/opt/iusentra/.env.hetzner.prima-lex-v2` (riservata, modo 0600).
+Dopo l'installazione imposta `PCT_LOCAL_AI_CHAT_MODEL` e `LEX_DEFAULT_MODEL`
+nel file server, senza cambiare embedding o catalogazione. Il deploy ricrea i servizi.
+La verifica finale controlla modello risolto da chat e gateway, digest e una
+generazione reale senza dati dello studio. In caso di errore il workflow fallisce.
+Rollback: ripristinare i due valori precedenti dalla copia riservata e distribuire
+il precedente tag immutabile; non cancellare volumi o fonti. La bozza di trasferimento
+va eliminata dopo esito positivo. Lex v3 resta riservato alla futura 2.436.12;
+non attivare un modello v3 sulla 2.436.11.

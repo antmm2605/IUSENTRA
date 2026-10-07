@@ -59,5 +59,12 @@ def verifica_discordanze_fascicolo(fascicolo):
 def riepilogo_discordanze(page=1):
     repo, tenant = repository()
     result = repo.aperte(tenant,page=page)
+    from web.services.controllo_studio_letture import repository as letture
+    from web.services.registro_letture_runtime import utente_corrente_id
+    archivio = letture()
+    viste = archivio.viste(utente_corrente_id())
+    result['nonLette'] = int(archivio.non_viste(utente_corrente_id()))
+    for voce in result['voci']:
+        voce['giaLetta'] = viste.get((voce['fascicoloId'],voce['codice'],voce['chiave'])) == voce['revisione']
     result['ok'] = True
     return result

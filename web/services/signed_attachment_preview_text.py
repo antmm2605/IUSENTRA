@@ -98,7 +98,8 @@ def _format_xml_text(data: bytes) -> str:
         return ""
     try:
         parsed = minidom.parseString(text.encode("utf-8"))
-        return parsed.toprettyxml(indent="  ")
+        # Preserve existing source indentation instead of formatting it twice.
+        return text if "\n" in text else parsed.toprettyxml(indent="  ")
     except Exception:
         return text
 

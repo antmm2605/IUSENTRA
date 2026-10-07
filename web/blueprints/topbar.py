@@ -121,13 +121,18 @@ def api_today():
 @topbar.get("/api/notifications")
 @_require_auth
 def api_notifications():
-    cache_key = _topbar_cache_key("notifications")
+    query = str(request.args.get("q") or "").strip()[:200]
+    state = str(request.args.get("state") or "all")
+    def _run():
+        try:
+            page = max(1, int(request.args.get("page") or 1))
+        except (ValueError, TypeError) as exc:
+            raise core_service.TopbarApiError("Pagina non valida.", 400) from exc
+        # Il registro SQL è già materializzato: una lettura bounded evita
+        # cache locali obsolete dopo una presa visione su un altro worker.
+        return core_service.notifications_payload(g.get("utente_corrente"), page=page, state=state, query=query)
     return _handle(
-        lambda: get_dashboard_payload_cached(
-            cache_key,
-            lambda: core_service.notifications_payload(g.get("utente_corrente")),
-            ttl_seconds=_NOTIFICATIONS_TTL_SECONDS,
-        )[0]
+        _run
     )
 
 

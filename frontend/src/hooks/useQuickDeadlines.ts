@@ -1,3 +1,4 @@
+import { useOperationalRefresh } from './useOperationalRefresh'
 import { useCallback, useEffect, useState } from 'react'
 import { fetchQuickDeadlines } from '../services/topbarApi'
 import type { TopbarDeadlinesPayload } from '../types/topbar'
@@ -22,12 +23,20 @@ export function useQuickDeadlines(open: boolean) {
     load()
   }, [load, open])
 
+  useEffect(() => {
+    if (!open) return
+    window.addEventListener('iusentra:scadenze-lette', load)
+    return () => window.removeEventListener('iusentra:scadenze-lette', load)
+  }, [open, load])
+
   // Il refresh periodico resta attivo solo durante la consultazione del pannello.
   useEffect(() => {
     if (!open) return
     const timer = window.setInterval(load, 120000)
     return () => window.clearInterval(timer)
   }, [load, open])
+
+  useOperationalRefresh(['agenda', 'scadenze'], () => { if (open) load() })
 
   return { data, loading, error, reload: load }
 }

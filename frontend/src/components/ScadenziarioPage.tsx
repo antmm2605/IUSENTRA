@@ -1,3 +1,4 @@
+import { SourceAlternatives } from './SourceAlternatives'
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
@@ -214,7 +215,7 @@ function StatCard({
   onClick?: () => void
 }) {
   return (
-    <button className={`iu-scad-stat iu-scad-stat--${tone} ${active ? 'is-active' : ''}`} type="button" onClick={onClick}>
+    <button className={`iu-scad-stat iu-scad-stat--${tone} ${active ? 'is-active' : ''}`} type="button" disabled={value === '…'} aria-busy={value === '…'} aria-pressed={Boolean(active)} onClick={onClick}>
       <div>{icon}</div>
       <span>{label}</span>
       <strong>{value}</strong>
@@ -243,6 +244,12 @@ async function postDeadlineAction(url: string, label: string, body?: URLSearchPa
 }
 
 function DraftProposalsPanel({ proposals, onConfirm, onDiscard }:{proposals:ScadenziarioDraftProposal[]; onConfirm:(item:ScadenziarioDraftProposal)=>void; onDiscard:(item:ScadenziarioDraftProposal)=>void}) {
+  const [expanded, setExpanded] = useState(() => window.location.hash === '#proposte')
+  useEffect(() => {
+    const reveal = () => { if (window.location.hash === '#proposte') setExpanded(true) }
+    window.addEventListener('hashchange', reveal)
+    return () => window.removeEventListener('hashchange', reveal)
+  }, [])
   if (!proposals.length) return null
   const daRegistro = proposals.filter((item) => item.sourceOrigin === 'registro').length
   const daPec = proposals.length - daRegistro
@@ -253,8 +260,11 @@ function DraftProposalsPanel({ proposals, onConfirm, onDiscard }:{proposals:Scad
         <span className="iu-scad-proposals__eyebrow"><FileSearch size={15}/> Date da confermare</span>
         <strong>{proposals.length === 1 ? '1 proposta di scadenza attende la tua conferma' : `${proposals.length} proposte di scadenza attendono la tua conferma`}</strong>
         <p>Provenienza: {fonti}. Nessuna è operativa finché non la confermi: verifica la fonte e decidi.</p>
+        <button className="iu-button" type="button" aria-expanded={expanded} aria-controls="iu-scad-proposte-elenco" onClick={() => setExpanded(value => !value)}>
+          <ChevronDown size={15} aria-hidden="true"/>{expanded ? 'Riduci proposte' : `Esamina ${proposals.length} ${proposals.length === 1 ? 'proposta' : 'proposte'}`}
+        </button>
       </header>
-      <div className="iu-scad-proposals__list">
+      <div id="iu-scad-proposte-elenco" className="iu-scad-proposals__list" hidden={!expanded}>
         {proposals.map((item) => (
           <article key={item.id} className="iu-scad-proposal">
             <div className="iu-scad-proposal__top">
@@ -288,39 +298,49 @@ function guardianDueLabel(item: DeadlineGuardian['items'][number]): string {
   return `Tra ${item.days} ${item.days === 1 ? 'giorno' : 'giorni'}`
 }
 
-function GuardianPanel({ guardian }:{guardian:DeadlineGuardian}) {
+function GuardianPanel({ guardian, loading }:{guardian:DeadlineGuardian; loading:boolean}) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [band, setBand] = useState('')
+  const [page, setPage] = useState(1)
   const total = guardian.summary.total
+  const filtered = useMemo(() => guardian.items.filter(item => (
+    (!band || item.band === band) && (!query.trim() || `${item.title} ${item.primaryReason} ${item.fascicoloId}`.toLocaleLowerCase('it').includes(query.trim().toLocaleLowerCase('it')))
+  )), [guardian.items, band, query])
+  const pages = Math.max(1, Math.ceil(filtered.length / 20))
+  const currentPage = Math.min(page, pages)
+  const filtersRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (open) filtersRef.current?.closest('.iu-ag-source-modal__body')?.scrollTo({ top: 0 })
+  }, [open, currentPage, query, band])
   const tone: DeadlineGuardian['items'][number]['tone'] = guardian.summary.critical ? 'danger' : guardian.summary.high ? 'warning' : total ? 'info' : 'success'
-  return (
+  return <>
     <section className="iu-scad-guardian" aria-label="Guardiano Scadenze">
       <header>
-        <div>
-          <span><ShieldCheck size={16}/> Guardiano Scadenze</span>
-          <strong>{total ? `${total} elementi richiedono un presidio preventivo` : 'Nessun rischio aperto nel perimetro attivo'}</strong>
-        </div>
-        <Badge tone={tone}>{guardian.summary.critical ? `${guardian.summary.critical} critici` : guardian.summary.high ? `${guardian.summary.high} ad alto rischio` : total ? 'Da presidiare' : 'Presidiato'}</Badge>
+        <div><span><ShieldCheck size={16}/> Guardiano Scadenze</span><strong>{loading ? 'Caricamento dei presidi…' : total ? `${total} ${total === 1 ? 'elemento richiede' : 'elementi richiedono'} un presidio preventivo` : 'Nessun rischio aperto nel perimetro attivo'}</strong></div>
+        {!loading && <Badge tone={tone}>{guardian.summary.critical ? `${guardian.summary.critical} critici` : guardian.summary.high ? `${guardian.summary.high} ad alto rischio` : total ? 'Da presidiare' : 'Presidiato'}</Badge>}
+        <button className="iu-button" type="button" disabled={loading || !total} onClick={() => setOpen(true)}><ShieldCheck size={15}/> Esamina {loading ? 'i presidi' : `${total} ${total === 1 ? 'presidio' : 'presidi'}`}</button>
       </header>
-      <p>Il Guardiano non inventa né ricalcola termini: evidenzia rischi nei dati registrati e porta all’azione correttiva.</p>
-      {guardian.items.length ? (
-        <div className="iu-scad-guardian__list">
-          {guardian.items.map((item) => (
-            <a href={item.href} key={item.id}>
-              <div>
-                <strong>{item.title}</strong>
-                <span>{formatItalianDate(item.date) || 'Data da verificare'} · {guardianDueLabel(item)}</span>
-              </div>
-              <div>
-                <Badge tone={item.tone}>{item.label}</Badge>
-                <small><b>{item.primaryReason}</b>{item.nextAction}</small>
-              </div>
-            </a>
-          ))}
-        </div>
-      ) : <p className="iu-empty">{guardian.message}</p>}
+      <p>Rischi nei dati registrati, con fonte e azione correttiva. Ogni termine resta soggetto alla verifica professionale.</p>
     </section>
-  )
+    <OperationalModal open={open} ariaLabel="Presidi del Guardiano Scadenze" eyebrow="Scadenziario" title="Presidi da affrontare" subtitle={`${total} elementi · ${guardian.summary.critical} critici · ${guardian.summary.high} ad alto rischio`} boxClassName="iu-scad-guardian-window" onClose={() => setOpen(false)}>
+      <div className="iu-scad-guardian-filters" ref={filtersRef}>
+        <label>Ricerca presidio<input type="search" value={query} onChange={event => { setQuery(event.target.value); setPage(1) }} placeholder="Titolo, fascicolo o motivo…" /></label>
+        <label>Priorità<select aria-label="Priorità del presidio" value={band} onChange={event => { setBand(event.target.value); setPage(1) }}><option value="">Tutte le priorità</option><option value="critico">Critici</option><option value="alto">Alto rischio</option><option value="medio">Da presidiare</option><option value="basso">Presidio ordinario</option></select></label>
+        {query || band ? <button className="iu-button" type="button" onClick={() => { setQuery(''); setBand(''); setPage(1) }}>Azzera filtri</button> : null}
+      </div>
+      <p className="iu-scad-guardian-results" aria-live="polite">{filtered.length} {filtered.length === 1 ? 'risultato' : 'risultati'} · pagina {currentPage} di {pages}</p>
+      <div className="iu-scad-guardian__list">
+        {filtered.slice((currentPage - 1) * 20, currentPage * 20).map(item => <a href={item.href} key={item.id} aria-label={item.title}>
+          <div><strong>{item.title}</strong><span>{formatItalianDate(item.date) || 'Data da verificare'} · {guardianDueLabel(item)}</span></div>
+          <div><Badge tone={item.tone}>{item.label}</Badge><small><b>{item.primaryReason}</b>{item.nextAction}</small></div>
+        </a>)}
+      </div>
+      {!filtered.length && <p className="iu-empty">Nessun presidio corrisponde ai filtri.</p>}
+      {pages > 1 && <nav className="iu-scad-guardian-pagination" aria-label="Pagine dei presidi"><button className="iu-button" type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Precedente</button><span>{currentPage} / {pages}</span><button className="iu-button" type="button" disabled={currentPage === pages} onClick={() => setPage(currentPage + 1)}>Successiva</button></nav>}
+    </OperationalModal>
+  </>
 }
-
 function DeadlineFlags({ item }:{item:ScadenziarioRow}) {
   return (
     <span className="iu-scad-flags">
@@ -339,7 +359,7 @@ function DeadlineActions({ item, onComplete, onDelete }:{item:ScadenziarioRow; o
     <div className="iu-scad-actions" aria-label={`Azioni per ${item.title}`}>
       <a href={item.href} title="Apri dettaglio" aria-label="Apri dettaglio"><Eye size={15}/></a>
       <a href={item.editHref} title="Modifica" aria-label="Modifica"><Edit3 size={15}/></a>
-      {item.status !== 'COMPLETATO' ? <button type="button" onClick={() => onComplete(item)} title="Completa" aria-label="Completa"><CheckCircle2 size={15}/></button> : null}
+      {['APERTO', 'SCADUTO'].includes(item.status) ? <button type="button" onClick={() => onComplete(item)} title="Completa" aria-label="Completa"><CheckCircle2 size={15}/></button> : null}
       <button type="button" onClick={() => onDelete(item)} title="Elimina" aria-label="Elimina"><Trash2 size={15}/></button>
     </div>
   )
@@ -378,7 +398,7 @@ function RemoteHearingNotice({ item }: { item: ScadenziarioRow }) {
 }
 
 function SourceEvidenceLink({ item, onOpen }: { item: ScadenziarioRow; onOpen: (item: ScadenziarioRow) => void }) {
-  if (!item.sourceHref) return null
+  if (!item.sourceHref) return item.sourceCandidates?.length ? <SourceAlternatives candidates={item.sourceCandidates} onOpen={source => onOpen({ ...item, sourceHref: source.href, sourceLabel: source.label, sourceVerified: false, sourceCandidates: [] })}/> : item.sourceLabel === 'Più fonti PEC: collegamento da verificare' ? <small>Fonti storiche non disponibili: collegamento da verificare.</small> : null
   const sourceLabel = item.sourceLabel || 'Fonte originaria'
   return (
     <button
@@ -951,15 +971,16 @@ function DeadlineFocusDetail({
             <Link2 size={15}/> Apri link udienza
           </a>
         ) : null}
-        {row.sourceHref ? <button type="button" className="is-primary" onClick={() => onOpenSource(row)}><FileSearch size={15}/> Apri fonte</button> : null}
-        <button type="button" onClick={() => onComplete(row)}><CheckCircle2 size={15}/> Completa</button>
+        {row.sourceHref ? <button type="button" className="is-primary" onClick={() => onOpenSource(row)}><FileSearch size={15}/> Apri fonte</button> : row.sourceCandidates?.length ? <SourceEvidenceLink item={row} onOpen={onOpenSource}/> : null}
+        {['APERTO', 'SCADUTO'].includes(row.status) ? <button type="button" onClick={() => onComplete(row)}><CheckCircle2 size={15}/> Completa</button> : null}
         <Button href={row.editHref}><Edit3 size={15}/> Modifica</Button>
         <button type="button" className="is-danger" onClick={() => onDelete(row)}><Trash2 size={15}/> Elimina</button>
         {!embedded ? <button type="button" className="iu-scad-focus-back" onClick={onClose}><ArrowLeft size={15}/> Torna allo scadenziario</button> : null}
       </div>
-      <section className="iu-scad-focus-block" aria-label="Cosa fare">
-        <h3><ListChecks size={15}/> Cosa fare</h3>
-        <p>{description}</p>
+      <section className="iu-scad-focus-block" aria-label={row.reconciliationReason ? 'Motivo della rettifica' : 'Cosa fare'}>
+        <h3><ListChecks size={15}/> {row.reconciliationReason ? 'Motivo della rettifica' : 'Cosa fare'}</h3>
+        <p>{row.reconciliationReason || description}</p>
+        {row.reconciliationReason ? <p>La proposta automatica è conservata nello storico. Non costituisce un’attività da eseguire.</p> : null}
       </section>
       {groups.map((group) => (
         <section className={`iu-scad-focus-block iu-scad-focus-block--${group.id}`} key={group.id} aria-label={group.title}>
@@ -1013,8 +1034,9 @@ function OperativeCards({
 }
 
 function Inspector({ data, rows }:{data:ScadenziarioPageData; rows:ScadenziarioRow[]}) {
-  const watch = rows.filter((item) => !item.overdue && (item.dueToday || item.priority === 'CRITICA' || item.operative || item.remoteHearingDetected)).slice(0, 5)
-  const advanced = rows.filter((item) => !item.overdue && (item.advanced || item.operative)).slice(0, 5)
+  const openRows = rows.filter((item) => ['APERTO', 'SCADUTO'].includes(item.status))
+  const watch = openRows.filter((item) => item.overdue || item.dueToday || item.priority === 'CRITICA' || item.operative || item.remoteHearingDetected)
+  const advanced = openRows.filter((item) => item.advanced || item.operative)
   return (
     <aside className="iu-scad-inspector">
       <Panel title="Briefing Lex" subtitle="Contesto pronto per la prossima azione" icon={<Sparkles size={17}/>}>
@@ -1033,7 +1055,7 @@ function Inspector({ data, rows }:{data:ScadenziarioPageData; rows:ScadenziarioR
       <Panel title="Scadenze da presidiare" icon={<AlertTriangle size={17}/>} count={watch.length}>
         {watch.length ? (
           <div className="iu-scad-watch-list">
-            {watch.map((item) => (
+            {watch.slice(0, 5).map((item) => (
               <a href={item.href} key={item.id}>
                 <Badge tone={item.tone}>{item.priorityLabel}</Badge>
                 <strong>{item.title}</strong>
@@ -1046,7 +1068,7 @@ function Inspector({ data, rows }:{data:ScadenziarioPageData; rows:ScadenziarioR
       <Panel title="Calcoli e operatività" icon={<TimerReset size={17}/>} count={advanced.length}>
         {advanced.length ? (
           <div className="iu-scad-watch-list">
-            {advanced.map((item) => (
+            {advanced.slice(0, 5).map((item) => (
               <a href={item.href} key={item.id}>
                 <Badge tone={item.operative ? 'info' : 'purple'}>{item.operative ? 'operativa' : 'calcolo'}</Badge>
                 <strong>{item.title}</strong>
@@ -1077,14 +1099,14 @@ export function ScadenziarioPage() {
   const [query, setQuery] = useState(() => initialQuery())
   const [guidaPratica] = useState(() => initialGuidaPratica())
   const [fascicoloId] = useState(() => initialFascicoloId())
-  const [type, setType] = useState('')
-  const [priority, setPriority] = useState('')
-  const [from, setFrom] = useState('')
-  const [to, setTo] = useState('')
-  const [peremptory, setPeremptory] = useState(false)
-  const [advanced, setAdvanced] = useState(false)
-  const [operative, setOperative] = useState(false)
-  const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [type, setType] = useState(() => new URLSearchParams(window.location.search).get('tipo') || '')
+  const [priority, setPriority] = useState(() => new URLSearchParams(window.location.search).get('priorita') || '')
+  const [from, setFrom] = useState(() => new URLSearchParams(window.location.search).get('dal') || '')
+  const [to, setTo] = useState(() => new URLSearchParams(window.location.search).get('al') || '')
+  const [peremptory, setPeremptory] = useState(() => new URLSearchParams(window.location.search).get('perentorio') === '1')
+  const [advanced, setAdvanced] = useState(() => new URLSearchParams(window.location.search).get('avanzate') === '1')
+  const [operative, setOperative] = useState(() => new URLSearchParams(window.location.search).get('operative') === '1')
+  const [advancedOpen, setAdvancedOpen] = useState(() => ['dal', 'al', 'perentorio', 'avanzate', 'operative'].some((key) => Boolean(new URLSearchParams(window.location.search).get(key))))
   const [sort, setSort] = useState<SortKey>('scadenza')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [statusLine, setStatusLine] = useState('')
@@ -1186,6 +1208,7 @@ export function ScadenziarioPage() {
   }, [view, query, type, priority, from, to, peremptory, advanced, operative, guidaPratica, fascicoloId])
 
   const visibleRows = useMemo(() => sortRows(data.items.filter((item) => isInsideQuery(item, query)), sort), [data.items, query, sort])
+  const selectedCompletableIds = data.items.filter((item) => selectedIds.includes(item.id) && ['APERTO', 'SCADUTO'].includes(item.status)).map((item) => item.id)
   const mobileLayout = useScadenziarioMobileLayout()
 
   const toggleSelection = (id: string) => {
@@ -1202,6 +1225,7 @@ export function ScadenziarioPage() {
   }
 
   const runComplete = (item: ScadenziarioRow) => {
+    if (!['APERTO', 'SCADUTO'].includes(item.status)) return
     setStatusLine(`Completamento di "${item.title}"...`)
     postDeadlineAction(item.completeHref, 'Completa scadenza')
       .then((message) => { setStatusLine(message); load() })
@@ -1235,10 +1259,14 @@ export function ScadenziarioPage() {
   }
 
   const runBulkComplete = () => {
-    if (!selectedIds.length) return
+    const completableIds = selectedCompletableIds
+    if (!completableIds.length) {
+      setStatusLine('Le scadenze selezionate sono già chiuse o annullate. Nessun completamento necessario.')
+      return
+    }
     const body = new URLSearchParams()
-    selectedIds.forEach((id) => body.append('ids', id))
-    setStatusLine(`Completamento di ${selectedIds.length} scadenze...`)
+    completableIds.forEach((id) => body.append('ids', id))
+    setStatusLine(`Completamento di ${completableIds.length} scadenze...`)
     postDeadlineAction(data.actions.bulkComplete, 'Completa selezionate', body)
       .then((message) => { setStatusLine(message); setSelectedIds([]); load() })
       .catch((error) => setStatusLine(error instanceof Error ? error.message : 'Completamento massivo non riuscito'))
@@ -1426,9 +1454,9 @@ export function ScadenziarioPage() {
             <h1>{focusedRow.title}</h1>
             <p>{[focusedRow.fascicoloLabel, focusedRow.clientLabel].filter(Boolean).join(' · ')}</p>
           </header>
-          <DeadlineFocusDetail row={focusedRow} notificationPresidio={isNotificationPresidio} onOpenSource={setSourcePreview} onComplete={runComplete} onDelete={runDelete} onClose={closeDeadlineDetail} embedded/>
+          <DeadlineFocusDetail row={focusedRow} notificationPresidio={isNotificationPresidio} onOpenSource={(row) => setSourcePreview({ ...row })} onComplete={runComplete} onDelete={runDelete} onClose={closeDeadlineDetail} embedded/>
         </> : <p role="alert">La scadenza selezionata non è disponibile. Chiudi il dettaglio e verifica il collegamento nel fascicolo.</p>}
-        <SourceDocumentModal source={sourcePreview ? {
+        <SourceDocumentModal requestToken={sourcePreview} source={sourcePreview ? {
           href: sourcePreview.sourceHref,
           label: sourcePreview.sourceLabel || 'Fonte originaria',
           context: [sourcePreview.title, sourcePreview.fascicoloLabel, sourcePreview.clientLabel].filter(Boolean).join(' · '),
@@ -1460,7 +1488,7 @@ export function ScadenziarioPage() {
         <section className="iu-scad-alert" role="alert">
           <AlertTriangle size={22}/>
           <div>
-            <strong>{data.summary.overdue} scadenze scadute nello storico.</strong>
+            <strong>{data.summary.overdue} {data.summary.overdue === 1 ? 'scadenza scaduta' : 'scadenze scadute'} nello storico.</strong>
             <p>{data.overduePreview.slice(0, 3).map((item) => `${item.title} — ${item.dateLabel}`).join(' · ')}</p>
           </div>
           <button type="button" onClick={() => changeView('scadute')}>Apri storico scadute</button>
@@ -1468,17 +1496,17 @@ export function ScadenziarioPage() {
       ) : null}
 
       <section className="iu-scad-stats" aria-label="Indicatori scadenziario">
-        <StatCard icon={<CalendarDays size={19}/>} label="Aperte" value={data.summary.open} note="da lavorare" tone="primary" active={view === 'aperte'} onClick={() => changeView('aperte')}/>
-        <StatCard icon={<AlertTriangle size={19}/>} label="Critiche" value={data.summary.critical} note="massima priorità" tone={data.summary.critical ? 'danger' : 'neutral'} active={view === 'critiche'} onClick={() => changeView('critiche')}/>
-        <StatCard icon={<ShieldCheck size={19}/>} label="Alta priorità" value={data.summary.high} note="da presidiare" tone={data.summary.high ? 'warning' : 'neutral'} active={view === 'alte'} onClick={() => changeView('alte')}/>
-        <StatCard icon={<CheckCircle2 size={19}/>} label="Completate" value={data.summary.completed} note="chiuse" tone="success" active={view === 'completate'} onClick={() => changeView('completate')}/>
-        <StatCard icon={<TimerReset size={19}/>} label="Storico scadute" value={data.summary.overdue} note="fuori dalla vista operativa" tone={data.summary.overdue ? 'warning' : 'neutral'} active={view === 'scadute'} onClick={() => changeView('scadute')}/>
-        <StatCard icon={<Clock3 size={19}/>} label="Entro 7 gg" value={data.summary.within7} note="orizzonte breve" tone={data.summary.within7 ? 'orange' : 'neutral'} active={view === 'imminenti'} onClick={() => changeView('imminenti')}/>
-        <StatCard icon={<Wand2 size={19}/>} label="Avanzate" value={data.summary.advanced} note="calcolo legale" tone="purple" active={view === 'avanzate'} onClick={() => changeView('avanzate')}/>
-        <StatCard icon={<ListChecks size={19}/>} label="Operative" value={data.summary.operative} note="anticipo studio" tone="info" active={view === 'operative'} onClick={() => changeView('operative')}/>
-        <StatCard icon={<Archive size={19}/>} label="Da PEC" value={data.summary.pec} note="aperte operative" tone="info" active={view === 'pec'} onClick={() => changeView('pec')}/>
+        <StatCard icon={<CalendarDays size={19}/>} label="Aperte" value={loading ? '…' : data.summary.open} note="da lavorare" tone="primary" active={view === 'aperte'} onClick={() => changeView('aperte')}/>
+        <StatCard icon={<AlertTriangle size={19}/>} label="Critiche" value={loading ? '…' : data.summary.critical} note="massima priorità" tone={data.summary.critical ? 'danger' : 'neutral'} active={view === 'critiche'} onClick={() => changeView('critiche')}/>
+        <StatCard icon={<ShieldCheck size={19}/>} label="Alta priorità" value={loading ? '…' : data.summary.high} note="da presidiare" tone={data.summary.high ? 'warning' : 'neutral'} active={view === 'alte'} onClick={() => changeView('alte')}/>
+        <StatCard icon={<CheckCircle2 size={19}/>} label="Completate" value={loading ? '…' : data.summary.completed} note="chiuse" tone="success" active={view === 'completate'} onClick={() => changeView('completate')}/>
+        <StatCard icon={<TimerReset size={19}/>} label="Storico scadute" value={loading ? '…' : data.summary.overdue} note="fuori dalla vista operativa" tone={data.summary.overdue ? 'warning' : 'neutral'} active={view === 'scadute'} onClick={() => changeView('scadute')}/>
+        <StatCard icon={<Clock3 size={19}/>} label="Entro 7 gg" value={loading ? '…' : data.summary.within7} note="orizzonte breve" tone={data.summary.within7 ? 'orange' : 'neutral'} active={view === 'imminenti'} onClick={() => changeView('imminenti')}/>
+        <StatCard icon={<Wand2 size={19}/>} label="Avanzate" value={loading ? '…' : data.summary.advanced} note="calcolo legale" tone="purple" active={view === 'avanzate'} onClick={() => changeView('avanzate')}/>
+        <StatCard icon={<ListChecks size={19}/>} label="Operative" value={loading ? '…' : data.summary.operative} note="anticipo studio" tone="info" active={view === 'operative'} onClick={() => changeView('operative')}/>
+        <StatCard icon={<Archive size={19}/>} label="Da PEC" value={loading ? '…' : data.summary.pec} note="aperte operative" tone="info" active={view === 'pec'} onClick={() => changeView('pec')}/>
       </section>
-      <GuardianPanel guardian={data.guardian}/>
+      <GuardianPanel guardian={data.guardian} loading={loading}/>
 
       <DraftProposalsPanel proposals={data.draftProposals} onConfirm={runConfirmProposal} onDiscard={runDiscardProposal}/>
 
@@ -1522,7 +1550,7 @@ export function ScadenziarioPage() {
         />
       ) : null}
 
-      <OperativeCards cards={data.operativeCards} selectedCount={selectedIds.length} onFilter={changeView} onBulkComplete={runBulkComplete}/>
+      <OperativeCards cards={data.operativeCards} selectedCount={selectedCompletableIds.length} onFilter={changeView} onBulkComplete={runBulkComplete}/>
 
       <section className="iu-scad-status-line">
         <span className={loading ? '' : 'is-ok'}>
@@ -1534,9 +1562,10 @@ export function ScadenziarioPage() {
 
       {selectedIds.length ? (
         <section className="iu-scad-bulkbar">
-          <strong>{selectedIds.length} selezionate</strong>
-          <button type="button" onClick={runBulkComplete}><CheckCircle2 size={15}/> Completa selezionate</button>
+          <strong>{selectedIds.length} {selectedIds.length === 1 ? 'selezionata' : 'selezionate'}</strong>
+          <button type="button" onClick={runBulkComplete} disabled={!selectedCompletableIds.length}><CheckCircle2 size={15}/> {selectedCompletableIds.length === 1 ? 'Completa selezionata' : 'Completa selezionate'}{selectedCompletableIds.length ? ` (${selectedCompletableIds.length})` : ''}</button>
           <button type="button" onClick={() => setSelectedIds([])}>Annulla selezione</button>
+          {!selectedCompletableIds.length ? <span role="status">Le scadenze selezionate sono già chiuse o annullate.</span> : null}
         </section>
       ) : null}
 
@@ -1554,7 +1583,7 @@ export function ScadenziarioPage() {
           <DeadlineFocusDetail
             row={focusedRow}
             notificationPresidio={isNotificationPresidio}
-            onOpenSource={setSourcePreview}
+            onOpenSource={(row) => setSourcePreview({ ...row })}
             onComplete={runComplete}
             onDelete={runDelete}
             onClose={closeDeadlineDetail}
@@ -1565,7 +1594,7 @@ export function ScadenziarioPage() {
       <section className="iu-scad-layout">
         <div className={`iu-scad-table-card${tableFullscreen ? ' iu-scad-table-card--fullscreen' : ''}`} ref={deadlineTableRef}>
           <header>
-            <div><strong>{visibleRows.length} scadenze</strong><span>{query.trim() ? 'Ricerca in tutto lo scadenziario' : (data.facets.views.find((facet) => facet.value === view)?.label || 'Vista corrente')} · {sourceLabel(data.source)}</span></div>
+            <div><strong>{loading ? 'Caricamento scadenze…' : `${visibleRows.length} ${visibleRows.length === 1 ? 'scadenza' : 'scadenze'}`}</strong><span>{query.trim() ? 'Ricerca in tutto lo scadenziario' : (data.facets.views.find((facet) => facet.value === view)?.label || 'Vista corrente')} · {sourceLabel(data.source)}</span></div>
             <div>
               <Badge tone={query.trim() || view === 'scadute' || view === 'tutte' ? 'warning' : 'success'}>
                 {query.trim() ? 'tutti gli stati' : (view === 'scadute' || view === 'tutte' ? `${data.summary.overdue} nello storico` : 'vista operativa')}
@@ -1584,12 +1613,12 @@ export function ScadenziarioPage() {
               <a href={data.actions.exportCsv}><Download size={15}/> Esporta</a>
             </div>
           </header>
-          {visibleRows.length ? (
+          {(loading || backgroundLoading) && !visibleRows.length ? <div className="iu-scad-empty" role="status"><strong>Ricerca delle scadenze in corso…</strong><span>I risultati saranno mostrati al termine del caricamento.</span></div> : visibleRows.length ? (
             <>
               {mobileLayout ? (
-                <MemoDeadlineCardList rows={visibleRows} selectedIds={selectedIds} onToggle={toggleSelection} onComplete={runComplete} onDelete={runDelete} onOpenSource={setSourcePreview} onOpenDetail={openDeadlineDetail}/>
+                <MemoDeadlineCardList rows={visibleRows} selectedIds={selectedIds} onToggle={toggleSelection} onComplete={runComplete} onDelete={runDelete} onOpenSource={(row) => setSourcePreview({ ...row })} onOpenDetail={openDeadlineDetail}/>
               ) : (
-                <MemoDeadlineTable rows={visibleRows} selectedIds={selectedIds} onToggle={toggleSelection} onToggleAll={toggleAll} onComplete={runComplete} onDelete={runDelete} onOpenSource={setSourcePreview} onOpenDetail={openDeadlineDetail}/>
+                <MemoDeadlineTable rows={visibleRows} selectedIds={selectedIds} onToggle={toggleSelection} onToggleAll={toggleAll} onComplete={runComplete} onDelete={runDelete} onOpenSource={(row) => setSourcePreview({ ...row })} onOpenDetail={openDeadlineDetail}/>
               )}
             </>
           ) : (
@@ -1632,6 +1661,7 @@ export function ScadenziarioPage() {
         secondaryLabel="Regia operativa"
       />
       <SourceDocumentModal
+        requestToken={sourcePreview}
         source={sourcePreview ? {
           href: sourcePreview.sourceHref,
           label: sourcePreview.sourceLabel || 'Fonte originaria',

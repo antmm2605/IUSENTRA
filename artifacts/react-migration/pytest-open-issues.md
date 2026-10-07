@@ -2128,3 +2128,13 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 
 
 Consolidamento 02/10/2026: harness ui-support non superato per perimetro/protected manifest; non indebolito. Backup integrale non avviabile per spazio: eseguito snapshot SQL nativo separato. Restano i requisiti funzionali storici elencati nel rapporto Controllo Studio, senza dichiarazione di copertura integrale.
+
+## Consolidamento 07/10/2026 — locale
+
+Il database SQLite del tenant registrato tenant-8bf98719c459 presenta corruzione in moduli_json_records. Backup originale verificato e servizi scriventi arrestati; la ricostruzione candidata non è applicata poiché incompleta. La copia storica SQL è distinta e non sostituisce il database corrente. I test PostgreSQL richiedono il profilo controllato configurato; skip locali non costituiscono prova di parità. Conversione Word fedele e campagna complessiva del prodotto restano incarichi aperti.
+
+07/10/2026: failure remote di contrasto e dipendenza critica riprodotte e corrette; esito del nuovo SHA ancora da osservare. Rimangono corruzione SQL locale e migrazione caselle locali non applicata. App riattivata con messaggi espliciti di quadro parziale; nessun dato corrente sostituito.
+
+
+## Rilascio 2.436.11 con Lex v2 — 07/10/2026
+Nessun fallimento nei 106 test mirati eseguiti. Trasferimento pesi Lex v2 e CI/deploy remoti ancora in corso. Accettazione visiva su macchina locale reale non eseguita; la richiesta corrente riguarda il deploy server e la prova operativa del modello.

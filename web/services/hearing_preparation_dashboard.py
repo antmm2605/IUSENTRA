@@ -133,43 +133,6 @@ def _build_session_index(sessioni: list[SessioneWizardPro]) -> dict[str, dict[st
     return grouped
 
 
-def _match_udienza(fascicolo: Fascicolo, appuntamenti: list[Any]) -> Any | None:
-    rg = _safe_lower(fascicolo.rg_completo or fascicolo.numero_rg)
-    numero = _safe_lower(fascicolo.numero)
-    tribunale = _safe_lower(fascicolo.tribunale)
-    titolo = _safe_lower(fascicolo.titolo)
-    cliente = _safe_lower(fascicolo.nome_cliente)
-
-    ranked: list[tuple[int, str, Any]] = []
-    for appuntamento in appuntamenti:
-        if getattr(appuntamento, "tipo", None) != TipoAppuntamento.UDIENZA:
-            continue
-        data_ora = getattr(appuntamento, "data_ora", "")
-        if data_ora and data_ora[:10] < date.today().isoformat():
-            continue
-
-        score = 0
-        if fascicolo.id_cliente and getattr(appuntamento, "id_cliente", "") == fascicolo.id_cliente:
-            score += 4
-        if rg and rg in _safe_lower(getattr(appuntamento, "procedimento", "")):
-            score += 5
-        if numero and numero in _safe_lower(getattr(appuntamento, "titolo", "")):
-            score += 2
-        if tribunale and tribunale and tribunale in _safe_lower(getattr(appuntamento, "tribunale", "")):
-            score += 2
-        if cliente and cliente in _safe_lower(getattr(appuntamento, "cliente", "")):
-            score += 1
-        if titolo and titolo in _safe_lower(getattr(appuntamento, "titolo", "")):
-            score += 1
-        if score:
-            ranked.append((score, data_ora or "9999-12-31T23:59:59", appuntamento))
-
-    if not ranked:
-        return None
-    ranked.sort(key=lambda item: (-item[0], item[1]))
-    return ranked[0][2]
-
-
 def _note_compilate(sessione: SessioneWizardPro | None) -> int:
     if not sessione:
         return 0
@@ -212,20 +175,22 @@ def _critical_badges(
     open_scadenze: int,
 ) -> list[dict[str, str]]:
     badges: list[dict[str, str]] = []
-    if giorni_udienza == 0:
+    if giorni_udienza is not None and giorni_udienza < 0:
+        badges.append({"label": "Udienza trascorsa", "tone": "secondary"})
+    elif giorni_udienza == 0:
         badges.append({"label": "Udienza oggi", "tone": "danger"})
     elif giorni_udienza is not None and giorni_udienza <= 3:
-        badges.append({"label": f"Tra {giorni_udienza} giorni", "tone": "warning"})
-    elif giorni_udienza is not None and giorni_udienza <= 7:
+        badges.append({"label": "Domani" if giorni_udienza == 1 else f"Tra {giorni_udienza} giorni", "tone": "warning"})
+    elif giorni_udienza is not None and 0 <= giorni_udienza <= 7:
         badges.append({"label": "Udienza vicina", "tone": "warning"})
     if documenti_mancanti > 0:
         badges.append({"label": "Documenti mancanti", "tone": "danger"})
     if has_draft:
-        badges.append({"label": "Bozza gia presente", "tone": "info"})
+        badges.append({"label": "Bozza già presente", "tone": "info"})
     if has_completed:
         badges.append({"label": "Preparazione completata", "tone": "success"})
     if open_scadenze > 0:
-        badges.append({"label": f"{open_scadenze} attivita aperte", "tone": "secondary"})
+        badges.append({"label": "1 attività aperta" if open_scadenze == 1 else f"{open_scadenze} attività aperte", "tone": "secondary"})
     return badges[:4]
 
 
@@ -315,7 +280,7 @@ def _build_case_entry(
         "parti": top_parti,
         "ha_parti": bool(top_parti),
         "ha_udienza": bool(prossima_udienza_raw),
-        "udienza_imminente": giorni_udienza is not None and giorni_udienza <= 7,
+        "udienza_imminente": giorni_udienza is not None and 0 <= giorni_udienza <= 7,
     }
 
 
@@ -337,11 +302,27 @@ def build_hearing_preparation_dashboard(selected_fascicolo_id: str = "") -> dict
             continue
         scadenze_per_fascicolo.setdefault(scadenza.id_fascicolo, []).append(scadenza)
 
+    # L'identità è la stessa del catalogo Preparazione udienza: mai il solo ufficio.
+    from web.services.preparazione_udienza_associazione import fascicolo_udienza
+
+    fascicoli = list(fascicoli_manager.tutti())
+    appuntamenti_per_fascicolo: dict[str, Any] = {}
+    for app in sorted(agenda_items, key=lambda item: str(getattr(item, "data_ora", ""))):
+        if getattr(app, "tipo", None) != TipoAppuntamento.UDIENZA:
+            continue
+        if str(getattr(getattr(app, "stato", ""), "value", getattr(app, "stato", ""))) in {"ANNULLATO", "RINVIATO"}:
+            continue
+        if str(getattr(app, "data_ora", ""))[:10] < date.today().isoformat():
+            continue
+        related = fascicolo_udienza(app, fascicoli, sessioni)
+        if related is not None:
+            appuntamenti_per_fascicolo.setdefault(str(related.id), app)
+
     entries: list[dict[str, Any]] = []
-    for fascicolo in fascicoli_manager.tutti():
+    for fascicolo in fascicoli:
         cliente = clienti_manager.get(fascicolo.id_cliente) if fascicolo.id_cliente else None
         parti = soggetti_manager.parti_fascicolo(fascicolo.id)
-        appuntamento = _match_udienza(fascicolo, agenda_items)
+        appuntamento = appuntamenti_per_fascicolo.get(str(fascicolo.id))
         scadenze_collegate = scadenze_per_fascicolo.get(fascicolo.id, [])
         entry = _build_case_entry(
             fascicolo,
@@ -392,7 +373,7 @@ def build_hearing_preparation_dashboard(selected_fascicolo_id: str = "") -> dict
         return sorted(values)
 
     metrics = [
-        {"label": "Fascicoli pronti", "value": len(entries), "icon": "bi-briefcase"},
+        {"label": "Fascicoli nel catalogo", "value": len(entries), "icon": "bi-briefcase"},
         {"label": "Bozze attive", "value": len(attive), "icon": "bi-pencil-square"},
         {"label": "Preparazioni complete", "value": len(completate), "icon": "bi-check2-circle"},
         {

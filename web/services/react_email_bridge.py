@@ -19,6 +19,7 @@ import unicodedata
 from urllib.parse import quote
 
 from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
+from pct.email_sql_client import GestioneEmailSQL
 from pct.formatting import DISPLAY_TIMEZONE, parse_datetime_rome
 from pct import pec_profilo_ufficio
 from pct.pec_pipeline import (
@@ -29,6 +30,8 @@ from pct.pec_pipeline import (
     detect_pec_legal_context,
     field_result,
 )
+from web.services.email_storage_runtime import create_email_mailbox
+from web.services.email_storage_errors import MAILBOX_STORAGE_ERRORS
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
 DEFAULT_EMAIL_PAGE_LIMIT = 80
@@ -892,7 +895,7 @@ def _pec_audit_matches_filters(
     con_allegati: bool,
     stato_pct: str,
 ) -> bool:
-    if folder != CartellaEmail.INBOX:
+    if folder not in {CartellaEmail.INBOX, 'TUTTE'}:
         return False
     if stato == StatoEmail.NON_LETTA:
         return False
@@ -996,6 +999,8 @@ def _format_time(value: Any) -> str:
 
 def _normalise_folder(value: Any) -> str:
     raw = _enum_value(value).upper()
+    if raw == 'TUTTE':
+        return 'TUTTE'
     if raw == CartellaEmail.INVIATI or raw in {"SENT", "SENT ITEMS", "POSTA INVIATA"}:
         return CartellaEmail.INVIATI
     if raw == CartellaEmail.CESTINO or raw in {"TRASH", "DELETED", "DELETED ITEMS", "POSTA ELIMINATA"}:
@@ -1033,6 +1038,8 @@ def _sync_inviati_da_messaggi(gestore: GestioneEmailRicevute, messaggi_db: str) 
                 inviati.append(msg)
         if inviati:
             gestore.sincronizza_inviati(inviati)
+    except MAILBOX_STORAGE_ERRORS:
+        raise
     except Exception:
         return
 
@@ -1061,6 +1068,12 @@ def _email_row(
     is_pst = bool(getattr(email_obj, "e_pst", False)) if include_telematic else False
     pct_status = _safe_text(getattr(email_obj, "stato_pct", "")) if include_telematic else ""
     presidio_payload = dict(pec_presidio or {})
+    preview_text = getattr(email_obj, "anteprima", "") or getattr(email_obj, "corpo_testo", "")
+    if not include_telematic:
+        readable_html = _html_to_readable_text(getattr(email_obj, "corpo_html", ""))
+        if readable_html:
+            preview_text = readable_html
+    preview_text = html_lib.unescape(_repair_text_encoding_artifacts(str(preview_text or "")))
     row = {
         "id": email_id,
         "folder": folder,
@@ -1069,7 +1082,7 @@ def _email_row(
         "senderName": sender_name,
         "recipients": recipients,
         "subject": subject,
-        "preview": _short_text(getattr(email_obj, "anteprima", "") or getattr(email_obj, "corpo_testo", ""), 220),
+        "preview": _short_text(preview_text, 220),
         "timestamp": timestamp,
         "timeLabel": _format_time(timestamp),
         "unread": status == StatoEmail.NON_LETTA,
@@ -1168,8 +1181,8 @@ def build_react_email_detail_payload(
     include_telematic: bool = True,
     tenant_id: str = "default",
 ) -> dict[str, Any] | None:
-    gestore = GestioneEmailRicevute(db_path=db_path)
-    email_obj = gestore.get(id_email)
+    gestore = create_email_mailbox(db_path=db_path, load_catalog=False)
+    email_obj = gestore.get_readonly(id_email) if isinstance(gestore, GestioneEmailSQL) else gestore.get(id_email)
     if not email_obj:
         return None
     body_payload = _email_body_payload(email_obj, gestore)
@@ -1226,6 +1239,9 @@ def build_react_email_payload(
     stato: str = "",
     solo_pst: bool = False,
     con_allegati: bool = False,
+    solo_collegate: bool = False,
+    selection_only: bool = False,
+    solo_da_presidiare: bool = False,
     stato_pct: str = "",
     origine: str = "",
     data_da: str = "",
@@ -1234,7 +1250,7 @@ def build_react_email_payload(
     limit: int = DEFAULT_EMAIL_PAGE_LIMIT,
     offset: int = 0,
 ) -> dict[str, Any]:
-    gestore = GestioneEmailRicevute(db_path=db_path)
+    gestore = create_email_mailbox(db_path=db_path)
     _sync_inviati_da_messaggi(gestore, messaggi_db)
     base = "/" + str(base_path or "/email").strip("/")
     sync_href = sync_path or f"{base}/sincronizza"
@@ -1243,11 +1259,11 @@ def build_react_email_payload(
 
     folder_valida = _normalise_folder(folder)
     emails = gestore.tutte(
-        cartella=folder_valida,
+        cartella=None if folder_valida == 'TUTTE' else folder_valida,
         solo_non_lette=stato == StatoEmail.NON_LETTA,
         q=query,
         stato_lettura=stato if stato in {StatoEmail.NON_LETTA, StatoEmail.LETTA} else "",
-        solo_pst=solo_pst if include_telematic else False,
+        solo_pst=False,
         con_allegati=con_allegati,
         stato_pct=stato_pct if include_telematic else "",
         origine=origine,
@@ -1257,9 +1273,6 @@ def build_react_email_payload(
     all_emails = list(gestore._carica().values())  # noqa: SLF001 - bridge read-only su repository operativa
     stats = gestore.statistiche()
     large_mailbox = len(all_emails) > 80
-    email_page_start = min(page_offset, len(emails))
-    email_page_end = min(len(emails), email_page_start + page_limit)
-    page_emails = emails[email_page_start:email_page_end]
     persisted_audit_summaries = _pec_audit_summaries(
         db_path,
         all_emails,
@@ -1267,6 +1280,14 @@ def build_react_email_payload(
         include_telematic=include_telematic,
         include_details=not large_mailbox,
     )
+    if solo_pst and include_telematic:
+        emails = [email_obj for email_obj in emails if (
+            getattr(email_obj, 'e_pst', False)
+            or persisted_audit_summaries.get(str(getattr(email_obj, 'message_id', '') or '').strip())
+            or persisted_audit_summaries.get(str(getattr(email_obj, 'id', '') or '').strip())
+        )]
+    if solo_collegate:
+        emails = [email_obj for email_obj in emails if bool(getattr(email_obj, 'auto_registrata', False))]
     presidio_index = _pec_presidio_index(db_path, tenant_id=tenant_id, include_telematic=include_telematic)
     presidiati_by_email = presidio_index.get("by_email_id") if isinstance(presidio_index.get("by_email_id"), dict) else {}
     presidiati_by_message = presidio_index.get("by_message_id") if isinstance(presidio_index.get("by_message_id"), dict) else {}
@@ -1281,6 +1302,32 @@ def build_react_email_payload(
         if audit_message_id and audit_message_id in presidiati_by_message:
             return dict(presidiati_by_message[audit_message_id])
         return {}
+
+    def _warning_for_email(email_obj: Any) -> bool:
+        if not include_telematic or _presidio_for_email(email_obj):
+            return False
+        audit = (
+            persisted_audit_summaries.get(str(getattr(email_obj, 'message_id', '') or '').strip())
+            or persisted_audit_summaries.get(str(getattr(email_obj, 'id', '') or '').strip())
+        )
+        status = str(getattr(email_obj, 'stato_pct', '') or '').upper()
+        return bool(audit and _pec_quality_label(str(audit.get('quality_status') or ''))[1] != 'success') or any(
+            marker in status for marker in ('RIFIUT', 'ERRORE', 'WARN'))
+
+    if solo_da_presidiare:
+        emails = [email_obj for email_obj in emails if _warning_for_email(email_obj)]
+    if selection_only:
+        # Gli stessi filtri attraversano tutte le pagine; un audit virtuale
+        # senza messaggio archiviato non può ricevere una presa visione.
+        if folder_valida != CartellaEmail.INBOX:
+            raise ValueError('La lettura multipla è disponibile nella posta in arrivo.')
+        ids = [str(email_obj.id) for email_obj in emails]
+        if len(ids) > 5000:
+            raise ValueError('La selezione supera 5.000 messaggi. Restringi la ricerca o i filtri.')
+        return {'ok': True, 'ids': ids, 'total': len(ids)}
+    email_page_start = min(page_offset, len(emails))
+    email_page_end = min(len(emails), email_page_start + page_limit)
+    page_emails = emails[email_page_start:email_page_end]
 
     # Su caselle reali con migliaia di PEC la lista deve restare leggera: il
     # profilo completo, fonti normative, allegati e controlli sono caricati
@@ -1310,7 +1357,10 @@ def build_react_email_payload(
     audit_only_filtered_summaries = [
         item
         for item in audit_only_summaries
-        if _pec_audit_matches_filters(
+        if not solo_collegate and (not solo_da_presidiare or (
+            str(item.get('id') or '').strip() not in presidiati_by_message
+            and _pec_quality_label(str(item.get('quality_status') or ''))[1] != 'success'
+        )) and _pec_audit_matches_filters(
             item,
             folder=folder_valida,
             query=query,
@@ -1402,6 +1452,7 @@ def build_react_email_payload(
         "items": rows,
         "facets": {
             "folders": [
+                _facet('TUTTE', 'Tutte', int(stats.get('totale', len(all_emails)) or 0) + len(audit_only_summaries)),
                 _facet(CartellaEmail.INBOX, "In arrivo", int(stats.get("inbox", 0)) + len(audit_only_summaries)),
                 _facet(CartellaEmail.INVIATI, "Inviati", int(stats.get("inviati", 0))),
                 _facet(CartellaEmail.CESTINO, "Cestino", int(stats.get("cestino", 0))),
@@ -1413,7 +1464,7 @@ def build_react_email_payload(
                 _facet(StatoEmail.CESTINO, "Nel cestino", int(stats.get("cestino", 0))),
             ],
             "pctStatuses": [
-                _facet("", "Tutti gli esiti", int(stats.get("pst", 0)) if include_telematic else 0),
+                _facet("", "Tutti gli esiti", len(all_emails) + len(audit_only_summaries)),
                 *[_facet(value, value, count) for value, count in sorted(pct_counts.items())],
             ],
         },

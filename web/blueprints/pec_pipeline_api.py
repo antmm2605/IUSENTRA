@@ -10,7 +10,7 @@ from typing import Any, Callable
 
 from flask import Blueprint, Response, current_app, g, jsonify, request
 
-from pct.email_client import GestioneEmailRicevute
+
 from pct.pec_control_tower import PecControlTowerRepository
 from pct.pec_pipeline import PecAuditRepository, ingest_synthetic_dataset, parse_pec_message
 from web.services.pec_pipeline_runtime import (
@@ -25,6 +25,7 @@ from web.services.pec_pipeline_runtime import (
 from web.services.security_redaction import redacted_json_response
 from web.services.tenant_api_auth import api_key_valid_for_request
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
+from web.services.email_storage_runtime import create_email_mailbox
 
 pec_pipeline_api = Blueprint("pec_pipeline_api", __name__, url_prefix="/api/pec")
 
@@ -289,7 +290,7 @@ def pec_acquire_legacy_email(email_id: str):
 
     try:
         email_db = _runtime_path("EMAIL_CASELLA_DB", "./email/casella.json")
-        gestore = GestioneEmailRicevute(email_db)
+        gestore = create_email_mailbox(email_db)
         email_obj = gestore.get(email_id)
         if not email_obj:
             return _json_error(404)
@@ -587,7 +588,7 @@ def _local_acquire_record(
 def _pec_acquire_local_emails_chunked():
     try:
         email_db = _runtime_path("EMAIL_CASELLA_DB", "./email/casella.json")
-        gestore = GestioneEmailRicevute(email_db)
+        gestore = create_email_mailbox(email_db)
         actor = _actor()
         audit_available = True
         audit_error = ""
@@ -968,7 +969,7 @@ def pec_acquire_local_emails():
 
     try:
         email_db = _runtime_path("EMAIL_CASELLA_DB", "./email/casella.json")
-        gestore = GestioneEmailRicevute(email_db)
+        gestore = create_email_mailbox(email_db)
         audit_available = True
         audit_error = ""
         try:

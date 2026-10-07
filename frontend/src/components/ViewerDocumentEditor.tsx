@@ -15,7 +15,7 @@ import { ViewerHandwrittenSignaturePanel } from './ViewerHandwrittenSignaturePan
 import { ViewerCanvasObjects } from './ViewerCanvasObjects'
 type TextSpan = { id: number; text: string; x: number; y: number; width: number; height: number }
 
-export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation = 0, readerRef }: { source: SourceDocument; onDirty: (value: boolean) => void; onSaving?: (value: boolean) => void; readerRotation?: number; readerRef?: RefObject<HTMLIFrameElement | null> }) {
+export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation = 0, readerRef, compactReader = false }: { source: SourceDocument; onDirty: (value: boolean) => void; onSaving?: (value: boolean) => void; readerRotation?: number; readerRef?: RefObject<HTMLIFrameElement | null>; compactReader?: boolean }) {
   const endpoint = editorEndpoint(source.href)
   const [policy, setPolicy] = useState<Policy | null>(null)
   const [open, setOpen] = useState(false)
@@ -177,7 +177,7 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
   const readerUrl = new URL(source.href, window.location.origin)
   if (revision) readerUrl.searchParams.set('iuRevision', String(revision))
   return <ViewerColorSampling.Provider value={sampler}><div className="iu-viewer-edit" onContextMenu={(event)=>{event.stopPropagation();if(open)event.preventDefault()}} onKeyDown={event=>{if(event.key==='Escape'&&sampler.active){event.preventDefault();event.stopPropagation();sampler.cancel()}else if(event.key==='Escape'&&armed){event.preventDefault();event.stopPropagation();setArmed(false);setDraft(null);drag.current=null}}}>
-    {endpoint ? <div className="iu-viewer-edit__bar">
+    {endpoint && !(compactReader && !policy?.editable && policy?.reason === 'Questo formato resta consultabile nel lettore e scaricabile.' && !error) ? <div className="iu-viewer-edit__bar">
       {policy?.editable ? <button type="button" aria-expanded={open} aria-controls="iu-viewer-edit-workbench" onClick={() => {sampler.cancel();setArmed(false);setOpen((value) => !value)}} disabled={saving}><Pencil size={15}/>{open ? 'Chiudi strumenti di modifica' : policy.studio ? 'Modifica documento' : 'Prepara copia per condivisione'}</button>
         : <span>{policy?.reason || (error ? error : 'Verifica provenienza e permessi...')}</span>}
       {marks.length ? <span role="status">{marks.length} {marks.length === 1 ? 'intervento da salvare' : 'interventi da salvare'}</span> : null}
@@ -235,7 +235,7 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
           {draft ? <span className="iu-viewer-edit__draft" style={{ left: `${Math.min(draft.x, draft.x1) * 100}%`, top: `${Math.min(draft.y, draft.y1) * 100}%`, width: `${Math.abs(draft.x1 - draft.x) * 100}%`, height: `${Math.abs(draft.y1 - draft.y) * 100}%` }}/> : null}
         </div>}
       </div>
-    </section> : <SourceDocumentReader key={`${source.href}-${revision}`} href={readerUrl.toString()} label={source.label} rotation={readerRotation} readerRef={activeReaderRef}/>}
+    </section> : <SourceDocumentReader key={`${source.href}-${revision}`} href={readerUrl.toString()} label={source.label} rotation={readerRotation} readerRef={activeReaderRef} compact={compactReader}/>}
     <SourceDocumentModal source={copySource} onClose={() => setCopySource(null)}/>
     {signatureOpen ? <ViewerHandwrittenSignaturePanel disabled={saving} openRequest={signatureOpenRequest} onClose={() => setSignatureOpen(false)} onInsert={(imageData, width, height) => {setImageOptions({imageData,imageName:'Firma grafica',width:.25,height:.25*(currentPage?.width||595)/(currentPage?.height||842)*height/width,keepRatio:true,imageBrightness:1,imageContrast:1,imageSharpness:1,imageGrayscale:false,imageAutocontrast:false});setSelectedInsertion(null);setTool('image');setOpen(true);setArmed(true);setSignatureOpen(false)}}/> : null}
   </div></ViewerColorSampling.Provider>

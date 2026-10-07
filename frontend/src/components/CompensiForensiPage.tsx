@@ -17,6 +17,7 @@ import {
   type CompensiForensiPageData,
 } from '../compensiForensiData'
 import './CompensiForensiPage.css'
+import { CompensiCatalogWindow } from './CompensiCatalogWindow'
 
 function ContractStrip({ data }: { data: CompensiForensiPageData }) {
   return (
@@ -45,7 +46,7 @@ function WarningList({ data }: { data: CompensiForensiPageData }) {
   )
 }
 
-function Metrics({ data }: { data: CompensiForensiPageData }) {
+function Metrics({ data, onCatalog }: { data: CompensiForensiPageData; onCatalog: (kind: 'profili' | 'regole') => void }) {
   if (!data.metrics.length) return null
   return (
     <section className="iu-comp-metrics" aria-label="Indicatori compensi forensi">
@@ -55,6 +56,9 @@ function Metrics({ data }: { data: CompensiForensiPageData }) {
           label={metric.label}
           value={metric.value || 0}
           note={metric.note}
+          onClick={metric.id === 'profili' || metric.id === 'regole' ? () => onCatalog(metric.id as 'profili' | 'regole') : undefined}
+          href={metric.id === 'preventivi' ? '/preventivi?metric=preventivi_totali' : metric.id === 'conferimenti' ? '/preventivi?metric=conferimenti' : undefined}
+          actionLabel={metric.id === 'profili' || metric.id === 'regole' ? 'Esamina e ricerca' : 'Apri archivio'}
           badge={<Badge tone={metric.tone}>{metric.tone === 'neutral' ? 'Dato' : 'Attivo'}</Badge>}
         />
       ))}
@@ -144,6 +148,7 @@ export function CompensiForensiPage() {
   const [value, setValue] = useState('0')
   const [complexity, setComplexity] = useState('media')
   const [fullscreen, setFullscreen] = useState(false)
+  const [catalogs, setCatalogs] = useState<Partial<Record<'profili' | 'regole', number>>>({})
 
   function load() {
     setLoading(true)
@@ -230,7 +235,9 @@ export function CompensiForensiPage() {
         {error ? <div className="iu-comp-state iu-comp-state--error" role="alert">{error}</div> : null}
         <ContractStrip data={data} />
         <WarningList data={data} />
-        <Metrics data={data} />
+        <Metrics data={data} onCatalog={kind => setCatalogs(current => ({ ...current, [kind]: (current[kind] || 0) + 1 }))} />
+        {(['profili', 'regole'] as const).map(kind => catalogs[kind] ? <CompensiCatalogWindow key={kind} kind={kind} records={data.records} focusToken={catalogs[kind] || 0} canOpenTariffario={data.actions.canOpenTariffario}
+          onClose={() => setCatalogs(current => { const next = { ...current }; delete next[kind]; return next })}/> : null)}
         <section className="iu-comp-hero iu-od-surface">
           <div>
             <h2>Parametri di calcolo</h2>
@@ -249,7 +256,7 @@ export function CompensiForensiPage() {
               {fullscreen ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}
               {fullscreen ? 'Riduci' : 'Tutto schermo'}
             </Button>
-            {data.actions.links.map((action) => (
+            {data.actions.links.filter(action => !/_legacy=1|percorso_recupero/i.test(`${action.href} ${action.id}`)).map((action) => (
               <ButtonLink
                 key={action.id}
                 href={action.href}

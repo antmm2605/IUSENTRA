@@ -190,6 +190,10 @@ function text(value: unknown, fallback = ''): string {
   return sanitizeDisplayText(String(value ?? fallback).trim() || fallback)
 }
 
+function userText(value: unknown, fallback = ''): string {
+  return String(value ?? fallback).trim() || fallback
+}
+
 function number(value: unknown, fallback = 0): number {
   const parsed = Number(value ?? fallback)
   return Number.isFinite(parsed) ? parsed : fallback
@@ -216,7 +220,7 @@ function optionFrom(value: unknown): TimesheetOption | null {
   if (!id) return null
   return {
     id,
-    label: text(value.label, id),
+    label: userText(value.label, id),
     href: text(value.href),
     idCliente: text(value.idCliente ?? value.id_cliente),
   }
@@ -237,14 +241,14 @@ function entryFrom(value: unknown): TimesheetEntry | null {
     id,
     date: text(value.date),
     dateLabel: text(value.dateLabel ?? value.date_label),
-    description: text(value.description, 'Attivita senza descrizione'),
+    description: userText(value.description, 'Attività senza descrizione'),
     idCliente: text(value.idCliente ?? value.id_cliente),
-    clientName: text(value.clientName ?? value.client_name, 'Cliente non collegato'),
+    clientName: userText(value.clientName ?? value.client_name, 'Cliente non collegato'),
     clientHref: text(value.clientHref ?? value.client_href),
     idFascicolo: text(value.idFascicolo ?? value.id_fascicolo),
-    fascicoloLabel: text(value.fascicoloLabel ?? value.fascicolo_label, 'Fascicolo non collegato'),
+    fascicoloLabel: userText(value.fascicoloLabel ?? value.fascicolo_label, 'Fascicolo non collegato'),
     fascicoloHref: text(value.fascicoloHref ?? value.fascicolo_href),
-    user: text(value.user, 'Operatore'),
+    user: userText(value.user, 'Operatore'),
     minutes: number(value.minutes),
     hours: number(value.hours),
     hoursLabel: text(value.hoursLabel ?? value.hours_label, '0 min'),
@@ -258,8 +262,8 @@ function entryFrom(value: unknown): TimesheetEntry | null {
     statusLabel: text(value.statusLabel ?? value.status_label),
     statusTone: tone(value.statusTone ?? value.status_tone),
     origin: text(value.origin),
-    notes: text(value.notes),
-    context: text(value.context),
+    notes: userText(value.notes),
+    context: userText(value.context),
     stateAction: text(value.stateAction ?? value.state_action),
     eligibleForInvoice: Boolean(value.eligibleForInvoice ?? value.eligible_for_invoice),
   }
@@ -305,15 +309,15 @@ function filtersFrom(value: unknown): Record<string, string> {
   return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, text(item)]))
 }
 
-export async function getTimesheetPage(): Promise<TimesheetData> {
+export async function getTimesheetPage(searchOverride?: string): Promise<TimesheetData> {
   try {
-    const search = typeof window !== 'undefined' ? window.location.search : ''
+    const search = searchOverride ?? (typeof window !== 'undefined' ? window.location.search : '')
     const response = await fetch(`/api/v1/ui/timesheet${search}`, {
       credentials: 'same-origin',
       cache: 'no-store',
       headers: { Accept: 'application/json' },
     })
-    if (!response.ok) return emptyTimesheetData
+    if (!response.ok) throw new Error('Non è stato possibile caricare il timesheet.')
     const payload = await response.json() as Record<string, unknown>
     const options = isRecord(payload.options) ? payload.options : {}
     const actions = isRecord(payload.actions) ? payload.actions : {}
@@ -366,7 +370,7 @@ export async function getTimesheetPage(): Promise<TimesheetData> {
         noBillableEntries: Boolean(emptyStates.noBillableEntries),
       },
     }
-  } catch {
-    return emptyTimesheetData
+  } catch (error) {
+    throw error instanceof Error ? error : new Error('Non è stato possibile caricare il timesheet.')
   }
 }

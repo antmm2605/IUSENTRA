@@ -87,6 +87,7 @@ export type CartelleCondiviseData = {
   managedFolders: ManagedFolder[]
   receivedFolders: ReceivedFolder[]
   receivedMatters: ReceivedMatter[]
+  managedMatters: Array<ReceivedMatter & { accesses: SharedAccess[] }>
   warnings: Array<{ tone: Tone; label: string; count: number }>
   roleOptions: Array<{ value: string; label: string; tone: Tone }>
   actions: {
@@ -126,6 +127,7 @@ const emptyData: CartelleCondiviseData = {
   managedFolders: [],
   receivedFolders: [],
   receivedMatters: [],
+  managedMatters: [],
   warnings: [],
   roleOptions: [],
   actions: {
@@ -263,7 +265,7 @@ export async function getCartelleCondivisePage(): Promise<CartelleCondiviseData>
       cache: 'no-store',
       headers: { Accept: 'application/json' },
     })
-    if (!response.ok) return emptyData
+    if (!response.ok) throw new Error('Impossibile caricare le cartelle condivise. Verifica accesso e permessi, poi riprova.')
     const payload = await response.json() as Record<string, unknown>
     const permissions = isRecord(payload.permissions) ? payload.permissions : {}
     const stats = isRecord(payload.stats) ? payload.stats : {}
@@ -291,6 +293,10 @@ export async function getCartelleCondivisePage(): Promise<CartelleCondiviseData>
       managedFolders: Array.isArray(payload.managedFolders) ? payload.managedFolders.map(managedFolderFrom).filter((item): item is ManagedFolder => Boolean(item)) : [],
       receivedFolders: Array.isArray(payload.receivedFolders) ? payload.receivedFolders.map(receivedFolderFrom).filter((item): item is ReceivedFolder => Boolean(item)) : [],
       receivedMatters: Array.isArray(payload.receivedMatters) ? payload.receivedMatters.map(receivedMatterFrom).filter((item): item is ReceivedMatter => Boolean(item)) : [],
+      managedMatters: Array.isArray(payload.managedMatters) ? payload.managedMatters.flatMap(raw => {
+        const matter = receivedMatterFrom(raw)
+        return matter && isRecord(raw) ? [{ ...matter, accesses: Array.isArray(raw.accesses) ? raw.accesses.map(accessFrom) : [] }] : []
+      }) : [],
       warnings: Array.isArray(payload.warnings) ? payload.warnings.map((warning) => {
         const item = isRecord(warning) ? warning : {}
         return { tone: tone(item.tone), label: text(item.label), count: number(item.count) }
@@ -313,7 +319,7 @@ export async function getCartelleCondivisePage(): Promise<CartelleCondiviseData>
         noExpiringAccesses: Boolean(emptyStates.noExpiringAccesses),
       },
     }
-  } catch {
-    return emptyData
+  } catch (reason) {
+    throw reason instanceof Error ? reason : new Error('Impossibile caricare le cartelle condivise. Riprova.')
   }
 }

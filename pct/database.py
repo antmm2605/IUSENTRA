@@ -13,6 +13,7 @@ Funzionalità:
 
 from __future__ import annotations
 
+
 import json
 import shutil
 import sqlite3
@@ -29,6 +30,7 @@ from pct.catalogo_strutturale import (
     ensure_catalogo_strutturale_schema,
     seed_catalogo_strutturale,
 )
+from pct.email_mailbox_repository import DDL as _EMAIL_MAILBOX_DDL
 from pct.pdp_penale_workflow import SCHEMA_SQL_PDP_PENALE
 from pct.path_security import resolve_sqlite_path
 from pct.telematico_workflow import SCHEMA_SQL_TELEMATICO
@@ -665,6 +667,8 @@ CREATE TABLE IF NOT EXISTS search_ocr_cache (
     elaborato_il TEXT
 );
 """ + "\n" + SCHEMA_SQL_PDP_PENALE + "\n" + SCHEMA_SQL_TELEMATICO
+
+SCHEMA_SQL += '\n' + ';\n'.join(_EMAIL_MAILBOX_DDL) + ';\n'
 
 
 # ================================================================ GestioneDatabase

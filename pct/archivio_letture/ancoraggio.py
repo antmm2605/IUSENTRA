@@ -144,6 +144,11 @@ def motivo_non_processuale(testo: str, inizio: int, fine: int) -> str:
         return "periodo di servizio scolastico, non termine processuale"
     dopo = testo[fine:fine + 130]
     vicino = prima + testo[inizio:fine] + dopo
+    # Le etichette della tessera identificano la validità del documento.
+    # Non cambiano la classificazione del fascicolo né una decisione legale.
+    tessera = re.search(r"tessera\s+sanitaria|dati\s+sanitari\s+regionali|numero\s+di\s+identificazione\s+della\s+tessera", vicino, re.I)
+    if tessera and re.search(r"scadenza|nascita|validit[àa]", vicino, re.I) and not re.search(r"(?:fissa|rinvia|udienza|notificare|depositare|termin[ei]|entro|perentori[oa]|assegna|dispone)\b", vicino, re.I):
+        return "data di validità o nascita della tessera sanitaria, non termine processuale"
     if re.search(r"decorrenza\s+dal\s*$", prima, re.I) and re.search(r"cessazione|ore settimanali|tipologia posto|lezione presso", vicino, re.I):
         return "decorrenza del rapporto di lavoro, non termine processuale"
     if re.search(r"supplenza|anno scolastico|attivit[àa]\s+(?:di\s+)?didattiche|costituzione della Carta", vicino, re.I):

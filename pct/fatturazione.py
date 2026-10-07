@@ -222,7 +222,20 @@ class Parcella:
                     year = _dt.fromisoformat(self.data_emissione).year
                 except Exception:
                     pass
-            nt = GestioneTabelleNormative()
+            # Una lettura coerente delle tabelle per richiesta, senza cache
+            # tra richieste o tenant: i calcoli mantengono la procedura nativa.
+            try:
+                from flask import g, has_request_context
+                request_context = has_request_context()
+            except ImportError:
+                request_context = False
+            if request_context:
+                nt = getattr(g, "_fatturazione_tabelle_normative", None)
+                if nt is None:
+                    nt = GestioneTabelleNormative()
+                    g._fatturazione_tabelle_normative = nt
+            else:
+                nt = GestioneTabelleNormative()
             return nt.cassa_forense_aliquota_integrativa(year) / 100.0
         except Exception:
             return 0.04

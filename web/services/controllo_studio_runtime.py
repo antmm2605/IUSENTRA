@@ -62,7 +62,9 @@ def costruisci(helpers: dict[str, Callable[[], Any]], *, presidi_notifiche: Call
         def comunicazioni() -> list:
             # La casella applica la deduplica primaria; la pagina React pagina
             # l'elenco senza tagliare ricerca e conteggi delle PEC da leggere.
-            pec = list(helpers["email_pec"]().tutte(cartella="INBOX", solo_non_lette=True))
+            from pct.email_sql_client import GestioneEmailSQL
+            mailbox = helpers["email_pec"]()
+            pec = list(mailbox.tutte(cartella="INBOX", solo_non_lette=True))
             dal = giorno - timedelta(days=GIORNI_MESSAGGI)
             falliti = [m for m in helpers["messaggi"]().tutti() if str(getattr(getattr(m, "stato", ""), "value", "")) == "FALLITO"
                        and str(getattr(m, "creato_il", ""))[:10] >= dal.isoformat()]
@@ -75,6 +77,10 @@ def costruisci(helpers: dict[str, Callable[[], Any]], *, presidi_notifiche: Call
                 except Exception:
                     LOG.warning("Controllo Studio: collegamenti PEC non disponibili", exc_info=True)
                     mancanti.append("Collegamenti PEC ai fascicoli")
+            if not isinstance(mailbox, GestioneEmailSQL):
+                from web.services.controllo_studio_letture import repository as letture
+                lette = letture().pec_lette()
+                pec = [e for e in pec if str(e.id) not in lette]
             return voci_comunicazioni(pec, falliti, giorno, per_id, collegamenti)
         voci += _prova("Comunicazioni", comunicazioni, mancanti)
     incassi = {"da_incassare": 0.0, "scaduto": 0.0, "parcelle_scadute": 0, "incassato_mese": 0.0}

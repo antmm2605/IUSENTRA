@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
+import { TelematicoCardsPanel, type TelematicoCardScope } from './TelematicoCardsPanel'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import {
   AlertTriangle,
   ArrowRight,
@@ -23,6 +25,7 @@ import { FloatingLex } from './FloatingLex'
 import {
   emptyTelematicoPage,
   getTelematicoPage,
+  getTelematicoCases,
   type TelematicoCase,
   type TelematicoChannel,
   type TelematicoChannelId,
@@ -49,14 +52,14 @@ const portalToneLabel: Record<TelematicoChannelId | 'altro', string> = {
   altro: 'TEL',
 }
 
-function StatCard({ icon, label, value, note, tone = 'primary' }:{ icon:ReactNode; label:string; value:number|string; note:string; tone?:Tone }) {
+function StatCard({ icon, label, value, note, tone = 'primary', onClick, active, disabled }:{ icon:ReactNode; label:string; value:number|string; note:string; tone?:Tone; onClick:()=>void; active?:boolean; disabled?:boolean }) {
   return (
-    <article className={`iu-tel-stat iu-tel-stat--${tone}`}>
+    <button type="button" className={`iu-tel-stat iu-tel-stat--${tone}`} onClick={onClick} aria-pressed={active} disabled={disabled}>
       <div>{icon}</div>
       <span>{label}</span>
       <strong>{value}</strong>
       <small>{note}</small>
-    </article>
+    </button>
   )
 }
 
@@ -260,26 +263,21 @@ function EventCard({ item }:{item:TelematicoEvent}) {
   )
 }
 
-function QualityGrid({ data }:{data:TelematicoPageData}) {
+function QualityGrid({ data, presidiCount, onCases, onPresidi, onChannels }:{data:TelematicoPageData; presidiCount:number; onCases:()=>void; onPresidi:()=>void; onChannels:()=>void}) {
   const checks = [
-    { icon: <ShieldCheck size={17}/>, label: 'Canali autorizzati', text: 'PST, PDP, PAT e PTT restano su portali ufficiali, Local Signer o import di file autorizzati.' },
-    { icon: <Database size={17}/>, label: 'Repository unico', text: 'Documenti, eventi, udienze, comunicazioni e istanze finiscono nel fascicolo interno.' },
-    { icon: <ClipboardCheck size={17}/>, label: 'Predisposto deposito', text: `${data.summary.blocked} blocchi e ${data.summary.warnings} avvisi vengono esposti prima della firma.` },
-    { icon: <Sparkles size={17}/>, label: 'Lex contestuale', text: 'Lex legge contesto telematico, RG, portale, esiti, documenti censiti e prossima azione.' },
+    { icon: <ShieldCheck size={17}/>, label: 'Canali disponibili', text: 'Consulta il canale attivo e le azioni consentite.', onClick: onChannels },
+    { icon: <Database size={17}/>, label: 'Fascicoli collegati', text: 'Cerca, filtra e apri le pratiche dello studio.', onClick: onCases },
+    { icon: <ClipboardCheck size={17}/>, label: 'Controlli prima del deposito', text: `${presidiCount} ${presidiCount === 1 ? 'controllo' : 'controlli'}: blocchi, avvisi e import.`, onClick: onPresidi },
   ]
-  return (
-    <div className="iu-tel-quality-grid">
-      {checks.map((item) => (
-        <article key={item.label}>
-          <div>{item.icon}</div>
-          <strong>{item.label}</strong>
-          <span>{item.text}</span>
-        </article>
-      ))}
-    </div>
-  )
+  return <div className="iu-tel-quality-grid">
+    {checks.map(item => <button type="button" key={item.label} onClick={item.onClick}>
+      <div>{item.icon}</div><strong>{item.label}</strong><span>{item.text}</span><ArrowRight className="iu-tel-quality-arrow" size={15} aria-hidden="true"/>
+    </button>)}
+    <a href={data.actions.lexHref} data-lex-open data-lex-context="telematico">
+      <div><Sparkles size={17}/></div><strong>Lex telematico</strong><span>Chiedi supporto su pratiche, esiti e prossime attività.</span><ArrowRight className="iu-tel-quality-arrow" size={15} aria-hidden="true"/>
+    </a>
+  </div>
 }
-
 function TruthRegistryPanel({ data }:{data:TelematicoPageData}) {
   const { truthRegistry } = data
   return (
@@ -362,22 +360,31 @@ export function TelematicoPage() {
   const [query, setQuery] = useState('')
   const [activeChannel, setActiveChannel] = useState<{ id:TelematicoChannelId; actionIndex:number }>(() => focusedChannelFromLocation())
   const initialFocusApplied = useRef(false)
+  const [loaded, setLoaded] = useState(false)
+  const [error, setError] = useState('')
+  const [cardScope, setCardScope] = useState<TelematicoCardScope | null>(null)
+  const [revision, setRevision] = useState(0)
+  const [presidiCount, setPresidiCount] = useState(0)
+  const mounted = useRef(false)
+  const flight = useRef<Promise<void> | null>(null)
 
   const load = () => {
+    if (flight.current) return flight.current
     setLoading(true)
-    getTelematicoPage()
-      .then(setData)
-      .finally(() => setLoading(false))
+    const operation = Promise.all([getTelematicoPage(), getTelematicoCases('', '', 1, undefined, 1, true)])
+      .then(([payload, presidi]) => { if (mounted.current) { setData(payload); setPresidiCount(presidi.total); setLoaded(true); setError(''); setRevision(value => value + 1) } })
+      .catch(() => { if (mounted.current) setError('I servizi telematici non sono stati aggiornati. Riprova senza perdere il contesto.') })
+      .finally(() => { if (mounted.current) setLoading(false); flight.current = null })
+    flight.current = operation
+    return operation
   }
 
   useEffect(() => {
-    let active = true
-    setLoading(true)
-    getTelematicoPage()
-      .then((payload) => { if (active) setData(payload) })
-      .finally(() => { if (active) setLoading(false) })
-    return () => { active = false }
+    mounted.current = true
+    void load()
+    return () => { mounted.current = false }
   }, [])
+  useOperationalRefresh(['fascicoli', 'agenda', 'scadenze', 'comunicazioni'], load)
 
   useEffect(() => {
     const hasFocusTarget = window.location.search.includes('focus=') || Boolean(window.location.hash)
@@ -424,8 +431,14 @@ export function TelematicoPage() {
     }
   }
 
+  if (!loaded) return <main className="iu-content iu-telematico-page" aria-busy={loading}>
+    <h1>Centro Servizi Telematici</h1>
+    <p role={error ? 'alert' : 'status'}>{error || 'Caricamento dei servizi telematici…'}</p>
+    {error ? <div className="iu-tel-load-error"><button type="button" disabled={loading} onClick={() => void load()}>Riprova</button></div> : null}
+  </main>
+
   return (
-    <main className="iu-content iu-telematico-page">
+    <main className="iu-content iu-telematico-page" aria-busy={loading}>
       <section className="iu-tel-hero">
         <div>
           <span className="iu-tel-eyebrow"><ShieldCheck size={16}/> Un presidio unico per i portali telematici</span>
@@ -444,6 +457,7 @@ export function TelematicoPage() {
         </div>
       </section>
 
+      {loaded && error ? <div className="iu-tel-load-error" role="alert"><span>{error}</span><button type="button" disabled={loading} onClick={() => void load()}>Riprova</button></div> : null}
       {data.notices.length ? (
         <section className="iu-tel-notices" aria-label="Avvisi telematici">
           {data.notices.map((notice) => (
@@ -456,11 +470,11 @@ export function TelematicoPage() {
       ) : null}
 
       <section className="iu-tel-stats" aria-label="Indicatori telematici">
-        <StatCard icon={<FolderOpen size={19}/>} label="Pratiche telematiche" value={data.summary.total} note="fascicoli sincronizzati o importati" tone="primary"/>
-        <StatCard icon={<Building2 size={19}/>} label="PST / PDP" value={data.summary.pst + data.summary.pdp} note="ministero giustizia" tone="info"/>
-        <StatCard icon={<FileCheck2 size={19}/>} label="PAT / SIGA" value={data.summary.pat} note="amministrativo" tone="success"/>
-        <StatCard icon={<FileText size={19}/>} label="PTT / SIGIT" value={data.summary.ptt} note="tributario" tone="warning"/>
-        <StatCard icon={<AlertTriangle size={19}/>} label="Da presidiare" value={data.summary.attentionNeeded + data.summary.blocked} note="avvisi, blocchi e import" tone={data.summary.attentionNeeded || data.summary.blocked ? 'danger' : 'success'}/>
+        <StatCard icon={<FolderOpen size={19}/>} label="Pratiche telematiche" value={loaded ? data.summary.total : '…'} note="fascicoli sincronizzati o importati" tone="primary" onClick={() => setCardScope('')} active={cardScope === ''} disabled={!loaded || loading}/>
+        <StatCard icon={<Building2 size={19}/>} label="PST / PDP" value={loaded ? data.summary.pst + data.summary.pdp : '…'} note="ministero giustizia" tone="info" onClick={() => setCardScope('pst-pdp')} active={cardScope === 'pst-pdp'} disabled={!loaded || loading}/>
+        <StatCard icon={<FileCheck2 size={19}/>} label="PAT / SIGA" value={loaded ? data.summary.pat : '…'} note="amministrativo" tone="success" onClick={() => setCardScope('pat')} active={cardScope === 'pat'} disabled={!loaded || loading}/>
+        <StatCard icon={<FileText size={19}/>} label="PTT / SIGIT" value={loaded ? data.summary.ptt : '…'} note="tributario" tone="warning" onClick={() => setCardScope('ptt')} active={cardScope === 'ptt'} disabled={!loaded || loading}/>
+        <StatCard icon={<AlertTriangle size={19}/>} label="Da presidiare" value={presidiCount} note="avvisi, blocchi e import" tone={data.summary.attentionNeeded || data.summary.blocked ? 'danger' : 'success'} onClick={() => setCardScope('presidi')} active={cardScope === 'presidi'} disabled={loading}/>
       </section>
       <section className="iu-tel-trust-grid" aria-label="Operatività verificata e fonti ufficiali">
         <TruthRegistryPanel data={data}/>
@@ -547,7 +561,7 @@ export function TelematicoPage() {
 
       <section className="iu-tel-lower-grid">
         <Panel title="Qualità telematica" subtitle="Cosa viene controllato prima di deposito e import" icon={<CheckCircle2 size={17}/>}>
-          <QualityGrid data={data}/>
+          <QualityGrid data={data} presidiCount={presidiCount} onCases={() => setCardScope('')} onPresidi={() => setCardScope('presidi')} onChannels={scrollToActiveChannel}/>
         </Panel>
         <Panel title="Suggerimenti Lex AI" subtitle="Prossime mosse operative" icon={<Sparkles size={17}/>} count={data.lexSuggestions.length}>
           {data.lexSuggestions.length ? (
@@ -558,6 +572,7 @@ export function TelematicoPage() {
         </Panel>
       </section>
 
+      {cardScope !== null ? <TelematicoCardsPanel key={cardScope} scope={cardScope} refreshToken={revision} onClose={() => setCardScope(null)}/> : null}
       <FloatingLex
         context="telematico"
         title="Lex AI Telematico"

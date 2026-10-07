@@ -1,3 +1,4 @@
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import {
   Archive,
@@ -43,6 +44,7 @@ import {
 } from '../clientiData'
 import { getCartellaClientePage, type CartellaClienteMatter } from '../clientiCartellaData'
 import './AnagraficaClientiPage.css'
+import './OperationalCards.css'
 
 type SortKey = 'nome' | 'recenti' | 'pratiche' | 'completezza'
 
@@ -59,20 +61,24 @@ function StatCard({
   value,
   note,
   tone = 'primary',
+  onClick,
+  active = false,
 }:{
   icon: ReactNode
   label: string
   value: number | string
   note: string
   tone?: ClienteRow['tone']
+  onClick: () => void
+  active?: boolean
 }) {
   return (
-    <article className={`iu-cli-stat iu-cli-stat--${tone}`}>
+    <button type="button" onClick={onClick} aria-pressed={active} className={`iu-cli-stat iu-cli-stat--${tone}`}>
       <div>{icon}</div>
       <span>{label}</span>
       <strong>{value}</strong>
       <small>{note}</small>
-    </article>
+    </button>
   )
 }
 
@@ -470,7 +476,7 @@ function ClientiTable({
     >
       <div className="iu-cli-table-head">
         <div className="iu-cli-table-head__summary">
-          <strong><UsersRound size={16}/> {items.length} clienti</strong>
+          <strong><UsersRound size={16}/> {items.length} {items.length === 1 ? 'cliente' : 'clienti'}</strong>
           <span>{items.length === 1 ? '1 risultato visibile' : `${items.length} risultati visibili`}</span>
         </div>
         <div className="iu-cli-table-head__actions">
@@ -598,6 +604,7 @@ export function AnagraficaClientiPage() {
   const [query, setQuery] = useState('')
   const [type, setType] = useState<ClienteTipo>('tutti')
   const [status, setStatus] = useState<ClienteStato>('tutti')
+  const [metric, setMetric] = useState('')
   const [sort, setSort] = useState<SortKey>('nome')
   const [attorney, setAttorney] = useState('')
   const [onlyIncomplete, setOnlyIncomplete] = useState(false)
@@ -612,17 +619,20 @@ export function AnagraficaClientiPage() {
 
   const refresh = () => {
     setLoading(true)
-    getClientiPage().then(setData).finally(() => setLoading(false))
+    getClientiPage(true).then(payload => { setData(payload); setError('') }).catch(reason => setError(reason instanceof Error ? reason.message : 'Dati clienti non disponibili.')).finally(() => setLoading(false))
   }
 
   useEffect(() => {
     let active = true
     setLoading(true)
-    getClientiPage()
+    getClientiPage(true)
       .then((payload) => { if (active) setData(payload) })
+      .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Dati clienti non disponibili.') })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [])
+
+  useOperationalRefresh(['clienti'], refresh)
 
   const visible = useMemo(() => {
     const attorneyNeedle = normaliseText(attorney)
@@ -632,10 +642,16 @@ export function AnagraficaClientiPage() {
       if (status !== 'tutti' && item.status !== status) return false
       if (onlyIncomplete && !hasQualityIssue(item)) return false
       if (withoutContacts && !hasNoContacts(item)) return false
+      if (metric === 'procedimenti' && !(item.matters > 0 || item.activeMatters > 0)) return false
+      if (metric === 'privacy' && item.privacyOk) return false
+      if (metric === 'documenti' && !item.documentExpired) return false
+      if (metric === 'incompleti' && !item.missingFields.length) return false
       if (attorneyNeedle && !normaliseText(item.attorney).includes(attorneyNeedle)) return false
       return true
     }), sort)
-  }, [attorney, data.items, onlyIncomplete, query, sort, status, type, withoutContacts])
+  }, [metric, attorney, data.items, onlyIncomplete, query, sort, status, type, withoutContacts])
+
+  const selectMetric = (key: string) => { setMetric(key); setQuery(''); setType('tutti'); setStatus((['attivo','potenziale','archiviato'].includes(key) ? key : 'tutti') as ClienteStato); setOnlyIncomplete(false); setWithoutContacts(key === 'recapiti'); setAttorney(''); setSelected(new Set()) }
 
   const selectedIds = useMemo(
     () => visible.filter((item) => selected.has(item.id)).map((item) => item.id),
@@ -742,15 +758,15 @@ export function AnagraficaClientiPage() {
       </section>
 
       <section className="iu-cli-stats" aria-label="Indicatori anagrafica clienti">
-        <StatCard icon={<UsersRound size={19}/>} label="Totali" value={data.summary.total} note="clienti in anagrafica" tone="primary"/>
-        <StatCard icon={<CheckCircle2 size={19}/>} label="Attivi" value={data.summary.active} note="assistiti operativi" tone="success"/>
-        <StatCard icon={<Sparkles size={19}/>} label="Potenziali" value={data.summary.potential} note="da convertire" tone="warning"/>
-        <StatCard icon={<Archive size={19}/>} label="Archiviati" value={data.summary.archived} note="non operativi" tone="neutral"/>
-        <StatCard icon={<BriefcaseBusiness size={19}/>} label="Con procedimenti" value={data.summary.withMatters} note="fascicoli o pratiche" tone="info"/>
-        <StatCard icon={<AlertTriangle size={19}/>} label="Da completare" value={data.summary.incomplete} note="dati mancanti" tone="orange"/>
-        <StatCard icon={<Phone size={19}/>} label="Senza recapiti" value={data.summary.withoutContacts} note="telefono, email o PEC assenti" tone="warning"/>
-        <StatCard icon={<ShieldCheck size={19}/>} label="Privacy" value={data.summary.privacyMissing} note="consenso da verificare" tone="purple"/>
-        <StatCard icon={<FileText size={19}/>} label="Documenti scaduti" value={data.summary.documentsExpired} note="identità da aggiornare" tone="danger"/>
+        <StatCard icon={<UsersRound size={19}/>} label="Totali" onClick={() => selectMetric('')} active={metric === ''} value={data.summary.total} note="clienti in anagrafica" tone="primary"/>
+        <StatCard icon={<CheckCircle2 size={19}/>} label="Attivi" onClick={() => selectMetric('attivo')} active={metric === 'attivo'} value={data.summary.active} note="assistiti operativi" tone="success"/>
+        <StatCard icon={<Sparkles size={19}/>} label="Potenziali" onClick={() => selectMetric('potenziale')} active={metric === 'potenziale'} value={data.summary.potential} note="da convertire" tone="warning"/>
+        <StatCard icon={<Archive size={19}/>} label="Archiviati" onClick={() => selectMetric('archiviato')} active={metric === 'archiviato'} value={data.summary.archived} note="non operativi" tone="neutral"/>
+        <StatCard icon={<BriefcaseBusiness size={19}/>} label="Con procedimenti" onClick={() => selectMetric('procedimenti')} active={metric === 'procedimenti'} value={data.summary.withMatters} note="fascicoli o pratiche" tone="info"/>
+        <StatCard icon={<AlertTriangle size={19}/>} label="Da completare" onClick={() => selectMetric('incompleti')} active={metric === 'incompleti'} value={data.summary.incomplete} note="dati mancanti" tone="orange"/>
+        <StatCard icon={<Phone size={19}/>} label="Senza recapiti" onClick={() => selectMetric('recapiti')} active={metric === 'recapiti'} value={data.summary.withoutContacts} note="telefono, email o PEC assenti" tone="warning"/>
+        <StatCard icon={<ShieldCheck size={19}/>} label="Privacy" onClick={() => selectMetric('privacy')} active={metric === 'privacy'} value={data.summary.privacyMissing} note="consenso da verificare" tone="purple"/>
+        <StatCard icon={<FileText size={19}/>} label="Documenti scaduti" onClick={() => selectMetric('documenti')} active={metric === 'documenti'} value={data.summary.documentsExpired} note="identità da aggiornare" tone="danger"/>
       </section>
 
       <section className="iu-cli-toolbar" aria-label="Filtri clienti">
@@ -773,6 +789,7 @@ export function AnagraficaClientiPage() {
       <section className="iu-cli-status-line">
         <span className={loading ? '' : 'is-ok'}>{loading ? 'Sincronizzazione anagrafiche...' : 'Dati aggiornati'}</span>
         <small><ShieldCheck size={14}/> Dettaglio, modifica e invii usano i dati di studio senza duplicazioni.</small>
+        {metric && <small>Filtro card: {({ attivo: 'Attivi', potenziale: 'Potenziali', archiviato: 'Archiviati', procedimenti: 'Con procedimenti', incompleti: 'Da completare', recapiti: 'Senza recapiti', privacy: 'Privacy', documenti: 'Documenti scaduti' } as Record<string,string>)[metric]} <button type="button" onClick={() => selectMetric('')}>Azzera filtro card</button></small>}
         {selectedVisible ? <small className="iu-cli-selected">{selectedVisible} selezionati</small> : null}
         {feedback ? <small className="iu-cli-feedback">{feedback}</small> : null}
         {error ? <small className="iu-cli-error">{error}</small> : null}

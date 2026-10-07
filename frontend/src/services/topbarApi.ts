@@ -53,8 +53,9 @@ export function fetchTodaySummary(date: string): Promise<TopbarTodayPayload> {
   return requestJson<TopbarTodayPayload>(`/api/dashboard/today?${params.toString()}`)
 }
 
-export function fetchNotifications(): Promise<TopbarNotificationsPayload> {
-  return requestJson<TopbarNotificationsPayload>('/api/notifications')
+export function fetchNotifications(options: { page?: number; state?: string; query?: string } = {}): Promise<TopbarNotificationsPayload> {
+  const params = new URLSearchParams({ page: String(options.page ?? 1), state: options.state ?? 'all', q: options.query ?? '' })
+  return requestJson<TopbarNotificationsPayload>(`/api/notifications?${params.toString()}`)
 }
 
 export function markNotificationRead(id: string): Promise<TopbarNotificationsPayload> {

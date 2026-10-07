@@ -5,11 +5,13 @@ from __future__ import annotations
 import base64
 import io
 import json
+import time
 
-from flask import Blueprint, Response, current_app, jsonify, request, send_file
+from flask import Blueprint, Response, current_app, jsonify, request, send_file, url_for, render_template_string
 
 from web.blueprints.api_v1_react import _audit_event, _richiedi_auth
 from web.helpers import get_clienti, get_fascicoli
+from web.services.document_pdf_split import split_pdf
 from web.services.document_ocr import recognize_page
 from web.services.document_ocr_documento import come_payload, conta_pagine, riconosci_pagina
 from web.services.documento_testo_riconosciuto import docx_da_testo, pdf_da_testo
@@ -73,6 +75,14 @@ def _download(data: bytes, filename: str, mimetype: str, **headers: str | int) -
         max_age=0,
     )
     response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    if request.headers.get("X-Iusentra-Result-Links") == "1":
+        from web.services.document_tools_cache import store_result, TTL
+        token = store_result(data, filename, mimetype)
+        response.headers["X-Iusentra-Expires"] = str(int(time.time() + TTL))
+        response.headers["X-Iusentra-Download"] = url_for("api_v1_document_tools.document_tool_result_download", token=token)
+        if mimetype == "application/pdf":
+            response.headers["X-Iusentra-Preview"] = url_for("api_v1_document_tools.document_tool_result_preview", token=token, rotationScope="page")
     for key, value in headers.items():
         response.headers[key.replace("_", "-")] = str(value)
     return response
@@ -83,6 +93,114 @@ def _handle_error(exc: Exception):
         return jsonify({"ok": False, "message": str(exc)}), 400
     current_app.logger.exception("Operazione documentale non completata", exc_info=exc)
     return jsonify({"ok": False, "message": "Elaborazione del documento non completata."}), 500
+
+
+def _result_error(exc):
+    if not isinstance(exc, DocumentToolError):
+        return _handle_error(exc)
+    html = render_template_string('''<!doctype html><html lang="it"><head><meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <style>body{margin:0;padding:24px;font:15px/1.6 system-ui;color:oklch(.25 .022 255);background:oklch(.99 .008 96)}main{max-width:65ch}h1{font-size:20px;margin:0 0 12px}p{overflow-wrap:anywhere}</style>
+      </head><body><main role="alert"><h1>Copia temporanea non disponibile</h1><p>{{ message }}</p>
+      <p>Chiudi questa vista e genera di nuovo il documento nella pagina degli strumenti.</p></main></body></html>''', message=str(exc))
+    return html,400,{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","X-Content-Type-Options":"nosniff"}
+
+
+@api_v1_document_tools.get("/results/<token>/scarica")
+@_richiedi_auth
+def document_tool_result_download(token):
+    try:
+        from web.services.document_tools_cache import read_result
+        data, filename, mimetype = read_result(token)
+        _audit_event("documenti.copia_generata_scaricata", "strumenti_documentali", "", "Download copia temporanea")
+        return _download(data, filename, mimetype)
+    except Exception as exc:
+        return _result_error(exc)
+
+
+@api_v1_document_tools.get("/results/<token>/visualizza")
+@_richiedi_auth
+def document_tool_result_preview(token):
+    try:
+        from web.services.document_tools_cache import read_result
+        from web.bootstrap.fascicoli_document_helpers import pdf_page_count, pdf_mobile_preview_html, render_pdf_page_png
+        data, filename, mimetype = read_result(token)
+        if mimetype != "application/pdf":
+            raise DocumentToolError("Il lettore documentale richiede un PDF.")
+        raw_page = request.args.get("page")
+        if raw_page is not None:
+            try:
+                page = int(raw_page)
+            except (TypeError, ValueError):
+                raise DocumentToolError("Pagina non valida.") from None
+            if not 1 <= page <= pdf_page_count(data):
+                raise DocumentToolError("Pagina non presente nel documento.")
+            if request.args.get("reader_text") == "1":
+                from web.services.pdf_reader_text import page_text_response
+                return page_text_response(data,page)
+            response = send_file(io.BytesIO(render_pdf_page_png(data,page)),mimetype="image/png",max_age=0)
+        else:
+            total = pdf_page_count(data)
+            if not 1 <= total <= 1500:
+                raise DocumentToolError("Numero di pagine non valido per il lettore.")
+            html,status,headers = pdf_mobile_preview_html(nome_documento=filename,pdf_payload=data,
+                page_urls=[url_for("api_v1_document_tools.document_tool_result_preview",token=token,page=i) for i in range(1,total+1)],
+                scarica_url=url_for("api_v1_document_tools.document_tool_result_download",token=token))
+            _audit_event("documenti.copia_generata_visualizzata", "strumenti_documentali", "", f"{total} pagine")
+            response = current_app.make_response((html,status,headers))
+        response.headers["Cache-Control"]="no-store"
+        response.headers["X-Content-Type-Options"]="nosniff"
+        return response
+    except Exception as exc:
+        return _result_error(exc)
+
+
+@api_v1_document_tools.post("/preview")
+@_richiedi_auth
+def preview_uploaded_pdf():
+    """Consulta la fonte caricata senza riscriverla o archiviarla nel fascicolo."""
+    try:
+        from web.blueprints.api_v1_react import _session_user_can
+        if not (_session_user_can("admin.leggi") or _session_user_can("fascicoli.leggi")):
+            return jsonify({"ok": False, "message": "Non hai il permesso di usare gli strumenti documentali."}), 403
+        from web.services.document_tools import MAX_FILE_BYTES, MAX_PAGES, _pdf_reader, validate_uploads
+        from web.services.document_tools_cache import store_result, TTL
+        uploads = request.files.getlist("files")
+        if len(uploads) != 1:
+            raise DocumentToolError("Per visualizzare seleziona un solo PDF.")
+        uploaded = uploads[0]
+        document = UploadedDocument(str(uploaded.filename or "documento.pdf"), uploaded.read(MAX_FILE_BYTES + 1))
+        validate_uploads([document])
+        total = len(_pdf_reader(document).pages)
+        if not 1 <= total <= MAX_PAGES:
+            raise DocumentToolError(f"Il PDF deve contenere da 1 a {MAX_PAGES} pagine.")
+        filename = safe_output_name(document.name, "pdf", "documento")
+        token = store_result(document.data, filename, "application/pdf")
+        _audit_event("documenti.anteprima_caricata", "strumenti_documentali", "", f"{total} pagine, fonte invariata")
+        response = jsonify({"ok": True, "previewHref": url_for("api_v1_document_tools.document_tool_result_preview", token=token, rotationScope="page"),
+                            "expiresAt": int(time.time() + TTL) * 1000})
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    except Exception as exc:
+        return _handle_error(exc)
+
+
+@api_v1_document_tools.post("/split")
+@_richiedi_auth
+def split_document():
+    try:
+        from web.services.document_tools import MAX_FILE_BYTES
+        uploads = request.files.getlist("files")
+        if len(uploads) != 1:
+            raise DocumentToolError("Per dividere un PDF seleziona un solo documento.")
+        uploaded = uploads[0]
+        data = uploaded.read(MAX_FILE_BYTES + 1)
+        result, pages = split_pdf([UploadedDocument(str(uploaded.filename or "documento.pdf"), data)], str(request.form.get("pages") or ""))
+        filename = safe_output_name(request.form.get("output_name", ""), "pdf", "pagine-estratte")
+        _audit_event("documenti.pagine_estratte", "strumenti_documentali", "", f"{pages} pagine estratte")
+        return _download(result, filename, "application/pdf", X_Iusentra_Pages=pages, X_Iusentra_Files=1, X_Iusentra_Operation="split-pdf")
+    except Exception as exc:
+        return _handle_error(exc)
 
 
 @api_v1_document_tools.post("/merge")

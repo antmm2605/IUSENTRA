@@ -22,6 +22,7 @@ governabile che esponga le stesse primitive usate dai repository legacy:
 
 from __future__ import annotations
 
+
 import json
 import re
 import threading
@@ -31,6 +32,8 @@ from urllib.parse import quote_plus
 
 import psycopg2
 import psycopg2.extras
+
+from pct.email_mailbox_repository import DDL as _EMAIL_MAILBOX_DDL
 
 
 CORE_POSTGRES_SCHEMA_SQL = """
@@ -496,6 +499,8 @@ CREATE INDEX IF NOT EXISTS idx_backup_tipo ON backup_records(tipo);
 CREATE INDEX IF NOT EXISTS idx_transactional_outbox_pending ON transactional_outbox(status, available_at);
 CREATE INDEX IF NOT EXISTS idx_transactional_outbox_tenant_aggregate ON transactional_outbox(tenant_id, aggregate_type, aggregate_id);
 """
+
+CORE_POSTGRES_SCHEMA_SQL += '\n' + ';\n'.join(_EMAIL_MAILBOX_DDL) + ';\n'
 
 
 CORE_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {

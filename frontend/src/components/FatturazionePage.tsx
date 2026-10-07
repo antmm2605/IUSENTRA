@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import type { FormEvent } from 'react'
 import {
   AlertTriangle,
@@ -254,12 +255,6 @@ const fallbackFormState: FormState = {
 function displayValue(value: string | number): string {
   if (typeof value === 'number') return new Intl.NumberFormat('it-IT').format(value)
   return value
-}
-
-function hasMetricValue(value: string | number): boolean {
-  if (typeof value === 'number') return value !== 0
-  const normalized = value.replace(/\s+/g, '').toUpperCase()
-  return !['0', '0,00', '0.00', '€0', '€0,00', '€0.00', 'EUR0', 'EUR0,00', 'EUR0.00'].includes(normalized)
 }
 
 function requestedFatturazioneDetailId(): string {
@@ -558,6 +553,12 @@ function InvoiceRow({
   onPaid: (record: FatturazioneRecord) => void
 }) {
   const [nextStatus, setNextStatus] = useState(record.state)
+  const previousState = useRef(record.state)
+  useEffect(() => {
+    const previous = previousState.current
+    setNextStatus(current => current === previous ? record.state : current)
+    previousState.current = record.state
+  }, [record.state])
   return (
     <article className="iu-fatt-record">
       <div className="iu-fatt-record__main">
@@ -604,7 +605,7 @@ function InvoiceRow({
           </Button>
         ) : null}
         {data.permissions.canMarkPaid && record.state !== 'PAGATA' ? (
-          <Button type="button" tone="success" disabled={savingId === record.id} onClick={() => onPaid(record)}>
+          <Button type="button" tone="success" disabled={savingId === record.id || record.state === 'ANNULLATA'} title={record.state === 'ANNULLATA' ? 'Il documento è annullato: verifica o ripristina esplicitamente lo stato prima di registrare un incasso.' : undefined} onClick={() => onPaid(record)}>
             <CheckCircle2 size={15} />
             {record.isProforma ? 'Registra bonifico' : 'Segna pagata'}
           </Button>
@@ -703,17 +704,17 @@ function NumberingPanel({
   )
 }
 
-function MetricGrid({ data }: { data: FatturazionePageData }) {
-  const metrics = data.metrics.filter((metric) => hasMetricValue(metric.value))
+function MetricGrid({ data, selected, onSelect }: { data: FatturazionePageData; selected: string; onSelect: (id: string) => void }) {
+  const metrics = data.metrics
   if (!metrics.length) return null
   return (
     <section className="iu-fatt-metrics-strip" aria-label="Indicatori fatturazione">
       {metrics.map((metric) => (
-        <article className="iu-fatt-metric-pill" data-tone={metric.tone} key={metric.id}>
+        <button type="button" className="iu-fatt-metric-pill" data-tone={metric.tone} key={metric.id} aria-pressed={selected === metric.id} onClick={() => onSelect(selected === metric.id ? '' : metric.id)} disabled={data.warnings.some(warning => warning.code === 'fatturazione_non_disponibile')}>
           <span>{metric.label}</span>
           <strong>{displayValue(metric.value)}</strong>
-          <small>{metric.note}</small>
-        </article>
+          <small>{metric.note} · Apri elenco</small>
+        </button>
       ))}
     </section>
   )
@@ -1832,6 +1833,7 @@ function ArchiveDetailPanel({
     return (
       <div className="iu-fatt-overlay" role="dialog" aria-modal="true" aria-label="Dettaglio fatturazione">
         <section className="iu-fatt-modal">
+          <header className="iu-fatt-modal__header"><h2>Dettaglio fatturazione</h2><Button type="button" tone="neutral" onClick={onClose} aria-label="Chiudi dettaglio"><X size={15} /></Button></header>
           <LoadingState title="Caricamento dettaglio" message="Apro la finestra operativa della fattura." />
         </section>
       </div>
@@ -2221,7 +2223,6 @@ function ArchiveDetailPanel({
             ) : null}
             <Button type="button" tone="neutral" onClick={onClose} aria-label="Chiudi dettaglio">
               <X size={15} />
-              Chiudi
             </Button>
           </div>
         </header>
@@ -2664,6 +2665,11 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
   const [issueFilter, setIssueFilter] = useState<IssueFilter>('all')
   const [clientFilter, setClientFilter] = useState('')
   const [matterFilter, setMatterFilter] = useState('')
+  const [metricFilter, setMetricFilter] = useState('')
+  const [page, setPage] = useState(1)
+  const [refreshError, setRefreshError] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
+  const refreshFlight = useRef<Promise<void> | null>(null)
   const [detail, setDetail] = useState<FatturazioneDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailInitialTab, setDetailInitialTab] = useState<DetailTab>('dettaglio')
@@ -2671,11 +2677,14 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
   const [mutationResult, setMutationResult] = useState<FatturazioneMutationResult | null>(null)
   const [mutationErrors, setMutationErrors] = useState<Record<string, string>>({})
   const [autoOpenedId, setAutoOpenedId] = useState('')
+  const detailRequest = useRef(0)
+  useEffect(() => () => { detailRequest.current += 1 }, [])
   const lowered = query.trim().toLowerCase()
   const loweredClient = clientFilter.trim().toLowerCase()
   const loweredMatter = matterFilter.trim().toLowerCase()
   const requestedDetailId = requestedFatturazioneDetailId()
   const records = data.records.filter((record) => {
+    if (metricFilter && !record.metricFilters?.includes(metricFilter)) return false
     if (stateFilter !== allStatesFilter && record.state !== stateFilter) return false
     if (paymentFilter === 'bonifico' && !hasRegisteredTransfer(record)) return false
     if (paymentFilter === 'senza_bonifico' && hasRegisteredTransfer(record)) return false
@@ -2698,31 +2707,66 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
     loweredMatter ||
     stateFilter !== allStatesFilter ||
     paymentFilter !== 'all' ||
-    issueFilter !== 'all'
+    issueFilter !== 'all' || metricFilter
   )
+  const pageCount = Math.max(1, Math.ceil(records.length / 30))
+  const currentPage = Math.min(page, pageCount)
+  const pageRecords = records.slice((currentPage - 1) * 30, currentPage * 30)
+  useEffect(() => { setPage(1) }, [query, stateFilter, paymentFilter, issueFilter, clientFilter, matterFilter, metricFilter])
+
+  function refreshArchive() {
+    if (refreshFlight.current) return refreshFlight.current
+    setRefreshing(true)
+    const flight = getFatturazionePage().then(payload => {
+      if (!payload.ok || payload.warnings.some(warning => warning.code === 'fatturazione_non_disponibile')) throw new Error('Archivio non disponibile')
+      onReload(payload)
+      setRefreshError('')
+    }).catch(() => {
+      setRefreshError('Aggiornamento non riuscito. I dati e i filtri visualizzati sono conservati: riprova per verificare lo stato corrente.')
+    }).finally(() => {
+      refreshFlight.current = null
+      setRefreshing(false)
+    })
+    refreshFlight.current = flight
+    return flight
+  }
+  useOperationalRefresh(['fatturazione', 'incassi'], refreshArchive)
 
   async function reloadAfter(result: FatturazioneMutationResult) {
     setMutationResult(result)
     setMutationErrors(result.errors || {})
     if (result.ok) {
-      onReload(await getFatturazionePage())
+      await refreshArchive()
     }
   }
 
   async function loadDetail(record: FatturazioneRecord, tab: DetailTab = 'dettaglio') {
+    const request = ++detailRequest.current
     setDetailInitialTab(tab)
     setDetailLoading(true)
     setDetail(null)
-    const response = await getFatturazioneDetail(record.id)
-    if (response.ok) {
-      setDetail(response.item)
-      setMutationResult(null)
-      setMutationErrors({})
-    } else {
-      setMutationResult({ ok: false, message: response.message || 'Dettaglio non disponibile.', errors: response.errors, item: null })
-      setMutationErrors(response.errors)
+    try {
+      const response = await getFatturazioneDetail(record.id)
+      if (request !== detailRequest.current) return
+      if (response.ok) {
+        setDetail(response.item)
+        setMutationResult(null)
+        setMutationErrors({})
+      } else {
+        setMutationResult({ ok: false, message: response.message || 'Dettaglio non disponibile.', errors: response.errors, item: null })
+        setMutationErrors(response.errors)
+      }
+    } catch {
+      if (request === detailRequest.current) setMutationResult({ ok: false, message: 'Impossibile leggere il dettaglio. Riprova ad aprire il documento.', errors: {}, item: null })
+    } finally {
+      if (request === detailRequest.current) setDetailLoading(false)
     }
+  }
+
+  function closeDetail() {
+    detailRequest.current += 1
     setDetailLoading(false)
+    setDetail(null)
   }
 
   function openDetailTab(record: FatturazioneRecord, tab: DetailTab) {
@@ -2732,19 +2776,25 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
   async function reloadCurrentDetail() {
     const currentId = detail?.id
     if (!currentId) return
+    const request = ++detailRequest.current
     setDetailLoading(true)
-    const response = await getFatturazioneDetail(currentId)
-    if (response.ok) {
-      setDetail(response.item)
-    } else {
-      setMutationResult({ ok: false, message: response.message || 'Dettaglio non disponibile.', errors: response.errors, item: null })
-      setMutationErrors(response.errors)
+    try {
+      const response = await getFatturazioneDetail(currentId)
+      if (request !== detailRequest.current) return
+      if (response.ok) setDetail(response.item)
+      else {
+        setMutationResult({ ok: false, message: response.message || 'Dettaglio non disponibile.', errors: response.errors, item: null })
+        setMutationErrors(response.errors)
+      }
+    } catch {
+      if (request === detailRequest.current) setMutationResult({ ok: false, message: 'Impossibile aggiornare il dettaglio. Riprova.', errors: {}, item: null })
+    } finally {
+      if (request === detailRequest.current) setDetailLoading(false)
     }
-    setDetailLoading(false)
   }
 
   async function reloadArchivePage() {
-    onReload(await getFatturazionePage())
+    await refreshArchive()
   }
 
   useEffect(() => {
@@ -2785,7 +2835,7 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
 
   async function handleNumberingSaved(result: FatturazioneNumberingResult) {
     if (result.ok) {
-      onReload(await getFatturazionePage())
+      await refreshArchive()
     }
   }
 
@@ -2796,10 +2846,14 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
     setIssueFilter('all')
     setClientFilter('')
     setMatterFilter('')
+    setMetricFilter('')
   }
 
   return (
     <>
+      <MetricGrid data={data} selected={metricFilter} onSelect={setMetricFilter} />
+      {refreshing ? <p role="status">Aggiornamento automatico dei dati in corso…</p> : null}
+      {refreshError ? <section className="iu-fatt-state iu-fatt-state--danger" role="alert"><span>{refreshError}</span><Button type="button" tone="neutral" onClick={refreshArchive}>Riprova aggiornamento</Button></section> : null}
       <CompactOperations
         data={data}
         totalRecords={data.records.length}
@@ -2814,7 +2868,7 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
       />
       <Panel
         title="Archivio parcelle e fatture"
-        subtitle={`${records.length} elementi visualizzati su ${data.records.length}`}
+        subtitle={`${records.length} ${records.length === 1 ? 'risultato' : 'risultati'} su ${data.records.length}${metricFilter ? ` · ${data.metrics.find(metric => metric.id === metricFilter)?.label || ''}` : ''}`}
         actions={exportAction ? (
           <ButtonLink href={exportAction.href} tone="neutral">
             <Download size={15} />
@@ -2881,7 +2935,7 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
         <ArchiveMutationState result={mutationResult} errors={mutationErrors} />
         {records.length ? (
           <div className="iu-fatt-records">
-            {records.map((record) => (
+            {pageRecords.map((record) => (
               <InvoiceRow
                 record={record}
                 data={data}
@@ -2902,15 +2956,15 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
             action={<ButtonLink href="/fatturazione/nuova?documento_operativo=PROFORMA" tone="primary">Nuova proforma</ButtonLink>}
           />
         )}
+        {pageCount > 1 ? <nav className="iu-fatt-pagination" aria-label="Pagine archivio fatturazione"><span>Pagina {currentPage} di {pageCount} · {records.length} risultati</span><Button type="button" tone="neutral" disabled={currentPage <= 1} onClick={() => { setPage(currentPage - 1); document.querySelector('.iu-fatt-filters')?.scrollIntoView({ block: 'start' }) }}>Precedente</Button><Button type="button" tone="neutral" disabled={currentPage >= pageCount} onClick={() => { setPage(currentPage + 1); document.querySelector('.iu-fatt-filters')?.scrollIntoView({ block: 'start' }) }}>Successiva</Button></nav> : null}
       </Panel>
       <div id="fatturazione-numerazione">
         <NumberingPanel data={data} onSaved={handleNumberingSaved} />
       </div>
-      <MetricGrid data={data} />
       <ArchiveDetailPanel
         detail={detail}
         loading={detailLoading}
-        onClose={() => setDetail(null)}
+        onClose={closeDetail}
         onReloadPage={reloadArchivePage}
         onReloadDetail={reloadCurrentDetail}
         initialTab={detailInitialTab}

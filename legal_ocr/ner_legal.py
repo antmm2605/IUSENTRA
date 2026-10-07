@@ -112,7 +112,11 @@ def extract_numero_ruolo(text: str) -> list[dict[str, str]]:
     out: list[dict[str, str]] = []
     seen: set[tuple[str, str]] = set()
     source = str(text or "")
+    normative_spans = [(match.start("num"), match.end("anno")) for match in _RIF_NORMA_RE.finditer(source)]
     for match in _RG_NUM_ANNO_RE.finditer(source):
+        # Un riferimento normativo vicino al ruolo non è un secondo R.G.
+        if any(start <= match.start() and match.end() <= end for start, end in normative_spans):
+            continue
         prefix = source[max(0, match.start() - 90) : match.start()]
         suffix = source[match.end() : match.end() + 14]
         if not (_has_rg_context(prefix) or _has_rg_context_suffisso(suffix)):

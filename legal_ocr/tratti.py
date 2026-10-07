@@ -25,11 +25,11 @@ from collections.abc import Sequence
 from difflib import SequenceMatcher
 from typing import Any
 
-#: Cio' che un tratto dichiara. Il carattere resta del capoverso; il corpo no:
+#: Cio' che un tratto dichiara. Carattere e corpo possono cambiare dentro la riga:
 #: le intestazioni mettono nello stesso blocco righe di corpi diversi («TRIBUNALE
 #: DI PALMI» a 16 punti, «Memoria ex art. 183» a 14), e gli apici dei rimandi
 #: alle note sono piu' piccoli del testo.
-CHIAVI_TRATTO = ("grassetto", "corsivo", "sottolineato", "barrato", "colore", "corpo")
+CHIAVI_TRATTO = ("grassetto", "corsivo", "sottolineato", "barrato", "colore", "corpo", "famiglia")
 
 _RE_PEZZI = re.compile(r"\S+|\s+")
 _RE_PAROLE = re.compile(r"\S+")
@@ -44,6 +44,7 @@ def _stile(parola: dict[str, Any]) -> tuple:
         str(parola.get("colore") or ""),
         # il corpo in mezzi punti: le intestazioni mescolano righe di corpi diversi
         round(float(parola.get("corpo") or 0) * 2) / 2,
+        str(parola.get("famiglia") or ""),
     )
 
 
@@ -60,6 +61,7 @@ def _comune(prima: tuple, dopo: tuple) -> tuple:
         prima[3] and dopo[3],
         prima[4] if prima[4] == dopo[4] else "",
         min(prima[5], dopo[5]),
+        prima[6] if prima[6] == dopo[6] else "",
     )
 
 
@@ -124,10 +126,13 @@ def tratti_del_testo(testo: str, parole: Sequence[dict[str, Any]]) -> list[dict[
 
     tratti: list[dict[str, Any]] = []
     for pezzo, stile in zip(pezzi, stili):
-        if tratti and tuple(tratti[-1][chiave] for chiave in CHIAVI_TRATTO) == stile:
+        if tratti and tuple(tratti[-1].get(chiave, "") for chiave in CHIAVI_TRATTO) == stile:
             tratti[-1]["testo"] += pezzo
             continue
-        tratti.append({"testo": pezzo, **dict(zip(CHIAVI_TRATTO, stile))})  # type: ignore[arg-type]
+        valori = dict(zip(CHIAVI_TRATTO, stile))
+        if not valori.get("famiglia"):
+            valori.pop("famiglia", None)
+        tratti.append({"testo": pezzo, **valori})
     return tratti if len(tratti) > 1 else []
 
 

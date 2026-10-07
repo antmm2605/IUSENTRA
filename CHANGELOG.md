@@ -1,5 +1,7 @@
 # Changelog
 
+- **Fetch prima del riallineamento Hetzner (07/10/2026)**: recupero dello SHA esatto se non presente negli oggetti Git server prima dei controlli di ancestry, senza modificare i sorgenti locali. Prova con clone server che non possiede il commit della release.
+
 - **Riallineamento sorgenti Hetzner (07/10/2026)**: copia verificata dei sorgenti locali prima del checkout, rifiuto di modifiche non confrontate o sopraggiunte e conservazione degli extra fuori dalla checkout. Il riallineamento si esegue solo dopo la CI richiesta; restano obbligatori i controlli sui sorgenti nei container e il backup dei dati.
 
 - **Correzioni CI del 07/10/2026**: separatori degli estremi giurisprudenziali limitati dopo normalizzazione per evitare backtracking; bootstrap SQLite conserva le caselle SQL già inizializzate. Fixture email/PEC e contratti React aggiornati agli archivi SQL e ai componenti condivisi, senza importazioni JSON implicite né modifiche ai flussi di firma/invio.

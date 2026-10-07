@@ -31,6 +31,9 @@ def reconcile(repo, target, branch, snapshot, backup):
     with tarfile.open(snapshot) as archive:
         manifest = json.load(archive.extractfile("manifest.json"))
     assert git("rev-parse", "HEAD").decode().strip() == manifest["head"] == EXPECTED_SERVER_HEAD
+    # Fetch aggiorna gli oggetti Git senza toccare worktree o file locali.
+    if subprocess.run(["git", "-C", str(repo), "cat-file", "-e", target + "^{commit}"], capture_output=True).returncode != 0:
+        git("fetch", "--no-tags", "origin", target)
     assert subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", manifest["head"], target]).returncode == 0
     assert subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", manifest["target"], target]).returncode == 0
     assert not git("diff", "--name-only", manifest["target"], target, "--", "frontend", "pct", "web", "lex"), "Sorgenti applicativi cambiati dopo il confronto"

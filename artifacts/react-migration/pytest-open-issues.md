@@ -1,5 +1,10 @@
 # Pytest issue aperte e risoluzioni
 
+## Verifica successiva al fetch corretto — 07/10/2026
+
+Pytest core e tutta la CI del commit 01fc9f5bf hanno esito positivo. Il deploy è stato fermato dal controllo prima delle modifiche per un commit assente dal database Git server. Il nuovo fix recupera lo SHA prima del confronto. Restano da seguire CI del nuovo commit, deploy reale, backup, installazione e inferenza di Lex v2; non verificato su macchina reale per la UI locale.
+
+
 ## Riallineamento server necessario — 07/10/2026
 
 CI completa riuscita sul commit f7d6fb7, ma deploy bloccato da sorgenti locali e asset di vecchie build. Snapshot verificato e confronto dei sorgenti conclusi; predisposto riallineamento con archivio SHA-256 fissato, copia server verificata prima di ogni modifica e controllo delle modifiche sopraggiunte. Sul nuovo SHA restano da verificare CI, riallineamento reale, backup dei dati, installazione v2, deploy e inferenza reale.

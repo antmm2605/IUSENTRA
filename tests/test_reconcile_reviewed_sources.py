@@ -93,3 +93,19 @@ def test_reconcile_rejects_corrupted_snapshot_before_changes(reviewed):
         module.reconcile(repo, target, "Codex/legal-electronic-filing-kIxcV", snapshot, backup)
     assert not backup.exists()
     assert (repo / "tools/preserved.py").exists()
+
+
+def test_reconcile_fetches_release_absent_from_server_objects(reviewed, tmp_path):
+    repo, target, snapshot, backup, base = reviewed
+    subprocess.run(["git", "-C", str(repo), "branch", "server-base", base], check=True)
+    subprocess.run(["git", "-C", str(repo), "branch", "release", target], check=True)
+    server = tmp_path / "server"
+    subprocess.run(["git", "clone", "--no-local", "--single-branch", "--branch", "server-base", str(repo), str(server)], check=True)
+    assert subprocess.run(["git", "-C", str(server), "cat-file", "-e", target + "^{commit}"], capture_output=True).returncode != 0
+    (server / "frontend/source.ts").write_bytes((repo / "frontend/source.ts").read_bytes())
+    (server / "tools").mkdir()
+    (server / "tools/preserved.py").write_bytes((repo / "tools/preserved.py").read_bytes())
+    result = module.reconcile(server, target, "Codex/legal-electronic-filing-kIxcV", snapshot, backup)
+    assert result["head"] == target
+    assert backup.read_bytes() == snapshot.read_bytes()
+    assert subprocess.check_output(["git", "-C", str(server), "rev-parse", "HEAD"]).decode().strip() == target

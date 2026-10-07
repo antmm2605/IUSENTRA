@@ -1,5 +1,10 @@
 # Pytest shard confermati OK
 
+## Fetch del commit prima del confronto server — 07/10/2026
+
+CI completa sul commit 01fc9f5bf: 193 controlli positivi, inclusi Pytest core e CodeQL su entrambi i branch. Il deploy successivo si è fermato prima del backup e delle modifiche alla checkout: SHA della release non ancora acquisito dal server. Corretto il recupero dello SHA esatto quando assente; 5 prove di riallineamento superate, inclusa una clone reale senza oggetto della release.
+
+
 ## Preservazione sorgenti prima del deploy — 07/10/2026
 
 37 test su snapshot/riallineamento, sincronizzazione Hetzner, Portainer e contratti CI superati. Le prove includono archivio alterato, file nuovo non esaminato, hotfix modificato dopo il confronto, conservazione dei sorgenti extra e dati dello studio invariati. Snapshot reale in sola lettura del server 693baa9 acquisito: 30.505 file, incluse vecchie build; la maggior parte dei sorgenti coincide con la release dopo normalizzazione dei fine riga. Differenze applicative residue confrontate con le correzioni già presenti su GitHub; lo strumento Timesheet non tracciato resta nella copia di sicurezza. CI completa del commit f7d6fb7 positiva; il deploy si è fermato prima di backup/installazione/riavvio per worktree server sporca.

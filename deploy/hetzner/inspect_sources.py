@@ -9,7 +9,7 @@ import tarfile
 
 root = Path("/opt/iusentra/repo")
 allowed = {"frontend", "pct", "web", "lex", "deploy", "scripts", "tools", "tests", "docs", ".github"}
-suffixes = {".py", ".tsx", ".ts", ".css", ".js", ".mjs", ".json", ".html", ".md", ".yml", ".yaml", ".sh", ".txt", ".toml", ".ini", ".cfg", ".conf"}
+suffixes = {".py", ".tsx", ".ts", ".css", ".js", ".mjs", ".json", ".html", ".md", ".yml", ".yaml", ".sh", ".txt", ".toml", ".ini", ".cfg", ".conf", ".sql"}
 def git(*args):
     return subprocess.check_output(["git", "-C", str(root), *args])
 
@@ -19,7 +19,7 @@ paths = sorted(set(git("diff", "HEAD", "--name-only", "-z").decode().split("\0")
 entries = []
 excluded = []
 root_names = {".dockerignore", ".editorconfig", ".flake8", ".gitattributes", ".gitignore", ".ruff.toml", "Dockerfile", "LICENSE"}
-allowed.update({"requirements", "docker", "config", "configs", "migrations", "alembic", "resources", "packaging"})
+allowed.update({"requirements", "docker", "config", "configs", "migrations", "alembic", "resources", "packaging", "legal_ocr"})
 with tarfile.open(fileobj=sys.stdout.buffer, mode="w|gz") as archive:
     for name in paths:
         p = root / name

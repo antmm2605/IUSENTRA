@@ -6570,3 +6570,5 @@ Typecheck e build React superati; suite JavaScript 185 test superati e contratti
 
 ## Rilascio 2.436.11 con Lex v2 — 07/10/2026
 106 test mirati locali superati: generazione e contesto Lex, integrazione/riallineamento leggi, regolamenti UE, corpus giurisprudenziale/Corte costituzionale, contratti CI e deploy/backup/runtime Hetzner. Packaging, inventario/piano test, registro/aree App V2 e Ruff fatal superati. CI remota e prova del modello in produzione da verificare dopo il push.
+
+- **Consulta completata, correzione attesa 07/10/2026**: diagnosi server conferma 3/3 corpus completi, 22.398 pronunce ciascuno e 46.577 massime lette; import effettivo 1.254,1 secondi. Attesa post-deploy portata da 15 a 30 minuti con conteggi intermedi, mantenendo obbligatorio il marcatore di import completo su tutti i corpus.

@@ -1010,3 +1010,5 @@ La fase 9 estende il popolamento controllato solo alle fonti verdi e lascia fuor
 - Normattiva e codici fondamentali alimentano risposte normative tramite archivi locali e riferimenti, non tramite import massivo web;
 - i report Fase 9 registrano 17 PDF/OCR completati, 340 riferimenti e 740 domande contestuali, da usare come contesto citabile quando la fonte è pertinente;
 - Archivio Giurisprudenza resta senza nuove schede strutturate finché una fonte giurisprudenziale non espone corte, numero e anno completi.
+
+- **Diagnosi Consulta 07/10/2026**: timeout della verifica a 15 minuti sul commit 97959fa, con Lex v2 e Normattiva verificati. Aggiunta diagnosi separata in sola lettura di processo, conteggi e download; completamento dei tre corpus ancora da accertare.

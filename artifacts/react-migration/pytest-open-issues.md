@@ -2171,3 +2171,5 @@ Nessun fallimento nei 106 test mirati eseguiti. Trasferimento pesi Lex v2 e CI/d
 
 
 07/10/2026 — CI: il controllo UTF-8 intercettava la sequenza di lettere maiuscole accentate nella tabella `str.maketrans` del corpus giurisprudenziale. Rappresentati U+00C2/U+00C3 con escape Unicode Python: la tabella a runtime resta identica; scanner e soglie invariati.
+
+- **Diagnosi Consulta 07/10/2026**: timeout della verifica a 15 minuti sul commit 97959fa, con Lex v2 e Normattiva verificati. Aggiunta diagnosi separata in sola lettura di processo, conteggi e download; completamento dei tre corpus ancora da accertare.

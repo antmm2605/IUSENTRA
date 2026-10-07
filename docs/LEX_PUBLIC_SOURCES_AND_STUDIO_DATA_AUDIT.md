@@ -1428,3 +1428,5 @@ In `lex/retrieval/official_web.py`:
 ## Aggiornamento Fase 9 fonti verdi - 19 maggio 2026
 
 Il popolamento fonti pubbliche è stato esteso solo al perimetro verde: Cassazione ultime, Corte dei conti, Curia CGUE, INPS circolari/messaggi, AGCOM, ANAC, Garante Privacy e Gazzetta Ufficiale. Le fonti in osservazione restano escluse; OpenGA, PST, Dati Normattiva, EUR-Lex e ISTAT sono RAG-only/no-publish; Normattiva e codici sono archivi locali. Esito operativo: 1533 documenti letti dal perimetro controllato, 33 processati, 14 pubblicati guarded, 11 scartati dal guarded, 17 PDF/OCR, 340 riferimenti e 740 domande contestuali nei report. Ricerca Legale e Lex leggono le evidenze, ma non pubblicano cataloghi tecnici come aggiornamenti giuridici.
+
+- **Diagnosi Consulta 07/10/2026**: timeout della verifica a 15 minuti sul commit 97959fa, con Lex v2 e Normattiva verificati. Aggiunta diagnosi separata in sola lettura di processo, conteggi e download; completamento dei tre corpus ancora da accertare.

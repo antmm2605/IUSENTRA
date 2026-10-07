@@ -218,3 +218,5 @@ Integrazioni runtime:
 - Web: mai usato per dati cliente/studio.
 - Audit: evento `lex.operational.query` o `lex.operational.blocked` generato.
 - Documenti: chunk/testo solo se indicizzato e citabile.
+
+- **Diagnosi Consulta 07/10/2026**: timeout della verifica a 15 minuti sul commit 97959fa, con Lex v2 e Normattiva verificati. Aggiunta diagnosi separata in sola lettura di processo, conteggi e download; completamento dei tre corpus ancora da accertare.

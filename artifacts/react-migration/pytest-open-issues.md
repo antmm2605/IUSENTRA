@@ -1,5 +1,10 @@
 # Pytest issue aperte e risoluzioni
 
+## Deploy con inventario completo — 07/10/2026
+
+Identificati i file precedentemente esclusi (AGENTS, OCR, SQL): confronto positivo con la release, nessun sorgente applicativo da recuperare. Ora il riallineamento usa la copia completa da 30.515 file. Restano da seguire CI del nuovo SHA, backup reale, installazione del modello, deploy, fonti e inferenza v2. Non verificato su macchina reale per la UI locale.
+
+
 ## Inventario server esteso — 07/10/2026
 
 CI completa del commit 960c40438 positiva (193 controlli). Fetch corretto; riallineamento reale arrestato prima di ogni sostituzione per file assenti dal primo inventario. Estesa la raccolta ai sorgenti/configurazioni root e alle cartelle tecniche; per percorsi esclusi registra solo il nome, senza leggere credenziali o dati runtime. Necessari confronto del nuovo inventario, copia verificata e successivo deploy.

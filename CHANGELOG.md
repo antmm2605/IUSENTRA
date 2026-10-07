@@ -1,5 +1,9 @@
 # Changelog
 
+- **Verifica fonti dopo deploy 2.436.11**: conteggi e ricerca Normattiva, completamento dell’import Consulta in tutti i corpus con attesa limitata; nessun successo se import incompleto.
+
+- **Copia completa sorgenti Hetzner (07/10/2026)**: confrontati anche AGENTS, moduli OCR e migrazioni SQL. Tutti coincidono con la release dopo normalizzazione LF/CRLF; fissato SHA-256 della copia completa da 30.515 file, senza percorsi esclusi.
+
 - **Fetch prima del riallineamento Hetzner (07/10/2026)**: recupero dello SHA esatto se non presente negli oggetti Git server prima dei controlli di ancestry, senza modificare i sorgenti locali. Prova con clone server che non possiede il commit della release.
 
 - **Riallineamento sorgenti Hetzner (07/10/2026)**: copia verificata dei sorgenti locali prima del checkout, rifiuto di modifiche non confrontate o sopraggiunte e conservazione degli extra fuori dalla checkout. Il riallineamento si esegue solo dopo la CI richiesta; restano obbligatori i controlli sui sorgenti nei container e il backup dei dati.

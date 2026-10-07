@@ -1,5 +1,10 @@
 # Pytest shard confermati OK
 
+## Inventario server completo e verificato — 07/10/2026
+
+Snapshot in sola lettura del server acquisito dal run 37624239524: 30.515 file, nessun percorso escluso. AGENTS.md, tre moduli OCR e sei migrazioni SQL aggiunti coincidono con GitHub dopo normalizzazione CRLF/LF. Nessuno dei 30.505 file già confrontati è cambiato. SHA-256 archivio: 666d2f4f8aca6ade780b857a3b2e6cb916f571f641dca60eb4d2deba1ffb4fc7. CI completa positiva su 960c40438; resta il deploy del commit che fissa la copia completa.
+
+
 ## Fetch del commit prima del confronto server — 07/10/2026
 
 CI completa sul commit 01fc9f5bf: 193 controlli positivi, inclusi Pytest core e CodeQL su entrambi i branch. Il deploy successivo si è fermato prima del backup e delle modifiche alla checkout: SHA della release non ancora acquisito dal server. Corretto il recupero dello SHA esatto quando assente; 5 prove di riallineamento superate, inclusa una clone reale senza oggetto della release.

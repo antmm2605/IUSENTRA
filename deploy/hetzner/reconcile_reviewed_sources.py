@@ -8,7 +8,7 @@ import subprocess
 import sys
 import tarfile
 
-SNAPSHOT_SHA256 = "04013ad3b0b50ed3e6b45f905a8b90911cd131093adc9637d5d0c367bc44c487"
+SNAPSHOT_SHA256 = "666d2f4f8aca6ade780b857a3b2e6cb916f571f641dca60eb4d2deba1ffb4fc7"
 EXPECTED_SERVER_HEAD = "693baa9df4212fe5e1b8ca8cd1d9f2c82208607e"
 
 

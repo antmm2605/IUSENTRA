@@ -1,5 +1,10 @@
 # Pytest shard confermati OK
 
+## Preservazione sorgenti prima del deploy — 07/10/2026
+
+37 test su snapshot/riallineamento, sincronizzazione Hetzner, Portainer e contratti CI superati. Le prove includono archivio alterato, file nuovo non esaminato, hotfix modificato dopo il confronto, conservazione dei sorgenti extra e dati dello studio invariati. Snapshot reale in sola lettura del server 693baa9 acquisito: 30.505 file, incluse vecchie build; la maggior parte dei sorgenti coincide con la release dopo normalizzazione dei fine riga. Differenze applicative residue confrontate con le correzioni già presenti su GitHub; lo strumento Timesheet non tracciato resta nella copia di sicurezza. CI completa del commit f7d6fb7 positiva; il deploy si è fermato prima di backup/installazione/riavvio per worktree server sporca.
+
+
 ## Ultima fixture presidio PEC — 07/10/2026
 
 Shard CI reale `scripts/run_pytest_phases.py --core-shard 9 --core-total-shards 10 --core-subshard 6 --core-total-subshards 6 --core-subdivide-items --timeout-minutes 5`: 57 casi, esito 0 in 44,1 secondi. Inizializzazione esplicita della casella SQL vuota nel test che mostra messaggi solo dal presidio audit; restano invariati i controlli di conteggi, classificazione, azioni e ciclo del deposito. Sul commit precedente tutti gli altri shard reali sono riusciti; i due aggregatori core falliscono per questa sola fixture.

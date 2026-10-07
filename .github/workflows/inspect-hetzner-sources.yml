@@ -34,7 +34,7 @@ jobs:
           print('HEAD server:',data['head'])
           print('Sorgenti:',len(data['entries']))
           print('Coincidenti:',sum(x['matches_candidate'] for x in data['entries']))
-          print('Da confrontare:',[x['path'] for x in data['entries'] if not x['matches_candidate']])
+          print('Sorgenti applicativi da confrontare:',[x['path'] for x in data['entries'] if not x['matches_candidate'] and not x['path'].startswith('web/static/react/')])
           PY
       - uses: actions/upload-artifact@v7
         with:

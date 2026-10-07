@@ -61,6 +61,7 @@ jobs:
       # «Resource not accessible by integration» e il deploy resta in attesa
       # fino allo scadere del timeout, senza mai partire. I controlli richiesti
       # arrivano sia come check-run sia come commit status: servono entrambi.
+      actions: read
       checks: read
       statuses: read
     runs-on: ubuntu-latest
@@ -184,6 +185,25 @@ jobs:
               -o UserKnownHostsFile=~/.ssh/known_hosts \
               "${HETZNER_USER}@${HETZNER_HOST}" \
               'echo "SSH OK $(hostname) $(uname -srm)"'
+
+      - name: Preserva e riallinea i sorgenti server già confrontati
+        if: ${{ steps.gate.outputs.superato != 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^__version__ = "\([^" ]*\)"/\1/p' pct/__init__.py)
+          if [ "$version" != '2.436.11' ]; then exit 0; fi
+          target="${HETZNER_USER}@${HETZNER_HOST}"
+          ssh_args=(-i "$HOME/.ssh/id_deploy" -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes)
+          dirty=$(ssh "${ssh_args[@]}" "$target" 'git -C /opt/iusentra/repo status --porcelain | wc -l')
+          if [ "$dirty" -eq 0 ]; then exit 0; fi
+          gh api -H 'Accept: application/vnd.github+json' "repos/${GITHUB_REPOSITORY}/actions/artifacts/11479697580/zip" > "$RUNNER_TEMP/server-source-snapshot.zip"
+          unzip -p "$RUNNER_TEMP/server-source-snapshot.zip" server-sources.tar.gz > "$RUNNER_TEMP/server-sources.tar.gz"
+          printf '%s  %s\n' '04013ad3b0b50ed3e6b45f905a8b90911cd131093adc9637d5d0c367bc44c487' "$RUNNER_TEMP/server-sources.tar.gz" | sha256sum -c -
+          scp "${ssh_args[@]}" "$RUNNER_TEMP/server-sources.tar.gz" "$target:/tmp/iusentra-reviewed-sources.tar.gz"
+          scp "${ssh_args[@]}" deploy/hetzner/reconcile_reviewed_sources.py "$target:/tmp/iusentra-reconcile-reviewed-sources.py"
+          ssh "${ssh_args[@]}" "$target" "trap 'rm -f /tmp/iusentra-reviewed-sources.tar.gz /tmp/iusentra-reconcile-reviewed-sources.py' EXIT; python3 /tmp/iusentra-reconcile-reviewed-sources.py '${GITHUB_SHA}' '${DEPLOY_BRANCH}' /tmp/iusentra-reviewed-sources.tar.gz"
 
       - name: Proteggi sorgenti e hotfix prima di ogni percorso di deploy
         if: ${{ steps.gate.outputs.superato != 'true' }}

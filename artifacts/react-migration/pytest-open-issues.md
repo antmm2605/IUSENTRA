@@ -1,5 +1,10 @@
 # Pytest issue aperte e risoluzioni
 
+## Riallineamento server necessario — 07/10/2026
+
+CI completa riuscita sul commit f7d6fb7, ma deploy bloccato da sorgenti locali e asset di vecchie build. Snapshot verificato e confronto dei sorgenti conclusi; predisposto riallineamento con archivio SHA-256 fissato, copia server verificata prima di ogni modifica e controllo delle modifiche sopraggiunte. Sul nuovo SHA restano da verificare CI, riallineamento reale, backup dei dati, installazione v2, deploy e inferenza reale.
+
+
 ## Verifica finale dopo fixture audit PEC — 07/10/2026
 
 Ultimo fallimento reale isolato alla casella SQL vuota non inizializzata nel test audit-only, corretto e verificato sullo shard completo (57 casi). CI e deploy devono essere rieseguiti sul commit che contiene questa correzione; nessun gate escluso o indebolito. Il server resta healthy 2.436.9 con fonti verificate: 83.678 documenti, 554.790 articoli, 804.387 chunk/FTS.

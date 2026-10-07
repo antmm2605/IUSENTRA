@@ -33,6 +33,7 @@ jobs:
               data=json.load(archive.extractfile('manifest.json'))
           print('HEAD server:',data['head'])
           print('Sorgenti:',len(data['entries']))
+          print('Percorsi esclusi senza contenuto:',data.get('excluded_paths', []))
           print('Coincidenti:',sum(x['matches_candidate'] for x in data['entries']))
           print('Sorgenti applicativi da confrontare:',[x['path'] for x in data['entries'] if not x['matches_candidate'] and not x['path'].startswith('web/static/react/')])
           PY

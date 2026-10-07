@@ -1,5 +1,10 @@
 # Pytest issue aperte e risoluzioni
 
+## Inventario server esteso — 07/10/2026
+
+CI completa del commit 960c40438 positiva (193 controlli). Fetch corretto; riallineamento reale arrestato prima di ogni sostituzione per file assenti dal primo inventario. Estesa la raccolta ai sorgenti/configurazioni root e alle cartelle tecniche; per percorsi esclusi registra solo il nome, senza leggere credenziali o dati runtime. Necessari confronto del nuovo inventario, copia verificata e successivo deploy.
+
+
 ## Verifica successiva al fetch corretto — 07/10/2026
 
 Pytest core e tutta la CI del commit 01fc9f5bf hanno esito positivo. Il deploy è stato fermato dal controllo prima delle modifiche per un commit assente dal database Git server. Il nuovo fix recupera lo SHA prima del confronto. Restano da seguire CI del nuovo commit, deploy reale, backup, installazione e inferenza di Lex v2; non verificato su macchina reale per la UI locale.

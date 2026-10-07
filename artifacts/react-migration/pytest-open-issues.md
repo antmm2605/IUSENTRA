@@ -1,5 +1,10 @@
 # Pytest issue aperte e risoluzioni
 
+## Verifica finale dopo fixture audit PEC — 07/10/2026
+
+Ultimo fallimento reale isolato alla casella SQL vuota non inizializzata nel test audit-only, corretto e verificato sullo shard completo (57 casi). CI e deploy devono essere rieseguiti sul commit che contiene questa correzione; nessun gate escluso o indebolito. Il server resta healthy 2.436.9 con fonti verificate: 83.678 documenti, 554.790 articoli, 804.387 chunk/FTS.
+
+
 ## Deploy 2.436.11 con Lex v2 — 07/10/2026
 
 Risolte e verificate localmente le cause dei fallimenti CI precedenti: regex degli estremi, bootstrap di caselle SQL, fixture SQL email/PEC e contratti React condivisi. Restano da seguire tutti i gate sul nuovo commit, backup, installazione verificata del modello, deploy, diagnosi delle fonti e inferenza reale sul server. Copia locale 8080 non verificata su macchina reale in questa sessione. Non dichiarare il deploy completato sulla base dei soli test locali.

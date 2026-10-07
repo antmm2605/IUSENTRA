@@ -6991,6 +6991,7 @@ def test_react_email_bridge_lists_audit_only_pec_messages(tmp_path):
     from web.services.react_email_bridge import build_react_email_payload
 
     email_db = tmp_path / "email" / "casella.json"
+    sql_mailbox(email_db)
     repo = PecAuditRepository(email_db.parent / "pec_audit.sqlite", tenant_id="default")
     ingest_synthetic_dataset(repo)
 
@@ -7000,6 +7001,7 @@ def test_react_email_bridge_lists_audit_only_pec_messages(tmp_path):
     assert payload["summary"]["filtered"] == 5
     assert payload["summary"]["pst"] == 5
     assert all(item["auditOnly"] for item in payload["items"])
+    assert any(item["pecAudit"]["eventType"] == "notifica_giudice_pace" for item in payload["items"]), [(item["id"], item["pecAudit"]["eventType"]) for item in payload["items"]]
     notice = next(item for item in payload["items"] if item["pecAudit"]["eventType"] == "notifica_giudice_pace")
     assert notice["detailHref"].startswith("/api/pec/messages/")
     assert notice["pecAudit"]["quickActions"]["openMime"].endswith("/mime")

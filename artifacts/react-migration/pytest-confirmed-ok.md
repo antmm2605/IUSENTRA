@@ -1,5 +1,10 @@
 # Pytest shard confermati OK
 
+## Ultima fixture presidio PEC — 07/10/2026
+
+Shard CI reale `scripts/run_pytest_phases.py --core-shard 9 --core-total-shards 10 --core-subshard 6 --core-total-subshards 6 --core-subdivide-items --timeout-minutes 5`: 57 casi, esito 0 in 44,1 secondi. Inizializzazione esplicita della casella SQL vuota nel test che mostra messaggi solo dal presidio audit; restano invariati i controlli di conteggi, classificazione, azioni e ciclo del deposito. Sul commit precedente tutti gli altri shard reali sono riusciti; i due aggregatori core falliscono per questa sola fixture.
+
+
 ## Correzioni CI release 2.436.11 — 07/10/2026
 
 83 test email/storage runtime e 94 test storage strategy/estremi/PEC superati. Tutti i 13 casi PEC/React falliti sullo SHA precedente verificati in lotti mirati dopo gli adeguamenti; i tre casi React residui sono stati rilanciati singolarmente. Verificati il primo accesso con messaggi SQL persistenti e una casella SQL inizializzata vuota, che non deve essere riconosciuta come database da migrare. Ruff sintassi e modulo corpus, governance, packaging, inventario test e mappa sicurezza backend positivi. Suite combinata iniziale interrotta prima di cinque minuti e non conteggiata come superata. Gate GitHub e deploy da verificare sul nuovo SHA; nessuna prova visiva locale dichiarata.

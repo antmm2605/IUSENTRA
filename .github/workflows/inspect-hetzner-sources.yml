@@ -1,0 +1,43 @@
+name: Verifica sorgenti locali Hetzner
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
+  HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
+jobs:
+  inspect:
+    name: Snapshot sorgenti in sola lettura
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - name: Leggi sorgenti da preservare
+        env:
+          SSH_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          trap 'shred -u ~/.ssh/id_deploy' EXIT
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "${HETZNER_USER}@${HETZNER_HOST}" 'python3 -' < deploy/hetzner/inspect_sources.py > server-sources.tar.gz
+          python - <<'PY'
+          import json,tarfile
+          with tarfile.open('server-sources.tar.gz') as archive:
+              data=json.load(archive.extractfile('manifest.json'))
+          print('HEAD server:',data['head'])
+          print('Sorgenti:',len(data['entries']))
+          print('Coincidenti:',sum(x['matches_candidate'] for x in data['entries']))
+          print('Da confrontare:',[x['path'] for x in data['entries'] if not x['matches_candidate']])
+          PY
+      - uses: actions/upload-artifact@v7
+        with:
+          name: server-source-snapshot
+          path: server-sources.tar.gz
+          retention-days: 7

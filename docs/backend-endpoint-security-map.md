@@ -8,9 +8,9 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 326.
-- Endpoint con `_richiedi_auth`: 326/326.
-- Endpoint con metodo di scrittura o cancellazione: 172.
+- Endpoint React API censiti: 331.
+- Endpoint con `_richiedi_auth`: 331/331.
+- Endpoint con metodo di scrittura o cancellazione: 174.
 - Endpoint con superficie file/upload/download/export/evidence: 16.
 - Route manifest censite: 119; critical: 18; high/P1: 77.
 - Parametri controllo bloccati: `tenant_id`, `tenant_slug`, `studio_id`, `studio_slug`, `user_id`, `api_key`, `token`, `access_token`, `refresh_token`, `redirect`, `redirect_url`, `return_url`, `next`, path filesystem.
@@ -88,8 +88,10 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `GET` | `/api/v1/ui/email-ordinaria` | Email ordinaria | P0 | `sessione/API tenant-aware` | messaggi, allegati e destinatari | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/email-ordinaria/bulk-action` | Email ordinaria | P0 | `sessione/API tenant-aware` | messaggi, allegati e destinatari | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/email-ordinaria/messaggio/<id_email>` | Email ordinaria | P0 | `sessione/API tenant-aware` | messaggi, allegati e destinatari | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/email-ordinaria/selection-ids` | Email ordinaria | P0 | `sessione/API tenant-aware` | messaggi, allegati e destinatari | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/email/bulk-action` | Email PEC | P0 | `sessione/API tenant-aware` | messaggi, allegati e destinatari | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/email/messaggio/<id_email>` | Email PEC | P0 | `sessione/API tenant-aware` | messaggi, allegati e destinatari | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/email/selection-ids` | Email PEC | P0 | `sessione/API tenant-aware` | messaggi, allegati e destinatari | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/email/source/<message_id>` | Email PEC | P0 | `sessione/API tenant-aware` | messaggi, allegati e destinatari | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/fascicoli` | Fascicoli e documenti | P0 | `sessione/API tenant-aware` | fascicoli, documenti e depositi | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/fascicoli/<id_fasc>` | Fascicoli e documenti | P0 | `sessione/API tenant-aware` | fascicoli, documenti e depositi | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
@@ -206,6 +208,7 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `POST` | `/api/v1/ui/incassi-pagamenti/<id_pagamento>/collega` | Incassi e pagamenti | P0 | `fatturazione.leggi/scrivi` | link pagamento e provider | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/incassi-pagamenti/<id_pagamento>/link-pagamento` | Incassi e pagamenti | P0 | `fatturazione.leggi/scrivi` | link pagamento e provider | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/incassi-pagamenti/<id_pagamento>/stato` | Incassi e pagamenti | P0 | `fatturazione.leggi/scrivi` | link pagamento e provider | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/incassi-pagamenti/esporta` | Incassi e pagamenti | P0 | `fatturazione.leggi/scrivi` | link pagamento e provider | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/incassi-pagamenti/incasso` | Incassi e pagamenti | P0 | `fatturazione.leggi/scrivi` | link pagamento e provider | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/legal-intelligence` | Ricerca legale | P1 | `sessione/API tenant-aware` | fonti e cronologia ricerca | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/legal-intelligence/mediazione` | Ricerca legale | P1 | `sessione/API tenant-aware` | fonti e cronologia ricerca | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
@@ -344,6 +347,8 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `POST` | `/api/v1/ui/tariffario/calcola` | Tariffario | P1 | `fatturazione.leggi` | calcoli tariffari | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/telematico` | Telematico | P0 | `sessione/API tenant-aware` | PCT/PST/Local Signer | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/telematico/depositi/catalogo` | Telematico | P0 | `sessione/API tenant-aware` | PCT/PST/Local Signer | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/telematico/pratiche` | Telematico | P0 | `sessione/API tenant-aware` | PCT/PST/Local Signer | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/telematico/pratiche/esporta` | Telematico | P0 | `sessione/API tenant-aware` | PCT/PST/Local Signer | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/telematico/pst/schema-hint` | Telematico | P0 | `sessione/API tenant-aware` | PCT/PST/Local Signer | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/telematico/surface/<surface>` | Telematico | P0 | `sessione/API tenant-aware` | PCT/PST/Local Signer | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/template-atti` | Template atti | P1 | `sessione/API tenant-aware` | modelli e compilazione | auth, tenant-aware, RBAC dominio, guardrail fase 5 |

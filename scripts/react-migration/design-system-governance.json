@@ -1,391 +1,782 @@
 {
+
   "schemaVersion": 1,
+
   "policy": "IUSENTRA design system unico: il preset globale e i CSS esistenti sono governati da allowlist. Nuovi CSS locali, nuovi inline style o accenti grafici fuori preset devono essere approvati qui con motivazione.",
+
   "approvedPresetExceptions": [
+
     {
+
       "route": "/sito-studio/builder",
+
       "reason": "Editor visuale sito studio personalizzato."
+
     }
+
   ],
+
   "approvedPresetPatternExceptions": [
+
     {
+
       "routePattern": "/fascicoli/<id>",
+
       "appSnippet": "const isFascicoloDetailViewPage = /^\\/fascicoli\\/(?!nuovo$|archivio$|importa$)[^/]+$/.test(routeKey)",
+
       "reason": "Tutte le visualizzazioni dettaglio fascicolo devono mantenere la superficie personalizzata richiesta dall'utente; lista, nuovo e archivio restano nel preset operativo."
+
     }
+
   ],
+
   "approvedCssRationale": {
+
     "frontend/src/components/fascicoloDocumenti/documentListToolbar.css": "Ricerca rapida, ordinamento per data o caricamento e filtri dei documenti del fascicolo richiesti dall'utente, più evidenza del trascinamento file nel caricamento: token condivisi, nessun tema alternativo, nessuno stile inline.",
+
     "frontend/src/components/documentCapture/acquisition.css": "Acquisizione dall'editor richiesta dall'utente: scanner tramite Local Signer, webcam e fotocamera con riquadro del foglio rilevato, verifica del ritaglio, pagine, PDF e OCR; finestra a tutto schermo su telefono, token condivisi, nessuno stile inline.",
+
     "frontend/src/components/documentCapture/documentCapture.css": "Acquisizione inline nel fascicolo richiesta dall'utente: anteprima di pagine e PDF, riordino e conferma, con Button e token condivisi; nessuna nuova superficie modale.",
+
     "frontend/src/components/documentCapture/fascicoloOcr.css": "Riconoscimento del testo nella sezione documenti del fascicolo richiesto dall'utente: scelta della sorgente, avanzamento per pagina, riepilogo e revisione modificabile, con Button e token condivisi; nessuno stile inline e nessuna superficie modale nuova.",
+
     "frontend/src/components/mediazione/mediazione.css": "Procedimento nel fascicolo e compilazione del modulo originale richiesti dall'utente: form, stati e zoom/fullscreen del foglio con proporzioni preservate; nessun tema alternativo.",
+
     "frontend/src/components/PortaleTokenApp.css": "Portale del cliente con link personale (/portale/<token>) migrato da Jinja: pagina pubblica senza cornice dello studio, barra con tema chiaro/scuro come la vista classica, navigazione inferiore mobile, avanzamento pratica con progress nativo; nessuno stile inline, colori solo come variabili locali della pagina.",
+
     "frontend/src/components/PagamentoLinkApp.css": "Link di pagamento del cliente (/pagamenti/paga/<token>) migrato da Jinja: scheda di checkout, esiti (pagato, bonifico, attesa), link scaduto e riquadro del widget SumUp con i colori dei gestori della vista classica; nessuno stile inline.",
+
     "frontend/src/components/MediazioneOrganismoDetail.css": "Scheda organismo e sedi inline richiesta dall'utente: layout e token condivisi, nessun tema alternativo, nessuno stile inline.",
+
     "frontend/src/components/MediazioneRegistryResponsive.css": "Adattamento della stessa tabella mediazione a tablet e mobile, mantenendo tutti i campi e i comandi senza scorrimento orizzontale.",
+
     "frontend/src/components/templateEditor/templateEditor.css": "Editor atti tipo Word richiesto dall'utente: fogli A4 reali con margini fisici, timbro ripetuto in intestazione, zoom e pannelli a scomparsa su mobile, barra di stato e stampa fedele; token e superfici del preset, nessuno stile inline.",
+
     "frontend/src/components/fascicoli/letturaFascicolo.css": "Pannello «Lettura del fascicolo» richiesto dall'utente: prossimi passaggi con urgenza, norma e fonte, card dei presìdi (documenti, depositi, notifiche, PEC, scadenze, economico), oggetto, cronologia e schede procedurali con fonti ufficiali; token condivisi, nessuno stile inline, nessuna superficie modale.",
+
     "frontend/src/components/strumenti/OcrDocumentoTool.css": "Utility «Da scansione a Word o PDF» in Strumenti forensi richiesta dall'utente: passi dichiarati, destinazione (computer o fascicolo del cliente con stato), formato e conferma; riusa i pattern del riconoscimento del fascicolo, Button e token condivisi; nessuno stile inline.",
+
     "frontend/src/components/mediazione/PdfModulo.css": "Compilazione nel portale del modulo mandato dallo studio, richiesta dall'utente: caselle predisposte posizionate sul foglio, finestra a tutto schermo, comandi delle righe del nucleo familiare e avviso sugli importi di legge superati. Stili staccati da mediazione.css perche' viaggino col componente: nel Portale Cliente arrivava senza, e i campi non si posizionavano. Token condivisi, nessun tema alternativo, nessuno stile inline.",
+
     "frontend/src/components/penalePdp/penalePdp.css": "Deposito penale telematico (PDP) nella scheda del fascicolo: catalogo atti, composizione, controlli, scheda per il portale e ricevute con token condivisi, senza stili inline.",
+
     "frontend/src/components/pttSigit/pttSigit.css": "Deposito tributario telematico (PTT/SIGIT) nella scheda del fascicolo e nella pagina /sigit: termini e atti impugnati, sopra gli stili condivisi del deposito PAT, senza stili inline.",
+
     "frontend/src/components/patFormweb/patFormweb.css": "Deposito amministrativo telematico (Formweb PAT) nella scheda del fascicolo e nella pagina /pat: scheda del portale, parti, documenti e verifica del riepilogo con token condivisi, senza stili inline.",
+
     "frontend/src/components/SupportCustomerRoom.css": "Stanza cliente dell'assistenza remota (/support/join/<token>) migrata da template e script legacy: consensi, avvio e chiusura, microfono, chat tecnica, richiesta di controllo PC, schermo intero e chat compatta; pagina pubblica senza cornice dello studio, token condivisi, nessuno stile inline, responsive fino al telefono.",
+
     "frontend/src/components/EconomicVerificationPanel.css": "Confronto degli importi e delle fonti nella stessa pagina del fascicolo, richiesto dall’utente; token condivisi e layout responsive.",
+
     "frontend/src/components/VerificaNotifichePanel.css": "Verifica del contesto dell’atto e dei termini nel presidio senza perdere la pagina; token condivisi.",
+
     "frontend/src/components/ViewerDocumentEditor.css": "Pannelli richiudibili, oggetti e firma nel lettore unico richiesti dall’utente; superficie documentale dedicata.",
+
     "frontend/src/components/layout/DiscordanzeAccesso.css": "Avviso delle discordanze all’accesso con confronto delle fonti, focus visibile e layout mobile richiesto dall’utente.",
+
     "frontend/src/components/TelematicoCardsPanel.css": "Riepilogo operativo delle card telematiche richiesto: filtri, selezione, consultazione SQL ed esportazione nella finestra condivisa spostabile e ridimensionabile. Token IUSENTRA e controlli compatti, nessun tema alternativo o stile inline.",
-    "frontend/src/components/AgendaResearch.css": "Ricerca e filtri compatti dell�agenda richiesti dall�utente, con token condivisi.",
+
+    "frontend/src/components/AgendaResearch.css": "Ricerca e filtri compatti dell’agenda richiesti dall’utente, con token condivisi.",
+
     "frontend/src/components/CompensiCatalogWindow.css": "Cataloghi operativi dei compensi nel contesto della pagina, con token condivisi.",
+
     "frontend/src/components/ControlloStudioContext.css": "Pannelli contestuali del Controllo Studio senza abbandonare la pagina.",
-    "frontend/src/components/ManagedWindows.css": "Finestre spostabili, ridimensionabili, minimizzabili e affiancabili richieste dall�utente.",
+
+    "frontend/src/components/ManagedWindows.css": "Finestre spostabili, ridimensionabili, minimizzabili e affiancabili richieste dall’utente.",
+
     "frontend/src/components/OperationalCards.css": "Card compatte e operative per preservare spazio al contenuto della pagina.",
+
     "frontend/src/components/SoggettoContextDetails.css": "Consultazione contestuale dei soggetti con comandi e token condivisi.",
-    "frontend/src/components/SourceAlternatives.css": "Confronto esplicito delle fonti quando l�origine non � univoca.",
+
+    "frontend/src/components/SourceAlternatives.css": "Confronto esplicito delle fonti quando l’origine non è univoca.",
+
     "frontend/src/components/iusentra/OperationalMetric.css": "Indicatori utilizzabili come filtri e accesso ai cataloghi nel loro contesto.",
+
     "frontend/src/components/layout/QuickDeadlineList.css": "Selezione e presa visione delle scadenze rapide nella finestra condivisa.",
+
     "frontend/src/components/layout/TopBarMobileMenu.css": "Comandi della topbar accessibili su schermi piccoli senza overflow.",
+
     "frontend/src/components/layout/TopBarNotifications.css": "Notifiche operative selezionabili con presa visione e stato esplicito.",
+
     "frontend/src/components/strumenti/DocumentChecksTool.css": "Verifiche documentali negli strumenti forensi con token condivisi."
+
   },
+
   "approvedCssFiles": [
+
     "frontend/src/components/ControlloStudioPage.css",
+
     "frontend/src/components/layout/TopBarTimeTracker.css",
+
     "frontend/src/components/fascicoli/ConservazionePanel.css",
+
     "frontend/src/components/fascicoli/CtuIncaricoDettaglio.css",
+
     "frontend/src/components/AdminDatabasePage.css",
+
     "frontend/src/components/AgendaImportPage.css",
+
     "frontend/src/components/AmministrazionePage.css",
+
     "frontend/src/components/AnagraficaClientiPage.css",
+
     "frontend/src/components/AuditPage.css",
+
     "frontend/src/components/BackupPage.css",
+
     "frontend/src/components/CartellaClientePage.css",
+
     "frontend/src/components/clienti/ClienteAntiriciclaggio.css",
+
     "frontend/src/components/CartelleCondivisePage.css",
+
     "frontend/src/components/ClientiCollaboratoriControls.css",
+
     "frontend/src/components/ClientiCollaboratoriPage.css",
+
     "frontend/src/components/CodiceOggettoPstSearch.css",
+
     "frontend/src/components/CompensiForensiPage.css",
+
     "frontend/src/components/CrmPage.css",
+
     "frontend/src/components/DocumentEditorPage.css",
+
     "frontend/src/components/DocumentToolsPage.css",
+
     "frontend/src/components/DocumentiAIPage.css",
+
     "frontend/src/components/EditorProfessionalePage.css",
+
     "frontend/src/components/EmailPecPage.css",
+
     "frontend/src/components/FascicoliPage.css",
+
     "frontend/src/components/FatturazionePage.css",
+
     "frontend/src/components/GiurisprudenzaPage.css",
+
     "frontend/src/components/GuidaPraticaSidebar.css",
+
     "frontend/src/components/IncassiPagamentiPage.css",
+
     "frontend/src/components/LegalIntelligencePage.css",
+
     "frontend/src/components/LexLearningPage.css",
+
     "frontend/src/components/MediazioneOrganismoDetail.css",
+
     "frontend/src/components/MediazioneRegistryResponsive.css",
+
     "frontend/src/components/MessaggiPage.css",
+
     "frontend/src/components/NotificheLegaliPage.css",
+
     "frontend/src/components/NotiziarioPanel.css",
+
     "frontend/src/components/NuovaScadenzaPage.css",
+
     "frontend/src/components/NuovoAppuntamentoPage.css",
+
     "frontend/src/components/NuovoClientePage.css",
+
     "frontend/src/components/PagoPaAvvisiPanel.css",
+
     "frontend/src/components/PreventiviPage.css",
+
     "frontend/src/components/PreventivoWizardPage.css",
+
     "frontend/src/components/PrimaNotaPage.css",
+
     "frontend/src/components/RecuperoCreditiPage.css",
+
     "frontend/src/components/PrivacyRegistroPage.css",
+
     "frontend/src/components/ProfiliPage.css",
+
     "frontend/src/components/ProfiloPage.css",
+
     "frontend/src/components/QuickOrganizerImportPage.css",
+
     "frontend/src/components/RedazioneAttiPage.css",
+
     "frontend/src/components/ScadenziarioPage.css",
+
     "frontend/src/components/SitoStudioBuilderPage.css",
+
     "frontend/src/components/SitoStudioBuilderPage.panels.css",
+
     "frontend/src/components/SitoStudioPage.css",
+
     "frontend/src/components/SitoStudioRedazioneAiPage.css",
+
     "frontend/src/components/SoggettiPage.css",
+
     "frontend/src/components/LexOperativoPage.css",
+
     "frontend/src/components/FatturazioneSheetActions.css",
+
     "frontend/src/components/RicercaLegaleSchedaPage.css",
+
     "frontend/src/components/ControlloGiornalieroPanel.css",
+
     "frontend/src/components/ChecklistAttiPage.css",
+
     "frontend/src/components/ApplicazionePage.css",
+
     "frontend/src/components/SitoStudioContenutiPage.css",
+
     "frontend/src/components/PiattaformaApp.css",
+
     "frontend/src/components/PortaleTokenApp.css",
+
     "frontend/src/components/PagamentoLinkApp.css",
+
     "frontend/src/components/AccessoApp.css",
+
     "frontend/src/components/StatistichePage.css",
+
     "frontend/src/components/TemplateStudioPage.css",
+
     "frontend/src/components/StrumentiLegaliPage.css",
+
     "frontend/src/components/StudioModulePage.css",
+
     "frontend/src/components/StudioPage.css",
+
     "frontend/src/components/SupportCustomerRoom.css",
+
     "frontend/src/components/SyncedTopScrollbar.css",
+
     "frontend/src/components/TariffarioPage.css",
+
     "frontend/src/components/TelematicoPage.css",
+
     "frontend/src/components/TelematicoSurfacePage.css",
+
     "frontend/src/components/TemplateAttiPage.css",
+
     "frontend/src/components/TimesheetPage.css",
+
     "frontend/src/components/UtentiPage.css",
+
     "frontend/src/components/WizardProPage.css",
+
     "frontend/src/components/documentCapture/acquisition.css",
+
     "frontend/src/components/documentCapture/documentCapture.css",
+
     "frontend/src/components/documentCapture/fascicoloOcr.css",
+
     "frontend/src/components/fascicoli/attestazioneConformita.css",
+
     "frontend/src/components/fascicoli/letturaFascicolo.css",
+
     "frontend/src/components/fascicoloDocumenti/documentListToolbar.css",
+
     "frontend/src/components/layout/TopBar.css",
+
     "frontend/src/components/mediazione/PdfModulo.css",
+
     "frontend/src/components/mediazione/mediazione.css",
+
     "frontend/src/components/patFormweb/patFormweb.css",
+
     "frontend/src/components/pttSigit/pttSigit.css",
+
     "frontend/src/components/penalePdp/penalePdp.css",
+
     "frontend/src/components/strumenti/OcrDocumentoTool.css",
+
     "frontend/src/components/templateEditor/templateEditor.css",
+
     "frontend/src/features/comunicazioni/MailboxPagination.css",
+
     "frontend/src/features/impostazioni/ImpostazioniPage.css",
+
     "frontend/src/features/impostazioni/components/BackupSettingsPanel.css",
+
     "frontend/src/features/impostazioni/components/BillingSettingsPanel.css",
+
     "frontend/src/features/impostazioni/components/CalendarSettingsPanel.css",
+
     "frontend/src/features/impostazioni/components/NotificationsSettingsPanel.css",
+
     "frontend/src/features/impostazioni/components/MiaFirmaPanel.css",
+
     "frontend/src/features/impostazioni/components/PaymentsSettingsPanel.css",
+
     "frontend/src/features/notifiche-legali/PresidiNotifiche.css",
+
     "frontend/src/features/notifiche-legali/components/PresidioEvidenceModal.css",
+
     "frontend/src/features/procedure-completion/procedure-completion.css",
+
     "frontend/src/index.css",
+
     "frontend/src/shell/shell.css",
+
     "frontend/src/stories/storybook.css",
+
     "frontend/src/styles/iusentra-design-system.css",
+
     "frontend/src/theme/impeccable-open-design.css",
+
     "frontend/src/theme/layout.css",
+
     "frontend/src/theme/legal-ui.css",
+
     "frontend/src/theme/tokens.css",
+
     "frontend/src/ui/ui.css",
+
     "frontend/src/components/EconomicVerificationPanel.css",
+
     "frontend/src/components/VerificaNotifichePanel.css",
+
     "frontend/src/components/ViewerDocumentEditor.css",
+
     "frontend/src/components/layout/DiscordanzeAccesso.css",
+
     "frontend/src/components/TelematicoCardsPanel.css",
+
     "frontend/src/components/AgendaResearch.css",
+
     "frontend/src/components/CompensiCatalogWindow.css",
+
     "frontend/src/components/ControlloStudioContext.css",
+
     "frontend/src/components/ManagedWindows.css",
+
     "frontend/src/components/OperationalCards.css",
+
     "frontend/src/components/SoggettoContextDetails.css",
+
     "frontend/src/components/SourceAlternatives.css",
+
     "frontend/src/components/iusentra/OperationalMetric.css",
+
     "frontend/src/components/layout/QuickDeadlineList.css",
+
     "frontend/src/components/layout/TopBarMobileMenu.css",
+
     "frontend/src/components/layout/TopBarNotifications.css",
+
     "frontend/src/components/strumenti/DocumentChecksTool.css"
+
   ],
+
   "allowedInlineStyles": [
+
     {
+
       "file": "frontend/src/components/SourceDocumentModal.tsx",
+
       "snippets": [
+
         "style={{ '--iu-source-reader-rotation': `${normalizedRotation}deg` } as CSSProperties}",
+
         "style={{ width: '100%', height: '100%', border: 0 }}"
+
       ],
+
       "reason": "Rotazione scelta dall'avvocato nel lettore interno: passa come variabile CSS governata, non come regola grafica; l'aspetto resta nel foglio di stile."
+
     },
+
     {
+
       "file": "frontend/src/components/documentCapture/DocumentCapture.tsx",
+
       "snippets": [
+
         "style={{ transform: `rotate(${preview.rotation}deg)` }}"
+
       ],
+
       "reason": "Rotazione dell'anteprima determinata dalla scelta dell'avvocato; la stessa rotazione è inviata alla generazione del PDF."
+
     },
+
     {
+
       "file": "frontend/src/components/mediazione/PdfModulo.tsx",
+
       "snippets": [
+
         "style={{ aspectRatio: `${sheet.larghezza} / ${sheet.altezza}`, width: `${8 * zoom}px` }}"
+
       ],
+
       "reason": "Rapporto del foglio originale e zoom scelto dall'avvocato, senza deformare il PDF né la posizione dei campi."
+
     },
+
     {
+
       "file": "frontend/src/components/AnagraficaClientiPage.tsx",
+
       "snippets": [
+
         "style={{ left: state.x, top: state.y }}"
+
       ],
+
       "reason": "Pannello rapido cliente: il popover deve seguire le coordinate del click reale."
+
     },
+
     {
+
       "file": "frontend/src/App.tsx",
+
       "snippets": [
+
         "conic-gradient(var(--iu-blue-600)",
+
         "style={{background:chart}}",
+
         "style={{background:toneColor[d.tone]}}"
+
       ],
+
       "reason": "Grafici operativi calcolati da dati reali nella panoramica."
+
     },
+
     {
+
       "file": "frontend/src/components/AgendaPage.tsx",
+
       "snippets": [
+
         "top: `${eventTopPercent(event)}%`",
+
         "gridTemplateColumns: view === 'month'"
+
       ],
+
       "reason": "Agenda: posizionamento calendario e colonne giorno dipendono dai dati."
+
     },
+
     {
+
       "file": "frontend/src/components/StatistichePage.tsx",
+
       "snippets": [
+
         "style={{ width: `${width}%` }}"
+
       ],
+
       "reason": "Barre percentuali calcolate da metriche reali."
+
     },
+
     {
+
       "file": "frontend/src/components/SyncedTopScrollbar.tsx",
+
       "snippets": [
+
         "style={{ width: `${scrollWidth}px` }}"
+
       ],
+
       "reason": "Scrollbar superiore sincronizzata con larghezza reale del contenuto."
+
     },
+
     {
+
       "file": "frontend/src/components/FascicoliPage.tsx",
+
       "snippets": [
+
         "style={{ left: position.x, top: position.y, maxHeight: maxPanelHeight }}",
+
         "style={{ left: position.x, top: position.y }}"
+
       ],
+
       "reason": "Menu contestuale fascicolo: il popover deve seguire le coordinate del click reale restando clamped nel viewport."
+
     },
+
     {
+
       "file": "frontend/src/components/SitoStudioBuilderPage.tsx",
+
       "snippets": [
+
         "'--site-primary': primary",
+
         "'--builder-panel-width': `${panelWidth}px`"
+
       ],
+
       "reason": "Builder sito studio: anteprima e pannelli devono seguire scelte live dell'utente."
+
     },
+
     {
+
       "file": "frontend/src/components/fascicoli/AttestazioneConformita.tsx",
+
       "snippets": [
+
         "style={stileRiquadro("
+
       ],
+
       "reason": "Riquadri dell'attestazione e della firma testo disegnati dall'avvocato col mouse sul documento: la posizione passa come variabili CSS governate, l'aspetto resta nel foglio di stile."
+
     },
+
     {
+
       "file": "frontend/src/components/ViewerCanvasObjects.tsx",
+
       "snippets": [
+
         "style={{left:Math.max(8,Math.min(menu.x,window.innerWidth-220)),top:Math.max(8,Math.min(menu.y,window.innerHeight-235))}}"
+
       ],
+
       "reason": "Posizione del menu contestuale calcolata dalle coordinate del mouse e limitata alla finestra."
+
     },
+
     {
+
       "file": "frontend/src/components/ViewerColorPalette.tsx",
+
       "snippets": [
+
         "style={{ background: color }}"
+
       ],
+
       "reason": "Campione del colore scelto dall’avvocato, senza tema grafico alternativo."
+
     },
+
     {
+
       "file": "frontend/src/components/ViewerDocumentEditor.tsx",
+
       "snippets": [
+
         "style={{cursor:sampler.active||armed?'crosshair':'default',...(zoom===1?{}:{width:`${zoom*100}%`})}}",
+
         "style={{ left: `${span.x * 100}%`, top: `${span.y * 100}%`, width: `${span.width * 100}%`, height: `${span.height * 100}%` }}",
+
         "style={{ left: `${Math.min(draft.x, draft.x1) * 100}%`, top: `${Math.min(draft.y, draft.y1) * 100}%`, width: `${Math.abs(draft.x1 - draft.x) * 100}%`, height: `${Math.abs(draft.y1 - draft.y) * 100}%` }}"
+
       ],
+
       "reason": "Coordinate normalizzate degli oggetti PDF e zoom selezionato; conservano la geometria originale."
+
     },
+
     {
+
       "file": "frontend/src/components/ViewerHandwrittenSignaturePanel.tsx",
+
       "snippets": [
+
         "style={{background:value}}"
+
       ],
+
       "reason": "Campione del colore della penna selezionata per la firma manoscritta."
+
     },
+
     {
+
       "file": "frontend/src/components/ContextWorkWindows.tsx",
+
       "snippets": [
+
         "style={{ display: 'contents' }}"
+
       ],
+
       "reason": "Wrapper senza ingombro per conservare la finestra documentale nel gestore contestuale richiesto."
+
     },
+
     {
+
       "file": "frontend/src/components/WindowResizeHandles.tsx",
+
       "snippets": [
+
         "style={{ ...bounds, position: 'fixed', zIndex: zIndex + 1 }}"
+
       ],
+
       "reason": "Dimensioni e sovrapposizione dei bordi di ridimensionamento calcolate dalla finestra realmente selezionata; colori e aspetto nel CSS condiviso."
+
     },
+
     {
+
       "file": "frontend/src/components/OperationalModal.tsx",
+
       "snippets": [
+
         "style={{ zIndex: managed.zIndex }}",
+
         "style={{ maxWidth: Math.max(0, document.documentElement.clientWidth - 12)"
+
       ],
-      "reason": "Geometria e ordine delle finestre calcolati dal gestore condiviso in risposta a spostamento, ridimensionamento, affiancamento e schermo intero richiesti dall�utente; grafica nel CSS condiviso."
+
+      "reason": "Geometria e ordine delle finestre calcolati dal gestore condiviso in risposta a spostamento, ridimensionamento, affiancamento e schermo intero richiesti dall’utente; grafica nel CSS condiviso."
+
     }
+
   ],
+
   "allowedBackdropFilters": [
+
     {
+
       "file": "frontend/src/index.css",
+
       "count": 5,
+
       "reason": "Topbar, barra mobile, pannello Lex flottante e velo del menu mobile (velo di base e velo a menu aperto) già governati dal preset globale."
+
     },
+
     {
+
       "file": "frontend/src/components/DocumentEditorPage.css",
+
       "count": 1,
+
       "reason": "Toolbar documento sticky sopra la superficie di redazione."
+
     },
+
     {
+
       "file": "frontend/src/components/FascicoliPage.css",
+
       "count": 1,
+
       "reason": "Navigazione interna Fascicoli sticky e compatta."
+
     },
+
     {
+
       "file": "frontend/src/components/MessaggiPage.css",
+
       "count": 2,
+
       "reason": "Filtri e barra invio messaggi sticky governati."
+
     },
+
     {
+
       "file": "frontend/src/components/NuovoAppuntamentoPage.css",
+
       "count": 1,
+
       "reason": "Barra azioni form appuntamento sticky."
+
     },
+
     {
+
       "file": "frontend/src/components/NuovaScadenzaPage.css",
+
       "count": 1,
+
       "reason": "Barra azioni form scadenza sticky."
+
     },
+
     {
+
       "file": "frontend/src/components/NuovoClientePage.css",
+
       "count": 1,
+
       "reason": "Tab di anagrafica cliente sticky."
+
     },
+
     {
+
       "file": "frontend/src/components/layout/TopBar.css",
+
       "count": 1,
+
       "reason": "Topbar responsive già condivisa."
+
     },
+
     {
+
       "file": "frontend/src/components/SitoStudioBuilderPage.css",
+
       "count": 2,
+
       "reason": "Builder sito studio escluso dal preset pagina e governato come superficie creativa."
+
     }
+
   ],
+
   "forbiddenCssPatterns": [
+
     {
+
       "id": "accento-laterale-spesso",
+
       "regex": "border-(left|right)\\s*:\\s*([2-9]|[1-9][0-9])px\\b",
+
       "reason": "Le card operative non devono usare accenti laterali pagina-specifici; usare bordo/superficie del preset."
+
     },
+
     {
+
       "id": "testo-gradiente",
+
       "regex": "background-clip\\s*:\\s*text|-webkit-text-fill-color",
+
       "reason": "Il gestionale usa gerarchie tipografiche istituzionali, non titoli decorativi."
+
     },
+
     {
+
       "id": "blur-decorativo",
+
       "regex": "(^|[^A-Za-z0-9_-])filter\\s*:\\s*blur\\(",
+
       "reason": "Orbi, bokeh e blur decorativi sono vietati nelle superfici operative."
+
     },
+
     {
+
       "id": "termini-decorativi",
+
       "regex": "\\b(orb|bokeh|glassmorphism)\\b",
+
       "reason": "La UI IUSENTRA deve restare operativa, non decorativa."
+
     }
+
   ]
+
 }
+

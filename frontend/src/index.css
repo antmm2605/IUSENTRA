@@ -1055,7 +1055,7 @@ body.react-shell-page #root{
 .iu-ag-status-line .iu-ag-highlight__text{display:block;min-height:0;min-width:0;padding:0;border-radius:0;background:none;color:inherit;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .iu-ag-highlight__dot{flex:0 0 auto;width:8px;height:8px;border-radius:999px;background:var(--iu-blue-700)}
 .iu-ag-highlight__dot.is-danger{background:#dc2626}.iu-ag-highlight__dot.is-warning,.iu-ag-highlight__dot.is-orange{background:#d97706}.iu-ag-highlight__dot.is-success{background:#059669}.iu-ag-highlight__dot.is-purple{background:#7c3aed}.iu-ag-highlight__dot.is-neutral{background:#64748b}
-/* Dettaglio operativo: navigazione, fonte e attivitÃ  proposte */
+/* Dettaglio operativo: navigazione, fonte e attività proposte */
 .iu-ag-focus__nav{display:flex;align-items:center;gap:8px;margin:0 0 8px}
 .iu-ag-focus__nav button{min-height:32px;display:inline-flex;align-items:center;gap:4px;padding:0 10px;border:1px solid var(--iu-border);border-radius:10px;background:#fff;color:var(--iu-blue-700);font-size:12px;font-weight:950;cursor:pointer}
 .iu-ag-focus__nav em{color:var(--iu-slate-500);font-size:12px;font-style:normal;font-weight:900;font-variant-numeric:tabular-nums}
@@ -2431,7 +2431,7 @@ body.iu-agenda-planner-expanded .iu-lex-float{visibility:hidden;pointer-events:n
   border: 1px solid var(--cp-border);
   border-radius: 12px;
   /* Le azioni sulla pratica si distinguono con la superficie del preset, non
-     con un accento laterale: quello Ã¨ vietato dal design system. */
+     con un accento laterale: quello è vietato dal design system. */
   background: var(--cp-surface-soft);
 }
 
@@ -2672,7 +2672,7 @@ body.iu-agenda-planner-expanded .iu-lex-float{visibility:hidden;pointer-events:n
 .iu-client-portal-workgrid {
   display: grid;
   /* Le colonne si riducono da sole quando lo spazio non basta: sul tablet
-     diventano due, sul telefono una, senza salti bruschi nÃ© spazi morti. */
+     diventano due, sul telefono una, senza salti bruschi né spazi morti. */
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 12px;
   align-items: start;

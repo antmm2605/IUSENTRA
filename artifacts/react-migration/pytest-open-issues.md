@@ -1,5 +1,10 @@
 # Pytest issue aperte e risoluzioni
 
+## Deploy 2.436.11 con Lex v2 — 07/10/2026
+
+Risolte e verificate localmente le cause dei fallimenti CI precedenti: regex degli estremi, bootstrap di caselle SQL, fixture SQL email/PEC e contratti React condivisi. Restano da seguire tutti i gate sul nuovo commit, backup, installazione verificata del modello, deploy, diagnosi delle fonti e inferenza reale sul server. Copia locale 8080 non verificata su macchina reale in questa sessione. Non dichiarare il deploy completato sulla base dei soli test locali.
+
+
 ## Inventario test 2.436.9 — 03/10/2026
 
 Il job Lint + syntax 111239067170 del run 37135492161 si ferma nel generatore App V2: inventario e piano test non includevano `tests/test_lex_prova_server_20261003.py` introdotto dal bundle 2.436.9. I fallimenti degli aggregatori Pytest core e Signer sono conseguenze degli shard non eseguiti dopo il gate quality fallito. Rigenerati `docs/test-inventory.md` e `docs/test-plan-app-v2.md` con il generatore canonico: --check, 20 contratti collegati e packaging positivi. Nessun test/soglia/gate eliminato; nuova CI completa, deploy e diagnosi reale ancora da verificare.

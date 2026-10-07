@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from tests.mailbox_test_support import sql_mailbox
+from pct.email_sql_client import GestioneEmailSQL
+
 import json
 import sqlite3
 import zipfile
@@ -6341,7 +6344,7 @@ def test_pec_api_acquisisce_mime_locale_da_casella_storica(tmp_path, monkeypatch
     msg.add_attachment(b"<daticert><msgid>legacy-pec-98</msgid></daticert>", maintype="application", subtype="xml", filename="daticert.xml")
     raw_mime = msg.as_bytes()
 
-    gestore = GestioneEmailRicevute(str(paths["EMAIL_CASELLA_DB"]))
+    gestore = sql_mailbox(str(paths["EMAIL_CASELLA_DB"]))
     eml_info = gestore._salva_eml_originale("MAIL-LEGACY-PEC", raw_mime)
     gestore.aggiungi(
         EmailRicevuta(
@@ -6362,6 +6365,7 @@ def test_pec_api_acquisisce_mime_locale_da_casella_storica(tmp_path, monkeypatch
     )
 
     app = Flask(__name__)
+    app.config["STORAGE_MODE_DEFAULT"] = "SQLITE"
     app.secret_key = "test"
     app.register_blueprint(pec_pipeline_api, url_prefix="/api/pec")
     monkeypatch.setattr("web.blueprints.pec_pipeline_api.tenant_data_path", fake_tenant_data_path)
@@ -6436,7 +6440,7 @@ def test_pec_api_acquisisci_locali_prosegue_a_blocchi_e_azzera_presidio(tmp_path
         value.parent.mkdir(parents=True, exist_ok=True)
         return str(value)
 
-    gestore = GestioneEmailRicevute(str(paths["EMAIL_CASELLA_DB"]))
+    gestore = sql_mailbox(str(paths["EMAIL_CASELLA_DB"]))
     for index in range(3):
         gestore.aggiungi(
             EmailRicevuta(
@@ -6455,6 +6459,7 @@ def test_pec_api_acquisisci_locali_prosegue_a_blocchi_e_azzera_presidio(tmp_path
         )
 
     app = Flask(__name__)
+    app.config["STORAGE_MODE_DEFAULT"] = "SQLITE"
     app.secret_key = "test"
     app.register_blueprint(pec_pipeline_api, url_prefix="/api/pec")
     monkeypatch.setattr("web.blueprints.pec_pipeline_api.tenant_data_path", fake_tenant_data_path)
@@ -6518,7 +6523,7 @@ def test_pec_api_presidia_avvisi_warn_storici_senza_lasciare_arretrato(tmp_path,
         value.parent.mkdir(parents=True, exist_ok=True)
         return str(value)
 
-    gestore = GestioneEmailRicevute(str(paths["EMAIL_CASELLA_DB"]))
+    gestore = sql_mailbox(str(paths["EMAIL_CASELLA_DB"]))
     for index in range(3):
         gestore.aggiungi(
             EmailRicevuta(
@@ -6540,6 +6545,7 @@ def test_pec_api_presidia_avvisi_warn_storici_senza_lasciare_arretrato(tmp_path,
     assert before["summary"]["warnings"] == 3
 
     app = Flask(__name__)
+    app.config["STORAGE_MODE_DEFAULT"] = "SQLITE"
     app.secret_key = "test"
     app.register_blueprint(pec_pipeline_api, url_prefix="/api/pec")
     monkeypatch.setattr("web.blueprints.pec_pipeline_api.tenant_data_path", fake_tenant_data_path)
@@ -6852,7 +6858,7 @@ def test_presidio_cli_ricostruisce_pec_locale_e_alimenta_catena_operativa(tmp_pa
         nome_completo="Avv. Test",
         must_change_password=False,
     )
-    gestore = GestioneEmailRicevute(paths["EMAIL_CASELLA_DB"])
+    gestore = sql_mailbox(paths["EMAIL_CASELLA_DB"])
     gestore.aggiungi(
         EmailRicevuta(
             id="MAIL-PEC-RICOSTRUITA",
@@ -7007,7 +7013,7 @@ def test_react_email_bridge_limita_payload_iniziale_senza_perdere_totali(tmp_pat
     from web.services.react_email_bridge import build_react_email_payload
 
     email_db = tmp_path / "email" / "casella.json"
-    gestore = GestioneEmailRicevute(str(email_db))
+    gestore = sql_mailbox(str(email_db))
     for index in range(120):
         gestore.aggiungi(
             EmailRicevuta(
@@ -7073,7 +7079,7 @@ def test_react_email_bridge_exposes_provisional_audit_for_legacy_pec(tmp_path):
     from web.services.react_email_bridge import build_react_email_detail_payload, build_react_email_payload
 
     email_db = tmp_path / "email" / "casella.json"
-    gestore = GestioneEmailRicevute(str(email_db))
+    gestore = sql_mailbox(str(email_db))
     gestore.aggiungi(
         EmailRicevuta(
             id="MAIL-GDP-1",
@@ -7124,7 +7130,7 @@ def test_react_email_bridge_provisional_pec_usa_mime_locale_quando_presente(tmp_
     from web.services.react_email_bridge import build_react_email_detail_payload, build_react_email_payload
 
     email_db = tmp_path / "email" / "casella.json"
-    gestore = GestioneEmailRicevute(str(email_db))
+    gestore = sql_mailbox(str(email_db))
     msg = EmailMessage()
     msg["From"] = "posta-certificata@legalmail.it"
     msg["To"] = "studio@example.pec.it"

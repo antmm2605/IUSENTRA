@@ -1,5 +1,10 @@
 # Pytest shard confermati OK
 
+## Correzioni CI release 2.436.11 — 07/10/2026
+
+83 test email/storage runtime e 94 test storage strategy/estremi/PEC superati. Tutti i 13 casi PEC/React falliti sullo SHA precedente verificati in lotti mirati dopo gli adeguamenti; i tre casi React residui sono stati rilanciati singolarmente. Verificati il primo accesso con messaggi SQL persistenti e una casella SQL inizializzata vuota, che non deve essere riconosciuta come database da migrare. Ruff sintassi e modulo corpus, governance, packaging, inventario test e mappa sicurezza backend positivi. Suite combinata iniziale interrotta prima di cinque minuti e non conteggiata come superata. Gate GitHub e deploy da verificare sul nuovo SHA; nessuna prova visiva locale dichiarata.
+
+
 ## Inventario test 2.436.9 — 03/10/2026
 
 Rigenerazione canonica e `generate_app_v2_test_docs.py --check` positivi; 20 test inventario/piano App V2, CI/CD fase 11 e anti-regressione CI superati; packaging sync e git diff --check positivi. La nuova baseline censisce 824 file pytest (+1) e 71 target coverage-critical (+1), includendo il test di prova server della release. Nessuna riduzione della copertura; esito remoto da verificare sul nuovo SHA.

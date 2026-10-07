@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from tests.mailbox_test_support import sql_mailbox
+from pct.email_sql_client import GestioneEmailSQL
+
 import email
 import json
 import os
@@ -66,8 +69,8 @@ def _cfg_web(tmp_path: Path) -> dict:
         "SEARCH_INDEX": str(tmp_path / "search.db"),
         "SOGGETTI_DB": str(tmp_path / "soggetti.json"),
         "SOGGETTI_PARTI_DB": str(tmp_path / "parti.json"),
-        "EMAIL_CASELLA_DB": str(tmp_path / "casella.json"),
-        "EMAIL_ORDINARIA_DB": str(tmp_path / "ordinaria.json"),
+        "EMAIL_CASELLA_DB": str(tmp_path / "email" / "casella.json"),
+        "EMAIL_ORDINARIA_DB": str(tmp_path / "email" / "ordinaria.json"),
         "STUDIO_CONFIG": str(tmp_path / "config" / "studio.json"),
     }
 
@@ -143,6 +146,7 @@ def test_email_blueprint_usa_storage_tenant_per_sincronizzazione(tmp_path):
     GestioneConfigStudio(str(root_config)).aggiorna(ConfigStudio(pec=ConfigPEC(indirizzo="root@example.it")))
     GestioneConfigStudio(str(tenant_config)).aggiorna(ConfigStudio(pec=ConfigPEC(indirizzo="tenant@example.it")))
 
+    sql_mailbox(tenant_email_db)
     app = create_app(cfg)
     with app.test_request_context("/email/sincronizza", method="POST"):
         g.data_paths = {
@@ -251,7 +255,7 @@ def test_email_pec_scrivi_invia_dal_canale_pec_dedicato_senza_local_signer(tmp_p
     assert response.status_code == 200
     assert payload["ok"] is True
     assert payload["redirect"].endswith("/email/?cartella=INVIATI")
-    sent = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"]).tutte(cartella=CartellaEmail.INVIATI)
+    sent = sql_mailbox(cfg["EMAIL_CASELLA_DB"]).tutte(cartella=CartellaEmail.INVIATI)
     assert len(sent) == 1
     assert sent[0].destinatari == "cliente@example.pec.it"
     assert sent[0].message_id == "<pec-1@example.test>"
@@ -319,7 +323,7 @@ def test_email_pec_scrivi_usa_smtp_backend_server_reale(tmp_path, monkeypatch):
     assert calls["to_addrs"] == ["cliente@example.pec.it", "secondo@example.pec.it"]
     assert calls["subject"] == "PEC backend"
     assert calls["quit"] is True
-    sent = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"]).tutte(cartella=CartellaEmail.INVIATI)
+    sent = sql_mailbox(cfg["EMAIL_CASELLA_DB"]).tutte(cartella=CartellaEmail.INVIATI)
     assert len(sent) == 1
     assert sent[0].destinatari == "cliente@example.pec.it, secondo@example.pec.it"
     assert sent[0].message_id == calls["message_id"]
@@ -385,7 +389,7 @@ def test_email_pec_scrivi_invia_allegato_via_smtp_backend(tmp_path, monkeypatch)
     assert payload["ok"] is True
     assert calls["login"] == ("studio@example.pec.it", "segreta")
     assert calls["attachments"] == ["verifica-pec.txt"]
-    sent = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"]).tutte(cartella=CartellaEmail.INVIATI)
+    sent = sql_mailbox(cfg["EMAIL_CASELLA_DB"]).tutte(cartella=CartellaEmail.INVIATI)
     assert len(sent) == 1
     assert sent[0].oggetto == "PEC backend allegato"
     assert sent[0].message_id == calls["message_id"]
@@ -468,7 +472,7 @@ def test_email_pec_conferma_locale_registra_inviati_solo_dopo_message_id(tmp_pat
     payload = response.get_json()
     assert response.status_code == 200
     assert payload["ok"] is True
-    sent = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"]).tutte(cartella=CartellaEmail.INVIATI)
+    sent = sql_mailbox(cfg["EMAIL_CASELLA_DB"]).tutte(cartella=CartellaEmail.INVIATI)
     assert len(sent) == 1
     assert sent[0].message_id == "<local-pec@example.test>"
     storico = GestioneMessaggi(config=None, db_path=cfg["MESSAGGI_DB"]).tutti(canale=CanaleMsggio.EMAIL)
@@ -497,9 +501,13 @@ def test_base_template_non_renderizza_vecchio_lex_duplicato():
     assert "Archivio PEC in aggiornamento. Riprovo tra pochi secondi." in pec_api
     assert "embeddedSourceDetail" in Path("web/blueprints/react_shell.py").read_text(encoding="utf-8")
     assert "/api/pec/messages/${encodeURIComponent(pecId)}/source" in email_data
-    assert "pecSourceRetryStatuses" in email_data
-    assert "sleepPecSourceRetry" in email_data
-    assert "pecSourceRetryStatuses.has(response.status)" in email_data
+    detail_request = Path("frontend/src/emailDetailRequest.ts").read_text(encoding="utf-8")
+    assert "fetchMailboxDetailJson" in email_data
+    assert "sourceRetryStatuses = new Set([423, 429, 500, 503])" in detail_request
+    assert "sourceRetry ? 3 : 1" in detail_request
+    assert "sourceRetryStatuses.has(response.status)" in detail_request
+    assert "450 + attempt * 550" in detail_request
+    assert "encodeURIComponent(pecId)}/source`, true)" in email_data
     assert "getEmailPecEmbeddedSourceDetail" in email_data
     assert "getEmailPecSourceDetail" in email_page
     assert "getEmailPecEmbeddedSourceDetail(sourceId)" in email_page
@@ -510,7 +518,7 @@ def test_email_casella_filtri_avanzati_e_flag_letto(tmp_path):
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
-    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    ge = sql_mailbox(cfg["EMAIL_CASELLA_DB"])
     ge.aggiungi(
         EmailRicevuta(
             id="MAIL-1",
@@ -549,14 +557,14 @@ def test_email_casella_filtri_avanzati_e_flag_letto(tmp_path):
         )
 
         body = response.get_data(as_text=True)
-        assert response.status_code == 200
+        assert response.status_code == 200, response.get_data(as_text=True)
         assert "ACCETTAZIONE DEPOSITO TELEMATICO RG 1025/2024" in body
         assert "Memo interno" not in body
 
         post = client.post("/email/MAIL-1/segna-non-letta", data={"cartella": "INBOX"}, follow_redirects=True)
         assert post.status_code == 200
 
-    ge_reload = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    ge_reload = sql_mailbox(cfg["EMAIL_CASELLA_DB"])
     assert ge_reload.get("MAIL-1").stato == StatoEmail.NON_LETTA
 
 
@@ -564,10 +572,10 @@ def test_email_azioni_ignorano_next_esterno(tmp_path):
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
-    GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"]).aggiungi(
+    sql_mailbox(cfg["EMAIL_CASELLA_DB"]).aggiungi(
         EmailRicevuta(id="PEC-1", cartella=CartellaEmail.INBOX, stato=StatoEmail.NON_LETTA, oggetto="PEC")
     )
-    GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"]).aggiungi(
+    sql_mailbox(cfg["EMAIL_ORDINARIA_DB"]).aggiungi(
         EmailRicevuta(id="ORD-1", cartella=CartellaEmail.INBOX, stato=StatoEmail.NON_LETTA, oggetto="Email")
     )
 
@@ -598,7 +606,7 @@ def test_email_route_ufficiale_serve_react_e_api_distingue_inviati_cestino(tmp_p
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
-    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    ge = sql_mailbox(cfg["EMAIL_CASELLA_DB"])
     ge.aggiungi(
         EmailRicevuta(
             id="MAIL-IN",
@@ -665,7 +673,7 @@ def test_email_react_payload_casella_grande_non_calcola_audit_dettagliato(tmp_pa
     import web.services.react_email_bridge as bridge
 
     cfg = _cfg_web(tmp_path)
-    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    ge = sql_mailbox(cfg["EMAIL_CASELLA_DB"])
     for index in range(81):
         ge.aggiungi(
             EmailRicevuta(
@@ -720,8 +728,8 @@ def test_email_ordinaria_route_react_api_e_repository_separato_da_pec(tmp_path):
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
-    pec = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
-    ordinaria = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
+    pec = sql_mailbox(cfg["EMAIL_CASELLA_DB"])
+    ordinaria = sql_mailbox(cfg["EMAIL_ORDINARIA_DB"])
     pec.aggiungi(
         EmailRicevuta(
             id="PEC-1",
@@ -887,7 +895,7 @@ def test_email_react_bulk_action_sposta_selezione_nel_cestino(tmp_path):
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
-    pec = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    pec = sql_mailbox(cfg["EMAIL_CASELLA_DB"])
     pec.aggiungi(
         EmailRicevuta(
             id="PEC-A",
@@ -918,7 +926,7 @@ def test_email_react_bulk_action_sposta_selezione_nel_cestino(tmp_path):
         )
 
     payload = response.get_json()
-    pec_reload = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    pec_reload = sql_mailbox(cfg["EMAIL_CASELLA_DB"])
     assert response.status_code == 200
     assert payload["ok"] is True
     assert payload["updated"] == ["PEC-A", "PEC-B"]
@@ -930,7 +938,7 @@ def test_email_ordinaria_react_bulk_action_elimina_selezione_da_cestino(tmp_path
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
-    ordinaria = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
+    ordinaria = sql_mailbox(cfg["EMAIL_ORDINARIA_DB"])
     ordinaria.aggiungi(
         EmailRicevuta(
             id="ORD-TRASH-1",
@@ -961,7 +969,7 @@ def test_email_ordinaria_react_bulk_action_elimina_selezione_da_cestino(tmp_path
         )
 
     payload = response.get_json()
-    ordinaria_reload = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
+    ordinaria_reload = sql_mailbox(cfg["EMAIL_ORDINARIA_DB"])
     assert response.status_code == 200
     assert payload["ok"] is True
     assert payload["updated"] == ["ORD-TRASH-1", "ORD-TRASH-2"]
@@ -973,7 +981,7 @@ def test_email_ordinaria_react_bulk_action_sposta_cestino_salva_una_volta(tmp_pa
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
-    ordinaria = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
+    ordinaria = sql_mailbox(cfg["EMAIL_ORDINARIA_DB"])
     ids = [f"ORD-BULK-INBOX-{idx}" for idx in range(40)]
     for email_id in ids:
         ordinaria.aggiungi(
@@ -988,13 +996,13 @@ def test_email_ordinaria_react_bulk_action_sposta_cestino_salva_una_volta(tmp_pa
         )
 
     saves: list[str] = []
-    original_save = GestioneEmailRicevute._salva
+    original_save = GestioneEmailSQL._salva
 
     def _counted_save(self):
         saves.append(str(self.db_path))
         return original_save(self)
 
-    monkeypatch.setattr(GestioneEmailRicevute, "_salva", _counted_save)
+    monkeypatch.setattr(GestioneEmailSQL, "_salva", _counted_save)
 
     app = create_app(cfg)
     with app.test_client() as client:
@@ -1005,7 +1013,7 @@ def test_email_ordinaria_react_bulk_action_sposta_cestino_salva_una_volta(tmp_pa
         )
 
     payload = response.get_json()
-    ordinaria_reload = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
+    ordinaria_reload = sql_mailbox(cfg["EMAIL_ORDINARIA_DB"])
     assert response.status_code == 200
     assert payload["ok"] is True
     assert payload["updated"] == ids
@@ -1017,7 +1025,7 @@ def test_email_ordinaria_react_bulk_action_elimina_selezione_salva_una_volta(tmp
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
-    ordinaria = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
+    ordinaria = sql_mailbox(cfg["EMAIL_ORDINARIA_DB"])
     ids = [f"ORD-BULK-TRASH-{idx}" for idx in range(40)]
     for email_id in ids:
         ordinaria.aggiungi(
@@ -1032,13 +1040,13 @@ def test_email_ordinaria_react_bulk_action_elimina_selezione_salva_una_volta(tmp
         )
 
     saves: list[str] = []
-    original_save = GestioneEmailRicevute._salva
+    original_save = GestioneEmailSQL._salva
 
     def _counted_save(self):
         saves.append(str(self.db_path))
         return original_save(self)
 
-    monkeypatch.setattr(GestioneEmailRicevute, "_salva", _counted_save)
+    monkeypatch.setattr(GestioneEmailSQL, "_salva", _counted_save)
 
     app = create_app(cfg)
     with app.test_client() as client:
@@ -1049,7 +1057,7 @@ def test_email_ordinaria_react_bulk_action_elimina_selezione_salva_una_volta(tmp
         )
 
     payload = response.get_json()
-    ordinaria_reload = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
+    ordinaria_reload = sql_mailbox(cfg["EMAIL_ORDINARIA_DB"])
     assert response.status_code == 200
     assert payload["ok"] is True
     assert payload["updated"] == ids
@@ -1189,7 +1197,7 @@ def test_dashboard_ultime_pec_usa_inbox_completa_e_invalida_cache(tmp_path):
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
-    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    ge = sql_mailbox(cfg["EMAIL_CASELLA_DB"])
     ge.aggiungi(
         EmailRicevuta(
             id="PEC-OLD",
@@ -1251,7 +1259,7 @@ def test_email_dettaglio_visualizza_e_scarica_allegato_salvato(tmp_path, monkeyp
     import web.blueprints.email_client as pec_blueprint
 
     cfg = _cfg_web(tmp_path)
-    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    ge = sql_mailbox(cfg["EMAIL_CASELLA_DB"])
     em = EmailRicevuta(
         id="MAIL-ATT-1",
         cartella="INBOX",
@@ -1327,7 +1335,7 @@ def test_email_pec_visualizza_pdf_interno_da_allegato_pdf_p7m(tmp_path):
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
-    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    ge = sql_mailbox(cfg["EMAIL_CASELLA_DB"])
     p7m_bytes = _signed_pdf_p7m()
     em = EmailRicevuta(
         id="MAIL-P7M-PEC",
@@ -1378,7 +1386,7 @@ def test_email_pec_visualizza_pdf_interno_da_zip_e_conserva_originale(tmp_path, 
         archive.writestr("documenti/Decreto fissazione udienza.pdf", b"%PDF-1.4 decreto udienza\n")
     zip_bytes = archive_buffer.getvalue()
 
-    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    ge = sql_mailbox(cfg["EMAIL_CASELLA_DB"])
     em = EmailRicevuta(
         id="MAIL-ZIP-PEC",
         message_id="msg-zip-pec",
@@ -1469,7 +1477,7 @@ def test_email_pec_visualizza_zip_dal_presidio_audit_anche_se_non_e_in_casella(t
     message.set_content("Udienza con istruzioni contenute nell'allegato.")
     message.add_attachment(zip_bytes, maintype="application", subtype="zip", filename="21866865s.pdf.zip")
 
-    repository = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="default")
+    repository = PecAuditRepository(Path(cfg["EMAIL_CASELLA_DB"]).parent / "pec_audit.sqlite", tenant_id="default")
     ingested = repository.ingest_mime(message.as_bytes(), account_email="studio@example.test", enqueue=False)
 
     app = create_app(cfg)
@@ -1570,7 +1578,7 @@ def test_email_ordinaria_visualizza_pdf_interno_da_allegato_pdf_p7m(tmp_path):
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
-    ge = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
+    ge = sql_mailbox(cfg["EMAIL_ORDINARIA_DB"])
     p7m_bytes = _signed_pdf_p7m()
     em = EmailRicevuta(
         id="MAIL-P7M-ORD",
@@ -1616,7 +1624,7 @@ def test_email_pec_visualizza_xml_eml_txt_e_xml_p7m_senza_perdere_originale(tmp_
     cfg = _cfg_web(tmp_path)
     message_id = "MAIL-FORMATI-PEC"
     samples = _textual_attachment_samples()
-    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    ge = sql_mailbox(cfg["EMAIL_CASELLA_DB"])
     ge.aggiungi(
         EmailRicevuta(
             id=message_id,
@@ -1669,7 +1677,7 @@ def test_email_ordinaria_visualizza_xml_eml_txt_e_xml_p7m_senza_perdere_original
     cfg = _cfg_web(tmp_path)
     message_id = "MAIL-FORMATI-ORD"
     samples = _textual_attachment_samples()
-    ge = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
+    ge = sql_mailbox(cfg["EMAIL_ORDINARIA_DB"])
     ge.aggiungi(
         EmailRicevuta(
             id=message_id,
@@ -1721,7 +1729,7 @@ def test_email_dettaglio_scarica_allegato_da_archivio_zip(tmp_path, monkeypatch)
 
     monkeypatch.setenv("IUSENTRA_EMAIL_ATTACHMENT_STORAGE", "archive")
     cfg = _cfg_web(tmp_path)
-    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    ge = sql_mailbox(cfg["EMAIL_CASELLA_DB"])
     contenuto = b"%PDF-1.4 allegato compresso\n"
     meta = ge._salva_allegato("MAIL-ATT-ZIP", "ricevuta.pdf", contenuto)
     assert "archivio_rel" in meta
@@ -1762,7 +1770,7 @@ def test_email_dettaglio_recupera_allegati_da_eml_originale(tmp_path):
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
-    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    ge = sql_mailbox(cfg["EMAIL_CASELLA_DB"])
 
     inner = EmailMessage()
     inner["From"] = "tribunale.palmi@civile.ptel.giustiziacert.it"
@@ -1850,7 +1858,7 @@ def test_email_dettaglio_pec_non_duplica_busta_e_postacert(tmp_path):
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
-    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    ge = sql_mailbox(cfg["EMAIL_CASELLA_DB"])
 
     inner = EmailMessage()
     inner["From"] = "mtspa@pec.notificatributi.it"
@@ -1922,7 +1930,7 @@ def test_email_dettaglio_non_propone_link_per_allegato_non_recuperato(tmp_path):
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
-    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    ge = sql_mailbox(cfg["EMAIL_CASELLA_DB"])
     em = EmailRicevuta(
         id="MAIL-ATT-MISSING-0",
         cartella="INBOX",
@@ -1981,7 +1989,7 @@ def test_email_ordinaria_dettaglio_usa_repository_smtp_e_allegati_ordinari(tmp_p
     import web.blueprints.email_ordinaria as ordinary_blueprint
 
     cfg = _cfg_web(tmp_path)
-    ge = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
+    ge = sql_mailbox(cfg["EMAIL_ORDINARIA_DB"])
     em = EmailRicevuta(
         id="MAIL-ORD-ATT-1",
         cartella="INBOX",
@@ -2071,7 +2079,7 @@ def test_parse_message_salva_allegato_message_rfc822(tmp_path):
     part.set_payload([inner])
     outer.attach(part)
 
-    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
     parsed = email.message_from_bytes(outer.as_bytes())
     em = ge._parse_message(parsed, "INBOX:UID:7", "INBOX", email_id="MAIL-RFC822")  # noqa: SLF001
 
@@ -2098,7 +2106,7 @@ def test_parse_message_recupera_accenti_con_charset_errato(tmp_path):
         b"adesso si =E8 resa massima sulla possibilit=E0.\r\n"
     )
 
-    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
     parsed = email.message_from_bytes(raw)
     em = ge._parse_message(parsed, "INBOX:UID:8", "INBOX", email_id="MAIL-ACCENTI")  # noqa: SLF001
 
@@ -2126,7 +2134,7 @@ def test_sincronizza_imap_ripara_testo_salvato_con_accenti_rotti(tmp_path, monke
         b"adesso si =E8 resa massima sulla possibilit=E0.\r\n"
     )
 
-    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
     ge.aggiungi(
         EmailRicevuta(
             id="MAIL-ACCENTI-STORICA",
@@ -2177,7 +2185,7 @@ def test_sincronizza_imap_ripara_testo_salvato_con_accenti_rotti(tmp_path, monke
         limite=1,
     )
 
-    repaired = GestioneEmailRicevute(str(tmp_path / "casella.json")).get("MAIL-ACCENTI-STORICA")
+    repaired = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json")).get("MAIL-ACCENTI-STORICA")
 
     assert report["nuove"] == 0
     assert report["testi_corretti"] == 1
@@ -2191,7 +2199,7 @@ def test_sincronizza_imap_ripara_testo_salvato_con_accenti_rotti(tmp_path, monke
 def test_sincronizza_imap_ripara_allegati_storici_senza_file(tmp_path, monkeypatch):
     import pct.email_client as email_runtime
 
-    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
     ge.aggiungi(
         EmailRicevuta(
             id="MAIL-STORICA-PEC",
@@ -2270,7 +2278,7 @@ def test_sincronizza_imap_ripara_allegati_storici_senza_file(tmp_path, monkeypat
     assert report["nuove"] == 0
     assert report["allegati_salvati"] == 3
 
-    ge_reload = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge_reload = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
     em = ge_reload.get("MAIL-STORICA-PEC")
     assert em is not None
     assert [a["nome"] for a in em.allegati] == ["30458.pdf", "Segnatura.xml", "smime.p7s"]
@@ -2322,7 +2330,7 @@ def test_sincronizza_imap_incrementale_non_espande_limite_a_500(tmp_path, monkey
 
     monkeypatch.setattr(email_runtime.imaplib, "IMAP4_SSL", lambda *a, **k: _FakeIMAP())
 
-    ge = GestioneEmailRicevute(str(tmp_path / "ordinaria.json"))
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "ordinaria.json"))
     report = ge.sincronizza_imap(
         imap_host="imap.example.it",
         imap_port=993,
@@ -2420,7 +2428,7 @@ def test_sincronizza_imap_mappa_inviati_e_cestino_da_cartelle_reali(tmp_path, mo
 
     monkeypatch.setattr(email_runtime.imaplib, "IMAP4_SSL", lambda *a, **k: _FakeIMAP())
 
-    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
     report = ge.sincronizza_imap(
         imap_host="imaps.pec.aruba.it",
         imap_port=993,
@@ -2430,7 +2438,7 @@ def test_sincronizza_imap_mappa_inviati_e_cestino_da_cartelle_reali(tmp_path, mo
         cartelle_imap=["INBOX", "Sent", "Trash"],
         limite=10,
     )
-    rows = {email.oggetto: email for email in GestioneEmailRicevute(str(tmp_path / "casella.json"))._carica().values()}
+    rows = {email.oggetto: email for email in GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))._carica().values()}
 
     assert report["nuove"] == 3
     assert rows["PEC in arrivo"].cartella == CartellaEmail.INBOX
@@ -2457,7 +2465,7 @@ def test_sincronizza_imap_mappa_inviati_e_cestino_da_cartelle_reali(tmp_path, mo
 def test_sincronizza_imap_scopre_cartelle_legalmail_e_corregge_spedite(tmp_path, monkeypatch):
     import pct.email_client as email_runtime
 
-    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
     ge.aggiungi(
         EmailRicevuta(
             id="MAIL-SPEDITE-35",
@@ -2543,7 +2551,7 @@ def test_sincronizza_imap_scopre_cartelle_legalmail_e_corregge_spedite(tmp_path,
         limite=10,
     )
 
-    rows = GestioneEmailRicevute(str(tmp_path / "casella.json"))._carica()
+    rows = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))._carica()
     by_subject = {email.oggetto: email for email in rows.values()}
 
     assert report["nuove"] == 3
@@ -2590,7 +2598,7 @@ def test_imap_mailbox_list_parser_legge_cartelle_legalmail_non_quotate():
 def test_sincronizza_imap_usa_uid_stabili_e_non_salta_pec_recenti(tmp_path, monkeypatch):
     import pct.email_client as email_runtime
 
-    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
     ge.aggiungi(
         EmailRicevuta(
             id="MAIL-LEGACY-200",
@@ -2657,7 +2665,7 @@ def test_sincronizza_imap_usa_uid_stabili_e_non_salta_pec_recenti(tmp_path, monk
         limite=2,
     )
 
-    rows = {email.oggetto: email for email in GestioneEmailRicevute(str(tmp_path / "casella.json"))._carica().values()}
+    rows = {email.oggetto: email for email in GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))._carica().values()}
     assert report["nuove"] == 3
     assert "PEC ricevuta oggi UID 150" in rows
     assert "PEC ricevuta oggi UID 200" in rows
@@ -2669,7 +2677,7 @@ def test_sincronizza_imap_usa_uid_stabili_e_non_salta_pec_recenti(tmp_path, monk
 def test_sincronizza_imap_migra_riferimenti_legacy_tramite_message_id(tmp_path, monkeypatch):
     import pct.email_client as email_runtime
 
-    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
     ge.aggiungi(
         EmailRicevuta(
             id="MAIL-LEGACY-42",
@@ -2722,7 +2730,7 @@ def test_sincronizza_imap_migra_riferimenti_legacy_tramite_message_id(tmp_path, 
         limite=1,
     )
 
-    rows = GestioneEmailRicevute(str(tmp_path / "casella.json"))._carica()
+    rows = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))._carica()
     assert report["nuove"] == 0
     assert len(rows) == 1
     assert rows["MAIL-LEGACY-42"].uid_imap == "INBOX:UID:142"
@@ -2731,7 +2739,7 @@ def test_sincronizza_imap_migra_riferimenti_legacy_tramite_message_id(tmp_path, 
 def test_sincronizza_imap_non_fonde_uid_stabili_con_stesso_message_id(tmp_path, monkeypatch):
     import pct.email_client as email_runtime
 
-    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
     ge.aggiungi(
         EmailRicevuta(
             id="MAIL-UID-10",
@@ -2797,7 +2805,7 @@ def test_sincronizza_imap_non_fonde_uid_stabili_con_stesso_message_id(tmp_path, 
         limite=10,
     )
 
-    rows = GestioneEmailRicevute(str(tmp_path / "casella.json"))._carica()
+    rows = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))._carica()
     uids = {email.uid_imap for email in rows.values()}
     subjects = {email.oggetto for email in rows.values()}
 
@@ -2850,7 +2858,7 @@ def test_sincronizza_imap_recupera_timeout_socket_durante_fetch(tmp_path, monkey
 
     monkeypatch.setattr(email_runtime.imaplib, "IMAP4_SSL", lambda *a, **k: _FakeIMAP())
 
-    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
     report = ge.sincronizza_imap(
         imap_host="imap.example.it",
         imap_port=993,
@@ -2860,7 +2868,7 @@ def test_sincronizza_imap_recupera_timeout_socket_durante_fetch(tmp_path, monkey
         cartelle_imap=["INBOX"],
         limite=10,
     )
-    rows = GestioneEmailRicevute(str(tmp_path / "casella.json"))._carica()
+    rows = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))._carica()
 
     assert report["errore"] == ""
     assert report["errori"] == 0
@@ -2871,7 +2879,7 @@ def test_sincronizza_imap_recupera_timeout_socket_durante_fetch(tmp_path, monkey
 
 
 def test_email_ordinaria_deduplica_triplicati_da_cartelle_imap_equivalenti(tmp_path):
-    ge = GestioneEmailRicevute(str(tmp_path / "ordinaria.json"))
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "ordinaria.json"))
     for index, uid in enumerate(
         (
             "INBOX:UID:10",
@@ -2898,7 +2906,7 @@ def test_email_ordinaria_deduplica_triplicati_da_cartelle_imap_equivalenti(tmp_p
 
     inbox = ge.tutte(cartella=CartellaEmail.INBOX)
     stats = ge.statistiche()
-    rows = GestioneEmailRicevute(str(tmp_path / "ordinaria.json"))._carica()
+    rows = GestioneEmailRicevute(str(tmp_path / "email" / "ordinaria.json"))._carica()
 
     assert len(inbox) == 1
     assert stats["totale"] == 1
@@ -2909,7 +2917,7 @@ def test_email_ordinaria_deduplica_triplicati_da_cartelle_imap_equivalenti(tmp_p
 
 
 def test_sincronizza_inviati_rimuove_doppione_quando_esiste_gia_copia_imap_inviata(tmp_path):
-    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
     ge.aggiungi(
         EmailRicevuta(
             id="MAIL-IMAP-SENT-1",
@@ -2951,7 +2959,7 @@ def test_sincronizza_inviati_rimuove_doppione_quando_esiste_gia_copia_imap_invia
     )
 
     aggiunti = ge.sincronizza_inviati([msg])
-    rows = GestioneEmailRicevute(str(tmp_path / "casella.json"))._carica()
+    rows = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))._carica()
 
     assert aggiunti == 0
     assert len(rows) == 1
@@ -2961,7 +2969,7 @@ def test_sincronizza_inviati_rimuove_doppione_quando_esiste_gia_copia_imap_invia
 
 
 def test_sincronizza_inviati_rimuove_doppione_con_orario_server_diverso(tmp_path):
-    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
     ge.aggiungi(
         EmailRicevuta(
             id="MAIL-IMAP-SENT-DRIFT",
@@ -2990,7 +2998,7 @@ def test_sincronizza_inviati_rimuove_doppione_con_orario_server_diverso(tmp_path
     )
 
     aggiunti = ge.sincronizza_inviati([msg])
-    rows = GestioneEmailRicevute(str(tmp_path / "casella.json"))._carica()
+    rows = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))._carica()
 
     assert aggiunti == 0
     assert len(rows) == 1
@@ -3000,7 +3008,7 @@ def test_sincronizza_inviati_rimuove_doppione_con_orario_server_diverso(tmp_path
 
 
 def test_sincronizza_inviati_non_fonde_due_invii_locali_simili_senza_message_id(tmp_path):
-    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
     ge.aggiungi(
         EmailRicevuta(
             id="INVIATA:MSG-OLD",
@@ -3027,7 +3035,7 @@ def test_sincronizza_inviati_non_fonde_due_invii_locali_simili_senza_message_id(
     )
 
     aggiunti = ge.sincronizza_inviati([msg])
-    rows = GestioneEmailRicevute(str(tmp_path / "casella.json"))._carica()
+    rows = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))._carica()
 
     assert aggiunti == 1
     assert set(rows) == {"INVIATA:MSG-OLD", "INVIATA:MSG-NEW"}
@@ -3037,7 +3045,7 @@ def test_email_dettaglio_visualizza_anche_xml_ed_eml(tmp_path):
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
-    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    ge = sql_mailbox(cfg["EMAIL_CASELLA_DB"])
     em = EmailRicevuta(
         id="MAIL-ATT-XML",
         cartella="INBOX",
@@ -3109,7 +3117,7 @@ def test_aggiorna_comunicazioni_cancelleria_da_email_associa_per_rg_senza_duplic
         oggetto="Vendita di cose immobili",
     )
 
-    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
     ge.aggiungi(
         EmailRicevuta(
             id="PEC-COMM-1",
@@ -3161,7 +3169,7 @@ def test_aggiorna_comunicazioni_cancelleria_da_email_riconosce_notifiche_giustiz
         oggetto="Vendita immobili",
     )
 
-    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
     ge.aggiungi(
         EmailRicevuta(
             id="PEC-GIUSTIZIA-1",
@@ -3251,7 +3259,7 @@ def test_aggiorna_esiti_da_email_popola_fasi_deposito_tramite_rg(tmp_path):
         nome_atto_principale="citazione.pdf.p7m",
     )
 
-    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
     ge.aggiungi(
         EmailRicevuta(
             id="E1",
@@ -3325,7 +3333,7 @@ def test_aggiorna_esiti_da_email_non_marca_come_processata_email_non_abbinata(tm
         documents_dir=str(tmp_path / "docs"),
         archive_dir=str(tmp_path / "arch"),
     )
-    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
     ge.aggiungi(
         EmailRicevuta(
             id="E-NO-MATCH",
@@ -3483,7 +3491,7 @@ def test_email_stats_route_restituisce_statistiche_json(tmp_path):
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
-    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    ge = sql_mailbox(cfg["EMAIL_CASELLA_DB"])
     ge.aggiungi(
         EmailRicevuta(
             id="MAIL-STATS-1",
@@ -3609,7 +3617,7 @@ def test_sincronizza_imap_usa_timeout_e_restituisce_errore_chiaro(tmp_path, monk
 
     monkeypatch.setattr(email_runtime.imaplib, "IMAP4_SSL", _fake_imap_ssl)
 
-    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
     report = ge.sincronizza_imap(
         imap_host="imaps.pec.aruba.it",
         imap_port=993,
@@ -3640,7 +3648,7 @@ def test_sincronizza_imap_apre_circuit_breaker_dopo_errori_ripetuti(tmp_path, mo
 
     monkeypatch.setattr(email_runtime.imaplib, "IMAP4_SSL", _fake_imap_ssl)
 
-    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
     for _ in range(2):
         report = ge.sincronizza_imap(
             imap_host="imaps.pec.aruba.it",

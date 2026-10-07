@@ -160,3 +160,13 @@ class FactoryChecks(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def test_initialized_empty_sql_mailbox_is_not_unseeded(tmp_path):
+    from tests.mailbox_test_support import sql_mailbox
+    from web.services.storage_runtime import _sqlite_runtime_is_unseeded
+
+    path = tmp_path / "email" / "casella.json"
+    manager = sql_mailbox(path)
+    assert manager.statistiche()["totale"] == 0
+    assert not _sqlite_runtime_is_unseeded(tmp_path / "studio.db", tmp_path / "clienti.json")

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from tests.mailbox_test_support import sql_mailbox
+from pct.email_sql_client import GestioneEmailSQL
+
 import hashlib
 import io
 import json
@@ -962,7 +965,8 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "AgendaPage" in agenda_page
     assert "getAgendaPage" in agenda_data
     assert "/api/v1/ui/agenda" in agenda_data
-    assert "/api/v1/agenda" in agenda_data
+    assert "/api/v1/agenda" not in agenda_data
+    assert "fetchAgendaEndpoint('/api/v1/ui/agenda'" in agenda_data
     assert "moveEventToDay" in agenda_data
     assert "moveEventToDateTime" in agenda_data
     assert "agendaRange" in agenda_data
@@ -970,10 +974,10 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "onCreateSlot" in agenda_page
     assert "iu-ag-slot" in agenda_page
     assert "iu-ag-week--month" in agenda_page
-    assert "plannerRef.current.requestFullscreen()" in agenda_page
+    assert "setPlannerExpanded((current) => !current)" in agenda_page
     assert "document.exitFullscreen()" in agenda_page
     assert "document.body.classList.toggle('iu-agenda-planner-expanded', plannerExpanded)" in agenda_page
-    assert "if (plannerExpanded)" in agenda_page
+    assert "plannerExpanded ? 'is-expanded' : ''" in agenda_page
     assert "Planner a tutto schermo" in agenda_page
     assert "Apri il calendario a tutto schermo" in agenda_page
     assert "plannerExpanded ? 'Riduci' : 'Tutto schermo'" in agenda_page
@@ -1013,9 +1017,12 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "SourceDocumentModal" in source_modal
     assert "parsed.pathname.startsWith('/api/v1/ui/email/source/')" in source_modal
     assert "parsed.searchParams.set('viewer', 'mobile')" in source_modal
-    assert "Tutto schermo" in source_modal
-    assert "Vista normale" in source_modal
-    assert "iu-ag-source-modal__box--fullscreen" in source_modal
+    window_controls = Path("frontend/src/components/ManagedWindowState.tsx").read_text(encoding="utf-8")
+    assert "<OperationalModal" in source_modal
+    assert "<WindowControls" in operational_modal
+    assert "toggleExpanded={managed.toggleExpanded}" in operational_modal
+    assert "Ingrandisci" in window_controls
+    assert "Ripristina dimensione" in window_controls
     assert "Caricamento documento..." in source_modal
     assert "Documento non visualizzabile nel lettore." in source_modal
     assert "parsed.pathname.includes('/documenti/')" in source_modal
@@ -1042,7 +1049,7 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "sandbox={sourceIframeSandbox(viewerHref)}" in source_modal
     assert 'referrerPolicy="no-referrer"' in source_modal
     assert "role=\"dialog\"" in operational_modal
-    assert "aria-modal=\"true\"" in operational_modal
+    assert "aria-modal=\"false\"" in operational_modal
     assert "closeOnEscape" in operational_modal
     assert "modalStack.at(-1)" in operational_modal
     assert "openAgendaDetail" in agenda_page
@@ -1059,10 +1066,12 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "SourceDocumentModal" in email_page
     assert "setAttachmentSource(viewerSource)" in email_page
     assert 'target="_blank" rel="noreferrer">Visualizza' not in email_page
-    assert "pecSourceRetryStatuses" in email_data
-    assert "sleepPecSourceRetry" in email_data
-    assert "pecSourceRetryStatuses.has(response.status)" in email_data
-    assert "attempt < 3" in email_data
+    detail_request = Path("frontend/src/emailDetailRequest.ts").read_text(encoding="utf-8")
+    assert "fetchMailboxDetailJson" in email_data
+    assert "new Set([423, 429, 500, 503])" in detail_request
+    assert "sourceRetryStatuses.has(response.status)" in detail_request
+    assert "const attempts = sourceRetry ? 3 : 1" in detail_request
+    assert "450 + attempt * 550" in detail_request
     assert ".find(Boolean) || ''" in email_data
     assert "[parsed.body_text, parsedBody.text, parsedBody.html_text]" in email_data
     assert "pec-audit:${auditId}" in email_page
@@ -1553,7 +1562,8 @@ def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
     assert "isNewMessagePage?<NuovoMessaggioPage/>" in app_source
     assert "isMessagesPage?<MessaggiPage/>" in app_source
     assert "Casella PEC dello studio" in email_page
-    assert "Casella email ordinaria dello studio" in email_page
+    assert "heroTitle: 'Email ordinaria'" in email_page
+    assert "includeTelematic: false" in email_page
     assert "Cartelle PEC" in email_page
     assert "Cartelle email ordinaria" in email_page
     assert "mobileReaderOpen" in email_page
@@ -4966,7 +4976,7 @@ def test_react_dashboard_cache_breve_e_email_recenti_ordinarie_separate_da_pec(t
     app = _app(tmp_path)
     client = app.test_client()
 
-    GestioneEmailRicevute(app.config["EMAIL_CASELLA_DB"]).aggiungi(
+    sql_mailbox(app.config["EMAIL_CASELLA_DB"]).aggiungi(
         EmailRicevuta(
             id="pec-dashboard",
             cartella=CartellaEmail.INBOX,
@@ -4978,7 +4988,7 @@ def test_react_dashboard_cache_breve_e_email_recenti_ordinarie_separate_da_pec(t
             stato_pct="ACCETTATO_PEC",
         )
     )
-    GestioneEmailRicevute(app.config["EMAIL_ORDINARIA_DB"]).aggiungi(
+    sql_mailbox(app.config["EMAIL_ORDINARIA_DB"]).aggiungi(
         EmailRicevuta(
             id="mail-ordinaria-dashboard",
             cartella=CartellaEmail.INBOX,
@@ -5567,8 +5577,10 @@ def test_react_agenda_presidio_notifica_sentenza_allineato_a_scadenziario(tmp_pa
     assert event["client"] == "Romeo Maria"
     assert event["matter"] == "RG 1428/2026"
     assert event["sourceKind"] == "pec"
-    assert event["sourceHref"] == "/api/v1/ui/email/source/pec_romeo?name=9732730s.pdf.zip"
-    assert event["sourceLabel"] == "PEC originale - 9732730s.pdf.zip"
+    # Un riferimento storico privo di profilo SQL non deve produrre un link non verificato.
+    assert event["sourceHref"] == ""
+    assert event["sourceVerified"] is False
+    assert "collegamento da verificare" in event["sourceLabel"]
     assert "/fascicoli/" not in event["sourceHref"]
 
 
@@ -6007,13 +6019,16 @@ def test_react_dashboard_legge_repository_operativi(tmp_path: Path):
     #  ora italiana, quando il server in UTC e' ancora al giorno prima.
     today = oggi_rome()
 
-    cliente_repo = GestioneClienti(db_path=app.config["CLIENTI_DB"])
+    from pct.storage import StudioDB
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    cliente_repo = GestioneClienti(db_path=app.config["CLIENTI_DB"], studio_db=studio_db)
     cliente = cliente_repo.nuovo(TipoCliente.PERSONA_FISICA, nome="Mario", cognome="Rossi")
 
     fascicoli = GestioneFascicoli(
         db_path=app.config["FASCICOLI_DB"],
         documents_dir=app.config["FASCICOLI_DOCS"],
         archive_dir=app.config["FASCICOLI_ARCH"],
+        studio_db=studio_db,
     )
     fascicolo = fascicoli.nuovo(
         "Recupero crediti",
@@ -6025,7 +6040,7 @@ def test_react_dashboard_legge_repository_operativi(tmp_path: Path):
         anno_rg=today.year,
     )
 
-    scadenziario = GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"])
+    scadenziario = GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"], studio_db=studio_db)
     scadenza = scadenziario.nuova(
         "Deposito memoria",
         TipoTermine.DEPOSITO_MEMORIA,
@@ -6034,7 +6049,7 @@ def test_react_dashboard_legge_repository_operativi(tmp_path: Path):
     )
     scadenziario.aggiorna(scadenza.id, priorita=PrioritaTermine.ALTA)
 
-    Agenda(db_path=app.config["AGENDA_DB"]).aggiungi(
+    Agenda(db_path=app.config["AGENDA_DB"], studio_db=studio_db).aggiungi(
         "Udienza civile",
         TipoAppuntamento.UDIENZA,
         datetime.combine(today, datetime.min.time()).replace(hour=10).isoformat(timespec="minutes"),
@@ -6044,7 +6059,7 @@ def test_react_dashboard_legge_repository_operativi(tmp_path: Path):
         tribunale="Tribunale di Milano",
     )
 
-    GestioneEmailRicevute(app.config["EMAIL_CASELLA_DB"]).aggiungi(
+    sql_mailbox(app.config["EMAIL_CASELLA_DB"]).aggiungi(
         EmailRicevuta(
             id="pec-test",
             cartella=CartellaEmail.INBOX,
@@ -6070,7 +6085,7 @@ def test_react_dashboard_legge_repository_operativi(tmp_path: Path):
     messaggi._messaggi[msg.id] = msg
     messaggi._salva()
 
-    preventivi = GestionePreventivi(app.config["PREVENTIVI_DB"])
+    preventivi = GestionePreventivi(app.config["PREVENTIVI_DB"], studio_db=StudioDB.get(str(tmp_path / "studio.db")))
     preventivo = preventivi.crea_preventivo(
         id_cliente=cliente.id,
         oggetto="Recupero crediti",
@@ -10559,7 +10574,9 @@ def test_react_agenda_in_evidenza_scorre_tutti_gli_impegni_e_dettaglio_mostra_fo
     assert "<AgendaSourceCard event={event} onOpenSource={onOpenSource}/>" in agenda_page
     assert "Visualizza fonte" in agenda_page
     assert "Nessun documento sorgente collegato a questo impegno." in agenda_page
-    assert agenda_page.index("<OperationalModal") < agenda_page.index("<SourceDocumentModal")
+    assert "const contextualPanels" in agenda_page
+    assert agenda_page.rindex("</OperationalModal>") < agenda_page.rindex("{contextualPanels}")
+    assert "<SourceDocumentModal" in agenda_page[agenda_page.index("const contextualPanels"):agenda_page.index("if (new URLSearchParams")]
     # Attivita proposte eseguibili.
     assert "function AgendaProposedActions" in agenda_page
     assert "agendaProposedSteps(event, activity, { editHref, isDeadline, clientReminderHref: messageReminderHref(event) })" in agenda_page

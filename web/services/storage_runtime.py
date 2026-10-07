@@ -139,6 +139,7 @@ def _sqlite_runtime_is_unseeded(studio_db_path: Path, anchor_path: Path) -> bool
 
     def _is_unseeded_with_connection(conn: sqlite3.Connection) -> bool:
         operational_tables = (
+            "email_mailbox_bootstrap",
             "settings_config",
             "impostazioni",
             "moduli_dati",

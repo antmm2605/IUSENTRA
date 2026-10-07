@@ -80,16 +80,14 @@ def _termini_fts(value: Any) -> list[str]:
 
     try:
         from lex.ricerca_giuridica.testo import PAROLE_DOMANDA, STOPWORD, parole, senza_accenti, stem
-    except Exception:  # pragma: no cover - ambienti ridotti
+    except ImportError:  # pragma: no cover - ambienti ridotti
         return []
     termini: list[str] = []
     for parola in parole(_clean_spaces(value)):
         piana = senza_accenti(parola)
         if piana in STOPWORD or piana in PAROLE_DOMANDA or len(piana) < 2:
             continue
-        if piana.isdigit():
-            voce = f'"{piana}"'
-        elif len(piana) < 4:
+        if piana.isdigit() or len(piana) < 4:
             voce = f'"{piana}"'
         else:
             radice = senza_accenti(stem(parola))
@@ -164,11 +162,11 @@ _DOMANDA_PROCESSUALE = re.compile(
 _ECLI_RE = re.compile(r"\bECLI:[A-Z]{2}:[A-Z]+:\d{4}:[0-9A-Z.]+", re.IGNORECASE)
 _ESTREMI_RE = re.compile(
     r"(?:\b(?:sent(?:enza|\.)?|ord(?:inanza|\.)?|pronuncia|decisione|cost(?:ituzionale|\.)?|consulta"
-    r"|cass(?:azione|\.)?)\s*,?\s*(?:(?:sent|ord)\.\s*)?(?:n\.|nr\.?|numero)?\s*)"
-    r"(\d{1,6})\s*(?:/|\s+del(?:l'anno)?\s+)((?:19|20)\d{2})\b",
+    r"|cass(?:azione|\.)?) ?,? ?(?:(?:sent|ord)\. ?)?(?:n\.|nr\.?|numero)? ?)"
+    r"(\d{1,6}) ?(?:/| del(?:l'anno)? )((?:19|20)\d{2})\b",
     re.IGNORECASE,
 )
-_SOLO_ESTREMI_RE = re.compile(r"^\s*(?:n\.\s*)?(\d{1,6})\s*/\s*((?:19|20)\d{2})\s*$")
+_SOLO_ESTREMI_RE = re.compile(r"^ ?(?:n\. ?)?(\d{1,6}) ?/ ?((?:19|20)\d{2}) ?$")
 _ATTO_NORMATIVO_PRIMA = re.compile(
     r"(?:\blegge|\bl\.|d\.\s*lgs|d\.\s*l\.|decreto|d\.\s*p\.\s*r|\bdpr|\bart|regolamento|direttiva)\W{0,4}(?:n\.\s*)?$",
     re.IGNORECASE,
@@ -1035,7 +1033,7 @@ class GestioneCorpusGiurisprudenza:
 
 
 __all__ = [
-    "GestioneCorpusGiurisprudenza",
     "SCHEMA_GIURISPRUDENZA_CORPUS",
+    "GestioneCorpusGiurisprudenza",
     "derive_corpus_db_path",
 ]

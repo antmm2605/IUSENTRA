@@ -159,3 +159,10 @@ def test_prima_la_massima_piu_pertinente(corpus):
     sentenza = next(riga for riga in righe if riga["numero_sentenza"] == "253")
     assert sentenza["massima_ufficiale"].startswith("E' costituzionalmente illegittima la presunzione assoluta")
     assert "Sono inammissibili gli interventi" in sentenza["massima_ufficiale"]
+
+
+@pytest.mark.parametrize("separator", [" ", "\t", "\n", "\t" * 20000])
+def test_estremi_spazi_ripetuti_non_espandono_la_regex(separator):
+    result = estremi_dalla_domanda("sentenza" + separator + "n." + separator + "253" + separator + "del" + separator + "2019")
+    assert result["coppie"] == [("253", 2019)]
+    assert estremi_dalla_domanda("n." + separator + "253" + separator + "/" + separator + "2019")["coppie"] == [("253", 2019)]

@@ -1,5 +1,7 @@
 # Changelog
 
+- **Correzioni CI del 07/10/2026**: separatori degli estremi giurisprudenziali limitati dopo normalizzazione per evitare backtracking; bootstrap SQLite conserva le caselle SQL già inizializzate. Fixture email/PEC e contratti React aggiornati agli archivi SQL e ai componenti condivisi, senza importazioni JSON implicite né modifiche ai flussi di firma/invio.
+
 ## 2.436.11 — 05/10/2026
 
 - **Deploy Lex v2 (07/10/2026)**: trasferimento riservato e verificato di `iusentra-lex-v2:9b`, configurazione server con backup, controllo del modello risolto da chat e gateway e generazione reale post-deploy. Preservati gli aggiornamenti studio già presenti su GitHub. Lex v3 resta previsto solo per la 2.436.12.

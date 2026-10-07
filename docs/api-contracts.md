@@ -181,10 +181,10 @@ python -m pytest -q tests\test_openapi_contracts_phase6.py --tb=short
 
 Risultato di mappatura:
 
-- Endpoint React API contrattualizzati: 432.
-- Endpoint P0/P1 con contratto OpenAPI: 365.
+- Endpoint React API contrattualizzati: 437.
+- Endpoint P0/P1 con contratto OpenAPI: 370.
 - Endpoint con provider verification rappresentativa non-auth-error: 31 totali, includendo success-body autenticati e il controllo backend-security.
-- Endpoint con provider verification 401 reale o errore pubblico sicuro: 431.
+- Endpoint con provider verification 401 reale o errore pubblico sicuro: 436.
 - Endpoint pubblici Portale Cliente verificati senza token valido: 40.
 - Endpoint pubblici della pagina di accesso (CSRF di sessione, login_guard, audit): 3.
 

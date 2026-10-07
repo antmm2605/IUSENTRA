@@ -6,36 +6,36 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 824.
+- File pytest censiti: 872.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
 | Tipo test | Conteggio |
 | --- | --- |
 | API contract | 108 |
-| Backend | 97 |
+| Backend | 102 |
 | E2E | 13 |
 | Frontend static gate | 1 |
-| Frontend/UI | 277 |
-| RBAC | 102 |
-| Security | 44 |
+| Frontend/UI | 292 |
+| RBAC | 105 |
+| Security | 48 |
 | Smoke CLI | 6 |
-| Tenant isolation | 183 |
+| Tenant isolation | 204 |
 
 ## Fasi pytest governate
 
 | Fase | Descrizione | File censiti |
 | --- | --- | --- |
 | 00-ci-contracts | Contratti CI, packaging, sicurezza minima e guardrail tecnici rapidi. | 26 |
-| 01-flask-core | Bootstrap Flask, autenticazione, sicurezza web, osservabilita' e superfici operative. | 20 |
-| 02-react-ui | Contratti React, regia, topbar, layout mobile e coerenza design system. | 36 |
-| 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 56 |
-| 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 14 |
-| 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 54 |
-| 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 80 |
+| 01-flask-core | Bootstrap Flask, autenticazione, sicurezza web, osservabilita' e superfici operative. | 21 |
+| 02-react-ui | Contratti React, regia, topbar, layout mobile e coerenza design system. | 37 |
+| 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 64 |
+| 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 28 |
+| 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 57 |
+| 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 83 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 183 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 349 |
+| 09-misc | Test non classificati dalle fasi principali | 367 |
 
 ## Suite CI aggiuntive
 
@@ -44,6 +44,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | coverage-critical | 71 | lex/tests, tests/test_lex_agenda_scadenze_knowledge_matrix.py, tests/test_lex_ai_quality_framework.py, tests/test_lex_assistente_context_real_requests.py, tests/test_lex_atti_redazione_knowledge_matrix.py ... |
 | e2e-nightly | 4 | tests/e2e/test_studio_reale_flow.py, tests/e2e/test_ai_pipeline_full.py, tests/e2e/test_tenant_migration_full.py, tests/e2e/test_operational_crash_day.py |
 | e2e-smoke | 1 | tests/e2e/test_studio_reale_flow.py |
+| mailbox-storage | 14 | tests/test_email_mailbox_sql_repository.py, tests/test_email_mailbox_core_schema.py, tests/test_email_sql_client.py, tests/test_email_storage_runtime.py, tests/test_email_storage_errors.py ... |
 | quality-overlay | 3 | tests/test_lex_quality_gates.py, tests/test_performance_budget.py, tests/test_local_signer_ai_cache.py |
 | release-readiness | 1 | tests/test_release_readiness.py |
 | signer | 3 | tests/test_local_signer.py, tests/test_build_dist.py, tests/test_visible_signature.py |
@@ -67,6 +68,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Agenda | API contract | tests/test_lex_agenda_scadenze_knowledge_matrix.py | 403/RBAC, tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Agenda | Backend | tests/test_scadenza_proposta_agenda.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Agenda | Frontend/UI | tests/test_calendar_api.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Agenda | Tenant isolation | tests/test_agenda_archivio_source.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | App V2 | API contract | tests/scripts/test_smoke_app_v2_all.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | App V2 | API contract | tests/test_app_v2_frontend_phase7.py | 403/RBAC, tenant, feature flag, contratto | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | App V2 | API contract | tests/test_app_v2_test_plan_phase10.py | tenant, feature flag | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
@@ -91,6 +93,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Audit | Tenant isolation | tests/test_audit_proof.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Audit | Tenant isolation | tests/test_audit_routes.py | 403/RBAC, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Audit | Tenant isolation | tests/test_audit_snapshot.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Audit | Tenant isolation | tests/test_extraction_audit_messages.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Audit | Tenant isolation | tests/test_pec_audit_pipeline.py | 401 anonimo, 403/RBAC, tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Auth/RBAC | RBAC | tests/test_auth.py | 403/RBAC, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Auth/RBAC | RBAC | tests/test_auth_management_routes.py | 403/RBAC | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -150,7 +153,9 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Backend | tests/test_normattiva_importer.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_notizie_utili.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_obblighi_notifica.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Backend | tests/test_ocr_marcatori_export.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_ocr_pipeline_adapter.py | feature flag | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Backend | tests/test_outbox_card_catalogo.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_pdf_style.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_pec.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_pec_change_receipt.py | 401 anonimo, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -168,10 +173,13 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Backend | tests/test_runtime_service_checks.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_scheduler_health_schedule_state.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_scheduler_registry.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Backend | tests/test_scheduler_registry_run_index.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_structured_logging.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_strumenti_lotto2a.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_strumenti_processuali.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_time_tracking_passivo.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Backend | tests/test_timesheet_canonical_sql.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Backend | tests/test_topbar_deadline_state_consistency.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_uffici_competenti.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | E2E | tests/e2e/test_ai_pipeline_full.py | audit | richiede ambiente/credenziali quando esce dal test client | censito |
 | Backend domain | E2E | tests/e2e/test_operational_crash_day.py | tenant, audit | richiede ambiente/credenziali quando esce dal test client | censito |
@@ -199,6 +207,8 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Frontend/UI | tests/test_censimento_spazio.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_codici_oggetto_sici_xsd_esercizio.py | contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_collaudo_lettore.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Backend domain | Frontend/UI | tests/test_compact_deadline_priority.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Backend domain | Frontend/UI | tests/test_compensi_catalog_context.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_compilatore_atti.py | contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_consegna_presidi.py | tenant | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_contabilita_studio.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
@@ -229,6 +239,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Frontend/UI | tests/test_hetzner_deploy_sync.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_hetzner_runtime_sources.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_imap_cartelle_effettive.py | feature flag | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Backend domain | Frontend/UI | tests/test_incassi_export_request_cache.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_istat_serie_storica.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_lacune_norme_composte.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_legal_coverage_ai_resilience.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
@@ -251,6 +262,8 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Frontend/UI | tests/test_local_pec_bridge.py | feature flag | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_local_signer.py | 401 anonimo, 403/RBAC, tenant, feature flag, contratto, file, audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_login_brute_force_guard.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Backend domain | Frontend/UI | tests/test_mailbox_callers_errors.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Backend domain | Frontend/UI | tests/test_mailbox_selection.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_manutenzione_chunk_rag.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_mediazione_sveglia_apertura.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_metrics_endpoint.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
@@ -261,10 +274,12 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Frontend/UI | tests/test_normative_tables.py | feature flag, audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_notification_relata_fascicolo.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_notification_workflow.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Backend domain | Frontend/UI | tests/test_notifications_projection_governance.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_ocr_utility_word.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_ocr_worker.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_official_sources_registry.py | contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_official_web_gazzetta.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Backend domain | Frontend/UI | tests/test_operational_catalog_regressions.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_pagamenti_giustizia.py | contratto, audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_pagamenti_link_pubblici.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_pagopa_avvisi_runtime.py | 401 anonimo, 403/RBAC | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
@@ -309,6 +324,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Frontend/UI | tests/test_runtime_resilience.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_sentenza_economic_dashboard.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_signed_attachment_preview.py | file | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Backend domain | Frontend/UI | tests/test_statistiche_chiusure.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_strumenti_lotto2b.py | contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_strumenti_lotto2b2.py | contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_studio_demo.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
@@ -341,6 +357,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | RBAC | tests/test_compliance_cockpit.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_condivisione.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_conservazione_pdv.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | RBAC | tests/test_controllo_presa_visione.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_ctu.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_database.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_digital_signature_workflow.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -357,6 +374,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | RBAC | tests/test_ministerial_xsd_catalog.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_mobile_layout.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_motore_ocr_unico.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | RBAC | tests/test_ocr_consenso_revisioni.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_ocr_impaginazione.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_pat_contributo_modulo.py | 403/RBAC, contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_pat_formweb_api.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -395,6 +413,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Security | tests/test_legal_update_safe_diagnostics.py | file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Security | tests/test_legal_update_source_capabilities.py | contratto, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Security | tests/test_legal_update_web_verification_attachments.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Security | tests/test_mailbox_routes_wiring.py | 401 anonimo, 403/RBAC | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Security | tests/test_normattiva_client.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Security | tests/test_official_sources_retriever.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Security | tests/test_pagopa_captcha_proxy.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -407,12 +426,15 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Security | tests/test_rate_limit.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Security | tests/test_scheduler_admin.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Security | tests/test_secrets_manager.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Security | tests/test_timesheet_command_json.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/scripts/test_smoke_lib.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_archivio_letture_runtime.py | tenant, contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_backfill_archivio_batches.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_catalogo_casi_reali.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_checklist_atti.py | 403/RBAC, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_codeql_public_surface_regressions.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Tenant isolation | tests/test_condivisioni_sql_repository.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Tenant isolation | tests/test_controllo_mailbox_sql.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_controllo_studio_completamento_collettivo.py | 403/RBAC, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_crm_routes.py | 403/RBAC, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_daily_plan_api.py | 401 anonimo, 403/RBAC, tenant, feature flag | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -429,11 +451,14 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Tenant isolation | tests/test_docker_entrypoint.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_fascicolo_detail_ux.py | tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_fascicolo_pec_presidio.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Tenant isolation | tests/test_fatti_revalidation_cas.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_import_center.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_installation_packs.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_legal_coverage_surface.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_legal_ocr_pipeline.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_letture_panoramica.py | 401 anonimo, 403/RBAC, tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Tenant isolation | tests/test_mailbox_native_sqlite_flow.py | 403/RBAC, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Tenant isolation | tests/test_mailbox_plan_apply.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_manutenzione_collegamenti_pec.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_manutenzione_copia_doppia.py | 401 anonimo, 403/RBAC, tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_manutenzione_database.py | 401 anonimo, 403/RBAC, tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -443,6 +468,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Tenant isolation | tests/test_notification_presidia_payloads.py | 401 anonimo, tenant, contratto, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_notification_presidia_rollout_api.py | tenant, feature flag, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_notification_relata_materializer.py | 403/RBAC, tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Tenant isolation | tests/test_notifications_operational_pages.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_ocr_reconciliation.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_operational_resilience.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_operational_surfaces.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -453,6 +479,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Tenant isolation | tests/test_pec_fascicolo_cliente.py | 403/RBAC, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_pec_notification_presidio.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_pec_operational_chain.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Tenant isolation | tests/test_pec_source_context_selection.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_pec_source_revisions.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_polisweb.py | 401 anonimo, tenant, contratto, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_practice_engine_sql_source.py | tenant, contratto, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -476,6 +503,8 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Tenant isolation | tests/test_sentenza_economic_runtime.py | 401 anonimo, 403/RBAC, tenant, feature flag, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_sentenza_economic_workflow.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_server_maintenance_surface.py | tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Tenant isolation | tests/test_sito_card_cataloghi.py | 403/RBAC, tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Tenant isolation | tests/test_source_reader_receipt_details.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_strumenti_legali.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_studio_site.py | tenant, feature flag, contratto, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_studio_site_assets.py | tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -489,14 +518,23 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Clienti/anagrafiche | API contract | tests/test_lex_sentenze_clienti_fix.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Clienti/anagrafiche | Backend | tests/test_clienti_workflow.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Clienti/anagrafiche | Frontend/UI | tests/test_clienti.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Clienti/anagrafiche | Frontend/UI | tests/test_clienti_cartella_agenda_links.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Clienti/anagrafiche | Frontend/UI | tests/test_clienti_route_filters.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Clienti/anagrafiche | Frontend/UI | tests/test_clienti_salvataggio_destinazione.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Clienti/anagrafiche | Tenant isolation | tests/test_clienti_cartella_snapshot_performance.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Clienti/anagrafiche | Tenant isolation | tests/test_import_center_clienti_sink.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Comunicazioni | Frontend/UI | tests/test_email_bulk_read.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Comunicazioni | Frontend/UI | tests/test_email_card_filters.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Comunicazioni | Frontend/UI | tests/test_impronta_notifiche_legali.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Comunicazioni | RBAC | tests/test_notifiche_legali.py | 403/RBAC, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Comunicazioni | Security | tests/test_messaggi.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Comunicazioni | Tenant isolation | tests/test_email_attachment_dedup.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Comunicazioni | Tenant isolation | tests/test_email_bulk_read_api.py | 403/RBAC, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Comunicazioni | Tenant isolation | tests/test_email_client.py | 403/RBAC, tenant, feature flag, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Comunicazioni | Tenant isolation | tests/test_email_mailbox_core_schema.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Comunicazioni | Tenant isolation | tests/test_email_mailbox_sql_repository.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Comunicazioni | Tenant isolation | tests/test_email_selection_api.py | 403/RBAC, tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Comunicazioni | Tenant isolation | tests/test_email_sql_client.py | 403/RBAC, tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Comunicazioni | Tenant isolation | tests/test_lex_email_knowledge_matrix.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Documenti | API contract | lex/tests/unit/test_template_atti_source.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Documenti | Backend | tests/test_editor_ai_italian_validator.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -528,6 +566,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Fascicoli | API contract | tests/test_fascicoli_pagination.py | tenant, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Fascicoli | Backend | tests/test_fascicoli_clienti_links_audit.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Fascicoli | Backend | tests/test_fascicoli_partial_write_guard.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Fascicoli | Frontend/UI | tests/test_fascicoli_card_perimeter.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Fascicoli | Frontend/UI | tests/test_fascicoli_signature_options.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Fascicoli | Frontend/UI | tests/test_fascicoli_stato_e_filtri_economici.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Fascicoli | RBAC | tests/test_fascicoli_dati_json_snello.py | 403/RBAC, contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -558,6 +597,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | File/document security | RBAC | tests/test_document_intelligence_catalog_api.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | RBAC | tests/test_document_ocr.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | RBAC | tests/test_document_ocr_formato.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| File/document security | RBAC | tests/test_document_reader_cms.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | RBAC | tests/test_documento_deposito_notifica_caricamento.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | RBAC | tests/test_documento_fedele.py | 403/RBAC | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | RBAC | tests/test_fascicolo_document_catalog.py | tenant, contratto, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -565,6 +605,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | File/document security | Security | tests/test_client_document_reader.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Security | tests/test_document_intelligence_api.py | 403/RBAC, tenant, feature flag, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Security | tests/test_document_intelligence_frontend.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| File/document security | Security | tests/test_document_ocr_native_fidelity.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Security | tests/test_document_tools.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_backfill_fascicolo_document_texts.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_document_catalog_conferma.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -576,6 +617,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | File/document security | Tenant isolation | tests/test_document_intelligence_repository_sql.py | tenant, contratto, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_document_intelligence_service.py | 403/RBAC, tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_document_intelligence_versioning.py | tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| File/document security | Tenant isolation | tests/test_document_tools_preview_download.py | 403/RBAC, tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_fascicolo_document_catalog_pipeline.py | tenant, contratto, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_legal_document_ingestion.py | tenant, feature flag, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_lex_document_tools_auto_index.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -625,6 +667,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Frontend React | Frontend/UI | tests/test_react_fascicoli_sentenze_economiche.py | tenant, feature flag, audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Frontend React | Frontend/UI | tests/test_react_lex_learning_bridge.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Frontend React | Frontend/UI | tests/test_react_payload_cache.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Frontend React | Frontend/UI | tests/test_react_statistiche_context.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Frontend React | Frontend/UI | tests/test_react_wizard_pro.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Frontend React | Frontend/UI | tests/test_redazione_guidata.py | 401 anonimo, 403/RBAC | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Frontend React | Frontend/UI | tests/test_regia_ui_react.py | 403/RBAC, feature flag, contratto, file, audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
@@ -818,7 +861,9 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Scadenze | Frontend/UI | tests/test_scadenze_pdf_sfondo.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Scadenze | Frontend/UI | tests/test_scadenze_proposte_pec.py | tenant, audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Scadenze | Frontend/UI | tests/test_scadenziario_dettaglio_mobile.py | feature flag | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Scadenze | Frontend/UI | tests/test_scadenziario_reconciliation_display.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Scadenze | RBAC | tests/test_polisweb_scadenze_registri.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Scadenze | Tenant isolation | tests/test_scadenze_rettifiche_cas.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Scadenze | Tenant isolation | tests/test_scadenziario.py | 401 anonimo, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Security | API contract | tests/test_backend_security_phase5.py | 401 anonimo, tenant, file, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Security | API contract | tests/test_cache_security.py | audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
@@ -871,11 +916,15 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Telematico | RBAC | tests/test_telematico_workflow.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | Security | tests/test_canali_telematici_deposito.py | 401 anonimo, contratto, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | Security | tests/test_pst_catalog.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Telematico | Security | tests/test_telematico_case_catalog.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | Tenant isolation | tests/test_pst_original_presidio_runtime.py | 401 anonimo, tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | Tenant isolation | tests/test_telematico_dashboard.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Telematico | Tenant isolation | tests/test_telematico_export_cache.py | tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Tenant isolation | E2E | tests/e2e/test_tenant_migration_full.py | tenant | richiede ambiente/credenziali quando esce dal test client | censito |
+| Tenant isolation | Frontend/UI | tests/test_email_storage_errors.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Tenant isolation | Frontend/UI | tests/test_storage_governance.py | contratto, audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Tenant isolation | Tenant isolation | tests/test_audit_lex_tenant_sources.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Tenant isolation | Tenant isolation | tests/test_email_storage_runtime.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Tenant isolation | Tenant isolation | tests/test_pec_pipeline_tenant_isolation.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Tenant isolation | Tenant isolation | tests/test_storage_compaction_script.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Tenant isolation | Tenant isolation | tests/test_storage_postgres_migration.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |

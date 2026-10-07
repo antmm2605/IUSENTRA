@@ -216,7 +216,7 @@ def _radici_regex(termini: list[str]) -> list[re.Pattern[str]]:
 
 
 _SENZA_ACCENTI = str.maketrans(
-    "àáâäãèéêëìíîïòóôöõùúûüçÀÁÂÄÃÈÉÊËÌÍÎÏÒÓÔÖÕÙÚÛÜÇ",
+    "àáâäãèéêëìíîïòóôöõùúûüçÀÁ\u00c2Ä\u00c3ÈÉÊËÌÍÎÏÒÓÔÖÕÙÚÛÜÇ",
     "aaaaaeeeeiiiiooooouuuucaaaaaeeeeiiiiooooouuuuc",
 )
 

@@ -2138,3 +2138,6 @@ Il database SQLite del tenant registrato tenant-8bf98719c459 presenta corruzione
 
 ## Rilascio 2.436.11 con Lex v2 — 07/10/2026
 Nessun fallimento nei 106 test mirati eseguiti. Trasferimento pesi Lex v2 e CI/deploy remoti ancora in corso. Accettazione visiva su macchina locale reale non eseguita; la richiesta corrente riguarda il deploy server e la prova operativa del modello.
+
+
+07/10/2026 — CI: il controllo UTF-8 intercettava la sequenza di lettere maiuscole accentate nella tabella `str.maketrans` del corpus giurisprudenziale. Rappresentati U+00C2/U+00C3 con escape Unicode Python: la tabella a runtime resta identica; scanner e soglie invariati.

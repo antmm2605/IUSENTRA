@@ -26,3 +26,27 @@ if p.exists():
             print(re.sub(r'/data/[^ ]+', '[percorso]', line),flush=True)
 """
 subprocess.run(command + ["exec", "-T", "scheduler-worker", "python", "-"], input=code, text=True, check=True, timeout=90)
+
+# Solo metadati Git: nessun sorgente, credenziale o dato degli studi viene trasferito.
+import hashlib
+from pathlib import Path
+repo = Path("/opt/iusentra/repo")
+def git_metadata(*args):
+    return subprocess.check_output(["git", "-C", str(repo), *args])
+head = git_metadata("rev-parse", "HEAD").decode().strip()
+changed = set(git_metadata("diff", "HEAD", "--name-only", "-z").decode().split("\0"))
+changed.update(git_metadata("ls-files", "--others", "--exclude-standard", "-z").decode().split("\0"))
+changed.discard("")
+metadata = []
+for name in sorted(changed):
+    path = repo / name
+    row = {"path": name, "exists": path.is_file(), "symlink": path.is_symlink()}
+    original = subprocess.run(["git", "-C", str(repo), "show", "HEAD:" + name], capture_output=True)
+    row["tracked_at_head"] = original.returncode == 0
+    if path.is_file() and not path.is_symlink() and path.resolve().is_relative_to(repo):
+        data = path.read_bytes()
+        row["sha256"] = hashlib.sha256(data).hexdigest()
+        row["matches_head"] = original.returncode == 0 and data == original.stdout
+        row["matches_head_normalized"] = original.returncode == 0 and data.replace(b"\r\n", b"\n") == original.stdout.replace(b"\r\n", b"\n")
+    metadata.append(row)
+print(json.dumps({"server_head": head, "source_changes_metadata": metadata}), flush=True)

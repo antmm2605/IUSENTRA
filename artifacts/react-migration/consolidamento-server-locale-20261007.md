@@ -15,3 +15,9 @@ La lettura diretta del database da Python Windows ha segnalato corruzione; il pr
 Guardrail: build React/typecheck riusciti; npm test 185 test più contratti, hook, presìdi, design system e copertura UI riusciti; 86 test Node mirati delle finestre/fonti/OCR; 33 test mirati presa visione/scheduler. I primi tentativi hanno rilevato nomi TypeScript ambigui su Windows e contratti test non aggiornati; corretti senza alterare il flusso deposito/firma/PEC.
 
 Il riallineamento dei sorgenti è separato dal difetto SQL preesistente nella copia locale. Nessuna sostituzione del database corrente autorizzata dal solo esito del candidato di recupero. Le tabelle native leggibili confrontate col candidato sono 123 e coincidono; la tabella dei moduli recuperata ha righe mancanti o danneggiate. La migrazione locale della posta resta aperta, senza importazione cieca del JSON storico.
+
+## Correzione gate GitHub e riattivazione locale
+
+07/10/2026 09:27, Europe/Rome: copia reale 8080 riattivata, versione 2.436.10, app/OCR healthy e scheduler avviato. Nel browser reale, la card Udienze e appuntamenti filtra da 189 a 5 risultati. Il quadro Comunicazioni resta esplicitamente parziale: database originale conservato, recuperi candidati non applicati. Analizzati tutti gli snapshot SQL locali controllati e recupero ufficiale con/senza pagine libere; nessuna sostituzione con mirror JSON.
+
+Gate GitHub: proxy-addr aggiornato a 2.0.8 nel vincolo pnpm e nel lockfile, secondo https://github.com/advisories/GHSA-jqcg-44mw-7w3h. Audit alla soglia critica richiesta superato; restano le segnalazioni non critiche del rapporto, senza esclusioni o disattivazione del controllo. Due difetti di contrasto in Soggetti e stato PEC corretti sui colori reali; test Storybook mirati delle due pagine: 11 superati. Il riepilogo Frontend falliva per questi controlli figli, non per typecheck o build. Il nuovo esito remoto deve essere osservato sullo SHA pubblicato.

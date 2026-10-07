@@ -9,9 +9,9 @@
 .iu-sogg-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
 .iu-sogg-stat{min-height:112px;display:grid;gap:4px;padding:15px;border:1px solid var(--iu-border);border-radius:18px;background:var(--iu-bg-card);box-shadow:var(--iu-shadow-soft)}
 .iu-sogg-stat svg{color:var(--iu-blue-600)}
-.iu-sogg-stat span{color:var(--iu-slate-500);font-size:12px;font-weight:900;text-transform:uppercase}
+.iu-sogg-stat span{color:var(--iu-slate-600);font-size:12px;font-weight:900;text-transform:uppercase}
 .iu-sogg-stat strong{font-size:28px;font-weight:950;color:#0f172a}
-.iu-sogg-stat small{color:var(--iu-slate-500);font-size:12px;font-weight:750}
+.iu-sogg-stat small{color:var(--iu-slate-600);font-size:12px;font-weight:750}
 
 .iu-sogg-toolbar{display:grid;grid-template-columns:minmax(260px,1fr) repeat(3,minmax(160px,220px)) auto;gap:10px;margin-bottom:14px;padding:10px;border:1px solid var(--iu-border);border-radius:18px;background:#fff;box-shadow:var(--iu-shadow-soft)}
 .iu-sogg-toolbar label{min-height:42px;display:flex;align-items:center;gap:8px;padding:0 10px;border:1px solid var(--iu-border);border-radius:12px;background:#fff;color:var(--iu-slate-500)}

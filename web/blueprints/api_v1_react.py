@@ -35,6 +35,8 @@ from zoneinfo import ZoneInfo
 import certifi
 import requests
 from flask import Blueprint, Response, current_app, g, jsonify, request, send_file, session, url_for
+from web.services.email_storage_runtime import create_email_mailbox
+from web.services.email_storage_errors import register_mailbox_errors
 from werkzeug.exceptions import HTTPException
 
 from pct import __version__ as APP_VERSION
@@ -480,6 +482,7 @@ from web.helpers import (
 )
 
 api_v1_react = Blueprint("api_v1_react", __name__, url_prefix="/api/v1/ui")
+register_mailbox_errors(api_v1_react)
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
 PST_PAGOPA_HOST = "servizipst.giustizia.it"
@@ -1931,11 +1934,11 @@ def _workspace_overview() -> dict[str, Any]:
 
 
 def _email_manager() -> GestioneEmailRicevute:
-    return GestioneEmailRicevute(_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"))
+    return create_email_mailbox(_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"))
 
 
 def _ordinary_email_manager() -> GestioneEmailRicevute:
-    return GestioneEmailRicevute(_tenant_cfg_value("EMAIL_ORDINARIA_DB", "./email/ordinaria.json"))
+    return create_email_mailbox(_tenant_cfg_value("EMAIL_ORDINARIA_DB", "./email/ordinaria.json"))
 
 
 def _messaggi_manager() -> GestioneMessaggi:
@@ -2980,6 +2983,9 @@ def territorio_react_comuni():
 @api_v1_react.get("/clienti/<id_cliente>/cartella")
 @_richiedi_auth
 def cliente_cartella_react(id_cliente: str):
+    include_catalogs = request.args.get("cataloghi") == "1"
+    if include_catalogs and not (_session_user_can("clienti.leggi") and _session_user_can("fascicoli.leggi")):
+        return jsonify({"errore": "Non hai il permesso di consultare i cataloghi della cartella cliente."}), 403
     try:
         return jsonify(build_react_cliente_cartella_payload(
             get_clienti=get_clienti,
@@ -2990,6 +2996,7 @@ def cliente_cartella_react(id_cliente: str):
             get_preventivi=get_preventivi_readonly,
             get_fatturazione=get_fatturazione,
             id_cliente=id_cliente,
+            include_catalogs=include_catalogs,
         ))
     except KeyError:
         return jsonify({"errore": "Cliente non trovato.", "codice": 404}), 404
@@ -3015,6 +3022,7 @@ def soggetti_react_list():
     return jsonify(build_react_soggetti_payload(
         get_soggetti=get_soggetti,
         get_clienti=get_clienti,
+        get_fascicoli=_fascicolo_singolo_loader() if _session_user_can("fascicoli.leggi") else None,
     ))
 
 
@@ -3247,6 +3255,8 @@ def email_react_list():
         stato=request.args.get("stato", "").strip().upper(),
         solo_pst=request.args.get("pst") == "1",
         con_allegati=request.args.get("con_allegati") == "1",
+        solo_collegate=request.args.get("collegate") == "1",
+        solo_da_presidiare=request.args.get("da_presidiare") == "1",
         stato_pct=request.args.get("stato_pct", "").strip().upper(),
         origine=request.args.get("origine", "").strip().upper(),
         data_da=request.args.get("data_da", "").strip(),
@@ -3287,20 +3297,42 @@ def _email_bulk_action(
     payload, error = _request_json_object()
     if error:
         return error
-    ids = [str(item or "").strip() for item in list(payload.get("ids") or []) if str(item or "").strip()]
+    raw_ids = payload.get("ids")
+    if (not isinstance(raw_ids, list) or len(raw_ids) > 5000
+            or any(not isinstance(item, str) or not item.strip() or len(item) > 200 for item in raw_ids)):
+        return _json_validation_error("Seleziona da 1 a 5.000 messaggi validi.", {"ids": "Selezione non valida."}, status=400)
+    ids = list(dict.fromkeys(item.strip() for item in raw_ids))
     if not ids:
         return _json_validation_error("Seleziona almeno un messaggio.", {"ids": "Nessun messaggio selezionato."}, status=400)
     action = str(payload.get("action") or "").strip().lower()
-    if action not in {"trash", "delete"}:
+    if action not in {"trash", "delete", "read"}:
         return _json_validation_error("Azione multipla non valida.", {"action": "Azione non riconosciuta."}, status=400)
 
     # Spostare nel cestino è lavoro quotidiano; eliminare per sempre una PEC
     # (che è una prova) spetta a chi amministra lo studio.
     if action == "delete" and not _session_user_can("admin.configura"):
         return jsonify({"ok": False, "message": "L'eliminazione definitiva dei messaggi è riservata all'amministratore dello studio."}), 403
-    if action == "trash" and not (_session_user_can("messaggi.scrivi") or _session_user_can("admin.configura")):
+    if action in {"trash", "read"} and not (_session_user_can("messaggi.scrivi") or _session_user_can("admin.configura")):
         return jsonify({"ok": False, "message": "Non hai il permesso di modificare i messaggi."}), 403
-    gestore = GestioneEmailRicevute(db_path=_tenant_cfg_value(db_key, default_db_path))
+    if action == "read":
+        from pct.email_mailbox_repository import MailboxConflict, MailboxNotInitialized
+        from web.services.email_bulk_read import mark_selected_mail_read
+
+        try:
+            result = mark_selected_mail_read(_tenant_cfg_value(db_key, default_db_path), ids)
+        except ValueError as exc:
+            return _json_validation_error(str(exc), {"ids": str(exc)}, status=400)
+        except MailboxConflict as exc:
+            return jsonify({"ok": False, "message": str(exc)}), 409
+        except MailboxNotInitialized as exc:
+            return jsonify({"ok": False, "message": str(exc)}), 503
+        except Exception:
+            current_app.logger.exception("Lettura massiva della casella non riuscita")
+            return jsonify({"ok": False, "message": "Lettura non registrata. Ricarica la vista e riprova."}), 503
+        _audit_event(f"{resource_prefix}.lettura.bulk", "email", "bulk",
+                     f"{len(result['updated'])} messaggi segnati come letti; {result['selected']} selezionati")
+        return jsonify(result)
+    gestore = create_email_mailbox(db_path=_tenant_cfg_value(db_key, default_db_path))
     if action == "trash":
         result = gestore.sposta_cestino_multipla(ids)
     else:
@@ -3360,6 +3392,41 @@ def email_react_bulk_action():
         default_db_path="./email/casella.json",
         resource_prefix="email",
     )
+
+
+def _email_selection_ids(*, ordinary=False):
+    if not (_session_user_can("messaggi.scrivi") or _session_user_can("admin.configura")):
+        return jsonify({"ok": False, "message": "Non hai il permesso di modificare i messaggi."}), 403
+    from web.services.email_selection import select_mailbox_ids
+    from pct.email_mailbox_repository import MailboxNotInitialized
+
+    key, path = (("EMAIL_ORDINARIA_DB", "./email/ordinaria.json") if ordinary
+                 else ("EMAIL_CASELLA_DB", "./email/casella.json"))
+    try:
+        result = select_mailbox_ids(_tenant_cfg_value(key, path), request.args,
+                                   ordinary=ordinary, tenant_id=_tenant_runtime_label())
+    except ValueError as exc:
+        return jsonify({"ok": False, "message": str(exc)}), 400
+    except MailboxNotInitialized as exc:
+        return jsonify({"ok": False, "message": str(exc)}), 503
+    except Exception:
+        current_app.logger.exception("Selezione dei messaggi filtrati non riuscita")
+        return jsonify({"ok": False, "message": "Selezione non caricata. Ricarica la vista e riprova."}), 503
+    response = jsonify(result)
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    return response
+
+
+@api_v1_react.get("/email/selection-ids")
+@_richiedi_auth
+def email_react_selection_ids():
+    return _email_selection_ids()
+
+
+@api_v1_react.get("/email-ordinaria/selection-ids")
+@_richiedi_auth
+def email_ordinaria_react_selection_ids():
+    return _email_selection_ids(ordinary=True)
 
 
 @api_v1_react.get("/email-ordinaria")
@@ -6201,6 +6268,46 @@ def telematico_react_dashboard():
     )
 
 
+@api_v1_react.get("/telematico/pratiche")
+@_richiedi_auth
+def telematico_case_catalog_react():
+    from web.services.telematico_case_catalog import build_telematico_case_catalog
+    try:
+        return jsonify(build_telematico_case_catalog(
+            repository=_telematico_loader()(), fascicoli=get_fascicoli().tutti(),
+            portal=request.args.get("portale", ""), query=request.args.get("query", ""),
+            page=int(request.args.get("pagina", "1")), page_size=int(request.args.get("per_pagina", "25")),
+            presidi=request.args.get("ambito", "") == "presidi",
+        ))
+    except ValueError:
+        return jsonify({"ok": False, "message": "Controlla il canale e la pagina richiesti per la ricerca."}), 400
+    except Exception:
+        current_app.logger.exception("Consultazione catalogo pratiche telematiche non riuscita")
+        return jsonify({"ok": False, "message": "Non è stato possibile leggere le pratiche telematiche. Riprova."}), 503
+
+@api_v1_react.post("/telematico/pratiche/esporta")
+@_richiedi_auth
+def telematico_case_catalog_export_react():
+    from web.services.telematico_case_catalog import export_telematico_case_catalog
+    from web.services.document_tools_cache import store_result, TTL
+    from web.services.document_tools import DocumentToolError
+    payload, error = _json_payload_or_error()
+    if error is not None:
+        return error
+    try:
+        content, filename, count = export_telematico_case_catalog(
+            repository=_telematico_loader()(), fascicoli=get_fascicoli().tutti(), payload=payload,
+        )
+        token = store_result(content, filename, "text/csv;charset=utf-8")
+        _audit_event("telematico.riepilogo_esportato", "catalogo_telematico", "", f"Preparati {count} elementi selezionati.")
+        return jsonify({"ok": True, "count": count, "filename": filename, "expiresIn": TTL,
+            "downloadUrl": url_for("api_v1_document_tools.document_tool_result_download", token=token)})
+    except (ValueError, DocumentToolError) as exc:
+        return jsonify({"ok": False, "message": str(exc)}), 400
+    except Exception:
+        current_app.logger.exception("Esportazione catalogo telematico non riuscita")
+        return jsonify({"ok": False, "message": "Il riepilogo non è stato esportato. Riprova mantenendo la selezione."}), 503
+
 @api_v1_react.get("/telematico/surface/<surface>")
 @_richiedi_auth
 def telematico_react_surface(surface: str):
@@ -8337,6 +8444,7 @@ def _fascicoli_filter_preferences_payload(raw: Mapping[str, Any] | None) -> dict
         "court": str(source.get("court") or "").strip()[:120],
         "fieldFilters": field_filters,
         "alertsOnly": _fascicoli_filter_bool(source.get("alertsOnly") if "alertsOnly" in source else source.get("alerts_only")),
+        "communicationsOnly": _fascicoli_filter_bool(source.get("communicationsOnly") if "communicationsOnly" in source else source.get("communications_only")),
         "paymentsOnly": _fascicoli_filter_bool(source.get("paymentsOnly") if "paymentsOnly" in source else source.get("payments_only")),
         "missingRgOnly": _fascicoli_filter_bool(source.get("missingRgOnly") if "missingRgOnly" in source else source.get("missing_rg_only")),
         "duplicatesOnly": _fascicoli_filter_bool(source.get("duplicatesOnly") if "duplicatesOnly" in source else source.get("duplicates_only")),
@@ -8627,6 +8735,7 @@ def _fascicoli_list_cache_key() -> tuple | None:
         ("group_by", request.args.get("group_by", "").strip()),
         ("view", (request.args.get("view", "") or request.args.get("vista", "")).strip()),
         ("alerts_only", "1" if (_request_bool("alerts_only") or _request_bool("alertsOnly")) else "0"),
+        ("communications_only", "1" if _request_bool("communications_only") else "0"),
         ("payments_only", "1" if (_request_bool("payments_only") or _request_bool("paymentsOnly")) else "0"),
         ("missing_rg_only", "1" if (_request_bool("missing_rg_only") or _request_bool("missingRgOnly")) else "0"),
         ("duplicates_only", "1" if (_request_bool("duplicates_only") or _request_bool("duplicatesOnly")) else "0"),
@@ -8667,6 +8776,7 @@ def fascicoli_react_list():
         group_by=request.args.get("group_by", ""),
         view=request.args.get("view", "") or request.args.get("vista", ""),
         alerts_only=_request_bool("alerts_only") or _request_bool("alertsOnly"),
+        communications_only=_request_bool("communications_only"),
         payments_only=_request_bool("payments_only") or _request_bool("paymentsOnly"),
         missing_rg_only=_request_bool("missing_rg_only") or _request_bool("missingRgOnly"),
         duplicates_only=_request_bool("duplicates_only") or _request_bool("duplicatesOnly"),
@@ -12241,6 +12351,9 @@ def amministrazione_data_consistency():
             build_data_consistency_payload(
                 studio_db=backend,
                 tenant_slug=str(getattr(tenant, "slug", "") or ""),
+                event_status=request.args.get("stato_eventi", ""),
+                event_query=request.args.get("q_eventi", ""),
+                event_page=max(1, min(request.args.get("pagina_eventi", 1, type=int) or 1, 1000000)),
             )
         )
     except Exception as exc:
@@ -12710,6 +12823,39 @@ def incassi_pagamenti_page():
                 "Incassi e pagamenti non disponibili dal runtime corrente."
             )
         ), 200
+
+
+@api_v1_react.post("/incassi-pagamenti/esporta")
+@_richiedi_auth
+def incassi_pagamenti_esporta():
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_leggere_fatturazione():
+        return jsonify({"ok": False, "message": "Permesso fatturazione.leggi richiesto."}), 403
+    from web.services.react_incassi_pagamenti_bridge import export_incassi_selection_csv
+    import json
+    try:
+        selection = json.loads(request.form.get("selezione", "[]"))
+        payload = build_react_incassi_pagamenti_payload(
+            get_fatturazione=get_fatturazione, get_pagamenti=get_pagamenti,
+            get_clienti=get_clienti, current_user=utente,
+        )
+        if payload.get("warnings"):
+            return jsonify({"ok": False, "message": "Archivi non verificabili. Attendi il ripristino prima di esportare."}), 503
+        content = export_incassi_selection_csv(payload["cardRecords"], selection)
+        get_utenti().registra_evento(
+            "pagamenti.esporta_selezione", id_utente=str(getattr(utente, "id", "")),
+            username=str(getattr(utente, "username", "")), risorsa_tipo="pagamento",
+            dettagli=f"documenti={len(set(selection))}", ip=request.remote_addr or "",
+        )
+        response = Response(content.encode("utf-8"), mimetype="text/csv")
+        response.headers["Content-Disposition"] = 'attachment; filename="incassi-selezionati.csv"'
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    except (ValueError, TypeError) as exc:
+        return jsonify({"ok": False, "message": str(exc)}), 400
+    except Exception:
+        current_app.logger.exception("Esportazione selezione incassi non disponibile")
+        return jsonify({"ok": False, "message": "Impossibile esportare gli incassi. Nessuna registrazione è stata modificata."}), 503
 
 
 @api_v1_react.post("/incassi-pagamenti/incasso")
@@ -15728,7 +15874,7 @@ def _email_source_preview_cache_dir() -> Path:
     return root
 
 
-_EMAIL_SOURCE_PREVIEW_CACHE_VERSION = "v3"
+_EMAIL_SOURCE_PREVIEW_CACHE_VERSION = "v4"
 _EMAIL_SOURCE_PREVIEW_CACHE_MAX_AGE_SECONDS = 14 * 24 * 60 * 60
 _EMAIL_SOURCE_PREVIEW_CACHE_MAX_ENTRIES = 256
 _EMAIL_SOURCE_PREVIEW_CACHE_MAX_BYTES = 384 * 1024 * 1024
@@ -16185,7 +16331,7 @@ def email_source_attachment(message_id: str):
         original_name = audit_attachment.filename
         original_mime = attachment_mimetype(original_name, audit_attachment.content_type)
     else:
-        gestore = GestioneEmailRicevute(_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"))
+        gestore = create_email_mailbox(_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"))
         email_item = gestore.get(message_id)
         if email_item is None:
             wanted_id = str(message_id or "").strip().strip("<>").casefold()
@@ -16323,6 +16469,13 @@ def email_source_attachment(message_id: str):
         cached_response = _serve_cached_email_source_preview(cache_key, message_id=message_id)
         if cached_response is not None:
             return cached_response
+
+    if original_name.casefold().endswith('.p7s'):
+        from web.services.document_reader_cms import detached_signature_preview
+        return detached_signature_preview(raw_data, url_for(
+            'api_v1_react.email_source_attachment', message_id=message_id,
+            name=original_name, sha256=expected_attachment_sha or None, download=1,
+        ))
 
     preview = build_attachment_preview_payload(
         nome_file=original_name,

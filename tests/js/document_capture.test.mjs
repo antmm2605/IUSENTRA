@@ -131,7 +131,7 @@ test('preview: preserve page order and rotation, without uploading into a fascic
     assert.equal(options.credentials, 'same-origin')
     assert.deepEqual(options.body.getAll('rotations'), ['90', '0'])
     assert.deepEqual(options.body.getAll('files').map((file) => file.name), ['first.jpg', 'second.jpg'])
-    return new Response('%PDF-test', { headers: { 'Content-Type': 'application/pdf', 'x-iusentra-pages': '2' } })
+    return new Response('%PDF-test', { headers: { 'Content-Type': 'application/pdf', 'x-iusentra-pages': '2', 'x-iusentra-download': '/api/v1/ui/document-tools/results/controlled/download', 'x-iusentra-preview': '/api/v1/ui/document-tools/results/controlled/preview' } })
   }
   const files = ['first.jpg', 'second.jpg'].map((name) => new File(['x'], name, { type: 'image/jpeg' }))
   const result = await generateDocument('multipage', files, 'Prova', files.map((file) => file.name), [90, 0])

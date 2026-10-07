@@ -7,7 +7,7 @@ import { OcrTrovaSostituisci } from './OcrTrovaSostituisci'
 import type { GeometriaPagina } from './ocrPagina'
 import { ATTRIBUTO_BLOCCO, useSelezioneOcr } from './ocrSelezione'
 import { useStoriaBlocchi } from './useStoriaBlocchi'
-import { stileTra, trattiDelBlocco } from './ocrTratti'
+import { stileTra, trattiDelBlocco, trattiTra } from './ocrTratti'
 import {
   changeBlockKind,
   removeBlock,
@@ -60,6 +60,17 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
   // Con una parte del testo selezionata, neretto, corsivo, sottolineato,
   // barrato e colore valgono per quella; senza, per tutto il pezzo.
   const parziale = corrente && selezione?.blockId === corrente.id && selezione.fine > selezione.inizio ? selezione : null
+  const trattiSelezionati = corrente && parziale
+    ? trattiTra(trattiDelBlocco(corrente.tratti, corrente.text, corrente.format), parziale.inizio, parziale.fine)
+    : []
+  const famiglie = new Set(trattiSelezionati.map((tratto) => tratto.famiglia || corrente?.format.famiglia || ''))
+  const corpi = new Set(trattiSelezionati.map((tratto) => tratto.corpo || corrente?.format.corpo || 0))
+  const formatoInline = trattiSelezionati.length ? {
+    famiglia: famiglie.size === 1 ? [...famiglie][0] : '',
+    corpo: corpi.size === 1 ? [...corpi][0] : 0,
+    famigliaMista: famiglie.size > 1,
+    corpoMisto: corpi.size > 1,
+  } : undefined
   const applica = (patch: Partial<OcrFormat>, soloPezzo = false) => {
     if (!corrente) return
     storia.cambia(parziale && !soloPezzo
@@ -101,6 +112,7 @@ export function OcrReview({ blocks, figures, disabled, onChange, selectedId, onS
         nel documento.{incerti ? ` ${incerti} ${incerti === 1 ? 'parte è segnata' : 'parti sono segnate'} perché il riconoscimento non ne è sicuro.` : ''}
       </p>
       <OcrBarra
+        formatoInline={formatoInline}
         blocks={blocks}
         corrente={corrente}
         disabled={disabled}

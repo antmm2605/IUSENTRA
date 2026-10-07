@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ExternalLink, Link2, ReceiptText, RefreshCw, WalletCards } from 'lucide-react'
 import {
   createOrGetPaymentLink,
@@ -12,7 +12,9 @@ import {
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
-import { KpiCard } from '../ui/KpiCard'
+import { IncassiCardCatalog } from './IncassiCardCatalog'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
+import { formatDateIt } from '../formatting'
 import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
@@ -126,20 +128,37 @@ export function IncassiPagamentiPage() {
   const [error, setError] = useState('')
   const [invoiceId, setInvoiceId] = useState('')
   const [method, setMethod] = useState('manuale')
-  const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10))
+  const [paidAt, setPaidAt] = useState(() => formatDateIt(new Date()).split('/').reverse().join('-'))
+  const [metricFilter, setMetricFilter] = useState(() => {
+    const requested = new URLSearchParams(window.location.search).get('riepilogo') || ''
+    return ['incassato', 'da_incassare', 'scaduto', 'crediti', 'link_totali', 'link_pagati', 'link_attesi', 'link_falliti'].includes(requested) ? requested : ''
+  })
+  const [refreshing, setRefreshing] = useState(false)
+  const refreshFlight = useRef<Promise<void> | null>(null)
+  const [refreshError, setRefreshError] = useState('')
+  const [filteredRecordIds, setFilteredRecordIds] = useState<string[] | null>(null)
+  const [recordsPage, setRecordsPage] = useState(1)
+  const recordIds = filteredRecordIds === null ? null : new Set(filteredRecordIds)
+  const filteredRecords = data.records.filter((record) => recordIds === null || recordIds.has(record.id ? `pagamento:${record.id}` : `parcella:${record.invoiceId}`))
+  const recordsPages = Math.max(1, Math.ceil(filteredRecords.length / 30))
+  const currentRecordsPage = Math.min(recordsPage, recordsPages)
+  useEffect(() => { setRecordsPage(1) }, [filteredRecordIds])
   const requestedInvoiceId = selectedInvoiceFromLocation()
 
   function load() {
-    setLoading(true)
-    getIncassiPagamentiPage()
+    if (refreshFlight.current) return refreshFlight.current
+    setRefreshing(true)
+    refreshFlight.current = getIncassiPagamentiPage()
       .then((payload) => {
         setData(payload)
-        const requested = requestedInvoiceId && payload.records.some((record) => record.invoiceId === requestedInvoiceId) ? requestedInvoiceId : ''
-        if (requested) setInvoiceId(requested)
-        else if (!invoiceId && payload.records[0]?.invoiceId) setInvoiceId(payload.records[0].invoiceId)
+        setRefreshError('')
+        setInvoiceId((current) => payload.records.some((record) => record.invoiceId === current) ? current : '')
       })
-      .finally(() => setLoading(false))
+      .catch((cause) => setRefreshError(cause instanceof Error ? cause.message : 'Impossibile aggiornare gli incassi.'))
+      .finally(() => { setLoading(false); setRefreshing(false); refreshFlight.current = null })
+    return refreshFlight.current
   }
+  useOperationalRefresh(['incassi', 'fatturazione'], load)
 
   useEffect(() => {
     let active = true
@@ -152,6 +171,7 @@ export function IncassiPagamentiPage() {
           else if (!invoiceId && payload.records[0]?.invoiceId) setInvoiceId(payload.records[0].invoiceId)
         }
       })
+      .catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : 'Impossibile caricare gli incassi.') })
       .finally(() => {
         if (active) setLoading(false)
       })
@@ -216,6 +236,7 @@ export function IncassiPagamentiPage() {
 
   return (
     <Page
+      className="iu-pay-page"
       title="Incassi e pagamenti"
       subtitle="Controllo operativo su incassi, link parcella e stato dei canali."
       actions={
@@ -227,6 +248,8 @@ export function IncassiPagamentiPage() {
         </>
       }
     >
+      {error && !data.metrics.length ? <div className="iu-pay-alert iu-pay-alert--error" role="alert">{error}<Button tone="neutral" onClick={load}>Riprova</Button></div> : null}
+      {refreshError ? <div className="iu-pay-alert iu-pay-alert--error" role="alert">{refreshError}<Button tone="neutral" disabled={refreshing} onClick={load}>Riprova aggiornamento</Button></div> : null}
       {loading ? <LoadingState title="Caricamento incassi" message="Lettura incassi in corso." /> : null}
       {!loading && !hasData ? (
         <EmptyState
@@ -246,27 +269,26 @@ export function IncassiPagamentiPage() {
           <WarningPanel data={data} />
           <section className="iu-pay-kpis" aria-label="Indicatori incassi">
             {data.metrics.map((metric) => (
-              <KpiCard
-                label={metric.label}
-                value={displayValue(metric.value)}
-                note={metric.note}
-                key={metric.id}
-              />
+              <button type="button" className="iu-pay-kpi" aria-pressed={metricFilter === metric.id} onClick={() => setMetricFilter((current) => current === metric.id ? '' : metric.id)} key={metric.id} disabled={loading || data.warnings.some((warning) => /fatturazione_non_disponibile|pagamenti_non_disponibili/.test(warning.code))}>
+                <span>{metric.label}</span><strong>{data.warnings.some((warning) => metric.id === 'link_attesi' ? warning.code === 'pagamenti_non_disponibili' : warning.code === 'fatturazione_non_disponibile') ? 'Non disponibile' : displayValue(metric.value)}</strong><small>Apri elenco</small>
+              </button>
             ))}
           </section>
+          {refreshing ? <p className="iu-pay-refresh" role="status">Aggiornamento degli incassi in corso…</p> : null}
+          <IncassiCardCatalog rows={data.cardRecords} metric={metricFilter} title={data.metrics.find((metric) => metric.id === metricFilter)?.label || ({crediti:'Crediti aperti, scaduti compresi',link_totali:'Tutti i collegamenti di pagamento',link_pagati:'Collegamenti pagati',link_falliti:'Collegamenti falliti'} as Record<string,string>)[metricFilter] || 'Ricerca parcelle e pagamenti'} onClear={() => setMetricFilter('')} unavailable={data.warnings.some((warning) => /non_disponibil/.test(warning.code))} onFilterChange={setFilteredRecordIds}/>
           <section className="iu-pay-grid" aria-label="Sezioni incassi">
             {data.sections.map((section) => (
               <Panel title={section.title} key={section.id}>
                 {section.items.length ? (
                   <div className="iu-pay-list">
-                    {section.items.map((item) => (
-                      <div className="iu-pay-list__item" key={item.id}>
-                        <WalletCards size={17} />
-                        <span>{item.label}</span>
-                        <strong>{displayValue(item.value)}</strong>
-                        {item.note ? <small>{item.note}</small> : null}
-                      </div>
-                    ))}
+                    {section.items.map((item) => {
+                      const content = <><WalletCards size={17}/><span>{item.label}</span><strong>{displayValue(item.value)}</strong>{item.note ? <small>{item.note}</small> : null}</>
+                      if (section.id === 'link') {
+                        const filter = ({totale:'link_totali',pagati:'link_pagati',attesi:'link_attesi',falliti:'link_falliti'} as Record<string,string>)[item.id]
+                        return <button className="iu-pay-list__item iu-pay-summary-action" key={item.id} type="button" aria-pressed={metricFilter === filter} onClick={() => { setMetricFilter(filter); document.querySelector('.iu-pay-catalog')?.scrollIntoView({block:'start'}) }}>{content}</button>
+                      }
+                      return data.actions.canOpenProviderSettings ? <a className="iu-pay-list__item iu-pay-summary-action" href="/impostazioni?tab=pagamenti" key={item.id} aria-label={`Configura ${item.label}`}>{content}</a> : <div className="iu-pay-list__item" key={item.id}>{content}</div>
+                    })}
                   </div>
                 ) : (
                   <EmptyState title={section.emptyMessage} />
@@ -305,10 +327,10 @@ export function IncassiPagamentiPage() {
               <EmptyState title="Permesso non disponibile" message="Questa sessione non consente registrazioni incasso." />
             )}
           </Panel>
-          <Panel title="Collegamenti pagamento" subtitle={`${data.records.length} collegamenti disponibili`}>
-            {data.records.length ? (
+          <Panel title="Operazioni sui risultati filtrati" subtitle={`${filteredRecords.length} ${filteredRecords.length === 1 ? 'voce operativa disponibile' : 'voci operative disponibili'} con i filtri correnti`}>
+            {filteredRecords.length ? (
               <div className="iu-pay-records">
-                {data.records.map((record) => (
+                {filteredRecords.slice((currentRecordsPage - 1) * 30, currentRecordsPage * 30).map((record) => (
                   <PaymentRow
                     record={record}
                     canUpdateStatus={data.actions.canUpdateStatus}
@@ -322,8 +344,9 @@ export function IncassiPagamentiPage() {
                 ))}
               </div>
             ) : (
-              <EmptyState title="Nessun collegamento pagamento visibile" />
+              <EmptyState title="Nessuna operazione disponibile per i filtri correnti" />
             )}
+            {recordsPages > 1 ? <nav className="iu-pay-pagination" aria-label="Pagine operazioni incassi"><span>Pagina {currentRecordsPage} di {recordsPages}</span><Button tone="neutral" disabled={currentRecordsPage <= 1} onClick={() => setRecordsPage(currentRecordsPage - 1)}>Operazioni precedenti</Button><Button tone="neutral" disabled={currentRecordsPage >= recordsPages} onClick={() => setRecordsPage(currentRecordsPage + 1)}>Operazioni successive</Button></nav> : null}
           </Panel>
           <Panel title="Collegamenti rapidi">
             <div className="iu-pay-actions">

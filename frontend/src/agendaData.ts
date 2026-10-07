@@ -1,3 +1,4 @@
+import { normalizeSourceCandidates, type SourceCandidate } from './sourceEvidenceData'
 import type { Tone } from './data'
 
 export type AgendaView = 'day' | 'week' | 'month' | 'timeline'
@@ -32,6 +33,7 @@ export type AgendaEvent = {
   status: string
   source: string
   sourceHref: string
+  sourceCandidates?: SourceCandidate[]
   sourceLabel: string
   sourceKind: string
   sourceVerified: boolean
@@ -317,6 +319,7 @@ export function normalizeAgendaEvent(item: unknown, index = 0): AgendaEvent | nu
     sourceLabel: asString(pickFirst(item, ['sourceLabel', 'source_label'])),
     sourceKind: asString(pickFirst(item, ['sourceKind', 'source_kind'])),
     sourceVerified: item.sourceVerified === true || item.source_verified === true,
+    sourceCandidates: normalizeSourceCandidates(item.sourceCandidates),
     syncStatus: syncFrom(pickFirst(item, ['syncStatus', 'sync_status', 'sync', 'stato_sync'])),
     notes,
     href: asString(pickFirst(item, ['href', 'url']), '/agenda'),
@@ -415,13 +418,15 @@ function currentAgendaRouteId(): string {
   return decodeURIComponent(match[1])
 }
 
-async function fetchAgendaEndpoint(path: string, from: string, to: string): Promise<{ items: unknown[]; source: string } | null> {
+async function fetchAgendaEndpoint(path: string, from: string, to: string): Promise<{ items: unknown[]; source: string }> {
   const response = await fetch(endpointUrl(path, from, to), {
     credentials: 'same-origin',
     headers: { Accept: 'application/json' },
   })
-  if (!response.ok) return null
+  if (!response.ok) throw new Error('Agenda non disponibile. Riprova tra poco.')
   const payload = await response.json() as unknown
+  if ((!Array.isArray(payload) && (!isRecord(payload) || !['events', 'data', 'items'].some(key => Array.isArray(payload[key]))))
+    || (isRecord(payload) && payload.ok === false)) throw new Error('I dati dell’agenda non sono disponibili. Riprova tra poco.')
   const source = isRecord(payload) ? asString(payload.source, path) : path
   return { items: asArray(payload), source }
 }
@@ -432,8 +437,6 @@ export async function getAgendaPage(anchor = new Date(), view: AgendaView = 'wee
   const to = toDateKey(range.to)
   try {
     const result = await fetchAgendaEndpoint('/api/v1/ui/agenda', from, to)
-      ?? await fetchAgendaEndpoint('/api/v1/agenda', from, to)
-      ?? { items: [], source: 'empty' }
     const failures: string[] = []
     const events = result.items.flatMap((item, index) => {
       try {
@@ -446,6 +449,7 @@ export async function getAgendaPage(anchor = new Date(), view: AgendaView = 'wee
     })
     const payload = buildAgendaPageData(events, anchor, result.source, view)
     payload.diagnostic = failures.join(' | ')
+    if (failures.length) payload.source = 'parziale'
     return payload
   } catch (error) {
     const payload = buildAgendaPageData([], anchor, 'errore_controllato', view)

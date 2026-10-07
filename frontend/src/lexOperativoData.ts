@@ -14,6 +14,7 @@ export type LexOpFascicolo = {
 }
 
 export type LexOpUdienza = {
+  id: string
   title: string
   cliente: string
   udienza: string
@@ -123,6 +124,7 @@ export function normaliseLexOperativo(payload: unknown): LexOperativoData {
         const item = obj(raw)
         const documenti = obj(item.documenti)
         return {
+          id: text(item.id),
           title: text(item.title, 'Udienza'),
           cliente: text(item.cliente),
           udienza: text(item.udienza),
@@ -143,7 +145,7 @@ export function normaliseLexOperativo(payload: unknown): LexOperativoData {
           serviceLabel: text(item.service_label, 'Servizio telematico'),
           officeName: text(item.office_name),
           practiceTitle: text(item.practice_title),
-          status: text(item.internal_status).replace(/_/g, ' '),
+          status: ({manual_review_required: 'Revisione manuale richiesta', draft: 'Bozza', opened_official_portal: 'Portale ufficiale aperto'} as Record<string, string>)[text(item.internal_status)] || text(item.internal_status).replace(/_/g, ' '),
           openTasks: num(item.open_tasks_count),
         }
       }),

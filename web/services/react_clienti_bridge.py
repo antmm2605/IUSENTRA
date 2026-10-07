@@ -442,47 +442,91 @@ def build_react_cliente_cartella_payload(
     get_preventivi: Callable[[], Any],
     get_fatturazione: Callable[[], Any],
     id_cliente: str,
+    include_catalogs: bool = False,
 ) -> dict[str, Any]:
+    from time import perf_counter
+    from flask import current_app, has_app_context
+    checkpoint = perf_counter()
+
+    def measure_phase(phase):
+        nonlocal checkpoint
+        now = perf_counter()
+        elapsed = (now - checkpoint) * 1000
+        checkpoint = now
+        if elapsed >= 250 and has_app_context():
+            current_app.logger.warning("cartella_cliente phase=%s durata_ms=%.1f", phase, elapsed)
+
     cliente = get_clienti().get(id_cliente)
     if not cliente:
         raise KeyError(id_cliente)
 
-    fascicoli = _safe("fascicoli cliente", lambda: get_fascicoli().cerca(id_cliente=id_cliente, archiviati=True), [])
+    def read_repository(label, load, default):
+        return load() if include_catalogs else _safe(label, load, default)
+
+    fascicoli = read_repository("fascicoli cliente", lambda: get_fascicoli().cerca(id_cliente=id_cliente, archiviati=True), [])
     from web.services.identita_cliente_runtime import documenti_identita_cliente
+    measure_phase("clienti_fascicoli")
     identity_documents = documenti_identita_cliente(id_cliente, fascicoli)
+    measure_phase("identita")
     fascicoli_attivi = [item for item in fascicoli if not _fascicolo_archiviato(item)]
     fascicoli_archiviati = [item for item in fascicoli if _fascicolo_archiviato(item)]
     fascicoli_by_id = {_text(getattr(item, "id", "")): item for item in fascicoli}
     fascicolo_ids = {item_id for item_id in fascicoli_by_id if item_id}
 
-    scadenze = _safe(
+    scadenze = read_repository(
         "scadenze cliente",
         lambda: [item for item in get_scadenziario().tutte(solo_aperte=False) if _text(getattr(item, "id_fascicolo", "")) in fascicolo_ids],
         [],
     )
+    measure_phase("scadenze")
     scadenze_aperte = [item for item in scadenze if getattr(item, "stato", None) == StatoTermine.APERTO]
     scadenze_scadute = [item for item in scadenze_aperte if (_parse_date(getattr(item, "data_scadenza", "")) or date.max) < date.today()]
-    from web.services.react_fascicoli_bridge import _agenda_for_fascicolo
-    from web.services.fascicolo_pec_presidio import messaggi_pec_per_fascicolo
+    from web.services.react_cliente_agenda import appuntamenti_cartella
+    from web.services.react_cliente_comunicazioni import pec_collegate_cartella
     from pct.formatting import format_date_it, format_time_it
-    appuntamenti_by_id = {item.id: item for item in get_agenda().per_cliente(id_cliente)}
+    from urllib.parse import quote
+    agenda_snapshot = get_agenda()
+    appuntamenti_by_id = {item.id: item for item in appuntamenti_cartella(agenda_snapshot, fascicoli, id_cliente)}
     pec_by_id = {}
-    for fascicolo in fascicoli:
-        for item in _agenda_for_fascicolo(get_agenda, fascicolo):
-            appuntamenti_by_id[item.id] = item
-        for messaggio in messaggi_pec_per_fascicolo(fascicolo):
-            if messaggio.get("collegata"):
-                pec_by_id[messaggio["id"]] = {**messaggio, "fascicolo_id": fascicolo.id}
+    for messaggio in pec_collegate_cartella([str(fascicolo.id) for fascicolo in fascicoli]):
+        pec_by_id[messaggio["id"]] = messaggio
+    measure_phase("agenda_pec")
     appuntamenti = [item for item in appuntamenti_by_id.values() if _enum_value(getattr(item, "stato", "")).upper() not in {"ANNULLATO", "CANCELLATO"}]
     appuntamenti.sort(key=lambda item: _text(getattr(item, "data_ora", "")), reverse=True)
     messaggi = get_messaggi().per_cliente(id_cliente)
     comunicazioni = [_message_card(item) for item in messaggi]
-    comunicazioni.extend({"id": item["id"], "title": item["subject"], "subtitle": item["from"], "date": format_date_it(item["received_at"]), "time": format_time_it(item["received_at"]), "status": "PEC collegata", "channel": "PEC", "href": f"/fascicoli/{item['fascicolo_id']}#comunicazioni-notifica", "tone": "neutral"} for item in pec_by_id.values())
-    preventivi = _safe("preventivi cliente", lambda: get_preventivi().preventivi_per_cliente(id_cliente), [])
-    conferimenti = _safe("conferimenti cliente", lambda: get_preventivi().conferimenti_per_cliente(id_cliente), [])
-    parcelle = _safe("parcelle cliente", lambda: get_fatturazione().per_cliente(id_cliente), [])
+    comunicazioni.extend({"id": item["id"], "title": item["subject"], "subtitle": item["from"], "date": format_date_it(item["received_at"]), "time": format_time_it(item["received_at"]), "status": "PEC collegata", "channel": "PEC", "href": f"/email/?audit_id={quote(item['id'], safe='')}", "tone": "neutral"} for item in pec_by_id.values())
+    measure_phase("messaggi")
+    preventivi = read_repository("preventivi cliente", lambda: get_preventivi().preventivi_per_cliente(id_cliente), [])
+    measure_phase("preventivi")
+    conferimenti = read_repository("conferimenti cliente", lambda: get_preventivi().conferimenti_per_cliente(id_cliente), [])
+    measure_phase("conferimenti")
+    parcelle = read_repository("parcelle cliente", lambda: get_fatturazione().per_cliente(id_cliente), [])
+    measure_phase("parcelle")
     phone, email, pec = _recapiti(cliente)
+    documenti_catalogo = []
+    if include_catalogs:
+        from urllib.parse import quote
+        for fascicolo in fascicoli:
+            for documento in getattr(fascicolo, "documenti", []) or []:
+                if getattr(documento, "eliminato_il", ""):
+                    continue
+                fid, did = _text(fascicolo.id), _text(getattr(documento, "id", ""))
+                if not did:
+                    continue
+                documenti_catalogo.append({
+                    "id": f"{fid}:{did}",
+                    "title": _text(getattr(documento, "nome_originale", "") or getattr(documento, "nome", "")) or "Documento",
+                    "subtitle": _text(getattr(fascicolo, "titolo", "")),
+                    "date": format_date_it(getattr(documento, "data_documento", "") or getattr(documento, "data_caricamento", "")),
+                    "status": _enum_value(getattr(documento, "tipo", "")).replace("_", " ").capitalize(),
+                    "href": f"/fascicoli/{quote(fid, safe='')}/documenti/{quote(did, safe='')}/visualizza",
+                    "tone": "neutral",
+                })
 
+    measure_phase("catalogo_documenti")
+    timeline = _timeline_from_fascicoli(fascicoli)
+    measure_phase("cronologia")
     return {
         "source": "repository_reali",
         "generated_at": _iso_now(),
@@ -523,17 +567,18 @@ def build_react_cliente_cartella_payload(
             "invoices": len(parcelle),
         },
         "identityDocuments": identity_documents,
+        "documentItems": documenti_catalogo,
         "matters": {
             "active": [_matter_card(item) for item in fascicoli_attivi],
-            "archived": [_matter_card(item) for item in fascicoli_archiviati[:12]],
+            "archived": [_matter_card(item) for item in (fascicoli_archiviati if include_catalogs else fascicoli_archiviati[:12])],
         },
-        "deadlines": [_deadline_card(item, fascicoli_by_id.get(_text(getattr(item, "id_fascicolo", "")))) for item in scadenze_aperte[:12]],
+        "deadlines": [_deadline_card(item, fascicoli_by_id.get(_text(getattr(item, "id_fascicolo", "")))) for item in (scadenze_aperte if include_catalogs else scadenze_aperte[:12])],
         "appointments": [_appointment_card(item) for item in appuntamenti[:8]],
-        "messages": comunicazioni[:12],
+        "messages": comunicazioni if include_catalogs else comunicazioni[:12],
         "quotes": [_quote_card(item) for item in preventivi[:8]],
         "engagements": [_engagement_card(item) for item in conferimenti[:8]],
-        "invoices": [_invoice_card(item) for item in parcelle[:8]],
-        "timeline": _timeline_from_fascicoli(fascicoli),
+        "invoices": [_invoice_card(item) for item in (parcelle if include_catalogs else parcelle[:8])],
+        "timeline": timeline,
         "actions": {
             "editClient": f"/clienti/{id_cliente}/modifica",
             "newMatter": f"/fascicoli/nuovo?id_cliente={id_cliente}",

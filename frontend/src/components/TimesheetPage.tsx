@@ -1,17 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { ReactNode } from 'react'
-import { AlertTriangle, Banknote, CalendarDays, CheckCircle2, Clock3, FileText, Filter, Plus, Search } from 'lucide-react'
+import { AlertTriangle, Banknote, CalendarDays, CheckCircle2, Clock3, Filter, Plus, Search } from 'lucide-react'
 import { Badge } from './dashboard'
 import { FloatingLex } from './FloatingLex'
 import { JsonPostForm } from './JsonPostForm'
 import { getTimesheetPage, type TimesheetData, type TimesheetEntry, type TrackingProposal } from '../timesheetData'
 import './TimesheetPage.css'
+import { TimesheetMetrics } from './TimesheetMetrics'
+import { todayInRome } from '../pages/daily-plan/DailyPlanDateControls'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
+import { publishMutationRefresh } from '../operationalRefresh'
 
 function csrfToken(): string {
   return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || ''
 }
 
-function TrackingProposalsSection({ proposals, onDone }:{proposals:TrackingProposal[]; onDone:()=>void}) {
+function TrackingProposalsSection({ proposals, onDone }:{proposals:TrackingProposal[]; onDone:()=>Promise<void>}) {
   const [busyId, setBusyId] = useState('')
   const [message, setMessage] = useState('')
   const [minutesById, setMinutesById] = useState<Record<string, string>>({})
@@ -26,7 +29,11 @@ function TrackingProposalsSection({ proposals, onDone }:{proposals:TrackingPropo
       })
       const payload = await response.json().catch(() => ({})) as { ok?:boolean; message?:string }
       setMessage(payload.message || (response.ok ? 'Operazione completata.' : 'Operazione non riuscita.'))
-      if (payload.ok) window.setTimeout(onDone, 700)
+      if (!response.ok || !payload.ok) throw new Error(payload.message || 'Operazione non riuscita.')
+      publishMutationRefresh(href)
+      try { await onDone() } catch {
+        setMessage('Operazione salvata. Aggiornamento dei dati non riuscito: riprova senza ripetere il comando.')
+      }
     } catch {
       setMessage('Operazione non riuscita.')
     } finally { setBusyId('') }
@@ -35,7 +42,7 @@ function TrackingProposalsSection({ proposals, onDone }:{proposals:TrackingPropo
     <section className="iu-timesheet-proposals" aria-label="Proposte dal tracking passivo">
       <header>
         <span><Clock3 size={17}/> Tempo rilevato automaticamente</span>
-        <small>Sessioni di lavoro rilevate dalle attivita' registrate: conferma per creare la voce timesheet (art. 22-bis D.M. 55/2014) o scarta.</small>
+        <small>Sessioni di lavoro rilevate dalle attività registrate: conferma per creare la voce timesheet (art. 22-bis D.M. 55/2014) o scarta.</small>
       </header>
       {message ? <p className="iu-timesheet-proposals__msg" role="status">{message}</p> : null}
       <ul>
@@ -69,19 +76,14 @@ function TrackingProposalsSection({ proposals, onDone }:{proposals:TrackingPropo
   )
 }
 
-function StatCard({ label, value, icon }: { label: string; value: string | number; icon: ReactNode }) {
+function FilterBar({ data, onFilter }: { data: TimesheetData; onFilter: (filters: Record<string, string>) => void }) {
   return (
-    <article className="iu-timesheet-stat">
-      <span>{icon}</span>
-      <strong>{value}</strong>
-      <small>{label}</small>
-    </article>
-  )
-}
-
-function FilterBar({ data }: { data: TimesheetData }) {
-  return (
-    <form className="iu-timesheet-filters" method="get" action="/timesheet">
+    <form className="iu-timesheet-filters" method="get" action="/timesheet" onSubmit={event => {
+      event.preventDefault()
+      onFilter(Object.fromEntries(Array.from(new FormData(event.currentTarget).entries(), ([key, value]) => [key, String(value)])))
+    }}>
+      <input type="hidden" name="fatturabile" value={data.filters.fatturabile || ''}/>
+      <input type="hidden" name="ordina" value={data.filters.ordina || ''}/>
       <label>
         <span>Cliente</span>
         <select name="id_cliente" defaultValue={data.filters.id_cliente || ''}>
@@ -122,35 +124,38 @@ function FilterBar({ data }: { data: TimesheetData }) {
         <span>Ricerca</span>
         <input type="search" name="q" defaultValue={data.filters.q || ''} placeholder="Descrizione, note, origine..." />
       </label>
-      <button type="submit"><Filter size={16}/> Applica</button>
-      <a href="/timesheet">Azzera</a>
+      <div className="iu-timesheet-filters__actions">
+        <button type="submit"><Filter size={16}/> Applica</button>
+        <button type="button" onClick={() => onFilter({})}>Azzera</button>
+      </div>
     </form>
   )
 }
 
-function NewEntryForm({ data }: { data: TimesheetData }) {
+function NewEntryForm({ data, onDone }: { data: TimesheetData; onDone: () => Promise<void> }) {
+  const [billable, setBillable] = useState(true)
   return (
     <section className="iu-timesheet-panel">
       <div className="iu-timesheet-panel__head">
         <div>
-          <span className="iu-timesheet-kicker"><Plus size={15}/> Nuova attivita</span>
+          <span className="iu-timesheet-kicker"><Plus size={15}/> Nuova attività</span>
           <h2>Registra tempo</h2>
         </div>
       </div>
-      <JsonPostForm className="iu-timesheet-form" action={data.actions.create} successMessage="Attivita salvata.">
+      <JsonPostForm className="iu-timesheet-form" action={data.actions.create} successMessage="Attività salvata." onSuccess={async (_result, form) => { await onDone(); form.reset(); setBillable(true) }}>
         <input type="hidden" name="_csrf_token" value={csrfToken()} />
         <input type="hidden" name="from_page" value="timesheet" />
         <label className="wide">
           <span>Descrizione</span>
-          <input name="descrizione" required maxLength={300} placeholder="Attivita svolta" />
+          <input name="descrizione" required maxLength={300} placeholder="Attività svolta" />
         </label>
         <label>
           <span>Minuti</span>
           <input name="minuti" type="number" min="1" step="1" required defaultValue="30" />
         </label>
         <label>
-          <span>Data attivita</span>
-          <input name="data_attivita" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
+          <span>Data attività</span>
+          <input name="data_attivita" type="date" defaultValue={todayInRome()} />
         </label>
         <label>
           <span>Cliente</span>
@@ -179,18 +184,19 @@ function NewEntryForm({ data }: { data: TimesheetData }) {
           <textarea name="note" rows={3} placeholder="Annotazioni interne" />
         </label>
         <label className="iu-timesheet-check">
-          <input type="checkbox" name="fatturabile" value="1" defaultChecked />
+          <input type="hidden" name="fatturabile" value={billable ? '1' : '0'} />
+          <input type="checkbox" checked={billable} onChange={event => setBillable(event.target.checked)} />
           <span>Voce fatturabile</span>
         </label>
-        <button type="submit">Salva attivita</button>
+        <button type="submit">Salva attività</button>
       </JsonPostForm>
     </section>
   )
 }
 
-function StatusForm({ entry, data }: { entry: TimesheetEntry; data: TimesheetData }) {
+function StatusForm({ entry, data, onDone }: { entry: TimesheetEntry; data: TimesheetData; onDone: () => Promise<void> }) {
   return (
-    <JsonPostForm className="iu-timesheet-status" action={entry.stateAction} successMessage="Stato salvato.">
+    <JsonPostForm className="iu-timesheet-status" action={entry.stateAction} successMessage="Stato salvato." onSuccess={onDone}>
       <input type="hidden" name="_csrf_token" value={csrfToken()} />
       <input type="hidden" name="id_cliente" value={data.filters.id_cliente || entry.idCliente} />
       <input type="hidden" name="id_fascicolo" value={data.filters.id_fascicolo || entry.idFascicolo} />
@@ -202,9 +208,9 @@ function StatusForm({ entry, data }: { entry: TimesheetEntry; data: TimesheetDat
   )
 }
 
-function EntryList({ data }: { data: TimesheetData }) {
+function EntryList({ data, onDone }: { data: TimesheetData; onDone: () => Promise<void> }) {
   if (data.emptyStates.noEntries) {
-    return <div className="iu-timesheet-empty"><Clock3 size={26}/><strong>Nessuna voce timesheet</strong><span>Registra la prima attivita dal form operativo.</span></div>
+    return <div className="iu-timesheet-empty"><Clock3 size={26}/><strong>Nessuna voce timesheet</strong><span>Registra la prima attività dal form operativo.</span></div>
   }
   if (data.emptyStates.noFilteredEntries) {
     return <div className="iu-timesheet-empty"><Search size={26}/><strong>Nessun risultato</strong><span>I filtri selezionati non restituiscono voci.</span></div>
@@ -215,8 +221,8 @@ function EntryList({ data }: { data: TimesheetData }) {
         <article className="iu-timesheet-entry" key={entry.id}>
           <div>
             <span className="iu-timesheet-entry__date"><CalendarDays size={14}/>{entry.dateLabel}</span>
-            <h3>{entry.description}</h3>
-            <p>{entry.clientName} · {entry.fascicoloLabel}</p>
+            <h3 data-allow-technical-text="true">{entry.description}</h3>
+            <p data-allow-technical-text="true">{entry.clientName} · {entry.fascicoloLabel}</p>
             <div className="iu-timesheet-entry__links">
               {entry.clientHref ? <a href={entry.clientHref}>Apri cliente</a> : null}
               {entry.fascicoloHref ? <a href={entry.fascicoloHref}>Apri fascicolo</a> : null}
@@ -226,14 +232,14 @@ function EntryList({ data }: { data: TimesheetData }) {
             <div><dt>Tempo</dt><dd>{entry.hoursLabel}</dd></div>
             <div><dt>Valore unitario</dt><dd>{entry.hourlyRateLabel}</dd></div>
             <div><dt>Totale</dt><dd>{entry.totalValueLabel}</dd></div>
-            <div><dt>Utente</dt><dd>{entry.user}</dd></div>
+            <div><dt>Utente</dt><dd data-allow-technical-text="true">{entry.user}</dd></div>
           </dl>
           <div className="iu-timesheet-entry__side">
             <Badge tone={entry.statusTone}>{entry.statusLabel}</Badge>
             <Badge tone={entry.billable ? 'success' : 'neutral'}>{entry.billableLabel}</Badge>
             {entry.origin ? <small>Origine: {entry.origin}</small> : null}
-            {entry.notes ? <small>{entry.notes}</small> : null}
-            <StatusForm entry={entry} data={data} />
+            {entry.notes ? <small data-allow-technical-text="true">{entry.notes}</small> : null}
+            <StatusForm entry={entry} data={data} onDone={onDone} />
           </div>
         </article>
       ))}
@@ -241,10 +247,10 @@ function EntryList({ data }: { data: TimesheetData }) {
   )
 }
 
-function BillingPanel({ data }: { data: TimesheetData }) {
+function BillingPanel({ data, onDone }: { data: TimesheetData; onDone: () => Promise<void> }) {
   const eligible = useMemo(() => data.entries.filter((entry) => entry.eligibleForInvoice), [data.entries])
   const [selected, setSelected] = useState<string[]>(data.billing.entryIds)
-  useEffect(() => setSelected(data.billing.entryIds), [data.billing.entryIds])
+  useEffect(() => setSelected(current => current.filter(id => data.billing.entryIds.includes(id))), [data.billing.entryIds])
   const toggle = (id: string) => setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
   return (
     <section className="iu-timesheet-panel">
@@ -256,7 +262,10 @@ function BillingPanel({ data }: { data: TimesheetData }) {
         <a href={data.actions.billing}>Apri fatturazione</a>
       </div>
       {eligible.length ? (
-        <JsonPostForm className="iu-timesheet-billing" action={data.billing.action} successMessage="Parcella creata.">
+        <JsonPostForm className="iu-timesheet-billing" action={data.billing.action} successMessage="Parcella creata." onSuccess={async result => {
+          await onDone()
+          if (result.redirect) window.dispatchEvent(new CustomEvent('iusentra:open-work-window', { detail: { href: result.redirect, title: 'Parcella da Timesheet' } }))
+        }}>
           <input type="hidden" name="_csrf_token" value={csrfToken()} />
           <input type="hidden" name="id_cliente" value={data.billing.idCliente} />
           <input type="hidden" name="id_fascicolo" value={data.billing.idFascicolo} />
@@ -265,7 +274,7 @@ function BillingPanel({ data }: { data: TimesheetData }) {
             {eligible.map((entry) => (
               <label key={entry.id}>
                 <input type="checkbox" name="entry_ids" value={entry.id} checked={selected.includes(entry.id)} onChange={() => toggle(entry.id)} />
-                <span>{entry.dateLabel} · {entry.description} · {entry.totalValueLabel}</span>
+                <span data-allow-technical-text="true">{entry.dateLabel} · {entry.description} · {entry.totalValueLabel}</span>
               </label>
             ))}
           </div>
@@ -290,6 +299,33 @@ function BillingPanel({ data }: { data: TimesheetData }) {
 export function TimesheetPage() {
   const [data, setData] = useState<TimesheetData | null>(null)
   const [loadError, setLoadError] = useState('')
+  const [filtering, setFiltering] = useState(false)
+  async function refreshEntries() {
+    try {
+      const payload = await getTimesheetPage()
+      setData(payload)
+      setLoadError('')
+    } catch (error) {
+      setLoadError('Il comando è stato salvato, ma i dati non sono stati aggiornati. Riprova l’aggiornamento senza ripetere il comando.')
+      throw error
+    }
+  }
+  useOperationalRefresh(['timesheet'], refreshEntries)
+  async function filterEntries(filters: Record<string, string>) {
+    if (filtering) return
+    setFiltering(true)
+    setLoadError('')
+    try {
+      const params = new URLSearchParams(Object.entries(filters).filter(([, value]) => Boolean(value)))
+      if (new URLSearchParams(window.location.search).get('embed') === 'source') params.set('embed', 'source')
+      const search = params.size ? `?${params}` : ''
+      const payload = await getTimesheetPage(search)
+      setData(payload)
+      window.history.replaceState(null, '', `/timesheet${search}`)
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : 'Errore durante il caricamento del timesheet.')
+    } finally { setFiltering(false) }
+  }
   useEffect(() => {
     let active = true
     getTimesheetPage()
@@ -304,7 +340,7 @@ export function TimesheetPage() {
     return () => { active = false }
   }, [])
 
-  if (loadError) {
+  if (loadError && !data) {
     return (
       <main className="iu-timesheet-page">
         <div className="iu-timesheet-empty">
@@ -331,34 +367,26 @@ export function TimesheetPage() {
         </div>
         <div className="iu-timesheet-hero__actions">
           <a href={data.actions.agenda}>Agenda</a>
-          <a href={data.actions.statistics}>Produttivita</a>
+          <a href={data.actions.statistics}>Produttività</a>
           <a href={data.actions.clients}>Clienti</a>
           <a href={data.actions.matters}>Fascicoli</a>
         </div>
       </section>
 
-      <section className="iu-timesheet-stats">
-        <StatCard icon={<FileText size={18}/>} label="Voci totali" value={data.summary.totalEntries} />
-        <StatCard icon={<Clock3 size={18}/>} label="Tempo lavorato" value={data.summary.totalHoursLabel} />
-        <StatCard icon={<Banknote size={18}/>} label="Valore totale" value={data.summary.totalValueLabel} />
-        <StatCard icon={<CheckCircle2 size={18}/>} label="Validate" value={data.summary.validated} />
-        <StatCard icon={<Clock3 size={18}/>} label="Aperte" value={data.summary.open} />
-        <StatCard icon={<Banknote size={18}/>} label="Fatturate" value={data.summary.invoiced} />
-        <StatCard icon={<CheckCircle2 size={18}/>} label="Fatturabili" value={data.summary.billable} />
-        <StatCard icon={<FileText size={18}/>} label="Interne" value={data.summary.notBillable} />
-      </section>
+      <TimesheetMetrics data={data} onFilter={filterEntries} busy={filtering}/>
+      <p className="iu-timesheet-filter-status" role={loadError ? 'alert' : 'status'}>{loadError || (filtering ? 'Aggiornamento delle voci in corso…' : 'Indicatori e voci del contesto selezionato. Le card filtrano e ordinano la ricerca.')}</p>
+      {loadError ? <button type="button" onClick={() => { void refreshEntries().catch(() => undefined) }}>Riprova aggiornamento</button> : null}
+      <FilterBar key={JSON.stringify(data.filters)} data={data} onFilter={filterEntries} />
 
-      <FilterBar data={data} />
-
-      <TrackingProposalsSection proposals={data.trackingProposals} onDone={() => window.location.reload()} />
+      <TrackingProposalsSection proposals={data.trackingProposals} onDone={refreshEntries} />
 
       <section className="iu-timesheet-layout">
         <div>
-          <EntryList data={data} />
+          <EntryList data={data} onDone={refreshEntries} />
         </div>
         <aside className="iu-timesheet-side">
-          <NewEntryForm data={data} />
-          <BillingPanel data={data} />
+          <NewEntryForm data={data} onDone={refreshEntries} />
+          <BillingPanel data={data} onDone={refreshEntries} />
         </aside>
       </section>
 

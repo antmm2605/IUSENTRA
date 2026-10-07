@@ -61,6 +61,24 @@ CORE_CI_REQUIRE_ITEM_SPLIT: frozenset[str] = frozenset(
     {"tests/test_react_shell.py"}
 )
 CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
+    # Archivio controllato obbligatorio SQLite/PostgreSQL; nessun dato studio.
+    # Eseguire in quattro shard con --timeout-minutes 5 e database di prova.
+    "mailbox-storage": (
+        REPO_ROOT / "tests" / "test_email_mailbox_sql_repository.py",
+        REPO_ROOT / "tests" / "test_email_mailbox_core_schema.py",
+        REPO_ROOT / "tests" / "test_email_sql_client.py",
+        REPO_ROOT / "tests" / "test_email_storage_runtime.py",
+        REPO_ROOT / "tests" / "test_email_storage_errors.py",
+        REPO_ROOT / "tests" / "test_email_bulk_read.py",
+        REPO_ROOT / "tests" / "test_email_bulk_read_api.py",
+        REPO_ROOT / "tests" / "test_mailbox_selection.py",
+        REPO_ROOT / "tests" / "test_email_selection_api.py",
+        REPO_ROOT / "tests" / "test_controllo_mailbox_sql.py",
+        REPO_ROOT / "tests" / "test_mailbox_plan_apply.py",
+        REPO_ROOT / "tests" / "test_mailbox_callers_errors.py",
+        REPO_ROOT / "tests" / "test_mailbox_routes_wiring.py",
+        REPO_ROOT / "tests" / "test_mailbox_native_sqlite_flow.py",
+    ),
     "coverage-critical": (
         REPO_ROOT / "lex" / "tests",
         *LEX_CROSS_SUITE,
@@ -215,7 +233,9 @@ PHASES: tuple[Phase, ...] = (
         re.compile(
             r"("
             r"test_database|test_database_migration|test_repository_sql_parity|"
-            r"test_storage_|test_tenant_|test_migration_assistant|test_sync"
+            r"test_storage_|test_tenant_|test_migration_assistant|test_sync|"
+            r"test_email_mailbox_|test_email_sql_client|test_email_storage_|test_email_bulk_read|"
+            r"test_mailbox_|test_email_selection_api|test_controllo_mailbox_sql"
             r")"
         ),
     ),

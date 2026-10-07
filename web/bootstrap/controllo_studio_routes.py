@@ -17,6 +17,8 @@ def register_controllo_studio_routes(app: Flask, core: dict[str, Any]) -> None:
 
     register_viewer_editor_routes(app)
     audit = core["audit"]
+    from web.services.scadenze_rapide_letture import register_routes
+    register_routes(app, audit)
 
     def _puo(permesso: str) -> bool:
         utente = g.get("utente_corrente")
@@ -29,6 +31,36 @@ def register_controllo_studio_routes(app: Flask, core: dict[str, Any]) -> None:
         from web.services.controllo_studio_presidi import righe_presidi
 
         return righe_presidi()
+
+    @app.route("/api/v1/ui/controllo-studio/discordanze/lette", methods=["POST"])
+    def controllo_discordanze_lette():
+        if not (_puo("fascicoli.leggi") and _puo("clienti.leggi")):
+            return jsonify({"ok": False, "message": "Permesso insufficiente."}), 403
+        from web.services.controllo_studio_letture import repository
+        from web.services.registro_letture_runtime import utente_corrente_id
+        try:
+            payload = request.get_json(silent=True)
+            if not isinstance(payload, dict): raise ValueError("Richiesta non valida.")
+            voci = payload.get("voci")
+            n = repository().conferma(utente_corrente_id(), voci)
+        except ValueError as exc:
+            return jsonify({"ok": False, "message": str(exc)}), 409
+        audit("controllo_studio.discordanze_lette", "letture", "", dettagli=json.dumps(voci, ensure_ascii=False))
+        return jsonify({"ok": True, "message": f"Presa visione salvata per {n} verifiche."})
+
+    @app.route("/api/v1/ui/controllo-studio/pec/lette", methods=["POST"])
+    def controllo_pec_lette():
+        if not _puo("messaggi.leggi"):
+            return jsonify({"ok": False, "message": "Permesso insufficiente."}), 403
+        from web.services.controllo_studio_letture import marca_pec
+        try:
+            payload = request.get_json(silent=True)
+            if not isinstance(payload, dict): raise ValueError("Richiesta non valida.")
+            ids, message = marca_pec(payload.get("ids"))
+        except ValueError as exc:
+            return jsonify({"ok": False, "message": str(exc)}), 400
+        audit("controllo_studio.pec_lette", "email", "", dettagli=json.dumps(ids))
+        return jsonify({"ok": True, "message": message, "ids": ids})
 
     @app.route("/api/v1/ui/controllo-studio/discordanze")
     def controllo_studio_discordanze():

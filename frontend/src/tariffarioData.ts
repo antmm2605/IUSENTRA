@@ -842,7 +842,13 @@ function normaliseRun(raw: unknown): TariffarioRunResponse {
 }
 
 export async function getTariffarioPage(): Promise<TariffarioPageData> {
-  const payload = await apiJson<unknown>('/api/v1/ui/tariffario', emptyTariffarioPage)
+  const pageQuery = new URLSearchParams(window.location.search)
+  const context = new URLSearchParams()
+  for (const key of ['materia', 'grado', 'regola_tariffaria']) {
+    const value = pageQuery.get(key)
+    if (value) context.set(key, value)
+  }
+  const payload = await apiJson<unknown>('/api/v1/ui/tariffario' + (context.size ? '?' + context.toString() : ''), emptyTariffarioPage)
   return normalisePage(payload)
 }
 

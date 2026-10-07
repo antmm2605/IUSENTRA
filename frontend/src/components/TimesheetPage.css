@@ -70,3 +70,37 @@
 .iu-timesheet-proposals__actions button.iu-timesheet-proposals__dismiss{border-color:var(--iu-border,#e2e8f0);background:white;color:#64748b}
 .iu-timesheet-proposals__actions button:disabled{opacity:.55;cursor:progress}
 @media (max-width:768px){.iu-timesheet-proposals li{flex-direction:column;align-items:stretch}.iu-timesheet-proposals__actions{justify-content:flex-end;flex-wrap:wrap}}
+
+.iu-timesheet-stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.iu-timesheet-stat{min-height:0;padding:10px 12px;border-radius:10px;box-shadow:none;text-align:left;font:inherit;cursor:pointer;gap:4px}
+.iu-timesheet-stat>span{width:auto;height:auto;background:none;display:flex;align-items:center;gap:6px;min-height:20px;border-radius:0;font-size:12px;line-height:1.25}
+.iu-timesheet-stat>span>svg{flex:none}
+.iu-timesheet-stat>strong{min-height:23px;font-size:20px;line-height:1.15;overflow-wrap:anywhere}
+.iu-timesheet-stat>small{min-height:15px;font-size:11px;line-height:1.35}
+.iu-timesheet-stat:hover,.iu-timesheet-stat:focus-visible{background:var(--iu-blue-50);color:var(--iu-navy-900);outline:2px solid var(--iu-blue-500);outline-offset:1px}
+.iu-timesheet-stat[aria-pressed=true]{border-color:var(--iu-blue-500);background:var(--iu-blue-50)}
+.iu-timesheet-stat:disabled{cursor:progress;opacity:1}
+.iu-timesheet-filter-status{min-height:18px;margin:0;font-size:12px;line-height:1.5;color:var(--iu-slate-600)}
+@media(max-width:720px){.iu-timesheet-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.iu-timesheet-stat{padding:9px}.iu-timesheet-stat>span{min-height:30px;align-items:flex-start}}
+
+/* Stessa griglia per etichette, campi e azioni, anche nelle finestre affiancate. */
+.iusentra-preset-active .iu-timesheet-filters{grid-template-columns:repeat(4,minmax(0,1fr));align-items:end}
+.iusentra-preset-active .iu-timesheet-filters label{min-width:0}
+.iusentra-preset-active .iu-timesheet-filters input,.iusentra-preset-active .iu-timesheet-filters select{min-width:0;height:44px;box-sizing:border-box}
+.iusentra-preset-active .iu-timesheet-filters__search{grid-column:span 2}
+.iusentra-preset-active .iu-timesheet-filters__actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px;align-items:center}
+.iusentra-preset-active .iu-timesheet-filters__actions button{min-width:104px;height:44px;box-sizing:border-box}
+.iusentra-preset-active .iu-timesheet-entry{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.iusentra-preset-active .iu-timesheet-entry>div:first-child{grid-column:1/-1;min-width:0}
+.iusentra-preset-active .iu-timesheet-entry dl{min-width:0;align-items:start}
+.iusentra-preset-active .iu-timesheet-entry__side{min-width:0}
+.iusentra-preset-active .iu-timesheet-status select{width:0;min-width:0}
+@media(max-width:720px){
+ .iusentra-preset-active .iu-timesheet-filters{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .iusentra-preset-active .iu-timesheet-filters__search{grid-column:1/-1}
+ .iusentra-preset-active .iu-timesheet-filters__actions{justify-content:stretch}
+ .iusentra-preset-active .iu-timesheet-filters__actions button{flex:1;min-width:0}
+ .iusentra-preset-active .iu-timesheet-entry{grid-template-columns:1fr}
+ .iusentra-preset-active .iu-timesheet-entry dl{grid-template-columns:repeat(2,minmax(0,1fr))}
+}/* Il preset non deve sopprimere il focus delle card azionabili. */
+.iusentra-preset-active .iu-timesheet-stat:focus-visible{outline:2px solid var(--iu-blue-500,#2563eb)!important;outline-offset:2px!important;box-shadow:0 0 0 4px rgba(37,99,235,.14)!important}

@@ -692,7 +692,7 @@ class WorkspaceIntelligenteService:
                 "note": (
                     "Lo stato e' coerente con i provvedimenti presenti."
                     if stato_pratica_ok
-                    else "E' presente un provvedimento finale ma la pratica non risulta definita."
+                    else "È presente un provvedimento finale ma la pratica non risulta definita."
                 ),
             },
         ]
@@ -765,7 +765,7 @@ class WorkspaceIntelligenteService:
 
         if ha_provvedimento_finale_aperto:
             actions.append(
-                "E' presente un provvedimento finale: aggiorna definizione, incasso e archiviazione della pratica."
+                "È presente un provvedimento finale: aggiorna definizione, incasso e archiviazione della pratica."
             )
         elif scadenze_scadute:
             first = scadenze_scadute[0]
@@ -799,7 +799,7 @@ class WorkspaceIntelligenteService:
         if not judgments and not presidio.get("provvedimenti"):
             actions.append("Avviare una ricerca giurisprudenziale mirata collegata all'oggetto della pratica.")
         else:
-            actions.append("Selezionare i provvedimenti o le sentenze piu rilevanti e collegarli all'atto o all'esito della pratica.")
+            actions.append("Selezionare i provvedimenti o le sentenze più rilevanti e collegarli all'atto o all'esito della pratica.")
 
         return actions[:3]
 

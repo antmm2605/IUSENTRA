@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   BookOpenCheck,
-  Building2,
   ExternalLink,
   FileSearch,
   FileText,
@@ -19,12 +18,14 @@ import {
   type StudioPageData,
 } from '../studioData'
 import { Badge } from '../ui/Badge'
-import { ButtonLink } from '../ui/Button'
+import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
 import { KpiCard } from '../ui/KpiCard'
 import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
+import { operationalDomains } from '../operationalRefresh'
 import './StudioPage.css'
 
 function formatValue(value: string | number): string {
@@ -82,6 +83,32 @@ export function StudioPage() {
   const [data, setData] = useState<StudioPageData>(emptyStudioPage)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [context, setContext] = useState('')
+  const contextPanelRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (context) contextPanelRef.current?.scrollIntoView({ block: 'nearest', behavior: 'auto' })
+  }, [context])
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshError, setRefreshError] = useState('')
+  const refreshFlight = useRef<Promise<void> | null>(null)
+  function refresh(): Promise<void> {
+    if (refreshFlight.current) return refreshFlight.current
+    setRefreshing(true)
+    const flight = (async () => {
+      try {
+        const payload = await getStudioPage()
+        if (!payload.ok) throw new Error('Dati non disponibili')
+        setData(payload); setError(''); setRefreshError('')
+      } catch { setRefreshError('Aggiornamento non riuscito. Il contesto resta conservato: riprova.') }
+      finally { setRefreshing(false); refreshFlight.current = null }
+    })()
+    refreshFlight.current = flight
+    return flight
+  }
+  useOperationalRefresh(operationalDomains, refresh)
+  const destinations: Record<string, string> = { clienti: '/clienti', utenti: '/utenti?stato=attivi', backup: '/backup' }
+  const healthDestinations: Record<string, string> = { backup: '/backup', sito: '/sito-studio/contatti', utenti: '/profili', registro: '/audit' }
+
 
   useEffect(() => {
     let active = true
@@ -113,11 +140,15 @@ export function StudioPage() {
       subtitle="Regia operativa dello studio con dati reali aggregati, permessi e presidi di sicurezza."
       actions={
         <>
+          <Button type="button" tone="neutral" disabled={loading || refreshing} onClick={refresh}>{refreshing ? 'Aggiornamento…' : 'Aggiorna'}</Button>
           <ButtonLink href="/backup" tone="primary">Apri backup</ButtonLink>
           <ButtonLink href="/sito-studio/contatti" tone="primary">Contatti sito</ButtonLink>
         </>
       }
     >
+      {refreshing ? <p role="status">Aggiornamento dei dati in corso.</p> : null}
+      {refreshError ? <p role="alert">{refreshError}<Button type="button" tone="neutral" onClick={refresh}>Riprova</Button></p> : null}
+      {data.warnings.filter(warning => /non_disponibile|assente/.test(warning.code)).map(warning => <p role="alert" key={warning.code}>{warning.message}</p>)}
       {loading ? <LoadingState title="Caricamento studio" message="Lettura degli archivi reali in corso." /> : null}
       {!loading && error ? (
         <EmptyState title="Studio non disponibile" message={error} action={<ButtonLink href="/backup" tone="primary">Apri backup</ButtonLink>} />
@@ -141,24 +172,25 @@ export function StudioPage() {
                 label={metric.label}
                 value={formatValue(metric.value)}
                 note={metric.note}
-                badge={<Badge tone={metric.tone}>{metric.tone}</Badge>}
                 key={metric.id}
+                href={destinations[metric.id]}
+                onClick={destinations[metric.id] ? undefined : () => setContext(current => current === metric.id ? '' : metric.id)}
+                active={context === metric.id}
+                actionLabel={destinations[metric.id] ? 'Apri elenco' : 'Apri riepilogo'}
               />
             ))}
           </section>
+          {context ? <div ref={contextPanelRef}><Panel title={data.metrics.find(metric => metric.id === context)?.label || 'Riepilogo'} actions={<Button type="button" tone="neutral" onClick={() => setContext('')}>Azzera filtro</Button>}>
+            <div className="iu-studio-context" aria-label="Risultati del riepilogo selezionato">{(data.metricContexts[context] || []).map(metric => <KpiCard key={metric.id} label={metric.label} value={formatValue(metric.value)} note={metric.note} href={metric.href} actionLabel="Apri elenco" />)}</div>
+          </Panel></div> : null}
           <Panel title="Salute sistema" subtitle={`${data.health.length} presidi verificati`}>
             <div className="iu-studio-health">
-              {data.health.map((item) => (
-                <article className="iu-studio-health__item" key={item.id}>
-                  <Building2 size={18} />
-                  <div>
-                    <span>{item.label}</span>
-                    <strong>{item.status}</strong>
-                    {item.note ? <small>{item.note}</small> : null}
-                  </div>
-                  <Badge tone={item.tone}>{formatValue(item.value) || item.tone}</Badge>
-                </article>
-              ))}
+              {data.health.map(item => {
+                const content = <><div><span>{item.label}</span><strong>{item.status}</strong>{item.note ? <small>{item.note}</small> : null}</div>{item.value !== '' ? <Badge tone={item.tone}>{formatValue(item.value)}</Badge> : null}<em className="iu-studio-health__action">Verifica presidio →</em></>
+                return healthDestinations[item.id]
+                  ? <a className="iu-studio-health__item" key={item.id} href={healthDestinations[item.id]} aria-label={`Verifica ${item.label}`}>{content}</a>
+                  : <button className="iu-studio-health__item" key={item.id} type="button" onClick={() => setContext(item.id === 'documentale' ? 'scadenze' : 'economico')} aria-label={`Verifica ${item.label}`}>{content}</button>
+              })}
             </div>
           </Panel>
           <ProfessionalEditorPanel />

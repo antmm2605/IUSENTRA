@@ -53,6 +53,9 @@ function nodoDelTratto(tratto: OcrTratto): HTMLSpanElement {
     tratto.barrato ? 'is-b' : '',
   ].filter(Boolean).join(' ')
   if (tratto.colore) nodo.style.color = tratto.colore
+  if (tratto.famiglia && /^[A-Za-z0-9][A-Za-z0-9 -]{0,59}$/.test(tratto.famiglia)) {
+    nodo.style.fontFamily = `'${tratto.famiglia}', serif`
+  }
   nodo.textContent = tratto.testo
   return nodo
 }

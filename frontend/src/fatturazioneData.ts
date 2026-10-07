@@ -21,6 +21,7 @@ export type FatturazioneRecord = {
   caseTitle: string
   amountDisplay: string
   issuedAt: string
+  metricFilters?: string[]
   dueAt: string
   paidAt: string
   state: string
@@ -752,6 +753,7 @@ function normaliseRecord(raw: unknown): FatturazioneRecord {
     caseTitle: display(item.caseTitle),
     amountDisplay: display(item.amountDisplay),
     issuedAt: text(item.issuedAt),
+    metricFilters: list(item.metricFilters).map(value => text(value)).filter(Boolean),
     dueAt: text(item.dueAt),
     paidAt: text(item.paidAt),
     state: text(item.state),

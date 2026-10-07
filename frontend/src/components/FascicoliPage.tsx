@@ -1,5 +1,7 @@
+import { documentWorkPreview } from './documentWorkWindow'
 import { AttestazioneConformitaAzione } from './fascicoli/AttestaPulsante'
 import { useReaderDrag } from './useReaderDrag'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { EconomicVerificationPanel } from './EconomicVerificationPanel'
 import { AvanzamentoCaricamento, caricaDocumentiConAvanzamento, type StatoCaricamento } from './fascicoli/caricaDocumenti'
 import { Fragment, Suspense, lazy, useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
@@ -112,6 +114,16 @@ import {
   updateFascicoloPayment,
   updateFascicoloStatus,
   defaultFascicoliFilterPreferences,
+  sortLabels,
+  practiceFieldFilters,
+  fascicoliTableColumns,
+  defaultFascicoliTableColumns,
+  fascicoliTableColumnGroups,
+  fascicoliTableColumnPresets,
+  type SortKey,
+  type PracticeFilterSection,
+  type FascicoliTableColumnGroup,
+  type FascicoliTableColumnDefinition,
   fascicoloPaymentKinds,
   type FascicoliFilterPreferences,
   type FascicoliFieldFilterKey,
@@ -201,7 +213,6 @@ const PAGOPA_PROXY_URL = '/api/v1/ui/pst/pagopa-proxy/it/pagopa_altripag.wp'
 const PAGOPA_PROXY_NEW_PAYMENT_URL = '/api/v1/ui/pst/pagopa-proxy/it/pagopa_nuovarich.wp'
 const PAGOPA_LOGO_URL = '/static/react/pagopa-removebg-preview.png'
 
-type SortKey = 'recenti' | 'rg' | 'cliente' | 'scadenza' | 'documenti' | 'titolo' | 'ufficio' | 'apertura' | 'stato' | 'gruppo' | 'responsabile' | 'valore'
 type Route =
   | { kind: 'list' }
   | { kind: 'archive' }
@@ -264,116 +275,6 @@ function officeCodeMeta(office: StudioRuntimeOffice): string {
     office.istatCode ? 'sede verificata' : '',
   ])
 }
-
-const sortLabels: Record<SortKey, string> = {
-  recenti: 'Aggiornati di recente',
-  rg: 'Anno e numero RG',
-  cliente: 'Cliente',
-  scadenza: 'Prossima scadenza',
-  documenti: 'Documenti',
-  titolo: 'Titolo',
-  ufficio: 'Ufficio giudiziario',
-  apertura: 'Data di apertura',
-  stato: 'Stato',
-  gruppo: 'Gruppo',
-  responsabile: 'Responsabile',
-  valore: 'Valore causa',
-}
-
-type PracticeFilterSection = 'pratica' | 'procedimento' | 'persone'
-
-const practiceFieldFilters: Array<{
-  key: FascicoliFieldFilterKey
-  label: string
-  placeholder: string
-  section: PracticeFilterSection
-  inputMode?: 'text' | 'numeric' | 'decimal'
-}> = [
-  { key: 'register', label: 'Registro', placeholder: 'Civile, lavoro, SICID...', section: 'pratica' },
-  { key: 'value', label: 'Valore causa', placeholder: 'Importo', section: 'pratica', inputMode: 'decimal' },
-  { key: 'object', label: 'Oggetto', placeholder: 'Oggetto della pratica', section: 'pratica' },
-  { key: 'denomination', label: 'Denominazione', placeholder: 'Titolo del fascicolo', section: 'pratica' },
-  { key: 'internal_ref', label: 'Riferimento cartaceo', placeholder: 'Riferimento interno', section: 'pratica' },
-  { key: 'opened_year', label: 'Anno apertura', placeholder: 'es. 2026', section: 'pratica', inputMode: 'numeric' },
-  { key: 'archived_year', label: 'Anno archiviazione', placeholder: 'es. 2025', section: 'pratica', inputMode: 'numeric' },
-  { key: 'operational_status', label: 'Stato pratica', placeholder: 'Stato operativo', section: 'pratica' },
-  { key: 'custom_1', label: 'Campo personalizzato 1', placeholder: 'Valore', section: 'pratica' },
-  { key: 'custom_2', label: 'Campo personalizzato 2', placeholder: 'Valore', section: 'pratica' },
-  { key: 'group', label: 'Gruppo', placeholder: 'Nome gruppo', section: 'pratica' },
-  { key: 'rg_year', label: 'Anno RG', placeholder: 'es. 2026', section: 'procedimento', inputMode: 'numeric' },
-  { key: 'rg', label: 'Numero RG', placeholder: 'Numero o RG completo', section: 'procedimento' },
-  { key: 'section', label: 'Sezione', placeholder: 'Sezione giudiziaria', section: 'procedimento' },
-  { key: 'section_role', label: 'Ruolo di sezione', placeholder: 'Numero di ruolo', section: 'procedimento' },
-  { key: 'judge', label: 'Giudice', placeholder: 'Nome del giudice', section: 'procedimento' },
-  { key: 'notes', label: 'Annotazioni', placeholder: 'Testo nelle annotazioni', section: 'procedimento' },
-  { key: 'clerk', label: 'Cancelliere', placeholder: 'Nome del cancelliere', section: 'procedimento' },
-  { key: 'holder', label: 'Titolare', placeholder: 'Avvocato titolare', section: 'persone' },
-  { key: 'responsible', label: 'Responsabile', placeholder: 'Avvocato responsabile', section: 'persone' },
-  { key: 'opposing_lawyer', label: 'Avvocato controparte', placeholder: 'Nome dell’avvocato', section: 'persone' },
-  { key: 'ctu', label: 'CTU', placeholder: 'Consulente tecnico', section: 'persone' },
-  { key: 'ctp', label: 'CTP', placeholder: 'Consulente di parte', section: 'persone' },
-  { key: 'claimant', label: 'Attore o ricorrente', placeholder: 'Nome della parte', section: 'persone' },
-  { key: 'respondent', label: 'Convenuto o resistente', placeholder: 'Nome della parte', section: 'persone' },
-]
-
-type FascicoliTableColumnGroup = 'Pratica' | 'Procedimento' | 'Persone' | 'Controlli'
-
-type FascicoliTableColumnDefinition = {
-  key: FascicoliTableColumnKey
-  label: string
-  group: FascicoliTableColumnGroup
-  width: number
-  required?: boolean
-}
-
-const fascicoliTableColumns: FascicoliTableColumnDefinition[] = [
-  { key: 'ref', label: 'Riferimento', group: 'Pratica', width: 118, required: true },
-  { key: 'internal_ref', label: 'Rif. cartaceo', group: 'Pratica', width: 130 },
-  { key: 'title', label: 'Titolo / oggetto', group: 'Pratica', width: 300, required: true },
-  { key: 'object', label: 'Oggetto', group: 'Pratica', width: 240 },
-  { key: 'type', label: 'Tipo', group: 'Pratica', width: 105 },
-  { key: 'client', label: 'Cliente', group: 'Persone', width: 170 },
-  { key: 'court', label: 'Ufficio giudiziario', group: 'Procedimento', width: 190 },
-  { key: 'procedure_type', label: 'Procedimento', group: 'Procedimento', width: 160 },
-  { key: 'register', label: 'Registro', group: 'Procedimento', width: 130 },
-  { key: 'section', label: 'Sezione', group: 'Procedimento', width: 130 },
-  { key: 'section_role', label: 'Ruolo di sezione', group: 'Procedimento', width: 135 },
-  { key: 'judge', label: 'Giudice', group: 'Persone', width: 160 },
-  { key: 'opposing_lawyer', label: 'Avvocato controparte', group: 'Persone', width: 180 },
-  { key: 'holder', label: 'Titolare', group: 'Persone', width: 160 },
-  { key: 'responsible', label: 'Responsabile', group: 'Persone', width: 160 },
-  { key: 'counterparty', label: 'Controparte', group: 'Persone', width: 180 },
-  { key: 'claimant', label: 'Attore / ricorrente', group: 'Persone', width: 180 },
-  { key: 'clerk', label: 'Cancelliere', group: 'Persone', width: 150 },
-  { key: 'ctu', label: 'CTU', group: 'Persone', width: 150 },
-  { key: 'ctp', label: 'CTP', group: 'Persone', width: 150 },
-  { key: 'notes', label: 'Annotazioni', group: 'Pratica', width: 260 },
-  { key: 'operational_status', label: 'Stato operativo', group: 'Controlli', width: 150 },
-  { key: 'custom_1', label: 'Campo personalizzato 1', group: 'Pratica', width: 180 },
-  { key: 'custom_2', label: 'Campo personalizzato 2', group: 'Pratica', width: 180 },
-  { key: 'group', label: 'Gruppo', group: 'Pratica', width: 140 },
-  { key: 'case_value', label: 'Valore causa', group: 'Pratica', width: 125 },
-  { key: 'rg', label: 'N. causa', group: 'Procedimento', width: 130 },
-  { key: 'rg_number', label: 'Numero RG', group: 'Procedimento', width: 110 },
-  { key: 'rg_year', label: 'Anno RG', group: 'Procedimento', width: 95 },
-  { key: 'next_deadline', label: 'Prossima scadenza', group: 'Controlli', width: 135 },
-  { key: 'status', label: 'Stato', group: 'Controlli', width: 120 },
-  { key: 'documents', label: 'Documenti', group: 'Controlli', width: 95 },
-  { key: 'unread_communications', label: 'Comunicazioni', group: 'Controlli', width: 120 },
-  { key: 'alerts', label: 'Avvisi', group: 'Controlli', width: 85 },
-  { key: 'opened_at', label: 'Data apertura', group: 'Pratica', width: 120 },
-  { key: 'closed_at', label: 'Data archiviazione', group: 'Pratica', width: 135 },
-  { key: 'updated_at', label: 'Ultimo aggiornamento', group: 'Controlli', width: 155 },
-]
-
-const defaultFascicoliTableColumns = defaultFascicoliFilterPreferences.visibleColumns
-const fascicoliTableColumnGroups: FascicoliTableColumnGroup[] = ['Pratica', 'Procedimento', 'Persone', 'Controlli']
-const fascicoliTableColumnPresets: Array<{ label: string; columns: FascicoliTableColumnKey[] }> = [
-  { label: 'Essenziali', columns: defaultFascicoliTableColumns },
-  { label: 'Procedimento', columns: ['ref', 'title', 'court', 'register', 'section', 'section_role', 'rg', 'judge', 'next_deadline', 'status'] },
-  { label: 'Persone', columns: ['ref', 'title', 'client', 'counterparty', 'claimant', 'opposing_lawyer', 'holder', 'responsible', 'ctu', 'ctp', 'status'] },
-  { label: 'Tutte', columns: fascicoliTableColumns.map((column) => column.key) },
-]
 
 const emptyPracticeFieldFilters: FascicoliFieldFilters = {}
 
@@ -458,6 +359,7 @@ type ListContextTarget = {
   status?: FascicoloStato
   sort?: SortKey
   alertsOnly?: boolean
+  communicationsOnly?: boolean
   paymentsOnly?: boolean
   missingRgOnly?: boolean
   duplicatesOnly?: boolean
@@ -467,11 +369,17 @@ type ListContextTarget = {
   hash?: string
 }
 
-function syncListContextInUrl(target: ListContextTarget) {
-  const url = new URL('/fascicoli', window.location.origin)
+function listContextHref(target: ListContextTarget, common: Pick<FascicoliPageParams, 'q' | 'type' | 'court' | 'fieldFilters'>) {
+  const url = new URL(window.location.href)
+  for (const name of ['vista', 'status', 'sort', 'communications_only', 'alerts_only', 'alertsOnly', 'payments_only', 'paymentsOnly', 'missing_rg_only', 'missingRgOnly', 'duplicates_only', 'duplicatesOnly', 'cu', 'liquidazione', 'parcella', 'page']) url.searchParams.delete(name)
   if (target.view === 'economica') url.searchParams.set('vista', 'economica')
   if (target.status && target.status !== 'tutti') url.searchParams.set('status', target.status)
   if (target.sort && target.sort !== 'rg') url.searchParams.set('sort', target.sort)
+  if (common.q?.trim()) url.searchParams.set('q', common.q.trim()); else url.searchParams.delete('q')
+  if (common.type && common.type !== 'tutti') url.searchParams.set('type', common.type); else url.searchParams.delete('type')
+  if (common.court?.trim()) url.searchParams.set('court', common.court.trim()); else url.searchParams.delete('court')
+  for (const [key, value] of Object.entries(common.fieldFilters || {})) { if (value.trim()) url.searchParams.set(`f_${key}`, value.trim()); else url.searchParams.delete(`f_${key}`) }
+  if (target.communicationsOnly) url.searchParams.set('communications_only', '1')
   if (target.alertsOnly) url.searchParams.set('alerts_only', '1')
   if (target.paymentsOnly) url.searchParams.set('payments_only', '1')
   if (target.missingRgOnly) url.searchParams.set('missing_rg_only', '1')
@@ -479,7 +387,11 @@ function syncListContextInUrl(target: ListContextTarget) {
   if (target.cu && target.cu !== 'tutti') url.searchParams.set('cu', target.cu)
   if (target.liquidazione && target.liquidazione !== 'tutti') url.searchParams.set('liquidazione', target.liquidazione)
   if (target.parcella && target.parcella !== 'tutti') url.searchParams.set('parcella', target.parcella)
-  window.history.replaceState({}, '', `${url.pathname}${url.search}${target.hash || ''}`)
+  return `${url.pathname}${url.search}${target.hash || ''}`
+}
+
+function syncListContextInUrl(target: ListContextTarget, common: Pick<FascicoliPageParams, 'q' | 'type' | 'court' | 'fieldFilters'>) {
+  window.history.replaceState({}, '', listContextHref(target, common))
 }
 
 function initialUrlParam(name: string, fallback = ''): string {
@@ -508,6 +420,7 @@ function hasExplicitListPreferenceParams(): boolean {
     'raggruppa',
     'alerts_only',
     'alertsOnly',
+    'communications_only',
     'payments_only',
     'paymentsOnly',
     'missing_rg_only',
@@ -574,6 +487,7 @@ function filterPreferencesSignature(preferences: FascicoliFilterPreferences): st
     court: preferences.court.trim(),
     fieldFilters: Object.fromEntries(Object.entries(preferences.fieldFilters).sort(([a], [b]) => a.localeCompare(b))),
     alertsOnly: preferences.alertsOnly,
+    communicationsOnly: preferences.communicationsOnly,
     paymentsOnly: preferences.paymentsOnly,
     missingRgOnly: preferences.missingRgOnly,
     duplicatesOnly: preferences.duplicatesOnly,
@@ -597,6 +511,7 @@ function fascicoliListCacheKey(params: FascicoliPageParams): string {
     params.view || 'operativa',
     JSON.stringify(Object.fromEntries(Object.entries(params.fieldFilters || {}).sort(([a], [b]) => a.localeCompare(b)))),
     params.alertsOnly ? '1' : '0',
+    params.communicationsOnly ? '1' : '0',
     params.paymentsOnly ? '1' : '0',
     params.missingRgOnly ? '1' : '0',
     params.duplicatesOnly ? '1' : '0',
@@ -671,7 +586,6 @@ const statCardContextHref: Record<string, string> = {
   Economico: '?vista=economica&payments_only=1',
   Registrato: '?vista=economica',
   Parcelle: '?vista=economica&parcella=da_emettere',
-  'Scadenze urgenti': '#scadenze-urgenti',
   Doppioni: '?duplicates_only=1',
   'RG da acquisire': '?missing_rg_only=1',
   Documenti: '?sort=documenti',
@@ -730,7 +644,7 @@ function deadlineUrgencyCopy(summary: FascicoliPageData['summary']) {
   return { overdue, upcoming7, urgent, note, title, tone }
 }
 
-function StatCard({ icon, label, value, note, tone = 'primary', href, onClick }:{icon:ReactNode; label:string; value:number|string; note:string; tone?:FascicoloRow['tone']; href?:string; onClick?:(event:MouseEvent<HTMLAnchorElement>)=>void}) {
+function StatCard({ icon, label, value, note, tone = 'primary', href, onClick, selected = false }:{icon:ReactNode; label:string; value:number|string; note:string; tone?:FascicoloRow['tone']; href?:string; onClick?:(event:MouseEvent<HTMLAnchorElement>)=>void; selected?:boolean}) {
   const isFascicoliListRoute = window.location.pathname.replace(/\/+$/, '') === '/fascicoli'
   const contextHref = href || (isFascicoliListRoute ? statCardContextHref[label] : '') || ''
   const body = (
@@ -741,7 +655,7 @@ function StatCard({ icon, label, value, note, tone = 'primary', href, onClick }:
       <small>{note}</small>
     </>
   )
-  return contextHref ? <a className={`iu-fas-stat iu-fas-stat--${tone}`} href={contextHref} onClick={onClick} title={`Visualizza contesto: ${label}`} aria-label={`Visualizza contesto: ${label}`}>{body}</a> : <article className={`iu-fas-stat iu-fas-stat--${tone}`}>{body}</article>
+  return contextHref ? <a className={`iu-fas-stat iu-fas-stat--${tone}`} href={contextHref} onClick={onClick} title={`Visualizza contesto: ${label}`} aria-label={`Visualizza contesto: ${label}`} aria-current={selected ? 'true' : undefined}>{body}</a> : <article className={`iu-fas-stat iu-fas-stat--${tone}`}>{body}</article>
 }
 
 function EmptyState({ icon, title, children, action }:{icon:ReactNode; title:string; children:ReactNode; action?:ReactNode}) {
@@ -2989,9 +2903,11 @@ function FascicoliTableColumnsControl({ visibleColumns, rowDensity, onColumnsCha
   useEffect(() => {
     if (!open) return
     const closeOnOutside = (event: globalThis.MouseEvent) => {
+      if (rootRef.current?.querySelector('[data-managed-existing-window="true"]')) return
       if (rootRef.current && event.target instanceof Node && !rootRef.current.contains(event.target)) setOpen(false)
     }
     const closeOnEscape = (event: KeyboardEvent) => {
+      if (rootRef.current?.querySelector('[data-managed-existing-window="true"]')) return
       if (event.key === 'Escape') setOpen(false)
     }
     document.addEventListener('mousedown', closeOnOutside)
@@ -3073,7 +2989,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
   const displayItems = useMemo(() => orderFascicoliByGroup(items, groupBy), [groupBy, items])
   const allSelected = displayItems.length > 0 && displayItems.every((item) => selected.has(item.id))
   const total = pagination?.total ?? items.length
-  const totalLabel = filtered ? 'fascicoli filtrati' : 'fascicoli'
+  const totalLabel = total === 1 ? (filtered ? 'fascicolo filtrato' : 'fascicolo') : (filtered ? 'fascicoli filtrati' : 'fascicoli')
   const handleError = onError || (() => {})
   const [expandedEconomicId, setExpandedEconomicId] = useState<string | null>(null)
   const [quickPanel, setQuickPanel] = useState<QuickPanelState | null>(null)
@@ -3221,7 +3137,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
     </>
   ) : null
   return (
-    <div ref={stageRef} className={`iu-fas-table-stage ${expanded ? 'is-expanded' : ''}`}>
+    <div id="elenco-fascicoli" ref={stageRef} className={`iu-fas-table-stage ${expanded ? 'is-expanded' : ''}`}>
     <IusentraDataSurface
       title={`${total} ${totalLabel}`}
       subtitle={archive
@@ -3452,7 +3368,7 @@ function InsightPanel({ data, visible }:{data:FascicoliPageData; visible:Fascico
   const deadlineCopy = deadlineUrgencyCopy(data.summary)
   return (
     <IusentraSupportRail className="iu-fas-insights">
-      <IusentraPanelCard title="Cabina fascicoli" subtitle="Controlli che conviene avere subito" icon={Gauge}>
+      <IusentraPanelCard title="Cabina fascicoli" subtitle="Priorità dello studio" icon={Gauge}>
         <div className="iu-fas-briefing">
           <article>
             <span>Da governare ora</span>
@@ -3461,20 +3377,20 @@ function InsightPanel({ data, visible }:{data:FascicoliPageData; visible:Fascico
           </article>
           <article>
             <span>Qualità archivio</span>
-            <strong>{data.summary.toArchive} fascicoli da chiudere o archiviare</strong>
-            <small>{data.summary.archived} fascicoli già archiviati. {withoutDeadline} pratiche attive senza prossima scadenza visibile.</small>
+            <strong>{countIt(data.summary.toArchive, 'fascicolo da chiudere o archiviare', 'fascicoli da chiudere o archiviare')}</strong>
+            <small>{countIt(data.summary.archived, 'fascicolo già archiviato', 'fascicoli già archiviati')}. {withoutDeadline} {withoutDeadline === 1 ? 'pratica attiva' : 'pratiche attive'} senza prossima scadenza visibile.</small>
           </article>
           {data.summary.duplicatePractices ? (
             <article>
               <span>Doppioni da verificare</span>
-              <strong>{data.summary.duplicatePractices} gruppi stesso cliente/RG</strong>
+              <strong>{countIt(data.summary.duplicatePractices, 'gruppo stesso cliente/RG', 'gruppi stesso cliente/RG')}</strong>
               <small>Controlla prima di usare importi, scadenze o documenti come fonte operativa.</small>
             </article>
           ) : null}
           {data.summary.missingRg ? (
             <article>
               <span>Ruoli da completare</span>
-              <strong>{data.summary.missingRg} fascicoli senza RG</strong>
+              <strong>{data.summary.missingRg} {data.summary.missingRg === 1 ? 'fascicolo' : 'fascicoli'} senza RG</strong>
               <small>Acquisire il numero di ruolo dal portale o dai provvedimenti prima di deposito e notifiche.</small>
             </article>
           ) : null}
@@ -3487,7 +3403,7 @@ function InsightPanel({ data, visible }:{data:FascicoliPageData; visible:Fascico
               <a href={item.href} key={item.id}>
                 <Badge tone={item.alerts ? 'warning' : 'primary'}>{item.alerts ? 'Controllo' : 'Comunicazione'}</Badge>
                 <strong>{item.ref} - {item.client}</strong>
-                <span>{item.alerts ? `${item.alerts} elementi da verificare` : `${item.unreadCommunications} comunicazioni non lette`}</span>
+                <span>{item.alerts ? `${item.alerts} ${item.alerts === 1 ? 'elemento' : 'elementi'} da verificare` : `${item.unreadCommunications} ${item.unreadCommunications === 1 ? 'comunicazione non letta' : 'comunicazioni non lette'}`}</span>
               </a>
             ))}
           </div>
@@ -3508,8 +3424,8 @@ function InsightPanel({ data, visible }:{data:FascicoliPageData; visible:Fascico
 function FascicoliListPage() {
   const [data, setData] = useState<FascicoliPageData>(emptyFascicoliPage)
   const [loading, setLoading] = useState(true)
-  const [query, setQuery] = useState('')
-  const [debouncedQuery, setDebouncedQuery] = useState('')
+  const [query, setQuery] = useState(() => initialUrlParam('q'))
+  const [debouncedQuery, setDebouncedQuery] = useState(() => initialUrlParam('q'))
   const [type, setType] = useState<FascicoloTipo>(initialTypeFilter)
   const [status, setStatus] = useState<FascicoloStato>(initialStatusFilter)
   const [sort, setSort] = useState<SortKey>(initialSortFilter)
@@ -3523,6 +3439,7 @@ function FascicoliListPage() {
   const [debouncedFieldFilters, setDebouncedFieldFilters] = useState<FascicoliFieldFilters>(initialFieldFilters)
   const [filterSection, setFilterSection] = useState<PracticeFilterSection>('pratica')
   const [alertsOnly, setAlertsOnly] = useState(() => initialUrlBool('alerts_only', 'alertsOnly'))
+  const [communicationsOnly, setCommunicationsOnly] = useState(() => initialUrlBool('communications_only'))
   const [paymentsOnly, setPaymentsOnly] = useState(() => initialUrlBool('payments_only', 'paymentsOnly'))
   const [missingRgOnly, setMissingRgOnly] = useState(() => initialUrlBool('missing_rg_only', 'missingRgOnly'))
   const [duplicatesOnly, setDuplicatesOnly] = useState(() => initialUrlBool('duplicates_only', 'duplicatesOnly'))
@@ -3563,6 +3480,7 @@ function FascicoliListPage() {
     view,
     fieldFilters: debouncedFieldFilters,
     alertsOnly,
+    communicationsOnly,
     paymentsOnly,
     missingRgOnly,
     duplicatesOnly,
@@ -3585,6 +3503,7 @@ function FascicoliListPage() {
     court: court.trim(),
     fieldFilters,
     alertsOnly,
+    communicationsOnly,
     paymentsOnly,
     missingRgOnly,
     duplicatesOnly,
@@ -3592,7 +3511,7 @@ function FascicoliListPage() {
     liquidazione: liquidazioneFilter,
     parcella: parcellaFilter,
     pageSize,
-  }), [alertsOnly, court, cuFilter, displayMode, duplicatesOnly, fieldFilters, groupBy, liquidazioneFilter, missingRgOnly, pageSize, parcellaFilter, paymentsOnly, rowDensity, secondarySort, sort, status, type, view, visibleColumns])
+  }), [alertsOnly, communicationsOnly, court, cuFilter, displayMode, duplicatesOnly, fieldFilters, groupBy, liquidazioneFilter, missingRgOnly, pageSize, parcellaFilter, paymentsOnly, rowDensity, secondarySort, sort, status, type, view, visibleColumns])
 
   const currentFilterPreferencesSignature = useMemo(
     () => filterPreferencesSignature(currentFilterPreferences),
@@ -3646,6 +3565,7 @@ function FascicoliListPage() {
       || (params.type && params.type !== 'tutti')
       || (params.status && params.status !== 'tutti')
       || params.alertsOnly
+      || params.communicationsOnly
       || params.paymentsOnly
       || params.missingRgOnly
       || params.duplicatesOnly
@@ -3683,6 +3603,7 @@ function FascicoliListPage() {
           setFieldFilters(preferences.fieldFilters)
           setDebouncedFieldFilters(preferences.fieldFilters)
           setAlertsOnly(preferences.alertsOnly)
+          setCommunicationsOnly(preferences.communicationsOnly)
           setPaymentsOnly(preferences.paymentsOnly)
           setMissingRgOnly(preferences.missingRgOnly)
           setDuplicatesOnly(preferences.duplicatesOnly)
@@ -3694,6 +3615,7 @@ function FascicoliListPage() {
             preferences.court.trim()
             || Object.values(preferences.fieldFilters).some((value) => value.trim())
             || preferences.alertsOnly
+            || preferences.communicationsOnly
             || preferences.paymentsOnly
             || preferences.missingRgOnly
             || preferences.duplicatesOnly
@@ -3748,7 +3670,7 @@ function FascicoliListPage() {
     return () => { active = false }
     // listParams legge solo gli stati elencati sotto: la dipendenza esplicita evita refetch spurii.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alertsOnly, cuFilter, debouncedCourt, debouncedFieldFilters, debouncedQuery, duplicatesOnly, liquidazioneFilter, missingRgOnly, page, pageSize, parcellaFilter, paymentsOnly, preferencesReady, secondarySort, sort, status, type, view])
+  }, [alertsOnly, communicationsOnly, cuFilter, debouncedCourt, debouncedFieldFilters, debouncedQuery, duplicatesOnly, liquidazioneFilter, missingRgOnly, page, pageSize, parcellaFilter, paymentsOnly, preferencesReady, secondarySort, sort, status, type, view])
 
   useEffect(() => {
     if (!preferencesReady) return
@@ -3771,7 +3693,7 @@ function FascicoliListPage() {
     })
     // listParams legge solo gli stati elencati sotto: la dipendenza esplicita evita prefetch su filtri vecchi.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alertsOnly, cuFilter, data.pagination.page, data.pagination.pages, debouncedCourt, debouncedFieldFilters, debouncedQuery, duplicatesOnly, groupBy, liquidazioneFilter, loading, missingRgOnly, page, pageSize, parcellaFilter, paymentsOnly, pendingPage, preferencesReady, secondarySort, sort, status, type, view])
+  }, [alertsOnly, communicationsOnly, cuFilter, data.pagination.page, data.pagination.pages, debouncedCourt, debouncedFieldFilters, debouncedQuery, duplicatesOnly, groupBy, liquidazioneFilter, loading, missingRgOnly, page, pageSize, parcellaFilter, paymentsOnly, pendingPage, preferencesReady, secondarySort, sort, status, type, view])
 
   useEffect(() => {
     const presidioDue = Number(data.summary.economicAnalysisDue || 0)
@@ -3801,9 +3723,14 @@ function FascicoliListPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.summary.economicAnalysisDue, data.summary.total, loading, view])
 
+  useEffect(() => {
+    if (!preferencesReady) return
+    syncListContextInUrl({ view, status, sort, alertsOnly, communicationsOnly, paymentsOnly, missingRgOnly, duplicatesOnly, cu: cuFilter, liquidazione: liquidazioneFilter, parcella: parcellaFilter, hash: window.location.hash }, { q: query, type, court, fieldFilters })
+  }, [preferencesReady, view, status, sort, alertsOnly, communicationsOnly, paymentsOnly, missingRgOnly, duplicatesOnly, cuFilter, liquidazioneFilter, parcellaFilter, query, type, court, fieldFilters])
+
   const visible = data.items
   const economicFiltersActive = cuFilter !== 'tutti' || liquidazioneFilter !== 'tutti' || parcellaFilter !== 'tutti'
-  const filtersActive = Boolean(query.trim() || type !== 'tutti' || status !== 'tutti' || court.trim() || Object.values(fieldFilters).some((value) => value.trim()) || alertsOnly || paymentsOnly || missingRgOnly || duplicatesOnly || economicFiltersActive)
+  const filtersActive = Boolean(query.trim() || type !== 'tutti' || status !== 'tutti' || court.trim() || Object.values(fieldFilters).some((value) => value.trim()) || alertsOnly || communicationsOnly || paymentsOnly || missingRgOnly || duplicatesOnly || economicFiltersActive)
   const updateType = (value: FascicoloTipo) => { setPage(1); setType(value) }
   const updateStatus = (value: FascicoloStato) => { setPage(1); setStatus(value) }
   const updateSort = (value: SortKey) => { setPage(1); setSort(value) }
@@ -3868,13 +3795,16 @@ function FascicoliListPage() {
       setPendingPage(null)
     }
   }
+  const statContextHref = (target: ListContextTarget) => listContextHref(target, { q: query, type, court, fieldFilters })
   const applyStatContext = (target: ListContextTarget) => (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return
     event.preventDefault()
     const next: Required<Omit<ListContextTarget, 'hash'>> & { hash?: string } = {
       view: target.view || 'operativa',
       status: target.status || 'tutti',
       sort: target.sort || 'rg',
       alertsOnly: Boolean(target.alertsOnly),
+      communicationsOnly: Boolean(target.communicationsOnly),
       paymentsOnly: Boolean(target.paymentsOnly),
       missingRgOnly: Boolean(target.missingRgOnly),
       duplicatesOnly: Boolean(target.duplicatesOnly),
@@ -3884,14 +3814,10 @@ function FascicoliListPage() {
       hash: target.hash,
     }
     setPage(1)
-    setQuery('')
-    setDebouncedQuery('')
-    setType('tutti')
     setStatus(next.status)
     setSort(next.sort)
-    setCourt('')
-    setDebouncedCourt('')
     setAlertsOnly(next.alertsOnly)
+    setCommunicationsOnly(next.communicationsOnly)
     setPaymentsOnly(next.paymentsOnly)
     setMissingRgOnly(next.missingRgOnly)
     setDuplicatesOnly(next.duplicatesOnly)
@@ -3900,7 +3826,7 @@ function FascicoliListPage() {
     setLiquidazioneFilter(next.liquidazione)
     setParcellaFilter(next.parcella)
     setSelected(new Set())
-    syncListContextInUrl(next)
+    syncListContextInUrl(next, { q: query, type, court, fieldFilters })
     if (next.hash) {
       window.setTimeout(() => document.querySelector(next.hash || '')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 50)
     }
@@ -4006,11 +3932,14 @@ function FascicoliListPage() {
     </>
   )
   const deadlineCopy = deadlineUrgencyCopy(data.summary)
+  const [todayDay, todayMonth, todayYear] = formatDateIt(new Date()).split('/').map(Number)
+  const urgentUntil = formatDateIt(new Date(Date.UTC(todayYear, todayMonth - 1, todayDay + 7, 12))).split('/').reverse().join('-')
+  const urgentDeadlinesHref = `/scadenziario?vista=aperte&al=${urgentUntil}`
   const deadlineAlertItems = data.deadlines
-    .filter(isDeadlineAlertUpcoming7)
+    .filter((item) => isDeadlineAlertUpcoming7(item) || deadlineAlertWindow(item) === 'overdue')
     .sort((a, b) => (parseDeadlineDate(a.dateIso)?.getTime() || 0) - (parseDeadlineDate(b.dateIso)?.getTime() || 0))
     .slice(0, 4)
-  const deadlineAlertHeading = 'Scadenze entro 7 giorni'
+  const deadlineAlertHeading = `${deadlineCopy.title.replace('Scadenze', 'Scadenze aperte')} dello studio`
 
   return (
     <div className="iu-content iu-fascicoli-page">
@@ -4019,7 +3948,7 @@ function FascicoliListPage() {
           <div>
             <span className="iu-fas-eyebrow"><FolderOpen size={16}/> Fascicoli</span>
             <h1>Fascicoli</h1>
-            <p>Procedimenti civili, penali, amministrativi e tributari con scadenze, documenti, clienti e prossime azioni.</p>
+            <p>Fascicoli dello studio: scadenze, documenti, clienti e prossime azioni.</p>
           </div>
           <div className="iu-fas-hero__actions">
             <Button href="/fascicoli/esporta"><Download size={15}/> Esporta</Button>
@@ -4028,18 +3957,20 @@ function FascicoliListPage() {
           </div>
         </section>
 
-        <section className="iu-fas-stats" aria-label="Indicatori fascicoli">
-          <StatCard icon={<FolderOpen size={19}/>} label="Attivi" value={data.summary.active} note="non archiviati" tone="primary" onClick={applyStatContext({})}/>
-          <StatCard icon={<CheckCircle2 size={19}/>} label="In corso" value={data.summary.inProgress} note="da lavorare" tone="success" onClick={applyStatContext({ status: 'in_corso' })}/>
-          <StatCard icon={<Archive size={19}/>} label="Da archiviare" value={data.summary.toArchive} note={`${data.summary.toArchive} definiti, ${data.summary.archived} già archiviati`} tone="warning" onClick={applyStatContext({ status: 'da_archiviare' })}/>
-          <StatCard icon={<Euro size={19}/>} label="Economico" value={data.summary.economicToReview} note="controlli da completare" tone="warning" href="?vista=economica&payments_only=1" onClick={applyStatContext({ view: 'economica', paymentsOnly: true })}/>
-          <StatCard icon={<WalletCards size={19}/>} label="Registrato" value={formatCurrency(data.summary.registeredAmount)} note="sui fascicoli visibili" tone="success" onClick={applyStatContext({ view: 'economica' })}/>
-          <StatCard icon={<FileCheck2 size={19}/>} label="Parcelle" value={data.summary.invoiceWorkTotal || data.summary.invoicesToIssue} note={`${data.summary.invoicesToIssue} da emettere, ${data.summary.invoiceDraftsToReview} bozze da visionare`} tone="purple" onClick={applyStatContext({ view: 'economica', parcella: 'da_emettere' })}/>
-          <StatCard icon={<CalendarDays size={19}/>} label="Scadenze urgenti" value={deadlineCopy.urgent} note={deadlineCopy.note} tone={deadlineCopy.tone} onClick={applyStatContext({ hash: '#scadenze-urgenti' })}/>
-          <StatCard icon={<Copy size={19}/>} label="Doppioni" value={data.summary.duplicatePractices} note={data.summary.duplicatePractices ? 'stesso cliente e RG' : 'nessun gruppo rilevato'} tone={data.summary.duplicatePractices ? 'warning' : 'success'} onClick={applyStatContext({ duplicatesOnly: true })}/>
-          <StatCard icon={<Landmark size={19}/>} label="RG da acquisire" value={data.summary.missingRg} note={data.summary.missingRg ? 'completare da portale o provvedimento' : 'ruoli completi'} tone={data.summary.missingRg ? 'warning' : 'success'} onClick={applyStatContext({ missingRgOnly: true })}/>
-          <StatCard icon={<FileText size={19}/>} label="Documenti" value={data.summary.documents} note="nel perimetro visibile" tone="purple" onClick={applyStatContext({ sort: 'documenti' })}/>
-          <StatCard icon={<Bell size={19}/>} label="Comunicazioni" value={data.summary.unreadCommunications} note="non lette o da associare" tone="info" onClick={applyStatContext({ alertsOnly: true })}/>
+        <p className="iu-fas-stats-hint" id="fas-hint">Scorri gli indicatori per filtrare.</p>
+        <section className="iu-fas-stats" aria-label="Indicatori fascicoli" aria-describedby="fas-hint" tabIndex={0}>
+          <StatCard icon={<FolderOpen size={19}/>} label="Attivi" selected={view === 'operativa' && status === 'tutti' && !alertsOnly && !communicationsOnly && !paymentsOnly && !missingRgOnly && !duplicatesOnly && sort !== 'documenti'} value={data.cardSummary.active} note="non archiviati" tone="primary" href={statContextHref({})} onClick={applyStatContext({})}/>
+          <StatCard icon={<CheckCircle2 size={19}/>} label="In corso" selected={status === 'in_corso'} value={data.cardSummary.inProgress} note="da lavorare" tone="success" href={statContextHref({ status: 'in_corso' })} onClick={applyStatContext({ status: 'in_corso' })}/>
+          <StatCard icon={<Archive size={19}/>} label="Da archiviare" selected={status === 'definito'} value={data.cardSummary.toArchive} note={`${data.cardSummary.toArchive} ${data.cardSummary.toArchive === 1 ? 'definito' : 'definiti'}, ${data.cardSummary.archived} nell’archivio studio`} tone="warning" href={statContextHref({ status: 'definito' })} onClick={applyStatContext({ status: 'definito' })}/>
+          <StatCard icon={<Euro size={19}/>} label="Economico" selected={view === 'economica' && paymentsOnly} value={data.cardSummary.economicToReview} note="controlli da completare" tone="warning" href={statContextHref({ view: 'economica', paymentsOnly: true })} onClick={applyStatContext({ view: 'economica', paymentsOnly: true })}/>
+          <StatCard icon={<WalletCards size={19}/>} label="Registrato" selected={view === 'economica' && !paymentsOnly && parcellaFilter === 'tutti'} value={formatCurrency(data.cardSummary.registeredAmount)} note="nel perimetro della ricerca" tone="success" href={statContextHref({ view: 'economica' })} onClick={applyStatContext({ view: 'economica' })}/>
+          <StatCard icon={<FileCheck2 size={19}/>} label="Parcelle" selected={view === 'economica' && parcellaFilter === 'da_emettere'} value={`${data.cardSummary.invoiceMattersToReview} ${data.cardSummary.invoiceMattersToReview === 1 ? 'fascicolo' : 'fascicoli'}`} note={`${data.cardSummary.invoicesToIssue} da emettere, ${data.cardSummary.invoiceDraftsToReview} ${data.cardSummary.invoiceDraftsToReview === 1 ? 'bozza' : 'bozze'} da visionare`} tone="purple" href={statContextHref({ view: 'economica', parcella: 'da_emettere' })} onClick={applyStatContext({ view: 'economica', parcella: 'da_emettere' })}/>
+          <StatCard icon={<CalendarDays size={19}/>} label="Scadenze urgenti" value={deadlineCopy.urgent} note={`Aperte studio: ${deadlineCopy.note}`} tone={deadlineCopy.tone} href={urgentDeadlinesHref}/>
+          <StatCard icon={<Copy size={19}/>} label="Doppioni" selected={duplicatesOnly} value={data.cardSummary.duplicatePracticeRows} note={data.cardSummary.duplicatePractices ? `${data.cardSummary.duplicatePractices} ${data.cardSummary.duplicatePractices === 1 ? 'gruppo' : 'gruppi'} con stesso cliente e RG` : 'nessun gruppo rilevato'} tone={data.cardSummary.duplicatePractices ? 'warning' : 'success'} href={statContextHref({ duplicatesOnly: true })} onClick={applyStatContext({ duplicatesOnly: true })}/>
+          <StatCard icon={<Landmark size={19}/>} label="RG da acquisire" selected={missingRgOnly} value={data.cardSummary.missingRg} note={data.cardSummary.missingRg ? 'completare da portale o provvedimento' : 'ruoli completi'} tone={data.cardSummary.missingRg ? 'warning' : 'success'} href={statContextHref({ missingRgOnly: true })} onClick={applyStatContext({ missingRgOnly: true })}/>
+          <StatCard icon={<FileText size={19}/>} label="Documenti" selected={sort === 'documenti'} value={data.cardSummary.documents} note="ordina i fascicoli per documenti" tone="purple" href={statContextHref({ sort: 'documenti' })} onClick={applyStatContext({ sort: 'documenti' })}/>
+          <StatCard icon={<Bell size={19}/>} label="Comunicazioni" selected={communicationsOnly} value={data.cardSummary.unreadCommunications} note={`non lette in ${data.cardSummary.communicationMatters} ${data.cardSummary.communicationMatters === 1 ? 'fascicolo' : 'fascicoli'}`} tone="info" href={statContextHref({ communicationsOnly: true })} onClick={applyStatContext({ communicationsOnly: true })}/>
+
         </section>
 
         {deadlineAlertItems.length ? (
@@ -4047,7 +3978,8 @@ function FascicoliListPage() {
             <AlertIcon />
             <div>
               <strong>{deadlineAlertHeading}</strong>
-              <div>{deadlineAlertItems.map((item) => <a href={item.href} key={item.id}>{item.matterRef} - {item.title} <span>{item.date}</span></a>)}</div>
+              <div>{deadlineAlertItems.map((item) => <a href={`/scadenziario?focus=${encodeURIComponent(item.id)}`} key={item.id}>{item.matterRef} - {item.title} <span>{item.date}</span></a>)}</div>
+              <Button href={urgentDeadlinesHref}>Visualizza tutte le {deadlineCopy.urgent} scadenze</Button>
             </div>
           </section>
         ) : null}
@@ -4060,7 +3992,7 @@ function FascicoliListPage() {
       <IusentraContextFilters className="iu-fas-advanced is-open">
         <div className="iu-fas-context-summary">
           <strong>{sortLabels[sort]}</strong>
-          <small>{court ? `Ufficio: ${court}` : 'Tutti gli uffici'}{alertsOnly ? ' · solo alert' : ''}</small>
+          <small>{court ? `Ufficio: ${court}` : 'Tutti gli uffici'}{alertsOnly ? ' · solo alert' : ''}{communicationsOnly ? ' · comunicazioni non lette' : ''}</small>
         </div>
         <div className="iu-fas-filter-tabs" role="tablist" aria-label="Categorie filtri fascicoli">
           {([['pratica', 'Pratica'], ['procedimento', 'Procedimento'], ['persone', 'Persone']] as Array<[PracticeFilterSection, string]>).map(([key, label]) => (
@@ -4079,6 +4011,7 @@ function FascicoliListPage() {
         <div className="iu-fas-filter-options">
           <label><span>Primo ordinamento</span><select value={sort} onChange={(event) => updateSort(event.target.value as SortKey)}>{(Object.keys(sortLabels) as SortKey[]).map((item) => <option value={item} key={item}>{sortLabels[item]}</option>)}</select></label>
           <label><span>Secondo ordinamento</span><select value={secondarySort} onChange={(event) => { setPage(1); setSecondarySort(event.target.value as SortKey | '') }}><option value="">Nessuno</option>{(Object.keys(sortLabels) as SortKey[]).filter((item) => item !== sort).map((item) => <option value={item} key={item}>{sortLabels[item]}</option>)}</select></label>
+          <label className="iu-fas-check"><input type="checkbox" checked={communicationsOnly} onChange={(event) => { setPage(1); setCommunicationsOnly(event.target.checked) }}/><span>Solo fascicoli con comunicazioni non lette</span></label>
           <label className="iu-fas-check"><input type="checkbox" checked={alertsOnly} onChange={(event) => updateAlertsOnly(event.target.checked)}/><span>Solo fascicoli con alert o comunicazioni</span></label>
           <label className="iu-fas-check"><input type="checkbox" checked={paymentsOnly} onChange={(event) => updatePaymentsOnly(event.target.checked)}/><span>Solo controllo economico da completare</span></label>
           <button type="button" className="iu-fas-reset-filters" onClick={resetPracticeFieldFilters}><RotateCcw size={15}/> Azzera ricerca dettagliata</button>
@@ -4125,14 +4058,15 @@ function FascicoliListPage() {
       </IusentraMainArea>
 
         <section className="iu-fas-lower-grid">
-          <Panel title="Controllo qualità fascicoli" subtitle="Cose da non lasciare implicite" icon={<BriefcaseBusiness size={17}/>}>
+          <Panel title="Controllo qualità fascicoli" subtitle="Dati da controllare" icon={<BriefcaseBusiness size={17}/>}>
             <div className="iu-fas-checklist">
-              <span><Landmark size={16}/> Ufficio, RG e tipo procedimento sempre visibili</span>
-              <span><CalendarDays size={16}/> Prossima scadenza in evidenza per ogni pratica attiva</span>
-              <span><FileText size={16}/> Documenti locali, portale e stato firma separati</span>
+              <a href={statContextHref({ missingRgOnly: true, hash: '#elenco-fascicoli' })} onClick={applyStatContext({ missingRgOnly: true, hash: '#elenco-fascicoli' })}><Landmark size={16}/> Ruoli da acquisire <strong>{data.cardSummary.missingRg}</strong></a>
+              <a href={statContextHref({ alertsOnly: true, hash: '#elenco-fascicoli' })} onClick={applyStatContext({ alertsOnly: true, hash: '#elenco-fascicoli' })}><Bell size={16}/> Alert e comunicazioni</a>
+              <a href={urgentDeadlinesHref}><CalendarDays size={16}/> Scadenze aperte entro 7 giorni <strong>{deadlineCopy.urgent}</strong></a>
+              <a href={statContextHref({ sort: 'documenti', hash: '#elenco-fascicoli' })} onClick={applyStatContext({ sort: 'documenti', hash: '#elenco-fascicoli' })}><FileText size={16}/> Documenti per fascicolo</a>
             </div>
           </Panel>
-          <Panel title="Integrazioni pronte" subtitle="Agganci alla gestione telematica" icon={<Sparkles size={17}/>}>
+          <Panel title="Integrazioni pronte" subtitle="Portali telematici" icon={<Sparkles size={17}/>}>
             <div className="iu-fas-integrations">
               <a href="/polisWeb">PolisWeb / PST</a>
               <a href="/pdp">PDP Penale</a>
@@ -4156,16 +4090,40 @@ function ArchivePage() {
   const [data, setData] = useState<FascicoliPageData>(emptyFascicoliPage)
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState<'tutti' | 'zip' | 'esiti'>('tutti')
+  const [error, setError] = useState('')
+  const refreshFlight = useRef<Promise<void> | null>(null)
+  const mounted = useRef(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [toast, setToast] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
-  useEffect(() => { let active = true; getFascicoliArchive().then((payload) => { if (active) setData(payload) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [])
-  const visible = useMemo(() => data.items.filter((item) => isInsideQuery(item, query)), [data.items, query])
-  const toggle = (id: string) => setSelected((current) => { const next = new Set(current); next.has(id) ? next.delete(id) : next.add(id); return next })
-  const toggleAll = () => setSelected((current) => visible.every((item) => current.has(item.id)) ? new Set<string>() : new Set(visible.map((item) => item.id)))
-  const refreshArchive = () => {
+  const refreshArchive = useCallback(() => {
+    if (refreshFlight.current) return refreshFlight.current
     setLoading(true)
-    getFascicoliArchive().then(setData).finally(() => setLoading(false))
-  }
+    setError('')
+    const flight = getFascicoliArchive().then((payload) => {
+      if (!mounted.current) return
+      setData(payload)
+      const available = new Set(payload.items.map(item => item.id))
+      setSelected(current => new Set([...current].filter(id => available.has(id))))
+    }).catch((reason: unknown) => {
+      if (mounted.current) setError(reason instanceof Error ? reason.message : 'Impossibile caricare l’archivio. Riprova.')
+    }).finally(() => {
+      refreshFlight.current = null
+      if (mounted.current) setLoading(false)
+    })
+    refreshFlight.current = flight
+    return flight
+  }, [])
+  useEffect(() => { mounted.current = true; void refreshArchive(); return () => { mounted.current = false } }, [refreshArchive])
+  useOperationalRefresh(['fascicoli'], refreshArchive)
+  const visible = useMemo(() => data.items.filter(item => isInsideQuery(item, query) && (filter === 'tutti' || (filter === 'zip' ? item.archive?.zipAvailable : item.archive?.outcome))), [data.items, query, filter])
+  const toggle = (id: string) => setSelected((current) => { const next = new Set(current); next.has(id) ? next.delete(id) : next.add(id); return next })
+  const toggleAll = () => setSelected(current => {
+    const next = new Set(current)
+    const remove = visible.length > 0 && visible.every(item => current.has(item.id))
+    visible.forEach(item => remove ? next.delete(item.id) : next.add(item.id))
+    return next
+  })
   const handleArchiveDeleted = (id: string, message?: string) => {
     setSelected((current) => { const next = new Set(current); next.delete(id); return next })
     setToast({ tone: 'success', message: message || 'Fascicolo eliminato.' })
@@ -4178,9 +4136,16 @@ function ArchivePage() {
         <div><span className="iu-fas-eyebrow"><Archive size={16}/> Archivio</span><h1>Archivio Fascicoli</h1><p>Procedimenti definiti, archiviati, ZIP e possibilità di ripristino.</p></div>
         <div className="iu-fas-hero__actions"><Button href="/fascicoli"><FolderOpen size={15}/> Fascicoli attivi</Button><Button href="/fascicoli/esporta"><Download size={15}/> Esporta</Button></div>
       </section>
-      <section className="iu-fas-stats"><StatCard icon={<Archive size={19}/>} label="Archiviati" value={data.summary.archived || data.items.length} note="in archivio" tone="neutral"/><StatCard icon={<FileArchive size={19}/>} label="ZIP" value={data.items.filter((item) => item.archive?.zipAvailable).length} note="archivi scaricabili" tone="primary"/><StatCard icon={<BadgeCheck size={19}/>} label="Esiti" value={data.items.filter((item) => item.archive?.outcome).length} note="con esito finale" tone="success"/></section>
-      <section className="iu-fas-toolbar"><label className="iu-fas-search"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca per numero, titolo, cliente..."/></label></section>
-      <section className="iu-fas-status-line"><span className={loading ? '' : 'is-ok'}>{loading ? 'Caricamento archivio...' : `Archivio aggiornato - ${data.source}`}</span><small><RotateCcw size={14}/> Il ripristino usa il servizio operativo con audit.</small></section>
+      <section className="iu-fas-stats" aria-label="Filtri archivio">
+        {([
+          { key: 'tutti', label: 'Archiviati', value: data.items.length, note: 'Tutti i fascicoli archiviati', icon: <Archive size={19}/> },
+          { key: 'zip', label: 'ZIP', value: data.items.filter(item => item.archive?.zipAvailable).length, note: 'Archivi scaricabili', icon: <FileArchive size={19}/> },
+          { key: 'esiti', label: 'Esiti', value: data.items.filter(item => item.archive?.outcome).length, note: 'Con esito finale', icon: <BadgeCheck size={19}/> },
+        ] as const).map(card => <button type="button" key={card.key} className={`iu-fas-stat iu-fas-stat--primary${filter === card.key ? ' is-active' : ''}`} aria-pressed={filter === card.key} onClick={() => setFilter(card.key)}><div>{card.icon}</div><span>{card.label}</span><strong>{card.value}</strong><small>{card.note}</small></button>)}
+      </section>
+      <section className="iu-fas-toolbar iu-fas-archive-toolbar"><label className="iu-fas-search"><Search size={17}/><input aria-label="Cerca nell’archivio" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca per numero, titolo, cliente..."/></label><button type="button" className="iu-button iu-button--secondary" onClick={() => { setQuery(''); setFilter('tutti') }}>Azzera filtri</button><button type="button" className="iu-button iu-button--secondary" disabled={loading} onClick={() => { void refreshArchive() }}><RefreshCw size={15}/>{loading ? 'Aggiornamento…' : 'Aggiorna'}</button></section>
+      <section className="iu-fas-status-line" aria-live="polite"><span className={!loading && !error ? 'is-ok' : ''}>{loading ? 'Caricamento archivio…' : error ? 'Archivio non aggiornato' : `${visible.length} di ${data.items.length} fascicoli · ${selected.size} ${selected.size === 1 ? 'selezionato' : 'selezionati'}`}</span><small><RotateCcw size={14}/> Le operazioni sull’archivio sono registrate nel registro attività.</small>{selected.size ? <button type="button" className="iu-button iu-button--secondary" onClick={() => setSelected(new Set())}>Annulla selezione</button> : null}</section>
+      {error ? <section className="iu-fas-toast iu-fas-toast--danger" role="alert"><span>{error}</span><button type="button" className="iu-button iu-button--secondary" disabled={loading} onClick={() => { void refreshArchive() }}>Riprova</button></section> : null}
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
       <FascicoliTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} archive onDeleted={handleArchiveDeleted} onError={handleArchiveError}/>
       <FloatingLex context="archivio-fascicoli" title="Lex AI archivio" body="Posso aiutarti a controllare fascicoli archiviati, ZIP mancanti, esiti finali e criteri di conservazione." primaryHref="#lex" primaryLabel="Apri Lex archivio" secondaryHref="/fascicoli/archivio" secondaryLabel="Archivio fascicoli" />
@@ -5689,7 +5654,7 @@ function DocumentDownloadAction({ downloadUrl, name, onDone, onError }:{download
   return <button type="button" className="iu-fas-doc-action" onClick={() => void download()} disabled={busy} title="Scarica una copia locale del documento" aria-label={`Scarica ${name}`}><Download size={15}/><span>{busy ? 'Preparo…' : 'Scarica'}</span></button>
 }
 
-function PdfPreviewModal({ preview, onClose, overDocumentFlow = false }:{preview:PreviewDocument | null; onClose:()=>void; overDocumentFlow?:boolean}) {
+export function PdfPreviewModal({ preview, onClose, overDocumentFlow = false }:{preview:PreviewDocument | null; onClose:()=>void; overDocumentFlow?:boolean}) {
   const [expandedReader, setExpandedReader] = useState(false)
   const readerDrag = useReaderDrag(!expandedReader, preview?.url)
   useEffect(() => {
@@ -9538,9 +9503,15 @@ function DetailPage({ id }:{id:string}) {
   const [data, setData] = useState<FascicoloDetailData>(emptyFascicoloDetail)
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
-  const [previewDoc, setPreviewDoc] = useState<PreviewDocument | null>(null)
+  const [previewDoc, setLocalPreviewDoc] = useState<PreviewDocument | null>(null)
   const [embeddedRecord, setEmbeddedRecord] = useState<EmbeddedRecordState | null>(null)
   const [documentFlowMode, setDocumentFlowMode] = useState<DocumentFlowMode | null>(null)
+  const setPreviewDoc = useCallback((preview: PreviewDocument | null) => {
+    const forwarded = preview && !documentFlowMode && window.parent !== window && new URLSearchParams(window.location.search).get('embed') === 'source'
+      ? documentWorkPreview(preview, window.location.origin) : null
+    if (forwarded) window.parent.postMessage({ type: 'iusentra:open-document-window', preview: forwarded }, window.location.origin)
+    else setLocalPreviewDoc(preview)
+  }, [documentFlowMode])
   const [contextMenu, setContextMenu] = useState<FascicoloContextMenuState | null>(null)
   const [contributoModalOpen, setContributoModalOpen] = useState(false)
   const [economicControlOpen, setEconomicControlOpen] = useState(false)
@@ -9818,7 +9789,7 @@ function DetailPage({ id }:{id:string}) {
     <main id="fascicolo-top" className="iu-content iu-fascicoli-page iu-fascicolo-detail-page" onContextMenu={openFascicoloContextMenu}>
       <section className="iu-fas-hero iu-fas-detail-hero">
         <div><span className="iu-fas-eyebrow"><FolderOpen size={16}/> Fascicolo</span><h1>{f.title}</h1><p><Badge tone={f.tone}>{formatFascicoloStatus(f.status)}</Badge><Badge tone="neutral">{formatFascicoloType(f.type)}</Badge>{f.archiveReady ? <Badge tone="warning">Pronto per archivio</Badge> : null}<span>{f.object || f.subtitle}</span></p></div>
-        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button>{f.type === 'penale' ? <a className="iu-button iu-button--primary" href="#penale-pdp" onClick={(event) => { setPenaleVisited(true); openSection('penale-pdp')(event) }}><Send size={15}/> Deposito penale (PDP)</a> : f.type === 'amministrativo' ? <a className="iu-button iu-button--primary" href="#pat-formweb" onClick={(event) => { setPatVisited(true); openSection('pat-formweb')(event) }}><Send size={15}/> Deposito amministrativo (PAT)</a> : f.type === 'tributario' ? <a className="iu-button iu-button--primary" href="#ptt-sigit" onClick={(event) => { setPttVisited(true); openSection('ptt-sigit')(event) }}><Send size={15}/> Deposito tributario (PTT)</a> : <button className="iu-button iu-button--primary" type="button" onClick={() => openDocumentFlow('deposito')}><Send size={15}/> Deposito telematico</button>}<RecordOverlayButton icon={<UserRound size={15}/>} label="Cliente" title="Visualizza cliente nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'cliente', title: data.client?.name || f.client || 'Cliente', href: clientRecordHref })}/><RecordOverlayButton icon={<UsersRound size={15}/>} label="Soggetti" title="Visualizza soggetti e parti nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti', href: partiesRecordHref })}/><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href="#presidio-fascicolo"><Gauge size={15}/> Presidio fascicolo</Button><button className="iu-button iu-button--secondary" type="button" title="Prepara una notifica legale per questa pratica" onClick={() => openDocumentFlow('notifica')}><Bell size={15}/> Notifica</button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button><PagoPaActionButton onClick={openPagoPaModal}/></div>
+        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><a className="iu-button iu-button--secondary iu-fas-tools-shortcut" href={`/strumenti-legali/?id_fascicolo=${encodeURIComponent(f.id || id)}`} aria-label="Strumenti Forensi del fascicolo" title="Strumenti Forensi del fascicolo"><Calculator size={18}/></a>{f.type === 'penale' ? <a className="iu-button iu-button--primary" href="#penale-pdp" onClick={(event) => { setPenaleVisited(true); openSection('penale-pdp')(event) }}><Send size={15}/> Deposito penale (PDP)</a> : f.type === 'amministrativo' ? <a className="iu-button iu-button--primary" href="#pat-formweb" onClick={(event) => { setPatVisited(true); openSection('pat-formweb')(event) }}><Send size={15}/> Deposito amministrativo (PAT)</a> : f.type === 'tributario' ? <a className="iu-button iu-button--primary" href="#ptt-sigit" onClick={(event) => { setPttVisited(true); openSection('ptt-sigit')(event) }}><Send size={15}/> Deposito tributario (PTT)</a> : <button className="iu-button iu-button--primary" type="button" onClick={() => openDocumentFlow('deposito')}><Send size={15}/> Deposito telematico</button>}<RecordOverlayButton icon={<UserRound size={15}/>} label="Cliente" title="Visualizza cliente nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'cliente', title: data.client?.name || f.client || 'Cliente', href: clientRecordHref })}/><RecordOverlayButton icon={<UsersRound size={15}/>} label="Soggetti" title="Visualizza soggetti e parti nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti', href: partiesRecordHref })}/><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href="#presidio-fascicolo"><Gauge size={15}/> Presidio fascicolo</Button><button className="iu-button iu-button--secondary" type="button" title="Prepara una notifica legale per questa pratica" onClick={() => openDocumentFlow('notifica')}><Bell size={15}/> Notifica</button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button><PagoPaActionButton onClick={openPagoPaModal}/></div>
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : 'Dati aggiornati'}</span></section>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}

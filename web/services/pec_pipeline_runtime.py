@@ -26,6 +26,7 @@ GENERIC_REMOTE_HEARING_ACCESS_INFO = {
 from pct.incremental_jobs import cursor_tuple, is_after_cursor
 from pct.notifications.web_push import safe_remote_hearing_url
 from pct.pec_pipeline import PecAuditRepository, _remote_hearing_deadline_extra
+from web.services.email_storage_runtime import create_email_mailbox
 
 
 def _path_from_mapping(paths: Mapping[str, Any], key: str, default: str) -> str:
@@ -795,7 +796,7 @@ def acquire_local_pec_for_paths(
     degli allegati è la fase più costosa in RAM/CPU.
     """
 
-    from pct.email_client import GestioneEmailRicevute
+
 
     report: dict[str, Any] = {
         "scan_mode": "not_started",
@@ -838,7 +839,7 @@ def acquire_local_pec_for_paths(
             "reason": "archivio invariato dall'ultimo giro",
             "archive_fingerprint": impronta,
         }
-    gestore = GestioneEmailRicevute(db_path=email_db)
+    gestore = create_email_mailbox(db_path=email_db)
     all_emails = sorted(
         gestore._carica().values(),  # noqa: SLF001 - presidio tenant-aware sulla casella locale
         key=lambda item: cursor_tuple(local_email_sort_key(item), getattr(item, "id", "")),

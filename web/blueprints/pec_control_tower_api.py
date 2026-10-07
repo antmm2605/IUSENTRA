@@ -14,6 +14,7 @@ from pct.pec_control_tower import PecControlTowerRepository, build_synthetic_pec
 from web.services.security_redaction import redacted_json_response
 from web.services.tenant_api_auth import api_key_valid_for_request
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
+from web.services.email_storage_runtime import create_email_mailbox
 
 
 pec_control_tower_api = Blueprint("pec_control_tower_api", __name__, url_prefix="/api")
@@ -69,7 +70,7 @@ def _repo() -> PecControlTowerRepository:
 
 
 def _email_manager() -> GestioneEmailRicevute:
-    return GestioneEmailRicevute(_runtime_path("EMAIL_CASELLA_DB", "./email/casella.json"))
+    return create_email_mailbox(_runtime_path("EMAIL_CASELLA_DB", "./email/casella.json"))
 
 
 def _json_success(payload: dict[str, Any], status: int = 200):

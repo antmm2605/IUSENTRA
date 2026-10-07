@@ -701,6 +701,8 @@ class SchedulerRegistryRepository:
                     requested_by TEXT NOT NULL DEFAULT '',
                     created_at TEXT NOT NULL
                 );
+                CREATE INDEX IF NOT EXISTS idx_scheduled_job_runs_run_id
+                    ON scheduled_job_runs(run_id);
                 CREATE INDEX IF NOT EXISTS idx_scheduled_job_runs_job_id
                     ON scheduled_job_runs(job_id, id DESC);
                 CREATE INDEX IF NOT EXISTS idx_scheduled_job_runs_status
@@ -835,6 +837,7 @@ class SchedulerRegistryRepository:
                       WHERE terminal.job_id = stale.job_id
                         AND terminal.origin = 'scheduler'
                         AND terminal.scheduled_at = stale.scheduled_at
+                        AND terminal.scheduled_at <> ''
                         AND terminal.status IN ('completed', 'failed', 'missed', 'cancelled')
                         AND terminal.id < stale.id
                   )

@@ -1,3 +1,4 @@
+import { ensureJson } from './lib/apiClient'
 import type { Tone } from './data'
 import { sanitizeDisplayText } from './displayText'
 
@@ -28,6 +29,7 @@ export type TelematicoChannel = {
 }
 
 export type TelematicoCase = {
+  controlCategory?: string
   id: string
   practiceId: string
   portal: TelematicoChannelId | 'altro'
@@ -432,6 +434,13 @@ function normaliseCase(value: unknown, index: number): TelematicoCase {
   }
 }
 
+// Il registro SQL telematico salva created_at in UTC, anche senza suffisso.
+function telematicoEventTimestamp(value: unknown): string {
+  const raw = text(value)
+  return /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(raw)
+    ? `${raw.replace(' ', 'T')}Z`
+    : raw
+}
 function normaliseEvent(value: unknown, index: number): TelematicoEvent {
   const item = isRecord(value) ? value : {}
   return {
@@ -439,7 +448,7 @@ function normaliseEvent(value: unknown, index: number): TelematicoEvent {
     portal: optionalChannelId(item.portal ?? item.portale ?? item.service_code),
     title: display(item.title, 'Attività telematica'),
     subtitle: display(item.subtitle ?? item.description, ''),
-    timestamp: text(item.timestamp ?? item.created_at ?? item.time),
+    timestamp: telematicoEventTimestamp(item.timestamp ?? item.created_at ?? item.time),
     href: canonicalHref(item.href, '/telematico'),
     tone: tone(item.tone, 'primary'),
     badge: displayTelematicLabel(item.badge, ''),
@@ -575,14 +584,15 @@ function normalisePayload(payload: unknown): TelematicoPageData {
 }
 
 export async function getTelematicoPage(): Promise<TelematicoPageData> {
-  try {
-    const response = await fetch('/api/v1/ui/telematico', {
-      credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
-    })
-    if (!response.ok) return emptyTelematicoPage
-    return normalisePayload(await response.json())
-  } catch {
-    return emptyTelematicoPage
-  }
+  const payload = await ensureJson<unknown>('/api/v1/ui/telematico')
+  if (!isRecord(payload)) throw new Error('Risposta dei servizi telematici non disponibile.')
+  return normalisePayload(payload)
+}
+
+export type TelematicoCaseCatalog = { items: TelematicoCase[]; total: number; page: number; pageSize: number; pages: number }
+export async function getTelematicoCases(portal: string, query: string, page: number, signal?: AbortSignal, pageSize = 25, presidi = false): Promise<TelematicoCaseCatalog> {
+  const params = new URLSearchParams({portale: portal, query, pagina: String(page), per_pagina: String(pageSize), ambito: presidi ? 'presidi' : ''})
+  const result = await ensureJson<Record<string,unknown>>(`/api/v1/ui/telematico/pratiche?${params}`, {signal})
+  if (!Array.isArray(result.items) || typeof result.total !== 'number') throw new Error('Elenco delle pratiche non disponibile.')
+  return {items: result.items.map((item, index) => ({...normaliseCase(item, index), controlCategory: isRecord(item) ? display(item.controlCategory) : ''})), total: result.total, page: Number(result.page), pageSize: Number(result.pageSize), pages: Number(result.pages)}
 }

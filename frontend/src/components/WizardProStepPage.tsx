@@ -12,8 +12,8 @@ function idDallIndirizzo(): { id: string; passo: number } {
 }
 
 /** Preparazione di una udienza: cinque passi in una sola pagina, con salvataggio immediato. */
-export function WizardProStepPage() {
-  const [{ id, passo: passoIniziale }] = useState(idDallIndirizzo)
+export function WizardProStepPage({ sessionId, initialStep = 1, embedded = false }: { sessionId?: string; initialStep?: number; embedded?: boolean } = {}) {
+  const [{ id, passo: passoIniziale }] = useState(() => sessionId ? { id: sessionId, passo: initialStep } : idDallIndirizzo())
   const [s, setS] = useState<SchedaUdienza | null>(null)
   const [passo, setPasso] = useState(passoIniziale)
   const [avviso, setAvviso] = useState<{ testo: string; ok: boolean } | null>(null)
@@ -26,9 +26,11 @@ export function WizardProStepPage() {
 
   const vaiA = useCallback((n: number) => {
     setPasso(n)
-    window.history.replaceState(window.history.state, '', `/wizard-pro/${encodeURIComponent(id)}/step/${n}`)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [id])
+    if (!embedded) {
+      window.history.replaceState(window.history.state, '', `/wizard-pro/${encodeURIComponent(id)}/step/${n}`)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [id, embedded])
 
   const azione: Azioni['azione'] = useCallback(async (nome, corpo) => {
     // Risposta immediata sullo schermo; il server conferma o ripristina.
@@ -112,8 +114,8 @@ export function WizardProStepPage() {
           ) : null}
         </section>
       </div>
-      <FloatingLex context="preparazione-udienza" title="Lex udienza" body="Legge fascicolo, termini e documenti dell'udienza e ti aiuta a preparare argomenti ed eccezioni."
-        primaryHref="#lex" primaryLabel="Apri Lex" secondaryHref={s.causa.fascicolo?.href || '/fascicoli'} secondaryLabel="Fascicolo"/>
+      {!embedded ? <FloatingLex context="preparazione-udienza" title="Lex udienza" body="Legge fascicolo, termini e documenti dell'udienza e ti aiuta a preparare argomenti ed eccezioni."
+        primaryHref="#lex" primaryLabel="Apri Lex" secondaryHref={s.causa.fascicolo?.href || '/fascicoli'} secondaryLabel="Fascicolo"/> : null}
     </main>
   )
 }

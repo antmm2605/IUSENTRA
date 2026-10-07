@@ -11,7 +11,7 @@ from web.services.telematico_control_tower import build_telematico_control_tower
 def _build_fascicolo_surface(overview: dict[str, Any]) -> dict[str, Any]:
     fascicoli_hot = list(overview.get("fascicoli_hot") or [])
     cards = []
-    for row in fascicoli_hot[:6]:
+    for row in fascicoli_hot:
         scadenze = list(row.get("scadenze") or [])
         appuntamenti = list(row.get("appuntamenti") or [])
         warnings = []
@@ -40,10 +40,13 @@ def _build_fascicolo_surface(overview: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _build_udienza_surface() -> dict[str, Any]:
+def _build_udienza_surface(horizon_days: int = 14) -> dict[str, Any]:
     dashboard = build_hearing_preparation_dashboard()
     cases = []
-    for row in list(dashboard.get("cases") or [])[:6]:
+    for row in list(dashboard.get("cases") or []):
+        days = row.get("giorni_udienza")
+        if days is None or not 0 <= days <= horizon_days:
+            continue
         critical = [badge.get("label") for badge in list(row.get("critical_badges") or []) if badge.get("label")]
         cases.append(
             {
@@ -70,7 +73,7 @@ def _build_udienza_surface() -> dict[str, Any]:
 def _build_telematico_surface(control_tower: dict[str, Any]) -> dict[str, Any]:
     return {
         "label": "Lex Telematico",
-        "summary": "Spiegazione errori, stato import e deposito, piu' verifiche prima del prossimo passo.",
+        "summary": "Spiegazione errori, stato import e deposito, più verifiche prima del prossimo passo.",
         "summary_counts": dict(control_tower.get("summary") or {}),
         "warning_cases": list(control_tower.get("warning_cases") or [])[:6],
         "predeposito": list(control_tower.get("predeposito") or [])[:6],
@@ -83,7 +86,7 @@ def _build_operativo_surface(overview: dict[str, Any]) -> dict[str, Any]:
     actions = list(overview.get("actions") or [])
     return {
         "label": "Lex Operativo",
-        "summary": "La prossima azione giusta della giornata, con priorita e scadenze che stanno diventando problemi.",
+        "summary": "La prossima azione giusta della giornata, con priorità e scadenze che stanno diventando problemi.",
         "actions": actions[:6],
         "urgent_deadlines": urgent_deadlines[:6],
         "upcoming_appointments": upcoming_appointments[:6],
@@ -106,8 +109,7 @@ def build_lex_operational_payload(
         "overview": overview,
         "control_tower": control_tower,
         "fascicolo": _build_fascicolo_surface(overview),
-        "udienza": _build_udienza_surface(),
+        "udienza": _build_udienza_surface(horizon_days),
         "telematico": _build_telematico_surface(control_tower),
         "operativo": _build_operativo_surface(overview),
     }
-

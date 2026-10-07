@@ -226,9 +226,10 @@ export function nomeCopiaRicercabile(nome: string): string {
 }
 
 export type FormatoDocumento = 'docx' | 'pdf'
+const indirizziDownload = new WeakMap<Blob, string>()
 
 /** Il testo riconosciuto e corretto, come documento `.docx` (o PDF impaginato). */
-export async function documentoModificabile(html: string, nome: string, formato: FormatoDocumento = 'docx'): Promise<File> {
+export async function documentoModificabile(html: string, nome: string, formato: FormatoDocumento = 'docx', download = false): Promise<File> {
   const body = new FormData()
   body.append('html', html)
   body.append('nome', nome)
@@ -236,18 +237,25 @@ export async function documentoModificabile(html: string, nome: string, formato:
   const response = await fetch('/api/v1/ui/document-tools/documento-testo-riconosciuto', {
     method: 'POST',
     credentials: 'same-origin',
-    headers: { ...csrfHeader() },
+    headers: { ...csrfHeader(), ...(download ? { 'X-Iusentra-Result-Links': '1' } : {}) },
     body,
   })
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as Payload | null
     throw new Error(payload?.message || 'Il testo riconosciuto non è stato trasformato in documento. Riprova.')
   }
+  const expectedType = formato === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  if (!response.headers.get('content-type')?.toLowerCase().startsWith(expectedType)) throw new Error('Documento non ricevuto. Verifica l’accesso a IUSENTRA e riprova.')
+  const downloadHref = response.headers.get('x-iusentra-download') || ''
+  if (download && (!downloadHref.startsWith('/api/v1/ui/document-tools/results/') || downloadHref.includes('\\'))) throw new Error('Download non disponibile. Riprova la preparazione del documento.')
   const blob = await response.blob()
+  if (!blob.size) throw new Error('Il documento preparato è vuoto. Riprova.')
   const intestazione = response.headers.get('Content-Disposition') || ''
   const dichiarato = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(intestazione)?.[1]
   const nomeFile = decodeURIComponent(dichiarato || '') || (formato === 'pdf' ? 'testo riconosciuto.pdf' : 'testo riconosciuto.docx')
-  return new File([blob], nomeFile, { type: formato === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
+  const file = new File([blob], nomeFile, { type: expectedType })
+  if (download) indirizziDownload.set(file, downloadHref)
+  return file
 }
 
 type SalvataggioPayload = { ok?: boolean; documento_id?: string; message?: string; messaggio?: string }
@@ -275,16 +283,17 @@ export function indirizzoEditor(fascicoloId: string, documentoId: string): strin
   return `/fascicoli/${encodeURIComponent(fascicoloId)}/documenti/${encodeURIComponent(documentoId)}/editor`
 }
 
-/** Salva un file sul computer dell'avvocato, senza passare dal server. */
+/** Avvia il download; per documenti preparati sul server usa il canale autenticato. */
 export function scaricaSulComputer(blob: Blob, nomeFile: string): void {
-  const indirizzo = URL.createObjectURL(blob)
+  const nativeHref = indirizziDownload.get(blob)
+  const indirizzo = nativeHref || URL.createObjectURL(blob)
   const collegamento = document.createElement('a')
   collegamento.href = indirizzo
   collegamento.download = nomeFile
   document.body.appendChild(collegamento)
   collegamento.click()
   collegamento.remove()
-  window.setTimeout(() => URL.revokeObjectURL(indirizzo), 2000)
+  if (!nativeHref) window.setTimeout(() => URL.revokeObjectURL(indirizzo), 2000)
 }
 
 /** Nome del file di lavoro con l'estensione richiesta. */

@@ -1,6 +1,8 @@
+import { fetchMailboxDetailJson } from './emailDetailRequest'
+import { publishMutationRefresh } from './operationalRefresh'
 import type { Tone } from './data'
 
-export type EmailFolder = 'INBOX' | 'INVIATI' | 'CESTINO'
+export type EmailFolder = 'INBOX' | 'INVIATI' | 'CESTINO' | 'TUTTE'
 export type EmailStatus = 'tutti' | 'NON_LETTA' | 'LETTA' | 'CESTINO'
 
 export type PecAuditIssue = {
@@ -174,6 +176,8 @@ export type EmailPecParams = {
   stato?: EmailStatus
   pst?: boolean
   conAllegati?: boolean
+  collegate?: boolean
+  daPresidiare?: boolean
   statoPct?: string
   limit?: number
   offset?: number
@@ -458,7 +462,7 @@ function summaryFromPayload(payload: Record<string, unknown>, items: EmailPecRow
   }
 }
 
-function normaliseFacet<T extends string>(value: unknown, fallback: Array<{ value: T; label: string; count: number }>): Array<{ value: T; label: string; count: number }> {
+function normaliseFacet<T extends string>(value: unknown, fallback: Array<{ value: T; label: string; count: number }>, allowEmptyValue = false): Array<{ value: T; label: string; count: number }> {
   if (!Array.isArray(value)) return fallback
   return value.map((item) => {
     const record = isRecord(item) ? item : {}
@@ -467,7 +471,7 @@ function normaliseFacet<T extends string>(value: unknown, fallback: Array<{ valu
       label: text(record.label, text(record.value)),
       count: number(record.count),
     }
-  }).filter((item) => item.value && item.label)
+  }).filter((item) => (allowEmptyValue || item.value) && item.label)
 }
 
 function normalisePayload(payload: unknown, fallback = emptyEmailPecPage): EmailPecPageData {
@@ -491,7 +495,7 @@ function normalisePayload(payload: unknown, fallback = emptyEmailPecPage): Email
     facets: {
       folders: normaliseFacet<EmailFolder>(facets.folders, fallback.facets.folders),
       statuses: normaliseFacet<EmailStatus>(facets.statuses, fallback.facets.statuses),
-      pctStatuses: normaliseFacet<string>(facets.pctStatuses ?? facets.pct_statuses, fallback.facets.pctStatuses),
+      pctStatuses: normaliseFacet<string>(facets.pctStatuses ?? facets.pct_statuses, fallback.facets.pctStatuses, true),
     },
     actions: {
       compose: text(actions.compose, fallback.actions.compose),
@@ -558,17 +562,12 @@ function normaliseDetailPayload(payload: unknown, fallbackBasePath: string): Ema
 }
 
 async function fetchEmailDetail(endpoint: string, fallbackBasePath: string): Promise<EmailDetailData> {
-  try {
-    const response = await fetch(`${endpoint}?_ts=${Date.now()}`, {
-      credentials: 'same-origin',
-      cache: 'no-store',
-      headers: { Accept: 'application/json' },
-    })
-    if (!response.ok) return emptyDetailFor(fallbackBasePath)
-    return normaliseDetailPayload(await response.json(), fallbackBasePath)
-  } catch {
-    return emptyDetailFor(fallbackBasePath)
-  }
+  const payload = await fetchMailboxDetailJson(endpoint)
+  if (payload === null) return emptyDetailFor(fallbackBasePath)
+  if (!('item' in payload || 'email' in payload)) throw new Error('I dati del messaggio non sono disponibili. Riprova tra poco.')
+  const item = payload.item ?? payload.email
+  if (item != null && (!isRecord(item) || !text(item.id ?? item.email_id))) throw new Error('I dati del messaggio non sono disponibili. Riprova tra poco.')
+  return normaliseDetailPayload(payload, fallbackBasePath)
 }
 
 function auditDetailFromPayload(payload: unknown): EmailDetailData {
@@ -713,53 +712,22 @@ export function getEmailPecEmbeddedSourceDetail(id: string): EmailDetailData | n
 
 async function fetchPecAuditDetail(id: string): Promise<EmailDetailData> {
   const pecId = id.replace(/^pec-audit:/, '')
-  try {
-    const response = await fetch(`/api/pec/messages/${encodeURIComponent(pecId)}?_ts=${Date.now()}`, {
-      credentials: 'same-origin',
-      cache: 'no-store',
-      headers: { Accept: 'application/json' },
-    })
-    if (!response.ok) return emptyDetailFor('/email')
-    return auditDetailFromPayload(await response.json())
-  } catch {
-    return emptyDetailFor('/email')
-  }
-}
-
-const pecSourceRetryStatuses = new Set([423, 429, 500, 503])
-
-function sleepPecSourceRetry(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+  const payload = await fetchMailboxDetailJson(`/api/pec/messages/${encodeURIComponent(pecId)}`)
+  if (payload === null) return emptyDetailFor('/email')
+  if (!isRecord(payload.data) || !isRecord(payload.data.message) || !text(payload.data.message.id)) throw new Error('I dati della PEC non sono disponibili. Riprova tra poco.')
+  return auditDetailFromPayload(payload)
 }
 
 async function fetchPecAuditSourceDetail(id: string): Promise<EmailDetailData> {
   const pecId = id.replace(/^pec-audit:/, '')
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    let timeout: ReturnType<typeof setTimeout> | undefined
-    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
-    if (controller) {
-      timeout = setTimeout(() => controller.abort(), 8000)
-    }
-    try {
-      const response = await fetch(`/api/pec/messages/${encodeURIComponent(pecId)}/source?_ts=${Date.now()}`, {
-        credentials: 'same-origin',
-        cache: 'no-store',
-        headers: { Accept: 'application/json' },
-        signal: controller?.signal,
-      })
-      if (response.ok) return auditDetailFromPayload(await response.json())
-      if (!pecSourceRetryStatuses.has(response.status) || attempt === 2) return emptyDetailFor('/email')
-    } catch {
-      if (attempt === 2) return emptyDetailFor('/email')
-    } finally {
-      if (timeout) clearTimeout(timeout)
-    }
-    await sleepPecSourceRetry(450 + attempt * 550)
-  }
-  return emptyDetailFor('/email')
+  const payload = await fetchMailboxDetailJson(`/api/pec/messages/${encodeURIComponent(pecId)}/source`, true)
+  if (payload === null) return emptyDetailFor('/email')
+  if (!isRecord(payload.data) || !isRecord(payload.data.message) || !text(payload.data.message.id)) throw new Error('I dati della PEC non sono disponibili. Riprova tra poco.')
+  return auditDetailFromPayload(payload)
 }
 
 export function folderLabel(value: EmailFolder): string {
+  if (value === 'TUTTE') return 'Tutte le cartelle'
   if (value === 'INVIATI') return 'Inviati'
   if (value === 'CESTINO') return 'Cestino'
   return 'In arrivo'
@@ -769,25 +737,57 @@ export function folderParam(value: EmailFolder): string {
   return value
 }
 
-async function fetchEmailPage(endpoint: string, fallback: EmailPecPageData, params: EmailPecParams = {}): Promise<EmailPecPageData> {
+function mailboxQuery(params: EmailPecParams): URLSearchParams {
   const query = new URLSearchParams()
   if (params.folder) query.set('cartella', folderParam(params.folder))
   if (params.q?.trim()) query.set('q', params.q.trim())
   if (params.stato && params.stato !== 'tutti') query.set('stato', params.stato)
   if (params.pst) query.set('pst', '1')
   if (params.conAllegati) query.set('con_allegati', '1')
+  if (params.collegate) query.set('collegate', '1')
+  if (params.daPresidiare) query.set('da_presidiare', '1')
   if (params.statoPct) query.set('stato_pct', params.statoPct)
   if (params.limit && params.limit > 0) query.set('limit', String(params.limit))
   if (params.offset && params.offset > 0) query.set('offset', String(params.offset))
   query.set('_ts', String(Date.now()))
+  return query
+}
+
+async function fetchEmailPage(endpoint: string, fallback: EmailPecPageData, params: EmailPecParams = {}): Promise<EmailPecPageData> {
+  const query = mailboxQuery(params)
   try {
     const url = `${endpoint}${query.toString() ? `?${query.toString()}` : ''}`
     const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
-    if (!response.ok) return fallback
-    return normalisePayload(await response.json(), fallback)
-  } catch {
-    return fallback
+    if (!response.ok) {
+      const message = response.status === 401 ? 'La sessione è scaduta. Accedi nuovamente per consultare la posta.'
+        : response.status === 403 ? 'Non hai il permesso di consultare questa casella.'
+          : 'Non è stato possibile caricare la casella. Riprova tra poco.'
+      throw new Error(message)
+    }
+    const payload: unknown = await response.json()
+    if (!isRecord(payload) || payload.ok === false || !isRecord(payload.summary)
+      || !(Array.isArray(payload.items) || Array.isArray(payload.emails))) {
+      throw new Error('I dati della casella non sono disponibili. Riprova tra poco.')
+    }
+    return normalisePayload(payload, fallback)
+  } catch (error) {
+    if (error instanceof Error && error.name === 'Error') throw error
+    throw new Error('Il caricamento della posta si è interrotto. Controlla la connessione e riprova.')
   }
+}
+
+export async function getEmailSelectionIds(mode: 'pec' | 'ordinaria', params: EmailPecParams): Promise<string[]> {
+  const query = mailboxQuery({ ...params, limit: undefined, offset: undefined })
+  const endpoint = mode === 'ordinaria' ? '/api/v1/ui/email-ordinaria' : '/api/v1/ui/email'
+  const response = await fetch(`${endpoint}/selection-ids?${query}`, {
+    credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' },
+  }).catch(() => { throw new Error('Selezione non caricata. Controlla la connessione e riprova.') })
+  const payload: unknown = await response.json().catch(() => { throw new Error('Selezione non disponibile. Riprova tra poco.') })
+  if (!response.ok || !isRecord(payload) || payload.ok !== true || !Array.isArray(payload.ids)
+    || payload.ids.length > 5000 || payload.ids.some((id) => typeof id !== 'string' || !id.trim())) {
+    throw new Error(isRecord(payload) ? text(payload.message, 'Selezione non caricata. Riprova.') : 'Selezione non caricata. Riprova.')
+  }
+  return [...new Set(payload.ids as string[])]
 }
 
 export async function getEmailPecPage(params: EmailPecParams = {}): Promise<EmailPecPageData> {
@@ -815,7 +815,7 @@ export async function getEmailOrdinariaDetail(id: string): Promise<EmailDetailDa
 export async function submitEmailBulkAction(
   endpoint: string,
   ids: string[],
-  action: 'trash' | 'delete',
+  action: 'trash' | 'delete' | 'read',
 ): Promise<string> {
   if (!endpoint) throw new Error('Azione multipla non disponibile in questa casella.')
   const response = await fetch(endpoint, {
@@ -825,17 +825,19 @@ export async function submitEmailBulkAction(
       Accept: 'application/json',
       'Content-Type': 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': typeof document === 'undefined' ? '' : document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
     },
     body: JSON.stringify({ ids, action }),
-  })
+  }).catch(() => { throw new Error('Operazione non confermata. Controlla la connessione e ricarica la vista.') })
   let payload: Record<string, unknown> = {}
   try {
     payload = await response.json() as Record<string, unknown>
   } catch {
     payload = {}
   }
-  if (!response.ok || payload.ok === false) {
+  if (!response.ok || payload.ok !== true) {
     throw new Error(text(payload.message ?? payload.errore, 'Operazione multipla non completata.'))
   }
+  publishMutationRefresh(endpoint)
   return text(payload.message, 'Operazione multipla completata.')
 }

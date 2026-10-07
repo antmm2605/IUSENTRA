@@ -20,7 +20,7 @@ FASCE = {
     "settimana": "Nei prossimi 7 giorni",
     "prossimi": "Entro 30 giorni",
     "da_leggere": "Comunicazioni da leggere",
-    "senza_data": "Senza data",
+    "senza_data": "Termine da determinare / data da verificare",
 }
 GRAVITA = ("critica", "alta", "normale")
 
@@ -42,6 +42,8 @@ class Voce:
     dettaglio: str = ""
     data: str = ""  # ISO (giorno)
     ora: str = ""
+    data_riferimento: str = ""
+    tipo_data_riferimento: str = ""
     gravita: str = "normale"
     etichetta: str = ""
     fascicolo: dict[str, str] = field(default_factory=dict)

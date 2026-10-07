@@ -1,12 +1,15 @@
 .iu-discordanze-accesso__trigger { position: relative; }
 .iu-discordanze-accesso__trigger.has-issues { color: #855000; background: #fff8e5; border-color: #e5ca8a; }
 .iu-discordanze-accesso__count { position: absolute; right: -4px; top: -5px; min-width: 18px; height: 18px; padding: 0 3px; border-radius: 999px; background: #805000; color: white; font-size: 10px; line-height: 18px; }
+.iu-managed-window > .iu-discordanze-accesso-box { height: auto; align-self: center; width: min(1100px, calc(100vw - 36px)); }
+.iu-discordanze-accesso-box > .iu-ag-source-modal__body { overflow: auto; padding: 14px; }
 .iu-discordanze-accesso { display: grid; gap: 18px; min-width: 0; }
-.iu-discordanze-accesso article { padding: 20px; border: 1px solid var(--iu-border, #dce3ec); border-radius: 14px; background: var(--iu-surface, #fff); min-width: 0; }
+.iu-discordanze-accesso article { padding: 14px; border: 1px solid var(--iu-border, #dce3ec); border-radius: 14px; background: var(--iu-surface, #fff); min-width: 0; }
 .iu-discordanze-accesso h3 { margin: 0 0 8px; font-size: 17px; }
-.iu-discordanze-accesso p { line-height: 1.55; }
+.iu-discordanze-accesso p { line-height: 1.55; margin: 8px 0; }
+.iu-discordanze-accesso .iu-discordanze-accesso__note { margin: 0; }
 .iu-discordanze-accesso__practice, .iu-discordanze-accesso__note { color: var(--iu-text-muted, #526177); font-size: 13px; }
-.iu-discordanze-accesso dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 18px 0; }
+.iu-discordanze-accesso dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
 .iu-discordanze-accesso dl div { padding: 12px; background: var(--iu-surface-soft, #f4f7fb); border-radius: 10px; }
 .iu-discordanze-accesso dt { font-size: 12px; color: var(--iu-text-muted, #526177); margin-bottom: 5px; }
 .iu-discordanze-accesso dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
@@ -19,3 +22,23 @@
 
 /* Il riepilogo resta raggiungibile anche quando le altre azioni sono ridotte. */
 body.react-shell-page .iu-topbar.iu-topbar-op .iu-topbar-op__actions > .iu-discordanze-accesso-root { display: contents; }
+
+/* Presa visione e controlli della finestra sulla stessa riga del titolo. */
+.iu-managed-window > .iu-discordanze-accesso-box > header > nav {
+  display: flex; grid-column: 2; grid-row: 1; align-items: center;
+  justify-content: flex-end; flex-wrap: nowrap; gap: 6px; width: auto;
+}
+.iu-managed-window > .iu-discordanze-accesso-box > header > nav > .iu-button {
+  white-space: nowrap; min-height: 38px; padding: 6px 10px; flex-shrink: 0;
+}
+.iu-managed-window > .iu-discordanze-accesso-box > header > nav > .iu-button:disabled {
+  opacity: 1; color: var(--iu-navy-900); background: var(--iu-bg-app);
+  border-color: var(--iu-border); cursor: default;
+}
+@container (max-width: 520px) {
+  .iu-discordanze-accesso-box > header > div > span { display: none; }
+  .iu-discordanze-accesso-box > header > div > small {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+}

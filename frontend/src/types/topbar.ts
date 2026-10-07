@@ -78,10 +78,17 @@ export type TopbarNotification = {
 export type TopbarNotificationsPayload = {
   ok: boolean
   unreadCount: number
+  totalCount: number
+  filteredCount: number
+  page: number
+  pageSize: number
+  pageCount: number
   items: TopbarNotification[]
 }
 
 export type TopbarDeadline = {
+  letta?: boolean
+  revisione?: string
   id: string
   title: string
   dueDate: string
@@ -100,6 +107,8 @@ export type TopbarDeadlinesPayload = {
     tomorrow: number
     nextSevenDays: number
     urgent: number
+    unreadOverdue?: number
+    unreadUrgent?: number
     overdue: number
     drafts: number
   }

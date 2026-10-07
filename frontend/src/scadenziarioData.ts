@@ -1,3 +1,4 @@
+import { normalizeSourceCandidates, type SourceCandidate } from './sourceEvidenceData'
 import type { Tone } from './data'
 import { csrfHeader } from './api/csrf'
 
@@ -87,6 +88,7 @@ export type ScadenziarioRow = {
   title: string
   description: string
   detailDescription: string
+  reconciliationReason?: string
   type: string
   typeLabel: string
   priority: ScadenziarioPriority
@@ -112,6 +114,7 @@ export type ScadenziarioRow = {
   sourceEventType: string
   sourceEventTypeLabel: string
   sourceHref: string
+  sourceCandidates?: SourceCandidate[]
   sourceLabel: string
   sourceKind: string
   sourceVerified: boolean
@@ -545,6 +548,7 @@ function normalizeRow(value: unknown, index = 0): ScadenziarioRow {
     title: asString(item.title, 'Scadenza senza titolo'),
     description: asString(item.description),
     detailDescription: asString(item.detailDescription, asString(item.description)),
+    reconciliationReason: asString(item.reconciliationReason),
     type: asString(item.type, 'ALTRO'),
     typeLabel: asString(item.typeLabel, asString(item.type, 'Altro')),
     priority,
@@ -573,6 +577,7 @@ function normalizeRow(value: unknown, index = 0): ScadenziarioRow {
     sourceLabel: asString(item.sourceLabel),
     sourceKind: asString(item.sourceKind),
     sourceVerified: asBoolean(item.sourceVerified),
+    sourceCandidates: normalizeSourceCandidates(item.sourceCandidates),
     officeLabel: asString(item.officeLabel),
     officeModeLabel: asString(item.officeModeLabel),
     officePatronLabel: asString(item.officePatronLabel),

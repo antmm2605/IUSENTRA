@@ -1,7 +1,9 @@
-import { type CSSProperties, type RefObject, lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { openSourceWindow } from './sourceWindowEvents'
+import { type CSSProperties, type RefObject, lazy, Suspense, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { FileSearch, Globe, Maximize2, Minimize2, Mail } from 'lucide-react'
+import { ExternalLink, FileSearch, Globe, Mail } from 'lucide-react'
 import { OperationalModal } from './OperationalModal'
+import { activateManagedWindowForNode } from './ManagedWindowState'
 
 const ViewerDocumentEditor = lazy(() => import('./ViewerDocumentEditor').then((module) => ({ default: module.ViewerDocumentEditor })))
 
@@ -23,10 +25,15 @@ export function sourceViewerHref(source: Pick<SourceDocument, 'href'>, preview =
         )
         && parsed.pathname.includes('/allegato/')
       )
-      if (isEmailAttachment) {
+      if (/^\/fascicoli\/[a-zA-Z0-9_-]+\/?$/.test(parsed.pathname)) {
+        if (preview) parsed.searchParams.set('embed', 'source')
+      } else if (isEmailAttachment) {
         if (preview) parsed.searchParams.set('viewer', 'mobile')
       } else if (parsed.pathname.startsWith('/api/v1/ui/email/source/')) {
-        if (preview) parsed.searchParams.set('viewer', 'mobile')
+        if (preview) {
+          parsed.searchParams.set('viewer', 'mobile')
+          parsed.searchParams.set('reader', 'v4')
+        }
       } else if (parsed.pathname.includes('/documenti/') && parsed.pathname.includes('/visualizza')) {
         if (preview) parsed.searchParams.set('viewer', 'mobile')
         if (preview) parsed.searchParams.set('rotationScope', 'page')
@@ -47,7 +54,8 @@ function sourceIframeSandbox(href: string): string {
     const normalizedPath = parsed.pathname.replace(/\/+$/, '') || '/'
     const trustedInternalReader = parsed.origin === window.location.origin
       && (
-        normalizedPath === '/email'
+        /^\/fascicoli\/[a-zA-Z0-9_-]+$/.test(normalizedPath)
+        || normalizedPath === '/email'
         || normalizedPath === '/email-ordinaria'
         || /^\/email(?:-ordinaria)?\/messaggio\/[^/]+$/.test(normalizedPath)
         || (
@@ -60,6 +68,7 @@ function sourceIframeSandbox(href: string): string {
         || normalizedPath.startsWith('/api/v1/ui/email/source/')
         || normalizedPath.startsWith('/api/v1/ui/fonti-procedurali/')
         || normalizedPath === '/api/v1/ui/document-reader/web'
+        || /^\/api\/v1\/ui\/document-tools\/results\/[^/]+\/visualizza$/.test(normalizedPath)
         || /^\/api\/v1\/ui\/controllo-studio\/conoscenza-notifiche\/fonti\/[a-z0-9_]+$/.test(normalizedPath)
         || (normalizedPath.includes('/documenti/') && normalizedPath.includes('/visualizza'))
       )
@@ -81,20 +90,28 @@ export function SourceDocumentReader({
   rotation = 0,
   notice,
   readerRef,
+  compact = false,
 }: {
   href: string
   label: string
   rotation?: number
   notice?: string
   readerRef?: RefObject<HTMLIFrameElement | null>
+  compact?: boolean
 }) {
   const [destination, setDestination] = useState<{ href: string; label: string; mail: boolean } | null>(null)
-  const [linkFullscreen, setLinkFullscreen] = useState(false)
   const detachLinks = useRef<(() => void) | null>(null)
   const [loadState, setLoadState] = useState<'loading' | 'loaded' | 'error'>('loading')
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
   const viewerHref = sourceViewerHref({ href }, true)
   const normalizedRotation = ((rotation % 360) + 360) % 360
+  const caseContext = (() => {
+    try {
+      const url = new URL(viewerHref, window.location.origin)
+      return url.origin === window.location.origin && /^\/fascicoli\/[a-zA-Z0-9_-]+\/?$/.test(url.pathname)
+    } catch { return false }
+  })()
+  const readerNotice = notice || (caseContext ? 'Contesto del fascicolo: questa vista non costituisce il documento sorgente della scadenza.' : '')
 
   useEffect(() => {
     setLoadState('loading')
@@ -105,7 +122,18 @@ export function SourceDocumentReader({
     detachLinks.current?.()
     try {
       const content = iframeRef.current?.contentDocument
-      if (!content) return
+      if (!content || caseContext) return
+      // Ordine visivo e da tastiera: riduci, percentuale, ingrandisci, adatta.
+      const fit = content.querySelector('[data-zoom-reset]')
+      const zoomIn = content.querySelector('[data-zoom-in]')
+      if (content.querySelector('[data-document-pages]') && fit && zoomIn && fit.parentElement === zoomIn.parentElement) zoomIn.after(fit)
+      // Solo il lettore PDF interno: il titolo è già nella barra della finestra.
+      if (compact && content.querySelector('[data-document-pages]') && !content.getElementById('iu-embedded-reader-compact')) {
+        const style = content.createElement('style')
+        style.id = 'iu-embedded-reader-compact'
+        style.textContent = '.reader>header>strong{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.reader>header{grid-template-columns:minmax(0,1fr);padding:4px 6px}.reader-controls{justify-self:end}.reader-controls[open]{grid-column:1}.reader-controls[open]>.reader-toolbar{grid-column:1}.reader-controls[open]{display:flex;align-items:center;gap:6px;min-width:0}.reader-controls[open]>summary{flex:none;margin:0}.reader-controls[open]>.reader-toolbar{flex:1;width:auto;min-width:0}.reader-toolbar__main{flex-wrap:nowrap!important;overflow-x:auto;min-width:0}.reader-toolbar__main>*{flex-shrink:0}'
+        content.head.appendChild(style)
+      }
       const followLink = (event: MouseEvent) => {
         const element = event.target as Element | null
         const target = typeof element?.closest === 'function' ? element.closest('a[href]') : null
@@ -120,18 +148,25 @@ export function SourceDocumentReader({
           event.preventDefault()
           const params = new URLSearchParams({ a: address, embed: 'source' })
           if (url.searchParams.get('subject')) params.set('oggetto', url.searchParams.get('subject') || '')
-          setLinkFullscreen(false)
           setDestination({ href: `/email/scrivi?${params}`, label: address, mail: true })
         } else if (url.protocol === 'https:' || url.protocol === 'http:') {
           // I comandi propri del lettore (download, rotazione) restano sul percorso interno.
           if (url.origin === window.location.origin && !target?.classList.contains('reader-document-link') && target?.closest('.toolbar,header,nav')) return
           event.preventDefault()
-          setLinkFullscreen(false)
           setDestination({ href: `/api/v1/ui/document-reader/web?${new URLSearchParams({ url: url.href })}`, label: url.href, mail: false })
         }
       }
+      const activateReader = () => {
+        if (iframeRef.current) activateManagedWindowForNode(iframeRef.current)
+      }
+      content.addEventListener('pointerdown', activateReader, true)
+      content.addEventListener('focusin', activateReader)
       content.addEventListener('click', followLink, true)
-      detachLinks.current = () => content.removeEventListener('click', followLink, true)
+      detachLinks.current = () => {
+        content.removeEventListener('pointerdown', activateReader, true)
+        content.removeEventListener('focusin', activateReader)
+        content.removeEventListener('click', followLink, true)
+      }
     } catch { /* I contenuti di altra origine non vengono ispezionati. */ }
   }
 
@@ -157,9 +192,9 @@ export function SourceDocumentReader({
       data-rotation={normalizedRotation}
       style={{ '--iu-source-reader-rotation': `${normalizedRotation}deg` } as CSSProperties}
     >
-      {notice ? (
+      {readerNotice ? (
         <div className="iu-source-document-reader__notice" role="status">
-          {notice}
+          {readerNotice}
         </div>
       ) : null}
       {loadState === 'loading' ? (
@@ -178,6 +213,7 @@ export function SourceDocumentReader({
         <iframe
           ref={(element) => { iframeRef.current = element; if (readerRef) readerRef.current = element }}
           src={viewerHref}
+          data-iusentra-operational-frame={caseContext ? "true" : undefined}
           title={`Visualizzazione fonte ${label}`}
           sandbox={sourceIframeSandbox(viewerHref)}
           allow="clipboard-write"
@@ -194,13 +230,11 @@ export function SourceDocumentReader({
         <OperationalModal
           open
           draggable
-          fullscreen={linkFullscreen}
           ariaLabel={destination.mail ? `Nuova PEC a ${destination.label}` : `Collegamento web ${destination.label}`}
           eyebrow={destination.mail ? <><Mail size={14} /> Comunicazioni dello studio</> : <><Globe size={14} /> Collegamento del documento</>}
           title={destination.mail ? 'Componi PEC' : 'Lettore web'}
           subtitle={destination.label}
-          boxClassName={`iu-source-reader-box${linkFullscreen ? ' iu-ag-source-modal__box--fullscreen' : ''}`}
-          actions={<button type="button" aria-pressed={linkFullscreen} onClick={() => setLinkFullscreen((value) => !value)}>{linkFullscreen ? <Minimize2 size={14}/> : <Maximize2 size={14}/>} {linkFullscreen ? 'Esci da tutto schermo' : 'Tutto schermo'}</button>}
+          boxClassName="iu-source-reader-box"
           onClose={() => setDestination(null)}
         >
           {destination.mail ? <iframe title={`Componi PEC a ${destination.label}`} src={destination.href} style={{ width: '100%', height: '100%', border: 0 }} referrerPolicy="no-referrer"/> : <SourceDocumentReader href={destination.href} label={destination.label}/>}
@@ -210,15 +244,34 @@ export function SourceDocumentReader({
   )
 }
 
-export function SourceDocumentModal({ source, onClose }:{source:SourceDocument | null; onClose:()=>void}) {
-  const [fullscreen, setFullscreen] = useState(false)
+export function SourceDocumentModal({ source, onClose, requestToken }: { source: SourceDocument | null; onClose: () => void; requestToken?: object | null }) {
+  const owner = useId()
+  const current = useRef({ source, onClose, mounted: false }); current.current.source = source; current.current.onClose = onClose
+  useEffect(() => { current.current.mounted = true; return () => { current.current.mounted = false } }, [])
+  useEffect(() => {
+    if (!source) return
+    const href = source.href
+    openSourceWindow(source, owner, () => { if (current.current.mounted && current.current.source?.href === href) current.current.onClose() })
+  }, [owner,source?.href,source?.label,source?.context,requestToken])
+  return null
+}
+export function SourceDocumentWorkWindow({ source, onClose, focusToken = 0 }: { source: SourceDocument | null; onClose: () => void; focusToken?: number }) {
+  const [closeFocus,setCloseFocus] = useState(0)
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [discard, setDiscard] = useState(false)
   const originalHref = source ? sourceViewerHref(source, false) : ''
+  const caseSource = (() => {
+    try {
+      const url = new URL(originalHref, window.location.origin)
+      return url.origin === window.location.origin && /^\/fascicoli\/[a-zA-Z0-9_-]+\/?$/.test(url.pathname)
+    } catch { return false }
+  })()
+  const contextParts = (source?.context || '').split(' · ').map(part => part.trim()).filter(part => part && part !== '-')
+  const compactContext = contextParts.filter((part, index) => contextParts.findIndex(other => other.toLocaleLowerCase('it-IT') === part.toLocaleLowerCase('it-IT')) === index).join(' · ')
+  const sourceTitle = caseSource ? 'Fascicolo · ' + (source?.context.split(' · ').slice(-2).join(' · ') || 'Documenti') : source?.label || ''
 
   useEffect(() => {
-    setFullscreen(false)
     setDirty(false)
     setDiscard(false)
     setSaving(false)
@@ -227,33 +280,26 @@ export function SourceDocumentModal({ source, onClose }:{source:SourceDocument |
   return createPortal(
     <OperationalModal
       draggable
-      fullscreen={fullscreen}
+      focusToken={`${focusToken}:${closeFocus}`}
       open={Boolean(source)}
-      ariaLabel={source ? `Fonte: ${source.label}` : "Fonte dell'informazione"}
-      eyebrow={<><FileSearch size={14}/> Fonte dell'informazione</>}
-      title={source?.label || ''}
-      subtitle={source?.context}
+      ariaLabel={source ? `${caseSource ? 'Contesto' : 'Fonte'}: ${sourceTitle}` : "Fonte dell'informazione"}
+      eyebrow={<><FileSearch size={14}/> {caseSource ? 'Contesto del fascicolo' : "Fonte dell'informazione"}</>}
+      title={sourceTitle}
+      subtitle={compactContext}
       actions={source ? (
         <>
-          <button
-            type="button"
-            onClick={() => setFullscreen((value) => !value)}
-            aria-pressed={fullscreen}
-          >
-            {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-            {fullscreen ? 'Vista normale' : 'Tutto schermo'}
-          </button>
-          <a href={originalHref} target="_blank" rel="noreferrer">Apri originale</a>
+          <a className={caseSource ? undefined : "iu-source-original-icon"} href={originalHref} target={caseSource ? undefined : "_blank"} rel="noreferrer" aria-label={caseSource ? undefined : "Apri originale"} title={caseSource ? undefined : "Apri originale"}>{caseSource ? 'Apri fascicolo' : <ExternalLink size={16} aria-hidden="true"/>}</a>
         </>
       ) : null}
-      onClose={() => saving || dirty ? setDiscard(true) : onClose()}
-      boxClassName={`iu-source-reader-box${fullscreen ? ' iu-ag-source-modal__box--fullscreen' : ''}`}
+      onClose={() => { if (saving || dirty) { setDiscard(true); setCloseFocus(value => value + 1) } else onClose() }}
+      boxClassName={`iu-source-reader-box${caseSource ? '' : ' iu-source-reader-box--compact'}`}
     >
       {discard ? <div className="iu-source-edit-discard" role="alert"><span>{saving ? 'Salvataggio in corso. Attendi l’esito prima di chiudere.' : 'Ci sono modifiche non salvate. Torna al documento per salvarle.'}</span><button type="button" onClick={() => setDiscard(false)}>Torna al documento</button><button type="button" disabled={saving} onClick={onClose}>Scarta e chiudi</button></div> : null}
       {source ? (
         <Suspense fallback={<div role="status">Caricamento del visualizzatore...</div>}><ViewerDocumentEditor
           key={source.href}
           source={source}
+          compactReader={!caseSource}
           onDirty={setDirty}
           onSaving={setSaving}
         /></Suspense>

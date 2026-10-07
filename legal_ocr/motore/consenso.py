@@ -92,7 +92,10 @@ def leggi_con_secondo_lettore(immagine: Any, *, dpi: float = DPI_SECONDO_LETTORE
         pagina = esito.pages[0]
         provenienza = getattr(pagina, "provenance", None)
         confidenza = float(getattr(provenienza, "ocr_confidence", 0.0) or 0.0)
-        modello = str(getattr(provenienza, "ocr_model", "") or "pp-ocr")
+        identita = getattr(provenienza, "ocr_model", None)
+        nome = str(getattr(identita, "name", "") or (identita if isinstance(identita, str) else "") or "pp-ocr")
+        revisione = str(getattr(identita, "revision", "") or "")
+        modello = f"{nome}@{revisione}" if revisione else nome
         return LetturaSecondaria(str(pagina.markdown or ""), confidenza, f"pdf-inspector:{modello}", round(time.monotonic() - inizio, 3))
     except Exception:
         return None
@@ -133,6 +136,11 @@ def applica_consenso(parole: list[dict[str, Any]], secondaria: LetturaSecondaria
     righe_secondarie = _righe_secondarie(secondaria.testo)
     if not righe_secondarie:
         return parole, 0
+    righe_primarie = _righe_tesseract(parole)
+    if len(righe_secondarie) * 2 < len(righe_primarie):
+        # PDF Inspector può riunire molte righe in un capoverso Markdown.
+        # Il confronto conserva l'ordine della pagina e le coordinate originali.
+        return _consenso_capoversi(parole, righe_secondarie, righe_primarie)
     testi_secondari = [" ".join(_chiave(p) for p in riga) for riga in righe_secondarie]
     nuove = [dict(parola) for parola in parole]
     sostituzioni = 0
@@ -164,9 +172,36 @@ def applica_consenso(parole: list[dict[str, Any]], secondaria: LetturaSecondaria
                 if not candidata or candidata == parole[indice].get("text"):
                     continue
                 nuove[indice]["text"] = candidata
-                nuove[indice]["conf"] = max(float(parole[indice].get("conf") or 0.0), secondaria.confidenza)
+                nuove[indice]["conf"] = float(parole[indice].get("conf") or 0.0)
                 nuove[indice]["consenso"] = True
                 sostituzioni += 1
+    return nuove, sostituzioni
+
+
+def _consenso_capoversi(parole, righe_secondarie, righe_primarie):
+    primarie = [_chiave(str(parola.get("text") or "")) for parola in parole]
+    secondarie = [parola for riga in righe_secondarie for parola in riga]
+    chiavi = [_chiave(parola) for parola in secondarie]
+    if SequenceMatcher(None, " ".join(primarie), " ".join(chiavi)).ratio() < SOMIGLIANZA_RIGA:
+        return parole, 0
+    appartenenza = {indice: riga for riga, indici in enumerate(righe_primarie) for indice in indici}
+    nuove = [dict(parola) for parola in parole]
+    sostituzioni = 0
+    for operazione, i1, i2, j1, j2 in SequenceMatcher(None, primarie, chiavi).get_opcodes():
+        # Niente inserimenti, eliminazioni o tratti ambigui fra righe diverse.
+        if operazione != "replace" or i2 - i1 != j2 - j1 or not 0 < i2 - i1 <= 5:
+            continue
+        if appartenenza[i1] != appartenenza[i2 - 1]:
+            continue
+        for indice, candidata in zip(range(i1, i2), secondarie[j1:j2]):
+            if float(parole[indice].get("conf") or 0.0) >= CONFIDENZA_CONTENDIBILE:
+                continue
+            if not candidata or candidata == parole[indice].get("text"):
+                continue
+            nuove[indice]["text"] = candidata
+            nuove[indice]["conf"] = float(parole[indice].get("conf") or 0.0)
+            nuove[indice]["consenso"] = True
+            sostituzioni += 1
     return nuove, sostituzioni
 
 

@@ -93,3 +93,22 @@ Il gate `python scripts/audit_tenant_data_structure.py --repair` deve uscire con
 - report di migrazione persistito sotto `backup/` del tenant
 - audit severo con `scripts/audit_sqlite_migration_integrity.py` prima di dichiarare riuscito un recupero dati o un cutover su tenant reale
 - audit struttura tenant con `scripts/audit_tenant_data_structure.py` prima di dichiarare chiusa una modifica che tocca JSON, SQLite, PostgreSQL, agenda, scadenziario, notifiche, PEC o creazione studi
+
+## 05/10/2026 — Condivisioni: fonte SQL governata (tranche aperta)
+
+`GestioneCondivisioni`, quando il backend core è SQLite o PostgreSQL, legge e scrive tramite `pct/condivisioni_repository.py`. `condivisioni_records` conserva cartelle, fascicoli e link per chiave di studio; `condivisioni_bootstrap` registra la provenienza dell'importazione iniziale. Gli schemi equivalenti sono `pct/sql/20261005_condivisioni.sql` e `pct/sql/20261005_condivisioni_postgres.sql`.
+
+La prima importazione usa il modulo SQL core `condivisioni`; un modulo SQL inizializzato ma vuoto resta vuoto. Il JSON viene consultato soltanto se quel modulo non è mai stato inizializzato, come bootstrap controllato, mai dopo un errore SQL. Dopo il bootstrap la fonte primaria è sempre il repository dedicato. Le scritture modificano solo i record cambiati e confrontano il contenuto precedente: modifiche concorrenti indipendenti si conservano, mentre un conflitto sullo stesso record annulla l'intera operazione. Il JSON tenant-aware è un mirror atomico rigenerabile.
+
+Prova parziale in produzione: pagina reale Cartelle condivise aperta, conteggi coerenti con l'archivio vuoto SQL, filtro e ricerca conservati durante Aggiorna. Ispezione di sola lettura: `source_of_truth=sqlite`, zero condivisioni, un bootstrap con origine `sql_module`. Otto guardrail su SQLite e gli stessi otto su PostgreSQL reale in uno schema temporaneo controllato verificano isolamento studio, fonte primaria, nessun fallback, conflitti e rollback, aggiornamenti indipendenti e comportamento dei grant/revoche/link. I test non sono accettazione utente né prova di un catalogo reale non vuoto. Restano aperti il collaudo locale 127.0.0.1:8080 e il riallineamento finale delle copie.
+
+## 06/10/2026 — Catalogo posta SQL (attivo, accettazione aperta)
+
+`email_mailbox_records`, `email_mailbox_bootstrap` e `email_mailbox_audit` hanno
+schema e repository SQLite/PostgreSQL gemelli. Il runtime attivo usa SQL primario
+e JSON solo mirror, con letture multiple atomiche, selezione filtrata multipagina
+e dettaglio puntuale. Non cambia MIME, IMAP, SMTP, firma o originali del gestore.
+I quattro cataloghi SQLite dei due studi sono migrati e i chiamanti operativi
+sono attivi. La parità PostgreSQL è verificata su database controllati;
+la campagna materiale completa e l'accettazione locale restano aperte.
+Procedura, limiti, concorrenza e verifiche in `docs/EMAIL_MAILBOX_SQL.md`.

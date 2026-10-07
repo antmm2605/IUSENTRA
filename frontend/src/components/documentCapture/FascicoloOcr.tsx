@@ -183,8 +183,8 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
   const secondoLettore = useMemo(() => pagine.find((pagina) => pagina.secondoLettore)?.secondoLettore || '', [pagine])
 
   /** Il documento riveduto, con le correzioni: Word modificabile o PDF impaginato. */
-  const documentoRiveduto = async (formato: FormatoSalvataggio): Promise<File> => (
-    documentoModificabile(blocksToHtml(blocchi), nome || reference, formato)
+  const documentoRiveduto = async (formato: FormatoSalvataggio, download = false): Promise<File> => (
+    documentoModificabile(blocksToHtml(blocchi), nome || reference, formato, download)
   )
 
   const copiaRicercabile = async (): Promise<GeneratedDocument> => {
@@ -222,9 +222,9 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
         return
       }
       if (destinazione.tipo === 'documento') {
-        const documento = await documentoRiveduto(destinazione.formato)
+        const documento = await documentoRiveduto(destinazione.formato, true)
         scaricaSulComputer(documento, documento.name)
-        if (vivo.current) setAvviso(`${documento.name} scaricato sul dispositivo.`)
+        if (vivo.current) setAvviso(`Download avviato: ${documento.name}.`)
         return
       }
       if (destinazione.tipo === 'ricercabile') {
@@ -367,7 +367,7 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
             <div><dt>Dal testo del documento</dt><dd>{pagine.length - daOcr.length}</dd></div>
             <div><dt>Con riconoscimento ottico</dt><dd>{daOcr.length}{fiducia ? ` · ${Math.round(fiducia * 100)}%` : ''}</dd></div>
             <div><dt>Caratteri riconosciuti</dt><dd>{caratteri.toLocaleString('it-IT')}</dd></div>
-            {secondoLettore ? <div><dt>Secondo lettore</dt><dd>{consenso ? `${consenso} ${consenso === 1 ? 'parola confermata' : 'parole confermate'}` : 'in accordo'}</dd></div> : null}
+            {secondoLettore ? <div><dt>Secondo lettore</dt><dd>{consenso ? `${consenso} ${consenso === 1 ? 'parola riletta nel confronto' : 'parole rilette nel confronto'}` : 'Confronto eseguito'}</dd></div> : null}
           </dl>
 
           {correzioni.length ? (

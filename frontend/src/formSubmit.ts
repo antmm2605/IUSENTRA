@@ -1,3 +1,4 @@
+import { publishMutationRefresh } from './operationalRefresh'
 export type FormSubmitResult = {
   ok: boolean
   message?: string
@@ -88,6 +89,7 @@ export async function submitFormJson(endpoint: string, formData: FormData): Prom
       : response.redirected
         ? response.url
         : ''
+  publishMutationRefresh(endpoint)
   return {
     ok: true,
     message: String(payload.message || 'Operazione completata.'),

@@ -90,6 +90,8 @@ class PaginaRiconosciuta:
     # pagina: servono all'avvocato per controllare il riconoscimento.
     correzioni: list[dict[str, Any]] = field(default_factory=list)
     riferimenti: dict[str, list[str]] = field(default_factory=dict)
+    consenso: int = 0
+    secondo_lettore: str = ""
 
     @property
     def characters(self) -> int:
@@ -504,14 +506,16 @@ def _paragrafi(blocchi: Sequence[dict[str, Any]]) -> list[str]:
     return paragrafi
 
 
-def _rifinisci(blocchi: Sequence[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[str], list[dict[str, Any]], dict[str, list[str]]]:
+def _rifinisci(blocchi: Sequence[dict[str, Any]], *, correggi: bool = True) -> tuple[list[dict[str, Any]], list[str], list[dict[str, Any]], dict[str, list[str]]]:
     """Applica le correzioni forensi e legge i riferimenti giuridici della pagina.
 
     Le due cose stanno insieme perche' i riferimenti vanno cercati nel testo
     gia' normalizzato: un numero di ruolo spezzato dagli spazi dell'OCR non
     verrebbe riconosciuto prima della correzione.
     """
-    corretti, applicate = correggi_blocchi(blocchi)
+    # Il testo nativo è quello scritto dall'autore: le correzioni automatiche
+    # servono al riconoscimento ottico, non devono riscrivere un originale.
+    corretti, applicate = correggi_blocchi(blocchi) if correggi else ([dict(blocco) for blocco in blocchi], [])
     paragrafi = _paragrafi(corretti)
     return corretti, paragrafi, applicate, riferimenti_del_testo("\n".join(paragrafi))
 
@@ -544,6 +548,8 @@ def riconosci_pagina(
             confidence=esito.confidence,
             engine=esito.engine,
             anteprima=esito.anteprima,
+            consenso=esito.consenso,
+            secondo_lettore=esito.secondo_lettore,
             correzioni=correzioni,
             riferimenti=riferimenti,
         )
@@ -561,7 +567,7 @@ def riconosci_pagina(
                 # si rileggono le parole con le linee: solo ora si sa che la pagina e' di testo
                 parole = _parole_native(pagina, DPI_RASTERIZZAZIONE / 72.0, filetti)
             blocchi = analizza_pagina(parole, pagina=numero)
-            blocks, paragrafi, correzioni, riferimenti = _rifinisci(blocchi_con_formato(blocchi, parole))
+            blocks, paragrafi, correzioni, riferimenti = _rifinisci(blocchi_con_formato(blocchi, parole), correggi=False)
             # I tratti si fanno sul testo gia' corretto: le parole si
             # riabbinano per contenuto, non per posizione.
             blocks = con_tratti(blocks, parole)
@@ -594,6 +600,8 @@ def riconosci_pagina(
         confidence=esito.confidence,
         engine=esito.engine,
         anteprima=esito.anteprima,
+        consenso=esito.consenso,
+        secondo_lettore=esito.secondo_lettore,
         correzioni=correzioni,
         riferimenti=riferimenti,
     )
@@ -615,6 +623,8 @@ def come_payload(pagina: PaginaRiconosciuta) -> dict[str, Any]:
         "anteprima": anteprima_payload(pagina.anteprima),
         "correzioni": list(pagina.correzioni),
         "riferimenti": dict(pagina.riferimenti),
+        "consenso": pagina.consenso,
+        "secondo_lettore": pagina.secondo_lettore,
     }
 
 

@@ -112,6 +112,9 @@
 }
 
 .iu-fatt-metric-pill {
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
   min-width: 0;
   min-height: 58px;
   display: grid;
@@ -126,6 +129,23 @@
   border-radius: var(--iu-radius-sm);
   background: var(--iu-bg-card);
 }
+
+.iu-fatt-metric-pill:hover:not(:disabled),
+.iu-fatt-metric-pill[aria-pressed="true"] {
+  border-color: var(--iu-navy-700);
+  background: var(--iu-slate-50);
+  box-shadow: inset 3px 0 var(--iu-navy-700);
+}
+
+.iu-fatt-page :is(button, a, input, select):focus-visible {
+  outline: 3px solid #2563eb !important;
+  outline-offset: 2px;
+}
+
+.iu-fatt-metric-pill:disabled { cursor: default; opacity: .65; }
+.iu-fatt-pagination { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.iu-fatt-pagination > span { margin-right: auto; font-size: 12px; }
+.iu-fatt-filters { scroll-margin-top: 88px; }
 
 .iu-fatt-metric-pill span {
   grid-area: label;
@@ -1712,3 +1732,19 @@
     min-height: 320px;
   }
 }
+
+/* Il dettaglio si adatta anche all'affiancamento, indipendentemente dal viewport. */
+.iu-fatt-modal__body { container-type: inline-size; container-name: dettaglio-fattura; }
+.iu-fatt-edit-line > .iu-btn { white-space: nowrap; min-width: 100px; min-height: 44px; }
+@container dettaglio-fattura (max-width: 800px) {
+  .iu-fatt-edit-line { grid-template-columns: repeat(2,minmax(0,1fr)); align-items: start; }
+  .iu-fatt-edit-line > .iu-btn { justify-self: start; }
+}
+@container dettaglio-fattura (max-width: 480px) {
+  .iu-fatt-edit-line { grid-template-columns: minmax(0,1fr); }
+}
+
+.iu-fatt-modal__body .iu-fatt-draft__body { display:grid; gap:6px; width:100%; min-width:0; }
+.iu-fatt-modal__body .iu-fatt-draft__body > span { color:var(--iu-slate-600); font-size:12px; line-height:1.3; font-weight:700; }
+.iu-fatt-modal__body .iu-fatt-draft__body > textarea { width:100%; min-width:0; min-height:120px; padding:10px 12px; border:1px solid var(--iu-border); border-radius:var(--iu-radius-sm); color:var(--iu-navy-900); background:var(--iu-bg-card); font:inherit; font-size:13px; line-height:1.45; resize:vertical; }
+.iu-fatt-modal__body .iu-fatt-draft__body > textarea:focus-visible { outline:3px solid #2563eb; outline-offset:3px; }

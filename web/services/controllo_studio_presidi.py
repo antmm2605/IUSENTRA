@@ -34,6 +34,8 @@ def righe_presidi() -> list[dict]:
                     f"Destinatari: {progresso['delivered']}/{progresso['total']} consegnati",
                     "Termine espresso nel documento" if termine else "Termine non determinato: verifica l'atto e il rito",
                 ) if p),
+                "reference_at": riga.get("sourceEffectiveAt") or riga.get("createdAt") or "",
+                "reference_label": "Data della fonte" if riga.get("sourceEffectiveAt") else "Presidio creato",
                 "due_at": termine, "badge": STATUS_LABELS.get(stato, "Da verificare"),
                 "tone": "danger" if stato in {"DELIVERY_FAILED", "PARTIAL_DELIVERY"} else "warning",
                 "href": "/notifiche-legali?" + urlencode({"section": "presidi", "presidio": riga["id"]}),

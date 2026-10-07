@@ -1,9 +1,13 @@
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
+import { publishMutationRefresh } from '../operationalRefresh'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle, Banknote, BellRing, CalendarClock, CheckCircle2, ChevronDown, FilePlus2, Gavel, Inbox, Mail,
   Plus, RefreshCw, Search, ShieldCheck, Wallet, X, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { formatDateIt } from '../formatting'
+import { ControlloStudioFiltri, FILTRI_VUOTI, filtraVoce } from './ControlloStudioFiltri'
+import './ControlloStudioContext.css'
 import './ControlloStudioPage.css'
 
 const ControlloStudioDetail = lazy(() => import('./ControlloStudioDetail'))
@@ -11,7 +15,7 @@ export type Azione = { etichetta: string; href: string; endpoint: string; confer
 export type Voce = {
   id: string; area: string; area_etichetta: string; titolo: string; dettaglio: string; data: string; ora: string
   gravita: 'critica' | 'alta' | 'normale'; etichetta: string; fascicolo: { id?: string; etichetta?: string; href?: string }
-  importo: number; azioni: Azione[]; fascia: string
+  data_riferimento: string; tipo_data_riferimento: string; importo: number; azioni: Azione[]; fascia: string
 }
 type Area = { area: string; etichetta: string; totale: number; urgenti: number }
 type Dati = {
@@ -39,7 +43,7 @@ const dataEstesa = (iso: string | undefined) => {
 const testoRicerca = (testo: string) => testo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('it').trim()
 const DIMENSIONE_PAGINA = 50
 
-function ElencoVoci({ voci, onFatto, onApri }: { voci: Voce[]; onFatto: (voce: Voce, azione: Azione) => void; onApri: (voce: Voce) => void }) {
+function ElencoVoci({ voci, onFatto, onApri, selezione, onSeleziona }: { voci: Voce[]; onFatto: (voce: Voce, azione: Azione) => void; onApri: (voce: Voce, azione?: Azione) => void; selezione: Set<string>; onSeleziona: (id: string) => void }) {
   const [pagina, setPagina] = useState(0)
   const elenco = useRef<HTMLUListElement>(null)
   const ultima = Math.max(0, Math.ceil(voci.length / DIMENSIONE_PAGINA) - 1)
@@ -50,7 +54,7 @@ function ElencoVoci({ voci, onFatto, onApri }: { voci: Voce[]; onFatto: (voce: V
     elenco.current?.scrollIntoView({ block: 'start', behavior: 'instant' })
   }
   return <>
-    <ul ref={elenco}>{voci.slice(da, da + DIMENSIONE_PAGINA).map((v) => <RigaVoce voce={v} key={v.id} onFatto={onFatto} onApri={onApri}/>)}</ul>
+    <ul ref={elenco}>{voci.slice(da, da + DIMENSIONE_PAGINA).map((v) => <RigaVoce voce={v} key={v.id} onFatto={onFatto} onApri={onApri} selezione={selezione} onSeleziona={onSeleziona}/>)}</ul>
     {ultima > 0 ? <nav className="iu-cs-paginazione" aria-label="Pagine dei risultati">
       <span>{da + 1}–{Math.min(da + DIMENSIONE_PAGINA, voci.length)} di {voci.length}</span>
       <button type="button" disabled={attuale === 0} onClick={() => cambiaPagina(attuale - 1)} aria-label="Pagina precedente"><ChevronLeft size={16}/></button>
@@ -67,15 +71,19 @@ async function esegui(endpoint: string, payload: object = {}): Promise<{ ok: boo
     body: JSON.stringify(payload),
   }).catch(() => null)
   if (!risposta) return { ok: false, message: 'Connessione non riuscita.' }
-  return await risposta.json().catch(() => ({ ok: false, message: 'Operazione non riuscita.' })) as { ok: boolean; message: string }
+  const result = await risposta.json().catch(() => ({ ok: false, message: 'Operazione non riuscita.' })) as { ok: boolean; message: string }
+  if (!risposta.ok) return { ok: false, message: result.message || 'Operazione non riuscita.' }
+  if (result.ok) publishMutationRefresh(endpoint)
+  return result
 }
 
-function RigaVoce({ voce, onFatto, onApri }: { voce: Voce; onFatto: (voce: Voce, azione: Azione) => void; onApri: (voce: Voce) => void }) {
+function RigaVoce({ voce, onFatto, onApri, selezione, onSeleziona }: { voce: Voce; onFatto: (voce: Voce, azione: Azione) => void; onApri: (voce: Voce, azione?: Azione) => void; selezione: Set<string>; onSeleziona: (id: string) => void }) {
   const Icona = ICONE[voce.area] || Inbox
   const principale = voce.azioni.find((a) => a.principale) || voce.azioni[0]
   const altre = voce.azioni.filter((a) => a !== principale)
   return (
-    <li className={`iu-cs-voce is-${voce.gravita}`}>
+    <li className={`iu-cs-voce is-${voce.gravita}${voce.id.startsWith('pec-') ? ' has-selection' : ''}`}>
+      {voce.id.startsWith('pec-') ? <input className="iu-cs-select" type="checkbox" aria-label={`Seleziona ${voce.titolo}`} checked={selezione.has(voce.id)} onChange={() => onSeleziona(voce.id)}/> : null}
       <span className={`iu-cs-voce__icona is-${voce.area}`} aria-hidden="true"><Icona size={16}/></span>
       <div className="iu-cs-voce__testo">
         <div className="iu-cs-voce__riga1">
@@ -90,16 +98,18 @@ function RigaVoce({ voce, onFatto, onApri }: { voce: Voce; onFatto: (voce: Voce,
       </div>
       <div className="iu-cs-voce__quando">
         {voce.ora ? <strong>{voce.ora}</strong> : null}
-        <span>{formatDateIt(voce.data)}</span>
+        <span>{voce.data ? formatDateIt(voce.data) : 'Termine da determinare'}</span>
+        {voce.data_riferimento ? <small>{voce.tipo_data_riferimento}: {formatDateIt(voce.data_riferimento)}</small> : null}
       </div>
       <div className="iu-cs-voce__azioni">
         {principale ? (principale.endpoint
           ? <button type="button" className="is-primaria" onClick={() => onFatto(voce, principale)}>{principale.etichetta}</button>
-          : ['scadenze', 'notifiche'].includes(voce.area) || voce.id.startsWith('pec-')
-            ? <button type="button" className="is-primaria" onClick={() => onApri(voce)}>{principale.etichetta}</button>
+          : ['scadenze', 'notifiche', 'agenda'].includes(voce.area) || voce.id.startsWith('pec-')
+            ? <button type="button" className="is-primaria" onClick={() => onApri(voce, principale)}>{principale.etichetta}</button>
             : <a className="is-primaria" href={principale.href}>{principale.etichetta}</a>) : null}
         {altre.map((a) => a.endpoint
           ? <button type="button" key={a.etichetta} onClick={() => onFatto(voce, a)}><CheckCircle2 size={14}/> {a.etichetta}</button>
+          : voce.area === 'agenda' ? <button type="button" key={a.etichetta} onClick={() => onApri(voce, a)}>{a.etichetta}</button>
           : <a key={a.etichetta} href={a.href}>{a.etichetta}</a>)}
       </div>
     </li>
@@ -110,6 +120,9 @@ function RigaVoce({ voce, onFatto, onApri }: { voce: Voce; onFatto: (voce: Voce,
 export default function ControlloStudioPage() {
   const [dati, setDati] = useState<Dati | null>(null)
   const [selezionata, setSelezionata] = useState<Voce | null>(null)
+  const [azioneSelezionata, setAzioneSelezionata] = useState<Azione | undefined>()
+  const [filtri, setFiltri] = useState(FILTRI_VUOTI)
+  const [selezione, setSelezione] = useState<Set<string>>(new Set())
   const [area, setArea] = useState('')
   const [periodo, setPeriodo] = useState('')
   const [ricerca, setRicerca] = useState('')
@@ -129,8 +142,9 @@ export default function ControlloStudioPage() {
     setDati(valori || { ok: false, message: 'Il quadro dello studio non si è caricato: riprova tra poco.' })
     setCaricamento(false)
   }, [])
+  useOperationalRefresh(['agenda', 'scadenze', 'comunicazioni', 'fascicoli'], carica)
   useEffect(() => { void carica() }, [carica])
-  useEffect(() => { setConfermaCollettiva(null) }, [area, periodo, ricerca])
+  useEffect(() => { setConfermaCollettiva(null) }, [area, periodo, ricerca, filtri])
   useEffect(() => {
     if (confermaCollettiva) { confermaPulsante.current?.focus(); confermaPulsante.current?.scrollIntoView({ block: 'nearest', behavior: 'instant' }) }
   }, [confermaCollettiva])
@@ -143,16 +157,36 @@ export default function ControlloStudioPage() {
     return indice.filter(({ voce, testo }) => (!area || voce.area === area)
       && (!periodo || voce.fascia === periodo) && parole.every((p) => testo.includes(p))).map(({ voce }) => voce)
   }, [indice, area, periodo, ricerca])
-  const gruppi = useMemo(() => (dati?.fasce || []).map((f) => ({ ...f, voci: voci.filter((v) => v.fascia === f.fascia) })).filter((g) => g.voci.length), [dati, voci])
+  const vociFiltrate = useMemo(() => {
+    const rows = voci.filter(v => filtraVoce(v, filtri))
+    const giorno = (v: Voce) => filtri.dataFonte ? v.data_riferimento || v.data : v.data
+    if (filtri.ordine === 'recenti') rows.sort((a, b) => giorno(b).localeCompare(giorno(a)))
+    if (filtri.ordine === 'vecchie') rows.sort((a, b) => giorno(a).localeCompare(giorno(b)))
+    if (filtri.ordine === 'titolo') rows.sort((a, b) => a.titolo.localeCompare(b.titolo, 'it'))
+    return rows
+  }, [voci, filtri])
+  const pecFiltrate = vociFiltrate.filter(v => v.id.startsWith('pec-'))
+  const selezionate = pecFiltrate.filter(v => selezione.has(v.id))
+  const apri = (voce: Voce, azione?: Azione) => { setAzioneSelezionata(azione); setSelezionata(voce) }
+  const segnaSelezionate = async () => {
+    if (!selezionate.length || completamento) return
+    setCompletamento(true)
+    try {
+      const result = await esegui('/api/v1/ui/controllo-studio/pec/lette', { ids: selezionate.map(v => v.id.replace(/^pec-/, '')) })
+      setAvviso(result.message); setErroreAzione(!result.ok)
+      if (result.ok) { setSelezione(new Set()); await carica() }
+    } finally { setCompletamento(false) }
+  }
+  const gruppi = useMemo(() => (dati?.fasce || []).map((f) => ({ ...f, voci: vociFiltrate.filter((v) => v.fascia === f.fascia) })).filter((g) => g.voci.length), [dati, vociFiltrate])
   const scadute = (dati?.voci || []).filter((v) => v.area === 'scadenze' && v.fascia === 'scaduto').length
-  const filtriAttivi = Boolean(area || periodo || ricerca.trim())
+  const filtriAttivi = Boolean(area || periodo || ricerca.trim() || JSON.stringify(filtri) !== JSON.stringify(FILTRI_VUOTI))
   const tutteScadute = () => {
     setConfermaCollettiva(null)
     setArea('scadenze'); setPeriodo('scaduto'); setRicerca(''); setAperte(new Set(['scaduto'])); setResetCoda((n) => n + 1)
   }
 
   const preparaCompletamento = () => {
-    const ids = voci.filter((v) => v.area === 'scadenze' && v.fascia === 'scaduto').map((v) => v.id.replace(/^scadenza-/, ''))
+    const ids = vociFiltrate.filter((v) => v.area === 'scadenze' && v.fascia === 'scaduto').map((v) => v.id.replace(/^scadenza-/, ''))
     if (ids.length) setConfermaCollettiva({ ids, ricerca: ricerca.trim() })
   }
   const completaTutte = async () => {
@@ -196,15 +230,15 @@ export default function ControlloStudioPage() {
       {avviso ? <p className={`iu-cs-stato ${erroreAzione ? 'is-errore' : 'is-ok'}`} role={erroreAzione ? 'alert' : 'status'}>{avviso}</p> : null}
 
       <nav className="iu-cs-aree" aria-label="Filtra per area" data-iusentra-sequence-slot="filters">
-        <button type="button" className={!area ? 'is-attiva' : ''} aria-pressed={!area} onClick={() => setArea('')}>
-          <span>Tutto</span><strong>{dati.voci?.length || 0}</strong>
+        <button type="button" className={!area ? 'is-attiva' : ''} aria-pressed={!area} onClick={() => { setArea(''); setFiltri(FILTRI_VUOTI); setSelezione(new Set()) }}>
+          <span>Tutto</span><strong>{dati.voci?.length || 0}</strong><span className="iu-cs-card-filter">Visualizza tutte</span><small>Tutte le attività</small>
         </button>
         {(dati.aree || []).map((a) => {
           const Icona = ICONE[a.area] || Inbox
           return (
-            <button type="button" key={a.area} className={area === a.area ? 'is-attiva' : ''} onClick={() => { setArea(area === a.area ? '' : a.area); setAperte(new Set((dati.fasce || []).map((f) => f.fascia))) }} aria-pressed={area === a.area}>
+            <button type="button" key={a.area} className={area === a.area ? 'is-attiva' : ''} onClick={() => { setArea(area === a.area ? '' : a.area); setFiltri(FILTRI_VUOTI); setSelezione(new Set()); setAperte(new Set((dati.fasce || []).map((f) => f.fascia))) }} aria-pressed={area === a.area}>
               <span><Icona size={15}/> {a.etichetta}</span>
-              <strong>{a.totale}</strong>
+              <strong>{a.totale}</strong><span className="iu-cs-card-filter">Filtra quest’area</span>
               {a.urgenti ? <small>{a.urgenti} urgenti</small> : <small>{a.totale && a.area === 'comunicazioni' ? 'da leggere' : a.area === 'notifiche' && a.totale ? 'da presidiare' : 'in ordine'}</small>}
             </button>
           )
@@ -231,11 +265,21 @@ export default function ControlloStudioPage() {
           <CalendarClock size={18}/> Tutte le scadute <strong>{scadute}</strong>
         </button>
       </section>
+      <details className="iu-cs-advanced"><summary>Ricerca avanzata e filtri{Object.keys(FILTRI_VUOTI).some(key => filtri[key as keyof typeof filtri] !== FILTRI_VUOTI[key as keyof typeof filtri]) ? ' · attivi' : ''}</summary>
+      <ControlloStudioFiltri voci={(dati.voci || []).filter(v => !area || v.area === area)} filtri={filtri} onChange={f => { setFiltri(f); setSelezione(new Set()); setAperte(new Set((dati.fasce || []).map(s => s.fascia))) }}/>
+      </details>
+      {area === 'notifiche' ? <p className="iu-cs-nota">La data della fonte o di creazione resta visibile. Il termine di notifica compare soltanto se determinato: la data del documento non diventa una scadenza.</p> : null}
+      {pecFiltrate.length && (area === 'comunicazioni' || periodo === 'comunicazioni' || selezione.size > 0) ? <section className="iu-cs-selezione" aria-label="Selezione delle comunicazioni">
+        <label><input type="checkbox" checked={Boolean(pecFiltrate.length && selezionate.length === pecFiltrate.length)} disabled={completamento}
+          onChange={e => setSelezione(e.target.checked ? new Set(pecFiltrate.map(v => v.id)) : new Set())}/> Seleziona tutte le comunicazioni filtrate ({pecFiltrate.length}), anche nelle altre pagine</label>
+        <span>{selezionate.length} selezionate</span>
+        <button type="button" className="iu-cs-aggiorna" disabled={!selezionate.length || completamento} onClick={() => void segnaSelezionate()}>{completamento ? 'Salvataggio…' : 'Segna selezionate come lette'}</button>
+      </section> : null}
       <div className="iu-cs-contesto" data-iusentra-sequence-slot="context-filters">
-        <span role="status">{voci.length} {voci.length === 1 ? 'risultato' : 'risultati'}{area === 'scadenze' && periodo === 'scaduto' ? ' nelle scadenze scadute' : ''}{ricerca.trim() ? ` per «${ricerca.trim()}»` : ''}</span>
-        {area === 'scadenze' && periodo === 'scaduto' && dati.puo_completare_scadenze && voci.length > 0 ? <button type="button" className="iu-cs-completa-tutte" disabled={completamento || caricamento}
-          onClick={preparaCompletamento}><CheckCircle2 size={17}/>{completamento ? 'Salvataggio delle scadenze…' : `Segna tutte come fatte (${voci.length})`}</button> : null}
-        {filtriAttivi ? <button type="button" onClick={() => { setArea(''); setPeriodo(''); setRicerca(''); setAperte(new Set(FASCE_APERTE)) }}>Azzera filtri</button>
+        <span role="status">{vociFiltrate.length} {vociFiltrate.length === 1 ? 'risultato' : 'risultati'}{area === 'scadenze' && periodo === 'scaduto' ? ' nelle scadenze scadute' : ''}{ricerca.trim() ? ` per «${ricerca.trim()}»` : ''}</span>
+        {area === 'scadenze' && periodo === 'scaduto' && dati.puo_completare_scadenze && vociFiltrate.length > 0 ? <button type="button" className="iu-cs-completa-tutte" disabled={completamento || caricamento}
+          onClick={preparaCompletamento}><CheckCircle2 size={17}/>{completamento ? 'Salvataggio delle scadenze…' : `Segna tutte come fatte (${vociFiltrate.length})`}</button> : null}
+        {filtriAttivi ? <button type="button" onClick={() => { setArea(''); setPeriodo(''); setRicerca(''); setFiltri(FILTRI_VUOTI); setSelezione(new Set()); setAperte(new Set(FASCE_APERTE)) }}>Azzera filtri</button>
           : <span>Ricerca immediata su tutte le voci. Date: giorno/mese/anno.</span>}
       </div>
 
@@ -256,7 +300,7 @@ export default function ControlloStudioPage() {
                   onClick={() => setAperte((s) => { const n = new Set(s); if (n.has(g.fascia)) n.delete(g.fascia); else n.add(g.fascia); return n })}>
                   <h2>{g.etichetta}</h2><span>{g.voci.length}</span><ChevronDown size={16}/>
                 </button>
-                {aperta ? <ElencoVoci key={`${g.fascia}:${area}:${periodo}:${ricerca}:${resetCoda}`} voci={g.voci} onFatto={(voce, azione) => void fatto(voce, azione)} onApri={setSelezionata}/> : null}
+                {aperta ? <ElencoVoci key={`${g.fascia}:${area}:${periodo}:${ricerca}:${JSON.stringify(filtri)}:${resetCoda}`} voci={g.voci} onFatto={(voce, azione) => void fatto(voce, azione)} onApri={apri} selezione={selezione} onSeleziona={id => setSelezione(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next })}/> : null}
               </section>
             )
           }) : (
@@ -287,7 +331,7 @@ export default function ControlloStudioPage() {
         </aside>
       </div>
       {selezionata ? <Suspense fallback={<p role="status">Apertura del dettaglio…</p>}><ControlloStudioDetail
-        key={selezionata.id} voce={selezionata} onClose={() => setSelezionata(null)} onUpdated={() => void carica()}
+        key={`${selezionata.id}:${azioneSelezionata?.href}`} voce={selezionata} azione={azioneSelezionata} onClose={() => setSelezionata(null)} onUpdated={() => void carica()}
         onFatto={(voce, azione) => void fatto(voce, azione)}/></Suspense> : null}
     </main>
   )

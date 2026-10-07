@@ -15,7 +15,7 @@ from pct.calcolatori.schema import schema_calcolatore
 
 # Strumenti che non sono un modulo di calcolo ma una pagina propria della shell
 # React: il catalogo li dichiara con `componente`, la pagina monta quel componente.
-COMPONENTI_DEDICATI: frozenset[str] = frozenset({"ocr-documento"})
+COMPONENTI_DEDICATI: frozenset[str] = frozenset({"ocr-documento", "impronta-documenti", "confronta-testi"})
 
 
 def sorgenti_opzioni(gestore: Any) -> Dict[str, List[Dict[str, str]]]:

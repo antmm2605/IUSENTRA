@@ -142,7 +142,7 @@ def _risk_for_deadline(item: Any, today: date) -> dict[str, Any] | None:
     }
 
 
-def build_guardiano_scadenze_payload(items: Iterable[Any], *, today: date | None = None) -> dict[str, Any]:
+def build_guardiano_scadenze_payload(items: Iterable[Any], *, today: date | None = None, limit: int | None = 12) -> dict[str, Any]:
     """Restituisce la coda rischio derivata da scadenze già persistite."""
 
     reference_day = today or _today_rome()
@@ -159,7 +159,7 @@ def build_guardiano_scadenze_payload(items: Iterable[Any], *, today: date | None
             "unassigned": sum(1 for item in risks if not item["ownerAssigned"]),
             "sourceReview": sum(1 for item in risks if any(reason["code"] in {"fonte_da_confermare", "prova_fonte_incompleta"} for reason in item["reasons"])),
         },
-        "items": risks[:12],
+        "items": risks if limit is None else risks[:max(0, int(limit))],
         "message": (
             "Nessun rischio aperto nel perimetro delle scadenze attive."
             if not risks

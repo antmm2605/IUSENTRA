@@ -462,28 +462,39 @@
   grid-template-columns:repeat(4,minmax(0,1fr));
   gap:10px;
 }
-.iu-tel-quality-grid article{
-  min-height:126px;
+.iu-tel-quality-grid>button,.iu-tel-quality-grid>a{
+  min-width:0;
   display:grid;
-  gap:8px;
-  align-content:start;
-  padding:13px;
+  grid-template-columns:30px minmax(0,1fr) 15px;
+  gap:4px 8px;
+  align-items:center;
+  padding:10px;
   border:1px solid var(--iu-border);
-  border-radius:14px;
-  background:#fff;
+  border-radius:12px;
+  background:var(--iu-bg-card);
+  color:var(--iu-slate-900);
+  text-align:left;
+  text-decoration:none;
+  font:inherit;
+  cursor:pointer;
+}
+.iu-tel-quality-grid>button:hover,.iu-tel-quality-grid>a:hover{
+  border-color:var(--iu-blue-600);
+  background:var(--iu-slate-100);
 }
 .iu-tel-quality-grid div{
-  width:34px;
-  height:34px;
+  grid-row:1/3;
+  width:30px;
+  height:30px;
   display:grid;
   place-items:center;
-  border-radius:10px;
-  background:rgba(37,99,235,.1);
-  color:var(--iu-blue-600);
+  border-radius:9px;
+  background:var(--iu-slate-100);
+  color:var(--iu-blue-700);
 }
-.iu-tel-quality-grid strong{font-size:13px;font-weight:950}
-.iu-tel-quality-grid span{color:var(--iu-slate-600);font-size:12px;font-weight:700;line-height:1.4}
-.iu-tel-lex-suggestions{display:grid;gap:10px}
+.iu-tel-quality-grid strong{font-size:12px;font-weight:900;line-height:1.35;overflow-wrap:anywhere}
+.iu-tel-quality-grid span{grid-column:2;color:var(--iu-slate-600);font-size:11px;line-height:1.4;overflow-wrap:anywhere}
+.iu-tel-quality-arrow{grid-column:3;grid-row:1/3;color:var(--iu-blue-700)}.iu-tel-lex-suggestions{display:grid;gap:10px}
 .iu-tel-lex-suggestions span{display:grid;grid-template-columns:22px 1fr;gap:8px;color:var(--iu-slate-600);font-size:13px;font-weight:750;line-height:1.45}
 .iu-tel-lex-suggestions svg{color:var(--iu-purple-500)}
 .iu-telematico-page a:focus-visible,
@@ -572,3 +583,19 @@
 .iu-tel-sentinel-alert span,.iu-tel-sentinel-alert small{color:var(--iu-slate-600);font-size:11px;font-weight:700;line-height:1.4}
 @media(max-width:1180px){.iu-tel-trust-grid{grid-template-columns:1fr}}
 @media(max-width:760px){.iu-tel-truth-row dl{grid-template-columns:1fr}.iu-tel-truth-row header{grid-template-columns:1fr;gap:6px}.iu-tel-truth-row header .iu-badge{justify-self:start}.iu-tel-truth-references a{width:100%;justify-content:space-between}}
+
+/* Indicatori compatti e operativi: il contenuto della pagina resta prioritario. */
+.iu-telematico-page .iu-tel-stats{gap:10px}
+.iu-telematico-page .iu-tel-stats .iu-tel-stat{width:100%;min-height:82px;grid-template-columns:28px minmax(0,1fr);gap:4px 8px;padding:10px 12px;text-align:left;font:inherit;color:var(--iu-navy-900);border-radius:12px;cursor:pointer}
+.iu-telematico-page .iu-tel-stats .iu-tel-stat>div{width:28px;height:28px;border-radius:8px}
+.iu-telematico-page .iu-tel-stats .iu-tel-stat span{font-size:11px;letter-spacing:0;text-transform:none}
+.iu-telematico-page .iu-tel-stats .iu-tel-stat strong{font-size:21px}
+.iu-telematico-page .iu-tel-stats .iu-tel-stat small{font-size:11px}
+.iu-telematico-page .iu-tel-stats .iu-tel-stat:not(:disabled):hover{background:var(--iu-blue-50);border-color:var(--iu-blue-600);color:var(--iu-navy-900)}
+.iu-telematico-page .iu-tel-stats .iu-tel-stat:focus-visible{outline:2px solid var(--iu-blue-600);outline-offset:2px}
+.iu-telematico-page .iu-tel-stats .iu-tel-stat[aria-pressed=true]{border-color:var(--iu-blue-600);box-shadow:inset 0 0 0 1px var(--iu-blue-600)}
+.iu-telematico-page .iu-tel-stats .iu-tel-stat:disabled{opacity:.7;cursor:default}
+.iu-tel-load-error{display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-size:13px}
+.iu-tel-load-error button{min-height:44px;padding:8px 14px;border:1px solid var(--iu-border);border-radius:9px;background:var(--iu-bg-card);color:var(--iu-navy-900);font:inherit;cursor:pointer}
+@media(min-width:1100px){.iu-telematico-page .iu-tel-stats{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(max-width:600px){.iu-telematico-page .iu-tel-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.iu-telematico-page .iu-tel-stats .iu-tel-stat:last-child{grid-column:1/-1}}

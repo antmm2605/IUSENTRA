@@ -7,6 +7,7 @@ import logging
 from collections import Counter, defaultdict
 from datetime import date, datetime, timezone
 from typing import Any, Callable
+from zoneinfo import ZoneInfo
 
 
 MONTH_LABELS = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"]
@@ -29,15 +30,16 @@ def _to_number(value: Any) -> float:
 
 def _parse_date(value: Any) -> date | None:
     if isinstance(value, datetime):
-        return value.date()
+        return value.astimezone(ZoneInfo("Europe/Rome")).date() if value.tzinfo else value.date()
     if isinstance(value, date):
         return value
     raw = str(value or "").strip()
     if not raw:
         return None
-    for sample in (raw[:10], raw.replace("Z", "+00:00")):
+    for sample in (raw.replace("Z", "+00:00"),):
         try:
-            return datetime.fromisoformat(sample).date()
+            parsed = datetime.fromisoformat(sample)
+            return parsed.astimezone(ZoneInfo("Europe/Rome")).date() if parsed.tzinfo else parsed.date()
         except ValueError:
             continue
     return None
@@ -100,7 +102,7 @@ def _monthly_billing(parcelle: list[Any]) -> list[dict[str, Any]]:
             continue
         stato = _enum_value(getattr(parcella, "stato", "")).upper()
         total = _to_number(getattr(parcella, "totale", 0))
-        if stato != "ANNULLATA":
+        if stato not in {"ANNULLATA", "BOZZA"}:
             fatturato[month] += total
         if stato == "PAGATA":
             incassato[month] += total
@@ -159,6 +161,7 @@ def _depositi_records(fascicoli: list[Any]) -> list[dict[str, Any]]:
             "label": label,
             "value": records[index + 1]["depositi"],
             "secondaryValue": records[index + 1]["accettati"],
+            "secondaryLabel": "Accettati",
             "note": f"Rifiutati: {records[index + 1]['rifiutati']}",
             "tone": "success" if records[index + 1]["accettati"] else "neutral",
         }
@@ -167,7 +170,7 @@ def _depositi_records(fascicoli: list[Any]) -> list[dict[str, Any]]:
 
 
 def _productivity(fascicoli: list[Any], scadenze: list[Any]) -> dict[str, Any]:
-    today = date.today()
+    today = datetime.now(ZoneInfo("Europe/Rome")).date()
     chiusi = 0
     durate: list[int] = []
     for fascicolo in fascicoli:
@@ -182,6 +185,8 @@ def _productivity(fascicoli: list[Any], scadenze: list[Any]) -> dict[str, Any]:
 
     completed = 0
     respected = 0
+    late = 0
+    unknown = 0
     expired = 0
     for scadenza in scadenze:
         stato = _enum_value(getattr(scadenza, "stato", "")).upper()
@@ -189,8 +194,12 @@ def _productivity(fascicoli: list[Any], scadenze: list[Any]) -> dict[str, Any]:
         if stato == "COMPLETATO":
             completed += 1
             completed_at = _parse_date(getattr(scadenza, "completata_il", "") or getattr(scadenza, "data_completamento", ""))
-            if not completed_at or not due or completed_at <= due:
+            if not completed_at or not due:
+                unknown += 1
+            elif completed_at <= due:
                 respected += 1
+            else:
+                late += 1
         elif due and due < today:
             expired += 1
 
@@ -200,7 +209,10 @@ def _productivity(fascicoli: list[Any], scadenze: list[Any]) -> dict[str, Any]:
         "tasso_chiusura_pct": round(chiusi / total_matters * 100) if total_matters else 0,
         "fascicoli_chiusi": chiusi,
         "fascicoli_totali": total_matters,
-        "tasso_scadenze_rispettate_pct": round(respected / completed * 100) if completed else 0,
+        "tasso_scadenze_rispettate_pct": round(respected / (respected + late) * 100) if respected + late else None,
+        "chiusure_entro_termine": respected,
+        "chiusure_dopo_termine": late,
+        "chiusure_non_verificabili": unknown,
         "scadenze_completate": completed,
         "scadenze_totali": len(scadenze),
         "scadenze_scadute": expired,
@@ -221,7 +233,7 @@ def build_react_statistiche_payload(
     get_timesheet: Callable[[], Any] | None = None,
 ) -> dict[str, Any]:
     warnings: list[dict[str, str]] = []
-    today = date.today()
+    today = datetime.now(ZoneInfo("Europe/Rome")).date()
 
     agenda = _safe("agenda", warnings, get_agenda, None)
     clienti = _safe("clienti", warnings, get_clienti, None)
@@ -252,7 +264,8 @@ def build_react_statistiche_payload(
     conferimenti_lista = _safe("conferimenti_lista", warnings, lambda: list(preventivi.tutti_conferimenti()), []) if preventivi else []
     timesheet_lista = _safe("timesheet_lista", warnings, lambda: _all(timesheet), []) if timesheet else []
 
-    scadenze_oggi = sum(1 for item in scadenze if _parse_date(getattr(item, "data_scadenza", "")) == today)
+    scadenze_oggi = sum(1 for item in scadenze if _enum_value(getattr(item, "stato", "")).upper() == "APERTO" and _parse_date(getattr(item, "data_scadenza", "")) == today)
+    scadute_oggi = sum(1 for item in scadenze if _enum_value(getattr(item, "stato", "")).upper() == "SCADUTO" and _parse_date(getattr(item, "data_scadenza", "")) == today)
     productivity = _productivity(fascicoli, scadenze)
 
     metrics = [
@@ -274,7 +287,7 @@ def build_react_statistiche_payload(
             "id": "scadenze",
             "label": "Scadenze aperte",
             "value": scadenze_stats.get("aperte", scadenze_stats.get("totale", len(scadenze))),
-            "note": f"Oggi: {scadenze_oggi}",
+            "note": f"Oggi: {scadenze_oggi} aperte" + (f", {scadute_oggi} scadut{'a' if scadute_oggi == 1 else 'e'}" if scadute_oggi else ""),
             "tone": "warning" if scadenze_oggi else "neutral",
         },
         {
@@ -298,9 +311,9 @@ def build_react_statistiche_payload(
         },
         {
             "id": "produttivita",
-            "label": "Scadenze rispettate",
-            "value": f"{productivity['tasso_scadenze_rispettate_pct']}%",
-            "note": f"Completate: {productivity['scadenze_completate']}",
+            "label": "Chiusure entro termine",
+            "value": f"{productivity['tasso_scadenze_rispettate_pct']}%" if productivity['tasso_scadenze_rispettate_pct'] is not None else "Non disponibile",
+            "note": f"Date di chiusura registrate: {productivity['scadenze_completate']}",
             "tone": "success",
         },
     ]
@@ -328,10 +341,31 @@ def build_react_statistiche_payload(
     conferimenti_counter = Counter(_enum_value(getattr(item, "stato", "")) or "Non indicato" for item in conferimenti_lista)
     timesheet_counter = Counter(_enum_value(getattr(item, "stato", "")) or "Non indicato" for item in timesheet_lista)
 
+    active_matters = [item for item in fascicoli if _enum_value(getattr(item, "stato", "")).upper() not in {"CHIUSO", "DEFINITO", "ARCHIVIATO"}]
+    open_deadlines = [item for item in scadenze if _enum_value(getattr(item, "stato", "")).upper() == "APERTO"]
+    today_appointments = _safe("agenda_oggi_elenco", warnings, lambda: list(agenda.per_giorno(today)) if agenda else [], [])
+    metric_sections = {
+        "fascicoli": [
+            _counter_section("fascicoli_tipo", "Fascicoli attivi per tipo", Counter(_enum_value(getattr(item, "tipo", "")) or "Non indicato" for item in active_matters), "Nessun fascicolo attivo."),
+            _counter_section("fascicoli_stato", "Fascicoli attivi per stato", Counter(_enum_value(getattr(item, "stato", "")) or "Non indicato" for item in active_matters), "Nessun fascicolo attivo."),
+        ],
+        "scadenze": [_counter_section("scadenze_priorita", "Scadenze aperte per priorità", Counter(_enum_value(getattr(item, "priorita", "")) or "Non indicata" for item in open_deadlines), "Nessuna scadenza aperta.")],
+        "agenda": [_counter_section("agenda_tipo", "Appuntamenti di oggi per tipo", Counter(_enum_value(getattr(item, "tipo", "")) or "Non indicato" for item in today_appointments), "Nessun appuntamento oggi.")],
+        "produttivita": [{
+            "id": "chiusure_registrate", "title": "Date di chiusura registrate", "kind": "distribution",
+            "items": [
+                {"id": "entro", "label": "Registrate entro il termine", "value": productivity["chiusure_entro_termine"]},
+                {"id": "dopo", "label": "Registrate dopo il termine", "value": productivity["chiusure_dopo_termine"]},
+                {"id": "non_verificabili", "label": "Date mancanti o non verificabili", "value": productivity["chiusure_non_verificabili"]},
+            ],
+            "emptyMessage": "Nessuna chiusura registrata.",
+        }],
+    }
+
     sections = [
         _counter_section("fascicoli_tipo", "Fascicoli per tipo", tipo_counter, "Nessun fascicolo presente."),
         _counter_section("fascicoli_stato", "Fascicoli per stato", stato_counter, "Nessuno stato fascicolo disponibile."),
-        _counter_section("scadenze_priorita", "Scadenze per priorita", priorita_counter, "Nessuna scadenza disponibile."),
+        _counter_section("scadenze_priorita", "Scadenze per priorità", priorita_counter, "Nessuna scadenza disponibile."),
         _counter_section("agenda_tipo", "Appuntamenti per tipo", agenda_counter, "Nessun appuntamento disponibile."),
         {
             "id": "fatturato_mensile",
@@ -355,15 +389,21 @@ def build_react_statistiche_payload(
 
     records = [
         {"id": "clienti", "label": "Clienti registrati", "value": len(clienti_lista), "note": "Anagrafica clienti", "href": "/clienti"},
-        {"id": "fascicoli", "label": "Fascicoli totali", "value": len(fascicoli), "note": "Archivio fascicoli", "href": "/fascicoli"},
+        {"id": "fascicoli", "label": "Fascicoli non archiviati", "value": sum(_enum_value(getattr(item, "stato", "")).upper() != "ARCHIVIATO" for item in fascicoli), "note": f"In corso e definiti; {len(fascicoli)} fascicoli totali", "href": "/fascicoli"},
+        {"id": "fascicoli_archivio", "label": "Fascicoli archiviati", "value": sum(_enum_value(getattr(item, "stato", "")).upper() == "ARCHIVIATO" for item in fascicoli), "note": "Archivio e relativi documenti", "href": "/fascicoli/archivio"},
+        {"id": "fascicoli_attivi", "label": "Fascicoli in corso", "value": sum(_enum_value(getattr(item, "stato", "")).upper() == "IN_CORSO" for item in active_matters), "note": "Apri i fascicoli in corso", "href": "/fascicoli?status=in_corso"},
+        {"id": "fascicoli_aperti", "label": "Fascicoli aperti", "value": sum(_enum_value(getattr(item, "stato", "")).upper() == "APERTO" for item in active_matters), "note": "Apri i fascicoli aperti", "href": "/fascicoli?status=aperto"},
+        {"id": "fascicoli_sospesi", "label": "Fascicoli sospesi", "value": sum(_enum_value(getattr(item, "stato", "")).upper() == "SOSPESO" for item in active_matters), "note": "Apri i fascicoli sospesi", "href": "/fascicoli?status=sospeso"},
         {"id": "parcelle", "label": "Parcelle", "value": len(parcelle), "note": "Fatturazione", "href": "/fatturazione"},
-        {"id": "scadenze", "label": "Scadenze", "value": len(scadenze), "note": "Scadenziario", "href": "/scadenziario"},
+        {"id": "scadenze", "label": "Scadenze registrate", "value": len(scadenze), "note": "Tutti gli stati, proposte comprese", "href": "/scadenziario?vista=tutte"},
+        {"id": "scadenze_aperte", "label": "Scadenze aperte", "value": len(open_deadlines), "note": "Apri le attività da lavorare", "href": "/scadenziario?vista=aperte"},
+        {"id": "scadenze_completate", "label": "Chiusure registrate", "value": productivity["scadenze_completate"], "note": "Apri le scadenze completate e le relative fonti", "href": "/scadenziario?vista=completate"},
         {"id": "pec", "label": "PEC", "value": len(pec_lista), "note": "Casella PEC", "href": "/email/"},
         {"id": "email", "label": "Email ordinarie", "value": len(email_lista), "note": "Posta ordinaria", "href": "/email-ordinaria/"},
         {"id": "messaggi", "label": "Messaggi clienti", "value": len(messaggi_lista), "note": "Comunicazioni", "href": "/messaggi"},
         {"id": "preventivi", "label": "Preventivi", "value": len(preventivi_lista), "note": "Preventivi e incarichi", "href": "/preventivi"},
         {"id": "conferimenti", "label": "Incarichi", "value": len(conferimenti_lista), "note": "Conferimenti incarico", "href": "/preventivi"},
-        {"id": "timesheet", "label": "Voci timesheet", "value": len(timesheet_lista), "note": "Tempo e produttivita", "href": "/timesheet"},
+        {"id": "timesheet", "label": "Voci timesheet", "value": len(timesheet_lista), "note": "Tempo e produttività", "href": "/timesheet"},
         {"id": "durata_media", "label": "Durata media fascicoli", "value": productivity["durata_media_gg"], "note": "Giorni", "href": "/fascicoli"},
         {"id": "tasso_chiusura", "label": "Tasso chiusura fascicoli", "value": f"{productivity['tasso_chiusura_pct']}%", "note": f"Chiusi: {productivity['fascicoli_chiusi']}", "href": "/fascicoli"},
     ]
@@ -387,6 +427,7 @@ def build_react_statistiche_payload(
         },
         "metrics": metrics,
         "sections": sections,
+        "metricSections": metric_sections,
         "records": records,
         "actions": actions,
         "warnings": warnings,

@@ -96,6 +96,15 @@ def _safe_count(loader: Loader | None, label: str, warnings: list[dict[str, str]
     return 0
 
 
+def _safe_read(loader: Callable[[], Any], label: str, warnings: list[dict[str, str]], fallback: Any) -> Any:
+    try:
+        return loader()
+    except Exception:
+        logger.exception("Riepilogo Studio %s non disponibile", label)
+        warnings.append({"code": f"{label}_non_disponibile", "message": f"Riepilogo {label.replace('_', ' ')} non disponibile: riprova."})
+        return fallback
+
+
 def _site_status(warnings: list[dict[str, str]]) -> dict[str, Any]:
     try:
         from web.services.studio_site_runtime import build_studio_site_dashboard_payload
@@ -192,34 +201,36 @@ def build_react_studio_payload(
 ) -> dict[str, Any]:
     warnings: list[dict[str, str]] = []
     utenti_stats = _safe_stats(get_utenti, "utenti", warnings)
-    scadenze_stats = _safe_stats(get_scadenziario, "scadenziario", warnings)
     backup_stats = _safe_stats(get_backup, "backup", warnings) if get_backup is not None else {}
-    fatturazione_stats = _safe_stats(get_fatturazione, "fatturazione", warnings) if get_fatturazione is not None else {}
-    preventivi_stats = _safe_stats(get_preventivi, "preventivi", warnings) if get_preventivi is not None else {}
     pagamenti_stats = _safe_stats(get_pagamenti, "pagamenti", warnings) if get_pagamenti is not None else {}
     clienti_count = _safe_count(get_clienti, "clienti", warnings)
-    fascicoli_count = _safe_count(get_fascicoli, "fascicoli", warnings)
+    fascicoli_rows = _safe_read(lambda: list(get_fascicoli().tutti(archiviati=True)), "fascicoli", warnings, [])
+    fascicoli_count = len(fascicoli_rows)
+    fascicoli_archived = sum(_enum(getattr(item, "stato", "")) == "ARCHIVIATO" for item in fascicoli_rows)
     active_users = int(utenti_stats.get("attivi", 0) or 0)
-    urgent_terms = int(scadenze_stats.get("critiche", 0) or 0) + int(scadenze_stats.get("alte", 0) or 0)
+    open_deadlines = _safe_read(lambda: [item for item in get_scadenziario().tutte(solo_aperte=False) if _enum(getattr(item, "stato", "")) == "APERTO"], "scadenze_prioritarie", warnings, [])
+    critical = sum(_enum(getattr(item, "priorita", "")) == "CRITICA" for item in open_deadlines)
+    high = sum(_enum(getattr(item, "priorita", "")) == "ALTA" for item in open_deadlines)
+    urgent_terms = critical + high
     site_status = _site_status(warnings)
     backup_total = int(backup_stats.get("totale", backup_stats.get("totale_backup", 0)) or 0)
-    open_quotes = int(preventivi_stats.get("aperti", preventivi_stats.get("in_attesa", 0)) or 0)
-    unpaid = int(fatturazione_stats.get("non_pagati", fatturazione_stats.get("scadute", 0)) or 0)
-    pending_payments = int(pagamenti_stats.get("in_attesa", pagamenti_stats.get("pendenti", 0)) or 0)
+    open_quotes = _safe_read(lambda: sum(_enum(getattr(item, "stato", "")) in {"BOZZA", "GENERATO", "INVIATO", "APERTO"} for item in get_preventivi().tutti_preventivi()), "preventivi_aperti", warnings, 0) if get_preventivi else 0
+    unpaid = _safe_read(lambda: int(get_fatturazione().crediti_aperti()["parcelle"]), "crediti_aperti", warnings, 0) if get_fatturazione else 0
+    pending_payments = int(pagamenti_stats.get("attesi", 0) or 0)
 
     operational_routes = [
         _module("utenti", "Utenti", "/utenti", "amministrazione", "Elenco e creazione utenti operativi."),
         _module("utenti-nuovo", "Nuovo utente", "/utenti/nuovo", "amministrazione", "Creazione utente con permessi e registro."),
         _module("profili", "Profili", "/profili", "amministrazione", "Matrice ruoli e permessi operativa."),
-        _module("registro", "Registro attivita", "/audit", "sicurezza", "Registro consultabile dallo studio."),
-        _module("registro-attivita", "Registro attivita", "/registro-attivita", "sicurezza", "Percorso operativo del registro attivita."),
+        _module("registro", "Registro attività", "/audit", "sicurezza", "Registro consultabile dallo studio."),
+        _module("registro-attivita", "Registro attività", "/registro-attivita", "sicurezza", "Percorso operativo del registro attività."),
         _module("backup", "Backup", "/backup", "governance", "Stato backup e verifiche operative."),
         _module("fatturazione", "Fatturazione", "/fatturazione", "economico", "Documenti economici nel cruscotto."),
         _module("fatturazione-nuova", "Nuova fattura", "/fatturazione/nuova", "economico", "Creazione fattura con controlli applicativi."),
         _module("incassi", "Incassi e pagamenti", "/incassi-pagamenti", "economico", "Incassi, pagamenti e link pagamento governati."),
         _module("preventivi", "Preventivi", "/preventivi", "mandato", "Lista preventivi e stati reali."),
         _module("preventivi-nuovo", "Nuovo preventivo", "/preventivi/nuovo", "mandato", "Creazione preventivo con controlli applicativi."),
-        _module("conferimento", "Nuovo conferimento", "/preventivi/conferimento/nuovo", "mandato", "Percorso conferimento gia servito dalla pagina."),
+        _module("conferimento", "Nuovo conferimento", "/preventivi/conferimento/nuovo", "mandato", "Percorso conferimento già servito dalla pagina."),
         _module("compensi", "Compensi forensi", "/compensi-forensi", "economico", "Calcolo compensi governato."),
         _module("tariffario", "Tariffario", "/tariffario", "economico", "Motore tariffario operativo."),
         _module("sito-studio", "Sito Studio", "/sito-studio", "comunicazione", "Cruscotto e contatti sito operativi."),
@@ -238,7 +249,7 @@ def build_react_studio_payload(
         _health("backup", "Backup", "presente" if backup_total else "da verificare", "success" if backup_total else "warning", "Conteggio registro backup sicuro.", backup_total),
         _health("sito", "Sito Studio", site_status["status"], site_status["tone"], site_status["note"], site_status.get("metrics", {}).get("contatti", "")),
         _health("utenti", "Utenti e profili", "presidiato" if active_users else "da verificare", "success" if active_users else "warning", "Account attivi letti dall'archivio utenti.", active_users),
-        _health("registro", "Registro attivita", "abilitato" if _can(current_user, "audit.leggi") else "permesso mancante", "success" if _can(current_user, "audit.leggi") else "warning", "Accesso registro eventi amministrativi."),
+        _health("registro", "Registro attività", "abilitato" if _can(current_user, "audit.leggi") else "permesso mancante", "success" if _can(current_user, "audit.leggi") else "warning", "Accesso registro eventi amministrativi."),
         _health("economico", "Economico e mandato", "attenzione" if (unpaid or pending_payments or open_quotes) else "allineato", "warning" if (unpaid or pending_payments or open_quotes) else "success", "Aggregati fatturazione, preventivi e pagamenti.", unpaid + pending_payments + open_quotes),
         _health("documentale", "Fascicoli e scadenze", "attenzione" if urgent_terms else "allineato", "warning" if urgent_terms else "success", "Fascicoli e scadenze prioritarie reali.", urgent_terms),
     ]
@@ -265,6 +276,21 @@ def build_react_studio_payload(
         "operational_routes": operational_routes,
         "legacy_routes": legacy_routes,
         "health": health,
+        "metricContexts": {
+            "fascicoli": [
+                {"id": "operativi", "label": "Fascicoli non archiviati", "value": fascicoli_count - fascicoli_archived, "note": "Elenco di lavoro", "tone": "primary", "href": "/fascicoli"},
+                {"id": "archiviati", "label": "Fascicoli archiviati", "value": fascicoli_archived, "note": "Archivio dello studio", "tone": "neutral", "href": "/fascicoli/archivio"},
+            ],
+            "scadenze": [
+                {"id": "critiche", "label": "Scadenze critiche aperte", "value": critical, "note": "Massima priorità", "tone": "warning", "href": "/scadenziario?vista=critiche"},
+                {"id": "alte", "label": "Scadenze ad alta priorità aperte", "value": high, "note": "Da presidiare", "tone": "warning", "href": "/scadenziario?vista=alte"},
+            ],
+            "economico": [
+                {"id": "crediti", "label": "Parcelle da incassare", "value": unpaid, "note": "Emesse e scadute, tutti gli anni", "tone": "primary", "href": "/incassi-pagamenti?riepilogo=crediti"},
+                {"id": "pagamenti", "label": "Link di pagamento attesi", "value": pending_payments, "note": "Collegamenti in attesa", "tone": "primary", "href": "/incassi-pagamenti?riepilogo=link_attesi"},
+                {"id": "preventivi", "label": "Preventivi aperti", "value": open_quotes, "note": "Bozze, generati, inviati o aperti", "tone": "primary", "href": "/preventivi?metric=preventivi_aperti"},
+            ],
+        },
         "metrics": [
             _metric("fascicoli", "Fascicoli", fascicoli_count, "Conteggio dall'archivio fascicoli", "primary"),
             _metric("clienti", "Clienti", clienti_count, "Anagrafica clienti reale", "info"),

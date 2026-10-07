@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, CircleAlert, ClipboardCheck, Database, ExternalLink, FlaskConical, MonitorCheck, RefreshCw, ShieldAlert, ShieldCheck } from 'lucide-react'
 import {
   emptyDataConsistencyPage,
@@ -31,6 +31,8 @@ function formatValue(value: string | number): string {
   return value
 }
 
+const metricHrefs: Record<string, string> = {utenti:'/utenti', attivi:'/utenti?stato=attivi', profili:'/profili?vista=ruoli-usati', audit:'/audit', override:'/utenti?stato=override'}
+
 function WarningPanel({ data }: { data: AmministrazionePageData }) {
   if (!data.warnings.length) return null
   return (
@@ -52,18 +54,15 @@ function ModuleList({ modules, legacy = false }: { modules: Array<OperationalMod
   return (
     <div className="iu-adminhub-modules">
       {modules.map((record) => (
-        <article className="iu-adminhub-module" key={record.id}>
+        <ButtonLink className="iu-adminhub-module" tone={legacy ? 'warning' : 'neutral'} href={record.href} aria-label={`Apri ${record.label}`} key={record.id}>
           <div>
             {legacy ? <ShieldAlert size={18} /> : <ShieldCheck size={18} />}
             <strong>{record.label}</strong>
             <span>{record.note}</span>
           </div>
           <Badge tone={record.tone}>{record.status}</Badge>
-          <ButtonLink href={record.href} tone={legacy ? 'warning' : 'neutral'}>
-            <ExternalLink size={15} />
-            Apri
-          </ButtonLink>
-        </article>
+          <span>Apri →</span>
+        </ButtonLink>
       ))}
     </div>
   )
@@ -74,21 +73,21 @@ function SecurityPanel({ data }: { data: AmministrazionePageData }) {
   return (
     <Panel title="Sicurezza e permessi" subtitle="Indicatori aggregati senza credenziali o dati riservati">
       <div className="iu-adminhub-security">
-        <article>
+        <ButtonLink href="/profili" tone="neutral" aria-label="Consulta sicurezza e permessi">
           <span>Stato</span>
           <strong>{security.status || 'non indicato'}</strong>
-          <Badge tone={security.tone || 'neutral'}>{security.tone || 'neutral'}</Badge>
-        </article>
-        <article>
+          <small>Consulta profili →</small>
+        </ButtonLink>
+        <ButtonLink href="/audit" tone="neutral" aria-label="Apri registro attività">
           <span>Registro</span>
           <strong>{security.canReadAudit ? 'visibile' : 'permesso richiesto'}</strong>
-          <Badge tone={security.canReadAudit ? 'success' : 'warning'}>audit</Badge>
-        </article>
-        <article>
+          <small>Apri registro →</small>
+        </ButtonLink>
+        <ButtonLink href="/utenti?stato=override" tone="neutral" aria-label="Apri utenti con permessi personalizzati">
           <span>Override permessi</span>
           <strong>{formatValue(security.permissionOverrides || 0)}</strong>
-          <Badge tone={security.permissionOverrides ? 'warning' : 'success'}>RBAC</Badge>
-        </article>
+          <small>Filtra utenti →</small>
+        </ButtonLink>
       </div>
     </Panel>
   )
@@ -96,13 +95,13 @@ function SecurityPanel({ data }: { data: AmministrazionePageData }) {
 
 function ContractPanel({ data }: { data: AmministrazionePageData }) {
   return (
-    <Panel title="Qualita dati" subtitle="Informazioni operative, impostazioni sensibili protette.">
+    <Panel title="Qualità dati" subtitle="Informazioni operative, impostazioni sensibili protette.">
       <div className="iu-adminhub-contract">
         <span>Origine: {displaySourceLabel(data.source || '')}</span>
         <span>Generato: {formatDateTimeIt(data.generated_at, 'Non disponibile')}</span>
         <span>Azioni: {displayWritesLabel(data.contracts.writes || '')}</span>
-        <span>Operativo: {data.contracts.operational ? 'si' : 'no'}</span>
-        <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'si'}</span>
+        <span>Operativo: {data.contracts.operational ? 'sì' : 'no'}</span>
+        <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'sì'}</span>
       </div>
     </Panel>
   )
@@ -167,6 +166,9 @@ function CapabilityDetail({ capability }: { capability: ProductReadinessCapabili
 
 function ProductReadinessView({ data, loading, error }: { data: ProductReadinessPageData; loading: boolean; error: string }) {
   const hasData = data.capabilities.length > 0
+  const [filter, setFilter] = useState('')
+  const [query, setQuery] = useState('')
+  const visibleCapabilities = data.capabilities.filter(item => (!filter || item.status === filter) && `${item.module} ${item.owner} ${item.statusLabel} ${item.statusNote}`.toLocaleLowerCase('it-IT').includes(query.trim().toLocaleLowerCase('it-IT')))
   return (
     <Page
       title="Prontezza prodotto"
@@ -193,22 +195,25 @@ function ProductReadinessView({ data, loading, error }: { data: ProductReadiness
             </Panel>
           ) : null}
           <section className="iu-readiness-kpis" aria-label="Riepilogo capability P0">
-            <KpiCard label="Flussi P0" value={formatValue(data.summary.total)} note="Superfici censite" badge={<Badge tone="primary">P0</Badge>} />
-            <KpiCard label="Verificate" value={formatValue(data.summary.verified)} note="Con prova corrente registrata" badge={<Badge tone="success">prove</Badge>} />
-            <KpiCard label="Da verificare" value={formatValue(data.summary.pending)} note="Prove browser e provider ancora richieste" badge={<Badge tone="warning">aperte</Badge>} />
-            <KpiCard label="Bloccate" value={formatValue(data.summary.blocked)} note="Requisiti che impediscono il flusso" badge={<Badge tone="danger">blocchi</Badge>} />
+            <KpiCard label="Flussi P0" value={formatValue(data.summary.total)} note="Superfici censite" active={!filter} onClick={() => setFilter('')} actionLabel="Mostra tutti" />
+            <KpiCard label="Verificate" value={formatValue(data.summary.verified)} note="Con prova corrente registrata" active={filter === 'verificata'} onClick={() => setFilter('verificata')} actionLabel="Filtra registro" />
+            <KpiCard label="Da verificare" value={formatValue(data.summary.pending)} note="Prove browser e fornitore ancora richieste" active={filter === 'da verificare'} onClick={() => setFilter('da verificare')} actionLabel="Filtra registro" />
+            <KpiCard label="Parziali" value={formatValue(data.summary.partial)} note="Prove presenti con limiti dichiarati" active={filter === 'parziale'} onClick={() => setFilter('parziale')} actionLabel="Filtra registro" />
+            <KpiCard label="Bloccate" value={formatValue(data.summary.blocked)} note="Requisiti che impediscono il flusso" active={filter === 'bloccata'} onClick={() => setFilter('bloccata')} actionLabel="Filtra registro" />
           </section>
+          <section className="iu-adminhub-filters" aria-label="Ricerca registro di prontezza"><label>Cerca flussi<input type="search" value={query} onChange={event => setQuery(event.currentTarget.value)}/></label><Button type="button" tone="neutral" disabled={!filter && !query} onClick={() => {setFilter('');setQuery('')}}>Azzera filtri</Button><span role="status">{visibleCapabilities.length} di {data.capabilities.length} flussi</span></section>
           <Panel title="Contratto del registro" subtitle={`Registro ${data.registryVersion || 'non disponibile'} · applicazione ${data.applicationVersion || 'non disponibile'}`}>
             <div className="iu-readiness-contract">
               <span><Database size={15} aria-hidden="true" />Fonte: {data.contracts.sourceOfTruth || 'Non disponibile'}</span>
-              <span><ClipboardCheck size={15} aria-hidden="true" />Scritture: {data.contracts.writes || 'none'}</span>
-              <span><ShieldCheck size={15} aria-hidden="true" />Provider: {data.contracts.providerCalls ? 'contattati' : 'non contattati'}</span>
+              <span><ClipboardCheck size={15} aria-hidden="true" />Scritture: {displayWritesLabel(data.contracts.writes)}</span>
+              <span><ShieldCheck size={15} aria-hidden="true" />Fornitori: {data.contracts.providerCalls ? 'contattati' : 'non contattati'}</span>
               <span>Generato: {formatDateTimeIt(data.generatedAt, 'Non disponibile')}</span>
             </div>
           </Panel>
           <Panel title="Capability P0" subtitle="Apri una riga per route, API, dati, prove, limiti e rollback.">
             <div className="iu-readiness-capabilities">
-              {data.capabilities.map((capability) => <CapabilityDetail capability={capability} key={capability.id} />)}
+              {visibleCapabilities.map((capability) => <CapabilityDetail capability={capability} key={capability.id} />)}
+              {!visibleCapabilities.length ? <EmptyState title="Nessun flusso corrisponde ai filtri" /> : null}
             </div>
           </Panel>
         </>
@@ -217,12 +222,18 @@ function ProductReadinessView({ data, loading, error }: { data: ProductReadiness
   )
 }
 
-function DataConsistencyView({ data, loading, error, onRefresh }: { data: DataConsistencyPageData; loading: boolean; error: string; onRefresh: () => void }) {
+type EventFilters = {status:string;query:string;page:number}
+function DataConsistencyView({ data, loading, error, onRefresh, filters, onFilters }: { data: DataConsistencyPageData; loading: boolean; error: string; onRefresh: () => void; filters:EventFilters;onFilters:(filters:EventFilters)=>void }) {
   const readableDomains = data.domains.filter((domain) => domain.status === 'PRESIDIATO').length
+  const [mode,setMode]=useState<'domini'|'eventi'>('domini')
+  const [readableOnly,setReadableOnly]=useState(false)
+  const [eventQuery,setEventQuery]=useState(filters.query)
+  const visibleDomains=data.domains.filter(domain=>!readableOnly||domain.status==='PRESIDIATO')
+  const showEvents=(status:string)=>{setMode('eventi');onFilters({...filters,status,page:1})}
   return (
     <Page
       title="Coerenza dati"
-      subtitle="Controllo in sola lettura del backend SQL del tenant, senza scansioni dei mirror JSON."
+      subtitle="Controllo in sola lettura dell’archivio SQL dello studio."
       actions={
         <>
           <Button tone="neutral" onClick={onRefresh} disabled={loading}><RefreshCw size={15} />Aggiorna controllo</Button>
@@ -230,35 +241,36 @@ function DataConsistencyView({ data, loading, error, onRefresh }: { data: DataCo
         </>
       }
     >
-      {loading ? <LoadingState title="Controllo coerenza dati" message="Lettura del backend SQL del tenant in corso." /> : null}
-      {!loading && error ? <EmptyState title="Coerenza dati non disponibile" message={error} action={<ButtonLink href="/amministrazione" tone="primary">Torna ad amministrazione</ButtonLink>} /> : null}
-      {!loading && !error ? (
+      {loading ? <LoadingState title="Controllo coerenza dati" message="Lettura dell’archivio SQL dello studio in corso." /> : null}
+      {!loading && error ? <EmptyState title="Controllo coerenza incompleto" message={error} action={<Button tone="neutral" onClick={onRefresh}>Riprova controllo</Button>} /> : null}
+      {data.domains.length > 0 ? (
         <>
           <section className="iu-consistency-banner" aria-label="Regola di verità della coerenza dati">
             <Database size={20} aria-hidden="true" />
             <div>
-              <strong>Fonte operativa: {displaySourceLabel(data.sourceOfTruth)}</strong>
+              <strong>Fonte operativa: {data.sourceOfTruth === 'sqlite' ? 'Database SQLite' : data.sourceOfTruth === 'postgresql' ? 'Database PostgreSQL' : 'Archivio SQL'}</strong>
               <span>Tenant: {data.tenantScope || 'studio corrente'} · I mirror JSON non sono stati letti né usati come fallback.</span>
             </div>
           </section>
           {data.warnings.length ? <Panel title="Anomalie da presidiare"><div className="iu-adminhub-warnings">{data.warnings.map((warning) => <div className="iu-adminhub-warning" key={`${warning.code}-${warning.message}`}><Badge tone="warning">{warning.code}</Badge><span>{warning.message}</span></div>)}</div></Panel> : null}
-          <section className="iu-readiness-kpis" aria-label="Riepilogo coerenza dati">
-            <KpiCard label="Domini leggibili" value={formatValue(readableDomains)} note={`${data.domains.length} domini P0 censiti`} badge={<Badge tone={data.ok ? 'success' : 'warning'}>{data.ok ? 'presidiati' : 'attenzione'}</Badge>} />
-            <KpiCard label="Eventi in attesa" value={formatValue(data.outbox.pending)} note="Outbox transazionale, nessun invio automatico" badge={<Badge tone="info">outbox</Badge>} />
-            <KpiCard label="Eventi completati" value={formatValue(data.outbox.processed)} note="Consegne interne registrate" badge={<Badge tone="success">esiti</Badge>} />
-            <KpiCard label="Eventi con errore" value={formatValue(data.outbox.failed)} note="Da analizzare prima di qualsiasi ritentativo" badge={<Badge tone={data.outbox.failed ? 'danger' : 'neutral'}>{data.outbox.failed ? 'blocco' : 'nessuno'}</Badge>} />
+          <section className="iu-readiness-kpis iu-consistency-kpis" aria-label="Riepilogo coerenza dati">
+            <KpiCard label="Domini leggibili" value={formatValue(readableDomains)} note={`${data.domains.length} domini P0 censiti`} onClick={()=>{setMode('domini');setReadableOnly(true)}} active={mode==='domini'&&readableOnly} actionLabel="Consulta domini" />
+            <KpiCard label="Eventi in attesa" value={data.outbox.readable?formatValue(data.outbox.pending):'Non disponibile'} note="Eventi interni da elaborare" onClick={()=>showEvents('PENDING')} active={mode==='eventi'&&filters.status==='PENDING'} actionLabel="Consulta eventi" />
+            <KpiCard label="Eventi completati" value={data.outbox.readable?formatValue(data.outbox.processed):'Non disponibile'} note="Consegne interne registrate" onClick={()=>showEvents('PROCESSED')} active={mode==='eventi'&&filters.status==='PROCESSED'} actionLabel="Consulta eventi" />
+            <KpiCard label="Eventi con errore" value={data.outbox.readable?formatValue(data.outbox.failed):'Non disponibile'} note="Da analizzare prima di un ritentativo" onClick={()=>showEvents('FAILED')} active={mode==='eventi'&&filters.status==='FAILED'} actionLabel="Consulta eventi" />
           </section>
           <Panel title="Contratto di controllo" subtitle={`Generato: ${formatDateTimeIt(data.generatedAt, 'Non disponibile')}`}>
             <div className="iu-readiness-contract">
               <span><ClipboardCheck size={15} aria-hidden="true" />Scritture: {displayWritesLabel(data.contracts.writes)}</span>
               <span><ShieldCheck size={15} aria-hidden="true" />Fallback JSON: {data.contracts.fallbackUsed ? 'rilevato' : 'assente'}</span>
               <span><Database size={15} aria-hidden="true" />Scansione JSON: {data.contracts.jsonScanned ? 'rilevata' : 'assente'}</span>
-              <span>Eventi totali: {formatValue(data.outbox.total)}</span>
+              <span>Eventi totali: {data.outbox.readable ? formatValue(data.outbox.total) : 'Non disponibile'}</span>
             </div>
           </Panel>
-          <Panel title="Domini P0" subtitle="Apri una riga per repository, tabelle SQL e conteggi aggregati.">
+          <nav className="iu-adminhub-filters" aria-label="Contesto coerenza dati"><Button tone="neutral" aria-pressed={mode==='domini'} onClick={()=>{setMode('domini');setReadableOnly(false)}}>Tutti i domini</Button><Button tone="neutral" aria-pressed={mode==='eventi'&&!filters.status} onClick={()=>showEvents('')}>Tutti gli eventi</Button></nav>
+          {mode==='domini' ? <Panel title="Domini P0" subtitle={`${visibleDomains.length} di ${data.domains.length} domini · Apri una riga per tabelle e conteggi.`}>
             <div className="iu-consistency-domains">
-              {data.domains.map((domain) => (
+              {visibleDomains.map((domain) => (
                 <details className="iu-consistency-domain" key={domain.id}>
                   <summary>
                     <span><strong>{domain.label}</strong><small>{domain.repository}</small></span>
@@ -273,7 +285,10 @@ function DataConsistencyView({ data, loading, error, onRefresh }: { data: DataCo
                 </details>
               ))}
             </div>
-          </Panel>
+          </Panel> : <Panel title="Registro eventi interni" subtitle="Consultazione in sola lettura, senza eseguire o ritentare operazioni.">
+            <form className="iu-adminhub-filters" onSubmit={event=>{event.preventDefault();onFilters({...filters,query:eventQuery,page:1})}}><label>Cerca eventi<input aria-label="Cerca eventi" type="search" value={eventQuery} onChange={event=>setEventQuery(event.currentTarget.value)} placeholder="Evento, categoria o riferimento" /></label><label>Stato evento<select aria-label="Stato evento" value={filters.status} onChange={event=>showEvents(event.currentTarget.value)}><option value="">Tutti gli stati</option><option value="PENDING">In attesa</option><option value="PROCESSED">Completati</option><option value="FAILED">Con errore</option></select></label><Button type="submit">Cerca</Button><Button type="button" tone="neutral" disabled={!filters.status&&!filters.query&&!eventQuery} onClick={()=>{setEventQuery('');onFilters({status:'',query:'',page:1})}}>Azzera filtri</Button></form>
+            {!data.events.readable ? <EmptyState title="Registro eventi non leggibile" message="I conteggi e l’elenco non costituiscono una conferma dell’assenza di eventi. Riprova il controllo." /> : <><p role="status">{formatValue(data.events.total)} eventi · Pagina {data.events.page} di {Math.max(1,Math.ceil(data.events.total/data.events.pageSize))}</p><div className="iu-consistency-events">{data.events.records.map(item=><article key={item.id}><div><strong>{item.eventType}</strong><Badge tone={item.status==='FAILED'?'danger':item.status==='PROCESSED'?'success':'info'}>{item.status==='FAILED'?'Con errore':item.status==='PROCESSED'?'Completato':item.status==='PENDING'?'In attesa':'Stato non riconosciuto'}</Badge></div><p>{item.aggregateType} · Riferimento {item.aggregateId}</p><small>Registrato: {formatDateTimeIt(item.createdAt,'Data non disponibile')} · Tentativi: {item.attempts}</small>{item.processedAt?<small>Elaborato: {formatDateTimeIt(item.processedAt,'Data non disponibile')}</small>:null}</article>)}</div>{!data.events.total?<EmptyState title="Nessun evento corrisponde ai filtri" message="Il registro SQL non contiene eventi per la selezione corrente."/>:null}<nav className="iu-adminhub-filters" aria-label="Pagine registro eventi"><Button tone="neutral" disabled={data.events.page<=1} onClick={()=>onFilters({...filters,page:data.events.page-1})}>Precedente</Button><Button tone="neutral" disabled={data.events.page*data.events.pageSize>=data.events.total} onClick={()=>onFilters({...filters,page:data.events.page+1})}>Successiva</Button></nav></>}
+          </Panel>}
         </>
       ) : null}
     </Page>
@@ -284,22 +299,26 @@ export function AmministrazionePage() {
   const [data, setData] = useState<AmministrazionePageData>(emptyAmministrazionePage)
   const [readiness, setReadiness] = useState<ProductReadinessPageData>(emptyProductReadinessPage)
   const [consistency, setConsistency] = useState<DataConsistencyPageData>(emptyDataConsistencyPage)
+  const [eventFilters,setEventFilters]=useState<EventFilters>({status:'',query:'',page:1})
+  const consistencyRequest=useRef(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const readinessSelected = new URLSearchParams(window.location.search).get('tab') === 'prontezza-prodotto'
   const consistencySelected = new URLSearchParams(window.location.search).get('tab') === 'consistenza-dati'
 
   const refreshConsistency = useCallback(() => {
+    const requestId=++consistencyRequest.current
     setLoading(true)
     setError('')
-    getDataConsistencyPage()
+    getDataConsistencyPage(eventFilters)
       .then((payload) => {
+        if(requestId!==consistencyRequest.current)return
         setConsistency(payload)
         setError(payload.ok ? '' : payload.warnings[0]?.message || 'Coerenza dati non disponibile.')
       })
-      .catch(() => setError('Coerenza dati non disponibile.'))
-      .finally(() => setLoading(false))
-  }, [])
+      .catch(() => {if(requestId===consistencyRequest.current)setError('Coerenza dati non disponibile.')})
+      .finally(() => {if(requestId===consistencyRequest.current)setLoading(false)})
+  }, [eventFilters])
 
   useEffect(() => {
     if (consistencySelected) {
@@ -340,7 +359,7 @@ export function AmministrazionePage() {
   )
 
   if (readinessSelected) return <ProductReadinessView data={readiness} loading={loading} error={error} />
-  if (consistencySelected) return <DataConsistencyView data={consistency} loading={loading} error={error} onRefresh={refreshConsistency} />
+  if (consistencySelected) return <DataConsistencyView data={consistency} loading={loading} error={error} onRefresh={refreshConsistency} filters={eventFilters} onFilters={setEventFilters} />
 
   return (
     <Page
@@ -377,6 +396,8 @@ export function AmministrazionePage() {
                 label={metric.label}
                 value={formatValue(metric.value)}
                 note={metric.note}
+                href={metricHrefs[metric.id]}
+                actionLabel="Apri nel contesto"
                 badge={<Badge tone={metric.tone}>{metric.tone}</Badge>}
                 key={metric.id}
               />
@@ -391,15 +412,15 @@ export function AmministrazionePage() {
           </Panel>
           <section className="iu-adminhub-grid" aria-label="Sezioni amministrazione">
             {data.sections.map((section) => (
-              <Panel title={section.title} subtitle={section.kind} key={section.id}>
+              <Panel title={section.title} subtitle={section.kind === 'roles' ? 'Utenti per ruolo' : section.kind === 'security' ? 'Stato degli account' : 'Permessi per ruolo'} key={section.id}>
                 {section.items.length ? (
                   <div className="iu-adminhub-list">
                     {section.items.map((item) => (
-                      <div className="iu-adminhub-list__item" key={item.id}>
+                      <ButtonLink className="iu-adminhub-list__item" tone="neutral" aria-label={`Consulta ${item.label}`} href={section.kind === 'roles' ? `/utenti?ruolo=${encodeURIComponent(item.id.replace(/^ruolo-/, ''))}` : section.kind === 'security' ? `/utenti?stato=${encodeURIComponent(item.id === 'non-attivi' ? 'disabilitati' : item.id)}` : `/profili?vista=permessi&q=${encodeURIComponent(item.note)}`} key={item.id}>
                         <span>{item.label}</span>
                         <strong>{formatValue(item.value)}</strong>
                         {item.note ? <small>{item.note}</small> : null}
-                      </div>
+                      </ButtonLink>
                     ))}
                   </div>
                 ) : (

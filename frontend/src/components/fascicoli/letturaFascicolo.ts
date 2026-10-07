@@ -219,13 +219,14 @@ export function presidiCards(lettura: LetturaFascicolo): PresidioCard[] {
   const daVerificare = documenti.da_verificare.length
   const daAcquisire = documenti.da_acquisire?.length || 0
   const daLeggere = documenti.non_indicizzati.length
+  const daCatalogare = Math.max(0, documenti.totale - documenti.catalogati)
   return [
     {
       id: 'documenti',
       titolo: 'Documentazione',
       valore: `${documenti.catalogati}/${documenti.totale}`,
-      nota: daAcquisire ? `${daAcquisire} da acquisire dal portale · ${documenti.confermati} confermati` : daLeggere ? `${daLeggere} in lettura dal presidio · ${documenti.confermati} confermati` : daVerificare ? `${daVerificare} da classificare · ${documenti.confermati} confermati` : documenti.totale ? 'tutti letti e catalogati' + (documenti.confermati ? ' · ' + documenti.confermati + ' confermati' : '') : 'nessun documento',
-      tono: daAcquisire || daVerificare ? 'warning' : daLeggere ? 'info' : documenti.totale ? 'success' : 'neutral',
+      nota: daAcquisire ? `${daAcquisire} da acquisire dal portale · ${documenti.confermati} confermati` : daLeggere ? `${daLeggere} da indicizzare · ${documenti.confermati} confermati` : daVerificare ? `${daVerificare} da classificare · ${documenti.confermati} confermati` : daCatalogare ? `${daCatalogare} da verificare nel catalogo documentale` : documenti.totale ? 'tutti letti e catalogati' + (documenti.confermati ? ' · ' + documenti.confermati + ' confermati' : '') : 'nessun documento',
+      tono: daAcquisire || daVerificare || daCatalogare ? 'warning' : daLeggere ? 'info' : documenti.totale ? 'success' : 'neutral',
       href: '#catalogazione-documentale',
     },
     {

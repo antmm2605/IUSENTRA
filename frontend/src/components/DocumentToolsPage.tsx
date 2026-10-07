@@ -16,6 +16,7 @@ import {
   RotateCcw,
   RotateCw,
   ScanLine,
+  Scissors,
   Trash2,
   Upload,
   X,
@@ -23,11 +24,14 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from 'react'
 import {
   generateDocument,
+  previewUploadedPdf,
   saveGeneratedDocument,
   type DocumentToolMode,
   type GeneratedDocument,
 } from '../documentToolsData'
 import './DocumentToolsPage.css'
+import { formatDateTimeIt } from '../formatting'
+import { SourceDocumentModal, type SourceDocument } from './SourceDocumentModal'
 import { acquireFromLocalScanner } from '../services/localScanner'
 export { acquireFromLocalScanner } from '../services/localScanner'
 
@@ -54,6 +58,11 @@ const MODES: Array<{
     description: 'Scegli almeno due PDF e disponili nell’ordine del documento finale.',
     icon: Files,
     accept: 'application/pdf,.pdf',
+  },
+  {
+    id: 'split', label: 'Dividi PDF', icon: Scissors, title: 'Estrai le pagine utili',
+    description: 'Scegli un PDF e indica le pagine da estrarre. L’originale resta intatto.',
+    accept: '.pdf,application/pdf',
   },
   {
     id: 'zip',
@@ -91,7 +100,7 @@ function formatBytes(bytes: number): string {
 
 function initialMode(): DocumentToolMode {
   const value = new URLSearchParams(window.location.search).get('modo')
-  return value === 'zip' || value === 'multipage' ? value : 'merge'
+  return value === 'zip' || value === 'multipage' || value === 'split' ? value : 'merge'
 }
 
 
@@ -100,6 +109,7 @@ export function DocumentToolsPage() {
   const [documents, setDocuments] = useState<SelectedDocument[]>([])
   const [outputName, setOutputName] = useState('')
   const [previewId, setPreviewId] = useState<string>('')
+  const [pageSelection, setPageSelection] = useState('')
   const [draggedId, setDraggedId] = useState<string>('')
   const [scanning, setScanning] = useState(false)
   const [dragActive, setDragActive] = useState(false)
@@ -108,6 +118,11 @@ export function DocumentToolsPage() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [result, setResult] = useState<GeneratedDocument | null>(null)
+  const [resultExpired, setResultExpired] = useState(false)
+  const [generatedPreview, setGeneratedPreview] = useState<SourceDocument | null>(null)
+  const [previewLoading, setPreviewLoading] = useState('')
+  const previewRequests = useRef<AbortController | null>(null)
+  const previewCache = useRef(new Map<string, { href: string; expiresAt: number }>())
   const documentsRef = useRef<SelectedDocument[]>([])
   const resultRef = useRef<GeneratedDocument | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -115,7 +130,7 @@ export function DocumentToolsPage() {
   const fascicoloId = new URLSearchParams(window.location.search).get('id_fascicolo')?.trim() || ''
   const activeMode = MODES.find((item) => item.id === mode) || MODES[0]
   const previewDocument = documents.find((item) => item.id === previewId) || null
-  const canGenerate = mode === 'merge' ? documents.length >= 2 : documents.length >= 1
+  const canGenerate = mode === 'split' ? documents.length === 1 && Boolean(pageSelection.trim()) : mode === 'merge' ? documents.length >= 2 : documents.length >= 1
 
   const clearResult = useCallback(() => {
     setResult((current) => {
@@ -134,16 +149,24 @@ export function DocumentToolsPage() {
   }, [result])
 
   useEffect(() => () => {
+    previewRequests.current?.abort()
     documentsRef.current.forEach((item) => URL.revokeObjectURL(item.previewUrl))
     if (resultRef.current) URL.revokeObjectURL(resultRef.current.objectUrl)
   }, [])
 
   useEffect(() => {
-    setOutputName(mode === 'zip' ? 'documenti' : mode === 'merge' ? 'documenti-uniti' : 'acquisizione-multipagina')
+    setOutputName(mode === 'zip' ? 'documenti' : mode === 'merge' ? 'documenti-uniti' : mode === 'split' ? 'pagine-estratte' : 'acquisizione-multipagina')
     setError('')
     setNotice('')
     clearResult()
   }, [mode, clearResult])
+
+  useEffect(() => {
+    setResultExpired(false)
+    if (!result?.expiresAt) return
+    const timer = window.setTimeout(() => setResultExpired(true), Math.max(0, result.expiresAt - Date.now()))
+    return () => window.clearTimeout(timer)
+  }, [result])
 
   const totalSize = useMemo(
     () => documents.reduce((total, document) => total + document.file.size, 0),
@@ -152,12 +175,42 @@ export function DocumentToolsPage() {
 
   const addFiles = (files: File[]) => {
     if (!files.length) return
+    if (mode === 'split' && files.length !== 1) { setError('Per dividere un PDF seleziona un solo documento.'); return }
     const next = files.map(makeSelected)
-    setDocuments((current) => [...current, ...next])
-    setPreviewId((current) => current || next[0]?.id || '')
+    setDocuments((current) => {
+      if (mode === 'split') current.forEach(item => URL.revokeObjectURL(item.previewUrl))
+      return mode === 'split' ? next : [...current, ...next]
+    })
+    setPreviewId((current) => mode === 'split' ? next[0]?.id || '' : current || next[0]?.id || '')
     setError('')
     setNotice('')
     clearResult()
+  }
+
+  const openPreview = async (document: SelectedDocument) => {
+    if (document.file.type !== 'application/pdf' && !document.file.name.toLowerCase().endsWith('.pdf')) {
+      setPreviewId(current => current === document.id ? '' : document.id)
+      return
+    }
+    previewRequests.current?.abort()
+    const controller = new AbortController()
+    previewRequests.current = controller
+    setPreviewLoading(document.id)
+    setError('')
+    try {
+      let preview = previewCache.current.get(document.id)
+      if (!preview || preview.expiresAt <= Date.now()) {
+        preview = await previewUploadedPdf(document.file, controller.signal)
+        previewCache.current.set(document.id, preview)
+      }
+      if (controller.signal.aborted || !documentsRef.current.some(item => item.id === document.id)) return
+      setPreviewId('')
+      setGeneratedPreview({ href: preview.href, label: document.file.name, context: 'Documento selezionato. L’originale resta intatto.' })
+    } catch (cause) {
+      if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Anteprima non disponibile. Riprova.')
+    } finally {
+      if (previewRequests.current === controller) setPreviewLoading('')
+    }
   }
 
   const acquireScannerPage = async () => {
@@ -182,6 +235,8 @@ export function DocumentToolsPage() {
   }
 
   const removeDocument = (id: string) => {
+    previewCache.current.delete(id)
+    if (previewLoading === id) previewRequests.current?.abort()
     setDocuments((current) => {
       const target = current.find((item) => item.id === id)
       if (target) URL.revokeObjectURL(target.previewUrl)
@@ -236,6 +291,8 @@ export function DocumentToolsPage() {
         outputName,
         documents.map((item) => item.logicalName),
         documents.map((item) => item.rotation),
+        '',
+        pageSelection,
       )
       setResult((current) => {
         if (current) URL.revokeObjectURL(current.objectUrl)
@@ -305,7 +362,7 @@ export function DocumentToolsPage() {
             <h2 id="document-tool-title">{activeMode.title}</h2>
             <p>{activeMode.description}</p>
           </div>
-          <div className="iu-document-tools__count" aria-label={`${documents.length} file selezionati`}>
+          <div className="iu-document-tools__count" aria-label={`${documents.length} ${documents.length === 1 ? 'file selezionato' : 'file selezionati'}`}>
             <strong>{documents.length}</strong>
             <span>{documents.length === 1 ? 'file' : 'file'}</span>
             <small>{formatBytes(totalSize)}</small>
@@ -344,7 +401,7 @@ export function DocumentToolsPage() {
             </button>
             </>
           ) : null}
-          <input ref={fileInput} type="file" multiple accept={activeMode.accept} hidden onChange={onFileChange} />
+          <input ref={fileInput} type="file" multiple={mode !== 'split'} accept={activeMode.accept} hidden onChange={onFileChange} />
           <input ref={cameraInput} type="file" multiple accept="image/*" capture="environment" hidden onChange={onFileChange} />
         </div>
 
@@ -384,7 +441,7 @@ export function DocumentToolsPage() {
                         <button type="button" title="Ruota a destra" aria-label={`Ruota ${document.file.name} a destra`} onClick={() => updateDocument(document.id, { rotation: (document.rotation + 90) % 360 })}><RotateCw size={17} /></button>
                       </>
                     ) : null}
-                    <button type="button" title="Visualizza" aria-label={`Visualizza ${document.file.name}`} onClick={() => setPreviewId(previewId === document.id ? '' : document.id)}><Eye size={17} /></button>
+                    <button type="button" title="Visualizza" aria-label={`Visualizza ${document.file.name}`} aria-busy={previewLoading === document.id} disabled={previewLoading === document.id} onClick={() => void openPreview(document)}>{previewLoading === document.id ? <LoaderCircle size={17} className="iu-spin" /> : <Eye size={17} />}</button>
                     <button type="button" className="is-danger" title="Rimuovi" aria-label={`Rimuovi ${document.file.name}`} onClick={() => removeDocument(document.id)}><Trash2 size={17} /></button>
                   </div>
                 </article>
@@ -392,7 +449,7 @@ export function DocumentToolsPage() {
             </div>
 
             {previewDocument ? (
-              <aside className="iu-document-tools__preview" aria-label={`Anteprima ${previewDocument.file.name}`}>
+              <aside className={`iu-document-tools__preview${previewDocument.file.type === 'application/pdf' || previewDocument.file.name.toLowerCase().endsWith('.pdf') ? ' iu-document-tools__preview--link' : ''}`} aria-label={`Anteprima ${previewDocument.file.name}`}>
                 <header>
                   <strong>{previewDocument.file.name}</strong>
                   <button type="button" title="Chiudi anteprima" aria-label="Chiudi anteprima" onClick={() => setPreviewId('')}><X size={18} /></button>
@@ -400,7 +457,7 @@ export function DocumentToolsPage() {
                 {previewDocument.file.type.startsWith('image/') ? (
                   <img src={previewDocument.previewUrl} alt={`Anteprima ${previewDocument.file.name}`} />
                 ) : previewDocument.file.type === 'application/pdf' || previewDocument.file.name.toLowerCase().endsWith('.pdf') ? (
-                  <iframe src={previewDocument.previewUrl} title={`Anteprima ${previewDocument.file.name}`} />
+                  <button type="button" className="iu-document-tools__secondary" disabled={previewLoading === previewDocument.id} onClick={() => void openPreview(previewDocument)}><Eye size={17} />{previewLoading === previewDocument.id ? 'Apertura…' : 'Apri nel lettore'}</button>
                 ) : (
                   <div className="iu-document-tools__preview-empty"><Archive size={32} /><span>Anteprima non disponibile per questo formato.</span></div>
                 )}
@@ -415,6 +472,12 @@ export function DocumentToolsPage() {
           </div>
         )}
 
+        {mode === 'split' ? <label className="iu-document-tools__page-selection">
+          <span>Pagine da estrarre</span>
+          <input aria-label="Pagine da estrarre" aria-describedby="split-pages-help" value={pageSelection} disabled={loading} placeholder="Per esempio: 1-3, 5" onChange={event => { setPageSelection(event.target.value); clearResult(); setError(''); setNotice('') }} />
+          <small id="split-pages-help">Numeri e intervalli separati da virgole. L’ordine indicato sarà quello del nuovo PDF.</small>
+          {documents.length > 1 ? <span role="alert">Per questa operazione mantieni un solo PDF nella selezione.</span> : null}
+        </label> : null}
         <footer className="iu-document-tools__footer">
           <label>
             <span>Nome del documento</span>
@@ -425,7 +488,7 @@ export function DocumentToolsPage() {
           </label>
           <button type="button" className="iu-document-tools__primary" disabled={!canGenerate || loading} onClick={createResult}>
             {loading ? <LoaderCircle className="is-spinning" size={18} /> : <CheckCircle2 size={18} />}
-            {loading ? 'Preparazione…' : mode === 'zip' ? 'Crea archivio' : 'Crea documento'}
+            {loading ? 'Preparazione…' : mode === 'zip' ? 'Crea archivio' : mode === 'split' ? 'Estrai pagine' : 'Crea documento'}
           </button>
         </footer>
 
@@ -438,12 +501,13 @@ export function DocumentToolsPage() {
               <CheckCircle2 size={22} />
               <span>
                 <strong>{result.filename}</strong>
-                <small>{result.pages ? `${result.pages} ${result.pages === 1 ? 'pagina' : 'pagine'} · ` : ''}{formatBytes(result.blob.size)}</small>
+                <small>{result.pages ? `${result.pages} ${result.pages === 1 ? 'pagina' : 'pagine'} · ` : ''}{formatBytes(result.blob.size)}{result.expiresAt ? ` · Copia temporanea fino al ${formatDateTimeIt(new Date(result.expiresAt))}` : ''}</small>
+                {resultExpired ? <small role="alert">Copia temporanea scaduta. Usa il comando di creazione per generarla di nuovo.</small> : null}
               </span>
             </div>
             <div className="iu-document-tools__result-actions">
-              {result.blob.type === 'application/pdf' ? <a href={result.objectUrl} target="_blank" rel="noreferrer"><Eye size={18} /> Visualizza</a> : null}
-              <a href={result.objectUrl} download={result.filename}><Download size={18} /> Scarica</a>
+              {result.previewHref ? <button type="button" disabled={resultExpired} className="iu-document-tools__secondary" onClick={() => setGeneratedPreview({href: result.previewHref!,label: result.filename,context: 'Copia generata. L’originale resta intatto.'})}><Eye size={18} /> Visualizza</button> : null}
+              {resultExpired ? <button type="button" disabled><Download size={18} /> Scarica</button> : <a href={result.downloadHref} download={result.filename}><Download size={18} /> Scarica</a>}
               {fascicoloId ? (
                 <button type="button" disabled={saving} onClick={saveToFile}>
                   {saving ? <LoaderCircle className="is-spinning" size={18} /> : <FolderCheck size={18} />}
@@ -454,6 +518,7 @@ export function DocumentToolsPage() {
           </section>
         ) : null}
       </section>
+      <SourceDocumentModal source={generatedPreview} onClose={() => setGeneratedPreview(null)} />
     </main>
   )
 }

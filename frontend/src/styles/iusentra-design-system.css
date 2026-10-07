@@ -1865,8 +1865,9 @@
   min-height: 44px;
 }
 
-.iusentra-preset-active main a[href],
-.iusentra-preset-active .iu-content a[href] {
+/* Il default dei link non deve sovrascrivere griglie e layout dei componenti.
+   Le dimensioni minime dei bersagli interattivi restano governate sopra. */
+:where(.iusentra-preset-active main a[href], .iusentra-preset-active .iu-content a[href]) {
   display: inline-flex;
   align-items: center;
   gap: 0.38rem;

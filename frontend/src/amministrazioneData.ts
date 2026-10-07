@@ -60,6 +60,7 @@ export type DataConsistencyPageData = {
   contracts: { writes: string; jsonScanned: boolean; fallbackUsed: boolean; sourceOfTruth: string }
   domains: DataConsistencyDomain[]
   outbox: { pending: number; processed: number; failed: number; total: number; readable: boolean; reason: string }
+  events: { records: {id:string; aggregateType:string; aggregateId:string; eventType:string; status:string; attempts:number; createdAt:string; processedAt:string}[]; total:number; page:number; pageSize:number; readable:boolean }
   warnings: WarningItem[]
 }
 
@@ -116,6 +117,7 @@ export const emptyDataConsistencyPage: DataConsistencyPageData = {
   contracts: { writes: 'none', jsonScanned: false, fallbackUsed: false, sourceOfTruth: 'sql' },
   domains: [],
   outbox: { pending: 0, processed: 0, failed: 0, total: 0, readable: false, reason: '' },
+  events: {records: [], total:0, page:1, pageSize:50, readable:false},
   warnings: [],
 }
 
@@ -230,6 +232,7 @@ function normaliseDataConsistency(raw: unknown): DataConsistencyPageData {
   const page = asRecord(sanitizePayload(raw))
   const contracts = asRecord(page.contracts)
   const outbox = asRecord(page.outbox)
+  const events = asRecord(page.events)
   return {
     ok: bool(page.ok),
     generatedAt: text(page.generatedAt),
@@ -265,6 +268,7 @@ function normaliseDataConsistency(raw: unknown): DataConsistencyPageData {
       readable: bool(outbox.readable),
       reason: display(outbox.reason),
     },
+    events: {records:list(events.records).map(raw => {const item=asRecord(raw);return {id:text(item.id),aggregateType:display(item.aggregate_type),aggregateId:display(item.aggregate_id),eventType:display(item.event_type),status:text(item.status),attempts:numberOrNull(item.attempts)??0,createdAt:text(item.created_at),processedAt:text(item.processed_at)}}),total:numberOrNull(events.total)??0,page:numberOrNull(events.page)??1,pageSize:numberOrNull(events.pageSize)??50,readable:bool(events.readable)},
     warnings: list(page.warnings).map(normaliseWarning),
   }
 }
@@ -312,7 +316,8 @@ export async function getAmministrazionePage(): Promise<AmministrazionePageData>
   return normalisePage(payload)
 }
 
-export async function getDataConsistencyPage(): Promise<DataConsistencyPageData> {
-  const payload = await apiJson<unknown>('/api/v1/ui/amministrazione/consistenza-dati', emptyDataConsistencyPage)
+export async function getDataConsistencyPage(filters?: {status:string;query:string;page:number}): Promise<DataConsistencyPageData> {
+  const params=new URLSearchParams({stato_eventi:filters?.status||'',q_eventi:filters?.query||'',pagina_eventi:String(filters?.page||1)})
+  const payload = await apiJson<unknown>(`/api/v1/ui/amministrazione/consistenza-dati?${params}`, emptyDataConsistencyPage)
   return normaliseDataConsistency(payload)
 }

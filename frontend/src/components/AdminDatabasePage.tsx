@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
+import { operationalDomains } from '../operationalRefresh'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -121,30 +123,30 @@ async function jsonRequest<T>(url: string, init: RequestInit = {}): Promise<T> {
   return payload as T
 }
 
-function StatCard({ icon, label, value, note, tone = 'primary' }: { icon: ReactNode; label: string; value: string; note: string; tone?: Tone }) {
+function StatCard({ icon, label, value, note, tone = 'primary', active, onClick }: { icon: ReactNode; label: string; value: string; note: string; tone?: Tone; active: boolean; onClick: () => void }) {
   return (
-    <article className={`iu-db-stat iu-db-stat--${tone}`}>
+    <button type="button" aria-pressed={active} onClick={onClick} className={`iu-db-stat iu-db-stat--${tone}`}>
       <div>{icon}</div>
       <span>{label}</span>
       <strong>{value}</strong>
       <small>{note}</small>
-    </article>
+    </button>
   )
 }
 
-function ModuleTable({ modules }: { modules: AdminDatabaseModule[] }) {
+function ModuleTable({ modules, filtered }: { modules: AdminDatabaseModule[]; filtered: boolean }) {
   if (!modules.length) {
     return (
       <div className="iu-db-empty">
         <Database size={24}/>
-        <strong>Nessun modulo dati rilevato</strong>
-        <span>L'ambiente operativo non ha restituito moduli monitorabili per questa sessione.</span>
+        <strong>{filtered ? 'Nessun modulo corrisponde ai filtri' : 'Nessun modulo dati rilevato'}</strong>
+        <span>{filtered ? 'Modifica la ricerca o azzera i filtri per rivedere il catalogo.' : 'L’ambiente operativo non ha restituito moduli monitorabili per questa sessione.'}</span>
       </div>
     )
   }
 
   return (
-    <div className="iu-db-table-wrap">
+    <div className="iu-db-table-wrap" tabIndex={0} role="region" aria-label="Tabella moduli dati, scorribile orizzontalmente">
       <table className="iu-db-table">
         <thead>
           <tr>
@@ -169,9 +171,9 @@ function ModuleTable({ modules }: { modules: AdminDatabaseModule[] }) {
                 {module.authoritative ? <Badge tone="success">Fonte</Badge> : null}
                 {!module.mirror && module.migratableSqlite ? <Badge tone="success">Migrabile</Badge> : null}
               </td>
-              <td>{formatNumber(module.records)}</td>
-              <td>{module.sizeLabel}</td>
-              <td>{module.lastModifiedLabel}</td>
+              <td data-label="Record">{formatNumber(module.records)}</td>
+              <td data-label="Dimensione">{module.sizeLabel}</td>
+              <td data-label="Ultima modifica">{module.lastModifiedLabel}</td>
               <td>
                 <Badge tone={module.status.tone}>{module.status.label}</Badge>
                 {module.status.message ? <span>{module.status.message}</span> : null}
@@ -409,36 +411,40 @@ export function AdminDatabasePage() {
   const [data, setData] = useState<AdminDatabasePageData>(emptyAdminDatabasePage)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [context, setContext] = useState('modules')
+  const [query, setQuery] = useState('')
+  const [moduleStatus, setModuleStatus] = useState('all')
+  const mounted = useRef(false)
+  const refreshFlight = useRef<Promise<void> | null>(null)
   const [integrity, setIntegrity] = useState<OperationState<AdminDatabaseIntegrityResult>>(emptyIntegrity)
   const [optimization, setOptimization] = useState<OperationState<AdminDatabaseOptimizeResult>>(emptyOptimization)
   const [migration, setMigration] = useState<OperationState<AdminDatabaseMigrationResult>>(emptyMigration)
 
   const loadData = async () => {
+    if (refreshFlight.current) return refreshFlight.current
     setLoading(true)
     setError('')
-    try {
-      setData(await getAdminDatabasePage())
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Database amministrativo non disponibile.')
-    } finally {
-      setLoading(false)
-    }
+    const flight = (async () => {
+      try {
+        const payload = await getAdminDatabasePage()
+        if (payload.source === 'vuoto' || payload.source === 'errore_controllato') throw new Error(payload.warning || 'La rilevazione database non è disponibile. Riprova l’aggiornamento.')
+        if (mounted.current) setData(payload)
+      } catch (caught) {
+        if (mounted.current) setError(caught instanceof Error ? caught.message : 'Database amministrativo non disponibile.')
+      } finally {
+        if (mounted.current) setLoading(false)
+        refreshFlight.current = null
+      }
+    })()
+    refreshFlight.current = flight
+    return flight
   }
+  useOperationalRefresh(operationalDomains, loadData)
 
   useEffect(() => {
-    let active = true
-    setLoading(true)
-    getAdminDatabasePage()
-      .then((payload) => {
-        if (active) setData(payload)
-      })
-      .catch((caught) => {
-        if (active) setError(caught instanceof Error ? caught.message : 'Database amministrativo non disponibile.')
-      })
-      .finally(() => {
-        if (active) setLoading(false)
-      })
-    return () => { active = false }
+    mounted.current = true
+    void loadData()
+    return () => { mounted.current = false }
   }, [])
 
   const statusSummary = useMemo(() => {
@@ -448,6 +454,14 @@ export function AdminDatabasePage() {
     return { ok, warnings, errors }
   }, [data.summary.statusCounts])
   const sqlAuthoritative = data.sourceTruth.sqlAuthoritative
+  const needle = query.trim().toLocaleLowerCase('it-IT')
+  const visibleModules = data.modules.filter(module => {
+    const matches = `${module.label} ${module.name} ${module.path} ${module.kind.label} ${module.status.label} ${module.status.message}`.toLocaleLowerCase('it-IT').includes(needle)
+    const statusMatches = moduleStatus === 'all' || module.status.code === moduleStatus
+    const contextMatches = context === 'records' ? module.records > 0 && (!sqlAuthoritative || module.mirror) : context === 'presidio' ? ['NON_TROVATO', 'NON_CONFIGURATO', 'ERRORE'].includes(module.status.code) : true
+    return matches && statusMatches && contextMatches
+  }).sort((a, b) => context === 'records' ? b.records - a.records || a.label.localeCompare(b.label, 'it') : 0)
+  const visibleTables = data.sqlite.tables.filter(table => table.name.toLocaleLowerCase('it-IT').includes(needle))
   const sqlitePanelTitle = sqlAuthoritative ? 'Archivio SQL' : 'SQLite'
   const sqlitePanelSubtitle = data.sqlite.exists
     ? `${data.sqlite.role === 'operativo' ? 'Operativo' : 'Rilevato'} · ${data.sqlite.sizeLabel}`
@@ -526,23 +540,34 @@ export function AdminDatabasePage() {
           <p>{data.page.subtitle}</p>
         </div>
         <div className="iu-db-hero__actions">
-          <button type="button" className="iu-button" onClick={loadData} disabled={loading}>
-            <RefreshCw size={15}/>{loading ? 'Aggiornamento...' : 'Aggiorna'}
+          <button type="button" className="iu-button" onClick={loadData} disabled={loading} aria-busy={loading}>
+            <RefreshCw size={15}/>Aggiorna
           </button>
-          <Button href={data.actions.exportZip} variant="primary"><Download size={15}/>Export ZIP</Button>
+          {data.source !== 'vuoto' ? <Button href={data.actions.exportZip} variant="primary"><Download size={15}/>Export ZIP</Button> : null}
         </div>
       </section>
 
       {error ? <div className="iu-db-operation-alert iu-db-operation-alert--danger"><AlertTriangle size={16}/>{error}</div> : null}
       {data.warning ? <div className="iu-db-operation-alert iu-db-operation-alert--warning"><AlertTriangle size={16}/>{data.warning}</div> : null}
+      {loading ? <p role="status">{data.source === 'vuoto' ? 'Caricamento della rilevazione database…' : 'Aggiornamento della rilevazione database…'}</p> : null}
 
+      {data.source !== 'vuoto' ? <>
       <section className="iu-db-stats" aria-label="Indicatori database">
-        <StatCard icon={<Table size={22}/>} label="Moduli monitorati" value={formatNumber(data.summary.modulesMonitored)} note={`${statusSummary.ok} in stato OK`} tone="primary"/>
-        <StatCard icon={<HardDrive size={22}/>} label="Record totali" value={formatNumber(data.summary.totalRecords)} note={`Dimensione ${data.summary.totalSizeLabel}`} tone="success"/>
-        <StatCard icon={<Gauge size={22}/>} label="Frammentazione SQLite" value={formatPercent(data.summary.sqliteFragmentationPct)} note={data.sqlite.exists ? `${data.sqlite.freePages} pagine libere` : 'Rilevazione non presente'} tone={data.sqlite.fragmentationPct > 20 ? 'warning' : 'info'}/>
-        <StatCard icon={<CloudUpload size={22}/>} label="Fonte dati" value={data.sourceTruth.authoritative || 'Da verificare'} note={data.sourceTruth.jsonRole || `${data.sqlite.tables.length} tabelle nella rilevazione`} tone={sqlAuthoritative ? 'success' : 'purple'}/>
-        <StatCard icon={<ShieldCheck size={22}/>} label="Presidio" value={statusSummary.errors ? 'Critico' : 'Attivo'} note={`${statusSummary.warnings} avvisi configurazione`} tone={statusSummary.errors ? 'danger' : statusSummary.warnings ? 'warning' : 'success'}/>
+        <StatCard icon={<Table size={22}/>} label="Moduli monitorati" value={formatNumber(data.summary.modulesMonitored)} note={`${statusSummary.ok} in stato OK · Filtra moduli`} tone="primary" active={context === 'modules'} onClick={() => setContext('modules')}/>
+        <StatCard icon={<HardDrive size={22}/>} label={sqlAuthoritative ? 'Record nei mirror' : 'Record nei moduli'} value={formatNumber(data.summary.totalRecords)} note={`Spazio moduli ${data.summary.totalSizeLabel} · Ordina ${sqlAuthoritative ? 'mirror' : 'moduli'}`} tone="success" active={context === 'records'} onClick={() => setContext('records')}/>
+        <StatCard icon={<Gauge size={22}/>} label="Pagine libere" value={formatPercent(data.summary.sqliteFragmentationPct)} note="Consulta pagine e spazio SQLite" tone={data.sqlite.fragmentationPct > 20 ? 'warning' : 'info'} active={context === 'fragmentation'} onClick={() => setContext('fragmentation')}/>
+        <StatCard icon={<CloudUpload size={22}/>} label="Fonte dati" value={data.sourceTruth.authoritative || 'Da verificare'} note="Consulta le tabelle SQL rilevate" tone={sqlAuthoritative ? 'success' : 'purple'} active={context === 'sql'} onClick={() => setContext('sql')}/>
+        <StatCard icon={<ShieldCheck size={22}/>} label="Presidio" value={statusSummary.errors ? 'Critico' : 'Attivo'} note={`${statusSummary.warnings} avvisi · Filtra anomalie`} tone={statusSummary.errors ? 'danger' : statusSummary.warnings ? 'warning' : 'success'} active={context === 'presidio'} onClick={() => setContext('presidio')}/>
       </section>
+
+      <section className="iu-db-filters" aria-label="Ricerca e filtri database">
+        <label>{context === 'sql' ? 'Cerca tabella SQL' : 'Cerca modulo'}<input type="search" value={query} onChange={event => setQuery(event.currentTarget.value)} placeholder="Nome, tipo, percorso o stato…"/></label>
+        {['modules', 'records', 'presidio'].includes(context) ? <label>Stato<select value={moduleStatus} onChange={event => setModuleStatus(event.currentTarget.value)}><option value="all">Tutti gli stati</option>{Array.from(new Map(data.modules.map(module => [module.status.code, module.status.label])).entries()).map(([code, label]) => <option value={code} key={code}>{label}</option>)}</select></label> : null}
+        <button className="iu-button" type="button" disabled={!query && moduleStatus === 'all' && context === 'modules'} onClick={() => {setQuery(''); setModuleStatus('all'); setContext('modules')}}>Azzera filtri</button>
+      </section>
+
+      {context === 'sql' ? <Panel title="Tabelle dell’archivio SQL" subtitle={`${visibleTables.length} di ${data.sqlite.tables.length} tabelle nella rilevazione · ${data.sourceTruth.authoritative}`}><div className="iu-db-sqlite__tables">{visibleTables.map(table => <span key={table.name}><strong>{table.name}</strong>{formatNumber(table.records)}</span>)}</div>{!visibleTables.length ? <p>Nessuna tabella corrisponde alla ricerca. La rilevazione resta consultabile nell’archivio SQL.</p> : null}</Panel> : null}
+      {context === 'fragmentation' ? <Panel title="Pagine e spazio SQLite" subtitle="Dati della rilevazione corrente, senza avviare operazioni sul database"><dl className="iu-db-space-details"><div><dt>Dimensione archivio operativo</dt><dd>{data.sqlite.sizeLabel || 'Non disponibile'}</dd></div><div><dt>Pagine totali</dt><dd>{formatNumber(data.sqlite.totalPages)}</dd></div><div><dt>Pagine libere</dt><dd>{formatNumber(data.sqlite.freePages)}</dd></div><div><dt>Dimensione pagina</dt><dd>{formatNumber(data.sqlite.pageSize)} byte</dd></div></dl>{!data.sqlite.exists || data.sqlite.error ? <p role="alert">{data.sqlite.error || 'Rilevazione SQLite non disponibile.'}</p> : null}</Panel> : null}
 
       <section className="iu-db-layout">
         <div className="iu-db-maincol">
@@ -550,9 +575,10 @@ export function AdminDatabasePage() {
             title="Moduli dati"
             subtitle={`Fonte: ${sourceLabel(data)} · ${data.sourceTruth.jsonRole || 'ruolo dati da verificare'} · generato ${data.summary.generatedLabel}`}
             icon={<Database size={17}/>}
-            count={data.modules.length}
+            count={visibleModules.length}
           >
-            <ModuleTable modules={data.modules}/>
+            <p className="iu-db-filter-count" role="status">{visibleModules.length} di {data.modules.length} moduli{context === 'records' ? ' con record, ordinati per quantità' : context === 'presidio' ? ' con avvisi o errori' : ''}. {sqlAuthoritative ? 'I mirror sono copie di compatibilità: i dati operativi restano nell’archivio SQL.' : ''}</p>
+            <ModuleTable modules={visibleModules} filtered={data.modules.length > 0}/>
           </Panel>
 
           <Panel
@@ -648,6 +674,7 @@ export function AdminDatabasePage() {
         </aside>
       </section>
 
+      </> : null}
       <FloatingLex
         context="database"
         title="Lex AI Database"

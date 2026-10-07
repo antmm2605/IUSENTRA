@@ -154,7 +154,6 @@ def build_react_condivisioni_payload(
     user_id = _safe_text(getattr(current_user, "id", ""))
     has_permission = getattr(current_user, "ha_permesso", lambda _permission: False)
     is_manager = bool(has_permission("clienti.leggi"))
-    stats = condivisioni.statistiche()
 
     try:
         clienti = clienti_manager.tutti(stato=None)
@@ -181,6 +180,41 @@ def build_react_condivisioni_payload(
         fascicolo = fascicoli_manager.get(id_fascicolo)
         cliente = clienti_manager.get(getattr(fascicolo, "id_cliente", "")) if fascicolo else None
         received_matters.append(_received_matter_payload(fascicolo, cliente, accesso, id_fascicolo))
+
+    managed_matters: list[dict[str, Any]] = []
+    if is_manager and has_permission("fascicoli.leggi"):
+        for fascicolo in fascicoli_manager.tutti(archiviati=True):
+            matter_id = _safe_text(getattr(fascicolo, "id", ""))
+            accesses = list(condivisioni.collaboratori_fascicolo(matter_id))
+            if not accesses:
+                continue
+            cliente = clienti_manager.get(getattr(fascicolo, "id_cliente", ""))
+            matter = _received_matter_payload(fascicolo, cliente, accesses[0], matter_id)
+            matter["accesses"] = [_access_payload(access) for access in accesses]
+            managed_matters.append(matter)
+    elif is_manager:
+        managed_matters = [{**matter, "accesses": [matter["access"]]} for matter in received_matters]
+
+    # I conteggi e i filtri condividono lo stesso catalogo autorizzato. Le
+    # cartelle rimaste senza accessi dopo una revoca non sono condivisioni attive.
+    folders = managed_folders if is_manager else received_folders
+    matters = managed_matters if is_manager and has_permission("fascicoli.leggi") else received_matters
+    accesses = ([access for folder in managed_folders for access in folder["accesses"]] if is_manager
+                else [folder["access"] for folder in received_folders])
+    accesses += ([access for matter in managed_matters for access in matter["accesses"]]
+                 if is_manager and has_permission("fascicoli.leggi") else [matter["access"] for matter in received_matters])
+    per_role: dict[str, int] = {}
+    for access in accesses:
+        per_role[access["role"]] = per_role.get(access["role"], 0) + 1
+    stats = {
+        "cartelle_condivise": len(folders),
+        "accessi_totali": len(accesses),
+        "accessi_scaduti": sum(bool(access["expired"]) for access in accesses),
+        "accessi_in_scadenza_7gg": sum(bool(access["expiring"]) for access in accesses),
+        "link_temporanei_attivi": sum(len(folder["activeLinks"]) for folder in managed_folders) if is_manager else 0,
+        "fascicoli_condivisi": len(matters),
+        "per_ruolo": per_role,
+    }
 
     warnings: list[dict[str, Any]] = []
     if int(stats.get("accessi_scaduti") or 0):
@@ -219,6 +253,7 @@ def build_react_condivisioni_payload(
         "managedFolders": managed_folders,
         "receivedFolders": received_folders,
         "receivedMatters": received_matters,
+        "managedMatters": managed_matters,
         "warnings": warnings,
         "roleOptions": [{"value": role.value, "label": ROLE_LABELS[role.value], "tone": ROLE_TONES[role.value]} for role in RuoloCondivisione],
         "actions": {

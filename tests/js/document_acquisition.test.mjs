@@ -181,7 +181,7 @@ test('OCR: più pagine riconosciute in ordine e unite in un solo PDF', async () 
     urls.push(url)
     if (url.endsWith('/merge')) {
       assert.equal(options.body.getAll('files').length, 2)
-      return new Response(new Blob(['%PDF-1.7']), { headers: { 'content-type': 'application/pdf', 'x-iusentra-pages': '2' } })
+      return new Response(new Blob(['%PDF-1.7']), { headers: { 'content-type': 'application/pdf', 'x-iusentra-pages': '2', 'x-iusentra-download': '/api/v1/ui/document-tools/results/controlled/download', 'x-iusentra-preview': '/api/v1/ui/document-tools/results/controlled/preview' } })
     }
     return Response.json({ ok: true, pdf_base64: pdfBase64, paragraphs: [`Pagina ${urls.length}`], characters: 7 })
   }

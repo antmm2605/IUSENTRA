@@ -71,9 +71,10 @@ def _client_index(clienti: list[Any]) -> dict[str, str]:
     }
 
 
-def _subject_items(soggetti_repo: Any, soggetti: list[Any], clienti: list[Any]) -> list[dict[str, Any]]:
+def _subject_items(soggetti_repo: Any, soggetti: list[Any], clienti: list[Any], get_fascicoli: Callable[[], Any] | None = None) -> list[dict[str, Any]]:
     clienti_by_id = _client_index(clienti)
     rows: list[dict[str, Any]] = []
+    matter_repository = None
     for index, soggetto in enumerate(soggetti):
         if soggetto_coincide_con_cliente(soggetto, clienti) and not _is_manual_notification_subject(soggetto):
             continue
@@ -82,6 +83,20 @@ def _subject_items(soggetti_repo: Any, soggetti: list[Any], clienti: list[Any]) 
         recapiti = getattr(soggetto, "recapiti", None)
         indirizzo = getattr(soggetto, "indirizzo", None)
         fascicoli = _safe(lambda: soggetti_repo.fascicoli_con_soggetto(item_id), [])
+        matter_refs = list(fascicoli) if isinstance(fascicoli, list) else []
+        if matter_refs and get_fascicoli:
+            if matter_repository is None:
+                matter_repository = get_fascicoli()
+            matter_refs = []
+            for matter_id in fascicoli:
+                matter = matter_repository.get(str(matter_id))
+                if matter is None:
+                    matter_refs.append("Fascicolo collegato — scheda non disponibile")
+                    continue
+                number = _text(getattr(matter, "numero", ""))
+                title = _text(getattr(matter, "titolo", ""))
+                rg = _text(getattr(matter, "numero_rg", ""))
+                matter_refs.append(" · ".join(part for part in (number, title, f"R.G. {rg}" if rg else "") if part) or "Apri fascicolo")
         id_cliente = _text(getattr(soggetto, "id_cliente", ""))
         rows.append({
             "id": item_id,
@@ -98,7 +113,7 @@ def _subject_items(soggetti_repo: Any, soggetti: list[Any], clienti: list[Any]) 
             "clientId": id_cliente,
             "clientName": clienti_by_id.get(id_cliente, ""),
             "matterIds": fascicoli if isinstance(fascicoli, list) else [],
-            "matterRefs": fascicoli if isinstance(fascicoli, list) else [],
+            "matterRefs": matter_refs,
             "matters": len(fascicoli) if isinstance(fascicoli, list) else 0,
             "isLegal": _is_legal_type(getattr(soggetto, "tipo", "")),
             "missingFields": [
@@ -149,11 +164,12 @@ def build_react_soggetti_payload(
     *,
     get_soggetti: Callable[[], Any],
     get_clienti: Callable[[], Any],
+    get_fascicoli: Callable[[], Any] | None = None,
 ) -> dict[str, Any]:
     soggetti_repo = get_soggetti()
     soggetti = _safe(lambda: soggetti_repo.tutti(), [])
     clienti = _safe(lambda: get_clienti().tutti(), [])
-    items = _subject_items(soggetti_repo, soggetti, clienti)
+    items = _subject_items(soggetti_repo, soggetti, clienti, get_fascicoli)
     clienti_esclusi = sum(
         1
         for soggetto in soggetti

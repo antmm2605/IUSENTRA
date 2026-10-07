@@ -42,8 +42,11 @@ from web.services.mailbox_sync_runtime import run_ordinary_mailbox_sync
 from web.services.signed_attachment_preview import attachment_mimetype, build_attachment_preview_payload
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
 from werkzeug.utils import secure_filename
+from web.services.email_storage_runtime import create_email_mailbox
+from web.services.email_storage_errors import MAILBOX_STORAGE_ERRORS, register_mailbox_errors
 
 email_ordinaria = Blueprint("email_ordinaria", __name__, url_prefix="/email-ordinaria")
+register_mailbox_errors(email_ordinaria)
 
 
 def _login_required(func):
@@ -97,9 +100,7 @@ def _save_compose_attachments() -> list[str]:
 
 
 def _get_gestore():
-    from pct.email_client import GestioneEmailRicevute
-
-    return GestioneEmailRicevute(
+    return create_email_mailbox(
         db_path=_cfg_path(
             "EMAIL_ORDINARIA_DB",
             os.environ.get("PCT_EMAIL_ORDINARIA_DB", "./email/ordinaria.json"),
@@ -241,6 +242,8 @@ def _sync_inviati(gestore) -> None:
         ]
         if inviati:
             gestore.sincronizza_inviati(inviati)
+    except MAILBOX_STORAGE_ERRORS:
+        raise
     except Exception:
         return
 

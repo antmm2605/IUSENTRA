@@ -88,6 +88,7 @@ APPLICATION_DATA_FLOW_AREAS: dict[str, DataFlowArea] = {
         menu_items=(
             ("Tutti i Fascicoli", "/fascicoli"),
             ("Nuovo Fascicolo", "/fascicoli/nuovo"),
+            ("Preparazione Udienza Guidata", "/wizard-pro/"),
             ("Archivio", "/fascicoli/archivio"),
         ),
         api_routes=("/api/v1/ui/fascicoli", "/api/v1/ui/fascicoli/deposito/prepara"),
@@ -146,8 +147,8 @@ APPLICATION_DATA_FLOW_AREAS: dict[str, DataFlowArea] = {
         ),
         tenant_path_keys=("EMAIL_CASELLA_DB", "EMAIL_ORDINARIA_DB", "MESSAGGI_DB", "NOTIFICHE_LOG"),
         json_modules=("email_casella", "email_ordinaria", "messaggi", "notifiche"),
-        sqlite_tables=("messaggi", "notifiche_log"),
-        postgres_tables=("messaggi", "notifiche_log"),
+        sqlite_tables=("messaggi", "notifiche_log", "email_mailbox_records", "email_mailbox_bootstrap", "email_mailbox_audit"),
+        postgres_tables=("messaggi", "notifiche_log", "email_mailbox_records", "email_mailbox_bootstrap", "email_mailbox_audit"),
     ),
     "scadenze_termini": DataFlowArea(
         label="Scadenze e Termini",
@@ -155,7 +156,6 @@ APPLICATION_DATA_FLOW_AREAS: dict[str, DataFlowArea] = {
         menu_items=(
             ("Scadenziario", "/scadenziario"),
             ("Nuova Scadenza", "/scadenziario/nuova"),
-            ("Preparazione Udienza Guidata", "/wizard-pro/"),
             ("Controlli Atti", "/deposito/checklist"),
         ),
         api_routes=("/api/v1/ui/scadenziario", "/api/deadlines/quick-summary"),

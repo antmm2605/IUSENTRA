@@ -1,3 +1,4 @@
+import { WorkPanelPortal } from './WorkPanelPortal'
 import { Loader2, Search } from 'lucide-react'
 import { useCallback, useMemo, useRef, type ReactNode } from 'react'
 import { useClickOutside } from '../../hooks/useClickOutside'
@@ -42,7 +43,7 @@ export function TopBarRecentItems({
         {icon}
         {count > 0 ? <span>{count > 9 ? '9+' : count}</span> : null}
       </button>
-      {open ? (
+      {open ? (<WorkPanelPortal onClose={onClose}>
         <div className="iu-topbar-panel iu-recent-panel" role="dialog" aria-label="Recenti e ricerche">
           <header>
             <strong>Recenti</strong>
@@ -55,7 +56,7 @@ export function TopBarRecentItems({
               <h3>Elementi aperti</h3>
               <div className="iu-panel-list">
                 {items.map((item) => (
-                  <a className="iu-panel-item" href={item.href} key={`${item.type}-${item.id}`} onClick={onClose}>
+                  <a className="iu-panel-item" href={item.href} key={`${item.type}-${item.id}`}>
                     <span>{labelFor(item.type).slice(0, 3)}</span>
                     <span>
                       <strong>{item.title}</strong>
@@ -71,7 +72,7 @@ export function TopBarRecentItems({
               <h3>Ricerche recenti</h3>
               <div className="iu-panel-list">
                 {searches.map((search) => (
-                  <a className="iu-panel-item" href={search.href} key={search.id} onClick={onClose}>
+                  <a className="iu-panel-item" href={search.href} key={search.id}>
                     <span><Search size={14} /></span>
                     <span>
                       <strong>{search.title}</strong>
@@ -83,7 +84,7 @@ export function TopBarRecentItems({
             </section>
           ) : null}
           {!loading && !items.length && !searches.length ? <p className="iu-panel-state">Nessun elemento o ricerca recente.</p> : null}
-        </div>
+        </div></WorkPanelPortal>
       ) : null}
     </div>
   )

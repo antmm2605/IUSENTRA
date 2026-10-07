@@ -26,6 +26,7 @@ from legal_deposit.penal_rules import (
 )
 from legal_deposit.policies import get_channel_profile
 from web.services.tenant_paths import tenant_data_path
+from web.services.email_storage_runtime import create_email_mailbox
 
 
 def build_pdp_penale_runtime(
@@ -660,7 +661,7 @@ def build_pdp_penale_runtime(
         case_row: dict[str, Any],
         access_requests: list[dict[str, Any]],
 ) -> dict[str, Any]:
-        from pct.email_client import GestioneEmailRicevute
+
 
         repo = get_pdp_penale()
         cfg = get_config_studio().config
@@ -669,7 +670,7 @@ def build_pdp_penale_runtime(
             os.environ.get("PCT_EMAIL_DB", "./email/casella.json"),
             require_tenant=True,
         )
-        ge = GestioneEmailRicevute(db_path=email_db)
+        ge = create_email_mailbox(db_path=email_db)
         sync_result = {"nuove": 0, "errore": ""}
         if getattr(cfg, "pec", None) and getattr(cfg.pec, "imap_host", "") and getattr(cfg.pec, "indirizzo", "") and getattr(cfg.pec, "password", ""):
             sync_result = ge.sincronizza_imap(

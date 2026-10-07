@@ -1,0 +1,28 @@
+.iu-ag-source-modal__box.iu-tel-card-panel{width:min(1000px,calc(100vw - 28px));height:auto;align-self:center;max-height:calc(100dvh - 78px)}
+.iu-tel-card-panel__body{padding:14px;display:flex;flex-direction:column;gap:12px;min-height:0;overflow:auto}
+.iu-tel-card-panel__filters{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:12px;align-items:end}
+.iu-tel-card-panel__filters>label{display:grid;gap:6px;color:var(--iu-slate-600);font-size:12px;font-weight:700;min-width:0}
+.iu-tel-card-panel__filters label>div{position:relative;display:flex;align-items:center}
+.iu-tel-card-panel__filters svg{position:absolute;left:12px;pointer-events:none}
+.iu-tel-card-panel__filters input,.iu-tel-card-panel__filters select{width:100%;min-width:0;min-height:44px;border:1px solid var(--iu-border);border-radius:9px;background:var(--iu-bg-card);color:var(--iu-navy-900);font:inherit;padding:10px 12px}
+.iu-tel-card-panel__filters input{padding-left:38px}
+.iu-tel-card-panel__selection{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+.iu-tel-card-panel__selection>label{display:flex;align-items:center;gap:8px;min-height:44px;font-size:13px;font-weight:700}
+.iu-tel-card-panel input[type=checkbox]{width:18px;height:18px;flex-shrink:0;accent-color:var(--iu-blue-600)}
+.iu-tel-card-panel__selection>span{font-size:12px;color:var(--iu-slate-600)}
+.iu-tel-card-panel__selection>:is(button,a){margin-left:auto}
+.iu-tel-card-panel button:not(.iu-ag-source-modal__close):not(.iu-window-control),.iu-tel-card-panel__rows a,.iu-tel-card-panel__download{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 12px;border:1px solid var(--iu-border);border-radius:9px;background:var(--iu-bg-card);color:var(--iu-navy-900);font:inherit;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;white-space:normal}
+.iu-tel-card-panel button:not(:disabled):hover,.iu-tel-card-panel__rows a:hover,.iu-tel-card-panel__download:hover{background:var(--iu-blue-50);color:var(--iu-navy-900);border-color:var(--iu-blue-600)}
+.iu-tel-card-panel :is(button,a,input,select):focus-visible{outline:2px solid var(--iu-blue-600);outline-offset:2px}
+.iu-tel-card-panel button:disabled,.iu-tel-card-panel input:disabled,.iu-tel-card-panel select:disabled{opacity:.65;cursor:default}
+.iu-tel-card-panel__rows{list-style:none;margin:0;padding:0;max-height:min(460px,calc(100dvh - 330px));overflow:auto;min-height:0}
+.iu-tel-card-panel__rows li{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 2px;border-bottom:1px solid var(--iu-border)}
+.iu-tel-card-panel__rows li:last-child{border-bottom:0}
+.iu-tel-card-panel__rows li>div{display:grid;gap:4px;min-width:0;overflow-wrap:anywhere}
+.iu-tel-card-panel__rows strong{font-size:14px;line-height:1.4;color:var(--iu-navy-900)}
+.iu-tel-card-panel__rows span,.iu-tel-card-panel__rows small{font-size:12px;line-height:1.45;color:var(--iu-slate-600)}
+.iu-tel-card-panel__unlinked{max-width:200px}
+.iu-tel-card-panel__error{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--iu-danger-500);font-size:13px;line-height:1.5}
+.iu-tel-card-panel__feedback{margin:0;color:var(--iu-slate-600);font-size:12px}
+.iu-tel-card-panel__pages{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px}
+@media(max-width:600px){.iu-tel-card-panel__filters{grid-template-columns:minmax(0,1fr)}.iu-tel-card-panel__rows{max-height:calc(100dvh - 430px)}.iu-tel-card-panel__rows li{grid-template-columns:18px minmax(0,1fr);gap:8px 10px}.iu-tel-card-panel__rows a,.iu-tel-card-panel__unlinked{grid-column:2;justify-self:start}.iu-tel-card-panel__selection>:is(button,a){margin-left:0}.iu-tel-card-panel__body{padding:12px;gap:10px}}

@@ -7,6 +7,7 @@ import { TopBarRecentItems } from './TopBarRecentItems'
 import { TopBarSearch } from './TopBarSearch'
 import { TopBarTimeTracker } from './TopBarTimeTracker'
 import { TopBarTodayMenu } from './TopBarTodayMenu'
+import { TopBarMobileMenu } from './TopBarMobileMenu'
 import { IusTopBar } from '../iusentra'
 import { trackRecentItem } from '../../services/topbarApi'
 import type { TopbarCreateContext } from '../../types/topbar'
@@ -89,7 +90,7 @@ export function TopBar({
   supportEnabled?: boolean
   bootstrap?: SupportBootstrap
 }) {
-  const [openPanel, setOpenPanel] = useState<PanelName>(null)
+  const [openPanels, setOpenPanels] = useState<Set<Exclude<PanelName, null>>>(() => new Set())
   const [supportOpening, setSupportOpening] = useState(false)
   const [supportError, setSupportError] = useState('')
   const [voiceAssistantReady, setVoiceAssistantReady] = useState(false)
@@ -129,8 +130,8 @@ export function TopBar({
     }, 1200)
     return () => window.clearTimeout(handle)
   }, [activePath])
-  const togglePanel = (panel: Exclude<PanelName, null>) => setOpenPanel((current) => (current === panel ? null : panel))
-  const closePanel = () => setOpenPanel(null)
+  const togglePanel = (panel: Exclude<PanelName, null>) => setOpenPanels(current => { const next = new Set(current); if (next.has(panel)) next.delete(panel); else next.add(panel); return next })
+  const closePanel = (panel: Exclude<PanelName, null>) => setOpenPanels(current => { const next = new Set(current); next.delete(panel); return next })
   const requestSupport = async () => {
     if (supportOpening) return
     const contextLabel = `Richiesta aperta dalla barra dello studio: ${activePath || '/'}`
@@ -202,38 +203,39 @@ export function TopBar({
           {supportError ? <div className="iu-support-request-error" role="alert">{supportError}</div> : null}
         </div>
       ) : null}
+      <TopBarMobileMenu onSelect={panel => setOpenPanels(current => new Set(current).add(panel))} onSupport={supportEnabled ? () => { void requestSupport() } : undefined} supportOpening={supportOpening} supportError={supportError}/>
       <div className="iu-topbar__actions iu-topbar-op__actions">
         <Suspense fallback={null}><DiscordanzeAccesso sessionKey={`${bootstrap?.tenant?.slug || ''}:${bootstrap?.user?.username || ''}`} /></Suspense>
         <TopBarTimeTracker
-          open={openPanel === 'timer'}
+          open={openPanels.has('timer')}
           onToggle={() => togglePanel('timer')}
-          onClose={closePanel}
+          onClose={() => closePanel('timer')}
           context={context}
           icon={<Clock3 size={18} />}
         />
         <TopBarTodayMenu
-          open={openPanel === 'today'}
+          open={openPanels.has('today')}
           onToggle={() => togglePanel('today')}
-          onClose={closePanel}
+          onClose={() => closePanel('today')}
           label={todayLabel()}
           icon={<CalendarClock size={16} />}
         />
         <TopBarDeadlines
-          open={openPanel === 'deadlines'}
+          open={openPanels.has('deadlines')}
           onToggle={() => togglePanel('deadlines')}
-          onClose={closePanel}
+          onClose={() => closePanel('deadlines')}
           icon={<TriangleAlert size={18} />}
         />
         <TopBarRecentItems
-          open={openPanel === 'recent'}
+          open={openPanels.has('recent')}
           onToggle={() => togglePanel('recent')}
-          onClose={closePanel}
+          onClose={() => closePanel('recent')}
           icon={<FolderClock size={18} />}
         />
         <TopBarNotifications
-          open={openPanel === 'notifications'}
+          open={openPanels.has('notifications')}
           onToggle={() => togglePanel('notifications')}
-          onClose={closePanel}
+          onClose={() => closePanel('notifications')}
           icon={<Bell size={18} />}
         />
         <a className="iu-icon" href="/impostazioni" aria-label="Impostazioni" title="Impostazioni">
@@ -241,9 +243,9 @@ export function TopBar({
         </a>
         <TopBarCreateMenu
           context={context}
-          open={openPanel === 'create'}
+          open={openPanels.has('create')}
           onToggle={() => togglePanel('create')}
-          onClose={closePanel}
+          onClose={() => closePanel('create')}
           icon={<Plus size={16} />}
         />
       </div>

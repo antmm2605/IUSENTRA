@@ -74,6 +74,7 @@ export type StudioProfile = {
 }
 
 export type StudioMetric = {
+  href?: string
   id: string
   label: string
   value: string | number
@@ -95,6 +96,7 @@ export type StudioPageData = {
   operational_routes: OperationalModule[]
   legacy_routes: LegacyModule[]
   health: SystemHealth[]
+  metricContexts: Record<string, StudioMetric[]>
   metrics: StudioMetric[]
   actions: RouteAction[]
   warnings: WarningItem[]
@@ -128,6 +130,7 @@ export const emptyStudioPage: StudioPageData = {
   operational_routes: [],
   legacy_routes: [],
   health: [],
+  metricContexts: {},
   metrics: [],
   actions: [],
   warnings: [],
@@ -205,6 +208,7 @@ function normaliseContract(raw: unknown): ReactOperationalContract {
 function normaliseMetric(raw: unknown): StudioMetric {
   const item = asRecord(raw)
   return {
+    href: text(item.href),
     id: text(item.id) || text(item.label) || 'metrica',
     label: display(item.label) || 'Metrica',
     value: value(item.value),
@@ -288,6 +292,7 @@ function normalisePage(raw: unknown): StudioPageData {
     operational_routes: list(page.operational_routes).map(normaliseModule).filter((item) => item.href),
     legacy_routes: list(page.legacy_routes).map(normaliseModule).filter((item) => item.href),
     health: list(page.health).map(normaliseHealth),
+    metricContexts: Object.fromEntries(Object.entries(asRecord(page.metricContexts)).map(([id, items]) => [id, list(items).map(normaliseMetric)])),
     metrics: list(page.metrics).map(normaliseMetric),
     actions: list(page.actions).map(normaliseAction).filter((action) => action.href),
     warnings: list(page.warnings).map(normaliseWarning),

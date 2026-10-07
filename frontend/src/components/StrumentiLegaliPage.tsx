@@ -21,10 +21,15 @@ import { getContestoStrumento, type ContestoStrumento } from '../applicazioniDat
 import './StrumentiLegaliPage.css'
 
 const OcrDocumentoTool = lazy(() => import('./strumenti/OcrDocumentoTool'))
+const DocumentChecksTool = lazy(() => import('./strumenti/DocumentChecksTool'))
 
 function parametroUrl(nome: string): string {
   if (typeof window === 'undefined') return ''
   return (new URLSearchParams(window.location.search).get(nome) ?? '').trim()
+}
+
+function categoriaVisibile(valore: string): string {
+  return /^(utility|utilita|utilità)$/i.test(valore.trim()) ? 'Utilità' : valore.trim()
 }
 
 function toolDallUrl(): string {
@@ -307,6 +312,15 @@ function PannelloStrumento({
   onCampo: (name: string, value: string) => void
   onCalcola: () => void
 }) {
+  if (strumento.componente === 'impronta-documenti' || strumento.componente === 'confronta-testi') {
+    return (
+      <section className="iu-strumenti__pannello" id={`pannello-${strumento.id}`}>
+        <Suspense fallback={<p aria-live="polite">Caricamento dello strumento…</p>}>
+          <DocumentChecksTool key={strumento.id} mode={strumento.componente === 'impronta-documenti' ? 'hash' : 'text'} />
+        </Suspense>
+      </section>
+    )
+  }
   if (strumento.componente === 'ocr-documento') {
     return (
       <section className="iu-strumenti__pannello" id={`pannello-${strumento.id}`}>
@@ -357,6 +371,7 @@ export default function StrumentiLegaliPage() {
   const [datiCalcolo, setDatiCalcolo] = useState<Record<string, string>>({})
   const [inCorso, setInCorso] = useState(false)
   const [filtro, setFiltro] = useState('')
+  const [categoria, setCategoria] = useState('')
   const [contesto, setContesto] = useState<ContestoStrumento | null>(null)
   const abort = useRef<AbortController | null>(null)
 
@@ -396,17 +411,25 @@ export default function StrumentiLegaliPage() {
     setEsito(null)
   }, [strumento, contesto])
 
+  const categorie = useMemo(() => {
+    const conteggi = new Map<string, number>()
+    for (const voce of payload?.strumenti ?? []) {
+      const nome = categoriaVisibile(voce.categoria)
+      conteggi.set(nome, (conteggi.get(nome) ?? 0) + 1)
+    }
+    return Array.from(conteggi, ([nome, totale]) => ({ nome, totale }))
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'it'))
+  }, [payload])
+
   const visibili = useMemo(() => {
-    const testo = filtro.trim().toLowerCase()
-    const elenco = payload?.strumenti ?? []
-    if (!testo) return elenco
-    return elenco.filter(
-      (voce) =>
-        voce.title.toLowerCase().includes(testo) ||
-        voce.subtitle.toLowerCase().includes(testo) ||
-        voce.categoria.toLowerCase().includes(testo),
+    const testo = filtro.trim().toLocaleLowerCase('it')
+    return (payload?.strumenti ?? []).filter((voce) =>
+      (!categoria || categoriaVisibile(voce.categoria) === categoria) &&
+      (!testo || [voce.title, voce.subtitle, categoriaVisibile(voce.categoria)]
+        .some((valore) => valore.toLocaleLowerCase('it').includes(testo))),
     )
-  }, [payload, filtro])
+  }, [payload, filtro, categoria])
+  const visibiliIds = useMemo(() => new Set(visibili.map((voce) => voce.id)), [visibili])
 
   const cambiaCampo = useCallback((name: string, value: string) => {
     setValori((corrente) => ({ ...corrente, [name]: value }))
@@ -467,6 +490,17 @@ export default function StrumentiLegaliPage() {
             {avviso}
           </div>
         ))}
+        <nav className="iu-strumenti__categorie" aria-label="Filtra strumenti per categoria">
+          <button type="button" aria-pressed={!categoria} onClick={() => setCategoria('')}>
+            <span>Tutti</span><strong>{payload.strumenti.length}</strong>
+          </button>
+          {categorie.map((voce) => (
+            <button type="button" key={voce.nome} aria-pressed={categoria === voce.nome}
+              onClick={() => setCategoria((attuale) => attuale === voce.nome ? '' : voce.nome)}>
+              <span>{voce.nome}</span><strong>{voce.totale}</strong>
+            </button>
+          ))}
+        </nav>
         <label className="iu-field__label" htmlFor="filtro-strumenti">
           Cerca uno strumento
         </label>
@@ -480,11 +514,15 @@ export default function StrumentiLegaliPage() {
         />
       </header>
 
+      <div className="iu-strumenti__riepilogo">
+        <span role="status">{visibili.length} {visibili.length === 1 ? 'strumento trovato' : 'strumenti trovati'}{categoria ? ` · ${categoria}` : ''}</span>
+        {filtro || categoria ? <button type="button" onClick={() => { setFiltro(''); setCategoria('') }}>Azzera filtri</button> : null}
+      </div>
       <div className="iu-strumenti__elenco">
-        {visibili.map((voce) => {
+        {payload.strumenti.map((voce) => {
           const aperto = voce.id === attivo
           return (
-            <div className={aperto ? 'iu-strumento iu-strumento--aperto' : 'iu-strumento'} key={voce.id}>
+            <div className={aperto ? 'iu-strumento iu-strumento--aperto' : 'iu-strumento'} key={voce.id} hidden={!visibiliIds.has(voce.id)}>
               <button
                 type="button"
                 className={aperto ? 'iu-strumento-card iu-strumento-card--attiva' : 'iu-strumento-card'}
@@ -492,7 +530,7 @@ export default function StrumentiLegaliPage() {
                 aria-expanded={aperto}
                 aria-controls={`pannello-${voce.id}`}
               >
-                <span className="iu-strumento-card__categoria">{voce.categoria}</span>
+                <span className="iu-strumento-card__categoria">{categoriaVisibile(voce.categoria)}</span>
                 <span className="iu-strumento-card__titolo">{voce.title}</span>
                 <span className="iu-strumento-card__sottotitolo">{voce.subtitle}</span>
               </button>

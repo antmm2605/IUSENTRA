@@ -91,6 +91,21 @@ export type IncassiPagamentiPageData = {
   actions: IncassiPagamentiPermissions
   records: PaymentRow[]
   warnings: AdminWarning[]
+  cardRecords: IncassiCardRecord[]
+}
+
+export type IncassiCardRecord = {
+  id: string
+  label: string
+  customer: string
+  kind: string
+  state: string
+  stateLabel: string
+  stateTone: AdminTone
+  amountDisplay: string
+  dateLabel: string
+  href: string
+  metricIds: string[]
 }
 
 export type IncassoPagamentoRecord = PaymentRow
@@ -122,6 +137,7 @@ export const emptyIncassiPagamentiPage: IncassiPagamentiPageData = {
   actions: emptyActions,
   records: [],
   warnings: [],
+  cardRecords: [],
 }
 
 const emptyMutation: PaymentMutationResult = {
@@ -314,6 +330,10 @@ function normalisePage(raw: unknown): IncassiPagamentiPageData {
     actions: normaliseActions(page.actions),
     records,
     warnings: list(page.warnings).map(normaliseWarning),
+    cardRecords: list(page.cardRecords).map((raw) => {
+      const row = asRecord(raw)
+      return { id: text(row.id), label: text(row.label), customer: text(row.customer), kind: text(row.kind), state: text(row.state), stateLabel: text(row.stateLabel), stateTone: text(row.stateTone) as AdminTone, amountDisplay: text(row.amountDisplay), dateLabel: text(row.dateLabel), href: text(row.href), metricIds: list(row.metricIds).map((item) => text(item)).filter(Boolean) }
+    }).filter((row) => row.id),
   }
 }
 
@@ -329,6 +349,7 @@ function normaliseMutation(raw: unknown): PaymentMutationResult {
 
 export async function getIncassiPagamentiPage(): Promise<IncassiPagamentiPageData> {
   const payload = await apiJson<unknown>(withCurrentSearch('/api/v1/ui/incassi-pagamenti'), emptyIncassiPagamentiPage)
+  if (asRecord(payload).ok !== true) throw new Error('Impossibile aggiornare incassi e pagamenti. Riprova senza ripetere registrazioni già eseguite.')
   return normalisePage(payload)
 }
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from urllib.parse import urlencode
 from typing import Any, Callable
 
 from pct.motore_preventivo import catalogo_wizard_counts
@@ -101,17 +102,18 @@ def _wizard_sections(warnings: list[dict[str, str]]) -> list[dict[str, Any]]:
     return sections
 
 
-def _safe_record(row: dict[str, Any], index: int) -> dict[str, Any]:
-    title = _text(row.get("table_label")) or _text(row.get("materia_label")) or _text(row.get("label"))
-    subtitle = _text(row.get("grado_input_value")) or _text(row.get("article")) or _text(row.get("description"))
+def _safe_record(row: dict[str, Any], index: int, kind: str = "profili") -> dict[str, Any]:
+    title = (_text(row.get("label")) if kind == "regole" else _text(row.get("table_label"))) or _text(row.get("label")) or _text(row.get("materia_label"))
+    subtitle = (_text(row.get("summary")) if kind == "regole" else _text(row.get("grado_input_value"))) or _text(row.get("article")) or _text(row.get("description"))
     return {
-        "id": _text(row.get("profile_code")) or _text(row.get("rule_code")) or _text(row.get("reference_code")) or f"record_{index}",
+        "id": (_text(row.get("rule_code")) if kind == "regole" else _text(row.get("profile_code"))) or _text(row.get("reference_code")) or f"record_{index}",
+        "kind": kind,
         "title": title or "Voce tariffaria",
         "subtitle": subtitle,
         "meta": _text(row.get("materia_label")) or _text(row.get("domains")) or "Dato tariffario",
         "stateLabel": "Disponibile",
         "stateTone": "neutral",
-        "href": "/tariffario",
+        "href": "/tariffario?" + urlencode({key: value for key, value in {"materia": _text(row.get("materia_label")), "grado": _text(row.get("grado_input_value")), "regola_tariffaria": _text(row.get("rule_code")) if kind == "regole" else ""}.items() if value}),
     }
 
 
@@ -187,7 +189,8 @@ def build_react_compensi_forensi_payload(
     preventivi_count, conferimenti_count = _preventivi_totals(get_preventivi, warnings)
     wizard_items = _wizard_sections(warnings)
     parameters = _parameters(profili, regole)
-    records = [_safe_record(row, index) for index, row in enumerate((profili[:16] + regole[:16]), start=1)]
+    records = [_safe_record(row, index, "profili") for index, row in enumerate(profili, start=1)]
+    records.extend(_safe_record(row, index, "regole") for index, row in enumerate(regole, start=1))
 
     return {
         "ok": True,

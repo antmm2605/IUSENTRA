@@ -32,6 +32,7 @@ type Props = {
   corrente: OcrBlock | null
   disabled: boolean
   selezionati: number
+  formatoInline?: { famiglia: string; corpo: number; famigliaMista: boolean; corpoMisto: boolean }
   applica: (patch: Partial<OcrFormat>, soloPezzo?: boolean) => void
   premuto: (chiave: ChiaveStile) => boolean
   onTipo: (kind: OcrBlockKind) => void
@@ -51,13 +52,15 @@ const tieniLaSelezione = (event: MouseEvent) => event.preventDefault()
  * scrittura: storia, livello, carattere, corpo, stili, allineamento,
  * interlinea, rientro, colore, ricerca.
  */
-export function OcrBarra({ blocks, corrente, disabled, selezionati, applica, premuto, onTipo, onTogli, storia, trovaAperto, onTrova, azioni }: Props) {
+export function OcrBarra({ blocks, corrente, disabled, selezionati, formatoInline, applica, premuto, onTipo, onTogli, storia, trovaAperto, onTrova, azioni }: Props) {
   const formato = corrente && corrente.kind !== 'tabella' ? corrente.format : null
   const spento = disabled || !formato
-  const propri = Array.from(new Set(blocks.map((block) => block.format.famiglia).filter(Boolean)))
+  const famiglia = formatoInline?.famiglia ?? formato?.famiglia ?? ''
+  const corpo = formatoInline?.corpo ?? formato?.corpo ?? 0
+  const propri = Array.from(new Set(blocks.flatMap((block) => [block.format.famiglia, ...(block.tratti ?? []).map((tratto) => tratto.famiglia || '')]).filter(Boolean)))
   const noti = new Set(GRUPPI_CARATTERI.flatMap((voce) => voce.caratteri))
   const delDocumento = propri.filter((nome) => !noti.has(nome))
-  const corpi = formato?.corpo && !CORPI.includes(formato.corpo) ? [...CORPI, formato.corpo].sort((a, b) => a - b) : CORPI
+  const corpi = corpo && !CORPI.includes(corpo) ? [...CORPI, corpo].sort((a, b) => a - b) : CORPI
   const rientro = formato?.rientro || 0
   return (
     <div className="iu-ocr-barra" role="toolbar" aria-label="Formato del testo selezionato">
@@ -76,8 +79,8 @@ export function OcrBarra({ blocks, corrente, disabled, selezionati, applica, pre
       </label>
       <label className="iu-ocr-barra__carattere">
         <span className="iu-sr-only">Carattere</span>
-        <select value={formato?.famiglia || ''} disabled={spento} onChange={(event) => applica({ famiglia: event.target.value }, true)}>
-          <option value="">Carattere del documento</option>
+        <select value={famiglia} disabled={spento} onChange={(event) => applica({ famiglia: event.target.value })}>
+          <option value="">{formatoInline?.famigliaMista ? 'Caratteri misti' : 'Carattere del documento'}</option>
           {delDocumento.length ? (
             <optgroup label="Usati nel documento">
               {delDocumento.map((nome) => <option key={nome} value={nome}>{nome}</option>)}
@@ -92,8 +95,8 @@ export function OcrBarra({ blocks, corrente, disabled, selezionati, applica, pre
       </label>
       <label className="iu-ocr-barra__corpo">
         <span className="iu-sr-only">Dimensione del testo</span>
-        <select value={formato?.corpo || 0} disabled={spento} onChange={(event) => applica({ corpo: Number(event.target.value) }, true)}>
-          <option value={0}>Corpo del documento</option>
+        <select value={corpo} disabled={spento} onChange={(event) => applica({ corpo: Number(event.target.value) })}>
+          <option value={0}>{formatoInline?.corpoMisto ? 'Corpi misti' : 'Corpo del documento'}</option>
           {corpi.map((corpo) => <option key={corpo} value={corpo}>{`${String(corpo).replace('.', ',')} pt`}</option>)}
         </select>
       </label>

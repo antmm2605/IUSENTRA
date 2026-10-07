@@ -2128,3 +2128,7 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 
 
 Consolidamento 02/10/2026: harness ui-support non superato per perimetro/protected manifest; non indebolito. Backup integrale non avviabile per spazio: eseguito snapshot SQL nativo separato. Restano i requisiti funzionali storici elencati nel rapporto Controllo Studio, senza dichiarazione di copertura integrale.
+
+## Consolidamento 07/10/2026 — locale
+
+Il database SQLite del tenant registrato tenant-8bf98719c459 presenta corruzione in moduli_json_records. Backup originale verificato e servizi scriventi arrestati; la ricostruzione candidata non è applicata poiché incompleta. La copia storica SQL è distinta e non sostituisce il database corrente. I test PostgreSQL richiedono il profilo controllato configurato; skip locali non costituiscono prova di parità. Conversione Word fedele e campagna complessiva del prodotto restano incarichi aperti.

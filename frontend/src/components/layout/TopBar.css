@@ -1526,3 +1526,20 @@ textarea[data-iusentra-voice-preview="ascolto"]{
 }
 .iu-deadline-summary__drafts{grid-column:1/-1;display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:9px;background:rgba(3,105,161,.08);color:#075985;font-size:11.5px;font-weight:800;text-decoration:none}
 .iu-deadline-summary__drafts strong{font-weight:900}
+/* Oggi: riepiloghi operativi compatti, ricerca e paging nello stesso pannello. */
+.iu-today-summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:10px 12px}
+.iu-today-summary button{min-width:0;min-height:44px;padding:6px 8px;border:1px solid var(--iu-border);border-radius:8px;background:var(--iu-bg-card);color:var(--iu-navy-900);font:inherit;font-size:11px;font-weight:700;cursor:pointer;text-align:center}
+.iu-today-summary button strong{font-size:16px;line-height:1.2}
+.iu-today-summary button:hover{border-color:var(--iu-blue-700);background:var(--iu-slate-100)}
+.iu-today-summary button[aria-pressed="true"]{border-color:var(--iu-blue-700);background:#eff6ff;color:var(--iu-blue-700)}
+.iu-today-summary button:focus-visible,.iu-today-filters input:focus-visible{outline:2px solid var(--iu-blue-700);outline-offset:2px}
+.iu-today-filters{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 12px;border-bottom:1px solid var(--iu-border);font-size:12px}
+.iu-today-filters input{flex:1 1 180px;min-width:0;min-height:36px;padding:7px 10px;border:1px solid var(--iu-border);border-radius:8px;background:var(--iu-bg-card);color:var(--iu-navy-900);font:inherit}
+.iu-today-filters .iu-panel-ghost:disabled{opacity:.55;cursor:default}
+@media(max-width:480px){.iu-today-summary{grid-template-columns:repeat(3,minmax(0,1fr))}.iu-today-summary button{font-size:10px}.iu-today-filters input{flex-basis:100%}}
+.iu-today-panel .iu-panel-item strong{white-space:normal;overflow-wrap:anywhere;text-overflow:clip}
+/* Titolo, data e comandi di Oggi in un'intestazione compatta anche su mobile. */
+.iu-today-panel[data-managed-existing-window]>header{background:#fff;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:2px 6px;padding:10px 12px}
+.iu-today-panel[data-managed-existing-window]>header>strong{grid-column:1;grid-row:1}
+.iu-today-panel[data-managed-existing-window]>header>small{grid-column:1;grid-row:2;margin:0;min-width:0;font-size:11px}
+.iu-today-panel[data-managed-existing-window]>header>.iu-existing-window-controls{grid-column:2;grid-row:1 / span 2;width:auto;margin:0;padding:2px;gap:5px;min-width:0}

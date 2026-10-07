@@ -1,4 +1,4 @@
-# version: 2.436.9
+# version: 2.436.10
 from pathlib import Path
 import sys
 
@@ -48,4 +48,3 @@ setup(
         ],
     },
 )
-

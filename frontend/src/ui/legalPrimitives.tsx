@@ -58,7 +58,7 @@ function useManagedDialog<TElement extends HTMLElement>(open: boolean, onClose: 
         onClose()
         return
       }
-      if (event.key !== 'Tab') return
+      if (event.key !== 'Tab' || panelRef.current?.closest('[role=dialog]')?.getAttribute('aria-modal') === 'false') return
       const focusable = getFocusableElements(panelRef.current)
       if (!focusable.length) {
         event.preventDefault()

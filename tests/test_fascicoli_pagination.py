@@ -1255,15 +1255,15 @@ def test_fascicoli_frontend_contratto_query_params_e_lazy_tab():
     assert "[2, 3].forEach" in page_source
     assert "applyStatContext({ missingRgOnly: true })" in page_source
     assert "applyStatContext({ duplicatesOnly: true })" in page_source
-    assert "syncListContextInUrl(next)" in page_source
+    assert "syncListContextInUrl(next, { q: query, type, court, fieldFilters })" in page_source
     assert "economicPresidioRunRef.current === presidioKey" in page_source
     assert "hasExplicitListPreferenceParams" in page_source
     assert "Salva vista" in page_source
     assert "preferencesState === 'saved' ? 'Vista salvata'" in page_source
     assert ".iu-fas-filter-save" in css_source
-    columns_start = page_source.index("const fascicoliTableColumns:")
-    columns_end = page_source.index("const fascicoliTableColumnPresets", columns_start)
-    columns_source = page_source[columns_start:columns_end]
+    columns_start = data_source.index("export const fascicoliTableColumns:")
+    columns_end = data_source.index("export const fascicoliTableColumnPresets", columns_start)
+    columns_source = data_source[columns_start:columns_end]
     assert columns_source.count("key: '") == 37
     assert "function FascicoliTableColumnsControl" in page_source
     assert "visibleColumns={visibleColumns}" in page_source
@@ -1275,10 +1275,10 @@ def test_fascicoli_frontend_contratto_query_params_e_lazy_tab():
     assert "overflow-x:auto;overflow-y:hidden" in css_source
     assert "Scadenze urgenti" in page_source
     assert "Scadenze 7g" not in page_source
-    # Il riquadro di allerta mostra solo le scadenze dei prossimi 7 giorni, mai le già scadute.
+    # Scadenze aperte scadute o entro 7 giorni, senza cambiare lo stato legale.
     assert "function isDeadlineAlertUpcoming7" in page_source
-    assert ".filter(isDeadlineAlertUpcoming7)" in page_source
-    assert "const deadlineAlertHeading = 'Scadenze entro 7 giorni'" in page_source
+    assert ".filter((item) => isDeadlineAlertUpcoming7(item) || deadlineAlertWindow(item) === 'overdue')" in page_source
+    assert "const deadlineAlertHeading =" in page_source and "dello studio" in page_source
     assert "function isDeadlineAlertVisible" not in page_source
     assert "<strong>{deadlineAlertHeading}</strong>" in page_source
     assert "data.deadlines.slice(0, 4)" not in page_source

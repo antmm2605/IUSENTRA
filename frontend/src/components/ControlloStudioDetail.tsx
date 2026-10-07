@@ -8,10 +8,11 @@ import { SourceDocumentModal, SourceDocumentReader, type SourceDocument } from '
 import VerificaNotifichePanel from './VerificaNotifichePanel'
 import PresidioDetailDrawer from '../features/notifiche-legali/components/PresidioDetailDrawer'
 import '../features/notifiche-legali/PresidiNotifiche.css'
+import ControlloStudioAgendaDetail from './ControlloStudioAgendaDetail'
 import type { Azione, Voce } from './ControlloStudioPage'
 
-export default function ControlloStudioDetail({ voce, onClose, onUpdated, onFatto }: {
-  voce: Voce; onClose: () => void; onUpdated: () => void; onFatto: (voce: Voce, azione: Azione) => void
+export default function ControlloStudioDetail({ voce, azione, onClose, onUpdated, onFatto }: {
+  voce: Voce; azione?: Azione; onClose: () => void; onUpdated: () => void; onFatto: (voce: Voce, azione: Azione) => void
 }) {
   const [row, setRow] = useState<ScadenziarioRow | null>(null)
   const [errore, setErrore] = useState('')
@@ -30,6 +31,7 @@ export default function ControlloStudioDetail({ voce, onClose, onUpdated, onFatt
       }).catch(() => { if (active) setErrore('Il termine non si è caricato. Chiudi e riprova.') })
     return () => { active = false }
   }, [voce.area, voce.id])
+  if (voce.area === 'agenda') return <ControlloStudioAgendaDetail voce={voce} azione={azione} onClose={onClose} onUpdated={onUpdated}/>
   if (voce.area === 'comunicazioni') return createPortal(<OperationalModal open ariaLabel="PEC selezionata"
     eyebrow="Comunicazione selezionata" title={voce.titolo} subtitle={voce.fascicolo?.etichetta || voce.dettaglio}
     onClose={onClose} actions={voce.fascicolo?.id ? <>

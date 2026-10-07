@@ -224,7 +224,7 @@ function Raccolte({ route }: { route: Extract<SitoContenutiRoute, { collection: 
       <div className="iu-sitoc-layout">
         <Panel
           title={data.collection.label}
-          subtitle={`${data.items.length} elementi`}
+          subtitle={`${data.items.length} ${data.items.length === 1 ? 'elemento' : 'elementi'}`}
           actions={<ButtonLink href={`/sito-studio/${route.collection}/nuovo`} tone="primary"><Plus size={15} aria-hidden="true" /> Aggiungi</ButtonLink>}
         >
           {data.items.length ? (

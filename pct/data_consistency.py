@@ -64,6 +64,40 @@ def _backend_kind(backend: Any) -> str:
     return str(getattr(backend, "backend_kind", "sqlite") or "sqlite").lower()
 
 
+def list_outbox_metadata(backend: Any, *, status: str = "", query: str = "", page: int = 1) -> dict[str, Any]:
+    """Pagina metadati dal backend già isolato per tenant; nessun payload o segreto.
+
+    Nessuna scrittura, dispatcher, scansione JSON o apertura di altri database.
+    La paginazione e i parametri sono identici sui backend SQLite/PostgreSQL.
+    """
+    selected = str(status or "").upper()
+    if selected not in {"", "PENDING", "PROCESSED", "FAILED"}:
+        raise ValueError("Stato evento non valido.")
+    search = str(query or "").strip()[:160]
+    conditions: list[str] = []
+    params: list[Any] = []
+    if selected:
+        conditions.append("status = ?")
+        params.append(selected)
+    if search:
+        escaped = search.lower().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        conditions.append("(LOWER(event_type) LIKE ? ESCAPE '\\' OR LOWER(aggregate_type) LIKE ? ESCAPE '\\' OR LOWER(aggregate_id) LIKE ? ESCAPE '\\')")
+        params.extend([f"%{escaped}%"] * 3)
+    where = " WHERE " + " AND ".join(conditions) if conditions else ""
+    count_row = backend.conn.execute("SELECT COUNT(*) AS n FROM transactional_outbox" + where, params).fetchone()
+    total = int(count_row["n"] if hasattr(count_row, "keys") else count_row[0])
+    page_size = 50
+    current_page = min(max(1, int(page)), max(1, (total + page_size - 1) // page_size))
+    fields = ("id", "aggregate_type", "aggregate_id", "event_type", "status", "attempts", "created_at", "processed_at")
+    rows = backend.conn.execute(
+        "SELECT " + ", ".join(fields) + " FROM transactional_outbox" + where +
+        " ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?",
+        [*params, page_size, (current_page - 1) * page_size],
+    ).fetchall()
+    records = [{key: row[key] if hasattr(row, "keys") else row[index] for index, key in enumerate(fields)} for row in rows]
+    return {"records": records, "total": total, "page": current_page, "pageSize": page_size, "status": selected, "query": search, "readable": True}
+
+
 def build_sql_consistency_snapshot(backend: Any) -> dict[str, Any]:
     """Restituisce il solo inventario SQL del tenant corrente, in sola lettura.
 

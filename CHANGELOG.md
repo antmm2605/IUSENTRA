@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.436.10] - 2026-10-07
+
+- Riallineamento della copia locale alle modifiche in uso su Hetzner: card operative compatte, filtri, selezione e letture massive, aggiornamento automatico e finestre contestuali ridimensionabili e affiancabili.
+- Presa visione delle verifiche documentali persistente per utente e revisione; la discordanza resta consultabile.
+- Filtri economici, cataloghi contestuali, strumenti documentali e OCR; cronologia telematica in ora italiana.
+- Scheduler: indice per identificativo esecuzione e riconciliazione indicizzata senza cambiare i criteri di cancellazione.
+- La conversione Word con identica impaginazione e la campagna completa di accettazione restano aperte; il prototipo delle dimensioni pagina non è incluso.
+
+
 ## 2.436.9 — 03/10/2026
 
 - **Inventario test CI (03/10/2026)**: rigenerati inventario e piano App V2 per includere i test della prova server 2.436.9; eliminato il disallineamento che fermava Lint + syntax e impediva gli shard dipendenti.

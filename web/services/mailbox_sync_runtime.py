@@ -12,6 +12,7 @@ from typing import Any, Callable, Mapping
 from flask import current_app, g, has_app_context
 
 from web.services.tenant_paths import CROSS_STUDIO_DATA_MESSAGE, TenantDataPathError
+from web.services.email_storage_runtime import create_email_mailbox
 
 
 DEFAULT_MAILBOX_SYNC_COOLDOWN_SECONDS = 180.0
@@ -171,12 +172,12 @@ def _get_config_smtp(ctx: MailboxRuntimeContext) -> Any:
 
 
 def _email_manager(ctx: MailboxRuntimeContext, kind: str):
-    from pct.email_client import GestioneEmailRicevute
+
 
     if kind == "ordinary":
         default = os.environ.get("PCT_EMAIL_ORDINARIA_DB", "./email/ordinaria.json")
-        return GestioneEmailRicevute(db_path=_cfg_path(ctx, "EMAIL_ORDINARIA_DB", default, require_tenant=True))
-    return GestioneEmailRicevute(
+        return create_email_mailbox(db_path=_cfg_path(ctx, "EMAIL_ORDINARIA_DB", default, require_tenant=True))
+    return create_email_mailbox(
         db_path=_cfg_path(ctx, "EMAIL_CASELLA_DB", os.environ.get("PCT_EMAIL_DB", "./email/casella.json"), require_tenant=True)
     )
 

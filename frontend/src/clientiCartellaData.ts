@@ -61,6 +61,7 @@ export type CartellaClienteData = {
   }
   matters: { active: CartellaClienteMatter[]; archived: CartellaClienteMatter[] }
   identityDocuments: CartellaClienteItem[]
+  documentItems: CartellaClienteItem[]
   deadlines: CartellaClienteItem[]
   appointments: CartellaClienteItem[]
   messages: CartellaClienteItem[]
@@ -135,6 +136,7 @@ export const emptyCartellaCliente: CartellaClienteData = {
   },
   matters: { active: [], archived: [] },
   identityDocuments: [],
+  documentItems: [],
   deadlines: [],
   appointments: [],
   messages: [],
@@ -233,6 +235,7 @@ function normalisePayload(payload: unknown): CartellaClienteData {
       archived: Array.isArray(rawMatters.archived) ? rawMatters.archived.map(matter) : [],
     },
     identityDocuments: Array.isArray(payload.identityDocuments) ? payload.identityDocuments.map(item) : [],
+    documentItems: Array.isArray(payload.documentItems) ? payload.documentItems.map(item) : [],
     deadlines: Array.isArray(payload.deadlines) ? payload.deadlines.map(item) : [],
     appointments: Array.isArray(payload.appointments) ? payload.appointments.map(item) : [],
     messages: Array.isArray(payload.messages) ? payload.messages.map(item) : [],
@@ -244,16 +247,20 @@ function normalisePayload(payload: unknown): CartellaClienteData {
   }
 }
 
-export async function getCartellaClientePage(idCliente: string): Promise<CartellaClienteData> {
+export async function getCartellaClientePage(idCliente: string, cataloghi = false): Promise<CartellaClienteData> {
   if (!idCliente) return emptyCartellaCliente
   try {
-    const response = await fetch(`/api/v1/ui/clienti/${encodeURIComponent(idCliente)}/cartella`, {
+    const response = await fetch(`/api/v1/ui/clienti/${encodeURIComponent(idCliente)}/cartella${cataloghi ? '?cataloghi=1' : ''}`, {
       credentials: 'same-origin',
       headers: { Accept: 'application/json' },
     })
-    if (!response.ok) return emptyCartellaCliente
+    if (!response.ok) {
+      if (cataloghi) throw new Error('Impossibile consultare il catalogo della cartella cliente. Controlla i permessi o riprova.')
+      return emptyCartellaCliente
+    }
     return normalisePayload(await response.json())
-  } catch {
+  } catch (error) {
+    if (cataloghi) throw error
     return emptyCartellaCliente
   }
 }

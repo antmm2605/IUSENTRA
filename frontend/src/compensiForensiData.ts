@@ -4,6 +4,7 @@ import type { AdminAction, AdminContract, AdminMetric, AdminSection, AdminTone, 
 
 export type CompensiForensiRecord = {
   id: string
+  kind: 'profili' | 'regole'
   title: string
   subtitle: string
   meta: string
@@ -231,6 +232,7 @@ function normaliseRecord(raw: unknown): CompensiForensiRecord {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.title) || 'record',
+    kind: item.kind === 'regole' ? 'regole' : 'profili',
     title: display(item.title) || 'Voce operativa',
     subtitle: display(item.subtitle),
     meta: display(item.meta),

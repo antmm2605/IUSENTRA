@@ -1,4 +1,4 @@
-import { apiJson } from './lib/apiClient'
+import { ensureJson } from './lib/apiClient'
 import { sanitizeDisplayText } from './displayText'
 
 export type StatisticheTone = 'primary' | 'neutral' | 'danger' | 'success' | 'warning' | 'info'
@@ -23,6 +23,7 @@ export type StatisticheItem = {
   label: string
   value: string | number
   secondaryValue?: string | number
+  secondaryLabel?: string
   note: string
   tone: StatisticheTone
 }
@@ -61,6 +62,7 @@ export type StatistichePageData = {
   generated_at: string
   contracts: StatisticheContract
   metrics: StatisticheMetric[]
+  metricSections: Record<string, StatisticheSection[]>
   sections: StatisticheSection[]
   records: StatisticheRecord[]
   actions: StatisticheAction[]
@@ -76,6 +78,7 @@ export const emptyStatistichePage: StatistichePageData = {
     route_owner: 'react_shell',
   },
   metrics: [],
+  metricSections: {},
   sections: [],
   records: [],
   actions: [],
@@ -121,13 +124,27 @@ function normaliseMetric(raw: unknown): StatisticheMetric {
   }
 }
 
+function displayCategory(raw: unknown): string {
+  const labels: Record<string, string> = {
+    IN_CORSO: 'In corso', DEFINITO: 'Definito', ARCHIVIATO: 'Archiviato', CHIUSO: 'Chiuso',
+    APERTO: 'Aperto', COMPLETATO: 'Completato', ANNULLATO: 'Annullato', SCADUTO: 'Scaduto',
+    CRITICA: 'Critica', ALTA: 'Alta', MEDIA: 'Media', BASSA: 'Bassa',
+    LAVORO: 'Lavoro', CIVILE: 'Civile', AMMINISTRATIVO: 'Amministrativo', PENALE: 'Penale',
+    UDIENZA: 'Udienza', SCADENZA: 'Scadenza', ALTRO: 'Altro', RIUNIONE: 'Riunione',
+    CONVERTITO: 'Convertito', BOZZA: 'Bozza', EMESSA: 'Emessa', PAGATA: 'Pagata', EMAIL: 'Email',
+  }
+  const label = display(raw)
+  return labels[label] || label
+}
+
 function normaliseItem(raw: unknown): StatisticheItem {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'voce',
-    label: display(item.label) || 'Voce',
+    label: displayCategory(item.label) || 'Voce',
     value: value(item.value),
-    secondaryValue: value(item.secondaryValue),
+    secondaryValue: item.secondaryValue === undefined || item.secondaryValue === null ? undefined : value(item.secondaryValue),
+    secondaryLabel: display(item.secondaryLabel),
     note: display(item.note),
     tone: tone(item.tone),
   }
@@ -139,7 +156,12 @@ function normaliseSection(raw: unknown): StatisticheSection {
     id: text(item.id) || text(item.title) || 'sezione',
     title: display(item.title) || 'Sezione',
     kind: display(item.kind) || 'Distribuzione',
-    items: list(item.items).map(normaliseItem),
+    items: list(item.items).map((rawItem) => {
+      const row = normaliseItem(rawItem)
+      return text(item.id) === 'comunicazioni' && row.label === 'Email'
+        ? { ...row, label: 'Messaggi clienti (email)' }
+        : row
+    }),
     emptyMessage: display(item.emptyMessage) || 'Nessun dato disponibile.',
   }
 }
@@ -187,6 +209,7 @@ function normalisePage(raw: unknown): StatistichePageData {
       legacy_contract: text(contracts.legacy_contract),
     },
     metrics: list(page.metrics).map(normaliseMetric),
+    metricSections: Object.fromEntries(Object.entries(asRecord(page.metricSections)).map(([id, sections]) => [id, list(sections).map(normaliseSection)])),
     sections: list(page.sections).map(normaliseSection),
     records: list(page.records).map(normaliseRecord),
     actions: list(page.actions).map(normaliseAction).filter((action) => action.method === 'GET' && action.href),
@@ -195,6 +218,11 @@ function normalisePage(raw: unknown): StatistichePageData {
 }
 
 export async function getStatistichePage(): Promise<StatistichePageData> {
-  const payload = await apiJson<unknown>('/api/v1/ui/statistiche', emptyStatistichePage)
+  const payload = await ensureJson<unknown>('/api/v1/ui/statistiche')
+  const page = asRecord(payload)
+  if (page.ok === false || page.source === 'errore_controllato' || !text(page.source) ||
+      !Array.isArray(page.metrics) || !Array.isArray(page.sections) || !Array.isArray(page.records)) {
+    throw new Error('Statistiche non disponibili: risposta incompleta o negativa.')
+  }
   return normalisePage(payload)
 }

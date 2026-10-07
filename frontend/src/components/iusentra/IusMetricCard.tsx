@@ -1,3 +1,4 @@
+import './OperationalMetric.css'
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { ArrowRight } from 'lucide-react'
@@ -13,6 +14,8 @@ export function IusMetricCard({
   note,
   badge,
   href,
+  onClick,
+  active,
   area,
   icon,
   tone = 'primary',
@@ -24,6 +27,8 @@ export function IusMetricCard({
   note?: ReactNode
   badge?: ReactNode
   href?: string
+  onClick?: () => void
+  active?: boolean
   area?: IusLegalArea
   icon?: LucideIcon
   tone?: IusTone
@@ -41,12 +46,13 @@ export function IusMetricCard({
           </div>
           <strong>{value}</strong>
           {note ? <small>{note}</small> : null}
-          {href ? <em>{actionLabel} <ArrowRight /></em> : null}
+          {href || onClick ? <em>{actionLabel} <ArrowRight /></em> : null}
         </div>
       </CardContent>
     </Card>
   )
 
+  if (onClick) return <button className="ius-metric-trigger" title={label} type="button" onClick={onClick} aria-pressed={active}>{content}</button>
   if (!href) return content
-  return <a className="ius-card-link" href={href}>{content}</a>
+  return <a className="ius-card-link" title={label} href={href}>{content}</a>
 }

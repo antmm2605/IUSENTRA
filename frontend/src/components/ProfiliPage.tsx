@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
+import { formatDateTimeIt } from '../formatting'
 import { CheckCircle2, RefreshCw, Save, ShieldAlert, UsersRound, XCircle } from 'lucide-react'
 import {
   allProfiloUsers,
@@ -39,17 +41,7 @@ function formatValue(value: string | number): string {
 }
 
 function formatGeneratedAt(value: string): string {
-  if (!value) return 'non disponibile'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('it-IT', {
-    timeZone: 'Europe/Rome',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
+  return formatDateTimeIt(value, 'Non disponibile')
 }
 
 function sameList(a: string[], b: string[]): boolean {
@@ -143,35 +135,18 @@ function Warnings({ data }: { data: ProfiliPageData }) {
   )
 }
 
-function RoleCards({ roles }: { roles: ProfiloRole[] }) {
+function RoleCards({ roles, onSelectRole }: { roles: ProfiloRole[]; onSelectRole: (role: string) => void }) {
   if (!roles.length) {
     return <EmptyState title="Nessun ruolo disponibile" message="L'archivio utenti non ha restituito ruoli gestibili." />
   }
   return (
     <section className="iu-profiles-roles" aria-label="Ruoli reali">
       {roles.map((role) => (
-        <Panel title={role.label} subtitle={role.description} key={role.id}>
-          <div className="iu-profiles-role">
-            <div className="iu-profiles-role__meta">
-              <Badge tone={role.tone}>{role.role}</Badge>
-              <strong>{role.usersCount} utenti</strong>
-              <span>{role.permissionsCount} permessi base</span>
-            </div>
-            {role.users.length ? (
-              <div className="iu-profiles-role__users">
-                {role.users.slice(0, 5).map((user) => (
-                  <span className="iu-profiles-user-chip" key={user.id || user.username}>
-                    {user.label || user.username}
-                    {user.hasOverride ? <Badge tone="warning">override</Badge> : null}
-                  </span>
-                ))}
-                {role.users.length > 5 ? <span className="iu-profiles-user-chip">+{role.users.length - 5}</span> : null}
-              </div>
-            ) : (
-              <small>Nessun utente collegato.</small>
-            )}
-          </div>
-        </Panel>
+        <button className="iu-profiles-role-summary" type="button" key={role.id} title={role.description} aria-label={`Mostra permessi e utenti di ${role.label}`} onClick={() => onSelectRole(role.role)}>
+          <strong>{role.label}</strong>
+          <span>{role.usersCount} {role.usersCount === 1 ? 'utente' : 'utenti'} · {role.permissionsCount} permessi base</span>
+          <small>Mostra permessi e utenti</small>
+        </button>
       ))}
     </section>
   )
@@ -186,21 +161,24 @@ function Matrix({
 }) {
   const permissions = new Map(data.permissions.map((permission) => [permission.permission, permission]))
   const groups = permissionRowsByCategory(data.matrix)
+  const rowStyle = { gridTemplateColumns: `minmax(140px,1.25fr) repeat(${roles.length},minmax(100px,.55fr))`, minWidth: `${160 + roles.length * 108}px` }
   return (
-    <Panel title="Matrice permessi reale" subtitle={`${data.matrix.length} permessi, ${roles.length} ruoli`}>
+    <Panel title="Matrice permessi reale" subtitle={`${data.matrix.length} ${data.matrix.length === 1 ? 'permesso' : 'permessi'}, ${roles.length} ${roles.length === 1 ? 'ruolo' : 'ruoli'}`}>
       {groups.length ? (
-        <div className="iu-profiles-matrix" role="table" aria-label="Matrice ruoli e permessi">
-          <div className="iu-profiles-matrix__head" role="row">
+        <div className="iu-profiles-matrix-wrap">
+        {roles.length > 1 ? <p className="iu-profiles-matrix-hint">Scorri orizzontalmente per confrontare i ruoli oppure seleziona un ruolo nel filtro.</p> : null}
+        <div className="iu-profiles-matrix" role="table" aria-label="Matrice ruoli e permessi" tabIndex={0}>
+          <div className="iu-profiles-matrix__head" role="row" style={rowStyle}>
             <span role="columnheader">Permesso</span>
             {roles.map((role) => (
-              <span role="columnheader" key={role}>{role.replace('_', ' ')}</span>
+              <span role="columnheader" key={role}>{data.roles.find(item => item.role === role)?.label || role.replace('_', ' ')}</span>
             ))}
           </div>
           {groups.map(([category, rows]) => (
             <section className="iu-profiles-category" key={category}>
               <h2>{category}</h2>
               {rows.map((row) => (
-                <article className="iu-profiles-permission" role="row" key={row.id}>
+                <article className="iu-profiles-permission" role="row" key={row.id} style={rowStyle}>
                   <div className="iu-profiles-permission__label" role="cell">
                     <strong>{permissionLabel(permissions.get(row.permission), row)}</strong>
                     <span>{row.permission}</span>
@@ -210,7 +188,7 @@ function Matrix({
                     return (
                       <span className="iu-profiles-grant" role="cell" key={`${row.id}-${role}`}>
                         {grant?.granted ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
-                        <Badge tone={grant?.granted ? 'success' : 'neutral'}>{grant?.granted ? 'Si' : 'No'}</Badge>
+                        <Badge tone={grant?.granted ? 'success' : 'neutral'}>{grant?.granted ? 'Sì' : 'No'}</Badge>
                       </span>
                     )
                   })}
@@ -219,8 +197,9 @@ function Matrix({
             </section>
           ))}
         </div>
+        </div>
       ) : (
-        <EmptyState title="Nessun permesso censito" message="La matrice RBAC non ha restituito righe visualizzabili." />
+        <EmptyState title="Nessun permesso da visualizzare" message="Controlla la ricerca e il ruolo selezionato." />
       )}
     </Panel>
   )
@@ -393,20 +372,36 @@ export function ProfiliPage() {
   const [drafts, setDrafts] = useState<Record<string, DraftOverride>>({})
   const [message, setMessage] = useState('')
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+  const [context, setContext] = useState(() => {
+    const value = new URLSearchParams(window.location.search).get('vista') || ''
+    return value === 'ruoli-usati' ? 'ruoli' : ['ruoli', 'permessi', 'utenti', 'override'].includes(value) ? value : ''
+  })
+  const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get('q') || '')
+  const [roleFilter, setRoleFilter] = useState(() => new URLSearchParams(window.location.search).get('ruolo') || '')
+  const [onlyUsedRoles, setOnlyUsedRoles] = useState(() => new URLSearchParams(window.location.search).get('vista') === 'ruoli-usati')
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshError, setRefreshError] = useState('')
+  const refreshFlight = useRef<Promise<void> | null>(null)
 
   const refresh = () => {
-    setLoadStatus('loading')
-    setMessage('')
-    getProfiliPage()
+    if (refreshFlight.current) return refreshFlight.current
+    setRefreshing(true)
+    const flight = getProfiliPage()
       .then((payload) => {
+        if (!payload.ok) throw new Error('Dati non disponibili')
         setData(payload)
-        setLoadStatus(payload.ok || payload.roles.length || payload.matrix.length ? 'ready' : 'error')
+        setLoadStatus('ready')
+        setRefreshError('')
       })
       .catch(() => {
-        setLoadStatus('error')
-        setMessage('Impossibile leggere i profili.')
+        if (!data.ok) setLoadStatus('error')
+        setRefreshError('Aggiornamento non riuscito. Filtri e modifiche non salvate restano conservati: riprova.')
       })
+      .finally(() => { setRefreshing(false); refreshFlight.current = null })
+    refreshFlight.current = flight
+    return flight
   }
+  useOperationalRefresh(['utenti'], refresh)
 
   useEffect(() => {
     refresh()
@@ -425,6 +420,11 @@ export function ProfiliPage() {
   const draft = selectedUserId ? drafts[selectedUserId] || originalDraft : emptyDraft
   const dirty = !sameList(draft.extraPermissions, originalDraft.extraPermissions) || !sameList(draft.deniedPermissions, originalDraft.deniedPermissions)
   const hasData = data.roles.length > 0 || data.matrix.length > 0
+  const matches = (values: string[]) => values.join(' ').toLocaleLowerCase('it-IT').includes(query.trim().toLocaleLowerCase('it-IT'))
+  const filteredRoles = data.roles.filter(role => (!onlyUsedRoles || role.usersCount > 0) && (!roleFilter || role.role === roleFilter) && matches([role.label, role.description, ...role.users.map(user => user.label || user.username)]))
+  const matrixData = { ...data, matrix: data.matrix.filter(row => matches([row.label, row.permission, row.category])) }
+  const filteredUsers = users.filter(user => (!roleFilter || user.role === roleFilter) && matches([user.label, user.username]))
+  const filteredOverrides = data.overrides.filter(user => (!roleFilter || user.role === roleFilter) && matches([user.label, user.username, ...user.extraPermissions, ...user.deniedPermissions]))
 
   const updateDraft = (next: DraftOverride) => {
     if (!selectedUserId) return
@@ -489,9 +489,9 @@ export function ProfiliPage() {
       subtitle="Matrice RBAC reale dello studio e override utente salvati con servizi protetti."
       actions={
         <>
-          <Button type="button" tone="neutral" onClick={refresh} disabled={loadStatus === 'loading'}>
+          <Button type="button" tone="neutral" onClick={refresh} disabled={refreshing}>
             <RefreshCw size={16} />
-            Aggiorna
+            {refreshing ? 'Aggiornamento…' : 'Aggiorna'}
           </Button>
           <ButtonLink href={data.actions.users || '/utenti'} tone="neutral">
             <UsersRound size={16} />
@@ -500,6 +500,8 @@ export function ProfiliPage() {
         </>
       }
     >
+      {refreshing && loadStatus !== 'loading' ? <p role="status">Aggiornamento dei profili in corso.</p> : null}
+      {refreshError ? <p role="alert">{refreshError}</p> : null}
       {loadStatus === 'loading' ? <LoadingState title="Caricamento profili" message="Lettura di ruoli, permessi e override reali in corso." /> : null}
       {loadStatus === 'error' ? (
         <EmptyState
@@ -524,16 +526,28 @@ export function ProfiliPage() {
                 label={metric.label}
                 value={formatValue(metric.value)}
                 note={metric.note}
-                badge={<Badge tone={metric.tone}>{metric.tone}</Badge>}
                 key={metric.id}
+                active={context === metric.id}
+                onClick={() => setContext(current => current === metric.id ? '' : metric.id)}
+                actionLabel="Filtra elenco"
               />
             ))}
           </section>
-          <RoleCards roles={data.roles} />
-          <Matrix data={data} roles={roles} />
-          <OverrideEditor
+          <section className="iu-profiles-filters" aria-label="Ricerca e filtri profili">
+            <label>Cerca ruoli, permessi e utenti<input type="search" value={query} onChange={event => setQuery(event.target.value)} /></label>
+            <label>Ruolo<select value={roleFilter} onChange={event => setRoleFilter(event.target.value)}><option value="">Tutti i ruoli</option>{data.roles.map(role => <option key={role.id} value={role.role}>{role.label}</option>)}</select></label>
+            {(!context || context === 'ruoli') ? <label><span>Ruoli utilizzati</span><select value={onlyUsedRoles ? 'usati' : 'tutti'} onChange={event => setOnlyUsedRoles(event.currentTarget.value === 'usati')}><option value="tutti">Tutti i ruoli</option><option value="usati">Con almeno un utente</option></select></label> : null}
+            <Button type="button" tone="neutral" disabled={!query && !context && !roleFilter && !onlyUsedRoles} onClick={() => { setQuery(''); setContext(''); setRoleFilter(''); setOnlyUsedRoles(false) }}>Azzera filtri</Button>
+          </section>
+          {(!context || context === 'ruoli') ? <RoleCards roles={filteredRoles} onSelectRole={role => { setRoleFilter(role); setContext(''); setQuery('') }} /> : null}
+          {(!context || context === 'permessi') ? <Matrix data={matrixData} roles={roleFilter ? roles.filter(role => role === roleFilter) : roles} /> : null}
+          {(!context || context === 'utenti') ? <>
+          <Panel title="Utenti collegati" subtitle={`${filteredUsers.length} di ${users.length} utenti`}>
+            {filteredUsers.length ? <div className="iu-profiles-user-results">{filteredUsers.map(user => <Button key={user.id} type="button" tone="neutral" onClick={() => setSelectedUserId(user.id)}>{user.label || user.username}</Button>)}</div> : <EmptyState title="Nessun utente corrisponde ai filtri" />}
+          </Panel>
+          {filteredUsers.some(user => user.id === selectedUserId) ? <OverrideEditor
             data={data}
-            users={users}
+            users={filteredUsers}
             selectedUserId={selectedUserId}
             onSelectUser={setSelectedUserId}
             draft={draft}
@@ -546,23 +560,17 @@ export function ProfiliPage() {
             onSave={handleSave}
             saveStatus={saveStatus}
             validationErrors={validationErrors}
-          />
-          <OverrideSummary overrides={data.overrides} />
-          <Panel title="Presidio dati" subtitle="RBAC letto dal dominio esistente, modifiche auditabili.">
+          /> : filteredUsers.length ? <p role="status">Seleziona un utente dell’elenco per consultare i suoi permessi.</p> : null}
+          </> : null}
+          {(!context || context === 'override') ? <OverrideSummary overrides={filteredOverrides} /> : null}
+          <Panel title="Presidio dati" subtitle="Permessi letti dall’archivio dello studio, modifiche tracciate.">
             <div className="iu-profiles-contract">
               <span>Origine: {displaySourceLabel(data.source)}</span>
               <span>Generato: {formatGeneratedAt(data.generated_at)}</span>
               <span>Azioni: {displayWritesLabel(data.contracts.writes)}</span>
-              <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'si'}</span>
+              <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'sì'}</span>
             </div>
           </Panel>
-          {data.actions.rollback ? (
-            <Panel title="Percorso di recupero" subtitle="Assistenza mantenuta per confronto e recupero operativo.">
-              <a className="iu-profiles-rollback" href={data.actions.rollback.href}>
-                {data.actions.rollback.label}
-              </a>
-            </Panel>
-          ) : null}
         </>
       ) : null}
     </Page>

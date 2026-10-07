@@ -6,7 +6,7 @@ from collections.abc import Callable
 from datetime import date
 from typing import Any
 
-from flask import Flask, flash, g, redirect, render_template, request, url_for
+from flask import Flask, flash, g, jsonify, redirect, render_template, request, url_for
 
 from pct.economic_pipeline import build_timesheet_billing_summary, genera_parcella_da_timesheet
 from pct.timesheet import StatoTimesheet
@@ -26,6 +26,19 @@ def register_timesheet_routes(
 
     def _richiede_vista_classica() -> bool:
         return request.args.get("_legacy") == "1"
+
+    def _richiede_json() -> bool:
+        return (
+            request.accept_mimetypes.best == "application/json"
+            or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        )
+
+    def _errore_json(exc: Exception):
+        status = 404 if isinstance(exc, KeyError) else 400 if isinstance(exc, ValueError) else 500
+        if status == 500:
+            app.logger.exception("Comando timesheet non riuscito")
+        message = str(exc) if status != 500 else "Operazione non riuscita. Verifica l’elenco prima di ripetere il comando."
+        return jsonify({"ok": False, "message": message}), status
 
     @app.route("/timesheet")
     def timesheet_lista():
@@ -106,8 +119,12 @@ def register_timesheet_routes(
                 voce.id,
                 dettagli=f"fascicolo={id_fascicolo or '-'} cliente={id_cliente or '-'}",
             )
+            if _richiede_json():
+                return jsonify({"ok": True, "message": "Tempo registrato correttamente.", "id": voce.id})
             flash("Tempo registrato correttamente.", "success")
         except Exception as exc:
+            if _richiede_json():
+                return _errore_json(exc)
             flash(str(exc), "danger")
 
         if from_page == "cliente" and id_cliente:
@@ -196,8 +213,12 @@ def register_timesheet_routes(
             nuovo_stato = StatoTimesheet(request.form.get("stato", StatoTimesheet.VALIDATO.value))
             gestore.cambia_stato(id_entry, nuovo_stato)
             audit("timesheet.stato", "timesheet", id_entry, dettagli=nuovo_stato.value)
+            if _richiede_json():
+                return jsonify({"ok": True, "message": "Stato timesheet aggiornato.", "id": id_entry, "stato": nuovo_stato.value})
             flash("Stato timesheet aggiornato.", "success")
         except Exception as exc:
+            if _richiede_json():
+                return _errore_json(exc)
             flash(str(exc), "danger")
 
         if from_page == "cliente" and id_cliente:
@@ -227,11 +248,20 @@ def register_timesheet_routes(
                 parcella.id,
                 dettagli=f"origine=timesheet voci={len(payload['entries'])}",
             )
+            if _richiede_json():
+                return jsonify({
+                    "ok": True,
+                    "message": f"Parcella {parcella.numero} generata da {len(payload['entries'])} voci timesheet validate.",
+                    "id": parcella.id,
+                    "redirect": url_for("fatturazione.dettaglio", id_parcella=parcella.id),
+                })
             flash(
                 f"Parcella {parcella.numero} generata da {len(payload['entries'])} voci timesheet validate.",
                 "success",
             )
             return redirect(url_for("fatturazione.dettaglio", id_parcella=parcella.id))
         except Exception as exc:
+            if _richiede_json():
+                return _errore_json(exc)
             flash(str(exc), "danger")
             return redirect(url_for("timesheet_lista", id_cliente=id_cliente, id_fascicolo=id_fascicolo))

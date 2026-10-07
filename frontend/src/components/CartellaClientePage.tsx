@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
   Archive,
@@ -31,8 +31,11 @@ import {
   type CartellaClienteMatter,
 } from '../clientiCartellaData'
 import './CartellaClientePage.css'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
+import type { ClientCatalogArea } from './CartellaClienteCatalog'
 
 const ClienteAntiriciclaggio = lazy(() => import('./clienti/ClienteAntiriciclaggio'))
+const CartellaClienteCatalog = lazy(() => import('./CartellaClienteCatalog'))
 
 function idClienteFromLocation(): string {
   const parts = window.location.pathname.split('/').filter(Boolean)
@@ -45,18 +48,24 @@ function StatCard({
   value,
   label,
   tone = 'primary',
+  selected,
+  onClick,
+  disabled,
 }:{
   icon: ReactNode
   value: number | string
   label: string
   tone?: string
+  selected: boolean
+  onClick: () => void
+  disabled?: boolean
 }) {
   return (
-    <article className={`iu-cart-stat iu-cart-stat--${tone}`}>
+    <button type="button" className={`iu-cart-stat iu-cart-stat--${tone}`} aria-pressed={selected} onClick={onClick} disabled={disabled}>
       <div>{icon}</div>
       <strong>{value}</strong>
       <span>{label}</span>
-    </article>
+    </button>
   )
 }
 
@@ -129,20 +138,26 @@ export function CartellaClientePage() {
   const [data, setData] = useState<CartellaClienteData>(emptyCartellaCliente)
   const [loading, setLoading] = useState(true)
   const [errore, setErrore] = useState('')
+  const [catalogArea, setCatalogArea] = useState<ClientCatalogArea | null>(null)
+  const [documentSources, setDocumentSources] = useState<SourceDocument[]>([])
+  const [revision, setRevision] = useState(0)
+  const loadedClient = useRef('')
+  useOperationalRefresh(['clienti', 'fascicoli', 'agenda', 'scadenze', 'comunicazioni', 'fatturazione', 'preventivi'], () => setRevision(value => value + 1))
 
   useEffect(() => {
     let active = true
-    setLoading(true)
+    setLoading(loadedClient.current !== idCliente)
     getCartellaClientePage(idCliente)
       .then((payload) => {
         if (!active) return
         setData(payload)
+        loadedClient.current = payload.cliente.id
         setErrore(payload.cliente.id ? '' : 'Cartella cliente non disponibile o non autorizzata.')
       })
       .catch(() => {
         if (!active) return
-        setData(emptyCartellaCliente)
-        setErrore('Impossibile caricare la cartella cliente.')
+        if (loadedClient.current !== idCliente) setData(emptyCartellaCliente)
+        setErrore(loadedClient.current === idCliente ? 'Aggiornamento non riuscito. I dati mostrati sono quelli caricati in precedenza.' : 'Impossibile caricare la cartella cliente.')
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -150,7 +165,15 @@ export function CartellaClientePage() {
     return () => {
       active = false
     }
-  }, [idCliente])
+  }, [idCliente, revision])
+
+  function openCatalog(area: ClientCatalogArea) {
+    if (window.parent !== window) {
+      const href = new URL(`/clienti/${encodeURIComponent(idCliente)}/cartella`, window.location.origin)
+      href.searchParams.set('catalogo', area)
+      window.dispatchEvent(new CustomEvent('iusentra:open-work-window', { detail: { href: href.toString(), title: data.cliente.name } }))
+    } else setCatalogArea(area)
+  }
 
   const qualityWarnings = useMemo(() => {
     const warnings: string[] = []
@@ -162,11 +185,13 @@ export function CartellaClientePage() {
   }, [data])
 
   if (loading) return <main className="iu-content iu-cartella-cliente-page" aria-busy="true"><div className="iu-cart-loading" role="status"><RefreshCw size={18}/>Caricamento cartella cliente…</div></main>
-  if (errore) return <main className="iu-content iu-cartella-cliente-page"><div className="iu-cart-alert iu-cart-alert--danger" role="alert"><AlertTriangle size={18}/>{errore}</div><Button href={window.location.href} variant="secondary">Riprova</Button></main>
+  if (errore && !data.cliente.id) return <main className="iu-content iu-cartella-cliente-page"><div className="iu-cart-alert iu-cart-alert--danger" role="alert"><AlertTriangle size={18}/>{errore}</div><Button href={window.location.href} variant="secondary">Riprova</Button></main>
 
   return (
     <main className="iu-content iu-cartella-cliente-page">
       <SourceDocumentModal source={identitySource} onClose={() => setIdentitySource(null)} />
+      {documentSources.map(source => <SourceDocumentModal key={source.href} source={source} onClose={() => setDocumentSources(current => current.filter(item => item.href !== source.href))}/>) }
+      {catalogArea ? <Suspense fallback={<p role="status">Apertura del catalogo…</p>}><CartellaClienteCatalog clientId={idCliente} clientName={data.cliente.name} area={catalogArea} onClose={() => setCatalogArea(null)} onOpenDocuments={items => setDocumentSources(current => [...new Map([...current, ...items.map(item => ({ href: item.href, label: item.title, context: item.subtitle || data.cliente.name }))].map(source => [source.href, source])).values()])}/></Suspense> : null}
       <div className="iu-cart-hero">
         <div>
           <span className="iu-cart-kicker">Cartella cliente</span>
@@ -197,11 +222,11 @@ export function CartellaClientePage() {
       ) : null}
 
       <section className="iu-cart-stats" aria-label="Indicatori cartella cliente">
-        <StatCard icon={<BriefcaseBusiness size={18}/>} value={data.summary.activeMatters} label="Fascicoli attivi" tone="primary"/>
-        <StatCard icon={<CalendarDays size={18}/>} value={data.summary.deadlines} label="Scadenze aperte" tone={data.summary.overdueDeadlines ? 'danger' : 'warning'}/>
-        <StatCard icon={<FileText size={18}/>} value={data.summary.documents} label="Documenti" tone="neutral"/>
-        <StatCard icon={<MessageCircle size={18}/>} value={data.summary.messages} label="Comunicazioni" tone="success"/>
-        <StatCard icon={<Euro size={18}/>} value={data.summary.invoices} label="Parcelle" tone="orange"/>
+        <StatCard icon={<BriefcaseBusiness size={18}/>} value={data.summary.activeMatters} label="Fascicoli attivi" tone="primary" selected={catalogArea === 'matters'} onClick={() => openCatalog('matters')} disabled={Boolean(errore)}/>
+        <StatCard icon={<CalendarDays size={18}/>} value={data.summary.deadlines} label="Scadenze aperte" tone={data.summary.overdueDeadlines ? 'danger' : 'warning'} selected={catalogArea === 'deadlines'} onClick={() => openCatalog('deadlines')} disabled={Boolean(errore)}/>
+        <StatCard icon={<FileText size={18}/>} value={data.summary.documents} label="Documenti" tone="neutral" selected={catalogArea === 'documents'} onClick={() => openCatalog('documents')} disabled={Boolean(errore)}/>
+        <StatCard icon={<MessageCircle size={18}/>} value={data.summary.messages} label="Comunicazioni" tone="success" selected={catalogArea === 'messages'} onClick={() => openCatalog('messages')} disabled={Boolean(errore)}/>
+        <StatCard icon={<Euro size={18}/>} value={data.summary.invoices} label="Parcelle" tone="orange" selected={catalogArea === 'invoices'} onClick={() => openCatalog('invoices')} disabled={Boolean(errore)}/>
       </section>
 
       <Panel title="Documenti d’identità" icon={<BadgeCheck size={17}/>} count={data.identityDocuments.length}>
@@ -251,30 +276,30 @@ export function CartellaClientePage() {
           </Panel>
         </div>
 
-        <div className="span4">
+        <div className="span12">
           <Panel title="Preventivi e incarichi" icon={<FileText size={17}/>} count={data.quotes.length + data.engagements.length}>
             <ItemList items={[...data.quotes, ...data.engagements]} empty="Nessun preventivo o conferimento collegato."/>
           </Panel>
         </div>
-        <div className="span4">
+        <div className="span12">
           <Panel title="Comunicazioni" icon={<MessageCircle size={17}/>} count={data.messages.length}>
             <ItemList items={data.messages} empty="Nessuna comunicazione registrata."/>
           </Panel>
         </div>
-        <div className="span4">
+        <div className="span12">
           <Panel title="Agenda" icon={<Clock3 size={17}/>} count={data.appointments.length}>
             <ItemList items={data.appointments} empty="Nessun appuntamento collegato."/>
           </Panel>
         </div>
 
-        <div className="span6">
+        <div className="span12">
           <Panel title="Economia" icon={<Euro size={17}/>} count={data.invoices.length}>
             <ItemList items={data.invoices} empty="Nessuna parcella collegata."/>
           </Panel>
         </div>
-        <div className="span6">
+        <div className="span12">
           <Panel title="Timeline operativa" icon={<Clock3 size={17}/>} count={data.timeline.length}>
-            <ItemList items={data.timeline} empty="Nessuna attivita recente sui fascicoli del cliente."/>
+            <ItemList items={data.timeline} empty="Nessuna attività recente sui fascicoli del cliente."/>
           </Panel>
         </div>
 

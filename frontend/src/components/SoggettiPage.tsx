@@ -1,3 +1,5 @@
+import { SoggettoContextDetails } from './SoggettoContextDetails'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
@@ -32,6 +34,7 @@ import {
   type SoggettoTipo,
 } from '../soggettiData'
 import './SoggettiPage.css'
+import './OperationalCards.css'
 
 type SortKey = 'nome' | 'fascicoli' | 'completezza'
 
@@ -104,14 +107,14 @@ function routeSubjectId(): string {
   return decodeURIComponent(match[1])
 }
 
-function StatCard({ icon, label, value, note }:{icon: ReactNode; label: string; value: number; note: string}) {
+function StatCard({ icon, label, value, note, onClick, active = false }:{icon: ReactNode; label: string; value: number; note: string; onClick: () => void; active?: boolean}) {
   return (
-    <article className="iu-sogg-stat">
+    <button type="button" onClick={onClick} aria-pressed={active} className="iu-sogg-stat">
       <div>{icon}</div>
       <span>{label}</span>
       <strong>{value}</strong>
       <small>{note}</small>
-    </article>
+    </button>
   )
 }
 
@@ -262,7 +265,7 @@ function SelectedSubjectPanel({ item }:{item:SoggettoRow}) {
         <a className="iu-sogg-back" href="/soggetti"><ArrowLeft size={15}/>Torna a Soggetti e Parti</a>
         <span className="iu-sogg-focus__eyebrow">Scheda soggetto selezionato</span>
         <h2>{item.name}</h2>
-        <p>{item.role.replaceAll('_', ' ')} - {item.identifier || 'Identificativo non presente'}</p>
+        <p>{item.role.charAt(0).toUpperCase() + item.role.slice(1).toLowerCase().replaceAll('_', ' ')} · {item.identifier && item.identifier !== '-' ? item.identifier : 'Identificativo non presente'}</p>
       </div>
       <dl>
         <div><dt>Tipo</dt><dd>{item.typeLabel}</dd></div>
@@ -274,7 +277,7 @@ function SelectedSubjectPanel({ item }:{item:SoggettoRow}) {
         <a href={`/messaggi/nuovo?destinatario=${encodeURIComponent(item.email || item.phone || item.pec || '')}`}><Mail size={16}/>Scrivi comunicazione</a>
         <a href={`/fascicoli/nuovo?id_soggetto=${encodeURIComponent(item.id)}`}><BriefcaseBusiness size={16}/>Nuovo fascicolo</a>
       </div>
-      <small><ChevronRight size={14}/>Le operazioni restano tracciate e la scheda usa la nuova grafica.</small>
+      <small><ChevronRight size={14}/>Consulta i dati del soggetto e i fascicoli collegati. Le modifiche sono tracciate.</small>
     </section>
   )
 }
@@ -286,6 +289,7 @@ export function SoggettiPage() {
   const [typeFilter, setTypeFilter] = useState<SoggettoTipo>('tutti')
   const [roleFilter, setRoleFilter] = useState('tutti')
   const [qualityOnly, setQualityOnly] = useState(false)
+  const [metric, setMetric] = useState('')
   const [sort, setSort] = useState<SortKey>('nome')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
@@ -297,9 +301,9 @@ export function SoggettiPage() {
 
   useEffect(() => {
     let alive = true
-    getSoggettiPage().then((payload) => {
+    getSoggettiPage(true).then((payload) => {
       if (alive) setData(payload)
-    }).finally(() => {
+    }).catch(reason => { if (alive) setError(reason instanceof Error ? reason.message : 'Dati soggetti non disponibili.') }).finally(() => {
       if (alive) setLoading(false)
     })
     return () => {
@@ -307,14 +311,22 @@ export function SoggettiPage() {
     }
   }, [])
 
+  useOperationalRefresh(['soggetti', 'clienti'], async () => {
+    try { setData(await getSoggettiPage(true)); setError('') }
+    catch (reason) { setError(reason instanceof Error ? reason.message : 'Dati soggetti non disponibili.') }
+  })
   const filtered = useMemo(() => sortRows(data.items.filter((item) => {
     if (!visible(item, query)) return false
     if (matterFilter && !item.matterIds.includes(matterFilter)) return false
     if (typeFilter !== 'tutti' && item.type !== typeFilter) return false
+    if (metric === 'enti' && !item.isLegal) return false
+    if (metric === 'recapiti' && !hasNoContacts(item)) return false
+    if (metric === 'fascicoli' && item.matters < 1) return false
     if (roleFilter !== 'tutti' && item.role !== roleFilter) return false
     if (qualityOnly && !item.missingFields.length && !hasNoContacts(item)) return false
     return true
-  }), sort), [data.items, query, matterFilter, typeFilter, roleFilter, qualityOnly, sort])
+  }), sort), [metric, data.items, query, matterFilter, typeFilter, roleFilter, qualityOnly, sort])
+  const selectMetric = (key: string) => { setMetric(key); setQuery(''); setTypeFilter(key === 'fisiche' ? 'PERSONA_FISICA' : 'tutti'); setRoleFilter('tutti'); setQualityOnly(key === 'qualita'); setSelected(new Set()) }
   const selectedSubject = selectedId ? data.items.find((item) => item.id === selectedId) : undefined
   const selectedVisibleIds = useMemo(
     () => filtered.filter((item) => selected.has(item.id)).map((item) => item.id),
@@ -341,7 +353,7 @@ export function SoggettiPage() {
 
   const refresh = () => {
     setLoading(true)
-    getSoggettiPage().then(setData).finally(() => setLoading(false))
+    getSoggettiPage(true).then(setData).finally(() => setLoading(false))
   }
 
   const handleDelete = async (item: SoggettoRow) => {
@@ -388,6 +400,14 @@ export function SoggettiPage() {
     }
   }
 
+  if (selectedId && new URLSearchParams(window.location.search).get('embed') === 'source') {
+    return <main className="iu-content iu-soggetti-page iu-soggetti-context-page">
+      {loading && !selectedSubject ? <p role="status">Caricamento della scheda soggetto…</p> : null}
+      {error ? <p role="alert">{error}</p> : null}
+      {selectedSubject ? <><SelectedSubjectPanel item={selectedSubject}/><SoggettoContextDetails item={selectedSubject}/></> : null}
+      {!loading && !error && !selectedSubject ? <p role="alert">Il soggetto richiesto non è disponibile nella rubrica autorizzata.</p> : null}
+    </main>
+  }
   return (
     <main className="iu-content iu-soggetti-page">
       <section className="iu-sogg-hero">
@@ -403,10 +423,10 @@ export function SoggettiPage() {
       </section>
 
       <section className="iu-sogg-stats" aria-label="Indicatori soggetti">
-        <StatCard icon={<UsersRound size={20}/>} label="Soggetti" value={data.summary.total} note={`${data.summary.withMatters} con fascicoli`}/>
-        <StatCard icon={<UserRound size={20}/>} label="Persone fisiche" value={data.summary.physical} note="incluse parti e testimoni"/>
-        <StatCard icon={<Building2 size={20}/>} label="Enti e società" value={data.summary.legal} note="PG, PA, enti e condomini"/>
-        <StatCard icon={<AlertTriangle size={20}/>} label="Da completare" value={data.summary.incomplete + data.summary.withoutContacts} note="qualità anagrafica"/>
+        <StatCard icon={<UsersRound size={20}/>} label="Soggetti" onClick={() => selectMetric('')} active={metric === ''} value={data.summary.total} note={`${data.summary.withMatters} con fascicoli`}/>
+        <StatCard icon={<UserRound size={20}/>} label="Persone fisiche" onClick={() => selectMetric('fisiche')} active={metric === 'fisiche'} value={data.summary.physical} note="incluse parti e testimoni"/>
+        <StatCard icon={<Building2 size={20}/>} label="Enti e società" onClick={() => selectMetric('enti')} active={metric === 'enti'} value={data.summary.legal} note="PG, PA, enti e condomini"/>
+        <StatCard icon={<AlertTriangle size={20}/>} label="Da completare" onClick={() => selectMetric('qualita')} active={metric === 'qualita'} value={data.items.filter(item => item.missingFields.length || hasNoContacts(item)).length} note="qualità anagrafica"/>
       </section>
 
       <section className="iu-sogg-toolbar">
@@ -421,6 +441,7 @@ export function SoggettiPage() {
         <span className={loading ? '' : 'is-ok'}>{loading ? 'Caricamento soggetti...' : 'Dati aggiornati'}</span>
         <small><ShieldCheck size={14}/> Le operazioni di dettaglio, modifica ed eliminazione restano allineate con i dati di studio.</small>
         {matterFilter ? <small className="iu-sogg-status__selected">Filtro fascicolo attivo</small> : null}
+        {metric && <small>Filtro card: {({ fisiche: 'Persone fisiche', enti: 'Enti e società', qualita: 'Da completare', recapiti: 'Senza recapiti', fascicoli: 'Con fascicoli' } as Record<string,string>)[metric]} <button type="button" onClick={() => selectMetric('')}>Azzera filtro card</button></small>}
         {selectedVisible ? <small className="iu-sogg-status__selected">{selectedVisible} selezionati</small> : null}
         {feedback ? <small className="iu-sogg-status__feedback">{feedback}</small> : null}
         {error ? <small className="iu-sogg-status__error">{error}</small> : null}
@@ -465,9 +486,9 @@ export function SoggettiPage() {
         <aside className="iu-sogg-rail">
           <Panel title="Qualità dati" icon={<ShieldCheck size={17}/>} count={data.summary.incomplete}>
             <div className="iu-sogg-insights">
-              <span><AlertTriangle size={14}/>{data.summary.withoutContacts} soggetti senza recapiti</span>
+              <button type="button" aria-pressed={metric === 'recapiti'} onClick={() => { selectMetric('recapiti'); document.querySelector('.iu-sogg-stats')?.scrollIntoView({block: 'start'}) }}><AlertTriangle size={14}/>{data.summary.withoutContacts} soggetti senza recapiti</button>
               <span><BadgeCheck size={14}/>{data.summary.clientsExcluded} clienti esclusi dalla rubrica parti</span>
-              <span><BriefcaseBusiness size={14}/>{data.summary.withMatters} presenti in fascicoli</span>
+              <button type="button" aria-pressed={metric === 'fascicoli'} onClick={() => { selectMetric('fascicoli'); document.querySelector('.iu-sogg-stats')?.scrollIntoView({block: 'start'}) }}><BriefcaseBusiness size={14}/>{data.summary.withMatters} presenti in fascicoli</button>
             </div>
           </Panel>
           <Panel title="Accessi rapidi" icon={<Sparkles size={17}/>}>

@@ -1,0 +1,20 @@
+.iu-notifications-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--iu-border, #dbe1e8); }
+.iu-notifications-filters label { display: grid; gap: 5px; min-width: 0; font-size: 12px; font-weight: 600; }
+.iu-notifications-filters label:first-child { flex: 1 1 210px; }
+.iu-notifications-filters input, .iu-notifications-filters select { min-width: 0; width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid var(--iu-border, #dbe1e8); border-radius: 8px; background: var(--iu-surface, #fff); color: var(--iu-text, #122039); font: inherit; }
+.iu-notifications-filters input:focus-visible, .iu-notifications-filters select:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+.iu-notifications-results { margin: 0; padding: 10px 16px; color: var(--iu-muted, #59697d); font-size: 12px; }
+.iu-notification__date { display: block; margin-bottom: 5px; color: var(--iu-muted, #59697d); font-size: 11px; }
+.iu-notifications-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--iu-border, #dbe1e8); font-size: 12px; }
+.iu-notifications-panel .iu-notification { align-items: start; }
+.iu-notifications-panel .iu-notification__content { min-width: 0; overflow-wrap: anywhere; }
+.iu-notifications-panel .iu-notification > button { flex-shrink: 0; }
+@media (max-width: 600px) { .iu-notifications-panel > header { flex-wrap: wrap; gap: 10px; } .iu-notifications-filters label:first-child { flex-basis: 100%; } .iu-notifications-panel .iu-notification { flex-wrap: wrap; } .iu-notifications-panel .iu-notification__content { flex-basis: 100%; } }
+.iu-notifications-panel .iu-notification strong, .iu-notifications-panel .iu-notification small { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.45; }
+.iu-notifications-panel .iu-notification > button { min-height: 40px; }
+.iu-notifications-panel .iu-notification a:focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; border-radius: 4px; }
+.iu-notifications-panel .iu-notification.is-read { opacity: 1; background: #f5f7fa; }
+@media (max-width: 600px) { .iu-notifications-panel .iu-notification { grid-template-columns: minmax(0,1fr); } .iu-notifications-panel .iu-notification > button { justify-self: end; } }
+.iu-notifications-panel .iu-button:focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
+
+.iu-notifications-panel .iu-notifications-notice { min-height: 0; padding: 10px 16px; text-align: left; justify-content: start; color: var(--iu-blue-700); }

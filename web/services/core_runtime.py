@@ -1068,7 +1068,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         if not hasattr(g, "_timesheet"):
             g._timesheet = GestioneTimesheet(
                 db_path=_cfg_data_path("TIMESHEET_DB"),
-                studio_db=get_studio_db("TIMESHEET_DB"),
+                studio_db=get_studio_db("CLIENTI_DB"),
             )
         return g._timesheet
 
@@ -1182,9 +1182,19 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
 
     def get_condivisioni() -> GestioneCondivisioni:
         if not hasattr(g, "_condivisioni"):
+            studio_db = get_studio_db("CONDIVISIONI_DB")
+            tenant_key = str(getattr(g, "tenant_context_slug", "") or "").strip().lower()
+            if not tenant_key:
+                tenant_key = str(getattr(getattr(g, "tenant", None), "slug", "") or "").strip().lower()
+            if studio_db is not None and not tenant_key:
+                if app.config.get("MULTI_TENANT") or getattr(g, "multi_tenant_enabled", False):
+                    raise RuntimeError("Contesto studio mancante per le condivisioni")
+                tenant_key = "studio"
             g._condivisioni = GestioneCondivisioni(
                 db_path=_cfg_data_path("CONDIVISIONI_DB"),
                 secret_key=app.config["SECRET_KEY"],
+                studio_db=studio_db,
+                tenant_key=tenant_key,
             )
         return g._condivisioni
 

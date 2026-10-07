@@ -1,3 +1,8 @@
+import { OperationalRefreshBridge } from './components/OperationalRefreshBridge'
+import { SourceWorkWindows } from './components/SourceWorkWindows'
+import { ExistingWorkWindows } from './components/ExistingWorkWindows'
+import { ContextWorkWindows } from './components/ContextWorkWindows'
+import { ManagedWindowDock } from './components/ManagedWindowState'
 import { Component, Suspense, lazy, useEffect, useState, type ComponentType, type ReactNode } from 'react'
 import {
   AlertTriangle,
@@ -464,6 +469,7 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Tutti i Fascicoli', icon: FolderOpen, href: '/fascicoli' },
       { label: 'Nuovo Fascicolo', icon: FolderPlus, href: '/fascicoli/nuovo' },
+      { label: 'Preparazione Udienza Guidata', icon: Building2, href: '/wizard-pro/' },
       { label: 'Recupero crediti in serie', icon: Gavel, href: '/recupero-crediti', requiresAnyPermission: ['fascicoli.leggi'] },
       { label: 'Archivio', icon: Archive, href: '/fascicoli/archivio' }
     ]
@@ -509,7 +515,6 @@ const navSections: NavSection[] = [
       { label: 'Scadenziario', icon: CalendarDays, href: '/scadenziario' },
       { label: 'Calcola termini processuali', icon: Calculator, href: '/scadenziario/calcola-termini' },
       { label: 'Nuova Scadenza', icon: CalendarPlus, href: '/scadenziario/nuova' },
-      { label: 'Preparazione Udienza Guidata', icon: Building2, href: '/wizard-pro/' },
       { label: 'Controlli Atti', icon: ClipboardCheck, href: '/deposito/checklist' }
     ]
   },
@@ -1517,6 +1522,7 @@ function AppStudio() {
             <span>{mobileNavCollapsed?'Menu':'Chiudi'}</span>
           </button>
         </nav>:null}
+        <OperationalRefreshBridge/><ManagedWindowDock/><SourceWorkWindows sessionKey={`${shellBootstrap.tenant?.slug || ''}:${shellBootstrap.user?.username || ''}`}/><ContextWorkWindows embedded={embeddedViewer}/><ExistingWorkWindows/>
         {!embeddedViewer&&needsShellLexContext ? <FloatingLex {...lexConfig} /> : null}
       </div>
     </AppErrorBoundary>

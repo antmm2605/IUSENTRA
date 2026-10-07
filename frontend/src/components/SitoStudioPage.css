@@ -35,6 +35,32 @@
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
+main .iu-sito-kpis .iu-sito-metric {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: start;
+  align-items: start;
+  gap: 6px 10px;
+  min-width: 0;
+  min-height: 88px;
+  padding: 12px;
+  text-align: left;
+  white-space: normal;
+}
+.iu-sito-metric > span { font-size: 12px; color: var(--iu-text-subtle); }
+.iu-sito-metric > strong { font-size: 23px; line-height: 1.1; color: var(--iu-text-strong); }
+.iu-sito-metric > small, .iu-sito-metric > em { grid-column: 1 / -1; font-size: 11px; font-style: normal; line-height: 1.4; color: var(--iu-text-subtle); }
+main .iu-sito-metric[aria-pressed="true"] { background: var(--iu-surface-accent); outline: 2px solid var(--iu-focus-ring); outline-offset: 1px; }
+main .iu-sito-metric:hover, main .iu-sito-metric:focus-visible { outline: 2px solid var(--iu-focus-ring); outline-offset: 1px; }
+.iu-sito-kpis--requests { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.iu-sito-content-filters { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; }
+.iu-sito-content-filters > label { display: grid; gap: 6px; flex: 1 1 230px; min-width: 0; color: var(--iu-text-strong); font-size: 12px; font-weight: 750; }
+.iu-sito-content-filters > [role="status"] { align-self: center; font-size: 12px; color: var(--iu-text-subtle); }
+@media (max-width: 760px) {
+  .iu-sito-kpis, .iu-sito-kpis--requests { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .iu-sito-content-filters > label { flex-basis: 100%; }
+}
+
 .iu-sito-status {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -87,6 +113,9 @@
   gap: 14px;
   padding: 14px;
 }
+main .iu-sito-record.iu-button { display: grid; text-align: left; white-space: normal; align-content: start; min-width: 0; }
+.iu-sito-record__action { font-size: 12px; color: var(--iu-text-subtle); }
+main .iu-sito-record:hover, main .iu-sito-record:focus-visible { outline: 2px solid var(--iu-focus-ring); outline-offset: 1px; }
 
 .iu-sito-record__head,
 .iu-sito-contact__head {
@@ -313,6 +342,7 @@
 }
 
 @media (max-width: 760px) {
+  main .iu-sito-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .iu-sito-kpis,
   .iu-sito-status,
   .iu-sito-contact__meta,

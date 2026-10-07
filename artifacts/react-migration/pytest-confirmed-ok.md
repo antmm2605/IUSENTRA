@@ -6535,3 +6535,7 @@ Verifica finale correzione 1.6.132: intero `test_local_signer.py` 269 superati; 
 
 
 Consolidamento 02/10/2026: 68 test mirati + 22 materializzatore, gate locale --fast 26/26 e 100 test accessibilità, build/typecheck e confine Local Signer. Evidenze conservate fuori repository nel percorso controllo-studio-20260930-work/evidence.
+
+## Consolidamento 07/10/2026 — 2.436.10
+
+Typecheck e build React superati; suite JavaScript 185 test superati e contratti/governance React superati. Guardrail presa visione e indice scheduler: 33 test superati. Controlli tecnici distinti dalla prova materiale; nessuna ripetizione della campagna visiva completa su richiesta dell’utente.

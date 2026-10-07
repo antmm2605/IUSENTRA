@@ -23,8 +23,9 @@ import {
 } from '../privacyRegistroData'
 import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
 import './PrivacyRegistroPage.css'
+import './OperationalCards.css'
 
-type StatusFilter = 'tutti' | 'attivi' | 'inattivi' | 'extra_ue' | 'da_completare'
+type StatusFilter = 'tutti' | 'attivi' | 'inattivi' | 'extra_ue' | 'da_completare' | 'sicurezza'
 type SubmitState = { saving: boolean; tone: 'success' | 'danger' | 'neutral'; message: string }
 
 function sourceLabel(source: string): string {
@@ -87,18 +88,19 @@ function isTreatmentVisible(item: PrivacyTreatment, query: string, status: Statu
   if (status === 'attivi') return item.active
   if (status === 'inattivi') return !item.active
   if (status === 'extra_ue') return item.extraEuTransfer
+  if (status === 'sicurezza') return !item.securityMeasures
   if (status === 'da_completare') return item.riskFlags.length > 0
   return true
 }
 
-function StatCard({ icon, label, value, note, tone = 'primary' }: { icon: ReactNode; label: string; value: number | string; note: string; tone?: string }) {
+function StatCard({ icon, label, value, note, tone = 'primary', onClick, active = false }: { icon: ReactNode; label: string; value: number | string; note: string; tone?: string; onClick: () => void; active?: boolean }) {
   return (
-    <article className={`iu-privacy-stat iu-privacy-stat--${tone}`}>
+    <button type="button" onClick={onClick} aria-pressed={active} className={`iu-privacy-stat iu-privacy-stat--${tone}`}>
       <div>{icon}</div>
       <span>{label}</span>
       <strong>{value}</strong>
       <small>{note}</small>
-    </article>
+    </button>
   )
 }
 
@@ -287,11 +289,11 @@ export function PrivacyRegistroPage() {
       </section>
 
       <section className="iu-privacy-stats" aria-label="Indicatori registro GDPR">
-        <StatCard icon={<FileText size={20}/>} label="Trattamenti" value={data.summary.total} note="schede nel registro" tone="primary"/>
-        <StatCard icon={<CheckCircle2 size={20}/>} label="Attivi" value={data.summary.active} note={`${data.summary.inactive} inattivi`} tone="success"/>
-        <StatCard icon={<Globe2 size={20}/>} label="Extra UE" value={data.summary.extraEu} note="da presidiare" tone="warning"/>
-        <StatCard icon={<LockKeyhole size={20}/>} label="Misure mancanti" value={data.summary.missingSecurity} note="sicurezza da completare" tone="danger"/>
-        <StatCard icon={<AlertTriangle size={20}/>} label="Avvisi" value={data.summary.warnings} note="campi da verificare" tone="orange"/>
+        <StatCard icon={<FileText size={20}/>} label="Trattamenti" onClick={() => setStatus('tutti')} active={status === 'tutti'} value={data.summary.total} note="schede nel registro" tone="primary"/>
+        <StatCard icon={<CheckCircle2 size={20}/>} label="Attivi" onClick={() => setStatus('attivi')} active={status === 'attivi'} value={data.summary.active} note={`${data.summary.inactive} inattivi`} tone="success"/>
+        <StatCard icon={<Globe2 size={20}/>} label="Extra UE" onClick={() => setStatus('extra_ue')} active={status === 'extra_ue'} value={data.summary.extraEu} note="da presidiare" tone="warning"/>
+        <StatCard icon={<LockKeyhole size={20}/>} label="Misure mancanti" onClick={() => setStatus('sicurezza')} active={status === 'sicurezza'} value={data.summary.missingSecurity} note="sicurezza da completare" tone="danger"/>
+        <StatCard icon={<AlertTriangle size={20}/>} label="Avvisi" onClick={() => setStatus('da_completare')} active={status === 'da_completare'} value={data.summary.warnings} note="campi da verificare" tone="orange"/>
       </section>
 
       <section className="iu-privacy-toolbar" aria-label="Filtri registro GDPR">
@@ -302,6 +304,7 @@ export function PrivacyRegistroPage() {
         <label>
           <Filter size={16}/>
           <select aria-label="Filtra per stato" value={status} onChange={(event) => setStatus(event.currentTarget.value as StatusFilter)}>
+            <option value="sicurezza">Misure mancanti</option>
             {data.facets.status.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
           </select>
         </label>

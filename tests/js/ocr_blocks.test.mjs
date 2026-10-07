@@ -9,6 +9,14 @@ const { applyPlainTextToBlocks, blocksToHtml, blocksToPlainText, markerFromText,
 
 const blocco = (tipo, testo, extra = {}) => ({ tipo, testo, confidenza: 0.9, riquadro: [0, 0, 10, 10], formato: { livello: 0, grassetto: false, corsivo: false, allineamento: 'sinistra', scala: 1 }, ...extra })
 
+test('i titoli OCR non ereditano colori da Word e conservano quelli della fonte', () => {
+  const heading = (colore) => parseBlocks([blocco('titolo', 'Titolo', {
+    formato: { livello: 2, grassetto: true, corsivo: false, allineamento: 'sinistra', scala: 1, colore },
+  })], 1)
+  assert.match(blocksToHtml(heading('')), /<h2 style="color:#000000">/)
+  assert.match(blocksToHtml(heading('#1f57a4')), /<h2 style="color:#1f57a4">/)
+})
+
 test('le voci consecutive dello stesso elenco diventano un solo <ol> con tipo e partenza', () => {
   const blocks = parseBlocks([
     blocco('paragrafo', 'Motivi:'),
@@ -18,12 +26,12 @@ test('le voci consecutive dello stesso elenco diventano un solo <ol> con tipo e 
     blocco('elenco', 'III. terzo capo', { marcatore: { tipo: 'romano', valore: 3, testo: 'III.', livello: 1 } }),
   ], 1)
   const html = blocksToHtml(blocks)
-  assert.equal(html, '<p>Motivi:</p><ol type="a" start="2"><li>secondo motivo</li><li>terzo motivo</li></ol><ul><li>voce puntata</li></ul><ol type="I" start="3"><li>terzo capo</li></ol>')
+  assert.equal(html, '<p>Motivi:</p><ol type="a" start="2"><li data-iu-ocr-marker="b)">secondo motivo</li><li data-iu-ocr-marker="c)">terzo motivo</li></ol><ul><li data-iu-ocr-marker="-">voce puntata</li></ul><ol type="I" start="3"><li data-iu-ocr-marker="III.">terzo capo</li></ol>')
 })
 
 test('il marcatore corretto a mano dall avvocato vince su quello letto', () => {
   const blocks = parseBlocks([blocco('elenco', '4) quarto', { marcatore: { tipo: 'numerato', valore: 3, testo: '3)', livello: 1 } })], 1)
-  assert.equal(blocksToHtml(blocks), '<ol start="4"><li>quarto</li></ol>')
+  assert.equal(blocksToHtml(blocks), '<ol start="4"><li data-iu-ocr-marker="4)">quarto</li></ol>')
   assert.deepEqual(markerFromText('iv) quarto'), { tipo: 'romano', valore: 4, testo: 'iv)', livello: 1 })
   assert.equal(markerFromText('c. 2 dell articolo'), null)
 })
@@ -119,10 +127,26 @@ test('la voce di elenco perde il marcatore anche nei tratti', () => {
       tratti: [tratto('a) si '), tratto('rigetta', { sottolineato: true })],
     }),
   ], 1)
-  assert.equal(blocksToHtml([voce]), '<ol type="a"><li>si <u>rigetta</u></li></ol>')
+  assert.equal(blocksToHtml([voce]), '<ol type="a"><li data-iu-ocr-marker="a)">si <u>rigetta</u></li></ol>')
 })
 
 const { stileTra } = await import('../../frontend/src/components/documentCapture/ocrTratti.ts')
+
+test('caratteri e corpi misti restano distinti dentro lo stesso capoverso', () => {
+  const [block] = parseBlocks([blocco('paragrafo', 'Normale mono piccolo', {
+    tratti: [tratto('Normale ', { famiglia: 'Arial', corpo: 12 }),
+      tratto('mono ', { famiglia: 'Courier New', corpo: 12 }),
+      tratto('piccolo', { famiglia: 'Times New Roman', corpo: 8 })],
+  })], 1)
+  assert.equal(blocksToHtml([block]), '<p><span style="font-family:\'Arial\';font-size:12pt">Normale </span><span style="font-family:\'Courier New\';font-size:12pt">mono </span><span style="font-family:\'Times New Roman\';font-size:8pt">piccolo</span></p>')
+})
+
+test('cambiare carattere e corpo nella selezione conserva il resto della riga', () => {
+  const [block] = parseBlocks([blocco('paragrafo', 'Prima selezione dopo')], 1)
+  const [dopo] = updateSelectionFormat([block], block.id, 6, 15, { famiglia: 'Courier New', corpo: 16 })
+  assert.equal(blocksToHtml([dopo]), '<p>Prima <span style="font-family:\'Courier New\';font-size:16pt">selezione</span> dopo</p>')
+  assert.equal(dopo.format.famiglia, '')
+})
 
 test('il neretto sulla parola selezionata tocca solo quella', () => {
   const [block] = parseBlocks([blocco('paragrafo', 'Il Tribunale rigetta la domanda')], 1)

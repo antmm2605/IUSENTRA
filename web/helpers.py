@@ -12,7 +12,7 @@ i percorsi di default da current_app.config.
 from __future__ import annotations
 from pathlib import Path
 
-from flask import current_app, g
+from flask import current_app, g, has_request_context, request
 
 from pct.agenda import Agenda
 from pct.clienti import GestioneClienti
@@ -38,6 +38,7 @@ from pct.practice_engine import PracticeEngineRepository
 from pct.legal_update_pipeline import LegalUpdatePipeline, build_legal_update_pipeline
 from web.services.storage_runtime import get_request_storage_runtime, get_request_studio_db
 from web.services.tenant_paths import tenant_data_path
+from web.services.email_storage_runtime import create_email_mailbox
 
 
 # ---------------------------------------------------------------- helper percorsi tenant-aware
@@ -86,12 +87,23 @@ def get_clienti() -> GestioneClienti:
 
 
 def get_fascicoli() -> GestioneFascicoli:
-    return GestioneFascicoli(
-        db_path=_cfg("FASCICOLI_DB"),
-        documents_dir=_cfg("FASCICOLI_DOCS"),
-        archive_dir=_cfg("FASCICOLI_ARCH"),
+    # Solo la proiezione consultiva della cartella cliente riusa lo snapshot.
+    # g vive per una richiesta: nuovi comandi, utenti e studi lo ricreano.
+    cartella_read = has_request_context() and request.method == "GET" and request.endpoint == "api_v1_react.cliente_cartella_react"
+    paths = (_cfg("FASCICOLI_DB"), _cfg("FASCICOLI_DOCS"), _cfg("FASCICOLI_ARCH"))
+    if cartella_read:
+        cached = getattr(g, "cartella_fascicoli_snapshot", None)
+        if cached is not None and cached[0] == paths:
+            return cached[1]
+    manager = GestioneFascicoli(
+        db_path=paths[0],
+        documents_dir=paths[1],
+        archive_dir=paths[2],
         studio_db=_studio_db("FASCICOLI_DB"),
     )
+    if cartella_read:
+        g.cartella_fascicoli_snapshot = (paths, manager)
+    return manager
 
 
 def get_practice_engine() -> PracticeEngineRepository:
@@ -109,7 +121,7 @@ def get_scadenziario() -> GestioneScadenziario:
 
 
 def get_timesheet() -> GestioneTimesheet:
-    return GestioneTimesheet(db_path=_cfg("TIMESHEET_DB"), studio_db=_studio_db("TIMESHEET_DB"))
+    return GestioneTimesheet(db_path=_cfg("TIMESHEET_DB"), studio_db=_studio_db("CLIENTI_DB"))
 
 
 def get_time_tracking() -> GestioneTimeTracking:
@@ -150,13 +162,20 @@ def get_messaggi() -> GestioneMessaggi:
 
 
 def get_email_pec() -> GestioneEmailRicevute:
-    return GestioneEmailRicevute(
-        db_path=tenant_data_path("EMAIL_CASELLA_DB", "./email/casella.json", require_tenant=True)
-    )
+    from web.services.controllo_studio_casella import CasellaConLettureSQL
+    from pct.email_sql_client import GestioneEmailSQL
+
+    path = tenant_data_path("EMAIL_CASELLA_DB", "./email/casella.json", require_tenant=True)
+    mailbox = create_email_mailbox(db_path=path)
+    if isinstance(mailbox, GestioneEmailSQL):
+        return mailbox
+    # Soltanto la compatibilità esplicitamente JSON conserva il registro
+    # storico separato; in modalità SQL governa il catalogo primario.
+    return CasellaConLettureSQL(db_path=path)
 
 
 def get_email_ordinaria() -> GestioneEmailRicevute:
-    return GestioneEmailRicevute(
+    return create_email_mailbox(
         db_path=tenant_data_path("EMAIL_ORDINARIA_DB", "./email/ordinaria.json", require_tenant=True)
     )
 

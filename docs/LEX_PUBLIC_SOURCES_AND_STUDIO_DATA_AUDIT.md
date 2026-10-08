@@ -1447,3 +1447,7 @@ indice Normattiva, UI reale e rilascio coerente prima dell'attivazione.
 Dettagli verificati e limiti: deploy/embeddinggemma2/README.md e
 artifacts/react-migration/pytest-open-issues.md. Il modello operativo precedente
 resta attivo; nessuna API esterna riceve documenti dello studio.
+
+- **Diagnosi Consulta 07/10/2026**: timeout della verifica a 15 minuti sul commit 97959fa, con Lex v2 e Normattiva verificati. Aggiunta diagnosi separata in sola lettura di processo, conteggi e download; completamento dei tre corpus ancora da accertare.
+
+- **Consulta completata, correzione attesa 07/10/2026**: diagnosi server conferma 3/3 corpus completi, 22.398 pronunce ciascuno e 46.577 massime lette; import effettivo 1.254,1 secondi. Attesa post-deploy portata da 15 a 30 minuti con conteggi intermedi, mantenendo obbligatorio il marcatore di import completo su tutti i corpus.

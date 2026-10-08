@@ -31,4 +31,6 @@ for table,col in [('fascicoli','documenti_json'),('fascicoli','dati_json'),('cas
 print(json.dumps(report))
 '''
 r=subprocess.run(['docker','exec','-i','iusentra-app','python','-'],input=code,text=True,capture_output=True,timeout=150)
-assert r.returncode==0,'Lettura non riuscita';print(r.stdout)
+if r.returncode:
+ print(json.dumps({'metadata_diagnostic_error':r.returncode,'stderr':r.stderr[-2000:]}));raise SystemExit(r.returncode)
+print(r.stdout)

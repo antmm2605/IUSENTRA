@@ -1,52 +1,32 @@
-"""Diagnosi Consulta in sola lettura, senza dati identificativi degli studi."""
-import json
-import subprocess
-
-command = ["docker", "compose", "--env-file", "/opt/iusentra/.env.hetzner", "-f", "/opt/iusentra/repo/deploy/hetzner/docker-compose.hetzner.yml"]
-container = subprocess.check_output(command + ["ps", "-q", "scheduler-worker"], text=True).strip()
-assert container, "Worker non presente"
-processes = subprocess.check_output(["docker", "top", container, "-eo", "pid,etime,args"], text=True)
-print(json.dumps({"import_processes": [line for line in processes.splitlines() if "tools/cortecost_importa.py" in line]}), flush=True)
-code = """
-import json, os, re
+"""Read-only inventory: outputs counts/schema, never document text or personal names."""
+import subprocess,json
+code=r'''
+import os,json,sqlite3,hashlib,collections
 from pathlib import Path
-from pct.corte_costituzionale_opendata import archivio_completo_presente, corpus_ha_pronunce
-from tools.cortecost_importa import corpus_dei_tenant
-paths=corpus_dei_tenant(os.getenv('PCT_TENANTS_REGISTRY','/data/tenants.json'),os.getenv('PCT_DATA_ROOT','/data'))
-for index,path in enumerate(paths):
-    p=Path(path)
-    print(json.dumps({'corpus_index':index,'complete':archivio_completo_presente(path),'pronunce':corpus_ha_pronunce(path),'db_bytes':p.stat().st_size if p.exists() else 0}),flush=True)
-folder=Path('/data/fonti_ufficiali/cortecost')
-print(json.dumps({'downloads':[{'name':p.name,'bytes':p.stat().st_size} for p in sorted(folder.glob('*.zip*'))]}),flush=True)
-p=folder/'import.log'
-if p.exists():
-    lines=p.read_text(errors='replace').splitlines()[-30:]
-    for line in lines:
-        if re.search(r'pronunce lette|Scaricati|ERRORE:|Un altro import|Corte costituzionale:',line):
-            print(re.sub(r'/data/[^ ]+', '[percorso]', line),flush=True)
-"""
-subprocess.run(command + ["exec", "-T", "scheduler-worker", "python", "-"], input=code, text=True, check=True, timeout=90)
-
-# Solo metadati Git: nessun sorgente, credenziale o dato degli studi viene trasferito.
-import hashlib
-from pathlib import Path
-repo = Path("/opt/iusentra/repo")
-def git_metadata(*args):
-    return subprocess.check_output(["git", "-C", str(repo), *args])
-head = git_metadata("rev-parse", "HEAD").decode().strip()
-changed = set(git_metadata("diff", "HEAD", "--name-only", "-z").decode().split("\0"))
-changed.update(git_metadata("ls-files", "--others", "--exclude-standard", "-z").decode().split("\0"))
-changed.discard("")
-metadata = []
-for name in sorted(changed):
-    path = repo / name
-    row = {"path": name, "exists": path.is_file(), "symlink": path.is_symlink()}
-    original = subprocess.run(["git", "-C", str(repo), "show", "HEAD:" + name], capture_output=True)
-    row["tracked_at_head"] = original.returncode == 0
-    if path.is_file() and not path.is_symlink() and path.resolve().is_relative_to(repo):
-        data = path.read_bytes()
-        row["sha256"] = hashlib.sha256(data).hexdigest()
-        row["matches_head"] = original.returncode == 0 and data == original.stdout
-        row["matches_head_normalized"] = original.returncode == 0 and data.replace(b"\r\n", b"\n") == original.stdout.replace(b"\r\n", b"\n")
-    metadata.append(row)
-print(json.dumps({"server_head": head, "source_changes_metadata": metadata}), flush=True)
+roots=[p for p in [Path('/data'),Path('/app/data')] if p.exists()]
+extensions=collections.Counter();databases=[];errors=[];files=0
+for root in roots:
+ for parent,dirs,names in os.walk(root):
+  dirs[:]=[d for d in dirs if d not in {'normativa','normattiva','cortecost','ollama','models','__pycache__','node_modules','backups'}]
+  for name in names:
+   p=Path(parent)/name;files+=1;ext=p.suffix.lower();extensions[ext]+=1
+   if ext not in {'.sqlite','.sqlite3','.db'}:continue
+   entry={'path_id':hashlib.sha256(str(p).encode()).hexdigest()[:16],'root':str(root),'tables':[]}
+   try:
+    c=sqlite3.connect('file:'+str(p)+'?mode=ro',uri=True,timeout=2)
+    names_db=[r[0] for r in c.execute("SELECT name FROM sqlite_master WHERE type='table'")]
+    for table in names_db:
+     if not any(s in table.lower() for s in ['fascic','pratic','document','atto','dataset','lex','feedback','editor']):continue
+     quoted='"'+table.replace('"','""')+'"'
+     columns=[r[1] for r in c.execute('PRAGMA table_info('+quoted+')')]
+     count=c.execute('SELECT COUNT(*) FROM '+quoted).fetchone()[0]
+     entry['tables'].append({'name':table,'columns':columns,'rows':count})
+    c.close();databases.append(entry)
+   except Exception as e:errors.append({'path_id':entry['path_id'],'error_type':type(e).__name__})
+   if files>=100000:break
+  if files>=100000:break
+print(json.dumps({'files_scanned':files,'extensions':dict(extensions),'databases':databases,'errors':errors,'postgres_configured':any(os.environ.get(k,'').startswith('postgres') for k in ['DATABASE_URL','SQLALCHEMY_DATABASE_URI']),'document_contents_exported':False,'server_modified':False}))
+'''
+r=subprocess.run(['docker','exec','-i','iusentra-app','python','-'],input=code,text=True,capture_output=True,timeout=150)
+if r.returncode:print(json.dumps({'error':'Inventario container non riuscito','exit_code':r.returncode}));raise SystemExit(r.returncode)
+print(r.stdout)

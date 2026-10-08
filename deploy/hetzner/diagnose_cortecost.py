@@ -1,6 +1,6 @@
 import subprocess,json
 code=r'''
-import os,json,sqlite3,hashlib,collections
+import os,json,sqlite3,hashlib,collections,time
 from pathlib import Path
 target='f3f202cf10017e5e';found=None
 for parent,dirs,names in os.walk('/data'):
@@ -11,17 +11,21 @@ for parent,dirs,names in os.walk('/data'):
  if found:break
 assert found
 c=sqlite3.connect('file:'+str(found)+'?mode=ro',uri=True,timeout=3)
+deadline=time.monotonic()+20
+c.set_progress_handler(lambda: int(time.monotonic()>deadline),10000)
 report={'db_id':target,'groups':{},'json_schemas':{},'server_modified':False}
 queries={
 'documenti_stati':'SELECT status,COUNT(*) FROM fascicolo_documenti_ai GROUP BY status',
 'atti_editor_stati':'SELECT status,COUNT(*) FROM fascicolo_editor_ai_atti GROUP BY status',
-'testi_estrazione':'SELECT extraction_engine,COUNT(*),SUM(LENGTH(text)) FROM fascicolo_documenti_ai_testi GROUP BY extraction_engine',
+'testi_estrazione':'SELECT extraction_engine,COUNT(*) FROM fascicolo_documenti_ai_testi GROUP BY extraction_engine',
 'atti_classificati':'SELECT document_nature,document_label,status,COUNT(*) FROM document_catalog_assignments GROUP BY document_nature,document_label,status ORDER BY COUNT(*) DESC LIMIT 60',
-'testi_unici':'SELECT COUNT(*),COUNT(DISTINCT text),COUNT(DISTINCT fascicolo_id) FROM fascicolo_documenti_ai_testi WHERE LENGTH(text)>200'}
+'fascicoli_con_testi':'SELECT COUNT(*),COUNT(DISTINCT fascicolo_id) FROM fascicolo_documenti_ai_testi'}
 for key,q in queries.items():
+ deadline=time.monotonic()+20
  try:report['groups'][key]=c.execute(q).fetchall()
  except Exception as e:report['groups'][key]={'error_type':type(e).__name__}
 for table,col in [('fascicoli','documenti_json'),('fascicoli','dati_json'),('case_document_contexts','context_json')]:
+ deadline=time.monotonic()+10
  try:
   rows=c.execute('SELECT '+col+' FROM '+table+' WHERE '+col+" IS NOT NULL AND "+col+"!='' LIMIT 5").fetchall();shapes=[]
   for row in rows:

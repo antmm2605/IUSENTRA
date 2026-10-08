@@ -179,7 +179,8 @@
 
   window.fetch = function (input, init) {
     const url = typeof input === 'string' ? input : input && input.url;
-    if (typeof url === 'string' && url.includes('/api/v1/ui/impostazioni/ai/status')) {
+    if (typeof url === 'string' && url.includes('/api/v1/ui/impostazioni/ai/status')
+        && new URL(url, window.location.origin).searchParams.get('preparazione') !== '1') {
       return fetchLocalStatus().then(function (payload) { return jsonResponse(payload); });
     }
     if (typeof url === 'string' && url.includes('/api/v1/ui/impostazioni/ai/bootstrap')) {

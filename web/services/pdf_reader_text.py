@@ -5,6 +5,55 @@ from html import escape
 from .pdf_reader_links import page_links, word_link, link_tag, non_text_links
 
 
+def _unicode_words(document, page_index: int) -> list[dict]:
+    """Decodifica nativa dello stesso PDFium che disegna la pagina, senza OCR."""
+    import pypdfium2.raw as pdfium
+
+    page = document[page_index]
+    text = page.get_textpage()
+    try:
+        count = text.count_chars()
+        if count > 500_000:
+            raise ValueError('Strato testuale oltre il limite di lettura sicura.')
+        width, height = page.get_size()
+        rotation = page.get_rotation()
+        left, bottom, _, _ = page.get_bbox()
+        words, chars, boxes = [], [], []
+
+        def flush():
+            if chars and boxes:
+                words.append({'text':''.join(chars), 'x0':min(b[0] for b in boxes),
+                              'top':min(b[1] for b in boxes), 'x1':max(b[2] for b in boxes),
+                              'bottom':max(b[3] for b in boxes)})
+            chars.clear();boxes.clear()
+
+        def position(x, y):
+            x, y = x-left, y-bottom
+            if rotation == 90: return y, x
+            if rotation == 180: return width-x, y
+            if rotation == 270: return width-y, height-x
+            return x, height-y
+
+        for index in range(count):
+            code = pdfium.FPDFText_GetUnicode(text, index)
+            if not code or code > 0x10ffff or 0xd800 <= code <= 0xdfff or code in {0xfffe, 0xffff, 0xfffd}:
+                flush()
+                continue
+            char = chr(code)
+            if char.isspace() or not char.isprintable():
+                flush()
+                continue
+            x0, y0, x1, y1 = text.get_charbox(index)
+            corners = [position(x,y) for x in (x0,x1) for y in (y0,y1)]
+            chars.append(char)
+            boxes.append((min(p[0] for p in corners), min(p[1] for p in corners),
+                          max(p[0] for p in corners), max(p[1] for p in corners)))
+        flush()
+        return words
+    finally:
+        text.close();page.close()
+
+
 def text_layers(data: bytes, original_links: list | None = None) -> list[str]:
     """Lo strato di testo selezionabile, pagina per pagina.
 
@@ -35,7 +84,13 @@ def text_layers(data: bytes, original_links: list | None = None) -> list[str]:
                 # pdfplumber tiene gia' conto della rotazione dichiarata dalla
                 # pagina: larghezza e altezza e le coordinate delle parole sono
                 # quelle dell'orientamento mostrato.
-                parole = [] if has_only_signature_text(pagina.extract_text() or "") else pagina.extract_words()
+                raw_text = pagina.extract_text() or ""
+                if '(cid:' in raw_text:
+                    from pct.rendering_pdf import apri_documento
+                    with apri_documento(data) as native:
+                        parole = _unicode_words(native, page_index)
+                else:
+                    parole = [] if has_only_signature_text(raw_text) else pagina.extract_words()
             except Exception:
                 # Una pagina illeggibile non toglie la selezione alle altre.
                 layers.append(senza_testo)

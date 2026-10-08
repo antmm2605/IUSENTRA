@@ -1,6 +1,7 @@
 """Associazione dell'udienza da collegamenti espliciti e identità del procedimento."""
 import re
 import unicodedata
+from pct.pec_case_identity import case_identity_evidence
 
 _RG = re.compile(r"(?<![\d/])(\d{1,7})\s*/\s*(\d{4})(?!\d)")
 
@@ -33,12 +34,16 @@ def fascicolo_udienza(appuntamento, fascicoli, sessioni=()):
         if len(ruoli) != 1:
             return None
         ruolo = next(iter(ruoli))
-        candidati = [f for f in candidati if ruolo in {
-            f"{int(m.group(1))}/{m.group(2)}" for m in _RG.finditer(
-                f"{getattr(f, 'numero_rg', '')}/{getattr(f, 'anno_rg', '')}")
-        }]
-        if len(candidati) == 1:
-            return candidati[0]
+        profile = {'numero_ruolo_certificato': ruolo,
+                   'cliente': getattr(appuntamento, 'cliente', ''),
+                   'ufficio': getattr(appuntamento, 'tribunale', '')}
+        verificati = []
+        for fascicolo in candidati:
+            evidence = case_identity_evidence(profile, fascicolo)
+            if not evidence['conflicts'] and all(evidence[key] for key in
+                    ('rg_match', 'client_name_match', 'office_match')):
+                verificati.append(fascicolo)
+        candidati = verificati
     else:
         # Senza numero di ruolo occorrono cliente, data e ufficio coincidenti.
         giorno = str(appuntamento.data_ora)[:10]
@@ -49,6 +54,6 @@ def fascicolo_udienza(appuntamento, fascicoli, sessioni=()):
     if client_id:
         candidati = [f for f in candidati if str(getattr(f, 'id_cliente', '')) == client_id]
     ufficio = _testo(getattr(appuntamento, 'tribunale', ''))
-    if ufficio:
+    if ufficio and not ruoli:
         candidati = [f for f in candidati if _testo(getattr(f, 'tribunale', '')) == ufficio]
     return candidati[0] if len(candidati) == 1 else None

@@ -29,6 +29,7 @@ _ALLOWED_DETAIL_FISCAL_FIELDS = {
     "applica_cassa",
     "applica_ritenuta",
     "applica_bollo",
+    "bollo_a_carico_studio",
     "percentuale_spese_generali",
     "regime_fiscale",
 }
@@ -436,7 +437,12 @@ def _xml_bytes(parcella: Any, cliente: Any, config: dict[str, Any]) -> tuple[byt
         studio_indirizzo=_text(getattr(parcella, "studio_indirizzo", "")) or _text(config.get("STUDIO_INDIRIZZO")),
         pec_destinatario=pec_cl,
     )
-    return xml, nome_file_fattura_pa(studio_piva, getattr(parcella, "numero", ""))
+    from lxml import etree
+    root = etree.fromstring(xml, etree.XMLParser(no_network=True, resolve_entities=False))
+    sender = root.find("FatturaElettronicaHeader/DatiTrasmissione/IdTrasmittente")
+    return xml, nome_file_fattura_pa(
+        sender.findtext("IdCodice"), getattr(parcella, "numero", ""), paese=sender.findtext("IdPaese")
+    )
 
 
 def _pdf_bytes(parcella: Any, cliente: Any, fascicolo: Any, config: dict[str, Any]) -> tuple[bytes, str]:
@@ -563,6 +569,7 @@ def build_react_fatturazione_detail_payload(
         "applica_cassa": bool(getattr(parcella, "applica_cassa", False)),
         "applica_ritenuta": bool(getattr(parcella, "applica_ritenuta", False)),
         "applica_bollo": bool(getattr(parcella, "applica_bollo", False)),
+        "bollo_a_carico_studio": document.get("bollo_a_carico_studio") is True,
         "percentuale_spese_generali": _text(getattr(parcella, "percentuale_spese_generali", 0)),
         "regime_fiscale": _text(document.get("regime_fiscale")).upper() or "RF01",
     }
@@ -696,6 +703,7 @@ def update_react_fatturazione_detail(
         "data_documento": data_emissione,
         "regime_fiscale": regime,
         "regime_fiscale_label": _REGIME_LABELS[regime],
+        "bollo_a_carico_studio": _bool_value(raw_fiscal.get("bollo_a_carico_studio"), document.get("bollo_a_carico_studio") is True),
         "percentuale_spese_generali": _text(percentuale),
     })
     payment.update({
@@ -890,7 +898,11 @@ def prepare_react_fatturazione_xml_signature(
             "errors": {"proforma": "È richiesta la conferma finale dell’avvocato."},
         }, 409
     cliente = get_clienti().get(getattr(parcella, "id_cliente", ""))
-    xml, filename = _xml_bytes(parcella, cliente, config)
+    from pct.fattura_pa import FatturaPAValidationError
+    try:
+        xml, filename = _xml_bytes(parcella, cliente, config)
+    except FatturaPAValidationError as exc:
+        return {"ok": False, "message": str(exc), "errors": {"xml": str(exc)}}, 422
     return {
         "ok": True,
         "message": "XML FatturaPA pronto per la firma digitale.",

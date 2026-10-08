@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import base64
 import re
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from functools import lru_cache
@@ -37,7 +38,7 @@ from typing import Any
 from legal_ocr.page_layout import analizza_pagina
 from legal_ocr.tratti import con_tratti
 from web.services.document_ocr import recognize_page
-from web.services.document_ocr_anteprima import ANTEPRIMA_ASSENTE, Anteprima, anteprima_da_pdf
+from web.services.document_ocr_anteprima import ANTEPRIMA_ASSENTE, Anteprima, anteprima_da_pdf, fondo_grafico_da_pdf
 from web.services.document_ocr_anteprima import come_payload as anteprima_payload
 from web.services.document_ocr_correzioni import correggi_blocchi
 from web.services.document_ocr_formato import _colore_leggibile, blocchi_con_formato
@@ -86,6 +87,7 @@ class PaginaRiconosciuta:
     confidence: float = 0.0
     engine: str = ""
     anteprima: Anteprima = ANTEPRIMA_ASSENTE
+    fondo: Anteprima = ANTEPRIMA_ASSENTE
     # Correzioni forensi applicate e riferimenti giuridici leggibili nella
     # pagina: servono all'avvocato per controllare il riconoscimento.
     correzioni: list[dict[str, Any]] = field(default_factory=list)
@@ -337,6 +339,7 @@ def _parole_dello_span(
                     "block": blocco + 1,
                     "par": blocco + 1,
                     "line": riga + 1,
+                    "baseline": base * scala,
                     "word": indice + len(parole) + 1,
                     # Formato dichiarato dal documento: prevale su ogni stima.
                     "corpo": corpo,
@@ -466,6 +469,30 @@ def _parole_native(
     return parole
 
 
+def _orientamenti_nativi(blocks, pagina):
+    """Conserva la direzione dichiarata delle righe, incluse le firme laterali.
+
+    Abbinamento integrale del testo: non ruota un capoverso sulla base della
+    sola forma stretta del suo riquadro o di una stima ottica.
+    """
+    normalizza = lambda testo: " ".join(str(testo or "").split())
+    orientamenti = {}
+    for blocco in pagina.get_text("dict").get("blocks", []):
+        for riga in blocco.get("lines", []):
+            direzione = riga.get("dir") or (1, 0)
+            angolo = math.degrees(math.atan2(direzione[1], direzione[0]))
+            rotazione = round(angolo / 90) * 90
+            if not rotazione or abs(angolo - rotazione) > .01:
+                continue
+            testo = normalizza("".join(span.get("text", "") for span in riga.get("spans", [])))
+            if testo:
+                orientamenti.setdefault(testo, set()).add(rotazione)
+    for blocco in blocks:
+        candidati = orientamenti.get(normalizza(blocco.get("testo")), set())
+        if len(candidati) == 1:
+            blocco["rotazione"] = next(iter(candidati))
+
+
 def _pagina_pdf(documento, indice: int) -> bytes:
     """La singola pagina come PDF autonomo, conservata com'era nell'originale."""
     import fitz  # type: ignore
@@ -571,6 +598,12 @@ def riconosci_pagina(
             # I tratti si fanno sul testo gia' corretto: le parole si
             # riabbinano per contenuto, non per posizione.
             blocks = con_tratti(blocks, parole)
+            _orientamenti_nativi(blocks, pagina)
+            # La posizione nativa è già nel riquadro. Un allineamento dedotto
+            # dalla pagina intera sposterebbe di nuovo celle e colonne strette.
+            for block in blocks:
+                if isinstance(block.get("formato"), dict):
+                    block["formato"]["allineamento"] = "sinistra"
             return PaginaRiconosciuta(
                 numero=numero,
                 origine=ORIGINE_TESTO,
@@ -581,6 +614,7 @@ def riconosci_pagina(
                 confidence=1.0,
                 engine="testo del documento",
                 anteprima=anteprima_da_pdf(pagina, DPI_RASTERIZZAZIONE / 72.0),
+                fondo=fondo_grafico_da_pdf(pagina, DPI_RASTERIZZAZIONE / 72.0),
                 correzioni=correzioni,
                 riferimenti=riferimenti,
             )
@@ -609,8 +643,11 @@ def riconosci_pagina(
 
 def come_payload(pagina: PaginaRiconosciuta) -> dict[str, Any]:
     """Pagina riconosciuta nella forma attesa dalla pagina React."""
+    with _apri(pagina.pdf) as documento:
+        dimensioni = {"larghezza": documento[0].rect.width, "altezza": documento[0].rect.height}
     return {
         "numero": pagina.numero,
+        "dimensioni_pt": dimensioni,
         "origine": pagina.origine,
         "origine_etichetta": ETICHETTE_ORIGINE.get(pagina.origine, pagina.origine),
         "pdf_base64": base64.b64encode(pagina.pdf).decode("ascii"),
@@ -621,6 +658,7 @@ def come_payload(pagina: PaginaRiconosciuta) -> dict[str, Any]:
         "confidence": round(float(pagina.confidence), 4),
         "engine": pagina.engine,
         "anteprima": anteprima_payload(pagina.anteprima),
+        "fondo": anteprima_payload(pagina.fondo),
         "correzioni": list(pagina.correzioni),
         "riferimenti": dict(pagina.riferimenti),
         "consenso": pagina.consenso,

@@ -37,7 +37,7 @@ _AULA_RE = re.compile(r"(?i)\baula\s+([A-Za-z0-9][A-Za-z0-9./_-]{0,20})")
 _PIANO_RE = re.compile(r"(?i)\b(?:piano|livello)\s+([A-Za-z0-9][A-Za-z0-9./_-]{0,20})")
 _EURO_RE = re.compile(r"(?i)(?:€|euro)\s*([0-9]{1,3}(?:[.\s][0-9]{3})*(?:,[0-9]{2})|[0-9]+(?:,[0-9]{2})?)")
 _CU_RE = re.compile(
-    r"(?i)(?:contributo\s+unificato|c\.?\s*u\.?|contributi\s+unificati)[^€\n\r]{0,80}(?:€|euro)\s*"
+    r"(?i)(?<!\w)(?:contributo\s+unificato|c\.?\s*u\.?|contributi\s+unificati)(?!\w)[^€\n\r]{0,80}(?:€|euro)\s*"
     r"([0-9]{1,3}(?:[.\s][0-9]{3})*(?:,[0-9]{2})|[0-9]+(?:,[0-9]{2})?)"
 )
 _ESBORSI_RE = re.compile(
@@ -900,7 +900,8 @@ def _extract_payments(text: str) -> list[dict[str, Any]]:
     has_spese = re.search(r"(?i)\b(condanna.*spese|liquid[ao].*spese|compensi|esborsi|spese\s+generali|iva|cpa|accessori)\b", text or "")
     if has_spese:
         direct = bool(re.search(r"(?i)\b(distrae|distrazione|antistatario|procuratore\s+antistatario|in\s+favore\s+dell['’]?\s*avv)\b", text or ""))
-        total = _amount(_LIQUIDA_RE.search(text)) or (_money(_EURO_RE.findall(text)[0]) if _EURO_RE.findall(text) else None)
+        from pct.spese_liquidate_lettura import estrai_spese_liquidate
+        total, shared_liquidation_quote = estrai_spese_liquidate(text)
         esborsi = _amount(_ESBORSI_RE.search(text))
         compensi = round(total - esborsi, 2) if total is not None and esborsi is not None and total >= esborsi else total
         payments.append(
@@ -920,7 +921,7 @@ def _extract_payments(text: str) -> list[dict[str, Any]]:
                 },
                 "workflow_action": "Aprire pratica incasso avvocato." if direct else "Registrare credito spese della parte; non assumere pagamento diretto avvocato.",
                 "human_review_required": True,
-                "evidence": [_evidence("testo sentenza", has_spese.group(0), confidence=0.8)],
+                "evidence": [_evidence("testo sentenza", shared_liquidation_quote or has_spese.group(0), confidence=0.8)],
             }
         )
     cu = _amount(_CU_RE.search(text))

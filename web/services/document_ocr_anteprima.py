@@ -102,6 +102,25 @@ def anteprima_da_pdf(pagina, scala_coordinate: float) -> Anteprima:
         return ANTEPRIMA_ASSENTE
 
 
+def fondo_grafico_da_pdf(pagina, scala_coordinate: float) -> Anteprima:
+    """Conserva immagini e tracciati, togliendo il testo da una copia privata.
+
+    L'originale (anche firmato) non viene mai modificato. Il fondo accompagna
+    il testo modificabile nell'anteprima; non sostituisce il testo nel Word.
+    """
+    import fitz
+
+    with fitz.open() as copia:
+        copia.insert_pdf(pagina.parent, from_page=pagina.number, to_page=pagina.number)
+        foglio = copia[0]
+        foglio.add_redact_annot(foglio.rect, fill=False, cross_out=False)
+        foglio.apply_redactions(images=0, graphics=0, text=0)
+        fondo = anteprima_da_pdf(foglio, scala_coordinate)
+        if fondo.vuota:
+            raise ValueError("Non è stato possibile conservare la grafica della pagina.")
+        return fondo
+
+
 def come_payload(anteprima: Anteprima) -> dict[str, object]:
     """Anteprima nella forma attesa dalla pagina React."""
     import base64

@@ -400,14 +400,17 @@ def _vite_entry(current_path: str = "") -> dict[str, Any]:
 
     route_assets = _cached_route_assets(manifest_path, manifest, _route_component_key(current_path))
     entry_file = f"/static/react/{entry['file']}"
+    # Riferimenti coerenti con la release: rivalida anche un precedente 404
+    # memorizzato dal browser durante una pubblicazione parziale degli asset.
+    css_version = quote(str(entry["file"]), safe="")
     return {
         "ready": True,
         "js": [entry_file],
         "entry_file": entry_file,
         "inline_entry_code": _inline_react_entry_code(str(entry["file"])),
-        "css": [f"/static/react/{path}" for path in _global_manifest_css(manifest, entry)],
+        "css": [f"/static/react/{path}?release={css_version}" for path in _global_manifest_css(manifest, entry)],
         "preload_js": route_assets["js"],
-        "page_css": route_assets["css"],
+        "page_css": [f"{path}?release={css_version}" for path in route_assets["css"]],
         "error": "",
     }
 

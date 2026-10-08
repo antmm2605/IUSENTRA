@@ -15,12 +15,10 @@ from pct.document_intelligence.security import DocumentAINotFound, DocumentAIVal
 from pct.document_intelligence.sources import DocumentAISource, collect_fascicolo_document_sources
 from pct.fascicolo_sentenza_economica import (
     AUTOMATION_KEY,
-    ORIGIN,
     SENTENZA_VECTOR_SCHEMA_VERSION,
     SentenzaAutomationOutcome,
     apply_sentenza_tribunale_automation,
     extract_contributo_unificato_document_evidence,
-    sentenza_vector_relevant_excerpt,
 )
 from pct.fascicolo_registry_document import apply_fascicolo_registry_automation
 from web.helpers import get_fascicoli, get_fatturazione
@@ -680,6 +678,7 @@ def apply_sentenza_automation_for_document_text(
             fascicoli_repository=fascicoli,
             fascicolo_id=fascicolo_id,
             document_key=document_key,
+            metadata=clean_metadata,
         )
     ):
         vector_result = _feed_sentenza_vector_index(
@@ -922,46 +921,16 @@ def _feed_sentenza_vector_index(
 ) -> dict[str, Any]:
     try:
         from lex.providers.local_ai_service import get_local_ai_service
+        from pct.rag_sql_document import index_original_source
 
         service = get_local_ai_service()
         fascicolo = fascicoli_repository.get(fascicolo_id)
-        extraction = outcome.extraction
-        document_key = _document_key(metadata)
-        source_id = (
-            f"{tenant_id}:{fascicolo_id}:{document_key or metadata.get('sha256') or metadata.get('document_id')}"
-        )
-        title = _sentenza_vector_title(extraction, fascicolo)
-        vector_metadata = {
-            "tenant_id": tenant_id,
-            "fascicolo_id": fascicolo_id,
-            "document_id": str(metadata.get("document_id") or ""),
-            "document_key": document_key,
-            "sha256": str(metadata.get("sha256") or ""),
-            "tipo_documento": "sentenza_tribunale",
-            "data_sentenza": extraction.sentence_date,
-            "rg": _rg_label(extraction),
-            "cliente": str(getattr(fascicolo, "nome_cliente", "") or metadata.get("cliente") or ""),
-            "importo_liquidazione": extraction.liquidazione_importo,
-            "contributo_unificato": extraction.contributo_unificato_importo,
-            "contributo_unificato_esente": getattr(extraction, "contributo_unificato_esente", False),
-            "contributo_unificato_natura": extraction.contributo_unificato_natura,
-            "contributo_unificato_label": extraction.contributo_unificato_label,
-            "spese_esborsi": getattr(extraction, "spese_esborsi_importo", None),
-            "fondo_spese": extraction.fondo_spese_importo,
-            "beneficio_cliente": extraction.beneficio_cliente_importo,
-            "beneficio_cliente_tipo": extraction.beneficio_cliente_tipo,
-            "proforma_id": outcome.proforma_id,
-            "origin": ORIGIN,
-            "schema_version": SENTENZA_VECTOR_SCHEMA_VERSION,
-        }
-        indexed = service.index_text_document(
-            source_type="lex_sentenza_tribunale",
-            source_id=source_id,
-            practice_id=fascicolo_id,
-            title=title,
-            text=_sentenza_vector_text(extraction, fascicolo, metadata, outcome, text),
-            metadata=vector_metadata,
-        )
+        if not fascicolo:
+            return {"ok": False, "status": "waiting_for_text", "error": "Fascicolo SQL assente"}
+        indexed = index_original_source(fascicolo, build_document_ai_service().repository,
+                                        service, tenant=tenant_id, metadata=metadata)
+        if indexed.get("status") not in {"indexed", "skipped"}:
+            return {"ok": False, "status": indexed.get("status"), "error": indexed.get("reason")}
         embedded = {}
         document_id = str(indexed.get("document_id") or "")
         if document_id:
@@ -976,6 +945,7 @@ def _feed_sentenza_vector_index(
             "document_id": document_id,
             "chunk_count": indexed.get("chunk_count"),
             "embedding": embedded,
+            "proof": indexed.get("proof"),
         }
     except Exception as exc:
         current_app.logger.exception("Indicizzazione vettoriale Lex AI non riuscita per sentenza")
@@ -1030,6 +1000,7 @@ def _sentenza_vector_index_ok(
     fascicoli_repository: Any,
     fascicolo_id: str,
     document_key: str,
+    metadata: dict[str, Any],
 ) -> bool:
     result = _existing_sentenza_vector_index(
         fascicoli_repository=fascicoli_repository,
@@ -1040,60 +1011,28 @@ def _sentenza_vector_index_ok(
         return False
     if result.get("schema_version") != SENTENZA_VECTOR_SCHEMA_VERSION:
         return False
+    proof = result.get("proof") or {}
+    if (not proof.get("source_document_id") or proof.get("tenant_id") != metadata.get("tenant_id")
+            or proof.get("content_sha256") != metadata.get("sha256")):
+        return False
+    fascicolo = fascicoli_repository.get(fascicolo_id)
+    source = next((doc for doc in getattr(fascicolo, "documenti", [])
+                   if str(doc.id) == proof["source_document_id"]), None)
+    if (not source or (getattr(source, "hash_contenuto_sha256", "") or getattr(source, "hash_sha256", ""))
+            != proof["content_sha256"]):
+        return False
+    record = build_document_ai_service().repository.get_document(
+        proof["tenant_id"], fascicolo_id, proof.get("document_ai_id"))
+    if (not record or record.status != "ready" or record.sha256 != proof["content_sha256"]
+            or record.current_version_id != proof.get("version_id")):
+        return False
     embedding = result.get("embedding") if isinstance(result.get("embedding"), dict) else {}
-    if str(embedding.get("status") or "").lower() == "error":
+    if str(embedding.get("status") or "").lower() != "ready":
+        return False
+    from pct import embeddinggemma2
+    if embeddinggemma2.configured() and embedding.get("embedding_model") != embeddinggemma2.MODEL:
         return False
     return int(embedding.get("pending_remaining") or 0) <= 0
-
-
-def _rg_label(extraction: Any) -> str:
-    if extraction.rg_number and extraction.rg_year:
-        return f"{extraction.rg_number}/{extraction.rg_year}"
-    return ""
-
-
-def _sentenza_vector_title(extraction: Any, fascicolo: Any) -> str:
-    sentence = ""
-    if extraction.sentence_number and extraction.sentence_year:
-        sentence = f"Sentenza Tribunale n. {extraction.sentence_number}/{extraction.sentence_year}"
-    rg = _rg_label(extraction)
-    title = sentence or "Sentenza Tribunale"
-    if rg:
-        title = f"{title} - RG {rg}"
-    fascicolo_title = str(getattr(fascicolo, "titolo", "") or "").strip()
-    return f"{title} - {fascicolo_title}" if fascicolo_title else title
-
-
-def _sentenza_vector_text(
-    extraction: Any,
-    fascicolo: Any,
-    metadata: dict[str, Any],
-    outcome: SentenzaAutomationOutcome,
-    text: str,
-) -> str:
-    rows = [
-        "Scheda conoscenza Lex AI - Sentenza Tribunale",
-        f"Fascicolo: {getattr(fascicolo, 'titolo', '') or getattr(fascicolo, 'numero_rg', '') or metadata.get('fascicolo_id', '')}",
-        f"RG: {_rg_label(extraction) or metadata.get('numero_rg', '')}",
-        f"Data sentenza: {extraction.sentence_date}",
-        f"Liquidazione giudice: {extraction.liquidazione_importo if extraction.liquidazione_importo is not None else 'n.d.'}",
-        f"Contributo unificato da fascicolo: {extraction.contributo_unificato_importo if extraction.contributo_unificato_importo is not None else 'n.d.'}",
-        f"Contributo unificato esente: {'si' if getattr(extraction, 'contributo_unificato_esente', False) else 'no'}",
-        f"Natura contributo unificato: {extraction.contributo_unificato_label or extraction.contributo_unificato_natura or 'n.d.'}",
-        f"Spese/esborsi da sentenza: {getattr(extraction, 'spese_esborsi_importo', None) if getattr(extraction, 'spese_esborsi_importo', None) is not None else 'n.d.'}",
-        f"Fondo spese: {extraction.fondo_spese_importo if extraction.fondo_spese_importo is not None else 'n.d.'}",
-        f"Beneficio cliente: {extraction.beneficio_cliente_importo if extraction.beneficio_cliente_importo is not None else 'n.d.'}",
-        f"Tipo beneficio cliente: {extraction.beneficio_cliente_tipo or 'n.d.'}",
-        f"Proforma collegata: {outcome.proforma_id or 'n.d.'}",
-        f"Documento fonte: {metadata.get('filename') or metadata.get('document_id') or 'n.d.'}",
-        "",
-        "Estratto liquidazione:",
-        extraction.liquidazione_titolo or "n.d.",
-        "",
-        "Estratto sentenza rilevante:",
-        sentenza_vector_relevant_excerpt(text) or "n.d.",
-    ]
-    return "\n".join(str(row) for row in rows)
 
 
 __all__ = [

@@ -16,7 +16,7 @@ import type { OcrBlock } from './ocrBlocks'
 import { aCapoValidi } from './ocrACapo'
 
 /** Misure della pagina nelle stesse unita' dei riquadri dei blocchi. */
-export type GeometriaPagina = { numero: number; larghezza: number; altezza: number }
+export type GeometriaPagina = { numero: number; larghezza: number; altezza: number; larghezzaMm?: number; altezzaMm?: number; fondo?: string; testiOriginali?: Record<string, string> }
 
 /** Margini in millimetri. */
 export type MarginiPagina = { alto: number; destro: number; basso: number; sinistro: number }
@@ -109,6 +109,13 @@ export function disposizioniDellaPagina(blocchi: OcrBlock[], geometria?: Geometr
     const passo = blocco.righe?.interlinea || tipico
     if (passo > 0) stile['--iu-ocr-interlinea'] = mm(passo * mmY)
     if (!blocco.box) return stile as CSSProperties
+    // Una riga isolata non ha un passo misurabile. Il box ne dichiara
+    // comunque l'altezza: 1,15 inventato dal CSS spostava tutti i blocchi
+    // successivi, anche quando le distanze originali erano disponibili.
+    const altezzaLettere = blocco.righe?.altezza || 0
+    if (passo <= 0 && altezzaLettere > 0 && blocco.box[3] - blocco.box[1] <= altezzaLettere * 1.6) {
+      stile['--iu-ocr-interlinea'] = mm((blocco.box[3] - blocco.box[1]) * mmY)
+    }
     const [x0, y0, x1] = blocco.box
     // Il foglio misura dalle righe (interlinea intera), la pagina dalle
     // lettere: fra le due c'e' mezza interlinea sopra e mezza sotto ogni riga.

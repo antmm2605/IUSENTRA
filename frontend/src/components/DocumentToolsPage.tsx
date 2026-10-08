@@ -9,6 +9,7 @@ import {
   Download,
   Eye,
   FilePlus2,
+  FilePenLine,
   Files,
   FolderCheck,
   GripVertical,
@@ -65,6 +66,11 @@ const MODES: Array<{
     accept: '.pdf,application/pdf',
   },
   {
+    id: 'word', label: 'PDF in Word', icon: FilePenLine, title: 'Converti un PDF in Word',
+    description: 'Crea una copia modificabile con testo, caratteri, tabelle e immagini. Seleziona un PDF da 1 a 100 pagine.',
+    accept: '.pdf,application/pdf',
+  },
+  {
     id: 'zip',
     label: 'Crea ZIP',
     title: 'Crea un archivio ZIP',
@@ -100,7 +106,7 @@ function formatBytes(bytes: number): string {
 
 function initialMode(): DocumentToolMode {
   const value = new URLSearchParams(window.location.search).get('modo')
-  return value === 'zip' || value === 'multipage' || value === 'split' ? value : 'merge'
+  return value === 'zip' || value === 'multipage' || value === 'split' || value === 'word' ? value : 'merge'
 }
 
 
@@ -130,7 +136,7 @@ export function DocumentToolsPage() {
   const fascicoloId = new URLSearchParams(window.location.search).get('id_fascicolo')?.trim() || ''
   const activeMode = MODES.find((item) => item.id === mode) || MODES[0]
   const previewDocument = documents.find((item) => item.id === previewId) || null
-  const canGenerate = mode === 'split' ? documents.length === 1 && Boolean(pageSelection.trim()) : mode === 'merge' ? documents.length >= 2 : documents.length >= 1
+  const canGenerate = mode === 'word' ? documents.length === 1 : mode === 'split' ? documents.length === 1 && Boolean(pageSelection.trim()) : mode === 'merge' ? documents.length >= 2 : documents.length >= 1
 
   const clearResult = useCallback(() => {
     setResult((current) => {
@@ -155,7 +161,7 @@ export function DocumentToolsPage() {
   }, [])
 
   useEffect(() => {
-    setOutputName(mode === 'zip' ? 'documenti' : mode === 'merge' ? 'documenti-uniti' : mode === 'split' ? 'pagine-estratte' : 'acquisizione-multipagina')
+    setOutputName(mode === 'word' ? 'documento-convertito' : mode === 'zip' ? 'documenti' : mode === 'merge' ? 'documenti-uniti' : mode === 'split' ? 'pagine-estratte' : 'acquisizione-multipagina')
     setError('')
     setNotice('')
     clearResult()
@@ -174,14 +180,15 @@ export function DocumentToolsPage() {
   )
 
   const addFiles = (files: File[]) => {
+    if (loading) return
     if (!files.length) return
-    if (mode === 'split' && files.length !== 1) { setError('Per dividere un PDF seleziona un solo documento.'); return }
+    if ((mode === 'split' || mode === 'word') && files.length !== 1) { setError('Seleziona un solo documento PDF per questa operazione.'); return }
     const next = files.map(makeSelected)
     setDocuments((current) => {
-      if (mode === 'split') current.forEach(item => URL.revokeObjectURL(item.previewUrl))
-      return mode === 'split' ? next : [...current, ...next]
+      if (mode === 'split' || mode === 'word') current.forEach(item => URL.revokeObjectURL(item.previewUrl))
+      return mode === 'split' || mode === 'word' ? next : [...current, ...next]
     })
-    setPreviewId((current) => mode === 'split' ? next[0]?.id || '' : current || next[0]?.id || '')
+    setPreviewId((current) => mode === 'split' || mode === 'word' ? next[0]?.id || '' : current || next[0]?.id || '')
     setError('')
     setNotice('')
     clearResult()
@@ -235,6 +242,7 @@ export function DocumentToolsPage() {
   }
 
   const removeDocument = (id: string) => {
+    if (loading) return
     previewCache.current.delete(id)
     if (previewLoading === id) previewRequests.current?.abort()
     setDocuments((current) => {
@@ -247,6 +255,7 @@ export function DocumentToolsPage() {
   }
 
   const moveDocument = (id: string, direction: -1 | 1) => {
+    if (loading) return
     setDocuments((current) => {
       const from = current.findIndex((item) => item.id === id)
       const to = from + direction
@@ -260,6 +269,7 @@ export function DocumentToolsPage() {
   }
 
   const dropOnDocument = (targetId: string) => {
+    if (loading) return
     if (!draggedId || draggedId === targetId) return
     setDocuments((current) => {
       const from = current.findIndex((item) => item.id === draggedId)
@@ -275,12 +285,13 @@ export function DocumentToolsPage() {
   }
 
   const updateDocument = (id: string, values: Partial<Pick<SelectedDocument, 'logicalName' | 'rotation'>>) => {
+    if (loading) return
     setDocuments((current) => current.map((item) => item.id === id ? { ...item, ...values } : item))
     clearResult()
   }
 
   const createResult = async () => {
-    if (!canGenerate) return
+    if (!canGenerate || loading) return
     setLoading(true)
     setError('')
     setNotice('')
@@ -347,6 +358,7 @@ export function DocumentToolsPage() {
               type="button"
               className={mode === item.id ? 'is-active' : ''}
               aria-pressed={mode === item.id}
+              disabled={loading}
               onClick={() => setMode(item.id)}
               key={item.id}
             >
@@ -381,7 +393,7 @@ export function DocumentToolsPage() {
             <strong>Trascina qui i documenti</strong>
             <span>oppure selezionali dal computer</span>
           </div>
-          <button type="button" className="iu-document-tools__secondary" onClick={() => fileInput.current?.click()}>
+          <button type="button" className="iu-document-tools__secondary" disabled={loading} onClick={() => fileInput.current?.click()}>
             <FilePlus2 size={18} /> Seleziona file
           </button>
           {mode === 'multipage' ? (
@@ -401,7 +413,7 @@ export function DocumentToolsPage() {
             </button>
             </>
           ) : null}
-          <input ref={fileInput} type="file" multiple={mode !== 'split'} accept={activeMode.accept} hidden onChange={onFileChange} />
+          <input ref={fileInput} type="file" multiple={mode !== 'split' && mode !== 'word'} accept={activeMode.accept} hidden onChange={onFileChange} />
           <input ref={cameraInput} type="file" multiple accept="image/*" capture="environment" hidden onChange={onFileChange} />
         </div>
 
@@ -410,16 +422,16 @@ export function DocumentToolsPage() {
             <div className="iu-document-tools__list" role="list" aria-label="Documenti selezionati">
               {documents.map((document, index) => (
                 <article
-                  className="iu-document-tools__row"
+                  className={`iu-document-tools__row${mode === 'word' || mode === 'split' ? ' is-single' : ''}`}
                   role="listitem"
-                  draggable
+                  draggable={!loading && mode !== 'word' && mode !== 'split'}
                   onDragStart={() => setDraggedId(document.id)}
                   onDragEnd={() => setDraggedId('')}
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={() => dropOnDocument(document.id)}
                   key={document.id}
                 >
-                  <GripVertical className="iu-document-tools__grip" size={18} aria-hidden="true" />
+                  {mode !== 'word' && mode !== 'split' ? <GripVertical className="iu-document-tools__grip" size={18} aria-hidden="true" /> : null}
                   <span className="iu-document-tools__index">{index + 1}</span>
                   <div className="iu-document-tools__file">
                     <strong title={document.file.name}>{document.file.name}</strong>
@@ -433,8 +445,10 @@ export function DocumentToolsPage() {
                     {mode === 'multipage' && document.rotation ? <small>Rotazione: {document.rotation}°</small> : null}
                   </div>
                   <div className="iu-document-tools__row-actions">
-                    <button type="button" title="Sposta su" aria-label={`Sposta ${document.file.name} su`} disabled={index === 0} onClick={() => moveDocument(document.id, -1)}><ArrowUp size={17} /></button>
-                    <button type="button" title="Sposta giù" aria-label={`Sposta ${document.file.name} giù`} disabled={index === documents.length - 1} onClick={() => moveDocument(document.id, 1)}><ArrowDown size={17} /></button>
+                    {mode !== 'word' && mode !== 'split' ? <>
+                    <button type="button" title="Sposta su" aria-label={`Sposta ${document.file.name} su`} disabled={loading || index === 0} onClick={() => moveDocument(document.id, -1)}><ArrowUp size={17} /></button>
+                    <button type="button" title="Sposta giù" aria-label={`Sposta ${document.file.name} giù`} disabled={loading || index === documents.length - 1} onClick={() => moveDocument(document.id, 1)}><ArrowDown size={17} /></button>
+                    </> : null}
                     {mode === 'multipage' ? (
                       <>
                         <button type="button" title="Ruota a sinistra" aria-label={`Ruota ${document.file.name} a sinistra`} onClick={() => updateDocument(document.id, { rotation: (document.rotation + 270) % 360 })}><RotateCcw size={17} /></button>
@@ -442,7 +456,7 @@ export function DocumentToolsPage() {
                       </>
                     ) : null}
                     <button type="button" title="Visualizza" aria-label={`Visualizza ${document.file.name}`} aria-busy={previewLoading === document.id} disabled={previewLoading === document.id} onClick={() => void openPreview(document)}>{previewLoading === document.id ? <LoaderCircle size={17} className="iu-spin" /> : <Eye size={17} />}</button>
-                    <button type="button" className="is-danger" title="Rimuovi" aria-label={`Rimuovi ${document.file.name}`} onClick={() => removeDocument(document.id)}><Trash2 size={17} /></button>
+                    <button type="button" className="is-danger" title="Rimuovi" aria-label={`Rimuovi ${document.file.name}`} disabled={loading} onClick={() => removeDocument(document.id)}><Trash2 size={17} /></button>
                   </div>
                 </article>
               ))}
@@ -468,7 +482,7 @@ export function DocumentToolsPage() {
           <div className="iu-document-tools__empty">
             <Files size={30} />
             <strong>Nessun documento selezionato</strong>
-            <span>L’ordine mostrato qui sarà lo stesso del risultato finale.</span>
+            <span>{mode === 'word' ? 'Seleziona il PDF da convertire in un documento modificabile.' : 'L’ordine mostrato qui sarà lo stesso del risultato finale.'}</span>
           </div>
         )}
 
@@ -482,13 +496,13 @@ export function DocumentToolsPage() {
           <label>
             <span>Nome del documento</span>
             <div className="iu-document-tools__filename">
-              <input value={outputName} onChange={(event) => setOutputName(event.target.value)} />
-              <span>.{mode === 'zip' ? 'zip' : 'pdf'}</span>
+              <input value={outputName} disabled={loading} onChange={(event) => setOutputName(event.target.value)} />
+              <span>.{mode === 'word' ? 'docx' : mode === 'zip' ? 'zip' : 'pdf'}</span>
             </div>
           </label>
           <button type="button" className="iu-document-tools__primary" disabled={!canGenerate || loading} onClick={createResult}>
             {loading ? <LoaderCircle className="is-spinning" size={18} /> : <CheckCircle2 size={18} />}
-            {loading ? 'Preparazione…' : mode === 'zip' ? 'Crea archivio' : mode === 'split' ? 'Estrai pagine' : 'Crea documento'}
+            {loading ? 'Preparazione…' : mode === 'word' ? 'Converti in Word' : mode === 'zip' ? 'Crea archivio' : mode === 'split' ? 'Estrai pagine' : 'Crea documento'}
           </button>
         </footer>
 

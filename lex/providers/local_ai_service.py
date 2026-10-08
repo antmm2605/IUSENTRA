@@ -8,15 +8,19 @@ from threading import Lock
 from flask import current_app, g, has_request_context
 
 from pct.local_ai import LocalAIService
-from pct.runtime_env import is_managed_cloud_runtime
 
 
 def _cfg_data_path(key: str) -> str:
     app = current_app._get_current_object()
-    if is_managed_cloud_runtime() and key in {"LOCAL_AI_DB", "LOCAL_AI_MODELS_DIR"}:
-        return app.config[key]
+    paths = getattr(g, "data_paths", {}) or {}
+    multi_tenant = app.config.get("MULTI_TENANT") or getattr(g, "multi_tenant_enabled", False)
+    if multi_tenant:
+        from web.services.tenant_isolation_runtime import assert_tenant_data_path
+
+        if not paths.get(key) or getattr(g, "tenant_context_missing", False):
+            raise RuntimeError("Contesto studio non disponibile per la ricerca locale")
+        return assert_tenant_data_path(paths[key], key=key)
     if has_request_context():
-        paths = getattr(g, "data_paths", {}) or {}
         return paths.get(key, app.config[key])
     return app.config[key]
 
@@ -25,7 +29,7 @@ def _service_config(app) -> dict[str, str]:
     return {
         "db_path": _cfg_data_path("LOCAL_AI_DB"),
         "policy_path": app.config.get("LOCAL_AI_POLICY", "./config/ai-policy.json"),
-        "config_path": app.config.get("STUDIO_CONFIG", "./config/studio.json"),
+        "config_path": _cfg_data_path("CONFIG_STUDIO_DB") if app.config.get("MULTI_TENANT") or getattr(g, "multi_tenant_enabled", False) else app.config.get("STUDIO_CONFIG", "./config/studio.json"),
         "app_root": str(Path(__file__).resolve().parents[2]),
         "models_path": _cfg_data_path("LOCAL_AI_MODELS_DIR"),
     }
@@ -76,6 +80,7 @@ def get_local_ai_service() -> LocalAIService:
             models_path=cfg["models_path"],
         )
         service.registro_letture = _registro_letture_corrente
+        service.source_verifier = _verifica_fonti_sql_correnti
         registry[key] = service
         return service
 
@@ -88,6 +93,26 @@ def _registro_letture_corrente():
         return registro_corrente(), tenant_corrente()
     except Exception:
         return None
+
+
+def _verifica_fonti_sql_correnti(rows):
+    from pct.document_intelligence.security import assert_user_can_read
+    from pct.rag_source_provenance import verify_current_sql
+    from web.services.document_intelligence_runtime import (
+        document_ai_tenant_id,
+        document_ai_user_context, fascicoli_db_path,
+    )
+    from web.services.storage_runtime import get_request_studio_db
+
+    assert_user_can_read(document_ai_user_context())
+    tenant = document_ai_tenant_id()
+    core = get_request_studio_db(fascicoli_db_path())
+    if core is None:
+        raise RuntimeError("Riscontro delle fonti SQL non disponibile")
+    accepted, checks = verify_current_sql(rows, tenant=tenant, core=core)
+    if has_request_context():
+        g.rag_source_checks = checks
+    return accepted, checks
 
 
 __all__ = ["get_local_ai_service"]

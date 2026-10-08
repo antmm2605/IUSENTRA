@@ -23,6 +23,11 @@ export function ContextWorkWindows({ embedded = false }: { embedded?: boolean })
     const open = (href: string, title: string) => {
       const url = workWindowUrl(href, window.location.origin)
       if (!url) return
+      if (/^\/fascicoli\/[a-zA-Z0-9_-]+\/documenti\/[a-zA-Z0-9_-]+\/visualizza$/.test(url.pathname)) {
+        openDocument({ name: title.replace(/^Fonte:\s*/, ''), url: url.pathname + url.search,
+          downloadUrl: url.pathname.replace(/\/visualizza$/, '/scarica') })
+        return
+      }
       if (embedded && window.parent !== window) { window.parent.postMessage({ type: 'iusentra:open-work-window', href: url.toString(), title }, window.location.origin); return }
       url.searchParams.set('embed', 'source')
       const hrefInContext = url.toString()
@@ -46,6 +51,19 @@ export function ContextWorkWindows({ embedded = false }: { embedded?: boolean })
       const detail = (event as CustomEvent<{ href: string; title: string; focusToken: number }>).detail
       if (detail?.href) open(detail.href, detail.title || 'Attività dello studio')
     }
+    const openDocument = (value: unknown) => {
+      const preview = documentWorkPreview(value, window.location.origin)
+      if (!preview) return
+      if (embedded && window.parent !== window) {
+        window.parent.postMessage({ type: 'iusentra:open-document-window', preview }, window.location.origin)
+        return
+      }
+      const host = [...document.querySelectorAll<HTMLElement>('[data-document-work-url]')].find(node => node.dataset.documentWorkUrl === preview.url)
+      const modal = host?.querySelector<HTMLElement>('.iu-fas-preview-modal')
+      if (modal) activateManagedWindowForNode(modal, true)
+      setDocumentWindows(current => current.some(item => item.url === preview.url) ? current : [...current, preview])
+    }
+    const documentRequested = (event: Event) => openDocument((event as CustomEvent<{ preview: unknown }>).detail?.preview)
     const message = (event: MessageEvent) => {
       if (event.origin !== window.location.origin || !['iusentra:open-work-window', 'iusentra:activate-work-window', 'iusentra:open-document-window'].includes(event.data?.type)) return
       const frame = [...document.querySelectorAll('iframe')].find(frame => frame.contentWindow === event.source)
@@ -53,12 +71,7 @@ export function ContextWorkWindows({ embedded = false }: { embedded?: boolean })
       if (event.data.type === 'iusentra:activate-work-window') { if (document.activeElement === frame) activateManagedWindowForNode(frame); return }
 
       if (event.data.type === 'iusentra:open-document-window') {
-        const preview = documentWorkPreview(event.data.preview, window.location.origin)
-        if (!preview) return
-        const host = [...document.querySelectorAll<HTMLElement>('[data-document-work-url]')].find(node => node.dataset.documentWorkUrl === preview.url)
-        const modal = host?.querySelector<HTMLElement>('.iu-fas-preview-modal')
-        if (modal) activateManagedWindowForNode(modal, true)
-        setDocumentWindows(current => current.some(item => item.url === preview.url) ? current : [...current, preview])
+        openDocument(event.data.preview)
         return
       }
       if (typeof event.data.href === 'string') open(event.data.href, String(event.data.title || 'Attività dello studio'))
@@ -69,7 +82,8 @@ export function ContextWorkWindows({ embedded = false }: { embedded?: boolean })
     window.addEventListener('message', message)
     document.addEventListener('click', click)
     window.addEventListener('iusentra:open-work-window', requested)
-    return () => { document.removeEventListener('pointerdown', activateParent, true); document.removeEventListener('focusin', activateParent); window.removeEventListener('message', message); document.removeEventListener('click', click); window.removeEventListener('iusentra:open-work-window', requested) }
+    window.addEventListener('iusentra:open-document-window', documentRequested)
+    return () => { document.removeEventListener('pointerdown', activateParent, true); document.removeEventListener('focusin', activateParent); window.removeEventListener('message', message); document.removeEventListener('click', click); window.removeEventListener('iusentra:open-work-window', requested); window.removeEventListener('iusentra:open-document-window', documentRequested) }
   }, [embedded])
   return createPortal(<>{windows.map((entry) => {
     const url = new URL(entry.href)

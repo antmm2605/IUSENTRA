@@ -1,5 +1,26 @@
 # Registro delle letture
 
+## Controllo per eventi — direttiva del 07/10/2026
+
+Il percorso ordinario parte da `documento_aggiornato`, `documento_rimosso` o
+`pec_collegata`: aggiorna l'inventario del fascicolo interessato e accoda una
+generazione in `letture_eventi`. Il worker reclama quella generazione e i due
+motori leggono gli oggetti nuovi o modificati, identificati dalla loro impronta.
+Le consegne ai presìdi conservano l'esito e il riferimento alla voce scritta.
+
+Il tick esistente richiama `riprendi_eventi_lettura`: interroga solo eventi
+pendenti o con lease scaduta, senza enumerare i fascicoli. Una fonte invariata
+non deve ripartire per il semplice trascorrere del tempo. La riconvalida storica
+delle sentenze è una campagna straordinaria distinta, con backup, esiti SQL e
+report riprendibile; non va trasformata in un job periodico globale.
+
+Verifica del 07/10/2026 in produzione: nella coda SQL dello studio esaminato sono
+stati osservati 27 eventi `idle` e zero eventi recuperabili. Il sorgente del
+worker contiene il richiamo al recupero puntuale. Questa osservazione non prova
+ancora la consegna del nuovo stato «Da archiviare» tramite un evento appena
+arrivato: integrazione del consumer, prova reale e riallineamento locale restano
+aperti.
+
 Aggiornato: 21/09/2026 (tranche 2.342.0).
 
 

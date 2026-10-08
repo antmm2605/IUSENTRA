@@ -6,12 +6,16 @@ binaria approssimativa viene usata come prova del contenuto.
 from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
+import hashlib
 
 @dataclass
 class TestoContenitore:
     testo: str = ""
     origine: str = "nativo"
     errori: list[str] = field(default_factory=list)
+    componenti: list[dict] = field(default_factory=list)
+    esito: str = "testo"
+    motivo: str = ""
 
 
 def estrai_contenuto(data: bytes, nome: str, *, profondita: int = 0) -> TestoContenitore:
@@ -49,7 +53,7 @@ def estrai_contenuto(data: bytes, nome: str, *, profondita: int = 0) -> TestoCon
                     continue
         except Exception:
             return TestoContenitore(errori=["XML non leggibile o non sicuro."])
-    if head.startswith(b"PK") and ext != ".docx":
+    if head.startswith(b"PK") and ext not in {".docx", ".xlsx", ".pptx", ".odt", ".ods", ".odp"}:
         from legal_document_ingestion.archive_extractor import extract_zip_bytes
         from legal_document_ingestion.zip_safety import ZipSafetyConfig
         from legal_document_ingestion.mime_detector import SUPPORTED_EXTENSIONS
@@ -57,7 +61,7 @@ def estrai_contenuto(data: bytes, nome: str, *, profondita: int = 0) -> TestoCon
         # CMS qui sotto. Gli stessi limiti di sicurezza ZIP restano attivi.
         config = ZipSafetyConfig(allowed_extensions=SUPPORTED_EXTENSIONS | {".p7s"})
         result = extract_zip_bytes(data, filename=nome, parent_document_id="lettura", root_document_id="lettura", config=config)
-        testi, errori, origini = [], [str(x.get("reason") or "Elemento ZIP non leggibile.") for x in result.blocked], []
+        testi, errori, origini, componenti = [], [str(x.get("reason") or "Elemento ZIP non leggibile.") for x in result.blocked], [], []
         for file in result.files:
             if file.is_archive or file.security_status != "validated":
                 continue
@@ -65,8 +69,21 @@ def estrai_contenuto(data: bytes, nome: str, *, profondita: int = 0) -> TestoCon
             if letto.testo:
                 testi.append("[" + file.extraction_path_virtuale + "]\n" + letto.testo)
                 origini.append(letto.origine)
+            if letto.componenti:
+                for child in letto.componenti:
+                    componenti.append({**child, 'path':file.extraction_path_virtuale+'/'+child['path'],
+                                       'parent_sha256':child.get('parent_sha256') or hashlib.sha256(file.data).hexdigest(),
+                                       'root_container_sha256':hashlib.sha256(data).hexdigest()})
+            else:
+                componenti.append({'path':file.extraction_path_virtuale, 'name':file.original_filename,
+                                   'sha256':hashlib.sha256(file.data).hexdigest(), 'parent_sha256':hashlib.sha256(data).hexdigest(),
+                                   'testo':letto.testo, 'errori':letto.errori,
+                                   'esito':letto.esito, 'motivo':letto.motivo})
             errori.extend(letto.errori)
-        return TestoContenitore("\n\n".join(testi), "ocr" if "ocr" in origini else "nativo", errori)
+        soltanto_vuoti = bool(componenti) and not errori and all(c.get('esito') == 'senza_testo' for c in componenti)
+        return TestoContenitore("\n\n".join(testi), "ocr" if "ocr" in origini else "nativo", errori, componenti,
+                               esito="senza_testo" if soltanto_vuoti else "testo",
+                               motivo="Archivio contenente soltanto allegati TXT senza contenuto documentale." if soltanto_vuoti else "")
     if ext in {".p7s", ".enc"}:
         from asn1crypto.cms import ContentInfo
         try:
@@ -104,10 +121,55 @@ def estrai_contenuto(data: bytes, nome: str, *, profondita: int = 0) -> TestoCon
             soup = BeautifulSoup(testo, "html.parser")
             for node in soup(["script", "style"]): node.decompose()
             testo = soup.get_text(" ", strip=True)
-        return TestoContenitore(f"Tipo contenuto: messaggio email\nMittente: {message.get('From', '')}\nOggetto: {message.get('Subject', '')}\n\n{testo}")
-    if ext in {".doc", ".docx", ".txt", ".rtf"}:
+        from legal_document_ingestion.zip_safety import ZipSafetyConfig, is_path_traversal, normalize_virtual_path
+        from pct.document_intelligence.extraction import _email_part_bytes
+        import mimetypes
+
+        limits = ZipSafetyConfig()
+        email_sha = hashlib.sha256(data).hexdigest()
+        body_text = f"Tipo contenuto: messaggio email\nMittente: {message.get('From', '')}\nOggetto: {message.get('Subject', '')}\n\n{testo}"
+        components = [{'path':'corpo-email', 'name':nome, 'sha256':email_sha, 'parent_sha256':email_sha,
+                       'testo':body_text, 'errori':[], 'esito':'testo', 'motivo':''}]
+        texts, errors, origins, total = [body_text], [], [], 0
+        for index, part in enumerate(message.iter_attachments(), 1):
+            if index > limits.max_files:
+                errors.append('Numero di allegati email oltre il limite di lettura sicura.')
+                break
+            payload = _email_part_bytes(part)
+            total += len(payload)
+            if len(payload) > limits.max_single_file_bytes or total > limits.max_total_uncompressed_bytes:
+                errors.append('Dimensione degli allegati email oltre il limite di lettura sicura.')
+                continue
+            suffix = mimetypes.guess_extension(part.get_content_type()) or '.bin'
+            name = part.get_filename() or f'allegato-{index}{suffix}'
+            if is_path_traversal(name) or '\x00' in name:
+                errors.append('Percorso dell’allegato email non sicuro.')
+                continue
+            name = normalize_virtual_path(name)
+            child = estrai_contenuto(payload, name, profondita=profondita+1)
+            path = f'allegato-{index}/{name}'
+            if child.testo:
+                texts.append(f'[{path}]\n{child.testo}')
+                origins.append(child.origine)
+            if child.componenti:
+                components.extend({**c, 'path':path+'/'+c['path'],
+                                   'parent_sha256':c.get('parent_sha256') or hashlib.sha256(payload).hexdigest(),
+                                   'root_container_sha256':email_sha} for c in child.componenti)
+            else:
+                components.append({'path':path, 'name':name, 'sha256':hashlib.sha256(payload).hexdigest(),
+                                   'parent_sha256':email_sha, 'testo':child.testo, 'errori':child.errori,
+                                   'esito':child.esito, 'motivo':child.motivo})
+            errors.extend(child.errori)
+        return TestoContenitore('\n\n'.join(texts), 'ocr' if 'ocr' in origins else 'nativo', errors, components)
+    if ext in {".doc", ".docx", ".txt", ".rtf", ".html", ".htm", ".msg", ".xlsx", ".xls", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".gif", ".webp", ".csv", ".json", ".odt", ".ods", ".odp", ".pptx"}:
         from pct.document_intelligence.extraction import extract_text_from_document
         result = extract_text_from_document(data, nome, ext.lstrip("."))
-        if result.ok and result.text.strip():
+        # Solo un TXT fisicamente composto da spazi/fine riga è un esito
+        # negativo conclusivo. Un estrattore che restituisce testo vuoto per
+        # un documento strutturato o binario continua a segnalare l'errore.
+        if ext == ".txt" and result.ok and not data.strip(b" \t\r\n\v\f"):
+            return TestoContenitore(esito="senza_testo", motivo="Allegato TXT composto soltanto da spazi o fine riga; nessun contenuto documentale da interpretare.")
+        if result.ok and result.text.strip() and ".binary" not in result.extraction_engine:
             return TestoContenitore(result.text)
+        return TestoContenitore(errori=[result.error_message or "Il formato richiede un lettore strutturato disponibile; nessun testo binario approssimativo viene usato come prova."])
     return TestoContenitore(errori=["Formato del contenuto non riconosciuto dal lettore."])

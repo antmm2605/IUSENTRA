@@ -93,6 +93,7 @@ export type FatturazioneDetail = FatturazioneRecord & {
 }
 
 export type FatturazioneDetailFiscal = FatturazioneFiscalDefaults & {
+  bollo_a_carico_studio?: boolean
   percentuale_spese_generali: string
   regime_fiscale: string
 }
@@ -1297,6 +1298,7 @@ export async function getFatturazioneDetail(idDocumento: string): Promise<{ ok: 
       applica_cassa: bool(rawFiscal.applica_cassa, true),
       applica_ritenuta: bool(rawFiscal.applica_ritenuta),
       applica_bollo: bool(rawFiscal.applica_bollo),
+      bollo_a_carico_studio: bool(rawFiscal.bollo_a_carico_studio),
       percentuale_spese_generali: String(rawFiscal.percentuale_spese_generali ?? '0'),
       regime_fiscale: text(rawFiscal.regime_fiscale, 'RF01'),
     },

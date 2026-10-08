@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { formatDateIt, formatDateTimeIt } from './formatting'
 
 export type SearchType =
   | 'all'
@@ -109,22 +110,25 @@ function asStringArray(value: unknown): string[] {
   return value.map(asString).filter(Boolean)
 }
 
+function visibleSearchText(value: unknown): string {
+  return asString(value).replace(
+    /(?<![\w/])\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?)?(?![\w/])/g,
+    date => date.includes('T') ? formatDateTimeIt(date, date) : formatDateIt(date, date),
+  )
+}
+
 function normalizeType(entityType: string): Exclude<SearchType, 'all'> {
   return typeMap[entityType] || 'documenti'
 }
 
 function formatDateLabel(value: string): string {
   if (!value) return ''
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return value
-  return new Intl.DateTimeFormat('it-IT', {
-    timeZone: 'Europe/Rome',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(parsed)
+  // Le sorgenti dell'indice possono avere già una data italiana: Date la
+  // interpreterebbe come mese/giorno, inventando anche un orario a mezzanotte.
+  if (/^\d{2}\/\d{2}\/\d{4}(?:[ ,]+\d{2}:\d{2})?$/.test(value)) {
+    return value.replace(/,\s*/, ' ')
+  }
+  return formatDateTimeIt(value, 'Data non disponibile')
 }
 
 export function formatLastIndexed(value: string): string {
@@ -153,7 +157,7 @@ function mapResult(item: unknown): StudioSearchResult {
   const entityId = asString(row.entity_id || row.id)
   const href = asString(row.source_url || row.url || '#') || '#'
   const date = asString(row.date || metadata.date || metadata.updated_at || metadata.data)
-  const snippet = asString(row.snippet || row.description || row.body)
+  const snippet = asString(row.snippet_text ?? row.description ?? row.body ?? '')
   const subtitle = asString(row.subtitle || row.sottotitolo || metadata.subtitle || metadata.sottotitolo)
   return {
     id: `${entityType}-${entityId || asString(row.id)}`,
@@ -166,7 +170,7 @@ function mapResult(item: unknown): StudioSearchResult {
     status: resultStatus(entityType, metadata),
     updatedAt: date ? formatDateLabel(date) : 'Indice studio',
     tags: resultTags(entityType, metadata),
-    description: snippet || subtitle || 'Elemento indicizzato nella Ricerca Studio.',
+    description: visibleSearchText(snippet || subtitle || 'Elemento indicizzato nella Ricerca Studio.'),
     href,
     fascicoloHref: asString(row.fascicolo_id) ? `/fascicoli/${asString(row.fascicolo_id)}` : href,
   }

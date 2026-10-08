@@ -12,6 +12,7 @@ import {
   type MobileAiInstallPlan,
 } from '../localAi'
 import { saveSignatureCertificateStatus } from '../api'
+import { EmbeddingPreparationNotice } from './EmbeddingPreparationNotice'
 import { checkLocalSigner, testPecSmtpViaLocalSigner, type LocalSignerCheck } from '../localSigner'
 import type { AiRuntimePayload, SettingTone, SettingsPayload, SettingsSection, TestResult } from '../types'
 
@@ -810,6 +811,7 @@ export function SettingsActions({
             )}
           </>
         )}
+        <EmbeddingPreparationNotice />
         <MobileAiSetupPanel
           plan={mobileAiPlan}
           installerHref={installerHref}

@@ -67,6 +67,98 @@ def _n_chunk(conn):
     return conn.execute("SELECT COUNT(*) FROM normative_chunks").fetchone()[0]
 
 
+def test_prima_costruzione_a_lotti_non_rilegge_prefisso_gia_salvato(conn, tmp_path):
+    emb = Contatore(64)
+    target = tmp_path / "new-index"
+    for _ in range(3):
+        result = iv.costruisci_indice(conn, target, emb, batch=2, massimo=2, prima_costruzione=True)
+        assert result.nuovi == 2 and result.invariati == 0
+    result = iv.costruisci_indice(conn, target, emb, massimo=2, prima_costruzione=True)
+    assert result.nuovi == result.invariati == 0
+    meta = iv.IndiceVettoriale.apri(target).meta
+    assert meta["prima_costruzione"]["completa"] is True
+    assert meta["riconvalida_finale_richiesta"] is True
+    with pytest.raises(iv.IndiceIncompatibile, match="non terminata"):
+        iv.IndiceVettoriale.apri(target).cerca(emb.embed(["prova"])[0])
+    # Solo il controllo nativo completo di tutte le impronte può certificare
+    # modifiche concorrenti nel prefisso già attraversato.
+    result = iv.costruisci_indice(conn, target, emb)
+    assert result.invariati == 6
+    assert iv.IndiceVettoriale.apri(target).meta["riconvalida_finale_richiesta"] is False
+    assert iv.IndiceVettoriale.apri(target).cerca(emb.embed(["prova"])[0])
+
+
+def test_prima_costruzione_rifiuta_indice_precedente_non_identificato(conn, tmp_path):
+    emb = Contatore(64)
+    target = tmp_path / "existing"
+    iv.costruisci_indice(conn, target, emb, massimo=2)
+    with pytest.raises(ValueError, match="indice nuovo"):
+        iv.costruisci_indice(conn, target, emb, prima_costruzione=True)
+
+
+def test_final_validation_resumes_unchanged_rows_and_prunes_in_batches(conn, tmp_path):
+    document_id = conn.execute("SELECT id FROM normative_documents LIMIT 1").fetchone()[0]
+    conn.executemany("INSERT INTO normative_chunks(document_id,chunk_key,chunk_text) VALUES (?,?,?)",
+                     [(document_id, f"extra-{i}", f"Norma controllata {i}") for i in range(2010)])
+    conn.commit()
+    emb = Contatore(64)
+    target = tmp_path / "bounded-final"
+    iv.costruisci_indice(conn, target, emb, prima_costruzione=True)
+    before = emb.testi
+    first = iv.costruisci_indice(conn, target, emb, batch=1, riconvalida_finale=True)
+    state = iv.IndiceVettoriale.apri(target).meta
+    assert first.invariati == 2000 and first.interrotto_al_massimo
+    assert state["riconvalida_iniziale"]["ultimo_id"] == 2000
+    assert state["riconvalida_finale_richiesta"]
+    second = iv.costruisci_indice(conn, target, emb, batch=1, riconvalida_finale=True)
+    assert second.invariati == 16 and second.interrotto_al_massimo
+    assert iv.IndiceVettoriale.apri(target).meta["riconvalida_iniziale"]["posizione_pulizia"] == 2000
+    last = iv.costruisci_indice(conn, target, emb, batch=1, riconvalida_finale=True)
+    assert last.invariati == 0 and not last.interrotto_al_massimo
+    assert not iv.IndiceVettoriale.apri(target).meta["riconvalida_finale_richiesta"]
+    assert emb.testi == before
+
+
+def test_final_validation_restarts_after_sql_change(conn, tmp_path):
+    emb = Contatore(64)
+    target = tmp_path / "final-change"
+    iv.costruisci_indice(conn, target, emb, prima_costruzione=True)
+    # Aggiornamento successivo alla prima costruzione: il primo vettore va corretto.
+    conn.execute("UPDATE normative_chunks SET chunk_text=chunk_text || ' rettifica' WHERE id=1")
+    conn.execute("DELETE FROM normative_chunks WHERE id=2")
+    conn.commit()
+    result = iv.costruisci_indice(conn, target, emb, batch=1, riconvalida_finale=True)
+    assert result.ricalcolati == 1 and result.eliminati == 1
+    assert not iv.IndiceVettoriale.apri(target).meta["riconvalida_finale_richiesta"]
+
+    class Changing(Contatore):
+        def embed(self, texts):
+            result = super().embed(texts)
+            conn.execute("UPDATE normative_chunks SET chunk_text=chunk_text || ' seconda rettifica' WHERE id=3")
+            conn.commit()
+            return result
+
+    conn.execute("UPDATE normative_chunks SET chunk_text=chunk_text || ' modifica' WHERE id=1")
+    conn.commit()
+    result = iv.costruisci_indice(conn, target, Changing(64), batch=1, riconvalida_finale=True)
+    meta = iv.IndiceVettoriale.apri(target).meta
+    assert result.interrotto_al_massimo and meta["riconvalida_finale_richiesta"]
+    assert "riconvalida_iniziale" not in meta
+    with pytest.raises(iv.IndiceIncompatibile, match="non terminata"):
+        iv.IndiceVettoriale.apri(target).cerca(emb.embed(["prova"])[0])
+    iv.costruisci_indice(conn, target, emb, batch=1, riconvalida_finale=True)
+    assert not iv.IndiceVettoriale.apri(target).meta["riconvalida_finale_richiesta"]
+
+
+def test_budget_rifiuta_richieste_concorrenti_prima_di_creare_indice(conn, tmp_path):
+    emb = Contatore(64)
+    emb.paralleli = 2
+    target = tmp_path / "bounded"
+    with pytest.raises(ValueError, match="una richiesta per volta"):
+        iv.costruisci_indice(conn, target, emb, batch=1, tempo_massimo_s=60)
+    assert not target.exists() and emb.chiamate == 0
+
+
 def test_costruzione_e_metadati(conn, tmp_path):
     emb = Contatore(64)
     esito = iv.costruisci_indice(conn, tmp_path / "v", emb, batch=4)
@@ -279,8 +371,6 @@ def test_cli_info(conn, tmp_path, capsys):
 
 
 def test_embedder_domande_riscalda_dopo_timeout():
-    import time as _time
-
     import requests
 
     class Lento:

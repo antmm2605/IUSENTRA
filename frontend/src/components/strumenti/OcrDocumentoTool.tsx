@@ -1,16 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, FileSearch, FileText, FolderOpen, Laptop, Square, X } from 'lucide-react'
 import { Button } from '../../ui/Button'
-import { blocksToHtml, countCharacters, type OcrBlock, type OcrFigure } from '../documentCapture/ocrBlocks'
-import { OcrReview } from '../documentCapture/OcrReview'
-import { OcrPageViewer } from '../documentCapture/OcrPageViewer'
-import { useScorrimentoAppaiato } from '../documentCapture/ocrScorrimento'
+import { countCharacters, type OcrBlock, type OcrFigure } from '../documentCapture/ocrBlocks'
+import { convertiDocumentoOcr, leggiDocumentoOcr } from '../documentCapture/ocrDocumento'
+import { OcrConfronto } from '../documentCapture/OcrConfronto'
 import { MatterPicker } from '../documentCapture/MatterPicker'
 import {
-  documentoModificabile,
   etichettaCorrezione,
   indirizzoEditor,
-  riconosciPagina,
   salvaNelFascicolo,
   scaricaSulComputer,
   type FormatoDocumento,
@@ -24,8 +21,6 @@ import './OcrDocumentoTool.css'
 type Destinazione = 'computer' | 'fascicolo'
 
 const IMMAGINI = /\.(jpe?g|png|webp|tiff?|bmp)$/i
-/** Pagine lette insieme: il server ne accetta due per volta senza rallentare le altre richieste. */
-const PAGINE_IN_PARALLELO = 2
 
 function messaggio(errore: unknown, ripiego: string): string {
   return errore instanceof Error && errore.message ? errore.message : ripiego
@@ -52,8 +47,6 @@ export default function OcrDocumentoTool() {
   const [fascicoloEtichetta, setFascicoloEtichetta] = useState('')
   const [nome, setNome] = useState('')
   const [pagine, setPagine] = useState<PaginaRiconosciuta[]>([])
-  const [sovrapposizione, setSovrapposizione] = useState(true)
-  const [selezionato, setSelezionato] = useState('')
   const [totale, setTotale] = useState(0)
   const [blocchi, setBlocchi] = useState<OcrBlock[]>([])
   const [figure, setFigure] = useState<OcrFigure[]>([])
@@ -67,17 +60,11 @@ export default function OcrDocumentoTool() {
   const [esitoSalvataggio, setEsitoSalvataggio] = useState<{ testo: string; href?: string } | null>(null)
   const vivo = useRef(true)
   const interruzione = useRef<AbortController | null>(null)
-  // Barra e comandi sopra i due pannelli; pagine e testo scorrono insieme.
-  const affiancato = useRef<HTMLDivElement | null>(null)
-  const [postoComandi, setPostoComandi] = useState<HTMLDivElement | null>(null)
-  const [postoBarra, setPostoBarra] = useState<HTMLDivElement | null>(null)
-  const [postoRiferimenti, setPostoRiferimenti] = useState<HTMLDivElement | null>(null)
-  useScorrimentoAppaiato(affiancato, blocchi.length > 0)
 
   useEffect(() => () => { vivo.current = false; interruzione.current?.abort() }, [])
 
   const azzera = useCallback(() => {
-    setPagine([]); setBlocchi([]); setFigure([]); setTotale(0); setSelezionato('')
+    setPagine([]); setBlocchi([]); setFigure([]); setTotale(0)
     setAvanzamento(''); setAvviso(''); setErrore(''); setConfermaAperta(false); setEsitoSalvataggio(null)
   }, [])
 
@@ -100,45 +87,30 @@ export default function OcrDocumentoTool() {
     interruzione.current = controllo
     setRiconoscendo(true)
     setOccupato('Preparazione del documento…')
-    const lette = new Map<number, PaginaRiconosciuta>()
+    const lette: PaginaRiconosciuta[] = []
+    let attese = 1
     try {
       const file = await sorgente()
       setNome(file.name)
       setOccupato('Riconoscimento in corso…')
-      const prima = await riconosciPagina({ tipo: 'file', file }, 1, controllo.signal)
-      if (!vivo.current) return
-      lette.set(1, prima.pagina)
-      setTotale(prima.pagineTotali)
-      const pubblica = () => {
-        const ordinate = [...lette.values()].sort((a, b) => a.numero - b.numero)
-        setPagine(ordinate)
+      await leggiDocumentoOcr({ tipo: 'file', file }, controllo.signal, (ordinate, totale) => {
+        if (!vivo.current) return
+        attese = totale
+        lette.splice(0, lette.length, ...ordinate)
+        setTotale(totale); setPagine(ordinate)
         setBlocchi(ordinate.flatMap((pagina) => pagina.blocks))
         setFigure(ordinate.flatMap((pagina) => pagina.figures))
-      }
-      pubblica()
-      setAvanzamento(`Pagina 1 di ${prima.pagineTotali} riconosciuta.`)
-      let prossima = 2
-      const lettore = async () => {
-        while (prossima <= prima.pagineTotali && !controllo.signal.aborted) {
-          const numero = prossima
-          prossima += 1
-          const esito = await riconosciPagina({ tipo: 'file', file }, numero, controllo.signal)
-          if (!vivo.current) return
-          lette.set(numero, esito.pagina)
-          pubblica()
-          setAvanzamento(`Pagina ${lette.size} di ${prima.pagineTotali} riconosciuta.`)
-        }
-      }
-      await Promise.all(Array.from({ length: Math.min(PAGINE_IN_PARALLELO, Math.max(0, prima.pagineTotali - 1)) }, () => lettore()))
+        setAvanzamento(`Pagina ${ordinate.length} di ${totale} riconosciuta.`)
+      })
       if (!vivo.current) return
       setAvanzamento(
         controllo.signal.aborted
-          ? `Riconoscimento interrotto: ${lette.size} ${lette.size === 1 ? 'pagina letta' : 'pagine lette'} su ${prima.pagineTotali}.`
-          : `Riconoscimento completato: ${lette.size} ${lette.size === 1 ? 'pagina' : 'pagine'}.`,
+          ? `Riconoscimento interrotto: ${lette.length} ${lette.length === 1 ? 'pagina letta' : 'pagine lette'} su ${attese}.`
+          : `Riconoscimento completato: ${lette.length} ${lette.length === 1 ? 'pagina' : 'pagine'}.`,
       )
     } catch (causa) {
       if (!vivo.current) return
-      if (controllo.signal.aborted) setAvanzamento(`Riconoscimento interrotto: ${lette.size} ${lette.size === 1 ? 'pagina letta' : 'pagine lette'}.`)
+      if (controllo.signal.aborted) setAvanzamento(`Riconoscimento interrotto: ${lette.length} ${lette.length === 1 ? 'pagina letta' : 'pagine lette'}.`)
       else setErrore(messaggio(causa, 'Riconoscimento del testo non completato.'))
     } finally {
       interruzione.current = null
@@ -151,7 +123,10 @@ export default function OcrDocumentoTool() {
     setErrore(''); setAvviso('')
     setOccupato(formato === 'pdf' ? 'Preparazione del PDF…' : 'Preparazione del documento Word…')
     try {
-      const documento = await documentoModificabile(blocksToHtml(blocchi), nome || 'documento', formato, destinazione === 'computer')
+      const documento = await convertiDocumentoOcr({ pagine, totale, blocchi, nome: nome || 'documento', formato,
+        download: destinazione === 'computer',
+        originale: files.length === 1 && /\.pdf$/i.test(files[0].name) ? async () => files[0] : undefined,
+      })
       if (destinazione === 'computer') {
         scaricaSulComputer(documento, documento.name)
         if (vivo.current) setEsitoSalvataggio({ testo: `Download avviato: ${documento.name}.` })
@@ -171,6 +146,7 @@ export default function OcrDocumentoTool() {
   }
 
   const daOcr = useMemo(() => pagine.filter((pagina) => pagina.origine === 'ocr'), [pagine])
+
   const correzioni = useMemo(() => {
     const somma = new Map<string, { occorrenze: number; etichetta: string }>()
     for (const pagina of pagine) {
@@ -272,24 +248,9 @@ export default function OcrDocumentoTool() {
             </p>
           ) : null}
 
-          <div ref={affiancato} className="iu-ocr-affiancato">
-            <div ref={setPostoComandi} className="iu-ocr-affiancato__comandi" />
-            <div ref={setPostoBarra} className="iu-ocr-affiancato__barra" />
-            <OcrPageViewer
-              comandiIn={postoComandi}
-              riferimentiIn={postoRiferimenti}
-              pagine={pagine}
-              blocchi={blocchi}
-              selezionato={selezionato}
-              onSeleziona={setSelezionato}
-              sovrapposizione={sovrapposizione}
-              onSovrapposizione={setSovrapposizione}
-            />
-            <div className="iu-ocr-affiancato__testo">
-              <OcrReview blocks={blocchi} figures={figure} disabled={lavorando} onChange={setBlocchi} selectedId={selezionato} onSelect={setSelezionato} barraIn={postoBarra} />
-            </div>
-            <div ref={setPostoRiferimenti} className="iu-ocr-affiancato__riferimenti" />
-          </div>
+          <OcrConfronto pagine={pagine} blocchi={blocchi} figure={figure}
+            disabled={lavorando} onChange={setBlocchi} esito={occupato || errore || avviso}
+            errore={Boolean(errore)} />
 
           <section className="iu-ocr-tool__formato" aria-label="Formato e conferma">
             <h4>In che formato salvare</h4>
@@ -304,7 +265,12 @@ export default function OcrDocumentoTool() {
               </label>
             </div>
             {!confermaAperta ? (
-              <Button type="button" disabled={lavorando || !blocchi.length || (destinazione === 'fascicolo' && !fascicoloId)} onClick={() => setConfermaAperta(true)}>
+              <Button type="button" disabled={lavorando || !blocchi.length || (destinazione === 'fascicolo' && !fascicoloId)} onMouseDown={(event) => event.preventDefault()} onClick={() => {
+                // La revisione deve assestarsi prima dell'apertura del dialogo,
+                // senza spostare il pulsante durante il primo clic.
+                if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+                setConfermaAperta(true)
+              }}>
                 <Check size={15} aria-hidden="true" />
                 {destinazione === 'fascicolo' ? 'Salva nel fascicolo' : 'Salva sul computer'}
               </Button>

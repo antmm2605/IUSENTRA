@@ -85,6 +85,11 @@ def run_workers_for_paths(
     except Exception as exc:
         maintenance = {"ok": False, "queued": 0, "unresolved": 1, "error": str(exc)[:180]}
     report = repo.run_pending_jobs(limit=limit, actor="scheduler")
+    if has_app_context():
+        from web.services.sdi_receipt_job_runtime import refresh_sdi_receipts_for_paths
+        report["sdi_receipts"] = refresh_sdi_receipts_for_paths(
+            current_app._get_current_object(), paths, tenant_label=tenant_label, limit=limit,
+        )
     if maintenance.get("queued") or maintenance.get("unresolved") or maintenance.get("error"):
         report["attachment_maintenance"] = maintenance
     try:

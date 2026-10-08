@@ -1,10 +1,60 @@
 from __future__ import annotations
 
+from decimal import Decimal
+from pathlib import Path
+
 from lxml import etree
 
 from pct.clienti import Cliente, Indirizzo, Recapiti, TipoCliente
 from pct.fattura_pa import genera_xml_fattura_pa
 from pct.fatturazione import Parcella, StatoParcella, VoceParcella
+
+
+def test_bollo_studio_resta_dovuto_senza_riaddebito_e_preserva_default():
+    parcella = Parcella(
+        id="BOLLO-QA", numero="2026/003", id_cliente="CLI-QA", id_fascicolo=None,
+        data_emissione="2026-10-08", data_scadenza="2026-11-07",
+        stato=StatoParcella.BOZZA,
+        voci=[VoceParcella(descrizione="Compenso", quantita=1, prezzo_unitario=260, tipo="ONORARIO")],
+        applica_iva=False, applica_cassa=True, applica_ritenuta=False,
+        applica_bollo=True, percentuale_spese_generali=15,
+        dati_personalizzati={"document": {"regime_fiscale": "RF19"}},
+    )
+    assert parcella.bollo == 2
+    assert parcella.totale_documento == 312.96
+    parcella.dati_personalizzati["document"]["bollo_a_carico_studio"] = True
+    assert parcella.bollo == 2
+    assert parcella.bollo_addebitato == 0
+    assert parcella.totale_documento == 310.96
+    parcella.dati_personalizzati["document"]["bollo_a_carico_studio"] = False
+    assert parcella.totale_documento == 312.96
+
+
+class _OfficialSchemaResolver(etree.Resolver):
+    def resolve(self, url, public_id, context):
+        if url.endswith("xmldsig-core-schema.xsd"):
+            return self.resolve_filename(str(_SCHEMA_DIR / "xmldsig-core-schema.xsd"), context)
+        return None
+
+
+_SCHEMA_DIR = Path(__file__).resolve().parents[1] / "docs/specs/ministero/fonti_ufficiali/2026-10-08"
+
+
+def _validated_root(xml_bytes):
+    parser = etree.XMLParser(no_network=True, resolve_entities=False)
+    parser.resolvers.add(_OfficialSchemaResolver())
+    schema = etree.XMLSchema(etree.parse(str(_SCHEMA_DIR / "Schema_VFPR12_v1.2.3.xsd"), parser))
+    root = etree.fromstring(xml_bytes, parser)
+    schema.assertValid(root)
+    # La cassa compare nel blocco previdenziale e nel riepilogo, senza una seconda riga.
+    for summary in root.findall(".//DatiRiepilogo"):
+        rate, nature = summary.findtext("AliquotaIVA"), summary.findtext("Natura")
+        lines = sum((Decimal(line.findtext("PrezzoTotale")) for line in root.findall(".//DettaglioLinee")
+                     if line.findtext("AliquotaIVA") == rate and line.findtext("Natura") == nature), Decimal(0))
+        contributions = sum((Decimal(item.findtext("ImportoContributoCassa")) for item in root.findall(".//DatiCassaPrevidenziale")
+                             if item.findtext("AliquotaIVA") == rate and item.findtext("Natura") == nature), Decimal(0))
+        assert Decimal(summary.findtext("ImponibileImporto")) == lines + contributions
+    return root
 
 
 def test_xml_fattura_pa_usa_snapshot_personalizzato_e_destinatario_estero():
@@ -79,17 +129,18 @@ def test_xml_fattura_pa_usa_snapshot_personalizzato_e_destinatario_estero():
         studio_cf="RSSMRA80A01H501Z",
         studio_indirizzo="Via Verdi 8, 00100 Roma (RM)",
     )
-    root = etree.fromstring(xml_bytes)
+    root = _validated_root(xml_bytes)
     ns = {"f": "http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2"}
 
-    assert root.xpath("string(.//f:DatiTrasmissione/f:ProgressivoInvio)", namespaces=ns) == "A1202"
-    assert root.xpath(".//f:CessionarioCommittente/f:Sede/f:Nazione/text()", namespaces=ns) == ["FR"]
-    assert root.xpath("string(.//f:DatiPagamento/f:DettaglioPagamento/f:IBAN)", namespaces=ns) == "IT60X0542811101000000123456"
-    assert root.xpath("string(.//f:DatiCassaPrevidenziale/f:TipoCassa)", namespaces=ns) == "TC01"
-    descriptions = root.xpath(".//f:DatiBeniServizi/f:DettaglioLinee/f:Descrizione/text()", namespaces=ns)
+    assert root.xpath("string(.//DatiTrasmissione/ProgressivoInvio)", namespaces=ns) == "A1202"
+    assert root.xpath(".//CessionarioCommittente/Sede/Nazione/text()", namespaces=ns) == ["FR"]
+    assert root.xpath("string(.//DatiPagamento/DettaglioPagamento/IBAN)", namespaces=ns) == "IT60X0542811101000000123456"
+    assert root.xpath("string(.//DatiCassaPrevidenziale/TipoCassa)", namespaces=ns) == "TC01"
+    descriptions = root.xpath(".//DatiBeniServizi/DettaglioLinee/Descrizione/text()", namespaces=ns)
     assert "Spese generali 15%" in descriptions
-    assert "Contributo Cassa Forense 4% (art. 11 L. 576/1980)" in descriptions
-    assert len(root.xpath(".//f:DatiBeniServizi/f:DatiRiepilogo", namespaces=ns)) == 2
+    assert not any("Cassa Forense" in text for text in descriptions)
+    assert root.xpath("string(.//DatiCassaPrevidenziale/ImportoContributoCassa)") == "11.87"
+    assert len(root.xpath(".//DatiBeniServizi/DatiRiepilogo", namespaces=ns)) == 2
 
 
 def test_xml_fattura_pa_forfettaria_esclude_iva():
@@ -129,14 +180,14 @@ def test_xml_fattura_pa_forfettaria_esclude_iva():
         studio_cf="RSSMRA80A01H501Z",
         studio_indirizzo="Via Verdi 8, 00100 Roma (RM)",
     )
-    root = etree.fromstring(xml_bytes)
+    root = _validated_root(xml_bytes)
     ns = {"f": "http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2"}
 
-    assert root.xpath("string(.//f:DatiCassaPrevidenziale/f:AliquotaIVA)", namespaces=ns) == "0.00"
-    assert root.xpath("string(.//f:DatiCassaPrevidenziale/f:TipoCassa)", namespaces=ns) == "TC01"
-    assert root.xpath("string(.//f:DatiRiepilogo/f:AliquotaIVA)", namespaces=ns) == "0.00"
-    assert root.xpath("string(.//f:DatiRiepilogo/f:Imposta)", namespaces=ns) == "0.00"
-    assert "franchigia IVA" in root.xpath("string(.//f:DatiRiepilogo/f:RiferimentoNormativo)", namespaces=ns)
+    assert root.xpath("string(.//DatiCassaPrevidenziale/AliquotaIVA)", namespaces=ns) == "0.00"
+    assert root.xpath("string(.//DatiCassaPrevidenziale/TipoCassa)", namespaces=ns) == "TC01"
+    assert root.xpath("string(.//DatiRiepilogo/AliquotaIVA)", namespaces=ns) == "0.00"
+    assert root.xpath("string(.//DatiRiepilogo/Imposta)", namespaces=ns) == "0.00"
+    assert "franchigia IVA" in root.xpath("string(.//DatiRiepilogo/RiferimentoNormativo)", namespaces=ns)
 
 
 def test_xml_fattura_pa_allinea_cassa_forense_all_esempio_firmato_utente():
@@ -200,19 +251,19 @@ def test_xml_fattura_pa_allinea_cassa_forense_all_esempio_firmato_utente():
         studio_cf="MNTGPP94L01G791A",
         studio_indirizzo="Via Nino Bixio 4, 89029 Taurianova (RC)",
     )
-    root = etree.fromstring(xml_bytes)
+    root = _validated_root(xml_bytes)
     ns = {"f": "http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2"}
 
     assert root.get("versione") == "FPR12"
-    assert root.xpath("string(.//f:DatiTrasmissione/f:FormatoTrasmissione)", namespaces=ns) == "FPR12"
-    assert root.xpath("string(.//f:DatiTrasmissione/f:CodiceDestinatario)", namespaces=ns) == "0000000"
-    assert root.xpath("string(.//f:DatiCassaPrevidenziale/f:TipoCassa)", namespaces=ns) == "TC01"
-    assert root.xpath("string(.//f:DatiCassaPrevidenziale/f:AlCassa)", namespaces=ns) == "4.00"
-    assert root.xpath("string(.//f:DatiCassaPrevidenziale/f:AliquotaIVA)", namespaces=ns) == "0.00"
-    assert root.xpath("string(.//f:DatiCassaPrevidenziale/f:Natura)", namespaces=ns) == "N2.2"
-    assert root.xpath("string(.//f:DatiBeniServizi/f:DettaglioLinee[1]/f:AliquotaIVA)", namespaces=ns) == "0.00"
-    assert root.xpath("string(.//f:DatiBeniServizi/f:DettaglioLinee[1]/f:Natura)", namespaces=ns) == "N2.2"
-    assert root.xpath("string(.//f:DatiBeniServizi/f:DatiRiepilogo/f:ImponibileImporto)", namespaces=ns) == "308.57"
+    assert root.xpath("string(.//DatiTrasmissione/FormatoTrasmissione)", namespaces=ns) == "FPR12"
+    assert root.xpath("string(.//DatiTrasmissione/CodiceDestinatario)", namespaces=ns) == "0000000"
+    assert root.xpath("string(.//DatiCassaPrevidenziale/TipoCassa)", namespaces=ns) == "TC01"
+    assert root.xpath("string(.//DatiCassaPrevidenziale/AlCassa)", namespaces=ns) == "4.00"
+    assert root.xpath("string(.//DatiCassaPrevidenziale/AliquotaIVA)", namespaces=ns) == "0.00"
+    assert root.xpath("string(.//DatiCassaPrevidenziale/Natura)", namespaces=ns) == "N2.2"
+    assert root.xpath("string(.//DatiBeniServizi/DettaglioLinee[1]/AliquotaIVA)", namespaces=ns) == "0.00"
+    assert root.xpath("string(.//DatiBeniServizi/DettaglioLinee[1]/Natura)", namespaces=ns) == "N2.2"
+    assert root.xpath("string(.//DatiBeniServizi/DatiRiepilogo/ImponibileImporto)", namespaces=ns) == "308.57"
 
 
 def test_xml_fattura_pa_ripara_vecchia_denominazione_duplicata_della_persona_fisica():
@@ -264,7 +315,7 @@ def test_xml_fattura_pa_ripara_vecchia_denominazione_duplicata_della_persona_fis
         },
     )
 
-    root = etree.fromstring(genera_xml_fattura_pa(
+    root = _validated_root(genera_xml_fattura_pa(
         parcella=parcella,
         cliente=cliente,
         studio_nome="Studio Legale Montagnese",
@@ -274,8 +325,36 @@ def test_xml_fattura_pa_ripara_vecchia_denominazione_duplicata_della_persona_fis
     ))
     ns = {"f": "http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2"}
 
-    recipient_path = ".//f:CessionarioCommittente/f:DatiAnagrafici/f:Anagrafica"
-    assert root.xpath(f"string({recipient_path}/f:Nome)", namespaces=ns) == "Robertino"
-    assert root.xpath(f"string({recipient_path}/f:Cognome)", namespaces=ns) == "Alessi"
-    assert root.xpath(f"string({recipient_path}/f:Denominazione)", namespaces=ns) == ""
-    assert root.xpath("string(.//f:DatiPagamento/f:DettaglioPagamento/f:BIC)", namespaces=ns) == "BCITITMMXXX"
+    recipient_path = ".//CessionarioCommittente/DatiAnagrafici/Anagrafica"
+    assert root.xpath(f"string({recipient_path}/Nome)", namespaces=ns) == "Robertino"
+    assert root.xpath(f"string({recipient_path}/Cognome)", namespaces=ns) == "Alessi"
+    assert root.xpath(f"string({recipient_path}/Denominazione)", namespaces=ns) == ""
+    assert root.xpath("string(.//DatiPagamento/DettaglioPagamento/BIC)", namespaces=ns) == "BCITITMMXXX"
+
+
+def test_nome_xml_preserva_codice_fiscale_e_non_duplica_numeri_diversi():
+    from pct.fattura_pa import nome_file_fattura_pa
+    sender = "MNTGPP94L01G791A"
+    numbers = ["2000/001", "2026/003", "2026/004", "2026/1000", "2027/003", "2100/399999"]
+    names = [nome_file_fattura_pa(sender, number) for number in numbers]
+    assert len(set(names)) == len(numbers)
+    assert all(name.startswith(f"IT{sender}_") and len(name.split("_")[1].removesuffix(".xml")) == 5 for name in names)
+    assert nome_file_fattura_pa(sender, "2026/003") == names[1]
+
+
+def test_nome_xml_non_tronca_progressivi_o_identita_non_validi():
+    import pytest
+    from pct.fattura_pa import FatturaPAValidationError, nome_file_fattura_pa
+    for progress in ["2026/400000", "2099/000", "ABCDEF", "FE 251", ""]:
+        with pytest.raises(FatturaPAValidationError):
+            nome_file_fattura_pa("MNTGPP94L01G791A", progress)
+    with pytest.raises(FatturaPAValidationError):
+        nome_file_fattura_pa("", "00001")
+
+
+def test_validazione_runtime_rifiuta_xml_incompleto_senza_accesso_rete():
+    import pytest
+    from pct.fattura_pa import FatturaPAValidationError, valida_xml_fattura_pa
+    payload = b'<p:FatturaElettronica xmlns:p="http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2" versione="FPR12"/>'
+    with pytest.raises(FatturaPAValidationError, match="XML FatturaPA non conforme"):
+        valida_xml_fattura_pa(payload)

@@ -243,7 +243,7 @@ async function postDeadlineAction(url: string, label: string, body?: URLSearchPa
   return payload.messaggio || `${label}: operazione eseguita.`
 }
 
-function DraftProposalsPanel({ proposals, onConfirm, onDiscard }:{proposals:ScadenziarioDraftProposal[]; onConfirm:(item:ScadenziarioDraftProposal)=>void; onDiscard:(item:ScadenziarioDraftProposal)=>void}) {
+function DraftProposalsPanel({ proposals, onConfirm, onDiscard, onOpenSource }:{proposals:ScadenziarioDraftProposal[]; onConfirm:(item:ScadenziarioDraftProposal)=>void; onDiscard:(item:ScadenziarioDraftProposal)=>void; onOpenSource:(item:ScadenziarioRow)=>void}) {
   const [expanded, setExpanded] = useState(() => window.location.hash === '#proposte')
   useEffect(() => {
     const reveal = () => { if (window.location.hash === '#proposte') setExpanded(true) }
@@ -277,9 +277,9 @@ function DraftProposalsPanel({ proposals, onConfirm, onDiscard }:{proposals:Scad
             {item.sourceSnippet ? <blockquote className="iu-scad-proposal__quote">«{item.sourceSnippet}»</blockquote> : null}
             <p className="iu-scad-proposal__source">
               Fonte: {item.sourceDocumentName || item.sourceLabel || (item.sourceOrigin === 'registro' ? 'registro di cancelleria' : 'messaggio PEC')}
-              {item.sourceHref ? <> — <a href={item.sourceHref}>Apri fonte</a></> : null}
               {item.fascicoloLabel ? <> · {item.fascicoloLabel}</> : null}
             </p>
+            <SourceEvidenceLink item={item} onOpen={onOpenSource}/>
             <div className="iu-scad-proposal__actions">
               <button type="button" className="iu-scad-proposal__confirm" onClick={() => onConfirm(item)}><CheckCircle2 size={15}/> Conferma scadenza</button>
               <button type="button" className="iu-scad-proposal__discard" onClick={() => onDiscard(item)}><X size={15}/> Scarta</button>
@@ -1508,7 +1508,7 @@ export function ScadenziarioPage() {
       </section>
       <GuardianPanel guardian={data.guardian} loading={loading}/>
 
-      <DraftProposalsPanel proposals={data.draftProposals} onConfirm={runConfirmProposal} onDiscard={runDiscardProposal}/>
+      <DraftProposalsPanel proposals={data.draftProposals} onConfirm={runConfirmProposal} onDiscard={runDiscardProposal} onOpenSource={(row) => setSourcePreview({ ...row })}/>
 
       <section className="iu-scad-toolbar" aria-label="Filtri scadenziario">
         <label className="iu-scad-search"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') load() }} placeholder="Cerca per titolo, descrizione, fascicolo, ufficio..."/></label>

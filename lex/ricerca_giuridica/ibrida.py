@@ -20,6 +20,7 @@ import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from pct import embeddinggemma2
 
 from .embedding import EmbedderDomande, EmbedderNonDisponibile, OllamaEmbedder
 from .indice_fts import (
@@ -55,7 +56,10 @@ def cartella_vettori_predefinita(db_path: str | Path) -> Path:
     configurata = str(os.getenv("LEX_NORMATTIVA_VETTORI_DIR", "") or "").strip()
     if configurata:
         return Path(configurata)
-    return Path(db_path).parent / "vettori_normattiva"
+    name = "vettori_normattiva"
+    if embeddinggemma2.configured():
+        name += "_" + embeddinggemma2.REVISION + "_" + embeddinggemma2.PROFILE_SUFFIX.replace("-", "_")
+    return Path(db_path).parent / name
 
 
 def ricerca_semantica_abilitata() -> bool:
@@ -163,6 +167,10 @@ class MotoreRicercaNormattiva:
         indice = IndiceVettoriale.apri(self.cartella_vettori)
         if indice is None:
             self._motivo_semantica = f"indice vettoriale assente in {self.cartella_vettori}"
+            return
+        from .costruzione_iniziale import disponibile
+        if not disponibile(indice.meta):
+            self._motivo_semantica = "Preparazione dell'indice o controllo finale non terminati"
             return
         if self.embedder is None:
             timeout = float(str(os.getenv("LEX_EMBED_TIMEOUT_S", "4") or "4").replace(",", "."))

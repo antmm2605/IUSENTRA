@@ -7,7 +7,7 @@ riusando le caselle locali e i servizi Flask auditati per le azioni operative.
 from __future__ import annotations
 
 from collections import Counter
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from email import policy
 from pathlib import Path
@@ -120,6 +120,15 @@ def _iter_message_display_parts(message: email.message.Message) -> list[email.me
     payload = message.get_payload()
     if not isinstance(payload, list):
         return [message]
+    if message.get_content_type() == 'multipart/alternative':
+        # RFC 2046: le parti sono rappresentazioni alternative dello stesso
+        # contenuto, ordinate dalla meno alla più fedele. Non concatenarle:
+        # alcune PEC storiche hanno testo semplice danneggiato ma HTML integro.
+        for alternative in reversed(payload):
+            selected = _iter_message_display_parts(alternative)
+            if any(part.get_content_type() in {'text/plain', 'text/html'} and part.get_payload(decode=True)
+                   for part in selected):
+                return selected
     parts: list[email.message.Message] = []
     for part in payload:
         if not hasattr(part, "get_content_type"):
@@ -297,7 +306,11 @@ def _email_body_payload(email_obj: Any, gestore: GestioneEmailRicevute) -> dict[
         label = "Testo ricostruito da corpo e allegati disponibili; acquisisci il MIME originale per la copia forense integrale."
     else:
         completeness = "testo_disponibile"
-        label = "È disponibile solo il testo salvato in casella; acquisisci il MIME originale per vedere la PEC completa."
+        label = (
+            "Corpo e versione grafica salvati in casella; il MIME originale non è ancora acquisito."
+            if getattr(email_obj, "corpo_html", "")
+            else "Testo salvato in casella; il MIME originale non è ancora acquisito."
+        )
     return {
         "bodyText": body_text,
         "bodyCompleteness": completeness,
@@ -1069,7 +1082,7 @@ def _email_row(
     pct_status = _safe_text(getattr(email_obj, "stato_pct", "")) if include_telematic else ""
     presidio_payload = dict(pec_presidio or {})
     preview_text = getattr(email_obj, "anteprima", "") or getattr(email_obj, "corpo_testo", "")
-    if not include_telematic:
+    if not include_telematic or getattr(email_obj, "corpo_html", ""):
         readable_html = _html_to_readable_text(getattr(email_obj, "corpo_html", ""))
         if readable_html:
             preview_text = readable_html

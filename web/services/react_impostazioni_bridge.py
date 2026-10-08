@@ -6,7 +6,8 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from flask import current_app, g, request
+from flask import current_app, g, request, has_request_context
+from pct import embeddinggemma2
 from web.services.tenant_api_auth import api_key_valid_for_request
 
 from web.services.react_impostazioni_backup import build_backup_settings_payload
@@ -507,7 +508,8 @@ def _payload_from_config(cfg: Any, *, can_update: bool) -> dict[str, Any]:
             "base_url": cfg.ai.base_url,
             "auto_bootstrap": cfg.ai.auto_bootstrap,
             "chat_model": cfg.ai.chat_model or "__auto__",
-            "embed_model": cfg.ai.embed_model or "__auto__",
+            "embed_model": "__auto__" if embeddinggemma2.configured() else cfg.ai.embed_model or "__auto__",
+            "embedding_managed_local": embeddinggemma2.configured(),
             "keep_alive": cfg.ai.keep_alive,
             "auto_index_documents": cfg.ai.auto_index_documents,
             "lex_dataset_status": build_lex_dataset_training_status(
@@ -843,7 +845,7 @@ def update_react_impostazioni_section(section: str, payload: dict[str, Any], *, 
             base_url=_text(data.get("base_url"), "http://127.0.0.1:11434/api/version"),
             auto_bootstrap=_bool(data.get("auto_bootstrap"), False),
             chat_model="" if _text(data.get("chat_model")) == "__auto__" else _text(data.get("chat_model")),
-            embed_model="" if _text(data.get("embed_model")) == "__auto__" else _text(data.get("embed_model")),
+            embed_model=cfg.ai.embed_model if embeddinggemma2.configured() else "" if _text(data.get("embed_model")) == "__auto__" else _text(data.get("embed_model")),
             keep_alive=_text(data.get("keep_alive"), "10m") or "10m",
             auto_index_documents=_bool(data.get("auto_index_documents"), False),
         )
@@ -1013,6 +1015,10 @@ def run_react_impostazioni_test(test_id: str, payload: dict[str, Any]) -> dict[s
 
 
 def build_react_impostazioni_ai_status() -> dict[str, Any]:
+    if has_request_context() and request.args.get("preparazione") == "1":
+        from pct.embeddinggemma2_migration_job import preparation_snapshot
+
+        return {"ok": True, "status_payload": {"preparation": preparation_snapshot(current_app.config)}}
     try:
         from lex.providers.local_ai_service import get_local_ai_service
 

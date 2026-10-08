@@ -512,6 +512,36 @@ def _extract_spreadsheet(content: bytes, ext: str) -> ExtractionResult:
         result = _extract_xlsx_zip(content)
         if result is not None:
             return result
+    if str(ext or "").lower() == "xls":
+        import xlrd
+
+        try:
+            book = xlrd.open_workbook(file_contents=content, on_demand=True)
+            rows = []
+            try:
+                for sheet in book.sheets():
+                    rows.append("[Foglio: " + sheet.name + "]")
+                    for row in sheet.get_rows():
+                        cells = []
+                        for cell in row:
+                            value = cell.value
+                            if cell.ctype == xlrd.XL_CELL_DATE:
+                                date_value = xlrd.xldate_as_datetime(value, book.datemode)
+                                date_format = "%d/%m/%Y %H:%M" if any((date_value.hour, date_value.minute, date_value.second)) else "%d/%m/%Y"
+                                value = date_value.strftime(date_format)
+                            elif cell.ctype == xlrd.XL_CELL_BOOLEAN:
+                                value = "Vero" if value else "Falso"
+                            elif cell.ctype == xlrd.XL_CELL_ERROR:
+                                value = xlrd.error_text_from_code.get(value, "Errore cella")
+                            cells.append(str(value) if value is not None else "")
+                        rows.append(" | ".join(cells))
+            finally:
+                book.release_resources()
+            text = "\n".join(rows)
+            return ExtractionResult(ok=True, text=text, pages=[], extraction_engine="xlrd.biff", warnings=[])
+        except Exception:
+            return ExtractionResult(ok=False, text="", pages=[], extraction_engine="xlrd.biff",
+                error_code="xls_unreadable", error_message="Foglio Excel non leggibile: recuperare l’originale integro.")
     return _extract_binary_best_effort(
         content,
         str(ext or "xls"),

@@ -43,6 +43,7 @@ _RG_NUM_ANNO_RE = re.compile(r"(?<!\d)(?P<num>\d{1,6})[ \t]*/[ \t]*(?P<anno>\d{2
 
 _UFFICIO_RE = re.compile(
     r"\b(?P<tipo>" + "|".join(re.escape(t) for t in _UFFICIO_TIPI) + r")"
+    r"(?:\s+ordinari[oa])?"
     r"(?:\s+(?:di|della|del|presso(?:\s+il)?)\s+(?P<sede>[A-Za-zÀ-Ù][A-Za-zÀ-ù'’.\- ]{1,40}?))?"
     r"(?=[\s,;.\n]|$)",
     re.IGNORECASE,

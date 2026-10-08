@@ -33,6 +33,7 @@ from web.services.document_tools import DocumentToolError
 
 # Elementi prodotti da `blocksToHtml` nella revisione del riconoscimento.
 TAG_CONSENTITI = {
+    "section",
     "p",
     "br",
     # Interruzione di pagina: e' impaginazione del documento riconosciuto.
@@ -65,6 +66,7 @@ TAG_MUTI = {"script", "style", "head", "title"}
 # Su capoversi e titoli passa lo stile, ridotto al formato del documento:
 # `pct/editor.html_to_docx` lo traduce in allineamento e formato Word.
 ATTRIBUTI_CONSENTITI = {
+    "section": {"class", "style", "data-larghezza", "data-altezza", "data-margine-alto", "data-margine-destro", "data-margine-basso", "data-margine-sinistro", "data-allineamento", "data-interlinea"},
     "table": {"border", "cellspacing", "cellpadding"},
     "p": {"style"},
     "h1": {"style"},
@@ -80,6 +82,8 @@ ATTRIBUTI_CONSENTITI = {
     "li": {"data-iu-ocr-marker"},
 }
 TIPI_ELENCO = {"1", "a", "A", "i", "I"}
+for _tag in ('p', 'h1', 'h2', 'h3', 'h4', 'table', 'ul', 'ol'):
+    ATTRIBUTI_CONSENTITI.setdefault(_tag, set()).update({'data-ocr-x', 'data-ocr-y', 'data-ocr-width', 'data-ocr-height', 'data-ocr-estimated-font'})
 
 # Lo stile si legge dichiarazione per dichiarazione e passa solo il formato del
 # documento, nei valori che il documento sa rendere. Prima si confrontava lo
@@ -137,6 +141,11 @@ def stile_consentito(stile: str, *, solo_colore: bool = False, inline: bool = Fa
             trovato = _RE_INTERLINEA.match(valore.replace(" ", ""))
             if trovato and INTERLINEA_MINIMA <= float(trovato.group(1)) <= INTERLINEA_MASSIMA:
                 tenute[proprieta] = _numero_pulito(float(trovato.group(1)))
+            elif re.fullmatch(r"\d{1,3}(?:\.\d{1,2})?pt", valore) and 2 <= float(valore[:-2]) <= 384:
+                tenute[proprieta] = valore
+        elif proprieta in {"margin-top", "margin-bottom", "margin-right", "text-indent"}:
+            if re.fullmatch(r"-?\d{1,3}(?:\.\d{1,2})?pt", valore) and abs(float(valore[:-2])) <= 720:
+                tenute[proprieta] = valore
         elif proprieta == "margin-left":
             trovato = _RE_RIENTRO.match(valore.replace(" ", "").lower())
             if trovato and 0 < float(trovato.group(1)) <= RIENTRO_MASSIMO_PT:
@@ -174,8 +183,18 @@ class _Ripulitore(HTMLParser):
         for nome, valore in attrs:
             if nome not in ammessi or valore is None:
                 continue
-            if nome == "class" and str(valore).strip() != "iu-ted-page-break":
+            if nome == "class" and str(valore).strip() != ("iu-doc-pagina" if tag == "section" else "iu-ted-page-break"):
                 continue
+            if nome == 'data-ocr-estimated-font' and valore != 'true':
+                continue
+            if nome.startswith('data-ocr-') and nome != 'data-ocr-estimated-font' and (not re.fullmatch(r'\d{1,4}(?:\.\d{1,2})?', valore) or not 0 <= float(valore) <= 2000):
+                continue
+            if tag == "section" and nome.startswith("data-"):
+                if nome == "data-allineamento":
+                    if valore not in ALLINEAMENTI_CONSENTITI:
+                        continue
+                elif not re.fullmatch(r"\d{1,4}(?:\.\d{1,6})?", valore) or not 0 <= float(valore) <= 2000:
+                    continue
             if nome == "data-iu-page-break" and str(valore).strip().lower() not in {"true", "1"}:
                 continue
             if nome == "style":
@@ -269,6 +288,9 @@ def docx_da_testo(html: str, nome: str) -> tuple[bytes, str]:
     from pct.editor import html_to_docx
 
     pulito = html_consentito(html)
+    if 'class="iu-doc-pagina"' in pulito:
+        from web.services.document_word_measured import measured_word
+        return measured_word(pulito, titolo_documento(nome)), nome_file_documento(nome)
     try:
         # Nessun timbro: il documento trascrive un atto altrui, non lo firma.
         dati = html_to_docx(pulito, titolo_documento(nome), None)

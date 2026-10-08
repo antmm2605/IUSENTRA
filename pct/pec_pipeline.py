@@ -31,6 +31,7 @@ from typing import Any, Callable, Iterable
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
+from pct.pec_case_identity import case_identity_evidence, client_tax_code_from_documents
 from pct.email_client import cartelle_imap_standard
 from pct.pec_legal_deadline_proposer import propose_from_parsed
 from pct.scadenze_proposte_pec import (
@@ -1141,15 +1142,28 @@ def decidi_collegamento(candidates: list[dict[str, Any]], *, threshold: float = 
             },
         }
 
-    best = candidates[0] if candidates else {}
+    eligible = [candidate for candidate in candidates if not candidate.get("identity_conflicts")]
+    verified = [candidate for candidate in eligible if all(
+        (candidate.get("identity_evidence") or {}).get(key)
+        for key in ("rg_match", "client_name_match", "office_match")
+    )]
+    best = verified[0] if verified else eligible[0] if eligible else {}
     score = float(best.get("score") or 0.0)
     reasons = {str(item or "") for item in list(best.get("reasons") or [])}
     # Il solo RG dedotto dal testo resta insufficiente; il solo RG certificato
     # dall'ufficio no: e' l'identificativo del procedimento.
     rg_only = bool(best) and reasons == {"RG coincidente"}
-    fascicolo_id = str(best.get("id") or "") if score >= threshold and not rg_only else ""
-    if fascicolo_id:
+    fascicolo_id = str(best.get("id") or "") if verified and score >= threshold and not rg_only else ""
+    tied = [candidate for candidate in verified if float(candidate.get("score") or 0.0) >= threshold and abs(float(candidate.get("score") or 0.0) - score) < 0.001]
+    if fascicolo_id and len({str(candidate.get("id") or "") for candidate in tied}) > 1:
+        fascicolo_id = ""
+        status = "identita_ambigua"
+    elif fascicolo_id:
         status = "automatico"
+    elif not eligible and candidates:
+        status = "identita_discordante"
+    elif eligible and not verified:
+        status = "identita_incompleta"
     elif rg_only:
         status = "rg_non_sufficiente"
     elif candidates:
@@ -4423,6 +4437,12 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
         if match:
             protocol = match.group(1)
     legal_context = detect_pec_legal_context(body_all)
+    from pct.fatturazione_sdi_receipts import parse_sdi_receipt
+    fiscal_receipts = [
+        {**receipt, "attachment_id": str(item.index), "attachment_name": item.filename}
+        for item in attachments
+        if (receipt := parse_sdi_receipt(item.data)) is not None
+    ]
     legal_workflow = classifica_pec_legale(
         subject=subject,
         body=body_all,
@@ -4450,6 +4470,17 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
         semantic_context=legal_context,
         fonte_certa=fonte_certa,
     )
+    if fiscal_receipts:
+        # Il tracciato fiscale identifica il dominio; l'autenticità viene
+        # provata separatamente sulla busta PEC prima di aggiornare la fattura.
+        legal_context = {"event_hint": "ricevuta_sdi", "confidence": 1.0,
+            "recommended_actions": ["Acquisire l'esito SdI nella fatturazione, verificando busta PEC e documento trasmesso."],
+            "agent_questions": ["Quale fattura e quale trasmissione identifica la ricevuta SdI?"],
+            "features": ["XML ricevuta SdI con namespace ufficiale"]}
+        procedural_profile = {"tipo_evento": "Ricevuta SdI", "fase_pratica": "Fatturazione elettronica",
+            "ricevute_sdi": fiscal_receipts,
+            "checklist_avvocato": legal_context["recommended_actions"],
+            "domande_lex": legal_context["agent_questions"]}
     office_value = procedural_profile.get("ufficio") or ""
     judge_value = procedural_profile.get("giudice") or ""
     event_value = procedural_profile.get("tipo_evento") or procedural_profile.get("oggetto_evento") or ""
@@ -4603,6 +4634,7 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
         "legal_workflow": legal_workflow,
         "procedural_profile": procedural_profile,
         "pct_deposit_correlation": pct_deposit_correlation,
+        "sdi_receipts": fiscal_receipts,
         "pct_deposit_receipt": pct_deposit_receipt,
         "pec_receipt": {
             "type": receipt_type,
@@ -4635,6 +4667,8 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
 
 
 def event_type_from_parsed(parsed: dict[str, Any], classes: Iterable[str]) -> str:
+    if parsed.get("sdi_receipts"):
+        return "ricevuta_sdi"
     subject = str((parsed.get("headers") or {}).get("subject") or "")
     body = str(((parsed.get("body") or {}).get("text") or ""))
     receipt = str((((parsed.get("fields") or {}).get("tipo_ricevuta") or {}).get("value") or ""))
@@ -5831,6 +5865,9 @@ def _build_deadline_proposal_core(
 def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, Any]]) -> dict[str, Any]:
     classes = [str(item.get("classification") or "") for item in attachments]
     event_type = event_type_from_parsed(parsed, classes)
+    if event_type == "ricevuta_sdi":
+        from pct.fatturazione_sdi_receipts import build_sdi_validation_report as _build_sdi_validation_report
+        return _build_sdi_validation_report(parsed, attachments)
     present = {item for item in classes if item}
     required_by_event = {
         "deposito": ["atto", "procura", "ricevute"],
@@ -8999,6 +9036,8 @@ class PecAuditRepository:
 
     @staticmethod
     def _notification_receipt_profile(parsed: dict[str, Any], report: dict[str, Any]) -> dict[str, Any]:
+        if parsed.get("sdi_receipts") or report.get("event_type") == "ricevuta_sdi":
+            return {"skipped": True, "reason": "ricevuta_fiscale_sdi"}
         headers = parsed.get("headers") if isinstance(parsed.get("headers"), dict) else {}
         fields = parsed.get("fields") if isinstance(parsed.get("fields"), dict) else {}
         legal_workflow = parsed.get("legal_workflow") if isinstance(parsed.get("legal_workflow"), dict) else {}
@@ -9300,6 +9339,9 @@ class PecAuditRepository:
                 report=report,
                 actor=actor,
             )
+            if parsed.get("sdi_receipts"):
+                self.enqueue_job(conn, "sdi_receipt", message_id=message_id, priority=44, actor=actor)
+                return {**result, "sdi_receipt_acquisition": "queued"}
             self._persist_legal_event_understanding(
                 conn,
                 message_id=message_id,
@@ -9607,10 +9649,24 @@ class PecAuditRepository:
             fascicoli = manager.tutti(archiviati=True)
         except Exception:
             return {"rg": [], "parties": [], "office": "", "keywords": []}, []
+        clients_by_id: dict[str, dict[str, Any]] = {}
+        if getattr(manager, "_studio_db", None) is not None:
+            client_rows = manager._studio_db.fetchall_readonly("SELECT id, codice_fiscale FROM clienti")
+            clients_by_id = {str(row["id"]): dict(row) for row in client_rows}
         headers = parsed.get("headers") or {}
         fields = parsed.get("fields") or {}
         body = parsed.get("body") or {}
         profile = parsed.get("procedural_profile") if isinstance(parsed.get("procedural_profile"), dict) else {}
+        if profile.get("cliente"):
+            attachment_hashes = list(dict.fromkeys(str(item.get("sha256") or "") for item in parsed.get("attachments", []) if isinstance(item, dict) and item.get("sha256")))[:20]
+            if attachment_hashes:
+                placeholders = ",".join("?" for _ in attachment_hashes)
+                with self.connect() as identity_conn:
+                    document_rows = identity_conn.execute(
+                        f"SELECT DISTINCT a.filename, a.sha256, substr(a.ocr_text, 1, 24000) AS text FROM pec_attachments a JOIN pec_messages m ON m.id=a.message_id WHERE m.tenant_id=? AND a.sha256 IN ({placeholders}) AND a.ocr_text IS NOT NULL LIMIT 20",
+                        (self.tenant_id, *attachment_hashes),
+                    ).fetchall()
+                profile = client_tax_code_from_documents(profile, [dict(row) for row in document_rows])
         rg = list(parsed.get("rg_candidates") or [])
         for value in (
             profile.get("numero_rg"),
@@ -9670,6 +9726,8 @@ class PecAuditRepository:
             "rg": rg,
             "parties": parties,
             "office": office,
+            "client_tax_code_state": profile.get("codice_fiscale_cliente_stato") or "non_presente_nella_fonte",
+            "client_tax_code_evidence": profile.get("codice_fiscale_cliente_evidenze") or [],
             "keywords": keywords[:12],
             "ufficio_mittente": ufficio_mittente,
             "atto_processuale": atto_processuale,
@@ -9747,6 +9805,7 @@ class PecAuditRepository:
             if exact_for_fascicolo:
                 candidates.extend(exact_for_fascicolo)
                 continue
+            identity = case_identity_evidence(profile, fascicolo, clients_by_id.get(str(getattr(fascicolo, "id_cliente", ""))))
             score = 0.0
             reasons: list[str] = []
             fasc_rg = ""
@@ -9756,12 +9815,12 @@ class PecAuditRepository:
                 fasc_rg = f"{numero_rg}/{anno_rg}"
             elif numero_rg:
                 fasc_rg = numero_rg
-            if fasc_rg and rg_certificato and _rg_equivalenti(rg_certificato, fasc_rg):
+            if fasc_rg and rg_certificato and _rg_equivalenti(rg_certificato, fasc_rg) and identity["office_match"] and not identity["conflicts"]:
                 # Corrispondenza con il numero di ruolo certificato dall'ufficio:
-                # e' una prova, non un indizio, e da sola basta a collegare.
+                # Il ruolo identifica il procedimento soltanto nello stesso ufficio.
                 score += 0.82
                 reasons.append("RG certificato dall'XML ministeriale")
-            elif fasc_rg and any(candidate == fasc_rg or candidate in fasc_rg or fasc_rg in candidate for candidate in rg):
+            elif fasc_rg and any(_rg_equivalenti(candidate, fasc_rg) for candidate in rg):
                 ufficio_fascicolo = _solo_lettere(getattr(fascicolo, "tribunale", ""))
                 ufficio_coincide = bool(
                     ufficio_mittente
@@ -9802,12 +9861,14 @@ class PecAuditRepository:
                         "title": clean_text(getattr(fascicolo, "titolo", ""), 120),
                         "number": clean_text(getattr(fascicolo, "numero", "")),
                         "rg": fasc_rg,
+                        "identity_evidence": identity,
+                        "identity_conflicts": identity["conflicts"],
                         "score": round(min(score, 1.0), 3),
                         "reasons": reasons,
                     }
                 )
         candidates.sort(
-            key=lambda item: (bool(item.get("exact_receipt_reference")), float(item["score"])),
+            key=lambda item: (bool(item.get("exact_receipt_reference")), not bool(item.get("identity_conflicts")), float(item["score"])),
             reverse=True,
         )
         return seeds, candidates[:5]
@@ -10315,6 +10376,12 @@ class PecAuditRepository:
                     result = self.verify_signatures(message_id, actor=actor)
                 elif job_type == "validate":
                     result = self.validate_message(message_id, actor=actor)
+                elif job_type == "sdi_receipt":
+                    from flask import current_app, has_app_context
+                    from web.services.sdi_receipt_job_runtime import acquire_sdi_receipts_for_repository
+                    if not has_app_context():
+                        raise RuntimeError("Contesto applicativo richiesto per acquisire l'esito SdI.")
+                    result = acquire_sdi_receipts_for_repository(current_app._get_current_object(), self, message_id)
                 elif job_type == "link":
                     result = self.link_fascicolo(message_id, actor=actor)
                 elif job_type == "digest":
@@ -13508,9 +13575,20 @@ class PecAuditRepository:
             steps.append({"step": "signcheck", "result": self.verify_signatures(clean_id, actor=actor)})
             self._delete_queued_jobs_for_message(clean_id, actor=actor, reason="refresh_sincrono_signcheck")
             steps.append({"step": "validate", "result": self.validate_message(clean_id, actor=actor)})
-            self._delete_queued_jobs_for_message(clean_id, actor=actor, reason="refresh_sincrono_validate")
-            steps.append({"step": "link", "result": self.link_fascicolo(clean_id, actor=actor)})
-            self._delete_queued_jobs_for_message(clean_id, actor=actor, reason="refresh_sincrono_link")
+            if steps[-1]["result"].get("sdi_receipt_acquisition") == "queued":
+                from flask import current_app, has_app_context
+                from web.services.sdi_receipt_job_runtime import acquire_sdi_receipts_for_repository
+                if not has_app_context():
+                    raise RuntimeError("Contesto applicativo richiesto per acquisire l'esito SdI.")
+                fiscal = acquire_sdi_receipts_for_repository(current_app._get_current_object(), self, clean_id)
+                steps.append({"step": "sdi_receipt", "result": fiscal})
+                # Eliminare la coda soltanto dopo la consegna persistente.
+                # Un errore conserva l'evento per il retry del worker.
+                self._delete_queued_jobs_for_message(clean_id, actor=actor, reason="refresh_sincrono_sdi_delivered")
+            else:
+                self._delete_queued_jobs_for_message(clean_id, actor=actor, reason="refresh_sincrono_validate")
+                steps.append({"step": "link", "result": self.link_fascicolo(clean_id, actor=actor)})
+                self._delete_queued_jobs_for_message(clean_id, actor=actor, reason="refresh_sincrono_link")
         except Exception as exc:
             errors.append(str(exc)[:500])
             try:

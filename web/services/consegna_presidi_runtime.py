@@ -175,13 +175,31 @@ def _consegna_agenda(fascicolo: Any, fatti: list[Any]) -> list[dict[str, str]]:
     from web.helpers import get_agenda
     gestore = get_agenda()
     procedimento = _procedimento(fascicolo)
-    esistenti = [a for a in gestore.tutti() if _testo(a.procedimento) == procedimento and _stato(a) not in {"ANNULLATO", "CANCELLATO"}]
+    from pct.pec_case_identity import case_identity_evidence
+    candidati = [a for a in gestore.tutti() if _testo(a.procedimento) == procedimento and _stato(a) not in {"ANNULLATO", "CANCELLATO"}]
+    esistenti = []
+    identita_incomplete = []
+    for appuntamento in candidati:
+        profile = {"numero_ruolo_certificato": _testo(appuntamento.procedimento),
+                   "cliente": _testo(getattr(appuntamento, "cliente", "")),
+                   "ufficio": _testo(getattr(appuntamento, "tribunale", "")),
+                   "cliente_origine": "agenda: anagrafica dell'appuntamento"}
+        identity = case_identity_evidence(profile, fascicolo)
+        if all(identity[key] for key in ("rg_match", "client_name_match", "office_match")) and not identity["conflicts"]:
+            esistenti.append(appuntamento)
+        elif not profile["cliente"] or not profile["ufficio"]:
+            identita_incomplete.append(appuntamento)
     esiti = []
     for fatto in fatti:
         giorno, ora = _giorno(fatto.valore), _ora(fatto)
         stessa = next((a for a in esistenti if str(a.tipo.value) == "UDIENZA" and _giorno(a.data_ora) == giorno and (not ora or str(a.data_ora)[11:16] == ora)), None)
         if stessa:
             esiti.append({"fatto_id":fatto.id, "stato":"consegnato", "riferimento":stessa.id, "motivo":"Udienza già presente con data e ora concordanti."})
+            continue
+        incompleta = next((a for a in identita_incomplete if str(a.tipo.value) == "UDIENZA" and _giorno(a.data_ora) == giorno and (not ora or str(a.data_ora)[11:16] == ora)), None)
+        if incompleta:
+            esiti.append({"fatto_id": fatto.id, "stato": "rifiutato", "riferimento": incompleta.id,
+                          "motivo": "Appuntamento con lo stesso R.G., giorno e ora ma identità incompleta: verifica cliente e ufficio prima di creare una seconda voce."})
             continue
         if not giorno or giorno < date.today().isoformat():
             esiti.append({"fatto_id":fatto.id, "stato":"non_pertinente", "motivo":"Data storica conservata nella lettura; non si crea un appuntamento passato."})

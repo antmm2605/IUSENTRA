@@ -1,26 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FileSearch, Maximize2, Minimize2, RefreshCw, ScanText, Square, X } from 'lucide-react'
+import { FileSearch, RefreshCw, ScanText, Square, X } from 'lucide-react'
 import { Button } from '../../ui/Button'
 import {
-  blocksToHtml,
   blocksToPlainText,
   countCharacters,
   type OcrBlock,
   type OcrFigure,
 } from './ocrBlocks'
-import { OcrReview } from './OcrReview'
-import { OcrPageViewer } from './OcrPageViewer'
+import { convertiDocumentoOcr, leggiDocumentoOcr } from './ocrDocumento'
+import { OcrConfronto } from './OcrConfronto'
 import { OcrSaveChoices, type DaStampare, type DestinazioneOcr, type FormatoSalvataggio } from './OcrSaveChoices'
 import { pdfOriginale, stampaPdf } from './ocrStampa'
-import { useSchermoIntero } from './useSchermoIntero'
-import { useScorrimentoAppaiato } from './ocrScorrimento'
 import {
-  documentoModificabile,
   elencaDocumentiRiconoscibili,
   indirizzoEditor,
   nomeCopiaRicercabile,
   nomeFileRiconosciuto,
-  riconosciPagina,
   salvaNelFascicolo,
   scaricaSulComputer,
   etichettaCorrezione,
@@ -69,8 +64,6 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
   const [file, setFile] = useState<File | null>(null)
   const [nome, setNome] = useState('')
   const [pagine, setPagine] = useState<PaginaRiconosciuta[]>([])
-  const [sovrapposizione, setSovrapposizione] = useState(true)
-  const [selezionato, setSelezionato] = useState('')
   const [totale, setTotale] = useState(0)
   const [blocchi, setBlocchi] = useState<OcrBlock[]>([])
   const [figure, setFigure] = useState<OcrFigure[]>([])
@@ -81,14 +74,6 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
   const [avviso, setAvviso] = useState('')
   const vivo = useRef(true)
   const interruzione = useRef<AbortController | null>(null)
-  const affiancato = useRef<HTMLDivElement | null>(null)
-  const schermoIntero = useSchermoIntero(affiancato)
-  // Comandi della pagina e barra del formato stanno sopra i due pannelli, a
-  // tutta larghezza: cosi' immagine e testo partono alla stessa altezza.
-  const [postoComandi, setPostoComandi] = useState<HTMLDivElement | null>(null)
-  const [postoBarra, setPostoBarra] = useState<HTMLDivElement | null>(null)
-  const [postoRiferimenti, setPostoRiferimenti] = useState<HTMLDivElement | null>(null)
-  useScorrimentoAppaiato(affiancato, blocchi.length > 0)
 
   useEffect(() => () => { vivo.current = false; interruzione.current?.abort() }, [])
 
@@ -111,7 +96,7 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
 
   const azzera = () => {
     setPagine([]); setBlocchi([]); setFigure([]); setTotale(0)
-    setAvanzamento(''); setAvviso(''); setErrore(''); setSelezionato('')
+    setAvanzamento(''); setAvviso(''); setErrore('')
   }
 
   const sorgente = (): SorgenteOcr | null => {
@@ -133,20 +118,15 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
     const lette: PaginaRiconosciuta[] = []
     let attese = 1
     try {
-      for (let numero = 1; numero <= attese; numero += 1) {
-        if (controllo.signal.aborted) break
-        setAvanzamento(`Pagina ${numero}${attese > 1 ? ` di ${attese}` : ''} in lettura…`)
-        const esito = await riconosciPagina(scelto, numero, controllo.signal)
+      await leggiDocumentoOcr(scelto, controllo.signal, (ordinate, totale, nomeDocumento) => {
         if (!vivo.current) return
-        attese = esito.pagineTotali
-        lette.push(esito.pagina)
-        setNome(esito.nome)
-        setTotale(esito.pagineTotali)
-        setPagine([...lette])
-        setBlocchi((precedenti) => [...precedenti, ...esito.pagina.blocks])
-        setFigure((precedenti) => [...precedenti, ...esito.pagina.figures])
-        setAvanzamento(`Pagina ${numero} di ${esito.pagineTotali} riconosciuta.`)
-      }
+        attese = totale
+        lette.splice(0, lette.length, ...ordinate)
+        setNome(nomeDocumento); setTotale(totale); setPagine(ordinate)
+        setBlocchi(ordinate.flatMap((pagina) => pagina.blocks))
+        setFigure(ordinate.flatMap((pagina) => pagina.figures))
+        setAvanzamento(`Pagina ${ordinate.length} di ${totale} riconosciuta.`)
+      })
       if (!vivo.current) return
       setAvanzamento(
         controllo.signal.aborted
@@ -174,18 +154,15 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
     return [...somma.entries()].map(([regola, occorrenze]) => ({ regola, occorrenze, etichetta: etichette.get(regola) || '' }))
   }, [pagine])
   const consenso = useMemo(() => pagine.reduce((somma, pagina) => somma + pagina.consenso, 0), [pagine])
-  // Le misure di ogni pagina nelle unita' dei riquadri: il foglio della revisione ne prende i margini.
-  const geometrie = useMemo(() => pagine.flatMap((pagina) => (
-    pagina.anteprima && pagina.anteprima.scala > 0
-      ? [{ numero: pagina.numero, larghezza: pagina.anteprima.larghezza / pagina.anteprima.scala, altezza: pagina.anteprima.altezza / pagina.anteprima.scala }]
-      : []
-  )), [pagine])
+
   const secondoLettore = useMemo(() => pagine.find((pagina) => pagina.secondoLettore)?.secondoLettore || '', [pagine])
 
   /** Il documento riveduto, con le correzioni: Word modificabile o PDF impaginato. */
-  const documentoRiveduto = async (formato: FormatoSalvataggio, download = false): Promise<File> => (
-    documentoModificabile(blocksToHtml(blocchi), nome || reference, formato, download)
-  )
+  const documentoRiveduto = async (formato: FormatoSalvataggio, download = false): Promise<File> => {
+    return convertiDocumentoOcr({ pagine, totale, blocchi, nome: nome || reference, formato, download,
+      originale: () => pdfOriginale(sorgente(), async () => { throw new Error('Non è stato possibile leggere il PDF originale per la conversione. Riprova.') }),
+    })
+  }
 
   const copiaRicercabile = async (): Promise<GeneratedDocument> => {
     const filename = nomeCopiaRicercabile(nome || reference)
@@ -376,50 +353,15 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
             </p>
           ) : null}
 
-          <div ref={affiancato} className={`iu-ocr-affiancato${schermoIntero.ripiego ? ' is-schermo-intero' : ''}`}>
-            <div className="iu-ocr-affiancato__comandi">
-              <div ref={setPostoComandi} className="iu-ocr-affiancato__pagina" />
-              {occupato || avviso || errore ? (
-                <span className={`iu-ocr-affiancato__esito${errore ? ' is-errore' : ''}`} role="status" aria-live="polite">{occupato || errore || avviso}</span>
-              ) : null}
-              <Button type="button" tone="neutral" aria-pressed={schermoIntero.attivo} onClick={() => void schermoIntero.alterna()}>
-                {schermoIntero.attivo ? <Minimize2 size={15} aria-hidden="true" /> : <Maximize2 size={15} aria-hidden="true" />}
-                {schermoIntero.attivo ? 'Esci dallo schermo intero' : 'Schermo intero'}
-              </Button>
-            </div>
-            <div ref={setPostoBarra} className="iu-ocr-affiancato__barra" />
-            <OcrPageViewer
-              comandiIn={postoComandi}
-              riferimentiIn={postoRiferimenti}
-              pagine={pagine}
-              blocchi={blocchi}
-              selezionato={selezionato}
-              onSeleziona={setSelezionato}
-              sovrapposizione={sovrapposizione}
-              onSovrapposizione={setSovrapposizione}
-            />
-            <div className="iu-ocr-affiancato__testo">
-              <OcrReview
-                blocks={blocchi}
-                figures={figure}
-                disabled={lavorando}
-                onChange={setBlocchi}
-                selectedId={selezionato}
-                onSelect={setSelezionato}
-                pagine={geometrie}
-                barraIn={postoBarra}
-                azioni={(
-                  <OcrSaveChoices
-                    disabled={lavorando || !blocchi.length}
-                    copiaRicercabileDisponibile={daOcr.length > 0}
-                    onScegli={(destinazione) => void salva(destinazione)}
-                    onStampa={(quale) => void stampa(quale)}
-                  />
-                )}
-              />
-            </div>
-            <div ref={setPostoRiferimenti} className="iu-ocr-affiancato__riferimenti" />
-          </div>
+          <OcrConfronto pagine={pagine} blocchi={blocchi} figure={figure}
+            disabled={lavorando} onChange={setBlocchi} esito={occupato || errore || avviso}
+            errore={Boolean(errore)}
+            azioni={(
+              <OcrSaveChoices disabled={lavorando || !blocchi.length}
+                copiaRicercabileDisponibile={daOcr.length > 0}
+                onScegli={(destinazione) => void salva(destinazione)}
+                onStampa={(quale) => void stampa(quale)} />
+            )} />
 
           <p className="iu-acq-hint">
             Il documento originale non viene mai modificato né sostituito: la copia per immagine resta l’atto che fa fede

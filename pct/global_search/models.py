@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
+import html
+import re
 
 
 @dataclass(slots=True)
@@ -62,6 +64,7 @@ class GlobalSearchResult:
             "subtitle": self.subtitle,
             "sottotitolo": self.subtitle,
             "snippet": self.snippet,
+            "snippet_text": html.unescape(re.sub(r"</?mark>", "", self.snippet)),
             "score": round(float(self.score or 0), 4),
             "source_module": self.source_module,
             "source_url": self.source_url,

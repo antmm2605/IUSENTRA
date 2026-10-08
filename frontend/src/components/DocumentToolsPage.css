@@ -221,6 +221,10 @@
   background: var(--iu-od-surface-soft);
 }
 
+.iu-document-tools__row.is-single {
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+}
+
 .iu-document-tools__grip {
   color: var(--iu-od-muted);
   cursor: grab;
@@ -516,6 +520,10 @@
     grid-template-columns: 18px 30px minmax(0, 1fr);
   }
 
+  .iu-document-tools__row.is-single {
+    grid-template-columns: 30px minmax(0, 1fr);
+  }
+
   .iu-document-tools__row-actions {
     grid-column: 2 / -1;
   }
@@ -554,6 +562,10 @@
 
   .iu-document-tools__row {
     align-items: start;
+    grid-template-columns: 24px minmax(0, 1fr);
+  }
+
+  .iu-document-tools__row.is-single {
     grid-template-columns: 24px minmax(0, 1fr);
   }
 

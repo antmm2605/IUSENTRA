@@ -48,6 +48,9 @@ CORE_CI_ITEM_SPLIT_PHASES = set(CORE_CI_SUBSHARDS)
 #  La chiave e' il percorso, il valore il numero di fase come lo scrivono
 #  CORE_CI_SUBSHARDS e le "phase:" di ci.yml (numerazione da 1).
 CORE_CI_PINNED_PHASES: dict[str, int] = {
+    "tests/test_pec_case_identity.py": 8,
+    "tests/test_embeddinggemma2_migration_job.py": 8,
+    "tests/test_rag_source_provenance.py": 8,
     "tests/test_observability_runtime.py": 7,
     "tests/test_ocr_worker.py": 8,
     #  Da solo supera i 4 minuti e la fase intera ha un limite di 5: deve
@@ -129,6 +132,9 @@ CORE_TARGETS: tuple[Path, ...] = (
     REPO_ROOT / "tests" / "test_web_security.py",
     REPO_ROOT / "tests" / "test_database.py",
     REPO_ROOT / "tests" / "test_local_ai.py",
+    REPO_ROOT / "tests" / "test_rag_source_provenance.py",
+    REPO_ROOT / "tests" / "test_embeddinggemma2_migration_job.py",
+    REPO_ROOT / "tests" / "test_pec_case_identity.py",
     REPO_ROOT / "tests" / "test_pst_catalog.py",
     REPO_ROOT / "tests" / "test_giurisprudenza_repository.py",
     REPO_ROOT / "tests" / "test_legal_intelligence_repository.py",

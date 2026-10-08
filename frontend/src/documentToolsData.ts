@@ -1,6 +1,6 @@
 import { csrfHeader } from './api/csrf'
 
-export type DocumentToolMode = 'merge' | 'zip' | 'multipage' | 'split'
+export type DocumentToolMode = 'merge' | 'zip' | 'multipage' | 'split' | 'word'
 
 export type GeneratedDocument = {
   blob: Blob
@@ -65,10 +65,12 @@ export async function generateDocument(
   rotations: number[],
   pageFormat: '' | 'a4' = '',
   pages = '',
+  review?: string,
 ): Promise<GeneratedDocument> {
   const body = new FormData()
   files.forEach((file) => body.append('files', file, file.name))
   body.append('output_name', outputName)
+  if (mode === 'word' && review) body.append('review', review)
   if (mode === 'split') body.append('pages', pages)
   if (pageFormat) body.append('page_format', pageFormat)
   logicalNames.forEach((name) => body.append('logical_names', name))
@@ -78,7 +80,7 @@ export async function generateDocument(
     method: 'POST',
     credentials: 'same-origin',
     headers: {
-      Accept: 'application/pdf, application/zip, application/json',
+      Accept: 'application/pdf, application/zip, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/json',
       ...csrfHeader(),
       'X-Iusentra-Result-Links': '1',
     },
@@ -86,7 +88,7 @@ export async function generateDocument(
   })
   if (!response.ok) throw new Error(await errorMessage(response))
 
-  const expectedType = mode === 'zip' ? 'application/zip' : 'application/pdf'
+  const expectedType = mode === 'word' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : mode === 'zip' ? 'application/zip' : 'application/pdf'
   if (!response.headers.get('content-type')?.toLowerCase().startsWith(expectedType)) throw new Error('Documento non ricevuto. Verifica l’accesso a IUSENTRA e riprova.')
 
   const downloadHref = response.headers.get('x-iusentra-download') || ''
@@ -95,7 +97,7 @@ export async function generateDocument(
   if (!internalResult(downloadHref) || (previewHref && !internalResult(previewHref))) throw new Error('I collegamenti alla copia generata non sono disponibili. Riprova.')
   const blob = await response.blob()
   if (!blob.size) throw new Error('Il documento preparato è vuoto e non può essere salvato.')
-  const fallback = mode === 'zip' ? 'documenti.zip' : 'documento.pdf'
+  const fallback = mode === 'word' ? 'documento.docx' : mode === 'zip' ? 'documenti.zip' : 'documento.pdf'
   return {
     blob,
     filename: filenameFromDisposition(response.headers.get('content-disposition'), fallback),

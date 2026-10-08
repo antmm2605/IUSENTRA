@@ -19,6 +19,8 @@ setup(
     package_data={
         "pct": [
             "data/*.json",
+            "data/fatturapa/*.xsd",
+            "data/fatturapa/*.md",
             "data/*.sqlite",
             "data/cataloghi/*.json",
             "data/tabelle_danno/*.json",

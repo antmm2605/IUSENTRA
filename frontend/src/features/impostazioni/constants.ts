@@ -194,7 +194,7 @@ export const SETTINGS_FIELDS: Record<SettingsSection, SettingsField[]> = {
       { value: 'qwen3.5:9b', label: 'Qwen 3.5 avanzato' },
       { value: 'mistral', label: 'Più completo se già installato' },
     ] },
-    { name: 'embed_model', label: 'Ricerca nei documenti', type: 'select', width: 'half', help: 'Lascia Automatico: IUSENTRA prepara EmbeddingGemma sul PC quando il RAG locale è attivo. Gemini Embedding 2 resta un servizio esterno separato e richiede autorizzazione privacy.', options: [
+    { name: 'embed_model', label: 'Ricerca nei documenti', type: 'select', width: 'half', help: 'Lascia Automatico: IUSENTRA usa il motore locale predisposto per lo studio, conservando i riferimenti ai documenti consultati.', options: [
       { value: '__auto__', label: 'Automatico (consigliato)' },
       { value: 'embeddinggemma:300m', label: 'EmbeddingGemma 300M' },
       { value: 'nomic-embed-text', label: 'Ricerca alternativa' },

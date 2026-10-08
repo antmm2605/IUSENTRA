@@ -10,8 +10,6 @@ import {
   FileText,
   Hash,
   Mail,
-  Maximize2,
-  Minimize2,
   PenLine,
   Plus,
   ReceiptText,
@@ -1658,7 +1656,7 @@ function NewInvoiceForm({
                 ? 'Crea proforma'
                 : formState.dati_personalizzati.document.documento_operativo === 'NOTA_CREDITO'
                   ? 'Crea nota di credito'
-                  : form?.submitLabel || 'Crea parcella'}
+                  : 'Crea bozza fattura'}
           </Button>
           <ButtonLink href="/fatturazione" tone="neutral">
             <ReceiptText size={16} />
@@ -1782,7 +1780,6 @@ function ArchiveDetailPanel({
   const [paymentMethod, setPaymentMethod] = useState('Non indicato')
   const [notice, setNotice] = useState<ActionNotice>(null)
   const [busy, setBusy] = useState('')
-  const [pdfFullscreen, setPdfFullscreen] = useState(false)
   const [pdfRevision, setPdfRevision] = useState(0)
   const [pin, setPin] = useState('')
   const [pecSecret, setPecSecret] = useState('')
@@ -2202,7 +2199,7 @@ function ArchiveDetailPanel({
   const commercialistaMissing = commercialistaChannel === 'pec' ? !commercialistaPecAddress.trim() : !detail.workflow.commercialistaEmail.trim()
   const commercialistaSentChannel = workflowText(detail.workflow.commercialista.channel)
   const commercialistaSentRecipient = workflowText(detail.workflow.commercialista.recipient)
-  const modalClass = ['iu-fatt-modal', pdfFullscreen && activeTab === 'pdf' ? 'is-pdf-fullscreen' : ''].filter(Boolean).join(' ')
+  const modalClass = ['iu-fatt-modal', activeTab === 'pdf' ? 'is-pdf-preview' : ''].filter(Boolean).join(' ')
   const editable = currentDetail.state === 'BOZZA' && !currentDetail.sdiSentAt
 
   return (
@@ -2215,12 +2212,6 @@ function ArchiveDetailPanel({
             <p>{detail.customerName}{detail.caseTitle ? ` - ${detail.caseTitle}` : ''}</p>
           </div>
           <div className="iu-fatt-modal__header-actions">
-            {activeTab === 'pdf' ? (
-              <Button type="button" tone="neutral" onClick={() => setPdfFullscreen((current) => !current)}>
-                {pdfFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-                {pdfFullscreen ? 'Riduci' : 'Tutto schermo'}
-              </Button>
-            ) : null}
             <Button type="button" tone="neutral" onClick={onClose} aria-label="Chiudi dettaglio">
               <X size={15} />
             </Button>
@@ -2326,6 +2317,16 @@ function ArchiveDetailPanel({
                   disableIva={noVatRegimes.has(detailFiscal.regime_fiscale)}
                   onChange={(options) => setDetailFiscal((current) => ({ ...current, ...options }))}
                 />
+                {detailFiscal.applica_bollo ? (
+                  <label className="iu-fatt-bollo-policy">
+                    <input type="checkbox" checked={Boolean(detailFiscal.bollo_a_carico_studio)} disabled={!editable}
+                      onChange={(event) => {
+                        const checked = event.currentTarget.checked
+                        setDetailFiscal((current) => ({ ...current, bollo_a_carico_studio: checked }))
+                      }} />
+                    <span>Bollo a carico dello studio: non aggiungerlo al totale del cliente</span>
+                  </label>
+                ) : null}
               </section>
               <div className="iu-fatt-edit-lines">
                 {voices.map((voice) => (
@@ -2386,15 +2387,8 @@ function ArchiveDetailPanel({
           ) : null}
 
           {activeTab === 'pdf' ? (
-            <section className="iu-fatt-pdf-panel">
-              <div className="iu-fatt-action-row">
-                <ButtonLink href={`${detail.pdfHref}?download=1`} tone="neutral"><Download size={15} /> Scarica PDF</ButtonLink>
-                <Button type="button" tone="neutral" onClick={() => setPdfFullscreen((current) => !current)}>
-                  {pdfFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-                  {pdfFullscreen ? 'Riduci anteprima' : 'Tutto schermo'}
-                </Button>
-              </div>
-              <iframe title={`Anteprima PDF ${detail.number || detail.id}`} src={`${detail.pdfHref}${pdfRevision ? `?v=${pdfRevision}` : ''}`} />
+            <section className="iu-fatt-pdf-panel" aria-label="Documento PDF e comandi di lettura">
+              <iframe title={`Anteprima PDF ${detail.number || detail.id}`} src={`${detail.pdfHref}?viewer=mobile${pdfRevision ? `&v=${pdfRevision}` : ''}`} />
             </section>
           ) : null}
 
@@ -2475,9 +2469,9 @@ function ArchiveDetailPanel({
               <div className="iu-fatt-workflow__grid">
                 <label>
                   <span>PIN firma digitale</span>
-                  <input type={SECRET_INPUT_TYPE} value={pin} onChange={(event) => setPin(event.currentTarget.value)} autoComplete="off" />
+                  <input type={SECRET_INPUT_TYPE} name="firma-digitale-pin" value={pin} onChange={(event) => setPin(event.currentTarget.value)} autoComplete="new-password" />
                 </label>
-                <ButtonLink href={detail.xmlHref} tone="neutral">
+                <ButtonLink href={detail.xmlHref} download tone="neutral">
                   <FileText size={15} />
                   Scarica XML originale
                 </ButtonLink>
@@ -2923,6 +2917,9 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
             <span>Nr fascicolo</span>
             <input
               aria-label="Filtro numero fascicolo"
+              type="search"
+              name="fatturazione-matter-filter"
+              autoComplete="off"
               value={matterFilter}
               onChange={(event) => setMatterFilter(event.currentTarget.value)}
               placeholder="RG o ID fascicolo"

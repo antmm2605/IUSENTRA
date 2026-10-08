@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import re
 
-from web.services.pdf_reader_text import text_layers
+import pytest
+
+from web.services.pdf_reader_text import text_layers, _unicode_words
 
 TESTO = "TRIBUNALE DI PALMI sezione lavoro"
 
@@ -96,3 +98,30 @@ def test_il_lettore_non_dipende_piu_da_pymupdf():
         elif isinstance(nodo, ast.ImportFrom) and nodo.module:
             importati.add(nodo.module.split(".")[0])
     assert not (importati & {"fitz", "pymupdf"})
+
+
+@pytest.mark.parametrize('rotation', [0, 90, 180, 270])
+def test_native_unicode_decoder_keeps_rotated_geometry(rotation):
+    from pct.rendering_pdf import apri_documento
+
+    with apri_documento(_pdf(rotazione=rotation)) as document:
+        words = _unicode_words(document, 0)
+        page = document[0]
+        try:
+            width, height = page.get_size()
+        finally:
+            page.close()
+    assert ' '.join(word['text'] for word in words) == TESTO
+    for word in words:
+        assert 0 <= word['x0'] < word['x1'] <= width
+        assert 0 <= word['top'] < word['bottom'] <= height
+
+
+def test_cid_layer_uses_pdf_native_mapping_instead_of_guessing_ascii(monkeypatch):
+    import pdfplumber
+
+    monkeypatch.setattr(pdfplumber.page.Page, 'extract_text', lambda *a, **kw: '(cid:1)(cid:2)')
+    layers = text_layers(_pdf())
+    assert len(layers) == 1
+    assert 'TRIBUNALE' in layers[0]
+    assert '(cid:' not in layers[0]

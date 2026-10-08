@@ -307,7 +307,7 @@
 
 .iu-settings-ai-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
   gap: 8px;
 }
 
@@ -386,7 +386,7 @@
 
 .iu-settings-mobile-ai__grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
   gap: 8px;
 }
 
@@ -465,15 +465,15 @@
 
 .iu-settings-lex-dataset__grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
   gap: 8px;
 }
 
 .iu-settings-lex-dataset__grid button {
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr) auto;
+  grid-template-columns: 24px minmax(0, 1fr);
   align-items: center;
-  gap: 9px;
+  gap: 6px 8px;
   min-width: 0;
   min-height: 66px;
   padding: 10px;
@@ -486,13 +486,28 @@
 
 .iu-settings-lex-dataset__grid button:hover {
   border-color: rgba(30, 58, 138, 0.28);
-  background: #ffffff;
+  background: var(--iu-bg-card);
+}
+
+.iu-settings-lex-dataset__grid button:focus-visible {
+  outline: 2px solid var(--iu-blue-600);
+  outline-offset: 2px;
+}
+
+.iu-settings-lex-dataset__grid button > .ius-status-badge {
+  grid-column: 2;
+  justify-self: start;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .iu-settings-lex-dataset__grid svg {
   width: 18px;
   height: 18px;
   color: var(--ius-accent, #b08968);
+  align-self: start;
+  margin-top: 2px;
 }
 
 .iu-settings-lex-dataset__grid button > div {
@@ -516,14 +531,12 @@
 }
 
 .iu-settings-lex-dataset__grid small {
-  display: -webkit-box;
-  overflow: hidden;
+  display: block;
+  overflow-wrap: break-word;
   color: var(--ius-muted);
   font-size: 11px;
   line-height: 1.35;
   font-weight: 650;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
 }
 
 .iu-settings-lex-review {
@@ -859,4 +872,27 @@
   .iu-settings-mobile-ai__grid {
     grid-template-columns: 1fr;
   }
+}
+.iu-settings-embedding-preparation {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding-block: 8px;
+  overflow-wrap: anywhere;
+}
+
+.iu-settings-embedding-preparation strong {
+  font-size: 0.875rem;
+}
+
+.iu-settings-embedding-preparation span,
+.iu-settings-embedding-preparation small {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.iu-settings-embedding-preparation progress {
+  width: 100%;
+  height: 6px;
+  accent-color: var(--primary);
 }

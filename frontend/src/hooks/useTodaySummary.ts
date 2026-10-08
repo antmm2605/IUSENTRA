@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useOperationalRefresh } from './useOperationalRefresh'
-import { formatDateIt } from '../formatting'
+import { useStudioToday } from './useStudioToday'
 import { fetchTodaySummary } from '../services/topbarApi'
 import type { TopbarTodayPayload } from '../types/topbar'
 
 export function useTodaySummary(open: boolean) {
+  const { date: today } = useStudioToday()
   const [data, setData] = useState<TopbarTodayPayload | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -14,12 +15,11 @@ export function useTodaySummary(open: boolean) {
     const ticket = ++generation.current
     setLoading(true)
     setError('')
-    const today = formatDateIt(new Date()).split('/').reverse().join('-')
     fetchTodaySummary(today)
       .then(result => { if (ticket === generation.current) setData(result) })
       .catch((reason: unknown) => { if (ticket === generation.current) setError(reason instanceof Error ? reason.message : 'Riepilogo non disponibile.') })
       .finally(() => { if (ticket === generation.current) setLoading(false) })
-  }, [])
+  }, [today])
 
   useEffect(() => {
     if (open) load()

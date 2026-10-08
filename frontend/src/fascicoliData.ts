@@ -604,7 +604,7 @@ export type FascicoloAuditTrail = {
 export type FascicoloParty = { id: string; name: string; role: string; taxCode: string; email: string; pec: string; phone: string; href: string }
 export type FascicoloHistory = { date: string; description: string; from: string; to: string; notes: string; lawyer: string }
 export type FascicoloMoney = { id: string; label: string; value: string; note: string; href: string; tone: Tone }
-export type FascicoloSentenzeEconomicheItem = { label: string; hint: string; value: string; tone: Tone }
+export type FascicoloSentenzeEconomicheItem = { label: string; hint: string; value: string; tone: Tone; sources?: Array<{ href: string; label: string; context: string }> }
 export type FascicoloSentenzeEconomiche = {
   totals: {
     sentenze_lette: number
@@ -2571,7 +2571,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
           spese_liquidate_totale: number(t.spese_liquidate_totale),
           contributo_unificato_alert: number(t.contributo_unificato_alert),
         },
-        worklist: asArray(se.worklist).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), hint: text(row.hint), value: text(row.value), tone: text(row.tone, 'neutral') as Tone } }),
+        worklist: asArray(se.worklist).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), hint: text(row.hint), value: text(row.value), tone: text(row.tone, 'neutral') as Tone, sources: asArray(row.sources).filter(isRecord).map(source => ({href:text(source.href),label:text(source.label),context:text(source.context)})) } }),
         kpi: { label: text(kpi.label), value: text(kpi.value), tone: text(kpi.tone, 'neutral') as Tone },
       }
     })(),

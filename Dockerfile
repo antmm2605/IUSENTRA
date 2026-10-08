@@ -143,12 +143,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         fonts-crosextra-carlito \
         fonts-crosextra-caladea \
         fonts-dejavu-core \
+        fonts-noto-core \
+        fonts-noto-extra \
+        fonts-noto-mono \
+        fonts-noto-cjk \
+        fonts-urw-base35 \
         tesseract-ocr \
         tesseract-ocr-ita \
         hunspell \
         hunspell-it \
         poppler-utils \
         antiword \
+        libreoffice-writer \
         ghostscript \
         libjpeg62-turbo \
         libpng16-16 \

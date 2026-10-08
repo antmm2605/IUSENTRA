@@ -61,6 +61,8 @@ def test_lex_dataset_training_status_distingue_rag_review_export_e_job(tmp_path)
     assert cards["sharegpt"]["value"] == 2
     assert cards["manual_training"]["status"] == "Manuale"
     assert cards["latest_job"]["status"] == "Completato"
+    assert cards["latest_job"]["value"] == "17/05/2026 14:30"
+    assert "2026-05-17" not in cards["latest_job"]["note"]
     assert cards["errors"]["status"] == "Da verificare"
 
 
@@ -74,3 +76,17 @@ def test_lex_dataset_training_status_senza_artefatti_resta_neutro(tmp_path):
     assert cards["sharegpt"]["status"] == "Non esportato"
     assert cards["latest_job"]["status"] == "Nessun lavoro"
     assert cards["errors"]["status"] == "Nessun errore"
+
+
+def test_lavoro_invariato_mostra_stato_italiano_e_data_roma(tmp_path):
+    dataset_dir = tmp_path / "intelligence" / "lex_dataset"
+    dataset_dir.mkdir(parents=True)
+    (dataset_dir / "jobs.json").write_text(json.dumps({"jobs": [{
+        "status": "skipped_unchanged", "updated_at": "2026-10-06T01:15:17Z",
+    }]}), encoding="utf-8")
+    payload = build_lex_dataset_training_status(data_root=tmp_path, ai_enabled=True)
+    card = next(card for card in payload["cards"] if card["id"] == "latest_job")
+    assert card["status"] == "Nessuna variazione"
+    assert card["value"] == "06/10/2026 03:15"
+    assert "06/10/2026" not in card["note"]
+    assert payload["latest_job"]["updated_at"] == "2026-10-06T01:15:17Z"

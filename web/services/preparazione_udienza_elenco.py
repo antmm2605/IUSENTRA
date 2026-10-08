@@ -59,7 +59,11 @@ def elenco(*, agenda: Any, fascicoli: Any, preparazioni: Any, oggi: date) -> dic
         "riepilogo": {"settimana": sum(1 for u in udienze if u["dataOra"][:10] <= settimana),
                       "daPreparare": sum(1 for u in udienze if u["stato"] == "Da preparare"),
                       "preparate": sum(1 for u in udienze if u["stato"] in {"Preparata", "Esito registrato"})},
-        "fascicoli": [{"value": f.id, "label": " — ".join(p for p in (f.numero_rg and f"R.G. {f.numero_rg}", f.titolo) if p)}
+        "fascicoli": [{"value": f.id, "label": " · ".join(dict.fromkeys(p for p in (
+            str(getattr(f, 'nome_cliente', '') or ''),
+            f"R.G. {f.numero_rg}{'/' + str(f.anno_rg) if f.anno_rg and '/' not in str(f.numero_rg) else ''}" if f.numero_rg else 'R.G. non registrato',
+            f"Fascicolo {f.numero}" if f.numero else '', str(f.titolo or ''), str(f.tribunale or ''),
+        ) if p))}
                       for f in tutti_fascicoli[:500]],
     }
 

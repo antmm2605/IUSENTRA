@@ -227,6 +227,14 @@ def con_tratti(blocchi: Sequence[dict[str, Any]], parole: Sequence[dict[str, Any
             a_capo = a_capo_del_testo(testo, proprie)
             if a_capo:
                 voce["a_capo"] = a_capo
+                righe = _righe_visive(proprie)
+                # Solo coordinate native: una stima ottica non può fingere
+                # di conoscere le distanze dichiarate dall'autore del PDF.
+                if len(righe) == len(a_capo) + 1 and all("baseline" in parola for parola in proprie):
+                    voce["righe_native_top"] = [
+                        min(float(parola["top"]) for parola in riga) - float(riquadro[1])
+                        for riga in righe
+                    ]
                 # Le righe che arrivano al margine destro sono piene: si
                 # giustificano (anche l'ultima, quando il capoverso continua
                 # nella pagina dopo); le altre restano come sono.

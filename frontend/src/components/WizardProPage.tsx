@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { CalendarClock, CheckCircle2, Gavel, MapPin, Play, UserRound } from 'lucide-react'
 import { inviaPreparazione } from './preparazioneUdienzaApi'
+import { FascicoloSearchSelect } from './FascicoloSearchSelect'
 import './WizardProPage.css'
 
 type Udienza = {
@@ -41,11 +42,7 @@ function RigaUdienza({ u, fascicoli, puoModificare }: { u: Udienza; fascicoli: A
         </p>
         {u.fascicolo?.href ? <a href={u.fascicolo.href}>{u.fascicolo.etichetta}</a> : (
           puoModificare ? (
-            <label className="iu-pu-scelta"><span>Fascicolo dell'udienza</span>
-              <select value={scelta} onChange={(e) => setScelta(e.target.value)}>
-                <option value="">Scegli il fascicolo</option>{fascicoli.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-              </select>
-            </label>
+            <FascicoloSearchSelect options={fascicoli} value={scelta} onChange={setScelta} disabled={occupato}/>
           ) : <em>Udienza non collegata a un fascicolo</em>
         )}
         {errore ? <p className="iu-pu-errore" role="alert">{errore}</p> : null}

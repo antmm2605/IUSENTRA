@@ -1,5 +1,7 @@
 # Changelog
 
+- **Consolidamento 2.436.12 (08/10/2026)**: preservati i recuperi server/locali e i registri delle verifiche aperte; lettura puntuale dell’identità con fonte corrente, separazione carta/tessera sanitaria e Comune emittente CIE riconosciuto. L’incarico resta aperto per i flussi non ancora accettati; nessuna promozione del candidato embedding o invio/firma dichiarato concluso.
+
 - **Verifica fonti dopo deploy 2.436.11**: conteggi e ricerca Normattiva, completamento dell’import Consulta in tutti i corpus con attesa limitata; nessun successo se import incompleto.
 
 - **Copia completa sorgenti Hetzner (07/10/2026)**: confrontati anche AGENTS, moduli OCR e migrazioni SQL. Tutti coincidono con la release dopo normalizzazione LF/CRLF; fissato SHA-256 della copia completa da 30.515 file, senza percorsi esclusi.
@@ -8695,3 +8697,5 @@ Tre difetti reali del presidio PEC, rimasti nascosti perché i test che li copri
 
 
 07/10/2026 — CI: il controllo UTF-8 intercettava la sequenza di lettere maiuscole accentate nella tabella `str.maketrans` del corpus giurisprudenziale. Rappresentati U+00C2/U+00C3 con escape Unicode Python: la tabella a runtime resta identica; scanner e soglie invariati.
+
+07/10/2026 — WIP non rilasciato: candidatura EmbeddingGemma 2 solo locale, indici separati e migrazione su copie; modello precedente ancora operativo. Corretta ricerca tenant/date/testo e intestazione mobile in copia locale, accettazione complessiva e rilascio ancora aperti.

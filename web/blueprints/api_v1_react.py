@@ -2949,7 +2949,18 @@ def clienti_react_nuovo():
 @_richiedi_auth
 def clienti_react_nuovo_documento_leggi():
     try:
-        result = read_client_document_upload(request.files.get("file"))
+        payload = request.get_json(silent=True) if request.is_json else None
+        if isinstance(payload, dict) and payload.get('id_fascicolo'):
+            if not (_session_user_can('clienti.scrivi') and _session_user_can('fascicoli.leggi')):
+                return jsonify({'ok': False, 'message': 'Permessi insufficienti per leggere il documento del cliente.'}), 403
+            from web.services.client_document_reader import read_client_case_document
+            from web.services.document_intelligence_runtime import build_document_ai_service, document_ai_tenant_id, document_ai_user_context
+            service = build_document_ai_service()
+            result = read_client_case_document(get_fascicoli(), service.repository,
+                document_ai_tenant_id(), str(payload['id_fascicolo']), str(payload.get('id_cliente') or ''), str(payload.get('id_documento') or ''),
+                service=service, user_context=document_ai_user_context())
+        else:
+            result = read_client_document_upload(request.files.get("file"))
         return jsonify(result), 200 if result.get("ok") else 422
     except ClientDocumentReaderError as exc:
         message = exc.public_message

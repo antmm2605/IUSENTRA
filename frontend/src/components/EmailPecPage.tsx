@@ -312,6 +312,7 @@ function auditEventLabel(value: string): string {
     penale_snt: 'SNT penale',
     penale_deposito_portale: 'Portale penale',
     ricevuta_pec: 'Ricevuta PEC',
+    ricevuta_sdi: 'Ricevuta SdI',
   }
   return labels[value] || value.replace(/_/g, ' ')
 }
@@ -477,7 +478,8 @@ function uniqueText(values: string[]): string[] {
 }
 
 function PecProceduralProfile({ audit, compact = false }: { audit?: PecAuditSummary; compact?: boolean }) {
-  const matterClient = usePecFascicoloCliente(audit?.persisted ? pecFascicoloClienteUrl(audit.id) : '')
+  const fiscal = audit?.eventType === 'ricevuta_sdi'
+  const matterClient = usePecFascicoloCliente(audit?.persisted && !fiscal ? pecFascicoloClienteUrl(audit.id) : '')
   if (!audit) return null
   const matterFacts = pecFascicoloClienteFacts(matterClient)
   const profile = record(audit.proceduralProfile)
@@ -496,7 +498,12 @@ function PecProceduralProfile({ audit, compact = false }: { audit?: PecAuditSumm
     .filter(Boolean)
   const parteConRuolo = parteProcessuale && ruoloParte ? `${parteProcessuale} (${ruoloParte})` : parteProcessuale
   const partiLabel = uniqueText(soggettiParti.length ? soggettiParti : partiProcessuali).join(' / ')
-  const facts = [
+  const fiscalLabels: Record<string, string> = { CONSEGNATA: 'Consegnata', SCARTATA: 'Scartata', MANCATA_CONSEGNA: 'Non recapitata', DECORRENZA_TERMINI: 'Decorrenza termini' }
+  const facts = (fiscal ? recordArray(profile.ricevute_sdi).flatMap((receipt) => [
+    ['Identificativo SdI', text(receipt.sdi_id)],
+    ['Documento trasmesso', text(receipt.filename)],
+    ['Esito letto', fiscalLabels[text(receipt.status)] || text(receipt.status)],
+  ]) : [
     // Il cliente del fascicolo prevale sul nominativo estratto dal testo PEC.
     ...(matterFacts.length ? matterFacts : [['Cliente', cliente]]),
     ['Parte/Soggetto', parteConRuolo],
@@ -507,7 +514,7 @@ function PecProceduralProfile({ audit, compact = false }: { audit?: PecAuditSumm
     ['Evento', profileValue(audit, 'tipo_evento') || profileValue(audit, 'oggetto_evento')],
     ['Udienza', profileValue(audit, 'udienza_data_ora')],
     ['Modalità', profileValue(audit, 'modalita_udienza')],
-  ].filter(([, value]) => value)
+  ]).filter(([, value]) => value)
   const links = recordArray(remote.links)
   const times = stringArray(remote.times)
   const pdfPending = stringArray(remote.pdf_pending ?? remote.pdfPending)
@@ -518,9 +525,9 @@ function PecProceduralProfile({ audit, compact = false }: { audit?: PecAuditSumm
   const mode = text(remote.mode) || profileValue(audit, 'modalita_udienza')
   const remoteDetected = Boolean(remote.detected || remote.pdf_required || remote.pdfRequired || links.length || mode)
   return (
-    <section className={`iu-pec-procedural-profile${compact ? ' is-compact' : ''}`} aria-label="Profilo processuale PEC">
+    <section className={`iu-pec-procedural-profile${compact ? ' is-compact' : ''}`} aria-label={fiscal ? 'Esito fatturazione SdI' : 'Profilo processuale PEC'}>
       <header>
-        <span>Profilo processuale</span>
+        <span>{fiscal ? 'Esito fatturazione SdI' : 'Profilo processuale'}</span>
         <strong>{profileValue(audit, 'fase_pratica') || 'Evento da presidiare'}</strong>
       </header>
       {facts.length ? (
@@ -1156,7 +1163,7 @@ function EmailFullDetail({
   const stateLabel = detail.bodyCompletenessLabel || (
     hasOriginal
       ? 'EML originale acquisito.'
-      : 'Acquisisci il MIME originale per vedere la PEC completa.'
+      : 'Il messaggio originale MIME non è ancora acquisito.'
   )
   return (
     <div className="iu-mail-full-detail" aria-label={title}>
@@ -1708,7 +1715,8 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id))
   const bulkActionKind = folder === 'CESTINO' ? 'delete' : 'trash'
   const bulkActionLabel = folder === 'CESTINO' ? 'Elimina selezione' : 'Sposta nel cestino'
-  const selectedAudit = detail?.pecAudit ?? selected?.pecAudit
+  const selectedDetail = detail?.item?.id === selected?.id ? detail : null
+  const selectedAudit = selectedDetail?.pecAudit ?? selected?.pecAudit
   const loadedRows = data.items.length
   const listCountLabel = loading ? 'Caricamento dei messaggi…' : pageError ? 'Vista non disponibile' : data.summary.filtered === 0 ? '0 messaggi' : pageOffset >= data.summary.filtered ? 'Aggiornamento dei messaggi…' : data.summary.filtered > loadedRows || pageOffset > 0
     ? `Messaggi ${loadedRows ? pageOffset + 1 : 0}–${pageOffset + loadedRows} di ${data.summary.filtered}`
@@ -2141,7 +2149,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
             </button>
             <span>Lettura email</span>
           </div>
-          {!pageError ? detailError ? <section className="iu-mail-empty" role="alert"><AlertTriangle size={26} /><strong>Caricamento del messaggio non riuscito</strong><span>{detailError}</span><button type="button" className="iu-mail-filter-btn" onClick={() => setDetailReloadKey(value => value + 1)} disabled={detailLoading}><RefreshCw size={16} /> {detailLoading ? 'Caricamento…' : 'Riprova'}</button></section> : <EmailPreview item={selected} detail={detail} detailLoading={detailLoading} onAction={runAction} copy={copy} /> : null}
+          {!pageError ? detailError ? <section className="iu-mail-empty" role="alert"><AlertTriangle size={26} /><strong>Caricamento del messaggio non riuscito</strong><span>{detailError}</span><button type="button" className="iu-mail-filter-btn" onClick={() => setDetailReloadKey(value => value + 1)} disabled={detailLoading}><RefreshCw size={16} /> {detailLoading ? 'Caricamento…' : 'Riprova'}</button></section> : <EmailPreview item={selected} detail={selectedDetail} detailLoading={detailLoading} onAction={runAction} copy={copy} /> : null}
         </div>
         {!pageError && mode === 'pec' && selectedAudit ? (
           <section className="iu-mail-selected-pec-panel" aria-label="Profilo PEC selezionata">

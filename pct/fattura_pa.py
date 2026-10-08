@@ -17,6 +17,8 @@ import hashlib
 import re
 import uuid
 from datetime import date
+from functools import lru_cache
+from pathlib import Path
 from typing import Optional, TYPE_CHECKING
 
 from lxml import etree
@@ -28,7 +30,15 @@ if TYPE_CHECKING:
 
 # Namespace FatturaPA
 _NS = "http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2"
-_NSMAP = {None: _NS}
+_NSMAP = {"p": _NS}
+
+# Il tracciato ufficiale ammette Basic Latin e Latin-1, non la punteggiatura
+# tipografica Unicode. Conserviamo il testo nel documento, adattando solo XML.
+_XML_PUNCTUATION = str.maketrans({
+    "\u2010": "-", "\u2011": "-", "\u2012": "-", "\u2013": "-", "\u2014": "-",
+    "\u2018": "'", "\u2019": "'", "\u201a": "'", "\u201c": '"', "\u201d": '"',
+    "\u201e": '"', "\u2026": "...", "\u2022": "*", "\u202f": " ", "\u20ac": "EUR",
+})
 
 # Codice regime fiscale (RF01 = ordinario, RF19 = forfettario)
 REGIME_ORDINARIO   = "RF01"
@@ -58,11 +68,50 @@ _TIPO_CASSA_MAP = {
 }
 
 
+
+class FatturaPAValidationError(ValueError):
+    """Il tracciato non supera lo schema ufficiale installato localmente."""
+
+
+class _FatturaPASchemaResolver(etree.Resolver):
+    def resolve(self, url, public_id, context):
+        if url.endswith("xmldsig-core-schema.xsd"):
+            return self.resolve_filename(str(Path(__file__).parent / "data/fatturapa/xmldsig-core-schema.xsd"), context)
+        raise OSError("Dipendenza dello schema FatturaPA non disponibile localmente.")
+
+
+@lru_cache(maxsize=1)
+def _fattura_pa_schema():
+    parser = etree.XMLParser(no_network=True, resolve_entities=False)
+    parser.resolvers.add(_FatturaPASchemaResolver())
+    schema_path = Path(__file__).parent / "data/fatturapa/Schema_VFPR12_v1.2.3.xsd"
+    # Il documento principale è letto direttamente; solo gli import sono risolti.
+    with schema_path.open("rb") as stream:
+        schema_document = etree.parse(stream, parser, base_url=str(schema_path))
+    return etree.XMLSchema(schema_document)
+
+
+def valida_xml_fattura_pa(payload: bytes) -> None:
+    """Valida offline; non trasmette testo, documenti o dati dello studio."""
+    parser = etree.XMLParser(no_network=True, resolve_entities=False)
+    try:
+        root = etree.fromstring(payload, parser)
+        _fattura_pa_schema().assertValid(root)
+    except etree.DocumentInvalid as exc:
+        paths = list(dict.fromkeys(error.path or "Documento" for error in exc.error_log))
+        raise FatturaPAValidationError(
+            "XML FatturaPA non conforme: controlla i campi " + ", ".join(paths[:5]) + "."
+        ) from exc
+    except (etree.XMLSyntaxError, etree.XMLSchemaParseError, OSError) as exc:
+        raise FatturaPAValidationError("Validazione XML FatturaPA non disponibile: documento non preparato per la firma o l’invio.") from exc
+
+
 def _el(parent: etree._Element, tag: str, text: str = "") -> etree._Element:
     """Crea e aggiunge un sub-element, omette se text è vuoto."""
-    e = etree.SubElement(parent, f"{{{_NS}}}{tag}")
+    # Lo schema FPR12 qualifica soltanto la radice; i figli sono senza namespace.
+    e = etree.SubElement(parent, tag)
     if text:
-        e.text = str(text)
+        e.text = str(text).translate(_XML_PUNCTUATION)
     return e
 
 
@@ -282,17 +331,6 @@ def genera_xml_fattura_pa(
     aliquota_iva = float(getattr(parcella, "aliquota_iva", 22.0) or 22.0) if iva_applicabile else 0.0
     aliquota_iva_xml = f"{aliquota_iva:.2f}"
 
-    if parcella.applica_cassa and parcella.cassa_forense > 0:
-        dcp = _el(dgd, "DatiCassaPrevidenziale")
-        _el(dcp, "TipoCassa", tipo_cassa)
-        _el(dcp, "AlCassa", "4.00")
-        _el(dcp, "ImportoContributoCassa", f"{parcella.cassa_forense:.2f}")
-        _el(dcp, "ImponibileCassa", f"{parcella.imponibile:.2f}")
-        _el(dcp, "AliquotaIVA", aliquota_iva_xml)
-        if not iva_applicabile:
-            _el(dcp, "Natura", "N2.2")
-        _el(dcp, "Ritenuta", "SI" if parcella.applica_ritenuta else "NO")
-
     if parcella.applica_ritenuta and parcella.ritenuta > 0:
         dr = _el(dgd, "DatiRitenuta")
         _el(dr, "TipoRitenuta", "RT01")
@@ -304,6 +342,18 @@ def genera_xml_fattura_pa(
         db = _el(dgd, "DatiBollo")
         _el(db, "BolloVirtuale", "SI")
         _el(db, "ImportoBollo", f"{parcella.bollo:.2f}")
+
+    if parcella.applica_cassa and parcella.cassa_forense > 0:
+        dcp = _el(dgd, "DatiCassaPrevidenziale")
+        _el(dcp, "TipoCassa", tipo_cassa)
+        _el(dcp, "AlCassa", "4.00")
+        _el(dcp, "ImportoContributoCassa", f"{parcella.cassa_forense:.2f}")
+        _el(dcp, "ImponibileCassa", f"{parcella.imponibile:.2f}")
+        _el(dcp, "AliquotaIVA", aliquota_iva_xml)
+        if parcella.applica_ritenuta:
+            _el(dcp, "Ritenuta", "SI")
+        if not iva_applicabile:
+            _el(dcp, "Natura", "N2.2")
 
     _el(dgd, "ImportoTotaleDocumento", f"{parcella.totale_documento:.2f}")
     causale = causale_documento_economico(
@@ -345,17 +395,6 @@ def genera_xml_fattura_pa(
             _el(dl_spese, "Natura", natura)
         line_number += 1
 
-    if parcella.applica_cassa and parcella.cassa_forense > 0:
-        dl_cassa = _el(dbs, "DettaglioLinee")
-        _el(dl_cassa, "NumeroLinea", str(line_number))
-        _el(dl_cassa, "Descrizione", "Contributo Cassa Forense 4% (art. 11 L. 576/1980)")
-        _el(dl_cassa, "Quantita", "1.00")
-        _el(dl_cassa, "PrezzoUnitario", f"{parcella.cassa_forense:.8f}")
-        _el(dl_cassa, "PrezzoTotale", f"{parcella.cassa_forense:.2f}")
-        _el(dl_cassa, "AliquotaIVA", aliquota)
-        if natura:
-            _el(dl_cassa, "Natura", natura)
-
     dr_rie = _el(dbs, "DatiRiepilogo")
     _el(dr_rie, "AliquotaIVA", aliquota)
     if natura:
@@ -365,10 +404,11 @@ def genera_xml_fattura_pa(
             if regime_fiscale == REGIME_FORFETTARIO
             else "Operazione non soggetta ad IVA in base al regime fiscale applicato"
         )
-        _el(dr_rie, "RiferimentoNormativo", riferimento_normativo)
     _el(dr_rie, "ImponibileImporto", f"{parcella.base_iva:.2f}")
     _el(dr_rie, "Imposta", f"{parcella.iva:.2f}")
     _el(dr_rie, "EsigibilitaIVA", _clean(document_snapshot.get("esigibilita_iva"), 1) or "I")
+    if natura:
+        _el(dr_rie, "RiferimentoNormativo", riferimento_normativo)
     if parcella.totale_anticipazioni > 0:
         dr_art15 = _el(dbs, "DatiRiepilogo")
         _el(dr_art15, "AliquotaIVA", "0.00")
@@ -381,40 +421,60 @@ def genera_xml_fattura_pa(
     _el(dp, "CondizioniPagamento", "TP02")
     ddp = _el(dp, "DettaglioPagamento")
     codice_mp = modalita_pagamento_codice or _METODO_MAP.get(modalita_pagamento_label or parcella.metodo_pagamento or "", MP_BONIFICO)
-    _el(ddp, "ModalitaPagamento", codice_mp)
     if _clean(payment_snapshot.get("beneficiario")):
         _el(ddp, "Beneficiario", _clean(payment_snapshot.get("beneficiario"), 200))
+    _el(ddp, "ModalitaPagamento", codice_mp)
+    giorni_termini = _digits(payment_snapshot.get("giorni_termini"), 3)
+    if giorni_termini:
+        _el(ddp, "GiorniTerminiPagamento", giorni_termini)
+    data_scadenza_pagamento = _clean(payment_snapshot.get("data_decorrenza") or parcella.data_scadenza, 10)
+    if data_scadenza_pagamento:
+        _el(ddp, "DataScadenzaPagamento", data_scadenza_pagamento)
+    _el(ddp, "ImportoPagamento", f"{importo_pagamento:.2f}")
     if _clean(payment_snapshot.get("istituto_finanziario")):
         _el(ddp, "IstitutoFinanziario", _clean(payment_snapshot.get("istituto_finanziario"), 80))
     if _clean(payment_snapshot.get("iban")):
         _el(ddp, "IBAN", _clean(payment_snapshot.get("iban"), 34))
     if _clean(payment_snapshot.get("bic_swift")):
         _el(ddp, "BIC", _clean(payment_snapshot.get("bic_swift"), 11))
-    data_scadenza_pagamento = _clean(payment_snapshot.get("data_decorrenza") or parcella.data_scadenza, 10)
-    if data_scadenza_pagamento:
-        _el(ddp, "DataScadenzaPagamento", data_scadenza_pagamento)
-    giorni_termini = _digits(payment_snapshot.get("giorni_termini"), 3)
-    if giorni_termini:
-        _el(ddp, "GiorniTerminiPagamento", giorni_termini)
-    _el(ddp, "ImportoPagamento", f"{importo_pagamento:.2f}")
 
-    return etree.tostring(root, pretty_print=True,
-                          xml_declaration=True, encoding="UTF-8",
-                          standalone=True)
+    xml_bytes = etree.tostring(root, pretty_print=True,
+                              xml_declaration=True, encoding="UTF-8", standalone=True)
+    valida_xml_fattura_pa(xml_bytes)
+    return xml_bytes
 
 
-def nome_file_fattura_pa(
-    studio_piva: str,
-    progressivo: str,
-) -> str:
+def progressivo_file_fattura_pa(number: str) -> str:
+    """Codifica bijettiva della numerazione nativa, senza tagli o hash.
+
+    Il dominio 2000–2100 coincide con la numerazione configurabile IUSENTRA.
+    La fascia iniziale alfabetica separa i nuovi codici dai vecchi YYNNN.
     """
-    Genera il nome file conforme alle specifiche SDI.
-    Formato: IT{PIVA}_{PROGRESSIVO}.xml
-    Esempio: IT01234567890_00001.xml
-    """
-    codice = (studio_piva or "00000000000")[:11]
-    prog   = progressivo.replace("/", "").replace("-", "")[:5].zfill(5)
-    return f"IT{codice}_{prog}.xml"
+    raw = str(number or "").strip()
+    match = re.fullmatch(r"(20[0-9]{2}|2100)/([0-9]+)", raw)
+    if match:
+        year, sequence = map(int, match.groups())
+        if not 1 <= sequence < 400_000:
+            raise FatturaPAValidationError("Numero fattura fuori dal dominio del progressivo XML: nessun nome file troncato.")
+        value = 10 * 36**4 + (year - 2000) * 400_000 + sequence
+        alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        encoded = ""
+        while value:
+            value, remainder = divmod(value, 36)
+            encoded = alphabet[remainder] + encoded
+        return encoded.rjust(5, "0")
+    if re.fullmatch(r"[A-Za-z0-9]{1,5}", raw):
+        return raw
+    raise FatturaPAValidationError("Progressivo XML non valido: sono ammessi da uno a cinque caratteri alfanumerici, senza troncamento.")
+
+
+def nome_file_fattura_pa(studio_piva: str, progressivo: str, *, paese: str = "IT") -> str:
+    """Nome SdI: identificativo del trasmittente e progressivo alfanumerico."""
+    codice = str(studio_piva or "").strip().upper()
+    country = str(paese or "").strip().upper()
+    if not re.fullmatch(r"[A-Z]{2}", country) or not re.fullmatch(r"[A-Z0-9]{1,28}", codice):
+        raise FatturaPAValidationError("Identificativo fiscale del trasmittente XML non valido: controlla i dati dello studio.")
+    return f"{country}{codice}_{progressivo_file_fattura_pa(progressivo)}.xml"
 
 
 # ---------------------------------------------------------------- helpers

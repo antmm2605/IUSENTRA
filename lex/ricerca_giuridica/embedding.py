@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 import numpy as np
+from pct import embeddinggemma2
 
 from .testo import termini_indice
 
@@ -53,8 +54,8 @@ def _errore_del_contenuto(exc: BaseException) -> bool:
         dettaglio = ""
     # il modello non si carica (GPU non disponibile, driver, memoria): il problema non e' nel testo
     return not any(segno in dettaglio for segno in _SEGNI_GUASTO_SERVER)
-PREFISSO_DOMANDA = "task: search result | query: "
-PREFISSO_DOCUMENTO = "title: {titolo} | text: "
+PREFISSO_DOMANDA = embeddinggemma2.QUERY_PREFIX if embeddinggemma2.RUNTIME == "litert" else "task: search result | query: "
+PREFISSO_DOCUMENTO = "task: search result | text: {titolo}\n" if embeddinggemma2.RUNTIME == "litert" else "title: {titolo} | text: "
 
 
 class Embedder(Protocol):
@@ -66,6 +67,8 @@ class Embedder(Protocol):
 
 
 def modello_configurato() -> str:
+    if embeddinggemma2.configured():
+        return embeddinggemma2.MODEL
     return (
         str(os.getenv("LEX_EMBED_MODEL", "") or "").strip()
         or str(os.getenv("PCT_LOCAL_AI_EMBED_MODEL", "") or "").strip()
@@ -74,6 +77,8 @@ def modello_configurato() -> str:
 
 
 def url_configurato() -> str:
+    if embeddinggemma2.configured():
+        return embeddinggemma2.base_url()
     for nome in ("LEX_EMBED_URL", "PCT_LOCAL_AI_BASE_URL", "OLLAMA_URL"):
         valore = str(os.getenv(nome, "") or "").strip()
         if valore:
@@ -133,6 +138,14 @@ class OllamaEmbedder:
 
     def __post_init__(self) -> None:
         self.modello = self.modello or modello_configurato()
+        if self.modello == embeddinggemma2.MODEL:
+            # Il servizio locale ha un contratto proprio: niente endpoint esterni,
+            # tag Ollama presunti o recupero mediante troncamento delle fonti.
+            checked_url = embeddinggemma2.base_url()
+            if self.url and self.url.rstrip("/") != checked_url:
+                raise ValueError("Endpoint embedding diverso dal servizio locale governato")
+            self.url = checked_url
+            self.paralleli = 1
         self.keep_alive = str(self.keep_alive or os.getenv("LEX_EMBED_KEEP_ALIVE", "") or "24h").strip()
         # piu' istanze Ollama separate da virgola (stesso modello): le richieste vengono distribuite a turno.
         # Misurato: una singola istanza non accelera con OLLAMA_NUM_PARALLEL; piu' istanze lavorano davvero insieme.
@@ -151,6 +164,11 @@ class OllamaEmbedder:
         """Versione dei pesi: digest da ``/api/tags``, altrimenti ``modified_at`` da ``/api/show``."""
 
         if self._digest is not None:
+            return self._digest
+        if self.modello == embeddinggemma2.MODEL:
+            if not embeddinggemma2.LocalEmbeddingClient().health():
+                raise RuntimeError("Revisione del modello locale non verificata")
+            self._digest = embeddinggemma2.REVISION
             return self._digest
         import requests
 
@@ -188,6 +206,12 @@ class OllamaEmbedder:
         return self.urls[next(self._turno) % len(self.urls)]
 
     def _embed_una_volta(self, testi: list[str]) -> np.ndarray:
+        if self.modello == embeddinggemma2.MODEL:
+            result = embeddinggemma2.LocalEmbeddingClient().embed_texts(self.modello, testi)
+            matrice = np.asarray(result["embeddings"], dtype=np.float32)
+            if self.dimensioni and self.dimensioni < 768:
+                matrice = normalizza_righe(matrice[:, :self.dimensioni])
+            return matrice
         import requests
 
         corpo: dict[str, Any] = {"model": self.modello, "input": list(testi), "truncate": True, "keep_alive": self.keep_alive}
@@ -233,9 +257,18 @@ class OllamaEmbedder:
         diviso a meta' fino a isolare il testo che lo fa fallire, che viene poi accorciato
         (``_embed_testo_difficile``): un solo chunk anomalo non ferma la costruzione dell'indice."""
 
+        if self.modello == embeddinggemma2.MODEL:
+            # Un errore resta nel checkpoint del lotto. I retry vengono
+            # governati dal job; non moltiplicare qui timeout da 120 secondi.
+            try:
+                return self._embed_una_volta(testi)
+            except Exception as exc:
+                raise RuntimeError("Calcolo embedding locale non riuscito") from exc
         try:
             return self._embed_con_tentativi(testi)
         except RuntimeError as exc:
+            if self.modello == embeddinggemma2.MODEL:
+                raise  # La fonte completa resta in errore, non viene accorciata.
             if not _errore_del_contenuto(exc):
                 raise  # Ollama spento o irraggiungibile: inutile dividere
             if len(testi) > 1:
@@ -378,7 +411,9 @@ def _copia_con_timeout(embedder: Any, timeout: float) -> Any:
 
 def testo_documento(titolo: str, testo: str, *, massimo: int = 2400) -> str:
     titolo_pulito = " ".join(str(titolo or "").split()) or "none"
-    corpo = " ".join(str(testo or "").split())[:massimo]
+    corpo = " ".join(str(testo or "").split())
+    if not embeddinggemma2.configured():
+        corpo = corpo[:massimo]
     return PREFISSO_DOCUMENTO.format(titolo=titolo_pulito) + corpo
 
 

@@ -75,6 +75,7 @@
     "frontend/src/components/EditorProfessionalePage.css",
     "frontend/src/components/EmailPecPage.css",
     "frontend/src/components/FascicoliPage.css",
+    "frontend/src/components/FascicoloSearchSelect.css",
     "frontend/src/components/FatturazionePage.css",
     "frontend/src/components/GiurisprudenzaPage.css",
     "frontend/src/components/GuidaPraticaSidebar.css",
@@ -183,6 +184,20 @@
     "frontend/src/components/strumenti/DocumentChecksTool.css"
   ],
   "allowedInlineStyles": [
+    {
+      "file": "frontend/src/components/documentCapture/OcrSaveChoices.tsx",
+      "snippets": ["style={{ maxHeight: posto.altezza }}"],
+      "reason": "Il menu di salvataggio OCR limita l’altezza allo spazio realmente disponibile nel viewport; colori e presentazione restano nel CSS condiviso."
+    },
+    {
+      "file": "frontend/src/components/documentCapture/OcrFoglio.tsx",
+      "snippets": [
+        "style={{ rowGap: '12px' }}",
+        "style={{ width: larghezza, height: larghezza * altezzaMm / larghezzaMm, position: 'relative' }}",
+        "style={{ ...stileDellaPagina(marginiDellaPagina(blocchi, geometria), geometria),"
+      ],
+      "reason": "Geometria misurata del documento OCR: dimensioni originali in millimetri, scala adattiva al pannello e separazione delle pagine nel lettore condiviso. Nessun tema alternativo o libertà di styling generica."
+    },
     {
       "file": "frontend/src/components/SourceDocumentModal.tsx",
       "snippets": [

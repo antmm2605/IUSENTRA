@@ -444,6 +444,9 @@ def elimina(id_parcella: str):
 @fatturazione.route("/<id_parcella>/pdf", methods=["GET"])
 @_richiedi_login
 def pdf(id_parcella: str):
+    user = g.get("utente_corrente")
+    if not user or not getattr(user, "ha_permesso", lambda _permission: False)("fatturazione.leggi"):
+        abort(403)
     gf = _get_gf()
     p = gf.get(id_parcella)
     if not p:
@@ -452,48 +455,17 @@ def pdf(id_parcella: str):
     fascicolo = get_fascicoli().get(p.id_fascicolo) if p.id_fascicolo else None
     tenant_config = _tenant_fatturazione_config()
     buf = _genera_pdf(p, cliente, fascicolo, tenant_config)
-    audit_proof = None
     personalized = p.dati_personalizzati if isinstance(getattr(p, "dati_personalizzati", None), dict) else {}
     document_snapshot = personalized.get("document") if isinstance(personalized.get("document"), dict) else {}
     is_proforma = str(document_snapshot.get("documento_operativo") or "").strip().upper() == "PROFORMA"
-    try:
-        if is_proforma:
-            raise LookupError("La proforma non produce una ricevuta emessa.")
-        from audit.integrations import emit_receipt_issued
-
-        base_pdf = buf.getvalue()
-        issued_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-        result = emit_receipt_issued(
-            fascicolo_id=getattr(p, "id_fascicolo", "") or "",
-            receipt_id=str(getattr(p, "id", "") or id_parcella),
-            invoice_id=str(getattr(p, "id", "") or id_parcella),
-            issued_at=issued_at,
-            amount_hash=hashlib.sha256(f"{getattr(p, 'id', id_parcella)}:{getattr(p, 'totale', '')}:{getattr(p, 'stato', '')}".encode("utf-8")).hexdigest(),
-            receipt_sha256=hashlib.sha256(base_pdf).hexdigest(),
-            size_bytes=len(base_pdf),
-            storage_ref=f"invoice://{id_parcella}/pdf-base",
-            idempotency_key=f"RECEIPT_ISSUED:{getattr(p, 'id_fascicolo', '')}:{id_parcella}",
-        )
-        if result:
-            audit_proof = {
-                "event_id": result.event_id,
-                "event_hash": result.event_hash,
-                "event_ts_utc": issued_at,
-                "kind": "RECEIPT_ISSUED",
-                "snapshot_status": "Inclusione snapshot in attesa",
-                "proof_href": f"/audit/proof/{result.event_id}",
-            }
-    except LookupError:
-        pass
-    except Exception as exc:
-        if current_app.config.get("AUDIT_ENABLED"):
-            raise
-        current_app.logger.debug("Audit probatorio ricevuta non emesso: %s", exc)
-    if audit_proof:
-        buf = _genera_pdf(p, cliente, fascicolo, tenant_config, audit_proof=audit_proof)
+    # La consultazione del PDF non emette una fattura né una ricevuta di incasso.
     file_prefix = "proforma" if is_proforma else "parcella"
     nome_file = f"{file_prefix}_{p.numero.replace('/', '-')}.pdf"
     download = (request.args.get("download") or "").strip().lower() in {"1", "true", "yes", "download"}
+    from web.services.react_fatturazione_pdf_preview import fatturazione_pdf_preview_response
+    preview = fatturazione_pdf_preview_response(buf.getvalue(), nome_file)
+    if preview is not None and not download:
+        return preview
     return send_file(buf, mimetype="application/pdf",
                      as_attachment=download, download_name=nome_file)
 
@@ -504,30 +476,21 @@ def pdf(id_parcella: str):
 @_richiedi_login
 def xml_fattura_pa(id_parcella: str):
     """Genera e scarica il file XML FatturaPA 1.2 per la parcella."""
-    from pct.fattura_pa import genera_xml_fattura_pa, nome_file_fattura_pa
+    from flask import jsonify
+    from pct.fattura_pa import FatturaPAValidationError
+    from web.services.react_fatturazione_archive_actions import _is_proforma, _xml_bytes
     gf = _get_gf()
     p = gf.get(id_parcella)
     if not p:
         abort(404)
+    if _is_proforma(p):
+        return jsonify(ok=False, message="La proforma non è una fattura elettronica: conferma il documento prima di preparare l’XML."), 409
     cliente = get_clienti().get(p.id_cliente)
     cfg = _tenant_fatturazione_config()
-    studio_nome = cfg.get("STUDIO_NOME", "Studio Legale")
-    studio_piva = p.studio_piva or cfg.get("STUDIO_PIVA", "")
-    studio_cf   = p.studio_cf   or cfg.get("STUDIO_CF", "")
-    studio_ind  = p.studio_indirizzo or cfg.get("STUDIO_INDIRIZZO", "")
-    pec_cl = ""
-    if cliente and getattr(cliente, "recapiti", None):
-        pec_cl = getattr(cliente.recapiti, "pec", "")
-    xml_bytes = genera_xml_fattura_pa(
-        parcella=p,
-        cliente=cliente,
-        studio_nome=studio_nome,
-        studio_piva=studio_piva,
-        studio_cf=studio_cf,
-        studio_indirizzo=studio_ind,
-        pec_destinatario=pec_cl,
-    )
-    nome = nome_file_fattura_pa(studio_piva, p.numero)
+    try:
+        xml_bytes, nome = _xml_bytes(p, cliente, cfg)
+    except FatturaPAValidationError as exc:
+        return jsonify(ok=False, message=str(exc), errors={"xml": str(exc)}), 422
     return send_file(
         io.BytesIO(xml_bytes),
         mimetype="application/xml",
@@ -606,7 +569,9 @@ def _genera_pdf(p, cliente, fascicolo, config, audit_proof: dict | None = None) 
     document_title = {
         "PROFORMA": "PROFORMA",
         "NOTA_CREDITO": "NOTA DI CREDITO",
-    }.get(operation, "PARCELLA PROFESSIONALE")
+    }.get(operation, "FATTURA")
+    if str(getattr(p.stato, "value", p.stato)).upper() == "BOZZA" and operation != "PROFORMA":
+        document_title += " · BOZZA"
 
     def safe(value: object) -> str:
         return html.escape(str(value or ""), quote=True)
@@ -722,13 +687,16 @@ def _genera_pdf(p, cliente, fascicolo, config, audit_proof: dict | None = None) 
 
     # ---- Riepilogo importi
     rows = []
+    if p.spese_generali:
+        rows.append([f"Spese generali ({p.percentuale_spese_generali:g} %)", format_euro_it(p.spese_generali)])
     rows.append(["Imponibile", format_euro_it(p.imponibile)])
     if p.applica_cassa:
         rows.append(["Contributo Cassa Forense (4 %)", format_euro_it(p.cassa_forense)])
-    if p.applica_iva:
-        rows.append([f"IVA 22 % su {format_euro_it(p.base_iva)}", format_euro_it(p.iva)])
+    if p.iva_applicabile:
+        rows.append([f"IVA {p.aliquota_iva:g} % su {format_euro_it(p.base_iva)}", format_euro_it(p.iva)])
     if p.applica_bollo:
-        rows.append(["Marca da bollo", format_euro_it(p.bollo)])
+        label_bollo = "Bollo virtuale a carico dello studio (non addebitato)" if p.bollo_addebitato == 0 else "Bollo virtuale addebitato"
+        rows.append([label_bollo, format_euro_it(p.bollo)])
     if p.applica_ritenuta:
         rows.append(["Ritenuta d'acconto (20 %)", f"- {format_euro_it(p.ritenuta)}"])
     rows.append(["TOTALE", format_euro_it(p.totale)])
@@ -756,6 +724,12 @@ def _genera_pdf(p, cliente, fascicolo, config, audit_proof: dict | None = None) 
         ("BACKGROUND", (0, -1), (-1, -1), LIGHT_BG),
     ]))
     story.append(rie_tbl)
+    if p.regime_fiscale == "RF19":
+        story.append(Spacer(1, 2*mm))
+        story.append(Paragraph("Regime forfettario RF19 · Operazione non soggetta a IVA (N2.2).", style_small))
+    elif p.regime_fiscale == "RF02":
+        story.append(Spacer(1, 2*mm))
+        story.append(Paragraph("Regime dei contribuenti minimi RF02 · Operazione non soggetta a IVA (N2.2).", style_small))
     story.append(Spacer(1, 6*mm))
 
     calc_summary = riepilogo_contesto_economico(p.log_calcolo)

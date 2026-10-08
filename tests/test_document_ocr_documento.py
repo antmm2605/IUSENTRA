@@ -342,15 +342,13 @@ def test_il_testo_si_ricompone_nell_ordine_in_cui_si_legge(niente_ocr):
     assert testo.index("TRIBUNALE") < testo.index("R.G.") < testo.index("P.Q.M") < testo.index("Avv. Mario Rossi")
 
 
-def test_le_correzioni_forensi_si_applicano_e_si_dichiarano(niente_ocr):
-    """Le stesse regole della pipeline probatoria, applicate al testo in pagina."""
+def test_il_testo_nativo_non_subisce_correzioni_ocr(niente_ocr):
+    """Un originale digitale conserva anche la punteggiatura dell'autore."""
     esito = riconoscimento.riconosci_pagina(_pdf_formattato(), "atto.pdf", 1)
     testo = " ".join(esito.paragraphs)
-    assert "art. 183" in testo and "art . 183" not in testo
-    assert "mario@rossi.pec.it" in testo
-    regole = {voce["regola"] for voce in esito.correzioni}
-    assert {"punct.art.v1", "space.pec.v1"} <= regole
-    assert all(voce["occorrenze"] >= 1 for voce in esito.correzioni)
+    assert "art . 183" in testo
+    assert "mario @ rossi.pec.it" in testo
+    assert esito.correzioni == []
 
 
 def test_i_riferimenti_giuridici_aiutano_a_riconoscere_il_documento(niente_ocr):
@@ -497,12 +495,12 @@ def test_quello_che_non_e_formato_del_documento_non_passa(stile):
     assert stile_consentito(stile) == ""
 
 
-def test_dentro_la_riga_passano_barrato_e_solo_il_colore():
+def test_dentro_la_riga_passano_barrato_colore_e_corpo_senza_codice():
     pulito = html_consentito(
         '<p>Il <s>vecchio</s> indirizzo <span style="color:#0000FF;font-size:30pt;position:fixed">studio@pec.it</span>'
         '<span onclick="x">.</span></p>'
     )
-    assert pulito == '<p>Il <s>vecchio</s> indirizzo <span style="color:#0000ff">studio@pec.it</span><span>.</span></p>'
+    assert pulito == '<p>Il <s>vecchio</s> indirizzo <span style="color:#0000ff;font-size:30pt">studio@pec.it</span><span>.</span></p>'
 
 
 def test_la_tabella_riconosciuta_resta_una_tabella():

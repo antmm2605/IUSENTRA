@@ -1428,3 +1428,22 @@ In `lex/retrieval/official_web.py`:
 ## Aggiornamento Fase 9 fonti verdi - 19 maggio 2026
 
 Il popolamento fonti pubbliche è stato esteso solo al perimetro verde: Cassazione ultime, Corte dei conti, Curia CGUE, INPS circolari/messaggi, AGCOM, ANAC, Garante Privacy e Gazzetta Ufficiale. Le fonti in osservazione restano escluse; OpenGA, PST, Dati Normattiva, EUR-Lex e ISTAT sono RAG-only/no-publish; Normattiva e codici sono archivi locali. Esito operativo: 1533 documenti letti dal perimetro controllato, 33 processati, 14 pubblicati guarded, 11 scartati dal guarded, 17 PDF/OCR, 340 riferimenti e 740 domande contestuali nei report. Ricerca Legale e Lex leggono le evidenze, ma non pubblicano cataloghi tecnici come aggiornamenti giuridici.
+
+## 07/10/2026 — EmbeddingGemma 2 locale, candidatura ancora aperta
+
+Richiesta utente: sostituzione soltanto con elaborazione sul medesimo host.
+Il candidato testuale float32 768D usa revisione pubblica fissata, prefissi
+query/documento, servizio Docker isolato e indici separati dal precedente.
+Non cambia OCR, chat, guardie legali o flussi dispositivo/firma/PEC.
+Il retrieval RAG restituisce il segmento migliore per chunk e combina FTS
+sull'identità originaria; testo completo, pagina e provenienza restano in SQL.
+Cache numerica float32 derivata, ricostruibile da vettori già verificati senza
+rileggere i documenti. Quantizzazione dei pesi respinta: 11/12 contro 12/12.
+Migrazione straordinaria a lotti con backup e checkpoint su due copie locali:
+626 e 790 chunk terminati, negativi motivati conservati. Non è una promozione
+di tutte le fonti a prova: CID/binario e riferimenti a casi assenti restano
+problemi espliciti. Servono qualità/provenienza, confronto sul volume reale,
+indice Normattiva, UI reale e rilascio coerente prima dell'attivazione.
+Dettagli verificati e limiti: deploy/embeddinggemma2/README.md e
+artifacts/react-migration/pytest-open-issues.md. Il modello operativo precedente
+resta attivo; nessuna API esterna riceve documenti dello studio.

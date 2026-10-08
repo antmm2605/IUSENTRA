@@ -39,6 +39,7 @@ import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
 import { destinazioneDopoSalvataggio, destinazioneInterna, messaggioSalvataggio } from '../lib/salvataggioCliente'
 import { anagraficaDraftKey, useAnagraficaDraft, type AnagraficaDraftStatus } from '../features/anagrafiche/useAnagraficaDraft'
 import './NuovoClientePage.css'
+import { formatDateIt } from '../formatting'
 
 type Tab = 'cliente' | 'soggetto'
 type PublicRegistryKind = 'reginde' | 'registro_ppaa' | 'inipec'
@@ -188,6 +189,7 @@ type ClientDocumentRecognizedField = {
   confidence: number
   source: string
   status: string
+  sources?: { label: string; href: string }[]
 }
 type ClientDocumentAutofillState = {
   phase: ClientDocumentReaderPhase
@@ -200,6 +202,7 @@ type ClientDocumentAutofillState = {
   warnings: string[]
   recognized: ClientDocumentRecognizedField[]
   filename: string
+  sourceDocument?: { label: string; href: string }
 }
 type ClientDocumentAutofillResult = {
   ok: boolean
@@ -500,6 +503,7 @@ function recognizedDocumentFields(payload: unknown): ClientDocumentRecognizedFie
       confidence: Number(item.confidence ?? 0),
       source: text(item.source),
       status: text(item.status, 'da verificare'),
+      sources: Array.isArray(item.sources) ? item.sources.filter(isRecord).filter((source) => /^\/fascicoli\/[a-zA-Z0-9_-]+\/documenti\/[a-zA-Z0-9_-]+\/visualizza$/.test(text(source.href))).map((source) => ({ label: text(source.label), href: text(source.href) })) : [],
     })).filter((item) => item.name && item.value)
     : []
   if (explicitRows.length) return explicitRows
@@ -555,7 +559,7 @@ function DocumentAutofillPanel({
         <div className="iu-cln-doc-reader__head">
           <div>
             <strong>Lettore documento</strong>
-            <span>{selectedFile ? selectedFile.name : 'PDF, JPG o PNG di carta identità, passaporto o documento compatibile'}</span>
+            <span>{selectedFile ? selectedFile.name : state.filename || 'PDF, JPG o PNG di carta identità, passaporto o documento compatibile'}</span>
           </div>
           <div className="iu-cln-doc-reader__actions">
             <button type="button" className="iu-cln-doc-reader__button" onClick={onChooseFile} disabled={isReading}>
@@ -574,16 +578,18 @@ function DocumentAutofillPanel({
               {state.recognized.map((field) => (
                 <span className={field.status === 'affidabile' ? 'is-ok' : 'is-check'} key={`${field.name}-${field.value}`}>
                   <b>{field.label}</b>
-                  <i>{field.value}</i>
+                  <i>{['data_nascita', 'doc_data_rilascio', 'doc_data_scadenza'].includes(field.name) ? formatDateIt(field.value) : field.value}</i>
                   <em>{confidenceLabel(field.confidence)}</em>
+                  {field.sources?.length ? <small>{field.source} · {field.sources.slice(0, 2).map((source, index) => <a key={source.href} href={source.href} title={source.label}>Fonte {index + 1}{index + 1 < Math.min(2, field.sources?.length || 0) ? ' · ' : ''}</a>)}</small> : null}
                 </span>
               ))}
             </div>
           </div>
         ) : null}
         {state.applied.length ? <small className="iu-cln-doc-reader__ok"><CheckCircle2 size={13}/> Applicati: {state.applied.join(', ')}</small> : null}
+        {state.sourceDocument ? <a href={state.sourceDocument.href}>Fonte: {state.sourceDocument.label}</a> : null}
         {state.skipped.length ? <small className="iu-cln-doc-reader__skip"><AlertTriangle size={13}/> Già compilati: {state.skipped.join(', ')}</small> : null}
-        {state.missing.length ? <small className="iu-cln-doc-reader__skip"><AlertTriangle size={13}/> Da completare a mano: {state.missing.join(', ')}</small> : null}
+        {state.missing.length ? <small className="iu-cln-doc-reader__skip"><AlertTriangle size={13}/> Dati non ancora dimostrati: {state.missing.join(', ')}</small> : null}
         {state.warnings.length ? (
           <ul className="iu-cln-doc-reader__warnings">
             {state.warnings.map((warning) => <li key={warning}>{warning}</li>)}
@@ -910,6 +916,8 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
   const action = data.actions.operationalClientForm
   const isPhysical = values.tipo === 'PERSONA_FISICA'
   const nextUrl = data.query.nextUrl
+  const sourceMatter = new URLSearchParams(window.location.search).get('id_fascicolo') || ''
+  const sourceDocument = new URLSearchParams(window.location.search).get('id_documento') || ''
   const clientDraftInitial = useMemo<ClientFormState>(
     () => (data.mode === 'edit' ? {...initialClient, ...data.initialClient} : {...initialClient}),
     [data.mode, data.initialClient],
@@ -1019,7 +1027,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
     entries.forEach(([field, value]) => {
       const target = field as ClientDocumentField
       const clean = text(value)
-      if (canAutofillClientField(target, currentValues[target], clean, currentTouched)) {
+      if (canAutofillClientField(target, currentValues[target], clean, currentTouched) || (isRecord(payload) && isRecord(payload.source_document) && !currentTouched.has(target))) {
         nextValues[target] = clean
         applied.push(clientDocumentFieldLabels[target] || target)
       } else {
@@ -1031,7 +1039,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
       setAutofillState({
         phase: 'success',
         tone: 'success',
-        message: skipped.length ? 'Dati documento applicati. Alcuni campi già compilati sono stati lasciati invariati.' : 'Dati documento applicati alla nuova anagrafica.',
+        message: skipped.length ? 'Dati documento applicati. Alcuni campi già compilati sono stati lasciati invariati.' : 'Dati documento compilati nella scheda. Controlla gli esiti e salva le modifiche.',
         fields: applied,
         applied,
         skipped,
@@ -1077,7 +1085,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
   }
 
   const readSelectedDocumentFile = async () => {
-    if (!selectedDocumentFile) {
+    if (!selectedDocumentFile && !sourceMatter) {
       setAutofillState({
         ...emptyDocumentAutofillState,
         phase: 'warning',
@@ -1091,17 +1099,17 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
       ...emptyDocumentAutofillState,
       phase: 'reading',
       tone: 'neutral',
-      filename: selectedDocumentFile.name,
+      filename: selectedDocumentFile?.name || 'Documento del fascicolo',
       message: 'Lettura OCR/MRZ in corso...',
     })
     try {
       const formData = new FormData()
-      formData.append('file', selectedDocumentFile)
+      if (selectedDocumentFile) formData.append('file', selectedDocumentFile)
       const response = await fetch(data.actions.documentReader, {
         method: 'POST',
         credentials: 'same-origin',
-        body: formData,
-        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: selectedDocumentFile ? formData : JSON.stringify({ id_fascicolo: sourceMatter, id_cliente: data.query.idCliente, id_documento: sourceDocument }),
+        headers: { ...(!selectedDocumentFile ? { 'Content-Type': 'application/json' } : {}), Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       })
       const payload = await safeJson(response)
       const recognized = recognizedDocumentFields(payload)
@@ -1115,21 +1123,22 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
       setAutofillState({
         phase,
         tone: result.ok ? 'success' : recognized.length ? 'warning' : 'danger',
-        message: text(payload.message, result.message),
+        message: result.ok ? "Dati riconosciuti compilati nella scheda. Le modifiche non sono ancora salvate." : text(payload.message, result.message),
+        sourceDocument: isRecord(payload.source_document) && /^\/fascicoli\/[a-zA-Z0-9_-]+\/documenti\/[a-zA-Z0-9_-]+\/visualizza$/.test(text(payload.source_document.href)) ? { href: text(payload.source_document.href), label: text(payload.source_document.label) } : undefined,
         fields: result.applied,
         applied: result.applied,
         skipped: result.skipped,
         missing,
         warnings,
         recognized,
-        filename: selectedDocumentFile.name,
+        filename: text(payload.filename) || selectedDocumentFile?.name || 'Documento del fascicolo',
       })
     } catch (error) {
       setAutofillState({
         ...emptyDocumentAutofillState,
         phase: 'danger',
         tone: 'danger',
-        filename: selectedDocumentFile.name,
+        filename: selectedDocumentFile?.name || 'Documento del fascicolo',
         message: error instanceof Error ? error.message : 'Lettura documento non riuscita.',
       })
     }
@@ -1853,7 +1862,8 @@ export function NuovoClientePage() {
     getClientiNuovoData().then((payload) => {
       if (!alive) return
       setData(payload)
-      if (payload.query.tab === 'soggetto') setTab('soggetto')
+      if (payload.mode === 'edit') setTab('cliente')
+      else if (payload.mode === 'edit_subject' || payload.query.tab === 'soggetto') setTab('soggetto')
     }).finally(() => {
       if (alive) setLoading(false)
     })

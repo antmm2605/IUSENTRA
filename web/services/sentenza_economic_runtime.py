@@ -107,6 +107,12 @@ def _save_audit(audit: Any, *, fascicolo: Any, repo: Any, fonte: str,
             evidence=[{"label": azione.label, "requires_confirmation": azione.requires_confirmation}],
         ))
 
+    changed = bool(saved.get("changed", True) or any(event.get("changed", True) for event in eventi))
+    if not changed:
+        return {"ok": True, "audit": saved, "eventi": eventi, "detail": audit_dict,
+                "already_present": True, "acknowledgement": "già presente",
+                "reference": saved["id"]}
+
     repo.record_decision(
         tenant_id=tenant_id,
         actor_id=actor_id,
@@ -398,6 +404,49 @@ def build_sentenza_economic_payload(fascicolo_id: str = "") -> dict[str, Any]:
         validi = {a["id"] for a in audits}
         events = [e for e in events if e.get("source_type") != "sentenza_economic_audit" or e.get("source_id") in validi]
     summary = build_sentenze_economiche_summary(audits, events)
+    # Ogni card economica apre solo le fonti degli eventi che la alimentano.
+    # Nessuna associazione per importo, nome file o documento più recente.
+    from urllib.parse import quote, urlencode
+    from web.services.registro_letture_runtime import registro_corrente
+    inventory = registro_corrente().oggetti(tenant_id, fascicolo_id) if fascicolo else []
+    by_audit = {str(a["id"]): a for a in audits}
+    kinds = {
+        "Spese liquidate da incassare (cliente)": "apri_credito_cliente",
+        "Spese distratte in favore dell'avvocato": "apri_credito_avvocato_antistatario",
+    }
+    for card in summary["worklist"]:
+        event_type = kinds.get(card["label"])
+        if not event_type:
+            continue
+        sources = []
+        seen = set()
+        for event in events:
+            if event.get("event_type") != event_type or event.get("status") not in {"to_review", "confirmed"}:
+                continue
+            audit = by_audit.get(str(event.get("source_id") or ""))
+            if not audit or event.get("source_type") != "sentenza_economic_audit":
+                continue
+            sha = str(audit.get("document_hash_sha256") or "").lower()
+            if not sha:
+                continue
+            for obj in inventory:
+                if not obj.presente or obj.impronta.lower() != sha:
+                    continue
+                if audit.get("message_id"):
+                    if obj.tipo != "allegato_pec" or obj.origine != audit["message_id"]:
+                        continue
+                    href = "/api/v1/ui/email/source/" + quote(obj.origine, safe="") + "?" + urlencode({"name":obj.nome,"sha256":sha})
+                else:
+                    if obj.tipo != "documento" or obj.oggetto_id != audit.get("documento_id"):
+                        continue
+                    href = f"/fascicoli/{quote(fascicolo_id, safe='')}/documenti/{quote(obj.oggetto_id, safe='')}/visualizza"
+                if href in seen:
+                    continue
+                seen.add(href)
+                detail = audit.get("audit") or {}
+                capo = (detail.get("sentenza") or {}).get("spese_liquidate") or {}
+                sources.append({"href":href,"label":obj.nome,"context":str(capo.get("testo_capo_spese") or "Fonte della voce economica")})
+        card["sources"] = sources
     return {"ok": True, "fascicoloId": fascicolo_id, "audits": audits, "eventi": events, "summary": summary, "autoAnalysis": auto_report}
 
 

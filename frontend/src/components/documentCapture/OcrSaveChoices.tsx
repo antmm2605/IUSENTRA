@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { Download, FileText, FolderOpen, Laptop, PenLine, Printer, Save } from 'lucide-react'
 
 export type FormatoSalvataggio = 'docx' | 'pdf'
@@ -21,13 +21,34 @@ type Props = {
 /** Un menu a icona della barra: si apre, si sceglie, si richiude. */
 function MenuIcona({ etichetta, icona, disabled, children }: { etichetta: string; icona: ReactNode; disabled: boolean; children: (chiudi: () => void) => ReactNode }) {
   const menu = useRef<HTMLDetailsElement | null>(null)
+  const [posto, setPosto] = useState({ sopra: false, altezza: 320 })
   const chiudi = () => { if (menu.current) menu.current.open = false }
   return (
-    <details ref={menu} className={`iu-ocr-menu${disabled ? ' is-spento' : ''}`}>
-      <summary className="iu-ocr-menu__icona" aria-label={etichetta} title={etichetta} aria-disabled={disabled || undefined}>
+    <details ref={menu} className={`iu-ocr-menu${disabled ? ' is-spento' : ''}${posto.sopra ? ' is-sopra' : ''}`}
+      onToggle={() => {
+        const elemento = menu.current
+        if (!elemento?.open) return
+        const rect = elemento.querySelector('summary')?.getBoundingClientRect()
+        if (!rect) return
+        const sotto = window.innerHeight - rect.bottom - 12
+        const navigazione = document.querySelector('nav[aria-label="Sezioni fascicolo"]')
+        const bordoAlto = document.fullscreenElement || elemento.closest('.is-schermo-intero')
+          ? 0 : Math.max(0, navigazione?.getBoundingClientRect().bottom || 0)
+        const sopra = rect.top - bordoAlto - 12
+        const versoAlto = sotto < 320 && sopra > sotto
+        setPosto({ sopra: versoAlto, altezza: Math.max(80, versoAlto ? sopra : sotto) })
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          chiudi()
+          menu.current?.querySelector('summary')?.focus()
+        }
+      }}>
+      <summary role="button" className="iu-ocr-menu__icona" aria-label={etichetta} title={etichetta} aria-disabled={disabled || undefined}
+        onClick={(event) => { if (disabled) event.preventDefault() }}>
         {icona}
       </summary>
-      <div className="iu-ocr-menu__voci" role="menu" aria-label={etichetta}>{disabled ? null : children(chiudi)}</div>
+      <div className="iu-ocr-menu__voci" style={{ maxHeight: posto.altezza }} role="menu" aria-label={etichetta}>{disabled ? null : children(chiudi)}</div>
     </details>
   )
 }

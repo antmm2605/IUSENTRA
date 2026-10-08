@@ -16,7 +16,7 @@ from pct.email_client import CartellaEmail, GestioneEmailRicevute
 from pct.fatturazione import StatoParcella
 from pct.fascicolo_document_presidio import duplicate_practice_groups
 from pct.global_search.repository import GlobalSearchRepository
-from pct.global_search.service import GlobalSearchService, default_global_search_db_path
+from pct.global_search.service import GlobalSearchService
 from pct.notifiche_legali import released_office_documents_from_pec
 from pct.pec_operational_cleanup import is_legacy_pec_agenda_item, is_legacy_pec_deadline
 from pct.scadenziario import PrioritaTermine, StatoTermine
@@ -399,10 +399,8 @@ def _is_raw_pct_deposit_receipt_email(email: Any) -> bool:
 
 
 def _global_search_db_path() -> Path:
-    configured = current_app.config.get("GLOBAL_SEARCH_INDEX")
-    if configured:
-        return Path(str(configured))
-    return default_global_search_db_path(_cfg_value("SEARCH_INDEX", "./search/index.db"))
+    from web.services.global_search_context import percorso_indice_ricerca_studio
+    return percorso_indice_ricerca_studio()
 
 
 def _global_search_context() -> dict[str, Any]:

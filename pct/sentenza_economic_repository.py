@@ -14,6 +14,7 @@ primitivi/dict, così può essere testato e riusato senza import circolari.
 from __future__ import annotations
 
 import json
+import hashlib
 import sqlite3
 import uuid
 from datetime import datetime, timezone
@@ -226,6 +227,46 @@ class SentenzaEconomicRepository:
         )
         return {str(row.get("name") or "") for row in rows}
 
+    def _persist_source_once(self, table: str, row: dict[str, Any], identity: dict[str, Any]) -> tuple[dict[str, Any], bool, bool]:
+        """Retry atomico sulla stessa fonte; conserva le decisioni manuali.
+
+        Le chiavi usano la prova della fonte e il suo contesto, mai il solo importo.
+        Le righe storiche vengono riusate senza cancellazioni. La chiave primaria
+        esistente garantisce il conflitto atomico sia su SQLite sia su PostgreSQL.
+        """
+        safe_table = _sql_table(table)
+        _sql_columns(table, identity)
+        columns = _sql_columns(table, row)
+        condition = " AND ".join(f"{SENTENZA_ECONOMIC_COLUMN_SQL[k]} = ?" for k in identity)
+        stable = hashlib.sha256(json_dumps([table, identity]).encode("utf-8")).hexdigest()
+        with self.connection() as conn:
+            previous = _row_dict(conn.execute(
+                f"SELECT * FROM {safe_table} WHERE {condition} ORDER BY created_at ASC LIMIT 1",
+                tuple(identity.values()),
+            ).fetchone())
+            row = dict(row, id=previous.get("id") or ("sea_source_" if table == "sentenza_economic_audits" else "fee_source_") + stable)
+            names = ", ".join(SENTENZA_ECONOMIC_COLUMN_SQL[c] for c in columns)
+            slots = ", ".join("?" for _ in columns)
+            inserted = conn.execute(f"INSERT INTO {safe_table} ({names}) VALUES ({slots}) ON CONFLICT (id) DO NOTHING RETURNING id",
+                                    tuple(row[c] for c in columns)).fetchone()
+            current = _row_dict(conn.execute(f"SELECT * FROM {safe_table} WHERE id = ? AND tenant_id = ?",
+                                            (row["id"], row["tenant_id"])).fetchone())
+            ignore = {"id", "created_at", "updated_at", "reviewed_at", "reviewed_by"}
+            changes = {c: row[c] for c in columns if c not in ignore and current.get(c) != row[c]}
+            reused = bool(previous) or inserted is None
+            # La condizione nello UPDATE impedisce di sovrascrivere una conferma
+            # o un rifiuto registrati mentre era in corso questa rilettura.
+            allowed_changes = bool(changes and current.get("status") not in {"confirmed", "rejected"})
+            if allowed_changes:
+                if "updated_at" in columns:
+                    changes["updated_at"] = row["updated_at"]
+                assignments = ", ".join(f"{SENTENZA_ECONOMIC_COLUMN_SQL[c]} = ?" for c in changes)
+                conn.execute(f"UPDATE {safe_table} SET {assignments} WHERE id = ? AND tenant_id = ? AND status NOT IN ('confirmed', 'rejected')",
+                             (*changes.values(), row["id"], row["tenant_id"]))
+                current = _row_dict(conn.execute(f"SELECT * FROM {safe_table} WHERE id = ? AND tenant_id = ?",
+                                                (row["id"], row["tenant_id"])).fetchone())
+            return current, reused, not reused or allowed_changes
+
     # ---- audit log mutabile (timeline) -------------------------------------
 
     def record_audit(self, tenant_id: str, actor_type: str, actor_id: str, action: str, resource_type: str, resource_id: str, details: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -298,6 +339,13 @@ class SentenzaEconomicRepository:
             "created_at": now,
             "updated_at": now,
         }
+        if document_hash_sha256:
+            row, reused, changed = self._persist_source_once("sentenza_economic_audits", row, {
+                "tenant_id": str(tenant_id), "fascicolo_id": str(fascicolo_id),
+                "documento_id": str(documento_id or ""), "message_id": str(message_id or ""),
+                "document_hash_sha256": str(document_hash_sha256), "fonte": str(fonte or ""),
+            })
+            return {**self._decode_audit_row(row), "already_present": reused, "changed": changed}
         self._insert("sentenza_economic_audits", row)
         return self._decode_audit_row(row)
 
@@ -420,6 +468,14 @@ class SentenzaEconomicRepository:
             "reviewed_at": "",
             "reviewed_by": "",
         }
+        if source_type == "sentenza_economic_audit" and source_id:
+            row, reused, changed = self._persist_source_once("fascicolo_economic_events", row, {
+                "tenant_id": str(tenant_id), "fascicolo_id": str(fascicolo_id),
+                "source_type": str(source_type), "source_id": str(source_id),
+                "event_type": str(event_type), "beneficiary_type": str(beneficiary_type or ""),
+                "currency": str(currency or "EUR"),
+            })
+            return {**self._decode_event_row(row), "already_present": reused, "changed": changed}
         self._insert("fascicolo_economic_events", row)
         return self._decode_event_row(row)
 

@@ -1,0 +1,33 @@
+# Overlay della copia locale reale; nessuna porta embedding pubblicata all'esterno.
+services:
+  app:
+    environment: &embedding-env
+      IUSENTRA_EMBEDDING_PROVIDER: embeddinggemma2_local
+      IUSENTRA_EMBEDDING_RUNTIME: litert
+      IUSENTRA_EMBEDDING_LOCAL_URL: http://embeddinggemma2:11140
+      LEX_EMBED_PARALLELI: "1"
+    networks: [default, embedding-local]
+  scheduler-worker:
+    environment: *embedding-env
+    networks: [default, embedding-local]
+  ocr-worker:
+    environment: *embedding-env
+    networks: [default, embedding-local]
+  embeddinggemma2:
+    build:
+      context: .
+      dockerfile: deploy/embeddinggemma2/Dockerfile.litert
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    volumes:
+      - ${IUSENTRA_EMBEDDING_MODELS_DIR:?Preparare prima i pesi verificati}:/models:ro
+    networks: [embedding-local]
+    tmpfs: [/tmp:size=256m]
+    cpus: "4"
+    mem_limit: 4g
+    pids_limit: 128
+networks:
+  embedding-local:
+    internal: true

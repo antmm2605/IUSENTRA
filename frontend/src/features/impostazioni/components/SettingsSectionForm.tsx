@@ -152,7 +152,8 @@ export function SettingsSectionForm({
     const dependencyDisabled = field.enabledWhen
       ? visibleValues[field.enabledWhen.field] !== field.enabledWhen.equals
       : false
-    const fieldDisabled = !canUpdate || dependencyDisabled
+    const managedEmbedding = section === 'ai' && field.name === 'embed_model' && rawValues.embedding_managed_local === true
+    const fieldDisabled = !canUpdate || dependencyDisabled || managedEmbedding
     const commonLabel = (
       <span>
         {field.label}
@@ -192,7 +193,7 @@ export function SettingsSectionForm({
               </SelectGroup>
             </SelectContent>
           </Select>
-          {renderFieldHelp(field)}
+          {renderFieldHelp(managedEmbedding ? { ...field, help: 'EmbeddingGemma 2 locale è predisposto per questo studio. Modello e indice vengono aggiornati insieme per mantenere corretta la ricerca.' } : field)}
         </label>
       )
     }

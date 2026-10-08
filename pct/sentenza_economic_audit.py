@@ -290,12 +290,27 @@ def build_identity_match(fascicolo: Any, testo: str, *, documento_id: str = "", 
         2,
     )
 
+    from pct.pec_case_identity import document_case_identity_evidence
+    identity_complete = document_case_identity_evidence(testo, fascicolo)
+    match.tribunale_score = 1.0 if identity_complete['office_match'] else 0.0
+    match.tribunale_rilevato = identity_complete['source_office']
+    # La prova congiunta dell'intestazione prevale sul vecchio punteggio fuzzy:
+    # la stessa parte può comparire come «GIADA GIFFI» anziché «Giffi Giada».
+    if identity_complete['complete_match']:
+        match.cliente_score = 1.0
+        match.cliente_rilevato = nome
+    match.overall_score = round(0.5 * match.rg_score + 0.25 * match.cliente_score
+                                + 0.15 * match.tribunale_score
+                                + 0.10 * match.controparte_score, 2)
+    if not identity_complete['complete_match']:
+        match.issues.append("Identità del provvedimento da verificare: R.G./anno, nome e cognome e ufficio giudiziario devono coincidere nell'intestazione.")
+
     # Regola forte: RG diverso => non alimentare, revisione umana (regola #1).
     match.safe_to_attach = bool(
-        match.rg_match and match.cliente_score >= soglia_cliente and match.overall_score >= soglia_doc
+        identity_complete["complete_match"] and match.rg_match and match.cliente_score >= soglia_cliente and match.overall_score >= soglia_doc
     )
     match.human_review_required = not (
-        match.rg_match and match.overall_score >= 0.90 and match.cliente_score >= 0.60
+        identity_complete["complete_match"] and match.rg_match and match.overall_score >= 0.90 and match.cliente_score >= 0.60
     )
 
     if not match.rg_match:

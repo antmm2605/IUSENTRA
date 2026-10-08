@@ -38,6 +38,7 @@ from pct.firme_cades import (
     payload_mime_from_bytes as cades_payload_mime_from_bytes,
 )
 from pct.local_ai_runtime import OllamaRuntimeProvisioner
+from pct import embeddinggemma2, local_embedding_index
 from pct.runtime_resilience import get_runtime_circuit_breaker
 
 logger = logging.getLogger("pct.local_ai")
@@ -103,6 +104,10 @@ def _embedding_validation_reason(text: Any) -> str | None:
         return "Chunk vuoto: non può essere inviato al modello di embedding."
     if compact.startswith("PCTENC"):
         return "Chunk escluso: sembra contenuto cifrato PCTENC, non testo estratto."
+    from pct.document_intelligence.pdf_quality import score_extracted_text_quality
+    quality = score_extracted_text_quality(value)
+    if quality.cid_placeholders >= 2:
+        return "Chunk escluso: contiene segnaposto CID non risolti; recuperare il testo dal motore documentale."
     if len(value) > _RAG_MAX_CHUNK_CHARS:
         return f"Chunk escluso: {len(value)} caratteri oltre il limite di {_RAG_MAX_CHUNK_CHARS}."
     control_chars = sum(1 for char in value if ord(char) < 32 and char not in "\n\r\t")
@@ -213,6 +218,8 @@ def _env_first(*names: str, default: str = "") -> str:
 
 
 def _embedding_provider_code() -> str:
+    if embeddinggemma2.configured():
+        return embeddinggemma2.PROVIDER
     raw = _env_first("IUSENTRA_EMBEDDING_PROVIDER", "PCT_EMBEDDING_PROVIDER", default="local").lower()
     if raw in {"gemini", "google", "gemini_embedding_2", "gemini-embedding-2"}:
         return "gemini"
@@ -726,7 +733,7 @@ class LocalAIService:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.models_path.mkdir(parents=True, exist_ok=True)
         self._cache_lock = Lock()
-        self._retrieval_cache: dict[tuple[str, str, str, int], dict[str, Any]] = {}
+        self._retrieval_cache: dict[tuple[str, str, str, int, str, str], dict[str, Any]] = {}
         self._snapshot_cache: dict[str, dict[str, Any]] = {}
         self._ensure_schema()
 
@@ -790,6 +797,7 @@ class LocalAIService:
             if "embedding_model" not in chunk_columns:
                 conn.execute("ALTER TABLE rag_chunks ADD COLUMN embedding_model TEXT")
             conn.commit()
+            local_embedding_index.ensure_schema(conn)
 
     def _cache_get(
         self,
@@ -929,6 +937,21 @@ class LocalAIService:
 
     def _embedding_provider_snapshot(self) -> dict[str, Any]:
         provider = self._embedding_provider()
+        if provider == embeddinggemma2.PROVIDER:
+            cached = self._cache_get(self._snapshot_cache, "embedding_health", ttl_seconds=15)
+            if cached is None:
+                try:
+                    cached = {"ready": embeddinggemma2.LocalEmbeddingClient().health()}
+                except Exception:
+                    cached = {"ready": False}
+                self._cache_set(self._snapshot_cache, "embedding_health", cached)
+            return {
+                "provider": provider, "model": embeddinggemma2.MODEL,
+                "revision": embeddinggemma2.REVISION, "output_dimensions": 768,
+                "external_allowed": False, "api_key_present": False,
+                "requires_full_reembedding": True,
+                "ready": cached["ready"],
+            }
         if provider == "gemini":
             return {
                 "provider": "gemini",
@@ -948,11 +971,15 @@ class LocalAIService:
         }
 
     def _embedding_model_name(self, settings: LocalAiSettings, fallback: str | None = None) -> str:
+        if self._embedding_provider() == embeddinggemma2.PROVIDER:
+            return embeddinggemma2.MODEL
         if self._embedding_provider() == "gemini":
             return _gemini_embedding_model()
         return str(fallback or settings.embed_model or self._active_model("embed") or "").strip()
 
     def _embedding_client(self, settings: LocalAiSettings | None = None):
+        if self._embedding_provider() == embeddinggemma2.PROVIDER:
+            return embeddinggemma2.LocalEmbeddingClient()
         if self._embedding_provider() != "gemini":
             return self._ollama_client(settings)
         if not _external_embeddings_allowed():
@@ -1232,7 +1259,7 @@ class LocalAIService:
         return {
             "profile": profile_code,
             "chat_model": settings.chat_model or row.get("chatModel") or "qwen2.5:0.5b",
-            "embed_model": settings.embed_model or row.get("embedModel") or "embeddinggemma:300m",
+            "embed_model": embeddinggemma2.MODEL if embeddinggemma2.configured() else settings.embed_model or row.get("embedModel") or "embeddinggemma:300m",
             "disable_rag_by_default": bool(row.get("disableRagByDefault", False)),
         }
 
@@ -1318,7 +1345,10 @@ class LocalAIService:
             return available[0], "fallback"
 
         chat_model, chat_source = _pick("chat", str(preferred["chat_model"] or ""))
-        embed_model, embed_source = _pick("embed", str(preferred["embed_model"] or ""))
+        embed_model, embed_source = (
+            (embeddinggemma2.MODEL, "local_versioned") if embeddinggemma2.configured()
+            else _pick("embed", str(preferred["embed_model"] or ""))
+        )
         return {
             "profile": preferred["profile"],
             "preferred_chat_model": preferred["chat_model"],
@@ -1482,16 +1512,25 @@ class LocalAIService:
                 }
 
             try:
-                self._assert_embedding_runtime(version, model_policy["embed_model"], policy)
+                if not embeddinggemma2.configured():
+                    self._assert_embedding_runtime(version, model_policy["embed_model"], policy)
                 installed = {row.get("name"): row for row in client.list_models()}
                 self._ensure_model_installed(conn, client, "chat", model_policy["chat_model"], installed, force_pull=force)
                 installed = {row.get("name"): row for row in client.list_models()}
-                self._ensure_model_installed(conn, client, "embed", model_policy["embed_model"], installed, force_pull=force)
+                if not embeddinggemma2.configured():
+                    self._ensure_model_installed(conn, client, "embed", model_policy["embed_model"], installed, force_pull=force)
                 client.warmup_model(
                     model_policy["chat_model"],
                     keep_alive=settings.keep_alive or policy.get("ollama", {}).get("defaultWarmupKeepAlive", "10m"),
                 )
-                client.embed_texts(model_policy["embed_model"], ["test"])
+                embedding_client = self._embedding_client(settings) if embeddinggemma2.configured() else client
+                embedding_client.embed_texts(model_policy["embed_model"], ["test"])
+                if embeddinggemma2.configured():
+                    self._upsert_model(conn, {
+                        "id": f"embed:{embeddinggemma2.MODEL}", "role": "embed",
+                        "model_name": embeddinggemma2.MODEL, "install_state": "ready",
+                        "context_window": 8192, "notes": "Modello locale verificato, indicizzazione versionata",
+                    })
             except Exception as exc:
                 self._upsert_runtime(
                     conn,
@@ -1532,6 +1571,22 @@ class LocalAIService:
                 "embed_model": model_policy["embed_model"],
             }
 
+    def _effective_embedding_counts(self, conn, counts: dict) -> dict:
+        if not embeddinggemma2.configured():
+            return counts
+        conn.create_function("rag_text_sha256", 1, local_embedding_index.fingerprint, deterministic=True)
+        row = conn.execute("""
+            SELECT
+                SUM(CASE WHEN g.status='embedded' AND d.parse_state='parsed' THEN 1 ELSE 0 END),
+                SUM(CASE WHEN g.status='invalid' THEN 1 ELSE 0 END)
+            FROM rag_embedding_generations g JOIN rag_chunks c ON c.id=g.chunk_id
+            JOIN rag_documents d ON d.id=c.document_id
+            WHERE g.model=? AND g.document_sha256=d.sha256 AND g.text_sha256=rag_text_sha256(c.text)
+        """, (embeddinggemma2.MODEL,)).fetchone()
+        embedded, invalid = int(row[0] or 0), int(row[1] or 0)
+        return {**counts, "chunks_embedded": embedded, "chunks_invalid": invalid,
+                "chunks_pending": max(0, int(counts.get("chunks_total") or 0)-embedded-invalid)}
+
     def health_snapshot(self) -> dict[str, Any]:
         settings = self._load_settings()
         policy = self._load_policy()
@@ -1548,6 +1603,9 @@ class LocalAIService:
                     (SELECT COUNT(*) FROM rag_chunks WHERE embedding_state = 'pending') AS chunks_pending
                 """
             ).fetchone()
+            counts = self._effective_embedding_counts(conn, dict(counts or {}))
+            from pct.rag_source_provenance import provenance_snapshot
+            provenance = provenance_snapshot(conn, embeddinggemma2.MODEL) if embeddinggemma2.configured() else {}
         client, version, resolved_base_url = self._resolve_live_runtime(settings)
         installed_models: list[dict[str, Any]] = []
         running_models: list[dict[str, Any]] = []
@@ -1596,6 +1654,7 @@ class LocalAIService:
             "embedding_provider": self._embedding_provider_snapshot(),
             "installer": installer,
             "counts": dict(counts or {}),
+            "source_provenance": provenance,
             "models_path": str(self.models_path),
         }
 
@@ -1612,6 +1671,9 @@ class LocalAIService:
                     (SELECT COUNT(*) FROM rag_chunks WHERE embedding_state = 'pending') AS chunks_pending
                 """
             ).fetchone()
+            counts = self._effective_embedding_counts(conn, dict(counts or {}))
+            from pct.rag_source_provenance import provenance_snapshot
+            provenance = provenance_snapshot(conn, embeddinggemma2.MODEL) if embeddinggemma2.configured() else {}
             active_models = {
                 str(row["role"] or "").strip(): str(row["model_name"] or "").strip()
                 for row in conn.execute(
@@ -1669,10 +1731,11 @@ class LocalAIService:
             "runtime_online": effective_online,
             "resolved_models": {
                 "chat": active_models.get("chat") or settings.chat_model,
-                "embed": active_models.get("embed") or settings.embed_model,
+                "embed": embeddinggemma2.MODEL if embeddinggemma2.configured() else active_models.get("embed") or settings.embed_model,
             },
             "embedding_provider": self._embedding_provider_snapshot(),
             "counts": dict(counts or {}),
+            "source_provenance": provenance,
             "models_path": str(self.models_path),
             "circuit_breaker": breaker,
         }
@@ -2471,6 +2534,18 @@ class LocalAIService:
         practice_id: str | None = None,
         document_id: str | None = None,
     ) -> int:
+        if self._embedding_provider() == embeddinggemma2.PROVIDER:
+            conditions = [local_embedding_index.pending_condition(conn)]
+            params: list[Any] = [embeddinggemma2.MODEL]
+            for name, value in (("practice_id", practice_id), ("document_id", document_id)):
+                if value:
+                    conditions.append(f"c.{name}=?")
+                    params.append(value)
+            row = conn.execute(
+                f"SELECT COUNT(*) AS total FROM rag_chunks c JOIN rag_documents d ON d.id=c.document_id "
+                f"WHERE {' AND '.join(conditions)}", params,
+            ).fetchone()
+            return int(row["total"] or 0) if row else 0
         conditions = ["embedding_state = 'pending'"]
         params: list[Any] = []
         if practice_id:
@@ -2491,11 +2566,14 @@ class LocalAIService:
         limit: int = 100,
         practice_id: str | None = None,
         document_id: str | None = None,
+        _deadline: float | None = None,
     ) -> dict[str, Any]:
         provider = self._embedding_provider()
         settings = self._load_settings()
+        if provider == embeddinggemma2.PROVIDER and not settings.enabled:
+            return {"status": "disabled", "embedded": 0, "embedding_provider": provider}
         bootstrap: dict[str, Any] = {"status": "ready"}
-        if provider != "gemini":
+        if provider == "ollama":
             bootstrap = self.bootstrap_runtime()
             if bootstrap.get("status") != "ready":
                 return {"status": bootstrap.get("status"), "embedded": 0, "error": bootstrap.get("error")}
@@ -2506,6 +2584,49 @@ class LocalAIService:
             client = self._embedding_client(settings)
         except Exception as exc:
             return {"status": "error", "embedded": 0, "error": str(exc), "embedding_provider": provider}
+        if provider == embeddinggemma2.PROVIDER:
+            deadline = _deadline if _deadline is not None else time.monotonic() + 60
+            with self._connect() as conn:
+                from pct.rag_embedding_provenance import verified_for_embedding
+                if time.monotonic() >= deadline:
+                    return {"status": "pending", "embedded": 0, "invalid": 0,
+                            "embedding_provider": provider, "embedding_model": embed_model,
+                            "time_budget_reached": True,
+                            "pending_remaining": self._pending_chunks_count(conn, practice_id=practice_id, document_id=document_id)}
+                conditions = [local_embedding_index.pending_condition(conn)]
+                params: list[Any] = [embeddinggemma2.MODEL]
+                for name, value in (("practice_id", practice_id), ("document_id", document_id)):
+                    if value:
+                        conditions.append(f"c.{name}=?")
+                        params.append(value)
+                rows = [dict(row) for row in conn.execute(
+                    f"SELECT c.*, d.sha256 AS document_sha256, d.parse_state FROM rag_chunks c "
+                    f"JOIN rag_documents d ON d.id=c.document_id WHERE {' AND '.join(conditions)} "
+                    "ORDER BY c.created_at LIMIT ?", [*params, min(limit, 128)],
+                ).fetchall()]
+                rows, excluded, changed = verified_for_embedding(
+                    conn, rows, verifier=getattr(self, "source_verifier", None),
+                )
+                try:
+                    result = local_embedding_index.build_chunks(
+                        conn, rows, split=_bounded_text_parts, validate=_embedding_validation_reason,
+                        client=client, deadline=deadline,
+                    )
+                except TimeoutError as exc:
+                    self._invalidate_runtime_caches(practice_id=practice_id)
+                    progress = getattr(exc, "embedding_progress", {})
+                    return {**progress, "status": "pending", "embedded": int(progress.get("embedded", 0)),
+                            "invalid": excluded + int(progress.get("invalid", 0)),
+                            "embedding_provider": provider, "embedding_model": embed_model,
+                            "time_budget_reached": True,
+                            "pending_remaining": self._pending_chunks_count(conn, practice_id=practice_id, document_id=document_id)}
+                result["invalid"] += excluded
+                result["changed_source"] += changed
+                result.update(status="ready", embedding_provider=provider,
+                              embedding_model=embed_model, vector_dimensions=768,
+                              pending_remaining=self._pending_chunks_count(conn, practice_id=practice_id, document_id=document_id))
+                self._invalidate_runtime_caches(practice_id=practice_id)
+                return result
         with self._connect() as conn:
             conditions = ["embedding_state = 'pending'"]
             params: list[Any] = []
@@ -2645,22 +2766,25 @@ class LocalAIService:
         batches = 0
         vector_dimensions = None
         last_payload: dict[str, Any] = {"status": "ready", "embedded": 0}
+        managed = self._embedding_provider() == embeddinggemma2.PROVIDER
+        budget = {"_deadline": time.monotonic() + 60} if managed else {}
         for _ in range(max_batches):
             payload = self.embed_pending_chunks(
                 limit=batch_size,
                 practice_id=practice_id,
                 document_id=document_id,
+                **budget,
             )
             last_payload = dict(payload)
             status = str(payload.get("status") or "")
             if status != "ready":
                 return {
                     **last_payload,
-                    "embedded_total": total_embedded,
-                    "batches": batches,
+                    "embedded_total": total_embedded + int(payload.get("embedded") or 0),
+                    "batches": batches + int(int(payload.get("embedded") or 0) > 0),
                 }
             embedded = int(payload.get("embedded") or 0)
-            if embedded <= 0:
+            if embedded <= 0 and not (managed and int(payload.get("invalid") or 0) > 0):
                 break
             total_embedded += embedded
             batches += 1
@@ -2695,8 +2819,23 @@ class LocalAIService:
         if not tokens:
             return []
         fts_query = " OR ".join(f'"{token}"' for token in tokens)
-        conditions = ["rag_chunks_fts MATCH ?", "c.embedding_state != 'invalid'", "c.text NOT LIKE 'PCTENC%'", f"length(c.text) <= {_RAG_MAX_CHUNK_CHARS}"]
+        conditions = ["rag_chunks_fts MATCH ?", "c.text NOT LIKE 'PCTENC%'"]
         params: list[Any] = [fts_query]
+        generation_join = ""
+        generation_fields = ""
+        if embeddinggemma2.configured():
+            # La ricerca testuale deve rispettare gli stessi esiti verificati
+            # della semantica, senza ereditare stati del modello precedente.
+            generation_join = """
+                JOIN rag_documents d ON d.id=c.document_id
+                JOIN rag_embedding_generations g ON g.chunk_id=c.id
+            """
+            generation_fields = ", g.text_sha256 AS generation_text_sha256"
+            conditions.extend(["g.model = ?", "g.status = 'embedded'",
+                               "d.parse_state = 'parsed'", "g.document_sha256 = d.sha256"])
+            params.append(embeddinggemma2.MODEL)
+        else:
+            conditions.extend(["c.embedding_state != 'invalid'", f"length(c.text) <= {_RAG_MAX_CHUNK_CHARS}"])
         if practice_id:
             conditions.append("c.practice_id = ?")
             params.append(practice_id)
@@ -2707,15 +2846,19 @@ class LocalAIService:
             SELECT
                 c.id, c.document_id, c.practice_id, c.section_type, c.ordinal,
                 c.page_from, c.page_to, c.text, c.metadata_json,
-                bm25(rag_chunks_fts) AS bm25_score
+                bm25(rag_chunks_fts) AS bm25_score {generation_fields}
             FROM rag_chunks_fts
             JOIN rag_chunks AS c ON c.rowid = rag_chunks_fts.rowid
+            {generation_join}
             WHERE {' AND '.join(conditions)}
             ORDER BY bm25_score ASC
             LIMIT ?
         """
         params.append(top_k * 3)
-        return [dict(row) for row in conn.execute(sql, params).fetchall()]
+        rows = [dict(row) for row in conn.execute(sql, params).fetchall()]
+        if generation_join:
+            rows = [row for row in rows if row.pop("generation_text_sha256") == local_embedding_index.fingerprint(row["text"])]
+        return rows
 
     def _vector_rows(
         self,
@@ -2728,12 +2871,19 @@ class LocalAIService:
         embedding_provider: str,
         embedding_model: str,
     ) -> list[dict[str, Any]]:
+        if embedding_provider == embeddinggemma2.PROVIDER:
+            if embedding_model != embeddinggemma2.MODEL or len(query_vector) != 768:
+                return []
+            return local_embedding_index.ranked_rows(
+                conn, query_vector, practice_id=practice_id, document_id=document_id,
+                limit=top_k * 3,
+            )
         conditions = ["embedding_state = 'embedded'", "embedding_json IS NOT NULL", "text NOT LIKE 'PCTENC%'", f"length(text) <= {_RAG_MAX_CHUNK_CHARS}"]
         params: list[Any] = []
         if query_vector:
             conditions.append("embedding_dimensions = ?")
             params.append(len(query_vector))
-        if embedding_provider == "gemini":
+        if embedding_provider in {"gemini", embeddinggemma2.PROVIDER}:
             conditions.append("embedding_provider = ?")
             params.append(embedding_provider)
             conditions.append("embedding_model = ?")
@@ -2838,11 +2988,18 @@ class LocalAIService:
         normalized_query = str(query_text or "").strip()
         if not normalized_query:
             return []
+        settings = self._load_settings()
+        embedding_provider = self._embedding_provider()
+        embed_model = self._embedding_model_name(settings)
+        if embedding_provider == embeddinggemma2.PROVIDER and not settings.enabled:
+            embed_model = ""
         cache_key = (
             normalized_query.lower(),
             str(practice_id or "").strip(),
             str(document_id or "").strip(),
             int(top_k or 8),
+            embedding_provider,
+            embed_model,
         )
         cached = self._cache_get(
             self._retrieval_cache,
@@ -2850,17 +3007,22 @@ class LocalAIService:
             ttl_seconds=_RETRIEVAL_CACHE_TTL_SECONDS,
         )
         if cached is not None:
+            if embeddinggemma2.configured():
+                from pct.rag_source_provenance import checked_rows
+                with self._connect() as conn:
+                    return checked_rows(conn, cached, verifier=getattr(self, "source_verifier", None), model=embed_model)
             return cached
-        settings = self._load_settings()
-        embedding_provider = self._embedding_provider()
-        embed_model = self._embedding_model_name(settings)
         query_vector: list[float] = []
         load_duration = None
         prompt_eval_count = None
         if embed_model:
             try:
                 client = self._embedding_client(settings)
-                embed_result = client.embed_texts(embed_model, [normalized_query])
+                embedding_query = (
+                    embeddinggemma2.query_text(normalized_query)
+                    if embedding_provider == embeddinggemma2.PROVIDER else normalized_query
+                )
+                embed_result = client.embed_texts(embed_model, [embedding_query])
                 query_vector = list(embed_result.get("embeddings") or [[]])[0]
                 load_duration = embed_result.get("load_duration")
                 prompt_eval_count = embed_result.get("prompt_eval_count")
@@ -2893,7 +3055,11 @@ class LocalAIService:
             document_titles = self._document_titles(conn, [row.get("document_id") for row in by_id.values()])
             for row in by_id.values():
                 row["title"] = document_titles.get(str(row.get("document_id")), "Documento")
-            ordered = self._rank_hybrid_rows(normalized_query, list(by_id.values()), top_k)
+            candidates = list(by_id.values())
+            if embeddinggemma2.configured():
+                from pct.rag_source_provenance import checked_rows
+                candidates = checked_rows(conn, candidates, verifier=getattr(self, "source_verifier", None), model=embed_model)
+            ordered = self._rank_hybrid_rows(normalized_query, candidates, top_k)
             for row in ordered:
                 row["citation"] = self._citation_for_row(row, str(row.get("title") or "Documento"))
             conn.execute(

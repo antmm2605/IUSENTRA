@@ -185,3 +185,25 @@ def test_una_sorgente_non_disponibile_non_ferma_la_ricerca():
     assert contesto["fascicoli"] == "gestore"
     assert contesto["email_pec"] is None
     assert segnalati == ["email_pec"]
+
+
+def test_ricerca_usa_l_indice_dello_studio_anche_con_un_default_globale(tmp_path):
+    from flask import Flask, g
+    from web.services.global_search_context import percorso_indice_ricerca_studio
+    app = Flask(__name__)
+    app.config.update(MULTI_TENANT=True, GLOBAL_SEARCH_INDEX=str(tmp_path/"global.db"))
+    root = tmp_path/"studio"
+    with app.test_request_context():
+        g.data_paths = {"STUDIO_DB":str(root/"studio.db"),"SEARCH_INDEX":str(root/"search/index.db")}
+        assert percorso_indice_ricerca_studio() == root/"search/global_search.db"
+
+
+def test_ricerca_senza_studio_non_legge_l_indice_globale(tmp_path):
+    import pytest
+    from flask import Flask
+    from web.services.global_search_context import percorso_indice_ricerca_studio
+    app = Flask(__name__)
+    app.config.update(MULTI_TENANT=True, GLOBAL_SEARCH_INDEX=str(tmp_path/"global.db"))
+    with app.test_request_context():
+        with pytest.raises(RuntimeError,match="Contesto studio"):
+            percorso_indice_ricerca_studio()

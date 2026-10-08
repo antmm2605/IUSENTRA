@@ -55,3 +55,43 @@ def test_parita_schema_sqlite_postgresql():
     from pathlib import Path
     root = Path(__file__).parents[1] / "pct" / "sql"
     assert (root / "20261002_letture_discordanze.sql").read_bytes() == (root / "20261002_letture_discordanze_postgres.sql").read_bytes()
+
+
+def test_nome_discordante_con_prova_idempotente_senza_correggere_cliente(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from web.services import discordanze_letture_runtime as runtime
+    registro = RegistroLetture(tmp_path / 'registro.db')
+    repo = RegistroDiscordanze(registro)
+    monkeypatch.setattr(runtime, 'repository', lambda: (repo, 'studio-a'))
+    caso = SimpleNamespace(id='f1', id_cliente='c1', titolo='Ricorso', nome_cliente='Rossi Mario',
+                           numero_rg='', anno_rg='', numero='2026/1',
+                           documenti=[SimpleNamespace(id='d1', nome='Ricorso.pdf')])
+    fonte = {'id': 'd1', 'sha256': 'a' * 64, 'valore': 'Rosso Mario', 'citazione': 'Il ricorrente Rosso Mario'}
+    runtime.pubblica_discordanza_nome_cliente(caso, caso.nome_cliente, [fonte, fonte])
+    prima = repo.aperte('studio-a')['voci'][0]
+    runtime.pubblica_discordanza_nome_cliente(caso, caso.nome_cliente, [fonte])
+    seconda = repo.aperte('studio-a')['voci'][0]
+    assert prima['revisione'] == seconda['revisione']
+    assert seconda['valoreAnagrafica'] == 'Rossi Mario'
+    assert seconda['valoriAtto'] == ['Rosso Mario']
+    assert len(seconda['fonti']) == 1
+    assert seconda['fonti'][0]['href'] == '/fascicoli/f1/documenti/d1/visualizza'
+    assert caso.nome_cliente == 'Rossi Mario'
+    assert repo.aperte('studio-b')['totale'] == 0
+    with registro.connection() as c:
+        assert c.execute('SELECT COUNT(*) FROM letture_discordanze_audit').fetchone()[0] == 1
+    runtime.pubblica_discordanza_nome_cliente(caso, caso.nome_cliente, [{**fonte, 'valore': 'Mario Rossi'}])
+    assert repo.aperte('studio-a')['totale'] == 0
+
+
+def test_nome_discordante_rifiuta_fonti_estranee(tmp_path, monkeypatch):
+    import pytest
+    from types import SimpleNamespace
+    from web.services import discordanze_letture_runtime as runtime
+    repo = RegistroDiscordanze(RegistroLetture(tmp_path / 'registro.db'))
+    monkeypatch.setattr(runtime, 'repository', lambda: (repo, 'studio-a'))
+    caso = SimpleNamespace(documenti=[])
+    with pytest.raises(ValueError):
+        runtime.pubblica_discordanza_nome_cliente(caso, 'Rossi Mario',
+                                                 [{'id': 'altro', 'sha256': 'a' * 64, 'valore': 'Rosso Mario'}])
+    assert repo.aperte('studio-a')['totale'] == 0

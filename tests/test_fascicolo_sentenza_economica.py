@@ -1,12 +1,14 @@
 from pathlib import Path
 from types import SimpleNamespace
+from copy import deepcopy
+
+import pytest
 
 from pct.fascicoli import StatoFascicolo
 from pct.fascicolo_sentenza_economica import (
     AUTOMATION_KEY,
     ORIGIN,
     SENTENZA_VECTOR_SCHEMA_VERSION,
-    SentenzaAutomationOutcome,
     analyze_sentenza_tribunale_text,
     apply_contributo_unificato_pdf_evidence,
     apply_sentenza_tribunale_automation,
@@ -59,7 +61,10 @@ class FakeFascicoliRepository:
             id="FASC-1",
             id_cliente="CLI-1",
             titolo="Spagnolo Sara c. MIM",
+            nome_cliente="Spagnolo Sara",
+            tribunale="Tribunale di Palmi",
             numero_rg="1548/2023",
+            anno_rg=2023,
             tipo_procedimento="Lavoro",
             valore_causa=0,
             stato=StatoFascicolo.IN_CORSO,
@@ -752,12 +757,18 @@ def test_applicazione_sentenza_aggiorna_fascicolo_e_crea_una_sola_proforma(tmp_p
     assert second.applied is False
     assert second.changes["alreadyProcessed"] is True
     assert second.message == "Sentenza Tribunale già applicata al fascicolo."
-    assert fascicolo.data_prossima_udienza == "2024-05-07"
-    assert fascicolo.data_chiusura == "2024-05-07"
-    assert getattr(fascicolo.stato, "value", fascicolo.stato) == StatoFascicolo.DEFINITO.value
-    assert fascicolo.pagamenti["contributo_unificato"]["status"] == "pagato"
+    assert fascicolo.data_prossima_udienza == "n.d."
+    assert fascicolo.data_chiusura == ""
+    assert getattr(fascicolo.stato, "value", fascicolo.stato) == StatoFascicolo.IN_CORSO.value
+    assert not first.changes["nextDeadlineChanged"]
+    assert not first.changes["statusChanged"]
+    assert fascicolo.pagamenti["contributo_unificato"]["status"] == "da_registrare"
+    assert fascicolo.pagamenti["contributo_unificato"]["data_pagamento"] == ""
     assert fascicolo.pagamenti["contributo_unificato"]["importo"] == 98.00
-    assert fascicolo.pagamenti["liquidazione_giudice"]["status"] == "pagato"
+    assert fascicolo.pagamenti["liquidazione_giudice"]["status"] == "da_registrare"
+    assert not fascicolo.pagamenti["liquidazione_giudice"]["pagato"]
+    assert fascicolo.pagamenti["liquidazione_giudice"]["data_pagamento"] == ""
+    assert fascicolo.pagamenti["liquidazione_giudice"]["metodo"] == ""
     assert fascicolo.pagamenti["liquidazione_giudice"]["importo"] == 1100.00
     assert fascicolo.pagamenti["parcella"]["status"] == "da_emettere"
     assert fascicolo.pagamenti["parcella"]["proforma_id"] == first.proforma_id
@@ -767,6 +778,85 @@ def test_applicazione_sentenza_aggiorna_fascicolo_e_crea_una_sola_proforma(tmp_p
     assert proforme[0].numero == "2024/001"
     assert proforme[0].origine == ORIGIN
     assert proforme[0].dati_personalizzati["document"]["documento_operativo"] == "PROFORMA"
+
+
+@pytest.mark.parametrize('origin', ['', 'manuale', 'riconciliazione_incassi', ORIGIN])
+def test_rilettura_sentenza_preserva_incasso_e_parcella_manuali(tmp_path: Path, origin):
+    fascicoli = FakeFascicoliRepository()
+    manual = {'status':'pagato', 'importo':1100.0, 'pagato':True, 'data_pagamento':'2024-06-10',
+              'metodo':'Assegno', 'origine':origin,
+              'history':[{'by':'Avvocato', 'toStatus':'pagato', 'note':'Incasso confermato'}]}
+    fascicoli.fascicolo.pagamenti = {'liquidazione_giudice':deepcopy(manual), 'parcella':deepcopy(manual)}
+    fascicoli.fascicolo.stato = StatoFascicolo.SOSPESO
+    fascicoli.fascicolo.data_prossima_udienza = '2024-07-01'
+    before = deepcopy(fascicoli.fascicolo.pagamenti)
+    outcome = apply_sentenza_tribunale_automation(
+        fascicoli_repository=fascicoli, fatturazione_repository=GestioneFatturazione(str(tmp_path/'parcelle.json')),
+        fascicolo_id='FASC-1', text=SENTENZA_TEXT,
+        document_metadata={'document_id':'DOC-1', 'filename':'sentenza.pdf', 'tipo_documento':'Sentenza Tribunale'},
+        actor='Lex AI')
+    for kind in before:
+        assert fascicoli.fascicolo.pagamenti[kind] == before[kind]
+        assert kind not in outcome.changes['payments']
+    assert fascicoli.fascicolo.stato == StatoFascicolo.SOSPESO
+    assert fascicoli.fascicolo.data_prossima_udienza == '2024-07-01'
+    assert fascicoli.fascicolo.data_chiusura == ''
+    assert fascicoli.fascicolo.avanzamento == []
+
+
+def test_correzione_pagamento_fittizio_lex_conserva_valori_precedenti_audit(tmp_path: Path):
+    fascicoli = FakeFascicoliRepository()
+    fascicoli.fascicolo.pagamenti = {'liquidazione_giudice':{
+        'status':'pagato', 'pagato':True, 'importo':1100.0, 'data_pagamento':'2024-05-07',
+        'metodo':'Bonifico bancario', 'origine':ORIGIN, 'documento_fonte':'document_id:DOC-1',
+        'history':[{'origine':ORIGIN, 'toStatus':'pagato'}]}}
+    apply_sentenza_tribunale_automation(
+        fascicoli_repository=fascicoli, fatturazione_repository=GestioneFatturazione(str(tmp_path/'parcelle.json')),
+        fascicolo_id='FASC-1', text=SENTENZA_TEXT,
+        document_metadata={'document_id':'DOC-1', 'filename':'sentenza.pdf', 'tipo_documento':'Sentenza Tribunale'},
+        actor='Lex AI')
+    payment = fascicoli.fascicolo.pagamenti['liquidazione_giudice']
+    assert payment['status'] == 'da_registrare'
+    assert payment['pagato'] is False
+    assert payment['data_pagamento'] == payment['metodo'] == ''
+    assert payment['importo'] == 1100.0
+    assert payment['history'][-1]['fromStatus'] == 'pagato'
+    assert payment['history'][-1]['fromDataPagamento'] == '2024-05-07'
+    assert payment['history'][-1]['fromMetodo'] == 'Bonifico bancario'
+
+
+@pytest.mark.parametrize('source_changed,manual_amount', [(False, None), (True, None), (False, 333.0)])
+def test_rilettura_non_somma_due_liquidazioni_nella_stessa_proforma(tmp_path: Path, source_changed, manual_amount):
+    fascicoli = FakeFascicoliRepository()
+    fatturazione = GestioneFatturazione(str(tmp_path/'parcelle.json'))
+    metadata = {'document_id':'DOC-1', 'filename':'sentenza.pdf', 'tipo_documento':'Sentenza Tribunale', 'sha256':'a'*64}
+    first = apply_sentenza_tribunale_automation(
+        fascicoli_repository=fascicoli, fatturazione_repository=fatturazione, fascicolo_id='FASC-1',
+        text=SENTENZA_TEXT, document_metadata=metadata, actor='Lex AI')
+    if manual_amount is not None:
+        proforma = fatturazione.get(first.proforma_id)
+        proforma.voci[0].prezzo_unitario = manual_amount
+        fatturazione.aggiorna(proforma.id, voci=proforma.voci)
+    second_metadata = dict(metadata, sha256='b'*64) if source_changed else metadata
+    corrected_text = SENTENZA_TEXT.replace('1.100,00', '260,00')
+    outcome = apply_sentenza_tribunale_automation(
+        fascicoli_repository=fascicoli, fatturazione_repository=fatturazione, fascicolo_id='FASC-1',
+        text=corrected_text, document_metadata=second_metadata, actor='Lex AI')
+    proforma = fatturazione.get(first.proforma_id)
+    fees = [v for v in proforma.voci if v.tipo == 'ONORARIO']
+    assert len(fees) == 1
+    if not source_changed and manual_amount is None:
+        assert fees[0].prezzo_unitario == 260.0
+        assert proforma.dati_personalizzati['lex_sentenza']['corrections'][0]['previous_amounts'] == [1100.0]
+    else:
+        assert fees[0].prezzo_unitario == (manual_amount or 1100.0)
+        assert proforma.dati_personalizzati['lex_sentenza_reconciliation']['conflicts'][0]['amount'] == 260.0
+        assert 'proforma_importi_discordanti' in outcome.extraction.warnings
+    again = apply_sentenza_tribunale_automation(
+        fascicoli_repository=fascicoli, fatturazione_repository=fatturazione, fascicolo_id='FASC-1',
+        text=corrected_text, document_metadata=second_metadata, actor='Lex AI')
+    assert not again.applied
+    assert len([v for v in fatturazione.get(first.proforma_id).voci if v.tipo == 'ONORARIO']) == 1
 
 
 def test_documento_duplicato_stessa_sentenza_riusa_proforma_esistente(tmp_path: Path):
@@ -803,6 +893,7 @@ def test_sentenza_gia_processata_completa_esborsi_e_importo_parcella(tmp_path: P
     fascicoli = FakeFascicoliRepository()
     fascicoli.fascicolo.titolo = "Montagnese Roberta c. MIM"
     fascicoli.fascicolo.nome_cliente = "Montagnese Roberta"
+    fascicoli.fascicolo.tribunale = "Tribunale di Vicenza"
     fascicoli.fascicolo.numero_rg = "697"
     fascicoli.fascicolo.anno_rg = 2025
     fascicoli.fascicolo.stato = StatoFascicolo.DEFINITO
@@ -814,12 +905,14 @@ def test_sentenza_gia_processata_completa_esborsi_e_importo_parcella(tmp_path: P
             "status": "pagato",
             "importo": 321.50,
             "data_pagamento": "2025-09-23",
+            "origine": ORIGIN,
         },
         "parcella": {
             "kind": "parcella",
             "status": "da_emettere",
             "importo": None,
             "data_pagamento": "2025-09-23",
+            "origine": ORIGIN,
         },
         AUTOMATION_KEY: {"processed_documents": [document_key], "proforme": {}},
     }
@@ -853,7 +946,8 @@ def test_sentenza_gia_processata_completa_esborsi_e_importo_parcella(tmp_path: P
     assert "spese_esborsi" in outcome.changes["payments"]
     assert "parcella" in outcome.changes["payments"]
     assert "contributo_unificato" not in fascicolo.pagamenti
-    assert fascicolo.pagamenti["spese_esborsi"]["status"] == "pagato"
+    assert fascicolo.pagamenti["spese_esborsi"]["status"] == "da_registrare"
+    assert fascicolo.pagamenti["spese_esborsi"]["data_pagamento"] == ""
     assert fascicolo.pagamenti["spese_esborsi"]["importo"] == 21.50
     assert fascicolo.pagamenti["spese_esborsi"]["natura"] == "spese_esborsi"
     assert fascicolo.pagamenti["spese_esborsi"]["label"] == "Spese/esborsi"
@@ -1057,6 +1151,20 @@ def test_sentenza_gia_applicata_alimenta_vector_db_una_sola_volta(tmp_path: Path
     fascicoli = FakeFascicoliRepository()
     fatturazione = GestioneFatturazione(str(tmp_path / "parcelle.json"))
     metadata = {"document_id": "DOC-1", "filename": "sentenza.pdf", "tipo_documento": "Sentenza Tribunale"}
+    metadata.update(source_id="original", sha256="a"*64)
+    fascicoli.fascicolo.documenti = [SimpleNamespace(id="original", nome="sentenza.pdf", hash_sha256="a"*64)]
+    from pct.document_intelligence.models import DocumentAIRecord, DocumentAIText, DocumentAIVersion
+    from pct.document_intelligence.repository import DocumentAIRepository
+    document_repository = DocumentAIRepository.from_sqlite_db(tmp_path / "studio.db", storage_root=tmp_path / "blobs")
+    document_repository.create_document_record(DocumentAIRecord(
+        "DOC-1", "tenant-a", "FASC-1", "sentenza.pdf", "sentenza.pdf", "pdf", "application/pdf",
+        100, "a"*64, "ready", "v1", 1, "controlled", "2026-10-08", "2026-10-08"))
+    document_repository.create_version(DocumentAIVersion(
+        "v1", "tenant-a", "FASC-1", "DOC-1", 1, "upload", "sentenza.pdf", None, None,
+        "a"*64, "controlled", "2026-10-08"))
+    document_repository.save_extracted_text(DocumentAIText(
+        "DOC-1", "v1", "tenant-a", "FASC-1", SENTENZA_TEXT, [], "pdf-native", "2026-10-08"))
+    monkeypatch.setattr(runtime, "build_document_ai_service", lambda: SimpleNamespace(repository=document_repository))
     apply_sentenza_tribunale_automation(
         fascicoli_repository=fascicoli,
         fatturazione_repository=fatturazione,
@@ -1072,14 +1180,15 @@ def test_sentenza_gia_applicata_alimenta_vector_db_una_sola_volta(tmp_path: Path
 
         def index_text_document(self, **kwargs):
             self.calls += 1
-            assert kwargs["source_type"] == "lex_sentenza_tribunale"
-            assert kwargs["metadata"]["tipo_documento"] == "sentenza_tribunale"
-            assert kwargs["metadata"]["importo_liquidazione"] == 1100.00
-            return {"status": "created", "document_id": "rag-sentenza-1", "chunk_count": 2}
+            assert kwargs["source_type"] == "fascicolo_documento"
+            assert kwargs["source_id"] == "original"
+            assert kwargs["metadata"]["document_ai_id"] == "DOC-1"
+            assert kwargs["text"] == SENTENZA_TEXT.strip()
+            return {"status": "indexed", "document_id": "rag-sentenza-1", "chunk_count": 2}
 
         def embed_all_pending_chunks(self, **kwargs):
             assert kwargs["document_id"] == "rag-sentenza-1"
-            return {"embedded": 2}
+            return {"status": "ready", "embedded": 2, "pending_remaining": 0}
 
     local_ai = FakeLocalAI()
     monkeypatch.setattr(runtime, "get_fascicoli", lambda: fascicoli)
@@ -1112,30 +1221,25 @@ def test_sentenza_gia_applicata_alimenta_vector_db_una_sola_volta(tmp_path: Path
     assert vector_state["ok"] is True
     assert vector_state["schema_version"] == SENTENZA_VECTOR_SCHEMA_VERSION
     assert local_ai.calls == 1
+    document_repository.set_current_version("tenant-a", "FASC-1", "DOC-1", "v2")
+    assert not runtime._sentenza_vector_index_ok(fascicoli_repository=fascicoli,
+        fascicolo_id="FASC-1", document_key=vector_key, metadata={**metadata, "tenant_id": "tenant-a"})
 
 
-def test_sentenza_vector_runtime_usa_estratto_compatto():
-    from web.services.document_intelligence_runtime import _sentenza_vector_text
+def test_sentenza_vector_runtime_usa_testo_originale_completo():
+    from pct.rag_sql_document import index_sql_text
 
     long_text = SENTENZA_TEXT + (" motivazione istruttoria" * 2500)
-    extraction = analyze_sentenza_tribunale_text(long_text, {"tipo_documento": "Sentenza Tribunale"})
-    fascicolo = SimpleNamespace(
-        id="FASC-1",
-        titolo="Spagnolo Sara c. MIM",
-        numero_rg="1548/2023",
-        nome_cliente="Spagnolo Sara",
-    )
-    outcome = SentenzaAutomationOutcome(applied=False, extraction=extraction, proforma_id="PRO-1")
-
-    vector_text = _sentenza_vector_text(
-        extraction,
-        fascicolo,
-        {"document_id": "DOC-1", "filename": "sentenza.pdf"},
-        outcome,
-        long_text,
-    )
-
-    assert len(vector_text) < 14000
-    assert "Estratto sentenza rilevante:" in vector_text
-    assert "Sentenza n. 230/2024" in vector_text
-    assert "1.100,00" in vector_text
+    captured = []
+    def index(**kwargs):
+        captured.append(kwargs)
+        return {"status": "indexed", "document_id": "rag"}
+    result = index_sql_text(SimpleNamespace(index_text_document=index), tenant="tenant", fid="case",
+        sid="original", title="sentenza.pdf", sha256="a"*64, backend="sqlite",
+        record=SimpleNamespace(id="ai", tenant_id="tenant", fascicolo_id="case", status="ready",
+                               sha256="a"*64, current_version_id="v1"),
+        extracted=SimpleNamespace(document_id="ai", tenant_id="tenant", fascicolo_id="case", version_id="v1",
+                                   text=long_text, extraction_engine="pdf-native", pages=[]))
+    assert result["status"] == "indexed"
+    assert captured[0]["text"] == long_text.strip()
+    assert captured[0]["source_type"] == "fascicolo_documento"

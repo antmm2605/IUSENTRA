@@ -14,6 +14,26 @@ qui vale per tutte le superfici senza doverla ricordare altrove.
 from __future__ import annotations
 
 from typing import Any, Callable
+from pathlib import Path
+
+
+def percorso_indice_ricerca_studio() -> Path:
+    """Pagina e top bar interrogano lo stesso indice dello studio corrente."""
+    from flask import current_app, g
+    from pct.global_search.service import default_global_search_db_path
+
+    paths = dict(getattr(g, "data_paths", {}) or {})
+    multi = current_app.config.get("MULTI_TENANT") or getattr(g, "multi_tenant_enabled", False)
+    if multi or getattr(g, "tenant_context_missing", False):
+        if not paths.get("SEARCH_INDEX"):
+            raise RuntimeError("Contesto studio non disponibile per la ricerca")
+        from web.services.tenant_isolation_runtime import assert_tenant_data_path
+        path = paths.get("GLOBAL_SEARCH_INDEX") or default_global_search_db_path(paths["SEARCH_INDEX"])
+        return Path(assert_tenant_data_path(str(path), key="SEARCH_INDEX"))
+    configured = paths.get("GLOBAL_SEARCH_INDEX") or current_app.config.get("GLOBAL_SEARCH_INDEX")
+    return Path(configured) if configured else default_global_search_db_path(
+        paths.get("SEARCH_INDEX") or current_app.config.get("SEARCH_INDEX", "./data/search/index.db")
+    )
 
 #  Nomi delle sorgenti nell'ordine in cui gli adapter se le aspettano. La
 #  chiave e' il nome usato dal contesto, il valore il nome della funzione in

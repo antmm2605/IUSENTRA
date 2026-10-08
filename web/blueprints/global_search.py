@@ -11,7 +11,7 @@ from typing import Any
 from flask import Blueprint, current_app, g, jsonify, redirect, render_template, request, url_for
 
 from pct.global_search.repository import GlobalSearchRepository
-from pct.global_search.service import GlobalSearchService, default_global_search_db_path
+from pct.global_search.service import GlobalSearchService
 from web.helpers import (
     get_agenda,
     get_clienti,
@@ -26,9 +26,10 @@ from web.helpers import (
     get_scadenziario,
     get_soggetti,
     tenant_corrente,
+    _cfg,
 )
 from web.blueprints.react_shell import render_react_shell_response
-from web.services.global_search_context import costruisci_contesto_ricerca
+from web.services.global_search_context import costruisci_contesto_ricerca, percorso_indice_ricerca_studio
 
 global_search = Blueprint("global_search", __name__)
 
@@ -53,10 +54,7 @@ def _tenant_id() -> str:
 
 
 def _db_path() -> Path:
-    configured = current_app.config.get("GLOBAL_SEARCH_INDEX")
-    if configured:
-        return Path(str(configured))
-    return default_global_search_db_path(current_app.config.get("SEARCH_INDEX", "./data/search/index.db"))
+    return percorso_indice_ricerca_studio()
 
 
 def _service() -> GlobalSearchService:
@@ -68,7 +66,7 @@ def _context() -> dict[str, Any]:
 
     return costruisci_contesto_ricerca(
         tenant_id=_tenant_id(),
-        search_index_path=str(current_app.config.get("SEARCH_INDEX", "")),
+        search_index_path=str(_cfg("SEARCH_INDEX")),
         factories={
             "fascicoli": get_fascicoli,
             "clienti": get_clienti,

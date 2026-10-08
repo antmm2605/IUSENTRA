@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from flask import current_app, g, has_app_context
+from pct.formatting import format_datetime_it
 
 
 MAX_SCAN_FILES = 320
@@ -207,6 +208,8 @@ def _card(
 
 def _job_status_label(status: str) -> str:
     normalized = _text(status).lower().replace("_", " ")
+    if normalized == "skipped unchanged":
+        return "Nessuna variazione"
     if normalized in {"ok", "completed", "completato", "success"}:
         return "Completato"
     if normalized in {"running", "in corso", "working"}:
@@ -220,6 +223,8 @@ def _job_status_label(status: str) -> str:
 
 def _job_status_tone(status: str) -> str:
     normalized = _text(status).lower().replace("_", " ")
+    if normalized == "skipped unchanged":
+        return "neutral"
     if normalized in {"ok", "completed", "completato", "success"}:
         return "success"
     if normalized in {"failed", "error", "errore", "fallito"}:
@@ -269,6 +274,7 @@ def build_lex_dataset_training_status(
     latest_at = _text(latest_job.get("completed_at") or latest_job.get("ended_at") or latest_job.get("updated_at") or stats["latest_at"])
     errors = [error for error in stats["errors"] if error.get("message")][:5]
     latest_label = _job_status_label(latest_status)
+    latest_at_label = format_datetime_it(latest_at) if latest_at else ""
 
     cards = [
         _card(
@@ -320,9 +326,11 @@ def build_lex_dataset_training_status(
             "latest_job",
             "Ultimo lavoro",
             latest_label,
-            f"Ultimo aggiornamento: {latest_at}" if latest_at else "Nessun lavoro dataset registrato per questo studio.",
+            ("Il controllo non ha rilevato variazioni nell'archivio." if latest_status == "skipped_unchanged"
+             else "Stato dell'ultimo lavoro registrato per questo studio.") if latest_at_label
+            else "Nessun lavoro dataset registrato per questo studio.",
             _job_status_tone(latest_status),
-            value=latest_at,
+            value=latest_at_label,
             action_label="Controlla stato",
         ),
         _card(

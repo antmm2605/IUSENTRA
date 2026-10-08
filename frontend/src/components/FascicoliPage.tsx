@@ -6,6 +6,7 @@ import { EconomicVerificationPanel } from './EconomicVerificationPanel'
 import { AvanzamentoCaricamento, caricaDocumentiConAvanzamento, type StatoCaricamento } from './fascicoli/caricaDocumenti'
 import { Fragment, Suspense, lazy, useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 const ViewerDocumentEditor = lazy(() => import('./ViewerDocumentEditor').then((module) => ({ default: module.ViewerDocumentEditor })))
+const FascicoloRedazioneWizard = lazy(() => import('../features/documenti/RedazioneGuidataWizard').then(module => ({ default: module.RedazioneGuidataWizard })))
 import {
   Archive,
   AlertTriangle,
@@ -5793,6 +5794,7 @@ export function PdfPreviewModal({ preview, onClose, overDocumentFlow = false }:{
   useEffect(() => {
     const receiveFrameDownload = (event: MessageEvent<unknown>) => {
       if (event.origin !== window.location.origin || !event.data || typeof event.data !== 'object') return
+      if (event.source !== iframeRef.current?.contentWindow) return
       const request = event.data as { type?: unknown; url?: unknown; filename?: unknown }
       if (request.type !== 'iusentra.document.download' || typeof request.url !== 'string' || !isInternalDocumentDownload(request.url)) return
       const filename = typeof request.filename === 'string' && request.filename.trim() ? request.filename.trim() : (preview?.name || 'documento')
@@ -9507,14 +9509,15 @@ function DetailPage({ id }:{id:string}) {
   const [embeddedRecord, setEmbeddedRecord] = useState<EmbeddedRecordState | null>(null)
   const [documentFlowMode, setDocumentFlowMode] = useState<DocumentFlowMode | null>(null)
   const setPreviewDoc = useCallback((preview: PreviewDocument | null) => {
-    const forwarded = preview && !documentFlowMode && window.parent !== window && new URLSearchParams(window.location.search).get('embed') === 'source'
+    const forwarded = preview && !documentFlowMode
       ? documentWorkPreview(preview, window.location.origin) : null
-    if (forwarded) window.parent.postMessage({ type: 'iusentra:open-document-window', preview: forwarded }, window.location.origin)
+    if (forwarded) window.dispatchEvent(new CustomEvent('iusentra:open-document-window', { detail: { preview: forwarded } }))
     else setLocalPreviewDoc(preview)
   }, [documentFlowMode])
   const [contextMenu, setContextMenu] = useState<FascicoloContextMenuState | null>(null)
   const [contributoModalOpen, setContributoModalOpen] = useState(false)
   const [economicControlOpen, setEconomicControlOpen] = useState(false)
+  const [editorVisited, setEditorVisited] = useState(() => currentDetailHashSectionId() === 'editor-fascicolo')
   const [contributoMemory, setContributoMemory] = useState<ContributoUnificatoMemory | null>(null)
   const [officeDocumentsOpenRequest, setOfficeDocumentsOpenRequest] = useState<OfficeDocumentsOpenRequest | null>(null)
   const [lazyStatus, setLazyStatus] = useState<Record<FascicoloDetailSection, LazySectionStatus>>(emptyLazySections)
@@ -9793,7 +9796,7 @@ function DetailPage({ id }:{id:string}) {
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : 'Dati aggiornati'}</span></section>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
-      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#presidio-fascicolo">Presidio fascicolo <b>{data.regia.documentSlots.length + operationalPresidio.actions.length}</b></a><a href="#lettura-fascicolo">Lettura</a><a href="#profilo">Anagrafica <b>{data.quickCounts.profilo || 0}</b></a>{f.type === 'penale' ? <a href="#penale-pdp">Deposito penale</a> : null}{f.type === 'amministrativo' ? <a href="#pat-formweb">Deposito amministrativo</a> : null}{f.type === 'tributario' ? <a href="#ptt-sigit">Deposito tributario</a> : null}<a href="#documenti">Documenti e atti <b>{data.quickCounts.documenti || 0}</b></a><a href="#comunicazioni-notifica">Comunicazioni e notifica <b>{displayedCommunicationTotal + notificationRelataCount}</b></a><a href="#attivita">Cronologia <b>{data.quickCounts.attivita || 0}</b></a><a href="#udienze">Udienze / scadenze <b>{data.quickCounts.udienze_scadenze || 0}</b></a><a href="#mediazione">Mediazione</a><a href="#ctu">CTU</a><a href="#audit" title={auditNavigation.label}>Audit <b aria-label={auditNavigation.label}>{auditNavigation.value}</b></a><a href="#conformita">Controlli <b>{data.quickCounts.presidio_operativo || operationalPresidio.actions.length || 0}</b></a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a><a href="#telematico">Servizi telematici</a></nav>
+      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#presidio-fascicolo">Presidio fascicolo <b>{data.regia.documentSlots.length + operationalPresidio.actions.length}</b></a><a href="#lettura-fascicolo">Lettura</a><a href="#profilo">Anagrafica <b>{data.quickCounts.profilo || 0}</b></a>{f.type === 'penale' ? <a href="#penale-pdp">Deposito penale</a> : null}{f.type === 'amministrativo' ? <a href="#pat-formweb">Deposito amministrativo</a> : null}{f.type === 'tributario' ? <a href="#ptt-sigit">Deposito tributario</a> : null}<a href="#editor-fascicolo" onClick={() => setEditorVisited(true)}>Editor e redazione</a><a href="#documenti">Documenti e atti <b>{data.quickCounts.documenti || 0}</b></a><a href="#comunicazioni-notifica">Comunicazioni e notifica <b>{displayedCommunicationTotal + notificationRelataCount}</b></a><a href="#attivita">Cronologia <b>{data.quickCounts.attivita || 0}</b></a><a href="#udienze">Udienze / scadenze <b>{data.quickCounts.udienze_scadenze || 0}</b></a><a href="#mediazione">Mediazione</a><a href="#ctu">CTU</a><a href="#audit" title={auditNavigation.label}>Audit <b aria-label={auditNavigation.label}>{auditNavigation.value}</b></a><a href="#conformita">Controlli <b>{data.quickCounts.presidio_operativo || operationalPresidio.actions.length || 0}</b></a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a><a href="#telematico">Servizi telematici</a></nav>
       <section className="iu-fas-detail-grid iu-fas-detail-grid--with-guide">
         <aside className="iu-fas-guide-column" aria-label="Guida pratica facoltativa del fascicolo">
           <GuidaPraticaSidebar fascicoloId={f.id || id} codice={f.codiceOggettoPst} fascicoloTitle={f.title}/>
@@ -9834,6 +9837,16 @@ function DetailPage({ id }:{id:string}) {
               {pttVisited ? <Suspense fallback={<p role="status">Caricamento deposito tributario…</p>}><PttSezione key={f.id || id} fascicoloId={f.id || id} onDocumenti={() => refreshDocuments()}/></Suspense> : null}
             </DetailSection>
           ) : null}
+          <DetailSection id="editor-fascicolo" title="Editor e redazione" icon={<Edit3 size={17}/>} defaultOpen={activeHashSection === 'editor-fascicolo'} onOpen={() => setEditorVisited(true)}>
+            <nav className="iu-fas-toolbar" aria-label="Scrittura nel fascicolo">
+              <Button href={`/editor-professionale?fascicolo=${encodeURIComponent(f.id || id)}`}><Edit3 size={15}/> Modifica documenti e versioni</Button>
+              <Button href="#documenti"><BookOpen size={15}/> Consulta le fonti</Button>
+              {f.clientId ? <Button href={`/clienti/${encodeURIComponent(f.clientId)}/modifica?id_fascicolo=${encodeURIComponent(f.id || id)}`}><UserRound size={15}/> Anagrafica da documento</Button> : null}
+            </nav>
+            {editorVisited ? <Suspense fallback={<p role="status">Caricamento redazione del fascicolo…</p>}>
+              <FascicoloRedazioneWizard initialMatter={{ id: f.id || id, numero: f.ref, titolo: f.title, clienteId: f.clientId }}/>
+            </Suspense> : null}
+          </DetailSection>
           <DetailSection id="documenti" title="Documenti e atti" icon={<FileText size={17}/>} count={data.quickCounts.documenti || 0} defaultOpen={activeHashSection === 'documenti'} onOpen={() => { loadLazySection('documenti') }}>
             <Suspense fallback={<p className="iu-empty">Preparazione ricerca documenti d’ufficio…</p>}>
               <OfficeDocumentsPanel data={data} onDone={refreshDocuments} onError={failDetail} openOfficeDocumentsRequest={officeDocumentsOpenRequest}/>

@@ -16,6 +16,12 @@ from typing import Any
 # lettura; «fascicolo» se legge il fascicolo nel suo insieme e registra solo
 # l'impronta dell'inventario che ha esaminato. `tipi`: gli oggetti che legge.
 LETTORI: dict[str, dict[str, Any]] = {
+    "sentenza_da_archiviare": {
+        "etichetta": "Sentenza e preparazione archivio",
+        "descrizione": "Stato della pratica dalla sentenza conclusiva con fonte e valore verificati",
+        "livello": "oggetto",
+        "tipi": ("documento", "allegato_pec"),
+    },
     "ocr": {
         "etichetta": "Testo e ricerca",
         "descrizione": "Riconoscimento del testo e indice di ricerca a testo pieno",
@@ -129,10 +135,11 @@ def _versione_presidio_economico() -> str:
 
 
 _VERSIONI: dict[str, Callable[[], str]] = {
+    "sentenza_da_archiviare": lambda: __import__("pct.fascicolo_sentenza_archiviazione", fromlist=["RULE"]).RULE,
     "ocr": _versione_ocr,
     "indice_documentale": _versione_indice_documentale,
     "catalogo": _versione_catalogo,
-    "rag_locale": lambda: "rag-locale.v2.sql-pagine",
+    "rag_locale": lambda: "rag-locale.v3.sql-riscontri",
     "presidio_pec": _versione_presidio_pec,
     "presidio_economico": _versione_presidio_economico,
     "proforma_automatica": _versione_presidio_economico,

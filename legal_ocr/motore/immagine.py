@@ -113,6 +113,16 @@ def ritaglia_bordo(immagine):
 
     try:
         grigia = ImageOps.grayscale(immagine)
+        # I margini bianchi appartengono al foglio: ritagliarli cambia
+        # l'impaginazione e ingrandisce artificialmente il testo esportato.
+        # La rimozione del bordo è riservata a uno sfondo esterno scuro.
+        from PIL import ImageStat
+        bordo = max(1, min(grigia.size) // 100)
+        angoli = [(0, 0, bordo, bordo), (grigia.width - bordo, 0, grigia.width, bordo),
+                  (0, grigia.height - bordo, bordo, grigia.height),
+                  (grigia.width - bordo, grigia.height - bordo, grigia.width, grigia.height)]
+        if all(ImageStat.Stat(grigia.crop(angolo)).mean[0] >= 245 for angolo in angoli):
+            return immagine, False
         bianco = Image.new("L", grigia.size, 255)
         differenza = ImageChops.difference(grigia, bianco)
         maschera = differenza.point(lambda pixel: 255 if pixel > 10 else 0)

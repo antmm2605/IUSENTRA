@@ -883,3 +883,52 @@ def test_fatturazione_xml_firmato_sdi_e_commercialista_usano_storage_tenant_awar
     assert len(comm_result["draft"]["attachments"]) == 2
     assert {item["storageFile"] for item in comm_result["draft"]["attachments"]} >= {signed_meta["storageFile"]}
     assert comm_result["localPec"]["payload"]["to"] == "contabile@pec.example"
+
+
+def test_proforma_fascicolo_conserva_regime_scadenza_e_non_duplica(tmp_path):
+    from datetime import timedelta
+    from web.services.react_fatturazione_bridge import create_react_fascicolo_proforma
+
+    for regime in ("RF01", "RF02", "RF19"):
+        cliente = _cliente()
+        fascicolo = _fascicolo(cliente.id)
+        manager = GestioneFatturazione(db_path=str(tmp_path / f"{regime}.json"))
+        audit = _AuditUsers()
+        config = {**_studio_config(), "FATTURAZIONE_DEFAULTS": {
+            "regime_fiscale": regime, "giorni_scadenza": 45,
+            "applica_iva": regime == "RF01", "applica_cassa": True,
+        }}
+        kwargs = dict(
+            get_fatturazione=lambda: manager,
+            get_clienti=lambda: _Loader(cliente),
+            get_fascicoli=lambda: _Loader(fascicolo),
+            get_utenti=lambda: audit, get_preventivi=None,
+            current_user=_User(), fascicolo=fascicolo,
+            amount=260.0, amount_source="dispositivo della sentenza", config=config,
+        )
+        result, status = create_react_fascicolo_proforma(**kwargs)
+        assert status == 200, result
+        assert result["ok"] and not result["errors"]
+        parcella = manager.get(result["item"]["id"])
+        assert parcella.dati_personalizzati["document"]["regime_fiscale"] == regime
+        assert parcella.dati_personalizzati["document"]["documento_operativo"] == "PROFORMA"
+        assert parcella.data_scadenza == (date.today() + timedelta(days=45)).isoformat()
+        assert parcella.voci[0].prezzo_unitario == 260.0
+        assert parcella.applica_iva == (regime == "RF01")
+        repeated, repeated_status = create_react_fascicolo_proforma(**kwargs)
+        assert repeated_status == 200 and repeated["existing"]
+        assert repeated["item"]["id"] == parcella.id
+        assert len(manager.per_fascicolo(fascicolo.id)) == 1
+        assert len(audit.events) == 1
+
+
+def test_config_fatturazione_priorita_iban_e_banca_dati_studio():
+    studio = SimpleNamespace(studio=SimpleNamespace(
+        nome="Studio Tenant", iban="IT93C0303281610010000013029", banca="Credem",
+    ))
+    pagamenti = SimpleNamespace(bonifico=SimpleNamespace(
+        iban="IT60X0542811101000000123456", banca="Altro conto storico",
+    ))
+    config = build_fatturazione_runtime_config(studio, pagamenti)
+    assert config["STUDIO_IBAN"] == studio.studio.iban
+    assert config["STUDIO_BANCA"] == studio.studio.banca

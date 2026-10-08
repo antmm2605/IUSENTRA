@@ -160,8 +160,8 @@ def build_fatturazione_runtime_config(
 
     studio_name = attr(studio, "nome")
     beneficiary = attr(bonifico, "intestazione") or studio_name or attr(studio, "avvocato")
-    iban = attr(bonifico, "iban") or attr(studio, "iban")
-    bank = attr(bonifico, "banca") or attr(studio, "banca")
+    iban = attr(studio, "iban") or attr(bonifico, "iban")
+    bank = attr(studio, "banca") or attr(bonifico, "banca")
     sdi_mode = attr(sdi, "modalita").lower()
     channel_code = attr(sdi, "codice_canale")
     intermediary = attr(sdi, "nome_intermediario")
@@ -609,12 +609,10 @@ def _studio_profile(config: dict[str, Any] | None) -> dict[str, Any]:
 
 
 def _suggest_submission_code(number: str) -> str:
-    if not number or "/" not in number:
-        today = date.today()
-        return f"{str(today.year)[-2:]}{today.strftime('%j')[:3]}"
-    year, sequence = number.split("/", 1)
-    digits = _digits(sequence, limit=3).rjust(3, "0")
-    return f"{_digits(year, limit=4)[-2:]}{digits}"[:5]
+    if not number:
+        return ""
+    from pct.fattura_pa import progressivo_file_fattura_pa
+    return progressivo_file_fattura_pa(number)
 
 
 def _deep_text_map(value: Any, *, limit: int = 256) -> Any:
@@ -1834,7 +1832,8 @@ def create_react_fascicolo_proforma(
         config=config,
         next_number=next_number,
     )["defaults"]
-    payload = {key: value for key, value in defaults.items() if key != "hidden"}
+    # I default includono impostazioni di presentazione: il salvataggio usa il contratto canonico.
+    payload = {key: value for key, value in defaults.items() if key in _TOP_LEVEL_FIELDS}
     payload.update(defaults.get("hidden") or {})
     personalized = dict(payload.get("dati_personalizzati") or {})
     document = dict(personalized.get("document") or {})

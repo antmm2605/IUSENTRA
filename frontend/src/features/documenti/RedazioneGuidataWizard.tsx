@@ -16,6 +16,7 @@ import {
   type RedazioneFascicolo,
 } from '../../redazioneAttiData'
 import { formatEuroIt } from '../../formatting'
+import '../../components/RedazioneAttiPage.css'
 
 type PassoWizard = 1 | 2 | 3 | 4
 
@@ -463,13 +464,35 @@ function PassoAnteprima({
   )
 }
 
-export function RedazioneGuidataWizard() {
+export function RedazioneGuidataWizard({ initialMatter }: { initialMatter?: { id: string; numero: string; titolo: string; clienteId: string } } = {}) {
   const [passo, setPasso] = useState<PassoWizard>(1)
   const [cliente, setCliente] = useState<RedazioneCliente | null>(null)
-  const [fascicolo, setFascicolo] = useState<RedazioneFascicolo | null>(null)
+  const [fascicolo, setFascicolo] = useState<Pick<RedazioneFascicolo, 'id' | 'numero' | 'titolo'> | null>(null)
   const [contesto, setContesto] = useState<RedazioneContesto | null>(null)
   const [contestoCaricamento, setContestoCaricamento] = useState(false)
   const [modello, setModello] = useState<{ code: string; name: string } | null>(null)
+
+  const matterId = initialMatter?.id || ''
+  const matterClientId = initialMatter?.clienteId || ''
+  useEffect(() => {
+    if (!matterId) return
+    let active = true
+    setPasso(3)
+    setContestoCaricamento(true)
+    setContesto(null)
+    setModello(null)
+    getRedazioneContesto(matterId, matterClientId).then((result) => {
+      if (!active) return
+      setContesto(result.ok && !result.cliente?.id ? { ...result, ok: false, errore: 'Cliente non collegato al fascicolo. Completa l’anagrafica prima di redigere un atto.' } : result)
+      if (result.ok && result.cliente?.id) {
+        setCliente({ id: result.cliente.id, label: result.cliente.denominazione.valore,
+          tipo: result.cliente.personaGiuridica ? 'giuridica' : 'fisica',
+          codiceFiscale: result.cliente.codiceFiscale.valore, fascicoli: 1 })
+        setFascicolo({ id: matterId, numero: initialMatter?.numero || '', titolo: initialMatter?.titolo || '' })
+      }
+    }).finally(() => { if (active) setContestoCaricamento(false) })
+    return () => { active = false }
+  }, [matterId, matterClientId, initialMatter?.numero, initialMatter?.titolo])
 
   const selezionaFascicolo = (voce: RedazioneFascicolo) => {
     if (!cliente) return
@@ -508,7 +531,7 @@ export function RedazioneGuidataWizard() {
             {modello ? ` - Atto: ${modello.name}` : ''}
           </span>
         </div>
-        {passo > 1 ? (
+        {passo > 1 && (!initialMatter || passo === 4) ? (
           <Button type="button" tone="neutral" onClick={indietro}>
             <ArrowLeft size={16} aria-hidden="true" />
             Indietro
@@ -547,7 +570,8 @@ export function RedazioneGuidataWizard() {
           fascicoloId={fascicolo.id}
           clienteId={cliente.id}
           onGenerato={(editorUrl) => {
-            window.location.assign(editorUrl)
+            if (initialMatter) window.dispatchEvent(new CustomEvent('iusentra:open-work-window', { detail: { href: editorUrl, title: 'Editor · ' + (modello?.name || 'Nuovo documento') } }))
+            else window.location.assign(editorUrl)
           }}
         />
       ) : null}

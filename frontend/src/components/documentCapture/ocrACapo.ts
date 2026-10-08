@@ -92,6 +92,11 @@ export function nodiDelTesto(block: OcrBlock, nodoDelTratto: (tratto: OcrTratto)
     const ultima = indice === righe.length - 1
     const piena = aSinistra && (piene ? piene[indice] || (giustificato && !ultima) : giustificato && !ultima)
     contenitore.className = piena ? 'iu-ocr-riga is-piena' : 'iu-ocr-riga'
+    const top = block.aCapo?.topNative
+    if (top?.length === righe.length && !block.format.interlinea && !block.format.rientro) {
+      contenitore.classList.add('iu-ocr-riga--nativa')
+      contenitore.style.setProperty('--iu-ocr-riga-top', `${top[indice] * 96 / 300}px`)
+    }
     if (indice === 0 && segno) contenitore.append(segno)
     contenitore.append(...riga.map(nodo))
     return contenitore

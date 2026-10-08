@@ -7,6 +7,7 @@ import { useManagedWindow, WindowControls } from './ManagedWindowState'
 
 type ExistingWindowEntry = { node: HTMLElement; pane: HTMLElement; header: HTMLElement | null; title: string }
 function ExistingWindow({ node, pane, header, title }: ExistingWindowEntry) {
+  const layerHost = node.closest<HTMLElement>('#pct-ai-widget') || node
   const controlsTarget = header || pane
   const close = () => {
     const buttons = [...node.querySelectorAll<HTMLButtonElement>('button')].filter((button) => !button.closest('.iu-existing-window-controls'))
@@ -29,6 +30,8 @@ function ExistingWindow({ node, pane, header, title }: ExistingWindowEntry) {
   useEffect(() => {
     const style = pane.style.cssText
     const outerStyle = node.style.cssText
+    const hostLayer = layerHost.style.getPropertyValue('z-index')
+    const hostLayerPriority = layerHost.style.getPropertyPriority('z-index')
     const ariaModal = node.getAttribute('aria-modal')
     node.dataset.managedExistingWindow = 'true'
     node.dataset.managedWindowId = managed.id
@@ -53,8 +56,9 @@ function ExistingWindow({ node, pane, header, title }: ExistingWindowEntry) {
       setViewportRevision(value => value + 1)
     }
     window.addEventListener('resize', resize)
+    const captureDrag = node.id === 'pct-ai-panel'
     const down = (event: PointerEvent) => {
-      if (event.button !== 0 || (event.target as Element).closest('button,a,input,select,textarea,.iu-existing-window-controls')) return
+      if (event.button !== 0 || (event.target as Element).closest('button,a,input,select,textarea')) return
       const rect = pane.getBoundingClientRect()
       const wasPositioned = live.current.managed.expanded || Boolean(live.current.managed.placement)
       if (wasPositioned) { freeBounds.current = { left: rect.left, top: rect.top, width: rect.width, height: rect.height }; setPosition({ x: 0, y: 0 }) }
@@ -62,17 +66,19 @@ function ExistingWindow({ node, pane, header, title }: ExistingWindowEntry) {
       if (live.current.managed.expanded) live.current.managed.toggleExpanded()
       if (live.current.managed.placement) live.current.managed.setPlacement(null)
       drag.current = { x: event.clientX, y: event.clientY, dx: wasPositioned ? 0 : live.current.position.x, dy: wasPositioned ? 0 : live.current.position.y }
-      header?.setPointerCapture(event.pointerId); event.preventDefault(); event.stopPropagation()
+      header?.setPointerCapture(event.pointerId); event.preventDefault(); event.stopPropagation(); if (captureDrag) event.stopImmediatePropagation()
     }
     const motion = (event: PointerEvent) => { const start = drag.current; if (start) move(start.dx + event.clientX - start.x, start.dy + event.clientY - start.y) }
     const up = () => { drag.current = null }
-    header?.addEventListener('pointerdown',down); header?.addEventListener('pointermove',motion); header?.addEventListener('pointerup',up); header?.addEventListener('pointercancel',up)
+    header?.addEventListener('pointerdown',down,captureDrag); header?.addEventListener('pointermove',motion); header?.addEventListener('pointerup',up); header?.addEventListener('pointercancel',up)
 
-    return () => { originalCloseButtons.forEach(({ button, display }) => { button.style.display = display }); if (ariaModal === null) node.removeAttribute('aria-modal'); else node.setAttribute('aria-modal',ariaModal); pane.style.cssText = style; node.style.cssText = outerStyle; delete node.dataset.managedExistingWindow; delete node.dataset.managedWindowId; delete node.dataset.windowMinimized; pane.removeEventListener('pointerdown', activate); pane.removeEventListener('focusin', activate); window.removeEventListener('resize', resize); header?.removeEventListener('pointerdown',down); header?.removeEventListener('pointermove',motion); header?.removeEventListener('pointerup',up); header?.removeEventListener('pointercancel',up) }
+    return () => { originalCloseButtons.forEach(({ button, display }) => { button.style.display = display }); if (ariaModal === null) node.removeAttribute('aria-modal'); else node.setAttribute('aria-modal',ariaModal); pane.style.cssText = style; node.style.cssText = outerStyle; if (layerHost !== node) layerHost.style.setProperty('z-index', hostLayer, hostLayerPriority); delete node.dataset.managedExistingWindow; delete node.dataset.managedWindowId; delete node.dataset.windowMinimized; pane.removeEventListener('pointerdown', activate); pane.removeEventListener('focusin', activate); window.removeEventListener('resize', resize); header?.removeEventListener('pointerdown',down,captureDrag); header?.removeEventListener('pointermove',motion); header?.removeEventListener('pointerup',up); header?.removeEventListener('pointercancel',up) }
   }, [node, pane, header, title])
   useEffect(() => {
     for (const [key,value] of Object.entries(original)) pane.style.setProperty(key,value)
     node.dataset.windowMinimized = managed.minimized ? 'true' : 'false'
+    // Lex vive in un contenitore fisso: anche il suo contesto di sovrapposizione deve seguire la finestra.
+    layerHost.style.setProperty('z-index', String(managed.zIndex), 'important')
     node.style.setProperty('z-index', String(managed.zIndex), 'important')
     node.style.setProperty('display', managed.minimized ? 'none' : '', 'important')
     if (pane !== node) {
@@ -83,7 +89,7 @@ function ExistingWindow({ node, pane, header, title }: ExistingWindowEntry) {
     pane.style.setProperty('width', managed.expanded ? `${document.documentElement.clientWidth - 24}px` : '', 'important')
     pane.style.setProperty('height', managed.expanded ? `${workWindowBottom() - 24}px` : '', 'important')
     pane.style.setProperty('max-width', `${document.documentElement.clientWidth - 24}px`, 'important')
-    const paneTop = managed.expanded || managed.placement ? 12 : freeBounds.current?.top ?? pane.getBoundingClientRect().top
+    const paneTop = managed.expanded || managed.placement ? 12 : freeBounds.current?.top ?? (node.id === "pct-ai-panel" ? 12 : pane.getBoundingClientRect().top)
     pane.style.setProperty('max-height', `${Math.max(120, workWindowBottom() - paneTop - 12)}px`, 'important')
     if (pane === node) {
       for (const [name, value] of Object.entries({ left: '12px', right: 'auto', top: '12px', position: 'fixed' })) node.style.setProperty(name, managed.expanded ? value : '', 'important')

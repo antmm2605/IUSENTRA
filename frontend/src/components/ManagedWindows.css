@@ -151,3 +151,22 @@ body:has([data-managed-existing-window]){overflow:auto!important}
  .iu-managed-window>.iu-source-reader-box--compact>header>div>:is(span,small){position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
  .iu-managed-window>.iu-source-reader-box--compact>header>div>strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;line-height:1.3}
 }
+
+/* Centramento indipendente dagli stili della pagina ospitante. */
+[data-managed-existing-window] .iu-existing-window-controls > nav > button,
+.iu-managed-window .iu-window-title-controls > button {
+  display:flex!important;align-items:center;justify-content:center;gap:0;padding:0;
+}
+[data-managed-existing-window] .iu-existing-window-controls > nav > button > svg,
+.iu-managed-window .iu-window-title-controls > button > svg {display:block;flex:none;margin:0}
+/* Titolo, download e comandi lasciano la barra di modifica subito sotto. */
+[data-managed-existing-window]>.iu-fas-preview-modal__box>header:has(>.iu-existing-window-controls) {
+  grid-template-columns:minmax(0,1fr) auto auto;min-height:54px;padding:8px 12px;
+}
+[data-managed-existing-window]>.iu-fas-preview-modal__box>header>.iu-existing-window-controls {grid-column:3;grid-row:1}
+[data-managed-existing-window]>.iu-fas-preview-modal__box>header>nav {grid-column:2;grid-row:1;display:flex;align-items:center;width:auto;gap:4px}
+@container(max-width:520px){
+ [data-managed-existing-window]>.iu-fas-preview-modal__box>header:has(>.iu-existing-window-controls) {grid-template-columns:minmax(0,1fr) auto;padding:8px}
+ [data-managed-existing-window]>.iu-fas-preview-modal__box>header>.iu-existing-window-controls {grid-column:2;grid-row:1}
+ [data-managed-existing-window]>.iu-fas-preview-modal__box>header>nav {grid-column:1/-1;grid-row:2;justify-self:end}
+}

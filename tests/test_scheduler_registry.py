@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import threading
+import sqlite3
 
 import pytest
 
@@ -16,6 +17,53 @@ from pct.scheduler_registry import (
     run_delegated_agent_template,
     schedule_label,
 )
+
+
+def test_scheduler_consegna_audit_non_riscrive_funzione_come_fallita(tmp_path, monkeypatch):
+    repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
+    repo.upsert_default_jobs({})
+    request = repo.request_manual_run("calendar_sync_engine_retry")
+    calls = []
+    deliveries = []
+
+    def operation():
+        calls.append(True)
+        return {"ok": True, "added": 6}
+
+    def locked(_self, _run_id, **kwargs):
+        deliveries.append(kwargs)
+        raise sqlite3.OperationalError("database is locked")
+
+    monkeypatch.setattr(SchedulerRegistryRepository, "mark_run_finished", locked)
+    with pytest.raises(sqlite3.OperationalError, match="locked"):
+        _run_existing_scheduler_job(operation, [], {}, repo.db_path, request["run_id"])
+    assert calls == [True]
+    assert len(deliveries) == 1
+    assert deliveries[0]["status"] == "completed"
+    assert deliveries[0]["result"] == {"ok": True, "added": 6}
+
+
+def test_scheduler_scrittura_audit_prenota_transazione_e_attesa_limitata(tmp_path, monkeypatch):
+    repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
+    repo.upsert_default_jobs({})
+    request = repo.request_manual_run("calendar_sync_engine_retry")
+    statements = []
+    original = repo.connect
+
+    def traced(*, audit_write=False):
+        conn = original(audit_write=audit_write)
+        statements.append(("timeout", conn.execute("PRAGMA busy_timeout").fetchone()[0]))
+        conn.set_trace_callback(statements.append)
+        return conn
+
+    monkeypatch.setattr(repo, "connect", traced)
+    repo.mark_run_finished(request["run_id"], status="completed", result={"ok": True})
+    assert statements[0] == ("timeout", 30000)
+    begin = statements.index("BEGIN IMMEDIATE")
+    read = next(i for i, statement in enumerate(statements) if isinstance(statement, str) and "SELECT started_at" in statement)
+    assert begin < read
+    with original() as conn:
+        assert conn.execute("PRAGMA busy_timeout").fetchone()[0] == 5000
 
 
 def test_scheduler_registry_crea_agenti_da_template_autorizzato(tmp_path: Path):

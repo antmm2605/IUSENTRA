@@ -131,6 +131,21 @@ def _tabelle(pagina: Any, numero: int, testo: str) -> tuple:
         return ()
 
 
+def testo_nativo_pagina(pagina: Any, *, testo_base: str | None = None) -> str:
+    """Include i dati compilati nelle annotazioni testuali del PDF originale.
+
+    Nessuna modifica o appiattimento della fonte. Le pagine ordinarie mantengono
+    l'estrazione preesistente; le pagine compilate seguono le coordinate visive.
+    Una firma grafica non viene trasformata in prova di firma digitale.
+    """
+    annotazioni = list(pagina.annots() or [])
+    compilata = any(a.type[1] == "FreeText" and str(a.info.get("content") or "").strip()
+                    and not (int(a.flags) & 3) for a in annotazioni)
+    if compilata:
+        return str(pagina.get_text("text", sort=True) or "")
+    return str(testo_base if testo_base is not None else pagina.get_text("text") or "")
+
+
 def _max_pagine_predefinito() -> int:
     try:
         return max(0, int(os.environ.get("IUSENTRA_DOCUMENT_AI_OCR_MAX_PAGES", "0") or 0))
@@ -174,13 +189,20 @@ def testo_da_pdf(
         scala = dpi / 72.0
         for indice in range(quante):
             pagina = documento.load_page(indice)
-            nativo = "" if solo_immagini else str(pagina.get_text("text") or "")
+            nativo = "" if solo_immagini else testo_nativo_pagina(pagina)
             if _testo_nativo_affidabile(nativo):
                 esito = applica_formulario(nativo)
                 pagine.append(PaginaTesto(indice + 1, esito.testo, ORIGINE_TESTO, 1.0, tabelle=_tabelle(pagina, indice + 1, nativo)))
                 continue
             try:
-                pixmap = pagina.get_pixmap(matrix=fitz.Matrix(scala, scala), alpha=False)
+                # PDF scansionati con una MediaBox sovradimensionata non devono
+                # allocare centinaia di milioni di pixel prima della lettura.
+                # Il limite riguarda la rasterizzazione, mai il numero di pagine
+                # né il testo nativo; le pagine ordinarie mantengono i dpi richiesti.
+                import math
+                area = max(1.0, pagina.rect.width * pagina.rect.height)
+                scala_pagina = min(scala, math.sqrt(40_000_000 / area))
+                pixmap = pagina.get_pixmap(matrix=fitz.Matrix(scala_pagina, scala_pagina), alpha=False)
                 immagine = Image.open(io.BytesIO(pixmap.tobytes("png"))).convert("RGB")
             except Exception as exc:
                 pagine.append(PaginaTesto(indice + 1, "", ORIGINE_OCR, 0.0, (f"Pagina {indice + 1}: non convertita in immagine ({exc}).",)))

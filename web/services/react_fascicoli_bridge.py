@@ -3637,6 +3637,23 @@ def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str,
         nota = f"Letto dai motori di lettura ({voce.get('verifica_etichetta') or voce.get('verifica')})"
         if voce.get("norma"):
             nota += f", {voce['norma']}"
+        # Only the current inventoried object with the same content can be
+        # offered as proof of this amount. No PDF/OCR is reread in the request.
+        from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+        fatto = next((f for f in fatti_importo if f.id == voce.get("fatto_id")), None)
+        tipo_fonte = _text(voce.get("tipo"))
+        oggetto = registro_corrente().oggetto(tenant_corrente(), str(fascicolo.id), tipo_fonte, _text(voce.get("documento_id")))
+        fonte_corrente = bool(fatto and oggetto and oggetto.presente and fatto.sha256 and oggetto.impronta == fatto.sha256)
+        preview = ""
+        nome_fonte = _text(getattr(oggetto, "nome", "")) if fonte_corrente else ""
+        if fonte_corrente and tipo_fonte == "documento":
+            preview = f"/fascicoli/{quote(str(fascicolo.id), safe='')}/documenti/{quote(oggetto.oggetto_id, safe='')}/visualizza"
+        elif fonte_corrente and tipo_fonte == "allegato_pec" and oggetto.origine and oggetto.nome:
+            preview = f"/api/v1/ui/email/source/{quote(oggetto.origine, safe='')}?name={quote(oggetto.nome, safe='')}&sha256={quote(oggetto.sha256, safe='')}"
+        fonti_importo = [{"fattoId": fatto.id, "documentoId": fatto.oggetto_id,
+                         "nome": nome_fonte or "Fonte dell'importo non disponibile",
+                         "contesto": _italian_dates_in_text(fatto.contesto), "previewHref": preview,
+                         "riscontri": ["Importo letto nel capo economico della fonte.", nota + "."]}] if fatto else []
         esito[kind] = {
             "kind": kind,
             "label": etichetta,
@@ -3647,7 +3664,9 @@ def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str,
             "importo": importo,
             "valuta": "EUR",
             "data_pagamento": _text(voce.get("data_prova")),
-            "documento_fonte": _readable_document_source(_nome_oggetto_archivio(fascicolo, voce.get("documento_id"))),
+            "documento_fonte": _readable_document_source(nome_fonte or _nome_oggetto_archivio(fascicolo, voce.get("documento_id"))),
+            "fontiVerifica": fonti_importo,
+            "verificheMancanti": [] if preview else ["La fonte corrente dell'importo non è disponibile con la stessa impronta; il collegamento verrà riprovato automaticamente."],
             "origine": "Archivio delle letture",
             "updated_by": "IUSENTRA automatico",
             "note": nota + ".",

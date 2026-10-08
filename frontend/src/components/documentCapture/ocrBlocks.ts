@@ -50,6 +50,7 @@ export type OcrBlock = {
   format: OcrFormat
   /** Riquadro sulla pagina, per ritrovare il blocco nell'immagine. */
   box: [number, number, number, number] | null
+  rotation?: number
   /** Marcatore della voce di elenco: il testo del blocco lo comprende ancora. */
   marker: OcrMarker | null
   /** Dove il formato cambia dentro il testo (vedi ocrTratti). Assenti: vale il formato del blocco. */
@@ -57,14 +58,14 @@ export type OcrBlock = {
   /** Misure delle righe sulla pagina, nelle unita' del riquadro (vedi ocrPagina). */
   righe?: OcrMisureRighe
   /** Dove cominciavano le righe del documento, per il testo letto (vedi ocrACapo). */
-  aCapo?: { testo: string; posizioni: number[]; piene?: boolean[] }
+  aCapo?: { testo: string; posizioni: number[]; piene?: boolean[]; topNative?: number[] }
 }
 
 /** Passo fra le righe, altezza delle lettere e rientro della prima riga. */
 export type OcrMisureRighe = { interlinea: number; altezza: number; rientro: number }
 
 /** Le posizioni del server contano i caratteri; quelle del browser le unita' UTF-16. */
-function parseACapo(payload: unknown, testo: string, piene: unknown): OcrBlock['aCapo'] {
+function parseACapo(payload: unknown, testo: string, piene: unknown, topNative: unknown): OcrBlock['aCapo'] {
   if (!Array.isArray(payload) || !payload.length) return undefined
   const caratteri = Array.from(testo)
   const unita: number[] = [0]
@@ -76,7 +77,10 @@ function parseACapo(payload: unknown, testo: string, piene: unknown): OcrBlock['
   if (!posizioni.length) return undefined
   const ordinate = Array.from(new Set(posizioni)).sort((a, b) => a - b)
   const righePiene = Array.isArray(piene) && piene.length === ordinate.length + 1 ? piene.map((valore) => valore === true) : undefined
-  return { testo, posizioni: ordinate, piene: righePiene }
+  const top = Array.isArray(topNative) && topNative.length === ordinate.length + 1
+    && topNative.every((valore) => Number.isFinite(valore) && valore >= -1)
+    ? topNative as number[] : undefined
+  return { testo, posizioni: ordinate, piene: righePiene, topNative: top }
 }
 
 function parseMisureRighe(payload: unknown): OcrMisureRighe | undefined {
@@ -210,10 +214,11 @@ export function parseBlocks(payload: unknown, page: number): OcrBlock[] {
       page,
       format: parseFormat(item.formato),
       box: parseBox(item.riquadro),
+      rotation: [-180, -90, 90, 180].includes(Number(item.rotazione)) ? Number(item.rotazione) : 0,
       marker: kind === 'elenco' ? parseMarker(item.marcatore) : null,
       tratti: kind === 'tabella' ? [] : parseTratti(item.tratti, text),
       righe: kind === 'tabella' ? undefined : parseMisureRighe(item.righe_misure),
-      aCapo: kind === 'tabella' ? undefined : parseACapo(item.a_capo, text, item.righe_piene),
+      aCapo: kind === 'tabella' ? undefined : parseACapo(item.a_capo, text, item.righe_piene, item.righe_native_top),
     })
   }
   return blocks

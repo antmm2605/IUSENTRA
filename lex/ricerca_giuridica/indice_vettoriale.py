@@ -129,6 +129,9 @@ class IndiceVettoriale:
     def cerca(self, vettore: np.ndarray, *, k: int = 50, blocco: int = 8192) -> list[tuple[int, float]]:
         """Prodotto scalare esatto a blocchi; restituisce (id chunk, coseno) in ordine decrescente."""
 
+        from .costruzione_iniziale import disponibile
+        if not disponibile(self.meta):
+            raise IndiceIncompatibile("Prima costruzione o riconvalida finale dell'indice non terminata")
         mappe = self._carica()
         vettori = mappe.get("vettori")
         if vettori is None:
@@ -270,6 +273,9 @@ def costruisci_indice(
     batch: int = 32,
     massimo: int | None = None,
     ricomincia: bool = False,
+    prima_costruzione: bool = False,
+    riconvalida_finale: bool = False,
+    tempo_massimo_s: float | None = None,
     progresso: Callable[[int, int, float], None] | None = None,
 ) -> EsitoCostruzione:
     """Costruisce o aggiorna l'indice: solo chunk nuovi o con testo cambiato (ripresa automatica).
@@ -279,6 +285,14 @@ def costruisci_indice(
     """
 
     inizio = time.monotonic()
+    if riconvalida_finale and (prima_costruzione or ricomincia):
+        raise ValueError("La riconvalida finale è distinta dalla prima costruzione")
+    if riconvalida_finale and (batch != 1 or richieste_contemporanee(embedder) != 1):
+        raise ValueError("La riconvalida finale richiede batch=1 e una richiesta per volta")
+    if tempo_massimo_s is not None and (
+        not 0 < tempo_massimo_s <= 60 or batch != 1 or richieste_contemporanee(embedder) != 1
+    ):
+        raise ValueError("I lotti a tempo richiedono batch=1, una richiesta per volta e un limite fra 0 e 60 secondi")
     percorso = Path(cartella)
     percorso.mkdir(parents=True, exist_ok=True)
     esito = EsitoCostruzione()
@@ -317,6 +331,8 @@ def costruisci_indice(
         }
     dimensioni = int(meta.get("dimensioni") or 0)
     righe = _ripara_code(percorso, dimensioni) if dimensioni else 0
+    if righe < int(meta.get("righe", 0)):
+        meta.pop("riconvalida_iniziale", None)
     meta["righe"] = righe
 
     esistenti: dict[int, int] = {}
@@ -331,6 +347,18 @@ def costruisci_indice(
     try:
         totale = int(conn.execute("SELECT COUNT(*) FROM normative_chunks").fetchone()[0])
         ids_db: set[int] = set()
+        initial = None
+        validation = None
+        validation_version = None
+        if prima_costruzione:
+            from . import costruzione_iniziale
+            initial = costruzione_iniziale.prepara(conn, meta, righe=righe, ids=esistenti)
+            _scrivi_meta(percorso, meta)
+        elif riconvalida_finale:
+            from . import riconvalida_iniziale
+            validation, validation_version = riconvalida_iniziale.prepara(conn, meta)
+            _scrivi_meta(percorso, meta)
+        meta["limite_tempo_raggiunto"] = False
 
         def scrivi(lotto: list[tuple[int, str, int, int | None]], matrice: np.ndarray) -> None:
             nonlocal righe, dimensioni
@@ -372,6 +400,8 @@ def costruisci_indice(
                 esito.nuovi += len(nuovi)
             meta["righe"] = righe
             meta["aggiornato"] = _adesso()
+            if initial is not None:
+                costruzione_iniziale.conferma_lotto(meta, lotto)
             _scrivi_meta(percorso, meta)
 
         # Con N richieste in volo, ogni richiesta porta batch/N chunk: --batch resta il lavoro in corso.
@@ -380,8 +410,11 @@ def costruisci_indice(
         avvio_lavoro: list[float] = []
 
         def lotti() -> Iterator[list[tuple[int, str, int, int | None]]]:
-            ultimo = 0
+            ultimo = int((initial or validation or {}).get("ultimo_id", 0))
+            if validation is not None and validation["fase"] != "impronte":
+                return
             prodotti = 0
+            esaminati = 0
             lotto: list[tuple[int, str, int, int | None]] = []
             while True:
                 pagina = conn.execute(
@@ -391,23 +424,36 @@ def costruisci_indice(
                     FROM normative_chunks c
                     JOIN normative_documents d ON d.id = c.document_id
                     LEFT JOIN normative_articles a ON a.id = c.article_id
-                    WHERE c.id > ?
+                    WHERE c.id > ? AND (? IS NULL OR c.id<=?)
                     ORDER BY c.id
                     LIMIT 2000
                     """,
-                    (ultimo,),
+                    (ultimo, initial["massimo_id"] if initial is not None else None,
+                     initial["massimo_id"] if initial is not None else None),
                 ).fetchall()
                 if not pagina:
+                    if validation is not None:
+                        validation["fase"] = "pulizia"
                     break
                 for riga in pagina:
+                    if tempo_massimo_s is not None and time.monotonic() - inizio >= tempo_massimo_s:
+                        esito.interrotto_al_massimo = True
+                        meta["limite_tempo_raggiunto"] = True
+                        break
+                    if validation is not None and esaminati >= 2000:
+                        esito.interrotto_al_massimo = True
+                        break
                     chunk_id = int(riga["chunk_id"])
                     ultimo = chunk_id
                     ids_db.add(chunk_id)
                     testo = testo_documento(_titolo_chunk(riga), riga["chunk_text"] or "")
                     impronta = impronta_testo(testo)
+                    esaminati += 1
                     posizione = esistenti.get(chunk_id)
                     if posizione is not None and posizione < len(impronte) and int(impronte[posizione]) == impronta:
                         esito.invariati += 1
+                        if validation is not None:
+                            validation["ultimo_id"] = chunk_id
                         continue
                     if massimo is not None and prodotti >= massimo:
                         esito.interrotto_al_massimo = True
@@ -418,6 +464,8 @@ def costruisci_indice(
                         if not avvio_lavoro:
                             avvio_lavoro.append(time.monotonic())
                         yield lotto
+                        if validation is not None:
+                            validation["ultimo_id"] = chunk_id
                         lotto = []
                 if esito.interrotto_al_massimo:
                     break
@@ -425,6 +473,8 @@ def costruisci_indice(
                 if not avvio_lavoro:
                     avvio_lavoro.append(time.monotonic())
                 yield lotto
+                if validation is not None:
+                    validation["ultimo_id"] = lotto[-1][0]
 
         for lotto, matrice in embed_in_flusso(embedder, lotti(), lambda voce: voce[1]):
             scrivi(lotto, matrice)
@@ -435,7 +485,29 @@ def costruisci_indice(
                 velocita = fatti / secondi if secondi > 0 else 0.0
                 progresso(esito.invariati + fatti, totale, velocita)
 
-        if not esito.interrotto_al_massimo and righe:
+        if validation is not None and validation["fase"] == "pulizia":
+            # Rimozioni a posizioni riprendibili, senza enumerare il corpus SQL.
+            start = int(validation["posizione_pulizia"])
+            stop = min(righe, start + 2000)
+            if righe and start < stop:
+                ids_file = np.memmap(percorso / _FILE_IDS, dtype=np.int64, mode="r+", shape=(righe,))
+                selected = [int(value) for value in ids_file[start:stop] if value >= 0]
+                present = set()
+                for offset in range(0, len(selected), 500):
+                    part = selected[offset:offset + 500]
+                    present.update(int(row[0]) for row in conn.execute(
+                        "SELECT c.id FROM normative_chunks c JOIN normative_documents d ON d.id=c.document_id WHERE c.id IN ("
+                        + ",".join("?" for _ in part) + ")", part))
+                for position in range(start, stop):
+                    if ids_file[position] >= 0 and int(ids_file[position]) not in present:
+                        ids_file[position] = -1
+                        esito.eliminati += 1
+                ids_file.flush()
+                del ids_file
+            validation["posizione_pulizia"] = stop
+            validation["completa"] = stop >= righe
+            esito.interrotto_al_massimo = not validation["completa"]
+        elif not esito.interrotto_al_massimo and righe and initial is None and validation is None:
             ids_file = np.memmap(percorso / _FILE_IDS, dtype=np.int64, mode="r+", shape=(righe,))
             eliminati = [i for i, valore in enumerate(ids_file) if valore >= 0 and int(valore) not in ids_db]
             for posizione in eliminati:
@@ -446,6 +518,13 @@ def costruisci_indice(
         meta["righe"] = righe
         meta["chunk_totali"] = totale
         meta["aggiornato"] = _adesso()
+        if initial is not None:
+            costruzione_iniziale.concludi(conn, meta, interrotto=esito.interrotto_al_massimo)
+        elif validation is not None:
+            if not riconvalida_iniziale.concludi(conn, meta, validation, validation_version):
+                esito.interrotto_al_massimo = True
+        elif not esito.interrotto_al_massimo and "riconvalida_finale_richiesta" in meta:
+            meta["riconvalida_finale_richiesta"] = False
         _scrivi_meta(percorso, meta)
     finally:
         conn.row_factory = precedente
@@ -487,6 +566,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--batch", type=int, default=32)
     parser.add_argument("--paralleli", type=int, default=0, help="richieste Ollama contemporanee (0 = LEX_EMBED_PARALLELI o 1)")
     parser.add_argument("--massimo", type=int, default=None, help="si ferma dopo N chunk (prova o costruzione a tappe)")
+    parser.add_argument("--prima-costruzione", action="store_true", help="prima costruzione a checkpoint su un indice nuovo separato")
+    parser.add_argument("--riconvalida-finale", action="store_true", help="riconvalida del candidato a lotti riprendibili di massimo 2000 righe")
+    parser.add_argument("--tempo-massimo-s", type=float, default=None, help="budget lotto, massimo 60 s; richiede --batch 1")
     parser.add_argument("--ricomincia", action="store_true", help="cancella l'indice e ricostruisce (solo costruisci)")
     parser.add_argument(
         "--se-disponibile",
@@ -537,6 +619,9 @@ def main(argv: list[str] | None = None) -> int:
             embedder,
             batch=args.batch,
             massimo=args.massimo,
+            prima_costruzione=args.prima_costruzione,
+            riconvalida_finale=args.riconvalida_finale,
+            tempo_massimo_s=args.tempo_massimo_s,
             ricomincia=bool(args.ricomincia and args.comando == "costruisci"),
             progresso=_barra,
         )

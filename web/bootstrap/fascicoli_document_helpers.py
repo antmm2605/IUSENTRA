@@ -335,6 +335,8 @@ def pdf_mobile_preview_html(
         "@media(max-width:520px){header{grid-template-columns:minmax(0,1fr) auto;align-items:center;padding:5px 6px}header strong{font-size:11px}.reader-controls[open]{grid-column:1/-1}.reader-toolbar{grid-template-columns:minmax(0,1fr) auto;align-items:start}.reader-toolbar__main{justify-content:flex-start;flex-wrap:wrap;overflow-x:visible}.reader-toolbar a,.reader-toolbar button,.reader-toolbar__more>summary{min-height:32px}.reader-toolbar__more[open]>.reader-toolbar__more-grid{right:0;grid-template-columns:1fr 1fr}}"
         "@media print{@page{margin:8mm}html,body,.reader,.pages{height:auto;max-height:none;overflow:visible;display:block;background:white;width:100%;max-width:none;padding:0;margin:0}header,.page figcaption{display:none}.page{display:block;width:100%;break-after:page;margin:0}.page:last-child{break-after:auto}.reader-page-surface{border:0;border-radius:0;box-shadow:none}.reader-page-rotator{transform:none!important}.page img{width:100%;height:auto;max-height:275mm;object-fit:contain;border:0;border-radius:0;box-shadow:none}}"
         ".reader-toolbar button:hover,.reader-toolbar a:hover,.reader-toolbar__more>summary:hover{background:#eff6ff;color:#1d4ed8}"
+        ".reader-controls[open]{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:6px}.reader-controls::details-content{display:contents}.reader-controls[open]>summary{margin:0}.reader-controls[open]>.reader-toolbar{min-width:0}"
+        "@media(min-width:720px){.reader-controls[open]{grid-column:auto;justify-self:end}}"
         ".reader-page-surface{position:relative;min-width:0;aspect-ratio:1/1.414;overflow:hidden;background:#fff;border:1px solid #d7dde8;border-radius:8px;box-shadow:0 10px 24px rgba(15,23,42,.12)}"
         ".reader-page-rotator{position:absolute;inset:0;transform:rotate(var(--reader-rotation));transform-origin:center center}"
         ".reader-text-layer{position:absolute;inset:0;overflow:hidden;user-select:text;-webkit-user-select:text;cursor:text}"
@@ -351,9 +353,9 @@ def pdf_mobile_preview_html(
         '<nav class="reader-toolbar" aria-label="Controlli del documento">'
         '<div class="reader-toolbar__main" aria-label="Zoom, rotazione e download">'
         '<button type="button" data-zoom-out title="Riduci" aria-label="Riduci documento">&minus;</button>'
-        '<button type="button" data-zoom-reset title="Adatta alla larghezza" aria-label="Adatta documento alla larghezza">Adatta</button>'
         '<output class="reader-toolbar__zoom" data-zoom-value aria-live="polite">100%</output>'
         '<button type="button" data-zoom-in title="Ingrandisci" aria-label="Ingrandisci documento">+</button>'
+        '<button type="button" data-zoom-reset title="Adatta alla larghezza" aria-label="Adatta documento alla larghezza">Adatta</button>'
         '<button type="button" data-rotate-left title="Ruota a sinistra" aria-label="Ruota documento a sinistra">↺</button>'
         '<button type="button" data-rotate-right title="Ruota a destra" aria-label="Ruota documento a destra">↻</button>'
         '<output class="reader-toolbar__rotation" data-rotation-value aria-live="polite">0°</output>'

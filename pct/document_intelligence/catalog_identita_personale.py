@@ -52,6 +52,50 @@ _AUTORITA = re.compile(r"\brepubblica\s+italiana\b|\bministero\s+dell\s*interno\
 _ATTO = re.compile(r"\bprocura\b|\bdeleg[oa]\b|\bricorso\b|\btribunale\b|\bgiudice\b|\bcitazione\b|\bcomparsa\b|\bmemoria\b|\bsi\s+allega\b|\ballego\b|\bcopia\s+(?:del|della)\b|\bdichiara\b")
 _NOME_FILE = re.compile(r"^(?:copia\s+|scansione\s+|scan\s+)?(?:carta\s+d\s*i?\s*identita|documento\s+d\s*i?\s*identita|carta\s+identita|c\.?i\.?e|passaporto|patente(?:\s+di\s+guida)?|permesso\s+di\s+soggiorno|tessera\s+sanitaria)(?:\s+(?:fronte|retro|fronte\s+retro|cliente|[a-z]+(?:\s+[a-z]+)?))?(?:\s+\d{1,2})?$")
 
+# Profili condivisi: il formato guida l'interpretazione delle etichette;
+# non certifica il contenuto né l'autenticità della scansione.
+PROFILI_ITALIANI = {
+    'carta_cartacea': {'label': 'Carta d’identità cartacea',
+        'zones': ('comune_emettitore', 'numero_carta', 'anagrafica', 'residenza', 'rilascio', 'scadenza'),
+        'source': 'https://www.cartaidentita.interno.gov.it/cose-la-carta/caratteristiche-del-documento/'},
+    'cie': {'label': 'Carta d’identità elettronica',
+        'zones': ('fronte_anagrafica', 'fronte_emissione_scadenza', 'retro_codice_fiscale_residenza', 'retro_mrz'),
+        'source': 'https://www.cartaidentita.interno.gov.it/cose-la-carta/caratteristiche-del-documento/'},
+    'tessera_sanitaria': {'label': 'Tessera sanitaria',
+        'zones': ('fronte_codice_fiscale', 'fronte_anagrafica', 'fronte_scadenza_ts', 'retro_team'),
+        'source': 'https://www1.agenziaentrate.gov.it/web_app_entrate/tessera_sanitaria.html/1000'},
+}
+
+
+def segmenti_identita_italiana(testo: str) -> list[dict[str, Any]]:
+    """Separa carte diverse nella lettura; nessuna posizione assoluta di pagina.
+
+    Il preambolo della prima carta (numero, Comune, scadenza) viene preservato.
+    La tessera sanitaria non fornisce rilascio/scadenza/residenza della C.I.
+    """
+    marker = re.compile(r"CARTA\s+D[’']?I?\s*IDENTIT[ÀA]?|IDENTITY\s+CARD|TESSERA\s+SANITARI\w*", re.I)
+    matches = []
+    for match in marker.finditer(str(testo or '')):
+        if matches and match.start() - matches[-1].end() < 48 and not re.match('TESSERA', match.group(), re.I) and not re.match('TESSERA', matches[-1].group(), re.I):
+            continue
+        matches.append(match)
+    if not matches:
+        return []
+    starts = [0] + [match.start() for match in matches[1:]]
+    result = []
+    for index, match in enumerate(matches):
+        end = starts[index + 1] if index + 1 < len(starts) else len(testo)
+        chunk = testo[starts[index]:end]
+        if re.match(r'TESSERA', match.group(), re.I):
+            model = 'tessera_sanitaria'
+        elif re.search(r'IDENTITY\s+CARD|SURNAME|[A-Z]{2}\d{5}[A-Z]{2}\b|I<ITA', chunk, re.I):
+            model = 'cie'
+        else:
+            model = 'carta_cartacea'
+        result.append({'model': model, 'start': starts[index], 'end': end, 'text': chunk,
+            'profile': PROFILI_ITALIANI[model]})
+    return result
+
 
 def normalizza(testo: str) -> str:
     """Minuscolo, senza accenti, apostrofi e simboli: «CARTA D'IDENTITÀ» diventa «carta d identita»."""

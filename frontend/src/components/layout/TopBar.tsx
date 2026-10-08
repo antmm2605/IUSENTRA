@@ -11,6 +11,7 @@ import { TopBarMobileMenu } from './TopBarMobileMenu'
 import { IusTopBar } from '../iusentra'
 import { trackRecentItem } from '../../services/topbarApi'
 import type { TopbarCreateContext } from '../../types/topbar'
+import { useStudioToday } from '../../hooks/useStudioToday'
 
 const StudioVoiceAssistant = lazy(() => import('../StudioVoiceAssistant'))
 const DiscordanzeAccesso = lazy(() => import('./DiscordanzeAccesso'))
@@ -63,15 +64,6 @@ function recentTargetFromPath(path: string): { entityType: string; entityId: str
   return null
 }
 
-function todayLabel() {
-  return new Intl.DateTimeFormat('it-IT', {
-    timeZone: 'Europe/Rome',
-    weekday: 'short',
-    day: '2-digit',
-    month: 'short',
-  }).format(new Date())
-}
-
 function openSupportRoom(url: string): boolean {
   const opened = window.open(url, '_blank', 'noopener')
   if (opened) return true
@@ -94,6 +86,7 @@ export function TopBar({
   const [supportOpening, setSupportOpening] = useState(false)
   const [supportError, setSupportError] = useState('')
   const [voiceAssistantReady, setVoiceAssistantReady] = useState(false)
+  const today = useStudioToday()
   const lastRecentKey = useRef('')
   const context = useMemo(() => currentContext(activePath), [activePath])
   useEffect(() => {
@@ -217,7 +210,7 @@ export function TopBar({
           open={openPanels.has('today')}
           onToggle={() => togglePanel('today')}
           onClose={() => closePanel('today')}
-          label={todayLabel()}
+          label={today.label}
           icon={<CalendarClock size={16} />}
         />
         <TopBarDeadlines

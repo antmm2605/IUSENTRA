@@ -479,6 +479,13 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
             built_in=True,
         ),
         SchedulerTemplate("legal_official_archives_daily", "Archivi Normattiva e Gazzetta", "Aggiornamenti legali", "Aggiorna archivi ufficiali locali senza duplicare pacchetti invariati.", "cron", "23", "0", built_in=True),
+        SchedulerTemplate(
+            "embeddinggemma2_initial_normattiva", "Preparazione EmbeddingGemma 2", "Manutenzione",
+            "Costruisce l'indice candidato in lotti di un minuto con checkpoint; conserva il modello operativo.",
+            "interval", interval_minutes=2,
+            enabled=str(cfg.get("IUSENTRA_EMBEDDING_INITIAL_BUILD") or os.getenv("IUSENTRA_EMBEDDING_INITIAL_BUILD", "0")).lower() in {"1", "true", "yes", "on"},
+            built_in=True,
+        ),
         SchedulerTemplate("legal_monitor_daily", "Monitor legale giornaliero", "Aggiornamenti legali", "Presidia le fonti legali principali.", "cron", "5", "45", built_in=True),
         SchedulerTemplate("legal_monitor_pst", "Monitor PST", "Aggiornamenti legali", "Controlla aggiornamenti PST durante la giornata.", "cron", "6,12,18", "15", built_in=True),
         SchedulerTemplate(
@@ -667,11 +674,12 @@ class SchedulerRegistryRepository:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.init_db()
 
-    def connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(str(self.db_path))
+    def connect(self, *, audit_write: bool = False) -> sqlite3.Connection:
+        timeout_ms = 30000 if audit_write else 5000
+        conn = sqlite3.connect(str(self.db_path), timeout=timeout_ms / 1000)
         conn.row_factory = sqlite3.Row
+        conn.execute(f"PRAGMA busy_timeout={timeout_ms}")
         conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA busy_timeout=5000")
         return conn
 
     def init_db(self) -> None:
@@ -1329,7 +1337,10 @@ class SchedulerRegistryRepository:
         error_message: str = "",
     ) -> None:
         now = _iso()
-        with self.connect() as conn:
+        with self.connect(audit_write=True) as conn:
+            # Acquisire la scrittura prima di leggere evita l'upgrade di una
+            # fotografia superata quando un'altra consegna arriva in parallelo.
+            conn.execute("BEGIN IMMEDIATE")
             row = conn.execute(
                 "SELECT started_at FROM scheduled_job_runs WHERE run_id=?",
                 (run_id,),
@@ -1523,7 +1534,7 @@ class SchedulerRegistryRepository:
         job = self.get_job(job_id)
         template_key = str((job or {}).get("template_key") or job_id)
         now = _iso()
-        with self.connect() as conn:
+        with self.connect(audit_write=True) as conn:
             # APScheduler può consegnare submitted ed executed da callback
             # ravvicinate/concorrenziali. Serializzare l'intera riconciliazione
             # impedisce che entrambi vedano l'assenza dell'altro record e
@@ -2216,15 +2227,6 @@ def _run_existing_scheduler_job(func, args: list[Any], kwargs: dict[str, Any], d
     started = time.monotonic()
     try:
         result = func(*(args or []), **(kwargs or {}))
-        result_payload = result if isinstance(result, dict) else {"summary": "" if result is None else str(result)[:4000]}
-        result_ok = result_payload.get("ok") if isinstance(result_payload, dict) else True
-        repo.mark_run_finished(
-            run_id,
-            status="completed" if result_ok is not False else "failed",
-            message=f"Esecuzione completata in {time.monotonic() - started:.1f}s.",
-            result=result_payload,
-            error_message=str(result_payload.get("error") or "") if result_ok is False else "",
-        )
     except Exception as exc:
         repo.mark_run_finished(
             run_id,
@@ -2233,3 +2235,14 @@ def _run_existing_scheduler_job(func, args: list[Any], kwargs: dict[str, Any], d
             error_message=str(exc),
         )
         raise
+    # Una mancata consegna dell'audit non è un fallimento della funzione:
+    # non sovrascrivere l'esito reale con l'errore del registro.
+    result_payload = result if isinstance(result, dict) else {"summary": "" if result is None else str(result)[:4000]}
+    result_ok = result_payload.get("ok") if isinstance(result_payload, dict) else True
+    repo.mark_run_finished(
+        run_id,
+        status="completed" if result_ok is not False else "failed",
+        message=f"Esecuzione completata in {time.monotonic() - started:.1f}s.",
+        result=result_payload,
+        error_message=str(result_payload.get("error") or "") if result_ok is False else "",
+    )

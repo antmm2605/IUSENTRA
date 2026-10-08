@@ -53,6 +53,7 @@ export function localAiModelLabel(value: unknown): string {
   if (!normalized) return 'automatico'
   if (normalized === 'embeddinggemma' || normalized === 'embeddinggemma:latest') return 'EmbeddingGemma'
   if (normalized === 'embeddinggemma:300m') return 'EmbeddingGemma 300M'
+  if (normalized.startsWith('embeddinggemma2:')) return 'EmbeddingGemma 2 locale'
   if (normalized === 'gemini-embedding-001') return 'Gemini Embedding'
   if (normalized === 'gemini-embedding-2') return 'Gemini Embedding 2'
   if (normalized === 'qwen3.5:0.8b') return 'Qwen 3.5 minimo'
@@ -244,6 +245,27 @@ export function describeLocalAiStatus(rawPayload: unknown): LocalAiLocalResult {
   const pc = [profileLabel(runtime.hardware_profile), ram ? `${ram} GB RAM` : '', disk ? `${disk} GB liberi` : '']
     .filter(Boolean)
     .join(', ')
+
+  const embedding = record(payload.embedding_provider)
+  const counts = record(payload.counts)
+  if (text(embedding.provider) === 'embeddinggemma2_local') {
+    if (embedding.ready !== true) {
+      return { ok: false, status: 'warning', message: 'EmbeddingGemma 2 locale non risponde. La ricerca semantica nei documenti non è disponibile.', payload }
+    }
+    const pending = Number(counts.chunks_pending || 0)
+    const invalid = Number(counts.chunks_invalid || 0)
+    const provenance = record(payload.source_provenance)
+    const excluded = Number(provenance.excluded_chunks || 0)
+    const pendingText = pending === 1 ? '1 segmento da indicizzare' : `${pending} segmenti da indicizzare`
+    if (excluded > 0) {
+      const sourcesText = excluded === 1 ? '1 passaggio consultato non trova riscontro' : `${excluded} passaggi consultati non trovano riscontro`
+      return { ok: false, status: 'warning', message: `EmbeddingGemma 2 locale disponibile. ${sourcesText} nella fonte SQL corrente. Le cause sono registrate; il recupero deve precedere la loro utilizzazione come prova. ${pendingText}.`, payload }
+    }
+    if (pending > 0 || invalid > 0) {
+      const invalidText = invalid === 1 ? '1 segmento con testo non valido' : `${invalid} segmenti con testo non valido`
+      return { ok: false, status: 'warning', message: `EmbeddingGemma 2 locale disponibile. ${pendingText}; ${invalidText}, da recuperare dalle fonti.`, payload }
+    }
+  }
 
   if (runtimeOnline) {
     return {

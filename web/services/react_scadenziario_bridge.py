@@ -1801,7 +1801,15 @@ def build_react_scadenziario_payload(
         except Exception:
             agenda_contexts = []
     display_events: dict[str, Mapping[str, Any]] = {}
-    pec_profile_items = filtered
+    bozze = []
+    if not compact:
+        try:
+            bozze = list(gestione_scadenziario.bozze())
+        except Exception:
+            bozze = []
+    # Le proposte restano escluse dalle viste operative, ma le loro fonti
+    # devono essere risolte nello stesso caricamento SQL delle righe visibili.
+    pec_profile_items = [*filtered, *bozze]
     pec_profiles = _latest_pec_profiles(
         pec_profile_items,
         pec_audit_db=pec_audit_db,
@@ -1876,10 +1884,6 @@ def build_react_scadenziario_payload(
         ]
     draft_proposals: list[dict[str, Any]] = []
     if not compact:
-        try:
-            bozze = list(gestione_scadenziario.bozze())
-        except Exception:
-            bozze = []
         for item in bozze:
             item_id = str(getattr(item, "id", "") or "")
             row = _row(

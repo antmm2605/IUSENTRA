@@ -6,6 +6,7 @@ import { OperationalModal } from './OperationalModal'
 import { AgendaFocus } from './AgendaPage'
 import { SourceDocumentModal, type SourceDocument } from './SourceDocumentModal'
 import { inviaPreparazione } from './preparazioneUdienzaApi'
+import { FascicoloSearchSelect } from './FascicoloSearchSelect'
 import type { Azione, Voce } from './ControlloStudioPage'
 import './ControlloStudioContext.css'
 const Preparazione = lazy(() => import('./WizardProStepPage'))
@@ -82,9 +83,8 @@ export default function ControlloStudioAgendaDetail({ voce, azione, onClose, onU
         : !prepara && event ? <AgendaFocus event={event} onOpenSource={e => setSource({ href: e.sourceHref, label: e.sourceLabel || e.title, context: voce.fascicolo.etichetta || voce.titolo })}/>
         : sessione ? <Suspense fallback={<p role="status">Caricamento della preparazione…</p>}><Preparazione sessionId={sessione.id} initialStep={sessione.passo} embedded/></Suspense>
         : canWrite ? <section><p>Collega il fascicolo a questa udienza per aprire la sua preparazione.</p>
-          <label>Fascicolo dell’udienza<select value={scelta} onChange={e => setScelta(e.target.value)}>
-            <option value="">Scegli il fascicolo</option>{fascicoli.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-          </select></label><button type="button" className="iu-button" disabled={!scelta || loading} onClick={() => void avvia()}>Prepara questa udienza</button>
+          <FascicoloSearchSelect options={fascicoli} value={scelta} onChange={setScelta} disabled={loading}/>
+          <button type="button" className="iu-button" disabled={!scelta || loading} onClick={() => void avvia()}>Prepara questa udienza</button>
         </section> : <p>La preparazione non è ancora avviata. Serve il permesso di modifica dell’agenda.</p>}
     </OperationalModal>
     <SourceDocumentModal source={source} onClose={() => setSource(null)}/>

@@ -28,9 +28,29 @@ class OperationalCatalogRegressionTests(unittest.TestCase):
                    tribunale='Vicenza', id_cliente='client', attivita=[], data_prossima_udienza='')
         self.assertIsNone(fascicolo_udienza(appointment, [case]))
         appointment.procedimento = 'RG 901/2026'
+        self.assertIsNone(fascicolo_udienza(appointment, [case]))
+        appointment.cliente = 'Ivan Spasov'
+        appointment.tribunale = 'Tribunale ordinario di Vicenza'
+        case.nome_cliente = 'Spasov Ivan'
+        case.tribunale = 'Tribunale di Vicenza'
         self.assertIs(fascicolo_udienza(appointment, [case]), case)
         duplicate = Row(**{**vars(case), 'id': 'other-case'})
         self.assertIsNone(fascicolo_udienza(appointment, [case, duplicate]))
+
+    def test_role_needs_same_client_and_identified_office(self):
+        appointment = Row(id='meeting', titolo='RG 860/2026', procedimento='',
+                          cliente='SPASOV IVAN', tribunale='Tribunale di Vicenza', id_cliente='')
+        case = Row(id='case', numero='2026/323', numero_rg='860/2026', anno_rg='2026',
+                   nome_cliente='Spasov Ivan', tribunale='Tribunale di Vicenza', id_cliente='client', attivita=[])
+        self.assertIs(fascicolo_udienza(appointment, [case]), case)
+        for changes in ({'cliente':'Mario Rossi'}, {'cliente':''}, {'tribunale':''},
+                        {'tribunale':'Vicenza'}, {'tribunale':'Tribunale di Palmi'},
+                        {'tribunale':'Corte d’appello di Vicenza'}, {'id_cliente':'different-client'}):
+            with self.subTest(changes=changes):
+                changed = Row(**{**vars(appointment), **changes})
+                self.assertIsNone(fascicolo_udienza(changed, [case]))
+        case.anno_rg = '2025'
+        self.assertIsNone(fascicolo_udienza(appointment, [case]))
 
     def test_explicit_conflicting_links_remain_ambiguous(self):
         appointment = Row(id='meeting', titolo='Udienza', procedimento='')

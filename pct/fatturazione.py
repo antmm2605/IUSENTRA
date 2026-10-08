@@ -282,8 +282,14 @@ class Parcella:
         return 2.00 if self.applica_bollo else 0.0
 
     @property
+    def bollo_addebitato(self) -> float:
+        document = self.dati_personalizzati.get("document", {}) if isinstance(self.dati_personalizzati, dict) else {}
+        studio_pays = isinstance(document, dict) and document.get("bollo_a_carico_studio") is True
+        return 0.0 if studio_pays else self.bollo
+
+    @property
     def totale_documento(self) -> float:
-        return round(self.base_iva + self.iva + self.bollo + self.totale_anticipazioni, 2)
+        return round(self.base_iva + self.iva + self.bollo_addebitato + self.totale_anticipazioni, 2)
 
     @property
     def totale(self) -> float:

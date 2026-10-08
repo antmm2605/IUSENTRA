@@ -15,7 +15,7 @@ import { ViewerHandwrittenSignaturePanel } from './ViewerHandwrittenSignaturePan
 import { ViewerCanvasObjects } from './ViewerCanvasObjects'
 type TextSpan = { id: number; text: string; x: number; y: number; width: number; height: number }
 
-export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation = 0, readerRef, compactReader = false }: { source: SourceDocument; onDirty: (value: boolean) => void; onSaving?: (value: boolean) => void; readerRotation?: number; readerRef?: RefObject<HTMLIFrameElement | null>; compactReader?: boolean }) {
+export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation = 0, readerRef, compactReader = true }: { source: SourceDocument; onDirty: (value: boolean) => void; onSaving?: (value: boolean) => void; readerRotation?: number; readerRef?: RefObject<HTMLIFrameElement | null>; compactReader?: boolean }) {
   const endpoint = editorEndpoint(source.href)
   const [policy, setPolicy] = useState<Policy | null>(null)
   const [open, setOpen] = useState(false)

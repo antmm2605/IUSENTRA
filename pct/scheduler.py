@@ -728,6 +728,14 @@ def start_scheduler(app):
     def _legal_official_archives_daily():
         _run_official_archives_sync("daily")
 
+    @scheduler.scheduled_job("interval", minutes=2, id="embeddinggemma2_initial_normattiva")
+    def _embeddinggemma2_initial_normattiva():
+        from pct.embeddinggemma2_migration_job import run_registered_batch
+        from pct.scheduler_registry import scheduler_registry_repository
+
+        with app.app_context():
+            return run_registered_batch(app.config, scheduler_registry_repository(app.config))
+
     @scheduler.scheduled_job(CronTrigger(hour=5, minute=45), id="legal_monitor_daily")
     def _legal_monitor_daily():
         _run_legal_monitor(
@@ -2703,7 +2711,7 @@ def start_scheduler(app):
                         error_message=str(result_payload.get("error") or ""),
                     )
             except Exception as exc:  # pragma: no cover - audit best effort
-                logger.debug("[scheduler] Evento pianificazione non registrato: %s", exc)
+                logger.warning("[scheduler] Esito non registrato per %s: %s", job_id, exc)
 
         scheduler.add_listener(
             _record_scheduler_event,

@@ -1,10 +1,52 @@
 """Guardrail dei difetti osservati con upload ed export reali il 06/10/2026."""
 import fitz
 import pytest
+from io import BytesIO
 
 from legal_ocr.tratti import tratti_del_testo
 from web.services.document_ocr_documento import _rifinisci, riconosci_pagina
 from web.services.documento_testo_riconosciuto import html_consentito, stile_consentito
+
+
+def test_native_mixed_size_lines_keep_individual_vertical_positions():
+    from legal_ocr.tratti import con_tratti
+
+    blocks = [{"tipo": "paragrafo", "testo": "Titolo Prima riga Seconda riga",
+               "riquadro": [40, 100, 400, 230]}]
+    words = [dict(text=text, left=left, top=top, width=35, height=height,
+                  baseline=top + height, corpo=12 if top == 100 else 11)
+             for text, left, top, height in [("Titolo", 40, 100, 55),
+                 ("Prima", 40, 171, 50), ("riga", 80, 171, 50),
+                 ("Seconda", 40, 225, 50), ("riga", 80, 225, 50)]]
+    blocks[0]["riquadro"][3] = 280
+    result = con_tratti(blocks, words)[0]
+    assert result["a_capo"] == [7, 18]
+    assert result["righe_native_top"] == [0, 71, 125]
+    optical = [{key: value for key, value in word.items() if key != "baseline"} for word in words]
+    assert "righe_native_top" not in con_tratti(blocks, optical)[0]
+
+
+def test_graphics_background_preserves_table_box_and_picture_without_mutating_pdf():
+    from PIL import Image
+    from web.services.document_ocr_anteprima import fondo_grafico_da_pdf
+
+    with fitz.open() as pdf:
+        page = pdf.new_page(width=600, height=400)
+        page.draw_rect(fitz.Rect(40, 40, 250, 140), color=(0, 0, 0), fill=(1, .9, .6))
+        picture = BytesIO()
+        Image.new('RGB', (20, 20), '#123456').save(picture, format='PNG')
+        page.insert_image(fitz.Rect(320, 200, 380, 260), stream=picture.getvalue())
+        page.insert_text((60, 90), 'Testo nativo da rileggere')
+        before = page.get_text()
+        graphics = fondo_grafico_da_pdf(page, 1)
+        assert page.get_text() == before
+        assert len(page.get_images()) == 1
+        with Image.open(BytesIO(graphics.dati)) as image:
+            assert image.size == (600, 400)
+            assert image.getpixel((70, 70))[0] > 240  # sfondo della casella
+            assert image.getpixel((350, 230))[2] > image.getpixel((350, 230))[0] + 40
+            # Il testo rimosso non è duplicato sotto quello modificabile.
+            assert all(min(image.getpixel((x, y))) > 120 for x in range(60, 185) for y in range(78, 94))
 
 
 def test_native_pdf_text_is_not_rewritten_by_ocr_corrections():

@@ -12,6 +12,7 @@
 import { csrfHeader } from '../api/csrf'
 import { parseBlocks, parseFigures, type OcrBlock, type OcrFigure } from '../components/documentCapture/ocrBlocks'
 import { pdfBlobFromBase64 } from './documentOcr'
+import { generateDocument } from '../documentToolsData'
 
 export type OrigineTesto = 'testo' | 'ocr'
 
@@ -45,6 +46,7 @@ export type RiferimentiPagina = {
 
 export type PaginaRiconosciuta = {
   numero: number
+  dimensioniPt?: { larghezza: number; altezza: number }
   origine: OrigineTesto
   origineEtichetta: string
   pdf: Blob
@@ -55,6 +57,7 @@ export type PaginaRiconosciuta = {
   confidence: number
   engine: string
   anteprima: AnteprimaPagina | null
+  fondo?: AnteprimaPagina | null
   correzioni: CorrezioneApplicata[]
   riferimenti: RiferimentiPagina
   /** Parole confermate o corrette dal secondo lettore, e quale lettore era. */
@@ -167,12 +170,15 @@ function paginaDaPayload(raw: Record<string, unknown> | undefined, richiesta: nu
   const codificato = String(voce.pdf_base64 ?? '')
   if (!codificato) throw new Error('La pagina riconosciuta non è leggibile. Riprova.')
   const numero = Number(voce.numero ?? richiesta) || richiesta
+  const misure = voce.dimensioni_pt as Record<string, unknown> | undefined
+  const larghezza = Number(misure?.larghezza), altezza = Number(misure?.altezza)
   const origine: OrigineTesto = String(voce.origine ?? '') === 'testo' ? 'testo' : 'ocr'
   const paragraphs = Array.isArray(voce.paragraphs)
     ? voce.paragraphs.map((item) => String(item ?? '').trim()).filter(Boolean)
     : []
   return {
     numero,
+    dimensioniPt: larghezza > 0 && altezza > 0 && Number.isFinite(larghezza + altezza) ? { larghezza, altezza } : undefined,
     origine,
     origineEtichetta: String(voce.origine_etichetta ?? '') || (origine === 'testo' ? 'testo già presente nel documento' : 'riconoscimento ottico (OCR)'),
     pdf: pdfBlobFromBase64(codificato),
@@ -183,6 +189,7 @@ function paginaDaPayload(raw: Record<string, unknown> | undefined, richiesta: nu
     confidence: Number(voce.confidence ?? 0) || 0,
     engine: String(voce.engine ?? ''),
     anteprima: anteprimaDaPayload(voce.anteprima),
+    fondo: anteprimaDaPayload(voce.fondo),
     correzioni: correzioniDaPayload(voce.correzioni),
     riferimenti: riferimentiDaPayload(voce.riferimenti),
     consenso: Number(voce.consenso ?? 0) || 0,
@@ -227,6 +234,19 @@ export function nomeCopiaRicercabile(nome: string): string {
 
 export type FormatoDocumento = 'docx' | 'pdf'
 const indirizziDownload = new WeakMap<Blob, string>()
+
+/** La conversione nativa conserva anche tabelle e immagini dell'originale. */
+export async function documentoWordDaPdf(pdf: Blob, nome: string, download = false, blocchi?: OcrBlock[], originali?: OcrBlock[]): Promise<File> {
+  const review = blocchi && originali && JSON.stringify(blocchi) !== JSON.stringify(originali) ? JSON.stringify({ originali, blocchi }) : undefined
+  const risultato = await generateDocument('word', [new File([pdf], 'originale.pdf', { type: 'application/pdf' })], `${nome.replace(/\.[^.]+$/, '')} - testo riconosciuto`, [], [], '', '', review)
+  try {
+    const file = new File([risultato.blob], risultato.filename, { type: risultato.blob.type })
+    if (download && risultato.downloadHref) indirizziDownload.set(file, risultato.downloadHref)
+    return file
+  } finally {
+    URL.revokeObjectURL(risultato.objectUrl)
+  }
+}
 
 /** Il testo riconosciuto e corretto, come documento `.docx` (o PDF impaginato). */
 export async function documentoModificabile(html: string, nome: string, formato: FormatoDocumento = 'docx', download = false): Promise<File> {

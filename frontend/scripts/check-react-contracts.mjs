@@ -84,6 +84,9 @@ function assertNoSensitivePayloadWords(source, label) {
   const sanitizedSource = source
     .replace(/SENSITIVE_KEY\s*=\s*\/.*?\n/s, '')
     .replace(/secrets_exposed/g, '')
+    // HTML autocomplete tokens describe browser behaviour, not credentials.
+    // Only remove the literal attribute; payload keys and values stay checked.
+    .replace(/\bautoComplete\s*=\s*["'](?:new|current)-password["']/g, '')
   for (const word of ['api_key', 'apikey', 'password', 'smtp_password', 'pec_password', 'password_hash', 'private_key', 'access_key', 'access_token', 'refresh_token', 'oauth_token', 'client_secret', 'provider_secret', 'webhook_secret', 'bearer']) {
     if (new RegExp(word, 'i').test(sanitizedSource)) {
       throw new Error(`${label}: contiene parola riservata nel payload o nella UI: ${word}`)

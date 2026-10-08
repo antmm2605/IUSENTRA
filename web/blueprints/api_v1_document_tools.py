@@ -30,6 +30,33 @@ from web.services.fascicolo_lookup import cerca_fascicoli_per_cliente
 api_v1_document_tools = Blueprint("api_v1_document_tools", __name__)
 
 
+@api_v1_document_tools.get("/fonts")
+@_richiedi_auth
+def document_font_catalog():
+    from web.services.document_font_library import font_library
+    try:
+        fonts, _ = font_library()
+        return jsonify(ok=True, fonts=fonts)
+    except (OSError, ValueError, RuntimeError) as exc:
+        return _handle_error(exc)
+
+
+@api_v1_document_tools.get("/fonts/<token>/<kind>")
+@_richiedi_auth
+def document_font_file(token, kind):
+    from web.services.document_font_library import resolve_font_file
+    if kind not in {'file', 'license'}:
+        return jsonify(ok=False, message="Risorsa del carattere non trovata."), 404
+    path = resolve_font_file(token, kind == 'license')
+    if path is None:
+        return jsonify(ok=False, message="Carattere non disponibile nella libreria."), 404
+    response = send_file(path, mimetype='text/plain; charset=utf-8' if kind == 'license'
+                         else 'font/otf' if path.suffix == '.otf' else 'font/ttf', max_age=86400)
+    response.headers['Cache-Control'] = 'private, max-age=86400'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    return response
+
+
 def _uploads() -> list[UploadedDocument]:
     rows: list[UploadedDocument] = []
     for uploaded in request.files.getlist("files"):
@@ -199,6 +226,32 @@ def split_document():
         filename = safe_output_name(request.form.get("output_name", ""), "pdf", "pagine-estratte")
         _audit_event("documenti.pagine_estratte", "strumenti_documentali", "", f"{pages} pagine estratte")
         return _download(result, filename, "application/pdf", X_Iusentra_Pages=pages, X_Iusentra_Files=1, X_Iusentra_Operation="split-pdf")
+    except Exception as exc:
+        return _handle_error(exc)
+
+
+@api_v1_document_tools.post("/word")
+@_richiedi_auth
+def convert_document_to_word():
+    try:
+        from web.blueprints.api_v1_react import _session_user_can
+        from web.services.document_pdf_word import DOCX_MIME, convert_pdf_to_word
+        from web.services.document_tools import MAX_FILE_BYTES
+        if not (_session_user_can("admin.leggi") or _session_user_can("fascicoli.leggi")):
+            return jsonify({"ok": False, "message": "Non hai il permesso di usare gli strumenti documentali."}), 403
+        uploads = request.files.getlist("files")
+        if len(uploads) != 1:
+            raise DocumentToolError("Per convertire in Word seleziona un solo PDF.")
+        uploaded = uploads[0]
+        data, pages, preview = convert_pdf_to_word(UploadedDocument(str(uploaded.filename or "documento.pdf"), uploaded.read(MAX_FILE_BYTES + 1)), request.form.get('review', ''))
+        filename = safe_output_name(request.form.get("output_name", ""), "docx", "documento-convertito")
+        _audit_event("documenti.pdf_convertito_word", "strumenti_documentali", "", f"{pages} pagine convertite, originale conservato")
+        response = _download(data, filename, DOCX_MIME, X_Iusentra_Pages=pages, X_Iusentra_Files=1, X_Iusentra_Operation="pdf-word")
+        if request.headers.get("X-Iusentra-Result-Links") == "1":
+            from web.services.document_tools_cache import store_result
+            preview_token = store_result(preview, filename + '.pdf', 'application/pdf')
+            response.headers['X-Iusentra-Preview'] = url_for('api_v1_document_tools.document_tool_result_preview', token=preview_token, rotationScope='page')
+        return response
     except Exception as exc:
         return _handle_error(exc)
 

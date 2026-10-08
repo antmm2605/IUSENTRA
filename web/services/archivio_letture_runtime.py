@@ -237,12 +237,13 @@ def _testo_nativo(fascicolo_id: str, documento: Any) -> str:
 
         import pdfplumber  # type: ignore
 
-        from legal_ocr.motore.testo import _testo_nativo_affidabile
+        from legal_ocr.motore.testo import _testo_nativo_affidabile, testo_nativo_pagina
+        import fitz
 
         pagine: list[str] = []
-        with pdfplumber.open(io.BytesIO(dati)) as pdf:
-            for pagina in pdf.pages:
-                pagine.append(pagina.extract_text() or "")
+        with pdfplumber.open(io.BytesIO(dati)) as pdf, fitz.open(stream=dati, filetype="pdf") as fonte:
+            for numero, pagina in enumerate(pdf.pages):
+                pagine.append(testo_nativo_pagina(fonte.load_page(numero), testo_base=pagina.extract_text() or ""))
         testo = "\n\n".join(parte for parte in pagine if parte.strip()).strip()
         return testo if _testo_nativo_affidabile(testo) else ""
     except Exception:
@@ -613,7 +614,15 @@ def _leggi_pec(fascicolo: Any, registro: RegistroLetture, tenant: str, contesto:
                     conteggi["assenti"] += 1
                     registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_PEC, stato="non_leggibile", esito={"motivo": motivo, "estrattore_versione": VERSIONE_ESTRAZIONE_FORMATI}, versione=VERSIONE_MOTORE_PEC)
                     continue
-            fatti = _attribuisci(fatti_da_allegato(testo, nome=oggetto.nome, contesto=contesto), oggetto, "pec")
+            messaggio_fonte = per_id.get(oggetto.origine) or {}
+            primary_events = {str(e.get("primary_event") or "") for e in messaggio_fonte.get("eventi") or []}
+            tipo_documento = "SENTENZA" if primary_events & {"deposito_sentenza", "sentenza_a_verbale", "sentenza_a_verbale_429"} else ""
+            fatti = _attribuisci(fatti_da_allegato(
+                testo, nome=oggetto.nome, contesto=contesto,
+                metadata={"fascicolo": fascicolo, "fascicolo_id": fascicolo_id,
+                          "documento_id": oggetto.oggetto_id, "document_hash_sha256": oggetto.impronta,
+                          "tipo_documento": tipo_documento},
+            ), oggetto, "pec")
         registro.registra_fatti(tenant, fascicolo_id, oggetto, "pec", fatti, versione=VERSIONE_MOTORE_PEC)
         registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_PEC, esito={"estrattore_versione": VERSIONE_ESTRAZIONE_FORMATI, "fatti": len(fatti), "verificati": sum(1 for f in fatti if f.verifica == "verificata")}, versione=VERSIONE_MOTORE_PEC)
         conteggi["letti"] += 1
@@ -1323,6 +1332,16 @@ def _sveglia_lettura_sentenze(report: dict[str, Any]) -> None:
 
 def lettura_automatica_per_tutti(app: Any, *, limite_oggetti: int = 150, usa_marker_scheduler: bool = False) -> dict[str, Any]:
     """Il job dello scheduler: ogni studio attivo, con il suo contesto tenant-aware."""
+    if usa_marker_scheduler:
+        # Il recupero periodico usa soltanto la coda SQL. La scansione storica
+        # resta esplicita (usa_marker_scheduler=False), mai attivata dal timer.
+        recupero = riprendi_eventi_lettura(app, limite_per_tenant=max(1, min(20, int(limite_oggetti))))
+        return {
+            "ok": True, "job": "archivio_letture_automatico", "mode": "event_queue",
+            "tenants": [], "queue": recupero,
+            "totals": {"esaminati": 0, "restano": int(recupero.get("trovati") or 0)},
+        }
+
     from web.services.fascicoli_presidi_runtime import _active_tenants, _attach_tenant_context
 
     totali = {"fascicoli": 0, "esaminati": 0, "documenti_letti": 0, "pec_lette": 0, "fatti": 0, "verificati": 0, "promossi": 0, "senza_testo": 0, "restano": 0, "saltati": 0}

@@ -21,7 +21,7 @@ from .motore_documenti import leggi_testo
 from .estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI
 from .estrazione_notifiche import VERSIONE_PROVE_NOTIFICA
 
-VERSIONE_MOTORE_PEC = "2026.10.01.motore-pec.v11+contesto-economico+importi:" + VERSIONE_ESTRAZIONE_IMPORTI + "+date:" + VERSIONE_DATE_PROCESSUALI
+VERSIONE_MOTORE_PEC = "2026.10.07.motore-pec.v12+identita-fascicolo-allegati+contesto-economico+importi:" + VERSIONE_ESTRAZIONE_IMPORTI + "+date:" + VERSIONE_DATE_PROCESSUALI
 VERSIONE_MOTORE_PEC += "+prove:" + VERSIONE_PROVE_NOTIFICA
 _RICEVUTE = (
     ("rac", "accettazione", re.compile(r"^\s*(?:accettazione|posta certificata:\s*accettazione)\b", re.IGNORECASE)),
@@ -218,10 +218,10 @@ def fatti_da_messaggio(messaggio: dict[str, Any], contesto: Contesto) -> list[Fa
     return collaudati
 
 
-def fatti_da_allegato(testo: str, *, nome: str, contesto: Contesto) -> list[Fatto]:
+def fatti_da_allegato(testo: str, *, nome: str, contesto: Contesto, metadata: dict[str, Any] | None = None) -> list[Fatto]:
     """Gli allegati PEC letti dal presidio (OCR) passano dal motore documenti con origine «pec_allegato»."""
     return leggi_testo(testo, origine="pec_allegato", contesto=contesto, nome=nome,
-                      metadata={"cliente": contesto.cliente, "numero_rg": contesto.numero_rg,
+                      metadata={**(metadata or {}), "cliente": contesto.cliente, "numero_rg": contesto.numero_rg,
                                 "anno_rg": contesto.anno_rg})
 
 

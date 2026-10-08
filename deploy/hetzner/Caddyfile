@@ -43,6 +43,7 @@
 	@react_hashed_assets path /static/react/assets/*
 	header @react_hashed_assets {
 		defer
+		match status 2xx 3xx
 		Cache-Control "public, max-age=31536000, immutable"
 	}
 
@@ -50,7 +51,15 @@
 		path /static/*
 		not path /static/react/assets/*
 	}
-	header @other_static Cache-Control "public, max-age=604800"
+	header @other_static {
+		match status 2xx 3xx
+		Cache-Control "public, max-age=604800"
+	}
+	# Un asset mancante deve essere richiesto di nuovo dopo il ripristino.
+	header /static/* {
+		match status 4xx 5xx
+		Cache-Control "no-store, max-age=0"
+	}
 
 	# La shell React usa rivalidazione condizionata con ETag: `no-cache` obbliga
 	# comunque il browser a rivalidare prima di ogni uso, quindi non mostra mai

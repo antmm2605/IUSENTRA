@@ -865,6 +865,10 @@ body.react-shell-page #root{
 }
 @media(max-width:980px){
   .iu-search-hero{grid-template-columns:1fr}
+  .iusentra-route-preset--active .iu-search-page.iusentra-route-sequence > section.iu-search-hero[data-iusentra-sequence-slot="page-header"]{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr);
+  }
   .iu-search-hero__badges{align-items:flex-start;flex-flow:row wrap}
 }
 @media(max-width:720px){
@@ -3108,3 +3112,6 @@ body.iu-agenda-planner-expanded .iu-ag-planner.is-expanded .iu-ag-calendar-card{
 .iu-fas-lettura__scaduti>summary{min-height:44px;cursor:pointer;font-weight:800;color:var(--iu-slate-700)}
 .iu-fas-lettura__scaduti>summary:focus-visible{outline:2px solid var(--iu-blue-600);outline-offset:2px}
 .iu-fas-lettura__scaduti>p{color:var(--iu-slate-600);font-size:13px}
+
+/* Comandi del documento: focus riconoscibile anche nella barra compatta. */
+.iu-fatt-modal__tabs button:focus-visible { outline: 2px solid var(--iu-blue-600); outline-offset: -3px; }

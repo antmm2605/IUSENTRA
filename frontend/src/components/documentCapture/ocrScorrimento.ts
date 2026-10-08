@@ -42,7 +42,7 @@ const SULLA_PAGINA = 'data-blocco'
  * pagina (un capoverso corretto si allunga): agganciarsi al blocco tiene
  * accanto le stesse righe anche dove la pagina intera non basterebbe.
  */
-function bloccoInCima(contenitore: HTMLElement, attributo: string): { id: string; quota: number } | null {
+function bloccoInCima(contenitore: HTMLElement, attributo: string): { id: string; quota: number; distanza: number } | null {
   const alto = contenitore.getBoundingClientRect().top
   let scelta: { id: string; quota: number; distanza: number } | null = null
   for (const elemento of contenitore.querySelectorAll<Element>(`[${attributo}]`)) {
@@ -55,7 +55,9 @@ function bloccoInCima(contenitore: HTMLElement, attributo: string): { id: string
       if (distanza === 0) break
     }
   }
-  return scelta && scelta.distanza < 400 ? { id: scelta.id, quota: Math.max(-1, Math.min(1, scelta.quota)) } : null
+  return scelta && scelta.distanza < 400
+    ? { id: scelta.id, quota: Math.max(0, Math.min(1, scelta.quota)), distanza: scelta.distanza }
+    : null
 }
 
 function allineaSulBlocco(sorgente: HTMLElement, destinazione: HTMLElement, daImmagini: boolean): boolean {
@@ -65,11 +67,30 @@ function allineaSulBlocco(sorgente: HTMLElement, destinazione: HTMLElement, daIm
   if (!gemello) return false
   const zona = gemello.getBoundingClientRect()
   if (zona.height <= 0) return false
-  fermaEco(destinazione, destinazione.scrollTop + zona.top - destinazione.getBoundingClientRect().top + ancora.quota * zona.height)
+  // Nel bianco prima di un blocco la distanza è in pixel, non in altezze
+  // di riga: limitarla a una riga desincronizzava i fogli di centinaia di pixel.
+  fermaEco(destinazione, destinazione.scrollTop + zona.top - destinazione.getBoundingClientRect().top
+    - ancora.distanza + ancora.quota * zona.height)
   return true
 }
 
 function allinea(sorgente: HTMLElement, destinazione: HTMLElement, daImmagini: boolean) {
+  // Con fogli della stessa misura il riferimento è la pagina, non il
+  // riquadro delle lettere: font e decorazioni hanno altezze di riquadro
+  // diverse pur essendo alla stessa posizione sul foglio.
+  const pagineSorgente = Array.from(sorgente.querySelectorAll<HTMLElement>('[data-pagina]'))
+  const pagineDestinazione = Array.from(destinazione.querySelectorAll<HTMLElement>('[data-pagina]'))
+  if (pagineSorgente.length > 0 && pagineSorgente.length === pagineDestinazione.length
+    && Math.abs(sorgente.scrollHeight - destinazione.scrollHeight) <= 1
+    && pagineSorgente.every((pagina, indice) => {
+      const gemello = pagineDestinazione[indice]
+      return pagina.dataset.pagina === gemello.dataset.pagina
+        && Math.abs(pagina.getBoundingClientRect().height - gemello.getBoundingClientRect().height) < 1
+        && Math.abs(pagina.getBoundingClientRect().width - gemello.getBoundingClientRect().width) < 1
+    })) {
+    fermaEco(destinazione, sorgente.scrollTop)
+    return
+  }
   if (allineaSulBlocco(sorgente, destinazione, daImmagini)) return
   const punto = posizione(sorgente)
   if (!punto) return

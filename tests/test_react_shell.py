@@ -54,6 +54,23 @@ def _fascicoli_repository(app) -> GestioneFascicoli:
         return app.extensions["core_runtime"]["get_fascicoli"]()
 
 
+def _email_repository(app, key="EMAIL_CASELLA_DB"):
+    """Prepara il catalogo SQL vuoto dello studio controllato e vi semina i dati.
+
+    Le API non importano più i messaggi dal mirror storico durante una lettura.
+    Il test deve quindi scrivere nella stessa fonte primaria del runtime.
+    """
+    from web.services.email_storage_runtime import create_email_mailbox
+    from web.services.storage_runtime import get_request_studio_db
+
+    path = Path(app.config[key])
+    with app.app_context():
+        # Completare prima il bootstrap core: un DB creato soltanto con il DDL
+        # verrebbe riconosciuto come non inizializzato alla prima richiesta.
+        get_request_studio_db(str(path))
+        return create_email_mailbox(path, actor_key="controlled-test")
+
+
 def _semina_archivio(app, fascicolo_id: str, documento, fatti) -> None:
     """Mette nell'archivio delle letture i fatti che i due motori avrebbero letto.
 
@@ -965,7 +982,11 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "AgendaPage" in agenda_page
     assert "getAgendaPage" in agenda_data
     assert "/api/v1/ui/agenda" in agenda_data
+    # La superficie React usa soltanto l'API governata: un errore non deve
+    # riaprire la lettura legacy o trasformarsi in un elenco vuoto riuscito.
     assert "/api/v1/agenda" not in agenda_data
+    assert "if (!response.ok) throw new Error" in agenda_data
+    assert "payload.ok === false" in agenda_data
     assert "fetchAgendaEndpoint('/api/v1/ui/agenda'" in agenda_data
     assert "moveEventToDay" in agenda_data
     assert "moveEventToDateTime" in agenda_data
@@ -974,6 +995,7 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "onCreateSlot" in agenda_page
     assert "iu-ag-slot" in agenda_page
     assert "iu-ag-week--month" in agenda_page
+    assert "const togglePlannerExpanded = async () =>" in agenda_page
     assert "setPlannerExpanded((current) => !current)" in agenda_page
     assert "document.exitFullscreen()" in agenda_page
     assert "document.body.classList.toggle('iu-agenda-planner-expanded', plannerExpanded)" in agenda_page
@@ -1017,12 +1039,12 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "SourceDocumentModal" in source_modal
     assert "parsed.pathname.startsWith('/api/v1/ui/email/source/')" in source_modal
     assert "parsed.searchParams.set('viewer', 'mobile')" in source_modal
-    window_controls = Path("frontend/src/components/ManagedWindowState.tsx").read_text(encoding="utf-8")
+    # I comandi finestra sono condivisi dal lettore con tutti i pannelli.
+    window_state = Path("frontend/src/components/ManagedWindowState.tsx").read_text(encoding="utf-8")
     assert "<OperationalModal" in source_modal
     assert "<WindowControls" in operational_modal
-    assert "toggleExpanded={managed.toggleExpanded}" in operational_modal
-    assert "Ingrandisci" in window_controls
-    assert "Ripristina dimensione" in window_controls
+    assert "managed.toggleExpanded" in operational_modal
+    assert "'Ripristina' : 'Ingrandisci'" in window_state
     assert "Caricamento documento..." in source_modal
     assert "Documento non visualizzabile nel lettore." in source_modal
     assert "parsed.pathname.includes('/documenti/')" in source_modal
@@ -1049,7 +1071,9 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "sandbox={sourceIframeSandbox(viewerHref)}" in source_modal
     assert 'referrerPolicy="no-referrer"' in source_modal
     assert "role=\"dialog\"" in operational_modal
+    # Finestre simultanee: il pannello non rende inaccessibili gli altri.
     assert "aria-modal=\"false\"" in operational_modal
+    assert "onPointerDownCapture={() => { managed.activate();" in operational_modal
     assert "closeOnEscape" in operational_modal
     assert "modalStack.at(-1)" in operational_modal
     assert "openAgendaDetail" in agenda_page
@@ -1067,11 +1091,13 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "setAttachmentSource(viewerSource)" in email_page
     assert 'target="_blank" rel="noreferrer">Visualizza' not in email_page
     detail_request = Path("frontend/src/emailDetailRequest.ts").read_text(encoding="utf-8")
-    assert "fetchMailboxDetailJson" in email_data
+    assert "import { fetchMailboxDetailJson } from './emailDetailRequest'" in email_data
+    assert "fetchMailboxDetailJson(`/api/pec/messages/${encodeURIComponent(pecId)}/source`, true)" in email_data
     assert "new Set([423, 429, 500, 503])" in detail_request
     assert "sourceRetryStatuses.has(response.status)" in detail_request
     assert "const attempts = sourceRetry ? 3 : 1" in detail_request
-    assert "450 + attempt * 550" in detail_request
+    assert "if (response.status === 404) return null" in detail_request
+    assert "throw new Error(failure)" in detail_request
     assert ".find(Boolean) || ''" in email_data
     assert "[parsed.body_text, parsedBody.text, parsedBody.html_text]" in email_data
     assert "pec-audit:${auditId}" in email_page
@@ -1563,6 +1589,7 @@ def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
     assert "isMessagesPage?<MessaggiPage/>" in app_source
     assert "Casella PEC dello studio" in email_page
     assert "heroTitle: 'Email ordinaria'" in email_page
+    assert "Ricevute, inviate e allegati dello studio nella stessa pagina." in email_page
     assert "includeTelematic: false" in email_page
     assert "Cartelle PEC" in email_page
     assert "Cartelle email ordinaria" in email_page
@@ -4976,7 +5003,7 @@ def test_react_dashboard_cache_breve_e_email_recenti_ordinarie_separate_da_pec(t
     app = _app(tmp_path)
     client = app.test_client()
 
-    sql_mailbox(app.config["EMAIL_CASELLA_DB"]).aggiungi(
+    _email_repository(app).aggiungi(
         EmailRicevuta(
             id="pec-dashboard",
             cartella=CartellaEmail.INBOX,
@@ -4988,7 +5015,7 @@ def test_react_dashboard_cache_breve_e_email_recenti_ordinarie_separate_da_pec(t
             stato_pct="ACCETTATO_PEC",
         )
     )
-    sql_mailbox(app.config["EMAIL_ORDINARIA_DB"]).aggiungi(
+    _email_repository(app, "EMAIL_ORDINARIA_DB").aggiungi(
         EmailRicevuta(
             id="mail-ordinaria-dashboard",
             cartella=CartellaEmail.INBOX,
@@ -6093,6 +6120,21 @@ def test_react_dashboard_legge_repository_operativi(tmp_path: Path):
         data_scadenza=(today + timedelta(days=2)).isoformat(),
     )
     preventivi.cambia_stato_preventivo(preventivo.id, StatoPreventivo.ACCETTATO)
+
+    # Terminare la semina core prima del bootstrap SQL e scrivere la posta
+    # nel catalogo primario, senza dipendere dall'import del mirror email.
+    _email_repository(app).aggiungi(
+        EmailRicevuta(
+            id="pec-test",
+            cartella=CartellaEmail.INBOX,
+            stato=StatoEmail.NON_LETTA,
+            mittente="cancelleria@pec.giustizia.it",
+            mittente_nome="Tribunale di Milano",
+            oggetto="Esito deposito telematico",
+            data=datetime.now().isoformat(timespec="seconds"),
+            stato_pct="ACCETTATO_PEC",
+        )
+    )
 
     response = client.get("/api/v1/ui/dashboard", headers={"X-API-Key": "react-test-key"})
     payload = response.get_json()
@@ -10574,9 +10616,12 @@ def test_react_agenda_in_evidenza_scorre_tutti_gli_impegni_e_dettaglio_mostra_fo
     assert "<AgendaSourceCard event={event} onOpenSource={onOpenSource}/>" in agenda_page
     assert "Visualizza fonte" in agenda_page
     assert "Nessun documento sorgente collegato a questo impegno." in agenda_page
-    assert "const contextualPanels" in agenda_page
-    assert agenda_page.rindex("</OperationalModal>") < agenda_page.rindex("{contextualPanels}")
-    assert "<SourceDocumentModal" in agenda_page[agenda_page.index("const contextualPanels"):agenda_page.index("if (new URLSearchParams")]
+    # Il lettore viene definito nel frammento condiviso anche dalla vista
+    # incorporata. Conta il punto di rendering, non l'ordine delle definizioni.
+    panels = agenda_page[agenda_page.index("const contextualPanels ="):agenda_page.index("if (new URLSearchParams", agenda_page.index("const contextualPanels ="))]
+    assert "<SourceDocumentModal" in panels
+    main_view = agenda_page[agenda_page.index('<main className="iu-content iu-agenda-page">'):]
+    assert main_view.rindex("</OperationalModal>") < main_view.rindex("{contextualPanels}")
     # Attivita proposte eseguibili.
     assert "function AgendaProposedActions" in agenda_page
     assert "agendaProposedSteps(event, activity, { editHref, isDeadline, clientReminderHref: messageReminderHref(event) })" in agenda_page

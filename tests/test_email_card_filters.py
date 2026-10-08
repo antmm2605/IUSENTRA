@@ -1,19 +1,21 @@
 """Guardrail sui filtri già provati nel browser; non accettazione utente."""
-import json
-import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 from pct.email_client import EmailRicevuta
+from pct.email_mailbox_repository import EmailMailboxRepository
+from pct.email_sql_client import GestioneEmailSQL
+from tests.test_condivisioni_sql_repository import SQLFactory
 from web.services.react_email_bridge import _email_row, build_react_email_payload
 
 
 class EmailCardFiltersTests(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temp.cleanup)
-        self.path = Path(self.temp.name) / 'casella.json'
+        self.factory = SQLFactory('sqlite')
+        self.addCleanup(self.factory.close)
+        self.root = Path(self.factory.temp.name) / 'controlled-studio'
+        self.path = self.root / 'email' / 'casella.json'
         records = {}
         for index in range(100):
             folder = ('INBOX', 'INVIATI', 'CESTINO', 'BOZZE')[index % 4]
@@ -28,7 +30,12 @@ class EmailCardFiltersTests(unittest.TestCase):
                 allegati=[{'nome': f'allegato-{index}.pdf'}, {'nome': f'nota-{index}.txt'}] if index % 5 == 0 else [],
             )
             records[row.id] = row.to_dict()
-        self.path.write_text(json.dumps(records), encoding='utf-8')
+        repository = EmailMailboxRepository(self.factory.new(), 'controlled-studio', 'pec', self.path)
+        repository.ensure_schema()
+        repository.initialize(records, source_of_truth='sqlite')
+        factory_patch = patch('web.services.react_email_bridge.create_email_mailbox', side_effect=lambda **kwargs: GestioneEmailSQL(str(self.path), studio_db=self.factory.new(), tenant_key='controlled-studio', mailbox_kind='pec', tenant_root=self.root, actor_key='controlled-user'))
+        factory_patch.start()
+        self.addCleanup(factory_patch.stop)
         for name, value in [
             ('_pec_audit_summaries', {'<controlled-1@example.test>': {'id': 'audit-1', 'quality_status': 'verde'}}),
             ('_pec_audit_all_summaries', []),
@@ -65,7 +72,7 @@ class EmailCardFiltersTests(unittest.TestCase):
         self.assertEqual(result['summary']['filtered'], 16)
         all_result = build_react_email_payload(db_path=str(self.path), folder='TUTTE', limit=100, solo_pst=True)
         self.assertIn('email-001', {row['id'] for row in all_result['items']})
-        original = json.loads(self.path.read_text())
+        original = EmailMailboxRepository(self.factory.new(), 'controlled-studio', 'pec', self.path).load()
         self.assertEqual(original['email-001']['stato_pct'], '')
 
     def test_attachment_card_counts_files_but_filter_counts_messages(self):
@@ -97,12 +104,12 @@ class EmailCardFiltersTests(unittest.TestCase):
         result = _email_row(email, include_telematic=False)
         self.assertEqual(result['preview'], 'Testo originale della comunicazione')
 
-    def test_pec_preview_keeps_certified_text_and_existing_classification(self):
+    def test_pec_preview_prefers_html_without_changing_source_or_classification(self):
         email = EmailRicevuta(id='pec', corpo_testo='Ricevuta di consegna certificata',
                               corpo_html='<p>Altra rappresentazione</p>', stato_pct='CONSEGNATO')
         original = email.to_dict()
         result = _email_row(email, include_telematic=True, include_provisional_audit=False)
-        self.assertEqual(result['preview'], 'Ricevuta di consegna certificata')
+        self.assertEqual(result['preview'], 'Altra rappresentazione')
         self.assertEqual(result['pctStatus'], 'CONSEGNATO')
         self.assertEqual(email.to_dict(), original)
 

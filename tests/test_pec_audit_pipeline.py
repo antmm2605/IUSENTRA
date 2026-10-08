@@ -7266,6 +7266,7 @@ def _comunicazione_pct_mime(numero_ruolo: str = "523/2026/LAV") -> bytes:
         "Messaggio di posta certificata. Allegati: daticert.xml, postacert.eml. "
         "La cancelleria comunica il deposito della sentenza resa ai sensi dell'art. 127-ter c.p.c. "
         "nel procedimento iscritto al n. 523/2026 R.G. LAV del Tribunale di Vicenza. "
+        "Parte ricorrente: Barilaro Francesco. "
         "Si invita il difensore a provvedere alla notificazione della sentenza alla controparte."
     )
     comunicazione = (
@@ -7274,6 +7275,7 @@ def _comunicazione_pct_mime(numero_ruolo: str = "523/2026/LAV") -> bytes:
         f"<NumeroRuolo>{numero_ruolo}</NumeroRuolo>"
         "<Oggetto>SENTENZA A VERBALE (art. 127 ter cpc)</Oggetto>"
         "<Ufficio>Tribunale di Vicenza</Ufficio>"
+        "<Contenuto>Cliente: Barilaro Francesco\nUfficio: Tribunale di Vicenza</Contenuto>"
         "</Comunicazione>"
     ).encode("utf-8")
     messaggio.add_attachment(
@@ -7324,7 +7326,7 @@ def _repo_con_fascicolo(tmp_path: Path):
 
 
 def test_il_numero_di_ruolo_certificato_collega_il_fascicolo(tmp_path):
-    """Il NumeroRuolo di Comunicazione.xml è certificato dall'ufficio: è una prova."""
+    """Ruolo, cliente e ufficio concordanti consentono il collegamento."""
 
     repo, fascicolo = _repo_con_fascicolo(tmp_path)
     repo.ingest_mime(

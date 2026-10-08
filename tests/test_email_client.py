@@ -1778,7 +1778,14 @@ def test_email_dettaglio_recupera_allegati_da_eml_originale(tmp_path):
     inner["Subject"] = "Comunicazione originale RG 98/2026"
     broken_notice = "L'esito è positivo ai sensi dell’art. 16.".encode("utf-8").decode("latin-1")
     inner.set_content(f"Comunicazione di cancelleria con esito telematico. {broken_notice}")
-    inner.add_alternative("<p>La comunicazione &egrave; inclusa negli allegati.</p>", subtype="html")
+    # multipart/alternative rappresenta lo stesso messaggio: la variante
+    # HTML preferita contiene anche l'esito, senza concatenare copie diverse.
+    inner.add_alternative(
+        "<p>Comunicazione di cancelleria con esito telematico. "
+        "L'esito &egrave; positivo ai sensi dell’art. 16.</p>"
+        "<p>La comunicazione &egrave; inclusa negli allegati.</p>",
+        subtype="html",
+    )
 
     xml_bytes = b"<EsitoAtto><Stato>ACCETTATO</Stato></EsitoAtto>"
     outer = EmailMessage()

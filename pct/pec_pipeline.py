@@ -1827,6 +1827,8 @@ PROFILE_INLINE_LABELS = (
     "Descrizione",
     "Note",
     "Registrato da",
+    "Data Evento",
+    "Tipo Evento",
     "CodiceUG",
     "CodiceFiscaleDestinatario",
 )

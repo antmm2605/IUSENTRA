@@ -8855,6 +8855,7 @@ def test_react_fascicoli_presidio_economico_legge_sentenza_fisica_non_indicizzat
         anno_rg=2026,
         oggetto="222050 - Retribuzione",
         compenso_pattuito=0,
+        tribunale="Tribunale di Palmi",
     )
     sentenza = """
     N. R.G. 1477/2026
@@ -8863,10 +8864,10 @@ def test_react_fascicoli_presidio_economico_legge_sentenza_fisica_non_indicizzat
     TRIBUNALE DI PALMI
     Il Tribunale ha pronunciato la seguente sentenza nella causa iscritta al RG n. 1477/2026.
     Sentenza n. 199/2026 pubbl. il 15/06/2026 RG n. 1477/2026.
+    P.Q.M.
     Definitivamente pronunciando, accoglie il ricorso di Ada Tescione e liquida in favore
     del procuratore antistatario compensi professionali in complessivi euro 258,00,
     oltre accessori di legge.
-    P.Q.M.
     """
     fascicoli.aggiungi_documento(
         fascicolo.id,
@@ -10931,8 +10932,8 @@ def test_modulepreload_react_combacia_con_gli_url_realmente_richiesti(tmp_path: 
             assert not sprecati, f"preload non riusati su {route}: {sprecati}"
 
 
-def test_css_react_hashed_non_hanno_query_di_versione(tmp_path: Path):
-    """Il CSS generato da Vite non va invalidato per release: cambia nome quando cambia."""
+def test_css_react_hashed_usano_solo_identita_della_release(tmp_path: Path):
+    """Un precedente 404 non sopravvive al rilascio; nessun cache bust casuale."""
 
     import pytest
 
@@ -10947,7 +10948,12 @@ def test_css_react_hashed_non_hanno_query_di_versione(tmp_path: Path):
 
     hashed = re.findall(r'<link rel="stylesheet" href="(/static/react/[^"]+)"', html)
     assert hashed, "nessun CSS React nella shell"
-    assert not [href for href in hashed if "?" in href]
+    from urllib.parse import parse_qs, urlsplit
+
+    manifest = json.loads((Path(app.static_folder) / "react" / ".vite" / "manifest.json").read_text(encoding="utf-8"))
+    entry = manifest.get("src/main.tsx") or next(value for value in manifest.values() if value.get("isEntry"))
+    release = entry["file"]
+    assert all(parse_qs(urlsplit(href).query) == {"release": [release]} for href in hashed)
     # `app.css` non è versionato nel nome: lì il `?v=` serve e deve restare.
     assert re.search(r'/static/css/app\.css\?v=', html)
 

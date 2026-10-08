@@ -8,6 +8,7 @@ from threading import Lock
 from flask import current_app, g, has_request_context
 
 from pct.local_ai import LocalAIService
+from pct.runtime_env import is_managed_cloud_runtime
 
 
 def _cfg_data_path(key: str) -> str:
@@ -20,6 +21,10 @@ def _cfg_data_path(key: str) -> str:
         if not paths.get(key) or getattr(g, "tenant_context_missing", False):
             raise RuntimeError("Contesto studio non disponibile per la ricerca locale")
         return assert_tenant_data_path(paths[key], key=key)
+    if is_managed_cloud_runtime():
+        # Gli override del bootstrap governano il runtime effimero; i path
+        # residui della richiesta non devono riaprire il volume persistente.
+        return app.config[key]
     if has_request_context():
         return paths.get(key, app.config[key])
     return app.config[key]

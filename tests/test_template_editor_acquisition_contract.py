@@ -145,9 +145,14 @@ def test_nuovi_moduli_rispettano_i_budget_e_la_governance_css():
         "services/documentOcr.ts": 250,
         "services/fascicoloSearch.ts": 180,
     }
+    governance = json.loads((ROOT / "scripts/react-migration/design-system-governance.json").read_text(encoding="utf-8"))
+    allowed = {item["file"]: item["snippets"] for item in governance["allowedInlineStyles"]}
     for path, limit in budgets.items():
         text = source(path)
         assert len(text.splitlines()) <= limit, path
+        # Solo geometria già approvata: qualunque nuovo stile resta vietato.
+        for snippet in allowed.get("frontend/src/" + path, []):
+            text = text.replace(snippet, "approved-document-geometry")
         assert "style={{" not in text, path
     governance = json.loads((ROOT / "scripts/react-migration/design-system-governance.json").read_text(encoding="utf-8"))
     assert "frontend/src/components/documentCapture/acquisition.css" in governance["approvedCssFiles"]

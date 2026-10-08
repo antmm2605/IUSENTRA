@@ -56,6 +56,7 @@ def _modifica_termine_mime(event_day: date, new_day: date, *, rg: str = "523/202
     <Oggetto>MODIFICA TERMINE PER NOTE IN SOSTITUZIONE UDIENZA</Oggetto>
     <Contenuto><![CDATA[Ufficio: TRIBUNALE ORDINARIO DI VICENZA
     Numero di Ruolo generale: {rg}
+    Cliente: BARILARO FRANCESCO
     Data Evento: {_it(event_day)}
     Tipo Evento: EVENTI FASE ISTRUTTORIA
     Oggetto: MODIFICA TERMINE PER NOTE IN SOSTITUZIONE UDIENZA

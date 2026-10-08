@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from tests.mailbox_test_support import sql_mailbox
-from pct.email_sql_client import GestioneEmailSQL
 
 import json
 import sqlite3

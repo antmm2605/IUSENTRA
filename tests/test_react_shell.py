@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from tests.mailbox_test_support import sql_mailbox
-from pct.email_sql_client import GestioneEmailSQL
 
 import hashlib
 import io
@@ -21,7 +20,7 @@ if TYPE_CHECKING:  # solo per le annotazioni: i motori si importano dove servono
 from pct.agenda import Agenda, StatoAppuntamento, TipoAppuntamento
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.clienti import GestioneClienti, TipoCliente
-from pct.email_client import CartellaEmail, EmailRicevuta, GestioneEmailRicevute, StatoEmail
+from pct.email_client import CartellaEmail, EmailRicevuta, StatoEmail
 from pct.fascicoli import Fascicolo, GestioneFascicoli, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
 from pct.privacy import GestioneTrattamenti

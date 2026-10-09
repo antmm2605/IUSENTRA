@@ -12,7 +12,30 @@ from .consenso import leggi_con_secondo_lettore
 from .mrz import righe_td1_complete
 from .copertina_cartacea import recupera_titolare_cartacea as recupera_titolare_cartacea
 
-RECUPERO_IDENTITA_VERSIONE = 'regione-v13-copertina-provenienza'
+RECUPERO_IDENTITA_VERSIONE = 'regione-v14-fronte-retro-riscontrati'
+
+
+def _identita_riquadri(recovered):
+    """Collega le due facce solo con il numero letto e la sua cifra ICAO.
+
+    Il controllo della prima riga dimostra il numero, non l'intera MRZ:
+    nomi, date e cittadinanza restano soggetti ai rispettivi controlli.
+    """
+    from .mrz import cifra_controllo
+    fronts = {item[2][1] for item in recovered if item[2][0] == 'cie'}
+    identities = set()
+    for text, _, profile in recovered:
+        if profile[0] == 'mrz':
+            identity = ('cie', profile[1][0][5:14])
+        elif profile[0] == 'cie_rear':
+            numbers = {token[5:14] for token in text.upper().split()
+                       if re.fullmatch(r'[IAC][A-Z<]ITA[A-Z0-9<]{9}[0-9]<{0,15}', token)
+                       and cifra_controllo(token[5:14], token[14])}
+            identity = ('cie', next(iter(numbers))) if len(numbers) == 1 and numbers <= fronts else profile
+        else:
+            identity = profile
+        identities.add(identity)
+    return identities
 
 
 def recupera_residenza_cartacea(image, known_text):
@@ -181,8 +204,7 @@ def recupera_mrz_carta(image) -> tuple[str, list[str]]:
                 recovered.append((text, warnings, _riscontro_carta(text)))
         # Fronte e MRZ possono dimostrare lo stesso numero documento.
         # La sola vicinanza dei riquadri non collega un retro privo di riscontro.
-        identities = {('cie', item[2][1][0][5:14]) if item[2][0] == 'mrz' else item[2]
-                      for item in recovered}
+        identities = _identita_riquadri(recovered)
         if len(identities) == 1:
             return '\n\n'.join(dict.fromkeys(item[0] for item in recovered)), list(dict.fromkeys(attempts))
         if len(identities) > 1:
@@ -413,18 +435,23 @@ def _leggi_zone_cie(image, x, y, width, height, angle, Image, *, rear=False, kno
         ('residenza', (.03, .24, .92, .36), r'\b(?:ADDRESS|RESIDENCE)\s+(?:VIA|VIALE|PIAZZA|CORSO)\b'),
     ) if rear else (
         ('comune di rilascio', (.02, .12, .85, .28), r'\bCOMUNE\b.{0,50}\b[A-ZÀ-Ü]{3,}\b'),
-        ('nomi', (.30, .26, .72, .45), r'COGNOME\s*/\s*SURNAME\s+[A-ZÀ-Ü\'’ -]+\s+NOME\s*/\s*NAME\s+[A-ZÀ-Ü\'’ -]+'),
+        ('nomi', (.30, .26, .72, .45), r'COGNOME\s*/\s*SURNAME\s+[A-ZÀ-Ü\'’-]+(?:\s+[A-ZÀ-Ü\'’-]+)*\s+NOME\s*/\s*NAME\s+[A-ZÀ-Ü\'’-]+(?:\s+[A-ZÀ-Ü\'’-]+)*(?=\s*(?:LUOGO|SESSO|$))'),
         ('luogo e data di nascita', (.27, .39, .96, .56), r'\b(?:NASCITA|BIRTH)\b.{0,80}\d{2}[./]\d{2}[./]\d{4}'),
         ('sesso', (.30, .53, .44, .64), r'\bSEX\s+[MF]\b'),
-        ('cittadinanza', (.63, .53, .84, .64), r'\bNATIONALITY\s+[A-Z]{3}\b'),
-        ('emissione', (.28, .60, .59, .71), r'EMISSIONE\s*(?:[/ ]*(?:ISSUING|ASSUING))?\s+\d{2}[./]\d{2}[./]\d{4}'),
+        ('cittadinanza', (.63, .53, .84, .70), r'\bNATIONALITY\s+[A-Z]{3}\b'),
+        ('emissione', (.28, .60, .59, .79), r'EMISSIONE\s*(?:[/ ]*(?:ISSUING|ASSUING))?\s+\d{2}[./]\d{2}[./]\d{4}'),
         ('scadenza', (.58, .62, .95, .80), r'\bSCADENZA\s*(?:[/ ]+EXPIRY)?\s+\d{2}[./]\d{2}[./]\d{4}'),
     )
     try:
         for label, bounds, pattern in zones:
             if rear and label == 'codice fiscale' and additions:
                 continue
-            if re.search(pattern, known_text, re.I | re.S):
+            # Due etichette sulla medesima riga non attribuiscono la prima
+            # data alla scadenza: il riquadro deve separare i due valori.
+            date_labels_mixed = label in ('emissione', 'scadenza') and any(
+                'EMISSIONE' in line.upper() and 'SCADENZA' in line.upper()
+                for line in known_text.splitlines())
+            if not date_labels_mixed and re.search(pattern, known_text, re.I | re.S):
                 continue
             box = tuple(round(value * (card.width if index % 2 == 0 else card.height))
                         for index, value in enumerate(bounds))
@@ -455,7 +482,7 @@ def _leggi_zone_cie(image, x, y, width, height, angle, Image, *, rear=False, kno
                         continue
                     working = prepared.immagine if prepared else (cropped if stage == 'originale' else enlarged)
                     try:
-                        reading = leggi_con_secondo_lettore(working, dpi=216)
+                        reading = leggi_con_secondo_lettore(working, dpi=216, preserva_risoluzione=True)
                         accepted = reading and reading.confidenza >= .94 and re.search(pattern, reading.testo, re.I | re.S)
                         warnings.append(f'CIE {"retro" if rear else "fronte"}: zona {label}, tentativo {stage}, '
                             f'esito {"accettato" if accepted else "insufficiente"}; originale invariato.')

@@ -10,7 +10,7 @@ import re
 from io import BytesIO
 from pathlib import Path
 
-ENGINE_VERSION = 'pdf-inspector:1.17.0:iusentra-v2'
+ENGINE_VERSION = 'pdf-inspector:1.17.0:iusentra-v5-orientamento'
 
 
 def _unwrap_markdown_link(match: 're.Match[str]') -> str:
@@ -171,12 +171,12 @@ def _small_box_values(image, existing: str) -> tuple[list[str], list[str]]:
     return additions, warnings
 
 
-def extract_pdf_inspected(content: bytes):
+def extract_pdf_inspected(content: bytes, *, identity_scan: bool = False):
     from .extraction import ExtractionResult
     from .models import DocumentAIPageText
     from .pdf_quality import has_only_signature_text
 
-    pages, warnings = [], []
+    pages, warnings, identity_recoveries = [], [], []
     try:
         import pdf_inspector
         import pdfplumber
@@ -212,7 +212,11 @@ def extract_pdf_inspected(content: bytes):
                             raise ValueError('Pagina troppo grande per il controllo OCR sicuro.')
                         bitmap = page.render(scale=3)
                         image = bitmap.to_pil().convert('RGB')
-                        if corrupt or (has_only_signature_text(raw) and page_number not in result.pages_routed_to_ocr):
+                        import pytesseract
+                        from legal_ocr.motore.immagine import orienta_testo
+                        image, orientation = orienta_testo(image, pytesseract=pytesseract)
+                        warnings.append(f'Pagina {page_number}: orientamento-v1, rotazione di lettura {orientation}°; originale invariato.')
+                        if orientation or corrupt or (has_only_signature_text(raw) and page_number not in result.pages_routed_to_ocr):
                             reread = pdf_inspector.process_pdf_with_ocr_bytes(_image_pdf(image), mode='force', dpi=216.0, **options)
                             if len(reread.pages) != 1:
                                 raise ValueError('Rilettura della pagina incompleta.')
@@ -223,6 +227,19 @@ def extract_pdf_inspected(content: bytes):
                             text += '\n\n' + '\n'.join(additions)
                             warnings.append(f'Pagina {page_number}: recuperati valori da riquadri; posizione riportata nel testo per verifica.')
                         warnings.extend(f'Pagina {page_number}: {w}' for w in box_warnings)
+                    if identity_scan and len(native.pages) <= 4:
+                        from legal_ocr.motore.mrz import righe_td1_complete
+                        if not righe_td1_complete(plain_markdown(text)):
+                            from legal_ocr.motore.identita import recupera_mrz_carta
+                            if page is None:
+                                page = rendered[page_number - 1]
+                                bitmap = page.render(scale=3)
+                                image = bitmap.to_pil().convert('RGB')
+                            recovered, recovery_warnings = recupera_mrz_carta(image)
+                            if recovered:
+                                text += '\n\n' + recovered
+                                identity_recoveries.append(DocumentAIPageText(page_number=page_number, text=recovered))
+                            warnings.extend(f'Pagina {page_number}: {warning}' for warning in recovery_warnings)
                     if page_number in result.pages_recommending_hosted:
                         warnings.append(f'Pagina {page_number}: lettura incerta, verificare l’originale; nessun invio a servizi esterni.')
                     pages.append(DocumentAIPageText(page_number=page_number, text=plain_markdown(text)))
@@ -233,7 +250,7 @@ def extract_pdf_inspected(content: bytes):
                         page.close()
         full_text = '\n\n'.join(p.text for p in pages)
         return ExtractionResult(ok=bool(full_text.strip()), text=full_text, pages=pages,
-                                extraction_engine=ENGINE_VERSION, warnings=warnings,
+                                extraction_engine=ENGINE_VERSION, warnings=warnings, identity_recoveries=identity_recoveries,
                                 error_code='' if full_text.strip() else 'pdf_ocr_empty')
     except Exception as exc:
         # No silent success or remote fallback on an unavailable OCR runtime.

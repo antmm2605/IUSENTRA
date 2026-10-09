@@ -108,6 +108,23 @@ def test_hash_riga_stabile_tra_import():
     assert prima[0].id == seconda[0].id  # idempotenza tra import ripetuti
 
 
+def test_reimport_riga_riconciliata_conserva_riscontro_senza_nuova_proposta():
+    riga = _riga_incasso()
+    movimento = _movimento(data=riga.data, riconciliato="2026-08-02T10:00:00")
+    movimento.riga_estratto_id = riga.id
+    esito = proponi_abbinamenti([riga], [movimento])[0]
+    assert esito.tipo == "gia_riconciliato"
+    assert esito.movimento_id == movimento.id
+
+
+def test_reimport_riga_con_dati_discordanti_non_attesta_riconciliazione():
+    riga = _riga_incasso()
+    movimento = _movimento(importo=1, riconciliato="2026-08-02T10:00:00")
+    movimento.riga_estratto_id = riga.id
+    with pytest.raises(ValueError, match="discordanti"):
+        proponi_abbinamenti([riga], [movimento])
+
+
 # --- Motore di abbinamento --------------------------------------------------------
 
 

@@ -701,7 +701,7 @@ class GestioneUtenti:
                     INSERT INTO audit_log
                     (id, timestamp, id_utente, username, azione,
                      risorsa_tipo, risorsa_id, dettagli, ip, esito)
-                    VALUES (?,?,?,?,?,?,?,?,?,?)
+                    VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT (id) DO NOTHING
                     """,
                     (
                         e.id, e.timestamp, e.id_utente, e.username,
@@ -711,7 +711,16 @@ class GestioneUtenti:
                 )
 
             try:
-                self._studio_db.salva_tabella("audit_log", recenti, _insert)
+                # Append: un elenco caricato prima di una scrittura concorrente
+                # non può cancellare eventi appena confermati da altri processi.
+                conn = self._studio_db.conn
+                try:
+                    for evento in recenti:
+                        _insert(conn, evento)
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                    raise
                 self._save_json_audit(recenti)
                 return
             except Exception as exc:

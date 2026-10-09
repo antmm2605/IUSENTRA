@@ -1,0 +1,5059 @@
+{
+  "status": "OPEN",
+  "scanned_python_files": 2148,
+  "method": "AST offline sui sorgenti tracciati; nessun documento o file dati letto. Include percorsi condizionali, cache, configurazioni e stream da distinguere dalle fonti operative. Le menzioni SQL non provano il ramo usato a runtime.",
+  "limitations": "Adapter dinamici, alias di json, variabili serializzate prima della scrittura e accessi esterni richiedono tracciamento aggiuntivo. Nessun esito funzionale dedotto dalla sola scansione.",
+  "findings": [
+    {
+      "file": "core/storage/migration_service.py",
+      "line": 27,
+      "scope": "migrate_json_directory_to_sqlite",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(item.path.read_text(encoding=\"utf-8\") or \"null\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "core/storage/migration_service.py",
+      "line": 90,
+      "scope": "migrate_json_directory_to_sql",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(item.path.read_text(encoding=\"utf-8\") or \"null\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "deploy/embeddinggemma2/litert_encoder.py",
+      "line": 16,
+      "scope": "LiteRTEncoder.__init__",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(Path(__file__).with_name(\"litert-model-manifest.json\").read_text())",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "deploy/embeddinggemma2/litert_encoder.py",
+      "line": 17,
+      "scope": "LiteRTEncoder.__init__",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads((directory / \"manifest.json\").read_text())",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "deploy/embeddinggemma2/provision.py",
+      "line": 34,
+      "scope": "prepare",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(Path(__file__).with_name(\"model-manifest.json\").read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "deploy/embeddinggemma2/provision.py",
+      "line": 60,
+      "scope": "prepare",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "(staging/\"iusentra-manifest.json\").write_text(json.dumps(manifest,indent=2),encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "deploy/embeddinggemma2/provision.py",
+      "line": 19,
+      "scope": "verified",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads((directory/\"iusentra-manifest.json\").read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "deploy/embeddinggemma2/provision_litert.py",
+      "line": 33,
+      "scope": "prepare",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(Path(__file__).with_name(\"litert-model-manifest.json\").read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "deploy/embeddinggemma2/provision_litert.py",
+      "line": 56,
+      "scope": "prepare",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "(staging / \"manifest.json\").write_text(json.dumps(manifest, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "deploy/embeddinggemma2/provision_litert.py",
+      "line": 19,
+      "scope": "verified",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads((directory / \"manifest.json\").read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "deploy/embeddinggemma2/server.py",
+      "line": 58,
+      "scope": "LocalEncoder.__init__",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads((directory / \"iusentra-manifest.json\").read_text())",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "deploy/embeddinggemma2/server.py",
+      "line": 59,
+      "scope": "LocalEncoder.__init__",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(Path(__file__).with_name(\"model-manifest.json\").read_text())",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "deploy/embeddinggemma2/server.py",
+      "line": 145,
+      "scope": "serve.Handler.do_POST",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.rfile.read(size))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "deploy/hetzner/backup_structured.py",
+      "line": 117,
+      "scope": "create_structured_backup",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "(staging / \"manifest.json\").write_text(\n            json.dumps(manifest, ensure_ascii=False, indent=2) + \"\\n\",\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "deploy/hetzner/install_lex_v2.py",
+      "line": 53,
+      "scope": "main",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads((temp / MANIFEST).read_text())",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "deploy/hetzner/portainer_deploy.py",
+      "line": 53,
+      "scope": "request",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(response)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "deploy/hetzner/reconcile_reviewed_sources.py",
+      "line": 32,
+      "scope": "reconcile",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(archive.extractfile(\"manifest.json\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "legal_deposit/busta/package_builder.py",
+      "line": 56,
+      "scope": "ChannelPackageBuilder.build",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "legal_deposit/office_rules.py",
+      "line": 24,
+      "scope": "load_office_rules",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(rules_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "legal_ocr/collaudo/__init__.py",
+      "line": 104,
+      "scope": "salva_esito",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "percorso.write_text(json.dumps(esito, ensure_ascii=False, indent=1), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "legal_ocr/collaudo/__init__.py",
+      "line": 110,
+      "scope": "ultimo_esito",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(Path(percorso).read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "legal_ocr/pipeline.py",
+      "line": 108,
+      "scope": "LegalOcrPipeline._run_single",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self.store.write_text(\n            run_id,\n            \"vector_source_manifest.json\",\n            json.dumps(vector_source_manifest, ensure_ascii=False, indent=2),\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "legal_ocr/storage.py",
+      "line": 123,
+      "scope": "LegalOcrEvidenceStore._append_index",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(target.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "legal_ocr/storage.py",
+      "line": 99,
+      "scope": "LegalOcrEvidenceStore.load_evidence",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(safe_join(self.root, row[\"path\"]).read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "legal_ocr/storage.py",
+      "line": 119,
+      "scope": "LegalOcrEvidenceStore.find_latest_for_document",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(safe_join(self.root, row[\"path\"]).read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/agents/storage.py",
+      "line": 176,
+      "scope": "WorkflowAgentActionStore.append",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "temp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/agents/storage.py",
+      "line": 93,
+      "scope": "WorkflowAgentStorage._write",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(payload, handle, ensure_ascii=False, indent=2)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/agents/storage.py",
+      "line": 154,
+      "scope": "WorkflowAgentActionStore._read",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/agents/storage.py",
+      "line": 84,
+      "scope": "WorkflowAgentStorage._read",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(handle)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/autonomy/autonomous_cycle.py",
+      "line": 299,
+      "scope": "AutonomousLearningCycle._write_cycle_report",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "(report_dir / f\"cycle_{cycle_index}.json\").write_text(\n            json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2) + \"\\n\",\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/autonomy/cli.py",
+      "line": 113,
+      "scope": "_load_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/autonomy/nightly.py",
+      "line": 91,
+      "scope": "run_lex_autonomous_learning_nightly",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(web_config_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/autonomy/nightly.py",
+      "line": 104,
+      "scope": "run_lex_autonomous_learning_nightly",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(resolved_samples.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/dataset/batch.py",
+      "line": 103,
+      "scope": "load_document_ai_json_documents",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/dataset/batch.py",
+      "line": 253,
+      "scope": "_write_json",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/dataset/nightly.py",
+      "line": 51,
+      "scope": "_write_json",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/dataset/nightly.py",
+      "line": 44,
+      "scope": "_read_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/knowledge/concept_graph.py",
+      "line": 104,
+      "scope": "ConceptGraph.save",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "destination.write_text(\n            json.dumps(self.to_payload(), ensure_ascii=False, sort_keys=True, indent=2) + \"\\n\",\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/knowledge/concept_graph.py",
+      "line": 117,
+      "scope": "ConceptGraph.load",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(source.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/legal_skills/profile_store.py",
+      "line": 20,
+      "scope": "_atomic_write_json",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=str), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/legal_skills/profile_store.py",
+      "line": 38,
+      "scope": "LegalSkillProfileStore.load",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.profile_path.read_text(encoding=\"utf-8\") or \"{}\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/legal_skills/prompt_library/library.py",
+      "line": 26,
+      "scope": "_load_area_file",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/legal_skills/prompt_library/pathway_progress.py",
+      "line": 37,
+      "scope": "PathwayProgressStore._load",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self._path.read_text(encoding=\"utf-8\") or \"{}\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/legal_skills/prompt_library/pathway_progress.py",
+      "line": 47,
+      "scope": "PathwayProgressStore._save",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "tmp.write_text(json.dumps(righe, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/legal_skills/prompt_library/pathways.py",
+      "line": 81,
+      "scope": "_load_percorso",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/legal_skills/seed_loader.py",
+      "line": 19,
+      "scope": "_load_pack_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/legal_skills/workflow_engine.py",
+      "line": 41,
+      "scope": "_atomic_write_json",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=str), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/legal_skills/workflow_engine.py",
+      "line": 53,
+      "scope": "SkillRunStorage._load_all",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.runs_path.read_text(encoding=\"utf-8\") or \"[]\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/legal_sources/populate.py",
+      "line": 294,
+      "scope": "_write_json",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/legal_sources/settings.py",
+      "line": 176,
+      "scope": "save_runtime_config",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "target.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/legal_sources/settings.py",
+      "line": 58,
+      "scope": "_read_runtime_config",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/memory_tree.py",
+      "line": 237,
+      "scope": "write_lex_memory_tree",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "summary_path.write_text(json.dumps(tree.summary(), ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/normativa/normattiva_client.py",
+      "line": 372,
+      "scope": "write_manifest",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "target.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/normativa/normattiva_importer.py",
+      "line": 795,
+      "scope": "write_report",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "lex/operational_knowledge/nightly_agents.py",
+      "line": 41,
+      "scope": "_json_dump",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/operational_knowledge/nightly_agents.py",
+      "line": 34,
+      "scope": "_json_load",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "lex/operational_knowledge/tools.py",
+      "line": 1072,
+      "scope": "OperationalKnowledgeTools._tenant_aliases",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(directory_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "lex/ricerca_giuridica/indice_vettoriale.py",
+      "line": 204,
+      "scope": "_scrivi_meta",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "temporaneo.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "lex/ricerca_giuridica/indice_vettoriale.py",
+      "line": 310,
+      "scope": "costruisci_indice",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(meta_file.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "lex/ricerca_giuridica/indice_vettoriale.py",
+      "line": 83,
+      "scope": "IndiceVettoriale.apri",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(file_meta.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "lex/sources/registry.py",
+      "line": 11,
+      "scope": "load_sources",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/aml_screening.py",
+      "line": 167,
+      "scope": "refresh_eu_financial_sanctions",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "tmp_meta.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/aml_screening.py",
+      "line": 83,
+      "scope": "_load_cached_snapshot",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(meta_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/antiriciclaggio.py",
+      "line": 442,
+      "scope": "GestioneAntiriciclaggio._write_legacy_mirror",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self.db_path.write_text(\n            json.dumps({key: verifica.to_dict() for key, verifica in self._verifiche.items()}, ensure_ascii=False, indent=1),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/antiriciclaggio.py",
+      "line": 382,
+      "scope": "GestioneAntiriciclaggio._load_legacy_mirror",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.db_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/applicazioni_repository.py",
+      "line": 500,
+      "scope": "GestioneApplicazioniRepository._write_json",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "target.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/assistente_redazionale.py",
+      "line": 333,
+      "scope": "GestioneAssistenteRedazionale.salva_run",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self.db_path.write_text(\n            json.dumps(payload, ensure_ascii=False, indent=2),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/assistente_redazionale.py",
+      "line": 300,
+      "scope": "GestioneAssistenteRedazionale.carica",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.db_path.read_text(encoding=\"utf-8\") or \"[]\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/auth.py",
+      "line": 790,
+      "scope": "GestioneUtenti._salva_bootstrap_admin_credentials",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self._bootstrap_admin_credentials_path.write_text(\n            json.dumps(payload, ensure_ascii=False, indent=2),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/auth.py",
+      "line": 800,
+      "scope": "GestioneUtenti.bootstrap_admin_credentials",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/backup.py",
+      "line": 246,
+      "scope": "GestioneBackup._salva_registro",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "p.write_text(\n            json.dumps([r.to_dict() for r in self._registro], indent=2, ensure_ascii=False),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/backup.py",
+      "line": 264,
+      "scope": "GestioneBackup.salva_config",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "p.write_text(\n            json.dumps(config.to_dict(), indent=2, ensure_ascii=False),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/backup.py",
+      "line": 255,
+      "scope": "GestioneBackup._carica_config",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(p.read_text(\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/backup.py",
+      "line": 239,
+      "scope": "GestioneBackup._carica_registro",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(p.read_text(\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/beni_mobili_pst.py",
+      "line": 20,
+      "scope": "load_mobile_asset_catalog",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(CATALOG_PATH.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/cache.py",
+      "line": 198,
+      "scope": "load",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(fh)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/cal_token.py",
+      "line": 49,
+      "scope": "_genera",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "p.write_text(json.dumps(data, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/cal_token.py",
+      "line": 31,
+      "scope": "get_token",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(p.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/calcolatori/danno_biologico/tabelle.py",
+      "line": 36,
+      "scope": "carica",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(sorgente)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/calendar_sync.py",
+      "line": 149,
+      "scope": "GestioneCalendarSync._save",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(self._data, fh, ensure_ascii=False, indent=2)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/calendar_sync.py",
+      "line": 140,
+      "scope": "GestioneCalendarSync._load",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(fh)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/cli.py",
+      "line": 2559,
+      "scope": "_write_rollback_report",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "output.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/cli.py",
+      "line": 2536,
+      "scope": "_load_json_report",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(target.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/codice_fiscale.py",
+      "line": 39,
+      "scope": "_carica_belfiore",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(f)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/condivisione.py",
+      "line": 360,
+      "scope": "GestioneCondivisioni._salva",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self.db_path.write_text(\n            json.dumps(\n                {\n                    \"cartelle\": {k: v.to_dict() for k, v in self._cartelle.items()},\n                    \"fascicoli\": {k: v.to_dict() for k, v in self._fascicoli.items()},\n                    \"link\": {k: v.to_dict() for k, v in self._link.items()},\n                },\n                ensure_ascii=False,\n                indent=2,\n            ),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/condivisione.py",
+      "line": 316,
+      "scope": "GestioneCondivisioni._carica",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.db_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/condivisione.py",
+      "line": 349,
+      "scope": "GestioneCondivisioni._salva",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "mirror_tmp.write_text(json.dumps(current, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/condivisioni_repository.py",
+      "line": 83,
+      "scope": "CondivisioniRepository._bootstrap_source",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.mirror_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/config_studio.py",
+      "line": 573,
+      "scope": "GestioneConfigStudio._salva",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self._path.write_text(\n            json.dumps(d, ensure_ascii=False, indent=2),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/config_studio.py",
+      "line": 562,
+      "scope": "GestioneConfigStudio._carica",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self._path.read_text(encoding=\"utf-8-sig\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/conservazione/registro.py",
+      "line": 57,
+      "scope": "RegistroVersamenti._leggi",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.percorso.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/conservazione/registro.py",
+      "line": 66,
+      "scope": "RegistroVersamenti._scrivi",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(dati, file, ensure_ascii=False, indent=1)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/crm_intake.py",
+      "line": 279,
+      "scope": "GestioneCrmIntake._load_legacy_mirror",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.db_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/crm_intake.py",
+      "line": 441,
+      "scope": "GestioneCrmIntake._write_legacy_mirror",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self.db_path.write_text(\n                json.dumps(\n                    {key: lead.to_dict() for key, lead in self._leads.items()},\n                    ensure_ascii=False,\n                    indent=1,\n                ),\n                encoding=\"utf-8\",\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/ctu.py",
+      "line": 245,
+      "scope": "GestioneCtu._salva",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self.db_path.write_text(\n            json.dumps({k: v.to_dict() for k, v in self._incarichi.items()}, ensure_ascii=False, indent=1),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/ctu.py",
+      "line": 239,
+      "scope": "GestioneCtu._carica",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.db_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/cursore_sentenze_lex.py",
+      "line": 155,
+      "scope": "leggi_stato",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(percorso.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/cursore_sentenze_lex.py",
+      "line": 168,
+      "scope": "scrivi_stato",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "temporaneo.write_text(\n            json.dumps(stato.come_dizionario(), ensure_ascii=False, indent=2),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/data_flow_contract.py",
+      "line": 522,
+      "scope": "_load_route_manifest",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(manifest_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/database.py",
+      "line": 826,
+      "scope": "GestioneDatabase._scrivi_json_grezzo",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "p.write_text(json.dumps(payload, ensure_ascii=False, indent=2), \"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/database.py",
+      "line": 3921,
+      "scope": "_bootstrap_json_file",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(payload, fh, ensure_ascii=False, indent=2)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/database.py",
+      "line": 795,
+      "scope": "GestioneDatabase._leggi_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(p.read_text(\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/database.py",
+      "line": 4016,
+      "scope": "bootstrap_moduli_monitorati",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "backup_cfg.write_text(\n                json.dumps(cfg.to_dict(), ensure_ascii=False, indent=2),\n                encoding=\"utf-8\",\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/database.py",
+      "line": 814,
+      "scope": "GestioneDatabase._leggi_json_grezzo",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(p.read_text(\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/database.py",
+      "line": 2525,
+      "scope": "GestioneDatabase.ottimizza",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(p.read_text(\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/database.py",
+      "line": 3613,
+      "scope": "GestioneDatabase.migra_verso_sqlite",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(backup_cfg.read_text(\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/deposito.py",
+      "line": 267,
+      "scope": "DepositoCivile.salva_esito",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(payload, f, ensure_ascii=False, indent=2)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/deposito_destination_tables.py",
+      "line": 42,
+      "scope": "load_destination_catalog",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(CATALOG_PATH.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/deposito_destination_tables.py",
+      "line": 47,
+      "scope": "load_object_catalog",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(OBJECT_CATALOG_PATH.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/deposito_guidato.py",
+      "line": 1945,
+      "scope": "GestioneValidazioniDeposito._save",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self.db_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/deposito_guidato.py",
+      "line": 1934,
+      "scope": "GestioneValidazioniDeposito._load",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.db_path.read_text(encoding=\"utf-8\") or \"{}\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/deposito_studio_telematico_contract.py",
+      "line": 44,
+      "scope": "load_studio_telematico_contract",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(handle)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/deposito_telematico_catalogo.py",
+      "line": 593,
+      "scope": "load_deposit_catalog_raw",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(handle)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/document_intelligence/repository.py",
+      "line": 517,
+      "scope": "DocumentAIRepository._save_json",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self.json_path.write_text(json.dumps(self._data, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/document_intelligence/repository.py",
+      "line": 504,
+      "scope": "DocumentAIRepository._load_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.json_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/editor_ai/repository.py",
+      "line": 135,
+      "scope": "EditorAIRepository._save_json",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self.json_path.write_text(json.dumps(self._data, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/editor_ai/repository.py",
+      "line": 122,
+      "scope": "EditorAIRepository._load_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.json_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/email_attachments.py",
+      "line": 193,
+      "scope": "deduplicate_attachment_tree",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "manifest.write_text(json.dumps(report.to_dict(), ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/email_attachments.py",
+      "line": 195,
+      "scope": "deduplicate_attachment_tree",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "manifest.write_text(json.dumps(report.to_dict(), ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/email_client.py",
+      "line": 286,
+      "scope": "GestioneEmailRicevute._salva",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self.db_path.write_text(\n            json.dumps({k: v.to_dict() for k, v in db.items()},\n                       ensure_ascii=False, indent=2),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/email_client.py",
+      "line": 278,
+      "scope": "GestioneEmailRicevute._carica",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.db_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/email_client.py",
+      "line": 702,
+      "scope": "GestioneEmailRicevute._riparazioni_tentate",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self._percorso_riparazioni.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/email_client.py",
+      "line": 711,
+      "scope": "GestioneEmailRicevute._salva_riparazioni_tentate",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self._percorso_riparazioni.write_text(json.dumps(recenti, ensure_ascii=False), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/email_mailbox_repository.py",
+      "line": 276,
+      "scope": "EmailMailboxRepository.export_mirror",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(records, stream, ensure_ascii=False, indent=2)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/embeddinggemma2_migration_job.py",
+      "line": 35,
+      "scope": "preparation_snapshot",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/embeddinggemma2_migration_job.py",
+      "line": 121,
+      "scope": "run_initial_batch",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(meta_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/embeddinggemma2_migration_job.py",
+      "line": 89,
+      "scope": "run_initial_batch",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(meta_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/fascicolo_document_catalog.py",
+      "line": 902,
+      "scope": "_read_extracted_text_payload",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/fascicolo_document_catalog.py",
+      "line": 990,
+      "scope": "_rows_from_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(json_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/fascicolo_document_catalog.py",
+      "line": 1128,
+      "scope": "document_ai_extracted_rows_by_fascicolo",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/fatturazione.py",
+      "line": 412,
+      "scope": "GestioneFatturazione._salva",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(\n                {k: v.to_dict() for k, v in self._parcelle.items()},\n                f, ensure_ascii=False, indent=2\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/fatturazione.py",
+      "line": 565,
+      "scope": "GestioneFatturazione._save_numbering_payload",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(clean, f, ensure_ascii=False, indent=2)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/fatturazione.py",
+      "line": 348,
+      "scope": "GestioneFatturazione._carica",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(f)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/fatturazione.py",
+      "line": 519,
+      "scope": "GestioneFatturazione._load_numbering_payload",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(f)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/firma_catalogo.py",
+      "line": 24,
+      "scope": "catalogo",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(PERCORSO.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/firma_profili.py",
+      "line": 59,
+      "scope": "ArchivioProfiliFirma._leggi_tutto",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.percorso.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/firma_profili.py",
+      "line": 70,
+      "scope": "ArchivioProfiliFirma._scrivi_tutto",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(dati, uscita, ensure_ascii=False, indent=2)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/giurisprudenza_repository.py",
+      "line": 782,
+      "scope": "GestioneRepositoryGiurisprudenza.export_repository_json",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "target.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/giurisprudenza_repository.py",
+      "line": 808,
+      "scope": "GestioneRepositoryGiurisprudenza.export_split_jsons",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "Path(paths[\"repository\"]).write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/giurisprudenza_repository.py",
+      "line": 810,
+      "scope": "GestioneRepositoryGiurisprudenza.export_split_jsons",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "Path(paths[\"sources\"]).write_text(\n                json.dumps(\n                    {\"repository\": \"giurisprudenza_sources_repository\", \"count\": len(payload[\"sources\"]), \"rows\": payload[\"sources\"]},\n                    ensure_ascii=False,\n                    indent=2,\n                ),\n                encoding=\"utf-8\",\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/giurisprudenza_repository.py",
+      "line": 819,
+      "scope": "GestioneRepositoryGiurisprudenza.export_split_jsons",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "Path(paths[\"taxonomy\"]).write_text(\n                json.dumps(\n                    {\"repository\": \"giurisprudenza_taxonomy_repository\", \"count\": len(payload[\"taxonomy\"]), \"rows\": payload[\"taxonomy\"]},\n                    ensure_ascii=False,\n                    indent=2,\n                ),\n                encoding=\"utf-8\",\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/giurisprudenza_repository.py",
+      "line": 828,
+      "scope": "GestioneRepositoryGiurisprudenza.export_split_jsons",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "Path(paths[\"usage_policy\"]).write_text(\n                json.dumps(\n                    {\"repository\": \"giurisprudenza_usage_policy\", \"count\": len(payload[\"usage_policy\"]), \"rows\": payload[\"usage_policy\"]},\n                    ensure_ascii=False,\n                    indent=2,\n                ),\n                encoding=\"utf-8\",\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/giurisprudenza_repository.py",
+      "line": 837,
+      "scope": "GestioneRepositoryGiurisprudenza.export_split_jsons",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "Path(paths[\"sync_registry\"]).write_text(\n                json.dumps(\n                    {\"repository\": \"giurisprudenza_sync_registry\", \"count\": len(payload[\"sync_registry\"]), \"rows\": payload[\"sync_registry\"]},\n                    ensure_ascii=False,\n                    indent=2,\n                ),\n                encoding=\"utf-8\",\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/golden_journeys.py",
+      "line": 113,
+      "scope": "_ensure_workspace_marker",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "marker.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/golden_journeys.py",
+      "line": 235,
+      "scope": "prepare_synthetic_workspace",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/golden_journeys.py",
+      "line": 371,
+      "scope": "run_golden_journeys",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/golden_journeys.py",
+      "line": 373,
+      "scope": "run_golden_journeys",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "(report_dir / \"golden_journeys_latest.json\").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/golden_journeys.py",
+      "line": 253,
+      "scope": "rollback_synthetic_workspace",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(manifest_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/golden_journeys.py",
+      "line": 281,
+      "scope": "_latest_report",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(latest.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/golden_journeys.py",
+      "line": 107,
+      "scope": "_ensure_workspace_marker",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(marker.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/golden_paths.py",
+      "line": 265,
+      "scope": "run_golden_path_suites",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/golden_paths.py",
+      "line": 269,
+      "scope": "run_golden_path_suites",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "latest_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/golden_paths.py",
+      "line": 117,
+      "scope": "_latest_report_payload",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(latest_file.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/golden_paths.py",
+      "line": 126,
+      "scope": "_latest_report_payload",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(candidate.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/guida_pratica/service.py",
+      "line": 245,
+      "scope": "GuidaPraticaService._load_kb",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(handle)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/guida_pratica/service.py",
+      "line": 474,
+      "scope": "GuidaPraticaService._load_catalog_records",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(handle)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/guida_pratica/xsd_catalog_importer.py",
+      "line": 237,
+      "scope": "load_kb_records",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(p.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/guida_pratica/xsd_catalog_importer.py",
+      "line": 254,
+      "scope": "load_seed_catalog_records",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(p.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/guida_pratica/xsd_catalog_importer.py",
+      "line": 301,
+      "scope": "write_catalog",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "target.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/impronta_notifiche_legali.py",
+      "line": 121,
+      "scope": "leggi_impronta",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(percorso.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/impronta_notifiche_legali.py",
+      "line": 142,
+      "scope": "scrivi_impronta",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "temporaneo.write_text(json.dumps(dati, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/installation_packs.py",
+      "line": 168,
+      "scope": "_write_json",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(redacted_payload, handle, ensure_ascii=False, indent=2, default=_json_default)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/installation_packs.py",
+      "line": 175,
+      "scope": "_read_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/legal_coverage_ai.py",
+      "line": 30,
+      "scope": "load_presets",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(target.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/legal_intelligence_repository.py",
+      "line": 890,
+      "scope": "GestioneLegalIntelligenceRepository.export_repository_json",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "target.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/legal_intelligence_repository.py",
+      "line": 920,
+      "scope": "GestioneLegalIntelligenceRepository.export_split_jsons",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "Path(paths[\"repository\"]).write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/legal_intelligence_repository.py",
+      "line": 922,
+      "scope": "GestioneLegalIntelligenceRepository.export_split_jsons",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "Path(paths[\"sources\"]).write_text(\n                json.dumps(\n                    {\"repository\": \"legal_sources_repository\", \"count\": len(payload[\"sources\"]), \"rows\": payload[\"sources\"]},\n                    ensure_ascii=False,\n                    indent=2,\n                ),\n                encoding=\"utf-8\",\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/legal_intelligence_repository.py",
+      "line": 931,
+      "scope": "GestioneLegalIntelligenceRepository.export_split_jsons",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "Path(paths[\"engines\"]).write_text(\n                json.dumps(\n                    {\"repository\": \"legal_engines_repository\", \"count\": len(payload[\"engines\"]), \"rows\": payload[\"engines\"]},\n                    ensure_ascii=False,\n                    indent=2,\n                ),\n                encoding=\"utf-8\",\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/legal_intelligence_repository.py",
+      "line": 940,
+      "scope": "GestioneLegalIntelligenceRepository.export_split_jsons",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "Path(paths[\"keyword_to_engine\"]).write_text(\n                json.dumps(\n                    {\n                        \"repository\": \"legal_keyword_to_engine\",\n                        \"count\": len(payload[\"keyword_to_engine\"]),\n                        \"rows\": payload[\"keyword_to_engine\"],\n                    },\n                    ensure_ascii=False,\n                    indent=2,\n                ),\n                encoding=\"utf-8\",\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/legal_intelligence_repository.py",
+      "line": 953,
+      "scope": "GestioneLegalIntelligenceRepository.export_split_jsons",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "Path(paths[\"keyword_to_source\"]).write_text(\n                json.dumps(\n                    {\n                        \"repository\": \"legal_keyword_to_source\",\n                        \"count\": len(payload[\"keyword_to_source\"]),\n                        \"rows\": payload[\"keyword_to_source\"],\n                    },\n                    ensure_ascii=False,\n                    indent=2,\n                ),\n                encoding=\"utf-8\",\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/legal_intelligence_repository.py",
+      "line": 966,
+      "scope": "GestioneLegalIntelligenceRepository.export_split_jsons",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "Path(paths[\"engine_source_edges\"]).write_text(\n                json.dumps(\n                    {\n                        \"repository\": \"legal_engine_source_edges\",\n                        \"count\": len(payload[\"engine_source_edges\"]),\n                        \"rows\": payload[\"engine_source_edges\"],\n                    },\n                    ensure_ascii=False,\n                    indent=2,\n                ),\n                encoding=\"utf-8\",\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/legal_intelligence_repository.py",
+      "line": 979,
+      "scope": "GestioneLegalIntelligenceRepository.export_split_jsons",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "Path(paths[\"operational\"]).write_text(\n                json.dumps(\n                    {\n                        \"repository\": \"legal_operational_repository\",\n                        \"count\": len(payload[\"operational_rules\"]),\n                        \"rows\": payload[\"operational_rules\"],\n                    },\n                    ensure_ascii=False,\n                    indent=2,\n                ),\n                encoding=\"utf-8\",\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/legal_layout_profiles.py",
+      "line": 26,
+      "scope": "_load_json_yaml",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/legal_notification_rulepack.py",
+      "line": 78,
+      "scope": "_load_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(Path(resolved_path).read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/legal_sources/web_verifier.py",
+      "line": 134,
+      "scope": "verify_ruleset_sources",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "(target / \"summary.json\").write_text(json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/legal_sources/web_verifier.py",
+      "line": 21,
+      "scope": "_load_registry",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(SOURCE_REGISTRY_FILE.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/legal_sources/web_verifier.py",
+      "line": 119,
+      "scope": "verify_ruleset_sources",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "(target / f\"{safe_id}.json\").write_text(\n            json.dumps(result.to_dict(), ensure_ascii=False, indent=2, sort_keys=True),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/legal_update_autofetch.py",
+      "line": 396,
+      "scope": "LegalAutoFetchCursorStore.save",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self.path.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/legal_update_autofetch.py",
+      "line": 383,
+      "scope": "LegalAutoFetchCursorStore.load",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/legal_update_repository.py",
+      "line": 3441,
+      "scope": "LegalUpdateRepository.export_repository_json",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "target.write_text(json.dumps(self.dashboard_snapshot(), ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/local_ai.py",
+      "line": 319,
+      "scope": "_read_json_file",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/local_ai_runtime.py",
+      "line": 113,
+      "scope": "OllamaRuntimeProvisioner.fetch_latest_release",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self.release_cache_path.write_text(\n            json.dumps(curated, ensure_ascii=False, indent=2),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/local_ai_runtime.py",
+      "line": 475,
+      "scope": "OllamaRuntimeProvisioner._load_cached_release",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.release_cache_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/notifiche_conoscenza.py",
+      "line": 36,
+      "scope": "_catalogo",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(CATALOGO.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/notifiche_conoscenza.py",
+      "line": 22,
+      "scope": "fonti",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(FONTI.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/notifiche_legali.py",
+      "line": 2215,
+      "scope": "load_template_catalog",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(TEMPLATE_CATALOG_PATH.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/notifiche_legali.py",
+      "line": 2228,
+      "scope": "load_client_communication_catalog",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(CLIENT_COMMUNICATION_CATALOG_PATH.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/operational_resilience.py",
+      "line": 193,
+      "scope": "_write_runtime_studio_config",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "target_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/operational_resilience.py",
+      "line": 144,
+      "scope": "_write_json",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(redacted_payload, handle, ensure_ascii=False, indent=2)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/pagamenti.py",
+      "line": 275,
+      "scope": "GestionePagamenti._salva_config",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(self._config.to_dict(), f, ensure_ascii=False, indent=2)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/pagamenti.py",
+      "line": 308,
+      "scope": "GestionePagamenti._salva_link",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump({k: v.to_dict() for k, v in self._link.items()},\n                      f, ensure_ascii=False, indent=2)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/pagamenti.py",
+      "line": 237,
+      "scope": "GestionePagamenti._carica",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(f)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/pagamenti.py",
+      "line": 234,
+      "scope": "GestionePagamenti._carica",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(f)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/pat_formweb/archivio.py",
+      "line": 52,
+      "scope": "ArchivioPat._leggi",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.percorso.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/pat_formweb/archivio.py",
+      "line": 47,
+      "scope": "ArchivioPat._blocco",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(dati, out, ensure_ascii=False, indent=1)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/pec_control_tower.py",
+      "line": 2586,
+      "scope": "_load_json_rows",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/pec_legal_deadline_proposer.py",
+      "line": 36,
+      "scope": "load_ruleset",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(Path(resolved).read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/pec_legal_event_understanding.py",
+      "line": 87,
+      "scope": "load_rulepack",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(Path(resolved).read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/penale_pdp/catalogo.py",
+      "line": 45,
+      "scope": "_dati",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(PERCORSO.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/penale_pdp/sede.py",
+      "line": 41,
+      "scope": "_circondari",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(_CATALOGO.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/penale_pdp/sede.py",
+      "line": 45,
+      "scope": "fonte",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(_CATALOGO.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/polisweb_diff.py",
+      "line": 174,
+      "scope": "GestioneDiffRegistro._salva",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self.db_path.write_text(\n            json.dumps(self._dati, ensure_ascii=False, indent=1),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/polisweb_diff.py",
+      "line": 164,
+      "scope": "GestioneDiffRegistro._carica",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.db_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/polisweb_sync_job.py",
+      "line": 59,
+      "scope": "_load_state",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(handle)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/polisweb_sync_job.py",
+      "line": 69,
+      "scope": "_save_state",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(state, handle, ensure_ascii=False)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/polling_depositi.py",
+      "line": 408,
+      "scope": "_carica_uid_processati",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(f)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/polling_depositi.py",
+      "line": 421,
+      "scope": "_salva_uid_processati",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump({\"uid_processati\": lista, \"aggiornato_il\": datetime.now().isoformat()}, f)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/portale.py",
+      "line": 124,
+      "scope": "GestionePortale._salva",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(\n                {k: v.to_dict() for k, v in self._portali.items()},\n                f, ensure_ascii=False, indent=2\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/portale.py",
+      "line": 118,
+      "scope": "GestionePortale._carica",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(f)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/practice_engine/repository.py",
+      "line": 62,
+      "scope": "PracticeEngineRepository._legacy_data",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.db_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/practice_engine/repository.py",
+      "line": 341,
+      "scope": "PracticeEngineRepository._write_legacy_mirror",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "temporary.write_text(json.dumps(self._data, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/pratiche_collegate_catalog.py",
+      "line": 28,
+      "scope": "load_pratiche_collegate_catalog",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(handle)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/pratiche_collegate_catalog.py",
+      "line": 38,
+      "scope": "load_codici_oggetto_pst_catalog",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(handle)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/preventivi.py",
+      "line": 815,
+      "scope": "GestionePreventivi._salva_preventivi",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(\n                {k: v.to_dict() for k, v in self._preventivi.items()},\n                f, ensure_ascii=False, indent=2,\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/preventivi.py",
+      "line": 882,
+      "scope": "GestionePreventivi._salva_conferimenti",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(\n                {k: v.to_dict() for k, v in self._conferimenti.items()},\n                f, ensure_ascii=False, indent=2,\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/preventivi.py",
+      "line": 717,
+      "scope": "GestionePreventivi._carica",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(f)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/preventivi.py",
+      "line": 734,
+      "scope": "GestionePreventivi._carica",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(f)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/preventivi_repository.py",
+      "line": 1863,
+      "scope": "GestionePreventiviRepository.export_repository_json",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "target.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/preventivi_repository.py",
+      "line": 1885,
+      "scope": "GestionePreventiviRepository.export_split_jsons",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "Path(paths[\"repository\"]).write_text(\n                json.dumps(payload, ensure_ascii=False, indent=2),\n                encoding=\"utf-8\",\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/preventivi_repository.py",
+      "line": 1891,
+      "scope": "GestionePreventiviRepository.export_split_jsons",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "Path(paths[\"workflow_states\"]).write_text(\n                json.dumps(\n                    {\n                        \"source\": payload[\"source\"],\n                        \"count\": len(payload[\"workflow_states\"]),\n                        \"workflow_states\": payload[\"workflow_states\"],\n                    },\n                    ensure_ascii=False,\n                    indent=2,\n                ),\n                encoding=\"utf-8\",\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/preventivi_repository.py",
+      "line": 1906,
+      "scope": "GestionePreventiviRepository.export_split_jsons",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "Path(paths[\"field_map\"]).write_text(\n                json.dumps(\n                    {\n                        \"source\": payload[\"source\"],\n                        \"count\": len(field_rows),\n                        \"field_map\": payload[\"field_map\"],\n                    },\n                    ensure_ascii=False,\n                    indent=2,\n                ),\n                encoding=\"utf-8\",\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/preventivi_repository.py",
+      "line": 1920,
+      "scope": "GestionePreventiviRepository.export_split_jsons",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "Path(paths[\"rules\"]).write_text(\n                json.dumps(\n                    {\n                        \"source\": payload[\"source\"],\n                        \"count\": len(payload[\"rules\"]),\n                        \"rules\": payload[\"rules\"],\n                    },\n                    ensure_ascii=False,\n                    indent=2,\n                ),\n                encoding=\"utf-8\",\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/prima_nota.py",
+      "line": 124,
+      "scope": "GestionePrimaNota._salva",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self.db_path.write_text(\n            json.dumps({k: v.to_dict() for k, v in self._movimenti.items()}, ensure_ascii=False, indent=1),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/prima_nota.py",
+      "line": 118,
+      "scope": "GestionePrimaNota._carica",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.db_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/procedure_inventory_importer.py",
+      "line": 42,
+      "scope": "load_catalog",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(catalog_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/procedure_inventory_importer.py",
+      "line": 145,
+      "scope": "write_import_report",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(\n        json.dumps(report.to_dict(), ensure_ascii=False, indent=2, sort_keys=True) + \"\\n\",\n        encoding=\"utf-8\",\n    )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/pst_cifratura.py",
+      "line": 352,
+      "scope": "salva_certificato_cifratura_ufficio",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "meta_path.write_text(json.dumps(asdict(info), ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/pst_cifratura.py",
+      "line": 417,
+      "scope": "_catalog_sections",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(PST_UFFICI_CATALOG_PATH.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/pst_cifratura.py",
+      "line": 1013,
+      "scope": "scrivi_report_certificati_cifratura",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "target.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/pst_cifratura.py",
+      "line": 431,
+      "scope": "_iter_ministero_cert_records",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/pst_cifratura.py",
+      "line": 312,
+      "scope": "certificato_cifratura_in_cache",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(meta_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/pst_services.py",
+      "line": 112,
+      "scope": "PSTOfficialCatalogAdapter._save_cache",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self.cache_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/pst_services.py",
+      "line": 99,
+      "scope": "PSTOfficialCatalogAdapter._load_cache",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.cache_path.read_text(encoding=\"utf-8\") or \"{}\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/ptt_sigit/archivio.py",
+      "line": 53,
+      "scope": "ArchivioPtt._leggi",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.percorso.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/ptt_sigit/archivio.py",
+      "line": 48,
+      "scope": "ArchivioPtt._blocco",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(dati, out, ensure_ascii=False, indent=1)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/ptt_sigit/catalogo.py",
+      "line": 143,
+      "scope": "sedi",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(_SEDI.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/recupero_crediti/archivio.py",
+      "line": 27,
+      "scope": "ArchivioRecupero._leggi",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.percorso.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/recupero_crediti/archivio.py",
+      "line": 37,
+      "scope": "ArchivioRecupero._scrivi",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump({\"versione\": 1, \"posizioni\": posizioni}, uscita, ensure_ascii=False, indent=1)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/redazione_normativa.py",
+      "line": 466,
+      "scope": "_salva_override",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/redazione_normativa.py",
+      "line": 452,
+      "scope": "_carica_override",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/sentenza_economic_audit.py",
+      "line": 41,
+      "scope": "load_ruleset",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(Path(resolved).read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/soggetti.py",
+      "line": 364,
+      "scope": "GestioneSoggetti._salva",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump([s.to_dict() for s in (self._soggetti or [])], f,\n                      ensure_ascii=False, indent=2)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/soggetti.py",
+      "line": 472,
+      "scope": "GestioneSoggetti._salva_parti",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(self._parti or {}, f, ensure_ascii=False, indent=2)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/soggetti.py",
+      "line": 323,
+      "scope": "GestioneSoggetti._carica",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(f)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/soggetti.py",
+      "line": 438,
+      "scope": "GestioneSoggetti._carica_parti",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(f)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/storage_migration.py",
+      "line": 1058,
+      "scope": "migrate_core_storage_to_postgres",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "report_path.write_text(\n        json.dumps(report, ensure_ascii=False, indent=2, cls=_TimespanEncoder),\n        encoding=\"utf-8\",\n    )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/storage_migration.py",
+      "line": 617,
+      "scope": "_json_record_count",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(file_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/storage_migration_full.py",
+      "line": 177,
+      "scope": "_write_backup_artifact",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "output_path.write_text(\n        json.dumps(payload, ensure_ascii=False, indent=2),\n        encoding=\"utf-8\",\n    )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/storage_migration_full.py",
+      "line": 192,
+      "scope": "_json_record_count",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(file_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/storage_migration_full.py",
+      "line": 790,
+      "scope": "attach_migration_rollback_context",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "Path(str(payload[\"report_path\"])).write_text(\n            json.dumps(payload, ensure_ascii=False, indent=2),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/support_remote.py",
+      "line": 626,
+      "scope": "SupportPcAgentRequestHandler._read_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.rfile.read(length).decode(\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/sync.py",
+      "line": 189,
+      "scope": "GestoreSincronizzazione.scrivi_atomico",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "tmp.write_text(\n                json.dumps(data, ensure_ascii=False, indent=2),\n                encoding=\"utf-8\",\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/sync_uffici.py",
+      "line": 481,
+      "scope": "_salva_report",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "rp.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/sync_uffici.py",
+      "line": 610,
+      "scope": "carica_ultimo_report",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(rp.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/tariffario_catalogo.py",
+      "line": 2877,
+      "scope": "_raw_snapshot_tables_for_defaults",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(_SNAPSHOT_PATH.read_text(encoding=\"utf-8-sig\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/tariffario_catalogo.py",
+      "line": 3593,
+      "scope": "load_tariffario_snapshot",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(_SNAPSHOT_PATH.read_text(encoding=\"utf-8-sig\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/tariffario_catalogo.py",
+      "line": 3748,
+      "scope": "raw_tariffario_snapshot_codes",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(_SNAPSHOT_PATH.read_text(encoding=\"utf-8-sig\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/telematico_repository.py",
+      "line": 905,
+      "scope": "GestioneTelematicoRepository._write_json",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "target.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/template_atti.py",
+      "line": 198,
+      "scope": "template_font_registry_payload",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(FONT_REGISTRY_PATH.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/template_atti.py",
+      "line": 473,
+      "scope": "GestioneTemplateAtti._salva",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(da_salvare, f, ensure_ascii=False, indent=2)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/template_atti.py",
+      "line": 656,
+      "scope": "GestionePreferenzeTemplateAtti.salva",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(payload, f, ensure_ascii=False, indent=2)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/template_atti.py",
+      "line": 462,
+      "scope": "GestioneTemplateAtti._carica",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(f)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/template_atti.py",
+      "line": 637,
+      "scope": "GestionePreferenzeTemplateAtti.carica",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(f)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/template_atti_compiler_bindings.py",
+      "line": 135,
+      "scope": "_catalog_core_template_bindings",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(catalog_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/template_atti_inventory.py",
+      "line": 831,
+      "scope": "export_template_inventory_report",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "output_json.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/template_atti_inventory.py",
+      "line": 75,
+      "scope": "_read_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/template_atti_master_catalog.py",
+      "line": 83,
+      "scope": "_read_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/template_atti_repository.py",
+      "line": 530,
+      "scope": "GestioneTemplateRepository.export_repository_json",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "target.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/template_atti_repository.py",
+      "line": 534,
+      "scope": "GestioneTemplateRepository.import_repository_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(Path(path).read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/template_normative_compliance.py",
+      "line": 44,
+      "scope": "_load_json_yaml",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/tenant.py",
+      "line": 776,
+      "scope": "GestioneTenant._salva",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "tmp.write_text(\n            json.dumps({slug: s.to_dict() for slug, s in studi.items()}, ensure_ascii=False, indent=2),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/tenant.py",
+      "line": 1798,
+      "scope": "GestioneTenant.sync_user_directory",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(\n            json.dumps(payload, ensure_ascii=False, indent=2),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/tenant.py",
+      "line": 2034,
+      "scope": "GestioneTenant._scrivi_storage_manifest",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "manifest_path.write_text(\n            json.dumps(self.storage_manifest(slug, reconcile_aliases=False), ensure_ascii=False, indent=2),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/tenant.py",
+      "line": 689,
+      "scope": "GestioneTenant._carica",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.registry_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/tenant.py",
+      "line": 703,
+      "scope": "GestioneTenant._read_json_file",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/tenant.py",
+      "line": 1140,
+      "scope": "GestioneTenant._json_has_records",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/tenant.py",
+      "line": 1219,
+      "scope": "GestioneTenant._legacy_directory_referenced_slugs",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(directory_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/tenant.py",
+      "line": 1843,
+      "scope": "GestioneTenant.repair_studio_runtime._auth_json_mismatches",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/tenant.py",
+      "line": 1349,
+      "scope": "GestioneTenant._ensure_runtime_baseline",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "target.write_text(\n                        json.dumps(payload, ensure_ascii=False, indent=2),\n                        encoding=\"utf-8\",\n                    )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/termini_processuali.py",
+      "line": 787,
+      "scope": "DeadlinePracticeRepository._write_json",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self.path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/termini_processuali.py",
+      "line": 782,
+      "scope": "DeadlinePracticeRepository._read_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/time_tracking.py",
+      "line": 111,
+      "scope": "GestioneTimeTracking._carica",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.db_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/time_tracking_passivo.py",
+      "line": 202,
+      "scope": "GestioneTrackingPassivo._salva",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self.db_path.write_text(\n            json.dumps(self._proposte, ensure_ascii=False, indent=1),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/time_tracking_passivo.py",
+      "line": 196,
+      "scope": "GestioneTrackingPassivo._carica",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.db_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/timesheet.py",
+      "line": 104,
+      "scope": "GestioneTimesheet._carica",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(handle)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/uffici_competenti.py",
+      "line": 271,
+      "scope": "_load_uffici_ministero",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(UFFICI_MINISTERO_DATA.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/uffici_competenti.py",
+      "line": 287,
+      "scope": "_load_uffici_ministero",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(UFFICI_MINISTERO_EXTRA_DATA.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/uffici_competenti.py",
+      "line": 402,
+      "scope": "_load_pec_territorio",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(PEC_TERRITORIO_DATA.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "pct/uffici_giudiziari.py",
+      "line": 456,
+      "scope": "_carica_riferimenti_ministero",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(_RIFERIMENTI_MINISTERO_PATH.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/uffici_giudiziari.py",
+      "line": 470,
+      "scope": "_carica_riferimenti_ministero_extra",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(_RIFERIMENTI_MINISTERO_EXTRA_PATH.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/uffici_giudiziari.py",
+      "line": 500,
+      "scope": "_carica_catalogo_pst_pubblico",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(_RIFERIMENTI_PST_PUBBLICI_PATH.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/uffici_giudiziari.py",
+      "line": 2071,
+      "scope": "GestoreUfficiGiudiziari.carica_report_variazioni",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(report_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/uffici_giudiziari.py",
+      "line": 2081,
+      "scope": "GestoreUfficiGiudiziari._salva_report",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/uffici_giudiziari.py",
+      "line": 2089,
+      "scope": "GestoreUfficiGiudiziari._da_file",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.cache_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/uffici_giudiziari.py",
+      "line": 2097,
+      "scope": "GestoreUfficiGiudiziari._leggi_meta",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self.cache_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/uffici_giudiziari.py",
+      "line": 2127,
+      "scope": "GestoreUfficiGiudiziari._salva",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self.cache_path.write_text(\n                json.dumps(payload, ensure_ascii=False, indent=2),\n                encoding=\"utf-8\",\n            )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/utf8_integrity.py",
+      "line": 419,
+      "scope": "scan_utf8_integrity",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "target.write_text(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/wizard_pro.py",
+      "line": 291,
+      "scope": "GestioneWizardPro._salva_tutto",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "self._path.write_text(\n            json.dumps(sessioni, ensure_ascii=False, indent=2),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "pct/wizard_pro.py",
+      "line": 286,
+      "scope": "GestioneWizardPro._carica_tutto",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(self._path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/acquire_mediazione_offices.py",
+      "line": 26,
+      "scope": "main",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(args.registry_json.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/aggiorna_uffici_ministero_certificati.py",
+      "line": 36,
+      "scope": "_load_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/aggiorna_uffici_ministero_certificati.py",
+      "line": 40,
+      "scope": "_write_json",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/allinea_codici_oggetto_sici.py",
+      "line": 72,
+      "scope": "build_outputs",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(CATALOG.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/allinea_codici_oggetto_sici.py",
+      "line": 73,
+      "scope": "build_outputs",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(UI_CATALOG.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/allinea_codici_oggetto_sici.py",
+      "line": 82,
+      "scope": "build_outputs",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(KB_MODULE.read_text(encoding=\"utf-8\").replace(OLD_SOURCE, NEW_SOURCE))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_deposito_catalogo_end_to_end.py",
+      "line": 362,
+      "scope": "_source_validation_payload",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(QUICKORGANIZER_VALIDATIONS.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_deposito_catalogo_end_to_end.py",
+      "line": 1182,
+      "scope": "_quickorganizer_office_rows",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(fallback.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_deposito_catalogo_end_to_end.py",
+      "line": 1601,
+      "scope": "audit_deposit_catalog",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(QUICKORGANIZER_CATALOG.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_deposito_catalogo_end_to_end.py",
+      "line": 190,
+      "scope": "_method_evidence_source",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(QUICKORGANIZER_METHOD_EVIDENCE.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_deposito_catalogo_end_to_end.py",
+      "line": 256,
+      "scope": "_reference_table_evidence",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8-sig\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_deposito_parita_studio_telematico.py",
+      "line": 190,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_deposito_server_dry_run.py",
+      "line": 459,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "Path(args.report_json).write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_duplicate_presidia.py",
+      "line": 76,
+      "scope": "_load_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/audit_fascicoli_clienti_links.py",
+      "line": 157,
+      "scope": "_upsert_clienti_json",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "clienti_json.write_text(\n        json.dumps(raw, ensure_ascii=False, indent=2, sort_keys=True),\n        encoding=\"utf-8\",\n    )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/audit_fascicoli_clienti_links.py",
+      "line": 141,
+      "scope": "_upsert_clienti_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(clienti_json.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/audit_finale_pst_sqlite_pec.py",
+      "line": 298,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "json_path.write_text(\n            json.dumps({\"results\": results, \"coverage\": coverage, \"git\": snapshot}, ensure_ascii=False, indent=2),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_guida_pratica_user_material_fields.py",
+      "line": 403,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "args.report.write_text(\n        json.dumps({\"summary\": summary, \"rows\": rows}, ensure_ascii=False, indent=2),\n        encoding=\"utf-8\",\n    )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_guida_pratica_user_material_fields.py",
+      "line": 163,
+      "scope": "_load_json",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(handle)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_guida_pratica_web_enrichment.py",
+      "line": 134,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "args.report.write_text(json.dumps({\"summary\": summary, \"rows\": rows}, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_legal_practice_matrix.py",
+      "line": 293,
+      "scope": "_write_json",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_legal_source_delivery.py",
+      "line": 1075,
+      "scope": "_write_json",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_lex_tenant_sources.py",
+      "line": 30,
+      "scope": "_json_count",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/audit_lex_tenant_sources.py",
+      "line": 104,
+      "scope": "_tenant_alias_map",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(directory.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/audit_mediazione_canali.py",
+      "line": 32,
+      "scope": "main",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(args.alternatives.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_mediazione_portali.py",
+      "line": 41,
+      "scope": "main",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(args.registry_json.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_notification_relata_fascicoli.py",
+      "line": 393,
+      "scope": "run_audit",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/audit_pec_operational_chain.py",
+      "line": 41,
+      "scope": "_load_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/audit_sqlite_migration_integrity.py",
+      "line": 113,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_studio_telematico_functional_parity.py",
+      "line": 1359,
+      "scope": "build_audit",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(inventory_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_studio_telematico_functional_parity.py",
+      "line": 1470,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "args.output.write_text(json.dumps(audit, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_studio_telematico_functional_parity.py",
+      "line": 1360,
+      "scope": "build_audit",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(real_proofs_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_studio_telematico_menu_tree.py",
+      "line": 548,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "args.json_output.write_text(json.dumps(audit, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_studio_telematico_schema_namespaces.py",
+      "line": 214,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_template_atti_legal_sources.py",
+      "line": 278,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "json_path.write_text(json.dumps(audit, ensure_ascii=False, indent=2, sort_keys=True) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_tenant_data_structure.py",
+      "line": 332,
+      "scope": "_audit_studio",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/audit_tenant_data_structure.py",
+      "line": 427,
+      "scope": "_audit_studio",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/audit_tenant_data_structure.py",
+      "line": 507,
+      "scope": "_audit_studio",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/audit_uffici_pst_fonti_ufficiali.py",
+      "line": 102,
+      "scope": "_audit",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(PUBLIC_JSON.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/audit_uffici_pst_fonti_ufficiali.py",
+      "line": 191,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "out_json.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/backfill_archivio_batches.py",
+      "line": 30,
+      "scope": "_write_json_atomic",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/backfill_archivio_batches.py",
+      "line": 38,
+      "scope": "_load_checkpoint",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/backfill_archivio_batches.py",
+      "line": 47,
+      "scope": "check_readiness",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(response.read().decode(\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/backfill_fascicolo_document_texts.py",
+      "line": 30,
+      "scope": "_write_json_atomic",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "temporary.write_text(\n        json.dumps(payload, ensure_ascii=False, indent=2, default=str) + \"\\n\",\n        encoding=\"utf-8\",\n    )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/backfill_sentenza_lex_economics.py",
+      "line": 961,
+      "scope": "_write_report",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/backfill_sentenza_lex_economics.py",
+      "line": 1008,
+      "scope": "main",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(report, sys.stdout, ensure_ascii=False, indent=2)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/backfill_sentenza_lex_economics.py",
+      "line": 95,
+      "scope": "_load_json",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(handle)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/benchmark_unlimited_ocr_lex.py",
+      "line": 69,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "target.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/build_pec_territorio_data.py",
+      "line": 125,
+      "scope": "build_data",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/check_runtime_services.py",
+      "line": 725,
+      "scope": "main",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(report, sys.stdout, ensure_ascii=False, indent=2)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/collaudo_ai.py",
+      "line": 109,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "(uscita / \"riepilogo.json\").write_text(json.dumps(riepilogo, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/collaudo_ai.py",
+      "line": 106,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "(uscita / \"riepilogo.json\").write_text(json.dumps(riepilogo, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/collaudo_ai.py",
+      "line": 45,
+      "scope": "generatore.genera",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(risposta)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/curate_codex_guida_pratica_completion.py",
+      "line": 1064,
+      "scope": "main",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(args.target.read_text(encoding=\"utf-8-sig\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/curate_codex_guida_pratica_completion.py",
+      "line": 1069,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/curate_codex_guida_pratica_completion.py",
+      "line": 1072,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "args.target.write_text(json.dumps(curated, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/curate_missing_guida_pratica_official_codes.py",
+      "line": 69,
+      "scope": "_load_existing_codes",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/curate_missing_guida_pratica_official_codes.py",
+      "line": 444,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "output.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/demo_notifiche_legali_l53.py",
+      "line": 209,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "JSON_REPORT.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/export_guida_pratica_coverage.py",
+      "line": 28,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "output.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/export_lex_domain_dataset_matrix.py",
+      "line": 18,
+      "scope": "load_matrix",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(handle)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/extract_codifiche_beni_mobili_pst.py",
+      "line": 98,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "args.output.write_text(\n        json.dumps(payload, ensure_ascii=False, indent=2) + \"\\n\",\n        encoding=\"utf-8\",\n    )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/extract_deposito_behavior_contract_from_quickorganizer.py",
+      "line": 456,
+      "scope": "extract_contract",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(CATALOG.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/extract_studio_telematico_deposit_tables.py",
+      "line": 155,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/genera_uffici_ministero_extra.py",
+      "line": 54,
+      "scope": "genera",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(riferimenti_json.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/genera_uffici_ministero_extra.py",
+      "line": 90,
+      "scope": "genera",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "output_json.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/genera_uffici_pst_pubblici.py",
+      "line": 97,
+      "scope": "genera",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/generate_guida_pratica_kb_scaffold.py",
+      "line": 118,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "output.write_text(json.dumps(out_payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/generate_guida_pratica_kb_scaffold.py",
+      "line": 42,
+      "scope": "_load_catalog_records",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(catalog_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/generate_guida_pratica_kb_scaffold.py",
+      "line": 87,
+      "scope": "main",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(kb_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/generate_lex_source_corpus.py",
+      "line": 565,
+      "scope": "_write_json",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\", newline=\"\\n\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/generate_lex_source_corpus.py",
+      "line": 569,
+      "scope": "_write_jsonl",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(\n        \"\\n\".join(json.dumps(row, ensure_ascii=False, sort_keys=True) for row in rows) + \"\\n\",\n        encoding=\"utf-8\",\n        newline=\"\\n\",\n    )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/generate_quickorganizer_analysis_artifacts.py",
+      "line": 177,
+      "scope": "write_json",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(\n        json.dumps(scrub(data), ensure_ascii=False, indent=2) + \"\\n\",\n        encoding=\"utf-8\",\n        newline=\"\\n\",\n    )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/generate_quickorganizer_analysis_artifacts.py",
+      "line": 163,
+      "scope": "read_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8-sig\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/import_guida_pratica_termini_processuali.py",
+      "line": 357,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "Path(args.report).write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/import_guida_pratica_termini_processuali.py",
+      "line": 76,
+      "scope": "_iter_json_sources",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/import_guida_pratica_user_kb_modules.py",
+      "line": 548,
+      "scope": "import_sources",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "(artifacts_dir / f\"kb-{suffix}-structural-validation-report.json\").write_text(\n        json.dumps(summary, ensure_ascii=False, indent=2) + \"\\n\",\n        encoding=\"utf-8\",\n    )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/import_guida_pratica_user_kb_modules.py",
+      "line": 565,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "args.report.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/import_guida_pratica_user_kb_modules.py",
+      "line": 531,
+      "scope": "import_sources",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "dedicated.write_text(json.dumps(file_report, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/import_normative_brocardi.py",
+      "line": 349,
+      "scope": "BrocardiImporter.save_to_json",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(output, f, ensure_ascii=False, indent=2)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/import_pst_xsd_codici_oggetto.py",
+      "line": 75,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/lex_banco_prova.py",
+      "line": 60,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "Path(args.json_path).write_text(\n            json.dumps({\"riepilogo\": sintesi, \"esiti\": [asdict(esito) for esito in esiti]}, ensure_ascii=False, indent=2),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/lex_banco_prova.py",
+      "line": 79,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "SOGLIA.write_text(\n            json.dumps({\"superate\": sorted(superate), \"totale\": sintesi[\"totale\"]}, ensure_ascii=False, indent=2) + \"\\n\",\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/lex_normattiva_locale.py",
+      "line": 132,
+      "scope": "verifica_zip_scaricati",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(manifest.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/lex_normattiva_locale.py",
+      "line": 212,
+      "scope": "cmd_scarica",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(p.manifest.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/lex_normattiva_locale.py",
+      "line": 652,
+      "scope": "controlla_pacchetto",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(archivio.extractfile(membro).read().decode(\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/mailbox/apply-mailbox-plans.py",
+      "line": 39,
+      "scope": "tenant_roots",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(registry.read_text(encoding='utf-8'))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/mailbox/apply-mailbox-plans.py",
+      "line": 105,
+      "scope": "verify_backup",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(manifest_path.read_text(encoding='utf-8'))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/mailbox/apply-mailbox-plans.py",
+      "line": 71,
+      "scope": "validate_plans",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding='utf-8'))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/mailbox/plan-mailbox-reconciliation.py",
+      "line": 128,
+      "scope": "main",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(registry.read_text(encoding='utf-8'))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/mailbox/plan-mailbox-reconciliation.py",
+      "line": 157,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "destination.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding='utf-8')",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/merge_legal_kb_modules.py",
+      "line": 207,
+      "scope": "merge",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "output.write_text(json.dumps(combined, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/merge_legal_kb_modules.py",
+      "line": 48,
+      "scope": "load_json",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(handle)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/migra_embeddinggemma2_locale.py",
+      "line": 86,
+      "scope": "migrate",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(manifest_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/migra_embeddinggemma2_locale.py",
+      "line": 82,
+      "scope": "migrate",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "manifest_path.write_text(json.dumps({\n                \"source_db\": str(db), \"tenant_root\": str(tenant_root.resolve()),\n                \"sha256\": digest, \"model\": embeddinggemma2.MODEL,\n            }), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/notifiche_legali_demo_e2e.py",
+      "line": 1049,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "JSON_REPORT.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/notifiche_legali_ui_demo_report.py",
+      "line": 62,
+      "scope": "_load_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/notifiche_legali_ui_demo_server.py",
+      "line": 43,
+      "scope": "_write_studio_config",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(\n        json.dumps(\n            {\n                \"studio\": {\n                    \"nome\": \"Studio Verifica Notifiche\",\n                    \"avvocato\": \"Avv. Verifica\",\n                    \"codice_fiscale_avvocato\": \"VRFVCF80A01H501U\",\n                    \"ordine_avvocati\": \"Roma\",\n                    \"indirizzo\": \"Via Roma 20\",\n                    \"city\": \"Roma\",\n                    \"province\": \"RM\",\n                    \"telefono\": \"06 123456\",\n                    \"email\": \"studio.verifica@example.it\",\n                },\n                \"pec\": {\n                    \"indirizzo\": \"studio.verifica@pec.example.it\",\n                    \"password\": \"\",\n                    \"smtp_host\": \"smtp.pec.example.it\",\n                    \"smtp_port\": 465,\n                    \"imap_host\": \"imap.pec.example.it\",\n                    \"imap_port\": 993,\n                    \"use_ssl\": True,\n                },\n                \"ai\": {\n                    \"enabled\": True,\n                    \"base_url\": \"http://127.0.0.1:11434/api/version\",\n                    \"auto_index_documents\": True,\n                },\n            },\n            ensure_ascii=False,\n            indent=2,\n        ),\n        encoding=\"utf-8\",\n    )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/notifiche_legali_ui_demo_server.py",
+      "line": 368,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "info_path.write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/react-migration/capture-legacy-contracts.py",
+      "line": 126,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "target.write_text(json.dumps(contract, indent=2, ensure_ascii=False), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/react-migration/generate_app_v2_area_requirements.py",
+      "line": 194,
+      "scope": "_read_manifest",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(MANIFEST_PATH.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/react-migration/generate_app_v2_test_docs.py",
+      "line": 113,
+      "scope": "_read_manifest",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(MANIFEST_PATH.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/react-migration/generate_backend_security_map.py",
+      "line": 196,
+      "scope": "_manifest_summary",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(MANIFEST.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/react-migration/local_real_workflow_audit.py",
+      "line": 76,
+      "scope": "write_report",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "REPORT_PATH.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/react-migration/local_real_workflow_audit.py",
+      "line": 126,
+      "scope": "load_tenant_info",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(registry_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/react-migration/local_real_workflow_audit.py",
+      "line": 143,
+      "scope": "load_tenant_info",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(users_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/react-migration/local_real_workflow_audit.py",
+      "line": 214,
+      "scope": "ensure_local_support_agent.status",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(response.read().decode(\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/react-migration/local_real_workflow_audit.py",
+      "line": 394,
+      "scope": "audit_support_real_flow",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(geometry_file.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/react-migration/template_editor_browser_check.py",
+      "line": 522,
+      "scope": "BrowserCheck.write_report",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "REPORT_PATH.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/reconcile_pst_quickorganizer_documents.py",
+      "line": 48,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "before.write_text(json.dumps(asdict(fasc), default=str, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/reconcile_pst_quickorganizer_documents.py",
+      "line": 64,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "(backup / (fasc.id + \"_\" + stamp + \"_esito.json\")).write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/recupera_pdf_identita_incompleto.py",
+      "line": 69,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "target.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/recupera_pdf_identita_incompleto.py",
+      "line": 78,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "target.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/repair_signed_document_names.py",
+      "line": 198,
+      "scope": "repair_file",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/repair_signed_document_names.py",
+      "line": 220,
+      "scope": "repair_file",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/riconvalida_sentenze_archivio.py",
+      "line": 40,
+      "scope": "",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(manifest_path.read_text(encoding='utf-8'))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/riconvalida_sentenze_archivio.py",
+      "line": 56,
+      "scope": "",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "manifest_path.write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "scripts/run_fascicolo_document_presidio.py",
+      "line": 26,
+      "scope": "_write_json_atomic",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "temporary.write_text(\n        json.dumps(payload, ensure_ascii=False, indent=2, default=str) + \"\\n\",\n        encoding=\"utf-8\",\n    )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/run_pytest_phases.py",
+      "line": 710,
+      "scope": "write_report",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/server_deposito_dry_run_http.py",
+      "line": 364,
+      "scope": "run",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "args.report_json.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/smoke_app_v2_pages.py",
+      "line": 36,
+      "scope": "_load_manifest",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(MANIFEST_PATH.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/smoke_lib.py",
+      "line": 380,
+      "scope": "write_json_report",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/sync_deposito_catalogo_from_quickorganizer_decompiled.py",
+      "line": 44,
+      "scope": "sync_catalog",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(CATALOG.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/sync_deposito_catalogo_from_quickorganizer_decompiled.py",
+      "line": 92,
+      "scope": "sync_catalog",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "CATALOG.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/template_atti/apply_cartabia_schema.py",
+      "line": 23,
+      "scope": "_read",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/template_atti/apply_cartabia_schema.py",
+      "line": 27,
+      "scope": "_write",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/template_atti/apply_cartabia_schema.py",
+      "line": 94,
+      "scope": "_write_report",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "(REPORT_DIR / \"cartabia-catalog-coverage.json\").write_text(\n        json.dumps(coverage, ensure_ascii=False, indent=2) + \"\\n\",\n        encoding=\"utf-8\",\n    )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/update_pst_xsd_catalog.py",
+      "line": 107,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/update_pst_xsd_catalog.py",
+      "line": 38,
+      "scope": "load_manifest",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/validate_codici_oggetto_pst.py",
+      "line": 22,
+      "scope": "main",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/validate_docs_commands.py",
+      "line": 63,
+      "scope": "_load_scripts",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/validate_guida_pratica.py",
+      "line": 122,
+      "scope": "main",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "scripts/verify_backup.py",
+      "line": 20,
+      "scope": "main",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(zf.read(\"manifest.json\").decode(\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/blueprints/api_v1_react.py",
+      "line": 3939,
+      "scope": "_write_custom_relata_templates",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/blueprints/api_v1_react.py",
+      "line": 3962,
+      "scope": "_write_relata_drafts",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/blueprints/api_v1_react.py",
+      "line": 3985,
+      "scope": "_write_attestation_drafts",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/blueprints/api_v1_react.py",
+      "line": 3918,
+      "scope": "_load_custom_relata_templates",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/blueprints/api_v1_react.py",
+      "line": 3947,
+      "scope": "_load_relata_drafts",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/blueprints/api_v1_react.py",
+      "line": 3970,
+      "scope": "_load_attestation_drafts",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/blueprints/api_v1_react.py",
+      "line": 13177,
+      "scope": "_react_template_office_options",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(data_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/blueprints/api_v1_react.py",
+      "line": 16059,
+      "scope": "_write_email_source_preview_cache",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "tmp_meta.write_text(\n            json.dumps(\n                {\n                    \"mimetype\": str(mimetype or \"application/octet-stream\"),\n                    \"download_name\": _safe_cache_download_name(download_name),\n                    \"original_name\": _safe_cache_download_name(original_name),\n                    \"generated_at\": datetime.now(ZoneInfo(\"Europe/Rome\")).isoformat(timespec=\"seconds\"),\n                },\n                ensure_ascii=False,\n                sort_keys=True,\n            ),\n            encoding=\"utf-8\",\n        )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/blueprints/api_v1_react.py",
+      "line": 1959,
+      "scope": "_messaggi_tutti",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/blueprints/notifiche.py",
+      "line": 61,
+      "scope": "_scrivi_log",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(log, f, ensure_ascii=False, indent=2)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/blueprints/notifiche.py",
+      "line": 70,
+      "scope": "_leggi_log",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(f)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/blueprints/notifiche.py",
+      "line": 55,
+      "scope": "_scrivi_log",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(f)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/blueprints/react_shell.py",
+      "line": 339,
+      "scope": "_load_manifest",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(manifest_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/bootstrap/admin_database_routes.py",
+      "line": 157,
+      "scope": "register_admin_database_routes._json_has_records",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(p.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/bootstrap/admin_database_routes.py",
+      "line": 221,
+      "scope": "register_admin_database_routes._directory_claims_current_tenant",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(directory_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/portale.py",
+      "line": 61,
+      "scope": "_scrivi_log",
+      "operation": "write_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.dump(log, f, ensure_ascii=False, indent=2)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/portale.py",
+      "line": 70,
+      "scope": "_leggi_log",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(f)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/portale.py",
+      "line": 55,
+      "scope": "_scrivi_log",
+      "operation": "read_json_stream",
+      "evidence": "stream_to_trace",
+      "code": "json.load(f)",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/admin_surfaces_shared.py",
+      "line": 44,
+      "scope": "load_studio_config",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/archivio_letture_runtime.py",
+      "line": 109,
+      "scope": "_scheduler_idle_attivo",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(percorso.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/archivio_letture_runtime.py",
+      "line": 148,
+      "scope": "_scrivi_scheduler_idle",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "temporaneo.write_text(json.dumps(dati, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/censimento_spazio.py",
+      "line": 41,
+      "scope": "ultimo_censimento",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(percorso.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/censimento_spazio.py",
+      "line": 71,
+      "scope": "esegui_censimento",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "percorso.write_text(json.dumps(voce, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/clienti_faldone_runtime.py",
+      "line": 31,
+      "scope": "salva_note_faldone",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(\n        json.dumps(payload, ensure_ascii=False, indent=2),\n        encoding=\"utf-8\",\n    )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/clienti_faldone_runtime.py",
+      "line": 14,
+      "scope": "carica_note_faldone",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/clienti_faldone_runtime.py",
+      "line": 25,
+      "scope": "salva_note_faldone",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/document_word_review.py",
+      "line": 145,
+      "scope": "apply_review",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(review_file.read_text(encoding='utf-8'))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/email_storage_runtime.py",
+      "line": 50,
+      "scope": "_context_for_path",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(registry.read_text(encoding='utf-8'))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/email_storage_runtime.py",
+      "line": 80,
+      "scope": "_initialize_empty_sql_catalog",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding='utf-8'))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/fascicoli_presidi_runtime.py",
+      "line": 76,
+      "scope": "_presidio_idle_attivo",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(_idle_marker_path(paths).read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/fascicoli_presidi_runtime.py",
+      "line": 139,
+      "scope": "_scrivi_presidio_idle",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/fascicolo_lettura_verifiche.py",
+      "line": 59,
+      "scope": "_leggi_tutto",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(percorso.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/fascicolo_lettura_verifiche.py",
+      "line": 86,
+      "scope": "scrivi_registro",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "percorso.write_text(json.dumps(tutto, ensure_ascii=False, indent=1), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/fonti_procedurali_reader.py",
+      "line": 12,
+      "scope": "visualizza_fonte",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads((base / \"acquisizioni.json\").read_text())",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/legal_update_surface.py",
+      "line": 130,
+      "scope": "_load_tenant_studio_payload",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(config_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/legal_update_surface.py",
+      "line": 141,
+      "scope": "_load_single_studio_payload",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(config_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/lettura_cache.py",
+      "line": 133,
+      "scope": "LetturaPayloadCache.get",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(meta_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/lettura_cache.py",
+      "line": 160,
+      "scope": "LetturaPayloadCache.set",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "tmp_meta.write_text(json.dumps(meta, ensure_ascii=False, separators=(\",\", \":\")), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/lettura_cache.py",
+      "line": 200,
+      "scope": "LetturaPayloadCache.invalidate_where",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(meta_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/lex_dataset_review_queue.py",
+      "line": 41,
+      "scope": "_write_json_atomic",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/lex_dataset_review_queue.py",
+      "line": 33,
+      "scope": "_read_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/lex_dataset_training_status.py",
+      "line": 40,
+      "scope": "_read_json",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/lex_eval_scorecard.py",
+      "line": 96,
+      "scope": "build_lex_eval_scorecard",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(EVAL_CASES_PATH.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/lex_eval_scorecard.py",
+      "line": 34,
+      "scope": "_load_results_payload",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(resolved.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/migration_assistant.py",
+      "line": 129,
+      "scope": "_load_report_payload",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(target.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/migration_assistant.py",
+      "line": 111,
+      "scope": "_latest_report_payload",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(candidate.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/operational_resilience_surface.py",
+      "line": 180,
+      "scope": "_load_json_report",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/operational_resilience_surface.py",
+      "line": 65,
+      "scope": "_resolve_context",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(config_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/operational_resilience_surface.py",
+      "line": 93,
+      "scope": "_resolve_context",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(Path(current_app.config.get(\"STUDIO_CONFIG\", \"\")).read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/pec_pipeline_runtime.py",
+      "line": 206,
+      "scope": "_tenant_notification_id",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(manifest_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/pec_pipeline_runtime.py",
+      "line": 213,
+      "scope": "_tenant_notification_id",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(registry_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/quickorganizer_import.py",
+      "line": 2644,
+      "scope": "stage_uploaded_package",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "_safe_child_path(target_dir, \"stage.json\").write_text(\n        json.dumps(stage_payload, ensure_ascii=False, indent=2),\n        encoding=\"utf-8\",\n    )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/quickorganizer_import.py",
+      "line": 2680,
+      "scope": "begin_chunked_upload",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "_safe_child_path(session, \"metadata.json\", extra_roots=(_safe_runtime_dir(staging_root),)).write_text(\n        json.dumps(metadata, ensure_ascii=False, indent=2),\n        encoding=\"utf-8\",\n    )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/quickorganizer_import.py",
+      "line": 2706,
+      "scope": "receive_chunked_upload",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "_chunk_metadata_path(staging_root, upload_id).write_text(\n        json.dumps(metadata, ensure_ascii=False, indent=2),\n        encoding=\"utf-8\",\n    )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/quickorganizer_import.py",
+      "line": 2836,
+      "scope": "_write_prepare_metadata",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(dict(metadata), ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/quickorganizer_import.py",
+      "line": 3074,
+      "scope": "stage_referenced_package",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "_safe_child_path(target_dir, \"stage.json\").write_text(\n        json.dumps(stage_payload, ensure_ascii=False, indent=2),\n        encoding=\"utf-8\",\n    )",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/quickorganizer_import.py",
+      "line": 3092,
+      "scope": "load_staged_package",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(stage_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/quickorganizer_import.py",
+      "line": 243,
+      "scope": "_read_chunk_metadata",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/quickorganizer_import.py",
+      "line": 420,
+      "scope": "_read_json_payload",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8-sig\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/quickorganizer_import.py",
+      "line": 2821,
+      "scope": "_read_prepare_metadata",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/quickorganizer_import.py",
+      "line": 542,
+      "scope": "_package_from_zip",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(archive.read(json_name).decode(\"utf-8-sig\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/quickorganizer_import.py",
+      "line": 3049,
+      "scope": "list_staged_packages",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(stage_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/react_impostazioni_notifications.py",
+      "line": 55,
+      "scope": "_scrivi_log",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(rows[:200], ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/react_impostazioni_notifications.py",
+      "line": 44,
+      "scope": "_leggi_log",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": false
+    },
+    {
+      "file": "web/services/reginde_cache_search.py",
+      "line": 143,
+      "scope": "_cache_state",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(manifest_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/server_maintenance_surface.py",
+      "line": 454,
+      "scope": "_registered_tenant_index",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(registry.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/server_maintenance_surface.py",
+      "line": 1145,
+      "scope": "_prune_backup_registry",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(registry.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/server_maintenance_surface.py",
+      "line": 1157,
+      "scope": "_prune_backup_registry",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "registry.write_text(json.dumps(filtered, ensure_ascii=False, indent=2) + \"\\n\", encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/storage_runtime.py",
+      "line": 98,
+      "scope": "_json_anchor_has_legacy_data",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(anchor_path.read_text(encoding=\"utf-8\"))",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/telematico_runtime.py",
+      "line": 472,
+      "scope": "build_telematico_runtime._write_json_list",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/telematico_runtime.py",
+      "line": 4010,
+      "scope": "build_telematico_runtime._write_json_dict",
+      "operation": "write_json_file",
+      "evidence": "file_io",
+      "code": "path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding=\"utf-8\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/telematico_runtime.py",
+      "line": 465,
+      "scope": "build_telematico_runtime._read_json_list",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\") or \"[]\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    },
+    {
+      "file": "web/services/telematico_runtime.py",
+      "line": 4003,
+      "scope": "build_telematico_runtime._read_json_dict",
+      "operation": "read_json_file",
+      "evidence": "file_io",
+      "code": "json.loads(path.read_text(encoding=\"utf-8\") or \"{}\")",
+      "role": "to_trace_not_automatically_a_defect",
+      "sql_mentions_in_file": true
+    }
+  ],
+  "parse_errors": []
+}

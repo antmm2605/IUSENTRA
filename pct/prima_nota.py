@@ -17,11 +17,16 @@ from __future__ import annotations
 import csv
 import io
 import json
+import math
+import os
+import tempfile
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
+
+from .formatting import format_date_it
 
 FONTE_NORMATIVA = (
     "Art. 54 TUIR (principio di cassa); art. 19 D.P.R. 600/1973; "
@@ -107,27 +112,173 @@ class GestionePrimaNota:
     coerente con l'impianto probatorio del gestionale.
     """
 
-    def __init__(self, db_path: str = "./contabilita/prima_nota.json"):
+    def __init__(self, db_path: str = "./contabilita/prima_nota.json", *, studio_db=None, tenant_key: str = "", actor_key: str = ""):
         self.db_path = Path(db_path)
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._repository = None
+        if studio_db is not None:
+            from pct.prima_nota_repository import PrimaNotaRepository
+            self._repository = PrimaNotaRepository(studio_db, tenant_key, actor_key=actor_key)
+        else:
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._movimenti: dict[str, MovimentoPrimaNota] = {}
+        self._source_bytes: bytes | None = None
         self._carica()
 
     def _carica(self) -> None:
+        if self._repository is not None:
+            self._movimenti = {key: MovimentoPrimaNota.from_dict(value) for key, value in self._repository.load().items()}
+            return
+        from pct.prima_nota_transition import assert_json_source_active
+        assert_json_source_active(self.db_path)
         try:
-            raw = json.loads(self.db_path.read_text(encoding="utf-8"))
-            self._movimenti = {k: MovimentoPrimaNota.from_dict(v) for k, v in raw.items() if isinstance(v, dict)}
-        except (OSError, json.JSONDecodeError, ValueError):
+            content = self.db_path.read_bytes()
+            raw = json.loads(content.decode("utf-8"))
+            if not isinstance(raw, dict) or any(not isinstance(value, dict) for value in raw.values()):
+                raise ValueError("Struttura del registro non valida.")
+            movements = {key: MovimentoPrimaNota.from_dict(value) for key, value in raw.items()}
+        except FileNotFoundError:
             self._movimenti = {}
+            self._source_bytes = None
+            return
+        except (OSError, ValueError, TypeError) as exc:
+            raise ValueError("Prima nota non leggibile: il registro esistente è stato preservato. "
+                             "La registrazione è sospesa fino al recupero dell’archivio.") from exc
+        self._movimenti = movements
+        self._source_bytes = content
 
-    def _salva(self) -> None:
-        self.db_path.write_text(
-            json.dumps({k: v.to_dict() for k, v in self._movimenti.items()}, ensure_ascii=False, indent=1),
-            encoding="utf-8",
-        )
+    def _salva(self, *, command=None):
+        if self._repository is not None:
+            confirmed = dict(self._repository.original)
+            try:
+                result = self._repository.save({key: value.to_dict() for key, value in self._movimenti.items()}, command=command)
+                if self._repository.last_command_replayed:
+                    self._carica()
+                return result
+            except Exception:
+                try:
+                    self._carica()
+                except Exception:
+                    # Conserva solo l'ultimo snapshot confermato; il primo errore
+                    # resta quello del comando, senza inventare un esito negativo.
+                    self._movimenti = {key: MovimentoPrimaNota.from_dict(json.loads(value)) for key, value in confirmed.items()}
+                raise
+        if command is not None:
+            raise ValueError('Conferma persistente del comando non disponibile sul registro storico.')
+        from pct.prima_nota_transition import prima_nota_source_lock, assert_json_source_active
+
+        temporary = None
+        confirmed_source = self._source_bytes
+        try:
+            with prima_nota_source_lock(self.db_path):
+                assert_json_source_active(self.db_path)
+                try:
+                    current = self.db_path.read_bytes()
+                except FileNotFoundError:
+                    current = None
+                if current != self._source_bytes:
+                    from pct.prima_nota_repository import PrimaNotaConflict
+                    raise PrimaNotaConflict("Prima nota aggiornata da un altro processo: ricarica il registro prima di riprovare.")
+                content = json.dumps(
+                    {k: v.to_dict() for k, v in self._movimenti.items()},
+                    ensure_ascii=False, indent=1,
+                ).encode("utf-8")
+                with tempfile.NamedTemporaryFile(dir=self.db_path.parent, prefix=".prima-nota-", delete=False) as handle:
+                    temporary = Path(handle.name)
+                    handle.write(content)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                os.replace(temporary, self.db_path)
+                temporary = None
+                self._source_bytes = content
+        except Exception:
+            # Non mantenere come salvato il movimento di un comando rifiutato.
+            # Il fallimento della rilettura non deve nascondere l'errore primario.
+            try:
+                self._carica()
+            except Exception:
+                # Un fence impedisce anche la rilettura JSON: conserva soltanto
+                # lo snapshot già confermato, non il comando locale rifiutato.
+                previous = json.loads(confirmed_source.decode('utf-8')) if confirmed_source is not None else {}
+                self._movimenti = {key: MovimentoPrimaNota.from_dict(value) for key, value in previous.items()}
+            raise
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+
+    def confirm_audit(self, movement_id=None):
+        if self._repository is None:
+            raise ValueError('Consegna audit SQL non disponibile sul registro storico.')
+        return self._repository.deliver_audit(record_key=movement_id)
+
+    @property
+    def write_protocol(self) -> dict[str, Any]:
+        """Capacità effettiva del repository, senza aprire o migrare archivi."""
+        import hashlib
+        scope = hashlib.sha256(json.dumps([self._repository.tenant, self._repository.actor_key]).encode()).hexdigest() if self._repository is not None else None
+        return {"persistentCommands": self._repository is not None,
+                "revision": self._repository.revision if self._repository is not None else None,
+                "scope": scope}
 
     # ------------------------------------------------------------------ scritture
-    def registra(self, **campi: Any) -> MovimentoPrimaNota:
+    def registra(self, *, command_key: str = "", expected_revision: int | None = None, **campi: Any) -> MovimentoPrimaNota:
+        command = None
+        if expected_revision is not None:
+            if type(expected_revision) is not int or expected_revision < 0:
+                raise ValueError('Revisione del registro non valida.')
+            if self._repository is None or not command_key:
+                raise ValueError('Revisione protetta disponibile soltanto con un comando SQL persistente.')
+        if self._repository is not None:
+            self._repository.last_command_replayed = False
+        if command_key:
+            if self._repository is None:
+                raise ValueError('Conferma persistente del comando non disponibile sul registro storico.')
+            if set(campi) - MovimentoPrimaNota.__dataclass_fields__.keys() or set(campi) & {'id', 'creato_il', 'riconciliato_il', 'riga_estratto_id', 'storno_di'}:
+                raise ValueError('Campi del comando di registrazione non consentiti.')
+            import hashlib
+            from pct.prima_nota_repository import _encode
+            intent = campi if expected_revision is None else {'fields': campi, 'expected_revision': expected_revision}
+            command = {'key': command_key, 'operation': 'registrazione',
+                       'request_sha256': hashlib.sha256(_encode(intent).encode('utf-8')).hexdigest()}
+            replay = self._repository.command_replay(command)
+            if replay is not None:
+                self._carica()
+                self._repository.last_command_replayed = True
+                return MovimentoPrimaNota.from_dict(replay['movement'])
+        if expected_revision is not None and expected_revision != self._repository.revision:
+            from pct.prima_nota_repository import PrimaNotaConflict
+            raise PrimaNotaConflict('Il registro è cambiato. Ricarica i dati prima di registrare il movimento; la bozza è preservata.')
+        movimento = self._prepara_movimento(**campi)
+        if movimento.id in self._movimenti:
+            raise ValueError("Identificativo del movimento già presente nel registro.")
+        self._movimenti[movimento.id] = movimento
+        if command is not None:
+            command['result'] = {'movement': movimento.to_dict()}
+        result = self._salva(command=command)
+        if command is not None:
+            return MovimentoPrimaNota.from_dict(result['movement'])
+        return movimento
+
+    def registra_da_riga(self, *, riga_estratto_id: str, **campi: Any) -> MovimentoPrimaNota:
+        """Movimento bancario e riscontro salvati insieme, con replay concordante."""
+        riga_id = _norm(riga_estratto_id)
+        if not riga_id:
+            raise ValueError('Riga estratto mancante.')
+        movimento = self._prepara_movimento(**campi)
+        for existing in self._movimenti.values():
+            if existing.riga_estratto_id != riga_id:
+                continue
+            if any(getattr(existing, field) != getattr(movimento, field)
+                   for field in ('data', 'tipo', 'importo', 'categoria', 'causale', 'metodo')):
+                raise ValueError('La riga bancaria è già presente con dati diversi: verifica necessaria.')
+            return existing
+        movimento.riga_estratto_id = riga_id
+        movimento.riconciliato_il = datetime.now().isoformat(timespec='seconds')
+        self._movimenti[movimento.id] = movimento
+        self._salva()
+        return movimento
+
+    def _prepara_movimento(self, **campi: Any) -> MovimentoPrimaNota:
+        """Valida senza scrivere: riuso per comando singolo e lotto atomico."""
         movimento = MovimentoPrimaNota(
             **{k: v for k, v in campi.items() if k in MovimentoPrimaNota.__dataclass_fields__}
         )
@@ -140,7 +291,7 @@ class GestionePrimaNota:
             movimento.importo = round(float(movimento.importo), 2)
         except (TypeError, ValueError) as exc:
             raise ValueError("Importo non numerico.") from exc
-        if movimento.importo <= 0:
+        if not math.isfinite(movimento.importo) or movimento.importo <= 0:
             raise ValueError("L'importo deve essere positivo: per correggere usa lo storno.")
         if movimento.categoria not in CATEGORIE[movimento.tipo]:
             raise ValueError(
@@ -149,8 +300,6 @@ class GestionePrimaNota:
             )
         if movimento.metodo not in METODI:
             movimento.metodo = "altro"
-        self._movimenti[movimento.id] = movimento
-        self._salva()
         return movimento
 
     def storna(self, movimento_id: str, *, motivo: str, attore: str = "") -> MovimentoPrimaNota:
@@ -234,26 +383,31 @@ class GestionePrimaNota:
         """
 
         gia_registrate = {m.parcella_id for m in self._movimenti.values() if m.parcella_id}
+        pending: dict[str, MovimentoPrimaNota] = {}
         creati: list[MovimentoPrimaNota] = []
         try:
             parcelle = list(gestione_fatturazione.tutte())
-        except Exception:
-            return []
+        except Exception as exc:
+            raise ValueError("Parcelle non leggibili: riconciliazione sospesa senza confermare l'allineamento.") from exc
         for parcella in parcelle:
             stato = str(getattr(getattr(parcella, "stato", ""), "value", getattr(parcella, "stato", "")) or "")
             if stato.upper() not in {"PAGATA", "INCASSATA"}:
                 continue
             parcella_id = str(getattr(parcella, "id", "") or "")
-            if not parcella_id or parcella_id in gia_registrate:
+            if not parcella_id:
+                raise ValueError("Parcella pagata senza identificativo: importazione sospesa.")
+            if parcella_id in gia_registrate:
                 continue
-            data_pagamento = _iso_date(getattr(parcella, "data_pagamento", "")) or date.today().isoformat()
+            data_pagamento = _iso_date(getattr(parcella, "data_pagamento", ""))
+            if not data_pagamento:
+                raise ValueError("Parcella pagata senza data valida di pagamento: importazione sospesa.")
             try:
                 importo = round(float(getattr(parcella, "totale", 0.0) or 0.0), 2)
-            except (TypeError, ValueError):
-                continue
-            if importo <= 0:
-                continue
-            movimento = self.registra(
+            except (TypeError, ValueError) as exc:
+                raise ValueError("Importo della parcella pagata non valido: importazione sospesa.") from exc
+            if not math.isfinite(importo) or importo <= 0:
+                raise ValueError("Importo della parcella pagata non valido: importazione sospesa.")
+            movimento = self._prepara_movimento(
                 data=data_pagamento,
                 tipo="INCASSO",
                 importo=importo,
@@ -267,7 +421,23 @@ class GestionePrimaNota:
                 documento_riferimento=_norm(getattr(parcella, "numero", "")),
                 creato_da=attore or "riconciliazione-parcelle",
             )
+            if parcella_id in pending:
+                previous = pending[parcella_id].to_dict()
+                candidate = movimento.to_dict()
+                for key in ("id", "creato_il"):
+                    previous.pop(key)
+                    candidate.pop(key)
+                if candidate != previous:
+                    raise ValueError("La stessa parcella ha dati discordanti: importazione sospesa.")
+                continue
+            pending[parcella_id] = movimento
             creati.append(movimento)
+        if creati:
+            for movimento in creati:
+                if movimento.id in self._movimenti:
+                    raise ValueError("Identificativo del movimento già presente nel registro.")
+            self._movimenti.update({movimento.id: movimento for movimento in creati})
+            self._salva()
         return creati
 
     # ------------------------------------------------------------ riconciliazione bancaria
@@ -309,10 +479,15 @@ class GestionePrimaNota:
             raise ValueError("Riga estratto mancante per la riconciliazione.")
         if any(m.riga_estratto_id == riga_id for m in self._movimenti.values()):
             raise ValueError("Questa riga dell'estratto e' gia' riconciliata con un altro movimento.")
-        if importo_riga is not None and abs(abs(float(importo_riga)) - movimento.importo) > 0.005:
-            raise ValueError(
-                "L'importo della riga bancaria non coincide col movimento selezionato: abbinamento rifiutato."
-            )
+        if importo_riga is not None:
+            try:
+                amount = float(importo_riga)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("Importo della riga bancaria non valido: abbinamento rifiutato.") from exc
+            if not math.isfinite(amount) or abs(abs(amount) - movimento.importo) > 0.005:
+                raise ValueError(
+                    "L'importo della riga bancaria non coincide col movimento selezionato: abbinamento rifiutato."
+                )
         if verso_riga and verso_riga != movimento.tipo:
             raise ValueError(
                 "Il verso della riga bancaria (incasso/pagamento) non coincide col movimento: abbinamento rifiutato."
@@ -348,7 +523,7 @@ class GestionePrimaNota:
         for m in self.registro(dal=dal, al=al):
             writer.writerow(
                 [
-                    m.data,
+                    format_date_it(m.data),
                     m.tipo,
                     f"{m.importo:.2f}".replace(".", ","),
                     m.categoria,

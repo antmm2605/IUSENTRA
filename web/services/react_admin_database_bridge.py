@@ -4,6 +4,15 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any, Callable, Mapping
+from pct.formatting import format_date_it, format_datetime_it, parse_datetime_rome
+from web.services.admin_database_statistics_cache import mirror_statistics
+
+# Traced operational constructors still use these files directly. A SQL studio
+# profile alone must never classify them as compatibility mirrors.
+DIRECT_JSON_MODULES = frozenset({
+    "prima_nota", "ctu", "portale", "wizard_pro", "redaction_assistant",
+    "workflow_agents_actions", "workflow_agents_metrics", "workflow_agents_runs",
+})
 
 
 def _iso_now() -> str:
@@ -33,13 +42,10 @@ def _date_label(value: Any) -> str:
     raw = _text(value)
     if not raw:
         return "n.d."
-    try:
-        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
-        if parsed.hour or parsed.minute:
-            return parsed.strftime("%d/%m/%Y %H:%M")
-        return parsed.strftime("%d/%m/%Y")
-    except ValueError:
-        return raw
+    parsed = parse_datetime_rome(raw)
+    if parsed is None:
+        return "n.d."
+    return format_datetime_it(parsed) if parsed.hour or parsed.minute else format_date_it(parsed)
 
 
 def _module_kind(module: dict[str, Any], *, json_is_mirror: bool = False) -> dict[str, str]:
@@ -181,12 +187,12 @@ def _source_truth_payload(storage_runtime: Mapping[str, Any] | None, sqlite_payl
     if effective_mode == "POSTGRESQL":
         authoritative = "PostgreSQL"
         status = "Archivio PostgreSQL operativo"
-        json_role = "Mirror compatibilità"
+        json_role = "Ruolo dei file distinto per modulo"
         sql_authoritative = True
     elif effective_mode == "SQLITE" or uses_sqlite or sqlite_exists:
         authoritative = "SQLite"
         status = "Archivio SQLite operativo" if sqlite_exists else "Archivio SQLite da riallineare"
-        json_role = "Mirror compatibilità"
+        json_role = "Ruolo dei file distinto per modulo"
         sql_authoritative = sqlite_exists
     else:
         authoritative = "JSON"
@@ -217,7 +223,7 @@ def build_react_admin_database_payload(
     """Costruisce il contratto dati reale per ``/admin/database`` React."""
 
     database = get_database()
-    stats = database.statistiche()
+    stats = mirror_statistics(database)
     usage = database.analisi_uso()
     sqlite_info = None
     sqlite_role = ""
@@ -238,6 +244,35 @@ def build_react_admin_database_payload(
         _module_payload(module, index, json_is_mirror=json_is_mirror)
         for index, module in enumerate(stats.get("moduli") or [])
     ]
+    # The mirror status is kept; SQL existence is a separate, proven fact.
+    operational_tables = dict(getattr(database, "MODULI_SQLITE_TABELLE", {}))
+    operational_tables.update({
+        "crm": ("crm_leads", "id"),
+        "antiriciclaggio": ("aml_verifications", "id"),
+        "documenti_ai": ("fascicolo_documenti_ai", "id"),
+        "editor_ai": ("fascicolo_editor_ai_atti", "id"),
+    })
+    sql_counts = dict(sqlite_info.get("tabelle") or {}) if isinstance(sqlite_info, dict) else {}
+    sql_errors = dict(sqlite_info.get("errori_tabelle") or {}) if isinstance(sqlite_info, dict) else {}
+    for module in modules:
+        reference = operational_tables.get(module["name"])
+        module["mirror"] = json_is_mirror and bool(reference)
+        if module["name"] in DIRECT_JSON_MODULES:
+            module["mirror"] = False
+            module["kind"] = {"label": "File operativo", "tone": "warning"}
+        elif not module["mirror"] and module["name"] != "search_index":
+            module["kind"] = {"label": "File · ruolo da verificare", "tone": "warning"}
+        table = reference[0] if reference else ""
+        verified = source_truth["effectiveMode"] == "SQLITE" and sqlite_role == "operativo" and bool(table) and table in sql_counts and table not in sql_errors
+        module["operational"] = {
+            "verified": verified,
+            "table": table,
+            "records": _number(sql_counts[table]) if verified else None,
+            "message": "Tabella SQL rilevata: il mirror non determina la disponibilità dei dati." if verified else (
+                "Il gestore usa un archivio su file. Sincronizzazione SQL da adeguare."
+                if module["name"] in DIRECT_JSON_MODULES else "Origine dei dati operativi da verificare."
+            ),
+        }
     status_counts: dict[str, int] = {}
     for module in modules:
         code = _text(module.get("status", {}).get("code"), "OK")

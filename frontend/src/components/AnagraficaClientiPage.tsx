@@ -619,7 +619,7 @@ export function AnagraficaClientiPage() {
 
   const refresh = () => {
     setLoading(true)
-    getClientiPage(true).then(payload => { setData(payload); setError('') }).catch(reason => setError(reason instanceof Error ? reason.message : 'Dati clienti non disponibili.')).finally(() => setLoading(false))
+    return getClientiPage(true).then(payload => { setData(payload); setError(''); return true }).catch(reason => { setError(reason instanceof Error ? reason.message : 'Dati clienti non disponibili.'); return false }).finally(() => setLoading(false))
   }
 
   useEffect(() => {

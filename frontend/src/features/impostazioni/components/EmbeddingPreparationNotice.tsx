@@ -56,6 +56,7 @@ export function EmbeddingPreparationNotice() {
   const rows = Math.max(0, Number(preparation.rows) || 0)
   const total = Math.max(0, Number(preparation.total) || 0)
   const building = preparation.stage === 'building'
+  const inactive = preparation.stage === 'disabled' || preparation.stage === 'checkpoint_only'
   return (
     <div className="iu-settings-embedding-preparation" aria-label="Preparazione del nuovo motore locale">
       <strong>Nuovo motore di ricerca locale</strong>
@@ -63,10 +64,15 @@ export function EmbeddingPreparationNotice() {
         <span role="status">Aggiornamento dell’avanzamento non disponibile. Nuovo controllo automatico tra pochi secondi.</span>
       ) : preparation.stage === 'error' ? (
         <span role="status">{preparation.message}</span>
+      ) : inactive ? (
+        <>
+          <span>{preparation.stage === 'disabled' ? 'Preparazione disattivata.' : 'Nessuna preparazione attiva confermata.'} Il checkpoint è conservato: {rows.toLocaleString('it-IT')} di {total.toLocaleString('it-IT')} voci.</span>
+          <small>Il modello operativo resta invariato.</small>
+        </>
       ) : (
         <>
           <span>
-            {building ? 'Preparazione indice normativo' : 'Indice normativo preparato'}:
+            {building ? 'Preparazione indice normativo' : preparation.stage === 'validation_required' ? 'Costruzione terminata, verifica finale necessaria' : 'Indice normativo preparato'}:
             {' '}{rows.toLocaleString('it-IT')} di {total.toLocaleString('it-IT')} voci.
           </span>
           {building && total > 0 && (

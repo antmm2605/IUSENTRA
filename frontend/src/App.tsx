@@ -1,4 +1,5 @@
 import { OperationalRefreshBridge } from './components/OperationalRefreshBridge'
+import { OperationalLiveSync } from './components/OperationalLiveSync'
 import { SourceWorkWindows } from './components/SourceWorkWindows'
 import { ExistingWorkWindows } from './components/ExistingWorkWindows'
 import { ContextWorkWindows } from './components/ContextWorkWindows'
@@ -1522,7 +1523,7 @@ function AppStudio() {
             <span>{mobileNavCollapsed?'Menu':'Chiudi'}</span>
           </button>
         </nav>:null}
-        <OperationalRefreshBridge/><ManagedWindowDock/><SourceWorkWindows sessionKey={`${shellBootstrap.tenant?.slug || ''}:${shellBootstrap.user?.username || ''}`}/><ContextWorkWindows embedded={embeddedViewer}/><ExistingWorkWindows/>
+        <OperationalRefreshBridge/><OperationalLiveSync enabled={Boolean(shellBootstrap.user) && !embeddedViewer} sessionKey={`${shellBootstrap.tenant?.slug || ''}:${shellBootstrap.user?.username || ''}`}/><ManagedWindowDock/><SourceWorkWindows sessionKey={`${shellBootstrap.tenant?.slug || ''}:${shellBootstrap.user?.username || ''}`}/><ContextWorkWindows embedded={embeddedViewer}/><ExistingWorkWindows/>
         {!embeddedViewer&&needsShellLexContext ? <FloatingLex {...lexConfig} /> : null}
       </div>
     </AppErrorBoundary>

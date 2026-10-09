@@ -75,6 +75,7 @@ export type FatturazioneSheetActions = {
 }
 
 export type FatturazioneDetail = FatturazioneRecord & {
+  revision: string
   sheetActions: FatturazioneSheetActions
   note: string
   dataEmissione: string
@@ -113,6 +114,7 @@ export type FatturazioneWorkflow = {
 }
 
 export type FatturazioneDetailUpdatePayload = {
+  expected_revision: string
   note: string
   data_emissione: string
   data_scadenza: string
@@ -1290,6 +1292,7 @@ export async function getFatturazioneDetail(idDocumento: string): Promise<{ ok: 
   const rawPayment = asRecord(rawItem.payment)
   const item = page.item ? {
     ...normaliseRecord(page.item),
+    revision: text(rawItem.revision),
     note: display(rawItem.note),
     dataEmissione: text(rawItem.dataEmissione ?? rawItem.data_emissione),
     dataScadenza: text(rawItem.dataScadenza ?? rawItem.data_scadenza),

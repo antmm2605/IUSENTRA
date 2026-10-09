@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode, type RefObject } from 'react'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
+import { mergeRegistryRefresh } from '../features/anagrafiche/mergeRegistryRefresh'
 import {
   ArrowLeft,
   AlertTriangle,
@@ -447,7 +449,9 @@ function parseMrzDocument(rawMrz: string): ClientDocumentPatch {
 }
 
 function normalizeClientDocumentScan(payload: unknown): ClientDocumentPatch {
-  const values = collectScanValues(payload)
+  // Il lettore nativo fornisce già il patch verificato: i metadati dei
+  // campi (name/label/source) non sono valori anagrafici.
+  const values = collectScanValues(isRecord(payload) && payload.source === 'lettore_documento_cliente' ? payload.patch : payload)
   const patch: ClientDocumentPatch = {}
   const mrz = pickScanValue(values, ['mrz', 'mrzText', 'mrz_text', 'rawMrz', 'raw_mrz', 'machineReadableZone'])
   Object.assign(patch, mrz ? parseMrzDocument(mrz) : {})
@@ -910,6 +914,8 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
   const [autofillState, setAutofillState] = useState<ClientDocumentAutofillState>(() => emptyDocumentAutofillState)
   const [selectedDocumentFile, setSelectedDocumentFile] = useState<File | null>(null)
   const [touchedFields, setTouchedFields] = useState<Set<string>>(() => new Set())
+  const persistedValues = useRef<ClientFormState | undefined>(undefined)
+  const [refreshConflicts, setRefreshConflicts] = useState<string[]>([])
   const valuesRef = useRef(values)
   const touchedFieldsRef = useRef(touchedFields)
   const documentFileInputRef = useRef<HTMLInputElement | null>(null)
@@ -949,8 +955,12 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
 
   useEffect(() => {
     if (data.mode !== 'edit') return
-    setValues({...initialClient, ...data.initialClient})
-    setTouchedFields(new Set())
+    const incoming = {...initialClient, ...data.initialClient}
+    const merged = mergeRegistryRefresh(valuesRef.current, persistedValues.current, incoming)
+    persistedValues.current = incoming
+    valuesRef.current = merged.values
+    setValues(merged.values)
+    setRefreshConflicts(current => [...new Set([...current, ...merged.conflicts])].filter(key => merged.values[key] !== incoming[key]))
   }, [data])
 
   useEffect(() => {
@@ -1024,16 +1034,19 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
     const nextValues: ClientFormState = { ...currentValues }
     const applied: string[] = []
     const skipped: string[] = []
+    const addressFields: ClientDocumentField[] = ['via', 'civico', 'cap', 'comune', 'provincia']
+    const addressBlocked = addressFields.some((field) => currentTouched.has(field) && patch[field] && patch[field] !== asInputValue(currentValues[field]))
     entries.forEach(([field, value]) => {
       const target = field as ClientDocumentField
       const clean = text(value)
-      if (canAutofillClientField(target, currentValues[target], clean, currentTouched) || (isRecord(payload) && isRecord(payload.source_document) && !currentTouched.has(target))) {
+      if (!(addressBlocked && addressFields.includes(target)) && (canAutofillClientField(target, currentValues[target], clean, currentTouched) || (isRecord(payload) && isRecord(payload.source_document) && !currentTouched.has(target)))) {
         nextValues[target] = clean
         applied.push(clientDocumentFieldLabels[target] || target)
       } else {
         skipped.push(clientDocumentFieldLabels[target] || target)
       }
     })
+    if (applied.includes(clientDocumentFieldLabels.comune || 'comune') && !patch.cap && nextValues.comune !== currentValues.comune) nextValues.cap = ''
     if (applied.length) {
       setValues(nextValues)
       setAutofillState({
@@ -1085,7 +1098,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
   }
 
   const readSelectedDocumentFile = async () => {
-    if (!selectedDocumentFile && !sourceMatter) {
+    if (!selectedDocumentFile && !sourceMatter && !data.query.idCliente) {
       setAutofillState({
         ...emptyDocumentAutofillState,
         phase: 'warning',
@@ -1160,6 +1173,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
   }, [applyDocumentPayload])
 
   const change = (name: string, value: string) => {
+    if (asInputValue(valuesRef.current[name]) === value) return
     setTouchedFields((current) => {
       const next = new Set(current)
       next.add(name)
@@ -1197,6 +1211,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
     try {
       const formData = new FormData(event.currentTarget)
       const result = await submitFormJson(action, formData)
+      persistedValues.current = { ...valuesRef.current }
       draft.clearAfterSave()
       // In modifica si resta sulla scheda: chi sta correggendo un cliente non
       // va buttato fuori dal modulo a ogni salvataggio. In creazione si va
@@ -1217,6 +1232,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
 
   return (
     <form className="iu-cln-form" onSubmit={handleSubmit} onBlur={draft.handleBlur}>
+      {refreshConflicts.length ? <div role="alert" className="iu-cln-flow-alert"><div><strong>Anagrafica aggiornata in un’altra finestra</strong><span>Le tue modifiche non salvate sono preservate. Confronta i campi prima di salvare.</span>{refreshConflicts.map(key => <div key={key}><span>{clientDocumentFieldLabels[key] || key}: valore salvato {String(persistedValues.current?.[key] ?? '')}</span><button type="button" className="iu-button iu-button--secondary" onClick={() => { const value = persistedValues.current?.[key]; if (value !== undefined) setValues(current => ({ ...current, [key]: value })); setRefreshConflicts(current => current.filter(item => item !== key)) }}>Usa valore salvato</button><button type="button" className="iu-button iu-button--secondary" onClick={() => setRefreshConflicts(current => current.filter(item => item !== key))}>Mantieni la mia modifica</button></div>)}</div></div> : null}
       <input type="hidden" name="next_url" value={asInputValue(values.next_url)}/>
       <DraftAutosaveBar status={draft.status} onRestore={draft.restore} onDiscard={() => draft.discard(true)}/>
       <Card title="Tipo cliente" icon={<UserCheck size={18}/>} note={data.mode === 'edit' ? 'Aggiornamento anagrafica esistente' : 'Nuova anagrafica governata'}>
@@ -1328,7 +1344,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
 
       <SubmitFeedback state={submitState}/>
       <div className="iu-cln-actions">
-        <button className="iu-cln-submit" type="submit" disabled={submitState.saving}><CheckCircle2 size={17}/>{submitState.saving ? 'Salvataggio...' : data.mode === 'edit' ? 'Salva modifiche' : 'Salva cliente'}</button>
+        <button className="iu-cln-submit" type="submit" disabled={submitState.saving || refreshConflicts.length > 0}><CheckCircle2 size={17}/>{submitState.saving ? 'Salvataggio...' : data.mode === 'edit' ? 'Salva modifiche' : 'Salva cliente'}</button>
         <a className="iu-cln-secondary" href={data.mode === 'edit' && data.query.idCliente ? `/clienti/${encodeURIComponent(data.query.idCliente)}/cartella` : '/clienti'}>Annulla</a>
       </div>
     </form>
@@ -1337,6 +1353,8 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
 
 function SubjectForm({ data }:{data: ClientiNuovoData}) {
   const [values, setValues] = useState<SubjectFormState>({...initialSubject})
+  const persistedSubject = useRef<SubjectFormState | undefined>(undefined)
+  const [subjectConflicts, setSubjectConflicts] = useState<string[]>([])
   const [cfStatus, setCfStatus] = useState('')
   const [submitState, setSubmitState] = useState<SubmitState>(() => emptySubmitState())
   const [autofillState, setAutofillState] = useState<ClientDocumentAutofillState>(() => emptyDocumentAutofillState)
@@ -1368,8 +1386,12 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
 
   useEffect(() => {
     if (data.mode === 'edit_subject' || Object.keys(data.initialSubject).length) {
-      setValues({ ...initialSubject, ...data.initialSubject })
-      setTouchedFields(new Set())
+      const incoming = { ...initialSubject, ...data.initialSubject }
+      const merged = mergeRegistryRefresh(valuesRef.current, persistedSubject.current, incoming)
+      persistedSubject.current = incoming
+      valuesRef.current = merged.values
+      setValues(merged.values)
+      setSubjectConflicts(current => [...new Set([...current.filter(key => merged.values[key] !== incoming[key]), ...merged.conflicts])])
       return
     }
   }, [data.mode, data.initialSubject])
@@ -1662,9 +1684,11 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (subjectConflicts.length) return
     setSubmitState({ saving: true, tone: 'neutral', message: 'Salvataggio in corso...' })
     try {
       const result = await submitFormJson(action, new FormData(event.currentTarget))
+      persistedSubject.current = { ...valuesRef.current }
       draft.clearAfterSave()
       setSubmitState({ saving: false, tone: 'success', message: result.message || 'Soggetto salvato.' })
       redirectAfterSuccess(result, subjectCancelHref)
@@ -1675,6 +1699,7 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
 
   return (
     <form className="iu-cln-form" onSubmit={handleSubmit} onBlur={draft.handleBlur}>
+      {subjectConflicts.length ? <div className="iu-cln-flow-alert" role="alert"><strong>Soggetto aggiornato in un’altra finestra</strong><p>Le tue modifiche sono preservate. Confronta i campi prima di salvare.</p>{subjectConflicts.map(key => <div key={key}><span>{key.replaceAll('_', ' ')}: valore salvato {persistedSubject.current?.[key] || 'non presente'}</span><button type="button" className="iu-button iu-button--secondary" onClick={() => { setValues(current => ({ ...current, [key]: persistedSubject.current?.[key] || '' })); setSubjectConflicts(current => current.filter(item => item !== key)) }}>Usa valore salvato</button><button type="button" className="iu-button iu-button--secondary" onClick={() => setSubjectConflicts(current => current.filter(item => item !== key))}>Mantieni la mia modifica</button></div>)}</div> : null}
       <DraftAutosaveBar status={draft.status} onRestore={draft.restore} onDiscard={() => draft.discard(true)}/>
       <input type="hidden" name="id_fascicolo" value={data.query.idFascicolo}/>
       <input type="hidden" name="next_url" value={data.query.nextUrl}/>
@@ -1856,6 +1881,12 @@ export function NuovoClientePage() {
   const [data, setData] = useState<ClientiNuovoData>(emptyClientiNuovoData)
   const [tab, setTab] = useState<Tab>(initialTab)
   const [loading, setLoading] = useState(true)
+  const refreshSequence = useRef(0)
+  useOperationalRefresh(['clienti', 'soggetti'], async () => {
+    const sequence = ++refreshSequence.current
+    const payload = await getClientiNuovoData()
+    if (sequence === refreshSequence.current && payload.source !== 'vuoto') setData(payload)
+  })
 
   useEffect(() => {
     let alive = true

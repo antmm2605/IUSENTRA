@@ -134,7 +134,7 @@ export function IncassiPagamentiPage() {
     return ['incassato', 'da_incassare', 'scaduto', 'crediti', 'link_totali', 'link_pagati', 'link_attesi', 'link_falliti'].includes(requested) ? requested : ''
   })
   const [refreshing, setRefreshing] = useState(false)
-  const refreshFlight = useRef<Promise<void> | null>(null)
+  const refreshFlight = useRef<Promise<boolean> | null>(null)
   const [refreshError, setRefreshError] = useState('')
   const [filteredRecordIds, setFilteredRecordIds] = useState<string[] | null>(null)
   const [recordsPage, setRecordsPage] = useState(1)
@@ -153,8 +153,9 @@ export function IncassiPagamentiPage() {
         setData(payload)
         setRefreshError('')
         setInvoiceId((current) => payload.records.some((record) => record.invoiceId === current) ? current : '')
+        return true
       })
-      .catch((cause) => setRefreshError(cause instanceof Error ? cause.message : 'Impossibile aggiornare gli incassi.'))
+      .catch((cause) => { setRefreshError(cause instanceof Error ? cause.message : 'Impossibile aggiornare gli incassi.'); return false })
       .finally(() => { setLoading(false); setRefreshing(false); refreshFlight.current = null })
     return refreshFlight.current
   }

@@ -1,9 +1,9 @@
 export const OPERATIONAL_REFRESH_EVENT = 'iusentra:operational-data-updated'
 export type OperationalDomain = 'agenda' | 'scadenze' | 'comunicazioni' | 'clienti' | 'soggetti' | 'fascicoli' | 'preventivi' | 'privacy' | 'timesheet' | 'utenti' | 'incassi' | 'fatturazione' | 'sito'
 export const operationalDomains: OperationalDomain[] = ['agenda', 'scadenze', 'comunicazioni', 'clienti', 'soggetti', 'fascicoli', 'preventivi', 'privacy', 'timesheet', 'utenti', 'incassi', 'fatturazione', 'sito']
-export function publishOperationalRefresh(domains: OperationalDomain[]) {
+export function publishOperationalRefresh(domains: OperationalDomain[], options: { remote?: boolean } = {}) {
   const distinct = [...new Set(domains)]
-  if (distinct.length) window.dispatchEvent(new CustomEvent(OPERATIONAL_REFRESH_EVENT, { detail: { domains: distinct } }))
+  if (distinct.length) window.dispatchEvent(new CustomEvent(OPERATIONAL_REFRESH_EVENT, { detail: { domains: distinct, remote: options.remote === true } }))
 }
 export function publishMutationRefresh(endpoint: string) {
   let path: string

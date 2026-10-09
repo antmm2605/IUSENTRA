@@ -3,8 +3,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sqlite3
-import subprocess
 import zipfile
 from datetime import datetime
 from pathlib import Path
@@ -14,7 +14,7 @@ from core.database import is_sqlite_url, sqlite_path_from_url
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Crea backup database/storage IUSENTRA.")
-    parser.add_argument("--database-url", default="sqlite:///data/iusentra.sqlite")
+    parser.add_argument("--database-url", default=os.environ.get("IUSENTRA_BACKUP_DATABASE_URL", "sqlite:///data/iusentra.sqlite"))
     parser.add_argument("--data-root", default="data")
     parser.add_argument("--backup-dir", default="data/backup")
     args = parser.parse_args()
@@ -38,8 +38,9 @@ def main() -> int:
                 _write_file(zf, copy_path, f"database/{copy_path.name}", manifest)
                 copy_path.unlink(missing_ok=True)
         else:
-            dump_path = backup_dir / f"postgres-{stamp}.sql"
-            subprocess.run(["pg_dump", args.database_url, "-f", str(dump_path)], check=True)
+            from scripts.postgres_backup import backup_postgres
+            dump_path = backup_dir / f"postgres-{stamp}.dump"
+            manifest['postgres_backup'] = backup_postgres(args.database_url, dump_path)
             _write_file(zf, dump_path, f"database/{dump_path.name}", manifest)
             dump_path.unlink(missing_ok=True)
         data_root = Path(args.data_root)

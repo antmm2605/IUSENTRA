@@ -4,9 +4,66 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+from flask import Flask, g
+
 from pct.contabilita.registro_iva import csv_registro, registro_fatture_emesse
 from pct.contabilita.riepilogo import riepilogo_annuale
 from pct.prima_nota import GestionePrimaNota
+from web.bootstrap.contabilita_routes import register_contabilita_routes
+
+
+def _client_riepilogo(config, registro, *, permesso=True):
+    app = Flask(__name__)
+    app.config["TESTING"] = True
+
+    @app.before_request
+    def utente():
+        g.utente_corrente = SimpleNamespace(ha_permesso=lambda p: permesso and p == "fatturazione.leggi")
+
+    def fatturazione():
+        raise AssertionError("La fonte fatture non va letta senza regime ordinario verificato")
+
+    register_contabilita_routes(app, {
+        "get_prima_nota": registro, "get_config_studio": config,
+        "get_fatturazione": fatturazione, "audit": lambda *args, **kwargs: None,
+    })
+    return app.test_client()
+
+
+@pytest.mark.parametrize("regime", [None, "", "RF99"])
+def test_riepilogo_non_inventa_regime_in_assenza_di_configurazione(regime):
+    def registro():
+        raise AssertionError("Non leggere importi con regime indeterminato")
+
+    client = _client_riepilogo(
+        lambda: SimpleNamespace(config=SimpleNamespace(fatturazione=SimpleNamespace(regime_fiscale=regime))), registro,
+    )
+    response = client.get("/api/v1/ui/prima-nota/riepilogo?anno=2026")
+    assert response.status_code == 503
+    assert response.json["ok"] is False
+    assert "compensi_incassati" not in response.json
+
+
+def test_riepilogo_errore_configurazione_non_diventa_ordinario():
+    def fonte():
+        raise OSError("Fonte indisponibile")
+
+    client = _client_riepilogo(fonte, lambda: pytest.fail("Non leggere il registro"))
+    assert client.get("/api/v1/ui/prima-nota/riepilogo?anno=2026").status_code == 503
+
+
+def test_riepilogo_forfettario_route_e_permessi(tmp_path):
+    def config():
+        return SimpleNamespace(config=SimpleNamespace(fatturazione=SimpleNamespace(regime_fiscale="RF19")))
+    registro = _registro(tmp_path)
+    client = _client_riepilogo(config, lambda: registro)
+    response = client.get("/api/v1/ui/prima-nota/riepilogo?anno=2026")
+    assert response.status_code == 200
+    assert response.json["regime"] == "forfettario"
+    assert response.json["compensi_incassati"] == 12000
+    denied = _client_riepilogo(lambda: pytest.fail("Non leggere config senza permesso"), lambda: registro, permesso=False)
+    assert denied.get("/api/v1/ui/prima-nota/riepilogo").status_code == 403
 
 
 def _registro(tmp_path):

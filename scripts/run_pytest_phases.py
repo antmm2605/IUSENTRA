@@ -48,6 +48,15 @@ CORE_CI_ITEM_SPLIT_PHASES = set(CORE_CI_SUBSHARDS)
 #  La chiave e' il percorso, il valore il numero di fase come lo scrivono
 #  CORE_CI_SUBSHARDS e le "phase:" di ci.yml (numerazione da 1).
 CORE_CI_PINNED_PHASES: dict[str, int] = {
+    "tests/test_prima_nota.py": 8,
+    "tests/test_prima_nota_sql_repository.py": 8,
+    "tests/test_client_document_reader.py": 8,
+    "tests/test_document_ai_reacquire.py": 8,
+    "tests/test_pdf_inspector_engine.py": 8,
+    "tests/test_client_existing_identity.py": 8,
+    "tests/test_identity_client_backfill.py": 8,
+    "tests/test_operational_live_partial_schema.py": 7,
+    "tests/test_scheduler_connection_release.py": 7,
     "tests/test_pec_case_identity.py": 8,
     "tests/test_embeddinggemma2_migration_job.py": 8,
     "tests/test_rag_source_provenance.py": 8,
@@ -116,6 +125,15 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
     ),
 }
 CORE_TARGETS: tuple[Path, ...] = (
+    REPO_ROOT / "tests" / "test_prima_nota.py",
+    REPO_ROOT / "tests" / "test_prima_nota_sql_repository.py",
+    REPO_ROOT / "tests" / "test_client_document_reader.py",
+    REPO_ROOT / "tests" / "test_document_ai_reacquire.py",
+    REPO_ROOT / "tests" / "test_pdf_inspector_engine.py",
+    REPO_ROOT / "tests" / "test_client_existing_identity.py",
+    REPO_ROOT / "tests" / "test_identity_client_backfill.py",
+    REPO_ROOT / "tests" / "test_operational_live_partial_schema.py",
+    REPO_ROOT / "tests" / "test_scheduler_connection_release.py",
     REPO_ROOT / "lex" / "tests",
     REPO_ROOT / "tests" / "test_auth.py",
     REPO_ROOT / "tests" / "test_scheduler.py",

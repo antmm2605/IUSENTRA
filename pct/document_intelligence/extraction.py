@@ -49,6 +49,7 @@ class ExtractionResult:
     warnings: list[str] = field(default_factory=list)
     error_code: str = ""
     error_message: str = ""
+    identity_recoveries: list[DocumentAIPageText] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -84,7 +85,7 @@ def extract_document_text(file_path: str | Path, file_type: str) -> DocumentAITe
     )
 
 
-def extract_text_from_document(content: bytes, filename: str, file_type: str) -> ExtractionResult:
+def extract_text_from_document(content: bytes, filename: str, file_type: str, *, identity_scan: bool = False) -> ExtractionResult:
     from pct.document_crypto import ENC_MAGIC, decrypt_doc
 
     if content.startswith(ENC_MAGIC):
@@ -102,7 +103,8 @@ def extract_text_from_document(content: bytes, filename: str, file_type: str) ->
     if _is_cades_signature_name(filename):
         payload, payload_name, unwrap_warnings = _unwrap_p7m_payload(content, filename)
         payload_type = _file_type_from_payload(payload, payload_name, fallback=file_type)
-        result = extract_text_from_document(payload, payload_name, payload_type)
+        result = (extract_text_from_document(payload, payload_name, payload_type, identity_scan=True)
+                  if identity_scan else extract_text_from_document(payload, payload_name, payload_type))
         if not result.ok and not _looks_like_pdf(payload):
             fallback = _extract_binary_best_effort(
                 payload,
@@ -163,7 +165,8 @@ def extract_text_from_document(content: bytes, filename: str, file_type: str) ->
                 )
             return _extract_mislabeled_pdf(content, filename)
         from .pdf_inspector_engine import extract_pdf_inspected
-        return extract_pdf_inspected(content)
+        from .catalog_identita_personale import documento_identita_dal_nome
+        return extract_pdf_inspected(content, identity_scan=identity_scan or bool(documento_identita_dal_nome(filename)))
     if ext == "docx":
         return _extract_docx(content)
     if ext == "doc":
@@ -1168,11 +1171,14 @@ def _read_tesseract_text_best(
     from legal_ocr.motore.lettura import leggi_immagine
 
     prepared = _preprocess_ocr_image(image)
+    from legal_ocr.motore.immagine import orienta_testo
+    prepared, orientation = orienta_testo(prepared, pytesseract=pytesseract, lingua=lang or "ita")
     try:
         lettura = leggi_immagine(prepared, pytesseract=pytesseract, lingua=lang or "ita", con_pdf=False)
     except Exception as exc:
         return "", [f"Pagina {page_number}: OCR non completato ({exc})."]
     warnings = [f"Pagina {page_number}: {avviso}" for avviso in lettura.avvisi]
+    warnings.append(f"Pagina {page_number}: orientamento-v1, rotazione di lettura {orientation}°.")
     return applica_formulario(lettura.testo).testo.strip(), warnings
 
 

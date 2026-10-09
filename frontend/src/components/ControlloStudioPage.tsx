@@ -134,13 +134,21 @@ export default function ControlloStudioPage() {
   const confermaPulsante = useRef<HTMLButtonElement>(null)
   const [aperte, setAperte] = useState<Set<string>>(new Set(FASCE_APERTE))
   const [caricamento, setCaricamento] = useState(false)
+  const [erroreCaricamento, setErroreCaricamento] = useState('')
 
   const carica = useCallback(async () => {
     setCaricamento(true)
-    const risposta = await fetch('/api/v1/ui/controllo-studio', { credentials: 'same-origin', headers: { Accept: 'application/json' } }).catch(() => null)
+    const risposta = await fetch('/api/v1/ui/controllo-studio', { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(20000), headers: { Accept: 'application/json' } }).catch(() => null)
     const valori = risposta ? await risposta.json().catch(() => null) as Dati | null : null
-    setDati(valori || { ok: false, message: 'Il quadro dello studio non si è caricato: riprova tra poco.' })
+    const confermato = Boolean(risposta?.ok && valori?.ok)
+    if (confermato) { setDati(valori); setErroreCaricamento('') }
+    else {
+      const message = valori?.message || 'Il quadro dello studio non si è aggiornato. I dati visualizzati sono conservati: riprova per verificare lo stato corrente.'
+      setErroreCaricamento(message)
+      setDati(current => current?.ok ? current : { ok: false, message })
+    }
     setCaricamento(false)
+    return confermato
   }, [])
   useOperationalRefresh(['agenda', 'scadenze', 'comunicazioni', 'fascicoli'], carica)
   useEffect(() => { void carica() }, [carica])
@@ -212,7 +220,7 @@ export default function ControlloStudioPage() {
   }
 
   if (!dati) return <main className="iu-content iu-cs"><p className="iu-cs-stato">Caricamento del quadro dello studio…</p></main>
-  if (!dati.ok) return <main className="iu-content iu-cs"><p className="iu-cs-stato is-errore" role="alert">{dati.message}</p></main>
+  if (!dati.ok) return <main className="iu-content iu-cs"><p className="iu-cs-stato is-errore" role="alert">{dati.message}</p><button type="button" className="iu-cs-aggiorna" disabled={caricamento} onClick={() => void carica()}><RefreshCw size={15}/>{caricamento ? 'Aggiorno…' : 'Riprova aggiornamento'}</button></main>
   const incassi = dati.incassi || { da_incassare: 0, scaduto: 0, parcelle_scadute: 0, incassato_mese: 0 }
 
   return (
@@ -225,6 +233,8 @@ export default function ControlloStudioPage() {
         </div>
         <button type="button" className="iu-cs-aggiorna" onClick={() => void carica()} disabled={caricamento || completamento}><RefreshCw size={15}/> {caricamento ? 'Aggiorno…' : 'Aggiorna'}</button>
       </header>
+
+      {erroreCaricamento ? <p className="iu-cs-stato is-errore" role="alert">{erroreCaricamento}</p> : null}
 
       {dati.fonti_non_disponibili?.length ? <p className="iu-cs-stato is-avviso" role="status">Non disponibili in questo momento: {dati.fonti_non_disponibili.join(', ')}.</p> : null}
       {avviso ? <p className={`iu-cs-stato ${erroreAzione ? 'is-errore' : 'is-ok'}`} role={erroreAzione ? 'alert' : 'status'}>{avviso}</p> : null}

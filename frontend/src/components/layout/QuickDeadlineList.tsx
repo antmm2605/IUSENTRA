@@ -21,8 +21,8 @@ export function QuickDeadlineList({ period, onClose }: { period: QuickDeadlinePe
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [error, setError] = useState(''), [message, setMessage] = useState(''), [busy, setBusy] = useState(false)
   const [page, setPage] = useState(1)
-  const load = () => request('/api/v1/ui/scadenze-rapide').then(setData)
-  useOperationalRefresh(['scadenze', 'agenda'], () => load().catch(reason => setError(reason instanceof Error ? reason.message : 'Scadenze non disponibili.')))
+  const load = () => request('/api/v1/ui/scadenze-rapide').then(value => { setData(value); setError('') })
+  useOperationalRefresh(['scadenze', 'agenda'], () => load().catch(reason => { setError(reason instanceof Error ? reason.message : 'Scadenze non disponibili.'); return false }))
   useEffect(() => { let live = true; request('/api/v1/ui/scadenze-rapide').then(v => { if (live) setData(v) }).catch(e => { if (live) setError(e.message) }); return () => { live = false } }, [])
   const rows = useMemo(() => {
     const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Rome' }).format(new Date())

@@ -12,6 +12,7 @@ per uno studio legale italiano, con:
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -25,6 +26,16 @@ from pct.compensi_a_tempo import calcola_compenso_a_tempo_art22bis
 _REGIMI_SENZA_IVA = {"RF19", "RF02"}
 _NUMBERING_SECTION = "fatturazione_numerazione"
 _PROFORMA_OPERATIVA = "PROFORMA"
+
+
+class ParcellaConcurrentUpdate(ValueError):
+    """La fonte SQL è cambiata dopo l'apertura della bozza."""
+
+
+def parcella_revision(parcella: Any) -> str:
+    payload = Parcella.from_dict(parcella.to_dict()).to_dict()
+    canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+    return hashlib.sha256(canonical.encode('utf-8')).hexdigest()
 
 
 # ================================================================ Enumerazioni
@@ -414,14 +425,26 @@ class GestioneFatturazione:
                 f, ensure_ascii=False, indent=2
             )
 
-    def _salva_parcella(self, parcella: Parcella) -> None:
+    def _salva_parcella(self, parcella: Parcella, *, expected_revision: str | None = None) -> None:
         if self._studio_db is None:
             self._salva()
             return
 
         def _insert(conn, item: Parcella) -> None:
             payload = item.to_dict()
-            conn.execute(
+            expected_json = None
+            if expected_revision is not None:
+                # SQLite holds the write transaction; PostgreSQL needs a row
+                # lock so deletion between the check and upsert cannot recreate it.
+                lock = ' FOR UPDATE' if getattr(self._studio_db, 'backend_kind', '') == 'postgresql' else ''
+                row = conn.execute('SELECT dati_json FROM parcelle WHERE id=?' + lock, (item.id,)).fetchone()
+                if row is None:
+                    raise ParcellaConcurrentUpdate('La bozza non è più disponibile.')
+                expected_json = row['dati_json']
+                persisted = Parcella.from_dict(json.loads(expected_json))
+                if parcella_revision(persisted) != expected_revision:
+                    raise ParcellaConcurrentUpdate('Il documento è stato aggiornato da un’altra finestra o utente. La tua bozza è conservata.')
+            result = conn.execute(
                 """
                 INSERT INTO parcelle
                 (id, numero, id_cliente, id_fascicolo, data_emissione, data_scadenza,
@@ -457,7 +480,7 @@ class GestioneFatturazione:
                     creato_da=excluded.creato_da,
                     creato_il=excluded.creato_il,
                     dati_json=excluded.dati_json
-                """,
+                """ + (' WHERE parcelle.dati_json=? RETURNING id' if expected_revision is not None else ''),
                 (
                     item.id,
                     item.numero,
@@ -485,8 +508,10 @@ class GestioneFatturazione:
                     item.creato_da,
                     item.creato_il,
                     json.dumps(payload, ensure_ascii=False),
-                ),
+                ) + ((expected_json,) if expected_revision is not None else ()),
             )
+            if expected_revision is not None and result.fetchone() is None:
+                raise ParcellaConcurrentUpdate('Il documento è cambiato durante il salvataggio. La tua bozza è conservata.')
 
         self._studio_db.salva_tabella("parcelle", [parcella], _insert, delete_all=False)
 
@@ -782,12 +807,17 @@ class GestioneFatturazione:
     def per_fascicolo(self, id_fascicolo: str) -> List[Parcella]:
         return [p for p in self.tutte() if p.id_fascicolo == id_fascicolo]
 
-    def aggiorna(self, id_parcella: str, **kwargs) -> Parcella:
+    def aggiorna(self, id_parcella: str, *, expected_revision: str | None = None, **kwargs) -> Parcella:
         p = self._parcelle[id_parcella]
+        if expected_revision is not None:
+            if self._studio_db is None:
+                raise ValueError('Il salvataggio concorrente richiede il repository SQL dello studio.')
+            p = Parcella.from_dict(p.to_dict())
         for k, v in kwargs.items():
             if hasattr(p, k):
                 setattr(p, k, v)
-        self._salva_parcella(p)
+        self._salva_parcella(p, expected_revision=expected_revision)
+        self._parcelle[id_parcella] = p
         return p
 
     def cambia_stato(self, id_parcella: str, stato: StatoParcella,
@@ -858,7 +888,6 @@ class GestioneFatturazione:
 
     def statistiche(self, anno: Optional[int] = None) -> Dict[str, Any]:
         anno = anno or date.today().year
-        prefix = f"{anno}/"
         parcelle_anno = [p for p in self._parcelle.values()
                          if p.data_emissione.startswith(str(anno))]
         emesse   = [p for p in parcelle_anno if p.stato != StatoParcella.BOZZA and p.stato != StatoParcella.ANNULLATA]

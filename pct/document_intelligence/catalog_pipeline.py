@@ -323,6 +323,7 @@ class FascicoloDocumentCatalogPipeline:
                 metadata={
                     "automatic_classification": bool(self.text_provider is not None and resolution.status == "proposed" and resolution.confidence >= 95),
                     "identity_holder": identity.get("titolare", ""),
+                    "identity_binding_verified": bool(identity.get("titolare") and source.metadata.get("identity_binding_verified")),
                     "identity_client_id": self.client_id if identity.get("titolare") else "",
                     "identity_type": identity.get("tipo_identita", ""),
                     "identity_content_sha256": identity_text_hash,

@@ -1,4 +1,4 @@
-#  version: 2.436.11
+#  version: 2.436.23
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -123,7 +123,7 @@ RUN corepack enable \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.436.11" \
+      org.opencontainers.image.version="2.436.23" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -161,6 +161,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libpcsclite1 \
         opensc \
         tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY scripts/install_postgres_backup_runtime.py /tmp/install_postgres_backup_runtime.py
+RUN python /tmp/install_postgres_backup_runtime.py \
     && rm -rf /var/lib/apt/lists/*
 
 RUN addgroup --system iusentra \

@@ -11,6 +11,7 @@ from .extraction import ExtractionResult, extract_text_from_document
 from .models import (
     DOCUMENT_AI_STATUSES,
     DocumentAIRecord,
+    DocumentAIPageText,
     DocumentAIVersion,
     DocumentAISearchResult,
     DocumentAIText,
@@ -335,7 +336,7 @@ class DocumentAIService:
         self._assert_fascicolo_access(fascicolo_id)
         return self.repository.list_documents(tenant_id, fascicolo_id, user_context)
 
-    def reacquire_existing_version(self, tenant_id: str, fascicolo_id: str, document_id: str, content: bytes, user_context: object) -> DocumentAIText:
+    def reacquire_existing_version(self, tenant_id: str, fascicolo_id: str, document_id: str, content: bytes, user_context: object, *, identity_recovery: bool = False) -> DocumentAIText:
         """Crea una nuova versione auditata dallo stesso blob, senza duplicare il record."""
         assert_user_can_write(user_context)
         self._assert_fascicolo_access(fascicolo_id)
@@ -345,12 +346,38 @@ class DocumentAIService:
         if compute_sha256_bytes(content) != record.sha256:
             raise DocumentAIValidationError("Impronta del blob diversa dal documento corrente.")
         ensure_allowed_size(len(content), self.max_size_bytes)
+        if identity_recovery:
+            current_text = self.repository.get_extracted_text(tenant_id, fascicolo_id, document_id, record.current_version_id)
+            if current_text and any('Recupero identità regione-v1:' in warning for warning in current_text.warnings):
+                return current_text
         versions = self.repository.list_versions(tenant_id, fascicolo_id, document_id)
         candidates = [item for item in versions if item.sha256 == record.sha256 and item.storage_path]
         previous = next((item for item in candidates if item.id == record.current_version_id), None)
         if previous is None and candidates:
             previous = max(candidates, key=lambda item: item.version_number)
-        extraction = extract_text_from_document(content, record.original_filename, record.file_type)
+        extraction = (extract_text_from_document(content, record.original_filename, record.file_type, identity_scan=True)
+                      if identity_recovery else extract_text_from_document(content, record.original_filename, record.file_type))
+        if identity_recovery:
+            archived = self.repository.get_extracted_text(tenant_id, fascicolo_id, document_id, record.current_version_id)
+            if archived is None or not archived.text.strip():
+                raise DocumentAIValidationError("Recupero identità senza lettura archiviata corrente.")
+            recovered = extraction.identity_recoveries if extraction.ok else []
+            additions = {item.page_number: item.text for item in recovered}
+            pages = [DocumentAIPageText(page_number=item.page_number,
+                text=item.text + ('\n\n' + additions.pop(item.page_number) if item.page_number in additions else ''))
+                for item in archived.pages]
+            # Una lettura storica senza pagine conserva il proprio testo senza
+            # inventarne la geometria. Le sole evidenze MRZ verificate si aggiungono.
+            extra = '\n\n'.join(item.text for item in recovered)
+            body = archived.text
+            if extra:
+                body += '\n\n' + extra
+            outcome = 'dati recuperati' if recovered else 'nessun dato aggiuntivo verificato'
+            extraction = ExtractionResult(ok=True, text=body, pages=pages,
+                extraction_engine=extraction.extraction_engine,
+                warnings=list(archived.warnings) + list(extraction.warnings)
+                    + [f'Recupero identità regione-v1: {outcome}; lettura precedente preservata.'],
+                identity_recoveries=recovered)
         if not extraction.ok or not str(extraction.text or "").strip():
             raise DocumentAIValidationError("Riacquisizione non adottabile: testo affidabile assente.")
         number = next_version_number(versions)
@@ -378,7 +405,9 @@ class DocumentAIService:
                 fascicolo_id=fascicolo_id, user_context=user_context, document_id=document_id, version_id=version.id,
                 sha256=record.sha256, filename=record.original_filename, status="ready",
                 payload={"source":"reacquisition","previous_version_id":previous.id if previous else None,
-                         "restored_missing_version":previous is None,"engine":extraction.extraction_engine})
+                         "restored_missing_version":previous is None,"engine":extraction.extraction_engine,
+                         "identity_recovery": identity_recovery,
+                         "recovered_pages": [item.page_number for item in extraction.identity_recoveries]})
             record_document_ai_event(self.repository, "document_ai.extraction.completed", tenant_id=tenant_id,
                 fascicolo_id=fascicolo_id, user_context=user_context, document_id=document_id, version_id=version.id,
                 sha256=record.sha256, filename=record.original_filename, status="ready",

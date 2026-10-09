@@ -165,10 +165,14 @@ class StudioDB:
         clienti = db.conn.execute("SELECT dati_json FROM clienti").fetchall()
     """
 
-    def __init__(self, db_path: str) -> None:
+    def __init__(self, db_path: str, *, initialize_schema: bool = True) -> None:
         self.db_path = resolve_sqlite_path(db_path)
         self._local = threading.local()
-        self._ensure_schema()
+        self._existing_only = not initialize_schema
+        if initialize_schema:
+            self._ensure_schema()
+            from pct.operational_live import ensure_live_schema
+            ensure_live_schema(self.conn)
 
     def _conn_query_only(self, conn: sqlite3.Connection) -> bool:
         try:
@@ -280,8 +284,10 @@ class StudioDB:
             return self._connect_readonly_immutable()
 
     def _connect_writable(self) -> sqlite3.Connection:
+        existing_only = getattr(self, '_existing_only', False)
         c = sqlite3.connect(
-            str(self.db_path),
+            self.db_path.resolve().as_uri() + '?mode=rw' if existing_only else str(self.db_path),
+            uri=existing_only,
             timeout=30,
             check_same_thread=False,
         )

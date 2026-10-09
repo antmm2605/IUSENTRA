@@ -123,6 +123,52 @@ def test_plain_markdown_and_ordinary_doubled_letters():
     assert not engine.duplicated_glyphs('avvocato, atto, ricevuta, allegato')
 
 
+def test_identity_region_preserves_original_and_accepts_only_checked_rotation(monkeypatch):
+    from PIL import Image, ImageDraw
+    from legal_ocr.motore import identita
+    install_identity_contour(monkeypatch)
+    page = Image.new('RGB', (1000, 1400), 'white')
+    ImageDraw.Draw(page).rectangle((300, 400, 600, 900), fill='gray')
+    original = page.tobytes()
+    mrz = ('I<UTOD231458907<<<<<<<<<<<<<<<\n'
+           '7408122F1204159UTO<<<<<<<<<<<6\n'
+           'ERIKSSON<<ANNA<MARIA<<<<<<<<<<')
+    calls = []
+    def read(image, **kwargs):
+        calls.append((image.size, kwargs))
+        return SimpleNamespace(confidenza=.97, testo=mrz if len(calls) == 2 else 'Testo senza riscontro MRZ')
+    monkeypatch.setattr(identita, 'leggi_con_secondo_lettore', read)
+    text, warnings = identita.recupera_mrz_carta(page)
+    assert text == mrz and len(calls) == 2
+    assert calls[0][0] == calls[1][0][::-1]
+    assert all(options == {'dpi': 216} for _, options in calls)
+    assert page.tobytes() == original
+    assert any('90°' in warning for warning in warnings)
+
+
+def test_identity_region_never_repairs_wrong_check_digits(monkeypatch):
+    from PIL import Image, ImageDraw
+    from legal_ocr.motore import identita
+    install_identity_contour(monkeypatch)
+    page = Image.new('RGB', (1000, 1400), 'white')
+    ImageDraw.Draw(page).rectangle((300, 400, 600, 900), fill='gray')
+    calls = []
+    def read(*args, **kwargs):
+        calls.append(1)
+        return SimpleNamespace(confidenza=.99, testo='I<UTOD231458900<<<<<<<<<<<<<<< 7408122F1204159UTO<<<<<<<<<<<6 ERIKSSON<<ANNA<MARIA<<<<<<<<<<')
+    monkeypatch.setattr(identita, 'leggi_con_secondo_lettore', read)
+    text, warnings = identita.recupera_mrz_carta(page)
+    assert not text and len(calls) == 4 and warnings
+
+
+def install_identity_contour(monkeypatch):
+    # Contratto portabile: OpenCV e PP-OCR reali sono provati nel container;
+    # qui si verifica esclusivamente adozione, limite tentativi e immutabilità.
+    monkeypatch.setitem(sys.modules, 'cv2', SimpleNamespace(RETR_EXTERNAL=0, CHAIN_APPROX_SIMPLE=0,
+        findContours=lambda *_: ([object()], None), contourArea=lambda _: 150000,
+        boundingRect=lambda _: (300, 400, 300, 500)))
+
+
 @pytest.mark.parametrize('timeout_at', [None, 2])
 def test_short_fields_include_boxes_after_32_and_continue_after_one_timeout(monkeypatch, timeout_at):
     from PIL import Image, ImageDraw

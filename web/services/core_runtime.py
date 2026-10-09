@@ -1109,10 +1109,25 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
 
     def get_prima_nota():
         if not hasattr(g, "_prima_nota"):
-            from pct.prima_nota import GestionePrimaNota
-
-            g._prima_nota = GestionePrimaNota(db_path=_cfg_data_path("PRIMA_NOTA_DB"))
+            from web.services.prima_nota_runtime import open_prima_nota_runtime, get_existing_prima_nota_database
+            from web.services.storage_runtime import get_request_storage_runtime
+            tenant_key = str(getattr(g, "tenant_context_slug", "") or "").strip().lower()
+            if not tenant_key:
+                tenant_key = str(getattr(getattr(g, "tenant", None), "slug", "") or "").strip().lower()
+            if not tenant_key and not (app.config.get("MULTI_TENANT") or getattr(g, "multi_tenant_enabled", False)):
+                tenant_key = "studio"
+            actor_key = str(getattr(getattr(g, "utente_corrente", None), "id", "") or "").strip()
+            g._prima_nota = open_prima_nota_runtime(
+                _cfg_data_path("PRIMA_NOTA_DB"), anchor=_cfg_data_path("CLIENTI_DB"),
+                tenant_key=tenant_key, actor_key=actor_key,
+                get_profile=get_request_storage_runtime, get_database=get_existing_prima_nota_database,
+            )
         return g._prima_nota
+
+    @app.teardown_request
+    def _close_prima_nota_request_database(error):
+        from web.services.prima_nota_runtime import close_prima_nota_database
+        close_prima_nota_database()
 
     def get_preventivi() -> GestionePreventivi:
         if not hasattr(g, "_preventivi"):

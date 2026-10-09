@@ -2,6 +2,13 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { workWindowUrl } from '../../frontend/src/components/workWindowRoutes.ts'
 const origin = 'https://app.iusentra.it'
+
+test('gli export contabili restano download e non diventano finestre', () => {
+ for (const path of ['/prima-nota/esporta.csv', '/prima-nota/esporta.csv?dal=2026-10-01', '/prima-nota/registro-iva.csv?anno=2026']) {
+  assert.equal(workWindowUrl(path, origin), null)
+ }
+ assert.equal(workWindowUrl('/prima-nota?dal=2026-10-01', origin)?.pathname, '/prima-nota')
+})
 test('la casella in finestra conserva filtri e resta una casella', () => {
  for (const path of ['/email', '/email/', '/email-ordinaria', '/email-ordinaria/']) {
   const url=workWindowUrl(`${path}?cartella=INBOX&q=ricerca`,origin)

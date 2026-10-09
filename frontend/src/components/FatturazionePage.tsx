@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
+import { mergeRegistryRefresh } from '../features/anagrafiche/mergeRegistryRefresh'
 import type { FormEvent } from 'react'
 import {
   AlertTriangle,
@@ -429,7 +430,6 @@ function CompactOperations({
   onStateFilter,
   onPaymentFilter,
   onIssueFilter,
-  exportAction,
 }: {
   data: FatturazionePageData
   totalRecords: number
@@ -440,7 +440,6 @@ function CompactOperations({
   onStateFilter: (value: string) => void
   onPaymentFilter: (value: PaymentFilter) => void
   onIssueFilter: (value: IssueFilter) => void
-  exportAction?: FatturazionePageData['actions'][number]
 }) {
   const stateItems = data.sections.find((section) => section.id === 'stati')?.items || []
   const selectedState = stateFilter.toLowerCase()
@@ -506,16 +505,6 @@ function CompactOperations({
           <span>Fattura emessa</span>
           <strong>{issuedCount}</strong>
         </button>
-        <a className="iu-fatt-chip" href="/fatturazione/nuova?documento_operativo=PROFORMA" data-tone="primary">
-          <Plus size={15} />
-          <span>Nuova proforma</span>
-        </a>
-        {exportAction ? (
-          <a className="iu-fatt-chip" href={exportAction.href} data-tone="warning">
-            <Download size={15} />
-            <span>Export CSV</span>
-          </a>
-        ) : null}
         <a className="iu-fatt-chip" href="#fatturazione-numerazione" data-tone="info">
           <Save size={15} />
           <span>Numerazione</span>
@@ -567,19 +556,19 @@ function InvoiceRow({
         </div>
         <strong>{record.customerName}</strong>
         {record.caseTitle ? <small>{record.caseTitle}</small> : null}
+        {record.sdiStatusMessage ? <small>{record.sdiStatusMessage}</small> : null}
       </div>
       <div className="iu-fatt-record__dates">
         <span>{record.isProforma ? 'Data' : 'Emissione'} {record.issuedAt || 'non indicata'}</span>
         <span>Scadenza {record.dueAt || 'non indicata'}</span>
         {record.paidAt ? <span>Incasso {record.paidAt}</span> : null}
+        {record.paymentMethod ? <small>{record.paymentMethod}</small> : null}
       </div>
       <div className="iu-fatt-record__amount">
         <strong>{record.amountDisplay || 'Importo non indicato'}</strong>
         <Badge tone={record.stateTone}>{record.stateLabel}</Badge>
         {!record.isProforma && record.sdiStateLabel ? <Badge tone={record.sdiStateTone}>{record.sdiStateLabel}</Badge> : null}
         {!record.isProforma && record.sdiIdentifier ? <small>SdI {record.sdiIdentifier}</small> : null}
-        {record.sdiStatusMessage ? <small>{record.sdiStatusMessage}</small> : null}
-        {record.paymentMethod ? <small>{record.paymentMethod}</small> : null}
       </div>
       <div className="iu-fatt-record__actions">
         <Button type="button" tone="neutral" onClick={() => onDetail(record)}>
@@ -1772,12 +1761,26 @@ function ArchiveDetailPanel({
   initialTab: DetailTab
 }) {
   const [activeTab, setActiveTab] = useState<DetailTab>('dettaglio')
+  const detailBody = useRef<HTMLDivElement | null>(null)
+  const tabScroll = useRef<Partial<Record<DetailTab, number>>>({})
+
+  useEffect(() => {
+    if (detailBody.current) detailBody.current.scrollTop = tabScroll.current[activeTab] || 0
+  }, [activeTab])
+
+  function selectDetailTab(nextTab: DetailTab) {
+    if (nextTab === activeTab) return
+    tabScroll.current[activeTab] = detailBody.current?.scrollTop || 0
+    setActiveTab(nextTab)
+  }
   const [voices, setVoices] = useState<EditableVoice[]>([])
   const [note, setNote] = useState('')
   const [issuedAt, setIssuedAt] = useState('')
   const [dueAt, setDueAt] = useState('')
   const [detailFiscal, setDetailFiscal] = useState<FatturazioneDetailFiscal>(defaultDetailFiscal)
   const [paymentMethod, setPaymentMethod] = useState('Non indicato')
+  const persistedDraft = useRef<{ id: string; values: Record<string, string | boolean> } | null>(null)
+  const [concurrentFields, setConcurrentFields] = useState<string[]>([])
   const [notice, setNotice] = useState<ActionNotice>(null)
   const [busy, setBusy] = useState('')
   const [pdfRevision, setPdfRevision] = useState(0)
@@ -1803,6 +1806,8 @@ function ArchiveDetailPanel({
 
   useEffect(() => {
     setVoices(editableVoices(detail))
+    tabScroll.current = {}
+    if (detailBody.current) detailBody.current.scrollTop = 0
     setNote(detail?.note || '')
     setIssuedAt(detail?.dataEmissione || '')
     setDueAt(detail?.dataScadenza || '')
@@ -1826,6 +1831,43 @@ function ArchiveDetailPanel({
     })
   }, [detail?.id, initialTab])
 
+  function draftValues() {
+    return {
+      note, issuedAt, dueAt, paymentMethod,
+      voices: JSON.stringify(voices.map(({ rowId: _rowId, ...voice }) => voice)),
+      ...detailFiscal,
+      bollo_a_carico_studio: detailFiscal.bollo_a_carico_studio === true,
+    }
+  }
+  function applyDraftValues(values: Record<string, string | boolean>) {
+    setNote(String(values.note)); setIssuedAt(String(values.issuedAt)); setDueAt(String(values.dueAt))
+    setPaymentMethod(String(values.paymentMethod))
+    if (draftValues().voices !== values.voices) {
+      const rows = JSON.parse(String(values.voices)) as Omit<EditableVoice, 'rowId'>[]
+      setVoices(rows.map((voice, index) => ({ ...voice, rowId: voices[index]?.rowId || `${detail?.id}-live-${index}` })))
+    }
+    setDetailFiscal({
+      applica_iva: values.applica_iva === true, applica_cassa: values.applica_cassa === true,
+      applica_ritenuta: values.applica_ritenuta === true, applica_bollo: values.applica_bollo === true,
+      bollo_a_carico_studio: values.bollo_a_carico_studio === true,
+      regime_fiscale: String(values.regime_fiscale), percentuale_spese_generali: String(values.percentuale_spese_generali),
+    })
+  }
+  useEffect(() => {
+    if (!detail) { persistedDraft.current = null; setConcurrentFields([]); return }
+    const incoming: Record<string, string | boolean> = {
+      note: detail.note || '', issuedAt: detail.dataEmissione || '', dueAt: detail.dataScadenza || '',
+      paymentMethod: detail.payment.metodo_pagamento || 'Non indicato',
+      voices: JSON.stringify(editableVoices(detail).map(({ rowId: _rowId, ...voice }) => voice)),
+      ...detail.fiscal, bollo_a_carico_studio: detail.fiscal.bollo_a_carico_studio === true,
+    }
+    const previous = persistedDraft.current?.id === detail.id ? persistedDraft.current.values : undefined
+    const merged = mergeRegistryRefresh<Record<string, string | boolean>>(draftValues(), previous, incoming)
+    persistedDraft.current = { id: detail.id, values: incoming }
+    applyDraftValues(merged.values)
+    setConcurrentFields(current => [...new Set([...(previous ? current : []), ...merged.conflicts])].filter(key => merged.values[key] !== incoming[key]))
+  }, [detail])
+
   if (loading) {
     return (
       <div className="iu-fatt-overlay" role="dialog" aria-modal="true" aria-label="Dettaglio fatturazione">
@@ -1848,12 +1890,16 @@ function ArchiveDetailPanel({
     if (result.ok) {
       await onReloadPage()
       await onReloadDetail()
+    } else if (result.errors?.revision) {
+      await onReloadDetail()
     }
   }
 
   async function saveDetail(generateProforma = false) {
+    if (concurrentFields.length) return
     setBusy('detail')
     const payload: FatturazioneDetailUpdatePayload = {
+      expected_revision: currentDetail.revision,
       note,
       data_emissione: issuedAt,
       data_scadenza: dueAt,
@@ -2225,7 +2271,7 @@ function ArchiveDetailPanel({
             ...(detail.isProforma ? [] : [['xml', 'XML e SdI']]),
             ['commercialista', 'Commercialista'],
           ].map(([id, label]) => (
-            <button type="button" className={activeTab === id ? 'is-active' : ''} onClick={() => setActiveTab(id as DetailTab)} key={id}>
+            <button type="button" className={activeTab === id ? 'is-active' : ''} onClick={() => selectDetailTab(id as DetailTab)} key={id}>
               {label}
             </button>
           ))}
@@ -2238,7 +2284,8 @@ function ArchiveDetailPanel({
           </section>
         ) : null}
 
-        <div className="iu-fatt-modal__body">
+        <div className="iu-fatt-modal__body" ref={detailBody}>
+          {concurrentFields.length ? <section className="iu-fatt-state iu-fatt-state--warning" role="alert"><div><strong>Modifica concorrente</strong><span>Un’altra finestra o un altro utente ha aggiornato dati che stai modificando. La tua bozza è conservata; il salvataggio è sospeso per evitare sovrascritture.</span></div><Button type="button" tone="neutral" onClick={() => { if (persistedDraft.current) applyDraftValues(persistedDraft.current.values); setConcurrentFields([]); setNotice(null) }}>Usa dati aggiornati</Button></section> : null}
           {activeTab === 'dettaglio' ? (
             <section className="iu-fatt-detail-editor">
               <div className="iu-fatt-detail-summary">
@@ -2369,11 +2416,11 @@ function ArchiveDetailPanel({
               {editable ? (
                 <div className="iu-fatt-action-row">
                   <Button type="button" tone="neutral" onClick={addVoice}><Plus size={15} /> Aggiungi voce</Button>
-                  <Button type="button" tone="neutral" disabled={busy === 'detail'} onClick={() => void saveDetail(false)}>
+                  <Button type="button" tone="neutral" disabled={busy === 'detail' || concurrentFields.length > 0} onClick={() => void saveDetail(false)}>
                     <Save size={15} /> {busy === 'detail' ? 'Salvataggio' : `Salva ${detail.documentKindLabel.toLowerCase()}`}
                   </Button>
                   {detail.isProforma ? (
-                    <Button type="button" tone="primary" disabled={busy === 'detail'} onClick={() => void saveDetail(true)}>
+                    <Button type="button" tone="primary" disabled={busy === 'detail' || concurrentFields.length > 0} onClick={() => void saveDetail(true)}>
                       <FileText size={15} /> {busy === 'detail' ? 'Generazione' : 'Genera proforma'}
                     </Button>
                   ) : null}
@@ -2663,7 +2710,7 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
   const [page, setPage] = useState(1)
   const [refreshError, setRefreshError] = useState('')
   const [refreshing, setRefreshing] = useState(false)
-  const refreshFlight = useRef<Promise<void> | null>(null)
+  const refreshFlight = useRef<Promise<boolean> | null>(null)
   const [detail, setDetail] = useState<FatturazioneDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailInitialTab, setDetailInitialTab] = useState<DetailTab>('dettaglio')
@@ -2715,8 +2762,10 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
       if (!payload.ok || payload.warnings.some(warning => warning.code === 'fatturazione_non_disponibile')) throw new Error('Archivio non disponibile')
       onReload(payload)
       setRefreshError('')
+      return true
     }).catch(() => {
       setRefreshError('Aggiornamento non riuscito. I dati e i filtri visualizzati sono conservati: riprova per verificare lo stato corrente.')
+      return false
     }).finally(() => {
       refreshFlight.current = null
       setRefreshing(false)
@@ -2724,7 +2773,10 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
     refreshFlight.current = flight
     return flight
   }
-  useOperationalRefresh(['fatturazione', 'incassi'], refreshArchive)
+  useOperationalRefresh(['fatturazione', 'incassi'], async () => {
+    if (!await refreshArchive()) return false
+    return reloadCurrentDetail(true)
+  })
 
   async function reloadAfter(result: FatturazioneMutationResult) {
     setMutationResult(result)
@@ -2767,22 +2819,26 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
     loadDetail(record, tab)
   }
 
-  async function reloadCurrentDetail() {
+  async function reloadCurrentDetail(silent = false) {
     const currentId = detail?.id
-    if (!currentId) return
+    if (!currentId) return true
     const request = ++detailRequest.current
-    setDetailLoading(true)
+    if (!silent) setDetailLoading(true)
     try {
       const response = await getFatturazioneDetail(currentId)
-      if (request !== detailRequest.current) return
-      if (response.ok) setDetail(response.item)
+      if (request !== detailRequest.current) return false
+      if (response.ok) { setDetail(response.item); return true }
       else {
         setMutationResult({ ok: false, message: response.message || 'Dettaglio non disponibile.', errors: response.errors, item: null })
         setMutationErrors(response.errors)
+        return false
       }
     } catch {
       if (request === detailRequest.current) setMutationResult({ ok: false, message: 'Impossibile aggiornare il dettaglio. Riprova.', errors: {}, item: null })
+      return false
     } finally {
+      // A live refresh can supersede the reload started after a save.
+      // The latest settled request must also release that existing loading state.
       if (request === detailRequest.current) setDetailLoading(false)
     }
   }
@@ -2858,7 +2914,6 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
         onStateFilter={setStateFilter}
         onPaymentFilter={setPaymentFilter}
         onIssueFilter={setIssueFilter}
-        exportAction={exportAction}
       />
       <Panel
         title="Archivio parcelle e fatture"
@@ -2963,7 +3018,7 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
         loading={detailLoading}
         onClose={closeDetail}
         onReloadPage={reloadArchivePage}
-        onReloadDetail={reloadCurrentDetail}
+        onReloadDetail={async () => { await reloadCurrentDetail() }}
         initialTab={detailInitialTab}
       />
     </>

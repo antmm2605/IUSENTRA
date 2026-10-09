@@ -11,7 +11,7 @@ from pathlib import Path, PurePath
 from typing import Any, Callable
 from zoneinfo import ZoneInfo
 
-from pct.fatturazione import StatoParcella, VoceParcella
+from pct.fatturazione import StatoParcella, VoceParcella, ParcellaConcurrentUpdate, parcella_revision
 from pct.formatting import format_euro_it
 from werkzeug.security import safe_join
 
@@ -23,7 +23,7 @@ _ALLOWED_STATUS_FIELDS = {
     "confermaProforma",
     "conferma_proforma",
 }
-_ALLOWED_DETAIL_FIELDS = {"voci", "note", "data_emissione", "data_scadenza", "fiscal", "payment"}
+_ALLOWED_DETAIL_FIELDS = {"voci", "note", "data_emissione", "data_scadenza", "fiscal", "payment", "expected_revision"}
 _ALLOWED_DETAIL_FISCAL_FIELDS = {
     "applica_iva",
     "applica_cassa",
@@ -557,6 +557,7 @@ def build_react_fatturazione_detail_payload(
         for voce in list(getattr(parcella, "voci", []) or [])
     ]
     item["note"] = _text(getattr(parcella, "note", ""))
+    item["revision"] = parcella_revision(parcella)
     personalized = getattr(parcella, "dati_personalizzati", {}) or {}
     if not isinstance(personalized, dict):
         personalized = {}
@@ -606,6 +607,10 @@ def update_react_fatturazione_detail(
         parcella = None
     if not parcella:
         return {"ok": False, "message": "Documento non trovato.", "errors": {"id_documento": "Identificativo non valido."}, "item": None}, 404
+    expected_revision = _text(payload.get('expected_revision'))
+    sql_storage = getattr(manager, '_studio_db', None) is not None
+    if sql_storage and not re.fullmatch(r'[a-f0-9]{64}', expected_revision):
+        return {'ok': False, 'message': 'Salvataggio non eseguito.', 'errors': {'revision': 'Riapri il dettaglio aggiornato prima di salvare. La bozza locale è conservata.'}, 'item': None}, 428
     if _enum(getattr(parcella, "stato", "")) != "BOZZA":
         return {
             "ok": False,
@@ -724,6 +729,7 @@ def update_react_fatturazione_detail(
     try:
         updated = manager.aggiorna(
             id_documento,
+            **({'expected_revision': expected_revision} if sql_storage else {}),
             voci=voices,
             note=_text(payload.get("note"), limit=2000),
             data_emissione=data_emissione,
@@ -737,6 +743,8 @@ def update_react_fatturazione_detail(
             studio_iban=effective_iban if metodo_pagamento == "Bonifico" else getattr(parcella, "studio_iban", ""),
             dati_personalizzati=personalized,
         )
+    except ParcellaConcurrentUpdate as exc:
+        return {'ok': False, 'message': 'Modifica concorrente.', 'errors': {'revision': str(exc)}, 'item': None}, 409
     except KeyError:
         return {"ok": False, "message": "Documento non trovato.", "errors": {"id_documento": "Identificativo non valido."}, "item": None}, 404
     _audit(get_utenti, current_user, "fatturazione.dettaglio", id_documento, ip_address)

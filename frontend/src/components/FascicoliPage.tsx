@@ -4093,7 +4093,7 @@ function ArchivePage() {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<'tutti' | 'zip' | 'esiti'>('tutti')
   const [error, setError] = useState('')
-  const refreshFlight = useRef<Promise<void> | null>(null)
+  const refreshFlight = useRef<Promise<boolean> | null>(null)
   const mounted = useRef(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [toast, setToast] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
@@ -4102,12 +4102,14 @@ function ArchivePage() {
     setLoading(true)
     setError('')
     const flight = getFascicoliArchive().then((payload) => {
-      if (!mounted.current) return
+      if (!mounted.current) return false
       setData(payload)
       const available = new Set(payload.items.map(item => item.id))
       setSelected(current => new Set([...current].filter(id => available.has(id))))
+      return true
     }).catch((reason: unknown) => {
       if (mounted.current) setError(reason instanceof Error ? reason.message : 'Impossibile caricare l’archivio. Riprova.')
+      return false
     }).finally(() => {
       refreshFlight.current = null
       if (mounted.current) setLoading(false)
@@ -9749,6 +9751,27 @@ function DetailPage({ id }:{id:string}) {
       setLazyStatus({ documenti: 'loaded', attivita: 'loaded', scadenze: 'loaded', depositi: 'loaded', regia: 'loaded', relata: 'loaded', audit: 'loaded', lex: 'loaded' })
     }).catch((err) => setToast({ tone: 'danger', message: err instanceof Error ? err.message : 'Aggiornamento fascicolo non riuscito.' }))
   }
+  useOperationalRefresh(['clienti', 'soggetti', 'fascicoli', 'agenda', 'scadenze'], async () => {
+    // Only sections already used by this workspace; retain the open windows,
+    // editor drafts, scroll and unloaded sections. No include=all background scan.
+    const include = (Object.entries(lazyStatus) as [FascicoloDetailSection, LazySectionStatus][])
+      .filter(([, state]) => state === 'loaded').map(([section]) => section)
+    const payload = await getFascicoloDetail(id, include.length ? { include } : undefined)
+    if (!payload.fascicolo.id) { setToast({ tone: 'danger', message: 'Aggiornamento live del fascicolo non riuscito.' }); return }
+    setData(current => ({ ...payload,
+      documents: include.includes('documenti') ? payload.documents : current.documents,
+      activities: include.includes('attivita') ? payload.activities : current.activities,
+      technicalEvents: include.includes('attivita') ? payload.technicalEvents : current.technicalEvents,
+      requests: include.includes('attivita') ? payload.requests : current.requests,
+      deadlines: include.includes('scadenze') ? payload.deadlines : current.deadlines,
+      appointments: include.includes('scadenze') ? payload.appointments : current.appointments,
+      deposits: include.includes('depositi') ? payload.deposits : current.deposits,
+      regia: include.includes('regia') ? payload.regia : current.regia,
+      auditTrail: include.includes('audit') ? payload.auditTrail : current.auditTrail,
+      notificationRelata: include.includes('relata') ? payload.notificationRelata : current.notificationRelata,
+      lexIndexing: include.includes('lex') || include.includes('documenti') ? payload.lexIndexing : current.lexIndexing,
+    }))
+  })
   const refreshDocuments = (message?: string) => {
     if (message) setToast({ tone: 'success', message })
     getFascicoloDetailSection(id, 'documenti').then((payload) => {

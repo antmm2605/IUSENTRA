@@ -43,6 +43,48 @@ def densita_pagina(larghezza: int, altezza: int) -> int:
     return int(min(600, max(72, round(dpi))))
 
 
+def orienta_testo(immagine, *, pytesseract, lingua: str = "ita"):
+    """Orientamento misurato sul testo, senza modificare la fonte.
+
+    OSD debole sulle carte fotografiche non costituisce prova. In quel caso
+    confrontiamo quattro miniature con lo stesso motore e punteggio condivisi.
+    La rotazione viene adottata solo con un vantaggio netto sulla posizione 0.
+    """
+    from .lettura import _leggi, testo_per_righe
+    from .punteggio import punteggio_lettura
+
+    if not callable(getattr(pytesseract, "image_to_data", None)):
+        return immagine, 0
+    try:
+        osd = pytesseract.image_to_osd(immagine, output_type="dict", timeout=8)
+        if float(osd.get("orientation_conf", 0)) >= 15:
+            angle = (-int(osd.get("rotate", 0))) % 360
+            return (immagine.rotate(angle, expand=True), angle) if angle else (immagine, 0)
+    except Exception:
+        pass
+    sample = immagine.copy()
+    sample.thumbnail((1600, 1600))
+    scores = {}
+    try:
+        for angle in (0, 90, 180, 270):
+            candidate = sample.rotate(angle, expand=True) if angle else sample
+            try:
+                words, _ = _leggi(pytesseract, candidate, lingua=lingua,
+                    opzioni="--oem 1 --psm 11", dpi=150, timeout=8)
+                scores[angle] = punteggio_lettura(words, testo_per_righe(words))
+            except Exception:
+                scores[angle] = 0
+            finally:
+                if candidate is not sample:
+                    candidate.close()
+    finally:
+        sample.close()
+    best = max(scores, key=scores.get)
+    if best and scores[best] > max(50, scores[0] * 1.25):
+        return immagine.rotate(best, expand=True), best
+    return immagine, 0
+
+
 def _pillow():
     try:
         from PIL import Image, ImageFilter, ImageOps

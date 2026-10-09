@@ -60,6 +60,14 @@ export function formatDateIt(value: string | number | Date | null | undefined, f
   }).format(parsed)
 }
 
+/** Valore macchina per input date, riferito al giorno civile italiano. */
+export function formatDateInputIt(value: string | number | Date | null | undefined): string {
+  const label = formatDateIt(value)
+  if (!label) return ''
+  const [day, month, year] = label.split('/')
+  return `${year}-${month}-${day}`
+}
+
 export function formatTimeIt(value: string | number | Date | null | undefined, fallback = ''): string {
   const parsed = parseDateValue(value)
   if (!parsed) return fallback

@@ -14,7 +14,7 @@ def documenti_identita_cliente(cliente_id: str, fascicoli: list[Any]) -> list[di
             continue
         for assignment in _sql_document_catalog_by_id(fascicolo).values():
             meta = assignment.metadata or {}
-            if assignment.status not in {"confirmed", "manual_override"} and not (assignment.status in {"catalogued", "proposed"} and meta.get("automatic_classification")):
+            if assignment.status not in {"confirmed", "manual_override"} and not meta.get("identity_binding_verified") and not (assignment.status in {"catalogued", "proposed"} and meta.get("automatic_classification")):
                 continue
             if assignment.document_nature != "documento_identita" or meta.get("identity_client_id") != str(cliente_id) or not meta.get("identity_holder"):
                 continue

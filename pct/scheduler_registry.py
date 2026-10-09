@@ -14,6 +14,7 @@ from typing import Any
 from uuid import uuid4
 
 from pct.backup import backup_operations_disabled
+from pct.sqlite_connection import ClosingSQLiteConnection
 from pct.legal_update_autofetch import (
     LEGAL_UPDATE_PROGRESSIVE_ITEM_TIMEOUT_SECONDS,
     LEGAL_UPDATE_PROGRESSIVE_PUBLISH_MAX_ITEMS,
@@ -149,6 +150,21 @@ def _runtime_registry_db_path(config: dict[str, Any] | None = None) -> Path:
     if Path("/data").exists():
         return Path("/data/intelligence") / DEFAULT_DB_NAME
     return Path("intelligence") / DEFAULT_DB_NAME
+
+
+def read_registered_job_enabled(job_id: str, config: dict[str, Any] | None = None) -> bool | None:
+    """Read an existing scheduling decision without creating a database/schema."""
+    from contextlib import closing
+
+    path = _runtime_registry_db_path(config)
+    if not path.is_file():
+        return None
+    try:
+        with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=2)) as conn:
+            row = conn.execute("SELECT enabled FROM scheduled_jobs WHERE job_id=?", (job_id,)).fetchone()
+        return bool(row[0]) if row is not None else None
+    except sqlite3.Error as exc:
+        raise ValueError("Stato della pianificazione locale non disponibile") from exc
 
 
 @dataclass(frozen=True)
@@ -676,10 +692,14 @@ class SchedulerRegistryRepository:
 
     def connect(self, *, audit_write: bool = False) -> sqlite3.Connection:
         timeout_ms = 30000 if audit_write else 5000
-        conn = sqlite3.connect(str(self.db_path), timeout=timeout_ms / 1000)
-        conn.row_factory = sqlite3.Row
-        conn.execute(f"PRAGMA busy_timeout={timeout_ms}")
-        conn.execute("PRAGMA journal_mode=WAL")
+        conn = sqlite3.connect(str(self.db_path), timeout=timeout_ms / 1000, factory=ClosingSQLiteConnection)
+        try:
+            conn.row_factory = sqlite3.Row
+            conn.execute(f"PRAGMA busy_timeout={timeout_ms}")
+            conn.execute("PRAGMA journal_mode=WAL")
+        except BaseException:
+            conn.close()
+            raise
         return conn
 
     def init_db(self) -> None:

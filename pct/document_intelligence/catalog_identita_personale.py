@@ -29,7 +29,7 @@ FONTE = "normattiva_dpr_445_2000_documentazione_amministrativa"
 
 # (chiave, etichetta, espressione sul testo normalizzato: minuscolo, senza accenti né apostrofi)
 TIPI: tuple[tuple[str, str, str], ...] = (
-    ("carta_identita", "Carta d'identità", r"\bcarta\s+d\s*i?\s*identita\b|\bcarta\s+identita\b|\bidentity\s+card\b|\bcarta\s+d\s+identit\w*\b|\bc\.?i\.?e\.?\b(?=.*\b(?:cognome|surname|nome|name)\b)"),
+    ("carta_identita", "Carta d'identità", r"\bcarta\s+d\s*i?\s*identita\b|\bcarta\s+identita\b|\bidentity\s+card\b|\bcarta\s+d\s+identit\w*\b|\b[ic]<ita[a-z0-9<]{15,}(?=\s|$)|\bc\.?i\.?e\.?\b(?=.*\b(?:cognome|surname|nome|name)\b)"),
     ("passaporto", "Passaporto", r"\bpassaporto\b|\bpassport\b"),
     ("patente", "Patente di guida", r"\bpatente\s+di\s+guida\b|\bpatente\b|\bdriving\s+licen[cs]e\b"),
     ("permesso_soggiorno", "Permesso di soggiorno", r"\bpermesso\s+di\s+soggiorno\b|\bcarta\s+di\s+soggiorno\b|\bresidence\s+permit\b"),

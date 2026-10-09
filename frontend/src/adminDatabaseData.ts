@@ -23,6 +23,7 @@ export type AdminDatabaseModule = {
   mirror: boolean
   kind: { label: string; tone: Tone }
   status: AdminDatabaseStatus
+  operational?: { verified: boolean; table: string; records: number | null; message: string }
 }
 
 export type AdminDatabaseSqliteInfo = {
@@ -341,6 +342,7 @@ function statusFromPayload(value: unknown): AdminDatabaseStatus {
 function moduleFromPayload(value: unknown, index: number): AdminDatabaseModule {
   const item = isRecord(value) ? value : {}
   const kind = isRecord(item.kind) ? item.kind : {}
+  const operational = isRecord(item.operational) ? item.operational : {}
   const id = text(item.id, text(item.name, `modulo-${index}`))
   return {
     id,
@@ -361,6 +363,7 @@ function moduleFromPayload(value: unknown, index: number): AdminDatabaseModule {
       tone: tone(kind.tone),
     },
     status: statusFromPayload(item.status),
+    operational: { verified: bool(operational.verified), table: text(operational.table), records: typeof operational.records === 'number' ? operational.records : null, message: text(operational.message, 'Repository operativo da verificare.') },
   }
 }
 
@@ -474,6 +477,7 @@ export async function getAdminDatabasePage(): Promise<AdminDatabasePageData> {
     credentials: 'same-origin',
     cache: 'no-store',
     headers: { Accept: 'application/json' },
+    signal: AbortSignal.timeout(20000),
   })
   if (!response.ok) throw new Error('Database amministrativo non disponibile')
   return normalisePayload(await response.json())

@@ -295,6 +295,7 @@ class GestioneClienti:
         self._studio_db = studio_db
         self._clienti: dict[str, Cliente] = {}
         self._carica()
+        self._persisted_clienti = {key: value.to_dict() for key, value in self._clienti.items()}
 
     # ---------------------------------------------------------------- I/O
 
@@ -302,10 +303,12 @@ class GestioneClienti:
         if self._studio_db is not None:
             rows = self._studio_db.carica_tabella("clienti")
             self._clienti = {}
+            self._persisted_sql_clienti = {}
             for d in rows:
                 try:
                     c = Cliente.from_dict(d)
                     self._clienti[c.id] = c
+                    self._persisted_sql_clienti[c.id] = d
                 except Exception:
                     pass
             return
@@ -327,8 +330,21 @@ class GestioneClienti:
 
     def _salva(self) -> None:
         if self._studio_db is not None:
-            import json as _json
-            def _insert(conn, c):
+            current = {key: value.to_dict() for key, value in self._clienti.items()}
+            changes = [key for key in sorted(set(current) | set(self._persisted_clienti)) if current.get(key) != self._persisted_clienti.get(key)]
+            if not changes:
+                return
+            postgres = hasattr(self._studio_db, "raw_conn")
+            def _insert(conn, key):
+                query = "SELECT dati_json FROM clienti WHERE id = ?" + (" FOR UPDATE" if postgres else "")
+                row = conn.execute(query, (key,)).fetchone()
+                saved = json.loads(row["dati_json"]) if row else None
+                if saved != self._persisted_sql_clienti.get(key):
+                    raise ValueError("L'anagrafica è stata aggiornata da un altro utente. Le modifiche non sono state sovrascritte: ricarica e confronta la scheda.")
+                if key not in current:
+                    conn.execute("DELETE FROM clienti WHERE id = ?", (key,))
+                    return
+                c = self._clienti[key]
                 d = c.to_dict()
                 rec = d.get("recapiti") or {}
                 conn.execute("""
@@ -337,6 +353,13 @@ class GestioneClienti:
                      codice_fiscale, partita_iva, email, telefono, note,
                      creato_il, modificato_il, dati_json)
                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    ON CONFLICT(id) DO UPDATE SET
+                    tipo=excluded.tipo, stato=excluded.stato, cognome=excluded.cognome,
+                    nome=excluded.nome, ragione_sociale=excluded.ragione_sociale,
+                    codice_fiscale=excluded.codice_fiscale, partita_iva=excluded.partita_iva,
+                    email=excluded.email, telefono=excluded.telefono, note=excluded.note,
+                    creato_il=excluded.creato_il, modificato_il=excluded.modificato_il,
+                    dati_json=excluded.dati_json
                 """, (
                     c.id, c.tipo.value, c.stato.value,
                     c.cognome, c.nome, c.ragione_sociale,
@@ -345,9 +368,15 @@ class GestioneClienti:
                     rec.get("telefono", "") if isinstance(rec, dict) else "",
                     c.note, c.creato_il,
                     __import__("datetime").datetime.now().isoformat(),
-                    _json.dumps(d, ensure_ascii=False),
+                    json.dumps(d, ensure_ascii=False),
                 ))
-            self._studio_db.salva_tabella("clienti", list(self._clienti.values()), _insert)
+            self._studio_db.salva_tabella("clienti", changes, _insert, delete_all=False)
+            self._persisted_clienti = current
+            for key in changes:
+                if key in current:
+                    self._persisted_sql_clienti[key] = current[key]
+                else:
+                    self._persisted_sql_clienti.pop(key, None)
             return
         from pct import cache as _cache
         _cache.save(self.db_path, {k: v.to_dict() for k, v in self._clienti.items()})

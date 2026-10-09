@@ -65,6 +65,7 @@ def build_react_prima_nota_payload(
     saldi = registro.saldi(dal=dal, al=al)
     return {
         "source": "repository_reali",
+        "writeProtocol": registro.write_protocol,
         "generatedAt": date.today().isoformat(),
         "contracts": {"mock_fallback": False, "writes": "operational_routes", "route_owner": "react_shell"},
         "filters": {"dal": dal, "al": al, "tipo": tipo},

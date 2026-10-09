@@ -57,7 +57,13 @@ Legenda:
 - non esiste fallback silenzioso da PostgreSQL attivo a JSON: il runtime blocca l'operazione e lascia traccia nel log applicativo.
 - documenti, buste telematiche e modelli locali AI restano filesystem-first anche dopo il cutover SQL.
 - L'adapter Docling di Lex e' un parser opzionale in-memory attivato da `LEX_DOCLING_ENABLED=1`: produce metadati citabili per evidence pack e, quando si persiste RAG, deve confluire nelle tabelle `rag_documents`/`rag_chunks` del dominio `AI locale` senza creare fallback invisibili o sorgenti parallele.
-- La migrazione EmbeddingGemma 2 in verifica conserva `rag_embedding_generations` e `rag_embedding_segments` nello stesso indice SQLite locale tenant-aware. Sono cache vettoriali derivate dai chunk SQL: non sostituiscono la verità documentale SQLite/PostgreSQL, non creano un altro motore OCR e non mescolano vettori di modelli diversi. Impronta del testo e documento, checkpoint e pubblicazione atomica governano disponibilità e invalidazione; pesi pubblici verificati restano fuori dal repository e l'inferenza è sullo stesso host, senza accesso esterno.
+- L’08/10/2026 l’utente ha annullato la sostituzione con EmbeddingGemma 2: EmbeddingGemma 300M resta operativo. Job candidato disattivato tramite registro SQL, container pilota fermato; checkpoint e backup conservati senza promozione. Le tabelle candidate `rag_embedding_generations` e `rag_embedding_segments` rimangono cache derivate, non fonti documentali: non autorizzano riavvio, riconvalida o attivazione del candidato.
+
+## Riscontro dei file operativi — 08/10/2026, incarico aperto
+
+Il profilo SQL dello studio non dimostra che ciascun gestore utilizzi SQL. L’audit offline e la ricostruzione dei costruttori runtime hanno confermato accessi operativi diretti a file per Prima Nota, CTU, Portale, sessioni Wizard, storico assistente redazionale e run/metriche/azioni agentiche Lex. La pagina Database ora li distingue dai mirror; non sono migrati da questa modifica della rappresentazione.
+
+Questi percorsi richiedono repository primari con parità SQLite/PostgreSQL, bootstrap controllato con backup e conteggi, scritture puntuali atomiche, concorrenza, deduplicazione del dominio, segnale persistente e accettazione materiale. Prima Nota deve preservare storni e riconciliazione bancaria; Portale deve preservare token, tenant e permessi; il flusso congelato deposito/firma/PEC resta invariato. Non creare file vuoti né copiare ciecamente il mirror su SQL. Fonte della diagnosi e perimetro dei successivi adeguamenti: `artifacts/data-flow/direct-json-storage-review-20261008.md` e inventario collegato.
 - Local Deep Research e' un sidecar opzionale per ricerche pubbliche. I suoi dati applicativi restano nel data root scrivibile e non diventano fonte primaria IUSENTRA: Lex continua a usare retrieval tenant-aware per fascicoli, clienti, atti e documenti interni.
 - i moduli economici condividono lo stesso percorso ufficiale di migrazione `JSON -> SQLite -> PostgreSQL` con report di consistenza; il compenso a tempo ex art. 22-bis D.M. 55/2014 e' persistito su preventivi, conferimenti, log economico e fatturazione con migrazioni SQLite/PostgreSQL dedicate.
 - `Update Intelligence` e `Coverage AI` usano repository condivisi di piattaforma, per evitare scansioni, gap queue, review e publish duplicati tra studi.
@@ -113,3 +119,18 @@ I quattro cataloghi SQLite dei due studi sono migrati e i chiamanti operativi
 sono attivi. La parità PostgreSQL è verificata su database controllati;
 la campagna materiale completa e l'accettazione locale restano aperte.
 Procedura, limiti, concorrenza e verifiche in `docs/EMAIL_MAILBOX_SQL.md`.
+
+## 09/10/2026 — Prima nota SQL, adozione locale e rilascio aperto
+
+Il repository dedicato prima_nota_repository governa stato/revisione, movimenti,
+audit di dominio e comandi idempotenti con parità SQLite/PostgreSQL. Ogni delta
+accoda l'audit generale nella transazione usando transactional_outbox nativo;
+il worker recupera solo richieste pendenti eleggibili. Le API non creano schema
+nelle GET e il protocollo SQL richiede comando UUID e revisione attesa.
+Adozione esplicita con drain, backup coerente e audit eseguita sulla copia reale
+locale per studio-montagnese (registro vuoto) e sul tenant tecnico di accettazione.
+Questo non dichiara migrati tutti i tenant né la produzione: adozione server e
+rilascio restano aperti. JSON storico non adottato conserva il percorso precedente;
+nessun fallback JSON dopo errore SQL. Riconciliazione bancaria e movimento sono
+atomici; reimportazione della stessa riga riconciliata restituisce il movimento
+esistente senza nuove proposte. Prove materiali e limiti nei registri pytest.

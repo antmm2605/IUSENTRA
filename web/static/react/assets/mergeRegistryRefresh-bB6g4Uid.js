@@ -1,0 +1,1 @@
+function e(e,t,n){if(!t)return{values:n,conflicts:[]};let r={...n},i=[];for(let a of Object.keys(e)){if(e[a]===t[a])continue;let o=a;r[o]=e[o],n[a]!==t[a]&&n[a]!==e[a]&&i.push(a)}return{values:r,conflicts:i}}export{e as t};

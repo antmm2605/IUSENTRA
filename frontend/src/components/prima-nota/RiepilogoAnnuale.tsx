@@ -1,26 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Calculator, FileDown } from 'lucide-react'
+import { formatEuroIt, formatDateInputIt } from '../../formatting'
 
-type Mese = { mese: string; incassi: number; pagamenti: number }
-type Riepilogo = {
-  ok: boolean
-  message?: string
-  anno?: number
-  regime?: 'forfettario' | 'ordinario'
-  compensi_incassati?: number
-  anticipazioni_rimborsate?: number
-  anticipazioni_per_clienti?: number
-  spese_deducibili?: number
-  contributi_previdenziali_versati?: number
-  imposte_versate?: number
-  mesi?: Mese[]
-  stima?: Record<string, string | number>
-  registro_iva?: { liquidazioni: Array<Record<string, string | number>>; proforma_escluse: number; totale_imponibile: number; totale_iva: number; fatture: number; note: string[] }
-  note?: string[]
-  avvisi?: string[]
-}
+import { getRiepilogoAnnuale, type RiepilogoAnnualeData } from '../../riepilogoAnnualeData'
 
-const euro = (valore: number | undefined) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(Number(valore || 0))
+type Riepilogo = RiepilogoAnnualeData | { ok: false; message: string }
+const euro = (valore: number) => formatEuroIt(valore)
 
 const ETICHETTE_STIMA: Record<string, string> = {
   reddito_forfettario: 'Reddito forfettario (78%)',
@@ -32,21 +17,22 @@ const ETICHETTE_STIMA: Record<string, string> = {
 }
 
 /** Riepilogo per cassa dell'anno (art. 54 TUIR; L. 190/2014) e IVA a debito dalle fatture trasmesse. */
-export function RiepilogoAnnuale() {
-  const annoCorrente = new Date().getFullYear()
+export function RiepilogoAnnuale({ refreshVersion = 0 }: { refreshVersion?: number }) {
+  const annoCorrente = Number(formatDateInputIt(new Date()).slice(0, 4))
   const [anno, setAnno] = useState(annoCorrente)
   const [startup, setStartup] = useState(false)
   const [dati, setDati] = useState<Riepilogo | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
 
   useEffect(() => {
     const controllo = new AbortController()
-    setDati(null)
-    fetch(`/api/v1/ui/prima-nota/riepilogo?anno=${anno}${startup ? '&startup=1' : ''}`, { credentials: 'same-origin', signal: controllo.signal, headers: { Accept: 'application/json' } })
-      .then((r) => r.json())
-      .then((payload: Riepilogo) => setDati(payload))
-      .catch(() => { if (!controllo.signal.aborted) setDati({ ok: false, message: 'Riepilogo non disponibile.' }) })
+    setRefreshing(true)
+    getRiepilogoAnnuale(anno, startup, controllo.signal)
+      .then((payload) => { if (!controllo.signal.aborted) setDati(payload) })
+      .catch((error: unknown) => { if (!controllo.signal.aborted) setDati({ ok: false, message: error instanceof Error ? error.message : 'Riepilogo non disponibile.' }) })
+      .finally(() => { if (!controllo.signal.aborted) setRefreshing(false) })
     return () => controllo.abort()
-  }, [anno, startup])
+  }, [anno, startup, refreshVersion])
 
   const anni = Array.from({ length: 6 }, (_, i) => annoCorrente - i)
   return (
@@ -62,11 +48,12 @@ export function RiepilogoAnnuale() {
               {anni.map((a) => <option key={a} value={a}>{a}</option>)}
             </select>
           </label>
-          {dati?.regime === 'forfettario' ? (
+          {dati?.ok && dati.regime === 'forfettario' ? (
             <label className="iu-pn-annual__check"><input type="checkbox" checked={startup} onChange={(e) => setStartup(e.target.checked)}/> Primi cinque anni (5%)</label>
           ) : null}
         </div>
       </header>
+      {refreshing && dati ? <p role="status">Aggiornamento del riepilogo in corso: sono mostrati gli ultimi dati caricati{dati.ok ? ` per il ${dati.anno}` : ''}.</p> : null}
       {!dati ? <p role="status">Calcolo del riepilogo…</p> : !dati.ok ? <p role="alert">{dati.message}</p> : (
         <>
           <div className="iu-pn-annual__grid">

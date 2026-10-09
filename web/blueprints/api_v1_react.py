@@ -146,7 +146,6 @@ from web.services.react_dashboard_cache import (
 from web.services.react_dashboard_build_context import (
     SOGLIA_LOG_SECONDI as DASHBOARD_BUILD_LOG_SECONDS,
     contesto_costruzione_panoramica,
-    fabbrica_panoramica,
     gestore_panoramica,
     misura_sorgente,
     server_timing_header,
@@ -2950,15 +2949,23 @@ def clienti_react_nuovo():
 def clienti_react_nuovo_documento_leggi():
     try:
         payload = request.get_json(silent=True) if request.is_json else None
-        if isinstance(payload, dict) and payload.get('id_fascicolo'):
+        if isinstance(payload, dict) and (payload.get('id_fascicolo') or payload.get('id_cliente')):
             if not (_session_user_can('clienti.scrivi') and _session_user_can('fascicoli.leggi')):
                 return jsonify({'ok': False, 'message': 'Permessi insufficienti per leggere il documento del cliente.'}), 403
-            from web.services.client_document_reader import read_client_case_document
+            from web.services.client_document_reader import read_client_case_document, read_client_existing_document
             from web.services.document_intelligence_runtime import build_document_ai_service, document_ai_tenant_id, document_ai_user_context
             service = build_document_ai_service()
-            result = read_client_case_document(get_fascicoli(), service.repository,
-                document_ai_tenant_id(), str(payload['id_fascicolo']), str(payload.get('id_cliente') or ''), str(payload.get('id_documento') or ''),
-                service=service, user_context=document_ai_user_context())
+            client = get_clienti().get(str(payload.get('id_cliente') or ''))
+            if client is None:
+                raise ClientDocumentReaderError('Cliente non disponibile nello studio corrente.', status_code=404)
+            if payload.get('id_fascicolo'):
+                result = read_client_case_document(get_fascicoli(), service.repository,
+                    document_ai_tenant_id(), str(payload['id_fascicolo']), str(payload.get('id_cliente') or ''), str(payload.get('id_documento') or ''),
+                    service=service, user_context=document_ai_user_context(), client=client)
+            else:
+                result = read_client_existing_document(get_fascicoli(), service.repository,
+                    document_ai_tenant_id(), str(payload['id_cliente']),
+                    service=service, user_context=document_ai_user_context(), client=client)
         else:
             result = read_client_document_upload(request.files.get("file"))
         return jsonify(result), 200 if result.get("ok") else 422

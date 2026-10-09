@@ -40,6 +40,13 @@ def preparation_snapshot(config=None):
         stage = "building"
         if state.get("completa") is True:
             stage = "validation_required" if meta.get("riconvalida_finale_richiesta") is not False else "prepared"
+        from pct.scheduler_registry import read_registered_job_enabled
+
+        registered = read_registered_job_enabled(JOB_ID, config)
+        if registered is False:
+            stage = "disabled"
+        elif registered is None:
+            stage = "checkpoint_only"
         return {"present": True, "stage": stage, "rows": rows, "total": total,
                 "local_only": True, "model": "EmbeddingGemma 2"}
     except (OSError, ValueError, TypeError, AttributeError):

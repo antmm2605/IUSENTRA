@@ -20,6 +20,7 @@ export type PrimaNotaMovimento = {
 export type PrimaNotaData = {
   source: string
   generatedAt: string
+  writeProtocol?: { persistentCommands: boolean; revision: number | null; scope?: string | null }
   filters: { dal: string; al: string; tipo: string }
   summary: {
     incassi: number
@@ -44,7 +45,7 @@ export type PrimaNotaData = {
 
 export type RiconciliazioneProposta = {
   riga: { id: string; data: string; importo: number; descrizione: string; verso: string }
-  tipo: 'abbinamento' | 'ambiguo' | 'nuovo_movimento'
+  tipo: 'abbinamento' | 'ambiguo' | 'nuovo_movimento' | 'gia_riconciliato'
   movimento: { id: string; data: string; importo: number; causale: string } | null
   candidati: Array<{ id: string; data: string; importo: number; causale: string }>
 }
@@ -82,8 +83,31 @@ export async function getPrimaNotaPage(params?: Record<string, string>): Promise
       credentials: 'same-origin',
       headers: { Accept: 'application/json' },
     })
-    if (!response.ok) return emptyPrimaNotaData
     const payload = await response.json() as Record<string, unknown>
+    if (!response.ok || payload.ok === false) {
+      throw new Error(text(payload.message, 'Prima nota non disponibile. Riprova il caricamento.'))
+    }
+    if (!isRecord(payload.summary) || !Array.isArray(payload.movimenti)) {
+      throw new Error('Risposta della prima nota incompleta. Riprova il caricamento.')
+    }
+    for (const key of ['incassi', 'pagamenti', 'saldo', 'movimenti']) {
+      const value = payload.summary[key]
+      if ((typeof value !== 'number' && typeof value !== 'string') || value === '' || !Number.isFinite(Number(value))) {
+        throw new Error('Saldi della prima nota non validi. Riprova il caricamento.')
+      }
+    }
+    let writeProtocol: PrimaNotaData['writeProtocol']
+    if ('writeProtocol' in payload) {
+      const protocol = payload.writeProtocol
+      if (!isRecord(protocol) || typeof protocol.persistentCommands !== 'boolean'
+        || (protocol.persistentCommands
+          ? typeof protocol.revision !== 'number' || !Number.isSafeInteger(protocol.revision) || protocol.revision < 0
+          : protocol.revision !== null)) {
+        throw new Error('Revisione della prima nota non valida. Riprova il caricamento.')
+      }
+      if (protocol.persistentCommands && (typeof protocol.scope !== 'string' || !/^[a-f0-9]{64}$/.test(protocol.scope))) throw new Error('Contesto del comando non valido. Riprova il caricamento.')
+      writeProtocol = {persistentCommands: protocol.persistentCommands, revision: protocol.revision as number | null, scope: protocol.scope as string | null}
+    }
     const filters = isRecord(payload.filters) ? payload.filters : {}
     const summary = isRecord(payload.summary) ? payload.summary : {}
     const options = isRecord(payload.options) ? payload.options : {}
@@ -91,6 +115,7 @@ export async function getPrimaNotaPage(params?: Record<string, string>): Promise
     return {
       source: text(payload.source, 'repository_reali'),
       generatedAt: text(payload.generatedAt),
+      writeProtocol,
       filters: { dal: text(filters.dal), al: text(filters.al), tipo: text(filters.tipo) },
       summary: {
         incassi: Number(summary.incassi) || 0,
@@ -143,7 +168,7 @@ export async function getPrimaNotaPage(params?: Record<string, string>): Promise
       nonRiconciliati: Number(payload.nonRiconciliati) || 0,
       avvertenza: text(payload.avvertenza),
     }
-  } catch {
-    return emptyPrimaNotaData
+  } catch (error) {
+    throw error instanceof Error ? error : new Error('Prima nota non disponibile. Riprova il caricamento.')
   }
 }

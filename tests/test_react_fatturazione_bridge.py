@@ -55,6 +55,44 @@ class _AuditUsers:
         self.events.append((args, kwargs))
 
 
+def test_detail_sql_revision_rejects_missing_and_stale_save_without_success_audit(tmp_path):
+    from pct.storage import StudioDB
+
+    db = StudioDB.get(str(tmp_path / 'studio.db'))
+    try:
+        manager = GestioneFatturazione(db_path=str(tmp_path / 'parcelle.json'), studio_db=db)
+        document = manager.crea(id_cliente='cliente-1', note='Iniziale',
+            voci=[VoceParcella(descrizione='Compenso', quantita=1, prezzo_unitario=260)])
+        audit = _AuditUsers()
+        detail, status = build_react_fatturazione_detail_payload(
+            get_fatturazione=lambda: manager, get_clienti=lambda: _Loader(),
+            get_fascicoli=lambda: _Loader(), id_documento=document.id)
+        assert status == 200
+        revision = detail['item']['revision']
+
+        def save(payload):
+            return update_react_fatturazione_detail(get_fatturazione=lambda: manager,
+                get_utenti=lambda: audit, current_user=_User(),
+                id_documento=document.id, payload={
+                    'voci': [{'descrizione': 'Compenso', 'quantita': '1', 'prezzo_unitario': '260', 'tipo': 'ONORARIO'}],
+                    **payload,
+                })
+
+        result, status = save({'note': 'Non autorizzata dalla revisione'})
+        assert status == 428 and 'revision' in result['errors']
+        assert manager.get(document.id).note == 'Iniziale'
+        assert not audit.events
+        result, status = save({'note': 'Prima modifica', 'expected_revision': revision})
+        assert status == 200 and result['ok']
+        audit_count = len(audit.events)
+        result, status = save({'note': 'Bozza obsoleta', 'expected_revision': revision})
+        assert status == 409 and 'revision' in result['errors']
+        assert manager.get(document.id).note == 'Prima modifica'
+        assert len(audit.events) == audit_count
+    finally:
+        db.chiudi()
+
+
 def _cliente() -> Cliente:
     return Cliente(
         id="CLI-001",

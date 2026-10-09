@@ -34,10 +34,11 @@ def register_contabilita_routes(app: Flask, core: dict[str, Any]) -> None:
             return False
 
     def _regime() -> str:
-        try:
-            return str(get_config_studio().config.fatturazione.regime_fiscale or "RF01")
-        except Exception:
-            return "RF01"
+        # Un errore della fonte fiscale non autorizza un calcolo in regime ordinario.
+        regime = get_config_studio().config.fatturazione.regime_fiscale
+        if regime not in {"RF01", "RF02", "RF19"}:
+            raise RuntimeError("Configurazione del regime fiscale non disponibile.")
+        return regime
 
     @app.route("/api/v1/ui/prima-nota/riepilogo")
     def contabilita_riepilogo():
@@ -47,8 +48,8 @@ def register_contabilita_routes(app: Flask, core: dict[str, Any]) -> None:
         if not _puo_leggere():
             return jsonify({"ok": False, "message": "Permesso insufficiente."}), 403
         anno = _anno(request.args.get("anno"))
-        regime = _regime()
         try:
+            regime = _regime()
             esito = riepilogo_annuale(get_prima_nota(), anno, regime=regime,
                                       startup=str(request.args.get("startup") or "") == "1")
             if regime != "RF19":
@@ -62,7 +63,7 @@ def register_contabilita_routes(app: Flask, core: dict[str, Any]) -> None:
             return jsonify({"ok": False, "message": str(exc)}), 400
         except Exception as exc:
             app.logger.exception("Errore riepilogo contabile: %s", exc)
-            return jsonify({"ok": False, "message": "Riepilogo non disponibile."}), 200
+            return jsonify({"ok": False, "message": "Riepilogo non disponibile. Riprova il caricamento."}), 503
 
     @app.route("/prima-nota/registro-iva.csv")
     def contabilita_registro_iva_csv():

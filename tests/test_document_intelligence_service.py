@@ -56,7 +56,7 @@ def _context(user: FakeUser | None = None):
     return {"user": user or FakeUser(), "user_id": "user-1"}
 
 
-def test_preprocess_ocr_ritaglia_foglio_centrale_con_margini_larghi():
+def test_preprocess_ocr_preserva_margini_bianchi_della_pagina():
     from PIL import Image, ImageDraw
 
     image = Image.new("RGB", (1400, 900), "white")
@@ -67,8 +67,9 @@ def test_preprocess_ocr_ritaglia_foglio_centrale_con_margini_larghi():
     prepared = _preprocess_ocr_image(image)
 
     assert prepared.mode == "L"
-    assert prepared.width < image.width * 0.7
-    assert prepared.height >= image.height * 0.95
+    # I margini bianchi sono parte della pagina: il ritaglio per riconoscere
+    # una carta piccola è separato dalla geometria usata per le conversioni.
+    assert prepared.size == image.size
 
 
 def test_ocr_riprova_con_soglia_calcolata_solo_se_la_lettura_normale_e_vuota():
@@ -100,7 +101,7 @@ def test_ocr_riprova_con_soglia_calcolata_solo_se_la_lettura_normale_e_vuota():
     )
 
     assert text == "TRIBUNALE DI VICENZA CONTRATTO 2024"
-    assert warnings == []
+    assert warnings == ["Pagina 1: orientamento-v1, rotazione di lettura 0°."]
 
 
 def test_document_ai_service_upload_successo_crea_record_versione_testo_audit(tmp_path: Path, monkeypatch):

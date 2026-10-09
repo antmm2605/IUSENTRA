@@ -152,6 +152,7 @@ function ModuleTable({ modules, filtered }: { modules: AdminDatabaseModule[]; fi
           <tr>
             <th>Modulo</th>
             <th>Tipo</th>
+            <th>Archivio operativo</th>
             <th>Record</th>
             <th>Dimensione</th>
             <th>Ultima modifica</th>
@@ -167,15 +168,17 @@ function ModuleTable({ modules, filtered }: { modules: AdminDatabaseModule[]; fi
               </td>
               <td>
                 <Badge tone={module.kind.tone}>{module.kind.label}</Badge>
-                {module.mirror ? <Badge tone="info">Mirror</Badge> : null}
                 {module.authoritative ? <Badge tone="success">Fonte</Badge> : null}
                 {!module.mirror && module.migratableSqlite ? <Badge tone="success">Migrabile</Badge> : null}
+              </td>
+              <td data-label="Archivio operativo">
+                {module.operational?.verified ? <><Badge tone="success">SQL presente</Badge><strong>{formatNumber(module.operational.records ?? 0)} record SQL</strong><span title={module.operational.table}>{module.operational.table}</span></> : <><Badge tone="warning">Da verificare</Badge><span>{module.operational?.message || 'Origine dei dati operativi non ancora verificata.'}</span></>}
               </td>
               <td data-label="Record">{formatNumber(module.records)}</td>
               <td data-label="Dimensione">{module.sizeLabel}</td>
               <td data-label="Ultima modifica">{module.lastModifiedLabel}</td>
               <td>
-                <Badge tone={module.status.tone}>{module.status.label}</Badge>
+                <Badge tone={module.status.tone}>{module.mirror ? `Mirror: ${module.status.label}` : module.status.label}</Badge>
                 {module.status.message ? <span>{module.status.message}</span> : null}
               </td>
             </tr>
@@ -431,6 +434,7 @@ export function AdminDatabasePage() {
         if (mounted.current) setData(payload)
       } catch (caught) {
         if (mounted.current) setError(caught instanceof Error ? caught.message : 'Database amministrativo non disponibile.')
+        throw caught
       } finally {
         if (mounted.current) setLoading(false)
         refreshFlight.current = null
@@ -439,11 +443,14 @@ export function AdminDatabasePage() {
     refreshFlight.current = flight
     return flight
   }
+  // Manual actions already expose the error in this page. Live consumers must
+  // receive rejection so their shared recovery queue cannot attest success.
+  const reloadVisibleData = () => loadData().catch(() => undefined)
   useOperationalRefresh(operationalDomains, loadData)
 
   useEffect(() => {
     mounted.current = true
-    void loadData()
+    void reloadVisibleData()
     return () => { mounted.current = false }
   }, [])
 
@@ -458,7 +465,7 @@ export function AdminDatabasePage() {
   const visibleModules = data.modules.filter(module => {
     const matches = `${module.label} ${module.name} ${module.path} ${module.kind.label} ${module.status.label} ${module.status.message}`.toLocaleLowerCase('it-IT').includes(needle)
     const statusMatches = moduleStatus === 'all' || module.status.code === moduleStatus
-    const contextMatches = context === 'records' ? module.records > 0 && (!sqlAuthoritative || module.mirror) : context === 'presidio' ? ['NON_TROVATO', 'NON_CONFIGURATO', 'ERRORE'].includes(module.status.code) : true
+    const contextMatches = context === 'records' ? module.records > 0 : context === 'presidio' ? ['NON_TROVATO', 'NON_CONFIGURATO', 'ERRORE'].includes(module.status.code) : true
     return matches && statusMatches && contextMatches
   }).sort((a, b) => context === 'records' ? b.records - a.records || a.label.localeCompare(b.label, 'it') : 0)
   const visibleTables = data.sqlite.tables.filter(table => table.name.toLocaleLowerCase('it-IT').includes(needle))
@@ -467,7 +474,7 @@ export function AdminDatabasePage() {
     ? `${data.sqlite.role === 'operativo' ? 'Operativo' : 'Rilevato'} · ${data.sqlite.sizeLabel}`
     : 'Rilevazione non ancora disponibile'
   const sqliteIdleText = sqlAuthoritative
-    ? 'Studio già SQL: analizza l’archivio operativo o usa Ottimizza per studio.db. I JSON restano mirror di compatibilità.'
+    ? 'Studio già SQL: analizza l’archivio operativo o usa Ottimizza per studio.db. Il ruolo dei file JSON è indicato per ciascun modulo.'
     : 'Analizza prima di attivare: il blocco anti-perdita resta attivo e la riconciliazione conserva i dati già nel database.'
 
   const runIntegrity = async () => {
@@ -485,7 +492,7 @@ export function AdminDatabasePage() {
         message,
         payload,
       })
-      await loadData()
+      await reloadVisibleData()
     } catch (caught) {
       setIntegrity({ status: 'error', message: caught instanceof Error ? caught.message : 'Riparazione non completata.', payload: null })
     }
@@ -502,7 +509,7 @@ export function AdminDatabasePage() {
           : (payload.errore || 'Ottimizzazione completata con errori.'),
         payload,
       })
-      await loadData()
+      await reloadVisibleData()
     } catch (caught) {
       setOptimization({ status: 'error', message: caught instanceof Error ? caught.message : 'Ottimizzazione non completata.', payload: null })
     }
@@ -524,7 +531,7 @@ export function AdminDatabasePage() {
         message: sqliteMessage(payload),
         payload,
       })
-      await loadData()
+      await reloadVisibleData()
     } catch (caught) {
       setMigration({ status: 'error', message: caught instanceof Error ? caught.message : `${sqliteOperationLabel(operation)} non completata.`, payload: null })
     }
@@ -540,7 +547,7 @@ export function AdminDatabasePage() {
           <p>{data.page.subtitle}</p>
         </div>
         <div className="iu-db-hero__actions">
-          <button type="button" className="iu-button" onClick={loadData} disabled={loading} aria-busy={loading}>
+          <button type="button" className="iu-button" onClick={reloadVisibleData} disabled={loading} aria-busy={loading}>
             <RefreshCw size={15}/>Aggiorna
           </button>
           {data.source !== 'vuoto' ? <Button href={data.actions.exportZip} variant="primary"><Download size={15}/>Export ZIP</Button> : null}
@@ -554,7 +561,7 @@ export function AdminDatabasePage() {
       {data.source !== 'vuoto' ? <>
       <section className="iu-db-stats" aria-label="Indicatori database">
         <StatCard icon={<Table size={22}/>} label="Moduli monitorati" value={formatNumber(data.summary.modulesMonitored)} note={`${statusSummary.ok} in stato OK · Filtra moduli`} tone="primary" active={context === 'modules'} onClick={() => setContext('modules')}/>
-        <StatCard icon={<HardDrive size={22}/>} label={sqlAuthoritative ? 'Record nei mirror' : 'Record nei moduli'} value={formatNumber(data.summary.totalRecords)} note={`Spazio moduli ${data.summary.totalSizeLabel} · Ordina ${sqlAuthoritative ? 'mirror' : 'moduli'}`} tone="success" active={context === 'records'} onClick={() => setContext('records')}/>
+        <StatCard icon={<HardDrive size={22}/>} label="Record nei file" value={formatNumber(data.summary.totalRecords)} note={`Spazio moduli ${data.summary.totalSizeLabel} · Ordina moduli`} tone="success" active={context === 'records'} onClick={() => setContext('records')}/>
         <StatCard icon={<Gauge size={22}/>} label="Pagine libere" value={formatPercent(data.summary.sqliteFragmentationPct)} note="Consulta pagine e spazio SQLite" tone={data.sqlite.fragmentationPct > 20 ? 'warning' : 'info'} active={context === 'fragmentation'} onClick={() => setContext('fragmentation')}/>
         <StatCard icon={<CloudUpload size={22}/>} label="Fonte dati" value={data.sourceTruth.authoritative || 'Da verificare'} note="Consulta le tabelle SQL rilevate" tone={sqlAuthoritative ? 'success' : 'purple'} active={context === 'sql'} onClick={() => setContext('sql')}/>
         <StatCard icon={<ShieldCheck size={22}/>} label="Presidio" value={statusSummary.errors ? 'Critico' : 'Attivo'} note={`${statusSummary.warnings} avvisi · Filtra anomalie`} tone={statusSummary.errors ? 'danger' : statusSummary.warnings ? 'warning' : 'success'} active={context === 'presidio'} onClick={() => setContext('presidio')}/>
@@ -577,7 +584,7 @@ export function AdminDatabasePage() {
             icon={<Database size={17}/>}
             count={visibleModules.length}
           >
-            <p className="iu-db-filter-count" role="status">{visibleModules.length} di {data.modules.length} moduli{context === 'records' ? ' con record, ordinati per quantità' : context === 'presidio' ? ' con avvisi o errori' : ''}. {sqlAuthoritative ? 'I mirror sono copie di compatibilità: i dati operativi restano nell’archivio SQL.' : ''}</p>
+            <p className="iu-db-filter-count" role="status">{visibleModules.length} di {data.modules.length} moduli{context === 'records' ? ' con record, ordinati per quantità' : context === 'presidio' ? ' con avvisi o errori' : ''}. {sqlAuthoritative ? 'Archivio SQL, file operativi e mirror sono distinti per modulo.' : ''}</p>
             <ModuleTable modules={visibleModules} filtered={data.modules.length > 0}/>
           </Panel>
 

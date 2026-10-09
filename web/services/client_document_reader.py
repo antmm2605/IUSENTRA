@@ -9,9 +9,44 @@ from pathlib import Path
 from typing import Any
 
 from werkzeug.datastructures import FileStorage
+from core.security.upload_validator import validate_upload
+from legal_ocr.motore.mrz import cifra_controllo as _mrz_check_digit, td1_verificata
 
 
-def read_client_case_document(manager: Any, repository: Any, tenant: str, case_id: str, client_id: str, document_id: str = "", *, service: Any = None, user_context: Any = None, acquire_missing: bool = True) -> dict[str, Any]:
+def read_client_existing_document(manager: Any, repository: Any, tenant: str, client_id: str, *, service: Any = None, user_context: Any = None, client: Any = None) -> dict[str, Any]:
+    """Trova la fonte nei soli fascicoli SQL del cliente, senza copiarla."""
+    from pct.document_intelligence.catalog_identita_personale import documento_identita_dal_nome
+    candidates = {}
+    for case in manager.cerca(id_cliente=client_id, archiviati=True):
+        if str(case.id_cliente) != client_id:
+            continue
+        assignments = {}
+        for item in repository.list_catalog_assignments(tenant, case.id):
+            assignments.setdefault(str(item.document_id), item)
+        for doc in case.documenti:
+            assignment = assignments.get(str(doc.id))
+            meta = getattr(assignment, 'metadata', {}) or {}
+            verified = bool(assignment and assignment.document_nature == 'documento_identita'
+                and meta.get('identity_client_id') == client_id and meta.get('identity_holder'))
+            if not verified and not documento_identita_dal_nome(str(getattr(doc, 'nome_originale', '') or doc.nome)):
+                continue
+            current = str(getattr(doc, 'hash_contenuto_sha256', '') or '')
+            if verified and current and current != assignment.document_sha256:
+                verified = False
+            key = (current or assignment.document_sha256) if verified else f'{case.id}:{doc.id}'
+            candidates.setdefault(key, (str(case.id), str(doc.id), verified))
+    verified = [value for value in candidates.values() if value[2]]
+    selected = verified or list(candidates.values())
+    if len(selected) != 1:
+        message = ('Sono presenti più documenti d’identità: apri il documento da leggere dal fascicolo.'
+            if selected else 'Nessun documento d’identità disponibile nei fascicoli collegati al cliente.')
+        raise ClientDocumentReaderError(message, status_code=422)
+    case_id, document_id, _ = selected[0]
+    return read_client_case_document(manager, repository, tenant, case_id, client_id,
+        document_id, service=service, user_context=user_context, client=client)
+
+
+def read_client_case_document(manager: Any, repository: Any, tenant: str, case_id: str, client_id: str, document_id: str = "", *, service: Any = None, user_context: Any = None, acquire_missing: bool = True, client: Any = None) -> dict[str, Any]:
     """Riusa solo una lettura SQL corrente di un documento d'identità del cliente."""
     from web.services.fascicolo_documento_ocr import leggi_documento
     from web.services.document_tools import DocumentToolError
@@ -32,7 +67,8 @@ def read_client_case_document(manager: Any, repository: Any, tenant: str, case_i
                 continue
             extracted = repository.get_extracted_text(tenant, case_id, record.id, record.current_version_id)
             content = str(getattr(extracted, 'text', '') or '')
-            if not re.search(r'IDENTITY\s+CARD|CARTA\s+D[’\']?I?\s*IDENT|\bPASSAPORT', content[:1800], re.I):
+            from pct.document_intelligence.catalog_identita_personale import documento_identita_personale
+            if not documento_identita_personale(content):
                 continue
             # Il nome serve soltanto a trovare il candidato: è l'impronta del
             # contenuto attuale decifrato a dimostrare la corrispondenza.
@@ -43,6 +79,25 @@ def read_client_case_document(manager: Any, repository: Any, tenant: str, case_i
             sha = hashlib.sha256(raw).hexdigest()
             if sha != record.sha256:
                 continue
+            # Recupero una sola volta le letture CIE storiche con etichette
+            # disordinate; la nuova versione conserva impronta e audit nativi.
+            parsed = parse_client_document_text(content, filename=name)
+            invalid_layout = bool(re.search(r'IDENTITY\s+CARD', content, re.I)) and any(
+                key not in parsed['patch'] for key in ('nome', 'cognome', 'doc_numero', 'data_nascita'))
+            if client is not None:
+                from copy import deepcopy
+                checked = deepcopy(parsed)
+                try:
+                    _verify_client_identity(content, checked, client)
+                    invalid_layout = invalid_layout or any(key in parsed['patch'] and key not in checked['patch']
+                        for key in ('nome', 'cognome'))
+                except ClientDocumentReaderError:
+                    invalid_layout = True
+            checked_recovery = any('Recupero identità regione-v1:' in str(w) for w in (getattr(extracted, 'warnings', []) or []))
+            if invalid_layout and not checked_recovery and service is not None and acquire_missing:
+                service.reacquire_existing_version(tenant, case_id, record.id, raw, user_context, identity_recovery=True)
+                return read_client_case_document(manager, repository, tenant, case_id, client_id,
+                    str(doc.id), service=service, user_context=user_context, acquire_missing=False, client=client)
             candidates.append((doc, name, sha, content))
             break
     if not candidates and acquire_missing and service is not None:
@@ -62,7 +117,7 @@ def read_client_case_document(manager: Any, repository: Any, tenant: str, case_i
             if outcome.errors:
                 raise ClientDocumentReaderError('Lettura del documento d’identità non completata: ' + '; '.join(outcome.errors), status_code=422)
             return read_client_case_document(manager, repository, tenant, case_id, client_id,
-                str(selected[0].id), acquire_missing=False)
+                str(selected[0].id), acquire_missing=False, client=client)
         if len(selected) > 1:
             raise ClientDocumentReaderError('Sono presenti più documenti d’identità: seleziona il documento da leggere.', status_code=422)
     if len(candidates) != 1:
@@ -70,10 +125,36 @@ def read_client_case_document(manager: Any, repository: Any, tenant: str, case_i
         raise ClientDocumentReaderError(message, status_code=422)
     doc, name, sha, content = candidates[0]
     result = parse_client_document_text(content, filename=name)
+    if client is not None:
+        _verify_client_identity(content, result, client)
     _corroborate_client_fields(manager, repository, tenant, case, records, result)
     result['source_document'] = {'id': str(doc.id), 'fascicolo_id': case_id, 'sha256': sha,
         'href': f'/fascicoli/{case_id}/documenti/{doc.id}/visualizza', 'label': name}
     return result
+
+
+def _verify_client_identity(content: str, result: dict[str, Any], client: Any) -> None:
+    """Il collegamento al fascicolo non basta a provare il titolare della carta."""
+    from pct.document_intelligence.catalog_identita_personale import documento_identita_personale, normalizza
+    identity = documento_identita_personale(content, cliente=client.nome_completo)
+    if not identity or not identity.get('titolare'):
+        raise ClientDocumentReaderError('Il titolare del documento non coincide con il cliente. La scheda non è stata modificata.', status_code=422)
+    patch = result['patch']
+    expected = _find_cf(str(client.codice_fiscale or '').upper())
+    actual = str(patch.get('codice_fiscale') or '')
+    if expected and actual and expected != actual:
+        raise ClientDocumentReaderError('Il codice fiscale del documento è discordante con il cliente. La scheda non è stata modificata.', status_code=422)
+    parsed = normalizza(str(patch.get('nome') or '') + ' ' + str(patch.get('cognome') or ''))
+    target = normalizza(str(client.nome or '') + ' ' + str(client.cognome or ''))
+    if sorted(parsed.split()) != sorted(target.split()):
+        if not expected or expected != actual:
+            raise ClientDocumentReaderError('Nome e cognome non sono stati estratti con affidabilità sufficiente. La scheda non è stata modificata.', status_code=422)
+        # Le parole e il CF riscontrano il titolare, ma etichette OCR confuse
+        # non devono sovrascrivere nome/cognome corretti dell'anagrafica.
+        for key in ('nome', 'cognome'):
+            patch.pop(key, None)
+        result['fields'] = [item for item in result['fields'] if item.get('name') not in ('nome', 'cognome')]
+        result['warnings'].append('Nome e cognome conservati: etichette del documento non estratte con affidabilità sufficiente.')
 
 
 def _corroborate_client_fields(manager: Any, repository: Any, tenant: str, case: Any, records: list[Any], result: dict[str, Any]) -> None:
@@ -135,8 +216,6 @@ def _corroborate_client_fields(manager: Any, repository: Any, tenant: str, case:
             {'name':field,'label':FIELD_LABELS.get(field,field),'value':value,'confidence':0.9,
              'source':'Riscontri concordanti nel fascicolo','status':'affidabile','sources':sources}]
     result['missing'] = [FIELD_LABELS[key] for key in EXPECTED_FIELDS if key not in patch]
-
-from core.security.upload_validator import validate_upload
 
 ALLOWED_CLIENT_DOCUMENT_EXTENSIONS = (".pdf", ".png", ".jpg", ".jpeg")
 ALLOWED_CLIENT_DOCUMENT_MIME_TYPES = ("application/pdf", "image/png", "image/jpeg")
@@ -253,6 +332,12 @@ def parse_client_document_text(
         for key, row in sorted(fields.items(), key=lambda item: FIELD_LABELS.get(item[0], item[0]))
     ]
     all_warnings = list(warnings or [])
+    if mrz.get('detected'):
+        for field in ('nazionalita', 'sesso'):
+            if field not in (mrz.get('patch') or {}):
+                all_warnings.append(FIELD_LABELS[field].capitalize() + ' non leggibile nella zona MRZ: questo campo non è stato applicato da quella lettura.')
+    if not mrz.get('detected') and re.search(r'\b[PIAC]<[A-Z0-9<]{12,}', clean_text, re.I):
+        all_warnings.append('Zona MRZ non validata: dati incompleti o cifre di controllo discordanti. I valori MRZ non sono stati applicati.')
     if not clean_text:
         all_warnings.append("Il testo non è stato estratto dal documento. Verifica qualità della scansione o lingua OCR installata.")
     if not patch:
@@ -308,6 +393,13 @@ def _clean_value(field: str, value: str) -> str:
     clean = re.sub(r"\s+", " ", str(value or "").replace("<", " ")).strip(" :-")
     if not clean:
         return ""
+    if field in {'nome', 'cognome', 'nazionalita', 'doc_rilasciato_da'}:
+        if re.search(r'\b(?:COGNOME|SURNAME|NOME|NAME|SEX|HEIGHT|NATIONALITY|CITTADINANZA|PADRE|MADRE|TUTOR|FISCAL|CODICE|SCADENZA|EXPIRY)\b', clean, re.I):
+            return ""
+        if field in {'nome', 'cognome'} and (len(clean) < 2 or re.search(r'\d', clean)):
+            return ""
+        if field == 'nazionalita' and re.search(r'\d', clean):
+            return ""
     if field in {"codice_fiscale", "provincia_nascita", "provincia"}:
         limit = 16 if field == "codice_fiscale" else 2
         return re.sub(r"[^A-Z0-9]", "", clean.upper())[:limit]
@@ -404,18 +496,38 @@ def _valid_date(year: int, month: int, day: int) -> str:
 
 
 def _parse_mrz_from_text(text: str) -> dict[str, Any]:
+    # Alcuni OCR archiviano le tre righe TD1 come una sola riga, separate
+    # da spazi. Conserviamo i confini, evitando il concatenamento dei campi.
+    for line in str(text or '').splitlines():
+        parts = line.upper().split()
+        if (len(parts) == 3 and re.fullmatch(r'[IAC]<ITA[A-Z0-9<]{23,25}', parts[0])
+                and re.fullmatch(r'\d{7}[MF<][A-Z0-9<]{20,22}', parts[1])
+                and re.fullmatch(r'[A-Z0<]{24,30}', parts[2]) and '<<' in parts[2]):
+            name_zone = _corroborated_mrz_name_zone(parts[2], text)
+            if not name_zone:
+                continue
+            patch = _parse_td1(parts[0], parts[1], name_zone)
+            if patch:
+                return {'detected': True, 'type': 'CARTA_IDENTITA', 'patch': patch}
     lines = [_clean_mrz_line(line) for line in str(text or "").splitlines()]
     lines = [line for line in lines if line and "<" in line and len(line) >= 24]
     for index in range(len(lines) - 1):
         first, second = lines[index], lines[index + 1]
         if first.startswith("P") and len(first) >= 40 and len(second) >= 40:
-            return {"detected": True, "type": "PASSAPORTO", "patch": _parse_td3(first[:44], second[:44])}
+            patch = _parse_td3(first[:44], second[:44])
+            if patch:
+                return {"detected": True, "type": "PASSAPORTO", "patch": patch}
         if first[:1] in {"I", "A", "C"} and len(first) >= 34 and len(second) >= 34:
-            return {"detected": True, "type": "DOCUMENTO", "patch": _parse_td2(first[:36], second[:36])}
+            patch = _parse_td2(first[:36], second[:36])
+            if patch:
+                return {"detected": True, "type": "DOCUMENTO", "patch": patch}
     for index in range(len(lines) - 2):
         first, second, third = lines[index], lines[index + 1], lines[index + 2]
         if first[:1] in {"I", "A", "C"} and len(first) >= 28 and len(second) >= 28 and len(third) >= 24:
-            return {"detected": True, "type": "CARTA_IDENTITA", "patch": _parse_td1(first[:30], second[:30], third[:30])}
+            names = _corroborated_mrz_name_zone(third[:30], text)
+            patch = _parse_td1(first[:30], second[:30], names) if names else {}
+            if patch:
+                return {"detected": True, "type": "CARTA_IDENTITA", "patch": patch}
     return {"detected": False, "type": "", "patch": {}}
 
 
@@ -423,29 +535,46 @@ def _clean_mrz_line(line: str) -> str:
     return re.sub(r"[^A-Z0-9<]", "", str(line or "").upper())
 
 
+def _corroborated_mrz_name_zone(segment: str, text: str) -> str:
+    """Ripara zero/O solo nel nome e solo con parola autonoma sul fronte.
+
+    Numeri, date e codici del documento non vengono normalizzati così.
+    Il nome atteso in anagrafica non è una prova per correggere l'OCR.
+    """
+    if '0' not in segment:
+        return segment
+    visible = '\n'.join(line for line in str(text or '').upper().splitlines() if '<' not in line)
+    for word in segment.split('<'):
+        if '0' in word and not re.search(r'\b' + re.escape(word.replace('0', 'O')) + r'\b', visible):
+            return ''
+    return segment.replace('0', 'O')
+
+
 def _parse_td3(line1: str, line2: str) -> dict[str, str]:
+    if not _valid_td2_td3_checks(line2, composite_position=43):
+        return {}
     patch = _parse_mrz_names(line1[5:])
     patch.update({
         "doc_tipo": "PASSAPORTO",
         "doc_numero": line2[:9].replace("<", ""),
-        "nazionalita": line2[10:13],
         "data_nascita": line2[13:19],
-        "sesso": line2[20:21],
         "doc_data_scadenza": line2[21:27],
     })
+    _add_mrz_demographics(patch, line2, country_position=10, sex_position=20)
     return patch
 
 
 def _parse_td2(line1: str, line2: str) -> dict[str, str]:
+    if not _valid_td2_td3_checks(line2, composite_position=35):
+        return {}
     patch = _parse_mrz_names(line1[5:])
     patch.update({
         "doc_tipo": "CARTA_IDENTITA",
         "doc_numero": line2[:9].replace("<", ""),
-        "nazionalita": line2[10:13],
         "data_nascita": line2[13:19],
-        "sesso": line2[20:21],
         "doc_data_scadenza": line2[21:27],
     })
+    _add_mrz_demographics(patch, line2, country_position=10, sex_position=20)
     cf = _find_cf(f"{line1} {line2}")
     if cf:
         patch["codice_fiscale"] = cf
@@ -453,19 +582,47 @@ def _parse_td2(line1: str, line2: str) -> dict[str, str]:
 
 
 def _parse_td1(line1: str, line2: str, line3: str) -> dict[str, str]:
+    if not td1_verificata(line1, line2, line3):
+        return {}
     patch = _parse_mrz_names(line3)
     patch.update({
         "doc_tipo": "CARTA_IDENTITA",
         "doc_numero": line1[5:14].replace("<", ""),
         "data_nascita": line2[:6],
-        "sesso": line2[7:8],
         "doc_data_scadenza": line2[8:14],
-        "nazionalita": line2[15:18],
     })
+    # Sex and nationality are not protected by the numeric check digits.
+    # An unreadable value in either must not invalidate verified numbers,
+    # nor be silently repaired into a plausible personal value.
+    _add_mrz_demographics(patch, line2, country_position=15, sex_position=7)
     cf = _find_cf(f"{line1} {line2}")
     if cf:
         patch["codice_fiscale"] = cf
     return patch
+
+
+def _add_mrz_demographics(patch: dict[str, str], line: str, *, country_position: int, sex_position: int) -> None:
+    sex = line[sex_position:sex_position + 1]
+    country = line[country_position:country_position + 3]
+    if sex in {'M', 'F'}:
+        patch['sesso'] = sex
+    if re.fullmatch(r'[A-Z]{3}', country):
+        patch['nazionalita'] = country
+
+
+def _valid_td2_td3_checks(line: str, *, composite_position: int) -> bool:
+    if len(line) < 28:
+        return False
+    if not re.fullmatch(r'[A-Z0-9<]{9}[0-9][A-Z0-9<]{3}[0-9]{7}[A-Z0-9<][0-9]{7}', line[:28]):
+        return False
+    if not (_mrz_check_digit(line[:9], line[9])
+            and _mrz_check_digit(line[13:19], line[19])
+            and _mrz_check_digit(line[21:27], line[27])):
+        return False
+    if len(line) > composite_position:
+        composite = line[:10] + line[13:20] + line[21:composite_position]
+        return _mrz_check_digit(composite, line[composite_position])
+    return False
 
 
 def _parse_mrz_names(segment: str) -> dict[str, str]:
@@ -525,6 +682,10 @@ def _extract_visible_fields(text: str) -> list[tuple[str, str, float]]:
         if reversed_name:
             found.append(('nome', reversed_name.group(1), 0.92))
         issuer = re.search(r"\bCOM[UV]NE\s+DI\s+([A-ZÀ-Ü' -]+?)(?=\s+CARTA\b)", identity_text, re.I)
+        if not issuer:
+            # Il timbro dei diritti può separare l'intestazione comunale dal
+            # titolo. Il valore resta quello della sola riga, non la residenza.
+            issuer = re.search(r"\bCOM[UV]NE[ \t]+DI[ \t]+([A-ZÀ-Ü'’ -]{2,80})(?=\r?\n|$)", identity_text, re.I)
         if issuer:
             city = re.sub(r'\s+', ' ', issuer.group(1)).strip()
             found.append(('doc_rilasciato_da', 'Comune di ' + city.title(), 0.9))
@@ -546,7 +707,7 @@ def _extract_visible_fields(text: str) -> list[tuple[str, str, float]]:
         # Nel fronte CIE il Comune emittente ha una dicitura bilingue,
         # diversa dal Comune di residenza riportato sul retro.
         cie_issuer = re.search(
-            r"\bCOMUNE\s+DI\s*/\s*(?:MUNICIPALITY|MUNICIPAUTY)[ \t]*(?:\n[ \t]*)?([A-ZÀ-Ü'’ -]{2,80})(?=\n|$)",
+            r"\bCOMUNE\s+DI\s*/\s*(?:MUNICIPALITY|MUNICIPAUTY)[ \t]*(?:\n[ \t]*)?([A-ZÀ-Ü'’ -]{2,80}?)(?=\s+COGNOME\b|\n|$)",
             identity_text, re.I,
         )
         if cie_issuer:
@@ -559,12 +720,17 @@ def _extract_visible_fields(text: str) -> list[tuple[str, str, float]]:
         paired = re.search(r"EMISSIONE[^\n]*SCADENZA[^\n]*\n\s*(\d{1,2}[./-]\d{1,2}[./-]\d{4})\s+(\d{1,2}[./-]\d{1,2}[./-]\d{4})", flattened, re.I)
         if paired:
             found.extend([("doc_data_rilascio", paired.group(1), 0.95), ("doc_data_scadenza", paired.group(2), 0.95)])
-        cie_number = re.search(r"REPUBBLICA\s+ITALIANA\s+([A-Z]{2}\d{5}[A-Z]{2})\b", upper)
+        cie_number = re.search(r"REPUBBLICA\s+ITALIANA[^\n]{0,40}?\b([A-Z]{2}\d{5}[A-Z]{2})\b", upper)
         if cie_number:
             found.append(("doc_numero", cie_number.group(1), 0.94))
         demographics = re.search(r"(?:SEX|NATIONALITY|HEIGHT)\s*\n\s*([MF])\s+\d{2,3}\s+(ITA)\b", upper)
         if demographics:
             found.extend([("sesso", demographics.group(1), 0.94), ("nazionalita", demographics.group(2), 0.94)])
+        residence = re.search(r'\b(?:RESIDENCE|ADDRESS)\s+((?:VIALE|VIA|STRADA|PIAZZA|CORSO)\s+[^\n]{2,100}?),?\s+N[.°]?\s*(\d{1,5}[A-Z]?)\s+([A-ZÀ-Ü\'’ -]{2,60}?)\s*\(([A-Z]{2})\)', identity_text, re.I)
+        if residence:
+            found.extend([('via', residence.group(1).rstrip(' ,'), 0.94),
+                ('civico', residence.group(2), 0.94), ('comune', residence.group(3), 0.94),
+                ('provincia', residence.group(4), 0.94)])
     for field, labels, purpose, confidence in (
         ("data_nascita", ("DATA DI NASCITA", "NATO IL", "NATA IL", "DATE OF BIRTH"), "birth", 0.9),
         ("doc_data_rilascio", ("DATA RILASCIO", "RILASCIATO IL", "ISSUED ON"), "generic", 0.82),
@@ -593,6 +759,10 @@ def _extract_visible_fields(text: str) -> list[tuple[str, str, float]]:
 def _line_value(lines: list[str], labels: tuple[str, ...]) -> str:
     label_pattern = "|".join(re.escape(label) for label in labels)
     for index, line in enumerate(lines):
+        if re.fullmatch(rf"\s*(?:{label_pattern})\s*/\s*(?:SURNAME|NAME|GIVEN NAMES?|NATIONALITY|SEX)\s*", line, flags=re.I):
+            if index + 1 < len(lines):
+                return _trim_value(lines[index + 1])
+            continue
         match = re.search(rf"\b(?:{label_pattern})\b\s*(?:[:\-\.]|N[.°])?\s*(.+)$", line, flags=re.I)
         if match:
             raw = re.sub(r"^\s*/\s*(?:SURNAME|NAME|GIVEN NAMES?|NATIONALITY|SEX)\b\s*", "", match.group(1), flags=re.I)
@@ -608,7 +778,7 @@ def _line_value(lines: list[str], labels: tuple[str, ...]) -> str:
 
 def _trim_value(value: str) -> str:
     clean = re.split(
-        r"\b(?:NOME|COGNOME|SESSO|SEX|DATA|NATO|NATA|LUOGO|SCADENZA|RILASCIO|RESIDENZA|INDIRIZZO|NAZIONALIT[ÀA])\b",
+        r"\b(?:NOME|COGNOME|SESSO|SEX|DATA|NATO|NATA|NAT(?=\s*\d)|LUOGO|SCADENZA|RILASCIO|RESIDENZA|INDIRIZZO|NAZIONALIT[ÀA])\b",
         str(value or "").strip(" .:-"),
         maxsplit=1,
         flags=re.I,

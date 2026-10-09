@@ -7,16 +7,42 @@ le correzioni passano dallo storno motivato.
 from __future__ import annotations
 
 from typing import Any
+from functools import wraps
 
 from flask import Flask, Response, g, jsonify, request
 
 from web.blueprints.react_shell import render_react_shell_response
+from pct.prima_nota_repository import PrimaNotaConflict
+from pct.pagamenti_giustizia import format_importo_euro_it
 
 
 def register_prima_nota_routes(app: Flask, core: dict[str, Any]) -> None:
     get_prima_nota = core["get_prima_nota"]
     get_fatturazione = core["get_fatturazione"]
     audit = core["audit"]
+
+    def _validation_error(exc):
+        conflict = isinstance(exc, PrimaNotaConflict)
+        return jsonify({"ok": False, "message": str(exc), "code": "conflict" if conflict else "validation"}), 409 if conflict else 400
+
+    def _governed_write(function):
+        @wraps(function)
+        def wrapped(*args, **kwargs):
+            try:
+                return function(*args, **kwargs)
+            except PrimaNotaConflict as exc:
+                return _validation_error(exc)
+            except Exception:
+                app.logger.exception("Esito comando Prima nota non confermato: %s", function.__name__)
+                # Un errore può avvenire dopo la persistenza (rilascio lock/audit).
+                # Non autorizzare un retry cieco né affermare che nulla è salvato.
+                message = (
+                    'Esito del salvataggio da verificare. La bozza è conservata: usa “Verifica salvataggio” per recuperare la conferma.'
+                    if function.__name__ == 'prima_nota_registra' and g.get('prima_nota_persistent_recovery', False) else
+                    'Esito del comando non confermato. Ricarica il registro e controlla il movimento prima di riprovare.'
+                )
+                return jsonify({"ok": False, "code": "outcome_not_confirmed", "message": message}), 503
+        return wrapped
 
     def _permesso(scrittura: bool = False) -> bool:
         utente = g.get("utente_corrente")
@@ -42,16 +68,31 @@ def register_prima_nota_routes(app: Flask, core: dict[str, Any]) -> None:
             )
         except Exception as exc:
             app.logger.exception("Errore payload prima nota: %s", exc)
-            return jsonify({"ok": False, "message": "Prima nota non disponibile."}), 200
+            return jsonify({"ok": False, "message": "Prima nota non disponibile. Il registro esistente è preservato; riprova il caricamento."}), 503
 
     @app.route("/prima-nota/registra", methods=["POST"])
+    @_governed_write
     def prima_nota_registra():
         if not _permesso(scrittura=True):
             return jsonify({"ok": False, "message": "Permesso insufficiente."}), 403
         dati = request.get_json(silent=True) or request.form
         utente = g.get("utente_corrente")
         try:
-            movimento = get_prima_nota().registra(
+            registro = get_prima_nota()
+            protocol = registro.write_protocol
+            protected = protocol['persistentCommands']
+            g.prima_nota_persistent_recovery = protected
+            if protected and ('expectedRevision' not in dati or not dati.get('commandKey')):
+                return jsonify({'ok': False, 'code': 'precondition_required', 'message':
+                    'Ricarica il registro prima di registrare il movimento; la bozza è preservata.'}), 428
+            if protected and (type(dati.get('expectedRevision')) is not int or dati['expectedRevision'] < 0):
+                raise ValueError('Revisione del registro non valida.')
+            movement_command = {}
+            if protected or 'commandKey' in dati or 'expectedRevision' in dati:
+                movement_command = {'command_key': dati.get('commandKey', ''),
+                                    'expected_revision': dati.get('expectedRevision')}
+            movimento = registro.registra(
+                **movement_command,
                 data=str(dati.get("data") or ""),
                 tipo=str(dati.get("tipo") or ""),
                 importo=dati.get("importo"),
@@ -64,19 +105,24 @@ def register_prima_nota_routes(app: Flask, core: dict[str, Any]) -> None:
                 creato_da=getattr(utente, "username", "") or "",
             )
         except ValueError as exc:
-            return jsonify({"ok": False, "message": str(exc)}), 400
-        audit("prima_nota.registrato", "prima_nota", movimento.id, dettagli=f"{movimento.tipo} {movimento.importo}")
-        message = f"Movimento registrato: {movimento.tipo.lower()} di {movimento.importo:.2f} EUR."
-        return jsonify({"ok": True, "message": message, "messaggio": message, "movimentoId": movimento.id})
+            return _validation_error(exc)
+        if registro.write_protocol['persistentCommands']:
+            registro.confirm_audit(movimento.id)
+        else:
+            audit("prima_nota.registrato", "prima_nota", movimento.id, dettagli=f"{movimento.tipo} {format_importo_euro_it(movimento.importo)}")
+        message = f"Movimento registrato: {movimento.tipo.lower()} di {format_importo_euro_it(movimento.importo)}."
+        return jsonify({"ok": True, "message": message, "messaggio": message, "movimentoId": movimento.id, "writeProtocol": registro.write_protocol})
 
     @app.route("/prima-nota/<movimento_id>/storna", methods=["POST"])
+    @_governed_write
     def prima_nota_storna(movimento_id: str):
         if not _permesso(scrittura=True):
             return jsonify({"ok": False, "message": "Permesso insufficiente."}), 403
         dati = request.get_json(silent=True) or request.form
         utente = g.get("utente_corrente")
         try:
-            storno = get_prima_nota().storna(
+            registro = get_prima_nota()
+            storno = registro.storna(
                 movimento_id,
                 motivo=str(dati.get("motivo") or ""),
                 attore=getattr(utente, "username", "") or "",
@@ -84,31 +130,40 @@ def register_prima_nota_routes(app: Flask, core: dict[str, Any]) -> None:
         except KeyError as exc:
             return jsonify({"ok": False, "message": str(exc)}), 404
         except ValueError as exc:
-            return jsonify({"ok": False, "message": str(exc)}), 400
-        audit("prima_nota.stornato", "prima_nota", movimento_id, dettagli=storno.causale)
+            return _validation_error(exc)
+        if registro.write_protocol['persistentCommands']:
+            registro.confirm_audit(storno.id)
+        else:
+            audit("prima_nota.stornato", "prima_nota", movimento_id, dettagli=storno.causale)
         return jsonify({"ok": True, "message": "Storno registrato: il movimento originale resta a registro."})
 
     @app.route("/prima-nota/riconcilia-parcelle", methods=["POST"])
+    @_governed_write
     def prima_nota_riconcilia():
         if not _permesso(scrittura=True):
             return jsonify({"ok": False, "message": "Permesso insufficiente."}), 403
         utente = g.get("utente_corrente")
         try:
-            creati = get_prima_nota().incassi_da_parcelle(
+            registro = get_prima_nota()
+            creati = registro.incassi_da_parcelle(
                 get_fatturazione(), attore=getattr(utente, "username", "") or ""
             )
-        except Exception as exc:
-            app.logger.exception("Errore riconciliazione prima nota: %s", exc)
-            return jsonify({"ok": False, "message": f"Riconciliazione non riuscita: {exc}"}), 200
-        audit("prima_nota.riconciliazione", "prima_nota", "parcelle", dettagli=f"{len(creati)} incassi")
+        except ValueError as exc:
+            return _validation_error(exc)
+        if registro.write_protocol['persistentCommands']:
+            for movimento in creati:
+                registro.confirm_audit(movimento.id)
+        else:
+            audit("prima_nota.riconciliazione", "prima_nota", "parcelle", dettagli=f"{len(creati)} incassi")
         message = (
             f"{len(creati)} incassi importati dalle parcelle pagate."
             if creati
-            else "Nessuna parcella pagata da importare: registro gia' allineato."
+            else "Nessuna parcella pagata da importare: registro già allineato."
         )
         return jsonify({"ok": True, "message": message, "messaggio": message, "creati": len(creati)})
 
     @app.route("/prima-nota/riconciliazione/analizza", methods=["POST"])
+    @_governed_write
     def prima_nota_riconciliazione_analizza():
         """Analizza l'estratto conto CSV e propone gli abbinamenti (mai automatici)."""
         from pct.riconciliazione_bancaria import parse_estratto_csv, proponi_abbinamenti
@@ -167,6 +222,7 @@ def register_prima_nota_routes(app: Flask, core: dict[str, Any]) -> None:
         return jsonify({"ok": True, "proposte": payload, "avvisi": avvisi, "conteggi": conteggi})
 
     @app.route("/prima-nota/riconciliazione/conferma", methods=["POST"])
+    @_governed_write
     def prima_nota_riconciliazione_conferma():
         if not _permesso(scrittura=True):
             return jsonify({"ok": False, "message": "Permesso insufficiente."}), 403
@@ -177,7 +233,8 @@ def register_prima_nota_routes(app: Flask, core: dict[str, Any]) -> None:
         except (TypeError, ValueError):
             importo_riga = None
         try:
-            movimento = get_prima_nota().marca_riconciliato(
+            registro = get_prima_nota()
+            movimento = registro.marca_riconciliato(
                 str(dati.get("movimentoId") or ""),
                 riga_estratto_id=str(dati.get("rigaId") or ""),
                 importo_riga=importo_riga,
@@ -186,11 +243,15 @@ def register_prima_nota_routes(app: Flask, core: dict[str, Any]) -> None:
         except KeyError:
             return jsonify({"ok": False, "message": "Movimento non trovato."}), 404
         except ValueError as exc:
-            return jsonify({"ok": False, "message": str(exc)}), 400
-        audit("prima_nota.riconciliato", "prima_nota", movimento.id, dettagli=f"riga={movimento.riga_estratto_id}")
+            return _validation_error(exc)
+        if registro.write_protocol['persistentCommands']:
+            registro.confirm_audit(movimento.id)
+        else:
+            audit("prima_nota.riconciliato", "prima_nota", movimento.id, dettagli=f"riga={movimento.riga_estratto_id}")
         return jsonify({"ok": True, "message": "Movimento riconciliato con l'estratto conto."})
 
     @app.route("/prima-nota/riconciliazione/registra-da-riga", methods=["POST"])
+    @_governed_write
     def prima_nota_registra_da_riga():
         """Registra un movimento da una riga banca e lo marca riconciliato.
 
@@ -205,12 +266,11 @@ def register_prima_nota_routes(app: Flask, core: dict[str, Any]) -> None:
         if not riga_id:
             return jsonify({"ok": False, "message": "Riga estratto mancante."}), 400
         registro = get_prima_nota()
-        if any(m.riga_estratto_id == riga_id for m in registro.registro()):
-            return jsonify({"ok": True, "message": "Riga gia' registrata in prima nota: nessun doppione creato."})
         utente = g.get("utente_corrente")
         verso = str(dati.get("verso") or "")
         try:
-            movimento = registro.registra(
+            movimento = registro.registra_da_riga(
+                riga_estratto_id=riga_id,
                 data=str(dati.get("data") or ""),
                 tipo=verso,
                 importo=abs(float(dati.get("importo") or 0)),
@@ -219,11 +279,14 @@ def register_prima_nota_routes(app: Flask, core: dict[str, Any]) -> None:
                 metodo="banca",
                 creato_da=getattr(utente, "username", "") or "",
             )
-            registro.marca_riconciliato(movimento.id, riga_estratto_id=riga_id)
         except (TypeError, ValueError) as exc:
-            return jsonify({"ok": False, "message": str(exc)}), 400
-        audit("prima_nota.registrato_da_banca", "prima_nota", movimento.id, dettagli=f"riga={riga_id}")
-        message = "Movimento registrato dalla riga bancaria (gia' riconciliato): classifica la categoria dal registro."
+            return _validation_error(exc)
+        if registro.write_protocol['persistentCommands']:
+            registro.confirm_audit(movimento.id)
+        else:
+            audit("prima_nota.registrato_da_banca", "prima_nota", movimento.id, dettagli=f"riga={riga_id}")
+        categoria_label = "Altri incassi" if verso == "INCASSO" else "Altri pagamenti"
+        message = f"Movimento bancario registrato e riconciliato. Categoria: {categoria_label}."
         return jsonify({"ok": True, "message": message, "messaggio": message, "movimentoId": movimento.id})
 
     @app.route("/prima-nota/esporta.csv")

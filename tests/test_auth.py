@@ -610,3 +610,14 @@ def test_statistiche(gu):
     assert stats["totale_utenti"] >= 3  # admin + 2
     assert stats["per_ruolo"]["AVVOCATO"] >= 1
     assert stats["per_ruolo"]["AMMINISTRATORE"] >= 1
+
+
+def test_audit_sql_snapshot_concorrenti_non_cancellano_eventi(tmp_path):
+    database = StudioDB.get(str(tmp_path/'studio.db'))
+    options = dict(db_path=str(tmp_path/'auth/utenti.json'),audit_path=str(tmp_path/'auth/audit.json'),
+                   secret_key='controllato',crea_admin_se_vuoto=False,studio_db=database)
+    first = GestioneUtenti(**options)
+    second = GestioneUtenti(**options)
+    first.registra_evento('prima-nota.prova-a',username='controllato')
+    second.registra_evento('prima-nota.prova-b',username='controllato')
+    assert sorted(row[0] for row in database.conn.execute('SELECT azione FROM audit_log').fetchall()) == ['prima-nota.prova-a','prima-nota.prova-b']

@@ -4,6 +4,7 @@ export function workWindowUrl(href: string, origin: string): URL | null {
     const url = new URL(href, origin)
     if (url.origin !== origin || url.username || url.password || (url.pathname !== '/' && !WORK_ROUTES.test(url.pathname))) return null
     if (/\/(?:elimina|archivia|stato|sposta|logout|export\.ics)(?:\/|$)/.test(url.pathname)) return null
+    if (/^\/prima-nota\/(?:esporta|registro-iva)\.csv$/.test(url.pathname)) return null
     if (/^\/email(?:-ordinaria)?\/?$/.test(url.pathname) && !url.searchParams.get('id') && !url.searchParams.get('audit_id')) {
       url.searchParams.set('view', 'mailbox')
     }

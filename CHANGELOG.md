@@ -1,5 +1,7 @@
 # Changelog
 
+- **Consolidamento 2.436.23 (09/10/2026)**: Prima nota con adozione SQL governata, comandi idempotenti, audit persistente e recupero periodico delle sole consegne pendenti. Movimento bancario e riconciliazione atomici; reimportazione di righe già riconciliate senza nuovi movimenti. Campi contenuti, date italiane ed export diretti senza finestre vuote, provati sulla copia reale locale. Conservati sorgenti e asset pubblicati del server; l'incarico generale e i flussi non ancora accettati restano aperti. EmbeddingGemma 300M mantenuto.
+
 - **Consolidamento 2.436.12 (08/10/2026)**: preservati i recuperi server/locali e i registri delle verifiche aperte; lettura puntuale dell’identità con fonte corrente, separazione carta/tessera sanitaria e Comune emittente CIE riconosciuto. L’incarico resta aperto per i flussi non ancora accettati; nessuna promozione del candidato embedding o invio/firma dichiarato concluso.
 
 - **Verifica fonti dopo deploy 2.436.11**: conteggi e ricerca Normattiva, completamento dell’import Consulta in tutti i corpus con attesa limitata; nessun successo se import incompleto.

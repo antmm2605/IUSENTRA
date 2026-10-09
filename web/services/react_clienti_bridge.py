@@ -865,6 +865,9 @@ def build_react_cliente_modifica_payload(
     payload["actions"]["operationalClientForm"] = f"/clienti/{id_cliente}/modifica"
     payload["actions"]["clientsList"] = f"/clienti/{id_cliente}/cartella"
     payload["query"]["idCliente"] = id_cliente
+    # Il fascicolo serve alla lettura delle fonti, non è una richiesta di
+    # uscire dall'anagrafica dopo il salvataggio. Il ritorno deve essere esplicito.
+    payload["query"]["nextUrl"] = _safe_internal_path((query or {}).get("next_url") or (query or {}).get("next"))
     payload["insights"] = [
         "Stai modificando l'anagrafica reale: i collegamenti a fascicoli, preventivi e conferimenti restano sullo stesso id cliente.",
         "Completa recapiti, documento e indirizzo prima di generare o firmare il conferimento incarico.",

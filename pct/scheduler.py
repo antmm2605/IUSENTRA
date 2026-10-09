@@ -1501,7 +1501,7 @@ def start_scheduler(app):
                     "tenants": tenant_reports,
                 }
             except Exception as e:
-                logger.error("[scheduler] Pipeline PEC fallita: %s", e)
+                logger.exception("[scheduler] Pipeline PEC fallita: %s", e)
                 return {"ok": False, "job": "pec_audit_pipeline_workers", "error": str(e)}
 
     @scheduler.scheduled_job(
@@ -2613,6 +2613,14 @@ def start_scheduler(app):
                         )
                 except Exception as exc:
                     logger.error("[scheduler] Ripresa coda letture non riuscita: %s", exc)
+                try:
+                    from web.services.prima_nota_runtime import riprendi_audit_prima_nota
+
+                    audit_result = riprendi_audit_prima_nota(app)
+                    if audit_result['failed']:
+                        logger.error('[scheduler] Audit Prima nota: %d consegne da recuperare.', audit_result['failed'])
+                except Exception as exc:
+                    logger.error('[scheduler] Ripresa audit Prima nota non riuscita: %s', exc)
                 dispatch_requested_manual_runs(scheduler, app, registry_repo)
 
         scheduler.add_job(

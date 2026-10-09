@@ -37,6 +37,36 @@ def register_sync_runtime_routes(
     def _cfg_path(key: str, default: str = "", *aliases: str) -> str:
         return tenant_data_path(key, default, *aliases, require_tenant=True)
 
+    @app.get("/api/v1/ui/sync/revisions")
+    def operational_live_revisions():
+        """Only permission-filtered revision counters of the current SQL tenant."""
+        utente = _current_user()
+        if not utente:
+            return jsonify({"ok": False, "message": "Sessione scaduta."}), 401
+        from pct.operational_live import read_live_revisions
+        from web.services.storage_runtime import get_request_studio_db
+
+        permissions = {
+            "clienti": "clienti.leggi", "soggetti": "clienti.leggi",
+            "fascicoli": "fascicoli.leggi", "agenda": "agenda.leggi",
+            "scadenze": "scadenziario.leggi", "timesheet": "fatturazione.leggi",
+            "preventivi": "fatturazione.leggi", "fatturazione": "fatturazione.leggi",
+            "incassi": "fatturazione.leggi", "comunicazioni": "messaggi.leggi",
+            "privacy": "utenti.leggi",
+        }
+        domains = {domain for domain, permission in permissions.items() if utente.ha_permesso(permission)}
+        backend = get_request_studio_db(_cfg_path("CLIENTI_DB"))
+        if backend is None:
+            return jsonify({"ok": False, "message": "Sincronizzazione SQL non disponibile."}), 503
+        try:
+            revisions = read_live_revisions(backend, domains)
+        except Exception:
+            app.logger.exception("Lettura revisioni live non riuscita")
+            return jsonify({"ok": False, "message": "Aggiornamento live interrotto. Riprovo automaticamente."}), 503
+        response = jsonify({"ok": True, "revisions": revisions})
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
     @app.route("/api/eventi")
     def api_eventi():
         utente = _current_user()

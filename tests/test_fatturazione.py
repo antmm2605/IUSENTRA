@@ -1,8 +1,48 @@
 from pathlib import Path
+import pytest
 
 from pct.fatturazione import GestioneFatturazione, VoceParcella
 from pct.preventivi import GestionePreventivi, VocePreventivo
 from pct.storage import StudioDB
+
+
+def test_sql_draft_rejects_stale_writer_and_preserves_its_cache(tmp_path: Path):
+    from pct.fatturazione import parcella_revision, ParcellaConcurrentUpdate
+    db = StudioDB.get(str(tmp_path / 'studio.db'))
+    try:
+        first = GestioneFatturazione(db_path=str(tmp_path / 'parcelle.json'), studio_db=db)
+        document = first.crea(id_cliente='cliente-1', note='Iniziale',
+            voci=[VoceParcella(descrizione='Compenso', quantita=1, prezzo_unitario=260)])
+        revision = parcella_revision(document)
+        other = GestioneFatturazione(db_path=str(tmp_path / 'parcelle.json'), studio_db=db)
+        first.aggiorna(document.id, expected_revision=revision, note='Salvataggio primo utente')
+        with pytest.raises(ParcellaConcurrentUpdate):
+            other.aggiorna(document.id, expected_revision=revision, note='Bozza concorrente')
+        assert other.get(document.id).note == 'Iniziale'
+        fresh = GestioneFatturazione(db_path=str(tmp_path / 'parcelle.json'), studio_db=db)
+        assert fresh.get(document.id).note == 'Salvataggio primo utente'
+        token = parcella_revision(fresh.get(document.id))
+        fresh.aggiorna(document.id, expected_revision=token, note='Ripresa consapevole')
+        assert fresh.get(document.id).note == 'Ripresa consapevole'
+    finally:
+        db.chiudi()
+
+
+def test_sql_draft_deleted_after_opening_is_not_recreated(tmp_path: Path):
+    from pct.fatturazione import parcella_revision, ParcellaConcurrentUpdate
+    db = StudioDB.get(str(tmp_path / 'studio.db'))
+    try:
+        manager = GestioneFatturazione(db_path=str(tmp_path / 'parcelle.json'), studio_db=db)
+        document = manager.crea(id_cliente='cliente-1',
+            voci=[VoceParcella(descrizione='Compenso', quantita=1, prezzo_unitario=260)])
+        token = parcella_revision(document)
+        db.conn.execute('DELETE FROM parcelle WHERE id=?', (document.id,))
+        db.conn.commit()
+        with pytest.raises(ParcellaConcurrentUpdate):
+            manager.aggiorna(document.id, expected_revision=token, note='Salvataggio tardivo')
+        assert db.conn.execute('SELECT id FROM parcelle WHERE id=?', (document.id,)).fetchone() is None
+    finally:
+        db.chiudi()
 
 
 def test_preventivo_salva_log_calcolo(tmp_path: Path):

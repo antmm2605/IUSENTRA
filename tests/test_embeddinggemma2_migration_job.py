@@ -15,6 +15,7 @@ def test_preparation_snapshot_only_reads_checkpoint(tmp_path, monkeypatch):
     folder = job.candidate_folder(db)
     folder.mkdir()
     config = {"NORMATTIVA_DB": db}
+    monkeypatch.setattr("pct.scheduler_registry.read_registered_job_enabled", lambda *args: True)
     monkeypatch.setattr(job.subprocess, "run", lambda *a, **k: (_ for _ in ()).throw(AssertionError("Inferenza nella GET")))
     assert job.preparation_snapshot(config) == {"present": False}
     path = folder / "meta.json"
@@ -26,6 +27,26 @@ def test_preparation_snapshot_only_reads_checkpoint(tmp_path, monkeypatch):
     path.write_text("{danneggiato")
     assert job.preparation_snapshot(config)["stage"] == "error"
     assert db.read_bytes() == b"Archivio da non aprire nella GET"
+
+
+def test_saved_checkpoint_never_claims_running_when_job_is_disabled(tmp_path):
+    import sqlite3
+
+    db = tmp_path / "normattiva.sqlite"
+    folder = job.candidate_folder(db)
+    folder.mkdir()
+    (folder / "meta.json").write_text(json.dumps({"righe": 5, "prima_costruzione": {"totale_iniziale": 20, "completa": False}}))
+    registry = tmp_path / "scheduler.sqlite"
+    config = {"NORMATTIVA_DB": db, "SCHEDULER_REGISTRY_DB": registry}
+    assert job.preparation_snapshot(config)["stage"] == "checkpoint_only"
+    assert not registry.exists()
+    with sqlite3.connect(registry) as conn:
+        conn.execute("CREATE TABLE scheduled_jobs(job_id TEXT PRIMARY KEY, enabled INTEGER)")
+        conn.execute("INSERT INTO scheduled_jobs VALUES (?,0)", (job.JOB_ID,))
+    result = job.preparation_snapshot(config)
+    assert result["stage"] == "disabled" and result["rows"] == 5
+    with sqlite3.connect(registry) as conn:
+        assert conn.execute("SELECT enabled FROM scheduled_jobs").fetchone()[0] == 0
 
 
 def test_disabled_job_does_not_read_source(monkeypatch):

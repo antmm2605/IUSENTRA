@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-DWt3OWuX.js";export{e as ImpostazioniPage};

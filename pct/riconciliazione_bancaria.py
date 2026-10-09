@@ -19,7 +19,7 @@ import hashlib
 import io
 import re
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date
 from typing import Any
 
 TOLLERANZA_GIORNI_DEFAULT = 3
@@ -53,7 +53,7 @@ class PropostaAbbinamento:
     """Esito del confronto riga-banca ↔ prima nota, da confermare a mano."""
 
     riga: RigaEstratto
-    tipo: str  # "abbinamento" | "ambiguo" | "nuovo_movimento"
+    tipo: str  # "abbinamento" | "ambiguo" | "nuovo_movimento" | "gia_riconciliato"
     movimento_id: str = ""  # valorizzato per "abbinamento"
     candidati: list[str] = field(default_factory=list)  # per "ambiguo"
 
@@ -238,6 +238,14 @@ def proponi_abbinamenti(
         return True
 
     disponibili = {str(getattr(m, "id", "")): m for m in movimenti if _candidabile(m)}
+    riconciliati: dict[str, Any] = {}
+    for movimento in movimenti:
+        riga_id = str(getattr(movimento, "riga_estratto_id", "") or "")
+        if not riga_id:
+            continue
+        if riga_id in riconciliati:
+            raise ValueError("Una riga bancaria risulta collegata a più movimenti: verifica necessaria.")
+        riconciliati[riga_id] = movimento
 
     # Tutte le coppie compatibili (riga, movimento) con la loro distanza in
     # giorni: l'assegnazione e' globale per delta crescente, cosi' il match
@@ -245,6 +253,8 @@ def proponi_abbinamenti(
     coppie: list[tuple[int, str, str]] = []  # (delta, riga_id, movimento_id)
     candidati_per_riga: dict[str, list[str]] = {r.id: [] for r in righe}
     for riga in righe:
+        if riga.id in riconciliati:
+            continue
         for movimento_id, movimento in disponibili.items():
             if str(getattr(movimento, "tipo", "")) != riga.verso:
                 continue
@@ -271,6 +281,18 @@ def proponi_abbinamenti(
 
     proposte: list[PropostaAbbinamento] = []
     for riga in sorted(righe, key=lambda r: r.data):
+        presente = riconciliati.get(riga.id)
+        if presente is not None:
+            if (
+                not getattr(presente, "riconciliato_il", "")
+                or str(getattr(presente, "tipo", "")) != riga.verso
+                or abs(float(getattr(presente, "importo", 0)) - abs(riga.importo)) > 0.005
+            ):
+                raise ValueError("La riga bancaria già collegata ha dati discordanti: verifica necessaria.")
+            proposte.append(PropostaAbbinamento(
+                riga=riga, tipo="gia_riconciliato", movimento_id=str(presente.id),
+            ))
+            continue
         candidati = candidati_per_riga.get(riga.id, [])
         if riga.id in assegnati_riga and len(candidati) == 1:
             proposte.append(

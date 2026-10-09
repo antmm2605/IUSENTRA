@@ -991,11 +991,15 @@ class PostgresStudioDB:
 
     backend_kind = "postgresql"
 
-    def __init__(self, dsn: str) -> None:
+    def __init__(self, dsn: str, *, initialize_schema: bool = True) -> None:
         self.dsn = dsn
         self.db_path = Path("postgresql")
         self._local = threading.local()
-        self._ensure_schema()
+        if initialize_schema:
+            self._ensure_schema()
+            from pct.operational_live import ensure_live_schema
+            ensure_live_schema(self.conn, postgres=True)
+            self.raw_conn.commit()
 
     @classmethod
     def get(cls, dsn: str) -> "PostgresStudioDB":

@@ -2686,3 +2686,4 @@ Gate Codex Harness code non superato: due controlli segnalano Dockerfile, railwa
 Da fare prima del rilascio: immagine definitiva con la correzione della regia, cleanup utenti tecnici con conservazione audit, commit e push dei due branch, check CI, backup e deploy Hetzner dello stesso commit. L'incarico generale resta aperto; EmbeddingGemma 300M e flussi congelati invariati.
 
 09/10/2026 08:35 — Consolidamento Git 82d96a0588 creato; il primo push è stato fermato dal pre-push perché OpenAPI non aggiornato. Rigenerato con lo script nativo: delta versione e riferimenti di riga dei sorgenti, schema validato. Nessun bypass del hook. Il rilascio rimane aperto fino al nuovo push e ai gate reali sullo SHA risultante.
+Aggiornato anche l'inventario nativo dei test App V2 richiesto dal secondo controllo pre-push; generazione e riscontro --check positivi. Non saltati hook né sostituiti gate remoti con esiti locali.

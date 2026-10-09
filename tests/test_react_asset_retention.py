@@ -131,3 +131,27 @@ def test_telematico_surface_bundle_contiene_copia_pst_aggiornata():
     assert "Default PST: copia di consultazione" in source
     assert "dopo il tentativo di avvio automatico" in source
     assert "Timeout del Local Signer locale" not in source
+
+
+@pytest.mark.parametrize("phase", ["buildEnd", "generateBundle"])
+def test_build_fallita_non_pulisce_asset_ne_maschera_errore(tmp_path, phase):
+    asset_dir = tmp_path / "web/static/react/assets"
+    asset_dir.mkdir(parents=True)
+    published = asset_dir / "index-PUBLISHED.js"
+    published.write_text("rilascio in uso", encoding="utf-8")
+    plugin_url = (ROOT / "frontend/vite/pruneReactAssets.ts").as_uri()
+    script = f"""
+        import {{ pruneReactAssets }} from {json.dumps(plugin_url)};
+        import {{ access }} from 'node:fs/promises';
+        const plugin = pruneReactAssets();
+        plugin.configResolved({{root: {json.dumps(str(tmp_path))},
+            build: {{outDir: 'web/static/react'}}, logger: {{info() {{}}}}}});
+        await plugin.buildStart();
+        plugin.buildEnd({json.dumps(phase)} === 'buildEnd' ? new Error('difetto primario') : undefined);
+        // Il plugin precedente può fallire prima di generateBundle del pulitore.
+        await plugin.closeBundle();
+        await access({json.dumps(str(published))});
+    """
+    subprocess.run([shutil.which("node"), "--experimental-strip-types", "--input-type=module", "-e", script],
+                   check=True, capture_output=True, text=True, timeout=30)
+    assert published.read_text(encoding="utf-8") == "rilascio in uso"

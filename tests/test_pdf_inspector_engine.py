@@ -136,12 +136,13 @@ def test_identity_region_preserves_original_and_accepts_only_checked_rotation(mo
     calls = []
     def read(image, **kwargs):
         calls.append((image.size, kwargs))
-        return SimpleNamespace(confidenza=.97, testo=mrz if len(calls) == 2 else 'Testo senza riscontro MRZ')
+        return SimpleNamespace(confidenza=.97, testo=mrz if image.width > image.height else 'Testo senza riscontro MRZ')
     monkeypatch.setattr(identita, 'leggi_con_secondo_lettore', read)
+    monkeypatch.setattr(identita, '_orientamento_riscontrato', lambda _: 90)
     text, warnings = identita.recupera_mrz_carta(page)
-    assert text == mrz and len(calls) == 2
-    assert calls[0][0] == calls[1][0][::-1]
-    assert all(options == {'dpi': 216} for _, options in calls)
+    assert text == mrz and len(calls) == 1  # orientamento diagnosticato prima dell'OCR
+    assert calls[0][0][0] > calls[0][0][1]
+    assert calls[0][1] == {'dpi': 216, 'preserva_risoluzione': True}
     assert page.tobytes() == original
     assert any('90°' in warning for warning in warnings)
 
@@ -157,16 +158,180 @@ def test_identity_region_never_repairs_wrong_check_digits(monkeypatch):
         calls.append(1)
         return SimpleNamespace(confidenza=.99, testo='I<UTOD231458900<<<<<<<<<<<<<<< 7408122F1204159UTO<<<<<<<<<<<6 ERIKSSON<<ANNA<MARIA<<<<<<<<<<')
     monkeypatch.setattr(identita, 'leggi_con_secondo_lettore', read)
+    monkeypatch.setattr(identita, '_orientamento_riscontrato', lambda _: 0)
     text, warnings = identita.recupera_mrz_carta(page)
-    assert not text and len(calls) == 4 and warnings
+    assert not text and len(calls) == 7 and warnings  # preparazione + controlli finiti preesistenti
 
 
 def install_identity_contour(monkeypatch):
     # Contratto portabile: OpenCV e PP-OCR reali sono provati nel container;
     # qui si verifica esclusivamente adozione, limite tentativi e immutabilità.
-    monkeypatch.setitem(sys.modules, 'cv2', SimpleNamespace(RETR_EXTERNAL=0, CHAIN_APPROX_SIMPLE=0,
+    monkeypatch.setitem(sys.modules, 'cv2', SimpleNamespace(RETR_EXTERNAL=0, CHAIN_APPROX_SIMPLE=0, MORPH_CLOSE=0, morphologyEx=lambda mask, *_: mask,
         findContours=lambda *_: ([object()], None), contourArea=lambda _: 150000,
         boundingRect=lambda _: (300, 400, 300, 500)))
+    from legal_ocr.motore import geometria_identita, immagine
+    monkeypatch.setattr(geometria_identita, 'prepara_geometria_identita', lambda image:
+                        SimpleNamespace(immagine=image.copy(), passaggi=()))
+    monkeypatch.setattr(immagine, 'scala_caratteri_zona', lambda image: 1)
+
+
+def test_identity_page_with_cie_and_health_card_reads_separate_regions(monkeypatch):
+    from PIL import Image
+    from legal_ocr.motore import identita
+    page = Image.new('RGB', (1000, 1400), 'white')
+    regions = [(300, 100, 400, 250), (300, 800, 400, 250)]
+    monkeypatch.setitem(sys.modules, 'cv2', SimpleNamespace(RETR_EXTERNAL=0, CHAIN_APPROX_SIMPLE=0, MORPH_CLOSE=0, morphologyEx=lambda mask, *_: mask,
+        findContours=lambda *_: ([0, 1], None), contourArea=lambda _: 100000,
+        boundingRect=lambda index: regions[index]))
+    cie = ('IDENTITY CARD\nCA62436OK\nCOGNOME / SURNAME\nBORGESE\n'
+           'NOME / NAME\nMARIA\nEMISSIONE / ISSUING\n10.03.2023')
+    calls = []
+    def read_region(image, x, y, width, height, pillow):
+        calls.append((x, y))
+        return (cie, ['fronte riscontrato']) if y == 100 else ('', [])
+    monkeypatch.setattr(identita, '_leggi_regione', read_region)
+    text, warnings = identita.recupera_mrz_carta(page)
+    assert text == cie and warnings == ['fronte riscontrato']
+    assert len(calls) == 2
+
+
+def test_identity_distinct_cie_cards_never_merged(monkeypatch):
+    from PIL import Image
+    from legal_ocr.motore import identita
+    page = Image.new('RGB', (1000, 1400), 'white')
+    monkeypatch.setitem(sys.modules, 'cv2', SimpleNamespace(RETR_EXTERNAL=0, CHAIN_APPROX_SIMPLE=0, MORPH_CLOSE=0, morphologyEx=lambda mask, *_: mask,
+        findContours=lambda *_: ([0, 1], None), contourArea=lambda _: 100000,
+        boundingRect=lambda index: (300, 100 + index * 700, 400, 250)))
+    template = 'IDENTITY CARD {} COGNOME / SURNAME NOME / NAME EMISSIONE / ISSUING'
+    monkeypatch.setattr(identita, '_leggi_regione',
+        lambda image, x, y, width, height, pillow: (template.format('CA62436OK' if y == 100 else 'CA11111AB'), []))
+    text, warnings = identita.recupera_mrz_carta(page)
+    assert not text and any('più carte distinte' in warning for warning in warnings)
+
+
+def test_identity_same_card_regions_preserve_all_readings(monkeypatch):
+    from PIL import Image
+    from legal_ocr.motore import identita
+    page = Image.new('RGB', (1000, 1400), 'white')
+    monkeypatch.setitem(sys.modules, 'cv2', SimpleNamespace(RETR_EXTERNAL=0, CHAIN_APPROX_SIMPLE=0, MORPH_CLOSE=0, morphologyEx=lambda mask, *_: mask,
+        findContours=lambda *_: ([0, 1], None), contourArea=lambda _: 100000,
+        boundingRect=lambda index: (300, 100 + index * 700, 400, 250)))
+    template = 'IDENTITY CARD CA11111AB COGNOME / SURNAME ROSSI NOME / NAME MARIO EMISSIONE / ISSUING '
+    monkeypatch.setattr(identita, '_leggi_regione',
+        lambda image, x, y, width, height, pillow: (template + str(y), [str(y)]))
+    text, warnings = identita.recupera_mrz_carta(page)
+    assert template + '100' in text and template + '800' in text
+    assert warnings == ['100', '800']
+
+
+@pytest.mark.parametrize('front_number,accepted', [('CA11111AB', True), ('CA22222CD', False)])
+def test_identity_front_and_mrz_require_identical_document_number(monkeypatch, front_number, accepted):
+    from PIL import Image
+    from legal_ocr.motore import identita
+    def digit(value):
+        values = [0 if c == '<' else int(c) if c.isdigit() else ord(c) - 55 for c in value]
+        return str(sum(n * (7, 3, 1)[i % 3] for i, n in enumerate(values)) % 10)
+    number = 'CA11111AB'
+    first = 'I<ITA' + number + digit(number) + '<' * 15
+    birth, expiry = '800101', '300101'
+    second = birth + digit(birth) + 'M' + expiry + digit(expiry) + 'ITA' + '<' * 11
+    second += digit(first[5:30] + second[:7] + second[8:15] + second[18:29])
+    mrz = '\n'.join((first, second, 'ROSSI<<MARIO<<<<<<<<<<<<<<<<<<'))
+    front = f'IDENTITY CARD {front_number} COGNOME / SURNAME ROSSI NOME / NAME MARIO EMISSIONE / ISSUING'
+    page = Image.new('RGB', (1000, 1400), 'white')
+    monkeypatch.setitem(sys.modules, 'cv2', SimpleNamespace(RETR_EXTERNAL=0, CHAIN_APPROX_SIMPLE=0, MORPH_CLOSE=0, morphologyEx=lambda mask, *_: mask,
+        findContours=lambda *_: ([0, 1], None), contourArea=lambda _: 100000,
+        boundingRect=lambda index: (300, 100 + index * 700, 400, 250)))
+    monkeypatch.setattr(identita, '_leggi_regione',
+        lambda image, x, y, width, height, pillow: (front if y == 100 else mrz, [str(y)]))
+    text, warnings = identita.recupera_mrz_carta(page)
+    if accepted:
+        assert front in text and mrz in text and warnings == ['100', '800']
+    else:
+        assert not text and any('più carte distinte' in warning for warning in warnings)
+
+
+def test_health_card_never_supplies_cie_number():
+    from legal_ocr.motore.identita import _riscontro_carta
+    assert _riscontro_carta('TESSERA SANITARIA CA62436OK COGNOME NOME SCADENZA') is None
+
+
+def test_cie_model_uses_italian_labels_without_repairing_personal_values():
+    from legal_ocr.motore.identita import _riscontro_carta
+    source = 'IDENTITY CARD CA11111AB COMUNE DI COGNOME ROSSI NOMEZNAME MARIO EMISSIONE'
+    assert _riscontro_carta(source) == ('cie', 'CA11111AB')
+    assert _riscontro_carta(source.replace('CA11111AB', 'CA1111IAB')) is None
+    assert _riscontro_carta('IDENTITY CARD CA11111AB') is None
+
+
+def test_health_card_region_requires_labelled_valid_cf_and_names():
+    from legal_ocr.motore.identita import _riscontro_carta
+    from pct.codice_fiscale import _checksum
+    prefix = 'RSSMRA80A01H501'
+    code = prefix + _checksum(prefix)
+    source = f'TESSERA SANITARIA Codice{code} COGNOME ROSSI NOME MARIO'
+    assert _riscontro_carta(source) == ('health', code)
+    assert _riscontro_carta(source.replace(code, code[:-1] + ('A' if code[-1] != 'A' else 'B'))) is None
+
+
+def test_cie_rear_labelled_cf_and_address_do_not_require_mrz():
+    from legal_ocr.motore.identita import _riscontro_carta
+    from pct.codice_fiscale import _checksum
+    prefix = 'RSSMRA80A01H501'
+    code = prefix + _checksum(prefix)
+    source = 'CODICE FISCALE\nFISCAL CODE\n' + code + '\nINDIRIZZO DI RESIDENZA / RESIDENCE\nVIA ROMA N. 1 ROMA (RM)'
+    assert _riscontro_carta(source) == ('cie_rear', code)
+    assert _riscontro_carta(source.replace(code, code[:-1] + ('A' if code[-1] != 'A' else 'B'))) is None
+    assert _riscontro_carta(source.replace('INDIRIZZO DI RESIDENZA / RESIDENCE', 'TESSERA SANITARIA')) is None
+
+
+def test_paper_identity_profile_requires_issuer_and_birth_labels():
+    from legal_ocr.motore.identita import _riscontro_carta
+    assert _riscontro_carta("COMUNE DI ROMA CARTA D'IDENTITÀ N. AB1234567 Cognome ROSSI Nome MARIO Nato il 01/01/1980") == ('paper', 'AB1234567')
+    assert _riscontro_carta("CARTA D'IDENTITÀ N. AB1234567 Cognome ROSSI Nome MARIO") is None
+
+
+def test_orientation_recovery_is_shared_by_all_identity_models(monkeypatch):
+    from types import SimpleNamespace
+    from legal_ocr.motore import identita
+    monkeypatch.setattr(identita, '_orientamento_riscontrato', lambda image: 0)
+    image = SimpleNamespace(width=400, height=700)
+    assert list(identita._angoli_lettura(image)) == [0, 90, 270]
+    monkeypatch.setattr(identita, '_orientamento_riscontrato', lambda image: 180)
+    assert list(identita._angoli_lettura(image)) == [0, 180, 90, 270]
+
+
+def test_recognized_weak_paper_does_not_probe_mrz_strip(monkeypatch):
+    from PIL import Image
+    from types import SimpleNamespace
+    from legal_ocr.motore import identita
+    monkeypatch.setattr(identita, '_orientamento_riscontrato', lambda image: 0)
+    reading = SimpleNamespace(testo="CARTA D'IDENTITÀ N. AB1234567", confidenza=.7)
+    monkeypatch.setattr(identita, '_leggi_con_diagnosi', lambda *args, **kwargs: (reading, []))
+    calls = []
+    def original(image, **kwargs):
+        calls.append(image.size)
+        return reading
+    monkeypatch.setattr(identita, 'leggi_con_secondo_lettore', original)
+    with Image.new('RGB', (400, 700), 'white') as page:
+        text, warnings = identita._leggi_regione(page, 0, 0, 400, 700, Image)
+    assert text == ''
+    assert 'Modello senza MRZ' in warnings[-1]
+    assert len(calls) == 2  # preparazione + originale; modello cartaceo senza sonde CIE
+
+
+def test_orientation_is_resolved_before_background_trials(monkeypatch):
+    from PIL import Image
+    from types import SimpleNamespace
+    from legal_ocr.motore import identita
+    monkeypatch.setattr(identita, '_orientamento_riscontrato', lambda image: 270)
+    monkeypatch.setattr(identita, '_leggi_con_diagnosi', lambda *args, **kwargs: pytest.fail('carta orientata già leggibile'))
+    monkeypatch.setattr(identita, '_riscontro_carta', lambda text: ('health', 'CF') if text == 'oriented' else None)
+    monkeypatch.setattr(identita, 'leggi_con_secondo_lettore', lambda image, **kwargs:
+        SimpleNamespace(testo='oriented' if image.width > image.height else 'weak', confidenza=.97))
+    with Image.new('RGB', (400, 700), 'white') as page:
+        text, warnings = identita._leggi_regione(page, 0, 0, 400, 700, Image)
+    assert text == 'oriented' and any('rotazione di lettura 270°' in item for item in warnings)
 
 
 @pytest.mark.parametrize('timeout_at', [None, 2])

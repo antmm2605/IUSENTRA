@@ -21,8 +21,48 @@ from __future__ import annotations
 import re
 import unicodedata
 from typing import Any
-
 from pct.fascicoli import TipoDocumento
+
+
+def residenza_riga_cartacea(testo: str) -> tuple[str, str] | None:
+    """Etichetta Via e valore distinto; Num/Piano delimitano il civico.
+
+    Non ripara lettere del nome della strada o cifre del civico.
+    La seconda Via deve essere effettivamente letta, non ricostruita.
+    """
+    matches = re.findall(
+        r'\bVIA[. :]+(VIA\s*\d?\s*[A-ZÀ-Ü0-9 .\'’/-]{2,75}?)\s+N(?:UM[A-Z]?|[NM])?[. :]*'
+        r'(\d{1,5}[A-Z]?)(?=\s+P(?:IAN|LAN|AN)[A-Z]*\b)', str(testo or '').upper())
+    values = {(re.sub(r'^VIA(?=\d)', 'VIA ', re.sub(r'\s+', ' ', via).strip(' .')), civic) for via, civic in matches}
+    return next(iter(values)) if len(values) == 1 else None
+
+
+def concorda_residenza_cartacea(first, second, source: str) -> bool:
+    """Solo I/1 nel numero iniziale della strada, corroborato nella fonte.
+
+    Non cambia lettere nel nome proprio della strada né cifre del civico.
+    """
+    def compact(value):
+        return re.sub(r'[ .]+', '', value.upper())
+    if not first or not second or first[1] != second[1]:
+        return False
+    if compact(first[0]) == compact(second[0]):
+        return True
+    pair = sorted((first[0], second[0]), key=lambda value: 'VIA I' not in value)
+    ambiguous, numeric = pair
+    if not re.match(r'^VIA I(?=[A-Z])', ambiguous) or not re.match(r'^VIA 1', numeric):
+        return False
+    corrected = re.sub(r'^VIA I', 'VIA 1', ambiguous)
+    if compact(corrected) != compact(numeric):
+        return False
+    suffix = re.sub(r'^VIA 1\s*', '', numeric)
+    tokens = re.findall(r'[A-ZÀ-Ü0-9]+', suffix)
+    literal = r'[ .]*'.join(re.escape(token) for token in tokens)
+    # La lettura originaria deve mostrare proprio il numero 1 e il medesimo
+    # resto della strada, nella stessa riga delimitata dal civico e Piano.
+    return bool(re.search(r'\bVI[AISN][ .:]+VI[AISN]\s*1\s*' + literal
+        + r'\s+N(?:UM[A-Z]?|[NM])?[. :]*' + re.escape(first[1])
+        + r'(?=\s+P(?:IAN|LAN|AN)[A-Z]*\b)', source.upper()))
 
 CARATTERI_ESAMINATI = 4000
 FONTE = "normattiva_dpr_445_2000_documentazione_amministrativa"
@@ -67,6 +107,37 @@ PROFILI_ITALIANI = {
 }
 
 
+def modello_identita_italiana(testo: str) -> str:
+    """Il modello dalle sue diciture; non certifica titolare o valori.
+
+    Un retro CIE può mancare del titolo del fronte. Le due coppie di
+    etichette bilingui lo distinguono dalla tessera e dalla carta cartacea.
+    La forma MRZ individua il formato, mentre la validazione resta al lettore.
+    Un contenuto misto non può scegliere il primo modello trovato.
+    """
+    text = str(testo or '')
+    health = bool(re.search(r'\bTESSERA\s+SANITARI\w*\b', text, re.I))
+    title = bool(re.search(r"CARTA\s+D[’']?I?\s*IDENTIT[ÀA]?|IDENTITY\s+CARD", text, re.I))
+    rear = all(re.search(pattern, text, re.I) for pattern in (
+        r'\bCODICE\s+FISCALE\b', r'\bFISCAL\s+CODE\b',
+        r'\b(?:INDIRIZZO\s+DI\s+RESIDENZA|RESIDENCE|ADDRESS)\b'))
+    optical = bool(re.search(r'\bI<ITA[A-Z0-9<]{20,}', text, re.I))
+    if health:
+        return '' if title or rear or optical else 'tessera_sanitaria'
+    if rear or optical or (title and re.search(r'IDENTITY\s+CARD|SURNAME|\b[A-Z]{2}\d{5}[A-Z]{2}\b', text, re.I)):
+        return 'cie'
+    # La faccia interna del libretto non ripete il titolo della copertina.
+    # I connotati fisici e le etichette anagrafiche identificano il modello,
+    # non il titolare: nessun valore o collegamento è certificato da qui.
+    paper_inside = all(re.search(pattern, text, re.I) for pattern in (
+        r'\bCOGNOME\b', r'\bNOME\b', r'\bNAT[OA]\s+(?:IL|A)\b',
+        r'\bRESIDENZA\b', r'\bSTATURA\b', r'\bCAPELLI\b', r'\bOCCHI\b',
+    )) and not re.search(r'\b(?:SURNAME|IDENTITY\s+CARD|FISCAL\s+CODE)\b', text, re.I)
+    if paper_inside:
+        return 'carta_cartacea'
+    return 'carta_cartacea' if title else ''
+
+
 def segmenti_identita_italiana(testo: str) -> list[dict[str, Any]]:
     """Separa carte diverse nella lettura; nessuna posizione assoluta di pagina.
 
@@ -80,18 +151,37 @@ def segmenti_identita_italiana(testo: str) -> list[dict[str, Any]]:
             continue
         matches.append(match)
     if not matches:
-        return []
-    starts = [0] + [match.start() for match in matches[1:]]
+        model = modello_identita_italiana(testo)
+        return [{'model': model, 'start': 0, 'end': len(testo), 'text': testo,
+                 'profile': PROFILI_ITALIANI[model]}] if model else []
+    starts = [0]
+    for index, match in enumerate(matches[1:], 1):
+        start = match.start()
+        if not re.match('TESSERA', match.group(), re.I):
+            # Un riquadro recuperato può riportare numero e intestazione
+            # prima del titolo CIE: quel preambolo non appartiene alla TS
+            # che lo precede nel testo. Non spostare etichette o dati per
+            # somiglianza; richiedere il preambolo esplicito e contiguo.
+            prefix_start = max(matches[index - 1].end(), start - 240)
+            prefix = testo[prefix_start:start]
+            header = re.search(
+                r'(?m)^[ \t#]*(?:[A-Z]{2}\d{5}[A-Z]{2}[ \t]*\n[ \t\n#]*)?'
+                r'REPUBBLICA\s+ITALIANA[ \t]*(?:\n[ \t\n#]*MINISTERO\s+DELL[\'’]INTERNO)?[ \t\n#]*$',
+                prefix, re.I,
+            )
+            if header:
+                start = prefix_start + header.start()
+        starts.append(start)
     result = []
     for index, match in enumerate(matches):
         end = starts[index + 1] if index + 1 < len(starts) else len(testo)
         chunk = testo[starts[index]:end]
         if re.match(r'TESSERA', match.group(), re.I):
             model = 'tessera_sanitaria'
-        elif re.search(r'IDENTITY\s+CARD|SURNAME|[A-Z]{2}\d{5}[A-Z]{2}\b|I<ITA', chunk, re.I):
-            model = 'cie'
         else:
-            model = 'carta_cartacea'
+            model = modello_identita_italiana(chunk)
+            if not model:
+                continue
         result.append({'model': model, 'start': starts[index], 'end': end, 'text': chunk,
             'profile': PROFILI_ITALIANI[model]})
     return result

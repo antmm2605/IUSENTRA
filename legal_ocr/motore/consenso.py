@@ -76,8 +76,15 @@ def azzera_verifica() -> None:
         _STATO.update(verificato=False, disponibile=False)
 
 
-def leggi_con_secondo_lettore(immagine: Any, *, dpi: float = DPI_SECONDO_LETTORE) -> LetturaSecondaria | None:
-    """Testo della pagina letto da PDF Inspector, o None se non disponibile."""
+def leggi_con_secondo_lettore(
+    immagine: Any, *, dpi: float = DPI_SECONDO_LETTORE, preserva_risoluzione: bool = False,
+) -> LetturaSecondaria | None:
+    """Legge localmente; i ritagli possono conservare la risoluzione misurata.
+
+    Il percorso storico delle pagine usa metà dei pixel per asse. Per un
+    ritaglio già dimensionato dalla diagnosi, serializzazione e lettura
+    devono invece usare la stessa densità, senza annullarne l'ingrandimento.
+    """
     if not secondo_lettore_disponibile():
         return None
     inizio = time.monotonic()
@@ -85,9 +92,11 @@ def leggi_con_secondo_lettore(immagine: Any, *, dpi: float = DPI_SECONDO_LETTORE
         import pdf_inspector  # type: ignore
 
         contenitore = io.BytesIO()
-        immagine.convert("RGB").save(contenitore, format="PDF", resolution=max(72.0, float(dpi) * 2))
+        densita_lettura = max(72.0, float(dpi)) if preserva_risoluzione else float(dpi)
+        densita_pdf = densita_lettura if preserva_risoluzione else max(72.0, float(dpi) * 2)
+        immagine.convert("RGB").save(contenitore, format="PDF", resolution=densita_pdf)
         esito = pdf_inspector.process_pdf_with_ocr_bytes(
-            contenitore.getvalue(), mode="force", dpi=float(dpi), offline=True, model_directory=cartella_modelli()
+            contenitore.getvalue(), mode="force", dpi=densita_lettura, offline=True, model_directory=cartella_modelli()
         )
         pagina = esito.pages[0]
         provenienza = getattr(pagina, "provenance", None)

@@ -1,5 +1,9 @@
 # Incarico operativo permanente: dati, tenant, React e topbar
 
+## Estensione catalogazione Spark — direttiva 09/10/2026
+
+Aggiunta all'incarico la catalogazione automatica ampia dei documenti del fascicolo con `maternion/spark-x2.5:4b`, riutilizzando catalogo, resolver, archivio letture e scheduler esistenti. Diagnosi e accettazione richieste sono registrate in `artifacts/data-flow/catalogazione-spark-estensione-20261009.md`. Lettura locale, prove localizzate, identità congiunta degli effetti, tutela delle decisioni manuali e flussi congelati restano obbligatori. Estensione non ancora implementata/installata o accettata; non sostituisce gli altri lavori aperti. EmbeddingGemma 300M conservato.
+
 Ultimo aggiornamento: 2026-06-17.
 
 Questo file va riletto dopo ogni compattazione insieme ad `AGENTS.md` prima di riprendere lavori su IUSENTRA. L'incarico dell'utente non riguarda un singolo pulsante: riguarda la chiusura dell'applicativo come sistema unico, con dati coerenti, route full React, tenant corretto e controlli reali.
@@ -544,3 +548,26 @@ Nuovo problema preservato: la provisione dello studio tecnico completa la creazi
 EmbeddingGemma 300M invariato; produzione non modificata. Build locale senza cache in corso. Prima della chiusura occorrono immagine finale coerente, worker aggiornato, prove residue, commit, sincronizzazione dei due branch, CI e deploy sullo stesso commit. Tutte le altre issue dell’incarico restano aperte.
 
 09/10/2026 — Prima nota: SQL adottato e provato nella copia reale locale; consegna audit idempotente e recupero periodico puntuale provati nello studio tecnico. Categoria contenuta e due export CSV riscontrati materialmente dopo correzione della regia delle finestre. Preservati sorgenti/asset hot server e backup della campagna. Consolidamento Git/CI/deploy ancora aperto; tutte le altre issue restano governate nei registri. EmbeddingGemma 300M conservato.
+
+
+## CTU SQL/live — avanzamento del 09/10/2026, aperto
+
+Registro puntuale: artifacts/data-flow/ctu-sql-live-20261009.md. Preparati repository, transizione con backup/barriera e adattatore comandi; CLI apply ancora bloccato e factory operativo non migrato. Guardrail SQLite/PostgreSQL e concorrenza con due connessioni positivi, distinti dall'accettazione UI. Nel browser reale locale osservati apertura CTU, modulo nuovo, caricamento e correzione dei campi prima sproporzionati; nessun dato del fascicolo di osservazione modificato. Salvataggio SQL/live, errori/recupero, confronto bozze concorrenti, operazioni/compensi/istanza/scadenze e responsive non ancora verificati su macchina reale. Ultimo adattatore API soltanto nel checkout. Commit/push/deploy di questo punto non eseguiti; incarico aperto.
+
+
+09/10/2026 — Checkpoint CTU, incarico aperto. Registro artifacts/data-flow/ctu-sql-live-20261009.md aggiornato con prove reali Chrome/8080 su tenant tecnico: creazione/salvataggio/riapertura, vacazioni, operazione, conflitto su rilettura, recupero sessione/catalogo, bozza preservata alla chiusura dopo difetto riprodotto e corretto, focus e mobile. Non sono prove SQL/live: factory storico ancora operativo. Account tecnico disabilitato, tenant risospeso, credenziali temporanee rimosse; audit e backup conservati. Scope e helper recupero comando solo nel checkout, non collegati né accettati. Restano protocollo UI, istanza/scadenze, scrittore nativo a tabella intera, migrazione/wiring, accettazione SQL e rilascio. Nessun commit/push/deploy CTU; distinguere dalla Prima nota 2.436.23 già distribuita. EmbeddingGemma 300M e flussi congelati invariati.
+
+## OCR identità — avanzamento aperto del 09/10/2026
+Registro puntuale artifacts/data-flow/identity-ocr-recovery-20261009.md: difetto Borgese riprodotto sul server, recupero e addestramento locale candidati non installati. Applicare il percorso indicato dall’utente: singole carte, modello cartaceo/CIE/tessera sanitaria, lati e zone, poi ingrandimento e trasformazioni condivise pertinenti, conservando fonti e riscontri. Il miglioramento tecnico su corpus sintetico non prova affidabilità generale o accettazione; MRZ reale resta negativa. Modello attivo invariato; proseguire fino a integrazione, verifica reale e rilascio.
+
+09/10/2026 — Direttiva aggiuntiva documenti identità: leggere e riportare nell'anagrafica numero documento, ente emittente/Rilasciato da, data emissione/rilascio e scadenza oltre ai dati della persona. Separare scadenza carta e tessera sanitaria, preservare fonti e valori già compilati. Prova locale personale su fonte Borgese: lettura, salvataggio nativo e riapertura in area di lavoro dei quattro dati positivi; modifica e successiva riapertura positive. Questo riscontro puntuale non chiude la tranche OCR né l'incarico generale. Registro artifacts/data-flow/identity-ocr-recovery-20261009.md aggiornato; server invariato, rilascio ancora aperto.
+
+09/10/2026 — Direttiva Comune da lettura: attivare automaticamente la risoluzione territoriale condivisa dopo OCR, senza click richiesto, compilando provincia e CAP solo con riscontro univoco e preservando valori discordanti con motivo esplicito. Prova reale locale registrata; rilascio della tranche ancora aperto.
+
+
+09/10/2026 — OCR multipli: rifiuto reale verificato su 8080 per due CF validi distinti e per due MRZ TD1 distinte senza CF. Bozze e dati preesistenti preservati; nessun nuovo salvataggio SQL. Registro puntuale identity-ocr-recovery-20261009.md. Collegamento riquadri con identico numero predisposto/installato e coperto tecnicamente, caso stesso foglio ancora non verificato su macchina reale. Restano prove residue, consolidamento, CI e deploy; nessuna modifica di produzione o promozione del modello addestrato.
+
+
+09/10/2026 — Direttiva OCR immagini: usare il motore condiviso con diagnosi del riquadro/modello/lato, originale prima; zoom misurato, correzione dell’illuminazione/contrasto e nitidezza solo se necessari; orientamento e raddrizzamento riscontrati. Registrare tentativi, fonte ed esiti, adottando soltanto letture sostenute dai controlli. Conservare l’originale, non inventare valori e non promettere percentuali di miglioramento prive di prova. MRZ e campi stampati sono complementari; la carta cartacea usa OCR. Avanzamento e difetti residui nel registro identity-ocr-recovery-20261009.md: tranche aperta, nessun rilascio di produzione.
+
+09/10/2026 — Nuova regola registrata in AGENTS.md: definire il risultato atteso, controllare ciò che il codice produce realmente sulla fonte e nell'interfaccia, individuare gli scostamenti e la loro causa, valutare metodi migliori pertinenti, correggere e riprovare lo stesso caso senza perdere i risultati già corretti. Per le immagini la diagnosi precede i trattamenti e il confronto usa sempre l'originale. La regola è applicata alla prova corrente: riconoscimento della data distinto dalla sua effettiva applicazione al modulo; difetto del ripristino bozza individuato e corretto puntualmente. L'incarico OCR e il rilascio restano aperti.

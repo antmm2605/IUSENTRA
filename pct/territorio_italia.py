@@ -142,6 +142,30 @@ def get_comune(
     return _row_to_comune(row) if row is not None else None
 
 
+def verifica_comune_italiano(nome: str, provincia: str = "", *, db_path=None) -> dict[str, Any]:
+    """Riscontra un nome esatto, senza completamenti per somiglianza."""
+    key = normalize_comune_key(nome)
+    if not key:
+        return {"stato": "non_letto"}
+    try:
+        with _connect(db_path) as conn:
+            rows = conn.execute("SELECT * FROM comuni WHERE search_key = ?", (key,)).fetchall()
+    except sqlite3.Error:
+        return {"stato": "catalogo_non_disponibile"}
+    matches = [_row_to_comune(row) for row in rows]
+    province = str(provincia or "").strip().upper()
+    if province:
+        selected = [item for item in matches if item.sigla_provincia == province]
+        if matches and not selected:
+            return {"stato": "provincia_discordante", "provincia_letta": province}
+        matches = selected
+    if not matches:
+        return {"stato": "non_riscontrato"}
+    if len(matches) != 1:
+        return {"stato": "ambiguo"}
+    return {"stato": "concordante", "comune": matches[0].to_dict()}
+
+
 def territorio_stats(db_path: str | os.PathLike[str] | None = None) -> dict[str, int]:
     with _connect(db_path) as conn:
         row = conn.execute(

@@ -104,6 +104,7 @@ class DocumentAIVersion(SerializableDataclass):
 class DocumentAIPageText(SerializableDataclass):
     page_number: int | None
     text: str
+    identity_sources: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass(slots=True)

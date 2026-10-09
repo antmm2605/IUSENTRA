@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode, type RefObject } from 'react'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { mergeRegistryRefresh } from '../features/anagrafiche/mergeRegistryRefresh'
+import { registryCompleteness, type RegistryCompletenessItem } from '../features/anagrafiche/registryCompleteness'
 import {
   ArrowLeft,
   AlertTriangle,
@@ -204,6 +205,7 @@ type ClientDocumentAutofillState = {
   warnings: string[]
   recognized: ClientDocumentRecognizedField[]
   filename: string
+  models?: string[]
   sourceDocument?: { label: string; href: string }
 }
 type ClientDocumentAutofillResult = {
@@ -526,9 +528,28 @@ function stringList(value: unknown): string[] {
   return Array.isArray(value) ? value.map((item) => text(item)).filter(Boolean) : []
 }
 
-function confidenceLabel(value: number): string {
-  if (!Number.isFinite(value) || value <= 0) return 'da verificare'
-  return `${Math.round(value * 100)}%`
+function recognizedDocumentModels(payload: unknown): string[] {
+  if (!isRecord(payload) || !Array.isArray(payload.document_profiles)) return []
+  const labels: Record<string, string> = {
+    cie: 'CIE', carta_cartacea: 'Carta d’identità cartacea', tessera_sanitaria: 'Tessera sanitaria',
+  }
+  return [...new Set(payload.document_profiles.filter(isRecord).map(row => labels[text(row.model)]).filter(Boolean))]
+}
+
+function documentFieldEvidenceLabel(field: ClientDocumentRecognizedField): string {
+  // I punteggi del parser sono pesi delle regole, non probabilità OCR misurate.
+  if (field.status !== 'affidabile') return 'Da verificare'
+  if (field.source === 'zona MRZ') return 'MRZ verificata'
+  if (field.source.startsWith('codice a barre')) return 'Codice a barre'
+  return 'Letto nel documento'
+}
+
+const documentTypeLabels = Object.fromEntries(emptyClientiNuovoData.options.documentTypes.map(option => [option.value, option.label]))
+
+function documentFieldValue(field: ClientDocumentRecognizedField): string {
+  if (['data_nascita', 'doc_data_rilascio', 'doc_data_scadenza'].includes(field.name)) return formatDateIt(field.value)
+  if (field.name === 'doc_tipo') return documentTypeLabels[field.value] || field.value
+  return field.value
 }
 
 function DocumentAutofillPanel({
@@ -564,6 +585,7 @@ function DocumentAutofillPanel({
           <div>
             <strong>Lettore documento</strong>
             <span>{selectedFile ? selectedFile.name : state.filename || 'PDF, JPG o PNG di carta identità, passaporto o documento compatibile'}</span>
+            {state.models?.length ? <span aria-label="Modelli riconosciuti"> · Modello: {state.models.join(' · ')}</span> : null}
           </div>
           <div className="iu-cln-doc-reader__actions">
             <button type="button" className="iu-cln-doc-reader__button" onClick={onChooseFile} disabled={isReading}>
@@ -582,8 +604,8 @@ function DocumentAutofillPanel({
               {state.recognized.map((field) => (
                 <span className={field.status === 'affidabile' ? 'is-ok' : 'is-check'} key={`${field.name}-${field.value}`}>
                   <b>{field.label}</b>
-                  <i>{['data_nascita', 'doc_data_rilascio', 'doc_data_scadenza'].includes(field.name) ? formatDateIt(field.value) : field.value}</i>
-                  <em>{confidenceLabel(field.confidence)}</em>
+                  <i>{documentFieldValue(field)}</i>
+                  <em title={field.source}>{documentFieldEvidenceLabel(field)}</em>
                   {field.sources?.length ? <small>{field.source} · {field.sources.slice(0, 2).map((source, index) => <a key={source.href} href={source.href} title={source.label}>Fonte {index + 1}{index + 1 < Math.min(2, field.sources?.length || 0) ? ' · ' : ''}</a>)}</small> : null}
                 </span>
               ))}
@@ -592,7 +614,7 @@ function DocumentAutofillPanel({
         ) : null}
         {state.applied.length ? <small className="iu-cln-doc-reader__ok"><CheckCircle2 size={13}/> Applicati: {state.applied.join(', ')}</small> : null}
         {state.sourceDocument ? <a href={state.sourceDocument.href}>Fonte: {state.sourceDocument.label}</a> : null}
-        {state.skipped.length ? <small className="iu-cln-doc-reader__skip"><AlertTriangle size={13}/> Già compilati: {state.skipped.join(', ')}</small> : null}
+        {state.skipped.length ? <small className="iu-cln-doc-reader__skip" title="Valori preesistenti e modifiche manuali conservati, comprese le cancellazioni volontarie."><AlertTriangle size={13}/> Campi preservati: {state.skipped.join(', ')}</small> : null}
         {state.missing.length ? <small className="iu-cln-doc-reader__skip"><AlertTriangle size={13}/> Dati non ancora dimostrati: {state.missing.join(', ')}</small> : null}
         {state.warnings.length ? (
           <ul className="iu-cln-doc-reader__warnings">
@@ -718,6 +740,7 @@ function ComuneAutocompleteField({
   provinciaName,
   value,
   capValue,
+  provinciaValue,
   onChange,
 }:{
   label: string
@@ -726,11 +749,13 @@ function ComuneAutocompleteField({
   provinciaName: string
   value: string
   capValue: string
+  provinciaValue: string
   onChange: (name: string, value: string) => void
 }) {
   const [items, setItems] = useState<ComuneOption[]>([])
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [resolutionNote, setResolutionNote] = useState('')
 
   useEffect(() => {
     const query = text(value)
@@ -771,18 +796,32 @@ function ComuneAutocompleteField({
     }
   }, [value])
 
+  useEffect(() => {
+    const key = comuneKey(value)
+    const exact = items.filter(item => comuneKey(item.nome) === key || comuneKey(item.label) === key)
+    const province = provinciaValue.trim().toUpperCase()
+    const matching = province ? exact.filter(item => item.siglaProvincia === province) : exact
+    if (matching.length !== 1) {
+      setResolutionNote(exact.length && province && !matching.length ? 'La provincia presente non coincide con il Comune: dato conservato.' : '')
+      return
+    }
+    const option = matching[0]
+    if (!province) onChange(provinciaName, option.siglaProvincia)
+    const caps = [...new Set(option.cap)]
+    if (!capValue.trim() && caps.length === 1) onChange(capName, caps[0])
+    setResolutionNote(!capValue.trim() && caps.length > 1
+      ? 'Il Comune ha più CAP: serve il CAP dell’indirizzo, non viene scelto il primo.'
+      : capValue.trim() && caps.length && !caps.includes(capValue.trim())
+        ? 'Il CAP presente non coincide con i CAP del Comune: dato conservato.' : '')
+  }, [items, value, capValue, provinciaValue, capName, provinciaName, onChange])
+
   const applyComune = (option: ComuneOption) => {
-    const selectedCap = option.cap.includes(capValue) ? capValue : option.cap[0] || capValue
+    const caps = [...new Set(option.cap)]
+    const selectedCap = caps.includes(capValue) ? capValue : caps.length === 1 ? caps[0] : ''
     onChange(name, option.nome)
     onChange(provinciaName, option.siglaProvincia)
     onChange(capName, selectedCap)
     setOpen(false)
-  }
-
-  const applyExactIfPresent = () => {
-    const key = comuneKey(value)
-    const exact = items.find((item) => comuneKey(item.nome) === key || comuneKey(item.label) === key)
-    if (exact) applyComune(exact)
   }
 
   return (
@@ -799,7 +838,6 @@ function ComuneAutocompleteField({
         placeholder="Scrivi il Comune"
         onFocus={() => setOpen(true)}
         onBlur={() => window.setTimeout(() => {
-          applyExactIfPresent()
           setOpen(false)
         }, 120)}
         onChange={(event) => {
@@ -807,6 +845,7 @@ function ComuneAutocompleteField({
           setOpen(true)
         }}
       />
+      {resolutionNote ? <small role="status">{resolutionNote}</small> : null}
       {open && (items.length > 0 || loading) ? (
         <div className="iu-cln-comune-suggestions" role="listbox">
           {loading ? <span className="iu-cln-comune-suggestions__status">Ricerca Comuni...</span> : null}
@@ -907,7 +946,7 @@ function StatsStrip({ data }:{data: ClientiNuovoData}) {
   )
 }
 
-function ClientForm({ data }:{data: ClientiNuovoData}) {
+function ClientForm({ data, onCompleteness }:{data: ClientiNuovoData; onCompleteness: (items: RegistryCompletenessItem[]) => void}) {
   const [values, setValues] = useState<ClientFormState>({...initialClient})
   const [cfStatus, setCfStatus] = useState('')
   const [submitState, setSubmitState] = useState<SubmitState>(() => emptySubmitState())
@@ -921,6 +960,9 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
   const documentFileInputRef = useRef<HTMLInputElement | null>(null)
   const action = data.actions.operationalClientForm
   const isPhysical = values.tipo === 'PERSONA_FISICA'
+  useEffect(() => {
+    onCompleteness(registryCompleteness(values, { legal: !isPhysical, documentRejected: autofillState.phase === 'danger' }))
+  }, [values, isPhysical, autofillState.phase, onCompleteness])
   const nextUrl = data.query.nextUrl
   const sourceMatter = new URLSearchParams(window.location.search).get('id_fascicolo') || ''
   const sourceDocument = new URLSearchParams(window.location.search).get('id_documento') || ''
@@ -938,10 +980,11 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
     autoRestore: data.mode !== 'edit',
     values,
     initialValues: clientDraftInitial,
+    protectedFields: touchedFields,
     excludedFields: ['next_url'],
-    onRestore: (draftValues) => {
+    onRestore: (draftValues, restoredFields) => {
       setValues((current) => ({...current, ...draftValues}) as ClientFormState)
-      setTouchedFields((current) => new Set([...current, ...Object.keys(draftValues)]))
+      setTouchedFields((current) => new Set([...current, ...restoredFields]))
     },
   })
 
@@ -969,6 +1012,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
 
   useEffect(() => {
     const code = text(values.codice_fiscale).replace(/\s/g, '').toUpperCase()
+    setCfStatus('')
     if (!isPhysical || code.length !== 16) return
     let cancelled = false
     const timer = window.setTimeout(() => {
@@ -982,7 +1026,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
           luogo_nascita: text(current.luogo_nascita) || decoded.luogo_nascita || '',
           provincia_nascita: text(current.provincia_nascita) || decoded.provincia_nascita || '',
         }))
-        setCfStatus('Dati di nascita compilati dal codice fiscale.')
+        setCfStatus('Codice fiscale letto; conservati i dati già compilati.')
       })
     }, 240)
     return () => {
@@ -1059,11 +1103,12 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
         missing: [],
         warnings: [],
         recognized: recognizedDocumentFields(payload),
+        models: recognizedDocumentModels(payload),
         filename: selectedDocumentFile?.name || '',
       })
       return { ok: true, applied, skipped, message: 'Dati documento applicati.' }
     }
-    const result = { ok: false, applied, skipped, message: 'I campi riconosciuti erano già compilati.' }
+    const result = { ok: false, applied, skipped, message: 'I campi riconosciuti sono già compilati o protetti dalle tue modifiche.' }
     setAutofillState({
       ...emptyDocumentAutofillState,
       phase: 'warning',
@@ -1072,6 +1117,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
       fields: skipped,
       skipped,
       recognized: recognizedDocumentFields(payload),
+      models: recognizedDocumentModels(payload),
       filename: selectedDocumentFile?.name || '',
     })
     return result
@@ -1118,6 +1164,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
     try {
       const formData = new FormData()
       if (selectedDocumentFile) formData.append('file', selectedDocumentFile)
+      if (selectedDocumentFile && data.mode === 'edit') formData.append('id_cliente', data.query.idCliente)
       const response = await fetch(data.actions.documentReader, {
         method: 'POST',
         credentials: 'same-origin',
@@ -1136,7 +1183,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
       setAutofillState({
         phase,
         tone: result.ok ? 'success' : recognized.length ? 'warning' : 'danger',
-        message: result.ok ? "Dati riconosciuti compilati nella scheda. Le modifiche non sono ancora salvate." : text(payload.message, result.message),
+        message: result.ok ? "Dati riconosciuti compilati nella scheda. Le modifiche non sono ancora salvate." : result.message,
         sourceDocument: isRecord(payload.source_document) && /^\/fascicoli\/[a-zA-Z0-9_-]+\/documenti\/[a-zA-Z0-9_-]+\/visualizza$/.test(text(payload.source_document.href)) ? { href: text(payload.source_document.href), label: text(payload.source_document.label) } : undefined,
         fields: result.applied,
         applied: result.applied,
@@ -1144,6 +1191,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
         missing,
         warnings,
         recognized,
+        models: recognizedDocumentModels(payload),
         filename: text(payload.filename) || selectedDocumentFile?.name || 'Documento del fascicolo',
       })
     } catch (error) {
@@ -1210,9 +1258,16 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
     setSubmitState({ saving: true, tone: 'neutral', message: 'Salvataggio in corso...' })
     try {
       const formData = new FormData(event.currentTarget)
+      const submittedValues = { ...valuesRef.current }
       const result = await submitFormJson(action, formData)
-      persistedValues.current = { ...valuesRef.current }
-      draft.clearAfterSave()
+      persistedValues.current = submittedValues
+      if (JSON.stringify(valuesRef.current) === JSON.stringify(submittedValues)) {
+        draft.clearAfterSave()
+        setAutofillState(current => current.phase === 'success' ? {
+          ...current,
+          message: 'Dati riconosciuti del documento salvati nell’anagrafica.',
+        } : current)
+      }
       // In modifica si resta sulla scheda: chi sta correggendo un cliente non
       // va buttato fuori dal modulo a ogni salvataggio. In creazione si va
       // alla cartella del cliente appena nato; se la scheda e' stata aperta da
@@ -1234,7 +1289,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
     <form className="iu-cln-form" onSubmit={handleSubmit} onBlur={draft.handleBlur}>
       {refreshConflicts.length ? <div role="alert" className="iu-cln-flow-alert"><div><strong>Anagrafica aggiornata in un’altra finestra</strong><span>Le tue modifiche non salvate sono preservate. Confronta i campi prima di salvare.</span>{refreshConflicts.map(key => <div key={key}><span>{clientDocumentFieldLabels[key] || key}: valore salvato {String(persistedValues.current?.[key] ?? '')}</span><button type="button" className="iu-button iu-button--secondary" onClick={() => { const value = persistedValues.current?.[key]; if (value !== undefined) setValues(current => ({ ...current, [key]: value })); setRefreshConflicts(current => current.filter(item => item !== key)) }}>Usa valore salvato</button><button type="button" className="iu-button iu-button--secondary" onClick={() => setRefreshConflicts(current => current.filter(item => item !== key))}>Mantieni la mia modifica</button></div>)}</div></div> : null}
       <input type="hidden" name="next_url" value={asInputValue(values.next_url)}/>
-      <DraftAutosaveBar status={draft.status} onRestore={draft.restore} onDiscard={() => draft.discard(true)}/>
+      <DraftAutosaveBar status={draft.status} onRestore={draft.restore} onDiscard={() => { draft.discard(true); touchedFieldsRef.current = new Set(); setTouchedFields(new Set()); setAutofillState(emptyDocumentAutofillState) }}/>
       <Card title="Tipo cliente" icon={<UserCheck size={18}/>} note={data.mode === 'edit' ? 'Aggiornamento anagrafica esistente' : 'Nuova anagrafica governata'}>
         <ChoiceGrid name="tipo" value={asInputValue(values.tipo)} options={data.options.clientTypes} onChange={change}/>
       </Card>
@@ -1259,7 +1314,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
             <Field label="Data di nascita" name="data_nascita" type="date" value={asInputValue(values.data_nascita)} onChange={change}/>
             <Field label="Luogo di nascita" name="luogo_nascita" value={asInputValue(values.luogo_nascita)} placeholder="Roma" onChange={change}/>
             <Field label="Provincia nascita" name="provincia_nascita" value={asInputValue(values.provincia_nascita)} placeholder="RM" mono onChange={change}/>
-            <Field label="Nazionalita" name="nazionalita" value={asInputValue(values.nazionalita)} placeholder="Italiana" onChange={change}/>
+            <Field label="Nazionalità" name="nazionalita" value={asInputValue(values.nazionalita)} placeholder="Italiana" onChange={change}/>
             {cfStatus ? <p className="iu-cln-field-note"><Sparkles size={14}/>{cfStatus}</p> : null}
           </div>
         ) : (
@@ -1297,6 +1352,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
             provinciaName={isPhysical ? 'provincia' : 'sl_provincia'}
             value={asInputValue(values[isPhysical ? 'comune' : 'sl_comune'])}
             capValue={asInputValue(values[isPhysical ? 'cap' : 'sl_cap'])}
+            provinciaValue={asInputValue(values[isPhysical ? 'provincia' : 'sl_provincia'])}
             onChange={change}
           />
           <Field label="Provincia" name={isPhysical ? 'provincia' : 'sl_provincia'} value={asInputValue(values[isPhysical ? 'provincia' : 'sl_provincia'])} mono onChange={change}/>
@@ -1312,6 +1368,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
                 provinciaName="dom_provincia"
                 value={asInputValue(values.dom_comune)}
                 capValue={asInputValue(values.dom_cap)}
+                provinciaValue={asInputValue(values.dom_provincia)}
                 onChange={change}
               />
               <Field label="Domicilio provincia" name="dom_provincia" value={asInputValue(values.dom_provincia)} mono onChange={change}/>
@@ -1322,7 +1379,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
 
       <Card title="Documento e studio" icon={<FileText size={18}/>} note="Documento salvato dal servizio anagrafico esteso">
         <div className="iu-cln-grid">
-          <SelectField label="Tipo documento" name="doc_tipo" value={asInputValue(values.doc_tipo)} options={data.options.documentTypes} onChange={change}/>
+          <SelectField label="Tipo documento" name="doc_tipo" value={asInputValue(values.doc_tipo)} options={data.options.documentTypes.map(option => ({ ...option, label: documentTypeLabels[option.value] || option.label }))} onChange={change}/>
           <Field label="Numero documento" name="doc_numero" value={asInputValue(values.doc_numero)} mono onChange={change}/>
           <Field label="Rilasciato da" name="doc_rilasciato_da" value={asInputValue(values.doc_rilasciato_da)} onChange={change}/>
           <Field label="Data rilascio" name="doc_data_rilascio" type="date" value={asInputValue(values.doc_data_rilascio)} onChange={change}/>
@@ -1351,7 +1408,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
   )
 }
 
-function SubjectForm({ data }:{data: ClientiNuovoData}) {
+function SubjectForm({ data, onCompleteness }:{data: ClientiNuovoData; onCompleteness: (items: RegistryCompletenessItem[]) => void}) {
   const [values, setValues] = useState<SubjectFormState>({...initialSubject})
   const persistedSubject = useRef<SubjectFormState | undefined>(undefined)
   const [subjectConflicts, setSubjectConflicts] = useState<string[]>([])
@@ -1371,6 +1428,9 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
   const documentFileInputRef = useRef<HTMLInputElement | null>(null)
   const action = data.actions.operationalSubjectForm
   const isLegal = subjectLegalTypes.has(values.tipo)
+  useEffect(() => {
+    onCompleteness(registryCompleteness(values, { legal: isLegal, subject: true, allowedRoles: data.options.subjectRoles.map(item => item.value) }))
+  }, [values, isLegal, data.options.subjectRoles, onCompleteness])
   const selectedRegistry = publicRegistryChoices.find((item) => item.id === registryKind) || publicRegistryChoices[0]
   const subjectCancelHref = data.mode === 'edit_subject' && data.query.idSoggetto
     ? `/soggetti/${encodeURIComponent(data.query.idSoggetto)}`
@@ -1411,15 +1471,17 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
     autoRestore: data.mode !== 'edit_subject',
     values,
     initialValues: subjectDraftInitial,
-    onRestore: (draftValues) => {
+    protectedFields: touchedFields,
+    onRestore: (draftValues, restoredFields) => {
       const clean = Object.fromEntries(Object.entries(draftValues).map(([key, value]) => [key, String(value ?? '')]))
       setValues((current) => ({ ...current, ...clean }))
-      setTouchedFields((current) => new Set([...current, ...Object.keys(clean)]))
+      setTouchedFields((current) => new Set([...current, ...restoredFields]))
     },
   })
 
   useEffect(() => {
     const code = text(values.codice_fiscale).replace(/\s/g, '').toUpperCase()
+    setCfStatus('')
     if (isLegal || code.length !== 16) return
     let cancelled = false
     const timer = window.setTimeout(() => {
@@ -1433,7 +1495,7 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
           luogo_nascita: text(current.luogo_nascita) || decoded.luogo_nascita || '',
           provincia_nascita: text(current.provincia_nascita) || decoded.provincia_nascita || '',
         }))
-        setCfStatus('Dati di nascita compilati dal codice fiscale.')
+        setCfStatus('Codice fiscale letto; conservati i dati già compilati.')
       })
     }, 240)
     return () => {
@@ -1507,6 +1569,7 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
         missing: [],
         warnings: [],
         recognized: recognizedDocumentFields(payload),
+        models: recognizedDocumentModels(payload),
         filename: selectedDocumentFile?.name || '',
       })
       return { ok: true, applied, skipped, message: 'Dati documento applicati.' }
@@ -1520,6 +1583,7 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
       fields: skipped,
       skipped,
       recognized: recognizedDocumentFields(payload),
+      models: recognizedDocumentModels(payload),
       filename: selectedDocumentFile?.name || '',
     })
     return result
@@ -1591,6 +1655,7 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
         missing,
         warnings,
         recognized,
+        models: recognizedDocumentModels(payload),
         filename: selectedDocumentFile.name,
       })
     } catch (error) {
@@ -1687,9 +1752,17 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
     if (subjectConflicts.length) return
     setSubmitState({ saving: true, tone: 'neutral', message: 'Salvataggio in corso...' })
     try {
-      const result = await submitFormJson(action, new FormData(event.currentTarget))
-      persistedSubject.current = { ...valuesRef.current }
-      draft.clearAfterSave()
+      const formData = new FormData(event.currentTarget)
+      const submittedValues = { ...valuesRef.current }
+      const result = await submitFormJson(action, formData)
+      persistedSubject.current = submittedValues
+      if (JSON.stringify(valuesRef.current) === JSON.stringify(submittedValues)) {
+        draft.clearAfterSave()
+        setAutofillState(current => current.phase === 'success' ? {
+          ...current,
+          message: 'Dati riconosciuti del documento salvati nell’anagrafica.',
+        } : current)
+      }
       setSubmitState({ saving: false, tone: 'success', message: result.message || 'Soggetto salvato.' })
       redirectAfterSuccess(result, subjectCancelHref)
     } catch (error) {
@@ -1700,7 +1773,7 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
   return (
     <form className="iu-cln-form" onSubmit={handleSubmit} onBlur={draft.handleBlur}>
       {subjectConflicts.length ? <div className="iu-cln-flow-alert" role="alert"><strong>Soggetto aggiornato in un’altra finestra</strong><p>Le tue modifiche sono preservate. Confronta i campi prima di salvare.</p>{subjectConflicts.map(key => <div key={key}><span>{key.replaceAll('_', ' ')}: valore salvato {persistedSubject.current?.[key] || 'non presente'}</span><button type="button" className="iu-button iu-button--secondary" onClick={() => { setValues(current => ({ ...current, [key]: persistedSubject.current?.[key] || '' })); setSubjectConflicts(current => current.filter(item => item !== key)) }}>Usa valore salvato</button><button type="button" className="iu-button iu-button--secondary" onClick={() => setSubjectConflicts(current => current.filter(item => item !== key))}>Mantieni la mia modifica</button></div>)}</div> : null}
-      <DraftAutosaveBar status={draft.status} onRestore={draft.restore} onDiscard={() => draft.discard(true)}/>
+      <DraftAutosaveBar status={draft.status} onRestore={draft.restore} onDiscard={() => { draft.discard(true); touchedFieldsRef.current = new Set(); setTouchedFields(new Set()); setAutofillState(emptyDocumentAutofillState) }}/>
       <input type="hidden" name="id_fascicolo" value={data.query.idFascicolo}/>
       <input type="hidden" name="next_url" value={data.query.nextUrl}/>
       <input type="hidden" name="ruolo_collegamento" value={values.qualifica || data.query.ruoloSoggetto}/>
@@ -1830,6 +1903,7 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
             provinciaName="provincia"
             value={values.comune}
             capValue={values.cap}
+            provinciaValue={values.provincia}
             onChange={change}
           />
           <Field label="Provincia" name="provincia" value={values.provincia} mono onChange={change}/>
@@ -1847,15 +1921,15 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
   )
 }
 
-function QualityRail({ data, activeTab }:{data: ClientiNuovoData; activeTab: Tab}) {
-  const checkItems = activeTab === 'cliente'
-    ? ['Dati fiscali verificati', 'Almeno un recapito presente', 'Indirizzo utile al conferimento', 'Documento identità controllato']
-    : ['Ruolo processuale assegnato', 'Anagrafica distinta dai clienti', 'Recapiti della parte completi', 'Qualifica coerente con il fascicolo']
+function QualityRail({ data, items }:{data: ClientiNuovoData; items: RegistryCompletenessItem[]}) {
   return (
     <aside className="iu-cln-rail">
-      <Panel title="Qualità anagrafica" icon={<BadgeCheck size={17}/>} count={checkItems.length}>
-        <div className="iu-cln-checklist">
-          {checkItems.map((item) => <span key={item}><CheckCircle2 size={15}/>{item}</span>)}
+      <Panel title="Completezza dei campi" icon={<BadgeCheck size={17}/>} count={items.filter(item => item.complete).length}>
+        <div className="iu-cln-checklist" aria-live="polite">
+          {items.map((item) => <span key={item.label} className={item.complete ? 'is-complete' : 'is-pending'}>
+            {item.complete ? <CheckCircle2 size={15}/> : <AlertTriangle size={15}/>}
+            <div><strong>{item.label}</strong><small>{item.detail}</small></div>
+          </span>)}
         </div>
       </Panel>
       <Panel title="Statistiche rapide" icon={<ClipboardCheck size={17}/>}>
@@ -1881,6 +1955,8 @@ export function NuovoClientePage() {
   const [data, setData] = useState<ClientiNuovoData>(emptyClientiNuovoData)
   const [tab, setTab] = useState<Tab>(initialTab)
   const [loading, setLoading] = useState(true)
+  const [clientCompleteness, setClientCompleteness] = useState<RegistryCompletenessItem[]>([])
+  const [subjectCompleteness, setSubjectCompleteness] = useState<RegistryCompletenessItem[]>([])
   const refreshSequence = useRef(0)
   useOperationalRefresh(['clienti', 'soggetti'], async () => {
     const sequence = ++refreshSequence.current
@@ -1950,9 +2026,9 @@ export function NuovoClientePage() {
 
       <section className="iu-cln-layout">
         <div className="iu-cln-main">
-          {tab === 'cliente' ? <ClientForm data={data}/> : <SubjectForm data={data}/>}
+          {tab === 'cliente' ? <ClientForm data={data} onCompleteness={setClientCompleteness}/> : <SubjectForm data={data} onCompleteness={setSubjectCompleteness}/>}
         </div>
-        <QualityRail data={data} activeTab={tab}/>
+        <QualityRail data={data} items={tab === 'cliente' ? clientCompleteness : subjectCompleteness}/>
       </section>
 
       <FloatingLex

@@ -1,4 +1,5 @@
 import io
+from contextlib import closing
 import tempfile
 import unittest
 from pathlib import Path
@@ -7,12 +8,14 @@ from pct.document_intelligence.extraction import ExtractionResult
 from pct.document_intelligence.repository import DocumentAIRepository
 from pct.document_intelligence.service import DocumentAIService
 from pct.document_intelligence.models import DocumentAIPageText
+from legal_ocr.motore.identita import RECUPERO_IDENTITA_VERSIONE
 
 class ReacquireTests(unittest.TestCase):
     def test_identity_recovery_preserves_archived_text_and_does_not_retry_same_hash(self):
         for positive in (False, True):
-            with self.subTest(positive=positive), tempfile.TemporaryDirectory() as folder:
-                repo = DocumentAIRepository.from_sqlite_db(Path(folder)/"studio.db", storage_root=Path(folder)/"blobs")
+            with self.subTest(positive=positive), tempfile.TemporaryDirectory() as folder, closing(
+                DocumentAIRepository.from_sqlite_db(Path(folder)/"studio.db", storage_root=Path(folder)/"blobs")
+            ) as repo:
                 service = DocumentAIService(repo)
                 context = {"skip_permission_check": True, "user_id": "controlled-test"}
                 upload = io.BytesIO(b"original document")
@@ -30,16 +33,16 @@ class ReacquireTests(unittest.TestCase):
                     self.assertNotIn("Testo nuovo peggiore", renewed.text)
                     self.assertEqual("MRZ verificata" in renewed.text, positive)
                     self.assertEqual("MRZ verificata" in renewed.pages[0].text, positive)
-                    self.assertTrue(any("Recupero identità regione-v1:" in warning for warning in renewed.warnings))
+                    self.assertTrue(any(f"Recupero identità {RECUPERO_IDENTITA_VERSIONE}:" in warning for warning in renewed.warnings))
                     repeated = service.reacquire_existing_version("tenant", "case", record.id, b"original document", context, identity_recovery=True)
                     self.assertEqual(repeated.version_id, renewed.version_id)
                     self.assertEqual(read.call_count, 1)
                     self.assertEqual(len(repo.list_versions("tenant", "case", record.id)), 2)
-                repo.close()
 
     def test_sql_version_switch_is_atomic(self):
-        with tempfile.TemporaryDirectory() as folder:
-            repo = DocumentAIRepository.from_sqlite_db(Path(folder)/"studio.db", storage_root=Path(folder)/"blobs")
+        with tempfile.TemporaryDirectory() as folder, closing(
+            DocumentAIRepository.from_sqlite_db(Path(folder)/"studio.db", storage_root=Path(folder)/"blobs")
+        ) as repo:
             service = DocumentAIService(repo)
             context = {"skip_permission_check": True, "user_id": "controlled-test"}
             upload = io.BytesIO(b"original document")
@@ -61,7 +64,6 @@ class ReacquireTests(unittest.TestCase):
                 self.assertEqual(len(repo.list_versions("tenant", "case", original.id)), 2)
                 self.assertEqual(len(repo.list_documents("tenant", "case")), 1)
                 self.assertIsNone(repo.get_document("other-tenant", "case", original.id))
-            repo.close()
 
 if __name__ == "__main__":
     unittest.main()

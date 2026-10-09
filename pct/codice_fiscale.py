@@ -144,6 +144,43 @@ def calcola(
     }
 
 
+def confronta_con_dati(cf_letto: str, **dati) -> dict:
+    """Riscontro di coerenza, mai prova dell'assegnazione fiscale ufficiale.
+
+    Usa solo dati realmente letti dal chiamante. Non genera un codice da
+    applicare alla scheda e non corregge il valore presente nella fonte.
+    """
+    required = ('cognome', 'nome', 'sesso', 'data_nascita', 'luogo_nascita', 'provincia_nascita')
+    missing = [key for key in required if not str(dati.get(key) or '').strip()]
+    read = str(cf_letto or '').upper().strip()
+    if missing:
+        return {'stato': 'incompleto', 'campi_mancanti': missing, 'letto': read}
+    place = trova_belfiore(dati['luogo_nascita'], dati['provincia_nascita'])
+    if not place or place['provincia_nascita'] != str(dati['provincia_nascita']).strip().upper():
+        return {'stato': 'incompleto', 'campi_mancanti': [], 'letto': read,
+                'motivo': 'Comune e provincia di nascita non concordanti nel catalogo.'}
+    calculated = calcola(**{key: dati[key] for key in required})
+    if not calculated:
+        return {'stato': 'incompleto', 'campi_mancanti': [], 'letto': read}
+    ordinary = calculated['codice_fiscale']
+    result = {'stato': 'non_letto', 'letto': read, 'ordinario_calcolato': ordinary, 'campi_mancanti': []}
+    if not read:
+        return result
+    structure = r'[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]'
+    if not re.fullmatch(structure, read) or _checksum(read[:15]) != read[15]:
+        result['stato'] = 'non_valido'
+        return result
+    if read == ordinary:
+        result['stato'] = 'concordante'
+        return result
+    restored = list(read[:15])
+    mapping = dict(zip('LMNPQRSTUV', '0123456789'))
+    for position in (6, 7, 9, 10, 12, 13, 14):
+        restored[position] = mapping.get(restored[position], restored[position])
+    result['stato'] = 'omocodia_compatibile' if ''.join(restored) == ordinary[:15] else 'discordante'
+    return result
+
+
 def decodifica(cf: str) -> Optional[dict]:
     """
     Decodifica un codice fiscale di 16 caratteri.

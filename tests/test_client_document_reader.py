@@ -7,6 +7,132 @@ from web.services.client_document_reader import parse_client_document_text
 from tests.test_react_shell import _app
 
 
+def test_comune_letto_non_esistente_o_provincia_discordante_non_applicato(monkeypatch):
+    import web.services.client_document_reader as reader
+    monkeypatch.setattr(reader, '_extract_visible_fields', lambda text: [
+        ('comune', text, .94), ('provincia', 'RM', .94)])
+    for value in ('Comune Inventato', 'Vicenza'):
+        result = reader.parse_client_document_text(value)
+        assert 'comune' not in result['patch']
+        assert next(row for row in result['fields'] if row['name'] == 'comune')['status'] == 'da verificare'
+        assert result['warnings']
+    result = reader.parse_client_document_text('Roma')
+    assert result['patch']['comune'] == 'Roma'
+    assert result['geographic_checks']['comune']['stato'] == 'concordante'
+
+
+def test_paper_labels_do_not_leak_into_name_or_nationality():
+    result = parse_client_document_text(
+        "CARTA D'IDENTITÀ\nCognome.ROSSI Nome...MARIO rato il..01/01/1980\n"
+        "Cittadinanza. ITALIANA ResidenraROMA(RM)\n"
+    )
+    assert result['patch']['nome'] == 'Mario'
+    assert result['patch']['nazionalita'] == 'Italiana'
+    assert 'comune' not in result['patch']
+
+
+def test_cie_degraded_birth_label_requires_same_card_mrz_and_exact_catalog_province():
+    source = ('CARTA DI IDENTITA/IDENTITY CARD\nCA12345AA\n'
+        'LUOGO EDATADINASIIA PLACEANO DATEOFBIRTR\nROMA(RM)01.01.1980\n'
+        'C<ITACA12345AA7<<<<<<<<<<<<<<< 8001014M3001019ITA<<<<<<<<<<<8 ROSS I<<MARIO<<<<<<<<<<<<<<<<<<')
+    source = source.replace('ROSS I', 'ROSSI')
+    result = parse_client_document_text(source)
+    assert result['patch']['luogo_nascita'] == 'Roma'
+    assert result['patch']['provincia_nascita'] == 'RM'
+    for changed in (source.replace('ROMA(RM)', 'ROMA(VI)'), source.replace('01.01.1980', '02.01.1980'),
+                    source.replace('CA12345AA\n', 'CA54321AA\n')):
+        assert 'luogo_nascita' not in parse_client_document_text(changed)['patch']
+
+
+def test_cie_joined_birth_label_recovers_only_printed_values_with_same_card_checks():
+    front = ('CARTA DI IDENTITA/IDENTITY CARD\nCA12345AA\n'
+             'LUOGOEDATADINASUIA PLACEANODATEOFBIRTR\nROMA(RM)01.01.1980\n')
+    rear = 'C<ITACA12345AA7<<<<<<<<<<<<<<< 8001014M3001019ITA<<<<<<<<<<<8 ROSSI<<MARIO<<<<<<<<<<<<<<<<<<'
+    for label in ('PLACEANODATEOFBIRTR', 'PLACEANDDATEOFBIRTH'):
+        current = front.replace('PLACEANODATEOFBIRTR', label)
+        sources = [{'page_number': 1, 'mode': 'recovery', 'text': current},
+                   {'page_number': 2, 'mode': 'recovery', 'text': rear}]
+        result = parse_client_document_text(current + rear, identity_sources=sources)
+        assert result['patch']['luogo_nascita'] == 'Roma'
+        assert result['patch']['provincia_nascita'] == 'RM'
+        assert result['geographic_checks']['luogo_nascita']['stato'] == 'concordante'
+    for changed in (front.replace('ROMA(RM)', 'ROMA(VI)'), front.replace('01.01.1980', '02.01.1980'),
+                    front.replace('CA12345AA\n', 'CA54321AA\n'), front.replace('ROMA(RM)', 'CITTA INVENTATA(RM)'),
+                    front.replace('LUOGO', 'INDIRIZZO'), front.replace('PLACEANODATE', 'UPDATE')):
+        sources = [{'page_number': 1, 'mode': 'recovery', 'text': changed},
+                   {'page_number': 2, 'mode': 'recovery', 'text': rear}]
+        result = parse_client_document_text(changed + rear, identity_sources=sources)
+        assert 'luogo_nascita' not in result['patch']
+        assert 'provincia_nascita' not in result['patch']
+
+
+def test_cie_issuer_degraded_translation_requires_exact_existing_municipality():
+    source = ('CARTA DI IDENTITA/IDENTITY CARD CA12345AA\n'
+        'COMUNE DE/MINICIPAULY ROMA COGNOME / SURNAME ROSSI NOME / NAME MARIO')
+    assert parse_client_document_text(source)['patch']['doc_rilasciato_da'] == 'Comune di Roma'
+    assert 'doc_rilasciato_da' not in parse_client_document_text(source.replace('ROMA', 'CITTA INVENTATA'))['patch']
+    assert 'doc_rilasciato_da' not in parse_client_document_text(source.replace('COMUNE', 'RESIDENZA'))['patch']
+
+
+def test_cie_emission_zone_does_not_use_expiry_from_mixed_row():
+    source = 'CARTA DI IDENTITA/IDENTITY CARD CA12345AA\nEMISSIONEASSUING\n\n20.02.2020'
+    assert parse_client_document_text(source)['patch']['doc_data_rilascio'] == '2020-02-20'
+    mixed = source.replace('EMISSIONEASSUING\n\n20.02.2020',
+                           'SCADENZA EXPIRY EMISSIONE ASSUING 27.08.2030\n20.02.2020')
+    assert 'doc_data_rilascio' not in parse_client_document_text(mixed)['patch']
+
+
+def test_multiple_valid_cf_never_selects_first_holder():
+    from web.services.client_document_reader import _find_cf
+    from pct.codice_fiscale import _checksum
+    first = 'RSSMRA80A01H501'
+    second = 'VRDLGI80A01H501'
+    first += _checksum(first)
+    second += _checksum(second)
+    assert _find_cf(first + '\n' + first) == first
+    assert _find_cf(first + '\n' + second) == ''
+
+
+def test_new_client_never_combines_fields_of_multiple_identity_holders():
+    from pct.codice_fiscale import _checksum
+    first = 'RSSMRA80A01H501'
+    second = 'VRDLGI80A01H501'
+    first += _checksum(first)
+    second += _checksum(second)
+    source = ("CARTA D'IDENTITÀ\nCognome ROSSI\nNome MARIO\nCodice fiscale "
+              + first + "\nCARTA D'IDENTITÀ\nCognome VERDI\nNome LUIGI\nCodice fiscale " + second)
+    result = parse_client_document_text(source)
+    assert not result['ok'] and result['patch'] == {} and result['fields'] == []
+    assert 'più titolari' in result['message']
+    # Due copie o fronte/retro del medesimo titolare non sono due persone.
+    duplicate = parse_client_document_text(source.replace(second, first))
+    assert duplicate['patch']['codice_fiscale'] == first
+
+
+def test_uploaded_identity_cannot_fill_another_existing_client(monkeypatch):
+    from types import SimpleNamespace
+    import pytest
+    from web.services.client_document_reader import ClientDocumentReaderError, read_client_document_bytes
+    text = "CARTA D'IDENTITÀ / IDENTITY CARD\nCOGNOME / SURNAME BIANCHI\nNOME / NAME ANNA\nCodice fiscale BNCNNA90C41H501X"
+    monkeypatch.setattr('web.services.client_document_reader._extract_text', lambda *_: (text, ''))
+    client = SimpleNamespace(nome='Mario', cognome='Rossi', nome_completo='Mario Rossi', codice_fiscale='RSSMRA80A01H501U')
+    with pytest.raises(ClientDocumentReaderError):
+        read_client_document_bytes(b'controlled', 'identita.pdf', client=client)
+    assert client.nome == 'Mario' and client.codice_fiscale == 'RSSMRA80A01H501U'
+
+
+def test_multiple_checked_mrz_cards_without_cf_never_select_first():
+    first = 'I<UTOD231458907<<<<<<<<<<<<<<<'
+    second = '7408122F1204159UTO<<<<<<<<<<<6'
+    names = 'ERIKSSON<<ANNA<MARIA<<<<<<<<<<'
+    source = '\n'.join((first, second, names))
+    another = source.replace(names, 'ROSSI<<MARIO<<<<<<<<<<<<<<<<<<')
+    result = parse_client_document_text(source + '\n' + another)
+    assert not result['ok'] and result['patch'] == {} and result['fields'] == []
+    assert 'MRZ verificate distinte' in result['message']
+    assert parse_client_document_text(source + '\n' + source)['ok']
+
+
 def test_mrz_check_digits_match_icao_published_examples() -> None:
     from web.services.client_document_reader import _mrz_check_digit, _parse_mrz_from_text
     assert _mrz_check_digit('520727', '3')
@@ -111,6 +237,35 @@ def test_carta_cartacea_non_usa_scadenza_tessera_sanitaria():
     assert patch['doc_data_scadenza'] == '2026-11-22'
 
 
+def test_paper_issuer_date_with_printed_separator_remains_in_its_model():
+    source = "COMUNE DI ROMA\nCARTA D'IDENTITA\nN° AB1234567\nROMA-08/08/2014\n"
+    assert parse_client_document_text(source)['patch']['doc_data_rilascio'] == '2014-08-08'
+    columns = source.replace('ROMA-08/08/2014', 'CONNOTATI E CONTRASSEGNI SALIENTTROMA-08/08/2014')
+    assert parse_client_document_text(columns)['patch']['doc_data_rilascio'] == '2014-08-08'
+    other_city = source.replace('ROMA-08/08/2014', 'MILANO-08/08/2014')
+    assert 'doc_data_rilascio' not in parse_client_document_text(other_city)['patch']
+    health = source.replace('ROMA-08/08/2014', '') + 'TESSERA SANITARIA\nROMA-08/08/2014'
+    assert 'doc_data_rilascio' not in parse_client_document_text(health)['patch']
+    discordant = source + 'ROMA-09/08/2014\n'
+    assert 'doc_data_rilascio' not in parse_client_document_text(discordant)['patch']
+
+
+def test_degraded_paper_labels_require_independent_fiscal_concordance():
+    source = ("COMUNE DI ROMA\nCARTA D'IDENTITA\nN° AB1234567\n"
+              "COGNOME ROSSI\nNOME MARIO\nrato il..01/01/1980\n"
+              "ROMA((RM) Cittadinanza ITALIANA\nResidenraROMA(RM)\n"
+              "TESSERA SANITARIA\nCODICE FISCALE RSSMRA80A01H501U")
+    patch = parse_client_document_text(source)['patch']
+    assert patch['data_nascita'] == '1980-01-01'
+    assert patch['luogo_nascita'] == 'Roma' and patch['provincia_nascita'] == 'RM'
+    assert patch['comune'] == 'Roma' and patch['provincia'] == 'RM'
+    discordant = parse_client_document_text(source.replace('01/01/1980', '02/01/1980'))['patch']
+    assert 'data_nascita' not in discordant
+    no_cf = parse_client_document_text(source.split('TESSERA SANITARIA')[0])['patch']
+    assert 'data_nascita' not in no_cf and 'luogo_nascita' not in no_cf
+    assert 'via' not in patch  # nessuna denominazione della via ricostruita dal CF
+
+
 def test_profili_separano_tessera_prima_della_cie():
     from pct.document_intelligence.catalog_identita_personale import segmenti_identita_italiana
     text = "TESSERA SANITARIA\nScadenza 14/04/2022\nCARTA D'IDENTITA / IDENTITY CARD\nCognome ROSSI\nNome MARIO\nScadenza 01/01/2034"
@@ -194,11 +349,13 @@ def test_client_document_reader_parse_testo_visibile() -> None:
 def test_clienti_nuovo_documento_leggi_api_upload_in_memoria(tmp_path, monkeypatch) -> None:
     app = _app(tmp_path)
 
-    def fake_ocr(_content: bytes, _filename: str, lang: str = "ita") -> str:
-        assert lang == "ita"
-        return "Cognome: Bianchi\nNome: Anna\nCodice fiscale BNCNNA90C41H501X\nNata a Roma (RM) il 01/03/1990\nScadenza 01/03/2030"
+    def fake_ocr(_content: bytes, _filename: str, file_type: str, *, identity_scan: bool = False):
+        from pct.document_intelligence.extraction import ExtractionResult
+        assert file_type == "pdf"
+        assert identity_scan is True
+        return ExtractionResult(ok=True, text="Cognome: Bianchi\nNome: Anna\nCodice fiscale BNCNNA90C41H501X\nNata a Roma (RM) il 01/03/1990\nScadenza 01/03/2030", pages=[], extraction_engine="controlled-test")
 
-    monkeypatch.setattr("pct.ocr.estrai_testo", fake_ocr)
+    monkeypatch.setattr("pct.document_intelligence.extraction.extract_text_from_document", fake_ocr)
 
     with app.test_client() as client:
         response = client.post(
@@ -217,6 +374,20 @@ def test_clienti_nuovo_documento_leggi_api_upload_in_memoria(tmp_path, monkeypat
     assert payload["patch"]["codice_fiscale"] == "BNCNNA90C41H501X"
     assert payload["patch"]["data_nascita"] == "1990-03-01"
     assert payload["patch"]["doc_data_scadenza"] == "2030-03-01"
+
+
+def test_uploaded_document_with_unknown_client_is_rejected_before_ocr(tmp_path, monkeypatch):
+    app = _app(tmp_path)
+    def unexpected_reader(*args, **kwargs):
+        raise AssertionError('OCR non ammesso prima del riscontro cliente')
+    monkeypatch.setattr('web.blueprints.api_v1_react.read_client_document_upload', unexpected_reader)
+    monkeypatch.setattr('web.blueprints.api_v1_react._session_user_can', lambda permission: permission == 'clienti.scrivi')
+    with app.test_client() as client:
+        response = client.post('/api/v1/ui/clienti/nuovo/documento/leggi',
+            data={'file': (BytesIO(b'%PDF-1.7 controlled'), 'identita.pdf'), 'id_cliente': 'CLIENTE_ASSENTE'},
+            content_type='multipart/form-data', headers={'X-API-Key': 'react-test-key'})
+    assert response.status_code == 404
+    assert response.get_json()['patch'] == {}
 
 
 def test_react_soggetti_nuovo_usa_ocr_mrz_e_popola_campi_anagrafici() -> None:
@@ -296,3 +467,93 @@ def test_old_paper_identity_remains_separate_from_health_card():
     assert result['document_profiles'][1]['model'] == 'tessera_sanitaria'
     assert result['patch']['doc_numero'] == 'AB1234567'
     assert result['patch']['doc_data_scadenza'] == '2033-04-17'
+
+
+def test_cie_number_before_title_and_issuer_without_slash():
+    result = parse_client_document_text(
+        'CA62436OK\nREPUBBLICA ITALIANA\nCARTA DI IDENTITÀ / IDENTITY CARD\n'
+        'COMUNE DIMUNICIPALITY ROSARNO COGNOME / SURNAME BORGESE NOME/NAME CX8 MARIA\n'
+        'EMISSIONE/ISSUING SCADENZA/EXPIRY\n10.03.2023 01.03.2033\n'
+        'TESSERA SANITARIA\nSCADENZA 13.05.2030\n'
+    )
+    assert result['patch']['doc_numero'] == 'CA62436OK'
+    assert result['patch']['doc_rilasciato_da'] == 'Comune di Rosarno'
+    assert result['patch']['cognome'] == 'Borgese'
+    assert result['patch']['doc_data_scadenza'] == '2033-03-01'
+
+
+def test_cie_heading_number_does_not_repair_zero_or_take_health_card_code():
+    result = parse_client_document_text(
+        'CA624360K\nCARTA DI IDENTITÀ / IDENTITY CARD\nCOGNOME / SURNAME ROSSI\n'
+        'TESSERA SANITARIA\nCA62436OK\n'
+    )
+    assert 'doc_numero' not in result['patch']
+
+
+def test_recovered_cie_preamble_is_not_assigned_to_previous_health_card():
+    from pct.document_intelligence.catalog_identita_personale import segmenti_identita_italiana
+    text = (
+        'TESSERA SANITARIA\nSCADENZA 13.05.2030\n'
+        '#### CA62436OK\n\n## REPUBBLICA ITALIANA\n\n'
+        "#### MINISTERO DELL'INTERNO\n\n"
+        'CARTA DI IDENTITÀ /IDENTITY CARD COMUNE DI/ MUNICIPALITY ROSARNO '
+        'COGNOME / SURNAME BORGESE NOME/NAME CX8 MARIA\n'
+        'EMISSIONE/ISSUING SCADENZA/EXPIRY\n10.03.2023 01.03.2033\n'
+    )
+    segments = segmenti_identita_italiana(text)
+    assert 'CA62436OK' not in segments[0]['text']
+    assert 'CA62436OK' in segments[1]['text']
+    patch = parse_client_document_text(text)['patch']
+    assert patch['doc_numero'] == 'CA62436OK'
+    assert patch['cognome'] == 'Borgese'
+    assert patch['doc_data_scadenza'] == '2033-03-01'
+
+
+def test_reader_reports_barcode_provenance_only_from_engine_audit(monkeypatch):
+    from types import SimpleNamespace
+    import web.services.client_document_reader as reader
+    import pct.document_intelligence.extraction as extraction
+    proof = 'Pagina 2: Codice a barre del retro CIE AA12345BB: CF decodificato localmente, checksum e dati MRZ concordanti; originale invariato.'
+    text = 'CODICE FISCALE: RSSMRA80A01H501U'
+    for warnings, expected in (([proof], True), ([], False)):
+        monkeypatch.setattr(extraction, 'extract_text_from_document', lambda *a, **k: SimpleNamespace(
+            ok=True, text=text + '\n' + proof, pages=[object(), object()], warnings=warnings))
+        result = reader.read_client_document_bytes(b'controlled', 'documento.pdf')
+        row = next(item for item in result['fields'] if item['name'] == 'codice_fiscale')
+        assert ('codice a barre' in row['source']) == expected
+        assert ('CF decodificato localmente dal codice a barre' in result['warnings'][0]) == expected
+
+
+def test_reader_missing_document_and_residence_fields_are_explicit():
+    result = parse_client_document_text('CODICE FISCALE: RSSMRA80A01H501U')
+    assert {'rilasciato da', 'data rilascio', 'via', 'civico', 'comune'} <= set(result['missing'])
+
+
+def test_health_card_never_supplies_identity_document_fields():
+    result = parse_client_document_text(
+        'TESSERA SANITARIA\nCOGNOME: ROSSI\nNOME: MARIO\n'
+        'CODICE FISCALE: RSSMRA80A01H501U\nNUMERO DOCUMENTO: AB1234567\n'
+        'SCADENZA: 01.01.2030\nRILASCIATO DA: Comune di Roma\n'
+        'DATA RILASCIO: 01.01.2020\nINDIRIZZO: VIA ROMA 1\n')
+    assert result['document_profiles'][0]['model'] == 'tessera_sanitaria'
+    assert result['patch']['codice_fiscale'] == 'RSSMRA80A01H501U'
+    assert not any(key.startswith('doc_') for key in result['patch'])
+    assert 'via' not in result['patch']
+
+
+def test_cie_rear_without_front_title_uses_cie_address_rules():
+    result = parse_client_document_text(
+        'CODICE FISCALE / FISCAL CODE\nRSSMRA80A01H501U\n'
+        'INDIRIZZO DI RESIDENZA / RESIDENCE VIA ROMA, N. 12 ROMA (RM)\n')
+    assert result['document_profiles'][0]['model'] == 'cie'
+    assert result['patch']['via'] == 'VIA ROMA'
+    assert result['patch']['civico'] == '12'
+    assert 'doc_data_rilascio' not in result['patch']
+
+
+def test_paper_and_cie_distinct_numbers_do_not_compose_one_identity():
+    result = parse_client_document_text(
+        "COMUNE DI ROMA CARTA D'IDENTITÀ\nN. AB1234567\nCOGNOME: ROSSI\nNOME: MARIO\n"
+        "CARTA DI IDENTITÀ / IDENTITY CARD\nAA12345BB\nCOGNOME: VERDI\nNOME: LUCA\n")
+    assert result['patch'] == {}
+    assert 'numeri di carte distinti' in result['message']

@@ -74,3 +74,12 @@ def test_il_nome_inequivoco_basta_finche_il_contenuto_non_e_leggibile():
 def test_il_contesto_del_catalogo_porta_il_cliente():
     fascicolo = SimpleNamespace(profilo_deposito={}, tipo="CIVILE", nome_cliente="Anna Bianchi", tribunale="Tribunale di Torino", oggetto="")
     assert fascicolo_catalog_context(fascicolo)["cliente"] == "Anna Bianchi"
+
+
+def test_modello_condiviso_non_classifica_un_contenuto_misto_come_una_carta():
+    from pct.document_intelligence.catalog_identita_personale import modello_identita_italiana
+    assert modello_identita_italiana(CARTACEA) == 'carta_cartacea'
+    assert modello_identita_italiana(CIE) == 'cie'
+    assert modello_identita_italiana('TESSERA SANITARIA\nCOGNOME ROSSI') == 'tessera_sanitaria'
+    assert modello_identita_italiana(CIE + '\nTESSERA SANITARIA') == ''
+    assert modello_identita_italiana('Documento allegato senza diciture') == ''

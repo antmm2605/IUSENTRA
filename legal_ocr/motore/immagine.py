@@ -36,6 +36,225 @@ class PaginaPreparata:
     passaggi: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class DiagnosiZonaTesto:
+    scura: bool
+    chiara: bool
+    basso_contrasto: bool
+    sfocata: bool
+    livello_sfondo: int
+    escursione: int
+    rapporto_bordi: float
+    illuminazione_irregolare: bool = False
+
+    @property
+    def richiede_intervento(self) -> bool:
+        return self.scura or self.chiara or self.basso_contrasto or self.sfocata or self.illuminazione_irregolare
+
+
+def diagnostica_zona_testo(immagine) -> DiagnosiZonaTesto:
+    """Misure sulla zona originale, prima dell'ingrandimento.
+
+    Una zona uniforme non prova testo recuperabile e non attiva trattamenti.
+    Le soglie guidano i tentativi: non certificano leggibilità o dati personali.
+    """
+    from PIL import ImageFilter, ImageStat
+    grigia = immagine.convert('L')
+    try:
+        histogram = grigia.histogram()
+        total = sum(histogram)
+        def percentile(fraction):
+            accumulated = 0
+            for value, count in enumerate(histogram):
+                accumulated += count
+                if accumulated >= total * fraction:
+                    return value
+            return 255
+        low, high = percentile(.10), percentile(.90)
+        spread = high - low
+        variance = ImageStat.Stat(grigia).var[0]
+        edges = grigia.filter(ImageFilter.FIND_EDGES)
+        try:
+            inner = edges.crop((1, 1, max(2, edges.width - 1), max(2, edges.height - 1)))
+            try:
+                ratio = ImageStat.Stat(inner).var[0] / max(variance, 1)
+            finally:
+                inner.close()
+        finally:
+            edges.close()
+        has_signal = spread >= 8 and variance >= 4
+        backgrounds = []
+        # Il percentile alto nei quattro quadranti misura lo sfondo, senza
+        # assumere che la media della foto (ritratto incluso) sia carta bianca.
+        for left, top, right, bottom in ((0, 0, .5, .5), (.5, 0, 1, .5), (0, .5, .5, 1), (.5, .5, 1, 1)):
+            box = (int(left * grigia.width), int(top * grigia.height),
+                   max(1, int(right * grigia.width)), max(1, int(bottom * grigia.height)))
+            tile = grigia.crop(box)
+            try:
+                values = tile.histogram()
+                threshold, count = sum(values) * .9, 0
+                for level, quantity in enumerate(values):
+                    count += quantity
+                    if count >= threshold:
+                        backgrounds.append(level)
+                        break
+            finally:
+                tile.close()
+        irregular = has_signal and len(backgrounds) == 4 and max(backgrounds) - min(backgrounds) >= 65
+        return DiagnosiZonaTesto(has_signal and high < 170,
+            has_signal and low > 150 and spread < 60,
+            has_signal and spread < 65,
+            has_signal and spread >= 30 and ratio < .12,
+            high, spread, round(ratio, 5), irregular)
+    finally:
+        grigia.close()
+
+
+def prepara_zona_testo(immagine, diagnosi: DiagnosiZonaTesto) -> PaginaPreparata:
+    """Applica soltanto i trattamenti indicati dalla diagnosi della zona.
+
+    Non ruota, non ritaglia e non ingrandisce: questi interventi hanno
+    presupposti separati. Il chiamante confronta poi le letture ottenute.
+    """
+    from PIL import ImageFilter, ImageOps
+    working = immagine.copy()
+    steps = []
+    try:
+        if diagnosi.scura or diagnosi.illuminazione_irregolare:
+            renewed = _uniforma_illuminazione(working, ImageFilter)
+            working.close()
+            working = renewed
+            steps.append('illuminazione normalizzata: ' +
+                ('sfondo disomogeneo rilevato' if diagnosi.illuminazione_irregolare else 'zona scura rilevata'))
+        if diagnosi.chiara or diagnosi.basso_contrasto:
+            gray = working.convert('L')
+            try:
+                renewed = ImageOps.autocontrast(gray, cutoff=1)
+            finally:
+                gray.close()
+            working.close()
+            working = renewed
+            steps.append('contrasto normalizzato: escursione insufficiente rilevata')
+        if diagnosi.sfocata:
+            renewed = working.filter(ImageFilter.UnsharpMask(radius=1.4, percent=110, threshold=3))
+            working.close()
+            working = renewed
+            steps.append('nitidezza: bordi attenuati rilevati')
+        return PaginaPreparata(working, 216, 1.0, 0.0, tuple(steps))
+    except Exception:
+        working.close()
+        raise
+
+
+def passaggi_diagnosi_zona(diagnosi: DiagnosiZonaTesto):
+    """Un solo intervento per lettura; nessun accumulo prima del riscontro.
+
+    Il chiamante confronta l'esito e scarta una prova insufficiente prima
+    di provare la successiva sull'immagine di riferimento preservata.
+    """
+    from dataclasses import replace
+    clean = replace(diagnosi, scura=False, chiara=False, basso_contrasto=False,
+                    sfocata=False, illuminazione_irregolare=False)
+    for flags in (
+        {'scura': diagnosi.scura, 'illuminazione_irregolare': diagnosi.illuminazione_irregolare},
+        {'chiara': diagnosi.chiara, 'basso_contrasto': diagnosi.basso_contrasto},
+        {'sfocata': diagnosi.sfocata},
+    ):
+        if any(flags.values()):
+            yield replace(clean, **flags)
+
+
+def scala_caratteri_zona(immagine) -> float:
+    """Stima i glifi sulla zona di testo, senza assumere che sia una pagina A4.
+
+    Esclude contorni grandi, rumore puntiforme e linee. La misura richiede
+    almeno cinque componenti plausibili; non certifica il contenuto letto.
+    """
+    import statistics
+    import cv2
+    import numpy as np
+    gray = immagine.convert('L')
+    try:
+        pixels = np.asarray(gray)
+        # La soglia locale distingue le lettere sottili dal fondo decorato
+        # della carta. Questa maschera misura soltanto, non sostituisce la foto.
+        binary = cv2.adaptiveThreshold(pixels, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                       cv2.THRESH_BINARY_INV, 21, 10)
+        _, _, components, _ = cv2.connectedComponentsWithStats(binary, 8)
+        heights = [int(height) for _, _, width, height, area in components[1:]
+                   if 3 <= height <= min(60, immagine.height * .65)
+                   and .08 <= width / height <= 2 and .1 <= area / (width * height) <= .95]
+        if len(heights) < 5:
+            return 1.0
+        return min(4.0, max(1.0, 32 / statistics.median(heights)),
+                   2400 / max(immagine.size))
+    finally:
+        gray.close()
+
+
+def separa_sfondo_zona_testo(immagine, *, modalita: str = 'rimuovi') -> PaginaPreparata | None:
+    """Seleziona solo pixel prossimi al fondo locale, su una copia.
+
+    Il chiamante la prova dopo una lettura insufficiente. I tratti scuri
+    restano invariati: non si cancellano linee nere per indovinare lettere
+    sottostanti. Nessun riempimento generativo o ricostruzione del testo.
+    Una zona già bianca o uniforme non attiva il trattamento.
+    """
+    from PIL import Image, ImageChops, ImageFilter
+    if modalita not in {'rimuovi', 'schiarisci', 'scurisci'}:
+        raise ValueError('Modalità sfondo non prevista')
+    gray = immagine.convert('L')
+    background = None
+    masks = []
+    try:
+        histogram = gray.histogram()
+        count = sum(histogram)
+        midtones = sum(histogram[40:245])
+        if not count or midtones / count < .10 or len([n for n in histogram if n]) < 8:
+            return None
+        kernel = min(31, max(3, (min(gray.size) // 8) | 1))
+        try:
+            import cv2
+            import numpy as np
+            background = Image.fromarray(cv2.dilate(np.asarray(gray), np.ones((kernel, kernel), np.uint8),
+                                                    borderType=cv2.BORDER_REPLICATE))
+        except ImportError:
+            background = gray.filter(ImageFilter.MaxFilter(kernel))
+        # Un tratto sbiadito deve restare distinguibile dal fondo: il
+        # margine è relativo alla carta locale, non alla pagina intera.
+        difference = ImageChops.subtract(background, gray)
+        masks.append(difference)
+        proximity = difference.point([255 if value <= 8 else 0 for value in range(256)])
+        masks.append(proximity)
+        eligible = gray.point([255 if 96 < value < 245 else 0 for value in range(256)])
+        masks.append(eligible)
+        selection = ImageChops.multiply(proximity, eligible)
+        masks.append(selection)
+        selected = selection.histogram()[255]
+        if selected / count < .01:
+            return None
+        working = gray.copy()
+        if modalita == 'rimuovi':
+            working.paste(255, mask=selection)
+        else:
+            delta = 24 if modalita == 'schiarisci' else -24
+            toned = gray.point([max(97, min(255, value + delta)) for value in range(256)])
+            try:
+                working.paste(toned, mask=selection)
+            finally:
+                toned.close()
+        label = {'rimuovi': 'separazione sfondo', 'schiarisci': 'schiarimento sfondo',
+                 'scurisci': 'scurimento sfondo'}[modalita]
+        return PaginaPreparata(working, 216, 1.0, 0.0,
+            (f'{label}: {selected} pixel selezionati per luminanza locale; tratti scuri preservati',))
+    finally:
+        for mask in masks:
+            mask.close()
+        if background is not None:
+            background.close()
+        gray.close()
+
+
 def densita_pagina(larghezza: int, altezza: int) -> int:
     """Densita' che fa rientrare la pagina in un A4 nel suo orientamento."""
     lato_lungo, lato_corto = max(larghezza, altezza), min(larghezza, altezza)

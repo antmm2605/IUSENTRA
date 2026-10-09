@@ -6,6 +6,15 @@ from tests.test_react_shell import _app
 from web.services.territorio_forms import normalize_address_fields, resolve_comune_italiano
 
 
+def test_verifica_comune_esatto_senza_somiglianza_e_con_provincia():
+    from pct.territorio_italia import verifica_comune_italiano
+    assert verifica_comune_italiano('Roma', 'RM')['stato'] == 'concordante'
+    assert verifica_comune_italiano('Roma', 'VI')['stato'] == 'provincia_discordante'
+    assert verifica_comune_italiano('Rom')['stato'] == 'non_riscontrato'
+    assert verifica_comune_italiano('Comune Inventato')['stato'] == 'non_riscontrato'
+    assert verifica_comune_italiano('')['stato'] == 'non_letto'
+
+
 def test_territorio_italia_db_copre_tutti_i_comuni_cap_province():
     result = audit(DEFAULT_TERRITORIO_DB)
 

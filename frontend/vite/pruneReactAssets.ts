@@ -43,6 +43,7 @@ export function pruneReactAssets(): Plugin {
   let config: ResolvedConfig
   let previousAssets = new Set<string>()
   let currentAssets = new Set<string>()
+  let buildFailed = false
 
   return {
     name: 'iusentra-prune-react-assets',
@@ -51,6 +52,8 @@ export function pruneReactAssets(): Plugin {
       config = resolvedConfig
     },
     async buildStart() {
+      buildFailed = false
+      currentAssets = new Set<string>()
       const outDir = resolve(config.root, config.build.outDir)
       const manifestPath = resolve(outDir, '.vite', 'manifest.json')
       previousAssets = await readManifestAssets(manifestPath)
@@ -82,6 +85,9 @@ export function pruneReactAssets(): Plugin {
         if (code !== 'ENOENT') throw error
       }
     },
+    buildEnd(error) {
+      buildFailed = Boolean(error)
+    },
     generateBundle(_options, bundle) {
       currentAssets = new Set(
         Object.values(bundle)
@@ -91,11 +97,16 @@ export function pruneReactAssets(): Plugin {
       )
     },
     async closeBundle() {
+      // Una build fallita non autorizza pulizie e il suo errore primario
+      // non deve essere sostituito da quello di un manifest non prodotto.
+      if (buildFailed) return
       const outDir = resolve(config.root, config.build.outDir)
       const assetsDir = resolve(outDir, 'assets')
 
       if (currentAssets.size === 0) {
-        throw new Error('Manifest React corrente vuoto: pulizia asset annullata.')
+        // generateBundle può fallire in un plugin precedente, dopo buildEnd.
+        // Lascia propagare quel difetto e preserva integralmente il rilascio.
+        return
       }
 
       const protectedAssets = new Set([...previousAssets, ...currentAssets])

@@ -50,6 +50,7 @@ class ExtractionResult:
     error_code: str = ""
     error_message: str = ""
     identity_recoveries: list[DocumentAIPageText] = field(default_factory=list)
+    identity_sources: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -182,6 +183,9 @@ def extract_text_from_document(content: bytes, filename: str, file_type: str, *,
     if ext in {"xlsx", "xls"}:
         return _extract_spreadsheet(content, ext)
     if ext in _IMAGE_EXTENSIONS:
+        from .catalog_identita_personale import documento_identita_dal_nome
+        if identity_scan or documento_identita_dal_nome(filename):
+            return _extract_identity_image(content)
         unlimited = _extract_with_unlimited_ocr_for_index(content, filename, ext)
         if unlimited is not None:
             return unlimited
@@ -193,6 +197,62 @@ def extract_text_from_document(content: bytes, filename: str, file_type: str, *,
     if ext == "zip":
         return _extract_zip(content)
     return _extract_binary_best_effort(content, ext or "bin")
+
+
+def _identity_image_pdf(content: bytes) -> bytes:
+    """Lossless, bounded adapter to the shared identity pipeline; original stays intact."""
+    from PIL import Image, ImageOps
+    from pypdf import PdfWriter
+    from pypdf.generic import DictionaryObject, NameObject, NumberObject, DecodedStreamObject
+
+    with Image.open(BytesIO(content)) as source:
+        if getattr(source, "n_frames", 1) != 1:
+            raise ValueError("Immagine multipagina: usare il documento PDF completo.")
+        if source.width * source.height > 35_000_000:
+            raise ValueError("Immagine oltre il limite di elaborazione governata.")
+        with ImageOps.exif_transpose(source) as oriented:
+            rgba = oriented.convert("RGBA")
+            image = Image.new("RGB", rgba.size, "white")
+            image.paste(rgba, mask=rgba.getchannel("A"))
+            rgba.close()
+            try:
+                writer = PdfWriter()
+                width, height = image.size
+                # Match PDF decimal precision in both box and drawing matrix.
+                # A slightly larger matrix would be correctly rejected as clipped.
+                page_width, page_height = round(width / 3, 5), round(height / 3, 5)
+                page = writer.add_blank_page(width=page_width, height=page_height)
+                pixels = DecodedStreamObject()
+                pixels.set_data(image.tobytes())
+                pixels.update({NameObject("/Type"): NameObject("/XObject"),
+                               NameObject("/Subtype"): NameObject("/Image"),
+                               NameObject("/Width"): NumberObject(width),
+                               NameObject("/Height"): NumberObject(height),
+                               NameObject("/ColorSpace"): NameObject("/DeviceRGB"),
+                               NameObject("/BitsPerComponent"): NumberObject(8)})
+                page[NameObject("/Resources")] = DictionaryObject({
+                    NameObject("/XObject"): DictionaryObject({
+                        NameObject("/IdentitySource"): writer._add_object(pixels.flate_encode())})})
+                commands = DecodedStreamObject()
+                commands.set_data(f"q {page_width:.5f} 0 0 {page_height:.5f} 0 0 cm /IdentitySource Do Q".encode("ascii"))
+                page[NameObject("/Contents")] = writer._add_object(commands)
+                output = BytesIO()
+                writer.write(output)
+                return output.getvalue()
+            finally:
+                image.close()
+
+
+def _extract_identity_image(content: bytes) -> ExtractionResult:
+    from .pdf_inspector_engine import extract_pdf_inspected
+
+    try:
+        prepared = _identity_image_pdf(content)
+    except Exception as exc:
+        return ExtractionResult(ok=False, text="", pages=[], extraction_engine="identity.image",
+                                error_code="identity_image_invalid", error_message=str(exc),
+                                warnings=["Preparazione dell’immagine d’identità non completata."])
+    return extract_pdf_inspected(prepared, identity_scan=True)
 
 
 def _unwrap_p7m_payload(content: bytes, filename: str) -> tuple[bytes, str, list[str]]:

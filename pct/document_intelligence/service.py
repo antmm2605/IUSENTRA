@@ -37,6 +37,65 @@ from .versioning import build_document_storage_relative_path, build_extracted_te
 
 
 _NON_INTERACTIVE_READ_ACTORS = frozenset({"scheduler", "scheduler-worker", "scheduler-rebuild"})
+IDENTITY_PROVENANCE_MARKER = "Provenienza identità: fonti distinte v1."
+
+
+def _pages_with_identity_sources(pages, sources):
+    """Conserva le provenienze nel pages_json SQL già esistente."""
+    result = []
+    for page in pages:
+        metadata = [dict(item) for item in page.identity_sources]
+        for source in sources:
+            if source.get('page_number') == page.page_number and source not in metadata:
+                metadata.append(dict(source))
+        result.append(DocumentAIPageText(page_number=page.page_number, text=page.text, identity_sources=metadata))
+    return result
+
+
+def _preserve_identity_archive(archived, extraction, recovery_version):
+    """Aggiunge fonti riscontrate; non promuove il testo storico senza prove."""
+    sources = list(extraction.identity_sources) if extraction.ok else []
+    for page in extraction.pages if extraction.ok else []:
+        sources.extend(item for item in page.identity_sources if item not in sources)
+    # Compatibilità con lettori precedenti: l'array contiene soltanto i
+    # recuperi che avevano superato i controlli, mai il testo OCR generale.
+    for page in extraction.identity_recoveries if extraction.ok else []:
+        source = {'page_number': page.page_number, 'mode': 'recovery', 'text': page.text}
+        if not any(item.get('page_number') == page.page_number and item.get('mode') == 'recovery'
+                   and str(item.get('text', '')).strip() == page.text.strip() for item in sources):
+            sources.append(source)
+    qualified = []
+    for source in sources:
+        if source.get('mode') in ('native', 'recovery') and str(source.get('text', '')).strip() and source not in qualified:
+            qualified.append(dict(source))
+    pages = _pages_with_identity_sources(archived.pages, [])
+    for page in pages:
+        if not page.identity_sources and page.text.strip():
+            page.identity_sources = [{'page_number': page.page_number, 'mode': 'ocr', 'text': page.text}]
+    by_number = {page.page_number: page for page in pages}
+    body = archived.text
+    for source in qualified:
+        number, value = source.get('page_number'), str(source['text'])
+        page = by_number.get(number)
+        if page is None:
+            # La posizione è quella restituita dal nuovo lettore, non una
+            # pagina inventata per il testo storico privo di geometria.
+            page = DocumentAIPageText(page_number=number, text='')
+            pages.append(page)
+            by_number[number] = page
+        if value.strip() not in page.text:
+            page.text += ('\n\n' if page.text else '') + value
+        if source not in page.identity_sources:
+            page.identity_sources.append(source)
+        if value.strip() not in body:
+            body += '\n\n' + value
+    outcome = 'dati recuperati' if qualified else 'nessun dato aggiuntivo verificato'
+    return ExtractionResult(ok=True, text=body, pages=pages, extraction_engine=extraction.extraction_engine,
+        warnings=list(archived.warnings) + list(extraction.warnings) + [
+            f'Recupero identità {recovery_version}: {outcome}; lettura precedente preservata.',
+            IDENTITY_PROVENANCE_MARKER],
+        identity_recoveries=[DocumentAIPageText(page_number=item.get('page_number'), text=item['text']) for item in qualified],
+        identity_sources=[dict(item) for page in pages for item in page.identity_sources])
 
 
 @contextmanager
@@ -159,7 +218,7 @@ class DocumentAIService:
                     tenant_id=tenant_id,
                     fascicolo_id=fascicolo_id,
                     text=extraction.text,
-                    pages=extraction.pages,
+                    pages=_pages_with_identity_sources(extraction.pages, extraction.identity_sources),
                     extraction_engine=extraction.extraction_engine,
                     created_at=utc_now(),
                     warnings=list(extraction.warnings),
@@ -348,7 +407,9 @@ class DocumentAIService:
         ensure_allowed_size(len(content), self.max_size_bytes)
         if identity_recovery:
             current_text = self.repository.get_extracted_text(tenant_id, fascicolo_id, document_id, record.current_version_id)
-            if current_text and any('Recupero identità regione-v1:' in warning for warning in current_text.warnings):
+            from legal_ocr.motore.identita import RECUPERO_IDENTITA_VERSIONE
+            if (current_text and IDENTITY_PROVENANCE_MARKER in current_text.warnings
+                    and any(f'Recupero identità {RECUPERO_IDENTITA_VERSIONE}:' in warning for warning in current_text.warnings)):
                 return current_text
         versions = self.repository.list_versions(tenant_id, fascicolo_id, document_id)
         candidates = [item for item in versions if item.sha256 == record.sha256 and item.storage_path]
@@ -361,23 +422,7 @@ class DocumentAIService:
             archived = self.repository.get_extracted_text(tenant_id, fascicolo_id, document_id, record.current_version_id)
             if archived is None or not archived.text.strip():
                 raise DocumentAIValidationError("Recupero identità senza lettura archiviata corrente.")
-            recovered = extraction.identity_recoveries if extraction.ok else []
-            additions = {item.page_number: item.text for item in recovered}
-            pages = [DocumentAIPageText(page_number=item.page_number,
-                text=item.text + ('\n\n' + additions.pop(item.page_number) if item.page_number in additions else ''))
-                for item in archived.pages]
-            # Una lettura storica senza pagine conserva il proprio testo senza
-            # inventarne la geometria. Le sole evidenze MRZ verificate si aggiungono.
-            extra = '\n\n'.join(item.text for item in recovered)
-            body = archived.text
-            if extra:
-                body += '\n\n' + extra
-            outcome = 'dati recuperati' if recovered else 'nessun dato aggiuntivo verificato'
-            extraction = ExtractionResult(ok=True, text=body, pages=pages,
-                extraction_engine=extraction.extraction_engine,
-                warnings=list(archived.warnings) + list(extraction.warnings)
-                    + [f'Recupero identità regione-v1: {outcome}; lettura precedente preservata.'],
-                identity_recoveries=recovered)
+            extraction = _preserve_identity_archive(archived, extraction, RECUPERO_IDENTITA_VERSIONE)
         if not extraction.ok or not str(extraction.text or "").strip():
             raise DocumentAIValidationError("Riacquisizione non adottabile: testo affidabile assente.")
         number = next_version_number(versions)
@@ -394,7 +439,8 @@ class DocumentAIService:
                 self.repository.write_blob(storage_path, content)
             self.repository.create_version(version)
             text = DocumentAIText(document_id=document_id, version_id=version.id, tenant_id=tenant_id,
-                fascicolo_id=fascicolo_id, text=extraction.text, pages=extraction.pages,
+                fascicolo_id=fascicolo_id, text=extraction.text,
+                pages=_pages_with_identity_sources(extraction.pages, extraction.identity_sources),
                 extraction_engine=extraction.extraction_engine, created_at=utc_now(), warnings=list(extraction.warnings))
             text_path = build_extracted_text_relative_path(tenant_id, fascicolo_id, document_id, number)
             self.repository.write_text_blob(text_path, json.dumps(text.to_dict(), ensure_ascii=False, indent=2))

@@ -2967,7 +2967,15 @@ def clienti_react_nuovo_documento_leggi():
                     document_ai_tenant_id(), str(payload['id_cliente']),
                     service=service, user_context=document_ai_user_context(), client=client)
         else:
-            result = read_client_document_upload(request.files.get("file"))
+            upload_client = None
+            upload_client_id = str(request.form.get('id_cliente') or '').strip()
+            if upload_client_id:
+                if not _session_user_can('clienti.scrivi'):
+                    return jsonify({'ok': False, 'message': 'Permessi insufficienti per compilare il cliente.'}), 403
+                upload_client = get_clienti().get(upload_client_id)
+                if upload_client is None:
+                    raise ClientDocumentReaderError('Cliente non disponibile nello studio corrente.', status_code=404)
+            result = read_client_document_upload(request.files.get("file"), client=upload_client)
         return jsonify(result), 200 if result.get("ok") else 422
     except ClientDocumentReaderError as exc:
         message = exc.public_message

@@ -1,3 +1,5 @@
+import pytest
+
 from legal_ocr.motore.identita import _identita_riquadri
 
 
@@ -44,3 +46,36 @@ def test_unreadable_nationality_does_not_block_verified_mrz_fields():
     assert result['patch']['data_nascita'] == '1980-01-01'
     assert result['patch']['doc_data_scadenza'] == '2030-01-01'
     assert result['warnings']
+
+
+@pytest.mark.parametrize(('accepted_size', 'preserve', 'expected_calls'), [
+    ((372, 88), False, [((93, 22), True), ((372, 88), True), ((372, 88), False)]),
+    ((93, 38), True, [((93, 22), True), ((372, 88), True), ((372, 88), False), ((93, 38), True)]),
+])
+def test_issue_date_retries_finite_regions_and_stops_after_verified_value(monkeypatch, accepted_size, preserve, expected_calls):
+    from types import SimpleNamespace
+    from PIL import Image
+    import legal_ocr.motore.identita as reader
+    import legal_ocr.motore.immagine as preparation
+
+    monkeypatch.setattr(preparation, 'diagnostica_zona_testo', lambda _: SimpleNamespace(escursione=1))
+    monkeypatch.setattr(preparation, 'scala_caratteri_zona', lambda _: 4)
+    monkeypatch.setattr(preparation, 'passaggi_diagnosi_zona', lambda _: [])
+    monkeypatch.setattr(preparation, 'separa_sfondo_zona_testo', lambda *_args, **_kwargs: None)
+    calls = []
+
+    def read(image, **options):
+        calls.append((image.size, options['preserva_risoluzione']))
+        if image.size == accepted_size and options['preserva_risoluzione'] is preserve:
+            return SimpleNamespace(confidenza=.98, testo='EMISSIONE ASSUING\n20.02.2020')
+        return None
+
+    monkeypatch.setattr(reader, 'leggi_con_secondo_lettore', read)
+    known = ('COMUNE ROMA\nCOGNOME / SURNAME ROSSI NOME / NAME MARIO\n'
+             'LUOGO NASCITA 01.01.1980\nSEX M\nNATIONALITY ITA\nSCADENZA / EXPIRY 01.01.2030')
+    with Image.new('RGB', (300, 200), 'white') as source:
+        original = source.tobytes()
+        text, _ = reader._leggi_zone_cie(source, 0, 0, 300, 200, 0, Image, known_text=known)
+        assert source.tobytes() == original
+    assert text.count('20.02.2020') == 1
+    assert calls == expected_calls

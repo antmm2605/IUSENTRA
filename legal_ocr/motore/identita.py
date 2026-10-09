@@ -12,7 +12,7 @@ from .consenso import leggi_con_secondo_lettore
 from .mrz import righe_td1_complete
 from .copertina_cartacea import recupera_titolare_cartacea as recupera_titolare_cartacea
 
-RECUPERO_IDENTITA_VERSIONE = 'regione-v14-fronte-retro-riscontrati'
+RECUPERO_IDENTITA_VERSIONE = 'regione-v15-zone-data-adattive'
 
 
 def _identita_riquadri(recovered):
@@ -424,6 +424,7 @@ def _leggi_zone_cie(image, x, y, width, height, angle, Image, *, rear=False, kno
     card = source.rotate(angle, expand=True)
     source.close()
     additions, warnings = [], []
+    accepted_zones = set()
     if rear and righe_td1_complete(known_text):
         from .codici_identita import codice_fiscale_da_barre
         code, proof = codice_fiscale_da_barre(card, known_text)
@@ -439,11 +440,14 @@ def _leggi_zone_cie(image, x, y, width, height, angle, Image, *, rear=False, kno
         ('luogo e data di nascita', (.27, .39, .96, .56), r'\b(?:NASCITA|BIRTH)\b.{0,80}\d{2}[./]\d{2}[./]\d{4}'),
         ('sesso', (.30, .53, .44, .64), r'\bSEX\s+[MF]\b'),
         ('cittadinanza', (.63, .53, .84, .70), r'\bNATIONALITY\s+[A-Z]{3}\b'),
+        ('emissione', (.28, .60, .59, .71), r'EMISSIONE\s*(?:[/ ]*(?:ISSUING|ASSUING))?\s+\d{2}[./]\d{2}[./]\d{4}'),
         ('emissione', (.28, .60, .59, .79), r'EMISSIONE\s*(?:[/ ]*(?:ISSUING|ASSUING))?\s+\d{2}[./]\d{2}[./]\d{4}'),
         ('scadenza', (.58, .62, .95, .80), r'\bSCADENZA\s*(?:[/ ]+EXPIRY)?\s+\d{2}[./]\d{2}[./]\d{4}'),
     )
     try:
         for label, bounds, pattern in zones:
+            if label in accepted_zones:
+                continue
             if rear and label == 'codice fiscale' and additions:
                 continue
             # Due etichette sulla medesima riga non attribuiscono la prima
@@ -466,6 +470,11 @@ def _leggi_zone_cie(image, x, y, width, height, angle, Image, *, rear=False, kno
                 stages = ['originale']
                 if scale > 1.1:
                     stages.append('ingrandimento')
+                # Se l'ingrandimento pieno non supera il riscontro, confronta
+                # una densità dimezzata tramite il renderer PDF nativo.
+                # Non equivale a ridurre la soglia né a cumulare filtri.
+                if label == 'emissione' and scale > 2.2:
+                    stages.append('risoluzione intermedia')
                 diagnosed_stages = {f'trattamento singolo {index + 1}': step
                                     for index, step in enumerate(passaggi_diagnosi_zona(diagnosis))}
                 stages.extend(diagnosed_stages)
@@ -482,13 +491,17 @@ def _leggi_zone_cie(image, x, y, width, height, angle, Image, *, rear=False, kno
                         continue
                     working = prepared.immagine if prepared else (cropped if stage == 'originale' else enlarged)
                     try:
-                        reading = leggi_con_secondo_lettore(working, dpi=216, preserva_risoluzione=True)
+                        reading = leggi_con_secondo_lettore(working, dpi=216,
+                            preserva_risoluzione=stage != 'risoluzione intermedia')
                         accepted = reading and reading.confidenza >= .94 and re.search(pattern, reading.testo, re.I | re.S)
                         warnings.append(f'CIE {"retro" if rear else "fronte"}: zona {label}, tentativo {stage}, '
                             f'esito {"accettato" if accepted else "insufficiente"}; originale invariato.')
                         if accepted:
                             additions.append(reading.testo)
+                            accepted_zones.add(label)
                             steps = ', '.join(prepared.passaggi) if prepared else stage
+                            if stage == 'risoluzione intermedia':
+                                steps += f', scala effettiva {scale / 2:.2f}×'
                             warnings.append(f'CIE {"retro" if rear else "fronte"}: zona {label}, limiti relativi {bounds}, '
                                             f'rotazione {angle}°, {steps}; etichetta e valore letti, originale invariato.')
                             break

@@ -97,23 +97,53 @@ export function formatTableCells(table: HTMLTableElement, area: CellArea, option
   const { selected, grid } = tableArea(clone, area)
   if (options.borders && options.borders !== 'none' && options.borderStyle !== 'none' && (!options.borderWidth || options.borderWidth < 0.25 || options.borderWidth > 12 || !/^#[0-9a-f]{6}$/i.test(options.borderColor || ''))) throw new Error('Controlla colore e spessore dei bordi.')
   if (options.padding !== undefined && (!Number.isFinite(options.padding) || options.padding < 0 || options.padding > 40)) throw new Error('Il margine interno deve essere tra 0 e 40 punti.')
+  const pending = new Map<HTMLTableCellElement, Map<string, string>>()
+  const stylesFor = (cell: HTMLTableCellElement) => {
+    let styles = pending.get(cell)
+    if (!styles) {
+      styles = new Map((cell.getAttribute('style') || '').split(';').filter(Boolean).map((declaration) => { const colon = declaration.indexOf(':'); return [declaration.slice(0, colon).trim(), declaration.slice(colon + 1).trim()] }))
+      pending.set(cell, styles)
+    }
+    return styles
+  }
+  const opposite = { top: 'bottom', bottom: 'top', left: 'right', right: 'left' } as const
+  const setEdge = (origin: Origin, side: keyof typeof opposite, value: string) => {
+    const { cell, row, column } = origin
+    const bottom = row + (cell.rowSpan || grid.length - row) - 1
+    const right = column + cell.colSpan - 1
+    const horizontal = side === 'top' || side === 'bottom'
+    const adjacent = new Set<Origin>()
+    for (let position = horizontal ? column : row; position <= (horizontal ? right : bottom); position++) {
+      const neighbor = horizontal ? grid[side === 'top' ? row - 1 : bottom + 1]?.[position] : grid[position]?.[side === 'left' ? column - 1 : right + 1]
+      if (neighbor) adjacent.add(neighbor)
+    }
+    // A collapsed border is shared. Do not leave its opposite side visible,
+    // or silently change an unselected segment of a larger merged cell.
+    adjacent.forEach((neighbor) => {
+      const start = horizontal ? neighbor.column : neighbor.row
+      const end = horizontal ? neighbor.column + neighbor.cell.colSpan - 1 : neighbor.row + (neighbor.cell.rowSpan || grid.length - neighbor.row) - 1
+      if (start < (horizontal ? area.left : area.top) || end > (horizontal ? area.right : area.bottom)) throw new Error('Il bordo confina con una cella unita più ampia: estendi la selezione per modificarlo interamente.')
+      stylesFor(neighbor.cell).set(`border-${opposite[side]}`, value)
+    })
+    stylesFor(cell).set(`border-${side}`, value)
+  }
   selected.forEach(({ cell, row, column }) => {
-    const styles = new Map((cell.getAttribute('style') || '').split(';').filter(Boolean).map((declaration) => { const colon = declaration.indexOf(':'); return [declaration.slice(0, colon).trim(), declaration.slice(colon + 1).trim()] }))
+    const styles = stylesFor(cell)
     if (options.borders) {
       const edges = { top: row === area.top, bottom: row + (cell.rowSpan || grid.length - row) - 1 === area.bottom, left: column === area.left, right: column + cell.colSpan - 1 === area.right }
       for (const side of ['top', 'right', 'bottom', 'left'] as const) {
         const single = ['top', 'right', 'bottom', 'left'].includes(options.borders)
-        if (single && options.borders !== side) continue
+        if (single && (options.borders !== side || !edges[side])) continue
         const inside = !edges[side]
         const visible = single || options.borders === 'all' || (options.borders === 'outside' && edges[side]) || (options.borders === 'inside' && inside) || (options.borders === 'horizontal' && inside && (side === 'top' || side === 'bottom')) || (options.borders === 'vertical' && inside && (side === 'left' || side === 'right'))
-        styles.set(`border-${side}`, visible && options.borderStyle !== 'none' ? `${options.borderWidth}pt ${options.borderStyle || 'solid'} ${options.borderColor}` : 'none')
+        setEdge({ cell, row, column }, side, visible && options.borderStyle !== 'none' ? `${options.borderWidth}pt ${options.borderStyle || 'solid'} ${options.borderColor}` : 'none')
       }
     }
     if (options.background) styles.set('background-color', options.background)
     if (options.verticalAlign) styles.set('vertical-align', options.verticalAlign)
     if (options.padding !== undefined) for (const side of ['top', 'right', 'bottom', 'left']) styles.set(`padding-${side}`, `${options.padding}pt`)
-    cell.setAttribute('style', Array.from(styles, ([key, value]) => `${key}:${value}`).join(';'))
   })
+  pending.forEach((styles, cell) => cell.setAttribute('style', Array.from(styles, ([key, value]) => `${key}:${value}`).join(';')))
   return clone
 }
 

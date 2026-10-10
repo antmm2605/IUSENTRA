@@ -72,6 +72,7 @@
     "frontend/src/components/CompensiForensiPage.css",
     "frontend/src/components/CrmPage.css",
     "frontend/src/components/DocumentEditorPage.css",
+    "frontend/src/components/EditorLinkedFieldsPanel.css",
     "frontend/src/components/DocumentToolsPage.css",
     "frontend/src/components/DocumentiAIPage.css",
     "frontend/src/components/EditorProfessionalePage.css",
@@ -191,9 +192,12 @@
     {
       "file": "frontend/src/components/DocumentEditorPage.tsx",
       "snippets": [
-        "style={{ left: spellingChoice.x, top: spellingChoice.y }}"
+        "style={{ left: spellingChoice.x, top: spellingChoice.y }}",
+        "justifyContent:stampPosition === 'left'",
+        "width:`${stampWidth}%`,textAlign:'center'",
+        "fontFamily:line.font,fontSize:`${line.size}pt`"
       ],
-      "reason": "Posizione del suggerimento linguistico misurata sul testo selezionato e limitata al viewport. Colori, dimensioni e presentazione restano nel CSS dell’editor; nessuno stile libero."
+      "reason": "Posizione del suggerimento linguistico misurata e limitata al viewport. Anteprima del timbro con posizione, larghezza e tipografia selezionate nei controlli governati dell’editor: font censiti, dimensioni 3–72 pt e interlinea validata 0,5–5. Nessuno stile libero proveniente da fonti esterne."
     },
     {
       "file": "frontend/src/components/documentCapture/OcrSaveChoices.tsx",

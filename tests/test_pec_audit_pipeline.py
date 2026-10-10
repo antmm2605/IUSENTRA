@@ -3169,6 +3169,8 @@ def test_giudice_di_pace_hearing_creates_real_hearing_not_generic_notice(tmp_pat
     from pct.agenda import Agenda
     from pct.scadenziario import GestioneScadenziario, TipoTermine
 
+    hearing_day = date.today() + timedelta(days=120)
+    hearing_date = hearing_day.strftime("%d/%m/%Y")
     scadenziario_db = tmp_path / "scadenze.json"
     agenda_db = tmp_path / "agenda.json"
     repo = PecAuditRepository(
@@ -3178,20 +3180,20 @@ def test_giudice_di_pace_hearing_creates_real_hearing_not_generic_notice(tmp_pat
         agenda_db_path=agenda_db,
     )
 
-    ingest = repo.ingest_mime(_gdp_hearing_message(), account_email="studio@example.test", folder="INBOX", imap_uid="gdp-hearing")
+    ingest = repo.ingest_mime(_gdp_hearing_message(hearing_date=hearing_date), account_email="studio@example.test", folder="INBOX", imap_uid="gdp-hearing")
     repo.run_pending_jobs(limit=30, actor="codex-test")
     scheduled = repo.schedule_deadline(ingest["id"], actor="codex-test")
 
-    assert scheduled["ok"] is True
-    assert scheduled["due_date"] == "2026-10-09"
+    assert scheduled["ok"] is True, scheduled
+    assert scheduled["due_date"] == hearing_day.isoformat()
     assert scheduled["proposal"]["deadline_kind"] == "udienza"
     scadenze = GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False)
     assert len(scadenze) == 1
     assert scadenze[0].tipo == TipoTermine.UDIENZA
-    assert scadenze[0].data_scadenza == "2026-10-09"
+    assert scadenze[0].data_scadenza == hearing_day.isoformat()
     assert "RG 777/2026" in scadenze[0].titolo
     assert scadenze[0].titolo.startswith("Rinvio udienza")
-    assert "09/10/2026" in scadenze[0].titolo
+    assert hearing_date in scadenze[0].titolo
     assert "Valuta termini da notifica PEC" not in scadenze[0].titolo
     assert "Evento:" in scadenze[0].descrizione
     assert scadenze[0].id_utente_responsabile == ""

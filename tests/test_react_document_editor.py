@@ -603,3 +603,22 @@ def test_editor_pdf_overlay_scarica_la_copia_senza_toccare_il_fascicolo(tmp_path
         core_loader = (app.extensions.get("core_runtime") or {}).get("get_fascicoli")
         fascicoli = core_loader() if callable(core_loader) else get_fascicoli()
         assert len(fascicoli.get(fascicolo.id).documenti) == 1
+
+
+def test_editor_lingua_e_rtf_richiedono_conferma_csrf(tmp_path: Path, monkeypatch):
+    app = _app(tmp_path)
+    fascicolo, documento = _seed_documento_editabile(app)
+    monkeypatch.setattr("pct.editor_export.esporta_documento_editor", lambda *args, **kwargs: b"RTF controllato")
+    monkeypatch.setattr("pct.editor_language.controlla_ortografia", lambda testo: [])
+    with app.test_client() as client:
+        _crea_operatore(app)
+        _login(client)
+        app.config["ENABLE_BROWSER_CSRF"] = True
+        with client.session_transaction() as session:
+            session["_csrf_token"] = "token-editor-controllato"
+        for azione, payload in (("lingua", {"testo": "Documento", "azione": "ortografia"}),
+                                ("rtf", {"html": "<p>Documento</p>"})):
+            url = f"/api/editor/{fascicolo.id}/{documento.id}/{azione}"
+            assert client.post(url, json=payload).status_code == 400
+            response = client.post(url, json=payload, headers={"X-CSRF-Token": "token-editor-controllato"})
+            assert response.status_code == 200

@@ -23,6 +23,8 @@ _INSECURE_SECRET_MARKERS = (
 )
 
 _CSRF_PROTECTED_ENDPOINTS = {
+    "api_editor_rtf",
+    "api_editor_lingua",
     "login",
     "login_2fa",
     # Pagina React di accesso: stessi controlli CSRF di /login e /login/2fa.

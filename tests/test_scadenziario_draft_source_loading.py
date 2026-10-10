@@ -25,3 +25,21 @@ def test_draft_source_is_loaded_even_when_excluded_from_operational_filter(tmp_p
     assert proposal['sourceHref'] == '/api/v1/ui/email/source/pec_draft?name=sentenza.pdf.zip'
     assert proposal['sourceVerified'] is True
     assert draft.stato == StatoTermine.BOZZA
+
+
+@pytest.mark.parametrize('origin', ['ctu', 'interno'])
+def test_internal_draft_is_not_presented_as_a_pec(tmp_path, origin):
+    manager = GestioneScadenziario(str(tmp_path / 'scadenze.json'))
+    draft = manager.nuova('Termine controllato', TipoTermine.ADEMPIMENTO, (date.today() + timedelta(days=30)).isoformat(), id_fascicolo='CASE1')
+    draft.stato = StatoTermine.BOZZA
+    draft.descrizione = 'Data registrata nel fascicolo'
+    draft.note = 'ctu:incarico1:deposito' if origin == 'ctu' else ''
+    payload = build_react_scadenziario_payload(gestione_scadenziario=manager, gestione_fascicoli=None, query_args={'vista': 'aperte'})
+    proposal = next(row for row in payload['draftProposals'] if row['id'] == draft.id)
+    assert proposal['sourceOrigin'] == origin
+    assert proposal['sourceOriginLabel'] != 'PEC'
+    assert not proposal['sourceVerified']
+    if origin == 'ctu':
+        assert proposal['sourceHref'] == '/fascicoli/CASE1#ctu'
+        assert proposal['sourceLabel'] == "Dati dell'incarico CTU: Data registrata nel fascicolo"
+    assert draft.stato == StatoTermine.BOZZA

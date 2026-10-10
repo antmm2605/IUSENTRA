@@ -176,7 +176,6 @@ import { normaliseStudioRuntimeResult, type StudioRuntimeOffice, type StudioRunt
 import { CodiceOggettoPstSearch } from './CodiceOggettoPstSearch'
 import { GuidaPraticaSidebar } from './GuidaPraticaSidebar'
 import { LetturaFascicoloPanel } from './fascicoli/LetturaFascicoloPanel'
-import type { CtuDettaglio } from './fascicoli/CtuIncaricoDettaglio'
 import type { LetturaFascicolo } from './fascicoli/letturaFascicolo'
 import { DocumentListToolbar, type DocumentSectionOption } from './fascicoloDocumenti/DocumentListToolbar'
 import { useDocumentListControls, type DocumentListEntry } from './fascicoloDocumenti/useDocumentListControls'
@@ -202,7 +201,7 @@ const OfficeDocumentsPanel = lazy(() => import('./OfficeDocumentsPanel').then((m
 const MediazioneFascicolo = lazy(() => import('./mediazione/MediazioneFascicolo'))
 const PenalePdpSezione = lazy(() => import('./penalePdp/PenalePdpSezione'))
 const PatFormwebSezione = lazy(() => import('./patFormweb/PatFormwebSezione'))
-const CtuIncaricoDettaglio = lazy(() => import('./fascicoli/CtuIncaricoDettaglio'))
+const CtuSection = lazy(() => import('./fascicoli/CtuSection'))
 const ConservazionePanel = lazy(() => import('./fascicoli/ConservazionePanel'))
 const PttSezione = lazy(() => import('./pttSigit/PttSezione'))
 const FirmaRemotaPannello = lazy(() => import('./fascicoli/FirmaRemotaPannello'))
@@ -5003,145 +5002,6 @@ function RegistroSyncButton({ fascicoloId, lastSyncAt }:{fascicoloId:string; las
       </button>
       <span className="iu-fas-registro-sync__meta">{lastSyncAt ? `Registro aggiornato al ${lastSyncAt}` : 'Mai allineato dal registro'}</span>
       {message ? <p className={`iu-fas-registro-sync__msg iu-fas-registro-sync__msg--${tone}`}>{message}</p> : null}
-    </div>
-  )
-}
-
-type CtuIncarico = CtuDettaglio & {
-  statoLabel: string
-  nomeCtu: string
-  timeline: Array<{ chiave: string; label: string; data: string }>
-  avvisi: string[]
-  consulentiParte: Array<{ nome: string; parte: string }>
-  actions: CtuDettaglio['actions'] & { proponiScadenze: string }
-}
-
-function addDaysToIsoDate(base: string, days: string): string {
-  const cleanBase = String(base || '').slice(0, 10)
-  const amount = Number(days)
-  if (!cleanBase || !Number.isFinite(amount) || amount < 0) return ''
-  const parts = cleanBase.split('-').map((part) => Number(part))
-  if (parts.length !== 3 || parts.some((part) => !Number.isFinite(part))) return ''
-  const [year, month, day] = parts
-  const date = new Date(Date.UTC(year, month - 1, day))
-  if (Number.isNaN(date.getTime())) return ''
-  date.setUTCDate(date.getUTCDate() + Math.trunc(amount))
-  return date.toISOString().slice(0, 10)
-}
-
-function CtuSection({ fascicoloId }:{fascicoloId:string}) {
-  const [incarichi, setIncarichi] = useState<CtuIncarico[]>([])
-  const [message, setMessage] = useState('')
-  const [formOpen, setFormOpen] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [form, setForm] = useState({ ruoloStudio: 'PARTE', nomeCtu: '', dataNomina: '', termineBozza: '', termineOsservazioni: '', termineDeposito: '' })
-  const [ctuCalc, setCtuCalc] = useState({ decorrenza: '', giorniBozza: '', giorniOsservazioni: '', giorniDeposito: '' })
-  const [gestito, setGestito] = useState('')
-  const load = () => {
-    fetch(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/ctu`, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
-      .then((response) => response.ok ? response.json() : { incarichi: [] })
-      .then((payload) => setIncarichi(Array.isArray(payload.incarichi) ? payload.incarichi : []))
-      .catch(() => setIncarichi([]))
-  }
-  useEffect(() => { load() }, [fascicoloId])
-  const post = async (href: string, body: Record<string, unknown>) => {
-    setBusy(true)
-    try {
-      const response = await fetch(href, {
-        method: 'POST', credentials: 'same-origin',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        body: JSON.stringify(body),
-      })
-      const payload = await response.json().catch(() => ({})) as { ok?:boolean; message?:string }
-      setMessage(payload.message || (response.ok ? 'Operazione completata.' : 'Operazione non riuscita.'))
-      if (payload.ok) { setFormOpen(false); load() }
-    } catch { setMessage('Operazione non riuscita.') } finally { setBusy(false) }
-  }
-  const applyCtuTermini = () => {
-    const decorrenza = ctuCalc.decorrenza || form.dataNomina
-    if (!decorrenza) {
-      setMessage('Indica la decorrenza riportata nell’ordinanza prima di applicare i termini.')
-      return
-    }
-    const next = { ...form }
-    const bozza = addDaysToIsoDate(decorrenza, ctuCalc.giorniBozza)
-    const osservazioni = addDaysToIsoDate(decorrenza, ctuCalc.giorniOsservazioni)
-    const deposito = addDaysToIsoDate(decorrenza, ctuCalc.giorniDeposito)
-    let applicati = 0
-    if (bozza) { next.termineBozza = bozza; applicati += 1 }
-    if (osservazioni) { next.termineOsservazioni = osservazioni; applicati += 1 }
-    if (deposito) { next.termineDeposito = deposito; applicati += 1 }
-    if (!applicati) {
-      setMessage('Inserisci almeno un termine in giorni indicato nell’ordinanza.')
-      return
-    }
-    setForm(next)
-    setMessage('Date CTU calcolate dai termini dell’ordinanza e pronte per la verifica.')
-  }
-  return (
-    <div className="iu-fas-ctu">
-      {message ? <p className="iu-fas-ctu__msg" role="status">{message}</p> : null}
-      {incarichi.map((incarico) => (
-        <article className="iu-fas-ctu__card" key={incarico.id}>
-          <header>
-            <strong>{incarico.nomeCtu || 'CTU da indicare'}</strong>
-            <Badge tone="neutral">{incarico.statoLabel}</Badge>
-            <span>{incarico.ruoloStudio === 'AUSILIARIO' ? 'Lo studio assiste il CTU' : 'Lo studio assiste una parte'}</span>
-          </header>
-          <ol className="iu-fas-ctu__timeline">
-            {incarico.timeline.map((tappa) => (
-              <li className={tappa.data ? 'is-set' : ''} key={tappa.chiave}><span>{tappa.label}</span><strong>{tappa.data ? formatDateIt(tappa.data) : '—'}</strong></li>
-            ))}
-          </ol>
-          {incarico.avvisi.map((avviso) => <p className="iu-fas-ctu__warn" key={avviso}><AlertTriangle size={13}/> {avviso}</p>)}
-          {incarico.consulentiParte.length ? (
-            <p className="iu-fas-ctu__ctp">CTP: {incarico.consulentiParte.map((c) => `${c.nome} (${c.parte || 'parte'})`).join(', ')}</p>
-          ) : null}
-          <footer>
-            <button type="button" disabled={busy} onClick={() => post(incarico.actions.proponiScadenze, {})}><CalendarDays size={14}/> Proponi scadenze</button>
-            <button type="button" aria-expanded={gestito === incarico.id} onClick={() => setGestito(gestito === incarico.id ? '' : incarico.id)}><Gavel size={14}/> {gestito === incarico.id ? 'Chiudi gestione' : 'Operazioni, compenso e liquidazione'}</button>
-          </footer>
-          {gestito === incarico.id ? (
-            <Suspense fallback={<p className="iu-fas-ctu__msg">Caricamento…</p>}>
-              <CtuIncaricoDettaglio incarico={incarico} onAggiornato={load}/>
-            </Suspense>
-          ) : null}
-        </article>
-      ))}
-      {formOpen ? (
-        <div className="iu-fas-ctu__form" role="form" aria-label="Nuovo incarico CTU">
-          <label><span>Ruolo studio</span>
-            <select value={form.ruoloStudio} onChange={(e) => setForm({ ...form, ruoloStudio: e.target.value })}>
-              <option value="PARTE">Assistiamo una parte</option>
-              <option value="AUSILIARIO">Assistiamo il CTU</option>
-            </select>
-          </label>
-          <label><span>Nome CTU</span><input value={form.nomeCtu} onChange={(e) => setForm({ ...form, nomeCtu: e.target.value })} placeholder="Es. Ing. Bruni"/></label>
-          <label><span>Ordinanza di nomina</span><input type="date" value={form.dataNomina} onChange={(e) => setForm({ ...form, dataNomina: e.target.value })}/></label>
-          <label><span>Termine bozza (art. 195)</span><input type="date" value={form.termineBozza} onChange={(e) => setForm({ ...form, termineBozza: e.target.value })}/></label>
-          <label><span>Termine osservazioni</span><input type="date" value={form.termineOsservazioni} onChange={(e) => setForm({ ...form, termineOsservazioni: e.target.value })}/></label>
-          <label><span>Termine deposito</span><input type="date" value={form.termineDeposito} onChange={(e) => setForm({ ...form, termineDeposito: e.target.value })}/></label>
-          <section className="iu-fas-ctu__calc" aria-label="Calcolo assistito dall’ordinanza">
-            <header>
-              <strong>Calcolo assistito dall’ordinanza</strong>
-              <span>Usa solo decorrenza e giorni indicati dal giudice.</span>
-            </header>
-            <label><span>Decorrenza indicata</span><input type="date" value={ctuCalc.decorrenza} onChange={(e) => setCtuCalc({ ...ctuCalc, decorrenza: e.target.value })}/></label>
-            <label><span>Giorni bozza</span><input type="number" min="0" inputMode="numeric" value={ctuCalc.giorniBozza} onChange={(e) => setCtuCalc({ ...ctuCalc, giorniBozza: e.target.value })}/></label>
-            <label><span>Giorni osservazioni</span><input type="number" min="0" inputMode="numeric" value={ctuCalc.giorniOsservazioni} onChange={(e) => setCtuCalc({ ...ctuCalc, giorniOsservazioni: e.target.value })}/></label>
-            <label><span>Giorni deposito</span><input type="number" min="0" inputMode="numeric" value={ctuCalc.giorniDeposito} onChange={(e) => setCtuCalc({ ...ctuCalc, giorniDeposito: e.target.value })}/></label>
-            <button type="button" onClick={applyCtuTermini}>Applica date</button>
-            <p>I termini non sono standard: vanno copiati dall’ordinanza. Le date calcolate restano modificabili prima del salvataggio.</p>
-          </section>
-          <div className="iu-fas-ctu__form-actions">
-            <button type="button" disabled={busy || !form.nomeCtu.trim()} onClick={() => post(`/fascicoli/${encodeURIComponent(fascicoloId)}/ctu/nuovo`, form)}>Registra incarico</button>
-            <button type="button" className="iu-fas-ctu__cancel" onClick={() => setFormOpen(false)}>Annulla</button>
-          </div>
-          <p className="iu-fas-ctu__note">L’ordinanza fissa i termini ex art. 195 c.3 c.p.c.: IUSENTRA calcola solo le date ricavabili dai giorni o dalle date indicati nell’ordinanza.</p>
-        </div>
-      ) : (
-        <button type="button" className="iu-fas-ctu__add" onClick={() => setFormOpen(true)}><Gavel size={15}/> Nuovo incarico CTU</button>
-      )}
     </div>
   )
 }
@@ -9972,7 +9832,7 @@ function DetailPage({ id }:{id:string}) {
             <JsonPostForm className="iu-fas-side-form" action={data.actions.changeState}><label><span>Cambia stato</span><select name="stato" defaultValue={f.status.toUpperCase()}>{data.options.states.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note cambio stato"/><button type="submit"><RefreshCw size={15}/> Aggiorna stato</button></JsonPostForm>
             <div className="iu-fas-action-stack"><JsonPostForm action={data.actions.define}><input name="esito_finale" placeholder="Esito finale"/><input name="motivo" placeholder="Motivo"/><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note definizione"/><button type="submit"><CheckCircle2 size={15}/> Definisci</button></JsonPostForm><PostAction action={data.actions.archive} tone="primary" confirm="Archiviare il fascicolo?" confirmTitle="Archivia fascicolo"><Archive size={15}/> Archivia con ZIP</PostAction><PostAction action={data.actions.restore} tone="secondary" confirm="Ripristinare il fascicolo?" confirmTitle="Ripristina fascicolo"><RotateCcw size={15}/> Ripristina</PostAction>{exportPdfHref ? <a className="iu-fas-side-link" href={exportPdfHref}><FileDown size={15}/> PDF fascicolo</a> : <button className="iu-fas-side-link is-disabled" type="button" disabled title="PDF fascicolo non disponibile"><FileDown size={15}/> PDF fascicolo</button>}<PagoPaActionButton variant="side" onClick={openPagoPaModal}/>{data.actions.archiveZip ? <a className="iu-fas-side-link" href={data.actions.archiveZip}><FileArchive size={15}/> Scarica ZIP</a> : null}<PostAction action={data.actions.delete} tone="danger" confirm="Eliminare definitivamente il fascicolo?" confirmTitle="Elimina fascicolo" redirectTo="/fascicoli"><Trash2 size={15}/> Elimina</PostAction></div>
           </DetailSection>
-          <DetailSection id="ctu" title="CTU e perizie" icon={<Gavel size={17}/>} defaultOpen={activeHashSection === 'ctu'}><CtuSection fascicoloId={f.id}/></DetailSection>
+          <DetailSection id="ctu" title="CTU e perizie" icon={<Gavel size={17}/>} defaultOpen={activeHashSection === 'ctu'}><Suspense fallback={<p role="status">Caricamento incarichi CTU…</p>}><CtuSection key={f.id} fascicoloId={f.id}/></Suspense></DetailSection>
           <DetailSection id="conservazione" title="Conservazione a norma" icon={<Archive size={17}/>} defaultOpen={activeHashSection === 'conservazione'}><Suspense fallback={<p className="iu-empty">Caricamento…</p>}><ConservazionePanel fascicoloId={f.id}/></Suspense></DetailSection>
           <DetailSection id="telematico" title="Servizi telematici" icon={<Send size={17}/>} count={data.telematic.length}><RegistroSyncButton fascicoloId={f.id} lastSyncAt={f.lastSyncAt}/><RegistroCancelleriaPanel fascicoloId={f.id}/><RegistroRgSearch fascicoloId={f.id}/><div className="iu-fas-side-cards">{data.telematic.map((item) => <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>
           <DetailSection id="cliente" title="Cliente" icon={<UserRound size={17}/>} count={data.client ? 1 : 0}>{data.client ? <><KvGrid items={[{ label: 'Nome', value: data.client.name, href: data.client.href }, { label: 'Codice fiscale', value: data.client.taxCode, mono: true }, { label: 'P. IVA', value: data.client.vat, mono: true }, { label: 'Email', value: data.client.email }, { label: 'PEC', value: data.client.pec }, { label: 'Telefono', value: data.client.phone }, { label: 'Indirizzo', value: data.client.address }]}/><a className="iu-fas-inline-link" href={data.client.href}><Edit3 size={14}/> Apri e modifica anagrafica cliente</a></> : <><p className="iu-empty">Cliente non collegato.</p><a className="iu-fas-inline-link" href={f.editHref}><Edit3 size={14}/> Collega un cliente al fascicolo</a></>}</DetailSection>

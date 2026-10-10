@@ -21,6 +21,7 @@ from typing import Any
 
 from pct.ctu_compensi.tabella_dm_2002 import DECRETO, NOTA_ART_29, VOCI
 from pct.ctu_compensi.vacazioni import onorario_vacazioni
+from pct.formatting import format_euro_it
 
 TABELLE_ADEGUATE_ART_54 = False
 FONTI = ["D.P.R. 115/2002, artt. 49-58, 71, 168-170", f"{DECRETO} (tabella degli onorari)", "L. 319/1980, art. 4",
@@ -35,8 +36,7 @@ def _num(valore: Any, predefinito: float = 0.0) -> float:
 
 
 def euro(valore: float) -> str:
-    intero, decimali = f"{float(valore):,.2f}".split(".")
-    return f"{intero.replace(',', '.')},{decimali} euro"
+    return format_euro_it(valore)
 
 
 def forbice_voce(codice: str, valore: float = 0.0, quantita: int = 1) -> dict[str, Any]:
@@ -99,9 +99,9 @@ def compenso(dati: dict[str, Any]) -> dict[str, Any]:
                                    aumento_urgenza=_num(dati.get("aumento_urgenza")) or None)
         minimo = massimo = base = esito["onorario"]
         posizione = 100.0
-        righe = [{"codice": "vacazioni", "titolo": f"{vacazioni:g} vacazioni da 14,68 euro (art. 4 L. 319/1980)",
+        righe = [{"codice": "vacazioni", "titolo": f"{vacazioni:g} {'vacazione' if vacazioni == 1 else 'vacazioni'} da {euro(14.68)} (art. 4 L. 319/1980)",
                   "valore": 0, "quantita": vacazioni, "minimo": base, "massimo": base, "note": esito["note"]}]
-        note.append("Ogni vacazione vale quanto la prima (Corte cost. 16/2025): 14,68 euro.")
+        note.append(f"Ogni vacazione vale quanto la prima (Corte cost. 16/2025): {euro(14.68)}.")
     else:
         raise ValueError("Scegli il criterio: tabella o vacazioni.")
 

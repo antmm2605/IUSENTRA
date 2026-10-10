@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-CvXpRARq.js";export{e as ImpostazioniPage};

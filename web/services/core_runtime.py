@@ -1102,10 +1102,22 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
 
     def get_ctu():
         if not hasattr(g, "_ctu"):
-            from pct.ctu import GestioneCtu
-
-            g._ctu = GestioneCtu(db_path=_cfg_data_path("CTU_DB"))
+            from web.services.ctu_runtime import open_ctu_runtime
+            from web.services.storage_runtime import get_request_storage_runtime
+            tenant_key = str(getattr(g, "tenant_context_slug", "") or "").strip().lower()
+            if not tenant_key:
+                tenant_key = str(getattr(getattr(g, "tenant", None), "slug", "") or "").strip().lower()
+            if not tenant_key and not (app.config.get("MULTI_TENANT") or getattr(g, "multi_tenant_enabled", False)):
+                tenant_key = "studio"
+            actor_key = str(getattr(getattr(g, "utente_corrente", None), "id", "") or "").strip()
+            g._ctu = open_ctu_runtime(_cfg_data_path("CTU_DB"), anchor=_cfg_data_path("CLIENTI_DB"),
+                tenant_key=tenant_key, actor_key=actor_key, get_profile=get_request_storage_runtime)
         return g._ctu
+
+    @app.teardown_request
+    def _close_ctu_request_database(error):
+        from web.services.ctu_runtime import close_database
+        close_database()
 
     def get_prima_nota():
         if not hasattr(g, "_prima_nota"):

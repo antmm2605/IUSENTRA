@@ -1,5 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Calculator, ClipboardList, FilePlus2, Plus, Save, Trash2 } from 'lucide-react'
+import { loadCtuTable, type CtuTableEntry } from '../../ctuTableData'
+import { ctuDraftSnapshot, type CtuDraftValues } from '../../ctuDraftData'
+import { mergeRegistryRefresh } from '../../features/anagrafiche/mergeRegistryRefresh'
+import { useCtuCommand } from '../../hooks/useCtuCommand'
+import type { CtuWriteProtocol } from '../../ctuCommand'
 import './CtuIncaricoDettaglio.css'
 
 export type CtuOperazione = { id: string; data: string; ora: string; tipo: string; luogo: string; descrizione: string; minuti: number; presenza_giudice: boolean }
@@ -22,7 +27,6 @@ type Calcolo = {
   minimo?: number; massimo?: number; onorario_base?: number; passaggi?: Array<{ voce: string; onorario: number }>
   onorario?: number; contributo?: number; iva?: number; spese_documentate?: number; spese_viaggio?: number; totale?: number; note?: string[]
 }
-type VoceTabella = { value: string; label: string; tipo: string; base: string; unita: string }
 
 const euro = (v: number | undefined) => {
   const [intero, decimali] = Math.abs(Number(v || 0)).toFixed(2).split('.')
@@ -30,22 +34,16 @@ const euro = (v: number | undefined) => {
 }
 const testo = (v: unknown, predefinito = '') => (v === undefined || v === null ? predefinito : String(v))
 
-async function invia(url: string, corpo: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const risposta = await fetch(url, {
-    method: 'POST', credentials: 'same-origin',
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-    body: JSON.stringify(corpo),
-  }).catch(() => null)
-  if (!risposta) return { ok: false, message: 'Connessione non riuscita.' }
-  return await risposta.json().catch(() => ({ ok: false, message: 'Risposta non valida.' })) as Record<string, unknown>
-}
-
 /** Gestione dell'incarico CTU: stato e date, operazioni peritali, compenso (D.P.R. 115/2002) e istanza di liquidazione. */
-export default function CtuIncaricoDettaglio({ incarico, onAggiornato }:{ incarico: CtuDettaglio; onAggiornato: () => void }) {
+export default function CtuIncaricoDettaglio({ incarico, fascicoloId, writeProtocol, onAggiornato }:{ incarico: CtuDettaglio; fascicoloId: string; writeProtocol: CtuWriteProtocol | null; onAggiornato: () => void }) {
+  const command = useCtuCommand(writeProtocol, fascicoloId, incarico.id)
   const [messaggio, setMessaggio] = useState('')
   const [occupato, setOccupato] = useState(false)
+  const writeInFlight = useRef(false)
   const [date, setDate] = useState({ stato: incarico.stato, dataDepositoRelazione: incarico.dataDepositoRelazione, dataComunicazioneDecreto: incarico.dataComunicazioneDecreto, importoLiquidato: incarico.importoLiquidato })
   const [op, setOp] = useState({ data: '', ora: '', tipo: 'sopralluogo', luogo: '', descrizione: '', ore: '', minuti: '', presenza_giudice: false })
+  const currentOperation = useRef(op)
+  currentOperation.current = op
   const salvato = incarico.compensoInput || {}
   const [modalita, setModalita] = useState(testo(salvato.modalita, 'tabella'))
   const [voci, setVoci] = useState<Voce[]>(Array.isArray(salvato.voci) && salvato.voci.length ? (salvato.voci as Voce[]).map((v) => ({ codice: testo(v.codice), valore: testo(v.valore), quantita: testo(v.quantita, '1') })) : [{ codice: '', valore: '', quantita: '1' }])
@@ -56,34 +54,92 @@ export default function CtuIncaricoDettaglio({ incarico, onAggiornato }:{ incari
     patrocinio: testo(salvato.patrocinio), spese_documentate: testo(salvato.spese_documentate), spese_viaggio: testo(salvato.spese_viaggio),
     contributo_perc: testo(salvato.contributo_perc, '4'), iva_perc: testo(salvato.iva_perc, '22'),
   })
-  const [tabella, setTabella] = useState<VoceTabella[]>([])
+  const [tabella, setTabella] = useState<CtuTableEntry[]>([])
+  const [tabellaLoading, setTabellaLoading] = useState(true)
+  const [tabellaError, setTabellaError] = useState('')
+  const [tabellaAttempt, setTabellaAttempt] = useState(0)
   const [calcolo, setCalcolo] = useState<Calcolo | null>(null)
   const [bozza, setBozza] = useState('')
+  const persistedDraft = useRef<{ id: string; values: CtuDraftValues }>({ id: incarico.id, values: ctuDraftSnapshot(incarico) })
+  const [concurrentFields, setConcurrentFields] = useState<string[]>([])
+  const currentDraft = useRef<CtuDraftValues>({})
+  currentDraft.current = { ...date, modalita, voci: JSON.stringify(voci), ...opzioni }
   const ausiliario = incarico.ruoloStudio === 'AUSILIARIO'
 
+  const applyDraft = (values: CtuDraftValues) => {
+    setDate({ stato: String(values.stato), dataDepositoRelazione: String(values.dataDepositoRelazione),
+      dataComunicazioneDecreto: String(values.dataComunicazioneDecreto), importoLiquidato: String(values.importoLiquidato) })
+    setModalita(String(values.modalita))
+    setVoci(JSON.parse(String(values.voci)) as Voce[])
+    setOpzioni((previous) => Object.fromEntries(Object.keys(previous).map((key) => [key, values[key]])) as typeof previous)
+  }
   useEffect(() => {
-    fetch('/api/v1/ui/ctu/tabella', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
-      .then((r) => r.ok ? r.json() : { voci: [] }).then((p: { voci?: VoceTabella[] }) => setTabella(p.voci || [])).catch(() => setTabella([]))
-  }, [])
+    const incoming = ctuDraftSnapshot(incarico)
+    const previous = persistedDraft.current.id === incarico.id ? persistedDraft.current.values : undefined
+    const merged = mergeRegistryRefresh(currentDraft.current, previous, incoming)
+    persistedDraft.current = { id: incarico.id, values: incoming }
+    applyDraft(merged.values)
+    setConcurrentFields((current) => [...new Set([...(previous ? current : []), ...merged.conflicts])]
+      .filter((key) => merged.values[key] !== incoming[key]))
+    if (previous && Object.keys(incoming).some((key) => !Object.hasOwn(date, key) && previous[key] !== incoming[key] && currentDraft.current[key] !== incoming[key])) setCalcolo(null)
+  }, [incarico])
 
-  const esegui = async (url: string, corpo: Record<string, unknown>) => {
+  useEffect(() => {
+    const controller = new AbortController()
+    setTabellaLoading(true)
+    void loadCtuTable(controller.signal).then((rows) => {
+      if (controller.signal.aborted) return
+      setTabella(rows)
+      setTabellaError('')
+    }).catch((error) => {
+      if (!controller.signal.aborted) setTabellaError(error instanceof Error ? error.message : 'Caricamento della tabella non riuscito.')
+    }).finally(() => { if (!controller.signal.aborted) setTabellaLoading(false) })
+    return () => controller.abort()
+  }, [tabellaAttempt])
+
+  const esegui = async (url: string, corpo: Record<string, unknown>, recover = false) => {
+    if (!recover && concurrentFields.length) return { ok: false, message: 'La bozza è conservata. Confronta i dati aggiornati prima di salvare.' }
+    if (writeInFlight.current) return { ok: false, message: 'Un comando CTU è già in corso.' }
+    writeInFlight.current = true
     setOccupato(true)
-    const esito = await invia(url, corpo)
-    setOccupato(false)
-    setMessaggio(testo(esito.message, esito.ok ? 'Operazione completata.' : 'Operazione non riuscita.'))
-    return esito
+    try {
+      const esito = recover ? await command.recover() : await command.submit(url, corpo)
+      setMessaggio(testo(esito.message, esito.ok ? 'Operazione completata.' : 'Operazione non riuscita.'))
+      if (esito.terminalRejected === true) onAggiornato()
+      return esito
+    } catch {
+      const message = 'Esito non confermato: la bozza è conservata. Verifica il salvataggio prima di riprovare.'
+      setMessaggio(message)
+      return { ok: false, message }
+    } finally { writeInFlight.current = false; setOccupato(false) }
+  }
+  const recupera = async () => {
+    const pending = command.pending
+    if (!pending) return
+    const esito = await esegui('', {}, true)
+    if (esito.ok === true) {
+      // Recuperare non cancella le modifiche fatte dopo l'invio originale.
+      if (pending.href === incarico.actions.compenso) setCalcolo(esito as Calcolo)
+      if (pending.href === incarico.actions.istanza) setBozza(testo(esito.url))
+      onAggiornato()
+    }
   }
   const salvaDate = async () => { if ((await esegui(incarico.actions.aggiorna, date)).ok) onAggiornato() }
   const aggiungiOperazione = async () => {
+    const submitted = JSON.stringify(op)
     const minuti = Math.round(Number(op.ore || 0) * 60 + Number(op.minuti || 0))
     const esito = await esegui(incarico.actions.operazioni, { ...op, minuti })
-    if (esito.ok) { setOp({ ...op, data: '', ora: '', luogo: '', descrizione: '', ore: '', minuti: '' }); onAggiornato() }
+    if (esito.ok) {
+      if (JSON.stringify(currentOperation.current) === submitted) setOp({ ...op, data: '', ora: '', luogo: '', descrizione: '', ore: '', minuti: '' })
+      onAggiornato()
+    }
   }
   const rimuovi = async (id: string) => { if ((await esegui(`${incarico.actions.operazioni}/${encodeURIComponent(id)}/rimuovi`, {})).ok) onAggiornato() }
   const corpoCompenso = () => ({ modalita, voci: voci.filter((v) => v.codice), ...opzioni })
   const calcola = async () => {
     const esito = await esegui(incarico.actions.compenso, corpoCompenso()) as Calcolo
     setCalcolo(esito.ok ? esito : null)
+    if (esito.ok) onAggiornato()
   }
   const creaIstanza = async () => {
     const esito = await esegui(incarico.actions.istanza, corpoCompenso())
@@ -94,6 +150,15 @@ export default function CtuIncaricoDettaglio({ incarico, onAggiornato }:{ incari
   return (
     <div className="iu-ctu-det">
       {messaggio ? <p className="iu-ctu-det__msg" role="status">{messaggio}</p> : null}
+      {command.storageError ? <p className="iu-ctu-det__msg" role="alert">{command.storageError}</p> : null}
+      {command.pending ? <div className="iu-ctu-det__msg" role="status">
+        <p>Un comando CTU attende il riscontro. La bozza è conservata; recupera l'esito prima di inviare altre modifiche.</p>
+        <button type="button" disabled={occupato} onClick={() => void recupera()}>Recupera esito del comando</button>
+      </div> : null}
+      {concurrentFields.length ? <div role="alert" className="iu-ctu-det__msg">
+        <p>Un’altra finestra o un altro utente ha aggiornato dati che stai modificando. La tua bozza è conservata; i comandi di scrittura sono sospesi per evitare sovrascritture.</p>
+        <button type="button" disabled={occupato} onClick={() => { applyDraft(persistedDraft.current.values); setConcurrentFields([]); setCalcolo(null); setMessaggio('Dati aggiornati caricati nel modulo.'); }}>Usa dati aggiornati</button>
+      </div> : null}
 
       <section aria-label="Stato e liquidazione">
         <h4>Stato e liquidazione</h4>
@@ -103,7 +168,7 @@ export default function CtuIncaricoDettaglio({ incarico, onAggiornato }:{ incari
           <label><span>Decreto di liquidazione comunicato il</span><input type="date" value={date.dataComunicazioneDecreto} onChange={(e) => setDate({ ...date, dataComunicazioneDecreto: e.target.value })}/></label>
           <label><span>Importo liquidato (€)</span><input inputMode="decimal" value={date.importoLiquidato} onChange={(e) => setDate({ ...date, importoLiquidato: e.target.value })}/></label>
         </div>
-        <button type="button" disabled={occupato} onClick={() => void salvaDate()}><Save size={14}/> Salva</button>
+        <button type="button" disabled={occupato || command.blocked || concurrentFields.length > 0} onClick={() => void salvaDate()}><Save size={14}/> Salva</button>
         <p className="iu-ctu-det__nota">{ausiliario ? 'Dal deposito della relazione: istanza di liquidazione entro 100 giorni, a pena di decadenza (art. 71 D.P.R. 115/2002).' : 'Dalla comunicazione del decreto: opposizione entro 30 giorni (art. 170 D.P.R. 115/2002, art. 15 D.Lgs. 150/2011).'} Le scadenze nascono con «Proponi scadenze».</p>
       </section>
 
@@ -115,7 +180,7 @@ export default function CtuIncaricoDettaglio({ incarico, onAggiornato }:{ incari
               <li key={o.id}>
                 <span><strong>{o.data.split('-').reverse().join('/')}{o.ora ? ` ${o.ora}` : ''}</strong> {o.descrizione || o.tipo}{o.luogo ? ` — ${o.luogo}` : ''}</span>
                 <small>{o.minuti ? `${Math.floor(o.minuti / 60)} h ${String(o.minuti % 60).padStart(2, '0')} min` : 'durata non indicata'}{o.presenza_giudice ? ' · alla presenza del giudice' : ''}</small>
-                <button type="button" aria-label={`Rimuovi operazione del ${o.data}`} disabled={occupato} onClick={() => void rimuovi(o.id)}><Trash2 size={13}/></button>
+                <button type="button" aria-label={`Rimuovi operazione del ${o.data.split('-').reverse().join('/')}`} disabled={occupato || command.blocked || concurrentFields.length > 0} onClick={() => void rimuovi(o.id)}><Trash2 size={13}/></button>
               </li>
             ))}
           </ul>
@@ -133,11 +198,13 @@ export default function CtuIncaricoDettaglio({ incarico, onAggiornato }:{ incari
           <label><span>Minuti</span><input type="number" min="0" max="59" inputMode="numeric" value={op.minuti} onChange={(e) => setOp({ ...op, minuti: e.target.value })}/></label>
           <label className="iu-ctu-det__spunta"><input type="checkbox" checked={op.presenza_giudice} onChange={(e) => setOp({ ...op, presenza_giudice: e.target.checked })}/><span>Alla presenza del giudice</span></label>
         </div>
-        <button type="button" disabled={occupato || !op.data} onClick={() => void aggiungiOperazione()}><Plus size={14}/> Registra operazione</button>
+        <button type="button" disabled={occupato || command.blocked || concurrentFields.length > 0 || !op.data} onClick={() => void aggiungiOperazione()}><Plus size={14}/> Registra operazione</button>
       </section>
 
       <section aria-label="Compenso dell'ausiliario">
         <h4><Calculator size={15}/> Compenso (D.P.R. 115/2002, D.M. 30/05/2002)</h4>
+        {tabellaLoading ? <p role="status" className="iu-ctu-det__nota">Caricamento tabella del compenso…</p> : null}
+        {tabellaError ? <div role="alert"><p className="iu-ctu-det__nota">{tabellaError}</p><button type="button" disabled={tabellaLoading} onClick={() => setTabellaAttempt((value) => value + 1)}>Riprova caricamento tabella</button></div> : null}
         <div className="iu-ctu-det__campi">
           <label><span>Criterio</span><select value={modalita} onChange={(e) => setModalita(e.target.value)}>
             <option value="tabella">Tabella (onorari fissi e variabili)</option><option value="vacazioni">Vacazioni (onorario a tempo)</option></select></label>
@@ -148,7 +215,7 @@ export default function CtuIncaricoDettaglio({ incarico, onAggiornato }:{ incari
               const info = voceInfo(v.codice)
               return (
                 <div className="iu-ctu-det__campi" key={i}>
-                  <label className="iu-ctu-det__largo"><span>Voce della tabella</span><select value={v.codice} onChange={(e) => setVoci(voci.map((x, j) => j === i ? { ...x, codice: e.target.value } : x))}>
+                  <label className="iu-ctu-det__largo"><span>Voce della tabella</span><select disabled={tabellaLoading || Boolean(tabellaError)} value={v.codice} onChange={(e) => setVoci(voci.map((x, j) => j === i ? { ...x, codice: e.target.value } : x))}>
                     <option value="">Scegli la voce</option>{tabella.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</select></label>
                   {info?.tipo === 'scaglioni' ? <label><span>Valore (€): {info.base}</span><input inputMode="decimal" value={v.valore} onChange={(e) => setVoci(voci.map((x, j) => j === i ? { ...x, valore: e.target.value } : x))}/></label>
                     : <label><span>Quantità{info?.unita ? ` (${info.unita})` : ''}</span><input type="number" min="1" value={v.quantita} onChange={(e) => setVoci(voci.map((x, j) => j === i ? { ...x, quantita: e.target.value } : x))}/></label>}
@@ -181,8 +248,8 @@ export default function CtuIncaricoDettaglio({ incarico, onAggiornato }:{ incari
           <label className="iu-ctu-det__spunta"><input type="checkbox" checked={opzioni.ritardo} onChange={(e) => setOpzioni({ ...opzioni, ritardo: e.target.checked })}/><span>Completata oltre il termine (art. 52 c. 2)</span></label>
         </div>
         <div className="iu-ctu-det__azioni">
-          <button type="button" disabled={occupato} onClick={() => void calcola()}><Calculator size={14}/> Calcola</button>
-          {ausiliario ? <button type="button" disabled={occupato} onClick={() => void creaIstanza()}><FilePlus2 size={14}/> Bozza istanza di liquidazione</button> : null}
+          <button type="button" disabled={occupato || command.blocked || concurrentFields.length > 0 || (modalita === 'tabella' && (tabellaLoading || Boolean(tabellaError)))} onClick={() => void calcola()}><Calculator size={14}/> Calcola</button>
+          {ausiliario ? <button type="button" disabled={occupato || command.blocked || concurrentFields.length > 0 || (modalita === 'tabella' && (tabellaLoading || Boolean(tabellaError)))} onClick={() => void creaIstanza()}><FilePlus2 size={14}/> Bozza istanza di liquidazione</button> : null}
           {bozza ? <a href={bozza}>Apri la bozza nell'editor</a> : null}
           {ausiliario ? <a href={incarico.actions.deposito}>Prepara il deposito</a> : null}
         </div>

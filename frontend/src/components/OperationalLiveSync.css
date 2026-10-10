@@ -1,0 +1,32 @@
+.iu-operational-live-notices {
+  position: fixed;
+  right: 20px;
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  z-index: 6000;
+  display: grid;
+  gap: 8px;
+  width: min(520px, calc(100vw - 32px));
+}
+
+.iu-operational-live-notice {
+  padding: 12px 16px;
+  border: 1px solid var(--iu-warning-border, #d6aa48);
+  border-radius: 10px;
+  background: var(--iu-warning-bg, #fff8e8);
+  color: var(--iu-slate-900, #172033);
+  box-shadow: 0 6px 20px #1720331f;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.iu-operational-live-notice .iu-button {
+  margin-top: 8px;
+}
+
+@media (max-width: 600px) {
+  .iu-operational-live-notices { right: 16px; }
+}
+
+@media print {
+  .iu-operational-live-notices { display: none; }
+}

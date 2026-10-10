@@ -19,7 +19,10 @@ proposte nello scadenziario nascono in BOZZA da confermare.
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 import uuid
+from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from pathlib import Path
@@ -228,26 +231,125 @@ def _proposte_liquidazione_e_operazioni(incarico: IncaricoCtu) -> list[dict[str,
 class GestioneCtu:
     """Repository tenant-aware degli incarichi CTU (JSON)."""
 
-    def __init__(self, db_path: str = "./ctu/incarichi.json"):
+    def __init__(self, db_path: str = "./ctu/incarichi.json", *, repository=None):
         self.db_path = Path(db_path)
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._repository = repository
+        self._command = None
+        self._last_result = None
+        self._delivery = None
+        self._source_bytes = None
+        self._confirmed = {}
+        if repository is None:
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._incarichi: dict[str, IncaricoCtu] = {}
         self._carica()
 
     def _carica(self) -> None:
-        try:
-            raw = json.loads(self.db_path.read_text(encoding="utf-8"))
-            self._incarichi = {k: IncaricoCtu.from_dict(v) for k, v in raw.items() if isinstance(v, dict)}
-        except (OSError, json.JSONDecodeError, ValueError):
-            self._incarichi = {}
+        if self._repository is not None:
+            self._incarichi = {key: IncaricoCtu.from_dict(value) for key, value in self._repository.load().items()}
+            return
+        from pct.ctu_repository import validate_payload
+        from pct.ctu_transition import assert_legacy_active, source_lock
+        with source_lock(self.db_path):
+            assert_legacy_active(self.db_path)
+            try:
+                content = self.db_path.read_bytes()
+            except FileNotFoundError:
+                content = None
+            raw = {} if content is None else json.loads(content.decode("utf-8"))
+            payload = validate_payload(raw)
+            self._incarichi = {key: IncaricoCtu.from_dict(value) for key, value in payload.items()}
+            self._source_bytes, self._confirmed = content, deepcopy(payload)
 
     def _salva(self) -> None:
-        self.db_path.write_text(
-            json.dumps({k: v.to_dict() for k, v in self._incarichi.items()}, ensure_ascii=False, indent=1),
-            encoding="utf-8",
-        )
+        if self._repository is not None:
+            if self._command is None:
+                raise ValueError("Comando persistente CTU necessario: nessuna modifica registrata.")
+            self._last_result = self._repository.save(
+                {key: value.to_dict() for key, value in self._incarichi.items()}, command=self._command, delivery=self._delivery,
+            )
+            return
+        from pct.ctu_repository import CtuConflict, validate_payload
+        from pct.ctu_transition import assert_legacy_active, source_lock
+        temporary = None
+        try:
+            with source_lock(self.db_path):
+                assert_legacy_active(self.db_path)
+                try:
+                    current = self.db_path.read_bytes()
+                except FileNotFoundError:
+                    current = None
+                if current != self._source_bytes:
+                    raise CtuConflict("Incarichi CTU aggiornati da un altro processo: nessuna modifica registrata.")
+                payload = validate_payload({key: value.to_dict() for key, value in self._incarichi.items()})
+                content = json.dumps(payload, ensure_ascii=False, indent=1).encode("utf-8")
+                with tempfile.NamedTemporaryFile(dir=self.db_path.parent, prefix=".ctu-", delete=False) as handle:
+                    temporary = Path(handle.name)
+                    handle.write(content)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                os.replace(temporary, self.db_path)
+                temporary = None
+                self._source_bytes, self._confirmed = content, deepcopy(payload)
+        except Exception:
+            self._incarichi = {key: IncaricoCtu.from_dict(value) for key, value in self._confirmed.items()}
+            raise
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+
+    @property
+    def write_protocol(self):
+        import hashlib
+        scope = hashlib.sha256(json.dumps([self._repository.tenant,
+            self._repository.actor], ensure_ascii=False).encode()).hexdigest() if self._repository is not None else None
+        return {"persistentCommands": self._repository is not None,
+                "revision": self._repository.revision if self._repository is not None else None,
+                "scope": scope}
+
+    def execute_command(self, operation, intent, *, command_key, expected_revision, mutate, delivery=None):
+        """Applica le procedure native una sola volta, senza duplicarne la logica.
+
+        Il factory SQL non è ancora attivato. La fonte JSON non acquisisce
+        una promessa di idempotenza o di sincronizzazione SQL.
+        """
+        if self._repository is None:
+            raise ValueError("Comandi persistenti CTU non disponibili sul registro storico.")
+        if self._command is not None:
+            raise RuntimeError("Un comando CTU è già in corso.")
+        command = self._repository.command(command_key, operation, intent, expected_revision)
+        replay = self._repository.replay(command)
+        if replay is not None:
+            return replay
+        if expected_revision != self._repository.revision:
+            return self._repository.reject(command, code="conflict",
+                message="Incarichi CTU aggiornati: bozza conservata, nessuna modifica registrata.")
+        confirmed = dict(self._repository.original)
+        self._command, self._last_result, self._delivery = command, None, delivery
+        try:
+            mutate()
+            if self._last_result is None:
+                raise ValueError("Il comando non ha registrato una modifica CTU.")
+            return self._last_result
+        except Exception as exc:
+            # Un errore di rilettura non deve mascherare il difetto primario
+            # né mantenere in memoria una modifica che SQL ha rifiutato.
+            try:
+                self._carica()
+            except Exception:
+                self._incarichi = {key: IncaricoCtu.from_dict(json.loads(value)) for key, value in confirmed.items()}
+            from pct.ctu_repository import CtuConflict, CtuRejected
+            if isinstance(exc, ValueError) and not isinstance(exc, CtuRejected):
+                return self._repository.reject(command, code="conflict" if isinstance(exc, CtuConflict) else "validation",
+                                               message=str(exc))
+            raise
+        finally:
+            self._command = None
+            self._last_result = None
+            self._delivery = None
 
     def nuovo(self, **campi: Any) -> IncaricoCtu:
+        self._require_command()
         incarico = IncaricoCtu(**{k: v for k, v in campi.items() if k in IncaricoCtu.__dataclass_fields__})
         if not _norm(incarico.fascicolo_id):
             raise ValueError("L'incarico CTU va collegato a un fascicolo.")
@@ -270,6 +372,7 @@ class GestioneCtu:
         return rows
 
     def aggiorna(self, incarico_id: str, **campi: Any) -> IncaricoCtu:
+        self._require_command()
         incarico = self._incarichi.get(incarico_id)
         if incarico is None:
             raise KeyError(f"Incarico CTU {incarico_id} non trovato.")
@@ -280,12 +383,13 @@ class GestioneCtu:
             valore = _norm(getattr(aggiornato, campo))
             if valore and not _iso_date(valore):
                 raise ValueError(f"Data non valida per {campo}: atteso formato ISO (YYYY-MM-DD).")
-        aggiornato.modificato_il = datetime.now().isoformat(timespec="seconds")
+        aggiornato.modificato_il = datetime.now().isoformat(timespec="microseconds" if self._repository is not None else "seconds")
         self._incarichi[incarico.id] = aggiornato
         self._salva()
         return aggiornato
 
     def aggiungi_ctp(self, incarico_id: str, *, nome: str, parte: str, email: str = "", telefono: str = "") -> IncaricoCtu:
+        self._require_command()
         incarico = self._incarichi.get(incarico_id)
         if incarico is None:
             raise KeyError(f"Incarico CTU {incarico_id} non trovato.")
@@ -300,6 +404,8 @@ class GestioneCtu:
 
     # ------------------------------------------------ operazioni e compenso
     def aggiungi_operazione(self, incarico_id: str, dati: dict[str, Any]) -> IncaricoCtu:
+        from decimal import Decimal, InvalidOperation
+        self._require_command()
         incarico = self._incarichi.get(incarico_id)
         if incarico is None:
             raise KeyError(f"Incarico CTU {incarico_id} non trovato.")
@@ -307,17 +413,35 @@ class GestioneCtu:
         if not giorno:
             raise ValueError("Indica la data dell'operazione peritale.")
         try:
-            minuti = int(float(dati.get("minuti") or 0))
-        except (TypeError, ValueError):
-            minuti = 0
-        if minuti < 0 or minuti > 24 * 60:
+            raw_duration = dati.get("minuti")
+            durata = Decimal("0" if raw_duration is None or raw_duration == "" else str(raw_duration))
+        except InvalidOperation as exc:
+            raise ValueError("La durata dell'operazione non è valida.") from exc
+        if isinstance(raw_duration, bool) or not durata.is_finite() or not 0 <= durata <= 24 * 60 or durata != durata.to_integral_value():
             raise ValueError("La durata dell'operazione non è valida.")
-        ora = _norm(dati.get("ora"))[:5]
+        minuti = int(durata)
+        ora = _norm(dati.get("ora"))
+        if ora:
+            try:
+                if datetime.strptime(ora, "%H:%M").strftime("%H:%M") != ora:
+                    raise ValueError("L'orario dell'operazione non è valido.")
+            except ValueError as exc:
+                raise ValueError("L'orario dell'operazione non è valido.") from exc
+        presenza = dati.get("presenza_giudice", False)
+        if presenza is None:
+            presenza = False
+        if isinstance(presenza, str):
+            normalized = presenza.strip().lower()
+            if normalized not in {"", "0", "1", "true", "false", "on", "off"}:
+                raise ValueError("Indica correttamente la presenza del giudice.")
+            presenza = normalized in {"1", "true", "on"}
+        if type(presenza) is not bool:
+            raise ValueError("Indica correttamente la presenza del giudice.")
         incarico.operazioni.append({
-            "id": uuid.uuid4().hex[:10], "data": giorno, "ora": ora if len(ora) == 5 and ora[2] == ":" else "",
+            "id": uuid.uuid4().hex[:10], "data": giorno, "ora": ora,
             "tipo": _norm(dati.get("tipo"))[:30] or "operazione", "luogo": _norm(dati.get("luogo"))[:160],
             "descrizione": _norm(dati.get("descrizione"))[:300], "minuti": minuti,
-            "presenza_giudice": bool(dati.get("presenza_giudice")),
+            "presenza_giudice": presenza,
         })
         incarico.operazioni.sort(key=lambda o: (o.get("data", ""), o.get("ora", "")))
         incarico.modificato_il = datetime.now().isoformat(timespec="seconds")
@@ -325,6 +449,7 @@ class GestioneCtu:
         return incarico
 
     def rimuovi_operazione(self, incarico_id: str, operazione_id: str) -> bool:
+        self._require_command()
         incarico = self._incarichi.get(incarico_id)
         if incarico is None:
             return False
@@ -336,6 +461,7 @@ class GestioneCtu:
         return True
 
     def salva_compenso(self, incarico_id: str, dati: dict[str, Any]) -> None:
+        self._require_command()
         incarico = self._incarichi.get(incarico_id)
         if incarico is None:
             return
@@ -343,7 +469,15 @@ class GestioneCtu:
                       "motivazione_aumento", "componenti_collegio", "collegio_per_intero", "ritardo", "patrocinio",
                       "spese_documentate", "spese_viaggio", "contributo_perc", "iva_perc"}
         incarico.compenso_input = {k: v for k, v in (dati or {}).items() if k in consentiti}
+        if self._repository is not None:
+            incarico.modificato_il = datetime.now().isoformat(timespec="microseconds")
         self._salva()
+
+    def _require_command(self):
+        if self._repository is not None and self._command is None:
+            raise ValueError("Comando persistente CTU necessario: nessuna modifica registrata.")
+        if self._repository is not None and self._last_result is not None:
+            raise ValueError("Il comando CTU ha già registrato una modifica: nessuna seconda scrittura.")
 
     # ------------------------------------------------------------ scadenziario
     def proponi_scadenze(

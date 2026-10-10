@@ -116,10 +116,10 @@ def _calcola_pasqua(anno: int) -> date:
     h = (19 * a + b - d - g + 15) % 30
     i = c // 4
     k = c % 4
-    l = (32 + 2 * e + 2 * i - h - k) % 7
-    m = (a + 11 * h + 22 * l) // 451
-    mese = (h + l - 7 * m + 114) // 31
-    giorno = ((h + l - 7 * m + 114) % 31) + 1
+    weekday_shift = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * weekday_shift) // 451
+    mese = (h + weekday_shift - 7 * m + 114) // 31
+    giorno = ((h + weekday_shift - 7 * m + 114) % 31) + 1
     return date(anno, mese, giorno)
 
 
@@ -793,6 +793,8 @@ class GestioneScadenziario:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._studio_db = studio_db
         self._scadenze: Dict[str, Scadenza] = {}
+        self._sql_rows: Dict[str, Dict[str, Any]] = {}
+        self._sql_models: Dict[str, str] = {}
         self._carica()
 
     def _carica_json_file(self) -> Dict[str, Scadenza]:
@@ -829,10 +831,13 @@ class GestioneScadenziario:
 
     def _carica(self) -> None:
         if self._studio_db is not None:
+            from pct.scadenziario_sql_writer import encode_model
             json_scadenze = self._carica_json_file()
             try:
                 rows = self._studio_db.fetchall_readonly("SELECT * FROM scadenze")
                 self._scadenze = {}
+                self._sql_rows = {}
+                self._sql_models = {}
                 for row in rows:
                     payload = dict(row)
                     dati = payload.get("dati_json")
@@ -842,11 +847,15 @@ class GestioneScadenziario:
                             data["giorni_preavviso"] = json.loads(payload.get("giorni_preavviso") or "[]")
                             data["avvisi_inviati"] = json.loads(payload.get("avvisi_inviati") or "[]")
                         scadenza = Scadenza.from_dict(data)
+                        if scadenza.id != str(payload["id"]):
+                            raise ValueError("Identità della scadenza SQL discordante.")
                         self._scadenze[scadenza.id] = scadenza
+                        self._sql_rows[scadenza.id] = payload
+                        self._sql_models[scadenza.id] = encode_model(scadenza)
                     except Exception:
-                        continue
+                        raise RuntimeError("Scadenza SQL non leggibile: recupero necessario, nessun mirror usato come sostituzione.") from None
             except Exception:
-                self._scadenze = {}
+                raise RuntimeError("Lettura dello scadenziario SQL non riuscita: nessun dato riscritto da JSON.") from None
             merged = False
             for item_id, scadenza in json_scadenze.items():
                 if item_id not in self._scadenze:
@@ -1006,18 +1015,30 @@ class GestioneScadenziario:
 
     def _salva(self) -> None:
         if self._studio_db is not None:
-            def _insert(conn, scadenza: Scadenza) -> None:
-                conn.execute(
-                    """
-                    INSERT INTO scadenze
-                    (id, tipo, stato, titolo, data_scadenza, priorita, perentorio, note, id_fascicolo, id_appuntamento, id_utente, giorni_preavviso, avvisi_inviati, completata_il, creato_il, dati_json)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                    """,
-                    (
-                        scadenza.id, scadenza.tipo.value, scadenza.stato.value, scadenza.titolo, scadenza.data_scadenza, scadenza.priorita.value, 1 if scadenza.perentorio else 0, scadenza.note, scadenza.id_fascicolo or None, scadenza.id_appuntamento or None, scadenza.id_utente_responsabile, json.dumps(scadenza.giorni_preavviso, ensure_ascii=False), json.dumps(scadenza.avvisi_inviati, ensure_ascii=False), scadenza.completata_il, scadenza.creata_il, json.dumps(scadenza.to_dict(), ensure_ascii=False),
-                    ),
-                )
-            self._studio_db.salva_tabella("scadenze", list(self._scadenze.values()), _insert)
+            from pct.scadenziario_sql_writer import encode_model, save_changes
+            try:
+                save_changes(self._studio_db, original_rows=self._sql_rows,
+                             original_models=self._sql_models, current=self._scadenze)
+            except Exception:
+                self._scadenze = {key: Scadenza.from_dict(json.loads(value)) for key, value in self._sql_models.items()}
+                raise
+            # Rilettura soltanto SQL: il mirror include anche le righe degli
+            # altri processi, senza importare una seconda fonte durante la scrittura.
+            rows = self._studio_db.fetchall_readonly("SELECT * FROM scadenze")
+            confirmed = {}
+            original_rows = {}
+            for row in rows:
+                payload = dict(row)
+                data = json.loads(payload["dati_json"]) if payload.get("dati_json") else payload
+                if not payload.get("dati_json"):
+                    data["giorni_preavviso"] = json.loads(payload.get("giorni_preavviso") or "[]")
+                    data["avvisi_inviati"] = json.loads(payload.get("avvisi_inviati") or "[]")
+                value = Scadenza.from_dict(data)
+                if value.id != str(payload["id"]):
+                    raise RuntimeError("Identità della scadenza SQL discordante: recupero necessario.")
+                confirmed[value.id], original_rows[value.id] = value, payload
+            self._scadenze, self._sql_rows = confirmed, original_rows
+            self._sql_models = {key: encode_model(value) for key, value in confirmed.items()}
             self._salva_json_file()
             return
         self._salva_json_file()

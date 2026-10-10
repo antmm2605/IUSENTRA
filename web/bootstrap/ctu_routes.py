@@ -9,7 +9,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from flask import Flask, g, jsonify, request
+from flask import Flask, g, jsonify
+from web.services.ctu_commands import apply_ctu_change, governed_ctu_write, legacy_ctu_audit, read_ctu_body
 
 _STATO_LABEL = {
     "NOMINATO": "Nominato",
@@ -69,33 +70,50 @@ def register_ctu_routes(app: Flask, core: dict[str, Any]) -> None:
     get_ctu = core["get_ctu"]
     get_scadenziario = core["get_scadenziario"]
     audit = core["audit"]
+    get_fascicoli = core["get_fascicoli"]
 
-    def _permesso() -> bool:
+    def _permesso(nome: str = "fascicoli.scrivi") -> bool:
         utente = g.get("utente_corrente")
         try:
-            return bool(utente and utente.ha_permesso("fascicoli.scrivi"))
+            return bool(utente and utente.ha_permesso(nome))
         except Exception:
             return False
+
+    def _incarico_appartiene(id_fasc: str, incarico_id: str) -> bool:
+        if get_fascicoli().get(id_fasc) is None:
+            return False
+        incarico = get_ctu().get(incarico_id)
+        return bool(incarico and incarico.fascicolo_id == id_fasc)
 
     @app.route("/api/v1/ui/fascicoli/<id_fasc>/ctu")
     def fascicolo_ctu_payload(id_fasc: str):
         utente = g.get("utente_corrente")
         if not utente:
             return jsonify({"ok": False, "message": "Accesso richiesto."}), 403
+        if not _permesso("fascicoli.leggi"):
+            return jsonify({"ok": False, "message": "Permesso insufficiente."}), 403
         try:
-            incarichi = get_ctu().per_fascicolo(id_fasc)
-            return jsonify({"ok": True, "incarichi": [_incarico_payload(i) for i in incarichi]})
+            if get_fascicoli().get(id_fasc) is None:
+                return jsonify({"ok": False, "message": "Fascicolo non trovato."}), 404
+            manager = get_ctu()
+            incarichi = manager.per_fascicolo(id_fasc)
+            return jsonify({"ok": True, "incarichi": [_incarico_payload(i) for i in incarichi],
+                            "writeProtocol": manager.write_protocol})
         except Exception as exc:
             app.logger.exception("Errore payload CTU %s: %s", id_fasc, exc)
-            return jsonify({"ok": False, "message": "Incarichi CTU non disponibili.", "incarichi": []}), 200
+            return jsonify({"ok": False, "message": "Lettura degli incarichi CTU non riuscita. Riprova; nessun dato è stato cancellato."}), 503
 
     @app.route("/fascicoli/<id_fasc>/ctu/nuovo", methods=["POST"])
+    @governed_ctu_write(app)
     def fascicolo_ctu_nuovo(id_fasc: str):
         if not _permesso():
             return jsonify({"ok": False, "message": "Permesso insufficiente."}), 403
-        dati = request.get_json(silent=True) or request.form
-        try:
-            incarico = get_ctu().nuovo(
+        if get_fascicoli().get(id_fasc) is None:
+            return jsonify({"ok": False, "message": "Fascicolo non trovato."}), 404
+        dati = read_ctu_body()
+        manager = get_ctu()
+        def mutate():
+            return manager.nuovo(
                 fascicolo_id=id_fasc,
                 ruolo_studio=str(dati.get("ruoloStudio") or dati.get("ruolo_studio") or "PARTE"),
                 nome_ctu=str(dati.get("nomeCtu") or dati.get("nome_ctu") or ""),
@@ -108,17 +126,19 @@ def register_ctu_routes(app: Flask, core: dict[str, Any]) -> None:
                 termine_osservazioni=str(dati.get("termineOsservazioni") or ""),
                 termine_deposito=str(dati.get("termineDeposito") or ""),
             )
-        except ValueError as exc:
-            return jsonify({"ok": False, "message": str(exc)}), 400
-        audit("ctu.incarico_creato", "fascicolo", id_fasc, dettagli=incarico.nome_ctu)
+        incarico = apply_ctu_change(manager, "incarico_creato", dati, fascicolo_id=id_fasc, mutate=mutate)
+        legacy_ctu_audit(manager, audit, "ctu.incarico_creato", "fascicolo", id_fasc, dettagli=incarico.nome_ctu)
         message = f"Incarico CTU registrato: {incarico.nome_ctu or 'da completare'}."
         return jsonify({"ok": True, "message": message, "messaggio": message, "incarico": _incarico_payload(incarico)})
 
     @app.route("/fascicoli/<id_fasc>/ctu/<incarico_id>/aggiorna", methods=["POST"])
+    @governed_ctu_write(app)
     def fascicolo_ctu_aggiorna(id_fasc: str, incarico_id: str):
         if not _permesso():
             return jsonify({"ok": False, "message": "Permesso insufficiente."}), 403
-        dati = request.get_json(silent=True) or request.form
+        if not _incarico_appartiene(id_fasc, incarico_id):
+            return jsonify({"ok": False, "message": "Incarico CTU non trovato."}), 404
+        dati = read_ctu_body()
         campi = {
             chiave_py: str(dati.get(chiave_js) or "")
             for chiave_js, chiave_py in {
@@ -131,53 +151,82 @@ def register_ctu_routes(app: Flask, core: dict[str, Any]) -> None:
             if dati.get(chiave_js) is not None
         }
         try:
-            incarico = get_ctu().aggiorna(incarico_id, **campi)
+            manager = get_ctu()
+            incarico = apply_ctu_change(manager, "incarico_aggiornato", dati, fascicolo_id=id_fasc, incarico_id=incarico_id,
+                                        mutate=lambda: manager.aggiorna(incarico_id, **campi))
         except KeyError as exc:
             return jsonify({"ok": False, "message": str(exc)}), 404
-        except ValueError as exc:
-            return jsonify({"ok": False, "message": str(exc)}), 400
-        audit("ctu.incarico_aggiornato", "fascicolo", id_fasc, dettagli=f"{incarico_id}:{incarico.stato}")
+        legacy_ctu_audit(manager, audit, "ctu.incarico_aggiornato", "fascicolo", id_fasc, dettagli=f"{incarico_id}:{incarico.stato}")
         return jsonify({"ok": True, "message": "Incarico aggiornato.", "incarico": _incarico_payload(incarico)})
 
     @app.route("/fascicoli/<id_fasc>/ctu/<incarico_id>/ctp", methods=["POST"])
+    @governed_ctu_write(app)
     def fascicolo_ctu_ctp(id_fasc: str, incarico_id: str):
         if not _permesso():
             return jsonify({"ok": False, "message": "Permesso insufficiente."}), 403
-        dati = request.get_json(silent=True) or request.form
+        if not _incarico_appartiene(id_fasc, incarico_id):
+            return jsonify({"ok": False, "message": "Incarico CTU non trovato."}), 404
+        dati = read_ctu_body()
         try:
-            incarico = get_ctu().aggiungi_ctp(
-                incarico_id,
-                nome=str(dati.get("nome") or ""),
-                parte=str(dati.get("parte") or ""),
-                email=str(dati.get("email") or ""),
-            )
+            manager = get_ctu()
+            def mutate():
+                return manager.aggiungi_ctp(
+                    incarico_id,
+                    nome=str(dati.get("nome") or ""),
+                    parte=str(dati.get("parte") or ""),
+                    email=str(dati.get("email") or ""),
+                )
+            incarico = apply_ctu_change(manager, "ctp_aggiunto", dati, fascicolo_id=id_fasc, incarico_id=incarico_id, mutate=mutate)
         except KeyError as exc:
             return jsonify({"ok": False, "message": str(exc)}), 404
-        except ValueError as exc:
-            return jsonify({"ok": False, "message": str(exc)}), 400
-        audit("ctu.ctp_aggiunto", "fascicolo", id_fasc, dettagli=str(dati.get("nome") or ""))
+        legacy_ctu_audit(manager, audit, "ctu.ctp_aggiunto", "fascicolo", id_fasc, dettagli=str(dati.get("nome") or ""))
         return jsonify({"ok": True, "message": "Consulente di parte registrato.", "incarico": _incarico_payload(incarico)})
 
     @app.route("/fascicoli/<id_fasc>/ctu/<incarico_id>/proponi-scadenze", methods=["POST"])
+    @governed_ctu_write(app)
     def fascicolo_ctu_proponi_scadenze(id_fasc: str, incarico_id: str):
         if not _permesso():
             return jsonify({"ok": False, "message": "Permesso insufficiente."}), 403
+        if not _incarico_appartiene(id_fasc, incarico_id):
+            return jsonify({"ok": False, "message": "Incarico CTU non trovato."}), 404
         utente = g.get("utente_corrente")
+        dati = read_ctu_body()
+        manager = get_ctu()
+        if manager.write_protocol["persistentCommands"]:
+            from pct.ctu_deadline_delivery import deliver_deadlines
+
+            def deliver(conn, saved):
+                if saved.get("fascicolo_id") != id_fasc or saved.get("id") != incarico_id:
+                    raise ValueError("La consegna delle scadenze appartiene a un incarico differente.")
+                return deliver_deadlines(conn, saved, tenant=manager._repository.tenant,
+                                         actor=manager._repository.actor)
+
+            apply_ctu_change(manager, "scadenze_proposte", dati, fascicolo_id=id_fasc, incarico_id=incarico_id,
+                             mutate=lambda: manager.aggiorna(incarico_id), delivery=deliver)
+            delivered = g._ctu_delivery_result
+            if not isinstance(delivered, dict) or delivered.get("kind") != "deadlines":
+                raise RuntimeError("Riscontro della consegna scadenze CTU assente.")
+            creati, aggiornati = delivered["created"], delivered["updated"]
+            preservate = sum(item["status"] == "manual_preserved" for item in delivered["items"])
+            message = f"Scadenze CTU: {creati} nuove bozze, {aggiornati} bozze aggiornate."
+            if preservate:
+                message += f" {preservate} scadenze con decisioni già registrate conservate: verifica le date discordanti."
+            elif not creati and not aggiornati:
+                message = "Scadenze già presenti oppure date non indicate: nessun doppione creato."
+            return jsonify({"ok": True, "message": message, "messaggio": message, "creati": creati,
+                            "aggiornati": aggiornati, "decisioniConservate": preservate, "delivery": delivered})
         try:
-            creati = get_ctu().proponi_scadenze(
+            creati = manager.proponi_scadenze(
                 incarico_id,
                 get_scadenziario=get_scadenziario,
                 attore=getattr(utente, "username", "") or "",
             )
         except KeyError as exc:
             return jsonify({"ok": False, "message": str(exc)}), 404
-        except Exception as exc:
-            app.logger.exception("Errore proposte scadenze CTU %s: %s", incarico_id, exc)
-            return jsonify({"ok": False, "message": f"Proposte non riuscite: {exc}"}), 200
         audit("ctu.scadenze_proposte", "fascicolo", id_fasc, dettagli=f"{incarico_id}: {creati} proposte")
         message = (
             f"{creati} scadenze proposte in bozza nello scadenziario (da confermare)."
             if creati
-            else "Nessuna nuova scadenza da proporre (date mancanti o gia' proposte)."
+            else "Nessuna nuova scadenza da proporre (date mancanti o già proposte)."
         )
         return jsonify({"ok": True, "message": message, "messaggio": message, "creati": creati})

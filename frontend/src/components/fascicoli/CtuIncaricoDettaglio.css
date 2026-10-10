@@ -63,7 +63,9 @@
 
 .iu-ctu-det input:not([type='checkbox']):not([type='range']),
 .iu-ctu-det select {
+  box-sizing: border-box;
   width: 100%;
+  min-width: 0;
   max-width: 100%;
   min-height: 32px;
   padding: 4px 8px;
@@ -171,6 +173,12 @@
 }
 
 @media (max-width: 720px) {
+  .iu-ctu-det button,
+  .iu-ctu-det input:not([type='checkbox']):not([type='range']),
+  .iu-ctu-det select {
+    min-height: 44px;
+  }
+
   .iu-ctu-det label {
     flex: 1 1 100%;
     min-width: 0;

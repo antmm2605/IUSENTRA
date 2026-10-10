@@ -147,7 +147,7 @@ export type ScadenziarioRow = {
 }
 
 export type ScadenziarioDraftProposal = ScadenziarioRow & {
-  sourceOrigin: 'pec' | 'registro'
+  sourceOrigin: 'pec' | 'registro' | 'ctu' | 'interno'
   sourceOriginLabel: string
   sourceSnippet: string
   sourceSnippetLabel: string
@@ -855,9 +855,9 @@ export async function getScadenziarioPage(query: ScadenziarioQuery = {}): Promis
       credentials: 'same-origin',
       headers: { Accept: 'application/json' },
     })
-    if (!response.ok) return emptyScadenziarioPage
+    if (!response.ok) throw new Error(`Scadenziario non caricato (${response.status}). I dati precedenti restano conservati.`)
     const payload = await response.json() as unknown
-    if (!isRecord(payload)) return emptyScadenziarioPage
+    if (!isRecord(payload) || !Array.isArray(payload.items) || payload.ok === false) throw new Error('Risposta dello scadenziario non valida. Nessun elenco vuoto confermato.')
     const facets = isRecord(payload.facets) ? payload.facets : {}
     const queryPayload = isRecord(payload.query) ? payload.query : {}
     const actions = isRecord(payload.actions) ? payload.actions : {}
@@ -893,8 +893,8 @@ export async function getScadenziarioPage(query: ScadenziarioQuery = {}): Promis
         const item = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
         return {
           ...normalizeRow(raw),
-          sourceOrigin: asString(item.sourceOrigin) === 'registro' ? 'registro' as const : 'pec' as const,
-          sourceOriginLabel: asString(item.sourceOriginLabel) || 'PEC',
+          sourceOrigin: (['pec', 'registro', 'ctu', 'interno'].includes(asString(item.sourceOrigin)) ? asString(item.sourceOrigin) : 'interno') as ScadenziarioDraftProposal['sourceOrigin'],
+          sourceOriginLabel: asString(item.sourceOriginLabel) || 'Registro interno',
           sourceSnippet: asString(item.sourceSnippet),
           sourceSnippetLabel: asString(item.sourceSnippetLabel),
           sourceDocumentName: asString(item.sourceDocumentName),
@@ -924,8 +924,8 @@ export async function getScadenziarioPage(query: ScadenziarioQuery = {}): Promis
         bulkComplete: asString(actions.bulkComplete, emptyScadenziarioPage.actions.bulkComplete),
       },
     }
-  } catch {
-    return emptyScadenziarioPage
+  } catch (error) {
+    throw error instanceof Error ? error : new Error('Scadenziario non raggiungibile. Riprova il caricamento.')
   }
 }
 

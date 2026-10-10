@@ -19,6 +19,7 @@ TABLE_DOMAINS = {
     # Una revisione del registro per transazione: anche più movimenti producono
     # un solo segnale, confermato insieme alla scrittura governata.
     "prima_nota_state": ("incassi",),
+    "ctu_state": ("fascicoli",),
     "messaggi": ("comunicazioni",),
     "email_mailbox_records": ("comunicazioni",),
     "privacy_trattamenti": ("privacy",),

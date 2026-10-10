@@ -7,7 +7,6 @@ Flask gia' auditate: crea, modifica, completa, elimina, bulk, export e iCal.
 
 from __future__ import annotations
 
-import json
 import re
 from collections.abc import Callable, Iterable
 from datetime import date, datetime, timezone
@@ -1895,11 +1894,23 @@ def build_react_scadenziario_payload(
             )
             profilo = str(getattr(item, "deadline_profile_code", "") or "")
             evento_type = str(getattr(item, "source_event_type", "") or "")
-            origine = "registro" if profilo == "PST_PROPOSTA_EVENTO" or evento_type == "polisweb_registro" else "pec"
+            ctu_marker = any(re.fullmatch(r"ctu:[^:\s]+:[^\s]+", line.strip()) for line in str(getattr(item, "note", "") or "").splitlines())
+            if profilo == "PST_PROPOSTA_EVENTO" or evento_type == "polisweb_registro":
+                origine = "registro"
+            elif ctu_marker:
+                origine = "ctu"
+                row["sourceLabel"] = "Dati dell'incarico CTU: " + str(getattr(item, "descrizione", "") or "tappa registrata nel fascicolo")
+                row["sourceKind"] = "ctu"
+                row["sourceHref"] = f"/fascicoli/{getattr(item, 'id_fascicolo', '')}#ctu"
+                row["sourceVerified"] = False
+            elif getattr(item, "source_message_id", "") or row.get("sourceKind") == "pec":
+                origine = "pec"
+            else:
+                origine = "interno"
             row["sourceOrigin"] = origine
-            row["sourceOriginLabel"] = "Registro PST" if origine == "registro" else "PEC"
+            row["sourceOriginLabel"] = {"registro": "Registro PST", "pec": "PEC", "ctu": "Incarico CTU", "interno": "Registro interno"}[origine]
             row["sourceSnippet"] = str(getattr(item, "source_snippet", "") or "")
-            row["sourceSnippetLabel"] = str(getattr(item, "source_snippet_label", "") or "")
+            row["sourceSnippetLabel"] = "Data dell'incarico" if origine == "ctu" else str(getattr(item, "source_snippet_label", "") or "")
             row["sourceDocumentName"] = str(getattr(item, "source_document_name", "") or "")
             row["sourceConfidence"] = int(round(float(getattr(item, "source_confidence", 0.0) or 0.0) * 100))
             row["confirmHref"] = f"/scadenziario/{item_id}/conferma-proposta"

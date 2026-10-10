@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { operationalDomains, publishOperationalRefresh, type OperationalDomain } from '../operationalRefresh'
 import { OPERATIONAL_REFRESH_RETRY, OPERATIONAL_REFRESH_STATUS } from '../hooks/useOperationalRefresh'
+import './OperationalLiveSync.css'
 
 /** Share SQL revision polling between tabs of the same tenant/user. */
 export function OperationalLiveSync({ enabled, sessionKey }: { enabled: boolean; sessionKey: string }) {
@@ -60,7 +61,10 @@ export function OperationalLiveSync({ enabled, sessionKey }: { enabled: boolean;
         channel?.postMessage({ revisions: payload.revisions })
       } catch (reason) {
         if (!active) return
-        const message = reason instanceof Error && reason.name !== 'AbortError' ? reason.message : 'Sincronizzazione live interrotta. Riprovo automaticamente.'
+        // Le eccezioni del browser (rete, timeout, risposta non JSON) sono
+        // tecniche e spesso in inglese. Il problema resta visibile, insieme
+        // al recupero automatico; i messaggi governati sopra restano distinti.
+        const message = reason instanceof Error && reason.name === 'Error' ? reason.message : 'Sincronizzazione live interrotta. Riprovo automaticamente.'
         fail(message)
         channel?.postMessage({ error: message })
       } finally {
@@ -79,5 +83,9 @@ export function OperationalLiveSync({ enabled, sessionKey }: { enabled: boolean;
     void poll()
     return () => { active = false; clearTimeout(timer); controller?.abort(); channel?.close() }
   }, [enabled, sessionKey])
-  return <>{error ? <div className="iu-cln-flow-alert" role="alert">{error}</div> : null}{failedViews.length ? <div className="iu-cln-flow-alert" role="alert">Alcuni dati della vista non sono aggiornati. Il recupero non è ancora confermato. <button type="button" className="iu-button" onClick={() => window.dispatchEvent(new Event(OPERATIONAL_REFRESH_RETRY))}>Riprova aggiornamento</button></div> : null}</>
+  if (!error && !failedViews.length) return null
+  return <aside className="iu-operational-live-notices" aria-label="Stato della sincronizzazione">
+    {error ? <div className="iu-operational-live-notice" role="alert">{error}</div> : null}
+    {failedViews.length ? <div className="iu-operational-live-notice" role="alert">Alcuni dati della vista non sono aggiornati. Il recupero non è ancora confermato. <button type="button" className="iu-button" onClick={() => window.dispatchEvent(new Event(OPERATIONAL_REFRESH_RETRY))}>Riprova aggiornamento</button></div> : null}
+  </aside>
 }

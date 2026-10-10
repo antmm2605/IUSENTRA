@@ -1,4 +1,5 @@
 import { SourceAlternatives } from './SourceAlternatives'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
@@ -252,8 +253,10 @@ function DraftProposalsPanel({ proposals, onConfirm, onDiscard, onOpenSource }:{
   }, [])
   if (!proposals.length) return null
   const daRegistro = proposals.filter((item) => item.sourceOrigin === 'registro').length
-  const daPec = proposals.length - daRegistro
-  const fonti = [daPec ? `${daPec} da PEC` : '', daRegistro ? `${daRegistro} dal registro di cancelleria` : ''].filter(Boolean).join(' · ')
+  const daPec = proposals.filter((item) => item.sourceOrigin === 'pec').length
+  const daCtu = proposals.filter((item) => item.sourceOrigin === 'ctu').length
+  const daInterno = proposals.filter((item) => item.sourceOrigin === 'interno').length
+  const fonti = [daPec ? `${daPec} da PEC` : '', daRegistro ? `${daRegistro} dal registro di cancelleria` : '', daCtu ? `${daCtu} dagli incarichi CTU` : '', daInterno ? `${daInterno} dal registro interno` : ''].filter(Boolean).join(' · ')
   return (
     <section className="iu-scad-proposals" aria-label="Proposte di scadenza da confermare">
       <header className="iu-scad-proposals__head">
@@ -276,7 +279,7 @@ function DraftProposalsPanel({ proposals, onConfirm, onDiscard, onOpenSource }:{
             <p className="iu-scad-proposal__title">{item.title}</p>
             {item.sourceSnippet ? <blockquote className="iu-scad-proposal__quote">«{item.sourceSnippet}»</blockquote> : null}
             <p className="iu-scad-proposal__source">
-              Fonte: {item.sourceDocumentName || item.sourceLabel || (item.sourceOrigin === 'registro' ? 'registro di cancelleria' : 'messaggio PEC')}
+              Fonte: {item.sourceDocumentName || item.sourceLabel || ({ registro: 'registro di cancelleria', pec: 'messaggio PEC', ctu: 'incarico CTU del fascicolo', interno: 'registro interno' }[item.sourceOrigin])}
               {item.fascicoloLabel ? <> · {item.fascicoloLabel}</> : null}
             </p>
             <SourceEvidenceLink item={item} onOpen={onOpenSource}/>
@@ -400,6 +403,7 @@ function RemoteHearingNotice({ item }: { item: ScadenziarioRow }) {
 function SourceEvidenceLink({ item, onOpen }: { item: ScadenziarioRow; onOpen: (item: ScadenziarioRow) => void }) {
   if (!item.sourceHref) return item.sourceCandidates?.length ? <SourceAlternatives candidates={item.sourceCandidates} onOpen={source => onOpen({ ...item, sourceHref: source.href, sourceLabel: source.label, sourceVerified: false, sourceCandidates: [] })}/> : item.sourceLabel === 'Più fonti PEC: collegamento da verificare' ? <small>Fonti storiche non disponibili: collegamento da verificare.</small> : null
   const sourceLabel = item.sourceLabel || 'Fonte originaria'
+  if (item.sourceKind === 'ctu') return <a className="iu-scad-source-link" href={item.sourceHref} aria-label="Apri incarico CTU" title={sourceLabel}><FileSearch size={13}/><span>Apri incarico CTU</span></a>
   return (
     <button
       type="button"
@@ -1095,6 +1099,8 @@ export function ScadenziarioPage() {
   const [data, setData] = useState<ScadenziarioPageData>(emptyScadenziarioPage)
   const [loading, setLoading] = useState(true)
   const [backgroundLoading, setBackgroundLoading] = useState(false)
+  const [loadError, setLoadError] = useState('')
+  const loadingRequest = useRef(0)
   const [view, setView] = useState<ScadenziarioView>(() => initialView())
   const [query, setQuery] = useState(() => initialQuery())
   const [guidaPratica] = useState(() => initialGuidaPratica())
@@ -1156,53 +1162,34 @@ export function ScadenziarioPage() {
     includeCalculator: false,
   })
 
-  const load = () => {
-    setLoading(true)
-    setBackgroundLoading(false)
-    getScadenziarioPage(buildQuery(Boolean(routeDeadlineId()))).then((payload) => {
+  const refresh = async (background = false) => {
+    const request = ++loadingRequest.current
+    setLoading(!background)
+    setBackgroundLoading(background)
+    try {
+      const payload = await getScadenziarioPage(buildQuery(Boolean(routeDeadlineId())))
+      if (request !== loadingRequest.current) return
       setData(payload)
       setSelectedIds((current) => current.filter((id) => payload.items.some((item) => item.id === id)))
-    }).finally(() => setLoading(false))
-  }
-
-  useEffect(() => {
-    let active = true
-    setLoading(true)
-    setBackgroundLoading(false)
-
-    const applyPayload = (payload: ScadenziarioPageData) => {
-      if (!active) return
-      setData(payload)
-      setSelectedIds((current) => current.filter((id) => payload.items.some((item) => item.id === id)))
-    }
-
-    const focusedId = routeDeadlineId()
-    const loadPage = async () => {
-      if (focusedId) {
-        const compactPayload = await getScadenziarioPage(buildQuery(true))
-        if (!active) return
-        applyPayload(compactPayload)
+      setLoadError('')
+    } catch (error) {
+      if (request === loadingRequest.current) setLoadError(error instanceof Error ? error.message : 'Scadenziario non caricato. Riprova.')
+      throw error
+    } finally {
+      if (request === loadingRequest.current) {
         setLoading(false)
         setBackgroundLoading(false)
-        return
       }
-
-      const payload = await getScadenziarioPage(buildQuery(false))
-      if (!active) return
-      applyPayload(payload)
-      setLoading(false)
     }
-
+  }
+  const load = () => { void refresh().catch(() => {}) }
+  useOperationalRefresh(['scadenze', 'fascicoli', 'agenda'], () => refresh(true))
+  useEffect(() => {
     const timer = window.setTimeout(() => {
-      void loadPage().finally(() => {
-        if (active) {
-          setLoading(false)
-          setBackgroundLoading(false)
-        }
-      })
+      load()
     }, query.trim() ? 250 : 0)
     return () => {
-      active = false
+      loadingRequest.current += 1
       window.clearTimeout(timer)
     }
   }, [view, query, type, priority, from, to, peremptory, advanced, operative, guidaPratica, fascicoloId])
@@ -1446,6 +1433,7 @@ export function ScadenziarioPage() {
     }
   }
 
+  if (loadError && !data.generatedAt) return <main className="iu-content iu-scad-page"><h1>Scadenziario Legale</h1><p role="alert">{loadError}</p><button type="button" className="iu-button" onClick={load}>Riprova caricamento</button></main>
   if (routeDeadlineId() && new URLSearchParams(window.location.search).get('embed') === 'source') {
     return (
       <main className="iu-content iu-scad-page" aria-label="Dettaglio scadenza">
@@ -1554,9 +1542,10 @@ export function ScadenziarioPage() {
 
       <section className="iu-scad-status-line">
         <span className={loading ? '' : 'is-ok'}>
-          {loading ? 'Sincronizzazione scadenziario...' : backgroundLoading ? 'Dettaglio disponibile, aggiornamento elenco in corso...' : 'Dati scadenziario aggiornati'}
+          {loadError ? 'Aggiornamento scadenziario non confermato' : loading ? 'Sincronizzazione scadenziario...' : backgroundLoading ? 'Aggiornamento scadenziario in corso…' : 'Dati scadenziario aggiornati'}
         </span>
         <small><ShieldCheck size={14}/> Scritture e calcoli restano tracciati con controlli operativi.</small>
+        {loadError ? <p role="alert">{loadError} <button type="button" className="iu-button" onClick={load}>Riprova caricamento</button></p> : null}
         {statusLine ? <small className="iu-scad-operation-status">{statusLine}</small> : null}
       </section>
 

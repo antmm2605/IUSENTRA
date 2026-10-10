@@ -101,3 +101,84 @@ def test_proposte_in_bozza_e_idempotenti(gestione, tmp_path):
     assert len(bozze) == 2
     assert all(b.stato == StatoTermine.BOZZA for b in bozze)
     assert not scadenziario.tutte(solo_aperte=True)  # nessuna operativa senza conferma
+
+
+def test_archivio_corrotto_non_diventa_vuoto(tmp_path):
+    import json
+    path = tmp_path / "incarichi.json"
+    path.write_text('{"incarico":', encoding="utf-8")
+    with pytest.raises(json.JSONDecodeError):
+        GestioneCtu(str(path))
+    assert path.read_text(encoding="utf-8") == '{"incarico":'
+
+
+def test_riga_invalida_non_viene_scartata(tmp_path):
+    path = tmp_path / "incarichi.json"
+    path.write_text('{"incarico":42}', encoding="utf-8")
+    with pytest.raises(ValueError, match="Identificativo CTU"):
+        GestioneCtu(str(path))
+    assert path.read_text(encoding="utf-8") == '{"incarico":42}'
+
+
+def test_due_processi_non_sovrascrivono_incarichi(gestione):
+    from pct.ctu_repository import CtuConflict
+    stale = GestioneCtu(str(gestione.db_path))
+    first = _incarico(gestione)
+    with pytest.raises(CtuConflict):
+        _incarico(stale, nome_ctu="Altro consulente")
+    persisted = GestioneCtu(str(gestione.db_path)).per_fascicolo("F1")
+    assert len(persisted) == 1 and persisted[0].id == first.id
+    assert stale.per_fascicolo("F1") == []
+
+
+def test_scrittura_fallita_non_mantiene_operazione_in_memoria(gestione, monkeypatch):
+    import pct.ctu as module
+    item = _incarico(gestione)
+    def fail_replace(*args):
+        raise OSError("Disco non disponibile")
+    monkeypatch.setattr(module.os, "replace", fail_replace)
+    with pytest.raises(OSError, match="Disco non disponibile"):
+        gestione.aggiungi_operazione(item.id, {"data": "2026-10-09", "minuti": 120})
+    assert gestione.get(item.id).operazioni == []
+    assert GestioneCtu(str(gestione.db_path)).get(item.id).operazioni == []
+    assert not list(gestione.db_path.parent.glob(".ctu-*"))
+
+
+@pytest.mark.parametrize("change", [
+    {"minuti": "non leggibile"}, {"minuti": "NaN"}, {"minuti": "Infinity"}, {"minuti": 2.5},
+    {"minuti": True}, {"minuti": []}, {"minuti": -1}, {"minuti": 1441},
+    {"ora": "25:00"}, {"ora": "xx:yy"}, {"ora": "9:00"}, {"ora": "09:00:30"},
+    {"presenza_giudice": "non determinata"}, {"presenza_giudice": 1},
+])
+def test_operazione_non_valida_non_sostituisce_i_dati_con_zero_o_orari_troncati(gestione, change):
+    item = _incarico(gestione)
+    before = gestione.db_path.read_bytes()
+    with pytest.raises(ValueError):
+        gestione.aggiungi_operazione(item.id, {"data": "2026-10-09", "minuti": 120, **change})
+    assert gestione.get(item.id).operazioni == []
+    assert gestione.db_path.read_bytes() == before
+
+
+@pytest.mark.parametrize("presenza,expected", [(False, False), (True, True), ("false", False), ("0", False), ("off", False),
+                                             ("on", True), ("true", True), ("1", True)])
+def test_presenza_giudice_non_scambia_false_testuale_con_true(gestione, presenza, expected):
+    item = _incarico(gestione)
+    gestione.aggiungi_operazione(item.id, {"data": "2026-10-09", "ora": "09:30", "minuti": "120", "presenza_giudice": presenza})
+    confirmed = GestioneCtu(str(gestione.db_path)).get(item.id).operazioni[0]
+    assert confirmed["presenza_giudice"] is expected
+    assert confirmed["minuti"] == 120
+    assert confirmed["ora"] == "09:30"
+
+
+def test_barriera_preparata_impedisce_scritture_json(gestione):
+    from pct.ctu_transition import prepare_locked, source_lock
+    item = _incarico(gestione)
+    before = gestione.db_path.read_bytes()
+    with source_lock(gestione.db_path):
+        prepare_locked(gestione.db_path, tenant="studio", source_sha256="a" * 64)
+    with pytest.raises(RuntimeError, match="transizione SQL"):
+        gestione.aggiungi_ctp(item.id, nome="Geom. Neri", parte="Convenuto")
+    assert gestione.db_path.read_bytes() == before
+    assert gestione.get(item.id).consulenti_parte == []
+    with pytest.raises(RuntimeError, match="transizione SQL"):
+        GestioneCtu(str(gestione.db_path))

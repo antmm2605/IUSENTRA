@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import sqlite3
+
+import pytest
 from datetime import date, timedelta
 from email.message import EmailMessage
 from io import BytesIO
@@ -272,7 +274,7 @@ def test_react_scadenziario_page_collegata_nav_api_e_lex():
     assert "focus_id" in data_source
     assert "compatto" in data_source
     assert "calcolatore', '0" in data_source
-    assert "buildQuery(true)" in page_source
+    assert "getScadenziarioPage(buildQuery(Boolean(routeDeadlineId())))" in page_source
     assert "if (data.query.compact)" in page_source
     assert "const completePayload = await getScadenziarioPage(buildQuery(false))" not in page_source
     assert "setBackgroundLoading(true)" not in page_source
@@ -605,10 +607,16 @@ def test_scadenziario_ricevuta_consegna_prevale_su_tipo_tecnico_storico(tmp_path
     assert row["sourceHref"] == "/email/?audit_id=pec_f205aa7f34c13b363f94af81"
 
 
-def test_react_scadenziario_dettaglio_compatto_arriva_prima_dell_elenco_completo(tmp_path: Path):
+def test_react_scadenziario_dettaglio_compatto_arriva_prima_dell_elenco_completo(tmp_path: Path, monkeypatch):
     app = _app(tmp_path)
     client = app.test_client()
-    bridge_source = Path("web/services/react_scadenziario_bridge.py").read_text(encoding="utf-8")
+    from web.services import react_scadenziario_bridge as bridge
+    requested_ids = []
+    original_reader = bridge._latest_pec_profiles
+    def track_sources(items, **kwargs):
+        requested_ids.extend(item.id for item in items)
+        return original_reader(items, **kwargs)
+    monkeypatch.setattr(bridge, "_latest_pec_profiles", track_sources)
     due_date = (date.today() + timedelta(days=2)).isoformat()
     with app.app_context():
         get_agenda().aggiungi(
@@ -647,17 +655,8 @@ def test_react_scadenziario_dettaglio_compatto_arriva_prima_dell_elenco_completo
     assert payload["calculator"]["templates"] == []
     assert payload["overduePreview"] == []
     assert payload["nextItems"] == []
-    assert "focused_item = gestione_scadenziario.get(focus_id)" in bridge_source
-    assert "if compact:" in bridge_source
-    assert "filtered = [item for item in all_items if str(getattr(item, \"id\", \"\") or \"\") == focus_id]" in bridge_source
-    assert "pec_profile_items = filtered" in bridge_source
-    assert "base_items=all_items" in bridge_source
-    assert "_agenda_candidates_for_compact_deadline" in bridge_source
-    assert "selected_rgs: set[str] = set()" in bridge_source
-    assert "needs_agenda_context = not (" in bridge_source
-    assert "all(_is_legal_notification_presidio(item) for item in filtered)" in bridge_source
-    assert "agenda_items = _agenda_candidates_for_compact_deadline(agenda_items, filtered)" in bridge_source
-    assert "for item in filtered:" in bridge_source
+    assert requested_ids == [selected.id]
+
 
 
 def test_react_scadenziario_mostra_cliente_fascicolo_non_responsabile(tmp_path: Path):
@@ -701,9 +700,29 @@ def test_react_scadenziario_mostra_cliente_fascicolo_non_responsabile(tmp_path: 
     assert row["ownerLabel"] == "Antonella Mammola"
 
 
-def test_react_scadenziario_presidio_notifica_sentenza_usa_pec_e_titolo_uniforme(tmp_path: Path):
+def _register_source_for_link_test(app, *, filename: str) -> str:
+    repository = PecAuditRepository(Path(app.config["EMAIL_CASELLA_DB"]).parent / "pec_audit.sqlite", tenant_id="default")
+    message = EmailMessage()
+    message["From"] = "cancelleria@example.test"
+    message["To"] = "studio@example.test"
+    message["Message-ID"] = f"<{filename}@example.test>"
+    message["Subject"] = "Fonte controllata per il collegamento"
+    message.set_content("Comunicazione controllata, nessuna consegna esterna.")
+    message.add_attachment(b"allegato controllato", maintype="application", subtype="zip", filename=filename)
+    ingested = repository.ingest_mime(message.as_bytes(), account_email="studio@example.test", enqueue=False)
+    parsed = repository.parse_and_store(ingested["id"])
+    with repository.connect() as connection:
+        repository._insert_validation_report(connection, message_id=ingested["id"],
+            parsed_version_id=parsed["parsed_version_id"],
+            report={"event_type": "comunicazione_cancelleria", "severity": "ok", "procedural_profile": {}}, actor="test")
+    return ingested["id"]
+
+
+@pytest.mark.parametrize("source_present", [False, True])
+def test_react_scadenziario_presidio_notifica_sentenza_usa_pec_e_titolo_uniforme(tmp_path: Path, source_present):
     app = _app(tmp_path)
     client = app.test_client()
+    message_id = _register_source_for_link_test(app, filename="9732730s.pdf.zip") if source_present else "pec_romeo"
     with app.app_context():
         cliente = GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
             TipoCliente.PERSONA_FISICA,
@@ -733,7 +752,7 @@ def test_react_scadenziario_presidio_notifica_sentenza_usa_pec_e_titolo_uniforme
             descrizione="Sentenza o sentenza a verbale già resa: la comunicazione di cancelleria non prova la notifica.",
             note=(
                 "IUSENTRA_LEGAL_NOTIFICATION:legal-notification-presidio:presidio-romeo:da_preparare\n"
-                "PEC_AUDIT:pec_romeo\n"
+                f"PEC_AUDIT:{message_id}\n"
                 "Fonte documentale: 9732730s.pdf.zip"
             ),
             source_event_type="legal_notification_presidio",
@@ -746,8 +765,9 @@ def test_react_scadenziario_presidio_notifica_sentenza_usa_pec_e_titolo_uniforme
     assert row["title"] == "Sentenza da valutare per la notifica - Romeo Maria - RG 1428/2026"
     assert row["sourceEventTypeLabel"] == "Sentenza da valutare per la notifica"
     assert row["sourceKind"] == "pec"
-    assert row["sourceHref"] == "/api/v1/ui/email/source/pec_romeo?name=9732730s.pdf.zip"
-    assert row["sourceLabel"] == "PEC originale - 9732730s.pdf.zip"
+    assert row["sourceHref"] == (f"/api/v1/ui/email/source/{message_id}?name=9732730s.pdf.zip" if source_present else "")
+    assert row["sourceVerified"] is source_present
+    assert row["sourceLabel"] == ("PEC originale - 9732730s.pdf.zip" if source_present else "Più fonti PEC: collegamento da verificare")
     assert "/fascicoli/" not in row["sourceHref"]
     assert "non fa decorrere da sola il termine breve" in row["detailDescription"]
 
@@ -971,9 +991,11 @@ def test_pdf_notificato_alimenta_scadenziario_agenda_senza_duplicare_link_audiov
     assert exact_link in appuntamenti[0].note
 
 
-def test_react_scadenziario_bridge_espone_link_udienza_remota(tmp_path: Path):
+@pytest.mark.parametrize("source_present", [False, True])
+def test_react_scadenziario_bridge_espone_link_udienza_remota(tmp_path: Path, source_present):
     app = _app(tmp_path)
     client = app.test_client()
+    message_id = _register_source_for_link_test(app, filename="13744017s.pdf.zip") if source_present else "msg-link"
     exact_link = (
         "https://teams.microsoft.com/dl/launcher/launcher.html?"
         "url=%2F_%23%2Fl%2Fmeetup-join%2F19%3Ameeting_TEST%40thread.v2%2F0"
@@ -990,7 +1012,7 @@ def test_react_scadenziario_bridge_espone_link_udienza_remota(tmp_path: Path):
             (date.today() + timedelta(days=10)).isoformat(),
             descrizione="Fissazione udienza con strumenti audiovisivi",
             deadline_profile_code="PEC_AUTO_PRESIDIO",
-            note=f"PEC_AUDIT:msg-link\nLink udienza audiovisiva: {exact_link}\nFonte link udienza: 13744017s.pdf.zip\nVerifica link udienza: identico alla fonte letta.",
+            note=f"PEC_AUDIT:{message_id}\nLink udienza audiovisiva: {exact_link}\nFonte link udienza: 13744017s.pdf.zip\nVerifica link udienza: identico alla fonte letta.",
             remote_hearing_detected=True,
             remote_hearing_mode="audiovisiva",
             remote_hearing_url=exact_link,
@@ -1009,10 +1031,10 @@ def test_react_scadenziario_bridge_espone_link_udienza_remota(tmp_path: Path):
     assert row["remoteHearingSource"] == "13744017s.pdf.zip"
     assert row["remoteHearingVerified"] is True
     assert exact_link in row["remoteHearingUrl"]
-    assert row["sourceHref"] == "/api/v1/ui/email/source/msg-link?name=13744017s.pdf.zip"
-    assert row["sourceLabel"] == "PEC originale - 13744017s.pdf.zip"
+    assert row["sourceHref"] == (f"/api/v1/ui/email/source/{message_id}?name=13744017s.pdf.zip" if source_present else "")
+    assert row["sourceLabel"] == ("PEC originale - 13744017s.pdf.zip" if source_present else "Più fonti PEC: collegamento da verificare")
     assert row["sourceKind"] == "pec"
-    assert row["sourceVerified"] is True
+    assert row["sourceVerified"] is source_present
 
 
 def test_react_scadenziario_bridge_espone_istruzioni_pdf_senza_piattaforma_generica(tmp_path: Path):

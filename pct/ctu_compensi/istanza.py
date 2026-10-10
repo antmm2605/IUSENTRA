@@ -23,7 +23,9 @@ def _riga(etichetta: str, importo: float) -> str:
 
 def html_istanza(*, incarico: Any, fascicolo: Any, calcolo: dict[str, Any], operazioni: list[dict[str, Any]]) -> str:
     ufficio = escape(str(getattr(fascicolo, "tribunale", "") or getattr(fascicolo, "ufficio", "") or "Tribunale di ____"))
-    rg = escape(str(getattr(fascicolo, "numero_rg", "") or getattr(fascicolo, "rg", "") or "____"))
+    numero_rg = str(getattr(fascicolo, "numero_rg", "") or getattr(fascicolo, "rg", "") or "____")
+    anno_rg = str(getattr(fascicolo, "anno_rg", "") or "")
+    rg = escape(f"{numero_rg}/{anno_rg}" if anno_rg and '/' not in numero_rg else numero_rg)
     giudice = escape(str(getattr(fascicolo, "giudice", "") or "____"))
     titolo_causa = escape(str(getattr(fascicolo, "titolo", "") or ""))
     nome = escape(incarico.nome_ctu or "____")

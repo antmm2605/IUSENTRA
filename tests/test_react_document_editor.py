@@ -248,6 +248,7 @@ def test_export_editor_non_aggiunge_carta_intestata_non_presente(tmp_path: Path,
     app = _app(tmp_path)
     _crea_operatore(app)
     fascicolo, documento = _seed_documento_editabile(app)
+    from pct.editor_export import esporta_documento_editor as esporta_reale
     conversioni = []
 
     def vietato(*args, **kwargs):
@@ -256,6 +257,8 @@ def test_export_editor_non_aggiunge_carta_intestata_non_presente(tmp_path: Path,
     def esporta(html, *, formato, titolo, **kwargs):
         assert not kwargs.get("studio_timbro")
         conversioni.append(formato)
+        if formato == "docx":
+            return esporta_reale(html, formato=formato, titolo=titolo, **kwargs)
         return b"documento controllato"
 
     monkeypatch.setattr("pct.studio_timbro.build_studio_timbro", vietato)
@@ -272,7 +275,7 @@ def test_export_editor_non_aggiunge_carta_intestata_non_presente(tmp_path: Path,
             response = client.post(url + "/" + formato, json={"html": "<p>Contenuto controllato</p>"})
             assert response.status_code == 200
             assert response.data == b"documento controllato"
-    assert conversioni == ["pdf", "rtf"]
+    assert conversioni == ["docx", "pdf", "rtf"]
 
 
 def test_editor_pdf_endpoint_restituisce_il_pdf_originale(tmp_path: Path):
@@ -497,7 +500,7 @@ def test_editor_documento_react_contract_statico():
     assert "Modifiche proposte da Lex" in page_source
     assert "href=\"#\"" not in page_source
     assert "#lex" not in page_source
-    assert "contentEditable={editorEnabled}" in page_source
+    assert "contentEditable={editorEnabled && !draftBusy && !pdfBusy}" in page_source
     assert "Payload reale" not in page_source
     assert "https://esm.sh" not in page_source
     assert "editorAI" in data_source

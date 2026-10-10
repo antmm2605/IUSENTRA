@@ -185,6 +185,11 @@
   ],
   "allowedInlineStyles": [
     {
+      "file": "frontend/src/components/DocumentEditorPage.tsx",
+      "snippets": ["style={{ left: spellingChoice.x, top: spellingChoice.y }}"],
+      "reason": "Posizione del suggerimento linguistico misurata sul testo selezionato e limitata al viewport. Colori, dimensioni e presentazione restano nel CSS dell’editor; nessuno stile libero."
+    },
+    {
       "file": "frontend/src/components/documentCapture/OcrSaveChoices.tsx",
       "snippets": ["style={{ maxHeight: posto.altezza }}"],
       "reason": "Il menu di salvataggio OCR limita l’altezza allo spazio realmente disponibile nel viewport; colori e presentazione restano nel CSS condiviso."
@@ -339,11 +344,6 @@
       "file": "frontend/src/index.css",
       "count": 5,
       "reason": "Topbar, barra mobile, pannello Lex flottante e velo del menu mobile (velo di base e velo a menu aperto) già governati dal preset globale."
-    },
-    {
-      "file": "frontend/src/components/DocumentEditorPage.css",
-      "count": 1,
-      "reason": "Toolbar documento sticky sopra la superficie di redazione."
     },
     {
       "file": "frontend/src/components/FascicoliPage.css",

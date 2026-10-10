@@ -5,6 +5,7 @@ from collections.abc import Callable
 from datetime import date, datetime, timedelta
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for, g
 from pct.agenda import Agenda, StatoAppuntamento, TipoAppuntamento
+from pct.agenda_sql_writer import AgendaConflict
 from pct.economic_dashboard import build_studio_economic_dashboard
 from pct.studio_demo import build_studio_demo_snapshot
 from web.blueprints.react_shell import render_react_shell_response
@@ -32,6 +33,13 @@ def register_dashboard_routes(
     track_recente: Callable[[str, str, str, str, str], None],
 ) -> None:
     """Register dashboard, agenda, calendar import, and agenda API routes."""
+    @app.errorhandler(AgendaConflict)
+    def agenda_conflict(error):
+        if richiede_json():
+            return jsonify({"ok": False, "message": str(error), "conflict": True}), 409
+        flash(str(error), "danger")
+        return redirect(url_for("agenda_view"))
+
     @app.route("/")
     def dashboard():
         if not richiede_vista_classica():
@@ -294,7 +302,10 @@ def register_dashboard_routes(
             }
             try:
                 data_prima = str(app_item.data_ora or "")
-                agenda.modifica(id_app, **campi)
+                version = request.form.get("expected_version")
+                if richiede_json() and not version:
+                    raise AgendaConflict("Carica la versione aggiornata dell’appuntamento prima di salvare. I dati inseriti restano nel modulo.")
+                agenda.modifica(id_app, expected_version=version, **campi)
                 _allinea_scadenze_spostamento(id_app, data_prima, str(campi.get("data_ora") or ""))
                 flash("Appuntamento aggiornato.", "success")
                 sync_pubblica("modifica", "agenda", id_app)

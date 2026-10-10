@@ -67,7 +67,7 @@ def register_agenda_api_routes(
             return jsonify([a.to_dict() for a in apps])
         except Exception as e:
             app.logger.exception("Errore api_agenda: %s", e)
-            return jsonify([])
+            return jsonify({"ok": False, "errore": "Agenda non disponibile in questo momento. Riprova il caricamento."}), 503
     @app.route("/api/agenda/<id_app>")
     def api_appuntamento(id_app):
         try:
@@ -75,7 +75,7 @@ def register_agenda_api_routes(
             appt = agenda.get(id_app)
             if not appt:
                 return jsonify({"errore": "Non trovato"}), 404
-            return jsonify(appt.to_dict())
+            return jsonify({**appt.to_dict(), "expected_version": agenda.revision_token(id_app)})
         except Exception as e:
             app.logger.exception("Errore api_appuntamento: %s", e)
             return jsonify({"errore": "Appuntamento non disponibile in questo momento."}), 503

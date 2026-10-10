@@ -48,6 +48,8 @@ CORE_CI_ITEM_SPLIT_PHASES = set(CORE_CI_SUBSHARDS)
 #  La chiave e' il percorso, il valore il numero di fase come lo scrivono
 #  CORE_CI_SUBSHARDS e le "phase:" di ci.yml (numerazione da 1).
 CORE_CI_PINNED_PHASES: dict[str, int] = {
+    "tests/test_agenda_sql_concurrency.py": 7,
+    "tests/test_agenda_concurrent_api.py": 7,
     "tests/test_prima_nota.py": 8,
     "tests/test_prima_nota_sql_repository.py": 8,
     "tests/test_client_document_reader.py": 8,
@@ -126,6 +128,8 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
     ),
 }
 CORE_TARGETS: tuple[Path, ...] = (
+    REPO_ROOT / "tests" / "test_agenda_sql_concurrency.py",
+    REPO_ROOT / "tests" / "test_agenda_concurrent_api.py",
     REPO_ROOT / "tests" / "test_prima_nota.py",
     REPO_ROOT / "tests" / "test_prima_nota_sql_repository.py",
     REPO_ROOT / "tests" / "test_client_document_reader.py",

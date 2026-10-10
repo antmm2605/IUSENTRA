@@ -126,6 +126,8 @@ class Agenda:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._studio_db = studio_db
         self._appuntamenti: dict[str, Appuntamento] = {}
+        self._sql_rows = {}
+        self._sql_models = {}
         self._carica()
 
     # ------------------------------------------------------------------ I/O
@@ -164,22 +166,8 @@ class Agenda:
 
     def _carica(self) -> None:
         if self._studio_db is not None:
-            import json as _json
             json_appuntamenti = self._carica_json_file()
-            try:
-                rows = self._studio_db.fetchall_readonly("SELECT * FROM appuntamenti")
-                self._appuntamenti = {}
-                for row in rows:
-                    d = dict(row)
-                    dati = d.get("dati_json")
-                    try:
-                        payload = _json.loads(dati) if dati else d
-                        a = Appuntamento.from_dict(payload)
-                        self._appuntamenti[a.id] = a
-                    except Exception:
-                        pass
-            except Exception:
-                self._appuntamenti = {}
+            self._carica_sql()
             merged = False
             for item_id, appuntamento in json_appuntamenti.items():
                 if item_id not in self._appuntamenti:
@@ -194,35 +182,49 @@ class Agenda:
         if not self.db_path.exists():
             self._salva_json_file()
 
+    def _carica_sql(self) -> None:
+        import json
+        from pct.agenda_sql_writer import encode_model
+
+        confirmed, original_rows = {}, {}
+        for row in self._studio_db.fetchall_readonly("SELECT * FROM appuntamenti"):
+            payload = dict(row)
+            data = json.loads(payload["dati_json"]) if payload.get("dati_json") else payload
+            # Le colonne di compatibilità non sono campi del modello.
+            if not payload.get("dati_json"):
+                data = {key: value for key, value in data.items() if key in Appuntamento.__dataclass_fields__}
+            value = Appuntamento.from_dict(data)
+            if value.id != str(payload["id"]):
+                raise RuntimeError("Identità dell’appuntamento SQL discordante: recupero necessario.")
+            confirmed[value.id], original_rows[value.id] = value, payload
+        self._appuntamenti, self._sql_rows = confirmed, original_rows
+        self._sql_models = {key: encode_model(value) for key, value in confirmed.items()}
+
     def _salva(self) -> None:
         if self._studio_db is not None:
-            import json as _json
+            import json
+            from pct.agenda_sql_writer import save_changes
 
-            def _insert(conn, a):
-                d = a.to_dict()
-                conn.execute(
-                    """
-                    INSERT INTO appuntamenti
-                    (id, tipo, stato, titolo, data_ora, durata_minuti, luogo,
-                     descrizione, cliente, cf_cliente, procedimento, tribunale,
-                     note, creato_il, dati_json)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                    """,
-                    (
-                        a.id, a.tipo.value, a.stato.value, a.titolo,
-                        a.data_ora, a.durata_minuti, a.luogo,
-                        a.note,  # descrizione = note per compatibilità schema
-                        a.cliente, a.cf_cliente,
-                        a.procedimento, a.tribunale,
-                        a.note, a.creato_il,
-                        _json.dumps(d, ensure_ascii=False),
-                    ),
-                )
-
-            self._studio_db.salva_tabella("appuntamenti", list(self._appuntamenti.values()), _insert)
+            try:
+                save_changes(self._studio_db, original_rows=self._sql_rows,
+                             original_models=self._sql_models, current=self._appuntamenti)
+            except Exception:
+                self._appuntamenti = {key: Appuntamento.from_dict(json.loads(value))
+                                      for key, value in self._sql_models.items()}
+                raise
+            self._carica_sql()
             self._salva_json_file()
             return
         self._salva_json_file()
+
+    def revision_token(self, id_app: str) -> str:
+        """Impronta della versione letta: comprende anche le colonne SQL."""
+        import hashlib
+        import json
+        app = self._get_o_errore(id_app)
+        source = self._sql_rows.get(id_app) if self._studio_db is not None else app.to_dict()
+        return hashlib.sha256(json.dumps(source, sort_keys=True, ensure_ascii=False,
+                                         separators=(",", ":")).encode("utf-8")).hexdigest()
 
     # ------------------------------------------------------------------ CRUD
 
@@ -272,9 +274,12 @@ class Agenda:
         self._salva()
         return app
 
-    def modifica(self, id_app: str, **campi) -> Appuntamento:
+    def modifica(self, id_app: str, *, expected_version: str | None = None, **campi) -> Appuntamento:
         """Modifica i campi di un appuntamento esistente."""
         app = self._get_o_errore(id_app)
+        if expected_version is not None and expected_version != self.revision_token(id_app):
+            from pct.agenda_sql_writer import AgendaConflict
+            raise AgendaConflict("L’appuntamento è stato aggiornato. La tua bozza è conservata: confronta i dati aggiornati prima di salvare.")
         for k, v in campi.items():
             if hasattr(app, k):
                 setattr(app, k, v)
@@ -395,7 +400,7 @@ class Agenda:
         if da:
             risultati = [a for a in risultati if a.data_ora_dt.date() >= da]
         if a:
-            risultati = [a for a in risultati if a.data_ora_dt.date() <= a]
+            risultati = [app for app in risultati if app.data_ora_dt.date() <= a]
 
         return risultati
 

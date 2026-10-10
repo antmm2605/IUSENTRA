@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
   AlertTriangle,
   ArrowLeft,
@@ -21,6 +21,8 @@ import {
   X,
 } from 'lucide-react'
 import type { Tone } from '../data'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
+import { mergeRegistryRefresh } from '../features/anagrafiche/mergeRegistryRefresh'
 import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
 import { Badge } from './dashboard'
 import './NuovoAppuntamentoPage.css'
@@ -176,7 +178,7 @@ const appointmentTypes: AppointmentTypeMeta[] = [
   {
     value: 'DEPOSITO',
     label: 'Deposito',
-    description: 'Attivita telematica, deposito atto o adempimento collegato.',
+    description: 'Attività telematica, deposito atto o adempimento collegato.',
     duration: '30',
     reminder: '120',
     tone: 'warning',
@@ -333,19 +335,6 @@ function agendaItemsFromPayload(payload: unknown): AgendaApiItem[] {
     .filter((item): item is AgendaApiItem => Boolean(item))
 }
 
-function recordsFromPayload(payload: unknown): Record<string, unknown>[] {
-  const source = Array.isArray(payload)
-    ? payload
-    : isRecord(payload) && Array.isArray(payload.data)
-      ? payload.data
-      : isRecord(payload) && Array.isArray(payload.items)
-        ? payload.items
-        : isRecord(payload) && Array.isArray(payload.events)
-          ? payload.events
-          : []
-  return source.filter(isRecord)
-}
-
 function formFromAgendaRecord(record: Record<string, unknown>, current: AppointmentForm): AppointmentForm {
   const dataOra = firstText(record, ['data_ora', 'dataOra', 'datetime', 'inizio', 'start', 'data'])
   const safeDataOra = dataOra.includes('T') ? dataOra : dataOra ? `${dataOra}T${current.ora}:00` : ''
@@ -470,9 +459,20 @@ export function NuovoAppuntamentoPage() {
   const [clientLoading, setClientLoading] = useState(false)
   const [dayEvents, setDayEvents] = useState<AgendaApiItem[]>([])
   const [agendaLoading, setAgendaLoading] = useState(false)
+  const [agendaError, setAgendaError] = useState('')
+  const [agendaRetry, setAgendaRetry] = useState(0)
   const [showValidation, setShowValidation] = useState(false)
   const [submitState, setSubmitState] = useState<SubmitState>({ saving: false, tone: 'neutral', message: '' })
   const courtInputRef = useRef<HTMLInputElement>(null)
+  const currentForm = useRef(form)
+  currentForm.current = form
+  const persistedForm = useRef<AppointmentForm | undefined>(undefined)
+  const [expectedVersion, setExpectedVersion] = useState('')
+  const [concurrentFields, setConcurrentFields] = useState<string[]>([])
+  const [recordError, setRecordError] = useState('')
+  const [recordLoading, setRecordLoading] = useState(Boolean(editId))
+  const requestSequence = useRef(0)
+  const savingRef = useRef(false)
 
   const typeMeta = appointmentTypes.find((item) => item.value === form.tipo) ?? appointmentTypes[0]
   const suggestedTitle = useMemo(() => buildSuggestedTitle(form), [form])
@@ -483,7 +483,7 @@ export function NuovoAppuntamentoPage() {
     {
       id: 'titolo',
       label: 'Titolo operativo',
-      help: 'Deve permettere di riconoscere subito fascicolo, cliente o attivita.',
+      help: 'Deve permettere di riconoscere subito fascicolo, cliente o attività.',
       ok: form.titolo.trim().length >= 4,
       required: true,
     },
@@ -522,7 +522,7 @@ export function NuovoAppuntamentoPage() {
     {
       id: 'reminder',
       label: 'Promemoria presidiato',
-      help: 'Un avviso prima dell impegno riduce il rischio di dimenticanze.',
+      help: 'Un avviso prima dell’impegno riduce il rischio di dimenticanze.',
       ok: Number(form.reminder) > 0,
     },
   ], [form])
@@ -537,6 +537,7 @@ export function NuovoAppuntamentoPage() {
     const end = start + duration
 
     return dayEvents.filter((item) => {
+      if (item.id === editId) return false
       if (item.stato === 'ANNULLATO' || item.stato === 'COMPLETATO') return false
       const itemDataOra = asText(item.data_ora)
       const itemDate = itemDataOra.slice(0, 10)
@@ -547,34 +548,54 @@ export function NuovoAppuntamentoPage() {
       const itemEnd = itemStart + Math.max(Number(item.durata_minuti ?? 60), 1)
       return itemStart < end && itemEnd > start
     })
-  }, [dayEvents, form.data, form.durata, form.ora])
+  }, [dayEvents, editId, form.data, form.durata, form.ora])
 
-  const canSubmit = requiredOk && conflicts.length === 0
+  const canSubmit = requiredOk && !agendaLoading && !agendaError && conflicts.length === 0 && !concurrentFields.length && !recordError && (!isEditMode || Boolean(expectedVersion))
   const cancelHref = form.from_cliente || form.id_cliente ? `/clienti/${form.from_cliente || form.id_cliente}` : '/agenda'
   const safeClientMatches = useMemo(() => clientMatches, [clientMatches])
 
   const update = (field: keyof AppointmentForm, value: string) => {
     setForm((current) => ({ ...current, [field]: value }))
+    if (!savingRef.current) setSubmitState({ saving: false, tone: 'neutral', message: 'Modifiche non ancora salvate.' })
   }
 
+  const refreshAppointment = useCallback(async () => {
+    if (!editId || savingRef.current) return
+    const sequence = ++requestSequence.current
+    try {
+      const response = await fetch(`/api/agenda/${encodeURIComponent(editId)}`, {
+        credentials: 'same-origin', headers: { Accept: 'application/json' },
+      })
+      const record = await safeJson(response)
+      if (sequence !== requestSequence.current) return
+      if (!response.ok || !isRecord(record) || record.id !== editId || !record.expected_version) {
+        throw new Error('Non è stato possibile caricare l’appuntamento. La bozza è conservata.')
+      }
+      const incoming = formFromAgendaRecord(record, initialForm())
+      const merged = mergeRegistryRefresh(currentForm.current, persistedForm.current ?? initialForm(), incoming)
+      persistedForm.current = incoming
+      currentForm.current = merged.values
+      setForm(merged.values)
+      setExpectedVersion(String(record.expected_version))
+      setConcurrentFields((previous) => [...new Set([...previous, ...merged.conflicts])]
+        .filter((key) => merged.values[key as keyof AppointmentForm] !== incoming[key as keyof AppointmentForm]))
+      setRecordError('')
+    } catch (error) {
+      if (sequence !== requestSequence.current) return
+      setRecordError(error instanceof Error ? error.message : 'Caricamento non riuscito. La bozza è conservata.')
+      throw error
+    } finally { if (sequence === requestSequence.current) setRecordLoading(false) }
+  }, [editId])
   useEffect(() => {
     if (!editId) return
-    let alive = true
-    fetch('/api/agenda', {
-      credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
-    })
-      .then((response) => response.ok ? safeJson(response) : [])
-      .then((payload) => {
-        if (!alive) return
-        const record = recordsFromPayload(payload).find((item) => firstText(item, ['id', 'uuid', 'pk']) === editId)
-        if (record) setForm((current) => formFromAgendaRecord(record, current))
-      })
-      .catch(() => undefined)
-    return () => {
-      alive = false
-    }
-  }, [editId])
+    void refreshAppointment().catch(() => undefined)
+    return () => { requestSequence.current += 1 }
+  }, [editId, refreshAppointment])
+  useOperationalRefresh(['agenda'], refreshAppointment)
+  const refreshDayAvailability = useCallback(async () => {
+    setAgendaRetry((value) => value + 1)
+  }, [])
+  useOperationalRefresh(['agenda'], refreshDayAvailability)
 
   useEffect(() => {
     if (editId) return
@@ -668,16 +689,21 @@ export function NuovoAppuntamentoPage() {
 
     let alive = true
     setAgendaLoading(true)
+    setAgendaError('')
     fetch(`/api/agenda?da=${encodeURIComponent(form.data)}&a=${encodeURIComponent(form.data)}`, {
       credentials: 'same-origin',
       headers: { Accept: 'application/json' },
     })
-      .then((response) => response.ok ? safeJson(response) : [])
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Controllo disponibilità non riuscito. Riprova prima di salvare.')
+        return safeJson(response)
+      })
       .then((data) => {
+        if (!Array.isArray(data)) throw new Error('Risposta Agenda non valida.')
         if (alive) setDayEvents(agendaItemsFromPayload(data))
       })
       .catch(() => {
-        if (alive) setDayEvents([])
+        if (alive) setAgendaError('Controllo disponibilità non riuscito. Riprova prima di salvare.')
       })
       .finally(() => {
         if (alive) setAgendaLoading(false)
@@ -686,7 +712,7 @@ export function NuovoAppuntamentoPage() {
     return () => {
       alive = false
     }
-  }, [form.data])
+  }, [form.data, agendaRetry])
 
   const selectClient = (client: ClientSuggestion) => {
     const safeClient = normaliseClientSuggestion(client)
@@ -733,19 +759,36 @@ export function NuovoAppuntamentoPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (savingRef.current) return
     if (!canSubmit) {
       setShowValidation(true)
       setSubmitState({ saving: false, tone: 'danger', message: 'Completa i campi obbligatori e risolvi le sovrapposizioni.' })
       return
     }
+    savingRef.current = true
+    requestSequence.current += 1
     setSubmitState({ saving: true, tone: 'neutral', message: 'Salvataggio in corso...' })
+    const submittedForm = { ...currentForm.current }
     try {
       const result = await submitFormJson(formAction, new FormData(event.currentTarget))
       setSubmitState({ saving: false, tone: 'success', message: result.message || 'Appuntamento salvato.' })
-      redirectAfterSuccess(result, cancelHref)
+      const embedded = new URLSearchParams(window.location.search).get('embed') === 'source' && window.parent !== window
+      if (embedded && isEditMode) {
+        // Il commit è confermato: conserva eventuali modifiche digitate durante
+        // l'invio e ricarica la nuova versione senza navigare fuori dal pannello.
+        persistedForm.current = submittedForm
+        savingRef.current = false
+        await refreshAppointment().catch(() => undefined)
+      } else if (embedded && result.id) {
+        window.location.assign(`/agenda/${encodeURIComponent(result.id)}/modifica?embed=source`)
+      } else {
+        redirectAfterSuccess(result, cancelHref)
+      }
     } catch (error) {
       setSubmitState({ saving: false, tone: 'danger', message: error instanceof Error ? error.message : 'Salvataggio non riuscito.' })
-    }
+      savingRef.current = false
+      await refreshAppointment().catch(() => undefined)
+    } finally { savingRef.current = false }
   }
 
   return (
@@ -773,6 +816,9 @@ export function NuovoAppuntamentoPage() {
 
       <div className="iu-appt-layout">
         <form className="iu-appt-form" onSubmit={handleSubmit}>
+          {isEditMode ? <input type="hidden" name="expected_version" value={expectedVersion} /> : null}
+          {recordLoading ? <p className="iu-appt-validation" role="status">Caricamento dell’appuntamento…</p> : null}
+          {recordError ? <div className="iu-appt-validation" role="alert"><span>{recordError}</span><button className="iu-appt-outline" type="button" onClick={() => { void refreshAppointment().catch(() => undefined) }}>Riprova caricamento</button></div> : null}
           <input type="hidden" name="id_cliente" value={form.id_cliente} />
           <input type="hidden" name="from_cliente" value={form.from_cliente} />
 
@@ -981,7 +1027,7 @@ export function NuovoAppuntamentoPage() {
                     name="tribunale"
                     value={form.tribunale}
                     onChange={(event) => update('tribunale', event.currentTarget.value)}
-                    placeholder="Cerca per citta o nome..."
+                    placeholder="Cerca per città o nome..."
                   />
                 </div>
               </Field>
@@ -1014,6 +1060,8 @@ export function NuovoAppuntamentoPage() {
             ) : null}
 
             <div className="iu-appt-submitbar">
+              {agendaError ? <div className="iu-appt-validation iu-appt-submitbar__conflict" role="alert"><span>{agendaError}</span><button className="iu-appt-outline" type="button" onClick={() => setAgendaRetry((value) => value + 1)}>Riprova disponibilità</button></div> : null}
+          {concurrentFields.length ? <div className="iu-appt-validation iu-appt-submitbar__conflict" role="alert"><span>Un altro utente ha aggiornato dati che stai modificando. La tua bozza è conservata; confronta i dati aggiornati prima di salvare.</span><button className="iu-appt-outline" type="button" onClick={() => { if (persistedForm.current) { currentForm.current = persistedForm.current; setForm(persistedForm.current) } setConcurrentFields([]); setSubmitState({ saving: false, tone: 'neutral', message: 'Dati aggiornati caricati nel modulo.' }) }}>Usa dati aggiornati</button></div> : null}
               <a className="iu-appt-cancel" href={cancelHref}>Annulla</a>
               <button className="iu-appt-outline" type="button" onClick={applySuggestedTitle}>
                 <Sparkles size={16} />
@@ -1064,7 +1112,9 @@ export function NuovoAppuntamentoPage() {
 
             <div className={`iu-appt-conflict-box ${conflicts.length ? 'has-conflicts' : ''}`}>
               {agendaLoading ? (
-                <p>Controllo disponibilita...</p>
+                <p>Controllo disponibilità…</p>
+              ) : agendaError ? (
+                <p role="alert">{agendaError}</p>
               ) : conflicts.length ? (
                 <>
                   <strong><AlertTriangle size={15} /> Sovrapposizione rilevata</strong>
@@ -1082,7 +1132,7 @@ export function NuovoAppuntamentoPage() {
             <header>
               <span>
                 <ShieldCheck size={17} />
-                Checklist qualita
+                Checklist qualità
               </span>
             </header>
             <div className="iu-appt-checks">
@@ -1102,14 +1152,14 @@ export function NuovoAppuntamentoPage() {
             <header>
               <span>
                 <Info size={17} />
-                Cosa e integrato
+                Cosa è integrato
               </span>
             </header>
             <ul className="iu-appt-integrations">
               <li><ChevronRight size={14} /> Salvataggio immediato senza uscire dalla pagina</li>
               <li><ChevronRight size={14} /> Ricerca cliente collegata alle anagrafiche reali</li>
               <li><ChevronRight size={14} /> Controllo sovrapposizioni sul giorno selezionato</li>
-              <li><ChevronRight size={14} /> Feed WebCal/iCal gia compatibili con l agenda</li>
+              <li><ChevronRight size={14} /> Feed WebCal/iCal già compatibili con l’agenda</li>
               <li><ChevronRight size={14} /> Contesto appuntamento pronto per Lex e regia operativa</li>
             </ul>
           </section>

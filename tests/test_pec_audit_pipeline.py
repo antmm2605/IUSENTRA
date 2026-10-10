@@ -3483,6 +3483,8 @@ def test_pec_repair_upgrades_old_gdp_hearing_deadline_and_clears_codex_actor(tmp
     from pct.agenda import Agenda
     from pct.scadenziario import GestioneScadenziario, TipoTermine
 
+    hearing_day = date.today() + timedelta(days=120)
+    hearing_date = hearing_day.strftime("%d/%m/%Y")
     scadenziario_db = tmp_path / "scadenze.json"
     agenda_db = tmp_path / "agenda.json"
     repo = PecAuditRepository(
@@ -3491,13 +3493,13 @@ def test_pec_repair_upgrades_old_gdp_hearing_deadline_and_clears_codex_actor(tmp
         scadenziario_db_path=scadenziario_db,
         agenda_db_path=agenda_db,
     )
-    ingest = repo.ingest_mime(_gdp_hearing_message(), account_email="studio@example.test", folder="INBOX", imap_uid="old-gdp-hearing")
+    ingest = repo.ingest_mime(_gdp_hearing_message(hearing_date=hearing_date), account_email="studio@example.test", folder="INBOX", imap_uid="old-gdp-hearing")
     repo.run_pending_jobs(limit=30, actor="pec-demo")
     manager = GestioneScadenziario(str(scadenziario_db))
     manager.nuova(
         titolo="Udienza da PEC: POSTA CERTIFICATA: GIUDICE DI PACE Notificazione ai sensi del D.L. 179/2012",
         tipo=TipoTermine.ADEMPIMENTO,
-        data_scadenza="2026-10-09",
+        data_scadenza=hearing_day.isoformat(),
         note=f"PEC_AUDIT:{ingest['id']}\nTermine legale conclusivo: no",
         id_utente_responsabile="codex-test",
         deadline_profile_code="PEC_AUTO_PRESIDIO",
@@ -3511,7 +3513,7 @@ def test_pec_repair_upgrades_old_gdp_hearing_deadline_and_clears_codex_actor(tmp
     assert scadenze[0].tipo == TipoTermine.UDIENZA
     assert scadenze[0].id_utente_responsabile == ""
     assert scadenze[0].titolo.startswith("Rinvio udienza")
-    assert "09/10/2026" in scadenze[0].titolo
+    assert hearing_date in scadenze[0].titolo
     assert "RG 777/2026" in scadenze[0].titolo
     assert Agenda(str(agenda_db)).tutti()[0].external_organizer == ""
 

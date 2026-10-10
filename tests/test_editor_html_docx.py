@@ -21,6 +21,43 @@ from docx import Document
 from pct.editor import html_to_docx
 
 
+def test_cssom_bordi_sfondo_e_allineamento_verticale():
+    from docx.oxml.ns import qn
+    documento = Document(io.BytesIO(html_to_docx(
+        '<table><tr><td style="border-top: 1.5pt dashed rgb(18, 52, 86);'
+        'border-left: none; background-color: rgb(240, 230, 210);'
+        'vertical-align: middle; padding-left: 8pt">Testo</td></tr></table>'
+    )))
+    proprieta = documento.tables[0].cell(0, 0)._tc.tcPr
+    assert proprieta.find(qn('w:tcBorders')).find(qn('w:top')).get(qn('w:color')) == '123456'
+    assert proprieta.find(qn('w:tcBorders')).find(qn('w:left')).get(qn('w:val')) == 'nil'
+    assert proprieta.find(qn('w:shd')).get(qn('w:fill')) == 'F0E6D2'
+    assert proprieta.find(qn('w:vAlign')).get(qn('w:val')) == 'center'
+    assert proprieta.find(qn('w:tcMar')).find(qn('w:left')).get(qn('w:w')) == '160'
+
+
+@pytest.mark.parametrize('stile,valore', [
+    ('border-width:medium;border-style:none;border-color:currentcolor', 'nil'),
+    ('border-width:1px;border-style:solid;border-color:rgb(18,52,86)', 'single'),
+])
+def test_bordi_cssom_compattati(stile, valore):
+    from docx.oxml.ns import qn
+    documento = Document(io.BytesIO(html_to_docx(f'<table><tr><td style="{stile}">Testo</td></tr></table>')))
+    bordi = documento.tables[0].cell(0, 0)._tc.tcPr.find(qn('w:tcBorders'))
+    assert all(bordi.find(qn('w:' + lato)).get(qn('w:val')) == valore for lato in ('top', 'right', 'bottom', 'left'))
+
+
+def test_riapertura_cella_formattata_non_perde_bordi_e_allineamento(tmp_path):
+    from pct.documento_fedele.da_docx import converti_docx
+    percorso = tmp_path / 'tabella.docx'
+    percorso.write_bytes(html_to_docx('<table><tr><td style="border-top:1pt dashed #123456;border-right:none;vertical-align:middle;background-color:#F0E6D2">Prima</td><td>Seconda</td></tr></table>'))
+    risultato = converti_docx(percorso)
+    assert 'vertical-align:middle' in risultato.html
+    assert 'border-top:1pt dashed #123456' in risultato.html
+    assert 'border-right:none' in risultato.html
+    assert 'background-color:#f0e6d2' in risultato.html.lower()
+
+
 def test_colonne_percentuali_conservate_nel_docx():
     documento = Document(io.BytesIO(html_to_docx(
         '<table><tr><td style="width:75%">Descrizione</td>'

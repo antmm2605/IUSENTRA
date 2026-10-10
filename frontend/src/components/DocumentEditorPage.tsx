@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ClipboardEvent, type FormEvent, type ReactNode } from 'react'
-import { editTable, type TableAction } from '../editorTableGrid'
+import { editTable, tableGrid, mergeTableCells, splitTableCells, formatTableCells, type CellArea, type TableAction } from '../editorTableGrid'
 import { EditorHistory, editorCaret, restoreEditorCaret } from '../editorHistory'
 import { clearSpellingMarks, showSpellingMarks, documentLanguageSource, grammarRanges, type SpellingMark } from '../editorSpelling'
 import {
@@ -479,6 +479,12 @@ export function DocumentEditorPage() {
   const lineHeightRangeRef = useRef<Range | null>(null)
   const [tablePickerOpen, setTablePickerOpen] = useState(false)
   const [tableContext, setTableContext] = useState<{ table: HTMLTableElement; cell: HTMLTableCellElement } | null>(null)
+  const [cellArea, setCellArea] = useState<CellArea>({ top: 0, left: 0, bottom: 0, right: 0 })
+  const [borderStyle, setBorderStyle] = useState<'solid' | 'double' | 'dotted' | 'dashed' | 'none'>('solid')
+  const [borderWidth, setBorderWidth] = useState('0.75')
+  const [borderColor, setBorderColor] = useState('#333333')
+  const [cellBackground, setCellBackground] = useState('#ffffff')
+  const [cellPadding, setCellPadding] = useState('6')
   const [tableRows, setTableRows] = useState('3')
   const [tableColumns, setTableColumns] = useState('2')
   const [tableHeader, setTableHeader] = useState(true)
@@ -1617,8 +1623,43 @@ export function DocumentEditorPage() {
     const element = node instanceof Element ? node : node?.parentElement
     const cell = element?.closest<HTMLTableCellElement>('td,th')
     const table = cell?.closest<HTMLTableElement>('table')
+    if (cell && table) {
+      try {
+        const structure = tableGrid(table)
+        const origin = structure.origins.find((item) => item.cell === cell)
+        const focusElement = selection?.focusNode instanceof Element ? selection.focusNode : selection?.focusNode?.parentElement
+        const focusCell = focusElement?.closest<HTMLTableCellElement>('td,th')
+        const last = structure.origins.find((item) => item.cell === focusCell) || origin
+        if (origin && last) setCellArea({ top: Math.min(origin.row, last.row), left: Math.min(origin.column, last.column), bottom: Math.max(origin.row + (cell.rowSpan || structure.grid.length - origin.row) - 1, last.row + (last.cell.rowSpan || structure.grid.length - last.row) - 1), right: Math.max(origin.column + cell.colSpan - 1, last.column + last.cell.colSpan - 1) })
+      } catch (error) {
+        setStatus({ tone: 'danger', label: error instanceof Error ? error.message : 'Struttura della tabella non valida.' })
+        return
+      }
+    }
     setTableContext(cell && table && editorRef.current?.contains(table) ? { cell, table } : null)
     setTablePickerOpen((open) => !open)
+  }
+
+  const applyCellChange = (operation: 'merge' | 'split' | 'all' | 'none' | 'outside' | 'inside' | 'horizontal' | 'vertical' | 'edgeTop' | 'edgeRight' | 'edgeBottom' | 'edgeLeft' | 'background' | 'padding' | 'top' | 'middle' | 'bottom') => {
+    const context = tableContext
+    if (conversionLocked || !context || !editorRef.current?.contains(context.table)) return
+    try {
+      if (operation === 'padding' && !cellPadding.trim()) throw new Error('Indica il margine interno in punti.')
+      const replacement = operation === 'merge' ? mergeTableCells(context.table, cellArea)
+        : operation === 'split' ? splitTableCells(context.table, cellArea)
+        : formatTableCells(context.table, cellArea, {
+          ...(['all', 'none', 'outside', 'inside', 'horizontal', 'vertical', 'edgeTop', 'edgeRight', 'edgeBottom', 'edgeLeft'].includes(operation) ? { borders: (operation.startsWith('edge') ? operation.slice(4).toLowerCase() : operation) as 'all' | 'none' | 'outside' | 'inside' | 'horizontal' | 'vertical' | 'top' | 'right' | 'bottom' | 'left', borderStyle, borderWidth: Number(borderWidth), borderColor } : {}),
+          ...(operation === 'background' ? { background: cellBackground } : {}),
+          ...(operation === 'padding' ? { padding: Number(cellPadding) } : {}),
+          ...(['top', 'middle', 'bottom'].includes(operation) ? { verticalAlign: operation as 'top' | 'middle' | 'bottom' } : {}),
+        })
+      const selected = tableGrid(replacement).grid[cellArea.top][cellArea.left].cell
+      context.table.replaceWith(replacement)
+      setTableContext({ table: replacement, cell: selected })
+      markChanged()
+    } catch (error) {
+      setStatus({ tone: 'danger', label: error instanceof Error ? error.message : 'Modifica delle celle non riuscita.' })
+    }
   }
 
   const changeTable = (action: TableAction | 'delete') => {
@@ -1639,6 +1680,7 @@ export function DocumentEditorPage() {
         selection?.addRange(caret)
         editorRangeRef.current = caret.cloneRange()
         setTableContext({ table: inserted, cell })
+        setCellArea({ top: 0, left: 0, bottom: cell.rowSpan - 1, right: cell.colSpan - 1 })
       } else {
         setTableContext(null)
         setTablePickerOpen(false)
@@ -2252,8 +2294,15 @@ export function DocumentEditorPage() {
               <button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => { phraseRequestRef.current?.abort(); phraseRequestRef.current = null; setPhraseLoading(false); setSpellingResults([]); setGrammarMarks([]); setGrammarNotice(''); grammarRequestRef.current?.abort(); languageRequestRef.current?.abort(); if (languageTimerRef.current) window.clearTimeout(languageTimerRef.current); setLanguageError(''); setPhraseSuggestion('') }}><X size={15}/> Chiudi suggerimenti</button>
             </div>
           </section>}
-          {tablePickerOpen && tableContext && <section className="iu-de-table-picker" aria-label="Modifica tabella">
-            <strong>Tabella selezionata</strong>
+          {tablePickerOpen && tableContext && <section className="iu-de-table-picker iu-de-table-sidebar" aria-label="Modifica tabella">
+            <header><strong>Tabella</strong><button type="button" className="iu-de-tool" aria-label="Chiudi strumenti tabella" onClick={() => setTablePickerOpen(false)}><X size={16}/></button></header>
+            <fieldset className="iu-de-cell-controls"><legend>Intervallo di celle</legend>
+              {([['top', 'Dalla riga'], ['bottom', 'Alla riga'], ['left', 'Dalla colonna'], ['right', 'Alla colonna']] as const).map(([key, label]) => <label key={key}>{label}<input type="number" min="1" max={key === 'top' || key === 'bottom' ? tableContext.table.rows.length : 20} value={cellArea[key] + 1} onChange={(event) => setCellArea((area) => ({ ...area, [key]: Number(event.target.value) - 1 }))}/></label>)}
+              <button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => { const structure = tableGrid(tableContext.table); setCellArea({ top: 0, left: 0, bottom: structure.grid.length - 1, right: structure.columns - 1 }) }}>Tutta la tabella</button>
+              <button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => applyCellChange('merge')}>Unisci celle</button>
+              <button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => applyCellChange('split')}>Dividi celle unite</button>
+            </fieldset>
+
             <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => changeTable('rowBefore')}>Riga sopra</button>
             <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => changeTable('rowAfter')}>Riga sotto</button>
             <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => changeTable('rowDelete')}>Elimina riga</button>
@@ -2262,6 +2311,30 @@ export function DocumentEditorPage() {
             <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => changeTable('columnDelete')}>Elimina colonna</button>
             <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => changeTable('delete')}>Elimina tabella</button>
             <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => setTablePickerOpen(false)}>Chiudi</button>
+          </section>}
+          {tablePickerOpen && tableContext && <section className="iu-de-table-picker iu-de-table-appearance" aria-label="Bordi e formattazione tabella">
+            <details open className="iu-de-table-section"><summary>Bordi e aspetto</summary><fieldset className="iu-de-cell-controls"><legend>Celle selezionate</legend>
+              <label>Linea<select value={borderStyle} onChange={(event) => setBorderStyle(event.target.value as typeof borderStyle)}><option value="solid">Continua</option><option value="double">Doppia</option><option value="dotted">Puntinata</option><option value="dashed">Tratteggiata</option><option value="none">Rimuovi bordo</option></select></label>
+              <label>Spessore (pt)<input type="number" min="0.25" max="12" step="0.25" value={borderWidth} onChange={(event) => setBorderWidth(event.target.value)}/></label>
+              <label>Colore bordo<input type="color" value={borderColor} onChange={(event) => setBorderColor(event.target.value)}/></label>
+              <button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => applyCellChange('all')}>Tutti i bordi</button>
+              <button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => applyCellChange('outside')}>Solo contorno</button>
+              <button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => applyCellChange('none')}>Senza bordi</button>
+              <button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => applyCellChange('inside')}>Bordi interni</button>
+              <button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => applyCellChange('horizontal')}>Interni orizzontali</button>
+              <button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => applyCellChange('vertical')}>Interni verticali</button>
+              <button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => applyCellChange('edgeTop')}>Bordo superiore</button>
+              <button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => applyCellChange('edgeBottom')}>Bordo inferiore</button>
+              <button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => applyCellChange('edgeLeft')}>Bordo sinistro</button>
+              <button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => applyCellChange('edgeRight')}>Bordo destro</button>
+              <label>Sfondo<input type="color" value={cellBackground} onChange={(event) => setCellBackground(event.target.value)}/></label>
+              <button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => applyCellChange('background')}>Applica sfondo</button>
+              <label>Margine interno (pt)<input type="number" min="0" max="40" value={cellPadding} onChange={(event) => setCellPadding(event.target.value)}/></label>
+              <button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => applyCellChange('padding')}>Applica margine</button>
+              <button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => applyCellChange('top')}>Allinea in alto</button>
+              <button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => applyCellChange('middle')}>Centra in verticale</button>
+              <button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => applyCellChange('bottom')}>Allinea in basso</button>
+            </fieldset></details>
           </section>}
           {tablePickerOpen && !tableContext && <section className="iu-de-table-picker" aria-label="Inserisci tabella">
             <strong>Inserisci tabella</strong>
@@ -2304,6 +2377,20 @@ export function DocumentEditorPage() {
                   spellCheck={false}
                   onInput={handleEditorInput}
                   onClick={(event) => {
+                    if (tablePickerOpen) {
+                      const cell = (event.target as Element).closest<HTMLTableCellElement>('td,th')
+                      const table = cell?.closest<HTMLTableElement>('table')
+                      if (cell && table) {
+                        try {
+                          const structure = tableGrid(table)
+                          const origin = structure.origins.find((item) => item.cell === cell)
+                          if (origin) {
+                            setTableContext({ cell, table })
+                            setCellArea({ top: origin.row, left: origin.column, bottom: origin.row + (cell.rowSpan || structure.grid.length - origin.row) - 1, right: origin.column + cell.colSpan - 1 })
+                          }
+                        } catch (error) { setStatus({ tone: 'danger', label: error instanceof Error ? error.message : 'Struttura della tabella non valida.' }) }
+                      }
+                    }
                     const mark = spellingMarksRef.current.find((entry) => entry.range.toString() === entry.word && Array.from(entry.range.getClientRects()).some((rect) => event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom))
                     if (!mark) { setSpellingChoice(null); return }
                     const rect = mark.range.getBoundingClientRect()

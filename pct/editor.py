@@ -1233,6 +1233,48 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
         for cella, destinazione in destinazioni:
             destinazione.text = ""
             from docx.oxml import OxmlElement
+            # CSSOM serializes chosen hex colors as rgb(); preserve them in DOCX.
+            stile_cella = re.sub(
+                r'rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)',
+                lambda colore: '#' + ''.join(f'{min(255, int(valore)):02x}' for valore in colore.groups()),
+                cella.get("style") or "", flags=re.I,
+            )
+            dichiarazioni = dict(
+                parte.strip().split(':', 1) for parte in stile_cella.split(';') if ':' in parte
+            )
+            dichiarazioni = {chiave.strip().lower(): valore.strip() for chiave, valore in dichiarazioni.items()}
+            def lato_css(valore, indice):
+                parti = valore.split()
+                if len(parti) == 1:
+                    return parti[0]
+                if len(parti) == 2:
+                    return parti[indice % 2]
+                if len(parti) == 3:
+                    return parti[(0, 1, 2, 1)[indice]]
+                return parti[indice] if len(parti) == 4 else ''
+            for indice, lato in enumerate(('top', 'right', 'bottom', 'left')):
+                if 'border-' + lato in dichiarazioni:
+                    continue
+                linea = lato_css(dichiarazioni.get('border-style', ''), indice)
+                larghezza = lato_css(dichiarazioni.get('border-width', ''), indice)
+                colore = lato_css(dichiarazioni.get('border-color', ''), indice)
+                bordo_comune = dichiarazioni.get('border', '')
+                if linea == 'none' or bordo_comune == 'none':
+                    stile_cella += f';border-{lato}:none'
+                elif linea in ('solid', 'double', 'dotted', 'dashed') and re.fullmatch(r'[0-9.]+(?:pt|px)', larghezza) and re.fullmatch(r'#[0-9a-fA-F]{6}', colore):
+                    punti = float(larghezza[:-2]) * (0.75 if larghezza.endswith('px') else 1)
+                    stile_cella += f';border-{lato}:{punti:g}pt {linea} {colore}'
+                elif re.fullmatch(r'[0-9.]+pt\s+(solid|double|dotted|dashed)\s+#[0-9a-fA-F]{6}', bordo_comune):
+                    stile_cella += f';border-{lato}:{bordo_comune}'
+            cella.set("style", stile_cella)
+            allineamento_verticale = re.search(r'(?:^|;)\s*vertical-align:\s*(top|middle|bottom)\s*(?:;|$)', stile_cella, re.I)
+            if allineamento_verticale:
+                from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT
+                destinazione.vertical_alignment = {
+                    'top': WD_CELL_VERTICAL_ALIGNMENT.TOP,
+                    'middle': WD_CELL_VERTICAL_ALIGNMENT.CENTER,
+                    'bottom': WD_CELL_VERTICAL_ALIGNMENT.BOTTOM,
+                }[allineamento_verticale.group(1).lower()]
             sfondo = re.search(r'(?:^|;)\s*background-color:\s*#([0-9a-fA-F]{6})\s*(?:;|$)', cella.get("style") or "", re.I)
             if sfondo:
                 ombra = OxmlElement('w:shd')

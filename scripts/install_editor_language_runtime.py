@@ -2,7 +2,7 @@
 import hashlib
 import io
 from pathlib import Path
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 import zipfile
 
 VERSION = "6.6"
@@ -29,5 +29,6 @@ def installa(destinazione: Path, archivio: bytes) -> None:
 
 
 if __name__ == "__main__":
-    with urlopen(f"https://languagetool.org/download/LanguageTool-{VERSION}.zip", timeout=120) as risposta:
+    richiesta = Request(f"https://languagetool.org/download/LanguageTool-{VERSION}.zip", headers={"User-Agent": "IUSENTRA-build/1.0", "Accept": "application/zip"})
+    with urlopen(richiesta, timeout=120) as risposta:
         installa(Path("/opt/iusentra/languagetool"), risposta.read())

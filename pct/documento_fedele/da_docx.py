@@ -822,6 +822,12 @@ def _html_tabella(tabella, documento, corpo_base: float, famiglia_base: str,
 
             stile = _margini_cella(cella, tabella)
             stile += _bordi_cella(cella, tabella, indice_riga, inizio_colonna, colonne)
+            if cella._tc.tcPr is not None:
+                verticale = cella._tc.tcPr.find(f'{NS}vAlign')
+                if verticale is not None:
+                    valore = {'top': 'top', 'center': 'middle', 'bottom': 'bottom'}.get(verticale.get(f'{NS}val'))
+                    if valore:
+                        stile.append(f'vertical-align:{valore}')
             if larghezze:
                 quota = sum(larghezze[inizio_colonna:inizio_colonna + colonne])
                 if quota > 0:

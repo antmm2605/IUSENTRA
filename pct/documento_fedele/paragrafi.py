@@ -19,7 +19,7 @@ from .lettura import _RE_SEGNO
 # 2. Dal testo ai paragrafi
 # ===========================================================================
 
-def _html_tratti(tratti: list[Tratto], corpo_base: float, famiglia_base: str) -> str:
+def _html_tratti(tratti: list[Tratto], corpo_base: float, famiglia_base: str, *, preciso: bool = False) -> str:
     """Accorpa i tratti con lo stesso stile e li rende in HTML."""
     pezzi: list[str] = []
     gruppo: list[str] = []
@@ -33,26 +33,36 @@ def _html_tratti(tratti: list[Tratto], corpo_base: float, famiglia_base: str) ->
         stile = []
         if modello.famiglia != famiglia_base:
             stile.append(f"font-family:{modello.famiglia}")
-        if abs(modello.corpo - corpo_base) >= 0.6:
+        if abs(modello.corpo - corpo_base) >= (0.01 if preciso else 0.6):
             stile.append(f"font-size:{_pt(modello.corpo)}pt")
         if modello.colore.lower() not in ("#000000", "#000"):
             stile.append(f"color:{modello.colore}")
         if modello.evidenziato:
             stile.append(f"background-color:{modello.evidenziato}")
 
+        if modello.spaziatura_pt:
+            stile.append(f"letter-spacing:{modello.spaziatura_pt:g}pt")
+        if modello.sottolineatura_word:
+            stile.append(f"--iu-word-underline:{modello.sottolineatura_word}")
         apri, chiudi = "", ""
         if modello.grassetto:
-            apri += "<strong>"; chiudi = "</strong>" + chiudi
+            apri += "<strong>"
+            chiudi = "</strong>" + chiudi
         if modello.corsivo:
-            apri += "<em>"; chiudi = "</em>" + chiudi
+            apri += "<em>"
+            chiudi = "</em>" + chiudi
         if modello.sottolineato:
-            apri += "<u>"; chiudi = "</u>" + chiudi
+            apri += "<u>"
+            chiudi = "</u>" + chiudi
         if modello.barrato:
-            apri += "<s>"; chiudi = "</s>" + chiudi
+            apri += "<s>"
+            chiudi = "</s>" + chiudi
         if modello.apice:
-            apri += "<sup>"; chiudi = "</sup>" + chiudi
+            apri += "<sup>"
+            chiudi = "</sup>" + chiudi
         if modello.pedice:
-            apri += "<sub>"; chiudi = "</sub>" + chiudi
+            apri += "<sub>"
+            chiudi = "</sub>" + chiudi
 
         corpo = f"{apri}{testo}{chiudi}"
         if stile:

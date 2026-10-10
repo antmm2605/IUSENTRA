@@ -270,6 +270,41 @@ def register_fascicoli_editor_routes(
             app.logger.exception("Errore api_editor_carica_html: %s", exc)
             return jsonify({"ok": False, "html": "<p>Documento non caricato.</p>", "avvisi": ["Documento non caricato."], "meta": {}})
 
+    @app.route("/api/editor/<id_fasc>/<id_doc>/lingua", methods=["POST"])
+    def api_editor_lingua(id_fasc, id_doc):
+        from pct.editor_language import controlla_ortografia, suggerisci_frase
+        from pct.editor_ai.validators import assert_user_can_write, EditorAIPermissionDenied, user_id_from_context
+        from web.services.editor_ai_runtime import editor_ai_user_context
+
+        try:
+            utente = editor_ai_user_context()
+            assert_user_can_write(utente)
+            fascicolo = get_fascicoli().get(id_fasc)
+            documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None) if fascicolo else None
+            if documento is None:
+                return jsonify({"ok": False, "errore": "Documento non trovato."}), 404
+            body = request.get_json(silent=True) or {}
+            testo = body.get("testo", "")
+            azione = body.get("azione", "ortografia")
+            if azione == "ortografia":
+                return jsonify({"ok": True, "rilievi": controlla_ortografia(testo), "locale": True})
+            if azione == "documento":
+                from pct.editor_grammar import controlla_documento
+                rilievi = controlla_documento(testo)
+                audit("fascicoli.documento.controllo_linguistico", "fascicolo", id_fasc, dettagli=f"doc {id_doc}; solo locale; {len(rilievi)} rilievi; testo invariato")
+                return jsonify({"ok": True, "rilievi": rilievi, "locale": True})
+            if azione != "frase":
+                raise ValueError("Operazione linguistica non consentita.")
+            proposta = suggerisci_frase(testo, user_id_from_context(utente))
+            audit("fascicoli.documento.suggerimento_linguistico", "fascicolo", id_fasc, dettagli=f"doc {id_doc}; solo locale; proposta non applicata")
+            return jsonify({"ok": True, "proposta": proposta, "locale": True})
+        except EditorAIPermissionDenied:
+            return jsonify({"ok": False, "errore": "Operazione non autorizzata."}), 403
+        except ValueError as exc:
+            return jsonify({"ok": False, "errore": str(exc)}), 400
+        except Exception:
+            return jsonify({"ok": False, "errore": "Supporto linguistico locale non disponibile. Riprova tra poco."}), 503
+
     @app.route("/api/editor/<id_fasc>/<id_doc>/salva", methods=["POST"])
     def api_editor_salva(id_fasc, id_doc):
         from pct.editor import html_to_docx
@@ -300,13 +335,10 @@ def register_fascicoli_editor_routes(
             if blocco:
                 return jsonify({"ok": False, "errore": blocco}), 403
 
-            timbro = _current_studio_timbro()
-            if ext == "docx":
-                contenuto_raw = html_to_docx(html, titolo=nome.rsplit(".", 1)[0], studio_timbro=timbro)
-                nome_salvato = nome
-            else:
-                contenuto_raw = html.encode("utf-8")
-                nome_salvato = nome.rsplit(".", 1)[0] + ".html" if "." in nome else nome + ".html"
+            # Il salvataggio riproduce il contenuto dell'editor: la carta
+            # intestata si inserisce nella redazione, non durante l'export.
+            contenuto_raw = html_to_docx(html, titolo=nome.rsplit(".", 1)[0])
+            nome_salvato = (nome.rsplit(".", 1)[0] if "." in nome else nome) + ".docx"
 
             doc_salvato = gestore_fascicoli.sostituisci_documento(
                 id_fasc,
@@ -334,15 +366,14 @@ def register_fascicoli_editor_routes(
                 content=contenuto_raw,
             )
             audit("fascicoli.documento.editor_salva", "fascicolo", id_fasc, dettagli=f"doc {id_doc} — {nome}")
-            return jsonify({"ok": True, "auto": auto})
+            return jsonify({"ok": True, "auto": auto, "nome": nome_salvato, "formato": "docx"})
         except Exception as exc:
             app.logger.exception("Errore api_editor_salva: %s", exc)
             return jsonify({"ok": False, "errore": "Documento non salvato."})
 
+    @app.route("/api/editor/<id_fasc>/<id_doc>/anteprima-stampa", methods=["POST"])
     @app.route("/api/editor/<id_fasc>/<id_doc>/pdf", methods=["POST"])
     def api_editor_pdf(id_fasc, id_doc):
-        from pct.editor import html_to_pdf
-
         try:
             body = request.get_json(force=True) or {}
             html = body.get("html", "<p></p>")
@@ -354,14 +385,22 @@ def register_fascicoli_editor_routes(
                 percorso = _percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
                 contenuto_originale = decrypt_doc(percorso.read_bytes())
                 audit("fascicoli.documento.editor_pdf_originale", "fascicolo", id_fasc, dettagli=f"doc {id_doc}")
+                if request.path.endswith("/anteprima-stampa"):
+                    from pct.editor_export import anteprima_stampa_pdf
+                    return app.response_class(anteprima_stampa_pdf(contenuto_originale), mimetype="text/html")
                 return send_file(
                     io.BytesIO(contenuto_originale),
                     mimetype="application/pdf",
                     as_attachment=True,
                     download_name=documento.nome,
                 )
-            pdf_bytes = html_to_pdf(html, titolo=titolo, studio_timbro=_current_studio_timbro())
+            from pct.editor_export import esporta_documento_editor
+
+            pdf_bytes = esporta_documento_editor(html, formato="pdf", titolo=titolo)
             audit("fascicoli.documento.editor_pdf", "fascicolo", id_fasc, dettagli=f"doc {id_doc}")
+            if request.path.endswith("/anteprima-stampa"):
+                from pct.editor_export import anteprima_stampa_pdf
+                return app.response_class(anteprima_stampa_pdf(pdf_bytes), mimetype="text/html")
             return send_file(
                 io.BytesIO(pdf_bytes),
                 mimetype="application/pdf",
@@ -623,6 +662,28 @@ def register_fascicoli_editor_routes(
             app.logger.exception("Errore api_editor_importa: %s", exc)
             return jsonify({"ok": False, "messaggio": "Documento non importato nell'editor."}), 500
 
+    @app.route("/api/editor/<id_fasc>/<id_doc>/rtf", methods=["POST"])
+    def api_editor_rtf(id_fasc, id_doc):
+        from pct.editor_export import esporta_documento_editor
+        from pct.editor_ai.validators import assert_user_can_read, EditorAIPermissionDenied
+        from web.services.editor_ai_runtime import editor_ai_user_context
+
+        try:
+            assert_user_can_read(editor_ai_user_context())
+            fascicolo = get_fascicoli().get(id_fasc)
+            documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None) if fascicolo else None
+            if documento is None:
+                return jsonify({"errore": "Documento non trovato."}), 404
+            body = request.get_json(silent=True) or {}
+            titolo = documento.nome.rsplit(".", 1)[0]
+            contenuto = esporta_documento_editor(body.get("html", "<p></p>"), formato="rtf", titolo=titolo)
+            audit("fascicoli.documento.editor_rtf", "fascicolo", id_fasc, dettagli=f"doc {id_doc}")
+            return send_file(io.BytesIO(contenuto), mimetype="application/rtf", as_attachment=True, download_name=titolo + ".rtf")
+        except EditorAIPermissionDenied:
+            return jsonify({"errore": "Operazione non autorizzata."}), 403
+        except Exception:
+            return jsonify({"errore": "Generazione RTF non completata."}), 503
+
     @app.route("/api/editor/<id_fasc>/<id_doc>/docx", methods=["POST"])
     def api_editor_docx(id_fasc, id_doc):
         from pct.editor import html_to_docx
@@ -633,7 +694,7 @@ def register_fascicoli_editor_routes(
             fascicolo = get_fascicoli().get(id_fasc)
             documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
             titolo = documento.nome.rsplit(".", 1)[0] if documento else "documento"
-            docx_bytes = html_to_docx(html, titolo=titolo, studio_timbro=_current_studio_timbro())
+            docx_bytes = html_to_docx(html, titolo=titolo)
             audit("fascicoli.documento.editor_docx", "fascicolo", id_fasc, dettagli=f"doc {id_doc}")
             return send_file(
                 io.BytesIO(docx_bytes),

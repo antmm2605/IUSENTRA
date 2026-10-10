@@ -1,4 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ClipboardEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ClipboardEvent, type FormEvent, type ReactNode } from 'react'
+import { editTable, type TableAction } from '../editorTableGrid'
+import { EditorHistory, editorCaret, restoreEditorCaret } from '../editorHistory'
+import { clearSpellingMarks, showSpellingMarks, documentLanguageSource, grammarRanges, type SpellingMark } from '../editorSpelling'
 import {
   AlignCenter,
   AlignJustify,
@@ -16,6 +19,7 @@ import {
   FileText,
   Heading1,
   Highlighter,
+  ImagePlus,
   Italic,
   Link,
   List,
@@ -27,6 +31,7 @@ import {
   Minimize2,
   Palette,
   Pilcrow,
+  Printer,
   Redo2,
   Replace,
   Save,
@@ -36,6 +41,7 @@ import {
   Strikethrough,
   Table,
   Underline,
+  X,
   Undo2,
   UploadCloud,
   Wand2,
@@ -43,17 +49,30 @@ import {
 } from 'lucide-react'
 import { Badge } from './dashboard'
 import { FloatingLex } from './FloatingLex'
+import { ConfirmDialog } from '../ui/ConfirmDialog'
 import {
   emptyDocumentEditorPayload,
   getDocumentEditorPayload,
   type DocumentEditorPayload,
 } from '../documentEditorData'
 import './DocumentEditorPage.css'
+import { GRUPPI_CARATTERI } from './documentCapture/ocrBarraVoci'
 
 type EditorRoute = { idFascicolo: string; idDocumento: string } | null
 type EditorStatus = { tone: 'loading' | 'saving' | 'success' | 'warning' | 'danger' | 'neutral'; label: string }
 type EditorStats = { words: number; chars: number; readingMinutes: number }
 type InlineStylePatch = { fontFamily?: string; fontSize?: string; lineHeight?: string }
+type PageLayout = { width: number; height: number; top: number; bottom: number; left: number; right: number }
+const DEFAULT_PAGE_LAYOUT: PageLayout = { width: 210, height: 297, top: 25, bottom: 25, left: 25, right: 25 }
+
+function nativePageLayout(page: Element | null): PageLayout {
+  const read = (attribute: string, fallback: number) => {
+    const raw = page?.getAttribute(`data-${attribute}`)
+    const value = raw === null || raw === undefined ? fallback : Number(raw) * 25.4 / 72
+    return Number.isFinite(value) ? value : fallback
+  }
+  return { width: read('larghezza', 210), height: read('altezza', 297), top: read('margine-alto', 25), bottom: read('margine-basso', 25), left: read('margine-sinistro', 25), right: read('margine-destro', 25) }
+}
 type EditorAITemplate = { id: string; titolo: string; area: string; canale_telematico: string }
 type EditorAIDocument = { document_id: string; filename: string; status: string; page_count: number | null; sha256: string }
 type EditorAISource = { id: string; source_type: string; source_id: string; document_id: string; page_number: number | null; quote: string; sha256: string; reason: string }
@@ -125,13 +144,23 @@ const FONT_FAMILY_OPTIONS = [
   { label: 'Garamond', value: 'Garamond, "Times New Roman", serif' },
   { label: 'Georgia', value: 'Georgia, "Times New Roman", serif' },
   { label: 'Courier New', value: '"Courier New", Courier, monospace' },
-] as const
-const FONT_SIZE_OPTIONS = ['10pt', '11pt', '12pt', '13pt', '14pt', '16pt', '18pt', '20pt', '24pt'] as const
+].concat(GRUPPI_CARATTERI.flatMap((gruppo) => gruppo.caratteri
+  .filter((nome) => !['Times New Roman', 'Arial', 'Calibri', 'Garamond', 'Georgia', 'Courier New'].includes(nome))
+  .map((nome) => ({ label: nome, value: `"${nome}", ${gruppo.gruppo === 'A spaziatura fissa' ? 'monospace' : gruppo.gruppo === 'Senza grazie' ? 'sans-serif' : 'serif'}` }))))
+const FONT_SIZE_OPTIONS = Array.from({ length: 70 }, (_, index) => `${index + 3}pt`)
+const ZOOM_OPTIONS = Array.from({ length: 36 }, (_, index) => String(25 + index * 5))
 const LINE_HEIGHT_OPTIONS = [
+  { label: 'Singola', value: '1' },
   { label: '1,15', value: '1.15' },
+  { label: '1,25', value: '1.25' },
   { label: '1,5', value: '1.5' },
   { label: '1,6', value: '1.6' },
+  { label: '1,75', value: '1.75' },
   { label: 'Doppia', value: '2' },
+  { label: '2,5', value: '2.5' },
+  { label: 'Tripla', value: '3' },
+  { label: '3,5', value: '3.5' },
+  { label: 'Quadrupla', value: '4' },
 ] as const
 const PAGE_PRESETS = [
   { id: 'a4', label: 'A4', width: '840px', minHeight: '1120px', paddingX: '82px', paddingY: '76px' },
@@ -358,7 +387,7 @@ function newPdfAnnotationId(): string {
 
 function ToolbarButton({ title, onClick, children, disabled = false }:{title:string; onClick:()=>void; children:ReactNode; disabled?:boolean}) {
   return (
-    <button className="iu-de-tool" type="button" onClick={onClick} title={title} aria-label={title} disabled={disabled}>
+    <button className="iu-de-tool" type="button" onMouseDown={(event) => event.preventDefault()} onClick={onClick} title={title} aria-label={title} disabled={disabled}>
       {children}
     </button>
   )
@@ -420,9 +449,43 @@ export function DocumentEditorPage() {
   const editorRef = useRef<HTMLDivElement | null>(null)
   const replaceFileRef = useRef<HTMLInputElement | null>(null)
   const autosaveRef = useRef<number | null>(null)
+  const saveInFlightRef = useRef(false)
+  const editRevisionRef = useRef(0)
+  const tableRangeRef = useRef<Range | null>(null)
+  const editorRangeRef = useRef<Range | null>(null)
+  const editorHistoryRef = useRef(new EditorHistory())
+  const linkRangeRef = useRef<Range | null>(null)
+  const [linkOpen, setLinkOpen] = useState(false)
+  const [linkExisting, setLinkExisting] = useState(false)
+  const [linkUrl, setLinkUrl] = useState('')
+  const [linkText, setLinkText] = useState('')
+  const imageFileRef = useRef<HTMLInputElement | null>(null)
+  const imageRangeRef = useRef<Range | null>(null)
+  const languageTimerRef = useRef<number | null>(null)
+  const languageRequestRef = useRef<AbortController | null>(null)
+  const phraseRequestRef = useRef<AbortController | null>(null)
+  const [spellingEnabled, setSpellingEnabled] = useState(true)
+  const [spellingResults, setSpellingResults] = useState<Array<{ parola: string; suggerimenti: string[] }>>([])
+  const [languageError, setLanguageError] = useState('')
+  const [phraseSuggestion, setPhraseSuggestion] = useState('')
+  const [phraseLoading, setPhraseLoading] = useState(false)
+  const [phraseCopied, setPhraseCopied] = useState(false)
+  const spellingMarksRef = useRef<SpellingMark[]>([])
+  const [grammarLoading, setGrammarLoading] = useState(false)
+  const [grammarNotice, setGrammarNotice] = useState('')
+  const [grammarMarks, setGrammarMarks] = useState<SpellingMark[]>([])
+  const grammarRequestRef = useRef<AbortController | null>(null)
+  const [spellingChoice, setSpellingChoice] = useState<{ mark: SpellingMark; x: number; y: number } | null>(null)
+  const lineHeightRangeRef = useRef<Range | null>(null)
+  const [tablePickerOpen, setTablePickerOpen] = useState(false)
+  const [tableContext, setTableContext] = useState<{ table: HTMLTableElement; cell: HTMLTableCellElement } | null>(null)
+  const [tableRows, setTableRows] = useState('3')
+  const [tableColumns, setTableColumns] = useState('2')
+  const [tableHeader, setTableHeader] = useState(true)
   const [data, setData] = useState<DocumentEditorPayload>(emptyDocumentEditorPayload)
   const [payloadLoading, setPayloadLoading] = useState(true)
   const [documentLoading, setDocumentLoading] = useState(false)
+  const [pendingImportFile, setPendingImportFile] = useState<File | null>(null)
   const [status, setStatus] = useState<EditorStatus>({ tone: 'loading', label: 'Caricamento editor' })
   const [warnings, setWarnings] = useState<string[]>([])
   const [stats, setStats] = useState<EditorStats>(defaultStats)
@@ -431,12 +494,30 @@ export function DocumentEditorPage() {
   const [conversionLocked, setConversionLocked] = useState(false)
   const [conversionLockedReason, setConversionLockedReason] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
+  const [documentFactsOpen, setDocumentFactsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [replaceTerm, setReplaceTerm] = useState('')
   const [fontFamily, setFontFamily] = useState<string>(FONT_FAMILY_OPTIONS[0].value)
   const [fontSize, setFontSize] = useState('12pt')
   const [lineHeight, setLineHeight] = useState('1.6')
+  const [customLineHeight, setCustomLineHeight] = useState('1,6')
+  const [customLineHeightOpen, setCustomLineHeightOpen] = useState(false)
   const [pagePreset, setPagePreset] = useState<string>('a4')
+  const [pageLayout, setPageLayout] = useState<PageLayout>(DEFAULT_PAGE_LAYOUT)
+  const originalSectionLayoutsRef = useRef(new Map<HTMLElement, PageLayout>())
+  const pageLayoutRef = useRef({ layout: DEFAULT_PAGE_LAYOUT, changed: false })
+  const originalLayoutRef = useRef<PageLayout>(DEFAULT_PAGE_LAYOUT)
+  const [layoutOpen, setLayoutOpen] = useState(false)
+  const [layoutDraft, setLayoutDraft] = useState<PageLayout>(DEFAULT_PAGE_LAYOUT)
+  const [printPreviewUrl, setPrintPreviewUrl] = useState('')
+  const printRequestRef = useRef<AbortController | null>(null)
+  const printFrameRef = useRef<HTMLIFrameElement | null>(null)
+  const [printLoading, setPrintLoading] = useState(false)
+  const [printError, setPrintError] = useState('')
+  const [printPages, setPrintPages] = useState(0)
+  const [printPage, setPrintPage] = useState('1')
+  const [printZoom, setPrintZoom] = useState('fit')
+  const printWhenReadyRef = useRef(false)
   const [zoom, setZoom] = useState('100')
   const [editorAiOpen, setEditorAiOpen] = useState(false)
   // Tutto schermo: la pagina dell'editor occupa lo schermo (API Fullscreen; dove manca, ad esempio
@@ -493,14 +574,53 @@ export function DocumentEditorPage() {
   const [pdfRevision, setPdfRevision] = useState(Date.now())
 
   const updateStats = useCallback(() => {
-    const text = editorRef.current?.innerText.trim() || ''
+    const root = editorRef.current
+    let text = root?.innerText.trim() || ''
+    if (root?.querySelector('[data-iu-word-region]')) {
+      const body = root.cloneNode(true) as HTMLElement
+      body.querySelectorAll('[data-iu-word-region],[data-iu-word-variants]').forEach((node) => node.remove())
+      body.querySelectorAll('p,h1,h2,h3,li,td,section').forEach((node) => node.appendChild(document.createTextNode('\n')))
+      text = (body.textContent || '').trim()
+    }
     const words = text ? text.split(/\s+/).filter(Boolean).length : 0
     setStats({ words, chars: text.length, readingMinutes: Math.max(1, Math.ceil(words / 200)) })
   }, [])
 
+  const serializeEditorHtml = useCallback(() => {
+    const root = editorRef.current?.cloneNode(true) as HTMLElement | undefined
+    if (!root) return ''
+    let pages = Array.from(root.querySelectorAll<HTMLElement>('section.iu-doc-pagina'))
+    if (!pages.length) {
+      const page = document.createElement('section')
+      page.className = 'iu-doc-pagina'
+      page.setAttribute('data-pagina', '1')
+      page.style.fontFamily = 'Times New Roman'
+      page.style.fontSize = '12pt'
+      page.style.lineHeight = '1.6'
+      while (root.firstChild) page.appendChild(root.firstChild)
+      root.appendChild(page)
+      pages = [page]
+    }
+    const config = pageLayoutRef.current
+    for (const page of pages) {
+      if (!config.changed && page.hasAttribute('data-larghezza')) continue
+      for (const [key, attribute] of [['width', 'larghezza'], ['height', 'altezza'], ['top', 'margine-alto'], ['bottom', 'margine-basso'], ['left', 'margine-sinistro'], ['right', 'margine-destro']] as const) {
+        page.setAttribute(`data-${attribute}`, String(config.layout[key] * 72 / 25.4))
+      }
+    }
+    return root.innerHTML
+  }, [])
+
   const saveDocument = useCallback(async (auto = false) => {
     if (!data.endpoints.save || !editorRef.current || !data.document.editable || conversionLocked) return
+    if (saveInFlightRef.current) {
+      if (autosaveRef.current) window.clearTimeout(autosaveRef.current)
+      autosaveRef.current = window.setTimeout(() => void saveDocument(auto), 500)
+      return
+    }
     if (autosaveRef.current) window.clearTimeout(autosaveRef.current)
+    const submittedRevision = editRevisionRef.current
+    saveInFlightRef.current = true
     setStatus({ tone: 'saving', label: auto ? 'Salvataggio automatico' : 'Salvataggio in corso' })
     try {
       const response = await fetch(data.endpoints.save, {
@@ -511,37 +631,296 @@ export function DocumentEditorPage() {
           'Content-Type': 'application/json',
           'X-Requested-With': 'XMLHttpRequest',
         },
-        body: JSON.stringify({ html: editorRef.current.innerHTML, auto }),
+        body: JSON.stringify({ html: serializeEditorHtml(), auto }),
       })
       const payload = await response.json().catch(() => ({} as Record<string, unknown>))
       if (!response.ok || payload.ok === false) throw new Error(String(payload.errore || payload.messaggio || 'Salvataggio non riuscito.'))
-      setDirty(false)
+      if (text(payload.nome)) setData((current) => ({ ...current, document: { ...current.document, name: text(payload.nome), extension: 'docx' } }))
+      const hasNewEdits = editRevisionRef.current !== submittedRevision
+      setDirty(hasNewEdits)
       const now = new Date()
       setLastSavedAt(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`)
-      setStatus({ tone: 'success', label: auto ? 'Salvato automaticamente' : 'Salvato' })
-      window.setTimeout(() => setStatus({ tone: 'neutral', label: 'Pronto' }), 2400)
+      setStatus(hasNewEdits
+        ? { tone: 'warning', label: 'Nuove modifiche da salvare' }
+        : { tone: 'success', label: auto ? 'Salvato automaticamente' : 'Salvato' })
+      if (!hasNewEdits) window.setTimeout(() => {
+        if (editRevisionRef.current === submittedRevision && !saveInFlightRef.current) {
+          setStatus({ tone: 'neutral', label: 'Pronto' })
+        }
+      }, 2400)
     } catch (error) {
       setStatus({ tone: 'danger', label: error instanceof Error ? error.message : 'Errore di salvataggio' })
+    } finally {
+      saveInFlightRef.current = false
     }
-  }, [conversionLocked, data.document.editable, data.endpoints.save])
+  }, [conversionLocked, data.document.editable, data.endpoints.save, serializeEditorHtml])
 
   const scheduleAutosave = useCallback(() => {
     if (!data.document.editable || conversionLocked) return
+    editRevisionRef.current += 1
     setDirty(true)
     setStatus({ tone: 'warning', label: 'Modifiche non salvate' })
     if (autosaveRef.current) window.clearTimeout(autosaveRef.current)
     autosaveRef.current = window.setTimeout(() => void saveDocument(true), Math.max(8, data.capabilities.autosaveSeconds) * 1000)
   }, [conversionLocked, data.capabilities.autosaveSeconds, data.document.editable, saveDocument])
 
-  const markChanged = useCallback(() => {
+  const markChanged = useCallback((group = '') => {
+    setGrammarNotice('')
+    grammarRequestRef.current?.abort()
+    setGrammarLoading(false)
+    setGrammarMarks([])
+    setSpellingChoice(null)
+    spellingMarksRef.current = spellingMarksRef.current.filter((mark) => mark.range.startContainer.isConnected && mark.range.toString() === mark.word)
+    showSpellingMarks(spellingMarksRef.current)
+    const root = editorRef.current
+    const node = window.getSelection()?.anchorNode
+    const element = node instanceof Element ? node : node?.parentElement
+    const region = element?.closest<HTMLElement>('[data-iu-word-region][data-iu-word-key]')
+    if (root && region && root.contains(region)) {
+      const key = region.getAttribute('data-iu-word-key')
+      root.querySelectorAll<HTMLElement>('[data-iu-word-region][data-iu-word-key]').forEach((copy) => {
+        if (copy !== region && copy.getAttribute('data-iu-word-key') === key) copy.innerHTML = region.innerHTML
+      })
+    }
+    if (root) editorHistoryRef.current.record(root.innerHTML, editorCaret(root), group)
     updateStats()
     scheduleAutosave()
   }, [scheduleAutosave, updateStats])
 
+  useEffect(() => {
+    const rememberSelection = () => {
+      const selection = window.getSelection()
+      if (selection?.rangeCount && editorRef.current?.contains(selection.anchorNode)) {
+        editorRangeRef.current = selection.getRangeAt(0).cloneRange()
+        const node = selection.anchorNode
+        const element = node instanceof Element ? node : node?.parentElement
+        if (!element) return
+        const computed = window.getComputedStyle(element)
+        const family = computed.fontFamily.split(',')[0].replace(/["']/g, '').trim().toLowerCase()
+        const option = FONT_FAMILY_OPTIONS.find((item) => item.label.toLowerCase() === family)
+        if (option) setFontFamily(option.value)
+        const points = Number.parseFloat(computed.fontSize) * 0.75
+        if (Number.isFinite(points)) setFontSize(`${Number(points.toFixed(2))}pt`)
+        const paragraph = element.closest('p,li,h1,h2,h3,h4,h5,h6,blockquote') || element
+        const paragraphStyle = window.getComputedStyle(paragraph)
+        const height = Number.parseFloat(paragraphStyle.lineHeight)
+        const size = Number.parseFloat(paragraphStyle.fontSize)
+        if (Number.isFinite(height) && size > 0) setLineHeight(String(Number((height / size).toFixed(3))))
+      }
+    }
+    document.addEventListener('selectionchange', rememberSelection)
+    return () => document.removeEventListener('selectionchange', rememberSelection)
+  }, [])
+
+  const applyPageLayout = (layout: PageLayout, preset = 'custom') => {
+    if (Object.values(layout).some((value) => !Number.isFinite(value) || value < 0)
+      || layout.width < 100 || layout.height < 100 || layout.width > 700 || layout.height > 700
+      || layout.left + layout.right >= layout.width - 20 || layout.top + layout.bottom >= layout.height - 20
+      || [layout.top, layout.bottom, layout.left, layout.right].some((value) => value > 100)) {
+      setStatus({ tone: 'danger', label: 'Controlla i margini: deve restare spazio per il documento.' })
+      return false
+    }
+    pageLayoutRef.current = { layout, changed: preset !== 'original' }
+    for (const [page, original] of originalSectionLayoutsRef.current) {
+      if (!editorRef.current?.contains(page)) continue
+      const selected = preset === 'original' ? original : layout
+      page.style.width = `${selected.width}mm`
+      page.style.minHeight = `${selected.height}mm`
+      page.style.padding = `${selected.top}mm ${selected.right}mm ${selected.bottom}mm ${selected.left}mm`
+      page.querySelectorAll<HTMLElement>('.iu-doc-regione-word').forEach((region) => {
+        region.style.left = `${selected.left}mm`
+        region.style.right = `${selected.right}mm`
+      })
+      for (const [key, attribute] of [['width', 'larghezza'], ['height', 'altezza'], ['top', 'margine-alto'], ['bottom', 'margine-basso'], ['left', 'margine-sinistro'], ['right', 'margine-destro']] as const) {
+        page.setAttribute(`data-${attribute}`, String(selected[key] * 72 / 25.4))
+      }
+    }
+    setPageLayout(layout)
+    setPagePreset(preset)
+    setLayoutOpen(false)
+    markChanged()
+    return true
+  }
+
+  const currentParagraphText = () => {
+    const root = editorRef.current
+    const selection = window.getSelection()
+    if (!root || !selection?.anchorNode || !root.contains(selection.anchorNode)) return ''
+    if (!selection.isCollapsed) return selection.toString().slice(0, 2000)
+    const node = selection.anchorNode
+    const element = node instanceof Element ? node : node.parentElement
+    return (element?.closest('p,h1,h2,h3,li,td,blockquote')?.textContent || '').slice(0, 2000)
+  }
+
+  const handleEditorInput = (event: FormEvent<HTMLDivElement>) => {
+    setLanguageError('')
+    grammarRequestRef.current?.abort()
+    setGrammarLoading(false)
+    setGrammarMarks([])
+    const kind = (event.nativeEvent as InputEvent).inputType
+    markChanged(kind === 'insertText' || kind === 'deleteContentBackward' || kind === 'deleteContentForward' ? kind : '')
+    setPhraseSuggestion('')
+    setPhraseCopied(false)
+    setSpellingChoice(null)
+    phraseRequestRef.current?.abort()
+    phraseRequestRef.current = null
+    setPhraseLoading(false)
+    if (languageTimerRef.current) window.clearTimeout(languageTimerRef.current)
+    languageRequestRef.current?.abort()
+    if (!spellingEnabled || !data.endpoints.language) return
+    const anchor = window.getSelection()?.anchorNode
+    const element = anchor instanceof Element ? anchor : anchor?.parentElement
+    const paragraph = element?.closest('p,h1,h2,h3,li,td,blockquote')
+    const testo = paragraph?.textContent || ''
+    spellingMarksRef.current = spellingMarksRef.current.filter((mark) => mark.paragraph !== paragraph && mark.range.startContainer.isConnected && mark.range.toString() === mark.word)
+    showSpellingMarks(spellingMarksRef.current)
+    if (!testo.trim()) { setSpellingResults([]); return }
+    languageTimerRef.current = window.setTimeout(async () => {
+      const controller = new AbortController()
+      languageRequestRef.current = controller
+      try {
+        const response = await fetch(data.endpoints.language, {
+          method: 'POST', credentials: 'same-origin', signal: controller.signal,
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          body: JSON.stringify({ azione: 'documento', testo }),
+        })
+        const payload = await response.json()
+        if (controller.signal.aborted || languageRequestRef.current !== controller || !paragraph?.isConnected || paragraph.textContent !== testo) return
+        if (!response.ok || !payload.ok) throw new Error(payload.errore || 'Vocabolario locale non disponibile.')
+        setSpellingResults([])
+        spellingMarksRef.current.push(...grammarRanges({ text: testo, parts: [{ paragraph, start: 0, text: testo }] }, payload.rilievi || []))
+        setGrammarMarks([...spellingMarksRef.current])
+        showSpellingMarks(spellingMarksRef.current)
+        setLanguageError('')
+      } catch (error) {
+        if (!controller.signal.aborted) setLanguageError(error instanceof Error ? error.message : 'Controllo linguistico non disponibile.')
+      }
+    }, 800)
+  }
+
+  const suggestPhrase = async () => {
+    const testo = currentParagraphText()
+    if (!testo.trim()) { setLanguageError('Posiziona il cursore nella frase o seleziona il testo da migliorare.'); return }
+    setPhraseLoading(true)
+    setPhraseSuggestion('')
+    setPhraseCopied(false)
+    setLanguageError('')
+    phraseRequestRef.current?.abort()
+    const controller = new AbortController()
+    phraseRequestRef.current = controller
+    try {
+      const response = await fetch(data.endpoints.language, {
+        method: 'POST', credentials: 'same-origin', signal: controller.signal,
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ azione: 'frase', testo }),
+      })
+      const payload = await response.json()
+      if (controller.signal.aborted || phraseRequestRef.current !== controller) return
+      if (!response.ok || !payload.ok) throw new Error(payload.errore || 'Suggerimento locale non disponibile.')
+      setPhraseSuggestion(String(payload.proposta || ''))
+    } catch (error) {
+      if (!controller.signal.aborted) setLanguageError(error instanceof Error ? error.message : 'Suggerimento non disponibile.')
+    } finally { if (phraseRequestRef.current === controller) setPhraseLoading(false) }
+  }
+
+  const checkDocumentLanguage = async () => {
+    const root = editorRef.current
+    if (!root) return
+    const source = documentLanguageSource(root)
+    const revision = editRevisionRef.current
+    grammarRequestRef.current?.abort()
+    const controller = new AbortController()
+    grammarRequestRef.current = controller
+    setGrammarLoading(true)
+    setGrammarNotice('')
+    setLanguageError('')
+    try {
+      const response = await fetch(data.endpoints.language, {
+        method: 'POST', credentials: 'same-origin', signal: controller.signal,
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ azione: 'documento', testo: source.text }),
+      })
+      const payload = await response.json()
+      if (controller.signal.aborted || revision !== editRevisionRef.current) return
+      if (!response.ok || !payload.ok) throw new Error(payload.errore || 'Revisione italiana non disponibile.')
+      const marks = grammarRanges(source, payload.rilievi || [])
+      setGrammarMarks(marks)
+      spellingMarksRef.current = marks
+      showSpellingMarks(marks)
+      setGrammarNotice(marks.length ? '' : 'Controllo terminato: nessun rilievo linguistico trovato.')
+    } catch (error) {
+      if (!controller.signal.aborted) setLanguageError(error instanceof Error ? error.message : 'Revisione italiana non disponibile.')
+    } finally { if (grammarRequestRef.current === controller) setGrammarLoading(false) }
+  }
+
+  useEffect(() => {
+    if (payloadLoading || documentLoading || !spellingEnabled || !data.endpoints.language || !editorRef.current || !data.document.editable) return
+    const timer = window.setTimeout(() => void checkDocumentLanguage(), 300)
+    return () => { window.clearTimeout(timer); grammarRequestRef.current?.abort() }
+  }, [payloadLoading, documentLoading, spellingEnabled, data.endpoints.language, data.document.id])
+
+  useEffect(() => () => {
+    if (languageTimerRef.current) window.clearTimeout(languageTimerRef.current)
+    languageRequestRef.current?.abort()
+    phraseRequestRef.current?.abort()
+    grammarRequestRef.current?.abort()
+    clearSpellingMarks()
+  }, [])
+
+  useEffect(() => {
+    const close = () => setSpellingChoice(null)
+    document.addEventListener('wheel', close, true)
+    document.addEventListener('touchmove', close, true)
+    return () => { document.removeEventListener('wheel', close, true); document.removeEventListener('touchmove', close, true) }
+  }, [])
+
+  const correctSpelling = (mark: SpellingMark, correction: string) => {
+    const root = editorRef.current
+    if (!root || !root.contains(mark.range.startContainer) || mark.range.toString() !== mark.word) {
+      setSpellingChoice(null)
+      return
+    }
+    editorHistoryRef.current.rememberCaret(editorCaret(root))
+    root.focus()
+    const selection = window.getSelection()
+    selection?.removeAllRanges()
+    selection?.addRange(mark.range)
+    const revision = editRevisionRef.current
+    if (!document.execCommand('insertText', false, correction)) {
+      setLanguageError('Correzione non applicata. Il testo è rimasto invariato.')
+      return
+    }
+    if (revision === editRevisionRef.current) markChanged()
+    spellingMarksRef.current = spellingMarksRef.current.filter((entry) => entry.paragraph !== mark.paragraph)
+    showSpellingMarks(spellingMarksRef.current)
+    setSpellingResults((results) => results.filter((result) => result.parola !== mark.word))
+    setSpellingChoice(null)
+  }
+
   const runCommand = useCallback((command: string, value?: string) => {
     if (conversionLocked) return
-    editorRef.current?.focus()
+    const root = editorRef.current
+    if (root && (command === 'undo' || command === 'redo')) {
+      const target = editorHistoryRef.current.move(command, root.innerHTML)
+      if (!target) return
+      root.innerHTML = target.html
+      restoreEditorCaret(root, target.caret)
+      editorRangeRef.current = null
+      setTableContext(null)
+      setTablePickerOpen(false)
+      markChanged()
+      return
+    }
+    const range = editorRangeRef.current?.cloneRange()
+    const selection = window.getSelection()
+    if (range && selection && editorRef.current?.contains(range.startContainer)) {
+      selection.removeAllRanges()
+      selection.addRange(range)
+    } else {
+      editorRef.current?.focus()
+    }
     document.execCommand(command, false, value)
+    if (selection?.rangeCount && editorRef.current?.contains(selection.anchorNode)) editorRangeRef.current = selection.getRangeAt(0).cloneRange()
     markChanged()
   }, [conversionLocked, markChanged])
 
@@ -554,6 +933,12 @@ export function DocumentEditorPage() {
       if (style.lineHeight) element.style.lineHeight = style.lineHeight
     }
     const selection = window.getSelection()
+    const rememberedRange = editorRangeRef.current
+    if (selection && rememberedRange && root.contains(rememberedRange.startContainer) && root.contains(rememberedRange.endContainer)) {
+      root.focus()
+      selection.removeAllRanges()
+      selection.addRange(rememberedRange)
+    }
     const selectionInEditor = Boolean(
       selection
       && selection.rangeCount
@@ -562,27 +947,52 @@ export function DocumentEditorPage() {
       && root.contains(selection.anchorNode)
       && root.contains(selection.focusNode),
     )
-    if (!selection || !selectionInEditor || selection.isCollapsed) {
-      const targets = root.children.length ? Array.from(root.children) : [root]
-      targets.forEach((node) => applyStyle(node as HTMLElement))
+    if (!selection || !selectionInEditor) {
+      setStatus({ tone: 'warning', label: 'Posiziona il cursore o seleziona il testo da formattare' })
+      return
+    }
+    if (selection.isCollapsed) {
+      const node = selection.anchorNode
+      const element = node instanceof HTMLElement ? node : node?.parentElement
+      const target = element?.closest<HTMLElement>('span,strong,em,u,s,a,p,li,h1,h2,h3,h4,h5,h6')
+      if (!target || !root.contains(target)) {
+        setStatus({ tone: 'warning', label: 'Seleziona il testo da formattare' })
+        return
+      }
+      applyStyle(target)
       markChanged()
-      setStatus({ tone: 'warning', label: `${label} applicato al documento` })
+      setStatus({ tone: 'warning', label: `${label} da salvare` })
       return
     }
     const range = selection.getRangeAt(0)
-    const span = document.createElement('span')
-    applyStyle(span)
-    try {
-      range.surroundContents(span)
-    } catch {
-      const fragment = range.extractContents()
-      span.appendChild(fragment)
-      range.insertNode(span)
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+    const pieces: Array<{ node: Text; start: number; end: number }> = []
+    while (walker.nextNode()) {
+      const node = walker.currentNode as Text
+      if (!range.intersectsNode(node)) continue
+      const start = node === range.startContainer ? range.startOffset : 0
+      const end = node === range.endContainer ? range.endOffset : node.length
+      if (end > start) pieces.push({ node, start, end })
     }
-    selection.removeAllRanges()
+    if (!pieces.length) return
+    const spans: HTMLElement[] = []
+    // Formattare i tratti singolarmente conserva paragrafi, liste e celle:
+    // un unico span intorno a blocchi diversi ne altera la struttura.
+    for (const { node, start, end } of pieces.reverse()) {
+      const piece = document.createRange()
+      piece.setStart(node, start)
+      piece.setEnd(node, end)
+      const span = document.createElement('span')
+      applyStyle(span)
+      piece.surroundContents(span)
+      spans.unshift(span)
+    }
     const nextRange = document.createRange()
-    nextRange.selectNodeContents(span)
+    nextRange.setStartBefore(spans[0])
+    nextRange.setEndAfter(spans[spans.length - 1])
+    selection.removeAllRanges()
     selection.addRange(nextRange)
+    editorRangeRef.current = nextRange.cloneRange()
     markChanged()
     setStatus({ tone: 'warning', label: `${label} da salvare` })
   }, [conversionLocked, markChanged])
@@ -598,9 +1008,33 @@ export function DocumentEditorPage() {
   }, [applyInlineStyle])
 
   const changeLineHeight = useCallback((value: string) => {
-    setLineHeight(value)
-    applyInlineStyle({ lineHeight: value }, 'Interlinea')
-  }, [applyInlineStyle])
+    const multiplier = Number(value.replace(',', '.'))
+    if (!Number.isFinite(multiplier) || multiplier < 0.8 || multiplier > 4) {
+      setStatus({ tone: 'danger', label: 'Inserisci un’interlinea tra 0,8 e 4.' })
+      return
+    }
+    if (conversionLocked || !editorRef.current) return
+    const root = editorRef.current
+    const selection = window.getSelection()
+    const currentRange = selection?.rangeCount && selection.anchorNode && root.contains(selection.anchorNode)
+      ? selection.getRangeAt(0) : null
+    const savedRange = lineHeightRangeRef.current || editorRangeRef.current
+    const range = currentRange || (savedRange && root.contains(savedRange.startContainer) ? savedRange : null)
+    const paragraphs = Array.from(root.querySelectorAll<HTMLElement>('p,h1,h2,h3,h4,h5,h6,li,blockquote'))
+    if (!range) {
+      setStatus({ tone: 'warning', label: 'Posiziona il cursore nel paragrafo da formattare' })
+      return
+    }
+    const targets = paragraphs.filter((paragraph) => range.intersectsNode(paragraph))
+    targets.forEach((paragraph) => {
+      paragraph.style.lineHeight = String(multiplier)
+    })
+    setLineHeight(String(multiplier))
+    setCustomLineHeight(String(multiplier).replace('.', ','))
+    lineHeightRangeRef.current = null
+    markChanged()
+    setStatus({ tone: 'warning', label: 'Interlinea da salvare' })
+  }, [conversionLocked, markChanged])
 
   const loadDocument = useCallback(async (payload: DocumentEditorPayload) => {
     if (!payload.endpoints.loadHtml || !payload.document.editable) return
@@ -617,7 +1051,20 @@ export function DocumentEditorPage() {
       const body = await response.json().catch(() => ({} as Record<string, unknown>))
       const html = String(body.html || '<p><br></p>')
       const sanitizedHtml = sanitizeHtml(html)
-      if (editorRef.current) editorRef.current.innerHTML = sanitizedHtml
+      if (editorRef.current) {
+        editorRef.current.innerHTML = sanitizedHtml
+        editorHistoryRef.current.reset(editorRef.current.innerHTML)
+      }
+      const page = editorRef.current?.querySelector('section.iu-doc-pagina')
+      originalSectionLayoutsRef.current = new Map(Array.from(
+        editorRef.current?.querySelectorAll<HTMLElement>('section.iu-doc-pagina[data-layout-sezione="true"]') ?? [],
+        (nativePage) => [nativePage, nativePageLayout(nativePage)],
+      ))
+      const layout = nativePageLayout(page ?? null)
+      originalLayoutRef.current = layout
+      pageLayoutRef.current = { layout, changed: false }
+      setPageLayout(layout)
+      setPagePreset('original')
       const rawAvvisi = Array.isArray(body.avvisi) ? body.avvisi : []
       const avvisi = rawAvvisi.map((item: unknown) => String(item || '').trim()).filter(Boolean)
       const meta = isRecord(body.meta) ? body.meta : {}
@@ -805,12 +1252,22 @@ export function DocumentEditorPage() {
     window.addEventListener('beforeunload', handler)
     return () => {
       window.removeEventListener('beforeunload', handler)
-      if (autosaveRef.current) window.clearTimeout(autosaveRef.current)
     }
   }, [dirty])
 
+  useEffect(() => () => {
+    if (autosaveRef.current) window.clearTimeout(autosaveRef.current)
+  }, [])
+
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
+      const undo = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !event.shiftKey
+      const redo = (event.ctrlKey || event.metaKey) && (event.key.toLowerCase() === 'y' || (event.key.toLowerCase() === 'z' && event.shiftKey))
+      if ((undo || redo) && editorRef.current?.contains(event.target as Node)) {
+        event.preventDefault()
+        runCommand(undo ? 'undo' : 'redo')
+        return
+      }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
         event.preventDefault()
         void saveDocument(false)
@@ -822,33 +1279,80 @@ export function DocumentEditorPage() {
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [saveDocument])
+  }, [saveDocument, runCommand])
 
-  const exportFile = async (endpoint: string, extension: 'pdf' | 'docx') => {
+  const exportFile = async (endpoint: string, extension: 'pdf' | 'docx' | 'rtf') => {
     if (!endpoint || !editorRef.current || conversionLocked) return
-    setStatus({ tone: 'saving', label: extension === 'pdf' ? 'Genero PDF' : 'Genero DOCX' })
+    setStatus({ tone: 'saving', label: `Genero ${extension.toUpperCase()}` })
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
         credentials: 'same-origin',
         headers: {
-          Accept: extension === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          Accept: extension === 'pdf' ? 'application/pdf' : extension === 'rtf' ? 'application/rtf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
           'Content-Type': 'application/json',
           'X-Requested-With': 'XMLHttpRequest',
         },
-        body: JSON.stringify({ html: editorRef.current.innerHTML }),
+        body: JSON.stringify({ html: serializeEditorHtml() }),
       })
       if (!response.ok) throw new Error(await response.text())
       downloadBlob(await response.blob(), `${fileNameWithoutExtension(data.document.name)}.${extension}`)
-      setStatus({ tone: 'success', label: extension === 'pdf' ? 'PDF pronto' : 'DOCX pronto' })
+      setStatus({ tone: 'success', label: `${extension.toUpperCase()} pronto` })
     } catch {
-      setStatus({ tone: 'danger', label: extension === 'pdf' ? 'Errore export PDF' : 'Errore export DOCX' })
+      setStatus({ tone: 'danger', label: `Esportazione ${extension.toUpperCase()} non riuscita. Riprova.` })
     }
+  }
+
+  const previewPrint = async (print = false) => {
+    if (!data.endpoints.printPreview || !editorRef.current || conversionLocked) return
+    printRequestRef.current?.abort()
+    const controller = new AbortController()
+    printRequestRef.current = controller
+    setPrintLoading(true)
+    setPrintError('')
+    try {
+      const response = await fetch(data.endpoints.printPreview, {
+        method: 'POST', credentials: 'same-origin', signal: controller.signal,
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ html: serializeEditorHtml() }),
+      })
+      if (!response.ok) throw new Error('Anteprima di stampa non generata.')
+      const file = await response.blob()
+      if (controller.signal.aborted || printRequestRef.current !== controller) return
+      if (!file.type.includes('text/html')) throw new Error('Anteprima di stampa non valida.')
+      printWhenReadyRef.current = print
+      setLayoutDraft(pageLayoutRef.current.layout)
+      setPrintPreviewUrl(URL.createObjectURL(file))
+    } catch (error) {
+      if (controller.signal.aborted || printRequestRef.current !== controller) return
+      setStatus({ tone: 'danger', label: 'Anteprima di stampa non disponibile. Riprova tra poco.' })
+      setPrintError('Anteprima non aggiornata. Riprova prima di stampare.')
+    } finally { if (printRequestRef.current === controller) setPrintLoading(false) }
+  }
+
+  const closePrintPreview = () => {
+    printRequestRef.current?.abort()
+    printRequestRef.current = null
+    setPrintLoading(false)
+    setPrintPreviewUrl('')
+  }
+
+  useEffect(() => () => { printRequestRef.current?.abort() }, [])
+
+  useEffect(() => () => { if (printPreviewUrl) URL.revokeObjectURL(printPreviewUrl) }, [printPreviewUrl])
+
+  const updatePrintZoom = (value: string) => {
+    setPrintZoom(value)
+    const frame = printFrameRef.current?.contentDocument
+    frame?.querySelectorAll<HTMLElement>('.pagina').forEach((page) => {
+      const width = Number(page.dataset.widthMm)
+      page.style.width = value === 'fit' ? `${width}mm` : `${width * 96 / 25.4 * Number(value) / 100}px`
+      page.style.maxWidth = value === 'fit' ? '100%' : 'none'
+    })
   }
 
   const importFile = async (file?: File) => {
     if (!file) return
-    if (!window.confirm(`Importare "${file.name}" nell'anteprima? Il documento del fascicolo verrà versionato.`)) return
     const lower = file.name.toLowerCase()
     const serverImport = lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc')
       || (!data.document.editable || conversionLocked)
@@ -1072,14 +1576,156 @@ export function DocumentEditorPage() {
     }
   }, [data.document.pdfOverlayAllowed, data.endpoints.pdfMeta, loadPdfMeta, pdfEditorOpen, pdfMeta.pageCount])
 
+  const openLink = () => {
+    linkRangeRef.current = editorRangeRef.current?.cloneRange() || null
+    const node = linkRangeRef.current?.commonAncestorContainer
+    const anchor = (node instanceof Element ? node : node?.parentElement)?.closest('a')
+    if (anchor && editorRef.current?.contains(anchor)) {
+      const range = document.createRange()
+      range.selectNodeContents(anchor)
+      linkRangeRef.current = range
+    }
+    setLinkText(linkRangeRef.current?.toString() || '')
+    setLinkUrl(anchor?.getAttribute('href') || '')
+    setLinkExisting(Boolean(anchor && editorRef.current?.contains(anchor)))
+    setLinkOpen(true)
+  }
+
   const insertLink = () => {
-    const href = window.prompt('Inserisci URL del collegamento')
-    if (!href) return
-    runCommand('createLink', href)
+    const raw = linkUrl.trim()
+    const href = /^(https?:|mailto:|tel:|\/[^/])/i.test(raw) ? raw : /^[\w.-]+\.[a-z]{2,}(?:\/|$)/i.test(raw) ? `https://${raw}` : ''
+    if (!href || /[\u0000-\u0020<>]/.test(href)) {
+      setStatus({ tone: 'danger', label: 'Inserisci un indirizzo HTTP, HTTPS, email o collegamento interno valido.' })
+      return
+    }
+    editorRangeRef.current = linkRangeRef.current
+    if (linkRangeRef.current && !linkRangeRef.current.collapsed && linkText === linkRangeRef.current.toString()) runCommand('createLink', href)
+    else {
+      const link = document.createElement('a')
+      link.href = href
+      link.textContent = linkText.trim() || href
+      runCommand('insertHTML', link.outerHTML)
+    }
+    setLinkOpen(false)
+  }
+
+  const openTablePicker = () => {
+    const selection = window.getSelection()
+    tableRangeRef.current = selection?.rangeCount && editorRef.current?.contains(selection.anchorNode)
+      ? selection.getRangeAt(0).cloneRange() : null
+    const node = selection?.anchorNode
+    const element = node instanceof Element ? node : node?.parentElement
+    const cell = element?.closest<HTMLTableCellElement>('td,th')
+    const table = cell?.closest<HTMLTableElement>('table')
+    setTableContext(cell && table && editorRef.current?.contains(table) ? { cell, table } : null)
+    setTablePickerOpen((open) => !open)
+  }
+
+  const changeTable = (action: TableAction | 'delete') => {
+    const context = tableContext
+    if (conversionLocked || !context || !editorRef.current?.contains(context.table)) return
+    try {
+      const replacement = action === 'delete' ? null : editTable(context.table, context.cell, action)
+      const inserted = replacement
+      if (replacement) context.table.replaceWith(replacement)
+      else context.table.remove()
+      if (inserted?.rows[0]?.cells[0]) {
+        const cell = inserted.rows[0].cells[0]
+        const caret = document.createRange()
+        caret.selectNodeContents(cell)
+        caret.collapse(true)
+        const selection = window.getSelection()
+        selection?.removeAllRanges()
+        selection?.addRange(caret)
+        editorRangeRef.current = caret.cloneRange()
+        setTableContext({ table: inserted, cell })
+      } else {
+        setTableContext(null)
+        setTablePickerOpen(false)
+      }
+      markChanged()
+    } catch (error) {
+      setStatus({ tone: 'danger', label: error instanceof Error ? error.message : 'Modifica della tabella non riuscita.' })
+    }
   }
 
   const insertTable = () => {
-    runCommand('insertHTML', '<table><tbody><tr><th>Intestazione</th><th>Intestazione</th></tr><tr><td>Testo</td><td>Testo</td></tr></tbody></table><p><br></p>')
+    const rows = Number(tableRows)
+    const columns = Number(tableColumns)
+    if (!Number.isInteger(rows) || !Number.isInteger(columns) || rows < 1 || rows > 50 || columns < 1 || columns > 20) {
+      setStatus({ tone: 'danger', label: 'Scegli da 1 a 50 righe e da 1 a 20 colonne.' })
+      return
+    }
+    editorRef.current?.focus()
+    const selection = window.getSelection()
+    if (selection && tableRangeRef.current && editorRef.current?.contains(tableRangeRef.current.startContainer)) {
+      selection.removeAllRanges()
+      selection.addRange(tableRangeRef.current)
+      editorRangeRef.current = tableRangeRef.current.cloneRange()
+    }
+    const html = Array.from({ length: rows }, (_, row) => {
+      const tag = tableHeader && row === 0 ? 'th' : 'td'
+      return `<tr>${Array.from({ length: columns }, () => `<${tag}><br></${tag}>`).join('')}</tr>`
+    }).join('')
+    runCommand('insertHTML', `<table style="width:100%;table-layout:fixed"><tbody>${html}</tbody></table><p><br></p>`)
+    tableRangeRef.current = null
+    setTablePickerOpen(false)
+  }
+
+  const insertTextBox = () => {
+    runCommand('insertHTML', '<table data-iu-text-box="true" style="width:360px;max-width:100%;table-layout:fixed"><tbody><tr><td><p>Scrivi qui…</p></td></tr></tbody></table><p><br></p>')
+  }
+
+  const chooseImage = () => {
+    const selection = window.getSelection()
+    imageRangeRef.current = selection?.rangeCount && editorRef.current?.contains(selection.anchorNode)
+      ? selection.getRangeAt(0).cloneRange() : null
+    imageFileRef.current?.click()
+  }
+
+  const insertImage = async (file?: File) => {
+    if (!file) return
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      setStatus({ tone: 'danger', label: 'Scegli un’immagine PNG, JPEG o WebP fino a 5 MB.' })
+      return
+    }
+    try {
+      const source = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(String(reader.result))
+        reader.onerror = () => reject(new Error('Immagine non caricata.'))
+        reader.readAsDataURL(file)
+      })
+      const picture = new Image()
+      picture.src = source
+      await picture.decode()
+      const root = editorRef.current
+      if (!root || conversionLocked) return
+      root.focus()
+      const selection = window.getSelection()
+      const range = imageRangeRef.current
+      if (selection && range && root.contains(range.startContainer)) {
+        selection.removeAllRanges()
+        selection.addRange(range)
+      }
+      const node = range?.startContainer
+      const element = node instanceof Element ? node : node?.parentElement
+      const box = element?.closest('table[data-iu-text-box]')
+      const cell = box && element?.closest('td,th')
+      const inBox = Boolean(box && cell)
+      const cellStyle = cell ? window.getComputedStyle(cell) : null
+      const contentWidth = cell && cellStyle
+        ? cell.clientWidth - parseFloat(cellStyle.paddingLeft || '0') - parseFloat(cellStyle.paddingRight || '0')
+        : 0
+      // Registra la misura realmente visibile, così l'export non interpreta
+      // 100% rispetto al foglio o alla risoluzione nativa della fotografia.
+      const width = inBox && contentWidth > 0 ? `${contentWidth}px` : `${Math.min(picture.naturalWidth, 640)}px`
+      runCommand('insertHTML', `<img src="${source}" alt="Immagine inserita" style="width:${width};max-width:100%;height:auto;object-fit:contain">`)
+      imageRangeRef.current = null
+      setStatus({ tone: 'warning', label: inBox ? 'Immagine adattata alla casella, da salvare' : 'Immagine inserita, da salvare' })
+    } catch {
+      setStatus({ tone: 'danger', label: 'Immagine non leggibile. Prova un file PNG o JPEG valido.' })
+    }
   }
 
   const startEditorDictation = () => {
@@ -1146,7 +1792,8 @@ export function DocumentEditorPage() {
     const plain = event.clipboardData.getData('text/plain')
     if (!html && !plain) return
     event.preventDefault()
-    document.execCommand('insertHTML', false, html ? sanitizeHtml(html) : textToHtml(plain))
+    if (html) document.execCommand('insertHTML', false, sanitizeHtml(html))
+    else document.execCommand('insertText', false, plain)
     markChanged()
   }
 
@@ -1168,11 +1815,11 @@ export function DocumentEditorPage() {
   const pdfPreviewMode = isPdfLikeDocument(doc.name, doc.extension)
   const emlPreviewMode = isEmlDocument(doc.name, doc.extension)
   const editorEnabled = doc.editable && !conversionLocked
+  const exportDisabled = !editorEnabled || payloadLoading || documentLoading || status.tone === 'saving'
   const lockedReason = conversionLocked
     ? conversionLockedReason || 'Il documento non espone testo affidabile per la modifica inline.'
     : doc.lockedReason
   const statusClass = `iu-de-status iu-de-status--${status.tone}`
-  const selectedPage = PAGE_PRESETS.find((preset) => preset.id === pagePreset) || PAGE_PRESETS[0]
   const currentAttoAI = data.editorAI.current
   const editorAiReadyDocuments = editorAiBootstrap.documents.filter((item) => item.status === 'ready')
   const editorAiPendingProposals = editorAiDetail.edit_proposals.filter((item) => item.status === 'pending')
@@ -1196,18 +1843,21 @@ export function DocumentEditorPage() {
     height: `${Math.abs(bozza.y1 - bozza.y) * 100}%`,
   }) as React.CSSProperties
   const paperStyle = {
-    '--iu-de-font-family': fontFamily,
-    '--iu-de-font-size': fontSize,
-    '--iu-de-line-height': lineHeight,
-    '--iu-de-paper-width': selectedPage.width,
-    '--iu-de-paper-min-height': selectedPage.minHeight,
-    '--iu-de-paper-padding-x': selectedPage.paddingX,
-    '--iu-de-paper-padding-y': selectedPage.paddingY,
+    // La selezione aggiorna i controlli, senza cambiare il formato dei blocchi non selezionati.
+    '--iu-de-font-family': FONT_FAMILY_OPTIONS[0].value,
+    '--iu-de-font-size': '12pt',
+    '--iu-de-line-height': '1.6',
+    '--iu-de-paper-width': `${pageLayout.width}mm`,
+    '--iu-de-paper-min-height': `${pageLayout.height}mm`,
+    '--iu-de-paper-padding-top': `${pageLayout.top}mm`,
+    '--iu-de-paper-padding-bottom': `${pageLayout.bottom}mm`,
+    '--iu-de-paper-padding-left': `${pageLayout.left}mm`,
+    '--iu-de-paper-padding-right': `${pageLayout.right}mm`,
     '--iu-de-zoom': `${Number(zoom || 100) / 100}`,
   } as React.CSSProperties
 
   return (
-    <main className="iu-content iu-doc-editor-page" ref={paginaRef}>
+    <main className={`iu-content iu-doc-editor-page${editorEnabled && !editorAiOpen ? ' iu-doc-editor-page--focused' : ''}`} ref={paginaRef}>
       <section className="iu-de-hero">
         <div>
           <span className="iu-de-eyebrow"><FileText size={16}/> Editor professionale</span>
@@ -1224,10 +1874,28 @@ export function DocumentEditorPage() {
           </button>
           {doc.actions.preview ? <a href={doc.actions.preview}><Eye size={15}/> Anteprima</a> : null}
           {doc.actions.sign ? <a href={doc.actions.sign}><ShieldCheck size={15}/> Firma</a> : null}
-          {doc.actions.download ? <a href={doc.actions.download}><Download size={15}/> Scarica</a> : null}
+          {doc.actions.download ? <a href={doc.actions.download} download={doc.name}><Download size={15}/> Scarica</a> : null}
           <button type="button" onClick={() => setEditorAiOpen((value) => !value)} disabled={!data.editorAI.enabled}><Sparkles size={15}/> Nuovo atto con Lex</button>
-          <button type="button" onClick={() => void saveDocument(false)} disabled={!editorEnabled}><Save size={15}/> Salva</button>
+          <button type="button" onClick={() => void saveDocument(false)} disabled={!editorEnabled}><Save size={15}/> Salva DOCX</button>
         </nav>
+        {editorEnabled ? (
+          <section className="iu-de-meta-row" aria-label="Stato editor">
+            <span className={statusClass}>{status.tone === 'success' ? <CheckCircle2 size={15}/> : status.tone === 'loading' || status.tone === 'saving' ? <LoaderCircle className="iu-spin" size={15}/> : <Pilcrow size={15}/>} {status.label}</span>
+            <span>{stats.words} parole - {stats.chars} caratteri - {stats.readingMinutes} min</span>
+            <label><Heading1 size={14}/> <select aria-label="Formato pagina" value={pagePreset} onChange={(event) => {
+              const preset = event.target.value
+              if (preset === 'original') applyPageLayout(originalLayoutRef.current, preset)
+              else if (preset !== 'custom') applyPageLayout({ ...DEFAULT_PAGE_LAYOUT, ...(preset === 'a4-compact' ? { top: 15, bottom: 15, left: 15, right: 15 } : preset === 'legal-wide' ? { top: 30, left: 40 } : {}) }, preset)
+            }}><option value="original">Formato originale</option>{PAGE_PRESETS.map((preset) => <option key={preset.id} value={preset.id}>{preset.label}</option>)}{pagePreset === 'custom' && <option value="custom">Personalizzato</option>}</select></label>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => { setLayoutDraft(pageLayout); setLayoutOpen((open) => !open) }}>Layout pagina</button>
+            <label><Eye size={14}/> <select aria-label="Zoom documento" value={zoom} onChange={(event) => setZoom(event.target.value)}>{ZOOM_OPTIONS.map((value) => <option key={value} value={value}>{value}%</option>)}</select></label>
+            <span>{dirty
+              ? lastSavedAt ? `Modifiche da salvare · ultimo salvataggio ${lastSavedAt}` : 'Salvataggio pendente'
+              : lastSavedAt ? `Ultimo salvataggio ${lastSavedAt}` : 'Nessuna modifica pendente'}</span>
+            <button className="iu-de-facts-toggle" type="button" aria-expanded={documentFactsOpen} aria-controls="iu-de-document-facts" onClick={() => setDocumentFactsOpen((value) => !value)}><FileText size={15}/> {documentFactsOpen ? 'Nascondi dati documento' : 'Dati documento'}</button>
+            <Badge tone={data.contracts.mock_fallback ? 'danger' : 'success'}>{data.contracts.mock_fallback ? 'Dati non reali' : 'Dati reali'}</Badge>
+          </section>
+        ) : null}
       </section>
 
       {warnings.length ? (
@@ -1359,12 +2027,12 @@ export function DocumentEditorPage() {
 
       {!editorEnabled ? (
         <>
-          <section className="iu-de-locked" role="alert">
-            <ShieldCheck size={24}/>
+          <section className={`iu-de-locked${pdfPreviewMode ? ' iu-de-locked--compact' : ''}`} aria-label="Comandi documento">
+            {!pdfPreviewMode ? <ShieldCheck size={24}/> : null}
             <div>
-              <h2>{pdfPreviewMode ? 'Anteprima PDF fedele all\'originale' : emlPreviewMode ? 'Messaggio EML consultabile' : 'Documento non modificabile in editor'}</h2>
+              {!pdfPreviewMode ? <><h2>{emlPreviewMode ? 'Messaggio EML consultabile' : 'Documento non modificabile in editor'}</h2>
               <p>{lockedReason || 'Apri il documento in anteprima o scaricalo per lavorarlo con un applicativo esterno.'}</p>
-              <a href={doc.actions.preview || data.fascicolo.detailHref}><Eye size={15}/>{pdfPreviewMode ? 'Apri PDF originale' : emlPreviewMode ? 'Apri email originale' : 'Apri anteprima'}</a>
+              <a href={doc.actions.preview || data.fascicolo.detailHref}><Eye size={15}/>{emlPreviewMode ? 'Apri email originale' : 'Apri anteprima'}</a></> : null}
               {doc.pdfOverlayAllowed && data.endpoints.pdfOverlay ? (
                 <button type="button" onClick={() => setPdfEditorOpen((value) => !value)}><FileText size={15}/>{pdfEditorOpen ? 'Chiudi modifica PDF' : 'Modifica PDF sicura'}</button>
               ) : null}
@@ -1493,14 +2161,32 @@ export function DocumentEditorPage() {
             </label>
             <label className="iu-de-field iu-de-field--size"><span>Dimensione</span>
               <select aria-label="Dimensione testo" value={fontSize} onChange={(event) => changeFontSize(event.target.value)}>
+                {!FONT_SIZE_OPTIONS.includes(fontSize) && <option value={fontSize}>{fontSize}</option>}
                 {FONT_SIZE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
               </select>
             </label>
             <label className="iu-de-field iu-de-field--line"><span>Interlinea</span>
-              <select aria-label="Interlinea" value={lineHeight} onChange={(event) => changeLineHeight(event.target.value)}>
+              <select aria-label="Interlinea" value={customLineHeightOpen ? 'custom' : lineHeight} onChange={(event) => {
+                const custom = event.target.value === 'custom'
+                if (custom) {
+                  const selection = window.getSelection()
+                  lineHeightRangeRef.current = selection?.rangeCount && editorRef.current?.contains(selection.anchorNode)
+                    ? selection.getRangeAt(0).cloneRange() : null
+                }
+                setCustomLineHeightOpen(custom)
+                if (!custom) changeLineHeight(event.target.value)
+              }}>
                 {LINE_HEIGHT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                {!LINE_HEIGHT_OPTIONS.some((option) => option.value === lineHeight) && <option value={lineHeight}>{lineHeight.replace('.', ',')}</option>}
+                <option value="custom">Personalizzata…</option>
               </select>
             </label>
+            {customLineHeightOpen && <div className="iu-de-custom-line">
+              <label><span>Interlinea personalizzata</span><input aria-label="Interlinea personalizzata" inputMode="decimal" value={customLineHeight} onChange={(event) => setCustomLineHeight(event.target.value)} onKeyDown={(event) => {
+                if (event.key === 'Enter') { event.preventDefault(); changeLineHeight(customLineHeight) }
+              }}/></label>
+              <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => changeLineHeight(customLineHeight)}>Applica</button>
+            </div>}
             <ToolbarButton title="Grassetto" onClick={() => runCommand('bold')}><Bold size={16}/></ToolbarButton>
             <ToolbarButton title="Corsivo" onClick={() => runCommand('italic')}><Italic size={16}/></ToolbarButton>
             <ToolbarButton title="Sottolineato" onClick={() => runCommand('underline')}><Underline size={16}/></ToolbarButton>
@@ -1513,8 +2199,12 @@ export function DocumentEditorPage() {
             <span className="iu-de-separator"/>
             <ToolbarButton title="Elenco puntato" onClick={() => runCommand('insertUnorderedList')}><List size={16}/></ToolbarButton>
             <ToolbarButton title="Elenco numerato" onClick={() => runCommand('insertOrderedList')}><ListOrdered size={16}/></ToolbarButton>
-            <ToolbarButton title="Tabella" onClick={insertTable}><Table size={16}/></ToolbarButton>
-            <ToolbarButton title="Collegamento" onClick={insertLink}><Link size={16}/></ToolbarButton>
+            <ToolbarButton title="Tabella" onClick={openTablePicker}><Table size={16}/></ToolbarButton>
+            <ToolbarButton title="Casella di testo" onClick={insertTextBox}><FileText size={16}/></ToolbarButton>
+            <ToolbarButton title="Inserisci immagine" onClick={chooseImage}><ImagePlus size={16}/></ToolbarButton>
+            <ToolbarButton title="Collegamento" onClick={openLink}><Link size={16}/></ToolbarButton>
+            <ToolbarButton title="Aumenta rientro" onClick={() => runCommand('indent')}><ListOrdered size={16}/></ToolbarButton>
+            <ToolbarButton title="Riduci rientro" onClick={() => runCommand('outdent')}><List size={16}/></ToolbarButton>
             <ToolbarButton title={voiceDictating ? 'Dettatura in corso' : 'Detta nel documento'} onClick={startEditorDictation} disabled={!editorEnabled || voiceDictating}><Mic size={16}/></ToolbarButton>
             <span className="iu-de-separator"/>
             <label className="iu-de-color" title="Colore testo"><Palette size={15}/><input type="color" onChange={(event) => runCommand('foreColor', event.target.value)} defaultValue="#111827"/></label>
@@ -1524,18 +2214,64 @@ export function DocumentEditorPage() {
             <ToolbarButton title="Ripeti" onClick={() => runCommand('redo')}><Redo2 size={16}/></ToolbarButton>
             <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => setSearchOpen((value) => !value)}><Search size={15}/> Cerca</button>
             <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => replaceFileRef.current?.click()}><UploadCloud size={15}/> Importa</button>
-            <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => void exportFile(data.endpoints.exportPdf, 'pdf')}><FileDown size={15}/> PDF</button>
-            <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => void exportFile(data.endpoints.exportDocx, 'docx')}><FileDown size={15}/> DOCX</button>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" disabled={exportDisabled} onClick={() => void exportFile(data.endpoints.exportPdf, 'pdf')}><FileDown size={15}/> PDF</button>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" disabled={exportDisabled} onClick={() => void exportFile(data.endpoints.exportDocx, 'docx')}><FileDown size={15}/> DOCX</button>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" disabled={exportDisabled} onClick={() => void exportFile(data.endpoints.exportRtf, 'rtf')}><FileDown size={15}/> RTF</button>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" disabled={printLoading || exportDisabled} onClick={() => void previewPrint()}><Eye size={15}/> Anteprima stampa</button>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" disabled={printLoading || exportDisabled} onClick={() => void previewPrint(true)}><Printer size={15}/> Stampa</button>
+            <label className="iu-de-spelling-toggle"><input type="checkbox" checked={spellingEnabled} onChange={(event) => { setSpellingEnabled(event.target.checked); if (!event.target.checked) { languageRequestRef.current?.abort(); if (languageTimerRef.current) window.clearTimeout(languageTimerRef.current); setSpellingResults([]); setGrammarMarks([]); setGrammarNotice(''); grammarRequestRef.current?.abort(); setGrammarLoading(false); spellingMarksRef.current = []; clearSpellingMarks(); setSpellingChoice(null) } }}/> Italiano</label>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" disabled={grammarLoading || !data.endpoints.language} onClick={() => void checkDocumentLanguage()}>{grammarLoading ? <LoaderCircle className="iu-spin" size={15}/> : <Check size={15}/>} Controlla documento</button>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" disabled={phraseLoading || !data.endpoints.language} onClick={() => void suggestPhrase()}>{phraseLoading ? <LoaderCircle className="iu-spin" size={15}/> : <Wand2 size={15}/>} Suggerisci frase</button>
             </section>
 
             <div className="iu-de-editor-main">
-          <section className="iu-de-meta-row" aria-label="Stato editor">
-            <span className={statusClass}>{status.tone === 'success' ? <CheckCircle2 size={15}/> : status.tone === 'loading' || status.tone === 'saving' ? <LoaderCircle className="iu-spin" size={15}/> : <Pilcrow size={15}/>} {status.label}</span>
-            <span>{stats.words} parole - {stats.chars} caratteri - {stats.readingMinutes} min</span>
-            <label><Heading1 size={14}/> <select value={pagePreset} onChange={(event) => setPagePreset(event.target.value)}>{PAGE_PRESETS.map((preset) => <option key={preset.id} value={preset.id}>{preset.label}</option>)}</select></label>
-            <label><Eye size={14}/> <select value={zoom} onChange={(event) => setZoom(event.target.value)}><option value="90">90%</option><option value="100">100%</option><option value="110">110%</option><option value="125">125%</option></select></label>
-            <span>{lastSavedAt ? `Ultimo salvataggio ${lastSavedAt}` : dirty ? 'Salvataggio pendente' : 'Nessuna modifica pendente'}</span>
-          </section>
+          {layoutOpen && <section className="iu-de-table-picker" aria-label="Layout pagina">
+            <label>Orientamento<select aria-label="Orientamento pagina" value={layoutDraft.width > layoutDraft.height ? 'landscape' : 'portrait'} onChange={(event) => {
+              const short = Math.min(layoutDraft.width, layoutDraft.height), long = Math.max(layoutDraft.width, layoutDraft.height)
+              setLayoutDraft({ ...layoutDraft, width: event.target.value === 'landscape' ? long : short, height: event.target.value === 'landscape' ? short : long })
+            }}><option value="portrait">Verticale</option><option value="landscape">Orizzontale</option></select></label>
+            {([['top', 'Superiore'], ['bottom', 'Inferiore'], ['left', 'Sinistro'], ['right', 'Destro']] as const).map(([key, label]) => <label key={key}>{label} (mm)<input aria-label={`Margine ${label.toLowerCase()}`} type="number" min="0" max="100" step="0.5" value={Number.isFinite(layoutDraft[key]) ? Number(layoutDraft[key].toFixed(2)) : ''} onChange={(event) => setLayoutDraft({ ...layoutDraft, [key]: event.target.value === '' ? NaN : Number(event.target.value) })}/></label>)}
+            <button className="iu-de-tool" type="button" onClick={() => applyPageLayout(layoutDraft)}>Applica layout</button>
+            <button className="iu-de-tool" type="button" onClick={() => setLayoutOpen(false)}>Annulla</button>
+          </section>}
+          {linkOpen && <section className="iu-de-table-picker iu-de-link-picker" aria-label="Inserisci collegamento">
+            <label>Testo<input aria-label="Testo del collegamento" value={linkText} onChange={(event) => setLinkText(event.target.value)}/></label>
+            <label>Indirizzo<input aria-label="Indirizzo del collegamento" type="url" value={linkUrl} onChange={(event) => setLinkUrl(event.target.value)} placeholder="https://…" onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); insertLink() } }}/></label>
+            <button className="iu-de-tool" type="button" onClick={insertLink}>Inserisci collegamento</button>
+            {linkExisting && <button className="iu-de-tool" type="button" onClick={() => { editorRangeRef.current = linkRangeRef.current; runCommand('unlink'); setLinkOpen(false) }}>Rimuovi collegamento</button>}
+            <button className="iu-de-tool" type="button" onClick={() => setLinkOpen(false)}>Annulla</button>
+          </section>}
+          {(grammarNotice || grammarMarks.length > 0 || spellingResults.length > 0 || languageError || phraseSuggestion) && <section className={`iu-de-language-panel${grammarNotice && !grammarMarks.length && !spellingResults.length && !languageError && !phraseSuggestion ? ' iu-de-language-panel--notice' : ''}`} aria-label="Suggerimenti italiani" aria-live="polite">
+            {grammarNotice && <p role="status">{grammarNotice}</p>}
+            {grammarMarks.length > 0 && <div className="iu-de-language-words"><strong>Revisione del documento · {grammarMarks.length} {grammarMarks.length === 1 ? 'rilievo' : 'rilievi'}</strong><ul>{grammarMarks.map((mark, index) => <li key={index}><button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => { mark.paragraph.scrollIntoView({ block: 'center', behavior: 'instant' }); const rect = mark.range.getBoundingClientRect(); setSpellingChoice({ mark, x: Math.max(8, Math.min(rect.left, window.innerWidth - 288)), y: Math.max(8, Math.min(rect.bottom + 8, window.innerHeight - 260)) }) }}>{mark.word || 'Inserimento'}</button><span>{mark.message}</span></li>)}</ul></div>}
+            {languageError && <p className="iu-de-language-error" role="alert">{languageError}</p>}
+            {spellingResults.length > 0 && <div className="iu-de-language-words"><strong>Parole da controllare</strong><ul>{spellingResults.map((result) => <li key={result.parola}><b>{result.parola}</b><span>{result.suggerimenti.length ? result.suggerimenti.map((suggestion) => <button key={suggestion} type="button" className="iu-de-tool iu-de-tool--wide" onMouseDown={(event) => event.preventDefault()} onClick={() => { const mark = spellingMarksRef.current.find((entry) => entry.word === result.parola && entry.range.startContainer.isConnected && entry.range.toString() === entry.word); if (mark) correctSpelling(mark, suggestion); else setLanguageError('Il testo è cambiato: ripeti il controllo prima di correggere.') }}>{suggestion}</button>) : 'Non presente nel vocabolario'}</span></li>)}</ul></div>}
+            {phraseSuggestion && <div className="iu-de-language-phrase"><strong>Proposta di frase</strong><p>{phraseSuggestion}</p></div>}
+            <div className="iu-de-language-actions">
+              {phraseSuggestion && <button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => { void navigator.clipboard.writeText(phraseSuggestion).then(() => setPhraseCopied(true)).catch(() => setLanguageError('Copia non riuscita. Seleziona la proposta e copiala con la tastiera.')) }}>{phraseCopied ? <Check size={15}/> : <Copy size={15}/>} {phraseCopied ? 'Proposta copiata' : 'Copia proposta'}</button>}
+              <button type="button" className="iu-de-tool iu-de-tool--wide" onClick={() => { phraseRequestRef.current?.abort(); phraseRequestRef.current = null; setPhraseLoading(false); setSpellingResults([]); setGrammarMarks([]); setGrammarNotice(''); grammarRequestRef.current?.abort(); languageRequestRef.current?.abort(); if (languageTimerRef.current) window.clearTimeout(languageTimerRef.current); setLanguageError(''); setPhraseSuggestion('') }}><X size={15}/> Chiudi suggerimenti</button>
+            </div>
+          </section>}
+          {tablePickerOpen && tableContext && <section className="iu-de-table-picker" aria-label="Modifica tabella">
+            <strong>Tabella selezionata</strong>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => changeTable('rowBefore')}>Riga sopra</button>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => changeTable('rowAfter')}>Riga sotto</button>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => changeTable('rowDelete')}>Elimina riga</button>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => changeTable('columnBefore')}>Colonna a sinistra</button>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => changeTable('columnAfter')}>Colonna a destra</button>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => changeTable('columnDelete')}>Elimina colonna</button>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => changeTable('delete')}>Elimina tabella</button>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => setTablePickerOpen(false)}>Chiudi</button>
+          </section>}
+          {tablePickerOpen && !tableContext && <section className="iu-de-table-picker" aria-label="Inserisci tabella">
+            <strong>Inserisci tabella</strong>
+            <label>Colonne<input aria-label="Colonne tabella" type="number" min="1" max="20" step="1" value={tableColumns} onChange={(event) => setTableColumns(event.target.value)}/></label>
+            <label>Righe<input aria-label="Righe tabella" type="number" min="1" max="50" step="1" value={tableRows} onChange={(event) => setTableRows(event.target.value)}/></label>
+            <label className="iu-de-table-header"><input type="checkbox" checked={tableHeader} onChange={(event) => setTableHeader(event.target.checked)}/> Prima riga di intestazione</label>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={insertTable}>Inserisci</button>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => setTablePickerOpen(false)}>Annulla</button>
+          </section>}
+
 
           {searchOpen ? (
             <section className="iu-de-search-panel" aria-label="Cerca e sostituisci">
@@ -1546,13 +2282,14 @@ export function DocumentEditorPage() {
             </section>
           ) : null}
 
+          {spellingChoice && <section className="iu-de-spelling-choice" role="region" aria-label={`Correggi ${spellingChoice.mark.word}`} style={{ left: spellingChoice.x, top: spellingChoice.y }}>
+            <header><strong>{spellingChoice.mark.word}</strong><button type="button" className="iu-de-tool" aria-label="Chiudi correzioni" onClick={() => setSpellingChoice(null)}><X size={15}/></button></header>
+            {spellingChoice.mark.message && <p>{spellingChoice.mark.message}</p>}
+            <div>{spellingChoice.mark.suggestions.length ? spellingChoice.mark.suggestions.map((suggestion) => <button key={suggestion} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => correctSpelling(spellingChoice.mark, suggestion)}>{suggestion}</button>) : <p>Nessuna alternativa nel vocabolario italiano.</p>}</div>
+          </section>}
           <section className="iu-de-workbench">
-            <DocumentFacts data={data}/>
+            {documentFactsOpen ? <div id="iu-de-document-facts" className="iu-de-facts-panel"><DocumentFacts data={data}/></div> : null}
             <section className="iu-de-paper-shell" style={paperStyle}>
-              <div className="iu-de-paper-head">
-                <span>{doc.name}</span>
-                <Badge tone={data.contracts.mock_fallback ? 'danger' : 'success'}>{data.contracts.mock_fallback ? 'Dati non reali' : 'Dati reali'}</Badge>
-              </div>
               <div className="iu-de-paper">
                 {documentLoading ? <div className="iu-de-loader"><LoaderCircle className="iu-spin" size={24}/><span>Caricamento contenuto...</span></div> : null}
                 <div
@@ -1562,8 +2299,18 @@ export function DocumentEditorPage() {
                   suppressContentEditableWarning
                   role="textbox"
                   aria-multiline="true"
+                  lang="it-IT"
                   aria-label={`Contenuto modificabile ${doc.name}`}
-                  onInput={markChanged}
+                  spellCheck={false}
+                  onInput={handleEditorInput}
+                  onClick={(event) => {
+                    const mark = spellingMarksRef.current.find((entry) => entry.range.toString() === entry.word && Array.from(entry.range.getClientRects()).some((rect) => event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom))
+                    if (!mark) { setSpellingChoice(null); return }
+                    const rect = mark.range.getBoundingClientRect()
+                    setSpellingChoice({ mark, x: Math.max(8, Math.min(rect.left, window.innerWidth - 292)), y: Math.max(8, Math.min(rect.bottom + 8, window.innerHeight - 240)) })
+                  }}
+                  onKeyDown={(event) => { if (event.key === 'Escape') setSpellingChoice(null) }}
+                  onBeforeInput={() => { if (editorRef.current) editorHistoryRef.current.rememberCaret(editorCaret(editorRef.current)) }}
                   onPaste={handlePaste}
                 />
               </div>
@@ -1576,13 +2323,67 @@ export function DocumentEditorPage() {
       )}
 
       <input
+        ref={imageFileRef}
+        type="file"
+        hidden
+        accept="image/png,image/jpeg,image/webp"
+        onChange={(event) => { void insertImage(event.target.files?.[0]); event.target.value = '' }}
+      />
+      {printPreviewUrl && <div className="iu-de-print-preview" role="dialog" aria-modal="true" aria-label="Anteprima di stampa">
+        <header><strong>Anteprima di stampa</strong><button className="iu-de-tool" type="button" disabled={printLoading || Boolean(printError)} onClick={() => printFrameRef.current?.contentWindow?.print()}><Printer size={15}/> Stampa</button><button className="iu-de-tool" type="button" aria-label="Chiudi anteprima" onClick={closePrintPreview}>Chiudi anteprima</button></header>
+        <div className="iu-de-print-workspace">
+        <aside className="iu-de-print-settings" aria-label="Impostazioni anteprima di stampa">
+          <strong title={doc.name}>{doc.name}</strong>
+          <label>Pagina<select aria-label="Pagina anteprima" value={printPage} disabled={!printPages} onChange={(event) => {
+            setPrintPage(event.target.value)
+            printFrameRef.current?.contentDocument?.querySelectorAll('.pagina')[Number(event.target.value) - 1]?.scrollIntoView({ block: 'start' })
+          }}>{Array.from({ length: printPages }, (_, i) => <option key={i} value={String(i + 1)}>{i + 1} di {printPages}</option>)}</select></label>
+          <label>Zoom<select aria-label="Zoom anteprima" value={printZoom} onChange={(event) => updatePrintZoom(event.target.value)}><option value="fit">Adatta alla larghezza</option>{[25,50,75,100,125,150,175,200].map((value) => <option key={value} value={String(value)}>{value}%</option>)}</select></label>
+          <fieldset><legend>Impaginazione</legend>
+            <label>Orientamento<select aria-label="Orientamento anteprima" value={layoutDraft.width > layoutDraft.height ? 'landscape' : 'portrait'} onChange={(event) => setLayoutDraft((layout) => ({ ...layout, width: event.target.value === 'landscape' ? Math.max(layout.width, layout.height) : Math.min(layout.width, layout.height), height: event.target.value === 'landscape' ? Math.min(layout.width, layout.height) : Math.max(layout.width, layout.height) }))}><option value="portrait">Verticale</option><option value="landscape">Orizzontale</option></select></label>
+            <span>Margini in millimetri, tutte le sezioni</span>
+            <div className="iu-de-print-margins">{([['top','Superiore'],['bottom','Inferiore'],['left','Sinistro'],['right','Destro']] as const).map(([key,label]) => <label key={key}>{label}<input aria-label={`Margine ${label.toLowerCase()} anteprima`} type="number" min="0" max="100" step="0.5" value={Number.isFinite(layoutDraft[key]) ? Number(layoutDraft[key].toFixed(2)) : ''} onChange={(event) => setLayoutDraft((layout) => ({ ...layout, [key]: event.target.value === '' ? NaN : Number(event.target.value) }))}/></label>)}</div>
+            <button className="iu-de-tool" type="button" disabled={printLoading} onClick={() => {
+              if (applyPageLayout(layoutDraft)) void previewPrint()
+              else setPrintError('Margini non validi: lascia spazio per il documento.')
+            }}>{printLoading ? 'Aggiornamento…' : 'Applica e aggiorna'}</button>
+          </fieldset>
+          {printError && <p className="iu-de-print-error" role="alert">{printError}<button className="iu-de-tool" type="button" disabled={printLoading} onClick={() => void previewPrint()}>Riprova anteprima</button></p>}
+          <button className="iu-de-tool" type="button" onClick={() => {
+            closePrintPreview()
+            editorRef.current?.focus()
+          }}>Modifica testo</button>
+          <small>Le modifiche di impaginazione aggiornano il documento. Salva DOCX per conservarle nel fascicolo.</small>
+        </aside>
+        <iframe ref={printFrameRef} title="Documento pronto per la stampa" src={printPreviewUrl} onLoad={() => {
+          const pages = printFrameRef.current?.contentDocument?.querySelectorAll<HTMLElement>('.pagina')
+          pages?.forEach((page) => { page.dataset.widthMm = String(Number.parseFloat(page.style.width || getComputedStyle(page).width) * (page.style.width.endsWith('mm') ? 1 : 25.4 / 96)) })
+          setPrintPages(pages?.length || 0)
+          setPrintPage('1')
+          updatePrintZoom(printZoom)
+          if (printWhenReadyRef.current) { printWhenReadyRef.current = false; printFrameRef.current?.contentWindow?.print() }
+        }}/>
+        </div>
+      </div>}
+      <input
         ref={replaceFileRef}
         type="file"
         hidden
         accept=".pdf,.doc,.docx,.txt,.html,.htm,.md"
         onChange={(event) => {
-          void importFile(event.target.files?.[0])
+          setPendingImportFile(event.target.files?.[0] ?? null)
           event.target.value = ''
+        }}
+      />
+      <ConfirmDialog
+        title="Importa documento"
+        open={pendingImportFile !== null}
+        message={`Importare "${pendingImportFile?.name ?? ''}" nell'anteprima? Il documento del fascicolo verrà versionato.${dirty ? ' La bozza corrente sarà sostituita dal documento importato.' : ''}`}
+        onCancel={() => setPendingImportFile(null)}
+        onConfirm={() => {
+          const file = pendingImportFile
+          setPendingImportFile(null)
+          if (file) void importFile(file)
         }}
       />
 

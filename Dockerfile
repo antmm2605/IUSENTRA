@@ -1,4 +1,4 @@
-#  version: 2.436.26
+#  version: 2.437.0
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -123,7 +123,7 @@ RUN corepack enable \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.436.26" \
+      org.opencontainers.image.version="2.437.0" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -152,6 +152,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         tesseract-ocr-ita \
         hunspell \
         hunspell-it \
+        default-jre-headless \
         poppler-utils \
         antiword \
         libreoffice-writer \
@@ -164,6 +165,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY scripts/install_postgres_backup_runtime.py /tmp/install_postgres_backup_runtime.py
+COPY scripts/install_editor_language_runtime.py /tmp/install_editor_language_runtime.py
+RUN python /tmp/install_editor_language_runtime.py && rm /tmp/install_editor_language_runtime.py
 RUN python /tmp/install_postgres_backup_runtime.py \
     && rm -rf /var/lib/apt/lists/*
 

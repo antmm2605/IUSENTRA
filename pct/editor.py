@@ -584,11 +584,14 @@ def documento_to_html(data: bytes, nome_file: str) -> tuple[str, list[str], dict
     ext = Path(nome_file).suffix.lower()
 
     if ext == ".docx":
-        html, avvisi = docx_to_html(data)
-        return html, avvisi, {
+        from pct.documento_fedele import converti_bytes
+
+        documento = converti_bytes(data, nome_file)
+        html = documento.html
+        return html, documento.avvisi, {
             "tipo_originale": "docx",
             "is_scanned": False,
-            "n_pagine": 1,
+            "n_pagine": len(documento.pagine),
             "n_caratteri": len(html)
         }
 
@@ -668,17 +671,47 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
         from docx import Document
         from docx.shared import Pt, RGBColor, Inches
         from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.enum.section import WD_SECTION, WD_ORIENT
     except ImportError:
         raise ImportError(
             "python-docx non installato. Esegui: pip install python-docx"
         )
     try:
         from lxml import etree as ET
-        from lxml.html import fragment_fromstring, fragments_fromstring
     except ImportError:
         raise ImportError("lxml non disponibile")
 
     doc = Document()
+
+    # Il modello Word usa un codice privato di Symbol per il punto elenco.
+    # In RTF quel codice può diventare un glifo assente: usare il carattere
+    # Unicode reale conserva l'elenco anche nei convertitori locali.
+    from docx.oxml.ns import qn
+    from docx.oxml import OxmlElement
+    for livello in doc.part.numbering_part.element.findall('.//' + qn('w:lvl')):
+        formato = livello.find(qn('w:numFmt'))
+        if formato is None:
+            continue
+        if formato.get(qn('w:val')) != 'bullet':
+            # Rendere esplicito il font ereditato del modello canonico evita
+            # che il passaggio RTF scelga Cambria per i soli numeri.
+            proprieta = livello.find(qn('w:rPr'))
+            if proprieta is None:
+                proprieta = OxmlElement('w:rPr')
+                livello.append(proprieta)
+            font = proprieta.find(qn('w:rFonts'))
+            if font is None:
+                font = OxmlElement('w:rFonts')
+                proprieta.append(font)
+                font.set(qn('w:ascii'), 'Times New Roman')
+                font.set(qn('w:hAnsi'), 'Times New Roman')
+            continue
+        testo = livello.find(qn('w:lvlText'))
+        if testo is not None:
+            testo.set(qn('w:val'), '•')
+        for font in livello.findall('.//' + qn('w:rFonts')):
+            font.set(qn('w:ascii'), 'Arial')
+            font.set(qn('w:hAnsi'), 'Arial')
 
     # Margini pagina (A4 con margini legali italiani)
     for sec in doc.sections:
@@ -740,12 +773,28 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
     def _spaziatura(paragraph, el) -> None:
         """Interlinea (moltiplicatore) e rientro sinistro (punti) del capoverso."""
         stile = (el.get("style") or "").lower()
-        m = re.search(r"(?<![-\w])line-height:\s*([0-9]+(?:\.[0-9]+)?)\s*(?:;|$)", stile)
+        interlinea = stile
+        if "line-height" not in interlinea:
+            for contenitore in el.iterancestors():
+                ereditato = (contenitore.get("style") or "").lower()
+                if "line-height" in ereditato:
+                    interlinea = ereditato
+                    break
+        m = re.search(r"(?<![-\w])line-height:\s*([0-9]+(?:\.[0-9]+)?)\s*(?:;|$)", interlinea)
         if m and 0.8 <= float(m.group(1)) <= 4:
             paragraph.paragraph_format.line_spacing = float(m.group(1))
         m = re.search(r"(?<![-\w])margin-left:\s*([0-9]+(?:\.[0-9]+)?)pt", stile)
         if m and 0 < float(m.group(1)) <= 400:
             paragraph.paragraph_format.left_indent = Pt(float(m.group(1)))
+        for css, attributo in (('margin-top', 'space_before'), ('margin-bottom', 'space_after'), ('margin-right', 'right_indent'), ('text-indent', 'first_line_indent')):
+            trovato = re.search(r'(?:^|;)\s*' + css + r':\s*(-?[0-9]+(?:\.[0-9]+)?)pt\b', stile)
+            if trovato and -400 <= float(trovato.group(1)) <= 400:
+                valore = float(trovato.group(1))
+                if valore >= 0 or attributo == 'first_line_indent':
+                    setattr(paragraph.paragraph_format, attributo, Pt(valore))
+        esatta = re.search(r'(?:^|;)\s*line-height:\s*([0-9]+(?:\.[0-9]+)?)pt\b', interlinea)
+        if esatta and 2 <= float(esatta.group(1)) <= 200:
+            paragraph.paragraph_format.line_spacing = Pt(float(esatta.group(1)))
 
     def _allinea(paragraph, el) -> None:
         _spaziatura(paragraph, el)
@@ -806,6 +855,12 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
         corpo = _corpo(el)
         if corpo:
             nuovo_stato["size"] = corpo
+        spacing = re.search(r'(?:^|;)\s*letter-spacing:\s*(-?[0-9]+(?:\.[0-9]+)?)pt\b', el.get('style') or '')
+        if spacing and -100 <= float(spacing.group(1)) <= 100:
+            nuovo_stato['spacing'] = float(spacing.group(1))
+        underline = re.search(r'(?:^|;)\s*--iu-word-underline:\s*([a-zA-Z]+)', el.get('style') or '')
+        if underline:
+            nuovo_stato['word_underline'] = underline.group(1)
         return nuovo_stato
 
     def _stato_figlio(stato: dict, el) -> dict:
@@ -838,6 +893,72 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
             run.font.name = stato["font"]
         if stato.get("size"):
             run.font.size = Pt(stato["size"])
+        if stato.get('spacing') is not None:
+            node = OxmlElement('w:spacing')
+            node.set(qn('w:val'), str(round(stato['spacing'] * 20)))
+            run._r.get_or_add_rPr().append(node)
+        underline = stato.get('word_underline')
+        if underline in ('single', 'double', 'thick', 'dotted', 'dash', 'wave', 'none'):
+            node = run._r.get_or_add_rPr().get_or_add_u()
+            node.set(qn('w:val'), underline)
+
+    def _aggiungi_immagine(paragraph, el) -> None:
+        import base64
+
+        from PIL import Image
+
+        sorgente = str(el.get("src") or "")
+        trovato = re.fullmatch(r"data:image/(?:png|jpeg|webp);base64,([A-Za-z0-9+/=\s]+)", sorgente, re.I)
+        if not trovato or len(trovato.group(1)) > 7 * 1024 * 1024:
+            raise ValueError("Immagine non incorporata o troppo grande per il documento.")
+        dati = base64.b64decode(trovato.group(1), validate=True)
+        with Image.open(io.BytesIO(dati)) as immagine:
+            if immagine.width * immagine.height > 25_000_000:
+                raise ValueError("Immagine troppo grande per il documento.")
+            larghezza_nativa = immagine.width * 0.75
+            immagine.load()
+            if immagine.format == "WEBP":
+                convertita = io.BytesIO()
+                immagine.save(convertita, format="PNG")
+                dati = convertita.getvalue()
+        sezione = doc.sections[-1]
+        disponibile = (sezione.page_width - sezione.left_margin - sezione.right_margin) / 12700
+        larghezza = min(larghezza_nativa, disponibile)
+        dichiarata = re.search(r"(?:^|;)\s*width:\s*([0-9.]+)(px|pt)\b", el.get("style") or "", re.I)
+        if dichiarata:
+            # Una dimensione esplicita dell'editor può ingrandire l'immagine:
+            # il limite resta il foglio/contenitore, non i pixel nativi.
+            larghezza = min(disponibile, float(dichiarata.group(1)) * (0.75 if dichiarata.group(2).lower() == "px" else 1))
+        for contenitore in el.iterancestors():
+            if _nome(contenitore) == "table":
+                misura = re.search(r"(?:^|;)\s*width:\s*([0-9.]+)(px|pt)\b", contenitore.get("style") or "", re.I)
+                if misura:
+                    larghezza = min(larghezza, max(1, float(misura.group(1)) * (0.75 if misura.group(2).lower() == "px" else 1) - 12))
+                break
+        figura = paragraph.add_run().add_picture(io.BytesIO(dati), width=Pt(max(1, larghezza)))
+        # L'HTML non dichiara spazio esterno all'immagine inline. Se omesse,
+        # queste distanze ricevono margini impliciti dal convertitore PDF.
+        for distanza in ("distT", "distB", "distL", "distR"):
+            figura._inline.set(distanza, "0")
+
+    def _aggiungi_collegamento(paragraph, el, stato: dict) -> None:
+        from docx.opc.constants import RELATIONSHIP_TYPE
+
+        indirizzo = str(el.get("href")).strip()
+        if not re.match(r"^(?:https?://|mailto:|tel:|/[^/]|#)", indirizzo, re.I) or re.search(r"[\x00-\x20<>]", indirizzo):
+            raise ValueError("Indirizzo del collegamento non consentito.")
+        precedenti = set(paragraph._p)
+        _add_runs(paragraph, el, _stato_figlio(stato, el))
+        collegamento = OxmlElement("w:hyperlink")
+        if indirizzo.startswith("#"):
+            collegamento.set(qn("w:anchor"), indirizzo[1:])
+        else:
+            riferimento = paragraph.part.relate_to(indirizzo, RELATIONSHIP_TYPE.HYPERLINK, is_external=True)
+            collegamento.set(qn("r:id"), riferimento)
+        for elemento in list(paragraph._p):
+            if elemento not in precedenti:
+                collegamento.append(elemento)
+        paragraph._p.append(collegamento)
 
     def _add_runs(paragraph, el, stato: dict | None = None) -> None:
         """Testo dell'elemento nel paragrafo, conservando la formattazione annidata.
@@ -849,13 +970,35 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
         _scrivi(paragraph, el.text or "", corrente)
         for figlio in el:
             tag = _nome(figlio)
-            if tag == "br":
+            if figlio.get("data-iu-word-field") is not None:
+                istruzione = str(figlio.get("data-iu-word-field") or "").strip().upper()
+                if istruzione not in {"PAGE", "NUMPAGES", "PAGE \\* MERGEFORMAT", "NUMPAGES \\* MERGEFORMAT"}:
+                    raise ValueError("Campo Word non consentito.")
+                campo = OxmlElement("w:fldSimple")
+                campo.set(qn("w:instr"), istruzione)
+                campo.set(qn("w:dirty"), "true")
+                precedenti = set(paragraph._p)
+                _scrivi(paragraph, "".join(figlio.itertext()), _stato_figlio(corrente, figlio))
+                for elemento in list(paragraph._p):
+                    if elemento not in precedenti:
+                        campo.append(elemento)
+                paragraph._p.append(campo)
+            elif tag == "br":
                 paragraph.add_run().add_break()
+            elif tag == "img":
+                _aggiungi_immagine(paragraph, figlio)
+            elif tag == "a" and figlio.get("href"):
+                _aggiungi_collegamento(paragraph, figlio, corrente)
             elif tag in TAG_INLINE or tag in TAG_CONTENITORE:
                 _add_runs(paragraph, figlio, _stato_figlio(corrente, figlio))
             else:
-                _add_runs(paragraph, figlio, corrente)
+                _add_runs(paragraph, figlio, _stato_figlio(corrente, figlio))
             _scrivi(paragraph, figlio.tail or "", corrente)
+
+    destinazione_blocchi = doc
+
+    def _paragrafo(*args, **kwargs):
+        return destinazione_blocchi.add_paragraph(*args, **kwargs)
 
     def _marcatore_esplicito(el, ordinato: bool, posizione: int) -> str:
         """Il segno della voce quando l'elenco dichiara tipo o numero di partenza.
@@ -887,13 +1030,78 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
             return f"{romano if tipo == 'i' else romano.upper()}."
         return f"{valore}."
 
-    def _voci_elenco(el, ordinato: bool, livello: int = 0) -> None:
+    def _voci_elenco(el, ordinato: bool, livello: int = 0, stato: dict | None = None) -> None:
+        stato = _stato_dello_stile(stato or {}, el)
+        numerazioni = doc.part.numbering_part.element
+        abstract_id = 1 + max((int(n.get(qn('w:abstractNumId'))) for n in numerazioni.findall(qn('w:abstractNum'))), default=-1)
+        num_id = 1 + max((int(n.get(qn('w:numId'))) for n in numerazioni.findall(qn('w:num'))), default=0)
+        abstract = OxmlElement('w:abstractNum')
+        abstract.set(qn('w:abstractNumId'), str(abstract_id))
+        multi = OxmlElement('w:multiLevelType')
+        multi.set(qn('w:val'), 'multilevel')
+        abstract.append(multi)
+        glyph_word = next((v.get('data-iu-word-list-glyph') for v in el if _nome(v) == 'li' and v.get('data-iu-word-list-glyph')), '')
+        if len(glyph_word) > 8 or any(ord(c) < 32 for c in glyph_word):
+            raise ValueError('Marcatore elenco Word non valido.')
+        font_word = next((v.get('data-iu-word-list-font') for v in el if _nome(v) == 'li' and v.get('data-iu-word-list-font')), '')
+        for indice in range(9):
+            definizione = OxmlElement('w:lvl')
+            definizione.set(qn('w:ilvl'), str(indice))
+            for nome, valore in (
+                ('start', '1'),
+                ('numFmt', ('decimal', 'lowerLetter', 'lowerRoman')[indice % 3] if ordinato else 'bullet'),
+                ('lvlText', f'%{indice + 1}.' if ordinato else (glyph_word or ('•', '○', '▪')[indice % 3])),
+                ('lvlJc', 'left'),
+            ):
+                attributo = OxmlElement('w:' + nome)
+                attributo.set(qn('w:val'), valore)
+                definizione.append(attributo)
+            proprieta = OxmlElement('w:pPr')
+            rientro = OxmlElement('w:ind')
+            rientro.set(qn('w:left'), str(720 + indice * 360))
+            rientro.set(qn('w:hanging'), '360')
+            proprieta.append(rientro)
+            definizione.append(proprieta)
+            caratteri = OxmlElement('w:rPr')
+            font = OxmlElement('w:rFonts')
+            for attributo in ('ascii', 'hAnsi'):
+                font.set(qn('w:' + attributo), font_word or ('Times New Roman' if ordinato else 'Arial'))
+            caratteri.append(font)
+            marker = next((v for v in el if _nome(v) == 'li'), None)
+            if marker is not None:
+                size_word = marker.get('data-iu-word-list-size')
+                if size_word is not None:
+                    size_value = int(size_word)
+                    if not 6 <= size_value <= 144:
+                        raise ValueError('Corpo del marcatore Word non valido.')
+                    sz = OxmlElement('w:sz')
+                    sz.set(qn('w:val'), str(size_value))
+                    caratteri.append(sz)
+                if marker.get('data-iu-word-list-bold') == 'true':
+                    caratteri.append(OxmlElement('w:b'))
+            definizione.append(caratteri)
+            abstract.append(definizione)
+        numerazioni.append(abstract)
+        numerazione = OxmlElement('w:num')
+        numerazione.set(qn('w:numId'), str(num_id))
+        riferimento = OxmlElement('w:abstractNumId')
+        riferimento.set(qn('w:val'), str(abstract_id))
+        numerazione.append(riferimento)
+        numerazioni.append(numerazione)
         stile = "List Number" if ordinato else "List Bullet"
         if livello:
             stile = f"{stile} {min(livello + 1, 3)}"
         posizione = 0
+        if (el.text or "").strip():
+            _paragrafo(el.text)
         for voce in el:
             if _nome(voce) != "li":
+                if _nome(voce) in ("ul", "ol"):
+                    _voci_elenco(voce, _nome(voce) == "ol", livello + 1, stato)
+                else:
+                    _add_runs(_paragrafo(), voce, _stato_figlio(stato, voce))
+                if (voce.tail or "").strip():
+                    _paragrafo(voce.tail)
                 continue
             annidati = [figlio for figlio in voce if _nome(figlio) in ("ul", "ol")]
             # Solo il testo OCR dichiara il segno effettivamente riconosciuto.
@@ -902,64 +1110,297 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
             marcatore = segno_ocr or _marcatore_esplicito(el, ordinato, posizione)
             posizione += 1
             if marcatore:
-                paragraph = doc.add_paragraph()
+                paragraph = _paragrafo()
                 paragraph.paragraph_format.left_indent = Inches(0.35 + 0.25 * livello)
                 paragraph.paragraph_format.first_line_indent = Inches(-0.3)
                 paragraph.add_run(f"{marcatore}\t")
             else:
                 try:
-                    paragraph = doc.add_paragraph(style=stile)
+                    # I rientri importati sono espliciti: lo stile di elenco
+                    # predefinito aggiunge font e spaziature estranei nella RTF.
+                    native_list = voce.get('data-iu-word-list-glyph') is not None or voce.get('data-iu-word-list-tab') is not None
+                    paragraph = _paragrafo(style='Normal' if native_list else stile)
                 except KeyError:
-                    paragraph = doc.add_paragraph(style="List Number" if ordinato else "List Bullet")
-            _scrivi(paragraph, voce.text or "", {})
+                    paragraph = _paragrafo(style="List Number" if ordinato else "List Bullet")
+                proprieta = paragraph._p.get_or_add_pPr().get_or_add_numPr()
+                proprieta.get_or_add_ilvl().val = min(livello, 8)
+                proprieta.get_or_add_numId().val = num_id
+            stato_voce = _stato_dello_stile(stato, voce)
+            _allinea(paragraph, voce)
+            tab_word = voce.get('data-iu-word-list-tab')
+            if tab_word is not None:
+                posizione_tab = float(tab_word)
+                if not 0 <= posizione_tab <= 2000:
+                    raise ValueError('Tabulazione elenco Word non valida.')
+                paragraph.paragraph_format.tab_stops.add_tab_stop(Pt(posizione_tab))
+            _scrivi(paragraph, voce.text or "", stato_voce)
             for figlio in voce:
                 if _nome(figlio) in ("ul", "ol"):
                     continue
-                _add_runs(paragraph, figlio, _stato_figlio({}, figlio))
-                _scrivi(paragraph, figlio.tail or "", {})
+                _add_runs(paragraph, figlio, _stato_figlio(stato_voce, figlio))
+                _scrivi(paragraph, figlio.tail or "", stato_voce)
             for annidato in annidati:
-                _voci_elenco(annidato, _nome(annidato) == "ol", livello + 1)
+                _voci_elenco(annidato, _nome(annidato) == "ol", livello + 1, stato_voce)
 
-    def _tabella(el) -> None:
-        righe = el.findall(".//tr")
+    def _tabella(el, stato: dict | None = None) -> None:
+        stato = _stato_dello_stile(stato or {}, el)
+        righe = [riga for riga in el.iterdescendants("tr")
+                 if next(riga.iterancestors("table"), None) is el]
         if not righe:
             return
-        colonne = max(len(riga.findall("td") + riga.findall("th")) for riga in righe)
+        occupate = set()
+        posizioni = []
+        colonne = 0
+        for indice_riga, riga in enumerate(righe):
+            indice_colonna = 0
+            for cella in riga:
+                if _nome(cella) not in ("td", "th"):
+                    continue
+                while (indice_riga, indice_colonna) in occupate:
+                    indice_colonna += 1
+                try:
+                    orizzontale = int(cella.get("colspan") or 1)
+                    verticale = int(cella.get("rowspan") or 1)
+                except ValueError as errore:
+                    raise ValueError("Estensione della cella non valida.") from errore
+                if verticale == 0:
+                    verticale = len(righe) - indice_riga
+                if not 1 <= orizzontale <= 100 or not 1 <= verticale <= len(righe) - indice_riga:
+                    raise ValueError("Estensione della cella non valida.")
+                for y in range(indice_riga, indice_riga + verticale):
+                    for x in range(indice_colonna, indice_colonna + orizzontale):
+                        if (y, x) in occupate:
+                            raise ValueError("La tabella contiene celle sovrapposte.")
+                        occupate.add((y, x))
+                posizioni.append((indice_riga, indice_colonna, verticale, orizzontale, cella))
+                indice_colonna += orizzontale
+                colonne = max(colonne, indice_colonna)
         if colonne < 1:
             return
-        tabella = doc.add_table(rows=len(righe), cols=colonne)
+        if destinazione_blocchi is doc:
+            tabella = doc.add_table(rows=len(righe), cols=colonne)
+        else:
+            sezione_corrente = doc.sections[-1]
+            tabella = destinazione_blocchi.add_table(
+                rows=len(righe), cols=colonne,
+                width=sezione_corrente.page_width - sezione_corrente.left_margin - sezione_corrente.right_margin,
+            )
+        if el.get("data-iu-text-box") == "true" and len(righe) == 1 and colonne == 1:
+            # Il riquadro nativo resta riconoscibile dopo salvataggio e riapertura.
+            # La descrizione è metadata Word, non testo aggiunto al documento.
+            from docx.oxml import OxmlElement
+            descrizione = OxmlElement("w:tblDescription")
+            descrizione.set(qn("w:val"), "IUSENTRA:text-box:v1")
+            tabella._tbl.tblPr.append(descrizione)
+        sezione = doc.sections[-1]
+        disponibile = (sezione.page_width - sezione.left_margin - sezione.right_margin) / 12700
+        larghezza = disponibile
+        misura = re.search(r"(?:^|;)\s*width:\s*([0-9.]+)(px|pt)\b", el.get("style") or "", re.I)
+        if misura:
+            larghezza = min(disponibile, float(misura.group(1)) * (0.75 if misura.group(2).lower() == "px" else 1))
+            tabella.autofit = False
+            for colonna in tabella.columns:
+                colonna.width = Pt(max(1, larghezza / colonne))
+        modello = next((riga for riga in righe
+                        if len(riga.findall("td") + riga.findall("th")) == colonne), None)
+        quote = []
+        if modello is not None:
+            for cella in modello:
+                if _nome(cella) not in ("td", "th"):
+                    continue
+                quota = re.search(r'(?:^|;)\s*width:\s*([0-9.]+)%', cella.get("style") or "", re.I)
+                quote.append(float(quota.group(1)) if quota else 0)
+        if len(quote) == colonne and all(quota > 0 for quota in quote):
+            tabella.autofit = False
+            totale = sum(quote)
+            for indice, quota in enumerate(quote):
+                punti = max(1, larghezza * quota / totale)
+                tabella.columns[indice].width = Pt(punti)
+                for riga in tabella.rows:
+                    riga.cells[indice].width = Pt(punti)
         try:
             tabella.style = "Table Grid"
         except KeyError:
             pass
-        for indice_riga, riga in enumerate(righe):
-            celle = riga.findall("th") + riga.findall("td")
-            for indice_cella, cella in enumerate(celle[:colonne]):
-                destinazione = tabella.rows[indice_riga].cells[indice_cella]
-                destinazione.text = ""
-                _add_runs(destinazione.paragraphs[0], cella, {"bold": True} if _nome(cella) == "th" else {})
+        destinazioni = []
+        for indice_riga, indice_cella, verticale, orizzontale, cella in posizioni:
+            destinazione = tabella.cell(indice_riga, indice_cella)
+            if verticale > 1 or orizzontale > 1:
+                destinazione = destinazione.merge(tabella.cell(
+                    indice_riga + verticale - 1, indice_cella + orizzontale - 1,
+                ))
+            destinazioni.append((cella, destinazione))
+        for cella, destinazione in destinazioni:
+            destinazione.text = ""
+            from docx.oxml import OxmlElement
+            sfondo = re.search(r'(?:^|;)\s*background-color:\s*#([0-9a-fA-F]{6})\s*(?:;|$)', cella.get("style") or "", re.I)
+            if sfondo:
+                ombra = OxmlElement('w:shd')
+                ombra.set(qn('w:fill'), sfondo.group(1).upper())
+                destinazione._tc.get_or_add_tcPr().append(ombra)
+            bordi = None
+            for lato in ("top", "right", "bottom", "left"):
+                dichiarato = re.search(r'(?:^|;)\s*border-' + lato + r':\s*(none|([0-9.]+)pt\s+(solid|double|dotted|dashed)\s+#([0-9a-fA-F]{6}))\s*(?:;|$)', cella.get("style") or "", re.I)
+                if dichiarato is None:
+                    continue
+                if bordi is None:
+                    bordi = OxmlElement('w:tcBorders')
+                    destinazione._tc.get_or_add_tcPr().append(bordi)
+                bordo = OxmlElement('w:' + lato)
+                if dichiarato.group(1).lower() == 'none':
+                    bordo.set(qn('w:val'), 'nil')
+                else:
+                    punti = float(dichiarato.group(2))
+                    if not 0 < punti <= 12:
+                        raise ValueError('Spessore del bordo della tabella non valido.')
+                    bordo.set(qn('w:val'), {'solid': 'single', 'double': 'double', 'dotted': 'dotted', 'dashed': 'dashed'}[dichiarato.group(3).lower()])
+                    bordo.set(qn('w:sz'), str(round(punti * 8)))
+                    bordo.set(qn('w:color'), dichiarato.group(4).upper())
+                bordi.append(bordo)
+            margini = None
+            for lato in ("top", "right", "bottom", "left"):
+                dichiarato = re.search(r'(?:^|;)\s*padding-' + lato + r':\s*([0-9.]+)pt\b', cella.get("style") or "", re.I)
+                if dichiarato and 0 <= float(dichiarato.group(1)) <= 100:
+                    if margini is None:
+                        margini = OxmlElement("w:tcMar")
+                        destinazione._tc.get_or_add_tcPr().append(margini)
+                    bordo = OxmlElement("w:" + lato)
+                    bordo.set(qn("w:w"), str(round(float(dichiarato.group(1)) * 20)))
+                    bordo.set(qn("w:type"), "dxa")
+                    margini.append(bordo)
+            stato_cella = _stato_dello_stile(stato, cella)
+            if _nome(cella) == "th":
+                stato_cella["bold"] = True
+            paragrafi = [figlio for figlio in cella if _nome(figlio) in ("p", "div")]
+            if (paragrafi and len(paragrafi) == len(cella)
+                    and not (cella.text or "").strip()
+                    and not any((figlio.tail or "").strip() for figlio in cella)):
+                for indice_paragrafo, fonte in enumerate(paragrafi):
+                    paragrafo = (destinazione.paragraphs[0] if indice_paragrafo == 0
+                                 else destinazione.add_paragraph())
+                    _allinea(paragrafo, fonte)
+                    _add_runs(paragrafo, fonte, _stato_dello_stile(stato_cella, fonte))
+            else:
+                _allinea(destinazione.paragraphs[0], cella)
+                _spaziatura(destinazione.paragraphs[0], cella)
+                _add_runs(destinazione.paragraphs[0], cella, stato_cella)
 
-    def _process_node(el) -> None:
+    pagine_incontrate = 0
+    sezione_word_precedente = None
+
+    def _process_node(el, stato: dict | None = None) -> None:
+        nonlocal pagine_incontrate, sezione_word_precedente, destinazione_blocchi
         tag = _nome(el)
+        stato = _stato_dello_stile(stato or {}, el)
         if not tag:
+            return
+        if el.get("data-iu-word-variants") == "true":
+            for figlio in el:
+                if figlio.get("data-iu-word-region") is not None:
+                    _process_node(figlio, stato)
+            return
+        regione = el.get("data-iu-word-region")
+        if regione is not None:
+            tipi = {
+                ("header", "default"): "header", ("footer", "default"): "footer",
+                ("header", "first"): "first_page_header", ("footer", "first"): "first_page_footer",
+                ("header", "even"): "even_page_header", ("footer", "even"): "even_page_footer",
+            }
+            variante = str(el.get("data-iu-word-kind") or "default")
+            if (regione, variante) not in tipi or destinazione_blocchi is not doc:
+                raise ValueError("Regione del documento Word non valida.")
+            if el.get("data-iu-word-copy") == "true":
+                return
+            destinazione = getattr(doc.sections[-1], tipi[(regione, variante)])
+            collegata = el.get("data-iu-word-linked") == "true"
+            if collegata and len(doc.sections) > 1:
+                destinazione.is_linked_to_previous = True
+                return
+            destinazione.is_linked_to_previous = False
+            # La regione contiene blocchi nativi, non testo aggiunto al corpo.
+            for elemento in list(destinazione._element):
+                destinazione._element.remove(elemento)
+            precedente = destinazione_blocchi
+            destinazione_blocchi = destinazione
+            try:
+                for figlio in el:
+                    _process_node(figlio, stato)
+                if not destinazione.paragraphs:
+                    destinazione.add_paragraph()
+            finally:
+                destinazione_blocchi = precedente
+            return
+        if tag == "section" and "iu-doc-pagina" in str(el.get("class") or "").split():
+            if destinazione_blocchi is not doc:
+                raise ValueError("Una sezione di pagina non può essere inserita nell'intestazione o nel piè di pagina.")
+            sezione_word = el.get("data-sezione-word")
+            if pagine_incontrate:
+                if sezione_word is not None and sezione_word == sezione_word_precedente:
+                    doc.add_page_break()
+                else:
+                    tipi_sezione = {
+                        "0": WD_SECTION.CONTINUOUS, "1": WD_SECTION.NEW_COLUMN,
+                        "2": WD_SECTION.NEW_PAGE, "3": WD_SECTION.EVEN_PAGE,
+                        "4": WD_SECTION.ODD_PAGE,
+                    }
+                    tipo = el.get("data-inizio-sezione")
+                    if tipo is not None and tipo not in tipi_sezione:
+                        raise ValueError("Tipo di interruzione della sezione non valido.")
+                    doc.add_section(tipi_sezione.get(tipo, WD_SECTION.NEW_PAGE))
+            sezione_word_precedente = sezione_word
+            pagine_incontrate += 1
+            sezione = doc.sections[-1]
+            larghezza = float(el.get("data-larghezza") or 595.3)
+            altezza = float(el.get("data-altezza") or 841.9)
+            if not (100 <= larghezza <= 2000 and 100 <= altezza <= 2000):
+                raise ValueError("Dimensioni della pagina non valide.")
+            sezione.page_width, sezione.page_height = Pt(larghezza), Pt(altezza)
+            sezione.orientation = WD_ORIENT.LANDSCAPE if larghezza > altezza else WD_ORIENT.PORTRAIT
+            if el.get("data-iu-word-first-page") is not None:
+                sezione.different_first_page_header_footer = el.get("data-iu-word-first-page") == "true"
+            if el.get("data-iu-word-even-pages") is not None:
+                doc.settings.odd_and_even_pages_header_footer = el.get("data-iu-word-even-pages") == "true"
+            for attributo, proprieta in (("header", "header_distance"), ("footer", "footer_distance")):
+                valore = el.get("data-iu-word-" + attributo + "-distance")
+                if valore is not None:
+                    punti = float(valore)
+                    if not 0 <= punti <= 300:
+                        raise ValueError("Distanza dell'intestazione o del piè di pagina non valida.")
+                    setattr(sezione, proprieta, Pt(punti))
+            for attributo, proprieta in (("alto", "top_margin"), ("basso", "bottom_margin"), ("sinistro", "left_margin"), ("destro", "right_margin")):
+                valore = el.get("data-margine-" + attributo)
+                if valore is not None:
+                    punti = float(valore)
+                    if not 0 <= punti <= 300:
+                        raise ValueError("Margini della pagina non validi.")
+                    setattr(sezione, proprieta, Pt(punti))
+            if sezione.left_margin + sezione.right_margin >= sezione.page_width or sezione.top_margin + sezione.bottom_margin >= sezione.page_height:
+                raise ValueError("I margini non lasciano spazio al documento.")
+        if tag == "img":
+            _aggiungi_immagine(_paragrafo(), el)
+            return
+        if tag == "a" and el.get("href"):
+            paragraph = _paragrafo()
+            _allinea(paragraph, el)
+            _aggiungi_collegamento(paragraph, el, stato)
             return
         if tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
             livello = min(4, int(tag[1]))
             try:
-                paragraph = doc.add_paragraph(style=f"Heading {livello}")
+                paragraph = _paragrafo(style=f"Heading {livello}")
             except KeyError:
-                paragraph = doc.add_paragraph()
+                paragraph = _paragrafo()
             _allinea(paragraph, el)
-            _add_runs(paragraph, el, _stato_dello_stile({}, el))
+            _add_runs(paragraph, el, stato)
             return
         if tag in ("ul", "ol"):
-            _voci_elenco(el, tag == "ol")
+            _voci_elenco(el, tag == "ol", stato=stato)
             return
         if tag == "table":
-            _tabella(el)
+            _tabella(el, stato)
             return
         if tag == "br":
-            doc.add_paragraph()
+            _paragrafo()
             return
         if tag == "hr":
             # Stesso marcatore usato dall'editor e riconosciuto dall'export PDF:
@@ -967,7 +1408,7 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
             if el.get("data-iu-page-break") is not None or "iu-ted-page-break" in (el.get("class") or "").split():
                 doc.add_page_break()
             else:
-                doc.add_paragraph()
+                _paragrafo()
             return
         if tag in TAG_CONTENITORE:
             # Un contenitore non e' un capoverso: i suoi figli vanno trattati
@@ -976,18 +1417,28 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
             figli = [figlio for figlio in el if _nome(figlio)]
             if figli:
                 if (el.text or "").strip():
-                    paragraph = doc.add_paragraph()
+                    paragraph = _paragrafo()
                     _allinea(paragraph, el)
-                    _scrivi(paragraph, el.text, {})
+                    _scrivi(paragraph, el.text, stato)
                 for figlio in figli:
-                    _process_node(figlio)
+                    _process_node(figlio, stato)
                     if (figlio.tail or "").strip():
-                        coda = doc.add_paragraph()
-                        _scrivi(coda, figlio.tail, {})
+                        coda = _paragrafo()
+                        _scrivi(coda, figlio.tail, stato)
                 return
-        paragraph = doc.add_paragraph()
+        paragraph = _paragrafo()
         _allinea(paragraph, el)
-        _add_runs(paragraph, el, _stato_dello_stile({}, el))
+        _add_runs(paragraph, el, stato)
+        empty_size = el.get('data-iu-word-empty-size')
+        if empty_size is not None and not ''.join(el.itertext()).strip():
+            size = float(empty_size)
+            if not 3 <= size <= 72:
+                raise ValueError('Corpo del paragrafo vuoto non valido.')
+            rpr = OxmlElement('w:rPr')
+            sz = OxmlElement('w:sz')
+            sz.set(qn('w:val'), str(round(size * 2)))
+            rpr.append(sz)
+            paragraph._p.get_or_add_pPr().append(rpr)
 
     for child in (body if body is not None else []):
         _process_node(child)

@@ -203,7 +203,7 @@ def test_editor_documento_payload_pdf_usa_anteprima_nativa(tmp_path: Path):
     assert payload["document"]["pdfOverlayAllowed"] is True
     assert "Modifica PDF sicura" in payload["document"]["lockedReason"]
     assert payload["document"]["actions"]["preview"] == f"/fascicoli/{fascicolo.id}/documenti/{documento.id}/visualizza"
-    assert any("Anteprima PDF nativa" in warning for warning in payload["warnings"])
+    assert payload["warnings"] == []
 
 
 def test_editor_pdf_non_viene_salvato_ricostruendolo_da_html(tmp_path: Path):
@@ -222,6 +222,57 @@ def test_editor_pdf_non_viene_salvato_ricostruendolo_da_html(tmp_path: Path):
     assert response.status_code == 409
     assert payload["ok"] is False
     assert "non lo ricostruisce" in payload["errore"]
+
+
+def test_rtf_nega_export_senza_permesso_di_lettura(tmp_path: Path, monkeypatch):
+    from pct.editor_ai.validators import EditorAIPermissionDenied
+
+    app = _app(tmp_path)
+    fascicolo, documento = _seed_documento_editabile(app)
+
+    def nega(_context):
+        raise EditorAIPermissionDenied()
+
+    monkeypatch.setattr("pct.editor_ai.validators.assert_user_can_read", nega)
+    with app.test_client() as client:
+        _crea_operatore(app)
+        _login(client)
+        risposta = client.post(f"/api/editor/{fascicolo.id}/{documento.id}/rtf", json={"html": "<p>Prova</p>"})
+    assert risposta.status_code == 403
+    assert risposta.get_json()["errore"] == "Operazione non autorizzata."
+
+
+def test_export_editor_non_aggiunge_carta_intestata_non_presente(tmp_path: Path, monkeypatch):
+    from docx import Document
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicolo, documento = _seed_documento_editabile(app)
+    conversioni = []
+
+    def vietato(*args, **kwargs):
+        raise AssertionError("L'export non deve inserire il timbro dello studio")
+
+    def esporta(html, *, formato, titolo, **kwargs):
+        assert not kwargs.get("studio_timbro")
+        conversioni.append(formato)
+        return b"documento controllato"
+
+    monkeypatch.setattr("pct.studio_timbro.build_studio_timbro", vietato)
+    monkeypatch.setattr("pct.editor_export.esporta_documento_editor", esporta)
+    with app.test_client() as client:
+        _login(client)
+        url = f"/api/editor/{fascicolo.id}/{documento.id}"
+        word = client.post(url + "/docx", json={"html": "<p>Contenuto controllato</p>"})
+        assert word.status_code == 200
+        contenuto = Document(io.BytesIO(word.data))
+        assert [p.text for p in contenuto.paragraphs] == ["Contenuto controllato"]
+        assert all(not p.text for sezione in contenuto.sections for p in sezione.header.paragraphs)
+        for formato in ("pdf", "rtf"):
+            response = client.post(url + "/" + formato, json={"html": "<p>Contenuto controllato</p>"})
+            assert response.status_code == 200
+            assert response.data == b"documento controllato"
+    assert conversioni == ["pdf", "rtf"]
 
 
 def test_editor_pdf_endpoint_restituisce_il_pdf_originale(tmp_path: Path):
@@ -432,7 +483,8 @@ def test_editor_documento_react_contract_statico():
     assert "Font testo" in page_source
     assert "Dimensione testo" in page_source
     assert "Interlinea" in page_source
-    assert "Anteprima PDF fedele all\\'originale" in page_source
+    assert "Anteprima PDF fedele all\\'originale" not in page_source
+    assert 'aria-label="Comandi documento"' in page_source
     assert "Modifica PDF sicura" in page_source
     assert "Salva versione PDF" in page_source
     assert "Messaggio EML consultabile" in page_source

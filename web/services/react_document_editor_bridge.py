@@ -236,15 +236,15 @@ def build_react_document_editor_payload(
 
     document = _document_payload(fid, doc)
     warnings: list[str] = []
-    if document["extension"] == "pdf":
-        warnings.append(
-            "Anteprima PDF nativa attiva: l'editor non ricostruisce il layout in HTML, così il documento resta uguale all'originale."
-        )
     if document["extension"] == "eml":
         warnings.append(
             "Formato EML rilevato: l'email originale resta intatta; con «Modifica PDF» lavori su una sua copia PDF."
         )
-    if not document["editable"] and document["lockedReason"]:
+    if (
+        not document["editable"]
+        and document["lockedReason"]
+        and not (document["extension"] == "pdf" and not document["pdfSoloCopia"])
+    ):
         warnings.append(document["lockedReason"])
 
     return {
@@ -265,10 +265,13 @@ def build_react_document_editor_payload(
         "document": document,
         "endpoints": {
             "loadHtml": f"/api/editor/{fid}/{document['id']}/html",
+            "language": f"/api/editor/{fid}/{document['id']}/lingua",
             "save": f"/api/editor/{fid}/{document['id']}/salva",
             "importFile": f"/api/editor/{fid}/{document['id']}/importa",
             "exportPdf": f"/api/editor/{fid}/{document['id']}/pdf",
             "exportDocx": f"/api/editor/{fid}/{document['id']}/docx",
+            "exportRtf": f"/api/editor/{fid}/{document['id']}/rtf",
+            "printPreview": f"/api/editor/{fid}/{document['id']}/anteprima-stampa",
             "pdfMeta": f"/api/editor/{fid}/{document['id']}/pdf-meta",
             "pdfPageImage": f"/api/editor/{fid}/{document['id']}/pdf-pagina",
             "pdfOverlay": f"/api/editor/{fid}/{document['id']}/pdf-overlay",

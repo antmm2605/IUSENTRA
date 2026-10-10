@@ -29,10 +29,13 @@ class Tratto:
     evidenziato: Optional[str] = None
     collegamento: Optional[str] = None
 
+    spaziatura_pt: float = 0.0
+    sottolineatura_word: str = ""
+
     def chiave(self) -> tuple:
         return (self.famiglia, round(self.corpo, 1), self.grassetto, self.corsivo,
                 self.sottolineato, self.barrato, self.apice, self.pedice,
-                self.colore, self.evidenziato, self.collegamento)
+                self.colore, self.evidenziato, self.collegamento, self.spaziatura_pt, self.sottolineatura_word)
 
 
 @dataclass

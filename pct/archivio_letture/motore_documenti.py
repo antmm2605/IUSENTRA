@@ -17,6 +17,7 @@ from pct.registro_letture.fatti_repository import Fatto
 from .ancoraggio import VERSIONE_DATE_PROCESSUALI
 from .copie_atti import VERSIONE_COPIE_ATTI, fatto_identita
 from .collaudo import Contesto, collauda_tutti
+from .date_campi_modello import VERSIONE_DATE_CAMPI_MODELLI
 from .estrazione_date import estrai_date
 from .estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI, estrai_importi
 from .estrazione_istituti import VERSIONE_ESTRAZIONE_ISTITUTI
@@ -36,6 +37,7 @@ VERSIONE_MOTORE_DOCUMENTI_V15 = f"2026.09.26.motore-documenti.v15+parti:{VERSION
 VERSIONE_MOTORE_DOCUMENTI = f"2026.09.26.motore-documenti.v16+tabelle:{VERSIONE_ESTRAZIONE_TABELLE}+parti:{VERSIONE_ESTRAZIONE_PARTI}+ruolo-amministrativo+ufficio-rg+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}+date:{VERSIONE_DATE_PROCESSUALI}"
 VERSIONE_MOTORE_DOCUMENTI += f"+copie:{VERSIONE_COPIE_ATTI}"
 VERSIONE_MOTORE_DOCUMENTI += f"+prove:{VERSIONE_PROVE_NOTIFICA}"
+VERSIONE_MOTORE_DOCUMENTI += f"+date-modello:{VERSIONE_DATE_CAMPI_MODELLI}"
 VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI = (VERSIONE_MOTORE_DOCUMENTI,)
 FATTI_MASSIMI = 80
 ORDINE_VERIFICA = {"verificata": 0, "corretta": 0, "plausibile": 1, "respinta": 2, "ignorata": 3}
@@ -89,6 +91,17 @@ def leggi_testo(
     if identita:
         collaudati.append(identita)
     if not any(f.campo == "natura_documentale" and f.valore in {"precedente_giurisprudenziale", "messaggio_pec"} for f in collaudati):
+        from .estrazione_giudice import estrai_giudice
+        dati = metadata or {}
+        from .date_campi_modello import estrai_date_modello
+        collaudati.extend(estrai_date_modello(
+            testo, fascicolo=dati.get("fascicolo"), origine=origine,
+            codice_fiscale_cliente=str(dati.get("codice_fiscale_cliente") or ""),
+        ))
+        collaudati.extend(estrai_giudice(
+            testo, fascicolo=dati.get("fascicolo"), origine=origine,
+            codice_fiscale_cliente=str(dati.get("codice_fiscale_cliente") or ""),
+        ))
         from .estrazione_economica import estrai_controllo_economico
         from .estrazione_parti import fatti_parti
         collaudati.extend(estrai_controllo_economico(testo, origine=origine, metadata=metadata or {}))

@@ -326,7 +326,7 @@ def raccogli_dati_lettura(fascicolo_id: str, *, solo_cronologia: bool = False) -
         regia=regia,
         economico={} if solo_cronologia else _economico(target),
         parti=[] if solo_cronologia else _parti(target),
-        pec=[] if solo_cronologia else _sicuro(lambda: messaggi_pec_per_fascicolo(fascicolo), []),
+        pec=[] if solo_cronologia else _sicuro(lambda: messaggi_pec_per_fascicolo(fascicolo, solo_collegate=True), []),
         verifiche=verifiche,
         archivio=archivio,
     )

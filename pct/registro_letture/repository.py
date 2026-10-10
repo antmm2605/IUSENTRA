@@ -18,7 +18,7 @@ from typing import Any, Iterable
 from pct.postgres_runtime_support import PostgresRepositoryBackend
 
 from .consegne import COLONNE_CONSEGNE, ConsegneMixin
-from .fatti_repository import COLONNE_FATTI, FattiMixin
+from .fatti_repository import CATEGORIE, COLONNE_FATTI, FattiMixin
 from .lettori import LETTORI, etichetta_lettore, livello_lettore, tipi_lettore, versione_compatibile_lettore, versione_lettore
 from .modello import (
     GRAVITA,
@@ -153,18 +153,23 @@ def _allinea_vincolo_categorie(conn: sqlite3.Connection, schema: str) -> None:
     tabella si ricostruisce con lo schema corrente, conservando le righe.
     """
     riga = conn.execute("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'letture_fatti'").fetchone()
-    if not riga or "'parte'" in str(riga[0] or ""):
+    if not riga or all(f"'{categoria}'" in str(riga[0] or "") for categoria in CATEGORIE):
         return
     crea = re.search(r"CREATE TABLE IF NOT EXISTS letture_fatti \(.*?\n\);", schema, re.S)
     if not crea:
         return
     colonne = ", ".join(r[1] for r in conn.execute("PRAGMA table_info(letture_fatti)").fetchall())
+    auxiliaries = [r[0] for r in conn.execute(
+        "SELECT sql FROM sqlite_master WHERE tbl_name='letture_fatti' AND type IN ('index','trigger') AND sql IS NOT NULL"
+    ).fetchall()]
     conn.execute("BEGIN")
     try:
         conn.execute("ALTER TABLE letture_fatti RENAME TO letture_fatti_vincolo_precedente")
         conn.execute(crea.group(0))
         conn.execute(f"INSERT INTO letture_fatti ({colonne}) SELECT {colonne} FROM letture_fatti_vincolo_precedente")
         conn.execute("DROP TABLE letture_fatti_vincolo_precedente")
+        for statement in auxiliaries:
+            conn.execute(statement)
         conn.execute("COMMIT")
     except Exception:
         conn.execute("ROLLBACK")
@@ -444,6 +449,28 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
                 })
         return Lettura(tipo=chiave[1], oggetto_id=chiave[2], sha256=chiave[3], lettore=lettore, versione_lettore=str(versione_corrente or ""), stato=stato, esito=dict(esito or {}), durata_ms=int(durata_ms or 0), letto_il=adesso)
 
+    def registra_controllo_metadati(self, tenant_id: str, fascicolo_id: str, oggetto: Oggetto, *, versione: str, esito: dict[str, Any]) -> None:
+        """Checkpoint puntuale sul testo già letto; preserva stato e data della lettura."""
+        key = (_testo(tenant_id), _testo(fascicolo_id), _tipo(oggetto.tipo), _testo(oggetto.oggetto_id), oggetto.impronta, "motore_documenti")
+        for _ in range(3):
+            with self.connection() as conn:
+                row = conn.execute(
+                    'SELECT id,esito_json FROM "letture" WHERE tenant_id=? AND fascicolo_id=? AND tipo=? AND oggetto_id=? AND sha256=? AND lettore=? AND stato=?',
+                    (*key, "letto"),
+                ).fetchone()
+                if row is None:
+                    raise RegistroLettureError("Lettura corrente assente: controllo metadati non confermato.")
+                previous = row["esito_json"]
+                payload = _carica_json(previous, {})
+                payload["controllo_metadati"] = {"versione": versione, **esito}
+                updated = conn.execute(
+                    'UPDATE "letture" SET esito_json=?,aggiornato_il=? WHERE id=? AND tenant_id=? AND esito_json=? RETURNING id',
+                    (_json(payload), _adesso(), row["id"], key[0], previous),
+                ).fetchone()
+                if updated is not None:
+                    return
+        raise RegistroLettureError("Lettura modificata contemporaneamente: controllo metadati da riprendere.")
+
     def segna_letti(self, tenant_id: str, fascicolo_id: str, oggetti: Iterable[Oggetto], lettore: str, *, versione: str | None = None, stato: str = "letto", esito: dict[str, Any] | None = None) -> int:
         conteggio = 0
         for oggetto in oggetti:
@@ -628,6 +655,15 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
         return int(getattr(cur, "rowcount", 0) or 0)
 
     # ---- coda persistente delle letture puntuali -------------------------------
+
+    def stato_evento(self, tenant_id: str, fascicolo_id: str) -> str:
+        """Stato persistente di un solo lavoro, senza letture documentali."""
+        with self.connection() as conn:
+            row = conn.execute(
+                'SELECT stato FROM "letture_eventi" WHERE tenant_id = ? AND fascicolo_id = ?',
+                (_testo(tenant_id), _testo(fascicolo_id)),
+            ).fetchone()
+        return _testo(row["stato"]) if row else "idle"
 
     def accoda_evento(self, tenant_id: str, fascicolo_id: str, *, forza: bool = False) -> int:
         """Registra una generazione per un solo fascicolo, anche se è già in lavoro."""

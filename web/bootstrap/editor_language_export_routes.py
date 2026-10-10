@@ -11,6 +11,7 @@ from collections.abc import Callable
 from typing import Any
 
 from flask import Flask, jsonify, request, send_file
+from web.services.document_word_fonts import SourceFontCoverageError
 
 
 def register_editor_language_export_routes(
@@ -38,7 +39,25 @@ def register_editor_language_export_routes(
                 return jsonify({"ok": True, "rilievi": controlla_ortografia(testo), "locale": True})
             if azione == "documento":
                 from pct.editor_grammar import controlla_documento
-                rilievi = controlla_documento(testo)
+                from pct.editor_linked_fields import linked_fields_catalog
+                from web.helpers import get_clienti
+                from web.blueprints.template_atti import _get_studio_timbro, _studio_config_for_prefill
+                import re
+
+                cliente = get_clienti().get(fascicolo.id_cliente) if fascicolo.id_cliente else None
+                campi = linked_fields_catalog(
+                    cliente=cliente, fascicolo=fascicolo,
+                    config=_studio_config_for_prefill(), studio_timbro=_get_studio_timbro(),
+                )
+                nomi = {'cliente.nome', 'cliente.cognome', 'cliente.nome_completo',
+                        'cliente.luogo_nascita', 'fascicolo.giudice', 'fascicolo.tribunale',
+                        'fascicolo.avvocato_controparte', 'studio.citta',
+                        'studio_timbro.nome_professionista', 'studio_timbro.professionista_nome'}
+                termini = {parola for campo in campi if campo['available'] and (
+                    campo['id'] in nomi or campo['id'].startswith('cliente.indirizzo_')
+                    and campo['id'].endswith(('.comune', '.via'))
+                ) for parola in re.findall(r"[^\W\d_]+", campo['value'])}
+                rilievi = controlla_documento(testo, termini_contesto=termini)
                 audit("fascicoli.documento.controllo_linguistico", "fascicolo", id_fasc, dettagli=f"doc {id_doc}; solo locale; {len(rilievi)} rilievi; testo invariato")
                 return jsonify({"ok": True, "rilievi": rilievi, "locale": True})
             if azione != "frase":
@@ -61,31 +80,41 @@ def register_editor_language_export_routes(
 
         try:
             assert_user_can_read(editor_ai_user_context())
-            fascicolo = get_fascicoli().get(id_fasc)
+            repository = get_fascicoli()
+            fascicolo = repository.get(id_fasc)
             documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None) if fascicolo else None
             if documento is None:
                 return jsonify({"errore": "Documento non trovato."}), 404
             body = request.get_json(silent=True) or {}
             titolo = documento.nome.rsplit(".", 1)[0]
-            contenuto = esporta_documento_editor(body.get("html", "<p></p>"), formato="rtf", titolo=titolo)
+            from pct.document_crypto import decrypt_doc
+            from web.services.editor_word_source import editor_word_source
+            contenuto = esporta_documento_editor(body.get("html", "<p></p>"), formato="rtf", titolo=titolo,
+                fonte_word=editor_word_source(repository, id_fasc, documento, decrypt_doc))
             audit("fascicoli.documento.editor_rtf", "fascicolo", id_fasc, dettagli=f"doc {id_doc}")
             return send_file(io.BytesIO(contenuto), mimetype="application/rtf", as_attachment=True, download_name=titolo + ".rtf")
         except EditorAIPermissionDenied:
             return jsonify({"errore": "Operazione non autorizzata."}), 403
+        except SourceFontCoverageError as error:
+            return jsonify({"errore": str(error)}), 422
         except Exception:
             return jsonify({"errore": "Generazione RTF non completata."}), 503
 
     @app.route("/api/editor/<id_fasc>/<id_doc>/docx", methods=["POST"])
     def api_editor_docx(id_fasc, id_doc):
-        from pct.editor import html_to_docx
+        from pct.editor_export import esporta_documento_editor
 
         try:
             body = request.get_json(force=True) or {}
             html = body.get("html", "<p></p>")
-            fascicolo = get_fascicoli().get(id_fasc)
+            repository = get_fascicoli()
+            fascicolo = repository.get(id_fasc)
             documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
             titolo = documento.nome.rsplit(".", 1)[0] if documento else "documento"
-            docx_bytes = html_to_docx(html, titolo=titolo)
+            from pct.document_crypto import decrypt_doc
+            from web.services.editor_word_source import editor_word_source
+            docx_bytes = esporta_documento_editor(html, formato='docx', titolo=titolo,
+                fonte_word=editor_word_source(repository, id_fasc, documento, decrypt_doc))
             audit("fascicoli.documento.editor_docx", "fascicolo", id_fasc, dettagli=f"doc {id_doc}")
             return send_file(
                 io.BytesIO(docx_bytes),
@@ -95,6 +124,8 @@ def register_editor_language_export_routes(
             )
         except ImportError:
             return jsonify({"errore": "Generazione DOCX non disponibile."}), 503
+        except SourceFontCoverageError as error:
+            return jsonify({"errore": str(error)}), 422
         except Exception as exc:
             app.logger.exception("Errore api_editor_docx: %s", exc)
             return "Generazione DOCX non completata.", 500

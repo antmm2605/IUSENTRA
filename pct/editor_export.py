@@ -211,26 +211,45 @@ def anteprima_stampa_pdf(dati: bytes) -> str:
     return '<!doctype html><html lang="it"><meta charset="utf-8"><title>Anteprima di stampa</title><style>body{margin:0;background:#e5e7eb}.pagina{margin:12px auto;background:#fff;break-after:page}.pagina:last-child{break-after:auto}img{display:block;width:100%;height:100%}@media print{body{background:white}.pagina{margin:0}}</style><style>' + ''.join(stili) + '</style><style>@media screen{.pagina{max-width:100%;height:auto}img{height:auto}}</style><body>' + ''.join(pagine) + '</body></html>'
 
 
-def esporta_documento_editor(html: str, *, formato: str, titolo: str = "Documento", studio_timbro=None) -> bytes:
+def esporta_documento_editor(html: str, *, formato: str, titolo: str = "Documento", studio_timbro=None, fonte_word: bytes | None = None) -> bytes:
     if formato not in {"docx", "rtf", "pdf"}:
         raise ValueError("Formato del documento non consentito.")
     sorgente = html_to_docx(html, titolo=titolo, studio_timbro=studio_timbro)
-    if formato == "docx":
+    if formato == "docx" and fonte_word is None:
         return sorgente
     programma = shutil.which("libreoffice") or shutil.which("soffice")
-    if not programma:
+    if not programma and formato != 'docx':
         raise RuntimeError("Convertitore locale dei documenti non disponibile.")
     with tempfile.TemporaryDirectory(prefix="iusentra-editor-export-") as cartella:
         root = Path(cartella)
+        font_config = None
+        if fonte_word:
+            from docx import Document
+            from web.services.document_word_fonts import prepare_word_source_fonts, embed_source_fonts, require_source_font_coverage
+            fonts, font_config = prepare_word_source_fonts(fonte_word, root / 'source-fonts')
+            word = Document(BytesIO(sorgente))
+            from web.services.editor_word_source import restore_legacy_tab_stops
+            restore_legacy_tab_stops(word, Document(BytesIO(fonte_word)), html)
+            require_source_font_coverage(word, fonts)
+            embed_source_fonts(word, fonts)
+            buffer = BytesIO()
+            word.save(buffer)
+            sorgente = buffer.getvalue()
+        if formato == 'docx':
+            return sorgente
         fonte = root / "documento.docx"
         fonte.write_bytes(sorgente)
         output = root / "output"
         output.mkdir()
         profilo = root / "profilo"
+        import os
+        environment = dict(os.environ)
+        if font_config:
+            environment['FONTCONFIG_FILE'] = str(font_config)
         subprocess.run(
             [programma, "-env:UserInstallation=" + profilo.as_uri(), "--headless", "--convert-to",
              "pdf:writer_pdf_Export" if formato == "pdf" else "rtf", "--outdir", str(output), str(fonte)],
-            check=True, timeout=45, capture_output=True,
+            check=True, timeout=45, capture_output=True, env=environment,
         )
         prodotto = output / ("documento." + formato)
         if not prodotto.is_file() or prodotto.stat().st_size == 0:

@@ -370,6 +370,11 @@ class GestioneTemplateRepository:
 
     def synchronize_templates(self, templates: Iterable[Any], *, export_json: bool = True) -> dict[str, Any]:
         normalized = [normalize_template_repository_item(template) for template in templates]
+        with self._connection() as conn:
+            persistent = conn.execute("SELECT r.*, b.content AS corpo FROM template_repository r JOIN template_blocks b ON b.template_id = r.template_id AND b.block_key = 'corpo' WHERE r.collezione = ?", ("Editor personale",)).fetchall()
+        editor_ids = {row['template_id'] for row in persistent}
+        normalized = [item for item in normalized if item['template_id'] not in editor_ids]
+        normalized += [normalize_template_repository_item({**dict(row), 'id': row['template_id']}) for row in persistent]
         signature = _payload_signature(normalized)
         current_signature = self._get_meta("source_signature")
         current_count = int(self.storage_stats().get("template_repository", 0))
@@ -384,6 +389,12 @@ class GestioneTemplateRepository:
 
     def rebuild_from_payload(self, templates: list[dict[str, Any]], *, source_label: str = "template_repository") -> None:
         with self._connection() as conn:
+            self._editor_template_lock(conn)
+            # I modelli dell'editor sono SQL primari, non rimpiazzabili dal mirror.
+            persistent = conn.execute("SELECT r.*, b.content AS corpo FROM template_repository r JOIN template_blocks b ON b.template_id = r.template_id AND b.block_key = 'corpo' WHERE r.collezione = ?", ("Editor personale",)).fetchall()
+            editor_ids = {row['template_id'] for row in persistent}
+            templates = [item for item in templates if item.get('template_id') not in editor_ids]
+            templates += [normalize_template_repository_item({**dict(row), 'id': row['template_id']}) for row in persistent]
             conn.execute("DELETE FROM template_blocks")
             conn.execute("DELETE FROM template_fields")
             conn.execute("DELETE FROM template_checks")
@@ -397,6 +408,28 @@ class GestioneTemplateRepository:
             self._set_meta(conn, "source_signature", _payload_signature(templates))
             self._set_meta(conn, "source_label", source_label)
             conn.commit()
+
+    def _editor_template_lock(self, conn):
+        if self._postgres_backend is not None:
+            conn.execute("SELECT pg_advisory_xact_lock(?)", (713426015,))
+        else:
+            conn.execute("BEGIN IMMEDIATE")
+
+    def create_editor_template(self, payload: dict[str, Any]) -> str:
+        """Inserimento puntuale e ripetibile; nessuna sostituzione di altri modelli."""
+        item = normalize_template_repository_item(payload)
+        if item['collezione'] != 'Editor personale':
+            raise ValueError('Tipo di modello non consentito.')
+        with self._connection() as conn:
+            self._editor_template_lock(conn)
+            previous = conn.execute("SELECT r.titolo, r.collezione, b.content FROM template_repository r JOIN template_blocks b ON b.template_id = r.template_id AND b.block_key = 'corpo' WHERE r.template_id = ?", (item['template_id'],)).fetchone()
+            if previous:
+                if previous['titolo'] != item['titolo'] or previous['content'] != item['corpo'] or previous['collezione'] != item['collezione']:
+                    raise ValueError('Richiesta già utilizzata per un modello diverso.')
+            else:
+                self._insert_template(conn, item)
+            conn.commit()
+        return item['template_id']
 
     def _insert_template(self, conn: sqlite3.Connection, template: dict[str, Any]) -> None:
         conn.execute(

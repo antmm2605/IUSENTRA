@@ -4,6 +4,7 @@ export type DocumentArchiveFacet = {
   value: string
   label: string
   count: number
+  client?: string
 }
 
 export type DocumentArchiveRow = {
@@ -103,7 +104,7 @@ function array(value: unknown): unknown[] {
 function facets(value: unknown): DocumentArchiveFacet[] {
   return array(value).map((entry) => {
     const row = record(entry)
-    return { value: text(row.value), label: text(row.label, text(row.value)), count: number(row.count) }
+    return { value: text(row.value), label: text(row.label, text(row.value)), count: number(row.count), client: text(row.client) }
   }).filter((item) => item.value)
 }
 

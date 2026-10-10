@@ -31,6 +31,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
 import './EditorProfessionalePage.css'
+import { FascicoloSearchSelect } from './FascicoloSearchSelect'
 
 const EMPTY_DATA: DocumentArchiveData = {
   source: 'vuoto',
@@ -80,6 +81,7 @@ function scopeLabel(scope: DocumentArchiveScope): string {
 }
 
 export function EditorProfessionalePage() {
+  const editorMode = new URLSearchParams(window.location.search).get('modalita') === 'editor'
   const [query, setQuery] = useState<DocumentArchiveQuery>(() => initialQuery())
   const [searchDraft, setSearchDraft] = useState(query.q)
   const [data, setData] = useState<DocumentArchiveData>(EMPTY_DATA)
@@ -101,6 +103,7 @@ export function EditorProfessionalePage() {
 
   useEffect(() => {
     const params = new URLSearchParams()
+    if (editorMode) params.set('modalita', 'editor')
     if (query.scope === 'cestino') params.set('scope', query.scope)
     if (query.q.trim()) params.set('q', query.q.trim())
     if (query.type) params.set('tipo', query.type)
@@ -122,7 +125,7 @@ export function EditorProfessionalePage() {
       setLoading(false)
     })
     return () => { active = false }
-  }, [query, refreshToken])
+  }, [query, refreshToken, editorMode])
 
   const selectedRows = useMemo(
     () => data.items.filter((row) => selected.has(rowKey(row)) && row.actions.download),
@@ -244,11 +247,13 @@ export function EditorProfessionalePage() {
 
   return (
     <Page
-      title="Archivio documenti"
-      subtitle="Cerca, apri, modifica ed esporta i documenti conservati nei fascicoli dello studio."
+      title="Documenti"
+      subtitle="Cerca, consulta e modifica i documenti dei fascicoli, prepara nuovi documenti e accedi ai modelli dello studio."
       actions={
         <>
-          <ButtonLink href="/template-atti/editor" tone="primary" title="Apre subito un foglio vuoto con timbro studio"><FilePlus2 size={15} /> Nuovo documento</ButtonLink>
+          <ButtonLink href="/editor-professionale?modalita=editor" tone="primary" title="Nuovo documento"><FilePlus2 size={15} /> Nuovo documento</ButtonLink>
+          <ButtonLink href="/fascicoli" tone="neutral"><FolderOpen size={15} /> Fascicoli</ButtonLink>
+          <ButtonLink href="/global-search?tipo=documenti" tone="neutral"><Search size={15} /> Ricerca studio</ButtonLink>
           <ButtonLink href="/redazione-atti" tone="neutral"><PenLine size={15} /> Redazione atti</ButtonLink>
           <ButtonLink href="/template-atti/catalogo" tone="neutral"><BookOpenCheck size={15} /> Modelli</ButtonLink>
         </>
@@ -299,13 +304,7 @@ export function EditorProfessionalePage() {
               {data.facets.formats.map((facet) => <option value={facet.value} key={facet.value}>{facet.label} ({facet.count})</option>)}
             </select>
           </label>
-          <label>
-            <span>Fascicolo</span>
-            <select value={query.matter} onChange={(event) => updateFilter('matter', event.currentTarget.value)}>
-              <option value="">Tutti i fascicoli</option>
-              {data.facets.matters.map((facet) => <option value={facet.value} key={facet.value}>{facet.label} ({facet.count})</option>)}
-            </select>
-          </label>
+          <FascicoloSearchSelect options={data.facets.matters.map(facet => ({value:facet.value,label:`${facet.label} (${facet.count})`,client:facet.client}))} value={query.matter} onChange={value => updateFilter('matter', value)} selectionLabel="Filtra documenti per fascicolo" hint="Senza una scelta sono mostrati i documenti di tutti i fascicoli."/>
           <button type="button" className="iu-editor-pro-reset" onClick={resetFilters} disabled={!hasFilters} title="Azzera filtri" aria-label="Azzera filtri"><X size={17} /></button>
         </div>
 
@@ -347,7 +346,7 @@ export function EditorProfessionalePage() {
                     <td className="is-actions" data-label="Azioni">
                       {row.actions.preview ? <a href={row.actions.preview} title="Visualizza" aria-label={`Visualizza ${row.name}`}><Eye size={16} /></a> : null}
                       {row.actions.download ? <a href={row.actions.download} title="Scarica originale" aria-label={`Scarica originale ${row.name}`}><Download size={16} /></a> : null}
-                      {row.actions.edit ? <a href={row.actions.edit} title="Modifica" aria-label={`Modifica ${row.name}`}><PenLine size={16} /></a> : null}
+                      {row.actions.edit ? <a href={row.actions.edit} className={editorMode ? 'iu-editor-pro-open-editor' : undefined} title="Apri editor" aria-label={`Apri editor: ${row.name}`}><PenLine size={16} />{editorMode ? <span>Apri editor</span> : null}</a> : null}
                       {row.actions.matter ? <a href={row.actions.matter} title="Apri fascicolo" aria-label={`Apri fascicolo ${row.matterRef}`}><FolderOpen size={16} /></a> : null}
                       {row.actions.delete ? <button type="button" className="is-danger" title="Sposta nel cestino" aria-label={`Sposta nel cestino ${row.name}`} onClick={() => setPendingAction({ row, kind: 'trash', url: row.actions.delete })}><Trash2 size={16} /></button> : null}
                       {row.actions.restore ? <button type="button" title="Ripristina" aria-label={`Ripristina ${row.name}`} onClick={() => setPendingAction({ row, kind: 'restore', url: row.actions.restore })}><RotateCcw size={16} /></button> : null}

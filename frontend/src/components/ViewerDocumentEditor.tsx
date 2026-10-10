@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent, type RefObject } from 'react'
-import { Pencil, Save, Undo2, Redo2, ZoomIn, ZoomOut } from 'lucide-react'
+import { Pencil, Save, Undo2, Redo2, ZoomIn, ZoomOut, Signature, TextCursorInput } from 'lucide-react'
+import { ReaderInlineControls } from './ReaderInlineControls'
 import { SourceDocumentModal, SourceDocumentReader, type SourceDocument } from './SourceDocumentModal'
 import './ViewerDocumentEditor.css'
 import { useViewerPdfPreview } from './useViewerPdfPreview'
@@ -58,6 +59,8 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
   const drag = useRef<{ x: number; y: number; id: number } | null>(null)
   const localReaderRef = useRef<HTMLIFrameElement | null>(null)
   const activeReaderRef = readerRef || localReaderRef
+  const [readerDocument, setReaderDocument] = useState<Document | null>(null)
+  useEffect(() => { setReaderDocument(null) }, [source.href, revision, open])
   useViewerPageTools(activeReaderRef, Boolean(policy?.editable), setPage, setOpen, setArmed)
   const sampler = useViewerColorSampler(setStatus, setError)
 
@@ -178,10 +181,11 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
   if (revision) readerUrl.searchParams.set('iuRevision', String(revision))
   return <ViewerColorSampling.Provider value={sampler}><div className="iu-viewer-edit" onContextMenu={(event)=>{event.stopPropagation();if(open)event.preventDefault()}} onKeyDown={event=>{if(event.key==='Escape'&&sampler.active){event.preventDefault();event.stopPropagation();sampler.cancel()}else if(event.key==='Escape'&&armed){event.preventDefault();event.stopPropagation();setArmed(false);setDraft(null);drag.current=null}}}>
     {endpoint && !(compactReader && !policy?.editable && policy?.reason === 'Questo formato resta consultabile nel lettore e scaricabile.' && !error) ? <div className="iu-viewer-edit__bar">
-      {policy?.editable ? <button type="button" aria-expanded={open} aria-controls="iu-viewer-edit-workbench" onClick={() => {sampler.cancel();setArmed(false);setOpen((value) => !value)}} disabled={saving}><Pencil size={15}/>{open ? 'Chiudi strumenti di modifica' : policy.studio ? 'Modifica documento' : 'Prepara copia per condivisione'}</button>
+      {policy?.editable ? <button type="button" title={open ? "Chiudi strumenti di modifica" : policy.studio ? "Modifica documento" : "Prepara copia per condivisione"} aria-label={open ? "Chiudi strumenti di modifica" : policy.studio ? "Modifica documento" : "Prepara copia per condivisione"} aria-expanded={open} aria-controls="iu-viewer-edit-workbench" onClick={() => {sampler.cancel();setArmed(false);setOpen((value) => !value)}} disabled={saving}><Pencil size={16} aria-hidden="true"/></button>
         : <span>{policy?.reason || (error ? error : 'Verifica provenienza e permessi...')}</span>}
       {marks.length ? <span role="status">{marks.length} {marks.length === 1 ? 'intervento da salvare' : 'interventi da salvare'}</span> : null}
-      {policy?.editable ? <><button type="button" disabled={saving} aria-expanded={signatureOpen} onClick={() => {sampler.cancel();setArmed(false);setSignatureOpenRequest(value => value + 1);setSignatureOpen(true)}}>Firma grafica</button><button type="button" disabled={saving || !policy.studio} title={policy.studio ? 'Seleziona la riga da modificare nel documento' : 'La modifica del testo è riservata ai PDF prodotti dallo studio e non firmati.'} onClick={() => {sampler.cancel();setSelectedInsertion(null);setSelected(null);setDraft(null);setTool('replace');setOpen(true);setArmed(true)}}>Modifica testo</button>{!policy.studio ? <span>Testo protetto: PDF firmato, acquisito da fonte esterna o senza provenienza dello studio verificata.</span> : null}</> : null}
+      {policy?.editable ? <><button type="button" disabled={saving} title="Firma grafica" aria-label="Firma grafica" aria-expanded={signatureOpen} onClick={() => {sampler.cancel();setArmed(false);setSignatureOpenRequest(value => value + 1);setSignatureOpen(true)}}><Signature size={16} aria-hidden="true"/></button><button type="button" disabled={saving || !policy.studio} aria-label="Modifica testo" title={policy.studio ? 'Seleziona la riga da modificare nel documento' : 'La modifica del testo è riservata ai PDF prodotti dallo studio e non firmati.'} onClick={() => {sampler.cancel();setSelectedInsertion(null);setSelected(null);setDraft(null);setTool('replace');setOpen(true);setArmed(true)}}><TextCursorInput size={16} aria-hidden="true"/></button>{!policy.studio ? <span className="iu-viewer-edit__protection" title="Testo protetto: PDF firmato, acquisito da fonte esterna o senza provenienza dello studio verificata.">Testo protetto</span> : null}</> : null}
+      {!open && !marks.length ? <ReaderInlineControls document={readerDocument}/> : null}
       {open || marks.length ? <div className="iu-viewer-edit__zoom" role="group" aria-label="Zoom della pagina"><button type="button" title="Riduci" aria-label="Riduci pagina" disabled={zoom<=.5} onClick={()=>setZoom(Math.max(.5,zoom-.25))}><ZoomOut size={16}/></button><button type="button" title="Adatta alla larghezza" onClick={()=>setZoom(1)}>Adatta</button><span>{Math.round(zoom*100)}%</span><button type="button" title="Ingrandisci" aria-label="Ingrandisci pagina" disabled={zoom>=2} onClick={()=>setZoom(Math.min(2,zoom+.25))}><ZoomIn size={16}/></button></div> : null}
     </div> : null}
     {(open || marks.length>0) && policy?.editable ? <section id="iu-viewer-edit-workbench" className={`iu-viewer-edit__workbench${open?'':' is-tools-closed'}`} aria-label={policy.studio ? 'Modifica documento dello studio' : 'Copia per condivisione'}>
@@ -235,7 +239,7 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
           {draft ? <span className="iu-viewer-edit__draft" style={{ left: `${Math.min(draft.x, draft.x1) * 100}%`, top: `${Math.min(draft.y, draft.y1) * 100}%`, width: `${Math.abs(draft.x1 - draft.x) * 100}%`, height: `${Math.abs(draft.y1 - draft.y) * 100}%` }}/> : null}
         </div>}
       </div>
-    </section> : <SourceDocumentReader key={`${source.href}-${revision}`} href={readerUrl.toString()} label={source.label} rotation={readerRotation} readerRef={activeReaderRef} compact={compactReader}/>}
+    </section> : <SourceDocumentReader key={`${source.href}-${revision}`} href={readerUrl.toString()} label={source.label} rotation={readerRotation} readerRef={activeReaderRef} compact={compactReader} onReaderReady={setReaderDocument}/>}
     <SourceDocumentModal source={copySource} onClose={() => setCopySource(null)}/>
     {signatureOpen ? <ViewerHandwrittenSignaturePanel disabled={saving} openRequest={signatureOpenRequest} onClose={() => setSignatureOpen(false)} onInsert={(imageData, width, height) => {setImageOptions({imageData,imageName:'Firma grafica',width:.25,height:.25*(currentPage?.width||595)/(currentPage?.height||842)*height/width,keepRatio:true,imageBrightness:1,imageContrast:1,imageSharpness:1,imageGrayscale:false,imageAutocontrast:false});setSelectedInsertion(null);setTool('image');setOpen(true);setArmed(true);setSignatureOpen(false)}}/> : null}
   </div></ViewerColorSampling.Provider>

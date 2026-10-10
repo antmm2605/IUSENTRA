@@ -14,6 +14,7 @@ from flask import Flask, flash, g, jsonify, redirect, render_template, request, 
 
 from web.services.security_redaction import redacted_json_response
 from web.services.document_edit_policy import motivo_blocco_editor, pdf_studio_modificabile
+from web.services.document_word_fonts import SourceFontCoverageError
 
 
 def _wants_json_response() -> bool:
@@ -41,6 +42,15 @@ def register_fascicoli_editor_routes(
     from web.bootstrap.editor_language_export_routes import register_editor_language_export_routes
 
     register_editor_language_export_routes(app, get_fascicoli=get_fascicoli, audit=audit)
+    from web.bootstrap.editor_new_document_routes import register_editor_new_document_routes
+
+    register_editor_new_document_routes(app, get_fascicoli=get_fascicoli, audit=audit, encrypt_doc=encrypt_doc)
+    from web.bootstrap.editor_linked_fields_routes import register_editor_linked_fields_routes
+
+    linked_context = register_editor_linked_fields_routes(app, get_fascicoli=get_fascicoli)
+    from web.bootstrap.editor_personal_template_routes import register_editor_personal_template_routes
+
+    register_editor_personal_template_routes(app, audit=audit, resolve_context=linked_context)
 
     def _cfg_data_path(key: str) -> str:
         paths = getattr(g, "data_paths", {}) or {}
@@ -108,6 +118,20 @@ def register_fascicoli_editor_routes(
             )
         except Exception:
             return None
+
+    from web.bootstrap.editor_finalize_routes import register_editor_finalize_routes
+
+    def _editor_tenant_timbro():
+        from pct.postgres_runtime_support import database_config_to_dsn, resolve_runtime_postgres_dsn
+        from pct.studio_timbro import build_studio_timbro
+
+        tenant = getattr(g, 'tenant', None)
+        dsn = database_config_to_dsn(getattr(tenant, 'database', None)) if tenant is not None else resolve_runtime_postgres_dsn()
+        if tenant is not None and not dsn and resolve_runtime_postgres_dsn():
+            raise RuntimeError('Archivio timbro dello studio non disponibile')
+        return build_studio_timbro(db_path=_cfg_data_path('STUDIO_TIMBRO_DB'), config_studio=getattr(g, 'config_studio', None), app_config=app.config, postgres_dsn=dsn)
+
+    register_editor_finalize_routes(app, get_fascicoli=get_fascicoli, audit=audit, encrypt_doc=encrypt_doc, get_timbro=_editor_tenant_timbro)
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/editor")
     def editor_documento(id_fasc, id_doc):
@@ -276,8 +300,6 @@ def register_fascicoli_editor_routes(
 
     @app.route("/api/editor/<id_fasc>/<id_doc>/salva", methods=["POST"])
     def api_editor_salva(id_fasc, id_doc):
-        from pct.editor import html_to_docx
-
         gestore_fascicoli = get_fascicoli()
         utente = g.utente_corrente
         try:
@@ -306,7 +328,10 @@ def register_fascicoli_editor_routes(
 
             # Il salvataggio riproduce il contenuto dell'editor: la carta
             # intestata si inserisce nella redazione, non durante l'export.
-            contenuto_raw = html_to_docx(html, titolo=nome.rsplit(".", 1)[0])
+            from pct.editor_export import esporta_documento_editor
+            from web.services.editor_word_source import editor_word_source
+            contenuto_raw = esporta_documento_editor(html, formato='docx', titolo=nome.rsplit(".", 1)[0],
+                fonte_word=editor_word_source(gestore_fascicoli, id_fasc, documento, decrypt_doc))
             nome_salvato = (nome.rsplit(".", 1)[0] if "." in nome else nome) + ".docx"
 
             doc_salvato = gestore_fascicoli.sostituisci_documento(
@@ -336,6 +361,8 @@ def register_fascicoli_editor_routes(
             )
             audit("fascicoli.documento.editor_salva", "fascicolo", id_fasc, dettagli=f"doc {id_doc} — {nome}")
             return jsonify({"ok": True, "auto": auto, "nome": nome_salvato, "formato": "docx"})
+        except SourceFontCoverageError as error:
+            return jsonify({"ok": False, "errore": str(error)}), 422
         except Exception as exc:
             app.logger.exception("Errore api_editor_salva: %s", exc)
             return jsonify({"ok": False, "errore": "Documento non salvato."})
@@ -365,7 +392,9 @@ def register_fascicoli_editor_routes(
                 )
             from pct.editor_export import esporta_documento_editor
 
-            pdf_bytes = esporta_documento_editor(html, formato="pdf", titolo=titolo)
+            from web.services.editor_word_source import editor_word_source
+            pdf_bytes = esporta_documento_editor(html, formato="pdf", titolo=titolo,
+                fonte_word=editor_word_source(gestore_fascicoli, id_fasc, documento, decrypt_doc))
             audit("fascicoli.documento.editor_pdf", "fascicolo", id_fasc, dettagli=f"doc {id_doc}")
             if request.path.endswith("/anteprima-stampa"):
                 from pct.editor_export import anteprima_stampa_pdf
@@ -378,6 +407,8 @@ def register_fascicoli_editor_routes(
             )
         except ImportError:
             return jsonify({"errore": "Generazione PDF non disponibile."}), 503
+        except SourceFontCoverageError as error:
+            return jsonify({"errore": str(error)}), 422
         except Exception as exc:
             app.logger.exception("Errore api_editor_pdf: %s", exc)
             return "Generazione PDF non completata.", 500

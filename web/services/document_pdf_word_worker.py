@@ -3,6 +3,63 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from statistics import median
+
+
+def physical_line_y(line) -> float:
+    """Measure the writing baseline, unaffected by bold/italic glyph boxes."""
+    origins = [char.origin[1] for span in line.spans
+               for char in getattr(span, 'chars', []) if char.origin]
+    return median(origins) if origins else line.bbox.y0
+
+
+def normalize_nested_hyperlinks(document) -> int:
+    """Restore valid Word hyperlink siblings, preserving the converter's runs.
+
+    Some PDF underlines are emitted as a hyperlink inside a run. Word ignores
+    that invalid subtree, including its text. Move it to paragraph level and
+    carry the original font properties into every contained run.
+    """
+    from copy import deepcopy
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+
+    changed = 0
+    for parent in list(document._element.body.iter(qn('w:r'))):
+        if parent.getparent().tag != qn('w:p') or not parent.findall(qn('w:hyperlink')):
+            continue
+        properties = parent.find(qn('w:rPr'))
+        pending = None
+        for child in list(parent):
+            if child.tag == qn('w:rPr'):
+                continue
+            if child.tag != qn('w:hyperlink'):
+                if pending is None:
+                    pending = OxmlElement('w:r')
+                    if properties is not None:
+                        pending.append(deepcopy(properties))
+                pending.append(deepcopy(child))
+                continue
+            if pending is not None:
+                parent.addprevious(pending)
+                pending = None
+            for run in child.findall(qn('w:r')):
+                own = run.find(qn('w:rPr'))
+                if properties is not None:
+                    merged = deepcopy(properties)
+                    if own is not None:
+                        for item in own:
+                            for inherited in list(merged.findall(item.tag)):
+                                merged.remove(inherited)
+                            merged.append(deepcopy(item))
+                        run.remove(own)
+                    run.insert(0, merged)
+            parent.addprevious(child)
+            changed += 1
+        if pending is not None:
+            parent.addprevious(pending)
+        parent.getparent().remove(parent)
+    return changed
 
 
 def convert(source: Path, destination: Path, review_file: Path | None = None) -> int:
@@ -65,15 +122,23 @@ def convert(source: Path, destination: Path, review_file: Path | None = None) ->
 
     def measured_block(self, paragraph):
         if not getattr(self, '_iusentra_fixed_column', False):
-            return original_block(self, paragraph)
+            for line, following in zip(self.lines, self.lines[1:]):
+                if abs(physical_line_y(line) - physical_line_y(following)) > 1:
+                    line.line_break = 1
+            result = original_block(self, paragraph)
+            gaps = [physical_line_y(following) - physical_line_y(line) for line, following in zip(self.lines, self.lines[1:])
+                    if physical_line_y(following) - physical_line_y(line) > 1]
+            if gaps and max(gaps) - min(gaps) <= 0.5:
+                paragraph.paragraph_format.line_spacing = Pt(sum(gaps) / len(gaps))
+            return result
         # Gli a capo presenti nel PDF non sono prosa da riformattare: tenerli
         # evita che colonne, elenchi e righe tabellari diventino un unico testo.
         for line, following in zip(self.lines, self.lines[1:]):
-            if abs(line.bbox.y0 - following.bbox.y0) > 1:
+            if abs(physical_line_y(line) - physical_line_y(following)) > 1:
                 line.line_break = 1
         result = original_block(self, paragraph)
-        gaps = [following.bbox.y0 - line.bbox.y0 for line, following in zip(self.lines, self.lines[1:])
-                if following.bbox.y0 - line.bbox.y0 > 1]
+        gaps = [physical_line_y(following) - physical_line_y(line) for line, following in zip(self.lines, self.lines[1:])
+                if physical_line_y(following) - physical_line_y(line) > 1]
         if gaps and max(gaps) - min(gaps) <= 0.5:
             # L'interlinea relativa dipende dalle metriche del motore Word;
             # il passo uniforme misurato nella fonte resta invece in punti.
@@ -95,6 +160,7 @@ def convert(source: Path, destination: Path, review_file: Path | None = None) ->
         Section.make_docx = original_section
         TextBlock.make_docx = original_block
     document = Document(destination)
+    normalize_nested_hyperlinks(document)
     from document_word_fonts import prepare_source_fonts, embed_source_fonts
     with pymupdf.open(source) as font_source:
         source_fonts, font_config = prepare_source_fonts(font_source, destination.parent / 'source-fonts')

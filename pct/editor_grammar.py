@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import time
@@ -50,10 +51,31 @@ def _avvia() -> None:
         raise RuntimeError("Avvio del revisore italiano oltre il tempo consentito.")
 
 
-def controlla_documento(testo: str) -> list[dict]:
-    if not isinstance(testo, str) or not testo.strip() or len(testo) > 200000:
+_ABBREVIAZIONI = re.compile(
+    r"\b(?:avv\.|dott\.ssa\b|dott\.|prof\.ssa\b|prof\.|cod\.\s*fisc\.|"
+    r"artt?\.|d\.\s*lgs\.|c\.\s*p\.\s*c\.|c\.\s*f\.|r\.\s*g\.|n[°º])|"
+    r"\b\d+\s*-\s*(?:bis|ter|quater)\b", re.I,
+)
+_RECAPITI = re.compile(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|https?://[^\s]+")
+_ETICHETTE_TELEFONO = re.compile(r"\b(?:tel\.?|fax)\b(?=\.?\s*:?\s*\+?\d[\d ()-]{5,})", re.I)
+
+
+def _intervalli_tecnici(testo: str) -> list[tuple[int, int]]:
+    return [(len(testo[:m.start()].encode('utf-16-le')) // 2,
+             len(testo[:m.end()].encode('utf-16-le')) // 2)
+            for pattern in (_ABBREVIAZIONI, _RECAPITI, _ETICHETTE_TELEFONO) for m in pattern.finditer(testo)]
+
+
+def controlla_documento(testo: str, *, termini_contesto=()) -> list[dict]:
+    if not isinstance(testo, str) or not testo.strip():
+        raise ValueError("Inserisci del testo prima di avviare il controllo.")
+    if len(testo) > 200000:
         raise ValueError("Il controllo accetta documenti fino a 200.000 caratteri.")
     _avvia()
+    # Solo termini presenti nei dati del procedimento, non tutti i campi del
+    # modello: nazionalità e prosa restano controllate anche se auto-compilate.
+    termini = {str(v).casefold() for v in termini_contesto} | {'cartabia'}
+    tecnici = _intervalli_tecnici(testo)
     esiti = []
     inizio = 0
     # Nessun paragrafo viene omesso; offset UTF-16 uguali a quelli del browser.
@@ -67,8 +89,29 @@ def controlla_documento(testo: str) -> list[dict]:
         base = len(testo[:inizio].encode("utf-16-le")) // 2
         risposta = _richiesta("/v2/check", {"language": "it", "text": parte})
         for errore in risposta.get("matches", []):
+            rule = errore['rule']
+            offset = base + errore['offset']
+            end = offset + errore['length']
+            parola = parte.encode('utf-16-le')[errore['offset'] * 2:(errore['offset'] + errore['length']) * 2].decode('utf-16-le', errors='surrogatepass')
+            # La d eufonica è una preferenza stilistica, non un errore del
+            # modello. Non disabilitiamo le regole grammaticali del revisore.
+            if rule['id'] in {'ST_03_001', 'WHITESPACE_RULE'}:
+                continue
+            if rule['id'] == 'MORFOLOGIK_RULE_IT_IT' and (
+                parola.casefold() in termini or any(a <= offset and end <= b for a, b in tecnici)
+            ):
+                continue
+            # La conversione conserva righe e rientri tipografici. Un nuovo
+            # blocco senza fine frase non richiede una maiuscola né una nuova
+            # frase: non cambiare l'impaginazione per soddisfare il revisore.
+            prefix = testo.encode('utf-16-le')[:offset * 2].decode('utf-16-le', errors='surrogatepass')
+            suffix = testo.encode('utf-16-le')[offset * 2:].decode('utf-16-le', errors='surrogatepass')
+            if rule['id'] == 'UPPERCASE_SENTENCE_START' and re.match(r'promoss[oa]\s+da\s*:', suffix, re.I):
+                continue
+            if rule['id'] == 'UPPERCASE_SENTENCE_START' and prefix.rstrip() and not re.search(r'[.!?][»”\")]*$', prefix.rstrip()):
+                continue
             esiti.append({
-                "offset": base + errore["offset"], "length": errore["length"],
+                "offset": offset, "length": errore["length"],
                 "messaggio": errore["message"],
                 "suggerimenti": [r["value"] for r in errore.get("replacements", [])][:8],
                 "regola": errore["rule"]["id"],

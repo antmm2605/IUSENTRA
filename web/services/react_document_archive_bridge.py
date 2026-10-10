@@ -110,6 +110,7 @@ def _row(fascicolo: Any, documento: Any, *, in_trash: bool) -> dict[str, Any]:
         "matterId": fid,
         "matterRef": _matter_ref(fascicolo),
         "matterTitle": _text(getattr(fascicolo, "titolo", ""), "Fascicolo"),
+        "matterClient": _text(getattr(fascicolo, "nome_cliente", "")),
         "matterStatus": matter_status,
         "matterArchived": matter_status == "ARCHIVIATO",
         "name": name,
@@ -181,9 +182,10 @@ def build_react_document_archive_payload(
     format_counts = Counter(row["format"] for row in source_rows)
     matter_counts = Counter(row["matterId"] for row in source_rows)
     matter_labels = {
-        row["matterId"]: f"{row['matterRef']} · {row['matterTitle']}"
+        row["matterId"]: ' · '.join(part for part in [row['matterRef'], row['matterClient'], row['matterTitle']] if part)
         for row in source_rows
     }
+    matter_clients = {row['matterId']: row['matterClient'] for row in source_rows}
 
     filtered = []
     for row in source_rows:
@@ -202,6 +204,7 @@ def build_react_document_archive_payload(
                     row["format"],
                     row["matterRef"],
                     row["matterTitle"],
+                    row["matterClient"],
                     row["notes"],
                     row["source"],
                     " ".join(row["tags"]),
@@ -239,7 +242,7 @@ def build_react_document_archive_payload(
         "facets": {
             "types": _facet(type_counts, _TYPE_LABELS),
             "formats": _facet(format_counts),
-            "matters": _facet(matter_counts, matter_labels),
+            "matters": [{**facet, 'client': matter_clients.get(facet['value'], '')} for facet in _facet(matter_counts, matter_labels)],
         },
         "pagination": {
             "page": page,

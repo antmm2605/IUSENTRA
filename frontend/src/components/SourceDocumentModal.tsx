@@ -91,6 +91,7 @@ export function SourceDocumentReader({
   notice,
   readerRef,
   compact = false,
+  onReaderReady,
 }: {
   href: string
   label: string
@@ -98,6 +99,7 @@ export function SourceDocumentReader({
   notice?: string
   readerRef?: RefObject<HTMLIFrameElement | null>
   compact?: boolean
+  onReaderReady?: (document: Document) => void
 }) {
   const [destination, setDestination] = useState<{ href: string; label: string; mail: boolean } | null>(null)
   const detachLinks = useRef<(() => void) | null>(null)
@@ -123,6 +125,7 @@ export function SourceDocumentReader({
     try {
       const content = iframeRef.current?.contentDocument
       if (!content || caseContext) return
+      if (content.querySelector('[data-document-pages]')) onReaderReady?.(content)
       // Ordine visivo e da tastiera: riduci, percentuale, ingrandisci, adatta.
       const fit = content.querySelector('[data-zoom-reset]')
       const zoomIn = content.querySelector('[data-zoom-in]')

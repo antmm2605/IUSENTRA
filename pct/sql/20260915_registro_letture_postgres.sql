@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS letture_fatti (
     sha256 TEXT NOT NULL DEFAULT '',
     motore TEXT NOT NULL CHECK (motore IN ('documenti', 'pec')),
     versione_motore TEXT NOT NULL DEFAULT '',
-    categoria TEXT NOT NULL CHECK (categoria IN ('data', 'ruolo', 'prova_notifica', 'importo', 'evento', 'parte')),
+    categoria TEXT NOT NULL CHECK (categoria IN ('data', 'ruolo', 'prova_notifica', 'importo', 'evento', 'parte', 'metadato_fascicolo')),
     campo TEXT NOT NULL,
     valore_letto TEXT NOT NULL DEFAULT '',
     valore TEXT NOT NULL DEFAULT '',
@@ -150,7 +150,7 @@ CREATE INDEX IF NOT EXISTS idx_letture_fatti_fascicolo
 -- anche negli archivi creati prima, il cui vincolo non la prevedeva.
 ALTER TABLE letture_fatti DROP CONSTRAINT IF EXISTS letture_fatti_categoria_check;
 ALTER TABLE letture_fatti ADD CONSTRAINT letture_fatti_categoria_check
-    CHECK (categoria IN ('data', 'ruolo', 'prova_notifica', 'importo', 'evento', 'parte'));
+    CHECK (categoria IN ('data', 'ruolo', 'prova_notifica', 'importo', 'evento', 'parte', 'metadato_fascicolo'));
 
 -- Consegne ai presìdi (2.319.0): vedi lo schema SQLite gemello.
 CREATE TABLE IF NOT EXISTS letture_consegne (

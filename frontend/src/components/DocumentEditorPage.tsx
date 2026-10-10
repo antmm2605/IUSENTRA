@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ClipboardEvent, type FormEvent, type ReactNode } from 'react'
 import { editTable, tableGrid, mergeTableCells, splitTableCells, formatTableCells, type CellArea, type TableAction } from '../editorTableGrid'
 import { EditorHistory, editorCaret, restoreEditorCaret } from '../editorHistory'
+import { changeSelectionCase, changeSelectedDate, linkedDateFormat, textCase, linkedValueFormat, type TextCase } from '../editorTextCase'
 import { clearSpellingMarks, showSpellingMarks, documentLanguageSource, grammarRanges, type SpellingMark } from '../editorSpelling'
 import {
   AlignCenter,
@@ -50,6 +51,11 @@ import {
 import { Badge } from './dashboard'
 import { FloatingLex } from './FloatingLex'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
+import { Modal } from '../ui/legalPrimitives'
+import { csrfToken } from '../formSubmit'
+import { FascicoloSearchSelect } from './FascicoloSearchSelect'
+import { EditorLinkedFieldsPanel, type LinkedEditorField, type LinkedEditorContext } from './EditorLinkedFieldsPanel'
+import { EditorPersonalTemplates } from './EditorPersonalTemplates'
 import {
   emptyDocumentEditorPayload,
   getDocumentEditorPayload,
@@ -61,7 +67,7 @@ import { GRUPPI_CARATTERI } from './documentCapture/ocrBarraVoci'
 type EditorRoute = { idFascicolo: string; idDocumento: string } | null
 type EditorStatus = { tone: 'loading' | 'saving' | 'success' | 'warning' | 'danger' | 'neutral'; label: string }
 type EditorStats = { words: number; chars: number; readingMinutes: number }
-type InlineStylePatch = { fontFamily?: string; fontSize?: string; lineHeight?: string }
+type InlineStylePatch = { fontFamily?: string; fontSize?: string; lineHeight?: string; color?: string; backgroundColor?: string }
 type PageLayout = { width: number; height: number; top: number; bottom: number; left: number; right: number }
 const DEFAULT_PAGE_LAYOUT: PageLayout = { width: 210, height: 297, top: 25, bottom: 25, left: 25, right: 25 }
 
@@ -180,7 +186,7 @@ function parseEditorRoute(): EditorRoute {
 }
 
 function escapeHtml(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
 function textToHtml(value: string): string {
@@ -445,7 +451,32 @@ function DocumentFacts({ data }:{data: DocumentEditorPayload}) {
 }
 
 export function DocumentEditorPage() {
-  const route = useMemo(parseEditorRoute, [])
+  const [route, setRoute] = useState<EditorRoute>(parseEditorRoute)
+  const standaloneDraft = !route && window.location.pathname.endsWith('/editor-professionale') && new URLSearchParams(window.location.search).get('modalita') === 'editor'
+  const [draftSaveOpen, setDraftSaveOpen] = useState(false)
+  const [linkedFieldsOpen, setLinkedFieldsOpen] = useState(false)
+  const [personalTemplatesOpen, setPersonalTemplatesOpen] = useState(false)
+  const [stampOpen, setStampOpen] = useState(false)
+  const [stampPosition, setStampPosition] = useState<'left' | 'center' | 'right'>('left')
+  const [stampWidth, setStampWidth] = useState(60)
+  const [stampLines, setStampLines] = useState<Array<{text: string; font: string; size: number; bold: boolean; italic: boolean; lineHeight?: number; linkedField?: string}>>([])
+  const stampContextRef = useRef<LinkedEditorContext | null>(null)
+  const [stampError, setStampError] = useState('')
+  const [pdfBusy, setPdfBusy] = useState(false)
+  const [pdfResult, setPdfResult] = useState<{nome: string; url: string} | null>(null)
+  const [pdfError, setPdfError] = useState('')
+  const finalPdfIntent = useRef<{html: string; command_id: string} | null>(null)
+  const finalizeAfterCreate = useRef(false)
+  const [linkedChanges, setLinkedChanges] = useState<Array<{ node: HTMLElement; label: string; previous: string; value: string }>>([])
+  const [linkedEdit, setLinkedEdit] = useState<{ node: HTMLElement; previous: string; value: string } | null>(null)
+  const [draftMatters, setDraftMatters] = useState<Array<{value: string; label: string; client?: string}>>([])
+  const [draftMatter, setDraftMatter] = useState('')
+  const [draftTitle, setDraftTitle] = useState('Nuovo documento')
+  const [draftError, setDraftError] = useState('')
+  const [draftCatalogLoading, setDraftCatalogLoading] = useState(false)
+  const [draftCatalogError, setDraftCatalogError] = useState('')
+  const [draftBusy, setDraftBusy] = useState(false)
+  const draftIntent = useRef<{titolo: string; html: string; command_id: string; matter: string} | null>(null)
   const editorRef = useRef<HTMLDivElement | null>(null)
   const replaceFileRef = useRef<HTMLInputElement | null>(null)
   const autosaveRef = useRef<number | null>(null)
@@ -491,6 +522,8 @@ export function DocumentEditorPage() {
   const [data, setData] = useState<DocumentEditorPayload>(emptyDocumentEditorPayload)
   const [payloadLoading, setPayloadLoading] = useState(true)
   const [documentLoading, setDocumentLoading] = useState(false)
+  const [pendingDocumentPayload, setPendingDocumentPayload] = useState<DocumentEditorPayload | null>(null)
+  const documentLoadSequence = useRef(0)
   const [pendingImportFile, setPendingImportFile] = useState<File | null>(null)
   const [status, setStatus] = useState<EditorStatus>({ tone: 'loading', label: 'Caricamento editor' })
   const [warnings, setWarnings] = useState<string[]>([])
@@ -501,7 +534,10 @@ export function DocumentEditorPage() {
   const [conversionLockedReason, setConversionLockedReason] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [documentFactsOpen, setDocumentFactsOpen] = useState(false)
+  const [headerCollapsed, setHeaderCollapsed] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const searchCursorRef = useRef<{term: string; start: number; end: number} | null>(null)
+  const searchSelectionRef = useRef<Range | null>(null)
   const [replaceTerm, setReplaceTerm] = useState('')
   const [fontFamily, setFontFamily] = useState<string>(FONT_FAMILY_OPTIONS[0].value)
   const [fontSize, setFontSize] = useState('12pt')
@@ -595,6 +631,23 @@ export function DocumentEditorPage() {
   const serializeEditorHtml = useCallback(() => {
     const root = editorRef.current?.cloneNode(true) as HTMLElement | undefined
     if (!root) return ''
+    // Word does not receive the editor stylesheet. Carry the visible cell
+    // padding and paragraph spacing into the exported document in points.
+    const liveBlocks = editorRef.current!.querySelectorAll<HTMLElement>('p,td,th')
+    root.querySelectorAll<HTMLElement>('p,td,th').forEach((block, index) => {
+      const visible = liveBlocks[index]
+      if (!visible) return
+      const computed = getComputedStyle(visible)
+      const points = (value: string) => value.endsWith('px') ? `${Number.parseFloat(value) * 0.75}pt` : value
+      if (block.tagName === 'P') {
+        for (const property of ['margin-top', 'margin-bottom', 'margin-left', 'margin-right', 'text-indent']) {
+          if (!block.style.getPropertyValue(property)) block.style.setProperty(property, points(computed.getPropertyValue(property)))
+        }
+        if ((!block.style.lineHeight || visible.closest('[data-iu-editor-stamp]')) && computed.lineHeight.endsWith('px')) block.style.lineHeight = points(computed.lineHeight)
+      } else {
+        for (const side of ['top', 'right', 'bottom', 'left']) block.style.setProperty(`padding-${side}`, points(computed.getPropertyValue(`padding-${side}`)))
+      }
+    })
     let pages = Array.from(root.querySelectorAll<HTMLElement>('section.iu-doc-pagina'))
     if (!pages.length) {
       const page = document.createElement('section')
@@ -618,6 +671,7 @@ export function DocumentEditorPage() {
   }, [])
 
   const saveDocument = useCallback(async (auto = false) => {
+    if (standaloneDraft) { if (!auto) setDraftSaveOpen(true); return }
     if (!data.endpoints.save || !editorRef.current || !data.document.editable || conversionLocked) return
     if (saveInFlightRef.current) {
       if (autosaveRef.current) window.clearTimeout(autosaveRef.current)
@@ -659,7 +713,7 @@ export function DocumentEditorPage() {
     } finally {
       saveInFlightRef.current = false
     }
-  }, [conversionLocked, data.document.editable, data.endpoints.save, serializeEditorHtml])
+  }, [conversionLocked, data.document.editable, data.endpoints.save, serializeEditorHtml, standaloneDraft])
 
   const scheduleAutosave = useCallback(() => {
     if (!data.document.editable || conversionLocked) return
@@ -667,8 +721,8 @@ export function DocumentEditorPage() {
     setDirty(true)
     setStatus({ tone: 'warning', label: 'Modifiche non salvate' })
     if (autosaveRef.current) window.clearTimeout(autosaveRef.current)
-    autosaveRef.current = window.setTimeout(() => void saveDocument(true), Math.max(8, data.capabilities.autosaveSeconds) * 1000)
-  }, [conversionLocked, data.capabilities.autosaveSeconds, data.document.editable, saveDocument])
+    if (!standaloneDraft) autosaveRef.current = window.setTimeout(() => void saveDocument(true), Math.max(8, data.capabilities.autosaveSeconds) * 1000)
+  }, [conversionLocked, data.capabilities.autosaveSeconds, data.document.editable, saveDocument, standaloneDraft])
 
   const markChanged = useCallback((group = '') => {
     setGrammarNotice('')
@@ -835,6 +889,16 @@ export function DocumentEditorPage() {
     const source = documentLanguageSource(root)
     const revision = editRevisionRef.current
     grammarRequestRef.current?.abort()
+    if (!source.text.trim()) {
+      grammarRequestRef.current = null
+      setGrammarLoading(false)
+      setGrammarNotice('')
+      setLanguageError('')
+      setGrammarMarks([])
+      spellingMarksRef.current = []
+      clearSpellingMarks()
+      return
+    }
     const controller = new AbortController()
     grammarRequestRef.current = controller
     setGrammarLoading(true)
@@ -919,6 +983,7 @@ export function DocumentEditorPage() {
     }
     const range = editorRangeRef.current?.cloneRange()
     const selection = window.getSelection()
+    root?.focus()
     if (range && selection && editorRef.current?.contains(range.startContainer)) {
       selection.removeAllRanges()
       selection.addRange(range)
@@ -937,6 +1002,8 @@ export function DocumentEditorPage() {
       if (style.fontFamily) element.style.fontFamily = style.fontFamily
       if (style.fontSize) element.style.fontSize = style.fontSize
       if (style.lineHeight) element.style.lineHeight = style.lineHeight
+      if (style.color) element.style.color = style.color
+      if (style.backgroundColor) element.style.backgroundColor = style.backgroundColor
     }
     const selection = window.getSelection()
     const rememberedRange = editorRangeRef.current
@@ -1044,6 +1111,7 @@ export function DocumentEditorPage() {
 
   const loadDocument = useCallback(async (payload: DocumentEditorPayload) => {
     if (!payload.endpoints.loadHtml || !payload.document.editable) return
+    const sequence = ++documentLoadSequence.current
     setConversionLocked(false)
     setConversionLockedReason('')
     setDocumentLoading(true)
@@ -1055,10 +1123,13 @@ export function DocumentEditorPage() {
         headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       })
       const body = await response.json().catch(() => ({} as Record<string, unknown>))
+      if (sequence !== documentLoadSequence.current) return
+      if (!response.ok || body.ok === false) throw new Error(String(body.errore || body.error || 'Contenuto del documento non caricato.'))
       const html = String(body.html || '<p><br></p>')
       const sanitizedHtml = sanitizeHtml(html)
       if (editorRef.current) {
         editorRef.current.innerHTML = sanitizedHtml
+        editorRef.current.querySelectorAll<HTMLElement>('[data-iu-linked-field]').forEach(node => { node.tabIndex = 0; node.setAttribute('role', 'button'); node.title = 'Modifica il valore del campo nel documento' })
         editorHistoryRef.current.reset(editorRef.current.innerHTML)
       }
       const page = editorRef.current?.querySelector('section.iu-doc-pagina')
@@ -1093,10 +1164,11 @@ export function DocumentEditorPage() {
       setDirty(false)
       setStatus({ tone: 'neutral', label: 'Pronto' })
     } catch (error) {
+      if (sequence !== documentLoadSequence.current) return
       setWarnings((current) => [...current, error instanceof Error ? error.message : 'Contenuto non leggibile.'])
       setStatus({ tone: 'danger', label: 'Errore caricamento documento' })
     } finally {
-      setDocumentLoading(false)
+      if (sequence === documentLoadSequence.current) setDocumentLoading(false)
     }
   }, [updateStats])
 
@@ -1217,10 +1289,19 @@ export function DocumentEditorPage() {
 
   useEffect(() => {
     if (!route) {
+      if (standaloneDraft) {
+        setData({ ...emptyDocumentEditorPayload,
+          document: { ...emptyDocumentEditorPayload.document, name: 'Nuovo documento.docx', extension: 'docx', editable: true, source: 'REDAZIONE_STUDIO' },
+          fascicolo: { ...emptyDocumentEditorPayload.fascicolo, title: 'Bozza da assegnare al fascicolo', detailHref: '/documenti' },
+        })
+        setStatus({ tone: 'neutral', label: 'Bozza non salvata' })
+      }
       setPayloadLoading(false)
       return
     }
     let active = true
+    documentLoadSequence.current++
+    setPendingDocumentPayload(null)
     setPayloadLoading(true)
     getDocumentEditorPayload(route.idFascicolo, route.idDocumento)
       .then((payload) => {
@@ -1236,7 +1317,7 @@ export function DocumentEditorPage() {
         setPdfRevision(Date.now())
         setData(payload)
         setWarnings(payload.warnings)
-        if (!payload.notFound && payload.document.editable) void loadDocument(payload)
+        if (!payload.notFound && payload.document.editable) setPendingDocumentPayload(payload)
         if (!payload.notFound && !payload.document.editable) setStatus({ tone: 'warning', label: 'Documento non modificabile' })
       })
       .catch((error) => {
@@ -1247,7 +1328,61 @@ export function DocumentEditorPage() {
         if (active) setPayloadLoading(false)
       })
     return () => { active = false }
-  }, [loadDocument, route])
+  }, [loadDocument, route, standaloneDraft])
+
+  // The content element must be mounted before applying the loaded HTML. In
+  // particular, the first save switches from the blank draft to a stored file.
+  useEffect(() => {
+    if (payloadLoading || !pendingDocumentPayload || !editorRef.current || pendingDocumentPayload.document.id !== data.document.id) return
+    setPendingDocumentPayload(null)
+    void loadDocument(pendingDocumentPayload)
+  }, [data.document.id, loadDocument, payloadLoading, pendingDocumentPayload])
+
+  useEffect(() => {
+    if (!draftSaveOpen && !(standaloneDraft && (linkedFieldsOpen || personalTemplatesOpen))) return
+    let active = true
+    setDraftCatalogLoading(true)
+    setDraftCatalogError('')
+    fetch('/api/editor/nuovo/fascicoli', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(async (response) => {
+        const payload = await response.json()
+        if (!response.ok || !payload.ok) throw new Error(payload.errore || 'Fascicoli non caricati.')
+        if (active) setDraftMatters(payload.fascicoli)
+      }).catch((error) => { if (active) setDraftCatalogError(error instanceof Error ? error.message : 'Fascicoli non caricati.') })
+      .finally(() => { if (active) setDraftCatalogLoading(false) })
+    return () => { active = false }
+  }, [draftSaveOpen, standaloneDraft, linkedFieldsOpen, personalTemplatesOpen])
+
+  const createDraftDocument = async (event: FormEvent) => {
+    event.preventDefault()
+    if (draftBusy || !editorRef.current || !draftMatter) return
+    const intent = draftIntent.current || { titolo: draftTitle.trim(), html: serializeEditorHtml(), command_id: crypto.randomUUID(), matter: draftMatter }
+    draftIntent.current = intent
+    setDraftBusy(true)
+    setDraftError('')
+    try {
+      const { matter, ...body } = intent
+      const response = await fetch(`/api/editor/${encodeURIComponent(matter)}/nuovo`, {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken() }, body: JSON.stringify(body),
+      })
+      const payload = await response.json()
+      if (!response.ok || !payload.ok) { if ([400, 403, 404, 409].includes(response.status)) draftIntent.current = null; throw new Error(payload.errore || 'Salvataggio non confermato.') }
+      if (typeof payload.document_id !== 'string' || !payload.document_id) throw new Error('Documento salvato senza riferimento valido.')
+      if (finalizeAfterCreate.current) finalPdfIntent.current ||= { html: intent.html, command_id: crypto.randomUUID() }
+      setDirty(false)
+      setDraftSaveOpen(false)
+      const embedded = new URLSearchParams(window.location.search).get('embed') === 'source' ? '?embed=source' : ''
+      window.history.replaceState(null, '', `/fascicoli/${encodeURIComponent(matter)}/documenti/${encodeURIComponent(payload.document_id)}/editor${embedded}`)
+      setRoute({ idFascicolo: matter, idDocumento: payload.document_id })
+      draftIntent.current = null
+      if (finalizeAfterCreate.current) {
+        finalizeAfterCreate.current = false
+        await saveFinalPdf({ idFascicolo: matter, idDocumento: payload.document_id })
+      }
+    } catch (error) {
+      setDraftError(error instanceof Error ? error.message : 'Salvataggio non confermato. Riprova.')
+    } finally { setDraftBusy(false) }
+  }
 
   useEffect(() => {
     const handler = (event: BeforeUnloadEvent) => {
@@ -1725,6 +1860,222 @@ export function DocumentEditorPage() {
     imageFileRef.current?.click()
   }
 
+  const insertLinkedField = (field: LinkedEditorField, context: LinkedEditorContext) => {
+    if (field.conflict) return
+    const root = editorRef.current
+    if (!root) return
+    const selection = window.getSelection()
+    const selected = selection?.rangeCount ? selection.getRangeAt(0) : null
+    const found = searchSelectionRef.current
+    const range = (found && root.contains(found.startContainer) && root.contains(found.endContainer) && !found.collapsed
+      ? found : selected && !selected.collapsed && root.contains(selected.startContainer) && root.contains(selected.endContainer)
+        ? selected : editorRangeRef.current)?.cloneRange()
+    if (!range || !root.contains(range.startContainer) || !root.contains(range.endContainer)) {
+      setStatus({tone: 'warning', label: 'Seleziona il dato da collegare o posiziona il cursore nel documento'})
+      return
+    }
+    const startElement = range.startContainer instanceof Element ? range.startContainer : range.startContainer.parentElement
+    // Leggere lo stile prima di selezionare il nodo atomico: selectNode sposta
+    // il punto iniziale sul paragrafo e perderebbe grassetto/corsivo del valore.
+    const formatElement = startElement
+    const computed = formatElement && root.contains(formatElement) ? getComputedStyle(formatElement) : null
+    let existing = startElement?.closest<HTMLElement>('[data-iu-linked-field]')
+    if (existing) {
+      while (existing.parentElement?.closest('[data-iu-linked-field]')) existing = existing.parentElement.closest<HTMLElement>('[data-iu-linked-field]')!
+      if (range.toString() !== existing.textContent) {
+        setStatus({tone: 'warning', label: 'Seleziona interamente il campo collegato per sostituirlo.'})
+        return
+      }
+      range.selectNode(existing)
+    }
+    // Il campo sostituisce solo il valore selezionato, conservandone la
+    // formattazione. Non aggiunge spazi o valori del cliente precedente.
+    const letterSpacing = computed && /^-?\d+(?:\.\d+)?px$/.test(computed.letterSpacing)
+      ? `${Number.parseFloat(computed.letterSpacing) * 0.75}pt` : 'normal'
+    const style = computed ? `font-family:${computed.fontFamily};font-size:${computed.fontSize};font-weight:${computed.fontWeight};font-style:${computed.fontStyle};text-decoration:${computed.textDecorationLine};color:${computed.color};letter-spacing:${letterSpacing}` : ''
+    const value = field.available ? field.value : `[${field.label}]`
+    const linked = document.createElement('span')
+    linked.dataset.iuLinkedField = field.id; linked.dataset.iuLinkedMatter = context.matterId
+    linked.dataset.iuLinkedClient = context.clientId; linked.style.cssText = style
+    // La posizione Word è distinta dalla dimensione del carattere. Conservare
+    // il rialzo del run anche quando viene sostituito con un campo automatico.
+    const wordPosition = computed?.getPropertyValue('--iu-word-position').trim()
+    if (wordPosition && /^-?\d+(?:\.\d+)?$/.test(wordPosition) && Math.abs(Number(wordPosition)) <= 100) {
+      linked.style.setProperty('--iu-word-position', wordPosition)
+      linked.style.position = 'relative'; linked.style.top = `${-Number(wordPosition)}pt`
+    }
+    linked.contentEditable = 'false'; linked.tabIndex = 0; linked.setAttribute('role', 'button')
+    linked.title = 'Modifica il valore del campo nel documento'
+    if (field.id.endsWith('.pec') && field.available) {
+      const address = document.createElement('a'); address.href = `mailto:${field.value}`; address.textContent = value
+      linked.append(address)
+    } else linked.textContent = value
+    // Una sostituzione puntuale non deve ricostruire il paragrafo tramite
+    // execCommand: con un campo atomico il browser può spostare l'inserimento.
+    range.deleteContents(); range.insertNode(linked)
+    const caret = document.createRange(); caret.setStartAfter(linked); caret.collapse(true)
+    root.focus(); selection?.removeAllRanges(); selection?.addRange(caret)
+    editorRangeRef.current = caret.cloneRange()
+    searchSelectionRef.current = null
+    editorRef.current?.querySelectorAll<HTMLElement>('[data-iu-linked-field]').forEach(linked => {
+      if (linked.dataset.iuLinkedField !== field.id) return
+      const anchor = linked.closest('a')
+      if (!anchor?.getAttribute('href')?.toLowerCase().startsWith('mailto:')) return
+      if (field.id.endsWith('.pec') && field.available) anchor.setAttribute('href', `mailto:${field.value}`)
+      else anchor.replaceWith(...anchor.childNodes)
+    })
+    markChanged()
+    if (!field.available) setStatus({ tone: 'warning', label: `${field.label}: segnaposto inserito, dato ancora da completare` })
+  }
+
+  const compareLinkedFields = (context: LinkedEditorContext) => {
+    const changes: typeof linkedChanges = []
+    let mismatches = 0
+    const unavailable: string[] = []
+    editorRef.current?.querySelectorAll<HTMLElement>('[data-iu-linked-field]').forEach(node => {
+      if (node.dataset.iuLinkedMatter !== context.matterId || node.dataset.iuLinkedClient !== context.clientId) { mismatches++; return }
+      const field = context.fields.find(field => field.id === node.dataset.iuLinkedField)
+      if (!field?.available) { unavailable.push(field?.label || node.dataset.iuLinkedField || 'Campo collegato'); return }
+      let formattedValue = field.value
+      try { formattedValue = linkedDateFormat(formattedValue, node.dataset.iuDateFormat) } catch { unavailable.push(field.label); return }
+      formattedValue = textCase(formattedValue, node.dataset.iuTextCase)
+      formattedValue = linkedValueFormat(formattedValue, node.dataset.iuValueFormat)
+      if (node.textContent !== formattedValue) changes.push({ node, label: field.label, previous: node.textContent || '', value: formattedValue })
+    })
+    setLinkedChanges(changes)
+    if (unavailable.length) setStatus({ tone: 'warning', label: `La fonte non conferma più questi campi: ${[...new Set(unavailable)].join(', ')}. Il testo precedente è conservato e va verificato.` })
+    else if (!changes.length) setStatus({ tone: mismatches ? 'warning' : 'neutral', label: mismatches ? 'Sono presenti campi di un altro cliente o fascicolo: non sono stati aggiornati.' : 'I campi inseriti coincidono con i dati attuali.' })
+  }
+
+  const loadStamp = async () => {
+    setStampOpen(true); setStampError(''); setStampLines([])
+    try {
+      const response = await fetch('/api/editor/timbro', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      const payload = await response.json()
+      if (!response.ok || !payload.ok) throw new Error(payload.errore || 'Timbro non caricato.')
+      const matterId = route?.idFascicolo || draftMatter
+      stampContextRef.current = null
+      if (matterId) {
+        const fieldsResponse = await fetch(`/api/editor/${encodeURIComponent(matterId)}/campi-collegati`, {credentials: 'same-origin', headers: {Accept: 'application/json'}})
+        const fields = await fieldsResponse.json()
+        if (!fieldsResponse.ok || !fields.ok) throw new Error(fields.errore || 'Dati del timbro non caricati.')
+        stampContextRef.current = fields
+      }
+      const savedStamp = editorRef.current?.querySelector<HTMLElement>('[data-iu-editor-stamp]')
+      const savedLines = savedStamp ? [...savedStamp.querySelectorAll('p')].filter(p => p.textContent?.trim()).map(p => {
+        const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT)
+        let node = walker.nextNode()
+        while (node && !node.textContent?.trim()) node = walker.nextNode()
+        const leaf = node?.parentElement || p
+        const style = getComputedStyle(leaf)
+        const paragraph = getComputedStyle(p)
+        const sizePx = Number.parseFloat(style.fontSize)
+        const family = style.fontFamily.split(',')[0].replace(/["']/g, '').trim().toLowerCase()
+        const font = FONT_FAMILY_OPTIONS.find(option => option.label.toLowerCase() === family)?.value || style.fontFamily
+        return {text: p.textContent || '', font, size: Number((sizePx * .75).toFixed(2)), bold: Number.parseInt(style.fontWeight) >= 600, italic: style.fontStyle === 'italic', lineHeight: Number((Number.parseFloat(paragraph.lineHeight) / sizePx || 1.22).toFixed(3))}
+      }) : []
+      const position = savedStamp?.dataset.iuEditorStamp
+      if (position === 'left' || position === 'center' || position === 'right') setStampPosition(position)
+      const occupiedCell = savedStamp ? [...savedStamp.querySelectorAll<HTMLElement>('td')].find(cell => cell.textContent?.trim()) : undefined
+      setStampWidth(savedStamp && occupiedCell ? Math.min(98, Math.max(20, Math.round(occupiedCell.getBoundingClientRect().width / savedStamp.getBoundingClientRect().width * 100))) : 60)
+      const rowKeys: Record<string, string> = {studio_nome: 'riga_studio', studio_sottotitolo: 'studio_sottotitolo', professionista_nome: 'professionista_nome', qualifiche_professionali: 'qualifiche_professionali', indirizzo: 'riga_indirizzo', fiscale: 'riga_fiscale', recapiti: 'riga_recapiti'}
+      setStampLines(payload.righe.map((line: {text: string; source: string; font: string; size: number; bold: boolean; italic: boolean}, index: number) => {
+        const key = rowKeys[line.source] ? `studio_timbro.${rowKeys[line.source]}` : undefined
+        const field = stampContextRef.current?.fields.find(field => field.id === key)
+        const previous = savedLines[index]
+        return {...line,
+        text: field?.available ? field.value : line.text,
+        linkedField: field?.available ? key : undefined,
+        ...(previous ? {font: previous.font, size: previous.size, bold: previous.bold, italic: previous.italic, lineHeight: previous.lineHeight} : {}),
+        font: previous?.font || (/^Helvetica(?:-|$)/i.test(line.font) ? FONT_FAMILY_OPTIONS[1].value : /^Times-(?:Roman|Bold|Italic)/i.test(line.font) ? FONT_FAMILY_OPTIONS[0].value : /^Courier(?:-|$)/i.test(line.font) ? FONT_FAMILY_OPTIONS[5].value : line.font),
+        lineHeight: previous?.lineHeight || payload.interlinea || 1.22,
+      }}))
+    } catch (error) { setStampError(error instanceof Error ? error.message : 'Timbro non caricato.') }
+  }
+
+  const applyStamp = () => {
+    const root = editorRef.current
+    if (!root || !stampLines.length) return
+    const originalHtml = root.innerHTML
+    let headers = [...root.querySelectorAll<HTMLElement>('[data-iu-word-region="header"]')]
+    if (!headers.length) {
+      const header = document.createElement('div')
+      header.dataset.iuWordRegion = 'header'; header.dataset.iuWordKind = 'default'
+      const page = root.querySelector('.iu-doc-pagina') || root
+      header.className = 'iu-doc-regione-word'
+      const measurement = (name: string, fallback: number) => Number(page.getAttribute(name)) || fallback
+      header.style.cssText = `position:absolute;top:${measurement('data-iu-word-header-distance', 35.4)}pt;left:${measurement('data-margine-sinistro', 56.7)}pt;right:${measurement('data-margine-destro', 56.7)}pt`
+      page.prepend(header); headers = [header]
+    }
+    for (const header of headers) {
+      header.querySelectorAll('[data-iu-editor-stamp]').forEach(node => node.remove())
+      const table = document.createElement('table')
+      table.dataset.iuEditorStamp = stampPosition
+      table.style.cssText = 'width:100%;table-layout:fixed;border:0;border-collapse:collapse'
+      const row = table.createTBody().insertRow()
+      for (const position of ['left', 'center', 'right']) {
+        const cell = row.insertCell(); cell.style.cssText = `width:${position === stampPosition ? stampWidth : (100 - stampWidth) / 2}%;border:0;padding:0;vertical-align:top`
+        if (position !== stampPosition) { cell.innerHTML = '<p style="margin:0"><br></p>'; continue }
+        for (const line of stampLines) {
+          const paragraph = document.createElement('p')
+          paragraph.style.cssText = `margin:0;text-align:center;line-height:${line.lineHeight || 1.22}`
+          paragraph.style.fontFamily = line.font; paragraph.style.fontSize = `${line.size}pt`
+          paragraph.style.fontWeight = line.bold ? '700' : '400'; paragraph.style.fontStyle = line.italic ? 'italic' : 'normal'
+          if (line.linkedField && stampContextRef.current) {
+            const field = document.createElement('span')
+            field.dataset.iuLinkedField = line.linkedField
+            field.dataset.iuLinkedMatter = stampContextRef.current.matterId
+            field.dataset.iuLinkedClient = stampContextRef.current.clientId
+            field.contentEditable = 'false'; field.tabIndex = 0; field.setAttribute('role', 'button')
+            field.textContent = line.text; paragraph.append(field)
+          } else paragraph.textContent = line.text
+          cell.append(paragraph)
+        }
+      }
+      header.prepend(table)
+    }
+    // Measure the rendered header in unscaled layout pixels, so enlarged or
+    // wrapped stamp lines reserve the same body margin in HTML and Word/PDF.
+    for (const header of headers) {
+      const page = header.closest<HTMLElement>('.iu-doc-pagina')
+      if (!page) continue
+      // Alternate Word headers live in a disclosure panel in the editor;
+      // their offsetTop describes that panel, not their position on paper.
+      if (header.closest('[data-iu-word-variants]')) continue
+      const distance = Number(page.getAttribute('data-iu-word-header-distance')) || 36
+      const top = Math.max(Number(page.getAttribute('data-margine-alto')) || 0, distance + header.offsetHeight * 0.75 + 12)
+      const height = Number(page.getAttribute('data-altezza')) || 841.9
+      const bottom = Number(page.getAttribute('data-margine-basso')) || 56.7
+      if (top > 300 || top + bottom + 72 >= height) {
+        root.innerHTML = originalHtml
+        setStampError('Il timbro è troppo alto per questa pagina. Riduci dimensione o interlinea prima di applicarlo.')
+        return
+      }
+      page.setAttribute('data-margine-alto', String(top))
+      page.style.paddingTop = `${top}pt`
+    }
+    markChanged(); setStampOpen(false)
+  }
+
+  const updateStampLine = (index: number, patch: Partial<(typeof stampLines)[number]>) => {
+    setStampLines(current => current.map((line, n) => n === index ? {...line, ...patch} : line))
+  }
+
+  const saveFinalPdf = async (target: EditorRoute = route) => {
+    if (standaloneDraft && !target) { finalizeAfterCreate.current = true; setDraftSaveOpen(true); return }
+    if (!target || pdfBusy) return
+    finalPdfIntent.current ||= { html: serializeEditorHtml(), command_id: crypto.randomUUID() }
+    setPdfBusy(true); setPdfResult(null); setPdfError('')
+    try {
+      const response = await fetch(`/api/editor/${encodeURIComponent(target.idFascicolo)}/${encodeURIComponent(target.idDocumento)}/pdf-fascicolo`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken(), 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify(finalPdfIntent.current) })
+      const payload = await response.json()
+      if (!response.ok || !payload.ok) { if ([400,403,404,409].includes(response.status)) finalPdfIntent.current = null; throw new Error(payload.errore || 'Salvataggio PDF non confermato.') }
+      finalPdfIntent.current = null; setPdfResult({nome: payload.nome, url: payload.url})
+      setStatus({ tone: 'success', label: 'PDF finale salvato nel fascicolo' })
+    } catch (error) { const message = error instanceof Error ? error.message : 'PDF non confermato. Riprova.'; setPdfError(message); setStatus({ tone: 'danger', label: message }) }
+    finally { setPdfBusy(false) }
+  }
+
   const insertImage = async (file?: File) => {
     if (!file) return
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
@@ -1796,20 +2147,49 @@ export function DocumentEditorPage() {
 
   const findText = (backwards = false) => {
     if (!searchTerm.trim()) return
-    editorRef.current?.focus()
-    const browserFind = (window as Window & typeof globalThis & {
-      find?: (
-        text: string,
-        caseSensitive?: boolean,
-        backwards?: boolean,
-        wrapAround?: boolean,
-        wholeWord?: boolean,
-        searchInFrames?: boolean,
-        showDialog?: boolean
-      ) => boolean
-    }).find
-    const found = browserFind ? browserFind(searchTerm, false, backwards, true, false, false, false) : false
-    setStatus(found ? { tone: 'neutral', label: 'Occorrenza selezionata' } : { tone: 'warning', label: 'Testo non trovato' })
+    const root = editorRef.current
+    if (!root) return
+    const nodes: Array<{node: Text; start: number; end: number}> = []
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+    let node = walker.nextNode()
+    let content = ''
+    while (node) {
+      const value = node.textContent || ''
+      nodes.push({node: node as Text, start: content.length, end: content.length + value.length})
+      content += value
+      node = walker.nextNode()
+    }
+    const term = searchTerm.toLocaleLowerCase('it-IT')
+    const haystack = content.toLocaleLowerCase('it-IT')
+    let cursor = backwards ? content.length : 0
+    const remembered = editorRangeRef.current
+    if (remembered && root.contains(remembered.endContainer)) {
+      const prefix = document.createRange()
+      prefix.selectNodeContents(root)
+      prefix.setEnd(backwards ? remembered.startContainer : remembered.endContainer,
+                    backwards ? remembered.startOffset : remembered.endOffset)
+      cursor = prefix.toString().length
+    }
+    // L'inserimento di un campo atomico può lasciare il caret all'inizio
+    // dello stesso valore. Successivo deve avanzare comunque nel documento.
+    const previousSearch = searchCursorRef.current
+    if (previousSearch?.term === term) cursor = backwards ? previousSearch.start : previousSearch.end
+    let index = backwards ? haystack.lastIndexOf(term, cursor - term.length) : haystack.indexOf(term, cursor)
+    if (index < 0) index = backwards ? haystack.lastIndexOf(term) : haystack.indexOf(term)
+    const first = nodes.find(entry => entry.start <= index && entry.end > index)
+    const last = nodes.find(entry => entry.start < index + term.length && entry.end >= index + term.length)
+    if (index < 0 || !first || !last) { setStatus({tone: 'warning', label: 'Testo non trovato nel documento'}); return }
+    const range = document.createRange()
+    range.setStart(first.node, index - first.start)
+    range.setEnd(last.node, index + term.length - last.start)
+    root.focus()
+    const selection = window.getSelection()
+    selection?.removeAllRanges(); selection?.addRange(range)
+    editorRangeRef.current = range.cloneRange()
+    searchSelectionRef.current = range.cloneRange()
+    searchCursorRef.current = {term, start: index, end: index + term.length}
+    first.node.parentElement?.scrollIntoView({block: 'nearest', inline: 'nearest'})
+    setStatus({tone: 'neutral', label: 'Occorrenza selezionata nel documento'})
   }
 
   const replaceSelection = () => {
@@ -1828,6 +2208,22 @@ export function DocumentEditorPage() {
     setStatus({ tone: 'warning', label: 'Sostituzione da salvare' })
   }
 
+  const changeTextCase = (mode: TextCase | 'date') => {
+    const root = editorRef.current
+    if (!root || conversionLocked) return
+    const selection = window.getSelection()
+    const selected = selection?.rangeCount ? selection.getRangeAt(0) : null
+    const range = searchSelectionRef.current || (selected && !selected.collapsed && root.contains(selected.commonAncestorContainer) ? selected : editorRangeRef.current)
+    if (!range) { setStatus({tone: 'warning', label: 'Seleziona il testo da trasformare nel documento.'}); return }
+    try {
+      if (mode === 'date') changeSelectedDate(root, range.cloneRange())
+      else changeSelectionCase(root, range.cloneRange(), mode)
+      searchSelectionRef.current = null
+      markChanged()
+      setStatus({tone: 'warning', label: mode === 'date' ? 'Data trasformata in lettere, da salvare' : mode === 'upper' ? 'Testo trasformato in maiuscolo, da salvare' : 'Testo trasformato in minuscolo, da salvare'})
+    } catch (error) { setStatus({tone: 'warning', label: error instanceof Error ? error.message : 'Trasformazione non applicata.'}) }
+  }
+
   const handlePaste = (event: ClipboardEvent<HTMLDivElement>) => {
     if (conversionLocked) return
     const html = event.clipboardData.getData('text/html')
@@ -1839,7 +2235,7 @@ export function DocumentEditorPage() {
     markChanged()
   }
 
-  if (!route) {
+  if (!route && !standaloneDraft) {
     return <EmptyEditorState title="Route editor non valida" body="La pagina richiesta non corrisponde a un documento del fascicolo." actionHref="/fascicoli" actionLabel="Torna ai fascicoli"/>
   }
   if (payloadLoading && !data.document.id) {
@@ -1856,8 +2252,9 @@ export function DocumentEditorPage() {
   const doc = data.document
   const pdfPreviewMode = isPdfLikeDocument(doc.name, doc.extension)
   const emlPreviewMode = isEmlDocument(doc.name, doc.extension)
+  // Saving changes interactivity, never the mounted document surface.
   const editorEnabled = doc.editable && !conversionLocked
-  const exportDisabled = !editorEnabled || payloadLoading || documentLoading || status.tone === 'saving'
+  const exportDisabled = standaloneDraft || !editorEnabled || draftBusy || pdfBusy || payloadLoading || documentLoading || status.tone === 'saving'
   const lockedReason = conversionLocked
     ? conversionLockedReason || 'Il documento non espone testo affidabile per la modifica inline.'
     : doc.lockedReason
@@ -1900,25 +2297,28 @@ export function DocumentEditorPage() {
 
   return (
     <main className={`iu-content iu-doc-editor-page${editorEnabled && !editorAiOpen ? ' iu-doc-editor-page--focused' : ''}`} ref={paginaRef}>
-      <section className="iu-de-hero">
+      <section className={`iu-de-hero${headerCollapsed ? ' iu-de-hero--collapsed' : ''}`}>
+        {headerCollapsed && <strong className="iu-de-short-title" title={doc.name}>{doc.name}</strong>}
         <div>
           <span className="iu-de-eyebrow"><FileText size={16}/> Editor professionale</span>
           <h1>{doc.name}</h1>
           <p>
             <Badge tone={editorEnabled ? 'success' : 'warning'}>{editorEnabled ? 'Modificabile' : pdfPreviewMode ? 'Anteprima nativa' : emlPreviewMode ? 'EML originale' : 'Bloccato'}</Badge>
-            <span>{data.fascicolo.ref || data.fascicolo.id} - {data.fascicolo.client || data.fascicolo.title}</span>
+            <span>{standaloneDraft ? data.fascicolo.title : `${data.fascicolo.ref || data.fascicolo.id} - ${data.fascicolo.client || data.fascicolo.title}`}</span>
           </p>
         </div>
         <nav aria-label="Azioni documento">
-          <a href={data.fascicolo.detailHref}><ArrowLeft size={15}/> Fascicolo</a>
-          <button type="button" onClick={() => void cambiaTuttoSchermo()} aria-pressed={tuttoSchermo} title={tuttoSchermo ? 'Esci da tutto schermo (Esc)' : 'Apri l’editor a tutto schermo'}>
+          <button className="iu-de-essential" type="button" aria-expanded={!headerCollapsed} aria-label={headerCollapsed ? 'Mostra intestazione' : 'Nascondi intestazione'} onClick={() => setHeaderCollapsed(value => !value)}>{headerCollapsed ? 'Mostra intestazione' : 'Nascondi intestazione'}</button>
+          <a href={data.fascicolo.detailHref}><ArrowLeft size={15}/> {standaloneDraft ? 'Documenti' : 'Fascicolo'}</a>
+          <button className="iu-de-essential" type="button" onClick={() => void cambiaTuttoSchermo()} aria-pressed={tuttoSchermo} title={tuttoSchermo ? 'Esci da tutto schermo (Esc)' : 'Apri l’editor a tutto schermo'}>
             {tuttoSchermo ? <Minimize2 size={15}/> : <Maximize2 size={15}/>} {tuttoSchermo ? 'Esci da tutto schermo' : 'Tutto schermo'}
           </button>
           {doc.actions.preview ? <a href={doc.actions.preview}><Eye size={15}/> Anteprima</a> : null}
           {doc.actions.sign ? <a href={doc.actions.sign}><ShieldCheck size={15}/> Firma</a> : null}
           {doc.actions.download ? <a href={doc.actions.download} download={doc.name}><Download size={15}/> Scarica</a> : null}
           <button type="button" onClick={() => setEditorAiOpen((value) => !value)} disabled={!data.editorAI.enabled}><Sparkles size={15}/> Nuovo atto con Lex</button>
-          <button type="button" onClick={() => void saveDocument(false)} disabled={!editorEnabled}><Save size={15}/> Salva DOCX</button>
+          <button type="button" onClick={() => void saveDocument(false)} disabled={!editorEnabled || draftBusy || pdfBusy}><Save size={15}/> Salva bozza DOCX</button>
+          <button className="iu-de-essential" type="button" onClick={() => void saveFinalPdf()} disabled={!editorEnabled || draftBusy || pdfBusy}><Save size={15}/> {pdfBusy ? 'Salvataggio PDF…' : finalPdfIntent.current ? 'Riprova PDF' : 'Salva PDF nel fascicolo'}</button>
         </nav>
         {editorEnabled ? (
           <section className="iu-de-meta-row" aria-label="Stato editor">
@@ -2078,7 +2478,7 @@ export function DocumentEditorPage() {
               {doc.pdfOverlayAllowed && data.endpoints.pdfOverlay ? (
                 <button type="button" onClick={() => setPdfEditorOpen((value) => !value)}><FileText size={15}/>{pdfEditorOpen ? 'Chiudi modifica PDF' : 'Modifica PDF sicura'}</button>
               ) : null}
-              <button type="button" onClick={() => replaceFileRef.current?.click()}><UploadCloud size={15}/> Importa PDF/Word</button>
+              <button type="button" onClick={() => { if (standaloneDraft) setDraftSaveOpen(true); else replaceFileRef.current?.click() }}><UploadCloud size={15}/> Importa PDF/Word</button>
             </div>
           </section>
           {doc.pdfOverlayAllowed && pdfEditorOpen ? (
@@ -2185,7 +2585,8 @@ export function DocumentEditorPage() {
         </>
       ) : (
         <>
-          <section className="iu-de-editor-stage">
+          {pdfError && <p role="alert" className="iu-de-error">{pdfError}</p>}
+          <section className="iu-de-editor-stage" inert={draftIntent.current !== null || finalPdfIntent.current !== null}>
             <section className="iu-de-toolbar" aria-label="Barra strumenti editor">
             <label className="iu-de-field iu-de-field--style"><span>Stile</span>
               <select aria-label="Stile paragrafo" onChange={(event) => runCommand('formatBlock', event.target.value)} defaultValue="p">
@@ -2233,6 +2634,9 @@ export function DocumentEditorPage() {
             <ToolbarButton title="Corsivo" onClick={() => runCommand('italic')}><Italic size={16}/></ToolbarButton>
             <ToolbarButton title="Sottolineato" onClick={() => runCommand('underline')}><Underline size={16}/></ToolbarButton>
             <ToolbarButton title="Barrato" onClick={() => runCommand('strikeThrough')}><Strikethrough size={16}/></ToolbarButton>
+            <ToolbarButton title="Trasforma in MAIUSCOLO" onClick={() => changeTextCase('upper')}><span aria-hidden="true">AA</span></ToolbarButton>
+            <ToolbarButton title="Trasforma in minuscolo" onClick={() => changeTextCase('lower')}><span aria-hidden="true">aa</span></ToolbarButton>
+            <ToolbarButton title="Data in lettere" onClick={() => changeTextCase('date')}><span aria-hidden="true">31→</span></ToolbarButton>
             <span className="iu-de-separator"/>
             <ToolbarButton title="Allinea a sinistra" onClick={() => runCommand('justifyLeft')}><AlignLeft size={16}/></ToolbarButton>
             <ToolbarButton title="Centra" onClick={() => runCommand('justifyCenter')}><AlignCenter size={16}/></ToolbarButton>
@@ -2243,19 +2647,22 @@ export function DocumentEditorPage() {
             <ToolbarButton title="Elenco numerato" onClick={() => runCommand('insertOrderedList')}><ListOrdered size={16}/></ToolbarButton>
             <ToolbarButton title="Tabella" onClick={openTablePicker}><Table size={16}/></ToolbarButton>
             <ToolbarButton title="Casella di testo" onClick={insertTextBox}><FileText size={16}/></ToolbarButton>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" aria-expanded={linkedFieldsOpen} onClick={() => setLinkedFieldsOpen(value => !value)}>Dati collegati</button>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => setPersonalTemplatesOpen(true)}>Modelli personali</button>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => void loadStamp()}>Timbro studio</button>
             <ToolbarButton title="Inserisci immagine" onClick={chooseImage}><ImagePlus size={16}/></ToolbarButton>
             <ToolbarButton title="Collegamento" onClick={openLink}><Link size={16}/></ToolbarButton>
             <ToolbarButton title="Aumenta rientro" onClick={() => runCommand('indent')}><ListOrdered size={16}/></ToolbarButton>
             <ToolbarButton title="Riduci rientro" onClick={() => runCommand('outdent')}><List size={16}/></ToolbarButton>
             <ToolbarButton title={voiceDictating ? 'Dettatura in corso' : 'Detta nel documento'} onClick={startEditorDictation} disabled={!editorEnabled || voiceDictating}><Mic size={16}/></ToolbarButton>
             <span className="iu-de-separator"/>
-            <label className="iu-de-color" title="Colore testo"><Palette size={15}/><input type="color" onChange={(event) => runCommand('foreColor', event.target.value)} defaultValue="#111827"/></label>
-            <label className="iu-de-color" title="Evidenziatore"><Highlighter size={15}/><input type="color" onChange={(event) => runCommand('hiliteColor', event.target.value)} defaultValue="#fef3c7"/></label>
+            <label className="iu-de-color" title="Colore testo"><Palette size={15}/><input aria-label="Colore testo" type="color" onChange={(event) => applyInlineStyle({ color: event.target.value }, 'Colore testo')} defaultValue="#111827"/></label>
+            <label className="iu-de-color" title="Evidenziatore"><Highlighter size={15}/><input aria-label="Evidenziatore" type="color" onChange={(event) => applyInlineStyle({ backgroundColor: event.target.value }, 'Evidenziatore')} defaultValue="#fef3c7"/></label>
             <span className="iu-de-separator"/>
             <ToolbarButton title="Annulla" onClick={() => runCommand('undo')}><Undo2 size={16}/></ToolbarButton>
             <ToolbarButton title="Ripeti" onClick={() => runCommand('redo')}><Redo2 size={16}/></ToolbarButton>
             <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => setSearchOpen((value) => !value)}><Search size={15}/> Cerca</button>
-            <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => replaceFileRef.current?.click()}><UploadCloud size={15}/> Importa</button>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => { if (standaloneDraft) setDraftSaveOpen(true); else replaceFileRef.current?.click() }}><UploadCloud size={15}/> Importa</button>
             <button className="iu-de-tool iu-de-tool--wide" type="button" disabled={exportDisabled} onClick={() => void exportFile(data.endpoints.exportPdf, 'pdf')}><FileDown size={15}/> PDF</button>
             <button className="iu-de-tool iu-de-tool--wide" type="button" disabled={exportDisabled} onClick={() => void exportFile(data.endpoints.exportDocx, 'docx')}><FileDown size={15}/> DOCX</button>
             <button className="iu-de-tool iu-de-tool--wide" type="button" disabled={exportDisabled} onClick={() => void exportFile(data.endpoints.exportRtf, 'rtf')}><FileDown size={15}/> RTF</button>
@@ -2350,7 +2757,7 @@ export function DocumentEditorPage() {
             <section className="iu-de-search-panel" aria-label="Cerca e sostituisci">
               <label><span>Cerca</span><input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') findText(false) }}/></label>
               <label><span>Sostituisci con</span><input value={replaceTerm} onChange={(event) => setReplaceTerm(event.target.value)}/></label>
-              <button type="button" onClick={() => findText(false)}><Search size={15}/> Successivo</button>
+              <button type="button" onMouseDown={event => event.preventDefault()} onClick={() => findText(false)}><Search size={15}/> Successivo</button>
               <button type="button" onClick={replaceSelection}><Replace size={15}/> Sostituisci</button>
             </section>
           ) : null}
@@ -2362,13 +2769,14 @@ export function DocumentEditorPage() {
           </section>}
           <section className="iu-de-workbench">
             {documentFactsOpen ? <div id="iu-de-document-facts" className="iu-de-facts-panel"><DocumentFacts data={data}/></div> : null}
+            <div className="iu-de-writing-grid">
             <section className="iu-de-paper-shell" style={paperStyle}>
               <div className="iu-de-paper">
                 {documentLoading ? <div className="iu-de-loader"><LoaderCircle className="iu-spin" size={24}/><span>Caricamento contenuto...</span></div> : null}
                 <div
                   ref={editorRef}
                   className="iu-de-editable"
-                  contentEditable={editorEnabled}
+                  contentEditable={editorEnabled && !draftBusy && !pdfBusy}
                   suppressContentEditableWarning
                   role="textbox"
                   aria-multiline="true"
@@ -2376,7 +2784,15 @@ export function DocumentEditorPage() {
                   aria-label={`Contenuto modificabile ${doc.name}`}
                   spellCheck={false}
                   onInput={handleEditorInput}
+                  onMouseDown={() => { searchSelectionRef.current = null }}
                   onClick={(event) => {
+                    const linked = (event.target as Element).closest<HTMLElement>('[data-iu-linked-field]')
+                    if (linked && editorEnabled) {
+                      event.preventDefault()
+                      const previous = linked.textContent || ''
+                      setLinkedEdit({ node: linked, previous, value: /^\[.*\]$/.test(previous) ? '' : previous })
+                      return
+                    }
                     if (tablePickerOpen) {
                       const cell = (event.target as Element).closest<HTMLTableCellElement>('td,th')
                       const table = cell?.closest<HTMLTableElement>('table')
@@ -2396,12 +2812,23 @@ export function DocumentEditorPage() {
                     const rect = mark.range.getBoundingClientRect()
                     setSpellingChoice({ mark, x: Math.max(8, Math.min(rect.left, window.innerWidth - 292)), y: Math.max(8, Math.min(rect.bottom + 8, window.innerHeight - 240)) })
                   }}
-                  onKeyDown={(event) => { if (event.key === 'Escape') setSpellingChoice(null) }}
-                  onBeforeInput={() => { if (editorRef.current) editorHistoryRef.current.rememberCaret(editorCaret(editorRef.current)) }}
+                  onKeyDown={(event) => {
+                    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key)) searchSelectionRef.current = null
+                    if (event.key === 'Escape') setSpellingChoice(null)
+                    const linked = (event.target as Element).closest<HTMLElement>('[data-iu-linked-field]')
+                    if (linked && editorEnabled && (event.key === 'Enter' || event.key === ' ')) {
+                      event.preventDefault()
+                      const previous = linked.textContent || ''
+                      setLinkedEdit({ node: linked, previous, value: /^\[.*\]$/.test(previous) ? '' : previous })
+                    }
+                  }}
+                  onBeforeInput={() => { searchSelectionRef.current = null; if (editorRef.current) editorHistoryRef.current.rememberCaret(editorCaret(editorRef.current)) }}
                   onPaste={handlePaste}
                 />
               </div>
             </section>
+            {linkedFieldsOpen && <EditorLinkedFieldsPanel catalogLoading={draftCatalogLoading} catalogError={draftCatalogError} matterId={route?.idFascicolo || draftMatter} options={draftMatters} onMatterChange={standaloneDraft ? setDraftMatter : undefined} onInsert={insertLinkedField} onRefreshFields={compareLinkedFields} onClose={() => setLinkedFieldsOpen(false)} disabled={!editorEnabled || draftBusy || draftIntent.current !== null}/>}
+            </div>
           </section>
             </div>
           </section>
@@ -2474,6 +2901,92 @@ export function DocumentEditorPage() {
         }}
       />
 
+      {pdfResult && <Modal title="PDF salvato nel fascicolo" open={Boolean(pdfResult)} onClose={() => setPdfResult(null)}><p>{pdfResult.nome}</p><a href={pdfResult.url}>Apri PDF salvato</a><button type="button" onClick={() => setPdfResult(null)}>Continua a scrivere</button></Modal>}
+      <Modal title="Timbro dello studio" open={stampOpen} onClose={() => setStampOpen(false)}>
+        <label>Posizione<select aria-label="Posizione timbro" value={stampPosition} onChange={event => setStampPosition(event.target.value as typeof stampPosition)}><option value="left">In alto a sinistra</option><option value="center">In alto al centro</option><option value="right">In alto a destra</option></select></label>
+        <label>Larghezza del blocco<input aria-label="Larghezza timbro" type="range" min="20" max="98" value={stampWidth} onChange={event => setStampWidth(Number(event.target.value))}/><output>{stampWidth}%</output></label>
+        <p>Testo dalle impostazioni dello studio. Personalizza l’aspetto per questo documento.</p>
+        <div className="iu-de-stamp-lines">{stampLines.map((line, index) => <details key={index}>
+          <summary>{line.text}</summary>
+          <div className="iu-de-stamp-controls">
+            <label>Font<select aria-label={`Font timbro riga ${index + 1}`} value={line.font} onChange={event => updateStampLine(index, {font: event.target.value})}>
+              {!FONT_FAMILY_OPTIONS.some(option => option.value === line.font) && <option value={line.font}>{line.font}</option>}
+              {FONT_FAMILY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select></label>
+            <label>Dimensione<select aria-label={`Dimensione timbro riga ${index + 1}`} value={line.size} onChange={event => updateStampLine(index, {size: Number(event.target.value)})}>{FONT_SIZE_OPTIONS.map(size => <option key={size} value={Number.parseInt(size)}>{size}</option>)}</select></label>
+            <label>Interlinea<input aria-label={`Interlinea timbro riga ${index + 1}`} type="number" min="0.5" max="5" step="0.05" value={line.lineHeight ?? 1.22} onChange={event => updateStampLine(index, {lineHeight: Number(event.target.value)})}/></label>
+            <label><input type="checkbox" aria-label={`Grassetto timbro riga ${index + 1}`} checked={line.bold} onChange={event => updateStampLine(index, {bold: event.target.checked})}/>Grassetto</label>
+            <label><input type="checkbox" aria-label={`Corsivo timbro riga ${index + 1}`} checked={line.italic} onChange={event => updateStampLine(index, {italic: event.target.checked})}/>Corsivo</label>
+          </div>
+        </details>)}</div>
+        <div style={{display:'flex',justifyContent:stampPosition === 'left' ? 'flex-start' : stampPosition === 'right' ? 'flex-end' : 'center',minHeight:80,border:'1px solid #e2e7ee',padding:8}}><div style={{width:`${stampWidth}%`,textAlign:'center'}}>{stampLines.map((line,index) => <p key={index} style={{margin:0,fontFamily:line.font,fontSize:`${line.size}pt`,lineHeight:line.lineHeight || 1.22,fontWeight:line.bold ? 700 : 400,fontStyle:line.italic ? 'italic' : 'normal'}}>{line.text}</p>)}</div></div>
+        {stampError && <p role="alert">{stampError}</p>}
+        {!stampError && !stampLines.length && <p role="status">Caricamento timbro…</p>}
+        <button type="button" disabled={!stampLines.length || stampLines.some(line => !Number.isFinite(line.lineHeight) || (line.lineHeight || 0) < 0.5 || (line.lineHeight || 0) > 5)} onClick={applyStamp}>Inserisci o aggiorna timbro</button>
+      </Modal>
+      <EditorPersonalTemplates mattersLoading={draftCatalogLoading} mattersError={draftCatalogError} open={personalTemplatesOpen} onClose={() => setPersonalTemplatesOpen(false)} serialize={serializeEditorHtml} matterId={route?.idFascicolo || draftMatter} options={draftMatters} onMatterChange={standaloneDraft ? setDraftMatter : undefined} onApply={(html, title, missing) => {
+        if (!editorRef.current) return
+        editorRef.current.innerHTML = sanitizeHtml(html)
+        editorRef.current.querySelectorAll<HTMLElement>('[data-iu-linked-field]').forEach(node => { node.tabIndex = 0; node.setAttribute('role', 'button'); node.title = 'Modifica il valore del campo nel documento' })
+        editorRangeRef.current = null
+        if (standaloneDraft) setDraftTitle(title)
+        markChanged()
+        setStatus({ tone: missing.length ? 'warning' : 'neutral', label: missing.length ? `Modello applicato; campi da compilare: ${missing.join(', ')}` : 'Modello compilato con i dati associati, da salvare' })
+      }}/>
+      <Modal title="Valore del campo nel documento" open={Boolean(linkedEdit)} onClose={() => setLinkedEdit(null)}>
+        <p>Scrivi un valore per questo documento. L’anagrafica resta invariata; il campo rimane riutilizzabile nei modelli. Un confronto con la fonte richiederà la tua scelta prima di sostituirlo.</p>
+        <label>Valore<input aria-label="Valore del campo nel documento" value={linkedEdit?.value || ''} onChange={event => setLinkedEdit(current => current && ({ ...current, value: event.target.value }))}/></label>
+        <button type="button" disabled={!linkedEdit?.value.trim()} onClick={() => {
+          if (!linkedEdit || !editorRef.current?.contains(linkedEdit.node) || linkedEdit.node.textContent !== linkedEdit.previous) { setLinkedEdit(null); setStatus({ tone: 'warning', label: 'Il campo è cambiato: riaprilo prima di modificarlo.' }); return }
+          const target = linkedEdit.node.querySelector('span,strong,em,u') || linkedEdit.node
+          target.textContent = linkedEdit.value.trim()
+          linkedEdit.node.dataset.iuLinkedManual = 'true'
+          markChanged(); setLinkedEdit(null)
+        }}>Applica al documento</button>
+      </Modal>
+      <Modal title="Aggiornamento dei campi collegati" open={linkedChanges.length > 0} onClose={() => setLinkedChanges([])}>
+        <p>Controlla le differenze prima di applicarle al documento.</p>
+        <ul>{linkedChanges.map((change, index) => <li key={index}><strong>{change.label}</strong>: {change.previous} → {change.value}</li>)}</ul>
+        <button type="button" onClick={() => {
+          const root = editorRef.current
+          if (!root) return
+          for (const change of linkedChanges) {
+            if (!root.contains(change.node) || change.node.textContent !== change.previous) { setStatus({ tone: 'warning', label: 'Il documento è cambiato: ripeti il confronto dei campi.' }); setLinkedChanges([]); return }
+          }
+          for (const change of linkedChanges) {
+            let text = change.node
+            const wrappers = new Set(['SPAN', 'STRONG', 'EM', 'B', 'I', 'U', 'S', 'A'])
+            while (text.firstElementChild && wrappers.has(text.firstElementChild.tagName)) {
+              text = text.firstElementChild as HTMLElement
+            }
+            text.textContent = change.value
+            let child = text
+            while (child !== change.node) {
+              const parent = child.parentElement!
+              for (const sibling of [...parent.childNodes]) {
+                if (sibling !== child) sibling.remove()
+              }
+              child = parent
+            }
+            for (const anchor of change.node.querySelectorAll<HTMLAnchorElement>('a[href^="mailto:"]')) {
+              if (change.node.dataset.iuLinkedField?.endsWith('.pec')) anchor.href = `mailto:${change.value}`
+            }
+            delete change.node.dataset.iuLinkedManual
+          }
+          markChanged(); setLinkedChanges([])
+        }}>Applica aggiornamenti al documento</button>
+      </Modal>
+      <Modal title="Salva nuovo documento" open={draftSaveOpen} onClose={() => { if (!draftBusy) { setDraftSaveOpen(false); finalizeAfterCreate.current = false } }}>
+      {/* La scelta del fascicolo nel pannello è condivisa con il primo salvataggio. */}
+        <form onSubmit={(event) => void createDraftDocument(event)} className="iu-de-draft-save">
+          <label>Titolo<input required maxLength={100} value={draftTitle} disabled={draftBusy || draftIntent.current !== null} onChange={(event) => setDraftTitle(event.target.value)}/></label>
+          <FascicoloSearchSelect options={draftMatters} value={draftMatter} onChange={setDraftMatter} disabled={draftBusy || draftIntent.current !== null} selectionLabel="Fascicolo del documento" hint="Cerca il cliente, il titolo o il R.G. e scegli dove conservare il documento."/>
+          {draftError && <p role="alert">{draftError}</p>}
+          {draftCatalogLoading && <p role="status">Caricamento fascicoli…</p>}
+          {draftCatalogError && <p role="alert">{draftCatalogError}</p>}
+          <button type="submit" disabled={draftBusy || !draftMatter || !draftTitle.trim()}>{draftBusy ? 'Salvataggio in corso…' : draftIntent.current ? 'Riprova salvataggio' : finalizeAfterCreate.current ? 'Salva PDF nel fascicolo' : 'Salva bozza DOCX nel fascicolo'}</button>
+        </form>
+      </Modal>
       <FloatingLex
         context="editor-documento"
         title="Lex AI editor"

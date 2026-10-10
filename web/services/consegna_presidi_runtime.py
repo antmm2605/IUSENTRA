@@ -222,7 +222,12 @@ def _consegna_parti(fascicolo: Any, fatti: list[Any]) -> list[dict[str, str]]:
     return consegna_parti(fascicolo, fatti)
 
 
-CONSEGNATARI = {"scadenziario": _consegna_scadenziario, "agenda": _consegna_agenda, "parti": _consegna_parti}
+def _consegna_dati_fascicolo(fascicolo: Any, fatti: list[Any]) -> list[dict[str, str]]:
+    from web.services.giudice_fascicolo_runtime import consegna_giudice
+    return consegna_giudice(fascicolo, fatti)
+
+
+CONSEGNATARI = {"scadenziario": _consegna_scadenziario, "agenda": _consegna_agenda, "parti": _consegna_parti, "dati_fascicolo": _consegna_dati_fascicolo}
 
 
 # ---- il giro di consegna ----------------------------------------------------

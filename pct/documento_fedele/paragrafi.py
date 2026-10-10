@@ -44,6 +44,9 @@ def _html_tratti(tratti: list[Tratto], corpo_base: float, famiglia_base: str, *,
             stile.append(f"letter-spacing:{modello.spaziatura_pt:g}pt")
         if modello.sottolineatura_word:
             stile.append(f"--iu-word-underline:{modello.sottolineatura_word}")
+        if modello.posizione_pt:
+            stile.extend([f"--iu-word-position:{modello.posizione_pt:g}",
+                          "position:relative", f"top:{-modello.posizione_pt:g}pt"])
         apri, chiudi = "", ""
         if modello.grassetto:
             apri += "<strong>"

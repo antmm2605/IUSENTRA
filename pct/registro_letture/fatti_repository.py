@@ -23,7 +23,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Iterable
 
 MOTORI = ("documenti", "pec")
-CATEGORIE = ("data", "ruolo", "prova_notifica", "importo", "evento", "parte")
+CATEGORIE = ("data", "ruolo", "prova_notifica", "importo", "evento", "parte", "metadato_fascicolo")
 VERIFICHE = ("verificata", "plausibile", "respinta", "corretta", "ignorata")
 VERIFICHE_UTILI = ("verificata", "plausibile", "corretta")
 COLONNE_FATTI: tuple[str, ...] = (

@@ -773,6 +773,32 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
     def _spaziatura(paragraph, el) -> None:
         """Interlinea (moltiplicatore) e rientro sinistro (punti) del capoverso."""
         stile = (el.get("style") or "").lower()
+        # CSSOM serializes the four visible margins as `margin: ...` when
+        # the editor adds computed spacing. Expand it in declaration order:
+        # later explicit sides must still win, as they do in the browser.
+        margini = {}
+        for dichiarazione in stile.split(';'):
+            chiave, separatore, valore = dichiarazione.partition(':')
+            chiave, valore = chiave.strip(), valore.strip()
+            if not separatore:
+                continue
+            if chiave == 'margin':
+                valori = valore.split()
+                if 1 <= len(valori) <= 4 and all(re.fullmatch(r'-?(?:\d+(?:\.\d+)?)(?:pt|px)?', v) for v in valori):
+                    top = valori[0]
+                    right = valori[1] if len(valori) > 1 else top
+                    bottom = valori[2] if len(valori) > 2 else top
+                    left = valori[3] if len(valori) > 3 else right
+                    margini.update(zip(('top', 'right', 'bottom', 'left'), (top, right, bottom, left)))
+            elif chiave in ('margin-top', 'margin-right', 'margin-bottom', 'margin-left'):
+                margini[chiave.removeprefix('margin-')] = valore
+        stile = ';'.join(d for d in stile.split(';') if d.partition(':')[0].strip() not in
+                         ('margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left'))
+        for lato, valore in margini.items():
+            misura = re.fullmatch(r'(-?\d+(?:\.\d+)?)(pt|px)?', valore)
+            if misura:
+                punti = float(misura.group(1)) * (0.75 if misura.group(2) == 'px' else 1)
+                stile += f';margin-{lato}:{punti:g}pt'
         interlinea = stile
         if "line-height" not in interlinea:
             for contenitore in el.iterancestors():
@@ -799,6 +825,23 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
     def _allinea(paragraph, el) -> None:
         _spaziatura(paragraph, el)
         stile = (el.get("style") or "").lower()
+        stops = re.search(r'(?:^|;)\s*--iu-word-tab-stops:\s*([^;]+)', stile)
+        if stops:
+            values = stops.group(1).split()
+            if len(values) > 100:
+                raise ValueError('Troppe tabulazioni Word nel paragrafo.')
+            tabs = OxmlElement('w:tabs')
+            for value in values:
+                match = re.fullmatch(r'(-?\d{1,5}),(left|right|center|decimal|bar|clear|num|start|end),(none|dot|hyphen|underscore|heavy|middleDot)', value, re.I)
+                if match is None or not -20000 <= int(match.group(1)) <= 20000:
+                    raise ValueError('Tabulazione Word del paragrafo non valida.')
+                tab = OxmlElement('w:tab')
+                for key, entry in zip(('pos', 'val', 'leader'), match.groups()):
+                    if key == 'leader' and entry == 'middledot':
+                        entry = 'middleDot'
+                    tab.set(qn('w:' + key), entry)
+                tabs.append(tab)
+            paragraph._p.get_or_add_pPr().append(tabs)
         for chiave, valore in ALLINEAMENTI.items():
             if f"text-align:{chiave}" in stile.replace(" ", "") or f"align={chiave}" in stile:
                 paragraph.alignment = valore
@@ -807,10 +850,22 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
         if allineamento in ALLINEAMENTI:
             paragraph.alignment = ALLINEAMENTI[allineamento]
 
-    def _colore(el):
-        # «background-color» e «border-color» non sono il colore del testo.
-        m = re.search(r"(?<![-\w])color:\s*#([0-9a-fA-F]{6})", el.get("style") or "")
-        return m.group(1) if m else ""
+    def _colore(el, proprieta='color'):
+        # CSSOM uses rgb() for a picked color; match only this property.
+        dichiarazioni = dict(parte.strip().split(':', 1) for parte in
+                             (el.get('style') or '').split(';') if ':' in parte)
+        dichiarazioni = {k.strip().lower(): v.strip() for k, v in dichiarazioni.items()}
+        valore = dichiarazioni.get(proprieta, '')
+        if proprieta == 'color' and not valore and _nome(el) == 'font':
+            valore = el.get('color') or ''
+        if re.fullmatch(r'#[0-9a-fA-F]{6}', valore):
+            return valore[1:]
+        if re.fullmatch(r'#[0-9a-fA-F]{3}', valore):
+            return ''.join(c * 2 for c in valore[1:])
+        rgb = re.fullmatch(r'rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)', valore, re.I)
+        if rgb and all(int(c) <= 255 for c in rgb.groups()):
+            return ''.join(f'{int(c):02x}' for c in rgb.groups())
+        return ''
 
     def _carattere(el) -> str:
         """Il carattere che il documento chiede, preso dalla pila dello stile.
@@ -846,9 +901,20 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
     def _stato_dello_stile(stato: dict, el) -> dict:
         """Colore, carattere e corpo dichiarati dall'elemento, sopra quelli ereditati."""
         nuovo_stato = dict(stato)
+        stile = el.get("style") or ""
+        peso = re.search(r'(?:^|;)\s*font-weight:\s*(bold|normal|[1-9]00)\b', stile, re.I)
+        if peso:
+            valore = peso.group(1).lower()
+            nuovo_stato['bold'] = valore == 'bold' or (valore.isdigit() and int(valore) >= 600)
+        inclinazione = re.search(r'(?:^|;)\s*font-style:\s*(italic|normal|oblique)\b', stile, re.I)
+        if inclinazione:
+            nuovo_stato['italic'] = inclinazione.group(1).lower() != 'normal'
         colore = _colore(el)
         if colore:
             nuovo_stato["color"] = colore
+        sfondo = _colore(el, 'background-color')
+        if sfondo:
+            nuovo_stato['background'] = sfondo
         carattere = _carattere(el)
         if carattere:
             nuovo_stato["font"] = carattere
@@ -861,6 +927,9 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
         underline = re.search(r'(?:^|;)\s*--iu-word-underline:\s*([a-zA-Z]+)', el.get('style') or '')
         if underline:
             nuovo_stato['word_underline'] = underline.group(1)
+        position = re.search(r'(?:^|;)\s*--iu-word-position:\s*(-?[0-9]+(?:\.[0-9]+)?)\s*(?:;|$)', stile)
+        if position and -100 <= float(position.group(1)) <= 100:
+            nuovo_stato['word_position'] = float(position.group(1))
         return nuovo_stato
 
     def _stato_figlio(stato: dict, el) -> dict:
@@ -880,8 +949,8 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
         if not testo:
             return
         run = paragraph.add_run(testo)
-        run.bold = True if stato.get("bold") else None
-        run.italic = True if stato.get("italic") else None
+        run.bold = stato.get("bold")
+        run.italic = stato.get("italic")
         run.underline = True if stato.get("underline") else None
         if stato.get("strike"):
             run.font.strike = True
@@ -889,6 +958,11 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
         if colore:
             valore = int(colore, 16)
             run.font.color.rgb = RGBColor((valore >> 16) & 0xFF, (valore >> 8) & 0xFF, valore & 0xFF)
+        if stato.get('background'):
+            node = OxmlElement('w:shd')
+            node.set(qn('w:val'), 'clear')
+            node.set(qn('w:fill'), stato['background'])
+            run._r.get_or_add_rPr().append(node)
         if stato.get("font"):
             run.font.name = stato["font"]
         if stato.get("size"):
@@ -898,6 +972,10 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
             node.set(qn('w:val'), str(round(stato['spacing'] * 20)))
             run._r.get_or_add_rPr().append(node)
         underline = stato.get('word_underline')
+        if stato.get('word_position') is not None:
+            node = OxmlElement('w:position')
+            node.set(qn('w:val'), str(round(stato['word_position'] * 2)))
+            run._r.get_or_add_rPr().append(node)
         if underline in ('single', 'double', 'thick', 'dotted', 'dash', 'wave', 'none'):
             node = run._r.get_or_add_rPr().get_or_add_u()
             node.set(qn('w:val'), underline)
@@ -955,10 +1033,28 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
         else:
             riferimento = paragraph.part.relate_to(indirizzo, RELATIONSHIP_TYPE.HYPERLINK, is_external=True)
             collegamento.set(qn("r:id"), riferimento)
+        from copy import deepcopy
+
+        segment = deepcopy(collegamento)
         for elemento in list(paragraph._p):
-            if elemento not in precedenti:
-                collegamento.append(elemento)
-        paragraph._p.append(collegamento)
+            if elemento in precedenti:
+                continue
+            if elemento.tag == qn('w:sdt'):
+                # Il campo resta esterno al collegamento: il convertitore
+                # nativo deve ritrovare tag, valore e destinazione alla riapertura.
+                if len(segment):
+                    paragraph._p.append(segment)
+                    segment = deepcopy(collegamento)
+                content = elemento.find(qn('w:sdtContent'))
+                field_link = deepcopy(collegamento)
+                for child in list(content):
+                    field_link.append(child)
+                content.append(field_link)
+                paragraph._p.append(elemento)
+            else:
+                segment.append(elemento)
+        if len(segment):
+            paragraph._p.append(segment)
 
     def _add_runs(paragraph, el, stato: dict | None = None) -> None:
         """Testo dell'elemento nel paragrafo, conservando la formattazione annidata.
@@ -970,7 +1066,56 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
         _scrivi(paragraph, el.text or "", corrente)
         for figlio in el:
             tag = _nome(figlio)
-            if figlio.get("data-iu-word-field") is not None:
+            if figlio.get('data-iu-word-tab-mark') == 'true':
+                pass
+            elif figlio.get('data-iu-word-tab') is not None:
+                target = int(figlio.get('data-iu-word-tab'))
+                position = int(figlio.get('data-iu-word-tab-position', '0'))
+                if not 0 < target <= 20000 or not -200 <= position <= 200:
+                    raise ValueError('Tabulazione Word non valida.')
+                _add_runs(paragraph, figlio, _stato_figlio(corrente, figlio))
+                tabs = paragraph._p.get_or_add_pPr().find(qn('w:tabs'))
+                if tabs is None:
+                    tabs = OxmlElement('w:tabs')
+                    paragraph._p.get_or_add_pPr().append(tabs)
+                if not any(t.get(qn('w:pos')) == str(target) for t in tabs):
+                    tab = OxmlElement('w:tab')
+                    tab.set(qn('w:val'), 'left')
+                    tab.set(qn('w:pos'), str(target))
+                    tabs.append(tab)
+                    tabs[:] = sorted(tabs, key=lambda t: int(t.get(qn('w:pos'))))
+                _scrivi(paragraph, '\t', {**corrente, 'word_position': position / 2})
+            elif figlio.get("data-iu-linked-field") is not None:
+                from pct.editor_linked_fields import FIELD_IDS
+                import json
+
+                key = figlio.get("data-iu-linked-field")
+                if key not in FIELD_IDS:
+                    raise ValueError("Campo collegato non consentito.")
+                metadata = {"field": key, "matter": figlio.get("data-iu-linked-matter", ""), "client": figlio.get("data-iu-linked-client", "")}
+                if figlio.get("data-iu-linked-manual") == "true":
+                    metadata["manual"] = True
+                if figlio.get("data-iu-text-case") in {"upper", "lower", "title"}:
+                    metadata["text_case"] = figlio.get("data-iu-text-case")
+                if figlio.get("data-iu-date-format") in {"long", "long-padded", "dots"}:
+                    metadata["date_format"] = figlio.get("data-iu-date-format")
+                if figlio.get("data-iu-value-format") == "cf-grouped":
+                    metadata["value_format"] = "cf-grouped"
+                campo = OxmlElement("w:sdt")
+                properties = OxmlElement("w:sdtPr")
+                marker = OxmlElement("w:tag")
+                marker.set(qn("w:val"), "iusentra:" + json.dumps(metadata, ensure_ascii=True, separators=(",", ":")))
+                properties.append(marker)
+                campo.append(properties)
+                content = OxmlElement("w:sdtContent")
+                precedenti = set(paragraph._p)
+                _add_runs(paragraph, figlio, _stato_figlio(corrente, figlio))
+                for elemento in list(paragraph._p):
+                    if elemento not in precedenti:
+                        content.append(elemento)
+                campo.append(content)
+                paragraph._p.append(campo)
+            elif figlio.get("data-iu-word-field") is not None:
                 istruzione = str(figlio.get("data-iu-word-field") or "").strip().upper()
                 if istruzione not in {"PAGE", "NUMPAGES", "PAGE \\* MERGEFORMAT", "NUMPAGES \\* MERGEFORMAT"}:
                     raise ValueError("Campo Word non consentito.")
@@ -1192,6 +1337,12 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
             descrizione = OxmlElement("w:tblDescription")
             descrizione.set(qn("w:val"), "IUSENTRA:text-box:v1")
             tabella._tbl.tblPr.append(descrizione)
+        if el.get("data-iu-editor-stamp") in {"left", "center", "right"} and len(righe) == 1 and colonne == 3:
+            from docx.oxml import OxmlElement
+
+            descrizione = OxmlElement("w:tblDescription")
+            descrizione.set(qn("w:val"), "IUSENTRA:studio-stamp:" + el.get("data-iu-editor-stamp"))
+            tabella._tbl.tblPr.append(descrizione)
         sezione = doc.sections[-1]
         disponibile = (sezione.page_width - sezione.left_margin - sezione.right_margin) / 12700
         larghezza = disponibile
@@ -1259,7 +1410,7 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
                 larghezza = lato_css(dichiarazioni.get('border-width', ''), indice)
                 colore = lato_css(dichiarazioni.get('border-color', ''), indice)
                 bordo_comune = dichiarazioni.get('border', '')
-                if linea == 'none' or bordo_comune == 'none':
+                if linea == 'none' or bordo_comune == 'none' or re.fullmatch(r'0(?:\.0+)?(?:px|pt)?(?:\s+(?:none|solid))?', bordo_comune) or re.fullmatch(r'0(?:\.0+)?(?:px|pt)?', larghezza):
                     stile_cella += f';border-{lato}:none'
                 elif linea in ('solid', 'double', 'dotted', 'dashed') and re.fullmatch(r'[0-9.]+(?:pt|px)', larghezza) and re.fullmatch(r'#[0-9a-fA-F]{6}', colore):
                     punti = float(larghezza[:-2]) * (0.75 if larghezza.endswith('px') else 1)
@@ -1335,6 +1486,19 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
         tag = _nome(el)
         stato = _stato_dello_stile(stato or {}, el)
         if not tag:
+            return
+        if el.get("data-iu-linked-field") is not None:
+            # A blank contentEditable can contain a field directly, without a
+            # paragraph wrapper. Preserve the control also in this native path.
+            from copy import deepcopy
+
+            wrapper = ET.Element("p")
+            field = deepcopy(el)
+            field.tail = None
+            wrapper.append(field)
+            paragraph = _paragrafo()
+            _allinea(paragraph, el)
+            _add_runs(paragraph, wrapper, stato)
             return
         if el.get("data-iu-word-variants") == "true":
             for figlio in el:

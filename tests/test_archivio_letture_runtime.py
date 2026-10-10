@@ -60,6 +60,27 @@ def _fascicolo(app, fascicolo_id: str):
     return app.extensions["core_runtime"]["get_fascicoli"]().get(fascicolo_id)
 
 
+def test_existing_metadata_is_delivered_before_new_document_reading(tmp_path, monkeypatch):
+    app = _app(tmp_path)
+    fid, _, _ = _seed(app)
+    from web.services import archivio_letture_runtime as runtime, giudice_archivio_recovery as recovery
+    steps = []
+    monkeypatch.setattr(recovery, 'recupera_giudice', lambda *args, **kwargs:
+                        steps.append('metadati') or {'fatti': 1})
+    monkeypatch.setattr(runtime, '_consegna_ai_presidi', lambda *args:
+                        steps.append('consegna') or {})
+    monkeypatch.setattr(runtime, 'invalida_lettura', lambda *args: steps.append('aggiornamento'))
+
+    def failed_document(*args, **kwargs):
+        steps.append('documento')
+        raise RuntimeError('Documento ancora indisponibile')
+
+    monkeypatch.setattr(runtime, '_leggi_documenti', failed_document)
+    with app.app_context(), pytest.raises(RuntimeError, match='Documento ancora indisponibile'):
+        runtime.leggi_fascicolo(_fascicolo(app, fid), recupera_metadati=True)
+    assert steps == ['metadati', 'consegna', 'aggiornamento', 'documento']
+
+
 def test_il_motore_documenti_alimenta_l_archivio_una_volta_sola_e_i_presidi_attingono(tmp_path: Path):
     app = _app(tmp_path)
     fascicolo_id, decreto_id, relata_id = _seed(app)

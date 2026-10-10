@@ -105,7 +105,7 @@ def _presidio_assente(exc: BaseException) -> bool:
     return "no such table" in testo or "unable to open database" in testo or isinstance(exc, (FileNotFoundError, ImportError))
 
 
-def messaggi_pec_per_fascicolo(fascicolo: Any, *, repository: Any = None, limit: int = MASSIMO_MESSAGGI, solleva: bool = False) -> list[dict[str, Any]]:
+def messaggi_pec_per_fascicolo(fascicolo: Any, *, repository: Any = None, limit: int = MASSIMO_MESSAGGI, solleva: bool = False, solo_collegate: bool = False) -> list[dict[str, Any]]:
     """I messaggi del presidio che riguardano il fascicolo, già ridotti ai dati che la lettura usa."""
     fascicolo_id = _clean(getattr(fascicolo, "id", ""))
     if not fascicolo_id:
@@ -119,7 +119,11 @@ def messaggi_pec_per_fascicolo(fascicolo: Any, *, repository: Any = None, limit:
             repository = repository_for_current_request()
         tenant_id = str(getattr(repository, "tenant_id", "default") or "default")
         with repository.connect() as conn:
-            righe = _messaggi(conn, tenant_id, fascicolo_id, ruolo, cliente, limit)
+            # Una proiezione del fascicolo usa collegamenti già governati.
+            # La ricerca esplicita conserva le corrispondenze per ruolo/nome;
+            # non eseguire LIKE sui contenuti dell'intera casella nelle GET.
+            righe = _messaggi(conn, tenant_id, fascicolo_id, [] if solo_collegate else ruolo,
+                             [] if solo_collegate else cliente, limit)
             eventi, termini, udienze = _per_messaggio(conn, tenant_id, [str(riga["id"]) for riga in righe])
             reports = {str(row["id"]): repository.latest_report(conn, str(row["id"])) for row in righe}
             parsed = {}

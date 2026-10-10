@@ -2329,6 +2329,7 @@ class GestioneFascicoli:
         hash_contenuto_sha256: str = "",
         aggiorna_contenuto_portale: bool = False,
         firma_portale: Optional[dict] = None,
+        salvataggio_mirato: bool = False,
     ) -> Documento:
         """
         Aggiunge un documento al fascicolo salvandolo su disco.
@@ -2600,7 +2601,10 @@ class GestioneFascicoli:
         )
         f.modificato_il = datetime.now().isoformat()
         try:
-            self._salva()
+            if salvataggio_mirato:
+                self._salva_fascicoli_parziale([f])
+            else:
+                self._salva()
         except Exception:
             f.documenti = original_docs
             f.modificato_il = original_modificato

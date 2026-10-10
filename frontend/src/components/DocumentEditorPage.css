@@ -402,3 +402,50 @@ main.iu-content.iu-doc-editor-page .iu-de-editor-main:has(>.iu-de-table-sidebar)
 .iu-de-editable li[data-iu-word-list-glyph]{position:relative;list-style:none;text-indent:0!important}
 .iu-de-editable li[data-iu-word-list-glyph]::before{content:attr(data-iu-word-list-glyph);position:absolute;left:var(--iu-word-list-hanging,-18pt);font-family:inherit;font-size:inherit}
 .iu-de-editable li[data-iu-word-list-bold="true"]::before{font-weight:bold}
+
+.iu-de-draft-save { display:grid; gap:16px; padding:20px; }
+.iu-de-draft-save label { display:grid; gap:6px; }
+.iu-de-draft-save input,.iu-de-draft-save select,.iu-de-draft-save button { min-height:44px; width:100%; }
+
+/* La finestra incorporata non contiene la barra principale della shell. */
+.iu-shell--embedded-viewer main.iu-content.iu-doc-editor-page--focused{
+  height:100dvh;padding:6px!important;margin:0;gap:6px;
+}
+.iu-shell--embedded-viewer main.iu-content.iu-doc-editor-page .iu-de-hero{
+  padding:6px 8px!important;gap:6px 10px;
+}
+.iu-shell--embedded-viewer main.iu-content.iu-doc-editor-page .iu-de-hero h1{
+  margin:0 0 4px;font-size:15px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.iu-shell--embedded-viewer .iu-de-hero>div{flex:1 1 220px;min-width:0}
+.iu-shell--embedded-viewer .iu-de-eyebrow{font-size:10px;line-height:1.2}
+.iu-shell--embedded-viewer .iu-de-hero p{font-size:11px;gap:6px}
+.iu-shell--embedded-viewer .iu-de-toolbar{padding:6px;gap:5px}
+.iu-shell--embedded-viewer .iu-de-paper{padding:12px 10px}
+@media(max-width:640px){
+ .iu-shell--embedded-viewer main.iu-content.iu-doc-editor-page--focused{height:auto;min-height:100dvh;overflow:visible}
+ .iu-shell--embedded-viewer main.iu-content.iu-doc-editor-page.is-tutto-schermo{height:100dvh;overflow:auto}
+}
+
+.iu-shell--embedded-viewer main.iu-content.iu-doc-editor-page.iusentra-route-sequence>section.iu-de-hero[data-iusentra-sequence-slot="page-header"]{
+ padding:6px 8px!important;gap:6px 10px!important;
+}
+.iu-shell--embedded-viewer main.iu-content.iu-doc-editor-page .iu-de-hero p.iusentra-sequence-slot--operational-subtitle{
+ flex-wrap:nowrap;margin:2px 0 0!important;min-width:0;gap:6px;
+}
+.iu-shell--embedded-viewer .iu-de-hero p>span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iu-shell--embedded-viewer .iu-de-hero p>.iu-badge{flex-shrink:0}
+
+.iu-de-hero--collapsed>div,.iu-de-hero--collapsed>.iu-de-meta-row,
+.iu-de-hero--collapsed nav>:not(.iu-de-essential){display:none!important}
+.iu-de-short-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+main.iu-content.iu-doc-editor-page .iu-de-hero--collapsed{flex-wrap:nowrap;gap:8px}
+@media(max-width:640px){main.iu-content.iu-doc-editor-page .iu-de-hero--collapsed{flex-wrap:wrap}.iu-de-short-title{flex-basis:100%}}
+.iu-de-stamp-lines{display:grid;gap:8px;margin:12px 0;max-height:38dvh;overflow:auto}
+.iu-de-stamp-lines details{border:1px solid #dce3eb;border-radius:8px;padding:10px}
+.iu-de-stamp-lines summary{cursor:pointer;font-weight:600;overflow-wrap:anywhere}
+.iu-de-stamp-controls{display:grid;grid-template-columns:minmax(120px,2fr) minmax(90px,1fr) minmax(90px,1fr);gap:10px;margin-top:10px}
+.iu-de-stamp-controls label{display:flex;flex-direction:column;gap:5px;min-width:0}
+.iu-de-stamp-controls label:has(input[type=checkbox]){flex-direction:row;align-items:center}
+.iu-de-stamp-controls select,.iu-de-stamp-controls input[type=number]{width:100%;min-width:0;padding:7px;border:1px solid #cbd5e1;border-radius:6px}
+@media(max-width:640px){.iu-de-stamp-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.iu-de-stamp-controls label:first-child{grid-column:1/-1}}

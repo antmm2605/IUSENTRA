@@ -70,6 +70,12 @@ class Presidio:
 # I presìdi censiti e ciò che ciascuno prende dall'archivio.
 PRESIDI: tuple[Presidio, ...] = (
     Presidio(
+        "dati_fascicolo", "Dati verificati del fascicolo", "2026.10.10.giudice.v1",
+        categorie=frozenset({"metadato_fascicolo"}), campi=frozenset({"giudice"}),
+        descrizione="magistrato dell’intestazione del provvedimento con identità congiunta",
+        modo="scrive",
+    ),
+    Presidio(
         "scadenziario", "Scadenziario", "2026.09.16.v2",
         categorie=frozenset({"data"}), campi=frozenset({"termine", "costituzione"}),
         descrizione="i termini letti diventano scadenze da confermare",

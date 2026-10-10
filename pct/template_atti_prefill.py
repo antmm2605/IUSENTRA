@@ -321,6 +321,8 @@ def _studio_payload(config: Any | None) -> dict[str, Any]:
         "partita_iva": _first_config_value(config, "studio.piva", "STUDIO_PIVA"),
         "pec": _first_config_value(config, "pec.indirizzo", "PCT_STUDIO_PEC", "SMTP_FROM"),
         "citta": _first_config_value(config, "studio.citta", "STUDIO_CITTA"),
+        "provincia": _first_config_value(config, "studio.provincia", "STUDIO_PROVINCE", "PCT_STUDIO_PROVINCE"),
+        "cap": _first_config_value(config, "studio.cap", "STUDIO_CAP", "PCT_STUDIO_CAP"),
     }
 
 

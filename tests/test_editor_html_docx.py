@@ -21,6 +21,18 @@ from docx import Document
 from pct.editor import html_to_docx
 
 
+def test_grassetto_corsivo_css_e_reset_nel_timbro():
+    documento = Document(io.BytesIO(html_to_docx(
+        '<p style="font-family:Times New Roman;font-size:12pt;font-weight:700;font-style:italic">'
+        'Studio legale<span style="font-weight:400;font-style:normal"> recapito</span></p>'
+    )))
+    runs = [run for paragraph in documento.paragraphs for run in paragraph.runs if run.text]
+    studio = next(run for run in runs if 'Studio legale' in run.text)
+    recapito = next(run for run in runs if 'recapito' in run.text)
+    assert studio.bold and studio.italic
+    assert recapito.bold is False and recapito.italic is False
+
+
 def test_cssom_bordi_sfondo_e_allineamento_verticale():
     from docx.oxml.ns import qn
     documento = Document(io.BytesIO(html_to_docx(

@@ -545,7 +545,7 @@ const navSections: NavSection[] = [
       { label: 'Preventivi e Incarichi', icon: FileText, href: '/preventivi/' },
       { label: 'Compensi Forensi', icon: Banknote, href: '/compensi-forensi' },
       { label: 'Documenti', icon: FileText, href: '/documenti' },
-      { label: 'Editor professionale', icon: FilePenLine, href: '/editor-professionale' },
+      { label: 'Editor professionale', icon: FilePenLine, href: '/editor-professionale?modalita=editor' },
       { label: 'Editor libero', icon: FilePenLine, href: '/template-atti/editor' },
       { label: 'Redazione Atti', icon: FilePenLine, href: '/redazione-atti' },
       { label: 'Statistiche', icon: ChartColumn, href: '/statistiche/' },
@@ -668,6 +668,11 @@ function visibleNavSections(sections: NavSection[], bootstrap: ShellBootstrap, a
 function isActiveHref(href: string, activePath: string): boolean {
   const cleanPath = normaliseRoutePath(activePath).toLowerCase()
   const cleanHref = normaliseRoutePath(href).toLowerCase()
+  if (cleanHref === '/documenti' && cleanPath === '/editor-professionale') return !href.includes('modalita=editor') && new URLSearchParams(window.location.search).get('modalita') !== 'editor'
+  if (cleanHref === '/editor-professionale') {
+    if (/^\/fascicoli\/[^/]+\/documenti\/[^/]+\/editor$/.test(cleanPath)) return href.includes('modalita=editor')
+    if (cleanPath === cleanHref) return href.includes('modalita=editor') === (new URLSearchParams(window.location.search).get('modalita') === 'editor')
+  }
   if (cleanHref === '/') return cleanPath === '/'
   return cleanPath === cleanHref || cleanPath.startsWith(`${cleanHref}/`)
 }
@@ -1326,7 +1331,8 @@ function AppStudio() {
   const isChecklistAttiPage = checklistRoute(routeKey) !== null
   // Ex cabina applicazioni: catalogo (rimando a Strumenti operativi) e singola funzione.
   const isApplicazionePage = routeKey === '/applicazioni' || /^\/applicazioni\/[^/]+$/.test(routeKey)
-  const isDocumentEditorPage = /^\/fascicoli\/[^/]+\/documenti\/[^/]+\/editor$/.test(routeKey)
+  const isNewDocumentEditorPage = routeKey === '/editor-professionale' && new URLSearchParams(window.location.search).get('modalita') === 'editor'
+  const isDocumentEditorPage = isNewDocumentEditorPage || /^\/fascicoli\/[^/]+\/documenti\/[^/]+\/editor$/.test(routeKey)
   const isFascicoliPage = !isDocumentEditorPage && !isChecklistAttiPage && (routeKey === '/fascicoli' || routeKey.startsWith('/fascicoli/'))
   const isNewClientPage = routeKey === '/clienti/nuovo'
   const isNewSubjectPage = routeKey === '/soggetti/nuovo'
@@ -1379,7 +1385,7 @@ function AppStudio() {
   const isSitoStudioContenutiPage = sitoContenutiRoute(routeKey) !== null
   const isSitoStudioPage = routeKey === '/sito-studio' || routeKey === '/sito-studio/contatti' || isSitoStudioArticleEditPage
   const isStudioPage = routeKey === '/studio'
-  const isEditorProfessionalePage = routeKey === '/editor-professionale'
+  const isEditorProfessionalePage = (routeKey === '/documenti' || routeKey === '/editor-professionale') && !isNewDocumentEditorPage
   const isAmministrazionePage = routeKey === '/amministrazione'
   const isFatturazionePage = routeKey === '/fatturazione' || routeKey === '/fatturazione/nuova'
   const isIncassiPagamentiPage = routeKey === '/incassi-pagamenti'

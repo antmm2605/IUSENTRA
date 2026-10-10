@@ -292,8 +292,12 @@
          class="nav-link sb-link {% if request.endpoint == 'tariffario' %}active{% endif %}">
         <i class="bi bi-calculator"></i><span class="sb-txt">Compensi Forensi</span>
       </a>
-      <a href="/editor-professionale"
-         class="nav-link sb-link {% if request.path == '/editor-professionale' %}active{% endif %}">
+      <a href="/documenti"
+         class="nav-link sb-link {% if request.path in ('/documenti', '/editor-professionale') and request.args.get('modalita') != 'editor' %}active{% endif %}">
+        <i class="bi bi-archive"></i><span class="sb-txt">Documenti</span>
+      </a>
+      <a href="/editor-professionale?modalita=editor"
+         class="nav-link sb-link {% if request.path == '/editor-professionale' and request.args.get('modalita') == 'editor' %}active{% endif %}">
         <i class="bi bi-pencil-square"></i><span class="sb-txt">Editor professionale</span>
       </a>
       <a href="/template-atti/editor"

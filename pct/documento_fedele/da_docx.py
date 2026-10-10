@@ -177,6 +177,13 @@ def _evidenziazione(tratto) -> str | None:
     """Il colore dell'evidenziatore, quando c'e'."""
     nome = getattr(getattr(tratto, "font", None), "highlight_color", None)
     if nome is None:
+        import re
+        from docx.oxml.ns import qn
+        shading = tratto._r.find(qn('w:rPr'))
+        shading = shading.find(qn('w:shd')) if shading is not None else None
+        fill = shading.get(qn('w:fill')) if shading is not None else None
+        if fill and re.fullmatch(r'[0-9a-fA-F]{6}', fill):
+            return '#' + fill.lower()
         return None
     tinte = {
         "YELLOW": "#ffff00", "BRIGHT_GREEN": "#00ff00", "TURQUOISE": "#00ffff",
@@ -284,6 +291,7 @@ def _tratti(paragrafo, documento, corpo_base: float,
             nomi.add(str(nome))
         spacing = pezzo._r.find(f'{NS}rPr/{NS}spacing')
         underline = pezzo._r.find(f'{NS}rPr/{NS}u')
+        position = pezzo._r.find(f'{NS}rPr/{NS}position')
         fuori.append(Tratto(
             testo=testo,
             famiglia=pila_font(str(nome)),
@@ -299,6 +307,7 @@ def _tratti(paragrafo, documento, corpo_base: float,
             collegamento=indirizzo,
             spaziatura_pt=int(spacing.get(f'{NS}val')) / 20 if spacing is not None else 0,
             sottolineatura_word=underline.get(f'{NS}val', '') if underline is not None else '',
+            posizione_pt=int(position.get(f'{NS}val')) / 2 if position is not None else 0,
         ))
     return fuori
 
@@ -325,8 +334,17 @@ def _stile_paragrafo(paragrafo) -> list[str]:
     """Allineamento, rientri, interlinea e spazi, come li ha lasciati Word."""
     stile: list[str] = []
 
+    # Conservare anche gli stop non attraversati nella prima riga: le righe
+    # successive e i valori dei campi collegati possono utilizzarli.
+    tabs = paragrafo._p.findall(f'{NS}pPr/{NS}tabs/{NS}tab')
+    if tabs:
+        valori = ' '.join(','.join((tab.get(f'{NS}pos', '0'),
+                                   tab.get(f'{NS}val', 'left'),
+                                   tab.get(f'{NS}leader', 'none'))) for tab in tabs)
+        stile.append(f'--iu-word-tab-stops:{valori}')
+
     allineamento = ALLINEAMENTI.get(_formato_ereditato(paragrafo, "alignment"))
-    if allineamento and allineamento != "left":
+    if allineamento:
         stile.append(f"text-align:{allineamento}")
 
     for attributo, proprieta in (("left_indent", "margin-left"),
@@ -523,6 +541,56 @@ def _contenuto_paragrafo(paragrafo, documento, corpo_base, famiglia_base, nomi):
     from docx.text.run import Run
     from docx.text.paragraph import Paragraph
 
+    if paragrafo._p.find(f'{NS}sdt') is not None:
+        import json
+        from html import escape
+        from pct.editor_linked_fields import FIELD_IDS
+
+        normalizzato = deepcopy(paragrafo._p)
+        for child in list(normalizzato):
+            if child.tag != f'{NS}pPr':
+                normalizzato.remove(child)
+        for node in paragrafo._p:
+            if node.tag == f'{NS}pPr':
+                continue
+            metadata = None
+            if node.tag == f'{NS}sdt':
+                marker = node.find(f'{NS}sdtPr/{NS}tag')
+                value = marker.get(f'{NS}val', '') if marker is not None else ''
+                if not value.startswith('iusentra:'):
+                    raise DocxError('Il controllo contenuto Word non è ancora gestito.')
+                try:
+                    metadata = json.loads(value[len('iusentra:'):])
+                    if metadata['field'] not in FIELD_IDS:
+                        raise ValueError('Campo non consentito')
+                except (ValueError, KeyError, TypeError) as error:
+                    raise DocxError('Il campo collegato non è valido.') from error
+                content = node.find(f'{NS}sdtContent')
+                if content is None:
+                    raise DocxError('Il campo collegato è incompleto.')
+                attrs = ' '.join(f'data-iu-linked-{name}="{escape(str(metadata.get(key, "")), quote=True)}"' for name, key in [('field', 'field'), ('matter', 'matter'), ('client', 'client')])
+                if metadata.get('manual') is True:
+                    attrs += ' data-iu-linked-manual="true"'
+                if metadata.get('text_case') in {'upper', 'lower', 'title'}:
+                    attrs += f' data-iu-text-case="{metadata["text_case"]}"'
+                if metadata.get('date_format') in {'long', 'long-padded', 'dots'}:
+                    attrs += f' data-iu-date-format="{metadata["date_format"]}"'
+                if metadata.get('value_format') == 'cf-grouped':
+                    attrs += ' data-iu-value-format="cf-grouped"'
+                group = str(len(normalizzato))
+                for child in content:
+                    copied = deepcopy(child)
+                    for run in copied.iter(f'{NS}r'):
+                        run.set('iu-linked-group', group)
+                        run.set('iu-linked-attrs', attrs)
+                    normalizzato.append(copied)
+            else:
+                normalizzato.append(deepcopy(node))
+        # Un'unica sequenza conserva il cursore delle tabulazioni fra testo e
+        # campi. Renderizzare ogni run come paragrafo separato azzerava il
+        # cursore, duplicando i rientri dopo ogni campo alla riapertura.
+        return _contenuto_paragrafo(Paragraph(normalizzato, paragrafo._parent), documento, corpo_base, famiglia_base, nomi)
+
     if paragrafo._p.findall(f'{NS}r/{NS}fldChar'):
         from docx.oxml import OxmlElement
         normalizzato = deepcopy(paragrafo._p)
@@ -593,10 +661,41 @@ def _contenuto_paragrafo(paragrafo, documento, corpo_base, famiglia_base, nomi):
         return ''.join(contenuto_campi)
 
     contenuto = []
+    # Le tabulazioni Word sono posizioni, non spazi da collassare in HTML.
+    stops = sorted(int(t.get(f'{NS}pos')) / 20
+                   for t in paragrafo._p.findall(f'{NS}pPr/{NS}tabs/{NS}tab')
+                   if t.get(f'{NS}val') == 'left' and t.get(f'{NS}pos', '').isdigit())
+    left = _formato_ereditato(paragrafo, 'left_indent')
+    indent = left.pt if left is not None else 0
+    first = _formato_ereditato(paragrafo, 'first_line_indent')
+    cursor = indent + (first.pt if first is not None else 0)
+    segment_start = 0
+    linked_group = None
     for pezzo, indirizzo in _pezzi_del_paragrafo(paragrafo):
+        group = pezzo._r.get('iu-linked-group')
+        if group != linked_group:
+            if linked_group is not None:
+                contenuto.append('</span>')
+            if group is not None:
+                contenuto.append(f'<span {pezzo._r.get("iu-linked-attrs")} contenteditable="false">')
+            linked_group = group
         for elemento in pezzo._r:
             if elemento.tag == f'{NS}rPr':
                 continue
+            if elemento.tag == f'{NS}tab' and stops:
+                target = next((s for s in stops if s > cursor + .01), None)
+                if target is not None:
+                    prefix = ''.join(contenuto[segment_start:])
+                    del contenuto[segment_start:]
+                    position = pezzo._r.find(f'{NS}rPr/{NS}position')
+                    pos = position.get(f'{NS}val', '0') if position is not None else '0'
+                    contenuto.append(f'<span data-iu-word-tab="{round(target * 20)}" '
+                                     f'data-iu-word-tab-position="{pos}" '
+                                     f'style="display:inline-block;width:{_pt(target - cursor)}pt;white-space:nowrap">{prefix}'
+                                     '<span data-iu-word-tab-mark="true" style="display:none">\t</span></span>')
+                    cursor = target
+                    segment_start = len(contenuto)
+                    continue
             if any(nodo.tag.endswith('}blip') for nodo in elemento.iter()):
                 contenuto.extend(_immagini(paragrafo, documento, elemento=elemento))
                 continue
@@ -610,6 +709,11 @@ def _contenuto_paragrafo(paragrafo, documento, corpo_base, famiglia_base, nomi):
             tratti = _tratti(paragrafo, documento, corpo_base, nomi,
                              pezzi=[(Run(frammento, paragrafo), indirizzo)])
             contenuto.append(_con_a_capo(_html_tratti(tratti, corpo_base, famiglia_base, preciso=True)))
+            if elemento.tag in (f'{NS}br', f'{NS}cr'):
+                cursor = indent
+                segment_start = len(contenuto)
+    if linked_group is not None:
+        contenuto.append('</span>')
     return ''.join(contenuto)
 
 
@@ -794,6 +898,9 @@ def _html_tabella(tabella, documento, corpo_base: float, famiglia_base: str,
                and descrizione.get(f'{NS}val') == 'IUSENTRA:text-box:v1'
                and len(tabella.rows) == 1 and len(tabella.columns) == 1)
     attributo_casella = ' data-iu-text-box="true"' if casella else ''
+    stamp = descrizione.get(f'{NS}val', '') if descrizione is not None else ''
+    if stamp in {'IUSENTRA:studio-stamp:left', 'IUSENTRA:studio-stamp:center', 'IUSENTRA:studio-stamp:right'}:
+        attributo_casella += f' data-iu-editor-stamp="{stamp.rsplit(":", 1)[-1]}"'
     if casella:
         stile_tabella.append('table-layout:fixed')
     pezzi = [f'<table class="{classi}"{attributo_casella} style="{";".join(stile_tabella)}"><tbody>']
@@ -1012,7 +1119,12 @@ def converti_docx(percorso: str | Path) -> DocumentoConvertito:
         figure = _immagini(blocco, documento)
         tratti = _tratti(blocco, documento, corpo_base, caratteri)
         scritto = "".join(t.testo for t in tratti).strip()
-        if not scritto and not figure:
+        if not scritto and not figure and blocco._p.find(f'{NS}sdt') is None:
+            if (prossima_sezione and proprieta is not None
+                    and all(child.tag == f'{NS}sectPr' for child in proprieta)):
+                # Il terminatore della sezione è ricreato dall'esportatore;
+                # duplicarlo come riga vuota modifica la spaziatura seguente.
+                continue
             _chiudi_elenchi()
             stile = _stile_paragrafo(blocco)
             size = blocco._p.find(f'{NS}pPr/{NS}rPr/{NS}sz')
@@ -1025,7 +1137,7 @@ def converti_docx(percorso: str | Path) -> DocumentoConvertito:
         if figure:
             immagini += len(figure)
         interno = (_contenuto_paragrafo(blocco, documento, corpo_base, famiglia_base, caratteri)
-                   if figure or blocco._p.find(f'{NS}fldSimple') is not None or blocco._p.findall(f'{NS}r/{NS}fldChar')
+                   if figure or '\t' in blocco.text or blocco._p.find(f'{NS}sdt') is not None or blocco._p.find(f'{NS}fldSimple') is not None or blocco._p.findall(f'{NS}r/{NS}fldChar')
                    else _con_a_capo(_html_tratti(tratti, corpo_base, famiglia_base, preciso=True)))
         marchio = _voce_di_elenco(blocco)
         if marchio:

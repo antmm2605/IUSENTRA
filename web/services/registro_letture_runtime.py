@@ -472,9 +472,12 @@ def leggi_i_nuovi(fascicolo: Any, *, registro: RegistroLetture | None = None) ->
     except Exception as exc:
         esito["ocr"] = {"errore": str(exc)[:160]}
     try:
-        from web.services.archivio_letture_runtime import leggi_fascicolo
+        from web.services.archivio_letture_runtime import leggi_fascicolo, lettura_dopo_evento
 
         esito["archivio"] = leggi_fascicolo(fascicolo, forza=False, registro=registro)
+        # La richiesta esplicita recupera anche metadati aggiunti alle regole
+        # dopo la lettura: coda SQL nativa, senza riaprire fonti nella richiesta.
+        esito["metadati_accodati"] = lettura_dopo_evento(fascicolo_id)
     except Exception as exc:
         esito["archivio"] = {"errore": str(exc)[:160]}
     stato = registro.stato_fascicolo(tenant, fascicolo_id, lettori=("indice_documentale", "ocr", "motore_documenti", "motore_pec"))
@@ -485,6 +488,8 @@ def leggi_i_nuovi(fascicolo: Any, *, registro: RegistroLetture | None = None) ->
         else f"Archivio aggiornato. Restano {restano} letture degli indici di supporto da completare." if restano
         else "Nessun documento da leggere."
     )
+    if esito.get("metadati_accodati"):
+        esito["messaggio"] += " Verifica dei metadati del fascicolo avviata in background."
     return esito
 
 

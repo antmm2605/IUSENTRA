@@ -30,6 +30,7 @@ def _payload(query=None):
         numero_rg="1025",
         anno_rg="2026",
         titolo="Ricorso lavoro",
+        nome_cliente="Cliente Controllato",
         stato="APERTO",
         documenti=[_documento(doc_id="DOC-1", nome="Ricorso.pdf", tipo="RICORSO")],
         documenti_cestino=[
@@ -72,13 +73,15 @@ def test_archivio_documenti_filtra_senza_modificare_i_dati():
     assert payload["pagination"]["total"] == 1
     assert payload["items"][0]["id"] == "DOC-1"
     assert _payload({"q": "inesistente"})["items"] == []
+    assert _payload({'q': 'Cliente Controllato'})['pagination']['total'] == 1
+    assert _payload()['facets']['matters'][0]['client'] == 'Cliente Controllato'
 
 
 def test_archivio_documenti_react_espone_comandi_e_layout_operativi():
     source = Path("frontend/src/components/EditorProfessionalePage.tsx").read_text(encoding="utf-8")
     css = Path("frontend/src/components/EditorProfessionalePage.css").read_text(encoding="utf-8")
 
-    assert "Archivio documenti" in source
+    assert 'title="Documenti"' in source
     assert "Sposta nel cestino" in source
     assert "Ripristina documento" in source
     assert "Esporta originali" in source

@@ -115,17 +115,33 @@ def prepare_source_fonts(source, directory: Path):
     return result, None
 
 
+def _document_text_runs(document):
+    """Corpo, intestazioni e piè di pagina effettivamente presenti nel package."""
+    from docx.oxml.ns import qn
+    from docx.opc.constants import RELATIONSHIP_TYPE as RT
+    from docx.text.run import Run
+
+    roots = [document._element.body]
+    roots.extend(relation.target_part.element for relation in document.part.rels.values()
+                 if relation.reltype in {RT.HEADER, RT.FOOTER} and not relation.is_external)
+    seen = set()
+    for root in roots:
+        if id(root) in seen:
+            continue
+        seen.add(id(root))
+        for element in root.iter(qn('w:r')):
+            yield Run(element, None)
+
+
 def embed_source_fonts(document, fonts):
     from docx.oxml import OxmlElement, parse_xml
     from docx.oxml.ns import qn
     from docx.opc.part import Part
     from docx.opc.packuri import PackURI
     from docx.opc.constants import RELATIONSHIP_TYPE as RT
-    from docx.text.run import Run
 
     used = {}
-    for element in document._element.body.iter(qn('w:r')):
-        run = Run(element, None)
+    for run in _document_text_runs(document):
         name = _name(run.font.name)
         candidates = [font for font in fonts if name in font['aliases']]
         if not candidates:
@@ -163,3 +179,88 @@ def embed_source_fonts(document, fonts):
     from lxml import etree
     table._blob = etree.tostring(root, encoding='UTF-8', xml_declaration=True, standalone=True)
     return len(used)
+
+
+def prepare_word_source_fonts(data: bytes, directory: Path):
+    """Riusa i font incorporati nel Word, senza installazioni globali."""
+    from zipfile import ZipFile
+    from lxml import etree
+    from fontTools.ttLib import TTFont
+
+    ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
+          'r': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
+          'p': 'http://schemas.openxmlformats.org/package/2006/relationships'}
+    directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    fonts = []
+    total = 0
+    with ZipFile(BytesIO(data)) as archive:
+        if 'word/_rels/fontTable.xml.rels' not in archive.namelist():
+            return [], None
+        if any(archive.getinfo(name).file_size > 2_000_000 for name in
+               ('word/_rels/fontTable.xml.rels', 'word/fontTable.xml')):
+            raise ValueError('La tabella dei caratteri incorporati è troppo grande.')
+        parser = etree.XMLParser(resolve_entities=False, no_network=True)
+        relations = etree.fromstring(archive.read('word/_rels/fontTable.xml.rels'), parser)
+        targets = {item.get('Id'): item.get('Target') for item in relations
+                   if item.get('TargetMode') != 'External'}
+        table = etree.fromstring(archive.read('word/fontTable.xml'), parser)
+        for entry in table:
+            family = entry.get('{'+ns['w']+'}name')
+            for tag in ('Regular', 'Bold', 'Italic', 'BoldItalic'):
+                embedded = entry.find('w:embed'+tag, ns)
+                if embedded is None:
+                    continue
+                target = targets.get(embedded.get('{'+ns['r']+'}id'), '')
+                if not target.startswith('fonts/') or '..' in target.split('/') or '\\' in target:
+                    raise ValueError('Percorso del carattere incorporato non valido.')
+                info = archive.getinfo('word/'+target)
+                total += info.file_size
+                if len(fonts) >= 200 or info.file_size > 10_000_000 or total > 50_000_000:
+                    raise ValueError('I caratteri incorporati superano la dimensione consentita.')
+                key = uuid.UUID(embedded.get('{'+ns['w']+'}fontKey', ''))
+                mask = key.bytes[::-1]
+                restored = bytearray(archive.read(info))
+                for index in range(min(32, len(restored))):
+                    restored[index] ^= mask[index % 16]
+                raw = bytes(restored)
+                with TTFont(BytesIO(raw), lazy=False) as font:
+                    rights = int(font['OS/2'].fsType)
+                    if rights & 0x0200 or (rights & 0x000e and not rights & 0x0008):
+                        continue
+                    cmap = font.getBestCmap()
+                    if not cmap:
+                        raise ValueError('Il carattere incorporato non dichiara i glifi Unicode.')
+                    names = font['name']
+                    aliases = {_name(family), _name(names.getDebugName(1)), _name(names.getDebugName(4)), _name(names.getDebugName(6))}
+                    fonts.append({'family': family, 'aliases': aliases,
+                                  'bold': 'Bold' in tag, 'italic': 'Italic' in tag,
+                                  'data': raw, 'glyphs': frozenset(cmap)})
+                (directory / (hashlib.sha256(raw).hexdigest()+'.ttf')).write_bytes(raw)
+    if not fonts:
+        return [], None
+    config = directory / 'fonts.conf'
+    config.write_text('<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd"><fontconfig>'
+                      '<include ignore_missing="yes">/etc/fonts/fonts.conf</include><dir>'
+                      + escape(str(directory.resolve())) + '</dir><cachedir>'
+                      + escape(str((directory / 'cache').resolve())) + '</cachedir></fontconfig>', encoding='utf-8')
+    return fonts, config
+
+
+class SourceFontCoverageError(ValueError):
+    """Il carattere della fonte non può rappresentare il testo aggiornato."""
+
+
+def require_source_font_coverage(document, fonts):
+    """Impedisce un export con glifi assenti dai font parziali della fonte."""
+    incomplete = set()
+    for run in _document_text_runs(document):
+        candidates = [font for font in fonts if _name(run.font.name) in font['aliases']]
+        if not candidates:
+            continue
+        selected = next((font for font in candidates if font['bold'] == bool(run.bold)
+                         and font['italic'] == bool(run.italic)), candidates[0])
+        if any(ord(character) not in selected['glyphs'] for character in run.text if not character.isspace()):
+            incomplete.add(selected['family'])
+    if incomplete:
+        raise SourceFontCoverageError('Il font incorporato nella fonte non contiene tutte le lettere dei dati aggiornati. '
+                         'Serve il font completo: ' + ', '.join(sorted(incomplete)) + '.')

@@ -206,7 +206,7 @@ def _bytes_documento(fascicolo_id: str, documento: Any) -> bytes:
         return b""
 
 
-def _testo_nativo(fascicolo_id: str, documento: Any) -> str:
+def _testo_nativo(fascicolo_id: str, documento: Any, *, contenuto: bytes | None = None) -> str:
     formato = _formato_documento(documento)
     if formato == ".eml" or str(getattr(documento, "mime_type", "")) == "message/rfc822":
         from email import policy
@@ -229,7 +229,7 @@ def _testo_nativo(fascicolo_id: str, documento: Any) -> str:
         return f"Tipo contenuto: messaggio {'PEC' if pec else 'email'}\nMittente: {message.get('From', '')}\nOggetto: {message.get('Subject', '')}\n\n{text}"
     if formato != ".pdf":
         return ""
-    dati = _bytes_documento(fascicolo_id, documento)
+    dati = contenuto if contenuto is not None else _bytes_documento(fascicolo_id, documento)
     if not dati:
         return ""
     try:
@@ -439,6 +439,9 @@ def _avvocati_dello_studio() -> list[str]:
 
 
 def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, contesto: Contesto, *, forza: bool, limite: int) -> dict[str, int]:
+    from web.helpers import get_clienti
+    id_cliente = str(getattr(fascicolo, "id_cliente", "") or "")
+    cliente = get_clienti().get(id_cliente) if id_cliente else None
     fascicolo_id = _testo(getattr(fascicolo, "id", ""))
     conteggi = {"da_leggere": 0, "letti": 0, "senza_testo": 0, "assenti": 0, "fatti": 0, "verificati": 0}
     da_leggere = registro.da_leggere(tenant, fascicolo_id, LETTORE_DOCUMENTI, tipi=("documento",))
@@ -503,7 +506,7 @@ def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, con
             # Gli scaglioni del contributo unificato si leggono una volta per fascicolo.
             from web.services.sentenza_economic_runtime import _cu_tiers
             scaglioni_cu = _cu_tiers()
-        metadata.update(fascicolo=fascicolo, documento_id=documento.id,
+        metadata.update(codice_fiscale_cliente=getattr(cliente, "codice_fiscale", ""), fascicolo=fascicolo, documento_id=documento.id,
                         document_hash_sha256=_testo(getattr(documento, "hash_sha256", "")), cu_tiers=scaglioni_cu)
         fatti = _attribuisci(leggi_testo(testo, origine=origine, contesto=contesto_documento, nome=oggetto.nome, metadata=metadata), oggetto, "documenti")
         registro.registra_fatti(tenant, fascicolo_id, oggetto, "documenti", fatti, versione=VERSIONE_MOTORE_DOCUMENTI)
@@ -795,7 +798,7 @@ def _aggiorna_catalogo_sql(fascicolo: Any, registro: RegistroLetture) -> dict[st
         }
 
 
-def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, registro: RegistroLetture | None = None) -> dict[str, Any]:
+def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, registro: RegistroLetture | None = None, recupera_metadati: bool = False) -> dict[str, Any]:
     """Un giro del ciclo: i motori leggono solo ciò che manca, l'archivio conferma, poi ci si ferma.
 
     Il ciclo è chiuso: quando tutto è letto e l'archivio ha confermato, il
@@ -818,13 +821,21 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
         prima = stato_ciclo_fascicolo(fascicolo_id, registro, tenant, impronta=_impronta_viva(fascicolo))
         mancanti_motori, errori_motori = _mancanti_motori(registro, tenant, fascicolo_id)
         if not prima.da_leggere and not mancanti_motori:
+            metadati = {}
+            consegne = {}
+            if recupera_metadati:
+                from web.services.giudice_archivio_recovery import recupera_giudice
+
+                metadati = recupera_giudice(fascicolo, registro, tenant, limite=limite)
+                consegne = _consegna_ai_presidi(fascicolo, registro)
             catalogo = _aggiorna_catalogo_sql(fascicolo, registro)
             return {
                 "inventario": {},
                 "documenti": {"da_leggere": 0, "letti": 0, "senza_testo": 0, "assenti": 0, "fatti": 0, "verificati": 0},
                 "pec": {"da_leggere": 0, "letti": 0, "assenti": 0, "fatti": 0, "verificati": 0},
-                "promossi": 0, "riconvalidati": {"anomalie": 0, "fatti": 0}, "restano": 0,
-                "catalogo": catalogo, "fermo": True, "ciclo": prima.to_dict(),
+                "promossi": 0, "riconvalidati": {"anomalie": 0, "fatti": 0}, "restano": int(metadati.get("restano") or 0),
+                "catalogo": catalogo, "metadati": metadati, "consegne": consegne,
+                "fermo": not int(metadati.get("restano") or 0), "ciclo": prima.to_dict(),
             }
         if not prima.da_leggere:
             logger.info(
@@ -834,6 +845,18 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
     try:
         messaggi = _messaggi_pec(fascicolo)
         inventario = aggiorna_inventario(fascicolo, registro=registro, con_pec=True)
+        # I metadati delle fonti già archiviate non devono attendere l'OCR
+        # di un nuovo documento. Il recupero usa checkpoint SQL e riscontra
+        # solo le fonti pertinenti; nessuna lettura viene spostata nelle GET.
+        if recupera_metadati:
+            from web.services.giudice_archivio_recovery import recupera_giudice
+
+            anticipati = recupera_giudice(fascicolo, registro, tenant, limite=limite)
+            if anticipati.get("fatti"):
+                consegne_anticipate = _consegna_ai_presidi(fascicolo, registro)
+                if consegne_anticipate.get("errore"):
+                    raise RuntimeError("Consegna dei metadati del fascicolo non completata.")
+                invalida_lettura(fascicolo_id)
         contesto = contesto_da_fascicolo(fascicolo, date_note=date_note_fascicolo(fascicolo, messaggi_pec=messaggi or []))
         contesto.importi_noti = importi_noti_fascicolo(fascicolo)
         contesto.avvocati_studio = tuple(dict.fromkeys([*contesto.avvocati_studio, *_avvocati_dello_studio()]))
@@ -848,16 +871,21 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
         raise
     # Seconda gamba della catena: l'archivio consegna ai presìdi che scrivono, e
     # loro confermano. Un fatto già consegnato non viene riproposto.
+    metadati = {}
+    if recupera_metadati:
+        from web.services.giudice_archivio_recovery import recupera_giudice
+        metadati = recupera_giudice(fascicolo, registro, tenant, limite=limite)
     consegne = _consegna_ai_presidi(fascicolo, registro)
     catalogo = _aggiorna_catalogo_sql(fascicolo, registro)
     consegne["obblighi_notifica"] = _allinea_obblighi_notifica(fascicolo)
     from web.services.sentenza_economic_runtime import ensure_fascicolo_sentenza_economic_analysis
     economia = ensure_fascicolo_sentenza_economic_analysis(fascicolo_id)
-    if documenti["letti"] or pec["letti"] or promossi or riconvalidati["anomalie"] or riconvalidati["fatti"]:
+    if documenti["letti"] or pec["letti"] or promossi or riconvalidati["anomalie"] or riconvalidati["fatti"] or metadati.get("fatti"):
         invalida_lettura(fascicolo_id)
     chiusi_documenti = documenti["letti"] + documenti["senza_testo"] + documenti["assenti"]
     chiusi_pec = pec["letti"] + pec["assenti"]
     restano = max(0, documenti["da_leggere"] - chiusi_documenti) + max(0, pec["da_leggere"] - chiusi_pec)
+    restano += int(metadati.get("restano") or 0)
     # L'archivio conferma: il ciclo si chiude quando non resta nulla da leggere.
     impronta = _impronta_viva(fascicolo)
     _segna_ciclo(
@@ -870,7 +898,7 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
     dopo = stato_ciclo_fascicolo(fascicolo_id, registro, tenant, impronta=impronta)
     return {
         "inventario": inventario, "documenti": documenti, "pec": pec, "promossi": promossi, "riconvalidati": riconvalidati,
-        "consegne": consegne, "catalogo": catalogo, "economia": economia, "restano": restano, "fermo": restano == 0, "ciclo": dopo.to_dict(),
+        "consegne": consegne, "metadati": metadati, "catalogo": catalogo, "economia": economia, "restano": restano, "fermo": restano == 0, "ciclo": dopo.to_dict(),
     }
 
 
@@ -1066,7 +1094,7 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                         raise RuntimeError("Fascicolo accodato non disponibile.")
                     forza_giro = bool(evento.get("forza"))
                     while True:
-                        report = leggi_fascicolo(fascicolo, forza=forza_giro, registro=registro)
+                        report = leggi_fascicolo(fascicolo, forza=forza_giro, registro=registro, recupera_metadati=True)
                         forza_giro = False
                         consegne = dict(report.get("consegne") or {})
                         catalogo = dict(report.get("catalogo") or {})
@@ -1086,6 +1114,7 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                         pec = dict(report.get("pec") or {})
                         progresso = sum(int(documenti.get(campo) or 0) for campo in ("letti", "senza_testo", "assenti"))
                         progresso += sum(int(pec.get(campo) or 0) for campo in ("letti", "assenti"))
+                        progresso += int((report.get("metadati") or {}).get("controllati") or 0)
                         if progresso <= 0:
                             raise RuntimeError(f"Lettura ferma con {restano} oggetti ancora da lavorare.")
             except Exception:

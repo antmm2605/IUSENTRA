@@ -1,5 +1,6 @@
 """Download only public Normattiva XML; no access to server or studio data."""
 import argparse
+import http.cookiejar
 import hashlib
 import html
 import json
@@ -27,11 +28,13 @@ ACTS = [
 ]
 
 
+OPENER = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+
 def download(url):
     if urllib.parse.urlsplit(url).hostname != 'www.normattiva.it':
         raise ValueError('Host outside the public source allowlist')
     request = urllib.request.Request(url, headers={'User-Agent': 'IUSENTRA public legal library acquisition'})
-    with urllib.request.urlopen(request, timeout=45) as response:
+    with OPENER.open(request, timeout=45) as response:
         if urllib.parse.urlsplit(response.url).hostname != 'www.normattiva.it':
             raise ValueError('Unexpected redirect outside Normattiva')
         content = response.read(64 * 1024 * 1024 + 1)

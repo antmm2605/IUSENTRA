@@ -1,0 +1,28 @@
+name: Acquisizione codici pubblici mancanti
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/legal-electronic-filing-kIxcV]
+    paths:
+      - .github/workflows/acquire-public-codes.yml
+      - tools/acquire_consultation_codes.py
+permissions:
+  contents: read
+concurrency:
+  group: acquire-public-codes
+  cancel-in-progress: false
+jobs:
+  acquire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Scarica XML ufficiali e verifica identità e impronte
+        run: python3 tools/acquire_consultation_codes.py --output public-codes
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: normative-public-codes
+          path: public-codes/
+          retention-days: 7
+          if-no-files-found: error

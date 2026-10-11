@@ -1,44 +1,86 @@
-name: Verifica sorgenti locali Hetzner
+name: Pubblicazione selettiva Codici e leggi
 on:
   workflow_dispatch:
+    inputs:
+      operation:
+        description: Verifica oppure pubblica la sola pagina
+        type: choice
+        options: [inspect, publish]
+        default: inspect
 permissions:
   contents: read
+concurrency:
+  group: deploy-hetzner-production
+  cancel-in-progress: false
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
   HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
+  RELEASE_TAG: codici-leggi-only-20261011
 jobs:
-  inspect:
-    name: Snapshot sorgenti in sola lettura
+  codici:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
-      - name: Leggi sorgenti da preservare
+      - name: Recupera pacchetto selettivo verificato
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir package
+          gh release download "$RELEASE_TAG" --pattern codici-package.tar.gz --dir package
+          tar -xzf package/codici-package.tar.gz -C package
+          python3 - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          p=Path('package');m=json.loads((p/'INSTALL_MANIFEST.json').read_text())
+          assert hashlib.file_digest((p/'codici_leggi.sqlite').open('rb'),'sha256').hexdigest()==m['database_sha256']
+          for e in m['files']:
+              assert hashlib.file_digest((p/'sources'/e['path']).open('rb'),'sha256').hexdigest()==e['after']
+          print('Impronte del pacchetto verificate')
+          PY
+      - uses: actions/setup-node@v5
+        if: inputs.operation == 'publish'
+        with:
+          node-version: '24'
+      - name: Compila sulla versione attuale del server
+        if: inputs.operation == 'publish'
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare pnpm@11.1.2 --activate
+          pnpm install --frozen-lockfile --prod=false
+          cd frontend
+          node --import ../tests/js/support/resolve_ts_extensionless.mjs --test ../tests/js/codici_leggi_results.test.mjs ../tests/js/codici_leggi_search.test.mjs
+          pnpm typecheck
+          pnpm build:vite
+          cd ..
+          cp -a web/static/react package/react
+      - name: Accesso temporaneo e verifica server
         env:
           SSH_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
           KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+          OPERATION: ${{ inputs.operation }}
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_codici
+          chmod 600 ~/.ssh/id_codici
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
-          trap 'shred -u ~/.ssh/id_deploy' EXIT
-          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "${HETZNER_USER}@${HETZNER_HOST}" 'python3 -' < deploy/hetzner/inspect_sources.py > server-sources.tar.gz
-          python - <<'PY'
-          import json,tarfile
-          with tarfile.open('server-sources.tar.gz') as archive:
-              data=json.load(archive.extractfile('manifest.json'))
-          print('HEAD server:',data['head'])
-          print('Sorgenti:',len(data['entries']))
-          print('Percorsi esclusi senza contenuto:',data.get('excluded_paths', []))
-          print('Coincidenti:',sum(x['matches_candidate'] for x in data['entries']))
-          print('Sorgenti applicativi da confrontare:',[x['path'] for x in data['entries'] if not x['matches_candidate'] and not x['path'].startswith('web/static/react/')])
-          PY
-      - uses: actions/upload-artifact@v7
-        with:
-          name: server-source-snapshot
-          path: server-sources.tar.gz
-          retention-days: 7
+          trap 'shred -u ~/.ssh/id_codici' EXIT
+          target="${HETZNER_USER}@${HETZNER_HOST}"
+          remote="/tmp/iusentra-codici-${GITHUB_RUN_ID}"
+          args=(-i "$HOME/.ssh/id_codici" -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15)
+          ssh "${args[@]}" "$target" "mkdir -m 700 '$remote'"
+          tar -czf codici-install.tar.gz -C package INSTALL_MANIFEST.json sources codici_leggi.sqlite $(test "$OPERATION" != publish || echo react)
+          scp "${args[@]}" codici-install.tar.gz tools/deploy_codici_only.py "$target:$remote/"
+          ssh "${args[@]}" "$target" "set -eu; trap 'rm -rf $remote' EXIT; tar -xzf '$remote/codici-install.tar.gz' -C '$remote'; python3 '$remote/deploy_codici_only.py' '$OPERATION' '$remote'"
+      - name: Verifica HTTPS pubblica
+        if: inputs.operation == 'publish'
+        run: |
+          set -euo pipefail
+          curl --fail --retry 5 --retry-delay 3 --max-time 30 https://app.iusentra.it/api/pronto
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 https://app.iusentra.it/ricerca-legale/codici)
+          test "$code" = 200 -o "$code" = 302
+          echo 'HTTPS della pagina raggiungibile; resta la verifica autenticata del contenuto.'

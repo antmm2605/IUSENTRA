@@ -165,6 +165,7 @@ _ROUTE_COMPONENTS: tuple[tuple[str, str], ...] = (
     ("/regia-agentica", "src/pages/workflow-agents/WorkflowAgentsHome.tsx"),
     ("/app/portale-clienti", "src/components/ClientPortalPage.tsx"),
     ("/portale-cliente", "src/components/ClientPortalPage.tsx"),
+    ("/ricerca-legale/codici", "src/components/CodiciLeggiPage.tsx"),
     ("/ricerca-legale", "src/components/LegalIntelligencePage.tsx"),
     ("/giurisprudenza", "src/components/GiurisprudenzaPage.tsx"),
     ("/strumenti-legali", "src/components/StrumentiLegaliPage.tsx"),
@@ -656,6 +657,7 @@ def _deve_mantenere_vista_classica() -> bool:
     if lower.startswith("/ricerca-legale/fonte/") and lower.endswith("/scarica"):
         return True
     if lower.startswith("/ricerca-legale/") and lower not in {
+        "/ricerca-legale/codici",
         "/ricerca-legale/mediazione",
         "/ricerca-legale/news",
         "/ricerca-legale/ricerca",

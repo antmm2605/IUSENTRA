@@ -123,6 +123,7 @@ _REACT_EXACT = {
     "/regia-agentica",
     "/registro-attivita",
     "/ricerca-legale",
+    "/ricerca-legale/codici",
     "/ricerca-legale/mediazione",
     "/ricerca-legale/news",
     "/ricerca-legale/ricerca",
@@ -448,6 +449,7 @@ def _excluded(path: str) -> bool:
     if lower.startswith("/ricerca-legale/fonte/") and lower.endswith("/scarica"):
         return True
     if lower.startswith("/ricerca-legale/") and lower not in {
+        "/ricerca-legale/codici",
         "/ricerca-legale/mediazione",
         "/ricerca-legale/news",
         "/ricerca-legale/ricerca",

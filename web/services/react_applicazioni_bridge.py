@@ -208,7 +208,8 @@ def _ricerca_comuni(query: str) -> dict[str, Any]:
     ]
     if not righe:
         return {"ok": True, "message": "Nessun Comune trovato.", "rows": [], "notes": [FONTE_COMUNI]}
-    return {"ok": True, "message": f"{len(righe)} Comuni trovati.", "rows": righe, "notes": [FONTE_COMUNI]}
+    message = "1 comune trovato." if len(righe) == 1 else f"{len(righe)} comuni trovati."
+    return {"ok": True, "message": message, "rows": righe, "notes": [FONTE_COMUNI]}
 
 
 def esegui(entry: Mapping[str, Any], valori: Mapping[str, Any]) -> dict[str, Any]:
@@ -236,6 +237,7 @@ def scheda(
     *,
     href_catalogo: str,
     id_fascicolo: str = "",
+    include_form: bool = True,
 ) -> dict[str, Any]:
     """Voce del catalogo con tipo, modulo o destinazione per la pagina React."""
 
@@ -261,11 +263,12 @@ def scheda(
         meta = CALCOLI_IN_PAGINA.get(entry_id, {"azione": "Cerca", "fonte": FONTE_COMUNI})
         item["basis"] = meta["fonte"]
         item["href"] = f"/applicazioni/{entry_id}"
-        item["form"] = {
-            "action": f"/api/v1/ui/applicazioni/{entry_id}/esegui",
-            "submitLabel": meta["azione"],
-            "fields": campi_modulo(entry_id),
-        }
+        if include_form:
+            item["form"] = {
+                "action": f"/api/v1/ui/applicazioni/{entry_id}/esegui",
+                "submitLabel": meta["azione"],
+                "fields": campi_modulo(entry_id),
+            }
     elif tipo == "tool":
         tool_id, preset = strumento_voce(entry)
         item.update({"toolId": tool_id, "preset": preset, "href": href_strumento(tool_id, entry_id, id_fascicolo)})

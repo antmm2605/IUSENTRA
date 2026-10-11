@@ -15,7 +15,7 @@ from typing import Any, Callable
 from pct.applicazioni_catalogo import catalogo_applicazioni, statistiche_catalogo
 from pct.applicazioni_runtime import TOOL_PRESET_OVERRIDES, TOOL_SCHEMAS, resolve_runtime
 from pct.strumenti_legali import GestioneStrumentiLegali
-from web.services.react_applicazioni_bridge import href_react_voce
+from web.services.react_applicazioni_bridge import href_react_voce, scheda
 
 
 def _safe(label: str, loader: Callable[[], Any], fallback: Any) -> Any:
@@ -363,6 +363,15 @@ def _catalog_entry_href(entry: dict[str, Any]) -> str:
     if section_id == "diritto_penale":
         return "/giurisprudenza"
     return "/strumenti-operativi"
+
+
+def catalogo_utility() -> list[dict[str, Any]]:
+    """Destinazioni e preset nativi, condivisi dalle due viste del catalogo."""
+    return [
+        scheda(entry, href_catalogo=_catalog_entry_href(entry), include_form=False)
+        for entry in catalogo_applicazioni()
+        if _text(entry.get("id")) and _text(entry.get("title"))
+    ]
 
 
 def _build_strumenti_operativi() -> dict[str, Any]:

@@ -557,8 +557,7 @@ const navSections: NavSection[] = [
       { label: 'Apprendimento Lex', icon: BrainCircuit, href: '/lex-apprendimento', featureFlag: 'lex.autonomousLearning', requiresAnyPermission: ['ai.usa'] },
       { label: 'Regia Agentica', icon: Bot, href: '/workflow-agents', featureFlag: 'routes.appV2.workflowAgents.home', requiresAnyPermission: ['ai.usa', 'legal_skills.leggi'] },
       { label: 'Archivio Giurisprudenza', icon: Landmark, href: '/giurisprudenza/' },
-      { label: 'Strumenti Forensi', icon: Wrench, href: '/strumenti-legali/' },
-      { label: 'Strumenti Operativi', icon: Table, href: '/strumenti-operativi' },
+      { label: 'Utility', icon: Wrench, href: '/strumenti-legali/' },
     ]
   },
   {
@@ -671,6 +670,7 @@ function visibleNavSections(sections: NavSection[], bootstrap: ShellBootstrap, a
 function isActiveHref(href: string, activePath: string): boolean {
   const cleanPath = normaliseRoutePath(activePath).toLowerCase()
   const cleanHref = normaliseRoutePath(href).toLowerCase()
+  if (cleanHref === '/strumenti-legali' && (['/strumenti-operativi', '/applicazioni'].includes(cleanPath) || cleanPath.startsWith('/applicazioni/'))) return true
   if (cleanHref === '/documenti' && cleanPath === '/editor-professionale') return !href.includes('modalita=editor') && new URLSearchParams(window.location.search).get('modalita') !== 'editor'
   if (cleanHref === '/editor-professionale') {
     if (/^\/fascicoli\/[^/]+\/documenti\/[^/]+\/editor$/.test(cleanPath)) return href.includes('modalita=editor')
@@ -1327,7 +1327,7 @@ function AppStudio() {
   const isRegiaPage = routeKey === '/workspace-intelligente' || routeKey === '/regia-operativa' || routeKey.startsWith('/regia-operativa/')
   const isChecklistAttiPage = checklistRoute(routeKey) !== null
   // Ex cabina applicazioni: catalogo (rimando a Strumenti operativi) e singola funzione.
-  const isApplicazionePage = routeKey === '/applicazioni' || /^\/applicazioni\/[^/]+$/.test(routeKey)
+  const isApplicazionePage = /^\/applicazioni\/[^/]+$/.test(routeKey) || (routeKey === '/applicazioni' && Boolean(new URLSearchParams(window.location.search).get('app') || new URLSearchParams(window.location.search).get('app_id')))
   const isNewDocumentEditorPage = routeKey === '/editor-professionale' && new URLSearchParams(window.location.search).get('modalita') === 'editor'
   const isDocumentEditorPage = isNewDocumentEditorPage || /^\/fascicoli\/[^/]+\/documenti\/[^/]+\/editor$/.test(routeKey)
   const isFascicoliPage = !isDocumentEditorPage && !isChecklistAttiPage && (routeKey === '/fascicoli' || routeKey.startsWith('/fascicoli/'))
@@ -1394,7 +1394,7 @@ function AppStudio() {
     /^\/preventivi\/conferimento\/[^/]+$/.test(routeKey) ||
     /^\/preventivi\/p\/[^/]+$/.test(routeKey)
   const isCompensiForensiPage = routeKey === '/compensi-forensi'
-  const isStrumentiLegaliPage = routeKey === '/strumenti-legali'
+  const isStrumentiLegaliPage = !isApplicazionePage && ['/strumenti-legali', '/strumenti-operativi', '/applicazioni'].includes(routeKey)
   const isTariffarioPage = routeKey === '/tariffario'
   const isTemplateStudioPage = studioTemplateRoute(routeKey) !== null
   const isTemplateAttiPage =

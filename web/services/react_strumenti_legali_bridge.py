@@ -111,7 +111,10 @@ def build_react_strumenti_legali_payload(
     if attivo not in {voce["id"] for voce in strumenti}:
         attivo = next((voce["id"] for voce in strumenti if voce["reso_in_react"]), "")
 
+    from web.services.react_studio_module_bridge import catalogo_utility
+
     return {
+        "funzioni": catalogo_utility(),
         "strumenti": strumenti,
         "categorie": categorie,
         "tool_attivo": attivo,

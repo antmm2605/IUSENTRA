@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.437.11 — 11/10/2026
+
+- Utility riunisce strumenti forensi e operativi con ricerca e filtro per argomento. Destinazioni, preset dei calcolatori e collegamenti storici alle singole applicazioni sono conservati.
+- Caricamento e riprova espliciti; i filtri conservano i valori della funzione aperta. Titoli brevi nelle finestre di lavoro, quote monetarie e percentuali in formato italiano.
+- Il catalogo usa i metadati nativi senza inizializzare o sincronizzare le tabelle normative dei calcoli. I comandi di calcolo mantengono il loro motore.
+- Verifiche e stato del rilascio nel rapporto data-flow/utility-agenda-verbale-20261011.md. Impugnazione, reclamo, Scadenziario nel dettaglio operativo e verbale nella preparazione udienza restano lavori aperti.
+
 ## 2.437.10 — 11/10/2026
 
 - La navigazione durante una bozza dell’editor riusa le finestre di lavoro e conserva il testo compilato. La topbar mostra Comandi vocali.

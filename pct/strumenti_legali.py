@@ -185,7 +185,8 @@ class GestioneStrumentiLegali:
                 unique[source["url"]] = source
         return list(unique.values())
 
-    def catalogo_moduli(self) -> List[Dict[str, str]]:
+    @staticmethod
+    def catalogo_moduli() -> List[Dict[str, str]]:
         return [
             {"id": "uffici_competenti", "title": "Uffici competenti per Comune", "subtitle": "Ricerca ministeriale per Tribunale, Giudice di Pace, Procura, UNEP e Corte d'Appello.", "icon": "bi-geo-alt", "categoria": "Competenza"},
             {"id": "contributo_unificato", "title": "Contributo unificato", "subtitle": "Civile, amministrativo e tributario con basi ufficiali e note operative.", "icon": "bi-bank", "categoria": "Fiscale"},
@@ -335,7 +336,8 @@ class GestioneStrumentiLegali:
             "luogo": _clean_text(studio.get("luogo", "")),
         }
 
-    def build_form_state(self, prefill: Mapping[str, str], posted: Optional[Mapping[str, Any]] = None) -> Dict[str, str]:
+    @staticmethod
+    def build_form_state(prefill: Mapping[str, str], posted: Optional[Mapping[str, Any]] = None) -> Dict[str, str]:
         today = _today().isoformat()
         defaults = {
             "comune": "",
@@ -426,12 +428,6 @@ class GestioneStrumentiLegali:
             "presc_atto_interruttivo": "",
             "presc_descrizione": prefill.get("oggetto", ""),
             # Danno da perdita del rapporto parentale
-            "dp_categoria": "nucleo_primario",
-            "dp_eta_vittima": "",
-            "dp_eta_congiunto": "",
-            "dp_convivenza": "convivenza",
-            "dp_superstiti": "0",
-            "dp_qualita_relazione": "ordinaria",
             # Consenso informato
             "ci_fascia": "media",
             "ci_posizione": "50",
@@ -835,7 +831,8 @@ class GestioneStrumentiLegali:
                     defaults[key] = str(posted.get(key, defaults[key]) or "")
         return defaults
 
-    def opzioni_onorari_forensi(self) -> Dict[str, List[Dict[str, str]]]:
+    @staticmethod
+    def opzioni_onorari_forensi() -> Dict[str, List[Dict[str, str]]]:
         return {
             "materie": [{"value": item.name, "label": item.value} for item in tutte_le_materie()],
             "gradi": [{"value": item.name, "label": item.value} for item in tutti_i_gradi()],
@@ -843,7 +840,8 @@ class GestioneStrumentiLegali:
             "fasi": [{"value": item.name, "label": item.value} for item in tutte_le_fasi()],
         }
 
-    def opzioni_contributo_unificato(self) -> List[Dict[str, Any]]:
+    @staticmethod
+    def opzioni_contributo_unificato() -> List[Dict[str, Any]]:
         return [
             {"value": "civile_ordinario", "label": "Civile ordinario", "needs_value": True},
             {"value": "decreto_ingiuntivo", "label": "Ricorso per decreto ingiuntivo", "needs_value": True},
@@ -866,7 +864,8 @@ class GestioneStrumentiLegali:
             {"value": "amministrativo_ottemperanza", "label": "Ottemperanza con contestuale risarcitoria", "needs_value": False},
         ]
 
-    def opzioni_valore_contributo_unificato(self) -> List[Dict[str, str]]:
+    @staticmethod
+    def opzioni_valore_contributo_unificato() -> List[Dict[str, str]]:
         return [
             {"value": "determinato", "label": "Valore determinato"},
             {"value": "indeterminabile", "label": "Valore indeterminabile"},
@@ -1280,9 +1279,9 @@ class GestioneStrumentiLegali:
                 "Inserisci base e percentuale (per la quota) oppure base e parte (per incidenza e variazione)."
             )
         risultato["notes"] = [
-            "La quota e' arrotondata ai centesimi; incidenza e variazione a quattro decimali, "
+            "La quota è arrotondata ai centesimi; incidenza e variazione a quattro decimali, "
             "per non perdere precisione nei riparti su molte voci.",
-            "La variazione e' calcolata sulla base indicata: un valore negativo segnala una "
+            "La variazione è calcolata sulla base indicata: un valore negativo segnala una "
             "diminuzione rispetto alla base.",
         ]
         return risultato
@@ -1806,7 +1805,8 @@ class GestioneStrumentiLegali:
     def calcola_compenso_a_tempo(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         return calc_compenso_a_tempo.calcola(payload)
 
-    def opzioni_termini_processuali(self) -> List[Dict[str, str]]:
+    @staticmethod
+    def opzioni_termini_processuali() -> List[Dict[str, str]]:
         """Modelli di termine gia' versionati nel motore ``pct.termini_processuali``."""
 
         return calc_termini_scadenza.modelli()

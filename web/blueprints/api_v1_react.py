@@ -10881,11 +10881,9 @@ def strumenti_legali_react():
     )
 
     try:
-        gestore = GestioneStrumentiLegali(
-            normative_db_path=current_app.config.get(
-                "NORMATIVE_TABLES_DB", "./intelligence/tabelle_normative.json"
-            )
-        )
+        # Catalogo, default e opzioni sono metadati puri. Il caricamento non
+        # inizializza né sincronizza le tabelle normative dei calcoli.
+        gestore = GestioneStrumentiLegali
         payload = build_react_strumenti_legali_payload(
             catalogo=gestore.catalogo_moduli(),
             form_state=gestore.build_form_state({}),

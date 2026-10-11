@@ -1,4 +1,5 @@
 import { apiJson, apiPostJson } from './lib/apiClient'
+import { formatEuroIt } from './formatting'
 
 export type CampoStrumento = {
   name: string
@@ -28,6 +29,7 @@ export type StrumentoForense = {
 }
 
 export type StrumentiLegaliPayload = {
+  funzioni?: FunzioneUtility[]
   strumenti: StrumentoForense[]
   categorie: string[]
   tool_attivo: string
@@ -35,6 +37,17 @@ export type StrumentiLegaliPayload = {
   totale_in_react: number
   endpoint_calcolo: string
   warning?: string
+}
+
+export type FunzioneUtility = {
+  id: string
+  title: string
+  description: string
+  section: string
+  href: string
+  toolId: string
+  preset: Record<string, string>
+  unavailable: { reason: string; label: string; href: string } | null
 }
 
 export type EsitoCalcolo = {
@@ -76,14 +89,41 @@ export async function eseguiCalcolo(
 const CHIAVI_NON_SINTETICHE = new Set(['notes', 'warnings', 'sources', 'scadenze_proposte', 'scadenza_iso'])
 
 /** Estrae le righe leggibili di un risultato, senza conoscere lo strumento. */
-export function righeRisultato(result: Record<string, unknown> | undefined): { label: string; value: string }[] {
+export function righeRisultato(result: Record<string, unknown> | undefined, tool = ''): { label: string; value: string }[] {
   if (!result) return []
+  if (tool === 'indennita_mediazione') {
+    const campi: [string, string, 'testo' | 'euro' | 'booleano'][] = [
+      ['regime_label', 'Regime', 'testo'], ['esito_label', 'Esito', 'testo'],
+      ['scaglione', 'Scaglione', 'testo'], ['valore', 'Valore della lite', 'euro'],
+      ['spese_avvio', 'Spese di avvio', 'euro'],
+      ['spese_mediazione_primo_incontro', 'Spese del primo incontro', 'euro'],
+      ['ulteriori_spese_mediazione', 'Ulteriori spese di mediazione', 'euro'],
+      ['totale_organismo', 'Totale dovuto all’organismo', 'euro'],
+      ['spese_avvio_base', 'Spese di avvio prima delle riduzioni', 'euro'],
+      ['spese_mediazione_primo_base', 'Primo incontro prima delle riduzioni', 'euro'],
+      ['tabella_a_minimo', 'Minimo della tabella A', 'euro'],
+      ['riduzione_obbligatoria_applicata', 'Riduzione per mediazione obbligatoria applicata', 'booleano'],
+      ['art31_comma3_maggiorazione_20', 'Maggiorazione del 20% (art. 31, comma 3)', 'booleano'],
+    ]
+    return campi.flatMap(([chiave, label, formato]) => {
+      const valore = result[chiave]
+      if (valore === undefined || valore === null || valore === '') return []
+      const value = formato === 'euro' && typeof valore === 'number' ? formatEuroIt(valore)
+        : formato === 'booleano' && typeof valore === 'boolean' ? (valore ? 'Sì' : 'No') : String(valore)
+      return [{ label, value }]
+    })
+  }
   const righe: { label: string; value: string }[] = []
   for (const [chiave, valore] of Object.entries(result)) {
     if (CHIAVI_NON_SINTETICHE.has(chiave)) continue
     if (valore === null || valore === undefined || valore === '') continue
     if (typeof valore === 'object') continue
-    righe.push({ label: etichettaChiave(chiave), value: String(valore) })
+    const value = tool === 'percentuali' && chiave === 'quota' && typeof valore === 'number'
+      ? formatEuroIt(valore)
+      : tool === 'percentuali' && ['incidenza', 'variazione'].includes(chiave) && typeof valore === 'number'
+        ? `${valore.toLocaleString('it-IT', { maximumFractionDigits: 4 })}%`
+        : String(valore)
+    righe.push({ label: etichettaChiave(chiave), value })
   }
   return righe
 }

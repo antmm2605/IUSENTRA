@@ -1,5 +1,9 @@
 # Migrazione progressiva Flask + React
 
+## Utility unificata — 11/10/2026 — candidata 2.437.11
+
+Una sola superficie React per i cataloghi forensi e operativi, con funzioni e preset nativi, ricerca e argomento. Conservati dettagli applicazioni e vecchi parametri app/app_id. Accettazione reale, confronto prestazionale e stato di commit/deploy sono registrati in [rapporto Utility e procedimenti](../artifacts/data-flow/utility-agenda-verbale-20261011.md); nessuna chiusura del lavoro generale o dei punti Agenda/verbale.
+
 ## Indicatori condivisi di caricamento — 11/10/2026 — 2.437.9
 
 Attese governate dagli stati esistenti e dal trasporto JSON: operazioni concorrenti indipendenti, risposta inclusa, errori/annullamento con rilascio dell'indicatore, polling silenzioso. Accettazione rappresentativa sulla copia reale 8080 per modelli/editor, Agenda, posta, filtri, impostazioni, timer e lettore PDF interno. Il censimento conserva separatamente le verifiche mancanti, la produzione e il candidato: [inventario](../artifacts/data-flow/loading-surface-inventory-20261011.json). L'incarico generale e la verifica completa di ciascuna procedura restano aperti.

@@ -54,6 +54,29 @@
   box-shadow: var(--iu-od-shadow-1);
 }
 
+.iu-utility-link {
+  color: inherit;
+  text-decoration: none;
+  min-height: 44px;
+}
+
+.iu-utility-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--iu-od-space-3);
+}
+
+@media (max-width: 640px) {
+  .iu-utility-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.iu-strumento-card:focus-visible {
+  outline: 2px solid var(--iu-od-focus);
+  outline-offset: 2px;
+}
+
 .iu-strumento-card--attiva {
   border-color: var(--iu-od-focus);
   box-shadow: var(--iu-od-shadow-2);

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: IUSENTRA API Contracts
-  version: 2.437.6
+  version: 2.437.7
   description: 'Contratti API fase 6 generati da endpoint Flask reali. Aggiornato: 2026-05-18.'
 servers:
 - url: https://app.iusentra.it
@@ -1248,7 +1248,7 @@ paths:
       tags:
       - Agenda
       summary: 'Agenda: GET /api/v1/ui/agenda/importa'
-      description: 'Contratto fase 6 derivato da `agenda_importa_defaults` in `web/blueprints/api_v1_react.py:16534`. Pagina/area
+      description: 'Contratto fase 6 derivato da `agenda_importa_defaults` in `web/blueprints/api_v1_react.py:16536`. Pagina/area
         collegata: Agenda. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_agenda_importa_defaults_get
       security:
@@ -1294,7 +1294,7 @@ paths:
       tags:
       - Agenda
       summary: 'Agenda: GET /api/v1/ui/agenda/nuovo/defaults'
-      description: 'Contratto fase 6 derivato da `agenda_nuovo_defaults` in `web/blueprints/api_v1_react.py:16570`. Pagina/area
+      description: 'Contratto fase 6 derivato da `agenda_nuovo_defaults` in `web/blueprints/api_v1_react.py:16572`. Pagina/area
         collegata: Agenda. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_agenda_nuovo_defaults_get
       security:
@@ -5726,7 +5726,7 @@ paths:
       tags:
       - Sistema
       summary: 'API React operativa: GET /api/v1/ui/document-reader/web'
-      description: 'Contratto fase 6 derivato da `document_reader_web` in `web/blueprints/api_v1_react.py:16591`. Pagina/area
+      description: 'Contratto fase 6 derivato da `document_reader_web` in `web/blueprints/api_v1_react.py:16593`. Pagina/area
         collegata: API React operativa. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_document_reader_web_get
       security:
@@ -6204,7 +6204,7 @@ paths:
       tags:
       - Comunicazioni
       summary: 'Email PEC: GET /api/v1/ui/email/source/{message_id}'
-      description: 'Contratto fase 6 derivato da `email_source_attachment` in `web/blueprints/api_v1_react.py:16280`. Pagina/area
+      description: 'Contratto fase 6 derivato da `email_source_attachment` in `web/blueprints/api_v1_react.py:16282`. Pagina/area
         collegata: Email PEC. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_email_source_attachment_get
       security:
@@ -10111,7 +10111,7 @@ paths:
       tags:
       - Sistema
       summary: 'API React operativa: GET /api/v1/ui/fonti-procedurali/{source_id}/visualizza'
-      description: 'Contratto fase 6 derivato da `fonte_procedurale_reader` in `web/blueprints/api_v1_react.py:16584`. Pagina/area
+      description: 'Contratto fase 6 derivato da `fonte_procedurale_reader` in `web/blueprints/api_v1_react.py:16586`. Pagina/area
         collegata: API React operativa. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_fonte_procedurale_reader_get
       security:
@@ -16660,7 +16660,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: GET /api/v1/ui/ricerca-legale/aggiornamenti/{update_id}'
-      description: 'Contratto fase 6 derivato da `variazione` in `web/blueprints/api_v1_ricerca_legale.py:75`. Pagina/area
+      description: 'Contratto fase 6 derivato da `variazione` in `web/blueprints/api_v1_ricerca_legale.py:77`. Pagina/area
         collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_variazione_get
       security:
@@ -16712,7 +16712,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: POST /api/v1/ui/ricerca-legale/aggiornamenti/{update_id}/approva'
-      description: 'Contratto fase 6 derivato da `approva` in `web/blueprints/api_v1_ricerca_legale.py:90`. Pagina/area collegata:
+      description: 'Contratto fase 6 derivato da `approva` in `web/blueprints/api_v1_ricerca_legale.py:92`. Pagina/area collegata:
         Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_approva_post
       security:
@@ -16767,7 +16767,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: GET /api/v1/ui/ricerca-legale/controllo-giornaliero'
-      description: 'Contratto fase 6 derivato da `controllo_giornaliero` in `web/blueprints/api_v1_ricerca_legale.py:115`.
+      description: 'Contratto fase 6 derivato da `controllo_giornaliero` in `web/blueprints/api_v1_ricerca_legale.py:117`.
         Pagina/area collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_controllo_giornaliero_get
       security:
@@ -16813,7 +16813,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: POST /api/v1/ui/ricerca-legale/controllo-giornaliero/esegui'
-      description: 'Contratto fase 6 derivato da `esegui_controllo_giornaliero` in `web/blueprints/api_v1_ricerca_legale.py:130`.
+      description: 'Contratto fase 6 derivato da `esegui_controllo_giornaliero` in `web/blueprints/api_v1_ricerca_legale.py:132`.
         Pagina/area collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_esegui_controllo_giornaliero_post
       security:
@@ -16862,7 +16862,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: GET /api/v1/ui/ricerca-legale/fonti/{source_id}'
-      description: 'Contratto fase 6 derivato da `fonte` in `web/blueprints/api_v1_ricerca_legale.py:54`. Pagina/area collegata:
+      description: 'Contratto fase 6 derivato da `fonte` in `web/blueprints/api_v1_ricerca_legale.py:56`. Pagina/area collegata:
         Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_fonte_get
       security:
@@ -16960,7 +16960,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: POST /api/v1/ui/ricerca-legale/mediazione/importa'
-      description: 'Contratto fase 6 derivato da `importa_registro_mediazione` in `web/blueprints/api_v1_ricerca_legale.py:225`.
+      description: 'Contratto fase 6 derivato da `importa_registro_mediazione` in `web/blueprints/api_v1_ricerca_legale.py:227`.
         Pagina/area collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_importa_registro_mediazione_post
       security:
@@ -17009,7 +17009,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: POST /api/v1/ui/ricerca-legale/mediazione/sincronizza'
-      description: 'Contratto fase 6 derivato da `sincronizza_registro_mediazione` in `web/blueprints/api_v1_ricerca_legale.py:219`.
+      description: 'Contratto fase 6 derivato da `sincronizza_registro_mediazione` in `web/blueprints/api_v1_ricerca_legale.py:221`.
         Pagina/area collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_sincronizza_registro_mediazione_post
       security:
@@ -17058,7 +17058,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: POST /api/v1/ui/ricerca-legale/monitoraggio/esegui'
-      description: 'Contratto fase 6 derivato da `esegui_monitoraggio` in `web/blueprints/api_v1_ricerca_legale.py:207`. Pagina/area
+      description: 'Contratto fase 6 derivato da `esegui_monitoraggio` in `web/blueprints/api_v1_ricerca_legale.py:209`. Pagina/area
         collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_esegui_monitoraggio_post
       security:
@@ -17153,7 +17153,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: GET /api/v1/ui/ricerca-legale/news/{slug}'
-      description: 'Contratto fase 6 derivato da `news` in `web/blueprints/api_v1_ricerca_legale.py:44`. Pagina/area collegata:
+      description: 'Contratto fase 6 derivato da `news` in `web/blueprints/api_v1_ricerca_legale.py:46`. Pagina/area collegata:
         Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_news_get
       security:
@@ -17166,6 +17166,150 @@ paths:
         schema:
           type: string
         description: Parametro interno della risorsa, risolto nel tenant corrente.
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/PageSizeParam'
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/StatusParam'
+      responses:
+        '200':
+          description: Payload operativo Ricerca legale nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalResearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: sessione/API tenant-aware
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
+  /api/v1/ui/ricerca-legale/normativa/articoli:
+    get:
+      tags:
+      - Lex
+      summary: 'Ricerca legale: GET /api/v1/ui/ricerca-legale/normativa/articoli'
+      description: 'Contratto fase 6 derivato da `normativa_articoli` in `web/blueprints/api_v1_ricerca_legale.py:288`. Pagina/area
+        collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_normativa_articoli_get
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/PageSizeParam'
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/StatusParam'
+      responses:
+        '200':
+          description: Payload operativo Ricerca legale nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalResearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: sessione/API tenant-aware
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
+  /api/v1/ui/ricerca-legale/normativa/articoli/{article_id}:
+    get:
+      tags:
+      - Lex
+      summary: 'Ricerca legale: GET /api/v1/ui/ricerca-legale/normativa/articoli/{article_id}'
+      description: 'Contratto fase 6 derivato da `normativa_articolo` in `web/blueprints/api_v1_ricerca_legale.py:307`. Pagina/area
+        collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_normativa_articolo_get
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
+      - name: article_id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Parametro interno della risorsa, risolto nel tenant corrente.
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/PageSizeParam'
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/StatusParam'
+      responses:
+        '200':
+          description: Payload operativo Ricerca legale nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalResearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P1
+      x-rbac-permission: sessione/API tenant-aware
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
+  /api/v1/ui/ricerca-legale/normativa/atti:
+    get:
+      tags:
+      - Lex
+      summary: 'Ricerca legale: GET /api/v1/ui/ricerca-legale/normativa/atti'
+      description: 'Contratto fase 6 derivato da `normativa_atti` in `web/blueprints/api_v1_ricerca_legale.py:275`. Pagina/area
+        collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
+      operationId: reactUi_normativa_atti_get
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
       - $ref: '#/components/parameters/PageParam'
       - $ref: '#/components/parameters/PageSizeParam'
       - $ref: '#/components/parameters/SearchParam'
@@ -17251,7 +17395,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: POST /api/v1/ui/ricerca-legale/tabelle-normative/sincronizza'
-      description: 'Contratto fase 6 derivato da `sincronizza_tabelle_normative` in `web/blueprints/api_v1_ricerca_legale.py:213`.
+      description: 'Contratto fase 6 derivato da `sincronizza_tabelle_normative` in `web/blueprints/api_v1_ricerca_legale.py:215`.
         Pagina/area collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_sincronizza_tabelle_normative_post
       security:

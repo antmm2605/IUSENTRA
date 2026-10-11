@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 437.
-- Endpoint P0/P1 contrattualizzati: 370.
+- Endpoint React API contrattualizzati: 440.
+- Endpoint P0/P1 contrattualizzati: 373.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 394.
+- Endpoint con provider verification auth-error: 397.
 - Endpoint pubblici della pagina di accesso (stato 200, scritture in errore sicuro senza credenziali): 3.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 40.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
@@ -355,6 +355,9 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Ricerca legale | `/api/v1/ui/ricerca-legale/monitoraggio/esegui` | `POST` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Ricerca legale | `/api/v1/ui/ricerca-legale/news` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Ricerca legale | `/api/v1/ui/ricerca-legale/news/{slug}` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Ricerca legale | `/api/v1/ui/ricerca-legale/normativa/articoli` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Ricerca legale | `/api/v1/ui/ricerca-legale/normativa/articoli/{article_id}` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Ricerca legale | `/api/v1/ui/ricerca-legale/normativa/atti` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Ricerca legale | `/api/v1/ui/ricerca-legale/ricerca` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Ricerca legale | `/api/v1/ui/ricerca-legale/tabelle-normative/sincronizza` | `POST` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Scadenziario | `/api/v1/ui/scadenziario` | `GET` | Scadenziario | P1 | verified | success+auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | verified |

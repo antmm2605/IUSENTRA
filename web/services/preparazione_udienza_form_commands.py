@@ -27,7 +27,7 @@ def save_form(manager, session, step, form):
     else:
         operation = "passo"
         fields = {key: bool(form.get(key)) if key.startswith("precheck_") and key != "precheck_note"
-                  else form.get(key, "") for key in CAMPI_PASSO.get(step, ())}
+                  else form.get(key, "") for key in CAMPI_PASSO.get(step, ()) if key != "verbale_preparazione" or key in form}
         intent = {"passo": step, "campi": fields, "conferma": True}
         if step == 2:
             count = form.get("documentCount", "")

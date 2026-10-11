@@ -1872,8 +1872,12 @@ def _agenda_for_fascicolo(get_agenda: Callable[[], Any], fascicolo: Any) -> list
     seen: set[str] = set()
     for app in get_agenda().tutti():
         app_id = _text(getattr(app, "id", ""))
+        linked_case_id = _text(getattr(app, "id_fascicolo", ""))
+        if linked_case_id and linked_case_id != fid:
+            continue
         direct_match = bool(
-            profile_id and _text(getattr(app, "external_profile_id", "")) == profile_id
+            linked_case_id and linked_case_id == fid
+            or profile_id and _text(getattr(app, "external_profile_id", "")) == profile_id
             or source_external_id and _text(getattr(app, "external_source_url", "")) == source_external_id
         )
         haystack = _identity_key(
@@ -8614,7 +8618,7 @@ def _appointments(apps: Iterable[Any]) -> list[dict[str, Any]]:
                 "place": _text(getattr(app, "luogo", "")),
                 "court": _text(getattr(app, "tribunale", "")),
                 "type": _enum_value(getattr(app, "tipo", "")),
-                "href": f"/agenda?id={aid}",
+                "href": f"/agenda/{quote(aid, safe='')}",
                 "tone": "warning" if _parse_date(raw) and (_parse_date(raw) or date.max) <= date.today() + timedelta(days=1) else "primary",
             }
         )

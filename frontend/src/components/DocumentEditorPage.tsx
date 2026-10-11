@@ -655,7 +655,24 @@ export function DocumentEditorPage() {
         for (const property of ['margin-top', 'margin-bottom', 'margin-left', 'margin-right', 'text-indent']) {
           if (!block.style.getPropertyValue(property)) block.style.setProperty(property, points(computed.getPropertyValue(property)))
         }
-        if ((!block.style.lineHeight || visible.closest('[data-iu-editor-stamp]')) && computed.lineHeight.endsWith('px')) block.style.lineHeight = points(computed.lineHeight)
+        // CSS multiplies the font size; Word multiplies its font-dependent
+        // normal line box. Preserve the measured spacing when all text runs
+        // share one line height, including headings with a larger child run.
+        const heights = new Set<string>()
+        const runs = document.createTreeWalker(visible, NodeFilter.SHOW_TEXT)
+        let run: Node | null
+        while ((run = runs.nextNode())) {
+          if (run.textContent?.trim() && run.parentElement) heights.add(getComputedStyle(run.parentElement).lineHeight)
+        }
+        if (!visible.textContent?.trim() && !visible.querySelector('img,svg,math')) {
+          const height = visible.offsetHeight
+          if (height > 0) block.style.lineHeight = `${height * 0.75}pt`
+        } else if (heights.size === 1 && !visible.querySelector('img,svg,math,sub,sup')) {
+          const height = [...heights][0]
+          if (height.endsWith('px')) block.style.lineHeight = points(height)
+        } else if ((!block.style.lineHeight || visible.closest('[data-iu-editor-stamp]')) && computed.lineHeight.endsWith('px')) {
+          block.style.lineHeight = points(computed.lineHeight)
+        }
       } else {
         for (const side of ['top', 'right', 'bottom', 'left']) block.style.setProperty(`padding-${side}`, points(computed.getPropertyValue(`padding-${side}`)))
       }

@@ -8,6 +8,12 @@ import type { AgendaEvent } from '../../agendaData'
 
 export const AGENDA_ACTIVITY_PREFIX = /^attivit[àa] per l['’]avvocato\s*:\s*/i
 
+export function agendaDeadlineCalculatorHref(event: Pick<AgendaEvent, 'matterId'>): string {
+  const query = new URLSearchParams()
+  if (event.matterId) query.set('id_fascicolo', event.matterId)
+  return `/scadenziario/calcola-termini${query.size ? `?${query}` : ''}`
+}
+
 export type AgendaProposedStep = {
   id: 'fonte' | 'quando' | 'fascicolo' | 'atti' | 'cliente' | 'notifica' | 'termine'
   label: string
@@ -49,7 +55,7 @@ export function agendaProposedSteps(
     add({ id: 'notifica', label: 'Prepara la notifica collegata', actionLabel: 'Prepara notifica', href: `/notifiche-legali?id_fascicolo=${encodeURIComponent(event.matterId)}&fase=notifica` })
   }
   if (/termine|scadenz|giorni/.test(text)) {
-    add({ id: 'termine', label: 'Ricalcola il termine e verifica la scadenza', actionLabel: 'Calcola termine', href: '/scadenziario/calcola-termini' })
+    add({ id: 'termine', label: 'Ricalcola il termine e verifica la scadenza', actionLabel: 'Calcola termine', href: agendaDeadlineCalculatorHref(event) })
   }
   return steps
 }

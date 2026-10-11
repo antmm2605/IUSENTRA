@@ -13,6 +13,8 @@ from web.services.react_guida_pratica_bridge import (
     build_react_guida_pratica_checklist_payload,
     build_react_guida_pratica_payload,
     guida_pratica_error_payload,
+    resolve_fascicolo_for_guida,
+    fascicolo_guida_context,
 )
 
 try:  # Mantiene il blueprint importabile anche nei test minimali.
@@ -109,7 +111,15 @@ def guida_pratica_codice(codice: str):
     if denied:
         return denied
     try:
-        return jsonify(build_react_guida_pratica_payload(codice=codice, service=_service()))
+        id_fascicolo = str(request.args.get("id_fascicolo") or "").strip()
+        fascicolo = resolve_fascicolo_for_guida(_fascicoli_loader(), id_fascicolo) if id_fascicolo else {}
+        if id_fascicolo and not fascicolo:
+            return jsonify({"ok": False, "notFound": True, "message": "Fascicolo non trovato nello studio corrente."}), 404
+        context = fascicolo_guida_context(fascicolo) if fascicolo else {}
+        payload = build_react_guida_pratica_payload(codice=codice, fascicolo=context, service=_service())
+        if context:
+            payload["fascicolo"] = context
+        return jsonify(payload)
     except Exception as exc:
         current_app.logger.exception("Errore Guida Pratica codice %s: %s", codice, exc)
         return jsonify(guida_pratica_error_payload(exc)), 404

@@ -115,6 +115,7 @@ class SessioneWizardPro:
     argomenti_principali: str = ""
     richieste_giudice: str = ""
     eccezioni_da_sollevare: str = ""
+    verbale_preparazione: str = ""
     step3_confermato: bool = False
 
     # ── Step 4 — Pre-partenza ──────────────────────────────────────────
@@ -186,6 +187,7 @@ class SessioneWizardPro:
             argomenti_principali=d.get("argomenti_principali", ""),
             richieste_giudice=d.get("richieste_giudice", ""),
             eccezioni_da_sollevare=d.get("eccezioni_da_sollevare", ""),
+            verbale_preparazione=d.get("verbale_preparazione", ""),
             step3_confermato=d.get("step3_confermato", False),
             precheck_firma_ok=d.get("precheck_firma_ok", False),
             precheck_docs_pronti=d.get("precheck_docs_pronti", False),

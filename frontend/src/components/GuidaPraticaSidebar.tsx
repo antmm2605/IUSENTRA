@@ -1,5 +1,5 @@
 import { useBusyActivity } from '../ui/useBusyActivity'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useId, useState, type ReactNode } from 'react'
 import { AlertTriangle, BookOpen, Calculator, CheckCircle2, ChevronDown, ChevronUp, ClipboardCheck, FilePenLine, FileText, Gavel, Landmark, ListChecks, RefreshCw, Scale, ShieldCheck, TimerReset, UploadCloud, UsersRound } from 'lucide-react'
 import { Badge } from './dashboard'
 import {
@@ -20,6 +20,7 @@ type Props = {
   fascicoloId?: string
   codice?: string
   fascicoloTitle?: string
+  explicitProcedure?: boolean
 }
 
 const STANDARD_GUIDA_KEYS = new Set([
@@ -596,47 +597,57 @@ function AdempimentiTab({ guida, fascicoloId = '' }:{guida?:GuidaPratica; fascic
   )
 }
 
-export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTitle = '' }: Props) {
+export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTitle = '', explicitProcedure = false }: Props) {
   const [response, setResponse] = useState<GuidaPraticaResponse>(emptyGuidaPraticaResponse())
   const [loading, setLoading] = useState(false)
   useBusyActivity(loading, 'Caricamento della guida pratica…')
   const [tab, setTab] = useState<TabKey>('checklist')
-  const [expanded, setExpanded] = useState(() => typeof window !== 'undefined' && window.location.hash === '#guida-pratica')
+  const [expanded, setExpanded] = useState(() => explicitProcedure || (typeof window !== 'undefined' && window.location.hash === '#guida-pratica'))
+  const instanceId = useId()
+  const panelId = explicitProcedure ? `guida-procedura-${instanceId}` : 'guida-pratica'
+  const requestGeneration = useRef(0)
   const [loadedKey, setLoadedKey] = useState('')
   const effectiveCode = useMemo(() => codiceFromResponse(response) || codice, [response, codice])
-  const load = () => {
-    const nextKey = fascicoloId ? `fascicolo:${fascicoloId}` : codice ? `codice:${codice}` : ''
-    if (!nextKey || loading || loadedKey === nextKey) return
+  const load = (force = false) => {
+    const nextKey = explicitProcedure && codice ? `procedura:${codice}:${fascicoloId}` : fascicoloId ? `fascicolo:${fascicoloId}` : codice ? `codice:${codice}` : ''
+    if (!nextKey || loading || (!force && loadedKey === nextKey)) return
+    const generation = ++requestGeneration.current
     setLoading(true)
-    const loader = fascicoloId ? getFascicoloGuidaPratica(fascicoloId) : getCodiceGuidaPratica(codice)
+    const loader = explicitProcedure && codice ? getCodiceGuidaPratica(codice, fascicoloId) : fascicoloId ? getFascicoloGuidaPratica(fascicoloId) : getCodiceGuidaPratica(codice)
     loader.then((payload) => {
+      if (generation !== requestGeneration.current) return
       setResponse(payload)
       setLoadedKey(nextKey)
-    }).finally(() => setLoading(false))
+    }).finally(() => { if (generation === requestGeneration.current) setLoading(false) })
   }
   useEffect(() => {
     setResponse(emptyGuidaPraticaResponse())
     setLoadedKey('')
-  }, [fascicoloId, codice])
+    setLoading(false)
+    ++requestGeneration.current
+    return () => { ++requestGeneration.current }
+  }, [fascicoloId, codice, explicitProcedure])
   useEffect(() => {
     if (expanded) load()
-  }, [expanded, fascicoloId, codice, loadedKey, loading])
+  }, [expanded, fascicoloId, codice, explicitProcedure, loadedKey, loading])
   useEffect(() => {
+    if (explicitProcedure) return
     const openFromHash = () => {
       if (window.location.hash === '#guida-pratica') setExpanded(true)
     }
     openFromHash()
     window.addEventListener('hashchange', openFromHash)
     return () => window.removeEventListener('hashchange', openFromHash)
-  }, [])
+  }, [explicitProcedure])
   useEffect(() => {
+    if (explicitProcedure) return
     window.dispatchEvent(new CustomEvent('iusentra:guida-pratica-panel', { detail: { expanded } }))
     return () => {
       window.dispatchEvent(new CustomEvent('iusentra:guida-pratica-panel', { detail: { expanded: false } }))
     }
-  }, [expanded])
+  }, [expanded, explicitProcedure])
   useEffect(() => {
-    if (expanded || typeof window === 'undefined') return
+    if (explicitProcedure || expanded || typeof window === 'undefined') return
     const panel = document.getElementById('guida-pratica')
     const rail = panel?.closest('.iu-fas-guide-column')
     if (!panel || !rail) return
@@ -670,7 +681,7 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
       window.removeEventListener('scroll', requestUpdate)
       window.removeEventListener('resize', requestUpdate)
     }
-  }, [expanded])
+  }, [expanded, explicitProcedure])
   const guida = response.guida
   const suggestedMatch = response.matchedFromFascicolo
   const showOptionalEmpty = response.ok && response.guidaPraticaDisponibile === false
@@ -678,7 +689,7 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
   if (!fascicoloId && !codice) return null
   if (!expanded) {
     return (
-      <aside id="guida-pratica" className="iu-guida-pratica iu-guida-pratica--collapsed" aria-label="Guida pratica facoltativa">
+      <aside id={panelId} className="iu-guida-pratica iu-guida-pratica--collapsed" aria-label="Guida pratica facoltativa">
         <button type="button" className="iu-guida-collapsed-main" onClick={() => setExpanded(true)}>
           <span><BookOpen size={16}/> Guida pratica</span>
           <strong>{guida?.denominazione || fascicoloTitle || 'Piano assistito'}</strong>
@@ -693,7 +704,7 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
     )
   }
   return (
-    <aside id="guida-pratica" className="iu-guida-pratica" aria-label="Guida pratica della pratica">
+    <aside id={panelId} className="iu-guida-pratica" aria-label="Guida pratica della pratica">
       <header className="iu-guida-header">
         <div>
           <span><BookOpen size={16}/> Guida pratica</span>
@@ -703,9 +714,9 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
         </div>
         <div className="iu-guida-header-actions">
           {response.guidaPraticaFacoltativa !== false ? <Badge tone="neutral">Uso facoltativo</Badge> : null}
-          {suggestedMatch ? <Badge tone="warning">Scheda suggerita</Badge> : effectiveCode ? <Badge tone="success">Scheda collegata</Badge> : null}
+          {suggestedMatch ? <Badge tone="warning">Scheda suggerita</Badge> : effectiveCode ? <Badge tone="success">{explicitProcedure ? 'Procedura selezionata' : 'Scheda collegata'}</Badge> : null}
           {guida?.coverage ? <Badge tone={guida.coverage.needs_reviewer ? 'warning' : 'success'}>{coverageLabel(guida.coverage.level)}</Badge> : null}
-          <button type="button" onClick={load} disabled={loading} title="Aggiorna guida pratica"><RefreshCw size={14}/></button>
+          <button type="button" onClick={() => load(true)} disabled={loading} title="Aggiorna guida pratica"><RefreshCw size={14}/></button>
           <button type="button" onClick={() => setExpanded(false)} title="Nascondi guida pratica"><ChevronUp size={14}/></button>
         </div>
       </header>

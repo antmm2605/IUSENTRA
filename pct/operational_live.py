@@ -12,6 +12,7 @@ TABLE_DOMAINS = {
     "soggetti_parti": ("soggetti", "fascicoli"),
     "appuntamenti": ("agenda",),
     "scadenze": ("scadenze",),
+    "termini_state": ("scadenze",),
     "timesheet_entries": ("timesheet",),
     "preventivi_records": ("preventivi",),
     "conferimenti_records": ("preventivi", "fascicoli"),

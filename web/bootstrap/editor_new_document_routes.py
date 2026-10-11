@@ -36,8 +36,13 @@ def register_editor_new_document_routes(app, *, get_fascicoli, audit, encrypt_do
         if not allowed("fascicoli.scrivi") or not allowed("fascicoli.leggi"):
             return jsonify(ok=False, errore="Operazione non autorizzata."), 403
         body = request.get_json(silent=True)
-        if not isinstance(body, dict) or set(body) != {"titolo", "command_id", "html"}:
+        if not isinstance(body, dict) or set(body) not in ({"titolo", "command_id", "html"}, {"titolo", "command_id", "html", "preparazione_id"}):
             return jsonify(ok=False, errore="Richiesta non valida."), 400
+        preparation_id = body.get("preparazione_id")
+        if "preparazione_id" in body and (not isinstance(preparation_id, str) or not preparation_id):
+            return jsonify(ok=False, errore="Preparazione non valida."), 400
+        if preparation_id and (not allowed("agenda.leggi") or not allowed("agenda.scrivi")):
+            return jsonify(ok=False, errore="Operazione non autorizzata."), 403
         title = body.get("titolo")
         try:
             command = str(UUID(body.get("command_id")))
@@ -62,11 +67,26 @@ def register_editor_new_document_routes(app, *, get_fascicoli, audit, encrypt_do
                 matter = repository.get(id_fasc)
                 if matter is None:
                     return jsonify(ok=False, errore="Fascicolo non trovato."), 404
+                preparation_marker = ""
+                if preparation_id:
+                    from web.services.preparazione_udienza_verbale import source, marker as source_marker, validate_content
+                    session = source(preparation_id, id_fasc)
+                    preparation_marker = source_marker(session.id)
+                    linked = [doc for doc in matter.documenti if preparation_marker in (doc.tags or [])]
+                    if linked:
+                        if len(linked) != 1:
+                            return jsonify(ok=False, errore="Più verbali collegati: verifica i documenti del fascicolo."), 409
+                        document = linked[0]
+                        audit("udienza.verbale_riaperto", "fascicolo", id_fasc, dettagli=f"doc {document.id}; preparazione {session.id}")
+                        return jsonify(ok=True, document_id=document.id, url=f"/fascicoli/{id_fasc}/documenti/{document.id}/editor"), 201
+                    validate_content(session, matter, title, html)
                 previous = [doc for doc in matter.documenti if marker in (doc.tags or [])]
                 if previous:
                     if len(previous) != 1 or fingerprint not in previous[0].tags:
                         return jsonify(ok=False, errore="Richiesta già utilizzata per un documento diverso."), 409
                     document = previous[0]
+                    if preparation_marker:
+                        document = repository.aggiorna_documento_metadati(id_fasc, document.id, tags=[*document.tags, preparation_marker])
                 else:
                     from pct.editor_export import esporta_documento_editor
                     from web.services.editor_template_fonts import template_font_source
@@ -77,11 +97,13 @@ def register_editor_new_document_routes(app, *, get_fascicoli, audit, encrypt_do
                         id_fasc, filename, TipoDocumento.ALLEGATO, encrypt_doc(raw),
                         caricato_da=g.utente_corrente.username, fonte_documento="REDAZIONE_STUDIO",
                         note="Documento creato nell’editor professionale dello studio.",
-                        tags=["bozza-editor", marker, fingerprint], nome_originale=filename,
+                        tags=["bozza-editor", marker, fingerprint, *([preparation_marker] if preparation_marker else [])], nome_originale=filename,
                         hash_contenuto_sha256=hashlib.sha256(raw).hexdigest(), salvataggio_mirato=True,
                     )
                 audit("fascicoli.documento.editor_nuovo", "fascicolo", id_fasc, dettagli=f"doc {document.id}; comando {command}; ripetizione {bool(previous)}")
             return jsonify(ok=True, document_id=document.id, url=f"/fascicoli/{id_fasc}/documenti/{document.id}/editor"), 201
+        except ValueError as exc:
+            return jsonify(ok=False, errore=str(exc)), 409
         except Exception:
             app.logger.exception("Creazione documento editor non confermata")
             return jsonify(ok=False, errore="Creazione non confermata. Riprova la stessa richiesta."), 503

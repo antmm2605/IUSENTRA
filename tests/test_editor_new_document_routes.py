@@ -83,6 +83,53 @@ def test_missing_matter_never_writes(environment):
     assert not repo().get(matter).documenti
 
 
+def test_preparation_link_is_persistent_and_second_session_reuses_document(environment, monkeypatch):
+    from pct.controllo_studio.fonti import rif_fascicolo
+    from web.services.preparazione_udienza_verbale import linked_document
+    client, repo, matter, permissions, _ = environment
+    permissions.update({'agenda.leggi', 'agenda.scrivi'})
+    session = SimpleNamespace(id=str(uuid4()), id_fascicolo=matter, id_appuntamento='', verbale_preparazione='Bozza controllata.')
+    monkeypatch.setattr('web.services.preparazione_udienza_verbale.source', lambda sid, fid: session)
+    label = rif_fascicolo(repo().get(matter))['etichetta']
+    payload = {'titolo': f'Preparazione verbale udienza {session.id}', 'command_id': str(uuid4()),
+               'html': f'<h1>Preparazione del verbale di udienza</h1><p>{label}</p><p></p><p>Bozza controllata.</p>',
+               'preparazione_id': session.id}
+    first = client.post(f'/api/editor/{matter}/nuovo', json=payload)
+    assert first.status_code == 201, first.json
+    second = client.post(f'/api/editor/{matter}/nuovo', json={**payload, 'command_id': str(uuid4())})
+    assert second.status_code == 201 and second.json == first.json
+    documents = repo().get(matter).documenti
+    assert len(documents) == 1
+    assert linked_document(session.id, matter, documents)['href'].endswith('/' + first.json['document_id'] + '/editor')
+
+
+def test_preparation_changed_source_cannot_create_unverified_document(environment, monkeypatch):
+    client, repo, matter, permissions, _ = environment
+    permissions.update({'agenda.leggi', 'agenda.scrivi'})
+    session = SimpleNamespace(id=str(uuid4()), id_fascicolo=matter, id_appuntamento='', verbale_preparazione='Fonte salvata.')
+    monkeypatch.setattr('web.services.preparazione_udienza_verbale.source', lambda sid, fid: session)
+    result = client.post(f'/api/editor/{matter}/nuovo', json={**body(), 'preparazione_id': session.id})
+    assert result.status_code == 409
+    assert not repo().get(matter).documenti
+
+
+def test_preparation_link_needs_agenda_permission(environment):
+    client, repo, matter, _, _ = environment
+    assert client.post(f'/api/editor/{matter}/nuovo', json={**body(), 'preparazione_id': str(uuid4())}).status_code == 403
+    assert not repo().get(matter).documenti
+
+
+@pytest.mark.parametrize('persistent,same_case,reference_issue', [(False, True, ''), (True, False, ''), (True, True, 'Riferimento discordante')])
+def test_preparation_source_refuses_unadopted_or_other_case(monkeypatch, persistent, same_case, reference_issue):
+    from web.services.preparazione_udienza_verbale import source
+    sid = str(uuid4())
+    session = SimpleNamespace(id=sid, id_fascicolo='CORRETTO' if same_case else 'ALTRO', reference_issue=reference_issue)
+    manager = SimpleNamespace(write_protocol={'persistentCommands': persistent}, carica=lambda key: session)
+    monkeypatch.setattr('web.helpers.get_wizard_pro', lambda: manager)
+    with pytest.raises(ValueError):
+        source(sid, 'CORRETTO')
+
+
 def test_final_pdf_native_sql_retry_preserves_source(environment, monkeypatch):
     client, repo, matter, permissions, _ = environment
     request = body()

@@ -253,6 +253,12 @@ _TEMPLATE_GENERIC_TOKENS = {
     "atto_introduttivo_o_istanza_telematica",
     "art",
     "cpc",
+    "cc",
+    "cpp",
+    "cpa",
+    "artt",
+    "ss",
+    "dlgs",
     "c",
     "p",
     "ex",
@@ -266,7 +272,9 @@ _TEMPLATE_GENERIC_TOKENS = {
 
 def _specific_template_tokens(guida: dict[str, Any], fascicolo: dict[str, Any]) -> list[str]:
     tokens = _template_search_tokens(guida, fascicolo)
-    return [token for token in tokens if token not in _TEMPLATE_GENERIC_TOKENS and not token.isdigit()][:12]
+    return [token for token in tokens
+            if token.replace(".", "") not in _TEMPLATE_GENERIC_TOKENS
+            and not token.replace(".", "").isdigit()][:12]
 
 
 def _template_row_text(row: dict[str, Any]) -> str:
@@ -480,7 +488,11 @@ def build_document_plan_for_guida(guida: dict[str, Any] | None, fascicolo: dict[
             "import": {"enabled": True, "formats": ["PDF", "Word"], "message": "Puoi importare un documento dello studio e collegarlo al passaggio della guida."},
         }
     tokens = _template_search_tokens(guida, fascicolo)
-    specific_tokens = _specific_template_tokens(guida, fascicolo)
+    # La procedura selezionata governa la pertinenza del modello. Il titolo
+    # del fascicolo può ordinare candidati pertinenti, non renderne coerente
+    # uno diverso soltanto perché condivide parole come "fase".
+    specific_tokens = _specific_template_tokens(
+        guida, {} if guida.get("denominazione") or atto else fascicolo)
     candidates: list[tuple[int, list[str], dict[str, Any]]] = []
     for row in build_template_catalog_items():
         if not _template_is_context_compatible(row, guida, fascicolo):

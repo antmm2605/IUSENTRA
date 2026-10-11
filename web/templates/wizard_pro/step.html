@@ -283,6 +283,11 @@
                       placeholder="Eccezione di prescrizione / Incompetenza per territorio / ...">{{ sessione.eccezioni_da_sollevare }}</textarea>
           </div>
 
+          <div class="mb-3">
+            <label for="verbale-preparazione" class="form-label fw-semibold small">Preparazione del verbale</label>
+            <textarea id="verbale-preparazione" name="verbale_preparazione" class="form-control" rows="5" maxlength="4000">{{ sessione.verbale_preparazione }}</textarea>
+            <a href="https://note.dirittopratico.it/Guida" target="_blank" rel="noreferrer">Guida Diritto Pratico</a>
+          </div>
           {# ══════════════════════════════════════════ STEP 4 — PRE-PARTENZA #}
           {% elif step_n == 4 %}
 

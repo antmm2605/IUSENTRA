@@ -8,12 +8,13 @@ export type SchedaUdienza = {
   writeProtocol?: import('../preparazioneUdienzaCommand').PreparationProtocol; revision?: number
   ok: boolean; message?: string; id: string; titolo: string; stato: string; completata: boolean; passoCorrente: number; passi: Passo[]
   udienza: { dataOra: string; quando: string; luogo: string; ufficio: string; giudice: string; sezione: string; rg: string; collegamento: string; agendaHref: string }
-  causa: { cliente: string; controparte: string; avvocatoControparte: string; oggetto: string; fascicolo: { etichetta?: string; href?: string }; idCliente: string }
+  causa: { cliente: string; controparte: string; avvocatoControparte: string; oggetto: string; fascicolo: { id?: string; etichetta?: string; href?: string }; idCliente: string }
   termini: Array<{ titolo: string; data: string; perentorio: boolean; href: string }>
   attivita: Array<{ data: string; titolo: string; descrizione: string }>
   tipoUdienza: string; tipi: Array<{ value: string; label: string; senzaPresenza: boolean }>; verifiche: Verifica[]
   avvisoAssenza: { testo: string; fonte: Fonte }
   documenti: DocumentoUdienza[]
+  verbaleDocumento?: { href: string; message: string; documentId?: string }
   campi: Record<string, string | boolean>
   esito: { valore: string; rinvioData: string; rinvioOra: string; noteVerbale: string; azioni: string; termini: TermineAssegnato[]; rinvioAgendaHref: string }
   esiti: Array<{ value: string; label: string }>

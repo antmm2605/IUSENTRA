@@ -42,6 +42,7 @@ import {
 } from 'lucide-react'
 import { AgendaResearchFilters, emptyAgendaFilters, matchesAgendaFilters, type AgendaFilters } from './AgendaResearchFilters'
 import './AgendaResearch.css'
+const AgendaProceduralTools = lazy(() => import('./AgendaProceduralTools'))
 import { Badge, Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
 import { JsonPostForm } from './JsonPostForm'
@@ -49,7 +50,7 @@ import { SourceDocumentModal } from './SourceDocumentModal'
 import { OperationalModal } from './OperationalModal'
 import type { AgendaEvent, AgendaKind, AgendaView } from '../agendaData'
 import { formatDateIt } from '../formatting'
-import { AGENDA_ACTIVITY_PREFIX, agendaActivityText, agendaHighlightStartIndex, agendaProposedSteps, type AgendaProposedStep } from '../features/agenda/agendaDetailActions'
+import { AGENDA_ACTIVITY_PREFIX, agendaActivityText, agendaDeadlineCalculatorHref, agendaHighlightStartIndex, agendaProposedSteps, type AgendaProposedStep } from '../features/agenda/agendaDetailActions'
 import { cleanAccessInfo, plausiblePasscode, readablePlatform } from '../features/scadenziario/deadlineDetailFacts'
 import {
   addDays,
@@ -787,6 +788,9 @@ export function AgendaFocus({
         {remotePasscode ? <div><dt>Codice di accesso</dt><dd>{remotePasscode}</dd></div> : null}
         {remoteAccessInfo ? <div><dt>Istruzioni</dt><dd>{remoteAccessInfo}</dd></div> : null}
       </dl>
+      <Suspense fallback={<p role="status">Caricamento del supporto operativo…</p>}>
+        <AgendaProceduralTools key={event.id} fascicoloId={event.matterId || ''} fascicoloTitle={event.matter || ''}/>
+      </Suspense>
       </div>
       <div className="iu-ag-focus__actions">
         {onPrepare && event.kind === 'udienza' ? <button type="button" onClick={() => onPrepare(event)}><BriefcaseBusiness size={15}/>Prepara l’udienza</button> : null}
@@ -801,7 +805,7 @@ export function AgendaFocus({
         )}
         <a href={`/messaggi/nuovo?oggetto=${encodeURIComponent(agendaHeadline(event))}`}><MessageCircleIcon/>Avvisa cliente</a>
         {event.matterId ? <a href={`/notifiche-legali?id_fascicolo=${encodeURIComponent(event.matterId)}&fase=notifica`}><Bell size={15}/>Prepara notifica</a> : null}
-        <a href="/scadenziario/calcola-termini"><CalendarCheck size={15}/>Calcola termine</a>
+        <a href={agendaDeadlineCalculatorHref(event)}><CalendarCheck size={15}/>Calcola termine</a>
         <a href="#lex" data-lex-open data-lex-context="agenda" data-lex-label={`Contesto agenda: ${agendaHeadline(event)}`}><Sparkles size={15}/>Chiedi a Lex</a>
         {!isDeadline && event.completed ? (
           <span className="iu-ag-focus__completed" role="status"><CheckCircle2 size={15}/>Attività completata</span>

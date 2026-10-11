@@ -48,7 +48,7 @@ export function restorePreparationDraft(storage: Pick<Storage, 'getItem'>, scope
   return { ...merged, outcomeDirty: draft.outcomeDirty }
 }
 export const preparationStepFields: Record<number, string[]> = {
-  1: ['step1_note'], 3: ['note_preparazione', 'argomenti_principali', 'richieste_giudice', 'eccezioni_da_sollevare'],
+  1: ['step1_note'], 3: ['note_preparazione', 'argomenti_principali', 'richieste_giudice', 'eccezioni_da_sollevare', 'verbale_preparazione'],
   4: ['precheck_firma_ok', 'precheck_docs_pronti', 'precheck_cliente_notificato', 'precheck_trasporto_ok', 'precheck_note'],
 }
 export function preparationSnapshot(source: SchedaUdienza): Values {

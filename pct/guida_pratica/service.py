@@ -224,6 +224,8 @@ class GuidaPraticaService:
         # `legal_knowledge_base.full.json`.
         if kb_path is None:
             self._kb = self._merge_kb_payloads(self._kb, self._load_kb_modules(data_dir))
+        from pct.guida_pratica.term_revisions import revise_payload
+        self._kb = revise_payload(self._kb)
         self._kb_index = self._build_kb_index(self._kb)
         self._catalog_records = list(catalog_records) if catalog_records is not None else self._load_catalog_records()
         self._official_catalog_index = {
@@ -1059,6 +1061,8 @@ class GuidaPraticaService:
     def _normalise_guidance_payload(self, payload: dict[str, Any], *, codice: str, coverage: GuidaPraticaCoverage, fascicolo: dict[str, Any]) -> dict[str, Any]:
         out = deepcopy(payload)
         out["codice"] = normalize_codice_materia(out.get("codice") or codice)
+        from pct.guida_pratica.term_revisions import revise_item
+        out = revise_item(out)
         out["denominazione"] = _text(out.get("denominazione"), f"Codice materia {codice}")
         out["coverage"] = coverage.to_payload()
         out["catalogo_xsd"] = self._official_catalog_index.get(codice) or self._catalog_index.get(codice, {})

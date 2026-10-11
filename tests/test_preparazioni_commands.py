@@ -89,3 +89,18 @@ def test_two_operators_same_version_one_delivery_one_persistent_conflict(context
     assert db.conn.execute("SELECT count(*) FROM appuntamenti").fetchone()[0] == 2
     assert db.conn.execute("SELECT count(*) FROM scadenze").fetchone()[0] == 1
     assert db.conn.execute("SELECT count(*) FROM preparazioni_commands").fetchone()[0] == 2
+
+
+def test_verbal_draft_persists_without_recording_hearing_outcome(context):
+    db, repo, item = context
+    key = str(uuid4())
+    values = {"passo": 3, "campi": {"verbale_preparazione": "L’avvocato chiede un termine per le note."}}
+    result = execute(repo, item, "passo", values, key=key)
+    assert repo.get(item["id"])["record"]["verbale_preparazione"] == values["campi"]["verbale_preparazione"]
+    assert result["record"]["esito_note_verbale"] == ""
+    assert execute(repo, item, "passo", values, key=key) == result
+    assert db.conn.execute("SELECT count(*) FROM appuntamenti").fetchone()[0] == 1
+    assert db.conn.execute("SELECT count(*) FROM scadenze").fetchone()[0] == 0
+    with pytest.raises(PreparazioneRejected):
+        execute(repo, item, "passo", {"passo": 3, "campi": {"verbale_preparazione": "Bozza concorrente"}})
+    assert repo.get(item["id"])["record"]["verbale_preparazione"] == values["campi"]["verbale_preparazione"]

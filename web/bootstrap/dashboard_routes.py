@@ -185,6 +185,15 @@ def register_dashboard_routes(
         if request.method == "GET" and not richiede_vista_classica():
             return render_react_shell_response("agenda/nuovo")
         if request.method == "POST":
+            negato = _agenda_non_autorizzato("agenda.scrivi")
+            if negato is not None:
+                return negato
+            id_fascicolo = request.form.get("id_fascicolo", "").strip()
+            if id_fascicolo and get_fascicoli().get(id_fascicolo) is None:
+                if richiede_json():
+                    return jsonify({"ok": False, "message": "Il fascicolo collegato non è disponibile nello studio corrente."}), 404
+                flash("Il fascicolo collegato non è disponibile nello studio corrente.", "danger")
+                return redirect(url_for("agenda_view"))
             agenda = get_agenda()
             data = request.form.get("data", "")
             ora = request.form.get("ora", "09:00")
@@ -201,6 +210,7 @@ def register_dashboard_routes(
                     cliente=request.form.get("cliente", ""),
                     cf_cliente=request.form.get("cf_cliente", ""),
                     id_cliente=id_cliente_post,
+                    id_fascicolo=id_fascicolo,
                     procedimento=request.form.get("procedimento", ""),
                     tribunale=request.form.get("tribunale", ""),
                     avvocato=request.form.get("avvocato", ""),

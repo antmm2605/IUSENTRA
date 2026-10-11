@@ -100,7 +100,6 @@ from pct.soggetti import (
 )
 from pct.strumenti_legali import GestioneStrumentiLegali
 from pct.termini_processuali import (
-    DeadlinePracticeRepository,
     LEGAL_SOURCES,
     calculate_and_audit,
 )
@@ -5756,14 +5755,13 @@ def messaggi_react_nuovo():
 @_richiedi_auth
 def scadenziario_react_list():
     email_db_path = Path(_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"))
-    include_calculator = str(request.args.get("calcolatore", request.args.get("include_calculator", "1")) or "1").strip() != "0"
     return jsonify(build_react_scadenziario_payload(
         gestione_scadenziario=get_scadenziario(),
         gestione_fascicoli=get_fascicoli(),
         gestione_utenti=get_utenti(carica_audit=False),
         gestione_agenda=get_agenda(),
         query_args=request.args,
-        termini_processuali_db=str(_termini_processuali_repository().path) if include_calculator else "",
+        calculator_templates_loader=lambda: _termini_processuali_repository().list_templates(),
         pec_audit_db=str(email_db_path.parent / "pec_audit.sqlite"),
         tenant_id=_tenant_runtime_label(),
     ))
@@ -5783,33 +5781,11 @@ def scadenziario_react_nuova():
     ))
 
 
-def _termini_processuali_repository() -> DeadlinePracticeRepository:
-    anchor = Path(_cfg_value("SCADENZIARIO_DB", "./scadenziario/scadenze.json"))
-    repo = DeadlinePracticeRepository.json(anchor.with_name("termini_processuali.json"))
-    _ensure_guida_pratica_terms_repository(repo)
-    return repo
-
-
-_GUIDA_PRATICA_TERMINI_BOOTSTRAPPED: set[str] = set()
-
-
-def _ensure_guida_pratica_terms_repository(repo: DeadlinePracticeRepository) -> None:
-    if repo.backend != "json":
-        return
-    repo_key = str(repo.path.resolve())
-    if repo_key in _GUIDA_PRATICA_TERMINI_BOOTSTRAPPED:
-        return
-    try:
-        from scripts.import_guida_pratica_termini_processuali import bootstrap_guida_pratica_terms_repository
-
-        bootstrap_guida_pratica_terms_repository(repo.path)
-    except Exception:
-        current_app.logger.warning(
-            "Bootstrap termini Guida Pratica non completato",
-            exc_info=True,
-        )
-    finally:
-        _GUIDA_PRATICA_TERMINI_BOOTSTRAPPED.add(repo_key)
+def _termini_processuali_repository():
+    factory = _core_runtime_func("get_termini_processuali")
+    if factory is None:
+        raise RuntimeError("Repository dei termini dello studio non configurato.")
+    return factory()
 
 
 def _current_user_id() -> str:
@@ -6077,6 +6053,8 @@ def _validate_current_tenant_fascicolo_id(id_fascicolo: str) -> tuple[bool, dict
 @api_v1_react.post("/scadenziario/termini/override")
 @_richiedi_auth
 def scadenziario_termini_override():
+    if not _scadenziario_can_write():
+        return jsonify({"ok": False, "errore": "Permesso insufficiente."}), 403
     payload = _json_body()
     reason = str(payload.get("override_reason") or payload.get("overrideReason") or "").strip()
     if not reason:
@@ -6098,8 +6076,14 @@ def scadenziario_termini_override():
 @api_v1_react.post("/scadenziario/termini/crea-scadenza")
 @_richiedi_auth
 def scadenziario_termini_crea_scadenza():
+    if not _scadenziario_can_write():
+        return jsonify({"ok": False, "errore": "Permesso insufficiente."}), 403
     payload = _json_body()
     try:
+        id_fascicolo = str(payload.get("id_fascicolo") or payload.get("fascicoloId") or "").strip()
+        valid_fascicolo, fascicolo_error = _validate_current_tenant_fascicolo_id(id_fascicolo)
+        if not valid_fascicolo:
+            return jsonify({**(fascicolo_error or {}), "crossTenantBlocked": True}), 404
         repo = _termini_processuali_repository()
         user_id = _current_user_id()
         result = calculate_and_audit(
@@ -6108,12 +6092,15 @@ def scadenziario_termini_crea_scadenza():
             user_id=user_id,
         )
         template = result["template"]
+        if template.get("ferial_suspension_policy") in {"manual_review", "partial"}:
+            return jsonify({
+                "ok": False,
+                "requiresLegalReview": True,
+                "messaggio": "Sospensione feriale non determinata: verifica la fonte e definisci la regola prima di creare la scadenza.",
+                "audit": result["audit"],
+            }), 409
         title = str(payload.get("title") or payload.get("titolo") or template["name"]).strip()
         due_date = str(result["deadline"])
-        id_fascicolo = str(payload.get("id_fascicolo") or payload.get("fascicoloId") or "").strip()
-        valid_fascicolo, fascicolo_error = _validate_current_tenant_fascicolo_id(id_fascicolo)
-        if not valid_fascicolo:
-            return jsonify({**(fascicolo_error or {}), "crossTenantBlocked": True}), 404
         parsed_due_date = _parse_italian_deadline_date(due_date)
         if parsed_due_date and parsed_due_date < _deadline_today_rome():
             return jsonify({

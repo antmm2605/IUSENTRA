@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.437.12 — candidata, 12/10/2026
+
+- Impugnazione, reclamo e Scadenziario nel dettaglio Agenda conservano il fascicolo e riusano catalogo e calcolatore nativi. Le revisioni dei termini sono auditate nel repository SQL dello studio.
+- Il verbale nasce dal passo Strategia della preparazione udienza, con bozza salvata, creazione idempotente e collegamento persistente al documento nel fascicolo. La riapertura conserva lo stesso DOCX.
+- L’export conserva l’interlinea misurata dei paragrafi uniformi; il caso controllato DOCX/PDF è stato confrontato nella copia reale. I formati misti mantengono il percorso precedente.
+- Il calcolatore impedisce la creazione con sospensione feriale non determinata, mostra le regole in italiano e mantiene compatti i comandi.
+- Adozione SQL durante il deploy soltanto con attivazione esplicita, backup coerente e produttori fermi. Le importazioni fonti non partono di default dal deploy.
+- Rilascio aperto: controlli finali, commit/push, copia locale sul commit e adozione/deploy produzione ancora da eseguire. L’incarico generale prosegue.
+
 ## 2.437.11 — 11/10/2026
 
 - Utility riunisce strumenti forensi e operativi con ricerca e filtro per argomento. Destinazioni, preset dei calcolatori e collegamenti storici alle singole applicazioni sono conservati.

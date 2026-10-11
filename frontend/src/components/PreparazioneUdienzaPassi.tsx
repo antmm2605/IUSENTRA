@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, BookOpen, CheckCircle2, ExternalLink, FileText, MessageSquare, Plus, Scale, Trash2 } from 'lucide-react'
 import { dataIt, type Fonte, type SchedaUdienza, type TermineAssegnato } from './preparazioneUdienzaTipi'
 import { SourceDocumentModal, type SourceDocument } from './SourceDocumentModal'
+import { VerbaleUdienzaDocumento } from './VerbaleUdienzaDocumento'
 
 export type Azioni = {
   salvaCampi: (passo: number, campi: Record<string, unknown>, conferma?: boolean) => Promise<'saved' | 'deferred' | 'failed'>
@@ -40,7 +41,7 @@ function Testo({ nome, etichetta, valore, righe = 4, suggerimento, passo, a }: {
   }, [valore, nome, passo, a.occupato])
   return (
     <label className="iu-pu-campo"><span>{etichetta}</span>
-      <textarea rows={righe} value={valore} readOnly={!a.puoModificare} placeholder={suggerimento} onChange={(e) => { changed.current = true; a.modificaCampi({ [nome]: e.target.value }) }}
+      <textarea rows={righe} maxLength={4000} value={valore} readOnly={!a.puoModificare} placeholder={suggerimento} onChange={(e) => { changed.current = true; a.modificaCampi({ [nome]: e.target.value }) }}
         onBlur={() => { if (changed.current && !a.occupato) { void a.salvaCampi(passo, { [nome]: valore }).then(result => {
           if (result !== 'deferred' && latestValue.current === valore) changed.current = false
         }) } }}/>
@@ -142,6 +143,13 @@ export function PassoStrategia({ s, a }: { s: SchedaUdienza; a: Azioni }) {
         suggerimento="Istanze istruttorie, termini, rinvio, ammissione di testi o CTU."/>
       <Testo nome="eccezioni_da_sollevare" etichetta="Eccezioni" valore={String(s.campi.eccezioni_da_sollevare || '')} passo={3} a={a}
         suggerimento="Eccezioni da sollevare o da contrastare."/>
+      <section className="iu-pu-blocco">
+        <h3><FileText size={15}/> Preparazione del verbale</h3>
+        <Testo nome="verbale_preparazione" etichetta="Bozza delle dichiarazioni e delle richieste" valore={String(s.campi.verbale_preparazione || '')} passo={3} a={a}
+          suggerimento="Prepara qui il testo da proporre in udienza. La bozza resta distinta dall’esito effettivo."/>
+        <a href="https://note.dirittopratico.it/Guida" target="_blank" rel="noreferrer"><BookOpen size={15}/> Guida Diritto Pratico <ExternalLink size={12}/></a>
+        <VerbaleUdienzaDocumento key={`${s.writeProtocol?.scope || ''}:${s.id}`} scheda={s} azioni={a}/>
+      </section>
       <Testo nome="note_preparazione" etichetta="Se la controparte…" valore={String(s.campi.note_preparazione || '')} passo={3} a={a}
         suggerimento="Risposte pronte alle mosse prevedibili della controparte."/>
     </div>

@@ -17,6 +17,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from pct.termini_processuali import DeadlinePracticeRepository  # noqa: E402
+from pct.guida_pratica.term_revisions import revise_item  # noqa: E402
 
 DEFAULT_DB = ROOT / "data" / "scadenziario" / "termini_processuali.json"
 DEFAULT_REPORT = ROOT / "artifacts" / "guida-pratica" / "termini-processuali-import-report.json"
@@ -144,6 +145,7 @@ def _walk_terms(obj: Any, source: Path, container: Mapping[str, Any] | None = No
         terms = obj.get("termini_processuali")
         if isinstance(terms, list):
             code = _text(obj.get("codice") or obj.get("code") or obj.get("id") or current.get("codice") or current.get("code") or current.get("id"))
+            terms = revise_item({**obj, "codice": code}).get("termini_processuali", terms)
             title = _text(obj.get("denominazione") or obj.get("titolo") or obj.get("title") or current.get("denominazione") or current.get("titolo") or current.get("title"))
             for index, raw_term in enumerate(terms, 1):
                 term = raw_term if isinstance(raw_term, dict) else {"termine": str(raw_term)}
@@ -167,9 +169,14 @@ def _walk_terms(obj: Any, source: Path, container: Mapping[str, Any] | None = No
                     "classificazione_import": classification,
                     "calcolabile_automaticamente": calculable,
                     "nota_import": note,
-                    "matter_type": infer_matter_type(current),
+                    "matter_type": "civil" if code in {"411003", "014100"} else infer_matter_type(current),
                     "direction": infer_direction(term),
                     "ordinal": index,
+                    "ferial_suspension_policy": term.get("ferial_suspension_policy", "applies"),
+                    "suspend_august": term.get("suspend_august", True),
+                    "source_event_options": term.get("source_event_options", []),
+                    "rule_revision": term.get("revision", ""),
+                    "verified_source": term.get("fonte_verifica", ""),
                 }
                 row["term_rule_code"] = "GP_TERM_" + _stable_code(row["codice"], row["termine"], row["decorrenza"], row["norma"])
                 row["id"] = row["term_rule_code"]
@@ -211,8 +218,8 @@ def _template_from_term(row: Mapping[str, Any]) -> dict[str, Any] | None:
         "base_value": int(base_value),
         "period_type": period_type,
         "direction": _text(row.get("direction")) or "forward",
-        "suspend_august": True,
-        "ferial_suspension_policy": "manual_review" if row.get("classificazione_import") == "manual_review" else "applies",
+        "suspend_august": row.get("suspend_august", True),
+        "ferial_suspension_policy": "manual_review" if row.get("classificazione_import") == "manual_review" else row.get("ferial_suspension_policy", "applies"),
         "free_term": bool(row.get("direction") == "backward"),
         "urgent": "urgente" in _text(row.get("termine")).lower(),
         "extend_saturday": True,
@@ -229,6 +236,9 @@ def _template_from_term(row: Mapping[str, Any]) -> dict[str, Any] | None:
             "natura": _text(row.get("natura")),
             "criticita": _text(row.get("criticita")),
             "requires_professional_review": True,
+            "source_event_options": row.get("source_event_options", []),
+            "rule_revision": row.get("rule_revision", ""),
+            "verified_source": row.get("verified_source", ""),
         },
         "version": 1,
     }

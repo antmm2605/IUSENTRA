@@ -249,6 +249,30 @@ compose_up_with_cleanup() {
 # ---------------------------------------------------------------------------
 # 5. Build e avvio servizi
 # ---------------------------------------------------------------------------
+adopt_termini_before_start() {
+  [ "${IUSENTRA_DEPLOY_ADOPT_TERMINI:-0}" = "1" ] || return 0
+  local compose=(docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}")
+  local service container running
+  echo "Adozione SQL termini: arresto dei produttori prima del backup coerente."
+  "${compose[@]}" stop app scheduler-worker ocr-worker
+  for service in app scheduler-worker ocr-worker; do
+    for container in $(docker ps -aq --filter label=com.docker.compose.project=iusentra --filter "label=com.docker.compose.service=$service"); do
+      running="$(docker inspect --format '{{.State.Running}}' "$container")"
+      if [ "$running" != "false" ]; then
+        echo "Produttore $service ancora attivo: adozione e avvio sospesi." >&2
+        return 1
+      fi
+    done
+  done
+  # Percorso stabile per riprendere lo stesso backup dopo un'interruzione.
+  # Un errore lascia i produttori fermi: non riaprire il vecchio scrittore JSON.
+  "${compose[@]}" run --no-deps --rm --entrypoint python app \
+    -m scripts.migra_termini_sql --tenant all \
+    --report /data/backup/termini-sql-20261012/deploy-report.jsonl \
+    --backup-dir /data/backup/termini-sql-20261012/adozione \
+    --apply --writers-drained --initialize-missing
+}
+
 CORE_BOOT_SERVICES=(redis)
 CORE_HEALTH_SERVICES=(redis app)
 if profile_enabled audit-worm; then
@@ -266,11 +290,16 @@ if [ "${IUSENTRA_DEPLOY_DRIVER:-compose}" = "portainer" ]; then
   # Anche un hotfix arrivato durante la build deve fermare il rimpiazzo.
   test -z "$(git status --porcelain)"
   python3 deploy/hetzner/check_runtime_sources.py --repo "$REPO_DIR" --target "$RELEASE_SHA"
+  if [ "${IUSENTRA_DEPLOY_ADOPT_TERMINI:-0}" = "1" ]; then
+    export IUSENTRA_APP_IMAGE="iusentra-app:${RELEASE_SHA}"
+    adopt_termini_before_start
+  fi
   python3 deploy/hetzner/portainer_deploy.py
 else
   docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" build
   test -z "$(git status --porcelain)"
   python3 deploy/hetzner/check_runtime_sources.py --repo "$REPO_DIR" --target "$(git rev-parse HEAD)"
+  adopt_termini_before_start
   cleanup_compose_conflict_containers
   compose_up_with_cleanup -d --no-build --remove-orphans "${CORE_BOOT_SERVICES[@]}"
 
@@ -382,6 +411,7 @@ docker compose \
 # ---------------------------------------------------------------------------
 # Idempotente: inserisce solo gli atti mancanti o cambiati rispetto a lex/normativa/integrazioni/leggi_essenziali.jsonl.
 # I vettori dei chunk nuovi li calcola il job notturno. Un errore qui non ferma il deploy.
+if [ "${IUSENTRA_DEPLOY_IMPORT_FONTI:-0}" = "1" ]; then
 if docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" \
      exec -T scheduler-worker test -f /data/normativa/normattiva.sqlite 2>/dev/null; then
   # Riallineamento degli articoli divisi male (c.p.a., articoli -bis/-ter fusi, articoli troncati sui rimandi).
@@ -416,6 +446,9 @@ docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" ex
   python tools/cortecost_importa.py --cartella "$cartella" --scarica --tutti-i-tenant --se-assente \
     >> "$cartella/import.log" 2>&1' \
   || echo "Attenzione: import dell'archivio della Corte costituzionale non avviato (ci riprova il deploy successivo)." >&2
+else
+  echo "Importazioni delle fonti durante il deploy disattivate: archivi correnti preservati."
+fi
 
 # ---------------------------------------------------------------------------
 # 8. Pulizia immagini e cache build Docker

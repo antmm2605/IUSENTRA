@@ -75,7 +75,7 @@
     {% endif %}
 
     {# Step 3 — Preparazione #}
-    {% if sessione.step3_confermato and (sessione.note_preparazione or sessione.argomenti_principali or sessione.richieste_giudice or sessione.eccezioni_da_sollevare) %}
+    {% if sessione.step3_confermato and (sessione.note_preparazione or sessione.argomenti_principali or sessione.richieste_giudice or sessione.eccezioni_da_sollevare or sessione.verbale_preparazione) %}
     <div class="card border-0 shadow-sm mb-3">
       <div class="card-header bg-success text-white py-2 d-flex align-items-center gap-2">
         <i class="bi bi-pencil-square"></i>
@@ -85,6 +85,7 @@
       <div class="card-body py-3 px-3">
         {% for label, val in [
           ('Note generali', sessione.note_preparazione),
+          ('Bozza del verbale', sessione.verbale_preparazione),
           ('Argomenti', sessione.argomenti_principali),
           ('Richieste al giudice', sessione.richieste_giudice),
           ('Eccezioni', sessione.eccezioni_da_sollevare),

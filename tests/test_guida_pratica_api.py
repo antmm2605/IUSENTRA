@@ -11,6 +11,36 @@ from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
 
 
+def test_revocazione_non_associa_modello_solo_per_sigla_normativa(monkeypatch):
+    from pct.guida_pratica.service import get_guida_pratica_service
+    from web.services.react_guida_pratica_bridge import build_document_plan_for_guida
+    context = {"titolo": "QA fase 7 — conferma profilo procedurale", "tipo": "CIVILE", "area_pratica": "Civile"}
+    guida = get_guida_pratica_service().get_guidance("101002", fascicolo=context)
+    unrelated = {"codice": "CIV_ESE_012", "titolo": "Dichiarazione 553 c.p.c.", "materia": "Civile",
+                 "prefill_bindings": {"cliente": "cliente.nome"}}
+    appropriate = {"codice": "CONTROLLO_REVOCAZIONE", "titolo": "Ricorso per revocazione della sentenza",
+                   "materia": "Civile", "tipo_atto": "ricorso_revocazione"}
+    case_title_only = {"codice": "CONTROLLO_PROCURA", "titolo": "Procura per fase esecutiva", "materia": "Civile",
+                       "prefill_bindings": {"cliente": "cliente.nome"}}
+    monkeypatch.setattr("pct.template_catalog_service.build_template_catalog_items", lambda: [unrelated, case_title_only, appropriate])
+    result = build_document_plan_for_guida(guida, context)["template"]
+    assert result["recommended"]["id"] == "CONTROLLO_REVOCAZIONE"
+    assert all(row["id"] not in {"CIV_ESE_012", "CONTROLLO_PROCURA"} for row in result["alternatives"])
+
+
+def test_sigla_normativa_non_crea_certezza_se_modello_pertinente_assente(monkeypatch):
+    from pct.guida_pratica.service import get_guida_pratica_service
+    from web.services.react_guida_pratica_bridge import build_document_plan_for_guida
+    guida = get_guida_pratica_service().get_guidance("101002")
+    monkeypatch.setattr("pct.template_catalog_service.build_template_catalog_items", lambda: [
+        {"codice": "CIV_ESE_012", "titolo": "Dichiarazione 553 c.p.c.", "materia": "Civile"},
+    ])
+    result = build_document_plan_for_guida(guida, {"area_pratica": "Civile"})["template"]
+    assert result["status"] == "non_collegato"
+    assert result["recommended"] is None
+    assert result["autoLoad"] is False
+
+
 def _app(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
@@ -522,3 +552,23 @@ def test_guida_pratica_api_fascicolo_senza_codice_resta_facoltativa_e_non_blocca
     assert payload["code"] == "guida_pratica_facoltativa_non_collegata"
     assert "Puoi continuare a lavorare" in payload["message"]
     assert "deposito" not in payload["message"].casefold()
+
+
+def test_explicit_procedure_keeps_fascicolo_context_and_rejects_unknown_matter(tmp_path: Path):
+    app = _app(tmp_path)
+    headers = {"X-API-Key": "guida-test-key"}
+    repository = GestioneFascicoli(db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"], archive_dir=app.config["FASCICOLI_ARCH"])
+    matter = repository.nuovo("Procedimento di origine", TipoFascicolo.CIVILE,
+        nome_cliente="Cliente controllato", tribunale="Tribunale di Palmi", codice_oggetto_pst="010001")
+    with app.test_client() as client:
+        response = client.get(f"/api/v1/ui/guida-pratica/014100?id_fascicolo={matter.id}", headers=headers)
+        missing = client.get("/api/v1/ui/guida-pratica/014100?id_fascicolo=altro-studio", headers=headers)
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["guida"]["codice"] == "014100"
+    assert payload["fascicolo"]["id"] == matter.id
+    assert payload["fascicolo"]["cliente"] == "Cliente controllato"
+    assert repository.get(matter.id).codice_oggetto_pst == "010001"
+    assert missing.status_code == 404
+    assert missing.get_json()["notFound"] is True

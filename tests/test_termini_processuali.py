@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
+import pytest
+
 from pct.termini_processuali import (
     DeadlinePracticeRepository,
     ItalianDeadlineCalculator,
@@ -118,8 +120,12 @@ def test_import_calendario_ufficiale_csv_versionato(tmp_path: Path):
     assert payload["official_holidays"][0]["day"] == "2026-01-01"
 
 
-def test_api_scadenziario_templates_bootstrap_guida_pratica_terms(tmp_path: Path):
+def test_api_scadenziario_templates_reads_prepared_guida_pratica_terms(tmp_path: Path):
     app = _app(tmp_path)
+    from scripts.import_guida_pratica_termini_processuali import bootstrap_guida_pratica_terms_repository
+    source = Path(app.config["TERMINI_PROCESSUALI_DB"])
+    bootstrap_guida_pratica_terms_repository(source)
+    original = source.read_bytes()
     _crea_operatore(app)
 
     with app.test_client() as client:
@@ -133,6 +139,7 @@ def test_api_scadenziario_templates_bootstrap_guida_pratica_terms(tmp_path: Path
         if item.get("metadata", {}).get("source") == "guida_pratica"
     ]
     assert response.status_code == 200
+    assert source.read_bytes() == original
     assert payload["templatesRawCount"] >= 1000
     assert payload["templatesVisibleCount"] == len(payload["templates"])
     assert len(guida_templates) < payload["templatesRawCount"]
@@ -140,6 +147,24 @@ def test_api_scadenziario_templates_bootstrap_guida_pratica_terms(tmp_path: Path
     visible_labels = [item.get("displayName") or item["name"] for item in guida_templates]
     assert len(visible_labels) == len(set(visible_labels))
     assert sum(1 for label in visible_labels if label == "Reclamo contro provvedimento cautelare") <= 1
+
+
+@pytest.mark.parametrize("policy", ["manual_review", "partial"])
+def test_api_non_crea_scadenza_con_feriale_non_determinata(tmp_path: Path, policy):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    with app.test_client() as client:
+        _login(client)
+        before = client.get("/api/v1/ui/scadenziario?vista=tutte").get_json()
+        result = client.post("/api/v1/ui/scadenziario/termini/crea-scadenza", json={
+            "template_code": "CIV_APPELLO_BREVE", "input_date": "2030-07-30",
+            "case_reference": "RG CONTROLLO/2030", "ferial_suspension_policy": policy,
+        })
+        after = client.get("/api/v1/ui/scadenziario?vista=tutte").get_json()
+    assert result.status_code == 409
+    assert result.get_json()["requiresLegalReview"] is True
+    assert result.get_json()["audit"]["immutableHash"]
+    assert before["items"] == after["items"]
 
 
 def test_api_scadenziario_calcolatore_calcola_e_crea_scadenza(tmp_path: Path):
@@ -236,7 +261,7 @@ def test_api_scadenziario_blocca_fascicolo_di_altro_tenant(tmp_path: Path):
     manager.aggiorna(studio_b.slug, api_key="studio-b-key")
     bootstrap_legacy_tenant_runtime_data(app, tenant_slug=studio_a.slug)
     bootstrap_legacy_tenant_runtime_data(app, tenant_slug=studio_b.slug)
-    paths_a = manager.percorsi_dati(studio_a.slug, reconcile_aliases=False)
+    manager.percorsi_dati(studio_a.slug, reconcile_aliases=False)
     paths_b = manager.percorsi_dati(studio_b.slug, reconcile_aliases=False)
     fascicoli_b = GestioneFascicoli(paths_b["FASCICOLI_DB"], documents_dir=paths_b["FASCICOLI_DOCS"])
     fascicolo_b = fascicoli_b.nuovo("Ricorso Studio B", TipoFascicolo.CIVILE, nome_cliente="Cliente B")
@@ -254,6 +279,7 @@ def test_api_scadenziario_blocca_fascicolo_di_altro_tenant(tmp_path: Path):
 
     with app.test_client() as client:
         blocked = client.post("/api/v1/ui/scadenziario/termini/crea-scadenza", json=payload, headers=headers_a)
+        audit_a = client.get("/api/v1/ui/scadenziario/termini/audit", headers=headers_a)
         scadenziario_a = client.get("/api/v1/ui/scadenziario?vista=tutte", headers=headers_a)
         agenda_a = client.get("/api/v1/ui/agenda?from=2030-07-30&to=2030-09-15", headers=headers_a)
         created = client.post("/api/v1/ui/scadenziario/termini/crea-scadenza", json=payload, headers=headers_b)
@@ -263,6 +289,8 @@ def test_api_scadenziario_blocca_fascicolo_di_altro_tenant(tmp_path: Path):
     assert blocked.status_code == 404
     blocked_payload = blocked.get_json()
     assert blocked_payload["crossTenantBlocked"] is True
+    assert audit_a.status_code == 200
+    assert audit_a.get_json()["items"] == []
     assert blocked_payload["messaggio"] == "Fascicolo non trovato nello studio corrente."
     assert scadenziario_a.status_code == 200
     assert agenda_a.status_code == 200

@@ -65,6 +65,16 @@ import './ScadenziarioPage.css'
 
 type SortKey = 'scadenza' | 'priorita' | 'titolo' | 'fascicolo' | 'giorni'
 
+const calculationRuleLabels: Record<string, string> = {
+  dies_a_quo_excluded: 'Giorno iniziale escluso',
+  free_term: 'Termine libero',
+  ferial_suspension_1_31_august: 'Sospensione feriale dal 1° al 31 agosto',
+  urgent_matter_ferial_bypass: 'Materia urgente: sospensione feriale esclusa',
+  saturday_extension_out_of_hearing: 'Proroga del sabato per attività fuori udienza',
+  holiday_extension: 'Proroga del giorno festivo',
+  manual_override: 'Rettifica manuale motivata',
+}
+
 type CalculatorForm = {
   templateCode: string
   inputDate: string
@@ -566,8 +576,8 @@ function defaultCalculatorForm(templates: DeadlineCalculatorTemplate[]): Calcula
   const first = templates[0]
   return {
     templateCode: first?.code || 'CUSTOM_PROCESSUALE',
-    inputDate: new Date().toISOString().slice(0, 10),
-    caseReference: '',
+    inputDate: '',
+    caseReference: initialFascicoloId(),
     title: first?.name || 'Termine processuale',
     baseValue: String(first?.base_value || 30),
     periodType: first?.period_type || 'days',
@@ -611,6 +621,7 @@ function calculatorRequest(form: CalculatorForm): Record<string, unknown> {
     template_code: form.templateCode,
     input_date: form.inputDate,
     case_reference: form.caseReference,
+    id_fascicolo: initialFascicoloId(),
     title: form.title,
     base_value: Number(form.baseValue || 0),
     period_type: form.periodType,
@@ -658,6 +669,7 @@ function ProcessDeadlineCalculator({
         </div>
         <Badge tone={result?.requiresLegalReview ? 'warning' : 'success'}>{result?.requiresLegalReview ? 'richiede verifica' : 'assistente verificabile'}</Badge>
       </header>
+      {!templates.length ? <p role="status">Nessuna regola di calcolo disponibile per questa procedura. Verifica il termine nella guida e la fonte del procedimento prima di registrare una scadenza.</p> : null}
       <div className="iu-scad-calculator__grid">
         <div className="iu-scad-calculator__form">
           <label>
@@ -715,9 +727,10 @@ function ProcessDeadlineCalculator({
             <label><input type="checkbox" checked={form.extendSaturday} onChange={(event) => onForm({ ...form, extendSaturday: event.target.checked })}/> Proroga sabato</label>
           </div>
           <div className="iu-scad-calculator__actions">
-            <button type="button" onClick={onCalculate} disabled={busy || !form.inputDate}><Wand2 size={15}/> Calcola e spiega</button>
-            <button type="button" onClick={onCreate} disabled={busy || !result}><CalendarPlus size={15}/> Crea scadenza controllata</button>
+            <button type="button" onClick={onCalculate} disabled={busy || !form.inputDate || !selected}><Wand2 size={15}/> Calcola e spiega</button>
+            <button type="button" onClick={onCreate} disabled={busy || !result || ['manual_review', 'partial'].includes(result.template.ferial_suspension_policy)}><CalendarPlus size={15}/> Crea scadenza controllata</button>
           </div>
+          {result && ['manual_review', 'partial'].includes(result.template.ferial_suspension_policy) ? <p role="status">Verifica nella fonte la sospensione feriale, definisci la regola e ripeti il calcolo prima di creare la scadenza.</p> : null}
           {selected ? <small>{selected.reference_law || 'Template configurabile'} · versione {selected.version}</small> : null}
           {status ? <p className="iu-scad-calculator__status">{status}</p> : null}
         </div>
@@ -731,7 +744,7 @@ function ProcessDeadlineCalculator({
               </div>
               <p>{result.explanation}</p>
               <div className="iu-scad-calculator__rules">
-                {result.rulesApplied.map((rule) => <Badge tone="neutral" key={rule}>{rule.split('_').join(' ')}</Badge>)}
+                {result.rulesApplied.map((rule) => <Badge tone="neutral" key={rule}>{calculationRuleLabels[rule] || 'Regola aggiuntiva da verificare'}</Badge>)}
               </div>
               <ol>
                 {result.steps.slice(0, 6).map((step) => <li key={`${step.code}-${step.date}`}>{formatItalianDate(step.date)} · {step.label}</li>)}
@@ -832,7 +845,11 @@ export function CalcolaTerminiPage() {
         form={form}
         busy={busy}
         status={status}
-        onForm={setForm}
+        onForm={(nextForm) => {
+          setForm(nextForm)
+          setResult(null)
+          setStatus('Parametri modificati: esegui nuovamente il calcolo.')
+        }}
         onCalculate={runCalculator}
         onCreate={runCreateCalculatedDeadline}
       />

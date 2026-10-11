@@ -41,6 +41,7 @@ type AppointmentForm = {
   cliente: string
   cf_cliente: string
   id_cliente: string
+  id_fascicolo: string
   from_cliente: string
   procedimento: string
   tribunale: string
@@ -233,6 +234,7 @@ function initialForm(): AppointmentForm {
     cliente: '',
     cf_cliente: '',
     id_cliente: params.get('id_cliente') ?? '',
+    id_fascicolo: params.get('id_fascicolo') ?? '',
     from_cliente: params.get('from_cliente') ?? '',
     procedimento: '',
     tribunale: '',
@@ -353,6 +355,7 @@ function formFromAgendaRecord(record: Record<string, unknown>, current: Appointm
     cliente: firstText(record, ['cliente', 'client', 'nome_cliente'], current.cliente),
     cf_cliente: firstText(record, ['cf_cliente', 'codice_fiscale'], current.cf_cliente).toUpperCase(),
     id_cliente: firstText(record, ['id_cliente', 'client_id'], current.id_cliente),
+    id_fascicolo: firstText(record, ['id_fascicolo'], current.id_fascicolo),
     procedimento: firstText(record, ['procedimento', 'matter', 'rg'], current.procedimento),
     tribunale: firstText(record, ['tribunale', 'court', 'ufficio'], current.tribunale),
     avvocato: firstText(record, ['avvocato', 'owner', 'responsabile'], current.avvocato),
@@ -825,6 +828,7 @@ export function NuovoAppuntamentoPage() {
           {recordLoading ? <p className="iu-appt-validation" role="status">Caricamento dell’appuntamento…</p> : null}
           {recordError ? <div className="iu-appt-validation" role="alert"><span>{recordError}</span><button className="iu-appt-outline" type="button" onClick={() => { void refreshAppointment().catch(() => undefined) }}>Riprova caricamento</button></div> : null}
           <input type="hidden" name="id_cliente" value={form.id_cliente} />
+          <input type="hidden" name="id_fascicolo" value={form.id_fascicolo} />
           <input type="hidden" name="from_cliente" value={form.from_cliente} />
 
           <section className="iu-appt-card">

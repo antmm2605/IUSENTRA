@@ -1119,6 +1119,28 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         from web.services.ctu_runtime import close_database
         close_database()
 
+    def get_termini_processuali():
+        if not hasattr(g, "_termini_processuali"):
+            from web.services.termini_runtime import open_termini_runtime
+            from web.services.storage_runtime import get_request_storage_runtime
+            tenant_key = str(getattr(g, "tenant_context_slug", "") or "").strip().lower()
+            if not tenant_key:
+                tenant_key = str(getattr(getattr(g, "tenant", None), "slug", "") or "").strip().lower()
+            if not tenant_key and not (app.config.get("MULTI_TENANT") or getattr(g, "multi_tenant_enabled", False)):
+                tenant_key = "studio"
+            user = getattr(g, "utente_corrente", None)
+            actor_key = str((user.get("id") or user.get("username") or "") if isinstance(user, dict)
+                            else (getattr(user, "id", "") or getattr(user, "username", "") or "")).strip()
+            g._termini_processuali = open_termini_runtime(_cfg_data_path("TERMINI_PROCESSUALI_DB"),
+                anchor=_cfg_data_path("CLIENTI_DB"), tenant_key=tenant_key, actor_key=actor_key,
+                get_profile=get_request_storage_runtime)
+        return g._termini_processuali
+
+    @app.teardown_request
+    def _close_termini_request_database(error):
+        from web.services.termini_runtime import close_database
+        close_database()
+
     def get_prima_nota():
         if not hasattr(g, "_prima_nota"):
             from web.services.prima_nota_runtime import open_prima_nota_runtime, get_existing_prima_nota_database
@@ -1465,6 +1487,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         "get_crm": get_crm,
         "get_antiriciclaggio": get_antiriciclaggio,
         "get_ctu": get_ctu,
+        "get_termini_processuali": get_termini_processuali,
         "get_prima_nota": get_prima_nota,
         "get_preventivi": get_preventivi,
         "get_fatturazione": get_fatturazione,

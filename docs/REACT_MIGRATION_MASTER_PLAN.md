@@ -1,5 +1,10 @@
 # Migrazione progressiva Flask + React
 
+## Agenda, termini e verbale — 12/10/2026 — candidata 2.437.12
+
+Repository termini canonico con parità SQLite/PostgreSQL, adozione esplicita con drain/backup/marker/audit e revisioni governate dei cataloghi. Nella copia reale sono stati visti collegamento Agenda, reclamo con 10 giorni, calcolo con data inizialmente vuota e ripresa persistente del verbale nel medesimo fascicolo. Il confronto DOCX/PDF controllato conferma testo e interlinea corretta. La creazione resta bloccata con feriale non determinata; il cambio parametri invalida il risultato. Dettagli e limiti nel [rapporto](../artifacts/data-flow/utility-agenda-verbale-20261011.md). Accettazione restante e rilascio sono aperti: nessun deploy produzione di questo punto ancora. Censimento SQL/live e altre anomalie dell’incarico generale restano distinti.
+
+
 ## Utility unificata — 11/10/2026 — candidata 2.437.11
 
 Una sola superficie React per i cataloghi forensi e operativi, con funzioni e preset nativi, ricerca e argomento. Conservati dettagli applicazioni e vecchi parametri app/app_id. Accettazione reale, confronto prestazionale e stato di commit/deploy sono registrati in [rapporto Utility e procedimenti](../artifacts/data-flow/utility-agenda-verbale-20261011.md); nessuna chiusura del lavoro generale o dei punti Agenda/verbale.

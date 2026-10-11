@@ -17,7 +17,7 @@ from pct.udienze.tipi import AVVISO_ASSENZA, TIPI, catalogo, fonte, verifiche
 
 CAMPI_PASSO = {
     1: ("step1_note",),
-    3: ("note_preparazione", "argomenti_principali", "richieste_giudice", "eccezioni_da_sollevare"),
+    3: ("note_preparazione", "argomenti_principali", "richieste_giudice", "eccezioni_da_sollevare", "verbale_preparazione"),
     4: ("precheck_firma_ok", "precheck_docs_pronti", "precheck_cliente_notificato", "precheck_trasporto_ok", "precheck_note"),
 }
 _ESITO_ATTIVITA = {"favorevole": "FAVOREVOLE", "parziale": "PARZIALE", "sfavorevole": "SFAVOREVOLE", "rinvio": "RINVIATO"}
@@ -34,6 +34,7 @@ def dettaglio(sessione: Any, *, agenda: Any, fascicoli: Any, scadenziario: Any, 
     from web.services.preparazione_udienza_documenti import nomi_documenti
     nomi = nomi_documenti(fascicolo)
     remoto = str(getattr(app, "remote_hearing_url", "") or "")
+    from web.services.preparazione_udienza_verbale import linked_document
     return {
         "ok": True, "id": sessione.id, "titolo": sessione.titolo, "stato": stato_etichetta(sessione), "completata": sessione.stato == "completato",
         "passoCorrente": max(1, min(int(sessione.step_corrente or 1), 5)), "passi": passi(sessione),
@@ -62,6 +63,7 @@ def dettaglio(sessione: Any, *, agenda: Any, fascicoli: Any, scadenziario: Any, 
             "href": f"/fascicoli/{quote(sessione.id_fascicolo)}/documenti/{quote(d['id_documento'])}/visualizza"
             if d.get("id_documento") in documenti else "",
         } for i, d in enumerate(sessione.checklist_documenti)],
+        "verbaleDocumento": linked_document(sessione.id, sessione.id_fascicolo, documenti.values()),
         "campi": {campo: getattr(sessione, campo) for campi in CAMPI_PASSO.values() for campo in campi},
         "esito": {"valore": sessione.esito, "rinvioData": sessione.esito_rinvio_data, "rinvioOra": sessione.esito_rinvio_ora,
                   "noteVerbale": sessione.esito_note_verbale, "azioni": sessione.esito_azioni, "termini": sessione.termini_assegnati,

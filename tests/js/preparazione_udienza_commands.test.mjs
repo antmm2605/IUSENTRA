@@ -117,3 +117,15 @@ test('documento aggiuntivo in bozza sopravvive a live e riapertura senza scrittu
   assert.equal(merged.values.campi.note_preparazione, 'Aggiornamento remoto')
   assert.deepEqual(merged.conflicts, [])
 })
+
+test('bozza verbale conserva il testo dopo riapertura e segnala il conflitto remoto', () => {
+  const local = storage()
+  const baseline = { ...completeSource, campi: { ...completeSource.campi, verbale_preparazione: 'Testo iniziale' } }
+  const draft = { ...baseline, campi: { ...baseline.campi, verbale_preparazione: 'Richiesta locale' } }
+  preservePreparationDraft(local, context.scope, baseline, draft, false)
+  const restored = restorePreparationDraft(local, context.scope, { ...baseline,
+    campi: { ...baseline.campi, verbale_preparazione: 'Richiesta altro operatore' } })
+  assert.equal(restored.values.campi.verbale_preparazione, 'Richiesta locale')
+  assert.deepEqual(restored.conflicts, ['verbale_preparazione'])
+  assert.deepEqual(restored.values.esito, baseline.esito)
+})

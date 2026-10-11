@@ -1747,7 +1747,7 @@ def _templates_for_guide(templates: list[dict[str, Any]], codice_guida: str) -> 
             continue
         if str(metadata.get("codice_originale_guida") or "").strip() == code:
             matched.append(template)
-    return dedupe_calculator_templates(matched or templates)
+    return dedupe_calculator_templates(matched)
 
 
 def build_react_scadenziario_payload(
@@ -1758,6 +1758,7 @@ def build_react_scadenziario_payload(
     gestione_agenda: Any = None,
     query_args: Mapping[str, Any] | None = None,
     termini_processuali_db: str = "",
+    calculator_templates_loader: Callable[[], list[dict[str, Any]]] | None = None,
     pec_audit_db: str = "",
     tenant_id: str = "default",
 ) -> dict[str, Any]:
@@ -1835,7 +1836,7 @@ def build_react_scadenziario_payload(
     calculator_templates = []
     if include_calculator and not compact:
         calculator_templates = _templates_for_guide(
-            _calculator_templates(termini_processuali_db),
+            calculator_templates_loader() if calculator_templates_loader is not None else _calculator_templates(termini_processuali_db),
             str(query.get("guidaPratica") or ""),
         )
     rows = [

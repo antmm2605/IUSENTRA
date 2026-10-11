@@ -23,7 +23,7 @@ const dataIt = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/$
 
 const campiStorici: Array<[string, string]> = [
   ['avvocato', 'Professionista registrato'], ['step1_note', 'Briefing'], ['note_preparazione', 'Preparazione'],
-  ['argomenti_principali', 'Argomenti'], ['richieste_giudice', 'Richieste al giudice'], ['eccezioni_da_sollevare', 'Eccezioni'],
+  ['verbale_preparazione', 'Bozza del verbale'], ['argomenti_principali', 'Argomenti'], ['richieste_giudice', 'Richieste al giudice'], ['eccezioni_da_sollevare', 'Eccezioni'],
   ['precheck_note', 'Prima dell’udienza'], ['esito', 'Esito storico'], ['esito_note_verbale', 'Verbale'], ['esito_azioni', 'Azioni previste'],
 ]
 

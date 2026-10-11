@@ -887,6 +887,15 @@
   font-size:12px;
   font-weight:850;
 }
+.iu-scad-calculator__checks input[type="checkbox"]{
+  width:16px;
+  height:16px;
+  min-height:16px;
+  flex:0 0 16px;
+  padding:0;
+}
+.iu-scad-calculator__checks label{white-space:nowrap}
+.iu-scad-calculator__form > p[role="status"]{grid-column:1/-1}
 .iu-scad-calculator__actions{
   grid-column:1/-1;
   display:flex;

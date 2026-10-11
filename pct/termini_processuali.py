@@ -273,8 +273,16 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         code="CIV_RECLAMO_CAUTELARE_669_TERDECIES",
         name="Reclamo cautelare",
         base_value=15,
-        reference_law="Art. 669-terdecies c.p.c.",
-        metadata={"source_event": "pronuncia_udienza"},
+        suspend_august=False,
+        ferial_suspension_policy="excluded",
+        reference_law="Art. 669-terdecies c.p.c.; art. 3 L. 742/1969; art. 92 R.D. 12/1941",
+        metadata={
+            "source_event": "pronuncia_udienza",
+            "source_events": ["pronuncia_udienza", "comunicazione", "notifica_anteriore"],
+            "decorrenza": "Dalla pronuncia in udienza oppure dalla comunicazione o dalla notificazione, se anteriore.",
+            "ferial_source": "Art. 3 L. 742/1969 e art. 92 R.D. 12/1941: procedimenti cautelari esclusi.",
+            "verified_on": "2026-10-11",
+        },
     ),
     DeadlineTemplate(
         code="CIV_CASSAZIONE_380_BIS",
@@ -776,15 +784,24 @@ class DeadlinePracticeRepository:
             conn.commit()
 
     def _read_json(self) -> dict[str, Any]:
-        if not self.path.exists():
-            return {}
-        try:
-            return json.loads(self.path.read_text(encoding="utf-8"))
-        except Exception:
-            return {}
+        from pct.termini_transition import assert_legacy_active, source_lock
+        with source_lock(self.path):
+            assert_legacy_active(self.path)
+            if not self.path.exists():
+                return {}
+            try:
+                payload = json.loads(self.path.read_text(encoding="utf-8"))
+            except (ValueError, UnicodeError) as exc:
+                raise RuntimeError("Archivio storico dei termini non leggibile: recupero necessario.") from exc
+            if not isinstance(payload, dict):
+                raise RuntimeError("Archivio storico dei termini non valido: recupero necessario.")
+            return payload
 
     def _write_json(self, payload: Mapping[str, Any]) -> None:
-        self.path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        from pct.termini_transition import assert_legacy_active, source_lock
+        with source_lock(self.path):
+            assert_legacy_active(self.path)
+            self.path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def list_templates(self) -> list[dict[str, Any]]:
         if self.backend == "sqlite":

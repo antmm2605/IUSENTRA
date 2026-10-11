@@ -307,6 +307,7 @@ def _step_notes(sessione: Any) -> dict[str, Any]:
     return {
         "step1_note": _safe_text(getattr(sessione, "step1_note", "")),
         "note_preparazione": _safe_text(getattr(sessione, "note_preparazione", "")),
+        "verbale_preparazione": _safe_text(getattr(sessione, "verbale_preparazione", "")),
         "argomenti_principali": _safe_text(getattr(sessione, "argomenti_principali", "")),
         "richieste_giudice": _safe_text(getattr(sessione, "richieste_giudice", "")),
         "eccezioni_da_sollevare": _safe_text(getattr(sessione, "eccezioni_da_sollevare", "")),

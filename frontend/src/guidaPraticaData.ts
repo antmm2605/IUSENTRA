@@ -222,7 +222,23 @@ export function getFascicoloGuidaPratica(fascicoloId: string): Promise<GuidaPrat
   return getJson<GuidaPraticaResponse>(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/guida-pratica`, emptyGuidaPraticaResponse())
 }
 
-export function getCodiceGuidaPratica(codice: string): Promise<GuidaPraticaResponse> {
+export function getCodiceGuidaPratica(codice: string, fascicoloId = ''): Promise<GuidaPraticaResponse> {
   if (!codice) return Promise.resolve(emptyGuidaPraticaResponse('Codice materia non indicato.'))
-  return getJson<GuidaPraticaResponse>(`/api/v1/ui/guida-pratica/${encodeURIComponent(codice)}`, emptyGuidaPraticaResponse())
+  const query = fascicoloId ? `?id_fascicolo=${encodeURIComponent(fascicoloId)}` : ''
+  return getJson<GuidaPraticaResponse>(`/api/v1/ui/guida-pratica/${encodeURIComponent(codice)}${query}`, emptyGuidaPraticaResponse())
+}
+
+export type GuidaCatalogRow = { codice: string; denominazione: string }
+
+export async function getGuidaProcedureCatalog(): Promise<GuidaCatalogRow[]> {
+  const response = await fetch('/api/v1/ui/guida-pratica/catalogo?limit=5000', {
+    credentials: 'same-origin', headers: { Accept: 'application/json' },
+  })
+  if (!response.ok) throw new Error('Catalogo delle procedure non disponibile. Riprova.')
+  const payload: unknown = await response.json()
+  if (!isRecord(payload) || payload.ok !== true || !Array.isArray(payload.items)) {
+    throw new Error('Il catalogo delle procedure non ha restituito dati validi.')
+  }
+  return payload.items.filter((row): row is GuidaCatalogRow => isRecord(row)
+    && typeof row.codice === 'string' && typeof row.denominazione === 'string')
 }

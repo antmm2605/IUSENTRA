@@ -50,7 +50,8 @@
     "frontend/src/components/layout/TopBarNotifications.css": "Notifiche operative selezionabili con presa visione e stato esplicito.",
     "frontend/src/components/strumenti/DocumentChecksTool.css": "Verifiche documentali negli strumenti forensi con token condivisi.",
     "frontend/src/components/OperationalLiveSync.css": "Avvisi della sincronizzazione condivisa: stato della connessione e conflitti preservati senza coprire i comandi; posizione adattiva, stampa esclusa, token del prodotto.",
-    "frontend/src/components/fascicoli/CtuSection.css": "Sezione CTU separata per caricamento puntuale: incarichi, termini e bozze con campi adattivi e comandi accessibili coerenti con il fascicolo."
+    "frontend/src/components/fascicoli/CtuSection.css": "Sezione CTU separata per caricamento puntuale: incarichi, termini e bozze con campi adattivi e comandi accessibili coerenti con il fascicolo.",
+    "frontend/src/features/offline/offline.css": "Percorso offline richiesto: shell pubblica separata senza dati autenticati, registro computer e vault cifrato; controlli nativi, superfici sobrie responsive, nessuno stile inline o accento decorativo."
   },
   "approvedCssFiles": [
     "frontend/src/components/ControlloStudioPage.css",
@@ -186,7 +187,8 @@
     "frontend/src/components/layout/TopBarNotifications.css",
     "frontend/src/components/strumenti/DocumentChecksTool.css",
     "frontend/src/components/OperationalLiveSync.css",
-    "frontend/src/components/fascicoli/CtuSection.css"
+    "frontend/src/components/fascicoli/CtuSection.css",
+    "frontend/src/features/offline/offline.css"
   ],
   "allowedInlineStyles": [
     {

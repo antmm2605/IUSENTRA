@@ -1,0 +1,19 @@
+.offline-workspace { font-family: system-ui, sans-serif; color: #111827; background: #f6f7f9; padding: 1.5rem; max-width: 1100px; margin: auto; line-height: 1.5; }
+.offline-workspace * { box-sizing: border-box; }
+.offline-workspace header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.offline-workspace h1 { font-size: 1.5rem; color: #1e3a8a; }
+.offline-workspace h2 { font-size: 1.25rem; }
+.offline-workspace h3 { font-size: 1.1rem; margin: .25rem 0; }
+.offline-workspace section, .offline-workspace article { background: white; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1rem; margin: 1rem 0; }
+.offline-workspace fieldset { border: 0; padding: 0; min-width: 0; }
+.offline-workspace label { display: block; margin: .75rem 0; font-weight: 600; }
+.offline-workspace input, .offline-workspace select, .offline-workspace textarea { display: block; width: 100%; padding: .65rem; border: 1px solid #64748b; border-radius: 6px; font: inherit; background: white; }
+.offline-workspace textarea { min-height: 130px; }
+.offline-workspace button { min-height: 44px; margin: .35rem .5rem .35rem 0; padding: .6rem .85rem; border: 1px solid #1e3a8a; border-radius: 8px; background: #1e3a8a; color: white; font: inherit; cursor: pointer; }
+.offline-workspace button:disabled { opacity: .55; cursor: default; }
+.offline-workspace :focus-visible { outline: 3px solid #b08968; outline-offset: 3px; }
+.offline-workspace a { color: #1e3a8a; }
+.offline-workspace pre, .offline-note-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.offline-code { word-break: break-all; }
+.offline-message { border: 1px solid #64748b; padding: 1rem; background: #f1f5f9; }
+@media (max-width: 600px) { .offline-workspace { padding: .75rem; } .offline-workspace button { width: 100%; } }

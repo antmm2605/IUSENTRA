@@ -704,3 +704,10 @@ Il codice oggi è più maturo di una semplice demo:
 - bootstrap di sicurezza più severo per uso professionale
 
 `web/app.py` oggi è una factory sottile: delega la costruzione base a `web/bootstrap/flask_app_factory.py`, l'assemblaggio dei runtime a `web/bootstrap/runtime_bundle.py` e il wiring finale a `web/bootstrap/app_wiring.py`. Il registro blueprint è dichiarativo in `web/bootstrap/blueprint_registry.py`, così il wiring non dipende più da una lista manuale fragile. Lo scheduler non parte più dal processo web: i job periodici vivono nel worker dedicato `pct.scheduler_worker`, eseguito in locale dal servizio `scheduler-worker` e predisposto per un servizio separato anche in produzione. Sul lato Lex, il contesto studio include ora anche l’headline del cockpit `Motori Legali`, così il bounded context AI ragiona sullo stesso stato operativo mostrato dalla dashboard.
+
+### Primo percorso offline su computer approvati
+
+Registro dispositivi con prova P-256 e approvazione dello studio, vault AES-GCM e
+sincronizzazione incrementale di note personali del fascicolo con allegati TXT. Feature
+disattivata per default, in revisione e non verificata sulla macchina reale.
+Documentazione e limiti: [docs/OFFLINE_SICURO.md](docs/OFFLINE_SICURO.md).

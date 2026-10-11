@@ -9,7 +9,7 @@ codice «nativo» da tenere allineato: ogni rilascio del server aggiorna subito 
 | Elemento | Dove | A cosa serve |
 |---|---|---|
 | Manifest | `web/static/manifest.webmanifest` (servito da `/manifest.webmanifest`) | nome, icone (anche *maskable*), colori, scorciatoie Oggi/Scadenziario/Agenda/Fascicoli |
-| Service worker | `web/static/sw.js` (servito da `/sw.js`) | notifiche push e pagina «Sei offline»; **non** salva pagine né dati dello studio sul dispositivo |
+| Service worker | `web/static/sw.js` (servito da `/sw.js`) | notifiche push e pagina «Sei offline» e shell pubblica dell’area offline; non salva dati operativi in CacheStorage |
 | Icona iPhone/iPad | `web/static/icons/apple-touch-icon.png` | icona della schermata Home su iOS |
 | Digital Asset Links | `/.well-known/assetlinks.json` | associa l'app Android (Trusted Web Activity) al dominio |
 | Apple App Site Association | `/.well-known/apple-app-site-association` | associa un'eventuale app iOS al dominio (universal links) |
@@ -55,9 +55,19 @@ Capacitor) con funzioni native dichiarate, e `IUSENTRA_IOS_APP_IDS` per i colleg
 
 ## Sicurezza
 
-- Nessun dato dello studio resta nella cache del dispositivo: il service worker conserva solo la
-  pagina offline e le icone.
+- La modalità ordinaria resta online; il service worker conserva solo asset pubblici. Il nuovo
+  percorso pilota conserva note e allegati TXT in un vault cifrato esclusivamente dopo
+  registrazione verificata e approvazione del computer. Vedi [Offline sicuro](OFFLINE_SICURO.md).
 - La sessione, la doppia autenticazione e i permessi sono quelli del browser: l'app non ha
-  credenziali proprie.
+  credenziali di accesso separate. Il percorso offline aggiunge una credenziale crittografica
+  del dispositivo, subordinata alla sessione e all’approvazione dello studio.
 - Le chiavi di firma degli store restano a chi pubblica l'app; il server conosce solo le impronte
   pubbliche.
+
+## Primo percorso offline su computer approvati
+
+Implementazione pilota in revisione, disattivata per default e non accettata sulla macchina
+reale: Impostazioni → Computer autorizzati e lavoro offline. Il registro è legato a studio,
+identità e chiave del profilo browser. Copre note personali del fascicolo e allegati TXT;
+non replica ancora l’intero archivio. Revoca online immediata, autorizzazione offline con
+scadenza massima di 24 ore. Limiti e prove: [OFFLINE_SICURO.md](OFFLINE_SICURO.md).

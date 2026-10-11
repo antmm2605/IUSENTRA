@@ -41,7 +41,7 @@ from pct.path_security import resolve_sqlite_path
 # Evita importazione circolare se pct.database importasse pct.storage.
 def _schema_sql() -> str:
     from pct.database import SCHEMA_SQL
-    return SCHEMA_SQL
+    return SCHEMA_SQL + "\n" + (Path(__file__).parent / "sql/20261011_offline.sql").read_text()
 
 
 # ------------------------------------------------------------------ singleton per-processo
@@ -352,6 +352,7 @@ class StudioDB:
 
     def _schema_gia_pronto_su_connessione(self, conn: sqlite3.Connection) -> bool:
         required_tables = {
+            "offline_devices", "offline_notes", "offline_commands", "offline_challenges", "offline_audit", "offline_state",
             "fascicoli",
             "clienti",
             "appuntamenti",

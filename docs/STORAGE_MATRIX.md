@@ -14,6 +14,7 @@ Legenda:
 
 | Dominio | Modulo | JSON | SQLite | PostgreSQL | Parita' PostgreSQL | Wave | Fallback |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| Continuità locale | Dispositivi approvati e note personali offline | - | R/W pilota | schema e suite pilota | accettazione PostgreSQL/reale ancora aperta | Primo dominio offline | SQL del tenant; browser IndexedDB AES-GCM, nessun fallback JSON; `docs/OFFLINE_SICURO.md` |
 | Identita' | Autenticazione e audit | R/W | R/W | R/W | parita' completa | Wave 1 - identita' e audit | nessun fallback invisibile quando PostgreSQL e' attivo |
 | Core operativo | Clienti e condivisioni | R/W | R/W | R/W | parita' completa | Wave 2 - core operativo | SQLite o JSON solo come bootstrap controllato |
 | Core operativo | Fascicoli e documenti | R/W | R/W | R/W | parita' completa | Wave 2 - core operativo | documenti sempre su filesystem tenant |

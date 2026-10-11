@@ -1,3 +1,4 @@
+import '../../web/static/js/offline-browser-memory.js'
 import './index.css'
 import './styles/iusentra-design-system.css'
 import { mountReactApp } from './reactEntry'

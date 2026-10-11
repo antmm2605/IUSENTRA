@@ -46,12 +46,12 @@ jobs:
         if: inputs.operation == 'publish'
         with:
           node-version: '24'
+          package-manager-cache: false
       - name: Compila sulla versione attuale del server
         if: inputs.operation == 'publish'
         run: |
           set -euo pipefail
-          corepack enable
-          corepack prepare pnpm@11.1.2 --activate
+          npm install --global pnpm@11.1.2
           pnpm install --frozen-lockfile --prod=false
           cd frontend
           node --import ../tests/js/support/resolve_ts_extensionless.mjs --test ../tests/js/codici_leggi_results.test.mjs ../tests/js/codici_leggi_search.test.mjs

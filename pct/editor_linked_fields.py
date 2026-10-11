@@ -7,6 +7,7 @@ import re
 from pct.formatting import DISPLAY_TIMEZONE, format_date_it, format_euro_it
 from pct.template_atti_prefill import build_prefill_context, resolve_field
 from pct.archivio_letture.date_campi_modello import CAMPI_DATE
+from pct.editor_stamp import editor_stamp_lines
 
 CLIENT_FIELDS = {
     "nome_completo": "Nome completo", "nome": "Nome", "cognome": "Cognome",
@@ -59,11 +60,15 @@ STAMP_ROW_FIELDS = {
     "studio_nome": "riga_studio", "studio_sottotitolo": "studio_sottotitolo",
     "professionista_nome": "professionista_nome", "qualifiche_professionali": "qualifiche_professionali",
     "indirizzo": "riga_indirizzo", "fiscale": "riga_fiscale", "recapiti": "riga_recapiti",
+    "telefono": "riga_telefono", "email": "riga_email", "pec": "riga_pec",
+    "fax": "riga_fax", "sito_web": "riga_sito_web",
 }
 FIELDS += [("studio_timbro." + key, label, "Timbro completo") for key, label in {
     "riga_studio": "Intestazione studio", "studio_sottotitolo": "Sottotitolo studio",
     "qualifiche_professionali": "Qualifiche professionali", "riga_indirizzo": "Indirizzo e località",
     "riga_fiscale": "Dati fiscali", "riga_recapiti": "Recapiti e PEC configurata",
+    "riga_telefono": "Telefono nel timbro", "riga_email": "Email studio nel timbro",
+    "riga_pec": "PEC nel timbro", "riga_fax": "Fax nel timbro", "riga_sito_web": "Sito nel timbro",
 }.items()]
 FIELD_IDS = frozenset(key for key, _, _ in FIELDS)
 
@@ -81,7 +86,8 @@ def linked_fields_catalog(*, cliente=None, fascicolo=None, config=None, studio_t
         r"^(?:avv\.?|avvocato|avvocata)\s+", "",
         str(stamp_payload.get("professionista_nome") or "").strip(), flags=re.I,
     )
-    for line in StudioTimbro.from_payload(stamp_payload).to_lines():
+    stamp = StudioTimbro.from_payload(stamp_payload)
+    for line in stamp.to_lines() + editor_stamp_lines(stamp):
         row_key = STAMP_ROW_FIELDS.get(line["source"])
         if row_key:
             context["studio_timbro"][row_key] = line["text"]

@@ -459,7 +459,7 @@ export function DocumentEditorPage() {
   const [stampOpen, setStampOpen] = useState(false)
   const [stampPosition, setStampPosition] = useState<'left' | 'center' | 'right'>('left')
   const [stampWidth, setStampWidth] = useState(60)
-  const [stampLines, setStampLines] = useState<Array<{text: string; font: string; size: number; bold: boolean; italic: boolean; lineHeight?: number; linkedField?: string}>>([])
+  const [stampLines, setStampLines] = useState<Array<{text: string; font: string; size: number; bold: boolean; italic: boolean; lineHeight?: number; linkedField?: string; source: string; label?: string; available: boolean; selectable: boolean; included: boolean}>>([])
   const stampContextRef = useRef<LinkedEditorContext | null>(null)
   const [stampError, setStampError] = useState('')
   const [pdfBusy, setPdfBusy] = useState(false)
@@ -1962,7 +1962,8 @@ export function DocumentEditorPage() {
         stampContextRef.current = fields
       }
       const savedStamp = editorRef.current?.querySelector<HTMLElement>('[data-iu-editor-stamp]')
-      const savedLines = savedStamp ? [...savedStamp.querySelectorAll('p')].filter(p => p.textContent?.trim()).map(p => {
+      const savedSources = (savedStamp?.dataset.iuStampSources || '').split(',')
+      const savedLines = savedStamp ? [...savedStamp.querySelectorAll('p')].filter(p => p.textContent?.trim()).map((p, index) => {
         const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT)
         let node = walker.nextNode()
         while (node && !node.textContent?.trim()) node = walker.nextNode()
@@ -1972,20 +1973,21 @@ export function DocumentEditorPage() {
         const sizePx = Number.parseFloat(style.fontSize)
         const family = style.fontFamily.split(',')[0].replace(/["']/g, '').trim().toLowerCase()
         const font = FONT_FAMILY_OPTIONS.find(option => option.label.toLowerCase() === family)?.value || style.fontFamily
-        return {text: p.textContent || '', font, size: Number((sizePx * .75).toFixed(2)), bold: Number.parseInt(style.fontWeight) >= 600, italic: style.fontStyle === 'italic', lineHeight: Number((Number.parseFloat(paragraph.lineHeight) / sizePx || 1.22).toFixed(3))}
+        return {source: p.dataset.iuStampSource || savedSources[index], text: p.textContent || '', font, size: Number((sizePx * .75).toFixed(2)), bold: Number.parseInt(style.fontWeight) >= 600, italic: style.fontStyle === 'italic', lineHeight: Number((Number.parseFloat(paragraph.lineHeight) / sizePx || 1.22).toFixed(3))}
       }) : []
+      const excluded = new Set((savedStamp?.dataset.iuStampExcluded || '').split(','))
       const position = savedStamp?.dataset.iuEditorStamp
       if (position === 'left' || position === 'center' || position === 'right') setStampPosition(position)
       const occupiedCell = savedStamp ? [...savedStamp.querySelectorAll<HTMLElement>('td')].find(cell => cell.textContent?.trim()) : undefined
       setStampWidth(savedStamp && occupiedCell ? Math.min(98, Math.max(20, Math.round(occupiedCell.getBoundingClientRect().width / savedStamp.getBoundingClientRect().width * 100))) : 60)
-      const rowKeys: Record<string, string> = {studio_nome: 'riga_studio', studio_sottotitolo: 'studio_sottotitolo', professionista_nome: 'professionista_nome', qualifiche_professionali: 'qualifiche_professionali', indirizzo: 'riga_indirizzo', fiscale: 'riga_fiscale', recapiti: 'riga_recapiti'}
-      setStampLines(payload.righe.map((line: {text: string; source: string; font: string; size: number; bold: boolean; italic: boolean}, index: number) => {
+      const rowKeys: Record<string, string> = {studio_nome: 'riga_studio', studio_sottotitolo: 'studio_sottotitolo', professionista_nome: 'professionista_nome', qualifiche_professionali: 'qualifiche_professionali', indirizzo: 'riga_indirizzo', fiscale: 'riga_fiscale', recapiti: 'riga_recapiti', telefono: 'riga_telefono', email: 'riga_email', pec: 'riga_pec', fax: 'riga_fax', sito_web: 'riga_sito_web'}
+      setStampLines(payload.righe.map((line: {text: string; source: string; font: string; size: number; bold: boolean; italic: boolean; label?: string; available: boolean; selectable: boolean}, index: number) => {
         const key = rowKeys[line.source] ? `studio_timbro.${rowKeys[line.source]}` : undefined
         const field = stampContextRef.current?.fields.find(field => field.id === key)
-        const previous = savedLines[index]
-        return {...line,
+        const previous = savedLines.find(saved => saved.source === line.source) || (!savedLines.some(saved => saved.source) ? savedLines[index] : undefined)
+        return {...line, included: line.available && !excluded.has(line.source),
         text: field?.available ? field.value : line.text,
-        linkedField: field?.available ? key : undefined,
+        linkedField: field?.available || (!stampContextRef.current && line.available) ? key : undefined,
         ...(previous ? {font: previous.font, size: previous.size, bold: previous.bold, italic: previous.italic, lineHeight: previous.lineHeight} : {}),
         font: previous?.font || (/^Helvetica(?:-|$)/i.test(line.font) ? FONT_FAMILY_OPTIONS[1].value : /^Times-(?:Roman|Bold|Italic)/i.test(line.font) ? FONT_FAMILY_OPTIONS[0].value : /^Courier(?:-|$)/i.test(line.font) ? FONT_FAMILY_OPTIONS[5].value : line.font),
         lineHeight: previous?.lineHeight || payload.interlinea || 1.22,
@@ -1995,7 +1997,7 @@ export function DocumentEditorPage() {
 
   const applyStamp = () => {
     const root = editorRef.current
-    if (!root || !stampLines.length) return
+    if (!root || !stampLines.some(line => line.included)) return
     const originalHtml = root.innerHTML
     let headers = [...root.querySelectorAll<HTMLElement>('[data-iu-word-region="header"]')]
     if (!headers.length) {
@@ -2011,21 +2013,24 @@ export function DocumentEditorPage() {
       header.querySelectorAll('[data-iu-editor-stamp]').forEach(node => node.remove())
       const table = document.createElement('table')
       table.dataset.iuEditorStamp = stampPosition
+      table.dataset.iuStampSources = stampLines.filter(line => line.included).map(line => line.source).join(',')
+      table.dataset.iuStampExcluded = stampLines.filter(line => !line.included).map(line => line.source).join(',')
       table.style.cssText = 'width:100%;table-layout:fixed;border:0;border-collapse:collapse'
       const row = table.createTBody().insertRow()
       for (const position of ['left', 'center', 'right']) {
         const cell = row.insertCell(); cell.style.cssText = `width:${position === stampPosition ? stampWidth : (100 - stampWidth) / 2}%;border:0;padding:0;vertical-align:top`
         if (position !== stampPosition) { cell.innerHTML = '<p style="margin:0"><br></p>'; continue }
-        for (const line of stampLines) {
+        for (const line of stampLines.filter(line => line.included)) {
           const paragraph = document.createElement('p')
+          paragraph.dataset.iuStampSource = line.source
           paragraph.style.cssText = `margin:0;text-align:center;line-height:${line.lineHeight || 1.22}`
           paragraph.style.fontFamily = line.font; paragraph.style.fontSize = `${line.size}pt`
           paragraph.style.fontWeight = line.bold ? '700' : '400'; paragraph.style.fontStyle = line.italic ? 'italic' : 'normal'
-          if (line.linkedField && stampContextRef.current) {
+          if (line.linkedField) {
             const field = document.createElement('span')
             field.dataset.iuLinkedField = line.linkedField
-            field.dataset.iuLinkedMatter = stampContextRef.current.matterId
-            field.dataset.iuLinkedClient = stampContextRef.current.clientId
+            field.dataset.iuLinkedMatter = stampContextRef.current?.matterId || ''
+            field.dataset.iuLinkedClient = stampContextRef.current?.clientId || ''
             field.contentEditable = 'false'; field.tabIndex = 0; field.setAttribute('role', 'button')
             field.textContent = line.text; paragraph.append(field)
           } else paragraph.textContent = line.text
@@ -2906,7 +2911,8 @@ export function DocumentEditorPage() {
         <label>Posizione<select aria-label="Posizione timbro" value={stampPosition} onChange={event => setStampPosition(event.target.value as typeof stampPosition)}><option value="left">In alto a sinistra</option><option value="center">In alto al centro</option><option value="right">In alto a destra</option></select></label>
         <label>Larghezza del blocco<input aria-label="Larghezza timbro" type="range" min="20" max="98" value={stampWidth} onChange={event => setStampWidth(Number(event.target.value))}/><output>{stampWidth}%</output></label>
         <p>Testo dalle impostazioni dello studio. Personalizza l’aspetto per questo documento.</p>
-        <div className="iu-de-stamp-lines">{stampLines.map((line, index) => <details key={index}>
+        <fieldset className="iu-de-stamp-options"><legend>Qualifica e recapiti da inserire</legend>{stampLines.map((line, index) => line.selectable && <label key={line.source}><input type="checkbox" checked={line.included} disabled={!line.available} onChange={event => updateStampLine(index, {included: event.target.checked})}/><span><strong>{line.label}</strong><small>{line.text || 'Non configurato nelle impostazioni dello studio'}</small></span></label>)}</fieldset>
+        <div className="iu-de-stamp-lines">{stampLines.map((line, index) => <details key={index} hidden={!line.included}>
           <summary>{line.text}</summary>
           <div className="iu-de-stamp-controls">
             <label>Font<select aria-label={`Font timbro riga ${index + 1}`} value={line.font} onChange={event => updateStampLine(index, {font: event.target.value})}>
@@ -2919,10 +2925,10 @@ export function DocumentEditorPage() {
             <label><input type="checkbox" aria-label={`Corsivo timbro riga ${index + 1}`} checked={line.italic} onChange={event => updateStampLine(index, {italic: event.target.checked})}/>Corsivo</label>
           </div>
         </details>)}</div>
-        <div style={{display:'flex',justifyContent:stampPosition === 'left' ? 'flex-start' : stampPosition === 'right' ? 'flex-end' : 'center',minHeight:80,border:'1px solid #e2e7ee',padding:8}}><div style={{width:`${stampWidth}%`,textAlign:'center'}}>{stampLines.map((line,index) => <p key={index} style={{margin:0,fontFamily:line.font,fontSize:`${line.size}pt`,lineHeight:line.lineHeight || 1.22,fontWeight:line.bold ? 700 : 400,fontStyle:line.italic ? 'italic' : 'normal'}}>{line.text}</p>)}</div></div>
+        <div style={{display:'flex',justifyContent:stampPosition === 'left' ? 'flex-start' : stampPosition === 'right' ? 'flex-end' : 'center',minHeight:80,border:'1px solid #e2e7ee',padding:8}}><div style={{width:`${stampWidth}%`,textAlign:'center'}}>{stampLines.filter(line => line.included).map((line,index) => <p key={index} style={{margin:0,fontFamily:line.font,fontSize:`${line.size}pt`,lineHeight:line.lineHeight || 1.22,fontWeight:line.bold ? 700 : 400,fontStyle:line.italic ? 'italic' : 'normal'}}>{line.text}</p>)}</div></div>
         {stampError && <p role="alert">{stampError}</p>}
         {!stampError && !stampLines.length && <p role="status">Caricamento timbro…</p>}
-        <button type="button" disabled={!stampLines.length || stampLines.some(line => !Number.isFinite(line.lineHeight) || (line.lineHeight || 0) < 0.5 || (line.lineHeight || 0) > 5)} onClick={applyStamp}>Inserisci o aggiorna timbro</button>
+        <button type="button" disabled={!stampLines.some(line => line.included) || stampLines.filter(line => line.included).some(line => !Number.isFinite(line.lineHeight) || (line.lineHeight || 0) < 0.5 || (line.lineHeight || 0) > 5)} onClick={applyStamp}>Inserisci o aggiorna timbro</button>
       </Modal>
       <EditorPersonalTemplates sourceDocument={route ? {matter: route.idFascicolo, document: route.idDocumento} : undefined} mattersLoading={draftCatalogLoading} mattersError={draftCatalogError} open={personalTemplatesOpen} onClose={() => setPersonalTemplatesOpen(false)} serialize={serializeEditorHtml} matterId={route?.idFascicolo || draftMatter} options={draftMatters} onMatterChange={standaloneDraft ? setDraftMatter : undefined} onApply={(html, title, missing) => {
         if (!editorRef.current) return

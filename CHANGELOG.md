@@ -8716,3 +8716,7 @@ Tre difetti reali del presidio PEC, rimasti nascosti perché i test che li copri
 # 2.437.5 — Timbro risolto nello studio corrente
 
 Il pannello Timbro studio riusa il gestore delle impostazioni del tenant e il suo archivio, senza dati professionali generali dell'installazione. Anche la revisione linguistica usa lo stesso contesto. La lettura Agenda dei dati storici migrati recupera i campi obbligatori dalle colonne SQL quando non presenti nel JSON originale, conservando la fonte.
+
+## 2.437.6 — Timbro editor
+
+Qualifica professionale, telefono, email studio e PEC selezionabili separatamente dalle impostazioni del tenant corrente. Scelte e font conservati nel timbro Word attraverso salvataggio e riapertura; campi riutilizzabili nei modelli.

@@ -75,7 +75,21 @@ try:
   if health=='healthy':ready=True;break
   time.sleep(3)
  assert ready,'Applicazione non pronta'
- check='from pathlib import Path;from lex.normativa.consultazione import catalogo,articoli,dettaglio;d=Path("/data/normativa/codici_leggi.sqlite");a=catalogo(d);assert len(a)==162;assert sum(x["articles"] for x in a)==28209;assert sum(x["category"]=="Codici" for x in a)==31;cc=next(x for x in a if x["label"]=="Codice civile");r=articoli(d,act=cc["id"],article="2043");assert r["total"]==1;assert "Qualunque fatto" in dettaglio(d,r["items"][0]["id"])["text"];print("162 raccolte, 31 codici, 28209 articoli; testo 2043 presente")'
+ check='''from pathlib import Path
+from lex.normativa.consultazione import catalogo,articoli,dettaglio
+from flask import Flask
+from web.blueprints.api_v1_ricerca_legale import _normativa_db
+d=Path("/data/normativa/codici_leggi.sqlite")
+with Flask("verifica_codici").app_context():
+    assert _normativa_db()==d, "API collegata ad archivio diverso"
+a=catalogo(d)
+assert len(a)==162 and sum(x["articles"] for x in a)==28209 and sum(x["category"]=="Codici" for x in a)==31
+for label,number,minimum in [("Codice civile","2043",100),("Codice penale","416-bis",1801),("Codice di procedura penale","464",1801)]:
+    act=next(x for x in a if x["label"]==label)
+    r=articoli(d,act=act["id"],article=number);assert r["total"]==1
+    item=dettaglio(d,r["items"][0]["id"]);assert len(item["text"])>=minimum
+    print(label,number,len(item["text"]),"caratteri integrali")
+print("162 raccolte, 31 codici, 28209 articoli; archivio API verificato")'''
  print(run(['docker','exec','iusentra-app','python','-c',check]))
  for service,cid in others.items():assert run(cmd+['ps','-q',service])==cid,'Servizio estraneo riavviato: '+service
  for e in manifest['files']:assert sha(root/e['path'])==e['after']

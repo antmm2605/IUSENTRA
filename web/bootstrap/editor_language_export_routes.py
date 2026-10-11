@@ -41,13 +41,13 @@ def register_editor_language_export_routes(
                 from pct.editor_grammar import controlla_documento
                 from pct.editor_linked_fields import linked_fields_catalog
                 from web.helpers import get_clienti
-                from web.blueprints.template_atti import _get_studio_timbro, _studio_config_for_prefill
+                from web.services.editor_studio_context import studio_context_for_editor
                 import re
 
                 cliente = get_clienti().get(fascicolo.id_cliente) if fascicolo.id_cliente else None
                 campi = linked_fields_catalog(
                     cliente=cliente, fascicolo=fascicolo,
-                    config=_studio_config_for_prefill(), studio_timbro=_get_studio_timbro(),
+                    **studio_context_for_editor(),
                 )
                 nomi = {'cliente.nome', 'cliente.cognome', 'cliente.nome_completo',
                         'cliente.luogo_nascita', 'fascicolo.giudice', 'fascicolo.tribunale',

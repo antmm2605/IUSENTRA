@@ -8713,3 +8713,6 @@ Tre difetti reali del presidio PEC, rimasti nascosti perché i test che li copri
 - **Consulta completata, correzione attesa 07/10/2026**: diagnosi server conferma 3/3 corpus completi, 22.398 pronunce ciascuno e 46.577 massime lette; import effettivo 1.254,1 secondi. Attesa post-deploy portata da 15 a 30 minuti con conteggi intermedi, mantenendo obbligatorio il marcatore di import completo su tutti i corpus.
 
 - **Diagnosi metadati sorgenti Hetzner (07/10/2026)**: il nuovo deploy ha incontrato una checkout modificata successiva al primo rilascio. Diagnosi in sola lettura limitata a percorsi e impronte, senza trasferire sorgenti o dati; nessuna modifica server prima del confronto.
+# 2.437.5 — Timbro risolto nello studio corrente
+
+Il pannello Timbro studio riusa il gestore delle impostazioni del tenant e il suo archivio, senza dati professionali generali dell'installazione. Anche la revisione linguistica usa lo stesso contesto. La lettura Agenda dei dati storici migrati recupera i campi obbligatori dalle colonne SQL quando non presenti nel JSON originale, conservando la fonte.

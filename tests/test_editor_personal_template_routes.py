@@ -137,3 +137,43 @@ def test_editor_studio_context_never_uses_global_professional_defaults(tmp_path,
         fields = {f['id']: f for f in linked_fields_catalog(**studio_context_for_editor())}
     assert fields['studio_timbro.pec']['value'] == 'tecnico@pec.example.it'
     assert fields['studio_timbro.nome_professionista']['value'] == 'dello studio tecnico'
+
+
+def test_editor_stamp_endpoint_uses_current_tenant_settings_without_g_config(tmp_path, monkeypatch):
+    from flask import g
+    from types import SimpleNamespace
+    from pct.config_studio import ConfigStudio
+    from web.blueprints import template_atti
+    from web.bootstrap.editor_finalize_routes import register_editor_finalize_routes
+    from web.services.editor_studio_context import studio_context_for_editor
+
+    config = ConfigStudio()
+    config.studio.nome = 'Studio primo'
+    config.studio.avvocato = 'Avv. Professionista primo'
+    config.studio.cf = 'CF-PRIMO'
+    config.pec.indirizzo = 'primo@pec.example.it'
+    selected = {'slug': 'primo', 'config': config}
+    app = Flask(__name__)
+    app.config.update(STUDIO_AVVOCATO='Professionista globale errato', SMTP_FROM='globale@example.it')
+    monkeypatch.setattr(template_atti, '_get_config_studio_manager', lambda: SimpleNamespace(config=selected['config']))
+    monkeypatch.setattr(template_atti, '_cfg_path', lambda *args: str(tmp_path / (selected['slug'] + '.db')))
+    @app.before_request
+    def context():
+        g.utente_corrente = SimpleNamespace(ha_permesso=lambda p: True)
+        assert not hasattr(g, 'config_studio')
+    register_editor_finalize_routes(app, get_fascicoli=lambda: None, audit=lambda *args: None,
+                                   encrypt_doc=lambda value: value,
+                                   get_timbro=lambda: studio_context_for_editor()['studio_timbro'])
+    client = app.test_client()
+    first = client.get('/api/editor/timbro')
+    assert first.status_code == 200
+    assert 'Professionista primo' in str(first.json['righe'])
+    second = ConfigStudio()
+    second.studio.nome = 'Studio secondo'
+    second.studio.avvocato = 'Avv. Professionista secondo'
+    selected.update(slug='secondo', config=second)
+    reply = client.get('/api/editor/timbro')
+    assert reply.status_code == 200
+    assert 'Professionista secondo' in str(reply.json['righe'])
+    assert 'primo' not in str(reply.json['righe'])
+    assert 'globale' not in str(reply.json['righe'])

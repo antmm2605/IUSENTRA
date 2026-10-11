@@ -54,7 +54,12 @@ def restore_legacy_tab_stops(document, source, html):
     return restored
 
 
-def editor_word_source(repository, matter_id, document, decrypt):
+def editor_word_source(repository, matter_id, document, decrypt, *, html=None):
+    if html is not None:
+        from web.services.editor_template_fonts import template_font_source
+        template_source = template_font_source(html)
+        if template_source:
+            return template_source
     if document is None:
         return None
     root = repository.documents_dir.resolve()

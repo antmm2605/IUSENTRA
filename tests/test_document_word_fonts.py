@@ -53,6 +53,38 @@ class Source:
         return 'QAFont', 'ttf', 'TrueType', self.data
 
 
+def test_personal_model_fonts_preserve_bytes_without_source_text_and_survive_rebuild(tmp_path):
+    from base64 import b64decode
+    from pct.template_atti_repository import GestioneTemplateRepository
+    from web.services.editor_template_fonts import font_only_package, template_font_source, mark_template_fonts
+    fonts, _ = prepare_source_fonts(Source(font_bytes()), tmp_path / 'source')
+    source = Document()
+    run = source.add_paragraph().add_run('A')
+    run.font.name = 'QA Font'
+    embed_source_fonts(source, fonts)
+    source.add_paragraph('Testo riservato della fonte, da non conservare nel modello')
+    stream = BytesIO()
+    source.save(stream)
+    package = font_only_package(stream.getvalue())
+    assert package == font_only_package(stream.getvalue())
+    assert 'riservato' not in '\n'.join(p.text for p in Document(BytesIO(b64decode(package))).paragraphs)
+    restored, _ = prepare_word_source_fonts(b64decode(package), tmp_path / 'restored')
+    assert restored[0]['data'] == fonts[0]['data']
+    repo = GestioneTemplateRepository(str(tmp_path / 'models.db'))
+    payload = {'id': str(uuid.uuid4()), 'titolo': 'Modello con caratteri', 'corpo': '<p>A</p>', 'collezione': 'Editor personale'}
+    identifier = repo.create_editor_template(payload, font_source=package)
+    assert repo.create_editor_template(payload, font_source=package) == identifier
+    with pytest.raises(ValueError):
+        repo.create_editor_template(payload, font_source='diverso')
+    html = mark_template_fonts(payload['corpo'], identifier, repo)
+    assert template_font_source(html, repo) == b64decode(package)
+    repo.rebuild_from_payload([])
+    assert template_font_source(html, repo) == b64decode(package)
+    other = GestioneTemplateRepository(str(tmp_path / 'other-tenant.db'))
+    with pytest.raises(ValueError):
+        template_font_source(html, other)
+
+
 @pytest.mark.parametrize('rights', [2, 4, 0x0200])
 def test_restricted_preview_or_bitmap_fonts_never_enter_editable_document(tmp_path, rights):
     fonts, config = prepare_source_fonts(Source(font_bytes(rights)), tmp_path / 'fonts')

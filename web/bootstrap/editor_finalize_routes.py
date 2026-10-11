@@ -76,7 +76,7 @@ def register_editor_finalize_routes(app, *, get_fascicoli, audit, encrypt_doc, g
                     from web.services.editor_word_source import editor_word_source
                     from pct.document_crypto import decrypt_doc
                     raw = esporta_documento_editor(html, formato='pdf', titolo=Path(source.nome).stem,
-                        fonte_word=editor_word_source(repo, id_fasc, source, decrypt_doc))
+                        fonte_word=editor_word_source(repo, id_fasc, source, decrypt_doc, html=html))
                     if not raw.startswith(b'%PDF-'):
                         raise RuntimeError('PDF non prodotto')
                     filename = Path(source.nome).stem + ' - finale ' + command[:8] + '.pdf'

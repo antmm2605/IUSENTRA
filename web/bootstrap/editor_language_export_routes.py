@@ -90,7 +90,7 @@ def register_editor_language_export_routes(
             from pct.document_crypto import decrypt_doc
             from web.services.editor_word_source import editor_word_source
             contenuto = esporta_documento_editor(body.get("html", "<p></p>"), formato="rtf", titolo=titolo,
-                fonte_word=editor_word_source(repository, id_fasc, documento, decrypt_doc))
+                fonte_word=editor_word_source(repository, id_fasc, documento, decrypt_doc, html=body.get("html", "<p></p>")))
             audit("fascicoli.documento.editor_rtf", "fascicolo", id_fasc, dettagli=f"doc {id_doc}")
             return send_file(io.BytesIO(contenuto), mimetype="application/rtf", as_attachment=True, download_name=titolo + ".rtf")
         except EditorAIPermissionDenied:
@@ -114,7 +114,7 @@ def register_editor_language_export_routes(
             from pct.document_crypto import decrypt_doc
             from web.services.editor_word_source import editor_word_source
             docx_bytes = esporta_documento_editor(html, formato='docx', titolo=titolo,
-                fonte_word=editor_word_source(repository, id_fasc, documento, decrypt_doc))
+                fonte_word=editor_word_source(repository, id_fasc, documento, decrypt_doc, html=body.get("html", "<p></p>")))
             audit("fascicoli.documento.editor_docx", "fascicolo", id_fasc, dettagli=f"doc {id_doc}")
             return send_file(
                 io.BytesIO(docx_bytes),

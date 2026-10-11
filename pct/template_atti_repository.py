@@ -393,6 +393,7 @@ class GestioneTemplateRepository:
             # I modelli dell'editor sono SQL primari, non rimpiazzabili dal mirror.
             persistent = conn.execute("SELECT r.*, b.content AS corpo FROM template_repository r JOIN template_blocks b ON b.template_id = r.template_id AND b.block_key = 'corpo' WHERE r.collezione = ?", ("Editor personale",)).fetchall()
             editor_ids = {row['template_id'] for row in persistent}
+            resources = conn.execute("SELECT b.* FROM template_blocks b JOIN template_repository r ON r.template_id=b.template_id WHERE r.collezione=? AND b.block_key='editor_fonts'", ('Editor personale',)).fetchall()
             templates = [item for item in templates if item.get('template_id') not in editor_ids]
             templates += [normalize_template_repository_item({**dict(row), 'id': row['template_id']}) for row in persistent]
             conn.execute("DELETE FROM template_blocks")
@@ -405,6 +406,8 @@ class GestioneTemplateRepository:
             conn.execute("DELETE FROM template_repository")
             for template in templates:
                 self._insert_template(conn, template)
+            for resource in resources:
+                conn.execute("INSERT INTO template_blocks (template_id,block_key,block_type,content,ordine) VALUES (?,?,?,?,?)", tuple(resource[key] for key in ('template_id','block_key','block_type','content','ordine')))
             self._set_meta(conn, "source_signature", _payload_signature(templates))
             self._set_meta(conn, "source_label", source_label)
             conn.commit()
@@ -415,7 +418,7 @@ class GestioneTemplateRepository:
         else:
             conn.execute("BEGIN IMMEDIATE")
 
-    def create_editor_template(self, payload: dict[str, Any]) -> str:
+    def create_editor_template(self, payload: dict[str, Any], *, font_source: str = '') -> str:
         """Inserimento puntuale e ripetibile; nessuna sostituzione di altri modelli."""
         item = normalize_template_repository_item(payload)
         if item['collezione'] != 'Editor personale':
@@ -426,8 +429,13 @@ class GestioneTemplateRepository:
             if previous:
                 if previous['titolo'] != item['titolo'] or previous['content'] != item['corpo'] or previous['collezione'] != item['collezione']:
                     raise ValueError('Richiesta già utilizzata per un modello diverso.')
+                stored = conn.execute("SELECT content FROM template_blocks WHERE template_id=? AND block_key='editor_fonts'", (item['template_id'],)).fetchone()
+                if (stored['content'] if stored else '') != font_source:
+                    raise ValueError('Richiesta già utilizzata per caratteri diversi.')
             else:
                 self._insert_template(conn, item)
+                if font_source:
+                    conn.execute("INSERT INTO template_blocks (template_id,block_key,block_type,content,ordine) VALUES (?,?,?,?,?)", (item['template_id'],'editor_fonts','font_package',font_source,2))
             conn.commit()
         return item['template_id']
 

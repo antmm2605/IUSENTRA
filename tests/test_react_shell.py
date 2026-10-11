@@ -546,15 +546,15 @@ def test_editor_professionale_resta_route_autonoma_distinta_da_redazione_atti():
     shell_source = Path("web/blueprints/react_shell.py").read_text(encoding="utf-8")
     manifest = json.loads(Path("tools/react-migration/route-manifest.json").read_text(encoding="utf-8"))
 
-    assert "{ label: 'Editor professionale', icon: FilePenLine, href: '/editor-professionale' }" in app_source
+    assert "{ label: 'Editor professionale', icon: FilePenLine, href: '/editor-professionale?modalita=editor' }" in app_source
     assert "{ label: 'Redazione Atti', icon: FilePenLine, href: '/redazione-atti' }" in app_source
-    assert "const isEditorProfessionalePage = routeKey === '/editor-professionale'" in app_source
+    assert "const isEditorProfessionalePage = (routeKey === '/documenti' || routeKey === '/editor-professionale') && !isNewDocumentEditorPage" in app_source
+    assert "const isDocumentEditorPage = isNewDocumentEditorPage ||" in app_source
     assert "isEditorProfessionalePage?<EditorProfessionalePage/>" in app_source
     assert "{ label: 'Editor libero', icon: FilePenLine, href: '/template-atti/editor' }" in app_source
-    assert 'href="/template-atti/editor" tone="primary"' in page_source
-    assert "Apre subito un foglio vuoto con timbro studio" in page_source
+    assert 'href="/editor-professionale?modalita=editor" tone="primary"' in page_source
     assert 'href="/redazione-atti" tone="neutral"' in page_source
-    assert 'title="Archivio documenti"' in page_source
+    assert 'title="Documenti"' in page_source
     assert '"/editor-professionale"' in route_gate
     assert '("/editor-professionale", "src/components/EditorProfessionalePage.tsx")' in shell_source
     editor_entry = next((entry for entry in manifest["routes"] if entry.get("route") == "/editor-professionale"), None)

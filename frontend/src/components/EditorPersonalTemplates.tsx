@@ -3,10 +3,10 @@ import { Modal } from '../ui/legalPrimitives'
 import { csrfToken } from '../formSubmit'
 import { FascicoloSearchSelect, type FascicoloOption } from './FascicoloSearchSelect'
 
-export function EditorPersonalTemplates({ open, onClose, serialize, matterId, options, onMatterChange, onApply, mattersLoading, mattersError }: {
+export function EditorPersonalTemplates({ open, onClose, serialize, matterId, options, onMatterChange, onApply, mattersLoading, mattersError, sourceDocument }: {
   open: boolean; onClose: () => void; serialize: () => string; matterId: string; options: FascicoloOption[];
   onMatterChange?: (id: string) => void; onApply: (html: string, title: string, missing: string[]) => void;
-  mattersLoading?: boolean; mattersError?: string;
+  mattersLoading?: boolean; mattersError?: string; sourceDocument?: {matter: string; document: string};
 }) {
   const [mode, setMode] = useState<'save' | 'use'>('save')
   const [title, setTitle] = useState('')
@@ -19,7 +19,7 @@ export function EditorPersonalTemplates({ open, onClose, serialize, matterId, op
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [ready, setReady] = useState<{html: string; titolo: string; mancanti: string[]} | null>(null)
-  const intent = useRef<{titolo: string; html: string; command_id: string} | null>(null)
+  const intent = useRef<{titolo: string; html: string; command_id: string; source_document?: {matter: string; document: string}} | null>(null)
   useEffect(() => { setReady(null) }, [model, matterId])
   useEffect(() => {
     if (!open) return
@@ -33,7 +33,7 @@ export function EditorPersonalTemplates({ open, onClose, serialize, matterId, op
   }, [open, success, catalogReload])
   const save = async () => {
     setBusy(true); setError(''); setSuccess('')
-    intent.current ||= { titolo: title.trim(), html: serialize(), command_id: crypto.randomUUID() }
+    intent.current ||= { titolo: title.trim(), html: serialize(), command_id: crypto.randomUUID(), source_document: sourceDocument }
     try {
       const response = await fetch('/api/editor/modelli-personali', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken(), 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify(intent.current) })
       const data = await response.json()

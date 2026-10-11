@@ -6,7 +6,7 @@ from flask import g, jsonify, request
 from pct.editor_linked_fields import template_linked_html
 
 
-def register_editor_personal_template_routes(app, *, audit, get_repository=None, resolve_context=None):
+def register_editor_personal_template_routes(app, *, audit, get_repository=None, resolve_context=None, get_fascicoli=None, decrypt_doc=None):
     def authorized(write=False):
         user = g.get('utente_corrente')
         return user and user.ha_permesso('fascicoli.scrivi' if write else 'fascicoli.leggi')
@@ -66,7 +66,25 @@ def register_editor_personal_template_routes(app, *, audit, get_repository=None,
         except ValueError as error:
             return jsonify(ok=False, errore=str(error)), 400
         try:
-            identifier = repository().create_editor_template({'id': command, 'titolo': title, 'categoria': 'Altro', 'corpo': template, 'collezione': 'Editor personale', 'builtin': False})
+            from web.services.editor_template_fonts import font_only_package, template_font_source
+            repo = repository()
+            source = template_font_source(html, repo)
+            if payload.get('source_document'):
+                if not authorized():
+                    return jsonify(ok=False, errore='Non sei autorizzato a leggere la fonte del modello.'), 403
+                if not get_fascicoli or not decrypt_doc:
+                    raise ValueError('Fonte del modello non disponibile.')
+                source_ids = payload['source_document']
+                if not isinstance(source_ids, dict) or set(source_ids) != {'matter', 'document'}:
+                    raise ValueError('Fonte del modello non valida.')
+                matters = get_fascicoli()
+                matter = matters.get(source_ids['matter'])
+                document = next((doc for doc in matter.documenti if doc.id == source_ids['document']), None) if matter else None
+                if document is None:
+                    raise ValueError('Fonte del modello non trovata nello studio.')
+                from web.services.editor_word_source import editor_word_source
+                source = editor_word_source(matters, matter.id, document, decrypt_doc, html=html)
+            identifier = repo.create_editor_template({'id': command, 'titolo': title, 'categoria': 'Altro', 'corpo': template, 'collezione': 'Editor personale', 'builtin': False}, font_source=font_only_package(source))
             audit('editor.modello_personale.crea', 'template_atti', identifier, dettagli='Modello editor con campi riutilizzabili; valori collegati precedenti rimossi.')
             return jsonify(ok=True, id=identifier, titolo=title), 201
         except ValueError as error:
@@ -88,6 +106,8 @@ def register_editor_personal_template_routes(app, *, audit, get_repository=None,
             if not item or item['collezione'] != 'Editor personale':
                 return jsonify(ok=False, errore='Modello personale non trovato.'), 404
             html, missing = template_linked_html(item['corpo'], context=context['fields'], matter_id=context['matterId'], client_id=context['clientId'])
+            from web.services.editor_template_fonts import mark_template_fonts
+            html = mark_template_fonts(html, id_template, repository())
             return jsonify(ok=True, html=html, mancanti=missing, titolo=item['titolo'], matterId=id_fasc)
         except Exception:
             app.logger.exception('Compilazione modello editor non riuscita')

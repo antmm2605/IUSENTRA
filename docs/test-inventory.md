@@ -16,11 +16,11 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend | 114 |
 | E2E | 13 |
 | Frontend static gate | 1 |
-| Frontend/UI | 310 |
+| Frontend/UI | 309 |
 | RBAC | 117 |
 | Security | 51 |
 | Smoke CLI | 6 |
-| Tenant isolation | 223 |
+| Tenant isolation | 224 |
 
 ## Fasi pytest governate
 
@@ -642,7 +642,6 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | File/document security | Frontend/UI | tests/test_client_document_reader_conflicts.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | File/document security | Frontend/UI | tests/test_document_management.py | feature flag | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | File/document security | Frontend/UI | tests/test_document_ocr_documento.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
-| File/document security | Frontend/UI | tests/test_document_word_fonts.py | 401 anonimo | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | File/document security | Frontend/UI | tests/test_eidas_document_formats.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | File/document security | Frontend/UI | tests/test_eidas_document_validation.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | File/document security | Frontend/UI | tests/test_fascicolo_document_presidio.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
@@ -679,6 +678,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | File/document security | Tenant isolation | tests/test_document_intelligence_service.py | 403/RBAC, tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_document_intelligence_versioning.py | tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_document_tools_preview_download.py | 403/RBAC, tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| File/document security | Tenant isolation | tests/test_document_word_fonts.py | 401 anonimo, tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_fascicolo_document_catalog_pipeline.py | tenant, contratto, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_legal_document_ingestion.py | tenant, feature flag, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_lex_document_tools_auto_index.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |

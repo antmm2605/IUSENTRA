@@ -68,9 +68,10 @@ def register_editor_new_document_routes(app, *, get_fascicoli, audit, encrypt_do
                         return jsonify(ok=False, errore="Richiesta già utilizzata per un documento diverso."), 409
                     document = previous[0]
                 else:
-                    from pct.editor import html_to_docx
+                    from pct.editor_export import esporta_documento_editor
+                    from web.services.editor_template_fonts import template_font_source
                     from pct.fascicoli import TipoDocumento
-                    raw = html_to_docx(html, titolo=title)
+                    raw = esporta_documento_editor(html, formato="docx", titolo=title, fonte_word=template_font_source(html))
                     filename = title.removesuffix(".docx") + " - " + command[:8] + ".docx"
                     document = repository.aggiungi_documento(
                         id_fasc, filename, TipoDocumento.ALLEGATO, encrypt_doc(raw),

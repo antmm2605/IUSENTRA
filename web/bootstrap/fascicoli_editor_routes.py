@@ -51,7 +51,7 @@ def register_fascicoli_editor_routes(
     linked_context = register_editor_linked_fields_routes(app, get_fascicoli=get_fascicoli)
     from web.bootstrap.editor_personal_template_routes import register_editor_personal_template_routes
 
-    register_editor_personal_template_routes(app, audit=audit, resolve_context=linked_context)
+    register_editor_personal_template_routes(app, audit=audit, resolve_context=linked_context, get_fascicoli=get_fascicoli, decrypt_doc=decrypt_doc)
 
     def _cfg_data_path(key: str) -> str:
         paths = getattr(g, "data_paths", {}) or {}
@@ -303,7 +303,7 @@ def register_fascicoli_editor_routes(
             from pct.editor_export import esporta_documento_editor
             from web.services.editor_word_source import editor_word_source
             contenuto_raw = esporta_documento_editor(html, formato='docx', titolo=nome.rsplit(".", 1)[0],
-                fonte_word=editor_word_source(gestore_fascicoli, id_fasc, documento, decrypt_doc))
+                fonte_word=editor_word_source(gestore_fascicoli, id_fasc, documento, decrypt_doc, html=html))
             nome_salvato = (nome.rsplit(".", 1)[0] if "." in nome else nome) + ".docx"
 
             doc_salvato = gestore_fascicoli.sostituisci_documento(
@@ -366,7 +366,7 @@ def register_fascicoli_editor_routes(
 
             from web.services.editor_word_source import editor_word_source
             pdf_bytes = esporta_documento_editor(html, formato="pdf", titolo=titolo,
-                fonte_word=editor_word_source(gestore_fascicoli, id_fasc, documento, decrypt_doc))
+                fonte_word=editor_word_source(gestore_fascicoli, id_fasc, documento, decrypt_doc, html=html))
             audit("fascicoli.documento.editor_pdf", "fascicolo", id_fasc, dettagli=f"doc {id_doc}")
             if request.path.endswith("/anteprima-stampa"):
                 from pct.editor_export import anteprima_stampa_pdf

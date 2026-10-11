@@ -133,7 +133,7 @@ def _document_text_runs(document):
             yield Run(element, None)
 
 
-def embed_source_fonts(document, fonts):
+def embed_source_fonts(document, fonts, *, deterministic=False):
     from docx.oxml import OxmlElement, parse_xml
     from docx.oxml.ns import qn
     from docx.opc.part import Part
@@ -164,7 +164,7 @@ def embed_source_fonts(document, fonts):
         tag = 'w:embed' + ('BoldItalic' if bold and italic else 'Bold' if bold else 'Italic' if italic else 'Regular')
         for previous in list(entry.findall(qn(tag))):
             entry.remove(previous)
-        key = uuid.uuid4()
+        key = uuid.UUID(bytes=hashlib.sha256(font['data']).digest()[:16]) if deterministic else uuid.uuid4()
         mask = bytes.fromhex(key.hex)[::-1]
         data = bytearray(font['data'])
         for index in range(min(32, len(data))):

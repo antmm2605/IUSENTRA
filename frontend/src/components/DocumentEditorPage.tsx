@@ -2924,7 +2924,7 @@ export function DocumentEditorPage() {
         {!stampError && !stampLines.length && <p role="status">Caricamento timbro…</p>}
         <button type="button" disabled={!stampLines.length || stampLines.some(line => !Number.isFinite(line.lineHeight) || (line.lineHeight || 0) < 0.5 || (line.lineHeight || 0) > 5)} onClick={applyStamp}>Inserisci o aggiorna timbro</button>
       </Modal>
-      <EditorPersonalTemplates mattersLoading={draftCatalogLoading} mattersError={draftCatalogError} open={personalTemplatesOpen} onClose={() => setPersonalTemplatesOpen(false)} serialize={serializeEditorHtml} matterId={route?.idFascicolo || draftMatter} options={draftMatters} onMatterChange={standaloneDraft ? setDraftMatter : undefined} onApply={(html, title, missing) => {
+      <EditorPersonalTemplates sourceDocument={route ? {matter: route.idFascicolo, document: route.idDocumento} : undefined} mattersLoading={draftCatalogLoading} mattersError={draftCatalogError} open={personalTemplatesOpen} onClose={() => setPersonalTemplatesOpen(false)} serialize={serializeEditorHtml} matterId={route?.idFascicolo || draftMatter} options={draftMatters} onMatterChange={standaloneDraft ? setDraftMatter : undefined} onApply={(html, title, missing) => {
         if (!editorRef.current) return
         editorRef.current.innerHTML = sanitizeHtml(html)
         editorRef.current.querySelectorAll<HTMLElement>('[data-iu-linked-field]').forEach(node => { node.tabIndex = 0; node.setAttribute('role', 'button'); node.title = 'Modifica il valore del campo nel documento' })

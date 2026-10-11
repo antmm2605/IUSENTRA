@@ -40,12 +40,17 @@ jobs:
       - name: Registry, concurrency and recovery (under five minutes)
         env:
           OFFLINE_TEST_DSN: ${{ matrix.backend == 'postgresql' && 'host=127.0.0.1 port=5432 dbname=offline_synthetic user=offline_synthetic password=synthetic-ci-only' || '' }}
-        run: timeout 300 python -m pytest tests/test_offline_sync.py -q
+        run: >-
+          timeout 300 python -c "import psycopg2.extras, psycopg2.pool, pct.storage_postgres;
+          import pytest; raise SystemExit(pytest.main(['tests/test_offline_sync.py', '-q']))"
       - name: Flask RBAC, CSRF and cache policy (under five minutes)
         env:
           OFFLINE_TEST_DSN: ${{ matrix.backend == 'postgresql' && 'host=127.0.0.1 port=5432 dbname=offline_synthetic user=offline_synthetic password=synthetic-ci-only' || '' }}
-        run: timeout 300 python -m pytest tests/test_offline_api.py -q
+        run: >-
+          timeout 300 python -c "import psycopg2.extras, psycopg2.pool, pct.storage_postgres;
+          import pytest; raise SystemExit(pytest.main(['tests/test_offline_api.py', '-q']))"
       - uses: actions/setup-node@v5
         with:
           node-version: '24'
+          package-manager-cache: false
       - run: node --test tests/js/offline_crypto.test.mjs

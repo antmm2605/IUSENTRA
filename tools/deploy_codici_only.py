@@ -7,7 +7,8 @@ def run(args,**kw):return subprocess.check_output(args,**kw).decode().strip()
 def sha(p):return hashlib.file_digest(p.open('rb'),'sha256').hexdigest()
 def inspect(manifest):
  assert run(['git','-C',str(root),'rev-parse','HEAD'])==manifest['base'],'Commit server cambiato'
- assert not run(['git','-C',str(root),'status','--porcelain']),'Sorgenti server modificati: riconciliare prima'
+ status=run(['git','-C',str(root),'status','--porcelain'])
+ assert not status,'Sorgenti server modificati: riconciliare prima: '+status
  for e in manifest['files']:
   p=root/e['path'];assert (sha(p) if p.is_file() else None)==e['before'],'File server diverso: '+e['path']
  app=json.loads(run(['docker','inspect','iusentra-app']))[0]

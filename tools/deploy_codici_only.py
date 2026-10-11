@@ -19,7 +19,7 @@ def inspect(manifest):
    assert got==e['before'],'Runtime differente: '+e['path']
  data=next(m['Source'] for m in app['Mounts'] if m['Destination']=='/data')
  project=app['Config']['Labels']['com.docker.compose.project']
- return {'base':manifest['base'],'image':app['Image'],'data':data,'project':project}
+ return {'base':manifest['base'],'image':app['Image'],'image_tag':app['Config']['Image'],'data':data,'project':project}
 
 mode,folder=sys.argv[1],Path(sys.argv[2]).resolve()
 manifest=json.loads((folder/'INSTALL_MANIFEST.json').read_text())
@@ -58,7 +58,8 @@ shutil.copytree(folder/'react',runtime/'react',dirs_exist_ok=True)
 lines+=['COPY react/ /app/web/static/react/','USER iusentra']
 (runtime/'Dockerfile').write_text('\n'.join(lines)+'\n')
 tag='iusentra-codici-leggi:'+manifest['build_id']
-subprocess.run(['docker','build','--build-arg','BASE='+state['image'],'-t',tag,str(runtime)],check=True)
+assert run(['docker','image','inspect','--format','{{.Id}}',state['image_tag']])==state['image']
+subprocess.run(['docker','build','--build-arg','BASE='+state['image_tag'],'-t',tag,str(runtime)],check=True)
 # Second check immediately before any application source is replaced.
 assert inspect(manifest)['image']==state['image']
 try:

@@ -130,7 +130,7 @@ computer reale; non si dichiara bonifica universale di tutti i browser.
 
 ## Prove e stato della consegna
 
-Guardrail tecnici locali: 13 test Python del dominio/API e 8 test JavaScript;
+Guardrail tecnici locali: 14 test Python del dominio/API e 8 test JavaScript;
 2 test della regia live esistente; build con Vite 8.2.2, React/ReactDOM 19.2.8;
 lint mirato, governance, sincronizzazione manifest e baseline Python 3.12.
 Test packaging: versioni allineate; aperta una discordanza preesistente della

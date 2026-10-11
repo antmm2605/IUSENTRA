@@ -59,7 +59,7 @@ class DeviceRegistry:
         return dict(
             zip(
                 ("id", "actor", "label", "public_key", "fingerprint", "status", "proven", "generation", "approved_by"),
-                row,
+                (row[index] for index in range(9)),
             )
         )
 
@@ -92,7 +92,13 @@ class DeviceRegistry:
                 sql += " AND actor_key=?"
             rows = conn.execute(sql + " ORDER BY created_at DESC LIMIT 200", args).fetchall()
         return [
-            dict(zip(("id", "actor", "label", "fingerprint", "status", "proven", "generation"), row)) for row in rows
+            dict(
+                zip(
+                    ("id", "actor", "label", "fingerprint", "status", "proven", "generation"),
+                    (row[index] for index in range(7)),
+                )
+            )
+            for row in rows
         ]
 
     def change_status(self, device_id, action, fingerprint=""):

@@ -288,3 +288,17 @@ def test_core_sqlite_schema_installs_offline_tables_without_json_fallback(tmp_pa
         "offline_state",
     } <= tables
     db.chiudi()
+
+
+def test_mapping_rows_preserve_device_values_instead_of_column_names():
+    class IndexedMapping(dict):
+        def __getitem__(self, key):
+            return list(self.values())[key] if isinstance(key, int) else super().__getitem__(key)
+
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = lambda cursor, values: IndexedMapping(zip([column[0] for column in cursor.description], values))
+    repo = make_repo(SimpleNamespace(conn=conn))
+    device, key = approved(repo)
+    assert repo.list_devices()[0]["id"] == device
+    assert repo.list_devices()[0]["status"] == "approved"
+    assert sync(repo, device, key)["generation"] == 1

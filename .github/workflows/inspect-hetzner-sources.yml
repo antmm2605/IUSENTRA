@@ -8,7 +8,8 @@ on:
         options: [inspect, publish]
         default: inspect
 permissions:
-  contents: read
+  # GitHub requires repository write access to read private draft release assets.
+  contents: write
 concurrency:
   group: deploy-hetzner-production
   cancel-in-progress: false
@@ -28,7 +29,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir package
-          gh release download "$RELEASE_TAG" --pattern codici-package.tar.gz --dir package
+          asset=$(gh api "repos/${GITHUB_REPOSITORY}/releases/409497386" --jq '.assets[] | select(.name == "codici-package.tar.gz") | .id')
+          gh api -H 'Accept: application/octet-stream' "repos/${GITHUB_REPOSITORY}/releases/assets/${asset}" > package/codici-package.tar.gz
+          printf '%s  %s\n' 'bccb0565feedbac0157b0a74684b0071b36f0b20b2b5622d1f2ec7c8825fe21a' package/codici-package.tar.gz | sha256sum -c -
           tar -xzf package/codici-package.tar.gz -C package
           python3 - <<'PY'
           import hashlib,json

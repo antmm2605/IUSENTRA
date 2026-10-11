@@ -31,7 +31,7 @@ def shared_template_repository():
     dsn = str(current_app.config.get('EDITOR_SHARED_MODELS_POSTGRES_DSN') or os.getenv('EDITOR_SHARED_MODELS_POSTGRES_DSN') or '')
     if not dsn and not path.is_file():
         return None
-    return GestioneTemplateRepository(str(path), postgres_dsn=dsn, initialize_schema=False)
+    return GestioneTemplateRepository(str(path), postgres_dsn=dsn, initialize_schema=False, read_only=True)
 
 
 def resolve_editor_template(identifier, personal_repository, shared_repository=None):

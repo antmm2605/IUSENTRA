@@ -218,6 +218,8 @@ class GestioneTemplateRepository:
         postgres_dsn: str = "",
         postgres_schema_path: Path | None = None,
         initialize_schema: bool = True,
+        read_only: bool = False,
+        journal_mode: str = "WAL",
     ):
         self.db_path = str(db_path)
         self.json_path = str(json_path) if json_path else ""
@@ -225,25 +227,35 @@ class GestioneTemplateRepository:
         self.postgres_dsn = str(postgres_dsn or "").strip()
         self.postgres_schema_path = Path(postgres_schema_path or POSTGRES_SCHEMA_TEMPLATE_REPOSITORY)
         self.backend_kind = "postgresql" if self.postgres_dsn else "sqlite"
+        self.read_only = read_only
+        if journal_mode not in {"WAL", "DELETE"}:
+            raise ValueError("Modalità journal del repository non prevista.")
+        self.journal_mode = journal_mode
         self._postgres_backend = (
-            PostgresRepositoryBackend(self.postgres_dsn, self.postgres_schema_path)
+            PostgresRepositoryBackend(self.postgres_dsn, self.postgres_schema_path,
+                                      initialize_schema=initialize_schema, read_only=read_only)
             if self.postgres_dsn
             else None
         )
-        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
-        if self.json_path:
+        if not read_only:
+            Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
+        if self.json_path and not read_only:
             Path(self.json_path).parent.mkdir(parents=True, exist_ok=True)
-        if initialize_schema:
+        if initialize_schema and not read_only:
             self._ensure_schema()
 
     def _connect(self):
         if self._postgres_backend is not None:
             return self._postgres_backend.connection()
-        conn = sqlite3.connect(self.db_path)
+        conn = (sqlite3.connect(Path(self.db_path).resolve().as_uri() + "?mode=ro", uri=True)
+                if self.read_only else sqlite3.connect(self.db_path))
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
-        conn.execute("PRAGMA journal_mode = WAL")
-        conn.execute("PRAGMA synchronous = NORMAL")
+        if self.read_only:
+            conn.execute("PRAGMA query_only = ON")
+        else:
+            conn.execute(f"PRAGMA journal_mode = {self.journal_mode}")
+            conn.execute("PRAGMA synchronous = NORMAL")
         return conn
 
     @contextmanager

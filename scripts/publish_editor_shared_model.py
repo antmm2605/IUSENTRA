@@ -36,7 +36,9 @@ def main():
             if output.execute('PRAGMA quick_check').fetchone()[0] != 'ok':
                 raise ValueError('Backup del catalogo non integro.')
     bundle = json.loads(Path(args.bundle).read_text(encoding='utf-8'))
-    repo = GestioneTemplateRepository(str(target), postgres_dsn=dsn)
+    # Un catalogo pubblicato deve essere leggibile dall'app senza scrivere
+    # sidecar WAL nella directory amministrativa, che resta protetta.
+    repo = GestioneTemplateRepository(str(target), postgres_dsn=dsn, journal_mode='DELETE')
     receipt = publish_shared_model(repo, bundle['payload'], font_source=bundle.get('font_source', ''), reviewed_sha256=args.reviewed_sha256, publisher=args.publisher)
     print(json.dumps(receipt, ensure_ascii=False))
 

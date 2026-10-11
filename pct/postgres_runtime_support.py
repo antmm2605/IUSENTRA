@@ -178,20 +178,24 @@ class PostgresRepositoryConnection:
 
 
 class PostgresRepositoryBackend:
-    def __init__(self, dsn: str, schema_path: str | Path) -> None:
+    def __init__(self, dsn: str, schema_path: str | Path, *, initialize_schema: bool = True, read_only: bool = False) -> None:
         if not _HAS_PSYCOPG2:
             raise RuntimeError(
                 "psycopg2 non disponibile: installa psycopg2-binary per usare i repository PostgreSQL."
             )
         self.dsn = str(dsn or "").strip()
         self.schema_path = Path(schema_path)
+        self.read_only = read_only
         self._local = threading.local()
-        self._ensure_schema()
+        if initialize_schema and not read_only:
+            self._ensure_schema()
 
     @property
     def raw_conn(self):
         if not hasattr(self._local, "_conn") or self._local._conn is None:
             self._local._conn = psycopg2.connect(self.dsn)
+            if self.read_only:
+                self._local._conn.set_session(readonly=True)
         return self._local._conn
 
     def connection(self) -> PostgresRepositoryConnection:

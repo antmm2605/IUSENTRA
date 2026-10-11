@@ -51,6 +51,7 @@ def test_shared_model_available_to_two_studios_and_private_models_isolated(tmp_p
     identifier = str(uuid4())
     body = '<p><strong><span data-iu-linked-field="cliente.nome">[Nome]</span></strong> <span data-iu-linked-field="studio.citta">[Comune studio]</span></p>'
     shared.create_shared_editor_template({'id': identifier, 'titolo': 'Condiviso', 'corpo': body, 'collezione': 'Editor condiviso', 'builtin': True})
+    shared = GestioneTemplateRepository(shared.db_path, initialize_schema=False, read_only=True)
     private_id = str(uuid4())
     studios[0].create_editor_template({'id': private_id, 'titolo': 'Privato', 'corpo': '<p>Privato</p>', 'collezione': 'Editor personale'})
     app = Flask(__name__)
@@ -88,6 +89,34 @@ def test_shared_catalog_reads_do_not_create_missing_database(tmp_path):
     with app.app_context():
         assert shared_template_repository() is None
     assert not (tmp_path / 'editor_shared_models').exists()
+
+
+def test_shared_catalog_reads_without_writes_or_journal_changes(tmp_path):
+    import hashlib
+    import sqlite3
+    import pytest
+    from web.services.editor_template_fonts import shared_template_repository
+
+    path = tmp_path / 'editor_shared_models' / 'template_repository.db'
+    publisher = GestioneTemplateRepository(str(path))
+    identifier = str(uuid4())
+    publisher.create_shared_editor_template({'id': identifier, 'titolo': 'Condiviso',
+        'corpo': '<p>Modello</p>', 'collezione': 'Editor condiviso', 'builtin': True})
+    with sqlite3.connect(path) as connection:
+        connection.execute('PRAGMA journal_mode=DELETE')
+    before = hashlib.sha256(path.read_bytes()).hexdigest()
+    app = Flask(__name__)
+    app.config['PCT_DATA_ROOT'] = str(tmp_path)
+    with app.app_context():
+        reader = shared_template_repository()
+        assert reader.get_template(identifier)['titolo'] == 'Condiviso'
+        assert len(reader.list_templates()) == 1
+        with reader._connection() as connection:
+            assert connection.execute('PRAGMA journal_mode').fetchone()[0] == 'delete'
+            with pytest.raises(sqlite3.OperationalError, match='readonly'):
+                connection.execute('DELETE FROM template_repository')
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == before
+    assert sorted(p.name for p in path.parent.iterdir()) == ['template_repository.db']
 
 
 def test_shared_publication_removes_previous_bindings_and_audits_atomically(tmp_path):

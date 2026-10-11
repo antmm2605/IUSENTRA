@@ -160,6 +160,7 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
           setCopySource({ href: source.href.replace(/\/documenti\/[^/]+\//, `/documenti/${result.documento.id}/`), label: result.documento.nome, context: 'Copia per condivisione. L’originale è rimasto intatto.' })
           setStatus(`Copia salvata nel fascicolo: ${result.documento.nome}. L’originale è rimasto intatto.`)
         }
+        if (result.warning) setError(result.warning)
       }
       setMarks([]); setRedo([]); setHistory([])
     } catch (err) { setStatus(''); setError(err instanceof Error ? err.message : 'Modifiche non salvate.') }

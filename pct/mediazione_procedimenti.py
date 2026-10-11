@@ -198,6 +198,8 @@ class MediazioneProcedimentiRepository:
                 if statement.strip():
                     studio_db.conn.execute(statement)
             studio_db.conn.execute("COMMIT")
+            from pct.operational_live import ensure_live_schema
+            ensure_live_schema(studio_db.conn, postgres=getattr(studio_db, "backend_kind", "sqlite") == "postgresql")
             studio_db._mediazione_schema_ready = True
 
     @property
@@ -242,3 +244,44 @@ class MediazioneProcedimentiRepository:
             (fascicolo_id,),
         ).fetchall()
         return [dict(row) for row in rows]
+
+    def collega_copia_modulo(self, fascicolo_id, originale_id, copia_id, document_ids, actor):
+        """Collega l'esito dell'editor al modulo esatto, senza attestare un deposito.
+
+        La copia deve esistere nello stesso fascicolo. Il CAS nativo conserva
+        modifiche concorrenti e decisioni manuali; una consegna ripetuta non
+        crea una nuova versione o un secondo riferimento.
+        """
+        if not originale_id or not copia_id or originale_id == copia_id:
+            raise ValueError("Originale e copia devono essere documenti distinti.")
+        if not {originale_id, copia_id}.issubset(document_ids):
+            raise ValueError("La copia del modulo deve appartenere al fascicolo corrente.")
+        linked = []
+        for candidate in self.lista(fascicolo_id):
+            for attempt in range(3):
+                current = next((p for p in self.lista(fascicolo_id) if p["id"] == candidate["id"]), None)
+                if not current:
+                    break
+                module = next((m for m in current.get("moduli_organismo", [])
+                               if m.get("documento") == originale_id
+                               and m.get("fonte", {}).get("organismo_numero") == current.get("organismo_numero")), None)
+                if not module:
+                    break
+                if copia_id in module.get("copie_compilate", []):
+                    linked.append(current["id"])
+                    break
+                module.setdefault("copie_compilate", []).append(copia_id)
+                if current.get("modulo_ufficiale_documento") == originale_id:
+                    current["modulo_compilato_documento"] = copia_id
+                version = current.pop("versione")
+                for metadata in ("id", "creato_il", "modificato_il"):
+                    current.pop(metadata, None)
+                try:
+                    self.salva(fascicolo_id, candidate["id"], version, current, actor)
+                except ValueError:
+                    if attempt == 2:
+                        raise
+                    continue
+                linked.append(candidate["id"])
+                break
+        return linked

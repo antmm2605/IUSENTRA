@@ -1,5 +1,6 @@
 import { useBusyActivity } from '../../ui/useBusyActivity'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useOperationalRefresh } from '../../hooks/useOperationalRefresh'
 import { Plus, Save, RefreshCw } from 'lucide-react'
 import { apiPostJson, ensureJson } from '../../lib/apiClient'
 import { formatDateTimeIt } from '../../formatting'
@@ -17,6 +18,7 @@ export default function MediazioneFascicolo({ id, preview, onDocuments }: {
   id: string; preview: (doc: Preview) => void; onDocuments: () => void
 }) {
   const base = `/api/fascicoli/${encodeURIComponent(id)}/mediazioni`
+  const liveSequence = useRef(0)
   const [data, setData] = useState<Data | null>(null)
   const [selected, setSelected] = useState<Procedure | null>(null)
   const [dirty, setDirty] = useState(false)
@@ -27,12 +29,27 @@ export default function MediazioneFascicolo({ id, preview, onDocuments }: {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
+  const liveGuard = useRef({ dirty, busy, moduleDirty, selectedId: selected?.id })
+  liveGuard.current = { dirty, busy, moduleDirty, selectedId: selected?.id }
+  useOperationalRefresh(['fascicoli'], async () => {
+    if (!data || liveGuard.current.dirty || liveGuard.current.busy || liveGuard.current.moduleDirty) return false
+    const sequence = ++liveSequence.current
+    const selectedId = liveGuard.current.selectedId
+    const result = await ensureJson<Data>(base, { activity: false })
+    if (sequence !== liveSequence.current || liveGuard.current.dirty || liveGuard.current.busy
+      || liveGuard.current.moduleDirty || liveGuard.current.selectedId !== selectedId) return false
+    if (!result.ok || result.id_fascicolo !== id) throw new Error('Aggiornamento della mediazione non confermato.')
+    setData(result)
+    setSelected(result.procedimenti.find(procedure => procedure.id === selectedId) || null)
+    return true
+  })
   useEffect(() => {
+    liveSequence.current += 1
     const abort = new AbortController()
     setError('')
     ensureJson<Data>(base, { signal: abort.signal }).then((r) => { setData(r); setSelected(r.procedimenti[0] || null) })
       .catch((e: unknown) => { if (!abort.signal.aborted) setError(e instanceof Error ? e.message : 'Mediazione non disponibile.') })
-    return () => abort.abort()
+    return () => { liveSequence.current += 1; abort.abort() }
   }, [base, retry])
   useEffect(() => {
     const guard = (event: BeforeUnloadEvent) => { if (dirty) { event.preventDefault(); event.returnValue = '' } }
@@ -46,6 +63,7 @@ export default function MediazioneFascicolo({ id, preview, onDocuments }: {
   }
   const save = async (resource = '', body: unknown = selected) => {
     if (!selected || busy) return false
+    liveSequence.current += 1
     setBusy(true); setError(''); setMessage('')
     try {
       const result = await apiPostJson<Data>(`${base}${resource}`, body, { ok: false, message: 'Connessione interrotta. Le modifiche restano nel modulo.' } as Data)
@@ -73,14 +91,16 @@ export default function MediazioneFascicolo({ id, preview, onDocuments }: {
     {message ? <p className="iu-mediazione-success" role="status">{message}</p> : null}
     {selected ? <form onSubmit={(e) => { e.preventDefault(); void save() }}>
       <fieldset className="iu-mediazione-form" disabled={busy || !data.can_write || moduleDirty}>
-        <OrganismoScelta base={base} value={selected} change={change} busy={busy} dirty={dirty} acquire={(url) => void save(`/${selected.id}/modulo`, { url, versione: selected.versione })} />
+        <OrganismoScelta base={base} value={selected} change={change} busy={busy} dirty={dirty} canWrite={data.can_write} acquire={(url) => save(`/${selected.id}/modulo`, { url, versione: selected.versione })} />
         <ModuliAcquisiti value={selected} change={change} docs={data.documenti} preview={preview} />
         {currentModule?.nome.toLowerCase().endsWith('.pdf') ? <Button disabled={dirty || !selected.id} onClick={() => setModuleOpen(!moduleOpen)}>{moduleOpen ? 'Chiudi compilazione modulo' : 'Compila modulo PDF dell’organismo'}</Button> : null}
         {currentModule && /\.docx?$/i.test(currentModule.nome) ? <Button disabled={dirty || !selected.id} onClick={() => void save(`/${selected.id}/modulo/copia`, { versione: selected.versione })}>Prepara copia Word da compilare</Button> : null}
         <Button disabled={dirty || !selected.id} onClick={() => void save(`/${selected.id}/bozza`, { versione: selected.versione })}>Prepara bozza dai dati della mediazione</Button>
         <ProcedimentoForm value={selected} change={change} docs={data.documenti} preview={preview} />
       </fieldset>
-      {moduleOpen && currentModule?.nome.toLowerCase().endsWith('.pdf') ? <PdfModulo key={currentModule.id} endpoint={`${base}/${selected.id}/modulo/campi`} previewUrl={currentModule.preview} busy={busy} onDirty={setModuleDirty} save={(valori) => save(`/${selected.id}/modulo/campi`, { valori, versione: selected.versione })} /> : null}
+      {moduleOpen && currentModule?.nome.toLowerCase().endsWith('.pdf') ? <PdfModulo key={currentModule.id} endpoint={`${base}/${selected.id}/modulo/campi`} previewUrl={currentModule.preview} busy={busy} onDirty={setModuleDirty}
+        onEditWithoutFields={() => preview({ name: currentModule.nome, url: currentModule.preview, downloadUrl: currentModule.preview.replace('/visualizza', '/scarica') })}
+        save={(valori) => save(`/${selected.id}/modulo/campi`, { valori, versione: selected.versione })} /> : null}
       {selected.controlli?.some((c) => !c.ok) ? <aside className="iu-mediazione-block" aria-label="Verifiche sui dati salvati"><strong>Prima del deposito — dati dell’ultimo salvataggio</strong><ul>{selected.controlli.filter((c) => !c.ok).map((c) => <li key={c.id}>{c.messaggio}</li>)}</ul></aside> : null}
       <div className="iu-mediazione-save"><span>{dirty ? 'Modifiche da salvare' : 'Nessuna modifica in sospeso'}</span><Button type="submit" tone="primary" disabled={busy || !data.can_write || moduleDirty}><Save size={16} />{busy ? 'Salvataggio…' : 'Salva procedimento'}</Button></div>
     </form> : null}

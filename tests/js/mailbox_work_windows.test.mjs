@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { readFileSync } from 'node:fs'
 import { workWindowUrl } from '../../frontend/src/components/workWindowRoutes.ts'
 const origin = 'https://app.iusentra.it'
 
@@ -30,4 +31,26 @@ test('le altre finestre mantengono contesto e confini di origine', () => {
  assert.equal(url?.searchParams.get('vista'),'week')
  assert.equal(url?.searchParams.get('view'),null)
  for(const path of ['https://example.test/email','https://utente:password@app.iusentra.it/email','/email/ID4/elimina','/logout','javascript:alert(1)']) assert.equal(workWindowUrl(path,origin),null)
+})
+
+test('i collegamenti di studio restano disponibili durante la compilazione', () => {
+ for (const path of ['/profilo', '/lex-apprendimento', '/recupero-crediti', '/applicazioni/calcolo']) {
+  const url = workWindowUrl(path, origin)
+  assert.equal(url?.pathname, path)
+  assert.equal(url?.searchParams.get('embed'), 'source')
+ }
+ for (const path of ['/profilo/logout', '/applicazioni/elimina', '/applicazioni-esterne']) {
+  assert.equal(workWindowUrl(path, origin), null)
+ }
+})
+
+test('ogni destinazione del menu principale può aprirsi senza abbandonare la bozza', () => {
+ const app = readFileSync(new URL('../../frontend/src/App.tsx', import.meta.url), 'utf8')
+ const menu = app.slice(app.indexOf("id: 'agenda'"), app.indexOf('function normaliseRoutePath'))
+ const paths = [...menu.matchAll(/href: '([^']+)'/g)].map(match => match[1])
+ assert.ok(paths.length > 40)
+ for (const path of paths) assert.ok(workWindowUrl(path, origin), `Destinazione non disponibile: ${path}`)
+ for (const path of ['/admin/database/elimina', '/deposito/invia', '/pat/invia', '/pdp/invia']) {
+  assert.equal(workWindowUrl(path, origin), null)
+ }
 })

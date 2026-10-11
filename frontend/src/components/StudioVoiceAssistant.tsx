@@ -2146,12 +2146,12 @@ export function StudioVoiceAssistant({ activePath }: { activePath: string }) {
         className={`iu-icon iu-voice-assistant__trigger ${enabled ? 'is-active' : ''}`}
         type="button"
         onClick={() => setOpen((value) => !value)}
-        aria-label="Assistente vocale Studio"
+        aria-label="Comandi vocali"
         aria-expanded={open}
-        title="Assistente vocale Studio"
+        title="Comandi vocali"
       >
         {listening ? <Mic size={18} /> : <Bot size={18} />}
-        <span className="iu-voice-assistant__trigger-label">Voce Studio</span>
+        <span className="iu-voice-assistant__trigger-label">Comandi vocali</span>
         {listening ? <span className="iu-voice-assistant__pulse" aria-hidden="true" /> : null}
       </button>
       {open ? (

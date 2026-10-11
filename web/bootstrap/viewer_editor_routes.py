@@ -107,7 +107,27 @@ def register_viewer_editor_routes(app):
             return jsonify(ok=False, message="Il testo originale si modifica solo nei documenti prodotti dallo studio."), 403
         # Si riusa integralmente la procedura nativa: cifratura, storico delle
         # versioni, SQL, audit, inventario delle letture e indicizzazione.
-        return app.view_functions["api_editor_pdf_overlay"](fid, did)
+        response = app.make_response(app.view_functions["api_editor_pdf_overlay"](fid, did))
+        result = response.get_json(silent=True) if response.is_json else None
+        if (response.status_code == 200 and result and result.get("ok")
+                and result.get("destinazione") == "copia"
+                and "modulo_organismo" in (getattr(documento, "tags", []) or [])):
+            from pct.mediazione_procedimenti import MediazioneProcedimentiRepository
+
+            try:
+                manager = get_fascicoli()
+                current = manager.get(fid)
+                copied_id = result.get("documento", {}).get("id", "")
+                linked = MediazioneProcedimentiRepository(manager._studio_db).collega_copia_modulo(
+                    fid, did, copied_id, {d.id for d in current.documenti}, str(g.utente_corrente.id),
+                )
+                result["mediazioni_collegate"] = linked
+            except Exception:
+                app.logger.exception("Copia salvata: collegamento al procedimento di mediazione non confermato")
+                result["warning"] = ("La copia è salvata nel fascicolo, ma il collegamento alla mediazione "
+                                     "non è confermato. Rileggi i dati del procedimento prima di usarla.")
+            response = jsonify(result)
+        return response
 
     @app.get("/api/v1/ui/fascicoli/<fid>/documenti/<did>/editor-visualizzatore/testo/<int:pagina>")
     def documento_editor_testo(fid, did, pagina):

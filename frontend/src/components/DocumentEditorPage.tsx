@@ -2313,7 +2313,7 @@ export function DocumentEditorPage() {
   } as React.CSSProperties
 
   return (
-    <main className={`iu-content iu-doc-editor-page${editorEnabled && !editorAiOpen ? ' iu-doc-editor-page--focused' : ''}`} ref={paginaRef}>
+    <main className={`iu-content iu-doc-editor-page${editorEnabled && !editorAiOpen ? ' iu-doc-editor-page--focused' : ''}`} ref={paginaRef} data-preserve-editor-work={dirty || draftBusy || pdfBusy || status.tone === 'saving' ? 'true' : undefined}>
       <section className={`iu-de-hero${headerCollapsed ? ' iu-de-hero--collapsed' : ''}`}>
         {headerCollapsed && <strong className="iu-de-short-title" title={doc.name}>{doc.name}</strong>}
         <div>

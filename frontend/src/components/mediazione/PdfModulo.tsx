@@ -13,7 +13,7 @@ type ModuleData = { campi: Field[]; pagine: { numero: number; larghezza: number;
   proposte?: Record<string, string>; origini?: Record<string, string>; righe?: Righe
   /** Importi di legge citati dal modulo e non piu' vigenti. */
   avvisiNormativi?: { messaggio: string; importo_citato?: string; importo_vigente?: string }[] }
-export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica, avvioEspanso, onEsci }: {
+export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica, avvioEspanso, onEsci, onEditWithoutFields }: {
   endpoint: string; previewUrl: string; busy: boolean; save: (values: Record<string, string | boolean>) => Promise<boolean>; onDirty: (dirty: boolean) => void
   /** Come leggere i campi. Serve dove la richiesta non basta da sola: il
    *  Portale Cliente si autentica con un token, non con la sessione dello
@@ -27,6 +27,8 @@ export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica, a
    *  aperto a tutto schermo, uscire vuol dire chiuderlo: tornare alla vista
    *  stretta lascerebbe il compilatore incastrato nella pagina. */
   onEsci?: () => void
+  /** I PDF senza AcroForm si compilano con l'editor grafico nativo, preservando l'originale. */
+  onEditWithoutFields?: () => void
 }) {
   const [data, setData] = useState<ModuleData | null>(null)
   const [values, setValues] = useState<Record<string, string | boolean>>({})
@@ -124,7 +126,10 @@ export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica, a
         >− Rimuovi ultima riga</Button>
       </div>
     ) : null}
-    {!data.campi.length ? <p>Questo PDF non contiene campi predisposti. Il modello originale rimane consultabile; non è stato trasformato o compilato automaticamente.</p> : null}
+    {!data.campi.length ? <>
+      <p>{onEditWithoutFields ? 'Questo PDF non contiene campi predisposti. Puoi inserire testo nelle aree del modulo con il lettore PDF e salvare una copia nel fascicolo.' : 'Questo PDF non contiene campi predisposti. Il modello originale rimane consultabile; non è stato trasformato o compilato automaticamente.'}</p>
+      {onEditWithoutFields ? <Button disabled={busy} onClick={onEditWithoutFields}>Compila nel lettore PDF</Button> : null}
+    </> : null}
     <div className="iu-mediazione-pdf-scroll" tabIndex={0} aria-label="Pagina del modulo, scorrimento orizzontale disponibile">
       <div className="iu-mediazione-pdf-sheet" style={{ aspectRatio: `${sheet.larghezza} / ${sheet.altezza}`, width: `${8 * zoom}px` }}>
         <img src={`${previewUrl}${previewUrl.includes('?') ? '&' : '?'}viewer=mobile&page=${page}${righe ? `&righe=${righe}` : ''}`} alt={`Pagina ${page} del modulo dell’organismo`} onError={() => setError('Anteprima non disponibile. Non compilare senza verificare la pagina.')} />

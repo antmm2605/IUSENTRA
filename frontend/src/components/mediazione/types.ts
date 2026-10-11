@@ -38,6 +38,6 @@ export type SourceCheck = {
 export type Preview = { name: string; url: string; downloadUrl: string }
 export const text = (p: Procedure, key: string) => typeof p[key] === 'string' ? p[key] as string : ''
 export const states: Record<string, string> = { bozza: 'In preparazione', pronta: 'Pronta per il deposito', depositata: 'Depositata', in_corso: 'In corso', accordo: 'Conclusa con accordo', mancato_accordo: 'Conclusa senza accordo', ritirata: 'Ritirata' }
-export const regimes: Record<string, string> = { volontaria: 'Volontaria', obbligatoria: 'Condizione di procedibilità', demandata: 'Demandata dal giudice', clausola: 'Clausola contrattuale o statutaria' }
+export const regimes: Record<string, string> = { volontaria: 'Volontaria', obbligatoria: 'Condizione di procedibilità (obbligatoria)', demandata: 'Demandata dal giudice', clausola: 'Clausola contrattuale o statutaria' }
 export const modes: Record<string, string> = { presenza: 'In presenza', remoto: 'Partecipazione da remoto', telematica: 'Procedimento telematico' }
 export const newProcedure = (proposta: Partial<Procedure>): Procedure => ({ versione: 0, titolo: '', stato: 'bozza', regime: 'volontaria', modalita: 'presenza', organismo_numero: '', sede_id: '', parti: [], incontri: [], proroghe: [], ...proposta })

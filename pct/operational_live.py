@@ -20,6 +20,7 @@ TABLE_DOMAINS = {
     # un solo segnale, confermato insieme alla scrittura governata.
     "prima_nota_state": ("incassi",),
     "ctu_state": ("fascicoli",),
+    "mediazione_procedimenti": ("fascicoli",),
     # La preparazione appartiene all'Agenda: stesso presidio di permessi e
     # stessa regia delle aree aperte, senza un canale parallelo.
     "preparazioni_sessions": ("agenda",),
@@ -35,6 +36,8 @@ def ensure_live_schema(conn, *, postgres: bool = False) -> None:
     # non installare trigger su tabelle appartenenti a un altro database.
     if postgres:
         existing = {str(row[0]) for row in conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema()").fetchall()}
+        schema = str(conn.execute("SELECT current_schema()").fetchone()[0])
+        quoted_schema = '"' + schema.replace('"', '""') + '"'
     else:
         existing = {str(row[0]) for row in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()}
     tables = sorted(set(TABLE_DOMAINS) & existing)
@@ -51,9 +54,10 @@ def ensure_live_schema(conn, *, postgres: bool = False) -> None:
         updates = " ".join(f"UPDATE operational_live_revisions SET revision = revision + 1 WHERE domain = '{domain}';" for domain in domains)
         if postgres:
             function = f"iusentra_live_{table}"
-            conn.execute(f"CREATE OR REPLACE FUNCTION {function}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN {updates} RETURN NULL; END $$")
+            function_ref = f'{quoted_schema}."{function}"'
+            conn.execute(f"CREATE OR REPLACE FUNCTION {function_ref}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN {updates} RETURN NULL; END $$")
             conn.execute(f"DROP TRIGGER IF EXISTS {function} ON {table}")
-            conn.execute(f"CREATE TRIGGER {function} AFTER INSERT OR UPDATE OR DELETE ON {table} FOR EACH STATEMENT EXECUTE FUNCTION {function}()")
+            conn.execute(f"CREATE TRIGGER {function} AFTER INSERT OR UPDATE OR DELETE ON {table} FOR EACH STATEMENT EXECUTE FUNCTION {function_ref}()")
         else:
             for action in ("INSERT", "UPDATE", "DELETE"):
                 name = f"iusentra_live_{table}_{action.lower()}"

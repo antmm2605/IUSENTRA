@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-DOgKLN-Q.js";export{e as ImpostazioniPage};

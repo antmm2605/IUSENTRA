@@ -39,7 +39,9 @@ export function ContextWorkWindows({ embedded = false }: { embedded?: boolean })
       if (event.defaultPrevented || event.button || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
       const anchor = event.target instanceof Element ? event.target.closest('a') : null
       if (!anchor || anchor.target === '_blank' || anchor.hasAttribute('download') || anchor.getAttribute('href')?.startsWith('#')) return
-      if (!embedded && !anchor.closest('[role=dialog], main') && !(document.querySelector('.iu-managed-window') && anchor.closest('.iu-sidebar'))) return
+      const preservingEditor = document.querySelector('[data-preserve-editor-work="true"]') !== null
+      const shellNavigation = anchor.closest('.iu-sidebar, .iu-mobile, .iu-topbar')
+      if (!embedded && !anchor.closest('[role=dialog], main') && !((document.querySelector('.iu-managed-window') || preservingEditor) && shellNavigation)) return
       if (!workWindowUrl(anchor.href, window.location.origin)) return
       event.preventDefault()
       const explicitTitle = anchor.getAttribute('aria-label')?.trim() || anchor.getAttribute('title')?.trim()

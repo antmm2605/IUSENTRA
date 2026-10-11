@@ -90,6 +90,11 @@ def register_mediazione_fascicolo_routes(app, *, get_fascicoli, cliente_accessib
                                             caricato_da=str(user.id), preserva_contenuto_originale=True)
             payload = normalizza(previous, {d.id for d in fasc.documenti})
             collega_organismo(payload, previous, app.config)
+            existing = next((m for m in payload["moduli_organismo"] if m["documento"] == doc.id), None)
+            if existing and existing["fonte"].get("sha256") == source["sha256"] and existing["fonte"]["organismo_numero"] == previous["organismo_numero"]:
+                # Stessa fonte già acquisita: preservare copie e decisioni,
+                # senza una nuova revisione/audit di un fatto invariato.
+                return jsonify(result(repo, fasc, user))
             payload.update(modulo_ufficiale_documento=doc.id, modulo_fonte=source, modulo_verificato=False)
             payload["moduli_organismo"] = [m for m in payload["moduli_organismo"] if m["documento"] != doc.id]
             payload["moduli_organismo"].append({"documento": doc.id, "nome": doc.nome, "fonte": source, "copie_compilate": []})

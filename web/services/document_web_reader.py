@@ -53,6 +53,11 @@ def web_preview():
             # Le immagini remote non devono aprire richieste di tracciamento né
             # produrre segnaposto rotti nella lettura statica della fonte.
             for image in soup.find_all("img"):
+                declarations = {part.split(":", 1)[0].strip().lower(): part.split(":", 1)[1].strip().lower()
+                                for part in str(image.get("style") or "").split(";") if ":" in part}
+                if image.has_attr("hidden") or declarations.get("display") == "none" or declarations.get("visibility") == "hidden":
+                    image.decompose()
+                    continue
                 alternative = str(image.get("alt") or "").strip()
                 image.replace_with(alternative) if alternative else image.decompose()
             for navigation in soup.find_all("nav"):

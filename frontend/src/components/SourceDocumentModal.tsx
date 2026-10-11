@@ -93,6 +93,7 @@ export function SourceDocumentReader({
   readerRef,
   compact = false,
   onReaderReady,
+  onPublicLink,
 }: {
   href: string
   label: string
@@ -101,7 +102,10 @@ export function SourceDocumentReader({
   readerRef?: RefObject<HTMLIFrameElement | null>
   compact?: boolean
   onReaderReady?: (document: Document) => void
+  onPublicLink?: (url: string) => boolean
 }) {
+  const publicLinkHandler = useRef(onPublicLink)
+  publicLinkHandler.current = onPublicLink
   const [destination, setDestination] = useState<{ href: string; label: string; mail: boolean } | null>(null)
   const detachLinks = useRef<(() => void) | null>(null)
   const [loadState, setLoadState] = useState<'loading' | 'loaded' | 'error'>('loading')
@@ -155,9 +159,14 @@ export function SourceDocumentReader({
           if (url.searchParams.get('subject')) params.set('oggetto', url.searchParams.get('subject') || '')
           setDestination({ href: `/email/scrivi?${params}`, label: address, mail: true })
         } else if (url.protocol === 'https:' || url.protocol === 'http:') {
+          if (url.origin === window.location.origin && url.pathname === '/api/v1/ui/document-reader/web' && url.searchParams.get('download') === '1') {
+            const publicUrl = url.searchParams.get('url') || ''
+            if (publicLinkHandler.current?.(publicUrl)) { event.preventDefault(); return }
+          }
           // I comandi propri del lettore (download, rotazione) restano sul percorso interno.
           if (url.origin === window.location.origin && !target?.classList.contains('reader-document-link') && target?.closest('.toolbar,header,nav')) return
           event.preventDefault()
+          if (url.origin !== window.location.origin && publicLinkHandler.current?.(url.href)) return
           setDestination({ href: `/api/v1/ui/document-reader/web?${new URLSearchParams({ url: url.href })}`, label: url.href, mail: false })
         }
       }
@@ -243,7 +252,7 @@ export function SourceDocumentReader({
           boxClassName="iu-source-reader-box"
           onClose={() => setDestination(null)}
         >
-          {destination.mail ? <iframe title={`Componi PEC a ${destination.label}`} src={destination.href} style={{ width: '100%', height: '100%', border: 0 }} referrerPolicy="no-referrer"/> : <SourceDocumentReader href={destination.href} label={destination.label}/>}
+          {destination.mail ? <iframe title={`Componi PEC a ${destination.label}`} src={destination.href} style={{ width: '100%', height: '100%', border: 0 }} referrerPolicy="no-referrer"/> : <SourceDocumentReader href={destination.href} label={destination.label} onPublicLink={onPublicLink}/>}
         </OperationalModal>, document.body,
       ) : null}
     </div>

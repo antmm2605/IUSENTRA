@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.437.10 — 11/10/2026
+
+- La navigazione durante una bozza dell’editor riusa le finestre di lavoro e conserva il testo compilato. La topbar mostra Comandi vocali.
+- Mediazione: sito dell’organismo nel lettore interno, acquisizione delle risorse registrate e compilazione PDF nativa. La copia salvata torna nel procedimento con SQL, audit e aggiornamento live; riacquisire la stessa fonte conserva copie e verifiche.
+- Il lettore pubblico evita le etichette delle immagini esplicitamente nascoste, conservando i testi alternativi visibili. Condizione di procedibilità indicata come obbligatoria.
+- Accettazione sulla copia reale 8080 documentata nei rapporti data-flow; incarico generale aperto, rilascio esatto e gate remoti da registrare.
+
 - **Caricamenti 2.437.9 (11/10/2026)**: registro condiviso delle attese per pagine e comandi React, con chiusura sul completamento della risposta, errori e annullamento. Distinti aggiornamenti automatici e richieste manuali; indicatori nel lettore PDF interno per immagini visibili, OCR e preparazione stampa. Corretto il bootstrap multi-entry e preservati bozze, filtri e comandi congelati. Prove reali e perimetri ancora aperti nel censimento dei caricamenti; questo rilascio non chiude l’incarico generale.
 
 - **Editor 2.437.3 (11/10/2026)**: archivio documenti unificato, campi collegati e modelli personali SQL, timbro configurabile e salvataggio PDF nel fascicolo. Conservazione dei caratteri incorporati, degli stili annidati e delle tabulazioni Word; controllo italiano dei recapiti tecnici e recupero dei metadati già archiviati prima della lettura dei nuovi documenti.

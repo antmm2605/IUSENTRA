@@ -10950,7 +10950,10 @@ def test_css_react_hashed_usano_solo_identita_della_release(tmp_path: Path):
     from urllib.parse import parse_qs, urlsplit
 
     manifest = json.loads((Path(app.static_folder) / "react" / ".vite" / "manifest.json").read_text(encoding="utf-8"))
-    entry = manifest.get("src/main.tsx") or next(value for value in manifest.values() if value.get("isEntry"))
+    # I lettori nativi sono entry indipendenti: solo la entry React identifica
+    # la release della shell, a prescindere dall'ordine del manifest.
+    entry = manifest.get("index.html") or manifest.get("src/main.tsx")
+    assert entry and entry.get("isEntry"), "entry principale React assente"
     release = entry["file"]
     assert all(parse_qs(urlsplit(href).query) == {"release": [release]} for href in hashed)
     # `app.css` non è versionato nel nome: lì il `?v=` serve e deve restare.

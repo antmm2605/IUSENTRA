@@ -1,3 +1,11 @@
+## 2.438.0 — 2026-10-11 (in revisione, nessun deploy)
+
+- Primo percorso offline: dispositivi approvati per studio/identità, prova P-256, revoca e audit SQL.
+- Note personali del fascicolo e allegati TXT: vault AES-GCM, delta, coda offline, ricevute idempotenti e conflitti espliciti.
+- Cache pubblica limitata alla shell; risposte autenticate no-store e memorie riservate ordinarie in RAM.
+- Test solo sintetici. Accettazione sulla macchina reale e PostgreSQL operativo ancora aperte; feature disattivata per default.
+- Branch dedicato/PR in bozza per evitare i deploy automatici dei branch operativi. Vedi `docs/OFFLINE_SICURO.md`.
+
 # Changelog
 
 - **Editor 2.437.3 (11/10/2026)**: archivio documenti unificato, campi collegati e modelli personali SQL, timbro configurabile e salvataggio PDF nel fascicolo. Conservazione dei caratteri incorporati, degli stili annidati e delle tabulazioni Word; controllo italiano dei recapiti tecnici e recupero dei metadati già archiviati prima della lettura dei nuovi documenti.

@@ -22,6 +22,9 @@ def register_sync_runtime_routes(
 ) -> None:
     """Register realtime sync and operational background routes."""
 
+    from web.bootstrap.offline_routes import register_offline_routes
+    register_offline_routes(app, get_fascicoli=get_fascicoli, get_utenti=get_utenti, audit=audit)
+
     def _current_user():
         utente = getattr(g, "utente_corrente", None)
         if utente is not None:

@@ -44,6 +44,7 @@ export function ImpostazioniPage() {
       tone="primary"
       actions={
         <div className="iu-settings-page__actions">
+          <a href="/static/offline-workspace/offline.html">Computer autorizzati e lavoro offline</a>
           <Button
             type="button"
             variant="outline"

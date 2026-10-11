@@ -1,18 +1,20 @@
 /* IUSENTRA service worker per PWA e notifiche dispositivo.
  *
  * Non memorizza dati operativi in cache e non contiene informazioni sensibili:
- * tiene solo la pagina «Sei offline» e le icone, per mostrare un avviso chiaro
- * quando l'app installata si apre senza rete. Le pagine e le API vanno sempre
- * in rete, senza copie locali.
+ * tiene la pagina «Sei offline», le icone e la shell pubblica dell’area offline, per mostrare un avviso chiaro
+ * quando l'app installata si apre senza rete. Le pagine ordinarie e le API vanno sempre
+ * in rete. Solo il vault separato e approvato conserva dati cifrati.
  */
 
 const DEFAULT_HREF = '/app-v2';
 const NOTIFICATION_ICON = '/static/icons/icon-192.png';
 const NOTIFICATION_BADGE = '/static/icons/badge-96.png';
-const SW_VERSION = '2026-09-29-offline-v7';
+const SW_VERSION = '2026-10-11-approved-offline-v8';
 const SHELL_CACHE = `iusentra-shell-${SW_VERSION}`;
 const OFFLINE_URL = '/offline';
-const SHELL_ASSETS = [OFFLINE_URL, NOTIFICATION_ICON, '/static/icons/icon-512.png'];
+const WORKSPACE_URL = '/static/offline-workspace/offline.html';
+const WORKSPACE_ASSETS = [WORKSPACE_URL, '/static/offline-workspace/workspace.js', '/static/offline-workspace/workspace.css'];
+const SHELL_ASSETS = [OFFLINE_URL, NOTIFICATION_ICON, '/static/icons/icon-512.png', ...WORKSPACE_ASSETS];
 const REMOTE_HEARING_DOMAINS = [
   'teams.microsoft.com',
   'zoom.us',
@@ -143,7 +145,19 @@ self.addEventListener('notificationclick', (event) => {
 // Solo le navigazioni: si prova sempre la rete; se manca, la pagina «Sei offline».
 self.addEventListener('fetch', (event) => {
   const request = event.request;
-  if (request.method !== 'GET' || request.mode !== 'navigate') return;
+  const url = new URL(request.url);
+  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
+  // Exact public asset allowlist; never cache authenticated HTML, APIs or documents.
+  if (WORKSPACE_ASSETS.includes(url.pathname) && !url.search) {
+    event.respondWith((async () => {
+      const cache = await caches.open(SHELL_CACHE);
+      const cached = await cache.match(url.pathname);
+      if (cached) return cached;
+      return fetch(request);
+    })());
+    return;
+  }
+  if (request.mode !== 'navigate') return;
   event.respondWith((async () => {
     try {
       return await fetch(request);

@@ -501,6 +501,7 @@ CREATE INDEX IF NOT EXISTS idx_transactional_outbox_tenant_aggregate ON transact
 """
 
 CORE_POSTGRES_SCHEMA_SQL += '\n' + ';\n'.join(_EMAIL_MAILBOX_DDL) + ';\n'
+CORE_POSTGRES_SCHEMA_SQL += "\n" + (Path(__file__).parent / "sql/20261011_offline_postgres.sql").read_text()
 
 
 CORE_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {

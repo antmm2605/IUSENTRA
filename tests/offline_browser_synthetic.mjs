@@ -1,0 +1,58 @@
+// Browser diagnostic on synthetic data only. Not user-machine acceptance.
+import assert from 'node:assert/strict'
+const {chromium}=await import(process.env.OFFLINE_PLAYWRIGHT_MODULE || 'playwright')
+import {spawn} from 'node:child_process'
+const port=Number(process.env.OFFLINE_TEST_PORT || 18080)
+const server=spawn('python',['tests/offline_synthetic_server.py',String(port)],{stdio:'pipe'})
+let browser
+try {
+  await new Promise((resolve,reject)=>{server.stdout.once('data',resolve);server.once('exit',code=>reject(new Error('Synthetic server exited '+code)))})
+  browser=await chromium.launch({headless:true,...(process.env.OFFLINE_CHROME_PATH ? {executablePath:process.env.OFFLINE_CHROME_PATH,args:['--no-sandbox','--disable-dev-shm-usage']}:{})})
+  const context=await browser.newContext(),page=await context.newPage()
+  const errors=[];page.on('pageerror',error=>errors.push(error.message))
+  const base=`http://127.0.0.1:${port}`
+  await page.goto(base+'/synthetic-login')
+  await page.goto(base+'/static/offline-workspace/offline.html')
+  await page.getByLabel('Frase segreta locale').fill('frase sintetica sicura')
+  await page.getByLabel('Nome del computer').fill('Computer sintetico')
+  await page.getByRole('button',{name:'Richiedi autorizzazione'}).click()
+  await page.getByText('Registrazione verificata.',{exact:false}).waitFor()
+  const fingerprint=await page.locator('.offline-code').first().textContent()
+  await page.getByLabel('Codice verificato sul computer').fill(fingerprint)
+  await page.getByRole('button',{name:'Approva computer'}).click()
+  await page.getByText('Approvato',{exact:true}).waitFor()
+  await page.getByLabel('Frase segreta locale').fill('frase sintetica sicura')
+  await page.getByRole('button',{name:'Sblocca archivio',exact:true}).click()
+  await page.getByRole('heading',{name:'Note di lavoro del fascicolo'}).waitFor()
+  await page.waitForFunction(()=>navigator.serviceWorker.controller)
+  await context.setOffline(true)
+  await page.getByLabel('Titolo',{exact:true}).fill('Nota offline sintetica')
+  await page.getByLabel('Nota',{exact:true}).fill('Bozza privata sintetica')
+  await page.getByLabel('Documento di testo, facoltativo (massimo 64 KB)').setInputFiles({name:'sintetico.txt',mimeType:'text/plain',buffer:Buffer.from('Documento sintetico riservato')})
+  await page.getByRole('button',{name:'Conserva modifica sul computer'}).click()
+  await page.getByRole('heading',{name:'Nota offline sintetica'}).waitFor()
+  const disk=await page.evaluate(async()=>{
+    const database=await new Promise(resolve=>{const r=indexedDB.open('iusentra-approved-offline-v1');r.onsuccess=()=>resolve(r.result)})
+    return await new Promise(resolve=>{const tx=database.transaction('vaults');const r=tx.objectStore('vaults').getAll();r.onsuccess=()=>resolve(r.result.map(({privateKey,...rest})=>rest))})
+  })
+  assert.ok(!JSON.stringify(disk).includes('Bozza privata sintetica'))
+  assert.ok(!JSON.stringify(disk).includes('Documento sintetico riservato'))
+  await page.getByRole('button',{name:'Blocca archivio'}).click()
+  await page.reload()
+  await page.getByLabel('Computer registrato').selectOption({label:'Computer sintetico'})
+  await page.getByLabel('Frase segreta locale').fill('frase sintetica sicura')
+  await page.getByRole('button',{name:'Sblocca archivio',exact:true}).click()
+  await page.getByRole('heading',{name:'Nota offline sintetica'}).waitFor()
+  await context.setOffline(false)
+  await page.getByText('Salvataggio confermato dal server',{exact:true}).waitFor()
+  page.on('dialog',dialog=>dialog.accept())
+  await page.getByRole('button',{name:'Revoca',exact:true}).click()
+  await page.getByRole('button',{name:'Sincronizza',exact:true}).click()
+  await page.getByText('Archivio locale rimosso',{exact:false}).waitFor()
+  assert.equal(errors.length,0)
+  for (const viewport of [{width:1280,height:800},{width:768,height:1024},{width:390,height:844}]) {
+    await page.setViewportSize(viewport)
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true)
+  }
+  console.log('Synthetic browser flow passed: enrollment, approval, encryption, offline reload, recovery, revocation, responsive.')
+} finally {await browser?.close();server.kill()}

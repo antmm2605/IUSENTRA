@@ -14,6 +14,7 @@ import { ViewerColorPalette } from './ViewerColorPalette'
 import { ViewerImageTools } from './ViewerImageTools'
 import { ViewerHandwrittenSignaturePanel } from './ViewerHandwrittenSignaturePanel'
 import { ViewerCanvasObjects } from './ViewerCanvasObjects'
+import { useBusyActivity } from '../ui/useBusyActivity'
 type TextSpan = { id: number; text: string; x: number; y: number; width: number; height: number }
 
 export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation = 0, readerRef, compactReader = true }: { source: SourceDocument; onDirty: (value: boolean) => void; onSaving?: (value: boolean) => void; readerRotation?: number; readerRef?: RefObject<HTMLIFrameElement | null>; compactReader?: boolean }) {
@@ -56,6 +57,8 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
   const [copySource, setCopySource] = useState<SourceDocument | null>(null)
   const [draft, setDraft] = useState<{ x: number; y: number; x1: number; y1: number } | null>(null)
   const { previewUrl, previewPending, previewValid, setPreviewValid } = useViewerPdfPreview(endpoint, policy?.hash, page, marks, setError, setImageLoaded)
+  useBusyActivity(saving, 'Salvataggio delle modifiche al documento…')
+  useBusyActivity(previewPending, 'Aggiornamento dell’anteprima del documento…')
   const drag = useRef<{ x: number; y: number; id: number } | null>(null)
   const localReaderRef = useRef<HTMLIFrameElement | null>(null)
   const activeReaderRef = readerRef || localReaderRef

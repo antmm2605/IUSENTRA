@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import type { ComponentType } from 'react'
 import App from './app/App'
 import SupportOperatorRoom from './components/SupportOperatorRoom'
+import { ActivityStatus } from './ui/ActivityStatus'
 
 type ReactEntryOptions = {
   root: HTMLElement
@@ -41,6 +42,7 @@ export async function mountReactApp({
 
   reactRoot.render(
     <React.StrictMode>
+      <ActivityStatus />
       <Component />
     </React.StrictMode>,
   )

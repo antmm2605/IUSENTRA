@@ -1,5 +1,6 @@
 import './index.css'
 import './styles/iusentra-design-system.css'
+import './ui/activity.css'
 import { mountReactApp } from './reactEntry'
 
 type ReactBootstrapState = {
@@ -101,15 +102,16 @@ function renderLoadingShell(target: HTMLElement) {
   bootstrapState.shellRendered = true
   if (shouldMountAccesso) {
     // Nessun dato dello studio prima dell'accesso: messaggio neutro.
-    target.innerHTML = '<main class="iu-content iu-react-loading" aria-live="polite"><div><h1>Caricamento della pagina di accesso</h1></div></main>'
+    target.innerHTML = '<main class="iu-content iu-react-loading" role="status" aria-busy="true"><span class="iu-activity-spinner" aria-hidden="true"></span><div><h1>Caricamento della pagina di accesso</h1></div></main>'
     return
   }
   if (isPublicTokenPage) {
-    target.innerHTML = '<main class="iu-content iu-react-loading" aria-live="polite"><div><h1>Caricamento in corso</h1><p>Sto aprendo la pagina del tuo link personale.</p></div></main>'
+    target.innerHTML = '<main class="iu-content iu-react-loading" role="status" aria-busy="true"><span class="iu-activity-spinner" aria-hidden="true"></span><div><h1>Caricamento in corso</h1><p>Sto aprendo la pagina del tuo link personale.</p></div></main>'
     return
   }
   target.innerHTML = [
-    '<main class="iu-content iu-react-loading" aria-live="polite">',
+    '<main class="iu-content iu-react-loading" role="status" aria-busy="true">',
+    '<span class="iu-activity-spinner" aria-hidden="true"></span>',
     '<div>',
     '<h1>Caricamento interfaccia operativa</h1>',
     "<p>Sto aprendo i dati dello studio. L'operazione non modifica fascicoli, documenti o scadenze.</p>",

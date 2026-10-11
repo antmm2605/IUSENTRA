@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { fetchRecentItems } from '../services/topbarApi'
 import type { TopbarRecentPayload } from '../types/topbar'
 
 export function useRecentItems(open: boolean) {
   const [data, setData] = useState<TopbarRecentPayload | null>(null)
   const [loading, setLoading] = useState(false)
+  useBusyActivity(open && loading, 'Caricamento degli elementi recenti…')
   const [error, setError] = useState('')
   const inFlight = useRef<Promise<void> | null>(null)
   const loadedAt = useRef(0)

@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { operationalDomains } from '../operationalRefresh'
@@ -413,6 +414,8 @@ function UsagePanel({ data }: { data: AdminDatabasePageData }) {
 export function AdminDatabasePage() {
   const [data, setData] = useState<AdminDatabasePageData>(emptyAdminDatabasePage)
   const [loading, setLoading] = useState(true)
+  const [foregroundLoading, setForegroundLoading] = useState(true)
+  useBusyActivity(foregroundLoading, 'Caricamento dei dati…')
   const [error, setError] = useState('')
   const [context, setContext] = useState('modules')
   const [query, setQuery] = useState('')
@@ -423,8 +426,9 @@ export function AdminDatabasePage() {
   const [optimization, setOptimization] = useState<OperationState<AdminDatabaseOptimizeResult>>(emptyOptimization)
   const [migration, setMigration] = useState<OperationState<AdminDatabaseMigrationResult>>(emptyMigration)
 
-  const loadData = async () => {
+  const loadData = async (silent = false) => {
     if (refreshFlight.current) return refreshFlight.current
+    setForegroundLoading(!silent)
     setLoading(true)
     setError('')
     const flight = (async () => {
@@ -436,7 +440,7 @@ export function AdminDatabasePage() {
         if (mounted.current) setError(caught instanceof Error ? caught.message : 'Database amministrativo non disponibile.')
         throw caught
       } finally {
-        if (mounted.current) setLoading(false)
+        if (mounted.current) { setLoading(false); setForegroundLoading(false) }
         refreshFlight.current = null
       }
     })()
@@ -446,7 +450,7 @@ export function AdminDatabasePage() {
   // Manual actions already expose the error in this page. Live consumers must
   // receive rejection so their shared recovery queue cannot attest success.
   const reloadVisibleData = () => loadData().catch(() => undefined)
-  useOperationalRefresh(operationalDomains, loadData)
+  useOperationalRefresh(operationalDomains, () => loadData(true))
 
   useEffect(() => {
     mounted.current = true

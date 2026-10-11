@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { FileSignature } from 'lucide-react'
 import { IusWizardStepper, type IusWizardStep } from '../iusentra/IusWizardStepper'
@@ -51,6 +52,7 @@ function preferredSectionKey(overview: SigningOverview): SigningSectionKey {
 export function SigningWorkflowPanel({ onNotice }: SigningWorkflowPanelProps) {
   const [overview, setOverview] = useState<SigningOverview>(emptySigningOverview)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento del percorso di sottoscrizione…')
   const [activeSection, setActiveSection] = useState<SigningSectionKey>('preventivo')
 
   const reload = async () => {

@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import { formatDateIt } from '../formatting'
 import {
@@ -148,6 +149,7 @@ type ActionPayload = {
 function PostAction({ action, children, tone = 'secondary', confirm, confirmTitle = 'Conferma operazione', onDone, onError, redirectTo, title, ariaLabel }:{action:string; children:ReactNode; tone?:'primary'|'secondary'|'danger'|'ghost'; confirm?:string; confirmTitle?:string; onDone?:(message?:string)=>void; onError?:(message:string)=>void; redirectTo?:string; title?:string; ariaLabel?:string}) {
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione in corso…')
   const [error, setError] = useState('')
   if (!action) return null
   const run = async () => {
@@ -645,6 +647,7 @@ function DepositRolePicker({
 
 function AuthenticatedDownloadLink({ href, filename, children }:{href:string; filename:string; children:ReactNode}) {
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione in corso…')
   const [error, setError] = useState('')
   const download = async () => {
     if (!href || busy) return
@@ -1751,6 +1754,7 @@ function InvioDepositoRealeButton({
 }) {
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione in corso…')
   const [fase, setFase] = useState('')
   const [error, setError] = useState('')
   const avvia = async () => {
@@ -1907,6 +1911,7 @@ function DepositPdfPreviewButton({
   disabledReason?: string
 }) {
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione in corso…')
   const [error, setError] = useState('')
   const openPreview = async () => {
     if (!action || busy || disabled) return
@@ -2112,13 +2117,16 @@ function recordHref(row: Record<string, unknown> | undefined, key: string, fallb
 function DepositPreparePage({ id }:{id:string}) {
   const [data, setData] = useState<FascicoloDetailData>(emptyFascicoloDetail)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento dei dati…')
   const [toast, setToast] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
   const [previewDoc, setPreviewDoc] = useState<PreviewDocument | null>(null)
   const [depositClassificationById, setDepositClassificationById] = useState<Record<string, DepositDocumentClassification>>({})
   const [classificationSaving, setClassificationSaving] = useState(false)
+  useBusyActivity(classificationSaving, 'Salvataggio della classificazione…')
   const [depositRenameDocId, setDepositRenameDocId] = useState('')
   const [depositRenameDraft, setDepositRenameDraft] = useState('')
   const [depositRenameBusy, setDepositRenameBusy] = useState(false)
+  useBusyActivity(depositRenameBusy, 'Aggiornamento del nome del documento…')
   const [depositRenameMessage, setDepositRenameMessage] = useState('')
   const [activeDepositPanel, setActiveDepositPanel] = useState<DepositPhaseId>(initialDepositPhaseFromHash)
   const [depositActionNotice, setDepositActionNotice] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
@@ -4595,6 +4603,7 @@ function DepositBatchSignaturePanel({
   const [checkingSigner, setCheckingSigner] = useState(false)
   const [pin, setPin] = useState('')
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione in corso…')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [visibleSignatureMode, setVisibleSignatureMode] = useState<VisibleSignatureMode>('laterale')
@@ -5806,6 +5815,7 @@ function DocumentUploadWorkspace({
   const [files, setFiles] = useState<File[]>([])
   const [mode, setMode] = useState<'auto' | 'manuale'>('auto')
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione in corso…')
   const [stato, setStato] = useState<StatoCaricamento | null>(null)
   if (!data.actions.uploadDocument) return null
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -6383,6 +6393,7 @@ function JsonPostForm({
 }) {
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione in corso…')
   if (!action) return null
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -6417,6 +6428,7 @@ function DocumentRow({ doc, onPreview, onDone, onError }:{doc:FascicoloDocument;
   const [renaming, setRenaming] = useState(false)
   const [draftName, setDraftName] = useState(doc.name)
   const [renameBusy, setRenameBusy] = useState(false)
+  useBusyActivity(renameBusy, 'Aggiornamento del nome del documento…')
   const [renameMessage, setRenameMessage] = useState('')
   const tags = visibleDocumentTags(doc)
   const catalogTone: FascicoloRow['tone'] =

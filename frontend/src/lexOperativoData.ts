@@ -1,3 +1,4 @@
+import type { ApiRequestOptions } from './api/types'
 import { apiJson } from './lib/apiClient'
 import { sanitizeDisplayText } from './displayText'
 
@@ -170,8 +171,8 @@ export function normaliseLexOperativo(payload: unknown): LexOperativoData {
   }
 }
 
-export async function getLexOperativo(giorni: number): Promise<LexOperativoData> {
-  const payload = await apiJson<unknown>(`/api/lex-operativo?giorni=${encodeURIComponent(String(giorni))}`, { ok: false })
+export async function getLexOperativo(giorni: number, options: ApiRequestOptions = {}): Promise<LexOperativoData> {
+  const payload = await apiJson<unknown>(`/api/lex-operativo?giorni=${encodeURIComponent(String(giorni))}`, { ok: false }, options)
   return normaliseLexOperativo(payload)
 }
 

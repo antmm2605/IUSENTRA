@@ -64,7 +64,7 @@ export function PatPagina({ residuale }: { residuale: ReactNode }) {
         {(dati?.depositi || []).slice(0, 3).map((d) => <a key={d.id} href={d.link} target="_blank" rel="noreferrer"><ExternalLink size={14}/> {d.nome} nel Formweb</a>)}
       </div>
       {errore ? <p className="iu-pat-errore">{errore}</p> : null}
-      {!dati && !errore ? <p role="status">Caricamento dei fascicoli amministrativi…</p> : null}
+      {!dati && !errore ? <p role="status" aria-busy="true"><span className="iu-activity-spinner" aria-hidden="true" /> Caricamento dei fascicoli amministrativi…</p> : null}
       {dati ? (
         <ul className="iu-pat-elenco">
           {dati.fascicoli.map((r) => (

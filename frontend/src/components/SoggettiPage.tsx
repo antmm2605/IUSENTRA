@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { SoggettoContextDetails } from './SoggettoContextDetails'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
@@ -285,6 +286,7 @@ function SelectedSubjectPanel({ item }:{item:SoggettoRow}) {
 export function SoggettiPage() {
   const [data, setData] = useState<SoggettiPageData>(emptySoggettiPage)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento dei soggetti…')
   const [query, setQuery] = useState(initialSubjectQuery)
   const [typeFilter, setTypeFilter] = useState<SoggettoTipo>('tutti')
   const [roleFilter, setRoleFilter] = useState('tutti')
@@ -294,6 +296,7 @@ export function SoggettiPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
+  useBusyActivity(bulkDeleting, 'Aggiornamento dei soggetti selezionati…')
   const [feedback, setFeedback] = useState('')
   const [error, setError] = useState('')
   const selectedId = routeSubjectId()

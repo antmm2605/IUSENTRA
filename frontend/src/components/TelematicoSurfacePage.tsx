@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { VerificaModuloFirmato } from './patFormweb/VerificaModuloFirmato'
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type MouseEvent, type ReactNode } from 'react'
 import {
@@ -1898,8 +1899,10 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
   const [xfaRowCounts, setXfaRowCounts] = useState<Record<string, number>>({})
   const [prefillMatters, setPrefillMatters] = useState<PatPrefillMatter[]>([])
   const [prefillBusy, setPrefillBusy] = useState(false)
+  useBusyActivity(prefillBusy, 'Caricamento dei dati per la compilazione…')
   const [prefillMessage, setPrefillMessage] = useState('')
   const [pdfBusy, setPdfBusy] = useState(false)
+  useBusyActivity(pdfBusy, 'Preparazione dell’anteprima del modulo…')
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState('')
   const [anteprimaModulo, setAnteprimaModulo] = useState<AnteprimaModuloPat | null>(null)
   const [pdfDownloadUrl, setPdfDownloadUrl] = useState('')
@@ -1910,6 +1913,7 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
   const [portalSessionStarted, setPortalSessionStarted] = useState(false)
   const [portalSession, setPortalSession] = useState<AssistantSession | null>(null)
   const [portalSessionBusy, setPortalSessionBusy] = useState<'start' | 'collect' | 'close' | ''>('')
+  useBusyActivity(Boolean(portalSessionBusy), 'Aggiornamento della sessione del portale…')
   const [portalSessionMessage, setPortalSessionMessage] = useState('')
   const activeDeposit = useMemo(() => {
     const items = procedure?.formwebDeposits || []
@@ -4060,6 +4064,7 @@ function AcquisitionWizard({
   const portalUsesOfficialAssistant = isOfficialAssistantPortal(portal)
   const [step, setStep] = useState(() => (portalUsesOfficialAssistant ? 1 : 2))
   const [busy, setBusy] = useState('')
+  useBusyActivity(Boolean(busy), 'Operazione sul portale in corso…')
   const [message, setMessage] = useState('')
   const [status, setStatus] = useState<JsonRecord>({})
   const targetDocument = useMemo(() => acquisitionTargetDocument(), [])
@@ -7302,6 +7307,7 @@ export function TelematicoSurfacePage() {
   const surfaceId = surfaceFromCurrentPath()
   const [data, setData] = useState<TelematicoSurfaceData>(() => initialSurfaceData(surfaceId))
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento dei dati…')
   const [actionMessage, setActionMessage] = useState('')
   const [activeOperation, setActiveOperation] = useState<{ cardId:string; actionId:string } | null>(null)
   const [localAcquisitionEvents, setLocalAcquisitionEvents] = useState<AcquisitionHistoryEvent[]>(() => readAcquisitionHistory())

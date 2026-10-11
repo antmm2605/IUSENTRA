@@ -1,3 +1,4 @@
+import type { ApiRequestOptions } from './api/types'
 import { ensureJson } from './lib/apiClient'
 import { sanitizeDisplayText } from './displayText'
 
@@ -217,8 +218,8 @@ function normalisePage(raw: unknown): StatistichePageData {
   }
 }
 
-export async function getStatistichePage(): Promise<StatistichePageData> {
-  const payload = await ensureJson<unknown>('/api/v1/ui/statistiche')
+export async function getStatistichePage(options: ApiRequestOptions = {}): Promise<StatistichePageData> {
+  const payload = await ensureJson<unknown>('/api/v1/ui/statistiche', options)
   const page = asRecord(payload)
   if (page.ok === false || page.source === 'errore_controllato' || !text(page.source) ||
       !Array.isArray(page.metrics) || !Array.isArray(page.sections) || !Array.isArray(page.records)) {

@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useState, type FormEvent } from 'react'
 import { WandSparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -17,6 +18,7 @@ export function ProcedureCompletionPreview({
   const [rito, setRito] = useState('')
   const [competenza, setCompetenza] = useState('')
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Preparazione dell’anteprima…')
   const [errore, setErrore] = useState('')
 
   const submit = (event: FormEvent) => {

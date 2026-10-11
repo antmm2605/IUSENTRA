@@ -1,3 +1,4 @@
+import type { ApiRequestOptions } from './api/types'
 import { apiJson } from './lib/apiClient'
 import { sanitizeDisplayText } from './displayText'
 import type { AdminTone } from './utentiData'
@@ -299,7 +300,7 @@ function normalisePage(raw: unknown): StudioPageData {
   }
 }
 
-export async function getStudioPage(): Promise<StudioPageData> {
-  const payload = await apiJson<unknown>('/api/v1/ui/studio', emptyStudioPage)
+export async function getStudioPage(options: ApiRequestOptions = {}): Promise<StudioPageData> {
+  const payload = await apiJson<unknown>('/api/v1/ui/studio', emptyStudioPage, options)
   return normalisePage(payload)
 }

@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useState } from 'react'
 import { Download, FileCheck2, FileX2 } from 'lucide-react'
 import { clientPortalDocumentUrl } from '../../clientPortalData'
@@ -27,6 +28,7 @@ export function PreventivoStep({ preventivi, consents, onResult }: PreventivoSte
   const [declineReason, setDeclineReason] = useState<Record<string, string>>({})
   const [declining, setDeclining] = useState<Record<string, boolean>>({})
   const [busy, setBusy] = useState('')
+  useBusyActivity(Boolean(busy), 'Aggiornamento del preventivo…')
 
   if (!preventivi.length) {
     return <p className="iu-client-portal-muted">Nessun preventivo disponibile al momento: lo studio ti avviserà quando sarà pronto.</p>

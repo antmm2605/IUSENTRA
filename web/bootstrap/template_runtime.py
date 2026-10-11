@@ -116,7 +116,10 @@ def register_template_runtime(
 
     @app.context_processor
     def inject_globals():
+        from web.services.native_activity_assets import native_activity_assets
+
         return {
+            "native_activity_assets": native_activity_assets,
             "oggi": date.today(),
             "ora_adesso": datetime.now().strftime("%H:%M"),
             "mesi_italiani": MONTHS_IT,

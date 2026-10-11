@@ -15,6 +15,8 @@
     }
   ],
   "approvedCssRationale": {
+    "frontend/src/ui/activity.css": "Indicatori di caricamento richiesti per tutto il prodotto: stato non bloccante, spinner compatto, token condivisi, movimento ridotto e esclusione dalla stampa; nessun tema alternativo.",
+    "frontend/src/components/EditorPersonalTemplates.css": "Pannello Modelli: corregge campi e comandi senza stile riscontrati nel browser reale, preservando il contenuto, i due modi di lavoro e il catalogo tenant-aware; token condivisi e layout mobile senza nuovi stili inline.",
     "frontend/src/components/fascicoloDocumenti/documentListToolbar.css": "Ricerca rapida, ordinamento per data o caricamento e filtri dei documenti del fascicolo richiesti dall'utente, più evidenza del trascinamento file nel caricamento: token condivisi, nessun tema alternativo, nessuno stile inline.",
     "frontend/src/components/documentCapture/acquisition.css": "Acquisizione dall'editor richiesta dall'utente: scanner tramite Local Signer, webcam e fotocamera con riquadro del foglio rilevato, verifica del ritaglio, pagine, PDF e OCR; finestra a tutto schermo su telefono, token condivisi, nessuno stile inline.",
     "frontend/src/components/documentCapture/documentCapture.css": "Acquisizione inline nel fascicolo richiesta dall'utente: anteprima di pagine e PDF, riordino e conferma, con Button e token condivisi; nessuna nuova superficie modale.",
@@ -73,6 +75,7 @@
     "frontend/src/components/CrmPage.css",
     "frontend/src/components/DocumentEditorPage.css",
     "frontend/src/components/EditorLinkedFieldsPanel.css",
+    "frontend/src/components/EditorPersonalTemplates.css",
     "frontend/src/components/DocumentToolsPage.css",
     "frontend/src/components/DocumentiAIPage.css",
     "frontend/src/components/EditorProfessionalePage.css",
@@ -168,6 +171,7 @@
     "frontend/src/theme/legal-ui.css",
     "frontend/src/theme/tokens.css",
     "frontend/src/ui/ui.css",
+    "frontend/src/ui/activity.css",
     "frontend/src/components/EconomicVerificationPanel.css",
     "frontend/src/components/VerificaNotifichePanel.css",
     "frontend/src/components/ViewerDocumentEditor.css",

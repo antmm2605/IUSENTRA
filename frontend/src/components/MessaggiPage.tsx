@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import {
   ArrowLeft,
@@ -214,6 +215,7 @@ function MessageFocus({ item }:{item: MessageItem}) {
 export function MessaggiPage() {
   const [data, setData] = useState<MessaggiData>(emptyMessaggiData)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento dei dati…')
   const [query, setQuery] = useState('')
   const [channel, setChannel] = useState('')
   const [status, setStatus] = useState('')
@@ -369,6 +371,7 @@ export function NuovoMessaggioPage() {
   const [data, setData] = useState<NuovoMessaggioData>(emptyNuovoMessaggioData)
   const [values, setValues] = useState<ComposeState>(() => initialCompose(emptyNuovoMessaggioData))
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento dei dati…')
   const [submitState, setSubmitState] = useState<SubmitState>(() => emptySubmit())
 
   useEffect(() => {

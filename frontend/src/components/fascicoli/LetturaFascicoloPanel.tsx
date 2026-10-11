@@ -1,3 +1,4 @@
+import { beginActivity } from '../../ui/activity'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, BookOpen, Calculator, ChevronDown, ChevronUp, ExternalLink, Landmark, RefreshCw, Scale, ShieldCheck } from 'lucide-react'
 import { Badge } from '../dashboard'
@@ -53,8 +54,9 @@ export function LetturaFascicoloPanel({
   const [tuttiGliEventi, setTuttiGliEventi] = useState(false)
   const [schedeAperte, setSchedeAperte] = useState(false)
 
-  const load = useCallback(async (aggiorna = false) => {
+  const load = useCallback(async (aggiorna = false, silent = false) => {
     if (!fascicoloId || !active) return
+    const finish = silent ? () => {} : beginActivity('Caricamento del riepilogo del fascicolo…')
     setLoading(true)
     setError('')
     try {
@@ -71,6 +73,7 @@ export function LetturaFascicoloPanel({
       setError(message)
       onError?.(message)
     } finally {
+      finish()
       setLoading(false)
     }
   }, [fascicoloId, active, onError, onReady])
@@ -88,7 +91,7 @@ export function LetturaFascicoloPanel({
   const inCorso = Boolean(lettura?.verifiche?.in_corso)
   useEffect(() => {
     if (!active || !inCorso) return undefined
-    const timer = globalThis.setTimeout(() => { void load() }, 9000)
+    const timer = globalThis.setTimeout(() => { void load(false, true) }, 9000)
     return () => globalThis.clearTimeout(timer)
   }, [active, inCorso, load])
 

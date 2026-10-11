@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useState } from 'react'
 import { ArrowLeft, CheckCircle2, CircleDashed, FileText, FolderOpen, ListChecks, SkipForward, Upload } from 'lucide-react'
 import {
@@ -192,6 +193,7 @@ function StepView({ data, step, onReload }: { data: WizardData; step: WizardStep
   const [signed, setSigned] = useState(false)
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Aggiornamento della checklist…')
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
   const base = `/fascicoli/${encodeURIComponent(data.matter.id)}/wizard/${encodeURIComponent(data.template.id)}`
   const next = data.steps.find((item) => item.number > step.number)
@@ -260,6 +262,7 @@ function StepView({ data, step, onReload }: { data: WizardData; step: WizardStep
 
 function CompleteView({ data, onReload }: { data: WizardData; onReload: (next?: string) => Promise<void> }) {
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Aggiornamento della checklist…')
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
   async function index() {
     setBusy(true)

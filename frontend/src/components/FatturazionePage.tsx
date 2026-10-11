@@ -1,3 +1,5 @@
+import { beginActivity } from '../ui/activity'
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { mergeRegistryRefresh } from '../features/anagrafiche/mergeRegistryRefresh'
@@ -629,6 +631,7 @@ function NumberingPanel({
   const [anno, setAnno] = useState(String(data.numbering.anno || new Date().getFullYear()))
   const [ultimoNumero, setUltimoNumero] = useState(String(data.numbering.ultimoNumeroConfigurato || ''))
   const [saving, setSaving] = useState(false)
+  useBusyActivity(saving, 'Salvataggio in corso…')
   const [result, setResult] = useState<FatturazioneNumberingResult | null>(null)
 
   useEffect(() => {
@@ -2755,10 +2758,11 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
   const pageRecords = records.slice((currentPage - 1) * 30, currentPage * 30)
   useEffect(() => { setPage(1) }, [query, stateFilter, paymentFilter, issueFilter, clientFilter, matterFilter, metricFilter])
 
-  function refreshArchive() {
+  function refreshArchive(silent = false) {
     if (refreshFlight.current) return refreshFlight.current
+    const finish = silent ? () => {} : beginActivity('Aggiornamento della fatturazione…')
     setRefreshing(true)
-    const flight = getFatturazionePage().then(payload => {
+    const flight = getFatturazionePage({ activity: false }).then(payload => {
       if (!payload.ok || payload.warnings.some(warning => warning.code === 'fatturazione_non_disponibile')) throw new Error('Archivio non disponibile')
       onReload(payload)
       setRefreshError('')
@@ -2767,6 +2771,7 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
       setRefreshError('Aggiornamento non riuscito. I dati e i filtri visualizzati sono conservati: riprova per verificare lo stato corrente.')
       return false
     }).finally(() => {
+      finish()
       refreshFlight.current = null
       setRefreshing(false)
     })
@@ -2774,7 +2779,7 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
     return flight
   }
   useOperationalRefresh(['fatturazione', 'incassi'], async () => {
-    if (!await refreshArchive()) return false
+    if (!await refreshArchive(true)) return false
     return reloadCurrentDetail(true)
   })
 
@@ -2825,7 +2830,7 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
     const request = ++detailRequest.current
     if (!silent) setDetailLoading(true)
     try {
-      const response = await getFatturazioneDetail(currentId)
+      const response = await getFatturazioneDetail(currentId, { activity: silent ? false : 'Caricamento del dettaglio…' })
       if (request !== detailRequest.current) return false
       if (response.ok) { setDetail(response.item); return true }
       else {
@@ -2903,7 +2908,7 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
     <>
       <MetricGrid data={data} selected={metricFilter} onSelect={setMetricFilter} />
       {refreshing ? <p role="status">Aggiornamento automatico dei dati in corso…</p> : null}
-      {refreshError ? <section className="iu-fatt-state iu-fatt-state--danger" role="alert"><span>{refreshError}</span><Button type="button" tone="neutral" onClick={refreshArchive}>Riprova aggiornamento</Button></section> : null}
+      {refreshError ? <section className="iu-fatt-state iu-fatt-state--danger" role="alert"><span>{refreshError}</span><Button type="button" tone="neutral" onClick={() => { void refreshArchive() }}>Riprova aggiornamento</Button></section> : null}
       <CompactOperations
         data={data}
         totalRecords={data.records.length}
@@ -3028,6 +3033,7 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
 export function FatturazionePage() {
   const [data, setData] = useState<FatturazionePageData>(emptyFatturazionePage)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento dei dati…')
   const [loadError, setLoadError] = useState('')
   const isNew = window.location.pathname.replace(/\/+$/, '').toLowerCase() === '/fatturazione/nuova'
 

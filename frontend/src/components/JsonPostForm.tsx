@@ -1,6 +1,7 @@
 import { publishMutationRefresh } from '../operationalRefresh'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { redirectAfterSuccess, submitFormJson, type FormSubmitResult } from '../formSubmit'
+import { useBusyActivity } from '../ui/useBusyActivity'
 
 export function JsonPostForm({
   action,
@@ -25,6 +26,7 @@ export function JsonPostForm({
 }) {
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Salvataggio in corso…')
   if (!action) return null
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -54,9 +56,9 @@ export function JsonPostForm({
     }
   }
   return (
-    <form className={className} onSubmit={submit} encType={encType} data-busy={busy ? 'true' : undefined}>
+    <form className={className} onSubmit={submit} encType={encType} data-busy={busy ? 'true' : undefined} aria-busy={busy}>
       {children}
-      {message ? <span role="status">{message}</span> : null}
+      {message ? <span role="status">{busy ? <span className="iu-activity-spinner" aria-hidden="true" /> : null}{message}</span> : null}
     </form>
   )
 }

@@ -1,3 +1,5 @@
+import { beginActivity } from '../ui/activity'
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { SourceAlternatives } from './SourceAlternatives'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { publishMutationRefresh } from '../operationalRefresh'
@@ -889,6 +891,8 @@ export function AgendaPage() {
   const [groupPreview, setGroupPreview] = useState<AgendaEvent[]>([])
   const [prepareEvent, setPrepareEvent] = useState<AgendaEvent | null>(null)
   const [loading, setLoading] = useState(true)
+  const [foregroundLoading, setForegroundLoading] = useState(true)
+  useBusyActivity(foregroundLoading, 'Caricamento dell’agenda…')
   const [events, setEvents] = useState<AgendaEvent[]>([])
   const [dataDiagnostic, setDataDiagnostic] = useState('')
   const [dataSource, setDataSource] = useState('iniziale')
@@ -925,15 +929,16 @@ export function AgendaPage() {
     if (nextHref !== currentHref) window.history.replaceState(window.history.state, '', nextHref)
   }, [anchorDate, view, kind, query])
 
-  const refresh = () => {
+  const refresh = (silent = false) => {
     const request = ++loadingRequest.current
+    setForegroundLoading(!silent)
     setLoading(true)
     return getAgendaPage(anchorDate, view).then((payload) => {
       if (request !== loadingRequest.current) return
       if (payload.source !== 'errore_controllato') setEvents(payload.events)
       setDataDiagnostic(payload.diagnostic)
       setDataSource(payload.source)
-    }).finally(() => { if (request === loadingRequest.current) setLoading(false) })
+    }).finally(() => { if (request === loadingRequest.current) { setLoading(false); setForegroundLoading(false) } })
   }
 
   useEffect(() => {
@@ -941,7 +946,7 @@ export function AgendaPage() {
     return () => { loadingRequest.current += 1 }
   }, [anchorDate, view])
 
-  useOperationalRefresh(['agenda', 'scadenze', 'fascicoli'], refresh)
+  useOperationalRefresh(['agenda', 'scadenze', 'fascicoli'], () => refresh(true))
   const researchedEvents = useMemo(() => events.filter((event) =>
     isSameText(event, query) && matchesAgendaFilters(event, filters)), [events, query, filters])
   const counts = buildAgendaPageData(researchedEvents, anchorDate, 'client', view).summary
@@ -1061,6 +1066,7 @@ export function AgendaPage() {
     movingEvents.current.add(event.id)
     setMoveStatus('Salvataggio dello spostamento…')
     const endpoint = `/api/agenda/${encodeURIComponent(event.id)}/sposta`
+    const finish = beginActivity('Salvataggio dello spostamento…')
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -1078,6 +1084,7 @@ export function AgendaPage() {
       void refresh()
     } finally {
       movingEvents.current.delete(event.id)
+      finish()
     }
   }
 
@@ -1116,7 +1123,7 @@ export function AgendaPage() {
 
   if (new URLSearchParams(window.location.search).get('embed') === 'source' && selectedId) {
     return <main className="iu-agenda-context-detail" aria-label="Dettaglio operativo agenda">
-      {loading ? <p role="status">Caricamento dell’impegno selezionato…</p> : selectedEvent ? <AgendaFocus event={selectedEvent} onOpenSource={setSourcePreview} onPrepare={openPreparation} /> : <section role="alert"><p>L’impegno selezionato non è disponibile in questo momento.</p><button type="button" className="iu-button" onClick={refresh}>Riprova</button></section>}
+      {loading ? <p role="status">Caricamento dell’impegno selezionato…</p> : selectedEvent ? <AgendaFocus event={selectedEvent} onOpenSource={setSourcePreview} onPrepare={openPreparation} /> : <section role="alert"><p>L’impegno selezionato non è disponibile in questo momento.</p><button type="button" className="iu-button" onClick={() => { void refresh() }}>Riprova</button></section>}
       {contextualPanels}
     </main>
   }
@@ -1168,7 +1175,7 @@ export function AgendaPage() {
               {(Object.keys(kindLabels) as AgendaKind[]).map((item) => <option value={item} key={item}>{kindLabels[item]}</option>)}
             </select>
           </label>
-          <button className="iu-ag-icon-btn" type="button" onClick={refresh} aria-label="Aggiorna agenda"><RefreshCw size={17}/></button>
+          <button className="iu-ag-icon-btn" type="button" onClick={() => { void refresh() }} aria-label="Aggiorna agenda"><RefreshCw size={17}/></button>
           <button
             className="iu-ag-icon-btn"
             type="button"

@@ -1,5 +1,6 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react'
 import './ui.css'
+import './activity.css'
 
 export type ButtonTone = 'primary' | 'neutral' | 'danger' | 'success' | 'warning'
 
@@ -12,6 +13,7 @@ export function Button({
   const classes = ['iu-btn', `iu-btn--${tone}`, className].filter(Boolean).join(' ')
   return (
     <button className={classes} {...props}>
+      {props['aria-busy'] !== undefined ? <span className={`iu-activity-spinner${props['aria-busy'] === true || props['aria-busy'] === 'true' ? '' : ' is-idle'}`} aria-hidden="true" /> : null}
       {children}
     </button>
   )

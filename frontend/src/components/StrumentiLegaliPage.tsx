@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Building2, CalendarPlus, Mail, MapPin, Phone } from 'lucide-react'
 import {
@@ -370,6 +371,7 @@ export default function StrumentiLegaliPage() {
   const [esito, setEsito] = useState<EsitoCalcolo | null>(null)
   const [datiCalcolo, setDatiCalcolo] = useState<Record<string, string>>({})
   const [inCorso, setInCorso] = useState(false)
+  useBusyActivity(inCorso, 'Calcolo in corso…')
   const [filtro, setFiltro] = useState('')
   const [categoria, setCategoria] = useState('')
   const [contesto, setContesto] = useState<ContestoStrumento | null>(null)

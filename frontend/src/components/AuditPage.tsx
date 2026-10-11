@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useState } from 'react'
 import { Download, Eye, RefreshCw, Search } from 'lucide-react'
 import {
@@ -130,6 +131,7 @@ export function AuditPage() {
   const [data, setData] = useState<AuditPageData>(emptyAuditPage)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  useBusyActivity(saving, 'Salvataggio delle impostazioni di audit…')
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
   const [detail, setDetail] = useState<AuditEventDetail | null>(null)

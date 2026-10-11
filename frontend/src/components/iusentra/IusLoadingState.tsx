@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { LoaderCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useBusyActivity } from '../../ui/useBusyActivity'
 
 export function IusLoadingState({
   title = 'Caricamento in corso',
@@ -13,6 +14,7 @@ export function IusLoadingState({
   children?: ReactNode
   className?: string
 }) {
+  useBusyActivity(true, 'Caricamento della pagina…')
   return (
     <section className={cn('ius-feedback-state ius-loading-state', className)} aria-live="polite" aria-busy="true">
       <LoaderCircle aria-hidden="true" className="ius-spin" />

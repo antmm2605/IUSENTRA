@@ -1,3 +1,4 @@
+import { beginActivity } from '../ui/activity'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import {
@@ -617,9 +618,10 @@ export function AnagraficaClientiPage() {
   const [error, setError] = useState('')
   const [quickPanel, setQuickPanel] = useState<ClienteQuickPanelState | null>(null)
 
-  const refresh = () => {
+  const refresh = (silent = false) => {
+    const finish = silent ? () => {} : beginActivity('Aggiornamento dei clienti…')
     setLoading(true)
-    return getClientiPage(true).then(payload => { setData(payload); setError(''); return true }).catch(reason => { setError(reason instanceof Error ? reason.message : 'Dati clienti non disponibili.'); return false }).finally(() => setLoading(false))
+    return getClientiPage(true).then(payload => { setData(payload); setError(''); return true }).catch(reason => { setError(reason instanceof Error ? reason.message : 'Dati clienti non disponibili.'); return false }).finally(() => { finish(); setLoading(false) })
   }
 
   useEffect(() => {
@@ -632,7 +634,7 @@ export function AnagraficaClientiPage() {
     return () => { active = false }
   }, [])
 
-  useOperationalRefresh(['clienti'], refresh)
+  useOperationalRefresh(['clienti'], () => refresh(true))
 
   const visible = useMemo(() => {
     const attorneyNeedle = normaliseText(attorney)
@@ -774,7 +776,7 @@ export function AnagraficaClientiPage() {
         <label><span>Tipo</span><select value={type} onChange={(event) => setType(event.target.value as ClienteTipo)}>{data.facets.types.map((facet) => <option value={facet.value} key={facet.value}>{facet.label} ({facet.count})</option>)}</select></label>
         <label><span>Stato</span><select value={status} onChange={(event) => setStatus(event.target.value as ClienteStato)}>{data.facets.statuses.map((facet) => <option value={facet.value} key={facet.value}>{facet.label} ({facet.count})</option>)}</select></label>
         <button className="iu-cli-filter-btn" type="button" onClick={() => setAdvancedOpen((value) => !value)} aria-expanded={advancedOpen}><Filter size={16}/> Filtri</button>
-        <button className="iu-cli-icon-btn" type="button" onClick={refresh} aria-label="Aggiorna clienti"><RefreshCw size={17}/></button>
+        <button className="iu-cli-icon-btn" type="button" onClick={() => { void refresh() }} aria-label="Aggiorna clienti"><RefreshCw size={17}/></button>
       </section>
 
       {advancedOpen ? (

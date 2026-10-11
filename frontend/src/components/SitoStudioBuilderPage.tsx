@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ChangeEvent, type FormEvent, type MouseEvent as ReactMouseEvent, type ReactNode, type RefObject } from 'react'
 import {
   AlignCenter,
@@ -705,6 +706,7 @@ export function SitoStudioBuilderPage() {
   const [aiMode, setAiMode] = useState('sobrio')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Aggiornamento del sito dello studio…')
   const [dirty, setDirty] = useState(false)
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')

@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type HTMLAttributes } from 'react'
 import { AlertTriangle, ArrowLeft, Bot, BookOpen, BriefcaseBusiness, CheckCircle2, Code2, Columns3, Copy, Download, Eye, ExternalLink, FileDown, FilePlus2, FileSignature, FileText, Filter, HelpCircle, Layers, Move, Palette, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plus, RefreshCw, Save, Scale, ScanLine, Search, ShieldCheck, Sparkles, Tags, Type, UploadCloud, UserRound } from 'lucide-react'
 import { Badge } from '../ui/Badge'
@@ -3286,7 +3287,9 @@ function GuidePreviewWorkspace({
 function TemplateCompilerView({ modelCode }: { modelCode: string }) {
   const [data, setData] = useState<TemplateCompilerData>(emptyTemplateCompilerPage)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento dei dati…')
   const [submitting, setSubmitting] = useState(false)
+  useBusyActivity(submitting, 'Elaborazione del documento…')
   const [submitMessage, setSubmitMessage] = useState('')
   const [submitError, setSubmitError] = useState('')
   const [importing, setImporting] = useState(false)
@@ -3746,6 +3749,7 @@ function TemplateCatalogView() {
   const catalogo = isCatalogoRoute()
   const [data, setData] = useState<TemplateAttiPageData>(emptyTemplateAttiPage)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento dei dati…')
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('')
   const [channel, setChannel] = useState('')

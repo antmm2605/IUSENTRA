@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Dispatch, ReactNode, SetStateAction } from 'react'
 import { Bot, FilePenLine, Globe2, ImagePlus, Newspaper, RefreshCw, Send, ShieldCheck, Sparkles } from 'lucide-react'
@@ -186,6 +187,7 @@ export function SitoStudioRedazioneAiPage() {
   const [form, setForm] = useState<AiGenerateForm>(emptyAiForm)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Preparazione dei contenuti…')
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
 

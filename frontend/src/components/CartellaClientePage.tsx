@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
@@ -137,6 +138,7 @@ export function CartellaClientePage() {
   const [identitySource, setIdentitySource] = useState<SourceDocument | null>(null)
   const [data, setData] = useState<CartellaClienteData>(emptyCartellaCliente)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento della cartella cliente…')
   const [errore, setErrore] = useState('')
   const [catalogArea, setCatalogArea] = useState<ClientCatalogArea | null>(null)
   const [documentSources, setDocumentSources] = useState<SourceDocument[]>([])

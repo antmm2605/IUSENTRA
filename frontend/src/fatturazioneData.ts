@@ -1,3 +1,4 @@
+import type { ApiRequestOptions } from './api/types'
 import { apiJson, apiPostJson } from './lib/apiClient'
 import type { AdminAction, AdminMetric, AdminSection, AdminTone, AdminWarning } from './utentiData'
 import { sanitizeDisplayText } from './displayText'
@@ -1238,8 +1239,8 @@ function normaliseWorkflowResult(raw: unknown): FatturazioneWorkflowResult {
   }
 }
 
-export async function getFatturazionePage(): Promise<FatturazionePageData> {
-  const payload = await apiJson<unknown>('/api/v1/ui/fatturazione', emptyFatturazionePage)
+export async function getFatturazionePage(options: ApiRequestOptions = {}): Promise<FatturazionePageData> {
+  const payload = await apiJson<unknown>('/api/v1/ui/fatturazione', emptyFatturazionePage, options)
   return normalisePage(payload)
 }
 
@@ -1284,8 +1285,8 @@ export function deleteFatturazioneDraft(idDocumento: string): Promise<SheetActio
   return sheetAction(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/elimina`, {})
 }
 
-export async function getFatturazioneDetail(idDocumento: string): Promise<{ ok: boolean; item: FatturazioneDetail | null; message: string; errors: Record<string, string> }> {
-  const payload = await apiJson<unknown>(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}`, { ok: false, item: null })
+export async function getFatturazioneDetail(idDocumento: string, options: ApiRequestOptions = {}): Promise<{ ok: boolean; item: FatturazioneDetail | null; message: string; errors: Record<string, string> }> {
+  const payload = await apiJson<unknown>(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}`, { ok: false, item: null }, options)
   const page = asRecord(payload)
   const rawItem = asRecord(page.item)
   const rawFiscal = asRecord(rawItem.fiscal)

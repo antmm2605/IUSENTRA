@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { AlertTriangle, BookOpen, Calculator, CheckCircle2, ChevronDown, ChevronUp, ClipboardCheck, FilePenLine, FileText, Gavel, Landmark, ListChecks, RefreshCw, Scale, ShieldCheck, TimerReset, UploadCloud, UsersRound } from 'lucide-react'
 import { Badge } from './dashboard'
@@ -598,6 +599,7 @@ function AdempimentiTab({ guida, fascicoloId = '' }:{guida?:GuidaPratica; fascic
 export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTitle = '' }: Props) {
   const [response, setResponse] = useState<GuidaPraticaResponse>(emptyGuidaPraticaResponse())
   const [loading, setLoading] = useState(false)
+  useBusyActivity(loading, 'Caricamento della guida pratica…')
   const [tab, setTab] = useState<TabKey>('checklist')
   const [expanded, setExpanded] = useState(() => typeof window !== 'undefined' && window.location.hash === '#guida-pratica')
   const [loadedKey, setLoadedKey] = useState('')

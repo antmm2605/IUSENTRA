@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FileSearch, RefreshCw, ScanText, Square, X } from 'lucide-react'
 import { Button } from '../../ui/Button'
@@ -69,6 +70,7 @@ export default function FascicoloOcr({ fascicoloId, reference, onSaved, onError 
   const [figure, setFigure] = useState<OcrFigure[]>([])
   const [avanzamento, setAvanzamento] = useState('')
   const [occupato, setOccupato] = useState('')
+  useBusyActivity(Boolean(occupato), 'Lettura del documento in corso…')
   const [riconoscendo, setRiconoscendo] = useState(false)
   const [errore, setErrore] = useState('')
   const [avviso, setAvviso] = useState('')

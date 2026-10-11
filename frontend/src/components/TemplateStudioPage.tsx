@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { AlignCenter, AlignJustify, AlignLeft, ArrowLeft, Bold, Copy, FileDown, FilePlus2, FileUp, Italic, List, ListOrdered, PencilLine, Save, Underline, Wand2 } from 'lucide-react'
 import {
@@ -31,6 +32,7 @@ function csrfToken(): string {
 
 function ActionButton({ action, label, tone = 'neutral', confirmMessage }: { action: string; label: string; tone?: 'neutral' | 'danger' | 'primary'; confirmMessage?: string }) {
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Aggiornamento del modello…')
   const [message, setMessage] = useState('')
   async function run() {
     if (confirmMessage && !window.confirm(confirmMessage)) return
@@ -222,6 +224,7 @@ function FormView({ id }: { id: string }) {
   const [form, setForm] = useState<StudioTemplateForm | null>(null)
   const [values, setValues] = useState<StudioTemplateForm['values']>({ titolo: '', categoria: '', corpo: '', note: '' })
   const [saving, setSaving] = useState(false)
+  useBusyActivity(saving, 'Salvataggio del modello…')
   const [message, setMessage] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [importing, setImporting] = useState(false)
@@ -335,6 +338,7 @@ function UsaView({ id }: { id: string }) {
   const [pdfAction, setPdfAction] = useState('')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Aggiornamento del modello…')
 
   useEffect(() => {
     getStudioTemplateUse(id, clientId, matterId).then((payload) => {

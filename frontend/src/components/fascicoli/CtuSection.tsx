@@ -7,6 +7,7 @@ import { parseCtuWriteProtocol, type CtuWriteProtocol } from '../../ctuCommand'
 import { useCtuCommand } from '../../hooks/useCtuCommand'
 import type { CtuDettaglio } from './CtuIncaricoDettaglio'
 import './CtuSection.css'
+import { useBusyActivity } from '../../ui/useBusyActivity'
 
 const CtuIncaricoDettaglio = lazy(() => import('./CtuIncaricoDettaglio'))
 
@@ -43,6 +44,7 @@ function CtuDeadlineCommand({ protocol, fascicoloId, incarico, disabled, onAggio
   const [busy, setBusy] = useState(false)
   const inFlight = useRef(false)
   const [message, setMessage] = useState('')
+  useBusyActivity(busy, 'Preparazione delle scadenze CTU…')
   const execute = async (recover = false) => {
     if (inFlight.current) return
     inFlight.current = true
@@ -82,11 +84,15 @@ export default function CtuSection({ fascicoloId }:{fascicoloId:string}) {
   currentCalc.current = ctuCalc
   const [gestito, setGestito] = useState('')
   const [openedDetails, setOpenedDetails] = useState<Set<string>>(() => new Set())
-  const load = useCallback(async () => {
+  const [foregroundLoading, setForegroundLoading] = useState(true)
+  useBusyActivity(foregroundLoading, 'Caricamento incarichi CTU…')
+  useBusyActivity(busy, 'Salvataggio incarico CTU…')
+  const load = useCallback(async (silent = false) => {
     const sequence = ++readSequence.current
     readController.current?.abort()
     const controller = new AbortController()
     readController.current = controller
+    setForegroundLoading(!silent)
     setLoading(true)
     try {
       const response = await fetch(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/ctu`, {
@@ -105,7 +111,7 @@ export default function CtuSection({ fascicoloId }:{fascicoloId:string}) {
       setLoadError(error instanceof Error ? error.message : 'Connessione non riuscita. Riprova la lettura degli incarichi CTU.')
       throw error
     } finally {
-      if (sequence === readSequence.current) setLoading(false)
+      if (sequence === readSequence.current) { setLoading(false); setForegroundLoading(false) }
     }
   }, [fascicoloId])
   const reload = () => { void load().catch(() => { /* L'errore resta visibile; dati e bozze sono conservati. */ }) }
@@ -116,7 +122,7 @@ export default function CtuSection({ fascicoloId }:{fascicoloId:string}) {
     reload()
     return () => { ++readSequence.current; readController.current?.abort() }
   }, [load])
-  useOperationalRefresh(['fascicoli'], load)
+  useOperationalRefresh(['fascicoli'], () => load(true))
   const post = async (href: string, body: Record<string, unknown>, creation = false, recover = false) => {
     if (writeInFlight.current) return
     writeInFlight.current = true

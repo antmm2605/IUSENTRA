@@ -1,3 +1,5 @@
+import { beginActivity } from '../ui/activity'
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, Banknote, CalendarDays, CheckCircle2, Clock3, Filter, Plus, Search } from 'lucide-react'
 import { Badge } from './dashboard'
@@ -16,6 +18,7 @@ function csrfToken(): string {
 
 function TrackingProposalsSection({ proposals, onDone }:{proposals:TrackingProposal[]; onDone:()=>Promise<void>}) {
   const [busyId, setBusyId] = useState('')
+  useBusyActivity(Boolean(busyId), 'Aggiornamento della proposta di attività…')
   const [message, setMessage] = useState('')
   const [minutesById, setMinutesById] = useState<Record<string, string>>({})
   if (!proposals.length) return null
@@ -300,7 +303,10 @@ export function TimesheetPage() {
   const [data, setData] = useState<TimesheetData | null>(null)
   const [loadError, setLoadError] = useState('')
   const [filtering, setFiltering] = useState(false)
-  async function refreshEntries() {
+  useBusyActivity(filtering, 'Aggiornamento delle voci del timesheet…')
+  useBusyActivity(data === null && !loadError, 'Caricamento del timesheet…')
+  async function refreshEntries(silent = false) {
+    const finish = silent ? () => {} : beginActivity('Aggiornamento delle voci del timesheet…')
     try {
       const payload = await getTimesheetPage()
       setData(payload)
@@ -308,9 +314,9 @@ export function TimesheetPage() {
     } catch (error) {
       setLoadError('Il comando è stato salvato, ma i dati non sono stati aggiornati. Riprova l’aggiornamento senza ripetere il comando.')
       throw error
-    }
+    } finally { finish() }
   }
-  useOperationalRefresh(['timesheet'], refreshEntries)
+  useOperationalRefresh(['timesheet'], () => refreshEntries(true))
   async function filterEntries(filters: Record<string, string>) {
     if (filtering) return
     setFiltering(true)

@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useCallback, useEffect, useState } from 'react'
 import { CalendarClock, CheckCircle2, Gavel, MapPin, Play, UserRound } from 'lucide-react'
 import { inviaPreparazione } from './preparazioneUdienzaApi'
@@ -46,6 +47,7 @@ function RigaUdienza({ u, fascicoli, puoModificare, protocol }: { u: Udienza; fa
   const [scelta, setScelta] = useState('')
   const [errore, setErrore] = useState('')
   const [occupato, setOccupato] = useState(false)
+  useBusyActivity(occupato, 'Avvio della preparazione udienza…')
   const [pending, setPending] = useState(false)
   const [storageError, setStorageError] = useState('')
   const target = `nuovo-${u.idAppuntamento || u.idFascicolo}`

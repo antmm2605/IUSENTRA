@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useState } from 'react'
 import {
   AlertTriangle,
@@ -48,6 +49,7 @@ async function postJson(href: string, body: Record<string, unknown>): Promise<{ 
 function NewLeadForm({ data, onDone, onMessage }:{data:CrmData; onDone:()=>void; onMessage:(text:string)=>void}) {
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione in corso…')
   const [form, setForm] = useState({ denominazione: '', codiceFiscale: '', partitaIva: '', email: '', telefono: '', fonte: 'passaparola', materia: '', esigenza: '' })
   const update = (key: string, value: string) => setForm((prev) => ({ ...prev, [key]: value }))
   const submit = async () => {
@@ -84,6 +86,7 @@ function NewLeadForm({ data, onDone, onMessage }:{data:CrmData; onDone:()=>void;
 
 function LeadCorrectionForm({ lead, onDone, onCancel, onMessage }:{lead:CrmLead; onDone:()=>void; onCancel:()=>void; onMessage:(text:string)=>void}) {
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione in corso…')
   const [form, setForm] = useState({
     denominazione: lead.denominazione,
     codiceFiscale: lead.codiceFiscale,
@@ -121,6 +124,7 @@ function LeadCorrectionForm({ lead, onDone, onCancel, onMessage }:{lead:CrmLead;
 
 function ConflictClearanceForm({ lead, onDone, onCancel, onMessage }:{lead:CrmLead; onDone:()=>void; onCancel:()=>void; onMessage:(text:string)=>void}) {
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione in corso…')
   const [decisione, setDecisione] = useState('CLEARANCE_CONCESSA')
   const [motivazione, setMotivazione] = useState('')
   const save = async () => {
@@ -144,6 +148,7 @@ function ConflictClearanceForm({ lead, onDone, onCancel, onMessage }:{lead:CrmLe
 function EthicalWallForm({ data, lead, mode, onDone, onCancel, onMessage }:{data:CrmData; lead:CrmLead; mode:'create'|'manage'; onDone:()=>void; onCancel:()=>void; onMessage:(text:string)=>void}) {
   const wall = lead.barrieraRiservatezza
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione in corso…')
   const [motivazione, setMotivazione] = useState(wall.motivazione)
   const [utentiAutorizzati, setUtentiAutorizzati] = useState<string[]>(
     wall.utentiAutorizzati.length ? wall.utentiAutorizzati : [data.accesso.operatore].filter(Boolean),
@@ -207,6 +212,7 @@ function AmlPanel({ data, lead, onDone, onMessage }:{data:CrmData; lead:CrmLead;
   const aml = lead.antiriciclaggio
   const [open, setOpen] = useState(Boolean(aml.id && aml.status !== 'COMPLETATA'))
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione in corso…')
   const [form, setForm] = useState({
     prestazione: aml.prestazione || data.options.prestazioniAml[0]?.value || '',
     descrizionePrestazione: aml.descrizionePrestazione,
@@ -283,6 +289,7 @@ function AmlPanel({ data, lead, onDone, onMessage }:{data:CrmData; lead:CrmLead;
 
 function LeadCard({ data, lead, onDone, onMessage }:{data:CrmData; lead:CrmLead; onDone:()=>void; onMessage:(text:string)=>void}) {
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione in corso…')
   const [showLostReason, setShowLostReason] = useState(false)
   const [showCorrection, setShowCorrection] = useState(false)
   const [showClearance, setShowClearance] = useState(false)

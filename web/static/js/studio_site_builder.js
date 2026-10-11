@@ -1,6 +1,10 @@
+import { withActivity } from '../../../frontend/src/ui/activity'
+import { installNativeActivityStatus } from '../../../frontend/src/ui/nativeActivity'
+
 (function () {
   const root = document.querySelector("[data-site-builder]");
   if (!root) return;
+  installNativeActivityStatus()
 
   const frameWrap = root.querySelector("[data-preview-frame]");
   const frame = frameWrap ? frameWrap.querySelector("iframe") : null;
@@ -38,8 +42,10 @@
   root.querySelectorAll("[data-restore-revision]").forEach((form) => {
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      const response = await fetch(form.action, { method: "POST", headers: { Accept: "application/json" } });
-      const result = await response.json();
+      const result = await withActivity('Ripristino della revisione del sito…', async () => {
+        const response = await fetch(form.action, { method: "POST", headers: { Accept: "application/json" } });
+        return response.json();
+      });
       showStatus(result.message || "Revisione ripristinata.", result.ok ? "success" : "danger");
       if (result.ok) window.location.reload();
     });
@@ -63,12 +69,14 @@
     assetForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const formData = new FormData(assetForm);
-      const response = await fetch("/sito-studio/api/assets/upload", {
+      const result = await withActivity('Caricamento dell’immagine del sito…', async () => {
+        const response = await fetch("/sito-studio/api/assets/upload", {
         method: "POST",
         body: formData,
         headers: { Accept: "application/json" },
       });
-      const result = await response.json();
+        return response.json();
+      });
       if (!result.ok) {
         showStatus(result.error || "Caricamento immagine non riuscito.", "danger");
         return;
@@ -286,12 +294,14 @@
       showStatus("Seleziona una pagina valida prima di salvare.", "danger");
       return;
     }
-    const response = await fetch(url, {
+    const result = await withActivity('Salvataggio delle modifiche del sito…', async () => {
+      const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ blocks }),
     });
-    const result = await response.json();
+      return response.json();
+    });
     showStatus(result.message || result.error || fallbackMessage, result.ok ? "success" : "danger");
     if (result.ok) refreshPreview();
   }

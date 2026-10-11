@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { ExternalLink, FileSearch, Globe, Mail } from 'lucide-react'
 import { OperationalModal } from './OperationalModal'
 import { activateManagedWindowForNode } from './ManagedWindowState'
+import { useBusyActivity } from '../ui/useBusyActivity'
 
 const ViewerDocumentEditor = lazy(() => import('./ViewerDocumentEditor').then((module) => ({ default: module.ViewerDocumentEditor })))
 
@@ -104,6 +105,7 @@ export function SourceDocumentReader({
   const [destination, setDestination] = useState<{ href: string; label: string; mail: boolean } | null>(null)
   const detachLinks = useRef<(() => void) | null>(null)
   const [loadState, setLoadState] = useState<'loading' | 'loaded' | 'error'>('loading')
+  useBusyActivity(loadState === 'loading', 'Caricamento nel lettore…')
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
   const viewerHref = sourceViewerHref({ href }, true)
   const normalizedRotation = ((rotation % 360) + 360) % 360
@@ -201,8 +203,9 @@ export function SourceDocumentReader({
         </div>
       ) : null}
       {loadState === 'loading' ? (
-        <div className="iu-source-document-reader__state" role="status">
-          <strong>Caricamento documento...</strong>
+          <div className="iu-source-document-reader__state" role="status" aria-busy="true">
+            <span className="iu-activity-spinner" aria-hidden="true" />
+            <strong>Caricamento documento…</strong>
           <span>Sto aprendo la fonte nel lettore interno IUSENTRA.</span>
         </div>
       ) : null}
@@ -262,6 +265,7 @@ export function SourceDocumentWorkWindow({ source, onClose, focusToken = 0 }: { 
   const [closeFocus,setCloseFocus] = useState(0)
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
+  useBusyActivity(saving, 'Salvataggio del documento…')
   const [discard, setDiscard] = useState(false)
   const originalHref = source ? sourceViewerHref(source, false) : ''
   const caseSource = (() => {

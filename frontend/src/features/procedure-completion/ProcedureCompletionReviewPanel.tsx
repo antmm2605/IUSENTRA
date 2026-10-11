@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useState } from 'react'
 import { CheckCircle2, Send, ShieldCheck } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -25,6 +26,7 @@ export function ProcedureCompletionReviewPanel({
 }) {
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Salvataggio della revisione…')
   const [errore, setErrore] = useState('')
 
   const can = (permesso: string) => permissions.includes(permesso)

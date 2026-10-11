@@ -1,3 +1,5 @@
+import { beginActivity } from '../ui/activity'
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { AlertTriangle, CheckCircle2, FolderOpen, KeyRound, RefreshCw, ShieldCheck, Trash2, UsersRound } from 'lucide-react'
@@ -156,20 +158,22 @@ export function CartelleCondivisePage() {
   const [data, setData] = useState<CartelleCondiviseData | null>(null)
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione in corso…')
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<ShareFilter>('folders')
   const mounted = useRef(false)
   const refreshFlight = useRef<Promise<void> | null>(null)
-  const refresh = useCallback(() => {
+  const refresh = useCallback((silent = false) => {
     if (refreshFlight.current) return refreshFlight.current
+    const finish = silent ? () => {} : beginActivity('Aggiornamento delle cartelle condivise…')
     setRefreshing(true)
     const flight = getCartelleCondivisePage().then(payload => {
       if (mounted.current) { setData(payload); setError('') }
     }).catch((reason: unknown) => {
       if (mounted.current) setError(reason instanceof Error ? reason.message : 'Caricamento non riuscito. Riprova.')
-    }).finally(() => { refreshFlight.current = null; if (mounted.current) setRefreshing(false) })
+    }).finally(() => { finish(); refreshFlight.current = null; if (mounted.current) setRefreshing(false) })
     refreshFlight.current = flight
     return flight
   }, [])
@@ -179,7 +183,7 @@ export function CartelleCondivisePage() {
     void refresh()
     return () => { mounted.current = false }
   }, [refresh])
-  useOperationalRefresh(['clienti', 'fascicoli', 'utenti'], refresh)
+  useOperationalRefresh(['clienti', 'fascicoli', 'utenti'], () => refresh(true))
   const visible = useMemo(() => {
     if (!data) return null
     const normalize = (value: string) => value.toLocaleLowerCase('it-IT').normalize('NFD').replace(/[\u0300-\u036f]/g, '')

@@ -67,7 +67,13 @@ export default defineConfig({
     emptyOutDir: false,
     manifest: true,
     rollupOptions: {
-      input: './index.html',
+      input: {
+        app: './index.html',
+        pdfReader: '../web/static/js/mobile-pdf-viewer.js',
+        coverageReview: '../web/static/js/admin_coverage_review.js',
+        nativeSearch: '../web/static/js/global-search.js',
+        siteBuilder: '../web/static/js/studio_site_builder.js',
+      },
       output: {
         manualChunks(id) {
           const normalizedId = id.replace(/\\/g, '/')

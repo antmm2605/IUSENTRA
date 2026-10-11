@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useCallback, useEffect, useState } from 'react'
 import { messaggiDaAttributo, type MessaggioPagina } from '../pubblicoTokenApi'
 import { avviaPagamento, caricaCheckout, caricaEsito, percorsoCheckout, type Provider, type StatoPagamento } from '../pagamentoLinkData'
@@ -42,6 +43,8 @@ export default function PagamentoLinkApp() {
   const [messaggi, setMessaggi] = useState<MessaggioPagina[]>(radice.messaggi)
   const [inCorso, setInCorso] = useState<Provider | null>(null)
   const [ricarica, setRicarica] = useState(0)
+  useBusyActivity(stato.tipo === 'caricamento', 'Caricamento della pagina di pagamento…')
+  useBusyActivity(inCorso !== null, 'Preparazione della procedura di pagamento…')
 
   useEffect(() => {
     if (radice.vista === 'scaduto') return undefined

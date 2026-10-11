@@ -18,6 +18,8 @@ export type ApiErrorPayload = {
 }
 
 export type ApiRequestOptions = {
+  /** false for periodic background checks; text for an explicit operation. */
+  activity?: string | false
   signal?: AbortSignal
   headers?: HeadersInit
   retry?: boolean

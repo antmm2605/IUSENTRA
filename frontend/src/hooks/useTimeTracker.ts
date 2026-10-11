@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useBusyActivity } from '../ui/useBusyActivity'
+import { withActivity } from '../ui/activity'
 import {
   fetchActiveTimer,
   pauseTimer,
@@ -27,6 +29,7 @@ export function useTimeTracker() {
   const [saved, setSaved] = useState<TimeTrackingSaved | null>(null)
   const [notice, setNotice] = useState('')
   const [loading, setLoading] = useState(false)
+  useBusyActivity(loading, 'Registrazione dell’attività…')
   const [error, setError] = useState('')
   const [tick, setTick] = useState(Date.now())
   const [receivedAt, setReceivedAt] = useState(Date.now())
@@ -59,19 +62,19 @@ export function useTimeTracker() {
   const pause = useCallback(() => {
     if (!timer) return Promise.resolve()
     setError('')
-    return pauseTimer(timer.id).then(applica).catch((reason: unknown) => setError(messaggio(reason, 'Pausa non riuscita.')))
+    return withActivity('Pausa del timer…', () => pauseTimer(timer.id).then(applica).catch((reason: unknown) => setError(messaggio(reason, 'Pausa non riuscita.'))))
   }, [applica, timer])
 
   const resume = useCallback(() => {
     if (!timer) return Promise.resolve()
     setError('')
-    return resumeTimer(timer.id).then(applica).catch((reason: unknown) => setError(messaggio(reason, 'Ripresa non riuscita.')))
+    return withActivity('Ripresa del timer…', () => resumeTimer(timer.id).then(applica).catch((reason: unknown) => setError(messaggio(reason, 'Ripresa non riuscita.'))))
   }, [applica, timer])
 
   const update = useCallback((changes: Partial<StartTimerInput>) => {
     if (!timer) return Promise.resolve()
     setError('')
-    return updateTimer(timer.id, changes).then(applica).catch((reason: unknown) => setError(messaggio(reason, 'Modifica non salvata.')))
+    return withActivity('Aggiornamento del timer…', () => updateTimer(timer.id, changes).then(applica).catch((reason: unknown) => setError(messaggio(reason, 'Modifica non salvata.'))))
   }, [applica, timer])
 
   const stop = useCallback((options: { description?: string; discard?: boolean } = {}) => {

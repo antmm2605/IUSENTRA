@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../../ui/useBusyActivity'
 import { useEffect, useMemo, useState } from 'react'
 import { Bell, BellRing, ExternalLink, MessageCircle, RefreshCw, Send, Smartphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -88,8 +89,10 @@ export function NotificationsSettingsPanel({
   const [link, setLink] = useState('')
   const [result, setResult] = useState<NotificationActionPayload | null>(null)
   const [busy, setBusy] = useState('')
+  useBusyActivity(Boolean(busy), 'Aggiornamento delle notifiche…')
   const [pushStatus, setPushStatus] = useState<PushDeviceStatus>(initialPushStatus)
   const [pushBusy, setPushBusy] = useState('')
+  useBusyActivity(Boolean(pushBusy), 'Verifica delle notifiche del browser…')
   const [pushResult, setPushResult] = useState<PushActionResult | null>(null)
 
   useEffect(() => {

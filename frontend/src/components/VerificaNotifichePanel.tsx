@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { formatDateIt } from '../formatting'
 import { SourceDocumentModal, type SourceDocument } from './SourceDocumentModal'
@@ -24,6 +25,7 @@ export default function VerificaNotifichePanel({ fascicoloId, verifica, document
   const [errore, setErrore] = useState('')
   const [source, setSource] = useState<SourceDocument | null>(null)
   const [catalogo, setCatalogo] = useState(false)
+  useBusyActivity(Boolean(fascicoloId) && !verifica && data === null && !errore, 'Consultazione delle letture del fascicolo…')
   useEffect(() => {
     if (verifica) { setData(verifica); return }
     if (!fascicoloId) return

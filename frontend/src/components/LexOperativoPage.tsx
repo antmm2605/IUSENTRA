@@ -1,3 +1,4 @@
+import { beginActivity } from '../ui/activity'
 import { useEffect, useRef, useState } from 'react'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { CalendarClock, FolderOpen, Gavel, RefreshCw, Send } from 'lucide-react'
@@ -50,22 +51,23 @@ export function LexOperativoPage() {
   const telematici = data.telematico.cases.filter(item => matches([item.serviceLabel, item.officeName, item.practiceTitle, item.status]))
   const azioni = data.operativo.actions.filter(item => matches([item.title, item.description]))
   const scadenze = data.operativo.urgentDeadlines.filter(item => matches([item.titolo, dataItaliana(item.data)]))
-  function refresh(): Promise<void> {
+  function refresh(silent = false): Promise<void> {
     if (refreshFlight.current) return refreshFlight.current
+    const finish = silent ? () => {} : beginActivity('Aggiornamento del quadro operativo…')
     setRefreshing(true)
     const flight = (async () => {
       try {
-        const payload = await getLexOperativo(giorni)
+        const payload = await getLexOperativo(giorni, { activity: false })
         if (!payload.ok) throw new Error('Dati non disponibili')
         setData(payload)
         setError('')
       } catch { setError('Aggiornamento non riuscito. I dati e i filtri restano conservati: riprova.') }
-      finally { setRefreshing(false); refreshFlight.current = null }
+      finally { finish(); setRefreshing(false); refreshFlight.current = null }
     })()
     refreshFlight.current = flight
     return flight
   }
-  useOperationalRefresh(['fascicoli', 'agenda', 'scadenze', 'comunicazioni'], refresh)
+  useOperationalRefresh(['fascicoli', 'agenda', 'scadenze', 'comunicazioni'], () => refresh(true))
 
   useEffect(() => {
     let attivo = true
@@ -102,7 +104,7 @@ export function LexOperativoPage() {
               {ORIZZONTI.map((opzione) => <option value={opzione} key={opzione}>{opzione} giorni</option>)}
             </select>
           </label>
-          <Button type="button" onClick={refresh} disabled={loading || refreshing} tone="neutral">
+          <Button type="button" onClick={() => { void refresh() }} disabled={loading || refreshing} tone="neutral">
             <RefreshCw size={16} aria-hidden="true" />
             {refreshing ? 'Aggiornamento…' : 'Aggiorna'}
           </Button>
@@ -111,7 +113,7 @@ export function LexOperativoPage() {
     >
       {refreshing ? <p role="status">Aggiornamento dei dati in corso. I filtri restano conservati.</p> : null}
       {loading ? <LoadingState title="Lettura in corso" message="Lex legge fascicoli, udienze, telematico e scadenze dello studio." /> : null}
-      {error ? <div role="alert">{error}<Button type="button" tone="neutral" onClick={refresh}>Riprova aggiornamento</Button></div> : null}
+      {error ? <div role="alert">{error}<Button type="button" tone="neutral" onClick={() => { void refresh() }}>Riprova aggiornamento</Button></div> : null}
       {!loading && !data.ok ? (
         <EmptyState title="Quadro operativo non disponibile" message={data.error || 'Non è stato possibile leggere i dati dello studio. Riprova tra poco.'} />
       ) : null}

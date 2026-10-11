@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useState } from 'react'
 import { FileSignature, Plus, Trash2, Upload } from 'lucide-react'
 import { penaleApi } from './penaleApi'
@@ -19,6 +20,7 @@ export function DocumentiDeposito({ fascicoloId, documenti, scelti, contestuali,
   const [documento, setDocumento] = useState('')
   const [ruolo, setRuolo] = useState(scelti.some((f) => f.ruolo === 'principale') ? 'allegato' : 'principale')
   const [caricamento, setCaricamento] = useState(false)
+  useBusyActivity(caricamento, 'Caricamento del documento…')
   const [errore, setErrore] = useState('')
   const nome = (id: string) => documenti.find((d) => d.id === id)
   const ruoli = RUOLI_FILE.filter((r) => (r.valore !== 'contestuale' || ammetteContestuali) && (r.valore !== 'principale' || !scelti.some((f) => f.ruolo === 'principale')))

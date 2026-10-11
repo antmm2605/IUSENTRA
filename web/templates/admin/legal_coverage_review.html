@@ -248,5 +248,5 @@
   window.REVIEW_API_BASE = "/admin/copertura-ai/api";
   window.REVIEW_TENANT_SLUG = "";
 </script>
-<script src="{{ url_for('static', filename='js/admin_coverage_review.js') }}?v={{ app_version }}"></script>
+{{ native_activity_assets('admin_coverage_review.js') }}
 {% endblock %}

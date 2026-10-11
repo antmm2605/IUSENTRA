@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CalendarClock } from 'lucide-react'
@@ -20,6 +21,7 @@ export default function ControlloStudioAgendaDetail({ voce, azione, onClose, onU
   const [source, setSource] = useState<SourceDocument | null>(null)
   const [errore, setErrore] = useState('')
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento dei dati…')
   const [scelta, setScelta] = useState('')
   const [fascicoli, setFascicoli] = useState<Array<{ value: string; label: string }>>([])
   const [canWrite, setCanWrite] = useState(false)

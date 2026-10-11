@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useEffect, useId, useRef, useState } from 'react'
 import { FolderOpen, Loader2, Search, X } from 'lucide-react'
 import { Button } from '../../ui/Button'
@@ -30,6 +31,7 @@ export function MatterPicker({ matters, value, disabled, onChange }: Props) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<MatterMatch[]>([])
   const [loading, setLoading] = useState(false)
+  useBusyActivity(loading, 'Ricerca del fascicolo…')
   const [error, setError] = useState('')
   const [selectedLabel, setSelectedLabel] = useState('')
   const fieldId = useId()

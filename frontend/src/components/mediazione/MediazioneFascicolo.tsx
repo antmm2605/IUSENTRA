@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useEffect, useState } from 'react'
 import { Plus, Save, RefreshCw } from 'lucide-react'
 import { apiPostJson, ensureJson } from '../../lib/apiClient'
@@ -20,6 +21,7 @@ export default function MediazioneFascicolo({ id, preview, onDocuments }: {
   const [selected, setSelected] = useState<Procedure | null>(null)
   const [dirty, setDirty] = useState(false)
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Salvataggio del procedimento di mediazione…')
   const [moduleDirty, setModuleDirty] = useState(false)
   const [moduleOpen, setModuleOpen] = useState(false)
   const [message, setMessage] = useState('')

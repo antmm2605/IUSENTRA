@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, Archive, BrainCircuit, FileCheck2, RefreshCw, Scale, ShieldCheck, Upload } from 'lucide-react'
 import type {
@@ -47,9 +48,11 @@ export function DocumentiAIPage({ fascicoloId }:{fascicoloId: string}) {
   const [detail, setDetail] = useState<DocumentAIDetailPayload | null>(null)
   const [textPayload, setTextPayload] = useState<DocumentAITextPayload | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  useBusyActivity(detailLoading, 'Apertura della lettura documentale…')
   const [detailError, setDetailError] = useState('')
   const [legalDocuments, setLegalDocuments] = useState<LegalDocumentRecord[]>([])
   const [legalLoading, setLegalLoading] = useState(false)
+  useBusyActivity(legalLoading, 'Consultazione dei riscontri…')
   const [legalError, setLegalError] = useState('')
   const [selectedLegal, setSelectedLegal] = useState<LegalDocumentRecord | null>(null)
   const [legalEvidence, setLegalEvidence] = useState<LegalDocumentEvidence | null>(null)

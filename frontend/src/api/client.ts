@@ -2,6 +2,7 @@ import { publishMutationRefresh } from '../operationalRefresh'
 import { csrfHeader } from './csrf'
 import { ApiClientError, normaliseErrorPayload } from './errors'
 import type { ApiMutationOptions, ApiRequestOptions } from './types'
+import { withActivity } from '../ui/activity'
 
 export { ApiClientError } from './errors'
 
@@ -14,7 +15,8 @@ async function parseJsonResponse(response: Response): Promise<unknown> {
   return response.json()
 }
 
-async function requestJson<T>(url: string, init: RequestInit, fallback: T): Promise<T> {
+async function requestJson<T>(url: string, init: RequestInit, fallback: T, activity: string | false): Promise<T> {
+  return withActivity(activity, async () => {
   try {
     const response = await fetch(url, init)
     const payload = await parseJsonResponse(response)
@@ -29,9 +31,11 @@ async function requestJson<T>(url: string, init: RequestInit, fallback: T): Prom
     }
     return fallback
   }
+  })
 }
 
 export async function apiJson<T>(url: string, fallback: T, options: ApiRequestOptions = {}): Promise<T> {
+  return withActivity(options.activity ?? 'Caricamento dati…', async () => {
   try {
     const response = await fetch(url, {
       credentials: 'same-origin',
@@ -49,6 +53,7 @@ export async function apiJson<T>(url: string, fallback: T, options: ApiRequestOp
     }
     return fallback
   }
+  })
 }
 
 export async function apiPostJson<T>(
@@ -68,10 +73,11 @@ export async function apiPostJson<T>(
       ...options.headers,
     },
     body: JSON.stringify(body),
-  }, fallback)
+  }, fallback, options.activity ?? 'Operazione in corso…')
 }
 
 export async function ensureJson<T>(url: string, options: ApiRequestOptions = {}): Promise<T> {
+  return withActivity(options.activity ?? 'Caricamento dati…', async () => {
   const response = await fetch(url, {
     credentials: 'same-origin',
     signal: options.signal,
@@ -83,4 +89,5 @@ export async function ensureJson<T>(url: string, options: ApiRequestOptions = {}
   const payload = await parseJsonResponse(response)
   if (!response.ok) throw new ApiClientError(response.status, normaliseErrorPayload(payload, response.status, {}))
   return payload as T
+  })
 }

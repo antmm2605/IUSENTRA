@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 /** Finestra «Calcola contributo unificato» del fascicolo (D.P.R. 115/2002 art. 13), caricata solo quando si apre. */
 import { useEffect, useState, type FormEvent } from 'react'
 import { AlertTriangle, Calculator, Copy, Euro } from 'lucide-react'
@@ -144,7 +145,9 @@ export default function ContributoUnificatoModal({
   const [form, setForm] = useState<ContributoUnificatoFormState>(() => defaultContributoUnificatoForm(fascicolo))
   const [result, setResult] = useState<ContributoUnificatoResult | null>(null)
   const [loadingPrefill, setLoadingPrefill] = useState(false)
+  useBusyActivity(loadingPrefill, 'Caricamento dei dati del fascicolo…')
   const [submitting, setSubmitting] = useState(false)
+  useBusyActivity(submitting, 'Elaborazione in corso…')
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle')
   const [error, setError] = useState('')
 

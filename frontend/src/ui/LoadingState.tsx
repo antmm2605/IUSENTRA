@@ -1,4 +1,5 @@
 import './ui.css'
+import { useBusyActivity } from './useBusyActivity'
 
 export function LoadingState({
   title = 'Caricamento in corso',
@@ -7,6 +8,7 @@ export function LoadingState({
   title?: string
   message?: string
 }) {
+  useBusyActivity(true, 'Caricamento della pagina…')
   return (
     <section className="iu-loading-state" aria-live="polite" aria-busy="true">
       <div className="iu-loading-state__body">

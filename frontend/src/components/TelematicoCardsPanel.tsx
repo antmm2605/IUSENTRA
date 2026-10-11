@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useRef, useState } from 'react'
 import { Download, Search, FolderOpen, AlertTriangle } from 'lucide-react'
 import { OperationalModal } from './OperationalModal'
@@ -21,11 +22,13 @@ export function TelematicoCardsPanel({ scope, refreshToken, onClose }: { scope: 
   const [total, setTotal] = useState(0)
   const [pages, setPages] = useState(1)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento dei dati…')
   const [error, setError] = useState('')
   const [feedback, setFeedback] = useState('')
   const [download, setDownload] = useState<{ url: string; filename: string; count: number } | null>(null)
   const [retry, setRetry] = useState(0)
   const [exporting, setExporting] = useState(false)
+  useBusyActivity(exporting, 'Preparazione del riepilogo…')
   const [all, setAll] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [excluded, setExcluded] = useState<Set<string>>(new Set())

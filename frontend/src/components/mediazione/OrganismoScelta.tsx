@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useEffect, useMemo, useState } from 'react'
 import { ensureJson } from '../../lib/apiClient'
 import { formatDateTimeIt } from '../../formatting'
@@ -18,6 +19,7 @@ export function OrganismoScelta({ base, value, change, acquire, busy, dirty }: {
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
   const [detailBusy, setDetailBusy] = useState(false)
+  useBusyActivity(detailBusy, 'Caricamento dell’organismo di mediazione…')
   useEffect(() => {
     const abort = new AbortController()
     setError('')

@@ -1,3 +1,7 @@
+import { withActivity } from '../../../frontend/src/ui/activity'
+import { installNativeActivityStatus } from '../../../frontend/src/ui/nativeActivity'
+
+installNativeActivityStatus()
 let currentDraftId = null;
 let cachedDrafts = [];
 let currentDraftDetail = null;
@@ -77,6 +81,7 @@ function resetDraftPanel(message) {
 }
 
 async function fetchJson(url, options = {}) {
+  return withActivity('Elaborazione della revisione…', async () => {
   const response = await fetch(url, options);
   let payload = {};
   try {
@@ -89,6 +94,7 @@ async function fetchJson(url, options = {}) {
     throw new Error(message);
   }
   return payload;
+  });
 }
 
 function renderRetrievalExamples(examples) {

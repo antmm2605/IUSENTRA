@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useDeferredValue, useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import {
   AlertTriangle,
@@ -246,6 +247,7 @@ function NewTreatmentForm({ data, open }: { data: PrivacyRegistroPageData; open:
 export function PrivacyRegistroPage() {
   const [data, setData] = useState<PrivacyRegistroPageData>(emptyPrivacyRegistroPage)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento dei dati…')
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<StatusFilter>('tutti')

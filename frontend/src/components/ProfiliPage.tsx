@@ -1,3 +1,4 @@
+import { beginActivity } from '../ui/activity'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { formatDateTimeIt } from '../formatting'
@@ -383,10 +384,11 @@ export function ProfiliPage() {
   const [refreshError, setRefreshError] = useState('')
   const refreshFlight = useRef<Promise<void> | null>(null)
 
-  const refresh = () => {
+  const refresh = (silent = false) => {
     if (refreshFlight.current) return refreshFlight.current
+    const finish = silent ? () => {} : beginActivity('Aggiornamento dei profili…')
     setRefreshing(true)
-    const flight = getProfiliPage()
+    const flight = getProfiliPage({ activity: false })
       .then((payload) => {
         if (!payload.ok) throw new Error('Dati non disponibili')
         setData(payload)
@@ -397,11 +399,11 @@ export function ProfiliPage() {
         if (!data.ok) setLoadStatus('error')
         setRefreshError('Aggiornamento non riuscito. Filtri e modifiche non salvate restano conservati: riprova.')
       })
-      .finally(() => { setRefreshing(false); refreshFlight.current = null })
+      .finally(() => { finish(); setRefreshing(false); refreshFlight.current = null })
     refreshFlight.current = flight
     return flight
   }
-  useOperationalRefresh(['utenti'], refresh)
+  useOperationalRefresh(['utenti'], () => refresh(true))
 
   useEffect(() => {
     refresh()
@@ -489,7 +491,7 @@ export function ProfiliPage() {
       subtitle="Matrice RBAC reale dello studio e override utente salvati con servizi protetti."
       actions={
         <>
-          <Button type="button" tone="neutral" onClick={refresh} disabled={refreshing}>
+          <Button type="button" tone="neutral" onClick={() => { void refresh() }} disabled={refreshing}>
             <RefreshCw size={16} />
             {refreshing ? 'Aggiornamento…' : 'Aggiorna'}
           </Button>
@@ -507,7 +509,7 @@ export function ProfiliPage() {
         <EmptyState
           title="Profili non disponibili"
           message={message || 'Non sono disponibili permessi utilizzabili per questa sessione.'}
-          action={<Button type="button" tone="primary" onClick={refresh}>Riprova</Button>}
+          action={<Button type="button" tone="primary" onClick={() => { void refresh() }}>Riprova</Button>}
         />
       ) : null}
       {loadStatus === 'ready' && !hasData ? (

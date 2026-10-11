@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Modal } from '../ui/legalPrimitives'
 import { csrfToken } from '../formSubmit'
 import { FascicoloSearchSelect, type FascicoloOption } from './FascicoloSearchSelect'
+import { useBusyActivity } from '../ui/useBusyActivity'
+import '../ui/activity.css'
+import './EditorPersonalTemplates.css'
 
 export function EditorPersonalTemplates({ open, onClose, serialize, matterId, options, onMatterChange, onApply, mattersLoading, mattersError, sourceDocument }: {
   open: boolean; onClose: () => void; serialize: () => string; matterId: string; options: FascicoloOption[];
@@ -20,6 +23,8 @@ export function EditorPersonalTemplates({ open, onClose, serialize, matterId, op
   const [success, setSuccess] = useState('')
   const [ready, setReady] = useState<{html: string; titolo: string; mancanti: string[]} | null>(null)
   const intent = useRef<{titolo: string; html: string; command_id: string; source_document?: {matter: string; document: string}} | null>(null)
+  useBusyActivity(open && mode === 'use' && catalogLoading, 'Caricamento modelli…')
+  useBusyActivity(open && busy, mode === 'save' ? 'Salvataggio modello…' : 'Compilazione del modello…')
   useEffect(() => { setReady(null) }, [model, matterId])
   useEffect(() => {
     if (!open) return
@@ -53,6 +58,7 @@ export function EditorPersonalTemplates({ open, onClose, serialize, matterId, op
     finally { setBusy(false) }
   }
   return <Modal title="Modelli" open={open} onClose={() => { if (!busy) onClose() }}>
+    <div className="iu-de-personal-templates">
     <div className="iu-de-template-actions"><button type="button" aria-pressed={mode === 'save'} disabled={busy} onClick={() => { setMode('save'); setError(''); setSuccess('') }}>Salva modello personale</button><button type="button" aria-pressed={mode === 'use'} disabled={busy || intent.current !== null} onClick={() => { setMode('use'); setError(''); setSuccess('') }}>Usa modello</button></div>
     {mode === 'save' ? <>
       <p>I campi collegati diventano segnaposto riutilizzabili. Il testo scritto liberamente rimane nel modello: controlla che non contenga dati del precedente cliente.</p>
@@ -60,15 +66,16 @@ export function EditorPersonalTemplates({ open, onClose, serialize, matterId, op
       <button type="button" disabled={busy || !title.trim()} onClick={() => void save()}>{busy ? 'Salvataggio…' : intent.current ? 'Riprova salvataggio' : 'Salva modello personale'}</button>
     </> : <>
       <label>Modello<select aria-label="Modello" value={model} disabled={busy} onChange={event => setModel(event.target.value)}><option value="">Scegli il modello</option>{['condiviso', 'personale'].map(scope => <optgroup key={scope} label={scope === 'condiviso' ? 'Modelli condivisi' : 'Modelli del mio studio'}>{models.filter(item => (item.ambito || 'personale') === scope).map(item => <option key={item.id} value={item.id}>{item.titolo}</option>)}</optgroup>)}</select></label>
-      {catalogLoading && <p role="status">Caricamento modelli…</p>}
+      {catalogLoading && <p role="status"><span className="iu-activity-spinner" aria-hidden="true" /> Caricamento modelli…</p>}
       {catalogError && <p role="alert">{catalogError} <button type="button" onClick={() => setCatalogReload(value => value + 1)}>Riprova caricamento</button></p>}
       {!catalogLoading && !catalogError && !models.length && <p>Nessun modello disponibile.</p>}
       {onMatterChange && <FascicoloSearchSelect options={options} value={matterId} onChange={onMatterChange} disabled={busy} selectionLabel="Fascicolo del modello"/>}
-      {onMatterChange && mattersLoading && <p role="status">Caricamento fascicoli…</p>}
+      {onMatterChange && mattersLoading && <p role="status"><span className="iu-activity-spinner" aria-hidden="true" /> Caricamento fascicoli…</p>}
       {onMatterChange && mattersError && <p role="alert">{mattersError}</p>}
       <button type="button" disabled={busy || catalogLoading || Boolean(catalogError) || !model || !matterId} onClick={() => void prepare()}>Compila con i dati del fascicolo</button>
       {ready && <><p>La compilazione sostituirà il contenuto attuale del documento. Puoi annullarla con il comando Annulla.</p>{ready.mancanti.length > 0 && <p role="status">Da compilare: {ready.mancanti.join(', ')}.</p>}<button type="button" onClick={() => { onApply(ready.html, ready.titolo, ready.mancanti); onClose() }}>Applica modello compilato</button></>}
     </>}
     {error && <p role="alert">{error}</p>}{success && <p role="status">{success}</p>}
+    </div>
   </Modal>
 }

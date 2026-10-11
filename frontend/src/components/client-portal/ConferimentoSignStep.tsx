@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useRef, useState } from 'react'
 import { Download, FileSignature, FileUp, PenLine, ShieldAlert, Type, Upload } from 'lucide-react'
 import { clientPortalDocumentUrl } from '../../clientPortalData'
@@ -34,6 +35,7 @@ export function ConferimentoSignStep({ conferimento, signature, consents, otpSte
   const [checked, setChecked] = useState<Record<string, boolean>>({})
   const [positionId, setPositionId] = useState(POSITIONS[0].id)
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Elaborazione del documento…')
   const [otpRequested, setOtpRequested] = useState(false)
   const [otpVerified, setOtpVerified] = useState(false)
   const [otpCode, setOtpCode] = useState('')

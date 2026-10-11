@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ArrowRightLeft, FilePlus2, FolderPlus, Gavel, Upload } from 'lucide-react'
 import { csrfHeader } from '../api/csrf'
@@ -40,10 +41,12 @@ async function invia(url: string, corpo: Record<string, unknown> | FormData): Pr
 /** Recupero crediti in serie: posizioni per debitore, atti in blocco e scadenze di legge (artt. 633-647, 480-481, 543 c.p.c.). */
 export function RecuperoCreditiPage() {
   const [dati, setDati] = useState<Dati | null>(null)
+  useBusyActivity(!dati, 'Caricamento delle posizioni…')
   const [scelte, setScelte] = useState<Set<string>>(new Set())
   const [filtroStato, setFiltroStato] = useState('')
   const [messaggio, setMessaggio] = useState<{ testo: string; dettagli: string[] } | null>(null)
   const [occupato, setOccupato] = useState(false)
+  useBusyActivity(occupato, 'Lavorazione del recupero crediti…')
   const [creditore, setCreditore] = useState('')
   const [lotto, setLotto] = useState('')
   const [file, setFile] = useState<File | null>(null)

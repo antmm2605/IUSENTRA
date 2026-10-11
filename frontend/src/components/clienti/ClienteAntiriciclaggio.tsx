@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, FileDown, SearchCheck, ShieldCheck } from 'lucide-react'
 import { csrfHeader } from '../../api/csrf'
@@ -55,6 +56,7 @@ export function ClienteAntiriciclaggio({ idCliente }: { idCliente: string }) {
   const [modulo, setModulo] = useState<Modulo>(moduloDa())
   const [messaggio, setMessaggio] = useState('')
   const [occupato, setOccupato] = useState(false)
+  useBusyActivity(occupato, 'Salvataggio dei controlli antiriciclaggio…')
   const base = `/clienti/${encodeURIComponent(idCliente)}/antiriciclaggio`
 
   const carica = useCallback(async () => {

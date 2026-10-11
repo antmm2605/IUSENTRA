@@ -1,4 +1,5 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { beginActivity } from '../../ui/activity'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { AlertTriangle, FileText, Send } from 'lucide-react'
 import { Badge } from '../dashboard'
 import { SourceDocumentModal, type SourceDocument } from '../SourceDocumentModal'
@@ -59,7 +60,15 @@ export function ObblighiNotificaSection({ fascicoloId, active = true, refreshKey
     }
   }, [active, fascicoloId])
 
-  useEffect(() => { void load() }, [load, refreshKey])
+  const initialConsultation = useRef('')
+  useEffect(() => {
+    if (!active || !fascicoloId) return
+    const finish = initialConsultation.current !== fascicoloId
+      ? beginActivity('Consultazione degli obblighi di notifica…') : () => {}
+    initialConsultation.current = fascicoloId
+    void load().finally(finish)
+    return finish
+  }, [load, refreshKey, active, fascicoloId])
 
   if (!obblighi.length && !errore) return null
   return (

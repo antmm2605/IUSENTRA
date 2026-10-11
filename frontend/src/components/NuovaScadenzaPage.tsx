@@ -1,3 +1,5 @@
+import { formatDateIt, formatDateTimeIt } from '../formatting'
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
   AlertTriangle,
@@ -269,36 +271,16 @@ function editDeadlineId(): string {
 }
 
 function formatDateLabel(value: string | undefined | null): string {
-  const raw = String(value || '').slice(0, 10)
-  if (!raw) return '—'
-  try {
-    return new Date(`${raw}T12:00:00`).toLocaleDateString('it-IT', {
-      timeZone: 'Europe/Rome',
-      weekday: 'short',
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    })
-  } catch {
-    return raw
-  }
+  return formatDateIt(value, '—')
 }
 
 function formatDateTimeLabel(value: string | undefined | null): string {
-  const raw = String(value || '')
-  if (!raw) return '—'
-  try {
-    const parsed = new Date(raw)
-    return parsed.toLocaleString('it-IT', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  } catch {
-    return raw
-  }
+  return formatDateTimeIt(value, '—')
+}
+
+function formatTraceLabel(value: string): string {
+  return value.replace(/\b\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?)?\b/g,
+    (date) => date.includes('T') ? formatDateTimeIt(date, 'Data non determinata') : formatDateIt(date, 'Data non determinata'))
 }
 
 function normalisePayload(payload: unknown): ContextPayload {
@@ -396,11 +378,14 @@ export function NuovaScadenzaPage() {
   const [form, setForm] = useState<DeadlineForm>(() => initialForm())
   const [context, setContext] = useState<ContextPayload>({})
   const [contextLoading, setContextLoading] = useState(true)
+  useBusyActivity(contextLoading, 'Caricamento dei dati della scadenza…')
   const [calcLoading, setCalcLoading] = useState(false)
+  useBusyActivity(calcLoading, 'Calcolo del termine…')
   const [calcResult, setCalcResult] = useState<CalculationResult | null>(null)
   const [calcError, setCalcError] = useState('')
   const [showValidation, setShowValidation] = useState(false)
   const [submitState, setSubmitState] = useState<SubmitState>({ saving: false, tone: 'neutral', message: '' })
+  useBusyActivity(submitState.saving, 'Salvataggio della scadenza…')
   const [officeQuery, setOfficeQuery] = useState('')
   const officeInputRef = useRef<HTMLInputElement>(null)
 
@@ -984,7 +969,7 @@ export function NuovaScadenzaPage() {
               <SummaryTile label="Scadenza legale" value={formatDateLabel(calcResult?.legal_due_at || summaryDue)} tone={summaryDue ? 'danger' : 'neutral'} />
               <SummaryTile label="Scadenza operativa" value={formatDateLabel(calcResult?.operational_due_at || '')} note="Anticipo interno" tone="warning" />
               <SummaryTile label="Scadenza grezza" value={formatDateTimeLabel(calcResult?.raw_due_at || '')} tone="neutral" />
-              <SummaryTile label="Modalità ufficio" value={calcResult?.office_mode_on_legal_due_date || selectedLabel(officeModes.map((item) => ({ value: item.value, label: item.label })), form.office_operating_mode)} tone="info" />
+              <SummaryTile label="Modalità ufficio" value={selectedLabel(officeModes.map((item) => ({ value: item.value, label: item.label })), calcResult?.office_mode_on_legal_due_date || form.office_operating_mode)} tone="info" />
             </div>
             <div className="iu-deadline-studio-box">
               <strong>{context.studio?.nome || 'Studio'}</strong>
@@ -1032,7 +1017,7 @@ export function NuovaScadenzaPage() {
           <section className="iu-deadline-side-card">
             <header><span><BookOpen size={17} /> Trace del calcolo</span></header>
             <ol className="iu-deadline-trace">
-              {calcResult?.trace?.length ? calcResult.trace.map((item, index) => <li key={`${item}-${index}`}>{item}</li>) : <li>Seleziona profilo o preset e inserisci l'evento origine per vedere il trace.</li>}
+              {calcResult?.trace?.length ? calcResult.trace.map((item, index) => <li key={`${item}-${index}`}>{formatTraceLabel(item)}</li>) : <li>Seleziona profilo o preset e inserisci l'evento origine per vedere il trace.</li>}
             </ol>
             {calculatedNotes.length ? (
               <div className="iu-deadline-notes">

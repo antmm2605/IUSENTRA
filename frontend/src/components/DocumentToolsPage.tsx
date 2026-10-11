@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import {
   Archive,
   ArrowDown,
@@ -120,13 +121,16 @@ export function DocumentToolsPage() {
   const [scanning, setScanning] = useState(false)
   const [dragActive, setDragActive] = useState(false)
   const [loading, setLoading] = useState(false)
+  useBusyActivity(loading, 'Elaborazione del documento…')
   const [saving, setSaving] = useState(false)
+  useBusyActivity(saving, 'Salvataggio del documento…')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [result, setResult] = useState<GeneratedDocument | null>(null)
   const [resultExpired, setResultExpired] = useState(false)
   const [generatedPreview, setGeneratedPreview] = useState<SourceDocument | null>(null)
   const [previewLoading, setPreviewLoading] = useState('')
+  useBusyActivity(Boolean(previewLoading), 'Apertura dell’anteprima…')
   const previewRequests = useRef<AbortController | null>(null)
   const previewCache = useRef(new Map<string, { href: string; expiresAt: number }>())
   const documentsRef = useRef<SelectedDocument[]>([])

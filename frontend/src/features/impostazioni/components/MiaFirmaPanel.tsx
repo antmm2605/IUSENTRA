@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../../ui/useBusyActivity'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CheckCircle2, CloudCog, KeyRound, Save, ShieldCheck, Usb, Users } from 'lucide-react'
 import catalogoFirma from '@iusentra-data/cataloghi/firma_digitale.json'
@@ -86,9 +87,11 @@ export function MiaFirmaPanel() {
   const [errori, setErrori] = useState<Record<string, string>>({})
   const [messaggio, setMessaggio] = useState('')
   const [salvataggio, setSalvataggio] = useState(false)
+  useBusyActivity(salvataggio, 'Salvataggio del profilo firma…')
   const [password, setPassword] = useState('')
   const [prova, setProva] = useState<Esito | null>(null)
   const [provaInCorso, setProvaInCorso] = useState(false)
+  useBusyActivity(provaInCorso, 'Verifica del profilo firma…')
 
   const applica = useCallback((dati: Profilo) => {
     setProfilo(dati)

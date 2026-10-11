@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft,
@@ -56,7 +57,9 @@ export function ClientiCollaboratoriPage() {
   const clientId = clientIdFromLocation()
   const [data, setData] = useState<ClientCollaboratorsData | null>(null)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento dei collaboratori…')
   const [submitting, setSubmitting] = useState(false)
+  useBusyActivity(submitting, 'Salvataggio del collaboratore…')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [selectedUser, setSelectedUser] = useState('')

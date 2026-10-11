@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useState } from 'react'
 import { ArrowLeft, Pencil, Plus, Trash2 } from 'lucide-react'
 import {
@@ -65,6 +66,7 @@ function Impostazioni() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Salvataggio dei contenuti…')
 
   useEffect(() => {
     let active = true
@@ -116,6 +118,7 @@ function Modulo({ data, route }: { data: ElencoSito; route: Extract<SitoContenut
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Salvataggio dei contenuti…')
   const back = `/sito-studio/${route.collection}`
 
   if (route.mode === 'modifica' && !current) return <EmptyState title="Elemento non trovato" message="Potrebbe essere stato eliminato." action={<ButtonLink href={back} tone="neutral">Torna all'elenco</ButtonLink>} />
@@ -160,6 +163,7 @@ function NuovoArticolo() {
   const [author, setAuthor] = useState('')
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Salvataggio dei contenuti…')
   async function create() {
     setBusy(true)
     const result = await creaBozzaArticolo(title, author)

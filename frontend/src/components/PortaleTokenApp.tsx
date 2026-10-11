@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Briefcase, CloudUpload, FolderOpen, House, Moon, ShieldCheck, Sun, User, Wallet } from 'lucide-react'
 import { messaggiDaAttributo, type MessaggioPagina } from '../pubblicoTokenApi'
@@ -101,6 +102,7 @@ export default function PortaleTokenApp() {
   const [messaggi, setMessaggi] = useState<MessaggioPagina[]>(radice.messaggi)
   const [errore, setErrore] = useState('')
   const [occupato, setOccupato] = useState(false)
+  useBusyActivity(occupato, 'Aggiornamento del portale…')
   const [tema, setTema] = useState<'light' | 'dark'>(temaSalvato)
   const [ultimaIntestazione, setUltimaIntestazione] = useState<Intestazione | null>(null)
   const ancora = useRef('')

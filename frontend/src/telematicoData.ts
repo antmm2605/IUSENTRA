@@ -1,3 +1,4 @@
+import type { ApiRequestOptions } from './api/types'
 import { ensureJson } from './lib/apiClient'
 import type { Tone } from './data'
 import { sanitizeDisplayText } from './displayText'
@@ -583,16 +584,16 @@ function normalisePayload(payload: unknown): TelematicoPageData {
   }
 }
 
-export async function getTelematicoPage(): Promise<TelematicoPageData> {
-  const payload = await ensureJson<unknown>('/api/v1/ui/telematico')
+export async function getTelematicoPage(options: ApiRequestOptions = {}): Promise<TelematicoPageData> {
+  const payload = await ensureJson<unknown>('/api/v1/ui/telematico', options)
   if (!isRecord(payload)) throw new Error('Risposta dei servizi telematici non disponibile.')
   return normalisePayload(payload)
 }
 
 export type TelematicoCaseCatalog = { items: TelematicoCase[]; total: number; page: number; pageSize: number; pages: number }
-export async function getTelematicoCases(portal: string, query: string, page: number, signal?: AbortSignal, pageSize = 25, presidi = false): Promise<TelematicoCaseCatalog> {
+export async function getTelematicoCases(portal: string, query: string, page: number, signal?: AbortSignal, pageSize = 25, presidi = false, options: Pick<ApiRequestOptions, 'activity'> = {}): Promise<TelematicoCaseCatalog> {
   const params = new URLSearchParams({portale: portal, query, pagina: String(page), per_pagina: String(pageSize), ambito: presidi ? 'presidi' : ''})
-  const result = await ensureJson<Record<string,unknown>>(`/api/v1/ui/telematico/pratiche?${params}`, {signal})
+  const result = await ensureJson<Record<string,unknown>>(`/api/v1/ui/telematico/pratiche?${params}`, {...options, signal})
   if (!Array.isArray(result.items) || typeof result.total !== 'number') throw new Error('Elenco delle pratiche non disponibile.')
   return {items: result.items.map((item, index) => ({...normaliseCase(item, index), controlCategory: isRecord(item) ? display(item.controlCategory) : ''})), total: result.total, page: Number(result.page), pageSize: Number(result.pageSize), pages: Number(result.pages)}
 }

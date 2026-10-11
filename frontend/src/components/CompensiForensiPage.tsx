@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useState } from 'react'
 import { Banknote, Calculator, ExternalLink, Maximize2, Minimize2, RefreshCw, ShieldCheck } from 'lucide-react'
 import { Badge } from '../ui/Badge'
@@ -139,6 +140,7 @@ export function CompensiForensiPage() {
   const [loading, setLoading] = useState(true)
   const [calculating, setCalculating] = useState(false)
   const [saving, setSaving] = useState(false)
+  useBusyActivity(saving, 'Salvataggio dei compensi…')
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
   const [result, setResult] = useState<CompensiForensiCalculationResult | null>(null)

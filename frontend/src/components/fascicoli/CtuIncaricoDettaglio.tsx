@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useEffect, useRef, useState } from 'react'
 import { Calculator, ClipboardList, FilePlus2, Plus, Save, Trash2 } from 'lucide-react'
 import { loadCtuTable, type CtuTableEntry } from '../../ctuTableData'
@@ -39,6 +40,7 @@ export default function CtuIncaricoDettaglio({ incarico, fascicoloId, writeProto
   const command = useCtuCommand(writeProtocol, fascicoloId, incarico.id)
   const [messaggio, setMessaggio] = useState('')
   const [occupato, setOccupato] = useState(false)
+  useBusyActivity(occupato, 'Aggiornamento dell’incarico CTU…')
   const writeInFlight = useRef(false)
   const [date, setDate] = useState({ stato: incarico.stato, dataDepositoRelazione: incarico.dataDepositoRelazione, dataComunicazioneDecreto: incarico.dataComunicazioneDecreto, importoLiquidato: incarico.importoLiquidato })
   const [op, setOp] = useState({ data: '', ora: '', tipo: 'sopralluogo', luogo: '', descrizione: '', ore: '', minuti: '', presenza_giudice: false })
@@ -56,6 +58,7 @@ export default function CtuIncaricoDettaglio({ incarico, fascicoloId, writeProto
   })
   const [tabella, setTabella] = useState<CtuTableEntry[]>([])
   const [tabellaLoading, setTabellaLoading] = useState(true)
+  useBusyActivity(tabellaLoading, 'Caricamento della tabella CTU…')
   const [tabellaError, setTabellaError] = useState('')
   const [tabellaAttempt, setTabellaAttempt] = useState(0)
   const [calcolo, setCalcolo] = useState<Calcolo | null>(null)

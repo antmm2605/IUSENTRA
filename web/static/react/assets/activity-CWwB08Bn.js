@@ -1,0 +1,1 @@
+var e=new Set,t=[],n=0;function r(){return t}function i(t){return e.add(t),()=>{e.delete(t)}}function a(){for(let t of e)t()}function o(e){let r=++n;t=[...t,{id:r,label:e,startedAt:Date.now()}],a();let i=!1;return()=>{i||(i=!0,t=t.filter(e=>e.id!==r),a())}}async function s(e,t){let n=e===!1?()=>{}:o(e);try{return await t()}finally{n()}}export{s as i,r as n,i as r,o as t};

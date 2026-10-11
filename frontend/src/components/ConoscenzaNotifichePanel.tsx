@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useState } from 'react'
 import { SourceDocumentModal, type SourceDocument } from './SourceDocumentModal'
 
@@ -10,6 +11,7 @@ export default function ConoscenzaNotifichePanel() {
   const [data, setData] = useState<Catalogo | null>(null)
   const [errore, setErrore] = useState('')
   const [loading, setLoading] = useState(false)
+  useBusyActivity(loading, 'Caricamento dei dati…')
   const [source, setSource] = useState<SourceDocument | null>(null)
   useEffect(() => {
     const controller = new AbortController()

@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useState, type FormEvent, type MouseEvent } from 'react'
 import {
   Archive,
@@ -641,6 +642,7 @@ export function StudioModulePage() {
   const [selectedCardTitle, setSelectedCardTitle] = useState(initialCard?.title || '')
   const [runtime, setRuntime] = useState<StudioModuleRuntime>(emptyStudioModuleRuntime)
   const [runtimeLoading, setRuntimeLoading] = useState(true)
+  useBusyActivity(runtimeLoading, 'Caricamento della funzione dello studio…')
   const [toolResults, setToolResults] = useState<Record<string, ToolResultState>>({})
   const selectedCard = module.cards.find((card) => card.title === selectedCardTitle) || initialCard || module.cards[0]
   const selectedOperation = operationForCurrentRoute(runtime, selectedCard)

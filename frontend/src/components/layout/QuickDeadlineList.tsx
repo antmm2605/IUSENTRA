@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { publishMutationRefresh } from '../../operationalRefresh'
 import { useOperationalRefresh } from '../../hooks/useOperationalRefresh'
 import { useEffect, useMemo, useState } from 'react'
@@ -21,6 +22,8 @@ export function QuickDeadlineList({ period, onClose }: { period: QuickDeadlinePe
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [error, setError] = useState(''), [message, setMessage] = useState(''), [busy, setBusy] = useState(false)
   const [page, setPage] = useState(1)
+  useBusyActivity(busy, 'Aggiornamento delle scadenze selezionate…')
+  useBusyActivity(data === null && !error, 'Caricamento delle scadenze…')
   const load = () => request('/api/v1/ui/scadenze-rapide').then(value => { setData(value); setError('') })
   useOperationalRefresh(['scadenze', 'agenda'], () => load().catch(reason => { setError(reason instanceof Error ? reason.message : 'Scadenze non disponibili.'); return false }))
   useEffect(() => { let live = true; request('/api/v1/ui/scadenze-rapide').then(v => { if (live) setData(v) }).catch(e => { if (live) setError(e.message) }); return () => { live = false } }, [])

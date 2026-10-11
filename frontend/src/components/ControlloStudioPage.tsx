@@ -1,3 +1,5 @@
+import { beginActivity } from '../ui/activity'
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { publishMutationRefresh } from '../operationalRefresh'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -130,13 +132,16 @@ export default function ControlloStudioPage() {
   const [avviso, setAvviso] = useState('')
   const [erroreAzione, setErroreAzione] = useState(false)
   const [completamento, setCompletamento] = useState(false)
+  useBusyActivity(completamento, 'Aggiornamento delle attività selezionate…')
   const [confermaCollettiva, setConfermaCollettiva] = useState<{ ids: string[]; ricerca: string } | null>(null)
   const confermaPulsante = useRef<HTMLButtonElement>(null)
   const [aperte, setAperte] = useState<Set<string>>(new Set(FASCE_APERTE))
   const [caricamento, setCaricamento] = useState(false)
   const [erroreCaricamento, setErroreCaricamento] = useState('')
 
-  const carica = useCallback(async () => {
+  const carica = useCallback(async (silent = false) => {
+    const finish = silent ? () => {} : beginActivity('Aggiornamento del controllo studio…')
+    try {
     setCaricamento(true)
     const risposta = await fetch('/api/v1/ui/controllo-studio', { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(20000), headers: { Accept: 'application/json' } }).catch(() => null)
     const valori = risposta ? await risposta.json().catch(() => null) as Dati | null : null
@@ -149,8 +154,9 @@ export default function ControlloStudioPage() {
     }
     setCaricamento(false)
     return confermato
+    } finally { finish(); setCaricamento(false) }
   }, [])
-  useOperationalRefresh(['agenda', 'scadenze', 'comunicazioni', 'fascicoli'], carica)
+  useOperationalRefresh(['agenda', 'scadenze', 'comunicazioni', 'fascicoli'], () => carica(true))
   useEffect(() => { void carica() }, [carica])
   useEffect(() => { setConfermaCollettiva(null) }, [area, periodo, ricerca, filtri])
   useEffect(() => {

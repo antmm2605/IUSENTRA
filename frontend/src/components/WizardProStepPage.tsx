@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowRight, CalendarDays, Check, FolderOpen, Gavel, MapPin, Printer, Video } from 'lucide-react'
 import { FloatingLex } from './FloatingLex'
@@ -21,6 +22,7 @@ export function WizardProStepPage({ sessionId, initialStep = 1, embedded = false
   const [passo, setPasso] = useState(passoIniziale)
   const [avviso, setAvviso] = useState<{ testo: string; ok: boolean } | null>(null)
   const [occupato, setOccupato] = useState(false)
+  useBusyActivity(occupato, 'Salvataggio della preparazione udienza…')
   const [pending, setPending] = useState<PreparationCommand | null>(null)
   const [storageError, setStorageError] = useState('')
   const [conflicts, setConflicts] = useState<string[]>([])

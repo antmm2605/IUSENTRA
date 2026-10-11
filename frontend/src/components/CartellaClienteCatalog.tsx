@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search } from 'lucide-react'
 import './CartellaClientePage.css'
@@ -16,6 +17,7 @@ export default function CartellaClienteCatalog({ clientId, clientName, area, onC
   const contentRef = useRef<HTMLElement>(null)
   const [data, setData] = useState<CartellaClienteData | null>(null)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading && data === null, 'Caricamento della cartella cliente…')
   const [error, setError] = useState('')
   const [revision, setRevision] = useState(0)
   const [query, setQuery] = useState('')

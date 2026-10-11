@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, FileSearch, FileText, FolderOpen, Laptop, Square, X } from 'lucide-react'
 import { Button } from '../../ui/Button'
@@ -52,6 +53,7 @@ export default function OcrDocumentoTool() {
   const [figure, setFigure] = useState<OcrFigure[]>([])
   const [avanzamento, setAvanzamento] = useState('')
   const [occupato, setOccupato] = useState('')
+  useBusyActivity(Boolean(occupato), 'Elaborazione OCR locale…')
   const [riconoscendo, setRiconoscendo] = useState(false)
   const [errore, setErrore] = useState('')
   const [avviso, setAvviso] = useState('')

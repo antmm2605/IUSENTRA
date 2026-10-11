@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { TelematicoCardsPanel, type TelematicoCardScope } from './TelematicoCardsPanel'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
@@ -361,6 +362,8 @@ export function TelematicoPage() {
   const [activeChannel, setActiveChannel] = useState<{ id:TelematicoChannelId; actionIndex:number }>(() => focusedChannelFromLocation())
   const initialFocusApplied = useRef(false)
   const [loaded, setLoaded] = useState(false)
+  const [foregroundLoading, setForegroundLoading] = useState(true)
+  useBusyActivity(foregroundLoading, 'Caricamento dei servizi telematici…')
   const [error, setError] = useState('')
   const [cardScope, setCardScope] = useState<TelematicoCardScope | null>(null)
   const [revision, setRevision] = useState(0)
@@ -368,13 +371,14 @@ export function TelematicoPage() {
   const mounted = useRef(false)
   const flight = useRef<Promise<void> | null>(null)
 
-  const load = () => {
+  const load = (silent = false) => {
     if (flight.current) return flight.current
+    setForegroundLoading(!silent)
     setLoading(true)
-    const operation = Promise.all([getTelematicoPage(), getTelematicoCases('', '', 1, undefined, 1, true)])
+    const operation = Promise.all([getTelematicoPage({ activity: silent ? false : 'Caricamento dei servizi telematici…' }), getTelematicoCases('', '', 1, undefined, 1, true, { activity: silent ? false : 'Caricamento dei presìdi…' })])
       .then(([payload, presidi]) => { if (mounted.current) { setData(payload); setPresidiCount(presidi.total); setLoaded(true); setError(''); setRevision(value => value + 1) } })
       .catch(() => { if (mounted.current) setError('I servizi telematici non sono stati aggiornati. Riprova senza perdere il contesto.') })
-      .finally(() => { if (mounted.current) setLoading(false); flight.current = null })
+      .finally(() => { if (mounted.current) { setLoading(false); setForegroundLoading(false) }; flight.current = null })
     flight.current = operation
     return operation
   }
@@ -384,7 +388,7 @@ export function TelematicoPage() {
     void load()
     return () => { mounted.current = false }
   }, [])
-  useOperationalRefresh(['fascicoli', 'agenda', 'scadenze', 'comunicazioni'], load)
+  useOperationalRefresh(['fascicoli', 'agenda', 'scadenze', 'comunicazioni'], () => load(true))
 
   useEffect(() => {
     const hasFocusTarget = window.location.search.includes('focus=') || Boolean(window.location.hash)
@@ -453,7 +457,7 @@ export function TelematicoPage() {
         <div className="iu-tel-hero__actions">
           <Button href={data.actions.checklistHref}><ClipboardCheck size={16}/> Checklist deposito</Button>
           <Button href={data.actions.firmaDigitaleHref}><FileCheck2 size={16}/> Firma digitale</Button>
-          <button type="button" onClick={load}><RefreshCw size={16}/> Aggiorna</button>
+          <button type="button" onClick={() => { void load() }}><RefreshCw size={16}/> Aggiorna</button>
         </div>
       </section>
 

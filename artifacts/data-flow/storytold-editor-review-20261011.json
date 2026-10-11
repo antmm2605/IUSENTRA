@@ -1,0 +1,106 @@
+{
+  "scope": "Valutazione autorizzata da utente dei repository Storytold per migliorare gli editor esistenti",
+  "outcome": "Utile per riuso puntuale; nessuna sostituzione globale, installazione o promessa di fedeltà automatica",
+  "evidence": [
+    "README e Cargo.toml dei principali progetti",
+    "Albero sorgenti wordcraft/pdfcraft/photocraft/craft-libs/designcraft/craft-fonts",
+    "wordcraft crates/proof/src/lib.rs: Dictionary::en_us e regole inglesi",
+    "photocraft crates/algo/src/perspective.rs: geometria di prospettiva",
+    "craft-libs crates/ui/README.md: docking/toolbar e confini egui",
+    "pdfcraft ROADMAP.md: limiti alpha espliciti"
+  ],
+  "privacy": "Sole fonti GitHub pubbliche consultate; nessun documento o testo dello studio inviato a terzi",
+  "license_detail_verified": {
+    "source": "https://github.com/storytold/wordcraft/blob/1d4f741f23773f47a27a5a017ba47e59629caee5/NOTICE",
+    "code": "MIT oppure Apache-2.0, conservando gli avvisi pertinenti al codice realmente riutilizzato",
+    "assets": "Font elencati separatamente sotto OFL-1.1; ogni famiglia richiede la propria licenza",
+    "excluded": "Marchi, loghi e wordmark ArtCraft non sono coperti dalla licenza del codice",
+    "acceptance": "Nessun componente esterno installato o accettato in IUSENTRA"
+  },
+  "integration_priority": [
+    {
+      "priority": 1,
+      "subject": "Comandi tabella e pannelli compatti",
+      "existing": ["frontend/src/editorTableGrid.ts", "frontend/src/components/DocumentEditorPage.tsx", "frontend/src/components/ManagedWindowState.tsx"],
+      "method": "Confrontare selezione, unione/divisione e docking con la procedura nativa. Adattare soltanto il miglioramento dimostrato, mantenendo cronologia, campi collegati e persistenza.",
+      "required_proof": "Browser reale 8080: modifica, annulla/ripristina, salvataggio, riapertura, pannelli e scroll desktop/mobile. Confronto del documento finale renderizzato."
+    },
+    {
+      "priority": 2,
+      "subject": "Ritaglio, maschere e geometria immagine",
+      "existing": ["pct/document_intelligence", "frontend/src/components/documentCapture"],
+      "method": "Confrontare algoritmi PhotoCraft con la diagnosi e il motore condiviso già presenti; conservare trasformazioni solo se producono un miglioramento misurato. Nessun secondo OCR.",
+      "required_proof": "Comando normale del lettore, fonte originale e riquadri, dati realmente applicati e persistiti, tentativi finiti e regressioni sui casi precedenti."
+    },
+    {
+      "priority": 3,
+      "subject": "Impaginazione OOXML e confronto PDF",
+      "existing": ["frontend/src/components/templateEditor", "frontend/src/components/ViewerDocumentEditor.tsx"],
+      "method": "Valutare il singolo componente sul confronto originale/risultato, senza assumere fedeltà dal README o introdurre una conversione parallela non governata.",
+      "required_proof": "Tutte le pagine: testo, font, stili, tabelle, immagini, margini, intestazioni, salvataggio e riapertura. Firma/deposito/PEC congelati preservati."
+    }
+  ],
+  "next_step": "Confrontare il singolo componente scelto con procedura esistente e casi reali controllati, mantenendo tenant/SQL/audit e flussi congelati",
+  "repositories": [
+    {
+      "repository": "https://github.com/storytold/wordcraft",
+      "revision": "1d4f741f23773f47a27a5a017ba47e59629caee5",
+      "candidate_use": "Editor di testo: modello documento, impaginazione, tabelle e OOXML",
+      "limits": "Alpha; fedeltà al formato da provare. Il correttore is_correct/suggest usa Dictionary::en_us e regole inglesi, non il vocabolario giuridico italiano. Non sostituire automaticamente il motore attuale.",
+      "github_license_label": "Apache-2.0",
+      "license_verification": "Principali README/Cargo dual MIT OR Apache-2.0; verificare NOTICE/ATTRIBUTION e singoli asset prima del riuso",
+      "code_installed": false,
+      "real_acceptance": false
+    },
+    {
+      "repository": "https://github.com/storytold/pdfcraft",
+      "revision": "bbbe60015c571ebfc39708ee07777b89e267122a",
+      "candidate_use": "Lettore/editor PDF: organizzazione pagine, annotazioni, confronto",
+      "limits": "Alpha; roadmap dichiara limiti a Office/PDF, token firme, standard e stampa Windows. Escludere il flusso congelato di firma/deposito/PEC.",
+      "github_license_label": "Apache-2.0",
+      "license_verification": "Principali README/Cargo dual MIT OR Apache-2.0; verificare NOTICE/ATTRIBUTION e singoli asset prima del riuso",
+      "code_installed": false,
+      "real_acceptance": false
+    },
+    {
+      "repository": "https://github.com/storytold/photocraft",
+      "revision": "c732ecd5b07b6bf24e88be1fe203bb921c891141",
+      "candidate_use": "Trattamenti immagine: prospettiva, maschere, contrasto e ritaglio",
+      "limits": "Early alpha; estrarre solo algoritmi pertinenti da confrontare con il motore OCR condiviso, non introdurre un secondo OCR.",
+      "github_license_label": "Apache-2.0",
+      "license_verification": "Principali README/Cargo dual MIT OR Apache-2.0; verificare NOTICE/ATTRIBUTION e singoli asset prima del riuso",
+      "code_installed": false,
+      "real_acceptance": false
+    },
+    {
+      "repository": "https://github.com/storytold/craft-libs",
+      "revision": "af2b0918d2c5e1ec984a1e1e142542a744596d58",
+      "candidate_use": "Layout pannelli, docking transazionale e overflow toolbar",
+      "limits": "Rust egui, non componente React direttamente installabile. Confrontare con ManagedWindowState nativo prima di proporre adattamenti.",
+      "github_license_label": "Apache-2.0",
+      "license_verification": "Principali README/Cargo dual MIT OR Apache-2.0; verificare NOTICE/ATTRIBUTION e singoli asset prima del riuso",
+      "code_installed": false,
+      "real_acceptance": false
+    },
+    {
+      "repository": "https://github.com/storytold/designcraft",
+      "revision": "16a7365701f9ce8f93ca77a27a8dc2fffb807869",
+      "candidate_use": "Impaginazione complessa, elementi grafici e stampa",
+      "limits": "Solo inventario architettura acquisito, nessun test materiale o valutazione di fedeltà.",
+      "github_license_label": "Apache-2.0",
+      "license_verification": "Principali README/Cargo dual MIT OR Apache-2.0; verificare NOTICE/ATTRIBUTION e singoli asset prima del riuso",
+      "code_installed": false,
+      "real_acceptance": false
+    },
+    {
+      "repository": "https://github.com/storytold/craft-fonts",
+      "revision": "8dcdacd5153e64560d109541a47d806f26f048c0",
+      "candidate_use": "Catalogo font e licenze degli asset",
+      "limits": "Valutare licenza del singolo font e integrazione con libreria font già presente; inventario soltanto.",
+      "github_license_label": "Apache-2.0",
+      "license_verification": "Principali README/Cargo dual MIT OR Apache-2.0; verificare NOTICE/ATTRIBUTION e singoli asset prima del riuso",
+      "code_installed": false,
+      "real_acceptance": false
+    }
+  ]
+}

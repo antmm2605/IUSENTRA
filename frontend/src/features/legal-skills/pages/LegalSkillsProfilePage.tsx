@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../../ui/useBusyActivity'
 import { useEffect, useState } from 'react'
 import { Save, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -13,6 +14,7 @@ function splitList(value: string) {
 export function LegalSkillsProfilePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  useBusyActivity(saving, 'Salvataggio del profilo…')
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
   const [firmName, setFirmName] = useState('')

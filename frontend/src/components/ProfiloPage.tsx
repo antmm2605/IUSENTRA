@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useState } from 'react'
 import { KeyRound, LockKeyhole, Mail, RefreshCw, ShieldCheck, UserRound } from 'lucide-react'
 import { Badge, Panel } from './dashboard'
@@ -54,6 +55,7 @@ function roleLabel(value: string): string {
 export function ProfiloPage() {
   const [data, setData] = useState<ProfilePayload>(emptyProfile)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento dei dati…')
   const [error, setError] = useState('')
 
   useEffect(() => {

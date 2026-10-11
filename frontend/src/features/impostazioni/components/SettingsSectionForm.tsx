@@ -1,3 +1,5 @@
+import { beginActivity } from '../../../ui/activity'
+import { useBusyActivity } from '../../../ui/useBusyActivity'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Eye, EyeOff, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -62,6 +64,7 @@ export function SettingsSectionForm({
   onSave: (section: SettingsSection, values: Record<string, unknown>, files: Record<string, File | null>) => Promise<boolean>
   children?: SettingsSectionChildren
 }) {
+  useBusyActivity(saving, 'Salvataggio delle impostazioni…')
   const [values, setValues] = useState<Record<string, unknown>>(initialValues)
   const [files, setFiles] = useState<Record<string, File | null>>({})
   const [visibleSecrets, setVisibleSecrets] = useState<Record<string, boolean>>({})
@@ -87,6 +90,7 @@ export function SettingsSectionForm({
   async function completeStudioLocation(cityValue: string) {
     const query = cityValue.trim()
     if (section !== 'studio' || query.length < 2) return
+    const finish = beginActivity('Verifica del comune dello studio…')
     try {
       const response = await fetch(`/api/v1/ui/territorio/comuni?q=${encodeURIComponent(query)}&limit=8`, {
         credentials: 'same-origin',
@@ -110,7 +114,7 @@ export function SettingsSectionForm({
       }))
     } catch {
       // Il salvataggio backend completa comunque il CAP dalla banca dati territoriale.
-    }
+    } finally { finish() }
   }
 
   function renderPasswordField(field: SettingsField, id: string, label: ReactNode) {

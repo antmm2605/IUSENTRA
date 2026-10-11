@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useEffect, useRef, useState } from 'react'
 import { CheckCircle2, Download, FileArchive, TriangleAlert } from 'lucide-react'
 import './ConservazionePanel.css'
@@ -31,6 +32,7 @@ export default function ConservazionePanel({ fascicoloId }:{ fascicoloId: string
   const [riservato, setRiservato] = useState(true)
   const [messaggio, setMessaggio] = useState('')
   const [occupato, setOccupato] = useState(false)
+  useBusyActivity(occupato, 'Lavorazione della conservazione documentale…')
   const [esito, setEsito] = useState<{ id: string; stato: string; conservatore: string; data: string; idRapporto: string } | null>(null)
   const base = `/fascicoli/${encodeURIComponent(fascicoloId)}/conservazione`
 

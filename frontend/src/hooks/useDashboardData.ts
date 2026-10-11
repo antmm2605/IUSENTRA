@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { DashboardData, DashboardStatus, emptyDashboard, getDashboard, syncDashboardMailboxes } from '../data'
 
 /**
@@ -32,6 +33,8 @@ export function useDashboardData(enabled: boolean): DashboardState {
   const [loading, setLoading] = useState(enabled)
   const [revalidating, setRevalidating] = useState(false)
   const [mailSyncing, setMailSyncing] = useState(false)
+  useBusyActivity(loading, 'Caricamento della panoramica…')
+  useBusyActivity(mailSyncing, 'Sincronizzazione delle caselle…')
   const mountedRef = useRef(true)
   // Progressivo di richiesta: una risposta lenta non deve sovrascrivere un
   // caricamento piu' recente (e sotto StrictMode il primo giro va scartato,

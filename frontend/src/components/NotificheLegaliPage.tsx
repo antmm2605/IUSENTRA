@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
@@ -1751,11 +1752,13 @@ function WorkflowCard({
 export function NotificheLegaliPage() {
   const [data, setData] = useState<NotificheLegaliData>(emptyNotificheLegaliData)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento dei dati…')
   const [tab, setTab] = useState<TabKey>('notifica')
   const [sidePanelOpen, setSidePanelOpen] = useState(true)
   const [noticeFullscreen, setNoticeFullscreen] = useState(false)
   const [result, setResult] = useState<LegalWorkflowResult>(emptyResult)
   const [working, setWorking] = useState(false)
+  useBusyActivity(working, 'Operazione di notifica in corso…')
   const resultPanelRef = useRef<HTMLDivElement | null>(null)
   const scrollResultIntoView = () => window.setTimeout(
     () => resultPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
@@ -1766,6 +1769,7 @@ export function NotificheLegaliPage() {
   const [attestationPreviewOpen, setAttestationPreviewOpen] = useState(false)
   const [signatureMessage, setSignatureMessage] = useState('')
   const [signatureChecking, setSignatureChecking] = useState(false)
+  useBusyActivity(signatureChecking, 'Verifica delle firme…')
   const [signaturePin, setSignaturePin] = useState('')
   const [signaturePlace, setSignaturePlace] = useState('')
   const [signatureDatetimeMode, setSignatureDatetimeMode] = useState('nessuna')
@@ -1782,9 +1786,11 @@ export function NotificheLegaliPage() {
   const [recipientPecVerifications, setRecipientPecVerifications] = useState<Record<string, PecVerificationEvidence>>({})
   const recipientPecVerificationsRef = useRef<Record<string, PecVerificationEvidence>>({})
   const [pecVerificationWorking, setPecVerificationWorking] = useState(false)
+  useBusyActivity(pecVerificationWorking, 'Verifica dell’indirizzo PEC…')
   const [pecVerificationMessage, setPecVerificationMessage] = useState('')
   const [publicRegisterConsultedAt, setPublicRegisterConsultedAt] = useState<Record<string, string>>({})
   const [publicRegisterConfirmationWorking, setPublicRegisterConfirmationWorking] = useState(false)
+  useBusyActivity(publicRegisterConfirmationWorking, 'Verifica del registro pubblico…')
 
   useEffect(() => {
     document.body.classList.toggle('iusentra-ui-fullscreen-open', noticeFullscreen)
@@ -1852,6 +1858,7 @@ export function NotificheLegaliPage() {
   const [selectedPracticeId, setSelectedPracticeId] = useState('')
   const [practiceDetailsById, setPracticeDetailsById] = useState<Record<string, LegalPracticeSuggestion>>({})
   const [practiceSelectionWorking, setPracticeSelectionWorking] = useState(false)
+  useBusyActivity(practiceSelectionWorking, 'Collegamento al fascicolo…')
   const [practiceSelectionMessage, setPracticeSelectionMessage] = useState('')
   const [selectedRecipientId, setSelectedRecipientId] = useState('')
   const [selectedRecipientIds, setSelectedRecipientIds] = useState<string[]>([])
@@ -1861,6 +1868,7 @@ export function NotificheLegaliPage() {
   const [registroPpaaRecipients, setRegistroPpaaRecipients] = useState<LegalRecipientSuggestion[]>([])
   const [manualRecipientSuggestions, setManualRecipientSuggestions] = useState<LegalRecipientSuggestion[]>([])
   const [manualRecipientSaving, setManualRecipientSaving] = useState(false)
+  useBusyActivity(manualRecipientSaving, 'Salvataggio del destinatario…')
   const [manualRecipientDraft, setManualRecipientDraft] = useState({
     nome: '',
     codiceFiscalePiva: '',
@@ -1870,8 +1878,10 @@ export function NotificheLegaliPage() {
     parteRappresentata: '',
   })
   const [regindeSearchLoading, setRegindeSearchLoading] = useState(false)
+  useBusyActivity(regindeSearchLoading, 'Ricerca nel registro dei destinatari…')
   const [regindeSearchMessage, setRegindeSearchMessage] = useState('')
   const [registroPpaaSearchLoading, setRegistroPpaaSearchLoading] = useState(false)
+  useBusyActivity(registroPpaaSearchLoading, 'Ricerca nel registro delle amministrazioni…')
   const [registroPpaaSearchMessage, setRegistroPpaaSearchMessage] = useState('')
   const [selectedDocumentId, setSelectedDocumentId] = useState('')
   const [selectedNotificationDocumentIds, setSelectedNotificationDocumentIds] = useState<string[]>([])
@@ -1885,6 +1895,7 @@ export function NotificheLegaliPage() {
   const [templateCatalogExpanded, setTemplateCatalogExpanded] = useState(false)
   const [templateEditorOpen, setTemplateEditorOpen] = useState(false)
   const [templateSaving, setTemplateSaving] = useState(false)
+  useBusyActivity(templateSaving, 'Salvataggio del modello…')
   const [templateMessage, setTemplateMessage] = useState('')
   const [templateDraft, setTemplateDraft] = useState({
     label: '',
@@ -1895,10 +1906,12 @@ export function NotificheLegaliPage() {
   const templateBodyRef = useRef<HTMLTextAreaElement | null>(null)
   const [relataPreview, setRelataPreview] = useState<LegalRelataPreviewResult>(emptyRelataPreview)
   const [relataPreviewWorking, setRelataPreviewWorking] = useState(false)
+  useBusyActivity(relataPreviewWorking, 'Preparazione dell’anteprima della relata…')
   const [relataDraftText, setRelataDraftText] = useState('')
   const [savedRelataDraftText, setSavedRelataDraftText] = useState('')
   const [relataDraftDirty, setRelataDraftDirty] = useState(false)
   const [relataDraftSaving, setRelataDraftSaving] = useState(false)
+  useBusyActivity(relataDraftSaving, 'Salvataggio della bozza di relata…')
   const [relataDraftMessage, setRelataDraftMessage] = useState('')
   const relataPreviewAbortRef = useRef<AbortController | null>(null)
   const relataPreviewRequestIdRef = useRef(0)
@@ -1911,8 +1924,10 @@ export function NotificheLegaliPage() {
   const [savedAttestationDraftText, setSavedAttestationDraftText] = useState('')
   const [attestationDraftDirty, setAttestationDraftDirty] = useState(false)
   const [attestationDraftSaving, setAttestationDraftSaving] = useState(false)
+  useBusyActivity(attestationDraftSaving, 'Salvataggio della bozza di attestazione…')
   const [attestationDraftMessage, setAttestationDraftMessage] = useState('')
   const [attestationFileSaving, setAttestationFileSaving] = useState(false)
+  useBusyActivity(attestationFileSaving, 'Salvataggio dell’attestazione…')
   const [attestationFileMessage, setAttestationFileMessage] = useState('')
   const [savedAttestationFile, setSavedAttestationFile] = useState<SavedAttestationRecord | null>(null)
   const [hydratedDocumentsByPractice, setHydratedDocumentsByPractice] = useState<Record<string, LegalDocumentSuggestion[]>>({})

@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import './PagoPaAvvisiPanel.css'
 
@@ -13,6 +14,7 @@ export function PagoPaAvvisiPanel({ fascicoloId, refreshKey, onHasAvvisi, onNuov
   const [avvisi, setAvvisi] = useState<Avviso[]>([])
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione in corso…')
   const [recover, setRecover] = useState(false)
   const [numero, setNumero] = useState('')
   const [importo, setImporto] = useState('')

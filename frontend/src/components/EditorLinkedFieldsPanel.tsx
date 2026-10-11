@@ -4,6 +4,7 @@ import { OPERATIONAL_REFRESH_EVENT } from '../operationalRefresh'
 import { csrfToken } from '../formSubmit'
 import { FascicoloSearchSelect, type FascicoloOption } from './FascicoloSearchSelect'
 import './EditorLinkedFieldsPanel.css'
+import { useBusyActivity } from '../ui/useBusyActivity'
 
 export type LinkedEditorField = { id: string; label: string; group: string; value: string; available: boolean; missing_reason?: string; conflict?: boolean }
 export type LinkedEditorContext = { matterId: string; clientId: string; clientLabel: string; matterLabel: string; revision: string; fields: LinkedEditorField[]; notice?: string }
@@ -22,6 +23,8 @@ export function EditorLinkedFieldsPanel({ matterId, options, onMatterChange, onI
   const [recoveryPending, setRecoveryPending] = useState(false)
   const [recoveryError, setRecoveryError] = useState('')
   const [recover, setRecover] = useState(0)
+  useBusyActivity(loading && !context, 'Caricamento dei dati collegati…')
+  useBusyActivity(recoveryPending, 'Recupero dei campi dalle fonti…')
   const revisionRef = useRef('')
   useEffect(() => {
     const refresh = () => setReload(value => value + 1)

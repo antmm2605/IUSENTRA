@@ -1,5 +1,9 @@
 # Migrazione progressiva Flask + React
 
+## Indicatori condivisi di caricamento — 11/10/2026 — 2.437.9
+
+Attese governate dagli stati esistenti e dal trasporto JSON: operazioni concorrenti indipendenti, risposta inclusa, errori/annullamento con rilascio dell'indicatore, polling silenzioso. Accettazione rappresentativa sulla copia reale 8080 per modelli/editor, Agenda, posta, filtri, impostazioni, timer e lettore PDF interno. Il censimento conserva separatamente le verifiche mancanti, la produzione e il candidato: [inventario](../artifacts/data-flow/loading-surface-inventory-20261011.json). L'incarico generale e la verifica completa di ciascuna procedura restano aperti.
+
 ## Controllo Studio: scadute e ricerca — 30/09/2026 — 2.434.2
 
 Filtro «Tutte le scadute» con un clic, ricerca immediata combinata su tutte le voci, periodo, conteggio e azzeramento; paginazione da 50 voci e date italiane complete. API, SQL e permessi invariati, nessuna modifica allo stato degli adempimenti. Prove reali sul server e sulla copia Docker locale 8080, desktop/tablet/telefono. [Rapporto e procedura di rilascio](../artifacts/react-migration/controllo-studio-scadute-20260930.md).

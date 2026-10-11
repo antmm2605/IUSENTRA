@@ -1,3 +1,4 @@
+import { beginActivity } from '../ui/activity'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   BookOpenCheck,
@@ -91,21 +92,22 @@ export function StudioPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState('')
   const refreshFlight = useRef<Promise<void> | null>(null)
-  function refresh(): Promise<void> {
+  function refresh(silent = false): Promise<void> {
     if (refreshFlight.current) return refreshFlight.current
+    const finish = silent ? () => {} : beginActivity('Aggiornamento dello studio…')
     setRefreshing(true)
     const flight = (async () => {
       try {
-        const payload = await getStudioPage()
+        const payload = await getStudioPage({ activity: false })
         if (!payload.ok) throw new Error('Dati non disponibili')
         setData(payload); setError(''); setRefreshError('')
       } catch { setRefreshError('Aggiornamento non riuscito. Il contesto resta conservato: riprova.') }
-      finally { setRefreshing(false); refreshFlight.current = null }
+      finally { finish(); setRefreshing(false); refreshFlight.current = null }
     })()
     refreshFlight.current = flight
     return flight
   }
-  useOperationalRefresh(operationalDomains, refresh)
+  useOperationalRefresh(operationalDomains, () => refresh(true))
   const destinations: Record<string, string> = { clienti: '/clienti', utenti: '/utenti?stato=attivi', backup: '/backup' }
   const healthDestinations: Record<string, string> = { backup: '/backup', sito: '/sito-studio/contatti', utenti: '/profili', registro: '/audit' }
 
@@ -140,14 +142,14 @@ export function StudioPage() {
       subtitle="Regia operativa dello studio con dati reali aggregati, permessi e presidi di sicurezza."
       actions={
         <>
-          <Button type="button" tone="neutral" disabled={loading || refreshing} onClick={refresh}>{refreshing ? 'Aggiornamento…' : 'Aggiorna'}</Button>
+          <Button type="button" tone="neutral" disabled={loading || refreshing} onClick={() => { void refresh() }}>{refreshing ? 'Aggiornamento…' : 'Aggiorna'}</Button>
           <ButtonLink href="/backup" tone="primary">Apri backup</ButtonLink>
           <ButtonLink href="/sito-studio/contatti" tone="primary">Contatti sito</ButtonLink>
         </>
       }
     >
       {refreshing ? <p role="status">Aggiornamento dei dati in corso.</p> : null}
-      {refreshError ? <p role="alert">{refreshError}<Button type="button" tone="neutral" onClick={refresh}>Riprova</Button></p> : null}
+      {refreshError ? <p role="alert">{refreshError}<Button type="button" tone="neutral" onClick={() => { void refresh() }}>Riprova</Button></p> : null}
       {data.warnings.filter(warning => /non_disponibile|assente/.test(warning.code)).map(warning => <p role="alert" key={warning.code}>{warning.message}</p>)}
       {loading ? <LoadingState title="Caricamento studio" message="Lettura degli archivi reali in corso." /> : null}
       {!loading && error ? (

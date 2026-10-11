@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useState, type FormEvent } from 'react'
 import type { VerificaNotifiche } from './VerificaNotifichePanel'
 
@@ -8,6 +9,7 @@ export default function VerificaNotificheForm({ fascicoloId, documentoId, docume
   fascicoloId: string; documentoId: string; documenti: Array<{ id: string; nome: string }>; contesto?: ContestoVerificato; onSaved: (data: VerificaNotifiche) => void; onRead?: (id: string) => void
 }) {
   const [saving, setSaving] = useState(false)
+  useBusyActivity(saving, 'Salvataggio in corso…')
   const [errore, setErrore] = useState('')
   const [saved, setSaved] = useState(false)
   const [fonte, setFonte] = useState(contesto?.fonte_documento_id || documentoId)

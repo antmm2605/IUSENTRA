@@ -1,3 +1,4 @@
+import { beginActivity } from '../../ui/activity'
 import { useRef, useState, type ChangeEvent } from 'react'
 import { AlertTriangle, CheckCircle2, Download, Eye, FilePlus2, FileSignature, Trash2 } from 'lucide-react'
 import { csrfHeader } from '../../api/csrf'
@@ -127,23 +128,25 @@ export function DocumentiPat({ fascicoloId, documenti, onSalva, onPreview, onCam
     const dati = new FormData()
     file.forEach((f) => dati.append('files', f))
     setStato(`Carico ${file.length} file…`)
+    const finish = beginActivity('Caricamento dei documenti del fascicolo…')
     try {
       const messaggio = await inviaModulo(`/fascicoli/${encodeURIComponent(fascicoloId)}/documenti/carica`, dati)
       await onCambiati()
       setStato(messaggio || `${file.length} file aggiunti al fascicolo.`)
     } catch (errore) {
       setStato(errore instanceof Error ? errore.message : 'Caricamento non riuscito.')
-    }
+    } finally { finish() }
   }
 
   const elimina = async (doc: DocumentoPat) => {
+    const finish = beginActivity('Aggiornamento dei documenti del fascicolo…')
     try {
       const messaggio = await inviaModulo(indirizzoDocumento(fascicoloId, doc.id, 'elimina'))
       await onCambiati()
       setStato(messaggio || `«${doc.nome}» spostato nel cestino.`)
     } catch (errore) {
       setStato(errore instanceof Error ? errore.message : 'Eliminazione non riuscita.')
-    }
+    } finally { finish() }
   }
 
   return (

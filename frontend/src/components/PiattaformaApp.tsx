@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useState } from 'react'
 import { ExternalLink, LayoutDashboard, LogOut, Menu, Search, X } from 'lucide-react'
 import { csrfHeader } from '../api/csrf'
@@ -156,6 +157,7 @@ export default function PiattaformaApp() {
   const [menuAperto, setMenuAperto] = useState(false)
   const [uscita, setUscita] = useState(false)
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione in corso…')
   const [esito, setEsito] = useState<EsitoAzione | null>(null)
 
   function ricerca(): string {

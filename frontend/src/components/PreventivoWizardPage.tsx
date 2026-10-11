@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   AlertCircle,
@@ -651,7 +652,9 @@ export function PreventivoWizardPage() {
   const [warnings, setWarnings] = useState<string[]>([])
   const [message, setMessage] = useState('')
   const [busyCalc, setBusyCalc] = useState(false)
+  useBusyActivity(busyCalc, 'Calcolo del preventivo…')
   const [busyCreate, setBusyCreate] = useState(false)
+  useBusyActivity(busyCreate, 'Salvataggio del preventivo…')
   const [cancelArmed, setCancelArmed] = useState(false)
   const [summaryVisible, setSummaryVisible] = useState(true)
   const [fullscreen, setFullscreen] = useState(false)

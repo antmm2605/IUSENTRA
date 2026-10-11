@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode, type RefObject } from 'react'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { mergeRegistryRefresh } from '../features/anagrafiche/mergeRegistryRefresh'
 import { registryCompleteness, type RegistryCompletenessItem } from '../features/anagrafiche/registryCompleteness'
 import {
@@ -568,6 +569,7 @@ function DocumentAutofillPanel({
   onFileChange: (event: ChangeEvent<HTMLInputElement>) => void
 }) {
   const isReading = state.phase === 'reading'
+  useBusyActivity(isReading, 'Lettura del documento d’identità…')
   return (
     <div className={`iu-cln-doc-reader iu-cln-doc-reader--${state.phase}`} role={state.tone === 'danger' ? 'alert' : 'status'}>
       <input
@@ -1420,6 +1422,7 @@ function SubjectForm({ data, onCompleteness }:{data: ClientiNuovoData; onComplet
   const [registryQuery, setRegistryQuery] = useState('')
   const [registryResults, setRegistryResults] = useState<PublicRegistrySubjectResult[]>([])
   const [registryLoading, setRegistryLoading] = useState(false)
+  useBusyActivity(registryLoading, 'Ricerca anagrafica…')
   const [registryMessage, setRegistryMessage] = useState('')
   const [registryError, setRegistryError] = useState('')
   const [registryKind, setRegistryKind] = useState<PublicRegistryKind>('reginde')
@@ -1955,6 +1958,7 @@ export function NuovoClientePage() {
   const [data, setData] = useState<ClientiNuovoData>(emptyClientiNuovoData)
   const [tab, setTab] = useState<Tab>(initialTab)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento dell’anagrafica…')
   const [clientCompleteness, setClientCompleteness] = useState<RegistryCompletenessItem[]>([])
   const [subjectCompleteness, setSubjectCompleteness] = useState<RegistryCompletenessItem[]>([])
   const refreshSequence = useRef(0)

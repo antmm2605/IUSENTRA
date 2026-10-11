@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useState } from 'react'
 import { ChevronDown, ChevronUp, RefreshCw, ShieldCheck } from 'lucide-react'
 import {
@@ -37,16 +38,17 @@ export function ControlloGiornalieroPanel() {
   const [open, setOpen] = useState(false)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
   const [busy, setBusy] = useState('')
+  useBusyActivity(Boolean(busy), 'Verifica delle attività dello studio…')
 
-  async function load() {
-    setData(await getControlloGiornaliero())
+  async function load(silent = false) {
+    setData(await getControlloGiornaliero(silent))
   }
 
   useEffect(() => { void load() }, [])
 
   useEffect(() => {
     if (!data?.running) return
-    const timer = window.setTimeout(() => { void load() }, 5000)
+    const timer = window.setTimeout(() => { void load(true) }, 5000)
     return () => window.clearTimeout(timer)
   }, [data?.running, data?.lastRun?.startedAt])
 

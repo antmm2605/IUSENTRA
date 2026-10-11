@@ -3305,7 +3305,8 @@ def test_visualizza_documento_pdf_mobile_renderizza_pagine_png(tmp_path):
     assert 'data-document-pages' in html
     assert "touch-action:pan-x pan-y" in html
     assert "overflow:auto" in html
-    assert 'src="/static/js/mobile-pdf-viewer.js"' in html
+    assert '<script type="module" src="/static/react/assets/pdfReader-' in html
+    assert 'href="/static/react/assets/activity-' in html
     assert "Ricorso.PDF" in html
     assert page_response.status_code == 200
     assert page_response.mimetype == "image/png"
@@ -3410,7 +3411,10 @@ def test_lettore_mobile_pdf_presidia_zoom_pinch_e_limiti():
     assert "Download avviato dal lettore IUSENTRA" in script
     assert "downloadLink?.addEventListener('click'" in script
     assert 'target="_top" data-document-download' in Path("web/bootstrap/fascicoli_document_helpers.py").read_text(encoding="utf-8")
-    assert "window.parent.postMessage" not in script
+    # Native page tools already notify the same-origin parent; downloads do not.
+    assert "window.parent.postMessage({type:'iusentra.document.openPageTools',page:selectedPage},window.location.origin)" in script
+    download_handler = script.split("downloadLink?.addEventListener('click'", 1)[1].split("pages.addEventListener", 1)[0]
+    assert "postMessage" not in download_handler
     assert "iusentra.document.download" not in script
 
 

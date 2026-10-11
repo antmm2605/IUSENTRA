@@ -1,3 +1,4 @@
+import { beginActivity } from '../../ui/activity'
 import { Bell, CalendarClock, Clock3, FolderClock, Headphones, PanelLeftOpen, Plus, Settings2, TriangleAlert } from 'lucide-react'
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import { TopBarCreateMenu } from './TopBarCreateMenu'
@@ -132,6 +133,7 @@ export function TopBar({
     const supportTenant = bootstrap?.tenant
     setSupportOpening(true)
     setSupportError('')
+    const finish = beginActivity('Apertura dell’assistenza remota…')
     try {
       const response = await fetch('/support/studio/sessione', {
         method: 'POST',
@@ -163,7 +165,7 @@ export function TopBar({
     } catch (error) {
       setSupportError(error instanceof Error ? error.message : 'Assistenza non avviata.')
       setSupportOpening(false)
-    }
+    } finally { finish() }
   }
 
   return (

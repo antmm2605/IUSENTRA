@@ -65,7 +65,7 @@ export default function PatFormwebSezione({ fascicoloId, onDocumenti, onPreview 
   }, [])
 
   if (errore) return <div className="iu-pat" role="alert"><p className="iu-pat-errore">{errore}</p><button type="button" onClick={() => void ricarica()}><RefreshCw size={14}/> Riprova</button></div>
-  if (!quadro) return <div className="iu-pat" role="status">Caricamento del deposito amministrativo…</div>
+  if (!quadro) return <div className="iu-pat" role="status" aria-busy="true"><span className="iu-activity-spinner" aria-hidden="true" /> Caricamento del deposito amministrativo…</div>
 
   const p = quadro.procedimento
   const sede = catalogo?.sedi.find((s) => s.codice === p.sede)?.descrizione || 'Sede da indicare'

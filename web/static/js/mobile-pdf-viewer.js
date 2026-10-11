@@ -1,3 +1,6 @@
+import { beginActivity } from '../../../frontend/src/ui/activity'
+import { installNativeActivityStatus } from '../../../frontend/src/ui/nativeActivity'
+
 (() => {
   'use strict'
 
@@ -17,6 +20,34 @@
   const readerControlsLabel = document.querySelector('[data-reader-controls-label]')
   const readerControlsChevron = document.querySelector('[data-reader-controls-chevron]')
   if (!(pages instanceof HTMLElement) || !(zoomValue instanceof HTMLOutputElement)) return
+  installNativeActivityStatus()
+  // Observe existing image loads; do not request or decode additional pages.
+  const visibleImageLoads = new Map()
+  const imageObserver = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue
+      const image = entry.target
+      imageObserver.unobserve(image)
+      if (image.complete) continue
+      const finish = beginActivity('Caricamento della pagina…')
+      const settled = () => {
+        image.removeEventListener('load', settled)
+        image.removeEventListener('error', settled)
+        visibleImageLoads.delete(image)
+        finish()
+      }
+      visibleImageLoads.set(image, settled)
+      image.addEventListener('load', settled, { once: true })
+      image.addEventListener('error', settled, { once: true })
+      if (image.complete) settled()
+    }
+  }, { root: pages })
+  pages.querySelectorAll('img').forEach((image) => imageObserver.observe(image))
+  window.addEventListener('pagehide', (event) => {
+    if (event.persisted) return
+    imageObserver.disconnect()
+    for (const settle of visibleImageLoads.values()) settle()
+  })
 
   const copyButton = document.querySelector('[data-document-copy]')
   const highlightButton = document.querySelector('[data-document-highlight]')
@@ -176,6 +207,7 @@
     const img = surface.querySelector('img')
     if (!note || !img) { runOcr(); return }
     ocrActive += 1
+    const finishOcrActivity = beginActivity('Lettura della pagina…')
     note.textContent = 'Lettura OCR della pagina in corso…'
     const url = new URL(img.src, window.location.href)
     url.searchParams.set('reader_text', '1')
@@ -199,7 +231,7 @@
       note.textContent = payload.message || 'Testo OCR disponibile.'
       fitWords()
     }).catch(() => { note.textContent = 'Lettura OCR della pagina non riuscita. Riapri il documento per riprovare.' })
-      .finally(() => { ocrActive -= 1; runOcr() })
+      .finally(() => { finishOcrActivity(); ocrActive -= 1; runOcr() })
     runOcr()
   }
   const ocrObserver = new IntersectionObserver((entries) => {
@@ -265,6 +297,7 @@
     const previousText = saveRotation.textContent
     saveRotation.textContent = 'Salvo…'
     status('Salvataggio della copia ruotata nel fascicolo…')
+    const finishRotationActivity = beginActivity('Salvataggio della copia ruotata…')
     try {
       const requestUrl = new URL(rotationSaveUrl, window.location.href)
       const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
@@ -294,6 +327,7 @@
       status(error instanceof Error ? (error.message === 'Failed to fetch' ? 'Salvataggio bloccato dal browser. Riapri il documento e riprova.' : error.message) : 'Salvataggio non completato.')
     } finally {
       saveRotation.dataset.busy = 'false'
+      finishRotationActivity()
       saveRotation.textContent = previousText || 'Salva rotazione'
       updateRotationControls()
     }
@@ -324,6 +358,7 @@
     printButton.disabled = true
     printButton.textContent = 'Preparo…'
     setDownloadStatus('Caricamento di tutte le pagine per la stampa…')
+    const finishPrintActivity = beginActivity('Preparazione delle pagine per la stampa…')
     let timeout
     try {
       await Promise.race([
@@ -340,6 +375,7 @@
       setDownloadStatus('Non tutte le pagine sono disponibili. Riprova la stampa dopo il caricamento del documento.')
     } finally {
       window.clearTimeout(timeout)
+      finishPrintActivity()
       printButton.disabled = false
       printButton.textContent = 'Stampa'
     }

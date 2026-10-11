@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CheckCircle2, Download, FileText, FolderSearch2, ShieldCheck } from 'lucide-react'
 import type { FascicoloDetailData, FascicoloDocument } from '../fascicoliData'
@@ -529,6 +530,7 @@ function OfficeDocumentsPstPanel({ data, onDone, onError, openOfficeDocumentsReq
   const [modes, setModes] = useState<Record<string, DocumentMode>>({})
   const [viewSession, setViewSession] = useState<PstSession | null>(null)
   const [busy, setBusy] = useState<'search' | 'import' | 'download' | ''>('')
+  useBusyActivity(Boolean(busy), 'Lavorazione dei documenti degli uffici…')
   const [message, setMessage] = useState('')
   const [downloadProgress, setDownloadProgress] = useState({ completed: 0, total: 0, current: '' })
   const [searchProgress, setSearchProgress] = useState({ completed: 0, total: 4, phase: '', current: '' })

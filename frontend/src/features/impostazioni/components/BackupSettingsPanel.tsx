@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../../ui/useBusyActivity'
 import { useMemo, useState } from 'react'
 import { Archive, ArchiveRestore, CheckCircle2, Download, Play, RefreshCw, ShieldCheck } from 'lucide-react'
 import { createBackup, restoreBackup, verifyBackupIntegrity } from '@/backupData'
@@ -63,6 +64,7 @@ export function BackupSettingsPanel({ data, onReload }: { data: SettingsPayload;
   const [confirmVerify, setConfirmVerify] = useState(false)
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState('')
+  useBusyActivity(Boolean(busy), 'Operazione sul backup in corso…')
   const [restoreFolder, setRestoreFolder] = useState('')
   const [restoreOverwrite, setRestoreOverwrite] = useState(false)
   const [restoreParts, setRestoreParts] = useState<string[]>([])

@@ -278,8 +278,9 @@ def pdf_mobile_preview_html(
     escaped_name = escape(nome_documento)
     escaped_download = escape(scarica_url, quote=True)
     escaped_rotation_save = escape(rotation_save_url, quote=True)
-    script_url = url_for("static", filename="js/mobile-pdf-viewer.js", v="reader-links-pages-20261001")
-    viewer_script = escape(script_url, quote=True)
+    from web.services.native_activity_assets import native_activity_assets
+
+    reader_assets = native_activity_assets("mobile-pdf-viewer.js")
     if page_urls:
         pages = "".join(
             f'<figure class="page" id="reader-page-{index}">'
@@ -374,7 +375,7 @@ def pdf_mobile_preview_html(
         '<span class="reader-download-status" data-download-status aria-live="polite"></span>'
         "</header>"
         f'<section class="pages" data-document-pages tabindex="0" aria-label="Pagine del documento: seleziona il testo da copiare">{pages}</section>'
-        f'</main><script src="{viewer_script}" defer></script></body></html>'
+        f'</main>{reader_assets}</body></html>'
     )
     return html, 200, {"Content-Type": "text/html; charset=utf-8", "X-Iusentra-Pdf-Reader": "1"}
 

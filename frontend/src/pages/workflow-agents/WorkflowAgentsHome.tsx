@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useEffect, useState } from 'react'
 import { Bot, Clock3, PlayCircle, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -12,6 +13,7 @@ export function WorkflowAgentsHome() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyCode, setBusyCode] = useState('')
+  useBusyActivity(Boolean(busyCode), 'Preparazione della lavorazione…')
 
   useEffect(() => {
     const controller = new AbortController()

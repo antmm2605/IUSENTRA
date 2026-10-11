@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type Ref } from 'react'
 import {
   ArrowLeft,
@@ -148,6 +149,7 @@ function CampoPassword({
 
 function ModuloAccesso({ stato, config }: { stato: StatoAccesso; config: ConfigurazionePagina }) {
   const [invio, setInvio] = useState(false)
+  useBusyActivity(invio, 'Verifica dell’accesso…')
   const [esito, setEsito] = useState<EsitoAccesso | null>(null)
   const [versioneBlocco, setVersioneBlocco] = useState(0)
   const [passwordVisibile, setPasswordVisibile] = useState(false)
@@ -253,6 +255,7 @@ function ModuloAccesso({ stato, config }: { stato: StatoAccesso; config: Configu
 
 function ModuloVerifica({ stato }: { stato: StatoAccesso }) {
   const [invio, setInvio] = useState(false)
+  useBusyActivity(invio, 'Verifica dell’accesso…')
   const [esito, setEsito] = useState<EsitoAccesso | null>(null)
   const avvisoRef = useRef<HTMLDivElement>(null)
 
@@ -320,6 +323,7 @@ function ModuloVerifica({ stato }: { stato: StatoAccesso }) {
 
 function ModuloPassword({ stato, avvisoGiaMostrato }: { stato: StatoAccesso; avvisoGiaMostrato: boolean }) {
   const [invio, setInvio] = useState(false)
+  useBusyActivity(invio, 'Verifica dell’accesso…')
   const [errore, setErrore] = useState('')
   const [completato, setCompletato] = useState('')
   const [sessioneScaduta, setSessioneScaduta] = useState(false)

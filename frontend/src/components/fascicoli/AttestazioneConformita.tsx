@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { ChevronLeft, ChevronRight, Eye, PenLine, RefreshCw, Signature, SquareDashed, Trash2 } from 'lucide-react'
 import { csrfHeader } from '../../api/csrf'
@@ -86,6 +87,7 @@ export default function AttestazioneConformitaFinestra({ action, documento, onCh
   const [esitoAnteprima, setEsitoAnteprima] = useState('')
   const [stato, setStato] = useState('')
   const [inCorso, setInCorso] = useState(false)
+  useBusyActivity(inCorso, 'Preparazione dell’attestazione…')
   useEffect(() => { void apri() }, [])
   const chiudi = () => { setAperta(false); onChiudi() }
 

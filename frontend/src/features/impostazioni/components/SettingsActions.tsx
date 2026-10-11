@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../../ui/useBusyActivity'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Bot, CheckCircle2, CircleAlert, ClipboardCheck, Cpu, Database, Download, FileOutput, FileQuestion, HardDrive, Play, RefreshCw, ShieldCheck, Smartphone, Workflow } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -284,9 +285,11 @@ function LexDatasetStatusPanel({ status }: { status: Record<string, unknown> }) 
   const schedule = record(status.schedule)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [reviewLoading, setReviewLoading] = useState(false)
+  useBusyActivity(reviewLoading, 'Caricamento delle revisioni…')
   const [reviewQueue, setReviewQueue] = useState<LexReviewQueue | null>(null)
   const [reviewError, setReviewError] = useState('')
   const [reviewAction, setReviewAction] = useState('')
+  useBusyActivity(Boolean(reviewAction), 'Salvataggio della revisione…')
   const [reviewEdits, setReviewEdits] = useState<Record<string, { question: string; answer: string }>>({})
   if (!cards.length) return null
   const storeReviewQueue = (payload: unknown) => {
@@ -509,13 +512,17 @@ export function SettingsActions({
 }) {
   const [localSigner, setLocalSigner] = useState<LocalSignerCheck | null>(null)
   const [certificateSaving, setCertificateSaving] = useState(false)
+  useBusyActivity(certificateSaving, 'Salvataggio dello stato del certificato…')
   const [certificateMessage, setCertificateMessage] = useState('')
   const [pecLocalResult, setPecLocalResult] = useState<LocalSignerCheck | null>(null)
   const [pecChecking, setPecChecking] = useState(false)
+  useBusyActivity(pecChecking, 'Verifica della connessione PEC locale…')
   const [localAiResult, setLocalAiResult] = useState<LocalAiLocalResult | null>(null)
   const [mobileAiPlan, setMobileAiPlan] = useState<MobileAiInstallPlan | null>(null)
   const [aiChecking, setAiChecking] = useState(false)
+  useBusyActivity(aiChecking, 'Verifica del motore locale…')
   const [aiPreparing, setAiPreparing] = useState(false)
+  useBusyActivity(aiPreparing, 'Preparazione del motore locale…')
   const aiAutoCheckKey = useMemo(
     () => `${data.local_signer.base_url}|${data.local_signer.restart_protocol}|${String(values.ollama_url || values.base_url || '')}`,
     [data.local_signer.base_url, data.local_signer.restart_protocol, values],
@@ -773,7 +780,7 @@ export function SettingsActions({
               <strong>AI locale sul PC</strong>
               <span>
                 IUSENTRA controlla il computer, sceglie i modelli adatti e prepara Ollama se manca.
-                Stato: <IusStatusBadge>{localAiResult?.ok ? 'pronta' : aiStatusLabel(aiStatus)}</IusStatusBadge>
+                Stato: <IusStatusBadge tone={aiChecking ? 'info' : localAiResult ? (localAiResult.ok ? 'success' : 'warning') : 'info'}>{aiChecking ? 'in verifica' : localAiResult ? (localAiResult.ok ? 'pronta' : 'da completare') : aiStatusLabel(aiStatus)}</IusStatusBadge>
               </span>
             </div>
             <div className="iu-settings-actions-panel__buttons">

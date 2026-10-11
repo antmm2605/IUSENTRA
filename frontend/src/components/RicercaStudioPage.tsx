@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import {
   BookOpen,
   BriefcaseBusiness,
@@ -83,7 +84,9 @@ export function RicercaStudioPage({ initialQuery = '' }: RicercaStudioPageProps)
   const [stats, setStats] = useState<StudioSearchStats>(emptyStudioSearchPayload.stats)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  useBusyActivity(loading, 'Ricerca nello studio…')
   const [isIndexing, setIsIndexing] = useState(false)
+  useBusyActivity(isIndexing, 'Aggiornamento dell’indice dello studio…')
   const [copied, setCopied] = useState(false)
   const [reindexNotice, setReindexNotice] = useState('')
   const [recenti, setRecenti] = useState<string[]>(() => ricercheRecenti())

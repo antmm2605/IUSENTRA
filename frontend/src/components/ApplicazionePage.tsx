@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, Calculator, Info } from 'lucide-react'
 import {
@@ -86,6 +87,7 @@ export function ApplicazionePage({ applicazione = '' }: { applicazione?: string 
   const [valori, setValori] = useState<Record<string, string>>({})
   const [esito, setEsito] = useState<EsitoApplicazione | null>(null)
   const [inCorso, setInCorso] = useState(false)
+  useBusyActivity(inCorso, 'Esecuzione della funzione…')
   const abort = useRef<AbortController | null>(null)
 
   useEffect(() => {

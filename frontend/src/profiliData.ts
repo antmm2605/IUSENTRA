@@ -1,3 +1,4 @@
+import type { ApiRequestOptions } from './api/types'
 import { apiJson, apiPostJson } from './lib/apiClient'
 import { sanitizeDisplayText } from './displayText'
 
@@ -369,8 +370,8 @@ export function allProfiloUsers(data: ProfiliPageData): ProfiloRoleUser[] {
   return users.sort((a, b) => (a.label || a.username).localeCompare(b.label || b.username, 'it'))
 }
 
-export async function getProfiliPage(): Promise<ProfiliPageData> {
-  const payload = await apiJson<unknown>('/api/v1/ui/profili', emptyProfiliPage)
+export async function getProfiliPage(options: ApiRequestOptions = {}): Promise<ProfiliPageData> {
+  const payload = await apiJson<unknown>('/api/v1/ui/profili', emptyProfiliPage, options)
   return normalisePage(payload)
 }
 

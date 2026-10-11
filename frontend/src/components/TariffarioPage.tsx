@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import {
   AlertCircle,
@@ -1196,6 +1197,7 @@ export function TariffarioPage() {
   const [result, setResult] = useState<TariffarioResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Calcolo e salvataggio del tariffario…')
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
   const latestRun = useRef(0)

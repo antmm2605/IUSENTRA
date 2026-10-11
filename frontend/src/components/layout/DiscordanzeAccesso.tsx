@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, FileSearch } from 'lucide-react'
 import { OperationalModal } from '../OperationalModal'
@@ -15,7 +16,9 @@ export default function DiscordanzeAccesso({ sessionKey }: { sessionKey: string 
   const [error, setError] = useState('')
   const [source, setSource] = useState<SourceDocument | null>(null)
   const [loadingMore, setLoadingMore] = useState(false)
+  useBusyActivity(loadingMore, 'Caricamento delle verifiche documentali…')
   const [saving, setSaving] = useState(false)
+  useBusyActivity(saving, 'Salvataggio in corso…')
   const seen = useRef('')
   const refresh = useRef<() => void>(() => {})
   const storageKey = `iusentra.discordanze.${sessionKey}`

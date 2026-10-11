@@ -1,3 +1,4 @@
+import type { ApiRequestOptions } from './api/types'
 import { apiJson, apiPostJson } from './lib/apiClient'
 import type { AdminAction, AdminContract, AdminMetric, AdminSection, AdminTone, AdminWarning } from './utentiData'
 
@@ -347,8 +348,8 @@ function normaliseMutation(raw: unknown): PaymentMutationResult {
   }
 }
 
-export async function getIncassiPagamentiPage(): Promise<IncassiPagamentiPageData> {
-  const payload = await apiJson<unknown>(withCurrentSearch('/api/v1/ui/incassi-pagamenti'), emptyIncassiPagamentiPage)
+export async function getIncassiPagamentiPage(options: ApiRequestOptions = {}): Promise<IncassiPagamentiPageData> {
+  const payload = await apiJson<unknown>(withCurrentSearch('/api/v1/ui/incassi-pagamenti'), emptyIncassiPagamentiPage, options)
   if (asRecord(payload).ok !== true) throw new Error('Impossibile aggiornare incassi e pagamenti. Riprova senza ripetere registrazioni già eseguite.')
   return normalisePage(payload)
 }

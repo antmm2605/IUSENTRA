@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useEffect, useRef, useState } from 'react'
 import { Camera, FileUp, IdCard, RefreshCcw, Send, Webcam } from 'lucide-react'
 import { clientPortalPost } from '../../clientPortalData'
@@ -24,7 +25,9 @@ export function IdentityCaptureStep({ identity, consents, onResult, onReload }: 
   const [source, setSource] = useState<'file' | 'camera' | 'webcam'>('file')
   const [pending, setPending] = useState<PendingFile | null>(null)
   const [consentBusy, setConsentBusy] = useState(false)
+  useBusyActivity(consentBusy, 'Salvataggio delle preferenze…')
   const [sending, setSending] = useState(false)
+  useBusyActivity(sending, 'Caricamento del documento…')
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const cameraInputRef = useRef<HTMLInputElement | null>(null)
 

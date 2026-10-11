@@ -22,5 +22,5 @@
     <iframe src="{{ public_url }}" title="Anteprima responsive sito studio"></iframe>
   </div>
 </div>
-<script src="{{ url_for('static', filename='js/studio_site_builder.js') }}?v={{ app_version }}"></script>
+{{ native_activity_assets('studio_site_builder.js') }}
 {% endblock %}

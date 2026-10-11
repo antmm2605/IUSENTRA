@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   AlertTriangle,
@@ -680,6 +681,7 @@ function GiurisprudenzaCreatePage({ editId = '' }: { editId?: string }) {
   const [form, setForm] = useState<GiurisprudenzaCreateDefaults | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  useBusyActivity(saving, 'Salvataggio della scheda di giurisprudenza…')
   const [result, setResult] = useState<GiurisprudenzaCreateResponse | null>(null)
 
   useEffect(() => {

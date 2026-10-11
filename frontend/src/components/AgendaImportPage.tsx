@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { type FormEvent, useState } from 'react'
 import { AlertTriangle, CalendarCheck, CheckCircle2, Download, FileUp, Link2, Loader2, Settings2, UploadCloud } from 'lucide-react'
 import { Button, Panel } from './dashboard'
@@ -9,6 +10,7 @@ export function AgendaImportPage() {
     tone: 'idle',
     message: '',
   })
+  useBusyActivity(status.tone === 'loading', 'Preparazione dell’anteprima calendario…')
   const csrf = csrfToken()
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {

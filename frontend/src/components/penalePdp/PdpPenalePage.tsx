@@ -63,7 +63,7 @@ export default function PdpPenalePage() {
         </nav>
       </section>
       {errore ? <p className="iu-pdp-errore" role="alert">{errore}</p> : null}
-      {!dati && !errore ? <p className="iu-pdp-nota" role="status">Caricamento dei procedimenti penali…</p> : null}
+      {!dati && !errore ? <p className="iu-pdp-nota" role="status" aria-busy="true"><span className="iu-activity-spinner" aria-hidden="true" /> Caricamento dei procedimenti penali…</p> : null}
       {dati ? (
         <>
           <section className="iu-pdp-pagina__tessere" aria-label="Riepilogo">

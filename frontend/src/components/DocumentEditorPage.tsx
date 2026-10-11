@@ -63,6 +63,7 @@ import {
 } from '../documentEditorData'
 import './DocumentEditorPage.css'
 import { GRUPPI_CARATTERI } from './documentCapture/ocrBarraVoci'
+import { useBusyActivity } from '../ui/useBusyActivity'
 
 type EditorRoute = { idFascicolo: string; idDocumento: string } | null
 type EditorStatus = { tone: 'loading' | 'saving' | 'success' | 'warning' | 'danger' | 'neutral'; label: string }
@@ -614,6 +615,17 @@ export function DocumentEditorPage() {
   const [pdfSaving, setPdfSaving] = useState(false)
   const [pdfStatus, setPdfStatus] = useState('')
   const [pdfRevision, setPdfRevision] = useState(Date.now())
+
+  useBusyActivity(payloadLoading || documentLoading, 'Caricamento del documento…')
+  useBusyActivity(status.tone === 'saving', 'Salvataggio del documento…')
+  useBusyActivity(pdfSaving, 'Salvataggio del PDF…')
+  useBusyActivity(pdfBusy, 'Preparazione del PDF…')
+  useBusyActivity(draftCatalogLoading, 'Caricamento del catalogo documenti…')
+  useBusyActivity(draftBusy, 'Apertura del documento…')
+  useBusyActivity(printLoading, 'Preparazione dell’anteprima di stampa…')
+  useBusyActivity(phraseLoading, 'Preparazione della proposta di frase…')
+  useBusyActivity(grammarLoading, 'Controllo linguistico del documento…')
+  useBusyActivity(editorAiLoading, 'Elaborazione dell’assistente documentale…')
 
   const updateStats = useCallback(() => {
     const root = editorRef.current

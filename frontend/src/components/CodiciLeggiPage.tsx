@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useState } from 'react'
 import { BookOpen, Search, ExternalLink, X } from 'lucide-react'
 import { ensureJson } from '../api/client'
@@ -30,7 +31,9 @@ export function CodiciLeggiPage() {
   const [selected, setSelected] = useState<FullArticle | null>(null)
   const [selectedId, setSelectedId] = useState(0)
   const [busy, setBusy] = useState(true)
+  useBusyActivity(busy, 'Ricerca nelle fonti locali…')
   const [readerBusy, setReaderBusy] = useState(false)
+  useBusyActivity(readerBusy, 'Apertura del testo normativo…')
   const [error, setError] = useState('')
   const [readerError, setReaderError] = useState('')
   const [retry, setRetry] = useState(0)

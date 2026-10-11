@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { Check, Maximize, RefreshCcw, Undo2 } from 'lucide-react'
 import { Button } from '../../ui/Button'
@@ -26,6 +27,7 @@ export function CornerAdjust({ image, profile, pageNumber, onConfirm, onCancel }
   const [filter, setFilter] = useState<PageFilter>(image.source === 'scanner' ? 'colore' : 'documento')
   const [preview, setPreview] = useState('')
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Preparazione dell’immagine…')
   const [error, setError] = useState('')
   const [pixelScale, setPixelScale] = useState(1)
   const penal = profile === 'penale-200'

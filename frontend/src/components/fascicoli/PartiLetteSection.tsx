@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, Plus, UsersRound } from 'lucide-react'
 import { Badge } from '../dashboard'
@@ -46,6 +47,7 @@ export function PartiLetteSection({ fascicoloId, active = true, refreshKey = 0 }
   const [errore, setErrore] = useState('')
   const [ruoli, setRuoli] = useState<Record<string, string>>({})
   const [inCorso, setInCorso] = useState('')
+  useBusyActivity(Boolean(inCorso), 'Applicazione della parte letta…')
 
   const load = useCallback(async () => {
     if (!active || !fascicoloId) return

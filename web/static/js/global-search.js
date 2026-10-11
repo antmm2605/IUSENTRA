@@ -1,6 +1,10 @@
+import { beginActivity } from '../../../frontend/src/ui/activity'
+import { installNativeActivityStatus } from '../../../frontend/src/ui/nativeActivity'
+
 (function () {
   const page = document.querySelector('[data-global-search-page]');
   if (!page) return;
+  installNativeActivityStatus()
 
   const input = page.querySelector('[data-global-search-input]');
   const form = page.querySelector('[data-global-search-form]');
@@ -11,6 +15,13 @@
   let activeType = new URLSearchParams(window.location.search).get('type') || 'tutto';
   let selectedIndex = -1;
   let timer = null;
+
+  function showSearchError() {
+    const message = document.createElement('p');
+    message.setAttribute('role', 'alert');
+    message.textContent = 'Ricerca non riuscita. I dati non sono stati modificati: riprova la ricerca.';
+    resultsBox.replaceChildren(message);
+  }
 
   function escapeHtml(value) {
     return String(value || '').replace(/[&<>"']/g, function (char) {
@@ -71,10 +82,12 @@
       return;
     }
     skeleton();
+    const finishSearchActivity = beginActivity('Ricerca nello studio…')
     fetch(url.toString(), {headers: {'Accept': 'application/json'}})
-      .then(function (response) { return response.json(); })
+      .then(function (response) { if (!response.ok) throw new Error('Ricerca non riuscita'); return response.json(); })
       .then(render)
-      .catch(function () { resultsBox.innerHTML = emptyState(query); });
+      .catch(showSearchError)
+      .finally(finishSearchActivity);
   }
 
   function debouncedSearch() {
@@ -140,12 +153,20 @@
     reindexButton.addEventListener('click', function () {
       reindexButton.disabled = true;
       reindexButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Reindicizzo';
+      const finishReindexActivity = beginActivity('Aggiornamento dell’indice di ricerca…')
       fetch('/api/global-search/reindex', {method: 'POST', headers: {'Accept': 'application/json'}})
-        .then(function (response) { return response.json(); })
+        .then(function (response) { if (!response.ok) throw new Error('Aggiornamento non riuscito'); return response.json(); })
         .then(function () { searchNow(); })
+        .catch(function () {
+          const message = document.createElement('p');
+          message.setAttribute('role', 'alert');
+          message.textContent = 'Aggiornamento dell’indice non riuscito. Riprova dal relativo pulsante.';
+          resultsBox.replaceChildren(message);
+        })
         .finally(function () {
           reindexButton.disabled = false;
           reindexButton.innerHTML = '<i class="bi bi-arrow-repeat"></i> Reindicizza';
+          finishReindexActivity()
         });
     });
   }

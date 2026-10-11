@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { beginActivity } from '../../ui/activity'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AlertTriangle, Table2 } from 'lucide-react'
 import { Badge } from '../dashboard'
 import { formatEuroIt } from '../../formatting'
@@ -51,7 +52,15 @@ export function ProspettiTabellaSection({ fascicoloId, active = true, refreshKey
     }
   }, [active, fascicoloId])
 
-  useEffect(() => { void load() }, [load, refreshKey])
+  const initialConsultation = useRef('')
+  useEffect(() => {
+    if (!active || !fascicoloId) return
+    const finish = initialConsultation.current !== fascicoloId
+      ? beginActivity('Caricamento dei prospetti documentali…') : () => {}
+    initialConsultation.current = fascicoloId
+    void load().finally(finish)
+    return finish
+  }, [load, refreshKey, active, fascicoloId])
 
   if (!prospetti.length && !errore) return null
   return (

@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useEffect, useState } from 'react'
 import { KeyRound, Send, ShieldCheck } from 'lucide-react'
 import { csrfHeader } from '../../api/csrf'
@@ -58,6 +59,8 @@ export default function FirmaRemotaPannello({ fascicoloId, documentoId, nomeDocu
   const [messaggio, setMessaggio] = useState('')
   const [errore, setErrore] = useState('')
   const [occupato, setOccupato] = useState(false)
+  useBusyActivity(occupato, 'Operazione di firma remota in corso…')
+  useBusyActivity(stato === null, 'Caricamento dello stato della firma remota…')
 
   useEffect(() => {
     let attivo = true

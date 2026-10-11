@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useState } from 'react'
 import { Copy, Link2, Trash2 } from 'lucide-react'
 import { createFatturazionePaymentLink, deleteFatturazioneDraft } from '../fatturazioneData'
@@ -18,6 +19,7 @@ export function FatturazioneSheetActions({
 }) {
   const [days, setDays] = useState(30)
   const [busy, setBusy] = useState('')
+  useBusyActivity(Boolean(busy), 'Aggiornamento del documento economico…')
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
   const [freshHref, setFreshHref] = useState('')
   const actions = detail.sheetActions

@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useState } from 'react'
 import {
   BellRing,
@@ -55,19 +56,23 @@ function deadlineHref(item: NotiziarioItem): string {
 export function NotiziarioPanel() {
   const [payload, setPayload] = useState(notiziarioEmptyPayload)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento del notiziario…')
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
   const [sourceFilter, setSourceFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [selectedId, setSelectedId] = useState('')
   const [busyId, setBusyId] = useState('')
+  useBusyActivity(Boolean(busyId), 'Aggiornamento della notizia…')
   const [expanded, setExpanded] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
   const [linking, setLinking] = useState(false)
+  useBusyActivity(linking, 'Collegamento della notizia…')
   const [caseId, setCaseId] = useState('')
   const [webSource, setWebSource] = useState<NotiziarioQuickSource | null>(null)
   const [sourceReader, setSourceReader] = useState<NotiziarioSourceReader | null>(null)
   const [sourceLoading, setSourceLoading] = useState(false)
+  useBusyActivity(sourceLoading, 'Apertura della fonte del notiziario…')
 
   const acceptPayload = (next: typeof payload) => {
     setPayload(next)

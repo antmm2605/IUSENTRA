@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, BookOpenCheck, Check, Pencil, RefreshCw, X } from 'lucide-react'
 import { Badge } from '../dashboard'
@@ -32,6 +33,7 @@ const OGGETTI_VISIBILI = 6
 export function LettureFascicoloSection({ fascicoloId, active = true, refreshKey = 0, onAggiornato }: { fascicoloId: string; active?: boolean; refreshKey?: number; onAggiornato?: () => void }) {
   const [letture, setLetture] = useState<LettureFascicolo | null>(null)
   const [loading, setLoading] = useState(false)
+  useBusyActivity(active && loading, 'Caricamento delle letture documentali…')
   const [aggiornamento, setAggiornamento] = useState<EsitoAggiornamentoLetture | null>(null)
   const [error, setError] = useState('')
   const [correzione, setCorrezione] = useState<{ id: string; valore: string } | null>(null)

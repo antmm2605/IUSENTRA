@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { CheckCircle2, FileSearch, ShieldCheck, XCircle } from 'lucide-react'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -20,6 +21,7 @@ const statusLabel: Record<string, string> = {
 export function AgentRunPreview({ run, onRunChange }: { run: AgentRun; onRunChange?: (run: AgentRun) => void }) {
   const pendingStepIds = run.proposals.filter((proposal) => proposal.status === 'pending').map((proposal) => proposal.step_id)
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Aggiornamento della lavorazione…')
   const [message, setMessage] = useState('')
 
   async function approveAll() {

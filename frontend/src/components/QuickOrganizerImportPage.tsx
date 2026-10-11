@@ -34,6 +34,7 @@ import {
   type StudioTelematicoPreview,
 } from '../quickOrganizerImportData'
 import './QuickOrganizerImportPage.css'
+import { useBusyActivity } from '../ui/useBusyActivity'
 
 type WorkState = 'idle' | 'loading' | 'success' | 'error'
 type WorkProgress = { active: boolean; label: string; detail: string; value: number }
@@ -263,6 +264,10 @@ export function QuickOrganizerImportPage() {
   const [workProgress, setWorkProgress] = useState<WorkProgress>({ active: false, label: '', detail: '', value: 0 })
   const [autoPrepare, setAutoPrepare] = useState<StudioTelematicoPrepareStatus | null>(null)
   const autoImportStartedRef = useRef(false)
+  useBusyActivity(loading, 'Caricamento dell’importazione pratiche…')
+  useBusyActivity(previewState === 'loading', 'Analisi del pacchetto pratiche…')
+  useBusyActivity(importState === 'loading', 'Importazione delle pratiche…')
+  useBusyActivity(workProgress.active, 'Elaborazione del pacchetto pratiche…')
 
   useEffect(() => {
     const controller = new AbortController()

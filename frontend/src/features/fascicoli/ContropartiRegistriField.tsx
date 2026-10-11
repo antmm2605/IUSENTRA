@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { Landmark, Loader2, Plus, Scale, Search, ShieldCheck, Trash2, UserPlus, UsersRound } from 'lucide-react'
 import { Badge } from '../../components/dashboard'
@@ -209,6 +210,7 @@ export function ContropartiRegistriField({
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<ControparteCandidata[]>([])
   const [loading, setLoading] = useState(false)
+  useBusyActivity(loading, 'Ricerca nel registro…')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [registries, setRegistries] = useState<PublicRegistrySubjectLookup['registries']>([])

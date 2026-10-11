@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useEffect, useState } from 'react'
 import { CheckCircle2, ShieldCheck, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -11,6 +12,7 @@ export function AgentApprovalQueue() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState('')
+  useBusyActivity(Boolean(busyId), 'Salvataggio della decisione…')
 
   function reload() {
     const controller = new AbortController()

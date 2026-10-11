@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useState } from 'react'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import type { FormEvent, ReactNode } from 'react'
@@ -610,6 +611,7 @@ function ArticleField({
 function ArticleEditContent({ data, reload }: { data: SitoArticleEditPageData; reload: () => void }) {
   const [form, setForm] = useState<SitoArticleSavePayload>(() => articleToForm(data.article))
   const [saving, setSaving] = useState(false)
+  useBusyActivity(saving, 'Salvataggio del sito dello studio…')
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
 

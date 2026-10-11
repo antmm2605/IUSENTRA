@@ -4,6 +4,7 @@ import { SourceWorkWindows } from './components/SourceWorkWindows'
 import { ExistingWorkWindows } from './components/ExistingWorkWindows'
 import { ContextWorkWindows } from './components/ContextWorkWindows'
 import { ManagedWindowDock } from './components/ManagedWindowState'
+import { LoadingState } from './ui/LoadingState'
 import { Component, Suspense, lazy, useEffect, useState, type ComponentType, type ReactNode } from 'react'
 import {
   AlertTriangle,
@@ -1101,13 +1102,7 @@ function Empty({ children='Nessun elemento da presidiare.' }:{children?:string})
 function PageLoading() {
   return (
     <main className="iu-content">
-      <div className="iu-page-heading">
-        <div>
-          <h1>Caricamento modulo</h1>
-          <p>Preparazione della pagina operativa.</p>
-        </div>
-        <span className="iu-sync">Sincronizzazione...</span>
-      </div>
+      <LoadingState title="Caricamento della pagina" message="Preparazione del modulo operativo in corso." />
     </main>
   )
 }

@@ -385,7 +385,7 @@ def _vite_entry(current_path: str = "") -> dict[str, Any]:
             "error": "Manifest React non leggibile. Rigenera la build frontend.",
         }
 
-    entry = manifest.get("src/main.tsx") or next(
+    entry = manifest.get("index.html") or manifest.get("src/main.tsx") or next(
         (value for value in manifest.values() if value.get("isEntry")),
         None,
     )

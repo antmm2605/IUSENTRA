@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useState } from 'react'
 import { ArrowLeft, CheckCircle2, Download, ExternalLink } from 'lucide-react'
 import {
@@ -42,6 +43,7 @@ function Voce({ label, children }: { label: string; children: React.ReactNode })
 
 function ApprovaButton({ action, onDone }: { action: string; onDone: (message: string, ok: boolean) => void }) {
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Aggiornamento della scheda di ricerca…')
   if (!action) return null
   return (
     <Button

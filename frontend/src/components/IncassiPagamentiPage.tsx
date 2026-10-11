@@ -1,3 +1,5 @@
+import { beginActivity } from '../ui/activity'
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useRef, useState } from 'react'
 import { ExternalLink, Link2, ReceiptText, RefreshCw, WalletCards } from 'lucide-react'
 import {
@@ -124,6 +126,7 @@ export function IncassiPagamentiPage() {
   const [data, setData] = useState<IncassiPagamentiPageData>(emptyIncassiPagamentiPage)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  useBusyActivity(saving, 'Salvataggio del movimento…')
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
   const [invoiceId, setInvoiceId] = useState('')
@@ -145,10 +148,11 @@ export function IncassiPagamentiPage() {
   useEffect(() => { setRecordsPage(1) }, [filteredRecordIds])
   const requestedInvoiceId = selectedInvoiceFromLocation()
 
-  function load() {
+  function load(silent = false) {
     if (refreshFlight.current) return refreshFlight.current
+    const finish = silent ? () => {} : beginActivity('Aggiornamento degli incassi…')
     setRefreshing(true)
-    refreshFlight.current = getIncassiPagamentiPage()
+    refreshFlight.current = getIncassiPagamentiPage({ activity: false })
       .then((payload) => {
         setData(payload)
         setRefreshError('')
@@ -156,10 +160,10 @@ export function IncassiPagamentiPage() {
         return true
       })
       .catch((cause) => { setRefreshError(cause instanceof Error ? cause.message : 'Impossibile aggiornare gli incassi.'); return false })
-      .finally(() => { setLoading(false); setRefreshing(false); refreshFlight.current = null })
+      .finally(() => { finish(); setLoading(false); setRefreshing(false); refreshFlight.current = null })
     return refreshFlight.current
   }
-  useOperationalRefresh(['incassi', 'fatturazione'], load)
+  useOperationalRefresh(['incassi', 'fatturazione'], () => load(true))
 
   useEffect(() => {
     let active = true
@@ -249,8 +253,8 @@ export function IncassiPagamentiPage() {
         </>
       }
     >
-      {error && !data.metrics.length ? <div className="iu-pay-alert iu-pay-alert--error" role="alert">{error}<Button tone="neutral" onClick={load}>Riprova</Button></div> : null}
-      {refreshError ? <div className="iu-pay-alert iu-pay-alert--error" role="alert">{refreshError}<Button tone="neutral" disabled={refreshing} onClick={load}>Riprova aggiornamento</Button></div> : null}
+      {error && !data.metrics.length ? <div className="iu-pay-alert iu-pay-alert--error" role="alert">{error}<Button tone="neutral" onClick={() => { void load() }}>Riprova</Button></div> : null}
+      {refreshError ? <div className="iu-pay-alert iu-pay-alert--error" role="alert">{refreshError}<Button tone="neutral" disabled={refreshing} onClick={() => { void load() }}>Riprova aggiornamento</Button></div> : null}
       {loading ? <LoadingState title="Caricamento incassi" message="Lettura incassi in corso." /> : null}
       {!loading && !hasData ? (
         <EmptyState

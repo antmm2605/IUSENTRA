@@ -1,3 +1,5 @@
+import { beginActivity } from '../ui/activity'
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowDownCircle, ArrowUpCircle, Banknote, CheckCircle2, AlertCircle, FileDown, Landmark, Link2, Plus, RefreshCw, RotateCcw, Scale, Upload } from 'lucide-react'
 import { FloatingLex } from './FloatingLex'
@@ -31,6 +33,7 @@ async function postJson(href: string, body: Record<string, unknown>): Promise<{ 
 function NewMovementForm({ data, onDone, onMessage }:{data:PrimaNotaData; onDone:()=>void; onMessage:(text:string, ok?:boolean)=>void}) {
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione in corso…')
   const [form, setForm] = useState(() => ({ data: formatDateInputIt(new Date()), tipo: 'INCASSO', importo: '', categoria: 'onorari', controparte: '', causale: '', metodo: 'banca', documento: '' }))
   const pending = useRef<PendingPrimaNotaCommand | null>(null)
   const submitting = useRef(false)
@@ -142,6 +145,7 @@ function BankReconciliation({ data, onDone, onMessage }:{data:PrimaNotaData; onD
   const [proposte, setProposte] = useState<RiconciliazioneProposta[]>([])
   const [conteggi, setConteggi] = useState('')
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione in corso…')
   const [scelte, setScelte] = useState<Record<string, string>>({})
   const analizza = async (file: File) => {
     setBusy(true); setProposte([])
@@ -239,6 +243,7 @@ function MovementRow({ movimento, onDone, onMessage }:{movimento:PrimaNotaMovime
   const [showStorno, setShowStorno] = useState(false)
   const [motivo, setMotivo] = useState('')
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione in corso…')
   const storna = async () => {
     setBusy(true)
     const result = await postJson(movimento.actions.storna, { motivo })
@@ -283,7 +288,8 @@ export function PrimaNotaPage() {
   const requestVersion = useRef(0)
   const [refreshVersion, setRefreshVersion] = useState(0)
   const [filters, setFilters] = useState({ dal: '', al: '', tipo: '' })
-  const load = (next = filters) => {
+  const load = (next = filters, silent = false) => {
+    const finish = silent ? () => {} : beginActivity('Aggiornamento della prima nota…')
     const version = ++requestVersion.current
     return getPrimaNotaPage(Object.fromEntries(Object.entries(next).filter(([, v]) => v))).then((result) => {
       if (version !== requestVersion.current) return false
@@ -294,9 +300,9 @@ export function PrimaNotaPage() {
     }).catch((error: unknown) => {
       if (version === requestVersion.current) setLoadError(error instanceof Error ? error.message : 'Prima nota non disponibile.')
       return false
-    })
+    }).finally(finish)
   }
-  useOperationalRefresh(['incassi', 'fatturazione'], () => load())
+  useOperationalRefresh(['incassi', 'fatturazione'], () => load(filters, true))
   useEffect(() => { load() }, [])
   const riconcilia = async () => {
     if (!data) return

@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import {
   Bell,
   Bot,
@@ -710,6 +711,7 @@ export function StudioVoiceAssistant({ activePath }: { activePath: string }) {
   const [operativeSession, setOperativeSession] = useState(() => Boolean(profile) && loadListeningSessionActive() && loadOperativeSessionActive())
   const [listening, setListening] = useState(false)
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione in corso…')
   const [status, setStatus] = useState(() => (Boolean(profile) && loadListeningSessionActive()
     ? 'Riprendo il richiamo vocale in questa scheda.'
     : 'Assistente pronto per la configurazione.'))

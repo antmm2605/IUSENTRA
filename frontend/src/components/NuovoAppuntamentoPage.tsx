@@ -25,6 +25,7 @@ import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { mergeRegistryRefresh } from '../features/anagrafiche/mergeRegistryRefresh'
 import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
 import { Badge } from './dashboard'
+import { useBusyActivity } from '../ui/useBusyActivity'
 import './NuovoAppuntamentoPage.css'
 
 type AppointmentType = 'UDIENZA' | 'CONSULTAZIONE' | 'DEPOSITO' | 'SCADENZA' | 'RIUNIONE' | 'ALTRO'
@@ -471,6 +472,10 @@ export function NuovoAppuntamentoPage() {
   const [concurrentFields, setConcurrentFields] = useState<string[]>([])
   const [recordError, setRecordError] = useState('')
   const [recordLoading, setRecordLoading] = useState(Boolean(editId))
+  useBusyActivity(clientLoading, 'Ricerca del cliente…')
+  useBusyActivity(agendaLoading, 'Caricamento degli appuntamenti…')
+  useBusyActivity(recordLoading, 'Caricamento dell’appuntamento…')
+  useBusyActivity(submitState.saving, 'Salvataggio dell’appuntamento…')
   const requestSequence = useRef(0)
   const savingRef = useRef(false)
 

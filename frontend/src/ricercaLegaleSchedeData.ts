@@ -214,8 +214,8 @@ export type ControlloGiornaliero = {
   updates: Variazione[]
 }
 
-export async function getControlloGiornaliero(): Promise<ControlloGiornaliero> {
-  const payload = obj(await apiJson<unknown>('/api/v1/ui/ricerca-legale/controllo-giornaliero', { ok: false }))
+export async function getControlloGiornaliero(silent = false): Promise<ControlloGiornaliero> {
+  const payload = obj(await apiJson<unknown>('/api/v1/ui/ricerca-legale/controllo-giornaliero', { ok: false }, { activity: silent ? false : 'Caricamento del controllo delle fonti…' }))
   const counts = obj(payload.counts)
   const lastRun = payload.lastRun ? obj(payload.lastRun) : null
   return {

@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../../ui/useBusyActivity'
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Download, Eye, FileDown, FileText, UserRound } from 'lucide-react'
@@ -31,6 +32,7 @@ export default function PresidioDetailDrawer({
 }) {
   const resource = usePresidioDetail(id)
   const [busyAction, setBusyAction] = useState('')
+  useBusyActivity(Boolean(busyAction), 'Aggiornamento del presidio…')
   const [feedback, setFeedback] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
   const [documentSource, setDocumentSource] = useState<SourceDocument | null>(null)
   const data = resource.data

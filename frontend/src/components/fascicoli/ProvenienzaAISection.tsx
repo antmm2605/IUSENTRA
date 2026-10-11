@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { beginActivity } from '../../ui/activity'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AlertTriangle, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react'
 import { Badge } from '../dashboard'
 
@@ -64,7 +65,15 @@ export function ProvenienzaAISection({ fascicoloId, active = true, refreshKey = 
     }
   }, [active, fascicoloId])
 
-  useEffect(() => { void load() }, [load, refreshKey])
+  const initialConsultation = useRef('')
+  useEffect(() => {
+    if (!active || !fascicoloId) return
+    const finish = initialConsultation.current !== fascicoloId
+      ? beginActivity('Caricamento della provenienza delle letture…') : () => {}
+    initialConsultation.current = fascicoloId
+    void load().finally(finish)
+    return finish
+  }, [load, refreshKey, active, fascicoloId])
 
   if (!voci.length && !errore) return null
   const visibili = tutte ? voci : voci.slice(0, 5)

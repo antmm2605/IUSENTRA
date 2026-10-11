@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../../ui/useBusyActivity'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, BookMarked, ClipboardCopy, Library, PlayCircle, Route, Scale, Search, Star } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -41,6 +42,7 @@ export function PromptLibraryPage() {
   const [erroreEsecuzione, setErroreEsecuzione] = useState('')
   const [loading, setLoading] = useState(true)
   const [ricercaInCorso, setRicercaInCorso] = useState(false)
+  useBusyActivity(ricercaInCorso, 'Ricerca nella biblioteca…')
   const [revisioniTotale, setRevisioniTotale] = useState(0)
   const [error, setError] = useState('')
 

@@ -1,3 +1,5 @@
+import { beginActivity } from '../ui/activity'
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { publishMutationRefresh } from '../operationalRefresh'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
@@ -894,6 +896,7 @@ function PecSaveMatterDialog({
   const [savedHref, setSavedHref] = useState('')
 
   const [prefilling, setPrefilling] = useState(true)
+  useBusyActivity(working || prefilling, 'Preparazione del collegamento al fascicolo…')
   const clientUrl = pecFascicoloClienteUrlFromSaveUrl(request.url)
 
   const selected = candidates.find((item) => item.id === selectedId)
@@ -1489,6 +1492,8 @@ function EmailSourceView({ mode }: { mode: MailboxMode }) {
   const [sourceError, setSourceError] = useState('')
   const [sourceWorking, setSourceWorking] = useState(false)
   const [sourceStatus, setSourceStatus] = useState('')
+  useBusyActivity(loading && sourceReloadKey === 0, 'Apertura della fonte del messaggio…')
+  useBusyActivity(sourceWorking, 'Aggiornamento del messaggio…')
   useOperationalRefresh(['comunicazioni'], () => setSourceReloadKey((value) => value + 1), { relayedOnly: true })
 
   useEffect(() => {
@@ -1616,6 +1621,10 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   const [allResultsSelected, setAllResultsSelected] = useState(false)
   const selectionRequestRef = useRef(0)
   const [presidioWorking, setPresidioWorking] = useState(false)
+  useBusyActivity(commandWorking, 'Esecuzione del comando sulla posta…')
+  useBusyActivity(bulkWorking, 'Aggiornamento dei messaggi selezionati…')
+  useBusyActivity(selectionWorking, 'Preparazione della selezione dei messaggi…')
+  useBusyActivity(presidioWorking, 'Aggiornamento del presidio delle comunicazioni…')
   const [mobileReaderOpen, setMobileReaderOpen] = useState(false)
   const [saveMatterRequest, setSaveMatterRequest] = useState<PecSaveMatterRequest | null>(null)
   const markingReadRef = useRef(new Set<string>())
@@ -1688,6 +1697,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
 
   useEffect(() => {
     const request = ++pageRequestRef.current
+    const finish = beginActivity('Caricamento dei messaggi…')
     setLoading(true)
     fetchPage(fetchParams)
       .then((payload) => {
@@ -1698,8 +1708,8 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
       .catch((error) => {
         if (request === pageRequestRef.current) setPageError(error instanceof Error ? error.message : 'Caricamento della posta non riuscito.')
       })
-      .finally(() => { if (request === pageRequestRef.current) setLoading(false) })
-    return () => { pageRequestRef.current += 1 }
+      .finally(() => { if (request === pageRequestRef.current) setLoading(false); finish() })
+    return () => { pageRequestRef.current += 1; finish() }
   }, [folder, status, onlyPst, onlyAttachments, onlyLinked, pctStatus, deferredQuery, pageOffset, onlyWarnings])
 
   const visible = useMemo(
@@ -1822,6 +1832,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
     if (!visible.some((item) => item.id === selectedId)) setSelectedId(visible[0].id)
   }, [mode, selectedId, visible])
 
+  const foregroundDetailId = useRef('')
   useEffect(() => {
     const id = selectedId || currentEmailSelectionId(mode)
     if (!id) {
@@ -1829,6 +1840,9 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
       return
     }
     let active = true
+    const finish = foregroundDetailId.current !== id
+      ? beginActivity('Apertura del messaggio…') : () => {}
+    foregroundDetailId.current = id
     setDetailError('')
     setDetailLoading(true)
     const loader = mode === 'ordinaria' ? getEmailOrdinariaDetail : getEmailPecDetail
@@ -1849,8 +1863,9 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
       })
       .finally(() => {
         if (active) setDetailLoading(false)
+        finish()
       })
-    return () => { active = false }
+    return () => { active = false; finish() }
   }, [mode, selectedId, detailReloadKey])
 
   const runAction = (url: string, label: string) => {
@@ -2223,8 +2238,10 @@ function OfficePecLookupPanel({ onInsert }: { onInsert: (pec: string) => void })
   const [selectedComune, setSelectedComune] = useState<ComuneOption | null>(null)
   const [comuneOptions, setComuneOptions] = useState<ComuneOption[]>([])
   const [comuneLoading, setComuneLoading] = useState(false)
+  useBusyActivity(comuneLoading, 'Ricerca del comune…')
   const [officeKind, setOfficeKind] = useState('')
   const [loading, setLoading] = useState(false)
+  useBusyActivity(loading, 'Caricamento dei dati…')
   const [error, setError] = useState('')
   const [result, setResult] = useState<StudioRuntimeResult | null>(null)
   const [inserted, setInserted] = useState('')
@@ -2427,6 +2444,7 @@ export function EmailComposePage({ mode }: { mode: MailboxMode }) {
   const [clientQuery, setClientQuery] = useState('')
   const [clientMatches, setClientMatches] = useState<ComposeClient[]>([])
   const [clientLoading, setClientLoading] = useState(false)
+  useBusyActivity(clientLoading, 'Ricerca dei clienti…')
   const [selectedClientIds, setSelectedClientIds] = useState<string[]>([])
   const [attachmentNames, setAttachmentNames] = useState<string[]>([])
 

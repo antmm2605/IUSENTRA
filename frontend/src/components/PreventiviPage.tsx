@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import {
@@ -722,6 +723,7 @@ function NewConferimentoForm({ data }: { data: PreventiviPageData }) {
 
 function PostAction({ action, label, tone, confirmMessage }: { action: string; label: string; tone: 'primary' | 'neutral' | 'success' | 'warning' | 'danger'; confirmMessage?: string }) {
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Aggiornamento del preventivo…')
   const [message, setMessage] = useState('')
   async function run() {
     if (confirmMessage && !window.confirm(confirmMessage)) return

@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { documentWorkPreview } from './documentWorkWindow'
 import { AttestazioneConformitaAzione } from './fascicoli/AttestaPulsante'
 import { useReaderDrag } from './useReaderDrag'
@@ -696,6 +697,7 @@ type ActionPayload = {
 function PostAction({ action, children, tone = 'secondary', confirm, confirmTitle = 'Conferma operazione', onDone, onError, redirectTo, title, ariaLabel }:{action:string; children:ReactNode; tone?:'primary'|'secondary'|'danger'|'ghost'; confirm?:string; confirmTitle?:string; onDone?:(message?:string)=>void; onError?:(message:string)=>void; redirectTo?:string; title?:string; ariaLabel?:string}) {
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione sul fascicolo in corso…')
   const [error, setError] = useState('')
   if (!action) return null
   const run = async () => {
@@ -1330,6 +1332,7 @@ function DepositActionButton({
 }) {
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione sul fascicolo in corso…')
   const [error, setError] = useState('')
   const [progressIndex, setProgressIndex] = useState(0)
   const progressQueue = progressItems.length ? progressItems : DEPOSIT_PROGRESS_USER_STEPS
@@ -1483,6 +1486,7 @@ function DepositPdfPreviewButton({
   disabledReason?: string
 }) {
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione sul fascicolo in corso…')
   const [error, setError] = useState('')
   const openPreview = async () => {
     if (!action || busy || disabled) return
@@ -1555,6 +1559,7 @@ function JsonPostForm({
 }) {
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione sul fascicolo in corso…')
   if (!action) return null
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -1856,7 +1861,9 @@ function CatalogazioneDocumentalePanel({
 }) {
   const [payload, setPayload] = useState<CatalogPayload | null>(null)
   const [loading, setLoading] = useState(false)
+  useBusyActivity(loading, 'Caricamento del fascicolo…')
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione sul fascicolo in corso…')
   const [editingDocumentId, setEditingDocumentId] = useState('')
   const [evidenceDocumentId, setEvidenceDocumentId] = useState('')
   const [reviewedEvidenceDocumentIds, setReviewedEvidenceDocumentIds] = useState<Set<string>>(() => new Set())
@@ -2199,6 +2206,7 @@ function RowActions({ item, archive = false, onDeleted, onError, className = '' 
 
 function StatusEditCell({ item, onSaved, onError }:{item:FascicoloRow; onSaved:(id:string, status:FascicoloRow['status'], tone:FascicoloRow['tone'], message?:string)=>void; onError:(message:string)=>void}) {
   const [saving, setSaving] = useState(false)
+  useBusyActivity(saving, 'Salvataggio in corso…')
   // "da_archiviare" è uno stato derivato: nel select lo mostriamo come "Definito"
   // perché è il valore di dominio sottostante.
   const selectValue = item.status === 'da_archiviare' ? 'definito' : item.status
@@ -2458,6 +2466,7 @@ function EconomicPaymentCell({ row, kind, onSaved, onError, onDraftChange, force
   const [method, setMethod] = useState(payment.metodo || '')
   const [note, setNote] = useState(payment.note || '')
   const [saving, setSaving] = useState(false)
+  useBusyActivity(saving, 'Salvataggio in corso…')
 
   useEffect(() => {
     setStatus(payment.status)
@@ -2814,6 +2823,7 @@ function orderFascicoliByGroup(items: FascicoloRow[], mode: FascicoliGroupMode):
 function FascicoloQuickPanel({ state, onClose }:{state:QuickPanelState; onClose:()=>void}) {
   const { item } = state
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione sul fascicolo in corso…')
   const [message, setMessage] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -3424,6 +3434,7 @@ function InsightPanel({ data, visible }:{data:FascicoliPageData; visible:Fascico
 function FascicoliListPage() {
   const [data, setData] = useState<FascicoliPageData>(emptyFascicoliPage)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento del fascicolo…')
   const [query, setQuery] = useState(() => initialUrlParam('q'))
   const [debouncedQuery, setDebouncedQuery] = useState(() => initialUrlParam('q'))
   const [type, setType] = useState<FascicoloTipo>(initialTypeFilter)
@@ -4089,6 +4100,8 @@ function AlertIcon() {
 function ArchivePage() {
   const [data, setData] = useState<FascicoliPageData>(emptyFascicoliPage)
   const [loading, setLoading] = useState(true)
+  const [foregroundLoading, setForegroundLoading] = useState(true)
+  useBusyActivity(foregroundLoading, 'Caricamento dell’archivio fascicoli…')
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<'tutti' | 'zip' | 'esiti'>('tutti')
   const [error, setError] = useState('')
@@ -4096,8 +4109,9 @@ function ArchivePage() {
   const mounted = useRef(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [toast, setToast] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
-  const refreshArchive = useCallback(() => {
+  const refreshArchive = useCallback((silent = false) => {
     if (refreshFlight.current) return refreshFlight.current
+    setForegroundLoading(!silent)
     setLoading(true)
     setError('')
     const flight = getFascicoliArchive().then((payload) => {
@@ -4111,13 +4125,13 @@ function ArchivePage() {
       return false
     }).finally(() => {
       refreshFlight.current = null
-      if (mounted.current) setLoading(false)
+      if (mounted.current) { setLoading(false); setForegroundLoading(false) }
     })
     refreshFlight.current = flight
     return flight
   }, [])
   useEffect(() => { mounted.current = true; void refreshArchive(); return () => { mounted.current = false } }, [refreshArchive])
-  useOperationalRefresh(['fascicoli'], refreshArchive)
+  useOperationalRefresh(['fascicoli'], () => refreshArchive(true))
   const visible = useMemo(() => data.items.filter(item => isInsideQuery(item, query) && (filter === 'tutti' || (filter === 'zip' ? item.archive?.zipAvailable : item.archive?.outcome))), [data.items, query, filter])
   const toggle = (id: string) => setSelected((current) => { const next = new Set(current); next.has(id) ? next.delete(id) : next.add(id); return next })
   const toggleAll = () => setSelected(current => {
@@ -4440,9 +4454,11 @@ function JudicialOfficeField({ data, required }:{data:FascicoloFormData; require
   const [selectedComune, setSelectedComune] = useState<ComuneOption | null>(null)
   const [comuneOptions, setComuneOptions] = useState<ComuneOption[]>([])
   const [comuneLoading, setComuneLoading] = useState(false)
+  useBusyActivity(comuneLoading, 'Ricerca del comune…')
   const [officeKind, setOfficeKind] = useState('')
   const [includeSpeciali, setIncludeSpeciali] = useState(false)
   const [lookupLoading, setLookupLoading] = useState(false)
+  useBusyActivity(lookupLoading, 'Ricerca anagrafica…')
   const [lookupError, setLookupError] = useState('')
   const [lookupResult, setLookupResult] = useState<StudioRuntimeResult | null>(null)
   const [selectedOfficialOffice, setSelectedOfficialOffice] = useState<StudioRuntimeOffice | null>(null)
@@ -4778,6 +4794,7 @@ function FascicoloVeloceUploadSections({ enabled }:{enabled:boolean}) {
 function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
   const [data, setData] = useState<FascicoloFormData>(emptyFascicoloForm)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento del fascicolo…')
   const [fascicoloVeloce, setFascicoloVeloce] = useState(false)
   const [tipoScelto, setTipoScelto] = useState(() => (mode === 'new' && typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('tipo') || '').toUpperCase() : ''))
   const [refreshKey, setRefreshKey] = useState(0)
@@ -4972,6 +4989,7 @@ function SourceSnapshotPanel({ fascicolo }:{fascicolo:FascicoloFull}) {
 
 function RegistroSyncButton({ fascicoloId, lastSyncAt }:{fascicoloId:string; lastSyncAt?:string}) {
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione sul fascicolo in corso…')
   const [message, setMessage] = useState('')
   const [tone, setTone] = useState<'info'|'success'|'warning'|'danger'>('info')
   const run = async () => {
@@ -5052,6 +5070,7 @@ type RegistroRgCandidate = { numeroRg:string; annoRg:number; ufficio:string; ogg
 
 function RegistroRgSearch({ fascicoloId }:{fascicoloId:string}) {
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione sul fascicolo in corso…')
   const [message, setMessage] = useState('')
   const [candidates, setCandidates] = useState<RegistroRgCandidate[]>([])
   const search = async () => {
@@ -5308,6 +5327,7 @@ function FascicoloUfficiCompetentiPanel({ fascicolo }:{fascicolo:FascicoloFull})
   const [includeSpeciali, setIncludeSpeciali] = useState(false)
   const [rows, setRows] = useState<FascicoloOfficeSearchRow[]>([])
   const [loading, setLoading] = useState(false)
+  useBusyActivity(loading, 'Caricamento del fascicolo…')
   const [error, setError] = useState('')
   const currentOffice = fascicolo.court
   const search = async (event: FormEvent<HTMLFormElement>) => {
@@ -5502,6 +5522,7 @@ function isInternalDocumentDownload(value: string): boolean {
 
 function DocumentDownloadAction({ downloadUrl, name, onDone, onError }:{downloadUrl:string; name:string; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione sul fascicolo in corso…')
   const download = async () => {
     if (busy) return
     setBusy(true)
@@ -5547,14 +5568,17 @@ export function PdfPreviewModal({ preview, onClose, overDocumentFlow = false }:{
   const [editorDirty, setEditorDirty] = useState(false)
   const [discardEditor, setDiscardEditor] = useState(false)
   const [editorSaving, setEditorSaving] = useState(false)
+  useBusyActivity(editorSaving, 'Salvataggio del documento…')
   useEffect(() => { setEditorDirty(false); setDiscardEditor(false); setEditorSaving(false) }, [preview?.url])
   const [downloadState, setDownloadState] = useState('')
   const [downloading, setDownloading] = useState(false)
+  useBusyActivity(downloading, 'Preparazione del download…')
   const [readerUrl, setReaderUrl] = useState('')
   const [readerDownloadUrl, setReaderDownloadUrl] = useState('')
   const [readerName, setReaderName] = useState('')
   const [rotation, setRotation] = useState(0)
   const [savingRotation, setSavingRotation] = useState(false)
+  useBusyActivity(savingRotation, 'Salvataggio dell’orientamento…')
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
   const rotationSaveUrl = documentRotationSaveUrl(readerUrl || preview?.url || readerDownloadUrl || preview?.downloadUrl || '')
   const normalizedRotation = ((rotation % 360) + 360) % 360
@@ -6134,6 +6158,7 @@ function EconomicControlModal({
   const [bonificoOpen, setBonificoOpen] = useState(false)
   const [economicSourceOpen, setEconomicSourceOpen] = useState(false)
   const [bonificoBusy, setBonificoBusy] = useState(false)
+  useBusyActivity(bonificoBusy, 'Preparazione del documento di pagamento…')
   const [bonificoError, setBonificoError] = useState('')
   const [bonificoDone, setBonificoDone] = useState<{ message: string; href: string } | null>(null)
   const [bonifico, setBonifico] = useState({ importo: '', data: '', note: '' })
@@ -7732,6 +7757,7 @@ function DocumentUploadWorkspace({
   const [files, setFiles] = useState<File[]>([])
   const [mode, setMode] = useState<'auto' | 'manuale'>('auto')
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione sul fascicolo in corso…')
   const [stato, setStato] = useState<StatoCaricamento | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { dragging, dropHandlers } = useFileDropTarget(fileInputRef, setFiles)
@@ -7833,6 +7859,7 @@ function DocumentRow({ doc, onPreview, onDone, onError, hideCatalogSummary = fal
   const [renaming, setRenaming] = useState(false)
   const [draftName, setDraftName] = useState(doc.name)
   const [renameBusy, setRenameBusy] = useState(false)
+  useBusyActivity(renameBusy, 'Aggiornamento del nome del documento…')
   const [renameMessage, setRenameMessage] = useState('')
   const tags = visibleDocumentTags(doc)
   const documentoUtilizzabile = Boolean(doc.actions.download || doc.actions.preview)
@@ -8564,9 +8591,11 @@ function loadVisibleSignatureMode(defaultMode: string): VisibleSignatureMode {
 function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
   const [data, setData] = useState<FascicoloDetailData>(emptyFascicoloDetail)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento del fascicolo…')
   const [info, setInfo] = useState<FirmaInfo | null>(null)
   const [eidas, setEidas] = useState<VerificaEidas | null>(null)
   const [checkingEidas, setCheckingEidas] = useState(false)
+  useBusyActivity(checkingEidas, 'Verifica delle firme…')
   const [localSigner, setLocalSigner] = useState<LocalSignerStatus | null>(null)
   const [checkingSigner, setCheckingSigner] = useState(false)
   const [pin, setPin] = useState('')
@@ -8575,6 +8604,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
   const [visibleSignaturePlace, setVisibleSignaturePlace] = useState('')
   const [visibleSignatureDatetimeMode, setVisibleSignatureDatetimeMode] = useState<VisibleSignatureDatetimeMode>('nessuna')
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione sul fascicolo in corso…')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
@@ -9366,6 +9396,7 @@ function AuditTrailSection({ audit, bundleHref, onOpen, onOpenDocuments, onPrevi
 function DetailPage({ id }:{id:string}) {
   const [data, setData] = useState<FascicoloDetailData>(emptyFascicoloDetail)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento del fascicolo…')
   const [toast, setToast] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
   const [previewDoc, setLocalPreviewDoc] = useState<PreviewDocument | null>(null)
   const [embeddedRecord, setEmbeddedRecord] = useState<EmbeddedRecordState | null>(null)
@@ -9972,6 +10003,7 @@ function QuadroAxis({ id, title, icon, status, tone = 'primary', actionHref, act
 function QuadroPage({ id }:{id:string}) {
   const [data, setData] = useState<FascicoloDetailData>(emptyFascicoloDetail)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento del fascicolo…')
   useEffect(() => { let active = true; getFascicoloDetail(id, { include: 'all' }).then((payload) => { if (active) setData(payload) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [id])
   const f = data.fascicolo
   const clientId = data.client?.id || f.clientId
@@ -10047,6 +10079,7 @@ function QuadroPage({ id }:{id:string}) {
 function ExportPage() {
   const [data, setData] = useState<FascicoliExportData>(emptyFascicoliExport)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento del fascicolo…')
   const [format, setFormat] = useState('pdf')
   const [type, setType] = useState<FascicoloTipo>('tutti')
   const [status, setStatus] = useState<FascicoloStato>('tutti')

@@ -7,8 +7,8 @@
   <section class="global-search-hero">
     <div>
       <span class="global-search-eyebrow"><i class="bi bi-search"></i> Ricerca Studio</span>
-      <h1>Trova tutto cio' che serve allo studio</h1>
-      <p>Trova fascicoli, clienti, scadenze, documenti, comunicazioni e attivita in un unico punto.</p>
+      <h1>Trova tutto ciò che serve allo studio</h1>
+      <p>Trova fascicoli, clienti, scadenze, documenti, comunicazioni e attività in un unico punto.</p>
     </div>
     <div class="global-search-stats">
       <span>{{ stats.total or 0 }} elementi indicizzati</span>
@@ -70,5 +70,5 @@
     </aside>
   </section>
 </div>
-<script src="{{ url_for('static', filename='js/global-search.js') }}?v={{ app_version }}" defer></script>
+{{ native_activity_assets('global-search.js') }}
 {% endblock %}

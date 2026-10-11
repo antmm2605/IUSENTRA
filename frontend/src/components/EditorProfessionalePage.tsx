@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useState } from 'react'
 import {
   Archive,
@@ -86,13 +87,16 @@ export function EditorProfessionalePage() {
   const [searchDraft, setSearchDraft] = useState(query.q)
   const [data, setData] = useState<DocumentArchiveData>(EMPTY_DATA)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento dei dati…')
   const [refreshToken, setRefreshToken] = useState(0)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [exporting, setExporting] = useState(false)
+  useBusyActivity(exporting, 'Preparazione dei documenti da scaricare…')
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
   const [actionBusy, setActionBusy] = useState(false)
+  useBusyActivity(actionBusy, 'Preparazione del documento…')
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

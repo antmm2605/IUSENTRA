@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { SourceAlternatives } from './SourceAlternatives'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -762,9 +763,11 @@ function ProcessDeadlineCalculator({
 export function CalcolaTerminiPage() {
   const [calculator, setCalculator] = useState<DeadlineCalculatorState>(emptyScadenziarioPage.calculator)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento dei dati…')
   const [form, setForm] = useState<CalculatorForm>(() => defaultCalculatorForm(emptyScadenziarioPage.calculator.templates))
   const [result, setResult] = useState<DeadlineCalculatorResult | null>(null)
   const [busy, setBusy] = useState(false)
+  useBusyActivity(busy, 'Operazione in corso…')
   const [status, setStatus] = useState('')
   const guidaPratica = new URLSearchParams(window.location.search).get('guida_pratica') || new URLSearchParams(window.location.search).get('codice_guida') || ''
 
@@ -1098,6 +1101,7 @@ export function ScadenziarioPage() {
   const deadlineTableRef = useRef<HTMLDivElement>(null)
   const [data, setData] = useState<ScadenziarioPageData>(emptyScadenziarioPage)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento dei dati…')
   const [backgroundLoading, setBackgroundLoading] = useState(false)
   const [loadError, setLoadError] = useState('')
   const loadingRequest = useRef(0)
@@ -1120,6 +1124,7 @@ export function ScadenziarioPage() {
   const [pdfPreview, setPdfPreview] = useState<PdfDeadlinePreview | null>(null)
   const [pdfSelectedIds, setPdfSelectedIds] = useState<string[]>([])
   const [pdfBusy, setPdfBusy] = useState(false)
+  useBusyActivity(pdfBusy, 'Elaborazione delle scadenze documentali…')
   const [pdfStatus, setPdfStatus] = useState('')
   const [sourcePreview, setSourcePreview] = useState<ScadenziarioRow | null>(null)
   const [detailPreviewId, setDetailPreviewId] = useState<string>(() => routeDeadlineId())

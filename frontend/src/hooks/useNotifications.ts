@@ -1,4 +1,6 @@
 import { useOperationalRefresh } from './useOperationalRefresh'
+import { useBusyActivity } from '../ui/useBusyActivity'
+import { beginActivity } from '../ui/activity'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { fetchNotifications, markAllNotificationsRead, markNotificationRead } from '../services/topbarApi'
 import type { TopbarNotificationsPayload } from '../types/topbar'
@@ -7,6 +9,7 @@ export function useNotifications(open: boolean) {
   const [data, setData] = useState<TopbarNotificationsPayload | null>(null)
   const [loading, setLoading] = useState(false)
   const [mutating, setMutating] = useState(false)
+  useBusyActivity(mutating, 'Registrazione della presa visione…')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [page, setPage] = useState(1)
@@ -18,7 +21,8 @@ export function useNotifications(open: boolean) {
   const latestOptions = useRef({ page, state, query })
   latestOptions.current = { page, state, query }
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (options: { silent?: boolean } = {}) => {
+    const finish = options.silent ? () => {} : beginActivity('Caricamento delle notifiche…')
     const ticket = ++generation.current
     setLoading(true)
     setError('')
@@ -29,6 +33,7 @@ export function useNotifications(open: boolean) {
       if (ticket === generation.current) setError(reason instanceof Error ? reason.message : 'Notifiche non disponibili.')
     } finally {
       if (ticket === generation.current) setLoading(false)
+      finish()
     }
   }, [])
 
@@ -72,17 +77,17 @@ export function useNotifications(open: boolean) {
 
   useEffect(() => {
     if (!open) return
-    const timer = window.setInterval(() => { if (!saving.current) void load() }, 30000)
+    const timer = window.setInterval(() => { if (!saving.current) void load({ silent: true }) }, 30000)
     return () => window.clearInterval(timer)
   }, [load, open])
 
   useEffect(() => {
-    const updated = () => { if (open && !saving.current) void load() }
+    const updated = () => { if (open && !saving.current) void load({ silent: true }) }
     window.addEventListener('iusentra:notifications-updated', updated)
     return () => window.removeEventListener('iusentra:notifications-updated', updated)
   }, [load, open])
 
-  useOperationalRefresh(['agenda', 'scadenze', 'comunicazioni'], () => { if (open && !saving.current) void load() })
+  useOperationalRefresh(['agenda', 'scadenze', 'comunicazioni'], () => { if (open && !saving.current) void load({ silent: true }) })
 
   return { data, loading, mutating, error, notice, page, state, query, filter, setPage, reload: load, markRead, markAllRead }
 }

@@ -45,7 +45,7 @@ export default function PenalePdpSezione({ fascicoloId, onDocumenti }: { fascico
   }, [ricarica])
 
   if (errore) return <div className="iu-pdp" role="alert"><p className="iu-pdp-errore">{errore}</p><button type="button" onClick={() => void ricarica()}><RefreshCw size={14}/> Riprova</button></div>
-  if (!quadro) return <div className="iu-pdp" role="status">Caricamento del procedimento penale…</div>
+  if (!quadro) return <div className="iu-pdp" role="status" aria-busy="true"><span className="iu-activity-spinner" aria-hidden="true" /> Caricamento del procedimento penale…</div>
 
   const p = quadro.procedimento
   const registro = quadro.registri.find((r) => r.corrente) || quadro.registri[0]

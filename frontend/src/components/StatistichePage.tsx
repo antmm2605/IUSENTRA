@@ -1,3 +1,4 @@
+import { beginActivity } from '../ui/activity'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { operationalDomains } from '../operationalRefresh'
@@ -118,22 +119,23 @@ export function StatistichePage() {
   const sections = sectionSource.filter(section => data.metricSections[metricFilter] || !metricFilter || relatedSections[metricFilter]?.includes(section.id)).map(section => ({...section,maxValue:Math.max(0,...section.items.map(item => Number(item.value) || 0)),items:section.items.filter(item => `${section.title} ${item.label} ${item.note}`.toLocaleLowerCase('it-IT').includes(lowered))})).filter(section => !lowered || section.items.length > 0)
   const visibleItemCount = sections.reduce((count, section) => count + section.items.length, 0)
   const records = data.records.filter(record => (!metricFilter || relatedRecords[metricFilter]?.includes(record.id)) && `${record.label} ${record.note}`.toLocaleLowerCase('it-IT').includes(lowered))
-  function refresh(): Promise<void> {
+  function refresh(silent = false): Promise<void> {
     if (refreshFlight.current) return refreshFlight.current
+    const finish = silent ? () => {} : beginActivity('Aggiornamento delle statistiche…')
     setRefreshing(true)
     const flight = (async () => {
       try {
-        const payload = await getStatistichePage()
+        const payload = await getStatistichePage({ activity: false })
         if (payload.source === 'errore_controllato') throw new Error('Dati non disponibili')
         setData(payload)
         setRefreshError('')
       } catch { setRefreshError('Aggiornamento non riuscito. I dati e i filtri restano conservati: riprova.') }
-      finally { setRefreshing(false); refreshFlight.current = null }
+      finally { finish(); setRefreshing(false); refreshFlight.current = null }
     })()
     refreshFlight.current = flight
     return flight
   }
-  useOperationalRefresh(operationalDomains, refresh)
+  useOperationalRefresh(operationalDomains, () => refresh(true))
 
   useEffect(() => {
     let active = true
@@ -162,7 +164,7 @@ export function StatistichePage() {
       subtitle="Indicatori reali letti dagli archivi operativi dello studio."
       actions={
         <>
-          <Button type="button" onClick={refresh} disabled={loading || refreshing} tone="primary">
+          <Button type="button" onClick={() => { void refresh() }} disabled={loading || refreshing} tone="primary">
             <RefreshCw size={16} />
             {refreshing ? 'Aggiornamento…' : 'Aggiorna'}
           </Button>
@@ -177,7 +179,7 @@ export function StatistichePage() {
     >
       {refreshing ? <p role="status">Aggiornamento dei dati in corso. I filtri restano conservati.</p> : null}
       {loading ? <LoadingState title="Caricamento statistiche" message="Lettura degli archivi reali in corso." /> : null}
-      {refreshError ? <div role="alert">{refreshError}<Button type="button" tone="neutral" onClick={refresh}>Riprova aggiornamento</Button></div> : null}
+      {refreshError ? <div role="alert">{refreshError}<Button type="button" tone="neutral" onClick={() => { void refresh() }}>Riprova aggiornamento</Button></div> : null}
       {!loading && !refreshError && !hasData ? (
         <EmptyState
           title="Nessun dato statistico disponibile"

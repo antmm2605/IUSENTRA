@@ -43,7 +43,7 @@ export function AccessoAtti({ fascicoloId, onDocumenti }: { fascicoloId: string;
   }
   const invia = (azione: string) => (evento: FormEvent<HTMLFormElement>) => { evento.preventDefault(); void esegui(azione, evento.currentTarget) }
 
-  if (!dati) return errore ? <p className="iu-pdp-errore" role="alert">{errore}</p> : <p className="iu-pdp-nota" role="status">Caricamento dell'accesso agli atti…</p>
+  if (!dati) return errore ? <p className="iu-pdp-errore" role="alert">{errore}</p> : <p className="iu-pdp-nota" role="status" aria-busy="true"><span className="iu-activity-spinner" aria-hidden="true" /> Caricamento dell'accesso agli atti…</p>
   const download = STATO_DOWNLOAD[dati.download.stato] || STATO_DOWNLOAD.missing
   const fatti = dati.checklist.filter((c) => c.fatto).length
   return (

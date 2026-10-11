@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowDown, ArrowUp, Camera, Check, FileCheck2, RotateCw, ScanLine, Trash2, X } from 'lucide-react'
 import { Button } from '../../ui/Button'
@@ -13,6 +14,7 @@ export default function DocumentCapture({ fascicoloId, reference, onSaved }: { f
   const [pages, setPages] = useState<CapturePage[]>([])
   const [selected, setSelected] = useState('')
   const [busy, setBusy] = useState('')
+  useBusyActivity(Boolean(busy), 'Elaborazione del documento…')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [name, setName] = useState('Acquisizione documenti')

@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useState } from 'react'
 import {
   BookOpenText,
@@ -96,6 +97,7 @@ function dataItaliana(value: string): string {
 export function LexLearningPage() {
   const [data, setData] = useState<LexLearningPayload>(emptyPayload)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento dell’apprendimento locale…')
 
   const load = async () => {
     setLoading(true)

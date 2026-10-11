@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../ui/useBusyActivity'
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useConversazioneViva, type MessaggioPortale } from '../hooks/useConversazioneViva'
@@ -230,6 +231,7 @@ function StudioKpis({ payload }: { payload: ClientPortalStudioPayload }) {
 function ClientPortalStudio() {
   const [payload, setPayload] = useState<ClientPortalStudioPayload>(emptyStudioPortal)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento del portale cliente…')
   const [notice, setNotice] = useState<Notice | null>(null)
   const [generatedInvite, setGeneratedInvite] = useState<GeneratedInviteLink | null>(null)
   const [selectedMatterId, setSelectedMatterId] = useState('')
@@ -242,6 +244,7 @@ function ClientPortalStudio() {
   const [signatureTitle, setSignatureTitle] = useState('')
   const [signatureFile, setSignatureFile] = useState<File | null>(null)
   const [signatureSending, setSignatureSending] = useState(false)
+  useBusyActivity(signatureSending, 'Caricamento della firma grafica…')
   const [appointmentStart, setAppointmentStart] = useState('')
   const [appointmentVideoUrl, setAppointmentVideoUrl] = useState('')
   const [settingsDays, setSettingsDays] = useState(14)
@@ -935,6 +938,7 @@ function ClientPortalStudio() {
 function ClientPortalInvite({ token }: { token: string }) {
   const [payload, setPayload] = useState<ClientPortalClientPayload>(emptyClientPortal)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento del portale cliente…')
   const [notice, setNotice] = useState<Notice | null>(null)
 
   useEffect(() => {
@@ -1031,6 +1035,7 @@ function profileFormFromPayload(data: ClientPortalClientPayload): typeof EMPTY_P
 function ClientPortalClient() {
   const [payload, setPayload] = useState<ClientPortalClientPayload>(emptyClientPortal)
   const [loading, setLoading] = useState(true)
+  useBusyActivity(loading, 'Caricamento del portale cliente…')
   const [notice, setNotice] = useState<Notice | null>(null)
   const [messageBody, setMessageBody] = useState('')
   const [profileForm, setProfileForm] = useState(EMPTY_PROFILE_FORM)

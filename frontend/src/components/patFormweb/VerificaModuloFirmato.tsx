@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useState, type ChangeEvent } from 'react'
 import { AlertTriangle, CheckCircle2, FileSignature, Info } from 'lucide-react'
 import { csrfHeader } from '../../api/csrf'
@@ -15,6 +16,7 @@ export function VerificaModuloFirmato() {
   const [canale, setCanale] = useState<'pec' | 'upload'>('pec')
   const [esito, setEsito] = useState<EsitoVerifica | null>(null)
   const [inCorso, setInCorso] = useState(false)
+  useBusyActivity(inCorso, 'Verifica del modulo firmato…')
 
   const verifica = async (evento: ChangeEvent<HTMLInputElement>) => {
     const file = evento.currentTarget.files?.[0]

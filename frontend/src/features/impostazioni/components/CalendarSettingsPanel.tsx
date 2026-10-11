@@ -1,3 +1,4 @@
+import { useBusyActivity } from '../../../ui/useBusyActivity'
 import { useState } from 'react'
 import {
   AlertTriangle,
@@ -94,6 +95,7 @@ export function CalendarSettingsPanel({ data, onReload }: { data: SettingsPayloa
   const [webcalForm, setWebcalForm] = useState({ nome: '', source_url: '', default_tipo: 'ALTRO', default_reminder_minuti: '60' })
   const [appleForm, setAppleForm] = useState({ display_name: 'Apple iCloud', server_url: '', username: '', password: '', calendar_name: 'Calendario iCloud' })
   const [busy, setBusy] = useState('')
+  useBusyActivity(Boolean(busy), 'Aggiornamento del calendario…')
   const [message, setMessage] = useState('')
 
   async function copy(value: string) {

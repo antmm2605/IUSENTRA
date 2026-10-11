@@ -24,6 +24,7 @@ from flask import (
     current_app,
     flash,
     g,
+    make_response,
     redirect,
     render_template,
     request,
@@ -31,7 +32,6 @@ from flask import (
 )
 
 from pct.wizard_pro import (
-    GestioneWizardPro,
     SessioneWizardPro,
     DocumentoChecklist,
     STEP_LABELS,
@@ -41,6 +41,7 @@ from pct.wizard_pro import (
 from web.blueprints.react_shell import render_react_shell_response
 from web.helpers import get_agenda, get_fascicoli, get_wizard_pro
 from web.services.hearing_preparation_dashboard import build_hearing_preparation_dashboard
+from web.services.preparazione_udienza_http_commands import persistent, governed_write
 
 wizard_pro_bp = Blueprint("wizard_pro", __name__, url_prefix="/wizard-pro")
 
@@ -58,8 +59,37 @@ def _richiedi_login(f):
     def w(*a, **kw):
         if not g.get("utente_corrente"):
             return redirect(url_for("login"))
+        permissions = ["agenda.scrivi"] if request.method == "POST" else ["agenda.leggi"]
+        if request.method == "POST" and kw.get("n") == 5:
+            permissions.extend(["scadenziario.scrivi", "fascicoli.scrivi"])
+        if not all(g.utente_corrente.ha_permesso(permission) for permission in permissions):
+            return "Permesso insufficiente.", 403
         return f(*a, **kw)
     return w
+
+
+def _governed_form(function):
+    @wraps(function)
+    def wrapped(*args, **kwargs):
+        response = make_response(governed_write(current_app)(function)(*args, **kwargs))
+        if response.status_code >= 400 and response.is_json:
+            g._preparazioni_form_error = True
+            error = response.get_json() or {}
+            fields = list(request.form.items(multi=True))
+            return render_template("wizard_pro/command_error.html", command_error=error,
+                submitted_fields=fields, retry_href=request.full_path.rstrip("?"),
+                can_retry=response.status_code == 503), response.status_code
+        return response
+    return wrapped
+
+
+@wizard_pro_bp.context_processor
+def _form_context():
+    from uuid import uuid4
+    if g.get("_preparazioni_form_error"):
+        return {"preparazione_sql": False}
+    manager = get_wizard_pro()
+    return {"preparazione_sql": persistent(manager), "preparazione_command_key": str(uuid4())}
 
 
 def _get_or_404(id_sessione: str) -> SessioneWizardPro:
@@ -126,14 +156,29 @@ def index():
 
 @wizard_pro_bp.route("/nuovo", methods=["GET", "POST"])
 @_richiedi_login
+@_governed_form
 def nuovo():
-    gf = get_fascicoli()
-    ga = get_agenda()
-
     if request.method == "POST":
         id_fascicolo = request.form.get("id_fascicolo", "").strip()
         id_appuntamento = request.form.get("id_appuntamento", "").strip()
         titolo_custom = request.form.get("titolo", "").strip()
+
+        wiz = get_wizard_pro()
+        if persistent(wiz):
+            from web.services.preparazione_udienza_form_commands import form_command
+            from web.services.preparazione_udienza_http_commands import confirm
+            command, _ = form_command(request.form, start=True)
+            user = g.utente_corrente
+            result = wiz.start(fascicolo_id=id_fascicolo, appuntamento_id=id_appuntamento, command_key=command,
+                               avvocato=getattr(user, "nome_completo", "") or user.username, titolo=titolo_custom)
+            sessione = confirm(wiz, result, command)
+            if wiz.carica(sessione.id) is None:
+                flash("Il precedente avvio era confermato; la preparazione è stata successivamente eliminata.", "warning")
+                return redirect(url_for("wizard_pro.index"))
+            flash("Preparazione udienza aperta.", "success")
+            return redirect(url_for("wizard_pro.step", id_sessione=sessione.id, n=sessione.step_corrente))
+
+        gf = get_fascicoli()
 
         if not id_fascicolo:
             flash("Seleziona un fascicolo.", "warning")
@@ -172,25 +217,8 @@ def nuovo():
         flash(f"Preparazione udienza avviata: «{sessione.titolo}»", "success")
         return redirect(url_for("wizard_pro.step", id_sessione=sessione.id, n=1))
 
-    # GET — form selezione fascicolo
-    fascicoli = sorted(
-        gf.tutti(),
-        key=lambda f: (f.data_prossima_udienza or f.modificato_il or f.data_apertura or ""),
-        reverse=True,
-    )
-
-    # Fascicolo e appuntamento pre-selezionati dai querystring
+    # Il cruscotto esistente governa selezione e prossime udienze.
     id_fascicolo_pre = request.args.get("id_fascicolo", "")
-    id_appuntamento_pre = request.args.get("id_appuntamento", "")
-
-    # Appuntamenti UDIENZA prossimi
-    from pct.agenda import TipoAppuntamento
-    appuntamenti_udienza = [
-        a for a in ga.tutti()
-        if getattr(a, "tipo", None) == TipoAppuntamento.UDIENZA
-        and (a.data_ora or "") >= datetime.now().strftime("%Y-%m-%d")
-    ]
-    appuntamenti_udienza.sort(key=lambda a: a.data_ora or "")
 
     redirect_args = {}
     if id_fascicolo_pre:
@@ -202,6 +230,7 @@ def nuovo():
 
 @wizard_pro_bp.route("/<id_sessione>/step/<int:n>", methods=["GET", "POST"])
 @_richiedi_login
+@_governed_form
 def step(id_sessione: str, n: int):
     if n < 1 or n > N_STEP:
         flash("Step non valido.", "danger")
@@ -227,6 +256,13 @@ def step(id_sessione: str, n: int):
     # ── POST: salva dati step ──────────────────────────────────────────
     if request.method == "POST":
         f = request.form
+        if persistent(wiz):
+            from web.services.preparazione_udienza_form_commands import save_form
+            save_form(wiz, sessione, n, f)
+            if n == 5:
+                flash("Esito e seguiti registrati.", "success")
+                return redirect(url_for("wizard_pro.completo", id_sessione=id_sessione))
+            return redirect(url_for("wizard_pro.step", id_sessione=id_sessione, n=min(n + 1, 5)))
 
         if n == 1:
             sessione.step1_note = f.get("step1_note", "")
@@ -358,8 +394,17 @@ def completo(id_sessione: str):
 
 @wizard_pro_bp.route("/<id_sessione>/elimina", methods=["POST"])
 @_richiedi_login
+@_governed_form
 def elimina(id_sessione: str):
     wiz = get_wizard_pro()
+    if persistent(wiz):
+        from web.services.preparazione_udienza_form_commands import form_command
+        command, revision = form_command(request.form)
+        from zoneinfo import ZoneInfo
+        wiz.execute(id_sessione, "elimina", {}, command_key=command, expected_revision=revision,
+                    today=datetime.now(ZoneInfo("Europe/Rome")).date())
+        flash("Preparazione eliminata; attività e termini già registrati preservati.", "success")
+        return redirect(url_for("wizard_pro.index"))
     if wiz.elimina(id_sessione):
         flash("Sessione di preparazione eliminata.", "success")
     else:
@@ -371,8 +416,17 @@ def elimina(id_sessione: str):
 
 @wizard_pro_bp.route("/<id_sessione>/archivia", methods=["POST"])
 @_richiedi_login
+@_governed_form
 def archivia(id_sessione: str):
     wiz = get_wizard_pro()
+    if persistent(wiz):
+        from web.services.preparazione_udienza_form_commands import form_command
+        command, revision = form_command(request.form)
+        from zoneinfo import ZoneInfo
+        wiz.execute(id_sessione, "archivia", {}, command_key=command, expected_revision=revision,
+                    today=datetime.now(ZoneInfo("Europe/Rome")).date())
+        flash("Preparazione archiviata.", "success")
+        return redirect(url_for("wizard_pro.index"))
     sessione = wiz.carica(id_sessione)
     if sessione:
         sessione.stato = "archiviato"

@@ -83,6 +83,7 @@ class Appuntamento:
     remote_hearing_pdf_required: bool = False
     creato_il: str = field(default_factory=lambda: datetime.now().isoformat())
     modificato_il: str = field(default_factory=lambda: datetime.now().isoformat())
+    id_fascicolo: str = ""               # Collegamento esplicito conservato nel payload SQL
 
     @property
     def data_ora_dt(self) -> datetime:

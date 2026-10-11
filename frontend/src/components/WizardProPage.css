@@ -834,6 +834,17 @@
   gap: 8px;
 }
 
+.iu-pu-recupero { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+.iu-pu-recupero>span { flex:1 1 320px; }
+.iu-pu-recupero>div { display:flex; flex-wrap:wrap; gap:8px; }
+.iu-pu-stato-pagina button,.iu-pu-errore button,.iu-pu-nota button {
+  border:1px solid var(--border,#cbd5e1); border-radius:8px; padding:8px 12px;
+  background:var(--surface,#fff); color:var(--text,#102238); font:inherit;
+  font-weight:600; line-height:1.3; min-height:36px; cursor:pointer;
+}
+.iu-pu-stato-pagina button:disabled,.iu-pu-errore button:disabled,.iu-pu-nota button:disabled { opacity:.5; cursor:default; }
+.iu-pu-stato-pagina button:focus-visible,.iu-pu-errore button:focus-visible,.iu-pu-nota button:focus-visible { outline:2px solid #245bb7; outline-offset:2px; }
+
 /* Visualizza conserva il testo dentro il bordo, anche nelle finestre affiancate. */
 .iu-pu-documenti li>button{width:max-content;min-width:88px;min-height:38px;white-space:nowrap;justify-self:end;box-sizing:border-box;line-height:1.3}
 .iu-pu-documenti li>div:first-child>svg{flex-shrink:0}

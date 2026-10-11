@@ -28,6 +28,7 @@
 <div class="row g-4">
   <div class="col-lg-7">
     <form method="POST" action="{{ url_for('wizard_pro.nuovo') }}">
+      {% include "wizard_pro/command_fields.html" %}
       <div class="card border-0 shadow-sm">
         <div class="card-body p-4">
 

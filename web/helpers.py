@@ -205,7 +205,8 @@ def get_indice() -> IndiceRicerca:
 
 
 def get_wizard_pro() -> GestioneWizardPro:
-    return GestioneWizardPro(db_path=_cfg("WIZARD_PRO_DB"))
+    from web.services.preparazione_udienza_sql_runtime import get_request_preparazioni
+    return get_request_preparazioni(_cfg("WIZARD_PRO_DB"), _cfg("CLIENTI_DB"))
 
 
 def get_legal_intelligence() -> GestioneLegalIntelligence:

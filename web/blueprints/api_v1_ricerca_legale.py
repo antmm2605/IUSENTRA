@@ -8,9 +8,11 @@ variazione applica il cambiamento al motore dello studio: richiede
 
 from __future__ import annotations
 
+import sqlite3
+
 import threading
 
-from flask import Blueprint, current_app, g, jsonify
+from flask import Blueprint, current_app, g, jsonify, request
 
 from web.blueprints.api_v1_react import _audit_event, _request_json_object, _richiedi_auth
 from web.helpers import get_legal_intelligence, get_legal_update_pipeline
@@ -243,3 +245,74 @@ def importa_registro_mediazione():
         return jsonify(ok=False, message="Importazione non riuscita: verifica che il file sia la pagina ufficiale del registro."), 400
     _audit_event("ricerca_legale.import_registro_mediazione", "legal_sources", "registro_mediazione", "Pagina ufficiale del registro degli organismi di mediazione importata.")
     return jsonify(ok=True, message=f"Pagina ufficiale importata: {report.get('rows', 0)} organismi disponibili nel gestionale.", rows=report.get("rows", 0))
+
+
+# Public legal texts share Normattiva's dedicated archive across studios;
+# authentication and the existing legal-research permissions remain required.
+def _normativa_db():
+    from pathlib import Path
+    from lex.retrieval.official_sources_retriever import (
+        _resolve_runtime_path, CONTAINER_NORMATTIVA_DB, DEFAULT_NORMATTIVA_DB,
+    )
+    explicit = current_app.config.get("NORMATTIVA_DB")
+    shared = _resolve_runtime_path(Path(explicit) if explicit else None,
+        env_names=("PCT_NORMATTIVA_DB", "PCT_LEX_NORMATTIVA_DB"),
+        container_path=CONTAINER_NORMATTIVA_DB, repo_path=DEFAULT_NORMATTIVA_DB)
+    library = shared.with_name("codici_leggi.sqlite")
+    return library if library.is_file() else shared
+
+
+def _permesso_normativa():
+    user = g.get("utente_corrente")
+    check = getattr(user, "ha_permesso", lambda _p: False)
+    if not (check("ai.usa") or check("fascicoli.leggi")):
+        return jsonify(ok=False, message="Non hai il permesso per consultare le fonti."), 403
+    return None
+
+
+@api_v1_ricerca_legale.get("/normativa/atti")
+@_richiedi_auth
+def normativa_atti():
+    denied = _permesso_normativa()
+    if denied is not None:
+        return denied
+    from lex.normativa.consultazione import catalogo
+    try:
+        return jsonify(ok=True, items=catalogo(_normativa_db()))
+    except (FileNotFoundError, OSError, sqlite3.Error):
+        return jsonify(ok=False, message="L'archivio dei codici e delle leggi non è ancora disponibile."), 503
+
+
+@api_v1_ricerca_legale.get("/normativa/articoli")
+@_richiedi_auth
+def normativa_articoli():
+    denied = _permesso_normativa()
+    if denied is not None:
+        return denied
+    from lex.normativa.consultazione import articoli
+    try:
+        act = int(request.args.get("act") or 0)
+        offset = max(0, int(request.args.get("offset") or 0))
+        result = articoli(_normativa_db(), act=act, query=request.args.get("q", ""),
+            article=request.args.get("article", ""), category=request.args.get("category", ""), offset=offset)
+        return jsonify(ok=True, **result)
+    except ValueError as exc:
+        return jsonify(ok=False, message=str(exc)), 400
+    except (FileNotFoundError, OSError, sqlite3.Error):
+        return jsonify(ok=False, message="Archivio non disponibile. Riprova fra poco."), 503
+
+
+@api_v1_ricerca_legale.get("/normativa/articoli/<int:article_id>")
+@_richiedi_auth
+def normativa_articolo(article_id):
+    denied = _permesso_normativa()
+    if denied is not None:
+        return denied
+    from lex.normativa.consultazione import dettaglio
+    try:
+        item = dettaglio(_normativa_db(), article_id)
+        if item is None:
+            return jsonify(ok=False, message="Articolo non trovato nell'archivio."), 404
+        return jsonify(ok=True, item=item)
+    except (FileNotFoundError, OSError, sqlite3.Error):
+        return jsonify(ok=False, message="Testo non disponibile. Riprova fra poco."), 503

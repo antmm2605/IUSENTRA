@@ -144,7 +144,8 @@ def registra_esito(sessione: Any, dati: dict[str, Any], *, agenda: Any, fascicol
                                 f"{rinvio}T{ora}:00", int(getattr(app, "durata_minuti", 60) or 60),
                                 str(getattr(app, "luogo", "") or getattr(fascicolo, "tribunale", "") or ""), allow_overlap=True,
                                 cliente=str(getattr(fascicolo, "nome_cliente", "") or ""), id_cliente=str(getattr(fascicolo, "id_cliente", "") or ""),
-                                procedimento=f"RG {fascicolo.numero_rg}" if getattr(fascicolo, "numero_rg", "") else "",
+                                id_fascicolo=sessione.id_fascicolo,
+                                procedimento=str(getattr(fascicolo, "rg_completo", "") or ""),
                                 tribunale=str(getattr(fascicolo, "tribunale", "") or ""), note=f"Rinvio disposto all'udienza del {oggi.strftime('%d/%m/%Y')}")
         sessione.id_appuntamento_rinvio = nuovo.id
         creati.append(f"udienza di rinvio del {rinvio[8:10]}/{rinvio[5:7]}/{rinvio[:4]} in agenda")
@@ -161,7 +162,8 @@ def registra_esito(sessione: Any, dati: dict[str, Any], *, agenda: Any, fascicol
         attivita = fascicoli.aggiungi_attivita(
             fascicolo.id, TipoAttivita.UDIENZA, str(getattr(app, "data_ora", "") or oggi.isoformat())[:10], sessione.titolo,
             descrizione="\n".join(p for p in (f"Esito: {ESITI[esito]}.", sessione.esito_note_verbale, sessione.esito_azioni) if p),
-            esito=EsitoAttivita(_ESITO_ATTIVITA.get(esito, "IN_ATTESA")), id_appuntamento=sessione.id_appuntamento, avvocato=utente,
+            esito=EsitoAttivita(_ESITO_ATTIVITA.get(esito, "IN_ATTESA")), id_appuntamento=sessione.id_appuntamento,
+            avvocato=sessione.avvocato or utente,
             note=f"[Preparazione udienza {sessione.id}]")
         sessione.id_attivita_fascicolo = attivita.id
         creati.append("nota dell'udienza nel fascicolo")

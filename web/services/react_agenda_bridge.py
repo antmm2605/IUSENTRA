@@ -327,7 +327,9 @@ def _extract_rg(*values: Any) -> str:
             if match:
                 return "RG " + re.sub(r"\s+", "", match.group(1).upper())
         if re.search(r"\b(?:comunicazione|udienza|ruolo|fascicolo)\b", text, re.IGNORECASE):
-            match = BARE_RG_RE.search(text)
+            # La parte mese/anno di una data non è un numero di ruolo.
+            without_dates = re.sub(r"\b\d{1,2}\s*/\s*\d{1,2}\s*/\s*\d{4}\b", "", text)
+            match = BARE_RG_RE.search(without_dates)
             if match:
                 return "RG " + re.sub(r"\s+", "", match.group(1).upper())
     return ""
@@ -1409,6 +1411,7 @@ def build_react_agenda_payload(
     selected_id: str = "",
     pec_audit_db: str = "",
     tenant_id: str = "default",
+    preparazioni_loader: Callable[[], Any] | None = None,
 ) -> dict[str, Any]:
     """Return agenda and deadline rows normalized for the React shell."""
 
@@ -1417,6 +1420,31 @@ def build_react_agenda_payload(
     deadlines_repo = deadlines_loader()
     fascicoli_repo = fascicoli_loader() if fascicoli_loader is not None else None
     fascicoli_cache: dict[str, Any] = {}
+    preparation_links: dict[str, set[str]] = {}
+    if preparazioni_loader is not None:
+        for session in preparazioni_loader().lista():
+            for appointment_id in (session.id_appuntamento, session.id_appuntamento_rinvio):
+                if appointment_id and session.id_fascicolo:
+                    preparation_links.setdefault(str(appointment_id), set()).add(str(session.id_fascicolo))
+
+    def prepared_event(item, **kwargs):
+        event = _agenda_event(item, **kwargs)
+        linked = preparation_links.get(str(getattr(item, "id", "")), set())
+        if event is None or not linked or fascicoli_repo is None:
+            return event
+        if len(linked) != 1:
+            raise ValueError("Udienza collegata a più fascicoli: associazione da verificare.")
+        matter_id = next(iter(linked))
+        cache_key = f"id:{matter_id}"
+        if cache_key not in fascicoli_cache:
+            fascicoli_cache[cache_key] = fascicoli_repo.get(matter_id)
+        fascicolo = fascicoli_cache[cache_key]
+        if fascicolo is None:
+            raise ValueError("Fascicolo della preparazione assente: associazione da verificare.")
+        from web.services.preparazione_udienza_associazione import verifica_collegamento_esplicito
+        verifica_collegamento_esplicito(item, fascicolo)
+        event["matterId"] = matter_id
+        return _enrich_agenda_event_from_fascicolo(event, fascicolo)
     all_appointments = _safe_items(lambda: agenda_repo.tutti())
     appointments = [
         item
@@ -1475,7 +1503,7 @@ def build_react_agenda_payload(
 
     events: list[dict[str, Any]] = []
     for item in appointments:
-        event = _agenda_event(item, pec_profile=pec_profile_for_item(item, pec_profiles))
+        event = prepared_event(item, pec_profile=pec_profile_for_item(item, pec_profiles))
         if event:
             if fascicoli_repo is not None:
                 matter_id = _clean_text(event.get("matterId"), limit=120)
@@ -1502,11 +1530,11 @@ def build_react_agenda_payload(
             events.append(event)
     agenda_contexts = list(events)
     for item in context_appointments:
-        context_event = _agenda_event(item, pec_profile=pec_profile_for_item(item, pec_profiles))
+        context_event = prepared_event(item, pec_profile=pec_profile_for_item(item, pec_profiles))
         if context_event:
             agenda_contexts.append(context_event)
     if selected is not None:
-        event = _agenda_event(selected, pec_profile=pec_profile_for_item(selected, pec_profiles))
+        event = prepared_event(selected, pec_profile=pec_profile_for_item(selected, pec_profiles))
         if event and not any(str(row.get("id") or "") == str(event.get("id") or "") for row in events):
             events.append(event)
     for item in deadlines:

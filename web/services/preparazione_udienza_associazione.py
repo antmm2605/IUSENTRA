@@ -10,6 +10,24 @@ def _testo(value):
     return " ".join(unicodedata.normalize("NFKC", str(value or "")).casefold().split())
 
 
+def verifica_collegamento_esplicito(appuntamento, fascicolo):
+    """Una scelta dell'operatore non autorizza a sovrascrivere riscontri discordanti."""
+    from pct.udienze.repository import PreparazioneConflict
+    if getattr(appuntamento, "id_fascicolo", "") and appuntamento.id_fascicolo != fascicolo.id:
+        raise PreparazioneConflict("Fascicolo dell'udienza discordante dal collegamento registrato.")
+    if appuntamento.id_cliente and appuntamento.id_cliente != fascicolo.id_cliente:
+        raise PreparazioneConflict("Cliente dell'udienza discordante dal fascicolo scelto.")
+    ruoli = {f"{int(m.group(1))}/{m.group(2)}" for m in _RG.finditer(str(appuntamento.procedimento or ""))}
+    if len(ruoli) > 1:
+        raise PreparazioneConflict("Più numeri di ruolo nell'udienza: collegamento da verificare.")
+    evidence = case_identity_evidence({"numero_ruolo_certificato": next(iter(ruoli), ""),
+        "cliente": appuntamento.cliente, "ufficio": appuntamento.tribunale}, fascicolo)
+    if evidence["conflicts"]:
+        raise PreparazioneConflict("Collegamento dell'udienza discordante: " + "; ".join(evidence["conflicts"]))
+    if appuntamento.cliente and fascicolo.nome_cliente and not evidence["client_name_match"]:
+        raise PreparazioneConflict("Nome e cognome del cliente dell'udienza discordanti dal fascicolo.")
+
+
 def fascicolo_udienza(appuntamento, fascicoli, sessioni=()):
     """Mai scegliere fra fascicoli concorrenti né abbinare per somiglianza del nome."""
     appointment_id = str(appuntamento.id)
@@ -18,11 +36,14 @@ def fascicolo_udienza(appuntamento, fascicoli, sessioni=()):
         str(f.id) for f in fascicoli
         if any(str(getattr(a, "id_appuntamento", "")) == appointment_id for a in getattr(f, "attivita", ()))
     }
+    if getattr(appuntamento, "id_fascicolo", ""):
+        collegati.add(str(appuntamento.id_fascicolo))
     collegati.update(str(s.id_fascicolo) for s in sessioni
-                     if str(getattr(s, "id_appuntamento", "")) == appointment_id
-                     and str(getattr(s, "stato", "")) != "archiviato" and str(s.id_fascicolo) in per_id)
+                     if appointment_id in {str(getattr(s, "id_appuntamento", "")),
+                                           str(getattr(s, "id_appuntamento_rinvio", ""))}
+                     and str(s.id_fascicolo) in per_id)
     if collegati:
-        return per_id[next(iter(collegati))] if len(collegati) == 1 else None
+        return per_id.get(next(iter(collegati))) if len(collegati) == 1 else None
     procedimento = _testo(getattr(appuntamento, 'procedimento', ''))
     interni = [f for f in fascicoli if procedimento and procedimento == _testo(getattr(f, 'numero', ''))]
     if interni:

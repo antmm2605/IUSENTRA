@@ -1,9 +1,7 @@
 # Changelog
 
-- **Editor 2.437.4 (11/10/2026)**: catalogo SQL dei modelli condivisi separato dagli archivi personali. Compilazione da impostazioni, PEC, cliente e fascicolo dello studio corrente, font incorporati riutilizzabili e pubblicazione revisionata con ricevuta atomica. Consultazione dello stato dell'assistente editor senza inizializzare motori, schemi o import JSON durante la navigazione. Verifiche e stato del rilascio nel rapporto dei modelli condivisi.
-
 - **Editor 2.437.3 (11/10/2026)**: archivio documenti unificato, campi collegati e modelli personali SQL, timbro configurabile e salvataggio PDF nel fascicolo. Conservazione dei caratteri incorporati, degli stili annidati e delle tabulazioni Word; controllo italiano dei recapiti tecnici e recupero dei metadati già archiviati prima della lettura dei nuovi documenti.
-
+- **Editor 2.437.4 (11/10/2026)**: catalogo SQL dei modelli condivisi separato dagli archivi personali. Compilazione da impostazioni, PEC, cliente e fascicolo dello studio corrente, font incorporati riutilizzabili e pubblicazione revisionata con ricevuta atomica. Consultazione dello stato dell'assistente editor senza inizializzare motori, schemi o import JSON durante la navigazione. Verifiche e stato del rilascio nel rapporto dei modelli condivisi.
 - **Agenda 2.437.2 (10/10/2026)**: scritture SQL puntuali con protezione da snapshot superati, conflitti espliciti e bozze preservate nel modulo live. Salvataggi consecutivi nell’area di lavoro senza finestre annidate; controllo disponibilità corretto e indisponibilità con recupero esplicito. Accettazione locale documentata separatamente dal rilascio e dalla migrazione SQL integrale ancora aperta.
 
 - **Consolidamento 2.436.23 (09/10/2026)**: Prima nota con adozione SQL governata, comandi idempotenti, audit persistente e recupero periodico delle sole consegne pendenti. Movimento bancario e riconciliazione atomici; reimportazione di righe già riconciliate senza nuovi movimenti. Campi contenuti, date italiane ed export diretti senza finestre vuote, provati sulla copia reale locale. Conservati sorgenti e asset pubblicati del server; l'incarico generale e i flussi non ancora accettati restano aperti. EmbeddingGemma 300M mantenuto.
@@ -8713,6 +8711,7 @@ Tre difetti reali del presidio PEC, rimasti nascosti perché i test che li copri
 - **Consulta completata, correzione attesa 07/10/2026**: diagnosi server conferma 3/3 corpus completi, 22.398 pronunce ciascuno e 46.577 massime lette; import effettivo 1.254,1 secondi. Attesa post-deploy portata da 15 a 30 minuti con conteggi intermedi, mantenendo obbligatorio il marcatore di import completo su tutti i corpus.
 
 - **Diagnosi metadati sorgenti Hetzner (07/10/2026)**: il nuovo deploy ha incontrato una checkout modificata successiva al primo rilascio. Diagnosi in sola lettura limitata a percorsi e impronte, senza trasferire sorgenti o dati; nessuna modifica server prima del confronto.
+
 # 2.437.5 — Timbro risolto nello studio corrente
 
 Il pannello Timbro studio riusa il gestore delle impostazioni del tenant e il suo archivio, senza dati professionali generali dell'installazione. Anche la revisione linguistica usa lo stesso contesto. La lettura Agenda dei dati storici migrati recupera i campi obbligatori dalle colonne SQL quando non presenti nel JSON originale, conservando la fonte.
@@ -8720,3 +8719,9 @@ Il pannello Timbro studio riusa il gestore delle impostazioni del tenant e il su
 ## 2.437.6 — Timbro editor
 
 Qualifica professionale, telefono, email studio e PEC selezionabili separatamente dalle impostazioni del tenant corrente. Scelte e font conservati nel timbro Word attraverso salvataggio e riapertura; campi riutilizzabili nei modelli.
+
+## 2.437.7 — Preparazione udienza SQL e aggiornamenti live
+
+Preparazione udienza collegata al repository SQL con adozione esplicita, backup, comandi persistenti, controllo della versione e conferma atomica dei seguiti in Agenda, Scadenziario e Fascicolo. Bozze conservate durante aggiornamenti concorrenti e risposte perse; scelta esplicita della versione e recupero del comando originale. Permessi distinti per lettura, preparazione ed esito. Il rinvio conserva il collegamento al fascicolo anche dopo eliminazione della sola preparazione; una data non viene più interpretata come numero di ruolo.
+
+Consolidati i sorgenti della biblioteca Codici e leggi recuperati dal server senza trasferire nuovi corpus in produzione. La ricerca del codice civile non seleziona la raccolta delle preleggi più recente dello stesso atto. Campagna fonti locale ed EmbeddingGemma300M invariati; flussi congelati preservati. Stato del rilascio e verifiche materiali nel rapporto Preparazione udienza SQL/live.

@@ -1,28 +1,46 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { CalendarClock, CheckCircle2, Gavel, MapPin, Play, UserRound } from 'lucide-react'
 import { inviaPreparazione } from './preparazioneUdienzaApi'
 import { FascicoloSearchSelect } from './FascicoloSearchSelect'
 import './WizardProPage.css'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
+import { loadPreparationCommand, preparationCommand, type PreparationProtocol } from '../preparazioneUdienzaCommand'
 
 type Udienza = {
   idAppuntamento: string; idFascicolo: string; titolo: string; dataOra: string; quando: string; luogo: string; cliente: string; giudice: string
   fascicolo: { etichetta?: string; href?: string }; stato: string; passiFatti: number; href: string
 }
 type Elenco = {
+  writeProtocol?: PreparationProtocol
   ok: boolean; message?: string; udienze?: Udienza[]; concluse?: Array<{ id: string; titolo: string; esito: string; data: string; rinvio: string; href: string }>
   riepilogo?: { settimana: number; daPreparare: number; preparate: number }; fascicoli?: Array<{ value: string; label: string }>; puoModificare?: boolean
 }
 
 const dataIt = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : '')
 
-function RigaUdienza({ u, fascicoli, puoModificare }: { u: Udienza; fascicoli: Array<{ value: string; label: string }>; puoModificare: boolean }) {
+function RigaUdienza({ u, fascicoli, puoModificare, protocol }: { u: Udienza; fascicoli: Array<{ value: string; label: string }>; puoModificare: boolean; protocol?: PreparationProtocol }) {
   const [scelta, setScelta] = useState('')
   const [errore, setErrore] = useState('')
   const [occupato, setOccupato] = useState(false)
+  const [pending, setPending] = useState(false)
+  const [storageError, setStorageError] = useState('')
+  const target = `nuovo-${u.idAppuntamento || u.idFascicolo}`
+  const scope = protocol?.scope
+  const readPending = useCallback(() => {
+    if (!scope) return
+    try { setPending(Boolean(loadPreparationCommand(sessionStorage, scope, target))); setStorageError('') }
+    catch { setStorageError('Impossibile recuperare il comando conservato: nessun nuovo avvio consentito.') }
+  }, [scope, target])
+  useEffect(readPending, [readPending])
   const imminente = /^(Oggi|Domani)/.test(u.quando)
-  const avvia = async () => {
+  const avvia = async (recover = false) => {
     setOccupato(true)
-    const esito = await inviaPreparazione('/api/v1/ui/preparazione-udienza/avvia', { idAppuntamento: u.idAppuntamento, idFascicolo: u.idFascicolo || scelta })
+    const url = '/api/v1/ui/preparazione-udienza/avvia'
+    const body = { idAppuntamento: u.idAppuntamento, idFascicolo: u.idFascicolo || scelta }
+    const esito = protocol?.persistentCommands && scope
+      ? await preparationCommand(sessionStorage, inviaPreparazione, { scope, target, sessionId: '' }, 0, url, body, recover)
+      : await inviaPreparazione(url, body)
+    readPending()
     setOccupato(false)
     if (esito.ok && esito.redirect) window.location.assign(String(esito.redirect))
     else setErrore(String(esito.message || 'Non riesco ad aprire la preparazione.'))
@@ -46,6 +64,7 @@ function RigaUdienza({ u, fascicoli, puoModificare }: { u: Udienza; fascicoli: A
           ) : <em>Udienza non collegata a un fascicolo</em>
         )}
         {errore ? <p className="iu-pu-errore" role="alert">{errore}</p> : null}
+        {storageError ? <p className="iu-pu-errore" role="alert">{storageError}</p> : null}
       </div>
       <div className="iu-pu-udienza__azione">
         <span className={`iu-pu-stato ${u.stato === 'Da preparare' ? 'is-da-fare' : u.stato === 'Preparata' || u.stato === 'Esito registrato' ? 'is-fatto' : 'is-corso'}`}>
@@ -54,8 +73,9 @@ function RigaUdienza({ u, fascicoli, puoModificare }: { u: Udienza; fascicoli: A
         <div className="iu-pu-avanzamento" role="img" aria-label={`${u.passiFatti} passi su 5`}>
           {[1, 2, 3, 4, 5].map((n) => <i key={n} className={n <= u.passiFatti ? 'is-fatto' : ''}/>)}
         </div>
-        {u.href ? <a className="iu-pu-btn is-primario" href={u.href}><Play size={14}/> {u.stato === 'Esito registrato' ? 'Apri' : 'Continua'}</a>
-          : puoModificare ? <button type="button" className="iu-pu-btn is-primario" disabled={occupato || (!u.idFascicolo && !scelta)} onClick={() => void avvia()}><Play size={14}/> Prepara</button> : null}
+        {pending ? <button type="button" className="iu-pu-btn" disabled={occupato || Boolean(storageError)} onClick={() => void avvia(true)}>Recupera avvio</button>
+          : u.href ? <a className="iu-pu-btn is-primario" href={u.href}><Play size={14}/> {u.stato === 'Esito registrato' ? 'Apri' : 'Continua'}</a>
+          : puoModificare ? <button type="button" className="iu-pu-btn is-primario" disabled={occupato || Boolean(storageError) || (!u.idFascicolo && !scelta)} onClick={() => void avvia()}><Play size={14}/> Prepara</button> : null}
       </div>
     </article>
   )
@@ -64,15 +84,23 @@ function RigaUdienza({ u, fascicoli, puoModificare }: { u: Udienza; fascicoli: A
 /** Preparazione udienza: le prossime udienze con lo stato della preparazione, e gli esiti registrati. */
 export function WizardProPage() {
   const [dati, setDati] = useState<Elenco | null>(null)
-  useEffect(() => {
-    fetch('/api/v1/ui/preparazione-udienza', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
-      .then((r) => r.json()).then((d: Elenco) => setDati(d)).catch(() => setDati({ ok: false, message: 'Elenco non disponibile: riprova tra poco.' }))
+  const [liveError, setLiveError] = useState('')
+  const refresh = useCallback(async () => {
+    try {
+      const response = await fetch('/api/v1/ui/preparazione-udienza', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      const data = await response.json() as Elenco
+      if (!response.ok || !data.ok) throw new Error(data.message || 'Elenco non disponibile.')
+      setDati(data); setLiveError(''); return true
+    } catch { setLiveError('Aggiornamento delle udienze non riuscito. Le scelte correnti sono conservate.'); return false }
   }, [])
-  if (!dati) return <main className="iu-content iu-pu"><p className="iu-pu-stato-pagina">Caricamento delle udienze…</p></main>
+  useEffect(() => { void refresh() }, [refresh])
+  useOperationalRefresh(['agenda', 'fascicoli', 'clienti'], refresh)
+  if (!dati) return <main className="iu-content iu-pu"><p className={`iu-pu-stato-pagina ${liveError ? 'is-errore' : ''}`} role="status">{liveError || 'Caricamento delle udienze…'}</p>{liveError ? <button onClick={() => void refresh()}>Riprova</button> : null}</main>
   if (!dati.ok) return <main className="iu-content iu-pu"><p className="iu-pu-stato-pagina is-errore" role="alert">{dati.message}</p></main>
   const r = dati.riepilogo || { settimana: 0, daPreparare: 0, preparate: 0 }
   return (
     <main className="iu-content iu-pu">
+      {liveError ? <p className="iu-pu-errore" role="alert">{liveError} <button onClick={() => void refresh()}>Riprova</button></p> : null}
       <header className="iu-pu-testa">
         <div>
           <span className="iu-pu-kicker"><Gavel size={15}/> Preparazione udienza</span>
@@ -87,7 +115,7 @@ export function WizardProPage() {
       </header>
       <section className="iu-pu-elenco" aria-label="Prossime udienze">
         {(dati.udienze || []).length ? (dati.udienze || []).map((u) => (
-          <RigaUdienza key={`${u.idAppuntamento}-${u.idFascicolo}-${u.dataOra}`} u={u} fascicoli={dati.fascicoli || []} puoModificare={Boolean(dati.puoModificare)}/>
+          <RigaUdienza key={`${u.idAppuntamento || u.idFascicolo}`} u={u} fascicoli={dati.fascicoli || []} puoModificare={Boolean(dati.puoModificare)} protocol={dati.writeProtocol}/>
         )) : (
           <div className="iu-pu-vuoto"><CalendarClock size={26}/><strong>Nessuna udienza nei prossimi 60 giorni.</strong>
             <span>Le udienze inserite in agenda o come prossima udienza del fascicolo compaiono qui.</span><a href="/agenda/nuovo">Inserisci un'udienza</a></div>

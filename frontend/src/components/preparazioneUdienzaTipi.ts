@@ -5,6 +5,7 @@ export type Verifica = { id: string; testo: string; fatta: boolean; fonte: Fonte
 export type TermineAssegnato = { descrizione: string; data: string; perentorio: boolean; id_scadenza?: string }
 
 export type SchedaUdienza = {
+  writeProtocol?: import('../preparazioneUdienzaCommand').PreparationProtocol; revision?: number
   ok: boolean; message?: string; id: string; titolo: string; stato: string; completata: boolean; passoCorrente: number; passi: Passo[]
   udienza: { dataOra: string; quando: string; luogo: string; ufficio: string; giudice: string; sezione: string; rg: string; collegamento: string; agendaHref: string }
   causa: { cliente: string; controparte: string; avvocatoControparte: string; oggetto: string; fascicolo: { etichetta?: string; href?: string }; idCliente: string }
@@ -16,7 +17,7 @@ export type SchedaUdienza = {
   campi: Record<string, string | boolean>
   esito: { valore: string; rinvioData: string; rinvioOra: string; noteVerbale: string; azioni: string; termini: TermineAssegnato[]; rinvioAgendaHref: string }
   esiti: Array<{ value: string; label: string }>
-  messaggioClienteHref: string; puoModificare?: boolean
+  messaggioClienteHref: string; puoModificare?: boolean; puoRegistrareEsito?: boolean
 }
 
 export const dataIt = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : '')

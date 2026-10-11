@@ -115,6 +115,7 @@
                   </a>
                 {% else %}
                   <form method="POST" action="{{ url_for('wizard_pro.nuovo') }}" class="px-3 py-1">
+                    {% include "wizard_pro/command_fields.html" %}
                     <input type="hidden" name="id_fascicolo" value="{{ case.id }}">
                     <input type="hidden" name="id_appuntamento" value="{{ case.id_appuntamento }}">
                     <button type="submit" class="dropdown-item hearing-case-card__menu-submit">

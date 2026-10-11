@@ -20,6 +20,9 @@ TABLE_DOMAINS = {
     # un solo segnale, confermato insieme alla scrittura governata.
     "prima_nota_state": ("incassi",),
     "ctu_state": ("fascicoli",),
+    # La preparazione appartiene all'Agenda: stesso presidio di permessi e
+    # stessa regia delle aree aperte, senza un canale parallelo.
+    "preparazioni_sessions": ("agenda",),
     "messaggi": ("comunicazioni",),
     "email_mailbox_records": ("comunicazioni",),
     "privacy_trattamenti": ("privacy",),

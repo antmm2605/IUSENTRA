@@ -277,17 +277,31 @@ class GestioneWizardPro:
 
     def __init__(self, db_path: str):
         self._path = Path(db_path)
-        self._path.parent.mkdir(parents=True, exist_ok=True)
+
+    def _assert_legacy_active(self):
+        from pct.prima_nota_transition import assert_json_source_active
+        try:
+            assert_json_source_active(self._path)
+        except RuntimeError as exc:
+            raise RuntimeError("Preparazioni in transizione SQL: accesso all'archivio storico sospeso.") from exc
 
     def _carica_tutto(self) -> list:
-        if not self._path.exists():
-            return []
+        self._assert_legacy_active()
         try:
-            return json.loads(self._path.read_text(encoding="utf-8"))
-        except Exception:
+            content = self._path.read_text(encoding="utf-8")
+        except FileNotFoundError:
             return []
+        from pct.udienze.repository import validate_record
+        payload = json.loads(content)
+        if not isinstance(payload, list):
+            raise ValueError("Archivio preparazioni non valido: nessuna riga sostituita o scartata.")
+        for record in payload:
+            validate_record(record)
+        return payload
 
     def _salva_tutto(self, sessioni: list) -> None:
+        self._assert_legacy_active()
+        self._path.parent.mkdir(parents=True, exist_ok=True)
         self._path.write_text(
             json.dumps(sessioni, ensure_ascii=False, indent=2),
             encoding="utf-8",
@@ -306,6 +320,13 @@ class GestioneWizardPro:
         return None
 
     def salva(self, sessione: SessioneWizardPro) -> None:
+        from pct.prima_nota_transition import prima_nota_source_lock
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        with prima_nota_source_lock(self._path):
+            self._assert_legacy_active()
+            self._salva_sessione(sessione)
+
+    def _salva_sessione(self, sessione: SessioneWizardPro) -> None:
         sessione.modificato_il = datetime.now().isoformat()
         tutti = self._carica_tutto()
         for i, d in enumerate(tutti):
@@ -317,6 +338,13 @@ class GestioneWizardPro:
         self._salva_tutto(tutti)
 
     def elimina(self, id_sessione: str) -> bool:
+        from pct.prima_nota_transition import prima_nota_source_lock
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        with prima_nota_source_lock(self._path):
+            self._assert_legacy_active()
+            return self._elimina_sessione(id_sessione)
+
+    def _elimina_sessione(self, id_sessione: str) -> bool:
         tutti = self._carica_tutto()
         nuovi = [d for d in tutti if d.get("id") != id_sessione]
         if len(nuovi) < len(tutti):

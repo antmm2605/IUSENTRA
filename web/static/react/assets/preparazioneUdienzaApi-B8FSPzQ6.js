@@ -1,0 +1,1 @@
+import{n as e}from"./client-qEzbxUes.js";var t=(t,n)=>e(t,n,{ok:!1,message:`Connessione interrotta: bozza e comando conservati per il recupero.`},{headers:{"X-Requested-With":`XMLHttpRequest`}});export{t};

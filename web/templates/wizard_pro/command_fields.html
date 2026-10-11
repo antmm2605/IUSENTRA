@@ -1,0 +1,14 @@
+{% if preparazione_sql %}
+<input type="hidden" name="commandKey" value="{{ preparazione_command_key }}">
+<input type="hidden" name="expectedRevision" value="{{ sessione.sql_revision if sessione is defined else 0 }}">
+{% if sessione is defined and step_n is defined and step_n == 2 %}
+<input type="hidden" name="documentCount" value="{{ sessione.checklist_documenti|length }}">
+{% for row in sessione.checklist_documenti %}
+<input type="hidden" name="doc_id_{{ loop.index0 }}" value="{{ row.id_documento }}">
+<input type="hidden" name="doc_label_{{ loop.index0 }}" value="{{ row.label }}">
+{% endfor %}
+{% endif %}
+{% if sessione is defined and step_n is defined and step_n == 5 %}
+<input type="hidden" name="terminiIntent" value='{{ sessione.termini_assegnati|tojson }}'>
+{% endif %}
+{% endif %}

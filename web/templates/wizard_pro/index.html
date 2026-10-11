@@ -209,6 +209,7 @@
         </a>
       {% else %}
         <form method="POST" action="{{ url_for('wizard_pro.nuovo') }}" class="hearing-prep-mobile-cta__form">
+          {% include "wizard_pro/command_fields.html" %}
           <input type="hidden" name="id_fascicolo" value="{{ dashboard.selected_case.id }}">
           <input type="hidden" name="id_appuntamento" value="{{ dashboard.selected_case.id_appuntamento }}">
           <button type="submit" class="btn btn-primary">

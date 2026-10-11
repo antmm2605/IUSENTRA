@@ -1,12 +1,17 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, BookOpen, CheckCircle2, ExternalLink, FileText, MessageSquare, Plus, Scale, Trash2 } from 'lucide-react'
 import { dataIt, type Fonte, type SchedaUdienza, type TermineAssegnato } from './preparazioneUdienzaTipi'
 import { SourceDocumentModal, type SourceDocument } from './SourceDocumentModal'
 
 export type Azioni = {
-  salvaCampi: (passo: number, campi: Record<string, unknown>, conferma?: boolean) => Promise<void>
+  salvaCampi: (passo: number, campi: Record<string, unknown>, conferma?: boolean) => Promise<'saved' | 'deferred' | 'failed'>
   azione: (azione: string, corpo: Record<string, unknown>) => Promise<Record<string, unknown>>
   occupato: boolean
+  modificaCampi: (fields: Record<string, string | boolean>) => void
+  bozzaEsito: () => void
+  puoModificare: boolean
+  esitoBozza: boolean
+  modificaEsito: (esito: SchedaUdienza['esito']) => void
 }
 
 function Norma({ fonte }: { fonte: Fonte }) {
@@ -21,11 +26,24 @@ function Norma({ fonte }: { fonte: Fonte }) {
 }
 
 function Testo({ nome, etichetta, valore, righe = 4, suggerimento, passo, a }: { nome: string; etichetta: string; valore: string; righe?: number; suggerimento: string; passo: number; a: Azioni }) {
-  const [testo, setTesto] = useState(valore)
+  const changed = useRef(false)
+  const save = useRef(a.salvaCampi)
+  const latestValue = useRef(valore)
+  latestValue.current = valore
+  save.current = a.salvaCampi
+  useEffect(() => {
+    if (!changed.current || a.occupato) return
+    const timer = window.setTimeout(() => { void save.current(passo, { [nome]: valore }).then(result => {
+      if (result !== 'deferred' && latestValue.current === valore) changed.current = false
+    }) }, 650)
+    return () => window.clearTimeout(timer)
+  }, [valore, nome, passo, a.occupato])
   return (
     <label className="iu-pu-campo"><span>{etichetta}</span>
-      <textarea rows={righe} value={testo} placeholder={suggerimento} onChange={(e) => setTesto(e.target.value)}
-        onBlur={() => { if (testo !== valore) void a.salvaCampi(passo, { [nome]: testo }) }}/>
+      <textarea rows={righe} value={valore} readOnly={!a.puoModificare} placeholder={suggerimento} onChange={(e) => { changed.current = true; a.modificaCampi({ [nome]: e.target.value }) }}
+        onBlur={() => { if (changed.current && !a.occupato) { void a.salvaCampi(passo, { [nome]: valore }).then(result => {
+          if (result !== 'deferred' && latestValue.current === valore) changed.current = false
+        }) } }}/>
     </label>
   )
 }
@@ -42,7 +60,7 @@ export function PassoQuadro({ s, a }: { s: SchedaUdienza; a: Azioni }) {
 
       <section className="iu-pu-blocco">
         <h3><Scale size={15}/> Tipo di udienza e verifiche di legge</h3>
-        <select value={s.tipoUdienza} disabled={!s.puoModificare} onChange={(e) => void a.salvaCampi(1, { tipo_udienza: e.target.value })}>
+        <select value={s.tipoUdienza} disabled={!s.puoModificare || a.occupato} onChange={(e) => void a.salvaCampi(1, { tipo_udienza: e.target.value })}>
           <option value="">Scegli il tipo di udienza</option>
           {s.tipi.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
@@ -81,7 +99,9 @@ export function PassoQuadro({ s, a }: { s: SchedaUdienza; a: Azioni }) {
 }
 
 export function PassoDocumenti({ s, a }: { s: SchedaUdienza; a: Azioni }) {
-  const [extra, setExtra] = useState('')
+  const extra = String(s.campi.documento_extra || '')
+  const latestExtra = useRef(extra)
+  latestExtra.current = extra
   const [fonte, setFonte] = useState<SourceDocument | null>(null)
   const utili = s.documenti.filter((d) => d.stato !== 'non_necessario')
   const pronti = utili.filter((d) => d.stato === 'pronto').length
@@ -104,8 +124,8 @@ export function PassoDocumenti({ s, a }: { s: SchedaUdienza; a: Azioni }) {
       </ul>
       {s.puoModificare ? (
         <div className="iu-pu-aggiungi">
-          <input value={extra} placeholder="Altro da portare (es. originale del contratto, fascicolo di parte cartaceo)" onChange={(e) => setExtra(e.target.value)}/>
-          <button type="button" disabled={!extra.trim() || a.occupato} onClick={() => void a.azione('documento-extra', { etichetta: extra }).then((r) => { if (r.ok) setExtra('') })}><Plus size={14}/> Aggiungi</button>
+          <input value={extra} aria-label="Altro documento da portare" placeholder="Altro da portare (es. originale del contratto, fascicolo di parte cartaceo)" onChange={(e) => a.modificaCampi({ documento_extra: e.target.value })}/>
+          <button type="button" disabled={!extra.trim() || a.occupato} onClick={() => void a.azione('documento-extra', { etichetta: extra }).then((r) => { if (r.ok && latestExtra.current === extra) a.modificaCampi({ documento_extra: '' }) })}><Plus size={14}/> Aggiungi</button>
         </div>
       ) : null}
       <SourceDocumentModal source={fonte} onClose={() => setFonte(null)}/>
@@ -160,7 +180,18 @@ export function PassoEsito({ s, a }: { s: SchedaUdienza; a: Azioni }) {
   const [note, setNote] = useState(s.esito.noteVerbale)
   const [azioniDopo, setAzioniDopo] = useState(s.esito.azioni)
   const [termini, setTermini] = useState<TermineAssegnato[]>(s.esito.termini.length ? s.esito.termini : [])
-  const bloccato = !s.puoModificare
+  const storeOutcome = useRef(a.modificaEsito)
+  storeOutcome.current = a.modificaEsito
+  useEffect(() => {
+    if (a.esitoBozza) storeOutcome.current({ valore: esito, rinvioData, rinvioOra, noteVerbale: note,
+      azioni: azioniDopo, termini, rinvioAgendaHref: s.esito.rinvioAgendaHref })
+  }, [esito, rinvioData, rinvioOra, note, azioniDopo, termini, a.esitoBozza, s.esito.rinvioAgendaHref])
+  useEffect(() => {
+    if (a.esitoBozza) return
+    setEsito(s.esito.valore); setRinvioData(s.esito.rinvioData); setRinvioOra(s.esito.rinvioOra || '09:00')
+    setNote(s.esito.noteVerbale); setAzioniDopo(s.esito.azioni); setTermini(s.esito.termini)
+  }, [s.esito, a.esitoBozza])
+  const bloccato = !s.puoModificare || !s.puoRegistrareEsito
   if (s.completata) {
     return (
       <div className="iu-pu-passo">
@@ -177,14 +208,14 @@ export function PassoEsito({ s, a }: { s: SchedaUdienza; a: Azioni }) {
     )
   }
   return (
-    <div className="iu-pu-passo">
+    <div className="iu-pu-passo" onChangeCapture={a.bozzaEsito}>
       <div className="iu-pu-esiti" role="group" aria-label="Esito dell'udienza">
-        {s.esiti.map((e) => <button type="button" key={e.value} aria-pressed={esito === e.value} disabled={bloccato} onClick={() => setEsito(e.value)}>{e.label}</button>)}
+        {s.esiti.map((e) => <button type="button" key={e.value} aria-pressed={esito === e.value} disabled={bloccato} onClick={() => { a.bozzaEsito(); setEsito(e.value) }}>{e.label}</button>)}
       </div>
       {esito === 'rinvio' ? (
         <div className="iu-pu-riga">
-          <label className="iu-pu-campo"><span>Rinvio al</span><input type="date" value={rinvioData} onChange={(e) => setRinvioData(e.target.value)}/></label>
-          <label className="iu-pu-campo"><span>Ore</span><input type="time" value={rinvioOra} onChange={(e) => setRinvioOra(e.target.value)}/></label>
+          <label className="iu-pu-campo"><span>Rinvio al</span><input type="date" value={rinvioData} readOnly={bloccato} onChange={(e) => setRinvioData(e.target.value)}/></label>
+          <label className="iu-pu-campo"><span>Ore</span><input type="time" value={rinvioOra} readOnly={bloccato} onChange={(e) => setRinvioOra(e.target.value)}/></label>
           <p className="iu-pu-nota">L'udienza di rinvio viene inserita in agenda e diventa la prossima udienza del fascicolo.</p>
         </div>
       ) : null}
@@ -192,20 +223,20 @@ export function PassoEsito({ s, a }: { s: SchedaUdienza; a: Azioni }) {
         <h3>Termini assegnati dal giudice</h3>
         {termini.map((t, i) => (
           <div className="iu-pu-riga" key={i}>
-            <label className="iu-pu-campo is-largo"><span>Adempimento</span><input value={t.descrizione} placeholder="Es. deposito note scritte" disabled={Boolean(t.id_scadenza)}
+            <label className="iu-pu-campo is-largo"><span>Adempimento</span><input value={t.descrizione} placeholder="Es. deposito note scritte" disabled={bloccato || Boolean(t.id_scadenza)}
               onChange={(e) => setTermini(termini.map((x, j) => (j === i ? { ...x, descrizione: e.target.value } : x)))}/></label>
-            <label className="iu-pu-campo"><span>Entro il</span><input type="date" value={t.data} disabled={Boolean(t.id_scadenza)}
+            <label className="iu-pu-campo"><span>Entro il</span><input type="date" value={t.data} disabled={bloccato || Boolean(t.id_scadenza)}
               onChange={(e) => setTermini(termini.map((x, j) => (j === i ? { ...x, data: e.target.value } : x)))}/></label>
-            <label className="iu-pu-spunta"><input type="checkbox" checked={t.perentorio} disabled={Boolean(t.id_scadenza)}
+            <label className="iu-pu-spunta"><input type="checkbox" checked={t.perentorio} disabled={bloccato || Boolean(t.id_scadenza)}
               onChange={(e) => setTermini(termini.map((x, j) => (j === i ? { ...x, perentorio: e.target.checked } : x)))}/><span>Perentorio</span></label>
-            {!t.id_scadenza ? <button type="button" className="iu-pu-icona" aria-label="Togli il termine" onClick={() => setTermini(termini.filter((_, j) => j !== i))}><Trash2 size={14}/></button> : null}
+            {!bloccato && !t.id_scadenza ? <button type="button" className="iu-pu-icona" aria-label="Togli il termine" onClick={() => { a.bozzaEsito(); setTermini(termini.filter((_, j) => j !== i)) }}><Trash2 size={14}/></button> : null}
           </div>
         ))}
-        {!bloccato ? <button type="button" className="iu-pu-btn" onClick={() => setTermini([...termini, { descrizione: '', data: '', perentorio: false }])}><Plus size={14}/> Aggiungi un termine</button> : null}
+        {!bloccato ? <button type="button" className="iu-pu-btn" onClick={() => { a.bozzaEsito(); setTermini([...termini, { descrizione: '', data: '', perentorio: false }]) }}><Plus size={14}/> Aggiungi un termine</button> : null}
         <p className="iu-pu-nota">Ogni termine diventa una scadenza del fascicolo, con gli avvisi dello scadenziario.</p>
       </section>
-      <label className="iu-pu-campo"><span>Cosa è successo in udienza</span><textarea rows={4} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Sintesi del verbale: dichiarazioni, provvedimenti, riserve."/></label>
-      <label className="iu-pu-campo"><span>Cosa fare adesso</span><textarea rows={3} value={azioniDopo} onChange={(e) => setAzioniDopo(e.target.value)} placeholder="Es. informare il cliente, preparare le memorie, contattare il CTU."/></label>
+      <label className="iu-pu-campo"><span>Cosa è successo in udienza</span><textarea rows={4} value={note} readOnly={bloccato} onChange={(e) => setNote(e.target.value)} placeholder="Sintesi del verbale: dichiarazioni, provvedimenti, riserve."/></label>
+      <label className="iu-pu-campo"><span>Cosa fare adesso</span><textarea rows={3} value={azioniDopo} readOnly={bloccato} onChange={(e) => setAzioniDopo(e.target.value)} placeholder="Es. informare il cliente, preparare le memorie, contattare il CTU."/></label>
       {!bloccato ? (
         <button type="button" className="iu-pu-btn is-primario" disabled={!esito || a.occupato || (esito === 'rinvio' && !rinvioData)}
           onClick={() => void a.azione('esito', { esito, rinvioData, rinvioOra, noteVerbale: note, azioni: azioniDopo, termini })}>Registra l'esito</button>

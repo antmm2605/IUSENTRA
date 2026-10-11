@@ -182,6 +182,11 @@ def _documenti(conn: sqlite3.Connection, richiesta: RichiestaArticolo) -> list[s
             ).fetchall()
             if re.search(rf":{anno}-\d\d-\d\d;{numero}(?!\d)", r["urn"] or "")
         ]
+    if richiesta.urn == _URN_CODICE_CIVILE:
+        # Il pacchetto separa preleggi e codice, pur conservando lo stesso URN.
+        # Una raccolta più recente non può sostituire quella richiesta.
+        righe = [r for r in righe if not str(r["collection_name"] or "").startswith("Lex fonti: ")
+                 or r["collection_name"] == "Lex fonti: codice_civile"]
     # Più recente prima: l'importazione notturna aggiorna il testo vigente.
     return sorted(righe, key=lambda r: (str(r["imported_at"] or ""), int(r["id"])), reverse=True)
 

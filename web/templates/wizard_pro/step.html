@@ -109,6 +109,7 @@
         <form method="POST"
               action="{{ url_for('wizard_pro.step', id_sessione=sessione.id, n=step_n) }}"
               id="formStep">
+          {% include "wizard_pro/command_fields.html" %}
 
           {# ═══════════════════════════════════════════════ STEP 1 — BRIEFING #}
           {% if step_n == 1 %}
@@ -148,9 +149,9 @@
               <div class="fw-bold small">{{ appuntamento.titolo }}</div>
               <div class="small">
                 {% if appuntamento.data_ora %}
-                <i class="bi bi-clock me-1"></i>{{ appuntamento.data_ora[:10] }}
+                <i class="bi bi-clock me-1"></i>{{ appuntamento.data_ora|fmt_data }}
                 {% if appuntamento.data_ora|length > 10 %}
-                alle {{ appuntamento.data_ora[11:16] }}
+                alle {{ appuntamento.data_ora|fmt_ora }}
                 {% endif %}
                 {% endif %}
                 {% if appuntamento.luogo %}
@@ -490,9 +491,9 @@
         {% if appuntamento.data_ora %}
         <div class="small text-muted mt-1">
           <i class="bi bi-clock me-1"></i>
-          {{ appuntamento.data_ora[:10] }}
+          {{ appuntamento.data_ora|fmt_data }}
           {% if appuntamento.data_ora|length > 10 %}
-            alle {{ appuntamento.data_ora[11:16] }}
+            alle {{ appuntamento.data_ora|fmt_ora }}
           {% endif %}
         </div>
         {% endif %}

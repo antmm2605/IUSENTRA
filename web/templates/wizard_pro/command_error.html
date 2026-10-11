@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Preparazione udienza — salvataggio non confermato{% endblock %}
+{% block content %}
+<section class="card">
+  <div class="card-body">
+    <h1 class="h5">Salvataggio non confermato</h1>
+    <p role="alert">{{ command_error.message }}</p>
+    <p>I dati del modulo sono riportati qui sotto. Il contenuto già registrato non viene sovrascritto.</p>
+    <dl>
+    {% for name, value in submitted_fields %}
+      {% if name not in ['csrf_token', 'commandKey', 'expectedRevision', 'terminiIntent', 'documentCount'] and not name.startswith('doc_id_') and not name.startswith('doc_label_') %}
+      <dt>{{ name | replace('_', ' ') }}</dt><dd class="text-break" style="white-space:pre-wrap">{{ value }}</dd>
+      {% endif %}
+    {% endfor %}
+    </dl>
+    {% if can_retry %}
+    <form method="post" action="{{ retry_href }}">
+      {% for name, value in submitted_fields %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+      <button type="submit" class="btn btn-primary">Recupera lo stesso salvataggio</button>
+    </form>
+    {% else %}<p>Il comando è stato rifiutato: confronta questa bozza con i dati aggiornati prima di modificarli.</p>{% endif %}
+    <a class="btn btn-outline-secondary mt-2" href="{{ url_for('wizard_pro.index') }}" target="_blank" rel="noopener">Apri i dati aggiornati</a>
+  </div>
+</section>
+{% endblock %}

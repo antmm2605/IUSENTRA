@@ -15879,6 +15879,7 @@ def preventivi_wizard_create_page():
 @api_v1_react.get("/agenda")
 @_richiedi_auth
 def agenda():
+    from web.helpers import get_wizard_pro
     email_db_path = Path(_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"))
     payload = build_react_agenda_payload(
         get_agenda,
@@ -15889,6 +15890,7 @@ def agenda():
         selected_id=request.args.get("selected_id", "").strip(),
         pec_audit_db=str(email_db_path.parent / "pec_audit.sqlite"),
         tenant_id=_tenant_runtime_label(),
+        preparazioni_loader=get_wizard_pro,
     )
     return jsonify(payload)
 

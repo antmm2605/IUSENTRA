@@ -107,6 +107,10 @@ def register_preparazione_udienza_routes(app: Flask, core: dict[str, Any]) -> No
         sessione = _sessione(sid)
         if sessione is None:
             return jsonify({"ok": False, "message": "Preparazione non trovata."}), 404
+        if getattr(sessione, "reference_issue", ""):
+            return jsonify(ok=False, message=sessione.reference_issue +
+                           " Consulta la preparazione storica conservata nell'elenco.",
+                           href="/wizard-pro/"), 409
         return jsonify({**_dettaglio(sessione), "puoModificare": _puo("agenda.scrivi")})
 
     @app.route("/api/v1/ui/preparazione-udienza/<sid>/<azione>", methods=["POST"])

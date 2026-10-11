@@ -57,6 +57,28 @@ def test_http_preconditions_and_exact_replay(http):
     assert db.conn.execute("SELECT count(*) FROM preparazioni_commands").fetchone()[0] == 1
 
 
+def test_historical_missing_reference_blocks_real_detail_and_writes(http):
+    client, db, repo, item, _, _ = http
+    reason = "Documento storico assente: fonte da recuperare."
+    repo._audit(db.conn, "__adoption", "adozione", 0, {},
+                {"unresolved_references": {item["id"]: reason}}, "2026-10-11T10:00:00+02:00",
+                command_key=str(uuid4()))
+    db.conn.commit()
+    repo._reference_issues = None
+    before = repo.get(item["id"])
+    url = f'/api/v1/ui/preparazione-udienza/{item["id"]}'
+    detail = client.get(url)
+    assert detail.status_code == 409
+    assert detail.get_json()["href"] == "/wizard-pro/"
+    assert reason in detail.get_json()["message"] and "campi" not in detail.get_json()
+    command = {"commandKey": str(uuid4()), "expectedRevision": 0, "passo": 1,
+               "campi": {"step1_note": "Non deve essere scritto"}}
+    refused = client.post(url + "/passo", json=command)
+    assert refused.status_code == 400
+    assert client.post(url + "/passo", json=command).get_json() == refused.get_json()
+    assert repo.get(item["id"]) == before
+
+
 def test_http_conflict_persistent_and_permission_no_write(http):
     client, _, repo, item, permissions, manager = http
     url = f'/api/v1/ui/preparazione-udienza/{item["id"]}/passo'

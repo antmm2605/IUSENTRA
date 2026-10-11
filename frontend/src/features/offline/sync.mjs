@@ -31,6 +31,19 @@ export function reconcile(state, response) {
   }
   return {...state,notes,queue,cursor:response.cursor,lease_until:response.lease_until,cases:response.cases || state.cases || [],can_write:response.can_write ?? state.can_write}
 }
+export function commandBatch(queue) {
+  const operations = []
+  let bytes = 2
+  for (const {conflict,...op} of queue) {
+    if (conflict) continue
+    const size = new TextEncoder().encode(JSON.stringify(op)).length + 1
+    if (operations.length === 50 || bytes + size > 1000000) break
+    bytes += size
+    operations.push(op)
+  }
+  if (!operations.length && queue.some(op => !op.conflict)) throw new Error('Modifica locale troppo ampia per la sincronizzazione.')
+  return operations
+}
 export async function synchronize(vault,context) {
   if (context.tenant !== vault.record.tenant || context.actor !== vault.record.actor) throw new Error('Questo archivio appartiene a un’altra identità o studio.')
   // One writer across tabs. Lost-response retry retains the original command.
@@ -39,7 +52,7 @@ export async function synchronize(vault,context) {
     try {
       let more = true, pages = 0
       while (more && pages++ < 20) {
-        const operations = vault.state.queue.filter(op => !op.conflict).slice(0,50).map(({conflict,...op}) => op)
+        const operations = commandBatch(vault.state.queue)
         const intent = {cursor:vault.state.cursor,operations}
         const result = await request(`/devices/${vault.record.id}/sync`,{intent,proof:await proof(vault,'sync:'+await hash(intent),context.csrf)},context.csrf)
         if (result.device !== vault.record.id || result.tenant !== context.tenant || result.actor !== context.actor) throw new Error('Archivio di aggiornamento non riconosciuto.')

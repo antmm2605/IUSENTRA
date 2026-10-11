@@ -4,7 +4,7 @@ import vm from 'node:vm'
 import fs from 'node:fs'
 import {createCredential,derive,seal,open,sign,unb64,canonical,hash} from '../../frontend/src/features/offline/crypto.mjs'
 import {assertLease} from '../../frontend/src/features/offline/vault.mjs'
-import {reconcile,resolveConflict,saveNote} from '../../frontend/src/features/offline/sync.mjs'
+import {reconcile,resolveConflict,saveNote,commandBatch} from '../../frontend/src/features/offline/sync.mjs'
 
 test('nonextractable per-device key signs verifiable P-256 challenges',async () => {
   const credential=await createCredential()
@@ -72,4 +72,13 @@ test('ordinary online drafts stay in memory; UI preferences retain normal storag
   assert.equal(local.values.size,0)
   local.setItem('pct-theme','dark');assert.equal(local.values.get('pct-theme'),'dark')
   session.setItem('iusentra.ctu.pending.v1.case','pending-sensitive');assert.equal(session.values.size,0)
+})
+
+test('large offline document queues use bounded batches without dropping commands',() => {
+  const queue = Array.from({length:50},(_,i)=>({command:String(i),payload:{text:'😀'.repeat(32000),attachment:{text:'D'.repeat(65536)}}}))
+  const batch = commandBatch(queue)
+  assert.ok(batch.length > 0 && batch.length < 50)
+  assert.ok(new TextEncoder().encode(JSON.stringify(batch)).length < 1000000)
+  assert.deepEqual([...batch,...queue.slice(batch.length)],queue)
+  assert.deepEqual(commandBatch([{conflict:{version:2}},...queue]),batch)
 })

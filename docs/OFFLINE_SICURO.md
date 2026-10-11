@@ -91,7 +91,8 @@ la conferma segnala la perdita delle modifiche pendenti.
 Il server SQL resta autorevole. Una sequenza per studio serializza revoche,
 consumo delle prove e scritture. Ogni comando contiene UUID, nota e versione
 base. Una ricevuta persistente rende il retry dopo risposta persa idempotente;
-lo stesso comando con contenuto diverso viene rifiutato. Batch invalidi o
+lo stesso comando con contenuto diverso viene rifiutato. Il client limita i batch
+a 50 comandi e 1 MB serializzato, conservando il resto della coda per la richiesta successiva. Batch invalidi o
 non autorizzati vengono annullati per intero. Il delta paginato restituisce
 solo note proprie autorizzate e tombstone, dopo il cursor confermato.
 
@@ -129,7 +130,7 @@ computer reale; non si dichiara bonifica universale di tutti i browser.
 
 ## Prove e stato della consegna
 
-Guardrail tecnici locali: 13 test Python del dominio/API e 7 test JavaScript;
+Guardrail tecnici locali: 13 test Python del dominio/API e 8 test JavaScript;
 2 test della regia live esistente; build con Vite 8.2.2, React/ReactDOM 19.2.8;
 lint mirato, governance, sincronizzazione manifest e baseline Python 3.12.
 Test packaging: versioni allineate; aperta una discordanza preesistente della

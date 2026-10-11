@@ -25,7 +25,9 @@ def _href(sessione: Any) -> str:
 
 def elenco(*, agenda: Any, fascicoli: Any, preparazioni: Any, oggi: date) -> dict[str, Any]:
     tutti_fascicoli = list(fascicoli.tutti())
-    sessioni = [s for s in preparazioni.lista() if getattr(s, "stato", "") != "archiviato"]
+    tutte_sessioni = list(preparazioni.lista())
+    preservate = [s for s in tutte_sessioni if getattr(s, "reference_issue", "")]
+    sessioni = [s for s in tutte_sessioni if getattr(s, "stato", "") != "archiviato" and not getattr(s, "reference_issue", "")]
     per_appuntamento = {str(s.id_appuntamento): s for s in sessioni if s.id_appuntamento}
     limite = (oggi + timedelta(days=ORIZZONTE)).isoformat()
     udienze, visti = [], set()
@@ -54,6 +56,8 @@ def elenco(*, agenda: Any, fascicoli: Any, preparazioni: Any, oggi: date) -> dic
     settimana = (oggi + timedelta(days=7)).isoformat()
     return {
         "ok": True, "udienze": udienze,
+        "preservate": [{"id": s.id, "titolo": s.titolo, "motivo": s.reference_issue,
+                        "idFascicoloStorico": s.id_fascicolo, "dati": s.to_dict()} for s in preservate],
         "concluse": [{"id": s.id, "titolo": s.titolo, "esito": ESITI.get(s.esito, s.esito or "—"), "data": (s.completato_il or "")[:10],
                       "rinvio": s.esito_rinvio_data, "href": _href(s)} for s in concluse],
         "riepilogo": {"settimana": sum(1 for u in udienze if u["dataOra"][:10] <= settimana),

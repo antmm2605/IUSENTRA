@@ -31,10 +31,14 @@ def read_source(source):
     return records, fingerprint, content
 
 
-def verify_references(db, records):
+def verify_references(db, records, *, preserve_missing_fascicoli=False, preserve_missing_documents=False):
     """Solo le identità già registrate: nessuna scansione o lettura di allegati."""
+    unresolved = {}
     for item in records:
         row = db.conn.execute("SELECT id,dati_json,attivita_json,documenti_json FROM fascicoli WHERE id=?", (item["id_fascicolo"],)).fetchone()
+        if row is None and preserve_missing_fascicoli:
+            unresolved[item["id"]] = "Fascicolo storico assente dall'archivio dello studio. Collegamenti ed effetti non verificati."
+            continue
         if row is None or json.loads(row[1]).get("id") != item["id_fascicolo"]:
             raise ValueError("Fascicolo della preparazione mancante o con identità SQL discordante.")
         for key in (item["id_appuntamento"], item["id_appuntamento_rinvio"]):
@@ -44,7 +48,9 @@ def verify_references(db, records):
                     raise ValueError("Udienza della preparazione mancante o discordante.")
         documents = {doc["id"] for doc in json.loads(row[3] or "[]")}
         if any(doc.get("id_documento") and doc["id_documento"] not in documents for doc in item["checklist_documenti"]):
-            raise ValueError("Documento collegato alla preparazione non presente nel fascicolo: recupero necessario.")
+            if not preserve_missing_documents:
+                raise ValueError("Documento collegato alla preparazione non presente nel fascicolo: recupero necessario.")
+            unresolved[item["id"]] = "Documenti storici della preparazione assenti dal fascicolo attuale. Collegamenti ed effetti non verificati."
         activity = item["id_attivita_fascicolo"]
         if activity and not any(a.get("id") == activity for a in json.loads(row[2] or "[]")):
             raise ValueError("Attività della preparazione non presente nel fascicolo.")
@@ -57,6 +63,7 @@ def verify_references(db, records):
             if (deadline is None or deadline[0] != item["id_fascicolo"] or payload.get("id") != key
                     or payload.get("id_fascicolo") != item["id_fascicolo"]):
                 raise ValueError("Termine della preparazione mancante o appartenente ad altro fascicolo.")
+    return unresolved
 
 
 def verify_backup(destination, *, source, fingerprint, content, tenant, db, postgres):
@@ -80,7 +87,7 @@ def verify_backup(destination, *, source, fingerprint, content, tenant, db, post
     return manifest
 
 
-def adopt_locked(db, source, *, tenant, destination, writers_drained, data_root):
+def adopt_locked(db, source, *, tenant, destination, writers_drained, data_root, preserve_missing_fascicoli=False, preserve_missing_documents=False):
     """Il chiamante mantiene prima_nota_source_lock sulla sola fonte Wizard."""
     from deploy.hetzner.backup_structured import _backup_sqlite
     from scripts.postgres_backup import backup_postgres
@@ -93,7 +100,8 @@ def adopt_locked(db, source, *, tenant, destination, writers_drained, data_root)
     if not root.is_relative_to(data) or root == data or not Path(source).resolve().is_relative_to(data):
         raise ValueError("Fonte e backup delle preparazioni devono restare nel volume dati dello studio.")
     records, fingerprint, content = read_source(source)
-    verify_references(db, records)
+    unresolved = verify_references(db, records, preserve_missing_fascicoli=preserve_missing_fascicoli,
+                                  preserve_missing_documents=preserve_missing_documents)
     if content is None:
         mirrors = db.conn.execute("SELECT count(*) FROM moduli_json_records WHERE modulo IN ('wizard_pro','preparazioni_udienze')").fetchone()[0]
         if mirrors:
@@ -118,19 +126,23 @@ def adopt_locked(db, source, *, tenant, destination, writers_drained, data_root)
     current, current_sha, _ = read_source(source)
     if fingerprint != current_sha or current != records:
         raise RuntimeError("Fonte cambiata durante il backup: adozione sospesa.")
-    verify_references(db, records)
+    if verify_references(db, records, preserve_missing_fascicoli=preserve_missing_fascicoli,
+                         preserve_missing_documents=preserve_missing_documents) != unresolved:
+        raise RuntimeError("Collegamenti cambiati durante il backup: adozione sospesa.")
     prepare_transition_locked(source, tenant=tenant, source_sha256=fingerprint)
     repository = PreparazioniRepository(db, tenant, actor="migrazione-preparazioni")
     repository.ensure_schema()
     ensure_live_schema(db.conn, postgres=postgres)
-    repository.initialize(records, source_sha256=fingerprint, backup_reference=str(root))
+    repository.initialize(records, source_sha256=fingerprint, backup_reference=str(root), unresolved_references=unresolved)
     state = db.conn.execute("SELECT source_sha256,backup_reference FROM preparazioni_state WHERE tenant_key=?", (tenant,)).fetchone()
     if state is None or tuple(state[i] for i in range(2)) != (fingerprint, str(root)):
         raise RuntimeError("Adozione SQL non riscontrata: barriera conservata.")
     audit = db.conn.execute("SELECT dettagli,esito FROM audit_log WHERE azione='udienza.adozione' AND risorsa_id='__adoption' AND id_utente='migrazione-preparazioni'").fetchall()
     matches = [json.loads(row[0]) for row in audit if row[1] == "OK" and json.loads(row[0]).get("tenant") == tenant]
     expected = {"records": len(records), "source_sha256": fingerprint, "backup_reference": str(root)}
+    if unresolved:
+        expected["unresolved_references"] = unresolved
     if len(matches) != 1 or matches[0].get("after") != expected:
         raise RuntimeError("Audit dell'adozione non concordante: barriera conservata.")
     commit_transition_locked(source, tenant=tenant, source_sha256=fingerprint)
-    return {"tenant": tenant, "source_sha256": fingerprint, "records": len(records), "backup": str(root), "phase": "committed"}
+    return {"tenant": tenant, "source_sha256": fingerprint, "records": len(records), "unresolved": len(unresolved), "backup": str(root), "phase": "committed"}

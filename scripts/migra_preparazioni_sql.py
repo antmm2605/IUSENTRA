@@ -21,6 +21,10 @@ def main():
     parser.add_argument("--data-root", default=os.environ.get("PCT_DATA_ROOT", ""))
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--writers-drained", action="store_true")
+    parser.add_argument("--preserve-missing-fascicoli", action="store_true",
+                        help="Conserva in SQL e audit le preparazioni prive di fascicolo, in sola lettura e senza effetti.")
+    parser.add_argument("--preserve-missing-documents", action="store_true",
+                        help="Conserva in sola lettura le preparazioni con documenti storici assenti dal fascicolo.")
     args = parser.parse_args()
     if args.apply and not (args.backup_dir and args.data_root and args.writers_drained):
         parser.error("Adozione: servono volume dati, backup coerente e drain dei produttori.")
@@ -65,15 +69,18 @@ def main():
                     source.parent.mkdir(parents=True, exist_ok=True)
                 with prima_nota_source_lock(source) if args.apply else nullcontext():
                     records, fingerprint, content = read_source(source)
-                    verify_references(db, records)
+                    unresolved = verify_references(db, records, preserve_missing_fascicoli=args.preserve_missing_fascicoli,
+                                                  preserve_missing_documents=args.preserve_missing_documents)
                     if content is None and db.conn.execute("SELECT count(*) FROM moduli_json_records WHERE modulo IN ('wizard_pro','preparazioni_udienze')").fetchone()[0]:
                         raise RuntimeError("Fonte assente con mirror non vuoto: recupero necessario.")
                     tenant = slug if studio is not None else "studio"
                     result = {"tenant": tenant, "source": str(source), "source_sha256": fingerprint,
-                              "records": len(records), "phase": "verified", "apply": args.apply}
+                              "records": len(records), "unresolved": len(unresolved), "phase": "verified", "apply": args.apply}
                     if args.apply:
                         result.update(adopt_locked(db, source, tenant=tenant, destination=Path(args.backup_dir) / slug,
-                            data_root=args.data_root, writers_drained=args.writers_drained))
+                            data_root=args.data_root, writers_drained=args.writers_drained,
+                            preserve_missing_fascicoli=args.preserve_missing_fascicoli,
+                            preserve_missing_documents=args.preserve_missing_documents))
                     log.write(json.dumps(result, ensure_ascii=False) + "\n")
                     log.flush()
                     print(json.dumps({"tenant": tenant, "records": len(records), "phase": result["phase"]}), flush=True)

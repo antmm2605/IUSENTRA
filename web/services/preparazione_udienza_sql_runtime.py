@@ -30,6 +30,7 @@ class GestionePreparazioniSql:
             return None
         session = SessioneWizardPro.from_dict(item["record"])
         session.sql_revision = item["revision"]
+        session.reference_issue = item.get("reference_issue", "")
         return session
 
     def lista(self):

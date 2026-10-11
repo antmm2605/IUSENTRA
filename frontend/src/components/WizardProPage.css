@@ -849,3 +849,11 @@
 .iu-pu-documenti li>button{width:max-content;min-width:88px;min-height:38px;white-space:nowrap;justify-self:end;box-sizing:border-box;line-height:1.3}
 .iu-pu-documenti li>div:first-child>svg{flex-shrink:0}
 .iu-pu-documenti li>div:first-child>span{min-width:0;overflow-wrap:anywhere}
+.iu-pu-conservate{margin-top:24px;border-top:1px solid var(--border);padding-top:16px}
+.iu-pu-storica{border-bottom:1px solid var(--border);padding:8px 0}
+.iu-pu-storica summary{cursor:pointer;min-height:44px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:space-between}
+.iu-pu-storica summary:focus-visible{outline:2px solid var(--action-blue,#2563eb);outline-offset:3px}
+.iu-pu-storica summary span{color:var(--text-muted);font-size:12px}
+.iu-pu-storica dl{max-width:75ch}
+.iu-pu-storica dt{font-weight:700;margin-top:12px}
+.iu-pu-storica dd{margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}

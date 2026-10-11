@@ -6213,6 +6213,11 @@ def wizard_pro_react_dashboard():
 @api_v1_react.get("/wizard-pro/session/<id_sessione>/step/<int:n>")
 @_richiedi_auth
 def wizard_pro_react_step(id_sessione: str, n: int):
+    from web.helpers import get_wizard_pro
+    sessione = get_wizard_pro().carica(id_sessione)
+    if sessione is not None and getattr(sessione, "reference_issue", ""):
+        return jsonify({"errore": sessione.reference_issue,
+                        "codice": 409, "href": "/wizard-pro"}), 409
     payload = build_react_wizard_pro_step_payload(id_sessione, n)
     if payload is None:
         return jsonify({

@@ -89,6 +89,7 @@ class PreparazioniRepository:
             raise ValueError("Studio o operatore della preparazione non valido.")
         self.db, self.tenant, self.actor = database, tenant, actor
         self.expected_adoption = expected_adoption
+        self._reference_issues = None
 
     def ensure_schema(self):
         """Solo dalla procedura di migrazione esplicita con produttori drenati."""
@@ -103,10 +104,14 @@ class PreparazioniRepository:
             raise RuntimeError("Preparazioni SQL non adottate o fonte discordante: recupero necessario.")
         return row
 
-    def initialize(self, records, *, source_sha256, backup_reference):
+    def initialize(self, records, *, source_sha256, backup_reference, unresolved_references=None):
         if not isinstance(records, list):
             raise ValueError("Archivio delle preparazioni non valido.")
         validated = [validate_record(item) for item in records]
+        unresolved = {} if unresolved_references is None else unresolved_references
+        if (not isinstance(unresolved, dict) or set(unresolved) - {r["id"] for r in validated}
+                or any(not isinstance(reason, str) or not reason.strip() for reason in unresolved.values())):
+            raise ValueError("Riscontri dei collegamenti storici non validi.")
         if len({r["id"] for r in validated}) != len(validated):
             raise ValueError("Preparazioni duplicate nella fonte: nessuna riga eliminata.")
         hearings = [r["id_appuntamento"] for r in validated if r["id_appuntamento"]]
@@ -128,9 +133,12 @@ class PreparazioniRepository:
             for item in validated:
                 conn.execute("INSERT INTO preparazioni_sessions VALUES (?,?,?,?,0,?,?)",
                              (self.tenant, item["id"], item["id_fascicolo"], item["id_appuntamento"], encode(item), stamp))
-            self._audit(conn, "__adoption", "adozione", 0, {},
-                        {"records": len(validated), "source_sha256": source_sha256, "backup_reference": backup_reference}, stamp)
+            after = {"records": len(validated), "source_sha256": source_sha256, "backup_reference": backup_reference}
+            if unresolved:
+                after["unresolved_references"] = unresolved
+            self._audit(conn, "__adoption", "adozione", 0, {}, after, stamp)
         self.db.salva_tabella("preparazioni_state", [None], adopt, delete_all=False)
+        self._reference_issues = None
 
     def list(self, *, fascicolo_id=None):
         self._adoption(self.db.conn)
@@ -152,7 +160,18 @@ class PreparazioniRepository:
         record = validate_record(json.loads(row[4]))
         if (record["id"], record["id_fascicolo"], record["id_appuntamento"]) != tuple(row[i] for i in range(3)):
             raise RuntimeError("Identità SQL della preparazione discordante.")
-        return {"record": record, "revision": int(row[3])}
+        if self._reference_issues is None:
+            adoption_audit = self.db.conn.execute(
+                "SELECT dettagli FROM audit_log WHERE azione='udienza.adozione' AND risorsa_id='__adoption'").fetchall()
+            self._reference_issues = {}
+            for audit in adoption_audit:
+                details = json.loads(audit[0])
+                if details.get("tenant") == self.tenant:
+                    self._reference_issues.update(details.get("after", {}).get("unresolved_references", {}))
+        result = {"record": record, "revision": int(row[3])}
+        if record["id"] in self._reference_issues:
+            result["reference_issue"] = self._reference_issues[record["id"]]
+        return result
 
     def _audit(self, conn, key, operation, revision, before, after, stamp, *, command_key=""):
         if not self.actor:
@@ -263,6 +282,8 @@ class PreparazioniRepository:
                     raise PreparazioneConflict("Udienza già preparata in un'altra sessione: riaprire la preparazione esistente.")
             if current is None:
                 raise ValueError("Preparazione non trovata nello studio.")
+            if current.get("reference_issue"):
+                raise ValueError(current["reference_issue"] + " Preparazione conservata in sola lettura; recupero della fonte necessario.")
             if initial is not None and not created:
                 if (current["record"]["id_fascicolo"], current["record"]["id_appuntamento"]) != (initial["id_fascicolo"], initial["id_appuntamento"]):
                     raise PreparazioneConflict("Udienza già preparata per un altro fascicolo: collegamento da verificare.")

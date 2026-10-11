@@ -447,6 +447,17 @@ function applicazionePayload(): ApiPayload {
 }
 
 function payloadFor(url: URL): ApiPayload {
+  const normativa = '/api/v1/ui/ricerca-legale/normativa'
+  const articolo = { id: 1, number: '1', title: 'Capacità giuridica', act_title: 'Codice civile' }
+  if (url.pathname === `${normativa}/atti`) return {
+    ok: true, items: [{ id: 82, title: 'Codice civile', label: 'Codice civile', category: 'Codici', articles: 1, updated_at: '2026-10-09' }],
+  }
+  if (url.pathname === `${normativa}/articoli`) return { ok: true, items: [articolo], total: 1, act_id: 82 }
+  if (url.pathname === `${normativa}/articoli/1`) return {
+    ok: true, item: { ...articolo, act_label: 'Codice civile', updated_at: '2026-10-09',
+      text: 'La capacità giuridica si acquista dal momento della nascita.\nI diritti che la legge riconosce a favore del concepito sono subordinati all’evento della nascita.',
+      source_url: 'https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262', source_label: 'Normattiva' },
+  }
   if (url.pathname === '/api/v1/ui/controllo-studio') return controlloStudioPayload()
   if (url.pathname === '/api/v1/ui/preparazione-udienza') return elencoUdienzePayload()
   if (url.pathname.startsWith('/api/v1/ui/preparazione-udienza/')) return schedaUdienzaPayload()

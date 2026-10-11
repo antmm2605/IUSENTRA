@@ -91,6 +91,85 @@ def test_orphan_preparation_explicit_no_silent_drop(database):
     assert len(read_source(source)[0]) == 1
 
 
+def test_explicit_preservation_keeps_orphan_payload_and_blocks_all_effects(database):
+    from datetime import date
+    from uuid import uuid4
+    from pct.udienze.repository import PreparazioniRepository, PreparazioneRejected
+    from web.services.preparazione_udienza_commands import execute_command
+    item = record()
+    item["step1_note"] = "Nota storica da conservare"
+    source, backup, root = source_for(database, json.dumps([item]))
+    original = source.read_bytes()
+    with prima_nota_source_lock(source):
+        result = adopt_locked(database, source, tenant="studio", destination=backup,
+                              writers_drained=True, data_root=root, preserve_missing_fascicoli=True)
+    assert result["records"] == 1 and result["unresolved"] == 1
+    repo = PreparazioniRepository(database, "studio", actor="avvocato")
+    current = repo.get(item["id"])
+    assert current["record"] == item and current["reference_issue"]
+    assert (backup / "preparazioni-original.json").read_bytes() == original == source.read_bytes()
+    for operation, intent in [("passo", {"passo": 1, "campi": {"step1_note": "Sovrascrivere"}}),
+                              ("esito", {"esito": "rinvio"}), ("archivia", {}), ("elimina", {})]:
+        command = str(uuid4())
+        with pytest.raises(PreparazioneRejected) as first:
+            execute_command(repo, item["id"], operation, intent, command_key=command,
+                            expected_revision=0, today=date(2026, 10, 11))
+        with pytest.raises(PreparazioneRejected) as repeated:
+            execute_command(repo, item["id"], operation, intent, command_key=command,
+                            expected_revision=0, today=date(2026, 10, 11))
+        assert first.value.result == repeated.value.result
+    assert repo.get(item["id"])["record"] == item and repo.get(item["id"])["revision"] == 0
+    assert database.conn.execute("SELECT count(*) FROM appuntamenti").fetchone()[0] == 0
+    assert database.conn.execute("SELECT count(*) FROM scadenze").fetchone()[0] == 0
+    details = json.loads(database.conn.execute("SELECT dettagli FROM audit_log WHERE azione='udienza.adozione'").fetchone()[0])
+    assert item["id"] in details["after"]["unresolved_references"]
+    with pytest.raises(RuntimeError, match="non adottate"):
+        PreparazioniRepository(database, "altro-studio", actor="avvocato").get(item["id"])
+
+    from types import SimpleNamespace
+    from web.services.preparazione_udienza_elenco import elenco
+    from web.services.preparazione_udienza_sql_runtime import GestionePreparazioniSql
+    empty = SimpleNamespace(tutti=lambda: [])
+    listing = elenco(agenda=empty, fascicoli=empty,
+                     preparazioni=GestionePreparazioniSql(repo), oggi=date(2026, 10, 11))
+    assert listing["concluse"] == [] and listing["udienze"] == []
+    assert listing["preservate"][0]["dati"] == item
+    assert listing["riepilogo"]["preparate"] == 0
+
+
+def test_preservation_does_not_accept_discordant_existing_identity(database):
+    from pct.udienze.adoption import verify_references
+    item = record()
+    database.conn.execute("INSERT INTO fascicoli (id,dati_json) VALUES (?,?)", ("F1", '{"id":"ALTRO"}'))
+    database.conn.commit()
+    with pytest.raises(ValueError, match="discordante"):
+        verify_references(database, [item], preserve_missing_fascicoli=True)
+
+
+def test_missing_document_preserved_without_hiding_discordant_term(database):
+    from pct.udienze.adoption import verify_references
+    item = record()
+    item["id_appuntamento"] = ""
+    item["checklist_documenti"] = [{"id_documento": "DOC-STORICO", "label": "Originale storico"}]
+    database.conn.execute("INSERT INTO fascicoli (id,dati_json,documenti_json) VALUES (?,?,?)", ("F1", '{"id":"F1"}', '[]'))
+    database.conn.commit()
+    with pytest.raises(ValueError, match="Documento"):
+        verify_references(database, [item], preserve_missing_fascicoli=True)
+    issues = verify_references(database, [item], preserve_missing_documents=True)
+    assert "Documenti storici" in issues[item["id"]]
+    source, backup, root = source_for(database, json.dumps([item]))
+    with prima_nota_source_lock(source):
+        adopt_locked(database, source, tenant="studio", destination=backup,
+                     writers_drained=True, data_root=root, preserve_missing_documents=True)
+    from pct.udienze.repository import PreparazioniRepository
+    stored = PreparazioniRepository(database, "studio", actor="avvocato").get(item["id"])
+    assert stored["record"]["checklist_documenti"][0]["id_documento"] == "DOC-STORICO"
+    assert stored["reference_issue"] == issues[item["id"]]
+    item["termini_assegnati"] = [{"id_scadenza": "TERMINE-ASSENTE"}]
+    with pytest.raises(ValueError, match="Termine"):
+        verify_references(database, [item], preserve_missing_documents=True)
+
+
 @pytest.mark.parametrize("content", ["testo non JSON", "{}", '[{"id":"da-preservare"}]'])
 def test_invalid_source_is_not_an_empty_archive(tmp_path, content):
     source = tmp_path / "sessioni.json"

@@ -5,18 +5,42 @@ import { FascicoloSearchSelect } from './FascicoloSearchSelect'
 import './WizardProPage.css'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { loadPreparationCommand, preparationCommand, type PreparationProtocol } from '../preparazioneUdienzaCommand'
+import { formatDateIt, formatDateTimeIt } from '../formatting'
 
 type Udienza = {
   idAppuntamento: string; idFascicolo: string; titolo: string; dataOra: string; quando: string; luogo: string; cliente: string; giudice: string
   fascicolo: { etichetta?: string; href?: string }; stato: string; passiFatti: number; href: string
 }
 type Elenco = {
+  preservate?: Array<{ id: string; titolo: string; motivo: string; idFascicoloStorico: string; dati: Record<string, unknown> }>
   writeProtocol?: PreparationProtocol
   ok: boolean; message?: string; udienze?: Udienza[]; concluse?: Array<{ id: string; titolo: string; esito: string; data: string; rinvio: string; href: string }>
   riepilogo?: { settimana: number; daPreparare: number; preparate: number }; fascicoli?: Array<{ value: string; label: string }>; puoModificare?: boolean
 }
 
 const dataIt = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : '')
+
+const campiStorici: Array<[string, string]> = [
+  ['avvocato', 'Professionista registrato'], ['step1_note', 'Briefing'], ['note_preparazione', 'Preparazione'],
+  ['argomenti_principali', 'Argomenti'], ['richieste_giudice', 'Richieste al giudice'], ['eccezioni_da_sollevare', 'Eccezioni'],
+  ['precheck_note', 'Prima dell’udienza'], ['esito', 'Esito storico'], ['esito_note_verbale', 'Verbale'], ['esito_azioni', 'Azioni previste'],
+]
+
+function PreparazioneStorica({ p }: { p: NonNullable<Elenco['preservate']>[number] }) {
+  const docs = Array.isArray(p.dati.checklist_documenti) ? p.dati.checklist_documenti as Array<Record<string, unknown>> : []
+  const terms = Array.isArray(p.dati.termini_assegnati) ? p.dati.termini_assegnati as Array<Record<string, unknown>> : []
+  return <details className="iu-pu-storica">
+    <summary><strong>{p.titolo}</strong><span>Collegamento da verificare · Solo lettura</span></summary>
+    <p className="iu-pu-nota">{p.motivo} Nessun aggiornamento automatico viene applicato da questa preparazione.</p>
+    <dl>
+      <dt>Ultima modifica registrata</dt><dd>{formatDateTimeIt(String(p.dati.modificato_il || p.dati.creato_il || ''), 'Non registrata')}</dd>
+      {campiStorici.filter(([key]) => p.dati[key]).map(([key, label]) => <div key={key}><dt>{label}</dt><dd>{String(p.dati[key])}</dd></div>)}
+      {p.dati.esito_rinvio_data ? <><dt>Rinvio storico</dt><dd>{formatDateIt(String(p.dati.esito_rinvio_data))} {String(p.dati.esito_rinvio_ora || '')}</dd></> : null}
+    </dl>
+    {docs.length ? <><h3>Checklist conservata</h3><ul>{docs.map((d, i) => <li key={i}>{String(d.label || d.nome_file || 'Documento')} · {String(d.stato || '').replaceAll('_', ' ')}{d.note ? ` · ${d.note}` : ''}</li>)}</ul></> : null}
+    {terms.length ? <><h3>Termini storici non verificati</h3><ul>{terms.map((t, i) => <li key={i}>{String(t.descrizione || 'Termine')} · {formatDateIt(String(t.data || ''), 'Data non registrata')}</li>)}</ul></> : null}
+  </details>
+}
 
 function RigaUdienza({ u, fascicoli, puoModificare, protocol }: { u: Udienza; fascicoli: Array<{ value: string; label: string }>; puoModificare: boolean; protocol?: PreparationProtocol }) {
   const [scelta, setScelta] = useState('')
@@ -129,6 +153,11 @@ export function WizardProPage() {
           ))}</ul>
         </section>
       ) : null}
+      {dati.preservate?.length ? <section className="iu-pu-conservate" aria-label="Preparazioni storiche da verificare">
+        <h2>Preparazioni storiche da verificare <small>({dati.preservate.length})</small></h2>
+        <p>Apri una preparazione per consultare i dati conservati. I collegamenti con il fascicolo e le fonti devono essere recuperati e verificati prima di riprendere il lavoro.</p>
+        {dati.preservate.map(p => <PreparazioneStorica key={p.id} p={p}/>)}
+      </section> : null}
     </main>
   )
 }

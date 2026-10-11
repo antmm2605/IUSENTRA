@@ -97,6 +97,9 @@ def _get_or_404(id_sessione: str) -> SessioneWizardPro:
     sessione = wiz.carica(id_sessione)
     if not sessione:
         flash("Preparazione udienza non trovata.", "danger")
+    elif getattr(sessione, "reference_issue", ""):
+        flash(sessione.reference_issue + " Consulta la preparazione storica conservata nell'elenco.", "warning")
+        return None
     return sessione
 
 

@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 
 import { ApplicazionePage } from '../../components/ApplicazionePage'
 import { ChecklistAttiPage } from '../../components/ChecklistAttiPage'
+import { CodiciLeggiPage } from '../../components/CodiciLeggiPage'
 import { DocumentEditorPage } from '../../components/DocumentEditorPage'
 import { DocumentToolsPage } from '../../components/DocumentToolsPage'
 import { EditorProfessionalePage } from '../../components/EditorProfessionalePage'
@@ -31,6 +32,7 @@ export const EditorFascicolo: Story = createPageStory({ sourcePath: 'src/compone
 export const StrumentiDocumentali: Story = createPageStory({ sourcePath: 'src/components/DocumentToolsPage.tsx', title: 'Strumenti documentali', render: () => <DocumentToolsPage /> })
 export const EditorProfessionale: Story = createPageStory({ sourcePath: 'src/components/EditorProfessionalePage.tsx', title: 'Editor professionale', render: () => <EditorProfessionalePage /> })
 export const RicercaLegale: Story = createPageStory({ sourcePath: 'src/components/LegalIntelligencePage.tsx', title: 'Ricerca legale', render: () => <LegalIntelligencePage /> })
+export const CodiciLeggi: Story = createPageStory({ sourcePath: 'src/components/CodiciLeggiPage.tsx', title: 'Codici e leggi', render: () => <CodiciLeggiPage /> })
 export const ContenutiSitoStudio: Story = createPageStory({ sourcePath: 'src/components/SitoStudioContenutiPage.tsx', title: 'Contenuti del sito dello studio', render: () => <SitoStudioContenutiPage /> })
 export const ChecklistAtti: Story = createPageStory({ sourcePath: 'src/components/ChecklistAttiPage.tsx', title: 'Checklist degli atti', render: () => <ChecklistAttiPage /> })
 export const Applicazione: Story = createPageStory({ sourcePath: 'src/components/ApplicazionePage.tsx', title: 'Funzione del catalogo applicazioni', render: () => <ApplicazionePage applicazione="interessi-legali" /> })

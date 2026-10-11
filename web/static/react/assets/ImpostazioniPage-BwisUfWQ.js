@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-DVpT4MgC.js";export{e as ImpostazioniPage};

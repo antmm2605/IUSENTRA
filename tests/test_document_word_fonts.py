@@ -219,3 +219,35 @@ def test_legacy_tab_repair_requires_same_geometry_and_structure():
     assert restore_legacy_tab_stops(target, source, '<p>Studio</p>') == 0
     current.paragraph_format.left_indent = Pt(196.9)
     assert restore_legacy_tab_stops(target, source, '<p style="--iu-word-tab-stops:4014,left,none">Studio</p>') == 0
+
+
+def test_shared_model_fonts_resolve_explicit_scope_and_remain_private_when_saved(tmp_path, monkeypatch):
+    from base64 import b64decode
+    from pct.template_atti_repository import GestioneTemplateRepository
+    from web.services import editor_template_fonts as service
+    shared = GestioneTemplateRepository(str(tmp_path / 'shared.db'))
+    personal = GestioneTemplateRepository(str(tmp_path / 'tenant.db'))
+    fonts, _ = prepare_source_fonts(Source(font_bytes()), tmp_path / 'source')
+    document = Document()
+    run = document.add_paragraph().add_run('A')
+    run.font.name = 'QA Font'
+    embed_source_fonts(document, fonts)
+    buffer = BytesIO()
+    document.save(buffer)
+    package = service.font_only_package(buffer.getvalue())
+    identifier = str(uuid.uuid4())
+    payload = {'id': identifier, 'titolo': 'Comune', 'corpo': '<p>A</p>', 'collezione': 'Editor condiviso', 'builtin': True}
+    shared.create_shared_editor_template(payload, font_source=package)
+    monkeypatch.setattr(service, 'shared_template_repository', lambda: shared)
+    compiled = service.mark_template_fonts(payload['corpo'], 'shared:' + identifier, shared)
+    assert service.template_font_source(compiled, personal) == b64decode(package)
+    with pytest.raises(ValueError):
+        service.template_font_source(compiled.replace('shared:', ''), personal)
+    own_id = str(uuid.uuid4())
+    personal.create_editor_template({**payload, 'id': own_id, 'collezione': 'Editor personale', 'builtin': False}, font_source=package)
+    private_html = service.mark_template_fonts(compiled, own_id, personal)
+    assert 'shared:' not in private_html
+    assert service.template_font_source(private_html, personal) == b64decode(package)
+    other = GestioneTemplateRepository(str(tmp_path / 'other.db'))
+    with pytest.raises(ValueError):
+        service.template_font_source(private_html, other)

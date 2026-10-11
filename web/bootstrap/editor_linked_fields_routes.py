@@ -57,8 +57,8 @@ def register_editor_linked_fields_routes(app, *, get_fascicoli, get_clienti=None
             if get_studio_context is not None:
                 studio_context = get_studio_context()
             else:
-                from web.blueprints.template_atti import _get_studio_timbro, _studio_config_for_prefill
-                studio_context = {"config": _studio_config_for_prefill(), "studio_timbro": _get_studio_timbro()}
+                from web.services.editor_studio_context import studio_context_for_editor
+                studio_context = studio_context_for_editor()
             if get_process_dates is not None:
                 dates = get_process_dates(matter)
                 recovery_state = "idle"

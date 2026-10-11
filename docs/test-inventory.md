@@ -612,7 +612,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Documenti | Security | tests/test_editor_linked_fields.py | 401 anonimo, 403/RBAC, tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Documenti | Tenant isolation | tests/test_editor_ai_api.py | tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Documenti | Tenant isolation | tests/test_editor_ai_draft_generation.py | 403/RBAC, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| Documenti | Tenant isolation | tests/test_editor_ai_repository.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Documenti | Tenant isolation | tests/test_editor_ai_repository.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Documenti | Tenant isolation | tests/test_lex_editor_ai_tools.py | tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Documenti | Tenant isolation | tests/test_template_atti_editor.py | tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Fascicoli | API contract | tests/test_fascicoli_pagination.py | tenant, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |

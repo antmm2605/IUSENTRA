@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import pytest
+import sqlite3
+from types import SimpleNamespace
 
 from pct.editor_ai.models import AttoAIEditProposal, AttoAIRecord, AttoAIVersion, utc_now
 from pct.editor_ai.repository import EditorAIRepository
@@ -39,6 +41,36 @@ def _version(record: AttoAIRecord, number: int = 1) -> AttoAIVersion:
         created_by="operatore",
         created_at=utc_now(),
     )
+
+
+def test_editor_lookup_reads_committed_record_during_writer_without_ddl_or_json(tmp_path):
+    path = tmp_path / "studio.db"
+    writer = EditorAIRepository.from_sqlite_db(path)
+    writer.create_record(_record("lookup"))
+    reader = sqlite3.connect(path, timeout=0.1)
+    reader.row_factory = sqlite3.Row
+    statements = []
+    reader.set_trace_callback(statements.append)
+    writer.structured_db.conn.execute("BEGIN IMMEDIATE")
+    try:
+        lookup = EditorAIRepository.from_fascicoli_db(
+            tmp_path / "fascicoli.json", structured_db=SimpleNamespace(conn=reader),
+            initialize_schema=False,
+        )
+        assert lookup.get_record_by_editor_document("tenant-a", "fas-1", "doc-lookup").id == "lookup"
+        assert lookup.get_record_by_editor_document("tenant-b", "fas-1", "doc-lookup") is None
+        assert statements and all(sql.lstrip().upper().startswith("SELECT") for sql in statements)
+        assert not lookup.json_path.exists()
+    finally:
+        writer.structured_db.conn.rollback()
+        reader.close()
+        writer.close()
+
+
+def test_editor_sql_lookup_never_falls_back_to_legacy_json(tmp_path):
+    with pytest.raises(RuntimeError, match="Archivio SQL"):
+        EditorAIRepository.from_fascicoli_db(tmp_path / "fascicoli.json", initialize_schema=False)
+    assert not (tmp_path / "editor_ai").exists()
 
 
 def test_repository_sqlite_filtra_tenant_fascicolo_e_versiona(tmp_path):

@@ -217,6 +217,7 @@ class GestioneTemplateRepository:
         schema_path: Path | None = None,
         postgres_dsn: str = "",
         postgres_schema_path: Path | None = None,
+        initialize_schema: bool = True,
     ):
         self.db_path = str(db_path)
         self.json_path = str(json_path) if json_path else ""
@@ -232,7 +233,8 @@ class GestioneTemplateRepository:
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         if self.json_path:
             Path(self.json_path).parent.mkdir(parents=True, exist_ok=True)
-        self._ensure_schema()
+        if initialize_schema:
+            self._ensure_schema()
 
     def _connect(self):
         if self._postgres_backend is not None:
@@ -420,8 +422,17 @@ class GestioneTemplateRepository:
 
     def create_editor_template(self, payload: dict[str, Any], *, font_source: str = '') -> str:
         """Inserimento puntuale e ripetibile; nessuna sostituzione di altri modelli."""
+        return self._create_editor_template(payload, font_source=font_source, collection='Editor personale')
+
+    def create_shared_editor_template(self, payload: dict[str, Any], *, font_source: str = '', publication_receipt: dict | None = None) -> str:
+        """Pubblicazione amministrativa nel catalogo SQL condiviso, fuori dalle API tenant."""
+        if not payload.get('builtin'):
+            raise ValueError('Il modello condiviso deve appartenere al catalogo di piattaforma.')
+        return self._create_editor_template(payload, font_source=font_source, collection='Editor condiviso', publication_receipt=publication_receipt)
+
+    def _create_editor_template(self, payload, *, font_source, collection, publication_receipt=None):
         item = normalize_template_repository_item(payload)
-        if item['collezione'] != 'Editor personale':
+        if item['collezione'] != collection:
             raise ValueError('Tipo di modello non consentito.')
         with self._connection() as conn:
             self._editor_template_lock(conn)
@@ -436,6 +447,13 @@ class GestioneTemplateRepository:
                 self._insert_template(conn, item)
                 if font_source:
                     conn.execute("INSERT INTO template_blocks (template_id,block_key,block_type,content,ordine) VALUES (?,?,?,?,?)", (item['template_id'],'editor_fonts','font_package',font_source,2))
+            if publication_receipt is not None:
+                key = 'editor_shared_publication:' + item['template_id']
+                encoded = json.dumps(publication_receipt, sort_keys=True, ensure_ascii=False)
+                receipt = conn.execute('SELECT meta_value FROM template_repository_meta WHERE meta_key=?', (key,)).fetchone()
+                if receipt and receipt['meta_value'] != encoded:
+                    raise ValueError('Ricevuta di pubblicazione discordante.')
+                self._set_meta(conn, key, encoded)
             conn.commit()
         return item['template_id']
 

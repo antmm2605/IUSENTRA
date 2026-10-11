@@ -74,10 +74,10 @@ def _editor_ai_payload(fascicolo_id: str, document_id: str) -> dict[str, Any]:
     if not has_app_context():
         return payload
     try:
-        from web.services.editor_ai_runtime import build_editor_ai_service, editor_ai_tenant_id
+        from web.services.editor_ai_runtime import editor_ai_repository_for_lookup, editor_ai_tenant_id
 
-        service = build_editor_ai_service()
-        record = service.repository.get_record_by_editor_document(editor_ai_tenant_id(), fascicolo_id, document_id)
+        repository = editor_ai_repository_for_lookup()
+        record = repository.get_record_by_editor_document(editor_ai_tenant_id(), fascicolo_id, document_id)
         if record:
             payload["current"] = {
                 "atto_ai_id": record.id,

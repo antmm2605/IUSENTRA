@@ -48,11 +48,16 @@ class _ManagedSqliteBackend:
 
 
 class EditorAIRepository:
-    def __init__(self, json_path: str | Path, structured_db: Any = None):
+    def __init__(self, json_path: str | Path, structured_db: Any = None, *, initialize_schema: bool = True):
         self.json_path = Path(json_path)
-        self.json_path.parent.mkdir(parents=True, exist_ok=True)
         self.structured_db = structured_db
         self._backend = self._detect_backend(structured_db)
+        if not initialize_schema:
+            if not self._backend:
+                raise RuntimeError("Archivio SQL editor AI non disponibile per la consultazione.")
+            self._data = self._empty()
+            return
+        self.json_path.parent.mkdir(parents=True, exist_ok=True)
         if self._backend:
             self._ensure_sql_schema()
         self._data = self._load_json()
@@ -62,9 +67,9 @@ class EditorAIRepository:
         return self._backend or "json"
 
     @classmethod
-    def from_fascicoli_db(cls, fascicoli_db_path: str | Path, *, structured_db: Any = None) -> "EditorAIRepository":
+    def from_fascicoli_db(cls, fascicoli_db_path: str | Path, *, structured_db: Any = None, initialize_schema: bool = True) -> "EditorAIRepository":
         base = Path(fascicoli_db_path).resolve().parent / "editor_ai"
-        return cls(base / "editor_ai.json", structured_db=structured_db)
+        return cls(base / "editor_ai.json", structured_db=structured_db, initialize_schema=initialize_schema)
 
     @classmethod
     def from_sqlite_db(cls, db_path: str | Path) -> "EditorAIRepository":

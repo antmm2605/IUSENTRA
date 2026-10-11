@@ -1,5 +1,7 @@
 # Changelog
 
+- **Editor 2.437.4 (11/10/2026)**: catalogo SQL dei modelli condivisi separato dagli archivi personali. Compilazione da impostazioni, PEC, cliente e fascicolo dello studio corrente, font incorporati riutilizzabili e pubblicazione revisionata con ricevuta atomica. Consultazione dello stato dell'assistente editor senza inizializzare motori, schemi o import JSON durante la navigazione. Verifiche e stato del rilascio nel rapporto dei modelli condivisi.
+
 - **Editor 2.437.3 (11/10/2026)**: archivio documenti unificato, campi collegati e modelli personali SQL, timbro configurabile e salvataggio PDF nel fascicolo. Conservazione dei caratteri incorporati, degli stili annidati e delle tabulazioni Word; controllo italiano dei recapiti tecnici e recupero dei metadati già archiviati prima della lettura dei nuovi documenti.
 
 - **Agenda 2.437.2 (10/10/2026)**: scritture SQL puntuali con protezione da snapshot superati, conflitti espliciti e bozze preservate nel modulo live. Salvataggi consecutivi nell’area di lavoro senza finestre annidate; controllo disponibilità corretto e indisponibilità con recupero esplicito. Accettazione locale documentata separatamente dal rilascio e dalla migrazione SQL integrale ancora aperta.

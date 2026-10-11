@@ -19,6 +19,35 @@ def template_repository():
     return GestioneTemplateRepository(derive_template_repository_db_path(str(anchor)), postgres_dsn=dsn)
 
 
+def shared_template_repository():
+    """Catalogo di piattaforma: mai derivare il DSN o il percorso dal tenant."""
+    from flask import current_app
+    import os
+    from pct.template_atti_repository import GestioneTemplateRepository
+    root = current_app.config.get('PCT_DATA_ROOT')
+    if not root:
+        return None
+    path = Path(root) / 'editor_shared_models' / 'template_repository.db'
+    dsn = str(current_app.config.get('EDITOR_SHARED_MODELS_POSTGRES_DSN') or os.getenv('EDITOR_SHARED_MODELS_POSTGRES_DSN') or '')
+    if not dsn and not path.is_file():
+        return None
+    return GestioneTemplateRepository(str(path), postgres_dsn=dsn, initialize_schema=False)
+
+
+def resolve_editor_template(identifier, personal_repository, shared_repository=None):
+    """Scope esplicito: nessuna ricerca in archivi di altri studi."""
+    shared = identifier.startswith('shared:')
+    key = str(UUID(identifier[7:] if shared else identifier))
+    repo = shared_repository if shared else personal_repository
+    if repo is None:
+        return None, None
+    item = repo.get_template(key)
+    expected = 'Editor condiviso' if shared else 'Editor personale'
+    if not item or item['collezione'] != expected or (shared and not item['builtin']):
+        return None, None
+    return item, repo
+
+
 def font_only_package(source):
     if not source:
         return ''
@@ -53,9 +82,9 @@ def template_font_source(html, repository=None):
         return None
     if len(identifiers) != 1:
         raise ValueError('Il documento contiene risorse di modelli discordanti.')
-    identifier = str(UUID(identifiers.pop()))
-    item = (repository or template_repository()).get_template(identifier)
-    if not item or item['collezione'] != 'Editor personale':
+    identifier = identifiers.pop()
+    item, _ = resolve_editor_template(identifier, repository or template_repository(), shared_template_repository() if identifier.startswith('shared:') else None)
+    if not item:
         raise ValueError('Risorse del modello non disponibili nello studio.')
     blocks = [block for block in item['template_blocks'] if block['block_key'] == 'editor_fonts']
     if len(blocks) != 1 or len(blocks[0]['content']) > 70_000_000:
@@ -64,7 +93,7 @@ def template_font_source(html, repository=None):
 
 
 def mark_template_fonts(html, identifier, repository):
-    item = repository.get_template(identifier)
+    item = repository.get_template(identifier[7:] if identifier.startswith('shared:') else identifier)
     if not any(block['block_key'] == 'editor_fonts' for block in item['template_blocks']):
         return html
     from lxml import html as parser

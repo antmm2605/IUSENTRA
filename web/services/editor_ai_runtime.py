@@ -79,6 +79,14 @@ def build_template_repository() -> GestioneTemplateAtti:
     )
 
 
+def editor_ai_repository_for_lookup() -> EditorAIRepository:
+    """Consulta l'archivio SQL corrente senza preparazioni, DDL o import JSON."""
+    anchor = editor_ai_fascicoli_db_path()
+    return EditorAIRepository.from_fascicoli_db(
+        anchor, structured_db=get_request_studio_db(anchor), initialize_schema=False,
+    )
+
+
 def build_editor_ai_service() -> EditorAIService:
     anchor = editor_ai_fascicoli_db_path()
     structured_db = get_request_studio_db(anchor) if has_app_context() else None

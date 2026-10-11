@@ -10,7 +10,7 @@ export function EditorPersonalTemplates({ open, onClose, serialize, matterId, op
 }) {
   const [mode, setMode] = useState<'save' | 'use'>('save')
   const [title, setTitle] = useState('')
-  const [models, setModels] = useState<Array<{id: string; titolo: string}>>([])
+  const [models, setModels] = useState<Array<{id: string; titolo: string; ambito?: string}>>([])
   const [catalogLoading, setCatalogLoading] = useState(true)
   const [catalogError, setCatalogError] = useState('')
   const [catalogReload, setCatalogReload] = useState(0)
@@ -52,17 +52,17 @@ export function EditorPersonalTemplates({ open, onClose, serialize, matterId, op
     } catch (error) { setError(error instanceof Error ? error.message : 'Compilazione non riuscita.') }
     finally { setBusy(false) }
   }
-  return <Modal title="Modelli personali" open={open} onClose={() => { if (!busy) onClose() }}>
-    <div className="iu-de-template-actions"><button type="button" aria-pressed={mode === 'save'} disabled={busy} onClick={() => { setMode('save'); setError(''); setSuccess('') }}>Salva come modello</button><button type="button" aria-pressed={mode === 'use'} disabled={busy || intent.current !== null} onClick={() => { setMode('use'); setError(''); setSuccess('') }}>Usa modello</button></div>
+  return <Modal title="Modelli" open={open} onClose={() => { if (!busy) onClose() }}>
+    <div className="iu-de-template-actions"><button type="button" aria-pressed={mode === 'save'} disabled={busy} onClick={() => { setMode('save'); setError(''); setSuccess('') }}>Salva modello personale</button><button type="button" aria-pressed={mode === 'use'} disabled={busy || intent.current !== null} onClick={() => { setMode('use'); setError(''); setSuccess('') }}>Usa modello</button></div>
     {mode === 'save' ? <>
       <p>I campi collegati diventano segnaposto riutilizzabili. Il testo scritto liberamente rimane nel modello: controlla che non contenga dati del precedente cliente.</p>
       <label>Nome del modello<input aria-label="Nome del modello personale" value={title} maxLength={100} disabled={busy || intent.current !== null} onChange={event => setTitle(event.target.value)}/></label>
       <button type="button" disabled={busy || !title.trim()} onClick={() => void save()}>{busy ? 'Salvataggio…' : intent.current ? 'Riprova salvataggio' : 'Salva modello personale'}</button>
     </> : <>
-      <label>Modello<select aria-label="Modello personale" value={model} disabled={busy} onChange={event => setModel(event.target.value)}><option value="">Scegli il modello</option>{models.map(item => <option key={item.id} value={item.id}>{item.titolo}</option>)}</select></label>
+      <label>Modello<select aria-label="Modello" value={model} disabled={busy} onChange={event => setModel(event.target.value)}><option value="">Scegli il modello</option>{['condiviso', 'personale'].map(scope => <optgroup key={scope} label={scope === 'condiviso' ? 'Modelli condivisi' : 'Modelli del mio studio'}>{models.filter(item => (item.ambito || 'personale') === scope).map(item => <option key={item.id} value={item.id}>{item.titolo}</option>)}</optgroup>)}</select></label>
       {catalogLoading && <p role="status">Caricamento modelli…</p>}
       {catalogError && <p role="alert">{catalogError} <button type="button" onClick={() => setCatalogReload(value => value + 1)}>Riprova caricamento</button></p>}
-      {!catalogLoading && !catalogError && !models.length && <p>Nessun modello personale salvato.</p>}
+      {!catalogLoading && !catalogError && !models.length && <p>Nessun modello disponibile.</p>}
       {onMatterChange && <FascicoloSearchSelect options={options} value={matterId} onChange={onMatterChange} disabled={busy} selectionLabel="Fascicolo del modello"/>}
       {onMatterChange && mattersLoading && <p role="status">Caricamento fascicoli…</p>}
       {onMatterChange && mattersError && <p role="alert">{mattersError}</p>}

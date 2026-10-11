@@ -2648,7 +2648,7 @@ export function DocumentEditorPage() {
             <ToolbarButton title="Tabella" onClick={openTablePicker}><Table size={16}/></ToolbarButton>
             <ToolbarButton title="Casella di testo" onClick={insertTextBox}><FileText size={16}/></ToolbarButton>
             <button className="iu-de-tool iu-de-tool--wide" type="button" aria-expanded={linkedFieldsOpen} onClick={() => setLinkedFieldsOpen(value => !value)}>Dati collegati</button>
-            <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => setPersonalTemplatesOpen(true)}>Modelli personali</button>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => setPersonalTemplatesOpen(true)}>Modelli</button>
             <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => void loadStamp()}>Timbro studio</button>
             <ToolbarButton title="Inserisci immagine" onClick={chooseImage}><ImagePlus size={16}/></ToolbarButton>
             <ToolbarButton title="Collegamento" onClick={openLink}><Link size={16}/></ToolbarButton>

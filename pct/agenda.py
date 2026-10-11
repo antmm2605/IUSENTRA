@@ -189,7 +189,13 @@ class Agenda:
         confirmed, original_rows = {}, {}
         for row in self._studio_db.fetchall_readonly("SELECT * FROM appuntamenti"):
             payload = dict(row)
-            data = json.loads(payload["dati_json"]) if payload.get("dati_json") else payload
+            data = {key: value for key, value in payload.items() if key in Appuntamento.__dataclass_fields__}
+            if payload.get("dati_json"):
+                # La migrazione storica conserva il JSON originale anche quando
+                # i campi obbligatori sono presenti soltanto nelle colonne SQL.
+                # Completa dai valori persistenti, senza inventare dati o
+                # sostituire i valori già presenti nella fonte JSON.
+                data.update(json.loads(payload["dati_json"]))
             # Le colonne di compatibilità non sono campi del modello.
             if not payload.get("dati_json"):
                 data = {key: value for key, value in data.items() if key in Appuntamento.__dataclass_fields__}

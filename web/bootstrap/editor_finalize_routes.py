@@ -6,6 +6,7 @@ from pathlib import Path
 from uuid import UUID
 from flask import g, jsonify, request
 from pct.prima_nota_transition import prima_nota_source_lock
+from pct.editor_stamp import editor_stamp_lines
 from web.services.document_edit_policy import motivo_blocco_editor
 from web.services.document_word_fonts import SourceFontCoverageError
 
@@ -25,7 +26,7 @@ def register_editor_finalize_routes(app, *, get_fascicoli, audit, encrypt_doc, g
             stamp = get_timbro()
             if stamp is None or not stamp.to_lines():
                 return jsonify(ok=False, errore='Configura il timbro dello studio nelle impostazioni prima di inserirlo.'), 409
-            return jsonify(ok=True, righe=stamp.to_lines(), interlinea=float(stamp.payload.get('layout', {}).get('interlinea', 1.22)))
+            return jsonify(ok=True, righe=editor_stamp_lines(stamp), interlinea=float(stamp.payload.get('layout', {}).get('interlinea', 1.22)))
         except SourceFontCoverageError as error:
             return jsonify(ok=False, errore=str(error)), 422
         except Exception:

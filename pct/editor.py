@@ -1341,7 +1341,12 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
             from docx.oxml import OxmlElement
 
             descrizione = OxmlElement("w:tblDescription")
-            descrizione.set(qn("w:val"), "IUSENTRA:studio-stamp:" + el.get("data-iu-editor-stamp"))
+            from pct.editor_stamp import STAMP_SOURCES
+            metadata = []
+            for attribute in ('data-iu-stamp-excluded', 'data-iu-stamp-sources'):
+                metadata.append(','.join(key for key in (el.get(attribute) or '').split(',')
+                                         if key in STAMP_SOURCES))
+            descrizione.set(qn("w:val"), "IUSENTRA:studio-stamp:" + el.get("data-iu-editor-stamp") + '|' + '|'.join(metadata))
             tabella._tbl.tblPr.append(descrizione)
         sezione = doc.sections[-1]
         disponibile = (sezione.page_width - sezione.left_margin - sezione.right_margin) / 12700

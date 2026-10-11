@@ -899,8 +899,13 @@ def _html_tabella(tabella, documento, corpo_base: float, famiglia_base: str,
                and len(tabella.rows) == 1 and len(tabella.columns) == 1)
     attributo_casella = ' data-iu-text-box="true"' if casella else ''
     stamp = descrizione.get(f'{NS}val', '') if descrizione is not None else ''
-    if stamp in {'IUSENTRA:studio-stamp:left', 'IUSENTRA:studio-stamp:center', 'IUSENTRA:studio-stamp:right'}:
-        attributo_casella += f' data-iu-editor-stamp="{stamp.rsplit(":", 1)[-1]}"'
+    stamp_parts = stamp.split('|')
+    if stamp_parts[0] in {'IUSENTRA:studio-stamp:left', 'IUSENTRA:studio-stamp:center', 'IUSENTRA:studio-stamp:right'}:
+        from pct.editor_stamp import STAMP_SOURCES
+        attributo_casella += f' data-iu-editor-stamp="{stamp_parts[0].rsplit(":", 1)[-1]}"'
+        for attribute, value in zip(('data-iu-stamp-excluded', 'data-iu-stamp-sources'), stamp_parts[1:3]):
+            keys = ','.join(key for key in value.split(',') if key in STAMP_SOURCES)
+            attributo_casella += f' {attribute}="{keys}"'
     if casella:
         stile_tabella.append('table-layout:fixed')
     pezzi = [f'<table class="{classi}"{attributo_casella} style="{";".join(stile_tabella)}"><tbody>']

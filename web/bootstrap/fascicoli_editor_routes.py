@@ -94,14 +94,9 @@ def register_fascicoli_editor_routes(
     from web.bootstrap.editor_finalize_routes import register_editor_finalize_routes
 
     def _editor_tenant_timbro():
-        from pct.postgres_runtime_support import database_config_to_dsn, resolve_runtime_postgres_dsn
-        from pct.studio_timbro import build_studio_timbro
+        from web.services.editor_studio_context import studio_context_for_editor
 
-        tenant = getattr(g, 'tenant', None)
-        dsn = database_config_to_dsn(getattr(tenant, 'database', None)) if tenant is not None else resolve_runtime_postgres_dsn()
-        if tenant is not None and not dsn and resolve_runtime_postgres_dsn():
-            raise RuntimeError('Archivio timbro dello studio non disponibile')
-        return build_studio_timbro(db_path=_cfg_data_path('STUDIO_TIMBRO_DB'), config_studio=getattr(g, 'config_studio', None), app_config=app.config, postgres_dsn=dsn)
+        return studio_context_for_editor()['studio_timbro']
 
     register_editor_finalize_routes(app, get_fascicoli=get_fascicoli, audit=audit, encrypt_doc=encrypt_doc, get_timbro=_editor_tenant_timbro)
 

@@ -137,3 +137,91 @@ def test_editor_studio_context_never_uses_global_professional_defaults(tmp_path,
         fields = {f['id']: f for f in linked_fields_catalog(**studio_context_for_editor())}
     assert fields['studio_timbro.pec']['value'] == 'tecnico@pec.example.it'
     assert fields['studio_timbro.nome_professionista']['value'] == 'dello studio tecnico'
+
+
+def test_editor_stamp_endpoint_uses_current_tenant_settings_without_g_config(tmp_path, monkeypatch):
+    from flask import g
+    from types import SimpleNamespace
+    from pct.config_studio import ConfigStudio
+    from web.blueprints import template_atti
+    from web.bootstrap.editor_finalize_routes import register_editor_finalize_routes
+    from web.services.editor_studio_context import studio_context_for_editor
+
+    config = ConfigStudio()
+    config.studio.nome = 'Studio primo'
+    config.studio.avvocato = 'Avv. Professionista primo'
+    config.studio.qualifica_professionale = 'Avvocato cassazionista'
+    config.studio.telefono = '0966 123456'
+    config.studio.email = 'studio-primo@example.it'
+    config.pec.indirizzo = 'primo@pec.example.it'
+    config.studio.cf = 'CF-PRIMO'
+    config.pec.indirizzo = 'primo@pec.example.it'
+    selected = {'slug': 'primo', 'config': config}
+    app = Flask(__name__)
+    app.config.update(STUDIO_AVVOCATO='Professionista globale errato', SMTP_FROM='globale@example.it')
+    monkeypatch.setattr(template_atti, '_get_config_studio_manager', lambda: SimpleNamespace(config=selected['config']))
+    monkeypatch.setattr(template_atti, '_cfg_path', lambda *args: str(tmp_path / (selected['slug'] + '.db')))
+    @app.before_request
+    def context():
+        g.utente_corrente = SimpleNamespace(ha_permesso=lambda p: True)
+        assert not hasattr(g, 'config_studio')
+    register_editor_finalize_routes(app, get_fascicoli=lambda: None, audit=lambda *args: None,
+                                   encrypt_doc=lambda value: value,
+                                   get_timbro=lambda: studio_context_for_editor()['studio_timbro'])
+    client = app.test_client()
+    first = client.get('/api/editor/timbro')
+    assert first.status_code == 200
+    assert 'Professionista primo' in str(first.json['righe'])
+    rows = {row['source']: row for row in first.json['righe']}
+    assert rows['telefono']['text'] == 'Tel. 0966 123456'
+    assert rows['email']['text'] == 'Email studio-primo@example.it'
+    assert rows['pec']['text'] == 'PEC primo@pec.example.it'
+    assert rows['qualifiche_professionali']['text'] == 'Avvocato cassazionista'
+    assert all(rows[key]['selectable'] and rows[key]['available']
+               for key in ('telefono', 'email', 'pec', 'qualifiche_professionali'))
+    second = ConfigStudio()
+    second.studio.nome = 'Studio secondo'
+    second.studio.avvocato = 'Avv. Professionista secondo'
+    selected.update(slug='secondo', config=second)
+    reply = client.get('/api/editor/timbro')
+    assert reply.status_code == 200
+    assert 'Professionista secondo' in str(reply.json['righe'])
+    assert 'primo' not in str(reply.json['righe'])
+    assert 'globale' not in str(reply.json['righe'])
+    assert all(not row['available'] for row in reply.json['righe']
+               if row['source'] in {'telefono', 'email', 'pec', 'qualifiche_professionali'})
+
+
+def test_stamp_separate_linked_contacts_preserve_native_combined_row():
+    from pct.editor_linked_fields import linked_fields_catalog
+    from pct.studio_timbro import StudioTimbro
+    stamp = StudioTimbro.from_payload({'studio_nome': 'Studio corretto',
+        'telefono': '0123 456789', 'email': 'studio@example.it',
+        'pec': 'vecchia@pec.example.it', 'qualifiche_professionali': 'Avvocato'})
+    original = stamp.to_lines()
+    fields = {field['id']: field for field in linked_fields_catalog(
+        studio_timbro=stamp, config={'studio': {}, 'pec': {'indirizzo': 'corrente@pec.example.it'}})}
+    assert fields['studio_timbro.riga_telefono']['value'] == 'Tel. 0123 456789'
+    assert fields['studio_timbro.riga_email']['value'] == 'Email studio@example.it'
+    assert fields['studio_timbro.riga_pec']['value'] == 'PEC corrente@pec.example.it'
+    assert fields['studio_timbro.qualifiche_professionali']['value'] == 'Avvocato'
+    assert 'PEC corrente@pec.example.it' in fields['studio_timbro.riga_recapiti']['value']
+    assert stamp.to_lines() == original
+
+
+def test_stamp_docx_roundtrip_keeps_contact_choices_and_formatting(tmp_path):
+    from pct.editor_export import esporta_documento_editor
+    from pct.documento_fedele.da_docx import converti_docx
+    from lxml import html as parser
+    html = '<table data-iu-editor-stamp="right" data-iu-stamp-excluded="email" data-iu-stamp-sources="professionista_nome,telefono,pec" style="width:100%;border:0"><tbody><tr><td></td><td></td><td><p style="font-family:Arial;font-size:11pt;font-weight:700">Avvocato collaudo</p><p style="font-size:9pt;font-style:italic">Tel. 06 12345678</p><p>PEC collaudo@pec.example.it</p></td></tr></tbody></table>'
+    path = tmp_path / 'timbro.docx'
+    path.write_bytes(esporta_documento_editor(html, formato='docx'))
+    document = converti_docx(path)
+    root = parser.fragment_fromstring(document.html, create_parent='div')
+    table = root.xpath('.//table[@data-iu-editor-stamp]')[0]
+    assert table.get('data-iu-editor-stamp') == 'right'
+    assert table.get('data-iu-stamp-excluded') == 'email'
+    assert table.get('data-iu-stamp-sources') == 'professionista_nome,telefono,pec'
+    assert 'Tel. 06 12345678' in table.text_content()
+    assert 'PEC collaudo@pec.example.it' in table.text_content()
+    assert 'Email ' not in table.text_content()

@@ -22,14 +22,14 @@ jobs:
         backend: [sqlite, postgresql]
     services:
       postgres:
-        image: postgres:16
+        image: ${{ matrix.backend == 'postgresql' && 'postgres:16' || '' }}
         env:
           POSTGRES_DB: offline_synthetic
           POSTGRES_USER: offline_synthetic
           POSTGRES_PASSWORD: synthetic-ci-only
         ports: ['5432:5432']
         options: >-
-          --health-cmd 'pg_isready -U offline_synthetic -d offline_synthetic'
+          --health-cmd "pg_isready -U offline_synthetic -d offline_synthetic"
           --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - uses: actions/checkout@v5

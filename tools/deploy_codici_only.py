@@ -23,7 +23,7 @@ def inspect(manifest):
     saved=json.loads((b/'state.json').read_text())
     if saved['app_image']==app['Image'] and saved['files']==manifest['files']:candidates.append((b,saved))
   assert candidates,'Sorgenti server modificati: '+status
-  prior,saved=max(candidates,key=lambda x:x[0].name)
+  prior,saved=min(candidates,key=lambda x:x[0].name)
   assets=[]
   for line in status.splitlines():
    assert line.startswith('?? '),'Modifica estranea al ripristino: '+line

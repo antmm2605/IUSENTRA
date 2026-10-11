@@ -31,7 +31,7 @@ jobs:
           mkdir package
           asset=$(gh api "repos/${GITHUB_REPOSITORY}/releases/409497386" --jq '.assets[] | select(.name == "codici-package.tar.gz") | .id')
           gh api -H 'Accept: application/octet-stream' "repos/${GITHUB_REPOSITORY}/releases/assets/${asset}" > package/codici-package.tar.gz
-          printf '%s  %s\n' '19320a2664383a7b20f1c1a16c123a9013641c92af05fd29d84de20fc1b235dc' package/codici-package.tar.gz | sha256sum -c -
+          printf '%s  %s\n' 'b997811a9c110f62f0820133cee92a8d7a7aebe880cda0a3e9ed6f7ec96310e1' package/codici-package.tar.gz | sha256sum -c -
           tar -xzf package/codici-package.tar.gz -C package
           python3 - <<'PY'
           import hashlib,json

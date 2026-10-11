@@ -8,11 +8,36 @@ def sha(p):return hashlib.file_digest(p.open('rb'),'sha256').hexdigest()
 def inspect(manifest):
  assert run(['git','-C',str(root),'rev-parse','HEAD'])==manifest['base'],'Commit server cambiato'
  status=run(['git','-C',str(root),'status','--porcelain'])
- assert not status,'Sorgenti server modificati: riconciliare prima: '+status
  for e in manifest['files']:
   p=root/e['path'];assert (sha(p) if p.is_file() else None)==e['before'],'File server diverso: '+e['path']
  app=json.loads(run(['docker','inspect','iusentra-app']))[0]
  assert app['Config']['Image'].endswith(':'+manifest['base']),'Immagine attiva non corrispondente al commit: verificare prima'
+ if status:
+  # A failed attempt restored original sources/images but retained new hashed
+  # assets. Accept only files proven to belong to our previous derived image.
+  candidates=[]
+  for b in Path('/opt/iusentra/backups').glob('codici-leggi-*'):
+   if (b/'state.json').is_file():
+    saved=json.loads((b/'state.json').read_text())
+    if saved['app_image']==app['Image'] and saved['files']==manifest['files']:candidates.append((b,saved))
+  assert candidates,'Sorgenti server modificati: '+status
+  prior,saved=max(candidates,key=lambda x:x[0].name)
+  assets=[]
+  for line in status.splitlines():
+   assert line.startswith('?? '),'Modifica estranea al ripristino: '+line
+   name=line[3:];p=root/name
+   assert p.resolve().is_relative_to(root.resolve())
+   if name=='deploy/hetzner/docker-compose.codici-leggi.yml':
+    expected='services:\n  app:\n    image: '+saved['app_image']+'\n  static-assets:\n    image: '+saved['static_image']+'\n'
+    assert p.read_text()==expected,'Override non riconducibile al nostro ripristino'
+   else:
+    assert name.startswith('web/static/react/assets/') and p.is_file() and not (prior/'react'/p.relative_to(root/'web/static/react')).exists(),'File estraneo: '+name
+    assets.append(name)
+  owned_tag='iusentra-codici-leggi:'+manifest['base'][:8]+'-codici01'
+  code='import hashlib,json;from pathlib import Path;names='+repr(assets)+';print(json.dumps({n:hashlib.sha256(Path("/app/"+n).read_bytes()).hexdigest() for n in names}))'
+  hashes=json.loads(run(['docker','run','--rm','--network','none','--read-only','--entrypoint','python',owned_tag,'-c',code]))
+  for name in assets:assert sha(root/name)==hashes[name],'Asset estraneo al nostro tentativo: '+name
+  print('Residui del precedente tentativo verificati: soltanto asset compilati e override di ripristino propri')
  # Verify runtime backend against repository; do not assume checkout = running image.
  for e in manifest['files']:
   if e['before'] and e['path'].startswith('web/'):

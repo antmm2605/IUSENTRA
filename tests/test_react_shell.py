@@ -1044,7 +1044,7 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "<WindowControls" in operational_modal
     assert "managed.toggleExpanded" in operational_modal
     assert "'Ripristina' : 'Ingrandisci'" in window_state
-    assert "Caricamento documento..." in source_modal
+    assert "Caricamento documento…" in source_modal
     assert "Documento non visualizzabile nel lettore." in source_modal
     assert "parsed.pathname.includes('/documenti/')" in source_modal
     assert "parsed.pathname.startsWith('/email/messaggio/')" in source_modal

@@ -11,7 +11,9 @@ def inspect(manifest):
  for e in manifest['files']:
   p=root/e['path'];assert (sha(p) if p.is_file() else None)==e['before'],'File server diverso: '+e['path']
  app=json.loads(run(['docker','inspect','iusentra-app']))[0]
- assert app['Config']['Image'].endswith(':'+manifest['base']),'Immagine attiva non corrispondente al commit: verificare prima'
+ production_tag='iusentra-app:'+manifest['base']
+ expected_image=run(['docker','image','inspect','--format','{{.Id}}',production_tag])
+ assert app['Image']==expected_image,'Immagine attiva non corrispondente al commit: verificare prima'
  if status:
   # A failed attempt restored original sources/images but retained new hashed
   # assets. Accept only files proven to belong to our previous derived image.
@@ -45,7 +47,7 @@ def inspect(manifest):
    assert got==e['before'],'Runtime differente: '+e['path']
  data=next(m['Source'] for m in app['Mounts'] if m['Destination']=='/data')
  project=app['Config']['Labels']['com.docker.compose.project']
- return {'base':manifest['base'],'image':app['Image'],'image_tag':app['Config']['Image'],'data':data,'project':project}
+ return {'base':manifest['base'],'image':app['Image'],'image_tag':production_tag,'data':data,'project':project}
 
 mode,folder=sys.argv[1],Path(sys.argv[2]).resolve()
 manifest=json.loads((folder/'INSTALL_MANIFEST.json').read_text())

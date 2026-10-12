@@ -95,6 +95,7 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
         REPO_ROOT / "tests" / "test_mailbox_native_sqlite_flow.py",
     ),
     "coverage-critical": (
+        REPO_ROOT / "tests" / "test_fascicolo_lettura_verifiche.py",
         REPO_ROOT / "lex" / "tests",
         *LEX_CROSS_SUITE,
         REPO_ROOT / "tests" / "test_auth.py",

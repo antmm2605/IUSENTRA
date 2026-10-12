@@ -41,7 +41,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 | Suite | Target | Esempi |
 | --- | --- | --- |
-| coverage-critical | 72 | lex/tests, tests/test_lex_agenda_scadenze_knowledge_matrix.py, tests/test_lex_ai_quality_framework.py, tests/test_lex_assistente_context_real_requests.py, tests/test_lex_atti_redazione_knowledge_matrix.py ... |
+| coverage-critical | 73 | tests/test_fascicolo_lettura_verifiche.py, lex/tests, tests/test_lex_agenda_scadenze_knowledge_matrix.py, tests/test_lex_ai_quality_framework.py, tests/test_lex_assistente_context_real_requests.py ... |
 | e2e-nightly | 4 | tests/e2e/test_studio_reale_flow.py, tests/e2e/test_ai_pipeline_full.py, tests/e2e/test_tenant_migration_full.py, tests/e2e/test_operational_crash_day.py |
 | e2e-smoke | 1 | tests/e2e/test_studio_reale_flow.py |
 | mailbox-storage | 14 | tests/test_email_mailbox_sql_repository.py, tests/test_email_mailbox_core_schema.py, tests/test_email_sql_client.py, tests/test_email_storage_runtime.py, tests/test_email_storage_errors.py ... |

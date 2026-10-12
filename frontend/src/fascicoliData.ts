@@ -755,6 +755,7 @@ export type LexIndexingSummary = {
   last_indexed_at: string | null
   status: 'ready' | 'partial' | 'working' | 'error' | 'stale'
   warnings: string[]
+  source_errors?: Array<{ source_id: string; document_id: string; sha256: string; filename: string; error_code: string; message: string }>
 }
 
 export type FascicoloDocumentPresidioAction = {
@@ -2456,6 +2457,10 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
       last_indexed_at: text(lexIndexingSource.last_indexed_at ?? lexIndexingSource.lastIndexedAt) || null,
       status: text(lexIndexingSource.status, 'ready') as LexIndexingSummary['status'],
       warnings: asArray(lexIndexingSource.warnings).map((item) => text(item)).filter(Boolean).slice(0, 12),
+      source_errors: asArray(lexIndexingSource.source_errors).filter(isRecord).map((item) => ({
+        source_id: text(item.source_id), document_id: text(item.document_id), sha256: text(item.sha256),
+        filename: text(item.filename), error_code: text(item.error_code), message: text(item.message),
+      })),
     },
     profile: normalizeKeyValues(payload.profile),
     documents: asArray(payload.documents).map((entry, index) => {

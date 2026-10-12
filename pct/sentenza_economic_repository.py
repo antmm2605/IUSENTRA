@@ -199,6 +199,7 @@ class SentenzaEconomicRepository:
         placeholders = ", ".join("?" for _ in columns)
         names = ", ".join(SENTENZA_ECONOMIC_COLUMN_SQL[column] for column in columns)
         with self.connection() as conn:
+            self._prepare_live_write(conn)
             conn.execute(
                 f"INSERT INTO {safe_table} ({names}) VALUES ({placeholders})",
                 tuple(values[column] for column in columns),
@@ -213,10 +214,15 @@ class SentenzaEconomicRepository:
         assignments = ", ".join(f"{SENTENZA_ECONOMIC_COLUMN_SQL[column]} = ?" for column in columns)
         safe_where = _sql_where_clause(where)
         with self.connection() as conn:
+            self._prepare_live_write(conn)
             conn.execute(
                 f"UPDATE {safe_table} SET {assignments} WHERE {safe_where}",
                 (*(values[column] for column in columns), *tuple(params)),
             )
+
+    def _prepare_live_write(self, conn: Any) -> None:
+        from pct.operational_live import ensure_tenant_live_schema
+        ensure_tenant_live_schema(conn, "economico", postgres=self._pg_backend is not None)
 
     def schema_table_names(self) -> set[str]:
         if self.backend_kind == "postgres":
@@ -240,6 +246,7 @@ class SentenzaEconomicRepository:
         condition = " AND ".join(f"{SENTENZA_ECONOMIC_COLUMN_SQL[k]} = ?" for k in identity)
         stable = hashlib.sha256(json_dumps([table, identity]).encode("utf-8")).hexdigest()
         with self.connection() as conn:
+            self._prepare_live_write(conn)
             previous = _row_dict(conn.execute(
                 f"SELECT * FROM {safe_table} WHERE {condition} ORDER BY created_at ASC LIMIT 1",
                 tuple(identity.values()),

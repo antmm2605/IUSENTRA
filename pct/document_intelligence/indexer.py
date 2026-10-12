@@ -11,6 +11,7 @@ from typing import Any
 from .models import LexIndexingSummary
 from .security import DocumentAIValidationError
 from .index_retry import index_source, native_engine_is_current
+from .index_outcomes import source_error, source_error_key, source_identity
 from .sources import DocumentAISource
 
 _READY = "ready"
@@ -66,9 +67,21 @@ class DocumentAIIndexer:
         indexed = 0
         skipped = 0
         errors: list[str] = []
+        source_errors: list[dict[str, Any]] = []
         attempted_hashes: set[str] = set()
+        failed_hashes: dict[str, dict[str, Any]] = {}
         for source in sources:
+            if source.tenant_id != tenant_id or source.fascicolo_id != fascicolo_id:
+                failure = source_error(source, DocumentAIValidationError("La sorgente non appartiene al fascicolo richiesto."))
+                source_errors.append(failure)
+                errors.append(f"{source.filename}: {failure['message']}")
+                continue
             if source.sha256 and source.sha256 in attempted_hashes:
+                if source.sha256 in failed_hashes:
+                    failure = dict(failed_hashes[source.sha256])
+                    failure.update(source_identity(source))
+                    failure.update(document_id=str(source.metadata.get("documento_id") or source.source_id), filename=source.filename)
+                    source_errors.append(failure)
                 skipped += 1
                 continue
             state = _state_for_source(source, records)
@@ -85,6 +98,17 @@ class DocumentAIIndexer:
                 skipped += 1
                 continue
             if state == _ERROR and not retry_errors:
+                matching = [record for record in records
+                            if record.tenant_id == tenant_id and record.fascicolo_id == fascicolo_id
+                            and record.sha256 == source.sha256 and record.status == _ERROR]
+                if matching:
+                    record = max(matching, key=lambda item: (item.updated_at, item.id))
+                    outcome = self.service.repository.latest_processing_error(tenant_id, fascicolo_id, record.id, record.current_version_id)
+                    failure = {**source_identity(source), **outcome,
+                               "document_id": str(source.metadata.get("documento_id") or source.source_id),
+                               "filename": source.filename}
+                    source_errors.append(failure)
+                    errors.append(f"{source.filename}: {failure['message']}")
                 skipped += 1
                 continue
             if not source.supported:
@@ -101,12 +125,14 @@ class DocumentAIIndexer:
                 if record is None or record.status != _READY:
                     raise DocumentAIValidationError("Lettura non completata: il documento non ha un indice pronto.")
                 indexed += 1
-            except (OSError, DocumentAIValidationError) as exc:
-                errors.append(f"{source.filename}: {exc}")
             except Exception as exc:
-                errors.append(f"{source.filename}: indicizzazione non completata ({exc})")
+                failure = source_error(source, exc)
+                source_errors.append(failure)
+                if source.sha256:
+                    failed_hashes[source.sha256] = failure
+                errors.append(f"{source.filename}: {failure['message']}")
         refreshed = self.service.list_fascicolo_documents(tenant_id, fascicolo_id, user_context)
-        summary = build_lex_indexing_summary(sources=sources, records=refreshed, extra_warnings=errors)
+        summary = build_lex_indexing_summary(sources=sources, records=refreshed, extra_warnings=errors, source_errors=source_errors)
         return DocumentAIIndexingResult(summary=summary, indexed=indexed, skipped=skipped, errors=errors)
 
 
@@ -182,8 +208,16 @@ def build_lex_indexing_summary(
     sources: list[DocumentAISource],
     records: list[Any],
     extra_warnings: list[str] | None = None,
+    source_errors: list[dict[str, Any]] | None = None,
 ) -> LexIndexingSummary:
-    states = [_state_for_source(source, records) for source in sources]
+    source_keys = {source_error_key(source_identity(source)) for source in sources if _state_for_source(source, records) != _READY}
+    failures = [dict(item) for item in list(source_errors or []) if source_error_key(item) in source_keys]
+    failed_keys = {source_error_key(item) for item in failures}
+    states = [
+        _ERROR if source_error_key(source_identity(source)) in failed_keys and _state_for_source(source, records) != _READY
+        else _state_for_source(source, records)
+        for source in sources
+    ]
     counts = Counter(states)
     total = len(sources)
     last_indexed_at = _last_ready_update(records)
@@ -201,10 +235,12 @@ def build_lex_indexing_summary(
         last_indexed_at=last_indexed_at,
         status=status,
         warnings=warnings,
+        source_errors=failures,
     )
 
 
 def _state_for_source(source: DocumentAISource, records: list[Any]) -> str:
+    records = [record for record in records if record.tenant_id == source.tenant_id and record.fascicolo_id == source.fascicolo_id]
     if not source.supported:
         return _ERROR
     if not source.sha256:

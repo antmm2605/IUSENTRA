@@ -14,7 +14,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-VERSIONE_DATE_PROCESSUALI = "2026.10.01.date-v3+identita-strutturale+sottoscrizione+ufficio-pertinente"
+VERSIONE_DATE_PROCESSUALI_PRE_FRASI = "2026.10.01.date-v3+identita-strutturale+sottoscrizione+ufficio-pertinente"
+VERSIONE_DATE_PROCESSUALI = VERSIONE_DATE_PROCESSUALI_PRE_FRASI + "+frasi-v4"
 
 FINESTRA_PRIMA = 110
 FINESTRA_DOPO = 45
@@ -23,7 +24,7 @@ FINESTRA_NEGATIVA = 30
 # (campo, espressione sul testo che precede la data). L'ordine conta solo a parità di distanza.
 ANCORE: tuple[tuple[str, str], ...] = (
     ("udienza", r"udienz[ae]|comparizion[ei]|camera di consiglio|discussion[ei]|rinvi[ao]t?[ao]?|trattazion[ei]|fissa(?:ta|to|re)?"),
-    ("termine", r"termin[ei]|entro (?:il|e non oltre|la data)|non oltre|scad(?:e|enza|ono)|perentori[oa]|decorren[zt][ae]|a decorrere"),
+    ("termine", r"termin[ei]|entro (?:il|e non oltre|la data)|non oltre|scad(?:e|enz[ae]|ono)|perentori[oa]|decorren[zt][ae]|a decorrere"),
     ("costituzione", r"costituzion[ei]|costituirsi"),
     ("deposito", r"deposit(?:o|ato|ata|ata il|are)|data (?:di )?deposito|depositat[oa]"),
     ("notifica", r"notificat[oa]|notifica(?:zione)?|data (?:di )?notifica|notificare"),
@@ -33,7 +34,7 @@ ANCORE: tuple[tuple[str, str], ...] = (
     ("provvedimento", r"sentenza|ordinanza|decreto|provvedimento|emess[oa]|pubblicat[oa]|pronunciat[oa]|depositata in cancelleria"),
     ("data_atto", r"(?:l[iì]'?|addì|add[iì]'?)\s*,?\s*$"),
 )
-_ANCORE_RE = tuple((campo, re.compile(rf"(?:{espressione})", re.IGNORECASE)) for campo, espressione in ANCORE)
+_ANCORE_RE = tuple((campo, re.compile(rf"(?<!\w)(?:{espressione})(?!\w)", re.IGNORECASE)) for campo, espressione in ANCORE)
 _NEGATIVE = re.compile(
     r"nat[oa]\s+(?:a|il|in)|nascita|rilasciat[oa]|scadenz[ae]\s+(?:del documento|carta|passaporto|patente)|valid[oa]\s+fino|"
     r"documento\s+d'identit|carta\s+d'identit|passaporto|patente|codice\s+fiscale|prot(?:\.|ocollo)|fattura\s+n|parcella\s+n|"
@@ -46,7 +47,8 @@ _ORA = re.compile(r"(?:ore|alle ore|alle|h\.?)\s*(?P<ora>[01]?\d|2[0-3])\s*[:.,]
 # Fine di una frase: punto seguito da spazio e da una maiuscola. Le abbreviazioni
 # («art. 3-bis», «Prot. n.», «L. 53/1994») non chiudono la frase: dopo il loro
 # punto non c'è una maiuscola d'inizio frase o prima c'è una sola lettera.
-_FINE_FRASE = re.compile(r"(?<![A-Za-z])(?<!\bart)(?<!\bn)[^\s.][.!?]\s+(?=[A-ZÀ-Ý])")
+_FINE_FRASE = re.compile(r"(?<![\w.])(?P<parola>[A-Za-zÀ-ÿ]{2,}|\d+(?:[./]\d+)*)[.!?]\s+(?=[A-ZÀ-Ý])")
+_ABBREVIAZIONI = {"art", "artt", "avv", "dott", "sig", "sigg", "prot", "pag", "pagg", "cfr", "tel", "fax"}
 
 
 def inizio_frase(testo: str, inizio: int, limite: int = 0) -> int:
@@ -54,6 +56,8 @@ def inizio_frase(testo: str, inizio: int, limite: int = 0) -> int:
     finestra = testo[max(0, limite):inizio]
     ultimo = 0
     for match in _FINE_FRASE.finditer(finestra):
+        if match.group("parola").lower() in _ABBREVIAZIONI:
+            continue
         ultimo = match.end()
     return max(0, limite) + ultimo
 
@@ -176,5 +180,13 @@ def esclusione_data_salvata(testo: str, valore: str) -> str:
 
     data = interpreta_data(valore.split("T")[0])
     occorrenze = [d for d in trova_date(testo) if d.data == data]
-    motivi = [motivo_non_processuale(testo, d.inizio, d.fine) for d in occorrenze]
+    motivi = []
+    for trovata in occorrenze:
+        motivo = motivo_non_processuale(testo, trovata.inizio, trovata.fine)
+        # L'assenza dell'ancora in un brano troncato non è una prova. Un
+        # confine di frase visibile, invece, dimostra che l'ancora precedente
+        # non può qualificare la data della frase nuova.
+        if not motivo and inizio_frase(testo, trovata.inizio) > 0 and ancora_per(testo, trovata.inizio, trovata.fine) is None:
+            motivo = "data separata dall’evento processuale da un confine di frase, senza un’ancora nella propria frase"
+        motivi.append(motivo)
     return motivi[0] if motivi and all(motivi) else ""

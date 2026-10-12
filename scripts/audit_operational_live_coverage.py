@@ -13,6 +13,14 @@ def main() -> None:
     files = subprocess.check_output(["rg", "--files", "frontend/src", "pct", "web/services", "web/bootstrap"], cwd=root, text=True).splitlines()
     live_source = ast.parse((root / "pct/operational_live.py").read_text(encoding="utf-8"))
     installed = next(ast.literal_eval(node.value) for node in live_source.body if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == "TABLE_DOMAINS" for target in node.targets))
+    vertical = next(node.value for node in live_source.body if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == "TENANT_TABLE_DOMAINS" for target in node.targets))
+    vertical_families = {}
+    for family, mapping in zip(vertical.keys, vertical.values):
+        if not isinstance(mapping, ast.DictComp) or len(mapping.generators) != 1:
+            raise ValueError("Mappa dei segnali verticali non riconosciuta: inventario da aggiornare.")
+        for table in ast.literal_eval(mapping.generators[0].iter):
+            installed[table] = ast.literal_eval(mapping.value)
+            vertical_families[table] = ast.literal_eval(family)
     surfaces = []
     tables: dict[str, set[str]] = {}
     writers = []
@@ -28,6 +36,7 @@ def main() -> None:
                 "component": relative,
                 "refresh_subscriptions": subscriptions,
                 "has_fetch_or_loader": bool(re.search(r"\bfetch\(|\bget\w+(?:Data|Page|Payload)\(", source)),
+                "has_operational_event_listener": "OPERATIONAL_REFRESH_EVENT" in source and "addEventListener" in source,
                 "wrapper_exports": re.findall(r"export\s+\{[^}]+\}\s+from\s+['\"]([^'\"]+)", source),
                 "real_acceptance": "not_verified",
                 "coverage": "subscription_to_verify" if subscriptions else "to_trace",
@@ -43,7 +52,7 @@ def main() -> None:
         "status": "OPEN",
         "method": "Inventario statico offline. Include features e wrapper; non equivale a prova materiale, schema runtime o copertura funzionale.",
         "components": surfaces,
-        "native_sql_tables": [{"table": table, "declarations": sorted(paths), "signal_domains": list(installed.get(table, ())), "runtime_and_delivery_acceptance": "not_verified"} for table, paths in sorted(tables.items())],
+        "native_sql_tables": [{"table": table, "declarations": sorted(paths), "signal_domains": list(installed.get(table, ())), "signal_scope": "vertical_tenant" if table in vertical_families else "studio_sql", "signal_family": vertical_families.get(table, ""), "runtime_and_delivery_acceptance": "not_verified"} for table, paths in sorted(tables.items())],
         "table_writer_calls": writers,
     }
     target = root / "artifacts/data-flow/live-sync-surface-inventory-20261008.json"

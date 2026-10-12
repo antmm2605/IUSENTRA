@@ -249,7 +249,7 @@ export function LettureFascicoloSection({ fascicoloId, active = true, refreshKey
             ))}
           </ul>
         </div>
-      ) : letture && !loading ? <p className="iu-fas-lettura__nota">Nessun dato letto da confermare: date e riferimenti hanno superato i controlli.</p> : null}
+      ) : letture && !loading ? <p className="iu-fas-lettura__nota">Nessun dato in attesa di conferma.</p> : null}
     </section>
   )
 }

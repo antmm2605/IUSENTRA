@@ -107,6 +107,17 @@ class DocumentAIRepository:
         self._catalog_commit_batch_requested = False
         if self._backend:
             self._ensure_sql_schema()
+            # Le tabelle documentali sono create dopo lo schema dello studio.
+            # Completa la stessa migrazione live anche sui nuovi studi, senza
+            # aprire un altro database o introdurre segnali fuori transazione.
+            from pct.storage import StudioDB
+            from pct.storage_postgres import PostgresStudioDB
+            studio_types = tuple(kind for kind in (StudioDB, PostgresStudioDB) if isinstance(kind, type))
+            if isinstance(structured_db, studio_types):
+                from pct.operational_live import ensure_live_schema
+                ensure_live_schema(structured_db.conn, postgres=self._backend == "postgresql")
+                if self._backend == "postgresql":
+                    structured_db.raw_conn.commit()
         self._data = self._load_json()
 
     @property
@@ -933,6 +944,27 @@ class DocumentAIRepository:
         else:
             self._data["audit_events"].append(clean)
             self._save_json()
+
+    def latest_processing_error(self, tenant_id: str, fascicolo_id: str, document_id: str, version_id: str) -> dict[str, str]:
+        """Causa dell'ultima lavorazione negativa della versione richiesta."""
+        if self._backend:
+            rows = self._conn().execute(
+                """SELECT payload_json FROM fascicolo_documenti_ai_audit
+                WHERE tenant_id = ? AND fascicolo_id = ? AND document_id = ? AND version_id = ?
+                ORDER BY created_at DESC LIMIT 20""",
+                (tenant_id, fascicolo_id, document_id, version_id),
+            ).fetchall()
+            events = [json.loads(row["payload_json"] or "{}") for row in rows]
+        else:
+            events = sorted((row for row in self._data["audit_events"]
+                if row.get("tenant_id") == tenant_id and row.get("fascicolo_id") == fascicolo_id
+                and row.get("document_id") == document_id and row.get("version_id") == version_id),
+                key=lambda row: str(row.get("timestamp") or ""), reverse=True)[:20]
+        for event in events:
+            if event.get("error_code") or event.get("error_message"):
+                return {"error_code": str(event.get("error_code") or "source_processing_failed"),
+                        "message": str(event.get("error_message") or "Lettura precedente non completata.")}
+        return {"error_code": "source_processing_failed", "message": "Causa della precedente lettura non disponibile nel registro."}
 
     def audit_summary(self, tenant_id: str, fascicolo_id: str, document_id: str) -> dict[str, str | None]:
         if self._backend:

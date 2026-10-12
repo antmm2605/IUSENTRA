@@ -129,6 +129,8 @@ def _serialize_lex_indexing(summary: dict[str, Any]) -> dict[str, Any]:
         "last_indexed_at": summary.get("last_indexed_at") or None,
         "status": str(summary.get("status") or "ready"),
         "warnings": [str(item) for item in list(summary.get("warnings") or [])[:12]],
+        "source_errors": [{key: str(item.get(key) or "") for key in ("source_id", "document_id", "sha256", "filename", "error_code", "message")}
+                          for item in list(summary.get("source_errors") or []) if isinstance(item, dict)],
     }
 
 

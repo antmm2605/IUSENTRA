@@ -654,3 +654,13 @@ def test_liquidazione_del_giudice_e_bonifici_entrano_nel_presidio_economico():
     assert not any(passo["azione"].startswith(("Riscuotere", "Confermare nel presidio economico")) for passo in lettura["prossimi_passi"])
     assert "Bonifici ricevuti: 1 per € 4.500,00 (2026/001 il 10/09/2026)" in lettura["narrativa"]
     assert "bonificata sul conto dello studio" in lettura["narrativa"]
+
+
+def test_esiti_negativi_archivio_non_diventano_documenti_in_attesa():
+    dati = _caso_completo()
+    dati.archivio = {"stato": {"completa": False, "da_leggere": 0, "errori": 14, "documenti": {"errori": 14}}}
+    risultato = costruisci_lettura(dati)
+    assert risultato["documenti"]["errori_lettura"] == 14
+    assert risultato["archivio"]["lettura_automatica"]["errori"] == 14
+    assert any("14 esiti di lettura non riusciti" in voce for voce in risultato["lacune"])
+    assert not any("in attesa di lettura" in voce for voce in risultato["lacune"])

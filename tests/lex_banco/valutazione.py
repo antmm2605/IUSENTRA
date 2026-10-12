@@ -190,12 +190,33 @@ def _ambiente() -> Iterator[None]:
                 os.environ[chiave] = valore
 
 
+@contextmanager
+def _connessioni_controllate(root: Path):
+    """Il banco possiede e chiude le connessioni ai soli file temporanei."""
+    connect = sqlite3.connect
+    connections = []
+    root = root.resolve()
+    def tracked(database, *args, **kwargs):
+        connection = connect(database, *args, **kwargs)
+        raw = os.fspath(database)
+        if not raw.startswith("file:") and raw != ":memory:" and Path(raw).resolve().is_relative_to(root):
+            connections.append(connection)
+        return connection
+    sqlite3.connect = tracked
+    try:
+        yield
+    finally:
+        sqlite3.connect = connect
+        for connection in connections:
+            connection.close()
+
+
 def esegui_banco(tmp_path: Path | None = None, *, solo: set[str] | None = None) -> list[EsitoDomanda]:
     dati = carica_domande()
     vietate = list(dati.get("vietate_sempre", []))
     date_clienti = dict(dati.get("date_clienti", {}))
     casi = [caso for caso in dati["domande"] if not solo or caso["id"] in solo]
-    with _ambiente(), tempfile.TemporaryDirectory(prefix="banco_lex_") as cartella:
+    with _ambiente(), tempfile.TemporaryDirectory(prefix="banco_lex_") as cartella, _connessioni_controllate(Path(tmp_path or cartella)):
         banco = crea_studio(Path(tmp_path or cartella))
         esiti: list[EsitoDomanda] = []
         try:

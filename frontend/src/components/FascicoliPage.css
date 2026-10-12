@@ -3667,3 +3667,8 @@ body.iu-fascicoli-table-expanded{
 }
 
 .iu-fas-hero__actions .iu-fas-tools-shortcut { min-width: 36px; width: 36px; padding: 0; flex: 0 0 36px; }
+
+.iu-fas-lex-indexing__warnings{grid-column:1/-1;min-width:0;overflow-wrap:anywhere}
+.iu-fas-lex-indexing__warnings summary{cursor:pointer;min-height:44px;align-content:center;font-size:12px;font-weight:850}
+.iu-fas-lex-indexing__warnings summary:focus-visible{outline:2px solid var(--iu-action-blue,#2563eb);outline-offset:3px}
+.iu-fas-lex-indexing__warnings li span{display:block;margin-top:3px}

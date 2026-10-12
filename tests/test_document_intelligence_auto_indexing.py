@@ -236,9 +236,11 @@ def test_hash_invariato_non_reindicizza(tmp_path: Path, monkeypatch):
     assert result.summary.ready == 1
 
 
-def test_hash_invariato_ripara_una_sola_volta_record_ready_senza_testo(tmp_path: Path, monkeypatch):
+def test_hash_invariato_ripara_una_sola_volta_record_ready_senza_testo(tmp_path: Path, monkeypatch, request):
     _patch_extraction(monkeypatch)
-    service = _service(tmp_path)
+    repository = DocumentAIRepository.from_sqlite_db(tmp_path / "indice.db")
+    request.addfinalizer(repository.structured_db.close)
+    service = DocumentAIService(repository, FakeFascicoli())
     source = _source()
     indexer = DocumentAIIndexer(service)
     first = indexer.process(
@@ -248,14 +250,14 @@ def test_hash_invariato_ripara_una_sola_volta_record_ready_senza_testo(tmp_path:
         user_context=_context(),
     )
     original_record = service.repository.list_documents("tenant-a", "fas-1")[0]
-    original_getter = service.repository.get_extracted_text
-
-    def missing_original_text(tenant_id, fascicolo_id, document_id, version_id=None):
-        if document_id == original_record.id:
-            return None
-        return original_getter(tenant_id, fascicolo_id, document_id, version_id)
-
-    monkeypatch.setattr(service.repository, "get_extracted_text", missing_original_text)
+    original_version = original_record.current_version_id
+    connection = repository.structured_db.conn
+    connection.execute(
+        "DELETE FROM fascicolo_documenti_ai_testi WHERE tenant_id=? AND fascicolo_id=? AND document_id=? AND version_id=?",
+        ("tenant-a", "fas-1", original_record.id, original_version),
+    )
+    connection.commit()
+    assert repository.get_extracted_text("tenant-a", "fas-1", original_record.id, original_version) is None
     repaired = indexer.process(
         tenant_id="tenant-a",
         fascicolo_id="fas-1",
@@ -272,12 +274,14 @@ def test_hash_invariato_ripara_una_sola_volta_record_ready_senza_testo(tmp_path:
     records = service.repository.list_documents("tenant-a", "fas-1")
     assert first.indexed == 1
     assert repaired.indexed == 1
-    assert len(records) == 2
-    assert any(
-        record.id != original_record.id
-        and original_getter("tenant-a", "fas-1", record.id) is not None
-        for record in records
-    )
+    assert len(records) == 1
+    assert records[0].id == original_record.id
+    assert records[0].sha256 == original_record.sha256
+    assert records[0].current_version_id != original_version
+    assert repository.get_extracted_text("tenant-a", "fas-1", original_record.id) is not None
+    versions = repository.list_versions("tenant-a", "fas-1", original_record.id)
+    assert len(versions) == 2
+    assert {v.sha256 for v in versions} == {original_record.sha256}
     assert unchanged.indexed == 0
     assert unchanged.skipped == 1
 

@@ -175,6 +175,7 @@ class LexIndexingSummary(SerializableDataclass):
     not_indexed: int = 0
     archived: int = 0
     warnings: list[str] = field(default_factory=list)
+    source_errors: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass(slots=True)

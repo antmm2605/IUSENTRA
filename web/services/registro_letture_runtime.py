@@ -48,11 +48,14 @@ def _dsn_postgres(paths: Mapping[str, Any] | None = None) -> str:
         return ""
 
 
-def registro_per_percorsi(paths: Mapping[str, Any] | None = None) -> RegistroLetture:
-    return RegistroLetture(percorso_registro(paths), postgres_dsn=_dsn_postgres(paths))
+def registro_per_percorsi(paths: Mapping[str, Any] | None = None, *, sola_lettura: bool = False) -> RegistroLetture:
+    options = {"read_only": True} if sola_lettura else {}
+    return RegistroLetture(percorso_registro(paths), postgres_dsn=_dsn_postgres(paths), **options)
 
 
-def registro_corrente() -> RegistroLetture:
+def registro_corrente(*, sola_lettura: bool = False) -> RegistroLetture:
+    if sola_lettura:
+        return registro_per_percorsi(None, sola_lettura=True)
     return registro_per_percorsi(None)
 
 

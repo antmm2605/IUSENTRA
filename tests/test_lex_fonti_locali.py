@@ -234,7 +234,10 @@ def server(tmp_path, monkeypatch):
     (data / "normativa" / "normattiva.sqlite-wal").write_bytes(b"wal")
     docker = tmp_path / "bin" / "docker"
     docker.parent.mkdir()
-    docker.write_text(DOCKER_FINTO)
+    docker.write_text(DOCKER_FINTO, encoding="utf-8", newline="\n")
+    if os.name == "nt":
+        python3 = docker.parent / "python3"
+        python3.write_text('#!/usr/bin/env bash\nexec "$TEST_PYTHON" "$@"\n', encoding="utf-8", newline="\n")
     docker.chmod(0o755)
     log = tmp_path / "docker.log"
     ambiente = {
@@ -255,8 +258,31 @@ def server(tmp_path, monkeypatch):
     return {"home": home, "data": data, "log": log, "env": ambiente}
 
 
+def _bash_fixture():
+    if os.name != "nt":
+        return "bash"
+    git = shutil.which("git")
+    candidati = [Path(git).resolve().parent.parent / "bin" / "bash.exe"] if git else []
+    candidati.append(Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Git" / "bin" / "bash.exe")
+    return str(next(p for p in candidati if p.is_file()))
+
+
 def _lancia(server, *args):
-    return subprocess.run(["bash", str(SCRIPT_SH), *args], env=server["env"], capture_output=True, text=True, cwd=str(RADICE))
+    bash = "bash"
+    ambiente = dict(server["env"])
+    argomenti = list(args)
+    if os.name == "nt":
+        # La fixture esegue Python Windows: serve Bash dello stesso ambiente,
+        # non il launcher WSL con percorsi Windows privi di conversione.
+        bash = _bash_fixture()
+        ambiente["PATH"] = str(Path(server["env"]["DOCKER"]).parent) + os.pathsep + str(Path(sys.executable).parent) + os.pathsep + ambiente.get("PATH", "")
+        def percorso_bash(valore):
+            percorso = Path(valore)
+            return "/" + percorso.drive[0].lower() + percorso.as_posix()[2:] if percorso.drive else percorso.as_posix()
+        for chiave in ("IUSENTRA_HOME", "IUSENTRA_DATA_DIR", "REPO_DIR", "IUSENTRA_ENV_FILE", "COMPOSE_FILE", "DOCKER", "FAKE_DOCKER_LOG", "TEST_PYTHON", "PYTHONPATH", "FONTI_LEX_DB_CONTAINER"):
+            ambiente[chiave] = Path(ambiente[chiave]).as_posix() if chiave in {"TEST_PYTHON", "PYTHONPATH"} else percorso_bash(ambiente[chiave])
+        argomenti = [percorso_bash(a) if not str(a).startswith("--") else a for a in argomenti]
+    return subprocess.run([bash, SCRIPT_SH.as_posix(), *argomenti], env=ambiente, capture_output=True, text=True, cwd=str(RADICE))
 
 
 def _pacchetto(tmp_path, **kw):
@@ -266,6 +292,8 @@ def _pacchetto(tmp_path, **kw):
 
 def test_carica_dry_run_non_tocca_nulla(tmp_path, server):
     pacchetto = _pacchetto(tmp_path)
+    checksum = Path(str(pacchetto) + ".sha256").read_bytes()
+    assert checksum.endswith(b"\n") and b"\r" not in checksum
     r = _lancia(server, "--dry-run", str(pacchetto))
     assert r.returncode == 0, r.stdout + r.stderr
     assert "[dry-run]" in r.stdout and "compose stop scheduler-worker" in r.stdout
@@ -332,7 +360,7 @@ def test_ripristino_manuale_da_backup(tmp_path, server):
 
 
 def test_script_server_sintassi():
-    assert subprocess.run(["bash", "-n", str(SCRIPT_SH)]).returncode == 0
+    assert subprocess.run([_bash_fixture(), "-n", SCRIPT_SH.as_posix()]).returncode == 0
     if shutil.which("shellcheck"):
         assert subprocess.run(["shellcheck", str(SCRIPT_SH)], capture_output=True, text=True).returncode == 0
 

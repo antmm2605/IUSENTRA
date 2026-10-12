@@ -24,6 +24,12 @@ class Caso:
 
 CASI: tuple[Caso, ...] = (
     Caso(
+        id="data_documento_senza_termini",
+        titolo="Data tecnica separata da una frase senza eventi processuali",
+        righe=("DOCUMENTO TECNICO DI COLLAUDO", "Non attesta udienze o scadenze.", "Data 12/10/2026"),
+        attesi=(), vietati=("2026-10-12",),
+    ),
+    Caso(
         id="decreto_fissazione_udienza",
         titolo="Decreto di fissazione dell'udienza con termine per le memorie",
         righe=(

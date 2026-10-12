@@ -9250,7 +9250,10 @@ def build_react_fascicolo_detail_payload(
     document_presidio = (
         _document_presidio_for_fascicolo(
             fascicolo,
-            ensure_missing=bool(include_all or load_documents or load_deadlines),
+            # La consultazione non è un evento della fonte: accodare da una
+            # GET produce GET -> revisione SQL -> refresh -> nuova GET.
+            # Nuove fonti e comandi POST usano già la coda persistente nativa.
+            ensure_missing=False,
         )
         if load_document_presidio
         else {
@@ -9497,108 +9500,9 @@ def build_react_fascicolo_detail_payload(
 
 
 def _lex_indexing_summary(fid: str) -> dict[str, Any]:
-    from web.services.document_intelligence_runtime import (
-        build_document_ai_service,
-        collect_document_ai_sources_for_fascicolo,
-        document_ai_tenant_id,
-    )
+    from web.services.document_intelligence_runtime import build_lex_indexing_summary_payload
 
-    tenant_id = document_ai_tenant_id()
-    sources = collect_document_ai_sources_for_fascicolo(fid, tenant_id=tenant_id)
-    service = build_document_ai_service()
-    records = service.repository.list_documents(tenant_id, fid)
-
-    def _preferred_lex_record(current: Any | None, candidate: Any) -> Any:
-        if current is None:
-            return candidate
-        current_ready = str(getattr(current, "status", "") or "").casefold() == "ready"
-        candidate_ready = str(getattr(candidate, "status", "") or "").casefold() == "ready"
-        if candidate_ready and not current_ready:
-            return candidate
-        if current_ready and not candidate_ready:
-            return current
-        return candidate if str(getattr(candidate, "updated_at", "") or "") > str(getattr(current, "updated_at", "") or "") else current
-
-    records_by_sha: dict[str, Any] = {}
-    records_by_source_id: dict[str, Any] = {}
-    for record in records:
-        sha = str(getattr(record, "sha256", "") or "")
-        if sha:
-            records_by_sha[sha] = _preferred_lex_record(records_by_sha.get(sha), record)
-        source_id = str(getattr(record, "id", "") or "")
-        if source_id:
-            records_by_source_id[source_id] = _preferred_lex_record(records_by_source_id.get(source_id), record)
-    ready = queued = indexing = errors = stale = archived = not_indexed = 0
-    last_indexed_at = ""
-    for source in sources:
-        if not source.supported:
-            archived += 1
-            continue
-        record = records_by_sha.get(str(source.sha256 or "")) or records_by_source_id.get(str(source.source_id or ""))
-        if record is None:
-            not_indexed += 1
-            continue
-        status = str(getattr(record, "status", "") or "").casefold()
-        updated_at = str(getattr(record, "updated_at", "") or "")
-        if updated_at > last_indexed_at:
-            last_indexed_at = updated_at
-        if status == "ready":
-            ready += 1
-        elif status == "processing":
-            indexing += 1
-        elif status == "uploaded":
-            queued += 1
-        elif status == "archived":
-            archived += 1
-        elif status == "error":
-            errors += 1
-        else:
-            stale += 1
-    if indexing:
-        status = "indexing"
-    elif errors or stale or not_indexed:
-        status = "stale" if stale else "error" if errors else "not_indexed"
-    else:
-        status = "ready"
-    from pct.document_intelligence.extraction_audit_repository import DocumentAIExtractionAuditRepository
-    failed_sources = [
-        (source, records_by_sha.get(str(source.sha256 or "")))
-        for source in sources
-        if str(getattr(records_by_sha.get(str(source.sha256 or "")), "status", "")) == "error"
-    ][:12]
-    error_messages = DocumentAIExtractionAuditRepository(service.repository).error_messages(
-        tenant_id, fid,
-        {str(record.id): str(source.sha256 or "") for source, record in failed_sources if record is not None},
-    )
-    payload = {
-        "total_documents": len(sources),
-        "ready": ready,
-        "queued": queued,
-        "indexing": indexing,
-        "errors": errors,
-        "stale": stale,
-        "not_indexed": not_indexed,
-        "archived": archived,
-        "last_indexed_at": last_indexed_at or None,
-        "status": status,
-        "warnings": [
-            f"{source.filename}: {error_messages.get(str(record.id)) or 'Indicizzazione non completata.'}"
-            for source, record in failed_sources
-        ],
-    }
-    return {
-        "total_documents": int(payload.get("total_documents") or 0),
-        "ready": int(payload.get("ready") or 0),
-        "queued": int(payload.get("queued") or 0),
-        "indexing": int(payload.get("indexing") or 0),
-        "errors": int(payload.get("errors") or 0),
-        "stale": int(payload.get("stale") or 0),
-        "not_indexed": int(payload.get("not_indexed") or 0),
-        "archived": int(payload.get("archived") or 0),
-        "last_indexed_at": payload.get("last_indexed_at") or None,
-        "status": str(payload.get("status") or "ready"),
-        "warnings": [str(item) for item in list(payload.get("warnings") or [])[:12]],
-    }
+    return build_lex_indexing_summary_payload(fid, process=False, apply_automations=False)
 
 
 def build_react_fascicoli_export_payload(*, get_fascicoli: Callable[[], Any], get_scadenziario: Callable[[], Any]) -> dict[str, Any]:

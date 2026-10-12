@@ -264,7 +264,7 @@ def _passi_documenti(documenti_letti: dict[str, Any], verifiche: dict[str, Any])
     esito = dict((verifiche.get("esiti") or {}).get("documenti") or {})
     errori = int(esito.get("errori") or 0)
     if errori:
-        passi.append(Passo(2, f"Fornire una copia leggibile di {errori} document{'o' if errori == 1 else 'i'}", "il presidio documentale non è riuscito a leggerli (riconoscimento del testo fallito)", "", "presidio documentale", (), HREF_DOCUMENTI))
+        passi.append(Passo(2, f"Fornire una copia leggibile di {errori} document{'o' if errori == 1 else 'i'}", "il presidio documentale non ha completato la lettura: consultare la causa registrata per ciascuna fonte", "", "presidio documentale", (), HREF_DOCUMENTI))
     proposte = int(documenti_letti.get("proposti") or 0)
     if proposte > 0:
         passi.append(Passo(3, f"Confermare con un clic le {proposte} propost{'a' if proposte == 1 else 'e'} di catalogazione pronte", "il presidio ha identificato i documenti dal contenuto con la prova; la conferma resta dell'avvocato", "", "catalogazione", (), HREF_CATALOGO))

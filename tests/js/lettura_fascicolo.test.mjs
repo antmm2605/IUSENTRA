@@ -154,3 +154,23 @@ test('il presidio economico legge liquidazione del giudice e bonifici', async ()
   assert.equal(card.tono, 'danger')
   assert.match(card.nota, /liquidato dal giudice · non ancora bonificato/)
 })
+
+
+test('documentazione distingue errori di lettura dai documenti in coda', () => {
+  const dati = lettura()
+  dati.documenti.errori_lettura = 14
+  dati.documenti.da_leggere_lettura = 0
+  dati.documenti.non_indicizzati = Array.from({ length: 14 }, (_, id) => ({ id }))
+  const card = presidiCards(dati).find((voce) => voce.id === 'documenti')
+  assert.equal(card.tono, 'danger')
+  assert.match(card.nota, /14 letture non riuscite.*0 da indicizzare/)
+})
+
+
+test('la coda SQL resta distinta dagli errori anche con indice parziale', () => {
+  const dati = lettura()
+  dati.documenti.errori_lettura = 2
+  dati.documenti.da_leggere_lettura = 3
+  dati.documenti.non_indicizzati = [{}]
+  assert.match(presidiCards(dati).find((voce) => voce.id === 'documenti').nota, /2 letture non riuscite.*3 da indicizzare/)
+})

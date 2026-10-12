@@ -127,3 +127,13 @@ test('lettura automatica: dice quale oggetto manca e perché', () => {
   }
   assert.match(fraseLetturaAutomatica(molti), /«a».*«b».*«c».*e altri 2/)
 })
+
+
+test('esiti negativi conclusi non diventano tutto letto o in coda', () => {
+  const automatica = { in_corso: false, da_leggere: 0, errori: 14, completa: false, ultima_lettura: '', ultima_lettura_it: '' }
+  const stato = letture({ oggetti: 14, archivio: archivio({ lettura_automatica: automatica }) })
+  assert.equal(riassuntoLetture(stato).tono, 'danger')
+  assert.match(riassuntoLetture(stato).testo, /14 esiti non leggibili/)
+  assert.doesNotMatch(riassuntoLetture(stato).testo, /Tutto letto|in coda/)
+  assert.match(fraseLetturaAutomatica(automatica), /14 esiti non leggibili/)
+})

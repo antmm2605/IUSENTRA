@@ -558,8 +558,10 @@ export function NuovoAppuntamentoPage() {
     })
   }, [dayEvents, editId, form.data, form.durata, form.ora])
 
-  const canSubmit = requiredOk && !agendaLoading && !agendaError && conflicts.length === 0 && !concurrentFields.length && !recordError && (!isEditMode || Boolean(expectedVersion))
-  const cancelHref = form.from_cliente || form.id_cliente ? `/clienti/${form.from_cliente || form.id_cliente}` : '/agenda'
+  const canSubmit = requiredOk && !recordLoading && !agendaLoading && !agendaError && conflicts.length === 0 && !concurrentFields.length && !recordError && (!isEditMode || Boolean(expectedVersion))
+  const cancelHref = form.from_cliente ? `/clienti/${encodeURIComponent(form.from_cliente)}`
+    : form.id_fascicolo ? `/fascicoli/${encodeURIComponent(form.id_fascicolo)}#udienze`
+    : form.id_cliente ? `/clienti/${encodeURIComponent(form.id_cliente)}` : '/agenda'
   const safeClientMatches = useMemo(() => clientMatches, [clientMatches])
 
   const update = (field: keyof AppointmentForm, value: string) => {
@@ -605,25 +607,36 @@ export function NuovoAppuntamentoPage() {
   }, [])
   useOperationalRefresh(['agenda'], refreshDayAvailability)
 
-  useEffect(() => {
+  const refreshDefaults = useCallback(async () => {
     if (editId) return
-    let alive = true
-    fetch('/api/v1/ui/agenda/nuovo/defaults', {
+    const identifier = form.id_fascicolo
+    setRecordLoading(true)
+    setRecordError('')
+    try {
+      const response = await fetch(`/api/v1/ui/agenda/nuovo/defaults${identifier ? `?id_fascicolo=${encodeURIComponent(identifier)}` : ''}`, {
       credentials: 'same-origin',
       headers: { Accept: 'application/json' },
     })
-      .then((response) => response.ok ? safeJson(response) : null)
-      .then((payload) => {
-        if (!alive || !isRecord(payload)) return
-        const avvocato = firstText(payload, ['avvocato', 'responsabile'])
-        if (!avvocato) return
-        setForm((current) => current.avvocato ? current : { ...current, avvocato })
-      })
-      .catch(() => undefined)
-    return () => {
-      alive = false
+      const payload = await safeJson(response)
+      if (currentForm.current.id_fascicolo !== identifier) return
+      if (!response.ok || !isRecord(payload) || payload.ok !== true) {
+        throw new Error(isRecord(payload) ? firstText(payload, ['message'], 'Dati del fascicolo non caricati.') : 'Dati del fascicolo non caricati.')
+      }
+      if (identifier && payload.id_fascicolo !== identifier) throw new Error('Collegamento al fascicolo non confermato.')
+      setForm(current => ({ ...current,
+        avvocato: current.avvocato || firstText(payload, ['avvocato', 'responsabile']),
+        id_cliente: current.id_cliente || firstText(payload, ['id_cliente']),
+        cliente: current.cliente || firstText(payload, ['cliente']),
+        procedimento: current.procedimento || firstText(payload, ['procedimento']),
+        tribunale: current.tribunale || firstText(payload, ['tribunale']),
+      }))
+    } catch (error) {
+      if (currentForm.current.id_fascicolo === identifier) setRecordError(error instanceof Error ? error.message : 'Dati del fascicolo non caricati.')
+    } finally {
+      if (currentForm.current.id_fascicolo === identifier) setRecordLoading(false)
     }
-  }, [editId])
+  }, [editId, form.id_fascicolo])
+  useEffect(() => { void refreshDefaults() }, [refreshDefaults])
 
   useEffect(() => {
     if (!form.id_cliente) return
@@ -638,11 +651,11 @@ export function NuovoAppuntamentoPage() {
         if (!alive || !client) return
         setForm((current) => ({
           ...current,
-          cliente: clientName(client) || current.cliente,
-          cf_cliente: (client.codice_fiscale || current.cf_cliente || '').toUpperCase(),
-          procedimento: client.procedimento || client.numero_procedimento || current.procedimento,
-          tribunale: client.tribunale || current.tribunale,
-          avvocato: client.avvocato || current.avvocato,
+          cliente: current.cliente || clientName(client),
+          cf_cliente: (current.cf_cliente || client.codice_fiscale || '').toUpperCase(),
+          procedimento: current.id_fascicolo ? current.procedimento : current.procedimento || client.procedimento || client.numero_procedimento || '',
+          tribunale: current.id_fascicolo ? current.tribunale : current.tribunale || client.tribunale || '',
+          avvocato: current.avvocato || client.avvocato || '',
         }))
       })
       .catch(() => undefined)
@@ -732,8 +745,12 @@ export function NuovoAppuntamentoPage() {
       cliente: name || current.cliente,
       id_cliente: safeClient.id || current.id_cliente,
       cf_cliente: (safeClient.codice_fiscale || current.cf_cliente || '').toUpperCase(),
-      procedimento: safeClient.procedimento || safeClient.numero_procedimento || current.procedimento,
-      tribunale: safeClient.tribunale || current.tribunale,
+      // La scheda cliente può descrivere un altro procedimento della stessa
+      // persona: la scelta del cliente già collegato conserva il fascicolo.
+      procedimento: current.id_fascicolo && safeClient.id === current.id_cliente ? current.procedimento
+        : safeClient.procedimento || safeClient.numero_procedimento || current.procedimento,
+      tribunale: current.id_fascicolo && safeClient.id === current.id_cliente ? current.tribunale
+        : safeClient.tribunale || current.tribunale,
       avvocato: safeClient.avvocato || current.avvocato,
     }))
     setClientDropdownOpen(false)
@@ -826,7 +843,7 @@ export function NuovoAppuntamentoPage() {
         <form className="iu-appt-form" onSubmit={handleSubmit}>
           {isEditMode ? <input type="hidden" name="expected_version" value={expectedVersion} /> : null}
           {recordLoading ? <p className="iu-appt-validation" role="status">Caricamento dell’appuntamento…</p> : null}
-          {recordError ? <div className="iu-appt-validation" role="alert"><span>{recordError}</span><button className="iu-appt-outline" type="button" onClick={() => { void refreshAppointment().catch(() => undefined) }}>Riprova caricamento</button></div> : null}
+          {recordError ? <div className="iu-appt-validation" role="alert"><span>{recordError}</span><button className="iu-appt-outline" type="button" onClick={() => { void (isEditMode ? refreshAppointment() : refreshDefaults()).catch(() => undefined) }}>Riprova caricamento</button></div> : null}
           <input type="hidden" name="id_cliente" value={form.id_cliente} />
           <input type="hidden" name="id_fascicolo" value={form.id_fascicolo} />
           <input type="hidden" name="from_cliente" value={form.from_cliente} />

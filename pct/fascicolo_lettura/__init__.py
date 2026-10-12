@@ -39,7 +39,7 @@ from .pec import pec
 from .prossimi_passi import prossimi_passi
 
 ROME_TZ = ZoneInfo("Europe/Rome")
-VERSIONE_LETTURA = "2026.10.01.lettura-fascicolo.v12-udienze-istituti"
+VERSIONE_LETTURA = "2026.10.12.lettura-fascicolo.v13-esiti-fonti"
 
 
 def _lacune(lettura: dict[str, Any]) -> list[str]:
@@ -77,6 +77,9 @@ def _lacune(lettura: dict[str, Any]) -> list[str]:
     elif (archivio_letto.get("lettura_automatica") or {}).get("da_leggere"):
         quanti = archivio_letto["lettura_automatica"]["da_leggere"]
         voci.append(f"la lettura automatica deve ancora leggere {quanti} oggett{'o' if quanti == 1 else 'i'} del fascicolo")
+    elif (archivio_letto.get("lettura_automatica") or {}).get("errori"):
+        quanti = int(archivio_letto["lettura_automatica"]["errori"])
+        voci.append(f"{quanti} esiti di lettura non riusciti: consultare le cause e recuperare le fonti prima di citarne il contenuto")
     elif documenti_letti["non_indicizzati"]:
         quanti = len(documenti_letti["non_indicizzati"])
         voci.append(f"{quanti} document{'o' if quanti == 1 else 'i'} in attesa di lettura dal presidio documentale: la lettura non può ancora citarne il contenuto")
@@ -121,6 +124,9 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
     pec_letto = pec(dati.pec)
     economico_letto = economico(dati.economico, oggi)
     archivio_letto = archivio(dati.archivio) if getattr(dati, "archivio", None) else {}
+    stato_documenti = (archivio_letto.get("lettura_automatica") or {}).get("documenti") or {}
+    documenti_letti["errori_lettura"] = int(stato_documenti.get("errori") or 0)
+    documenti_letti["da_leggere_lettura"] = int(stato_documenti["da_leggere"]) if "da_leggere" in stato_documenti else None
     eventi = cronologia(dati.attivita, depositi_letti["tutti"], notifiche_lette["tutte"], documenti_letti["tutti"], dati.appuntamenti, oggi, archivio_letto)
     fase_letta = fase(testata, documenti_letti, depositi_letti, notifiche_lette, eventi, dati.scadenze, oggi)
     passi, stato = prossimi_passi(

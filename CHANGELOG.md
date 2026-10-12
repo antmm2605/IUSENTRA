@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.437.16 — candidata, 12/10/2026
+
+- Letture documentali: errori persistenti riferiti alla fonte e tutti visibili; distinti documenti pronti, in coda e non leggibili. Acquisizione interna coerente con il limite applicativo, senza cambiare il limite pubblico del caricamento AI.
+- Fascicolo: revisioni SQL condivise per sezioni e archivi verticali, letture GET senza nuovi job e conservazione delle bozze nelle viste già aperte. Mediazione mostra i conflitti e permette di scegliere il valore da conservare.
+- Agenda: nuovo appuntamento recupera cliente, ruolo completo e ufficio dal fascicolo autorizzato, conservando i campi già compilati.
+- Ancoraggio delle date: confini di parola e frase impediscono falsi termini nella fonte tecnica; riconvalida puntuale dal comando normale, senza riconvalida massiva.
+- Riscontri reali e guardrail registrati nei diari; rilascio esatto, correlazione dei depositi importati e incarico generale ancora aperti.
+
 ## 2.437.12 — candidata, 12/10/2026
 
 - Impugnazione, reclamo e Scadenziario nel dettaglio Agenda conservano il fascicolo e riusano catalogo e calcolatore nativi. Le revisioni dei termini sono auditate nel repository SQL dello studio.

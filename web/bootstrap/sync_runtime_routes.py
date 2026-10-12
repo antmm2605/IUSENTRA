@@ -60,6 +60,9 @@ def register_sync_runtime_routes(
             return jsonify({"ok": False, "message": "Sincronizzazione SQL non disponibile."}), 503
         try:
             revisions = read_live_revisions(backend, domains)
+            from web.services.operational_live_sources import read_vertical_revisions
+            for domain, revision in read_vertical_revisions(domains).items():
+                revisions[domain] = revisions.get(domain, 0) + revision
         except Exception:
             app.logger.exception("Lettura revisioni live non riuscita")
             return jsonify({"ok": False, "message": "Aggiornamento live interrotto. Riprovo automaticamente."}), 503

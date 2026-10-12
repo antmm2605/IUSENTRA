@@ -622,7 +622,7 @@ def crea_pacchetto(
 
 def scrivi_checksum_pacchetto(percorso: Path) -> Path:
     destinazione = percorso.with_name(percorso.name + ".sha256")
-    destinazione.write_text(f"{sha256_file(percorso)}  {percorso.name}\n", encoding="utf-8")
+    destinazione.write_text(f"{sha256_file(percorso)}  {percorso.name}\n", encoding="utf-8", newline="\n")
     return destinazione
 
 

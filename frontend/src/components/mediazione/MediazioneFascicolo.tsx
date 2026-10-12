@@ -13,6 +13,9 @@ import { text } from './types'
 import { newProcedure, states } from './types'
 import type { Data, Preview, Procedure } from './types'
 import './mediazione.css'
+import { hasProcedureDraftChanges, mergeProcedureRefresh } from './mergeProcedureRefresh'
+
+const conflictValue = (value: unknown): string => typeof value === 'string' ? value || 'Non compilato' : typeof value === 'boolean' ? value ? 'Sì' : 'No' : Array.isArray(value) ? `${value.length} elementi: verifica le righe nel modulo.` : 'Verifica il valore nel modulo.'
 
 export default function MediazioneFascicolo({ id, preview, onDocuments }: {
   id: string; preview: (doc: Preview) => void; onDocuments: () => void
@@ -29,20 +32,31 @@ export default function MediazioneFascicolo({ id, preview, onDocuments }: {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
-  const liveGuard = useRef({ dirty, busy, moduleDirty, selectedId: selected?.id })
-  liveGuard.current = { dirty, busy, moduleDirty, selectedId: selected?.id }
-  useOperationalRefresh(['fascicoli'], async () => {
-    if (!data || liveGuard.current.dirty || liveGuard.current.busy || liveGuard.current.moduleDirty) return false
+  const [conflicts, setConflicts] = useState<string[]>([])
+  const liveGuard = useRef({ dirty, busy, moduleDirty, selectedId: selected?.id, selected })
+  liveGuard.current = { dirty, busy, moduleDirty, selectedId: selected?.id, selected }
+  const refresh = async () => {
+    if (!data || liveGuard.current.busy || liveGuard.current.moduleDirty) return false
     const sequence = ++liveSequence.current
     const selectedId = liveGuard.current.selectedId
     const result = await ensureJson<Data>(base, { activity: false })
-    if (sequence !== liveSequence.current || liveGuard.current.dirty || liveGuard.current.busy
+    if (sequence !== liveSequence.current || liveGuard.current.busy
       || liveGuard.current.moduleDirty || liveGuard.current.selectedId !== selectedId) return false
     if (!result.ok || result.id_fascicolo !== id) throw new Error('Aggiornamento della mediazione non confermato.')
     setData(result)
-    setSelected(result.procedimenti.find(procedure => procedure.id === selectedId) || null)
+    const incoming = result.procedimenti.find(procedure => procedure.id === selectedId)
+    const previous = data.procedimenti.find(procedure => procedure.id === selectedId)
+    const current = liveGuard.current.selected
+    if (current?.id && !incoming) setError('Il procedimento non è più disponibile: la bozza è conservata.')
+    if (current?.id && incoming && previous) {
+      const merged = mergeProcedureRefresh(current, previous, incoming)
+      setConflicts(existing => [...new Set([...existing, ...merged.conflicts])])
+      setSelected(merged.values)
+      setDirty(hasProcedureDraftChanges(merged.values, incoming))
+    }
     return true
-  })
+  }
+  useOperationalRefresh(['fascicoli'], refresh)
   useEffect(() => {
     liveSequence.current += 1
     const abort = new AbortController()
@@ -59,10 +73,20 @@ export default function MediazioneFascicolo({ id, preview, onDocuments }: {
   const change = (patch: Partial<Procedure>) => { setSelected((p) => p ? { ...p, ...patch } : null); setDirty(true); setMessage('') }
   const choose = (next: Procedure) => {
     if (dirty || moduleDirty) { setError('Salva le modifiche prima di cambiare procedimento.'); return }
-    setError(''); setMessage(''); setModuleOpen(false); setSelected(next)
+    setError(''); setMessage(''); setModuleOpen(false); setConflicts([]); setSelected(next)
+  }
+  const resolveConflict = (key: string, useSaved: boolean) => {
+    const current = liveGuard.current.selected
+    const persisted = data?.procedimenti.find(procedure => procedure.id === current?.id)
+    if (!current || !persisted) return
+    const values = useSaved ? { ...current, [key]: persisted[key] } : current
+    setSelected(values)
+    setDirty(hasProcedureDraftChanges(values, persisted))
+    setConflicts(fields => fields.filter(field => field !== key))
+    setError('')
   }
   const save = async (resource = '', body: unknown = selected) => {
-    if (!selected || busy) return false
+    if (!selected || busy || conflicts.length) return false
     liveSequence.current += 1
     setBusy(true); setError(''); setMessage('')
     try {
@@ -84,11 +108,12 @@ export default function MediazioneFascicolo({ id, preview, onDocuments }: {
     <p>Gestisci la mediazione senza perdere il collegamento alla pratica: organismo e moduli, parti, deposito, incontri ed esito. Le trasmissioni all’organismo richiedono un’azione esplicita dell’avvocato sul canale previsto.</p>
     <div className="iu-mediazione-actions">
       <Button disabled={!data.can_write || busy || dirty || moduleDirty} onClick={() => { choose(newProcedure(data.proposta)); setDirty(true) }}><Plus size={16} />Nuova mediazione</Button>
-      <Button disabled={busy || dirty || moduleDirty} onClick={() => setRetry(retry + 1)}><RefreshCw size={16} />Rileggi dati</Button>
+      <Button disabled={busy || moduleDirty} onClick={() => { void refresh().catch(e => setError(e instanceof Error ? e.message : 'Aggiornamento non riuscito.')) }}><RefreshCw size={16} />Rileggi dati</Button>
     </div>
     {data.procedimenti.length ? <label>Procedimento nel fascicolo<select value={selected?.id || ''} onChange={(e) => { const next = data.procedimenti.find((p) => p.id === e.target.value); if (next) choose(next) }}><option value="" disabled>Nuovo procedimento</option>{data.procedimenti.map((p) => <option key={p.id} value={p.id}>{p.titolo || 'Mediazione'} — {states[p.stato]}</option>)}</select></label> : <p>Nessun procedimento di mediazione registrato in questo fascicolo.</p>}
     {error ? <p className="iu-mediazione-error" role="alert">{error}</p> : null}
     {message ? <p className="iu-mediazione-success" role="status">{message}</p> : null}
+    {conflicts.length ? <aside className="iu-mediazione-block" aria-label="Modifiche concorrenti della mediazione"><strong>Modifiche concorrenti: la tua bozza è conservata.</strong><p>Scegli quale valore mantenere prima di salvare. Gli altri campi ricevono gli aggiornamenti confermati.</p>{conflicts.map(key => <div key={key}><strong>{key.replaceAll('_', ' ')}</strong><p>La tua modifica: {conflictValue(selected?.[key])}<br />Valore salvato: {conflictValue(data.procedimenti.find(p => p.id === selected?.id)?.[key])}</p><Button onClick={() => resolveConflict(key, false)}>Mantieni la mia modifica</Button><Button onClick={() => resolveConflict(key, true)}>Usa il valore salvato</Button></div>)}</aside> : null}
     {selected ? <form onSubmit={(e) => { e.preventDefault(); void save() }}>
       <fieldset className="iu-mediazione-form" disabled={busy || !data.can_write || moduleDirty}>
         <OrganismoScelta base={base} value={selected} change={change} busy={busy} dirty={dirty} canWrite={data.can_write} acquire={(url) => save(`/${selected.id}/modulo`, { url, versione: selected.versione })} />
@@ -102,7 +127,7 @@ export default function MediazioneFascicolo({ id, preview, onDocuments }: {
         onEditWithoutFields={() => preview({ name: currentModule.nome, url: currentModule.preview, downloadUrl: currentModule.preview.replace('/visualizza', '/scarica') })}
         save={(valori) => save(`/${selected.id}/modulo/campi`, { valori, versione: selected.versione })} /> : null}
       {selected.controlli?.some((c) => !c.ok) ? <aside className="iu-mediazione-block" aria-label="Verifiche sui dati salvati"><strong>Prima del deposito — dati dell’ultimo salvataggio</strong><ul>{selected.controlli.filter((c) => !c.ok).map((c) => <li key={c.id}>{c.messaggio}</li>)}</ul></aside> : null}
-      <div className="iu-mediazione-save"><span>{dirty ? 'Modifiche da salvare' : 'Nessuna modifica in sospeso'}</span><Button type="submit" tone="primary" disabled={busy || !data.can_write || moduleDirty}><Save size={16} />{busy ? 'Salvataggio…' : 'Salva procedimento'}</Button></div>
+      <div className="iu-mediazione-save"><span>{dirty ? 'Modifiche da salvare' : 'Nessuna modifica in sospeso'}</span><Button type="submit" tone="primary" disabled={busy || !data.can_write || moduleDirty || Boolean(conflicts.length)}><Save size={16} />{busy ? 'Salvataggio…' : 'Salva procedimento'}</Button></div>
     </form> : null}
     <details className="iu-mediazione-block"><summary>Fonti e storico del procedimento</summary>
       <ul>{data.fonti.map((f) => <li key={f.url}><a href={f.url} target="_blank" rel="noopener noreferrer">{f.titolo}</a></li>)}</ul>

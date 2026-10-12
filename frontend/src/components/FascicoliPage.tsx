@@ -1622,7 +1622,8 @@ function CollapsibleFormPanel({
 
 function LexIndexingPanel({ summary, refreshAction, retryAction, onDone, onError }:{summary:LexIndexingSummary; refreshAction:string; retryAction:string; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
   const working = summary.queued + summary.indexing
-  const warnings = summary.warnings.slice(0, 4)
+  const warnings = summary.warnings
+  const sourceErrors = summary.source_errors || []
   const rawStatus = String(summary.status || '').toLowerCase()
   const effectiveStatus: LexIndexingSummary['status'] = rawStatus === 'ready'
     ? 'ready'
@@ -1659,13 +1660,15 @@ function LexIndexingPanel({ summary, refreshAction, retryAction, onDone, onError
         <div><dt>Errori</dt><dd>{summary.errors}</dd></div>
         <div><dt>Da aggiornare</dt><dd>{summary.stale}</dd></div>
       </dl>
-      {warnings.length ? (
-        <div className="iu-fas-lex-indexing__warnings" aria-label="Documenti da verificare per Lex">
-          <strong>Documenti da verificare</strong>
+      {sourceErrors.length || warnings.length ? (
+        <details className="iu-fas-lex-indexing__warnings">
+          <summary>Documenti da verificare ({sourceErrors.length || warnings.length})</summary>
           <ul>
-            {warnings.map((warning) => <li key={warning}>{warning}</li>)}
+            {sourceErrors.length ? sourceErrors.map((item) => (
+              <li key={`${item.document_id}:${item.sha256}`}><strong>{item.filename}</strong><span>{item.message}</span></li>
+            )) : warnings.map((warning) => <li key={warning}>{warning}</li>)}
           </ul>
-        </div>
+        </details>
       ) : null}
       <footer>
         <span>Ultimo indice: {summary.last_indexed_at ? formatDateTimeIt(summary.last_indexed_at, 'mai') : 'mai'}</span>
@@ -9642,13 +9645,13 @@ function DetailPage({ id }:{id:string}) {
       setLazyStatus({ documenti: 'loaded', attivita: 'loaded', scadenze: 'loaded', depositi: 'loaded', regia: 'loaded', relata: 'loaded', audit: 'loaded', lex: 'loaded' })
     }).catch((err) => setToast({ tone: 'danger', message: err instanceof Error ? err.message : 'Aggiornamento fascicolo non riuscito.' }))
   }
-  useOperationalRefresh(['clienti', 'soggetti', 'fascicoli', 'agenda', 'scadenze'], async () => {
+  useOperationalRefresh(['clienti', 'soggetti', 'fascicoli', 'agenda', 'scadenze', 'comunicazioni', 'fatturazione', 'incassi', 'preventivi', 'timesheet'], async () => {
     // Only sections already used by this workspace; retain the open windows,
     // editor drafts, scroll and unloaded sections. No include=all background scan.
     const include = (Object.entries(lazyStatus) as [FascicoloDetailSection, LazySectionStatus][])
       .filter(([, state]) => state === 'loaded').map(([section]) => section)
     const payload = await getFascicoloDetail(id, include.length ? { include } : undefined)
-    if (!payload.fascicolo.id) { setToast({ tone: 'danger', message: 'Aggiornamento live del fascicolo non riuscito.' }); return }
+    if (payload.fascicolo.id !== id) { setToast({ tone: 'danger', message: 'Aggiornamento live del fascicolo non riuscito.' }); return false }
     setData(current => ({ ...payload,
       documents: include.includes('documenti') ? payload.documents : current.documents,
       activities: include.includes('attivita') ? payload.activities : current.activities,
@@ -9662,6 +9665,9 @@ function DetailPage({ id }:{id:string}) {
       notificationRelata: include.includes('relata') ? payload.notificationRelata : current.notificationRelata,
       lexIndexing: include.includes('lex') || include.includes('documenti') ? payload.lexIndexing : current.lexIndexing,
     }))
+    // Un precedente errore resta visibile fino al recupero confermato della
+    // stessa pratica; altri avvisi operativi non vengono rimossi dal refresh.
+    setToast(current => current?.message === 'Aggiornamento live del fascicolo non riuscito.' ? null : current)
   })
   const refreshDocuments = (message?: string) => {
     if (message) setToast({ tone: 'success', message })
@@ -9766,7 +9772,11 @@ function DetailPage({ id }:{id:string}) {
               <OfficeDocumentsPanel data={data} onDone={refreshDocuments} onError={failDetail} openOfficeDocumentsRequest={officeDocumentsOpenRequest}/>
             </Suspense>
             <DocumentUploadWorkspace data={data} onDone={refreshDocuments} onError={failDetail}/>
-            <LexIndexingPanel summary={data.lexIndexing} refreshAction={data.actions.refreshLexIndex} retryAction={data.actions.retryLexIndexErrors} onDone={refreshDetail} onError={failDetail}/>
+            {lazyStatus.lex === 'loaded' || lazyStatus.documenti === 'loaded' ? (
+              <LexIndexingPanel summary={data.lexIndexing} refreshAction={data.actions.refreshLexIndex} retryAction={data.actions.retryLexIndexErrors} onDone={refreshDetail} onError={failDetail}/>
+            ) : lazyStatus.documenti === 'error' || lazyStatus.lex === 'error' ? (
+              <div className="iu-fas-lex__warnings" role="alert"><p>Caricamento dell’indice non riuscito. I conteggi non sono disponibili.</p><button type="button" className="iu-fas-catalog__retry" onClick={() => loadLazySection('documenti')}><RefreshCw size={14}/> Riprova caricamento</button></div>
+            ) : <p className="iu-empty" role="status" aria-live="polite"><RefreshCw className="iu-spin" size={14}/> Caricamento dell’indice dei documenti…</p>}
             <CatalogazioneDocumentalePanel
               fascicoloId={f.id || id}
               enabled={lazyStatus.documenti === 'loaded'}

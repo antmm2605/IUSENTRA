@@ -101,3 +101,22 @@ def test_ricerca_legale_lines_uses_repository_and_monitoring(tmp_path):
     normattiva_source = next(row for row in sources if row.get("id") == "fonte:normattiva")
     assert normattiva_source["official_url"] == "https://www.normattiva.it/"
     assert normattiva_source["status"] == "ok"
+
+
+def test_repository_chiude_connessione_e_annulla_scrittura_fallita(tmp_path):
+    import sqlite3
+    import pytest
+    from pct.legal_intelligence_repository import GestioneLegalIntelligenceRepository
+    repository = GestioneLegalIntelligenceRepository(str(tmp_path / "repository.db"))
+    with pytest.raises(RuntimeError, match="errore controllato"):
+        with repository._connect() as connection:
+            connection.execute("INSERT INTO legal_repository_meta(meta_key, meta_value) VALUES (?, ?)", ("qa-rollback", "non persistito"))
+            raise RuntimeError("errore controllato")
+    with pytest.raises(sqlite3.ProgrammingError):
+        connection.execute("SELECT 1")
+    assert repository._get_meta("qa-rollback") == ""
+    with repository._connect() as committed:
+        committed.execute("INSERT INTO legal_repository_meta(meta_key, meta_value) VALUES (?, ?)", ("qa-commit", "persistito"))
+    assert repository._get_meta("qa-commit") == "persistito"
+    with pytest.raises(sqlite3.ProgrammingError):
+        committed.execute("SELECT 1")

@@ -300,10 +300,11 @@ def verifica_documenti(fascicolo_id: str, tenant_slug: str = "") -> dict[str, An
     totale = int(stato.get("total_documents") or 0)
     da_leggere = int(stato.get("not_indexed") or 0) + int(stato.get("queued") or 0) + int(stato.get("stale") or 0)
     if not da_leggere:
-        return {"documenti": totale, "letti": int(stato.get("ready") or 0), "indicizzati": 0, "errori": 0, "da_acquisire": 0, "esito": "tutti_letti"}
+        errori = int(stato.get("errors") or 0)
+        mancanti = [item for item in list(stato.get("source_errors") or []) if item.get("error_code") == "source_unavailable"]
+        return {"documenti": totale, "letti": int(stato.get("ready") or 0), "indicizzati": 0, "errori": errori, "da_acquisire": len(mancanti), "non_scaricati": [str(item.get("filename") or "") for item in mancanti], "esito": "errori_presenti" if errori else "tutti_letti"}
     riepilogo = build_lex_indexing_summary_payload(fascicolo_id, process=True, retry_errors=False, user_context=contesto, apply_automations=True)
-    avvisi = [str(voce or "") for voce in list(riepilogo.get("warnings") or [])]
-    non_scaricati = [voce for voce in avvisi if "No such file" in voce or "non trovato" in voce.lower()]
+    non_scaricati = [item for item in list(riepilogo.get("source_errors") or []) if item.get("error_code") == "source_unavailable"]
     errori = int(riepilogo.get("errors") or 0)
     try:
         build_document_catalog_payload(fascicolo_id, process=True, user_context=contesto)
@@ -313,10 +314,10 @@ def verifica_documenti(fascicolo_id: str, tenant_slug: str = "") -> dict[str, An
         "documenti": int(riepilogo.get("total_documents") or totale),
         "letti": int(riepilogo.get("ready") or 0),
         "indicizzati": max(int(riepilogo.get("ready") or 0) - int(stato.get("ready") or 0), 0),
-        "errori": max(errori - len(non_scaricati), 0),
+        "errori": errori,
         "da_acquisire": len(non_scaricati),
         # I nomi servono alla lettura per dire quali documenti sono censiti ma non scaricati.
-        "non_scaricati": [voce.split(":", 1)[0].strip() for voce in non_scaricati][:200],
+        "non_scaricati": [str(item.get("filename") or "") for item in non_scaricati][:200],
         "esito": "indicizzazione_eseguita",
     }
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -474,15 +475,22 @@ class GestioneLegalIntelligenceRepository:
         )
         self._ensure_schema()
 
+    @contextmanager
     def _connect(self):
         if self._postgres_backend is not None:
-            return self._postgres_backend.connection()
+            with self._postgres_backend.connection() as conn:
+                yield conn
+            return
         target = Path(self.db_path)
         target.parent.mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect(str(target))
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA foreign_keys = ON")
-        return conn
+        try:
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA foreign_keys = ON")
+            with conn:
+                yield conn
+        finally:
+            conn.close()
 
     def _ensure_schema(self) -> None:
         schema = (

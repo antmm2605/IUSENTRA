@@ -86,7 +86,10 @@ def build_document_ai_service() -> DocumentAIService:
     repository = DocumentAIRepository.from_fascicoli_db(anchor, structured_db=structured_db)
     max_size = 25 * 1024 * 1024
     if has_app_context():
-        max_size = int(current_app.config.get("DOCUMENT_AI_MAX_UPLOAD_BYTES") or max_size)
+        configured = current_app.config.get("DOCUMENT_AI_MAX_UPLOAD_BYTES")
+        max_size = int(configured) if configured is not None else int(current_app.config.get("MAX_UPLOAD_MB", 25)) * 1024 * 1024
+        if max_size <= 0:
+            raise ValueError("Il limite di acquisizione documentale deve essere positivo.")
     return DocumentAIService(repository, get_fascicoli(), max_size_bytes=max_size)
 
 
@@ -452,13 +455,15 @@ def build_lex_indexing_summary_payload(
     leggibili: un errore identico non si ripete da solo); `forza=True` la
     richiede comunque, ed e' il pulsante «Leggi i nuovi» a usarlo.
     """
+    from web.services.document_index_outcomes import summary_with_registered_outcomes
+
     assert_document_ai_fascicolo_current_tenant(fascicolo_id)
     tenant_id = document_ai_tenant_id()
     context = user_context if user_context is not None else document_ai_user_context()
     service = build_document_ai_service()
     sources = collect_document_ai_sources_for_fascicolo(fascicolo_id, tenant_id=tenant_id, allow_content_read=process)
     if not process:
-        return service.build_lex_indexing_summary(tenant_id, fascicolo_id, sources, context).to_dict()
+        return summary_with_registered_outcomes(service, tenant_id, fascicolo_id, sources, context).to_dict()
     registro = _registro_indice_documentale(fascicolo_id, sources)
     if forza:
         registro["invariato"] = False
@@ -488,7 +493,7 @@ def build_lex_indexing_summary_payload(
             )
         )
         return payload
-    return service.build_lex_indexing_summary(tenant_id, fascicolo_id, sources, context).to_dict()
+    return summary_with_registered_outcomes(service, tenant_id, fascicolo_id, sources, context).to_dict()
 
 
 def _registra_catalogo(fascicolo_id: str, sources: list[DocumentAISource], by_document: dict[tuple[str, str], Any]) -> None:
@@ -597,19 +602,18 @@ def _registra_indice_documentale(
             str(dict(getattr(source, "metadata", {}) or {}).get("documento_id") or source.source_id or ""): bool(source.supported)
             for source in sources
         }
-        # Gli errori di lettura arrivano come avvisi «nome file: motivo»: si
-        # registrano sul documento, cosi' un errore identico non si ripete da solo.
-        errori_per_nome: dict[str, str] = {}
-        for avviso in list(getattr(summary, "warnings", []) or []):
-            testo = str(avviso or "")
-            if ":" in testo:
-                nome, motivo = testo.split(":", 1)
-                errori_per_nome[nome.strip().casefold()] = motivo.strip()[:200]
+        # Esiti per identità e impronta: il nome può contenere due punti ed essere duplicato.
+        errori_per_fonte = {
+            (str(item.get("document_id") or item.get("source_id") or ""), str(item.get("sha256") or "")): item
+            for item in list(getattr(summary, "source_errors", []) or [])
+            if str(item.get("tenant_id") or "") == tenant_id
+            and str(item.get("fascicolo_id") or "") == fascicolo_id
+        }
         letti = 0
         registrati = 0
         for oggetto in oggetti:
             stato = stati.get(oggetto.oggetto_id, "")
-            errore = errori_per_nome.get(str(oggetto.nome or "").casefold(), "")
+            errore = errori_per_fonte.get((oggetto.oggetto_id, oggetto.sha256), {})
             if stato == "ready":
                 repo.segna_letto(tenant, fascicolo_id, oggetto, "indice_documentale", esito={"stato": stato})
                 letti += 1
@@ -620,7 +624,7 @@ def _registra_indice_documentale(
                 letti += 1
                 registrati += 1
             elif stato == "error" or errore:
-                repo.segna_letto(tenant, fascicolo_id, oggetto, "indice_documentale", stato="errore", esito={"stato": stato or "error", "motivo": errore})
+                repo.segna_letto(tenant, fascicolo_id, oggetto, "indice_documentale", stato="errore", esito={"stato": "error", "motivo": str(errore.get("message") or "Lettura precedente non completata."), "error_code": str(errore.get("error_code") or "source_processing_failed")})
                 registrati += 1
         # Il giro e' completo quando ogni documento ha un esito registrato con questa
         # impronta, leggibile o no: la Lettura non riproverà da sola gli stessi errori.

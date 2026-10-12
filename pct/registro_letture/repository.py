@@ -180,13 +180,18 @@ def _allinea_vincolo_categorie(conn: sqlite3.Connection, schema: str) -> None:
 class RegistroLetture(FattiMixin, ConsegneMixin):
     """Il registro delle letture di uno studio (con l'archivio dei fatti letti dai motori)."""
 
-    def __init__(self, db_path: str | Path = "", *, postgres_dsn: str = "") -> None:
+    def __init__(self, db_path: str | Path = "", *, postgres_dsn: str = "", read_only: bool = False) -> None:
+        self.read_only = bool(read_only)
         self.postgres_dsn = _testo(postgres_dsn)
         self.backend_kind = "postgres" if self.postgres_dsn else "sqlite"
         self.db_path = Path(db_path or "./data/intelligence/registro_letture.db")
         self._pg: PostgresRepositoryBackend | None = None
         if self.postgres_dsn:
-            self._pg = PostgresRepositoryBackend(self.postgres_dsn, SCHEMA_POSTGRES)
+            options = {"initialize_schema": False, "read_only": True} if self.read_only else {}
+            self._pg = PostgresRepositoryBackend(self.postgres_dsn, SCHEMA_POSTGRES, **options)
+        elif self.read_only:
+            if not self.db_path.is_file():
+                raise FileNotFoundError(self.db_path)
         else:
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
             schema = SCHEMA_SQLITE.read_text(encoding="utf-8")
@@ -215,7 +220,11 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
     def connection(self):
         if self._pg is not None:
             return self._pg.connection()
-        conn = sqlite3.connect(str(self.db_path), timeout=30)
+        if self.read_only:
+            conn = sqlite3.connect(self.db_path.resolve().as_uri() + "?mode=ro", uri=True, timeout=30)
+            conn.execute("PRAGMA query_only = ON")
+        else:
+            conn = sqlite3.connect(str(self.db_path), timeout=30)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA busy_timeout = 5000")
         return conn
@@ -257,6 +266,8 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
         return [_riga(riga) for riga in righe]
 
     def _inserisci(self, conn: Any, tabella: str, valori: dict[str, Any]) -> None:
+        if tabella != "letture_payload_cache":
+            self._prepare_live_write(conn)
         colonne = self._colonne(tabella, valori)
         nomi = ", ".join(_COLONNA_SQL[colonna] for colonna in colonne)
         segnaposto = ", ".join("?" for _ in colonne)
@@ -265,6 +276,8 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
     def _aggiorna(self, conn: Any, tabella: str, valori: dict[str, Any], filtro: str, parametri: Iterable[Any]) -> None:
         if not valori:
             return
+        if tabella != "letture_payload_cache":
+            self._prepare_live_write(conn)
         colonne = self._colonne(tabella, valori)
         assegnazioni = ", ".join(f"{_COLONNA_SQL[colonna]} = ?" for colonna in colonne)
         conn.execute(
@@ -273,7 +286,15 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
         )
 
     def _elimina(self, conn: Any, tabella: str, filtro: str, parametri: Iterable[Any]) -> None:
+        if tabella != "letture_payload_cache":
+            self._prepare_live_write(conn)
         conn.execute(f"DELETE FROM {self._tabella(tabella)} WHERE {self._filtro(filtro)}", tuple(parametri))
+
+    def _prepare_live_write(self, conn: Any) -> None:
+        if self.read_only:
+            raise RegistroLettureError("Archivio delle letture aperto in sola lettura.")
+        from pct.operational_live import ensure_tenant_live_schema
+        ensure_tenant_live_schema(conn, "letture", postgres=self._pg is not None)
 
     # ---- inventario --------------------------------------------------------
 
@@ -692,6 +713,7 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
         return bool(row and row["stato"] in {"pending", "running"} and (row["pending_presidi"] or row["claimed_presidi"]))
 
     def _accoda_evento_conn(self, conn: Any, tenant: str, fascicolo: str, forza: bool, adesso: str, *, presidi: bool = False) -> int:
+        self._prepare_live_write(conn)
         conn.execute(
                 'INSERT INTO "letture_eventi" '
                 '(id, tenant_id, fascicolo_id, generation, claimed_generation, stato, pending_force, claimed_force, pending_presidi, claimed_presidi, worker_id, lease_until, creato_il, aggiornato_il) '
@@ -726,6 +748,7 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
                 raise RegistroLettureError("Documento OCR non presente nel fascicolo dello studio.")
             if impronta_oggetto(dict(row)) != oggetto.impronta:
                 raise RegistroLettureError("La fonte OCR è stata sostituita: nessuna lettura corrente sovrascritta.")
+            self._prepare_live_write(conn)
             conn.execute(
                 'INSERT INTO "letture" (id,tenant_id,fascicolo_id,tipo,oggetto_id,sha256,lettore,'
                 'versione_lettore,stato,esito_json,durata_ms,letto_il,aggiornato_il) '
@@ -746,6 +769,7 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
         adesso = _adesso()
         lease = (datetime.now(timezone.utc) + timedelta(seconds=max(60, int(lease_seconds)))).replace(microsecond=0).isoformat().replace("+00:00", "Z")
         with self.connection() as conn:
+            self._prepare_live_write(conn)
             conn.execute(
                 'UPDATE "letture_eventi" SET stato = \'running\', claimed_generation = generation, '
                 'claimed_force = CASE WHEN pending_force = 1 OR (stato = \'running\' AND claimed_force = 1) THEN 1 ELSE 0 END, pending_force = 0, '
@@ -772,6 +796,7 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
         tenant, fascicolo, worker = _testo(tenant_id), _testo(fascicolo_id), _testo(worker_id)
         adesso = _adesso()
         with self.connection() as conn:
+            self._prepare_live_write(conn)
             conn.execute(
                 'UPDATE "letture_eventi" SET '
                 'stato = CASE WHEN ? = 0 OR generation > claimed_generation THEN \'pending\' ELSE \'idle\' END, '

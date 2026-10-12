@@ -51,6 +51,32 @@ def test_le_date_sono_fatti_solo_se_ancorate_e_vere():
     assert not valori & {"1980-03-12", "2020-02-03", "2020-01-01", "2021-02-02", "2022-03-03", "2026-02-01", "2026-02-28", "2034-02-01"}
 
 
+def test_ancora_non_attraversa_frasi_ne_riconosce_parole_parziali():
+    assert not estrai_date("Non attesta udienze, scadenze, sentenze, crediti, pagamenti, depositi. Data 12/10/2026", origine="nativo")
+    assert not estrai_date("Documento senza scadenze. Data 12/10/2026", origine="nativo")
+    assert not estrai_date("Si determinano i criteri. Data 12/10/2026", origine="nativo")
+    assert [(f.campo, f.valore) for f in estrai_date("Udienza avanti al Dott. Rossi il 12/10/2026", origine="nativo")] == [("udienza", "2026-10-12")]
+    assert [(f.campo, f.valore) for f in estrai_date("Scadenze: 12/10/2026", origine="nativo")] == [("termine", "2026-10-12")]
+
+
+def test_riconvalida_puntuale_falso_termine_preserva_decisioni_manuali(tmp_path):
+    registro = RegistroLetture(tmp_path / "registro.db")
+    try:
+        oggetto = Oggetto(tipo="documento", oggetto_id="finto", sha256="a" * 64)
+        registro.registra_inventario("t", "F1", [oggetto])
+        brano = "Non attesta udienze, scadenze, sentenze o depositi. Data del collaudo: 12/10/2026."
+        registro.registra_fatti("t", "F1", oggetto, "documenti", [Fatto(categoria="data", campo="termine", valore="2026-10-12", valore_letto="12/10/2026", contesto=brano, verifica="plausibile")], versione="storica")
+        fatto = registro.fatti("t", "F1")[0]
+        respinti = registro.riconvalida_fatti("t", "F1", fatti_ids=[fatto.id], impronte_attese={fatto.id: fatto.sha256})
+        assert len(respinti) == 1 and respinti[0].verifica == "respinta"
+        assert any(p["codice"] == "riconvalida" for p in respinti[0].prove)
+        registro.decidi_fatto("t", fatto.id, verifica="corretta", valore="2026-10-12", utente_id="avvocato")
+        assert registro.riconvalida_fatti("t", "F1") == []
+        assert registro.fatti("t", "F1")[0].verifica == "corretta"
+    finally:
+        registro.close()
+
+
 def test_sentenza_istruttoria_non_alimenta_importi_del_fascicolo():
     testo = """
     TRIBUNALE ORDINARIO DI VICENZA

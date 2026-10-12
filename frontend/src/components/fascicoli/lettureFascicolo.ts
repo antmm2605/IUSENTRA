@@ -79,7 +79,7 @@ export interface ArchivioLetture {
   eventi: number
   per_motore: { documenti: number; pec: number }
   da_confermare: FattoDaConfermare[]
-  lettura_automatica: { in_corso: boolean; da_leggere: number; completa: boolean; ultima_lettura: string; ultima_lettura_it: string; in_attesa?: OggettoInAttesa[] }
+  lettura_automatica: { in_corso: boolean; errori?: number; da_leggere: number; completa: boolean; ultima_lettura: string; ultima_lettura_it: string; in_attesa?: OggettoInAttesa[] }
   collaudo_lettore: { eseguito: boolean; superato?: boolean; corretti?: number; totali?: number; eseguito_il_it?: string; casi_falliti?: string[] }
 }
 
@@ -128,6 +128,10 @@ export function tonoGravita(gravita: AnomaliaLettura['gravita']): TonoLettura {
 export function riassuntoLetture(letture: LettureFascicolo): { testo: string; tono: TonoLettura } {
   if (!letture.oggetti) return { testo: 'Nessun documento o PEC da leggere.', tono: 'neutral' }
   const automatica = letture.archivio?.lettura_automatica
+  const erroriArchivio = automatica?.errori || 0
+  if (erroriArchivio) {
+    return { testo: `Lettura incompleta: ${erroriArchivio} esiti non leggibili. Consulta le cause; i tentativi conclusi non vengono riavviati automaticamente.`, tono: 'danger' }
+  }
   if (automatica?.completa) {
     return { testo: `Tutto letto e collaudato: ${letture.oggetti} tra documenti e PEC. Si rilegge solo ciò che cambia.`, tono: 'success' }
   }
@@ -206,8 +210,9 @@ export function riassuntoArchivio(archivio: ArchivioLetture | undefined): { test
   if (archivio.ruoli) pezzi.push(`${archivio.ruoli} numer${archivio.ruoli === 1 ? 'o' : 'i'} di ruolo`)
   const dettaglio = pezzi.length ? ` (${pezzi.join(', ')})` : ''
   const daConfermare = archivio.da_confermare.length
-  if (daConfermare) return { testo: `${verificati} dati verificati dal software${dettaglio} · ${daConfermare} da confermare.`, tono: 'warning' }
-  return { testo: `${verificati} dati verificati dal software${dettaglio}, nessuno da confermare.`, tono: verificati ? 'success' : 'neutral' }
+  const esito = `${verificati} ${verificati === 1 ? 'dato verificato' : 'dati verificati'} dal software${dettaglio}`
+  if (daConfermare) return { testo: `${esito} · ${daConfermare} da confermare.`, tono: 'warning' }
+  return { testo: `${esito}, nessuno da confermare.`, tono: verificati ? 'success' : 'neutral' }
 }
 
 export function fraseCollaudo(collaudo: ArchivioLetture['collaudo_lettore'] | undefined): { testo: string; tono: TonoLettura } {
@@ -220,6 +225,7 @@ export function fraseCollaudo(collaudo: ArchivioLetture['collaudo_lettore'] | un
 
 export function fraseLetturaAutomatica(stato: ArchivioLetture['lettura_automatica'] | undefined): string {
   if (!stato) return ''
+  if (stato.errori) return `Lettura incompleta: ${stato.errori} esiti non leggibili. Consulta le cause registrate.`
   if (stato.in_corso) return 'Lettura automatica in corso.'
   if (stato.da_leggere) {
     // Quale oggetto manca, non solo quanti: «1 oggetto da leggere» non dice all'avvocato che cosa fare.

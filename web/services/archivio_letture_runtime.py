@@ -999,10 +999,10 @@ def stato_archivio_payload(
             "in_corso": in_corso,
             "da_leggere": da_leggere,
             "errori": errori,
-            "completa": da_leggere == 0 and not in_corso,
+            "completa": da_leggere == 0 and errori == 0 and not in_corso,
             "ultima_lettura": ultima,
             "ultima_lettura_it": format_datetime_it(ultima) if ultima else "",
-            "documenti": {"letti": lettori[LETTORE_DOCUMENTI].letti, "da_leggere": lettori[LETTORE_DOCUMENTI].da_leggere} if LETTORE_DOCUMENTI in lettori else {},
+            "documenti": {"letti": lettori[LETTORE_DOCUMENTI].letti, "da_leggere": lettori[LETTORE_DOCUMENTI].da_leggere, "errori": lettori[LETTORE_DOCUMENTI].errori} if LETTORE_DOCUMENTI in lettori else {},
             "pec": {"letti": lettori[LETTORE_PEC].letti, "da_leggere": lettori[LETTORE_PEC].da_leggere} if LETTORE_PEC in lettori else {},
             "in_attesa": in_attesa,
         },
@@ -1110,6 +1110,12 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                     if fascicolo is None:
                         raise RuntimeError("Fascicolo accodato non disponibile.")
                     _indicizza_fonti_pendenti(fascicolo_id, tenant_slug)
+                    if evento.get("presidi"):
+                        # Il comando puntuale deve aggiornare anche i fatti
+                        # storici superati dalle regole correnti. Solo brani
+                        # SQL già registrati, nel fascicolo richiesto; nessuna
+                        # nuova lettura o riconvalida massiva al deploy.
+                        _riconvalida(fascicolo, registro, tenant_slug or tenant_id)
                     forza_giro = bool(evento.get("forza"))
                     while True:
                         report = leggi_fascicolo(fascicolo, forza=forza_giro, registro=registro, recupera_metadati=True)

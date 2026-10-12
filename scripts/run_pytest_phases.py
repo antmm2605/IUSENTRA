@@ -48,6 +48,13 @@ CORE_CI_ITEM_SPLIT_PHASES = set(CORE_CI_SUBSHARDS)
 #  La chiave e' il percorso, il valore il numero di fase come lo scrivono
 #  CORE_CI_SUBSHARDS e le "phase:" di ci.yml (numerazione da 1).
 CORE_CI_PINNED_PHASES: dict[str, int] = {
+    "tests/test_operational_live_vertical_repositories.py": 7,
+    "tests/test_agenda_fascicolo_defaults.py": 7,
+    "tests/test_preparazioni_sql_repository.py": 7,
+    "tests/test_preparazioni_outcome_delivery.py": 7,
+    "tests/test_preparazioni_commands.py": 7,
+    "tests/test_preparazioni_adoption.py": 7,
+    "tests/test_preparazioni_runtime.py": 7,
     "tests/test_agenda_sql_concurrency.py": 7,
     "tests/test_agenda_concurrent_api.py": 7,
     "tests/test_prima_nota.py": 8,
@@ -134,6 +141,13 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
     ),
 }
 CORE_TARGETS: tuple[Path, ...] = (
+    REPO_ROOT / "tests" / "test_operational_live_vertical_repositories.py",
+    REPO_ROOT / "tests" / "test_agenda_fascicolo_defaults.py",
+    REPO_ROOT / "tests" / "test_preparazioni_sql_repository.py",
+    REPO_ROOT / "tests" / "test_preparazioni_outcome_delivery.py",
+    REPO_ROOT / "tests" / "test_preparazioni_commands.py",
+    REPO_ROOT / "tests" / "test_preparazioni_adoption.py",
+    REPO_ROOT / "tests" / "test_preparazioni_runtime.py",
     REPO_ROOT / "tests" / "test_agenda_sql_concurrency.py",
     REPO_ROOT / "tests" / "test_agenda_concurrent_api.py",
     REPO_ROOT / "tests" / "test_prima_nota.py",

@@ -16568,12 +16568,22 @@ def agenda_nuovo_defaults():
     utente = g.get("utente_corrente")
     nome = str(getattr(utente, "nome_completo", "") or "").strip()
     username = str(getattr(utente, "username", "") or "").strip()
-    return jsonify(
-        {
-            "ok": True,
-            "avvocato": nome or username,
-        }
-    )
+    defaults = {"ok": True, "avvocato": nome or username}
+    identifier = str(request.args.get("id_fascicolo") or "").strip()
+    if identifier:
+        if not _session_user_can("fascicoli.leggi"):
+            return jsonify({"ok": False, "message": "Non hai il permesso di leggere il fascicolo collegato."}), 403
+        fascicolo = _fascicolo_singolo_loader()().get(identifier)
+        if not fascicolo:
+            return jsonify({"ok": False, "message": "Fascicolo non trovato nello studio corrente."}), 404
+        defaults.update({
+            "id_fascicolo": str(fascicolo.id),
+            "id_cliente": str(getattr(fascicolo, "id_cliente", "") or ""),
+            "cliente": str(getattr(fascicolo, "nome_cliente", "") or ""),
+            "procedimento": str(getattr(fascicolo, "rg_completo", "") or ""),
+            "tribunale": str(getattr(fascicolo, "tribunale", "") or ""),
+        })
+    return jsonify(defaults)
 
 
 @api_v1_react.get("/fonti-procedurali/<source_id>/visualizza")

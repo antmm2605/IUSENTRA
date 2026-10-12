@@ -100,7 +100,7 @@ export interface LetturaFascicolo {
   scadenze?: { totale: number; scadute: number; prossimi30: number; successive: number }
   notifiche: { prove_documentali?: number; totale: number; perfezionate: unknown[]; aperte: unknown[]; fallite: unknown[]; tutte: { atto: string; data: string; stato_etichetta: string; fase_procedurale: string; destinatari: string[] }[] }
   pec: { totale: number; collegate: number; per_corrispondenza: Record<string, number>; da_controllare: { data: string; oggetto: string; motivi_controllo: string[] }[]; termini_da_registrare: unknown[]; udienze_da_registrare: unknown[]; ultima: { data: string; oggetto: string; mittente: string } | null }
-  documenti: { totale: number; catalogati: number; confermati: number; da_verificare: unknown[]; non_indicizzati: unknown[]; da_acquisire?: unknown[]; conteggi: Record<string, number> }
+  documenti: { errori_lettura?: number; da_leggere_lettura?: number | null; totale: number; catalogati: number; confermati: number; da_verificare: unknown[]; non_indicizzati: unknown[]; da_acquisire?: unknown[]; conteggi: Record<string, number> }
   economico: {
     presente: boolean; preventivato_it: string; conferito_it: string; fatturato_it: string; incassato_it: string; saldo_aperto_it: string
     parcelle_scadute: { numero: string; totale_it: string; scadenza: string }[]; importo_scaduto_it: string; ha_incarico: boolean
@@ -223,15 +223,16 @@ export function presidiCards(lettura: LetturaFascicolo): PresidioCard[] {
   const proveNotifica = notifiche.prove_documentali || 0
   const daVerificare = documenti.da_verificare.length
   const daAcquisire = documenti.da_acquisire?.length || 0
-  const daLeggere = documenti.non_indicizzati.length
+  const erroriLettura = documenti.errori_lettura || 0
+  const daLeggere = documenti.da_leggere_lettura ?? documenti.non_indicizzati.length
   const daCatalogare = Math.max(0, documenti.totale - documenti.catalogati)
   return [
     {
       id: 'documenti',
       titolo: 'Documentazione',
       valore: `${documenti.catalogati}/${documenti.totale}`,
-      nota: daAcquisire ? `${daAcquisire} da acquisire dal portale · ${documenti.confermati} confermati` : daLeggere ? `${daLeggere} da indicizzare · ${documenti.confermati} confermati` : daVerificare ? `${daVerificare} da classificare · ${documenti.confermati} confermati` : daCatalogare ? `${daCatalogare} da verificare nel catalogo documentale` : documenti.totale ? 'tutti letti e catalogati' + (documenti.confermati ? ' · ' + documenti.confermati + ' confermati' : '') : 'nessun documento',
-      tono: daAcquisire || daVerificare || daCatalogare ? 'warning' : daLeggere ? 'info' : documenti.totale ? 'success' : 'neutral',
+      nota: erroriLettura ? `${erroriLettura} letture non riuscite · ${daLeggere} da indicizzare · ${documenti.confermati} confermati` : daAcquisire ? `${daAcquisire} da acquisire dal portale · ${documenti.confermati} confermati` : daLeggere ? `${daLeggere} da indicizzare · ${documenti.confermati} confermati` : daVerificare ? `${daVerificare} da classificare · ${documenti.confermati} confermati` : daCatalogare ? `${daCatalogare} da verificare nel catalogo documentale` : documenti.totale ? 'tutti letti e catalogati' + (documenti.confermati ? ' · ' + documenti.confermati + ' confermati' : '') : 'nessun documento',
+      tono: erroriLettura ? 'danger' : daAcquisire || daVerificare || daCatalogare ? 'warning' : daLeggere ? 'info' : documenti.totale ? 'success' : 'neutral',
       href: '#catalogazione-documentale',
     },
     {

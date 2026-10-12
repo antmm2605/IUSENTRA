@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent, type RefObject } from 'react'
-import { Pencil, Save, Undo2, Redo2, ZoomIn, ZoomOut, Signature, TextCursorInput } from 'lucide-react'
+import { Pencil, Save, Undo2, Redo2, ZoomIn, ZoomOut, Signature, TextCursorInput, RefreshCw } from 'lucide-react'
 import { ReaderInlineControls } from './ReaderInlineControls'
 import { SourceDocumentModal, SourceDocumentReader, type SourceDocument } from './SourceDocumentModal'
 import './ViewerDocumentEditor.css'
@@ -20,6 +20,7 @@ type TextSpan = { id: number; text: string; x: number; y: number; width: number;
 export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation = 0, readerRef, compactReader = true }: { source: SourceDocument; onDirty: (value: boolean) => void; onSaving?: (value: boolean) => void; readerRotation?: number; readerRef?: RefObject<HTMLIFrameElement | null>; compactReader?: boolean }) {
   const endpoint = editorEndpoint(source.href)
   const [policy, setPolicy] = useState<Policy | null>(null)
+  const [policyRequest, setPolicyRequest] = useState(0)
   const [open, setOpen] = useState(false)
   const [signatureOpen, setSignatureOpen] = useState(false)
   const [signatureOpenRequest, setSignatureOpenRequest] = useState(0)
@@ -74,7 +75,7 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
       if (!controller.signal.aborted) setError(err instanceof Error ? err.message : 'Permessi editor non disponibili.')
     })
     return () => controller.abort()
-  }, [endpoint])
+  }, [endpoint, policyRequest])
   useEffect(() => { onDirty(Boolean(marks.length || saving)) }, [marks.length, saving, onDirty])
   useEffect(() => { onSaving?.(saving) }, [saving, onSaving])
   useEffect(() => {
@@ -186,7 +187,8 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
   return <ViewerColorSampling.Provider value={sampler}><div className="iu-viewer-edit" onContextMenu={(event)=>{event.stopPropagation();if(open)event.preventDefault()}} onKeyDown={event=>{if(event.key==='Escape'&&sampler.active){event.preventDefault();event.stopPropagation();sampler.cancel()}else if(event.key==='Escape'&&armed){event.preventDefault();event.stopPropagation();setArmed(false);setDraft(null);drag.current=null}}}>
     {endpoint && !(compactReader && !policy?.editable && policy?.reason === 'Questo formato resta consultabile nel lettore e scaricabile.' && !error) ? <div className="iu-viewer-edit__bar">
       {policy?.editable ? <button type="button" title={open ? "Chiudi strumenti di modifica" : policy.studio ? "Modifica documento" : "Prepara copia per condivisione"} aria-label={open ? "Chiudi strumenti di modifica" : policy.studio ? "Modifica documento" : "Prepara copia per condivisione"} aria-expanded={open} aria-controls="iu-viewer-edit-workbench" onClick={() => {sampler.cancel();setArmed(false);setOpen((value) => !value)}} disabled={saving}><Pencil size={16} aria-hidden="true"/></button>
-        : <span>{policy?.reason || (error ? error : 'Verifica provenienza e permessi...')}</span>}
+        : <span role={error ? 'alert' : 'status'}>{policy?.reason || (error ? error : 'Verifica provenienza e permessi…')}</span>}
+      {!policy && error ? <button type="button" title="Riprova caricamento" aria-label="Riprova caricamento" onClick={() => { setError(''); setPolicyRequest(value => value + 1); setRevision(value => value + 1) }}><RefreshCw size={16} aria-hidden="true"/></button> : null}
       {marks.length ? <span role="status">{marks.length} {marks.length === 1 ? 'intervento da salvare' : 'interventi da salvare'}</span> : null}
       {policy?.editable ? <><button type="button" disabled={saving} title="Firma grafica" aria-label="Firma grafica" aria-expanded={signatureOpen} onClick={() => {sampler.cancel();setArmed(false);setSignatureOpenRequest(value => value + 1);setSignatureOpen(true)}}><Signature size={16} aria-hidden="true"/></button><button type="button" disabled={saving || !policy.studio} aria-label="Modifica testo" title={policy.studio ? 'Seleziona la riga da modificare nel documento' : 'La modifica del testo è riservata ai PDF prodotti dallo studio e non firmati.'} onClick={() => {sampler.cancel();setSelectedInsertion(null);setSelected(null);setDraft(null);setTool('replace');setOpen(true);setArmed(true)}}><TextCursorInput size={16} aria-hidden="true"/></button>{!policy.studio ? <span className="iu-viewer-edit__protection" title="Testo protetto: PDF firmato, acquisito da fonte esterna o senza provenienza dello studio verificata.">Testo protetto</span> : null}</> : null}
       {!open && !marks.length ? <ReaderInlineControls document={readerDocument}/> : null}

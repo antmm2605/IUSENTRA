@@ -65,4 +65,8 @@ class RegistroDiscordanze:
             summary = c.execute("SELECT COUNT(*) AS n, MAX(d.aggiornata_il) AS ultimo FROM letture_discordanze d WHERE d.tenant_id=? AND d.stato='aperta' AND NOT EXISTS (SELECT 1 FROM letture_eventi e WHERE e.tenant_id=d.tenant_id AND e.fascicolo_id=d.fascicolo_id AND e.stato IN ('pending','running'))",(tenant,)).fetchone()
             rows = c.execute("SELECT d.* FROM letture_discordanze d WHERE d.tenant_id=? AND d.stato='aperta' AND NOT EXISTS (SELECT 1 FROM letture_eventi e WHERE e.tenant_id=d.tenant_id AND e.fascicolo_id=d.fascicolo_id AND e.stato IN ('pending','running')) ORDER BY d.aggiornata_il DESC,d.fascicolo_id,d.chiave LIMIT ? OFFSET ?",(tenant,size,offset)).fetchall()
         total = int(summary['n'])
-        return {'voci':[{**json.loads(r['payload_json']),'revisione':r['revisione']} for r in rows],'lettureInCorso':int(pending),'totale':total,'pagina':max(1,int(page)),'altre':offset+len(rows)<total,'revisione':_revision([total,summary['ultimo']])}
+        return {'voci':[{**json.loads(r['payload_json']), 'fascicoloId': r['fascicolo_id'],
+                         'codice': r['codice'], 'chiave': r['chiave'], 'revisione':r['revisione']}
+                        for r in rows],
+                'lettureInCorso':int(pending),'totale':total,'pagina':max(1,int(page)),
+                'altre':offset+len(rows)<total,'revisione':_revision([total,summary['ultimo']])}

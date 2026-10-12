@@ -7,6 +7,11 @@ from datetime import date, datetime, timezone
 from zoneinfo import ZoneInfo
 
 
+def nome_giudice_equivalente(value):
+    """Confronto esatto delle parole, indipendente da ordine e spaziatura."""
+    return " ".join(sorted(str(value or "").casefold().split()))
+
+
 def _sostituzione_dimostrata(previous, value, sources):
     valid = []
     for source in sources:
@@ -27,8 +32,8 @@ def _sostituzione_dimostrata(previous, value, sources):
                 effective = date.fromisoformat(detail.get("decorrenza", ""))
             except (ValueError, TypeError):
                 continue
-            if (str(detail.get("precedente", "")).casefold() == previous.casefold()
-                    and str(detail.get("nuovo", "")).casefold() == value.casefold()
+            if (nome_giudice_equivalente(detail.get("precedente", "")) == nome_giudice_equivalente(previous)
+                    and nome_giudice_equivalente(detail.get("nuovo", "")) == nome_giudice_equivalente(value)
                     and detail.get("passaggio")
                     and effective <= datetime.now(ZoneInfo("Europe/Rome")).date()):
                 valid.append(detail)
@@ -55,7 +60,7 @@ class GiudiceFascicoloRepository:
             embedded = str(payload.get("giudice") or "").strip()
             if previous != embedded:
                 raise ValueError("Giudice SQL discordante dal dato della scheda: verifica richiesta.")
-            if previous and previous.casefold() != valore.casefold():
+            if previous and nome_giudice_equivalente(previous) != nome_giudice_equivalente(valore):
                 replacements = _sostituzione_dimostrata(previous, valore, evidenze)
                 last = conn.execute(
                     "SELECT dettagli FROM audit_log WHERE risorsa_tipo='fascicolo' AND risorsa_id=? "
@@ -65,7 +70,7 @@ class GiudiceFascicoloRepository:
                 automatic = json.loads(last["dettagli"]) if last else {}
                 # Una decisione manuale successiva rimane in verifica, anche
                 # quando la fonte esplicita una sostituzione.
-                if not replacements or automatic.get("giudice", "").casefold() != previous.casefold():
+                if not replacements or nome_giudice_equivalente(automatic.get("giudice", "")) != nome_giudice_equivalente(previous):
                     transaction.rollback()
                     return {"stato": "discordante", "precedente": previous, "letto": valore,
                             "motivo": "Sostituzione e decorrenza non dimostrate, oppure dato manuale da preservare."}
@@ -76,7 +81,7 @@ class GiudiceFascicoloRepository:
                 if old_dates and min(d["decorrenza"] for d in replacements) <= max(old_dates):
                     transaction.rollback()
                     return {"stato": "discordante", "motivo": "La fonte non dimostra una sostituzione successiva all'ultima applicata."}
-            if previous.casefold() == valore.casefold():
+            if nome_giudice_equivalente(previous) == nome_giudice_equivalente(valore):
                 transaction.rollback()
                 return {"stato": "gia_presente", "riferimento": fid}
             stamp = datetime.now(timezone.utc).isoformat()

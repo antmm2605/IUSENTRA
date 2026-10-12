@@ -242,9 +242,23 @@ def test_il_formato_della_pagina_arriva_fino_alla_revisione(niente_ocr):
     intestazione = next(formato for testo, formato in per_testo.items() if "TRIBUNALE" in testo)
     formula = next(formato for testo, formato in per_testo.items() if testo.startswith("P.Q.M"))
     firma = next(formato for testo, formato in per_testo.items() if "Rossi" in testo and "sottoscritto" not in testo)
-    assert intestazione["livello"] == 1 and intestazione["grassetto"] and intestazione["allineamento"] == "centro"
-    assert formula["allineamento"] == "centro" and formula["grassetto"]
-    assert firma["allineamento"] == "destra"
+    assert intestazione["livello"] == 1 and intestazione["grassetto"]
+    assert formula["grassetto"]
+    # La posizione viene dai riquadri nativi: un secondo allineamento la sposterebbe.
+    assert all(formato["allineamento"] == "sinistra" for formato in (intestazione, formula, firma))
+    documento = fitz.open(stream=_pdf_formattato(), filetype="pdf")
+    try:
+        scala = riconoscimento.DPI_RASTERIZZAZIONE / 72.0
+        righe = [riga for blocco in documento[0].get_text("dict")["blocks"]
+                 for riga in blocco.get("lines", [])]
+        for testo in ("TRIBUNALE DI BARI", "P.Q.M.", "Avv. Mario Rossi"):
+            originale = next(riga for riga in righe
+                             if "".join(tratto["text"] for tratto in riga["spans"]) == testo)
+            estratto = next(blocco for blocco in blocchi if blocco["testo"] == testo)
+            assert estratto["riquadro"] == pytest.approx(
+                [coordinata * scala for coordinata in originale["bbox"]], abs=1.0)
+    finally:
+        documento.close()
 
 
 def test_carattere_e_corpo_del_pdf_arrivano_fino_alla_revisione(niente_ocr):
@@ -626,10 +640,13 @@ def test_la_sezione_acquisisci_del_fascicolo_espone_il_riconoscimento():
     # Le due sorgenti chieste: il documento gia' nel fascicolo e il file da caricare.
     assert "Documento già nel fascicolo" in componente and "File dal computer" in componente
     # Si vede la pagina accanto al testo, con i riquadri riconosciuti.
-    assert "OcrPageViewer" in componente and "anteprima.url" in visualizzatore
+    confronto = (radice / "components/documentCapture/OcrConfronto.tsx").read_text(encoding="utf-8")
+    assert "<OcrConfronto pagine={pagine} blocchi={blocchi}" in componente
+    assert "<OcrPageViewer" in confronto and "<OcrReview" in confronto
+    assert "anteprima.url" in visualizzatore
     assert "iu-ocr-viewer__riquadro" in visualizzatore
     # La revisione modificabile precede qualunque uso del testo, e il formato si corregge.
-    assert "OcrReview" in componente
+    assert "OcrReview" in confronto
     assert "updateBlockFormat" in revisione and "<OcrBarra" in revisione
     assert "Grassetto" in barra and "Centra" in barra and "Interlinea" in barra and "Annulla (Ctrl+Z)" in barra
     # trova e sostituisci, e la storia della revisione
@@ -652,8 +669,11 @@ def test_la_sezione_acquisisci_del_fascicolo_espone_il_riconoscimento():
     assert "/documenti/${encodeURIComponent(documentoId)}/editor" in servizio
     assert "/api/v1/ui/document-tools/ocr-documento" in servizio
     assert "/api/v1/ui/document-tools/documento-testo-riconosciuto" in servizio
-    for sorgente in (componente, visualizzatore, destinazioni, revisione, barra):
-        assert "style={{" not in sorgente, "gli stili in linea sono vietati dal gate design system"
+    # Il menu misura lo spazio libero nel viewport; il resto resta nel design system.
+    altezza_misurata = "style={{ maxHeight: posto.altezza }}"
+    assert destinazioni.count(altezza_misurata) == 1
+    for sorgente in (componente, visualizzatore, destinazioni.replace(altezza_misurata, ""), revisione, barra):
+        assert "style={{" not in sorgente, "gli stili decorativi in linea sono vietati dal gate design system"
 
 
 def test_le_parole_del_testo_nativo_hanno_il_riquadro_esatto_dei_caratteri():

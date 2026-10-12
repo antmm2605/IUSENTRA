@@ -74,6 +74,7 @@ def test_sentenza_istruttoria_non_alimenta_importi_del_fascicolo():
 
 
 def test_sentenza_del_cliente_alimenta_importi_del_fascicolo():
+    fascicolo = SimpleNamespace(**vars(FASCICOLO), tribunale="Tribunale Ordinario di Milano")
     testo = """
     TRIBUNALE ORDINARIO DI MILANO
     Sentenza n. 100/2026 pubbl. il 20/04/2026
@@ -86,13 +87,21 @@ def test_sentenza_del_cliente_alimenta_importi_del_fascicolo():
     fatti = leggi_testo(
         testo,
         origine="nativo",
-        contesto=_contesto(),
+        contesto=contesto_da_fascicolo(fascicolo, oggi=OGGI),
         nome="Sentenza_Bianchi_RG_1234_2026.pdf",
-        metadata={"fascicolo": FASCICOLO, "tipo_documento": "SENTENZA", "documento_id": "DOC-SENTENZA"},
+        metadata={"fascicolo": fascicolo, "tipo_documento": "SENTENZA", "documento_id": "DOC-SENTENZA"},
     )
 
     importi = [f for f in fatti if f.categoria == "importo" and f.campo == "liquidazione_giudice"]
     assert importi and importi[0].valore == "500.00"
+    senza_ufficio = leggi_testo(
+        testo,
+        origine="nativo",
+        contesto=_contesto(),
+        nome="Sentenza_Bianchi_RG_1234_2026.pdf",
+        metadata={"fascicolo": FASCICOLO, "tipo_documento": "SENTENZA", "documento_id": "DOC-SENTENZA"},
+    )
+    assert not [f for f in senza_ufficio if f.categoria == "importo"]
 
 
 def test_versione_motore_documenti_include_versione_importi():
@@ -132,7 +141,7 @@ def test_ancore_negative_e_ancora_consumata():
 
 
 def test_prove_di_notifica_e_ruoli_dal_testo():
-    prove = {f.campo: f for f in estrai_prove_notifica("RELATA DI NOTIFICA ai sensi dell'art. 3-bis L. 53/1994. Ricevuta di avvenuta consegna: il messaggio è stato consegnato.", origine="nativo")}
+    prove = {f.campo: f for f in estrai_prove_notifica("RELATA DI NOTIFICA\nai sensi dell'art. 3-bis L. 53/1994. Ricevuta di avvenuta consegna: il messaggio è stato consegnato.", origine="nativo")}
     assert prove["relata"].confidenza >= 0.9 and prove["rdac"].confidenza >= 0.9
     assert "attestazione" not in prove
     ruoli = estrai_ruoli("R.G. n. 12S4/2O26 e R.G.N.R. 5678/2025 e procedimento 999/2026", origine="ocr")
@@ -249,7 +258,13 @@ def test_le_viste_per_i_presidi():
     # «1O/11/2O26» ha tre segni corretti: anche da testo nativo resta plausibile finché nessuno la riscontra.
     assert [(a["type"], a["dateIso"], a["time"], a["verifica"]) for a in azioni] == [("termine_documento", "2026-10-31", "", "verificata"), ("udienza_documento", "2026-11-10", "09:30", "plausibile"), ("udienza_documento", "2027-03-12", "", "verificata")]
     assert azioni[1]["requiresConfirmation"] and not azioni[0]["requiresConfirmation"]
-    assert prove_notifica_per_oggetto(fatti)["d1"]["kind"] == "relata"
+    # Il decreto cita un allegato: non è esso stesso una relata operativa.
+    assert "d1" not in prove_notifica_per_oggetto(fatti)
+    relata = estrai_prove_notifica("RELATA DI NOTIFICA\nai sensi dell'art. 3-bis L. 53/1994", origine="nativo")
+    for fatto in relata:
+        fatto.oggetto_id, fatto.tipo, fatto.motore = "relata1", "documento", "documenti"
+    fatti.extend(relata)
+    assert prove_notifica_per_oggetto(fatti)["relata1"]["kind"] == "relata"
     assert ruoli_letti(fatti)[0]["valore"] == "1234/2026"
     riassunto = riassunto_archivio(fatti)
     assert riassunto["udienze"] == 2 and riassunto["termini"] == 1 and riassunto["prove_notifica"] == 1

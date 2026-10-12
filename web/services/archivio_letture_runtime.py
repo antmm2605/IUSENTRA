@@ -449,9 +449,9 @@ def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, con
     # Ritenta le sole email escluse dall'estrattore precedente, senza invalidare
     # le letture valide di tutti gli altri documenti.
     letti_prima = {
-        (l.oggetto_id, l.sha256) for l in registro.letture(tenant, fascicolo_id, lettore=LETTORE_DOCUMENTI)
-        if l.stato == "non_leggibile" and (forza or (
-            (l.esito or {}).get("estrattore_versione") != VERSIONE_ESTRAZIONE_FORMATI))
+        (lettura.oggetto_id, lettura.sha256) for lettura in registro.letture(tenant, fascicolo_id, lettore=LETTORE_DOCUMENTI)
+        if lettura.stato == "non_leggibile" and (forza or (
+            (lettura.esito or {}).get("estrattore_versione") != VERSIONE_ESTRAZIONE_FORMATI))
     }
     for oggetto in registro.oggetti(tenant, fascicolo_id):
         if oggetto.tipo != "documento" or oggetto in da_leggere:
@@ -572,7 +572,7 @@ def _leggi_pec(fascicolo: Any, registro: RegistroLetture, tenant: str, contesto:
         conteggi["rinviati"] = len(registro.da_leggere(tenant, fascicolo_id, LETTORE_PEC, tipi=("pec", "allegato_pec")))
         return conteggi
     da_leggere = registro.da_leggere(tenant, fascicolo_id, LETTORE_PEC, tipi=("pec", "allegato_pec"))
-    falliti = {(l.oggetto_id, l.sha256) for l in registro.letture(tenant, fascicolo_id, lettore=LETTORE_PEC) if l.tipo == "allegato_pec" and l.stato == "non_leggibile" and (l.esito or {}).get("estrattore_versione") != VERSIONE_ESTRAZIONE_FORMATI}
+    falliti = {(lettura.oggetto_id, lettura.sha256) for lettura in registro.letture(tenant, fascicolo_id, lettore=LETTORE_PEC) if lettura.tipo == "allegato_pec" and lettura.stato == "non_leggibile" and (lettura.esito or {}).get("estrattore_versione") != VERSIONE_ESTRAZIONE_FORMATI}
     da_leggere.extend(o for o in registro.oggetti(tenant, fascicolo_id) if o.tipo == "allegato_pec" and (o.oggetto_id, o.impronta) in falliti and o not in da_leggere)
     conteggi["da_leggere"] = len(da_leggere)
     per_id = {str(m.get("id")): m for m in messaggi}
@@ -685,7 +685,7 @@ def _riconvalida(fascicolo: Any, registro: RegistroLetture, tenant: str) -> dict
     except Exception as exc:
         logger.debug("Riconvalida delle anomalie non riuscita per %s: %s", fascicolo_id, exc)
     try:
-        esclusioni = {f.oggetto_id: f.contesto for f in registro.fatti(tenant, fascicolo_id, verifiche=("verificata", "corretta")) if f.campo == "natura_documentale" and f.valore in {"contratto_lavoro", "documento_identita", "precedente_giurisprudenziale"}}
+        esclusioni = {f.oggetto_id: f.contesto for f in registro.fatti(tenant, fascicolo_id, verifiche=("verificata", "corretta")) if f.campo == "natura_documentale" and f.valore in {"contratto_lavoro", "contratto_prestazione_opera", "documento_identita", "precedente_giurisprudenziale"}}
         esito["fatti"] = len(registro.riconvalida_fatti(tenant, fascicolo_id, esclusioni_oggetto=esclusioni))
     except Exception as exc:
         logger.debug("Riconvalida dei fatti non riuscita per %s: %s", fascicolo_id, exc)

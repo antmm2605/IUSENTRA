@@ -83,6 +83,12 @@ def natura_documentale(testo: str, numero_rg: str = "", anno_rg: str = "", uffic
     if messaggio_strutturato(testo):
         return "messaggio_pec", "La fonte è un messaggio o una ricevuta: l’atto da notificare è l’allegato, non la busta email."
     head = " ".join(str(testo or "").split())[:4000]
+    contract_heading = re.search(
+        r"(?:^|\n)\s*\*{0,2}contratto\s+di\s+prestazione\s+d['’]\s*opera(?:\s+occasionale)?",
+        str(testo or "")[:2200], re.I,
+    )
+    if contract_heading and not re.search(r"\b(?:tribunale|ricorso|citazione|sentenza|ordinanza)\b", str(testo or "")[:contract_heading.start()], re.I):
+        return "contratto_prestazione_opera", "Il documento disciplina una prestazione d’opera: i contraenti non sono parti processuali e le sue date non sono termini processuali."
     if re.search(r"(?:contratto individuale di lavoro|contratto di lavoro a tempo determinato)", head[:1800], re.I):
         return "contratto_lavoro", "Il documento disciplina il rapporto di lavoro: le sue date non sono termini processuali."
     if _documento_identita_strutturale(head):
@@ -158,7 +164,7 @@ def applica_pertinenza(fatti: list[Fatto], testo: str, *, contesto, origine: str
     if not natura:
         return fatti
     for fatto in fatti:
-        if (fatto.categoria == "data" and fatto.campo in {"termine", "udienza", "costituzione"} and natura in {"contratto_lavoro", "documento_identita", "precedente_giurisprudenziale"}) or (natura in {"precedente_giurisprudenziale", "messaggio_pec"} and fatto.campo == "domanda_atto") or (natura == "precedente_giurisprudenziale" and fatto.categoria == "importo"):
+        if (fatto.categoria == "data" and fatto.campo in {"termine", "udienza", "costituzione"} and natura in {"contratto_lavoro", "contratto_prestazione_opera", "documento_identita", "precedente_giurisprudenziale"}) or (natura in {"precedente_giurisprudenziale", "messaggio_pec"} and fatto.campo == "domanda_atto") or (natura == "precedente_giurisprudenziale" and fatto.categoria == "importo"):
             fatto.verifica = "respinta"
             fatto.prove = list(fatto.prove) + [{"codice": "pertinenza_documentale", "esito": "respinta", "dettaglio": motivo}]
     fatti.append(Fatto(categoria="evento", campo="natura_documentale", valore=natura, etichetta=natura.replace("_", " ").capitalize(), contesto=motivo, origine=origine, confidenza=0.95, verifica="verificata", prove=[{"codice": "contenuto_identificativo", "esito": "ok", "dettaglio": motivo}]))

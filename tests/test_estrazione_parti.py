@@ -21,6 +21,77 @@ CF_VERDI = _cf("Verdi", "Giulia")
 CF_NERI = _cf("Neri", "Paolo", "M")
 CF_BLU = _cf("Blu", "Franco", "M")
 
+
+def test_nome_enfatizzato_non_diventa_indirizzo_della_parte():
+    testo = f"""TRIBUNALE DI MILANO
+PER La Prof.ssa *Verdi Giulia*, c.f. {CF_VERDI}, nata a Milano
+e residente in via Provinciale Esempio, 25, rappresentata e difesa
+dall'Avv. Carlo Bianchi
+CONTRO
+MINISTERO DELL'ISTRUZIONE E DEL MERITO, c.f. 80185250588
+***
+PREMESSO
+"""
+    parti = estrai_parti(testo, avvocati_studio=["Carlo Bianchi"], cliente="Verdi Giulia")
+    assistiti = [parte for parte in parti if parte.ruolo == "assistito"]
+    assert [(parte.nome, parte.codice_fiscale) for parte in assistiti] == [("Verdi Giulia", CF_VERDI)]
+    assert all("Provinciale Esempio" != parte.nome for parte in parti)
+
+
+def test_qualifica_educativa_non_diventa_parte_del_nome():
+    testo = f"""TRIBUNALE DI MILANO
+L’Assistente Educativo Verdi Giulia, c.f. {CF_VERDI}, nata a Milano,
+rappresentata e difesa dall’Avv. Carlo Bianchi
+CONTRO
+MINISTERO DELL’ISTRUZIONE E DEL MERITO, c.f. 80185250588
+PREMESSO
+"""
+    parti = estrai_parti(testo, avvocati_studio=["Carlo Bianchi"], cliente="Verdi Giulia")
+    assistiti = [parte for parte in parti if parte.ruolo == "assistito"]
+    assert [(parte.nome, parte.codice_fiscale) for parte in assistiti] == [("Verdi Giulia", CF_VERDI)]
+    assert "Assistente Educativo" in assistiti[0].citazione
+
+
+def test_contratto_lavoro_non_genera_parti_processuali():
+    from pct.archivio_letture.collaudo import Contesto
+    from pct.archivio_letture.motore_documenti import leggi_testo
+
+    testo = f"""CONTRATTO INDIVIDUALE DI LAVORO A TEMPO DETERMINATO
+Istituto d’Istruzione Superiore con sede a Milano, c.f. 91006650807
+e L’Assistente Educativo Verdi Giulia, c.f. {CF_VERDI}, nata a Milano.
+Periodo dal 01/09/2025 al 30/06/2026.
+"""
+    fatti = leggi_testo(testo, origine="nativo", nome="contratto.pdf",
+                       contesto=Contesto(cliente="Verdi Giulia"))
+    assert any(f.campo == "natura_documentale" and f.valore == "contratto_lavoro" for f in fatti)
+    assert not any(f.categoria == "parte" for f in fatti)
+
+
+def test_prestazione_opera_classificata_senza_confonderla_con_atto_che_la_cita():
+    from pct.archivio_letture.collaudo import Contesto
+    from pct.archivio_letture.motore_documenti import leggi_testo
+    from pct.archivio_letture.pertinenza_documentale import natura_documentale
+
+    contratto = """ISTITUTO D’ISTRUZIONE SUPERIORE
+CONTRATTO DI PRESTAZIONE D’OPERA OCCASIONALE ASSISTENTE EDUCATIVO
+Tra l’istituto e la docente si conviene la prestazione.
+"""
+    fatti = leggi_testo(contratto, origine="ocr", nome="documento.pdf", contesto=Contesto())
+    assert any(f.campo == "natura_documentale" and f.valore == "contratto_prestazione_opera" for f in fatti)
+    assert not any(f.categoria == "parte" for f in fatti)
+    ricorso = "TRIBUNALE DI MILANO\nRICORSO\nSi produce il seguente allegato:\n" + contratto
+    assert natura_documentale(ricorso)[0] != "contratto_prestazione_opera"
+
+
+def test_correzione_epigrafe_non_rilegge_automaticamente_archivio_storico():
+    from pct.archivio_letture.estrazione_parti import VERSIONE_ESTRAZIONE_PARTI
+    from pct.archivio_letture.motore_documenti import VERSIONE_MOTORE_DOCUMENTI
+    from pct.registro_letture.lettori import versione_compatibile_lettore
+
+    precedente = VERSIONE_MOTORE_DOCUMENTI.replace(VERSIONE_ESTRAZIONE_PARTI, "2026.10.02.parti-v4.2-cf-dichiarato")
+    assert precedente != VERSIONE_MOTORE_DOCUMENTI
+    assert versione_compatibile_lettore("motore_documenti", precedente, VERSIONE_MOTORE_DOCUMENTI)
+
 CITAZIONE = f"""TRIBUNALE DI MILANO
 ATTO DI CITAZIONE
 Verdi Giulia, c.f. {CF_VERDI}, nata a Milano il 07.04.1970 e Neri Paolo, c.f. {CF_NERI}, nato a
@@ -121,6 +192,24 @@ def test_fatti_parti_verificate_solo_con_codice_fiscale_valido():
     assert verdi.verifica == "verificata" and verdi.valore_letto == CF_VERDI
     senza_cf = fatti_parti(NOTE_SCRITTE, origine="nativo", avvocati_studio=["Carlo Bianchi"])
     assert all(f.verifica == "plausibile" for f in senza_cf if f.campo == "assistito")
+
+
+def test_modello_vuoto_non_trasforma_etichetta_fiscale_in_parte():
+    testo = "Cod. Fisc.\nPEC:\nRICHIESTA SOSTITUZIONE DELL’UDIENZA IN PRESENZA\nCON IL DEPOSITO DI NOTE SCRITTE\nR.G. n° /\nUdienza:\nOggetto: Diritto insegnanti"
+    assert estrai_parti(testo) == []
+
+
+def test_codice_ente_non_prende_quello_del_difensore_in_coda():
+    testo = "PER\nVerdi Giulia, rappresentata e difesa dall’Avv. Carlo Bianchi.\nCONTRO\nMINISTERO DELL’ISTRUZIONE E DEL MERITO, C.F. 80185250588, difeso per legge dall’Avvocatura Distrettuale di Stato di Roma.\nAvv. Carlo Bianchi, C.F. VRDGLI80A41F205Y"
+    ente = next(p for p in estrai_parti(testo) if p.nome.startswith('MINISTERO'))
+    assert ente.codice_fiscale == '80185250588'
+
+
+def test_nome_ente_non_include_etichetta_e_codice_del_modulo():
+    parti = estrai_parti("PER\nVerdi Giulia, rappresentata e difesa dall’Avv. Carlo Bianchi.\nCONTRO\nMinistero dell'Istruzione e del Merito - Codice Fiscale: 80185250588\n[ALTRI DATI]")
+    ente = next(p for p in parti if p.nome.startswith('Ministero'))
+    assert ente.nome == "Ministero dell'Istruzione e del Merito"
+    assert ente.codice_fiscale == '80185250588'
 
 
 def test_cognome_e_nome_dal_codice_fiscale():

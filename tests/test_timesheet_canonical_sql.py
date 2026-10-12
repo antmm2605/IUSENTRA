@@ -1,6 +1,8 @@
 """Guardrail della migrazione SQL Timesheet, senza mirror JSON."""
 import tempfile
 import unittest
+from contextlib import closing
+from unittest.mock import patch
 from pathlib import Path
 from pct.storage import StudioDB
 from pct.timesheet import GestioneTimesheet
@@ -42,5 +44,35 @@ class CanonicalMigrationTests(unittest.TestCase):
         loaded=GestioneTimesheet(str(self.root/'unused.json'),studio_db=self.target)
         self.assertEqual(loaded.get(old.id).descrizione,'Modifica canonica successiva')
         self.assertEqual(len(loaded.tutte()),1)
+
+    def test_backup_failure_prevents_writes_and_preserves_source(self):
+        old = self.old.crea(descrizione='Fonte da preservare', minuti=3, fatturabile=False)
+        with patch.object(migration, '_backup_sqlite', side_effect=OSError('Spazio insufficiente')):
+            with self.assertRaisesRegex(OSError, 'Spazio insufficiente'):
+                migration.migrate(self.root, self.root/'backup-fallito')
+        self.assertEqual(self.target.conn.execute('SELECT count(*) FROM timesheet_entries').fetchone()[0], 0)
+        self.assertEqual(self.source.conn.execute('SELECT id FROM timesheet_entries').fetchone()[0], old.id)
+        self.assertEqual(self.target.conn.execute("SELECT count(*) FROM audit_log WHERE azione='timesheet.adozione_sql'").fetchone()[0], 0)
+
+    def test_backup_is_coherent_and_replay_does_not_repeat_audit(self):
+        import json
+        import sqlite3
+        old = self.old.crea(descrizione='Voce storica', minuti=3, fatturabile=False)
+        migration.migrate(self.root, self.root/'backup-verificato')
+        manifest = json.loads((self.root/'backup-verificato'/'manifest.json').read_text(encoding='utf-8'))
+        self.assertEqual([item['quick_check'] for item in manifest['backups']], ['ok', 'ok'])
+        with closing(sqlite3.connect(self.root/'backup-verificato'/'studio-prima.sqlite')) as before:
+            self.assertEqual(before.execute('SELECT count(*) FROM timesheet_entries').fetchone()[0], 0)
+        migration.migrate(self.root, self.root/'backup-replay')
+        self.assertEqual(self.target.conn.execute('SELECT id FROM timesheet_entries').fetchone()[0], old.id)
+        self.assertEqual(self.target.conn.execute("SELECT count(*) FROM audit_log WHERE azione='timesheet.adozione_sql'").fetchone()[0], 1)
+
+    def test_missing_case_reference_blocks_adoption(self):
+        self.old.crea(descrizione='Voce con collegamento storico', minuti=3,
+                      fatturabile=False, id_fascicolo='NON_PRESENTE')
+        with self.assertRaisesRegex(ValueError, 'Riferimento Timesheet assente'):
+            migration.migrate(self.root, self.root/'backup-rifiutato')
+        self.assertEqual(self.target.conn.execute('SELECT count(*) FROM timesheet_entries').fetchone()[0], 0)
+        self.assertFalse((self.root/'backup-rifiutato').exists())
 
 if __name__=='__main__': unittest.main()

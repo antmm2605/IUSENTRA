@@ -51,6 +51,48 @@ def test_paginazione_non_perde_il_totale(tmp_path):
     assert len({v["chiave"] for page in (first, second, last) for v in page["voci"]}) == 7
 
 
+def test_riferimenti_sql_prevalgono_su_payload_storico(tmp_path):
+    repo = RegistroDiscordanze(RegistroLetture(tmp_path / "registro.db"))
+    repo.riconcilia("studio-a", "f1", "giudice_da_fonte",
+                   [{"chiave": "giudice", "campo": "giudice"}])
+    voce = repo.aperte("studio-a")["voci"][0]
+    assert (voce["fascicoloId"], voce["codice"], voce["chiave"]) == ("f1", "giudice_da_fonte", "giudice")
+    repo.riconcilia("studio-a", "f1", "giudice_da_fonte",
+                   [{"chiave": "giudice", "fascicoloId": "estraneo", "codice": "altro"}])
+    voce = repo.aperte("studio-a")["voci"][0]
+    assert (voce["fascicoloId"], voce["codice"]) == ("f1", "giudice_da_fonte")
+    assert repo.aperte("studio-b")["voci"] == []
+
+
+def test_giudici_discordanti_pubblicano_confronto_apribile(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from web.services.giudice_fascicolo_runtime import consegna_giudice
+    from web.services import registro_letture_runtime
+    registro = RegistroLetture(tmp_path / "registro.db")
+    facts = [SimpleNamespace(id=f"fatto-{i}", campo="giudice", valore=nome,
+                             oggetto_id=f"doc-{i}", sha256=str(i) * 64,
+                             contesto=f"Il giudice {nome}", prove=[], verifica="verificata")
+             for i, nome in ((1, "Mario Rossi"), (2, "Laura Verdi"))]
+    monkeypatch.setattr(registro, "fatti", lambda *a, **kw: facts)
+    monkeypatch.setattr(registro_letture_runtime, "registro_corrente", lambda: registro)
+    monkeypatch.setattr(registro_letture_runtime, "tenant_corrente", lambda: "studio-a")
+    case = SimpleNamespace(id="f1", id_cliente="c1", titolo="Rossi c. Ente",
+                           nome_cliente="Rossi Luigi", numero_rg="12", anno_rg="2026",
+                           numero="2026/3", giudice="Mario Rossi",
+                           documenti=[SimpleNamespace(id=f"doc-{i}", nome=f"Provvedimento {i}.pdf")
+                                      for i in (1, 2)])
+    result = consegna_giudice(case, facts)
+    assert all(r["stato"] == "non_pertinente" for r in result)
+    voce = RegistroDiscordanze(registro).aperte("studio-a")["voci"][0]
+    assert voce["titolo"] == "Giudice da verificare"
+    assert voce["valoreAnagrafica"] == case.giudice == "Mario Rossi"
+    assert voce["valoriAtto"] == ["Laura Verdi", "Mario Rossi"]
+    assert voce["cliente"] == "Rossi Luigi" and voce["rg"] == "12/2026"
+    assert [f["href"] for f in voce["fonti"]] == [
+        "/fascicoli/f1/documenti/doc-1/visualizza", "/fascicoli/f1/documenti/doc-2/visualizza"]
+    assert len(voce["evidenze"]) == 2
+
+
 def test_parita_schema_sqlite_postgresql():
     from pathlib import Path
     root = Path(__file__).parents[1] / "pct" / "sql"

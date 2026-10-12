@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 
 from pct.registro_letture.fatti_repository import Fatto
 
-VERSIONE_ESTRAZIONE_PARTI = "2026.10.02.parti-v4.2-cf-dichiarato"
+VERSIONE_ESTRAZIONE_PARTI = "2026.10.11.parti-v4.3-enfasi-epigrafe"
 _CF = re.compile(r"\b([A-Z]{3}\s?[A-Z]{3}\s?\d{2}[A-Z]\d{2}\s?[A-Z]\d{3}[A-Z])\b")
 # Conserva il codice esplicitamente dichiarato anche se il formato o il
 # carattere finale sono errati. La verifica resta separata dalla lettura:
@@ -39,7 +39,8 @@ _NOME = r"[A-ZÀ-Ü][\w'’À-ÿ.]+(?:[ \t]+(?:de|di|del|della|dello|dei|degli|l
 # Parole che non stanno mai nel nome di una parte: intestazioni, titoli dell'atto, uffici.
 _NON_NOME = re.compile(
     r"\b(?:studio|legale|avvocat\w*|avv|tribunale|corte|giudice|sezione|atto|citazione|ricorso|memoria|comparsa|"
-    r"sentenza|ordinanza|decreto|repubblica|italiana|popolo|nome|reg|ric|oggetto|procura|udienza|attestazione|conformit[aà])\b",
+    r"sentenza|ordinanza|decreto|repubblica|italiana|popolo|nome|reg|ric|oggetto|procura|udienza|attestazione|conformit[aà]|"
+    r"cod\.?\s+fisc\.?|codice\s+fiscale|posta\s+elettronica)\b",
     re.IGNORECASE,
 )
 # Il nome del difensore può andare a capo dopo «Avv.»: qui il nome attraversa la riga.
@@ -57,7 +58,7 @@ _PER = re.compile(r"(?:(?:^|\n)\s*(?:per|nell['’]interesse\s+d[ie]l?l?[ao]?)\s
 _CONTRO = re.compile(r"(?:\bcontro\b|\bnei\s+confronti\s+d[ie]l?l?[ao]?\b|\bavverso\b)\s*:?", re.IGNORECASE)
 _ENTE = re.compile(
     r"\b((?:MINISTERO|Ministero|AGENZIA|Agenzia|COMUNE|Comune|REGIONE|Regione|PROVINCIA|Provincia|INPS|Inps|INAIL|Inail|"
-    r"ISTITUTO|Istituto|UFFICIO\s+SCOLASTICO|Ufficio\s+Scolastico|AZIENDA|Azienda|UNIVERSIT[AÀ]|Universit[aà])"
+    r"ISTITUTO|Istituto|UFFICIO\s+SCOLASTICO|Ufficio\s+Scolastico|AZIENDA|Azienda|UNIVERSIT[AÀ]|Universit[aà])\b"
     r"[^,;\n(]{0,110})"
 )
 _TESTI = re.compile(
@@ -107,12 +108,16 @@ def cf_valido(cf: str) -> bool:
         return False
 
 
-_TITOLI = re.compile(r"^(?:il|la|lo|i|le|gli|sig\.?(?:ra)?|prof\.?(?:ssa)?|dott\.?(?:ssa)?|ing\.?|avv\.?|geom\.?|arch\.?)\s+", re.IGNORECASE)
+_TITOLI = re.compile(
+    r"^(?:l['’]\s*|(?:il|la|lo|i|le|gli|sig\.?(?:ra)?|prof\.?(?:ssa)?|dott\.?(?:ssa)?|"
+    r"ing\.?|avv\.?|geom\.?|arch\.?|assistente\s+educativo|docente|insegnante)\s+)",
+    re.IGNORECASE,
+)
 _CODA_RUOLO = re.compile(r"\s+(?:ricorrent\w*|resistent\w*|attor\w*|attrice|convenut\w*|appell\w*|oppon\w*|oppost\w*|intervenut\w*|terz\w*)$", re.IGNORECASE)
 
 
 def _pulisci_nome(nome: str) -> str:
-    nome = re.split(r",|\bc\.?\s*f\.?\b|\bnat[oa]\b|\bin\s+persona\b|\bcon\s+sede\b|\bresident\w*\b|\(", nome, maxsplit=1, flags=re.IGNORECASE)[0]
+    nome = re.split(r",|\bc\.?\s*f\.?\b|\b(?:cod\.?\s+fisc\.?|codice\s+fiscale)\b|\bnat[oa]\b|\bin\s+persona\b|\bcon\s+sede\b|\bresident\w*\b|\(", nome, maxsplit=1, flags=re.IGNORECASE)[0]
     nome = " ".join(nome.split())
     precedente = None
     while precedente != nome:
@@ -123,6 +128,14 @@ def _pulisci_nome(nome: str) -> str:
 
 def _epigrafe(testo: str) -> str:
     zona = str(testo or "")[:7000]
+    # L'estrazione condivisa può rappresentare grassetto/corsivo con asterischi.
+    # «*Nome Cognome*, c.f.» deve conservare l'ancora personale: altrimenti
+    # la ricerca iniziale può saltare il nome e catturare la via sottostante.
+    # I separatori su una riga intera restano delimitatori dell'epigrafe.
+    zona = "\n".join(
+        riga if re.fullmatch(r"\s*\*{3,}\s*", riga) else riga.replace("*", "")
+        for riga in zona.split("\n")
+    )
     # L'attestazione descrive le copie e il sottoscrittore: non ha un'epigrafe
     # di parti. I nomi citati nell'elenco degli atti non sono nuove parti.
     titolo_attestazione = re.search(r"(?:^|\n)\s*ATTESTAZIONE\s+DI\s+CONFORMIT[AÀ]\b", zona[:1200], re.IGNORECASE)
@@ -231,7 +244,8 @@ def _parte_del_blocco(lato: str, blocco: str) -> list[ParteLetta]:
         nome_difensore = _pulisci_nome(difensore.group(1)) if difensore else (" ".join(avvocatura.group(1).split()) if avvocatura else "")
         if nome_difensore and re.search(r"\b(?:entramb\w|tutt\w|congiuntamente)\b", pezzo[:difensore.start() if difensore else len(pezzo)], re.IGNORECASE):
             difensore_comune = nome_difensore
-        dati = pezzo[: difensore.start()] if difensore else pezzo
+        fine_dati = min([m.start() for m in (difensore, avvocatura) if m is not None], default=len(pezzo))
+        dati = pezzo[:fine_dati]
         cf = _CF_DICHIARATO.search(dati) or _CF.search(dati.upper())
         partita = _PIVA_ENTE.search(dati)
         posizione = _RUOLI_PROCESSUALI.search(pezzo)

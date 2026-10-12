@@ -116,6 +116,11 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
         REPO_ROOT / "tests" / "test_lex_quality_gates.py",
         REPO_ROOT / "tests" / "test_performance_budget.py",
         REPO_ROOT / "tests" / "test_local_signer_ai_cache.py",
+        REPO_ROOT / "tests" / "test_estrazione_parti.py",
+        REPO_ROOT / "tests" / "test_archivio_letture.py",
+        REPO_ROOT / "tests" / "test_discordanze_letture.py",
+        REPO_ROOT / "tests" / "test_giudice_da_provvedimento.py",
+        REPO_ROOT / "tests" / "test_timesheet_canonical_sql.py",
     ),
     "release-readiness": (
         REPO_ROOT / "tests" / "test_release_readiness.py",

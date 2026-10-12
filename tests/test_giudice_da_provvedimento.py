@@ -134,3 +134,24 @@ def test_current_sources_require_a_documented_chain_not_only_pending_name():
     assert not cronologia_concordante([old, new, unrelated], new.valore)
     new.prove = replacement_source(effective="2099-01-01")[0]["prove"]
     assert not cronologia_concordante([old, new], new.valore)
+
+
+def test_reordered_judge_is_present_without_overwriting_manual_value(backend):
+    backend.conn.execute("UPDATE fascicoli SET giudice='NERI LAURA',dati_json=?",
+                         (json.dumps({"giudice": "NERI LAURA"}),))
+    backend.conn.commit()
+    writer = GiudiceFascicoloRepository(backend)
+    sources = [{"documento_id": "source", "sha256": "a" * 64}]
+    assert writer.consegna("f", "Laura Neri", sources)["stato"] == "gia_presente"
+    assert writer.consegna("f", "Lauro Neri", sources)["stato"] == "discordante"
+    assert backend.conn.execute("SELECT giudice FROM fascicoli").fetchone()[0] == "NERI LAURA"
+    assert backend.conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0] == 0
+
+
+def test_judge_chronology_accepts_order_only_and_keeps_distinct_names():
+    from web.services.giudice_fascicolo_runtime import cronologia_concordante
+    facts = [SimpleNamespace(valore=name, verifica="verificata", prove=[])
+             for name in ("NERI LAURA", "Laura Neri")]
+    assert cronologia_concordante(facts, "Laura Neri")
+    facts.append(SimpleNamespace(valore="Lauro Neri", verifica="verificata", prove=[]))
+    assert not cronologia_concordante(facts, "Laura Neri")

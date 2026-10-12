@@ -12,7 +12,7 @@ export function subscribeSourceWindows(listener: () => void) { listeners.add(lis
 export function openSourceWindow(source: SourceDocument, owner: string, onClose: () => void) {
   const nativeSource = sourceWorkDescriptor(source, window.location.origin)
   if (nativeSource) source = nativeSource
-  if (window.parent !== window && nativeSource) {
+  if (window.parent !== window && window.frameElement?.tagName === 'IFRAME' && nativeSource) {
     parentOwners.set(owner, onClose)
     window.parent.postMessage({ type: 'iusentra:open-source-window', source: nativeSource, owner }, window.location.origin)
     return

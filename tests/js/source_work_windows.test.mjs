@@ -29,7 +29,7 @@ test('Richiami ripetuti preservano una sola fonte e incrementano il token di foc
 
 test('La fonte incorporata passa al parent dello stesso sito senza duplicare il lettore locale', () => {
   const messages = []
-  globalThis.window = { location: { origin }, parent: { postMessage: (...args) => messages.push(args) } }
+  globalThis.window = { location: { origin }, frameElement: { tagName: 'IFRAME' }, parent: { postMessage: (...args) => messages.push(args) } }
   let oldClose = 0; let currentClose = 0
   registry.openSourceWindow(source, 'scadenza', () => { oldClose += 1 })
   registry.openSourceWindow(source, 'scadenza', () => { currentClose += 1 })
@@ -44,8 +44,20 @@ test('La fonte incorporata passa al parent dello stesso sito senza duplicare il 
 
 test('Nessun comando operativo viene inoltrato al parent come fonte', () => {
   const messages = []
-  globalThis.window = { location: { origin }, parent: { postMessage: (...args) => messages.push(args) } }
+  globalThis.window = { location: { origin }, frameElement: { tagName: 'IFRAME' }, parent: { postMessage: (...args) => messages.push(args) } }
   registry.openSourceWindow({ ...source, href: '/fascicoli/F1/deposito' }, 'operazione', () => {})
   assert.equal(messages.length, 0)
+  registry.clearSourceWindows()
+})
+
+test('Cornice esterna non accessibile: la fonte resta nella shell locale', () => {
+  const messages = []
+  globalThis.window = { location: { origin }, frameElement: null,
+    parent: { postMessage: (...args) => messages.push(args) } }
+  registry.clearSourceWindows()
+  registry.openSourceWindow(source, 'verifiche', () => {})
+  assert.equal(messages.length, 0)
+  assert.equal(registry.sourceWindowsSnapshot().length, 1)
+  assert.deepEqual(registry.sourceWindowsSnapshot()[0].source, source)
   registry.clearSourceWindows()
 })

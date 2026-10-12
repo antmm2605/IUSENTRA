@@ -38,7 +38,13 @@ VERSIONE_MOTORE_DOCUMENTI = f"2026.09.26.motore-documenti.v16+tabelle:{VERSIONE_
 VERSIONE_MOTORE_DOCUMENTI += f"+copie:{VERSIONE_COPIE_ATTI}"
 VERSIONE_MOTORE_DOCUMENTI += f"+prove:{VERSIONE_PROVE_NOTIFICA}"
 VERSIONE_MOTORE_DOCUMENTI += f"+date-modello:{VERSIONE_DATE_CAMPI_MODELLI}"
-VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI = (VERSIONE_MOTORE_DOCUMENTI,)
+# La correzione delle epigrafi non avvia una rilettura storica generalizzata.
+# Le fonti nuove usano la regola corrente; le discordanze già archiviate
+# vengono riconvalidate con un evento esplicito del fascicolo interessato.
+VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI = (
+    VERSIONE_MOTORE_DOCUMENTI,
+    VERSIONE_MOTORE_DOCUMENTI.replace(VERSIONE_ESTRAZIONE_PARTI, "2026.10.02.parti-v4.2-cf-dichiarato"),
+)
 FATTI_MASSIMI = 80
 ORDINE_VERIFICA = {"verificata": 0, "corretta": 0, "plausibile": 1, "respinta": 2, "ignorata": 3}
 
@@ -107,7 +113,11 @@ def leggi_testo(
         collaudati.extend(estrai_controllo_economico(testo, origine=origine, metadata=metadata or {}))
         # Le parti si leggono solo negli atti di questa causa: un precedente
         # allegato porta le parti di un altro processo.
-        collaudati.extend(collauda_tutti(fatti_parti(testo, origine=origine, avvocati_studio=list(contesto.avvocati_studio), cliente=contesto.cliente), contesto))
+        # I contraenti del rapporto di lavoro e i campi di un documento
+        # personale non costituiscono l'epigrafe delle parti processuali.
+        # La natura è già dimostrata dal classificatore condiviso sopra.
+        if not any(f.campo == "natura_documentale" and f.valore in {"contratto_lavoro", "contratto_prestazione_opera", "documento_identita"} for f in collaudati):
+            collaudati.extend(collauda_tutti(fatti_parti(testo, origine=origine, avvocati_studio=list(contesto.avvocati_studio), cliente=contesto.cliente), contesto))
     collaudati.sort(key=lambda fatto: (ORDINE_VERIFICA.get(fatto.verifica, 9), fatto.posizione))
     return collaudati
 

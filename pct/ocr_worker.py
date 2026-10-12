@@ -90,7 +90,8 @@ def _alimenta_archivio(job, testo: str) -> None:
 
         registra_lettura_ocr_nell_archivio(job, testo)
     except Exception as exc:
-        logger.debug("Archivio non alimentato dal job OCR %s: %s", getattr(job, "id", ""), exc)
+        logger.warning("Consegna archivio non confermata per il job OCR %s: %s", getattr(job, "id", ""), exc)
+        raise
 
 
 def _process_job(store: OCRJobStore, worker_id: str, stop_event: threading.Event) -> None:

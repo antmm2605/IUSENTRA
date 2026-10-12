@@ -85,11 +85,12 @@ class OCRJobStore:
             WHERE hash_sha256 = ?
               AND id_fasc = ?
               AND id_doc = ?
+              AND tenant_id = ?
               AND status IN ('pending', 'processing')
             ORDER BY id DESC
             LIMIT 1
             """,
-            (hash_sha256, id_fasc, id_doc),
+            (hash_sha256, id_fasc, id_doc, str(tenant_id or "")),
         ).fetchone()
         if row:
             return int(row["id"])

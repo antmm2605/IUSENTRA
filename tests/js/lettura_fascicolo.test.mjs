@@ -9,10 +9,23 @@ import {
   passiOrdinati,
   presidiCards,
   riassuntoStatoPassi,
+  righeVerifiche,
   tonoFase,
 } from '../../frontend/src/components/fascicoli/letturaFascicolo.ts'
 
 const passo = (overrides) => ({ urgenza: 2, azione: 'Azione', motivo: '', entro: '', fonte: 'scadenziario', norma: '', fonti: [], href: '#udienze', template: '', ...overrides })
+
+test('distingue letture archiviate, indice incompleto e controllo ricevute dello studio', () => {
+  const righe = righeVerifiche({ eseguita_il: '12/10/2026 09:58', esiti: {
+    depositi: { esito: 'controllate', controllati: 2, aggiornati: 0, polling: { esito: 'controllate', controllati: 9, aggiornati: 0, pendenti: 2 } },
+    documenti: { documenti: 77, letti: 77, indicizzati: 0, errori: 0, esito: 'tutti_letti', indice_pronti: 73, indice_totale: 77, indice_errori: 0 },
+    notifiche: { esaminati: 0, riallineati: 0 },
+  } })
+  assert.match(righe.find((r) => r.presidio === 'Presidio documentale').esito, /77 documenti letti/)
+  assert.deepEqual(righe.find((r) => r.presidio === 'Indice dei documenti'), { presidio: 'Indice dei documenti', esito: '73 pronti su 77', tono: 'warning' })
+  assert.match(righe.find((r) => r.presidio === 'Controllo ricevute dello studio').esito, /9 depositi controllati.*2 pendenti in questo fascicolo/)
+  assert.ok(righe.some((r) => r.presidio === 'Presidio notifiche'))
+})
 
 const lettura = (overrides = {}) => ({
   versione: 'v', generata_il: '14/09/2026',

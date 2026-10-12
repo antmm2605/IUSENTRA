@@ -38,11 +38,15 @@ VERSIONE_MOTORE_DOCUMENTI = f"2026.09.26.motore-documenti.v16+tabelle:{VERSIONE_
 VERSIONE_MOTORE_DOCUMENTI += f"+copie:{VERSIONE_COPIE_ATTI}"
 VERSIONE_MOTORE_DOCUMENTI += f"+prove:{VERSIONE_PROVE_NOTIFICA}"
 VERSIONE_MOTORE_DOCUMENTI += f"+date-modello:{VERSIONE_DATE_CAMPI_MODELLI}"
+VERSIONE_MOTORE_DOCUMENTI_PRE_CONTRATTO_NUMERATO = VERSIONE_MOTORE_DOCUMENTI
+VERSIONE_MOTORE_DOCUMENTI += "+contratto-titolo-numerato"
 # La correzione delle epigrafi non avvia una rilettura storica generalizzata.
 # Le fonti nuove usano la regola corrente; le discordanze già archiviate
 # vengono riconvalidate con un evento esplicito del fascicolo interessato.
 VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI = (
     VERSIONE_MOTORE_DOCUMENTI,
+    VERSIONE_MOTORE_DOCUMENTI_PRE_CONTRATTO_NUMERATO,
+    VERSIONE_MOTORE_DOCUMENTI_PRE_CONTRATTO_NUMERATO.replace(VERSIONE_ESTRAZIONE_PARTI, "2026.10.02.parti-v4.2-cf-dichiarato"),
     VERSIONE_MOTORE_DOCUMENTI.replace(VERSIONE_ESTRAZIONE_PARTI, "2026.10.02.parti-v4.2-cf-dichiarato"),
 )
 FATTI_MASSIMI = 80

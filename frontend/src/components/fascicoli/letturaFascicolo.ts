@@ -71,10 +71,10 @@ export interface VerificheAutomatiche {
   eseguita_il_it?: string
   completata_il?: string
   esiti?: {
-    pec?: { esaminate: number; collegate: number; job_eseguiti: number; da_confermare: { id: string; oggetto: string; corrispondenza: string }[] }
+    pec?: { esaminate: number; collegate: number; job_eseguiti: number; da_confermare: { id: string; oggetto: string; corrispondenza: string; motivo?: string }[] }
     notifiche?: { esaminati: number; riallineati: number }
-    depositi?: { pendenti: number; esito: string; controllati?: number; aggiornati?: number; errori?: number }
-    documenti?: { documenti: number; letti?: number; indicizzati: number; errori: number; da_acquisire?: number; esito: string }
+    depositi?: { pendenti: number; esito: string; controllati?: number; aggiornati?: number; errori?: number; polling?: { esito: string; controllati?: number; aggiornati?: number; pendenti?: number; errori?: number } }
+    documenti?: { documenti: number; letti?: number; indicizzati: number; errori: number; da_acquisire?: number; esito: string; indice_pronti?: number; indice_totale?: number; indice_errori?: number }
   }
   errori?: Record<string, string>
   lacune_conoscenza?: LacunaConoscenza[]
@@ -146,6 +146,10 @@ export function righeVerifiche(verifiche: VerificheAutomatiche | undefined): Rig
     const base = ESITI_DEPOSITI[esiti.depositi.esito] || esiti.depositi.esito
     const dettaglio = esiti.depositi.esito === 'controllate' ? `: ${esiti.depositi.controllati || 0} controllati, ${esiti.depositi.aggiornati || 0} aggiornati` : ''
     righe.push({ presidio: 'Presidio depositi', esito: `${base}${dettaglio}`, tono: esiti.depositi.esito === 'pec_non_configurata' || esiti.depositi.esito === 'polling_fallito' ? 'warning' : 'success' })
+    if (esiti.depositi.polling) {
+      const polling = esiti.depositi.polling
+      righe.push({ presidio: 'Controllo ricevute dello studio', esito: polling.esito === 'controllate' ? `${polling.controllati || 0} depositi controllati · ${polling.aggiornati || 0} aggiornati · ${polling.pendenti || 0} pendenti in questo fascicolo` : (ESITI_DEPOSITI[polling.esito] || polling.esito), tono: polling.esito === 'polling_fallito' || polling.esito === 'pec_non_configurata' || polling.errori ? 'warning' : 'success' })
+    }
   }
   if (esiti.documenti) {
     righe.push({
@@ -153,6 +157,7 @@ export function righeVerifiche(verifiche: VerificheAutomatiche | undefined): Rig
       esito: esiti.documenti.esito === 'tutti_letti' ? `tutti i ${esiti.documenti.documenti} documenti letti dall’archivio` : `${esiti.documenti.letti ?? 0} letti su ${esiti.documenti.documenti} · ${esiti.documenti.indicizzati} indicizzati ora · ${esiti.documenti.errori} non leggibili${esiti.documenti.da_acquisire ? ` · ${esiti.documenti.da_acquisire} da acquisire dal portale` : ''}`,
       tono: esiti.documenti.errori ? 'warning' : 'success',
     })
+    if (esiti.documenti.indice_totale !== undefined) righe.push({ presidio: 'Indice dei documenti', esito: `${esiti.documenti.indice_pronti || 0} pronti su ${esiti.documenti.indice_totale}${esiti.documenti.indice_errori ? ` · ${esiti.documenti.indice_errori} errori` : ''}`, tono: esiti.documenti.indice_pronti !== esiti.documenti.indice_totale || esiti.documenti.indice_errori ? 'warning' : 'success' })
   }
   for (const [nome, errore] of Object.entries(verifiche.errori || {})) righe.push({ presidio: `Verifica ${nome}`, esito: `non completata: ${errore}`, tono: 'danger' })
   return righe

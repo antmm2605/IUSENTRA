@@ -8,13 +8,84 @@ from pathlib import Path
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
+import pytest
+
 from pct.pec_pipeline import PecAuditRepository
 from tests.test_fascicolo_pec_presidio import _inserisci, _repository
 from tests.test_react_shell import _app
 from web.services import fascicolo_lettura_verifiche as servizio
 
+
+def test_payload_presidi_conserva_esiti_sql_e_distingue_archivio_da_indice(monkeypatch):
+    from lex.context.fascicolo_lettura_context import _verifiche
+    from web.services import registro_letture_runtime, correlazioni_ricevute_archivio
+
+    lettore = SimpleNamespace(lettore="motore_documenti", completa=True, letti=77,
+                             da_leggere=0, errori=0, ultima_lettura="2026-10-12T05:51:00Z")
+    stato = SimpleNamespace(lettori=[lettore], per_oggetto=[])
+    monkeypatch.setattr(registro_letture_runtime, "registro_corrente", lambda: SimpleNamespace(stato_fascicolo=lambda *a, **k: stato))
+    monkeypatch.setattr(registro_letture_runtime, "tenant_corrente", lambda: "studio-controllato")
+    monkeypatch.setattr(correlazioni_ricevute_archivio, "depositi_da_archivio", lambda f: [SimpleNamespace(stato="CONSEGNATO") for _ in range(2)])
+    monkeypatch.setattr(servizio, "leggi_registro", lambda fid: {
+        "completata_il": "2026-10-12T09:58:00+02:00", "in_corso": False,
+        "esiti": {"depositi": {"esito": "controllate", "controllati": 9, "pendenti": 2},
+                  "notifiche": {"esaminati": 3, "riallineati": 1},
+                  "documenti": {"documenti": 77, "letti": 73, "errori": 0},
+                  "pec": {"esaminate": 1, "collegate": 0, "da_confermare": [{"id": "M1", "motivo": "Ufficio discordante"}]}},
+    })
+    esiti = _verifiche(SimpleNamespace(id="F001"))["esiti"]
+    assert esiti["depositi"]["controllati"] == 2
+    assert esiti["depositi"]["polling"]["controllati"] == 9
+    assert esiti["documenti"]["letti"] == 77
+    assert esiti["documenti"]["indice_pronti"] == 73
+    assert esiti["notifiche"] == {"esaminati": 3, "riallineati": 1}
+    assert esiti["pec"]["esaminate"] == 1
+    assert esiti["pec"]["da_confermare"][0]["motivo"] == "Ufficio discordante"
+
 ROME = ZoneInfo("Europe/Rome")
 HEADERS = {"X-API-Key": "react-test-key"}
+
+
+@pytest.mark.parametrize("changes", [
+    {"cliente": ""}, {"ufficio": "Tribunale di Milano"},
+    {"numero_rg": "777"}, {"numero_rg": "777/2025"},
+    {"codice_fiscale_cliente": "RSSMRA80A01H501A"},
+])
+def test_verifica_pec_non_certifica_identita_incompleta_o_discordante(tmp_path, changes):
+    repository = _repository(tmp_path)
+    _inserisci(repository, "M-incompleta", "Comunicazione R.G. 777/2026")
+    profile = {"numero_rg": "777/2026", "cliente": "Anna Bianchi", "ufficio": "Tribunale di Torino", **changes}
+    with repository.connect() as conn:
+        conn.execute("INSERT INTO pec_parsed_versions (id,message_id,version,parser_version,parsed_json,parsed_sha256,created_at) VALUES ('v-incompleta','M-incompleta',1,'1',?,'sha','2026-09-01')", (json.dumps({"procedural_profile": profile}),))
+    case = SimpleNamespace(id="F1", numero_rg="777", anno_rg=2026, nome_cliente="Anna Bianchi", tribunale="Tribunale di Torino", depositi_pct=[])
+    result = servizio.verifica_pec(case, repository=repository)
+    assert result["collegate"] == 0
+    assert [item["id"] for item in result["da_confermare"]] == ["M-incompleta"]
+    with repository.connect() as conn:
+        assert conn.execute("SELECT linked_fascicolo_id FROM pec_messages WHERE id='M-incompleta'").fetchone()[0] == ""
+        assert conn.execute("SELECT count(*) FROM pec_fascicolo_links").fetchone()[0] == 0
+
+
+def test_collegamento_identita_congiunta_preserva_tenant_decisione_manuale_e_replay(tmp_path):
+    repository = _repository(tmp_path)
+    _inserisci(repository, "M-congiunta", "Comunicazione R.G. 777/2026")
+    _inserisci(repository, "M-manuale", "Comunicazione R.G. 777/2026", linked="F-MANUALE")
+    profile = {"numero_rg": "777/2026", "cliente": "Anna Bianchi", "ufficio": "Tribunale di Torino"}
+    with repository.connect() as conn:
+        for identifier in ("M-congiunta", "M-manuale"):
+            conn.execute("INSERT INTO pec_parsed_versions (id,message_id,version,parser_version,parsed_json,parsed_sha256,created_at) VALUES (?,?,1,'1',?,'sha','2026-09-01')", ("v-" + identifier, identifier, json.dumps({"procedural_profile": profile})))
+    case = SimpleNamespace(id="F1", numero_rg="777", anno_rg=2026, nome_cliente="Anna Bianchi", tribunale="Tribunale di Torino")
+    repository.tenant_id = "altro-studio"
+    assert not servizio._collega_per_ruolo(repository, "M-congiunta", "F1", fascicolo=case)
+    repository.tenant_id = "default"
+    assert not servizio._collega_per_ruolo(repository, "M-manuale", "F1", fascicolo=case)
+    assert servizio._collega_per_ruolo(repository, "M-congiunta", "F1", fascicolo=case)
+    assert servizio._collega_per_ruolo(repository, "M-congiunta", "F1", fascicolo=case)
+    with repository.connect() as conn:
+        assert conn.execute("SELECT count(*) FROM pec_fascicolo_links WHERE message_id='M-congiunta'").fetchone()[0] == 1
+        assert conn.execute("SELECT linked_fascicolo_id FROM pec_messages WHERE id='M-manuale'").fetchone()[0] == "F-MANUALE"
+        evidence = json.loads(conn.execute("SELECT seeds_json FROM pec_fascicolo_links WHERE message_id='M-congiunta'").fetchone()[0])["identity_evidence"]
+        assert evidence["complete_match"]
 
 
 def test_registro_per_fascicolo_e_necessita_delle_verifiche(tmp_path: Path):
@@ -45,9 +116,10 @@ def test_verifica_pec_collega_il_ruolo_citato_da_un_ufficio_e_lascia_da_conferma
     _inserisci(repository, "M2", "Documenti per Anna Bianchi", received="2026-09-02T09:00:00")
     _inserisci(repository, "M3", "Già collegata", linked="F1", received="2026-09-03T09:00:00")
     with repository.connect() as conn:
-        conn.execute("INSERT INTO pec_parsed_versions (id, message_id, version, parser_version, parsed_json, parsed_sha256, created_at) VALUES ('v1','M1',1,'1','{}','p1','2026-09-01T09:05:00')")
+        profile = {"procedural_profile": {"numero_rg": "777/2026", "cliente": "Anna Bianchi", "ufficio": "Tribunale di Torino"}}
+        conn.execute("INSERT INTO pec_parsed_versions (id, message_id, version, parser_version, parsed_json, parsed_sha256, created_at) VALUES ('v1','M1',1,'1',?,'p1','2026-09-01T09:05:00')", (json.dumps(profile),))
         conn.commit()
-    fascicolo = SimpleNamespace(id="F1", numero_rg="777", anno_rg=2026, nome_cliente="Anna Bianchi", depositi_pct=[])
+    fascicolo = SimpleNamespace(id="F1", numero_rg="777", anno_rg=2026, nome_cliente="Anna Bianchi", tribunale="Tribunale di Torino", depositi_pct=[])
 
     esito = servizio.verifica_pec(fascicolo, repository=repository)
 
@@ -90,7 +162,8 @@ def test_verifica_pec_collega_rg_da_profilo_ufficio_anche_con_mittente_legalmail
             "procedural_profile": {
                 "numero_rg": "777/2026",
                 "codice_ufficio": "001",
-                "ufficio": "Ufficio giudiziario civile",
+                "ufficio": "Tribunale di Torino",
+                "cliente": "Anna Bianchi",
                 "giudice": "GIUDICE TEST",
                 "cancelleria": "CANCELLERIA TEST",
                 "oggetto_evento": "COMUNICAZIONE DI CANCELLERIA",
@@ -113,7 +186,7 @@ def test_verifica_pec_collega_rg_da_profilo_ufficio_anche_con_mittente_legalmail
         )
         conn.commit()
 
-    esito = servizio.verifica_pec(SimpleNamespace(id="F1", numero_rg="777", anno_rg=2026, nome_cliente="Anna Bianchi", depositi_pct=[]), repository=repository)
+    esito = servizio.verifica_pec(SimpleNamespace(id="F1", numero_rg="777", anno_rg=2026, nome_cliente="Anna Bianchi", tribunale="Tribunale di Torino", depositi_pct=[]), repository=repository)
 
     assert esito["esaminate"] == 1 and esito["collegate"] == 1 and esito["da_confermare"] == []
     with repository.connect() as conn:

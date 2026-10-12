@@ -990,6 +990,9 @@ def stato_archivio_payload(
     in_attesa = oggetti_in_attesa(stato, letture=registro.letture(tenant, fascicolo_id))
     with _LOCK:
         in_corso = fascicolo_id in _IN_CORSO
+    # Il processo web non possiede il lavoro eseguito dallo scheduler.
+    # La coda SQL è il riscontro condiviso, anche durante una lease attiva.
+    in_corso = in_corso or registro.stato_evento(tenant, fascicolo_id) in {"pending", "running"}
     riassunto.update({
         "versione": {"documenti": VERSIONE_MOTORE_DOCUMENTI, "pec": VERSIONE_MOTORE_PEC},
         "lettura_automatica": {
@@ -1048,6 +1051,20 @@ def percorso_collaudo() -> Path:
 
 # ---- la lettura in sfondo e la lettura automatica ------------------------------------
 
+def _indicizza_fonti_pendenti(fascicolo_id: str, tenant_slug: str) -> dict[str, Any]:
+    """Il lease SQL governa l'indicizzazione: nessun retry di fonti invariate."""
+    from web.services.document_intelligence_runtime import build_lex_indexing_summary_payload
+
+    context = {"user": None, "user_id": "archivio-letture.indice", "tenant_slug": tenant_slug, "skip_permission_check": True}
+    stato = build_lex_indexing_summary_payload(fascicolo_id, process=False, user_context=context, apply_automations=False)
+    mancanti = sum(int(stato.get(campo) or 0) for campo in ("not_indexed", "queued", "stale"))
+    if not mancanti:
+        return stato
+    return build_lex_indexing_summary_payload(
+        fascicolo_id, process=True, retry_errors=False,
+        user_context=context, apply_automations=False,
+    )
+
 def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str, Any] | None = None, tenant_slug: str = "", forza: bool = False, _accoda_evento: bool = True) -> bool:
     """Accoda dal web; il drain scheduler legge un solo fascicolo e coordina i processi."""
     fascicolo_id = _testo(fascicolo_id)
@@ -1092,6 +1109,7 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                     fascicolo = get_fascicoli().get(fascicolo_id)
                     if fascicolo is None:
                         raise RuntimeError("Fascicolo accodato non disponibile.")
+                    _indicizza_fonti_pendenti(fascicolo_id, tenant_slug)
                     forza_giro = bool(evento.get("forza"))
                     while True:
                         report = leggi_fascicolo(fascicolo, forza=forza_giro, registro=registro, recupera_metadati=True)
@@ -1108,6 +1126,10 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                             from web.services.discordanze_letture_runtime import verifica_discordanze_fascicolo
 
                             verifica_discordanze_fascicolo(fascicolo)
+                            if evento.get("presidi"):
+                                from web.services.fascicolo_lettura_verifiche import esegui_verifiche
+
+                                esegui_verifiche(app, fascicolo_id, paths=dict(paths or {}), tenant_slug=tenant_slug)
                             riuscito = True
                             break
                         documenti = dict(report.get("documenti") or {})
@@ -1423,51 +1445,24 @@ def _consegna_dopo_ocr(registro: RegistroLetture, tenant: str, fascicolo_id: str
 
 
 def registra_lettura_ocr_nell_archivio(job: Any, testo: str) -> int:
-    """Il worker OCR, a testo pronto, alimenta l'archivio da solo (senza Flask): il motore documenti legge quel documento."""
+    """Il testo OCR già indicizzato viene verificato dalla coda nel contesto del tenant.
+
+    Il worker non possiede il contesto Flask/SQL dello studio: non deve estrarre
+    fatti usando il database globale né chiudere il motore documenti senza RG.
+    Riapre soltanto questa fonte e conserva i fatti fino alla lettura governata.
+    """
     registro_path = _testo(getattr(job, "registro_path", ""))
     if not registro_path or not str(testo or "").strip():
         return 0
-    try:
-        import os
-
-        from pct.fascicoli import GestioneFascicoli
-
-        registro = registro_per_percorsi({"REGISTRO_LETTURE_DB": registro_path})
-        tenant = _testo(getattr(job, "tenant_id", ""))
-        oggetto = registro.oggetto(tenant, job.id_fasc, "documento", job.id_doc)
-        if oggetto is None:
-            oggetto = Oggetto(tipo="documento", oggetto_id=job.id_doc, nome=job.nome_doc, sha256_archivio=job.hash_sha256)
-            registro.registra_inventario(tenant, job.id_fasc, [oggetto], tipi=())
-        fascicolo: Any = {}
-        db_path = _testo(os.getenv("PCT_FASCICOLI_DB", ""))
-        if db_path:
-            try:
-                fascicolo = GestioneFascicoli(db_path=db_path, documents_dir=_testo(os.getenv("PCT_FASCICOLI_DOCS", str(Path(db_path).resolve().parent / "documenti"))), archive_dir=_testo(os.getenv("PCT_FASCICOLI_ARCH", str(Path(db_path).resolve().parent / "archivio")))).get(job.id_fasc) or {}
-            except Exception:
-                fascicolo = {}
-        contesto = contesto_da_fascicolo(fascicolo)
-        # Il fascicolo non serve solo al contesto delle date: senza, la lettura
-        # non puo' verificare che una sentenza parli davvero di questo fascicolo
-        # (RG e cliente) e i suoi importi finirebbero nella parte economica di
-        # una pratica che non c'entra.
-        metadata_ocr = {
-            "fascicolo": fascicolo,
-            "documento_id": _testo(getattr(job, "id_doc", "")),
-            "fascicolo_id": _testo(getattr(job, "id_fasc", "")),
-        }
-        fatti = _attribuisci(
-            leggi_testo(testo, origine="ocr", contesto=contesto, nome=job.nome_doc, metadata=metadata_ocr),
-            oggetto,
-            "documenti",
-        )
-        registro.registra_fatti(tenant, job.id_fasc, oggetto, "documenti", fatti, versione=VERSIONE_MOTORE_DOCUMENTI)
-        registro.segna_letto(tenant, job.id_fasc, oggetto, LETTORE_DOCUMENTI, esito={"origine": "ocr", "fatti": len(fatti), "verificati": sum(1 for f in fatti if f.verifica == "verificata")}, versione=VERSIONE_MOTORE_DOCUMENTI)
-        if fatti:
-            _consegna_dopo_ocr(registro, tenant, job.id_fasc)
-        return len(fatti)
-    except Exception as exc:
-        logger.debug("Archivio non alimentato dal job OCR %s: %s", getattr(job, "id", ""), exc)
-        return 0
+    registro = registro_per_percorsi({"REGISTRO_LETTURE_DB": registro_path})
+    tenant = _testo(getattr(job, "tenant_id", ""))
+    oggetto = registro.oggetto(tenant, job.id_fasc, "documento", job.id_doc)
+    if oggetto is None:
+        raise ValueError("Fonte OCR assente dal registro dello studio.")
+    if oggetto.impronta != _testo(getattr(job, "hash_sha256", "")).lower():
+        raise ValueError("Impronta OCR diversa dalla fonte corrente del fascicolo.")
+    registro.accoda_testo_ocr(tenant, job.id_fasc, oggetto)
+    return 0
 
 
 __all__ = [

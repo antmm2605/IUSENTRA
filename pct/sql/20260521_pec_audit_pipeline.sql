@@ -314,6 +314,11 @@ BEGIN
 END;
 
 CREATE INDEX IF NOT EXISTS idx_pec_messages_received ON pec_messages(tenant_id, received_at DESC);
+-- Il presidio consulta i metadati senza leggere le pagine degli allegati MIME.
+CREATE INDEX IF NOT EXISTS idx_pec_messages_presidio_cover ON pec_messages(
+    tenant_id, received_at DESC, id, mime_sha256, status, quality_status,
+    signature_status, linked_fascicolo_id, metadata_json
+);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_header ON pec_messages(tenant_id, message_id_header);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_quality ON pec_messages(tenant_id, quality_status);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_unlinked_ingested

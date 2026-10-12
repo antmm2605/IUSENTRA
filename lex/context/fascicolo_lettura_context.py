@@ -388,7 +388,19 @@ def _verifiche(fascicolo: Any) -> dict[str, Any]:
     controllo_pec = dict((controlli.get("esiti") or {}).get("pec") or {})
     if controllo_pec:
         esiti.setdefault("pec", {})["da_confermare"] = list(controllo_pec.get("da_confermare") or [])
+        esiti["pec"]["esaminate"] = int(controllo_pec.get("esaminate") or 0)
         esiti["pec"]["nuove_collegate"] = int(controllo_pec.get("collegate") or 0)
+    controlli_esiti = dict(controlli.get("esiti") or {})
+    if controlli_esiti.get("notifiche"):
+        esiti["notifiche"] = dict(controlli_esiti["notifiche"])
+    controllo_depositi = dict(controlli_esiti.get("depositi") or {})
+    if controllo_depositi:
+        esiti["depositi"]["polling"] = controllo_depositi
+    controllo_documenti = dict(controlli_esiti.get("documenti") or {})
+    if controllo_documenti and doc:
+        esiti["documenti"].update({"indice_pronti": int(controllo_documenti.get("letti") or 0),
+                                  "indice_totale": int(controllo_documenti.get("documenti") or 0),
+                                  "indice_errori": int(controllo_documenti.get("errori") or 0)})
     from datetime import datetime
     orari = [v for v in (ultima, str(controlli.get("completata_il") or controlli.get("eseguita_il") or "")) if v]
     ultima = max(orari, key=lambda v: datetime.fromisoformat(v.replace("Z", "+00:00")).timestamp()) if orari else ""

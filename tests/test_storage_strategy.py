@@ -2481,8 +2481,34 @@ def test_studio_db_lettura_mount_locale_non_tenta_connessione_scrivibile(tmp_pat
     rows = db.fetchall_readonly("SELECT id FROM lettura_rapida")
 
     assert [row["id"] for row in rows] == ["riga-1"]
-    assert opened == [f"file:{db.db_path.resolve().as_posix()}?mode=ro&immutable=1"]
+    assert opened == [f"file:{db.db_path.resolve().as_posix()}?mode=ro"]
     assert getattr(db._local, "_conn", None) is None
+
+
+def test_studio_db_lettura_mount_vede_commit_wal_non_checkpointato(tmp_path: Path, monkeypatch):
+    from pct import storage as storage_module
+
+    db = StudioDB(str(tmp_path / "studio.db"))
+    db._close_thread_connection()
+    writer = sqlite3.connect(db.db_path)
+    try:
+        assert writer.execute("PRAGMA journal_mode=WAL").fetchone()[0] == "wal"
+        writer.execute("PRAGMA wal_autocheckpoint=0")
+        writer.execute("CREATE TABLE lettura_live (id TEXT PRIMARY KEY)")
+        writer.execute("INSERT INTO lettura_live VALUES ('prima')")
+        writer.commit()
+        writer.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        writer.execute("INSERT INTO lettura_live VALUES ('salvata')")
+        writer.commit()
+        monkeypatch.setattr(storage_module, "_requires_delete_journal_for_mount", lambda _path: True)
+        assert [row["id"] for row in db.fetchall_readonly("SELECT id FROM lettura_live ORDER BY id")] == ["prima", "salvata"]
+        writer.execute("BEGIN IMMEDIATE")
+        writer.execute("INSERT INTO lettura_live VALUES ('bozza')")
+        assert [row["id"] for row in db.fetchall_readonly("SELECT id FROM lettura_live ORDER BY id")] == ["prima", "salvata"]
+        writer.rollback()
+    finally:
+        writer.close()
+        db.chiudi()
 
 
 def test_studio_db_ensure_schema_riusa_connessione_thread_locale(tmp_path: Path, monkeypatch):

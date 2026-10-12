@@ -17,7 +17,7 @@ from typing import Any, Iterable, Mapping
 from pct.fascicoli import TipoDocumento
 from pct.fascicolo_registry_document import is_fascicolo_registry_document
 from pct.presidio_processuale_ruleset import (
-    has_presidio_rule,
+    presidio_rule_hits,
     is_pagopa_rt_contributo_xml,
 )
 
@@ -305,10 +305,13 @@ def classify_fascicolo_document(
         name_text,
         r"\b(autocertificazion[ei]?|dichiarazion[ei]?|situazione\s+reddituale|carta\s+identita|codice\s+fiscale|contratto|lettera\s+di\s+diffida|diffida|richiesta\s+pagamento|annualita|documentazione|allegat[oi])\b",
     ) or _contains(name_text, r"\b(eml|msg)\b")
-    cu_esenzione = has_presidio_rule(full_text, "contributo_unificato_esenzione")
-    cu_invito = has_presidio_rule(full_text, "contributo_unificato_invito")
-    gratuito_patrocinio = has_presidio_rule(full_text, "gratuito_patrocinio")
-    siamm_lsg = has_presidio_rule(full_text, "siamm_lsg_liquidazione")
+    # Lo stesso testo e le stesse regole producono un solo insieme di riscontri
+    # per questa chiamata. Priorità, evidenze e classificazioni restano identiche.
+    presidio_codes = {hit["code"] for hit in presidio_rule_hits(full_text)}
+    cu_esenzione = "contributo_unificato_esenzione" in presidio_codes
+    cu_invito = "contributo_unificato_invito" in presidio_codes
+    gratuito_patrocinio = "gratuito_patrocinio" in presidio_codes
+    siamm_lsg = "siamm_lsg_liquidazione" in presidio_codes
     cu_context = _has_contributo_context(full_text) or cu_esenzione or cu_invito
 
     if cu_context or _contains(full_text, r"\b(marca\s+da\s+bollo|bollo\s+digitale|diritti\s+di\s+cancelleria)\b"):
@@ -481,7 +484,7 @@ def classify_fascicolo_document(
     ):
         if current_type == TipoDocumento.RICORSO or leading_main_ricorso_name:
             continue
-        if has_presidio_rule(full_text, rule_code):
+        if rule_code in presidio_codes:
             return _result(
                 role=role,
                 label=label,
@@ -771,7 +774,7 @@ def classify_fascicolo_document(
             deposit_candidate=False,
         )
 
-    if has_presidio_rule(full_text, "giudice_pace_sigp"):
+    if "giudice_pace_sigp" in presidio_codes:
         return _result(
             role="atto_giudiziario_da_verificare",
             label="Atto giudiziario del Giudice di Pace da verificare",

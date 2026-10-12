@@ -1,5 +1,5 @@
 import { beginActivity } from '../../ui/activity'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, BookOpen, Calculator, ChevronDown, ChevronUp, ExternalLink, Landmark, RefreshCw, Scale, ShieldCheck } from 'lucide-react'
 import { Badge } from '../dashboard'
 import { formatDateIt } from '../../formatting'
@@ -53,9 +53,12 @@ export function LetturaFascicoloPanel({
   const [fontiAperte, setFontiAperte] = useState<Set<number>>(() => new Set())
   const [tuttiGliEventi, setTuttiGliEventi] = useState(false)
   const [schedeAperte, setSchedeAperte] = useState(false)
+  const richiestaInCorso = useRef(false)
+  const fascicoloVisualizzato = useRef(fascicoloId)
 
   const load = useCallback(async (aggiorna = false, silent = false) => {
-    if (!fascicoloId || !active) return
+    if (!fascicoloId || !active || richiestaInCorso.current) return
+    richiestaInCorso.current = true
     const finish = silent ? () => {} : beginActivity('Caricamento del riepilogo del fascicolo…')
     setLoading(true)
     setError('')
@@ -66,7 +69,7 @@ export function LetturaFascicoloPanel({
       if (!response.ok || !payload.ok || !payload.lettura) throw new Error(payload.errore || 'Lettura del fascicolo non disponibile.')
       setLettura(payload.lettura)
       if (aggiorna) setRegistroRevision((value) => value + 1)
-      setFontiAperte(new Set())
+      if (!silent) setFontiAperte(new Set())
       onReady?.()
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : 'Lettura del fascicolo non disponibile.'
@@ -75,24 +78,36 @@ export function LetturaFascicoloPanel({
     } finally {
       finish()
       setLoading(false)
+      richiestaInCorso.current = false
     }
   }, [fascicoloId, active, onError, onReady])
 
   useEffect(() => {
-    setLettura(initialLettura || null)
-    setError('')
-    if (initialLettura) onReady?.()
+    if (fascicoloVisualizzato.current !== fascicoloId) {
+      fascicoloVisualizzato.current = fascicoloId
+      setLettura(initialLettura || null)
+      setError('')
+      setFontiAperte(new Set())
+      setTuttiGliEventi(false)
+      setSchedeAperte(false)
+    } else if (initialLettura) {
+      // Un aggiornamento live parziale può omettere il riepilogo iniziale.
+      // Il risultato già ricevuto dalla sua API rimane quello visibile.
+      setLettura((current) => current || initialLettura)
+    }
   }, [fascicoloId, initialLettura, onReady])
 
   // La riapertura conserva il riepilogo visibile e riceve lo stato corrente.
   useEffect(() => { if (active) void load() }, [active, load])
 
-  // I presìdi stanno verificando in sfondo: si rilegge una volta, dopo qualche secondo.
+  // Consulta soltanto l'esito SQL finché il worker conclude; non riavvia le verifiche.
   const inCorso = Boolean(lettura?.verifiche?.in_corso)
   useEffect(() => {
     if (!active || !inCorso) return undefined
-    const timer = globalThis.setTimeout(() => { void load(false, true) }, 9000)
-    return () => globalThis.clearTimeout(timer)
+    const timer = globalThis.setInterval(() => {
+      if (document.visibilityState === 'visible') void load(false, true)
+    }, 9000)
+    return () => globalThis.clearInterval(timer)
   }, [active, inCorso, load])
 
   const passi = useMemo(() => (lettura ? passiOrdinati(lettura) : []), [lettura])
@@ -222,6 +237,14 @@ export function LetturaFascicoloPanel({
             {verifiche.map((riga) => <li className={`is-${riga.tono}`} key={riga.presidio}><strong>{riga.presidio}</strong><span>{riga.esito}</span></li>)}
           </ul>
         ) : <p className="iu-fas-lettura__nota">{lettura.verifiche?.in_corso ? 'Ricevute dei depositi, PEC per ruolo e assistito, presidi notifica e documenti da leggere: i presìdi controllano ora, senza compiti per te.' : 'I presìdi controllano ricevute, PEC, notifiche e documenti da soli: qui compare che cosa hanno fatto.'}</p>}
+        {lettura.verifiche?.esiti?.pec?.da_confermare?.length ? (
+          <details className="iu-fas-lettura__nota">
+            <summary>PEC con identità da verificare ({lettura.verifiche.esiti.pec.da_confermare.length})</summary>
+            <ul>
+              {lettura.verifiche.esiti.pec.da_confermare.map((pec) => <li key={pec.id}><strong>{pec.oggetto || 'Messaggio PEC'}</strong> — {pec.motivo || 'Identità del procedimento non ancora dimostrata.'}</li>)}
+            </ul>
+          </details>
+        ) : null}
         {lettura.conoscenza.lacune?.length ? (
           <ul className="iu-fas-lettura__conoscenza">
             {lettura.conoscenza.lacune.map((voce) => <li key={`${voce.tipo}-${voce.chiave}`}><b>Conoscenza da completare · {voce.tipo}</b> {voce.descrizione}</li>)}

@@ -19,6 +19,9 @@ const oggetto = (overrides) => ({ tipo: 'documento', oggetto_id: 'd1', nome: 'at
 const letture = (overrides = {}) => ({ impronta: 'x', oggetti: 3, tutto_letto: false, lettori: [], per_oggetto: [], novita: { prima_vista: true, visto_il: '', visto_il_it: '', nuovi: [], cambiati: [], rimossi: [] }, anomalie: [], anomalie_aperte: 0, ...overrides })
 
 test('riassunto: tutto letto, da leggere per lettore, nessun oggetto', () => {
+  const verifica = riassuntoLetture(letture({ archivio: { lettura_automatica: { in_corso: true, completa: false, da_leggere: 0 } } }))
+  assert.match(verifica.testo, /aggiornamento degli indici/)
+  assert.doesNotMatch(verifica.testo, /0 oggetti|Tutto letto/)
   assert.equal(riassuntoLetture(letture({ oggetti: 0 })).tono, 'neutral')
   const tutto = riassuntoLetture(letture({ lettori: [lettore({ letti: 3 })] }))
   assert.equal(tutto.tono, 'success')

@@ -84,7 +84,7 @@ def natura_documentale(testo: str, numero_rg: str = "", anno_rg: str = "", uffic
         return "messaggio_pec", "La fonte è un messaggio o una ricevuta: l’atto da notificare è l’allegato, non la busta email."
     head = " ".join(str(testo or "").split())[:4000]
     contract_heading = re.search(
-        r"(?:^|\n)\s*\*{0,2}contratto\s+di\s+prestazione\s+d['’]\s*opera(?:\s+occasionale)?",
+        r"(?:^|\n)\s*(?:\d{1,3}\s+)?\*{0,2}contratto\s+di\s+prestazione\s+d['’]\s*opera(?:\s+occasionale)?",
         str(testo or "")[:2200], re.I,
     )
     if contract_heading and not re.search(r"\b(?:tribunale|ricorso|citazione|sentenza|ordinanza)\b", str(testo or "")[:contract_heading.start()], re.I):

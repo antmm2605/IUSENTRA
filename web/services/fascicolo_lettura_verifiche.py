@@ -7,7 +7,7 @@ collegano al fascicolo e passano al presidio PEC (che ne estrae termini e
 udienze e li registra), i presidi notifica si riallineano alle prove già nel
 fascicolo, i documenti senza testo vengono indicizzati dal presidio
 documentale. Questo servizio orchestra quelle verifiche per un fascicolo,
-in un thread di sfondo (mai nella richiesta), non più di una volta ogni
+nella coda SQL del lettore (mai nel processo web), non più di una volta ogni
 quindici minuti salvo richiesta esplicita, e ne conserva l'esito in un
 registro per fascicolo: la lettura lo mostra e propone all'avvocato solo ciò
 che resta davvero da decidere.
@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import threading
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -29,7 +30,6 @@ DOMINI_UFFICIALI = ("giustiziacert.it", "giustizia.it", "giustizia-amministrativ
 ATTORE = "lettura-fascicolo"
 
 _LOCK = threading.Lock()
-_IN_CORSO: set[str] = set()
 logger = logging.getLogger(__name__)
 
 
@@ -65,10 +65,12 @@ def leggi_registro(fascicolo_id: str, *, paths: dict[str, Any] | None = None, co
     from pct.discordanze_letture_repository import RegistroDiscordanze
     from web.services.registro_letture_runtime import registro_per_percorsi, tenant_corrente
 
-    record, _ = RegistroDiscordanze(registro_per_percorsi(paths)).esito(tenant_corrente(),_clean(fascicolo_id))
+    registro = registro_per_percorsi(paths)
+    tenant = tenant_corrente()
+    record, _ = RegistroDiscordanze(registro).esito(tenant,_clean(fascicolo_id))
     if record:
         record["eseguita_il_it"] = _data_it(record.get("eseguita_il", ""))
-    record["in_corso"] = bool(record.get("in_corso"))
+    record["in_corso"] = bool(record.get("in_corso")) or registro.presidi_in_corso(tenant, _clean(fascicolo_id))
     return record
 
 
@@ -155,18 +157,21 @@ def verifica_pec(fascicolo: Any, *, repository: Any = None) -> dict[str, Any]:
     for messaggio in messaggi:
         if messaggio.get("collegata"):
             continue
-        if messaggio.get("corrispondenza") == "rg" and (
-            _mittente_ufficiale(messaggio.get("from", "")) or _profilo_da_ufficio_giudiziario(messaggio)
-        ):
+        identity = _identita_pec_per_fascicolo(repository, dict(messaggio.get("procedural_profile") or {}), fascicolo)
+        ufficio_dimostrato = _mittente_ufficiale(messaggio.get("from", "")) or _profilo_da_ufficio_giudiziario(messaggio)
+        if identity["complete_match"] and messaggio.get("corrispondenza") == "rg" and ufficio_dimostrato:
             if _collega_per_ruolo(
                 repository,
                 messaggio["id"],
                 _clean(getattr(fascicolo, "id", "")),
-                motivo="numero di ruolo e profilo di ufficio giudiziario riconosciuti",
+                fascicolo=fascicolo,
+                motivo="identità congiunta del procedimento verificata dalla fonte",
             ):
                 collegate.append(messaggio["id"])
-            continue
-        da_confermare.append({"id": messaggio["id"], "oggetto": messaggio.get("subject", ""), "corrispondenza": messaggio.get("corrispondenza", "")})
+                continue
+        da_confermare.append({"id": messaggio["id"], "oggetto": messaggio.get("subject", ""), "corrispondenza": messaggio.get("corrispondenza", ""),
+                             "mime_sha256": messaggio.get("mime_sha256", ""), "identity_evidence": identity,
+                             "motivo": "; ".join(identity["conflicts"]) or ("Provenienza dall’ufficio giudiziario non dimostrata." if not ufficio_dimostrato else "Fonte o collegamento cambiati durante la verifica.")})
     eseguiti = 0
     if collegate:
         try:
@@ -180,22 +185,74 @@ def verifica_pec(fascicolo: Any, *, repository: Any = None) -> dict[str, Any]:
             pec_collegata(_clean(getattr(fascicolo, "id", "")))
         except Exception as exc:
             logger.debug("Registro letture non aggiornato dopo il collegamento PEC: %s", exc)
-    return {"esaminate": len(messaggi), "collegate": len(collegate), "job_eseguiti": eseguiti, "da_confermare": da_confermare[:6]}
+    return {"esaminate": len(messaggi), "collegate": len(collegate), "job_eseguiti": eseguiti, "da_confermare": da_confermare}
 
 
-def _collega_per_ruolo(repository: Any, message_id: str, fascicolo_id: str, *, motivo: str = "numero di ruolo citato da un ufficio giudiziario") -> bool:
+def _identita_pec_per_fascicolo(repository: Any, profile: dict[str, Any], fascicolo: Any) -> dict[str, Any]:
+    from pct.pec_case_identity import case_identity_evidence
+    from pct.clienti import GestioneClienti
+    from pct.codice_fiscale import _checksum
+
+    cf = re.sub(r"\s+", "", str(profile.get("codice_fiscale_cliente") or "")).upper()
+    client = {}
+    cf_valid = not cf or (GestioneClienti.valida_cf(cf) and _checksum(cf[:15]) == cf[15])
+    if re.fullmatch(r"[0-9]{11}", cf):
+        from web.services.applicazioni_runtime import _validate_partita_iva
+
+        cf_valid = _validate_partita_iva(cf)
+    if cf and cf_valid:
+        studio_db = repository._studio_db_for_data_path(repository.fascicoli_db_path)
+        if studio_db is not None:
+            clients = studio_db.fetchall_readonly("SELECT codice_fiscale FROM clienti WHERE id=?", (_clean(getattr(fascicolo, "id_cliente", "")),))
+            client = dict(clients[0]) if clients else {}
+    identity = case_identity_evidence(profile, fascicolo, client)
+    for key, label in (("rg_match", "R.G. completo di numero e anno"), ("client_name_match", "nome e cognome del cliente"), ("office_match", "ufficio giudiziario")):
+        if not identity[key]:
+            identity["conflicts"].append(f"Non dimostrato dalla fonte: {label}.")
+    if not cf_valid:
+        identity["conflicts"].append("Codice fiscale della parte non valido.")
+    elif cf and not identity["client_tax_code_match"]:
+        identity["conflicts"].append("Codice fiscale della parte senza riscontro concordante in anagrafica.")
+    identity["complete_match"] = not identity["conflicts"]
+    return identity
+
+
+def _collega_per_ruolo(repository: Any, message_id: str, fascicolo_id: str, *, fascicolo: Any = None, motivo: str = "identità congiunta del procedimento") -> bool:
     from pct.pec_pipeline import canonical_json, iso_now
     import uuid
 
     try:
+        if fascicolo is None or _clean(getattr(fascicolo, "id", "")) != fascicolo_id:
+            return False
         with repository.connect() as conn:
+            row = conn.execute(
+                "SELECT linked_fascicolo_id,mime_sha256 FROM pec_messages WHERE tenant_id=? AND id=?",
+                (repository.tenant_id, message_id),
+            ).fetchone()
+            if row is None or row["linked_fascicolo_id"] not in ("", None, fascicolo_id):
+                return False
+            if row["linked_fascicolo_id"] == fascicolo_id:
+                return True
             parsed = repository.latest_parsed_row(conn, message_id)
-            versione = parsed["id"] if parsed is not None else ""
+            if parsed is None:
+                return False
+            profile = dict((json.loads(parsed["parsed_json"] or "{}") or {}).get("procedural_profile") or {})
+            identity = _identita_pec_per_fascicolo(repository, profile, fascicolo)
+            if not identity["complete_match"]:
+                return False
+            versione = parsed["id"]
+            changed = conn.execute(
+                "UPDATE pec_messages SET linked_fascicolo_id=?, linked_fascicolo_score=?, status=? "
+                "WHERE tenant_id=? AND id=? AND COALESCE(linked_fascicolo_id,'')='' AND mime_sha256=? "
+                "AND ?=(SELECT id FROM pec_parsed_versions WHERE message_id=? ORDER BY version DESC LIMIT 1)",
+                (fascicolo_id, 1.0, "linked", repository.tenant_id, message_id, row["mime_sha256"], versione, message_id),
+            ).rowcount
+            if changed != 1:
+                return False
             conn.execute(
                 "INSERT INTO pec_fascicolo_links (id, message_id, parsed_version_id, fascicolo_id, score, status, seeds_json, candidates_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (uuid.uuid4().hex, message_id, versione, fascicolo_id, 1.0, "ruolo_certificato_ufficio", canonical_json({"rg": motivo}), canonical_json([{"id": fascicolo_id, "score": 1.0, "reasons": ["RG coincidente", motivo]}]), iso_now()),
+                (uuid.uuid4().hex, message_id, versione, fascicolo_id, 1.0, "ruolo_certificato_ufficio", canonical_json({"rg": motivo, "identity_evidence": identity}), canonical_json([{"id": fascicolo_id, "score": 1.0, "reasons": [motivo], "identity_evidence": identity}]), iso_now()),
             )
-            conn.execute("UPDATE pec_messages SET linked_fascicolo_id=?, linked_fascicolo_score=?, status=? WHERE id=?", (fascicolo_id, 1.0, "linked", message_id))
             repository.append_audit(conn, action="pec.fascicolo.collegata_dalla_lettura", resource_type="pec_message", resource_id=message_id, payload={"fascicolo_id": fascicolo_id, "motivo": motivo}, actor=ATTORE)
             if versione:
                 repository.enqueue_job(conn, "validate", message_id=message_id, priority=20, actor=ATTORE)
@@ -380,29 +437,18 @@ def esegui_verifiche(app: Any, fascicolo_id: str, *, paths: dict[str, Any] | Non
 
 
 def avvia_verifiche_in_background(app: Any, fascicolo_id: str, *, paths: dict[str, Any] | None = None, tenant_slug: str = "", forza: bool = False) -> bool:
-    """Avvia le verifiche in un thread se servono; True se il thread è partito."""
+    """Accoda le verifiche nel worker nativo; non forza la rilettura dei documenti."""
     fascicolo_id = _clean(fascicolo_id)
     if not fascicolo_id:
         return False
     record = leggi_registro(fascicolo_id, paths=paths, config=app.config)
     if not verifiche_necessarie(record, forza=forza):
         return False
-    with _LOCK:
-        if fascicolo_id in _IN_CORSO:
-            return False
-        _IN_CORSO.add(fascicolo_id)
+    from web.services.registro_letture_runtime import registro_per_percorsi, tenant_corrente
 
-    def corsa() -> None:
-        try:
-            esegui_verifiche(app, fascicolo_id, paths=paths, tenant_slug=tenant_slug)
-        except Exception:
-            logger.exception("Verifiche automatiche del fascicolo %s interrotte", fascicolo_id)
-        finally:
-            with _LOCK:
-                _IN_CORSO.discard(fascicolo_id)
-
-    threading.Thread(target=corsa, name=f"lettura-verifiche-{fascicolo_id}", daemon=True).start()
-    return True
+    registro = registro_per_percorsi(paths)
+    tenant = _clean(tenant_slug) or tenant_corrente()
+    return bool(registro.accoda_evento(tenant, fascicolo_id, presidi=True))
 
 
 __all__ = [

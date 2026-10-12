@@ -132,6 +132,7 @@ export function riassuntoLetture(letture: LettureFascicolo): { testo: string; to
     return { testo: `Tutto letto e collaudato: ${letture.oggetti} tra documenti e PEC. Si rilegge solo ciò che cambia.`, tono: 'success' }
   }
   if (automatica?.in_corso) {
+    if (!automatica.da_leggere) return { testo: 'Lettura automatica in corso: aggiornamento degli indici e delle verifiche del fascicolo.', tono: 'info' }
     return { testo: `Lettura automatica in corso: ${automatica.da_leggere || 0} oggett${automatica.da_leggere === 1 ? 'o' : 'i'} in lavorazione.`, tono: 'info' }
   }
   if (automatica?.da_leggere) {

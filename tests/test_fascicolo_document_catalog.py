@@ -25,6 +25,20 @@ def test_ricorso_e_sempre_atto_principale():
     assert catalog_tipo_documento_per_nome("Ricorso introduttivo.pdf") == TipoDocumento.RICORSO
 
 
+def test_classificazione_riusa_un_solo_riscontro_delle_regole(monkeypatch):
+    originale = catalog.presidio_rule_hits
+    chiamate = []
+
+    def riscontri(testo):
+        chiamate.append(testo)
+        return originale(testo)
+
+    monkeypatch.setattr(catalog, "presidio_rule_hits", riscontri)
+    esito = classify_fascicolo_document(extracted_text="Documento generico senza un titolo processuale. " * 300)
+    assert esito.role == "da_verificare"
+    assert len(chiamate) == 1
+
+
 def test_autocertificazione_ricorso_resta_allegato_di_supporto():
     classification = classify_fascicolo_document(
         filename="Autocertificazione ricorso.PDF",

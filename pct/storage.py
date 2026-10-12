@@ -281,7 +281,7 @@ class StudioDB:
                 self.db_path,
                 exc,
             )
-            return self._connect_readonly_immutable()
+            return self._connect_readonly()
 
     def _connect_writable(self) -> sqlite3.Connection:
         existing_only = getattr(self, '_existing_only', False)
@@ -309,8 +309,9 @@ class StudioDB:
 
         configura_journal_mode_governato(conn, self.db_path)
 
-    def _connect_readonly_immutable(self) -> sqlite3.Connection:
-        db_uri = f"file:{self.db_path.resolve().as_posix()}?mode=ro&immutable=1"
+    def _connect_readonly(self) -> sqlite3.Connection:
+        # Il database è vivo: lettura soltanto, con lock e rilevamento modifiche.
+        db_uri = f"file:{self.db_path.resolve().as_posix()}?mode=ro"
         c = sqlite3.connect(
             db_uri,
             uri=True,
@@ -328,7 +329,7 @@ class StudioDB:
 
         if not _requires_delete_journal_for_mount(self.db_path):
             return list(self.conn.execute(sql, parameters).fetchall())
-        conn = self._connect_readonly_immutable()
+        conn = self._connect_readonly()
         try:
             return list(conn.execute(sql, parameters).fetchall())
         finally:
@@ -382,7 +383,7 @@ class StudioDB:
         if not self.db_path.exists() or self.db_path.stat().st_size <= 4096:
             return False
         try:
-            uri = f"file:{self.db_path.as_posix()}?mode=ro&immutable=1"
+            uri = f"file:{self.db_path.as_posix()}?mode=ro"
             conn = sqlite3.connect(uri, uri=True, timeout=5)
             try:
                 return self._schema_gia_pronto_su_connessione(conn)

@@ -227,13 +227,18 @@ def chiave_lettura(tenant_id: str, fascicolo_id: str, *, oggi: date | None = Non
     # Si rigenera il solo riepilogo alla prima apertura del nuovo giorno.
     giorno = oggi or datetime.now(ZoneInfo("Europe/Rome")).date()
     revisione_esito = ""
+    stato_coda = "idle"
     if has_app_context():
         from pct.discordanze_letture_repository import RegistroDiscordanze
         from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
 
         # La chiave cache include versione e ciclo; il registro usa lo studio reale.
-        _, revisione_esito = RegistroDiscordanze(registro_corrente()).esito(tenant_corrente(),str(fascicolo_id or ""))
-    return ("lettura", f"{tenant_id or 'single-studio'}@{VERSIONE_LETTURA}@{giorno.isoformat()}@esiti-sql-v2@{revisione_esito}", str(fascicolo_id or ""))
+        registro = registro_corrente()
+        tenant = tenant_corrente()
+        _, revisione_esito = RegistroDiscordanze(registro).esito(tenant, str(fascicolo_id or ""))
+        # Prima che il worker scriva, l'esito è ancora quello del lavoro precedente.
+        stato_coda = registro.stato_evento(tenant, str(fascicolo_id or ""))
+    return ("lettura", f"{tenant_id or 'single-studio'}@{VERSIONE_LETTURA}@{giorno.isoformat()}@esiti-sql-v2@{revisione_esito}@coda-sql-v1@{stato_coda}", str(fascicolo_id or ""))
 
 
 def invalida_lettura(fascicolo_id: str) -> int:

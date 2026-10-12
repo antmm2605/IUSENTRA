@@ -92,6 +92,35 @@ def test_correzione_epigrafe_non_rilegge_automaticamente_archivio_storico():
     assert precedente != VERSIONE_MOTORE_DOCUMENTI
     assert versione_compatibile_lettore("motore_documenti", precedente, VERSIONE_MOTORE_DOCUMENTI)
 
+
+def test_contratto_titolo_numerato_non_attribuisce_scuola_come_assistito():
+    from pct.archivio_letture.motore_documenti import leggi_testo
+    from pct.archivio_letture.pertinenza_documentale import natura_documentale
+
+    contratto = f"""Ministero dell’Istruzione ISTITUTO D’ISTRUZIONE SUPERIORE
+Segreteria e recapiti. Protocollo 123.
+
+1 CONTRATTO DI PRESTAZIONE D'OPERA OCCASIONALE ASSISTENTE EDUCATIVO
+TRA L’Istituto scolastico e L’Assistente Educativo sig.ra Verdi Giulia,
+c.f. {CF_VERDI}, si conviene e stipula quanto segue:
+Periodo dal 01/09/2025 al 30/06/2026.
+"""
+    fatti = leggi_testo(contratto, origine="indice", nome="documento.pdf",
+                       contesto=Contesto(cliente="Verdi Giulia"))
+    assert any(f.campo == "natura_documentale" and f.valore == "contratto_prestazione_opera" for f in fatti)
+    assert not any(f.categoria == "parte" for f in fatti)
+    assert not any(f.categoria == "data" and f.campo in {"termine", "udienza", "costituzione"} and f.verifica != "respinta" for f in fatti)
+    ricorso = "TRIBUNALE DI MILANO\nRICORSO\nSi produce il seguente allegato:\n" + contratto
+    assert natura_documentale(ricorso)[0] != "contratto_prestazione_opera"
+
+
+def test_titolo_contratto_numerato_non_riattiva_letture_storiche():
+    from pct.archivio_letture.motore_documenti import VERSIONE_MOTORE_DOCUMENTI, VERSIONE_MOTORE_DOCUMENTI_PRE_CONTRATTO_NUMERATO
+    from pct.registro_letture.lettori import versione_compatibile_lettore
+
+    assert VERSIONE_MOTORE_DOCUMENTI != VERSIONE_MOTORE_DOCUMENTI_PRE_CONTRATTO_NUMERATO
+    assert versione_compatibile_lettore("motore_documenti", VERSIONE_MOTORE_DOCUMENTI_PRE_CONTRATTO_NUMERATO, VERSIONE_MOTORE_DOCUMENTI)
+
 CITAZIONE = f"""TRIBUNALE DI MILANO
 ATTO DI CITAZIONE
 Verdi Giulia, c.f. {CF_VERDI}, nata a Milano il 07.04.1970 e Neri Paolo, c.f. {CF_NERI}, nato a

@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from flask import has_app_context
+
 from pct.ocr import estensione_supportata as ocr_supportato
 from pct.ocr_jobs import OCRJobStore, default_ocr_queue_db
 from pct.ocr_worker import serve_ocr_worker
@@ -53,6 +55,11 @@ class OCRRuntime:
         """Accoda un job OCR persistente se il file e' di un tipo supportato e non e' gia' stato letto."""
         if not ocr_supportato(nome_doc):
             return
+        from web.services.tenant_paths import tenant_data_path
+
+        # Alcuni produttori storici passano ancora la configurazione globale.
+        # La coda conserva sempre l'indice risolto per la richiesta dello studio.
+        index_path = tenant_data_path("SEARCH_INDEX", index_path, require_tenant=True)
         tenant_id, registro_path = _registro_per_job(id_fasc, id_doc, hash_sha256)
         if tenant_id is None:
             return
@@ -107,6 +114,8 @@ def _registro_per_job(id_fasc: str, id_doc: str, hash_sha256: str) -> tuple[str 
                 return None, ""
         return tenant, percorso_registro()
     except Exception:
+        if has_app_context():
+            raise
         return "", ""
 
 

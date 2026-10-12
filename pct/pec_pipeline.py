@@ -452,6 +452,11 @@ BEGIN
 END;
 
 CREATE INDEX IF NOT EXISTS idx_pec_messages_received ON pec_messages(tenant_id, received_at DESC);
+-- Il presidio consulta i metadati senza leggere le pagine degli allegati MIME.
+CREATE INDEX IF NOT EXISTS idx_pec_messages_presidio_cover ON pec_messages(
+    tenant_id, received_at DESC, id, mime_sha256, status, quality_status,
+    signature_status, linked_fascicolo_id, metadata_json
+);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_header ON pec_messages(tenant_id, message_id_header);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_fascicolo_received ON pec_messages(tenant_id, linked_fascicolo_id, received_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_quality ON pec_messages(tenant_id, quality_status);
@@ -7371,6 +7376,25 @@ class PecAuditRepository:
         with lock:
             if ready_key in _PEC_AUDIT_SCHEMA_READY:
                 return
+            migration_sha = sha256_bytes(SQLITE_SCHEMA.encode("utf-8"))
+            schema_receipt = f"{SCHEMA_VERSION}:schema:{migration_sha}"
+            # Un altro processo può avere già installato questa stessa impronta.
+            # La conferma persistente evita DDL e commit nelle letture concorrenti;
+            # un nuovo schema o tenant percorre invece l'installazione completa.
+            try:
+                with self.connect() as conn:
+                    receipt = conn.execute(
+                        "SELECT sha256 FROM pec_schema_migrations WHERE version=?", (schema_receipt,),
+                    ).fetchone()
+                    tenant_ready = conn.execute(
+                        "SELECT 1 FROM pec_source_revisions WHERE tenant_id=?", (self.tenant_id,),
+                    ).fetchone()
+                if receipt and receipt["sha256"] == migration_sha and tenant_ready:
+                    _PEC_AUDIT_SCHEMA_READY.add(ready_key)
+                    return
+            except sqlite3.OperationalError as exc:
+                if "no such table" not in str(exc).lower():
+                    raise
             last_busy: sqlite3.OperationalError | None = None
             for delay in (0.0, 0.2, 0.5, 1.0):
                 if delay:
@@ -7409,6 +7433,10 @@ class PecAuditRepository:
                             VALUES (?, ?, ?)
                             """,
                             (SCHEMA_VERSION, iso_now(), migration_sha),
+                        )
+                        conn.execute(
+                            "INSERT OR IGNORE INTO pec_schema_migrations(version, applied_at, sha256) VALUES (?, ?, ?)",
+                            (schema_receipt, iso_now(), migration_sha),
                         )
                         now = iso_now()
                         conn.execute(

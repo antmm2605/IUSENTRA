@@ -36,6 +36,29 @@ def test_chiavi_di_ricerca_per_ruolo_e_cliente():
     assert chiavi_cliente("Anna Bianchi") == ["Anna Bianchi", "Bianchi Anna"]
 
 
+def test_presidio_usa_indice_coprente_senza_leggere_o_modificare_mime(tmp_path):
+    from web.services.fascicolo_pec_presidio import _messaggi
+
+    repository = _repository(tmp_path)
+    _inserisci(repository, "linked", "Comunicazione", linked="F1")
+    _inserisci(repository, "candidate", "Anna Bianchi R.G. 777/2026")
+    _inserisci(repository, "unrelated", "Altro procedimento")
+    original = b"fonte originale " * 8192
+    with repository.connect() as conn:
+        conn.execute("UPDATE pec_messages SET original_mime=?", (original,))
+        conn.commit()
+        statements = []
+        conn.set_trace_callback(statements.append)
+        result = _messaggi(conn, "default", "F1", chiavi_ruolo("777", "2026"), chiavi_cliente("Anna Bianchi"), 0)
+        conn.set_trace_callback(None)
+        query = next(sql for sql in statements if sql.startswith("SELECT id, received_at"))
+        plan = conn.execute("EXPLAIN QUERY PLAN " + query).fetchall()
+        assert any("COVERING INDEX idx_pec_messages_presidio_cover" in str(row[3]) for row in plan)
+        assert {row["id"] for row in result} == {"linked", "candidate"}
+        assert _messaggi(conn, "altro-studio", "F1", ["777/2026"], [], 0) == []
+        assert all(row[0] == original for row in conn.execute("SELECT original_mime FROM pec_messages"))
+
+
 def test_consultation_uses_confirmed_links_without_mailbox_content_search(tmp_path):
     repository = _repository(tmp_path)
     _inserisci(repository, 'linked', 'Comunicazione', linked='F1')

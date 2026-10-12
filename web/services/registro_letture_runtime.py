@@ -378,7 +378,7 @@ def stato_letture_payload(fascicolo: Any, *, registro: RegistroLetture | None = 
         anomalia["oggetto"] = nomi.get((anomalia["tipo"], anomalia["oggetto_id"]), anomalia["oggetto_id"])
         anomalia["lettore_etichetta"] = etichetta_lettore(anomalia["lettore"])
         anomalia["creata_il_it"] = format_datetime_it(anomalia.get("creata_il"))
-    esiti_tecnici = {(l.tipo, l.oggetto_id): dict(l.esito or {}) for l in registro.letture(tenant, fascicolo_id) if l.lettore == "motore_pec" and (l.esito or {}).get("analisi") == "metadati_tecnici"}
+    esiti_tecnici = {(lettura.tipo, lettura.oggetto_id): dict(lettura.esito or {}) for lettura in registro.letture(tenant, fascicolo_id) if lettura.lettore == "motore_pec" and (lettura.esito or {}).get("analisi") == "metadati_tecnici"}
     lettori = []
     for voce in stato.lettori:
         dati = voce.to_dict()
@@ -434,7 +434,9 @@ def leggi_i_nuovi(fascicolo: Any, *, registro: RegistroLetture | None = None) ->
     try:
         from web.services.document_intelligence_runtime import build_lex_indexing_summary_payload
 
-        riepilogo = build_lex_indexing_summary_payload(fascicolo_id, process=True, retry_errors=True, apply_automations=False, forza=False)
+        # La richiesta consulta soltanto lo stato SQL. Il consumer della coda
+        # persistente indicizza e cataloga le fonti mancanti nel proprio lease.
+        riepilogo = build_lex_indexing_summary_payload(fascicolo_id, process=False, apply_automations=False)
         esito["avvisi"] = [str(v)[:160] for v in list(riepilogo.get("warnings") or [])[:5]]
         esito["indice"] = {chiave: riepilogo.get(chiave) for chiave in ("total_documents", "ready", "queued", "indexing", "errors", "stale", "not_indexed") if chiave in riepilogo}
     except Exception as exc:
@@ -472,24 +474,23 @@ def leggi_i_nuovi(fascicolo: Any, *, registro: RegistroLetture | None = None) ->
     except Exception as exc:
         esito["ocr"] = {"errore": str(exc)[:160]}
     try:
-        from web.services.archivio_letture_runtime import leggi_fascicolo, lettura_dopo_evento
+        from web.services.archivio_letture_runtime import lettura_dopo_evento
 
-        esito["archivio"] = leggi_fascicolo(fascicolo, forza=False, registro=registro)
+        esito["archivio"] = {"stato": "accodato"}
         # La richiesta esplicita recupera anche metadati aggiunti alle regole
         # dopo la lettura: coda SQL nativa, senza riaprire fonti nella richiesta.
         esito["metadati_accodati"] = lettura_dopo_evento(fascicolo_id)
+        if not esito["metadati_accodati"]:
+            raise RuntimeError("Evento di lettura non registrato nella coda dello studio.")
     except Exception as exc:
-        esito["archivio"] = {"errore": str(exc)[:160]}
+        raise RuntimeError("Lettura non accodata: i dati già registrati restano conservati.") from exc
     stato = registro.stato_fascicolo(tenant, fascicolo_id, lettori=("indice_documentale", "ocr", "motore_documenti", "motore_pec"))
     restano = sum(voce.da_leggere for voce in stato.lettori)
     esito["restano"] = restano
-    esito["messaggio"] = (
-        "Archivio e indici aggiornati." if not restano and stato.oggetti
-        else f"Archivio aggiornato. Restano {restano} letture degli indici di supporto da completare." if restano
-        else "Nessun documento da leggere."
-    )
     if esito.get("metadati_accodati"):
-        esito["messaggio"] += " Verifica dei metadati del fascicolo avviata in background."
+        esito["messaggio"] = "Lettura registrata nella coda dello studio. Il risultato si aggiornerà automaticamente al termine."
+    else:
+        esito["messaggio"] = "Nessun documento da leggere."
     return esito
 
 

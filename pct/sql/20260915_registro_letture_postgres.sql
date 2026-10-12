@@ -204,6 +204,8 @@ CREATE TABLE IF NOT EXISTS letture_eventi (
     stato TEXT NOT NULL DEFAULT 'pending' CHECK (stato IN ('pending', 'running', 'idle')),
     pending_force INTEGER NOT NULL DEFAULT 0,
     claimed_force INTEGER NOT NULL DEFAULT 0,
+    pending_presidi INTEGER NOT NULL DEFAULT 0,
+    claimed_presidi INTEGER NOT NULL DEFAULT 0,
     worker_id TEXT NOT NULL DEFAULT '',
     lease_until TEXT NOT NULL DEFAULT '',
     creato_il TEXT NOT NULL,
@@ -213,3 +215,6 @@ CREATE TABLE IF NOT EXISTS letture_eventi (
 
 CREATE INDEX IF NOT EXISTS idx_letture_eventi_stato
     ON letture_eventi (tenant_id, stato, lease_until);
+
+ALTER TABLE letture_eventi ADD COLUMN IF NOT EXISTS pending_presidi INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE letture_eventi ADD COLUMN IF NOT EXISTS claimed_presidi INTEGER NOT NULL DEFAULT 0;

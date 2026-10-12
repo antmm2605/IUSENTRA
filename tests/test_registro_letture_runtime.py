@@ -247,23 +247,48 @@ def test_leggi_i_nuovi_chiude_ocr_sui_formati_non_ocr(tmp_path: Path):
         registro = registro_corrente()
         stato = registro.stato_fascicolo(tenant_corrente(), fascicolo.id, lettori=("ocr",))
         assert [(voce.letti, voce.da_leggere, voce.errori) for voce in stato.lettori] == [(1, 0, 0)]
-        lettura = next(l for l in registro.letture(tenant_corrente(), fascicolo.id, lettore="ocr") if l.oggetto_id == documento.id)
+        lettura = next(voce for voce in registro.letture(tenant_corrente(), fascicolo.id, lettore="ocr") if voce.oggetto_id == documento.id)
         assert lettura.stato == "letto"
         assert "OCR non necessario" in lettura.esito.get("motivo", "")
 
-def test_leggi_i_nuovi_accoda_solo_cio_che_manca(tmp_path: Path):
+def test_leggi_i_nuovi_accoda_solo_cio_che_manca(tmp_path: Path, monkeypatch):
     app = _app(tmp_path)
     fascicolo_id, _documento_id = _seed(app)
+    from web.services import document_intelligence_runtime
+
+    def solo_stato(*args, **kwargs):
+        assert kwargs.get("process") is False, "la richiesta non deve estrarre o catalogare fonti"
+        return {"total_documents": 1, "ready": 0, "queued": 0, "indexing": 0, "errors": 0, "stale": 0, "not_indexed": 1}
+
+    monkeypatch.setattr(document_intelligence_runtime, "build_lex_indexing_summary_payload", solo_stato)
+    monkeypatch.setattr(
+        "web.services.archivio_letture_runtime.leggi_fascicolo",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("nessuna lettura nella richiesta")),
+    )
     with app.test_client() as client:
         risposta = client.post(f"/api/v1/ui/fascicoli/{fascicolo_id}/letture/aggiorna", json={}, headers=HEADERS)
         assert risposta.status_code == 200
         payload = risposta.get_json()
         assert payload["ok"] is True
         assert payload["esito"]["da_leggere_prima"] == 1
+        assert "errore" not in payload["esito"]["indice"]
+        assert "errore" not in payload["esito"]["archivio"]
+        assert payload["esito"]["metadati_accodati"] is True
         assert "messaggio" in payload["esito"] and "letture" in payload
         # Il presidio documentale legge le date con le lettere e le mette da confermare.
         assert isinstance(payload["letture"]["lettori"], list)
 
+
+
+def test_leggi_i_nuovi_segnala_errore_se_la_coda_non_conferma(tmp_path: Path, monkeypatch):
+    app = _app(tmp_path)
+    fascicolo_id, _ = _seed(app)
+    monkeypatch.setattr("web.services.archivio_letture_runtime.lettura_dopo_evento", lambda _fid: False)
+    monkeypatch.setattr("web.services.document_intelligence_runtime.build_lex_indexing_summary_payload", lambda *a, **kw: {})
+    with app.test_client() as client:
+        risposta = client.post(f"/api/v1/ui/fascicoli/{fascicolo_id}/letture/aggiorna", json={}, headers=HEADERS)
+    assert risposta.get_json()["ok"] is False
+    assert risposta.get_json()["errore"] == "Aggiornamento delle letture non completato."
 
 
 def test_get_letture_non_allinea_inventario_ne_scrive(monkeypatch, tmp_path: Path):

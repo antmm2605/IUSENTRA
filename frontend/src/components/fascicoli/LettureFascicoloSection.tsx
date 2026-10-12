@@ -32,8 +32,12 @@ const OGGETTI_VISIBILI = 6
 // mai in cache: le novità sono personali.
 export function LettureFascicoloSection({ fascicoloId, active = true, refreshKey = 0, onAggiornato }: { fascicoloId: string; active?: boolean; refreshKey?: number; onAggiornato?: () => void }) {
   const [letture, setLetture] = useState<LettureFascicolo | null>(null)
-  const [loading, setLoading] = useState(false)
-  useBusyActivity(active && loading, 'Caricamento delle letture documentali…')
+  const [requestLoading, setRequestLoading] = useState(false)
+  const [updating, setUpdating] = useState(false)
+  const [dettagliRevision, setDettagliRevision] = useState(0)
+  const letturaInCorso = Boolean(letture?.archivio?.lettura_automatica.in_corso)
+  const loading = requestLoading || updating || letturaInCorso
+  useBusyActivity(active && loading, letturaInCorso ? 'Lettura dei documenti in corso…' : 'Caricamento delle letture documentali…')
   const [aggiornamento, setAggiornamento] = useState<EsitoAggiornamentoLetture | null>(null)
   const [error, setError] = useState('')
   const [correzione, setCorrezione] = useState<{ id: string; valore: string } | null>(null)
@@ -48,7 +52,7 @@ export function LettureFascicoloSection({ fascicoloId, active = true, refreshKey
   const load = useCallback(async () => {
     if (!active || !fascicoloId || richiestaInCorso.current) return
     richiestaInCorso.current = true
-    if (!corrente.current) setLoading(true)
+    if (!corrente.current) setRequestLoading(true)
     setError('')
     try {
       const response = await fetch(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/letture${corrente.current ? '?visto=0' : ''}`, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
@@ -59,18 +63,18 @@ export function LettureFascicoloSection({ fascicoloId, active = true, refreshKey
       corrente.current = aggiornate
       setLetture(aggiornate)
       if (precedente && (precedente.impronta !== aggiornate.impronta || precedente.archivio?.lettura_automatica.ultima_lettura !== aggiornate.archivio?.lettura_automatica.ultima_lettura)) {
+        setDettagliRevision((revision) => revision + 1)
         notificaAggiornamento.current?.()
       }
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Registro delle letture non disponibile.')
     } finally {
       richiestaInCorso.current = false
-      setLoading(false)
+      setRequestLoading(false)
     }
   }, [fascicoloId, active])
 
   useEffect(() => { void load() }, [load, refreshKey])
-  const letturaInCorso = Boolean(letture?.archivio?.lettura_automatica.in_corso)
   useEffect(() => {
     if (!active) return undefined
     const aggiornaSeVisibile = () => { if (document.visibilityState === 'visible') void load() }
@@ -82,7 +86,7 @@ export function LettureFascicoloSection({ fascicoloId, active = true, refreshKey
   }, [active, letturaInCorso, load])
 
   const aggiorna = useCallback(async () => {
-    setLoading(true)
+    setUpdating(true)
     setError('')
     try {
       const response = await fetch(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/letture/aggiorna`, { method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, body: '{}' })
@@ -90,12 +94,15 @@ export function LettureFascicoloSection({ fascicoloId, active = true, refreshKey
       if (!response.ok || !payload.ok || !payload.letture) throw new Error(payload.errore || 'Aggiornamento delle letture non completato.')
       corrente.current = payload.letture
       setLetture(payload.letture)
+      setDettagliRevision((revision) => revision + 1)
       setAggiornamento(payload.esito || null)
       onAggiornato?.()
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Aggiornamento delle letture non completato.')
+      setError(requestError instanceof TypeError
+        ? 'Connessione interrotta durante l’aggiornamento delle letture. Riprova: i lavori già registrati restano nella coda dello studio.'
+        : requestError instanceof Error ? requestError.message : 'Aggiornamento delle letture non completato.')
     } finally {
-      setLoading(false)
+      setUpdating(false)
     }
   }, [fascicoloId, onAggiornato])
 
@@ -195,10 +202,10 @@ export function LettureFascicoloSection({ fascicoloId, active = true, refreshKey
           ))}
         </ul>
       ) : null}
-      <ObblighiNotificaSection fascicoloId={fascicoloId} active={active} refreshKey={refreshKey}/>
-      <PartiLetteSection fascicoloId={fascicoloId} active={active} refreshKey={refreshKey}/>
-      <ProspettiTabellaSection fascicoloId={fascicoloId} active={active} refreshKey={refreshKey}/>
-      <ProvenienzaAISection fascicoloId={fascicoloId} active={active} refreshKey={refreshKey}/>
+      <ObblighiNotificaSection fascicoloId={fascicoloId} active={active} refreshKey={refreshKey + dettagliRevision}/>
+      <PartiLetteSection fascicoloId={fascicoloId} active={active} refreshKey={refreshKey + dettagliRevision}/>
+      <ProspettiTabellaSection fascicoloId={fascicoloId} active={active} refreshKey={refreshKey + dettagliRevision}/>
+      <ProvenienzaAISection fascicoloId={fascicoloId} active={active} refreshKey={refreshKey + dettagliRevision}/>
       {inAttesa.length ? (
         <div className="iu-fas-letture__attesa">
           <ul>

@@ -62,7 +62,7 @@ COLONNE: dict[str, tuple[str, ...]] = {
     "letture_fatti": COLONNE_FATTI,
     "letture_consegne": COLONNE_CONSEGNE,
     "letture_payload_cache": ("id", "tenant_id", "fascicolo_id", "cache_key", "payload_json", "expires_at", "creato_il", "aggiornato_il"),
-    "letture_eventi": ("id", "tenant_id", "fascicolo_id", "generation", "claimed_generation", "stato", "pending_force", "claimed_force", "worker_id", "lease_until", "creato_il", "aggiornato_il"),
+    "letture_eventi": ("id", "tenant_id", "fascicolo_id", "generation", "claimed_generation", "stato", "pending_force", "claimed_force", "pending_presidi", "claimed_presidi", "worker_id", "lease_until", "creato_il", "aggiornato_il"),
 }
 _COLONNA_SQL = {colonna: f'"{colonna}"' for colonne in COLONNE.values() for colonna in colonne}
 _FILTRI_SQL = {
@@ -192,6 +192,14 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
             schema = SCHEMA_SQLITE.read_text(encoding="utf-8")
             with sqlite3.connect(str(self.db_path)) as conn:
                 conn.executescript(schema)
+                colonne_eventi = {row[1] for row in conn.execute('PRAGMA table_info(letture_eventi)')}
+                for campo in ("pending_presidi", "claimed_presidi"):
+                    if campo not in colonne_eventi:
+                        try:
+                            conn.execute(f'ALTER TABLE letture_eventi ADD COLUMN {campo} INTEGER NOT NULL DEFAULT 0')
+                        except sqlite3.OperationalError as exc:
+                            if "duplicate column" not in str(exc).lower():
+                                raise
                 _allinea_vincolo_categorie(conn, schema)
 
     # ---- primitive ---------------------------------------------------------
@@ -411,7 +419,7 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
         elenco = list(oggetti) if oggetti is not None else self.oggetti(tenant_id, fascicolo_id)
         tipi_ammessi = {_tipo(t) for t in tipi} if tipi else None
         letti = {
-            (l.tipo, l.oggetto_id, l.sha256): l for l in self.letture(tenant_id, fascicolo_id, lettore=lettore)
+            (lettura.tipo, lettura.oggetto_id, lettura.sha256): lettura for lettura in self.letture(tenant_id, fascicolo_id, lettore=lettore)
         }
         mancanti: list[Oggetto] = []
         for oggetto in elenco:
@@ -542,8 +550,8 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
         tenant, fascicolo = _testo(tenant_id), _testo(fascicolo_id)
         oggetti = self.oggetti(tenant, fascicolo)
         letture = self.letture(tenant, fascicolo)
-        per_chiave: dict[tuple[str, str, str, str], Lettura] = {(l.tipo, l.oggetto_id, l.sha256, l.lettore): l for l in letture}
-        elenco_lettori = [_lettore(l) for l in (lettori if lettori is not None else LETTORI)]
+        per_chiave: dict[tuple[str, str, str, str], Lettura] = {(lettura.tipo, lettura.oggetto_id, lettura.sha256, lettura.lettore): lettura for lettura in letture}
+        elenco_lettori = [_lettore(nome) for nome in (lettori if lettori is not None else LETTORI)]
         stati: list[StatoLettore] = []
         per_oggetto: list[dict[str, Any]] = []
         stato_oggetti: dict[tuple[str, str], dict[str, str]] = {(o.tipo, o.oggetto_id): {} for o in oggetti}
@@ -665,29 +673,70 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
             ).fetchone()
         return _testo(row["stato"]) if row else "idle"
 
-    def accoda_evento(self, tenant_id: str, fascicolo_id: str, *, forza: bool = False) -> int:
+    def accoda_evento(self, tenant_id: str, fascicolo_id: str, *, forza: bool = False, presidi: bool = False) -> int:
         """Registra una generazione per un solo fascicolo, anche se è già in lavoro."""
         tenant, fascicolo = _testo(tenant_id), _testo(fascicolo_id)
         if not tenant or not fascicolo:
             return 0
         adesso = _adesso()
         with self.connection() as conn:
-            conn.execute(
+            return self._accoda_evento_conn(conn, tenant, fascicolo, forza, adesso, presidi=presidi)
+
+    def presidi_in_corso(self, tenant_id: str, fascicolo_id: str) -> bool:
+        """Il riscontro condiviso dei soli controlli richiesti, senza leggere fonti."""
+        with self.connection() as conn:
+            row = conn.execute(
+                'SELECT stato,pending_presidi,claimed_presidi FROM "letture_eventi" WHERE tenant_id=? AND fascicolo_id=?',
+                (_testo(tenant_id), _testo(fascicolo_id)),
+            ).fetchone()
+        return bool(row and row["stato"] in {"pending", "running"} and (row["pending_presidi"] or row["claimed_presidi"]))
+
+    def _accoda_evento_conn(self, conn: Any, tenant: str, fascicolo: str, forza: bool, adesso: str, *, presidi: bool = False) -> int:
+        conn.execute(
                 'INSERT INTO "letture_eventi" '
-                '(id, tenant_id, fascicolo_id, generation, claimed_generation, stato, pending_force, claimed_force, worker_id, lease_until, creato_il, aggiornato_il) '
-                'VALUES (?, ?, ?, 1, 0, \'pending\', ?, 0, \'\', \'\', ?, ?) '
+                '(id, tenant_id, fascicolo_id, generation, claimed_generation, stato, pending_force, claimed_force, pending_presidi, claimed_presidi, worker_id, lease_until, creato_il, aggiornato_il) '
+                'VALUES (?, ?, ?, 1, 0, \'pending\', ?, 0, ?, 0, \'\', \'\', ?, ?) '
                 'ON CONFLICT (tenant_id, fascicolo_id) DO UPDATE SET '
                 'generation = letture_eventi.generation + 1, '
                 'stato = CASE WHEN letture_eventi.stato = \'running\' THEN \'running\' ELSE \'pending\' END, '
                 'pending_force = CASE WHEN letture_eventi.pending_force = 1 OR excluded.pending_force = 1 THEN 1 ELSE 0 END, '
+                'pending_presidi = CASE WHEN letture_eventi.pending_presidi = 1 OR excluded.pending_presidi = 1 THEN 1 ELSE 0 END, '
                 'aggiornato_il = excluded.aggiornato_il',
-                (_nuovo_id("lev"), tenant, fascicolo, 1 if forza else 0, adesso, adesso),
+                (_nuovo_id("lev"), tenant, fascicolo, 1 if forza else 0, 1 if presidi else 0, adesso, adesso),
             )
-            riga = conn.execute(
+        riga = conn.execute(
                 'SELECT generation FROM "letture_eventi" WHERE tenant_id = ? AND fascicolo_id = ?',
                 (tenant, fascicolo),
             ).fetchone()
         return int(riga["generation"] if riga else 0)
+
+    def accoda_testo_ocr(self, tenant_id: str, fascicolo_id: str, oggetto: Oggetto) -> int:
+        """Riapre soltanto il documento OCR e accoda il contesto dello studio, atomicamente."""
+        tenant, fascicolo = _testo(tenant_id), _testo(fascicolo_id)
+        if not tenant or not fascicolo:
+            raise RegistroLettureError("Contesto studio o fascicolo assente per il testo OCR.")
+        adesso = _adesso()
+        with self.connection() as conn:
+            row = conn.execute(
+                'SELECT sha256,sha256_archivio,dimensione FROM "letture_oggetti" WHERE tenant_id=? AND fascicolo_id=? '
+                'AND tipo=? AND oggetto_id=? AND presente=1' + (' FOR UPDATE' if self._pg is not None else ''),
+                (tenant, fascicolo, oggetto.tipo, oggetto.oggetto_id),
+            ).fetchone()
+            if row is None:
+                raise RegistroLettureError("Documento OCR non presente nel fascicolo dello studio.")
+            if impronta_oggetto(dict(row)) != oggetto.impronta:
+                raise RegistroLettureError("La fonte OCR è stata sostituita: nessuna lettura corrente sovrascritta.")
+            conn.execute(
+                'INSERT INTO "letture" (id,tenant_id,fascicolo_id,tipo,oggetto_id,sha256,lettore,'
+                'versione_lettore,stato,esito_json,durata_ms,letto_il,aggiornato_il) '
+                'VALUES (?,?,?,?,?,?,?,?,?,?,0,?,?) '
+                'ON CONFLICT (tenant_id,tipo,oggetto_id,sha256,lettore) DO UPDATE SET '
+                'stato=excluded.stato,esito_json=excluded.esito_json,aggiornato_il=excluded.aggiornato_il',
+                (_nuovo_id("let"), tenant, fascicolo, oggetto.tipo, oggetto.oggetto_id,
+                 oggetto.impronta, "motore_documenti", versione_lettore("motore_documenti"),
+                 "in_corso", _json({"origine": "ocr", "motivo": "Testo pronto: verifica nel contesto del fascicolo in attesa."}), adesso, adesso),
+            )
+            return self._accoda_evento_conn(conn, tenant, fascicolo, False, adesso)
 
     def reclama_evento(self, tenant_id: str, fascicolo_id: str, worker_id: str, *, lease_seconds: int = 1800) -> dict[str, Any] | None:
         """Reclama atomicamente la generazione pendente; una lease recupera processi interrotti."""
@@ -699,19 +748,24 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
         with self.connection() as conn:
             conn.execute(
                 'UPDATE "letture_eventi" SET stato = \'running\', claimed_generation = generation, '
-                'claimed_force = pending_force, pending_force = 0, worker_id = ?, lease_until = ?, aggiornato_il = ? '
+                'claimed_force = CASE WHEN pending_force = 1 OR (stato = \'running\' AND claimed_force = 1) THEN 1 ELSE 0 END, pending_force = 0, '
+                'claimed_presidi = CASE WHEN pending_presidi = 1 OR (stato = \'running\' AND claimed_presidi = 1) THEN 1 ELSE 0 END, pending_presidi = 0, '
+                'worker_id = ?, lease_until = ?, aggiornato_il = ? '
                 'WHERE tenant_id = ? AND fascicolo_id = ? AND '
                 '(stato = \'pending\' OR (stato = \'running\' AND lease_until < ?))',
                 (worker, lease, adesso, tenant, fascicolo, adesso),
             )
             riga = conn.execute(
-                'SELECT generation, claimed_generation, claimed_force, worker_id FROM "letture_eventi" '
+                'SELECT generation, claimed_generation, claimed_force, claimed_presidi, worker_id FROM "letture_eventi" '
                 'WHERE tenant_id = ? AND fascicolo_id = ?',
                 (tenant, fascicolo),
             ).fetchone()
         if not riga or _testo(riga["worker_id"]) != worker:
             return None
-        return {"generation": int(riga["claimed_generation"]), "forza": bool(riga["claimed_force"])}
+        evento = {"generation": int(riga["claimed_generation"]), "forza": bool(riga["claimed_force"])}
+        if riga["claimed_presidi"]:
+            evento["presidi"] = True
+        return evento
 
     def concludi_evento(self, tenant_id: str, fascicolo_id: str, worker_id: str, generation: int, *, riuscito: bool = True) -> bool:
         """Chiude la generazione; vero indica un evento arrivato durante il lavoro."""
@@ -722,9 +776,10 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
                 'UPDATE "letture_eventi" SET '
                 'stato = CASE WHEN ? = 0 OR generation > claimed_generation THEN \'pending\' ELSE \'idle\' END, '
                 'pending_force = CASE WHEN ? = 0 AND claimed_force = 1 THEN 1 ELSE pending_force END, '
-                'worker_id = \'\', lease_until = \'\', claimed_force = 0, aggiornato_il = ? '
+                'pending_presidi = CASE WHEN ? = 0 AND claimed_presidi = 1 THEN 1 ELSE pending_presidi END, '
+                'worker_id = \'\', lease_until = \'\', claimed_force = 0, claimed_presidi = 0, aggiornato_il = ? '
                 'WHERE tenant_id = ? AND fascicolo_id = ? AND worker_id = ? AND claimed_generation = ?',
-                (1 if riuscito else 0, 1 if riuscito else 0, adesso, tenant, fascicolo, worker, int(generation)),
+                (1 if riuscito else 0, 1 if riuscito else 0, 1 if riuscito else 0, adesso, tenant, fascicolo, worker, int(generation)),
             )
             riga = conn.execute(
                 'SELECT stato FROM "letture_eventi" WHERE tenant_id = ? AND fascicolo_id = ?',

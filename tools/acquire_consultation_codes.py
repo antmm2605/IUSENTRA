@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import html
+import http.cookiejar
 import json
 import re
 import time
@@ -9,6 +10,12 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
+
+# L'esportazione AKN usa la sessione aperta sulla pagina ufficiale dell'atto.
+# I cookie restano soltanto in memoria, senza salvare credenziali o dati studio.
+SOURCE_SESSION = urllib.request.build_opener(
+    urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar())
+)
 
 ACTS = [
     ('militari_303_1941', 'stato:relazione.e.regio.decreto:1941-02-20;303'),
@@ -31,7 +38,7 @@ def download(url):
     if urllib.parse.urlsplit(url).hostname != 'www.normattiva.it':
         raise ValueError('Host outside the public source allowlist')
     request = urllib.request.Request(url, headers={'User-Agent': 'IUSENTRA public legal library acquisition'})
-    with urllib.request.urlopen(request, timeout=45) as response:
+    with SOURCE_SESSION.open(request, timeout=45) as response:
         if urllib.parse.urlsplit(response.url).hostname != 'www.normattiva.it':
             raise ValueError('Unexpected redirect outside Normattiva')
         content = response.read(64 * 1024 * 1024 + 1)

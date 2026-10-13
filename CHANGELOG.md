@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.437.23 — candidata, 13/10/2026
+
+- Download dei codici pubblici Normattiva: sessione ufficiale conservata soltanto in memoria; 13 XML acquisiti e validati nel comando nativo e nel workflow GitHub. Nessuna importazione sul server.
+- Istruzioni residue allineate a commit, push e deploy esclusivamente su `main`, preservando i branch storici. CI e rilascio finale ancora necessari.
+
 ## 2.437.22 — candidata, 13/10/2026
 
 - Compilazione dei campi PDF nativi nel lettore: testo, caselle e scelte su più pagine, con coordinate corrette anche sulle pagine ruotate. Salvataggio tramite la procedura esistente, copie distinte, impronta e protezione dalle modifiche concorrenti.

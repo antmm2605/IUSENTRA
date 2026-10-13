@@ -23,7 +23,7 @@ non esiste.
 .iu-mediazione-pdf-field select,
 .iu-mediazione-pdf-field input {
   width: 100%; height: 100%; min-height: 0; margin: 0; padding: 0 2px;
-  border: 1px solid #639ae0; border-radius: 0; background: rgba(223, 239, 255, .72);
+  border: 1px solid #639ae0; border-radius: 0; background: #dfefff;
   color: #142c51; font-size: 1.625cqw; line-height: 1.15; resize: none;
 }
 /* Un campo che lo studio ha gia' in scheda: il cliente lo conferma leggendolo.
@@ -31,10 +31,10 @@ non esiste.
    del fascicolo (GDPR art. 16). */
 .iu-mediazione-pdf-field--dallo-studio textarea,
 .iu-mediazione-pdf-field--dallo-studio select,
-.iu-mediazione-pdf-field--dallo-studio input { border-color: #0f7b57; background: rgba(209, 244, 230, .85); color: #0b3d2c; }
+.iu-mediazione-pdf-field--dallo-studio input { border-color: #0f7b57; background: #d1f4e6; color: #0b3d2c; }
 .iu-mediazione-pdf-field--corretto textarea,
 .iu-mediazione-pdf-field--corretto select,
-.iu-mediazione-pdf-field--corretto input { border-color: #b45309; background: rgba(254, 243, 199, .85); color: #6b3d06; }
+.iu-mediazione-pdf-field--corretto input { border-color: #b45309; background: #fef3c7; color: #6b3d06; }
 
 .iu-mediazione-pdf-field textarea:focus,
 .iu-mediazione-pdf-field select:focus,

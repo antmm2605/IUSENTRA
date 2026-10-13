@@ -135,10 +135,11 @@ export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica, a
       <p>{onEditWithoutFields ? 'Questo PDF non contiene campi predisposti. Puoi inserire testo nelle aree del modulo con il lettore PDF e salvare una copia nel fascicolo.' : 'Questo PDF non contiene campi predisposti. Il modello originale rimane consultabile; non è stato trasformato o compilato automaticamente.'}</p>
       {onEditWithoutFields ? <Button disabled={busy} onClick={onEditWithoutFields}>Compila nel lettore PDF</Button> : null}
     </> : null}
-    <div className="iu-mediazione-pdf-scroll" tabIndex={0} aria-label="Pagina del modulo, scorrimento orizzontale disponibile">
+    {!previewReady ? <p role="status">Caricamento della pagina del modulo…</p> : null}
+    <div className="iu-mediazione-pdf-scroll" tabIndex={0} aria-busy={!previewReady} aria-label="Pagina del modulo, scorrimento orizzontale disponibile">
       <div className="iu-mediazione-pdf-sheet" style={{ aspectRatio: `${sheet.larghezza} / ${sheet.altezza}`, width: `${8 * zoom}px` }}>
-        <img src={pagePreviewUrl ? pagePreviewUrl(page) : `${previewUrl}${previewUrl.includes('?') ? '&' : '?'}viewer=mobile&page=${page}${righe ? `&righe=${righe}` : ''}`} alt={`Pagina ${page} del modulo PDF`} onLoad={() => setPreviewReady(true)} onError={() => { setPreviewReady(false); setError('Anteprima non disponibile. Non compilare senza verificare la pagina.') }} />
-        {fields.map((f, i) => {
+        <img key={page} src={pagePreviewUrl ? pagePreviewUrl(page) : `${previewUrl}${previewUrl.includes('?') ? '&' : '?'}viewer=mobile&page=${page}${righe ? `&righe=${righe}` : ''}`} alt={`Pagina ${page} del modulo PDF`} onLoad={() => setPreviewReady(true)} onError={() => { setPreviewReady(false); setError('Anteprima non disponibile. Non compilare senza verificare la pagina.') }} />
+        {previewReady && fields.map((f, i) => {
           const current = values[f.nome] ?? (f.tipo === 'CheckBox' ? f.selezionato : f.valore)
           const style = { left: `${f.rettangolo[0] * 100}%`, top: `${f.rettangolo[1] * 100}%`, width: `${f.rettangolo[2] * 100}%`, height: `${f.rettangolo[3] * 100}%` }
           const label = `${f.etichetta || 'Campo'} — pagina ${page}, campo ${i + 1}`

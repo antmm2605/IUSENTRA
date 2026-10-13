@@ -23,19 +23,20 @@ def reviewed(tmp_path, monkeypatch):
     git("init")
     git("config", "user.email", "test@example.test")
     git("config", "user.name", "Test")
+    git("config", "core.autocrlf", "false")
     (repo / "frontend").mkdir()
-    (repo / "frontend/source.ts").write_text("old\n")
+    (repo / "frontend/source.ts").write_bytes(b"old\n")
     (repo / ".gitignore").write_text("data/\n")
     git("add", ".")
     git("commit", "-m", "base")
     base = git("rev-parse", "HEAD")
-    (repo / "frontend/source.ts").write_text("reviewed\n")
+    (repo / "frontend/source.ts").write_bytes(b"reviewed\n")
     git("commit", "-am", "candidate")
     target = git("rev-parse", "HEAD")
     git("checkout", "--detach", base)
     (repo / "frontend/source.ts").write_bytes(b"reviewed\r\n")
     (repo / "tools").mkdir()
-    (repo / "tools/preserved.py").write_text("print('preserve')\n")
+    (repo / "tools/preserved.py").write_bytes(b"print('preserve')\n")
     (repo / "data").mkdir()
     (repo / "data/studio.db").write_bytes(b"tenant-data")
     entries = []
@@ -58,21 +59,21 @@ def reviewed(tmp_path, monkeypatch):
 
 def test_reconcile_preserves_archived_sources_and_leaves_tenant_data(reviewed):
     repo, target, snapshot, backup, _ = reviewed
-    result = module.reconcile(repo, target, "Codex/legal-electronic-filing-kIxcV", snapshot, backup)
+    result = module.reconcile(repo, target, "main", snapshot, backup)
     assert result["extra_files_archived"] == 1
     assert backup.read_bytes() == snapshot.read_bytes()
     with tarfile.open(backup) as archive:
         assert archive.extractfile("sources/tools/preserved.py").read() == b"print('preserve')\n"
     assert (repo / "frontend/source.ts").read_bytes() == b"reviewed\n"
     assert (repo / "data/studio.db").read_bytes() == b"tenant-data"
-    assert module.reconcile(repo, target, "Codex/legal-electronic-filing-kIxcV", snapshot, backup)["already_clean"]
+    assert module.reconcile(repo, target, "main", snapshot, backup)["already_clean"]
 
 
 def test_reconcile_rejects_new_unreviewed_source(reviewed):
     repo, target, snapshot, backup, base = reviewed
     (repo / "tools/new-hotfix.py").write_text("new")
     with pytest.raises(AssertionError, match="Nuovi file"):
-        module.reconcile(repo, target, "Codex/legal-electronic-filing-kIxcV", snapshot, backup)
+        module.reconcile(repo, target, "main", snapshot, backup)
     assert not backup.exists()
     assert subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"]).decode().strip() == base
 
@@ -81,7 +82,7 @@ def test_reconcile_rejects_changed_hotfix_after_snapshot(reviewed):
     repo, target, snapshot, backup, _ = reviewed
     (repo / "frontend/source.ts").write_text("unreviewed hotfix")
     with pytest.raises(AssertionError, match="modificato dopo"):
-        module.reconcile(repo, target, "Codex/legal-electronic-filing-kIxcV", snapshot, backup)
+        module.reconcile(repo, target, "main", snapshot, backup)
     assert not backup.exists()
     assert (repo / "frontend/source.ts").read_text() == "unreviewed hotfix"
 
@@ -90,7 +91,7 @@ def test_reconcile_rejects_corrupted_snapshot_before_changes(reviewed):
     repo, target, snapshot, backup, _ = reviewed
     snapshot.write_bytes(snapshot.read_bytes() + b"changed")
     with pytest.raises(AssertionError, match="Copia dei sorgenti"):
-        module.reconcile(repo, target, "Codex/legal-electronic-filing-kIxcV", snapshot, backup)
+        module.reconcile(repo, target, "main", snapshot, backup)
     assert not backup.exists()
     assert (repo / "tools/preserved.py").exists()
 
@@ -105,7 +106,8 @@ def test_reconcile_fetches_release_absent_from_server_objects(reviewed, tmp_path
     (server / "frontend/source.ts").write_bytes((repo / "frontend/source.ts").read_bytes())
     (server / "tools").mkdir()
     (server / "tools/preserved.py").write_bytes((repo / "tools/preserved.py").read_bytes())
-    result = module.reconcile(server, target, "Codex/legal-electronic-filing-kIxcV", snapshot, backup)
+    result = module.reconcile(server, target, "main", snapshot, backup)
     assert result["head"] == target
     assert backup.read_bytes() == snapshot.read_bytes()
     assert subprocess.check_output(["git", "-C", str(server), "rev-parse", "HEAD"]).decode().strip() == target
+

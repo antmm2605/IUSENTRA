@@ -971,15 +971,18 @@ def test_bootstrap_pubblico_resta_allineato_a_password_temporanee_e_ci_reale():
     assert "tests/test_observability_runtime.py" in ci_workflow
     assert "tests/test_ocr_worker.py" in ci_workflow
     assert "name: Sync Twin Branches" in sync_workflow
-    assert '      - "Codex/legal-electronic-filing-kIxcV"' in sync_workflow
-    assert '      - "claude/legal-electronic-filing-kIxcV"' in sync_workflow
-    assert 'target="claude/legal-electronic-filing-kIxcV"' in sync_workflow
-    assert 'target="Codex/legal-electronic-filing-kIxcV"' in sync_workflow
-    assert 'git push origin "HEAD:refs/heads/${{ steps.branches.outputs.target }}" --force' in sync_workflow
+    assert "workflow_dispatch:" in sync_workflow
+    assert "contents: read" in sync_workflow
+    assert "\n  push:" not in sync_workflow
+    assert "workflow_run:" not in sync_workflow
+    assert "git push" not in sync_workflow
+    assert "Commit, push e deploy esclusivamente su main" in sync_workflow
     assert "core.hooksPath .githooks" in repo_hygiene
     assert "safe.directory" in repo_hygiene
     assert "git_branch_autosync.ps1" in hook_runner
-    assert "branch -f $branch $currentHead" in autosync_script
+    assert 'AllowedBranches = @("main")' in autosync_script
+    assert 'if (-not $currentBranch) { exit 0 }' in autosync_script
+    assert "branch -f" not in autosync_script
     assert 'sh "$script_dir/_run_powershell_hook.sh" post-commit "$@"' in post_commit
     assert 'sh "$script_dir/_run_powershell_hook.sh" post-checkout "$@"' in post_checkout
     assert 'sh "$script_dir/_run_powershell_hook.sh" post-merge "$@"' in post_merge

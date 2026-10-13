@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.437.19 — candidata, 13/10/2026
+
+- Lettore condiviso del capo spese: riconoscimento della valuta dopo il numero, come «liquidate in 321,00 euro», conservando il passaggio originale. Esborsi, fondo spese e contributo non diventano compensi.
+- Prova della catena nei due motori, ripetizione senza duplicati e persistenza sui repository SQL. Nessuna emissione automatica di parcella né registrazione di incasso dalla lettura.
+- La verifica di produzione della 2.437.18 ha rilevato questa forma non riconosciuta nel fascicolo Arcuri. L'accettazione della candidata e i presìdi economici residui restano aperti.
+
 ## 2.437.18 — candidata, 13/10/2026
 
 - Lettore condiviso delle parti e del codice fiscale: scansioni lineari su parole e spazi ripetuti, con riconoscimento e citazioni preservati. Intervento sui pattern segnalati dagli undici blocchi CodeQL nel percorso della candidata economica; nuova analisi remota necessaria, senza deroghe o esclusioni aggiunte.

@@ -33,29 +33,38 @@ MONEY_RE = re.compile(
 )
 
 # Forma con connettore esplicito: "liquida ... la somma di € 3.000,00".
-_LIQUIDAZIONE_RE = re.compile(
+_LIQUIDAZIONE_CONNETTORE_PATTERN = (
     r"\bliquid(?:a|ando|ata|ato|ate|ati)\b.{0,160}?"
     r"(?:(?:complessiv[aoei]\s+)?(?:somma|importo)\s+(?:di\s+)?|(?:in\s+)?complessiv[aoei]\s+)"
-    + MONEY_PREFIX_PATTERN
-    + r"\s*"
-    r"(?P<amount>" + MONEY_AMOUNT_PATTERN + r")",
-    re.IGNORECASE | re.DOTALL,
 )
 # Forma diretta, la piu' frequente nei dispositivi italiani: "condanna ... alla
 # rifusione delle spese di lite ... che liquida in euro 500,00 oltre spese
 # generali, iva e cpa". Senza connettore "somma/importo/complessiva" il pattern
 # sopra non aggancia nulla e il credito dell'avvocato non nasce.
-_LIQUIDAZIONE_DIRETTA_RE = re.compile(
+_LIQUIDAZIONE_DIRETTA_PATTERN = (
     r"\bliquid(?:a|ando|ata|ato|ate|ati)\b"
     r"(?:\s+(?:la\s+|le\s+|i\s+|il\s+)?(?:spese|competenze|compensi|onorari|somma|importo)"
     r"(?:\s+(?:di\s+lite|di\s+giudizio|legali|professionali|complessiv[aoei]|forfettari[ao]))?"
     r"(?:\s+di)?)?"
     r"(?:\s+(?:in|nella\s+misura\s+di|pari\s+a))?"
     r"[\s,:]*"
-    + MONEY_PREFIX_PATTERN
-    + r"\s*(?P<amount>"
-    + MONEY_AMOUNT_PATTERN
-    + r")",
+)
+
+# Alcuni dispositivi scrivono «liquidate in 321,00 euro». Conservare il
+# testo originale (e quindi il brano probatorio), senza spostare la valuta
+# nel testo o trasformare qualsiasi numero del documento in un importo.
+_IMPORTO_NOMINATO_PATTERN = r"(?P<amount>" + MONEY_AMOUNT_PATTERN + r")"
+_VALUTA_DOPO_PATTERN = r"\s*(?:euro\b|EUR\b|€)"
+_LIQUIDAZIONE_PATTERNS = tuple(
+    re.compile(ancora + importo, re.IGNORECASE | re.DOTALL)
+    for importo in (
+        MONEY_PREFIX_PATTERN + r"\s*" + _IMPORTO_NOMINATO_PATTERN,
+        _IMPORTO_NOMINATO_PATTERN + _VALUTA_DOPO_PATTERN,
+    )
+    for ancora in (_LIQUIDAZIONE_CONNETTORE_PATTERN, _LIQUIDAZIONE_DIRETTA_PATTERN)
+)
+_MONEY_SUFFIX_RE = re.compile(
+    r"(?<![\w.,])" + _IMPORTO_NOMINATO_PATTERN + _VALUTA_DOPO_PATTERN,
     re.IGNORECASE,
 )
 _LIQUIDAZIONE_WORD_RE = re.compile(r"\bliquid(?:a|ando|ata|ato|ate|ati)\b", re.IGNORECASE)
@@ -72,7 +81,7 @@ _COMPENSI_AFTER_AMOUNT_RE = re.compile(
 # compenso del difensore: non deve diventare un credito da parcella.
 _NON_COMPENSI_AFTER_AMOUNT_RE = re.compile(
     r"^[\s,;:.]*(?:per|a\s+titolo\s+di)\s+"
-    r"(?:spese(?!\s+generali)|esbors[oi]|spese\s+vive|contribut[oi]\s+unificat[oi]|c\.?\s*u\.?)\b",
+    r"(?:spese(?!\s+generali)|esbors[oi]|fondo\s+spese|fondi\s+spese|contribut[oi]\s+unificat[oi]|c\.?\s*u\.?)\b",
     re.IGNORECASE | re.DOTALL,
 )
 
@@ -119,7 +128,10 @@ def estrai_spese_liquidate(testo: str) -> tuple[float | None, str]:
 
     # Priorita' all'importo qualificato "per compensi": e' il piu' esplicito.
     compensi: list[tuple[int, re.Match[str]]] = []
-    for money in MONEY_RE.finditer(text):
+    for money in sorted(
+        (*MONEY_RE.finditer(text), *_MONEY_SUFFIX_RE.finditer(text)),
+        key=lambda match: match.start(),
+    ):
         if parse_importo(money.group("amount")) is None:
             continue
         after = text[money.end() : min(len(text), money.end() + 120)]
@@ -136,12 +148,12 @@ def estrai_spese_liquidate(testo: str) -> tuple[float | None, str]:
         _, match = min(compensi, key=lambda item: (item[0], item[1].start()))
         return parse_importo(match.group("amount")), estratto_testo(text, match.start(), match.end(), window=180)
 
-    for pattern in (_LIQUIDAZIONE_RE, _LIQUIDAZIONE_DIRETTA_RE):
+    for pattern in _LIQUIDAZIONE_PATTERNS:
         candidati: list[tuple[int, re.Match[str]]] = []
         for match in pattern.finditer(text):
             if parse_importo(match.group("amount")) is None:
                 continue
-            fine = match.end("amount")
+            fine = match.end()
             if _NON_COMPENSI_AFTER_AMOUNT_RE.match(text[fine : min(len(text), fine + 90)]):
                 continue
             candidati.append((match.start(), match))

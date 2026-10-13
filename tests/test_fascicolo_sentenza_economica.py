@@ -1222,7 +1222,8 @@ def test_rilettura_non_somma_due_liquidazioni_nella_stessa_proforma(tmp_path: Pa
 
 
 @pytest.mark.parametrize("backend", ["sqlite", "postgresql"])
-def test_fondo_esborsi_sql_persistenza_autorevole_sul_mirror(tmp_path, backend):
+@pytest.mark.parametrize("valuta_posposta", [False, True])
+def test_fondo_esborsi_sql_persistenza_autorevole_sul_mirror(tmp_path, backend, valuta_posposta):
     from pct.storage import StudioDB
 
     if backend == "postgresql":
@@ -1252,13 +1253,15 @@ def test_fondo_esborsi_sql_persistenza_autorevole_sul_mirror(tmp_path, backend):
         fascicoli._salva()
         fatturazione = GestioneFatturazione(str(tmp_path / "parcelle.json"), studio_db=database)
         metadata = {"document_id": "DOC-SQL", "sha256": "f" * 64, "tipo_documento": "Sentenza", "codice_fiscale_cliente": "MNTRRT98P65G791Q"}
+        testo = MONTAGNESE_TEXT.replace("€ 321,50", "321,50 euro") if valuta_posposta else MONTAGNESE_TEXT
         first = apply_sentenza_tribunale_automation(
             fascicoli_repository=fascicoli, fatturazione_repository=fatturazione,
             fascicolo_id=fascicolo.id,
-            text=MONTAGNESE_TEXT + "\nFondo spese riconosciuto pari a € 250,00.", document_metadata=metadata)
+            text=testo + "\nFondo spese riconosciuto pari a € 250,00.", document_metadata=metadata)
         assert first.applied
         reopened = GestioneFascicoli(str(tmp_path / "fascicoli.json"), studio_db=database).get(fascicolo.id)
         assert reopened.pagamenti["spese_esborsi"]["importo"] == 21.50
+        assert reopened.pagamenti["liquidazione_giudice"]["importo"] == 321.50
         assert reopened.pagamenti["fondo_spese"]["importo"] == 250.00
         assert reopened.pagamenti["fondo_spese"]["source_sha256"] == "f" * 64
         assert reopened.id_cliente == "CLI-SQL"

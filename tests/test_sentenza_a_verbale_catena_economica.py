@@ -18,6 +18,8 @@ import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from legal_ocr.ner_legal import extract_numero_ruolo
 from pct.fascicoli import StatoFascicolo
 from pct.fascicolo_sentenza_economica import (
@@ -164,6 +166,53 @@ def test_capo_spese_nella_forma_diretta():
 def test_capo_spese_ignora_gli_importi_che_non_sono_compensi():
     assert estrai_spese_liquidate("liquida in euro 800,00 per esborsi")[0] is None
     assert estrai_spese_liquidate("spese compensate integralmente tra le parti")[0] is None
+
+
+@pytest.mark.parametrize("valore", ["321,00 euro", "321,00 EUR", "321,00 €", "321,00\neuro"])
+def test_liquidazione_con_valuta_dopo_importo_conserva_il_brano(valore):
+    testo = f"P.Q.M. condanna il resistente alle spese del giudizio, liquidate in {valore}, oltre iva e cpa."
+    importo, brano = estrai_spese_liquidate(testo)
+    assert importo == 321.0
+    assert "liquidate in " + valore.replace("\n", " ") in brano
+
+
+@pytest.mark.parametrize("natura", ["esborsi", "contributo unificato", "spese vive", "fondo spese"])
+def test_valuta_dopo_importo_non_trasforma_esborsi_in_compensi(natura):
+    testo = f"P.Q.M. liquida in 321,00 euro per {natura}."
+    assert estrai_spese_liquidate(testo) == (None, "")
+
+
+def test_compensi_espliciti_dopo_esborsi_con_valuta_posposta():
+    testo = "P.Q.M. liquida in 49,00 euro per esborsi e 321,00 euro per compensi professionali."
+    importo, brano = estrai_spese_liquidate(testo)
+    assert importo == 321.0
+    assert "321,00 euro per compensi" in brano
+
+
+def test_valuta_posposta_attraversa_i_due_motori_senza_imporre_parcella():
+    testo = SENTENZA_A_VERBALE.replace("liquida in euro 500,00", "liquidate in 321,00 euro")
+    repository = _RepositoryFascicoli()
+    with tempfile.TemporaryDirectory() as cartella:
+        fatturazione = GestioneFatturazione(Path(cartella) / "parcelle.json")
+        esito = apply_sentenza_tribunale_automation(
+            fascicoli_repository=repository, fatturazione_repository=fatturazione,
+            fascicolo_id="FASC-1", text=testo, document_metadata=METADATA,
+            actor="collaudo-valuta-posposta",
+        )
+        ripetizione = apply_sentenza_tribunale_automation(
+            fascicoli_repository=repository, fatturazione_repository=fatturazione,
+            fascicolo_id="FASC-1", text=testo, document_metadata=METADATA,
+            actor="collaudo-valuta-posposta",
+        )
+    assert esito.applied
+    voce = repository.fascicolo.pagamenti["liquidazione_giudice"]
+    assert voce["importo"] == 321.0
+    assert not voce["pagato"]
+    assert "parcella" not in repository.fascicolo.pagamenti
+    assert not ripetizione.applied
+    audit = build_audit(fascicolo=_fascicolo_audit(), testo=testo, documento_id="DOC-SENT-1")
+    assert audit.sentenza.spese_liquidate.totale_stimato == 321.0
+    assert "liquidate in 321,00 euro" in audit.sentenza.spese_liquidate.testo_capo_spese
 
 
 def test_sentenza_a_verbale_riconosciuta_dalla_data_in_calce():

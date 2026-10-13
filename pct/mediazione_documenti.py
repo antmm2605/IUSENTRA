@@ -59,6 +59,24 @@ def bozza_istanza(payload):
 _ANNOTAZIONE_NON_VISIBILE = 2 | 32
 
 
+def contiene_modulo_pdf(raw: bytes) -> bool:
+    """Riconosce il contenitore del modulo, anche con campi XFA o nascosti.
+
+    Serve all'acquisizione: convertirlo prima della compilazione può eliminare
+    campi e geometria. Non certifica la compilabilità o la conformità PDF/A.
+    """
+    import fitz
+
+    if not raw.lstrip().startswith(b"%PDF-"):
+        return False
+    try:
+        with fitz.open(stream=raw, filetype="pdf") as doc:
+            kind, value = doc.xref_get_key(doc.pdf_catalog(), "AcroForm")
+            return bool(doc.is_form_pdf or (kind in {"xref", "dict"} and value != "null"))
+    except (fitz.FileDataError, RuntimeError, ValueError):
+        return False
+
+
 def _casella_visibile(doc, widget) -> bool:
     """Se il PDF dichiara che questa casella si vede.
 
@@ -137,6 +155,7 @@ def campi_pdf(raw, *, includi_da_attivare: bool = False):
                 visibile = _casella_visibile(doc, w)
                 if not visibile and not includi_da_attivare:
                     continue
+                rettangolo = w.rect * pagina.rotation_matrix
                 campi.append({
                     "nome": w.field_name,
                     "etichetta": w.field_label or w.field_name,
@@ -156,10 +175,10 @@ def campi_pdf(raw, *, includi_da_attivare: bool = False):
                         else False
                     ),
                     "rettangolo": [
-                        w.rect.x0 / pagina.rect.width,
-                        w.rect.y0 / pagina.rect.height,
-                        w.rect.width / pagina.rect.width,
-                        w.rect.height / pagina.rect.height,
+                        rettangolo.x0 / pagina.rect.width,
+                        rettangolo.y0 / pagina.rect.height,
+                        rettangolo.width / pagina.rect.width,
+                        rettangolo.height / pagina.rect.height,
                     ],
                 })
     return campi

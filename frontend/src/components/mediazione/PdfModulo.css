@@ -12,6 +12,9 @@ non esiste.
 
 .iu-mediazione-pdf-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .iu-mediazione-pdf-header h3 { margin: 0; }
+.iu-mediazione-pdf-editor > .iu-mediazione-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.iu-mediazione-pdf-editor > .iu-mediazione-actions > button { width: auto; flex: 0 0 auto; }
+.iu-mediazione-pdf-editor > .iu-mediazione-actions > strong { white-space: nowrap; font-size: 13px; }
 .iu-mediazione-pdf-scroll { overflow: auto; max-height: 78vh; border: 1px solid #cbd5e1; margin: 12px 0; }
 .iu-mediazione-pdf-sheet { position: relative; flex-shrink: 0; margin-inline: auto; container-type: inline-size; background: white; }
 .iu-mediazione-pdf-sheet > img { width: 100%; height: 100%; display: block; }
@@ -51,3 +54,11 @@ non esiste.
 /* L'avviso su un importo di legge superato: si legge prima di compilare. */
 .iu-mediazione-pdf-avviso { margin: 10px 0; padding: 10px 12px; border: 1px solid #b45309;
   border-radius: 8px; background: rgba(254, 243, 199, .6); color: #6b3d06; font-size: 14px; line-height: 1.5; }
+
+@media (max-width: 600px) {
+  .iu-mediazione-pdf-header { gap: 6px; }
+  .iu-mediazione-pdf-header h3 { font-size: 18px; }
+  .iu-mediazione-pdf-editor > p { font-size: 12px; line-height: 1.4; margin-block: 8px; }
+  .iu-mediazione-pdf-editor > .iu-mediazione-actions > button { padding-inline: 8px; font-size: 12px; min-height: 36px; }
+  .iu-mediazione-pdf-editor--expanded { padding: 8px; }
+}

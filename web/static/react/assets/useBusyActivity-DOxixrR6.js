@@ -1,0 +1,1 @@
+import{r as e}from"./rolldown-runtime-hePW80VL.js";import{t}from"./activity-CWwB08Bn.js";import{Da as n}from"./vendor-icons-7V0Trq9Z.js";var r=e(n(),1);function i(e,n){(0,r.useEffect)(()=>{if(e)return t(n)},[e,n])}export{i as t};

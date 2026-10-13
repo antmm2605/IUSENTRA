@@ -17,7 +17,10 @@ riprendeva con un copia-incolla: sembrava coperto e non lo era.
 Le due cose non convivono. Un salvataggio incrementale conserva la revisione
 precedente, quindi conserverebbe anche il testo che l'oscuramento doveva
 distruggere. Percio': se fra le modifiche c'e' un oscuramento il file viene
-riscritto per intero, e solo in quel caso.
+riscritto per intero. La compilazione dei campi nativi usa invece il
+compilatore condiviso, che riscrive il modulo e ripulisce gli script. In
+entrambi i casi la procedura del fascicolo conserva separatamente la fonte
+originale e lo storico delle versioni.
 """
 
 from __future__ import annotations
@@ -69,12 +72,29 @@ def render_pdf_page_png(pdf_bytes: bytes, *, page_number: int, zoom: float = 1.6
 def apply_pdf_overlays(pdf_bytes: bytes, annotations: Iterable[dict[str, Any]]) -> tuple[bytes, int]:
     """Applica le modifiche e restituisce il PDF nuovo con quante ne ha applicate.
 
-    Senza oscuramenti il file esce da un salvataggio incrementale: i byte
+    Per gli interventi grafici senza oscuramenti il salvataggio è incrementale: i byte
     dell'originale restano dov'erano. Con almeno un oscuramento il file viene
     riscritto, perche' il testo tolto non deve sopravvivere in una revisione
     precedente.
     """
-    normalized = [_normalize_annotation(item) for item in annotations]
+    requested = list(annotations)
+    form_changes = [item for item in requested if isinstance(item, dict) and item.get("type") == "form"]
+    if form_changes:
+        # I campi nativi passano dal compilatore condiviso, con le sue
+        # verifiche su firme, campi bloccati, opzioni e apparizioni. Non
+        # trasformarli in testo disegnato sopra il modulo.
+        if len(requested) != 1:
+            raise PdfOverlayError("Salva la compilazione del modulo prima degli altri interventi grafici.")
+        values = form_changes[0].get("values")
+        if not isinstance(values, dict) or not 1 <= len(values) <= 1000:
+            raise PdfOverlayError("Inserisci da 1 a 1000 campi del modulo.")
+        from pct.mediazione_documenti import compila_pdf
+
+        try:
+            return compila_pdf(pdf_bytes, values), len(values)
+        except ValueError as exc:
+            raise PdfOverlayError(str(exc)) from exc
+    normalized = [_normalize_annotation(item) for item in requested]
     if not normalized:
         raise PdfOverlayError("Nessuna modifica PDF da salvare.")
     keys = [(a["page"], a["span"]) for a in normalized if a["type"] == "replace"]
@@ -367,7 +387,8 @@ def _original_font(page, span):
     font = fonts[family][int(bold) + 2 * int(italic)]
     font_metrics = fitz.Font(fontname=font)
     original_font_available = name in {"helvetica", "helvetica-bold", "helvetica-oblique", "helvetica-boldoblique", "times-roman", "times-bold", "times-italic", "times-bolditalic", "courier", "courier-bold", "courier-oblique", "courier-boldoblique"}
-    normalize = lambda value: str(value).split("+")[-1].casefold().replace("-", "").replace(" ", "")
+    def normalize(value):
+        return str(value).split("+")[-1].casefold().replace("-", "").replace(" ", "")
     for record in page.get_fonts(full=True):
         if normalize(record[3]) != normalize(span.get("font", "")):
             continue

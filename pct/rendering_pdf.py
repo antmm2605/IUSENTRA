@@ -48,9 +48,17 @@ def apri_documento(origine: bytes | str | Path):
     except ImportError as exc:  # pragma: no cover - dipendenza dichiarata
         raise RenderingPdfError("Motore di rendering PDF non disponibile.") from exc
     try:
-        if isinstance(origine, (str, Path)):
-            return pdfium.PdfDocument(str(origine))
-        return pdfium.PdfDocument(origine)
+        documento = pdfium.PdfDocument(str(origine) if isinstance(origine, (str, Path)) else origine)
+        try:
+            # PDFium disegna le apparizioni AcroForm solo se l'ambiente viene
+            # predisposto prima di caricare le pagine. Non eseguire JavaScript
+            # o azioni del documento e non attivare moduli XFA.
+            if documento.get_formtype() == pdfium.raw.FORMTYPE_ACRO_FORM:
+                documento.init_forms(config=pdfium.raw.FPDF_FORMFILLINFO(version=2, xfa_disabled=True))
+        except Exception:
+            documento.close()
+            raise
+        return documento
     except Exception as exc:
         raise RenderingPdfError("PDF non apribile per il rendering.") from exc
 
@@ -129,10 +137,10 @@ def pagine_png(origine: bytes | str | Path, *, dpi: int = 130) -> list[dict[str,
 
 __all__ = [
     "SCALA_MASSIMA",
-    "apri_documento",
     "SCALA_MINIMA",
     "DimensioniPagina",
     "RenderingPdfError",
+    "apri_documento",
     "dimensioni_pagine",
     "pagina_png",
     "pagine_png",

@@ -21,21 +21,31 @@
     {
       "priority": 1,
       "subject": "Comandi tabella e pannelli compatti",
-      "existing": ["frontend/src/editorTableGrid.ts", "frontend/src/components/DocumentEditorPage.tsx", "frontend/src/components/ManagedWindowState.tsx"],
+      "existing": [
+        "frontend/src/editorTableGrid.ts",
+        "frontend/src/components/DocumentEditorPage.tsx",
+        "frontend/src/components/ManagedWindowState.tsx"
+      ],
       "method": "Confrontare selezione, unione/divisione e docking con la procedura nativa. Adattare soltanto il miglioramento dimostrato, mantenendo cronologia, campi collegati e persistenza.",
       "required_proof": "Browser reale 8080: modifica, annulla/ripristina, salvataggio, riapertura, pannelli e scroll desktop/mobile. Confronto del documento finale renderizzato."
     },
     {
       "priority": 2,
       "subject": "Ritaglio, maschere e geometria immagine",
-      "existing": ["pct/document_intelligence", "frontend/src/components/documentCapture"],
+      "existing": [
+        "pct/document_intelligence",
+        "frontend/src/components/documentCapture"
+      ],
       "method": "Confrontare algoritmi PhotoCraft con la diagnosi e il motore condiviso già presenti; conservare trasformazioni solo se producono un miglioramento misurato. Nessun secondo OCR.",
       "required_proof": "Comando normale del lettore, fonte originale e riquadri, dati realmente applicati e persistiti, tentativi finiti e regressioni sui casi precedenti."
     },
     {
       "priority": 3,
       "subject": "Impaginazione OOXML e confronto PDF",
-      "existing": ["frontend/src/components/templateEditor", "frontend/src/components/ViewerDocumentEditor.tsx"],
+      "existing": [
+        "frontend/src/components/templateEditor",
+        "frontend/src/components/ViewerDocumentEditor.tsx"
+      ],
       "method": "Valutare il singolo componente sul confronto originale/risultato, senza assumere fedeltà dal README o introdurre una conversione parallela non governata.",
       "required_proof": "Tutte le pagine: testo, font, stili, tabelle, immagini, margini, intestazioni, salvataggio e riapertura. Firma/deposito/PEC congelati preservati."
     }
@@ -102,5 +112,52 @@
       "code_installed": false,
       "real_acceptance": false
     }
-  ]
+  ],
+  "investigation_20261013": {
+    "status": "Integrazione aperta; sole prove diagnostiche dei motori esterni, nessuna accettazione del prodotto",
+    "method": "REA 6.4.0 su sorgenti pubblici montati in sola lettura; esecuzione CLI ufficiali verificati tramite SHA256SUMS in contenitori isolati senza rete",
+    "wordcraft": {
+      "source_commit": "159b84f54c74e9e82fb3109b758ae7dd6f4e3ab0",
+      "release_commit": "7dfa6b0ee2aeeafec004c51fdd2ab9a697da3cc4",
+      "release": "0.6.1",
+      "source_files": 596,
+      "observed": "DOCX a una pagina: i font predefiniti sostituiscono Times New Roman con Source Serif 4; montando le quattro facce reali, font e dimensioni corretti. Confronto diagnostico con conversione LibreOffice nativa: 15 righe visive con scostamenti fino a circa 0,4 punti; non prova di identità universale.",
+      "bridge": "Il JavaScript web esporta inizializzazione; salvataggio browser e archivio SQL sono distinti. Manca ancora il collegamento governato alla superficie React, ai modelli e ai resolver dello studio.",
+      "proofing": "Il motore consultato non offre italiano; riutilizzare il correttore condiviso IUSENTRA."
+    },
+    "pdfcraft": {
+      "source_commit": "7437bde378f43856eada40af25b983812e615e8a",
+      "release_commit": "7163ba3dee8becfff6871c9a65d0d8314314742b",
+      "release": "0.7.1",
+      "source_files": 1342,
+      "source_inventory_sha256": "d07c1dc572c3f1fb29daf0208e1df2996f9dae825028f260e47f15c965bb7e7c",
+      "rotation_probe": "90 gradi e ritorno: stessi caratteri, quattro font, dimensioni e pixel renderizzati. Prova tecnica sul PDF diagnostico, non accettazione IUSENTRA.",
+      "text_probe": "La selezione automatica dei paragrafi raggruppa titolo a 20 punti e primo paragrafo a dimensione diversa. La riscrittura della sola prima riga con testo invariato conserva testo e quattro font ma differisce in 945 byte dei campioni di rendering su 1505496. Selezione delle righe/tratti e confronto della modifica necessari.",
+      "font_probe": "text_edit_layout non restituisce facce sfnt incorporate per il PDF prodotto da WordCraft; non assumere disponibilità del font per nuovi caratteri."
+    },
+    "integration_scope": [
+      "Impaginazione, stili, tabelle, intestazioni, piè di pagina e revisioni Word",
+      "Font disponibili e confronto visuale della medesima impaginazione usata per PDF",
+      "Organizzazione, ritaglio e inserimento delle pagine PDF",
+      "Moduli con valori e apparizioni coerenti, annotazioni e modifiche puntuali",
+      "Riutilizzo del salvataggio SQL, RBAC, impronta attesa, versioni e audit esistenti"
+    ],
+    "constraints": [
+      "Nessuna trasmissione di documenti dello studio a servizi esterni",
+      "Firme, deposito e PEC congelati",
+      "Nessun codice AGPL del progetto distinto PDFCraftTool integrato senza verifica della compatibilità",
+      "Prova normale, salvataggio e riapertura sul browser reale 8080 ancora necessari"
+    ],
+    "rea_limit": "Inventari storici senza errori; il core WASM non è decodificato da REA e richiede analisi dei sorgenti Rust e prove materiali.",
+    "native_pdf_forms": {
+      "status": "Prova normale locale effettuata; CI e rilascio ancora in corso",
+      "implementation": "Riuso compilatore nativo IUSENTRA e salvataggio SQL; nessun motore Rust esterno installato nel prodotto",
+      "local_case": "4235FC10",
+      "original": "051EA595",
+      "saved_copy": "3A3F1816",
+      "observed": "Tre pagine, testo con accenti, checkbox ruotato 90 gradi e selettore Sede B. Bozza conservata chiudendo il pannello; copia salvata e riaperta, originale con SHA identico; raster fuori campi identico in tutte le pagine.",
+      "postgres": "Persistenza, deduplicazione e storico con repository nativo in schema temporaneo isolato",
+      "responsive": "Desktop, tutto schermo, zoom e scroll provati; corretta dipendenza CSS della pagina Mediazione, riprovata vista mobile e tablet."
+    }
+  }
 }

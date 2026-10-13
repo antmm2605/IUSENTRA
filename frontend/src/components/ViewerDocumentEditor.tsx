@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type PointerEvent, type RefObject } from 'react'
-import { Pencil, Save, Undo2, Redo2, ZoomIn, ZoomOut, Signature, TextCursorInput, RefreshCw } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState, type PointerEvent, type RefObject } from 'react'
+import { Pencil, Save, Undo2, Redo2, ZoomIn, ZoomOut, Signature, TextCursorInput, RefreshCw, FormInput } from 'lucide-react'
+import { PdfModulo } from './mediazione/PdfModulo'
 import { ReaderInlineControls } from './ReaderInlineControls'
 import { SourceDocumentModal, SourceDocumentReader, type SourceDocument } from './SourceDocumentModal'
 import './ViewerDocumentEditor.css'
@@ -56,6 +57,11 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
   const [spans, setSpans] = useState<TextSpan[]>([])
   const [selected, setSelected] = useState<TextSpan | null>(null)
   const [copySource, setCopySource] = useState<SourceDocument | null>(null)
+  const [formOpen, setFormOpen] = useState(false)
+  const [formStarted, setFormStarted] = useState(false)
+  const [formDirty, setFormDirty] = useState(false)
+  const loadForm = useCallback((signal: AbortSignal) => requestJson(`${endpoint}/modulo?expectedHash=${encodeURIComponent(policy?.hash || '')}`, { signal }), [endpoint, policy?.hash])
+  const formPagePreview = useCallback((number: number) => `${policy?.base}/pdf-pagina/${number}.png?v=${encodeURIComponent(policy?.hash || '')}`, [policy?.base, policy?.hash])
   const [draft, setDraft] = useState<{ x: number; y: number; x1: number; y1: number } | null>(null)
   const { previewUrl, previewPending, previewValid, setPreviewValid } = useViewerPdfPreview(endpoint, policy?.hash, page, marks, setError, setImageLoaded)
   useBusyActivity(saving, 'Salvataggio delle modifiche al documento…')
@@ -65,7 +71,7 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
   const activeReaderRef = readerRef || localReaderRef
   const [readerDocument, setReaderDocument] = useState<Document | null>(null)
   useEffect(() => { setReaderDocument(null) }, [source.href, revision, open])
-  useViewerPageTools(activeReaderRef, Boolean(policy?.editable), setPage, setOpen, setArmed)
+  useViewerPageTools(activeReaderRef, Boolean(policy?.editable && !formDirty), setPage, setOpen, setArmed)
   const sampler = useViewerColorSampler(setStatus, setError)
 
   useEffect(() => {
@@ -76,15 +82,15 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
     })
     return () => controller.abort()
   }, [endpoint, policyRequest])
-  useEffect(() => { onDirty(Boolean(marks.length || saving)) }, [marks.length, saving, onDirty])
+  useEffect(() => { onDirty(Boolean(marks.length || saving || formDirty)) }, [marks.length, saving, formDirty, onDirty])
   useEffect(() => { onSaving?.(saving) }, [saving, onSaving])
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {
-      if (marks.length || saving) { event.preventDefault(); event.returnValue = '' }
+      if (marks.length || saving || formDirty) { event.preventDefault(); event.returnValue = '' }
     }
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
-  }, [marks.length, saving])
+  }, [marks.length, saving, formDirty])
   useEffect(() => {
     if (!open || !policy?.editable || pages.length) return
     const controller = new AbortController()
@@ -144,7 +150,7 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
     if(tool==='image')setSelectedInsertion(marks.length);setArmed(false);setArmed(false)
   }
   const save = async (destination: 'versione' | 'copia' | 'scarica') => {
-    if (!endpoint || !policy?.editable || !marks.length || saving || previewPending || !previewValid || !imageLoaded) return
+    if (!endpoint || !policy?.editable || !marks.length || saving || formDirty || previewPending || !previewValid || !imageLoaded) return
     sampler.cancel();setSaving(true); setError(''); setStatus(destination==='versione'?'Salvataggio della nuova versione...':destination==='copia'?'Salvataggio della copia...':'Preparazione della copia da scaricare...')
     try {
       const response = await fetch(endpoint, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', Accept: destination === 'scarica' ? 'application/pdf' : 'application/json' }, body: JSON.stringify({ annotations: marks, destinazione: destination, expectedHash: policy.hash }) })
@@ -168,6 +174,30 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
     finally { setSaving(false) }
   }
   const currentPage = pages.find((item) => item.number === page)
+  const saveForm = async (values: Record<string, string | boolean>) => {
+    if (!endpoint || !policy?.editable || saving || marks.length || !Object.keys(values).length) return false
+    setSaving(true); setError(''); setStatus('')
+    try {
+      const result = await requestJson(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ annotations: [{ type: 'form', values }], destinazione: policy.studio ? 'versione' : 'copia', expectedHash: policy.hash }),
+      })
+      if (result.ok === false) throw new Error(result.message || result.errore || 'Modulo non salvato.')
+      if (result.destinazione === 'versione') {
+        setPolicy({ ...policy, hash: result.documento.hash }); setRevision(Date.now()); setPages([])
+        setStatus('Modulo salvato come nuova versione. La versione precedente resta nello storico.')
+      } else {
+        setCopySource({ href: source.href.replace(/\/documenti\/[^/]+\//, `/documenti/${result.documento.id}/`), label: result.documento.nome, context: 'Modulo compilato. L’originale è rimasto intatto.' })
+        setStatus(`Modulo compilato salvato nel fascicolo: ${result.documento.nome}.`)
+      }
+      if (result.warning) setError(result.warning)
+      setFormDirty(false)
+      return true
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Modulo non salvato.'); return false
+    } finally { setSaving(false) }
+  }
   const rotatePage = (degrees: number) => {
     setArmed(false)
     if (marks.some((mark)=>mark.type!=='rotate')) {setError('Salva gli interventi prima di ruotare la pagina.');return}
@@ -186,14 +216,18 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
   if (revision) readerUrl.searchParams.set('iuRevision', String(revision))
   return <ViewerColorSampling.Provider value={sampler}><div className="iu-viewer-edit" onContextMenu={(event)=>{event.stopPropagation();if(open)event.preventDefault()}} onKeyDown={event=>{if(event.key==='Escape'&&sampler.active){event.preventDefault();event.stopPropagation();sampler.cancel()}else if(event.key==='Escape'&&armed){event.preventDefault();event.stopPropagation();setArmed(false);setDraft(null);drag.current=null}}}>
     {endpoint && !(compactReader && !policy?.editable && policy?.reason === 'Questo formato resta consultabile nel lettore e scaricabile.' && !error) ? <div className="iu-viewer-edit__bar">
-      {policy?.editable ? <button type="button" title={open ? "Chiudi strumenti di modifica" : policy.studio ? "Modifica documento" : "Prepara copia per condivisione"} aria-label={open ? "Chiudi strumenti di modifica" : policy.studio ? "Modifica documento" : "Prepara copia per condivisione"} aria-expanded={open} aria-controls="iu-viewer-edit-workbench" onClick={() => {sampler.cancel();setArmed(false);setOpen((value) => !value)}} disabled={saving}><Pencil size={16} aria-hidden="true"/></button>
+      {policy?.editable ? <button type="button" title={open ? "Chiudi strumenti di modifica" : policy.studio ? "Modifica documento" : "Prepara copia per condivisione"} aria-label={open ? "Chiudi strumenti di modifica" : policy.studio ? "Modifica documento" : "Prepara copia per condivisione"} aria-expanded={open} aria-controls="iu-viewer-edit-workbench" onClick={() => {sampler.cancel();setArmed(false);setOpen((value) => !value)}} disabled={saving || formDirty}><Pencil size={16} aria-hidden="true"/></button>
         : <span role={error ? 'alert' : 'status'}>{policy?.reason || (error ? error : 'Verifica provenienza e permessi…')}</span>}
       {!policy && error ? <button type="button" title="Riprova caricamento" aria-label="Riprova caricamento" onClick={() => { setError(''); setPolicyRequest(value => value + 1); setRevision(value => value + 1) }}><RefreshCw size={16} aria-hidden="true"/></button> : null}
       {marks.length ? <span role="status">{marks.length} {marks.length === 1 ? 'intervento da salvare' : 'interventi da salvare'}</span> : null}
-      {policy?.editable ? <><button type="button" disabled={saving} title="Firma grafica" aria-label="Firma grafica" aria-expanded={signatureOpen} onClick={() => {sampler.cancel();setArmed(false);setSignatureOpenRequest(value => value + 1);setSignatureOpen(true)}}><Signature size={16} aria-hidden="true"/></button><button type="button" disabled={saving || !policy.studio} aria-label="Modifica testo" title={policy.studio ? 'Seleziona la riga da modificare nel documento' : 'La modifica del testo è riservata ai PDF prodotti dallo studio e non firmati.'} onClick={() => {sampler.cancel();setSelectedInsertion(null);setSelected(null);setDraft(null);setTool('replace');setOpen(true);setArmed(true)}}><TextCursorInput size={16} aria-hidden="true"/></button>{!policy.studio ? <span className="iu-viewer-edit__protection" title="Testo protetto: PDF firmato, acquisito da fonte esterna o senza provenienza dello studio verificata.">Testo protetto</span> : null}</> : null}
+      {policy?.editable ? <><button type="button" disabled={saving || formDirty} title="Firma grafica" aria-label="Firma grafica" aria-expanded={signatureOpen} onClick={() => {sampler.cancel();setArmed(false);setSignatureOpenRequest(value => value + 1);setSignatureOpen(true)}}><Signature size={16} aria-hidden="true"/></button><button type="button" disabled={saving || formDirty || !policy.studio} aria-label="Modifica testo" title={policy.studio ? 'Seleziona la riga da modificare nel documento' : 'La modifica del testo è riservata ai PDF prodotti dallo studio e non firmati.'} onClick={() => {sampler.cancel();setSelectedInsertion(null);setSelected(null);setDraft(null);setTool('replace');setOpen(true);setArmed(true)}}><TextCursorInput size={16} aria-hidden="true"/></button>{!policy.studio ? <span className="iu-viewer-edit__protection" title="Testo protetto: PDF firmato, acquisito da fonte esterna o senza provenienza dello studio verificata.">Testo protetto</span> : null}</> : null}
       {!open && !marks.length ? <ReaderInlineControls document={readerDocument}/> : null}
       {open || marks.length ? <div className="iu-viewer-edit__zoom" role="group" aria-label="Zoom della pagina"><button type="button" title="Riduci" aria-label="Riduci pagina" disabled={zoom<=.5} onClick={()=>setZoom(Math.max(.5,zoom-.25))}><ZoomOut size={16}/></button><button type="button" title="Adatta alla larghezza" onClick={()=>setZoom(1)}>Adatta</button><span>{Math.round(zoom*100)}%</span><button type="button" title="Ingrandisci" aria-label="Ingrandisci pagina" disabled={zoom>=2} onClick={()=>setZoom(Math.min(2,zoom+.25))}><ZoomIn size={16}/></button></div> : null}
+    {policy?.editable && /\.pdf$/i.test(source.label) ? <button type="button" disabled={saving || Boolean(marks.length)} title={formOpen ? 'Chiudi compilazione modulo' : 'Compila modulo PDF'} aria-label={formOpen ? 'Chiudi compilazione modulo' : 'Compila modulo PDF'} aria-expanded={formOpen} onClick={() => { sampler.cancel(); setArmed(false); setOpen(false); setFormStarted(true); setFormOpen(value => !value) }}><FormInput size={16} aria-hidden="true"/></button> : null}
     </div> : null}
+    {formStarted && policy?.editable ? <section hidden={!formOpen} aria-label="Compilazione modulo PDF"><PdfModulo title="Compila il modulo PDF" endpoint={`${endpoint}/modulo`} previewUrl={readerUrl.toString()} pagePreviewUrl={formPagePreview} busy={saving} save={saveForm} onDirty={setFormDirty} carica={loadForm} saveLabel={policy.studio ? 'Salva nuova versione compilata' : 'Salva copia compilata nel fascicolo'}/></section> : null}
+    {formOpen && error ? <p role="alert" className="iu-viewer-edit__error">{error}</p> : null}
+    {status && !open ? <p role="status" className="iu-viewer-edit__status">{status}</p> : null}
     {(open || marks.length>0) && policy?.editable ? <section id="iu-viewer-edit-workbench" className={`iu-viewer-edit__workbench${open?'':' is-tools-closed'}`} aria-label={policy.studio ? 'Modifica documento dello studio' : 'Copia per condivisione'}>
       <div className="iu-viewer-edit__tools">
         <div className="iu-viewer-edit__panel-title"><Pencil size={18}/><strong>Strumenti documento</strong></div>
@@ -225,9 +259,9 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
         {armed && tool === 'highlight' ? <ViewerColorPalette label="Colore evidenziatore" value={highlightColor} disabled={saving} presets={[["Giallo","#fef3c7"],["Verde","#bbf7d0"],["Azzurro","#bfdbfe"],["Rosa","#fbcfe8"],["Arancione","#fed7aa"]]} onChange={setHighlightColor}/> : null}
         </div>
         <div className="iu-viewer-edit__actions">
-        {policy.studio ? <button type="button" className="iu-viewer-edit__save" onClick={() => void save('versione')} disabled={!marks.length || saving || previewPending || !previewValid || !imageLoaded}><Save size={15}/>{saving ? 'Salvataggio...' : 'Salva nuova versione'}</button> : null}
-        <button type="button" onClick={() => void save('copia')} disabled={!marks.length || saving || previewPending || !previewValid || !imageLoaded}>Salva copia nel fascicolo</button>
-        <button type="button" onClick={() => void save('scarica')} disabled={!marks.length || saving || previewPending || !previewValid || !imageLoaded}>Scarica copia</button>
+        {policy.studio ? <button type="button" className="iu-viewer-edit__save" onClick={() => void save('versione')} disabled={!marks.length || saving || formDirty || previewPending || !previewValid || !imageLoaded}><Save size={15}/>{saving ? 'Salvataggio...' : 'Salva nuova versione'}</button> : null}
+        <button type="button" onClick={() => void save('copia')} disabled={!marks.length || saving || formDirty || previewPending || !previewValid || !imageLoaded}>Salva copia nel fascicolo</button>
+        <button type="button" onClick={() => void save('scarica')} disabled={!marks.length || saving || formDirty || previewPending || !previewValid || !imageLoaded}>Scarica copia</button>
         </div>
       </div>
       <div className="iu-viewer-edit__messages">
@@ -245,7 +279,7 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
           {draft ? <span className="iu-viewer-edit__draft" style={{ left: `${Math.min(draft.x, draft.x1) * 100}%`, top: `${Math.min(draft.y, draft.y1) * 100}%`, width: `${Math.abs(draft.x1 - draft.x) * 100}%`, height: `${Math.abs(draft.y1 - draft.y) * 100}%` }}/> : null}
         </div>}
       </div>
-    </section> : <SourceDocumentReader key={`${source.href}-${revision}`} href={readerUrl.toString()} label={source.label} rotation={readerRotation} readerRef={activeReaderRef} compact={compactReader} onReaderReady={setReaderDocument}/>}
+    </section> : formOpen ? null : <SourceDocumentReader key={`${source.href}-${revision}`} href={readerUrl.toString()} label={source.label} rotation={readerRotation} readerRef={activeReaderRef} compact={compactReader} onReaderReady={setReaderDocument}/>}
     <SourceDocumentModal source={copySource} onClose={() => setCopySource(null)}/>
     {signatureOpen ? <ViewerHandwrittenSignaturePanel disabled={saving} openRequest={signatureOpenRequest} onClose={() => setSignatureOpen(false)} onInsert={(imageData, width, height) => {setImageOptions({imageData,imageName:'Firma grafica',width:.25,height:.25*(currentPage?.width||595)/(currentPage?.height||842)*height/width,keepRatio:true,imageBrightness:1,imageContrast:1,imageSharpness:1,imageGrayscale:false,imageAutocontrast:false});setSelectedInsertion(null);setTool('image');setOpen(true);setArmed(true);setSignatureOpen(false)}}/> : null}
   </div></ViewerColorSampling.Provider>

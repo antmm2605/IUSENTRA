@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.437.22 — candidata, 13/10/2026
+
+- Compilazione dei campi PDF nativi nel lettore: testo, caselle e scelte su più pagine, con coordinate corrette anche sulle pagine ruotate. Salvataggio tramite la procedura esistente, copie distinte, impronta e protezione dalle modifiche concorrenti.
+- I moduli PDF caricati nel fascicolo conservano i campi originali usando il percorso nativo di conservazione; le conversioni esplicite restano disponibili nelle procedure previste.
+- Controlli del compilatore autonomi dalla pagina Mediazione, con layout compatto e scorrimento del documento. Prove reali desktop, mobile e tablet effettuate sulla copia locale; CI e deploy ancora in corso.
+- Anteprima PDFium inizializzata per mostrare i valori AcroForm anche nel lettore normale, senza modificare il file: osservati testo, spunta e scelta su tutte le tre pagine della copia salvata.
+
 ## 2.437.21 — candidata, 13/10/2026
 
 - Autocertificazione di esenzione: confronto del dichiarante e collegamento SQL della fonte al fascicolo, senza richiedere al modulo R.G., ufficio o dati di pagamento assenti. Recupero locale mirato del rigo dichiarante e risoluzione PDF misurata per pagina, con impronta e originali conservati. Riapertura e ripetizione provate sul caso controllato, senza duplicati né incassi.

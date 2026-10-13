@@ -13,7 +13,7 @@ type ModuleData = { campi: Field[]; pagine: { numero: number; larghezza: number;
   proposte?: Record<string, string>; origini?: Record<string, string>; righe?: Righe
   /** Importi di legge citati dal modulo e non piu' vigenti. */
   avvisiNormativi?: { messaggio: string; importo_citato?: string; importo_vigente?: string }[] }
-export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica, avvioEspanso, onEsci, onEditWithoutFields }: {
+export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica, avvioEspanso, onEsci, onEditWithoutFields, saveLabel, pagePreviewUrl, title }: {
   endpoint: string; previewUrl: string; busy: boolean; save: (values: Record<string, string | boolean>) => Promise<boolean>; onDirty: (dirty: boolean) => void
   /** Come leggere i campi. Serve dove la richiesta non basta da sola: il
    *  Portale Cliente si autentica con un token, non con la sessione dello
@@ -29,10 +29,15 @@ export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica, a
   onEsci?: () => void
   /** I PDF senza AcroForm si compilano con l'editor grafico nativo, preservando l'originale. */
   onEditWithoutFields?: () => void
+  saveLabel?: string
+  title?: string
+  pagePreviewUrl?: (page: number) => string
 }) {
   const [data, setData] = useState<ModuleData | null>(null)
   const [values, setValues] = useState<Record<string, string | boolean>>({})
   const [page, setPage] = useState(1)
+  const [previewReady, setPreviewReady] = useState(false)
+  useEffect(() => { setPreviewReady(false) }, [page, previewUrl, pagePreviewUrl])
   const [error, setError] = useState('')
   const [dirty, setDirty] = useState(false)
   const [retry, setRetry] = useState(0)
@@ -94,7 +99,7 @@ export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica, a
   const update = (name: string, value: string | boolean) => { setValues((old) => ({ ...old, [name]: value })); setDirty(true) }
   return <section ref={surface} className={`iu-mediazione-block iu-mediazione-pdf-editor${expanded ? ' iu-mediazione-pdf-editor--expanded' : ''}`} aria-label="Compilazione del modulo originale">
     <header className="iu-mediazione-pdf-header">
-      <h3>Compila il modulo dell’organismo</h3>
+      <h3>{title || 'Compila il modulo dell’organismo'}</h3>
       <span ref={expandButton}><Button onClick={toggleExpanded} aria-pressed={expanded} aria-label={expanded ? (onEsci ? 'Chiudi il modulo' : 'Torna alla vista normale del modulo') : 'Apri il modulo a tutto schermo'}>
         {expanded ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}
         {expanded ? (onEsci ? 'Chiudi il modulo' : 'Vista normale') : 'Tutto schermo'}
@@ -132,7 +137,7 @@ export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica, a
     </> : null}
     <div className="iu-mediazione-pdf-scroll" tabIndex={0} aria-label="Pagina del modulo, scorrimento orizzontale disponibile">
       <div className="iu-mediazione-pdf-sheet" style={{ aspectRatio: `${sheet.larghezza} / ${sheet.altezza}`, width: `${8 * zoom}px` }}>
-        <img src={`${previewUrl}${previewUrl.includes('?') ? '&' : '?'}viewer=mobile&page=${page}${righe ? `&righe=${righe}` : ''}`} alt={`Pagina ${page} del modulo dell’organismo`} onError={() => setError('Anteprima non disponibile. Non compilare senza verificare la pagina.')} />
+        <img src={pagePreviewUrl ? pagePreviewUrl(page) : `${previewUrl}${previewUrl.includes('?') ? '&' : '?'}viewer=mobile&page=${page}${righe ? `&righe=${righe}` : ''}`} alt={`Pagina ${page} del modulo PDF`} onLoad={() => setPreviewReady(true)} onError={() => { setPreviewReady(false); setError('Anteprima non disponibile. Non compilare senza verificare la pagina.') }} />
         {fields.map((f, i) => {
           const current = values[f.nome] ?? (f.tipo === 'CheckBox' ? f.selezionato : f.valore)
           const style = { left: `${f.rettangolo[0] * 100}%`, top: `${f.rettangolo[1] * 100}%`, width: `${f.rettangolo[2] * 100}%`, height: `${f.rettangolo[3] * 100}%` }
@@ -147,7 +152,7 @@ export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica, a
         })}
       </div>
     </div>
-    <Button disabled={!dirty || busy} onClick={async () => { if (await save(values)) { setDirty(false); setValues({}) } }}>{busy ? 'Salvataggio della copia…' : 'Salva copia compilata nel fascicolo'}</Button>
-    {dirty ? <p role="status">Compilazione da salvare. Salva la copia prima di cambiare organismo o procedimento.</p> : null}
+    <Button disabled={!dirty || busy || !previewReady} onClick={async () => { if (await save(values)) { setDirty(false); setValues({}) } }}>{busy ? 'Salvataggio…' : saveLabel || 'Salva copia compilata nel fascicolo'}</Button>
+    {dirty ? <p role="status">Compilazione da salvare. Salva prima di cambiare documento o procedimento.</p> : null}
   </section>
 }

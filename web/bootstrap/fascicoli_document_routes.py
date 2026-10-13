@@ -17,6 +17,7 @@ from flask import Flask, flash, g, jsonify, redirect, request, url_for
 
 from pct.document_management import normalize_document_tags
 from pct.fascicoli import TipoDocumento
+from pct.mediazione_documenti import contiene_modulo_pdf
 from web.bootstrap.fascicoli_document_helpers import (
     classifica_tipo_documento,
     nome_documento_operativo,
@@ -107,6 +108,12 @@ def register_fascicoli_document_routes(
                     caricato_da=utente.username if utente else "",
                     fonte_documento="CARICAMENTO_STUDIO",
                     nome_originale=storage.filename,
+                    # Si riusa la conservazione già prevista per i moduli:
+                    # la conversione anticipata li appiattisce. Le procedure
+                    # di firma e deposito non cambiano.
+                    preserva_contenuto_originale=(
+                        storage.filename.lower().endswith(".pdf") and contiene_modulo_pdf(raw)
+                    ),
                 )
                 documenti_creati.append(documento)
                 # Chi ha appena pagato sul portale trascina la ricevuta nel

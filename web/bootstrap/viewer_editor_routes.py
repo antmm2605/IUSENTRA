@@ -11,6 +11,49 @@ def register_viewer_editor_routes(app):
         user = g.get("utente_corrente")
         return bool(user and user.ha_permesso(permesso))
 
+    @app.get("/api/v1/ui/fascicoli/<fid>/documenti/<did>/editor-visualizzatore/modulo")
+    def documento_editor_modulo(fid, did):
+        from pathlib import Path
+        from pct.document_crypto import decrypt_doc
+        from pct.document_signature_state import document_has_real_digital_signature
+        from pct.mediazione_documenti import campi_pdf
+        from web.helpers import get_fascicoli
+        from web.services.pdf_overlay_editor import pdf_page_infos
+
+        if not puo("fascicoli.leggi") or not puo("fascicoli.scrivi"):
+            return jsonify(ok=False, message="Permesso insufficiente."), 403
+        gestore = get_fascicoli()
+        fascicolo = gestore.get(fid)
+        documento = next((d for d in getattr(fascicolo, "documenti", []) if d.id == did), None)
+        if not documento or getattr(documento, "eliminato_il", ""):
+            return jsonify(ok=False, message="Documento non trovato."), 404
+        motivo = motivo_sola_lettura(documento)
+        if motivo:
+            return jsonify(ok=False, message=motivo), 403
+        if document_has_real_digital_signature(documento):
+            return jsonify(ok=False, message="Il PDF è firmato. I campi originali non possono essere compilati."), 403
+        if request.args.get("expectedHash") != documento.hash_sha256:
+            return jsonify(ok=False, message="Il documento è cambiato. Riaprilo prima di compilarlo."), 409
+        try:
+            path = Path(gestore.percorso_documento_lettura(fid, did))
+            if path.stat().st_size > 128 * 1024 * 1024:
+                return jsonify(ok=False, message="Il modulo supera il limite di lettura di 128 MiB."), 400
+            raw = decrypt_doc(path.read_bytes())
+            if not raw.lstrip().startswith(b"%PDF-"):
+                return jsonify(ok=False, message="La compilazione dei campi nativi richiede un PDF."), 400
+            fields = campi_pdf(raw)
+            if len(fields) > 1000:
+                return jsonify(ok=False, message="Il modulo supera il limite di 1000 campi."), 400
+            pages = pdf_page_infos(raw)
+            response = jsonify(ok=True, campi=fields,
+                               pagine=[{"numero":p.number,"larghezza":p.width,"altezza":p.height} for p in pages],
+                               documento=did, versione=len(documento.versioni), hash=documento.hash_sha256)
+            response.headers["Cache-Control"] = "no-store"
+            return response
+        except Exception:
+            app.logger.exception("Campi del modulo non disponibili")
+            return jsonify(ok=False, message="Campi del modulo non disponibili. Nessuna modifica è stata salvata."), 500
+
     @app.post("/api/v1/ui/fascicoli/<fid>/documenti/<did>/editor-visualizzatore/anteprima/<int:pagina>")
     def documento_editor_anteprima(fid, did, pagina):
         from pathlib import Path

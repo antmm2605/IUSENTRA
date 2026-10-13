@@ -1,5 +1,9 @@
 # Pytest issue aperte e risoluzioni
 
+## Dipendenze e avviso aggiuntivo braces — 13/10/2026
+
+Quattro aggiornamenti mirati preparati e provati tecnicamente nella candidata 2.437.24; restano accettazione materiale locale, CI e deploy. Audit completo individua anche GHSA-vfj7-8cjw-p6xm su braces 3.0.3, severità alta: lavoro successivo esplicito, non incluso né nascosto dalla correzione dei quattro avvisi iniziali. Nessuna attestazione di audit privo di vulnerabilità.
+
 ## Catalogazione locale Spark estesa — 09/10/2026
 
 Nuovo perimetro autorizzato aggiunto all'incarico permanente. Analisi: catalogo già suddiviso per aree; seconda lettura Spark limitata ai primi 4.000 caratteri e ancora proposta da approvare. Occorre estendere lettura e tassonomia condivise, provare la decisione automatica governata, evidenze sui passaggi effettivamente letti, impronta corrente, concorrenza, audit e sincronizzazione live. Piano e criteri in `artifacts/data-flow/catalogazione-spark-estensione-20261009.md`. Nessun codice operativo modificato, scansione avviata o nuovo test tecnico/visivo dichiarato positivo. Restano installazione e accettazione materiale locale 8080, poi Git/CI/riallineamento/deploy sullo stesso commit.

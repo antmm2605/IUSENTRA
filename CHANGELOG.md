@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.437.24 — candidata, 13/10/2026
+
+- Aggiornamenti mirati delle quattro dipendenze segnalate: Hono 4.13.7, MCP SDK 1.31.0, postcss-selector-parser 7.1.6 e source-map-js 1.2.2, con lock rigenerato e installazione congelata verificata.
+- Quattro prove di regressione registrate nella suite frontend: escaping, selettori estesi, mappe sorgente e compatibilità del server MCP stdio. Asset compilati identici alla versione precedente.
+- L'audit completo mantiene esplicito un ulteriore avviso alto su braces, da correggere separatamente. Accettazione sulla copia reale, CI e deploy di questa candidata ancora da eseguire.
+
 ## 2.437.23 — candidata, 13/10/2026
 
 - Download dei codici pubblici Normattiva: sessione ufficiale conservata soltanto in memoria; 13 XML acquisiti e validati nel comando nativo e nel workflow GitHub. Nessuna importazione sul server.

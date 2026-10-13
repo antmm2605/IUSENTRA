@@ -1,5 +1,9 @@
 # Pytest shard confermati OK
 
+## Dipendenze segnalate — prove tecniche, 13/10/2026
+
+Installazione congelata, typecheck, build e suite frontend con i quattro nuovi test di sicurezza positivi nella copia temporanea governata. Hono conserva il testo ordinario ed esegue l'escaping; selettori estesi terminano entro il limite; offset non validi e annidati sono rifiutati dalle mappe sorgente; API MCP stdio disponibile. Confrontati 285 asset compilati, byte identici alla copia principale. Queste sono prove tecniche: candidata 2.437.24 non ancora accettata nella macchina reale, né distribuita. Evidenze conservate mediante il plugin Codex Security. Avviso separato braces ancora aperto.
+
 ## Correzione economica preparata, non attivata — 08/10/2026
 
 Nel checkout corretto il vecchio scrittore sentenza: non usa più la pubblicazione come udienza/data di chiusura e non forza lo stato DEFINITO; la transizione «Da archiviare» resta responsabilità del verificatore del ciclo nativo. La liquidazione viene registrata come credito `da_registrare`, senza pagamento, data o metodo inventati. Anche la parcella da emettere non riceve una data di incasso. Le due voci preservano record di altri produttori e interventi manuali riconosciuti dallo storico, compresi quelli che mantengono l'origine Lex preesistente. Per la correzione di un vecchio pagamento generato da Lex, lo storico conserva stato/importo e data/metodo precedenti.

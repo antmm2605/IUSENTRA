@@ -187,6 +187,7 @@ def importi_letti(fatti: Iterable[Fatto]) -> dict[str, dict[str, Any]]:
     from .estrazione_importi import CAMPI_IMPORTO
 
     migliori: dict[str, dict[str, Any]] = {}
+    evidenze: dict[str, list[dict[str, Any]]] = {}
     for fatto in fatti:
         if fatto.categoria != "importo" or fatto.verifica not in VERIFICHE_UTILI or fatto.campo not in CAMPI_IMPORTO:
             continue
@@ -201,15 +202,33 @@ def importi_letti(fatti: Iterable[Fatto]) -> dict[str, dict[str, Any]]:
             "etichetta": fatto.etichetta, "titolo": fatto.valore_letto, "contesto": fatto.contesto,
             "verifica": fatto.verifica, "verifica_etichetta": etichetta_verifica(fatto.verifica),
             "documento_id": fatto.oggetto_id, "tipo": fatto.tipo, "origine": fatto.origine,
+            "sha256": fatto.sha256,
+            "identita_contenuto": next((str(p.get("dettaglio") or "") for p in fatto.prove
+                                        if p.get("codice") == "impronta_contenuto_economico" and p.get("esito") == "ok"), "")
+                                  or fatto.sha256 or fatto.id,
             "norma": norma, "natura": natura, "fatto_id": fatto.id,
             "stato_prova": next((str(p.get("dettaglio") or "") for p in fatto.prove if p.get("codice") == "stato" and p.get("esito") == "ok"), ""),
             # Il giorno del versamento: la ricevuta lo porta, e all'avvocato
             # serve quanto l'importo. Senza, la voce dice «pagato» ma non quando.
             "data_prova": next((str(p.get("dettaglio") or "") for p in fatto.prove if p.get("codice") == "data" and p.get("esito") == "ok"), ""),
         }
+        evidenze.setdefault(fatto.campo, []).append(voce)
         corrente = migliori.get(fatto.campo)
         if corrente is None or _forza_verifica(fatto.verifica) > _forza_verifica(str(corrente["verifica"])):
             migliori[fatto.campo] = voce
+    for campo, voci in evidenze.items():
+        amounts = {voce["importo"] for voce in voci}
+        if len(amounts) <= 1 and len({voce["identita_contenuto"] for voce in voci}) <= 1:
+            continue
+        current = dict(migliori[campo])
+        current["discordanze"] = [dict(voce) for voce in voci]
+        current["importi_letti"] = sorted(amounts)
+        current["richiede_conferma"] = True
+        if current["verifica"] != "corretta":
+            current["importo"] = None
+            current["valore"] = ""
+            current["verifica"] = "plausibile"
+        migliori[campo] = current
     return migliori
 
 

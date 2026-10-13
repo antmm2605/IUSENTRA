@@ -67,6 +67,34 @@ METADATA = {
 }
 
 
+def test_contributo_richiede_ufficio_concordante_e_non_duplica_la_ricevuta():
+    from copy import deepcopy
+    from pct.archivio_letture.presidio_economico import contributo_verificato
+    from pct.archivio_letture.verifica_economica import identita
+    from pct.registro_letture.fatti_repository import Fatto
+
+    fascicolo = SimpleNamespace(nome_cliente="BARILARO FRANCESCO", numero_rg="523", anno_rg=2026,
+                               tribunale="Tribunale di Vicenza")
+    text = "TRIBUNALE DI VICENZA\nRG 523/2026\nBARILARO FRANCESCO\nRicevuta contributo unificato"
+    proof = identita(text, {"fascicolo": fascicolo})
+    proof += [{"codice": "stato", "esito": "ok", "dettaglio": "pagato"},
+              {"codice": "data", "esito": "ok", "dettaglio": "12/10/2026"},
+              {"codice": "iuv_economico", "esito": "ok", "dettaglio": "12345678901234567"}]
+    receipt = Fatto(categoria="importo", campo="contributo_unificato", valore="49.00",
+                   verifica="verificata", sha256="a" * 64, prove=proof, id="doc", tipo="documento")
+    copy = deepcopy(receipt)
+    copy.id, copy.tipo, copy.sha256 = "pec", "allegato_pec", "b" * 64
+    result = contributo_verificato([receipt, copy])
+    assert result["pagato"] and result["importo"] == 49.0
+    assert result["data_pagamento"] == "2026-10-12"
+    assert len(result["fontiVerifica"]) == 2
+    wrong = deepcopy(receipt)
+    wrong.prove = identita(text.replace("VICENZA", "TORINO"), {"fascicolo": fascicolo}) + proof[3:]
+    result = contributo_verificato([wrong])
+    assert not result["pagato"] and result["importo"] is None
+    assert any("Ufficio" in reason for reason in result["verificheMancanti"])
+
+
 class _RepositoryFascicoli:
     def __init__(self) -> None:
         self.fascicolo = SimpleNamespace(
@@ -74,7 +102,9 @@ class _RepositoryFascicoli:
             id_cliente="CLI-1",
             titolo="Barilaro c. Ministero",
             numero_rg="523/2026",
+            anno_rg=2026,
             nome_cliente="BARILARO FRANCESCO",
+            tribunale="Tribunale di Vicenza",
             tipo_procedimento="Lavoro",
             valore_causa=0,
             stato=StatoFascicolo.IN_CORSO,
@@ -172,10 +202,10 @@ def test_audit_economico_apre_il_credito_dell_avvocato_antistatario():
     assert crediti[0].beneficiary_type == "avvocato"
 
 
-# ── La catena arriva alla proforma ─────────────────────────────────────────
+# ── La liquidazione è automatica, la parcella è una scelta distinta ─────────
 
 
-def test_la_catena_arriva_alla_proforma_nello_stesso_pannello():
+def test_la_catena_liquidazione_non_impone_la_parcella():
     repository = _RepositoryFascicoli()
     with tempfile.TemporaryDirectory() as cartella:
         fatturazione = GestioneFatturazione(Path(cartella) / "parcelle.json")
@@ -189,17 +219,16 @@ def test_la_catena_arriva_alla_proforma_nello_stesso_pannello():
         )
 
     assert esito.applied is True
-    assert esito.changes["proformaCreated"] is True
+    assert esito.changes["proformaCreated"] is False
 
     pagamenti = repository.fascicolo.pagamenti
     assert AUTOMATION_KEY in pagamenti
-    # Liquidazione e parcella vivono nello stesso pannello del fascicolo.
+    # Il capo del giudice resta € 500,00: non diventa una parcella con accessori.
     assert pagamenti["liquidazione_giudice"]["importo"] == 500.00
-    parcella = pagamenti["parcella"]
-    assert parcella["proforma_id"]
-    # 500 + 15% spese generali + 4% cpa + 22% iva (D.M. 55/2014).
-    assert parcella["importo"] == 729.56
-    assert repository.fascicolo.stato == StatoFascicolo.DEFINITO
+    assert "parcella" not in pagamenti
+    assert not esito.proforma_id
+    # L'estrazione economica non sostituisce il ciclo di stato con fonte verificata.
+    assert repository.fascicolo.stato == StatoFascicolo.IN_CORSO
 
 
 # ── Allegato del provvedimento nella busta PCT ─────────────────────────────
@@ -276,11 +305,11 @@ def test_contributo_unificato_esente_per_reddito_risulta_non_dovuto():
     assert contributo["previsto"] is False
     assert contributo["importo"] is None
     assert contributo["natura"] == "esenzione_contributo_unificato"
-    # 600 + 15% + 4% cpa + 22% iva, senza recupero del contributo.
-    assert pagamenti["parcella"]["importo"] == 875.47
+    assert pagamenti["liquidazione_giudice"]["importo"] == 600.00
+    assert "parcella" not in pagamenti
 
 
-def test_contributo_unificato_pagato_entra_col_suo_valore_e_nella_parcella():
+def test_status_pagato_nei_metadati_non_sostituisce_la_prova_del_versamento():
     pagamenti = _applica({
         "tipo_documento": "provvedimento Sentenza Tribunale",
         "document_id": "D-RICEVUTA",
@@ -294,7 +323,8 @@ def test_contributo_unificato_pagato_entra_col_suo_valore_e_nella_parcella():
     })
 
     contributo = pagamenti["contributo_unificato"]
-    assert contributo["status"] == "pagato"
+    assert contributo["status"] == "da_registrare"
+    assert not contributo["pagato"]
     assert contributo["importo"] == 43.00
-    # Il contributo anticipato viene recuperato in parcella (875,47 + 43,00).
-    assert pagamenti["parcella"]["importo"] == 918.47
+    assert pagamenti["liquidazione_giudice"]["importo"] == 600.00
+    assert "parcella" not in pagamenti

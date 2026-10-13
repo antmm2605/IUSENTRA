@@ -60,9 +60,9 @@ pytest_core_ci() {
     for part in $(seq 1 "$parts"); do
       if [ "$parts" -gt 1 ]; then
         python3 scripts/run_pytest_phases.py --core-shard "$shard" --core-total-shards 10 \
-          --core-subshard "$part" --core-total-subshards "$parts" --core-subdivide-items --timeout-minutes 10 || return 1
+          --core-subshard "$part" --core-total-subshards "$parts" --core-subdivide-items --timeout-minutes 5 || return 1
       else
-        python3 scripts/run_pytest_phases.py --core-shard "$shard" --core-total-shards 10 --timeout-minutes 10 || return 1
+        python3 scripts/run_pytest_phases.py --core-shard "$shard" --core-total-shards 10 --timeout-minutes 5 || return 1
       fi
     done
   done
@@ -200,8 +200,10 @@ if [ "$FAST" -eq 0 ]; then
   # Strumenti forensi: 73 calcolatori con base normativa, il contratto fra
   # schema dei moduli e default del dominio e i termini processuali. Il contratto
   # si rompe ogni volta che si aggiunge un campo senza il suo default.
-  step "Pytest strumenti legali"   python3 -m pytest -q tests/test_strumenti_legali.py tests/test_strumenti_legali_end_to_end.py tests/test_strumenti_processuali.py tests/test_termini_processuali.py tests/test_normative_tables.py tests/test_istat_serie_storica.py tests/test_vista_documenti_preferenze.py tests/test_tariffario.py --tb=short
-  step "Pytest acquisizione/OCR"   python3 -m pytest -q tests/test_document_ocr.py tests/test_document_ocr_documento.py tests/test_document_ocr_formato.py tests/test_editor_html_docx.py tests/test_document_tools.py tests/test_document_capture_contracts.py tests/test_template_editor_acquisition_contract.py tests/test_ocr_impaginazione.py tests/test_ricerca_cliente_fascicolo.py tests/test_formulario_legale.py tests/test_motore_ocr_unico.py tests/test_ocr_utility_word.py tests/test_document_intelligence_extraction.py tests/test_document_intelligence_service.py tests/test_ocr_pipeline_adapter.py tests/test_pdf_inspector_engine.py tests/test_legal_ocr_pipeline.py tests/test_legal_ocr_structured.py tests/test_pec_ocr_pipeline.py tests/test_strumenti_legali_end_to_end.py --tb=short
+  step "Pytest strumenti legali" python3 scripts/run_pytest_phases.py --suite legal-tools \
+    --suite-subdivide-items --batch-size 20 --timeout-minutes 5 -- --tb=short
+  step "Pytest acquisizione/OCR" python3 scripts/run_pytest_phases.py --suite acquisition-ocr \
+    --suite-subdivide-items --batch-size 20 --timeout-minutes 5 -- --tb=short
   # Catalogazione dal titolo (141 regole con fonte Normattiva) e lettura del
   # fascicolo di Lex: sono il cuore del fascicolo e non hanno dipendenze lente.
   step "Pytest catalogo/lettura"   python3 -m pytest -q tests/test_document_catalog_titoli.py tests/test_document_catalog_fields.py tests/test_document_catalog_structural_identity.py tests/test_fascicolo_lettura.py tests/test_lex_lettura_fascicolo.py tests/test_procedura_fasi.py tests/test_fascicolo_pec_presidio.py tests/test_fascicolo_lettura_verifiche.py tests/test_fascicolo_bonifico_ricevuto.py tests/test_document_catalog_conferma.py --tb=short
@@ -214,7 +216,8 @@ if [ "$FAST" -eq 0 ]; then
   # presidio documentale ha lasciato uno stub a tre argomenti in
   # tests/test_react_shell.py e la CI e' andata rossa a gate locale verde,
   # bloccando la sincronizzazione del branch gemello e il deploy.
-  step "Pytest shell React"        python3 -m pytest -q tests/test_react_shell.py --tb=short
+  step "Pytest shell React" python3 scripts/run_pytest_phases.py --suite react-shell \
+    --suite-subdivide-items --batch-size 20 --timeout-minutes 5 -- --tb=short
   step "Pytest security fase 5"    python3 -m pytest -q tests/test_backend_security_phase5.py --tb=short
   # Replica dello step CI "RBAC tenant App V2 security gates" (ci.yml, job
   # "Lint + syntax"): senza questi il gate locale era cieco sui contratti

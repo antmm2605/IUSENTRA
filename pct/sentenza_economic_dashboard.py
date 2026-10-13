@@ -2,8 +2,8 @@
 contesto economico condiviso.
 
 Modulo piccolo e a parte per non gonfiare `economic_dashboard`. Non calcola nulla
-di nuovo sul piano economico: somma solo gli eventi economici gia' verificati o in
-attesa di conferma prodotti dal controllo sentenze (art. 91/93 c.p.c., D.P.R.
+di nuovo sul piano economico: somma solo gli eventi economici confermati.
+Le letture ancora da verificare restano evidenze separate (art. 91/93 c.p.c., D.P.R.
 115/2002), e li rende come KPI/worklist additivi e come blocco di contesto
 pass-through.
 """
@@ -14,7 +14,7 @@ from typing import Any
 
 from pct.economic_dashboard import _currency
 
-_EVENTI_APERTI = {"to_review", "confirmed"}
+_EVENTI_APERTI = {"confirmed"}
 
 
 def _sum_eventi(events: list[dict[str, Any]], event_type: str) -> float:
@@ -54,6 +54,15 @@ def build_sentenze_economiche_summary(audits: list[dict[str, Any]], events: list
     }
 
     worklist: list[dict[str, Any]] = []
+    for event in events:
+        if event.get("event_type") not in {"apri_credito_cliente", "apri_credito_avvocato_antistatario"} or event.get("status") != "to_review":
+            continue
+        worklist.append({
+            "label": "Importo da provvedimento da verificare",
+            "hint": "Fonte conservata nel controllo sentenze. Importo escluso dal totale: natura, beneficiario e possibili doppioni devono essere verificati.",
+            "value": _currency(float(event["amount"])) if event.get("amount") is not None else "Importo non determinato",
+            "tone": "warning",
+        })
     if da_verificare:
         worklist.append({
             "label": "Sentenze da verificare",
@@ -85,7 +94,7 @@ def build_sentenze_economiche_summary(audits: list[dict[str, Any]], events: list
 
     kpi = {
         "label": "Spese da sentenza",
-        "value": _currency(spese_totale),
+        "value": _currency(spese_totale) if spese_totale or not any(event.get("event_type") in {"apri_credito_cliente", "apri_credito_avvocato_antistatario"} and event.get("status") == "to_review" for event in events) else "Da verificare",
         "tone": "primary" if spese_totale > 0 else "secondary",
     }
     return {"kpi": kpi, "worklist": worklist, "totals": totals}

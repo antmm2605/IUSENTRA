@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from copy import deepcopy
+
+import pytest
 
 from pct.clienti import GestioneClienti, TipoCliente
 from pct.fascicoli import GestioneFascicoli, TipoFascicolo
@@ -97,3 +100,142 @@ def test_endpoint_bonifico_ricevuto(tmp_path: Path):
     payload = risposta.get_json()
     assert payload["ok"] is True and payload["parcellaId"] == parcella.id
     assert payload["redirectHref"].endswith(parcella.id)
+
+
+@pytest.mark.parametrize("azione", ["segna-pagata", "stato", "incasso"])
+def test_incasso_da_fatturazione_aggiorna_fascicolo_senza_cambiare_liquidato(tmp_path, azione):
+    from tests.test_applicazioni import _crea_operatore, _login
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    with app.app_context():
+        fascicolo, parcella = _seed(app, con_parcella=True)
+        gf = app.extensions["core_runtime"]["get_fascicoli"]
+        gm = app.extensions["core_runtime"]["get_fatturazione"]
+        risultato, stato = update_react_fascicolo_payment(
+            get_fascicoli=gf, get_fatturazione=gm, id_fasc=fascicolo.id, kind="liquidazione_giudice",
+            payload={"importo": 1100, "status": "da_registrare", "documento_fonte": "Sentenza.pdf"}, actor="Avvocato")
+        assert stato == 200, risultato
+    with app.test_client() as client:
+        _login(client)
+        body = {"stato": "PAGATA", "data_pagamento": "2026-09-10", "metodo_pagamento": METODO_BONIFICO}
+        url = f"/api/v1/ui/fatturazione/{parcella.id}/{azione}"
+        if azione == "incasso":
+            url = "/api/v1/ui/incassi-pagamenti/incasso"
+            body = {"id_parcella": parcella.id, "data_pagamento": "2026-09-10", "metodo_pagamento": METODO_BONIFICO}
+        response = client.post(url, json=body)
+        assert response.status_code == 200, response.get_data(as_text=True)
+        with app.app_context():
+            saved = gf().get(fascicolo.id)
+            liquidazione = saved.pagamenti["liquidazione_giudice"]
+            assert liquidazione["status"] == "pagato" and liquidazione["importo"] == 1100
+            assert liquidazione["documento_fonte"] == "Sentenza.pdf" and liquidazione["proforma_id"] == parcella.id
+            assert saved.pagamenti["parcella"]["status"] == "pagato"
+            assert saved.pagamenti["parcella"]["proforma_id"] == parcella.id
+            assert gm().get(parcella.id).stato == StatoParcella.PAGATA
+            # Due rappresentazioni dello stesso incasso non raddoppiano il totale.
+            from web.services.react_fascicoli_bridge import payment_summary_for_fascicolo
+            summary = payment_summary_for_fascicolo(saved)
+            assert summary["totaleRegistrato"] == 4500
+            assert "€ 4.500,00" in summary["items"]["liquidazione_giudice"]["note"]
+            assert summary["items"]["liquidazione_giudice"]["importo"] == 1100
+            result_cu, stato_cu = update_react_fascicolo_payment(
+                get_fascicoli=gf, get_fatturazione=gm, id_fasc=fascicolo.id, kind="contributo_unificato",
+                payload={"importo": 49, "status": "pagato", "documento_fonte": "Ricevuta CU.pdf"}, actor="Avvocato")
+            assert stato_cu == 200, result_cu
+            assert result_cu["paymentSummary"]["totaleRegistrato"] == 4549
+            assert result_cu["paymentSummary"]["items"]["contributo_unificato"]["importo"] == 49
+            saved = gf().get(fascicolo.id)
+            prima = deepcopy(saved.pagamenti)
+        repeat = client.post(url, json=body)
+        assert repeat.status_code == 200, repeat.get_data(as_text=True)
+        with app.app_context():
+            assert gf().get(fascicolo.id).pagamenti == prima
+            assert len(gm().per_fascicolo(fascicolo.id)) == 1
+
+
+def test_collegamento_incasso_ad_altro_fascicolo_non_scrive(tmp_path):
+    app = _app(tmp_path)
+    with app.app_context():
+        fascicolo, parcella = _seed(app, con_parcella=True)
+        gf = app.extensions["core_runtime"]["get_fascicoli"]
+        gm = app.extensions["core_runtime"]["get_fatturazione"]
+        altro = gf().nuovo("Altro procedimento sintetico", TipoFascicolo.CIVILE, nome_cliente="Anna Bianchi")
+        before = deepcopy(gf().get(altro.id).pagamenti)
+        result, status = update_react_fascicolo_payment(
+            get_fascicoli=gf, get_fatturazione=gm, id_fasc=altro.id, kind="liquidazione_giudice",
+            payload={"status": "pagato", "importo": 1100, "proforma_id": parcella.id}, actor="Avvocato")
+        assert status == 409 and not result["ok"]
+        assert gf().get(altro.id).pagamenti == before
+        assert gm().get(parcella.id).stato == StatoParcella.EMESSA
+
+
+def test_incasso_gia_registrato_richiede_scelta_e_preserva_data_originale(tmp_path):
+    app = _app(tmp_path)
+    with app.app_context():
+        fascicolo, parcella = _seed(app, con_parcella=True)
+        gf = app.extensions["core_runtime"]["get_fascicoli"]
+        gm = app.extensions["core_runtime"]["get_fatturazione"]
+        gm().cambia_stato(parcella.id, StatoParcella.PAGATA, data_pagamento="2026-09-10", metodo_pagamento=METODO_BONIFICO)
+        args = dict(get_fascicoli=gf, get_fatturazione=gm, id_fasc=fascicolo.id, actor="Avvocato")
+        result, status = registra_bonifico_ricevuto(**args, payload={"importo": 4500})
+        assert status == 409 and result["parcelle"][0]["id"] == parcella.id
+        assert len(gm().per_fascicolo(fascicolo.id)) == 1
+        result, status = registra_bonifico_ricevuto(**args, payload={"parcella_id": parcella.id, "importo": 4500, "data_pagamento": "2026-10-12"})
+        assert status == 200, result
+        assert result["dataPagamento"] == "2026-09-10"
+        assert gf().get(fascicolo.id).pagamenti["parcella"]["data_pagamento"] == "2026-09-10"
+        assert len(gm().per_fascicolo(fascicolo.id)) == 1
+        before = deepcopy(gf().get(fascicolo.id).pagamenti)
+        repeat, status = registra_bonifico_ricevuto(**args, payload={"parcella_id": parcella.id, "importo": 4500})
+        assert status == 200 and repeat["alreadyPresent"] is True
+        assert "già collegato" in repeat["message"]
+        assert gf().get(fascicolo.id).pagamenti == before
+def test_versamento_discordante_non_diventa_saldo_ne_modifica_importi(tmp_path):
+    app = _app(tmp_path)
+    with app.app_context():
+        fascicolo, parcella = _seed(app, con_parcella=True)
+        gf = app.extensions["core_runtime"]["get_fascicoli"]
+        gm = app.extensions["core_runtime"]["get_fatturazione"]
+        before = deepcopy(gf().get(fascicolo.id).pagamenti)
+        result, status = registra_bonifico_ricevuto(get_fascicoli=gf, get_fatturazione=gm,
+            id_fasc=fascicolo.id, payload={"parcella_id": parcella.id, "importo": 1000}, actor="Avvocato")
+        assert status == 409 and result["conflict"]
+        assert result["discordanza"]["nettoParcella"] == 4500
+        assert gf().get(fascicolo.id).pagamenti == before
+        assert gm().get(parcella.id).stato == StatoParcella.EMESSA
+
+def test_incasso_originale_non_cambia_con_revisione_successiva_documento(tmp_path):
+    from pct.fatturazione import VoceParcella
+    app = _app(tmp_path)
+    with app.app_context():
+        fascicolo, parcella = _seed(app, con_parcella=True)
+        gf = app.extensions["core_runtime"]["get_fascicoli"]
+        gm = app.extensions["core_runtime"]["get_fatturazione"]
+        args = dict(get_fascicoli=gf, get_fatturazione=gm, id_fasc=fascicolo.id, actor="Avvocato")
+        result, status = registra_bonifico_ricevuto(**args, payload={"parcella_id": parcella.id, "importo": 4500})
+        assert status == 200
+        before = deepcopy(gf().get(fascicolo.id).pagamenti)
+        gm().aggiorna(parcella.id, voci=[VoceParcella(descrizione="Revisione controllata", quantita=1, prezzo_unitario=5500)])
+        result, status = registra_bonifico_ricevuto(**args, payload={"parcella_id": parcella.id, "importo": 5500})
+        assert status == 200 and result["alreadyPresent"]
+        assert result["importo"] == 4500
+        assert gf().get(fascicolo.id).pagamenti == before
+        rejected, status = update_react_fascicolo_payment(get_fascicoli=gf, get_fatturazione=gm,
+            id_fasc=fascicolo.id, kind="contributo_unificato",
+            payload={"status": "pagato", "importo": 49, "proforma_id": parcella.id}, actor="Avvocato")
+        assert status == 400 and not rejected["ok"]
+        assert gf().get(fascicolo.id).pagamenti == before
+
+
+
+def test_bonifico_usa_giorno_italiano_anche_quando_utc_e_ieri(monkeypatch):
+    from datetime import UTC, datetime
+    import web.services.react_dashboard_time as clock
+    import web.services.fascicolo_bonifico_ricevuto as service
+    local_now = datetime(2026, 10, 13, 0, 30, tzinfo=clock.ROME_TZ)
+    assert local_now.astimezone(UTC).date().isoformat() == "2026-10-12"
+    monkeypatch.setattr(clock, "adesso_rome", lambda: local_now)
+    assert service._data_iso("") == ("2026-10-13", "")
+    assert service._data_iso("13/10/2026") == ("2026-10-13", "")
+    assert service._data_iso("14/10/2026")[1] == "La data del bonifico non può essere futura."

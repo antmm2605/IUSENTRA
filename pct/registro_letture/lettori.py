@@ -128,6 +128,13 @@ def _versione_motore_pec() -> str:
     return str(VERSIONE_MOTORE_PEC)
 
 
+def _versioni_compatibili_motore_pec() -> tuple[str, ...]:
+    from pct.archivio_letture.estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI, VERSIONE_ESTRAZIONE_IMPORTI_PRE_DISTINZIONE
+
+    current = _versione_motore_pec()
+    return (current, current.replace(VERSIONE_ESTRAZIONE_IMPORTI, VERSIONE_ESTRAZIONE_IMPORTI_PRE_DISTINZIONE))
+
+
 def _versione_presidio_economico() -> str:
     from web.services.react_fascicoli_bridge import ECONOMIC_DOCUMENT_ANALYSIS_VERSION
 
@@ -150,6 +157,7 @@ _VERSIONI: dict[str, Callable[[], str]] = {
 
 
 _VERSIONI_COMPATIBILI: dict[str, Callable[[], tuple[str, ...]]] = {
+    "motore_pec": _versioni_compatibili_motore_pec,
     "motore_documenti": _versioni_compatibili_motore_documenti,
 }
 

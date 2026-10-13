@@ -101,7 +101,44 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
         REPO_ROOT / "tests" / "test_mailbox_routes_wiring.py",
         REPO_ROOT / "tests" / "test_mailbox_native_sqlite_flow.py",
     ),
+    "react-shell": (REPO_ROOT / "tests" / "test_react_shell.py",),
+    "acquisition-ocr": (
+        REPO_ROOT / "tests" / "test_document_ocr.py",
+        REPO_ROOT / "tests" / "test_document_ocr_documento.py",
+        REPO_ROOT / "tests" / "test_document_ocr_formato.py",
+        REPO_ROOT / "tests" / "test_editor_html_docx.py",
+        REPO_ROOT / "tests" / "test_document_tools.py",
+        REPO_ROOT / "tests" / "test_document_capture_contracts.py",
+        REPO_ROOT / "tests" / "test_template_editor_acquisition_contract.py",
+        REPO_ROOT / "tests" / "test_ocr_impaginazione.py",
+        REPO_ROOT / "tests" / "test_ricerca_cliente_fascicolo.py",
+        REPO_ROOT / "tests" / "test_formulario_legale.py",
+        REPO_ROOT / "tests" / "test_motore_ocr_unico.py",
+        REPO_ROOT / "tests" / "test_ocr_utility_word.py",
+        REPO_ROOT / "tests" / "test_document_intelligence_extraction.py",
+        REPO_ROOT / "tests" / "test_document_intelligence_service.py",
+        REPO_ROOT / "tests" / "test_ocr_pipeline_adapter.py",
+        REPO_ROOT / "tests" / "test_pdf_inspector_engine.py",
+        REPO_ROOT / "tests" / "test_legal_ocr_pipeline.py",
+        REPO_ROOT / "tests" / "test_legal_ocr_structured.py",
+        REPO_ROOT / "tests" / "test_pec_ocr_pipeline.py",
+        REPO_ROOT / "tests" / "test_strumenti_legali_end_to_end.py",
+    ),
+    "legal-tools": (
+        REPO_ROOT / "tests" / "test_strumenti_legali.py",
+        REPO_ROOT / "tests" / "test_strumenti_legali_end_to_end.py",
+        REPO_ROOT / "tests" / "test_strumenti_processuali.py",
+        REPO_ROOT / "tests" / "test_termini_processuali.py",
+        REPO_ROOT / "tests" / "test_normative_tables.py",
+        REPO_ROOT / "tests" / "test_istat_serie_storica.py",
+        REPO_ROOT / "tests" / "test_vista_documenti_preferenze.py",
+        REPO_ROOT / "tests" / "test_tariffario.py",
+    ),
     "coverage-critical": (
+        REPO_ROOT / "tests" / "test_fascicolo_bonifico_ricevuto.py",
+        REPO_ROOT / "tests" / "test_fascicolo_sentenza_economica.py",
+        REPO_ROOT / "tests" / "test_sentenza_economic_dashboard.py",
+        REPO_ROOT / "tests" / "test_sentenza_a_verbale_catena_economica.py",
         REPO_ROOT / "tests" / "test_fascicolo_lettura_verifiche.py",
         REPO_ROOT / "lex" / "tests",
         *LEX_CROSS_SUITE,
@@ -141,6 +178,12 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
     ),
 }
 CORE_TARGETS: tuple[Path, ...] = (
+    # Natura degli importi, proforme, pagamenti e ripetizione delle letture:
+    # il solo indice documentale non presidia le conseguenze economiche.
+    REPO_ROOT / "tests" / "test_fascicolo_bonifico_ricevuto.py",
+    REPO_ROOT / "tests" / "test_fascicolo_sentenza_economica.py",
+    REPO_ROOT / "tests" / "test_sentenza_economic_dashboard.py",
+    REPO_ROOT / "tests" / "test_sentenza_a_verbale_catena_economica.py",
     REPO_ROOT / "tests" / "test_operational_live_vertical_repositories.py",
     REPO_ROOT / "tests" / "test_agenda_fascicolo_defaults.py",
     REPO_ROOT / "tests" / "test_preparazioni_sql_repository.py",
@@ -466,7 +509,7 @@ def discover_test_items(files: Iterable[Path]) -> list[str]:
         relative = rel(path)
         # Il banco usa casi caricati dal corpus: l'AST vede una sola funzione,
         # mentre pytest conosce tutte le domande parametrizzate da distribuire.
-        if relative == "tests/test_lex_banco_prova.py":
+        if relative in {"tests/test_lex_banco_prova.py", "tests/test_strumenti_legali_end_to_end.py"}:
             collected = subprocess.run(
                 [sys.executable, "-m", "pytest", "-o", "addopts=", "--collect-only", "-q", relative],
                 cwd=REPO_ROOT, capture_output=True, text=True, timeout=60, check=False,
@@ -474,7 +517,7 @@ def discover_test_items(files: Iterable[Path]) -> list[str]:
             node_ids = [line.strip() for line in collected.stdout.splitlines()
                         if line.startswith(f"{relative}::")]
             if collected.returncode or not node_ids or len(node_ids) != len(set(node_ids)):
-                raise RuntimeError(f"Raccolta item del banco Lex fallita: {collected.stdout}\n{collected.stderr}")
+                raise RuntimeError(f"Raccolta item pytest di {relative} fallita: {collected.stdout}\n{collected.stderr}")
             items.extend(node_ids)
             continue
         try:

@@ -21,18 +21,19 @@ _EVENTS = [
 ]
 
 
-def test_summary_somma_solo_eventi_aperti():
+def test_summary_somma_solo_eventi_confermati():
     summary = build_sentenze_economiche_summary(_AUDITS, _EVENTS)
     totals = summary["totals"]
     assert totals["sentenze_lette"] == 2
     assert totals["sentenze_verificate"] == 1
     assert totals["da_verificare"] == 1
-    assert totals["crediti_avvocato_antistatario"] == 4200.0
+    assert totals["crediti_avvocato_antistatario"] == 0.0
     assert totals["crediti_cliente"] == 1500.0  # 'rejected' escluso
-    assert totals["spese_liquidate_totale"] == 5700.0
+    assert totals["spese_liquidate_totale"] == 1500.0
     assert totals["contributo_unificato_alert"] == 1
     labels = [item["label"] for item in summary["worklist"]]
-    assert "Spese distratte in favore dell'avvocato" in labels
+    assert "Importo da provvedimento da verificare" in labels
+    assert "Spese distratte in favore dell'avvocato" not in labels
 
 
 def test_dashboard_merge_additivo_non_rompe_base():
@@ -50,8 +51,26 @@ def test_dashboard_merge_additivo_non_rompe_base():
     )
     assert len(merged["kpis"]) == base_kpi + 1
     assert merged["kpis"][-1]["label"] == "Spese da sentenza"
-    assert merged["totals"]["sentenze_economiche"]["spese_liquidate_totale"] == 5700.0
+    assert merged["totals"]["sentenze_economiche"]["spese_liquidate_totale"] == 1500.0
     assert any(item["label"] == "Sentenze da verificare" for item in merged["worklist"])
+
+
+def test_letture_ripetute_e_discordanti_non_creano_un_totale_certo():
+    events = [
+        {"id": "E1", "source_id": "A1", "event_type": "apri_credito_cliente", "amount": 1100.0, "status": "to_review"},
+        {"id": "E2", "source_id": "A2", "event_type": "apri_credito_cliente", "amount": 1100.0, "status": "to_review"},
+        {"id": "E3", "source_id": "A3", "event_type": "apri_credito_cliente", "amount": 1200.0, "status": "to_review"},
+    ]
+    original = [dict(event) for event in events]
+    first = build_sentenze_economiche_summary(_AUDITS, events)
+    second = build_sentenze_economiche_summary(_AUDITS, events)
+    assert first == second
+    assert first["totals"]["crediti_cliente"] == 0.0
+    assert first["totals"]["spese_liquidate_totale"] == 0.0
+    assert first["kpi"]["value"] == "Da verificare"
+    evidence = [row for row in first["worklist"] if row["label"] == "Importo da provvedimento da verificare"]
+    assert [row["value"] for row in evidence] == ["€ 1.100,00", "€ 1.100,00", "€ 1.200,00"]
+    assert events == original
 
 
 def test_context_block_pass_through():

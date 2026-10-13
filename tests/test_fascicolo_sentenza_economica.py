@@ -1,10 +1,12 @@
 from pathlib import Path
 from types import SimpleNamespace
 from copy import deepcopy
+import os
+import uuid
 
 import pytest
 
-from pct.fascicoli import StatoFascicolo
+from pct.fascicoli import Fascicolo, GestioneFascicoli, StatoFascicolo, TipoFascicolo
 from pct.fascicolo_sentenza_economica import (
     AUTOMATION_KEY,
     ORIGIN,
@@ -16,6 +18,76 @@ from pct.fascicolo_sentenza_economica import (
 )
 from pct.fatturazione import GestioneFatturazione, StatoParcella, VoceParcella
 from web.services.react_fascicoli_bridge import payment_summary_for_fascicolo, update_react_fascicolo_payment
+
+
+@pytest.mark.parametrize("provenienza", ["documento", "allegato_pec"])
+@pytest.mark.parametrize("discordanza", ["", "cliente", "numero_rg", "anno_rg", "ufficio", "anno_assente"])
+def test_sentenza_documento_o_pec_richiede_identita_congiunta(provenienza, discordanza):
+    from pct.archivio_letture.collaudo import contesto_da_fascicolo
+    from pct.archivio_letture.motore_documenti import leggi_testo
+    from pct.archivio_letture.motore_pec import fatti_da_allegato
+
+    fascicolo = SimpleNamespace(id="IDENTITA-SINTETICA", nome_cliente="Spagnolo Sara",
+                               numero_rg="1548", anno_rg=2023, tribunale="Tribunale di Palmi")
+    testo = SENTENZA_TEXT
+    sostituzioni = {
+        "cliente": ("Spagnolo Sara", "Bianchi Anna"),
+        "numero_rg": ("1548/2023", "1549/2023"),
+        "anno_rg": ("1548/2023", "1548/2022"),
+        "ufficio": ("Tribunale di Palmi", "Tribunale di Torino"),
+        "anno_assente": ("1548/2023", "1548"),
+    }
+    if discordanza:
+        testo = testo.replace(*sostituzioni[discordanza])
+    metadata = {"fascicolo": fascicolo, "documento_id": "SENTENZA-SINTETICA", "tipo_documento": "SENTENZA"}
+    contesto = contesto_da_fascicolo(vars(fascicolo))
+    if provenienza == "documento":
+        fatti = leggi_testo(testo, origine="nativo", contesto=contesto, nome="sentenza.pdf", metadata=metadata)
+    else:
+        fatti = fatti_da_allegato(testo, nome="sentenza.pdf", contesto=contesto, metadata=metadata)
+    importi = [f for f in fatti if f.categoria == "importo" and f.campo == "liquidazione_giudice"]
+    if discordanza:
+        assert importi == []
+    else:
+        assert [f.valore for f in importi] == ["1100.00"]
+
+
+@pytest.mark.parametrize("altra_sentenza", [False, True])
+def test_stessa_sentenza_documento_pec_unica_voce_con_due_prove(altra_sentenza):
+    from dataclasses import replace
+    from pct.archivio_letture import fatti_canonici
+    from pct.archivio_letture.collaudo import contesto_da_fascicolo
+    from pct.archivio_letture.motore_documenti import leggi_testo
+    from pct.archivio_letture.motore_pec import fatti_da_allegato
+    from pct.archivio_letture.presidi import importi_letti
+
+    fascicolo = SimpleNamespace(id="F-DOPPIA-FONTE", nome_cliente="Spagnolo Sara",
+                               numero_rg="1548", anno_rg=2023, tribunale="Tribunale di Palmi")
+    context = contesto_da_fascicolo(vars(fascicolo))
+    metadata = {"fascicolo": fascicolo, "tipo_documento": "SENTENZA"}
+    documenti = leggi_testo(SENTENZA_TEXT, origine="nativo", contesto=context,
+                           nome="originale.pdf", metadata=metadata)
+    testo_pec = SENTENZA_TEXT.replace("230/2024", "231/2024") if altra_sentenza else SENTENZA_TEXT
+    allegati = fatti_da_allegato(testo_pec, nome="copia.pdf", contesto=context, metadata=metadata)
+    raw = [replace(f, id=f"doc-{i}", fascicolo_id=fascicolo.id, tipo="documento", oggetto_id="DOC", sha256="a" * 64, motore="documenti")
+           for i, f in enumerate(documenti) if f.categoria == "importo"]
+    raw += [replace(f, id=f"pec-{i}", fascicolo_id=fascicolo.id, tipo="allegato_pec", oggetto_id="PEC-ALLEGATO", sha256="b" * 64, motore="pec")
+            for i, f in enumerate(allegati) if f.categoria == "importo"]
+    prima = deepcopy(raw)
+    canonical = fatti_canonici(raw)
+    liquidazioni = [f for f in canonical if f.campo == "liquidazione_giudice"]
+    assert len(liquidazioni) == (2 if altra_sentenza else 1)
+    voce = importi_letti(canonical)["liquidazione_giudice"]
+    if altra_sentenza:
+        assert voce["importo"] is None and voce["richiede_conferma"]
+        assert len(voce["discordanze"]) == 2
+        assert len({f.id for f in liquidazioni}) == 2
+    else:
+        assert voce["importo"] == 1100.00
+        prove = next(p["fonti"] for p in liquidazioni[0].prove if p.get("codice") == "fonti_unite")
+        assert {p["tipo"] for p in prove} == {"documento", "allegato_pec"}
+        assert len(prove) == 2
+    assert raw == prima
 
 
 SENTENZA_TEXT = """
@@ -107,11 +179,165 @@ def test_estrazione_sentenza_tribunale_con_cu_liquidazione_e_fondo_spese():
     assert extraction.rg_number == "1548"
     assert extraction.liquidazione_importo == 1100.00
     assert extraction.contributo_unificato_importo == 98.00
-    assert extraction.spese_esborsi_importo == 250.00
-    assert extraction.fondo_spese_importo is None
-    assert "fondo_spese_assorbito_in_spese_esborsi" in extraction.warnings
+    assert extraction.spese_esborsi_importo is None
+    assert extraction.fondo_spese_importo == 250.00
+    assert "Fondo spese" in extraction.fondo_spese_titolo
     assert extraction.spese_generali is True
     assert extraction.antistatario is True
+
+
+@pytest.mark.parametrize("esborsi,fondo", [(21.50, 250.00), (21.50, 21.50)])
+def test_fondo_ed_esborsi_conservano_natura_e_importi(esborsi, fondo):
+    text = MONTAGNESE_TEXT + f"\nFondo spese riconosciuto pari a € {fondo:.2f}."
+    extraction = analyze_sentenza_tribunale_text(text, {})
+    assert extraction.spese_esborsi_importo == esborsi
+    assert extraction.fondo_spese_importo == fondo
+    assert "esborsi" in extraction.spese_esborsi_titolo
+    assert "Fondo spese" in extraction.fondo_spese_titolo
+    assert not any("assorbito" in warning or "preferito" in warning for warning in extraction.warnings)
+
+
+@pytest.mark.parametrize("fondo", [21.50, 250.00])
+def test_fondo_distinto_applicazione_proforma_e_replay(tmp_path, fondo):
+    fascicoli = FakeFascicoliRepository()
+    fascicolo = fascicoli.fascicolo
+    fascicolo.nome_cliente = "Roberta Montagnese"
+    fascicolo.titolo = "Roberta Montagnese c. MIM"
+    fascicolo.tribunale = "Tribunale di Vicenza"
+    fascicolo.numero_rg = "697/2025"
+    fascicolo.anno_rg = 2025
+    fatturazione = GestioneFatturazione(str(tmp_path / "parcelle.json"))
+    text = MONTAGNESE_TEXT + f"\nFondo spese riconosciuto pari a € {fondo:.2f}."
+    metadata = {"document_id": "DOC-DISTINTO", "sha256": "e" * 64, "tipo_documento": "Sentenza", "codice_fiscale_cliente": "MNTRRT98P65G791Q"}
+    first = apply_sentenza_tribunale_automation(
+        proforma_requested=True,
+        fascicoli_repository=fascicoli, fatturazione_repository=fatturazione,
+        fascicolo_id="FASC-1", text=text, document_metadata=metadata)
+    assert first.applied
+    assert fascicolo.pagamenti["spese_esborsi"]["importo"] == 21.50
+    assert fascicolo.pagamenti["fondo_spese"]["importo"] == fondo
+    assert fascicolo.pagamenti["fondo_spese"]["natura"] == "fondo_spese"
+    assert fascicolo.pagamenti["fondo_spese"]["source_sha256"] == "e" * 64
+    proforma = fatturazione.get(first.proforma_id)
+    assert not any("fondo" in voce.descrizione.lower() for voce in proforma.voci)
+    anticipi = [voce.prezzo_unitario for voce in proforma.voci if voce.tipo == "ANTICIPO"]
+    assert anticipi == [21.50]
+    before = deepcopy(fascicolo.pagamenti)
+    second = apply_sentenza_tribunale_automation(
+        fascicoli_repository=fascicoli, fatturazione_repository=fatturazione,
+        fascicolo_id="FASC-1", text=text, document_metadata=metadata)
+    assert not second.applied
+    assert fascicolo.pagamenti == before
+    summary = payment_summary_for_fascicolo(fascicolo)
+    assert summary["items"]["spese_esborsi"]["importo"] == 21.50
+    assert summary["items"]["fondo_spese"]["importo"] == fondo
+
+
+@pytest.mark.parametrize("suffix,amounts", [
+    ("Fondo spese € 250,00. Fondo spese € 300,00.", [250.00, 300.00]),
+    ("Fondo spese da determinare. Compensi € 900,00.", []),
+])
+def test_fondo_non_univoco_non_prende_importi_vicini(suffix, amounts):
+    extraction = analyze_sentenza_tribunale_text(MONTAGNESE_TEXT + "\n" + suffix, {})
+    assert extraction.fondo_spese_importo is None
+    assert extraction.spese_esborsi_importo == 21.50
+    assert extraction.discordanze[0]["motivo"] == "importo_fondo_non_univoco"
+    assert extraction.discordanze[0]["importi_letti"] == amounts
+
+
+def test_archivio_importi_discordanti_non_sceglie_il_primo():
+    from pct.archivio_letture.presidi import importi_letti
+    from pct.registro_letture.fatti_repository import Fatto
+
+    first = Fatto(categoria="importo", campo="fondo_spese", valore="250.00", verifica="verificata",
+                  oggetto_id="DOC-PRIMO", sha256="a" * 64, contesto="Fondo € 250,00")
+    second = Fatto(categoria="importo", campo="fondo_spese", valore="300.00", verifica="verificata",
+                   oggetto_id="DOC-SECONDO", sha256="b" * 64, contesto="Fondo € 300,00")
+    for facts in ([first, second], [second, first]):
+        result = importi_letti(facts)["fondo_spese"]
+        assert result["importo"] is None
+        assert result["richiede_conferma"]
+        assert result["importi_letti"] == [250.00, 300.00]
+        assert {row["sha256"] for row in result["discordanze"]} == {"a" * 64, "b" * 64}
+    first.verifica = "corretta"
+    corrected = importi_letti([second, first])["fondo_spese"]
+    assert corrected["importo"] == 250.00
+    assert corrected["verifica"] == "corretta"
+    assert corrected["richiede_conferma"]
+
+
+def test_archivio_importi_uguali_di_natura_diversa_restano_distinti():
+    from pct.archivio_letture.presidi import importi_letti
+    from pct.registro_letture.fatti_repository import Fatto
+
+    facts = [Fatto(categoria="importo", campo=kind, valore="250.00", verifica="verificata")
+             for kind in ("fondo_spese", "spese_esborsi")]
+    results = importi_letti(facts)
+    assert results["fondo_spese"]["importo"] == 250.00
+    assert results["spese_esborsi"]["importo"] == 250.00
+    assert not any(row.get("richiede_conferma") for row in results.values())
+
+
+def test_archivio_fondo_non_univoco_conserva_evento_verifica():
+    from pct.archivio_letture.estrazione_importi import importi_dalla_sentenza
+
+    fascicolo = SimpleNamespace(id="F1", nome_cliente="Roberta Montagnese", numero_rg="697/2025",
+                               anno_rg=2025, tribunale="Tribunale di Vicenza")
+    facts = importi_dalla_sentenza(MONTAGNESE_TEXT + "\nFondo spese € 250,00. Fondo spese € 300,00.",
+                                 metadata={"fascicolo": fascicolo, "codice_fiscale_cliente": "MNTRRT98P65G791Q"}, origine="nativo")
+    assert not any(f.categoria == "importo" and f.campo == "fondo_spese" for f in facts)
+    pending = next(f for f in facts if f.campo == "fondo_spese_da_verificare")
+    assert pending.verifica == "plausibile"
+    assert "250" in pending.contesto and "300" in pending.contesto
+
+
+def test_decisione_importo_esplicita_conserva_audit_e_rifiuta_fonti_cambiate():
+    fascicoli = FakeFascicoliRepository()
+    fascicolo = fascicoli.fascicolo
+    discrepancy = {"kind": "fondo_spese", "importo_registrato": 250.00, "importo_letto": 300.00,
+                   "documento_fonte": "document_id:DOC-FONDO", "sha256": "a" * 64, "stato": "da_verificare"}
+    fascicolo.pagamenti = {"fondo_spese": {"status": "pagato", "importo": 250.00,
+                           "data_pagamento": "2026-06-26", "metodo": "Bonifico", "origine": "manuale"},
+                          AUTOMATION_KEY: {"discordanze": [discrepancy]}}
+    summary = payment_summary_for_fascicolo(fascicolo)
+    signature = summary["items"]["fondo_spese"]["discordanzaVersione"]
+    assert summary["items"]["fondo_spese"]["richiedeConferma"]
+    payload = {"status": "pagato", "importo": 250.00, "dataPagamento": "2026-06-26", "metodo": "Bonifico",
+               "confermaDiscordanza": True, "discordanzaVersione": signature}
+    result, status = update_react_fascicolo_payment(get_fascicoli=lambda: fascicoli, id_fasc="FASC-1",
+                                                   kind="fondo_spese", payload=payload, actor="Avv. Test")
+    assert status == 200
+    assert not result["payment"]["richiedeConferma"]
+    assert result["payment"]["status"] == "pagato"
+    assert result["payment"]["importo"] == 250.00
+    decision = fascicolo.pagamenti[AUTOMATION_KEY]["discordanze"][0]
+    assert decision["stato"] == "risolta" and decision["risolta_da"] == "Avv. Test"
+    assert decision["importo_letto"] == 300.00 and decision["sha256"] == "a" * 64
+    fascicolo.pagamenti[AUTOMATION_KEY]["discordanze"].append(dict(discrepancy, sha256="b" * 64))
+    before = deepcopy(fascicolo.pagamenti)
+    conflict, status = update_react_fascicolo_payment(get_fascicoli=lambda: fascicoli, id_fasc="FASC-1",
+                                                     kind="fondo_spese", payload=payload, actor="Avv. Test")
+    assert status == 409 and conflict["conflict"]
+    assert fascicolo.pagamenti == before
+
+
+@pytest.mark.parametrize("number,year", [("1234/2026", 2026), ("1234/2026", 0), ("001234/2026", ""), ("1234", 2026)])
+def test_contesto_lettura_ruolo_completo_usa_resolver_nativo(number, year):
+    from pct.archivio_letture.collaudo import contesto_da_fascicolo
+
+    context = contesto_da_fascicolo({"numero_rg": number, "anno_rg": year, "tribunale": "Tribunale di Milano"})
+    assert context.numero_rg == "1234"
+    assert context.anno_rg == "2026"
+
+
+def test_contesto_lettura_anno_discordante_non_diventa_coincidente():
+    from pct.archivio_letture.collaudo import contesto_da_fascicolo, collauda
+    from pct.registro_letture.fatti_repository import Fatto
+
+    context = contesto_da_fascicolo({"numero_rg": "1234/2026", "anno_rg": 2025})
+    source = Fatto(categoria="ruolo", campo="numero_ruolo", valore="1234/2026", origine="nativo")
+    checked = collauda(source, context)
+    assert checked.verifica != "verificata"
 
 
 def test_sentenza_non_porta_cu_senza_documento_fascicolo():
@@ -420,8 +646,7 @@ def test_pdf_richiesta_versamento_cu_non_diventa_pagato_ne_proforma(tmp_path: Pa
     assert fascicolo.pagamenti["contributo_unificato"]["importo"] == 98.00
     assert fascicolo.pagamenti["contributo_unificato"]["data_pagamento"] == ""
     assert fascicolo.pagamenti["contributo_unificato"]["label"] == "Contributo unificato da pagare"
-    proforma = fatturazione.per_fascicolo("FASC-1")[0]
-    assert all("contributo" not in voce.descrizione.casefold() for voce in proforma.voci)
+    assert fatturazione.per_fascicolo("FASC-1") == []
 
 
 def test_pdf_contributo_esenzione_non_prende_carta_docente_500():
@@ -524,6 +749,15 @@ def test_pdf_contributo_rifiuta_scaglione_e_riporta_esenzione_cu():
     assert patrocinio["importo"] is None
 
 
+@pytest.mark.parametrize("esito,expected", [("Pagamento eseguito - esito positivo", "pagato"),
+                                           ("Pagamento non eseguito - esito negativo", "da_registrare")])
+def test_ricevuta_cu_con_etichetta_importo_conserva_esito_effettivo(esito, expected):
+    text = f"Ricevuta di pagamento contributo unificato\nContributo unificato: euro 49,00\n{esito}\nData pagamento: 12/10/2026"
+    evidence = extract_contributo_unificato_document_evidence(text, {"filename": "ricevuta-cu-collaudo.pdf"})
+    assert evidence["importo"] == 49
+    assert evidence["status"] == expected
+
+
 def test_riepilogo_ruolo_con_importo_non_diventa_esente_per_una_etichetta_vuota():
     evidence = extract_contributo_unificato_document_evidence(
         """
@@ -592,8 +826,7 @@ def test_esenzione_cu_da_pdf_viene_salvata_senza_importo_e_senza_voce_proforma(t
     assert cu["data_pagamento"] == ""
     assert cu["natura"] == "esenzione_contributo_unificato"
     assert cu["label"] == "Contributo unificato esente"
-    proforma = fatturazione.per_fascicolo("FASC-1")[0]
-    assert all("contributo" not in voce.descrizione.casefold() for voce in proforma.voci)
+    assert fatturazione.per_fascicolo("FASC-1") == []
 
 
 def test_pdf_contributo_non_sovrascrive_esborsi_sentenza_se_importo_diverge():
@@ -621,7 +854,7 @@ def test_pdf_contributo_non_sovrascrive_esborsi_sentenza_se_importo_diverge():
     assert "contributo_unificato_pdf_distinto_da_spese_sentenza" in extraction.warnings
 
 
-def test_pdf_contributo_riclassifica_esborsi_identici_senza_duplicarli():
+def test_pdf_contributo_esborsi_identici_preserva_fonti_e_segnala_ambiguita():
     extraction = analyze_sentenza_tribunale_text(
         MONTAGNESE_TEXT,
         {"tipo_documento": "provvedimento Sentenza Tribunale", "filename": "Sentenza.pdf"},
@@ -642,9 +875,58 @@ def test_pdf_contributo_riclassifica_esborsi_identici_senza_duplicarli():
     assert extraction.contributo_unificato_importo == 21.50
     assert extraction.contributo_unificato_natura == "pdf_contributo_unificato"
     assert extraction.contributo_unificato_label == "Contributo unificato da PDF"
-    assert extraction.spese_esborsi_importo is None
-    assert "spese_esborsi_riclassificate_cu_pdf" in extraction.warnings
+    assert extraction.spese_esborsi_importo == 21.50
+    assert extraction.discordanze[0]["motivo"] == "possibile_sovrapposizione_contributo_esborsi"
+    assert extraction.discordanze[0]["fonte_contributo"]["filename"] == "CU.pdf"
     assert "contributo_unificato_da_pdf" in extraction.warnings
+
+
+def test_pdf_contributo_discordante_non_sovrascrive_la_lettura_precedente():
+    extraction = analyze_sentenza_tribunale_text(MONTAGNESE_TEXT, {})
+    extraction.contributo_unificato_importo = 49.00
+    extraction.contributo_unificato_titolo = "Contributo € 49,00 nella fonte precedente"
+    extraction.contributo_unificato_natura = "contributo_unificato"
+    metadata = {"contributo_unificato_pdf": {"importo": 98.00, "filename": "ricevuta-sintetica.pdf",
+                "sha256": "a" * 64, "document_id": "CU-SINTETICO", "natura": "pdf_contributo_unificato"}}
+    apply_contributo_unificato_pdf_evidence(extraction, metadata)
+    assert extraction.contributo_unificato_importo == 49.00
+    assert extraction.contributo_unificato_titolo == "Contributo € 49,00 nella fonte precedente"
+    assert extraction.discordanze[0]["importo_letto"] == 98.00
+    assert extraction.discordanze[0]["fonte_contributo"]["sha256"] == "a" * 64
+    before = deepcopy(extraction.discordanze)
+    apply_contributo_unificato_pdf_evidence(extraction, metadata)
+    assert extraction.discordanze == before
+
+
+def test_ambiguita_cu_esborsi_non_genera_proforma_ne_somma(tmp_path):
+    fascicoli = FakeFascicoliRepository()
+    fascicolo = fascicoli.fascicolo
+    fascicolo.nome_cliente = "Roberta Montagnese"
+    fascicolo.titolo = "Roberta Montagnese c. MIM"
+    fascicolo.tribunale = "Tribunale di Vicenza"
+    fascicolo.numero_rg = "697/2025"
+    fascicolo.anno_rg = 2025
+    fatturazione = GestioneFatturazione(str(tmp_path / "parcelle.json"))
+    metadata = {"document_id": "DOC-AMBIGUO", "sha256": "b" * 64, "codice_fiscale_cliente": "MNTRRT98P65G791Q",
+                "contributo_unificato_pdf": {"importo": 21.50, "filename": "CU.pdf", "sha256": "c" * 64,
+                                             "natura": "pdf_contributo_unificato"}}
+    first = apply_sentenza_tribunale_automation(
+        fascicoli_repository=fascicoli, fatturazione_repository=fatturazione,
+        fascicolo_id="FASC-1", text=MONTAGNESE_TEXT, document_metadata=metadata)
+    assert first.applied
+    assert not first.proforma_id
+    assert not first.changes["proformaCreated"]
+    assert fatturazione.per_fascicolo("FASC-1") == []
+    assert fascicolo.pagamenti["spese_esborsi"]["importo"] == 21.50
+    assert fascicolo.pagamenti["contributo_unificato"]["importo"] == 21.50
+    assert fascicolo.pagamenti[AUTOMATION_KEY]["discordanze"][0]["sha256"] == "b" * 64
+    summary = payment_summary_for_fascicolo(fascicolo)
+    assert summary["items"]["spese_esborsi"]["richiedeConferma"]
+    second = apply_sentenza_tribunale_automation(
+        fascicoli_repository=fascicoli, fatturazione_repository=fatturazione,
+        fascicolo_id="FASC-1", text=MONTAGNESE_TEXT, document_metadata=metadata)
+    assert not second.applied
+    assert len(fascicolo.pagamenti[AUTOMATION_KEY]["discordanze"]) == 1
 
 
 def test_estrazione_sentenza_resa_con_data_testuale_e_rg_iniziale():
@@ -720,7 +1002,82 @@ def test_estrazione_non_scambia_citazione_cassazione_per_sentenza_fascicolo():
     assert extraction.found is False
 
 
-def test_applicazione_sentenza_aggiorna_fascicolo_e_crea_una_sola_proforma(tmp_path: Path):
+def test_incasso_manual_preserva_importo_stato_e_prova_della_sentenza(monkeypatch):
+    from web.services import react_fascicoli_bridge as bridge
+
+    raw = {"importo": 1100.00, "status": "pagato", "pagato": True,
+           "metodo": "Bonifico", "data_pagamento": "2026-10-12", "note": "Incasso confermato",
+           "history": [{"by": "Avvocato", "toStatus": "pagato"}]}
+    proof = {"documentoId": "DOC-SENTENZA", "sha256": "a" * 64,
+             "previewHref": "/fascicoli/FASC-1/documenti/DOC-SENTENZA/visualizza",
+             "contesto": "Il giudice liquida € 1.100,00 per compensi."}
+    fascicolo = SimpleNamespace(id="FASC-1", pagamenti={"liquidazione_giudice": raw})
+    monkeypatch.setattr(bridge, "_importi_dall_archivio", lambda *_: {
+        "liquidazione_giudice": {"importo": 1100.00, "status": "da_registrare", "fontiVerifica": [proof], "richiedeConferma": False},
+    })
+    result = bridge._payments_with_automatic_sources(fascicolo, fascicolo.pagamenti, enabled=True)
+    item = result["liquidazione_giudice"]
+    assert item["importo"] == 1100.00 and item["status"] == "pagato"
+    assert item["data_pagamento"] == "2026-10-12" and item["metodo"] == "Bonifico"
+    assert item["fontiVerifica"] == [proof]
+    assert raw["note"] == "Incasso confermato" and "fontiVerifica" not in raw
+
+
+def test_voce_unica_apre_originale_documentale_e_copia_pec(monkeypatch):
+    from pct.registro_letture import Fatto
+    from web.services import react_fascicoli_bridge as bridge, registro_letture_runtime as runtime
+
+    fonti = [{"fatto_id": "doc-1", "tipo": "documento", "oggetto_id": "DOC", "sha256": "a" * 64,
+              "estratto": "Compensi liquidati € 1.100,00."},
+             {"fatto_id": "pec-1", "tipo": "allegato_pec", "oggetto_id": "PEC-DOC", "sha256": "b" * 64,
+              "estratto": "Compensi liquidati € 1.100,00."}]
+    fatto = Fatto(id="canon-1", fascicolo_id="F1", tipo="documento", oggetto_id="DOC", sha256="a" * 64,
+                  categoria="importo", campo="liquidazione_giudice", valore="1100.00", verifica="verificata",
+                  contesto="Compensi liquidati € 1.100,00.", prove=[{"codice": "fonti_unite", "fonti": fonti}])
+    oggetti = {"DOC": SimpleNamespace(presente=True, impronta="a" * 64, sha256="a" * 64,
+                                       nome="originale.pdf", oggetto_id="DOC", origine=""),
+               "PEC-DOC": SimpleNamespace(presente=True, impronta="b" * 64, sha256="b" * 64,
+                                           nome="copia.pdf", oggetto_id="PEC-DOC", origine="PEC-1")}
+    monkeypatch.setattr(bridge, "_fatti_archivio", lambda *_args, **_kwargs: [fatto])
+    monkeypatch.setattr(runtime, "tenant_corrente", lambda: "TEST-TENANT")
+    monkeypatch.setattr(runtime, "registro_corrente", lambda: SimpleNamespace(oggetto=lambda *_args: oggetti[_args[-1]]))
+    fascicolo = SimpleNamespace(id="F1", documenti=[SimpleNamespace(id="DOC")], pagamenti={})
+    voce = bridge._importi_dall_archivio(fascicolo, {})["liquidazione_giudice"]
+    assert voce["importo"] == 1100.00 and not voce["richiedeConferma"]
+    prove = voce["fontiVerifica"]
+    assert len(prove) == 2
+    assert prove[0]["previewHref"] == "/fascicoli/F1/documenti/DOC/visualizza"
+    assert prove[1]["previewHref"] == "/api/v1/ui/email/source/PEC-1?name=copia.pdf&sha256=" + "b" * 64
+
+
+def test_liquidazione_sentenza_automatica_senza_parcella_imposta(tmp_path: Path):
+    fascicoli = FakeFascicoliRepository()
+    fatturazione = GestioneFatturazione(str(tmp_path / "parcelle.json"))
+    metadata = {"document_id": "DOC-1", "filename": "sentenza.pdf", "tipo_documento": "Sentenza Tribunale"}
+    first = apply_sentenza_tribunale_automation(
+        fascicoli_repository=fascicoli, fatturazione_repository=fatturazione,
+        fascicolo_id="FASC-1", text=SENTENZA_TEXT, document_metadata=metadata, actor="Lex AI",
+    )
+    second = apply_sentenza_tribunale_automation(
+        fascicoli_repository=fascicoli, fatturazione_repository=fatturazione,
+        fascicolo_id="FASC-1", text=SENTENZA_TEXT, document_metadata=metadata, actor="Lex AI",
+    )
+    assert first.applied and not second.applied
+    payment = fascicoli.fascicolo.pagamenti["liquidazione_giudice"]
+    assert payment["importo"] == 1100.00
+    assert payment["status"] == "da_registrare" and not payment["pagato"]
+    assert payment["documento_fonte"] == "document_id:DOC-1"
+    assert not first.proforma_id and not first.changes["proformaCreated"]
+    assert fatturazione.per_fascicolo("FASC-1") == []
+    assert "parcella" not in fascicoli.fascicolo.pagamenti
+    summary = payment_summary_for_fascicolo(fascicoli.fascicolo)
+    assert not summary["items"]["parcella"]["previsto"]
+    assert summary["items"]["parcella"]["statusLabel"] == "Facoltativa"
+    assert not summary["proformaPresidio"]["requiresAction"]
+    assert summary["proformaPresidio"]["status"] == "facoltativa"
+
+
+def test_proforma_su_richiesta_esplicita_e_replay_idempotente(tmp_path: Path):
     fascicoli = FakeFascicoliRepository()
     fatturazione = GestioneFatturazione(str(tmp_path / "parcelle.json"))
     metadata = {
@@ -736,6 +1093,7 @@ def test_applicazione_sentenza_aggiorna_fascicolo_e_crea_una_sola_proforma(tmp_p
     }
 
     first = apply_sentenza_tribunale_automation(
+        proforma_requested=True,
         fascicoli_repository=fascicoli,
         fatturazione_repository=fatturazione,
         fascicolo_id="FASC-1",
@@ -804,7 +1162,7 @@ def test_rilettura_sentenza_preserva_incasso_e_parcella_manuali(tmp_path: Path, 
     assert fascicoli.fascicolo.avanzamento == []
 
 
-def test_correzione_pagamento_fittizio_lex_conserva_valori_precedenti_audit(tmp_path: Path):
+def test_rilettura_sentenza_conserva_stato_pagamento_lex_preesistente(tmp_path: Path):
     fascicoli = FakeFascicoliRepository()
     fascicoli.fascicolo.pagamenti = {'liquidazione_giudice':{
         'status':'pagato', 'pagato':True, 'importo':1100.0, 'data_pagamento':'2024-05-07',
@@ -816,13 +1174,12 @@ def test_correzione_pagamento_fittizio_lex_conserva_valori_precedenti_audit(tmp_
         document_metadata={'document_id':'DOC-1', 'filename':'sentenza.pdf', 'tipo_documento':'Sentenza Tribunale'},
         actor='Lex AI')
     payment = fascicoli.fascicolo.pagamenti['liquidazione_giudice']
-    assert payment['status'] == 'da_registrare'
-    assert payment['pagato'] is False
-    assert payment['data_pagamento'] == payment['metodo'] == ''
+    assert payment['status'] == 'pagato'
+    assert payment['pagato'] is True
+    assert payment['data_pagamento'] == '2024-05-07'
+    assert payment['metodo'] == 'Bonifico bancario'
     assert payment['importo'] == 1100.0
-    assert payment['history'][-1]['fromStatus'] == 'pagato'
-    assert payment['history'][-1]['fromDataPagamento'] == '2024-05-07'
-    assert payment['history'][-1]['fromMetodo'] == 'Bonifico bancario'
+    assert payment['history'] == [{'origine':ORIGIN, 'toStatus':'pagato'}]
 
 
 @pytest.mark.parametrize('source_changed,manual_amount', [(False, None), (True, None), (False, 333.0)])
@@ -831,6 +1188,7 @@ def test_rilettura_non_somma_due_liquidazioni_nella_stessa_proforma(tmp_path: Pa
     fatturazione = GestioneFatturazione(str(tmp_path/'parcelle.json'))
     metadata = {'document_id':'DOC-1', 'filename':'sentenza.pdf', 'tipo_documento':'Sentenza Tribunale', 'sha256':'a'*64}
     first = apply_sentenza_tribunale_automation(
+        proforma_requested=True,
         fascicoli_repository=fascicoli, fatturazione_repository=fatturazione, fascicolo_id='FASC-1',
         text=SENTENZA_TEXT, document_metadata=metadata, actor='Lex AI')
     if manual_amount is not None:
@@ -845,13 +1203,17 @@ def test_rilettura_non_somma_due_liquidazioni_nella_stessa_proforma(tmp_path: Pa
     proforma = fatturazione.get(first.proforma_id)
     fees = [v for v in proforma.voci if v.tipo == 'ONORARIO']
     assert len(fees) == 1
-    if not source_changed and manual_amount is None:
-        assert fees[0].prezzo_unitario == 260.0
-        assert proforma.dati_personalizzati['lex_sentenza']['corrections'][0]['previous_amounts'] == [1100.0]
-    else:
-        assert fees[0].prezzo_unitario == (manual_amount or 1100.0)
-        assert proforma.dati_personalizzati['lex_sentenza_reconciliation']['conflicts'][0]['amount'] == 260.0
-        assert 'proforma_importi_discordanti' in outcome.extraction.warnings
+    assert fees[0].prezzo_unitario == (manual_amount or 1100.0)
+    assert proforma.dati_personalizzati['lex_sentenza_reconciliation']['conflicts'][0]['amount'] == 260.0
+    assert 'proforma_importi_discordanti' in outcome.extraction.warnings
+    assert fascicoli.fascicolo.pagamenti['liquidazione_giudice']['importo'] == 1100.0
+    discordanza = fascicoli.fascicolo.pagamenti[AUTOMATION_KEY]['discordanze'][0]
+    assert discordanza['importo_registrato'] == 1100.0
+    assert discordanza['importo_letto'] == 260.0
+    assert discordanza['sha256'] == second_metadata['sha256']
+    summary = payment_summary_for_fascicolo(fascicoli.fascicolo)
+    assert summary['items']['liquidazione_giudice']['richiedeConferma'] is True
+    assert '€ 260,00' in summary['items']['liquidazione_giudice']['verificheMancanti'][0]
     again = apply_sentenza_tribunale_automation(
         fascicoli_repository=fascicoli, fatturazione_repository=fatturazione, fascicolo_id='FASC-1',
         text=corrected_text, document_metadata=second_metadata, actor='Lex AI')
@@ -859,11 +1221,65 @@ def test_rilettura_non_somma_due_liquidazioni_nella_stessa_proforma(tmp_path: Pa
     assert len([v for v in fatturazione.get(first.proforma_id).voci if v.tipo == 'ONORARIO']) == 1
 
 
+@pytest.mark.parametrize("backend", ["sqlite", "postgresql"])
+def test_fondo_esborsi_sql_persistenza_autorevole_sul_mirror(tmp_path, backend):
+    from pct.storage import StudioDB
+
+    if backend == "postgresql":
+        dsn = os.environ.get("IUSENTRA_ECONOMIC_TEST_POSTGRES_DSN", "")
+        if not dsn:
+            pytest.skip("PostgreSQL isolato non configurato per questo guardrail")
+        from pct.storage_postgres import PostgresStudioDB
+        import psycopg2
+        from psycopg2 import sql
+        from psycopg2.extensions import make_dsn
+
+        schema = "iusentra_test_economico_" + uuid.uuid4().hex
+        with psycopg2.connect(dsn) as owner, owner.cursor() as cursor:
+            cursor.execute(sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(schema)))
+        database = PostgresStudioDB(make_dsn(dsn, options=f"-c search_path={schema}"))
+    else:
+        database = StudioDB(str(tmp_path / "studio.db"))
+    try:
+        database.conn.execute("INSERT INTO clienti(id,tipo,cognome,nome,codice_fiscale,dati_json) VALUES (?,?,?,?,?,?)",
+                              ("CLI-SQL", "PERSONA_FISICA", "Montagnese", "Roberta", "MNTRRT98P65G791Q", "{}"))
+        database.conn.execute("COMMIT")
+        fascicoli = GestioneFascicoli(str(tmp_path / "fascicoli.json"), studio_db=database)
+        fascicolo = Fascicolo(id="FASC-SQL", numero="2025/001", titolo="Roberta Montagnese c. MIM",
+                              tipo=TipoFascicolo.CIVILE, nome_cliente="Roberta Montagnese", id_cliente="CLI-SQL",
+                              tribunale="Tribunale di Vicenza", numero_rg="697/2025", anno_rg=2025)
+        fascicoli._fascicoli[fascicolo.id] = fascicolo
+        fascicoli._salva()
+        fatturazione = GestioneFatturazione(str(tmp_path / "parcelle.json"), studio_db=database)
+        metadata = {"document_id": "DOC-SQL", "sha256": "f" * 64, "tipo_documento": "Sentenza", "codice_fiscale_cliente": "MNTRRT98P65G791Q"}
+        first = apply_sentenza_tribunale_automation(
+            fascicoli_repository=fascicoli, fatturazione_repository=fatturazione,
+            fascicolo_id=fascicolo.id,
+            text=MONTAGNESE_TEXT + "\nFondo spese riconosciuto pari a € 250,00.", document_metadata=metadata)
+        assert first.applied
+        reopened = GestioneFascicoli(str(tmp_path / "fascicoli.json"), studio_db=database).get(fascicolo.id)
+        assert reopened.pagamenti["spese_esborsi"]["importo"] == 21.50
+        assert reopened.pagamenti["fondo_spese"]["importo"] == 250.00
+        assert reopened.pagamenti["fondo_spese"]["source_sha256"] == "f" * 64
+        assert reopened.id_cliente == "CLI-SQL"
+        # Il mirror nativo è preservato ma non governa la riapertura SQL.
+        (tmp_path / "fascicoli.json").write_text("{}", encoding="utf-8")
+        assert GestioneFascicoli(str(tmp_path / "fascicoli.json"), studio_db=database).get(fascicolo.id).pagamenti == reopened.pagamenti
+        assert not first.proforma_id
+        assert GestioneFatturazione(str(tmp_path / "parcelle.json"), studio_db=database).per_fascicolo(fascicolo.id) == []
+    finally:
+        if backend == "postgresql":
+            database.raw_conn.close()
+        else:
+            database._close_thread_connection()
+
+
 def test_documento_duplicato_stessa_sentenza_riusa_proforma_esistente(tmp_path: Path):
     fascicoli = FakeFascicoliRepository()
     fatturazione = GestioneFatturazione(str(tmp_path / "parcelle.json"))
 
     first = apply_sentenza_tribunale_automation(
+        proforma_requested=True,
         fascicoli_repository=fascicoli,
         fatturazione_repository=fatturazione,
         fascicolo_id="FASC-1",
@@ -936,7 +1352,7 @@ def test_sentenza_gia_processata_completa_esborsi_e_importo_parcella(tmp_path: P
         fatturazione_repository=fatturazione,
         fascicolo_id="FASC-1",
         text=MONTAGNESE_TEXT,
-        document_metadata={"document_id": "DOC-MONTAGNESE", "filename": "Sentenza.pdf", "tipo_documento": "Sentenza Tribunale"},
+        document_metadata={"document_id": "DOC-MONTAGNESE", "filename": "Sentenza.pdf", "tipo_documento": "Sentenza Tribunale", "codice_fiscale_cliente": "MNTRRT98P65G791Q"},
         actor="Lex AI",
     )
 
@@ -965,7 +1381,7 @@ def test_sentenza_gia_processata_completa_esborsi_e_importo_parcella(tmp_path: P
     assert updated_proforma.dati_personalizzati["lex_sentenza"]["extraction"]["spese_esborsi_importo"] == 21.50
 
 
-def test_fondo_spese_legacy_confluisce_in_spese_esborsi_senza_doppio_totale():
+def test_fondo_spese_preesistente_conserva_natura_senza_doppio_totale():
     fascicolo = SimpleNamespace(
         id="FASC-LEGACY-FONDO",
         pagamenti={
@@ -983,12 +1399,12 @@ def test_fondo_spese_legacy_confluisce_in_spese_esborsi_senza_doppio_totale():
 
     assert summary["totaleRegistrato"] == 250.0
     assert summary["items"]["spese_esborsi"]["label"] == "Spese/esborsi"
-    assert summary["items"]["spese_esborsi"]["importo"] == 250.0
-    assert summary["items"]["fondo_spese"]["importo"] is None
-    assert summary["items"]["fondo_spese"]["status"] == "non_previsto"
+    assert summary["items"]["spese_esborsi"]["importo"] is None
+    assert summary["items"]["fondo_spese"]["importo"] == 250.0
+    assert summary["items"]["fondo_spese"]["status"] == "pagato"
 
 
-def test_pagamento_fondo_spese_legacy_salva_spese_esborsi_unico():
+def test_pagamento_fondo_spese_salva_la_voce_distinta():
     fascicoli = FakeFascicoliRepository()
 
     payload, status = update_react_fascicolo_payment(
@@ -1001,12 +1417,12 @@ def test_pagamento_fondo_spese_legacy_salva_spese_esborsi_unico():
     )
 
     assert status == 200
-    assert payload["payment"]["kind"] == "spese_esborsi"
-    assert payload["payment"]["label"] == "Spese/esborsi"
+    assert payload["payment"]["kind"] == "fondo_spese"
+    assert payload["payment"]["label"] == "Fondo spese"
     assert payload["paymentSummary"]["totaleRegistrato"] == 250.0
-    assert payload["paymentSummary"]["items"]["spese_esborsi"]["importo"] == 250.0
-    assert "fondo_spese" not in fascicoli.fascicolo.pagamenti
-    assert fascicoli.fascicolo.pagamenti["spese_esborsi"]["importo"] == 250.0
+    assert payload["paymentSummary"]["items"]["fondo_spese"]["importo"] == 250.0
+    assert "spese_esborsi" not in fascicoli.fascicolo.pagamenti
+    assert fascicoli.fascicolo.pagamenti["fondo_spese"]["importo"] == 250.0
 
 
 def test_sentenza_strategica_senza_nome_cliente_non_aggiorna_economia(tmp_path: Path):
@@ -1082,7 +1498,7 @@ def test_sentenza_con_rg_importato_a_zeri_iniziali_aggiorna_economia(tmp_path: P
     assert outcome.applied is True
     assert "rg_sentenza_non_coincidente_con_fascicolo" not in outcome.warnings
     assert fascicoli.get("FASC-1").pagamenti["liquidazione_giudice"]["importo"] == 1100.00
-    assert len(fatturazione.per_fascicolo("FASC-1")) == 1
+    assert fatturazione.per_fascicolo("FASC-1") == []
 
 
 def test_numerazione_configurata_e_conversione_proforma(tmp_path: Path):
@@ -1226,6 +1642,16 @@ def test_sentenza_gia_applicata_alimenta_vector_db_una_sola_volta(tmp_path: Path
         fascicolo_id="FASC-1", document_key=vector_key, metadata={**metadata, "tenant_id": "tenant-a"})
 
 
+def test_fondo_importo_precedente_conserva_intera_citazione():
+    from pct.fascicolo_sentenza_economica import _extract_fondo_spese
+
+    text = "€ 250,00 a titolo di fondo spese. € 21,50 per esborsi."
+    amount, quote, issues = _extract_fondo_spese(text)
+    assert amount == 250.0
+    assert "€ 250,00 a titolo di fondo spese" in quote
+    assert issues == []
+
+
 def test_sentenza_vector_runtime_usa_testo_originale_completo():
     from pct.rag_sql_document import index_sql_text
 
@@ -1243,3 +1669,32 @@ def test_sentenza_vector_runtime_usa_testo_originale_completo():
     assert result["status"] == "indexed"
     assert captured[0]["text"] == long_text.strip()
     assert captured[0]["source_type"] == "fascicolo_documento"
+@pytest.mark.parametrize("expected,declared,allowed", [
+    ("RSSMRA80A01H501U", "RSSMRA80A01H501U", True),
+    ("", "RSSMRA80A01H501U", False),
+    ("DIFFERENTE_VALIDO", "RSSMRA80A01H501U", False),
+    ("RSSMRA80A01H501U", "RSSMRA80A01H501O", False),
+])
+def test_sentenza_codice_fiscale_della_parte_deve_essere_valido_e_concordante(expected, declared, allowed):
+    from types import SimpleNamespace
+    from pct.fascicolo_sentenza_economica import validate_sentenza_fascicolo_context
+    if expected == "DIFFERENTE_VALIDO":
+        from pct.codice_fiscale import _checksum
+        expected = "RSSMRA80A01F205" + _checksum("RSSMRA80A01F205")
+
+    case = SimpleNamespace(id="CF-CONTROLLED", nome_cliente="Mario Rossi", numero_rg="98765", anno_rg=2026,
+                           tribunale="Tribunale di Torino", codice_fiscale_cliente=expected)
+    text = f"TRIBUNALE DI TORINO\nR.G. n. 98765/2026\nSentenza n. 99/2026 pubbl. il 12/10/2026\nMARIO ROSSI (C.F. {declared}), ricorrente\ncontro Alfa\nP.Q.M. condanna Alfa alle spese che liquida in euro 1.100,00."
+    extraction = analyze_sentenza_tribunale_text(text, {"tipo_documento": "SENTENZA"})
+    result = validate_sentenza_fascicolo_context(text=text, extraction=extraction, fascicolo=case,
+                                                metadata={"codice_fiscale_cliente": expected})
+    assert result.ok is allowed
+    from pct.sentenza_economic_audit import build_identity_match
+    assert build_identity_match(case, text).safe_to_attach is allowed
+    from pct.archivio_letture.estrazione_importi import importi_dalla_sentenza
+    facts = importi_dalla_sentenza(text, metadata={"fascicolo": case, "codice_fiscale_cliente": expected}, origine="nativo")
+    if allowed:
+        assert any(f.categoria == "importo" for f in facts)
+    else:
+        assert not any(f.categoria == "importo" for f in facts)
+        assert any(f.campo == "importi_identita_non_verificata" for f in facts)

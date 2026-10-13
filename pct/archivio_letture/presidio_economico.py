@@ -59,6 +59,8 @@ def contributo_verificato(fatti: Iterable[Fatto]) -> dict[str, Any] | None:
         difetti = [str(prove.get(c, {}).get("dettaglio") or descrizione)
                    for c, descrizione in (
                        ("cliente_economico", "Nome e cognome del cliente non verificati nel contenuto."),
+                       ("ufficio_economico", "Ufficio giudiziario non verificato nella fonte."),
+                       ("cf_economico", "Codice fiscale della parte non verificato nella fonte."),
                        ("rg_economico", "Numero e anno RG non verificati nel contenuto."))
                    if prove.get(c, {}).get("esito") != "ok"]
         if fatto.verifica == "plausibile":
@@ -105,10 +107,10 @@ def contributo_verificato(fatti: Iterable[Fatto]) -> dict[str, Any] | None:
     return {
         "status": "pagato" if pagato else "da_registrare", "previsto": True, "pagato": pagato,
         "importo": float(sum(versamenti.values())) if pagato else None,
-        "data_pagamento": _dettaglio(_prove(fonte_principale), "data") if pagato else "",
+        "data_pagamento": interpreta_data(_dettaglio(_prove(fonte_principale), "data")).isoformat() if pagato else "",
         "documento_id": fonte_principale.oggetto_id, "fattoId": fonte_principale.id,
         "richiedeConferma": not pagato, "fontiVerifica": fonti, "verificheMancanti": mancanti,
         "importiLetti": list(dict.fromkeys(importi_letti)),
-        "note": "Versamento verificato sul contenuto, cliente e RG; copie della stessa ricevuta conteggiate una volta."
+        "note": "Versamento verificato sul contenuto, cliente, RG e ufficio giudiziario; copie della stessa ricevuta conteggiate una volta."
         if pagato else " ".join(mancanti),
     }

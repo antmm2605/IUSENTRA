@@ -30,6 +30,18 @@ def _giorno_ora(fatto: Fatto) -> tuple[str, str]:
     return giorno, ora
 
 
+def _ambito(fatto: Fatto) -> str:
+    if fatto.categoria != "importo":
+        return ambito_fatto(fatto)
+    contenuti = {_testo(p.get("dettaglio")) for p in fatto.prove
+                 if p.get("codice") == "impronta_contenuto_economico" and p.get("esito") == "ok"}
+    if len(contenuti) == 1:
+        return "contenuto-economico:" + next(iter(contenuti))
+    if fatto.sha256:
+        return "impronta-economica:" + fatto.sha256
+    return "fonte-economica:" + "|".join((fatto.tipo, fatto.oggetto_id, fatto.id))
+
+
 def _compatibile(gruppo: list[Fatto], fatto: Fatto) -> bool:
     primo = gruppo[0]
     if _testo(primo.fascicolo_id) != _testo(fatto.fascicolo_id):
@@ -38,7 +50,7 @@ def _compatibile(gruppo: list[Fatto], fatto: Fatto) -> bool:
         return False
     if primo.categoria != fatto.categoria or primo.campo != fatto.campo:
         return False
-    if ambito_fatto(primo) != ambito_fatto(fatto):
+    if _ambito(primo) != _ambito(fatto):
         return False
     if ambito_fatto(fatto).startswith("fonte:") and not (fatto.id and primo.id == fatto.id):
         return False
@@ -62,7 +74,8 @@ def _identita(gruppo: list[Fatto]) -> tuple[str, ...]:
         identity = (_testo(primo.fascicolo_id), primo.categoria, primo.campo, giorno, ore[0] if ore else "")
         return (*identity, ambito_fatto(primo)) if ambito_fatto(primo) else identity
     oggetto = _testo(primo.oggetto_id) if primo.campo == "natura_documentale" else ""
-    return (_testo(primo.fascicolo_id), primo.categoria, primo.campo, _testo(primo.valore).casefold(), oggetto)
+    identity = (_testo(primo.fascicolo_id), primo.categoria, primo.campo, _testo(primo.valore).casefold(), oggetto)
+    return (*identity, _ambito(primo)) if primo.categoria == "importo" else identity
 
 
 def _migliore(gruppo: list[Fatto]) -> Fatto:
@@ -144,7 +157,7 @@ def _secchio(fatto: Fatto) -> tuple[str, ...]:
     esclusa = "esclusa" if fatto.verifica in {"respinta", "ignorata"} else "utile"
     oggetto = _testo(fatto.oggetto_id) if fatto.campo == "natura_documentale" else ""
     valore = _giorno_ora(fatto)[0] if fatto.categoria == "data" else _testo(fatto.valore).casefold()
-    return (_testo(fatto.fascicolo_id), esclusa, fatto.categoria, fatto.campo, oggetto, valore, ambito_fatto(fatto))
+    return (_testo(fatto.fascicolo_id), esclusa, fatto.categoria, fatto.campo, oggetto, valore, _ambito(fatto))
 
 
 def fatti_canonici(fatti: Iterable[Fatto]) -> list[Fatto]:

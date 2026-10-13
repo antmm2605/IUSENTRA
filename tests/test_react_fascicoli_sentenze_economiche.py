@@ -128,7 +128,7 @@ def test_bridge_helper_mostra_evidenze_economiche_gia_lette_se_audit_vuoto(monke
     assert any("Sentenza del 15/06/2026" in item["hint"] for item in block["worklist"])
 
 
-def test_prova_reale_gli_importi_arrivano_dal_repository(monkeypatch, tmp_path):
+def test_importi_repository_non_confermati_restano_evidenze(monkeypatch, tmp_path):
     # Semina un audit reale (distrazione -> credito avvocato 4200) nel repo tenant.
     repo = SentenzaEconomicRepository(tmp_path / "se.db")
     runtime.run_analysis(
@@ -145,12 +145,13 @@ def test_prova_reale_gli_importi_arrivano_dal_repository(monkeypatch, tmp_path):
     assert payload["ok"] is True
     totals = payload["summary"]["totals"]
     assert totals["sentenze_lette"] == 1
-    assert totals["crediti_avvocato_antistatario"] == 4200.0
-    assert totals["spese_liquidate_totale"] == 4200.0
+    assert totals["crediti_avvocato_antistatario"] == 0.0
+    assert totals["spese_liquidate_totale"] == 0.0
+    assert any(row["value"] == "€ 4.200,00" and row["tone"] == "warning" for row in payload["summary"]["worklist"])
     # E il bridge lo trasforma nel blocco che il frontend renderizza.
     monkeypatch.setattr(runtime, "build_sentenza_economic_payload", lambda fid="": payload)
     block = bridge._sentenze_economiche("F1")
-    assert block["totals"]["spese_liquidate_totale"] == 4200.0
+    assert block["totals"]["spese_liquidate_totale"] == 0.0
 
 
 def test_payload_get_non_avvia_analisi_documenti_sentenza(monkeypatch, tmp_path):
@@ -260,6 +261,7 @@ def test_genera_proforma_persiste_la_base_economica_del_pannello_e_restituisce_a
 
     def _create(**kwargs):
         captured.update(kwargs)
+        fatturazione.per_fascicolo = lambda _fid: [SimpleNamespace(id="P-1", netto_a_pagare=354.15)]
         return {
             "ok": True,
             "existing": False,
@@ -295,7 +297,7 @@ def test_genera_proforma_persiste_la_base_economica_del_pannello_e_restituisce_a
     assert result["proformaId"] == "P-1"
     assert result["redirectHref"] == "/fatturazione?id_documento=P-1"
     assert captured["amount"] == 296.7
-    assert fascicolo.pagamenti["parcella"]["importo"] == 296.7
+    assert fascicolo.pagamenti["parcella"]["importo"] == 354.15
     assert fascicolo.pagamenti["parcella"]["proforma_id"] == "P-1"
 
 
@@ -320,3 +322,85 @@ def test_genera_proforma_blocca_un_importo_ui_diverso_da_quello_salvato():
     assert status == 409
     assert result["ok"] is False
     assert "cambiati" in result["message"]
+def test_presidio_economico_puntuale_non_enumera_archivio_ne_crea_proforme(monkeypatch):
+    case = _economic_fascicolo()
+    seen = []
+    repo = _EconomicFascicoliRepo(case)
+    repo.tutti = lambda **kw: (_ for _ in ()).throw(AssertionError("Archivio completo non richiesto"))
+    monkeypatch.setattr(bridge, "_ensure_contributo_unificato_for_fascicolo", lambda **kw: seen.append(kw["fascicolo"].id) or {"status": "existing"})
+    monkeypatch.setattr(bridge, "_ensure_fascicolo_definito_from_economics", lambda **kw: {"updated": False})
+    monkeypatch.setattr(bridge, "_fascicolo_is_defined", lambda item: True)
+    monkeypatch.setattr(bridge, "_ensure_auto_proforma_for_fascicolo", lambda **kw: (_ for _ in ()).throw(AssertionError("Nessuna scelta di creare proforma")))
+    result = bridge.run_react_fascicoli_economic_presidio(get_fascicoli=lambda: repo,
+        get_fatturazione=lambda: _EconomicFatturazioneRepo(), fascicolo_ids=[case.id])
+    assert result["ok"] and result["createdCount"] == 0 and seen == [case.id]
+    rejected = bridge.run_react_fascicoli_economic_presidio(get_fascicoli=lambda: repo,
+        get_fatturazione=lambda: _EconomicFatturazioneRepo(), fascicolo_ids=[case.id, "ALTRO-TENANT"])
+    assert not rejected["ok"] and seen == [case.id]
+
+def test_nuova_verifica_cu_non_sostituisce_pagamento_registrato(monkeypatch):
+    raw = {"status": "pagato", "importo": 49, "data_pagamento": "2026-10-12",
+           "origine": "Archivio delle letture", "updated_by": "IUSENTRA automatico"}
+    pending = {"status": "da_registrare", "importo": None, "richiedeConferma": True,
+               "verificheMancanti": ["Codice fiscale della fonte da verificare."], "importiLetti": ["49.00"]}
+    merged = bridge._merge_auto_payment_source(raw, pending, kind="contributo_unificato", replace_automatic=True)
+    assert merged["status"] == "pagato" and merged["importo"] == 49
+    assert merged["data_pagamento"] == "2026-10-12" and merged["richiedeConferma"]
+    assert merged["verificheMancanti"]
+    case = _economic_fascicolo({"contributo_unificato": raw})
+    monkeypatch.setattr(bridge, "_importi_dall_archivio", lambda *args: {"contributo_unificato": pending})
+    projected = bridge._payments_with_automatic_sources(case, case.pagamenti, enabled=False)
+    assert projected["contributo_unificato"]["status"] == "pagato"
+    assert projected["contributo_unificato"]["importo"] == 49
+
+def test_nuova_prova_sql_invalida_presidio_senza_rilettura_del_documento(monkeypatch):
+    from pct.registro_letture import Fatto
+    case = _economic_fascicolo()
+    facts = []
+    monkeypatch.setattr(bridge, "_fatti_archivio", lambda source, **filters: facts if filters.get("categoria") == "importo" else [])
+    before = bridge._document_analysis_fingerprint(case)
+    facts.append(Fatto(categoria="importo", campo="contributo_unificato", valore="49.00", id="F-CU",
+                       sha256="a" * 64, verifica="verificata", prove=[{"codice": "stato", "esito": "ok", "dettaglio": "pagato"}]))
+    after = bridge._document_analysis_fingerprint(case)
+    assert after != before
+    facts[0].letto_il = "2026-10-13T01:00:00Z"
+    assert bridge._document_analysis_fingerprint(case) == after
+
+
+
+def test_lista_economica_vede_nuove_prove_sql_senza_aprire_documenti(monkeypatch):
+    from pct.registro_letture import Fatto
+    case = _economic_fascicolo()
+    facts = []
+    monkeypatch.setattr(bridge, "_fatti_archivio", lambda source, **filters: facts if filters.get("categoria") == "importo" else [])
+    case.pagamenti["_presidio_documentale"] = {"status": "aggiornato", "fingerprint": "DOC", "economicFactsFingerprint": bridge._economic_archive_fingerprint(case)}
+    monkeypatch.setattr(bridge, "_economic_analysis_documents_for_fascicolo", lambda *args: (_ for _ in ()).throw(AssertionError("Nessuna apertura documentale nella lista")))
+    before = bridge._document_analysis_marker_state(case)
+    assert before["status"] == "aggiornato"
+    facts.append(Fatto(categoria="importo", campo="contributo_unificato", valore="49.00", id="CU-NEW", sha256="a" * 64, verifica="verificata"))
+    after = bridge._document_analysis_marker_state(case)
+    assert after["status"] == "da_rianalizzare" and after["fingerprint"] != before["fingerprint"]
+    case.pagamenti["_presidio_documentale"]["economicFactsFingerprint"] = bridge._economic_archive_fingerprint(case)
+    assert bridge._document_analysis_marker_state(case)["status"] == "aggiornato"
+
+
+def test_data_economica_storica_italiana_alimenta_input_iso():
+    item = bridge._payment_item("contributo_unificato", {"status": "pagato", "importo": 49, "data_pagamento": "12/10/2026"}, "CASE")
+    assert item["dataPagamento"] == "12/10/2026"
+    assert item["dataPagamentoIso"] == "2026-10-12"
+
+
+def test_fonte_cf_non_confrontabile_resta_visibile_senza_importo_associato(monkeypatch):
+    from pct.registro_letture import Fatto
+    import web.services.registro_letture_runtime as registry
+    fact = Fatto(id="NEG", oggetto_id="DOC", tipo="documento", categoria="evento", campo="importi_identita_non_verificata", valore="non_attribuiti", verifica="plausibile", sha256="a" * 64, contesto="Codice fiscale non confrontabile.")
+    monkeypatch.setattr(bridge, "_fatti_archivio", lambda source, **filters: [fact] if filters.get("categoria") == "evento" else [])
+    original = SimpleNamespace(presente=True, impronta=fact.sha256, nome="sentenza-negativa.pdf")
+    monkeypatch.setattr(registry, "registro_corrente", lambda: SimpleNamespace(oggetto=lambda *args: original))
+    monkeypatch.setattr(registry, "tenant_corrente", lambda: "TENANT")
+    case = _economic_fascicolo({"liquidazione_giudice": {"importo": 1100, "status": "pagato", "data_pagamento": "2026-10-12", "updated_by": "Avv. Test", "proforma_id": "P-1"}})
+    projected = bridge._payments_with_automatic_sources(case, case.pagamenti, enabled=False)["liquidazione_giudice"]
+    assert projected["importo"] == 1100 and projected["status"] == "pagato" and projected["proforma_id"] == "P-1"
+    assert projected["richiedeConferma"] and any("non confrontabile" in warning for warning in projected["verificheMancanti"])
+    assert projected["fontiVerifica"][0]["previewHref"].endswith("/documenti/DOC/visualizza")
+    assert case.pagamenti["liquidazione_giudice"]["importo"] == 1100

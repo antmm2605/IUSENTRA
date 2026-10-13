@@ -35,7 +35,8 @@ def test_contesto_economico_quando_abilitato(monkeypatch, repo_path):
     monkeypatch.setattr(tools, "_flag_enabled", lambda: True)
     result = tools.get_fascicolo_economic_context("F1", tenant_id="studio-a", db_path=repo_path)
     assert result["ok"] is True
-    assert result["totals"]["crediti_avvocato_antistatario"] == 4200.0
+    assert result["totals"]["crediti_avvocato_antistatario"] == 0.0
+    assert any(row["value"] == "€ 4.200,00" and row["tone"] == "warning" for row in result["worklist"])
     # isolamento tenant
     altro = tools.get_fascicolo_economic_context("F1", tenant_id="studio-b", db_path=repo_path)
     assert altro["totals"]["sentenze_lette"] == 0

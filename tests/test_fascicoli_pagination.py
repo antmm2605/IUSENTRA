@@ -373,7 +373,7 @@ def test_presidio_economico_consolida_cu_poi_lista_legge_solo_db(tmp_path, monke
     assert calls["count"] == 2
 
 
-def test_nuova_versione_parser_corregge_solo_contributo_automatico():
+def test_nuova_fonte_cu_discordante_preserva_importo_registrato_e_decisione_manuale():
     automatic = {
         "status": "pagato",
         "pagato": True,
@@ -419,9 +419,10 @@ def test_nuova_versione_parser_corregge_solo_contributo_automatico():
         replace_automatic=True,
     )
 
-    assert repaired["status"] == "pagato"
-    assert repaired["importo"] == 21.5
-    assert repaired["documento_fonte"] == "Ricevuta PagoPA.pdf"
+    assert repaired["status"] == "da_registrare"
+    assert repaired["importo"] == 6.0
+    assert repaired["documento_fonte"] == "Import pratiche"
+    assert repaired["richiedeConferma"] and repaired["verificheMancanti"]
     assert preserved == manual
 
 
@@ -624,8 +625,8 @@ def test_documenti_nuovi_alimentano_in_autonomia_contributo_e_liquidazione(tmp_p
                 "RICEVUTA TELEMATICA DI PAGAMENTO\n"
                 "Importo totale versato: 49.00\n"
                 "Identificativo versamento: 30003628285360064\n"
-                "Data: 17/03/2026\n"
-                "Causale: Contributo unificato RG 1548/2026\n"
+                "Data pagamento: 17/03/2026\n"
+                "Causale: Contributo unificato RG 1548/2026 - Mario Rossi - Tribunale di Palmi\n"
                 "Tipo pagamento: Contributo unificato\n"
                 "Esito: 0"
             ).encode("utf-8"),
@@ -678,10 +679,9 @@ def test_documenti_nuovi_alimentano_in_autonomia_contributo_e_liquidazione(tmp_p
     assert saved.pagamenti["contributo_unificato"]["importo"] == 49.0
     assert saved.pagamenti["liquidazione_giudice"]["status"] == "da_registrare"
     assert saved.pagamenti["liquidazione_giudice"]["importo"] == 1100.0
-    parcella = react_fascicoli_bridge._payment_item(
-        "parcella", react_fascicoli_bridge._payment_source_for_kind(saved.pagamenti, "parcella"), fascicolo.id
-    )
-    assert parcella["status"] == "da_emettere"
+    assert "parcella" not in saved.pagamenti
+    with app.app_context():
+        assert get_fatturazione().per_fascicolo(fascicolo.id) == []
 
     second_index = document_repo.recover_missing_hearings_from_fascicolo_documents(limit=10, actor="scheduler")
     assert second_index["processed_new_documents"] == 0

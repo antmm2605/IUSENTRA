@@ -255,3 +255,13 @@ def test_verifica_lettura_produce_anomalie_da_registrare_e_le_correzioni_si_appl
     corrette = applica_correzioni(esito["date_processuali"], {("d1", "udienza", "1O/O3/2O26"): "11/03/2026"}, oggetto_id="d1")
     assert corrette[0]["date"] == "2026-03-11" and corrette[0]["valore_corretto"] == "11/03/2026"
     assert "valore_corretto" not in corrette[1]
+def test_economic_reader_versions_preserve_released_history_without_mass_rereading():
+    from pct.registro_letture.lettori import versione_lettore, versioni_compatibili_lettore
+    from pct.archivio_letture.estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI, VERSIONE_ESTRAZIONE_IMPORTI_PRE_DISTINZIONE
+
+    for reader in ("motore_documenti", "motore_pec"):
+        current = versione_lettore(reader)
+        accepted = current.replace(VERSIONE_ESTRAZIONE_IMPORTI, VERSIONE_ESTRAZIONE_IMPORTI_PRE_DISTINZIONE)
+        assert accepted in versioni_compatibili_lettore(reader)
+        unreleased = current.replace(VERSIONE_ESTRAZIONE_IMPORTI, "2026.10.12.importi.v8+nature-distinte-discordanze")
+        assert unreleased not in versioni_compatibili_lettore(reader)

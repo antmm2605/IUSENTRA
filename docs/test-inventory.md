@@ -12,9 +12,9 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 | Tipo test | Conteggio |
 | --- | --- |
-| API contract | 114 |
+| API contract | 113 |
 | Backend | 115 |
-| E2E | 13 |
+| E2E | 14 |
 | Frontend static gate | 1 |
 | Frontend/UI | 318 |
 | RBAC | 117 |
@@ -41,11 +41,14 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 | Suite | Target | Esempi |
 | --- | --- | --- |
-| coverage-critical | 74 | tests/test_fascicolo_lettura_verifiche.py, lex/tests, tests/test_lex_agenda_scadenze_knowledge_matrix.py, tests/test_lex_ai_quality_framework.py, tests/test_lex_assistente_context_real_requests.py ... |
+| acquisition-ocr | 20 | tests/test_document_ocr.py, tests/test_document_ocr_documento.py, tests/test_document_ocr_formato.py, tests/test_editor_html_docx.py, tests/test_document_tools.py ... |
+| coverage-critical | 78 | tests/test_fascicolo_bonifico_ricevuto.py, tests/test_fascicolo_sentenza_economica.py, tests/test_sentenza_economic_dashboard.py, tests/test_sentenza_a_verbale_catena_economica.py, tests/test_fascicolo_lettura_verifiche.py ... |
 | e2e-nightly | 4 | tests/e2e/test_studio_reale_flow.py, tests/e2e/test_ai_pipeline_full.py, tests/e2e/test_tenant_migration_full.py, tests/e2e/test_operational_crash_day.py |
 | e2e-smoke | 1 | tests/e2e/test_studio_reale_flow.py |
+| legal-tools | 8 | tests/test_strumenti_legali.py, tests/test_strumenti_legali_end_to_end.py, tests/test_strumenti_processuali.py, tests/test_termini_processuali.py, tests/test_normative_tables.py ... |
 | mailbox-storage | 14 | tests/test_email_mailbox_sql_repository.py, tests/test_email_mailbox_core_schema.py, tests/test_email_sql_client.py, tests/test_email_storage_runtime.py, tests/test_email_storage_errors.py ... |
 | quality-overlay | 8 | tests/test_lex_quality_gates.py, tests/test_performance_budget.py, tests/test_local_signer_ai_cache.py, tests/test_estrazione_parti.py, tests/test_archivio_letture.py ... |
+| react-shell | 1 | tests/test_react_shell.py |
 | release-readiness | 1 | tests/test_release_readiness.py |
 | signer | 3 | tests/test_local_signer.py, tests/test_build_dist.py, tests/test_visible_signature.py |
 
@@ -107,7 +110,6 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | API contract | tests/test_antiriciclaggio_cliente.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_assistente_followup.py | file, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_capability_truth_registry.py | tenant, feature flag | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
-| Backend domain | API contract | tests/test_ci_cd_gates_phase11.py | 401 anonimo, tenant, feature flag, contratto, file, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_client_signature_providers.py | 401 anonimo, tenant, file | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_daily_plan_service.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_daily_plan_sources.py | tenant, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
@@ -199,6 +201,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | E2E | tests/e2e/test_studio_reale_flow.py | happy/edge path dominio | richiede ambiente/credenziali quando esce dal test client | censito |
 | Backend domain | E2E | tests/test_cassazione_atti_v21_predisposti.py | contratto, audit | richiede ambiente/credenziali quando esce dal test client | censito |
 | Backend domain | E2E | tests/test_cassazione_datiatto_schemi_esercizio.py | contratto, audit | richiede ambiente/credenziali quando esce dal test client | censito |
+| Backend domain | E2E | tests/test_ci_cd_gates_phase11.py | 401 anonimo, tenant, feature flag, contratto, file, audit | richiede ambiente/credenziali quando esce dal test client | censito |
 | Backend domain | E2E | tests/test_end_to_end_studio.py | tenant | richiede ambiente/credenziali quando esce dal test client | censito |
 | Backend domain | E2E | tests/test_golden_paths.py | tenant | richiede ambiente/credenziali quando esce dal test client | censito |
 | Backend domain | E2E | tests/test_pec_ocr_pipeline.py | tenant | richiede ambiente/credenziali quando esce dal test client | censito |

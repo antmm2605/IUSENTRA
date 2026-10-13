@@ -363,9 +363,18 @@ class SentenzaEconomicaExtraction:
     spese_generali: bool = False
     antistatario: bool = False
     warnings: list[str] = field(default_factory=list)
+    discordanze: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+def _discordanza_identity(evidence: dict[str, Any]) -> tuple[Any, ...]:
+    raw_contribution = evidence.get("fonte_contributo")
+    contribution = raw_contribution if isinstance(raw_contribution, dict) else {}
+    return (evidence.get("kind"), evidence.get("motivo"), evidence.get("documento_fonte"),
+            evidence.get("sha256"), evidence.get("importo_letto"), tuple(evidence.get("importi_letti") or []),
+            contribution.get("sha256"), contribution.get("document_id"), contribution.get("filename"))
 
 
 @dataclass(slots=True)
@@ -445,21 +454,10 @@ def analyze_sentenza_tribunale_text(text: str, metadata: dict[str, Any] | None =
     rg_match = _extract_rg_near_sentence(compact, date_match)
     liquidation_amount, liquidation_title = _extract_liquidazione(compact)
     spese_esborsi_amount, spese_esborsi_title = _extract_contributo_unificato(compact)
-    fondo_amount, fondo_title = _extract_amount_near(compact, _FONDO_PATTERNS)
+    fondo_amount, fondo_title, fondo_discordanze = _extract_fondo_spese(compact)
     warnings: list[str] = []
-    if fondo_amount is not None:
-        if spese_esborsi_amount is None:
-            spese_esborsi_amount = fondo_amount
-            spese_esborsi_title = fondo_title
-            warnings.append("fondo_spese_assorbito_in_spese_esborsi")
-        elif abs(float(spese_esborsi_amount) - float(fondo_amount)) > 0.01:
-            spese_esborsi_amount = fondo_amount
-            spese_esborsi_title = fondo_title
-            warnings.append("fondo_spese_preferito_come_spese_esborsi_unico")
-        else:
-            warnings.append("fondo_spese_non_duplicato_spese_esborsi")
-        fondo_amount = None
-        fondo_title = ""
+    # L'importo uguale non prova identità del capo economico: un fondo
+    # resta distinto dagli esborsi, anche quando manca una delle due voci.
     beneficio_amount, beneficio_title, beneficio_tipo = _extract_beneficio_cliente(compact)
     groups = date_match.groupdict()
 
@@ -486,6 +484,7 @@ def analyze_sentenza_tribunale_text(text: str, metadata: dict[str, Any] | None =
         spese_generali=bool(re.search(r"\bspese\s+generali\b", compact, re.IGNORECASE)),
         antistatario=bool(re.search(r"\bantistatari[oa]\b", compact, re.IGNORECASE)),
         warnings=warnings,
+        discordanze=fondo_discordanze,
     )
 
 
@@ -517,6 +516,7 @@ def apply_sentenza_tribunale_automation(
     text: str,
     document_metadata: dict[str, Any] | None = None,
     actor: str = "",
+    proforma_requested: bool = False,
 ) -> SentenzaAutomationOutcome:
     """Applica al fascicolo la matrice economica derivata dalla sentenza indicizzata."""
 
@@ -550,6 +550,9 @@ def apply_sentenza_tribunale_automation(
     document_key = _document_key(metadata)
     payments = dict(getattr(fascicolo, "pagamenti", {}) or {})
     automation = _automation_state(payments)
+    resolved = {_discordanza_identity(e) for e in automation.get("discordanze") or [] if isinstance(e, dict) and e.get("stato") == "risolta"}
+    extraction.discordanze = [e for e in extraction.discordanze if _discordanza_identity({
+        "documento_fonte": document_key, "sha256": _text(metadata.get("sha256")), **e}) not in resolved]
     processed = set(str(item) for item in automation.get("processed_documents") or [])
     already_processed = bool(document_key and document_key in processed)
     proforma_id = _text((automation.get("proforme") or {}).get(document_key)) if document_key else ""
@@ -573,6 +576,49 @@ def apply_sentenza_tribunale_automation(
     operator = _text(actor, "Lex AI")
 
     fields: dict[str, Any] = {}
+    evidenze = list(automation.get("evidenze_importi") or [])
+    discordanze = list(automation.get("discordanze") or [])
+    for raw_evidence in extraction.discordanze:
+        evidence = {"documento_fonte": document_key, "sha256": _text(metadata.get("sha256")),
+                    "stato": "da_verificare", **raw_evidence}
+        if not any(_discordanza_identity(e) == _discordanza_identity(evidence) for e in discordanze):
+            discordanze.append(evidence)
+            changes.setdefault("discordanze", []).append(evidence)
+    for kind, field_name, title_name in (
+        ("fondo_spese", "fondo_spese_importo", "fondo_spese_titolo"),
+        ("spese_esborsi", "spese_esborsi_importo", "spese_esborsi_titolo"),
+        ("contributo_unificato", "contributo_unificato_importo", "contributo_unificato_titolo"),
+        ("liquidazione_giudice", "liquidazione_importo", "liquidazione_titolo"),
+    ):
+        previous = payments.get(kind)
+        amount = getattr(extraction, field_name)
+        if amount is not None:
+            proof = {"kind": kind, "importo": amount, "documento_fonte": document_key,
+                     "sha256": _text(metadata.get("sha256")),
+                     "contesto": getattr(extraction, title_name),
+                     "data_sentenza": extraction.sentence_date,
+                     "numero_sentenza": extraction.sentence_number,
+                     "anno_sentenza": extraction.sentence_year,
+                     "fonte_contributo": dict(metadata.get("contributo_unificato_pdf") or {}) if kind == "contributo_unificato" else {}}
+            if proof not in evidenze:
+                evidenze.append(proof)
+                changes.setdefault("evidenze", []).append(proof)
+        if not isinstance(previous, dict) or previous.get("importo") is None or amount is None:
+            continue
+        if abs(float(previous["importo"]) - float(amount)) <= .01:
+            continue
+        evidence = {"kind": kind, "importo_registrato": previous["importo"],
+                    "importo_letto": amount, "documento_fonte": document_key,
+                    "sha256": _text(metadata.get("sha256")),
+                    "contesto": getattr(extraction, title_name),
+                    "fonte_precedente": previous.get("documento_fonte", ""),
+                    "sha256_precedente": previous.get("source_sha256", ""),
+                    "stato": "da_verificare"}
+        if not any(_discordanza_identity(e) == _discordanza_identity(evidence) for e in discordanze):
+            discordanze.append(evidence)
+            changes.setdefault("discordanze", []).append(evidence)
+    automation["discordanze"] = discordanze
+    automation["evidenze_importi"] = evidenze
     # La pubblicazione non è una nuova udienza né una chiusura. Lo stato
     # «Da archiviare» appartiene al verificatore del ciclo nativo, che verifica
     # fonte originale, dispositivo e riaperture prima della transizione.
@@ -622,9 +668,6 @@ def apply_sentenza_tribunale_automation(
 
     spese_esborsi_amount = extraction.spese_esborsi_importo
     spese_esborsi_title = extraction.spese_esborsi_titolo
-    if spese_esborsi_amount is None and extraction.fondo_spese_importo is not None:
-        spese_esborsi_amount = extraction.fondo_spese_importo
-        spese_esborsi_title = extraction.fondo_spese_titolo
     if spese_esborsi_amount is not None:
         spese_changed = _upsert_payment(
             payments,
@@ -646,8 +689,17 @@ def apply_sentenza_tribunale_automation(
         if spese_changed:
             changes["payments"].append("spese_esborsi")
 
-    # Il fondo spese preesistente non è dimostrato equivalente a un esborso
-    # soltanto perché compare una sentenza: la sua provenienza resta integra.
+    if extraction.fondo_spese_importo is not None:
+        fondo_changed = _upsert_payment(
+            payments, "fondo_spese", status="da_registrare",
+            amount=extraction.fondo_spese_importo, date_iso="",
+            note=extraction.fondo_spese_titolo, operator=operator, now=now,
+            document_key=document_key, preserve_decisions=True,
+            source_sha256=_text(metadata.get("sha256")),
+            extra={"natura": "fondo_spese", "label": "Fondo spese"},
+        )
+        if fondo_changed:
+            changes["payments"].append("fondo_spese")
 
     if extraction.liquidazione_importo is not None:
         liq_changed = _upsert_payment(
@@ -666,8 +718,11 @@ def apply_sentenza_tribunale_automation(
         if liq_changed:
             changes["payments"].append("liquidazione_giudice")
 
+    for evidence in discordanze:
+        if isinstance(evidence, dict) and evidence.get("stato") == "da_verificare" and evidence not in extraction.discordanze:
+            extraction.discordanze.append(evidence)
     proforma = existing_proforma
-    if proforma is None and extraction.liquidazione_importo is not None:
+    if proforma_requested and proforma is None and extraction.liquidazione_importo is not None:
         proforma = _create_proforma(
             fatturazione_repository=fatturazione_repository,
             fascicolo=fascicolo,
@@ -691,7 +746,7 @@ def apply_sentenza_tribunale_automation(
             status="da_emettere",
             amount=_proforma_total(proforma) or extraction.liquidazione_importo,
             date_iso="",
-            note="Proforma predisposta automaticamente dalla sentenza indicizzata.",
+            note="Proforma predisposta su richiesta dalla sentenza indicizzata.",
             operator=operator,
             now=now,
             document_key=document_key,
@@ -706,7 +761,7 @@ def apply_sentenza_tribunale_automation(
         if parcella_changed:
             changes["payments"].append("parcella")
 
-    has_data_changes = bool(fields) or bool(changes["payments"]) or bool(changes["proformaCreated"])
+    has_data_changes = bool(fields) or bool(changes["payments"]) or bool(changes["proformaCreated"]) or bool(changes.get("discordanze")) or bool(changes.get("evidenze"))
     if already_processed and not has_data_changes:
         return SentenzaAutomationOutcome(
             applied=False,
@@ -877,7 +932,11 @@ def validate_sentenza_fascicolo_context(
         warnings.append("ufficio_giudiziario_non_concordante_o_mancante")
     if not identity_complete['complete_match']:
         warnings.append("identita_congiunta_intestazione_non_verificata")
-    ok = fascicolo_id_match and cliente_match and rg_match and identity_complete['complete_match']
+    from pct.archivio_letture.verifica_economica import codice_fiscale_parte
+    tax_identity = codice_fiscale_parte(text, {**meta, "fascicolo": fascicolo})
+    if tax_identity["esito"] != "ok":
+        warnings.append("codice_fiscale_parte_non_concordante_o_non_verificato")
+    ok = fascicolo_id_match and cliente_match and rg_match and identity_complete['complete_match'] and tax_identity["esito"] == "ok"
     if ok:
         return SentenzaFascicoloContext(
             ok=True,
@@ -1367,6 +1426,11 @@ def extract_contributo_unificato_document_evidence(
     has_due_anchor = _contributo_document_has_due_anchor(probe)
     non_payment_source = _contributo_document_is_non_payment_source(label, compact)
     role_amount_match = _CONTRIBUTO_DOCUMENT_ROLE_AMOUNT_RE.search(compact)
+    receipt_paid = bool(
+        re.search(r"\bricevuta\s+(?:telematica\s+)?(?:di\s+)?pagamento\b", compact, re.I)
+        and re.search(r"\b(?:pagamento|versamento)\s+(?:eseguito|effettuato|avvenuto)\b", compact, re.I)
+        and not re.search(r"\b(?:pagamento|versamento)\s+non\s+(?:eseguito|effettuato|avvenuto)\b|\besito\s+(?:negativo|fallito)\b", compact, re.I)
+    )
     if exemption and (not role_amount_match or _CONTRIBUTO_DOCUMENT_STRONG_EXEMPT_RE.search(compact)):
         return exemption
     if role_amount_match:
@@ -1375,13 +1439,13 @@ def extract_contributo_unificato_document_evidence(
             return {
                 "importo": role_amount,
                 "titolo": _snippet(compact, role_amount_match.start(), role_amount_match.end(), window=70),
-                "natura": "richiesta_versamento_contributo_unificato",
+                "natura": "pdf_contributo_unificato" if receipt_paid else "richiesta_versamento_contributo_unificato",
                 "label": "Contributo unificato da verificare",
-                "status": "da_registrare",
+                "status": "pagato" if receipt_paid else "da_registrare",
                 "filename": _text(meta.get("filename") or meta.get("original_filename") or meta.get("safe_filename")),
                 "document_id": _text(meta.get("document_id") or meta.get("documento_id")),
                 "sha256": _text(meta.get("sha256")),
-                "origine": "riepilogo_ruolo_contributo_unificato",
+                "origine": "ricevuta_pagamento_contributo_unificato" if receipt_paid else "riepilogo_ruolo_contributo_unificato",
             }
     if exemption:
         return exemption
@@ -1472,9 +1536,13 @@ def apply_contributo_unificato_pdf_evidence(
     extraction.contributo_unificato_esente = False
     if extraction.spese_esborsi_importo is not None:
         if abs(float(extraction.spese_esborsi_importo) - amount) <= 0.01:
-            extraction.spese_esborsi_importo = None
-            extraction.spese_esborsi_titolo = ""
-            extraction.warnings.append("spese_esborsi_riclassificate_cu_pdf")
+            evidence = {"kind": "spese_esborsi", "motivo": "possibile_sovrapposizione_contributo_esborsi",
+                        "importo_registrato": extraction.spese_esborsi_importo, "importo_letto": amount,
+                        "contesto": extraction.spese_esborsi_titolo,
+                        "fonte_contributo": dict(raw)}
+            if evidence not in extraction.discordanze:
+                extraction.discordanze.append(evidence)
+            extraction.warnings.append("contributo_esborsi_stesso_importo_da_verificare")
         else:
             extraction.warnings.append("contributo_unificato_pdf_distinto_da_spese_sentenza")
     if extraction.contributo_unificato_importo is None:
@@ -1501,12 +1569,41 @@ def apply_contributo_unificato_pdf_evidence(
         return
     sentenza_amount = extraction.contributo_unificato_importo
     extraction.warnings.append("contributo_unificato_pdf_diverso_da_sentenza")
-    extraction.contributo_unificato_importo = amount
-    extraction.contributo_unificato_titolo = (
-        f"{title} (fonte diretta: {filename}; importo sentenza: {sentenza_amount})"
-    )
-    extraction.contributo_unificato_natura = _text(raw.get("natura")) or "pdf_contributo_unificato"
-    extraction.contributo_unificato_label = _text(raw.get("label")) or _contributo_recovery_label(extraction.contributo_unificato_natura)
+    evidence = {"kind": "contributo_unificato", "motivo": "importi_contributo_discordanti",
+                "importo_registrato": sentenza_amount, "importo_letto": amount,
+                "contesto": extraction.contributo_unificato_titolo, "fonte_contributo": dict(raw)}
+    if evidence not in extraction.discordanze:
+        extraction.discordanze.append(evidence)
+
+
+def _extract_fondo_spese(text: str) -> tuple[float | None, str, list[dict[str, Any]]]:
+    """Accetta la somma collegata al fondo, senza prendere quella della voce vicina."""
+    candidates: list[dict[str, Any]] = []
+    labels = [match for pattern in _FONDO_PATTERNS for match in pattern.finditer(text)]
+    for label in labels:
+        for money in _MONEY_RE.finditer(text, max(0, label.start() - 40), min(len(text), label.end() + 140)):
+            if money.end() <= label.start():
+                gap = text[money.end():label.start()]
+                if not re.fullmatch(r"\s*(?:per|a\s+titolo\s+di|di)\s+", gap, re.I):
+                    continue
+            elif money.start() >= label.end():
+                gap = text[label.end():money.start()]
+                if re.search(r"[.;\d]|\besbors\w*|\bcontribut\w*|\bcompens\w*|\bfond\w*", gap, re.I):
+                    continue
+            else:
+                continue
+            amount = _parse_money(money.group("amount"))
+            proof = {"importo": amount, "contesto": _snippet(text, min(label.start(), money.start()), max(label.end(), money.end()), window=40)}
+            if proof not in candidates:
+                candidates.append(proof)
+    amounts = {candidate["importo"] for candidate in candidates if candidate["importo"] is not None}
+    if len(amounts) == 1:
+        return next(iter(amounts)), candidates[0]["contesto"], []
+    if not labels:
+        return None, "", []
+    context = " | ".join(candidate["contesto"] for candidate in candidates) or _snippet(text, labels[0].start(), labels[0].end(), window=70)
+    return None, context, [{"kind": "fondo_spese", "motivo": "importo_fondo_non_univoco",
+                            "importi_letti": sorted(amounts), "candidati": candidates, "contesto": context}]
 
 
 def _extract_amount_near(text: str, patterns: tuple[re.Pattern[str], ...], *, window: int = 140) -> tuple[float | None, str]:
@@ -1604,20 +1701,18 @@ def _upsert_payment(
 ) -> bool:
     previous = dict(payments.get(kind) or {}) if isinstance(payments.get(kind), dict) else {}
     if preserve_decisions and previous:
+        # Una nuova lettura non può cambiare una somma già registrata o
+        # azzerare un incasso: le discordanze si conservano nell'audit nativo.
+        if previous.get("importo") is not None and (amount is None or abs(float(previous["importo"]) - amount) > .01):
+            return False
+        if previous.get("status") in {"pagato", "parziale"} or previous.get("pagato"):
+            return False
         history = previous.get("history") or previous.get("storico") or []
         # Una modifica manuale conserva talvolta l'origine Lex precedente:
         # conta anche lo storico, non soltanto l'etichetta della voce.
         if previous.get("origine") != ORIGIN or any(
             not isinstance(entry, dict) or entry.get("origine") != ORIGIN for entry in history
         ):
-            return False
-        previous_amount = previous.get("importo")
-        if previous_amount is not None and previous_amount != amount and not (
-            source_sha256 and source_sha256 == previous.get("source_sha256")
-            and document_key == previous.get("documento_fonte")
-        ):
-            # Una variazione della fonte o una voce storica senza prova non
-            # autorizzano a sostituire l'importo preesistente.
             return False
     next_payload = dict(previous)
     next_payload.update(
@@ -1757,6 +1852,20 @@ def _sync_existing_proforma_from_extraction(
     updater = getattr(fatturazione_repository, "aggiorna", None)
     if not callable(updater):
         return proforma
+    if extraction.discordanze:
+        data = dict(getattr(proforma, "dati_personalizzati", {}) or {})
+        conflicts = [{**evidence, "amount": evidence.get("importo_letto"),
+                      "previous_amounts": [evidence["importo_registrato"]] if evidence.get("importo_registrato") is not None else []}
+                     for evidence in extraction.discordanze]
+        pending = {"reason": "Natura o importi da verificare; voci esistenti conservate.",
+                   "conflicts": conflicts, "extraction": extraction.to_dict(),
+                   "voci_preservate": [asdict(voice) for voice in getattr(proforma, "voci", []) or []]}
+        if data.get("lex_sentenza_reconciliation") != pending:
+            data["lex_sentenza_reconciliation"] = pending
+            proforma = updater(_text(getattr(proforma, "id", "")), dati_personalizzati=data)
+        if "proforma_importi_discordanti" not in extraction.warnings:
+            extraction.warnings.append("proforma_importi_discordanti")
+        return proforma
     voci = list(getattr(proforma, "voci", []) or [])
     data = dict(getattr(proforma, "dati_personalizzati", {}) or {})
     lex_data = dict(data.get("lex_sentenza") or {})
@@ -1766,7 +1875,7 @@ def _sync_existing_proforma_from_extraction(
                    and _document_key(metadata) == _text(lex_data.get("document_key"))
                    and _sentenza_fingerprint(extraction) == _sentenza_fingerprint(previous_extraction)
                    and lex_data.get("origin") == ORIGIN)
-    corrections, conflicts = [], []
+    conflicts = []
     for field_name, description, voice_type in (
         ("liquidazione_importo", "Compensi liquidati in sentenza", "ONORARIO"),
         ("contributo_unificato_importo", _contributo_voice_description(extraction), "ANTICIPO"),
@@ -1776,19 +1885,10 @@ def _sync_existing_proforma_from_extraction(
         matches = [(i, v) for i, v in enumerate(voci) if _plain(v.descrizione) == _plain(description)]
         if amount is None or not matches or any(abs(_voice_amount(v)-amount) <= .01 for _, v in matches):
             continue
-        previous_amount = previous_extraction.get(field_name)
-        owned = (same_source and len(matches) == 1 and previous_amount is not None
-                 and matches[0][1].quantita == 1.0 and matches[0][1].tipo == voice_type
-                 and abs(_voice_amount(matches[0][1])-float(previous_amount)) <= .01)
         detail = {'field':field_name, 'previous_amounts':[_voice_amount(v) for _, v in matches],
-                  'amount':amount, 'document_key':_document_key(metadata), 'sha256':_text(metadata.get('sha256'))}
-        if owned:
-            index, voice = matches[0]
-            voci[index] = VoceParcella(descrizione=voice.descrizione, quantita=voice.quantita,
-                                      prezzo_unitario=amount, tipo=voice.tipo)
-            corrections.append(detail)
-        else:
-            conflicts.append(detail)
+                  'amount':amount, 'document_key':_document_key(metadata), 'sha256':_text(metadata.get('sha256')),
+                  'same_source': same_source, 'voice_type': voice_type}
+        conflicts.append(detail)
     if conflicts:
         # Nessuna somma automatica fra letture discordanti o voci modificate.
         # La fonte precedente resta integra insieme alla nuova evidenza.
@@ -1799,7 +1899,7 @@ def _sync_existing_proforma_from_extraction(
             proforma = updater(_text(getattr(proforma, 'id', '')), dati_personalizzati=data)
         extraction.warnings.append('proforma_importi_discordanti')
         return proforma
-    changed = bool(corrections)
+    changed = False
     if extraction.liquidazione_importo is not None and not _has_voice(
         voci,
         extraction.liquidazione_importo,
@@ -1829,8 +1929,6 @@ def _sync_existing_proforma_from_extraction(
         )
         changed = True
     spese_esborsi_amount = extraction.spese_esborsi_importo
-    if spese_esborsi_amount is None:
-        spese_esborsi_amount = extraction.fondo_spese_importo
     if spese_esborsi_amount is not None and not _has_voice(
         voci,
         spese_esborsi_amount,
@@ -1846,8 +1944,6 @@ def _sync_existing_proforma_from_extraction(
         )
         changed = True
 
-    if corrections:
-        lex_data['corrections'] = list(lex_data.get('corrections') or []) + corrections
     lex_data.update(
         {
             "origin": ORIGIN,
@@ -1872,6 +1968,8 @@ def _create_proforma(
     metadata: dict[str, Any],
     actor: str,
 ) -> Any | None:
+    if extraction.discordanze:
+        return None
     creator = getattr(fatturazione_repository, "crea", None)
     if not callable(creator):
         return None
@@ -1898,8 +1996,6 @@ def _create_proforma(
             )
         )
     spese_esborsi_amount = extraction.spese_esborsi_importo
-    if spese_esborsi_amount is None:
-        spese_esborsi_amount = extraction.fondo_spese_importo
     if spese_esborsi_amount is not None:
         voci.append(
             VoceParcella(

@@ -8,7 +8,7 @@ export function EconomicVerificationPanel({ payment, onSourceOpenChange }: { pay
   const [source, setSource] = useState<SourceDocument | null>(null)
   useEffect(() => { onSourceOpenChange(Boolean(source)); return () => onSourceOpenChange(false) }, [source, onSourceOpenChange])
   const contribution = payment.kind === 'contributo_unificato'
-  const heading = contribution ? 'Verifiche e fonti del contributo unificato' : 'Fonte della liquidazione e importo letto'
+  const heading = contribution ? 'Verifiche e fonti del contributo unificato' : `Verifiche e fonti: ${payment.displayLabel || payment.label}`
   const sources = payment.fontiVerifica || []
   const missing = payment.verificheMancanti || []
   if (!sources.length && !missing.length) return null

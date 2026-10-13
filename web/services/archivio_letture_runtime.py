@@ -576,6 +576,10 @@ def _leggi_pec(fascicolo: Any, registro: RegistroLetture, tenant: str, contesto:
     da_leggere.extend(o for o in registro.oggetti(tenant, fascicolo_id) if o.tipo == "allegato_pec" and (o.oggetto_id, o.impronta) in falliti and o not in da_leggere)
     conteggi["da_leggere"] = len(da_leggere)
     per_id = {str(m.get("id")): m for m in messaggi}
+    from web.helpers import get_clienti
+    client_id = _testo(getattr(fascicolo, "id_cliente", ""))
+    cliente = get_clienti().get(client_id) if client_id and da_leggere else None
+    codice_fiscale_cliente = _testo(getattr(cliente, "codice_fiscale", ""))
     allegati: dict[str, dict[str, Any]] = {}
     if any(o.tipo == "allegato_pec" for o in da_leggere):
         for riga in _righe_pec_collegate(fascicolo_id):
@@ -623,6 +627,7 @@ def _leggi_pec(fascicolo: Any, registro: RegistroLetture, tenant: str, contesto:
             fatti = _attribuisci(fatti_da_allegato(
                 testo, nome=oggetto.nome, contesto=contesto,
                 metadata={"fascicolo": fascicolo, "fascicolo_id": fascicolo_id,
+                          "codice_fiscale_cliente": codice_fiscale_cliente,
                           "documento_id": oggetto.oggetto_id, "document_hash_sha256": oggetto.impronta,
                           "tipo_documento": tipo_documento},
             ), oggetto, "pec")

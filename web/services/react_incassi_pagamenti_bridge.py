@@ -9,7 +9,6 @@ from typing import Any, Callable
 from time import perf_counter
 import logging
 
-from pct.fatturazione import StatoParcella
 
 
 def _iso_now() -> str:
@@ -25,10 +24,6 @@ def _enum(value: Any) -> str:
 
 
 def _money(value: Any) -> str:
-    try:
-        amount = float(value or 0)
-    except (TypeError, ValueError):
-        amount = 0.0
     return format_euro_it(value)
 
 
@@ -301,7 +296,7 @@ def build_react_incassi_pagamenti_payload(
         if crediti:
             fatt_stats = {**fatt_stats, "da_incassare": crediti.get("non_scaduto", 0), "scaduto": crediti.get("scaduto", 0)}
         parcelle = list(fatturazione.tutte()) if callable(getattr(fatturazione, "tutte", None)) else []
-    except Exception as exc:
+    except Exception:
         warnings.append({
             "code": "fatturazione_non_disponibile",
             "message": "Archivio fatturazione non disponibile in questo momento.",
@@ -317,7 +312,7 @@ def build_react_incassi_pagamenti_payload(
         pay_stats = payments.statistiche() if callable(getattr(payments, "statistiche", None)) else {}
         payment_rows = list(payments.tutti_link()) if callable(getattr(payments, "tutti_link", None)) else []
         provider_items = _safe_provider_state(getattr(payments, "config", None))
-    except Exception as exc:
+    except Exception:
         warnings.append({
             "code": "pagamenti_non_disponibili",
             "message": "Archivio pagamenti non disponibile in questo momento.",
@@ -327,7 +322,7 @@ def build_react_incassi_pagamenti_payload(
     clients_started = perf_counter()
     try:
         clienti = {_text(getattr(cliente, "id", "")): cliente for cliente in get_clienti().tutti()}
-    except Exception as exc:
+    except Exception:
         warnings.append({
             "code": "clienti_non_disponibili",
             "message": "Anagrafica clienti non disponibile in questo momento.",
@@ -434,6 +429,7 @@ def register_react_incasso(
     current_user: Any,
     payload: dict[str, Any],
     ip_address: str,
+    get_fascicoli: Callable[[], Any] | None = None,
 ) -> tuple[dict[str, Any], int]:
     allowed = {"id_parcella", "id_pagamento", "metodo_pagamento", "data_pagamento", "note"}
     unknown = sorted(set(payload) - allowed)
@@ -446,13 +442,28 @@ def register_react_incasso(
         invoice_id = _text(getattr(row, "id_parcella", "")) if row else ""
     if not invoice_id:
         return _json_error("Seleziona una parcella da segnare come incassata.", {"id_parcella": "Campo obbligatorio."})
+    if payment_id:
+        payment = _find_payment(get_pagamenti, payment_id)
+        if not payment or _text(getattr(payment, "id_parcella", "")) != invoice_id:
+            return _json_error("Il pagamento selezionato non appartiene alla parcella indicata.", {"id_pagamento": "Collegamento discordante."}, status=409)
     manager = get_fatturazione()
     parcella = manager.get(invoice_id)
     if not parcella:
         return _json_error("Parcella non trovata.", {"id_parcella": "Parcella inesistente."}, status=404)
     method = _text(payload.get("metodo_pagamento")) or "manuale"
     paid_at = _text(payload.get("data_pagamento")) or date.today().isoformat()
-    manager.cambia_stato(invoice_id, StatoParcella.PAGATA, data_pagamento=paid_at, metodo_pagamento=method)
+    from web.services.react_fatturazione_archive_actions import mark_react_fatturazione_paid
+
+    result, status = mark_react_fatturazione_paid(
+        get_fatturazione=get_fatturazione, get_fascicoli=get_fascicoli, get_utenti=get_utenti,
+        current_user=current_user, id_documento=invoice_id,
+        payload={"data_pagamento": paid_at, "metodo_pagamento": method, "note": _text(payload.get("note"))}, ip_address=ip_address,
+    )
+    if status >= 400:
+        return result, status
+    saved_invoice = manager.get(invoice_id)
+    paid_at = _text(getattr(saved_invoice, "data_pagamento", "")) or paid_at
+    method = _text(getattr(saved_invoice, "metodo_pagamento", "")) or method
     if payment_id:
         get_pagamenti().segna_pagato(payment_id, method)
     _audit(get_utenti, current_user, "pagamenti.incasso_registra", invoice_id, f"metodo={method}", ip_address)
@@ -473,6 +484,7 @@ def update_react_pagamento_status(
     payment_id: str,
     payload: dict[str, Any],
     ip_address: str,
+    get_fascicoli: Callable[[], Any] | None = None,
 ) -> tuple[dict[str, Any], int]:
     allowed = {"stato", "metodo_pagamento", "note"}
     unknown = sorted(set(payload) - allowed)
@@ -487,10 +499,18 @@ def update_react_pagamento_status(
     manager = get_pagamenti()
     method = _text(payload.get("metodo_pagamento")) or _text(getattr(row, "provider_usato", "")) or "manuale"
     if state == "PAGATO":
-        manager.segna_pagato(payment_id, method)
         invoice_id = _text(getattr(row, "id_parcella", ""))
         if invoice_id:
-            get_fatturazione().cambia_stato(invoice_id, StatoParcella.PAGATA, metodo_pagamento=method)
+            from web.services.react_fatturazione_archive_actions import mark_react_fatturazione_paid
+
+            result, status = mark_react_fatturazione_paid(
+                get_fatturazione=get_fatturazione, get_fascicoli=get_fascicoli, get_utenti=get_utenti,
+                current_user=current_user, id_documento=invoice_id,
+                payload={"metodo_pagamento": method, "note": _text(payload.get("note"))}, ip_address=ip_address,
+            )
+            if status >= 400:
+                return result, status
+        manager.segna_pagato(payment_id, method)
     else:
         manager.segna_fallito(payment_id, method)
     _audit(get_utenti, current_user, "pagamenti.stato", payment_id, f"stato={state}", ip_address)

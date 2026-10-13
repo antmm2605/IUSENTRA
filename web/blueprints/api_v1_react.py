@@ -8827,6 +8827,12 @@ def fascicoli_react_presidio_economico_proforme():
     payload, error = _request_json_object()
     if error:
         return error
+    requested_ids = payload.get("fascicolo_ids")
+    if (
+        not isinstance(requested_ids, list) or not requested_ids or len(requested_ids) > 100
+        or any(not isinstance(fid, str) or not fid.strip() for fid in requested_ids)
+    ):
+        return jsonify({"ok": False, "message": "Seleziona da uno a cento fascicoli validi."}), 400
     raw_limit = payload.get("limit") if isinstance(payload, dict) else None
     try:
         limit = int(raw_limit or 500)
@@ -8839,6 +8845,8 @@ def fascicoli_react_presidio_economico_proforme():
         get_fatturazione=get_fatturazione,
         actor=actor,
         limit=max(1, min(1000, limit)),
+        prepare_proformas=False,
+        fascicolo_ids=[fid.strip() for fid in requested_ids],
     )
     if (
         int(result.get("createdCount") or 0)
@@ -8853,7 +8861,7 @@ def fascicoli_react_presidio_economico_proforme():
             "presidio-economico",
             result.get("message", "Bozze proforma generate automaticamente."),
         )
-    return jsonify(result)
+    return jsonify(result), 200 if result.get("ok", True) else 404
 
 
 @api_v1_react.get("/fascicoli/archivio")
@@ -12760,6 +12768,7 @@ def fatturazione_aggiorna_stato(id_documento: str):
         return error_response
     result, status = update_react_fatturazione_status(
         get_fatturazione=get_fatturazione,
+        get_fascicoli=get_fascicoli,
         get_utenti=get_utenti,
         current_user=utente,
         id_documento=id_documento,
@@ -12810,6 +12819,7 @@ def fatturazione_segna_pagata(id_documento: str):
         return error_response
     result, status = mark_react_fatturazione_paid(
         get_fatturazione=get_fatturazione,
+        get_fascicoli=get_fascicoli,
         get_utenti=get_utenti,
         current_user=utente,
         id_documento=id_documento,
@@ -12890,6 +12900,7 @@ def incassi_pagamenti_registra_incasso():
         return error_response
     result, status = register_react_incasso(
         get_fatturazione=get_fatturazione,
+        get_fascicoli=get_fascicoli,
         get_pagamenti=get_pagamenti,
         get_utenti=get_utenti,
         current_user=utente,
@@ -12911,6 +12922,7 @@ def incassi_pagamenti_aggiorna_stato(id_pagamento: str):
     result, status = update_react_pagamento_status(
         get_pagamenti=get_pagamenti,
         get_fatturazione=get_fatturazione,
+        get_fascicoli=get_fascicoli,
         get_utenti=get_utenti,
         current_user=utente,
         payment_id=id_pagamento,

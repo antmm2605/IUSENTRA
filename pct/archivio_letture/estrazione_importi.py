@@ -21,13 +21,16 @@ compenso e rimborso forfettario), art. 91 c.p.c. (condanna alle spese).
 from __future__ import annotations
 
 from typing import Any
+import hashlib
 import re
+import unicodedata
 
 from pct.registro_letture.fatti_repository import Fatto
 
 from .ancoraggio import brano
 
-VERSIONE_ESTRAZIONE_IMPORTI = "2026.10.01.importi.v7+prove-economiche-pec"
+VERSIONE_ESTRAZIONE_IMPORTI_PRE_DISTINZIONE = "2026.10.01.importi.v7+prove-economiche-pec"
+VERSIONE_ESTRAZIONE_IMPORTI = "2026.10.13.importi.v10+nature-distinte-discordanze+ricevute-cu+identita-cf"
 
 # Campo del fatto → etichetta italiana e norma che lo governa.
 CAMPI_IMPORTO: dict[str, tuple[str, str]] = {
@@ -137,7 +140,10 @@ def _fatto(campo: str, importo: float, *, titolo: str, testo: str, origine: str,
         contesto=contesto or _testo(titolo)[:300],
         posizione=max(0, posizione),
         origine=origine,
-        prove=[{"codice": "norma", "esito": "ok", "dettaglio": norma}] + ([{"codice": "natura", "esito": "ok", "dettaglio": natura}] if natura else []),
+        prove=[{"codice": "norma", "esito": "ok", "dettaglio": norma},
+               {"codice": "impronta_contenuto_economico", "esito": "ok",
+                "dettaglio": hashlib.sha256(_testo(unicodedata.normalize("NFC", testo)).casefold().encode("utf-8")).hexdigest()}]
+              + ([{"codice": "natura", "esito": "ok", "dettaglio": natura}] if natura else []),
     )
 
 
@@ -174,6 +180,12 @@ def importi_dalla_sentenza(testo: str, *, metadata: dict[str, Any] | None = None
     except Exception:
         return []
     if not contesto.ok:
+        if "codice_fiscale_parte_non_concordante_o_non_verificato" in contesto.warnings:
+            from .verifica_economica import codice_fiscale_parte
+            proof = codice_fiscale_parte(grezzo, meta)
+            return [Fatto(categoria="evento", campo="importi_identita_non_verificata", valore="non_attribuiti",
+                          etichetta="Importi della sentenza non attribuiti", contesto=proof["dettaglio"],
+                          origine=origine, verifica="plausibile", prove=[proof])]
         # Una sentenza usata come precedente o materiale istruttorio può
         # stare nel fascicolo, ma non deve alimentare incassi, fatturazione
         # o passi economici se non conferma insieme cliente e RG.
@@ -191,6 +203,14 @@ def importi_dalla_sentenza(testo: str, *, metadata: dict[str, Any] | None = None
         if importo is None:
             continue
         fatti.append(_fatto(campo, importo, titolo=titolo or "", testo=grezzo, origine=origine, natura="dispositivo della sentenza"))
+    for discordanza in esito.discordanze:
+        if discordanza.get("kind") != "fondo_spese":
+            continue
+        fatti.append(Fatto(categoria="evento", campo="fondo_spese_da_verificare", valore="verifica_necessaria",
+            etichetta="Fondo spese: importo da verificare", contesto=str(discordanza.get("contesto") or ""),
+            origine=origine, verifica="plausibile",
+            prove=[{"codice": "attribuzione_importo", "esito": "attenzione",
+                    "dettaglio": "Nessuna somma unica attribuibile al fondo spese; importi e fonte conservati senza effetti economici automatici."}]))
     return fatti
 
 

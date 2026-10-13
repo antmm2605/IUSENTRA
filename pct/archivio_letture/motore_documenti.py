@@ -19,7 +19,7 @@ from .copie_atti import VERSIONE_COPIE_ATTI, fatto_identita
 from .collaudo import Contesto, collauda_tutti
 from .date_campi_modello import VERSIONE_DATE_CAMPI_MODELLI
 from .estrazione_date import estrai_date
-from .estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI, estrai_importi
+from .estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI, VERSIONE_ESTRAZIONE_IMPORTI_PRE_DISTINZIONE, estrai_importi
 from .estrazione_istituti import VERSIONE_ESTRAZIONE_ISTITUTI
 from .estrazione_notifiche import VERSIONE_PROVE_NOTIFICA, estrai_prove_notifica
 from .estrazione_parti import VERSIONE_ESTRAZIONE_PARTI
@@ -52,6 +52,13 @@ VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI = (
 # La regola vale per le fonti nuove/cambiate; il recupero di un esito storico
 # richiede l'evento puntuale della fonte, senza riletture generali al deploy.
 VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI += tuple(versione.replace(VERSIONE_DATE_PROCESSUALI, VERSIONE_DATE_PROCESSUALI_PRE_FRASI) for versione in VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI)
+
+# Le letture storiche non vengono riavviate dal rilascio. Le fonti nuove o
+# un evento puntuale esplicito usano la distinzione economica corrente.
+VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI += tuple(
+    versione.replace(VERSIONE_ESTRAZIONE_IMPORTI, VERSIONE_ESTRAZIONE_IMPORTI_PRE_DISTINZIONE)
+    for versione in VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI
+)
 FATTI_MASSIMI = 80
 ORDINE_VERIFICA = {"verificata": 0, "corretta": 0, "plausibile": 1, "respinta": 2, "ignorata": 3}
 

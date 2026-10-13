@@ -6,6 +6,8 @@ lettura tramite API React, scritture demandate ai servizi Flask già auditati.
 
 from __future__ import annotations
 
+from copy import deepcopy
+
 import logging as _logging
 
 
@@ -27,6 +29,8 @@ from zoneinfo import ZoneInfo
 
 from flask import current_app, has_app_context
 
+from web.services.react_dashboard_time import oggi_rome
+
 from pct import __version__ as APP_VERSION
 from pct.fascicoli import AvanzamentoPratica, EsitoAttivita, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
 from pct.fascicolo_workspace import build_fascicolo_workspace
@@ -34,7 +38,6 @@ from pct.deposito_telematico_catalogo import build_deposit_catalog_payload
 from pct.deposito_simulazione import is_simulated_deposit, next_receipt_phase, receipt_steps
 from pct.fascicolo_document_catalog import (
     DocumentCatalogClassification,
-    classify_fascicolo_document,
     document_ai_texts_for_catalog,
 )
 from pct.fascicolo_document_presidio import (
@@ -53,7 +56,6 @@ from pct.presidio_documentale_state import (
     marker_is_current as presidio_marker_is_current,
     marker_state as presidio_marker_state,
     merge_read_inventory as presidio_merge_read_inventory,
-    read_document_entry as presidio_read_document_entry,
     unread_document_ids as presidio_unread_document_ids,
 )
 from pct.presidio_processuale_ruleset import is_pagopa_rt_contributo_xml, is_pagopa_rt_xml
@@ -1933,7 +1935,7 @@ PAYMENT_KINDS = (
 PAYMENT_KIND_LABELS = {
     "contributo_unificato": "Contributo unificato",
     "spese_esborsi": "Spese/esborsi",
-    "fondo_spese": "Spese/esborsi",
+    "fondo_spese": "Fondo spese",
     "liquidazione_giudice": "Liquidazione giudice",
     "parcella": "Parcella",
 }
@@ -1947,9 +1949,9 @@ PAYMENT_KIND_ALIASES = {
     "esborsi": "spese_esborsi",
     "spese_esborsi": "spese_esborsi",
     "spese esborsi": "spese_esborsi",
-    "fondo": "spese_esborsi",
-    "fondo_spese": "spese_esborsi",
-    "fondo spese": "spese_esborsi",
+    "fondo": "fondo_spese",
+    "fondo_spese": "fondo_spese",
+    "fondo spese": "fondo_spese",
     "anticipazione": "spese_esborsi",
     "anticipazioni": "spese_esborsi",
     "liquidazione": "liquidazione_giudice",
@@ -2667,6 +2669,18 @@ def _document_analysis_identity_row(doc: Any, source_id: str) -> dict[str, Any]:
     }
 
 
+def _economic_archive_fingerprint(fascicolo: Any, related_fascicoli: Iterable[Any] | None = None) -> str:
+    """Impronta delle sole prove SQL: nessuna apertura o scansione di documenti."""
+    rows = []
+    for source in _analysis_fascicoli_scope(fascicolo, related_fascicoli):
+        for category in ("importo", "evento"):
+            for fact in _fatti_archivio(source, categoria=category, canonico=False):
+                if category == "evento" and fact.campo not in {"esenzione_cu_dichiarata", "pagamento_cu_non_verificato", "fondo_spese_da_verificare", "importi_identita_non_verificata"}:
+                    continue
+                rows.append((_text(getattr(source, "id", "")), fact.id, fact.sha256, fact.campo, fact.valore, fact.verifica, json.dumps(fact.prove, sort_keys=True, ensure_ascii=False)))
+    return hashlib.sha256(json.dumps(sorted(rows), ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
 def _document_analysis_fingerprint(fascicolo: Any, related_fascicoli: Iterable[Any] | None = None) -> str:
     #  Un giro del presidio chiede l'impronta dello stesso fascicolo quattro
     #  volte: per ordinare la coda, per contare i candidati, per decidere se
@@ -2687,14 +2701,21 @@ def _document_analysis_fingerprint(fascicolo: Any, related_fascicoli: Iterable[A
                 return cache[cache_key]
 
     rows: list[dict[str, Any]] = []
+    economic_facts = []
     for source in _analysis_fascicoli_scope(fascicolo, related_fascicoli):
         source_id = _text(getattr(source, "id", ""))
         for doc in _economic_analysis_documents_for_fascicolo(source):
             rows.append(_document_analysis_identity_row(doc, source_id))
+        for category in ("importo", "evento"):
+            for fact in _fatti_archivio(source, categoria=category, canonico=False):
+                if category == "evento" and fact.campo not in {"esenzione_cu_dichiarata", "pagamento_cu_non_verificato", "fondo_spese_da_verificare", "importi_identita_non_verificata"}:
+                    continue
+                economic_facts.append((source_id, fact.id, fact.sha256, fact.campo, fact.valore, fact.verifica, json.dumps(fact.prove, sort_keys=True, ensure_ascii=False)))
     payload = json.dumps(
         {
             "analysis_version": ECONOMIC_DOCUMENT_ANALYSIS_VERSION,
             "documents": sorted(rows, key=lambda item: (item["fascicolo"], item["id"], item["nome"])),
+            "economic_facts": sorted(economic_facts),
         },
         sort_keys=True,
         ensure_ascii=False,
@@ -2771,10 +2792,14 @@ def _document_analysis_marker_state(
     marker = dict((payments or {}).get("_presidio_documentale") or {}) if isinstance(payments, dict) else {}
     cached_fingerprint = _text(marker.get("fingerprint") or marker.get("documentFingerprint"))
     related_count = len(list(related_fascicoli or []))
-    # La lista fascicoli deve restare una lettura leggera: l'impronta corrente
-    # può richiedere i documenti indicizzati sul server e va calcolata solo nei
-    # presidi espliciti o nel dettaglio governato.
-    return presidio_marker_state(marker, cached_fingerprint, related_count=related_count)
+    # Il confronto usa esclusivamente i fatti SQL già letti. Non apre fonti.
+    archive_fingerprint = _economic_archive_fingerprint(fascicolo, related_fascicoli)
+    if marker and _text(marker.get("economicFactsFingerprint")) != archive_fingerprint:
+        marker["status"] = "stale"
+        marker["reason"] = "Nuove prove economiche salvate: consolidamento da aggiornare."
+    state = presidio_marker_state(marker, cached_fingerprint, related_count=related_count)
+    state["fingerprint"] = f"{cached_fingerprint}:{archive_fingerprint}"
+    return state
 
 
 def _presidio_documentale_marker_is_current(
@@ -2853,6 +2878,7 @@ def _build_presidio_documentale_marker(
         reason=reason,
     )
     marker["analysisVersion"] = ECONOMIC_DOCUMENT_ANALYSIS_VERSION
+    marker["economicFactsFingerprint"] = _economic_archive_fingerprint(fascicolo)
     #  L'inventario delle letture viaggia con il marcatore: e' quello che
     #  permette al giro successivo di fermarsi invece di riaprire gli stessi
     #  documenti. Contiene identita' e provenienza della lettura, mai il testo.
@@ -3388,7 +3414,7 @@ def _raw_payment_is_manual(raw: dict[str, Any]) -> bool:
         return False
     if _payment_source_is_empty_placeholder(raw):
         return False
-    automatic_markers = ("import", "automatic", "automatico", "document ai", "lex", "fascicolo", "scheduler")
+    automatic_markers = ("import", "automatic", "automatico", "document ai", "lex", "fascicolo", "scheduler", "iusentra", "archivio delle letture")
     history = raw.get("history") or raw.get("storico")
     if isinstance(history, list):
         for entry in history:
@@ -3419,6 +3445,11 @@ def _payment_source_is_empty_placeholder(raw: dict[str, Any]) -> bool:
         return True
     if amount is not None and abs(float(amount)) <= 0.01 and status in {"", "da_registrare", "da_emettere", "parziale"}:
         return True
+    if amount is not None and abs(float(amount)) <= 0.01 and status == "non_previsto":
+        # Lo zero storico senza decisione è un segnaposto, non una rinuncia.
+        return raw.get("previsto") is not False and not any(
+            raw.get(field) for field in ("updated_by", "updatedBy", "history", "storico", "note", "origine", "origin")
+        )
     return False
 
 
@@ -3469,6 +3500,26 @@ def _merge_auto_payment_source(
     auto_status = _normalise_payment_status(automatic.get("status") or automatic.get("stato"), default="")
     raw_amount = _payment_amount_value(raw.get("importo") if "importo" in raw else raw.get("amount"))
     auto_amount = _payment_amount_value(automatic.get("importo") if "importo" in automatic else automatic.get("amount"))
+    preserve_recorded = status in {"pagato", "parziale"} or (
+        not raw_placeholder and raw_amount is not None and auto_amount != raw_amount
+    )
+    if preserve_recorded:
+        issues = list(automatic.get("verificheMancanti") or [])
+        if auto_amount is not None and raw_amount is not None and abs(auto_amount - raw_amount) > 0.01:
+            issues.append(f"Importo registrato {_amount_label(raw_amount)} diverso dalla nuova fonte {_amount_label(auto_amount)}: registrazione conservata.")
+        if status in {"pagato", "parziale"} and auto_status != status:
+            issues.append("Stato di pagamento registrato conservato; la nuova verifica della fonte non modifica l’incasso.")
+        for field in ("fontiVerifica", "importiLetti"):
+            if field in automatic:
+                merged[field] = automatic[field]
+        if issues or "verificheMancanti" in automatic or "verificheMancanti" in raw:
+            merged["verificheMancanti"] = list(dict.fromkeys(issues))
+        if issues or "richiedeConferma" in automatic or "richiedeConferma" in raw:
+            merged["richiedeConferma"] = bool(issues or automatic.get("richiedeConferma"))
+        return merged
+    for field in ("fontiVerifica", "verificheMancanti", "richiedeConferma", "importiLetti"):
+        if field in automatic:
+            merged[field] = automatic[field]
     if replace_automatic:
         if auto_status:
             merged["status"] = auto_status
@@ -3536,6 +3587,7 @@ _IMPORTO_ARCHIVIO_PER_VOCE: dict[str, tuple[str, str]] = {
     "contributo_unificato": ("contributo_unificato", "Contributo unificato"),
     "liquidazione_giudice": ("liquidazione_giudice", "Liquidazione del giudice"),
     "spese_esborsi": ("spese_esborsi", "Spese/esborsi"),
+    "fondo_spese": ("fondo_spese", "Fondo spese"),
 }
 
 
@@ -3591,7 +3643,7 @@ def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str,
         *_fatti_archivio(fascicolo, categoria="importo", canonico=False),
         *_fatti_archivio(fascicolo, categoria="evento", canonico=False),
     ])
-    if contributo and _payment_source_needs_automatic_value(payments, "contributo_unificato"):
+    if contributo:
         documenti = {str(d.id): d for d in getattr(fascicolo, "documenti", []) or []}
         for fonte in contributo["fontiVerifica"]:
             doc_id = _text(fonte.get("documentoId"))
@@ -3632,12 +3684,14 @@ def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str,
         if kind == "contributo_unificato":
             continue  # Il verificatore comune decide anche su fonti discordanti.
         voce = letti.get(campo)
-        if not voce or not _payment_source_needs_automatic_value(payments, kind):
+        discordanze = list(voce.get("discordanze") or []) if voce else []
+        resolved = bool(discordanze and _economic_discordance_resolved(fascicolo, kind))
+        if not voce:
             continue
-        importo = _payment_amount_value(voce.get("importo"))
-        if importo is None:
+        importo = _payment_amount_value(_payment_source_for_kind(payments, kind).get("importo") if resolved else voce.get("importo"))
+        if importo is None and not discordanze:
             continue
-        da_confermare = _text(voce.get("verifica")) == "plausibile"
+        da_confermare = not resolved and (bool(discordanze) or _text(voce.get("verifica")) == "plausibile")
         nota = f"Letto dai motori di lettura ({voce.get('verifica_etichetta') or voce.get('verifica')})"
         if voce.get("norma"):
             nota += f", {voce['norma']}"
@@ -3658,6 +3712,47 @@ def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str,
                          "nome": nome_fonte or "Fonte dell'importo non disponibile",
                          "contesto": _italian_dates_in_text(fatto.contesto), "previewHref": preview,
                          "riscontri": ["Importo letto nel capo economico della fonte.", nota + "."]}] if fatto else []
+        # La vista canonica contiene una sola voce, ma tutte le copie provate
+        # della sentenza restano apribili dal loro originale corrente.
+        for prova in fatto.prove if fatto else []:
+            if prova.get("codice") != "fonti_unite":
+                continue
+            for fonte in prova.get("fonti") or []:
+                doc_id = _text(fonte.get("oggetto_id"))
+                tipo = _text(fonte.get("tipo"))
+                sha = _text(fonte.get("sha256"))
+                if any(f.get("documentoId") == doc_id and f.get("tipo", tipo_fonte) == tipo for f in fonti_importo):
+                    continue
+                originale = registro_corrente().oggetto(tenant_corrente(), str(fascicolo.id), tipo, doc_id)
+                href = ""
+                if originale and originale.presente and sha and originale.impronta == sha:
+                    if tipo == "documento":
+                        href = f"/fascicoli/{quote(str(fascicolo.id), safe='')}/documenti/{quote(doc_id, safe='')}/visualizza"
+                    elif tipo == "allegato_pec" and originale.origine and originale.nome:
+                        href = f"/api/v1/ui/email/source/{quote(originale.origine, safe='')}?name={quote(originale.nome, safe='')}&sha256={quote(sha, safe='')}"
+                fonti_importo.append({"fattoId": _text(fonte.get("fatto_id")), "documentoId": doc_id,
+                    "tipo": tipo, "sha256": sha, "nome": _text(getattr(originale, "nome", "")) or "Fonte non disponibile",
+                    "contesto": _italian_dates_in_text(fonte.get("estratto")), "previewHref": href,
+                    "riscontri": ["Copia concordante della stessa fonte economica; importo registrato una sola volta."]})
+        for candidata in discordanze:
+            candidate_fact = next((f for f in fatti_importo if f.id == candidata.get("fatto_id")), None)
+            if candidate_fact is None or any(f.get("fattoId") == candidate_fact.id for f in fonti_importo):
+                continue
+            candidate_object = registro_corrente().oggetto(tenant_corrente(), str(fascicolo.id), candidate_fact.tipo, candidate_fact.oggetto_id)
+            candidate_preview = ""
+            if candidate_object and candidate_object.presente and candidate_object.impronta == candidate_fact.sha256:
+                if candidate_fact.tipo == "documento":
+                    candidate_preview = f"/fascicoli/{quote(str(fascicolo.id), safe='')}/documenti/{quote(candidate_fact.oggetto_id, safe='')}/visualizza"
+                elif candidate_fact.tipo == "allegato_pec" and candidate_object.origine and candidate_object.nome:
+                    candidate_preview = f"/api/v1/ui/email/source/{quote(candidate_object.origine, safe='')}?name={quote(candidate_object.nome, safe='')}&sha256={quote(candidate_object.sha256, safe='')}"
+            fonti_importo.append({"fattoId": candidate_fact.id, "documentoId": candidate_fact.oggetto_id,
+                "nome": _text(getattr(candidate_object, "nome", "")) or "Fonte non disponibile",
+                "sha256": candidate_fact.sha256, "contesto": _italian_dates_in_text(candidate_fact.contesto),
+                "previewHref": candidate_preview,
+                "riscontri": [f"Importo letto: {_euro(candidata.get('importo'))}; natura: {etichetta}."]})
+        verification_issues = [] if preview else ["La fonte corrente dell'importo non è disponibile con la stessa impronta; il collegamento verrà riprovato automaticamente."]
+        if discordanze and not resolved:
+            verification_issues.append("Fonti economiche distinte o discordanti: " + ", ".join(_euro(value) for value in voce.get("importi_letti") or []) + ". Nessuna sostituzione o somma automatica.")
         esito[kind] = {
             "kind": kind,
             "label": etichetta,
@@ -3670,13 +3765,33 @@ def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str,
             "data_pagamento": _text(voce.get("data_prova")),
             "documento_fonte": _readable_document_source(nome_fonte or _nome_oggetto_archivio(fascicolo, voce.get("documento_id"))),
             "fontiVerifica": fonti_importo,
-            "verificheMancanti": [] if preview else ["La fonte corrente dell'importo non è disponibile con la stessa impronta; il collegamento verrà riprovato automaticamente."],
+            "verificheMancanti": verification_issues,
+            "importiLetti": list(voce.get("importi_letti") or []),
             "origine": "Archivio delle letture",
             "updated_by": "IUSENTRA automatico",
             "note": nota + ".",
             "richiedeConferma": da_confermare,
             "fattoId": _text(voce.get("fatto_id")),
         }
+    for fact in _fatti_archivio(fascicolo, categoria="evento", canonico=False):
+        if fact.campo != "importi_identita_non_verificata":
+            continue
+        from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+        source = registro_corrente().oggetto(tenant_corrente(), str(fascicolo.id), fact.tipo, fact.oggetto_id)
+        href = ""
+        if source and source.presente and source.impronta == fact.sha256:
+            if fact.tipo == "documento":
+                href = f"/fascicoli/{quote(str(fascicolo.id), safe='')}/documenti/{quote(fact.oggetto_id, safe='')}/visualizza"
+            elif fact.tipo == "allegato_pec" and source.origine and source.nome:
+                href = f"/api/v1/ui/email/source/{quote(source.origine, safe='')}?name={quote(source.nome, safe='')}&sha256={quote(source.sha256, safe='')}"
+        item = esito.setdefault("liquidazione_giudice", {"kind": "liquidazione_giudice", "importo": None, "status": "da_registrare"})
+        issue = f"Importi non attribuiti da {_text(getattr(source, 'nome', '')) or 'fonte della sentenza'}: {_text(fact.contesto)}"
+        item["richiedeConferma"] = True
+        item["verificheMancanti"] = list(dict.fromkeys([*item.get("verificheMancanti", []), issue]))
+        item.setdefault("fontiVerifica", []).append({"fattoId": fact.id, "documentoId": fact.oggetto_id,
+            "sha256": fact.sha256, "nome": _text(getattr(source, "nome", "")) or "Fonte della sentenza",
+            "contesto": _italian_dates_in_text(fact.contesto), "previewHref": href,
+            "riscontri": ["Identità della parte non dimostrata: nessun importo attribuito."]})
     return esito
 
 
@@ -3736,12 +3851,28 @@ def _payments_with_automatic_sources(
             and not _text(row.get("by") or row.get("updated_by")).casefold().startswith("iusentra")
             for row in (value.get("history") if isinstance(value.get("history"), list) else [])
         )
-        if machine_document and not human:
+        recorded_status = _normalise_payment_status(value.get("status") or value.get("stato"), default="")
+        known_amount = _payment_amount_value(value.get("importo"))
+        if machine_document and not human and recorded_status not in {"pagato", "parziale"} and (known_amount is None or abs(known_amount) <= 0.01):
             del base[key]
     for kind, automatic in _importi_dall_archivio(fascicolo, base).items():
         raw = _payment_source_for_kind(base, kind)
+        if automatic.get("richiedeConferma") and automatic.get("importiLetti"):
+            raw = raw or _payment_source_for_kind(payments, kind)
+            retained = raw if raw and (not _payment_source_is_empty_placeholder(raw) or _raw_payment_is_manual(raw)) else automatic
+            base[kind] = {**retained, "richiedeConferma": True,
+                          "fontiVerifica": list(raw.get("fontiVerifica") or []) + automatic.get("fontiVerifica", []),
+                          "verificheMancanti": list(dict.fromkeys([*list(raw.get("verificheMancanti") or []), *automatic.get("verificheMancanti", [])])),
+                          "importiLetti": automatic["importiLetti"]}
+            continue
         if not raw or not _raw_payment_is_manual(raw):
-            base[kind] = {**automatic, "history": _payment_source_for_kind(payments, kind).get("history", [])}
+            base[kind] = {**_merge_auto_payment_source(raw, automatic, kind=kind, replace_automatic=True), "history": _payment_source_for_kind(payments, kind).get("history", [])}
+        else:
+            # Una decisione o un incasso non eliminano la prova del capo del giudice.
+            base[kind] = {**raw, "fontiVerifica": automatic.get("fontiVerifica", []),
+                          "richiedeConferma": bool(automatic.get("richiedeConferma")),
+                          "verificheMancanti": automatic.get("verificheMancanti", []),
+                          "importiLetti": automatic.get("importiLetti", [])}
     return base
 
 
@@ -3842,6 +3973,10 @@ def _payment_item(kind: str, raw: dict[str, Any], fid: str) -> dict[str, Any]:
     ):
         amount = None
     payment_date = _text(raw.get("data_pagamento") or raw.get("dataPagamento") or raw.get("date"))
+    income_amount = _payment_amount_value(raw.get("incasso_importo"))
+    payment_note = _italian_dates_in_text(raw.get("note"))
+    if income_amount is not None and raw.get("proforma_id"):
+        payment_note = f"Incasso collegato: {_amount_label(income_amount)}. " + payment_note
     source_raw = _text(raw.get("documento_fonte") or raw.get("documentSource") or raw.get("documentoFonte"))
     source_visible = _readable_document_source(source_raw) if source_raw else ""
     if (
@@ -3864,9 +3999,10 @@ def _payment_item(kind: str, raw: dict[str, Any], fid: str) -> dict[str, Any]:
         "importoLabel": _amount_label(amount),
         "valuta": _text(raw.get("valuta") or raw.get("currency"), "EUR"),
         "dataPagamento": _date_label(payment_date) if payment_date else "",
-        "dataPagamentoIso": payment_date,
+        "dataPagamentoIso": (_parse_date(payment_date).isoformat() if _parse_date(payment_date) else ""),
         "metodo": _text(raw.get("metodo") or raw.get("method") or raw.get("metodo_pagamento")),
-        "note": _italian_dates_in_text(raw.get("note")),
+        "note": payment_note,
+        "incassoImporto": income_amount,
         "proformaId": _text(raw.get("proforma_id") or raw.get("proformaId")),
         "proformaNumber": _text(raw.get("proforma_number") or raw.get("proformaNumber")),
         "origine": _text(raw.get("origine") or raw.get("origin")),
@@ -3884,6 +4020,75 @@ def _payment_item(kind: str, raw: dict[str, Any], fid: str) -> dict[str, Any]:
     }
 
 
+def _economic_discordance_signature(fascicolo: Any, kind: str) -> str:
+    """Impronta delle sole evidenze SQL correnti, mai riletture delle fonti."""
+    from pct.fascicolo_sentenza_economica import AUTOMATION_KEY, _discordanza_identity
+
+    evidence = [(f.campo, f.id, f.oggetto_id, f.sha256, f.valore) for f in _fatti_archivio(fascicolo)
+                if f.campo == kind or (kind == "fondo_spese" and f.campo == "fondo_spese_da_verificare")]
+    payments = getattr(fascicolo, "pagamenti", {}) or {}
+    audit = payments.get(AUTOMATION_KEY, {}) if isinstance(payments, dict) else {}
+    if isinstance(audit, dict):
+        evidence.extend(_discordanza_identity(row) for row in audit.get("discordanze") or []
+                        if isinstance(row, dict) and row.get("kind") == kind)
+    evidence.sort(key=lambda row: json.dumps(row, sort_keys=True, default=str))
+    payload = json.dumps(evidence, ensure_ascii=False, sort_keys=True, default=str)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _economic_discordance_resolved(fascicolo: Any, kind: str) -> bool:
+    from pct.fascicolo_sentenza_economica import AUTOMATION_KEY
+
+    payments = getattr(fascicolo, "pagamenti", {}) or {}
+    audit = payments.get(AUTOMATION_KEY, {}) if isinstance(payments, dict) else {}
+    decisions = audit.get("decisioni_importi") or [] if isinstance(audit, dict) else []
+    relevant = [row for row in decisions if isinstance(row, dict) and row.get("kind") == kind]
+    return bool(relevant and relevant[-1].get("impronta_evidenze") == _economic_discordance_signature(fascicolo, kind))
+
+
+def _apply_sentenza_discordanze(items: dict[str, dict[str, Any]], fascicolo: Any) -> None:
+    """Proietta il confronto senza modificare pagamenti o decisioni salvati."""
+    from pct.fascicolo_sentenza_economica import AUTOMATION_KEY
+
+    payments = getattr(fascicolo, "pagamenti", {}) or {}
+    audit = payments.get(AUTOMATION_KEY, {}) if isinstance(payments, dict) else {}
+    if not isinstance(audit, dict):
+        return
+    evidences = list(audit.get("discordanze") or [])
+    for fact in _fatti_archivio(fascicolo, categoria="evento"):
+        if fact.campo == "fondo_spese_da_verificare" and fact.verifica not in {"respinta", "ignorata"} and not _economic_discordance_resolved(fascicolo, "fondo_spese"):
+            evidences.append({"kind": "fondo_spese", "motivo": "importo_fondo_non_univoco",
+                              "stato": "da_verificare", "contesto": fact.contesto,
+                              "documento_fonte": fact.oggetto_id, "sha256": fact.sha256})
+    for evidence in evidences:
+        if not isinstance(evidence, dict) or evidence.get("stato") != "da_verificare":
+            continue
+        item = items.get(evidence.get("kind"))
+        if item is None:
+            continue
+        item["richiedeConferma"] = True
+        item["tone"] = "warning"
+        item["verificheMancanti"] = list(item.get("verificheMancanti") or [])
+        if evidence.get("motivo") == "importo_fondo_non_univoco":
+            amounts = ", ".join(_euro(value) for value in evidence.get("importi_letti") or [])
+            message = "Importo del fondo spese non attribuibile in modo univoco."
+            if amounts:
+                message += f" Importi letti nella fonte: {amounts}."
+        elif evidence.get("motivo") == "possibile_sovrapposizione_contributo_esborsi":
+            message = "Contributo ed esborsi hanno lo stesso importo: verifica se sono voci distinte o sovrapposte prima della proforma."
+        else:
+            message = (
+                f"Importo registrato {_euro(evidence.get('importo_registrato'))}; "
+                f"nuova lettura {_euro(evidence.get('importo_letto'))}. "
+                "La voce salvata e lo stato del pagamento restano conservati."
+            )
+        if message not in item["verificheMancanti"]:
+            item["verificheMancanti"].append(message)
+    for kind, item in items.items():
+        if item.get("richiedeConferma"):
+            item["discordanzaVersione"] = _economic_discordance_signature(fascicolo, kind)
+
+
 def _apply_document_analysis_to_payment_items(items: dict[str, dict[str, Any]], analysis: dict[str, Any]) -> None:
     unresolved = set(analysis.get("unresolvedKinds") or [])
     if "contributo_unificato" not in unresolved:
@@ -3898,6 +4103,36 @@ def _apply_document_analysis_to_payment_items(items: dict[str, dict[str, Any]], 
     next_note = _text(analysis.get("reason"), ECONOMIC_DOCUMENT_UNRESOLVED_CU_REASON)
     if not current_note or "documenti correnti" in current_note.casefold():
         contributo["note"] = next_note
+
+
+def _apply_optional_parcella(items: dict[str, dict[str, Any]], fascicolo: Any, parcelle: Iterable[Any] | None) -> None:
+    """La sentenza non impone una parcella: conserva quelle già scelte o emesse."""
+    raw = _payment_source_for_kind(getattr(fascicolo, "pagamenti", {}) or {}, "parcella")
+    if raw or any(_parcella_is_active(voce) for voce in parcelle or []):
+        return
+    items["parcella"].update(previsto=False, statusLabel="Facoltativa", importoLabel="Su scelta dell’avvocato", tone="neutral",
+                             note="La parcella può essere predisposta dall’avvocato; resta distinta dalla liquidazione della sentenza.")
+
+
+def _totale_pagamenti_registrati(items: dict[str, dict[str, Any]], payments: Any) -> float:
+    """Lo stesso incasso collegato a sentenza e parcella conta una sola volta."""
+    totale = 0.0
+    incassi: set[tuple[str, str, str]] = set()
+    for kind, item in items.items():
+        if item["status"] not in {"pagato", "parziale"} or item["importo"] is None:
+            continue
+        raw = _payment_source_for_kind(payments, kind)
+        incasso = _payment_amount_value(raw.get("incasso_importo"))
+        linked = _text(raw.get("proforma_id") or raw.get("proformaId"))
+        if linked and incasso is not None:
+            identity = (linked, _text(raw.get("data_pagamento")), _text(raw.get("metodo")).casefold())
+            if identity in incassi:
+                continue
+            incassi.add(identity)
+            totale += incasso
+        else:
+            totale += float(item["importo"])
+    return round(totale, 2)
 
 
 def payment_summary_for_fascicolo(
@@ -3925,8 +4160,11 @@ def payment_summary_for_fascicolo(
         automatic=automatic,
     )
     _apply_document_analysis_to_payment_items(items, analysis)
-    expected = [item for item in items.values() if item["previsto"]]
-    missing = [item for item in expected if item["status"] in {"da_registrare", "da_emettere", "parziale"}]
+    _apply_sentenza_discordanze(items, fascicolo)
+    parcelle = list(parcelle) if parcelle is not None else None
+    _apply_optional_parcella(items, fascicolo, parcelle)
+    expected = [item for item in items.values() if item["previsto"] or item["richiedeConferma"]]
+    missing = [item for item in expected if item["status"] in {"da_registrare", "da_emettere", "parziale"} or item["richiedeConferma"]]
     paid = [item for item in expected if item["status"] == "pagato"]
     if not expected:
         state = "non_previsto"
@@ -3936,11 +4174,7 @@ def payment_summary_for_fascicolo(
         state = "parziale"
     else:
         state = "da_presidiare"
-    total_registered = sum(
-        float(item["importo"] or 0.0)
-        for item in items.values()
-        if item["status"] in {"pagato", "parziale"} and item["importo"] is not None
-    )
+    total_registered = _totale_pagamenti_registrati(items, payments)
     advances_to_recover = sum(
         float(item["importo"] or 0.0)
         for kind, item in items.items()
@@ -4007,8 +4241,11 @@ def payment_summary_for_fascicolo_fast(
         related_fascicoli,
     )
     _apply_document_analysis_to_payment_items(items, analysis)
-    expected = [item for item in items.values() if item["previsto"]]
-    missing = [item for item in expected if item["status"] in {"da_registrare", "da_emettere", "parziale"}]
+    _apply_sentenza_discordanze(items, fascicolo)
+    parcelle = list(parcelle) if parcelle is not None else None
+    _apply_optional_parcella(items, fascicolo, parcelle)
+    expected = [item for item in items.values() if item["previsto"] or item["richiedeConferma"]]
+    missing = [item for item in expected if item["status"] in {"da_registrare", "da_emettere", "parziale"} or item["richiedeConferma"]]
     paid = [item for item in expected if item["status"] == "pagato"]
     if not expected:
         state = "non_previsto"
@@ -4018,11 +4255,7 @@ def payment_summary_for_fascicolo_fast(
         state = "parziale"
     else:
         state = "da_presidiare"
-    total_registered = sum(
-        float(item["importo"] or 0.0)
-        for item in items.values()
-        if item["status"] in {"pagato", "parziale"} and item["importo"] is not None
-    )
+    total_registered = _totale_pagamenti_registrati(items, payments)
     advances_to_recover = sum(
         float(item["importo"] or 0.0)
         for kind, item in items.items()
@@ -4185,8 +4418,18 @@ def _proforma_presidio_for_fascicolo(
         if source:
             visible_source = _readable_document_source(source)
             break
+    if not existing_count and not _payment_source_for_kind(getattr(fascicolo, "pagamenti", {}) or {}, "parcella") and not parcella_item.get("previsto") and not parcella_item.get("richiedeConferma"):
+        return {
+            "status": "facoltativa", "statusLabel": "Parcella facoltativa", "tone": "neutral",
+            "message": "La liquidazione resta quella della sentenza. La parcella è una scelta distinta dell’avvocato; l’incasso si registra con la procedura dedicata.",
+            "href": f"/fatturazione/nuova?id_fascicolo={encoded_fid}",
+            "existingCount": 0, "existingDraftCount": 0, "total": 0.0,
+            "totalLabel": _euro(0.0), "evidence": visible_source, "requiresAction": False,
+        }
     if not existing_count and parcella_status in {"pagato", "non_previsto"}:
-        amount = _payment_amount_value(parcella_item.get("importo"))
+        amount = _payment_amount_value(parcella_item.get("incassoImporto"))
+        if amount is None:
+            amount = _payment_amount_value(parcella_item.get("importo"))
         status_label = "Parcella registrata" if parcella_status == "pagato" else "Parcella non prevista"
         message = (
             f"Voce economica registrata come pagata per {_amount_label(amount)}."
@@ -4372,8 +4615,31 @@ def update_react_fascicolo_payment(
     if date_error:
         return {"ok": False, "message": date_error, "errors": {"dataPagamento": date_error}}, 400
 
+    linked_id = _text(payload.get("proforma_id") or payload.get("proformaId"))
+    if linked_id and normalized_kind not in {"parcella", "liquidazione_giudice"}:
+        return {"ok": False, "message": "Il saldo della parcella non sostituisce contributo unificato, fondo spese o esborsi.", "errors": {"proforma_id": "Voce economica distinta dalla parcella."}}, 400
+    if linked_id:
+        linked = get_fatturazione().get(linked_id) if callable(get_fatturazione) else None
+        if linked is None or _text(getattr(linked, "id_fascicolo", "")) != _text(getattr(fascicolo, "id", id_fasc)):
+            return {"ok": False, "message": "La parcella indicata non appartiene a questo fascicolo.", "errors": {"proforma_id": "Collegamento al fascicolo non valido."}}, 409
+
     payments = dict(getattr(fascicolo, "pagamenti", {}) or {})
     previous_raw = _payment_source_for_kind(payments, normalized_kind)
+    if payload.get("confermaDiscordanza") is True:
+        current_signature = _economic_discordance_signature(fascicolo, normalized_kind)
+        if _text(payload.get("discordanzaVersione")) != current_signature:
+            return {"ok": False, "message": "Le fonti sono cambiate: rileggi le evidenze prima di confermare l'importo.", "conflict": True}, 409
+        if amount is None and status != "non_previsto":
+            return {"ok": False, "message": "Indica l'importo verificato oppure scegli Non previsto.", "errors": {"importo": "Importo verificato richiesto."}}, 400
+        from pct.fascicolo_sentenza_economica import AUTOMATION_KEY
+
+        audit = deepcopy(payments.get(AUTOMATION_KEY) or {})
+        for evidence in audit.get("discordanze") or []:
+            if isinstance(evidence, dict) and evidence.get("kind") == normalized_kind and evidence.get("stato") == "da_verificare":
+                evidence.update(stato="risolta", risolta_da=_text(actor, "Operatore"), risolta_il=_now(), importo_scelto=amount)
+        audit.setdefault("decisioni_importi", []).append({"kind": normalized_kind, "impronta_evidenze": current_signature,
+            "importo_scelto": amount, "stato_scelto": status, "operatore": _text(actor, "Operatore"), "data": _now()})
+        payments[AUTOMATION_KEY] = audit
     previous = _payment_item(normalized_kind, previous_raw, _text(getattr(fascicolo, "id", id_fasc)))
     history = list(previous_raw.get("history") or previous_raw.get("storico") or [])
     now = _now()
@@ -4409,6 +4675,12 @@ def update_react_fascicolo_payment(
     )
     if payment_nature:
         next_payment["natura"] = payment_nature
+    if linked_id:
+        next_payment["proforma_id"] = linked_id
+        if status == "pagato":
+            registered_income = _payment_amount_value(previous_raw.get("incasso_importo"))
+            same_receipt = previous_raw.get("status") == "pagato" and _text(previous_raw.get("proforma_id") or previous_raw.get("proformaId")) == linked_id
+            next_payment["incasso_importo"] = registered_income if same_receipt and registered_income is not None else round(float(linked.netto_a_pagare), 2)
     if "documento_fonte" in payload or "documentoFonte" in payload or "documentSource" in payload:
         next_payment["documento_fonte"] = _short(
             payload.get("documento_fonte") or payload.get("documentoFonte") or payload.get("documentSource"),
@@ -4437,7 +4709,7 @@ def update_react_fascicolo_payment(
     summary = payment_summary_for_fascicolo(fascicolo)
     return {
         "ok": True,
-        "message": f"{PAYMENT_KIND_LABELS[normalized_kind]} aggiornato.",
+        "message": f"Voce economica aggiornata: {PAYMENT_KIND_LABELS[normalized_kind]}.",
         "payment": summary["items"][normalized_kind],
         "paymentSummary": summary,
         "fascicolo": {"id": fid},
@@ -4494,12 +4766,14 @@ def _sync_linked_proforma_payment(
         item = manager.get(proforma_id)
         if not item:
             return {"ok": False, "id": proforma_id, "message": "Proforma collegata non trovata."}
-        manager.cambia_stato(
-            proforma_id,
-            StatoParcella.PAGATA,
-            data_pagamento=date_iso or None,
-            metodo_pagamento=_text(payment.get("metodo") or "Bonifico bancario"),
-        )
+        method = _text(payment.get("metodo") or "Bonifico bancario")
+        if (_enum_value(getattr(item, "stato", "")).upper() != "PAGATA"
+                or (date_iso and _text(getattr(item, "data_pagamento", "")) != date_iso)
+                or _text(getattr(item, "metodo_pagamento", "")) != method):
+            manager.cambia_stato(
+                proforma_id, StatoParcella.PAGATA, data_pagamento=date_iso or None,
+                metodo_pagamento=method,
+            )
         updated = manager.get(proforma_id)
         return {
             "ok": True,
@@ -4589,7 +4863,7 @@ def _create_review_proforma_from_fascicolo_amount(
         from pct.fatturazione import VoceParcella
     except Exception as exc:
         return {"created": False, "reason": f"Modulo fatturazione non disponibile: {type(exc).__name__}."}
-    oggi = date.today()
+    oggi = oggi_rome()
     due = oggi + timedelta(days=30)
     title = _text(getattr(fascicolo, "titolo", "")) or _text(getattr(fascicolo, "oggetto", "")) or _rg(fascicolo)
     data = {
@@ -4700,6 +4974,9 @@ def _ensure_auto_proforma_for_fascicolo(
     ]
     if existing:
         return {"status": "existing", "count": len(existing)}
+    evidence = _importi_dall_archivio(fascicolo, getattr(fascicolo, "pagamenti", {}) or {})
+    if any(voce.get("richiedeConferma") for voce in evidence.values()):
+        return {"status": "missing_basis", "reason": "Importi discordanti: verifica le fonti prima di preparare la proforma."}
     # Registro delle letture: la proforma automatica rileggeva i PDF dal disco
     # ogni quindici minuti, per sempre. Se l'inventario del fascicolo e' lo
     # stesso dell'ultimo giro non c'e' nulla di nuovo da cui trarre una proforma.
@@ -4734,7 +5011,10 @@ def _ensure_auto_proforma_for_fascicolo(
                 text=text,
                 document_metadata=metadata,
                 actor=actor,
+                proforma_requested=True,
             )
+            if outcome.extraction.discordanze:
+                return {"status": "missing_basis", "reason": "La sentenza contiene importi da verificare; nessuna proforma creata."}
             if _text(getattr(outcome, "proforma_id", "")):
                 _segna_registro_letture_fascicolo(registro_proforma, esito={"proforma": _text(getattr(outcome, "proforma_id", ""))})
                 return {
@@ -4788,6 +5068,18 @@ def generate_react_fascicolo_proforma(
             "message": "Fascicolo non trovato.",
             "errors": {"fascicolo": "Il fascicolo non è disponibile nello studio."},
         }, 404
+    economic_summary = payment_summary_for_fascicolo(fascicolo)
+    if any(item.get("richiedeConferma") for item in economic_summary["items"].values()):
+        from web.services.react_fatturazione_bridge import _is_proforma
+
+        existing = next((item for item in get_fatturazione().per_fascicolo(_text(fascicolo.id))
+                         if _enum_value(getattr(item, "stato", "")).upper() != "ANNULLATA" and _is_proforma(item)), None)
+        if existing is not None:
+            return {"ok": True, "message": "Proforma esistente conservata; verifica le discordanze prima di modificarla.",
+                    "proformaId": _text(existing.id), "paymentSummary": economic_summary,
+                    "redirectHref": f"/fatturazione?id_documento={quote(_text(existing.id), safe='')}"}, 200
+        return {"ok": False, "message": "Verifica e conferma gli importi discordanti prima di generare la proforma.",
+                "errors": {"importi": "Importi economici da verificare."}, "paymentSummary": economic_summary}, 409
     requested_basis, basis_error = _requested_proforma_basis(payload)
     if basis_error:
         return {
@@ -4852,6 +5144,13 @@ def generate_react_fascicolo_proforma(
             "errors": {"persistence": "Identificativo del documento mancante."},
         }, 500
 
+    linked_proforma = next((
+        item for item in get_fatturazione().per_fascicolo(id_fasc)
+        if _text(getattr(item, "id", "")) == proforma_id
+    ), None)
+    if linked_proforma is None:
+        return {"ok": False, "message": "Documento economico non trovato nel fascicolo: collegamento non confermato."}, 409
+    amount = round(float(linked_proforma.netto_a_pagare), 2)
     payments = dict(getattr(fascicolo, "pagamenti", {}) or {})
     previous_raw = _payment_source_for_kind(payments, "parcella")
     previous = _payment_item("parcella", previous_raw, _text(getattr(fascicolo, "id", id_fasc)))
@@ -5130,10 +5429,17 @@ def run_react_fascicoli_economic_presidio(
     get_fatturazione: Callable[[], Any],
     actor: str = "IUSENTRA",
     limit: int = 500,
+    prepare_proformas: bool = False,
+    fascicolo_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     fascicoli_repository = get_fascicoli()
     fatturazione_repository = get_fatturazione()
-    fascicoli = _safe("fascicoli_presidio_economico", lambda: list(fascicoli_repository.tutti(archiviati=True)), [])
+    if fascicolo_ids is None:
+        fascicoli = _safe("fascicoli_presidio_economico", lambda: list(fascicoli_repository.tutti(archiviati=True)), [])
+    else:
+        fascicoli = [fascicoli_repository.get(fid) for fid in dict.fromkeys(fascicolo_ids)]
+        if any(item is None for item in fascicoli):
+            return {"ok": False, "message": "Uno dei fascicoli richiesti non è disponibile per questo studio."}
 
     def presidio_priority(item: Any) -> tuple[int, int, str, str]:
         payments = getattr(item, "pagamenti", {}) or {}
@@ -5225,6 +5531,9 @@ def run_react_fascicoli_economic_presidio(
             skipped += 1
             continue
         processed += 1
+        if not prepare_proformas:
+            skipped += 1
+            continue
         result = _ensure_auto_proforma_for_fascicolo(
             fascicoli_repository=fascicoli_repository,
             fatturazione_repository=fatturazione_repository,

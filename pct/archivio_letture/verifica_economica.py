@@ -20,6 +20,29 @@ def _plain(value: Any) -> str:
     return " ".join(re.sub(r"[^\w]+", " ", text).split())
 
 
+def codice_fiscale_parte(testo: str, metadata: dict[str, Any]) -> dict[str, str]:
+    from pct.pec_case_identity import client_tax_code_from_documents
+
+    fascicolo = metadata.get("fascicolo")
+    nome = str(getattr(fascicolo, "nome_cliente", "") or metadata.get("cliente") or "")
+    profile = client_tax_code_from_documents({"cliente": nome}, [{"text": testo[:6000], "filename": "fonte_economica.pdf"}])
+    declared = str(profile.get("codice_fiscale_cliente") or "").strip().upper()
+    expected = str(metadata.get("codice_fiscale_cliente") or getattr(fascicolo, "codice_fiscale_cliente", "") or "").replace(" ", "").upper()
+    if declared and not expected and getattr(fascicolo, "id_cliente", ""):
+        from flask import has_app_context
+        if has_app_context():
+            try:
+                from web.helpers import get_clienti
+                cliente = get_clienti().get(str(fascicolo.id_cliente))
+                expected = str(getattr(cliente, "codice_fiscale", "") or "").replace(" ", "").upper()
+            except Exception:
+                return {"codice": "cf_economico", "esito": "attenzione", "dettaglio": "Confronto anagrafico non disponibile: importi della fonte non attribuiti."}
+    invalid = profile.get("codice_fiscale_cliente_stato") in {"letto_non_valido", "fonti_discordanti"}
+    ok = not invalid and (not declared or bool(expected and declared == expected))
+    return {"codice": "cf_economico", "esito": "ok" if ok else "attenzione",
+            "dettaglio": "Codice fiscale della parte concordante o non dichiarato nella fonte." if ok else "Codice fiscale della parte non valido, discordante o privo di confronto anagrafico."}
+
+
 def identita(testo: str, metadata: dict[str, Any]) -> list[dict[str, Any]]:
     from .estrazione_ruolo import estrai_ruoli
 
@@ -58,7 +81,15 @@ def identita(testo: str, metadata: dict[str, Any]) -> list[dict[str, Any]]:
     if citati:
         dettaglio_rg += " RG citati nell'elenco dei precedenti: " + ", ".join(sorted({f.valore for f in citati})) + "; non usati per attribuire il pagamento."
 
+    from pct.pec_case_identity import document_case_identity_evidence
+
+    office_identity = document_case_identity_evidence(testo, fascicolo) if fascicolo is not None else {}
+    office_ok = bool(office_identity.get("office_match")) and not office_identity.get("conflicts")
+
     return [
+        codice_fiscale_parte(testo, metadata),
+        {"codice": "ufficio_economico", "esito": "ok" if office_ok else "attenzione",
+         "dettaglio": "Ufficio giudiziario della fonte concordante con il fascicolo." if office_ok else "Ufficio giudiziario della fonte non confermato per il fascicolo."},
         {"codice": "cliente_economico", "esito": "ok" if cliente_ok else "attenzione",
          "dettaglio": "Cliente del fascicolo presente nel documento." if cliente_ok else "Nome e cognome del cliente non confermati nel contenuto."},
         {"codice": "rg_economico", "esito": "ok" if rg_ok else "attenzione",

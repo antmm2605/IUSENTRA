@@ -1817,7 +1817,7 @@ assertContains(fascicoliCss, '.iu-fas-advanced.is-compact', 'CSS Fascicoli manti
 assertContains(fascicoliCss, 'grid-template-columns:minmax(0,1fr) minmax(340px,360px)', 'CSS Fascicoli usa rail desktop coerente')
 assertContains(fascicoliCss, 'position:sticky', 'CSS Fascicoli mantiene rail desktop allineata')
 assertContains(fascicoli, "message !== 'Presidio economico non completato.'", 'Vista economica non mostra il default tecnico del presidio automatico come errore rosso')
-assertContains(fascicoli, 'Presidio automatico proforma da ricontrollare', 'Vista economica usa messaggio operativo solo per errori specifici del presidio proforma')
+assertContains(fascicoli, 'Controllo economico da ricontrollare', 'Vista economica usa messaggio operativo solo per errori specifici del controllo economico')
 assertNotContains(fascicoli, "tone: 'danger', message: error instanceof Error ? error.message : 'Presidio economico non completato.'", 'Vista economica evita toast danger generico nel presidio proforma automatico')
 assertContains(fascicoliCss, '.iu-fas-toast--warning', 'Vista economica ha stile warning governato per avvisi proforma specifici')
 assertContains(praticheCollegateTs, "@iusentra-data/pratiche_collegate_catalog.json", 'catalogo pratiche importato da tabella dati versionata')

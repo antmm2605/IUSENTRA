@@ -12,6 +12,7 @@ from types import SimpleNamespace
 from typing import TYPE_CHECKING
 from xml.etree import ElementTree as ET
 
+import pytest
 from pypdf import PdfReader
 
 if TYPE_CHECKING:  # solo per le annotazioni: i motori si importano dove servono
@@ -141,7 +142,7 @@ def _fatto_importo(campo: str, importo: float, *, etichetta: str = "", norma: st
 
         # Fonte controllata con intestazione esplicita: non si deduce
         # l'identità dal nome del file o dal semplice collegamento al fascicolo.
-        testo = f"{fascicolo.nome_cliente}. RG {fascicolo.numero_rg}/{fascicolo.anno_rg}. {etichetta}"
+        testo = f"{fascicolo.tribunale}\n{fascicolo.nome_cliente}\nRG {fascicolo.numero_rg}/{fascicolo.anno_rg}\n{etichetta}"
         prove.extend(identita(testo, {"fascicolo": fascicolo}))
     return Fatto(
         categoria="importo", campo=campo, valore=f"{importo:.2f}", valore_letto=etichetta or campo,
@@ -6792,7 +6793,8 @@ def test_react_fascicoli_economia_cu_classificato_avvia_ocr_mirato_e_popola_impo
     assert contributo["documentoFonte"] == "Pagamento cu.PDF"
 
 
-def test_react_fascicoli_economia_legge_rt_xml_pagopa_fisico_senza_document_ai(monkeypatch, tmp_path: Path):
+@pytest.mark.parametrize("with_court", [True, False])
+def test_react_fascicoli_economia_legge_rt_xml_pagopa_fisico_senza_document_ai(monkeypatch, tmp_path: Path, with_court):
     import web.services.react_fascicoli_bridge as bridge
 
     app = _app(tmp_path)
@@ -6825,6 +6827,8 @@ def test_react_fascicoli_economia_legge_rt_xml_pagopa_fisico_senza_document_ai(m
     </pay_j:datiSingoloPagamento>
   </pay_j:datiPagamento>
 </pay_j:RT>"""
+    if with_court:
+        xml = xml.replace(b"/TXT/Contributo", b"/TXT/Tribunale di Padova - Contributo")
     documento = fascicoli.aggiungi_documento(
         fascicolo.id,
         "Pagamento cu.xml",
@@ -6852,10 +6856,16 @@ def test_react_fascicoli_economia_legge_rt_xml_pagopa_fisico_senza_document_ai(m
     assert response.status_code == 200
     assert documento.id
     assert [fatto.valore for fatto in fatti if fatto.campo == "contributo_unificato"] == ["49.00"]
-    assert contributo["status"] == "pagato"
-    assert contributo["importo"] == 49.0
-    assert contributo["importoLabel"] == "€ 49,00"
-    assert contributo["dataPagamento"] == "12/05/2026"
+    if with_court:
+        assert contributo["status"] == "pagato"
+        assert contributo["importo"] == 49.0
+        assert contributo["importoLabel"] == "€ 49,00"
+        assert contributo["dataPagamento"] == "12/05/2026"
+    else:
+        assert contributo["status"] == "da_registrare"
+        assert contributo["importo"] is None
+        assert contributo["richiedeConferma"]
+        assert any("Ufficio" in issue for issue in contributo["verificheMancanti"])
     assert contributo["documentoFonte"] == "Pagamento cu.xml"
 
 
@@ -7229,12 +7239,12 @@ def test_react_fascicoli_economia_usa_nome_documento_per_cu_esente_senza_ocr(mon
 
     presidio = client.post(
         "/api/v1/ui/fascicoli/presidio-economico/proforme",
-        json={"limit": 1000},
+        json={"limit": 100, "fascicolo_ids": [fascicolo.id]},
         headers={"X-API-Key": "react-test-key"},
     )
     repeat = client.post(
         "/api/v1/ui/fascicoli/presidio-economico/proforme",
-        json={"limit": 1000},
+        json={"limit": 100, "fascicolo_ids": [fascicolo.id]},
         headers={"X-API-Key": "react-test-key"},
     )
     response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
@@ -7362,7 +7372,7 @@ def test_react_fascicoli_economia_legge_esenzione_da_documenti_ai_server_senza_d
 
     presidio = client.post(
         "/api/v1/ui/fascicoli/presidio-economico/proforme",
-        json={"limit": 1000},
+        json={"limit": 100, "fascicolo_ids": [fascicolo.id]},
         headers={"X-API-Key": "react-test-key"},
     )
     response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
@@ -7455,7 +7465,7 @@ def test_react_fascicoli_economia_non_conferma_esenzione_da_sola_nota_importata(
 
     presidio = client.post(
         "/api/v1/ui/fascicoli/presidio-economico/proforme",
-        json={"limit": 1000},
+        json={"limit": 100, "fascicolo_ids": [fascicolo.id]},
         headers={"X-API-Key": "react-test-key"},
     )
     response = client.get("/api/v1/ui/fascicoli?page_size=20&view=economica", headers={"X-API-Key": "react-test-key"})
@@ -8698,7 +8708,8 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert row["paymentSummary"]["items"]["contributo_unificato"]["importo"] is None
     assert row["paymentSummary"]["items"]["spese_esborsi"]["status"] == "non_previsto"
     assert row["paymentSummary"]["items"]["fondo_spese"]["status"] == "non_previsto"
-    assert row["paymentSummary"]["items"]["fondo_spese"]["label"] == "Spese/esborsi"
+    assert row["paymentSummary"]["items"]["fondo_spese"]["label"] == "Fondo spese"
+    assert row["paymentSummary"]["items"]["spese_esborsi"]["label"] == "Spese/esborsi"
     assert row["paymentSummary"]["items"]["liquidazione_giudice"]["status"] == "non_previsto"
     assert row["paymentSummary"]["items"]["parcella"]["status"] == "da_emettere"
     assert any(item["id"] == fascicolo.id for item in payments_only_payload["items"])
@@ -8757,7 +8768,7 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert export_payload["presets"][-1]["href"] == "/fascicoli/archivio"
 
 
-def test_react_fascicoli_presidio_economico_crea_bozza_proforma_definito(tmp_path: Path):
+def test_react_fascicoli_presidio_economico_non_impone_proforma_definito(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()
     cliente = GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
@@ -8788,12 +8799,12 @@ def test_react_fascicoli_presidio_economico_crea_bozza_proforma_definito(tmp_pat
 
     response = client.post(
         "/api/v1/ui/fascicoli/presidio-economico/proforme",
-        json={"limit": 1000},
+        json={"limit": 100, "fascicolo_ids": [fascicolo.id]},
         headers={"X-API-Key": "react-test-key"},
     )
     duplicate_response = client.post(
         "/api/v1/ui/fascicoli/presidio-economico/proforme",
-        json={"limit": 1000},
+        json={"limit": 100, "fascicolo_ids": [fascicolo.id]},
         headers={"X-API-Key": "react-test-key"},
     )
     list_response = client.get(
@@ -8804,19 +8815,18 @@ def test_react_fascicoli_presidio_economico_crea_bozza_proforma_definito(tmp_pat
 
     assert response.status_code == 200
     payload = response.get_json()
-    assert payload["createdCount"] == 1
+    assert payload["createdCount"] == 0
+    assert payload["contributiCheckedCount"] == 1
     assert duplicate_response.get_json()["createdCount"] == 0
     list_payload = list_response.get_json()
     assert list_payload["summary"]["invoicesToIssue"] == 0
-    assert list_payload["summary"]["invoiceDraftsToReview"] == 1
-    assert list_payload["summary"]["invoiceWorkTotal"] == 1
+    assert list_payload["summary"]["invoiceDraftsToReview"] == 0
+    assert list_payload["summary"]["invoiceWorkTotal"] == 0
     row = next(item for item in list_payload["items"] if item["id"] == fascicolo.id)
     presidio = row["paymentSummary"]["proformaPresidio"]
-    assert presidio["status"] == "presente"
-    assert presidio["statusLabel"] == "Bozza proforma da visionare"
-    assert presidio["existingDraftCount"] == 1
-    assert "creata automaticamente" in presidio["message"]
-    assert "visionarla e confermarla" in presidio["message"]
+    assert presidio["status"] == "facoltativa"
+    assert presidio["existingDraftCount"] == 0
+    assert "scelta distinta" in presidio["message"]
 
 
 def test_react_fascicoli_presidio_economico_legge_sentenza_fisica_non_indicizzata(tmp_path: Path, monkeypatch):
@@ -8895,7 +8905,8 @@ def test_react_fascicoli_presidio_economico_legge_sentenza_fisica_non_indicizzat
         )
         assert indexed["ready"] == 1
     with app.test_request_context("/"):
-        g.data_paths = {"LOCAL_AI_DB": str(tmp_path / "rag.db")}
+        g.data_paths = {key: app.config[key] for key in ("FASCICOLI_DB", "REGISTRO_LETTURE_DB", "CLIENTI_DB", "STUDIO_DB") if app.config.get(key)}
+        g.data_paths["LOCAL_AI_DB"] = str(tmp_path / "rag.db")
         reading = leggi_fascicolo(_fascicoli_repository(app).get(fascicolo.id))
         assert reading["documenti"]["letti"] == 1
         assert reading["catalogo"].get("status") != "error"
@@ -8904,12 +8915,12 @@ def test_react_fascicoli_presidio_economico_legge_sentenza_fisica_non_indicizzat
 
     response = client.post(
         "/api/v1/ui/fascicoli/presidio-economico/proforme",
-        json={"limit": 1000},
+        json={"limit": 100, "fascicolo_ids": [fascicolo.id]},
         headers={"X-API-Key": "react-test-key"},
     )
     duplicate_response = client.post(
         "/api/v1/ui/fascicoli/presidio-economico/proforme",
-        json={"limit": 1000},
+        json={"limit": 100, "fascicolo_ids": [fascicolo.id]},
         headers={"X-API-Key": "react-test-key"},
     )
     list_response = client.get(
@@ -8920,15 +8931,14 @@ def test_react_fascicoli_presidio_economico_legge_sentenza_fisica_non_indicizzat
 
     payload = response.get_json()
     assert response.status_code == 200
-    assert payload["createdCount"] == 1, payload
-    assert payload["created"][0]["source"] == "sentenza"
+    assert payload["createdCount"] == 0, payload
     assert duplicate_response.get_json()["createdCount"] == 0
     row = next(item for item in list_response.get_json()["items"] if item["id"] == fascicolo.id)
     assert row["paymentSummary"]["items"]["liquidazione_giudice"]["importo"] == 258.0
-    assert row["paymentSummary"]["items"]["parcella"]["importo"] == 327.35
+    assert row["paymentSummary"]["items"]["parcella"]["importo"] is None
     presidio = row["paymentSummary"]["proformaPresidio"]
-    assert presidio["statusLabel"] == "Bozza proforma da visionare"
-    assert presidio["existingDraftCount"] == 1
+    assert presidio["status"] == "facoltativa"
+    assert presidio["existingDraftCount"] == 0
 
 
 def test_react_fascicolo_import_quickorganizer_compila_dati_deposito(tmp_path: Path):

@@ -72,11 +72,21 @@ def leggi_caso(caso: Caso, *, pytesseract: object | None = None, testo: str | No
         testo, confidenza, motore = letto.testo, letto.confidenza, letto.motore
     else:
         confidenza, motore = 1.0, "testo dato"
-    fatti = leggi_testo(testo, origine="ocr", contesto=_contesto(), nome=f"{caso.id}.pdf")
+    context = _contesto()
+    metadata = {}
+    if caso.fascicolo:
+        from types import SimpleNamespace
+        from pct.archivio_letture.collaudo import contesto_da_fascicolo
+
+        fascicolo = SimpleNamespace(**dict(caso.fascicolo))
+        metadata["fascicolo"] = fascicolo
+        context = contesto_da_fascicolo(fascicolo, oggi=context.oggi)
+    fatti = leggi_testo(testo, origine="ocr", contesto=context, nome=f"{caso.id}.pdf", metadata=metadata)
     utili = {(f.categoria, f.campo, f.valore) for f in fatti if f.verifica in {"verificata", "plausibile"}}
     valori_utili = {f.valore.split("T")[0] for f in fatti if f.verifica in {"verificata", "plausibile"} and f.categoria == "data"}
     mancanti = [atteso for atteso in caso.attesi if atteso not in utili and (atteso[0], atteso[1], atteso[2].split("T")[0]) not in {(c, k, v.split("T")[0]) for c, k, v in utili}]
     indebiti = [vietato for vietato in caso.vietati if vietato in valori_utili]
+    indebiti.extend(f"{categoria}/{campo} {valore}" for categoria, campo, valore in caso.vietati_fatti if (categoria, campo, valore) in utili)
     return {
         "id": caso.id, "titolo": caso.titolo, "superato": not mancanti and not indebiti, "attesi": len(caso.attesi), "trovati": len(caso.attesi) - len(mancanti),
         "mancanti": [f"{c}/{k} {v}" for c, k, v in mancanti], "indebiti": indebiti, "confidenza": round(float(confidenza), 3), "motore": motore,

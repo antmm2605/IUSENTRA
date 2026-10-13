@@ -117,7 +117,7 @@ export function DocumentListToolbar<T>({
       </div>
       <p id={hintId} className="iu-doclist-toolbar__result" aria-live="polite">
         <span>
-          {filtersActive ? `${visibleCount} di ${total} documenti` : `${total} documenti`} · {orderLabel}
+          {filtersActive ? `${visibleCount} di ${total} ${total === 1 ? 'documento' : 'documenti'}` : `${total} ${total === 1 ? 'documento' : 'documenti'}`} · {orderLabel}
           {searchMode === 'simili' ? <em className="iu-doclist-toolbar__similar"> · nessun documento contiene tutti i termini: mostro i più simili</em> : null}
         </span>
         {filtersActive ? <button type="button" onClick={resetFilters}>Azzera filtri</button> : null}

@@ -172,7 +172,7 @@ import {
   findPraticaCollegata,
 } from '../data/praticheCollegateCatalog'
 import { csrfToken, redirectAfterSuccess, submitFormJson } from '../formSubmit'
-import { formatDateIt, formatDateTimeIt, formatEuroIt } from '../formatting'
+import { formatDateInputIt, formatDateIt, formatDateTimeIt, formatEuroIt } from '../formatting'
 import { normaliseStudioRuntimeResult, type StudioRuntimeOffice, type StudioRuntimeResult } from '../studioModuleRuntime'
 import { CodiceOggettoPstSearch } from './CodiceOggettoPstSearch'
 import { GuidaPraticaSidebar } from './GuidaPraticaSidebar'
@@ -295,7 +295,7 @@ const paymentColumnLabels: Record<FascicoloPaymentKind, string> = {
   parcella: 'Parcella',
 }
 
-const economicPaymentKinds: FascicoloPaymentKind[] = fascicoloPaymentKinds.filter((kind) => kind !== 'fondo_spese')
+const economicPaymentKinds: FascicoloPaymentKind[] = fascicoloPaymentKinds
 
 const paymentStatusOptions: Array<{ value: FascicoloPaymentStatus; label: string }> = [
   { value: 'da_registrare', label: 'Da registrare' },
@@ -2447,7 +2447,7 @@ function EconomicEvidenceStrip({ row }:{row:FascicoloRow}) {
           {analysisMessage ? <span className="iu-fas-economic-evidence__source">{analysisMessage}</span> : null}
         </small>
       ) : null}
-      {evidences.slice(0, 4).map((item) => (
+      {evidences.map((item) => (
         <small key={item.kind}>
           <Badge tone={item.tone}>{item.label}</Badge>
           <span className="iu-fas-economic-evidence__source">{item.source}</span>
@@ -2468,6 +2468,7 @@ function EconomicPaymentCell({ row, kind, onSaved, onError, onDraftChange, force
   const [date, setDate] = useState(payment.dataPagamentoIso || '')
   const [method, setMethod] = useState(payment.metodo || '')
   const [note, setNote] = useState(payment.note || '')
+  const [confirmedEvidence, setConfirmedEvidence] = useState(false)
   const [saving, setSaving] = useState(false)
   useBusyActivity(saving, 'Salvataggio in corso…')
 
@@ -2479,6 +2480,10 @@ function EconomicPaymentCell({ row, kind, onSaved, onError, onDraftChange, force
     setNote(payment.note || '')
   }, [payment.dataPagamentoIso, payment.importo, payment.metodo, payment.note, payment.status])
 
+  useEffect(() => {
+    setConfirmedEvidence(false)
+  }, [row.id, kind, payment.discordanzaVersione, payment.richiedeConferma])
+
   const availableStatuses = kind === 'parcella'
     ? paymentStatusOptions
     : paymentStatusOptions.filter((option) => option.value !== 'da_emettere')
@@ -2487,6 +2492,7 @@ function EconomicPaymentCell({ row, kind, onSaved, onError, onDraftChange, force
     || date !== (payment.dataPagamentoIso || '')
     || method.trim() !== (payment.metodo || '')
     || note.trim() !== (payment.note || '')
+    || confirmedEvidence
 
   useEffect(() => {
     onDraftChange?.(kind, dirty ? {
@@ -2495,8 +2501,10 @@ function EconomicPaymentCell({ row, kind, onSaved, onError, onDraftChange, force
       dataPagamento: date,
       metodo: method.trim(),
       note: note.trim(),
+      confermaDiscordanza: confirmedEvidence,
+      discordanzaVersione: payment.discordanzaVersione,
     } : null)
-  }, [amount, date, dirty, kind, method, note, onDraftChange, status])
+  }, [amount, date, dirty, kind, method, note, onDraftChange, status, confirmedEvidence, payment.discordanzaVersione])
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -2508,6 +2516,8 @@ function EconomicPaymentCell({ row, kind, onSaved, onError, onDraftChange, force
         dataPagamento: date,
         metodo: method.trim(),
         note: note.trim(),
+        confermaDiscordanza: confirmedEvidence,
+        discordanzaVersione: payment.discordanzaVersione,
       })
       onDraftChange?.(kind, null)
       onSaved(row.id, result.paymentSummary, result.message)
@@ -2559,6 +2569,15 @@ function EconomicPaymentCell({ row, kind, onSaved, onError, onDraftChange, force
           </label>
         </div>
       </details>
+      {payment.richiedeConferma ? (
+        <div className="iu-fas-economic-cell__verification">
+          {(payment.verificheMancanti || []).map((message) => <p key={message}>{message}</p>)}
+          <label>
+            <input type="checkbox" checked={confirmedEvidence} onChange={(event) => setConfirmedEvidence(event.target.checked)}/>
+            <span>Confermo l’importo di {paymentLabel.toLowerCase()} dopo aver verificato le fonti</span>
+          </label>
+        </div>
+      ) : null}
     </form>
   )
 }
@@ -3473,6 +3492,7 @@ function FascicoliListPage() {
   const [pageSize, setPageSize] = useState(25)
   const [pendingPage, setPendingPage] = useState<number | null>(null)
   const pageCacheRef = useRef<Map<string, FascicoliPageData>>(new Map())
+  const resolvedListKeyRef = useRef('')
   const pageRequestsRef = useRef<Map<string, Promise<FascicoliPageData>>>(new Map())
   const economicPresidioRunRef = useRef('')
   const explicitListPreferenceParamsRef = useRef(hasExplicitListPreferenceParams())
@@ -3562,6 +3582,7 @@ function FascicoliListPage() {
     setLoading(true)
     requestFascicoliPage(params, { force: true })
       .then((payload) => {
+        resolvedListKeyRef.current = fascicoliListCacheKey(params)
         setData(payload)
         setPendingPage(null)
       })
@@ -3674,6 +3695,7 @@ function FascicoliListPage() {
     request
       .then((payload) => {
         if (!active) return
+        resolvedListKeyRef.current = fascicoliListCacheKey(params)
         setData(payload)
         setPendingPage(null)
         if (!hasCachedPage) window.setTimeout(() => warmEconomicFirstPages(params), 250)
@@ -3711,17 +3733,17 @@ function FascicoliListPage() {
 
   useEffect(() => {
     const presidioDue = Number(data.summary.economicAnalysisDue || 0)
-    const presidioKey = `${view}:${data.summary.total || 0}:${data.summary.economicAnalysisDue || 0}`
-    if (view !== 'economica' || loading || economicPresidioRunRef.current === presidioKey || presidioDue < 1) return
+    const presidioKey = `${view}:${data.summary.total || 0}:${presidioDue}:${data.items.map(item => `${item.id}:${item.paymentSummary.analysis.fingerprint}`).join(',')}`
+    if (view !== 'economica' || loading || query !== debouncedQuery || resolvedListKeyRef.current !== fascicoliListCacheKey(listParams()) || !data.items.length || economicPresidioRunRef.current === presidioKey || presidioDue < 1) return
     economicPresidioRunRef.current = presidioKey
-    runFascicoliEconomicPresidio(1000)
+    runFascicoliEconomicPresidio(100, data.items.slice(0, 100).map(item => item.id))
       .then((result) => {
         const changed = result.createdCount + result.contributiUpdatedCount + result.documentAnalysisUpdatedCount + result.statusDefinedUpdatedCount
         if (changed > 0) {
           const parts = [
-            result.contributiUpdatedCount ? `${result.contributiUpdatedCount} contributi unificati salvati` : '',
-            result.documentAnalysisUpdatedCount ? `${result.documentAnalysisUpdatedCount} controlli documentali aggiornati` : '',
-            result.statusDefinedUpdatedCount ? `${result.statusDefinedUpdatedCount} fascicoli definiti` : '',
+            result.contributiUpdatedCount ? result.contributiUpdatedCount === 1 ? '1 contributo unificato salvato' : `${result.contributiUpdatedCount} contributi unificati salvati` : '',
+            result.documentAnalysisUpdatedCount ? result.documentAnalysisUpdatedCount === 1 ? '1 controllo documentale aggiornato' : `${result.documentAnalysisUpdatedCount} controlli documentali aggiornati` : '',
+            result.statusDefinedUpdatedCount ? result.statusDefinedUpdatedCount === 1 ? '1 fascicolo definito' : `${result.statusDefinedUpdatedCount} fascicoli definiti` : '',
             result.createdCount ? `${result.createdCount} bozze proforma create` : '',
           ].filter(Boolean)
           setToast({ tone: 'success', message: `${parts.join(', ')}. I dati sono stati consolidati nel fascicolo.` })
@@ -3731,11 +3753,11 @@ function FascicoliListPage() {
       .catch((error) => {
         const message = error instanceof Error ? error.message.trim() : ''
         if (message && message !== 'Presidio economico non completato.') {
-          setToast({ tone: 'warning', message: `Presidio automatico proforma da ricontrollare: ${message}` })
+          setToast({ tone: 'warning', message: `Controllo economico da ricontrollare: ${message}` })
         }
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.summary.economicAnalysisDue, data.summary.total, loading, view])
+  }, [data.items, data.summary.economicAnalysisDue, data.summary.total, debouncedQuery, loading, query, view])
 
   useEffect(() => {
     if (!preferencesReady) return
@@ -4848,7 +4870,7 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
               <Field label={labels.fields.rifCartaceo} name="riferimento_cartaceo" defaultValue={getValue(data, 'riferimentoCartaceo')}/>
               <SelectField label="Tipo fascicolo" name="tipo" options={data.types} defaultValue={tipoScelto || getValue(data, 'typeRaw') || getValue(data, 'type').toUpperCase()} required onChange={setTipoScelto}/>
               <StatoPraticaField data={data}/>
-              <Field label={labels.fields.dataApertura} name="data_apertura" type="date" defaultValue={getValue(data, 'dataAperturaIso') || new Date().toISOString().slice(0, 10)}/>
+              <Field label={labels.fields.dataApertura} name="data_apertura" type="date" defaultValue={getValue(data, 'dataAperturaIso') || formatDateInputIt(new Date())}/>
               <Field label={labels.fields.dataArchiviazione} name="data_chiusura" type="date" defaultValue={getValue(data, 'dataChiusuraIso')}/>
               <TextAreaField label={labels.fields.oggettoPratica} name="oggetto" defaultValue={getValue(data, 'object') || getValue(data, 'subtitle')} rows={2} required={fascicoloVeloce}/>
               <label className="iu-fas-check-field"><input type="checkbox" name="personalizzabile" value="1" defaultChecked={getBoolValue(data, 'personalizzabile')}/><span>{labels.fields.personalizzabile}</span></label>
@@ -6156,7 +6178,7 @@ function EconomicControlModal({
 }) {
   const economicBodyRef = useRef<HTMLDivElement>(null)
   const bonificoPanelRef = useRef<HTMLElement>(null)
-  const oggiIso = formatDateIt(new Date()).split("/").reverse().join("-")
+  const oggiIso = formatDateInputIt(new Date())
   const [editing, setEditing] = useState(false)
   const [bonificoOpen, setBonificoOpen] = useState(false)
   const [economicSourceOpen, setEconomicSourceOpen] = useState(false)
@@ -6165,12 +6187,23 @@ function EconomicControlModal({
   const [bonificoError, setBonificoError] = useState('')
   const [bonificoDone, setBonificoDone] = useState<{ message: string; href: string } | null>(null)
   const [bonifico, setBonifico] = useState({ importo: '', data: '', note: '' })
+  const [bonificoParcelle, setBonificoParcelle] = useState<Array<{ id: string; numero: string; totale: number; stato: string; dataPagamento?: string }>>([])
+  const [bonificoParcellaId, setBonificoParcellaId] = useState('')
   const liquidazioneItem = data.fascicolo.paymentSummary.items.liquidazione_giudice
-  const importoSuggerito = liquidazioneItem.importo != null && liquidazioneItem.status !== 'pagato' ? String(liquidazioneItem.importo) : data.fascicolo.paymentSummary.items.parcella.importo != null ? String(data.fascicolo.paymentSummary.items.parcella.importo) : ''
+  const parcellaItem = data.fascicolo.paymentSummary.items.parcella
+  const knownProformaId = parcellaItem.proformaId || liquidazioneItem.proformaId
+  const registeredIncome = parcellaItem.incassoImporto ?? liquidazioneItem.incassoImporto
+  const knownPaidIncome = Boolean(knownProformaId && registeredIncome != null && (parcellaItem.status === 'pagato' || liquidazioneItem.status === 'pagato'))
+  const invoiceAmount = data.fascicolo.paymentSummary.proformaPresidio.existingCount === 1 ? data.fascicolo.paymentSummary.proformaPresidio.total : null
+  const amountSuggestion = knownPaidIncome ? registeredIncome : invoiceAmount || parcellaItem.importo || liquidazioneItem.importo
+  const importoSuggerito = amountSuggestion != null ? Number(amountSuggestion).toFixed(2).replace('.', ',') : ''
+  const selectedPaidIncome = Boolean(bonificoParcelle.find(p => p.id === bonificoParcellaId)?.stato === 'PAGATA' || (knownPaidIncome && bonificoParcellaId === knownProformaId))
   const openBonifico = () => {
-    setBonifico({ importo: importoSuggerito, data: oggiIso, note: '' })
+    setBonifico({ importo: importoSuggerito, data: knownPaidIncome ? parcellaItem.dataPagamentoIso || liquidazioneItem.dataPagamentoIso || oggiIso : oggiIso, note: '' })
     setBonificoError('')
     setBonificoDone(null)
+    setBonificoParcelle([])
+    setBonificoParcellaId(knownProformaId || '')
     setBonificoOpen(true)
   }
   // Un passaggio solo: parcella pagata (creata se manca) e liquidazione a «Pagato», la stessa fonte di Fatturazione.
@@ -6182,9 +6215,10 @@ function EconomicControlModal({
         method: 'POST',
         credentials: 'same-origin',
         headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
-        body: JSON.stringify({ importo: bonifico.importo, data_pagamento: bonifico.data, note: bonifico.note }),
+        body: JSON.stringify({ importo: bonifico.importo, data_pagamento: bonifico.data, note: bonifico.note, parcella_id: bonificoParcellaId || undefined }),
       })
-      const result = await response.json().catch(() => ({})) as { ok?: boolean; message?: string; errors?: Record<string, string>; paymentSummary?: FascicoloRow['paymentSummary']; redirectHref?: string }
+      const result = await response.json().catch(() => ({})) as { ok?: boolean; message?: string; errors?: Record<string, string>; paymentSummary?: FascicoloRow['paymentSummary']; redirectHref?: string; parcelle?: Array<{ id: string; numero: string; totale: number; stato: string; dataPagamento?: string }> }
+      if (response.status === 409 && result.parcelle?.length) setBonificoParcelle(result.parcelle)
       if (!response.ok || !result.ok) throw new Error(result.message || Object.values(result.errors || {})[0] || 'Bonifico non registrato.')
       if (result.paymentSummary) onPaymentSaved(data.fascicolo.id, result.paymentSummary, result.message)
       setBonificoDone({ message: result.message || 'Bonifico registrato.', href: result.redirectHref || '/fatturazione' })
@@ -6223,9 +6257,7 @@ function EconomicControlModal({
   const summary = f.paymentSummary
   const items = summary.items
   const contribution = items.contributo_unificato
-  const expenses = items.spese_esborsi.importo !== null || items.spese_esborsi.status !== 'non_previsto'
-    ? items.spese_esborsi
-    : items.fondo_spese
+  const expenses = items.spese_esborsi
   const proformaNeedsConfirmation = summary.proformaPresidio.status === 'importi_da_confermare' || (f.status === 'definito' && !summary.proformaPresidio.total)
   const proformaStatus = proformaNeedsConfirmation ? 'Importi da confermare' : summary.proformaPresidio.statusLabel
   const proformaMessage = summary.proformaPresidio.message
@@ -6259,6 +6291,7 @@ function EconomicControlModal({
       note: contribution.origine || contribution.note || 'Collega ricevuta PagoPA, F23/F24 o documento di esenzione quando disponibile.',
     },
     economicControlPaymentRow(expenses, 'Spese/esborsi'),
+    economicControlPaymentRow(items.fondo_spese, 'Fondo spese'),
     economicControlPaymentRow(items.liquidazione_giudice, 'Liquidazione'),
     economicControlPaymentRow(items.parcella, 'Parcella', items.parcella.status === 'da_emettere' ? 'Da calcolare' : 'n.d.'),
     {
@@ -6276,7 +6309,7 @@ function EconomicControlModal({
   const chips = [
     { label: contributionStatusLabel, tone: contribution.status === 'non_previsto' ? 'neutral' : contribution.tone },
     { label: 'Fonte del contributo', tone: contribution.status === 'pagato' ? 'success' : contribution.status === 'non_previsto' ? 'neutral' : 'warning' },
-    { label: items.parcella.status === 'da_emettere' || summary.parcelleDaEmettere ? 'Parcella da emettere' : items.parcella.statusLabel, tone: items.parcella.tone },
+    { label: (items.parcella.previsto && items.parcella.status === 'da_emettere') || summary.parcelleDaEmettere ? 'Parcella da emettere' : items.parcella.statusLabel, tone: items.parcella.tone },
     { label: proformaStatus, tone: proformaNeedsConfirmation ? 'warning' : summary.proformaPresidio.tone },
   ]
   return (
@@ -6327,14 +6360,14 @@ function EconomicControlModal({
                   <Badge tone={row.tone as FascicoloRow['tone']}>{row.status}</Badge>
                 </article>
               ))}
-              <EconomicVerificationPanel payment={items.contributo_unificato} onSourceOpenChange={setEconomicSourceOpen}/>
+              {economicPaymentKinds.map((kind) => <EconomicVerificationPanel key={kind} payment={items[kind]} onSourceOpenChange={setEconomicSourceOpen}/>)}
             </section>
             <section className="iu-fas-economic-control-modal__sentenze" aria-label="Evidenze economiche da provvedimenti">
               <header>
                 <div>
                   <Badge tone={data.sentenzeEconomiche?.kpi.tone || 'neutral'}>{data.sentenzeEconomiche?.kpi.label || 'Provvedimenti economici'}</Badge>
                   <strong>{data.sentenzeEconomiche?.kpi.value || 'Nessuna evidenza economica letta'}</strong>
-                  <small>{data.sentenzeEconomiche ? `${data.sentenzeEconomiche.totals.sentenze_lette} provvedimenti letti · ${data.sentenzeEconomiche.totals.da_verificare} verifiche aperte` : 'Il controllo si alimenta solo da provvedimenti acquisiti e indicizzati nel fascicolo.'}</small>
+                  <small>{data.sentenzeEconomiche ? `${data.sentenzeEconomiche.totals.sentenze_lette} ${data.sentenzeEconomiche.totals.sentenze_lette === 1 ? 'provvedimento letto' : 'provvedimenti letti'} · ${data.sentenzeEconomiche.totals.da_verificare} ${data.sentenzeEconomiche.totals.da_verificare === 1 ? 'verifica aperta' : 'verifiche aperte'}` : 'Il controllo si alimenta solo da provvedimenti acquisiti e indicizzati nel fascicolo.'}</small>
                 </div>
                 <button type="button" onClick={onOpenDocuments}><FileText size={15}/> Apri documenti sorgente</button>
               </header>
@@ -6363,15 +6396,21 @@ function EconomicControlModal({
         {bonificoOpen ? (
           <section ref={bonificoPanelRef} className="iu-fas-economic-control-modal__bonifico" aria-label="Registra bonifico ricevuto">
             <strong>Registra bonifico ricevuto</strong>
-            <span>La parcella aperta del fascicolo viene segnata pagata con metodo bonifico e data; se manca, viene creata dal presidio economico e segnata pagata. La voce «Liquidazione giudice» passa a «Pagato». Fatturazione e fascicolo leggono lo stesso record.</span>
+            <span>Registra l’incasso sul documento economico del fascicolo. Se risulta già pagato, collega il versamento esistente conservando la data originale. L’importo liquidato dalla sentenza resta distinto.</span>
             <div>
-              <label>Importo ricevuto (€)<input type="text" inputMode="decimal" value={bonifico.importo} onChange={(event) => { const value = event.currentTarget.value; setBonifico((current) => ({ ...current, importo: value })) }} placeholder="es. 4500,00"/></label>
-              <label>Data del bonifico<input type="date" value={bonifico.data} max={oggiIso} onChange={(event) => { const value = event.currentTarget.value; setBonifico((current) => ({ ...current, data: value })) }}/></label>
+              {bonificoParcelle.length ? <label>Documento economico<select aria-label="Documento economico" value={bonificoParcellaId} onChange={event => {
+                const id = event.currentTarget.value
+                setBonificoParcellaId(id)
+                const scelta = bonificoParcelle.find(p => p.id === id)
+                if (scelta) setBonifico(current => ({ ...current, importo: Number(scelta.totale).toFixed(2).replace('.', ','), data: scelta.dataPagamento || current.data }))
+              }}><option value="">Scegli il documento del fascicolo</option>{bonificoParcelle.map(p => <option key={p.id} value={p.id}>{p.numero} · {formatEuroIt(p.totale)} · {p.stato === 'PAGATA' ? 'già pagata' : p.stato === 'EMESSA' ? 'emessa' : p.stato === 'SCADUTA' ? 'scaduta' : 'bozza'}</option>)}</select></label> : null}
+              <label>Importo ricevuto (€)<input type="text" inputMode="decimal" readOnly={selectedPaidIncome} value={bonifico.importo} onChange={(event) => { const value = event.currentTarget.value; setBonifico((current) => ({ ...current, importo: value })) }} placeholder="es. 4500,00"/></label>
+              <label>Data del bonifico<input type="date" readOnly={selectedPaidIncome} value={bonifico.data} max={oggiIso} onChange={(event) => { const value = event.currentTarget.value; setBonifico((current) => ({ ...current, data: value })) }}/></label>
               <label>Nota (facoltativa)<input type="text" value={bonifico.note} maxLength={400} onChange={(event) => { const value = event.currentTarget.value; setBonifico((current) => ({ ...current, note: value })) }} placeholder="es. banca, causale"/></label>
             </div>
             {bonificoError ? <p role="alert">{bonificoError}</p> : null}
             <div>
-              <button type="button" disabled={bonificoBusy || !bonifico.importo} onClick={() => void submitBonifico()}><CheckCircle2 size={15}/> {bonificoBusy ? 'Registrazione…' : 'Conferma bonifico ricevuto'}</button>
+              <button type="button" disabled={bonificoBusy || !bonifico.importo || (bonificoParcelle.length > 0 && !bonificoParcellaId)} onClick={() => void submitBonifico()}><CheckCircle2 size={15}/> {bonificoBusy ? 'Registrazione…' : selectedPaidIncome ? 'Collega incasso già registrato' : 'Conferma bonifico ricevuto'}</button>
               <button type="button" disabled={bonificoBusy} onClick={() => setBonificoOpen(false)}>Annulla</button>
             </div>
           </section>
@@ -9496,7 +9535,7 @@ function DetailPage({ id }:{id:string}) {
     || activeHashSection === 'comunicazioni-notifica'
     || activeHashSection === 'relata-notifica'
   const auditNavigation = lazyStatus.audit === 'loaded'
-    ? { value: String(data.auditTrail.summary.total), label: data.auditTrail.summary.total ? `${data.auditTrail.summary.total} evidenze audit registrate` : 'Nessuna evidenza audit registrata' }
+    ? { value: String(data.auditTrail.summary.total), label: data.auditTrail.summary.total ? `${data.auditTrail.summary.total} ${data.auditTrail.summary.total === 1 ? 'evidenza audit registrata' : 'evidenze audit registrate'}` : 'Nessuna evidenza audit registrata' }
     : lazyStatus.audit === 'loading'
       ? { value: '…', label: 'Caricamento registro audit' }
       : lazyStatus.audit === 'error'

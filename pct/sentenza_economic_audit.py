@@ -292,6 +292,11 @@ def build_identity_match(fascicolo: Any, testo: str, *, documento_id: str = "", 
 
     from pct.pec_case_identity import document_case_identity_evidence
     identity_complete = document_case_identity_evidence(testo, fascicolo)
+    from pct.archivio_letture.verifica_economica import codice_fiscale_parte
+    tax_identity = codice_fiscale_parte(testo, {"fascicolo": fascicolo})
+    tax_ok = tax_identity["esito"] == "ok"
+    if not tax_ok:
+        match.issues.append(tax_identity["dettaglio"])
     match.tribunale_score = 1.0 if identity_complete['office_match'] else 0.0
     match.tribunale_rilevato = identity_complete['source_office']
     # La prova congiunta dell'intestazione prevale sul vecchio punteggio fuzzy:
@@ -307,10 +312,10 @@ def build_identity_match(fascicolo: Any, testo: str, *, documento_id: str = "", 
 
     # Regola forte: RG diverso => non alimentare, revisione umana (regola #1).
     match.safe_to_attach = bool(
-        identity_complete["complete_match"] and match.rg_match and match.cliente_score >= soglia_cliente and match.overall_score >= soglia_doc
+        identity_complete["complete_match"] and tax_ok and match.rg_match and match.cliente_score >= soglia_cliente and match.overall_score >= soglia_doc
     )
     match.human_review_required = not (
-        identity_complete["complete_match"] and match.rg_match and match.overall_score >= 0.90 and match.cliente_score >= 0.60
+        identity_complete["complete_match"] and tax_ok and match.rg_match and match.overall_score >= 0.90 and match.cliente_score >= 0.60
     )
 
     if not match.rg_match:

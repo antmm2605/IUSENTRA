@@ -20,9 +20,36 @@ class Caso:
     righe: tuple[str, ...]
     attesi: tuple[tuple[str, str, str], ...]  # (categoria, campo, valore ISO o codice)
     vietati: tuple[str, ...] = field(default=())  # valori (ISO) che non devono comparire come fatti utili
+    fascicolo: tuple[tuple[str, str], ...] = field(default=())
+    vietati_fatti: tuple[tuple[str, str, str], ...] = field(default=())
 
 
 CASI: tuple[Caso, ...] = (
+    Caso(
+        id="sentenza_fondo_esborsi_distinti",
+        titolo="Sentenza con fondo spese ed esborsi distinti",
+        righe=("TRIBUNALE DI MILANO", "Sentenza n. 88/2026 pubblicata il 05/09/2026",
+               "R.G. n. 1234/2026", "Anna Bianchi contro Ministero dell'Istruzione e del Merito",
+               "P.Q.M. Condanna il Ministero alla rifusione delle spese di lite",
+               "liquidando euro 1.100,00 per compensi ed euro 21,50 per esborsi.",
+               "Fondo spese riconosciuto pari a euro 250,00."),
+        attesi=(("importo", "spese_esborsi", "21.50"), ("importo", "fondo_spese", "250.00")),
+        fascicolo=(("id", "COLLAUDO-ECONOMICO"), ("nome_cliente", "Anna Bianchi"),
+                   ("numero_rg", "1234/2026"), ("anno_rg", "2026"), ("tribunale", "Tribunale di Milano")),
+        vietati_fatti=(("importo", "spese_esborsi", "250.00"),),
+    ),
+    Caso(
+        id="sentenza_fondo_non_univoco",
+        titolo="Sentenza con due somme non attribuibili a un fondo unico",
+        righe=("TRIBUNALE DI MILANO", "Sentenza n. 88/2026 pubblicata il 05/09/2026",
+               "R.G. n. 1234/2026", "Anna Bianchi contro Ministero dell'Istruzione e del Merito",
+               "P.Q.M. Condanna il Ministero alla rifusione delle spese di lite.",
+               "Fondo spese euro 250,00. Fondo spese euro 300,00."),
+        attesi=(("evento", "fondo_spese_da_verificare", "verifica_necessaria"),),
+        fascicolo=(("id", "COLLAUDO-ECONOMICO"), ("nome_cliente", "Anna Bianchi"),
+                   ("numero_rg", "1234/2026"), ("anno_rg", "2026"), ("tribunale", "Tribunale di Milano")),
+        vietati_fatti=(("importo", "fondo_spese", "250.00"), ("importo", "fondo_spese", "300.00")),
+    ),
     Caso(
         id="data_documento_senza_termini",
         titolo="Data tecnica separata da una frase senza eventi processuali",

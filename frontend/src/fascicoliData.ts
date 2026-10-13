@@ -35,6 +35,9 @@ export type FascicoloPaymentItem = {
   previsto: boolean
   importo: number | null
   importoLabel: string
+  incassoImporto?: number | null
+  proformaId?: string
+  proformaNumber?: string
   valuta: string
   dataPagamento: string
   dataPagamentoIso: string
@@ -51,10 +54,11 @@ export type FascicoloPaymentItem = {
   verificheMancanti?: string[]
   importiLetti?: string[]
   richiedeConferma?: boolean
+  discordanzaVersione?: string
 }
 
 export type FascicoloProformaPresidio = {
-  status: 'presente' | 'da_preparare' | 'sentenza_da_acquisire' | 'importi_da_confermare' | 'doppione_da_riconciliare' | 'non_applicabile'
+  status: 'presente' | 'da_preparare' | 'sentenza_da_acquisire' | 'importi_da_confermare' | 'doppione_da_riconciliare' | 'non_applicabile' | 'facoltativa'
   statusLabel: string
   tone: Tone
   message: string
@@ -103,6 +107,8 @@ export type FascicoloPaymentUpdatePayload = {
   natura?: string
   documento_fonte?: string
   documento_id?: string
+  confermaDiscordanza?: boolean
+  discordanzaVersione?: string
 }
 
 export type FascicoloPaymentUpdateResult = {
@@ -1205,7 +1211,7 @@ const emptySummary: FascicoliSummary = {
 const paymentKindLabels: Record<FascicoloPaymentKind, string> = {
   contributo_unificato: 'Contributo unificato',
   spese_esborsi: 'Spese/esborsi',
-  fondo_spese: 'Spese/esborsi',
+  fondo_spese: 'Fondo spese',
   liquidazione_giudice: 'Liquidazione giudice',
   parcella: 'Parcella',
 }
@@ -1653,7 +1659,7 @@ function normalizePaymentHistory(value: unknown): FascicoloPaymentHistoryItem[] 
 function normalizeProformaPresidio(value: unknown, id = ''): FascicoloProformaPresidio {
   const row = isRecord(value) ? value : {}
   const rawStatus = text(row.status ?? row.stato)
-  const allowed = ['presente', 'da_preparare', 'sentenza_da_acquisire', 'importi_da_confermare', 'doppione_da_riconciliare', 'non_applicabile'] as const
+  const allowed = ['presente', 'da_preparare', 'sentenza_da_acquisire', 'importi_da_confermare', 'doppione_da_riconciliare', 'non_applicabile', 'facoltativa'] as const
   const status = allowed.includes(rawStatus as typeof allowed[number]) ? rawStatus as FascicoloProformaPresidio['status'] : 'non_applicabile'
   const fallbackLabel = status === 'presente'
     ? 'Proforma presente'
@@ -1669,7 +1675,7 @@ function normalizeProformaPresidio(value: unknown, id = ''): FascicoloProformaPr
   return {
     status,
     statusLabel: text(row.statusLabel ?? row.status_label, fallbackLabel),
-    tone: (text(row.tone, status === 'presente' ? 'success' : status === 'non_applicabile' ? 'neutral' : 'warning') as Tone),
+    tone: (text(row.tone, status === 'presente' ? 'success' : status === 'non_applicabile' || status === 'facoltativa' ? 'neutral' : 'warning') as Tone),
     message: text(row.message ?? row.messaggio),
     href: text(row.href, id ? `/fatturazione/nuova?id_fascicolo=${encodeURIComponent(id)}` : '/fatturazione/nuova'),
     existingCount: number(row.existingCount ?? row.existing_count),
@@ -1698,6 +1704,9 @@ export function normalizePaymentItem(value: unknown, kind: FascicoloPaymentKind,
     previsto: row.previsto === undefined ? status !== 'non_previsto' : bool(row.previsto),
     importo,
     importoLabel: text(row.importoLabel ?? row.importo_label, importo === null ? '' : formatEuroIt(importo)),
+    incassoImporto: paymentAmount(row.incassoImporto ?? row.incasso_importo),
+    proformaId: text(row.proformaId ?? row.proforma_id),
+    proformaNumber: text(row.proformaNumber ?? row.proforma_number),
     valuta: text(row.valuta ?? row.currency, 'EUR'),
     dataPagamento: text(row.dataPagamento ?? row.data_pagamento),
     dataPagamentoIso: text(row.dataPagamentoIso ?? row.data_pagamento_iso ?? row.data_pagamento),
@@ -1718,6 +1727,7 @@ export function normalizePaymentItem(value: unknown, kind: FascicoloPaymentKind,
     verificheMancanti: Array.isArray(row.verificheMancanti) ? row.verificheMancanti.map((item) => text(item)).filter(Boolean) : [],
     importiLetti: Array.isArray(row.importiLetti) ? row.importiLetti.map((item) => text(item)).filter(Boolean) : [],
     richiedeConferma: bool(row.richiedeConferma),
+    discordanzaVersione: text(row.discordanzaVersione),
   }
 }
 
@@ -3142,7 +3152,7 @@ export type FascicoliEconomicPresidioResult = {
   statusDefinedUpdatedCount: number
 }
 
-export async function runFascicoliEconomicPresidio(limit = 500): Promise<FascicoliEconomicPresidioResult> {
+export async function runFascicoliEconomicPresidio(limit = 500, fascicoloIds?: string[]): Promise<FascicoliEconomicPresidioResult> {
   const token = csrfToken()
   const response = await fetch('/api/v1/ui/fascicoli/presidio-economico/proforme', {
     method: 'POST',
@@ -3153,7 +3163,7 @@ export async function runFascicoliEconomicPresidio(limit = 500): Promise<Fascico
       'X-Requested-With': 'XMLHttpRequest',
       ...(token ? { 'X-CSRFToken': token } : {}),
     },
-    body: JSON.stringify({ limit }),
+    body: JSON.stringify({ limit, ...(fascicoloIds ? { fascicolo_ids: fascicoloIds } : {}) }),
   })
   const payload = await response.json().catch(() => ({})) as Record<string, unknown>
   if (!response.ok || payload.ok === false) {
@@ -3261,6 +3271,8 @@ export async function updateFascicoloPayment(id: string, kind: FascicoloPaymentK
       dataPagamento: payload.dataPagamento || '',
       metodo: payload.metodo || '',
       note: payload.note || '',
+      confermaDiscordanza: payload.confermaDiscordanza === true,
+      discordanzaVersione: payload.discordanzaVersione || '',
     }),
   })
   const contentType = response.headers.get('content-type') || ''

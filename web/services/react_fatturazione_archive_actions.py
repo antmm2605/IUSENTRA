@@ -1329,6 +1329,7 @@ def update_react_fatturazione_status(
     id_documento: str,
     payload: dict[str, Any],
     ip_address: str = "",
+    get_fascicoli: Callable[[], Any] | None = None,
 ) -> tuple[dict[str, Any], int]:
     if not _can(current_user, "fatturazione.scrivi"):
         return {"ok": False, "message": "Permesso fatturazione.scrivi richiesto.", "errors": {"permission": "Operazione non autorizzata."}, "item": None}, 403
@@ -1353,13 +1354,28 @@ def update_react_fatturazione_status(
                 "errors": {"confermaProforma": "Conferma esplicita richiesta."},
                 "item": _status_result(current),
             }, 409
-        manager.cambia_stato(
-            id_documento,
-            status,
-            data_pagamento=_text(payload.get("data_pagamento")) or None,
-            metodo_pagamento=_text(payload.get("metodo_pagamento")) or None,
-        )
-        item = manager.get(id_documento)
+        if status == StatoParcella.PAGATA and _text(getattr(current, "id_fascicolo", "")) and callable(get_fascicoli):
+            from web.services.fascicolo_bonifico_ricevuto import METODO_BONIFICO, registra_bonifico_ricevuto
+
+            result, result_status = registra_bonifico_ricevuto(
+                get_fascicoli=get_fascicoli, get_fatturazione=get_fatturazione,
+                id_fasc=_text(current.id_fascicolo),
+                payload={"parcella_id": id_documento, "importo": float(current.netto_a_pagare),
+                         "data_pagamento": _text(payload.get("data_pagamento")), "note": _text(payload.get("note"))},
+                actor=_text(getattr(current_user, "nome_completo", "") or getattr(current_user, "username", "") or getattr(current_user, "id", "")) or "Operatore",
+                metodo_pagamento=_text(payload.get("metodo_pagamento")) or _text(getattr(current, "metodo_pagamento", "")) or METODO_BONIFICO,
+            )
+            if result_status >= 400:
+                return {**result, "item": _status_result(get_fatturazione().get(id_documento))}, result_status
+            item = get_fatturazione().get(id_documento)
+        else:
+            manager.cambia_stato(
+                id_documento,
+                status,
+                data_pagamento=_text(payload.get("data_pagamento")) or None,
+                metodo_pagamento=_text(payload.get("metodo_pagamento")) or None,
+            )
+            item = manager.get(id_documento)
     except KeyError:
         return {"ok": False, "message": "Documento non trovato.", "errors": {"id_documento": "Identificativo non valido."}, "item": None}, 404
     _audit(get_utenti, current_user, "fatturazione.stato", id_documento, ip_address)
@@ -1395,11 +1411,13 @@ def mark_react_fatturazione_paid(
     id_documento: str,
     payload: dict[str, Any],
     ip_address: str = "",
+    get_fascicoli: Callable[[], Any] | None = None,
 ) -> tuple[dict[str, Any], int]:
     payload = dict(payload)
     payload["stato"] = StatoParcella.PAGATA.value
     return update_react_fatturazione_status(
         get_fatturazione=get_fatturazione,
+        get_fascicoli=get_fascicoli,
         get_utenti=get_utenti,
         current_user=current_user,
         id_documento=id_documento,

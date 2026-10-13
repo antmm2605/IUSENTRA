@@ -304,12 +304,18 @@ def contesto_da_fascicolo(fascicolo: Any, *, oggi: date | None = None, date_note
             return str(fascicolo.get(nome) or "")
         return str(getattr(fascicolo, nome, "") or "")
 
+    from types import SimpleNamespace
+    from pct.pec_case_identity import _case_role
+
+    anno = campo("anno_rg").strip()
+    ruolo = _case_role(SimpleNamespace(numero_rg=campo("numero_rg"), anno_rg="" if anno == "0" else anno))
+
     return Contesto(
         oggi=orizzonte["oggi"],
         anno_riferimento=orizzonte["anno_riferimento"],
         data_minima=orizzonte["data_minima"],
-        numero_rg=campo("numero_rg").strip(),
-        anno_rg=campo("anno_rg").strip(),
+        numero_rg=ruolo[0] if ruolo else campo("numero_rg").strip(),
+        anno_rg=ruolo[1] if ruolo else campo("anno_rg").strip(),
         ufficio_giudiziario=(
             campo("tribunale").strip()
             or campo("ufficio_giudiziario").strip()

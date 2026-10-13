@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.437.17 — candidata, 13/10/2026
+
+- Sentenze: fondo spese, esborsi, contributo e compensi conservano importi, natura e prove separate. Il fondo non viene trasferito negli esborsi né aggiunto automaticamente alla proforma.
+- Importi discordanti: conservazione delle voci, delle proforme e degli stati di pagamento preesistenti; confronto persistente con documento, impronta e passaggio della nuova fonte. Un importo ambiguo non viene scelto per prossimità o sommato.
+- Fascicolo: API e pannello economico mostrano il fondo separato; le fonti discordanti restano visibili e le decisioni manuali vengono conservate. Il contesto delle letture usa il resolver nativo anche per il ruolo completo numero/anno.
+- Sentenza ricevuta dal fascicolo e dalla PEC: una sola voce per lo stesso contenuto economico, mantenendo entrambi i documenti probatori; cliente, ruolo completo e ufficio discordanti impediscono l'attribuzione automatica.
+- Fatturazione e incassi riusano la procedura nativa del fascicolo: il versamento si collega alla liquidazione senza sostituire l'importo della sentenza. Un pagamento già registrato conserva data e importo, senza nuova fattura; contributo unificato e incasso restano distinti nei totali.
+- Proforma predisposta su scelta dell'avvocato; collegamento della parcella all'importo effettivo del documento creato, conservazione degli importi manuali precedenti e rappresentazione separata dell'incasso.
+- Collaudo: casi sintetici con voci diverse e uguali, ripetizioni, discordanze e persistenza SQLite/PostgreSQL; corpus verificato con OCR reale. Suite economica inserita nei controlli core e critici. Nessuna riconvalida massiva o modifica agli importi reali degli studi.
+- Prove materiali sulla copia reale 8080: fonti originali, persistenza distinta delle voci, proforma su scelta esplicita, incasso nativo, riapertura e ripetizione senza doppioni. CI remota, misura canonica e deploy della candidata restano da attestare; incarico generale aperto.
+
 ## 2.437.16 — candidata, 12/10/2026
 
 - Letture documentali: errori persistenti riferiti alla fonte e tutti visibili; distinti documenti pronti, in coda e non leggibili. Acquisizione interna coerente con il limite applicativo, senza cambiare il limite pubblico del caricamento AI.

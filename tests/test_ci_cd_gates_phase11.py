@@ -26,6 +26,20 @@ def test_lex_bank_shards_distribute_every_collected_question() -> None:
     assert all(sum(item in expected for item in shard) <= 4 for shard in shards)
 
 
+def test_legal_tools_batches_expand_parametrized_cases_once() -> None:
+    from scripts.run_pytest_phases import discover_test_items, split_core_shards
+
+    items = discover_test_items([REPO_ROOT / "tests/test_strumenti_legali_end_to_end.py"])
+    prefix = "tests/test_strumenti_legali_end_to_end.py::test_lo_strumento_calcola_dall_endpoint_della_pagina"
+    cases = [item for item in items if item.startswith(prefix + "[")]
+    assert len(cases) > 60
+    assert prefix not in items
+    batches = split_core_shards(items, 12)
+    flattened = [item for batch in batches for item in batch]
+    assert len(flattened) == len(set(flattened)) == len(items)
+    assert set(flattened) == set(items)
+
+
 def _read(relative: str) -> str:
     return (REPO_ROOT / relative).read_text(encoding="utf-8")
 

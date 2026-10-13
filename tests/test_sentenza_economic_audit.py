@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+import pytest
 
 from pct.sentenza_economic_audit import (
     assess_contributo_unificato,
@@ -64,6 +65,17 @@ def test_rg_mismatch_blocca_alimentazione_economica():
     assert [a.type for a in audit.azioni] == ["verifica_riconciliazione"]
     assert audit.status == "needs_reconciliation"
     assert audit.match.issues  # motivo esplicitato
+
+
+@pytest.mark.parametrize("numero,anno,expected", [
+    ("1234/2025", 2025, True), ("001234 / 2025", "", True),
+    ("1234/2025", 2024, False), ("1234", "", False),
+    ("1234/2024", "", False), ("1234", 2025, True),
+])
+def test_audit_rg_usa_identita_congiunta_del_resolver(numero, anno, expected):
+    audit = build_audit(fascicolo=_fasc(numero_rg=numero, anno_rg=anno), testo=SENT_DISTRAZIONE, cu_tiers=CU_TIERS)
+    assert audit.safe_to_attach is expected
+    assert audit.match.rg_match is expected
 
 
 def test_cliente_mismatch_blocca_alimentazione_economica():

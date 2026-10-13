@@ -225,8 +225,9 @@ def build_identity_match(fascicolo: Any, testo: str, *, documento_id: str = "", 
     testo_norm = _normalize(testo)
     tokens = _tokenizza_email_match(testo)
 
-    rg_fasc = _norm_rg_numero(getattr(fascicolo, "numero_rg", ""))
-    anno_fasc = str(getattr(fascicolo, "anno_rg", "") or "").strip()
+    from pct.pec_case_identity import _case_role
+    role = _case_role(fascicolo)
+    rg_fasc, anno_fasc = role if role else ("", "")
     ruoli = extract_numero_ruolo(testo)
     rg_ril, anno_ril = "", ""
     rg_match = False

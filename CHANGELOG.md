@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.437.20 — candidata, 13/10/2026
+
+- Recupero economico puntuale nella procedura SQL esistente delle letture archiviate: stessa fonte e impronta, provvedimenti classificati, checkpoint finito e conservazione delle decisioni manuali. Nessuna rilettura nelle GET o riconvalida massiva.
+- Audit del ruolo allineato al resolver congiunto: numero/anno già presenti nel campo RG restano distinti; anno mancante o discordante impedisce l'attribuzione.
+- Guardrail integrati del recupero, esclusione di identità discordanti e ripetizione senza parcella automatica. Accettazione reale e rilascio della candidata ancora necessari; presìdi economici residui aperti.
+
 ## 2.437.19 — candidata, 13/10/2026
 
 - Lettore condiviso del capo spese: riconoscimento della valuta dopo il numero, come «liquidate in 321,00 euro», conservando il passaggio originale. Esborsi, fondo spese e contributo non diventano compensi.

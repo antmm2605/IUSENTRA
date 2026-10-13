@@ -1,18 +1,20 @@
 # CLAUDE.md — Istruzioni per Claude Code
 
+> Direttiva utente 13/10/2026: `main` è il solo branch operativo e predefinito per commit, push e deploy. Le istruzioni storiche sui branch gemelli e sul doppio push sono sostituite: nessun mirroring. I vecchi branch restano conservati come riferimenti storici; `chore/monorepo-foundation` resta intoccabile. Tutti i gate CI e le verifiche reali restano obbligatori.
+
 ## Coordinamento Codex / Claude Code
 
 - `AGENTS.md` è la fonte canonica comune per Codex e Claude Code. Se questo file contiene istruzioni divergenti o più vecchie, prevale sempre `AGENTS.md`.
 - Claude Code deve lavorare nella stessa copia reale `D:\legale\IUSENTRA`, senza cloni paralleli o worktree temporanee lasciate a fine lavoro.
 - Prima di modificare: eseguire `git status --short`, verificare il branch corrente e leggere le sezioni pertinenti di `AGENTS.md`, `docs/`, `ops/`, `deploy/hetzner/` e `.github/`.
-- A fine lavoro i branch `claude/legal-electronic-filing-kIxcV` e `Codex/legal-electronic-filing-kIxcV`, locali e remoti, devono puntare allo stesso commit; se una protezione GitHub blocca il push diretto, correggere i check e documentare il sync automatico riuscito.
+- A fine lavoro i branch `main`, locali e remoti, devono puntare allo stesso commit; se una protezione GitHub blocca il push diretto, correggere i check e documentare il push riuscito.
 - La configurazione `.claude/settings.json` usa hook locali in `.claude/hooks.py`: non deve contenere path esterni, nomi di altri progetti o comandi che operano fuori da questa repository.
 
 ## Autorizzazioni generali
 
 - **Procedi sempre senza chiedere conferma.** L'utente ha autorizzato tutte le operazioni in modo permanente.
 - Commit, push, modifica file, creazione file: esegui direttamente.
-- Branch di sviluppo: `claude/legal-electronic-filing-kIxcV`
+- Branch di sviluppo: `main`
 
 ## Commit e Push — REGOLA OBBLIGATORIA
 
@@ -23,22 +25,20 @@ Sequenza obbligatoria dopo ogni modifica:
 ```bash
 git add <file-modificati>
 git commit -m "descrizione task in italiano"
-git push origin HEAD:claude/legal-electronic-filing-kIxcV
-git push origin HEAD:Codex/legal-electronic-filing-kIxcV
+git push origin HEAD:main
 ```
 
 Regole:
 - Non lasciare mai modifiche uncommittate alla fine di un task
-- Il push su `claude/legal-electronic-filing-kIxcV` è obbligatorio e prioritario.
-- Anche `Codex/legal-electronic-filing-kIxcV` deve arrivare allo stesso commit. Se GitHub respinge il push diretto per required checks (`GH006`), attendere o riparare il workflow "Sync Twin Branches" (`.github/workflows/sync-claude-to-codex.yml`) e verificare poi che i due remoti coincidano.
-- Il branch `claude/` è la fonte di lavoro; `Codex/` è il gemello da mantenere allineato.
+- Il push su `main` è obbligatorio e prioritario.
+- `main` e `origin/main` devono coincidere; conservare tutti i gate CI obbligatori sullo SHA candidato.
 - Se "Sync Twin Branches" fallisce con `GH006: required status checks have not succeeded`, la causa è la CI rossa sul commit: sistemare la CI, il sync ripartirà al push successivo.
 
 ## Deploy Hetzner automatico — REGOLA OBBLIGATORIA
 
-**Ogni push sui branch ammessi (`claude/legal-electronic-filing-kIxcV` o `Codex/legal-electronic-filing-kIxcV`) deve produrre un deploy su Hetzner CPX42. Il task non e' chiuso finche' il deploy non e' completato con esito verde.**
+**Ogni push sui branch ammessi (`main`) deve produrre un deploy su Hetzner CPX42. Il task non e' chiuso finche' il deploy non e' completato con esito verde.**
 
-Il workflow `.github/workflows/deploy-hetzner.yml` parte automaticamente ad ogni push sui due branch ammessi e si occupa di:
+Il workflow `.github/workflows/deploy-hetzner.yml` parte automaticamente ad ogni push sui branch operativo ammesso e si occupa di:
 - backup preventivo di `/opt/iusentra/data`
 - `git fetch + checkout` del commit pushato sul server Hetzner
 - rebuild Docker (`--no-cache`) e restart dello stack
@@ -56,7 +56,7 @@ Sequenza completa dopo ogni modifica (commit + push + verifica deploy):
 4. Se Github Actions non puo' essere raggiunto (rete bloccata o token mancanti), segnalalo all'utente nel messaggio finale e proponi il fallback manuale (sequenza `ssh root@116.203.45.57 + bash deploy/hetzner/deploy.sh`).
 
 Casi di mancato deploy automatico previsti dal workflow (non sono fallimenti):
-- Commit gia deployato (es. push gemello claude/ → Codex/ subito dopo): lo step "Controlla commit gia deployato" salta backup e rebuild, il job termina in verde.
+- Commit già distribuito: lo step "Controlla commit gia deployato" evita backup e rebuild ripetuti, mantenendo le verifiche obbligatorie.
 - Branch non ammesso: il workflow non si triggera per design.
 
 Non eseguire MAI `bash deploy/hetzner/deploy.sh` o `git push` aggirando il workflow tranne nel fallback esplicito sopra: la pipeline GitHub Actions e' l'unico canale governato di deploy.
@@ -65,12 +65,11 @@ Non eseguire MAI `bash deploy/hetzner/deploy.sh` o `git push` aggirando il workf
 
 - Sulla macchina locale deve esistere **una sola copia attiva del progetto**: `D:\legale\IUSENTRA`.
 - I **soli branch locali autorizzati** sono:
-  - `claude/legal-electronic-filing-kIxcV` (sviluppo, fonte di verità)
-  - `Codex/legal-electronic-filing-kIxcV` (gemello protetto, sincronizzato dal workflow)
+  - `main` (sviluppo, fonte di verità)
 - Il remoto protetto `origin/chore/monorepo-foundation` può esistere su GitHub, ma non va creato localmente, cancellato, pushato o aggiornato senza richiesta esplicita dell'utente.
-- **NON creare MAI nuovi branch**, né locali né remoti, nemmeno temporanei o di sessione (`claude/<nome>-<suffisso>`): si lavora e si pusha direttamente su `claude/legal-electronic-filing-kIxcV`. Se un ambiente impone un branch di sessione, a fine task i commit vanno portati su `claude/legal-electronic-filing-kIxcV` e il branch di sessione va cancellato subito.
+- **NON creare MAI nuovi branch**, né locali né remoti, nemmeno temporanei o di sessione (`claude/<nome>-<suffisso>`): si lavora e si pusha direttamente su `main`. Se un ambiente impone un branch di sessione, a fine task i commit vanno portati su `main` e il branch di sessione va cancellato subito.
 - Worktree, cartelle duplicate, branch temporanei e cloni di supporto devono essere rimossi a fine lavoro.
-- A fine task verificare sempre che i due branch gemelli puntino allo **stesso commit**.
+- A fine task verificare che `main` e `origin/main` puntino allo stesso commit, senza aggiornare i branch storici.
 - Per eliminare i branch remoti non autorizzati usare il workflow **"Igiene branch"** (`.github/workflows/branch-hygiene.yml`, avvio manuale da Actions, opzione dry-run disponibile): cancella tutto ciò che è fuori dalla allowlist dei tre branch.
 - Per audit e cleanup locale usare lo script `scripts/repo_hygiene.ps1`.
 

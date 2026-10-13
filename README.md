@@ -438,7 +438,7 @@ Per il percorso completo vedi [docs/DEMO_STUDIO_REALE.md](docs/DEMO_STUDIO_REALE
 
 La CI non si limita più alla sola sincronizzazione branch. Il workflow principale applicativo è `.github/workflows/ci.yml` e copre i push in modo generico, senza dipendere da due branch hardcoded.
 
-Il mirror dei due branch gemelli ammessi è ora separato dalla CI applicativa: `.github/workflows/sync-claude-to-codex.yml` riallinea automaticamente `Codex/legal-electronic-filing-kIxcV` e `claude/legal-electronic-filing-kIxcV` in entrambe le direzioni, mentre `scripts/repo_hygiene.ps1` installa i hook versionati in `.githooks/` per mantenere coerenti anche i branch locali.
+Dal 13/10/2026 `main` è il solo branch operativo e predefinito per commit, push e deploy. Il workflow storico `.github/workflows/sync-claude-to-codex.yml` non esegue più mirroring; `scripts/repo_hygiene.ps1` conserva gli hook versionati in `.githooks/` e preserva i branch storici, incluso il branch intoccabile `chore/monorepo-foundation`.
 
 La pipeline applicativa esegue:
 

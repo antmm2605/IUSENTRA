@@ -6,7 +6,7 @@ set -euo pipefail
 IUSENTRA_HOME="${IUSENTRA_HOME:-/opt/iusentra}"
 REPO_DIR="${REPO_DIR:-${IUSENTRA_HOME}/repo}"
 REPO_URL="${REPO_URL:-https://github.com/antmm2605/IUSENTRA.git}"
-BRANCH="${BRANCH:-Codex/legal-electronic-filing-kIxcV}"
+BRANCH="${BRANCH:-main}"
 ENV_FILE="${IUSENTRA_ENV_FILE:-${IUSENTRA_HOME}/.env.hetzner}"
 COMPOSE_FILE="deploy/hetzner/docker-compose.hetzner.yml"
 EXPECTED_SHA="${EXPECTED_SHA:-}"

@@ -1,110 +1,12 @@
 name: Sync Twin Branches
-
-# Sincronizza i due branch gemelli. Codex/legal-electronic-filing-kIxcV è
-# protetto da required status checks: il push di mirroring può riuscire solo
-# quando il commit ha già tutti i check verdi. Per questo il workflow gira:
-#   - al push (sincronizza subito la direzione Codex -> claude, non protetta;
-#     per claude -> Codex l'esito dipende dai check già presenti sul commit)
-#   - al completamento dei workflow di CI (workflow_run): è il percorso che
-#     porta a buon fine claude -> Codex appena i required checks sono verdi.
-# Un rifiuto GH006 per check ancora pendenti NON è un errore: il sync viene
-# ritentato automaticamente al completamento del workflow successivo.
-#
-# NOTA: se GH006 persiste nonostante CI verde, i nomi dei check richiesti
-# dalla branch protection server-side non corrispondono a quelli prodotti dal
-# CI. In questo caso risolvere manualmente:
-#   GitHub → Settings → Branches → Codex/legal-electronic-filing-kIxcV
-#   → rimuovere tutti i "Required status checks" → Save
-
+# Mirroring disattivato dalla direttiva utente del 13/10/2026.
 on:
-  push:
-    branches:
-      - "Codex/legal-electronic-filing-kIxcV"
-      - "claude/legal-electronic-filing-kIxcV"
-  workflow_run:
-    workflows:
-      - "CI"
-      - "CI Required Gates"
-      - "CodeQL"
-      - "Frontend React CI"
-      - "Security Supply Chain"
-    types:
-      - completed
   workflow_dispatch:
-
 permissions:
-  contents: write
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
+  contents: read
 jobs:
   sync-peer-branch:
     runs-on: ubuntu-latest
-    # Per workflow_run: sincronizza solo se il workflow sorgente è andato a buon
-    # fine e girava su uno dei due branch gemelli.
-    if: >-
-      github.event_name != 'workflow_run' ||
-      (
-        github.event.workflow_run.conclusion == 'success' &&
-        (
-          github.event.workflow_run.head_branch == 'claude/legal-electronic-filing-kIxcV' ||
-          github.event.workflow_run.head_branch == 'Codex/legal-electronic-filing-kIxcV'
-        )
-      )
     steps:
-      - name: Determine source and target branch
-        id: branches
-        shell: bash
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          WORKFLOW_RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
-        run: |
-          if [ "$EVENT_NAME" = "workflow_run" ]; then
-            source="$WORKFLOW_RUN_BRANCH"
-          else
-            source="${GITHUB_REF_NAME}"
-          fi
-          case "$source" in
-            "Codex/legal-electronic-filing-kIxcV")
-              target="claude/legal-electronic-filing-kIxcV"
-              ;;
-            "claude/legal-electronic-filing-kIxcV")
-              target="Codex/legal-electronic-filing-kIxcV"
-              ;;
-            *)
-              echo "Branch non supportato: $source" >&2
-              exit 1
-              ;;
-          esac
-          echo "source=$source" >> "$GITHUB_OUTPUT"
-          echo "target=$target" >> "$GITHUB_OUTPUT"
-
-      - name: Checkout repository
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-          ref: ${{ steps.branches.outputs.source }}
-
-      - name: Configure git identity
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Mirror source branch into twin branch
-        shell: bash
-        run: |
-          set -o pipefail
-          if git push origin "HEAD:refs/heads/${{ steps.branches.outputs.target }}" --force 2>&1 | tee push.log; then
-            echo "Sync completato verso ${{ steps.branches.outputs.target }}."
-            exit 0
-          fi
-          if grep -q "GH006" push.log; then
-            echo "::warning::Push verso ${{ steps.branches.outputs.target }} rifiutato dalla branch protection (GH006)."
-            echo "::warning::I required_status_checks su Codex/ non corrispondono ai check CI prodotti."
-            echo "::warning::Per risolvere: GitHub Settings → Branches → Codex/legal-electronic-filing-kIxcV → rimuovere Required status checks."
-            exit 0
-          fi
-          echo "::error::Push verso ${{ steps.branches.outputs.target }} fallito per una causa diversa dalla branch protection."
-          cat push.log
-          exit 1
+      - name: Branch unico main
+        run: echo "Mirroring disattivato. Commit, push e deploy esclusivamente su main."

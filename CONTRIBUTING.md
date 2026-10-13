@@ -8,12 +8,11 @@ Ogni modifica deve preservare comportamento corretto, sicurezza, isolamento tena
 
 ## Branch operativi
 
-Nel contesto operativo corrente i soli branch ammessi sono:
+Dal 13/10/2026 il solo branch operativo e predefinito è:
 
-- `Codex/legal-electronic-filing-kIxcV`
-- `claude/legal-electronic-filing-kIxcV`
+- `main`
 
-Non creare branch temporanei locali/remoti per task ordinari. A fine lavoro i due branch devono puntare allo stesso commit e `scripts/repo_hygiene.ps1` deve passare.
+Non creare branch temporanei locali/remoti per task ordinari. Commit, push e deploy usano esclusivamente `main`; nessun mirroring. A fine lavoro `main` e `origin/main` devono coincidere e `scripts/repo_hygiene.ps1` deve passare. I precedenti branch e `chore/monorepo-foundation` restano preservati.
 
 ## Checklist PR minima
 

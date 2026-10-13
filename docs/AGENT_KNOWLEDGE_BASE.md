@@ -1,5 +1,7 @@
 # Knowledge base operativa per agenti AI - IUSENTRA
 
+> Direttiva utente 13/10/2026: `main` è il solo branch operativo e predefinito per commit, push e deploy. Le istruzioni storiche su branch gemelli e doppio push sono sostituite: nessun mirroring. I vecchi branch restano conservati come riferimenti storici; `chore/monorepo-foundation` resta intoccabile. Tutti i gate CI e le verifiche reali restano obbligatori.
+
 ## Scopo
 
 Questo documento aiuta Codex, Claude e altri agenti AI a orientarsi nella repository IUSENTRA prima di modificare codice, UI, deploy, CI, storage, Lex AI o flussi telematici.
@@ -10,8 +12,8 @@ Non contiene segreti, token, password, PIN, chiavi private o dati reali di studi
 
 ## Branch operativo
 
-- Branch operativo richiesto per questa tranche: `claude/legal-electronic-filing-kIxcV`.
-- Branch gemello da mantenere sincronizzato: `Codex/legal-electronic-filing-kIxcV`.
+- Branch operativo richiesto per questa tranche: `main`.
+- Branch gemello da mantenere sincronizzato: `main`.
 - Non creare branch temporanei.
 - Prima di chiudere un lavoro, verificare che i due branch locali e remoti puntino allo stesso commit quando il task prevede commit/push.
 

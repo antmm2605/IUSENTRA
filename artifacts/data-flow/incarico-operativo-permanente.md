@@ -1,5 +1,9 @@
 # Incarico operativo permanente: dati, tenant, React e topbar
 
+## Branch unico — direttiva 13/10/2026
+
+Commit, push e deploy esclusivamente su `main`, branch predefinito GitHub. Nessun mirroring sui precedenti branch, conservati come storia. Tutti i controlli CI, backup e prove reali restano obbligatori. `chore/monorepo-foundation` intoccabile.
+
 ## Estensione catalogazione Spark — direttiva 09/10/2026
 
 Aggiunta all'incarico la catalogazione automatica ampia dei documenti del fascicolo con `maternion/spark-x2.5:4b`, riutilizzando catalogo, resolver, archivio letture e scheduler esistenti. Diagnosi e accettazione richieste sono registrate in `artifacts/data-flow/catalogazione-spark-estensione-20261009.md`. Lettura locale, prove localizzate, identità congiunta degli effetti, tutela delle decisioni manuali e flussi congelati restano obbligatori. Estensione non ancora implementata/installata o accettata; non sostituisce gli altri lavori aperti. EmbeddingGemma 300M conservato.

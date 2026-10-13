@@ -629,17 +629,19 @@ def main() -> int:
     )
 
     sync_workflow = _read_text(".github/workflows/sync-claude-to-codex.yml")
+    _check("  push:" not in sync_workflow and "  workflow_run:" not in sync_workflow,
+           "Il mirroring storico non deve attivarsi su push o fine CI.", failures)
+    _check("git push" not in sync_workflow,
+           "Il workflow storico non deve scrivere riferimenti Git.", failures)
     for snippet in (
         "name: Sync Twin Branches",
-        '      - "Codex/legal-electronic-filing-kIxcV"',
-        '      - "claude/legal-electronic-filing-kIxcV"',
-        'target="claude/legal-electronic-filing-kIxcV"',
-        'target="Codex/legal-electronic-filing-kIxcV"',
-        'git push origin "HEAD:refs/heads/${{ steps.branches.outputs.target }}" --force',
+        "workflow_dispatch:",
+        "contents: read",
+        "Mirroring disattivato",
     ):
         _check(
             snippet in sync_workflow,
-            f"Workflow sync branch gemelli incompleto: manca '{snippet}'.",
+            f"Disattivazione del mirroring incompleta: manca '{snippet}'.",
             failures,
         )
 
@@ -658,8 +660,8 @@ def main() -> int:
         _check(snippet in repo_hygiene, f"Repo hygiene incompleto: manca '{snippet}'.", failures)
 
     _check(
-        "branch -f $branch $currentHead" in autosync_script,
-        "Autosync locale branch non riallinea il branch gemello su HEAD.",
+        '"main"' in autosync_script and "branch -f" not in autosync_script,
+        "Gli hook devono rispettare main senza riallineare altri branch.",
         failures,
     )
     _check(

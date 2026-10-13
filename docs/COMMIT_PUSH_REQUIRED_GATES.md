@@ -1,8 +1,10 @@
 # Processo obbligatorio commit e push
 
+> Direttiva utente 13/10/2026: `main` è il solo branch operativo e predefinito per commit, push e deploy. Le istruzioni storiche sui branch gemelli e sul doppio push sono sostituite: nessun mirroring. I vecchi branch restano conservati come riferimenti storici; `chore/monorepo-foundation` resta intoccabile. Tutti i gate CI e le verifiche reali restano obbligatori.
+
 Aggiornato: 22 maggio 2026.
 
-Questa è la checklist operativa da usare ogni volta che Codex prepara un commit, un push o una consegna sui branch `Codex/legal-electronic-filing-kIxcV` e `claude/legal-electronic-filing-kIxcV`.
+Questa è la checklist operativa da usare ogni volta che Codex prepara un commit, un push o una consegna sul branch `main`.
 
 ## Regola operativa
 
@@ -11,8 +13,8 @@ Prima di dichiarare concluso un lavoro:
 1. verificare `git status --short` e classificare subito ogni modifica non collegata: completare, testare e includere solo le implementazioni utili; ripristinare o rimuovere artefatti runtime/generati e modifiche non necessarie;
 2. eseguire i test mirati locali sul perimetro toccato;
 3. aggiornare changelog, versione e report pertinenti;
-4. committare e pushare il branch di sviluppo;
-5. sincronizzare il branch gemello allo stesso commit;
+4. committare sul branch `main`;
+5. pushare esclusivamente a `origin/main`; i branch storici non vengono aggiornati.
 6. controllare i gate GitHub del push con `tools/check_github_required_gates.py` e, quando esiste una PR, anche della PR;
 7. registrare esiti verdi e problemi nei report di stato;
 8. se dopo il push sono state fatte modifiche per correggere GitHub Actions, CodeQL, lint, shard Pytest, coverage, Local Signer o altri gate remoti, ricostruire anche la copia Docker locale reale su `127.0.0.1:8080` e verificare `/api/pronto` sullo stesso commit;
@@ -25,9 +27,9 @@ Segnalazione utente del 22 maggio 2026: non deve più ricapitare la situazione i
 
 Quindi, dopo ogni push, la consegna è vietata finché non sono vere tutte queste condizioni:
 
-- lo SHA corrente è identico su `Codex/legal-electronic-filing-kIxcV`, `claude/legal-electronic-filing-kIxcV` e remoti;
-- i required checks sono quelli versionati in `.github/required-checks.json` e applicati in branch protection sui due branch operativi;
-- `enforce_admins=false` nella branch protection è una scelta operativa per consentire il push diretto autorizzato sui soli branch gemelli; non autorizza la chiusura del lavoro senza check verdi, report automatico e deploy post-CI;
+- lo SHA corrente è identico su `main`, `origin/main` e nella release distribuita;
+- i required checks sono quelli versionati in `.github/required-checks.json` e applicati in branch protection sul branch `main` operativi;
+- `enforce_admins=false` nella branch protection è una scelta operativa per consentire il push diretto autorizzato sui soli branch operativo `main`; non autorizza la chiusura del lavoro senza check verdi, report automatico e deploy post-CI;
 - il check `CI Required Gates / CI reale eseguita sul commit corrente` è verde e il relativo artifact `current-sha-required-gates` è generato dallo script, non scritto a mano;
 - tutti i check-run GitHub dello SHA corrente sono `completed`;
 - non esistono check-run con `conclusion` diversa da `success` o da uno `skipped` esplicitamente non richiesto;

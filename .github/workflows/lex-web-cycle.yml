@@ -26,7 +26,7 @@ name: Lex ciclo web
 on:
   push:
     branches:
-      - claude/legal-electronic-filing-kIxcV
+      - main
     paths:
       - .github/workflows/lex-web-cycle.yml
   workflow_dispatch:

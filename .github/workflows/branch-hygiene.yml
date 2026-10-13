@@ -1,11 +1,9 @@
+# main è il solo branch operativo; i precedenti sono conservati come storia.
 # =============================================================================
 #  Igiene branch — elimina i branch remoti fuori dalla allowlist autorizzata.
 #
-#  Regola repository (CLAUDE.md, decisione utente 10/06/2026): i soli branch
-#  autorizzati sono claude/legal-electronic-filing-kIxcV (sviluppo),
-#  Codex/legal-electronic-filing-kIxcV (gemello protetto) e
-#  chore/monorepo-foundation. Nessun nuovo branch va creato; i branch di
-#  sessione vanno portati sul branch di sviluppo e rimossi subito.
+#  Direttiva 13/10/2026: main è il solo branch operativo. Preservare
+#  i precedenti branch storici e chore/monorepo-foundation.
 #
 #  Solo avvio manuale (workflow_dispatch): nessuna pianificazione automatica,
 #  così un branch di sessione attivo non puo' essere cancellato a meta' lavoro.
@@ -39,6 +37,7 @@ jobs:
         with:
           script: |
             const allowed = new Set([
+              'main',
               'claude/legal-electronic-filing-kIxcV',
               'Codex/legal-electronic-filing-kIxcV',
               'chore/monorepo-foundation',

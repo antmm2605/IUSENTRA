@@ -1,5 +1,7 @@
 # Memoria operativa Lex/RAG - IUSENTRA
 
+> Direttiva utente 13/10/2026: `main` è il solo branch operativo e predefinito per commit, push e deploy. Le istruzioni storiche su branch gemelli e doppio push sono sostituite: nessun mirroring. I vecchi branch restano conservati come riferimenti storici; `chore/monorepo-foundation` resta intoccabile. Tutti i gate CI e le verifiche reali restano obbligatori.
+
 Data ultimo aggiornamento: 6 giugno 2026.
 
 Questo file va letto prima di riprendere il lavoro su Lex AI, RAG Legal, Guida
@@ -409,6 +411,6 @@ punti durante compattazioni o riprese di sessione.
   su Ricerca Legale, editor Template Atti e domanda Lex fascicolo attivo.
 - Worktree pulita: distinguere codice/report intenzionali dai dati runtime
   generati e non committare artefatti runtime di studio.
-- Commit, push branch `Codex/legal-electronic-filing-kIxcV`, sincronizzazione
-  `claude/legal-electronic-filing-kIxcV`, check GitHub completi e deploy Hetzner
+- Commit, push branch `main`, sincronizzazione
+  `main`, check GitHub completi e deploy Hetzner
   con `/api/pronto` produzione verificato.

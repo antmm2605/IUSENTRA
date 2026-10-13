@@ -1,7 +1,7 @@
 name: Deploy Hetzner CPX42
 
 # Deploy automatico sul server Hetzner CPX42.
-# Triggerato dal branch di sviluppo (claude/) e dal branch protetto (Codex/).
+# Triggerato esclusivamente dal branch operativo main.
 # Il concurrency group impedisce deploy concorrenti.
 #
 # Requisiti GitHub Secrets:
@@ -19,8 +19,7 @@ name: Deploy Hetzner CPX42
 on:
   push:
     branches:
-      - claude/legal-electronic-filing-kIxcV
-      - Codex/legal-electronic-filing-kIxcV
+      - main
   workflow_dispatch:
     inputs:
       skip_backup:
@@ -32,7 +31,7 @@ on:
         type: boolean
         default: false
       branch_override:
-        description: Branch da deployare (default Codex/legal-electronic-filing-kIxcV)
+        description: Branch da deployare (default main)
         type: string
         default: ""
 
@@ -48,7 +47,7 @@ env:
   HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
   HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
   HETZNER_DOMAIN: ${{ vars.HETZNER_DOMAIN }}
-  DEPLOY_BRANCH: ${{ inputs.branch_override || (github.event_name == 'push' && github.ref_name) || 'Codex/legal-electronic-filing-kIxcV' }}
+  DEPLOY_BRANCH: ${{ inputs.branch_override || (github.event_name == 'push' && github.ref_name) || 'main' }}
   NO_BACKUP_REQUESTED: ${{ inputs.skip_backup || contains(github.event.head_commit.message, '[no-backup]') }}
 
 jobs:

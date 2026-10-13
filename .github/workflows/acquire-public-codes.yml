@@ -2,7 +2,7 @@ name: Acquisizione codici pubblici mancanti
 on:
   workflow_dispatch:
   push:
-    branches: [claude/legal-electronic-filing-kIxcV]
+    branches: [main]
     paths:
       - .github/workflows/acquire-public-codes.yml
       - tools/acquire_consultation_codes.py

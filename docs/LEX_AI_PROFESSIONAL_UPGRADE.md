@@ -1,5 +1,7 @@
 # Lex AI — Professional Upgrade
 
+> Direttiva utente 13/10/2026: `main` è il solo branch operativo e predefinito per commit, push e deploy. Le istruzioni storiche su branch gemelli e doppio push sono sostituite: nessun mirroring. I vecchi branch restano conservati come riferimenti storici; `chore/monorepo-foundation` resta intoccabile. Tutti i gate CI e le verifiche reali restano obbligatori.
+
 **Versione:** 1.0.0
 **Data:** 2026-05-08
 **Ambito:** Trasformazione di Lex da assistente AI generativo a assistente legale professionale evidence-first
@@ -300,7 +302,7 @@ git log --oneline -20
 git revert <commit-hash-upgrade>
 
 # Push sul branch di sviluppo
-git push origin claude/legal-electronic-filing-kIxcV
+git push origin main
 ```
 
 I moduli aggiunti (`privacy_safe_query_rewriter.py`, `public_legal_research_gateway.py`, `legal_source_router.py`, `legal_chunking.py`, `legal_research_integrator.py`, `debug_payload_builder.py`) sono disaccoppiati dal flusso principale: se il loro import fallisce, il `legal_research_integrator.py` restituisce un dizionario di errore senza bloccare il pipeline Lex.

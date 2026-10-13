@@ -1,8 +1,7 @@
 {
   "version": 1,
   "branches": [
-    "claude/legal-electronic-filing-kIxcV",
-    "Codex/legal-electronic-filing-kIxcV"
+    "main"
   ],
   "final_gate_check": "CI reale eseguita sul commit corrente",
   "ignored_status_contexts": [

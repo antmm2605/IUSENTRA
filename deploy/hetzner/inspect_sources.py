@@ -13,7 +13,7 @@ suffixes = {".py", ".tsx", ".ts", ".css", ".js", ".mjs", ".json", ".html", ".md"
 def git(*args):
     return subprocess.check_output(["git", "-C", str(root), *args])
 
-git("fetch", "origin", "Codex/legal-electronic-filing-kIxcV")
+git("fetch", "origin", "main")
 target = git("rev-parse", "FETCH_HEAD").decode().strip()
 paths = sorted(set(git("diff", "HEAD", "--name-only", "-z").decode().split("\0") + git("ls-files", "--others", "--exclude-standard", "-z").decode().split("\0")))
 entries = []

@@ -20,7 +20,7 @@ def sha256(path):
 def reconcile(repo, target, branch, snapshot, backup):
     repo, snapshot, backup = repo.resolve(), snapshot.resolve(), backup.resolve()
     assert re.fullmatch(r"[0-9a-f]{40}", target)
-    assert branch in {"Codex/legal-electronic-filing-kIxcV", "claude/legal-electronic-filing-kIxcV"}
+    assert branch in {"main", "main"}
     assert not backup.is_relative_to(repo)
     def git(*args):
         return subprocess.check_output(["git", "-C", str(repo), *args])

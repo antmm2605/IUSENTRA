@@ -1,5 +1,7 @@
 # Processo di Release
 
+> Direttiva utente 13/10/2026: `main` è il solo branch operativo e predefinito per commit, push e deploy. Le istruzioni storiche su branch gemelli e doppio push sono sostituite: nessun mirroring. I vecchi branch restano conservati come riferimenti storici; `chore/monorepo-foundation` resta intoccabile. Tutti i gate CI e le verifiche reali restano obbligatori.
+
 ## Obiettivo
 
 Chiudere una release di IUSENTRA significa allineare codice, documentazione, CI, branch e ambienti, non soltanto fare merge di una feature.
@@ -30,11 +32,11 @@ Chiudere una release di IUSENTRA significa allineare codice, documentazione, CI,
 
 ## Disciplina branch e sincronizzazione
 
-- il lavoro confluisce sul branch di sviluppo corrente
-- lo stesso commit va sincronizzato anche sul branch gemello remoto
+- il lavoro confluisce esclusivamente su `main`, branch predefinito
+- il commit viene pushato soltanto a `origin/main`
 - `scripts/repo_hygiene.ps1` installa in automatico `core.hooksPath=.githooks` e registra il repository come `safe.directory`, cosi' il bootstrap locale non dipende piu' da interventi manuali ripetuti
-- gli hook versionati in `.githooks/` riallineano i due branch locali ammessi dopo `commit`, `checkout`, `merge` e `rewrite`, evitando divergenze locali che poi riaprono gli stessi conflitti
-- il workflow `.github/workflows/sync-claude-to-codex.yml` specchia automaticamente `Codex/legal-electronic-filing-kIxcV` e `claude/legal-electronic-filing-kIxcV` in entrambe le direzioni dopo ogni push
+- gli hook versionati in `.githooks/` preservano i controlli locali senza modificare altri branch
+- il workflow storico `.github/workflows/sync-claude-to-codex.yml` è disattivato per push e completamenti CI; l'avvio manuale conferma soltanto l'assenza di mirroring
 - non lasciare release solo in locale
 - prima di chiudere, eseguire `scripts/repo_hygiene.ps1`
 

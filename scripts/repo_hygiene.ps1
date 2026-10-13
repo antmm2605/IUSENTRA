@@ -1,11 +1,12 @@
 param(
     [string]$RemoteName = "origin",
     [string[]]$AllowedBranches = @(
-        "Codex/legal-electronic-filing-kIxcV",
-        "claude/legal-electronic-filing-kIxcV"
+        "main"
     ),
     [string[]]$ProtectedRemoteBranches = @(
         "chore/monorepo-foundation",
+        "Codex/legal-electronic-filing-kIxcV",
+        "claude/legal-electronic-filing-kIxcV",
         "claude/software-sales-website-lkyzec"
     ),
     [switch]$DeleteRemoteExtras

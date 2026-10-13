@@ -1,5 +1,7 @@
 # Deploy Hetzner CPX42
 
+> Direttiva utente 13/10/2026: `main` è il solo branch operativo e predefinito per commit, push e deploy. Le istruzioni storiche sui branch gemelli e sul doppio push sono sostituite: nessun mirroring. I vecchi branch restano conservati come riferimenti storici; `chore/monorepo-foundation` resta intoccabile. Tutti i gate CI e le verifiche reali restano obbligatori.
+
 Questa cartella contiene il profilo di produzione per spostare IUSENTRA su un server Hetzner Ubuntu, mantenendo Railway come sorgente dati solo durante la migrazione.
 
 Guida di release collegata: `docs/DEPLOY_HETZNER_CPX42.md`.
@@ -44,7 +46,7 @@ Usare il record `AAAA` solo se IPv6 e firewall sono configurati correttamente su
 Sul server, come `root`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/antmm2605/IUSENTRA/Codex/legal-electronic-filing-kIxcV/deploy/hetzner/bootstrap_ubuntu.sh | bash
+curl -fsSL https://raw.githubusercontent.com/antmm2605/IUSENTRA/main/deploy/hetzner/bootstrap_ubuntu.sh | bash
 ```
 
 Oppure copiare lo script e lanciarlo localmente:
@@ -147,9 +149,9 @@ docker run --rm iusentra-app python -c "from core.security.secrets_manager impor
 
 ## Deploy
 
-Regola operativa obbligatoria: dopo ogni aggiornamento completato, committato e pushato sui branch gemelli, eseguire sempre il deploy su Hetzner CPX42. Il lavoro non e' concluso finche' `/opt/iusentra/repo` non punta al commit pushato, i container non sono healthy e `/api/pronto` non risponde.
+Regola operativa obbligatoria: dopo ogni aggiornamento completato, committato e pushato sui branch operativo `main`, eseguire sempre il deploy su Hetzner CPX42. Il lavoro non e' concluso finche' `/opt/iusentra/repo` non punta al commit pushato, i container non sono healthy e `/api/pronto` non risponde.
 
-**Da v2.241.1 il deploy parte automaticamente** da GitHub Actions quando viene pushato uno dei due branch ammessi, `Codex/legal-electronic-filing-kIxcV` o `claude/legal-electronic-filing-kIxcV`. Workflow: `.github/workflows/deploy-hetzner.yml`. Per setup secrets, rotazione chiavi e rollback vedere `docs/DEPLOY_HETZNER_CPX42.md` sezione "Deploy automatico via GitHub Actions".
+**Da v2.241.1 il deploy parte automaticamente** da GitHub Actions quando viene pushato uno dei branch operativo ammesso, `main`. Workflow: `.github/workflows/deploy-hetzner.yml`. Per setup secrets, rotazione chiavi e rollback vedere `docs/DEPLOY_HETZNER_CPX42.md` sezione "Deploy automatico via GitHub Actions".
 
 Il comando manuale sotto resta valido per esecuzioni fuori banda. Prima del deploy crea una copia SQLite coerente di tutti i tenant; il workflow GitHub esegue automaticamente gli stessi controlli.
 

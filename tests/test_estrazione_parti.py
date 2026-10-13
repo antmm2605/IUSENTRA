@@ -6,6 +6,12 @@ persone fittizie, così il carattere di controllo è valido).
 
 from __future__ import annotations
 
+import json
+import subprocess
+import sys
+
+import pytest
+
 from pct.archivio_letture.collaudo import Contesto
 from pct.archivio_letture.estrazione_parti import cf_valido, estrai_parti, fatti_parti
 from pct.archivio_letture.estrazione_ruolo import estrai_ruoli
@@ -20,6 +26,35 @@ def _cf(cognome: str, nome: str, sesso: str = "F") -> str:
 CF_VERDI = _cf("Verdi", "Giulia")
 CF_NERI = _cf("Neri", "Paolo", "M")
 CF_BLU = _cf("Blu", "Franco", "M")
+
+
+@pytest.mark.parametrize("pattern,payload", [
+    ("_CODA_RUOLO", "\t" * 30000 + "X"),
+    ("_PER", "\n" * 30000 + "X"),
+    ("_NOME", "A" * 30000),
+    ("_CF_DICHIARATO", "c.f." + "\t" * 30000 + "X"),
+    ("_PIVA_ENTE", "piva" + "\t" * 30000 + "X"),
+    ("_TESTI", "indica a testi" + "\t" * 10000 + "x" * 800),
+], ids=["coda-ruolo", "righe-vuote", "parola-lunga", "cf-incompleto", "piva-incompleta", "testimoni-incompleti"])
+def test_lettore_parti_termina_su_sequenze_lunghe_senza_inventare_dati(pattern, payload):
+    # Un processo separato interrompe anche un'eventuale regressione del motore re.
+    code = """import json,re,sys
+from pct.archivio_letture import estrazione_parti as reader
+name,text=json.loads(sys.stdin.read())
+expression=getattr(reader,name)
+assert re.search(expression,text) is None
+"""
+    subprocess.run([sys.executable, "-c", code], input=json.dumps([pattern, payload]),
+                   text=True, capture_output=True, check=True, timeout=4)
+
+
+@pytest.mark.parametrize("separatore", [" " * 150, "\t" * 150, "\t:\t", " = "], ids=["spazi", "tab", "due-punti", "uguale"])
+def test_cf_dichiarato_con_spaziatura_estesa_preserva_nome_e_codice(separatore):
+    testo = f"PER\nGiulia Verdi, c.f.{separatore}{CF_VERDI}, ricorrente.\nCONTRO\nMinistero della Prova, resistente."
+    parti = estrai_parti(testo, cliente="Giulia Verdi")
+    assistita = next(p for p in parti if p.ruolo == "assistito")
+    assert assistita.nome == "Giulia Verdi"
+    assert assistita.codice_fiscale == CF_VERDI
 
 
 def test_nome_enfatizzato_non_diventa_indirizzo_della_parte():

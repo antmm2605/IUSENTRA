@@ -32,10 +32,12 @@ _CF = re.compile(r"\b([A-Z]{3}\s?[A-Z]{3}\s?\d{2}[A-Z]\d{2}\s?[A-Z]\d{3}[A-Z])\b
 # Conserva il codice esplicitamente dichiarato anche se il formato o il
 # carattere finale sono errati. La verifica resta separata dalla lettura:
 # non correggere il token né usare il codice del difensore per la parte.
-_CF_DICHIARATO = re.compile(r"\b(?:c\.?\s*f\.?|codice\s+fiscale)\s*[:=]?\s*([A-Z0-9]{16})\b", re.IGNORECASE)
-_PIVA_ENTE = re.compile(r"\b(?:c\.?\s*f\.?|p\.?\s*iva|codice\s+fiscale)\s*:?\s*(\d{11})\b", re.IGNORECASE)
+_CF_DICHIARATO = re.compile(r"\b(?:c\.?\s*+f\.?|codice\s++fiscale)\s*+(?:[:=]\s*+)?([A-Z0-9]{16})\b", re.IGNORECASE)
+_PIVA_ENTE = re.compile(r"\b(?:c\.?\s*+f\.?|p\.?\s*+iva|codice\s++fiscale)\s*+(?::\s*+)?(\d{11})\b", re.IGNORECASE)
 # Un nome sta su una riga: le intestazioni sopra l'epigrafe non vi si attaccano.
-_NOME = r"[A-ZÀ-Ü][\w'’À-ÿ.]+(?:[ \t]+(?:de|di|del|della|dello|dei|degli|la|lo|d['’])?[ \t]*[A-ZÀ-Ü][\w'’À-ÿ.]+){1,4}"
+# Non ripartire dentro una parola né suddividere ripetutamente gli stessi spazi.
+# Le classi possessive sono disgiunte dal separatore o dalla parola successiva.
+_NOME = r"(?<![\w'’À-ÿ.])[A-ZÀ-Ü][\w'’À-ÿ.]++(?:[ \t]++(?:de|di|del|della|dello|dei|degli|la|lo|d['’])?[ \t]*+[A-ZÀ-Ü][\w'’À-ÿ.]++){1,4}"
 # Parole che non stanno mai nel nome di una parte: intestazioni, titoli dell'atto, uffici.
 _NON_NOME = re.compile(
     r"\b(?:studio|legale|avvocat\w*|avv|tribunale|corte|giudice|sezione|atto|citazione|ricorso|memoria|comparsa|"
@@ -44,17 +46,17 @@ _NON_NOME = re.compile(
     re.IGNORECASE,
 )
 # Il nome del difensore può andare a capo dopo «Avv.»: qui il nome attraversa la riga.
-_NOME_DIFENSORE = r"[A-ZÀ-Ü][\w'’À-ÿ.]+(?:\s+(?:de|di|del|della|d['’])?\s*[A-ZÀ-Ü][\w'’À-ÿ.]+){1,3}"
+_NOME_DIFENSORE = r"(?<![\w'’À-ÿ.])[A-ZÀ-Ü][\w'’À-ÿ.]++(?:\s++(?:de|di|del|della|d['’])?\s*+[A-ZÀ-Ü][\w'’À-ÿ.]++){1,3}"
 _DIFENSORE = re.compile(
     rf"rappresentat[oaie]\s*,?\s+(?:e\s+)?difes[oaie].{{0,160}}?\bdall?[’']?\s*(?:avv(?:ocat[oa])?\.?|avv\.ti|avvocati)\s+({_NOME_DIFENSORE})",
     re.IGNORECASE | re.DOTALL,
 )
 _AVVOCATURA = re.compile(r"\b(avvocatura\s+(?:distrettuale\s+)?(?:generale\s+)?d(?:ello|i)\s+stato(?:\s+di\s+[A-ZÀ-Ü][\w'’]+(?:\s+[A-ZÀ-Ü][\w'’]+)?)?)", re.IGNORECASE)
 _FINE_EPIGRAFE = re.compile(
-    r"\n\s*(?:premesso|in\s+fatto|fatto\s+e\s+diritto|svolgimento\s+del\s+processo|motivi|considerato|con\s+(?:il\s+)?ricorso|"
+    r"\n[^\S\n]*+(?:premesso|in\s+fatto|fatto\s+e\s+diritto|svolgimento\s+del\s+processo|motivi|considerato|con\s+(?:il\s+)?ricorso|"
     r"\*{3,}|visti\s+gli\s+atti|oggetto\s*:)", re.IGNORECASE,
 )
-_PER = re.compile(r"(?:(?:^|\n)\s*(?:per|nell['’]interesse\s+d[ie]l?l?[ao]?)\s*:?\s*(?=\S)|\b(?:proposto|promosso|proposta|promossa)\s+da\s+)", re.IGNORECASE)
+_PER = re.compile(r"(?:(?:^|\n)[^\S\n]*+(?:per|nell['’]interesse\s+d[ie]l?l?[ao]?)\s*+(?::\s*+)?(?=\S)|\b(?:proposto|promosso|proposta|promossa)\s+da\s+)", re.IGNORECASE)
 _CONTRO = re.compile(r"(?:\bcontro\b|\bnei\s+confronti\s+d[ie]l?l?[ao]?\b|\bavverso\b)\s*:?", re.IGNORECASE)
 _ENTE = re.compile(
     r"\b((?:MINISTERO|Ministero|AGENZIA|Agenzia|COMUNE|Comune|REGIONE|Regione|PROVINCIA|Provincia|INPS|Inps|INAIL|Inail|"
@@ -62,7 +64,7 @@ _ENTE = re.compile(
     r"[^,;\n(]{0,110})"
 )
 _TESTI = re.compile(
-    r"(?:si\s+indica(?:no)?|indica(?:no)?|chied\w+\s+(?:di\s+essere\s+)?ammess\w+\s+a\s+provare.{0,300}?)\s+(?:a|quali|come)\s+testi(?:moni)?\s*:?\s*(.{5,600}?)(?:\n\s*\n|$)",
+    r"(?:si\s+indica(?:no)?|indica(?:no)?|chied\w+\s+(?:di\s+essere\s+)?ammess\w+\s+a\s+provare.{0,300}?)\s+(?:a|quali|come)\s+testi(?:moni)?\s*+(?::\s*+)?(.{5,600}?)(?:\n[^\S\n]*+\n|$)",
     re.IGNORECASE | re.DOTALL,
 )
 _PERSONA_TESTE = re.compile(rf"(?:\b(?:il\s+)?sig\.?(?:ra)?|\bla\s+sig\.?ra|\bdott\.?(?:ssa)?|\bing\.?|\bgeom\.?|\barch\.?|\bprof\.?(?:ssa)?)\s+({_NOME})")
@@ -113,7 +115,7 @@ _TITOLI = re.compile(
     r"ing\.?|avv\.?|geom\.?|arch\.?|assistente\s+educativo|docente|insegnante)\s+)",
     re.IGNORECASE,
 )
-_CODA_RUOLO = re.compile(r"\s+(?:ricorrent\w*|resistent\w*|attor\w*|attrice|convenut\w*|appell\w*|oppon\w*|oppost\w*|intervenut\w*|terz\w*)$", re.IGNORECASE)
+_CODA_RUOLO = re.compile(r"(?<!\s)\s++(?:ricorrent\w*|resistent\w*|attor\w*|attrice|convenut\w*|appell\w*|oppon\w*|oppost\w*|intervenut\w*|terz\w*)$", re.IGNORECASE)
 
 
 def _pulisci_nome(nome: str) -> str:
@@ -133,12 +135,12 @@ def _epigrafe(testo: str) -> str:
     # la ricerca iniziale può saltare il nome e catturare la via sottostante.
     # I separatori su una riga intera restano delimitatori dell'epigrafe.
     zona = "\n".join(
-        riga if re.fullmatch(r"\s*\*{3,}\s*", riga) else riga.replace("*", "")
+        riga if len(riga.strip()) >= 3 and set(riga.strip()) == {"*"} else riga.replace("*", "")
         for riga in zona.split("\n")
     )
     # L'attestazione descrive le copie e il sottoscrittore: non ha un'epigrafe
     # di parti. I nomi citati nell'elenco degli atti non sono nuove parti.
-    titolo_attestazione = re.search(r"(?:^|\n)\s*ATTESTAZIONE\s+DI\s+CONFORMIT[AÀ]\b", zona[:1200], re.IGNORECASE)
+    titolo_attestazione = re.search(r"(?:^|\n)[^\S\n]*+ATTESTAZIONE\s++DI\s++CONFORMIT[AÀ]\b", zona[:1200], re.IGNORECASE)
     if titolo_attestazione and re.search(r"\bil\s+sottoscritto\s+(?:avv\.?|avvocato)\b", zona[titolo_attestazione.end():2000], re.IGNORECASE) and re.search(r"\battesta\b", zona[titolo_attestazione.end():2000], re.IGNORECASE):
         return ""
     fine = _FINE_EPIGRAFE.search(zona, 200)
@@ -158,7 +160,7 @@ def _blocchi(epigrafe: str, epigrafe_completa: dict[str, str] | None = None) -> 
         per = None
     if not contro:
         # Atto di citazione: «… CITA(NO) X … a comparire» (art. 163 c.p.c.).
-        cita = re.search(r"\bcita(?:no)?\b\s*:?\s*(.{5,500}?)\ba\s+comparire\b", epigrafe_completa.get("testo", ""), re.IGNORECASE | re.DOTALL)
+        cita = re.search(r"\bcita(?:no)?\b\s*+(?::\s*+)?(.{5,500}?)\ba\s+comparire\b", epigrafe_completa.get("testo", ""), re.IGNORECASE | re.DOTALL)
         if cita:
             return [("a", epigrafe[per.end():] if per else epigrafe), ("b", cita.group(1))]
     if contro:

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.437.18 — candidata, 13/10/2026
+
+- Lettore condiviso delle parti e del codice fiscale: scansioni lineari su parole e spazi ripetuti, con riconoscimento e citazioni preservati. Intervento sui pattern segnalati dagli undici blocchi CodeQL nel percorso della candidata economica; nuova analisi remota necessaria, senza deroghe o esclusioni aggiunte.
+- Guardrail sintetici con sequenze lunghe, separatori estesi e arresto controllato; tutti i casi precedenti del lettore e dell'identità restano inclusi.
+- La consegna economica resta aperta fino alla nuova CI, all'accettazione materiale sul runtime aggiornato e al deploy verificato. La candidata 2.437.17 non è stata distribuita in produzione.
+
 ## 2.437.17 — candidata, 13/10/2026
 
 - Sentenze: fondo spese, esborsi, contributo e compensi conservano importi, natura e prove separate. Il fondo non viene trasferito negli esborsi né aggiunto automaticamente alla proforma.

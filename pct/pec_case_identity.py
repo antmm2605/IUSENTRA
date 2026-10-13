@@ -76,7 +76,7 @@ def client_tax_code_from_documents(profile: dict[str, Any], documents: list[dict
     if len(target) < 2 or len(target) > 5:
         return dict(profile)
     evidence: list[dict[str, Any]] = []
-    labelled = re.compile(r'\b(?:c\.?\s*f\.?|codice\s+fiscale)\s*[:=]?\s*([A-Z0-9]{16})\b', re.I)
+    labelled = re.compile(r'\b(?:c\.?\s*+f\.?|codice\s++fiscale)\s*+(?:[:=]\s*+)?([A-Z0-9]{16})\b', re.I)
     stop = re.compile(r'\b(?:rappresentat\w*|difes\w*|difensor\w*|avv\.?|avvocat\w*|contro(?:parte)?|destinatario)\b', re.I)
 
     def remember(code: str, document: dict[str, Any], excerpt: str) -> None:
@@ -100,7 +100,7 @@ def client_tax_code_from_documents(profile: dict[str, Any], documents: list[dict
                 remember(party.codice_fiscale, document, party.citazione)
         for match in anchor.finditer(text[:7000]):
             tail = text[match.end():match.end() + 500]
-            if not re.match(r'[\s,;:()]*\b(?:nat[oa]|c\.?\s*f\.?|codice\s+fiscale)\b', tail, re.I):
+            if not re.match(r'[\s,;:()]*+\b(?:nat[oa]|c\.?\s*+f\.?|codice\s++fiscale)\b', tail, re.I):
                 continue
             boundary = stop.search(tail)
             own_data = tail[:boundary.start()] if boundary else tail

@@ -176,17 +176,7 @@ def render_html_preview(nome_file: str, data: bytes, *, signed: bool) -> Attachm
 
 
 def render_eml_preview(nome_file: str, data: bytes, *, signed: bool) -> AttachmentPreviewPayload:
-    if len(data) > MAX_MIME_SOURCE_BYTES:
-        return _textual_unavailable(
-            nome_file=nome_file,
-            data=data,
-            mimetype="message/rfc822",
-            signed=signed,
-            reason=(
-                "Il messaggio MIME supera il limite previsto per l'anteprima interna. "
-                "Scarica l'originale per verificarlo."
-            ),
-        )
+    large_message = len(data) > MAX_MIME_SOURCE_BYTES
     if data.count(b"\n--") > MAX_MIME_PARTS * 2:
         return _textual_unavailable(
             nome_file=nome_file,
@@ -199,8 +189,21 @@ def render_eml_preview(nome_file: str, data: bytes, *, signed: bool) -> Attachme
             ),
         )
     try:
-        message = BytesParser(policy=policy.default).parsebytes(data)
+        if large_message:
+            from web.services.eml_preview_bounded import bounded_mime_message
+
+            message, body_abbreviated = bounded_mime_message(
+                data, max_parts=MAX_MIME_PARTS, max_body_bytes=MAX_MIME_BODY_BYTES,
+            )
+        else:
+            message = BytesParser(policy=policy.default).parsebytes(data)
+            body_abbreviated = False
     except Exception:
+        if large_message:
+            return _textual_unavailable(
+                nome_file=nome_file, data=data, mimetype="message/rfc822", signed=signed,
+                reason="Il messaggio MIME supera il limite previsto per l'anteprima interna o non contiene parti consultabili in sicurezza.",
+            )
         return render_text_preview(nome_file, data, signed=signed)
 
     headers: list[tuple[str, str]] = []
@@ -224,9 +227,9 @@ def render_eml_preview(nome_file: str, data: bytes, *, signed: bool) -> Attachme
 
     plain_parts: list[str] = []
     html_parts: list[str] = []
-    attachments: list[tuple[str, str, int]] = []
+    attachments: list[tuple[str, str, int | None]] = []
     body_bytes = 0
-    preview_truncated = False
+    preview_truncated = body_abbreviated
     try:
         for part_index, part in enumerate(message.walk()):
             if part_index >= MAX_MIME_PARTS:
@@ -237,13 +240,15 @@ def render_eml_preview(nome_file: str, data: bytes, *, signed: bool) -> Attachme
             filename = str(part.get_filename() or "").strip()
             disposition = str(part.get_content_disposition() or "").lower()
             content_type = str(part.get_content_type() or "application/octet-stream").lower()
-            payload = part.get_payload(decode=True) or b""
-            if filename or disposition == "attachment":
+            omitted_attachment = getattr(part, "_preview_omitted_attachment", False)
+            if filename or disposition == "attachment" or omitted_attachment:
                 if len(attachments) < MAX_MIME_ATTACHMENTS:
-                    attachments.append((filename or "allegato", content_type, len(payload)))
+                    size = None if omitted_attachment else len(part.get_payload(decode=True) or b"")
+                    attachments.append((filename or "allegato", content_type, size))
                 else:
                     preview_truncated = True
                 continue
+            payload = part.get_payload(decode=True) or b""
             remaining_body_bytes = max(0, MAX_MIME_BODY_BYTES - body_bytes)
             if remaining_body_bytes <= 0:
                 preview_truncated = True
@@ -291,7 +296,8 @@ def render_eml_preview(nome_file: str, data: bytes, *, signed: bool) -> Attachme
     attachments_html = ""
     if attachments:
         rows = "".join(
-            f'<li>{escape(name)} <span class="muted">{escape(mime)}, {size} byte</span></li>'
+            f'<li>{escape(name)} <span class="muted">{escape(mime)}'
+            + (f', {size} byte' if size is not None else '') + '</span></li>'
             for name, mime, size in attachments
         )
         attachments_html = f"<h2>Allegati indicati nel messaggio</h2><ul>{rows}</ul>"

@@ -32,3 +32,14 @@ def test_document_header_keeps_office_line_boundary(office):
     assert proof['complete_match']
     wrong = document_case_identity_evidence(text.replace('VICENZA', 'ROMA').replace('Vicenza', 'Roma'), case)
     assert not wrong['complete_match']
+
+
+@pytest.mark.parametrize('date', ['17/02/2024', '03/04/2025'])
+def test_registry_role_colon_is_not_replaced_by_registration_date(date):
+    case = SimpleNamespace(numero_rg='493', anno_rg=2024, nome_cliente='Bianchi Anna', tribunale='Tribunale di Palmi')
+    text = f'TRIBUNALE ORDINARIO DI PALMI\nIscritto il : {date}\nNum. R.G. : 493/2024\nAttori/Ricorrenti/Appellanti : BIANCHI ANNA\nContributo Unificato: Esente'
+    proof = document_case_identity_evidence(text, case)
+    assert proof['source_rg'] == '493/2024'
+    assert proof['complete_match']
+    assert not document_case_identity_evidence(text.replace('493/2024', '493/2025'), case)['complete_match']
+    assert not document_case_identity_evidence(text + '\nRG 987/2024', case)['complete_match']

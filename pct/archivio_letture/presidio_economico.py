@@ -31,10 +31,23 @@ def contributo_verificato(fatti: Iterable[Fatto]) -> dict[str, Any] | None:
     importi_letti: list[str] = []
     dichiarazioni: list[tuple[Fatto, dict[str, Any]]] = []
     ricevute_valide: list[Fatto] = []
+    richieste_concordanti: list[Fatto] = []
     identificativi: dict[str, set[tuple[str, ...]]] = {}
     for fatto in correnti:
         prove = _prove(fatto)
-        fonte = {"fattoId": fatto.id, "documentoId": fatto.oggetto_id, "tipo": fatto.tipo,
+        identita_concordante = all(prove.get(c, {}).get("esito") == "ok" for c in (
+            "cliente_economico", "ufficio_economico", "cf_economico", "rg_economico"))
+        contesto = prove.get("contesto_autocertificazione", {})
+        if fatto.campo == "esenzione_cu_dichiarata":
+            identita_concordante = identita_concordante or (
+                all(prove.get(c, {}).get("esito") == "ok" for c in (
+                    "cliente_economico", "cf_economico", "contesto_autocertificazione"))
+                and len(fatto.sha256) == 64
+                and contesto.get("sha256") == fatto.sha256
+                and contesto.get("documento_id") == fatto.oggetto_id
+                and contesto.get("fascicolo_id") == fatto.fascicolo_id
+            )
+        fonte = {"identitaConcordante": identita_concordante, "fattoId": fatto.id, "documentoId": fatto.oggetto_id, "tipo": fatto.tipo,
                  "sha256": fatto.sha256, "campo": fatto.campo, "verifica": fatto.verifica,
                  "contesto": fatto.contesto, "prove": list(fatto.prove)}
         fonti.append(fonte)
@@ -74,6 +87,9 @@ def contributo_verificato(fatti: Iterable[Fatto]) -> dict[str, Any] | None:
         if not fatto.sha256:
             difetti.append("Impronta della fonte non disponibile.")
         if difetti:
+            if identita_concordante and _dettaglio(prove, "stato") == "da_registrare":
+                richieste_concordanti.append(fatto)
+            fonte["verificheMancanti"] = list(difetti)
             mancanti.extend(difetti)
             continue
         iuv = _dettaglio(prove, "iuv_economico")
@@ -93,12 +109,54 @@ def contributo_verificato(fatti: Iterable[Fatto]) -> dict[str, Any] | None:
                 mancanti.append("Ricevute con lo stesso IUV e identificativi di riscossione incompleti o sovrapposti: verifica le fonti prima di sommare.")
     if len(versamenti) > 1 and senza_iuv:
         mancanti.append("Più ricevute prive di un identificativo comune: verifica che siano versamenti distinti.")
+    attestazioni = [f for f, d in dichiarazioni
+                    if d.get("tipo") == "attestazione_registro"
+                    and d.get("esenzione_attestata_registro") is True
+                    and f.verifica in {"verificata", "corretta"}
+                    and f.origine == "nativo" and len(f.sha256) == 64
+                    and all(_prove(f).get(c, {}).get("esito") == "ok" for c in (
+                        "cliente_economico", "ufficio_economico", "cf_economico", "rg_economico"))]
+    autocertificazioni = [f for f, d in dichiarazioni
+                         if d.get("tipo") == "autocertificazione" and d.get("esenzione_dichiarata")
+                         and len(f.sha256) == 64
+                         and all(_prove(f).get(c, {}).get("esito") == "ok" for c in (
+                             "cliente_economico", "cf_economico", "contesto_autocertificazione"))
+                         and _prove(f)["contesto_autocertificazione"].get("sha256") == f.sha256
+                         and _prove(f)["contesto_autocertificazione"].get("documento_id") == f.oggetto_id
+                         and _prove(f)["contesto_autocertificazione"].get("fascicolo_id") == f.fascicolo_id]
+    esenzioni = autocertificazioni or attestazioni
+    # L'esenzione è lo stato attestato nel registro della medesima causa,
+    # non un incasso né una verifica reddituale ottenuta per somiglianza.
+    # Ricevute o richieste concordanti discordanti impediscono la promozione.
+    esente = bool(esenzioni) and not versamenti and not richieste_concordanti
+    if esente:
+        fonte_principale = esenzioni[0]
+        return {
+            "status": "non_previsto", "previsto": False, "pagato": False,
+            "importo": None, "data_pagamento": "", "label": "Contributo unificato esente",
+            "documento_id": fonte_principale.oggetto_id, "fattoId": fonte_principale.id,
+            "richiedeConferma": False, "fontiVerifica": fonti, "verificheMancanti": [],
+            "importiLetti": list(dict.fromkeys(importi_letti)),
+            "note": "Esenzione dichiarata nell’autocertificazione riferita al cliente e al fascicolo, con fonte e impronta conservate." if autocertificazioni else "Esenzione attestata nella scheda del registro, con cliente, RG e ufficio giudiziario concordanti. Le fonti prive di identità congiunta restano consultabili e non attribuiscono pagamenti o anticipazioni alla pratica.",
+        }
+    if esenzioni and (versamenti or richieste_concordanti):
+        mancanti.append("Esenzione documentata e pagamento o richiesta di versamento riferiti alla stessa pratica: fonti discordanti, nessuno stato modificato automaticamente.")
     pagato = bool(versamenti) and not mancanti
     if not pagato and dichiarazioni:
         effettive = [(f, d) for f, d in dichiarazioni if d.get("tipo") == "autocertificazione"]
         principali = effettive or dichiarazioni
         fonte_principale = principali[0][0]
-        mancanti.append("Esenzione dichiarata: verifica l'autocertificazione riferita alla pratica, l'ultima dichiarazione dei redditi e la sottoscrizione.")
+        if effettive:
+            if not autocertificazioni:
+                mancanti.append("Autocertificazione di esenzione: dichiarante, fonte e collegamento al fascicolo non ancora dimostrati insieme.")
+            for fact, declaration in effettive:
+                if not declaration.get("esenzione_dichiarata"):
+                    mancanti.append("La dichiarazione che il reddito non supera il limite non è stata letta: verificare la fonte originale.")
+                for code in ("cliente_economico", "cf_economico", "contesto_autocertificazione"):
+                    if _prove(fact).get(code, {}).get("esito") != "ok":
+                        mancanti.append(_dettaglio(_prove(fact), code) or "Autocertificazione non ancora riferibile al cliente e al fascicolo.")
+        else:
+            mancanti.append("Autocertificazione di esenzione non ancora dimostrata nelle fonti collegate.")
         if not effettive:
             mancanti.append("Il richiamo all'esenzione nell'atto non dimostra da solo i requisiti reddituali.")
     else:

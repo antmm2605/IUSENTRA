@@ -124,7 +124,8 @@ def client_tax_code_from_documents(profile: dict[str, Any], documents: list[dict
 def document_case_identity_evidence(text: str, fascicolo: Any) -> dict[str, Any]:
     """Match the issuing header, never a cited case in the reasoning."""
     from itertools import permutations
-    from legal_ocr.ner_legal import extract_numero_ruolo, extract_uffici
+    from legal_ocr.ner_legal import extract_uffici
+    from pct.archivio_letture.estrazione_ruolo import estrai_ruoli
     from pct.archivio_letture.collaudo import ufficio_esplicito_del_ruolo
     from pct.registro_letture.fatti_repository import Fatto
 
@@ -132,8 +133,8 @@ def document_case_identity_evidence(text: str, fascicolo: Any) -> dict[str, Any]
     # I confini di riga delimitano l'ufficio: appiattirli fa inglobare
     # al resolver il titolo o il numero della sentenza nella sede.
     header = header.strip()
-    roles = extract_numero_ruolo(header)
-    source_role = roles[0] if roles else {}
+    roles = {fact.valore for fact in estrai_ruoli(header, origine='nativo') if fact.campo == 'numero_ruolo'}
+    source_role = next(iter(roles)) if len(roles) == 1 else ''
     office = ufficio_esplicito_del_ruolo(Fatto(categoria='ruolo', campo='rg', valore='', contesto=header))
     if not office:
         offices = extract_uffici(header)
@@ -145,7 +146,7 @@ def document_case_identity_evidence(text: str, fascicolo: Any) -> dict[str, Any]
         name_present = any(' ' + ' '.join(order) + ' ' in ' ' + normalized + ' ' for order in permutations(expected))
     profile = {'ufficio': office, 'cliente': getattr(fascicolo, 'nome_cliente', '') if name_present else '',
                'cliente_origine': 'intestazione del provvedimento',
-               'numero_ruolo_certificato': str(source_role.get('numero') or '') + '/' + str(source_role.get('anno') or '')}
+               'numero_ruolo_certificato': source_role}
     evidence = case_identity_evidence(profile, fascicolo)
     evidence['source_office'] = office
     evidence['source_rg'] = profile['numero_ruolo_certificato']

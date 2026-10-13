@@ -73,7 +73,7 @@ _UFFICIO_PRIMA_DEL_RUOLO = re.compile(
     r"\b(?:tribunale(?:\s+ordinario)?|corte\s+d[’']appello|giudice\s+di\s+pace|"
     r"tribunale\s+amministrativo\s+regionale|corte\s+di\s+giustizia\s+tributaria)"
     r"\s+(?:di|del|della|per(?:\s+il|\s+la)?)\s+.+?"
-    r"(?=\s+(?:r\s*\.?\s*g\s*\.?|n\s*\.?\s*r\s*\.?\s*g\s*\.?|sezione\b)|[,;:\-–—]|$)",
+    r"(?=\s+(?:r\s*\.?\s*g\s*\.?|n\s*\.?\s*r\s*\.?\s*g\s*\.?|sezione\b|giudice\s*:|materia\s*:|iscritto\s+il\s*:)|[|,;:\-–—]|$)",
     re.IGNORECASE,
 )
 _STOP_UFFICIO = {

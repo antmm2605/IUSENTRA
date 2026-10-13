@@ -6258,7 +6258,7 @@ function EconomicControlModal({
   const items = summary.items
   const contribution = items.contributo_unificato
   const expenses = items.spese_esborsi
-  const proformaNeedsConfirmation = summary.proformaPresidio.status === 'importi_da_confermare' || (f.status === 'definito' && !summary.proformaPresidio.total)
+  const proformaNeedsConfirmation = summary.proformaPresidio.status === 'importi_da_confermare'
   const proformaStatus = proformaNeedsConfirmation ? 'Importi da confermare' : summary.proformaPresidio.statusLabel
   const proformaMessage = summary.proformaPresidio.message
     || (f.status === 'definito'
@@ -6278,7 +6278,7 @@ function EconomicControlModal({
   const receiptStatus = contribution.status === 'pagato'
     ? 'Ricevuta presente'
     : contribution.status === 'non_previsto'
-      ? 'Non prevista'
+      ? contribution.documentoFonte ? 'Esenzione verificata' : 'Non prevista'
       : contribution.documentoFonte ? 'Fonte da verificare' : 'Da allegare'
   const rows = [
     { ...economicControlPaymentRow(contribution, 'Contributo'), status: contributionStatusLabel },

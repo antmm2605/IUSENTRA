@@ -59,6 +59,63 @@ def test_partial_or_unordered_pages_fail_closed(monkeypatch, pages):
     assert 'tutte le pagine' in result.error_message
 
 
+def test_large_page_has_bounded_resolution_without_lowering_other_pages():
+    calls = []
+    sources = [SimpleNamespace(width=595, height=842), SimpleNamespace(width=2120, height=3316)]
+
+    def process(content, **options):
+        assert content == b'originale'
+        calls.append(options)
+        numbers = options['page_numbers']
+        return SimpleNamespace(pages=[SimpleNamespace(page_number=i, markdown=str(i)) for i in numbers],
+                               pages_routed_to_ocr=numbers, pages_recommending_hosted=[])
+
+    warnings = []
+    result = engine._inspect_sized_pages(SimpleNamespace(process_pdf_with_ocr_bytes=process),
+                                        b'originale', sources, {'offline': True}, warnings)
+    assert [page.page_number for page in result.pages] == [1, 2]
+    assert 'dpi' not in calls[0] and calls[0]['page_numbers'] == [1]
+    assert calls[1]['page_numbers'] == [2] and calls[1]['offline']
+    assert sources[1].width * sources[1].height * (calls[1]['dpi'] / 72) ** 2 <= 16_000_000
+    assert warnings and 'originale invariato' in warnings[0]
+    assert engine._safe_page_scale(595, 842) == 3
+
+
+@pytest.mark.parametrize('ambigua', [False, True])
+def test_recupero_dichiarante_ritaglia_solo_a_destra_dell_etichetta_senza_nome_atteso(monkeypatch, ambigua):
+    import pytesseract
+    from legal_ocr.motore import autocertificazione, consenso, testo
+    from reportlab.pdfgen import canvas
+
+    stream = BytesIO()
+    pdf = canvas.Canvas(stream, pagesize=(72, 72))
+    pdf.showPage()
+    pdf.save()
+    words = ['sottoscritto/a....', 'sottoscritto,']
+    if ambigua:
+        words[1] = 'sottoscritto/a....'
+    monkeypatch.setattr(pytesseract, 'image_to_data', lambda *_a, **_k: {
+        'text': words, 'left': [20, 20], 'top': [30, 150], 'width': [40, 40], 'height': [30, 30]})
+    calls = []
+
+    def read(image, **kwargs):
+        calls.append((image.size, kwargs))
+        return SimpleNamespace(testo='Testo realmente riconosciuto', motore='lettore locale')
+
+    monkeypatch.setattr(testo, 'testo_da_immagine', read)
+    monkeypatch.setattr(consenso, 'leggi_con_secondo_lettore', read)
+    result = autocertificazione.recupera_dichiarante(stream.getvalue())
+    assert result['origine'] == 'ocr'
+    if ambigua:
+        assert not calls and not result['testi']
+        assert 'univocamente' in result['tentativi'][0]['motivo']
+    else:
+        assert len(calls) == 2 and len(result['testi']) == 2
+        assert result['tentativi'][0]['area'] == [60, 20, 300, 60]
+        assert all(size[1] == 64 for size, _ in calls)
+        assert all('nome' not in kwargs and 'cliente' not in kwargs for _, kwargs in calls)
+
+
 @pytest.mark.parametrize('raw', ['(cid:1)(cid:2)', 'RRoobbeerrttoo MMoonnttaaggnneessee'])
 def test_corrupt_native_layer_is_replaced_not_fused(monkeypatch, raw):
     calls = []

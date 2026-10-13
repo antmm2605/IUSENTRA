@@ -9,8 +9,34 @@ import os
 import re
 from io import BytesIO
 from pathlib import Path
+from types import SimpleNamespace
 
-ENGINE_VERSION = 'pdf-inspector:1.17.0:iusentra-v8-identita-fonte-nativa-copertina'
+ENGINE_VERSION = 'pdf-inspector:1.17.0:iusentra-v9-risoluzione-misurata-per-pagina'
+
+
+def _safe_page_scale(width: float, height: float, preferred: float = 3.0) -> float:
+    """Dimensioni della fonte, budget dei pixel invariato, originale preservato."""
+    return min(preferred, (15_900_000 / max(1.0, width * height)) ** .5)
+
+
+def _inspect_sized_pages(inspector, content, sources, options, warnings):
+    oversized = {i for i, page in enumerate(sources, 1) if page.width * page.height * 9 > 35_000_000}
+    if not oversized:
+        return inspector.process_pdf_with_ocr_bytes(content, **options)
+    batches = []
+    normal = [i for i in range(1, len(sources) + 1) if i not in oversized]
+    if normal:
+        batches.append(inspector.process_pdf_with_ocr_bytes(content, page_numbers=normal, **options))
+    for number in sorted(oversized):
+        page = sources[number - 1]
+        dpi = 72 * _safe_page_scale(page.width, page.height, 150 / 72)
+        batches.append(inspector.process_pdf_with_ocr_bytes(content, page_numbers=[number], dpi=dpi, **options))
+        warnings.append(f'Pagina {number}: risoluzione misurata {dpi:.1f} dpi entro il limite dei pixel; originale invariato.')
+    return SimpleNamespace(
+        pages=sorted((page for batch in batches for page in batch.pages), key=lambda page: page.page_number),
+        pages_routed_to_ocr=[number for batch in batches for number in batch.pages_routed_to_ocr],
+        pages_recommending_hosted=[number for batch in batches for number in batch.pages_recommending_hosted],
+    )
 
 
 def _unwrap_markdown_link(match: 're.Match[str]') -> str:
@@ -276,12 +302,10 @@ def extract_pdf_inspected(content: bytes, *, identity_scan: bool = False):
         with pdfplumber.open(BytesIO(content)) as native, pypdfium2.PdfDocument(content) as rendered:
             if len(native.pages) != len(rendered):
                 raise ValueError('Numero di pagine non coerente tra i lettori PDF.')
-            if any(p.width * p.height * 9 > 35_000_000 for p in native.pages):
-                raise ValueError('Pagina troppo grande per il controllo OCR sicuro.')
             # Nel comando identità la prima sonda legge soltanto il livello
             # nativo. Nessun OCR dei dati precede la preparazione dei pixel.
             result = (pdf_inspector.extract_pages_markdown_bytes(content) if identity_scan
-                      else pdf_inspector.process_pdf_with_ocr_bytes(content, **options))
+                      else _inspect_sized_pages(pdf_inspector, content, native.pages, options, warnings))
             returned = ([p.page + 1 for p in result.pages] if identity_scan
                         else [p.page_number for p in result.pages])
             if returned != list(range(1, len(native.pages)+1)):
@@ -298,9 +322,7 @@ def extract_pdf_inspected(content: bytes, *, identity_scan: bool = False):
                 try:
                     if needs_image:
                         page = rendered[page_number-1]
-                        if page.get_width() * page.get_height() * 9 > 35_000_000:
-                            raise ValueError('Pagina troppo grande per il controllo OCR sicuro.')
-                        bitmap = page.render(scale=3)
+                        bitmap = page.render(scale=_safe_page_scale(page.get_width(), page.get_height()))
                         image = bitmap.to_pil().convert('RGB')
                         if identity_scan:
                             text, original_oriented, preparation_audit, uncertain = _identity_page_read(
@@ -386,7 +408,7 @@ def extract_pdf_inspected(content: bytes, *, identity_scan: bool = False):
                             from legal_ocr.motore.identita import recupera_mrz_carta
                             if page is None:
                                 page = rendered[page_number - 1]
-                                bitmap = page.render(scale=3)
+                                bitmap = page.render(scale=_safe_page_scale(page.get_width(), page.get_height()))
                                 image = bitmap.to_pil().convert('RGB')
                             recovered, recovery_warnings = recupera_mrz_carta(image)
                             if recovered:

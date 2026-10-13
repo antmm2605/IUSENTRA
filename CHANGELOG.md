@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.437.21 — candidata, 13/10/2026
+
+- Autocertificazione di esenzione: confronto del dichiarante e collegamento SQL della fonte al fascicolo, senza richiedere al modulo R.G., ufficio o dati di pagamento assenti. Recupero locale mirato del rigo dichiarante e risoluzione PDF misurata per pagina, con impronta e originali conservati. Riapertura e ripetizione provate sul caso controllato, senza duplicati né incassi.
+
+- Anteprima dei messaggi EML grandi: corpo e intestazioni consultabili senza copiare o decodificare gli allegati binari, con limiti espliciti e originali conservati. Prova reale tramite caricamento e riapertura di un messaggio controllato da 47,3 MB.
+
+- Esenzione del contributo dimostrata dalla scheda del registro: attribuzione automatica soltanto con cliente, R.G. e ufficio concordanti, fonte nativa e impronta conservate. Dichiarazioni reddituali e richiami negli atti restano distinti dalla prova di un pagamento.
+- Recupero puntuale nella procedura SQL esistente, con checkpoint per versione della verifica e conservazione delle decisioni manuali. Il resolver riconosce il R.G. con due punti e sigla postposta senza confonderlo con date di iscrizione.
+- Parcella facoltativa nel presidio documentale; preservati importi, documenti già emessi, incassi e discordanze. Etichette React distinguono esenzione e versamento.
+- Prova materiale locale eseguita sul caso segnalato, fonte aperta nel lettore interno e risultato conservato dopo riapertura. CI, riallineamento al commit finale e deploy ancora necessari; incarico economico e generale aperti.
+
 ## 2.437.20 — candidata, 13/10/2026
 
 - Recupero economico puntuale nella procedura SQL esistente delle letture archiviate: stessa fonte e impronta, provvedimenti classificati, checkpoint finito e conservazione delle decisioni manuali. Nessuna rilettura nelle GET o riconvalida massiva.

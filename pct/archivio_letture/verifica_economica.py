@@ -12,7 +12,7 @@ import unicodedata
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-VERSIONE = "2026.10.01.economico.v4+contesto-allegati-pec"
+VERSIONE = "2026.10.13.economico.v8+autocertificazione-evento-contesto"
 
 
 def _plain(value: Any) -> str:
@@ -158,6 +158,17 @@ def prova_dichiarazione(testo: str, *, secondario: str = "") -> dict[str, str]:
     compatto = " ".join(str(testo or "").split())
     effettiva = bool(re.search(r"(?:autocertificazione|dichiarazione\s+sostitutiva).{0,120}reddit", compatto, re.I))
     effettiva = effettiva and bool(re.search(r"\bdichiara\b.{0,180}\breddito\b", compatto, re.I))
+    # La scheda del registro attesta uno stato del procedimento. Non è una
+    # verifica del reddito: non si deduce l'esenzione dalla sola intestazione
+    # di un atto, dal nome del file o da una citazione normativa.
+    scheda_registro = not effettiva and all(re.search(pattern, compatto, re.I) for pattern in (
+        r"\bruolo\s+generale\s+n\.?",
+        r"\biscritto\s+il\s*:",
+        r"\bruolo\s+sezionale\s+n\.?",
+        r"\battori\s*/\s*ricorrenti\s*/\s*appellanti\s*:",
+        r"\bresistenti\s*/\s*ingiunti\s*/\s*appellati\s*:",
+        r"\bcontributo\s+unificato\s*:\s*esente\b",
+    )) and not re.search(r"\bnon\s+esente\b|esenzione\s+non\s+(?:ammessa|riconosciuta)", compatto, re.I)
     # Le cifre compilate fra i puntini del modulo restano cifre letterali:
     # nessuna sostituzione OCR di lettere e nessun anno cercato fuori dal campo.
     separatori = r"[\s.:…_·]*"
@@ -171,14 +182,62 @@ def prova_dichiarazione(testo: str, *, secondario: str = "") -> dict[str, str]:
             anno = "".join(re.findall(r"\d", match.group(1)))
             anni.setdefault(anno, (origine, match.group(0)))
     unico = next(iter(anni.values())) if len(anni) == 1 else ("", "")
-    limite = re.search(r"non\s+(?:è\s+superiore\s+a|supera(?:\s+l.importo\s+di)?)\s*(?:euro|€)\s*([\d.,]+)", compatto, re.I)
+    limite = re.search(r"non\s+(?:è\s+superiore\s+a|supera(?:\s+(?:l.importo\s+)?di)?)\s*(?:euro|€)\s*([\d.,]+)", compatto, re.I)
     dati = {
-        "versione": VERSIONE, "tipo": "autocertificazione" if effettiva else "richiamo_nell_atto",
+        "versione": VERSIONE, "tipo": "autocertificazione" if effettiva else "attestazione_registro" if scheda_registro else "richiamo_nell_atto",
         "anno_reddito": next(iter(anni)) if len(anni) == 1 else "",
         "origine_anno": unico[0], "prova_anno": unico[1], "anni_discordanti": len(anni) > 1,
         "limite_dichiarato": limite.group(1) if limite else "",
-        "requisiti_verificati": False,
-        "motivo": "Verifica la riferibilità alla pratica, l'ultima dichiarazione dei redditi e la sottoscrizione."
-        if effettiva else "L'atto richiama l'esenzione; il richiamo non sostituisce l'autocertificazione reddituale.",
+        "esenzione_dichiarata": bool(effettiva and limite),
+        "requisiti_verificati": False, "esenzione_attestata_registro": bool(scheda_registro),
+        "motivo": (
+            "Il registro indica contributo unificato esente; occorre il riscontro congiunto del procedimento."
+            if scheda_registro else
+            "Autocertificazione reddituale: riscontrare il dichiarante e il collegamento della fonte al fascicolo."
+            if effettiva else
+            "L'atto richiama l'esenzione; il richiamo non sostituisce l'autocertificazione reddituale."
+        ),
     }
     return {"codice": "dichiarazione_economica", "esito": "attenzione", "dettaglio": json.dumps(dati, ensure_ascii=False)}
+
+
+def identita_autocertificazione(testo: str, metadata: dict[str, Any]) -> list[dict[str, Any]]:
+    """Dichiarante nel contenuto, procedimento dal collegamento SQL della fonte.
+
+    Questa prova riguarda solo una dichiarazione effettiva di esenzione.
+    Non autorizza l'attribuzione di sentenze o ricevute senza identità congiunta.
+    """
+    fascicolo = metadata.get("fascicolo")
+    document_id = str(metadata.get("documento_id") or "")
+    sha = str(metadata.get("document_hash_sha256") or "")
+    documents = getattr(fascicolo, "documenti", ()) or ()
+    linked = [doc for doc in documents if str(getattr(doc, "id", "")) == document_id]
+    proof = identita(testo, metadata)
+    client_ok = all(next((p.get("esito") for p in proof if p.get("codice") == code), "") == "ok"
+                    for code in ("cliente_economico", "cf_economico"))
+    numero = str(getattr(fascicolo, "numero_rg", "") or "")
+    anno = str(getattr(fascicolo, "anno_rg", "") or "")
+    if "/" in numero:
+        numero, embedded_year = numero.split("/", 1)
+        anno = anno or embedded_year
+    office = str(getattr(fascicolo, "tribunale", "") or "").strip()
+    linked_ok = bool(getattr(fascicolo, "id", "") and document_id and len(sha) == 64
+                     and len(linked) == 1 and str(getattr(linked[0], "hash_sha256", "")) == sha
+                     and numero.isdigit() and anno.isdigit() and office)
+    # Un riferimento presente e discordante resta un conflitto: il contesto
+    # SQL integra solo dati non previsti nel modulo, mai dati incompatibili.
+    from .estrazione_ruolo import estrai_ruoli
+    roles = {f.valore for f in estrai_ruoli(testo, origine="nativo") if f.campo == "numero_ruolo"}
+    expected = f"{int(numero)}/{anno}" if numero.isdigit() and anno.isdigit() else ""
+    conflict = bool(roles and roles != {expected})
+    from pct.pec_case_identity import document_case_identity_evidence
+    evidence = document_case_identity_evidence(testo, fascicolo) if fascicolo is not None else {}
+    conflict = conflict or bool(evidence.get("conflicts"))
+    ok = linked_ok and client_ok and not conflict
+    return [p for p in proof if p["codice"] in {"cliente_economico", "cf_economico"}] + [{
+        "codice": "contesto_autocertificazione", "esito": "ok" if ok else "attenzione",
+        "dettaglio": "Dichiarante concordante; fonte originale collegata al fascicolo SQL con impronta verificata."
+        if ok else "Dichiarante o collegamento della fonte al fascicolo non dimostrati, oppure riferimenti discordanti.",
+        "fascicolo_id": str(getattr(fascicolo, "id", "") or ""), "documento_id": document_id,
+        "sha256": sha, "rg": expected, "ufficio": office,
+    }]

@@ -236,3 +236,84 @@ def test_mixed_engine_requires_native_check_for_economic_source(tmp_path):
         riscontro_nativo=lambda *args: checked.append(args) or "Testo nativo riscontrato")
     assert result["file_letti"] == 1 and len(checked) == 1 and len(calls) == 1
     assert calls[0][-1] == "Testo nativo riscontrato"
+
+
+@pytest.mark.parametrize("decision", ["", "corretta", "ignorata", "verificata_manual"])
+def test_contribution_recovery_same_imprint_once_preserves_manual_and_other_facts(tmp_path, decision):
+    from pct.archivio_letture.estrazione_importi import importo_contributo_unificato
+    from tests.test_react_fascicoli_sentenze_economiche import _SCHEMA_REGISTRO_ESENTE
+    from pct.archivio_letture.presidio_economico import contributo_verificato
+
+    registry, repository, _, record = setup_source(tmp_path)
+    obj = registry.oggetti("tenant", "case")[0]
+    old = Fatto(categoria="evento", campo="esenzione_cu_dichiarata", valore="dichiarazione_presente",
+                origine="nativo", verifica=decision if decision in {"corretta", "ignorata"} else "verificata",
+                prove=[{"codice": "decisione_avvocato", "esito": "ok", "dettaglio": "Scelta registrata"}] if decision == "verificata_manual" else [])
+    registry.registra_fatti("tenant", "case", obj, "documenti", [old, Fatto(categoria="data", campo="udienza", valore="2026-03-12", verifica="corretta")])
+    case_record = SimpleNamespace(id="case", nome_cliente="Bianchi Anna", numero_rg="493", anno_rg="2024", tribunale="Tribunale di Palmi")
+    repository.get_extracted_text = lambda *_: SimpleNamespace(text=_SCHEMA_REGISTRO_ESENTE, extraction_engine="pdfplumber")
+    calls = []
+
+    def recover(source, sql_record, text):
+        calls.append((source.oggetto_id, sql_record.current_version_id))
+        return importo_contributo_unificato(text, metadata={"fascicolo": case_record}, origine="nativo")
+
+    kwargs = {"documenti_contributo": ("source",), "recupero_contributo": recover}
+    before = registry.letture("tenant", "case")[0]
+    recupera_da_testi_sql(case_record, registry, "tenant", repository, **kwargs)
+    facts = registry.fatti("tenant", "case", verifiche=None)
+    assert next(f for f in facts if f.campo == "udienza").verifica == "corretta"
+    after = registry.letture("tenant", "case")[0]
+    assert (after.letto_il, after.versione_lettore, after.durata_ms) == (before.letto_il, before.versione_lettore, before.durata_ms)
+    assert recupera_da_testi_sql(case_record, registry, "tenant", repository, **kwargs)["controllati"] == 0
+    if decision:
+        assert calls == []
+        assert next(f for f in facts if f.campo == "esenzione_cu_dichiarata").prove == old.prove
+    else:
+        assert calls == [("source", "v1")]
+        result = contributo_verificato(facts)
+        assert result["status"] == "non_previsto" and not result["pagato"]
+        assert result["documento_id"] == "source"
+        assert len([f for f in facts if f.campo == "esenzione_cu_dichiarata"]) == 1
+
+
+@pytest.mark.parametrize('manual', [False, True])
+def test_autocertificazione_ocr_non_si_perde_se_la_fonte_non_ha_testo_nativo(tmp_path, manual):
+    from pct.archivio_letture.estrazione_importi import importo_contributo_unificato
+    from pct.archivio_letture.presidio_economico import contributo_verificato
+    from tests.test_react_fascicoli_sentenze_economiche import _AUTOCERTIFICAZIONE_SINTETICA
+
+    registry, repository, _, _ = setup_source(tmp_path, engine='pdf-inspector:controlled')
+    obj = registry.oggetti('tenant', 'case')[0]
+    old = Fatto(categoria='evento', campo='esenzione_cu_dichiarata', valore='dichiarazione_presente',
+                origine='ocr', verifica='corretta' if manual else 'plausibile')
+    registry.registra_fatti('tenant', 'case', obj, 'documenti', [old,
+        Fatto(categoria='data', campo='udienza', valore='2026-03-12', verifica='corretta')])
+    case_record = SimpleNamespace(id='case', nome_cliente='Bianchi Anna', numero_rg='900', anno_rg='2026',
+                                 tribunale='Tribunale di Vicenza',
+                                 documenti=[SimpleNamespace(id='source', hash_sha256='a' * 64)])
+    repository.get_extracted_text = lambda *_: SimpleNamespace(
+        text=_AUTOCERTIFICAZIONE_SINTETICA, extraction_engine='pdf-inspector:controlled')
+    called = []
+
+    def recover(source, record, text):
+        called.append(text)
+        return importo_contributo_unificato(text, metadata={'fascicolo': case_record,
+            'documento_id': source.oggetto_id, 'document_hash_sha256': source.sha256}, origine='ocr')
+
+    kwargs = {'documenti_contributo': ('source',), 'recupero_contributo': recover,
+              'riscontro_nativo': lambda *_: ''}
+    recupera_da_testi_sql(case_record, registry, 'tenant', repository, **kwargs)
+    assert recupera_da_testi_sql(case_record, registry, 'tenant', repository, **kwargs)['controllati'] == 0
+    facts = registry.fatti('tenant', 'case', verifiche=None)
+    assert next(f for f in facts if f.campo == 'udienza').verifica == 'corretta'
+    assert len([f for f in facts if f.campo == 'esenzione_cu_dichiarata']) == 1
+    if manual:
+        assert not called
+        assert next(f for f in facts if f.campo == 'esenzione_cu_dichiarata').verifica == 'corretta'
+    else:
+        assert called == [_AUTOCERTIFICAZIONE_SINTETICA]
+        result = contributo_verificato(facts)
+        assert result['status'] == 'non_previsto' and not result['richiedeConferma']
+        assert not any(f.campo == 'giudice' for f in facts)
+        assert next(f for f in facts if f.campo == 'esenzione_cu_dichiarata').origine == 'ocr'

@@ -16,13 +16,18 @@ from pct.registro_letture.fatti_repository import Fatto
 
 _SEGNO = r"[\dOoIl|ÌSsBZz]"
 _RUOLO = re.compile(
-    rf"(?<![\w])(?P<sigla>R\.?\s*G\.?\s*N\.?\s*R\.?|N\.?\s*R\.?\s*G\.?|R\.?\s*G\.?(?:\s*A\.?\s*C\.?|\s*L\.?)?|ruolo\s+generale)\s*(?:n\.?|numero)?\s*(?P<numero>{_SEGNO}{{1,7}})\s*/\s*(?P<anno>{_SEGNO}{{2,4}})(?![\w])",
+    rf"(?<![\w])(?P<sigla>R\.?\s*G\.?\s*N\.?\s*R\.?|N\.?\s*R\.?\s*G\.?|R\.?\s*G\.?(?:\s*A\.?\s*C\.?|\s*L\.?)?|ruolo\s+generale)\s*(?:n\.?|numero)?\s*:?\s*(?P<numero>{_SEGNO}{{1,7}})\s*/\s*(?P<anno>{_SEGNO}{{2,4}})(?![\w])",
     re.IGNORECASE,
 )
 
 _RUOLO_AMMINISTRATIVO = re.compile(
     rf"(?:\bN\.?\s*(?P<numero>{_SEGNO}{{1,6}})\s*/\s*(?P<anno>{_SEGNO}{{4}})\s*REG\.?\s*RIC\.?"
     rf"|\bricorso\s+numero\s+di\s+registro\s+generale\s+(?P<numero2>{_SEGNO}{{1,6}})\s+del\s+(?P<anno2>{_SEGNO}{{4}}))",
+    re.IGNORECASE,
+)
+
+_RUOLO_POSTPOSTO = re.compile(
+    rf"\b(?:n\.?|numero)\s*(?P<numero>{_SEGNO}{{1,7}})\s*/\s*(?P<anno>{_SEGNO}{{2,4}})(?![\w/])\s+(?P<sigla>R\.?\s*G\.?)\b",
     re.IGNORECASE,
 )
 
@@ -42,7 +47,7 @@ def estrai_ruoli(testo: str, *, origine: str) -> list[Fatto]:
     testo = str(testo or "")
     fatti: list[Fatto] = []
     visti: set[str] = set()
-    trovati = sorted([*_RUOLO.finditer(testo), *_RUOLO_AMMINISTRATIVO.finditer(testo)], key=lambda m: m.start())
+    trovati = sorted([*_RUOLO.finditer(testo), *_RUOLO_AMMINISTRATIVO.finditer(testo), *_RUOLO_POSTPOSTO.finditer(testo)], key=lambda m: m.start())
     for match in trovati:
         amministrativo = match.re is _RUOLO_AMMINISTRATIVO
         grezzo_numero = match.group("numero") or (match.group("numero2") if amministrativo else "")

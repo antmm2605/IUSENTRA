@@ -275,6 +275,67 @@ def test_preview_eml_blocca_troppe_boundary_prima_del_parser(monkeypatch):
     assert "troppe parti" in payload.unavailable_reason
 
 
+def test_preview_eml_grande_legge_corpo_senza_decodificare_busta(monkeypatch):
+    monkeypatch.setattr(text_preview, "MAX_MIME_SOURCE_BYTES", 128)
+    source = (
+        b'Subject: Deposito controllato\r\nContent-Type: multipart/mixed; boundary="outer"\r\n\r\n'
+        b'--outer\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nCorpo \xc3\xa8 leggibile\r\n'
+        b'--outer\r\nContent-Type: application/octet-stream\r\n'
+        b'Content-Disposition: attachment; filename="Atto.enc"\r\n'
+        b'Content-Transfer-Encoding: base64\r\n\r\n'
+        + b'QklOQVJJT19OT05fTEVHR0VSRQ==' * 1000 + b'\r\n--outer--\r\n'
+    )
+    original_parse = text_preview.BytesParser.parsebytes
+    def no_full_parser(parser, value, *args, **kwargs):
+        assert len(value) < 1024, "Il parser integrale non deve leggere gli allegati grandi"
+        return original_parse(parser, value, *args, **kwargs)
+    monkeypatch.setattr(text_preview.BytesParser, "parsebytes", no_full_parser)
+    payload = build_attachment_preview_payload(nome_file="deposito.eml", data=source)
+    html = payload.data.decode("utf-8")
+    assert not payload.unavailable_reason
+    assert "Corpo è leggibile" in html and "Atto.enc" in html
+    assert "QklOQVJJT19OT05fTEVHR0VSRQ" not in html
+    assert "BINARIO_NON_LEGGERE" not in html
+
+
+def test_preview_eml_grande_annidato_limita_corpo_e_non_esegue_html(monkeypatch):
+    monkeypatch.setattr(text_preview, "MAX_MIME_SOURCE_BYTES", 128)
+    monkeypatch.setattr(text_preview, "MAX_MIME_BODY_BYTES", 128)
+    source = (
+        b'Content-Type: multipart/mixed; boundary=outer\r\n\r\n'
+        b'--outer\r\nContent-Type: multipart/alternative; boundary=inner\r\n\r\n'
+        b'--inner\r\nContent-Type: text/html\r\n\r\n'
+        b'<p>Testo</p><script>alert(1)</script>' + b'Z' * 1000
+        + b'\r\n--inner--\r\n--outer--\r\n'
+    )
+    payload = build_attachment_preview_payload(nome_file="deposito.eml", data=source)
+    html = payload.data.decode("utf-8")
+    assert not payload.unavailable_reason
+    assert "Testo" in html and "anteprima è stata abbreviata" in html
+    assert "<script>" not in html and "Z" * 129 not in html
+
+
+def test_preview_eml_grande_non_promuove_mime_troncato(monkeypatch):
+    monkeypatch.setattr(text_preview, "MAX_MIME_SOURCE_BYTES", 32)
+    source = b'Content-Type: multipart/mixed; boundary=x\r\n\r\n--x\r\nContent-Type: text/plain\r\n\r\nTesto'
+    payload = build_attachment_preview_payload(nome_file="deposito.eml", data=source)
+    assert payload.unavailable_reason
+    assert payload.data == source
+
+
+def test_preview_eml_grande_rispetta_limite_totale_e_header(monkeypatch):
+    from web.services import eml_preview_bounded
+    monkeypatch.setattr(text_preview, "MAX_MIME_SOURCE_BYTES", 32)
+    source = b'Content-Type: multipart/mixed; boundary=x\r\n\r\n--x\r\nContent-Type: text/plain\r\n\r\nTesto\r\n--x--\r\n'
+    monkeypatch.setattr(eml_preview_bounded, "MAX_SOURCE_BYTES", 64)
+    rejected = build_attachment_preview_payload(nome_file="deposito.eml", data=source)
+    assert rejected.unavailable_reason and rejected.data == source
+    monkeypatch.setattr(eml_preview_bounded, "MAX_SOURCE_BYTES", 1024)
+    monkeypatch.setattr(eml_preview_bounded, "MAX_HEADER_BYTES", 16)
+    rejected = build_attachment_preview_payload(nome_file="deposito.eml", data=source)
+    assert rejected.unavailable_reason and rejected.data == source
+
+
 def test_preview_riconosce_smime_dal_mime_anche_senza_estensione_p7m():
     xml = b'<?xml version="1.0"?><Comunicazione><Oggetto>Udienza</Oggetto></Comunicazione>'
 

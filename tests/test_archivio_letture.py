@@ -553,3 +553,30 @@ def test_note_in_sostituzione_udienza_senza_dell_diventano_termine_non_udienza()
     date = [(fatto.campo, fatto.valore) for fatto in fatti if fatto.categoria == "data"]
     assert ("termine", "2026-10-06") in date
     assert not any(campo == "udienza" and valore.startswith("2026-10-06") for campo, valore in date)
+
+
+def test_ruolo_con_due_punti_nella_scheda_del_tribunale():
+    from pct.archivio_letture.verifica_economica import identita
+
+    source = "TRIBUNALE ORDINARIO DI PALMI\nNum. R.G. : 493/2024 del 17/02/2024\nAttori/Ricorrenti/Appellanti: BIANCHI ANNA\nContributo Unificato: Esente"
+    fascicolo = SimpleNamespace(nome_cliente="Bianchi Anna", numero_rg="493", anno_rg="2024", tribunale="Tribunale di Palmi")
+    roles = estrai_ruoli(source, origine="nativo")
+    assert [(f.campo, f.valore) for f in roles] == [("numero_ruolo", "493/2024")]
+    proofs = {p["codice"]: p for p in identita(source, {"fascicolo": fascicolo})}
+    assert all(proofs[c]["esito"] == "ok" for c in ("cliente_economico", "rg_economico", "ufficio_economico"))
+    assert not estrai_ruoli("Contributo: 493/2024; Sentenza: 98/2025", origine="nativo")
+    wrong = {p["codice"]: p for p in identita(source.replace("493/2024", "494/2024"), {"fascicolo": fascicolo})}
+    assert wrong["rg_economico"]["esito"] == "attenzione"
+
+
+def test_ufficio_nella_tabella_del_registro_non_ingloba_etichetta_giudice():
+    from pct.pec_case_identity import document_case_identity_evidence
+
+    case = SimpleNamespace(nome_cliente="Bianchi Anna", numero_rg="493", anno_rg="2024", tribunale="Tribunale di Palmi")
+    source = "|Num. R.G. : 493/2024||Sezione : 01|TRIBUNALE ORDINARIO DI PALMI Giudice : NOME COGNOME||\nAttori/Ricorrenti/Appellanti: BIANCHI ANNA"
+    evidence = document_case_identity_evidence(source, case)
+    assert evidence["source_office"] == "TRIBUNALE ORDINARIO DI PALMI"
+    assert evidence["office_match"] and evidence["client_name_match"]
+    assert not evidence["conflicts"]
+    wrong = document_case_identity_evidence(source.replace("DI PALMI", "DI TORINO"), case)
+    assert not wrong["office_match"] and wrong["conflicts"]

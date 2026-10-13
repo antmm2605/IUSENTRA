@@ -6610,7 +6610,8 @@ def test_react_fascicoli_economia_riconosce_cu_esente_da_autocertificazione_gene
     # Una dichiarazione riconosciuta non prova ancora tutti i requisiti.
     assert contributo["status"] == "da_registrare"
     assert contributo["richiedeConferma"] is True
-    assert any("sottoscrizione" in v for v in contributo["verificheMancanti"])
+    assert contributo["verificheMancanti"], "la fonte sintetica non dimostra la riferibilità dell'autocertificazione"
+    assert not any("Data del pagamento" in v for v in contributo["verificheMancanti"]), "l'esenzione non è una ricevuta"
     assert contributo["fontiVerifica"]
     assert contributo["previsto"] is True
     assert contributo["importo"] is None
@@ -7129,7 +7130,8 @@ def test_react_fascicoli_economia_autocertificazione_generica_avvia_lettura_mira
     assert calls == [], "la lista non deve avviare letture: le fa il presidio, su richiesta"
     assert contributo["status"] == "da_registrare"
     assert contributo["richiedeConferma"] is True
-    assert any("sottoscrizione" in v for v in contributo["verificheMancanti"])
+    assert contributo["verificheMancanti"], "la fonte sintetica non dimostra la riferibilità dell'autocertificazione"
+    assert not any("Data del pagamento" in v for v in contributo["verificheMancanti"]), "l'esenzione non è una ricevuta"
     assert contributo["fontiVerifica"]
     assert contributo["previsto"] is True
     assert contributo["importo"] is None
@@ -7259,12 +7261,13 @@ def test_react_fascicoli_economia_usa_nome_documento_per_cu_esente_senza_ocr(mon
     assert response.status_code == 200
     assert contributo["status"] == "da_registrare"
     assert contributo["richiedeConferma"] is True
-    assert any("sottoscrizione" in v for v in contributo["verificheMancanti"])
+    assert contributo["verificheMancanti"], "la fonte sintetica non dimostra la riferibilità dell'autocertificazione"
+    assert not any("Data del pagamento" in v for v in contributo["verificheMancanti"]), "l'esenzione non è una ricevuta"
     assert contributo["fontiVerifica"]
     assert contributo["importo"] is None
     assert contributo["importoLabel"] == ""
     assert contributo["documentoFonte"] == "Autocertificazione esenzione cu diritto lavoro.PDF"
-    assert "Esenzione" in contributo["note"]
+    assert "esenzione" in contributo["note"].lower()
     assert item["paymentSummary"]["analysis"]["status"] == "aggiornato"
 
 
@@ -7386,7 +7389,8 @@ def test_react_fascicoli_economia_legge_esenzione_da_documenti_ai_server_senza_d
     assert response.status_code == 200
     assert contributo["status"] == "da_registrare"
     assert contributo["richiedeConferma"] is True
-    assert any("sottoscrizione" in v for v in contributo["verificheMancanti"])
+    assert contributo["verificheMancanti"], "la fonte sintetica non dimostra la riferibilità dell'autocertificazione"
+    assert not any("Data del pagamento" in v for v in contributo["verificheMancanti"]), "l'esenzione non è una ricevuta"
     assert contributo["fontiVerifica"]
     assert contributo["previsto"] is True
     assert contributo["importo"] is None

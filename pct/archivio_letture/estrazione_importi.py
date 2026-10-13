@@ -217,7 +217,7 @@ def importi_dalla_sentenza(testo: str, *, metadata: dict[str, Any] | None = None
 def importo_contributo_unificato(testo: str, *, metadata: dict[str, Any] | None = None, origine: str = "") -> list[Fatto]:
     """Il contributo unificato da una ricevuta di pagamento o da un modello PagoPA."""
     from pct.fascicolo_sentenza_economica import extract_contributo_unificato_document_evidence
-    from .verifica_economica import identita, prova_dichiarazione, prova_ricevuta, ricevuta_xml
+    from .verifica_economica import identita, identita_autocertificazione, prova_dichiarazione, prova_ricevuta, ricevuta_xml
 
     grezzo = str(testo or "")
     if not grezzo.strip():
@@ -231,13 +231,17 @@ def importo_contributo_unificato(testo: str, *, metadata: dict[str, Any] | None 
     if not isinstance(evidenza, dict):
         return []
     if evidenza.get("esente") is True and re.search(r"contributo\s+unificato", grezzo, re.I) and re.search(r"esenzion|esent", grezzo, re.I):
-        # This proves the document declares an exemption, not eligibility.
+        declaration = prova_dichiarazione(grezzo, secondario=str(meta.get("testo_secondario") or ""))
+        import json
+        kind = json.loads(declaration["dettaglio"]).get("tipo")
+        identity = identita_autocertificazione(grezzo, meta) if kind == "autocertificazione" else identita(grezzo, meta)
+        # La dichiarazione non è una ricevuta: nessun importo o data di pagamento.
         return [Fatto(categoria="evento", campo="esenzione_cu_dichiarata", valore="dichiarazione_presente",
             etichetta="Dichiarazione di esenzione dal contributo unificato",
             contesto=_testo(evidenza.get("titolo") or "Esenzione dichiarata nel documento"),
             origine=origine, verifica="verificata" if origine == "nativo" else "plausibile",
-            prove=[{"codice":"dichiarazione_esenzione", "esito":"ok", "dettaglio":"Dichiarazione presente; nessuna attestazione automatica dei requisiti reddituali."},
-                   prova_dichiarazione(grezzo, secondario=str(meta.get("testo_secondario") or "")), *identita(grezzo, meta)])]
+            prove=[{"codice":"dichiarazione_esenzione", "esito":"ok", "dettaglio":"Esenzione indicata nella fonte; l’attribuzione richiede i riscontri del procedimento e della natura del documento."},
+                   declaration, *identity])]
     if xml and (dati_rt.get("errore") or dati_rt.get("status") != "pagato"):
         return [Fatto(categoria="evento", campo="pagamento_cu_non_verificato", valore="verifica_necessaria",
             etichetta="Ricevuta del contributo unificato da verificare", origine=origine,

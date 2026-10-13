@@ -4418,15 +4418,8 @@ def _proforma_presidio_for_fascicolo(
         if source:
             visible_source = _readable_document_source(source)
             break
-    if not existing_count and not _payment_source_for_kind(getattr(fascicolo, "pagamenti", {}) or {}, "parcella") and not parcella_item.get("previsto") and not parcella_item.get("richiedeConferma"):
-        return {
-            "status": "facoltativa", "statusLabel": "Parcella facoltativa", "tone": "neutral",
-            "message": "La liquidazione resta quella della sentenza. La parcella è una scelta distinta dell’avvocato; l’incasso si registra con la procedura dedicata.",
-            "href": f"/fatturazione/nuova?id_fascicolo={encoded_fid}",
-            "existingCount": 0, "existingDraftCount": 0, "total": 0.0,
-            "totalLabel": _euro(0.0), "evidence": visible_source, "requiresAction": False,
-        }
-    if not existing_count and parcella_status in {"pagato", "non_previsto"}:
+    recorded_parcella = _payment_source_for_kind(getattr(fascicolo, "pagamenti", {}) or {}, "parcella")
+    if not existing_count and recorded_parcella and parcella_status in {"pagato", "non_previsto"}:
         amount = _payment_amount_value(parcella_item.get("incassoImporto"))
         if amount is None:
             amount = _payment_amount_value(parcella_item.get("importo"))
@@ -4490,75 +4483,15 @@ def _proforma_presidio_for_fascicolo(
             "evidence": "cliente e RG duplicati",
             "requiresAction": True,
         }
-    if is_defined:
-        if parcella_item.get("importo") is not None or liquidazione_item.get("importo") is not None:
-            amount = parcella_item.get("importo") if parcella_item.get("importo") is not None else liquidazione_item.get("importo")
-            return {
-                "status": "da_preparare",
-                "statusLabel": "Proforma da preparare",
-                "tone": "warning",
-                "message": f"Fascicolo definito: prepara la proforma con importo letto {_amount_label(amount)}.",
-                "href": f"/fatturazione/nuova?id_fascicolo={encoded_fid}",
-                "existingCount": 0,
-                "existingDraftCount": 0,
-                "total": 0.0,
-                "totalLabel": _euro(0.0),
-                "evidence": visible_source,
-                "requiresAction": True,
-            }
-        if visible_source:
-            return {
-                "status": "importi_da_confermare",
-                "statusLabel": "Importi da confermare",
-                "tone": "warning",
-                "message": "Fascicolo definito: documento economico letto, ma importo da confermare prima della proforma.",
-                "href": f"/fascicoli/{encoded_fid}#documenti",
-                "existingCount": 0,
-                "existingDraftCount": 0,
-                "total": 0.0,
-                "totalLabel": _euro(0.0),
-                "evidence": visible_source,
-                "requiresAction": True,
-            }
-        return {
-            "status": "sentenza_da_acquisire",
-            "statusLabel": "Sentenza da acquisire",
-            "tone": "warning",
-            "message": "Fascicolo definito senza proforma: acquisire o classificare la sentenza e poi preparare il documento economico.",
-            "href": f"/fascicoli/{encoded_fid}#documenti",
-            "existingCount": 0,
-            "existingDraftCount": 0,
-            "total": 0.0,
-            "totalLabel": _euro(0.0),
-            "evidence": "",
-            "requiresAction": True,
-        }
-    if parcella_item.get("importo") is not None or _text(parcella_item.get("documentoFonte")):
-        return {
-            "status": "da_preparare",
-            "statusLabel": "Proforma da preparare",
-            "tone": "warning",
-            "message": "Importo o fonte economica letta dal fascicolo: verifica se emettere la proforma.",
-            "href": f"/fatturazione/nuova?id_fascicolo={encoded_fid}",
-            "existingCount": 0,
-            "existingDraftCount": 0,
-            "total": 0.0,
-            "totalLabel": _euro(0.0),
-            "evidence": visible_source,
-            "requiresAction": True,
-        }
+    # La definizione del fascicolo o una voce importata non costituiscono
+    # una richiesta dell'avvocato di emettere una parcella. Le prove mancanti
+    # restano nei presidi della liquidazione/CU; non diventano obblighi fiscali.
     return {
-        "status": "non_applicabile",
-        "statusLabel": "Non ancora dovuta",
-        "tone": "neutral",
-        "message": "",
+        "status": "facoltativa", "statusLabel": "Parcella facoltativa", "tone": "neutral",
+        "message": "La liquidazione resta quella della sentenza. La parcella è una scelta distinta dell’avvocato; l’incasso si registra con la procedura dedicata.",
         "href": f"/fatturazione/nuova?id_fascicolo={encoded_fid}",
-        "existingCount": 0,
-        "existingDraftCount": 0,
-        "total": 0.0,
-        "totalLabel": _euro(0.0),
-        "evidence": "",
-        "requiresAction": False,
+        "existingCount": 0, "existingDraftCount": 0, "total": 0.0,
+        "totalLabel": _euro(0.0), "evidence": visible_source, "requiresAction": False,
     }
 
 

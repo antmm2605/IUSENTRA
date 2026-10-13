@@ -1,0 +1,180 @@
+diff --git a/lib/compile.js b/lib/compile.js
+index dce69beb90ece5c3b0ca234a949418f9f34eedbc..ae38d59afafbdc3f8e6c6fd4ecd10efecda4689e 100644
+--- a/lib/compile.js
++++ b/lib/compile.js
+@@ -1,10 +1,13 @@
+ 'use strict';
+ 
++const assertDepth = require('./depth-limit');
++
+ const fill = require('fill-range');
+ const utils = require('./utils');
+ 
+ const compile = (ast, options = {}) => {
+-  const walk = (node, parent = {}) => {
++  const walk = (node, parent = {}, depth = 0) => {
++    assertDepth(depth);
+     const invalidBlock = utils.isInvalidBrace(parent);
+     const invalidNode = node.invalid === true && options.escapeInvalid === true;
+     const invalid = invalidBlock === true || invalidNode === true;
+@@ -47,7 +50,7 @@ const compile = (ast, options = {}) => {
+ 
+     if (node.nodes) {
+       for (const child of node.nodes) {
+-        output += walk(child, node);
++        output += walk(child, node, depth + (child.nodes ? 1 : 0));
+       }
+     }
+ 
+diff --git a/lib/depth-limit.js b/lib/depth-limit.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..75236853580df8991807869fbab96513522ad143
+--- /dev/null
++++ b/lib/depth-limit.js
+@@ -0,0 +1,9 @@
++'use strict';
++
++module.exports = depth => {
++  if (depth > 128) {
++    const error = new RangeError('Brace pattern structural depth exceeds safe limit (128)');
++    error.code = 'ERR_BRACES_DEPTH_LIMIT';
++    throw error;
++  }
++};
+\ No newline at end of file
+diff --git a/lib/expand.js b/lib/expand.js
+index 35b2c41d6afdb8f0197959e26079f266e48370d3..13e84e5d0cb3d9167a9e0cb553460910e1bd24ba 100644
+--- a/lib/expand.js
++++ b/lib/expand.js
+@@ -1,10 +1,13 @@
+ 'use strict';
+ 
++const assertDepth = require('./depth-limit');
++
+ const fill = require('fill-range');
+ const stringify = require('./stringify');
+ const utils = require('./utils');
+ 
+-const append = (queue = '', stash = '', enclose = false) => {
++const append = (queue = '', stash = '', enclose = false, depth = 0) => {
++  assertDepth(depth);
+   const result = [];
+ 
+   queue = [].concat(queue);
+@@ -18,12 +21,12 @@ const append = (queue = '', stash = '', enclose = false) => {
+   for (const item of queue) {
+     if (Array.isArray(item)) {
+       for (const value of item) {
+-        result.push(append(value, stash, enclose));
++        result.push(append(value, stash, enclose, depth + 1));
+       }
+     } else {
+       for (let ele of stash) {
+         if (enclose === true && typeof ele === 'string') ele = `{${ele}}`;
+-        result.push(Array.isArray(ele) ? append(item, ele, enclose) : item + ele);
++        result.push(Array.isArray(ele) ? append(item, ele, enclose, depth + 1) : item + ele);
+       }
+     }
+   }
+@@ -33,7 +36,8 @@ const append = (queue = '', stash = '', enclose = false) => {
+ const expand = (ast, options = {}) => {
+   const rangeLimit = options.rangeLimit === undefined ? 1000 : options.rangeLimit;
+ 
+-  const walk = (node, parent = {}) => {
++  const walk = (node, parent = {}, depth = 0) => {
++    assertDepth(depth);
+     node.queue = [];
+ 
+     let p = parent;
+@@ -100,7 +104,7 @@ const expand = (ast, options = {}) => {
+       }
+ 
+       if (child.nodes) {
+-        walk(child, node);
++        walk(child, node, depth + 1);
+       }
+     }
+ 
+diff --git a/lib/parse.js b/lib/parse.js
+index 3a6988e629f52aee6609dc5ec290a5e9ff47cecb..58efc5b49665e999112442326d18b648b5ab3f42 100644
+--- a/lib/parse.js
++++ b/lib/parse.js
+@@ -1,5 +1,7 @@
+ 'use strict';
+ 
++const assertDepth = require('./depth-limit');
++
+ const stringify = require('./stringify');
+ 
+ /**
+@@ -144,6 +146,7 @@ const parse = (input, options = {}) => {
+ 
+     if (value === CHAR_LEFT_PARENTHESES) {
+       block = push({ type: 'paren', nodes: [] });
++      assertDepth(stack.length);
+       stack.push(block);
+       push({ type: 'text', value });
+       continue;
+@@ -210,6 +213,7 @@ const parse = (input, options = {}) => {
+       };
+ 
+       block = push(brace);
++      assertDepth(stack.length);
+       stack.push(block);
+       push({ type: 'open', value });
+       continue;
+diff --git a/lib/stringify.js b/lib/stringify.js
+index 8bcf872c31894f81a8c64d9202fd607e4fd7ea2b..2f4d658c9b98c1d61ca42d77fe05563ae8a9f435 100644
+--- a/lib/stringify.js
++++ b/lib/stringify.js
+@@ -1,9 +1,12 @@
+ 'use strict';
+ 
++const assertDepth = require('./depth-limit');
++
+ const utils = require('./utils');
+ 
+ module.exports = (ast, options = {}) => {
+-  const stringify = (node, parent = {}) => {
++  const stringify = (node, parent = {}, depth = 0) => {
++    assertDepth(depth);
+     const invalidBlock = options.escapeInvalid && utils.isInvalidBrace(parent);
+     const invalidNode = node.invalid === true && options.escapeInvalid === true;
+     let output = '';
+@@ -21,7 +24,7 @@ module.exports = (ast, options = {}) => {
+ 
+     if (node.nodes) {
+       for (const child of node.nodes) {
+-        output += stringify(child);
++        output += stringify(child, {}, depth + (child.nodes ? 1 : 0));
+       }
+     }
+     return output;
+diff --git a/lib/utils.js b/lib/utils.js
+index d19311fe044ad5157624077670dc297e8b53da49..3d3a097f6af7bfa243533deb192efd63f3a00554 100644
+--- a/lib/utils.js
++++ b/lib/utils.js
+@@ -1,5 +1,7 @@
+ 'use strict';
+ 
++const assertDepth = require('./depth-limit');
++
+ exports.isInteger = num => {
+   if (typeof num === 'number') {
+     return Number.isInteger(num);
+@@ -101,12 +103,13 @@ exports.reduce = nodes => nodes.reduce((acc, node) => {
+ exports.flatten = (...args) => {
+   const result = [];
+ 
+-  const flat = arr => {
++  const flat = (arr, depth = 0) => {
++    assertDepth(depth);
+     for (let i = 0; i < arr.length; i++) {
+       const ele = arr[i];
+ 
+       if (Array.isArray(ele)) {
+-        flat(ele);
++        flat(ele, depth + 1);
+         continue;
+       }
+ 

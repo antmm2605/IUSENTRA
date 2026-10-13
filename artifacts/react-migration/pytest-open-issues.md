@@ -1,5 +1,9 @@
 # Pytest issue aperte e risoluzioni
 
+## Patch locale governata braces — 14/10/2026
+
+GHSA-vfj7-8cjw-p6xm: npm pubblica ancora soltanto 3.0.3 e GitHub non indica una versione corretta; non utilizzare l'ipotetica 3.0.4 riportata dall'audit. Preparata patch pnpm verificata sul pacchetto installato, con protezione dei percorsi pubblici e degli array annidati. Revisione indipendente: corretti conteggio foglie incoerente e percorso AST array. Sette guardrail positivi, 216 confronti di compatibilità conservati. Restano accettazione reale della candidata 2.437.25, CI e deploy. L'audit basato sulla versione può mantenere l'avviso: non nasconderlo o dichiarare assenza di vulnerabilità.
+
 ## Dipendenze e avviso aggiuntivo braces — 13/10/2026
 
 Quattro aggiornamenti mirati preparati e provati tecnicamente nella candidata 2.437.24; restano accettazione materiale locale, CI e deploy. Audit completo individua anche GHSA-vfj7-8cjw-p6xm su braces 3.0.3, severità alta: lavoro successivo esplicito, non incluso né nascosto dalla correzione dei quattro avvisi iniziali. Nessuna attestazione di audit privo di vulnerabilità.

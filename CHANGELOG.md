@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.437.25 — candidata, 14/10/2026
+
+- Patch governata pnpm per braces 3.0.3: limita l'annidamento strutturale nei percorsi di analisi, compilazione, espansione e ricostruzione, comprese strutture fornite direttamente e array annidati. La build Docker copia la patch prima dell'installazione congelata.
+- Prove sui limiti 127/128/129, schemi profondi, alternative ordinarie e compatibilità delle quattro dipendenze precedentemente corrette. La versione upstream corretta non è pubblicata; l'avviso resta esplicito. Accettazione reale, CI e deploy ancora necessari.
+
 ## 2.437.24 — candidata, 13/10/2026
 
 - Aggiornamenti mirati delle quattro dipendenze segnalate: Hono 4.13.7, MCP SDK 1.31.0, postcss-selector-parser 7.1.6 e source-map-js 1.2.2, con lock rigenerato e installazione congelata verificata.

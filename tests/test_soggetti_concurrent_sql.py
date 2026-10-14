@@ -218,7 +218,8 @@ def test_party_identifier_collision_does_not_update_an_existing_role(subjects, m
     (getattr(db, 'raw_conn', None) or db.conn).commit()
     first = manager().aggiungi_parte('F1', person.id, RuoloSoggetto.TESTIMONE, note='da conservare')
     monkeypatch.setattr('pct.soggetti.uuid.uuid4', lambda: uuid.UUID(first.id + '0' * 24))
-    with pytest.raises((sqlite3.IntegrityError, psycopg2.IntegrityError)):
+    error_type = psycopg2.IntegrityError if getattr(db, 'backend_kind', '') == 'postgresql' else sqlite3.IntegrityError
+    with pytest.raises(error_type):
         manager().aggiungi_parte('F1', person.id, RuoloSoggetto.CONTROPARTE)
     links = manager().parti_fascicolo('F1')
     assert len(links) == 1 and links[0][0].to_dict() == first.to_dict()

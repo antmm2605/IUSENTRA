@@ -4741,6 +4741,14 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         numero_rg="139",
         anno_rg=2023,
     )
+    # Il database sintetico deve attraversare la preparazione di rilascio:
+    # la GET della cartella non installa cataloghi e non migra dati.
+    from pct.fascicoli_clienti_index import prepare_sqlite_client_index
+
+    runtime_fascicoli = _fascicoli_repository(app)
+    prepare_sqlite_client_index(
+        runtime_fascicoli._studio_db.db_path, backup_dir=tmp_path / "backup-indice-clienti",
+    )
     scadenza = GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"]).nuova(
         "Deposito memoria",
         TipoTermine.DEPOSITO_MEMORIA,

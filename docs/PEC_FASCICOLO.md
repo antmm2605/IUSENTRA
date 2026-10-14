@@ -18,4 +18,6 @@ I messaggi sono fixture esplicite, senza trasmissione reale né prova di associa
 
 Durante la preparazione delle fixture sono emerse contese SQLite nelle scritture: il processo scheduler manteneva letture sul medesimo registro. Dopo il riallineamento locale la ripetizione è riuscita; questo non dimostra la rimozione della causa del precedente blocco. La diagnosi della concorrenza del servizio resta un punto esplicito dell'incarico generale, con tracce esterne conservate.
 
-Commit/push, CI e deploy della candidata restano da eseguire. Il collaudo descritto non chiude l'incarico generale.
+Provato anche il caso negativo nel browser reale: una pratica inesistente mostra «Fascicolo non trovato» e indicatori non disponibili, senza conteggi zero fittizi. Corretto e riprovato il titolo di stato, che ora mostra «Fascicolo non disponibile» dopo l'errore, anziché mantenere un caricamento già terminato. Il deploy della prima candidata è stato annullato per includere questa correzione; i controlli remoti e il deploy devono riferirsi al commit successivo.
+
+CI e deploy della candidata restano da concludere. Il collaudo descritto non chiude l'incarico generale.

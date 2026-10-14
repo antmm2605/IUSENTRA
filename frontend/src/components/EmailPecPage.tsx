@@ -2055,7 +2055,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
         <div>
           <span className="iu-mail-eyebrow">{copy.includeTelematic ? <ShieldCheck size={16} /> : <Mail size={16} />} {copy.eyebrow}</span>
           <h1>{fascicoloId ? 'PEC del fascicolo' : copy.heroTitle}</h1>
-          <p>{fascicoloId ? data.matter ? [data.matter.title, data.matter.context].filter(Boolean).join(' · ') : 'Caricamento del fascicolo…' : copy.heroText}</p>
+          <p>{fascicoloId ? data.matter ? [data.matter.title, data.matter.context].filter(Boolean).join(' · ') : pageError ? 'Fascicolo non disponibile.' : 'Caricamento del fascicolo…' : copy.heroText}</p>
         </div>
         <div className="iu-mail-hero__actions">
           {data.matter ? <Button href={data.matter.href}><ArrowLeft size={15} /> Fascicolo</Button> : null}

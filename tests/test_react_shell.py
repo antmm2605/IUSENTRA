@@ -9911,6 +9911,7 @@ def test_post_modifica_cliente_json_normalizza_comune_e_persiste(tmp_path: Path)
 
 
 def test_post_modifica_soggetto_json_normalizza_comune_e_persiste(tmp_path: Path):
+    from pct.soggetti import soggetto_revision
     app = _app(tmp_path)
     _crea_operatore(app)
     repo = GestioneSoggetti(app.config["SOGGETTI_DB"], app.config["SOGGETTI_PARTI_DB"])
@@ -9928,6 +9929,7 @@ def test_post_modifica_soggetto_json_normalizza_comune_e_persiste(tmp_path: Path
         response = client.post(
             f"/soggetti/{soggetto.id}/modifica",
             data={
+                "expected_revision": soggetto_revision(soggetto),
                 "tipo": TipoSoggetto.PERSONA_FISICA.value,
                 "nome": "Luigi",
                 "cognome": "Bianchi",

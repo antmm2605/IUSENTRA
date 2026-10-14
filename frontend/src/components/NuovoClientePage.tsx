@@ -40,6 +40,7 @@ import {
   type RegistryOption,
 } from '../clientiNuovoData'
 import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
+import { workWindowUrl } from './workWindowRoutes'
 import { destinazioneDopoSalvataggio, destinazioneInterna, messaggioSalvataggio } from '../lib/salvataggioCliente'
 import { anagraficaDraftKey, useAnagraficaDraft, type AnagraficaDraftStatus } from '../features/anagrafiche/useAnagraficaDraft'
 import './NuovoClientePage.css'
@@ -1435,9 +1436,16 @@ function SubjectForm({ data, onCompleteness }:{data: ClientiNuovoData; onComplet
     onCompleteness(registryCompleteness(values, { legal: isLegal, subject: true, allowedRoles: data.options.subjectRoles.map(item => item.value) }))
   }, [values, isLegal, data.options.subjectRoles, onCompleteness])
   const selectedRegistry = publicRegistryChoices.find((item) => item.id === registryKind) || publicRegistryChoices[0]
-  const subjectCancelHref = data.mode === 'edit_subject' && data.query.idSoggetto
+  const subjectCancelPath = data.mode === 'edit_subject' && data.query.idSoggetto
     ? `/soggetti/${encodeURIComponent(data.query.idSoggetto)}`
     : data.query.nextUrl || (data.query.idFascicolo ? `/fascicoli/${encodeURIComponent(data.query.idFascicolo)}/modifica` : '/soggetti')
+  const subjectDestination = (href: string) => {
+    const internal = destinazioneInterna(href) || subjectCancelPath
+    if (new URLSearchParams(window.location.search).get('embed') !== 'source') return internal
+    const embedded = workWindowUrl(internal, window.location.origin)
+    return embedded ? `${embedded.pathname}${embedded.search}${embedded.hash}` : internal
+  }
+  const subjectCancelHref = subjectDestination(subjectCancelPath)
 
   useEffect(() => {
     valuesRef.current = values
@@ -1757,6 +1765,9 @@ function SubjectForm({ data, onCompleteness }:{data: ClientiNuovoData; onComplet
     try {
       const formData = new FormData(event.currentTarget)
       const submittedValues = { ...valuesRef.current }
+      if (data.mode === 'edit_subject' && persistedSubject.current?._revision) {
+        formData.set('expected_revision', persistedSubject.current._revision)
+      }
       const result = await submitFormJson(action, formData)
       persistedSubject.current = submittedValues
       if (JSON.stringify(valuesRef.current) === JSON.stringify(submittedValues)) {
@@ -1767,7 +1778,7 @@ function SubjectForm({ data, onCompleteness }:{data: ClientiNuovoData; onComplet
         } : current)
       }
       setSubmitState({ saving: false, tone: 'success', message: result.message || 'Soggetto salvato.' })
-      redirectAfterSuccess(result, subjectCancelHref)
+      redirectAfterSuccess({ ...result, redirect: subjectDestination(result.redirect || subjectCancelPath) }, subjectCancelHref)
     } catch (error) {
       setSubmitState({ saving: false, tone: 'danger', message: error instanceof Error ? error.message : 'Salvataggio non riuscito.' })
     }
@@ -1917,7 +1928,7 @@ function SubjectForm({ data, onCompleteness }:{data: ClientiNuovoData; onComplet
 
       <SubmitFeedback state={submitState}/>
       <div className="iu-cln-actions">
-        <button className="iu-cln-submit" type="submit" disabled={submitState.saving}><CheckCircle2 size={17}/>{submitState.saving ? 'Salvataggio...' : data.mode === 'edit_subject' ? 'Salva modifiche' : 'Salva soggetto'}</button>
+        <button className="iu-cln-submit" type="submit" disabled={submitState.saving || subjectConflicts.length > 0} title={subjectConflicts.length ? 'Confronta e risolvi i campi aggiornati nell’altra finestra prima di salvare.' : undefined}><CheckCircle2 size={17}/>{submitState.saving ? 'Salvataggio...' : data.mode === 'edit_subject' ? 'Salva modifiche' : 'Salva soggetto'}</button>
         <a className="iu-cln-secondary" href={subjectCancelHref}>Annulla</a>
       </div>
     </form>

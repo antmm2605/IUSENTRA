@@ -273,6 +273,15 @@ adopt_termini_before_start() {
     --apply --writers-drained --initialize-missing
 }
 
+prepare_client_case_index_before_start() {
+  # Catalogo derivato: preparazione esplicita della release, mai nella GET.
+  # SQLite conserva un backup coerente; PostgreSQL usa DDL/transazione nativi.
+  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" \
+    run --no-deps --rm --entrypoint python app \
+    -m tools.prepare_fascicoli_client_index --tenant-registry /data/tenants.json \
+    --backup-dir /data/backup/fascicoli-clienti-index-20261014
+}
+
 CORE_BOOT_SERVICES=(redis)
 CORE_HEALTH_SERVICES=(redis app)
 if profile_enabled audit-worm; then
@@ -290,16 +299,19 @@ if [ "${IUSENTRA_DEPLOY_DRIVER:-compose}" = "portainer" ]; then
   # Anche un hotfix arrivato durante la build deve fermare il rimpiazzo.
   test -z "$(git status --porcelain)"
   python3 deploy/hetzner/check_runtime_sources.py --repo "$REPO_DIR" --target "$RELEASE_SHA"
+  export IUSENTRA_APP_IMAGE="iusentra-app:${RELEASE_SHA}"
   if [ "${IUSENTRA_DEPLOY_ADOPT_TERMINI:-0}" = "1" ]; then
     export IUSENTRA_APP_IMAGE="iusentra-app:${RELEASE_SHA}"
     adopt_termini_before_start
   fi
+  prepare_client_case_index_before_start
   python3 deploy/hetzner/portainer_deploy.py
 else
   docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" build
   test -z "$(git status --porcelain)"
   python3 deploy/hetzner/check_runtime_sources.py --repo "$REPO_DIR" --target "$(git rev-parse HEAD)"
   adopt_termini_before_start
+  prepare_client_case_index_before_start
   cleanup_compose_conflict_containers
   compose_up_with_cleanup -d --no-build --remove-orphans "${CORE_BOOT_SERVICES[@]}"
 

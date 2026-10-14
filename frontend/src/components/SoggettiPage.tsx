@@ -169,7 +169,7 @@ function SoggettiTable({
   return (
     <section className="iu-sogg-table-card" aria-label="Elenco soggetti e parti">
       <div className="iu-sogg-table-head">
-        <strong>{items.length} soggetti</strong>
+        <strong>{items.length} {items.length === 1 ? 'soggetto' : 'soggetti'}</strong>
         <span>Dettaglio e modifica aprono la scheda aggiornata, con operazioni tracciate</span>
       </div>
       <SyncedTopScrollbar className="iu-sogg-table-wrap">

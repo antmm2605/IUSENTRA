@@ -135,6 +135,9 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
         REPO_ROOT / "tests" / "test_tariffario.py",
     ),
     "coverage-critical": (
+        REPO_ROOT / "tests" / "test_fascicoli_clienti_index.py",
+        REPO_ROOT / "tests" / "test_soggetti_concurrent_sql.py",
+        REPO_ROOT / "tests" / "test_clienti_cartella_stato_archivio.py",
         REPO_ROOT / "tests" / "test_fascicolo_bonifico_ricevuto.py",
         REPO_ROOT / "tests" / "test_fascicolo_sentenza_economica.py",
         REPO_ROOT / "tests" / "test_sentenza_economic_dashboard.py",
@@ -181,6 +184,9 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
     ),
 }
 CORE_TARGETS: tuple[Path, ...] = (
+    REPO_ROOT / "tests" / "test_fascicoli_clienti_index.py",
+    REPO_ROOT / "tests" / "test_soggetti_concurrent_sql.py",
+    REPO_ROOT / "tests" / "test_clienti_cartella_stato_archivio.py",
     # Natura degli importi, proforme, pagamenti e ripetizione delle letture:
     # il solo indice documentale non presidia le conseguenze economiche.
     REPO_ROOT / "tests" / "test_fascicolo_bonifico_ricevuto.py",

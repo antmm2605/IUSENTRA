@@ -4140,8 +4140,13 @@ class GestioneFascicoli:
         archiviati: bool = False,
     ) -> List[Fascicolo]:
         self._assicura_archivio_completo()
+        return self._filtra_elenco(self._fascicoli.values(), stato=stato, tipo=tipo,
+                                  id_cliente=id_cliente, archiviati=archiviati)
+
+    @staticmethod
+    def _filtra_elenco(items, *, stato=None, tipo=None, id_cliente=None, archiviati=False):
         fascicoli = sorted(
-            self._fascicoli.values(),
+            items,
             key=lambda f: f.numero,
             reverse=True,
         )
@@ -4167,8 +4172,23 @@ class GestioneFascicoli:
         id_cliente: Optional[str] = None,
         archiviati: bool = False,
     ) -> List[Fascicolo]:
-        risultati = self.tutti(stato=stato, tipo=tipo,
-                               id_cliente=id_cliente, archiviati=archiviati)
+        if self._studio_db is not None and not self._archivio_completo and isinstance(id_cliente, str) and id_cliente:
+            from pct.fascicoli_clienti_index import indexed_client_rows
+            items = []
+            for row in indexed_client_rows(self._studio_db, id_cliente):
+                fascicolo = self._row_to_fascicolo(row)
+                if fascicolo is None or str(fascicolo.id) != str(dict(row).get('id') or ''):
+                    raise RuntimeError('Dati del fascicolo cliente non coerenti: verifica della fonte SQL necessaria.')
+                # The candidate index preserves duplicate JSON keys; the
+                # existing model decides the final ownership, as before.
+                if fascicolo.id_cliente == id_cliente:
+                    items.append(fascicolo)
+                    self._fascicoli[fascicolo.id] = fascicolo
+            risultati = self._filtra_elenco(items, stato=stato, tipo=tipo,
+                                            id_cliente=id_cliente, archiviati=archiviati)
+        else:
+            risultati = self.tutti(stato=stato, tipo=tipo,
+                                   id_cliente=id_cliente, archiviati=archiviati)
         if testo:
             t = testo.lower()
             risultati = [

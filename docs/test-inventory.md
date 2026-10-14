@@ -6,7 +6,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 967.
+- File pytest censiti: 970.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
@@ -16,8 +16,8 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend | 115 |
 | E2E | 14 |
 | Frontend static gate | 1 |
-| Frontend/UI | 319 |
-| RBAC | 118 |
+| Frontend/UI | 321 |
+| RBAC | 119 |
 | Security | 54 |
 | Smoke CLI | 6 |
 | Tenant isolation | 235 |
@@ -29,20 +29,20 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 00-ci-contracts | Contratti CI, packaging, sicurezza minima e guardrail tecnici rapidi. | 27 |
 | 01-flask-core | Bootstrap Flask, autenticazione, sicurezza web, osservabilita' e superfici operative. | 22 |
 | 02-react-ui | Contratti React, regia, topbar, layout mobile e coerenza design system. | 37 |
-| 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 72 |
+| 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 74 |
 | 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 28 |
 | 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 69 |
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 84 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 190 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 432 |
+| 09-misc | Test non classificati dalle fasi principali | 433 |
 
 ## Suite CI aggiuntive
 
 | Suite | Target | Esempi |
 | --- | --- | --- |
 | acquisition-ocr | 20 | tests/test_document_ocr.py, tests/test_document_ocr_documento.py, tests/test_document_ocr_formato.py, tests/test_editor_html_docx.py, tests/test_document_tools.py ... |
-| coverage-critical | 81 | tests/test_fascicolo_bonifico_ricevuto.py, tests/test_fascicolo_sentenza_economica.py, tests/test_sentenza_economic_dashboard.py, tests/test_sentenza_a_verbale_catena_economica.py, tests/test_fascicolo_lettura_verifiche.py ... |
+| coverage-critical | 84 | tests/test_fascicoli_clienti_index.py, tests/test_soggetti_concurrent_sql.py, tests/test_clienti_cartella_stato_archivio.py, tests/test_fascicolo_bonifico_ricevuto.py, tests/test_fascicolo_sentenza_economica.py ... |
 | e2e-nightly | 4 | tests/e2e/test_studio_reale_flow.py, tests/e2e/test_ai_pipeline_full.py, tests/e2e/test_tenant_migration_full.py, tests/e2e/test_operational_crash_day.py |
 | e2e-smoke | 1 | tests/e2e/test_studio_reale_flow.py |
 | legal-tools | 8 | tests/test_strumenti_legali.py, tests/test_strumenti_legali_end_to_end.py, tests/test_strumenti_processuali.py, tests/test_termini_processuali.py, tests/test_normative_tables.py ... |
@@ -589,8 +589,10 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Clienti/anagrafiche | Backend | tests/test_clienti_workflow.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Clienti/anagrafiche | Frontend/UI | tests/test_clienti.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Clienti/anagrafiche | Frontend/UI | tests/test_clienti_cartella_agenda_links.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Clienti/anagrafiche | Frontend/UI | tests/test_clienti_cartella_stato_archivio.py | feature flag | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Clienti/anagrafiche | Frontend/UI | tests/test_clienti_route_filters.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Clienti/anagrafiche | Frontend/UI | tests/test_clienti_salvataggio_destinazione.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Clienti/anagrafiche | RBAC | tests/test_soggetti_concurrent_sql.py | contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Clienti/anagrafiche | Tenant isolation | tests/test_clienti_cartella_snapshot_performance.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Clienti/anagrafiche | Tenant isolation | tests/test_import_center_clienti_sink.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Comunicazioni | Frontend/UI | tests/test_email_bulk_read.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
@@ -643,6 +645,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Fascicoli | Backend | tests/test_fascicoli_clienti_links_audit.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Fascicoli | Backend | tests/test_fascicoli_partial_write_guard.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Fascicoli | Frontend/UI | tests/test_fascicoli_card_perimeter.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Fascicoli | Frontend/UI | tests/test_fascicoli_clienti_index.py | 403/RBAC, tenant, contratto, audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Fascicoli | Frontend/UI | tests/test_fascicoli_signature_options.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Fascicoli | Frontend/UI | tests/test_fascicoli_stato_e_filtri_economici.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Fascicoli | RBAC | tests/test_fascicoli_dati_json_snello.py | 403/RBAC, contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |

@@ -1314,6 +1314,10 @@ class GestioneTenant:
         ]:
             (base / subdir).mkdir(parents=True, exist_ok=True)
         self._ensure_runtime_baseline(slug)
+        # La creazione/provisione prepara i cataloghi SQL; le pagine li consultano.
+        from pct.fascicoli_clienti_index import prepare_sqlite_client_index
+
+        prepare_sqlite_client_index(base / 'studio.db', base / 'backup' / 'fascicoli-clienti-index')
 
     def _ensure_runtime_baseline(self, slug: str, *, force: bool = False) -> Dict[str, Any]:
         base = self._data_dir(slug)
@@ -2085,6 +2089,10 @@ class GestioneTenant:
             from pct.storage import StudioDB
 
             studio_db = StudioDB.get(paths["STUDIO_DB"])
+            from pct.fascicoli_clienti_index import prepare_sqlite_client_index
+
+            payload['client_case_catalog_changed'] = prepare_sqlite_client_index(
+                paths['STUDIO_DB'], self._data_dir(slug) / 'backup' / 'fascicoli-clienti-index')
             payload["sqlite_ready"] = bool(studio_db.db_path.exists()) and (
                 not migrate_existing or bool(payload.get("migrated"))
             )
@@ -2127,6 +2135,21 @@ class GestioneTenant:
                 payload["consistency"] = (report.get("core") or {}).get("consistency", {})
                 if not report.get("success"):
                     payload["ok"] = False
+
+            if payload.get('ok', True):
+                from pct.fascicoli_clienti_index import install_client_index
+                from pct.postgres_runtime_support import database_config_to_dsn
+                from pct.storage_postgres import PostgresStudioDB
+
+                # Riusa l'inizializzazione core nativa nel comando amministrativo,
+                # prima di attivare l'archivio; non inizializza dalle GET.
+                postgres_store = PostgresStudioDB.get(database_config_to_dsn(db))
+                try:
+                    with postgres_store.raw_conn:
+                        payload['client_case_catalog_changed'] = install_client_index(
+                            postgres_store.conn, postgres=True)
+                finally:
+                    postgres_store.chiudi()
 
             if activate_external and payload.get("ok", True):
                 db.core_runtime_enabled = True

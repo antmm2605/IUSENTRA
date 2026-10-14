@@ -288,11 +288,10 @@ def build_react_clienti_payload(*, get_clienti: Callable[[], Any], get_fascicoli
 def _fascicolo_archiviato(fascicolo: Any) -> bool:
     stato = getattr(fascicolo, "stato", None)
     raw = _enum_value(stato).lower()
-    return bool(
-        stato in {StatoFascicolo.ARCHIVIATO, StatoFascicolo.DEFINITO}
-        or getattr(fascicolo, "archiviato", False)
-        or "archiv" in raw
-        or "definit" in raw
+    # DEFINITO prepara l'archivio; soltanto ARCHIVIATO ne conferma l'esito.
+    # Il vecchio flag vale solo per record storici privi dello stato nativo.
+    return raw == StatoFascicolo.ARCHIVIATO.value.lower() or (
+        not raw and bool(getattr(fascicolo, "archiviato", False))
     )
 
 
@@ -463,7 +462,9 @@ def build_react_cliente_cartella_payload(
     def read_repository(label, load, default):
         return load() if include_catalogs else _safe(label, load, default)
 
-    fascicoli = read_repository("fascicoli cliente", lambda: get_fascicoli().cerca(id_cliente=id_cliente, archiviati=True), [])
+    # The owner's matter list is mandatory. A failed SQL read must not become
+    # an apparently confirmed empty folder.
+    fascicoli = get_fascicoli().cerca(id_cliente=id_cliente, archiviati=True)
     from web.services.identita_cliente_runtime import documenti_identita_cliente
     measure_phase("clienti_fascicoli")
     identity_documents = documenti_identita_cliente(id_cliente, fascicoli)
@@ -728,9 +729,11 @@ def _cliente_form_values(cliente: Any) -> dict[str, Any]:
 
 
 def _soggetto_form_values(soggetto: Any) -> dict[str, str]:
+    from pct.soggetti import soggetto_revision
     indirizzo = getattr(soggetto, "indirizzo", None)
     recapiti = getattr(soggetto, "recapiti", None)
     return {
+        "_revision": soggetto_revision(soggetto),
         "tipo": _enum_value(getattr(soggetto, "tipo", "PERSONA_FISICA")) or "PERSONA_FISICA",
         "nome": _text(getattr(soggetto, "nome", "")),
         "cognome": _text(getattr(soggetto, "cognome", "")),

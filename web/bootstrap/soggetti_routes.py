@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 from flask import Flask, abort, flash, jsonify, redirect, render_template, request, url_for
 
-from pct.soggetti import RuoloSoggetto, TipoSoggetto, soggetto_coincide_con_cliente
+from pct.soggetti import RuoloSoggetto, TipoSoggetto, SoggettoConcurrentUpdate, soggetto_coincide_con_cliente, soggetto_revision
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.territorio_forms import address_fields_from_form
 
@@ -224,6 +224,9 @@ def register_soggetti_routes(
         if request.method == "GET" and not _richiede_vista_legacy():
             return render_react_shell_response(f"soggetti/{id_soggetto}/modifica")
         if request.method == "POST":
+            if _richiede_json() and not request.form.get("expected_revision"):
+                return jsonify({"ok": False, "message": "Rileggi la scheda aggiornata prima di salvare. La tua bozza è conservata.",
+                                "code": "soggetto_revision_required"}), 409
             tipo_val = request.form.get("tipo", soggetto.tipo.value)
             try:
                 tipo = TipoSoggetto(tipo_val)
@@ -240,33 +243,40 @@ def register_soggetti_routes(
                 cellulare=request.form.get("cellulare", ""),
                 email=request.form.get("email", ""),
                 pec=request.form.get("pec", ""),
-                fax=request.form.get("fax", ""),
-                sito_web=request.form.get("sito_web", ""),
+                fax=request.form.get("fax", soggetto.recapiti.fax),
+                sito_web=request.form.get("sito_web", soggetto.recapiti.sito_web),
             )
             tag = [item.strip() for item in request.form.get("tag", "").split(",") if item.strip()]
-            soggetti.aggiorna(
-                id_soggetto,
-                tipo=tipo,
-                nome=request.form.get("nome", ""),
-                cognome=request.form.get("cognome", ""),
-                codice_fiscale=request.form.get("codice_fiscale", ""),
-                data_nascita=request.form.get("data_nascita", ""),
-                luogo_nascita=request.form.get("luogo_nascita", ""),
-                provincia_nascita=request.form.get("provincia_nascita", ""),
-                sesso=request.form.get("sesso", ""),
-                ragione_sociale=request.form.get("ragione_sociale", ""),
-                partita_iva=request.form.get("partita_iva", ""),
-                forma_giuridica=request.form.get("forma_giuridica", ""),
-                rappresentante_legale=request.form.get("rappresentante_legale", ""),
-                qualifica=request.form.get("qualifica", ""),
-                ordine=request.form.get("ordine", ""),
-                numero_iscrizione=request.form.get("numero_iscrizione", ""),
-                indirizzo=indirizzo,
-                recapiti=recapiti,
-                id_cliente="",
-                note=request.form.get("note", ""),
-                tag=tag,
-            )
+            try:
+                soggetti.aggiorna(
+                    id_soggetto,
+                    expected_revision=request.form.get("expected_revision"),
+                    tipo=tipo,
+                    nome=request.form.get("nome", ""),
+                    cognome=request.form.get("cognome", ""),
+                    codice_fiscale=request.form.get("codice_fiscale", ""),
+                    data_nascita=request.form.get("data_nascita", ""),
+                    luogo_nascita=request.form.get("luogo_nascita", ""),
+                    provincia_nascita=request.form.get("provincia_nascita", ""),
+                    sesso=request.form.get("sesso", ""),
+                    ragione_sociale=request.form.get("ragione_sociale", ""),
+                    partita_iva=request.form.get("partita_iva", ""),
+                    forma_giuridica=request.form.get("forma_giuridica", ""),
+                    rappresentante_legale=request.form.get("rappresentante_legale", ""),
+                    qualifica=request.form.get("qualifica", ""),
+                    ordine=request.form.get("ordine", ""),
+                    numero_iscrizione=request.form.get("numero_iscrizione", ""),
+                    indirizzo=indirizzo,
+                    recapiti=recapiti,
+                    id_cliente=soggetto.id_cliente,
+                    note=request.form.get("note", ""),
+                    tag=tag,
+                )
+            except SoggettoConcurrentUpdate as exc:
+                if _richiede_json():
+                    return jsonify({"ok": False, "message": str(exc), "code": "soggetto_concurrent_update"}), 409
+                flash(str(exc), "warning")
+                return redirect(url_for("modifica_soggetto", id_soggetto=id_soggetto))
             audit("soggetti.modifica", "soggetto", id_soggetto, dettagli=soggetto.nome_completo)
             flash("Soggetto aggiornato.", "success")
             target = url_for("dettaglio_soggetto", id_soggetto=id_soggetto)
@@ -279,6 +289,7 @@ def register_soggetti_routes(
             clienti=clienti,
             TipoSoggetto=TipoSoggetto,
             oggi=date.today(),
+            expected_revision=soggetto_revision(soggetto),
         )
 
     @app.route("/soggetti/<id_soggetto>/elimina", methods=["POST"])

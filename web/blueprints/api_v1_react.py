@@ -3025,6 +3025,9 @@ def cliente_cartella_react(id_cliente: str):
         ))
     except KeyError:
         return jsonify({"errore": "Cliente non trovato.", "codice": 404}), 404
+    except Exception:
+        current_app.logger.exception("Lettura della cartella cliente non riuscita")
+        return jsonify({"errore": "La cartella cliente non è stata caricata. Riprova fra poco."}), 500
 
 
 @api_v1_react.get("/clienti/<id_cliente>/modifica")

@@ -31,6 +31,7 @@
 </div>
 
 <form method="post" id="formSoggetto">
+  {% if soggetto %}<input type="hidden" name="expected_revision" value="{{ expected_revision }}">{% endif %}
 
   {# ── Tipo soggetto ── #}
   <div class="ds-form-card">

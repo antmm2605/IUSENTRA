@@ -100,6 +100,7 @@ def get_fascicoli() -> GestioneFascicoli:
         documents_dir=paths[1],
         archive_dir=paths[2],
         studio_db=_studio_db("FASCICOLI_DB"),
+        carica_tutto=not cartella_read,
     )
     if cartella_read:
         g.cartella_fascicoli_snapshot = (paths, manager)

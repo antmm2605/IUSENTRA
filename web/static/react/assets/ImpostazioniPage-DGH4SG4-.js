@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-BtYB_l97.js";export{e as ImpostazioniPage};

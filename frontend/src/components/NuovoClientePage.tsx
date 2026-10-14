@@ -1483,6 +1483,7 @@ function SubjectForm({ data, onCompleteness }:{data: ClientiNuovoData; onComplet
     values,
     initialValues: subjectDraftInitial,
     protectedFields: touchedFields,
+    excludedFields: ['_revision'],
     onRestore: (draftValues, restoredFields) => {
       const clean = Object.fromEntries(Object.entries(draftValues).map(([key, value]) => [key, String(value ?? '')]))
       setValues((current) => ({ ...current, ...clean }))

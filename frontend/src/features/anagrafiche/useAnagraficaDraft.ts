@@ -242,7 +242,11 @@ export function useAnagraficaDraft<T extends DraftValues>({
   const clearAfterSave = useCallback(() => {
     pendingRestoreRef.current = false
     removeDraft(storageKey)
-    lastSavedRef.current = JSON.stringify(pickDraftValues(valuesRef.current, excluded))
+    // Blur e pagehide possono seguire la conferma: confrontare la stessa
+    // impronta di saveNow evita di ricreare la bozza appena salvata.
+    const snapshot = pickDraftValues(valuesRef.current, excluded)
+    const manualFields = [...protectedFieldsRef.current].filter((key) => Object.hasOwn(snapshot, key)).sort()
+    lastSavedRef.current = JSON.stringify({ values: snapshot, protectedFields: manualFields })
     setStatus({ tone: 'neutral', message: '', savedAt: '', pendingRestore: false })
   }, [excluded, storageKey])
 

@@ -239,12 +239,61 @@ def download_shards(repo: str, run_id: int, family: str, destination: Path, atte
     subprocess.run(command, check=True)
 
 
+DEPLOY_ACCEPTANCE_STEPS = frozenset({
+    'Esegui deploy', 'Recupera commit deployato',
+    'Verifiche post-deploy (container + health)',
+    'Verifiche post-deploy (rotte HTTPS pubbliche)',
+})
+
+
+def _github_time(value: str) -> datetime:
+    result = datetime.fromisoformat(value.replace('Z', '+00:00'))
+    if result.tzinfo is None:
+        raise ValueError('Orario della prova di deploy privo del fuso orario')
+    return result
+
+
+def verified_deployment_time(repo: str, run_id: int) -> datetime | None:
+    """Un workflow superato può riuscire senza aver distribuito alcun codice."""
+    accepted = []
+    count = 0
+    for page in range(1, 11):
+        response = github_json(repo, f'actions/runs/{run_id}/jobs?filter=all&per_page=100&page={page}')
+        jobs = response['jobs']
+        count += len(jobs)
+        for job in jobs:
+            if job.get('name') != 'Deploy su Hetzner CPX42' or job.get('conclusion') != 'success':
+                continue
+            steps = [step for step in job.get('steps', []) if step.get('name') in DEPLOY_ACCEPTANCE_STEPS]
+            if (len(steps) != len(DEPLOY_ACCEPTANCE_STEPS)
+                    or {step['name'] for step in steps} != DEPLOY_ACCEPTANCE_STEPS
+                    or any(step.get('status') != 'completed' or step.get('conclusion') != 'success'
+                           for step in steps)):
+                continue
+            # Tutte le prove devono appartenere allo stesso tentativo/job.
+            accepted.append(max(_github_time(step['completed_at']) for step in steps))
+        if count >= response['total_count']:
+            return max(accepted, default=None)
+    raise ValueError('Registro delle prove di deploy oltre il limite di acquisizione governata')
+
+
 def select_baseline(repo: str, candidate_sha: str) -> tuple[dict[str, Any], dict[str, Any]]:
     deployments = github_json(repo, "actions/workflows/deploy-hetzner.yml/runs?branch=main&status=success&per_page=100")
     eligible = [run for run in deployments["workflow_runs"] if run["head_sha"] != candidate_sha]
     if not eligible:
         raise ValueError("Nessuna versione precedente accettata dal deploy main")
-    deploy = max(eligible, key=lambda run: run["updated_at"])
+    deploy = None
+    verified_at = None
+    for run in sorted(eligible, key=lambda item: item['updated_at'], reverse=True):
+        # Il completamento del workflow è un limite superiore alle sue prove.
+        # Non serve consultare la storia più vecchia di una prova già trovata.
+        if verified_at is not None and _github_time(run['updated_at']) <= verified_at:
+            break
+        completed = verified_deployment_time(repo, run['id'])
+        if completed is not None and (verified_at is None or completed > verified_at):
+            deploy, verified_at = run, completed
+    if deploy is None:
+        raise ValueError('Nessuna versione precedente con deploy e verifiche reali eseguiti')
     checks = github_json(repo, f"actions/workflows/ci.yml/runs?head_sha={deploy['head_sha']}&status=success&per_page=100")
     matched = [run for run in checks["workflow_runs"] if run["head_sha"] == deploy["head_sha"]]
     if not matched:

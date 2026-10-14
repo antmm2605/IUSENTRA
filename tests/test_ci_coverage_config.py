@@ -7,6 +7,99 @@ import yaml
 from tools.check_critical_coverage_regression import collect_shards, compare_measurements, select_artifact_names
 
 
+def _deploy_proof(stamp, **changes):
+    from tools.check_critical_coverage_regression import DEPLOY_ACCEPTANCE_STEPS
+    result = {'name': 'Deploy su Hetzner CPX42', 'conclusion': 'success',
+              'steps': [{'name': name, 'status': 'completed', 'conclusion': 'success',
+                         'completed_at': stamp} for name in sorted(DEPLOY_ACCEPTANCE_STEPS)]}
+    result.update(changes)
+    return result
+
+
+def _baseline_api(monkeypatch, runs, jobs, ci=None):
+    import tools.check_critical_coverage_regression as gate
+
+    calls = []
+
+    def response(repo, endpoint):
+        calls.append(endpoint)
+        if endpoint.startswith('actions/workflows/deploy-hetzner.yml/runs?'):
+            return {'workflow_runs': runs}
+        if endpoint.startswith('actions/workflows/ci.yml/runs?'):
+            return {'workflow_runs': ci or []}
+        run_id = int(endpoint.split('/')[2])
+        page = int(endpoint.rsplit('page=', 1)[1])
+        records = jobs[run_id]
+        return {'jobs': records[(page - 1) * 100:page * 100], 'total_count': len(records)}
+
+    monkeypatch.setattr(gate, 'github_json', response)
+    return calls
+
+
+def test_coverage_baseline_skips_successful_workflow_without_real_deploy(monkeypatch):
+    from tools.check_critical_coverage_regression import select_baseline
+    runs = [{'id': 2, 'head_sha': 'b' * 40, 'updated_at': '2026-10-14T17:00:00Z'},
+            {'id': 1, 'head_sha': 'a' * 40, 'updated_at': '2026-10-14T04:32:00Z'}]
+    skipped = _deploy_proof('2026-10-14T17:00:00Z')
+    skipped['steps'][0]['conclusion'] = 'skipped'
+    _baseline_api(monkeypatch, runs, {2: [skipped], 1: [_deploy_proof('2026-10-14T04:31:00Z')]},
+                  [{'id': 10, 'head_sha': 'a' * 40, 'updated_at': '2026-10-14T04:00:00Z'}])
+    deploy, ci = select_baseline('example/repo', 'c' * 40)
+    assert deploy['id'] == 1 and ci['id'] == 10
+
+
+def test_coverage_baseline_rerun_does_not_replace_newer_actual_acceptance(monkeypatch):
+    from tools.check_critical_coverage_regression import select_baseline
+    runs = [{'id': 1, 'head_sha': 'a' * 40, 'updated_at': '2026-10-14T17:00:00Z'},
+            {'id': 2, 'head_sha': 'b' * 40, 'updated_at': '2026-10-14T14:01:00Z'},
+            {'id': 3, 'head_sha': 'd' * 40, 'updated_at': '2026-10-14T03:00:00Z'}]
+    rerun = _deploy_proof('2026-10-14T17:00:00Z')
+    for step in rerun['steps']:
+        step['conclusion'] = 'skipped'
+    calls = _baseline_api(monkeypatch, runs, {
+        1: [_deploy_proof('2026-10-14T04:31:00Z'), rerun],
+        2: [_deploy_proof('2026-10-14T14:00:00Z')],
+    }, [{'id': 20, 'head_sha': 'b' * 40, 'updated_at': '2026-10-14T13:00:00Z'}])
+    assert select_baseline('example/repo', 'c' * 40)[0]['id'] == 2
+    assert not any('/runs/3/jobs?' in call for call in calls)
+
+
+@pytest.mark.parametrize('defect', ['skipped', 'failure', 'missing', 'duplicate'])
+def test_coverage_baseline_requires_complete_proof_in_one_job(monkeypatch, defect):
+    from tools.check_critical_coverage_regression import select_baseline
+    first = _deploy_proof('2026-10-14T04:31:00Z')
+    if defect == 'missing':
+        first['steps'].pop()
+    elif defect == 'duplicate':
+        first['steps'].append(deepcopy(first['steps'][0]))
+    else:
+        first['steps'][0]['conclusion'] = defect
+    second = _deploy_proof('2026-10-14T04:31:00Z')
+    second['steps'][1]['conclusion'] = 'skipped'
+    _baseline_api(monkeypatch, [{'id': 1, 'head_sha': 'a' * 40, 'updated_at': '2026-10-14T04:32:00Z'}],
+                  {1: [first, second]})
+    with pytest.raises(ValueError, match='verifiche reali'):
+        select_baseline('example/repo', 'c' * 40)
+
+
+def test_coverage_actual_deploy_without_matching_ci_still_blocks(monkeypatch):
+    from tools.check_critical_coverage_regression import select_baseline
+    _baseline_api(monkeypatch, [{'id': 1, 'head_sha': 'a' * 40, 'updated_at': '2026-10-14T04:32:00Z'}],
+                  {1: [_deploy_proof('2026-10-14T04:31:00Z')]},
+                  [{'id': 10, 'head_sha': 'b' * 40, 'updated_at': '2026-10-14T04:00:00Z'}])
+    with pytest.raises(ValueError, match='CI positiva sul medesimo commit'):
+        select_baseline('example/repo', 'c' * 40)
+
+
+def test_coverage_deploy_proofs_paginate_all_attempts(monkeypatch):
+    from tools.check_critical_coverage_regression import verified_deployment_time
+    records = [{'name': 'other', 'conclusion': 'success'} for _ in range(100)]
+    records.append(_deploy_proof('2026-10-14T04:31:00Z'))
+    calls = _baseline_api(monkeypatch, [], {1: records})
+    assert verified_deployment_time('example/repo', 1).isoformat() == '2026-10-14T04:31:00+00:00'
+    assert len(calls) == 2 and all('filter=all' in call for call in calls)
+
+
 def _synthetic_measurement(covered=80):
     return {"shards": list(range(1, 13)), "environment": {
         "python": "3.12.15", "coverage": "7.16.2", "config_sha256": "config",

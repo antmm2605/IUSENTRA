@@ -1,5 +1,9 @@
 # Pytest issue aperte e risoluzioni
 
+## Gate automatico di copertura critica — 14/10/2026
+
+Collegato al workflow il confronto dei dodici shard candidati con dodici shard della precedente versione accettata, rimisurata nello stesso ambiente congelato. Selezione da CI/deploy `main`, metadati per shard e controllo aggiuntivo obbligatorio; nessun aggregatore legacy ripristinato e nessuna soglia abbassata. Quindici guardrail dedicati e controlli CI vicini positivi; il nuovo lettore riproduce i conteggi reali della 2.437.25. Restano collaudo GitHub del percorso completo, verifica delle protezioni, copia reale e deploy. I risultati tecnici non chiudono ancora l'incarico.
+
 ## Patch locale governata braces — 14/10/2026
 
 GHSA-vfj7-8cjw-p6xm: npm pubblica ancora soltanto 3.0.3 e GitHub non indica una versione corretta; non utilizzare l'ipotetica 3.0.4 riportata dall'audit. Preparata patch pnpm verificata sul pacchetto installato, con protezione dei percorsi pubblici e degli array annidati. Revisione indipendente: corretti conteggio foglie incoerente e percorso AST array. Sette guardrail positivi, 216 confronti di compatibilità conservati. Restano accettazione reale della candidata 2.437.25, CI e deploy. L'audit basato sulla versione può mantenere l'avviso: non nasconderlo o dichiarare assenza di vulnerabilità.

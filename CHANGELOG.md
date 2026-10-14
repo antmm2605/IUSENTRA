@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.437.26 — candidata, 14/10/2026
+
+- Controllo bloccante delle regressioni di copertura critica: dodici shard candidati confrontati con dodici misure della precedente versione accettata, usando lo stesso ambiente Python congelato. Provenienza, configurazione, perimetro e differenze sono pubblicati nel report.
+- Controlli CI esistenti preservati; artefatti mancanti o confronti non omogenei restano errori espliciti. Report leggibili con data e ora italiane. Percorso GitHub completo e rilascio ancora in collaudo.
+
 ## 2.437.25 — candidata, 14/10/2026
 
 - Patch governata pnpm per braces 3.0.3: limita l'annidamento strutturale nei percorsi di analisi, compilazione, espansione e ricostruzione, comprese strutture fornite direttamente e array annidati. La build Docker copia la patch prima dell'installazione congelata.

@@ -12,11 +12,11 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 | Tipo test | Conteggio |
 | --- | --- |
-| API contract | 113 |
+| API contract | 112 |
 | Backend | 115 |
 | E2E | 14 |
 | Frontend static gate | 1 |
-| Frontend/UI | 318 |
+| Frontend/UI | 319 |
 | RBAC | 118 |
 | Security | 54 |
 | Smoke CLI | 6 |
@@ -786,11 +786,11 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Frontend React | Tenant isolation | tests/test_studio_site_builder_blocks.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Tenant isolation | tests/test_ui_api_security_matrix.py | 401 anonimo, 403/RBAC, tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Tenant isolation | tests/test_ui_coverage_phase9.py | 403/RBAC, tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| Impostazioni | API contract | tests/test_ci_coverage_config.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Impostazioni | Backend | tests/test_backup_dir_resolution.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Impostazioni | Backend | tests/test_config_studio.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Impostazioni | Backend | tests/test_config_studio_smtp.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Impostazioni | Frontend/UI | tests/test_backup.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Impostazioni | Frontend/UI | tests/test_ci_coverage_config.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Impostazioni | Frontend/UI | tests/test_hetzner_performance_config.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Impostazioni | Security | tests/test_impostazioni_sdi_config.py | feature flag, contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Impostazioni | Security | tests/test_postgres_backup.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |

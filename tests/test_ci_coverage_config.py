@@ -1,7 +1,118 @@
 from pathlib import Path
+from copy import deepcopy
 
 import pytest
 import yaml
+
+from tools.check_critical_coverage_regression import collect_shards, compare_measurements, select_artifact_names
+
+
+def _synthetic_measurement(covered=80):
+    return {"shards": list(range(1, 13)), "environment": {
+        "python": "3.12.15", "coverage": "7.16.2", "config_sha256": "config",
+        "requirements_sha256": "requirements", "scope": ["lex"],
+        "distributions_sha256": "frozen-packages",
+    }, "files": {"lex/example.py": {"covered": covered, "statements": 100, "source_sha256": "a" * 64}}}
+
+
+def test_coverage_regression_blocks_even_a_small_actual_drop():
+    report = compare_measurements(_synthetic_measurement(80), _synthetic_measurement(79))
+    assert report["blocking"] is True
+    assert report["status"] == "regression"
+
+
+def test_coverage_improvement_and_new_tests_preserve_the_same_perimeter():
+    candidate = _synthetic_measurement(81)
+    candidate["test_suite_sha256"] = "added-tests"
+    report = compare_measurements(_synthetic_measurement(), candidate)
+    assert report["blocking"] is False
+    assert report["test_suite_changed"] is True
+
+
+@pytest.mark.parametrize("key,value", [("python", "3.13.0"), ("config_sha256", "changed"),
+                                      ("requirements_sha256", "changed"), ("scope", ["other"])])
+def test_coverage_non_homogeneous_environment_is_explicitly_blocked(key, value):
+    candidate = _synthetic_measurement(90)
+    candidate["environment"][key] = value
+    report = compare_measurements(_synthetic_measurement(), candidate)
+    assert report["status"] == "non_homogeneous"
+    assert report["blocking"] is True
+
+
+def test_coverage_changed_source_keeps_the_same_perimeter_and_reports_the_drop():
+    candidate = deepcopy(_synthetic_measurement(70))
+    candidate["files"]["lex/example.py"]["source_sha256"] = "b" * 64
+    report = compare_measurements(_synthetic_measurement(), candidate)
+    assert report["status"] == "regression"
+    assert report["changed_sources"] == ["lex/example.py"]
+
+
+def test_coverage_added_module_is_reported_as_a_perimeter_change():
+    candidate = _synthetic_measurement(80)
+    candidate["files"]["lex/new.py"] = {"covered": 100, "statements": 100, "source_sha256": "b" * 64}
+    report = compare_measurements(_synthetic_measurement(), candidate)
+    assert report["status"] == "non_homogeneous"
+    assert report["added_files"] == ["lex/new.py"]
+
+
+def test_coverage_missing_shard_and_duplicate_artifacts_fail(tmp_path):
+    for number in range(1, 12):
+        (tmp_path / f".coverage.critical.{number}").touch()
+    with pytest.raises(ValueError, match="mancanti"):
+        collect_shards(tmp_path)
+    (tmp_path / ".coverage.critical.12").touch()
+    assert len(collect_shards(tmp_path)) == 12
+    (tmp_path / "duplicate").mkdir()
+    (tmp_path / "duplicate/.coverage.critical.1").touch()
+    with pytest.raises(ValueError, match="duplicati"):
+        collect_shards(tmp_path)
+
+
+def test_coverage_previously_covered_lines_are_preserved_even_if_total_improves():
+    baseline = _synthetic_measurement(80)
+    candidate = _synthetic_measurement(81)
+    baseline["files"]["lex/example.py"]["executed_lines"] = [1, 2]
+    candidate["files"]["lex/example.py"]["executed_lines"] = [2, 3]
+    report = compare_measurements(baseline, candidate)
+    assert report["blocking"] is True
+    assert report["previously_covered_lines_lost"] == {"lex/example.py": [1]}
+
+
+def test_coverage_gate_is_required_and_baseline_uses_the_same_frozen_environment():
+    import json
+
+    workflow = yaml.safe_load(Path(".github/workflows/ci.yml").read_text(encoding="utf-8"))
+    names = [item["name"] for item in json.loads(Path(".github/required-checks.json").read_text())["required_checks"]]
+    assert "Regressioni della copertura critica" in names
+    jobs = workflow["jobs"]
+    assert jobs["critical-coverage-regression"]["needs"] == ["coverage-critical-shards", "coverage-baseline-shards", "critical-coverage-environment"]
+    for name in ("coverage-critical-shards", "coverage-baseline-shards"):
+        job = jobs[name]
+        assert job["strategy"]["matrix"]["shard"] == list(range(1, 13))
+        assert any("critical-env-freeze.txt" in step.get("run", "") for step in job["steps"])
+        python = next(step for step in job["steps"] if step.get("uses", "").startswith("actions/setup-python@"))
+        assert python["with"]["python-version"] == "3.12.15"
+
+
+def test_coverage_artifact_retry_selects_one_version_per_shard_without_deleting_history():
+    artifacts = [{"name": f"coverage-critical-{number}-attempt-1", "expired": False}
+                 for number in range(1, 13)]
+    artifacts.append({"name": "coverage-critical-4-attempt-2", "expired": False})
+    names = select_artifact_names(artifacts, "coverage-critical", 2)
+    assert len(names) == 12
+    assert names[3] == "coverage-critical-4-attempt-2"
+    assert len(artifacts) == 13
+    assert select_artifact_names(artifacts, "coverage-critical", 1)[3].endswith("attempt-1")
+
+
+def test_coverage_original_artifacts_and_missing_or_ambiguous_records():
+    artifacts = [{"name": f"coverage-critical-{number}", "expired": False}
+                 for number in range(1, 13)]
+    assert len(select_artifact_names(artifacts, "coverage-critical", 1)) == 12
+    with pytest.raises(ValueError, match="mancanti"):
+        select_artifact_names(artifacts[:-1], "coverage-critical", 1)
+    with pytest.raises(ValueError, match="ambigui"):
+        select_artifact_names(artifacts + [artifacts[0]], "coverage-critical", 1)
 
 
 def test_critical_coverage_gate_uses_governed_config():

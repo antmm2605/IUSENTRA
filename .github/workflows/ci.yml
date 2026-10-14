@@ -658,12 +658,50 @@ jobs:
           fi
           echo "Tutte le 10 fasi del Pytest core sono verdi."
 
+  critical-coverage-environment:
+    name: Ambiente riproducibile della copertura critica
+    runs-on: ubuntu-latest
+    needs: [quality, governance]
+    timeout-minutes: 12
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      baseline_sha: ${{ steps.freeze.outputs.baseline_sha }}
+      environment_artifact: ${{ steps.freeze.outputs.environment_artifact }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.15"
+          cache: pip
+      - name: Prepara dipendenze della misura
+        run: |
+          python -m pip install --upgrade pip wheel setuptools
+          pip install -c requirements/constraints.txt -r requirements.txt
+          pip install -c requirements/constraints.txt -r requirements-dev.txt
+          pip install coverage==7.16.2
+      - name: Seleziona baseline accettata e congela ambiente
+        id: freeze
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python tools/check_critical_coverage_regression.py --github-repo "$GITHUB_REPOSITORY" --prepare-directory .ci-critical-env
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.freeze.outputs.environment_artifact }}
+          path: .ci-critical-env/
+          include-hidden-files: true
+          if-no-files-found: error
+
   coverage-critical-shards:
     name: Coverage moduli critici parte ${{ matrix.shard }}/12
     runs-on: ubuntu-latest
     needs:
       - quality
       - governance
+      - critical-coverage-environment
     timeout-minutes: 12
     strategy:
       fail-fast: false
@@ -681,17 +719,15 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.12.15"
           cache: "pip"
 
-      - name: Install runtime deps
-        run: |
-          python -m pip install --upgrade pip wheel setuptools
-          pip install -c requirements/constraints.txt -r requirements.txt
-
-      - name: Install dev deps
-        run: |
-          pip install -c requirements/constraints.txt -r requirements-dev.txt
+      - uses: actions/download-artifact@v7
+        with:
+          name: ${{ needs.critical-coverage-environment.outputs.environment_artifact }}
+          path: .ci-critical-env
+      - name: Install frozen measurement dependencies
+        run: pip install -r .ci-critical-env/critical-env-freeze.txt
 
       - name: Run critical coverage shard
         shell: bash
@@ -719,12 +755,111 @@ jobs:
             mv .coverage ".coverage.critical.${{ matrix.shard }}"
           fi
           test -f ".coverage.critical.${{ matrix.shard }}"
+          python tools/check_critical_coverage_regression.py \
+            --record-metadata ".coverage.critical.${{ matrix.shard }}.metadata.json" \
+            --shard ${{ matrix.shard }} --environment-lock .ci-critical-env/critical-env-freeze.txt
 
       - name: Upload coverage shard
         uses: actions/upload-artifact@v7
         with:
-          name: coverage-critical-${{ matrix.shard }}
+          name: coverage-critical-${{ matrix.shard }}-attempt-${{ github.run_attempt }}
           path: .coverage.critical.${{ matrix.shard }}*
+          include-hidden-files: true
+          if-no-files-found: error
+
+  coverage-baseline-shards:
+    name: Baseline copertura critica parte ${{ matrix.shard }}/12
+    runs-on: ubuntu-latest
+    needs: critical-coverage-environment
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.15"
+          cache: pip
+      - uses: actions/download-artifact@v7
+        with:
+          name: ${{ needs.critical-coverage-environment.outputs.environment_artifact }}
+          path: .ci-critical-env
+      - name: Installa lo stesso ambiente congelato
+        run: pip install -r .ci-critical-env/critical-env-freeze.txt
+      - name: Misura la precedente versione accettata
+        env:
+          BASELINE_SHA: ${{ needs.critical-coverage-environment.outputs.baseline_sha }}
+        shell: bash
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/critical-baseline" "$BASELINE_SHA"
+          cd "$RUNNER_TEMP/critical-baseline"
+          COVERAGE_FILE="$GITHUB_WORKSPACE/.coverage.critical.${{ matrix.shard }}" \
+          PYTHONPATH="$PWD" python scripts/run_pytest_phases.py \
+            --suite coverage-critical --suite-shard ${{ matrix.shard }} --suite-total-shards 12 \
+            --suite-subdivide-items --timeout-minutes 5 -- \
+            --cov=lex --cov=pct.auth --cov=pct.storage --cov=pct.storage_postgres \
+            --cov=pct.telematico_repository --cov=pct.telematico_workflow \
+            --cov-config=config/coverage-critical.ini --cov-report=
+          if [ -f .coverage ]; then mv .coverage "$GITHUB_WORKSPACE/.coverage.critical.${{ matrix.shard }}"; fi
+          cd "$GITHUB_WORKSPACE"
+          python tools/check_critical_coverage_regression.py \
+            --source-root "$RUNNER_TEMP/critical-baseline" \
+            --record-metadata ".coverage.critical.${{ matrix.shard }}.metadata.json" \
+            --shard ${{ matrix.shard }} --environment-lock .ci-critical-env/critical-env-freeze.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: coverage-baseline-${{ matrix.shard }}-attempt-${{ github.run_attempt }}
+          path: .coverage.critical.${{ matrix.shard }}*
+          include-hidden-files: true
+          if-no-files-found: error
+
+  critical-coverage-regression:
+    name: Regressioni della copertura critica
+    runs-on: ubuntu-latest
+    needs: [coverage-critical-shards, coverage-baseline-shards, critical-coverage-environment]
+    if: ${{ always() }}
+    timeout-minutes: 12
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.15"
+          cache: pip
+      - uses: actions/download-artifact@v7
+        if: ${{ needs.critical-coverage-environment.result == 'success' }}
+        with:
+          name: ${{ needs.critical-coverage-environment.outputs.environment_artifact }}
+          path: .ci-critical-env
+      - name: Installa ambiente del confronto
+        if: ${{ needs.critical-coverage-environment.result == 'success' }}
+        run: pip install -r .ci-critical-env/critical-env-freeze.txt
+      - name: Confronto bloccante dei dodici shard
+        if: ${{ always() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python tools/check_critical_coverage_regression.py \
+            --github-repo "$GITHUB_REPOSITORY" --candidate-directory .ci-critical-candidate \
+            --baseline-directory .ci-critical-baseline --baseline-info .ci-critical-env/baseline.json \
+            --environment-lock .ci-critical-env/critical-env-freeze.txt --report .ci-critical-report/report.json
+      - name: Pubblica report della misura
+        if: ${{ always() }}
+        run: |
+          if [ -f .ci-critical-report/report.md ]; then cat .ci-critical-report/report.md >> "$GITHUB_STEP_SUMMARY"; fi
+      - uses: actions/upload-artifact@v7
+        if: ${{ always() }}
+        with:
+          name: critical-coverage-regression-report-attempt-${{ github.run_attempt }}
+          path: .ci-critical-report/
           include-hidden-files: true
           if-no-files-found: error
 

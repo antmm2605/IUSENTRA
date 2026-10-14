@@ -22,6 +22,10 @@
   },
   "required_checks": [
     {
+      "name": "Regressioni della copertura critica",
+      "events": ["push", "pull_request"]
+    },
+    {
       "name": "Lint + syntax",
       "events": [
         "push",

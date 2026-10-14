@@ -5,6 +5,7 @@ import itertools
 import json
 import os
 import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -319,7 +320,11 @@ def render_markdown(
     status_rows: list[GateRow],
     branch_rows: list[GateRow] | None = None,
 ) -> str:
-    now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
+    if str(REPO_ROOT) not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT))
+    from pct.formatting import format_datetime_it
+
+    now = format_datetime_it(datetime.now(UTC))
     verdict = "OK" if not has_open_failures(check_rows) and not has_open_failures([r for r in status_rows if r.state != "ignored"]) else "FAIL"
     lines = [
         "# Report CI richiesti",

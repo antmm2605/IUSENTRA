@@ -3264,6 +3264,14 @@ def soggetto_modifica_react(id_soggetto: str):
 @api_v1_react.get("/email")
 @_richiedi_auth
 def email_react_list():
+    fascicolo_id = request.args.get("id_fascicolo", "").strip()
+    fascicolo = None
+    if fascicolo_id:
+        if not _session_user_can("fascicoli.leggi"):
+            return jsonify({"ok": False, "message": "Non hai il permesso di consultare questo fascicolo."}), 403
+        fascicolo = _fascicolo_singolo_loader()().get(fascicolo_id)
+        if fascicolo is None:
+            return jsonify({"ok": False, "message": "Fascicolo non trovato."}), 404
     response = jsonify(build_react_email_payload(
         db_path=_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"),
         messaggi_db=_tenant_cfg_value("MESSAGGI_DB", "./messaggi/storico.json"),
@@ -3289,7 +3297,33 @@ def email_react_list():
         tenant_id=_tenant_runtime_label(),
         limit=request.args.get("limit", ""),
         offset=request.args.get("offset", ""),
+        fascicolo_id=fascicolo_id,
     ))
+    if fascicolo is not None:
+        from pct.pec_fascicolo_cliente import fascicolo_payload
+
+        case_reference = fascicolo_payload(fascicolo)
+        payload = response.get_json()
+        payload["matter"] = {
+            "id": fascicolo_id,
+            "title": str(getattr(fascicolo, "titolo", "") or "Fascicolo"),
+            "href": f"/fascicoli/{quote(fascicolo_id, safe='')}",
+            "context": " · ".join(value for value in (
+                str(getattr(fascicolo, "nome_cliente", "") or ""),
+                f"RG {case_reference['rg']}" if case_reference['rg'] else "",
+                case_reference['ufficio'],
+            ) if value),
+            "archivedMessages": [
+                {"id": doc.id, "name": doc.nome,
+                 "href": f"/fascicoli/{quote(fascicolo_id, safe='')}/documenti/{quote(doc.id, safe='')}/visualizza"}
+                for doc in getattr(fascicolo, "documenti", [])
+                if not getattr(doc, "eliminato_il", "") and any(
+                    str(getattr(doc, field, "") or "").lower().endswith(".eml")
+                    for field in ("percorso", "nome_originale", "nome")
+                )
+            ],
+        }
+        response = jsonify(payload)
     response.headers["Cache-Control"] = "no-store, max-age=0"
     return response
 
@@ -3422,6 +3456,12 @@ def email_react_bulk_action():
 def _email_selection_ids(*, ordinary=False):
     if not (_session_user_can("messaggi.scrivi") or _session_user_can("admin.configura")):
         return jsonify({"ok": False, "message": "Non hai il permesso di modificare i messaggi."}), 403
+    fascicolo_id = '' if ordinary else request.args.get('id_fascicolo', '').strip()
+    if fascicolo_id:
+        if not _session_user_can('fascicoli.leggi'):
+            return jsonify({"ok": False, "message": "Non hai il permesso di consultare questo fascicolo."}), 403
+        if _fascicolo_singolo_loader()().get(fascicolo_id) is None:
+            return jsonify({"ok": False, "message": "Fascicolo non trovato."}), 404
     from web.services.email_selection import select_mailbox_ids
     from pct.email_mailbox_repository import MailboxNotInitialized
 

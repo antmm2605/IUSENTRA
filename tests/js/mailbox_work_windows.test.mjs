@@ -26,6 +26,13 @@ test('la fonte puntuale mantiene il lettore del messaggio', () => {
   assert.equal(url?.searchParams.get('embed'),'source')
  }
 })
+
+test('le PEC del fascicolo mantengono il collegamento SQL e tutte le cartelle nella finestra', () => {
+ const url = workWindowUrl('/email/?id_fascicolo=controlled-case&cartella=TUTTE', origin)
+ assert.equal(url?.searchParams.get('id_fascicolo'), 'controlled-case')
+ assert.equal(url?.searchParams.get('cartella'), 'TUTTE')
+ assert.equal(url?.searchParams.get('view'), 'mailbox')
+})
 test('le altre finestre mantengono contesto e confini di origine', () => {
  const url=workWindowUrl('/agenda/ID4?vista=week&data=2026-10-05',origin)
  assert.equal(url?.searchParams.get('vista'),'week')

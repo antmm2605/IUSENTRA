@@ -1,8 +1,14 @@
 # Pytest issue aperte e risoluzioni
 
+## PEC del fascicolo e cartelle reali — 14/10/2026
+
+Candidata 2.437.27: filtro sulla relazione SQL governata, autorizzazione del fascicolo, conteggi per cartella e apertura degli EML nel lettore condiviso. Verifica del caso di produzione: tre messaggi già collegati, di cui uno nel cestino. Corretto nel sorgente il vecchio trattamento dei messaggi del registro come tutti in arrivo. Guardrail SQLite/PostgreSQL, tenant, permessi, oltre duecento messaggi e inserimento concorrente positivi; la fotografia di lettura evita duplicati e il successivo aggiornamento vede il nuovo messaggio. Installata e provata personalmente su 8080: tre cartelle, conteggi, ricerca, originali EML, singolare e contesto del collegamento alla cartella, scorrimento e lettura a larghezze effettive 771/389 pixel senza overflow. Fixture sintetiche esplicite, originali preesistenti preservati e ripetizione senza nuovi messaggi/documenti. Nessun invio PEC, pagamento o attestazione di associazione automatica. Restano CI, commit/push e deploy. Contesa nelle scritture del registro durante lavorazioni scheduler rilevata separatamente: dopo riallineamento la prova è riuscita, ma la causa iniziale non è ancora dimostrata come corretta; conservarla tra i punti generali aperti. Dettagli in docs/PEC_FASCICOLO.md.
+
 ## Gate automatico di copertura critica — 14/10/2026
 
 Collegato al workflow il confronto dei dodici shard candidati con dodici shard della precedente versione accettata, rimisurata nello stesso ambiente congelato. Selezione da CI/deploy `main`, metadati per shard e controllo aggiuntivo obbligatorio; nessun aggregatore legacy ripristinato e nessuna soglia abbassata. Quindici guardrail dedicati e controlli CI vicini positivi; il nuovo lettore riproduce i conteggi reali della 2.437.25. Restano collaudo GitHub del percorso completo, verifica delle protezioni, copia reale e deploy. I risultati tecnici non chiudono ancora l'incarico.
+
+Aggiornamento successivo: rilasciata 2.437.26, commit `4aba8e65520e185d61e858b149c4212fe4ea41ef`. CI `38495580307` e nuovo confronto `115635640679` positivi; misura originale, baseline rimisurata e candidata concordanti a 27.592/33.996, 81,1624897%, senza righe coperte perse. Protezione main e tutti i controlli richiesti confermati. Prova reale locale sulle tre pagine del PDF controllato, chiusura lettore e navigazione effettuata; deploy `38495580353` positivo, locale e server sullo stesso commit, unico iusentra-app healthy, readiness 2.437.26 e pulizia native confermate. Il controllo automatico è operativo; il target di copertura critica al 100% e l'incarico generale restano aperti.
 
 ## Patch locale governata braces — 14/10/2026
 

@@ -2,6 +2,10 @@
 
 > Direttiva utente 13/10/2026: `main` è il solo branch operativo e predefinito per commit, push e deploy. Le istruzioni storiche su branch gemelli e doppio push sono sostituite: nessun mirroring. I vecchi branch restano conservati come riferimenti storici; `chore/monorepo-foundation` resta intoccabile. Tutti i gate CI e le verifiche reali restano obbligatori.
 
+## PEC del fascicolo — 14/10/2026 — candidata 2.437.27
+
+Vista React collegata alla relazione SQL del fascicolo, con tenant e permessi verificati, cartelle ricevute/inviate/cestino e originali EML nel lettore condiviso. Collaudo materiale locale delle tre cartelle, ricerca, conteggi, apertura della fonte e larghezze 771/389 pixel documentato in `docs/PEC_FASCICOLO.md`. Guardrail su SQLite/PostgreSQL, concorrenza e oltre duecento messaggi positivi. Commit, CI e distribuzione della candidata restano aperti; contesa del registro durante lavorazioni scheduler mantenuta come problema distinto da diagnosticare.
+
 ## Agenda, termini e verbale — 12/10/2026 — candidata 2.437.12
 
 Repository termini canonico con parità SQLite/PostgreSQL, adozione esplicita con drain/backup/marker/audit e revisioni governate dei cataloghi. Nella copia reale sono stati visti collegamento Agenda, reclamo con 10 giorni, calcolo con data inizialmente vuota e ripresa persistente del verbale nel medesimo fascicolo. Il confronto DOCX/PDF controllato conferma testo e interlinea corretta. La creazione resta bloccata con feriale non determinata; il cambio parametri invalida il risultato. Dettagli e limiti nel [rapporto](../artifacts/data-flow/utility-agenda-verbale-20261011.md). Accettazione restante e rilascio sono aperti: nessun deploy produzione di questo punto ancora. Censimento SQL/live e altre anomalie dell’incarico generale restano distinti.

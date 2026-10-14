@@ -117,6 +117,7 @@ export type EmailPecSummary = {
 }
 
 export type EmailPecPageData = {
+  matter?: { id: string; title: string; href: string; context: string; archivedMessages: Array<{ id: string; name: string; href: string }> }
   source: string
   generatedAt: string
   contracts: { mock_fallback: boolean; read_only: boolean }
@@ -171,6 +172,7 @@ export type EmailDetailData = {
 }
 
 export type EmailPecParams = {
+  fascicoloId?: string
   folder?: EmailFolder
   q?: string
   stato?: EmailStatus
@@ -481,7 +483,12 @@ function normalisePayload(payload: unknown, fallback = emptyEmailPecPage): Email
   const fallbackBasePath = text(actions.operationalInbox ?? actions.operational_inbox, fallback.actions.operationalInbox).replace(/\/+$/, '') || '/email'
   const items = rawItems.map((item, index) => rowFromPayload(item, index, fallbackBasePath))
   const facets = isRecord(payload.facets) ? payload.facets : {}
+  const matter = isRecord(payload.matter) ? payload.matter : null
   return {
+    matter: matter ? {
+      id: text(matter.id), title: text(matter.title), href: text(matter.href), context: text(matter.context),
+      archivedMessages: (Array.isArray(matter.archivedMessages) ? matter.archivedMessages : []).filter(isRecord).map(item => ({ id: text(item.id), name: text(item.name), href: text(item.href) })),
+    } : undefined,
     source: text(payload.source, 'repository_reali'),
     generatedAt: text(payload.generatedAt ?? payload.generated_at),
     contracts: isRecord(payload.contracts)
@@ -739,6 +746,7 @@ export function folderParam(value: EmailFolder): string {
 
 function mailboxQuery(params: EmailPecParams): URLSearchParams {
   const query = new URLSearchParams()
+  if (params.fascicoloId?.trim()) query.set('id_fascicolo', params.fascicoloId.trim())
   if (params.folder) query.set('cartella', folderParam(params.folder))
   if (params.q?.trim()) query.set('q', params.q.trim())
   if (params.stato && params.stato !== 'tutti') query.set('stato', params.stato)
@@ -759,9 +767,13 @@ async function fetchEmailPage(endpoint: string, fallback: EmailPecPageData, para
     const url = `${endpoint}${query.toString() ? `?${query.toString()}` : ''}`
     const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
     if (!response.ok) {
-      const message = response.status === 401 ? 'La sessione è scaduta. Accedi nuovamente per consultare la posta.'
+      const fallbackMessage = response.status === 401 ? 'La sessione è scaduta. Accedi nuovamente per consultare la posta.'
         : response.status === 403 ? 'Non hai il permesso di consultare questa casella.'
           : 'Non è stato possibile caricare la casella. Riprova tra poco.'
+      let errorPayload: unknown = null
+      try { errorPayload = await response.json() } catch { /* Conserva il messaggio HTTP se la risposta non contiene JSON. */ }
+      const message = isRecord(errorPayload) && typeof errorPayload.message === 'string'
+        ? errorPayload.message || fallbackMessage : fallbackMessage
       throw new Error(message)
     }
     const payload: unknown = await response.json()

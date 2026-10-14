@@ -1691,6 +1691,10 @@
   display:grid;
   gap:8px;
 }
+.iu-mail-archived-messages{padding:0 0 12px;border-bottom:1px solid var(--iu-border)}
+.iu-mail-archived-messages summary{padding:12px 0;cursor:pointer;font-weight:850;overflow-wrap:anywhere}
+.iu-mail-archived-messages>p{max-width:72ch;color:var(--iu-slate-600);font-size:13px}
+.iu-mail-archived-messages>.iu-mail-attachments{max-height:32vh;overflow:auto;overscroll-behavior:contain}
 .iu-mail-attachments article{
   display:grid;
   grid-template-columns:auto minmax(0,1fr) repeat(3,auto);

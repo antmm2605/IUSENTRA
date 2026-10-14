@@ -1,5 +1,9 @@
 # Pytest shard confermati OK
 
+## PEC del fascicolo — 14/10/2026 — candidata 2.437.27
+
+Quattordici guardrail dei filtri, quattro dei permessi di route e dieci delle selezioni sui backend reali controllati SQLite/PostgreSQL positivi. La vista attraversa oltre duecento righe in una fotografia coerente, conserva cartelle e tenant, non consulta preventivamente le PEC estranee e non sostituisce l'esito recente con una copia storica dello stesso header. Trentatré guardrail dell'anteprima documentale e ventinove dei client/finestre positivi; typecheck e build positivi. Le classi astratte della suite repository restano intenzionalmente escluse dalla raccolta eseguibile. Prova materiale locale e limiti in `docs/PEC_FASCICOLO.md`; CI e deploy della candidata ancora da eseguire.
+
 ## Dipendenze segnalate — prove tecniche, 13/10/2026
 
 Installazione congelata, typecheck, build e suite frontend con i quattro nuovi test di sicurezza positivi nella copia temporanea governata. Hono conserva il testo ordinario ed esegue l'escaping; selettori estesi terminano entro il limite; offset non validi e annidati sono rifiutati dalle mappe sorgente; API MCP stdio disponibile. Confrontati 285 asset compilati, byte identici alla copia principale. Queste sono prove tecniche: candidata 2.437.24 non ancora accettata nella macchina reale, né distribuita. Evidenze conservate mediante il plugin Codex Security. Avviso separato braces ancora aperto.

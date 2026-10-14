@@ -15,4 +15,5 @@ def select_mailbox_ids(db_path, query, *, ordinary=False, tenant_id='default'):
         origine=query.get('origine', '').strip().upper(),
         data_da=query.get('data_da', '').strip(), data_a=query.get('data_a', '').strip(),
         selection_only=True,
+        fascicolo_id='' if ordinary else query.get('id_fascicolo', '').strip(),
     )

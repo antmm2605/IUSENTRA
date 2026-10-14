@@ -142,10 +142,10 @@ def _safe_doc_html(value: str) -> str:
 
     source = str(value or "")
     try:
-        from bs4 import BeautifulSoup, Comment  # type: ignore
+        from bs4 import BeautifulSoup, Comment, ProcessingInstruction  # type: ignore
 
         soup = BeautifulSoup(source, "html.parser")
-        for comment in soup.find_all(string=lambda item: isinstance(item, Comment)):
+        for comment in soup.find_all(string=lambda item: isinstance(item, (Comment, ProcessingInstruction))):
             comment.extract()
         for tag in list(soup.find_all(list(_DOC_HTML_DROP_CONTENT_TAGS))):
             tag.decompose()

@@ -403,6 +403,7 @@ def _pec_audit_summaries(
     tenant_id: str = "default",
     include_telematic: bool = True,
     include_details: bool = True,
+    strict: bool = False,
 ) -> dict[str, dict[str, Any]]:
     if not include_telematic:
         return {}
@@ -418,6 +419,8 @@ def _pec_audit_summaries(
             include_details=include_details,
         )
     except Exception:
+        if strict:
+            raise
         return {}
 
 
@@ -427,6 +430,7 @@ def _pec_audit_all_summaries(
     tenant_id: str = "default",
     include_telematic: bool = True,
     include_details: bool = True,
+    fascicolo_id: str = "",
 ) -> list[dict[str, Any]]:
     if not include_telematic:
         return []
@@ -438,7 +442,22 @@ def _pec_audit_all_summaries(
 
         repo = PecAuditRepository(audit_db, tenant_id=tenant_id)
         summaries: list[dict[str, Any]] = []
-        for row in repo.list_messages(limit=200, include_details=include_details):
+        # Il fascicolo usa il collegamento SQL governato, mai il solo testo RG.
+        # Percorrere tutte le pagine della pratica senza troncare a 200 PEC.
+        if fascicolo_id:
+            rows = []
+            with repo.connect() as snapshot:
+                snapshot.execute("BEGIN")
+                while True:
+                    page = repo.list_messages(limit=200, include_details=include_details,
+                                              fascicolo_id=fascicolo_id, offset=len(rows),
+                                              connection=snapshot)
+                    rows.extend(page)
+                    if len(page) < 200:
+                        break
+        else:
+            rows = repo.list_messages(limit=200, include_details=include_details)
+        for row in rows:
             detail = repo.get_message_detail(str(row.get("id") or "")) if include_details else {}
             message = detail.get("message") if isinstance(detail.get("message"), dict) else row
             parsed = detail.get("parsed") if isinstance(detail.get("parsed"), dict) else {}
@@ -453,6 +472,7 @@ def _pec_audit_all_summaries(
                     "linked_fascicolo_id": message.get("linked_fascicolo_id") or row.get("linked_fascicolo_id") or "",
                     "linked_fascicolo_score": message.get("linked_fascicolo_score") or row.get("linked_fascicolo_score") or 0,
                     "received_at": message.get("received_at") or row.get("received_at") or "",
+                    "folder": message.get("folder") or row.get("folder") or CartellaEmail.INBOX,
                     "metadata": message.get("metadata") or row.get("metadata") or {},
                     "fields": parsed.get("fields") or {},
                     "body_text": body_text,
@@ -463,6 +483,8 @@ def _pec_audit_all_summaries(
             )
         return summaries
     except Exception:
+        if fascicolo_id:
+            raise
         return []
 
 
@@ -908,7 +930,8 @@ def _pec_audit_matches_filters(
     con_allegati: bool,
     stato_pct: str,
 ) -> bool:
-    if folder not in {CartellaEmail.INBOX, 'TUTTE'}:
+    source_folder = _normalise_folder(summary.get("folder") or CartellaEmail.INBOX)
+    if folder != 'TUTTE' and folder != source_folder:
         return False
     if stato == StatoEmail.NON_LETTA:
         return False
@@ -957,7 +980,7 @@ def _pec_audit_virtual_row(
     presidio_payload = dict(pec_presidio or {})
     return {
         "id": f"pec-audit:{pec_id}",
-        "folder": CartellaEmail.INBOX,
+        "folder": _normalise_folder(summary.get("folder") or CartellaEmail.INBOX),
         "status": StatoEmail.LETTA,
         "sender": sender,
         "senderName": sender,
@@ -1262,6 +1285,7 @@ def build_react_email_payload(
     tenant_id: str = "default",
     limit: int = DEFAULT_EMAIL_PAGE_LIMIT,
     offset: int = 0,
+    fascicolo_id: str = "",
 ) -> dict[str, Any]:
     gestore = create_email_mailbox(db_path=db_path)
     _sync_inviati_da_messaggi(gestore, messaggi_db)
@@ -1286,13 +1310,37 @@ def build_react_email_payload(
     all_emails = list(gestore._carica().values())  # noqa: SLF001 - bridge read-only su repository operativa
     stats = gestore.statistiche()
     large_mailbox = len(all_emails) > 80
-    persisted_audit_summaries = _pec_audit_summaries(
-        db_path,
-        all_emails,
-        tenant_id=tenant_id,
-        include_telematic=include_telematic,
-        include_details=not large_mailbox,
-    )
+    matter_audit_summaries = _pec_audit_all_summaries(
+        db_path, tenant_id=tenant_id, include_telematic=include_telematic,
+        include_details=False, fascicolo_id=fascicolo_id,
+    ) if fascicolo_id else None
+    if matter_audit_summaries is not None:
+        persisted_audit_summaries = {}
+        for item in matter_audit_summaries:
+            header = str(item.get("message_id_header") or item.get("id") or "").strip()
+            persisted_audit_summaries.setdefault(header, item)
+    else:
+        persisted_audit_summaries = _pec_audit_summaries(
+            db_path, all_emails, tenant_id=tenant_id,
+            include_telematic=include_telematic, include_details=not large_mailbox,
+        )
+    if fascicolo_id:
+        def belongs_to_matter(email_obj: Any) -> bool:
+            header = str(getattr(email_obj, "message_id", "") or "").strip()
+            email_id = str(getattr(email_obj, "id", "") or "").strip()
+            summary = persisted_audit_summaries.get(header) or persisted_audit_summaries.get(email_id) or {}
+            return summary.get("linked_fascicolo_id") == fascicolo_id
+
+        all_emails = [item for item in all_emails if belongs_to_matter(item)]
+        emails = [item for item in emails if belongs_to_matter(item)]
+        folder_counts = Counter(_normalise_folder(getattr(item, "cartella", "")) for item in all_emails)
+        stats = {
+            "totale": len(all_emails),
+            "inbox": folder_counts[CartellaEmail.INBOX],
+            "inviati": folder_counts[CartellaEmail.INVIATI],
+            "cestino": folder_counts[CartellaEmail.CESTINO],
+            "non_lette": sum(getattr(item, "stato", "") == StatoEmail.NON_LETTA for item in all_emails),
+        }
     if solo_pst and include_telematic:
         emails = [email_obj for email_obj in emails if (
             getattr(email_obj, 'e_pst', False)
@@ -1359,14 +1407,18 @@ def build_react_email_payload(
     email_headers = {str(getattr(email_obj, "message_id", "") or "").strip() for email_obj in all_emails if str(getattr(email_obj, "message_id", "") or "").strip()}
     audit_only_summaries = [
         item
-        for item in _pec_audit_all_summaries(
+        for item in (matter_audit_summaries if matter_audit_summaries is not None else _pec_audit_all_summaries(
             db_path,
             tenant_id=tenant_id,
             include_telematic=include_telematic,
             include_details=not large_mailbox,
-        )
+            fascicolo_id=fascicolo_id,
+        ))
         if str(item.get("message_id_header") or "").strip() not in email_headers
+        and (not fascicolo_id or item.get("linked_fascicolo_id") == fascicolo_id)
     ]
+    audit_folder_counts = Counter(_normalise_folder(item.get("folder") or CartellaEmail.INBOX)
+                                  for item in audit_only_summaries)
     audit_only_filtered_summaries = [
         item
         for item in audit_only_summaries
@@ -1453,10 +1505,10 @@ def build_react_email_payload(
         "summary": {
             "total": int(stats.get("totale", len(all_emails)) or 0) + len(audit_only_summaries),
             "filtered": len(emails) + len(audit_only_filtered_summaries),
-            "inbox": int(stats.get("inbox", 0) or 0) + len(audit_only_summaries),
+            "inbox": int(stats.get("inbox", 0) or 0) + audit_folder_counts[CartellaEmail.INBOX],
             "unread": stats.get("non_lette", 0),
-            "sent": stats.get("inviati", 0),
-            "trash": stats.get("cestino", 0),
+            "sent": int(stats.get("inviati", 0) or 0) + audit_folder_counts[CartellaEmail.INVIATI],
+            "trash": int(stats.get("cestino", 0) or 0) + audit_folder_counts[CartellaEmail.CESTINO],
             "pst": pst_total,
             "attachments": attachments_total,
             "autoLinked": auto_linked,
@@ -1466,15 +1518,15 @@ def build_react_email_payload(
         "facets": {
             "folders": [
                 _facet('TUTTE', 'Tutte', int(stats.get('totale', len(all_emails)) or 0) + len(audit_only_summaries)),
-                _facet(CartellaEmail.INBOX, "In arrivo", int(stats.get("inbox", 0)) + len(audit_only_summaries)),
-                _facet(CartellaEmail.INVIATI, "Inviati", int(stats.get("inviati", 0))),
-                _facet(CartellaEmail.CESTINO, "Cestino", int(stats.get("cestino", 0))),
+                _facet(CartellaEmail.INBOX, "In arrivo", int(stats.get("inbox", 0)) + audit_folder_counts[CartellaEmail.INBOX]),
+                _facet(CartellaEmail.INVIATI, "Inviati", int(stats.get("inviati", 0)) + audit_folder_counts[CartellaEmail.INVIATI]),
+                _facet(CartellaEmail.CESTINO, "Cestino", int(stats.get("cestino", 0)) + audit_folder_counts[CartellaEmail.CESTINO]),
             ],
             "statuses": [
                 _facet("tutti", "Tutte", len(all_emails) + len(audit_only_summaries)),
                 _facet(StatoEmail.NON_LETTA, "Non lette", int(stats.get("non_lette", 0))),
                 _facet(StatoEmail.LETTA, "Lette", sum(1 for email_obj in all_emails if getattr(email_obj, "stato", "") == StatoEmail.LETTA) + len(audit_only_summaries)),
-                _facet(StatoEmail.CESTINO, "Nel cestino", int(stats.get("cestino", 0))),
+                _facet(StatoEmail.CESTINO, "Nel cestino", int(stats.get("cestino", 0)) + audit_folder_counts[CartellaEmail.CESTINO]),
             ],
             "pctStatuses": [
                 _facet("", "Tutti gli esiti", len(all_emails) + len(audit_only_summaries)),

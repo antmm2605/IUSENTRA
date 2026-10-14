@@ -10,6 +10,74 @@ from tests.test_condivisioni_sql_repository import SQLFactory
 from web.services.react_email_bridge import _email_row, build_react_email_payload
 
 
+class PecMatterAuditTests(unittest.TestCase):
+    def test_native_register_paginates_all_linked_messages_and_isolates_tenants(self):
+        import hashlib
+        import tempfile
+        from pct.pec_pipeline import PecAuditRepository
+        from web.services.react_email_bridge import _pec_audit_all_summaries
+
+        with tempfile.TemporaryDirectory() as directory:
+            mailbox = Path(directory) / 'email' / 'casella.json'
+            repo = PecAuditRepository(mailbox.parent / 'pec_audit.sqlite', tenant_id='studio-a')
+            fixtures = [(f'controlled-{index:04}', 'studio-a', 'case-a') for index in range(201)]
+            fixtures += [('other-matter', 'studio-a', 'case-b'), ('other-tenant', 'studio-b', 'case-a')]
+            with repo.connect() as conn:
+                conn.executemany('''INSERT INTO pec_messages
+                    (id, tenant_id, account_email, folder, mime_sha256, mime_size, original_mime,
+                     received_at, ingested_at, linked_fascicolo_id)
+                    VALUES (?, ?, 'controlled@example.test', 'CESTINO', ?, 1, ?, ?, ?, ?)''',
+                    [(key, tenant, hashlib.sha256(key.encode()).hexdigest(), b'x',
+                      '2026-10-01T10:00:00+02:00', '2026-10-01T10:00:00+02:00', matter)
+                     for key, tenant, matter in fixtures])
+            rows = _pec_audit_all_summaries(str(mailbox), tenant_id='studio-a',
+                                             fascicolo_id='case-a', include_details=False)
+            self.assertEqual(len(rows), 201)
+            self.assertEqual(len({row['id'] for row in rows}), 201)
+            self.assertTrue(all(row['folder'] == 'CESTINO' for row in rows))
+            self.assertFalse({'other-matter', 'other-tenant'} & {row['id'] for row in rows})
+
+            with repo.connect() as conn:
+                conn.execute('PRAGMA journal_mode=WAL')
+            original = PecAuditRepository.list_messages
+            inserted = False
+
+            def concurrent_page(repository, **kwargs):
+                nonlocal inserted
+                result = original(repository, **kwargs)
+                if kwargs.get('fascicolo_id') == 'case-a' and not inserted:
+                    inserted = True
+                    with repo.connect() as writer:
+                        writer.execute('''INSERT INTO pec_messages
+                            (id,tenant_id,account_email,folder,mime_sha256,mime_size,original_mime,
+                             received_at,ingested_at,linked_fascicolo_id)
+                            VALUES ('zz-new','studio-a','controlled@example.test','INBOX',?,1,?, ?,?, 'case-a')''',
+                            (hashlib.sha256(b'new').hexdigest(), b'n', '2026-10-01T10:00:00+02:00',
+                             '2026-10-01T10:00:00+02:00'))
+                return result
+
+            with patch.object(PecAuditRepository, 'list_messages', concurrent_page):
+                snapshot_rows = _pec_audit_all_summaries(str(mailbox), tenant_id='studio-a',
+                                                        fascicolo_id='case-a', include_details=False)
+            self.assertEqual(len(snapshot_rows), 201)
+            self.assertEqual(len({row['id'] for row in snapshot_rows}), 201)
+            self.assertNotIn('zz-new', {row['id'] for row in snapshot_rows})
+            refreshed = _pec_audit_all_summaries(str(mailbox), tenant_id='studio-a',
+                                               fascicolo_id='case-a', include_details=False)
+            self.assertEqual(len(refreshed), 202)
+
+    def test_matter_register_error_is_not_an_empty_mailbox(self):
+        import sqlite3
+        import tempfile
+        from web.services.react_email_bridge import _pec_audit_all_summaries
+
+        with tempfile.TemporaryDirectory() as directory:
+            mailbox = Path(directory) / 'casella.json'
+            (mailbox.parent / 'pec_audit.sqlite').write_bytes(b'controlled-corrupt-database')
+            with self.assertRaises(sqlite3.DatabaseError):
+                _pec_audit_all_summaries(str(mailbox), fascicolo_id='case-a')
+
+
 class EmailCardFiltersTests(unittest.TestCase):
     def setUp(self):
         self.factory = SQLFactory('sqlite')
@@ -54,6 +122,43 @@ class EmailCardFiltersTests(unittest.TestCase):
         self.assertEqual(len(second['items']), 10)
         self.assertFalse({row['id'] for row in first['items']} & {row['id'] for row in second['items']})
         self.assertEqual({row['value']: row['count'] for row in first['facets']['folders']}['TUTTE'], 100)
+
+    def test_matter_uses_persisted_link_before_pagination(self):
+        summaries = {f'<controlled-{index}@example.test>': {
+            'id': f'audit-{index}', 'linked_fascicolo_id': 'case-a', 'quality_status': 'verde',
+        } for index in (0, 1, 2, 4, 5, 6)}
+        summaries['<controlled-8@example.test>'] = {'id': 'other', 'linked_fascicolo_id': 'case-b'}
+        rows = [dict(value, message_id_header=header) for header, value in summaries.items()]
+        rows.append(dict(rows[0], id='older-audit', quality_status='rosso'))
+        with patch('web.services.react_email_bridge._pec_audit_all_summaries', return_value=rows), \
+                patch('web.services.react_email_bridge._pec_audit_summaries') as bulk_lookup:
+            result = self.payload(fascicolo_id='case-a', offset=4)
+            self.assertEqual(result['summary']['filtered'], 6)
+            self.assertEqual(len(result['items']), 2)
+            self.assertEqual(result['summary']['inbox'], 2)
+            self.assertEqual(result['summary']['sent'], 2)
+            self.assertEqual(result['summary']['trash'], 2)
+            self.assertNotIn('email-008', {row['id'] for row in result['items']})
+            first_page = self.payload(fascicolo_id='case-a')
+            first_item = next(row for row in first_page['items'] if row['id'] == 'email-000')
+            self.assertEqual(first_item['pecAudit']['qualityStatus'], 'verde')
+            bulk_lookup.assert_not_called()
+
+    def test_audit_only_messages_preserve_folder_and_counts(self):
+        rows = [{'id': folder, 'folder': folder, 'linked_fascicolo_id': 'case-a'}
+                for folder in ('INBOX', 'INVIATI', 'CESTINO')]
+        rows.append({'id': 'other', 'folder': 'INBOX', 'linked_fascicolo_id': 'case-b'})
+        with patch('web.services.react_email_bridge._pec_audit_summaries', return_value={}), \
+                patch('web.services.react_email_bridge._pec_audit_all_summaries', return_value=rows):
+            for folder in ('TUTTE', 'INBOX', 'INVIATI', 'CESTINO'):
+                result = build_react_email_payload(db_path=str(self.path), fascicolo_id='case-a', folder=folder)
+                self.assertEqual(result['summary']['total'], 3)
+                self.assertEqual(result['summary']['inbox'], 1)
+                self.assertEqual(result['summary']['sent'], 1)
+                self.assertEqual(result['summary']['trash'], 1)
+                self.assertEqual(result['summary']['filtered'], 3 if folder == 'TUTTE' else 1)
+                if folder != 'TUTTE':
+                    self.assertEqual(result['items'][0]['folder'], folder)
 
     def test_linked_filter_count_matches_card_across_folders(self):
         result = self.payload(solo_collegate=True)

@@ -21,6 +21,7 @@ import time
 import uuid
 import zipfile
 from dataclasses import dataclass
+from contextlib import nullcontext
 from datetime import date, datetime, timedelta, timezone
 from email import policy
 from email.header import decode_header
@@ -12626,6 +12627,9 @@ class PecAuditRepository:
         folder: str = "",
         q: str = "",
         include_details: bool = True,
+        fascicolo_id: str = "",
+        offset: int = 0,
+        connection: sqlite3.Connection | None = None,
     ) -> list[dict[str, Any]]:
         columns = """
             id, tenant_id, account_email, folder, imap_uid, message_id_header,
@@ -12636,16 +12640,20 @@ class PecAuditRepository:
         """
         query = f"SELECT {columns} FROM pec_messages WHERE tenant_id=?"
         params: list[Any] = [self.tenant_id]
+        if fascicolo_id:
+            query += " AND linked_fascicolo_id=?"
+            params.append(fascicolo_id)
         if folder:
             query += " AND folder=?"
             params.append(folder)
         if q:
             query += " AND metadata_json LIKE ?"
             params.append(f"%{q}%")
-        query += " ORDER BY received_at DESC LIMIT ?"
+        query += " ORDER BY received_at DESC, id DESC LIMIT ? OFFSET ?"
         params.append(int(limit or 100))
+        params.append(max(0, int(offset)))
         rows: list[dict[str, Any]] = []
-        with self.connect() as conn:
+        with (nullcontext(connection) if connection is not None else self.connect()) as conn:
             for row in conn.execute(query, tuple(params)).fetchall():
                 item = _row_to_dict(row)
                 item["metadata"] = json.loads(item.pop("metadata_json") or "{}")

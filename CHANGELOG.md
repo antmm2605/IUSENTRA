@@ -1,20 +1,25 @@
 # Changelog
 
-## 2.437.26 — candidata, 14/10/2026
+## 2.437.27 — candidata, 14/10/2026
+
+- PEC del fascicolo aperte dall'icona dedicata e dal pannello rapido, con filtro sull'associazione SQL e tutte le cartelle. Cartella reale conservata per i messaggi del registro; conteggi e selezione coerenti con la pratica.
+- EML conservati nei documenti accessibili da elenco richiudibile nel lettore interno. Paginazione completa del registro su fotografia coerente, permessi del fascicolo e errori espliciti. Guardrail positivi; accettazione materiale e rilascio ancora in corso.
+
+## 2.437.26 — 14/10/2026
 
 - Controllo bloccante delle regressioni di copertura critica: dodici shard candidati confrontati con dodici misure della precedente versione accettata, usando lo stesso ambiente Python congelato. Provenienza, configurazione, perimetro e differenze sono pubblicati nel report.
-- Controlli CI esistenti preservati; artefatti mancanti o confronti non omogenei restano errori espliciti. Report leggibili con data e ora italiane. Percorso GitHub completo e rilascio ancora in collaudo.
+- Controlli CI esistenti preservati; artefatti mancanti o confronti non omogenei restano errori espliciti. Report leggibili con data e ora italiane. Percorso GitHub completo provato, copertura preservata all'81,1624897%; copia reale e Hetzner verificati sullo stesso commit.
 
-## 2.437.25 — candidata, 14/10/2026
+## 2.437.25 — 14/10/2026
 
 - Patch governata pnpm per braces 3.0.3: limita l'annidamento strutturale nei percorsi di analisi, compilazione, espansione e ricostruzione, comprese strutture fornite direttamente e array annidati. La build Docker copia la patch prima dell'installazione congelata.
-- Prove sui limiti 127/128/129, schemi profondi, alternative ordinarie e compatibilità delle quattro dipendenze precedentemente corrette. La versione upstream corretta non è pubblicata; l'avviso resta esplicito. Accettazione reale, CI e deploy ancora necessari.
+- Prove sui limiti 127/128/129, schemi profondi, alternative ordinarie e compatibilità delle quattro dipendenze precedentemente corrette. La versione upstream corretta non è pubblicata; l'avviso resta esplicito. Accettazione reale, CI e deploy verificati sul commit `8f0e34185c889a46293f64ef69592a2acdf56606`.
 
-## 2.437.24 — candidata, 13/10/2026
+## 2.437.24 — 13/10/2026
 
 - Aggiornamenti mirati delle quattro dipendenze segnalate: Hono 4.13.7, MCP SDK 1.31.0, postcss-selector-parser 7.1.6 e source-map-js 1.2.2, con lock rigenerato e installazione congelata verificata.
 - Quattro prove di regressione registrate nella suite frontend: escaping, selettori estesi, mappe sorgente e compatibilità del server MCP stdio. Asset compilati identici alla versione precedente.
-- L'audit completo mantiene esplicito un ulteriore avviso alto su braces, da correggere separatamente. Accettazione sulla copia reale, CI e deploy di questa candidata ancora da eseguire.
+- CI, copia reale e deploy verificati sul commit `8c6e7fa4adb70f4599865a6b525e0af6fa85347e`. L'avviso separato su braces è stato trattato nella 2.437.25 con patch governata; l'audit basato sulla versione resta esplicito.
 
 ## 2.437.23 — candidata, 13/10/2026
 

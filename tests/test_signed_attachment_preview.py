@@ -131,6 +131,23 @@ def test_preview_docx_mostra_il_testo_nel_lettore_interno():
     assert "Contenuto professionale leggibile" in html
 
 
+def test_html_preview_processing_instruction_is_not_visible_body_text():
+    from web.services.signed_attachment_preview_word import _safe_doc_html
+
+    source = '<?xml version="1.0"?><p>È un messaggio leggibile.</p>'
+    result = _safe_doc_html(source)
+    assert 'xml version' not in result
+    assert '<p>È un messaggio leggibile.</p>' in result
+    assert source.startswith('<?xml')
+
+
+def test_html_preview_preserves_literal_xml_example_as_text():
+    from web.services.signed_attachment_preview_word import _safe_doc_html
+
+    result = _safe_doc_html('<pre>&lt;?xml version="1.0"?&gt;</pre>')
+    assert '<?xml version="1.0"?>' in unescape(result)
+
+
 @pytest.mark.parametrize("message, expected", [
     ("Unrecognised paragraph style: Body Text (Style ID: Corpotesto)", "Alcuni stili del documento"),
     ("Unrecognised run style: Custom", "Alcuni stili del documento"),

@@ -51,6 +51,26 @@ class SelectionChecks(unittest.TestCase):
         self.assertEqual(result, {'ok': True, 'ids': [], 'total': 0})
         self.assertEqual(self.repo().load(), before)
 
+    def test_case_selection_uses_governed_link_and_preserves_primary_records(self):
+        repo = self.repo()
+        records = repo.load()
+        records['one']['message_id'] = '<linked@example.test>'
+        records['other'] = {'id': 'other', 'cartella': 'INBOX', 'stato': 'NON_LETTA',
+                            'message_id': '<other@example.test>', 'oggetto': 'RG 900/2026'}
+        repo.save(records)
+        before = repo.load()
+        summaries = {'<linked@example.test>': {'linked_fascicolo_id': 'case-a'},
+                     '<other@example.test>': {'linked_fascicolo_id': 'case-b'}}
+        with patch.object(bridge, 'create_email_mailbox', return_value=self.manager()), \
+                patch.object(bridge, '_pec_audit_all_summaries', return_value=[
+                    dict(value, message_id_header=header) for header, value in summaries.items()
+                ]), \
+                patch.object(bridge, '_pec_presidio_index', return_value={}):
+            result = bridge.build_react_email_payload(db_path=str(self.path), folder='INBOX',
+                                                     selection_only=True, fascicolo_id='case-a')
+        self.assertEqual(result, {'ok': True, 'ids': ['one'], 'total': 1})
+        self.assertEqual(repo.load(), before)
+
     def test_other_folders_cannot_be_selected_for_bulk_read(self):
         for folder in ('TUTTE', 'INVIATI', 'CESTINO'):
             with self.subTest(folder=folder), self.assertRaises(ValueError):

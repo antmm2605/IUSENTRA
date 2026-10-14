@@ -1593,6 +1593,8 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   // Deep-link: /email/?q=... apre la casella gia' filtrata (es. dal pannello
   // rapido del fascicolo: RG + cliente); ?cartella= seleziona la cartella.
   const initialParams = useMemo(() => new URLSearchParams(window.location.search), [])
+  const fascicoloId = mode === 'pec' ? initialParams.get('id_fascicolo') || '' : ''
+  const [archivedSource, setArchivedSource] = useState<SourceDocument | null>(null)
   const folderParam = (initialParams.get('cartella') || '').toUpperCase()
   const initialFolder: EmailFolder = folderParam === 'INVIATI' || folderParam === 'CESTINO' || folderParam === 'TUTTE' ? folderParam : 'INBOX'
   const initialQuery = initialParams.get('q') || ''
@@ -1632,10 +1634,11 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   const auditSelectionHandledRef = useRef('')
 
   const fetchPage = mode === 'ordinaria' ? getEmailOrdinariaPage : getEmailPecPage
-  const pageKey = JSON.stringify([mode, folder, deferredQuery, status, onlyPst, onlyAttachments, onlyLinked, pctStatus, onlyWarnings])
+  const pageKey = JSON.stringify([mode, fascicoloId, folder, deferredQuery, status, onlyPst, onlyAttachments, onlyLinked, pctStatus, onlyWarnings])
   const pageOffset = page.key === pageKey ? page.offset : 0
   useEffect(() => { setPage({ key: pageKey, offset: 0 }) }, [pageKey])
   const fetchParams = {
+    fascicoloId,
     folder,
     q: deferredQuery,
     stato: status,
@@ -1730,7 +1733,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   const loadedRows = data.items.length
   const listCountLabel = loading ? 'Caricamento dei messaggi…' : pageError ? 'Vista non disponibile' : data.summary.filtered === 0 ? '0 messaggi' : pageOffset >= data.summary.filtered ? 'Aggiornamento dei messaggi…' : data.summary.filtered > loadedRows || pageOffset > 0
     ? `Messaggi ${loadedRows ? pageOffset + 1 : 0}–${pageOffset + loadedRows} di ${data.summary.filtered}`
-    : `${visible.length} messaggi`
+    : `${visible.length} ${visible.length === 1 ? 'messaggio' : 'messaggi'}`
 
   useEffect(() => {
     if (loading || pageError) return
@@ -2051,10 +2054,11 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
       <section className="iu-mail-hero" data-iusentra-sequence-slot="page-header">
         <div>
           <span className="iu-mail-eyebrow">{copy.includeTelematic ? <ShieldCheck size={16} /> : <Mail size={16} />} {copy.eyebrow}</span>
-          <h1>{copy.heroTitle}</h1>
-          <p>{copy.heroText}</p>
+          <h1>{fascicoloId ? 'PEC del fascicolo' : copy.heroTitle}</h1>
+          <p>{fascicoloId ? data.matter ? [data.matter.title, data.matter.context].filter(Boolean).join(' · ') : 'Caricamento del fascicolo…' : copy.heroText}</p>
         </div>
         <div className="iu-mail-hero__actions">
+          {data.matter ? <Button href={data.matter.href}><ArrowLeft size={15} /> Fascicolo</Button> : null}
           <Button href={data.actions.operationalInbox}><Archive size={15} /> {copy.openLabel}</Button>
           <Button href={data.actions.settings}><Settings2 size={15} /> Impostazioni</Button>
           {data.actions.autoEsiti ? <button type="button" onClick={runAutoEsiti} disabled={loading || bulkWorking || selectionWorking}><Sparkles size={15} /> Auto-esiti</button> : null}
@@ -2069,6 +2073,16 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
           </Button>
         </div>
       </section>
+
+      {data.matter?.archivedMessages.length ? <details className="iu-mail-archived-messages">
+        <summary>PEC conservate tra i documenti del fascicolo ({data.matter.archivedMessages.length})</summary>
+        <p>Originali importati o archiviati nella pratica. La cartella della casella resta distinta.</p>
+        <div className="iu-mail-attachments">{data.matter.archivedMessages.map(item => <article key={item.id}>
+          <Paperclip size={16} /><strong>{item.name}</strong>
+          <button type="button" onClick={() => setArchivedSource({ href: item.href, label: item.name, context: data.matter?.title || 'Documento del fascicolo', kind: 'email-attachment' })}><Eye size={13} /> Visualizza</button>
+        </article>)}</div>
+      </details> : null}
+      <SourceDocumentModal source={archivedSource} onClose={() => setArchivedSource(null)} />
 
       <MailboxStats data={data} mode={mode} onSelect={selectMetric} selected={selectedMetric} loading={loading} unavailable={Boolean(pageError)} />
 
@@ -2107,7 +2121,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
         <div className="iu-mail-list-card">
           <header>
             <div><strong>{listCountLabel}</strong><span>{folderLabel(folder)} · {sourceLabel(data.source, copy.sourceFallback)}</span></div>
-            <a href={`${data.actions.operationalInbox}?cartella=${folder}`}><Download size={15} /> Apri cartella</a>
+            <a href={`${data.actions.operationalInbox}?cartella=${folder}${fascicoloId ? `&id_fascicolo=${encodeURIComponent(fascicoloId)}` : ''}`}><Download size={15} /> Apri cartella</a>
           </header>
           {!pageError ? <MailboxPagination position="top" offset={pageOffset} total={data.summary.filtered} limit={MAILBOX_PAGE_LIMIT} loading={loading} onChange={changePage} /> : null}
           {visible.length ? (

@@ -63,6 +63,16 @@ class MailboxRoutesWiring(unittest.TestCase):
             for action in ('segna-letta', 'segna-non-letta', 'cestino', 'ripristina'):
                 self.assertIn(prefix + '/<id_email>/' + action, paths)
 
+    def test_matter_mailbox_requires_case_permission_before_any_mailbox_read(self):
+        api = self.modules['api_v1_react']
+        with self.app.test_request_context('/api/v1/ui/email?id_fascicolo=controlled-case'):
+            g.utente_corrente = object()
+            with patch.object(api, '_session_user_can', return_value=False), \
+                    patch.object(api, 'build_react_email_payload') as storage:
+                response = self.app.full_dispatch_request()
+            self.assertEqual(response.status_code, 403)
+            storage.assert_not_called()
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -114,7 +114,7 @@ const initialClient: ClientFormState = {
   provenienza: '',
   note: '',
   next_url: '',
-  crea_preventivo_iniziale: true,
+  crea_preventivo_iniziale: false,
 }
 
 const initialSubject: SubjectFormState = {

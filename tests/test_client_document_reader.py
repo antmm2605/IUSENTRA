@@ -7,6 +7,34 @@ from web.services.client_document_reader import parse_client_document_text
 from tests.test_react_shell import _app
 
 
+def test_native_pdf_joined_td3_preserves_checked_mrz_and_visible_fallback():
+    first = 'P<ITALETTURA<<COLLAUDO<SQL'.ljust(44, '<')
+    second = 'TSTSQ00011ITA7408122F3001019COLLAUDO<<<<<<78'
+    assert len(second) == 44
+    source = 'PASSAPORTO\nCOGNOME / SURNAME: LETTURA\nNOME / NAME: COLLAUDO SQL\n'
+    read = parse_client_document_text(source + first + ' ' + second)
+    assert read['mrz']['detected']
+    assert read['patch']['doc_numero'] == 'TSTSQ0001'
+    assert read['patch']['nome'] == 'Collaudo Sql'
+    assert read['patch']['doc_data_scadenza'] == '2030-01-01'
+    invalid = parse_client_document_text(source + first + ' ' + second[:-1] + '9')
+    assert not invalid['mrz']['detected']
+    assert invalid['patch']['cognome'] == 'Lettura'
+    assert invalid['patch']['nome'] == 'Collaudo Sql'
+    assert 'doc_numero' not in invalid['patch']
+    assert any('MRZ non validata' in warning for warning in invalid['warnings'])
+
+
+def test_joined_td3_does_not_pick_first_of_two_different_documents():
+    first = 'P<ITALETTURA<<COLLAUDO<SQL'.ljust(44, '<')
+    second = 'TSTSQ00011ITA7408122F3001019COLLAUDO<<<<<<78'
+    other = 'P<ITAALTRA<<PERSONA'.ljust(44, '<')
+    mixed = parse_client_document_text(first + ' ' + second + '\n' + other + ' ' + second)
+    assert not mixed['ok'] and mixed['patch'] == {}
+    identical = parse_client_document_text((first + ' ' + second + '\n') * 2)
+    assert identical['mrz']['detected'] and identical['patch']['doc_numero'] == 'TSTSQ0001'
+
+
 def test_comune_letto_non_esistente_o_provincia_discordante_non_applicato(monkeypatch):
     import web.services.client_document_reader as reader
     monkeypatch.setattr(reader, '_extract_visible_fields', lambda text: [

@@ -371,6 +371,9 @@ def parse_client_document_text(
     verified_cards = {(first[5:14], names) for first, second, names in zip(tokens, tokens[1:], tokens[2:])
                       if len(first) == 30 and len(second) == 30 and 24 <= len(names) <= 30
                       and td1_verificata(first, second, names)}
+    verified_cards.update(('TD3', first[5:], second[:9])
+                          for first, second in zip(tokens, tokens[1:])
+                          if _joined_td3_patch(first, second))
     visible_numbers = {_clean_value(field, value) for field, value, confidence in visible_fields
                        if field == 'doc_numero' and confidence >= .78 and _clean_value(field, value)}
     multiple_cards = len(verified_cards) > 1 or len(visible_numbers) > 1
@@ -804,6 +807,10 @@ def _parse_mrz_from_text(text: str) -> dict[str, Any]:
     # da spazi. Conserviamo i confini, evitando il concatenamento dei campi.
     for line in str(text or '').splitlines():
         parts = line.upper().split()
+        if len(parts) == 2:
+            patch = _joined_td3_patch(parts[0], parts[1])
+            if patch:
+                return {'detected': True, 'type': 'PASSAPORTO', 'patch': patch}
         if (len(parts) == 3 and re.fullmatch(r'[IAC]<ITA[A-Z0-9<]{23,25}', parts[0])
                 and re.fullmatch(r'\d{7}[MF<][A-Z0-9<]{20,22}', parts[1])
                 and re.fullmatch(r'[A-Z0<]{24,30}', parts[2]) and '<<' in parts[2]):
@@ -833,6 +840,14 @@ def _parse_mrz_from_text(text: str) -> dict[str, Any]:
             if patch:
                 return {"detected": True, "type": "CARTA_IDENTITA", "patch": patch}
     return {"detected": False, "type": "", "patch": {}}
+
+
+def _joined_td3_patch(first: str, second: str) -> dict[str, str]:
+    """Due righe native unite da spazio: confini esatti e checksum invariati."""
+    if (not re.fullmatch(r'P<[A-Z<]{42}', first) or '<<' not in first[5:]
+            or not re.fullmatch(r'[A-Z0-9<]{44}', second)):
+        return {}
+    return _parse_td3(first, second)
 
 
 def _clean_mrz_line(line: str) -> str:

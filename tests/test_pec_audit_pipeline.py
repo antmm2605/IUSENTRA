@@ -6990,7 +6990,8 @@ def test_email_search_normalizza_plurali_accenti_e_allegati(tmp_path):
     assert [item.id for item in gestore.tutte(q="cancellerìa comunicazioni")] == ["MAIL-COMUNICAZIONE"]
 
 
-def test_react_email_bridge_lists_audit_only_pec_messages(tmp_path):
+@pytest.mark.parametrize('reverse_order', [False, True])
+def test_react_email_bridge_lists_audit_only_pec_messages(tmp_path, reverse_order):
     from web.services.react_email_bridge import build_react_email_payload
 
     email_db = tmp_path / "email" / "casella.json"
@@ -6999,6 +7000,8 @@ def test_react_email_bridge_lists_audit_only_pec_messages(tmp_path):
     ingest_synthetic_dataset(repo)
 
     payload = build_react_email_payload(db_path=str(email_db), tenant_id="default")
+    if reverse_order:
+        payload['items'].reverse()
 
     assert payload["summary"]["total"] == 5
     assert payload["summary"]["filtered"] == 5
@@ -7009,8 +7012,12 @@ def test_react_email_bridge_lists_audit_only_pec_messages(tmp_path):
     assert notice["detailHref"].startswith("/api/pec/messages/")
     assert notice["pecAudit"]["quickActions"]["openMime"].endswith("/mime")
     assert notice["pecAudit"]["quickActions"]["runAudit"].endswith("/riesegui-controllo")
-    deposit = next(item for item in payload["items"] if item["pecAudit"]["eventType"] == "pct_deposito")
-    assert deposit["pecAudit"]["depositLifecycle"]["current_stage"]["id"] in {"accettazione_pec", "consegna_pec"}
+    # Le tre fixture di deposito hanno stati diversi e la stessa data: il loro
+    # ordine non identifica la ricevuta di consegna che vogliamo verificare.
+    deposit = next(item for item in payload["items"]
+                   if item['subject'] == 'Deposito telematico RG 1234/2026 - avvenuta consegna')
+    assert deposit['pecAudit']['eventType'] == 'pct_deposito'
+    assert deposit["pecAudit"]["depositLifecycle"]["current_stage"]["id"] == 'consegna_pec'
 
 
 def test_react_email_bridge_limita_payload_iniziale_senza_perdere_totali(tmp_path):

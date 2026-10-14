@@ -20,3 +20,7 @@ Browser reale sulla copia Docker dell'utente, porta 8080, con documenti sintetic
 41 guardrail del lettore superati; typecheck, build e suite frontend superati. Il contatore di completezza misura gruppi integralmente compilati: zero è coerente con la mancanza di codice fiscale, recapiti, indirizzo, ente e data di rilascio dei documenti sintetici.
 
 Queste prove non attestano ogni documento possibile né il PostgreSQL operativo. Commit, gate GitHub, riallineamento locale esatto e deploy sono ancora da eseguire. L'incarico generale resta aperto.
+
+## Correzione del gate CI
+
+Lo shard core-04.01-4 del primo push ha evidenziato un test PEC non deterministico: sceglieva il primo messaggio pct_deposito fra tre fonti sintetiche della stessa data con stati differenti. Il risultato accettazione_deposito apparteneva a un'altra fixture, senza collegamento con il lettore anagrafico. Il test ora individua esattamente la ricevuta di avvenuta consegna RG 1234/2026 e richiede lo stato consegna_pec; esegue anche l'ordine inverso. Non sono modificati motore PEC, deposito, firma o invio. Il rilascio resta aperto fino ai nuovi gate e alle verifiche dello stesso commit.

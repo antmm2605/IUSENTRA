@@ -1335,9 +1335,12 @@ class DocumentAIRepository:
         evidence: list[DocumentCatalogEvidence] | None = None,
         review: DocumentCatalogReview | None = None,
         expected_updated_at: str | None = None,
+        expected_assignment: DocumentCatalogAssignment | None = None,
     ) -> DocumentCatalogAssignment:
         """Assegnazione ed evidenze indivisibili, con revisione opzionale atomica."""
         self._require_catalog_sql()
+        if expected_assignment is not None:
+            expected_updated_at = expected_assignment.updated_at
         with self.catalog_write_batch():
             conn = self._conn()
             conn.execute("SAVEPOINT catalog_assignment_write")
@@ -1363,6 +1366,16 @@ class DocumentAIRepository:
                     )
                     if cursor.fetchone() is None:
                         raise DocumentCatalogConcurrentUpdate("Catalogazione cambiata: lettura tardiva non applicata.")
+                    if expected_assignment is not None:
+                        # Il lock è già acquisito. I timestamp storici possono
+                        # avere precisione al secondo: confrontare anche tutti
+                        # i campi della catalogazione letta prima del modello.
+                        current = self.get_catalog_assignment(
+                            assignment.tenant_id, assignment.fascicolo_id, assignment.document_id,
+                            document_sha256=assignment.document_sha256,
+                        )
+                        if current is None or current.to_dict() != expected_assignment.to_dict():
+                            raise DocumentCatalogConcurrentUpdate("Catalogazione cambiata: lettura tardiva non applicata.")
                 result = self._save_catalog_assignment(assignment, candidates=candidates, evidence=evidence, review=review)
                 conn.execute("RELEASE SAVEPOINT catalog_assignment_write")
                 return result

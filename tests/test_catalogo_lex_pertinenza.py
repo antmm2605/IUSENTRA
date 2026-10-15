@@ -30,7 +30,7 @@ def test_atto_tributario_reale_conserva_la_proposta_pertinente():
     assert esito.stato == "scelta"
 
 
-@pytest.mark.parametrize("concurrent", ["none", "manual", "source"])
+@pytest.mark.parametrize("concurrent", ["none", "manual", "source", "catalog"])
 def test_la_lettura_lenta_non_sovrascrive_la_conferma_manuale(rename_case, tmp_path, monkeypatch, concurrent):
     from dataclasses import replace
     from types import SimpleNamespace
@@ -55,6 +55,9 @@ def test_la_lettura_lenta_non_sovrascrive_la_conferma_manuale(rename_case, tmp_p
         if concurrent == "manual":
             repo.save_catalog_assignment(replace(corrente, status="confirmed", source_state="manual_override",
                                                 updated_at="2030-01-01T00:00:00Z", updated_by="avvocato"))
+        elif concurrent == "catalog":
+            repo.save_catalog_assignment(replace(corrente, document_label="Decreto di fissazione udienza",
+                                                status="proposed", confidence=96, reason="Nuova decisione nello stesso secondo"))
         elif concurrent == "source":
             repo.mark_status("studio-test", "FASC-LEX", assignment.document_ai_id, "processing")
         return _risposta("Note scritte ex art. 127-ter c.p.c.", "Il ricorrente rassegna le seguenti conclusioni")(domanda, schema)
@@ -64,6 +67,10 @@ def test_la_lettura_lenta_non_sovrascrive_la_conferma_manuale(rename_case, tmp_p
         assert salvata.status == "confirmed"
         assert salvata.source_state == "manual_override"
         assert salvata.updated_by == "avvocato"
+    elif concurrent == "catalog":
+        assert salvata.document_label == "Decreto di fissazione udienza"
+        assert salvata.confidence == 96
+        assert salvata.updated_at == assignment.updated_at
     elif concurrent == "source":
         assert salvata.status == "review_required" and salvata.confidence == 60
         assert repo.get_document("studio-test", "FASC-LEX", assignment.document_ai_id).status == "processing"

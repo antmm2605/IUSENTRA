@@ -185,7 +185,7 @@ def seconda_lettura_studio_corrente(
             try:
                 repository.save_catalog_assignment(
                     nuova, candidates=candidati, evidence=evidenze,
-                    expected_updated_at=assignment.updated_at,
+                    expected_assignment=assignment,
                 )
             except DocumentCatalogConcurrentUpdate:
                 logger.info("[lex-catalogo] Catalogazione aggiornata durante la lettura: esito tardivo scartato.")

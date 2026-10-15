@@ -4,7 +4,7 @@
 
 - Seconda lettura Lex sul solo testo SQL della fonte e versione richieste, senza caricare i testi degli altri documenti del fascicolo.
 - Le proposte verificano anche i riscontri necessari già dichiarati dalle regole del catalogo. La presenza della citazione e la pertinenza della natura restano distinte nella provenienza.
-- Una conferma o una modifica concorrente della fonte impedisce atomicamente l'applicazione tardiva, con audit dello scarto.
+- Una conferma o una modifica concorrente impedisce atomicamente l'applicazione tardiva: confronto dell'intera assegnazione anche quando l'orario coincide, con audit dello scarto.
 - Rilettura della categoria del singolo documento tramite la pipeline SQL esistente, preservando originali e decisioni manuali; nessun nuovo OCR o riconvalida generale.
 - Comandi della categoria con target touch di almeno 44 px su mobile e tablet, preservando la densità desktop.
 - Candidata in collaudo: accettazione reale sul commit definitivo, CI e rilascio ancora necessari. Prestazioni globali e altri incarichi aperti.

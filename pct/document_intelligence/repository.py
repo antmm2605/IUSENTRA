@@ -118,7 +118,9 @@ class DocumentAIRepository:
                 ensure_live_schema(structured_db.conn, postgres=self._backend == "postgresql")
                 if self._backend == "postgresql":
                     structured_db.raw_conn.commit()
-        self._data = self._load_json()
+        # SQL è già la fonte proprietaria: il mirror storico non partecipa
+        # né alle letture né alle scritture di questo backend.
+        self._data = self._empty() if self._backend else self._load_json()
 
     @property
     def backend_kind(self) -> str:

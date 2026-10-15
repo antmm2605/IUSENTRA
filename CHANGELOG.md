@@ -1,15 +1,20 @@
 # Changelog
 
-## 2.437.37 — candidata, 15/10/2026
+## 2.437.38 — candidata, 15/10/2026
+
+- Il repository documentale con backend SQL non apre più il JSON storico estraneo alla lettura richiesta; record, versioni, testi e audit continuano a usare le tabelle proprietarie.
+- Parità SQLite/PostgreSQL, archivio vuoto e popolato, isolamento delle fonti e backend JSON esplicito verificati. Prova diagnostica reale di catalogo, fonti e lettore; commit definitivo, CI e deploy ancora necessari.
+
+## 2.437.37 — 15/10/2026
 
 - Consultazione del catalogo documentale limitata al fascicolo richiesto: un solo gestore SQL per richiesta, con invalidazione quando cambia il backend e conservazione del contenuto del catalogo.
-- Guardie SQLite/PostgreSQL, richieste successive, comandi di scrittura e archivio storico esplicito. Accettazione diagnostica sulla copia reale eseguita; commit definitivo, CI e deploy ancora necessari.
+- Guardie SQLite/PostgreSQL, richieste successive, comandi di scrittura e archivio storico esplicito. Accettazione sulla copia reale e 89 controlli GitHub positivi; deploy Hetzner verificato sul commit `4e46e9d49514360814410bfad1a6bcdb5e01ee16`.
 
-## 2.437.36 — candidata, 15/10/2026
+## 2.437.36 — 15/10/2026
 
 - Controllo dei moduli caricati su richiesta mantenuto nella build applicativa e separato dalla diversa entry di Storybook. Nuova prova sul confine delle configurazioni.
 - Sorgenti delle entry JavaScript Vite inclusi nello stadio Docker frontend; guardia sulla corrispondenza fra ingressi e copie.
-- Compilazione statica di Storybook aggiunta al gate locale per riprodurre il controllo GitHub prima del push. Candidata35 fermata dalla CI; nuovo rilascio ancora da verificare.
+- Compilazione statica di Storybook aggiunta al gate locale per riprodurre il controllo GitHub prima del push. Candidata35 fermata dalla CI; correzione36 verificata e rilasciata sul commit `998ad682cc8099134e44ddd9781fa8cec5edca20`.
 
 ## 2.437.35 — candidata, 15/10/2026
 

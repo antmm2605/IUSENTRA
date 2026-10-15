@@ -6,14 +6,14 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 975.
+- File pytest censiti: 976.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
 | Tipo test | Conteggio |
 | --- | --- |
 | API contract | 113 |
-| Backend | 116 |
+| Backend | 117 |
 | E2E | 14 |
 | Frontend static gate | 1 |
 | Frontend/UI | 320 |
@@ -31,7 +31,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 02-react-ui | Contratti React, regia, topbar, layout mobile e coerenza design system. | 37 |
 | 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 75 |
 | 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 29 |
-| 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 69 |
+| 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 70 |
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 84 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 190 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
@@ -42,7 +42,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Suite | Target | Esempi |
 | --- | --- | --- |
 | acquisition-ocr | 20 | tests/test_document_ocr.py, tests/test_document_ocr_documento.py, tests/test_document_ocr_formato.py, tests/test_editor_html_docx.py, tests/test_document_tools.py ... |
-| coverage-critical | 88 | tests/test_tenant_path_batch.py, tests/test_operational_read_revision.py, tests/test_archivio_fatti_request_snapshot.py, tests/test_fascicoli_rinomina_sql_mirata.py, tests/test_fascicoli_clienti_index.py ... |
+| coverage-critical | 89 | tests/test_tenant_path_batch.py, tests/test_operational_read_revision.py, tests/test_archivio_fatti_request_snapshot.py, tests/test_document_catalog_read_scope.py, tests/test_fascicoli_rinomina_sql_mirata.py ... |
 | e2e-nightly | 4 | tests/e2e/test_studio_reale_flow.py, tests/e2e/test_ai_pipeline_full.py, tests/e2e/test_tenant_migration_full.py, tests/e2e/test_operational_crash_day.py |
 | e2e-smoke | 1 | tests/e2e/test_studio_reale_flow.py |
 | legal-tools | 8 | tests/test_strumenti_legali.py, tests/test_strumenti_legali_end_to_end.py, tests/test_strumenti_processuali.py, tests/test_termini_processuali.py, tests/test_normative_tables.py ... |
@@ -659,6 +659,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | File/document security | API contract | tests/test_client_document_reader_sources.py | tenant, file | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | File/document security | API contract | tests/test_document_intelligence_extraction.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | File/document security | Backend | tests/test_caratteri_documento_fedele.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| File/document security | Backend | tests/test_document_catalog_read_scope.py | 401 anonimo | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Backend | tests/test_document_catalog_structural_identity.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Backend | tests/test_document_intelligence_pdf_quality.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Backend | tests/test_document_pdf_word_hyperlinks.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |

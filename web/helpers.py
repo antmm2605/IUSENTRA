@@ -87,24 +87,27 @@ def get_clienti() -> GestioneClienti:
 
 
 def get_fascicoli() -> GestioneFascicoli:
-    # Le proiezioni consultive della cartella e del dettaglio riusano lo snapshot.
+    # Cartella, dettaglio e catalogo consultano una sola istantanea per richiesta.
     # g vive per una richiesta: nuovi comandi, utenti e studi lo ricreano.
     cartella_read = has_request_context() and request.method == "GET" and request.endpoint in {
         "api_v1_react.cliente_cartella_react",
         "api_v1_react.fascicolo_react_dettaglio",
+        "api_v1_documenti_ai.catalogazione_documentale_fascicolo",
     }
     paths = (_cfg("FASCICOLI_DB"), _cfg("FASCICOLI_DOCS"), _cfg("FASCICOLI_ARCH"))
+    studio_db = _studio_db("FASCICOLI_DB")
+    snapshot_key = (paths, id(studio_db))
     if cartella_read:
         cached = getattr(g, "cartella_fascicoli_snapshot", None)
-        if cached is not None and cached[0] == paths:
+        if cached is not None and cached[0] == snapshot_key:
             return cached[1]
-    studio_db = _studio_db("FASCICOLI_DB")
     single_document_command = (
         studio_db is not None and has_request_context()
         and request.method == "POST" and request.endpoint == "rinomina_documento"
     )
-    single_sql_projection = has_request_context() and request.method == "GET" and request.endpoint in {
+    single_sql_projection = studio_db is not None and has_request_context() and request.method == "GET" and request.endpoint in {
         "api_v1_react.fascicolo_react_dettaglio", "api_v1_react.cliente_cartella_react", "editor_new_document_matters",
+        "api_v1_documenti_ai.catalogazione_documentale_fascicolo",
     }
     manager = GestioneFascicoli(
         db_path=paths[0],
@@ -114,7 +117,7 @@ def get_fascicoli() -> GestioneFascicoli:
         carica_tutto=not (single_document_command or single_sql_projection),
     )
     if cartella_read:
-        g.cartella_fascicoli_snapshot = (paths, manager)
+        g.cartella_fascicoli_snapshot = (snapshot_key, manager)
     return manager
 
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.437.37 — candidata, 15/10/2026
+
+- Consultazione del catalogo documentale limitata al fascicolo richiesto: un solo gestore SQL per richiesta, con invalidazione quando cambia il backend e conservazione del contenuto del catalogo.
+- Guardie SQLite/PostgreSQL, richieste successive, comandi di scrittura e archivio storico esplicito. Accettazione diagnostica sulla copia reale eseguita; commit definitivo, CI e deploy ancora necessari.
+
 ## 2.437.36 — candidata, 15/10/2026
 
 - Controllo dei moduli caricati su richiesta mantenuto nella build applicativa e separato dalla diversa entry di Storybook. Nuova prova sul confine delle configurazioni.

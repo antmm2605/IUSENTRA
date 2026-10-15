@@ -225,7 +225,7 @@ assert.equal((publicSourceHtml.match(/Fonte pubblica controllata/g) || []).lengt
 const unsafeSourceHtml = hooks.buildAnswerHtml({ answer: 'Fonte', sources: [{ title: 'Titolo', url: 'javascript:alert(1)' }] })
 assert.doesNotMatch(unsafeSourceHtml, /href="javascript:/)
 
-async function publicStreamCase({ incomplete = false, atBottom = false, publicMode = true } = {}) {
+async function publicStreamCase({ incomplete = false, atBottom = false, publicMode = true, networkFailure = false } = {}) {
   const scroller = { scrollHeight: 1500, clientHeight: 400 }
   let position = atBottom ? 1100 : 400
   Object.defineProperty(scroller, 'scrollTop', {
@@ -251,7 +251,10 @@ async function publicStreamCase({ incomplete = false, atBottom = false, publicMo
   } })
   const packets = frames.map(frame => ({ done: false,
     value: new TextEncoder().encode('data: ' + JSON.stringify(frame) + '\n\n') }))
-  context.fetch = async () => ({ ok: true, body: { getReader: () => ({ read: async () => packets.shift() || { done: true } }) } })
+  context.fetch = async () => {
+    if (networkFailure) throw new Error('Errore di rete controllato')
+    return { ok: true, body: { getReader: () => ({ read: async () => packets.shift() || { done: true } }) } }
+  }
   await hooks.sendLocalForTest('Leggi la pagina pubblica')
   return { position, html: bubble.innerHTML, status: status.textContent, entry: hooks.historyForTest().at(-1) }
 }
@@ -264,6 +267,11 @@ assert.match(interruptedPublic.html, /interrotta prima/)
 assert.match(interruptedPublic.status, /non completata/)
 assert.doesNotMatch(interruptedPublic.html, /Scarica Word/)
 assert.equal(interruptedPublic.position, 400)
+const failedPublic = await publicStreamCase({ networkFailure: true })
+assert.equal(failedPublic.position, 400, 'a transport failure also preserves the public reading position')
+assert.match(failedPublic.status, /Lex non ha completato la richiesta/)
+assert.match(failedPublic.html, /Errore di rete controllato/)
+assert.doesNotMatch(failedPublic.html, /Scarica Word/)
 const legacyLocalReply = await publicStreamCase({ publicMode: false })
 assert.equal(legacyLocalReply.position, 1800, 'the existing non-public completion behavior is preserved')
 assert.equal('publicAnswer' in legacyLocalReply.entry.meta, false)

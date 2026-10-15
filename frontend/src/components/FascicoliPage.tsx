@@ -1970,7 +1970,7 @@ function CatalogazioneDocumentalePanel({
     if (enabled) void load()
   }, [enabled, load, documentRevision])
 
-  const update = async () => {
+  const update = async (documentId?: string) => {
     setBusy(true)
     setError('')
     try {
@@ -1978,7 +1978,7 @@ function CatalogazioneDocumentalePanel({
         method: 'POST',
         credentials: 'same-origin',
         headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
-        body: JSON.stringify({}),
+        body: JSON.stringify(documentId ? { documento_id: documentId } : {}),
       })
       const next = await response.json().catch(() => ({})) as CatalogPayload & { detail?: string; error?: string }
       if (!response.ok) throw new Error(next.detail || next.error || 'Aggiornamento della catalogazione non completato.')
@@ -1989,7 +1989,7 @@ function CatalogazioneDocumentalePanel({
         throw new Error('Catalogazione parziale: alcuni documenti non sono stati aggiornati. Consulta gli errori nel pannello prima di riprovare.')
       }
       const processed = Number(next.run?.processed || 0)
-      onDone(processed ? `Catalogazione aggiornata: ${processed} documenti elaborati.` : 'Indice e catalogazione aggiornati.')
+      onDone(processed ? `Catalogazione aggiornata: ${processed} document${processed === 1 ? "o elaborato" : "i elaborati"}.` : 'Indice e catalogazione aggiornati.')
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : 'Aggiornamento della catalogazione non completato.'
       setError(message)
@@ -2170,6 +2170,7 @@ function CatalogazioneDocumentalePanel({
                   {assignment?.deposit_candidate ? <Badge tone="primary">Valuta per deposito</Badge> : null}
                 </div>
                 <div className="iu-fas-catalog__actions">
+                  {needsConfirmation && assignment?.source_state !== 'manual_override' ? <button type="button" disabled={busy} title="Rivaluta soltanto la categoria di questo documento dal testo già letto, conservando l'originale" onClick={() => void update(item.document_id)}><RefreshCw size={14}/> Rileggi categoria</button> : null}
                   {assignment?.evidence?.length ? <button type="button" disabled={busy} aria-expanded={evidenceDocumentId === item.document_id} onClick={() => { setEvidenceDocumentId((current) => current === item.document_id ? '' : item.document_id); setReviewedEvidenceDocumentIds((current) => new Set(current).add(item.document_id)) }}><FileSearch2 size={14}/> {evidenceDocumentId === item.document_id ? 'Nascondi prova' : 'Prova e fonti'}</button> : null}
                   {assignment?.status === 'review_required' && hasEvidence ? <button type="button" disabled={busy || !evidenceReviewed} title={evidenceReviewed ? 'Conferma la catalogazione dopo la lettura delle fonti' : 'Apri prima Prova e fonti'} onClick={() => void confirm(item.document_id, 'confirmed', true)}><CheckCircle2 size={14}/> Conferma</button> : null}
                   {assignment?.status === 'proposed' && hasEvidence ? <button type="button" disabled={busy || !evidenceReviewed} title={evidenceReviewed ? 'Conferma la proposta dopo la lettura delle fonti' : 'Apri prima Prova e fonti'} onClick={() => void confirm(item.document_id, 'confirmed', true)}><CheckCircle2 size={14}/> Conferma proposta</button> : null}

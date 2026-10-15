@@ -28,6 +28,10 @@ from .models import (
 from .security import DocumentAIValidationError, safe_join_under_root
 
 
+class DocumentCatalogConcurrentUpdate(RuntimeError):
+    """La catalogazione è cambiata durante un'elaborazione: risultato non applicato."""
+
+
 DOCUMENT_AI_SCHEMA_VERSION = "document-ai-preparation-v1"
 STORE_KEYS = ("documents", "versions", "texts", "audit_events")
 SQLITE_SCHEMA_DOCUMENTI_AI = Path(__file__).resolve().parents[1] / "sql" / "20260505_documenti_ai.sql"
@@ -1330,13 +1334,35 @@ class DocumentAIRepository:
         candidates: list[DocumentCatalogCandidate] | None = None,
         evidence: list[DocumentCatalogEvidence] | None = None,
         review: DocumentCatalogReview | None = None,
+        expected_updated_at: str | None = None,
     ) -> DocumentCatalogAssignment:
-        """Assegnazione ed evidenze sono indivisibili su SQLite e PostgreSQL."""
+        """Assegnazione ed evidenze indivisibili, con revisione opzionale atomica."""
         self._require_catalog_sql()
         with self.catalog_write_batch():
             conn = self._conn()
             conn.execute("SAVEPOINT catalog_assignment_write")
             try:
+                if expected_updated_at is not None:
+                    # L'UPDATE condizionale acquisisce il lock prima di rileggere
+                    # e salvare; una conferma concorrente non viene sovrascritta.
+                    cursor = conn.execute(
+                        """UPDATE document_catalog_assignments SET updated_at = updated_at
+                           WHERE id = ? AND tenant_id = ? AND fascicolo_id = ?
+                             AND document_id = ? AND document_sha256 = ? AND updated_at = ?
+                             AND status IN ('proposed', 'review_required')
+                             AND source_state <> 'manual_override'
+                             AND EXISTS (
+                                 SELECT 1 FROM fascicolo_documenti_ai
+                                 WHERE id = ? AND tenant_id = ? AND fascicolo_id = ?
+                                   AND sha256 = ? AND current_version_id = ? AND status = 'ready'
+                             ) RETURNING id""",
+                        (assignment.id, assignment.tenant_id, assignment.fascicolo_id,
+                         assignment.document_id, assignment.document_sha256, expected_updated_at,
+                         assignment.document_ai_id, assignment.tenant_id, assignment.fascicolo_id,
+                         assignment.document_sha256, assignment.document_version_id),
+                    )
+                    if cursor.fetchone() is None:
+                        raise DocumentCatalogConcurrentUpdate("Catalogazione cambiata: lettura tardiva non applicata.")
                 result = self._save_catalog_assignment(assignment, candidates=candidates, evidence=evidence, review=review)
                 conn.execute("RELEASE SAVEPOINT catalog_assignment_write")
                 return result

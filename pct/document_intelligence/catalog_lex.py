@@ -121,6 +121,21 @@ def citazione_nel_testo(citazione: str, testo: str) -> bool:
     return False
 
 
+def riscontro_natura_catalogo(etichetta: str, testo: str) -> bool:
+    """Richiede i riscontri necessari già dichiarati dalle regole della voce.
+
+    Una frase reale può parlare di una verifica tecnica senza documentare un
+    procedimento tributario. Le conferme delle regole restano necessarie anche
+    quando Lex riconosce un titolo diverso da quelli letterali. Non sono una
+    nuova classificazione e non autorizzano effetti del documento.
+    """
+    regole = [regola for regola in REGOLE_TITOLO if regola.label == etichetta]
+    if not regole:
+        return True  # le identità del resolver seguono i rispettivi controlli
+    corpo = re.sub(r"\s+", " ", str(testo or "")).casefold()
+    return any(re.search(regola.conferma, corpo, re.IGNORECASE) for regola in regole)
+
+
 def schema_risposta(voci: list[VoceCatalogo]) -> dict[str, Any]:
     return {
         "type": "object",
@@ -171,6 +186,7 @@ class EsitoLex:
     motivo: str = ""
     voce: VoceCatalogo | None = None
     sha_input: str = ""  # impronta del testo letto da Lex (provenienza)
+    citazione_presente: bool = False
 
     def come_dict(self) -> dict[str, str]:
         return {"esito": self.stato, "etichetta": self.etichetta, "citazione": self.citazione[:300], "motivo": self.motivo[:300]}
@@ -219,7 +235,13 @@ def _leggi_con_lex(
         return EsitoLex("errore", etichetta, citazione, "etichetta fuori catalogo")
     if not citazione_nel_testo(citazione, testo):
         return EsitoLex("non_verificata", etichetta, citazione, motivo, voce)
-    return EsitoLex("scelta", etichetta, citazione, motivo, voce)
+    if not riscontro_natura_catalogo(etichetta, testo):
+        return EsitoLex(
+            "non_verificata", etichetta, citazione,
+            "Il testo non contiene i riscontri necessari alla natura proposta dal catalogo.", voce,
+            citazione_presente=True,
+        )
+    return EsitoLex("scelta", etichetta, citazione, motivo, voce, citazione_presente=True)
 
 
 def da_rileggere(assignment: DocumentCatalogAssignment, *, modello: str) -> bool:
@@ -257,17 +279,21 @@ def applica_esito(
     metadata = dict(assignment.metadata or {})
     from pct.provenienza_ai import ESITO_AMMESSO, ESITO_BLOCCATO, Provenienza
 
-    citazione_ok = esito.stato == "scelta"
+    scelta_ammessa = esito.stato == "scelta"
+    citazione_ok = scelta_ammessa or esito.citazione_presente
     precedente = str(((metadata.get("lex_lettura") or {}).get("provenienza") or {}).get("sigillo") or "")
     provenienza = Provenienza(
         azione="catalogo.seconda_lettura", modello=modello, versione_regole=VERSIONE_LETTURA,
         sha256_input=esito.sha_input, citazione=esito.citazione[:300],
         parametri={"etichetta": esito.etichetta, "motivo": esito.motivo[:200]},
-        cancello={"ammesso": citazione_ok, "controlli": [
+        cancello={"ammesso": scelta_ammessa, "controlli": [
             {"campo": "etichetta", "valore": esito.etichetta, "esito": ESITO_AMMESSO if esito.voce else ESITO_BLOCCATO,
              "motivo": "voce del catalogo chiuso" if esito.voce else "voce fuori catalogo o nessuna voce"},
             {"campo": "citazione", "valore": esito.citazione[:120], "esito": ESITO_AMMESSO if citazione_ok else ESITO_BLOCCATO,
              "motivo": "frase presente nel documento" if citazione_ok else "frase non trovata nel documento: risposta scartata"},
+            {"campo": "natura_documentale", "valore": esito.etichetta,
+             "esito": ESITO_AMMESSO if scelta_ammessa else ESITO_BLOCCATO,
+             "motivo": "riscontri necessari del catalogo presenti" if scelta_ammessa else esito.motivo[:200]},
         ]},
         # La voce di Lex resta una proposta: la conferma è dell'avvocato.
         approvazione="da_approvare", precedente=precedente,

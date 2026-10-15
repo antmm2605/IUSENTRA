@@ -114,7 +114,6 @@ def seconda_lettura_studio_corrente(
 ) -> dict[str, Any]:
     """Rilegge fino a `per_giro` proposte dello studio gia' presente in `g`."""
     from web.helpers import get_fascicoli
-    from web.services.archivio_letture_runtime import testi_indice_archivio
     from web.services.document_intelligence_runtime import build_document_ai_service, document_ai_tenant_id
 
     modello = modello or modello_catalogo()
@@ -122,7 +121,6 @@ def seconda_lettura_studio_corrente(
     tenant_id = document_ai_tenant_id()
     report = {"lette": 0, "scelte": 0, "cambiate": 0, "errori": 0}
     voci = voci_catalogo()
-    testi_per_fascicolo: dict[str, dict[str, str]] = {}
     offset = 0
     while report["lette"] < per_giro:
         pagina = repository.list_catalog_assignments_to_reread(tenant_id, limit=_PAGINA_CODA, offset=offset)
@@ -137,9 +135,20 @@ def seconda_lettura_studio_corrente(
             fascicolo = get_fascicoli().get(assignment.fascicolo_id)
             if fascicolo is None:
                 continue
-            if assignment.fascicolo_id not in testi_per_fascicolo:
-                testi_per_fascicolo[assignment.fascicolo_id] = testi_indice_archivio(fascicolo)
-            testo = testi_per_fascicolo[assignment.fascicolo_id].get(assignment.document_id, "")
+            # L'assegnazione contiene già la chiave SQL e la versione della
+            # fonte: non caricare tutti i testi del fascicolo per leggerne uno.
+            record = repository.get_document(tenant_id, assignment.fascicolo_id, assignment.document_ai_id or "")
+            if (record is None or str(record.status) != "ready"
+                    or record.sha256 != assignment.document_sha256
+                    or record.current_version_id != assignment.document_version_id):
+                logger.warning("[lex-catalogo] Fonte non corrente: nessuna lettura applicata.")
+                continue
+            estratto = repository.get_extracted_text(
+                tenant_id, assignment.fascicolo_id, record.id, assignment.document_version_id,
+            )
+            testo = str(getattr(estratto, "text", "") or "")
+            if testo.lstrip().startswith("PCTENC"):
+                testo = ""
             inizio = time.monotonic()
             if not testo.strip():
                 esito = EsitoLex("senza_testo")
@@ -171,7 +180,26 @@ def seconda_lettura_studio_corrente(
             candidati = repository.list_catalog_candidates(assignment.id)
             evidenze = repository.list_catalog_evidence(assignment.id)
             nuova, candidati, evidenze = applica_esito(assignment, candidati, evidenze, esito, modello=modello, durata_s=durata)
-            repository.save_catalog_assignment(nuova, candidates=candidati, evidence=evidenze)
+            from pct.document_intelligence.repository import DocumentCatalogConcurrentUpdate
+
+            try:
+                repository.save_catalog_assignment(
+                    nuova, candidates=candidati, evidence=evidenze,
+                    expected_updated_at=assignment.updated_at,
+                )
+            except DocumentCatalogConcurrentUpdate:
+                logger.info("[lex-catalogo] Catalogazione aggiornata durante la lettura: esito tardivo scartato.")
+                repository.append_audit_event({
+                    "id": new_id("catalog-audit"), "tenant_id": tenant_id,
+                    "fascicolo_id": assignment.fascicolo_id, "document_id": assignment.document_id,
+                    "version_id": assignment.document_version_id, "user_id": "lex",
+                    "event_type": "document_catalog.lex_discarded_concurrent", "timestamp": utc_now(),
+                    "sha256": assignment.document_sha256, "status": "not_applied",
+                    "payload": {"etichetta": esito.etichetta, "modello": modello,
+                                "motivo": "Catalogazione o fonte cambiate durante la lettura"},
+                })
+                report["lette"] += 1
+                continue
             repository.append_audit_event({
                 "id": new_id("catalog-audit"), "tenant_id": tenant_id, "fascicolo_id": assignment.fascicolo_id,
                 "document_id": assignment.document_id, "version_id": assignment.document_version_id, "user_id": "lex",

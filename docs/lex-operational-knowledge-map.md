@@ -247,3 +247,13 @@ resta attivo; nessuna API esterna riceve documenti dello studio.
 Il download ufficiale restituiva HTML anziché XML e le 13 fonti fallivano con errore di parsing. Il comando esistente conserva ora in memoria la sessione pubblica tra risoluzione dell’atto e download AKN, senza credenziali o documenti degli studi. Restano invariati allowlist, limiti, controllo XML, identità FRBRWork e impronte.
 
 Prova con il comando nativo: 13/13 XML acquisiti e validati. Workflow GitHub 38466034723 riuscito sul codice ba2ed8f285; artefatti recuperati, tutte le impronte concordanti. Nessuna importazione delle fonti sul server, nessuna modifica a Lex, indici o dati degli studi. Versione finale, CI e deploy ancora da verificare; incarichi generali aperti.
+
+## 15/10/2026 — Candidata 2.437.43, catalogo puntuale e prove pertinenti
+
+La seconda lettura del catalogo usa il testo SQL della sola fonte selezionata tramite tenant, fascicolo, document_ai_id, versione e impronta correnti; non carica i testi degli altri documenti. Il modello resta nel motore locale esistente. Sul PC il solo hostname configurato è host.docker.internal; nessun testo dello studio viene inviato a servizi esterni e EmbeddingGemma 300M resta invariato.
+
+Una frase presente può essere estranea alla natura proposta: i riscontri necessari già dichiarati dalle regole del catalogo vengono ora verificati anche per la proposta Lex. Citazione e natura hanno esiti distinti nella provenienza; una mancanza non viene descritta falsamente come citazione assente. La guardia non dimostra da sola ogni possibile classificazione semantica e non rende automatici gli effetti del documento.
+
+Conferme manuali, nuove revisioni della catalogazione o fonte non più corrente impediscono l'applicazione tardiva tramite controllo SQL atomico nello stesso savepoint. Lo scarto è auditato, senza riportare la decisione umana a proposta. La UI consente Rileggi categoria sul singolo documento tramite la pipeline esistente, solo con permesso di scrittura; nessuna nuova estrazione OCR, indicizzazione generale o lettura di altri testi.
+
+Riproduzioni negative iniziali e guardie native SQLite/PostgreSQL; 78 test estesi positivi e 11 casi finali pertinenti dopo la guardia RBAC, gruppi sovrapposti non sommabili. Gate locale 28/28; il primo passaggio aveva segnalato soltanto l'inventario test da rigenerare. Verifica reale del recupero D8EA2D0A, confronto della persistenza, responsive, CI e deploy ancora necessari. Candidata isolata, copia ufficiale e produzione restano 2.437.42. Nessuna modifica ai dati reali, nessuna riconvalida massiva, nessun cambiamento dei flussi congelati.

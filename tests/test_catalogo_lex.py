@@ -189,7 +189,9 @@ def test_il_giro_rilegge_un_documento_e_si_ferma(tmp_path, monkeypatch):
     monkeypatch.setattr(runtime, "build_document_ai_service", lambda: SimpleNamespace(repository=repo))
     monkeypatch.setattr(runtime, "document_ai_tenant_id", lambda: "studio-test")
     monkeypatch.setattr(web.helpers, "get_fascicoli", lambda: {"FASC-LEX": fascicolo})
-    monkeypatch.setattr(letture, "testi_indice_archivio", lambda f: {"DOC-LEX": NOTE})
+    def vieta_lettura_generale(*args, **kwargs):
+        raise AssertionError("La seconda lettura deve caricare solo il testo della fonte scelta")
+    monkeypatch.setattr(letture, "testi_indice_archivio", vieta_lettura_generale)
 
     genera = _risposta("Note scritte ex art. 127-ter c.p.c.", "Il ricorrente rassegna le seguenti conclusioni")
     primo = seconda_lettura_studio_corrente(genera=genera, modello="qwen3:4b")

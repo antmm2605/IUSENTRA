@@ -15,7 +15,7 @@ def _human(assignment: Any) -> bool:
     return assignment is not None and (assignment.source_state == 'manual_override' or assignment.status == 'confirmed')
 
 
-def prepara_catalogo(fascicolo: Any, oggetti: list[Any], repository: Any, tenant: str) -> tuple[list, dict, dict]:
+def prepara_catalogo(fascicolo: Any, oggetti: list[Any], repository: Any, tenant: str, *, document_ids: set[str] | None = None, retry: bool = False) -> tuple[list, dict, dict]:
     """Solo documenti presenti: l'ID del fascicolo resta distinto dall'ID DocumentAI."""
     fid = str(fascicolo.id)
     # Un documento si riconosce dall'impronta del contenuto in chiaro quando è nota,
@@ -23,7 +23,7 @@ def prepara_catalogo(fascicolo: Any, oggetti: list[Any], repository: Any, tenant
     # a seconda che abbia letto il contenuto o solo l'inventario.
     candidati: dict[str, list[str]] = {}
     for o in oggetti:
-        if o.tipo != 'documento' or not o.presente:
+        if o.tipo != 'documento' or not o.presente or (document_ids is not None and str(o.oggetto_id) not in document_ids):
             continue
         impronte = [i for i in dict.fromkeys((_text(o.sha256), _text(getattr(o, 'sha256_archivio', '')))) if i]
         if impronte:
@@ -46,6 +46,8 @@ def prepara_catalogo(fascicolo: Any, oggetti: list[Any], repository: Any, tenant
     sources, texts = [], {}
     for doc in fascicolo.documenti:
         doc_id = str(doc.id)
+        if document_ids is not None and doc_id not in document_ids:
+            continue
         sha = hashes.get(doc_id, '')
         record = ready.get(sha)
         if record is None:
@@ -60,7 +62,7 @@ def prepara_catalogo(fascicolo: Any, oggetti: list[Any], repository: Any, tenant
             stale = stale or any((getattr(assignment, attr, '') or '') != value for attr, value in (
                 ('profile_id', profile), ('legal_area', context.get('area') or ''),
                 ('legal_branch', context.get('branca') or ''), ('legal_subfamily', context.get('sottobranca') or '')))
-        if not stale:
+        if not stale and not retry:
             continue
         report['missing_assignments' if assignment is None else 'stale_assignments'] += 1
         extracted = repository.get_extracted_text(tenant, fid, record.id, record.current_version_id)
@@ -85,7 +87,7 @@ def prepara_catalogo(fascicolo: Any, oggetti: list[Any], repository: Any, tenant
     return sources, texts, report
 
 
-def aggiorna_catalogo_da_archivio(fascicolo: Any, registro: Any = None, *, applica: bool = True) -> dict[str, Any]:
+def aggiorna_catalogo_da_archivio(fascicolo: Any, registro: Any = None, *, applica: bool = True, document_ids: set[str] | None = None, retry: bool = False) -> dict[str, Any]:
     from web.services.document_intelligence_runtime import build_document_ai_service, document_ai_tenant_id, _registra_catalogo
     from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
     registro = registro or registro_corrente()
@@ -93,13 +95,13 @@ def aggiorna_catalogo_da_archivio(fascicolo: Any, registro: Any = None, *, appli
     repository = build_document_ai_service().repository
     if repository.backend_kind not in {'sqlite', 'postgresql'}:
         raise ValueError('Catalogo archivio richiede una fonte SQL')
-    sources, texts, report = prepara_catalogo(fascicolo, registro.oggetti(tenant_corrente(), fascicolo.id), repository, tenant)
+    sources, texts, report = prepara_catalogo(fascicolo, registro.oggetti(tenant_corrente(), fascicolo.id), repository, tenant, document_ids=document_ids, retry=retry)
     report['dry_run'] = not applica
     if not sources or not applica:
         return report
     pipeline = FascicoloDocumentCatalogPipeline(repository, text_provider=lambda doc_id: texts.get(doc_id, ''),
         client_name=_text(getattr(fascicolo, 'nome_cliente', '')), client_id=_text(getattr(fascicolo, 'id_cliente', '')))
-    run = pipeline.run(tenant_id=tenant, fascicolo=fascicolo, sources=sources, actor='archivio-letture.catalogo', process=True)
+    run = pipeline.run(tenant_id=tenant, fascicolo=fascicolo, sources=sources, actor='archivio-letture.catalogo', process=True, retry=retry)
     report['run'] = run.to_dict()
     report['status'] = 'error' if run.errors else ('updated' if run.processed else 'unchanged')
     assignments = repository.list_catalog_assignments(tenant, fascicolo.id)

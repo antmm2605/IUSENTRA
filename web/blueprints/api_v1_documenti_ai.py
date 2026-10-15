@@ -209,6 +209,22 @@ def aggiorna_catalogazione_documentale_fascicolo(fascicolo_id: str):
         raw = request.get_json(silent=True)
         payload = raw if isinstance(raw, dict) else request.form.to_dict(flat=True)
         retry = str(payload.get("retry") or "").strip().lower() in {"1", "true", "si"}
+        documento_id = str(payload.get("documento_id") or "").strip()
+        if documento_id:
+            from pct.document_intelligence.security import assert_user_can_write
+            from web.helpers import get_fascicoli
+            from web.services.catalogo_archivio_runtime import aggiorna_catalogo_da_archivio
+            from web.services.document_intelligence_runtime import assert_document_ai_fascicolo_current_tenant
+
+            assert_user_can_write(_user_context())
+            assert_document_ai_fascicolo_current_tenant(fascicolo_id)
+            fascicolo = get_fascicoli().get(fascicolo_id)
+            if fascicolo is None or not any(str(doc.id) == documento_id for doc in fascicolo.documenti):
+                raise DocumentAINotFound("Documento non trovato nel fascicolo corrente")
+            report = aggiorna_catalogo_da_archivio(fascicolo, document_ids={documento_id}, retry=True)
+            catalog = build_document_catalog_payload(fascicolo_id, process=False)
+            return jsonify({"mock_fallback": False, **catalog,
+                            "run": report.get("run", catalog.get("run", {})), "targeted_catalog": report})
         # La GET React resta leggera. Prima dell'estrazione controlliamo il
         # catalogo SQL: se ogni hash corrente è già catalogato non riapriamo
         # PDF/P7M né rieseguiamo OCR, ma rieseguiamo solo il resolver

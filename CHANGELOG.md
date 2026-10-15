@@ -1,11 +1,19 @@
 # Changelog
 
-## 2.437.42 — candidata, 15/10/2026
+## 2.437.43 — candidata, 15/10/2026
+
+- Seconda lettura Lex sul solo testo SQL della fonte e versione richieste, senza caricare i testi degli altri documenti del fascicolo.
+- Le proposte verificano anche i riscontri necessari già dichiarati dalle regole del catalogo. La presenza della citazione e la pertinenza della natura restano distinte nella provenienza.
+- Una conferma o una modifica concorrente della fonte impedisce atomicamente l'applicazione tardiva, con audit dello scarto.
+- Rilettura della categoria del singolo documento tramite la pipeline SQL esistente, preservando originali e decisioni manuali; nessun nuovo OCR o riconvalida generale.
+- Candidata in collaudo: accettazione reale sul commit definitivo, CI e rilascio ancora necessari. Prestazioni globali e altri incarichi aperti.
+
+## 2.437.42 — rilasciata, 15/10/2026
 
 - Le impronte delle fonti richieste si recuperano in gruppo tramite l'indice SQL esistente, senza una connessione e una query per documento. Elenchi grandi suddivisi in gruppi limitati; stessi tenant, fonti e risultati del catalogo.
 - Lookup singolo e cumulativo condividono il repository nativo. Una discordanza non sceglie né sovrascrive un valore: resta un errore esplicito e i record si conservano.
 - Riutilizzo limitato alla stessa istanza consultiva, senza leggere file o ripetere query per campi già noti. Acquisizione e apprendimento delle nuove impronte preservati.
-- Guardie SQLite/PostgreSQL e confronto sullo stesso caso: JSON identico, query da dieci a una, circa 20% di riduzione nel tempo diagnostico del catalogo. Accettazione sul commit definitivo e rilascio ancora necessari; nessuna dichiarazione di prestazioni globali concluse.
+- Guardie SQLite/PostgreSQL e confronto sullo stesso caso: JSON identico, query da dieci a una, circa 20% di riduzione nel tempo diagnostico del catalogo. Accettazione sul commit c7d3e21cf2, 89 gate obbligatori e deploy Hetzner verificati; nessuna dichiarazione di prestazioni globali concluse.
 
 ## 2.437.41 — rilasciata, 15/10/2026
 

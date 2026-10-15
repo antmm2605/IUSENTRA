@@ -9,6 +9,8 @@ const context = {
   __IUSENTRA_LEX_TEST_HOOKS__: true,
   window: null,
   Blob,
+  URL,
+  TextDecoder,
   fetch: null,
   location: {
     assign() {},
@@ -204,4 +206,78 @@ const agendaLookupThinkingHtml = hooks.buildThinkingBubbleHtml('cosa ho in agend
 assert.match(agendaLookupThinkingHtml, /Incrocio agenda, udienze e scadenze/)
 assert.doesNotMatch(agendaLookupThinkingHtml, /fonti ufficiali/)
 
+const publicProgressHtml = hooks.buildThinkingBubbleHtml(
+  'Leggi le pagine pubbliche', 3, 70_000, 'Confronto i passaggi letti <fonte>.'
+)
+assert.match(publicProgressHtml, /In elaborazione - 1 minuto e 10 secondi/)
+assert.match(publicProgressHtml, /Confronto i passaggi letti &lt;fonte&gt;/)
+assert.equal((publicProgressHtml.match(/class="pct-ai-status-pill__dot"/g) || []).length, 1)
+assert.doesNotMatch(publicProgressHtml, /Recupero dati studio|pct-ai-thinking-steps/)
+assert.ok(publicProgressHtml.indexOf('pct-ai-thinking-copy') < publicProgressHtml.indexOf('pct-ai-status-pill--inline'))
+const publicSourceHtml = hooks.buildAnswerHtml({
+  answer: 'Il confronto usa il passaggio letto.', citations: ['Fonte pubblica controllata'],
+  sources: [{ title: 'Fonte pubblica controllata', url: 'https://example.org/norma',
+    source_type: 'web_libero', source_access_label: 'Web libero', selection: { complete_context: false } }]
+}, { includeExports: false })
+assert.match(publicSourceHtml, /href="https:\/\/example\.org\/norma"/)
+assert.match(publicSourceHtml, /Estratti selezionati/)
+assert.equal((publicSourceHtml.match(/Fonte pubblica controllata/g) || []).length, 1)
+const unsafeSourceHtml = hooks.buildAnswerHtml({ answer: 'Fonte', sources: [{ title: 'Titolo', url: 'javascript:alert(1)' }] })
+assert.doesNotMatch(unsafeSourceHtml, /href="javascript:/)
+
+async function publicStreamCase({ incomplete = false, atBottom = false, publicMode = true } = {}) {
+  const scroller = { scrollHeight: 1500, clientHeight: 400 }
+  let position = atBottom ? 1100 : 400
+  Object.defineProperty(scroller, 'scrollTop', {
+    get: () => position,
+    set: value => { position = Math.max(0, Math.min(Number(value), scroller.scrollHeight - scroller.clientHeight)) },
+  })
+  const bubble = {
+    set innerHTML(value) { this.html = value; scroller.scrollHeight = 2200 },
+    get innerHTML() { return this.html || '' },
+  }
+  const status = { textContent: '', classList: { remove() {}, toggle() {}, contains() { return false } } }
+  hooks.setRequestElementsForTest({ widget: { dataset: { chatUrl: '/controlled/chat', pagePath: '/' } },
+    messages: scroller, bubble, status })
+  hooks.setFreeWebEnabled(publicMode, { silent: true })
+  const frames = [{ progress: 'Leggo la pagina pubblica.' }]
+  if (!incomplete) frames.push({ payload: {
+    answer: 'Il passaggio è disponibile [1].', disable_exports: true,
+    sources: [{ title: 'Fonte conservata', url: 'https://example.org/norma', source_type: 'web_libero',
+      selection: { complete_context: false }, sha256: 'a'.repeat(64) }],
+    citations: ['Fonte conservata'], warnings: ['Estratto pubblico controllato.'],
+    structured_context: { private: 'NON-CONSERVARE-CONTESTO' },
+    public_web_synthesis: publicMode ? { status: 'ok' } : undefined,
+  } })
+  const packets = frames.map(frame => ({ done: false,
+    value: new TextEncoder().encode('data: ' + JSON.stringify(frame) + '\n\n') }))
+  context.fetch = async () => ({ ok: true, body: { getReader: () => ({ read: async () => packets.shift() || { done: true } }) } })
+  await hooks.sendLocalForTest('Leggi la pagina pubblica')
+  return { position, html: bubble.innerHTML, status: status.textContent, entry: hooks.historyForTest().at(-1) }
+}
+const preservedReading = await publicStreamCase()
+assert.equal(preservedReading.position, 400, 'the completed public reply preserves an older reading position')
+const followingReply = await publicStreamCase({ atBottom: true })
+assert.equal(followingReply.position, 1800, 'a reader at the bottom follows the completed reply')
+const interruptedPublic = await publicStreamCase({ incomplete: true })
+assert.match(interruptedPublic.html, /interrotta prima/)
+assert.match(interruptedPublic.status, /non completata/)
+assert.doesNotMatch(interruptedPublic.html, /Scarica Word/)
+assert.equal(interruptedPublic.position, 400)
+const legacyLocalReply = await publicStreamCase({ publicMode: false })
+assert.equal(legacyLocalReply.position, 1800, 'the existing non-public completion behavior is preserved')
+assert.equal('publicAnswer' in legacyLocalReply.entry.meta, false)
+const persistedPublic = JSON.parse(JSON.stringify(preservedReading.entry))
+assert.equal(persistedPublic.meta.publicAnswer.sources[0].sha256, 'a'.repeat(64))
+assert.doesNotMatch(JSON.stringify(persistedPublic), /NON-CONSERVARE-CONTESTO/)
+const restoredPublicHtml = hooks.buildAnswerHtml(hooks.conversationEntryPayload(persistedPublic), { includeExports: false })
+assert.match(restoredPublicHtml, /href="https:\/\/example\.org\/norma"/)
+assert.match(restoredPublicHtml, /Estratti selezionati/)
+assert.match(restoredPublicHtml, /Estratto pubblico controllato/)
+assert.match(restoredPublicHtml, /Avvisi/)
+assert.doesNotMatch(restoredPublicHtml, /Scarica Word/)
+assert.equal(hooks.publicAnswerMemory({ answer: 'Risposta dello studio', structured_context: { private: true } }), null)
+const restoredInterrupted = hooks.conversationEntryPayload(JSON.parse(JSON.stringify(interruptedPublic.entry)))
+assert.equal(restoredInterrupted.disable_exports, true)
+assert.equal(restoredInterrupted.public_web_synthesis.status, 'stream_incomplete')
 console.log('lex_assistant_render.test.mjs OK')

@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.437.46 — candidata, 16/10/2026
+
+- Correzioni emerse dal collaudo reale della candidata45, non rilasciata: la domanda generica di lettura usa un argomento comune ricavato dai titoli delle pagine, evitando di selezionare soltanto la guida del calcolatore.
+- Gli estratti parziali non possono dimostrare che un dato manchi nell'intera pagina: istruzione esplicita e controllo delle affermazioni di assenza. La selezione conserva metodo, origine della domanda e impronta.
+- Avanzamento visibile con l'indicatore esistente e tempo trascorso; nessun salto al fondo se l'utente sta rileggendo la conversazione.
+- Fonti pubbliche cliccabili, senza titoli duplicati, con indicazione degli estratti selezionati. Esito del confronto distinto dalla disponibilità del servizio.
+- La sola lettura generica riporta direttamente i passaggi con sezione e fonte, senza interpretazione generativa; domande di merito e confronti conservano il percorso AI nativo.
+- Vista espansa Lex: le regole tablet e telefono conservano l’altezza disponibile; etichette della lettura coerenti con il percorso senza generazione AI.
+- Completamento dello stream pubblico: posizione di rilettura preservata, interruzione esplicita senza falsa conferma o esportazione; errori di rete distinti dai divieti del sito.
+- Le condizioni richiamate nella sintesi conservano il passaggio testuale univoco della fonte; ambiguità e citazioni non corrispondenti restano esplicite. Le note interne non vengono scambiate per altre fonti.
+- Riaprendo la conversazione restano disponibili le schede delle fonti pubbliche e gli avvisi, senza nuove acquisizioni o salvataggio del contesto privato.
+- Rifiniture dal collaudo: contrasto dei link nei messaggi, invio da44px sui formati compatti, accenti e punteggiatura davanti alla fonte conservata.
+- Nuova accettazione reale, copertura, controlli remoti e distribuzione ancora pendenti.
+
 ## 2.437.45 — candidata, 15/10/2026
 
 - Web libero legge le pagine pubbliche nel motore nativo, conserva contenuto, provenienza e impronta e seleziona i passaggi usando la domanda comune e EmbeddingGemma 300M.
@@ -8,12 +22,12 @@
 - La risoluzione del modello separa la cache dei tenant; la selezione React include il modello Lex personalizzato già predisposto. L'embedding resta separato.
 - Accettazione reale, controlli remoti e distribuzione ancora da eseguire. Catalogo esteso e altri incarichi restano aperti.
 
-## 2.437.44 — candidata, 15/10/2026
+## 2.437.44 — rilasciata, 15/10/2026
 
 - Lettore PDF: geometria originale delle pagine riservata prima del caricamento delle immagini, senza usare le dimensioni CSS provvisorie.
 - Pagina in attesa ed errore distinguibili da una pagina vuota; recupero della sola immagine richiesta, senza ricaricare il fascicolo o avviare OCR.
 - Formattazione dello strato selezionabile limitata alle pagine prossime alla vista, con riuso della geometria invariata e senza perdere il testo delle altre pagine.
-- Nessun limite di 43 pagine: test su 45 e 173 pagine con geometrie miste. Prova reale e rilascio ancora necessari.
+- Nessun limite di 43 pagine: test su 45 e 173 pagine con geometrie miste. Rilasciata sul commit7865cac66a, con43pagine verificate in locale e produzione e controlli obbligatori positivi.
 
 ## 2.437.43 — rilasciata, 15/10/2026
 

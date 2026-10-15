@@ -1,7 +1,7 @@
 """La scelta del modello non può essere riusata da un altro studio."""
 
-from flask import Flask, g
 import pytest
+from flask import Flask, g
 
 from lex.providers import local_ai_service, ollama_runtime
 

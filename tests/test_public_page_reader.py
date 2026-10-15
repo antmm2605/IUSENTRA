@@ -58,7 +58,7 @@ def test_cross_domain_redirect_checks_destination_robots_before_content():
         raise AssertionError('Destinazione negata non deve essere letta')
 
     result = PublicPageReader(transport=transport).read('https://example.org/atto')
-    assert result['status'] == 'network_error'
+    assert result['status'] == 'robots_blocked'
     assert 'https://other.example/robots.txt' in calls
     assert result['text'] == ''
 
@@ -69,7 +69,7 @@ def test_robots_server_error_is_not_a_successful_empty_document():
         return dict(url=url, status=503, content_type='text/plain', body=b'Unavailable')
 
     result = PublicPageReader(transport=transport).read('https://example.org/atto')
-    assert result['status'] == 'robots_blocked'
+    assert result['status'] == 'access_policy_unavailable'
     assert result['text'] == ''
 
 
@@ -117,7 +117,7 @@ def test_excessive_crawl_delay_is_explicit_without_waiting_or_reading_page():
         raise AssertionError('Il documento non deve essere acquisito')
 
     result = PublicPageReader(transport=transport).read('https://example.org/atto')
-    assert result['status'] == 'network_error'
+    assert result['status'] == 'rate_limited'
     assert 'Intervallo richiesto' in result['warnings'][0]
 
 
@@ -139,3 +139,47 @@ def test_article_about_access_technology_is_not_hidden_as_a_challenge():
     result = PublicPageReader(transport=transport).read('https://example.org/atto')
     assert result['status'] == 'read'
     assert 'trattamento' in result['text']
+
+
+def test_dns_failure_is_not_reported_as_a_site_prohibition_and_is_cached():
+    import socket
+    calls = []
+
+    def transport(url, **options):
+        calls.append(url)
+        raise socket.gaierror(-2, 'synthetic DNS error')
+
+    reader = PublicPageReader(transport=transport)
+    for _ in range(2):
+        result = reader.read('https://unavailable.example/atto')
+        assert result['status'] == 'network_error'
+        assert 'non risolvibile' in result['reason']
+        assert result['error_type'] == 'gaierror'
+        assert 'synthetic' not in str(result['warnings'])
+    assert calls == ['https://unavailable.example/robots.txt']
+
+
+def test_robots_redirect_cannot_forward_credentials():
+    calls = []
+
+    def transport(url, **options):
+        calls.append(url)
+        options['before_request']('https://other.example/robots.txt?token=segreto')
+        raise AssertionError('La destinazione con credenziali non deve essere acquisita')
+
+    result = PublicPageReader(transport=transport).read('https://example.org/atto')
+    assert result['text'] == ''
+    assert 'segreto' not in str(result)
+    assert calls == ['https://example.org/robots.txt']
+
+
+def test_page_connection_failure_has_an_italian_reason():
+    def transport(url, **options):
+        if url.endswith('/robots.txt'):
+            return dict(url=url, status=404, content_type='text/plain', body=b'')
+        raise ConnectionError('private diagnostic details')
+
+    result = PublicPageReader(transport=transport).read('https://example.org/atto')
+    assert result['status'] == 'network_error'
+    assert result['reason'] == 'Connessione al sito non riuscita.'
+    assert 'private diagnostic' not in str(result)

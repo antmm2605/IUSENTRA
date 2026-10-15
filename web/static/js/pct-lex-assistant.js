@@ -540,7 +540,7 @@
     }
     return (
       '<div class="pct-ai-callout pct-ai-callout--warning">' +
-        '<div class="pct-ai-callout__title"><i class="bi bi-exclamation-triangle me-1"></i>Warning</div>' +
+        '<div class="pct-ai-callout__title"><i class="bi bi-exclamation-triangle me-1"></i>Avvisi</div>' +
         '<ul class="pct-ai-callout__list">' +
           warnings.map(function (item) { return '<li>' + escapeHtml(item) + '</li>'; }).join('') +
         '</ul>' +
@@ -578,7 +578,11 @@
   function renderSources(payload) {
     var citations = Array.isArray(payload && payload.citations) ? payload.citations.filter(Boolean) : [];
     var sources = Array.isArray(payload && payload.sources) ? payload.sources.slice(0, 5) : [];
-    var items = citations.map(function (item) {
+    var items = citations.filter(function (citation) {
+      return !sources.some(function (source) {
+        return String(source && source.title || '').trim() === String(citation).trim();
+      });
+    }).map(function (item) {
       return '<li>' + escapeHtml(item) + '</li>';
     });
     sources.forEach(function (item) {
@@ -588,7 +592,17 @@
       // fascicolo, pagina inclusa) reso come link che apre la fonte esatta.
       var href = String(item && (item.href || item.document_href || '') || '').trim();
       var isInternalHref = href.charAt(0) === '/' && href.indexOf('//') !== 0;
+      var externalHref = '';
+      try {
+        var publicUrl = new URL(String(item && item.url || ''));
+        if ((publicUrl.protocol === 'https:' || publicUrl.protocol === 'http:') && !publicUrl.username && !publicUrl.password) {
+          externalHref = publicUrl.href;
+        }
+      } catch (_invalidSourceUrl) { /* Una fonte senza URL valido resta testo consultabile. */ }
       var accessLabel = String(item && (item.source_access_label || item.access_label || '') || '').trim();
+      if (item && item.source_type === 'web_libero' && item.selection && item.selection.complete_context === false) {
+        accessLabel = (accessLabel ? accessLabel + ' · ' : '') + 'Estratti selezionati';
+      }
       var requiresCredentials = Boolean(item && item.source_requires_credentials);
       var restricted = Boolean(item && item.source_restricted);
       var badge = accessLabel
@@ -612,7 +626,10 @@
       var titleHtml = isInternalHref
         ? '<a class="fw-semibold pct-ai-source-link" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">' +
             escapeHtml(title || 'Fonte') + ' <i class="bi bi-box-arrow-up-right small"></i></a>'
-        : '<span class="fw-semibold">' + escapeHtml(title || 'Fonte') + '</span>';
+        : externalHref
+          ? '<a class="fw-semibold pct-ai-source-link" href="' + escapeHtml(externalHref) + '" target="_blank" rel="noopener noreferrer">' +
+              escapeHtml(title || 'Fonte') + ' <i class="bi bi-box-arrow-up-right small"></i></a>'
+          : '<span class="fw-semibold">' + escapeHtml(title || 'Fonte') + '</span>';
       items.push(
         '<li>' +
           titleHtml +
@@ -1310,17 +1327,20 @@
     );
   }
 
-  function buildThinkingBubbleHtml(question, stage, elapsed) {
+  function thinkingProgressLabel(elapsed, phaseMessage) {
     var suffix = elapsed >= 1400 ? ' - ' + formatReflectionDuration(elapsed) : '';
-    var note = buildThinkingNote(question, stage);
+    return (phaseMessage ? 'In elaborazione' : 'Sto pensando') + suffix;
+  }
+
+  function buildThinkingBubbleHtml(question, stage, elapsed, phaseMessage) {
+    var note = phaseMessage || buildThinkingNote(question, stage);
+    var activity = '<span class="pct-ai-status-pill pct-ai-status-pill--inline">' +
+      '<span class="pct-ai-status-pill__dot"></span>' +
+      '<span>' + escapeHtml(thinkingProgressLabel(elapsed, phaseMessage)) + '</span></span>';
+    var copy = note ? '<div class="pct-ai-thinking-copy">' + escapeHtml(note) + '</div>' : '';
     return (
       '<div class="pct-ai-thinking-box">' +
-        '<span class="pct-ai-status-pill pct-ai-status-pill--inline">' +
-          '<span class="pct-ai-status-pill__dot"></span>' +
-          '<span>Sto pensando' + suffix + '</span>' +
-        '</span>' +
-        (note ? '<div class="pct-ai-thinking-copy">' + escapeHtml(note) + '</div>' : '') +
-        renderThinkingSteps(question, stage) +
+        (phaseMessage ? copy + activity : activity + copy + renderThinkingSteps(question, stage)) +
       '</div>'
     );
   }
@@ -1329,7 +1349,7 @@
     setStatusHtml(
       '<span class="pct-ai-status-reflection">' +
         '<i class="bi bi-hourglass-split"></i>' +
-        '<span>Pensiero completato: ' + formatReflectionDuration(durationMs) + '</span>' +
+        '<span>' + (state.thinking && state.thinking.serverProgress ? 'Elaborazione completata: ' : 'Pensiero completato: ') + formatReflectionDuration(durationMs) + '</span>' +
       '</span>',
       'reflection'
     );
@@ -1368,25 +1388,35 @@
       return;
     }
 
-    if (state.thinking.serverProgress) {
-      setBubbleContent(state.currentBubble, state.thinking.serverProgress);
-      return;
-    }
+    var followLatest = messages && messages.scrollHeight - messages.scrollTop - messages.clientHeight < 48;
     var elapsed = thinkingElapsedMs();
     var stage = Math.max(
       Number(state.thinking.stage || 0),
       thinkingStageForElapsed(elapsed)
     );
     state.thinking.stage = stage;
+    if (state.thinking.serverProgress) {
+      var activityLabel = state.currentBubble.querySelector('.pct-ai-status-pill > span:last-child');
+      var phaseNote = state.currentBubble.querySelector('.pct-ai-thinking-copy');
+      if (activityLabel && phaseNote) {
+        var nextLabel = thinkingProgressLabel(elapsed, true);
+        if (activityLabel.textContent !== nextLabel) activityLabel.textContent = nextLabel;
+        var phaseChanged = phaseNote.textContent !== state.thinking.serverProgress;
+        if (phaseChanged) phaseNote.textContent = state.thinking.serverProgress;
+        if (followLatest && phaseChanged) scrollBottom();
+        return;
+      }
+    }
     setBubbleHtml(
       state.currentBubble,
       buildThinkingBubbleHtml(
         state.thinking.question,
         stage,
-        elapsed
+        elapsed,
+        state.thinking.serverProgress
       )
     );
-    scrollBottom();
+    if (followLatest) scrollBottom();
   }
 
   function ensureThinkingNote(stage) {
@@ -1424,6 +1454,7 @@
       stage: 0,
       receivedFirstToken: false,
       reflectionDurationMs: 0,
+      serverProgress: state.freeWebEnabled ? 'Avvio la lettura delle fonti pubbliche richieste.' : '',
       statusTimer: window.setInterval(renderThinkingStatus, 250),
       stageOneTimer: null,
       stageTwoTimer: null,
@@ -2207,6 +2238,29 @@
     }
   }
 
+  function publicAnswerMemory(payload) {
+    if (!payload || (payload.source_mode !== 'free_web' && !payload.public_web_synthesis)) {
+      return null;
+    }
+    // Solo il risultato pubblico mostrato: mai contesto studio o prompt del modello.
+    return {
+      source_mode: 'free_web',
+      sources: Array.isArray(payload.sources) ? payload.sources.slice(0, 8) : [],
+      citations: Array.isArray(payload.citations) ? payload.citations.slice(0, 8) : [],
+      warnings: Array.isArray(payload.warnings) ? payload.warnings.slice(0, 16) : [],
+      public_web_visits: Array.isArray(payload.public_web_visits) ? payload.public_web_visits.slice(0, 8) : [],
+      disable_exports: Boolean(payload.disable_exports || payload.disableExports),
+      public_web_synthesis: { status: payload.public_web_synthesis && payload.public_web_synthesis.status || '' },
+    };
+  }
+
+  function conversationEntryPayload(entry) {
+    return Object.assign({}, entry.meta && entry.meta.publicAnswer || {}, {
+      answer: entry.content || '',
+      referenceLabel: entry.meta && entry.meta.referenceLabel ? entry.meta.referenceLabel : '',
+    });
+  }
+
   function renderConversation() {
     if (!messages) {
       return;
@@ -2224,10 +2278,7 @@
         setBubbleHtml(
           bubble,
           buildAnswerHtml(
-            {
-              answer: entry.content || '',
-              referenceLabel: entry.meta && entry.meta.referenceLabel ? entry.meta.referenceLabel : '',
-            },
+            conversationEntryPayload(entry),
             { includeExports: false }
           )
         );
@@ -2379,7 +2430,7 @@
     setOpen(false, { exitFullscreen: false });
   }
 
-  function finalizeRequest(message) {
+  function finalizeRequest(message, scrollState) {
     state.streaming = false;
     state.pendingFocus = null;
     if (sendButton) {
@@ -2388,7 +2439,18 @@
     if (!(statusBar && statusBar.classList.contains('is-reflection'))) {
       setStatus(message || 'Assistente pronto.');
     }
-    scrollBottom();
+    if (messages && scrollState && !scrollState.followLatest) {
+      messages.scrollTop = scrollState.top;
+    } else {
+      scrollBottom();
+    }
+  }
+
+  function captureConversationScroll() {
+    return messages ? {
+      top: messages.scrollTop,
+      followLatest: messages.scrollHeight - messages.scrollTop - messages.clientHeight < 48,
+    } : null;
   }
 
   function payloadBase() {
@@ -2583,9 +2645,10 @@
   }
 
   function sendLocal(text) {
+    var preservePublicScroll = Boolean(state.freeWebEnabled);
     var payload = buildChatRequestPayload(text);
     var referenceLabel = state.pendingFocus && state.pendingFocus.focusLabel ? String(state.pendingFocus.focusLabel) : '';
-    fetch(widget.dataset.chatUrl || '/api/assistente/chat', {
+    return fetch(widget.dataset.chatUrl || '/api/assistente/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -2610,17 +2673,34 @@
           return;
         }
         finished = true;
+        var scrollState = preservePublicScroll ? captureConversationScroll() : null;
         setAnswerPayload(state.currentBubble, finalPayload);
-        state.history.push({ role: 'assistant', content: finalPayload.answer, meta: { topic: state.pendingFocus && state.pendingFocus.topic || '', referenceLabel: referenceLabel } });
+        var historyMeta = { topic: state.pendingFocus && state.pendingFocus.topic || '', referenceLabel: referenceLabel };
+        var publicMemory = publicAnswerMemory(finalPayload);
+        if (publicMemory) historyMeta.publicAnswer = publicMemory;
+        state.history.push({ role: 'assistant', content: finalPayload.answer, meta: historyMeta });
         saveConversationMemory();
         speakAnswer(finalPayload.answer);
         finalizeThinkingFeedback(ok !== false);
-        finalizeRequest(ok === false ? 'Assistente momentaneamente non disponibile.' : undefined);
+        var comparisonIncomplete = finalPayload.public_web_synthesis && finalPayload.public_web_synthesis.status !== 'ok';
+        finalizeRequest(ok === false
+          ? (comparisonIncomplete ? 'Richiesta non completata: consulta l’esito della richiesta.' : 'Assistente momentaneamente non disponibile.')
+          : undefined, scrollState);
       }
 
       function readChunk() {
         return reader.read().then(function (result) {
           if (result.done) {
+            if (preservePublicScroll && !finished) {
+              finish(normalizeAssistantPayload({
+                answer: 'La risposta si è interrotta prima dell’esito finale. Riprova la richiesta.',
+                source_mode: 'free_web',
+                public_web_synthesis: { status: 'stream_incomplete' },
+                disable_exports: true,
+                warnings: ['Esito finale della richiesta non ricevuto.'],
+              }, { question: text }), false);
+              return;
+            }
             var finalPayload = normalizeAssistantPayload(
               { answer: full, citations: [], question: text, referenceLabel: referenceLabel },
               { question: text }
@@ -2662,11 +2742,12 @@
                 return;
               }
               if (data.errore) {
+                var errorScrollState = preservePublicScroll ? captureConversationScroll() : null;
                 setBubbleContent(state.currentBubble, 'Attenzione: ' + data.errore);
                 state.history.push({ role: 'assistant', content: data.errore, meta: { topic: state.pendingFocus && state.pendingFocus.topic || '' } });
                 saveConversationMemory();
                 finalizeThinkingFeedback(false);
-                finalizeRequest();
+                finalizeRequest(undefined, errorScrollState);
                 return;
               }
               if (data.token) {
@@ -2696,9 +2777,10 @@
 
       return readChunk();
     }).catch(function (error) {
+      var errorScrollState = preservePublicScroll ? captureConversationScroll() : null;
       setBubbleContent(state.currentBubble, compactErrorText(error && error.message || lexServiceUnavailableMessage()));
       finalizeThinkingFeedback(false);
-      finalizeRequest('Lex non ha completato la richiesta.');
+      finalizeRequest('Lex non ha completato la richiesta.', errorScrollState);
     });
   }
 
@@ -2970,7 +3052,7 @@
       .then(function (data) {
         if (data.ok) {
           updateBadge(true, data.modello_attivo || 'Operativo');
-          setStatus(isPortableClient() ? 'Lex usa il motore AI dello studio su questo dispositivo.' : 'Lex e\' pronto sul motore AI di IUSENTRA.');
+          setStatus(isPortableClient() ? 'Lex usa il motore AI dello studio su questo dispositivo.' : 'Lex è pronto sul motore AI di IUSENTRA.');
         } else {
           updateBadge(false, 'Offline');
           setStatus(isPortableClient() ? 'Motore AI dello studio non disponibile in questo momento.' : 'Motore AI non disponibile su questa installazione.');
@@ -3872,6 +3954,17 @@
       currentActiveContextPayload: currentActiveContextPayload,
       resolveConversationFocus: resolveConversationFocus,
       setFreeWebEnabled: setFreeWebEnabled,
+      sendLocalForTest: sendLocal,
+      publicAnswerMemory: publicAnswerMemory,
+      conversationEntryPayload: conversationEntryPayload,
+      historyForTest: function () { return state.history.slice(); },
+      setRequestElementsForTest: function (elements) {
+        widget = elements.widget;
+        messages = elements.messages;
+        statusBar = elements.status;
+        state.currentBubble = elements.bubble;
+        state.streaming = true;
+      },
       setAttachmentsForTest: function (attachments) {
         state.attachments = Array.isArray(attachments) ? attachments.slice(0, 4) : [];
       },

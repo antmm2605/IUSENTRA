@@ -899,6 +899,14 @@
   border-radius: 1.05rem 1.05rem 0.32rem 1.05rem;
 }
 
+.pct-ai-widget .pct-ai-msg--user .pct-ai-bubble a:link,
+.pct-ai-widget .pct-ai-msg--user .pct-ai-bubble a:visited,
+.pct-ai-widget .pct-ai-msg--user .pct-ai-bubble a:hover,
+.pct-ai-widget .pct-ai-msg--user .pct-ai-bubble a:focus-visible {
+  color: var(--bs-white);
+  text-decoration: underline;
+}
+
 .pct-ai-widget .pct-ai-msg--user .pct-ai-bubble code,
 .pct-ai-widget .pct-ai-msg--user .pct-ai-bubble pre {
   background: rgba(255, 255, 255, 0.12);
@@ -1231,6 +1239,10 @@
   .pct-ai-widget .pct-ai-resize-handle {
     display: none;
   }
+  .pct-ai-widget .pct-ai-send-btn {
+    width: 44px;
+    height: 44px;
+  }
 }
 
 @media (max-width: 767.98px) {
@@ -1303,6 +1315,17 @@
   .pct-ai-widget .pct-ai-generated-btn {
     justify-content: center;
   }
+}
+
+// Le regole compatte dei breakpoint non devono ridurre la vista espansa.
+.pct-ai-widget.pct-ai-widget--fullscreen {
+  height: auto;
+}
+
+.pct-ai-widget.pct-ai-widget--fullscreen .pct-ai-panel {
+  bottom: 0;
+  height: 100%;
+  max-height: none;
 }
 
 [data-bs-theme="dark"] .pct-ai-widget .pct-ai-panel {

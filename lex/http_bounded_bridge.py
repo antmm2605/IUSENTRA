@@ -887,6 +887,7 @@ def _free_web_payload_steps(
     request_profile: dict[str, Any],
     workflow_hint: str,
 ):
+    from lex.research.public_page_evidence import is_plain_source_reading
     from lex.research.service import LexResearchService
     from lex.retrieval.sources.official_web import OfficialWebSource
 
@@ -923,7 +924,7 @@ def _free_web_payload_steps(
     synthesis_metadata: dict[str, Any] = {"status": "no_read_sources"}
     answer = ""
     if evidence and search_request is not None:
-        yield {"progress": "Confronto i passaggi letti e controllo i riferimenti alle fonti."}
+        yield {"progress": "Preparo la risposta sui passaggi letti e controllo i riferimenti alle fonti."}
         try:
             draft = LexResearchService.summarize_public_pages(search_request, evidence)
             synthesis_metadata = dict(draft.metadata or {})
@@ -931,6 +932,7 @@ def _free_web_payload_steps(
         except Exception as exc:
             synthesis_metadata = {"status": "synthesis_error", "error_type": type(exc).__name__}
     synthesis_ok = bool(answer) and synthesis_metadata.get("status") == "ok"
+    source_reading = is_plain_source_reading(resolved_effective_question)
     visits = list(metadata.get("public_web_visits") or [])
     read_warnings = []
     for visit in visits:
@@ -947,10 +949,25 @@ def _free_web_payload_steps(
             read_warnings.append(f"Fonte non letta: {visit.get('url') or 'indirizzo non disponibile'}. {reason}")
     if not synthesis_ok:
         answer = (
-            "Le pagine sono state lette, ma il confronto non è stato completato. "
-            "Le fonti restano disponibili per la consultazione."
+            ("I passaggi disponibili sono stati letti, ma la risposta non è stata completata. "
+             if source_reading else "Le pagine sono state lette, ma il confronto non è stato completato. ")
+            + "Le fonti restano disponibili per la consultazione."
             if sources else "Nessuna pagina pubblica leggibile acquisita: la ricerca non è conclusa."
         )
+        if synthesis_metadata.get("status") == "unsupported_source_absence_claim":
+            answer = (
+                "Il confronto è stato fermato: gli estratti selezionati non permettono di affermare "
+                "che un dato manchi nell'intera pagina. Le fonti restano disponibili per la consultazione."
+            )
+    if not synthesis_ok and synthesis_metadata.get("status") in {
+        "ambiguous_source_condition", "unsupported_source_quotation",
+    }:
+        reason = (
+            "la condizione richiamata non corrisponde a un passaggio univoco della fonte attribuita"
+            if synthesis_metadata["status"] == "ambiguous_source_condition"
+            else "la citazione testuale non corrisponde alla fonte attribuita"
+        )
+        answer = f"Il confronto è stato fermato: {reason}. Le fonti restano disponibili per la consultazione."
     payload = direct_answer_payload(
         current_user_message,
         answer,
@@ -964,7 +981,8 @@ def _free_web_payload_steps(
             "question": current_user_message,
             "effective_question": resolved_effective_question,
             "answer": answer,
-            "warnings": read_warnings + ([] if synthesis_ok else ["Confronto delle fonti non completato."]),
+            "warnings": read_warnings + ([] if synthesis_ok else [
+                "Lettura delle fonti non completata." if source_reading else "Confronto delle fonti non completato."]),
             "public_web_synthesis": synthesis_metadata,
             "public_web_visits": visits,
             "public_web_selection": dict(metadata.get("public_web_selection") or {}),
@@ -985,12 +1003,12 @@ def _free_web_payload_steps(
             "fascicolo_first": False,
             "external_sources_used": bool(sources),
             "external_sources_reason": "",
-            "disable_exports": False,
+            "disable_exports": not synthesis_ok,
             "execution_policy": {
                 **dict(studio_context.get("execution_policy") or {}),
                 "mode": "web_libero",
-                "summary_label": "Confronto delle pagine pubbliche lette",
-                "llm_role": "sintesi_delle_fonti_pubbliche",
+                "summary_label": "Passaggi delle pagine pubbliche lette" if source_reading else "Confronto delle pagine pubbliche lette",
+                "llm_role": "non_utilizzato_per_lettura" if source_reading else "sintesi_delle_fonti_pubbliche",
                 "truth_strategy": "ricerca_web_libera",
                 "requires_verified_legal_reference": False,
                 "requires_verified_normative_freshness": False,
@@ -1012,7 +1030,7 @@ def _free_web_payload_steps(
             "workflow": "web_libero",
             "legal_basis": [],
             "considered_sources": citations,
-            "compared_sources": sources if synthesis_ok else [],
+            "compared_sources": sources if synthesis_ok and not source_reading else [],
             "missing_evidence": [] if sources else ["Nessun risultato pubblico leggibile restituito dal motore Web libero."],
             "evidence_summary": {
                 "evidence_count": len(sources),

@@ -66,3 +66,26 @@ def test_candidate_model_cannot_be_activated_by_this_reader():
 
     with pytest.raises(ValueError, match='300M'):
         semantic_block_scores([page()], 'termine', embedder=Embedder())
+
+
+def test_generic_reading_instructions_use_one_common_subject_from_all_page_titles():
+    calls = []
+
+    class Embedder:
+        modello = 'embeddinggemma:300m'
+
+        def embed(self, inputs):
+            calls.append(inputs)
+            return np.ones((len(inputs), 2))
+
+    pages = [dict(page(), title='Termini impugnazioni civile amministrativo tributario'),
+             dict(page(3), title='Articolo 327 codice procedura civile')]
+    question = ('Leggi queste due pagine pubbliche e indica quali informazioni riesci effettivamente '
+                'a recuperare, citando separatamente i due link: https://example.org/a e https://example.org/b. '
+                'Non usare dati dello studio.')
+    result = semantic_block_scores(pages, question, embedder=Embedder())
+    assert len(calls) == 1
+    assert result['query_origin'] == 'common_page_titles'
+    assert len(result['query_sha256']) == 64
+    assert calls[0][0] == ('task: search result | query: Contenuti delle pagine: '
+                           'Termini impugnazioni civile amministrativo tributario | Articolo 327 codice procedura civile')

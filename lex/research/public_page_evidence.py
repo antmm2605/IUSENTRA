@@ -6,11 +6,27 @@ non dichiarare lettura semantica integrale quando il contesto è selettivo.
 
 from __future__ import annotations
 
+import hashlib
 import re
 from urllib.parse import unquote, urlsplit
 
 from lex.contracts import EvidenceItem
 from lex.ricerca_giuridica.testo import termini_indice
+
+_READING_DIRECTIVE_TERMS = frozenset(termini_indice(
+    "leggi leggere confronta confrontare queste questi questa questo pagina pagine pubbliche pubblici "
+    "indica indicare quali informazioni riesci effettivamente recuperare citando citare separatamente "
+    "due link non usare dati studio"
+))
+
+
+
+def is_plain_source_reading(question: str) -> bool:
+    """Solo lettura generica: nessuna domanda di merito o confronto implicito."""
+    without_urls = re.sub(r"https?://[^\s<>\'\")\]]+", "", str(question))
+    terms = set(termini_indice(without_urls))
+    compare_terms = set(termini_indice("confronta confrontare confronto confronti compara comparare sintetizza sintesi fondi fondere"))
+    return bool(terms) and not (terms & compare_terms) and not (terms - _READING_DIRECTIVE_TERMS)
 
 
 def _url_path(match) -> str:
@@ -53,9 +69,9 @@ def semantic_block_scores(pages: list[dict], question: str, *, embedder, max_can
     Una sola domanda e una sola chiamata per il lotto; i limiti e i blocchi
     esclusi sono dichiarati. Nessun modello viene scaricato o sostituito.
     """
-    from lex.ricerca_giuridica.embedding import PREFISSO_DOMANDA, testo_documento
-
     import numpy as np
+
+    from lex.ricerca_giuridica.embedding import PREFISSO_DOMANDA, testo_documento
 
     if getattr(embedder, "modello", "") != "embeddinggemma:300m":
         raise ValueError("La selezione pubblica richiede il modello embedding governato 300M.")
@@ -78,8 +94,13 @@ def semantic_block_scores(pages: list[dict], question: str, *, embedder, max_can
         return {"scores": {}, "candidate_count": 0, "available_count": sum(map(len, pools)), "status": "no_candidates"}
     semantic_question = re.sub(r"https?://[^\s<>'\")\]]+", "", question).strip()
     titles = [str(page.get("title")) for page in pages if page.get("title")]
-    if len(_terms(semantic_question)) < 4 and titles:
-        semantic_question += " Titoli delle pagine: " + " | ".join(titles)[:2000]
+    query_origin = "user_question"
+    if not (set(termini_indice(semantic_question)) - _READING_DIRECTIVE_TERMS) and titles:
+        # La domanda «leggi queste pagine» non è il loro argomento. Usare
+        # gli stessi titoli pubblici per tutto il lotto, senza trasformare
+        # ogni sito in una ricerca diversa né privilegiare le istruzioni d'uso.
+        semantic_question = "Contenuti delle pagine: " + " | ".join(titles)[:2000]
+        query_origin = "common_page_titles"
     inputs = [PREFISSO_DOMANDA + semantic_question] + [
         testo_documento(" / ".join(block.get("section") or []), block["text"])
         for _, block in selected]
@@ -92,9 +113,11 @@ def semantic_block_scores(pages: list[dict], question: str, *, embedder, max_can
     vectors = vectors / norms
     similarities = vectors[1:] @ vectors[0]
     scores = {}
-    for (page_index, block), similarity in zip(selected, similarities):
+    for (page_index, block), similarity in zip(selected, similarities, strict=True):
         scores.setdefault(page_index, {})[block["index"]] = float(similarity)
     return {"scores": scores, "candidate_count": len(selected),
+            "query_origin": query_origin,
+            "query_sha256": hashlib.sha256(semantic_question.encode("utf-8")).hexdigest(),
             "available_count": sum(map(len, pools)), "status": "ranked",
             "model": str(getattr(embedder, "modello", "")),
             "truncated_blocks": [{"page_index": page_index, "block_index": block["index"],
@@ -117,7 +140,7 @@ def select_passages(page: dict, question: str, *, max_chars: int = 6000, semanti
     intent = re.sub(r"\bart(\d+)", r"articolo \1", intent, flags=re.I)
     tokens = _terms(intent)
     phrase_words = re.findall(r"\b[\wÀ-ÿ]{3,}\b", intent.casefold())
-    phrases = {" ".join(pair) for pair in zip(phrase_words, phrase_words[1:])}
+    phrases = {" ".join(pair) for pair in zip(phrase_words, phrase_words[1:], strict=False)}
     blocks = [block for block in page.get("blocks", []) if block.get("kind") != "heading"
               and block.get("text") and not block.get("form_context") and not block.get("link_only_context")]
     if blocks and len(text) > max_chars:
@@ -176,7 +199,7 @@ def select_passages(page: dict, question: str, *, max_chars: int = 6000, semanti
             passages.sort(key=lambda passage: (passage["block_index"], passage["piece_index"]))
             return {"passages": passages, "total_characters": len(text),
                     "selected_characters": sum(len(passage["text"]) for passage in passages),
-                    "selection_method": "shared_query_semantic_blocks_v1" if semantic_scores else "shared_query_complete_blocks_v1",
+                    "selection_method": "shared_query_semantic_blocks_v2" if semantic_scores else "shared_query_complete_blocks_v1",
                     "complete_context": False}
     # Stesse finestre, domanda e punteggio per ogni sito; niente euristiche
     # di favore per un dominio e niente frammenti provenienti dagli snippet.
@@ -262,7 +285,7 @@ def acquire_pages(rows: list[dict], question: str, *, reader=None, passage_ranke
             ranking = (passage_ranker or _native_semantic_ranking)(pages, question)
         except Exception as exc:
             ranking = {"status": "semantic_unavailable", "scores": {}, "error_type": type(exc).__name__}
-    for page_index, (page, visit) in enumerate(zip(pages, visits)):
+    for page_index, (page, visit) in enumerate(zip(pages, visits, strict=True)):
         scores = ranking.get("scores", {}).get(page_index) if ranking.get("status") == "ranked" else None
         item = page_evidence(page, question, max_chars=max_chars, semantic_scores=scores)
         if item is not None:

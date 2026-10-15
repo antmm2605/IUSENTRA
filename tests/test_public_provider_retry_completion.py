@@ -29,3 +29,24 @@ def test_recovered_runtime_keeps_completion_reason(monkeypatch, reason):
     assert len(calls) == 2
     assert draft.metadata["runtime_refreshed_after_error"] is True
     assert draft.metadata["generation_result"] == {"done": True, "done_reason": reason}
+
+
+@pytest.mark.parametrize("public_mode", [False, True])
+def test_public_reading_scope_is_server_owned_and_does_not_change_ordinary_research(monkeypatch, public_mode):
+    monkeypatch.setattr("lex.providers.ollama_provider._resolve_runtime",
+        lambda: {"api_base_url": "http://controlled.invalid/api", "chat_model": "accepted"})
+    payloads = []
+
+    def call(payload, api_base_url, **kwargs):
+        payloads.append(payload)
+        return _OllamaText("La fonte indica sei mesi [1].", {"done": True, "done_reason": "stop"})
+
+    monkeypatch.setattr("lex.providers.ollama_provider._call_ollama", call)
+    request = LexRequest(tenant_id="controlled", user_id="tester", session_id="scope",
+                         query="Leggi la pagina", metadata={"source_mode": "free_web"} if public_mode else {})
+    item = EvidenceItem(source_type="web_libero", source_id="public", title="Fonte",
+                        content="Il termine è di sei mesi.", score=1)
+    OllamaProvider().generate(request, {}, {"items": [item], "citations": []}, "research")
+    system = payloads[0]["messages"][0]["content"]
+    assert ("Una regola nella sezione amministrativa resta amministrativa" in system) is public_mode
+    assert "Per norme, sentenze e prassi usa SOLO le Fonti fornite" in system

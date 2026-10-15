@@ -288,6 +288,18 @@ class OllamaProvider(BaseProvider):
         workflow_name = workflow or "chat"
         settings = lex_generation_settings()
         system_prompt = _build_system_prompt(workflow_name, context)
+        if workflow_name == "research" and (getattr(request, "metadata", {}) or {}).get("source_mode") == "free_web":
+            system_prompt += (
+                "\nPer questa richiesta esamina esclusivamente le pagine pubbliche fornite. "
+                "Rispetta il perimetro della Domanda: una lettura di pagine non richiede un parere giuridico. "
+                "Presenta i contenuti separatamente per fonte, con citazioni [n] e mantenendo "
+                "sempre l'ambito indicato nell'intestazione del passaggio. "
+                "Una regola nella sezione amministrativa resta amministrativa, non diventa generale. "
+                "Aggiungi un confronto solo se la Domanda lo richiede esplicitamente. "
+                "Non aggiungere questioni ipotetiche né una sezione di informazioni mancanti "
+                "su domande che l'utente non ha posto. Gli estratti non provano che una pagina "
+                "intera non contenga un dato. Non attestare vigenza o completezza non dimostrate."
+            )
         evidence_items = _evidence_items(evidence)
         runtime = _resolve_runtime()
         model = str(runtime.get("chat_model") or "mistral").strip() or "mistral"

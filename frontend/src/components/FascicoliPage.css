@@ -3679,3 +3679,8 @@ body.iu-fascicoli-table-expanded{
 .iu-fas-lex-indexing__warnings li span{display:block;margin-top:3px}
 .iu-fas-economic-control-modal__bonifico label:has(select){grid-column:1/-1;min-width:0}
 .iu-fas-economic-control-modal__bonifico select{width:100%;min-width:0;min-height:44px;padding:0 10px;border:1px solid var(--iu-border);border-radius:9px;background:#fff;color:inherit;font:inherit}
+
+/* Comandi del catalogo raggiungibili con il tocco, senza cambiare la densità desktop. */
+@media (max-width:1100px),(pointer:coarse){
+  .iu-fas-catalog__actions button{min-height:44px;min-width:44px}
+}

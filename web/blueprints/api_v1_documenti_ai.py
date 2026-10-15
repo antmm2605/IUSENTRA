@@ -221,7 +221,12 @@ def aggiorna_catalogazione_documentale_fascicolo(fascicolo_id: str):
             fascicolo = get_fascicoli().get(fascicolo_id)
             if fascicolo is None or not any(str(doc.id) == documento_id for doc in fascicolo.documenti):
                 raise DocumentAINotFound("Documento non trovato nel fascicolo corrente")
-            report = aggiorna_catalogo_da_archivio(fascicolo, document_ids={documento_id}, retry=True)
+            report = aggiorna_catalogo_da_archivio(fascicolo, document_ids={documento_id}, retry=True,
+                                                    actor=str(_user_context().get("user_id") or "catalogazione-documentale"))
+            if report.get("manual_or_confirmed_preserved"):
+                return _errore("La catalogazione è già confermata: la rilettura non la modifica.", "catalog_decision_preserved", 409)
+            if report.get("waiting_for_text"):
+                return _errore("Il testo corrente non è ancora disponibile. Completa prima la lettura del documento.", "catalog_source_not_ready", 409)
             catalog = build_document_catalog_payload(fascicolo_id, process=False)
             return jsonify({"mock_fallback": False, **catalog,
                             "run": report.get("run", catalog.get("run", {})), "targeted_catalog": report})

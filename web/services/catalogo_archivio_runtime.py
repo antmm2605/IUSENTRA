@@ -87,7 +87,7 @@ def prepara_catalogo(fascicolo: Any, oggetti: list[Any], repository: Any, tenant
     return sources, texts, report
 
 
-def aggiorna_catalogo_da_archivio(fascicolo: Any, registro: Any = None, *, applica: bool = True, document_ids: set[str] | None = None, retry: bool = False) -> dict[str, Any]:
+def aggiorna_catalogo_da_archivio(fascicolo: Any, registro: Any = None, *, applica: bool = True, document_ids: set[str] | None = None, retry: bool = False, actor: str = "archivio-letture.catalogo") -> dict[str, Any]:
     from web.services.document_intelligence_runtime import build_document_ai_service, document_ai_tenant_id, _registra_catalogo
     from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
     registro = registro or registro_corrente()
@@ -99,11 +99,31 @@ def aggiorna_catalogo_da_archivio(fascicolo: Any, registro: Any = None, *, appli
     report['dry_run'] = not applica
     if not sources or not applica:
         return report
+    precedenti = {}
+    if retry and document_ids is not None:
+        for source in sources:
+            precedente = repository.get_catalog_assignment(tenant, fascicolo.id, source.source_id, document_sha256=source.sha256)
+            if precedente is not None:
+                precedenti[source.source_id] = precedente
     pipeline = FascicoloDocumentCatalogPipeline(repository, text_provider=lambda doc_id: texts.get(doc_id, ''),
         client_name=_text(getattr(fascicolo, 'nome_cliente', '')), client_id=_text(getattr(fascicolo, 'id_cliente', '')))
-    run = pipeline.run(tenant_id=tenant, fascicolo=fascicolo, sources=sources, actor='archivio-letture.catalogo', process=True, retry=retry)
+    run = pipeline.run(tenant_id=tenant, fascicolo=fascicolo, sources=sources, actor=actor, process=True, retry=retry)
     report['run'] = run.to_dict()
     report['status'] = 'error' if run.errors else ('updated' if run.processed else 'unchanged')
+    if run.processed and precedenti:
+        from pct.document_intelligence.models import new_id, utc_now
+        for document_id, precedente in precedenti.items():
+            repository.append_audit_event({
+                'id': new_id('catalog-audit'), 'tenant_id': tenant, 'fascicolo_id': fascicolo.id,
+                'document_id': document_id, 'version_id': precedente.document_version_id,
+                'user_id': actor, 'event_type': 'document_catalog.reclassified_from_archive',
+                'timestamp': utc_now(), 'sha256': precedente.document_sha256,
+                'payload': {'motivo': 'Rilettura puntuale richiesta sul testo corrente già archiviato',
+                            'precedente': {'etichetta': precedente.document_label,
+                                'status': precedente.status, 'confidence': precedente.confidence,
+                                'source_state': precedente.source_state, 'motivo': precedente.reason,
+                                'lex_lettura': dict((precedente.metadata or {}).get('lex_lettura') or {})}},
+            })
     assignments = repository.list_catalog_assignments(tenant, fascicolo.id)
     _registra_catalogo(fascicolo.id, sources, {(a.document_id, a.document_sha256): a for a in assignments})
     return report

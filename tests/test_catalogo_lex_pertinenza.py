@@ -146,7 +146,7 @@ def test_api_ripresa_puntuale_non_riattiva_indice_o_ocr(monkeypatch):
                                json={'documento_id': 'D1'})
         assert response.status_code == 200
         assert response.json['run']['processed'] == 1
-        assert calls == [('F1', {'document_ids': {'D1'}, 'retry': True})]
+        assert calls == [('F1', {'document_ids': {'D1'}, 'retry': True, 'actor': 'avvocato-test'})]
         calls.clear()
         response = client.post('/api/v1/ui/fascicoli/F1/catalogazione-documentale/aggiorna',
                                json={'documento_id': 'ALTRO'})
@@ -155,3 +155,53 @@ def test_api_ripresa_puntuale_non_riattiva_indice_o_ocr(monkeypatch):
         response = client.post('/api/v1/ui/fascicoli/F1/catalogazione-documentale/aggiorna',
                                json={'documento_id': 'D1'})
         assert response.status_code == 403 and calls == []
+        monkeypatch.setattr(api, '_user_context', lambda: {'user': NS(ha_permesso=lambda permesso: True)})
+        for motivo, codice in [('waiting_for_text', 'catalog_source_not_ready'),
+                              ('manual_or_confirmed_preserved', 'catalog_decision_preserved')]:
+            monkeypatch.setattr(archivio, 'aggiorna_catalogo_da_archivio', lambda *args, **kwargs: {motivo: 1})
+            response = client.post('/api/v1/ui/fascicoli/F1/catalogazione-documentale/aggiorna',
+                                   json={'documento_id': 'D1'})
+            assert response.status_code == 409 and response.json['code'] == codice
+
+
+
+def test_ripresa_conserva_la_proposta_precedente_nellaudit(rename_case, tmp_path, monkeypatch):
+    import json
+    from types import SimpleNamespace as NS
+    from pct.document_intelligence import DocumentAIRepository
+    from pct.document_intelligence.catalog_lex import EsitoLex, applica_esito
+    from pct.registro_letture import Oggetto
+    from tests.test_catalogo_lex import _assegnazione, _voce
+    from tests.test_fascicoli_rinomina_sql_mirata import commit
+    import web.services.document_intelligence_runtime as runtime
+    import web.services.registro_letture_runtime as registro_runtime
+    from web.services.catalogo_archivio_runtime import aggiorna_catalogo_da_archivio
+    _, backend, _, _ = rename_case
+    backend.conn.execute("CREATE TABLE _meta (chiave TEXT PRIMARY KEY, valore TEXT NOT NULL)")
+    commit(backend)
+    repo = DocumentAIRepository.from_fascicoli_db(tmp_path / "studio.db", structured_db=backend)
+    testo = "Collaudo tecnico delle impronte SQL documentali. Fonte sintetica senza dati personali."
+    assignment = _assegnazione(repo, tmp_path, testo)
+    errata = EsitoLex("scelta", "Accertamento con adesione", "Collaudo tecnico delle impronte SQL documentali",
+                     "proposta storica priva dei riscontri", _voce("Accertamento con adesione"))
+    prima, candidati, evidenze = applica_esito(assignment, [], [], errata, modello="qwen3:4b")
+    repo.save_catalog_assignment(prima, candidates=candidati, evidence=evidenze)
+    case = NS(id="FASC-LEX", documenti=[NS(id="DOC-LEX", nome="documento.pdf")])
+    oggetto = Oggetto(tipo="documento", oggetto_id="DOC-LEX", presente=True, sha256="7" * 64)
+    registro = NS(oggetti=lambda *args: [oggetto])
+    monkeypatch.setattr(runtime, "build_document_ai_service", lambda: NS(repository=repo))
+    monkeypatch.setattr(runtime, "document_ai_tenant_id", lambda: "studio-test")
+    monkeypatch.setattr(runtime, "_registra_catalogo", lambda *args: None)
+    monkeypatch.setattr(registro_runtime, "tenant_corrente", lambda: "studio-test")
+    report = aggiorna_catalogo_da_archivio(case, registro, document_ids={"DOC-LEX"}, retry=True, actor="avvocato-test")
+    assert report["run"]["processed"] == 1 and not report["run"]["errors"]
+    dopo = repo.get_catalog_assignment("studio-test", "FASC-LEX", "DOC-LEX")
+    assert dopo.document_label == "Contenuto da verificare"
+    assert repo.get_extracted_text("studio-test", "FASC-LEX", assignment.document_ai_id, assignment.document_version_id).text == testo
+    row = backend.conn.execute("SELECT payload_json FROM fascicolo_documenti_ai_audit WHERE tenant_id = ? AND event_type = ?",
+                               ("studio-test", "document_catalog.reclassified_from_archive")).fetchone()
+    raw = row["payload_json"]
+    payload = json.loads(raw) if isinstance(raw, str) else raw
+    precedente = payload["payload"]["precedente"]
+    assert precedente["etichetta"] == "Accertamento con adesione"
+    assert precedente["lex_lettura"]["citazione"] == errata.citazione

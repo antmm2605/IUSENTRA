@@ -21,6 +21,49 @@ import { installNativeActivityStatus } from '../../../frontend/src/ui/nativeActi
   const readerControlsChevron = document.querySelector('[data-reader-controls-chevron]')
   if (!(pages instanceof HTMLElement) || !(zoomValue instanceof HTMLOutputElement)) return
   installNativeActivityStatus()
+  // A pending or failed image must not look like an empty document page.
+  pages.querySelectorAll('.reader-page-surface').forEach((surface) => {
+    const image = surface.querySelector('img')
+    if (!(image instanceof HTMLImageElement)) return
+    const notice = document.createElement('span')
+    notice.className = 'reader-page-load-status'
+    notice.textContent = 'Pagina in attesa di caricamento.'
+    const retry = document.createElement('button')
+    retry.type = 'button'
+    retry.textContent = 'Riprova questa pagina'
+    retry.hidden = true
+    notice.appendChild(retry)
+    surface.appendChild(notice)
+    const loaded = () => { if (image.naturalWidth > 0) notice.hidden = true }
+    image.addEventListener('load', loaded)
+    image.addEventListener('error', () => {
+      notice.hidden = false
+      notice.firstChild.textContent = 'Pagina non caricata. '
+      retry.hidden = false
+    })
+    retry.addEventListener('click', () => {
+      retry.hidden = true
+      notice.firstChild.textContent = 'Caricamento della pagina… '
+      const finish = beginActivity('Caricamento della pagina…')
+      const settled = () => {
+        image.removeEventListener('load', settled)
+        image.removeEventListener('error', settled)
+        window.removeEventListener('pagehide', settled)
+        finish()
+      }
+      image.addEventListener('load', settled, { once: true })
+      image.addEventListener('error', settled, { once: true })
+      window.addEventListener('pagehide', settled, { once: true })
+      // Retry only this source, on an explicit action; no polling or full reload.
+      const source = image.src
+      image.removeAttribute('src')
+      image.src = source
+    })
+    if (image.complete) {
+      if (image.naturalWidth > 0) loaded()
+      else image.dispatchEvent(new Event('error'))
+    }
+  })
   // Observe existing image loads; do not request or decode additional pages.
   const visibleImageLoads = new Map()
   const imageObserver = new IntersectionObserver((entries) => {
@@ -141,6 +184,8 @@ import { installNativeActivityStatus } from '../../../frontend/src/ui/nativeActi
         : 'Salvataggio disponibile solo per documenti del fascicolo'
     }
   }
+  const visibleTextSurfaces = new Set()
+  const fittedTextGeometry = new WeakMap()
   const layoutRotation = () => {
     pages.style.setProperty('--reader-rotation', `${rotation}deg`)
     pages.dataset.rotation = String(rotation)
@@ -149,9 +194,12 @@ import { installNativeActivityStatus } from '../../../frontend/src/ui/nativeActi
       const rotator = surface.querySelector('.reader-page-rotator')
       const image = surface.querySelector('img')
       if (!(rotator instanceof HTMLElement) || !(image instanceof HTMLImageElement)) continue
-      const imageWidth = image.naturalWidth || image.width || 595
-      const imageHeight = image.naturalHeight || image.height || 842
-      const aspect = imageWidth > 0 && imageHeight > 0 ? imageWidth / imageHeight : 1 / 1.414
+      const sourceWidth = Number(image.dataset.pageWidth || image.getAttribute('width'))
+      const sourceHeight = Number(image.dataset.pageHeight || image.getAttribute('height'))
+      const hasSourceSize = sourceWidth > 0 && sourceHeight > 0
+      const hasPixels = image.naturalWidth > 0 && image.naturalHeight > 0
+      const imageWidth = hasSourceSize ? sourceWidth : hasPixels ? image.naturalWidth : 595
+      const imageHeight = hasSourceSize ? sourceHeight : hasPixels ? image.naturalHeight : 842
       if (rotation % 180 === 0) {
         surface.style.aspectRatio = `${imageWidth} / ${imageHeight}`
         rotator.style.width = '100%'
@@ -172,18 +220,36 @@ import { installNativeActivityStatus } from '../../../frontend/src/ui/nativeActi
   }
   const fitWords = () => {
     if (!measure) return
-    for (const word of pages.querySelectorAll('.reader-word')) {
-      const text = word.firstElementChild
-      if (!text) continue
-      const height = word.clientHeight
-      const size = Math.max(1, height * 0.83)
-      word.style.fontSize = `${size}px`
-      word.style.fontFamily = 'Arial, sans-serif'
-      measure.font = `${size}px Arial`
-      const textWidth = measure.measureText(text.textContent.trimEnd()).width
-      text.style.transform = `scaleX(${textWidth ? word.clientWidth / textWidth : 1})`
+    for (const surface of visibleTextSurfaces) {
+      const layer = surface.querySelector('.reader-text-layer')
+      if (!(layer instanceof HTMLElement)) continue
+      const geometry = `${layer.clientWidth}:${layer.clientHeight}:${layer.childElementCount}`
+      if (fittedTextGeometry.get(surface) === geometry) continue
+      fittedTextGeometry.set(surface, geometry)
+      for (const word of layer.querySelectorAll('.reader-word')) {
+        const text = word.firstElementChild
+        if (!text) continue
+        const height = word.clientHeight
+        const size = Math.max(1, height * 0.83)
+        word.style.fontSize = `${size}px`
+        word.style.fontFamily = 'Arial, sans-serif'
+        measure.font = `${size}px Arial`
+        const textWidth = measure.measureText(text.textContent.trimEnd()).width
+        text.style.transform = `scaleX(${textWidth ? word.clientWidth / textWidth : 1})`
+      }
     }
   }
+  const textVisibilityObserver = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) visibleTextSurfaces.add(entry.target)
+      else visibleTextSurfaces.delete(entry.target)
+    }
+    fitWords()
+  }, { root: pages, rootMargin: '200px 0px' })
+  pages.querySelectorAll('.reader-page-surface').forEach((surface) => textVisibilityObserver.observe(surface))
+  window.addEventListener('pagehide', (event) => {
+    if (!event.persisted) textVisibilityObserver.disconnect()
+  })
   const resize = new ResizeObserver(fitWords)
   pages.querySelectorAll('.reader-page-surface').forEach((surface) => resize.observe(surface))
   const layoutResize = new ResizeObserver(layoutRotation)

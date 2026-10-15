@@ -271,10 +271,29 @@ def pdf_mobile_preview_html(
     rotation_save_url: str = "",
     pdf_payload: bytes | None = None,
     original_links: list | None = None,
+    page_dimensions: list | None = None,
 ) -> tuple[str, int, dict[str, str]]:
     from web.services.pdf_reader_text import text_layers
 
     layers = text_layers(pdf_payload, original_links=original_links) if pdf_payload else []
+    # Reserve the original geometry before lazy images arrive. CSS dimensions
+    # are not source dimensions and must never determine the pending ratio.
+    dimensions = page_dimensions or []
+    if pdf_payload and page_dimensions is None:
+        from pct.rendering_pdf import RenderingPdfError, dimensioni_pagine
+        try:
+            dimensions = dimensioni_pagine(pdf_payload)
+        except RenderingPdfError:
+            pass  # Existing page endpoints still report the source failure.
+
+    def image_dimensions(index: int) -> str:
+        if index > len(dimensions):
+            return ''
+        size = dimensions[index - 1]
+        return (
+            f'width="{max(1, round(size.larghezza))}" height="{max(1, round(size.altezza))}" '
+            f'data-page-width="{size.larghezza:g}" data-page-height="{size.altezza:g}" '
+        )
     escaped_name = escape(nome_documento)
     escaped_download = escape(scarica_url, quote=True)
     escaped_rotation_save = escape(rotation_save_url, quote=True)
@@ -288,6 +307,7 @@ def pdf_mobile_preview_html(
             '<div class="reader-page-surface">'
             '<div class="reader-page-rotator">'
             f'<img src="{escape(url, quote=True)}" alt="Pagina {index} di {escaped_name}" '
+            f'{image_dimensions(index)}'
             f'loading="{"eager" if index == 1 else "lazy"}" decoding="async"'
             f'{" fetchpriority=\"high\"" if index == 1 else ""}>'
             f'{layers[index - 1] if index <= len(layers) else ""}</div></div></figure>'
@@ -345,7 +365,8 @@ def pdf_mobile_preview_html(
         ".reader-word ::selection{color:transparent;background:rgba(37,99,235,.32)}.reader-word.is-highlighted{background:rgba(250,204,21,.4);border-radius:2px}"
         ".reader-document-link{position:absolute;display:block;cursor:pointer;color:transparent;text-decoration:none}.reader-document-link:hover{background:rgba(37,99,235,.12);box-shadow:inset 0 -1px #2563eb}.reader-document-link:focus-visible{outline:2px solid #2563eb;outline-offset:2px}.reader-word.reader-document-link{color:transparent}.page{scroll-margin-top:12px}"
         ".reader-no-text{display:block;padding:6px;color:#475569;font-size:12px}.pages:focus-visible{outline:2px solid #2563eb;outline-offset:-3px}"
-        "@media print{.reader-text-layer,.reader-no-text{display:none}}"
+        ".reader-page-load-status{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:12px;flex-direction:column;padding:16px;color:#475569;background:#f8fafc;font-size:14px;text-align:center}.reader-page-load-status[hidden]{display:none}.reader-page-load-status button{min-height:44px;padding:8px 14px;border:1px solid #94a3b8;border-radius:8px;background:white;color:#17324d;cursor:pointer}.reader-page-load-status button[hidden]{display:none}"
+        "@media print{.reader-text-layer,.reader-no-text,.reader-page-load-status{display:none}}"
         "</style></head><body>"
         '<main class="reader">'
         f"<header><strong>{escaped_name}</strong>"
@@ -422,7 +443,9 @@ def mobile_pdf_preview_response(
             download_name=f"{Path(nome_download).stem}-pagina-{page_number}.png",
         )
     try:
-        total_pages = pdf_page_count(preview_payload)
+        from pct.rendering_pdf import dimensioni_pagine
+        dimensions = dimensioni_pagine(preview_payload)
+        total_pages = len(dimensions)
         page_urls = [
             url_for("visualizza_documento", id_fasc=id_fasc, id_doc=id_doc, viewer="mobile", page=page)
             for page in range(1, total_pages + 1)
@@ -449,6 +472,7 @@ def mobile_pdf_preview_response(
         rotation_save_url=url_for("salva_rotazione_documento", id_fasc=id_fasc, id_doc=id_doc),
         pdf_payload=preview_payload,
         original_links=original_link_layers(preview_payload, id_fasc, id_doc),
+        page_dimensions=dimensions,
     )
 
 

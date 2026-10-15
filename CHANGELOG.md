@@ -1,13 +1,20 @@
 # Changelog
 
-## 2.437.43 — candidata, 15/10/2026
+## 2.437.44 — candidata, 15/10/2026
+
+- Lettore PDF: geometria originale delle pagine riservata prima del caricamento delle immagini, senza usare le dimensioni CSS provvisorie.
+- Pagina in attesa ed errore distinguibili da una pagina vuota; recupero della sola immagine richiesta, senza ricaricare il fascicolo o avviare OCR.
+- Formattazione dello strato selezionabile limitata alle pagine prossime alla vista, con riuso della geometria invariata e senza perdere il testo delle altre pagine.
+- Nessun limite di 43 pagine: test su 45 e 173 pagine con geometrie miste. Prova reale e rilascio ancora necessari.
+
+## 2.437.43 — rilasciata, 15/10/2026
 
 - Seconda lettura Lex sul solo testo SQL della fonte e versione richieste, senza caricare i testi degli altri documenti del fascicolo.
 - Le proposte verificano anche i riscontri necessari già dichiarati dalle regole del catalogo. La presenza della citazione e la pertinenza della natura restano distinte nella provenienza.
 - Una conferma o una modifica concorrente impedisce atomicamente l'applicazione tardiva: confronto dell'intera assegnazione anche quando l'orario coincide, con audit dello scarto.
 - Rilettura della categoria del singolo documento tramite la pipeline SQL esistente, preservando originali e decisioni manuali; nessun nuovo OCR o riconvalida generale.
 - Comandi della categoria con target touch di almeno 44 px su mobile e tablet, preservando la densità desktop.
-- Candidata in collaudo: accettazione reale sul commit definitivo, CI e rilascio ancora necessari. Prestazioni globali e altri incarichi aperti.
+- Rilasciata sul commit f905739500 con accettazione reale, 89 controlli obbligatori positivi e deploy Hetzner verificato. Prestazioni globali e altri incarichi aperti.
 
 ## 2.437.42 — rilasciata, 15/10/2026
 

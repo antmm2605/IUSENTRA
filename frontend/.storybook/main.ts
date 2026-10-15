@@ -19,6 +19,7 @@ const config: StorybookConfig = {
       plugin?.name !== 'iusentra-prune-react-assets'
       && plugin?.name !== 'iusentra-enforce-bundle-budget'
       && plugin?.name !== 'iusentra-sanitize-generated-text'
+      && plugin?.name !== 'iusentra-lazy-page-boundary'
     ))
     return config
   },

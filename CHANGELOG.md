@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.437.36 — candidata, 15/10/2026
+
+- Controllo dei moduli caricati su richiesta mantenuto nella build applicativa e separato dalla diversa entry di Storybook. Nuova prova sul confine delle configurazioni.
+- Sorgenti delle entry JavaScript Vite inclusi nello stadio Docker frontend; guardia sulla corrispondenza fra ingressi e copie.
+- Compilazione statica di Storybook aggiunta al gate locale per riprodurre il controllo GitHub prima del push. Candidata35 fermata dalla CI; nuovo rilascio ancora da verificare.
+
 ## 2.437.35 — candidata, 15/10/2026
 
 - Caricamento condiviso con indicatore unico centrato; moduli e pannelli secondari attivati su richiesta, conservando bozze e stato alla riapertura.

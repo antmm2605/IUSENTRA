@@ -1,6 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync, existsSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { assertLazyPageBoundary } from '../../frontend/vite/lazyPageBoundary.ts'
+import appConfig from '../../frontend/vite.config.ts'
+import storybookConfig from '../../frontend/.storybook/main.ts'
 
 const chunk = (fileName, extra = {}) => ({ type: 'chunk', fileName, imports: [], ...extra })
 const bundle = () => ({
@@ -26,4 +31,28 @@ test('missing entry and missing emitted dependency fail explicitly', () => {
   const value = bundle()
   value.common.imports = ['missing.js']
   assert.throws(() => assertLazyPageBoundary(value), /missing\.js/)
+})
+
+test('the application guard remains mandatory while Storybook builds its own preview entry', async () => {
+  const productionPlugins = appConfig.plugins.flat(Infinity)
+  const boundary = productionPlugins.find(plugin => plugin?.name === 'iusentra-lazy-page-boundary')
+  assert.ok(boundary)
+  assert.throws(() => boundary.generateBundle({}, {}), /Entry applicativa assente/)
+  const custom = { name: 'controlled-storybook-plugin' }
+  const preview = await storybookConfig.viteFinal({ plugins: [...productionPlugins, custom] })
+  assert.equal(preview.plugins.some(plugin => plugin?.name === boundary.name), false)
+  assert.ok(preview.plugins.includes(custom))
+  assert.ok(productionPlugins.includes(boundary))
+})
+
+test('the Docker frontend stage contains every configured Vite entry source', () => {
+  const root = fileURLToPath(new URL('../../', import.meta.url))
+  const docker = readFileSync(path.join(root, 'Dockerfile'), 'utf8')
+  const stage = docker.split('AS frontend-builder')[1].split(/^FROM /m)[0]
+  const copies = [...stage.matchAll(/^COPY (\S+) (\S+)$/gm)].map(match => match[2].replace(/^\.\//, ''))
+  for (const entry of Object.values(appConfig.build.rollupOptions.input)) {
+    const relative = path.relative(root, path.resolve(root, 'frontend', entry)).replaceAll('\\', '/')
+    assert.ok(existsSync(path.join(root, relative)), relative)
+    assert.ok(copies.some(destination => relative === destination || relative.startsWith(destination + '/')), `Docker source missing: ${relative}`)
+  }
 })

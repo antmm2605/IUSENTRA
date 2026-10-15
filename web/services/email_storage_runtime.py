@@ -92,7 +92,7 @@ def _initialize_empty_sql_catalog(backend, tenant_key, kind, path, source_of_tru
         repository.load(update_original=False)
 
 
-def create_email_mailbox(db_path, *, actor_key=None, load_catalog=True):
+def create_email_mailbox(db_path, *, actor_key=None, load_catalog=True, allow_initialize=True):
     path = Path(db_path).resolve()
     tenant, root = _context_for_path(path)
     profile = resolve_storage_runtime(anchor_path=str(path), tenant=tenant)
@@ -124,5 +124,17 @@ def create_email_mailbox(db_path, *, actor_key=None, load_catalog=True):
     try:
         return GestioneEmailSQL(str(path), **kwargs)
     except MailboxNotInitialized:
+        if not allow_initialize:
+            raise
         _initialize_empty_sql_catalog(backend, tenant_key, kind, path, profile.effective_mode.lower())
         return GestioneEmailSQL(str(path), **kwargs)
+
+
+def count_email_mailbox(db_path) -> int:
+    """Consultazione dei conteggi, senza importare o caricare messaggi SQL."""
+    mailbox = create_email_mailbox(db_path, load_catalog=False, allow_initialize=False)
+    if isinstance(mailbox, GestioneEmailSQL):
+        return mailbox.repository.count()
+    # Compatibilità per la modalità JSON esplicitamente configurata: riusa
+    # la procedura nativa, senza trasformarla in recupero di un errore SQL.
+    return len(mailbox.tutte())

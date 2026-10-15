@@ -5,6 +5,7 @@ import { csrfToken } from '../formSubmit'
 import { FascicoloSearchSelect, type FascicoloOption } from './FascicoloSearchSelect'
 import './EditorLinkedFieldsPanel.css'
 import { useBusyActivity } from '../ui/useBusyActivity'
+import { LoadingState } from '../ui/LoadingState'
 
 export type LinkedEditorField = { id: string; label: string; group: string; value: string; available: boolean; missing_reason?: string; conflict?: boolean }
 export type LinkedEditorContext = { matterId: string; clientId: string; clientLabel: string; matterLabel: string; revision: string; fields: LinkedEditorField[]; notice?: string }
@@ -78,14 +79,14 @@ export function EditorLinkedFieldsPanel({ matterId, options, onMatterChange, onI
   const groups = useMemo(() => [...new Set(context?.fields.map(field => field.group) || [])], [context])
   return <aside className="iu-linked-fields" aria-label="Dati collegati al documento">
     <header><strong>Dati collegati</strong><button type="button" aria-label="Chiudi dati collegati" onClick={onClose}><X size={16}/></button></header>
-    {onMatterChange && catalogLoading && <p role="status">Caricamento fascicoli…</p>}
+    {onMatterChange && catalogLoading && <LoadingState title="Caricamento fascicoli" message="Lettura dei fascicoli selezionabili in corso."/>}
     {onMatterChange && catalogError && <p role="alert">{catalogError}</p>}
     {onMatterChange && <FascicoloSearchSelect options={options || []} value={matterId} onChange={onMatterChange} disabled={disabled} selectionLabel="Fascicolo per compilazione" hint="Scegli il fascicolo: il cliente viene individuato dal collegamento in anagrafica."/>}
     {!matterId && <p>Scegli il fascicolo per visualizzare i suoi dati e quelli del cliente.</p>}
     {context && <div className="iu-linked-fields__context"><strong>{context.clientLabel || 'Cliente non associato'}</strong><span>{context.matterLabel}</span></div>}
     {matterId && <button className="iu-linked-fields__refresh" type="button" disabled={loading} onClick={() => setReload(value => value + 1)}><RefreshCw size={14}/> Aggiorna dati</button>}
-    {loading && <p role="status">Caricamento dati…</p>}
-    {recoveryPending && <p role="status">Recupero dei campi dalle fonti del fascicolo…</p>}
+    {loading && <LoadingState title="Caricamento dati collegati" message="Lettura dei campi del cliente e del fascicolo selezionati in corso."/>}
+    {recoveryPending && <LoadingState title="Recupero campi del fascicolo" message="Ricerca dei riscontri nelle fonti collegate in corso."/>}
     {recoveryError && <p role="alert">{recoveryError} <button type="button" onClick={() => setRecover(value => value + 1)}>Riprova recupero</button></p>}
     {error && <p role="alert" className="iu-linked-fields__error">{error}</p>}
     {context?.notice && <p>{context.notice}</p>}

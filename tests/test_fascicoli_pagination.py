@@ -705,7 +705,7 @@ def test_documenti_nuovi_alimentano_in_autonomia_contributo_e_liquidazione(tmp_p
     assert second_economic["documentAnalysisPendingCount"] == 0
 
 
-def test_presidio_economico_rianalizza_marker_corrente_incompleto_senza_unresolved(tmp_path, monkeypatch):
+def test_presidio_economico_attende_lettura_e_reagisce_ai_nuovi_fatti(tmp_path, monkeypatch):
     app = _app(tmp_path)
     api_v1_react._clear_fascicoli_list_payload_cache()
     with app.app_context():
@@ -763,10 +763,32 @@ def test_presidio_economico_rianalizza_marker_corrente_incompleto_senza_unresolv
         )
         saved = get_fascicoli().get(fascicolo.id)
 
+    assert calls["count"] == 0
+    assert result["documentAnalysisUpdatedCount"] == 0
+    assert saved.pagamenti["_presidio_documentale"] == marker
+    assert saved.pagamenti["contributo_unificato"]["importo"] == 0
+
+    from pct.registro_letture import Fatto
+    from tests.test_react_shell import _semina_archivio
+    _semina_archivio(app, fascicolo.id, saved.documenti[0], [
+        Fatto(categoria="importo", campo="contributo_unificato", valore="21.50",
+              verifica="verificata", contesto="Ricevuta controllata del contributo")])
+    with app.app_context():
+        result = react_fascicoli_bridge.run_react_fascicoli_economic_presidio(
+            get_fascicoli=get_fascicoli, get_fatturazione=get_fatturazione,
+            actor="Test automatico", limit=1000)
+        saved = get_fascicoli().get(fascicolo.id)
+
     assert calls["count"] == 1
     assert result["contributiUpdatedCount"] == 1
     assert saved.pagamenti["contributo_unificato"]["status"] == "pagato"
     assert saved.pagamenti["contributo_unificato"]["importo"] == 21.5
+    with app.app_context():
+        repeated = react_fascicoli_bridge.run_react_fascicoli_economic_presidio(
+            get_fascicoli=get_fascicoli, get_fatturazione=get_fatturazione,
+            actor="Test automatico", limit=1000)
+    assert calls["count"] == 1
+    assert repeated["documentAnalysisUpdatedCount"] == 0
 
 
 def test_presidio_economico_non_rilegge_marker_corrente_con_unresolved(tmp_path, monkeypatch):
@@ -1271,7 +1293,8 @@ def test_fascicoli_frontend_contratto_query_params_e_lazy_tab():
     assert "iu-fas-table--density-${rowDensity}" in page_source
     assert "view === 'operativa' && displayMode === 'tabella' ? (" in page_source
     assert "iu-fas-toolbar-btn-label" in page_source
-    assert "minmax(220px,1.4fr) 44px 44px 42px" in css_source
+    assert ".iu-fas-toolbar .iu-fas-search{grid-column:1/-1}" in css_source
+    assert ".iu-fas-toolbar{grid-template-columns:1fr 1fr}" in css_source
     assert "overflow-x:auto;overflow-y:hidden" in css_source
     assert "Scadenze urgenti" in page_source
     assert "Scadenze 7g" not in page_source
@@ -1653,11 +1676,13 @@ def test_elenco_legge_importi_ed_esenzioni_in_una_sola_interrogazione(tmp_path, 
         assert risposta.status_code == 200
         return {item["id"]: item.get("paymentSummary") or item.get("payments") for item in risposta.get_json()["items"]}
 
-    letture = {"singole": 0, "cumulative": 0}
+    letture = {"singole": 0, "cumulative": 0, "economiche_singole": 0}
     singola, cumulativa = RegistroLetture.fatti, RegistroLetture.fatti_per_fascicoli
 
     def contata(self, *args, **kwargs):
         letture["singole"] += 1
+        if kwargs.get("categoria") in {"importo", "evento"}:
+            letture["economiche_singole"] += 1
         return singola(self, *args, **kwargs)
 
     def contata_cumulativa(self, *args, **kwargs):
@@ -1667,10 +1692,12 @@ def test_elenco_legge_importi_ed_esenzioni_in_una_sola_interrogazione(tmp_path, 
     monkeypatch.setattr(RegistroLetture, "fatti", contata)
     monkeypatch.setattr(RegistroLetture, "fatti_per_fascicoli", contata_cumulativa)
     con_precarico = righe()
-    assert letture == {"singole": 0, "cumulative": 1}
+    assert letture["cumulative"] == 1
+    assert letture["economiche_singole"] == 0
 
     # stesso esito riga per riga delle letture per fascicolo
-    monkeypatch.setattr(RegistroLetture, "fatti_per_fascicoli", lambda self, *a, **k: (_ for _ in ()).throw(RuntimeError("giù")))
+    from web.services import archivio_fatti_precaricati
+    monkeypatch.setattr(archivio_fatti_precaricati, "fatti_precaricati", lambda *a, **k: None)
     senza_precarico = righe()
     assert letture["singole"] >= 2 * len(creati)
     assert con_precarico == senza_precarico

@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect, useId, useMemo, useState } from 'react'
-import { CalendarCheck, Gavel, RefreshCw, Scale, Search } from 'lucide-react'
+import { CalendarCheck, Gavel, Scale, Search } from 'lucide-react'
 import { getGuidaProcedureCatalog, type GuidaCatalogRow } from '../guidaPraticaData'
 import { useBusyActivity } from '../ui/useBusyActivity'
+import { LoadingState } from '../ui/LoadingState'
 
 const ProcedureGuide = lazy(() => import('./GuidaPraticaSidebar').then(module => ({ default: module.GuidaPraticaSidebar })))
 type Category = 'impugnazione' | 'reclamo'
@@ -48,7 +49,7 @@ export default function AgendaProceduralTools({ fascicoloId, fascicoloTitle }: {
       <p>Scegli la procedura applicabile alla fonte. La data dell’impegno non determina automaticamente la decorrenza del termine.</p>
       <label htmlFor={searchId}><Search size={15}/>Cerca {category === 'reclamo' ? 'reclamo' : 'impugnazione'}</label>
       <input id={searchId} type="search" value={query} onChange={event => { setQuery(event.target.value); setSelected('') }} placeholder="Nome della procedura o codice"/>
-      {loading ? <p role="status"><RefreshCw size={16} className="iu-spin"/>Caricamento delle procedure…</p> : error ? <div role="alert"><p>{error}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Riprova</button></div> : <>
+      {loading ? <LoadingState title="Caricamento procedure" message="Lettura delle procedure applicabili in corso."/> : error ? <div role="alert"><p>{error}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Riprova</button></div> : <>
         <label htmlFor={`${searchId}-procedure`}>Procedura</label>
         <select id={`${searchId}-procedure`} value={selected} onChange={event => setSelected(event.target.value)}>
           <option value="">Scegli la procedura</option>
@@ -56,7 +57,7 @@ export default function AgendaProceduralTools({ fascicoloId, fascicoloTitle }: {
         </select>
         {!choices.length ? <p role="status">Nessuna procedura corrisponde alla ricerca.</p> : null}
       </>}
-      {selected ? <Suspense fallback={<p role="status">Caricamento della guida…</p>}><ProcedureGuide key={`${fascicoloId}:${selected}`} fascicoloId={fascicoloId} codice={selected} fascicoloTitle={fascicoloTitle} explicitProcedure/></Suspense> : null}
+      {selected ? <Suspense fallback={<LoadingState title="Caricamento guida" message="Preparazione del supporto alla procedura selezionata in corso."/>}><ProcedureGuide key={`${fascicoloId}:${selected}`} fascicoloId={fascicoloId} codice={selected} fascicoloTitle={fascicoloTitle} explicitProcedure/></Suspense> : null}
     </div> : null}
   </section>
 }

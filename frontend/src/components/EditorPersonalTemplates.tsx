@@ -3,13 +3,15 @@ import { Modal } from '../ui/legalPrimitives'
 import { csrfToken } from '../formSubmit'
 import { FascicoloSearchSelect, type FascicoloOption } from './FascicoloSearchSelect'
 import { useBusyActivity } from '../ui/useBusyActivity'
+import { LoadingState } from '../ui/LoadingState'
 import '../ui/activity.css'
 import './EditorPersonalTemplates.css'
 
-export function EditorPersonalTemplates({ open, onClose, serialize, matterId, options, onMatterChange, onApply, mattersLoading, mattersError, sourceDocument }: {
+export function EditorPersonalTemplates({ open, onClose, serialize, matterId, options, onMatterChange, onApply, mattersLoading, mattersError, sourceDocument, onUsageChange }: {
   open: boolean; onClose: () => void; serialize: () => string; matterId: string; options: FascicoloOption[];
   onMatterChange?: (id: string) => void; onApply: (html: string, title: string, missing: string[]) => void;
   mattersLoading?: boolean; mattersError?: string; sourceDocument?: {matter: string; document: string};
+  onUsageChange?: (usingModel: boolean) => void;
 }) {
   const [mode, setMode] = useState<'save' | 'use'>('save')
   const [title, setTitle] = useState('')
@@ -26,16 +28,19 @@ export function EditorPersonalTemplates({ open, onClose, serialize, matterId, op
   useBusyActivity(open && mode === 'use' && catalogLoading, 'Caricamento modelli…')
   useBusyActivity(open && busy, mode === 'save' ? 'Salvataggio modello…' : 'Compilazione del modello…')
   useEffect(() => { setReady(null) }, [model, matterId])
+  useEffect(() => { onUsageChange?.(open && mode === 'use') }, [open, mode, onUsageChange])
   useEffect(() => {
-    if (!open) return
+    // Saving the current document does not need the catalog of other models.
+    if (!open || mode !== 'use') return
     let active = true
+    const controller = new AbortController()
     setCatalogLoading(true); setCatalogError('')
-    fetch('/api/editor/modelli-personali', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+    fetch('/api/editor/modelli-personali', { credentials: 'same-origin', signal: controller.signal, headers: { Accept: 'application/json' } })
       .then(async response => { const data = await response.json(); if (!response.ok || !data.ok) throw new Error(data.errore); if (active) setModels(data.modelli) })
       .catch(error => { if (active) setCatalogError(error instanceof Error ? error.message : 'Modelli non caricati.') })
       .finally(() => { if (active) setCatalogLoading(false) })
-    return () => { active = false }
-  }, [open, success, catalogReload])
+    return () => { active = false; controller.abort() }
+  }, [open, mode, success, catalogReload])
   const save = async () => {
     setBusy(true); setError(''); setSuccess('')
     intent.current ||= { titolo: title.trim(), html: serialize(), command_id: crypto.randomUUID(), source_document: sourceDocument }
@@ -66,11 +71,11 @@ export function EditorPersonalTemplates({ open, onClose, serialize, matterId, op
       <button type="button" disabled={busy || !title.trim()} onClick={() => void save()}>{busy ? 'Salvataggio…' : intent.current ? 'Riprova salvataggio' : 'Salva modello personale'}</button>
     </> : <>
       <label>Modello<select aria-label="Modello" value={model} disabled={busy} onChange={event => setModel(event.target.value)}><option value="">Scegli il modello</option>{['condiviso', 'personale'].map(scope => <optgroup key={scope} label={scope === 'condiviso' ? 'Modelli condivisi' : 'Modelli del mio studio'}>{models.filter(item => (item.ambito || 'personale') === scope).map(item => <option key={item.id} value={item.id}>{item.titolo}</option>)}</optgroup>)}</select></label>
-      {catalogLoading && <p role="status"><span className="iu-activity-spinner" aria-hidden="true" /> Caricamento modelli…</p>}
+      {catalogLoading && <LoadingState title="Caricamento modelli" message="Lettura dei modelli disponibili per lo studio in corso."/>}
       {catalogError && <p role="alert">{catalogError} <button type="button" onClick={() => setCatalogReload(value => value + 1)}>Riprova caricamento</button></p>}
       {!catalogLoading && !catalogError && !models.length && <p>Nessun modello disponibile.</p>}
       {onMatterChange && <FascicoloSearchSelect options={options} value={matterId} onChange={onMatterChange} disabled={busy} selectionLabel="Fascicolo del modello"/>}
-      {onMatterChange && mattersLoading && <p role="status"><span className="iu-activity-spinner" aria-hidden="true" /> Caricamento fascicoli…</p>}
+      {onMatterChange && mattersLoading && <LoadingState title="Caricamento fascicoli" message="Lettura dei fascicoli selezionabili in corso."/>}
       {onMatterChange && mattersError && <p role="alert">{mattersError}</p>}
       <button type="button" disabled={busy || catalogLoading || Boolean(catalogError) || !model || !matterId} onClick={() => void prepare()}>Compila con i dati del fascicolo</button>
       {ready && <><p>La compilazione sostituirà il contenuto attuale del documento. Puoi annullarla con il comando Annulla.</p>{ready.mancanti.length > 0 && <p role="status">Da compilare: {ready.mancanti.join(', ')}.</p>}<button type="button" onClick={() => { onApply(ready.html, ready.titolo, ready.mancanti); onClose() }}>Applica modello compilato</button></>}

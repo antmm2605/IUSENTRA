@@ -1,4 +1,4 @@
-import { getActivities, subscribeActivities } from './activity'
+import { getActivities, presentedActivity, subscribeActivities } from './activity'
 import './activity.css'
 
 /** The HTML reader uses the same owners and presentation as React, without React. */
@@ -18,7 +18,7 @@ export function installNativeActivityStatus(): () => void {
   const render = () => {
     window.clearTimeout(showTimer)
     window.clearTimeout(slowTimer)
-    const first = getActivities()[0]
+    const first = presentedActivity(getActivities())
     if (!first) { status.remove(); return }
     const paint = () => {
       label.textContent = first.label

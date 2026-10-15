@@ -8,7 +8,7 @@ from web.services import react_statistiche_bridge as bridge
 
 
 class StatisticsContext(unittest.TestCase):
-    def payload(self, day):
+    def payload(self, day, **options):
         rows = [SimpleNamespace(stato=state, data_scadenza=day, priorita='MEDIA')
                 for state in ['ANNULLATO'] * 6 + ['APERTO'] * 5 + ['SCADUTO']]
         empty = SimpleNamespace(tutti=lambda **kwargs: [], statistiche=lambda: {},
@@ -18,7 +18,25 @@ class StatisticsContext(unittest.TestCase):
         return bridge.build_react_statistiche_payload(
             get_agenda=lambda: SimpleNamespace(tutti=lambda: [], per_giorno=lambda day: []),
             get_clienti=lambda: empty, get_fascicoli=lambda: empty,
-            get_fatturazione=lambda: empty, get_scadenziario=lambda: deadlines)
+            get_fatturazione=lambda: empty, get_scadenziario=lambda: deadlines, **options)
+
+    def test_counts_preserve_payload_without_loading_mailboxes(self):
+        day = '2026-10-14'
+        baseline = self.payload(day, get_email=lambda: SimpleNamespace(tutte=lambda: [object()] * 3),
+                                get_email_ordinaria=lambda: SimpleNamespace(tutte=lambda: [object()]))
+        def unwanted():
+            self.fail('I conteggi non richiedono messaggi, corpi o allegati')
+        candidate = self.payload(day, get_email=unwanted, get_email_ordinaria=unwanted,
+                                 get_email_counts=lambda: {'pec': 3, 'ordinary': 1})
+        baseline.pop('generated_at'); candidate.pop('generated_at')
+        self.assertEqual(candidate, baseline)
+
+    def test_count_error_is_explicit_without_body_read_recovery(self):
+        def failed():
+            raise RuntimeError('Catalogo SQL non disponibile')
+        candidate = self.payload('2026-10-14',
+            get_email=lambda: self.fail('Lettura generale non richiesta'), get_email_counts=failed)
+        self.assertEqual(candidate['warnings'][0]['code'], 'conteggi_caselle_non_disponibile')
 
     def test_note_and_filter_use_the_same_open_records(self):
         payload = self.payload(datetime.now(bridge.ZoneInfo('Europe/Rome')).date().isoformat())

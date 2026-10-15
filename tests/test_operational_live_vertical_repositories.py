@@ -112,7 +112,10 @@ def test_sync_api_reads_vertical_counters_without_cross_tenant_data(tmp_path, mo
     try:
         response = app.test_client().get("/api/v1/ui/sync/revisions")
         assert response.status_code == 200
-        assert response.json == {"ok": True, "revisions": {"fascicoli": 7}}
+        payload = dict(response.json)
+        context = payload.pop("revisionContext")
+        assert len(context) == 64 and all(char in '0123456789abcdef' for char in context)
+        assert payload == {"ok": True, "revisions": {"fascicoli": 7}}
         assert response.headers["Cache-Control"] == "no-store"
         # Il polling non crea segnali e non muta il contenuto delle fonti.
         assert app.test_client().get("/api/v1/ui/sync/revisions").json == response.json

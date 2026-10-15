@@ -218,6 +218,12 @@ def _slug_alias_ufficio(testo: str) -> str:
     return "".join(filtered) or _n(raw.replace("-", " "))
 
 
+@lru_cache(maxsize=8192)
+def _slug_alias_catalogo(testo: str) -> str:
+    """Memoizza solo la normalizzazione pura dei nomi del catalogo pubblico."""
+    return _slug_alias_ufficio(testo)
+
+
 def _alias_ufficio(ufficio: dict) -> set[str]:
     """Restituisce alias normalizzati per descrizioni ministeriali e nomi pratica."""
     tipo = str(ufficio.get("tipo") or "").upper()
@@ -248,7 +254,12 @@ def _alias_ufficio(ufficio: dict) -> set[str]:
                     f"Tribunale Ordinario - {comune}",
                 }
             )
-    return {slug for value in values if (slug := _slug_alias_ufficio(value))}
+    # Non conservare in memoria valori eccezionalmente grandi, né query,
+    # fascicoli o decisioni del resolver. Le modifiche al catalogo producono
+    # nuovi valori; la selezione dell'ufficio continua a usare i record correnti.
+    return {slug for value in values if (slug := (
+        _slug_alias_catalogo(value) if len(value) <= 512 else _slug_alias_ufficio(value)
+    ))}
 
 
 def _uffici_hash(uffici: list[dict]) -> str:

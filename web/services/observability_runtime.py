@@ -18,6 +18,11 @@ def register_observability_runtime(app: Flask) -> RuntimeMetricsRegistry:
     registry = RuntimeMetricsRegistry()
     app.extensions["runtime_metrics"] = registry
 
+    @app.teardown_request
+    def _close_request_reading_registries(_error):
+        for repository in g.pop('_registri_letture_richiesta', {}).values():
+            repository.close()
+
     @app.before_request
     def _runtime_metrics_before_request() -> None:
         g._request_started_monotonic = monotonic()
@@ -33,12 +38,13 @@ def register_observability_runtime(app: Flask) -> RuntimeMetricsRegistry:
                 status_code=response.status_code,
                 duration_ms=duration_ms,
             )
-            if request.method == "GET" and request.path.startswith("/api/v1/ui/"):
+            if request.path.startswith("/api/v1/ui/"):
                 timing = f"iusentra;dur={duration_ms:.1f}"
                 existing = response.headers.get("Server-Timing", "")
                 response.headers["Server-Timing"] = f"{existing}, {timing}" if existing else timing
                 current_app.logger.info(
-                    "UI lettura: endpoint=%s durata_ms=%.1f stato=%s byte=%s",
+                    "UI %s: endpoint=%s durata_ms=%.1f stato=%s byte=%s",
+                    "lettura" if request.method in {"GET", "HEAD"} else request.method,
                     request.endpoint or "non_disponibile", duration_ms,
                     response.status_code, response.calculate_content_length(),
                 )

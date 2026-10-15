@@ -49,6 +49,29 @@ class MailboxChecks(unittest.TestCase):
             (self.tenant, 'pec'),
         ).fetchone()[0]
 
+    def test_count_is_scoped_readonly_and_never_loads_payloads(self):
+        from types import SimpleNamespace
+        ordinary = self.repo(kind='ordinary')
+        ordinary.initialize({'ordinary': {'id': 'ordinary'}}, source_of_truth=self.backend)
+        other = self.repo(tenant=self.tenant + '-other')
+        other.initialize({'external': {'id': 'external'}}, source_of_truth=self.backend)
+        before = self.audit_count()
+        statements = []
+        conn = self.first.db.conn
+        def execute(sql, params=()):
+            statements.append(sql)
+            return conn.execute(sql, params)
+        with patch.object(self.first.db, 'conn', SimpleNamespace(execute=execute)), patch.object(self.first, 'load', side_effect=AssertionError('Nessun caricamento messaggi richiesto')):
+            self.assertEqual(self.first.count(), 3)
+        self.assertEqual(ordinary.count(), 1)
+        self.assertTrue(all(sql.startswith('SELECT') and 'payload_json' not in sql for sql in statements))
+        self.assertEqual(self.audit_count(), before)
+        self.assertIsNone(self.first.original)
+
+    def test_count_missing_catalog_is_explicit_and_does_not_initialize(self):
+        with self.assertRaises(MailboxNotInitialized):
+            self.repo(tenant=self.tenant + '-missing').count()
+
     def test_bulk_read_updates_only_unread_inbox_and_is_idempotent(self):
         before_audit = self.audit_count()
         result = self.first.mark_read(['one', 'two', 'trash', 'one'], actor_key='controlled-user')

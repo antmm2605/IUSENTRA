@@ -1,0 +1,56 @@
+import{o as e}from"./activity-BHXaA2GE.js";import{t}from"./nativeActivity-C8SyKiPs.js";t();var n=null,r=[],i=null,a=String(window.REVIEW_TENANT_SLUG||``).trim(),o=[`btn-save`,`btn-approve`,`btn-reject`,`btn-open-sql`,`btn-publish`],s=new Intl.DateTimeFormat(`it-IT`,{timeZone:`Europe/Rome`,dateStyle:`short`,timeStyle:`short`});function c(e){return String(e??``).replaceAll(`&`,`&amp;`).replaceAll(`<`,`&lt;`).replaceAll(`>`,`&gt;`)}function l(e){if(!e)return`-`;let t=new Date(e);return Number.isNaN(t.getTime())?String(e):s.format(t)}function u(e,t=``){return`<span class="review-badge ${t}">${c(e)}</span>`}function d(e){let t=document.getElementById(`review-toast-body`);t.textContent=e,i||=new bootstrap.Toast(document.getElementById(`review-toast`)),i.show()}function f(e){let t=new URL(`${window.location.origin}${window.REVIEW_API_BASE}${e}`);return a&&t.searchParams.set(`tenant_slug`,a),`${t.pathname}${t.search}`}function p(e){o.forEach(t=>{let n=document.getElementById(t);n&&(n.disabled=!e)})}function m(e){n=null,p(!1),document.getElementById(`draft-empty`).classList.remove(`d-none`),document.getElementById(`draft-empty`).textContent=e,document.getElementById(`draft-meta`).classList.add(`d-none`),document.getElementById(`spec-editor`).value=``,document.getElementById(`validation-view`).textContent=``,document.getElementById(`sql-view`).textContent=``,document.getElementById(`retrieval-list`).innerHTML=``,document.getElementById(`retrieval-empty`).classList.remove(`d-none`),document.getElementById(`diff-list`).innerHTML=``,document.getElementById(`diff-empty`).classList.remove(`d-none`),document.getElementById(`history-list`).innerHTML=``,document.getElementById(`history-empty`).classList.remove(`d-none`),document.getElementById(`approval-notes`).value=``,document.getElementById(`reject-notes`).value=``,document.getElementById(`review-signature`).value=``}async function h(t,n={}){return e(`Elaborazione della revisione…`,async()=>{let e=await fetch(t,n),r={};try{r=await e.json()}catch{r={}}if(!e.ok||r.ok===!1){let e=r.errore||`Operazione non riuscita.`;throw Error(e)}return r})}function g(e){let t=document.getElementById(`retrieval-list`),n=document.getElementById(`retrieval-empty`),r=Array.isArray(e)?e:[];if(!r.length){t.innerHTML=``,n.classList.remove(`d-none`);return}n.classList.add(`d-none`),t.innerHTML=r.map(e=>{let t=c(e.name||e.procedure_code||e.subbranch_code||`Esempio correlato`),n=c(e.channel_code||`-`),r=c(e.complexity_level||e.risk_level||`-`);return`
+      <div class="review-retrieval-item">
+        <div class="review-retrieval-title">${t}</div>
+        <div class="review-retrieval-meta">
+          ${u(`Canale ${n}`)}
+          ${u(`Profilo ${r}`)}
+        </div>
+      </div>
+    `}).join(``)}function _(e){let t=document.getElementById(`diff-list`),n=document.getElementById(`diff-empty`),r=Array.isArray(e?.sections)?e.sections:[];if(!r.length){t.innerHTML=``,n.classList.remove(`d-none`);return}n.classList.add(`d-none`),t.innerHTML=r.map(e=>{let t=Array.isArray(e.fields)?e.fields:[],n=t.length?`
+        <div class="mt-2 small">
+          ${t.map(e=>`
+            <div class="border rounded-2 px-2 py-1 mb-1 bg-light-subtle">
+              <strong>${c(e.field)}</strong>: ${c(e.before)} -> ${c(e.after)}
+            </div>
+          `).join(``)}
+        </div>
+      `:``;return`
+      <div class="border rounded-3 p-3">
+        <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+          <div class="fw-semibold">${c(e.section||`Sezione`)}</div>
+          ${u(e.change||`updated`,`status-${String(e.change||``).toLowerCase()}`)}
+        </div>
+        <div class="small text-muted">Prima: ${c(e.before)}</div>
+        <div class="small text-muted">Dopo: ${c(e.after)}</div>
+        ${n}
+      </div>
+    `}).join(``)}function v(e){let t=document.getElementById(`history-list`),n=document.getElementById(`history-empty`),r=Array.isArray(e)?e:[];if(!r.length){t.innerHTML=``,n.classList.remove(`d-none`);return}n.classList.add(`d-none`),t.innerHTML=r.map(e=>`
+    <div class="border rounded-3 p-3">
+      <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+        <div class="fw-semibold">${c(e.review_action||`evento`)}</div>
+        <div class="small text-muted">${l(e.created_at)}</div>
+      </div>
+      <div class="small mb-1"><strong>Reviewer:</strong> ${c(e.reviewer||`-`)}</div>
+      <div class="small mb-1"><strong>Firma:</strong> ${c(e.reviewer_signature||`-`)}</div>
+      <div class="small mb-2"><strong>Motivo:</strong> ${c(e.review_reason||`Nessuna motivazione registrata.`)}</div>
+      <div class="small text-muted">
+        Diff sezioni: ${Number(e.diff_json?.summary?.changed_sections||0)}
+      </div>
+    </div>
+  `).join(``)}function y(e){let t=(document.getElementById(`filter-text`).value||``).toLowerCase().trim(),r=document.getElementById(`draft-list`),i=e.filter(e=>`${e.subbranch_code||``} ${e.procedure_code||``} ${e.status||``}`.toLowerCase().includes(t));return document.getElementById(`draft-count`).textContent=i.length,i.length?(r.innerHTML=i.map(e=>`
+    <button class="review-draft-item ${n===e.id?`is-active`:``}" data-id="${e.id}">
+      <div class="review-draft-top">
+        <div class="review-draft-title">${c(e.subbranch_code)}</div>
+        ${u(e.status,`status-${String(e.status).toLowerCase()}`)}
+      </div>
+      <div class="review-draft-meta">
+        ${u(e.risk_level||`MEDIUM`,`risk-${String(e.risk_level||``).toLowerCase()}`)}
+        ${u(e.auto_publish_eligible?`Auto si`:`Auto no`,e.auto_publish_eligible?`auto-yes`:``)}
+        <span>${c(e.procedure_code||`-`)}</span>
+      </div>
+    </button>
+  `).join(``),document.querySelectorAll(`.review-draft-item`).forEach(e=>{e.addEventListener(`click`,()=>S(Number(e.dataset.id)))}),i):(r.innerHTML=`
+      <div class="review-list-empty">
+        ${t?`Nessuna bozza corrisponde al filtro inserito.`:`Nessuna bozza disponibile. Torna alla dashboard e genera prima auditor, gap queue e draft AI.`}
+      </div>
+    `,i)}function b(e){let t=String(document.getElementById(`review-signature`).value||``).trim(),n=String(document.getElementById(`approval-notes`).value||``).trim(),r=String(document.getElementById(`reject-notes`).value||``).trim(),i=e===`reject`?r:n;return t?(e===`approve`||e===`reject`)&&!i?(d(`Inserisci il motivo della decisione prima di proseguire.`),null):{reviewer:`review-ui`,tenant_slug:a,review_signature:t,review_reason:i}:(d(`Inserisci la firma del reviewer prima di proseguire.`),null)}async function x(){try{let e=await h(f(`/drafts`));r=Array.isArray(e)?e:[];let t=y(r);if(!r.length){m(`Nessuna bozza disponibile. Per popolare questa schermata esegui auditor, gap queue e generazione AI dalla dashboard.`);return}if(!t.length){m(`Il filtro non restituisce alcuna bozza. Modifica o svuota il filtro per continuare.`);return}if(!t.some(e=>e.id===n)){await S(Number(t[0].id));return}y(r)}catch(e){r=[],y([]),m(`Impossibile caricare la coda di revisione: ${e.message}`),d(e.message)}}async function S(e){try{n=e,p(!0),y(r);let t=await h(f(`/drafts/${e}`));document.getElementById(`draft-empty`).classList.add(`d-none`),document.getElementById(`draft-meta`).classList.remove(`d-none`),document.getElementById(`meta-subbranch`).textContent=t.subbranch_code||`-`,document.getElementById(`meta-procedure`).textContent=t.procedure_code||`-`,document.getElementById(`meta-status`).textContent=t.status||`-`,document.getElementById(`meta-risk`).textContent=t.risk_level||`-`,document.getElementById(`meta-score`).textContent=t.validation_report_json?.score??0,document.getElementById(`meta-warnings-count`).textContent=`${(t.validation_report_json?.warnings||[]).length} warning`,document.getElementById(`chip-auto-publish`).textContent=`Auto publish: ${t.auto_publish_eligible?`si`:`no`}`,document.getElementById(`chip-created-at`).textContent=`Creato: ${l(t.created_at)}`,document.getElementById(`chip-reviewed-at`).textContent=`Review: ${l(t.reviewed_at)}`,document.getElementById(`meta-reviewer`).textContent=t.reviewer||`-`,document.getElementById(`meta-signature`).textContent=t.review_signature||`-`,document.getElementById(`meta-last-action`).textContent=t.last_review_action||`-`,document.getElementById(`meta-review-reason`).textContent=t.review_reason||`Nessuna motivazione registrata.`,document.getElementById(`spec-editor`).value=JSON.stringify(t.spec_json||{},null,2),document.getElementById(`validation-view`).textContent=JSON.stringify(t.validation_report_json||{},null,2),document.getElementById(`sql-view`).textContent=t.sql_preview||``,document.getElementById(`review-signature`).value=t.review_signature||``,document.getElementById(`approval-notes`).value=[`approved`,`published`].includes(String(t.last_review_action||``))&&t.review_reason||``,document.getElementById(`reject-notes`).value=String(t.last_review_action||``)===`rejected`&&t.review_reason||``,g(t.retrieval_examples_json||[]),_(t.review_diff_json||{}),v(t.review_history||[])}catch(e){m(`Impossibile caricare la bozza selezionata: ${e.message}`),d(e.message)}}async function C(){if(!n)return;let e;try{e=JSON.parse(document.getElementById(`spec-editor`).value)}catch{d(`JSON non valido. Correggi il contenuto prima di salvare.`);return}try{let t=await h(f(`/drafts/${n}/save`),{method:`POST`,headers:{"Content-Type":`application/json`},body:JSON.stringify({spec_json:e,tenant_slug:a,reviewer:`review-ui`,review_signature:String(document.getElementById(`review-signature`).value||``).trim()})});document.getElementById(`validation-view`).textContent=JSON.stringify(t.validation||{},null,2),d(`Bozza salvata correttamente.`),await x()}catch(e){d(e.message)}}async function w(){if(!n)return;let e=b(`approve`);if(e)try{await h(f(`/drafts/${n}/approve`),{method:`POST`,headers:{"Content-Type":`application/json`},body:JSON.stringify(e)}),d(`Bozza approvata con audit registrato.`),await x()}catch(e){d(e.message)}}async function T(){if(!n)return;let e=b(`reject`);if(e)try{await h(f(`/drafts/${n}/reject`),{method:`POST`,headers:{"Content-Type":`application/json`},body:JSON.stringify(e)}),d(`Bozza rifiutata con audit registrato.`),await x()}catch(e){d(e.message)}}async function E(){if(n)try{let e=await h(f(`/drafts/${n}/sql`));document.getElementById(`sql-view`).textContent=e.sql||``,d(`Anteprima SQL aggiornata.`)}catch(e){d(e.message)}}async function D(){if(!n)return;let e=b(`publish`);if(e)try{await h(f(`/drafts/${n}/publish`),{method:`POST`,headers:{"Content-Type":`application/json`},body:JSON.stringify(e)}),d(`Bozza pubblicata e database aggiornato.`),await x()}catch(e){d(e.message)}}document.getElementById(`btn-refresh`).addEventListener(`click`,x),document.getElementById(`btn-save`).addEventListener(`click`,C),document.getElementById(`btn-approve`).addEventListener(`click`,w),document.getElementById(`btn-reject`).addEventListener(`click`,T),document.getElementById(`btn-open-sql`).addEventListener(`click`,E),document.getElementById(`btn-publish`).addEventListener(`click`,D),document.getElementById(`filter-text`).addEventListener(`input`,()=>{let e=y(r);if(!e.length){m(`Il filtro non restituisce alcuna bozza. Modifica o svuota il filtro per continuare.`);return}e.some(e=>e.id===n)||S(Number(e[0].id))}),p(!1),m(`Caricamento della coda revisioni in corso...`),x();

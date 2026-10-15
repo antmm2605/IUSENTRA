@@ -14,7 +14,10 @@ from web.services.react_cliente_comunicazioni import pec_collegate_cartella
 def snapshot_app(monkeypatch):
     app = Flask(__name__)
     app.add_url_rule('/cartella', endpoint='api_v1_react.cliente_cartella_react', view_func=lambda: '', methods=['GET', 'POST'])
+    app.add_url_rule('/dettaglio', endpoint='api_v1_react.fascicolo_react_dettaglio', view_func=lambda: '', methods=['GET', 'POST'])
     app.add_url_rule('/altro', endpoint='altra_pagina', view_func=lambda: '')
+    app.add_url_rule('/rinomina', endpoint='rinomina_documento', view_func=lambda: '', methods=['POST'])
+    app.add_url_rule('/catalogo-editor', endpoint='editor_new_document_matters', view_func=lambda: '')
     made = []
     def factory(**kwargs):
         value = SimpleNamespace(**kwargs)
@@ -26,17 +29,18 @@ def snapshot_app(monkeypatch):
     return app, made
 
 
-def test_snapshot_only_inside_same_cartella_request(snapshot_app):
+@pytest.mark.parametrize('path', ['/cartella', '/dettaglio'])
+def test_snapshot_only_inside_same_cartella_request(snapshot_app, path):
     app, made = snapshot_app
-    with app.test_request_context('/cartella'):
+    with app.test_request_context(path):
         first = helpers.get_fascicoli()
         assert helpers.get_fascicoli() is first
-    with app.test_request_context('/cartella'):
+    with app.test_request_context(path):
         assert helpers.get_fascicoli() is not first
     assert len(made) == 2
 
 
-@pytest.mark.parametrize('path,method', [('/altro', 'GET'), ('/cartella', 'POST')])
+@pytest.mark.parametrize('path,method', [('/altro', 'GET'), ('/cartella', 'POST'), ('/dettaglio', 'POST')])
 def test_other_read_and_write_routes_keep_fresh_manager(snapshot_app, path, method):
     app, made = snapshot_app
     with app.test_request_context(path, method=method):
@@ -54,6 +58,31 @@ def test_changed_tenant_paths_cannot_reuse_snapshot(snapshot_app):
         assert second.db_path.startswith('studio-b/')
         assert helpers.get_fascicoli() is second
     assert len(made) == 2
+
+
+def test_rinomina_sql_carica_solo_il_fascicolo_richiesto(snapshot_app):
+    app, made = snapshot_app
+    with app.test_request_context('/rinomina', method='POST'):
+        first = helpers.get_fascicoli()
+        assert first.carica_tutto is False
+        assert helpers.get_fascicoli() is not first
+    assert len(made) == 2
+
+
+def test_rinomina_json_conserva_il_gestore_storico_completo(snapshot_app, monkeypatch):
+    app, _ = snapshot_app
+    monkeypatch.setattr(helpers, '_studio_db', lambda _: None)
+    with app.test_request_context('/rinomina', method='POST'):
+        assert helpers.get_fascicoli().carica_tutto is True
+
+
+def test_catalogo_editor_non_idrata_documenti_e_attivita_dei_fascicoli(snapshot_app):
+    app, made = snapshot_app
+    with app.test_request_context('/catalogo-editor'):
+        manager = helpers.get_fascicoli()
+        assert manager.studio_db == 'sql-richiesta'
+        assert manager.carica_tutto is False
+    assert len(made) == 1
 
 
 @pytest.fixture

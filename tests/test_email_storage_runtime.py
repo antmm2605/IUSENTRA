@@ -12,7 +12,7 @@ from pct.email_client import GestioneEmailRicevute
 from pct.email_mailbox_repository import EmailMailboxRepository
 from pct.email_sql_client import GestioneEmailSQL
 from pct.tenant import StudioLegale
-from web.services.email_storage_runtime import create_email_mailbox
+from web.services.email_storage_runtime import create_email_mailbox, count_email_mailbox
 
 
 class FactoryChecks(unittest.TestCase):
@@ -32,6 +32,16 @@ class FactoryChecks(unittest.TestCase):
         repo.initialize({'one': {'id': 'one', 'cartella': 'INBOX', 'stato': 'NON_LETTA'}}, source_of_truth='sqlite')
         self.app = Flask(__name__)
         self.app.config.update(MULTI_TENANT=True, TENANTS_REGISTRY=str(self.registry))
+
+    def test_count_does_not_load_messages_or_initialize_another_catalog(self):
+        with self.app.test_request_context('/api/v1/ui/statistiche'):
+            g.tenant = self.tenant
+            with patch('web.services.email_storage_runtime.StudioDB.get', return_value=self.db), patch.object(EmailMailboxRepository, 'load', side_effect=AssertionError('Caricamento estraneo al conteggio')):
+                self.assertEqual(count_email_mailbox(self.path), 1)
+            with patch('web.services.email_storage_runtime.StudioDB.get', return_value=self.db), patch.object(EmailMailboxRepository, 'initialize', side_effect=AssertionError('Import non richiesto')):
+                from pct.email_mailbox_repository import MailboxNotInitialized
+                with self.assertRaises(MailboxNotInitialized):
+                    count_email_mailbox(self.root / 'email' / 'ordinaria.json')
 
     def test_request_uses_current_studio_and_user_for_primary_audit(self):
         with self.app.test_request_context('/email'):

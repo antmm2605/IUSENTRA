@@ -1939,6 +1939,14 @@ def _ordinary_email_manager() -> GestioneEmailRicevute:
     return create_email_mailbox(_tenant_cfg_value("EMAIL_ORDINARIA_DB", "./email/ordinaria.json"))
 
 
+def _statistiche_conteggi_caselle() -> dict[str, int]:
+    from web.services.email_storage_runtime import count_email_mailbox
+    return {
+        "pec": count_email_mailbox(_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json")),
+        "ordinary": count_email_mailbox(_tenant_cfg_value("EMAIL_ORDINARIA_DB", "./email/ordinaria.json")),
+    }
+
+
 def _messaggi_manager() -> GestioneMessaggi:
     return GestioneMessaggi(
         ConfigMessaggistica(studio_nome=studio_nome()),
@@ -9124,21 +9132,33 @@ def telematico_depositi_catalogo():
 def fascicolo_react_dettaglio(id_fasc: str):
     include_sections = _detail_include_sections(default=set())
     missing_status = 200 if "all" in include_sections else 404
-    return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
-        get_fascicoli=_fascicolo_singolo_loader(),
-        get_clienti=get_clienti,
-        get_agenda=get_agenda,
-        get_scadenziario=get_scadenziario,
-        get_soggetti=get_soggetti,
-        get_preventivi=get_preventivi_readonly,
-        get_fatturazione=get_fatturazione,
-        get_timesheet=get_timesheet,
-        get_practice_engine=get_practice_engine,
-        get_config_studio=_core_runtime_func("get_config_studio"),
-        id_fasc=id_fasc,
-        studio_avvocato_titolare=_studio_avvocato_titolare(),
-        include_sections=include_sections,
-    ), missing_status=missing_status)
+    def build_payload():
+        return build_react_fascicolo_detail_payload(
+            get_fascicoli=_fascicolo_singolo_loader(),
+            get_clienti=get_clienti,
+            get_agenda=get_agenda,
+            get_scadenziario=get_scadenziario,
+            get_soggetti=get_soggetti,
+            get_preventivi=get_preventivi_readonly,
+            get_fatturazione=get_fatturazione,
+            get_timesheet=get_timesheet,
+            get_practice_engine=get_practice_engine,
+            get_config_studio=_core_runtime_func("get_config_studio"),
+            id_fasc=id_fasc,
+            studio_avvocato_titolare=_studio_avvocato_titolare(),
+            include_sections=include_sections,
+        )
+    if request.args.get("confirm_revision") == "1":
+        from web.services.operational_read_revision import read_authorized_revision_snapshot, with_confirmed_read_revision
+        domains = {"clienti", "soggetti", "fascicoli", "agenda", "scadenze", "comunicazioni",
+                   "fatturazione", "incassi", "preventivi", "timesheet"}
+        payload = with_confirmed_read_revision(
+            build_payload,
+            lambda: read_authorized_revision_snapshot(g.get("utente_corrente"), requested_domains=domains),
+        )
+    else:
+        payload = build_payload()
+    return _jsonify_domain_payload(payload, missing_status=missing_status)
 
 
 @api_v1_react.get("/fascicoli/<id_fasc>/documenti")
@@ -11078,11 +11098,12 @@ def statistiche_page():
             build_react_statistiche_payload(
                 get_agenda=get_agenda,
                 get_clienti=get_clienti,
-                get_fascicoli=get_fascicoli,
+                get_fascicoli=_fascicoli_elenco_loader(),
                 get_fatturazione=get_fatturazione,
                 get_scadenziario=get_scadenziario,
                 get_email=_email_manager,
                 get_email_ordinaria=_ordinary_email_manager,
+                get_email_counts=_statistiche_conteggi_caselle,
                 get_messaggi=_messaggi_manager,
                 get_preventivi=get_preventivi_readonly,
                 get_timesheet=get_timesheet,
@@ -12106,7 +12127,9 @@ def impostazioni_page_ai_status():
 @api_v1_react.get("/impostazioni/ai/lex-dataset")
 @_richiedi_auth
 def impostazioni_page_ai_lex_dataset():
-    result = build_lex_dataset_training_status()
+    from web.services.react_impostazioni_bridge import build_react_impostazioni_lex_dataset_status
+
+    result = build_react_impostazioni_lex_dataset_status()
     return jsonify(result), 200 if result.get("ok") else 200
 
 

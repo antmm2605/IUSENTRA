@@ -25,7 +25,8 @@ from flask import current_app, g
 VerificaToken = Callable[[Any, dict[str, str]], bool]
 
 _ATTRIBUTI_CONTESTO = ("tenant", "tenant_context_slug", "data_paths", "storage_runtime")
-_CACHE_ARCHIVIO = ("_storage_runtime_profile", "_runtime_studio_db", "_tenant_isolation_root_cache")
+_CACHE_ARCHIVIO = ("_storage_runtime_profile", "_storage_runtime_profiles", "_runtime_studio_db",
+                  "_runtime_studio_db_key", "_tenant_isolation_root_cache")
 
 # Link sconosciuti di recente: per un token che non esiste la ricerca legge gli
 # archivi di tutti gli studi; ripetuta a raffica (link inventati) moltiplicava il

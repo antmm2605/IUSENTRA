@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.437.35 — candidata, 15/10/2026
+
+- Caricamento condiviso con indicatore unico centrato; moduli e pannelli secondari attivati su richiesta, conservando bozze e stato alla riapertura.
+- Letture consultive riutilizzate nella sola richiesta, controlli dei percorsi tenant preservati, conteggi SQL della posta senza caricare messaggi e allegati. Elenco fascicoli: riuso cumulativo dei fatti anche con filtri e risultati grezzi, senza alterare i dati economici.
+- Rinomina documenti mirata e con controllo della revisione; una fonte invariata aggiorna il nome senza riavviare la lettura. CTU chiusa rinvia il recupero fino alla riapertura e conserva la bozza.
+- Presidio economico invariato in attesa dei lettori: nessuna riscrittura periodica del solo orario; nuove evidenze SQL attivano la proiezione esistente. Accettazione finale sul commit definitivo, CI e deploy ancora necessari; incarichi generali aperti.
+
+## 2.437.34 — 15/10/2026
+
+- Catalogo SQL cliente/fascicolo con preparazione esplicita e backup; salvataggi di soggetti e parti limitati alle righe interessate, revisione concorrente e conservazione dei collegamenti.
+- Bozza anagrafica eliminata dopo salvataggio confermato senza ricreazione alla chiusura; modifiche successive recuperabili. Prove reali locali, 89 controlli GitHub e deploy Hetzner verificati sul commit `87fee39398189cac01f2b047f5bffea0048cddec`.
+
 ## 2.437.27 — candidata, 14/10/2026
 
 - PEC del fascicolo aperte dall'icona dedicata e dal pannello rapido, con filtro sull'associazione SQL e tutte le cartelle. Cartella reale conservata per i messaggi del registro; conteggi e selezione coerenti con la pratica.

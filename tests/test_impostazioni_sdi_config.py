@@ -17,7 +17,9 @@ from web.app import create_app
 
 def _app(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
-    app = create_app(_cfg_web(tmp_path))
+    # This fixture is a standalone synthetic studio, with no tenant registry
+    # or session. Do not inherit the execution host's multi-tenant setting.
+    app = create_app({**_cfg_web(tmp_path), "MULTI_TENANT": False})
     app.config["API_KEY"] = "react-test-key"
     return app
 

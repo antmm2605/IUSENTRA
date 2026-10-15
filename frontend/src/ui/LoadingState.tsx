@@ -1,5 +1,7 @@
 import './ui.css'
-import { useBusyActivity } from './useBusyActivity'
+import './activity.css'
+import { createPortal } from 'react-dom'
+import { useInlineActivity } from './useBusyActivity'
 
 export function LoadingState({
   title = 'Caricamento in corso',
@@ -8,14 +10,14 @@ export function LoadingState({
   title?: string
   message?: string
 }) {
-  useBusyActivity(true, 'Caricamento della pagina…')
-  return (
-    <section className="iu-loading-state" aria-live="polite" aria-busy="true">
+  const target = useInlineActivity(title)
+  return target ? createPortal(
+    <section className="iu-loading-state iu-inline-activity" aria-live="polite" aria-busy="true">
       <div className="iu-loading-state__body">
         <span className="iu-loading-state__spinner" aria-hidden="true" />
         <h2>{title}</h2>
         <p>{message}</p>
       </div>
-    </section>
-  )
+    </section>, target,
+  ) : null
 }

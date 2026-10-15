@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Maximize2, Minimize2, ZoomIn, ZoomOut } from 'lucide-react'
 import { ensureJson } from '../../lib/apiClient'
+import { LoadingState } from '../../ui/LoadingState'
+import { useBusyActivity } from '../../ui/useBusyActivity'
 import { ActionButton as Button } from './ActionButton'
 // Gli stili del compilatore viaggiano col componente: senza, i campi non si
 // posizionano sul foglio e il modulo non si puo' compilare.
@@ -34,6 +36,7 @@ export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica, a
   pagePreviewUrl?: (page: number) => string
 }) {
   const [data, setData] = useState<ModuleData | null>(null)
+  useBusyActivity(busy, 'Salvataggio della copia compilata in corso…')
   const [values, setValues] = useState<Record<string, string | boolean>>({})
   const [page, setPage] = useState(1)
   const [previewReady, setPreviewReady] = useState(false)
@@ -93,7 +96,7 @@ export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica, a
   useEffect(() => { onDirty(dirty); return () => onDirty(false) }, [dirty, onDirty])
   useEffect(() => { const guard = (e: BeforeUnloadEvent) => { if (dirty) { e.preventDefault(); e.returnValue = '' } }; window.addEventListener('beforeunload', guard); return () => window.removeEventListener('beforeunload', guard) }, [dirty])
   if (error) return <p role="alert">{error} <Button onClick={() => setRetry(retry + 1)}>Rileggi modulo</Button></p>
-  if (!data) return <p role="status">Lettura dei campi predisposti nel modulo…</p>
+  if (!data) return <LoadingState title="Caricamento modulo PDF" message="Lettura dei campi predisposti nel modulo in corso."/>
   const sheet = data.pagine[page - 1]
   const fields = data.campi.filter((f) => f.pagina === page)
   const update = (name: string, value: string | boolean) => { setValues((old) => ({ ...old, [name]: value })); setDirty(true) }
@@ -135,7 +138,7 @@ export function PdfModulo({ endpoint, previewUrl, busy, save, onDirty, carica, a
       <p>{onEditWithoutFields ? 'Questo PDF non contiene campi predisposti. Puoi inserire testo nelle aree del modulo con il lettore PDF e salvare una copia nel fascicolo.' : 'Questo PDF non contiene campi predisposti. Il modello originale rimane consultabile; non è stato trasformato o compilato automaticamente.'}</p>
       {onEditWithoutFields ? <Button disabled={busy} onClick={onEditWithoutFields}>Compila nel lettore PDF</Button> : null}
     </> : null}
-    {!previewReady ? <p role="status">Caricamento della pagina del modulo…</p> : null}
+    {!previewReady ? <LoadingState title="Caricamento pagina PDF" message="Preparazione della pagina del modulo in corso."/> : null}
     <div className="iu-mediazione-pdf-scroll" tabIndex={0} aria-busy={!previewReady} aria-label="Pagina del modulo, scorrimento orizzontale disponibile">
       <div className="iu-mediazione-pdf-sheet" style={{ aspectRatio: `${sheet.larghezza} / ${sheet.altezza}`, width: `${8 * zoom}px` }}>
         <img key={page} src={pagePreviewUrl ? pagePreviewUrl(page) : `${previewUrl}${previewUrl.includes('?') ? '&' : '?'}viewer=mobile&page=${page}${righe ? `&righe=${righe}` : ''}`} alt={`Pagina ${page} del modulo PDF`} onLoad={() => setPreviewReady(true)} onError={() => { setPreviewReady(false); setError('Anteprima non disponibile. Non compilare senza verificare la pagina.') }} />

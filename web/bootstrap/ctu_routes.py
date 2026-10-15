@@ -71,6 +71,7 @@ def register_ctu_routes(app: Flask, core: dict[str, Any]) -> None:
     get_scadenziario = core["get_scadenziario"]
     audit = core["audit"]
     get_fascicoli = core["get_fascicoli"]
+    get_fascicoli_consultazione = core.get("get_fascicoli_mirato", get_fascicoli)
 
     def _permesso(nome: str = "fascicoli.scrivi") -> bool:
         utente = g.get("utente_corrente")
@@ -93,7 +94,7 @@ def register_ctu_routes(app: Flask, core: dict[str, Any]) -> None:
         if not _permesso("fascicoli.leggi"):
             return jsonify({"ok": False, "message": "Permesso insufficiente."}), 403
         try:
-            if get_fascicoli().get(id_fasc) is None:
+            if get_fascicoli_consultazione().get(id_fasc) is None:
                 return jsonify({"ok": False, "message": "Fascicolo non trovato."}), 404
             manager = get_ctu()
             incarichi = manager.per_fascicolo(id_fasc)

@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from flask import current_app, g, has_app_context, has_request_context, session
+from flask import current_app, g, has_app_context, has_request_context, request, session
 
 from pct.document_crypto import doc_key
 from pct.document_intelligence import DocumentAIRepository, DocumentAIService, LexIndexingSummary
@@ -83,14 +83,23 @@ def document_ai_user_context() -> dict[str, Any]:
 def build_document_ai_service() -> DocumentAIService:
     anchor = fascicoli_db_path()
     structured_db = get_request_studio_db(anchor) if has_app_context() else None
-    repository = DocumentAIRepository.from_fascicoli_db(anchor, structured_db=structured_db)
     max_size = 25 * 1024 * 1024
     if has_app_context():
         configured = current_app.config.get("DOCUMENT_AI_MAX_UPLOAD_BYTES")
         max_size = int(configured) if configured is not None else int(current_app.config.get("MAX_UPLOAD_MB", 25)) * 1024 * 1024
         if max_size <= 0:
             raise ValueError("Il limite di acquisizione documentale deve essere positivo.")
-    return DocumentAIService(repository, get_fascicoli(), max_size_bytes=max_size)
+    consultazione = has_request_context() and request.method == "GET" and request.endpoint == "api_v1_react.fascicolo_react_dettaglio"
+    key = (document_ai_tenant_id(), anchor, id(structured_db), max_size)
+    if consultazione:
+        cached = getattr(g, '_document_ai_service_consultazione', None)
+        if cached is not None and cached[0] == key:
+            return cached[1]
+    repository = DocumentAIRepository.from_fascicoli_db(anchor, structured_db=structured_db)
+    service = DocumentAIService(repository, get_fascicoli(), max_size_bytes=max_size)
+    if consultazione:
+        g._document_ai_service_consultazione = (key, service)
+    return service
 
 
 def collect_document_ai_sources_for_fascicolo(

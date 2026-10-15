@@ -33,7 +33,7 @@ def rinomina_documento_response(
         # Il registro delle letture aggiorna il nome dell'oggetto e invalida la lettura in cache.
         from web.services.registro_letture_runtime import documento_aggiornato
 
-        documento_aggiornato(id_fasc, documento)
+        documento_aggiornato(id_fasc, documento, solo_nome=True)
         audit(
             "fascicoli.documento.rinomina",
             "fascicolo",

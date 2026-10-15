@@ -64,7 +64,7 @@ function CtuDeadlineCommand({ protocol, fascicoloId, incarico, disabled, onAggio
   </div>
 }
 
-export default function CtuSection({ fascicoloId }:{fascicoloId:string}) {
+export default function CtuSection({ fascicoloId, active = true }:{fascicoloId:string; active?:boolean}) {
   const [incarichi, setIncarichi] = useState<CtuIncarico[]>([])
   const [loadError, setLoadError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -85,7 +85,10 @@ export default function CtuSection({ fascicoloId }:{fascicoloId:string}) {
   const [gestito, setGestito] = useState('')
   const [openedDetails, setOpenedDetails] = useState<Set<string>>(() => new Set())
   const [foregroundLoading, setForegroundLoading] = useState(true)
-  useBusyActivity(foregroundLoading, 'Caricamento incarichi CTU…')
+  const activeRef = useRef(active)
+  activeRef.current = active
+  const hiddenRefreshPending = useRef(false)
+  useBusyActivity(active && foregroundLoading, 'Caricamento incarichi CTU…')
   useBusyActivity(busy, 'Salvataggio incarico CTU…')
   const load = useCallback(async (silent = false) => {
     const sequence = ++readSequence.current
@@ -119,10 +122,18 @@ export default function CtuSection({ fascicoloId }:{fascicoloId:string}) {
     setIncarichi([])
     setLoadError('')
     setWriteProtocol(null)
-    reload()
+    if (activeRef.current) reload()
+    else hiddenRefreshPending.current = true
     return () => { ++readSequence.current; readController.current?.abort() }
   }, [load])
-  useOperationalRefresh(['fascicoli'], () => load(true))
+  const scheduleRefresh = useOperationalRefresh(['fascicoli'], ({ live }) => {
+    if (!active) { hiddenRefreshPending.current = true; return }
+    hiddenRefreshPending.current = false
+    return load(live)
+  })
+  useEffect(() => {
+    if (active && hiddenRefreshPending.current) scheduleRefresh()
+  }, [active, scheduleRefresh])
   const post = async (href: string, body: Record<string, unknown>, creation = false, recover = false) => {
     if (writeInFlight.current) return
     writeInFlight.current = true

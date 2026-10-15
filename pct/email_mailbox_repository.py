@@ -127,13 +127,24 @@ class EmailMailboxRepository:
             (uuid.uuid4().hex, self.tenant, self.kind, str(key), action, actor, _encode(sorted(fields)), stamp),
         )
 
-    def load(self, *, update_original=True, message_keys=None):
+    def _assert_initialized(self):
         marker = self.db.conn.execute(
             'SELECT source_of_truth FROM email_mailbox_bootstrap WHERE tenant_key=? AND mailbox_kind=?',
             (self.tenant, self.kind),
         ).fetchone()
         if marker is None:
             raise MailboxNotInitialized('Archivio della casella da riallineare: nessuna lettura da copie storiche.')
+
+    def count(self) -> int:
+        """Conta il catalogo primario senza corpi, allegati o riparazioni."""
+        self._assert_initialized()
+        return int(self.db.conn.execute(
+            'SELECT COUNT(*) FROM email_mailbox_records WHERE tenant_key=? AND mailbox_kind=?',
+            (self.tenant, self.kind),
+        ).fetchone()[0])
+
+    def load(self, *, update_original=True, message_keys=None):
+        self._assert_initialized()
         params = [self.tenant, self.kind]
         restriction = ''
         if message_keys is not None:

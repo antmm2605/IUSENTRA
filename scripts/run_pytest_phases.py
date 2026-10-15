@@ -135,6 +135,10 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
         REPO_ROOT / "tests" / "test_tariffario.py",
     ),
     "coverage-critical": (
+        REPO_ROOT / "tests" / "test_tenant_path_batch.py",
+        REPO_ROOT / "tests" / "test_operational_read_revision.py",
+        REPO_ROOT / "tests" / "test_archivio_fatti_request_snapshot.py",
+        REPO_ROOT / "tests" / "test_fascicoli_rinomina_sql_mirata.py",
         REPO_ROOT / "tests" / "test_fascicoli_clienti_index.py",
         REPO_ROOT / "tests" / "test_soggetti_concurrent_sql.py",
         REPO_ROOT / "tests" / "test_clienti_cartella_stato_archivio.py",
@@ -184,6 +188,10 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
     ),
 }
 CORE_TARGETS: tuple[Path, ...] = (
+    REPO_ROOT / "tests" / "test_tenant_path_batch.py",
+    REPO_ROOT / "tests" / "test_operational_read_revision.py",
+    REPO_ROOT / "tests" / "test_archivio_fatti_request_snapshot.py",
+    REPO_ROOT / "tests" / "test_fascicoli_rinomina_sql_mirata.py",
     REPO_ROOT / "tests" / "test_fascicoli_clienti_index.py",
     REPO_ROOT / "tests" / "test_soggetti_concurrent_sql.py",
     REPO_ROOT / "tests" / "test_clienti_cartella_stato_archivio.py",

@@ -374,8 +374,12 @@ def _assert_sensitive_paths(paths: dict[str, Any]) -> None:
             status_code=409,
             code="tenant_data_paths_required",
         )
-    for key in TENANT_SENSITIVE_PATH_KEYS:
-        assert_tenant_data_path(_text(paths[key]), key=key)
+    from web.services.tenant_path_batch import resolve_private_paths
+    root = _expected_tenant_root()
+    for key, path in resolve_private_paths({key: _text(paths[key]) for key in TENANT_SENSITIVE_PATH_KEYS}, root).items():
+        if not _path_is_relative_to(path, root):
+            current_app.logger.warning('Tenant isolation: percorso dati bloccato key=%s tenant=%s', key, _tenant_slug_from_context() or '-')
+            raise TenantIsolationError(TENANT_PATH_FORBIDDEN_MESSAGE, status_code=403, code='tenant_path_forbidden')
 
 
 def ensure_private_tenant_context() -> None:

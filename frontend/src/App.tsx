@@ -1101,7 +1101,7 @@ function Empty({ children='Nessun elemento da presidiare.' }:{children?:string})
 
 function PageLoading() {
   return (
-    <main className="iu-content">
+    <main className="iu-content iu-page-loading">
       <LoadingState title="Caricamento della pagina" message="Preparazione del modulo operativo in corso." />
     </main>
   )

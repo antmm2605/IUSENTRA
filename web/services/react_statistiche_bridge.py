@@ -231,6 +231,7 @@ def build_react_statistiche_payload(
     get_messaggi: Callable[[], Any] | None = None,
     get_preventivi: Callable[[], Any] | None = None,
     get_timesheet: Callable[[], Any] | None = None,
+    get_email_counts: Callable[[], dict[str, int]] | None = None,
 ) -> dict[str, Any]:
     warnings: list[dict[str, str]] = []
     today = datetime.now(ZoneInfo("Europe/Rome")).date()
@@ -240,8 +241,8 @@ def build_react_statistiche_payload(
     fascicoli_manager = _safe("fascicoli", warnings, get_fascicoli, None)
     fatturazione = _safe("fatturazione", warnings, get_fatturazione, None)
     scadenziario = _safe("scadenziario", warnings, get_scadenziario, None)
-    email = _safe("email", warnings, get_email, None) if callable(get_email) else None
-    email_ordinaria = _safe("email_ordinaria", warnings, get_email_ordinaria, None) if callable(get_email_ordinaria) else None
+    email = _safe("email", warnings, get_email, None) if not callable(get_email_counts) and callable(get_email) else None
+    email_ordinaria = _safe("email_ordinaria", warnings, get_email_ordinaria, None) if not callable(get_email_counts) and callable(get_email_ordinaria) else None
     messaggi = _safe("messaggi", warnings, get_messaggi, None) if callable(get_messaggi) else None
     preventivi = _safe("preventivi", warnings, get_preventivi, None) if callable(get_preventivi) else None
     timesheet = _safe("timesheet", warnings, get_timesheet, None) if callable(get_timesheet) else None
@@ -259,6 +260,9 @@ def build_react_statistiche_payload(
     agenda_lista = _safe("agenda_lista", warnings, lambda: _all(agenda), [])
     pec_lista = _safe("pec_lista", warnings, lambda: _all(email), []) if email else []
     email_lista = _safe("email_ordinaria_lista", warnings, lambda: _all(email_ordinaria), []) if email_ordinaria else []
+    counts = _safe("conteggi_caselle", warnings, get_email_counts, {}) if callable(get_email_counts) else {}
+    pec_count = int(counts.get('pec', len(pec_lista)))
+    ordinary_count = int(counts.get('ordinary', len(email_lista)))
     messaggi_lista = _safe("messaggi_lista", warnings, lambda: _all(messaggi), []) if messaggi else []
     preventivi_lista = _safe("preventivi_lista", warnings, lambda: list(preventivi.tutti_preventivi()), []) if preventivi else []
     conferimenti_lista = _safe("conferimenti_lista", warnings, lambda: list(preventivi.tutti_conferimenti()), []) if preventivi else []
@@ -322,19 +326,14 @@ def build_react_statistiche_payload(
     stato_counter = Counter(_enum_value(getattr(item, "stato", "")) or "Non indicato" for item in fascicoli)
     priorita_counter = Counter(_enum_value(getattr(item, "priorita", "")) or "Non indicata" for item in scadenze)
     agenda_counter = Counter(_enum_value(getattr(item, "tipo", "")) or "Non indicato" for item in agenda_lista)
-    comunicazioni_counter = Counter(
-        [
-            ("PEC" if pec_lista else "")
-            for _item in pec_lista
-        ]
-        + [
-            ("Email ordinaria" if email_lista else "")
-            for _item in email_lista
-        ]
-        + [
-            _enum_value(getattr(item, "canale", "")) or "Messaggi"
-            for item in messaggi_lista
-        ]
+    comunicazioni_counter = Counter()
+    if pec_count:
+        comunicazioni_counter['PEC'] += pec_count
+    if ordinary_count:
+        comunicazioni_counter['Email ordinaria'] += ordinary_count
+    comunicazioni_counter.update(
+        _enum_value(getattr(item, "canale", "")) or "Messaggi"
+        for item in messaggi_lista
     )
     comunicazioni_counter.pop("", None)
     preventivi_counter = Counter(_enum_value(getattr(item, "stato", "")) or "Non indicato" for item in preventivi_lista)
@@ -398,8 +397,8 @@ def build_react_statistiche_payload(
         {"id": "scadenze", "label": "Scadenze registrate", "value": len(scadenze), "note": "Tutti gli stati, proposte comprese", "href": "/scadenziario?vista=tutte"},
         {"id": "scadenze_aperte", "label": "Scadenze aperte", "value": len(open_deadlines), "note": "Apri le attività da lavorare", "href": "/scadenziario?vista=aperte"},
         {"id": "scadenze_completate", "label": "Chiusure registrate", "value": productivity["scadenze_completate"], "note": "Apri le scadenze completate e le relative fonti", "href": "/scadenziario?vista=completate"},
-        {"id": "pec", "label": "PEC", "value": len(pec_lista), "note": "Casella PEC", "href": "/email/"},
-        {"id": "email", "label": "Email ordinarie", "value": len(email_lista), "note": "Posta ordinaria", "href": "/email-ordinaria/"},
+        {"id": "pec", "label": "PEC", "value": pec_count, "note": "Casella PEC", "href": "/email/"},
+        {"id": "email", "label": "Email ordinarie", "value": ordinary_count, "note": "Posta ordinaria", "href": "/email-ordinaria/"},
         {"id": "messaggi", "label": "Messaggi clienti", "value": len(messaggi_lista), "note": "Comunicazioni", "href": "/messaggi"},
         {"id": "preventivi", "label": "Preventivi", "value": len(preventivi_lista), "note": "Preventivi e incarichi", "href": "/preventivi"},
         {"id": "conferimenti", "label": "Incarichi", "value": len(conferimenti_lista), "note": "Conferimenti incarico", "href": "/preventivi"},

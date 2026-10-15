@@ -3209,6 +3209,13 @@ class GestioneFascicoli:
         return f
 
     def rinomina_documento(self, id_fasc: str, id_doc: str, nome_file: str) -> Documento:
+        if id_fasc not in self._fascicoli and self._studio_db is not None:
+            # Un comando su un file non richiede l'archivio degli altri fascicoli.
+            rows = self._studio_db.fetchall_readonly("SELECT * FROM fascicoli WHERE id=?", (id_fasc,))
+            for row in rows:
+                loaded = self._row_to_fascicolo(row)
+                if loaded is not None and loaded.id == id_fasc:
+                    self._fascicoli[id_fasc] = loaded
         f = self._get_o_errore(id_fasc)
         doc = next((d for d in f.documenti if d.id == id_doc), None)
         if not doc:
@@ -3233,6 +3240,8 @@ class GestioneFascicoli:
         old_nome = doc.nome
         old_percorso = doc.percorso
         old_tags = list(doc.tags or [])
+        old_hash = doc.hash_sha256
+        old_content_hash = doc.hash_contenuto_sha256
         old_modificato = f.modificato_il
         moved = False
         temp_case_path: Path | None = None
@@ -3250,7 +3259,49 @@ class GestioneFascicoli:
             if "iusentra:nome-personalizzato" not in {str(tag).casefold() for tag in (doc.tags or [])}:
                 doc.tags = [*(doc.tags or []), "iusentra:nome-personalizzato"]
             f.modificato_il = datetime.now().isoformat()
-            self._salva()
+            if self._studio_db is None:
+                self._salva()
+            else:
+                def persist_rename(conn, _fascicolo):
+                    columns = ("documenti_json", "dati_json", "modificato_il")
+                    row = conn.execute(
+                        "SELECT documenti_json,dati_json,modificato_il FROM fascicoli WHERE id=?",
+                        (id_fasc,),
+                    ).fetchone()
+                    if row is None:
+                        raise ValueError("Fascicolo non più disponibile: rinomina non confermata.")
+                    raw = dict(row) if hasattr(row, "keys") else dict(zip(columns, row, strict=True))
+                    documents = json.loads(raw["documenti_json"] or "[]")
+                    metadata = json.loads(raw["dati_json"] or "{}")
+                    if not isinstance(documents, list) or not isinstance(metadata, dict):
+                        raise ValueError("Contenuto SQL del fascicolo non valido: rinomina non confermata.")
+                    matches = [item for item in documents if isinstance(item, dict) and item.get("id") == id_doc]
+                    if len(matches) != 1:
+                        raise ValueError("Documento non univoco nel fascicolo: rinomina non confermata.")
+                    saved = matches[0]
+                    if (saved.get("nome"), saved.get("percorso"), saved.get("hash_sha256", ""),
+                        saved.get("hash_contenuto_sha256", "")) != (old_nome, old_percorso, old_hash, old_content_hash):
+                        raise ValueError("Documento aggiornato da un altro comando: rileggi prima di rinominare.")
+                    saved.update(nome=doc.nome, percorso=doc.percorso)
+                    tags = list(saved.get("tags") or [])
+                    if "iusentra:nome-personalizzato" not in {str(tag).casefold() for tag in tags}:
+                        tags.append("iusentra:nome-personalizzato")
+                    saved["tags"] = tags
+                    metadata["modificato_il"] = f.modificato_il
+                    if "documenti" in metadata:
+                        metadata["documenti"] = documents
+                    updated = conn.execute(
+                        "UPDATE fascicoli SET documenti_json=?,dati_json=?,modificato_il=? WHERE id=? "
+                        "AND documenti_json IS NOT DISTINCT FROM ? AND dati_json IS NOT DISTINCT FROM ? "
+                        "AND modificato_il IS NOT DISTINCT FROM ? RETURNING id",
+                        (json.dumps(documents, ensure_ascii=False), json.dumps(metadata, ensure_ascii=False),
+                         f.modificato_il, id_fasc, raw["documenti_json"], raw["dati_json"], raw["modificato_il"]),
+                    ).fetchone()
+                    if updated is None:
+                        raise ValueError("Fascicolo aggiornato durante la rinomina: nessuna modifica confermata.")
+                # Transazione, retry e rollback del backend nativo; nessun full-replace,
+                # riallineamento di stati economici o riscrittura del mirror storico.
+                self._studio_db.salva_tabella("fascicoli", [f], persist_rename, delete_all=False)
         except Exception:
             doc.nome = old_nome
             doc.percorso = old_percorso

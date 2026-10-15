@@ -66,7 +66,7 @@ function appendValue(formData: FormData, key: string, value: unknown) {
 }
 
 export function getSettings(signal?: AbortSignal): Promise<SettingsPayload> {
-  return apiJson<SettingsPayload>('/api/v1/ui/impostazioni', emptySettingsPayload, { signal })
+  return apiJson<SettingsPayload>('/api/v1/ui/impostazioni?include_ai_dataset=0', emptySettingsPayload, { signal })
 }
 
 export async function saveSettingsSection(
@@ -75,7 +75,7 @@ export async function saveSettingsSection(
   files: Record<string, File | null> = {},
 ): Promise<SettingsPayload> {
   if (!hasFile(files)) {
-    return apiPostJson<SettingsPayload>(`/api/v1/ui/impostazioni/${section}`, values, emptySettingsPayload)
+    return apiPostJson<SettingsPayload>(`/api/v1/ui/impostazioni/${section}?include_ai_dataset=0`, values, emptySettingsPayload)
   }
   const formData = new FormData()
   Object.entries(values).forEach(([key, value]) => appendValue(formData, key, value))
@@ -83,7 +83,7 @@ export async function saveSettingsSection(
     if (file) formData.append(key, file)
   })
   try {
-    const response = await fetch(`/api/v1/ui/impostazioni/${section}`, {
+    const response = await fetch(`/api/v1/ui/impostazioni/${section}?include_ai_dataset=0`, {
       method: 'POST',
       credentials: 'same-origin',
       headers: { Accept: 'application/json', 'X-CSRF-Token': csrfToken() },

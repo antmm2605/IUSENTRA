@@ -1,11 +1,11 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
-import { getActivities, subscribeActivities } from './activity'
+import { getActivities, presentedActivity, subscribeActivities } from './activity'
 import './activity.css'
 
 export function ActivityStatus() {
   const activities = useSyncExternalStore(subscribeActivities, getActivities, getActivities)
-  const first = activities[0]
+  const first = presentedActivity(activities)
   const [shownId, setShownId] = useState<number>()
   const [slowId, setSlowId] = useState<number>()
   const [fullscreen, setFullscreen] = useState<Element | null>(() => document.fullscreenElement)

@@ -1,4 +1,5 @@
 import { useBusyActivity } from '../ui/useBusyActivity'
+import { LoadingState } from '../ui/LoadingState'
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
@@ -186,7 +187,7 @@ export function CartellaClientePage() {
     return warnings
   }, [data])
 
-  if (loading) return <main className="iu-content iu-cartella-cliente-page" aria-busy="true"><div className="iu-cart-loading" role="status"><RefreshCw size={18}/>Caricamento cartella cliente…</div></main>
+  if (loading) return <main className="iu-content iu-cartella-cliente-page" aria-busy="true"><LoadingState title="Caricamento cartella cliente" message="Lettura dei dati del cliente selezionato in corso."/></main>
   if (errore && !data.cliente.id) return <main className="iu-content iu-cartella-cliente-page"><div className="iu-cart-alert iu-cart-alert--danger" role="alert"><AlertTriangle size={18}/>{errore}</div><Button href={window.location.href} variant="secondary">Riprova</Button></main>
 
   return (

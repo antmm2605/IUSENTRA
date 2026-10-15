@@ -30,6 +30,7 @@ from zoneinfo import ZoneInfo
 from flask import current_app, has_app_context
 
 from web.services.react_dashboard_time import oggi_rome
+from web.services.archivio_fatti_precaricati import istantanea_dettaglio
 
 from pct import __version__ as APP_VERSION
 from pct.fascicoli import AvanzamentoPratica, EsitoAttivita, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
@@ -171,7 +172,9 @@ def _safe(label: str, func: Callable[[], Any], fallback: Any) -> Any:
     inizio = time.monotonic()
     try:
         return func()
-    except Exception:
+    except Exception as exc:
+        from web.services.operational_read_revision import mark_projection_read_failure
+        mark_projection_read_failure(label, type(exc).__name__)
         return fallback
     finally:
         _conta_tempo_fase(label, round(1000 * (time.monotonic() - inizio)))
@@ -5170,20 +5173,16 @@ def _ensure_contributo_unificato_for_fascicolo(
         _text(marker.get("analysisVersion") or marker.get("analysis_version"))
         != ECONOMIC_DOCUMENT_ANALYSIS_VERSION
         or not marker_current
+        or _text(marker.get("economicFactsFingerprint")) != _economic_archive_fingerprint(fascicolo)
     )
-    documenti_da_leggere = _presidio_documenti_da_leggere(fascicolo, marker)
     if marker_current and not force_revalidate_auto:
-        if not needs_cu_value:
-            return {"status": "existing", "analysisUpdated": False}
-        if _presidio_documentale_has_unresolved_kind(marker, "contributo_unificato"):
+        if needs_cu_value and _presidio_documentale_has_unresolved_kind(marker, "contributo_unificato"):
             return {"status": "missing_current", "analysisUpdated": False}
-        if not documenti_da_leggere:
-            #  Tutti i documenti del fascicolo sono gia' stati letti con questa
-            #  versione del lettore, e nessuno e' cambiato: rileggerli non puo'
-            #  dare un risultato diverso. Senza questa uscita il presidio
-            #  riapriva ogni documento a ogni giro, ogni quindici minuti,
-            #  anche quando l'esito precedente era gia' completo.
-            return {"status": "existing", "analysisUpdated": False, "readComplete": True}
+        # Questo marker prova la proiezione economica delle evidenze SQL.
+        # Il suo inventario parziale non misura le letture del motore centrale:
+        # non dedurre nuovi documenti pendenti da readDocuments del presidio.
+        return {"status": "existing", "analysisUpdated": False}
+    documenti_da_leggere = _presidio_documenti_da_leggere(fascicolo, marker)
     # Il presidio non legge: proietta l'archivio. Se restano documenti che
     # l'archivio non ha ancora letto, dentro la richiesta dell'avvocato si
     # chiede ai motori di leggerli in sfondo (il clic non resta senza effetto);
@@ -9368,6 +9367,7 @@ def _sentenze_economiche(fid: str, payment_summary: dict[str, Any] | None = None
     return _sentenze_economiche_from_payment_summary(payment_summary)
 
 
+@istantanea_dettaglio
 def build_react_fascicolo_detail_payload(
     *,
     get_fascicoli: Callable[[], Any],

@@ -4,6 +4,36 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_configurazione_senza_archivio_ai_non_scansiona_dataset(tmp_path, monkeypatch):
+    from tests.test_react_shell import _app
+    from web.services import react_impostazioni_bridge as bridge
+    calls = []
+    def dataset(**options):
+        calls.append(options)
+        return {'ok': True, 'cards': [{'id': 'qa_review', 'value': '3'}]}
+    monkeypatch.setattr(bridge, 'build_lex_dataset_training_status', dataset)
+    app = _app(tmp_path)
+    headers = {'X-API-Key': 'react-test-key'}
+    with app.test_client() as client:
+        scoped = client.get('/api/v1/ui/impostazioni?include_ai_dataset=0', headers=headers)
+        assert scoped.status_code == 200
+        scoped_payload = scoped.get_json()
+        assert scoped_payload['ok'] is True
+        assert scoped_payload['ai']['lex_dataset_status'] == {'ok': False, 'state': 'deferred'}
+        assert calls == []
+        full = client.get('/api/v1/ui/impostazioni', headers=headers)
+        assert full.status_code == 200
+        assert len(calls) == 1
+        full_payload = full.get_json()
+        for key in ('studio', 'pec', 'firma', 'permissions', 'contracts', 'sections'):
+            assert scoped_payload[key] == full_payload[key]
+        requested = client.get('/api/v1/ui/impostazioni/ai/lex-dataset', headers=headers)
+        assert requested.status_code == 200
+        assert requested.get_json() == full_payload['ai']['lex_dataset_status']
+        assert calls[-1] == {'ai_enabled': full_payload['ai']['enabled'],
+                             'auto_index_documents': full_payload['ai']['auto_index_documents']}
+
+
 def read(relative: str) -> str:
     return (ROOT / relative).read_text(encoding="utf-8")
 

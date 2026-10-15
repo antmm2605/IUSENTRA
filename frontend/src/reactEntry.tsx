@@ -2,7 +2,6 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import type { ComponentType } from 'react'
 import App from './app/App'
-import SupportOperatorRoom from './components/SupportOperatorRoom'
 import { ActivityStatus } from './ui/ActivityStatus'
 
 type ReactEntryOptions = {
@@ -37,7 +36,9 @@ export async function mountReactApp({
           ? await import('./components/PortaleTokenApp')
           : shouldMountPagamento
             ? await import('./components/PagamentoLinkApp')
-            : shouldMountSupportOperator ? SupportOperatorRoom : App
+            : shouldMountSupportOperator
+              ? await import('./components/SupportOperatorRoom')
+              : App
   const Component = resolveDefaultComponent(selected)
 
   reactRoot.render(

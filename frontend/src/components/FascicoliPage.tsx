@@ -1,8 +1,10 @@
 import { useBusyActivity } from '../ui/useBusyActivity'
+import { LoadingState } from '../ui/LoadingState'
 import { documentWorkPreview } from './documentWorkWindow'
 import { AttestazioneConformitaAzione } from './fascicoli/AttestaPulsante'
 import { useReaderDrag } from './useReaderDrag'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
+import { coversRevisionProof, type OperationalRevisions } from '../operationalRevisionProof'
 import { EconomicVerificationPanel } from './EconomicVerificationPanel'
 import { AvanzamentoCaricamento, caricaDocumentiConAvanzamento, type StatoCaricamento } from './fascicoli/caricaDocumenti'
 import { Fragment, Suspense, lazy, useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
@@ -2097,7 +2099,7 @@ function CatalogazioneDocumentalePanel({
         </div>
         <div className="iu-fas-catalog__header-actions">
           <Badge tone={summary?.errors ? 'danger' : summary?.review_required ? 'warning' : summary?.total ? 'success' : 'neutral'}>{summary?.errors ? 'Aggiornamento parziale' : summary?.review_required ? 'Revisione richiesta' : summary?.total ? 'Catalogo letto' : 'Da aggiornare'}</Badge>
-          <button type="button" disabled={busy} onClick={() => void update()} title="Riesegui la catalogazione sul contenuto SQL corrente"><RefreshCw className={busy ? 'iu-spin' : ''} size={15}/> {busy ? 'Catalogazione in corso…' : 'Aggiorna catalogazione'}</button>
+          <button type="button" disabled={busy} onClick={() => void update()} title="Riesegui la catalogazione sul contenuto SQL corrente"><RefreshCw size={15}/> {busy ? 'Catalogazione in corso…' : 'Aggiorna catalogazione'}</button>
           <button type="button" disabled={busy || !summary?.proposed} onClick={() => { setBulkOpen((current) => !current); setBulkAttested(false) }} title={summary?.proposed ? `Conferma in blocco le ${summary.proposed} proposte con prova letta dal contenuto` : 'Nessuna proposta da confermare'} aria-expanded={bulkOpen}><CheckCircle2 size={15}/> Conferma tutte le proposte{summary?.proposed ? ` (${summary.proposed})` : ''}</button>
           <button
             type="button"
@@ -2112,6 +2114,7 @@ function CatalogazioneDocumentalePanel({
           </button>
         </div>
       </header>
+      {loading ? <LoadingState title="Caricamento catalogo documenti" message={retryNotice || 'Caricamento dei documenti già acquisiti in corso.'}/> : null}
       {catalogOpen ? <div id="catalogazione-documentale-contenuto" className="iu-fas-catalog__content">
         {bulkOpen && summary?.proposed ? (
           <div className="iu-fas-catalog__bulk" role="group" aria-label="Conferma di tutte le proposte">
@@ -2132,7 +2135,6 @@ function CatalogazioneDocumentalePanel({
           <div><dt>Da verificare</dt><dd>{summary?.review_required ?? 0}</dd></div>
           <div><dt>In attesa indice</dt><dd>{summary?.waiting_for_index ?? 0}</dd></div>
         </dl>
-        {loading ? <p className="iu-fas-catalog__state"><RefreshCw className="iu-spin" size={15}/> {retryNotice || 'Lettura catalogo SQL in corso…'}</p> : null}
         {error ? <p className="iu-fas-catalog__state iu-fas-catalog__state--error" role="alert"><AlertTriangle size={15}/> {error} <button type="button" className="iu-fas-catalog__retry" disabled={loading || busy} onClick={() => void load()}><RefreshCw size={14}/> Riprova</button></p> : null}
         {payload?.run.errors?.length ? <div className="iu-fas-catalog__warnings"><strong>Elaborazioni da riesaminare</strong><ul>{payload.run.errors.slice(0, 4).map((item) => <li key={item}>{item}</li>)}</ul></div> : null}
         {documentEntries.length ? <DocumentListToolbar controls={listControls} sections={documentListSectionOptions} visibleCount={listControls.visible.length}/> : null}
@@ -5170,6 +5172,8 @@ function DetailSection({
   const detailsRef = useRef<HTMLDetailsElement | null>(null)
   const [internalOpen, setInternalOpen] = useState(defaultOpen)
   const actualOpen = isControlled ? Boolean(open) : internalOpen
+  const [visited, setVisited] = useState(actualOpen)
+  useEffect(() => { if (actualOpen) setVisited(true) }, [actualOpen])
   useEffect(() => {
     if (!isControlled && defaultOpen) setInternalOpen(true)
   }, [defaultOpen, isControlled])
@@ -5197,7 +5201,7 @@ function DetailSection({
         {typeof count === 'number' ? <span className="iu-fas-detail-section__count">{count}</span> : null}
         <ChevronDown className="iu-fas-detail-section__chevron" size={17}/>
       </summary>
-      <div className="iu-fas-detail-section__body">{children}</div>
+      <div className="iu-fas-detail-section__body">{actualOpen || visited ? children : null}</div>
     </details>
   )
 }
@@ -5753,7 +5757,7 @@ export function PdfPreviewModal({ preview, onClose, overDocumentFlow = false }:{
         </header>
         {!overDocumentFlow && documentRotationSaveUrl(activeUrl) ? <div className="iu-fas-preview-editor-body">
           {discardEditor ? <div className="iu-source-edit-discard" role="alert"><span>{editorSaving ? 'Salvataggio in corso. Attendi l’esito prima di chiudere.' : 'Ci sono modifiche non salvate.'}</span><button type="button" onClick={() => setDiscardEditor(false)}>Torna al documento</button><button type="button" disabled={editorSaving} onClick={onClose}>Scarta e chiudi</button></div> : null}
-          <Suspense fallback={<p role="status">Caricamento del visualizzatore...</p>}><ViewerDocumentEditor key={activeUrl} source={{ href: activeUrl, label: activeName, context: 'Documento del fascicolo' }} readerRotation={normalizedRotation} readerRef={iframeRef} onDirty={setEditorDirty} onSaving={setEditorSaving}/></Suspense>
+          <Suspense fallback={<LoadingState title="Caricamento visualizzatore" message="Preparazione del documento selezionato in corso."/>}><ViewerDocumentEditor key={activeUrl} source={{ href: activeUrl, label: activeName, context: 'Documento del fascicolo' }} readerRotation={normalizedRotation} readerRef={iframeRef} onDirty={setEditorDirty} onSaving={setEditorSaving}/></Suspense>
         </div> : <iframe ref={iframeRef} src={viewerUrl} title={`Anteprima documento ${activeName}`} onLoad={() => pushRotationToReader()}/>}
       </div>
     </div>
@@ -9437,7 +9441,7 @@ function AuditTrailSection({ audit, bundleHref, onOpen, onOpenDocuments, onPrevi
 function DetailPage({ id }:{id:string}) {
   const [data, setData] = useState<FascicoloDetailData>(emptyFascicoloDetail)
   const [loading, setLoading] = useState(true)
-  useBusyActivity(loading, 'Caricamento del fascicolo…')
+  useBusyActivity(loading && Boolean(data.fascicolo.id), 'Caricamento del fascicolo…')
   const [toast, setToast] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
   const [previewDoc, setLocalPreviewDoc] = useState<PreviewDocument | null>(null)
   const [embeddedRecord, setEmbeddedRecord] = useState<EmbeddedRecordState | null>(null)
@@ -9461,6 +9465,7 @@ function DetailPage({ id }:{id:string}) {
   const [patVisited, setPatVisited] = useState(() => currentDetailHashSectionId() === 'pat-formweb')
   const [pttVisited, setPttVisited] = useState(() => currentDetailHashSectionId() === 'ptt-sigit')
   const [letturaOpen, setLetturaOpen] = useState(() => currentDetailHashSectionId() === 'lettura-fascicolo')
+  const [ctuVisible, setCtuVisible] = useState(() => currentDetailHashSectionId() === 'ctu')
   useEffect(() => {
     let active = true
     const initialIncludes = initialDetailIncludesFromHash()
@@ -9557,6 +9562,7 @@ function DetailPage({ id }:{id:string}) {
           documentPresidio: section === 'scadenze' || section === 'documenti' ? payload.documentPresidio : current.documentPresidio,
           operationalPresidio: section === 'scadenze' || section === 'documenti' || section === 'depositi' || section === 'relata' ? payload.operationalPresidio : current.operationalPresidio,
           deposits: section === 'depositi' ? payload.deposits : current.deposits,
+          depositCatalog: section === 'depositi' || section === 'regia' ? payload.depositCatalog : current.depositCatalog,
           regia: section === 'regia' ? payload.regia : current.regia,
           notificationRelata: section === 'relata' ? payload.notificationRelata : current.notificationRelata,
           auditTrail: section === 'audit' ? payload.auditTrail : current.auditTrail,
@@ -9676,20 +9682,50 @@ function DetailPage({ id }:{id:string}) {
     window.addEventListener('hashchange', openHashSection)
     return () => window.removeEventListener('hashchange', openHashSection)
   }, [loading, data.fascicolo.id])
+  const requestedRefreshSections = useRef(new Set<FascicoloDetailSection>())
+  const requestedDetailRefresh = useRef(false)
+  const confirmedDetailView = useRef<{ revisions?: OperationalRevisions; context?: string; sections: FascicoloDetailSection[] }>({ sections: [] })
+  const refreshWorkspaceId = useRef(id)
+  if (refreshWorkspaceId.current !== id) {
+    refreshWorkspaceId.current = id
+    requestedRefreshSections.current.clear()
+    requestedDetailRefresh.current = false
+    confirmedDetailView.current = { sections: [] }
+  }
   const refreshDetail = (message?: string) => {
     if (message) setToast({ tone: 'success', message })
-    getFascicoloDetail(id, { include: 'all' }).then((payload) => {
-      setData(payload)
-      setLazyStatus({ documenti: 'loaded', attivita: 'loaded', scadenze: 'loaded', depositi: 'loaded', regia: 'loaded', relata: 'loaded', audit: 'loaded', lex: 'loaded' })
-    }).catch((err) => setToast({ tone: 'danger', message: err instanceof Error ? err.message : 'Aggiornamento fascicolo non riuscito.' }))
+    requestedDetailRefresh.current = true
+    scheduleDetailRefresh()
   }
-  useOperationalRefresh(['clienti', 'soggetti', 'fascicoli', 'agenda', 'scadenze', 'comunicazioni', 'fatturazione', 'incassi', 'preventivi', 'timesheet'], async () => {
+  const detailRefreshDomains = ['clienti', 'soggetti', 'fascicoli', 'agenda', 'scadenze', 'comunicazioni', 'fatturazione', 'incassi', 'preventivi', 'timesheet'] as const
+  const scheduleDetailRefresh = useOperationalRefresh([...detailRefreshDomains], async ({ live, revisions, revisionContext }) => {
     // Only sections already used by this workspace; retain the open windows,
     // editor drafts, scroll and unloaded sections. No include=all background scan.
-    const include = (Object.entries(lazyStatus) as [FascicoloDetailSection, LazySectionStatus][])
-      .filter(([, state]) => state === 'loaded').map(([section]) => section)
-    const payload = await getFascicoloDetail(id, include.length ? { include } : undefined)
-    if (payload.fascicolo.id !== id) { setToast({ tone: 'danger', message: 'Aggiornamento live del fascicolo non riuscito.' }); return false }
+    const required = [...requestedRefreshSections.current]
+    const detailRequested = requestedDetailRefresh.current
+    requestedRefreshSections.current.clear()
+    requestedDetailRefresh.current = false
+    const include = [...new Set([
+      ...(live || detailRequested ? (Object.entries(lazyStatus) as [FascicoloDetailSection, LazySectionStatus][])
+        .filter(([, state]) => state === 'loaded').map(([section]) => section) : []),
+      ...required,
+    ])]
+    if (live && !detailRequested && !required.length
+      && include.every(section => confirmedDetailView.current.sections.includes(section))
+      && coversRevisionProof(confirmedDetailView.current.revisions, revisions, [...detailRefreshDomains], confirmedDetailView.current.context, revisionContext)) return
+    let payload: FascicoloDetailData
+    try {
+      payload = await getFascicoloDetail(id, { ...(include.length ? { include } : {}), confirmRevision: true })
+      if (refreshWorkspaceId.current !== id) return
+      if (payload.readFailed) throw new Error('Alcuni dati del fascicolo non sono stati letti. Riprova aggiornamento.')
+      if (payload.fascicolo.id !== id) throw new Error('Aggiornamento live del fascicolo non riuscito.')
+    } catch (error) {
+      if (refreshWorkspaceId.current !== id) return
+      required.forEach(section => requestedRefreshSections.current.add(section))
+      if (detailRequested) requestedDetailRefresh.current = true
+      setToast({ tone: 'danger', message: error instanceof Error ? error.message : 'Aggiornamento live del fascicolo non riuscito.' })
+      throw error
+    }
     setData(current => ({ ...payload,
       documents: include.includes('documenti') ? payload.documents : current.documents,
       activities: include.includes('attivita') ? payload.activities : current.activities,
@@ -9698,28 +9734,27 @@ function DetailPage({ id }:{id:string}) {
       deadlines: include.includes('scadenze') ? payload.deadlines : current.deadlines,
       appointments: include.includes('scadenze') ? payload.appointments : current.appointments,
       deposits: include.includes('depositi') ? payload.deposits : current.deposits,
+      depositCatalog: include.includes('depositi') || include.includes('regia') ? payload.depositCatalog : current.depositCatalog,
       regia: include.includes('regia') ? payload.regia : current.regia,
       auditTrail: include.includes('audit') ? payload.auditTrail : current.auditTrail,
       notificationRelata: include.includes('relata') ? payload.notificationRelata : current.notificationRelata,
       lexIndexing: include.includes('lex') || include.includes('documenti') ? payload.lexIndexing : current.lexIndexing,
     }))
+    confirmedDetailView.current = { revisions: payload.readRevision, context: payload.readRevisionContext, sections: include }
+    if (required.length) setLazyStatus(current => {
+      const next = { ...current }
+      required.forEach(section => { next[section] = 'loaded' })
+      return next
+    })
     // Un precedente errore resta visibile fino al recupero confermato della
     // stessa pratica; altri avvisi operativi non vengono rimossi dal refresh.
     setToast(current => current?.message === 'Aggiornamento live del fascicolo non riuscito.' ? null : current)
   })
   const refreshDocuments = (message?: string) => {
     if (message) setToast({ tone: 'success', message })
-    getFascicoloDetailSection(id, 'documenti').then((payload) => {
-      setData((current) => ({
-        ...current,
-        quickCounts: { ...current.quickCounts, ...payload.quickCounts },
-        documents: payload.documents,
-        documentPresidio: payload.documentPresidio,
-        operationalPresidio: payload.operationalPresidio,
-        lexIndexing: payload.lexIndexing,
-      }))
-      setLazyStatus((current) => ({ ...current, documenti: 'loaded', lex: 'loaded' }))
-    }).catch((err) => setToast({ tone: 'danger', message: err instanceof Error ? err.message : 'Aggiornamento documenti non riuscito.' }))
+    requestedRefreshSections.current.add('documenti')
+    requestedRefreshSections.current.add('lex')
+    scheduleDetailRefresh()
   }
   const failDetail = useCallback((message: string) => setToast({ tone: 'danger', message }), [])
   const clearLetturaError = useCallback(() => setToast((current) => (
@@ -9744,7 +9779,7 @@ function DetailPage({ id }:{id:string}) {
     if (lazySection) loadLazySection(lazySection)
     openDetailSectionById(sectionId)
   }
-  if (loading && !data.fascicolo.id) return <main className="iu-content iu-fascicoli-page"><EmptyState icon={<FolderOpen size={34}/>} title="Caricamento fascicolo">Lettura dei dati e dei documenti in corso.</EmptyState></main>
+  if (loading && !data.fascicolo.id) return <main className="iu-content iu-fascicoli-page iu-page-loading"><LoadingState title="Caricamento fascicolo" message="Lettura dei dati e dei documenti in corso."/></main>
   if (!loading && data.notFound) return <main className="iu-content iu-fascicoli-page"><EmptyState icon={<FolderOpen size={34}/>} title={data.requestError ? 'Dati fascicolo non caricati' : 'Fascicolo non trovato'} action={<Button href="/fascicoli">Torna ai fascicoli</Button>}>{data.requestError || 'Il fascicolo non è disponibile o non hai i permessi per aprirlo.'}</EmptyState></main>
   return (
     <main id="fascicolo-top" className="iu-content iu-fascicoli-page iu-fascicolo-detail-page" onContextMenu={openFascicoloContextMenu}>
@@ -9782,17 +9817,17 @@ function DetailPage({ id }:{id:string}) {
           </DetailSection>
           {f.type === 'penale' ? (
             <DetailSection id="penale-pdp" title="Deposito penale (PDP)" icon={<Send size={17}/>} defaultOpen={activeHashSection === 'penale-pdp'} onOpen={() => setPenaleVisited(true)}>
-              {penaleVisited ? <Suspense fallback={<p role="status">Caricamento deposito penale…</p>}><PenalePdpSezione key={f.id || id} fascicoloId={f.id || id} onDocumenti={() => refreshDocuments()}/></Suspense> : null}
+              {penaleVisited ? <Suspense fallback={<LoadingState title="Caricamento deposito penale" message="Preparazione della sezione richiesta in corso."/>}><PenalePdpSezione key={f.id || id} fascicoloId={f.id || id} onDocumenti={() => refreshDocuments()}/></Suspense> : null}
             </DetailSection>
           ) : null}
           {f.type === 'amministrativo' ? (
             <DetailSection id="pat-formweb" title="Deposito amministrativo (PAT)" icon={<Send size={17}/>} defaultOpen={activeHashSection === 'pat-formweb'} onOpen={() => setPatVisited(true)}>
-              {patVisited ? <Suspense fallback={<p role="status">Caricamento deposito amministrativo…</p>}><PatFormwebSezione key={f.id || id} fascicoloId={f.id || id} onDocumenti={() => refreshDocuments()} onPreview={setPreviewDoc}/></Suspense> : null}
+              {patVisited ? <Suspense fallback={<LoadingState title="Caricamento deposito amministrativo" message="Preparazione della sezione richiesta in corso."/>}><PatFormwebSezione key={f.id || id} fascicoloId={f.id || id} onDocumenti={() => refreshDocuments()} onPreview={setPreviewDoc}/></Suspense> : null}
             </DetailSection>
           ) : null}
           {f.type === 'tributario' ? (
             <DetailSection id="ptt-sigit" title="Deposito tributario (PTT)" icon={<Send size={17}/>} defaultOpen={activeHashSection === 'ptt-sigit'} onOpen={() => setPttVisited(true)}>
-              {pttVisited ? <Suspense fallback={<p role="status">Caricamento deposito tributario…</p>}><PttSezione key={f.id || id} fascicoloId={f.id || id} onDocumenti={() => refreshDocuments()}/></Suspense> : null}
+              {pttVisited ? <Suspense fallback={<LoadingState title="Caricamento deposito tributario" message="Preparazione della sezione richiesta in corso."/>}><PttSezione key={f.id || id} fascicoloId={f.id || id} onDocumenti={() => refreshDocuments()}/></Suspense> : null}
             </DetailSection>
           ) : null}
           <DetailSection id="editor-fascicolo" title="Editor e redazione" icon={<Edit3 size={17}/>} defaultOpen={activeHashSection === 'editor-fascicolo'} onOpen={() => setEditorVisited(true)}>
@@ -9801,12 +9836,12 @@ function DetailPage({ id }:{id:string}) {
               <Button href="#documenti"><BookOpen size={15}/> Consulta le fonti</Button>
               {f.clientId ? <Button href={`/clienti/${encodeURIComponent(f.clientId)}/modifica?id_fascicolo=${encodeURIComponent(f.id || id)}`}><UserRound size={15}/> Anagrafica da documento</Button> : null}
             </nav>
-            {editorVisited ? <Suspense fallback={<p role="status">Caricamento redazione del fascicolo…</p>}>
+            {editorVisited ? <Suspense fallback={<LoadingState title="Caricamento redazione" message="Preparazione dell’editor del fascicolo in corso."/>}>
               <FascicoloRedazioneWizard initialMatter={{ id: f.id || id, numero: f.ref, titolo: f.title, clienteId: f.clientId }}/>
             </Suspense> : null}
           </DetailSection>
           <DetailSection id="documenti" title="Documenti e atti" icon={<FileText size={17}/>} count={data.quickCounts.documenti || 0} defaultOpen={activeHashSection === 'documenti'} onOpen={() => { loadLazySection('documenti') }}>
-            <Suspense fallback={<p className="iu-empty">Preparazione ricerca documenti d’ufficio…</p>}>
+            <Suspense fallback={<LoadingState title="Caricamento documenti d’ufficio" message="Preparazione degli strumenti di consultazione in corso."/>}>
               <OfficeDocumentsPanel data={data} onDone={refreshDocuments} onError={failDetail} openOfficeDocumentsRequest={officeDocumentsOpenRequest}/>
             </Suspense>
             <DocumentUploadWorkspace data={data} onDone={refreshDocuments} onError={failDetail}/>
@@ -9814,7 +9849,7 @@ function DetailPage({ id }:{id:string}) {
               <LexIndexingPanel summary={data.lexIndexing} refreshAction={data.actions.refreshLexIndex} retryAction={data.actions.retryLexIndexErrors} onDone={refreshDetail} onError={failDetail}/>
             ) : lazyStatus.documenti === 'error' || lazyStatus.lex === 'error' ? (
               <div className="iu-fas-lex__warnings" role="alert"><p>Caricamento dell’indice non riuscito. I conteggi non sono disponibili.</p><button type="button" className="iu-fas-catalog__retry" onClick={() => loadLazySection('documenti')}><RefreshCw size={14}/> Riprova caricamento</button></div>
-            ) : <p className="iu-empty" role="status" aria-live="polite"><RefreshCw className="iu-spin" size={14}/> Caricamento dell’indice dei documenti…</p>}
+            ) : lazyStatus.documenti === 'loading' ? <LoadingState title="Caricamento documenti" message="Lettura del catalogo SQL del fascicolo in corso."/> : <p className="iu-empty">Apri la sezione documenti per caricare il catalogo del fascicolo.</p>}
             <CatalogazioneDocumentalePanel
               fascicoloId={f.id || id}
               enabled={lazyStatus.documenti === 'loaded'}
@@ -9835,7 +9870,7 @@ function DetailPage({ id }:{id:string}) {
             <div className="iu-fas-activity-list">{lazyStatus.attivita === 'loading' ? <p className="iu-empty">Caricamento eventi tecnici...</p> : null}{data.technicalEvents.map((activity) => <ActivityRow activity={activity} key={`technical-${activity.id}`} onPreview={setPreviewDoc}/>)}{lazyStatus.attivita === 'loaded' && !data.technicalEvents.length ? <p className="iu-empty">Non è disponibile una registrazione dell'acquisizione. Questo non significa che il fascicolo sia privo di documenti: puoi consultarli in Documenti e atti.</p> : null}{lazyStatus.attivita === 'idle' ? <p className="iu-empty">Apri la sezione per leggere le acquisizioni registrate.</p> : null}</div>
           </DetailSection>
           <DetailSection id="mediazione" title="Mediazione" icon={<Gavel size={17}/>} defaultOpen={activeHashSection === 'mediazione'} onOpen={() => setMediazioneVisited(true)}>
-            {mediazioneVisited ? <Suspense fallback={<p role="status">Caricamento mediazione…</p>}><MediazioneFascicolo key={f.id || id} id={f.id || id} preview={setPreviewDoc} onDocuments={refreshDocuments}/></Suspense> : null}
+            {mediazioneVisited ? <Suspense fallback={<LoadingState title="Caricamento mediazione" message="Preparazione della sezione richiesta in corso."/>}><MediazioneFascicolo key={f.id || id} id={f.id || id} preview={setPreviewDoc} onDocuments={refreshDocuments}/></Suspense> : null}
           </DetailSection>
           <DetailSection id="udienze" title="Udienze e scadenze" icon={<CalendarDays size={17}/>} count={data.quickCounts.udienze_scadenze || 0} defaultOpen={activeHashSection === 'udienze'} onOpen={() => { loadLazySection('scadenze'); loadLazySection('documenti') }}>
             {lazyStatus.scadenze === 'loading' ? <p className="iu-empty">Caricamento udienze e scadenze...</p> : null}
@@ -9911,7 +9946,7 @@ function DetailPage({ id }:{id:string}) {
             <JsonPostForm className="iu-fas-side-form" action={data.actions.changeState}><label><span>Cambia stato</span><select name="stato" defaultValue={f.status.toUpperCase()}>{data.options.states.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note cambio stato"/><button type="submit"><RefreshCw size={15}/> Aggiorna stato</button></JsonPostForm>
             <div className="iu-fas-action-stack"><JsonPostForm action={data.actions.define}><input name="esito_finale" placeholder="Esito finale"/><input name="motivo" placeholder="Motivo"/><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note definizione"/><button type="submit"><CheckCircle2 size={15}/> Definisci</button></JsonPostForm><PostAction action={data.actions.archive} tone="primary" confirm="Archiviare il fascicolo?" confirmTitle="Archivia fascicolo"><Archive size={15}/> Archivia con ZIP</PostAction><PostAction action={data.actions.restore} tone="secondary" confirm="Ripristinare il fascicolo?" confirmTitle="Ripristina fascicolo"><RotateCcw size={15}/> Ripristina</PostAction>{exportPdfHref ? <a className="iu-fas-side-link" href={exportPdfHref}><FileDown size={15}/> PDF fascicolo</a> : <button className="iu-fas-side-link is-disabled" type="button" disabled title="PDF fascicolo non disponibile"><FileDown size={15}/> PDF fascicolo</button>}<PagoPaActionButton variant="side" onClick={openPagoPaModal}/>{data.actions.archiveZip ? <a className="iu-fas-side-link" href={data.actions.archiveZip}><FileArchive size={15}/> Scarica ZIP</a> : null}<PostAction action={data.actions.delete} tone="danger" confirm="Eliminare definitivamente il fascicolo?" confirmTitle="Elimina fascicolo" redirectTo="/fascicoli"><Trash2 size={15}/> Elimina</PostAction></div>
           </DetailSection>
-          <DetailSection id="ctu" title="CTU e perizie" icon={<Gavel size={17}/>} defaultOpen={activeHashSection === 'ctu'}><Suspense fallback={<p role="status">Caricamento incarichi CTU…</p>}><CtuSection key={f.id} fascicoloId={f.id}/></Suspense></DetailSection>
+          <DetailSection id="ctu" title="CTU e perizie" icon={<Gavel size={17}/>} defaultOpen={activeHashSection === 'ctu'} onToggle={setCtuVisible}><Suspense fallback={<LoadingState title="Caricamento incarichi CTU" message="Preparazione della sezione richiesta in corso."/>}><CtuSection key={f.id} fascicoloId={f.id} active={ctuVisible}/></Suspense></DetailSection>
           <DetailSection id="conservazione" title="Conservazione a norma" icon={<Archive size={17}/>} defaultOpen={activeHashSection === 'conservazione'}><Suspense fallback={<p className="iu-empty">Caricamento…</p>}><ConservazionePanel fascicoloId={f.id}/></Suspense></DetailSection>
           <DetailSection id="telematico" title="Servizi telematici" icon={<Send size={17}/>} count={data.telematic.length}><RegistroSyncButton fascicoloId={f.id} lastSyncAt={f.lastSyncAt}/><RegistroCancelleriaPanel fascicoloId={f.id}/><RegistroRgSearch fascicoloId={f.id}/><div className="iu-fas-side-cards">{data.telematic.map((item) => <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>
           <DetailSection id="cliente" title="Cliente" icon={<UserRound size={17}/>} count={data.client ? 1 : 0}>{data.client ? <><KvGrid items={[{ label: 'Nome', value: data.client.name, href: data.client.href }, { label: 'Codice fiscale', value: data.client.taxCode, mono: true }, { label: 'P. IVA', value: data.client.vat, mono: true }, { label: 'Email', value: data.client.email }, { label: 'PEC', value: data.client.pec }, { label: 'Telefono', value: data.client.phone }, { label: 'Indirizzo', value: data.client.address }]}/><a className="iu-fas-inline-link" href={data.client.href}><Edit3 size={14}/> Apri e modifica anagrafica cliente</a></> : <><p className="iu-empty">Cliente non collegato.</p><a className="iu-fas-inline-link" href={f.editHref}><Edit3 size={14}/> Collega un cliente al fascicolo</a></>}</DetailSection>

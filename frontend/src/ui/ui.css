@@ -239,6 +239,30 @@
   gap: 8px;
 }
 
+body.react-shell-page .iu-content.iu-page-loading {
+  min-height: calc(100dvh - var(--iu-topbar-h, 76px));
+  display: grid;
+  place-items: center;
+  align-content: center;
+  padding: 12px;
+}
+
+.iu-page-loading > .iu-loading-state {
+  width: min(100%, 480px);
+}
+
+@media (min-width: 641px) and (max-width: 920px) {
+  body.react-shell-page .iu-content.iu-page-loading {
+    min-height: calc(100dvh - var(--iu-topbar-h, 76px) - 68px - env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (max-width: 640px) {
+  body.react-shell-page .iu-content.iu-page-loading {
+    min-height: calc(100dvh - 136px);
+  }
+}
+
 .iu-empty-state h2,
 .iu-loading-state h2 {
   margin: 0;

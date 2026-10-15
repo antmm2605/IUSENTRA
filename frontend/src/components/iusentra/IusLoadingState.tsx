@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { LoaderCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useBusyActivity } from '../../ui/useBusyActivity'
+import { useInlineActivity } from '../../ui/useBusyActivity'
+import '../../ui/activity.css'
 
 export function IusLoadingState({
   title = 'Caricamento in corso',
@@ -14,15 +16,15 @@ export function IusLoadingState({
   children?: ReactNode
   className?: string
 }) {
-  useBusyActivity(true, 'Caricamento della pagina…')
-  return (
-    <section className={cn('ius-feedback-state ius-loading-state', className)} aria-live="polite" aria-busy="true">
+  const target = useInlineActivity(title)
+  return target ? createPortal(
+    <section className={cn('ius-feedback-state ius-loading-state iu-inline-activity', className)} aria-live="polite" aria-busy="true">
       <LoaderCircle aria-hidden="true" className="ius-spin" />
       <div>
         <h2>{title}</h2>
         <p>{message}</p>
       </div>
       {children}
-    </section>
-  )
+    </section>, target,
+  ) : null
 }

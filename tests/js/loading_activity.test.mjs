@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { beginActivity, getActivities, subscribeActivities, withActivity } from '../../frontend/src/ui/activity.ts'
+import { beginActivity, getActivities, presentedActivity, presentedInlineActivity, subscribeActivities, withActivity } from '../../frontend/src/ui/activity.ts'
 import { apiJson, ensureJson } from '../../frontend/src/api/client.ts'
 
 test('concurrent operations stay visible until each owner finishes', () => {
@@ -12,6 +12,35 @@ test('concurrent operations stay visible until each owner finishes', () => {
   assert.deepEqual(getActivities().map(item => item.label), ['Salvataggio documento'])
   finishSecond()
   assert.equal(getActivities().length, 0)
+})
+
+test('the page loader owns the presentation without clearing concurrent requests', () => {
+  const finishRequest = beginActivity('Lettura dati')
+  const finishPage = beginActivity('Caricamento pagina', 'inline')
+  const finishOther = beginActivity('Salvataggio documento')
+  assert.equal(presentedActivity(getActivities()), undefined)
+  assert.equal(getActivities().length, 3)
+  finishRequest()
+  assert.equal(presentedActivity(getActivities()), undefined)
+  finishPage()
+  assert.equal(presentedActivity(getActivities()).label, 'Salvataggio documento')
+  finishOther()
+  assert.equal(presentedActivity(getActivities()), undefined)
+})
+
+test('only one page or panel owns the visible card, and the next pending owner takes over', () => {
+  const finishRequest = beginActivity('Salvataggio documento')
+  const finishFirst = beginActivity('Lettura pagina', 'inline', 'page')
+  const finishSecond = beginActivity('Lettura pannello', 'inline', 'panel')
+  try {
+    assert.equal(presentedInlineActivity(getActivities()).owner, 'page')
+    assert.equal(presentedActivity(getActivities()), undefined)
+    finishFirst()
+    assert.equal(presentedInlineActivity(getActivities()).owner, 'panel')
+    finishSecond()
+    assert.equal(presentedInlineActivity(getActivities()), undefined)
+    assert.equal(presentedActivity(getActivities()).label, 'Salvataggio documento')
+  } finally { finishFirst(); finishSecond(); finishRequest() }
 })
 
 test('rejected and background work do not leave a false busy state', async () => {

@@ -87,20 +87,31 @@ def get_clienti() -> GestioneClienti:
 
 
 def get_fascicoli() -> GestioneFascicoli:
-    # Solo la proiezione consultiva della cartella cliente riusa lo snapshot.
+    # Le proiezioni consultive della cartella e del dettaglio riusano lo snapshot.
     # g vive per una richiesta: nuovi comandi, utenti e studi lo ricreano.
-    cartella_read = has_request_context() and request.method == "GET" and request.endpoint == "api_v1_react.cliente_cartella_react"
+    cartella_read = has_request_context() and request.method == "GET" and request.endpoint in {
+        "api_v1_react.cliente_cartella_react",
+        "api_v1_react.fascicolo_react_dettaglio",
+    }
     paths = (_cfg("FASCICOLI_DB"), _cfg("FASCICOLI_DOCS"), _cfg("FASCICOLI_ARCH"))
     if cartella_read:
         cached = getattr(g, "cartella_fascicoli_snapshot", None)
         if cached is not None and cached[0] == paths:
             return cached[1]
+    studio_db = _studio_db("FASCICOLI_DB")
+    single_document_command = (
+        studio_db is not None and has_request_context()
+        and request.method == "POST" and request.endpoint == "rinomina_documento"
+    )
+    single_sql_projection = has_request_context() and request.method == "GET" and request.endpoint in {
+        "api_v1_react.fascicolo_react_dettaglio", "api_v1_react.cliente_cartella_react", "editor_new_document_matters",
+    }
     manager = GestioneFascicoli(
         db_path=paths[0],
         documents_dir=paths[1],
         archive_dir=paths[2],
-        studio_db=_studio_db("FASCICOLI_DB"),
-        carica_tutto=not cartella_read,
+        studio_db=studio_db,
+        carica_tutto=not (single_document_command or single_sql_projection),
     )
     if cartella_read:
         g.cartella_fascicoli_snapshot = (paths, manager)

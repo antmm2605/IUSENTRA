@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { operationalDomains, publishOperationalRefresh, type OperationalDomain } from '../operationalRefresh'
 import { OPERATIONAL_REFRESH_RETRY, OPERATIONAL_REFRESH_STATUS } from '../hooks/useOperationalRefresh'
+import { changedRevisionDomains, normalizeRevisionContext, sharedRevisionProof } from '../operationalRevisionProof'
 import './OperationalLiveSync.css'
 
 /** Share SQL revision polling between tabs of the same tenant/user. */
@@ -24,16 +25,19 @@ export function OperationalLiveSync({ enabled, sessionKey }: { enabled: boolean;
     let failures = 0
     let controller: AbortController | undefined
     let receivedAt = 0
+    let previousContext: string | undefined
     const channel = typeof BroadcastChannel === 'undefined' ? undefined : new BroadcastChannel(`iusentra-live:${sessionKey}`)
-    const accept = (next: Record<string, number>) => {
+    const accept = (next: Record<string, number>, revisionContext?: string) => {
       if (!active) return
       const prior = previous
-      const changed = prior ? operationalDomains.filter((domain: OperationalDomain) => Number.isSafeInteger(next[domain]) && next[domain] !== prior[domain]) : []
+      const context = normalizeRevisionContext(revisionContext)
+      const changed = changedRevisionDomains(prior, next, operationalDomains, previousContext, context) as OperationalDomain[]
       previous = next
+      if (context) previousContext = context
       receivedAt = Date.now()
       failures = 0
       setError('')
-      if (changed.length) publishOperationalRefresh(changed, { remote: true })
+      if (changed.length) publishOperationalRefresh(changed, { remote: true, revisions: next, revisionContext: context })
     }
     const fail = (message: string) => {
       if (!active) return
@@ -42,8 +46,11 @@ export function OperationalLiveSync({ enabled, sessionKey }: { enabled: boolean;
       setError(message)
     }
     if (channel) channel.onmessage = event => {
-      const message = event.data as { revisions?: Record<string, number>; error?: string }
-      if (message.revisions && typeof message.revisions === 'object' && Object.values(message.revisions).every(Number.isSafeInteger)) accept(message.revisions)
+      const message = event.data as { revisions?: Record<string, number>; error?: string; revisionContext?: string }
+      // An older window cannot certify the current SQL owner. Its unscoped
+      // counters never postpone this window's authoritative server polling.
+      const proof = sharedRevisionProof(message.revisions, message.revisionContext)
+      if (proof) accept(proof.revisions, proof.context)
       else if (typeof message.error === 'string') fail(message.error)
     }
     const request = async () => {
@@ -54,11 +61,11 @@ export function OperationalLiveSync({ enabled, sessionKey }: { enabled: boolean;
       try {
         const response = await fetch('/api/v1/ui/sync/revisions', { credentials: 'same-origin', cache: 'no-store', signal: controller.signal, headers: { Accept: 'application/json' } })
         if (!response.ok) throw new Error('Sincronizzazione live interrotta. Riprovo automaticamente.')
-        const payload = await response.json() as { ok?: boolean; revisions?: Record<string, number> }
+        const payload = await response.json() as { ok?: boolean; revisions?: Record<string, number>; revisionContext?: string }
         if (payload.ok !== true || !payload.revisions) throw new Error('Il server non ha confermato la sincronizzazione live.')
         if (!active) return
-        accept(payload.revisions)
-        channel?.postMessage({ revisions: payload.revisions })
+        accept(payload.revisions, payload.revisionContext)
+        channel?.postMessage({ revisions: payload.revisions, revisionContext: payload.revisionContext })
       } catch (reason) {
         if (!active) return
         // Le eccezioni del browser (rete, timeout, risposta non JSON) sono

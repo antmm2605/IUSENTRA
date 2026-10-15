@@ -43,30 +43,13 @@ def register_sync_runtime_routes(
         utente = _current_user()
         if not utente:
             return jsonify({"ok": False, "message": "Sessione scaduta."}), 401
-        from pct.operational_live import read_live_revisions
-        from web.services.storage_runtime import get_request_studio_db
-
-        permissions = {
-            "clienti": "clienti.leggi", "soggetti": "clienti.leggi",
-            "fascicoli": "fascicoli.leggi", "agenda": "agenda.leggi",
-            "scadenze": "scadenziario.leggi", "timesheet": "fatturazione.leggi",
-            "preventivi": "fatturazione.leggi", "fatturazione": "fatturazione.leggi",
-            "incassi": "fatturazione.leggi", "comunicazioni": "messaggi.leggi",
-            "privacy": "utenti.leggi",
-        }
-        domains = {domain for domain, permission in permissions.items() if utente.ha_permesso(permission)}
-        backend = get_request_studio_db(_cfg_path("CLIENTI_DB"))
-        if backend is None:
-            return jsonify({"ok": False, "message": "Sincronizzazione SQL non disponibile."}), 503
+        from web.services.operational_read_revision import read_authorized_revision_snapshot
         try:
-            revisions = read_live_revisions(backend, domains)
-            from web.services.operational_live_sources import read_vertical_revisions
-            for domain, revision in read_vertical_revisions(domains).items():
-                revisions[domain] = revisions.get(domain, 0) + revision
+            snapshot = read_authorized_revision_snapshot(utente)
         except Exception:
             app.logger.exception("Lettura revisioni live non riuscita")
             return jsonify({"ok": False, "message": "Aggiornamento live interrotto. Riprovo automaticamente."}), 503
-        response = jsonify({"ok": True, "revisions": revisions})
+        response = jsonify({"ok": True, "revisions": snapshot["revisions"], "revisionContext": snapshot["context"]})
         response.headers["Cache-Control"] = "no-store"
         return response
 

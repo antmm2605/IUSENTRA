@@ -512,7 +512,9 @@ def _payload_from_config(cfg: Any, *, can_update: bool) -> dict[str, Any]:
             "embedding_managed_local": embeddinggemma2.configured(),
             "keep_alive": cfg.ai.keep_alive,
             "auto_index_documents": cfg.ai.auto_index_documents,
-            "lex_dataset_status": build_lex_dataset_training_status(
+            "lex_dataset_status": {"ok": False, "state": "deferred"}
+            if has_request_context() and request.args.get("include_ai_dataset") == "0"
+            else build_lex_dataset_training_status(
                 ai_enabled=cfg.ai.enabled,
                 auto_index_documents=cfg.ai.auto_index_documents,
             ),
@@ -551,6 +553,14 @@ def _payload_from_config(cfg: Any, *, can_update: bool) -> dict[str, Any]:
 def build_react_impostazioni_payload() -> dict[str, Any]:
     cfg = _gestore_config().config
     return _payload_from_config(cfg, can_update=_can("admin.configura"))
+
+
+def build_react_impostazioni_lex_dataset_status() -> dict[str, Any]:
+    cfg = _gestore_config().config
+    return build_lex_dataset_training_status(
+        ai_enabled=cfg.ai.enabled,
+        auto_index_documents=cfg.ai.auto_index_documents,
+    )
 
 
 def build_react_impostazioni_error_payload(message: str) -> dict[str, Any]:

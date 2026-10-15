@@ -10,6 +10,7 @@ I lettori chiamano queste funzioni; la logica resta in `pct.registro_letture`.
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
@@ -54,6 +55,18 @@ def registro_per_percorsi(paths: Mapping[str, Any] | None = None, *, sola_lettur
 
 
 def registro_corrente(*, sola_lettura: bool = False) -> RegistroLetture:
+    if has_request_context():
+        # Riusa solo il gestore della richiesta: le query restano SQL correnti.
+        # Percorso, studio e modalità diversi non condividono il repository.
+        path, dsn = percorso_registro(), _dsn_postgres()
+        key = (tenant_corrente(), path, dsn, sola_lettura)
+        registries = getattr(g, '_registri_letture_richiesta', None)
+        if registries is None:
+            registries = g._registri_letture_richiesta = {}
+        if key not in registries:
+            options = {'read_only': True} if sola_lettura else {}
+            registries[key] = RegistroLetture(path, postgres_dsn=dsn, **options)
+        return registries[key]
     if sola_lettura:
         return registro_per_percorsi(None, sola_lettura=True)
     return registro_per_percorsi(None)
@@ -157,14 +170,24 @@ def _fascicolo(fascicolo_id: str) -> Any:
 
 # ---- eventi -------------------------------------------------------------------
 
-def documento_aggiornato(fascicolo_id: str, documento: Any = None) -> None:
+def documento_aggiornato(fascicolo_id: str, documento: Any = None, *, solo_nome: bool = False) -> None:
     """Un documento è stato caricato o sostituito: inventario allineato e lettura invalidata."""
     fascicolo_id = str(fascicolo_id or "").strip()
     if not fascicolo_id:
         return
     try:
-        fascicolo = _fascicolo(fascicolo_id)
         registro = registro_corrente()
+        if solo_nome and documento is not None:
+            # A persisted rename changes the label, not the source pixels or
+            # text. Reuse only an existing object with the same stored hash.
+            previous = registro.oggetto(tenant_corrente(), fascicolo_id, "documento", str(getattr(documento, "id", "")))
+            stored_hash = str(getattr(documento, "hash_sha256", "") or "").strip().lower()
+            if previous and previous.presente and stored_hash and previous.sha256_archivio == stored_hash:
+                renamed = replace(previous, nome=" ".join(str(getattr(documento, "nome", "") or "").split()))
+                registro.registra_inventario(tenant_corrente(), fascicolo_id, [renamed], tipi=())
+                invalida_lettura(fascicolo_id)
+                return
+        fascicolo = _fascicolo(fascicolo_id)
         if fascicolo is not None:
             aggiorna_inventario(fascicolo, registro=registro, con_pec=False)
         elif documento is not None:

@@ -2,6 +2,7 @@ import type { Tone } from './data'
 import { sanitizeDisplayText } from './displayText'
 import { csrfToken } from './formSubmit'
 import { formatEuroIt } from './formatting'
+import { normalizeRevisionContext, normalizeRevisionProof } from './operationalRevisionProof'
 
 export type FascicoloTipo = 'tutti' | 'civile' | 'penale' | 'amministrativo' | 'tributario' | 'stragiudiziale' | 'consulenza' | 'lavoro' | 'famiglia' | 'successioni' | 'altro'
 export type FascicoloStato = 'tutti' | 'aperto' | 'in_corso' | 'definito' | 'da_archiviare' | 'archiviato' | 'sospeso'
@@ -1028,6 +1029,9 @@ export type FascicoloDepositPreparation = {
 export type FascicoloDetailData = {
   source: string
   generatedAt: string
+  readRevision?: Record<string, number>
+  readRevisionContext?: string
+  readFailed?: boolean
   contracts: { mock_fallback: boolean; read_only: boolean; writes: 'operational_routes' | 'api' }
   notFound?: boolean
   requestError?: string
@@ -2448,6 +2452,9 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
   return {
     source: text(payload.source, 'repository_reali'),
     generatedAt: text(payload.generatedAt ?? payload.generated_at),
+    readRevision: normalizeRevisionProof(payload.readRevision),
+    readRevisionContext: normalizeRevisionContext(payload.readRevisionContext),
+    readFailed: payload.readFailed === true,
     contracts: isRecord(payload.contracts) ? {
       mock_fallback: bool(payload.contracts.mock_fallback), read_only: payload.contracts.read_only !== false, writes: text(payload.contracts.writes, 'operational_routes') as 'operational_routes' | 'api',
     } : emptyFascicoloDetail.contracts,
@@ -3188,10 +3195,11 @@ export function getFascicoliArchive(): Promise<FascicoliPageData> {
   return strictFetch('/api/v1/ui/fascicoli/archivio', normalizePagePayload)
 }
 
-export function getFascicoloDetail(id: string, options: { include?: 'all' | FascicoloDetailSection[] } = {}): Promise<FascicoloDetailData> {
+export function getFascicoloDetail(id: string, options: { include?: 'all' | FascicoloDetailSection[]; confirmRevision?: boolean } = {}): Promise<FascicoloDetailData> {
   const query = new URLSearchParams()
   if (options.include === 'all') query.set('include', 'all')
   else if (Array.isArray(options.include) && options.include.length) query.set('include', options.include.join(','))
+  if (options.confirmRevision) query.set('confirm_revision', '1')
   const suffix = query.toString() ? `?${query.toString()}` : ''
   return safeFetch(`/api/v1/ui/fascicoli/${encodeURIComponent(id)}${suffix}`, normalizeDetailPayload, emptyFascicoloDetail)
 }

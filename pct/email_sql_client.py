@@ -26,7 +26,11 @@ class GestioneEmailSQL(GestioneEmailRicevute):
             studio_db, tenant_key, mailbox_kind, mirror_path=db_path,
         )
         # Verifica il catalogo prima di creare cartelle o invocare procedure native.
-        records = self.repository.load(message_keys=None if load_catalog else [])
+        if load_catalog:
+            records = self.repository.load()
+        else:
+            self.repository._assert_initialized()
+            records = {}
         self.actor_key = str(actor_key or 'system')
         super().__init__(db_path=str(db_path))
         if load_catalog:

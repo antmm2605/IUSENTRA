@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Bot, CheckCircle2, CircleAlert, ClipboardCheck, Cpu, Database, Download, FileOutput, FileQuestion, HardDrive, Play, RefreshCw, ShieldCheck, Smartphone, Workflow } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { IusStatusBadge } from '@/components/iusentra'
+import { IusLoadingState, IusStatusBadge } from '@/components/iusentra'
 import {
   checkLocalAiViaLocalSigner,
   detectMobileAiInstallPlan,
@@ -279,7 +279,34 @@ function normalizeReviewQueue(payload: unknown): LexReviewQueue {
   }
 }
 
-function LexDatasetStatusPanel({ status }: { status: Record<string, unknown> }) {
+function LexDatasetStatusPanel({ status: suppliedStatus }: { status: Record<string, unknown> }) {
+  const [status, setStatus] = useState(suppliedStatus)
+  const [datasetLoading, setDatasetLoading] = useState(suppliedStatus.state === 'deferred')
+  const [datasetError, setDatasetError] = useState('')
+  const [datasetAttempt, setDatasetAttempt] = useState(0)
+  useBusyActivity(datasetLoading, 'Caricamento dell’archivio Lex…')
+  useEffect(() => {
+    if (suppliedStatus.state !== 'deferred') {
+      setStatus(suppliedStatus)
+      setDatasetLoading(false)
+      setDatasetError('')
+      return
+    }
+    const controller = new AbortController()
+    let active = true
+    setDatasetLoading(true)
+    setDatasetError('')
+    void fetch('/api/v1/ui/impostazioni/ai/lex-dataset', {
+      credentials: 'same-origin', signal: controller.signal, headers: { Accept: 'application/json' },
+    }).then(async response => {
+      const payload = record(await response.json())
+      if (!response.ok || payload.ok !== true) throw new Error('Archivio Lex non disponibile. Riprova la lettura.')
+      if (active) setStatus(payload)
+    }).catch(() => {
+      if (active) setDatasetError('Archivio Lex non disponibile. Riprova la lettura.')
+    }).finally(() => { if (active) setDatasetLoading(false) })
+    return () => { active = false; controller.abort() }
+  }, [suppliedStatus, datasetAttempt])
   const cards = Array.isArray(status.cards) ? status.cards.map(record) : []
   const privacy = record(status.privacy)
   const schedule = record(status.schedule)
@@ -291,6 +318,8 @@ function LexDatasetStatusPanel({ status }: { status: Record<string, unknown> }) 
   const [reviewAction, setReviewAction] = useState('')
   useBusyActivity(Boolean(reviewAction), 'Salvataggio della revisione…')
   const [reviewEdits, setReviewEdits] = useState<Record<string, { question: string; answer: string }>>({})
+  if (datasetLoading) return <IusLoadingState title="Caricamento archivio Lex" message="Lettura dello stato dell’archivio in corso."/>
+  if (datasetError) return <div role="alert"><p>{datasetError}</p><Button type="button" variant="outline" onClick={() => setDatasetAttempt(attempt => attempt + 1)}>Riprova lettura archivio</Button></div>
   if (!cards.length) return null
   const storeReviewQueue = (payload: unknown) => {
     const queue = normalizeReviewQueue(payload)

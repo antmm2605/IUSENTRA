@@ -85,6 +85,29 @@ def test_elenco_valido_e_fascicolo_mancante_distinti(api):
     assert client.get("/api/v1/ui/fascicoli/ASSENTE/ctu").status_code == 404
 
 
+def test_lettura_ctu_usa_solo_il_repository_mirato(tmp_path):
+    app = Flask(__name__)
+    calls = []
+    def targeted_get(key):
+        calls.append(key)
+        return object() if key == 'F1' else None
+    @app.before_request
+    def identity():
+        g.utente_corrente = SimpleNamespace(ha_permesso=lambda _permission: True)
+    register_ctu_routes(app, {
+        'get_fascicoli': lambda: pytest.fail('Archivio globale non richiesto'),
+        'get_fascicoli_mirato': lambda: SimpleNamespace(get=targeted_get),
+        'get_ctu': lambda: SimpleNamespace(per_fascicolo=lambda _key: [],
+                                         write_protocol={'persistentCommands': False, 'revision': None}),
+        'get_scadenziario': lambda: pytest.fail('Scadenziario non richiesto'),
+        'audit': lambda *args, **kwargs: pytest.fail('Nessuna scrittura richiesta'),
+    })
+    client = app.test_client()
+    assert client.get('/api/v1/ui/fascicoli/F1/ctu').json['incarichi'] == []
+    assert client.get('/api/v1/ui/fascicoli/ASSENTE/ctu').status_code == 404
+    assert calls == ['F1', 'ASSENTE']
+
+
 def test_consegna_scadenze_fallita_non_conferma_esito_e_non_espone_dettagli(api, monkeypatch):
     client, source, key, core, user, audits = api
     before = source.read_bytes()

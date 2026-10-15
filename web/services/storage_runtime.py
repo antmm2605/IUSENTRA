@@ -257,15 +257,28 @@ def get_request_storage_runtime(anchor_path: str) -> StorageRuntimeProfile:
     tenant = getattr(g, "tenant", None)
     tenant_slug = str(getattr(tenant, "slug", "") or "")
     resolved_anchor = str(Path(anchor_path).resolve())
-    cached = getattr(g, "_storage_runtime_profile", None)
-    if (
-        cached
-        and cached.data_anchor_path == resolved_anchor
-        and str(getattr(cached, "tenant_slug", "") or "") == tenant_slug
-    ):
+    database = getattr(tenant, "database", None)
+    # Profiles contain configuration, never records. Keep separate anchors in
+    # this request and invalidate when the effective configuration changes.
+    # Resolve the physical anchor on every access, including cache hits.
+    profile_key = (
+        resolved_anchor, tenant_slug, tenant is not None,
+        str(getattr(database, "mode", "") or ""),
+        is_postgres_core_active(database),
+        str(current_app.config.get("STORAGE_MODE_DEFAULT") or ""),
+        bool(current_app.config.get("SQLITE_MODE")),
+    )
+    profiles = getattr(g, "_storage_runtime_profiles", None)
+    if profiles is None:
+        profiles = {}
+        g._storage_runtime_profiles = profiles
+    cached = profiles.get(profile_key)
+    if cached is not None:
+        g._storage_runtime_profile = cached
         return cached
 
     profile = resolve_storage_runtime(anchor_path=anchor_path, tenant=tenant)
+    profiles[profile_key] = profile
     g._storage_runtime_profile = profile
     return profile
 
@@ -426,27 +439,34 @@ def _ensure_sqlite_runtime_from_json(profile: StorageRuntimeProfile) -> None:
 
 def get_request_studio_db(anchor_path: str):
     profile = get_request_storage_runtime(anchor_path)
+    cache_key = (profile.tenant_slug, profile.effective_mode, profile.studio_db_path)
 
     if profile.effective_mode == DbMode.POSTGRESQL:
+        from web.services.storage_configuration_key import postgres_configuration_key
+        database = getattr(getattr(g, 'tenant', None), 'database', None)
+        cache_key += (postgres_configuration_key(database),)
         cached = getattr(g, "_runtime_studio_db", None) if has_request_context() else None
-        if cached is not None and getattr(cached, "backend_kind", "") == "postgresql":
+        if cached is not None and getattr(cached, "backend_kind", "") == "postgresql" and getattr(g, "_runtime_studio_db_key", None) == cache_key:
             return cached
         studio_db = _postgres_runtime_backend(anchor_path, profile)
         if has_request_context():
             g._runtime_studio_db = studio_db
+            g._runtime_studio_db_key = cache_key
         return studio_db
 
     if not profile.uses_sqlite:
         return None
 
+    # Un backend già verificato nella stessa richiesta non richiede un nuovo
+    # controllo di popolamento per ogni repository che lo condivide.
+    cached = getattr(g, "_runtime_studio_db", None) if has_request_context() else None
+    if cached is not None and str(getattr(cached, "db_path", "")) == profile.studio_db_path and getattr(g, "_runtime_studio_db_key", None) == cache_key:
+        return cached
+
     anchor = Path(profile.data_anchor_path)
     studio_db_path = Path(profile.studio_db_path)
     if _sqlite_runtime_is_unseeded(studio_db_path, anchor):
         _ensure_sqlite_runtime_from_json(profile)
-
-    cached = getattr(g, "_runtime_studio_db", None) if has_request_context() else None
-    if cached is not None and str(getattr(cached, "db_path", "")) == profile.studio_db_path:
-        return cached
 
     try:
         studio_db = ensure_core_storage_backend_contract(StudioDB.get(profile.studio_db_path))
@@ -462,4 +482,5 @@ def get_request_studio_db(anchor_path: str):
 
     if has_request_context():
         g._runtime_studio_db = studio_db
+        g._runtime_studio_db_key = cache_key
     return studio_db

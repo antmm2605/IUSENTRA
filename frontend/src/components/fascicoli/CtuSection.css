@@ -21,7 +21,7 @@
 .iu-fas-ctu__form-actions button{display:inline-flex;align-items:center;gap:6px;min-height:35px;padding:0 13px;border-radius:9px;border:0;background:#0f172a;color:white;font-size:12px;font-weight:900;cursor:pointer}
 .iu-fas-ctu__form-actions button:disabled{opacity:.5;cursor:not-allowed}
 .iu-fas-ctu__form-actions .iu-fas-ctu__cancel{background:white;border:1px solid var(--iu-border);color:#64748b}
-.iu-fas-ctu__note{grid-column:1/-1;margin:0;font-size:10.5px;font-weight:600;color:#94a3b8}
+.iu-fas-ctu__note{grid-column:1/-1;margin:0;font-size:12px;font-weight:600;color:#64748b}
 .iu-fas-ctu__form{align-items:start;grid-template-columns:repeat(auto-fit,minmax(min(180px,100%),1fr))}
 .iu-fas-ctu__form label{min-width:0;align-content:start}
 .iu-fas-ctu__form input,.iu-fas-ctu__form select{width:100%;min-width:0;box-sizing:border-box;min-height:44px}

@@ -457,6 +457,7 @@ export function DocumentEditorPage() {
   const [draftSaveOpen, setDraftSaveOpen] = useState(false)
   const [linkedFieldsOpen, setLinkedFieldsOpen] = useState(false)
   const [personalTemplatesOpen, setPersonalTemplatesOpen] = useState(false)
+  const [templateMatterSelectionOpen, setTemplateMatterSelectionOpen] = useState(false)
   const [stampOpen, setStampOpen] = useState(false)
   const [stampPosition, setStampPosition] = useState<'left' | 'center' | 'right'>('left')
   const [stampWidth, setStampWidth] = useState(60)
@@ -1368,19 +1369,23 @@ export function DocumentEditorPage() {
   }, [data.document.id, loadDocument, payloadLoading, pendingDocumentPayload])
 
   useEffect(() => {
-    if (!draftSaveOpen && !(standaloneDraft && (linkedFieldsOpen || personalTemplatesOpen))) return
+    if (!draftSaveOpen && !(standaloneDraft && (linkedFieldsOpen || templateMatterSelectionOpen))) {
+      setDraftCatalogLoading(false)
+      return
+    }
     let active = true
+    const controller = new AbortController()
     setDraftCatalogLoading(true)
     setDraftCatalogError('')
-    fetch('/api/editor/nuovo/fascicoli', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+    fetch('/api/editor/nuovo/fascicoli', { credentials: 'same-origin', signal: controller.signal, headers: { Accept: 'application/json' } })
       .then(async (response) => {
         const payload = await response.json()
         if (!response.ok || !payload.ok) throw new Error(payload.errore || 'Fascicoli non caricati.')
         if (active) setDraftMatters(payload.fascicoli)
       }).catch((error) => { if (active) setDraftCatalogError(error instanceof Error ? error.message : 'Fascicoli non caricati.') })
       .finally(() => { if (active) setDraftCatalogLoading(false) })
-    return () => { active = false }
-  }, [draftSaveOpen, standaloneDraft, linkedFieldsOpen, personalTemplatesOpen])
+    return () => { active = false; controller.abort() }
+  }, [draftSaveOpen, standaloneDraft, linkedFieldsOpen, templateMatterSelectionOpen])
 
   const createDraftDocument = async (event: FormEvent) => {
     event.preventDefault()
@@ -2959,7 +2964,7 @@ export function DocumentEditorPage() {
         {!stampError && !stampLines.length && <p role="status">Caricamento timbro…</p>}
         <button type="button" disabled={!stampLines.some(line => line.included) || stampLines.filter(line => line.included).some(line => !Number.isFinite(line.lineHeight) || (line.lineHeight || 0) < 0.5 || (line.lineHeight || 0) > 5)} onClick={applyStamp}>Inserisci o aggiorna timbro</button>
       </Modal>
-      <EditorPersonalTemplates sourceDocument={route ? {matter: route.idFascicolo, document: route.idDocumento} : undefined} mattersLoading={draftCatalogLoading} mattersError={draftCatalogError} open={personalTemplatesOpen} onClose={() => setPersonalTemplatesOpen(false)} serialize={serializeEditorHtml} matterId={route?.idFascicolo || draftMatter} options={draftMatters} onMatterChange={standaloneDraft ? setDraftMatter : undefined} onApply={(html, title, missing) => {
+      <EditorPersonalTemplates sourceDocument={route ? {matter: route.idFascicolo, document: route.idDocumento} : undefined} mattersLoading={draftCatalogLoading} mattersError={draftCatalogError} open={personalTemplatesOpen} onUsageChange={setTemplateMatterSelectionOpen} onClose={() => setPersonalTemplatesOpen(false)} serialize={serializeEditorHtml} matterId={route?.idFascicolo || draftMatter} options={draftMatters} onMatterChange={standaloneDraft ? setDraftMatter : undefined} onApply={(html, title, missing) => {
         if (!editorRef.current) return
         editorRef.current.innerHTML = sanitizeHtml(html)
         editorRef.current.querySelectorAll<HTMLElement>('[data-iu-linked-field]').forEach(node => { node.tabIndex = 0; node.setAttribute('role', 'button'); node.title = 'Modifica il valore del campo nel documento' })

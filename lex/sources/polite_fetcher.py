@@ -201,9 +201,10 @@ class PoliteFetcher:
         return False, f"robots.txt di {domain} vieta l'accesso a questa risorsa."
 
     def _robots_for(self, domain: str, url: str) -> robotparser.RobotFileParser | None:
-        if domain in self._robots_cache:
-            return self._robots_cache[domain]
         parts = urlsplit(url)
+        origin = f"{parts.scheme}://{parts.netloc}"
+        if origin in self._robots_cache:
+            return self._robots_cache[origin]
         robots_url = f"{parts.scheme}://{parts.netloc}/robots.txt"
         text: str | None
         if self._robots_loader is not None:
@@ -216,7 +217,7 @@ class PoliteFetcher:
         else:
             parser = robotparser.RobotFileParser()
             parser.parse(text.splitlines())
-        self._robots_cache[domain] = parser
+        self._robots_cache[origin] = parser
         return parser
 
     def _download_robots(self, robots_url: str) -> str | None:

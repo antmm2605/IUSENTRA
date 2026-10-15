@@ -204,7 +204,15 @@ def test_search_free_public_web_usa_ecosia_se_altri_motori_non_restituiscono_ris
     assert "mediazione" in results[0]["title"].lower()
 
 
-def test_official_web_source_in_modalita_libera_non_usa_allowlist_ufficiale():
+def test_official_web_source_in_modalita_libera_non_usa_allowlist_ufficiale(monkeypatch):
+
+    # Questo guardrail isola HTTP/UI: il contenuto proviene da una pagina
+    # controllata, non dallo snippet della discovery. Il trasporto reale ha test propri.
+    monkeypatch.setattr(
+        "lex.sources.public_page_reader.PublicPageReader.read",
+        lambda self, url: {"url": url, "status": "read", "text": "Contenuto pubblico della pagina controllata.",
+                           "title": "Pagina pubblica controllata", "sha256": "a" * 64},
+    )
     body = """
     <html>
       <body>

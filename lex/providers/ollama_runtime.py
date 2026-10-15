@@ -5,7 +5,7 @@ from __future__ import annotations
 from threading import Lock
 from typing import Any, cast
 
-from flask import current_app
+from flask import current_app, g
 
 from pct.local_ai import OllamaHttpClient, strip_api_suffix
 from pct.runtime_env import is_managed_cloud_runtime
@@ -57,7 +57,14 @@ def _cache_lock() -> Lock:
     return lock
 
 
-def _chat_runtime_cache_key(default_model: str) -> tuple[str, str, str]:
+def _chat_runtime_cache_key(default_model: str) -> tuple[str, ...]:
+    app = _flask_app()
+    if app.config.get("MULTI_TENANT") or getattr(g, "multi_tenant_enabled", False):
+        from .local_ai_service import _service_key
+
+        # Stessa identità e validazione dei percorsi del servizio proprietario:
+        # una configurazione globale non identifica lo studio della richiesta.
+        return (str(default_model or "mistral").strip() or "mistral", *_service_key(app))
     return (
         str(default_model or "mistral").strip() or "mistral",
         str(current_app.config.get("STUDIO_CONFIG") or "").strip(),

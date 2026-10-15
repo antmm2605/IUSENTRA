@@ -200,7 +200,7 @@ def _call_ollama(payload: dict[str, Any], api_base_url: str, timeout: int | None
     text = str(((response.get("message") or {}).get("content") or "")).strip()
     stats = {
         key: response.get(key)
-        for key in ("prompt_eval_count", "eval_count", "total_duration", "prompt_eval_duration", "eval_duration", "load_duration")
+        for key in ("prompt_eval_count", "eval_count", "total_duration", "prompt_eval_duration", "eval_duration", "load_duration", "done", "done_reason")
         if response.get(key) is not None
     }
     return _OllamaText(text, stats)
@@ -348,7 +348,9 @@ class OllamaProvider(BaseProvider):
 
         try:
             raw = _call_ollama(payload, api_base_url, timeout=settings.timeout_s)
-            metadata["prompt_eval"] = check_prompt_eval(plan.metadata, dict(getattr(raw, "stats", {}) or {}))
+            runtime_stats = dict(getattr(raw, "stats", {}) or {})
+            metadata["prompt_eval"] = check_prompt_eval(plan.metadata, runtime_stats)
+            metadata["generation_result"] = {key: runtime_stats.get(key) for key in ("done", "done_reason")}
             text = strip_think(raw)
             if not text:
                 metadata["model_error_kind"] = "vuoto"
@@ -426,7 +428,13 @@ class OllamaProvider(BaseProvider):
                         "model": retry_model,
                         "keep_alive": retry_keep_alive,
                     }
-                    text = strip_think(_call_ollama(retry_payload, retry_api_base_url, timeout=settings.timeout_s))
+                    retry_raw = _call_ollama(retry_payload, retry_api_base_url, timeout=settings.timeout_s)
+                    retry_stats = dict(getattr(retry_raw, "stats", {}) or {})
+                    metadata["prompt_eval"] = check_prompt_eval(plan.metadata, retry_stats)
+                    metadata["generation_result"] = {
+                        key: retry_stats.get(key) for key in ("done", "done_reason")
+                    }
+                    text = strip_think(retry_raw)
                     if text:
                         metadata.update(
                             {

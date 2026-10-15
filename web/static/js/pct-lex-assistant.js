@@ -1368,6 +1368,10 @@
       return;
     }
 
+    if (state.thinking.serverProgress) {
+      setBubbleContent(state.currentBubble, state.thinking.serverProgress);
+      return;
+    }
     var elapsed = thinkingElapsedMs();
     var stage = Math.max(
       Number(state.thinking.stage || 0),
@@ -2646,6 +2650,17 @@
 
             try {
               var data = JSON.parse(raw);
+              if (data.progress && state.thinking && !finished) {
+                state.thinking.serverProgress = String(data.progress);
+                renderThinkingStatus();
+                return;
+              }
+              if (data.payload && !finished) {
+                var publicPayload = normalizeAssistantPayload(data.payload, { question: text });
+                var comparison = data.payload.public_web_synthesis;
+                finish(publicPayload, !comparison || comparison.status === 'ok');
+                return;
+              }
               if (data.errore) {
                 setBubbleContent(state.currentBubble, 'Attenzione: ' + data.errore);
                 state.history.push({ role: 'assistant', content: data.errore, meta: { topic: state.pendingFocus && state.pendingFocus.topic || '' } });

@@ -6,6 +6,7 @@ from lex.contracts import EvidenceItem
 from lex.memory.web_execution import is_web_execution_request
 from lex.research.source_registry import get_source_registry
 from lex.retrieval.official_web import (
+    _direct_free_url_fallback,
     build_source_registry_context,
     resolve_official_source_ids_for_query,
     search_free_public_web,
@@ -182,8 +183,10 @@ def _domanda_giuridica(text: str) -> bool:
 class OfficialWebSource:
     source_name = "official_web"
 
-    def __init__(self, *, request_get=None) -> None:
+    def __init__(self, *, request_get=None, page_reader=None, passage_ranker=None) -> None:
         self._request_get = request_get
+        self._page_reader = page_reader
+        self._passage_ranker = passage_ranker
 
     @staticmethod
     def should_include(request, workflow: str) -> bool:
@@ -196,13 +199,24 @@ class OfficialWebSource:
 
         query = _clean_spaces(queries[0] if queries else getattr(request, "query", ""))
         if _is_free_web_request(request):
+            from lex.research.privacy_safe_query_rewriter import rewrite_query_for_legal_research
+
+            direct_urls = _direct_free_url_fallback(query, limit_results=4)
+            public_query = " ".join(row["url"] for row in direct_urls)
+            if not public_query:
+                projection = rewrite_query_for_legal_research(query)
+                public_query = projection.public_research_query
+                checked = rewrite_query_for_legal_research(public_query)
+                if not checked.can_use_official_web:
+                    public_query = ""
             rows = search_free_public_web(
-                query,
+                public_query,
                 request_get=self._request_get,
                 limit_results=4,
             )
             request_metadata = getattr(request, "metadata", None)
             if isinstance(request_metadata, dict):
+                request_metadata["public_web_query_used"] = public_query
                 request_metadata["source_registry"] = {
                     "mode": "web_libero",
                     "allowlist_used": False,
@@ -215,47 +229,20 @@ class OfficialWebSource:
                     "credentialed_sources": [],
                     "matched_keys": [],
                 }
-            evidence: list[EvidenceItem] = []
-            for row in rows:
-                url = _clean_spaces(row.get("url") or row.get("official_url"))
-                source_name = _clean_spaces(row.get("source_name") or row.get("domain") or "Web libero")
-                evidence.append(
-                    EvidenceItem(
-                        source_type="web_libero",
-                        source_id=str(row.get("id") or row.get("source_id") or url),
-                        title=_clean_spaces(row.get("title") or source_name) or "Risultato web",
-                        content=_clean_spaces(
-                            row.get("excerpt")
-                            or row.get("summary")
-                            or f"Risultato web trovato su {source_name}."
-                        ),
-                        score=float(row.get("trust_score") or 0.55),
-                        trust_class="",
-                        source_level=3,
-                        trust_score=float(row.get("trust_score") or 0.55),
-                        verified_reference=False,
-                        authority="Web libero",
-                        metadata={
-                            "authority": "web_libero",
-                            "url": url,
-                            "domain": _clean_spaces(row.get("domain") or ""),
-                            "source_name": source_name,
-                            "kind": _clean_spaces(row.get("kind") or ""),
-                            "source_access_status": _clean_spaces(row.get("source_access_status") or "public"),
-                            "source_access_label": _clean_spaces(row.get("source_access_label") or "Web libero"),
-                            "source_category": _clean_spaces(row.get("source_category") or "ricerca_web"),
-                            "source_priority": _clean_spaces(row.get("source_priority") or "web_libero"),
-                            "source_requires_credentials": bool(row.get("source_requires_credentials")),
-                            "source_restricted": bool(row.get("source_restricted")),
-                            "source_supports_web_search": bool(row.get("source_supports_web_search", True)),
-                            "free_web_enabled": True,
-                            "allowlist_used": False,
-                            "saved_to_db": False,
-                            "verified_reference": False,
-                        },
-                    )
-                )
-            return evidence
+            from lex.research.public_page_evidence import acquire_pages
+
+            acquired = acquire_pages(rows, query, reader=self._page_reader, passage_ranker=self._passage_ranker)
+            if isinstance(request_metadata, dict):
+                request_metadata["public_web_visits"] = acquired["visits"]
+                request_metadata["public_web_selection"] = acquired["semantic_selection"]
+            for item in acquired["items"]:
+                item.source_level = 3
+                item.metadata.update({"free_web_enabled": True, "allowlist_used": False,
+                                      "source_name": item.title, "source_access_status": "public",
+                                      "source_access_label": "Web libero",
+                                      "source_requires_credentials": False,
+                                      "source_restricted": False, "source_supports_web_search": True})
+            return acquired["items"]
 
         metadata_source_ids = (getattr(request, "metadata", {}) or {}).get("source_ids")
         if isinstance(metadata_source_ids, str):

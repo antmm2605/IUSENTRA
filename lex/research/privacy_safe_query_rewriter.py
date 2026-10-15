@@ -40,7 +40,6 @@ from lex.gateway.privacy_guard import (
     EMAIL_RE,
     IBAN_RE,
     PHONE_RE,
-    PIVA_RE,
     RG_RE,
     PrivacyGuard,
 )
@@ -57,7 +56,7 @@ _LEGAL_KEYWORDS: frozenset[str] = frozenset(
         # Prescrizione e decadenza
         "prescrizione", "decadenza", "termine", "termini", "decorrenza",
         "interruzione", "sospensione", "quinquennale", "decennale", "biennale",
-        "triennale", "annuale", "ordinaria", "breve",
+        "triennale", "annuale", "ordinaria", "breve", "lungo", "lunghi", "pubblicazione",
         # Responsabilità
         "responsabilità", "contrattuale", "extracontrattuale", "aquiliana",
         "oggettiva", "soggettiva", "risarcimento", "danno", "danni",
@@ -79,7 +78,7 @@ _LEGAL_KEYWORDS: frozenset[str] = frozenset(
         "tutela", "sospensiva", "cautelare", "inibitoria", "sequestro",
         "pignoramento", "esecuzione", "decreto", "ingiunzione", "provvedimento",
         # Normativa
-        "legge", "norma", "normativa", "articolo", "comma", "codice",
+        "legge", "norma", "normativa", "articolo", "comma", "codice", "riforma", "mediazione",
         "codice civile", "codice penale", "testo unico", "decreto legislativo",
         "decreto legge", "regolamento", "direttiva",
         # Materie specifiche
@@ -91,7 +90,9 @@ _LEGAL_KEYWORDS: frozenset[str] = frozenset(
         "fallimento", "concordato", "crisi impresa",
         "penale", "reato", "imputato", "indagato", "pena",
         "tributario", "imposta", "accertamento", "avviso bonario",
-        "amministrativo", "silenzio assenso", "annullamento", "revoca",
+        "amministrativo", "amministrativa", "amministrativi", "amministrative",
+        "civile", "civili", "tributaria", "tributari", "tributarie", "procedura", "processo",
+        "silenzio assenso", "annullamento", "revoca",
         "privacy", "gdpr", "dati personali", "trattamento",
         # Soggetti processuali (categorie, non nomi propri)
         "avvocato", "difensore", "procura", "procuratore", "giudice",
@@ -336,14 +337,6 @@ def _remove_proper_names_from_text(text: str, names: list[str]) -> str:
         # Costruisce pattern word-boundary sicuro.
         escaped = re.escape(name)
         pattern = re.compile(r'\b' + escaped + r'\b', re.IGNORECASE)
-        # Determina il placeholder in base al contesto.
-        # Cerca la locuzione precedente per scegliere il segnaposto.
-        if re.search(r'\bcontro\b\s+' + escaped, result, re.IGNORECASE):
-            placeholder = "[CONTROPARTE]"
-        elif re.search(r'\b(?:fascicolo|pratica|causa)\b.*' + escaped, result, re.IGNORECASE):
-            placeholder = "[PARTE_FASCICOLO]"
-        else:
-            placeholder = "[PARTE_PRIVATA]"
         result = pattern.sub("", result)
     return _clean(result)
 
@@ -372,7 +365,18 @@ def _extract_legal_matter(text: str) -> str:
         if t not in seen:
             seen.add(t)
             unique.append(t)
-    return " ".join(unique)
+    # Il riferimento è parte dell'oggetto pubblico, non un identificatore
+    # della pratica. La sola lista di parole perdeva «606 c.p.p.» e rendeva
+    # la ricerca diversa dalla domanda giuridica dell'avvocato.
+    from lex.guards.hallucination_guard import extract_legal_references
+
+    references = [reference.label for reference in extract_legal_references(text)]
+    # L'anno esplicitamente riferito alla riforma è parte della ricerca;
+    # non recuperare anni isolati o rimossi dagli identificatori R.G.
+    reform_years = re.findall(
+        r"\briforma(?:\s+[a-zà-ÿ]+){0,4}\s+((?:19|20)\d{2})(?![\d/.-])", text.casefold()
+    )
+    return _clean(" ".join([*unique, *references, *dict.fromkeys(reform_years)]))
 
 
 def _build_official_sources_query(public_query: str, original_query: str) -> str:
@@ -489,8 +493,6 @@ def rewrite_query_for_legal_research(
             warnings=["La query fornita è vuota."],
         )
 
-    profile = dict(request_profile or {})
-    context = dict(studio_context or {})
     warnings: list[str] = []
     removed_tokens: list[str] = []
 

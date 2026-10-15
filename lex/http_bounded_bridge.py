@@ -843,6 +843,10 @@ def _free_web_source_rows(items: list[Any]) -> list[dict[str, Any]]:
                 "source_requires_credentials": False,
                 "source_restricted": False,
                 "source_supports_web_search": True,
+                "read_status": metadata.get("read_status"),
+                "sha256": metadata.get("sha256"),
+                "fetched_at": metadata.get("fetched_at"),
+                "selection": dict(metadata.get("selection") or {}),
             }
         )
     return rows
@@ -872,7 +876,7 @@ def _free_web_answer(question: str, rows: list[dict[str, Any]]) -> str:
     return "\n".join(lines).strip()
 
 
-def _free_web_direct_payload(
+def _free_web_payload_steps(
     *,
     user: Any,
     studio: Any,
@@ -882,9 +886,14 @@ def _free_web_direct_payload(
     studio_context: dict[str, Any],
     request_profile: dict[str, Any],
     workflow_hint: str,
-) -> dict[str, Any]:
+):
+    from lex.research.service import LexResearchService
+    from lex.retrieval.sources.official_web import OfficialWebSource
+
+    acquisition_error = ""
+    search_request = None
+    yield {"progress": "Leggo le pagine pubbliche e seleziono i passaggi pertinenti."}
     try:
-        from lex.retrieval.sources.official_web import OfficialWebSource
 
         search_request = LexRequest(
             tenant_id=_tenant_id(studio, metadata),
@@ -901,8 +910,9 @@ def _free_web_direct_payload(
             require_official_sources=False,
         )
         evidence = OfficialWebSource().search([resolved_effective_question], search_request, {"workflow": workflow_hint or "fonti"})
-    except Exception:
+    except Exception as exc:
         evidence = []
+        acquisition_error = type(exc).__name__
 
     sources = _free_web_source_rows(list(evidence or []))
     citations = [
@@ -910,7 +920,37 @@ def _free_web_direct_payload(
         for row in sources
         if _clean_spaces(row.get("title"))
     ]
-    answer = _free_web_answer(resolved_effective_question, sources)
+    synthesis_metadata: dict[str, Any] = {"status": "no_read_sources"}
+    answer = ""
+    if evidence and search_request is not None:
+        yield {"progress": "Confronto i passaggi letti e controllo i riferimenti alle fonti."}
+        try:
+            draft = LexResearchService.summarize_public_pages(search_request, evidence)
+            synthesis_metadata = dict(draft.metadata or {})
+            answer = str(draft.text or "").strip()
+        except Exception as exc:
+            synthesis_metadata = {"status": "synthesis_error", "error_type": type(exc).__name__}
+    synthesis_ok = bool(answer) and synthesis_metadata.get("status") == "ok"
+    visits = list(metadata.get("public_web_visits") or [])
+    read_warnings = []
+    for visit in visits:
+        if visit.get("status") != "read":
+            reason = _clean_spaces(visit.get("reason"))
+            if not reason:
+                reason = {
+                    "robots_blocked": "Regole di accesso non disponibili o lettura automatica non consentita dal sito.",
+                    "network_error": "Il collegamento al sito non è riuscito.",
+                    "http_error": "Il sito non ha restituito il documento richiesto.",
+                    "empty": "La pagina non contiene testo estraibile.",
+                    "invalid_url": "L'indirizzo non è adatto alla lettura pubblica anonima.",
+                }.get(visit.get("status"), "La pagina richiesta non è stata acquisita.")
+            read_warnings.append(f"Fonte non letta: {visit.get('url') or 'indirizzo non disponibile'}. {reason}")
+    if not synthesis_ok:
+        answer = (
+            "Le pagine sono state lette, ma il confronto non è stato completato. "
+            "Le fonti restano disponibili per la consultazione."
+            if sources else "Nessuna pagina pubblica leggibile acquisita: la ricerca non è conclusa."
+        )
     payload = direct_answer_payload(
         current_user_message,
         answer,
@@ -924,9 +964,15 @@ def _free_web_direct_payload(
             "question": current_user_message,
             "effective_question": resolved_effective_question,
             "answer": answer,
-            "warnings": [],
+            "warnings": read_warnings + ([] if synthesis_ok else ["Confronto delle fonti non completato."]),
+            "public_web_synthesis": synthesis_metadata,
+            "public_web_visits": visits,
+            "public_web_selection": dict(metadata.get("public_web_selection") or {}),
+            "public_web_acquisition_error": acquisition_error,
             "next_actions": [],
             "risk_level": "low",
+            "structured_context": {},
+            "competence_labels": [],
             "confidence": 0.0,
             "confidence_label": "",
             "confidence_reason": "",
@@ -937,12 +983,14 @@ def _free_web_direct_payload(
             "web_fallback_used": False,
             "web_execution_requested": True,
             "fascicolo_first": False,
-            "external_sources_used": True,
+            "external_sources_used": bool(sources),
             "external_sources_reason": "",
             "disable_exports": False,
             "execution_policy": {
                 **dict(studio_context.get("execution_policy") or {}),
                 "mode": "web_libero",
+                "summary_label": "Confronto delle pagine pubbliche lette",
+                "llm_role": "sintesi_delle_fonti_pubbliche",
                 "truth_strategy": "ricerca_web_libera",
                 "requires_verified_legal_reference": False,
                 "requires_verified_normative_freshness": False,
@@ -960,22 +1008,30 @@ def _free_web_direct_payload(
             "public_web_forced": True,
             "free_web_responsibility": "controllo_avvocato",
             "free_web_saves_to_db": False,
-            "provider": "official_web",
+            "provider": synthesis_metadata.get("provider") or "official_web",
             "workflow": "web_libero",
             "legal_basis": [],
             "considered_sources": citations,
-            "compared_sources": [],
+            "compared_sources": sources if synthesis_ok else [],
             "missing_evidence": [] if sources else ["Nessun risultato pubblico leggibile restituito dal motore Web libero."],
             "evidence_summary": {
                 "evidence_count": len(sources),
                 "web_libero": True,
                 "allowlist_used": False,
                 "saved_to_db": False,
-                "evidence_sufficient": bool(sources),
+                "evidence_sufficient": synthesis_ok,
             },
         }
     )
-    return payload
+    yield {"payload": payload}
+
+
+def _free_web_direct_payload(**kwargs) -> dict[str, Any]:
+    """Stesso percorso primario per i chiamanti JSON sincroni."""
+    for step in _free_web_payload_steps(**kwargs):
+        if "payload" in step:
+            return step["payload"]
+    raise RuntimeError("Il percorso Web libero non ha prodotto un esito.")
 
 
 def build_bounded_http_payload(

@@ -293,7 +293,7 @@ def test_build_context_response_web_libero_non_sovrascrive_fonti_con_contesto(mo
         lambda explicit_question, messages: ("cerca liberamente", "", []),
     )
     monkeypatch.setattr(
-        "lex.orchestrator_http.build_bounded_http_payload",
+        "lex.http_bounded_bridge._free_web_direct_payload",
         lambda **kwargs: {
             "ok": True,
             "query_type": "workflow_answer",

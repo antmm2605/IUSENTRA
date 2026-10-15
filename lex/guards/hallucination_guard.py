@@ -49,7 +49,7 @@ def _normalize(value: Any) -> str:
 
 # Le forme con cui un modello scrive gli stessi estremi: «articolo 2043», «artt. 1218
 # e 1223», «Cass. n. 123/2020», «L. 689/1981», «d.P.R. 115/2002», «D.L. 179/2012».
-_ARTICOLO = re.compile(r"\b(?:artt?\.|articol[oi])\s*(\d+[a-z]*(?:[-/]\w+)?)(?:\s*(?:,|e)\s*(\d+[a-z]*))?(?:\s*(?:,|del|della|del\s+codice)?\s*)(c\.c\.|c\.p\.c\.|c\.p\.|c\.p\.p\.|cost\.)?")
+_ARTICOLO = re.compile(r"\b(?:artt?\.|articol[oi])\s*(\d+[a-z]*(?:[-/]\w+)?)(?:\s*(?:,|e)\s*(\d+[a-z]*))?(?:\s*(?:,|del|della|del\s+codice)?\s*)(c\.c\.|c\.p\.c\.|c\.p\.p\.|c\.p\.|cost\.)?")
 _CASSAZIONE_BREVE = re.compile(r"\bcass\.?\s*(?:civ\.|pen\.|sez\.?\s*un\.|s\.u\.)?[^.\n;]{0,40}?(?:n\.|numero)\s*(\d{1,7})(?:\s*/\s*|\s+del\s+)(\d{4})")
 
 

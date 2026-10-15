@@ -187,6 +187,7 @@ export const SETTINGS_FIELDS: Record<SettingsSection, SettingsField[]> = {
     { name: 'base_url', label: 'Collegamento AI sul PC', width: 'full', help: "Lascia invariato se l'assistente gira su questo computer." },
     { name: 'chat_model', label: "Risposte dell'assistente", type: 'select', width: 'half', help: 'Lascia Automatico: IUSENTRA sceglie dopo il controllo del PC.', options: [
       { value: '__auto__', label: 'Automatico (consigliato)' },
+      { value: 'iusentra-lex-v2:9b', label: 'Lex personalizzato, se già predisposto' },
       { value: 'gemma3:1b', label: 'Veloce' },
       { value: 'qwen2.5:0.5b', label: 'Molto leggero' },
       { value: 'qwen3.5:0.8b', label: 'Qwen 3.5 minimo' },

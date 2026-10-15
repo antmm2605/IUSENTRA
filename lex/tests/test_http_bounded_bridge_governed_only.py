@@ -116,6 +116,23 @@ def test_governed_only_instrada_giurisprudenza_strict(monkeypatch):
 
 
 def test_opzione_web_libero_e_manuale_non_passa_da_job(monkeypatch):
+    from lex.contracts import ProviderDraft
+
+    # La sintesi locale è isolata in questo test di instradamento HTTP.
+    # Le guardie della sintesi e il modello reale hanno verifiche distinte.
+    monkeypatch.setattr(
+        "lex.research.service.LexResearchService.summarize_public_pages",
+        lambda request, items: ProviderDraft(text="Confronto pubblico completato sulla fonte letta [1].",
+                                             metadata={"status": "ok"}),
+    )
+
+    # Questo guardrail isola HTTP/UI: il contenuto proviene da una pagina
+    # controllata, non dallo snippet della discovery. Il trasporto reale ha test propri.
+    monkeypatch.setattr(
+        "lex.sources.public_page_reader.PublicPageReader.read",
+        lambda self, url: {"url": url, "status": "read", "text": "Contenuto pubblico della pagina controllata.",
+                           "title": "Pagina pubblica controllata", "sha256": "a" * 64},
+    )
     monkeypatch.setenv("LEX_GOVERNED_ONLY", "1")
     monkeypatch.setattr(
         "lex.retrieval.sources.official_web.search_free_public_web",
@@ -157,7 +174,7 @@ def test_opzione_web_libero_e_manuale_non_passa_da_job(monkeypatch):
     assert payload["public_web_forced"] is True
     assert payload["sources"][0]["source_type"] == "web_libero"
     assert payload["sources"][0]["verified_reference"] is False
-    assert "Risultati pubblici trovati" in payload["answer"]
+    assert "Confronto pubblico completato" in payload["answer"]
     assert "Fonte del contesto pagina" not in payload["answer"]
     assert payload["warnings"] == []
     assert payload["next_actions"] == []

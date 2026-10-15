@@ -7,6 +7,7 @@ import re
 import socket
 import ssl
 import time
+from collections.abc import Callable
 from urllib.parse import urljoin, urlsplit, urlunsplit
 from urllib.robotparser import RobotFileParser
 
@@ -52,11 +53,17 @@ def public_addresses(host: str, port: int) -> list[str]:
     return addresses
 
 
-def fetch_public(url: str, *, max_bytes: int = MAX_BYTES) -> dict:
+def fetch_public(url: str, *, max_bytes: int = MAX_BYTES,
+                 user_agent: str = USER_AGENT,
+                 before_request: Callable[[str], None] | None = None) -> dict:
     """Validate every redirect; pin resolved IP while preserving Host and TLS SNI."""
     current = public_url(url)
     started = time.monotonic()
     for _ in range(5):
+        # Il chiamante può applicare robots e limiti per ciascuna destinazione,
+        # compresi i redirect. La validazione DNS/IP resta sempre obbligatoria.
+        if before_request is not None:
+            before_request(current)
         parts = urlsplit(current)
         port = parts.port or (443 if parts.scheme == "https" else 80)
         addresses = public_addresses(parts.hostname, port)
@@ -65,7 +72,7 @@ def fetch_public(url: str, *, max_bytes: int = MAX_BYTES) -> dict:
                    "cert_reqs": ssl.CERT_REQUIRED} if parts.scheme == "https" else {}
         with pool_type(addresses[0], port=port, timeout=urllib3.Timeout(connect=5, read=6), **options) as pool:
             response = pool.urlopen("GET", urlunsplit(("", "", parts.path or "/", parts.query, "")),
-                                    headers={"Host": parts.netloc, "User-Agent": USER_AGENT,
+                                    headers={"Host": parts.netloc, "User-Agent": user_agent,
                                              "Accept": "text/html,text/plain;q=0.9,*/*;q=0.1"},
                                     redirect=False, retries=False, preload_content=False)
             try:

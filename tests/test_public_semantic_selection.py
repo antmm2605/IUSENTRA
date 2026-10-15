@@ -1,0 +1,68 @@
+"""Un solo lotto embedding nativo, senza modelli o corpus alternativi."""
+
+import numpy as np
+import pytest
+
+from lex.research.public_page_evidence import semantic_block_scores
+
+
+def page(index=0):
+    return {'blocks': [{'index': index, 'kind': 'p', 'text': 'Testo pubblico pertinente sul termine di impugnazione della sentenza. ', 'section': ['Dispositivo']}]}
+
+
+def test_common_question_and_document_prefixes_use_one_batch():
+    calls = []
+
+    class Embedder:
+        modello = 'embeddinggemma:300m'
+
+        def embed(self, inputs):
+            calls.append(inputs)
+            return np.array([[1., 0.], [0.8, 0.6], [0., 1.]])
+
+    result = semantic_block_scores([page(), page(3)], 'termine lungo', embedder=Embedder())
+    assert len(calls) == 1
+    assert calls[0][0] == 'task: search result | query: termine lungo'
+    assert all(text.startswith('title: Dispositivo | text: ') for text in calls[0][1:])
+    assert result['scores'][0][0] == pytest.approx(0.8)
+    assert result['scores'][1][3] == 0
+    assert result['limited_pool'] is False
+
+
+def test_bounded_pool_keeps_sources_in_round_robin_and_declares_omissions():
+    class Embedder:
+        modello = 'embeddinggemma:300m'
+
+        def embed(self, inputs):
+            return np.ones((len(inputs), 2))
+
+    many = page()
+    many['blocks'] += [dict(many['blocks'][0], index=i) for i in range(1, 10)]
+    result = semantic_block_scores([many, page(20)], 'termine', embedder=Embedder(), max_candidates=2)
+    assert set(result['scores']) == {0, 1}
+    assert result['candidate_count'] == 2
+    assert result['available_count'] == 11
+    assert result['limited_pool'] is True
+
+
+@pytest.mark.parametrize('bad', [np.zeros((2, 2)), np.array([[1., 0.], [np.nan, 1.]]), np.ones((1, 2))])
+def test_invalid_embedding_is_not_a_successful_ranking(bad):
+    class Embedder:
+        modello = 'embeddinggemma:300m'
+
+        def embed(self, inputs):
+            return bad
+
+    with pytest.raises(ValueError):
+        semantic_block_scores([page()], 'termine', embedder=Embedder())
+
+
+def test_candidate_model_cannot_be_activated_by_this_reader():
+    class Embedder:
+        modello = 'another-model'
+
+        def embed(self, inputs):
+            raise AssertionError('Il modello non autorizzato non deve partire')
+
+    with pytest.raises(ValueError, match='300M'):
+        semantic_block_scores([page()], 'termine', embedder=Embedder())

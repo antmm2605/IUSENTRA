@@ -51,6 +51,7 @@ function modelValue(value: unknown): string {
 export function localAiModelLabel(value: unknown): string {
   const normalized = text(value).toLowerCase()
   if (!normalized) return 'automatico'
+  if (normalized === 'iusentra-lex-v2:9b') return 'Lex personalizzato'
   if (normalized === 'embeddinggemma' || normalized === 'embeddinggemma:latest') return 'EmbeddingGemma'
   if (normalized === 'embeddinggemma:300m') return 'EmbeddingGemma 300M'
   if (normalized.startsWith('embeddinggemma2:')) return 'EmbeddingGemma 2 locale'

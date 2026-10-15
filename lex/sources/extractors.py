@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import codecs
 import io
 import re
 import zipfile
+from email.message import Message
 from pathlib import Path
 
 from bs4 import BeautifulSoup
@@ -12,7 +14,7 @@ from lxml import etree
 def extract_text(path: Path, content_type: str = "") -> str:
     suffix = path.suffix.lower()
     if suffix in {".html", ".htm"} or "html" in content_type:
-        return extract_html(path.read_text(encoding="utf-8", errors="ignore"))
+        return extract_html(path.read_bytes(), encoding=_html_encoding(content_type))
     if suffix in {".xml", ".xsd"} or "xml" in content_type:
         return extract_xml(path.read_bytes())
     if suffix == ".pdf" or "pdf" in content_type:
@@ -33,7 +35,7 @@ def extract_text_from_bytes(content: bytes, content_type: str = "", *, filename:
     kind = (content_type or "").casefold()
     suffix = Path(filename).suffix.lower() if filename else ""
     if suffix in {".html", ".htm"} or "html" in kind:
-        return extract_html(content.decode("utf-8", errors="ignore"))
+        return extract_html(content, encoding=_html_encoding(content_type))
     if suffix in {".xml", ".xsd"} or "xml" in kind:
         return extract_xml(content)
     if suffix == ".pdf" or "pdf" in kind or content[:5] == b"%PDF-":
@@ -43,8 +45,21 @@ def extract_text_from_bytes(content: bytes, content_type: str = "", *, filename:
     return normalize(content.decode("utf-8", errors="ignore"))
 
 
-def extract_html(html: str) -> str:
-    soup = BeautifulSoup(html, "html.parser")
+def _html_encoding(content_type: str) -> str | None:
+    """Il charset HTTP governa i byte; in sua assenza il parser legge il meta."""
+    header = Message()
+    header["Content-Type"] = content_type or "text/html"
+    encoding = header.get_content_charset()
+    if encoding:
+        try:
+            codecs.lookup(encoding)
+        except LookupError:
+            return None
+    return encoding
+
+
+def extract_html(html: str | bytes, *, encoding: str | None = None) -> str:
+    soup = BeautifulSoup(html, "html.parser", from_encoding=encoding if isinstance(html, bytes) else None)
     for tag in soup(["script", "style", "noscript"]):
         tag.decompose()
     return normalize(soup.get_text(" "))

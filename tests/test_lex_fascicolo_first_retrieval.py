@@ -56,6 +56,14 @@ def test_fascicolo_first_usa_fonti_esterne_solo_con_ragione_pertinente():
 
 
 def test_web_libero_lex_resta_separato_da_fonti_ufficiali_e_archivi(monkeypatch):
+
+    # Questo guardrail isola HTTP/UI: il contenuto proviene da una pagina
+    # controllata, non dallo snippet della discovery. Il trasporto reale ha test propri.
+    monkeypatch.setattr(
+        "lex.sources.public_page_reader.PublicPageReader.read",
+        lambda self, url: {"url": url, "status": "read", "text": "Contenuto pubblico della pagina controllata.",
+                           "title": "Pagina pubblica controllata", "sha256": "a" * 64},
+    )
     calls: list[str] = []
 
     def _fake_free_web(query, **kwargs):
@@ -85,7 +93,7 @@ def test_web_libero_lex_resta_separato_da_fonti_ufficiali_e_archivi(monkeypatch)
 
     evidence = OfficialWebSource().search([request.query], request, {"workflow": "giurisprudenza"})
 
-    assert calls == ["cerca sul web libero art. 606 c.p.p."]
+    assert calls == ["art. 606 c.p.p."]
     assert len(evidence) == 1
     assert evidence[0].source_type == "web_libero"
     assert evidence[0].verified_reference is False
@@ -96,6 +104,23 @@ def test_web_libero_lex_resta_separato_da_fonti_ufficiali_e_archivi(monkeypatch)
 
 
 def test_payload_http_web_libero_restituisce_risposta_diretta(monkeypatch):
+    from lex.contracts import ProviderDraft
+
+    # La sintesi locale è isolata in questo test di instradamento HTTP.
+    # Le guardie della sintesi e il modello reale hanno verifiche distinte.
+    monkeypatch.setattr(
+        "lex.research.service.LexResearchService.summarize_public_pages",
+        lambda request, items: ProviderDraft(text="Confronto pubblico completato sulla fonte letta [1].",
+                                             metadata={"status": "ok"}),
+    )
+
+    # Questo guardrail isola HTTP/UI: il contenuto proviene da una pagina
+    # controllata, non dallo snippet della discovery. Il trasporto reale ha test propri.
+    monkeypatch.setattr(
+        "lex.sources.public_page_reader.PublicPageReader.read",
+        lambda self, url: {"url": url, "status": "read", "text": "Contenuto pubblico della pagina controllata.",
+                           "title": "Pagina pubblica controllata", "sha256": "a" * 64},
+    )
     calls: list[str] = []
 
     def _fake_free_web(query, **kwargs):
@@ -128,14 +153,14 @@ def test_payload_http_web_libero_restituisce_risposta_diretta(monkeypatch):
         attachments=[],
     )
 
-    assert calls == ["cerca sul web libero riforma mediazione 2026"]
+    assert calls == ["riforma mediazione 2026"]
     assert payload is not None
     assert payload["workflow"] == "web_libero"
     assert payload["free_web_enabled"] is True
     assert payload["warnings"] == []
     assert payload["sources"][0]["source_type"] == "web_libero"
     assert payload["sources"][0]["verified_reference"] is False
-    assert "Risultati pubblici trovati" in payload["answer"]
+    assert "Confronto pubblico completato" in payload["answer"]
     assert "Archivio interno" not in payload["answer"]
 
 

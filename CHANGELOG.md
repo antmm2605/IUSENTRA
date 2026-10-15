@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.437.45 — candidata, 15/10/2026
+
+- Web libero legge le pagine pubbliche nel motore nativo, conserva contenuto, provenienza e impronta e seleziona i passaggi usando la domanda comune e EmbeddingGemma 300M.
+- Il confronto usa il provider locale e le guardie esistenti; risposte troncate, fonti non lette o citazioni mancanti restano esplicite. Nessun salvataggio automatico delle pagine come normativa verificata.
+- Il comando pubblico evita il contesto del fascicolo e le consultazioni interne estranee; lo stream conserva fonti e avanzamento usando l'indicatore esistente.
+- La risoluzione del modello separa la cache dei tenant; la selezione React include il modello Lex personalizzato già predisposto. L'embedding resta separato.
+- Accettazione reale, controlli remoti e distribuzione ancora da eseguire. Catalogo esteso e altri incarichi restano aperti.
+
 ## 2.437.44 — candidata, 15/10/2026
 
 - Lettore PDF: geometria originale delle pagine riservata prima del caricamento delle immagini, senza usare le dimensioni CSS provvisorie.

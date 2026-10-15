@@ -967,6 +967,7 @@ def search_free_public_web(
     *,
     request_get: Callable[..., Any] | None = None,
     limit_results: int = 8,
+    diagnostics: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """Ricerca web manuale non vincolata alla allowlist delle fonti ufficiali.
 
@@ -1005,20 +1006,29 @@ def search_free_public_web(
                 headers={"User-Agent": USER_AGENT},
                 timeout=6,
             )
-        except Exception:
+        except Exception as exc:
+            if diagnostics is not None:
+                diagnostics.append({"engine": engine_name, "status": "transport_error",
+                                    "error_type": type(exc).__name__})
             continue
 
         status_code = int(getattr(response, "status_code", 0) or 0)
         if status_code >= 400:
+            if diagnostics is not None:
+                diagnostics.append({"engine": engine_name, "status": "http_error", "http_status": status_code})
             continue
 
         body = str(getattr(response, "text", "") or "")
         if not body.strip():
+            if diagnostics is not None:
+                diagnostics.append({"engine": engine_name, "status": "empty_response"})
             continue
 
         try:
             document = lxml_html.fromstring(body)
         except Exception:
+            if diagnostics is not None:
+                diagnostics.append({"engine": engine_name, "status": "parse_error"})
             continue
 
         for node in _search_result_nodes(document):
@@ -1067,9 +1077,16 @@ def search_free_public_web(
                 _SEARCH_CACHE[cache_key] = (now, [dict(item) for item in results])
                 return [dict(item) for item in results]
         if results:
+            if diagnostics is not None:
+                diagnostics.append({"engine": engine_name, "status": "results_found", "count": len(results)})
             break
+        if diagnostics is not None:
+            diagnostics.append({"engine": engine_name, "status": "no_recognized_results"})
 
-    _SEARCH_CACHE[cache_key] = (now, [dict(item) for item in results])
+    # Un errore dei canali o una pagina di blocco senza risultati riconosciuti
+    # non dimostra assenza di fonti e non deve congelare le ricerche successive.
+    if results:
+        _SEARCH_CACHE[cache_key] = (now, [dict(item) for item in results])
     return [dict(item) for item in results]
 
 

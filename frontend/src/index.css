@@ -1,5 +1,6 @@
 @import "tw-animate-css";
 @import "tailwindcss";
+@source not "../storybook-static";
 @config "../tailwind.config.ts";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";

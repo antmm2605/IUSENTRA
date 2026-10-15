@@ -49,6 +49,20 @@ def _app(tmp_path: Path):
     return app
 
 
+def _prepara_schema_documentale(app) -> None:
+    """Predispone il repository SQL prima di seminare le fonti controllate."""
+    from pct.document_intelligence.preparation import prepare_document_ai_schema
+    from web.services.storage_runtime import get_request_studio_db
+
+    with app.app_context():
+        backend = get_request_studio_db(app.config["FASCICOLI_DB"])
+        assert backend is not None
+        prepare_document_ai_schema(
+            backend, app.config["FASCICOLI_DB"],
+            backup_dir=Path(app.config["FASCICOLI_DB"]).parent / "backup" / "document-ai-schema",
+        )
+
+
 def _fascicoli_repository(app) -> GestioneFascicoli:
     with app.app_context():
         return app.extensions["core_runtime"]["get_fascicoli"]()
@@ -7308,6 +7322,7 @@ def test_react_fascicoli_economia_legge_esenzione_da_documenti_ai_server_senza_d
         pagamenti={"contributo_unificato": {"status": "da_registrare", "importo": 0, "updated_at": "2026-07-05"}},
     )
     digest = hashlib.sha256(b"autocertificazione-server").hexdigest()
+    _prepara_schema_documentale(app)
     with app.app_context():
         tenant_id = document_ai_tenant_id()
         repo = build_document_ai_service().repository
@@ -8910,6 +8925,7 @@ def test_react_fascicoli_presidio_economico_legge_sentenza_fisica_non_indicizzat
     from web.services.archivio_letture_runtime import leggi_fascicolo
     from web.services.document_intelligence_runtime import build_lex_indexing_summary_payload
 
+    _prepara_schema_documentale(app)
     with app.test_request_context("/"):
         indexed = build_lex_indexing_summary_payload(
             fascicolo.id, process=True, apply_automations=False,

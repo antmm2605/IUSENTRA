@@ -1,7 +1,7 @@
 {
   "name": "@iusentra/studio",
   "private": true,
-  "version": "2.437.39",
+  "version": "2.437.40",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",
@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build",
     "build:vite": "vite build",
+    "test:generated-sources": "node scripts/check-tailwind-generated-sources.mjs",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
     "clean": "node -e \"const fs=require('node:fs'); for (const dir of ['dist','storybook-static']) fs.rmSync(dir,{recursive:true,force:true});\"",
     "storybook": "storybook dev -p 6006 --host 0.0.0.0",

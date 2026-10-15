@@ -1,6 +1,14 @@
 # Changelog
 
-## 2.437.39 — candidata, 15/10/2026
+## 2.437.40 — candidata, 15/10/2026
+
+- Preparazione esplicita dello schema nelle due fixture React che seminano documenti server o avviano la lettura centrale: i casi controllati seguono lo stesso contratto di provisioning del prodotto.
+- Build CSS riproducibile: esclusi dalla scansione Tailwind gli output compilati di Storybook. Nuovo controllo funzionale in locale e CI: due build con un file generato di prova devono avere gli stessi asset. CSS e manifest restano identici alla39.
+- Guardia esplicita sul resolver del servizio AI locale: percorsi per richiesta, riuso separato per configurazione, isolamento cloud e blocco del contesto studio assente. Recupera la linea di copertura persa senza cambiare soglie o codice del servizio.
+- Preservato il comportamento della candidata39: i comandi documentali SQL non inizializzano schemi né committano implicitamente. Nessun ripiego o indebolimento dei controlli per superare i test.
+- La39 è stata fermata da due casi nello shard core5/10; deploy annullato prima delle operazioni sul server. Produzione ancora38. La40 ripete i gate, il riallineamento locale e il rilascio sul nuovo commit.
+
+## 2.437.39 — non rilasciata, 15/10/2026
 
 - I comandi documentali SQL usano uno schema predisposto: niente DDL, commit o apertura del mirror storico nel costruttore consultivo. La preparazione nativa resta esplicita nel provisioning e prima dell'avvio del rilascio.
 - Revisione persistente dello schema per archivio proprietario, inclusi vincoli documentali e dipendenze live; uno schema non predisposto produce un errore esplicito, senza migrazione implicita o ripiego JSON.

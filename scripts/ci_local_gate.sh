@@ -183,6 +183,7 @@ step "Storybook build statico"   npm --prefix frontend run build-storybook --sil
 # Stesso gate del job CI «Storybook: pagine e accessibilità» (storie + controlli axe).
 # Richiede Chromium di Playwright: `npx --prefix frontend playwright install chromium`.
 step "Storybook accessibilità"   npm --prefix frontend run test:storybook --silent
+step "CSS generato isolato"      npm --prefix frontend run test:generated-sources --silent
 
 # ---------------------------------------------------------------------------
 # 3. Pytest dei gate (salta con --fast)

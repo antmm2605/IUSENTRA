@@ -67,6 +67,8 @@ jobs:
         run: pnpm --filter @iusentra/studio test:storybook
       - name: Build static Storybook
         run: pnpm --filter @iusentra/studio build-storybook
+      - name: Verify generated sources do not change application assets
+        run: pnpm --filter @iusentra/studio test:generated-sources
 
   frontend:
     name: Frontend React CI

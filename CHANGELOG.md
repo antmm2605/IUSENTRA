@@ -1,12 +1,18 @@
 # Changelog
 
-## 2.437.40 — candidata, 15/10/2026
+## 2.437.41 — candidata, 15/10/2026
+
+- Le consultazioni delle fonti documentali riusano le impronte già archiviate attraverso la modalità SQL di sola lettura esistente: nessuna preparazione dello schema né creazione di un registro assente.
+- L'acquisizione conserva il percorso nativo che registra le nuove impronte. Isolamento dello studio, fonti originali e dati già confermati restano preservati.
+- Guardie su SQLite e PostgreSQL, richieste ripetute, registro mancante e apprendimento delle nuove impronte. Confronto diagnostico sullo stesso catalogo: JSON invariato, preparazioni del registro da una a zero. Accettazione sul commit definitivo e rilascio ancora necessari; prestazioni globali aperte.
+
+## 2.437.40 — rilasciata, 15/10/2026
 
 - Preparazione esplicita dello schema nelle due fixture React che seminano documenti server o avviano la lettura centrale: i casi controllati seguono lo stesso contratto di provisioning del prodotto.
 - Build CSS riproducibile: esclusi dalla scansione Tailwind gli output compilati di Storybook. Nuovo controllo funzionale in locale e CI: due build con un file generato di prova devono avere gli stessi asset. CSS e manifest restano identici alla39.
 - Guardia esplicita sul resolver del servizio AI locale: percorsi per richiesta, riuso separato per configurazione, isolamento cloud e blocco del contesto studio assente. Recupera la linea di copertura persa senza cambiare soglie o codice del servizio.
 - Preservato il comportamento della candidata39: i comandi documentali SQL non inizializzano schemi né committano implicitamente. Nessun ripiego o indebolimento dei controlli per superare i test.
-- La39 è stata fermata da due casi nello shard core5/10; deploy annullato prima delle operazioni sul server. Produzione ancora38. La40 ripete i gate, il riallineamento locale e il rilascio sul nuovo commit.
+- La 39 è stata fermata dalla CI. La 40 incorpora la correzione: 89 gate positivi, copertura critica preservata, Docker locale e Hetzner verificati sul commit f25c79f087.
 
 ## 2.437.39 — non rilasciata, 15/10/2026
 

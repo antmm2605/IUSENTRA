@@ -275,9 +275,11 @@ class ImpronteContenuto:
             logger.debug("Impronta contenuto non registrata: %s", exc)
 
 
-def impronte_contenuto(fascicolo_id: str, *, registro: RegistroLetture | None = None) -> ImpronteContenuto | None:
+def impronte_contenuto(fascicolo_id: str, *, registro: RegistroLetture | None = None, sola_lettura: bool = False) -> ImpronteContenuto | None:
     try:
-        return ImpronteContenuto(registro or registro_corrente(), tenant_corrente(), str(fascicolo_id or ""))
+        if registro is None:
+            registro = registro_corrente(sola_lettura=True) if sola_lettura else registro_corrente()
+        return ImpronteContenuto(registro, tenant_corrente(), str(fascicolo_id or ""))
     except Exception:
         return None
 

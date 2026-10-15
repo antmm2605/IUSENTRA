@@ -122,7 +122,10 @@ def collect_document_ai_sources_for_fascicolo(
     try:
         from web.services.registro_letture_runtime import impronte_contenuto
 
-        impronte = impronte_contenuto(str(fascicolo_id or "").strip())
+        # La consultazione riusa le impronte già registrate: nessuna migrazione
+        # o scrittura. L'acquisizione conserva invece l'apprendimento nativo.
+        options = {"sola_lettura": True} if not allow_content_read else {}
+        impronte = impronte_contenuto(str(fascicolo_id or "").strip(), **options)
     except Exception:
         impronte = None
     return collect_fascicolo_document_sources(

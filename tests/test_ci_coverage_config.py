@@ -148,6 +148,58 @@ def test_coverage_added_module_is_reported_as_a_perimeter_change():
     assert report["added_files"] == ["lex/new.py"]
 
 
+@pytest.mark.parametrize("common,new_covered,expected", [(80, 80, False), (79, 100, True),
+                                                       (90, 79, True), (81, 90, False)])
+def test_declared_scope_addition_cannot_mask_regressions(common, new_covered, expected):
+    candidate = _synthetic_measurement(common)
+    candidate["files"]["lex/new.py"] = {"covered": new_covered, "statements": 100,
+                                          "source_sha256": "b" * 64}
+    declaration = {"reason": "Nuovo modulo con prove dedicate", "files": {"lex/new.py": "b" * 64}}
+    report = compare_measurements(_synthetic_measurement(), candidate, declaration)
+    assert report["blocking"] is expected
+    assert report["common_candidate"]["covered"] == common
+    assert report["added_measurements"]["lex/new.py"]["covered"] == new_covered
+
+
+@pytest.mark.parametrize("mutation", ["hash", "extra", "environment", "removed", "reason"])
+def test_declared_scope_addition_fails_closed(mutation):
+    baseline = _synthetic_measurement()
+    candidate = _synthetic_measurement(90)
+    candidate["files"]["lex/new.py"] = {"covered": 100, "statements": 100,
+                                          "source_sha256": "b" * 64}
+    declaration = {"reason": "Nuovo modulo", "files": {"lex/new.py": "b" * 64}}
+    if mutation == "hash":
+        declaration["files"]["lex/new.py"] = "c" * 64
+    elif mutation == "extra":
+        candidate["files"]["lex/extra.py"] = dict(candidate["files"]["lex/new.py"])
+    elif mutation == "environment":
+        candidate["environment"]["python"] = "3.13.0"
+    elif mutation == "removed":
+        del candidate["files"]["lex/example.py"]
+    else:
+        declaration["reason"] = ""
+    report = compare_measurements(baseline, candidate, declaration)
+    assert report["blocking"] is True
+    assert report["status"] == "non_homogeneous"
+
+
+def test_scope_addition_is_bound_to_the_accepted_baseline(tmp_path):
+    import json
+    from tools.check_critical_coverage_regression import load_scope_addition
+
+    assert load_scope_addition(tmp_path, "a" * 40) is None
+    (tmp_path / "config").mkdir()
+    path = tmp_path / "config/critical-coverage-scope-addition.json"
+    declaration = {"baseline_sha": "a" * 40, "reason": "Nuovo modulo",
+                   "files": {"lex/new.py": "b" * 64}}
+    path.write_text(json.dumps(declaration), encoding="utf-8")
+    assert load_scope_addition(tmp_path, "a" * 40) == declaration
+    assert load_scope_addition(tmp_path, "c" * 40) is None
+    path.write_text("[]", encoding="utf-8")
+    with pytest.raises(ValueError, match="non valida"):
+        load_scope_addition(tmp_path, "a" * 40)
+
+
 def test_coverage_missing_shard_and_duplicate_artifacts_fail(tmp_path):
     for number in range(1, 12):
         (tmp_path / f".coverage.critical.{number}").touch()

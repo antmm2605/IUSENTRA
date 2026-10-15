@@ -1,0 +1,7 @@
+{
+  "baseline_sha": "7865cac66a144cb104311120357d750b396506bd",
+  "reason": "Nuovo selettore condiviso delle evidenze pubbliche Lex Web. Confrontare separatamente il perimetro preesistente e il nuovo modulo, senza ridurre la copertura accettata.",
+  "files": {
+    "lex/research/public_page_evidence.py": "706a832796de9758340f0a6802beb3301ad53fd64860bbd2fa8bf881aeb54df4"
+  }
+}

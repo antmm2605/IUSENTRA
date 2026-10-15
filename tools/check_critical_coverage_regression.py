@@ -90,7 +90,18 @@ def test_suite_digest(root: Path) -> str:
     return digest.hexdigest()
 
 
-def compare_measurements(baseline: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
+def load_scope_addition(root: Path, baseline_sha: str) -> dict[str, Any] | None:
+    path = root / "config/critical-coverage-scope-addition.json"
+    if not path.exists():
+        return None
+    declared = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(declared, dict) or not isinstance(declared.get("files"), dict):
+        raise ValueError("Dichiarazione del perimetro non valida")
+    return declared if declared.get("baseline_sha") == baseline_sha else None
+
+
+def compare_measurements(baseline: dict[str, Any], candidate: dict[str, Any],
+                         scope_addition: dict[str, Any] | None = None) -> dict[str, Any]:
     for measurement in (baseline, candidate):
         if not isinstance(measurement, dict) or not isinstance(measurement.get("environment"), dict):
             raise ValueError("Metadati di misura non validi")
@@ -130,7 +141,30 @@ def compare_measurements(baseline: dict[str, Any], candidate: dict[str, Any]) ->
     lost_lines = {path: sorted(set(old[path].get("executed_lines", [])) - set(new[path].get("executed_lines", [])))
                   for path in old.keys() & new.keys() if path not in changed}
     report["previously_covered_lines_lost"] = {path: lines for path, lines in lost_lines.items() if lines}
-    if environment_changes or added or removed:
+    approved_addition = bool(added and not removed and not environment_changes and scope_addition
+                            and scope_addition.get("reason", "").strip()
+                            and scope_addition.get("files") == {
+                                path: new[path]["source_sha256"] for path in added})
+    if approved_addition:
+        baseline_ratio = Fraction(totals["baseline"]["covered"], totals["baseline"]["statements"])
+        common = {path: new[path] for path in old}
+        common_covered = sum(item["covered"] for item in common.values())
+        common_statements = sum(item["statements"] for item in common.values())
+        if not common_statements:
+            raise ValueError("Perimetro comune privo di istruzioni")
+        report["scope_addition"] = scope_addition
+        report["common_candidate"] = {"covered": common_covered, "statements": common_statements,
+                                      "percent": float(100 * Fraction(common_covered, common_statements))}
+        report["added_measurements"] = {path: new[path] for path in added}
+        regression = (bool(report["previously_covered_lines_lost"])
+                      or Fraction(common_covered, common_statements) < baseline_ratio
+                      or any(not new[path]["statements"] or Fraction(
+                          new[path]["covered"], new[path]["statements"]) < baseline_ratio for path in added)
+                      or Fraction(totals["candidate"]["covered"], totals["candidate"]["statements"]) < baseline_ratio)
+        report.update(status="regression" if regression else "accepted_scope_addition", blocking=regression,
+                      reason="Calo della copertura nel perimetro esistente o nei moduli aggiunti" if regression
+                      else "Aggiunta dichiarata: copertura preservata sul perimetro comune e sui nuovi moduli")
+    elif environment_changes or added or removed:
         report.update(status="non_homogeneous", blocking=True,
                       reason="Confronto non omogeneo: verificare ambiente e perimetro prima di accettare una nuova baseline")
     elif report["previously_covered_lines_lost"] or Fraction(totals["candidate"]["covered"], totals["candidate"]["statements"]) < Fraction(
@@ -367,7 +401,8 @@ def run_gate(repo: str, candidate_directory: Path, baseline_directory: Path,
         baseline = measure(baseline_directory, source, output / "baseline-measurement.json", baseline_environment, baseline_root)
         candidate = measure(candidate_directory, REPO_ROOT, output / "candidate-measurement.json", candidate_environment, candidate_root)
         baseline["test_suite_sha256"], candidate["test_suite_sha256"] = baseline_tests, candidate_tests
-        report = compare_measurements(baseline, candidate)
+        declaration = load_scope_addition(REPO_ROOT, ci["head_sha"])
+        report = compare_measurements(baseline, candidate, declaration)
         report.update(baseline_sha=ci["head_sha"], candidate_sha=sha,
                       baseline_ci_run=ci["id"], baseline_deploy_run=deploy["id"],
                       baseline_remeasured=True, measurement_ci_run=os.environ.get("GITHUB_RUN_ID"))
@@ -390,7 +425,8 @@ def render_report(report: dict[str, Any]) -> str:
 
     lines = ["# Confronto della copertura critica", "",
              f"Generato: {format_datetime_it(datetime.now(UTC))}", "", report["reason"], ""]
-    for name, label in (("baseline", "Baseline accettata"), ("candidate", "Candidata")):
+    for name, label in (("baseline", "Baseline accettata"), ("candidate", "Candidata"),
+                        ("common_candidate", "Candidata sul perimetro comune")):
         if name in report:
             value = report[name]
             percent = f"{value['percent']:.7f}".replace(".", ",")
@@ -400,6 +436,10 @@ def render_report(report: dict[str, Any]) -> str:
                        ("removed_files", "Moduli rimossi"), ("changed_sources", "Sorgenti modificati")):
         if report.get(key):
             lines.append(f"- {label}: {report[key]}")
+    if report.get("scope_addition"):
+        lines.append(f"- Motivazione dell'aggiunta: {report['scope_addition']['reason']}")
+        for path, value in report["added_measurements"].items():
+            lines.append(f"- Nuovo modulo {path}: {value['covered']}/{value['statements']} istruzioni coperte; impronta {value['source_sha256']}")
     lines.append("\nUna variazione del perimetro non è presentata come un calo reale né accettata silenziosamente.")
     if report.get("baseline_remeasured"):
         lines.append("La precedente versione accettata è rimisurata nei dodici shard con lo stesso ambiente congelato della candidata.")

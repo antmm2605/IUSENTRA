@@ -9,6 +9,7 @@ from typing import Any
 from flask import Blueprint, current_app, g, jsonify, request
 
 from pct.document_intelligence import DocumentAIRecord
+from pct.document_intelligence.repository import DocumentAISchemaNotPrepared
 from pct.document_intelligence.security import (
     DocumentAINotFound,
     DocumentAIPermissionDenied,
@@ -61,6 +62,9 @@ def _errore(detail: str, code: str, status: int):
 
 
 def _handle_error(exc: Exception):
+    if isinstance(exc, DocumentAISchemaNotPrepared):
+        current_app.logger.error("Schema documentale da preparare prima della consultazione")
+        return _errore(str(exc), "document_ai_schema_not_prepared", 503)
     if isinstance(exc, DocumentAIValidationError):
         current_app.logger.info("Validazione Documenti AI non superata: %s", exc)
         return _errore("Richiesta non valida.", "validation_error", 400)

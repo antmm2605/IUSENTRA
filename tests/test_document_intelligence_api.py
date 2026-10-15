@@ -88,10 +88,18 @@ def test_catalogazione_documentale_sql_api_esegue_pipeline_e_revisione(tmp_path:
     _patch_extraction(monkeypatch, "RICORSO introduttivo con conclusioni e istanza di fissazione.")
     app = create_app({**_cfg_web(tmp_path), "STORAGE_MODE_DEFAULT": "SQLITE"})
     _crea_operatore(app)
+    # Predisposizione esplicita: il caso controllato appartiene al backend SQL,
+    # non a un JSON che la prima GET dovrebbe migrare implicitamente.
+    from web.services.storage_runtime import get_request_studio_db
+    from pct.document_intelligence.preparation import prepare_document_ai_schema
+    with app.app_context():
+        studio_db = get_request_studio_db(app.config["FASCICOLI_DB"])
+        prepare_document_ai_schema(studio_db, app.config["FASCICOLI_DB"], backup_dir=tmp_path / 'backup')
     fascicoli = GestioneFascicoli(
         db_path=app.config["FASCICOLI_DB"],
         documents_dir=app.config["FASCICOLI_DOCS"],
         archive_dir=app.config["FASCICOLI_ARCH"],
+        studio_db=studio_db,
     )
     fascicolo = fascicoli.nuovo("Fascicolo catalogazione SQL", TipoFascicolo.CIVILE, nome_cliente="Cliente Test")
     fascicoli.aggiorna(

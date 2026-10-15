@@ -95,7 +95,10 @@ def build_document_ai_service() -> DocumentAIService:
         cached = getattr(g, '_document_ai_service_consultazione', None)
         if cached is not None and cached[0] == key:
             return cached[1]
-    repository = DocumentAIRepository.from_fascicoli_db(anchor, structured_db=structured_db)
+    repository = DocumentAIRepository.from_fascicoli_db(
+        anchor, structured_db=structured_db,
+        initialize_schema=structured_db is None,
+    )
     service = DocumentAIService(repository, get_fascicoli(), max_size_bytes=max_size)
     if consultazione:
         g._document_ai_service_consultazione = (key, service)

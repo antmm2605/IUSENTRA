@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+import hashlib
 import json
 import sqlite3
 from pathlib import Path
@@ -27,6 +28,7 @@ from .models import (
 from .security import DocumentAIValidationError, safe_join_under_root
 
 
+DOCUMENT_AI_SCHEMA_VERSION = "document-ai-preparation-v1"
 STORE_KEYS = ("documents", "versions", "texts", "audit_events")
 SQLITE_SCHEMA_DOCUMENTI_AI = Path(__file__).resolve().parents[1] / "sql" / "20260505_documenti_ai.sql"
 POSTGRES_SCHEMA_DOCUMENTI_AI = Path(__file__).resolve().parents[1] / "sql" / "20260505_documenti_ai_postgres.sql"
@@ -89,6 +91,10 @@ class _ManagedSqliteBackend:
         self._conn.close()
 
 
+class DocumentAISchemaNotPrepared(RuntimeError):
+    """La consultazione richiede la preparazione amministrativa dello schema."""
+
+
 class DocumentAIRepository:
     """Persistenza filtrata sempre per tenant e fascicolo.
 
@@ -96,16 +102,22 @@ class DocumentAIRepository:
     e' attivo, il repository applica anche le migrazioni e usa le tabelle SQL.
     """
 
-    def __init__(self, json_path: str | Path, storage_root: str | Path, structured_db: Any = None):
+    def __init__(
+        self, json_path: str | Path, storage_root: str | Path,
+        structured_db: Any = None, *, initialize_schema: bool = True,
+    ):
         self.json_path = Path(json_path)
         self.storage_root = Path(storage_root)
         self.structured_db = structured_db
-        self.storage_root.mkdir(parents=True, exist_ok=True)
-        self.json_path.parent.mkdir(parents=True, exist_ok=True)
+        if initialize_schema:
+            self.storage_root.mkdir(parents=True, exist_ok=True)
+            self.json_path.parent.mkdir(parents=True, exist_ok=True)
         self._backend = self._detect_backend(structured_db)
         self._catalog_commit_batch_depth = 0
         self._catalog_commit_batch_requested = False
-        if self._backend:
+        if self._backend and not initialize_schema:
+            self.require_prepared_schema()
+        if self._backend and initialize_schema:
             self._ensure_sql_schema()
             # Le tabelle documentali sono create dopo lo schema dello studio.
             # Completa la stessa migrazione live anche sui nuovi studi, senza
@@ -118,6 +130,7 @@ class DocumentAIRepository:
                 ensure_live_schema(structured_db.conn, postgres=self._backend == "postgresql")
                 if self._backend == "postgresql":
                     structured_db.raw_conn.commit()
+            self._mark_schema_prepared()
         # SQL è già la fonte proprietaria: il mirror storico non partecipa
         # né alle letture né alle scritture di questo backend.
         self._data = self._empty() if self._backend else self._load_json()
@@ -132,9 +145,10 @@ class DocumentAIRepository:
         fascicoli_db_path: str | Path,
         *,
         structured_db: Any = None,
+        initialize_schema: bool = True,
     ) -> "DocumentAIRepository":
         base = Path(fascicoli_db_path).resolve().parent / "documenti_ai"
-        return cls(base / "documenti_ai.json", base, structured_db=structured_db)
+        return cls(base / "documenti_ai.json", base, structured_db=structured_db, initialize_schema=initialize_schema)
 
     @classmethod
     def from_sqlite_db(
@@ -186,6 +200,37 @@ class DocumentAIRepository:
     def _catalog_migration_sql(self) -> str:
         schema = POSTGRES_SCHEMA_DOCUMENT_CATALOG if self._backend == "postgresql" else SQLITE_SCHEMA_DOCUMENT_CATALOG
         return schema.read_text(encoding="utf-8")
+
+    def schema_signature(self) -> str:
+        """Versionare anche le migrazioni Python tramite DOCUMENT_AI_SCHEMA_VERSION."""
+        from pct.operational_live import TABLE_DOMAINS
+
+        filename = "20260505_documenti_ai_postgres.sql" if self._backend == "postgresql" else "20260505_documenti_ai.sql"
+        schemas = (self._migration_sql(filename), self._catalog_migration_sql())
+        content = (DOCUMENT_AI_SCHEMA_VERSION + "|" + repr(SQL_DOCUMENT_AI_FILE_TYPES)
+                   + json.dumps(TABLE_DOMAINS, sort_keys=True) + "|".join(schemas))
+        return hashlib.sha256(content.encode()).hexdigest()
+
+    def require_prepared_schema(self) -> None:
+        """Solo SELECT: una lettura non ripara né prepara un archivio."""
+        conn = self._conn()
+        query = ("SELECT to_regclass('document_ai_schema_readiness')" if self._backend == "postgresql"
+                 else "SELECT name FROM sqlite_master WHERE type='table' AND name='document_ai_schema_readiness'")
+        exists = conn.execute(query).fetchone()
+        row = (conn.execute("SELECT signature FROM document_ai_schema_readiness WHERE key = ?",
+                            ("document-ai",)).fetchone() if exists and exists[0] else None)
+        if not row or row[0] != self.schema_signature():
+            raise DocumentAISchemaNotPrepared(
+                "Schema documentale non preparato: eseguire la preparazione SQL governata prima della consultazione.")
+
+    def _mark_schema_prepared(self) -> None:
+        conn = self._conn()
+        conn.execute("CREATE TABLE IF NOT EXISTS document_ai_schema_readiness "
+                     "(key TEXT PRIMARY KEY, signature TEXT NOT NULL)")
+        conn.execute("INSERT INTO document_ai_schema_readiness(key,signature) VALUES (?,?) "
+                     "ON CONFLICT(key) DO UPDATE SET signature=excluded.signature",
+                     ("document-ai", self.schema_signature()))
+        self._commit()
 
     def _ensure_sql_schema(self) -> None:
         if self._backend == "sqlite":

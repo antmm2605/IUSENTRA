@@ -1,6 +1,13 @@
 # Changelog
 
-## 2.437.38 — candidata, 15/10/2026
+## 2.437.39 — candidata, 15/10/2026
+
+- I comandi documentali SQL usano uno schema predisposto: niente DDL, commit o apertura del mirror storico nel costruttore consultivo. La preparazione nativa resta esplicita nel provisioning e prima dell'avvio del rilascio.
+- Revisione persistente dello schema per archivio proprietario, inclusi vincoli documentali e dipendenze live; uno schema non predisposto produce un errore esplicito, senza migrazione implicita o ripiego JSON.
+- Backup SQLite coerente prima della preparazione, limite di durata e tentativi ripetuti idempotenti; PostgreSQL usa le migrazioni native. Guardie di isolamento, nuovi studi, GET/POST, persistenza e timeout, con prova reale di acquisizione e riapertura su8080.
+- Il miglioramento misurato riguarda il catalogo controllato; prestazioni globali, inizializzazione residua del registro delle letture e altri incarichi restano aperti. CI, immagine definitiva e deploy39 ancora necessari.
+
+## 2.437.38 — rilasciata, 15/10/2026
 
 - Il repository documentale con backend SQL non apre più il JSON storico estraneo alla lettura richiesta; record, versioni, testi e audit continuano a usare le tabelle proprietarie.
 - Parità SQLite/PostgreSQL, archivio vuoto e popolato, isolamento delle fonti e backend JSON esplicito verificati. Prova diagnostica reale di catalogo, fonti e lettore; commit definitivo, CI e deploy ancora necessari.

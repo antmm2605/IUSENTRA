@@ -1318,6 +1318,12 @@ class GestioneTenant:
         from pct.fascicoli_clienti_index import prepare_sqlite_client_index
 
         prepare_sqlite_client_index(base / 'studio.db', base / 'backup' / 'fascicoli-clienti-index')
+        from pct.storage import StudioDB
+        from pct.document_intelligence.preparation import prepare_document_ai_schema
+
+        prepare_document_ai_schema(StudioDB.get(str(base / 'studio.db')),
+                                  base / 'fascicoli' / 'fascicoli.json',
+                                  backup_dir=base / 'backup' / 'document-ai-schema')
 
     def _ensure_runtime_baseline(self, slug: str, *, force: bool = False) -> Dict[str, Any]:
         base = self._data_dir(slug)
@@ -1686,7 +1692,6 @@ class GestioneTenant:
         reconcile_storage: bool = True,
     ) -> Dict[str, Any]:
         from pct.auth import GestioneUtenti
-        from pct.storage import StudioDB
         import sqlite3
 
         from pct.core_storage_backend import build_core_storage_backend
@@ -2093,6 +2098,11 @@ class GestioneTenant:
 
             payload['client_case_catalog_changed'] = prepare_sqlite_client_index(
                 paths['STUDIO_DB'], self._data_dir(slug) / 'backup' / 'fascicoli-clienti-index')
+            from pct.document_intelligence.preparation import prepare_document_ai_schema
+
+            payload['document_ai_schema_changed'] = prepare_document_ai_schema(
+                studio_db, paths['FASCICOLI_DB'],
+                backup_dir=self._data_dir(slug) / 'backup' / 'document-ai-schema')
             payload["sqlite_ready"] = bool(studio_db.db_path.exists()) and (
                 not migrate_existing or bool(payload.get("migrated"))
             )
@@ -2148,6 +2158,9 @@ class GestioneTenant:
                     with postgres_store.raw_conn:
                         payload['client_case_catalog_changed'] = install_client_index(
                             postgres_store.conn, postgres=True)
+                    from pct.document_intelligence.preparation import prepare_document_ai_schema
+                    payload['document_ai_schema_changed'] = prepare_document_ai_schema(
+                        postgres_store, paths['FASCICOLI_DB'])
                 finally:
                     postgres_store.chiudi()
 

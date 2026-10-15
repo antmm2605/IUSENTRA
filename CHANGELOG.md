@@ -1,10 +1,17 @@
 # Changelog
 
-## 2.437.41 — candidata, 15/10/2026
+## 2.437.42 — candidata, 15/10/2026
+
+- Le impronte delle fonti richieste si recuperano in gruppo tramite l'indice SQL esistente, senza una connessione e una query per documento. Elenchi grandi suddivisi in gruppi limitati; stessi tenant, fonti e risultati del catalogo.
+- Lookup singolo e cumulativo condividono il repository nativo. Una discordanza non sceglie né sovrascrive un valore: resta un errore esplicito e i record si conservano.
+- Riutilizzo limitato alla stessa istanza consultiva, senza leggere file o ripetere query per campi già noti. Acquisizione e apprendimento delle nuove impronte preservati.
+- Guardie SQLite/PostgreSQL e confronto sullo stesso caso: JSON identico, query da dieci a una, circa 20% di riduzione nel tempo diagnostico del catalogo. Accettazione sul commit definitivo e rilascio ancora necessari; nessuna dichiarazione di prestazioni globali concluse.
+
+## 2.437.41 — rilasciata, 15/10/2026
 
 - Le consultazioni delle fonti documentali riusano le impronte già archiviate attraverso la modalità SQL di sola lettura esistente: nessuna preparazione dello schema né creazione di un registro assente.
 - L'acquisizione conserva il percorso nativo che registra le nuove impronte. Isolamento dello studio, fonti originali e dati già confermati restano preservati.
-- Guardie su SQLite e PostgreSQL, richieste ripetute, registro mancante e apprendimento delle nuove impronte. Confronto diagnostico sullo stesso catalogo: JSON invariato, preparazioni del registro da una a zero. Accettazione sul commit definitivo e rilascio ancora necessari; prestazioni globali aperte.
+- Guardie su SQLite/PostgreSQL e prova reale di acquisizione, persistenza, lettore e ricerca. Commit 184143746d, 89 gate positivi, copertura critica preservata e Hetzner verificato. Prestazioni globali e altri incarichi restano aperti.
 
 ## 2.437.40 — rilasciata, 15/10/2026
 

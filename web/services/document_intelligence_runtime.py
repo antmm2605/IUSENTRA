@@ -128,6 +128,8 @@ def collect_document_ai_sources_for_fascicolo(
         impronte = impronte_contenuto(str(fascicolo_id or "").strip(), **options)
     except Exception:
         impronte = None
+    if not allow_content_read and decrypt_doc is not None and impronte is not None:
+        impronte.precarica(getattr(fascicolo, "documenti", []) or [])
     return collect_fascicolo_document_sources(
         tenant_id=tenant_id or document_ai_tenant_id(),
         fascicolo_id=str(fascicolo_id or "").strip(),

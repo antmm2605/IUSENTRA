@@ -400,11 +400,34 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
         archivio = _testo(sha256_archivio).lower()
         if not archivio:
             return ""
-        for riga in self._seleziona("letture_oggetti", "tenant_id = ? AND tipo = ? AND sha256_archivio = ?", (_testo(tenant_id), _tipo(tipo), archivio)):
-            sha = _testo(riga.get("sha256")).lower()
-            if sha and sha != archivio:
-                return sha
-        return ""
+        return self.impronte_contenuto_per_archivi(tenant_id, tipo, [archivio]).get(archivio, "")
+
+    def impronte_contenuto_per_archivi(self, tenant_id: str, tipo: str, archivi: Iterable[str]) -> dict[str, str]:
+        """Legge soltanto le impronte richieste, con limiti SQL e indice nativo."""
+        richiesti = sorted({_testo(value).lower() for value in archivi if _testo(value)})
+        if not richiesti:
+            return {}
+        tenant, tipo = _testo(tenant_id), _tipo(tipo)
+        result: dict[str, str] = {}
+        with self.connection() as conn:
+            for start in range(0, len(richiesti), 400):
+                gruppo = richiesti[start:start + 400]
+                placeholders = ",".join("?" for _ in gruppo)
+                rows = conn.execute(
+                    f'SELECT sha256_archivio, sha256 FROM {self._tabella("letture_oggetti")} '
+                    f'WHERE tenant_id=? AND tipo=? AND sha256_archivio IN ({placeholders})',
+                    (tenant, tipo, *gruppo),
+                ).fetchall()
+                for row in rows:
+                    archive, clear = _testo(row["sha256_archivio"]).lower(), _testo(row["sha256"]).lower()
+                    if not clear or clear == archive:
+                        continue
+                    if archive in result and result[archive] != clear:
+                        raise RegistroLettureError(
+                            "Impronte di contenuto discordanti per la stessa fonte archiviata."
+                        )
+                    result[archive] = clear
+        return result
 
     def registra_impronta_contenuto(self, tenant_id: str, fascicolo_id: str, tipo: str, oggetto_id: str, *, sha256: str, sha256_archivio: str, dimensione: int = 0) -> None:
         adesso = _adesso()

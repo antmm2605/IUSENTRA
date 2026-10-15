@@ -247,6 +247,18 @@ class ImpronteContenuto:
         self._fascicolo = fascicolo_id
         self._cache: dict[str, str] = {}
 
+    def precarica(self, documenti: Iterable[Any]) -> None:
+        """Una lettura mirata per le sole impronte non già note nella richiesta."""
+        richiesti = set()
+        for documento in documenti:
+            archivio = str(getattr(documento, "hash_sha256", "") or "").strip().lower()
+            contenuto = str(getattr(documento, "hash_contenuto_sha256", "") or "").strip().lower()
+            if archivio and archivio not in self._cache and (not contenuto or contenuto == archivio):
+                richiesti.add(archivio)
+        if richiesti:
+            known = self._registro.impronte_contenuto_per_archivi(self._tenant, "documento", richiesti)
+            self._cache.update({value: known.get(value, "") for value in richiesti})
+
     def nota(self, documento: Any) -> str:
         archivio = str(getattr(documento, "hash_sha256", "") or "").strip().lower()
         if not archivio:

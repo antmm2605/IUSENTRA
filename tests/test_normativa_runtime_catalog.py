@@ -55,6 +55,35 @@ def forbid_legacy(monkeypatch):
         monkeypatch.setattr(retriever, name, forbidden)
 
 
+def test_native_unindexed_archive_remains_explicit_without_starting_engine(tmp_path, monkeypatch):
+    from lex.ricerca_giuridica import ibrida
+
+    path = archive(tmp_path / "unindexed.sqlite", text="Art. 327. Testo controllato.")
+    before = path.read_bytes()
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Un archivio privo di indice non avvia motori o preparazioni")
+
+    monkeypatch.setattr(ibrida, "motore_per_db", forbidden)
+    assert ibrida.cerca_normattiva_indicizzata("art. 327 c.p.c.", path) is None
+    assert path.read_bytes() == before
+    with sqlite3.connect(path) as conn:
+        assert not ibrida.indice_fts_presente(conn)
+
+
+def test_native_missing_archive_never_creates_file_or_engine(tmp_path, monkeypatch):
+    from lex.ricerca_giuridica import ibrida
+
+    path = tmp_path / "missing.sqlite"
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Un archivio assente non avvia motori o crea database")
+
+    monkeypatch.setattr(ibrida, "motore_per_db", forbidden)
+    assert ibrida.cerca_normattiva_indicizzata("art. 327 c.p.c.", path) is None
+    assert not path.exists()
+
+
 def test_runtime_uses_existing_library_if_general_archive_has_no_index(tmp_path, monkeypatch):
     general = archive(tmp_path / "normattiva.sqlite")
     archive(tmp_path / "codici_leggi.sqlite", text="L'appello non può proporsi dopo sei mesi.", indexed=True)

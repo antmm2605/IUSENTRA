@@ -3,6 +3,8 @@ import './support/resolve_ts_extensionless.mjs'
 import assert from 'node:assert/strict'
 import {afterEach, test} from 'node:test'
 import {readFileSync} from 'node:fs'
+import {createRequire} from 'node:module'
+const ts=createRequire(new URL('../../frontend/package.json',import.meta.url))('@typescript/typescript6')
 const {getFascicoliPage} = await import('../../frontend/src/fascicoliData.ts')
 const originalFetch = globalThis.fetch
 afterEach(() => { globalThis.fetch = originalFetch })
@@ -12,6 +14,12 @@ function serve(payload, status=200) {
  const requests=[]
  globalThis.fetch=async url => {requests.push(url);return {ok:status<400,status,json:async()=>payload}}
  return requests
+}
+function listFunctionSource(source) {
+ const file=ts.createSourceFile('FascicoliPage.tsx',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX)
+ const node=file.statements.find(node=>ts.isFunctionDeclaration(node) && node.name?.text==='FascicoliListPage')
+ assert.ok(node,'Componente elenco principale non trovato')
+ return node.getText(file)
 }
 test('una richiesta restituisce solo la pagina scelta, senza anticipare le altre', async()=>{
  const requests=serve(valid)
@@ -54,11 +62,17 @@ test('il componente non anticipa le pagine su apertura, hover o focus',()=>{
 
 test('elenco sottoscritto agli eventi confermati, senza sovrascrivere bozze o riusare risposte invalidate',()=>{
  const source=readFileSync(new URL('../../frontend/src/components/FascicoliPage.tsx',import.meta.url),'utf8')
- const list=source.slice(source.indexOf('function FascicoliListPage()'),source.indexOf('function FascicoliArchivePage'))
+ const list=listFunctionSource(source)
  assert.match(list,/useOperationalRefresh\(\['fascicoli'\]/)
  assert.match(list,/data-fascicoli-economic-draft="true"/)
  assert.match(list,/generation === pageCacheGenerationRef.current/)
  assert.match(list,/latestListKeyRef.current !== requestKey/)
  assert.match(source,/data-fascicoli-economic-draft=\{dirtyCount \|\| generating/)
  assert.match(source,/dispatchEvent\(new Event\(OPERATIONAL_REFRESH_RETRY\)\)/)
+})
+
+test('la sottoscrizione archivio non certifica quella mancante nell’elenco principale',()=>{
+ const source="function FascicoliListPage(){return null}\nfunction ArchivePage(){useOperationalRefresh(['fascicoli'],refresh)}"
+ assert.doesNotMatch(listFunctionSource(source),/useOperationalRefresh/)
+ assert.throws(()=>listFunctionSource('function ArchivePage(){return null}'),/elenco principale/)
 })

@@ -7,6 +7,22 @@ def read(html):
     return read_html_structure(html.encode(), "text/html; charset=utf-8", url="https://example.org/atti/pagina")
 
 
+def test_article_header_remains_legal_content_even_with_a_home_logo():
+    page = read('<article><header><a href="/"><img src="logo.png"></a>'
+                '<h1>Provvedimento</h1><p>Data della decisione: 12 aprile 2025.</p></header>'
+                '<p>Dispositivo della decisione.</p></article>')
+    block = next(b for b in page['blocks'] if 'Data della decisione' in b['text'])
+    assert block['publisher_chrome'] is False
+
+
+def test_malformed_header_or_reference_link_does_not_discard_the_document():
+    page = read('<div id="HEADER"><a href="http://[broken"><img src="logo.png"></a></div>'
+                '<p>Testo della disposizione <a href="http://[broken">richiamata</a>.</p>')
+    assert page['status'] == 'read'
+    assert 'Testo della disposizione richiamata' in page['text']
+    assert page['links'] == []
+
+
 def test_multiple_articles_and_hidden_notes_are_preserved_without_navigation():
     result = read('<nav>Menu estraneo</nav><article><h1>Atto primo</h1><p>Testo primo.</p>'
                   '<aside hidden>Nota pertinente.</aside></article>'

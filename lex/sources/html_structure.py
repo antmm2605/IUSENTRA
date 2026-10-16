@@ -11,8 +11,11 @@ from lex.sources.extractors import _html_encoding, normalize
 
 
 def _link(url: str, base_url: str) -> str:
-    target = urljoin(base_url, url)
-    parts = urlsplit(target)
+    try:
+        target = urljoin(base_url, url)
+        parts = urlsplit(target)
+    except ValueError:
+        return ""
     if parts.scheme not in {"http", "https"} or not parts.hostname or parts.username or parts.password:
         return ""
     return target
@@ -20,6 +23,23 @@ def _link(url: str, base_url: str) -> str:
 
 def _text(node: Tag) -> str:
     return normalize(node.get_text(" ", strip=True))
+
+
+def _publisher_chrome(node: Tag, base_url: str) -> bool:
+    """Cornice del sito con indizi strutturali, senza cancellare la fonte."""
+    if node.find_parent(["main", "article"]):
+        return False
+    for parent in [node, *node.parents]:
+        names = " ".join([str(parent.get("id") or ""), *parent.get("class", [])])
+        tokens = set(re.split(r"[\s_-]+", names.casefold()))
+        if {"site", "intro"} <= tokens and len(parent.find_all("a")) >= 2 and not parent.find(["p", "h1", "h2", "h3"]):
+            return True
+        if parent.name == "header" or parent.get("role") == "banner" or tokens & {"header", "masthead", "branding"}:
+            for anchor in parent.find_all("a", href=True):
+                target = _link(str(anchor.get("href")), base_url)
+                if anchor.find("img") and target and urlsplit(target).path in {"", "/"}:
+                    return True
+    return False
 
 
 def read_html_structure(content: bytes, content_type: str, *, url: str) -> dict:
@@ -112,6 +132,7 @@ def read_html_structure(content: bytes, content_type: str, *, url: str) -> dict:
                 level = int(node.name[1])
                 section = section[:level - 1] + [text]
         blocks.append({"index": len(blocks), "kind": kind, "text": text, "section": list(section),
+                       "publisher_chrome": _publisher_chrome(node, url),
                        "technical_boilerplate": bool(re.fullmatch(
                            r"(?:Pagina generata|Page generated)\s+in\s+[\d.,]+\s+(?:secondi|seconds?|sec|s)\.?", text, re.I)),
                        "form_context": node.find_parent("form") is not None,

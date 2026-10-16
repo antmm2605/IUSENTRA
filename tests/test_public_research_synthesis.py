@@ -51,6 +51,67 @@ def test_comparison_can_cover_both_rites_when_both_are_requested():
     assert result.metadata['status'] == 'ok'
 
 
+def test_same_rite_does_not_authorize_unrequested_other_remedies():
+    from dataclasses import replace
+
+    provider = Provider('Per l’appello il termine è di sei mesi [1]. '
+                        'Il ricorso per cassazione richiede sessanta giorni dalla notifica [2].')
+    result = LexResearchService.summarize_public_pages(
+        replace(request(), query='Confronta soltanto l’appello civile'), sources(), provider=provider)
+    assert result.text == '' and result.metadata['status'] == 'out_of_requested_scope'
+
+
+def test_requested_both_remedies_are_not_removed():
+    from dataclasses import replace
+
+    provider = Provider('Per l’appello il termine è di sei mesi [1]. '
+                        'Per il ricorso per cassazione il termine è di sei mesi [2].')
+    result = LexResearchService.summarize_public_pages(
+        replace(request(), query='Confronta appello e ricorso per cassazione civili'), sources(), provider=provider)
+    assert result.metadata['status'] == 'ok'
+
+
+def test_verbatim_shared_article_is_allowed_but_a_quoted_remedy_label_is_not_a_bypass():
+    from dataclasses import replace
+
+    rows = sources()
+    common = 'L’appello e il ricorso per cassazione non possono proporsi dopo decorsi sei mesi dalla pubblicazione della sentenza.'
+    rows[1].content += ' ' + common
+    query = replace(request(), query='Confronta il termine lungo per l’appello civile')
+    result = LexResearchService.summarize_public_pages(query, rows,
+        provider=Provider('Il termine è di sei mesi [1]. “' + common + '” [2].'))
+    assert result.metadata['status'] == 'ok'
+    result = LexResearchService.summarize_public_pages(query, rows,
+        provider=Provider('Il termine è di sei mesi [1]. Il “ricorso per cassazione” richiede sessanta giorni [2].'))
+    assert result.text == '' and result.metadata['status'] == 'out_of_requested_scope'
+
+
+@pytest.mark.parametrize('other_section,cites_second', [(False, True), (True, True), (False, False)])
+def test_omitted_condition_is_preserved_only_for_the_same_dispositive_already_cited(other_section, cites_second):
+    from dataclasses import replace
+
+    rows = sources()
+    rule = 'L’appello non può proporsi dopo decorsi sei mesi dalla pubblicazione della sentenza.'
+    condition = 'Questa disposizione non si applica quando ricorrono la condizione A e la condizione B.'
+    section = ['Articolo 327 codice di procedura civile', 'Dispositivo']
+    rows[1].content = rule + ' ' + condition
+    rows[1].metadata['selection'] = {'passages': [
+        {'text': rule, 'section': section, 'block_index': 1},
+        {'text': condition, 'section': ['Altra norma', 'Dispositivo'] if other_section else section, 'block_index': 2},
+    ]}
+    result = LexResearchService.summarize_public_pages(
+        replace(request(), query='Confronta il termine lungo per l’appello civile'), rows,
+        provider=Provider('Il termine è di sei mesi [1].' + (' Il termine lungo decorre dalla pubblicazione [2].' if cites_second else '')))
+    if not cites_second:
+        assert result.text == '' and result.metadata['status'] == 'source_comparison_incomplete'
+    elif other_section:
+        assert condition not in result.text
+    else:
+        assert result.metadata['status'] == 'ok'
+        assert result.text.count(condition) == 1
+        assert result.metadata['source_conditions_preserved'][0]['action'] == 'appended_selected_core_condition'
+
+
 def test_local_provider_receives_only_read_sources_and_no_case_context():
     provider = Provider('Il termine è di sei mesi [1]. La seconda fonte distingue una specifica eccezione [2].')
     result = LexResearchService.summarize_public_pages(request(), sources(), provider=provider)

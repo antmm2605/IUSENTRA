@@ -50,6 +50,72 @@ def test_short_dispositive_preserves_rule_and_condition_without_a_shared_keyword
     assert [p['block_index'] for p in result['passages']] == [0, 1]
 
 
+def test_appello_selection_keeps_shared_article_but_not_other_remedy_paragraphs():
+    blocks = [
+        dict(index=0, kind='p', section=['Processo civile'],
+             text='Il ricorso in appello deve essere proposto entro trenta giorni dalla notifica della sentenza.'),
+        dict(index=1, kind='p', section=['Processo civile'],
+             text='Il ricorso per cassazione va presentato entro sessanta giorni dalla notifica della sentenza.'),
+        dict(index=2, kind='p', section=['Processo civile'],
+             text='Per la revocazione il termine dipende dal motivo previsto nella disposizione.'),
+        dict(index=3, kind='p', section=['Dispositivo'],
+             text='L’appello, il ricorso per cassazione e la revocazione non possono proporsi dopo decorsi sei mesi.'),
+        dict(index=4, kind='p', section=['Dispositivo'],
+             text='Questa disposizione non si applica quando sono dimostrate tutte le condizioni indicate.'),
+    ]
+    result = select_passages(dict(text='Inventario. ' * 300, blocks=blocks),
+                             'Confronta il termine breve e lungo per l’appello civile', max_chars=1600,
+                             semantic_scores={i: .8 for i in range(5)})
+    assert [p['block_index'] for p in result['passages']] == [0, 3, 4]
+
+
+def test_focused_comparison_starts_with_the_requested_rule_before_tool_description():
+    blocks = [
+        dict(index=0, kind='p', section=['Calcolatore'],
+             text='Questa applicazione calcola il termine di impugnazione del provvedimento civile.'),
+        dict(index=1, kind='p', section=['Processo civile'],
+             text='Il termine per l’appello decorre dalla notifica della sentenza.'),
+    ]
+    result = select_passages(dict(text='Inventario originale. ' * 200, blocks=blocks),
+                             'Confronta il termine per l’appello civile', max_chars=1000,
+                             semantic_scores={0: .8, 1: .8})
+    assert result['passages'][0]['block_index'] == 1
+    assert blocks[0]['index'] == 0 and blocks[1]['index'] == 1
+
+
+def test_generic_reading_separates_publisher_header_from_legal_intro():
+    from lex.sources.html_structure import read_html_structure
+
+    html = ('<div id="HEADER"><a href="/"><img alt="Risorse" src="logo.png"></a>'
+            '<h1>Risorse</h1><p>Venerdì 16 ottobre 2026</p></div>'
+            '<div id="site_intro">Il sito in un click! '
+            '<a href="/chi-siamo">Chi siamo</a><a href="/servizi">Servizi</a></div>'
+            '<article><h1>Disposizione</h1><div class="intro">Premessa giuridica da conservare.</div>'
+            '<p>Il termine decorre dalla pubblicazione della sentenza.</p></article>')
+    page = read_html_structure(html.encode(), 'text/html; charset=utf-8', url='https://example.org/atto')
+    selected = select_passages(page, 'Leggi questa pagina pubblica', max_chars=6000)
+    text = ' '.join(p['text'] for p in selected['passages'])
+    assert 'Venerdì' in page['full_text'] and 'Il sito in un click' in page['full_text']
+    assert 'Venerdì' not in text and 'Il sito in un click' not in text
+    assert 'Premessa giuridica da conservare' in text
+
+
+def test_publisher_header_marking_also_works_when_the_page_has_no_main_element():
+    from lex.sources.html_structure import read_html_structure
+
+    html = ('<div id="HEADER"><a href="/"><img alt="Risorse" src="logo.png"></a>'
+            '<h1>Risorse</h1><p>Venerdì 16 ottobre 2026</p></div>'
+            '<div id="site_intro">Il sito in un click! '
+            '<a href="/chi-siamo">Chi siamo</a><a href="/servizi">Servizi</a></div>'
+            '<h1>Disposizione</h1><div class="intro">Premessa giuridica da conservare.</div>'
+            '<p>Il termine decorre dalla pubblicazione della sentenza.</p>')
+    page = read_html_structure(html.encode(), 'text/html; charset=utf-8', url='https://other.example/atto')
+    selected = select_passages(page, 'Leggi questa pagina pubblica', max_chars=6000)
+    text = ' '.join(p['text'] for p in selected['passages'])
+    assert 'Venerdì' not in text and 'Il sito in un click' not in text
+    assert 'Premessa giuridica da conservare' in text
+
+
 def test_native_embedding_batch_is_bounded_and_represents_both_pages(monkeypatch):
     import numpy as np
 

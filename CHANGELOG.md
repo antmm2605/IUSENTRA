@@ -2,10 +2,11 @@
 
 ## 2.437.48 — candidata, 16/10/2026
 
-- Correzione del difetto osservato nel confronto reale della47: selezione e risposta rispettano gli ambiti processuali nominati nella domanda, senza ricavarne altri dagli URL. Riutilizzati categorie e alias dei codici già presenti.
-- Inventario originale conservato; un passaggio escluso non rientra tramite una finestra del testo completo. Piè di pagina tecnico separato dalle evidenze anche nelle pagine brevi.
+- Correzione del difetto osservato nel confronto reale della47: selezione e risposta rispettano rito e mezzo processuale nominati nella domanda, senza ricavarne altri dagli URL. Riutilizzati categorie e alias dei codici già presenti.
+- Inventario originale conservato; un passaggio escluso non rientra tramite una finestra del testo completo. Piè di pagina tecnico e cornice editoriale separati dalle evidenze anche nelle pagine brevi; premesse e intestazioni dell’articolo preservate.
 - Lettura generica senza embedding non necessario; confronto con massimo 16 candidati pubblici e lo stesso modello 300M. Limiti, selezione e ambiti restano espliciti.
-- Guardie negative riprodotte prima della correzione. Candidata non ancora accettata sulla macchina reale né distribuita; incarichi generali aperti.
+- Condizioni testuali dello stesso dispositivo già citato conservate senza attribuirle ad altre norme o fonti. La regola richiesta precede la descrizione dello strumento.
+- Prima immagine 48 non accettata per aggiunta di altri mezzi: prova negativa conservata, nessun push. Rifinitura con 238 guardie positive, ancora da accettare sulla macchina reale; incarichi generali aperti.
 
 ## 2.437.47 — 16/10/2026
 

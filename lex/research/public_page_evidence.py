@@ -51,15 +51,40 @@ def explicit_public_rites(text: str) -> set[str]:
     return rites
 
 
-def public_response_in_scope(question: str, answer: str) -> bool:
+def explicit_public_remedies(text: str, *, question: bool = False) -> set[str]:
+    """Nomi espliciti del quesito: nessun calcolo o nuova regola sui termini."""
+    clean = re.sub(r"https?://[^\s<>'\")\]]+", "", str(text))
+    patterns = {"appello": r"\bappell[oi]\b", "revocazione": r"\brevocazion[ei]\b",
+                "opposizione_terzo": r"\bopposizion[ei]\s+(?:di\s+)?terz[oi]\b",
+                "cassazione": r"\bcassazione\b" if question else r"\bricors[oi]\s+(?:per|in)\s+cassazione\b"}
+    return {key for key, pattern in patterns.items() if re.search(pattern, clean, re.I)}
+
+
+def public_response_in_scope(question: str, answer: str, *, validated_quotes=()) -> bool:
     requested = explicit_public_rites(question)
-    return not requested or not (explicit_public_rites(answer) - requested)
+    remedies = explicit_public_remedies(question, question=True)
+    narrative = answer
+    # Una norma comune può nominare più mezzi: conservare la citazione
+    # integrale già verificata, senza autorizzare nuove regole sugli altri.
+    # Una semplice etichetta fra virgolette non aggira il recinto.
+    for quote in validated_quotes:
+        if len(quote.split()) < 12:
+            continue
+        quote_rites = explicit_public_rites(quote)
+        quote_remedies = explicit_public_remedies(quote)
+        if requested and quote_rites and not requested & quote_rites:
+            continue
+        if remedies and quote_remedies and not remedies & quote_remedies:
+            continue
+        narrative = narrative.replace(quote, "")
+    return ((not requested or not (explicit_public_rites(narrative) - requested))
+            and (not remedies or not (explicit_public_remedies(narrative) - remedies)))
 
 
 def _eligible_block(block: dict) -> bool:
     return bool(block.get("kind") != "heading" and block.get("text")
                 and not block.get("form_context") and not block.get("link_only_context")
-                and not block.get("technical_boilerplate"))
+                and not block.get("technical_boilerplate") and not block.get("publisher_chrome"))
 
 
 def _url_path(match) -> str:
@@ -87,6 +112,10 @@ def _block_priority(block: dict, question: str) -> int:
                 if not rites & requested:
                     return 5
                 break
+    remedies = explicit_public_remedies(question, question=True)
+    mentioned = explicit_public_remedies(str(block.get("text") or ""))
+    if remedies and mentioned and not remedies & mentioned:
+        return 6
     section = " ".join(block.get("section") or []).casefold()
     if any(word in question.casefold() for word in ("consulenza", "quesito")):
         return 0 if "consulenz" in section or "quesit" in section else 1
@@ -103,7 +132,7 @@ def _block_priority(block: dict, question: str) -> int:
     article = re.match(r"art(?:icolo|\.)?\s*(\d+)", last)
     if "dispositivo" in last or (article and article.group(1) in requested_articles):
         return 0
-    return 1
+    return 0 if remedies & mentioned else 1
 
 
 def semantic_block_scores(pages: list[dict], question: str, *, embedder, max_candidates: int = 64) -> dict:
@@ -237,14 +266,21 @@ def select_passages(page: dict, question: str, *, max_chars: int = 6000, semanti
             passages.append({"block_index": block["index"], "piece_index": block["piece_index"], "text": passage,
                              "section": list(block.get("section") or [])})
             remaining -= cost
-        passages.sort(key=lambda passage: (passage["block_index"], passage["piece_index"]))
+        priorities = {block["index"]: _block_priority(block, question) for block in blocks}
+        passages.sort(key=lambda passage: (
+            0 if plain_reading else priorities[passage["block_index"]],
+            passage["block_index"], passage["piece_index"],
+        ))
         return {"passages": passages, "total_characters": len(text),
                 "selected_characters": sum(len(passage["text"]) for passage in passages),
                 "selection_method": "shared_query_semantic_blocks_v2" if semantic_scores and not plain_reading else "shared_query_complete_blocks_v1",
                 "selection_status": "selected" if passages else "no_relevant_passages",
                 "requested_rites": sorted(explicit_public_rites(question)),
+                "requested_remedies": sorted(explicit_public_remedies(question, question=True)),
                 "excluded_outside_rite": sum(_block_priority(block, question) == 5 for block in blocks),
+                "excluded_outside_remedy": sum(_block_priority(block, question) == 6 for block in blocks),
                 "excluded_technical_blocks": sum(bool(block.get("technical_boilerplate")) for block in page.get("blocks", [])),
+                "excluded_publisher_blocks": sum(bool(block.get("publisher_chrome")) for block in page.get("blocks", [])),
                 "complete_context": False}
     # Stesse finestre, domanda e punteggio per ogni sito; niente euristiche
     # di favore per un dominio e niente frammenti provenienti dagli snippet.

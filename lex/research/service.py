@@ -28,7 +28,7 @@ def _public_citation_matches(text):
             if not any(start <= match.start() < end for start, end in quoted)]
 
 
-def _preserve_public_source_conditions(text, rows):
+def _preserve_public_source_conditions(text, rows, *, requested_remedies=()):
     """Riporta condizioni testuali univoche, senza riscrivere i presupposti.
 
     Opera sulle sole evidenze già selezionate. Nessuna nuova lettura, chiamata
@@ -71,7 +71,30 @@ def _preserve_public_source_conditions(text, rows):
     if condition.search(text[last:]):
         return text, actions, "ambiguous_source_condition"
     rendered.append(text[last:])
-    return "".join(rendered), actions, "ok"
+    result = "".join(rendered)
+    if requested_remedies:
+        from .public_page_evidence import explicit_public_remedies
+
+        cited = {int(value) for match in _public_citation_matches(text)
+                 for value in re.findall(r"\[(\d+)\]", match.group())}
+        for number, row in enumerate(rows, 1):
+            if number not in cited:
+                continue
+            passages = (row.metadata.get("selection") or {}).get("passages", [])
+            for passage in passages:
+                quote = str(passage.get("text") or "").strip()
+                section = passage.get("section") or []
+                if not condition.search(quote) or not section or not str(section[-1]).casefold().startswith("dispositivo"):
+                    continue
+                same_rule = any(other.get("section") == section and not condition.search(str(other.get("text") or ""))
+                                and set(requested_remedies) & explicit_public_remedies(str(other.get("text") or ""))
+                                for other in passages)
+                if same_rule and normalized(quote) not in normalized(result):
+                    result += f"\n\nCondizione testuale della fonte: “{quote}” [{number}]"
+                    actions.append({"source": number, "block_index": passage.get("block_index"),
+                                    "piece_index": passage.get("piece_index"), "original_claim": "", "quote": quote,
+                                    "action": "appended_selected_core_condition"})
+    return result, actions, "ok"
 
 
 class LexResearchService:
@@ -96,7 +119,12 @@ class LexResearchService:
         rows = list(items or [])
         if not rows:
             return ProviderDraft(text="", metadata={"status": "no_read_sources"})
-        from .public_page_evidence import explicit_public_rites, is_plain_source_reading, public_response_in_scope
+        from .public_page_evidence import (
+            explicit_public_remedies,
+            explicit_public_rites,
+            is_plain_source_reading,
+            public_response_in_scope,
+        )
 
         if is_plain_source_reading(request.query):
             # Percorso primario di lettura, non sintesi generativa né ripiego:
@@ -143,6 +171,13 @@ class LexResearchService:
                 "\nAmbiti processuali espressamente richiesti: " + ", ".join(sorted(requested_rites))
                 + ". Un URL o il titolo generale della pagina non aggiungono altri ambiti alla domanda."
             )
+        requested_remedies = explicit_public_remedies(request.query, question=True)
+        if requested_remedies:
+            prompt += (
+                "\nMezzi d'impugnazione espressamente richiesti: " + ", ".join(sorted(requested_remedies))
+                + ". Non sviluppare regole sugli altri mezzi presenti nella pagina. "
+                "Una disposizione comune può essere citata testualmente come contesto."
+            )
         isolated = replace(request, query=prompt, fascicolo_id=None, document_id=None,
                            metadata={"source_mode": "free_web", "free_web_enabled": True},
                            require_citations=True, require_official_sources=False)
@@ -164,7 +199,8 @@ class LexResearchService:
         ):
             return ProviderDraft(text="", metadata={**metadata, "status": "unsupported_source_absence_claim",
                 "reasons": ["Gli estratti parziali non dimostrano l'assenza di un dato nell'intera pagina."]})
-        draft.text, conditions, condition_status = _preserve_public_source_conditions(draft.text, rows)
+        draft.text, conditions, condition_status = _preserve_public_source_conditions(
+            draft.text, rows, requested_remedies=requested_remedies)
         if condition_status != "ok":
             return ProviderDraft(text="", metadata={**metadata, "status": condition_status,
                 "reasons": ["La condizione richiamata non corrisponde a un passaggio univoco della fonte attribuita."]})
@@ -174,6 +210,7 @@ class LexResearchService:
         # Non equivale a una verifica semantica di tutte le parafrasi.
         def normalize_quote(value):
             return " ".join(str(value).split()).casefold()
+        validated_quotes = []
         for quotation in re.finditer(r'[“"]([^”"\n]{16,})[”"]', draft.text):
             trailing = draft.text[quotation.end():quotation.end() + 100]
             attribution = re.match(r"\s*(?:\[\d+\])+", trailing)
@@ -183,6 +220,7 @@ class LexResearchService:
             if not matches or not (all(matches) if attributed else any(matches)):
                 return ProviderDraft(text="", metadata={**metadata, "status": "unsupported_source_quotation",
                     "reasons": ["La citazione testuale non corrisponde al passaggio della fonte attribuita."]})
+            validated_quotes.append(quotation.group())
         for guard in (ItalianLanguageGuard(), CitationGuard(), HallucinationGuard(), LegalAnswerQualityGuard()):
             verdict = guard.check(request=isolated, context={}, evidence=evidence, draft=draft, workflow="research")
             if not verdict.allowed:
@@ -190,7 +228,7 @@ class LexResearchService:
                                                          "reasons": list(verdict.reasons)})
             if verdict.rewritten_draft is not None:
                 draft.text = verdict.rewritten_draft
-        if not public_response_in_scope(request.query, draft.text):
+        if not public_response_in_scope(request.query, draft.text, validated_quotes=validated_quotes):
             return ProviderDraft(text="", metadata={**metadata, "status": "out_of_requested_scope",
                 "reasons": ["La risposta introduce un ambito processuale non richiesto dalla domanda."]})
         used = {int(index) for match in _public_citation_matches(draft.text)

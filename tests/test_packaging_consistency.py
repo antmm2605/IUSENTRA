@@ -52,6 +52,7 @@ def test_runtime_guard_riscontra_assenze_extra_e_versione_applicativa_senza_bloc
 
 def test_runtime_guard_non_accetta_profili_vuoti_ambigui_o_package_applicativo_fisso(tmp_path):
     import pytest
+
     from tools.check_runtime_lock import load_lock
     path = tmp_path / 'runtime.txt'
     for value in ('', 'Pillow>=12', 'pillow==12.3.0\npillow==13.0.0', 'pct-studio-legale==2.437.50'):

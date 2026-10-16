@@ -17,6 +17,48 @@ from pct import __version__
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
+
+def test_runtime_docker_bloccato_su_profilo_accettato_e_verificato_in_build():
+    from tools.check_runtime_lock import APPLICATION, load_lock
+    pins = load_lock(REPO_ROOT / 'requirements/lock/runtime-linux-py312.txt')
+    assert len(pins) == 119 and APPLICATION not in pins
+    assert pins['pillow'] == '12.3.0'
+    assert pins['sqlalchemy'] == '2.1.4'
+    assert pins['pypdf'] == '6.20.1' and pins['xsdata'] == '26.2'
+    docker = (REPO_ROOT / 'Dockerfile').read_text(encoding='utf-8')
+    assert '-c requirements/lock/runtime-linux-py312.txt' in docker
+    assert 'RUN python tools/check_runtime_lock.py --installed' in docker
+
+
+def test_runtime_guard_rifiuta_aggiornamenti_automatici_anche_se_installazione_riesce():
+    from tools.check_runtime_lock import APPLICATION, compare_runtime
+    pins = {'pillow': '12.3.0', 'sqlalchemy': '2.1.4'}
+    installed = {'Pillow': '13.0.0', 'SQLAlchemy': '2.1.5', APPLICATION: '2.437.51'}
+    result = compare_runtime(pins, installed, '2.437.51')
+    assert result['ok'] is False
+    assert {item['name'] for item in result['changed']} == {'pillow', 'sqlalchemy'}
+    assert result['missing'] == result['unexpected'] == []
+
+
+def test_runtime_guard_riscontra_assenze_extra_e_versione_applicativa_senza_bloccare_bump():
+    from tools.check_runtime_lock import APPLICATION, compare_runtime
+    pins = {'http-ece': '1.2.1'}
+    assert compare_runtime(pins, {'http_ece': '1.2.1', APPLICATION: '2.437.52'}, '2.437.52')['ok']
+    mismatch = compare_runtime(pins, {'extra': '1.0', APPLICATION: '2.437.51'}, '2.437.52')
+    assert not mismatch['ok']
+    assert mismatch['missing'] == ['http-ece'] and mismatch['unexpected'] == ['extra']
+    assert mismatch['changed'][0]['name'] == APPLICATION
+
+
+def test_runtime_guard_non_accetta_profili_vuoti_ambigui_o_package_applicativo_fisso(tmp_path):
+    import pytest
+    from tools.check_runtime_lock import load_lock
+    path = tmp_path / 'runtime.txt'
+    for value in ('', 'Pillow>=12', 'pillow==12.3.0\npillow==13.0.0', 'pct-studio-legale==2.437.50'):
+        path.write_text(value, encoding='utf-8')
+        with pytest.raises(ValueError):
+            load_lock(path)
+
 RUNTIME_HEADER = """# requirements.txt - file flat generato da requirements/base.txt
 # Non modificare a mano: usare requirements/*.txt e tools/sync_packaging_files.py
 """

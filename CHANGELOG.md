@@ -5,6 +5,7 @@
 - Elenco fascicoli selezionato nel catalogo SQL prima del trasferimento: soltanto la pagina richiesta, ricerca e filtri sull’intero archivio.
 - Conteggi e ordinamenti nativi preservati; aggiornamenti puntuali tramite outbox condivisa, con backup e preparazione a lotti.
 - Eliminati caricamenti anticipati delle pagine e della vista economica non richiesta; errori espliciti con ripresa.
+- Build Docker vincolata alle dipendenze della release accettata, con controllo automatico di versioni, assenze e package inattesi prima del rilascio.
 - Collaudo reale e rilascio ancora da eseguire. Nessuna modifica ad addestramento o ai flussi congelati.
 
 ## 2.437.50 — candidata, 16/10/2026

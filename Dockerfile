@@ -38,7 +38,7 @@ COPY pyproject.toml .
 COPY packaging_manifest.py .
 COPY requirements ./requirements
 COPY pct/__init__.py pct/__init__.py
-RUN pip install --no-cache-dir --timeout 120 -c requirements/lock/runtime-pdf.txt ".[pdf,pades,pkcs11]" "gunicorn>=23.0.0,<24" "gevent>=24.2.0,<25"
+RUN pip install --no-cache-dir --timeout 120 -c requirements/lock/runtime-linux-py312.txt ".[pdf,pades,pkcs11]" "gunicorn>=23.0.0,<24" "gevent>=24.2.0,<25"
 COPY scripts/install_pdf_ocr_runtime.py /build/install_pdf_ocr_runtime.py
 RUN python /build/install_pdf_ocr_runtime.py --destination /ocr-runtime
 
@@ -196,6 +196,7 @@ COPY pct/__init__.py /app/pct/__init__.py
 COPY web /app/web
 COPY lex /app/lex
 COPY docker/entrypoint.py /usr/local/bin/iusentra-entrypoint.py
+RUN python tools/check_runtime_lock.py --installed
 RUN find /app -type d -name '__pycache__' -prune -exec rm -rf {} + \
     && find /app -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete \
     && rm -rf /app/web/static/react

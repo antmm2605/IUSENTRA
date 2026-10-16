@@ -169,6 +169,8 @@ def verify_provider() -> tuple[int, int, int, int]:
         app = create_app(_cfg_web(root))
         app.config["API_KEY"] = "provider-contract-key"
         _crea_operatore(app)
+        from tests.fascicoli_list_test_support import prepare_list_catalog
+        prepare_list_catalog(app)
 
         auth_errors = 0
         safe_public_errors = 0

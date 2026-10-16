@@ -5,6 +5,25 @@ from tests.test_react_shell import _app
 from tests.test_fascicoli_pagination import _seed_fascicoli
 
 
+def test_catalogo_fonti_assente_resta_errore_esplicito_senza_creazione_nella_get(tmp_path):
+    from tests.fascicoli_list_test_support import prepare_list_catalog
+    app = _app(tmp_path, sql_fascicoli_list=True)
+    _seed_fascicoli(app, 1)
+    registry = tmp_path / 'intelligence' / 'registro_letture.db'
+    assert not registry.exists()
+    with app.test_client() as client:
+        response = client.get('/api/v1/ui/fascicoli', headers={'X-API-Key': 'react-test-key'})
+        assert response.status_code == 503
+        payload = response.get_json()
+        assert payload['code'] == 'fascicoli_catalog_not_ready'
+        assert 'items' not in payload and str(tmp_path) not in json.dumps(payload)
+        assert not registry.exists()
+        prepare_list_catalog(app)
+        response = client.get('/api/v1/ui/fascicoli', headers={'X-API-Key': 'react-test-key'})
+        assert response.status_code == 200
+        assert response.get_json()['pagination']['total'] == 1
+
+
 def test_preparazione_backup_persistenza_e_pagina_primaria(tmp_path, monkeypatch):
     from web.services.document_intelligence_runtime import document_ai_tenant_id
     from web.services.fascicoli_list_preparation import prepare_catalog

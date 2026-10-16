@@ -8868,7 +8868,8 @@ def fascicoli_react_list():
         response = jsonify(provider(**params))
     except FascicoliListNotReady:
         current_app.logger.warning("Catalogo fascicoli non ancora confermato per la pagina richiesta.")
-        return jsonify({"ok": False, "message": "Aggiornamento dei fascicoli in corso. Riprova tra poco."}), 503
+        return jsonify({"ok": False, "code": "fascicoli_catalog_not_ready",
+                        "message": "Aggiornamento dei fascicoli in corso. Riprova tra poco."}), 503
     # Quanto costa l'elenco e dove: leggibile negli strumenti del browser.
     fasi = ", ".join(f"{nome};dur={durata}" for nome, durata in list(fasi_lente(20).items())[:10])
     totale = f"elenco;dur={round(1000 * (time.monotonic() - inizio))}"

@@ -25,7 +25,10 @@ def catalog_exists(conn, table, *, postgres=False):
 
 
 def registry_ready(tenant):
-    registry = registro_corrente(sola_lettura=True)
+    try:
+        registry = registro_corrente(sola_lettura=True)
+    except FileNotFoundError as exc:
+        raise FascicoliListNotReady('Catalogo delle fonti non preparato: recupero governato necessario.') from exc
     with connessione_registro(registry) as conn:
         if not catalog_exists(conn, 'fascicoli_list_registry_owner', postgres=registry.backend_kind == 'postgres'):
             raise FascicoliListNotReady('Catalogo delle fonti non preparato: recupero governato necessario.')

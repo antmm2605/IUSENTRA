@@ -34,17 +34,19 @@ def catalogo_fonti_ufficiali(message: str) -> list[dict[str, Any]]:
     return [dict(row) for row in list(route.get("source_rows") or [])[:4]]
 
 
-def search_normativa_sources(message: str) -> list[LexSource]:
+def search_normativa_sources(message: str, *, diagnostics: list[str] | None = None, exact_reference_only: bool = False) -> list[LexSource]:
     """Evidenze normative: solo testo di norma dell'archivio Normattiva (e Gazzetta).
 
     Le righe di catalogo ("Area ...; motore ...; capacita ...") non sono evidenze:
     non dicono nulla sulla domanda e, con punteggio alto, scavalcavano le norme.
     """
 
-    return _dedupe_sources(_official_archive_sources(message))
+    return _dedupe_sources(_official_archive_sources(message, diagnostics=diagnostics, exact_reference_only=exact_reference_only))
 
 
-def _official_archive_sources(message: str) -> list[LexSource]:
+def _official_archive_sources(message: str, *, diagnostics: list[str] | None = None, exact_reference_only: bool = False) -> list[LexSource]:
+    from .normativa_catalog import NormativaIndexUnavailable
+
     query = str(message or "").strip()
     if not query:
         return []
@@ -53,15 +55,21 @@ def _official_archive_sources(message: str) -> list[LexSource]:
         try:
             # Si leggono 8 risultati e si tengono i primi 4 pertinenti: un risultato scartato
             # non deve far perdere l'articolo che lo segue in classifica.
-            for row in _search_normattiva(query, limit=8):
+            for row in _search_normattiva(query, limit=8, diagnostics=diagnostics):
+                if exact_reference_only and row.get("riferimento_esatto") is not True:
+                    continue
                 if not _riga_pertinente(query, row):
                     continue
                 sources.append(_archive_row_to_source(row, source_type="normativa_normattiva", default_title="Normattiva"))
                 if len(sources) >= 4:
                     break
+        except NormativaIndexUnavailable:
+            if diagnostics is not None:
+                diagnostics.append("normativa_index_unavailable")
+            logger.warning("Indice Normattiva non disponibile per la ricerca locale.")
         except Exception:
             pass
-    if _search_gazzetta is not None:
+    if _search_gazzetta is not None and not exact_reference_only:
         try:
             for row in _search_gazzetta(query, limit=2):
                 # La Gazzetta non ha l'indice di pertinenza: si controllano i termini sul testo.
@@ -178,12 +186,25 @@ def _archive_row_to_source(row: dict[str, Any], *, source_type: str, default_tit
         "verified_reference": True,
         "archive_context": True,
         "titolo_archivio": row.get("titolo") or "",
+        "source_hash": row.get("hash_sha256") or "",
+        "acquired_at": row.get("data_acquisizione") or "",
+        "archive_catalog": row.get("archive_catalog") or "",
+        "index_status": row.get("index_status") or "",
+        "index_coverage": row.get("index_coverage") or "",
+        "document_id": row.get("document_id"),
+        "chunk_rowid": row.get("chunk_rowid"),
     }
     articolo = _articolo_fonte(row) if source_type == "normativa_normattiva" else ""
     if articolo:
         metadata["articolo"] = articolo
+    urn = str(row.get("url_origine") or "").strip()
+    if source_type == "normativa_normattiva" and urn.startswith("urn:nir:stato:"):
+        from lex.testi_ufficiali import chiave_articolo, collegamento_normattiva
+
+        metadata["urn"] = urn
+        metadata["official_url"] = collegamento_normattiva(urn.split("!")[0].split("~")[0], chiave_articolo(articolo))
     vigenza = str(row.get("vigenza") or "").strip().lower()
-    if vigenza in {"vigente", "originale"}:
+    if vigenza:
         metadata["vigenza"] = vigenza
     return LexSource(
         source_type=source_type,

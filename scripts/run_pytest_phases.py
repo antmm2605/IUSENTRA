@@ -135,6 +135,7 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
         REPO_ROOT / "tests" / "test_tariffario.py",
     ),
     "coverage-critical": (
+        REPO_ROOT / "tests" / "test_normativa_runtime_catalog.py",
         REPO_ROOT / "tests" / "test_public_source_html_charset.py",
         REPO_ROOT / "tests" / "test_public_source_html_structure.py",
         REPO_ROOT / "tests" / "test_public_page_reader.py",
@@ -208,6 +209,7 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
     ),
 }
 CORE_TARGETS: tuple[Path, ...] = (
+    REPO_ROOT / "tests" / "test_normativa_runtime_catalog.py",
     REPO_ROOT / "tests" / "test_public_source_html_charset.py",
     REPO_ROOT / "tests" / "test_public_source_html_structure.py",
     REPO_ROOT / "tests" / "test_public_page_reader.py",

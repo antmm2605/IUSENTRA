@@ -220,7 +220,7 @@ class ProfessionalAnswerComposer:
             human_review_required=human_review_required,
         )
         if confidence_lines and not astensione:
-            sections.append(("Qualita della risposta", confidence_lines))
+            sections.append(("Qualità della risposta", confidence_lines))
 
         # ------------------------------------------------------------------ #
         # Sezione 9 — Missing evidence                                         #
@@ -372,7 +372,7 @@ class ProfessionalAnswerComposer:
             if evidence_sufficient and evidence_count:
                 lines.append(
                     "Le evidenze ufficiali disponibili supportano la risposta con "
-                    f"attendibilita' {quality_label} ({round(confidence * 100)}%)."
+                    f"attendibilità {quality_label} ({round(confidence * 100)}%)."
                 )
             elif evidence_count:
                 lines.append(
@@ -388,7 +388,7 @@ class ProfessionalAnswerComposer:
             if evidence_sufficient:
                 lines.append(
                     f"Ragionamento su evidenze operative sufficienti "
-                    f"(attendibilita': {quality_label})."
+                    f"(attendibilità: {quality_label})."
                 )
             elif evidence_count:
                 lines.append(
@@ -465,7 +465,7 @@ class ProfessionalAnswerComposer:
         human_review_required: bool,
     ) -> list[str]:
         pct = round(confidence * 100)
-        lines = [f"Attendibilita': {quality_label} ({pct}%)."]
+        lines = [f"Attendibilità: {quality_label} ({pct}%)."]
         if human_review_required:
             lines.append(
                 "Revisione professionale richiesta prima di uso esterno, "

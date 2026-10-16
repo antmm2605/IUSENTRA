@@ -1,0 +1,3 @@
+# Versioni PDF della release accettata 2.437.48; aggiornamenti separati e collaudati.
+pypdf==6.20.1
+xsdata==26.2

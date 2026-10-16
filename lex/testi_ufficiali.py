@@ -4,9 +4,8 @@ Quando l'avvocato chiede il testo di un articolo («art. 2043 c.c.», «art. 3-b
 L. 53/1994») o una sentenza precisa («Cass. n. 12345/2023»), Lex non lo chiede
 a un modello linguistico e non lo ricostruisce a memoria:
 
-* l'articolo si legge dall'archivio Normattiva locale (``normattiva.sqlite``),
-  alimentato ogni notte dalle raccolte ufficiali di Normattiva (Codici e leggi
-  fondamentali dello studio). Si riporta il testo come importato, con l'URN,
+* l'articolo si legge dai cataloghi ufficiali locali già acquisiti.
+  Si riporta il testo come importato, con l'URN,
   il collegamento ufficiale all'articolo e la data dell'importazione;
 * la sentenza si cerca nell'archivio giurisprudenza dello studio, alimentato
   dalle fonti ufficiali (Corte di cassazione, Corte costituzionale, giustizia
@@ -26,9 +25,12 @@ from __future__ import annotations
 import re
 import sqlite3
 import unicodedata
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Iterable
+from typing import Any
+
+from pct.formatting import format_date_it
 
 NORMATTIVA_URI = "https://www.normattiva.it/uri-res/N2Ls?"
 SENTENZEWEB = "https://www.italgiure.giustizia.it/sncass/"
@@ -56,9 +58,9 @@ CODICI: tuple[Codice, ...] = (
     Codice("disp_att_cpp", "norme di attuazione del c.p.p.", "urn:nir:stato:decreto.legislativo:1989-07-28;271",
            ("disp. att. c.p.p.", "disp att cpp", "norme di attuazione del codice di procedura penale")),
     Codice("cpc", "codice di procedura civile", "urn:nir:stato:regio.decreto:1940-10-28;1443",
-           ("c.p.c.", "cpc", "codice di procedura civile", "cod. proc. civ.")),
+           ("c.p.c.", "cpc", "codice di procedura civile", "codice procedura civile", "procedura civile", "cod. proc. civ.")),
     Codice("cpp", "codice di procedura penale", "urn:nir:presidente.repubblica:decreto:1988-09-22;447",
-           ("c.p.p.", "cpp", "codice di procedura penale", "cod. proc. pen.")),
+           ("c.p.p.", "cpp", "codice di procedura penale", "codice procedura penale", "procedura penale", "cod. proc. pen.")),
     Codice("cc", "codice civile", "urn:nir:stato:regio.decreto:1942-03-16;262",
            ("c.c.", "cc", "codice civile", "cod. civ.")),
     Codice("cp", "codice penale", "urn:nir:stato:regio.decreto:1930-10-19;1398",
@@ -79,6 +81,38 @@ TIPI_ATTO: tuple[tuple[str, str, str], ...] = (
 )
 
 
+def _urn_canonico(urn: str) -> str:
+    """Equivalenza del tipo di atto NIR, conservando data e numero interi."""
+    return str(urn or "").replace(
+        "urn:nir:stato:decreto.del.presidente.della.repubblica:",
+        "urn:nir:presidente.repubblica:decreto:", 1,
+    )
+
+
+def _varianti_urn(urn: str) -> tuple[str, ...]:
+    canonical = _urn_canonico(urn)
+    legacy = canonical.replace(
+        "urn:nir:presidente.repubblica:decreto:",
+        "urn:nir:stato:decreto.del.presidente.della.repubblica:", 1,
+    )
+    return tuple(dict.fromkeys((canonical, legacy)))
+
+
+def collegamento_normattiva(urn: str, articolo: str = "") -> str:
+    if not urn:
+        return "https://www.normattiva.it/"
+    urn = _urn_canonico(urn)
+    # I codici allegati non sono gli articoli del decreto di approvazione.
+    # Il c.p.p., invece, è nel corpo principale: non aggiungere un allegato.
+    allegati = {"cpc": 1, "cc": 2, "cp": 1, "disp_att_cpc": 1, "disp_att_cpp": 1}
+    if articolo:
+        for codice in CODICI:
+            if urn == codice.urn and codice.chiave in allegati:
+                urn = f"{urn}:{allegati[codice.chiave]}"
+                break
+    return f"{NORMATTIVA_URI}{urn}" + (f"~art{articolo}" if articolo else "")
+
+
 @dataclass(frozen=True)
 class RichiestaArticolo:
     numero: str          # «2043», «3-bis»
@@ -92,10 +126,7 @@ class RichiestaArticolo:
         return f"art. {self.numero} {self.etichetta_atto}"
 
     def collegamento(self, urn: str = "") -> str:
-        base = urn or self.urn
-        if not base:
-            return "https://www.normattiva.it/"
-        return f"{NORMATTIVA_URI}{base}~art{self.chiave}"
+        return collegamento_normattiva(urn or self.urn, self.chiave)
 
 
 @dataclass(frozen=True)
@@ -166,19 +197,33 @@ def _connessione(percorso: str | Path) -> sqlite3.Connection | None:
     return conn
 
 
-def _documenti(conn: sqlite3.Connection, richiesta: RichiestaArticolo) -> list[sqlite3.Row]:
+def _documenti(conn: sqlite3.Connection, richiesta: RichiestaArticolo, *, document_id: int | None = None) -> list[sqlite3.Row]:
     colonne = "id, urn, titolo, vigenza, data_pubblicazione, imported_at, collection_name"
-    if richiesta.urn:
+    if document_id is not None:
+        righe = conn.execute(f"SELECT {colonne} FROM normative_documents WHERE id = ?", (document_id,)).fetchall()
+        if richiesta.urn:
+            wanted = _urn_canonico(richiesta.urn)
+            righe = [r for r in righe if _urn_canonico(r["urn"]) == wanted
+                     or _urn_canonico(r["urn"]).startswith((wanted + "!", wanted + "~"))]
+        else:
+            tipo, anno, numero = richiesta.urn_parti
+            righe = [r for r in righe if f":{tipo}:{anno}-" in _urn_canonico(r["urn"])
+                     and re.search(rf":{anno}-\d\d-\d\d;{numero}(?!\d)", r["urn"] or "")]
+    elif richiesta.urn:
+        variants = _varianti_urn(richiesta.urn)
         righe = conn.execute(
-            f"SELECT {colonne} FROM normative_documents WHERE urn = ? OR urn LIKE ? OR urn LIKE ?",
-            (richiesta.urn, richiesta.urn + "!%", richiesta.urn + "~%"),
+            f"SELECT {colonne} FROM normative_documents WHERE " + " OR ".join(
+                "(urn = ? OR urn LIKE ? OR urn LIKE ?)" for _ in variants
+            ),
+            tuple(value for urn in variants for value in (urn, urn + "!%", urn + "~%")),
         ).fetchall()
     else:
         tipo, anno, numero = richiesta.urn_parti
+        tipi = (tipo, "stato:decreto.del.presidente.della.repubblica") if tipo == "presidente.repubblica:decreto" else (tipo,)
         righe = [
             r for r in conn.execute(
-                f"SELECT {colonne} FROM normative_documents WHERE urn LIKE ? AND urn LIKE ?",
-                (f"%{tipo}%", f"%:{anno}-%"),
+                f"SELECT {colonne} FROM normative_documents WHERE (" + " OR ".join("urn LIKE ?" for _ in tipi) + ") AND urn LIKE ?",
+                tuple(f"%{item}%" for item in tipi) + (f"%:{anno}-%",),
             ).fetchall()
             if re.search(rf":{anno}-\d\d-\d\d;{numero}(?!\d)", r["urn"] or "")
         ]
@@ -187,11 +232,12 @@ def _documenti(conn: sqlite3.Connection, richiesta: RichiestaArticolo) -> list[s
         # Una raccolta più recente non può sostituire quella richiesta.
         righe = [r for r in righe if not str(r["collection_name"] or "").startswith("Lex fonti: ")
                  or r["collection_name"] == "Lex fonti: codice_civile"]
-    # Più recente prima: l'importazione notturna aggiorna il testo vigente.
+    # Più recente prima, senza attestare la vigenza attuale.
     return sorted(righe, key=lambda r: (str(r["imported_at"] or ""), int(r["id"])), reverse=True)
 
 
-def testo_articolo(percorso_db: str | Path, richiesta: RichiestaArticolo) -> dict[str, Any] | None:
+def testo_articolo(percorso_db: str | Path, richiesta: RichiestaArticolo, *, document_id: int | None = None,
+                   article_id: int | None = None) -> dict[str, Any] | None:
     """Il testo dell'articolo come importato da Normattiva, o None se l'archivio non lo contiene."""
     try:
         conn = _connessione(percorso_db)
@@ -200,11 +246,16 @@ def testo_articolo(percorso_db: str | Path, richiesta: RichiestaArticolo) -> dic
     if conn is None:
         return None
     try:
-        for documento in _documenti(conn, richiesta):
+        for documento in _documenti(conn, richiesta, document_id=document_id):
+            # Il codice civile può avere due articoli con lo stesso numero
+            # nello stesso atto: resta la scelta nativa dell'ultimo (non preleggi).
+            point_article = article_id is not None and richiesta.urn != _URN_CODICE_CIVILE
+            article_clause = " AND id = ?" if point_article else ""
+            params = (documento["id"], article_id) if point_article else (documento["id"],)
             articoli = [
                 a for a in conn.execute(
-                    "SELECT id, article_number, article_text FROM normative_articles WHERE document_id = ? ORDER BY id",
-                    (documento["id"],),
+                    "SELECT id, article_number, article_text FROM normative_articles WHERE document_id = ?" + article_clause + " ORDER BY id",
+                    params,
                 ).fetchall()
                 if chiave_articolo(a["article_number"] or "") == richiesta.chiave and len(a["article_text"] or "") >= 12
             ]
@@ -290,18 +341,50 @@ def _blocco_citato(testo: str) -> str:
     return "\n".join("> " + riga if riga.strip() else ">" for riga in str(testo).splitlines())
 
 
-def risposta_articolo(domanda: str, percorso_db: str | Path) -> dict[str, Any] | None:
+def risposta_articolo(domanda: str, percorso_db: str | Path, *, runtime_catalog: bool = False) -> dict[str, Any] | None:
     richiesta = riconosci_articolo(domanda)
     if richiesta is None:
         return None
-    trovato = testo_articolo(percorso_db, richiesta)
+    diagnostics = []
+    trovato = None
+    if runtime_catalog:
+        from lex.retrieval.normativa_catalog import (
+            NormativaIndexUnavailable,
+            diagnostic_messages,
+            query_indexed_catalogs,
+            runtime_general_path,
+        )
+
+        try:
+            codes = []
+            general = Path(percorso_db) if percorso_db else runtime_general_path()
+            for path, _, rows in query_indexed_catalogs(general, richiesta.citazione, limit=8, diagnostics=codes):
+                for row in rows:
+                    document_id = row.get("document_id")
+                    article_id = (row.get("metadata") or {}).get("article_id")
+                    if row.get("riferimento_esatto") is not True or not isinstance(document_id, int) or not isinstance(article_id, int):
+                        continue
+                    trovato = testo_articolo(path, richiesta, document_id=document_id, article_id=article_id)
+                    if trovato is not None:
+                        break
+                if trovato is not None:
+                    break
+            diagnostics = diagnostic_messages(codes)
+        except NormativaIndexUnavailable:
+            return {
+                "testo": diagnostic_messages(["normativa_index_unavailable"])[0],
+                "fonti": [],
+                "tipo": "testo_articolo_indice_non_disponibile",
+            }
+    else:
+        trovato = testo_articolo(percorso_db, richiesta)
     if trovato is None:
         collegamento = richiesta.collegamento()
         return {
             "testo": (
-                f"Il testo dell'{richiesta.citazione} non è nell'archivio Normattiva di IUSENTRA, quindi non lo riporto: "
+                f"Il testo dell'{richiesta.citazione} non è stato reperito nella consultazione Normattiva eseguita, quindi non lo riporto: "
                 "non ricostruisco a memoria il testo di una norma. Puoi leggerlo nella versione vigente sulla fonte "
-                f"ufficiale: {collegamento}"
+                f"ufficiale: {collegamento}" + ("\n\n" + "\n".join(diagnostics) if diagnostics else "")
             ),
             "fonti": [{"title": f"Normattiva — {richiesta.citazione}", "url": collegamento}],
             "tipo": "testo_articolo_assente",
@@ -309,14 +392,18 @@ def risposta_articolo(domanda: str, percorso_db: str | Path) -> dict[str, Any] |
     collegamento = richiesta.collegamento(trovato["urn"].split("!")[0].split("~")[0])
     righe = [
         f"**{richiesta.citazione[0].upper()}{richiesta.citazione[1:]}** — testo dall'archivio Normattiva di IUSENTRA "
-        f"(importato il {trovato['importato_il'] or 'data non registrata'}):",
+        f"(importato il {format_date_it(trovato['importato_il']) or 'data non registrata'}):",
         "",
         _blocco_citato(trovato["testo"]),
         "",
         f"Fonte ufficiale: {collegamento}",
     ]
     if trovato["vigenza"]:
-        righe.append(f"Versione dell'archivio: {trovato['vigenza']}.")
+        versione = trovato["vigenza"]
+        if versione.upper() == "EDIZIONE_ACQUISITA":
+            versione = "edizione acquisita, vigenza attuale non attestata"
+        righe.append(f"Versione dell'archivio: {versione}.")
+    righe.extend(diagnostics)
     righe.append("Prima di citarlo in un atto verifica sulla fonte ufficiale le modifiche successive all'importazione.")
     return {
         "testo": "\n".join(righe),

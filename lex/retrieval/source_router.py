@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from .sources.agenda import AgendaSource
 from .sources.applicazioni import ApplicazioniSource
 from .sources.compliance import ComplianceSource
@@ -128,10 +130,31 @@ def _domanda_senza_segnali(request, workflow: str) -> bool:
         return False
 
 
+def requests_local_normative_only(request, workflow: str) -> bool:
+    """Un riferimento normativo esatto limitato esplicitamente ai testi locali."""
+    metadata = dict(getattr(request, "metadata", {}) or {})
+    if (workflow != "normativa" or _is_free_web_request(request)
+            or getattr(request, "fascicolo_id", None) or getattr(request, "document_id", None)
+            or metadata.get("attachments") or metadata.get("attachment_count") or metadata.get("attachment_evidence_count")):
+        return False
+    query = _clean_spaces(getattr(request, "query", "")).lower()
+    if re.search(r"\bnon\s+(?:\w+\s+){0,3}(?:solo|soltanto|esclusivamente)\b", query):
+        return False
+    if re.search(r"giurispruden|sentenz|pronunc|precedent|orientament|cassazion|corte costituzional|gazzetta|\bprassi\b", query):
+        return False
+    if not re.search(r"\b(?:solo|soltanto|esclusivamente)\b.{0,70}\b(?:fonti|testi|biblioteca|normativa)\b.{0,40}\b(?:local\w*|acquisit\w*)", query):
+        return False
+    from lex.ricerca_giuridica.testo import analizza_domanda
+
+    return analizza_domanda(query, usa_tesauro=False).riferimento_esatto
+
+
 class SourceRouter:
     def resolve(self, request, context, workflow: str):
         if _is_free_web_request(request):
             return [OfficialWebSource()]
+        if requests_local_normative_only(request, workflow):
+            return [NormativeSource(exact_reference_only=True)]
 
         solo_giuridiche = workflow in _WORKFLOW_GIURIDICI and not request.fascicolo_id
         local_sources = [] if solo_giuridiche else [StudioDatabaseSource(), GuidaPraticaSource()]

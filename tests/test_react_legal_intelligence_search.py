@@ -947,7 +947,7 @@ def test_ricerca_legale_legge_archivi_normattiva_e_gazzetta_locali(monkeypatch):
     monkeypatch.setattr(
         bridge,
         "_search_normattiva",
-        lambda query, limit=8: [
+        lambda query, limit=8, diagnostics=None: [
             {
                 "chunk_id": "normattiva:1",
                 "document_id": 10,

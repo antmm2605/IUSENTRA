@@ -1388,7 +1388,8 @@
       return;
     }
 
-    var followLatest = messages && messages.scrollHeight - messages.scrollTop - messages.clientHeight < 48;
+    var scrollState = captureConversationScroll();
+    var followLatest = scrollState && scrollState.followLatest;
     var elapsed = thinkingElapsedMs();
     var stage = Math.max(
       Number(state.thinking.stage || 0),
@@ -1404,6 +1405,7 @@
         var phaseChanged = phaseNote.textContent !== state.thinking.serverProgress;
         if (phaseChanged) phaseNote.textContent = state.thinking.serverProgress;
         if (followLatest && phaseChanged) scrollBottom();
+        else if (scrollState && !followLatest) messages.scrollTop = scrollState.top;
         return;
       }
     }
@@ -1417,6 +1419,7 @@
       )
     );
     if (followLatest) scrollBottom();
+    else if (scrollState) messages.scrollTop = scrollState.top;
   }
 
   function ensureThinkingNote(stage) {
@@ -2154,6 +2157,7 @@
     if (ctx && ctxLabel && label) {
       ctx.hidden = false;
       ctxLabel.textContent = label;
+      ctx.classList.toggle('pct-ai-ctx--overview', label === 'Contesto panoramica');
     }
     if (previous && previous !== state.pageContext.context + '|' + state.pageContext.label + '|' + state.pageContext.pagePath) {
       state.contextWarmStarted = false;
@@ -2232,6 +2236,7 @@
       if (!state.fascId && parsed && parsed.contextLabel && ctx && ctxLabel) {
         ctx.hidden = false;
         ctxLabel.textContent = String(parsed.contextLabel);
+        ctx.classList.toggle('pct-ai-ctx--overview', String(parsed.contextLabel) === 'Contesto panoramica');
       }
       if (parsed && parsed.pageContext && typeof parsed.pageContext === 'object') {
         state.pageContext = parsed.pageContext;
@@ -2266,8 +2271,20 @@
     };
   }
 
+  function answerStateMemory(payload) {
+    return {
+      confidence: payload.confidence,
+      confidence_label: String(payload.confidenceLabel || payload.confidence_label || ''),
+      confidence_reason: String(payload.confidenceReason || payload.confidence_reason || ''),
+      sources: Array.isArray(payload.sources) ? payload.sources.slice(0, 12) : [],
+      citations: Array.isArray(payload.citations) ? payload.citations.slice(0, 12) : [],
+      warnings: Array.isArray(payload.warnings) ? payload.warnings.slice(0, 16) : [],
+      disable_exports: Boolean(payload.disable_exports || payload.disableExports),
+    };
+  }
+
   function conversationEntryPayload(entry) {
-    var payload = Object.assign({}, entry.meta && entry.meta.publicAnswer || {}, {
+    var payload = Object.assign({}, entry.meta && (entry.meta.publicAnswer || entry.meta.answerState) || {}, {
       answer: entry.content || '',
       referenceLabel: entry.meta && entry.meta.referenceLabel ? entry.meta.referenceLabel : '',
     });
@@ -2392,7 +2409,7 @@
       return;
     }
     input.style.height = 'auto';
-    input.style.height = Math.min(input.scrollHeight, 132) + 'px';
+    input.style.height = input.value ? Math.min(input.scrollHeight, 132) + 'px' : '44px';
   }
 
   function setOpen(nextOpen, options) {
@@ -2668,7 +2685,6 @@
 
   function sendLocal(text) {
     var publicProtocol = Boolean(state.freeWebEnabled);
-    var preservePublicScroll = Boolean(state.freeWebEnabled || publicPageRequestHint(text));
     var payload = buildChatRequestPayload(text);
     var referenceLabel = state.pendingFocus && state.pendingFocus.focusLabel ? String(state.pendingFocus.focusLabel) : '';
     var finished = false;
@@ -2679,12 +2695,14 @@
       }
       finished = true;
       if (ok === false) finalPayload.disableExports = true;
-      var scrollState = preservePublicScroll ? captureConversationScroll() : null;
+      var scrollState = captureConversationScroll();
       setAnswerPayload(state.currentBubble, finalPayload);
-      var historyMeta = { topic: state.pendingFocus && state.pendingFocus.topic || '', referenceLabel: referenceLabel };
+      var historyMeta = { topic: state.pendingFocus && state.pendingFocus.topic || '',
+        referenceLabel: Object.prototype.hasOwnProperty.call(finalPayload, 'referenceLabel') ? finalPayload.referenceLabel : referenceLabel };
       if (ok === false) historyMeta.requestFailed = true;
       var publicMemory = publicAnswerMemory(finalPayload);
       if (publicMemory) historyMeta.publicAnswer = publicMemory;
+      else historyMeta.answerState = answerStateMemory(finalPayload);
       state.history.push({ role: 'assistant', content: finalPayload.answer, meta: historyMeta });
       saveConversationMemory();
       speakAnswer(finalPayload.answer);
@@ -2758,7 +2776,6 @@
               var data = JSON.parse(raw);
               if (data.source_mode === 'free_web') {
                 publicProtocol = true;
-                preservePublicScroll = true;
               }
               if (data.progress && state.thinking && !finished) {
                 state.thinking.serverProgress = String(data.progress);
@@ -2780,10 +2797,12 @@
                 return;
               }
               if (data.token) {
+                var tokenScroll = captureConversationScroll();
                 markThinkingTokenReceived();
                 full += data.token;
                 setBubbleContent(state.currentBubble, full);
-                scrollBottom();
+                if (tokenScroll && !tokenScroll.followLatest) messages.scrollTop = tokenScroll.top;
+                else scrollBottom();
               }
             } catch (error) {
               finish(
@@ -2923,19 +2942,24 @@
           openingLine: preparedOpeningLine,
           legalReferenceGuardActive: Boolean(payload.legalReferenceGuardActive || preparedLegalReferenceGuardActive)
         });
+        var preparedScroll = captureConversationScroll();
+        var preparedHistoryMeta = {
+          topic: state.pendingFocus && state.pendingFocus.topic || '',
+          referenceLabel: payload.referenceLabel,
+        };
+        var preparedPublicMemory = publicAnswerMemory(payload);
+        if (preparedPublicMemory) preparedHistoryMeta.publicAnswer = preparedPublicMemory;
+        else preparedHistoryMeta.answerState = answerStateMemory(payload);
         setAnswerPayload(state.currentBubble, payload);
         state.history.push({
           role: 'assistant',
           content: String(payload.answer || '').trim(),
-          meta: {
-            topic: state.pendingFocus && state.pendingFocus.topic || '',
-            referenceLabel: payload.referenceLabel,
-          },
+          meta: preparedHistoryMeta,
         });
         saveConversationMemory();
         speakAnswer(payload.answer || '');
         finalizeThinkingFeedback(true);
-        finalizeRequest('Risposta generata sul dispositivo locale.');
+        finalizeRequest('Risposta generata sul dispositivo locale.', preparedScroll);
       })
       .catch(function (error) {
         if (!error || !error.__companionStage) {
@@ -3878,11 +3902,14 @@
     }
 
     window.addEventListener('resize', function () {
-      if (isDesktop()) {
-        restorePosition();
+      var reading = captureConversationScroll();
+      if (state.open && !isDesktop()) {
+        setFullscreen(true, { persist: false, silent: true });
       } else {
         restorePosition();
       }
+      if (reading && reading.followLatest) scrollBottom();
+      else if (reading) messages.scrollTop = reading.top;
     });
     window.addEventListener('keydown', function (event) {
       if (event.key === 'Escape' && state.fullscreen) {
@@ -3902,6 +3929,7 @@
     if (state.fascId && ctx && ctxLabel) {
       ctx.hidden = false;
       ctxLabel.textContent = 'Contesto fascicolo attivo';
+      ctx.classList.remove('pct-ai-ctx--overview');
       saveConversationMemory();
     }
   }
@@ -3914,6 +3942,8 @@
     sendButton = query('pct-ai-send');
     statusBar = query('pct-ai-status');
     messages = query('pct-ai-messages');
+    // Lo scroll è governato dalla lettura, non dall’ancoraggio dei nodi sostituiti.
+    if (messages) messages.style.overflowAnchor = 'none';
     ctx = query('pct-ai-ctx');
     ctxLabel = query('pct-ai-ctx-label');
     badge = query('pct-ai-model-badge');
@@ -3986,6 +4016,11 @@
       resolveConversationFocus: resolveConversationFocus,
       setFreeWebEnabled: setFreeWebEnabled,
       sendLocalForTest: sendLocal,
+      renderThinkingForTest: function () {
+        state.thinking = { active: true, question: "Domanda controllata", startedAt: Date.now(), stage: 0, receivedFirstToken: false };
+        renderThinkingStatus();
+        state.thinking = null;
+      },
       publicAnswerMemory: publicAnswerMemory,
       conversationEntryPayload: conversationEntryPayload,
       historyForTest: function () { return state.history.slice(); },

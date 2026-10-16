@@ -80,6 +80,12 @@ def run_workflow(orchestrator, request):
         draft=draft,
         verdict=post,
     )
+    from .retrieval.normativa_catalog import diagnostic_messages
+
+    codes = (evidence.get("evidence_pack") or {}).get("metadata", {}).get("normativa_diagnostics") or []
+    if codes:
+        response.warnings = list(dict.fromkeys([*response.warnings, *diagnostic_messages(codes)]))
+        response.metadata["normativa_diagnostics"] = codes
 
     if orchestrator.memory is not None:
         orchestrator.memory.persist(request, workflow, context, evidence, response)

@@ -1,4 +1,4 @@
-#  version: 2.437.48
+#  version: 2.437.49
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -38,7 +38,7 @@ COPY pyproject.toml .
 COPY packaging_manifest.py .
 COPY requirements ./requirements
 COPY pct/__init__.py pct/__init__.py
-RUN pip install --no-cache-dir --timeout 120 ".[pdf,pades,pkcs11]" "gunicorn>=23.0.0,<24" "gevent>=24.2.0,<25"
+RUN pip install --no-cache-dir --timeout 120 -c requirements/lock/runtime-pdf.txt ".[pdf,pades,pkcs11]" "gunicorn>=23.0.0,<24" "gevent>=24.2.0,<25"
 COPY scripts/install_pdf_ocr_runtime.py /build/install_pdf_ocr_runtime.py
 RUN python /build/install_pdf_ocr_runtime.py --destination /ocr-runtime
 
@@ -125,7 +125,7 @@ RUN corepack enable \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.437.48" \
+      org.opencontainers.image.version="2.437.49" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 

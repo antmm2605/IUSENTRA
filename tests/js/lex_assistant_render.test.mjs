@@ -247,6 +247,8 @@ async function publicStreamCase({ incomplete = false, atBottom = false, publicMo
     : tokenOnly ? [{ token: 'Risposta ordinaria ricevuta.' }] : [{ progress: 'Leggo la pagina pubblica.', source_mode: publicResult ? 'free_web' : undefined }]
   if (!incomplete && !tokenOnly && !serverError) frames.push({ payload: {
     answer: 'Il passaggio è disponibile [1].', disable_exports: true,
+    reference_label: publicResult ? '' : 'ricerca normativa locale',
+    confidence: 0.22, confidence_label: 'bassa', confidence_reason: 'Edizione acquisita da verificare.',
     sources: [{ title: 'Fonte conservata', url: 'https://example.org/norma', source_type: 'web_libero',
       selection: { complete_context: false }, sha256: 'a'.repeat(64) }],
     citations: ['Fonte conservata'], warnings: ['Estratto pubblico controllato.'],
@@ -304,6 +306,7 @@ assert.match(interruptedOrdinary.status, /non completata/)
 assert.doesNotMatch(interruptedOrdinary.html, /Scarica Word/)
 const ordinaryTokens = await publicStreamCase({ publicMode: false, tokenOnly: true, doneMarker: true })
 assert.match(ordinaryTokens.html, /Risposta ordinaria ricevuta/)
+assert.equal(ordinaryTokens.position, 400, 'ordinary tokens preserve an older reading position')
 assert.doesNotMatch(ordinaryTokens.html, /interrotta prima/)
 const partialOrdinary = await publicStreamCase({ publicMode: false, tokenOnly: true })
 assert.match(partialOrdinary.html, /Risposta ordinaria ricevuta/)
@@ -328,8 +331,19 @@ assert.equal(hooks.publicPageRequestHint(automaticQuestion), true)
 assert.equal(hooks.buildChatRequestPayload(automaticQuestion).free_web_enabled, undefined,
   'the presentation hint does not force server permissions or source classification')
 const legacyLocalReply = await publicStreamCase({ publicMode: false })
-assert.equal(legacyLocalReply.position, 1800, 'the existing non-public completion behavior is preserved')
+assert.equal(legacyLocalReply.position, 400, 'governed local completion preserves an older reading position')
+const followingLocalReply = await publicStreamCase({ publicMode: false, atBottom: true })
+assert.equal(followingLocalReply.position, 1800, 'a local reader at the bottom still follows the reply')
 assert.equal('publicAnswer' in legacyLocalReply.entry.meta, false)
+const restoredLocal = hooks.conversationEntryPayload(JSON.parse(JSON.stringify(legacyLocalReply.entry)))
+assert.equal(restoredLocal.referenceLabel, 'ricerca normativa locale')
+assert.equal(restoredLocal.confidence, 0.22)
+assert.equal(restoredLocal.confidence_label, 'bassa')
+assert.equal(restoredLocal.confidence_reason, 'Edizione acquisita da verificare.')
+assert.equal(restoredLocal.disable_exports, true)
+assert.equal(restoredLocal.warnings[0], 'Estratto pubblico controllato.')
+assert.equal(restoredLocal.sources[0].url, 'https://example.org/norma')
+assert.doesNotMatch(JSON.stringify(legacyLocalReply.entry), /NON-CONSERVARE-CONTESTO/)
 const persistedPublic = JSON.parse(JSON.stringify(preservedReading.entry))
 assert.equal(persistedPublic.meta.publicAnswer.sources[0].sha256, 'a'.repeat(64))
 assert.doesNotMatch(JSON.stringify(persistedPublic), /NON-CONSERVARE-CONTESTO/)
@@ -344,3 +358,11 @@ const restoredInterrupted = hooks.conversationEntryPayload(JSON.parse(JSON.strin
 assert.equal(restoredInterrupted.disable_exports, true)
 assert.equal(restoredInterrupted.public_web_synthesis.status, 'stream_incomplete')
 console.log('lex_assistant_render.test.mjs OK')
+
+// La sostituzione della fase di attesa non sposta chi sta leggendo messaggi precedenti.
+let progressTop = 400
+const progressScroller = { scrollHeight: 2200, clientHeight: 400, get scrollTop() { return progressTop }, set scrollTop(v) { progressTop = v } }
+const progressBubble = { set innerHTML(v) { progressTop += 824 }, querySelector() { return null } }
+hooks.setRequestElementsForTest({ widget: { dataset: {} }, messages: progressScroller, bubble: progressBubble, status: null })
+hooks.renderThinkingForTest()
+assert.equal(progressTop, 400)

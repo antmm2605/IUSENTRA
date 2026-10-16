@@ -2889,16 +2889,22 @@ def _search_repository_records(pipeline: Any, warnings: list[dict[str, str]], se
 
 
 def _official_archive_records(warnings: list[dict[str, str]], search_query: str) -> list[dict[str, Any]]:
+    from lex.retrieval.normativa_catalog import NormativaIndexUnavailable, diagnostic_messages
+
     if not search_query:
         return []
     records: list[dict[str, Any]] = []
     if _search_normattiva is not None:
         try:
+            diagnostics = []
             records.extend(
                 _safe_official_archive_record(row, index, archive="normattiva")
-                for index, row in enumerate(_search_normattiva(search_query, limit=8), start=1)
+                for index, row in enumerate(_search_normattiva(search_query, limit=8, diagnostics=diagnostics), start=1)
                 if isinstance(row, Mapping)
             )
+            warnings.extend(_warning("normativa_catalogo", message) for message in diagnostic_messages(diagnostics))
+        except NormativaIndexUnavailable:
+            warnings.append(_warning("normativa_indice_non_disponibile", diagnostic_messages(["normativa_index_unavailable"])[0]))
         except Exception:
             warnings.append(_warning("normattiva_non_disponibile", "Archivio Normattiva non disponibile per questa ricerca."))
     if _search_gazzetta is not None:

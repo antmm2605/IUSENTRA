@@ -596,6 +596,7 @@ def _risposta_certa_http(domanda: str) -> str:
             strumenti=strumenti,
             normattiva_db=str(_app.config.get("NORMATTIVA_DB") or ""),
             sentenze=sentenze,
+            runtime_catalog=True,
         )
     except Exception:
         return ""
@@ -752,10 +753,8 @@ def chat_response(
         attachments=attachments,
     )
     if bounded_payload:
-        direct_answer = str(bounded_payload.get("answer") or "").replace("\r", "").strip()
-
         def generate_bounded():
-            yield f"data: {json.dumps({'token': direct_answer})}\n\n"
+            yield f"data: {json.dumps({'payload': bounded_payload})}\n\n"
             yield "data: [DONE]\n\n"
 
         return Response(

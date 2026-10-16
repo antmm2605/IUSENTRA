@@ -12,8 +12,8 @@
   position: fixed;
   right: 1rem;
   bottom: 1rem;
-  width: min(23rem, calc(100vw - 1rem));
-  height: min(38rem, calc(100vh - 1rem));
+  width: min(48rem, calc(100vw - 2rem));
+  height: calc(100vh - 2rem);
   z-index: 1051;
   pointer-events: none;
 }
@@ -164,7 +164,7 @@
   right: 0;
   bottom: 4rem;
   width: 100%;
-  height: min(32rem, calc(100% - 4.5rem));
+  height: calc(100% - 4.5rem);
   max-height: calc(100vh - 5.5rem);
   display: flex;
   flex-direction: column;
@@ -1584,4 +1584,84 @@
 
 [data-bs-theme="dark"] .pct-ai-widget .pct-ai-callout__list {
   color: #cbd5e1;
+}
+
+
+// Compact writing surface: tools belong to the composer, conversation gets the space.
+.pct-ai-widget {
+  .pct-ai-header { align-items: center; padding: 0.4rem 0.65rem; gap: 0.5rem; }
+  .pct-ai-header__meta { gap: 0.25rem; }
+  .pct-ai-header__actions { gap: 0.15rem; }
+  .pct-ai-hbtn { width: 2.75rem; height: 2.75rem; }
+  .pct-ai-drag-hint { display: none; }
+  .pct-ai-footer { padding: 0.5rem 0.65rem; flex-shrink: 0; }
+  .pct-ai-composer {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid var(--bs-border-color, #dce2ec);
+    border-radius: 10px;
+    background: var(--bs-body-bg, #f8fafc);
+    overflow: visible;
+  }
+  .pct-ai-composer:focus-within { border-color: var(--pct-lex-blue-soft); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.14); }
+  .pct-ai-input-wrap { display: block; }
+  .pct-ai-input {
+    display: block; width: 100%; min-height: 2.75rem; max-height: 8.25rem;
+    border: 0; border-radius: 0; background: transparent; padding: 0.65rem 0.75rem;
+  }
+  .pct-ai-input:focus { box-shadow: none; border: 0; }
+  .pct-ai-toolbar {
+    display: flex; flex-wrap: nowrap; gap: 0.15rem; padding: 0.2rem 0.25rem;
+    align-items: center; order: initial;
+  }
+  .pct-ai-tool-btn { width: 2.75rem; min-width: 2.75rem; height: 2.75rem; min-height: 2.75rem; }
+  .pct-ai-send-btn { width: 2.75rem; height: 2.75rem; margin-left: auto; }
+  .pct-ai-shortcuts { margin-top: 0.3rem; font-size: 0.75rem; }
+  .pct-ai-shortcuts summary { cursor: pointer; padding: 0.35rem 0; width: fit-content; color: var(--bs-secondary-color, #64748b); }
+  .pct-ai-shortcuts[open] summary { color: var(--bs-body-color, #1a2744); }
+  .pct-ai-presets { padding: 0.25rem 0; gap: 0.35rem; }
+  .pct-ai-preset-pill { min-height: 2.75rem; border-radius: 8px; }
+  .pct-ai-status-bar { margin-top: 0.2rem; line-height: 1.35; }
+  .pct-ai-messages { min-height: 0; }
+}
+@media (max-width: 600px) {
+  .pct-ai-widget {
+    .pct-ai-header { flex-wrap: wrap; gap: 0.15rem; padding: 0.35rem 0.5rem; }
+    .pct-ai-header__brand { flex: 1 1 100%; gap: 0.5rem; }
+    .pct-ai-header__icon { width: 1.75rem; height: 1.75rem; }
+    .pct-ai-header__copy { min-height: 1.75rem; }
+    .pct-ai-header__actions { width: 100%; justify-content: flex-end; }
+    .pct-ai-footer { padding: 0.4rem 0.5rem; }
+    .pct-ai-shortcuts summary { min-height: 2.75rem; display: flex; align-items: center; gap: 0.4rem; }
+    .pct-ai-shortcuts summary::before { content: '▸'; }
+    .pct-ai-shortcuts[open] summary::before { content: '▾'; }
+  }
+}
+
+@media (max-width: 600px) {
+  .pct-ai-widget .pct-ai-toolbar { gap: 2px; padding: 4px; }
+  .pct-ai-widget .pct-ai-toolbar .pct-ai-tool-btn,
+  .pct-ai-widget .pct-ai-toolbar .pct-ai-send-btn { width: 36px; min-width: 36px; height: 36px; min-height: 36px; border-radius: 7px; font-size: 0.9rem; }
+}
+
+.pct-ai-widget .pct-ai-quickbar {
+  display: flex; align-items: center; gap: 8px; overflow-x: auto; white-space: nowrap;
+  margin-top: 4px; padding-bottom: 2px;
+  .pct-ai-quickbar__label { font-size: 0.7rem; color: var(--bs-secondary-color); flex-shrink: 0; }
+  .pct-ai-presets { flex-wrap: nowrap; padding: 0; gap: 4px; flex-shrink: 0; }
+  .pct-ai-preset-pill { min-height: 32px; padding: 5px 8px; font-size: 0.7rem; }
+  .pct-ai-status-bar { margin: 0 0 0 auto; padding: 0 20px 0 4px; flex-shrink: 0; font-size: 0.7rem; }
+}
+
+.pct-ai-widget .pct-ai-ctx--overview { display: none; }
+
+// React's managed-window controls already provide expand and close for Lex.
+.pct-ai-widget #pct-ai-panel[data-managed-existing-window] {
+  .pct-ai-header__actions { display: none; }
+  .pct-ai-header { gap: 4px; padding: 5px 8px; }
+  .pct-ai-header__icon { width: 28px; height: 28px; }
+  .pct-ai-header__copy { min-height: 28px; }
+  .iu-existing-window-controls > nav { gap: 3px; }
+  .iu-existing-window-controls > nav > button { width: 36px; min-width: 36px; height: 36px; min-height: 36px; border-radius: 7px; }
 }

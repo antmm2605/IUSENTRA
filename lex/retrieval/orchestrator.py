@@ -20,7 +20,7 @@ from .legal_research_integrator import (
 )
 from .query_planner import QueryPlanner
 from .ranker import rank_evidence
-from .source_router import SourceRouter
+from .source_router import SourceRouter, requests_local_normative_only
 from .sources import row_to_evidence
 
 
@@ -315,6 +315,9 @@ class RetrievalOrchestrator:
         return payload
 
     def collect(self, request, context, workflow: str):
+        # Diagnostica riservata ai produttori server, mai accettata dal payload.
+        request.metadata = dict(getattr(request, "metadata", {}) or {})
+        request.metadata.pop("_normativa_diagnostics", None)
         if self._performance_smoke_requested(request):
             return self._performance_smoke_payload(workflow)
 
@@ -337,7 +340,7 @@ class RetrievalOrchestrator:
 
         queries = self.query_planner.plan(request, context, workflow)
         sources = self.source_router.resolve(request, context, workflow)
-        studio_seed_results = self._studio_context_seed_results(context, workflow)
+        studio_seed_results = [] if requests_local_normative_only(request, workflow) else self._studio_context_seed_results(context, workflow)
 
         internal_sources = [source for source in sources if not self._is_official_web_source(source)]
         external_sources = [source for source in sources if self._is_official_web_source(source)]
@@ -418,6 +421,7 @@ class RetrievalOrchestrator:
         metadata["retrieval_cache_hit"] = False
         metadata["retrieval_cache_ttl_seconds"] = self.retrieval_cache.ttl_seconds
         request_metadata = dict(getattr(request, "metadata", {}) or {})
+        metadata["normativa_diagnostics"] = list(request_metadata.get("_normativa_diagnostics") or [])
         external_sources_used = bool(
             "OfficialWebSource" in used_sources
             or any(str(getattr(item, "source_type", "")).lower() == "web_ufficiale" for item in selected)

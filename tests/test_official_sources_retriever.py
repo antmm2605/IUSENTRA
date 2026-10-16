@@ -98,7 +98,7 @@ def test_lex_normativa_usa_archivi_ufficiali_come_contesto(monkeypatch):
     )
     monkeypatch.setattr(
         "lex.retrieval.normativa._search_normattiva",
-        lambda query, limit=4: [
+        lambda query, limit=4, diagnostics=None: [
             {
                 "chunk_id": "normattiva:2043",
                 "fonte": "Normattiva",

@@ -12,7 +12,6 @@ import re
 from lex.contracts import Citation, EvidenceItem, LexRequest
 from lex.guards.orchestrator import GuardOrchestrator
 from lex.orchestrator import LexOrchestrator
-from lex.providers.registry import ProviderRegistry
 from lex.retrieval.filters import RetrievalFilters
 from lex.router import LexRouter
 from lex.tests.unit.test_bundle_scenarios import StaticContextBuilder, StaticRetrieval
@@ -91,7 +90,7 @@ def test_senza_fonti_pertinenti_esito_onesto():
     assert "non bastano" in testo
     assert "Normattiva" in testo
     assert "Dato certo" not in testo and "Sintesi operativa" not in testo and "Quadro verificato" not in testo
-    assert "Qualita della risposta" not in testo and not re.search(r"\d+\s*%", testo)
+    assert "Qualita della risposta" not in testo and "Qualità della risposta" not in testo and not re.search(r"\d+\s*%", testo)
     for fonte_interna in ("template", "Impostazioni studio", "PEC", "Procura alle liti"):
         assert fonte_interna not in testo.replace("Importa", ""), fonte_interna
     assert risposta.metadata.get("esito_onesto") is True

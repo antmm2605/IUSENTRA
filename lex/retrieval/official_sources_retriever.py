@@ -166,6 +166,7 @@ def search_normattiva(
     *,
     db_path: str | Path | None = None,
     jsonl_path: str | Path | None = None,
+    diagnostics: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     db_target = _resolve_runtime_path(
         db_path,
@@ -173,6 +174,24 @@ def search_normattiva(
         container_path=CONTAINER_NORMATTIVA_DB,
         repo_path=DEFAULT_NORMATTIVA_DB,
     )
+    if db_path is None:
+        from lex.ricerca_giuridica.testo import analizza_domanda, articolo_normalizzato
+
+        from .normativa_catalog import query_indexed_catalogs
+
+        batches = query_indexed_catalogs(db_target, query, materia=materia, vigenza=vigenza, limit=limit, diagnostics=diagnostics)
+        _, _, indexed = next(batches)
+        analysis = analizza_domanda(query, usa_tesauro=False)
+        covered = {articolo_normalizzato(str((row.get("metadata") or {}).get("article_number") or row.get("articolo_o_chunk") or ""))
+                   for row in indexed if row.get("riferimento_esatto") is True}
+        missing = set(analysis.articoli) - covered
+        if analysis.riferimento_esatto and missing:
+            for _, _, supplement in batches:
+                exact = [row for row in supplement if row.get("riferimento_esatto") is True
+                         and articolo_normalizzato(str((row.get("metadata") or {}).get("article_number") or row.get("articolo_o_chunk") or "")) in missing]
+                if exact:
+                    return [*exact, *indexed][:limit]
+        return indexed[:limit]
     jsonl_target = _resolve_runtime_path(
         jsonl_path,
         env_names=("PCT_NORMATTIVA_JSONL", "PCT_LEX_NORMATTIVA_JSONL"),
@@ -211,7 +230,8 @@ def _search_normattiva_indexed(
 ) -> list[dict[str, Any]] | None:
     """Ricerca con l'indice FTS5 (bm25, articolo esatto, vigenza) e l'eventuale indice vettoriale.
 
-    ``None`` quando il database non ha ancora l'indice: si usa la ricerca precedente (LIKE).
+    ``None`` quando l'indice non è disponibile. Il chiamante decide se la
+    procedura esplicita di ispezione ammette una ricerca non indicizzata.
     """
 
     try:
@@ -221,7 +241,7 @@ def _search_normattiva_indexed(
     except Exception:
         import logging
 
-        logging.getLogger(__name__).exception("Ricerca Normattiva indicizzata non riuscita; uso la ricerca precedente.")
+        logging.getLogger(__name__).exception("Ricerca Normattiva indicizzata non riuscita.")
         return None
     if rows is None:
         return None

@@ -294,10 +294,24 @@ if profile_enabled audit-worm; then
 fi
 CORE_BOOT_SERVICES+=(app)
 
+check_build_capacity() {
+  # Budget fisici cumulativi sullo stesso volume; il disco Docker non basta.
+  python3 tools/check_build_space.py \
+    --path-budget "$REPO_DIR=4" \
+    --path-budget "${TMPDIR:-/tmp}=2" \
+    --docker-root-budget-gib "${IUSENTRA_BUILD_DOCKER_BUDGET_GIB:-19}"
+}
+
+# Conserva una sola immagine precedente per il ripristino operativo.
+if previous_image="$(docker container inspect --format '{{.Config.Image}}' iusentra-app 2>/dev/null)"; then
+  export IUSENTRA_DOCKER_KEEP_REFS="${IUSENTRA_DOCKER_KEEP_REFS:-} ${previous_image}"
+fi
+
 if [ "${IUSENTRA_DEPLOY_DRIVER:-compose}" = "portainer" ]; then
   # Build once; app and workers use the same immutable release image.
   RELEASE_SHA="$(git rev-parse HEAD)"
   if ! docker image inspect "iusentra-app:${RELEASE_SHA}" >/dev/null 2>&1; then
+    check_build_capacity
     docker build --label "org.opencontainers.image.revision=${RELEASE_SHA}" -t "iusentra-app:${RELEASE_SHA}" -f Dockerfile .
   fi
   # Anche un hotfix arrivato durante la build deve fermare il rimpiazzo.
@@ -311,6 +325,7 @@ if [ "${IUSENTRA_DEPLOY_DRIVER:-compose}" = "portainer" ]; then
   prepare_client_case_index_before_start
   python3 deploy/hetzner/portainer_deploy.py
 else
+  check_build_capacity
   docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" build
   test -z "$(git status --porcelain)"
   python3 deploy/hetzner/check_runtime_sources.py --repo "$REPO_DIR" --target "$(git rev-parse HEAD)"
@@ -470,12 +485,11 @@ fi
 # 8. Pulizia immagini e cache build Docker
 # ---------------------------------------------------------------------------
 echo "Pulizia immagini IUSENTRA obsolete e cache build Docker rigenerabile..."
-if [ -f "$REPO_DIR/deploy/hetzner/cleanup_docker_images.sh" ]; then
-  bash "$REPO_DIR/deploy/hetzner/cleanup_docker_images.sh" || \
-    echo "Attenzione: pulizia immagini Docker non completata."
-else
-  docker builder prune --all --force || echo "Attenzione: pulizia cache build Docker non completata."
+if [ ! -f "$REPO_DIR/deploy/hetzner/cleanup_docker_images.sh" ]; then
+  echo "Errore: procedura obbligatoria di pulizia Docker assente." >&2
+  exit 1
 fi
+bash "$REPO_DIR/deploy/hetzner/cleanup_docker_images.sh"
 if [ -d "$IUSENTRA_HOME/tmp-backup-snapshot" ]; then
   echo "Pulizia snapshot temporaneo non operativo..."
   rm -rf -- "$IUSENTRA_HOME/tmp-backup-snapshot" || echo "Attenzione: snapshot temporaneo non rimosso."

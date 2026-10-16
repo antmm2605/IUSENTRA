@@ -1238,6 +1238,12 @@ def build_bounded_http_payload(
     if not isinstance(response, LexResponse):
         return None
 
+    from .retrieval.source_router import requests_local_normative_only
+
+    if requests_local_normative_only(request, response.metadata.get("workflow") or workflow_hint):
+        # Il contesto pagina non può rinominare una ricerca normativa esplicita.
+        studio_context = {**studio_context, "focus_label": "ricerca normativa locale", "focus_topic": "ricerca_legale"}
+
     citations: list[str] = []
     for item in list(attachment_evidence or []):
         label = _clean_spaces(getattr(item, "title", ""))

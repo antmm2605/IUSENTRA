@@ -18,12 +18,17 @@ repository_allowed() {
 main() {
   local active_ids_file
   local protected_refs_file
+  local images_file
   active_ids_file="$(mktemp)"
   protected_refs_file="$(mktemp)"
-  trap "rm -f '$active_ids_file' '$protected_refs_file'" EXIT
+  images_file="$(mktemp)"
+  trap "rm -f '$active_ids_file' '$protected_refs_file' '$images_file'" EXIT
 
-  docker ps -q | xargs -r docker inspect --format '{{.Image}}' | sort -u > "$active_ids_file"
+  docker ps -aq | xargs -r docker inspect --format '{{.Image}}' | sort -u > "$active_ids_file"
   docker ps --format '{{.Image}}' | sort -u > "$protected_refs_file"
+  for reference in ${IUSENTRA_DOCKER_KEEP_REFS:-}; do
+    printf '%s\n' "$reference" >> "$protected_refs_file"
+  done
 
   protect_release_tag() {
     local sha="${1:-}"
@@ -54,6 +59,12 @@ main() {
   local reference
   local removed=0
   local skipped=0
+  local failed=0
+
+  if ! docker images --format '{{.Repository}}\t{{.Tag}}\t{{.ID}}' --no-trunc > "$images_file"; then
+    echo "Errore: inventario immagini Docker non disponibile; nessuna pulizia eseguita." >&2
+    return 1
+  fi
 
   while IFS=$'\t' read -r repository tag image_id; do
     [ -n "${repository:-}" ] || continue
@@ -72,17 +83,26 @@ main() {
       continue
     fi
 
+    # Un alias hot/WIP non dimostra che i sorgenti siano consolidati altrove.
+    if ! [[ "$tag" =~ ^[0-9a-f]{10,40}$ ]]; then
+      echo "Conservata immagine senza tag di release: $reference" >&2
+      skipped=$((skipped + 1))
+      continue
+    fi
+
     if docker image rm "$reference"; then
       removed=$((removed + 1))
     else
-      echo "Attenzione: immagine non rimossa: $reference" >&2
+      echo "Errore: immagine non rimossa: $reference" >&2
+      failed=1
     fi
-  done < <(docker images --format '{{.Repository}}\t{{.Tag}}\t{{.ID}}')
+  done < "$images_file"
 
-  docker image prune --force >/dev/null || echo "Attenzione: pulizia immagini dangling non completata." >&2
-  docker builder prune --all --force || echo "Attenzione: pulizia cache build Docker non completata." >&2
+  docker image prune --force >/dev/null || { echo "Errore: pulizia immagini dangling non completata." >&2; failed=1; }
+  docker builder prune --all --force || { echo "Errore: pulizia cache build Docker non completata." >&2; failed=1; }
 
   echo "Pulizia immagini IUSENTRA: rimosse=${removed}, conservate=${skipped}"
+  return "$failed"
 }
 
 main "$@"

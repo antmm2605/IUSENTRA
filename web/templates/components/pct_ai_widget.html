@@ -71,21 +71,13 @@
         </div>
       </div>
       <div class="pct-ai-header__actions">
-        <button id="pct-ai-export" class="pct-ai-hbtn" type="button" title="Scarica il riepilogo della conversazione" aria-label="Scarica il riepilogo della conversazione">
-          <i class="bi bi-download"></i>
-        </button>
+
         <button id="pct-ai-fullscreen" class="pct-ai-hbtn" type="button" title="Apri Lex a tutto schermo" aria-label="Apri Lex a tutto schermo">
           <i class="bi bi-arrows-fullscreen"></i>
         </button>
-        <button id="pct-ai-voice-toggle" class="pct-ai-hbtn" type="button" title="Attiva o disattiva la risposta vocale" aria-label="Attiva o disattiva la risposta vocale">
-          <i class="bi bi-volume-up-fill"></i>
-        </button>
-        <button id="pct-ai-reset-position" class="pct-ai-hbtn" type="button" title="Ripristina posizione e dimensioni predefinite" aria-label="Ripristina posizione e dimensioni predefinite">
-          <i class="bi bi-arrow-down-right-square"></i>
-        </button>
-        <button id="pct-ai-clear" class="pct-ai-hbtn" type="button" title="Nuova conversazione" aria-label="Nuova conversazione">
-          <i class="bi bi-arrow-counterclockwise"></i>
-        </button>
+
+
+
         <button id="pct-ai-close" class="pct-ai-hbtn" type="button" title="Chiudi assistente" aria-label="Chiudi assistente">
           <i class="bi bi-x-lg"></i>
         </button>
@@ -113,8 +105,6 @@
       </div>
     </div>
 
-    <div id="pct-ai-presets" class="pct-ai-presets" aria-label="Superfici operative di Lex"></div>
-
     <footer class="pct-ai-footer">
       <div id="pct-ai-attachments" class="pct-ai-attachments" hidden></div>
       <div class="pct-ai-composer">
@@ -122,12 +112,10 @@
           <textarea
             id="pct-ai-input"
             class="pct-ai-input"
-            placeholder="Scrivi una domanda operativa sullo studio, sui fascicoli o sul deposito telematico..."
+            placeholder="Scrivi a Lex…"
+            aria-label="Scrivi a Lex"
             rows="1"
           ></textarea>
-          <button id="pct-ai-send" class="pct-ai-send-btn" type="button" title="Invia domanda" aria-label="Invia domanda">
-            <i class="bi bi-send-fill"></i>
-          </button>
         </div>
         <div class="pct-ai-toolbar" aria-label="Strumenti rapidi Lex">
           <label for="pct-ai-upload" class="pct-ai-tool-btn pct-ai-tool-btn--upload" title="Carica documenti nel contesto di Lex" aria-label="Carica documenti nel contesto di Lex">
@@ -156,9 +144,28 @@
             <i class="bi bi-globe2"></i>
             <span>Web libero</span>
           </button>
+        <button id="pct-ai-export" class="pct-ai-tool-btn" type="button" title="Scarica il riepilogo della conversazione" aria-label="Scarica il riepilogo della conversazione">
+          <i class="bi bi-download"></i>
+        </button>
+        <button id="pct-ai-voice-toggle" class="pct-ai-tool-btn" type="button" title="Attiva o disattiva la risposta vocale" aria-label="Attiva o disattiva la risposta vocale">
+          <i class="bi bi-volume-up-fill"></i>
+        </button>
+        <button id="pct-ai-clear" class="pct-ai-tool-btn" type="button" title="Nuova conversazione" aria-label="Nuova conversazione">
+          <i class="bi bi-arrow-counterclockwise"></i>
+        </button>
+          <button id="pct-ai-send" class="pct-ai-send-btn" type="button" title="Invia domanda" aria-label="Invia domanda">
+            <i class="bi bi-send-fill"></i>
+          </button>
         </div>
       </div>
-      <div id="pct-ai-status" class="pct-ai-status-bar">Assistente pronto.</div>
+      <div class="pct-ai-quickbar" aria-label="Comandi rapidi e stato Lex">
+        <span class="pct-ai-quickbar__label">Comandi rapidi</span>
+        <div id="pct-ai-presets" class="pct-ai-presets" aria-label="Superfici operative di Lex"></div>
+        <div id="pct-ai-status" class="pct-ai-status-bar" role="status">Assistente pronto.</div>
+        <button id="pct-ai-reset-position" class="pct-ai-tool-btn" type="button" title="Ripristina posizione e dimensioni predefinite" aria-label="Ripristina posizione e dimensioni predefinite">
+          <i class="bi bi-arrow-down-right-square"></i>
+        </button>
+      </div>
       <button id="pct-ai-resize-handle" class="pct-ai-resize-handle" type="button" title="Ridimensiona la finestra di Lex" aria-label="Ridimensiona la finestra di Lex">
         <i class="bi bi-arrows-angle-expand"></i>
       </button>

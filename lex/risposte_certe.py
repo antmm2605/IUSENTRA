@@ -17,9 +17,12 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Any, Callable
+from typing import Any
+
+from lex.testi_ufficiali import collegamento_normattiva
 
 _MESI = {
     "gennaio": 1, "febbraio": 2, "marzo": 3, "aprile": 4, "maggio": 5, "giugno": 6,
@@ -98,7 +101,7 @@ def _calcola(codice: str, dal: date) -> dict[str, Any]:
 
 
 _FONTI_TERMINI = [
-    {"title": "Art. 155 c.p.c. — computo dei termini", "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art155"},
+    {"title": "Art. 155 c.p.c. — computo dei termini", "url": collegamento_normattiva("urn:nir:stato:regio.decreto:1940-10-28;1443", "155")},
     {"title": "L. 7 ottobre 1969, n. 742 — sospensione feriale", "url": "https://www.normattiva.it/eli/id/1969/11/06/069U0742/CONSOLIDATED"},
 ]
 _AVVERTENZA_TERMINI = (
@@ -135,7 +138,7 @@ def _risposta_171_ter(testo: str, date_: list[date]) -> RispostaCerta | None:
         "",
         _AVVERTENZA_TERMINI,
     ])
-    return RispostaCerta("\n".join(righe), _FONTI_TERMINI + [{"title": "Art. 171-ter c.p.c.", "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art171ter"}], "termini_171_ter")
+    return RispostaCerta("\n".join(righe), _FONTI_TERMINI + [{"title": "Art. 171-ter c.p.c.", "url": collegamento_normattiva("urn:nir:stato:regio.decreto:1940-10-28;1443", "171ter")}], "termini_171_ter")
 
 
 def _risposta_impugnazione(testo: str, date_: list[date]) -> RispostaCerta | None:
@@ -147,7 +150,6 @@ def _risposta_impugnazione(testo: str, date_: list[date]) -> RispostaCerta | Non
         return None
     if not re.search(r"termin|entro|quando|scad|quanto tempo|giorni", testo):
         return None
-    nome = "ricorso per cassazione" if cassazione else "appello"
     per_nome = "per il ricorso per cassazione" if cassazione else "per l'appello"
     breve = "CIV_CASSAZIONE_BREVE" if cassazione else "CIV_APPELLO_BREVE"
     giorni = 60 if cassazione else 30
@@ -255,6 +257,7 @@ def risposta_certa(
     strumenti: Callable[[], Any] | None = None,
     normattiva_db: str = "",
     sentenze: Callable[[], Any] | None = None,
+    runtime_catalog: bool = False,
 ) -> RispostaCerta | None:
     """Calcoli (termini, contributo) e testi ufficiali (articoli, sentenze precise).
 
@@ -275,7 +278,7 @@ def risposta_certa(
         return esito
     from lex.testi_ufficiali import risposta_articolo, risposta_sentenza
 
-    trovato = risposta_articolo(domanda, normattiva_db) or risposta_sentenza(domanda, sentenze)
+    trovato = risposta_articolo(domanda, normattiva_db, runtime_catalog=runtime_catalog) or risposta_sentenza(domanda, sentenze)
     if trovato is None:
         return None
     return RispostaCerta(trovato["testo"], trovato["fonti"], trovato["tipo"])

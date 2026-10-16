@@ -1,12 +1,21 @@
 # Changelog
 
-## 2.437.48 — candidata, 16/10/2026
+## 2.437.49 — candidata, 16/10/2026
+
+- Ricerca normativa applicativa limitata agli indici nativi già disponibili: precedenza all’archivio generale indicizzato, oppure biblioteca codici/leggi con perimetro dichiarato. Nessuna scansione o importazione durante la richiesta.
+- Provenienza, impronta e stato dell’edizione acquisita conservati nel contesto Lex; vigenza attuale e completezza non presunte.
+- Diagnostica esplicita anche in cache, invalidazione mirata quando cambia il catalogo; nessuna ispezione normativa per richieste dello studio o Web libero.
+- Richieste limitate esplicitamente al riferimento normativo acquisito governate dal resolver esistente; ricerche miste, giurisprudenza, Gazzetta e fascicoli collegati preservati.
+- Payload governato completo nel widget, avvisi/fonti/politica esportazione conservati nella cronologia e scroll coerente anche per risposte locali. Date visibili nel formato italiano condiviso.
+- Prime due immagini non accettate e prove negative conservate; guardie tecniche positive. Nuovo collaudo reale, CI e deploy ancora da eseguire. Gli altri incarichi restano aperti.
+
+## 2.437.48 — 16/10/2026
 
 - Correzione del difetto osservato nel confronto reale della47: selezione e risposta rispettano rito e mezzo processuale nominati nella domanda, senza ricavarne altri dagli URL. Riutilizzati categorie e alias dei codici già presenti.
 - Inventario originale conservato; un passaggio escluso non rientra tramite una finestra del testo completo. Piè di pagina tecnico e cornice editoriale separati dalle evidenze anche nelle pagine brevi; premesse e intestazioni dell’articolo preservate.
 - Lettura generica senza embedding non necessario; confronto con massimo 16 candidati pubblici e lo stesso modello 300M. Limiti, selezione e ambiti restano espliciti.
 - Condizioni testuali dello stesso dispositivo già citato conservate senza attribuirle ad altre norme o fonti. La regola richiesta precede la descrizione dello strumento.
-- Prima immagine 48 non accettata per aggiunta di altri mezzi: prova negativa conservata, nessun push. Rifinitura con 238 guardie positive, ancora da accettare sulla macchina reale; incarichi generali aperti.
+- Prime immagini48 non accettate e prove negative conservate. Rifinitura finale con244guardie, collaudo reale locale e produzione,89gate e dodici shard omogenei positivi; copertura81,3169585%→81,3663338%. Commit33048d2d5a,deploy38847668274 verificato,9287file senza differenze e unicoiusentra-app healthy. Catalogo completo, indici locali e incarichi generali restano aperti.
 
 ## 2.437.47 — 16/10/2026
 

@@ -6,18 +6,18 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 995.
+- File pytest censiti: 997.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
 | Tipo test | Conteggio |
 | --- | --- |
-| API contract | 118 |
+| API contract | 119 |
 | Backend | 121 |
 | E2E | 14 |
 | Frontend static gate | 1 |
 | Frontend/UI | 323 |
-| RBAC | 120 |
+| RBAC | 121 |
 | Security | 55 |
 | Smoke CLI | 6 |
 | Tenant isolation | 244 |
@@ -35,14 +35,14 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 84 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 192 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 449 |
+| 09-misc | Test non classificati dalle fasi principali | 451 |
 
 ## Suite CI aggiuntive
 
 | Suite | Target | Esempi |
 | --- | --- | --- |
 | acquisition-ocr | 20 | tests/test_document_ocr.py, tests/test_document_ocr_documento.py, tests/test_document_ocr_formato.py, tests/test_editor_html_docx.py, tests/test_document_tools.py ... |
-| coverage-critical | 109 | tests/test_public_source_html_charset.py, tests/test_public_source_html_structure.py, tests/test_public_page_reader.py, tests/test_public_page_evidence.py, tests/test_public_search_recovery.py ... |
+| coverage-critical | 110 | tests/test_normativa_runtime_catalog.py, tests/test_public_source_html_charset.py, tests/test_public_source_html_structure.py, tests/test_public_page_reader.py, tests/test_public_page_evidence.py ... |
 | e2e-nightly | 4 | tests/e2e/test_studio_reale_flow.py, tests/e2e/test_ai_pipeline_full.py, tests/e2e/test_tenant_migration_full.py, tests/e2e/test_operational_crash_day.py |
 | e2e-smoke | 1 | tests/e2e/test_studio_reale_flow.py |
 | legal-tools | 8 | tests/test_strumenti_legali.py, tests/test_strumenti_legali_end_to_end.py, tests/test_strumenti_processuali.py, tests/test_termini_processuali.py, tests/test_normative_tables.py ... |
@@ -122,6 +122,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | API contract | tests/test_local_ai.py | tenant, contratto, file, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_local_ai_request_paths.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_local_pec_runtime.py | audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| Backend domain | API contract | tests/test_normativa_runtime_catalog.py | tenant, contratto | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_observability_runtime.py | tenant, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_packaging_consistency.py | tenant, contratto | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_pdf_inspector_engine.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
@@ -782,6 +783,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Frontend React | Frontend/UI | tests/test_react_wizard_pro.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Frontend React | Frontend/UI | tests/test_redazione_guidata.py | 401 anonimo, 403/RBAC | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Frontend React | Frontend/UI | tests/test_regia_ui_react.py | 403/RBAC, feature flag, contratto, file, audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Frontend React | RBAC | tests/test_build_space_guard.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | RBAC | tests/test_deposito_guidato.py | feature flag, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | RBAC | tests/test_migrazione_react_2412.py | 403/RBAC, tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | RBAC | tests/test_migrazione_react_portale_pagamenti.py | 403/RBAC, tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |

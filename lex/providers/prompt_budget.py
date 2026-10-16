@@ -173,7 +173,8 @@ def _vigenza(item: Any) -> str:
     text = _clean(value).lower()
     if not text:
         return ""
-    return {"originale": "testo originale", "true": "vigente", "false": "non vigente"}.get(text, text)
+    return {"originale": "testo originale", "true": "vigente", "false": "non vigente",
+            "edizione_acquisita": "edizione acquisita, vigenza attuale non attestata"}.get(text, text)
 
 
 def _data(item: Any) -> str:

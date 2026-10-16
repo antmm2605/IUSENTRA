@@ -52,7 +52,7 @@ def test_risposta_fascicolo_viene_strutturata_con_qualita_e_azioni():
 
     assert "**Sintesi operativa**" in response.answer
     assert "**Quadro verificato**" in response.answer
-    assert "**Qualita della risposta**" in response.answer
+    assert "**Qualità della risposta**" in response.answer
     assert "Fascicolo considerato: 1025/2024" in response.answer
     assert "Apri il fascicolo" in " ".join(response.next_actions)
     assert response.metadata["professional_answer"]["enabled"] is True

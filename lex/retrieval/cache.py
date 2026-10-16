@@ -54,6 +54,12 @@ class LexRetrievalCache:
             "metadata": _sanitize_for_cache(getattr(request, "metadata", {}) or {}),
             "context": _sanitize_for_cache(context or {}),
         }
+        from .source_router import _should_include_legal_sources
+
+        if _should_include_legal_sources(request, workflow):
+            from .normativa_catalog import catalog_revision
+
+            payload["normativa_catalog_revision"] = catalog_revision()
         return hashlib.sha256(
             json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
         ).hexdigest()

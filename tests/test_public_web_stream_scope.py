@@ -9,6 +9,26 @@ from flask import Flask
 from lex.orchestrator_http import build_context_response, chat_response
 
 
+def test_governed_stream_delivers_sources_warnings_and_export_policy(monkeypatch):
+    question = "Analizza la norma acquisita."
+    payload = {"answer": "Testo motivato.", "warnings": ["Edizione acquisita."],
+               "sources": [{"title": "Articolo", "url": "https://example.org/norma"}], "disable_exports": True}
+    monkeypatch.setattr("lex.orchestrator_http._risposta_certa_http", lambda *args: "")
+    monkeypatch.setattr("lex.orchestrator_http.build_context_payload", lambda *args, **kwargs: {"effective_question": question})
+    monkeypatch.setattr("lex.orchestrator_http.build_bounded_http_payload", lambda **kwargs: payload)
+    routing = SimpleNamespace(is_social_only=False, effective_query=question, is_social_with_request=False)
+    orchestrator = SimpleNamespace(auth_guard=SimpleNamespace(ensure_can_access=lambda **kwargs: None),
+        dependencies=SimpleNamespace(resolve_social_and_operational_intent=lambda *args, **kwargs: routing,
+            resolve_followup_query=lambda *args, **kwargs: SimpleNamespace(effective_query=question),
+            resolved_runtime=lambda: {}, build_unverified_pdf_reply=lambda *args: ""))
+    with Flask(__name__).test_request_context():
+        response = chat_response(orchestrator, user="a", studio="b", data={},
+            resolve_messages=lambda **kwargs: (question, "", []), messages_with_effective_question=lambda *args: [])
+        events = [json.loads(line[6:]) for line in response.get_data(as_text=True).splitlines()
+                  if line.startswith("data: ") and line != "data: [DONE]"]
+    assert events == [{"payload": payload}]
+
+
 @pytest.mark.parametrize("manual", [True, False])
 def test_public_stream_preserves_payload_and_skips_internal_context(monkeypatch, manual):
     app = Flask(__name__)

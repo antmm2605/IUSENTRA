@@ -4,9 +4,68 @@ from __future__ import annotations
 
 import sqlite3
 
+import pytest
+
 from lex.normativa.normattiva_importer import ensure_schema
 from lex.risposte_certe import risposta_certa
-from lex.testi_ufficiali import chiave_articolo, riconosci_articolo, riconosci_sentenza, trova_sentenza
+from lex.testi_ufficiali import CODICI, chiave_articolo, collegamento_normattiva, riconosci_articolo, riconosci_sentenza, testo_articolo as leggi_testo_articolo, trova_sentenza
+
+
+@pytest.mark.parametrize("query,code", [
+    ("ART 327 PROCEDURA CIVILE", "cpc"),
+    ("art. 327 procedura penale", "cpp"),
+    ("articolo 325 codice procedura civile", "cpc"),
+    ("art 327 codice procedura penale", "cpp"),
+])
+def test_denominazioni_brevi_identificano_il_codice(query, code):
+    richiesta = riconosci_articolo(query)
+    assert richiesta is not None
+    assert richiesta.urn == next(c.urn for c in CODICI if c.chiave == code)
+
+
+@pytest.mark.parametrize("code,annex", [
+    ("cpc", ":1"), ("cc", ":2"), ("cp", ":1"),
+    ("disp_att_cpc", ":1"), ("disp_att_cpp", ":1"),
+    ("cpp", ""), ("cost", ""),
+])
+def test_link_articolo_usa_il_corpo_corretto(code, annex):
+    urn = next(c.urn for c in CODICI if c.chiave == code)
+    assert collegamento_normattiva(urn, "1").endswith(urn + annex + "~art1")
+    assert collegamento_normattiva(urn).endswith(urn)
+    if annex:
+        assert collegamento_normattiva(urn + annex, "1").endswith(urn + annex + "~art1")
+
+
+def test_alias_non_trasforma_domanda_interpretativa_in_testo():
+    assert riconosci_articolo("come si applica art 327 procedura civile al mio caso") is None
+    assert riconosci_articolo("art 327 procedura sconosciuta") is None
+
+
+def test_cpp_tipo_atto_equivalente_conserva_identita_completa(tmp_path):
+    path = tmp_path / "codici.sqlite"
+    conn = sqlite3.connect(path)
+    ensure_schema(conn)
+    correct_urn = "urn:nir:stato:decreto.del.presidente.della.repubblica:1988-09-22;447"
+    document_ids = []
+    for urn in [correct_urn, correct_urn + "0", correct_urn.replace("1988-09-22", "1988-09-23")]:
+        doc_id = conn.execute(
+            "INSERT INTO normative_documents (collection_name,urn,titolo) VALUES (?,?,?)",
+            ("Codici", urn, "Codice di procedura penale"),
+        ).lastrowid
+        conn.execute("INSERT INTO normative_articles (document_id,article_number,article_text) VALUES (?,?,?)",
+                     (doc_id, "327", "Art. 327. Direzione delle indagini preliminari. Testo controllato."))
+        document_ids.append(doc_id)
+    conn.commit()
+    conn.close()
+    request = riconosci_articolo("ART 327 PROCEDURA PENALE")
+    found = leggi_testo_articolo(path, request)
+    assert found["urn"] == correct_urn
+    assert leggi_testo_articolo(path, request, document_id=document_ids[0])["urn"] == correct_urn
+    assert leggi_testo_articolo(path, request, document_id=document_ids[1]) is None
+    assert leggi_testo_articolo(path, request, document_id=document_ids[2]) is None
+    assert collegamento_normattiva(found["urn"], "327") == (
+        "https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:1988-09-22;447~art327"
+    )
 
 
 def _archivio(tmp_path):
@@ -58,8 +117,8 @@ def test_articolo_dal_archivio_verbatim(tmp_path):
     esito = risposta_certa("Riportami il testo dell'art. 2043 c.c.", normattiva_db=db)
     assert esito is not None and esito.tipo == "testo_articolo"
     assert "Qualunque fatto doloso o colposo" in esito.testo
-    assert "importato il 2026-09-20" in esito.testo
-    assert esito.fonti[0]["url"] == "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2043"
+    assert "importato il 20/09/2026" in esito.testo
+    assert esito.fonti[0]["url"] == "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262:2~art2043"
     # Art. 1 c.c.: l'articolo del codice, non quello delle preleggi.
     primo = risposta_certa("testo art. 1 c.c.", normattiva_db=db)
     assert "Capacita' giuridica" in primo.testo and "fonti del diritto" not in primo.testo
@@ -71,6 +130,19 @@ def test_articolo_di_legge_con_numero_esatto(tmp_path):
     assert "posta elettronica certificata" in esito.testo
     assert "altra legge" not in esito.testo
     assert esito.fonti[0]["url"].endswith("urn:nir:stato:legge:1994-01-21;53~art3bis")
+
+
+def test_bound_document_ids_preserve_civil_code_and_act_identity(tmp_path):
+    from lex.testi_ufficiali import testo_articolo
+
+    db = _archivio(tmp_path)
+    request = riconosci_articolo("testo art. 1 c.c.")
+    result = testo_articolo(db, request, document_id=1, article_id=1)
+    assert "Capacita' giuridica" in result["testo"] and "fonti del diritto" not in result["testo"]
+    assert testo_articolo(db, request, document_id=2, article_id=4) is None
+    law = riconosci_articolo("testo art. 3-bis della legge 53/1994")
+    assert "posta elettronica certificata" in testo_articolo(db, law, document_id=2, article_id=4)["testo"]
+    assert testo_articolo(db, law, document_id=3, article_id=5) is None
 
 
 def test_articolo_assente_nessuna_invenzione(tmp_path):

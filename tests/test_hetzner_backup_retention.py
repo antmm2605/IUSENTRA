@@ -174,7 +174,8 @@ exit 64
     assert "audit-postgres" not in result.stdout
 
 
-def test_cleanup_docker_images_rimuove_solo_immagini_iusentra_non_attive(tmp_path: Path):
+@pytest.mark.parametrize("fail_cleanup", ["", "image", "cache", "inventory"])
+def test_cleanup_docker_images_rimuove_solo_immagini_iusentra_non_attive(tmp_path: Path, fail_cleanup):
     if not shutil.which("bash"):
         pytest.skip("bash non disponibile")
 
@@ -186,8 +187,8 @@ def test_cleanup_docker_images_rimuove_solo_immagini_iusentra_non_attive(tmp_pat
         """#!/usr/bin/env bash
 set -euo pipefail
 printf '%s\\n' "$*" >> "${DOCKER_LOG}"
-if [[ "${1:-}" == "ps" && "${2:-}" == "-q" ]]; then
-  printf 'running-app\\n'
+if [[ "${1:-}" == "ps" && "${2:-}" == "-aq" ]]; then
+  printf 'running-app\\nstopped-app\\n'
   exit 0
 fi
 if [[ "${1:-}" == "ps" && "${2:-}" == "--format" ]]; then
@@ -195,25 +196,30 @@ if [[ "${1:-}" == "ps" && "${2:-}" == "--format" ]]; then
   exit 0
 fi
 if [[ "${1:-}" == "inspect" && "${2:-}" == "--format" ]]; then
-  printf 'active-image-id\\n'
+  printf 'active-image-id\\nstopped-image-id\\n'
   exit 0
 fi
 if [[ "${1:-}" == "images" && "${2:-}" == "--format" ]]; then
+  [[ "${FAIL_CLEANUP:-}" != "inventory" ]] || exit 1
   printf 'iusentra-app\\tactive\\tactive-image-id\\n'
-  printf 'iusentra-app\\told\\told-app-id\\n'
-  printf 'iusentra-scheduler-worker\\told\\told-worker-id\\n'
+  printf 'iusentra-app\\taaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\told-app-id\\n'
+  printf 'iusentra-scheduler-worker\\tbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\\told-worker-id\\n'
   printf 'iusentra-app\\t1111111111111111111111111111111111111111\\texpected-release-id\\n'
   printf 'iusentra-app\\t2222222222222222222222222222222222222222\\thead-release-id\\n'
+  printf 'iusentra-app\\t3333333333333333333333333333333333333333\\tstopped-image-id\\n'
+  printf 'iusentra-app\\thot-not-committed\\thot-image-id\\n'
   printf 'postgres\\t16-alpine\\tpostgres-id\\n'
   exit 0
 fi
 if [[ "${1:-}" == "image" && "${2:-}" == "rm" ]]; then
+  [[ "${FAIL_CLEANUP:-}" != "image" ]] || exit 1
   exit 0
 fi
 if [[ "${1:-}" == "image" && "${2:-}" == "prune" ]]; then
   exit 0
 fi
 if [[ "${1:-}" == "builder" && "${2:-}" == "prune" ]]; then
+  [[ "${FAIL_CLEANUP:-}" != "cache" ]] || exit 1
   exit 0
 fi
 echo "unexpected docker call: $*" >&2
@@ -250,21 +256,33 @@ exit 64
             f"DOCKER_LOG={shlex.quote(_bash_path(log_path))}",
             f"IUSENTRA_REPO_DIR={shlex.quote(_bash_path(repo_dir))}",
             "EXPECTED_SHA=1111111111111111111111111111111111111111",
+            f"FAIL_CLEANUP={shlex.quote(fail_cleanup)}",
             f"bash {shlex.quote(_bash_path(script))}",
         ]
     )
-    result = subprocess.run(["bash", "-lc", command], text=True, capture_output=True, check=True)
+    result = subprocess.run(["bash", "-lc", command], text=True, capture_output=True, check=False)
     calls = log_path.read_text(encoding="utf-8").splitlines()
 
-    assert "Pulizia immagini IUSENTRA: rimosse=2, conservate=3" in result.stdout
-    assert "image rm iusentra-app:old" in calls
-    assert "image rm iusentra-scheduler-worker:old" in calls
+    assert result.returncode == (1 if fail_cleanup else 0)
+    if fail_cleanup:
+        assert "Errore:" in result.stderr
+    else:
+        assert "Pulizia immagini IUSENTRA: rimosse=2, conservate=5" in result.stdout
+    if fail_cleanup == "inventory":
+        assert not any(call.startswith(("image rm", "image prune", "builder prune")) for call in calls)
+        return
+    assert "image rm iusentra-app:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" in calls
+    assert "image rm iusentra-scheduler-worker:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" in calls
     assert "image rm iusentra-app:active" not in calls
     assert "image rm iusentra-app:1111111111111111111111111111111111111111" not in calls
     assert "image rm iusentra-app:2222222222222222222222222222222222222222" not in calls
     assert "image rm postgres:16-alpine" not in calls
     assert "image prune --force" in calls
     assert "builder prune --all --force" in calls
+    assert "ps -aq" in calls
+    assert any("--no-trunc" in call for call in calls)
+    assert "image rm iusentra-app:3333333333333333333333333333333333333333" not in calls
+    assert "image rm iusentra-app:hot-not-committed" not in calls
 
 
 def test_backup_script_non_archivia_ollama_rigenerabile(tmp_path: Path):

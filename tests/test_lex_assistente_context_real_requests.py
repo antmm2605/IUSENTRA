@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 from pathlib import Path
 
@@ -205,8 +206,18 @@ def test_assistente_chat_questione_penale_rg_non_finisce_nell_editor(tmp_path: P
             },
         )
 
-    stream = response.get_data(as_text=True)
+    wire_stream = response.get_data(as_text=True)
     assert response.status_code == 200
+    events = [json.loads(line[6:]) for line in wire_stream.splitlines()
+              if line.startswith("data: ") and line != "data: [DONE]"]
+    payloads = [event["payload"] for event in events if "payload" in event]
+    assert len(payloads) == 1, "La risposta governata deve conservare il payload e le fonti."
+    payload = payloads[0]
+    assert payload["metadata"]["studio_reasoner"]["plan"]["intent"] == "official_sources_lookup"
+    assert any(source.get("title") == "Ordinanza di rimessione" for source in payload["sources"])
+    # I nomi tecnici nei metadati non sono testo mostrato né prova di routing editor.
+    # Le verifiche del contenuto restano sul testo decodificato letto dall'utente.
+    stream = payload["answer"]
     assert "Allegato: **Ordinanza di rimessione**." in stream
     assert "### Sintesi" in stream
     assert "Non risulta una sentenza" in stream

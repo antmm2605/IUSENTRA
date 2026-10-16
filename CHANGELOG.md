@@ -7,6 +7,7 @@
 - Diagnostica esplicita anche in cache, invalidazione mirata quando cambia il catalogo; nessuna ispezione normativa per richieste dello studio o Web libero.
 - Richieste limitate esplicitamente al riferimento normativo acquisito governate dal resolver esistente; ricerche miste, giurisprudenza, Gazzetta e fascicoli collegati preservati.
 - Payload governato completo nel widget, avvisi/fonti/politica esportazione conservati nella cronologia e scroll coerente anche per risposte locali. Date visibili nel formato italiano condiviso.
+- Guardia di instradamento aggiornata al messaggio strutturato: verifica risposta decodificata, intento e fonte probatoria senza scambiare identificativi tecnici delle fonti per testo dell’editor. Conservati tutti i controlli sul contenuto.
 - Prime due immagini non accettate e prove negative conservate; guardie tecniche positive. Nuovo collaudo reale, CI e deploy ancora da eseguire. Gli altri incarichi restano aperti.
 
 ## 2.437.48 — 16/10/2026

@@ -11,9 +11,18 @@ from datetime import date
 
 import pytest
 
-from tests.lex_banco.valutazione import carica_domande, carica_soglia, esegui_banco, forme_data, valuta
+from tests.lex_banco.valutazione import carica_domande, carica_soglia, esegui_banco, forme_data, testo_da_eventi, valuta
 
 CATEGORIE = {"quando", "forma", "conteggio", "rg", "udienza", "settimana", "omonimi", "assenza", "fascicolo", "conferma"}
+
+
+@pytest.mark.parametrize("wire,expected", [
+    ('data: {"token":"Prima "}\n\ndata: {"token":"seconda"}\n\ndata: [DONE]\n', "Prima seconda"),
+    ('data: {"payload":{"answer":"Risposta finale","sources":[{"title":"Fonte"}]}}\n\ndata: [DONE]\n', "Risposta finale"),
+    ('data: {"token":"Bozza"}\n\ndata: {"payload":{"answer":"Esito verificato"}}\n\ndata: [DONE]\n', "Esito verificato"),
+])
+def test_banco_legge_lo_stesso_esito_finale_del_widget(wire, expected):
+    assert testo_da_eventi(wire) == expected
 
 
 def _attesi(caso: dict) -> list[str]:

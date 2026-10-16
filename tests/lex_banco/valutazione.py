@@ -121,7 +121,7 @@ def valuta(
 
 
 def testo_da_eventi(corpo: str) -> str:
-    """Ricompone la risposta dagli eventi `data: {"token": …}` del canale di Lex."""
+    """Legge token o risposta finale governata, come il widget reale di Lex."""
 
     parti: list[str] = []
     for riga in corpo.splitlines():
@@ -136,6 +136,11 @@ def testo_da_eventi(corpo: str) -> str:
             parti.append(dato)
             continue
         if isinstance(evento, dict):
+            payload = evento.get("payload")
+            if isinstance(payload, dict) and isinstance(payload.get("answer"), str):
+                # Il risultato finale sostituisce gli eventuali token provvisori.
+                parti = [payload["answer"]]
+                continue
             valore = evento.get("token") or evento.get("text") or evento.get("answer") or ""
             if valore:
                 parti.append(str(valore))

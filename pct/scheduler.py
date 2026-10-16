@@ -2621,6 +2621,22 @@ def start_scheduler(app):
                         logger.error('[scheduler] Audit Prima nota: %d consegne da recuperare.', audit_result['failed'])
                 except Exception as exc:
                     logger.error('[scheduler] Ripresa audit Prima nota non riuscita: %s', exc)
+                try:
+                    from web.services.mailbox_query_events_runtime import resume_mailbox_query_events
+
+                    query_result = resume_mailbox_query_events(app)
+                    if query_result['failed']:
+                        logger.error('[scheduler] Indice posta: %d consegne da recuperare.', query_result['failed'])
+                except Exception as exc:
+                    logger.error('[scheduler] Ripresa indice posta non riuscita: %s', exc)
+                try:
+                    from web.services.calendar_query_events_runtime import resume_calendar_query_events
+
+                    calendar_result = resume_calendar_query_events(app)
+                    if calendar_result['failed']:
+                        logger.error('[scheduler] Indice calendario: %d consegne da recuperare.', calendar_result['failed'])
+                except Exception as exc:
+                    logger.error('[scheduler] Ripresa indice calendario non riuscita: %s', exc)
                 dispatch_requested_manual_runs(scheduler, app, registry_repo)
 
         scheduler.add_job(

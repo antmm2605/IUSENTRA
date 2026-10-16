@@ -99,6 +99,39 @@ class OperationalKnowledgeService:
         context_type = str(active_context.get("context_type") or metadata.get("context_type") or "").strip().lower()
         pec_id = str(active_context.get("pec_id") or metadata.get("pec_id") or metadata.get("email_id") or "").strip()
 
+        if route.intent in {"pec_query_page", "notification_query_page", "calendar_query_page"}:
+            from .query_selection import resolve_query_selection
+            from .query_cursor import decode_query_cursor, encode_query_cursor
+
+            selection = resolve_query_selection(question, today=current_reference_date())
+            notification = route.intent == 'notification_query_page'
+            calendar = route.intent == 'calendar_query_page'
+            source_id = route.source_ids[0] if calendar else 'legal_notifications' if notification else 'email_pec'
+            next_question = ('mostra altre scadenze' if source_id == 'scadenziario' else 'mostra altri appuntamenti') if calendar else 'mostra altre notificazioni' if notification else 'mostra altre pec'
+            cursor = None
+            if metadata.get('query_continuation'):
+                try:
+                    if clean_spaces(question).casefold() != next_question:
+                        raise ValueError('La continuazione non può cambiare i filtri della domanda. Avvia una nuova ricerca.')
+                    selection, cursor = decode_query_cursor(metadata['query_continuation'], context)
+                    expected_domain = ('deadlines' if source_id == 'scadenziario' else 'agenda') if calendar else 'legal_notifications' if notification else 'pec'
+                    if selection.domain != expected_domain:
+                        raise ValueError('Il dominio della continuazione non coincide con la richiesta.')
+                except ValueError as exc:
+                    return [OperationalToolResult(False, source_id, blocked_reason='invalid_query_cursor', coverage_gaps=[str(exc)])]
+            if selection is None:
+                return [OperationalToolResult(False, source_id, blocked_reason="invalid_query_selection",
+                                              coverage_gaps=["Selezione della consultazione non determinata."])]
+            query_tool = self.tools.query_calendar_page if calendar else self.tools.query_legal_notifications_page if notification else self.tools.query_pec_page
+            result = query_tool(context, selection=selection, limit=self.settings.max_results, cursor=cursor)
+            if result.ok and result.query_metadata.get('has_more'):
+                try:
+                    result.query_metadata['continuation'] = encode_query_cursor(context, selection, result.query_metadata['cursor'])
+                except ValueError as exc:
+                    return [OperationalToolResult(False, source_id, blocked_reason='query_session_unavailable', coverage_gaps=[str(exc)])]
+            result.query_metadata.pop('cursor', None)
+            return [result]
+
         if route.intent == "sources_overview":
             return [
                 self.tools.search_legal_sources(entity_query or question, context, limit=3),
@@ -554,6 +587,9 @@ def _fascicolo_resolution_queries(entity_query: str) -> list[str]:
 
 
 def _apply_conversation_followup(question: str, metadata: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    if metadata.get('query_continuation'):
+        # Il cursore firma filtri e dominio; la cronologia non può riscriverli.
+        return question, metadata
     clean_question = clean_spaces(question)
     if not clean_question:
         return question, metadata

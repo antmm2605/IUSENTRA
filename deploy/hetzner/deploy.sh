@@ -284,6 +284,10 @@ prepare_client_case_index_before_start() {
     run --no-deps --rm --entrypoint python app \
     -m tools.prepare_document_ai_schema --tenant-registry /data/tenants.json \
     --backup-dir /data/backup/document-ai-schema-20261015
+  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" \
+    run --no-deps --rm --entrypoint python app \
+    -m tools.prepare_operational_query_indexes --tenant-registry /data/tenants.json \
+    --backup-dir /data/backup/operational-query-index-20261016
 }
 
 CORE_BOOT_SERVICES=(redis)

@@ -30,6 +30,7 @@ _MESI = {
 }
 _DATA_NUMERICA = re.compile(r"\b(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})\b")
 _DATA_ISO = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b")
+_DATA_SPAZIATA = re.compile(r"\b(\d{1,2})[ \t]+(\d{1,2})[ \t]+(\d{2}|\d{4})\b")
 _DATA_LETTERE = re.compile(r"\b(\d{1,2})(?:°|º)?\s+(" + "|".join(_MESI) + r")\s+(\d{4})\b")
 _IMPORTO = re.compile(r"(?:€|euro)\s*(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:,\d{1,2})?)|(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:,\d{1,2})?)\s*(?:€|euro)")
 
@@ -49,27 +50,36 @@ def _norm(testo: str) -> str:
     return "".join(c for c in base if not unicodedata.combining(c))
 
 
-def date_nella_domanda(testo: str) -> list[date]:
+def analizza_date_domanda(testo: str) -> tuple[list[date], list[str]]:
+    """Date esplicite e valori impossibili, senza assumere un periodo diverso."""
     trovate: list[tuple[int, date]] = []
+    errori: list[str] = []
     t = _norm(testo)
     for m in _DATA_LETTERE.finditer(t):
         try:
             trovate.append((m.start(), date(int(m.group(3)), _MESI[m.group(2)], int(m.group(1)))))
         except ValueError:
-            pass
+            errori.append(m.group())
     for m in _DATA_ISO.finditer(t):
         try:
             trovate.append((m.start(), date(int(m.group(1)), int(m.group(2)), int(m.group(3)))))
         except ValueError:
-            pass
-    for m in _DATA_NUMERICA.finditer(t):
+            errori.append(m.group())
+    for m in list(_DATA_NUMERICA.finditer(t)) + list(_DATA_SPAZIATA.finditer(t)):
+        if len(m.group(3)) not in {2, 4}:
+            errori.append(m.group())
+            continue
         anno = int(m.group(3))
         anno = anno + 2000 if anno < 100 else anno
         try:
             trovate.append((m.start(), date(anno, int(m.group(2)), int(m.group(1)))))
         except ValueError:
-            pass
-    return [d for _, d in sorted(trovate, key=lambda x: x[0])]
+            errori.append(m.group())
+    return [d for _, d in sorted(trovate, key=lambda x: x[0])], errori
+
+
+def date_nella_domanda(testo: str) -> list[date]:
+    return analizza_date_domanda(testo)[0]
 
 
 def importo_nella_domanda(testo: str) -> float | None:

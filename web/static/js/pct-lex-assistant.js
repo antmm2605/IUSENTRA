@@ -35,6 +35,7 @@
     contextPrimed: false,
     pageContext: null,
     activeContext: null,
+    queryContinuation: null,
     suppressFabClick: false,
   };
 
@@ -160,7 +161,7 @@
     var raw = String(value || '').replace(/`([^`\n]+)`/g, function (_match, code) {
       return tokenFor(tokens, '<code>' + escapeHtml(code) + '</code>');
     });
-    raw = raw.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, function (_match, label, url) {
+    raw = raw.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+|\/(?![\/\\])[^)\s\\]*)\)/g, function (_match, label, url) {
       return tokenFor(tokens, linkHtml(label, url));
     });
     raw = raw.replace(/(^|[\s(])((?:https?:\/\/)[^\s<)]+?)([.,;:!?)]?)(?=$|\s)/g, function (_match, prefix, url, suffix) {
@@ -778,6 +779,7 @@
       : label);
     return (
       '<button type="button" class="pct-ai-card-action" data-lex-action="' + escapeHtml(actionPrompt) + '"' +
+      (action && action.query_continuation ? ' data-lex-query-continuation="' + escapeHtml(String(action.query_continuation)) + '"' : '') +
       (endpoint ? ' data-lex-endpoint="' + escapeHtml(endpoint) + '"' : '') +
       (method ? ' data-lex-method="' + escapeHtml(method) + '"' : '') +
       '>' + inner + '</button>'
@@ -2272,7 +2274,7 @@
   }
 
   function answerStateMemory(payload) {
-    return {
+    var memory = {
       confidence: payload.confidence,
       confidence_label: String(payload.confidenceLabel || payload.confidence_label || ''),
       confidence_reason: String(payload.confidenceReason || payload.confidence_reason || ''),
@@ -2281,6 +2283,12 @@
       warnings: Array.isArray(payload.warnings) ? payload.warnings.slice(0, 16) : [],
       disable_exports: Boolean(payload.disable_exports || payload.disableExports),
     };
+    var queryPage = payload.metadata && payload.metadata.query_page;
+    if (queryPage && queryPage.has_more && typeof queryPage.continuation === 'string') {
+      memory.query_continuation = queryPage.continuation.slice(0, 8192);
+      memory.query_domain = ['legal_notifications', 'agenda', 'deadlines'].indexOf(queryPage.domain) >= 0 ? queryPage.domain : 'pec';
+    }
+    return memory;
   }
 
   function conversationEntryPayload(entry) {
@@ -2288,6 +2296,15 @@
       answer: entry.content || '',
       referenceLabel: entry.meta && entry.meta.referenceLabel ? entry.meta.referenceLabel : '',
     });
+    if (payload.query_continuation) {
+      var nextQueryPrompt = { legal_notifications: 'Mostra altre notificazioni', agenda: 'Mostra altri appuntamenti', deadlines: 'Mostra altre scadenze' }[payload.query_domain] || 'Mostra altre PEC';
+      payload.lex_unified_chat = {
+        renderer_blocks: [{ type: 'actions', title: 'Risultati della consultazione', items: [{
+          key: 'query_next_page', label: nextQueryPrompt, prompt: nextQueryPrompt,
+          icon: 'chevron-down', query_continuation: payload.query_continuation,
+        }] }],
+      };
+    }
     if (entry.meta && entry.meta.requestFailed) {
       payload.disable_exports = true;
       if (!Array.isArray(payload.warnings) || !payload.warnings.length) {
@@ -2564,6 +2581,10 @@
       mode: mode,
       page_section: payload.page_context || mode,
     };
+    if (state.queryContinuation && ['Mostra altre PEC', 'Mostra altre notificazioni', 'Mostra altri appuntamenti', 'Mostra altre scadenze'].indexOf(currentText) >= 0) {
+      requestPayload.query_continuation = state.queryContinuation;
+    }
+    state.queryContinuation = null;
     if (state.attachments.length) {
       var docs = documentsHelper();
       requestPayload.attachment_question = currentText;
@@ -2572,7 +2593,7 @@
         requestPayload.attachment_prompt_block = docs.buildPromptBlock(state.attachments);
       }
     }
-    if (state.freeWebEnabled) {
+    if (state.freeWebEnabled && !requestPayload.query_continuation) {
       requestPayload.free_web_enabled = true;
       requestPayload.force_free_web_search = true;
       requestPayload.web_execution_requested = true;
@@ -3769,9 +3790,18 @@
       messages.addEventListener('click', function (event) {
         var actionButton = event.target.closest('[data-lex-action]');
         if (actionButton && input) {
+          if (state.streaming) {
+            return;
+          }
+          state.queryContinuation = actionButton.getAttribute('data-lex-query-continuation') || null;
+          var preservedComposer = state.queryContinuation ? input.value : null;
           input.value = String(actionButton.getAttribute('data-lex-action') || '').trim();
           autoResize();
           send();
+          if (preservedComposer !== null) {
+            input.value = preservedComposer;
+            autoResize();
+          }
           return;
         }
         var openButton = event.target.closest('[data-generated-open-editor]');

@@ -85,6 +85,14 @@ assert.match(rendered, /Societ\u00e0/)
 assert.match(rendered, /<blockquote class="pct-ai-answer-quote">Nota con accento: \u00e8 utile.<\/blockquote>/)
 assert.doesNotMatch(rendered, /<script/i)
 
+const internalLinks = hooks.renderMarkdown('- [Appuntamento](/agenda/CONTROLLED%5FONE)\n- [PEC](/email/messaggio/controlled)\n- [Scadenza](/scadenziario/controlled)')
+assert.match(internalLinks, /href="\/agenda\/CONTROLLED%5FONE"/)
+assert.match(internalLinks, /href="\/email\/messaggio\/controlled"/)
+assert.match(internalLinks, /href="\/scadenziario\/controlled"/)
+assert.doesNotMatch(internalLinks, /\[Appuntamento\]/)
+const unsafeLinks = hooks.renderMarkdown('[Esterno](//example.invalid) [Backslash](/\\example.invalid) [Script](javascript:alert%281%29) [Data](data:text/html,test)')
+assert.doesNotMatch(unsafeLinks, /<a /)
+
 const renderedOfficialSource = hooks.renderMarkdown(`Ho trovato una fonte ufficiale collegata alla richiesta.
 
 ### Allegato ufficiale

@@ -832,6 +832,7 @@ class GestioneScadenziario:
     def _carica(self) -> None:
         if self._studio_db is not None:
             from pct.scadenziario_sql_writer import encode_model
+            from pct.calendar_sql_records import deadline_from_row
             json_scadenze = self._carica_json_file()
             try:
                 rows = self._studio_db.fetchall_readonly("SELECT * FROM scadenze")
@@ -840,15 +841,8 @@ class GestioneScadenziario:
                 self._sql_models = {}
                 for row in rows:
                     payload = dict(row)
-                    dati = payload.get("dati_json")
                     try:
-                        data = json.loads(dati) if dati else payload
-                        if not dati:
-                            data["giorni_preavviso"] = json.loads(payload.get("giorni_preavviso") or "[]")
-                            data["avvisi_inviati"] = json.loads(payload.get("avvisi_inviati") or "[]")
-                        scadenza = Scadenza.from_dict(data)
-                        if scadenza.id != str(payload["id"]):
-                            raise ValueError("Identità della scadenza SQL discordante.")
+                        scadenza = deadline_from_row(payload)
                         self._scadenze[scadenza.id] = scadenza
                         self._sql_rows[scadenza.id] = payload
                         self._sql_models[scadenza.id] = encode_model(scadenza)
@@ -1027,15 +1021,10 @@ class GestioneScadenziario:
             rows = self._studio_db.fetchall_readonly("SELECT * FROM scadenze")
             confirmed = {}
             original_rows = {}
+            from pct.calendar_sql_records import deadline_from_row
             for row in rows:
                 payload = dict(row)
-                data = json.loads(payload["dati_json"]) if payload.get("dati_json") else payload
-                if not payload.get("dati_json"):
-                    data["giorni_preavviso"] = json.loads(payload.get("giorni_preavviso") or "[]")
-                    data["avvisi_inviati"] = json.loads(payload.get("avvisi_inviati") or "[]")
-                value = Scadenza.from_dict(data)
-                if value.id != str(payload["id"]):
-                    raise RuntimeError("Identità della scadenza SQL discordante: recupero necessario.")
+                value = deadline_from_row(payload)
                 confirmed[value.id], original_rows[value.id] = value, payload
             self._scadenze, self._sql_rows = confirmed, original_rows
             self._sql_models = {key: encode_model(value) for key, value in confirmed.items()}

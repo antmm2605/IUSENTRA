@@ -191,6 +191,12 @@ def test_nuovo_studio_crea_configurazione_runtime_agenda_scadenze_notifiche(tmp_
             row[0]
             for row in conn.execute("SELECT nome FROM moduli_dati").fetchall()
         }
+        owner = conn.execute('SELECT tenant_key FROM calendar_query_owner WHERE singleton=1').fetchone()
+        query_domains = {row[0] for row in conn.execute('SELECT domain FROM calendar_query_bootstrap WHERE tenant_key=? AND version=1', (studio.slug,)).fetchall()}
+        assert owner[0] == studio.slug
+        assert query_domains == {'agenda', 'deadlines'}
+        mailboxes = {row[0] for row in conn.execute('SELECT mailbox_kind FROM email_mailbox_query_bootstrap WHERE tenant_key=? AND version=1', (studio.slug,)).fetchall()}
+        assert mailboxes == {'pec', 'ordinary'}
     assert {"appuntamenti", "scadenze", "clienti", "fascicoli"}.issubset(tables)
     assert {
         "appuntamenti",

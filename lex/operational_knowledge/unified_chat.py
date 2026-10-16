@@ -126,7 +126,7 @@ class IntentRouter:
         source_ids = {clean_spaces(source.get("source_id")) for source in sources}
         if route_intent == "draft_communication":
             return "draft_communication"
-        if route_intent == "communications_lookup":
+        if route_intent in {"communications_lookup", "pec_query_page", "notification_query_page"}:
             if context_type == "email" or ("email_ordinaria" in source_ids and "email_pec" not in source_ids and "pec" not in text):
                 return "consult_email"
             return "consult_pec"
@@ -136,7 +136,7 @@ class IntentRouter:
             return "summarize_case"
         if route_intent == "build_case_timeline":
             return "build_case_timeline"
-        if route_intent in {"deadlines_overview", "agenda_overview"}:
+        if route_intent in {"deadlines_overview", "agenda_overview", "calendar_query_page"}:
             return "check_deadlines"
         if route_intent in {"billing_summary", "client_economic_summary", "preventivo_summary", "conferimento_summary", "unbilled_activity"}:
             return "check_payments"
@@ -196,10 +196,13 @@ class LexSourceVerifier:
         warnings = list(answer.warnings or [])
         missing = list(structured_context.get("missing_information") or [])
         source_ids = {clean_spaces(source.get("source_id")) for source in sources}
+        query_verified = bool((answer.metadata or {}).get('query_page', {}).get('executed')) and not answer.blocked_reason
         ambiguous = []
-        if answer.blocked_reason:
+        if answer.blocked_reason and answer.blocked_reason not in {
+            'invalid_query_selection', 'invalid_query_cursor', 'query_session_unavailable',
+        }:
             warnings.append("Accesso non autorizzato o sorgente non consultabile con i permessi correnti.")
-        if not sources and not answer.blocked_reason:
+        if not sources and not answer.blocked_reason and not query_verified:
             missing.append("Nessuna fonte interna verificata ha restituito dati per questa richiesta.")
         if detected_intent == "check_payments" and not source_ids.intersection(_ACCOUNTING_SOURCE_IDS):
             missing.append("Nessuna fonte contabile autorizzata ha restituito fatture, parcelle o pagamenti.")
@@ -216,6 +219,7 @@ class LexSourceVerifier:
         return {
             "allowed": allowed,
             "verified": allowed and bool(sources),
+            **({"query_verified": True} if query_verified else {}),
             "requires_clarification": bool(ambiguous),
             "warnings": _unique(warnings),
             "missing_information": _unique(missing),
@@ -364,6 +368,15 @@ def build_lex_unified_chat(
         operational_links=operational_links,
         source_verification=source_verification,
     )
+    query_page = metadata.get('query_page') or {}
+    if source_verification.get('allowed', True) and query_page.get('has_more') and query_page.get('continuation'):
+        next_prompt = {'legal_notifications': 'Mostra altre notificazioni', 'agenda': 'Mostra altri appuntamenti',
+                       'deadlines': 'Mostra altre scadenze'}.get(query_page.get('domain'), 'Mostra altre PEC')
+        actions.insert(0, {
+            'key': 'query_next_page', 'label': next_prompt,
+            'prompt': next_prompt, 'icon': 'chevron-down',
+            'query_continuation': query_page['continuation'],
+        })
     blocks = LexMessageRenderer().build_blocks(
         structured_context=structured_context,
         actions=actions,

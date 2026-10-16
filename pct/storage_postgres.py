@@ -991,14 +991,19 @@ class PostgresStudioDB:
 
     backend_kind = "postgresql"
 
-    def __init__(self, dsn: str, *, initialize_schema: bool = True) -> None:
+    def __init__(self, dsn: str, *, initialize_schema: bool = True, readonly: bool = False) -> None:
+        if readonly and initialize_schema:
+            raise ValueError("Una consultazione non può inizializzare lo schema SQL.")
         self.dsn = dsn
         self.db_path = Path("postgresql")
         self._local = threading.local()
+        self._readonly_only = bool(readonly)
         if initialize_schema:
             self._ensure_schema()
             from pct.operational_live import ensure_live_schema
             ensure_live_schema(self.conn, postgres=True)
+            from pct.email_mailbox_query_events import install_query_events
+            install_query_events(self.conn, postgres=True)
             self.raw_conn.commit()
 
     @classmethod
@@ -1013,7 +1018,14 @@ class PostgresStudioDB:
     @property
     def raw_conn(self):
         if not hasattr(self._local, "_conn") or self._local._conn is None:
-            self._local._conn = psycopg2.connect(self.dsn)
+            connection = psycopg2.connect(self.dsn)
+            try:
+                if getattr(self, '_readonly_only', False):
+                    connection.set_session(readonly=True)
+            except Exception:
+                connection.close()
+                raise
+            self._local._conn = connection
         return self._local._conn
 
     @property

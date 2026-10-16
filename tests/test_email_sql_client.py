@@ -134,9 +134,10 @@ class AdapterChecks(unittest.TestCase):
         with patch.object(EmailMailboxRepository, 'load', autospec=True, side_effect=native_load) as loads:
             manager = self.manager(load_catalog=False)
             self.assertIsNone(manager._cache)
-            self.assertEqual(loads.call_args_list[0].kwargs['message_keys'], [])
+            self.assertEqual(loads.call_count, 0)
             manager.marca_lette_multipla(['one'])
-            self.assertEqual(loads.call_args_list[1].kwargs['message_keys'], ['one'])
+            self.assertEqual(loads.call_args_list[0].kwargs['message_keys'], ['one'])
+            self.assertTrue(all(call.kwargs.get('message_keys') == ['one'] for call in loads.call_args_list))
         self.assertEqual(self.repo().load()['one']['stato'], 'LETTA')
 
     def test_readonly_detail_loads_one_message_and_never_turns_into_partial_edit_cache(self):
@@ -148,7 +149,7 @@ class AdapterChecks(unittest.TestCase):
             self.assertEqual(loads.call_args_list[-1].kwargs['message_keys'], ['one'])
             self.assertFalse(loads.call_args_list[-1].kwargs['update_original'])
             self.assertIsNone(manager._cache)
-            self.assertEqual(manager.repository.original, {})
+            self.assertIsNone(manager.repository.original)
             self.assertIsNone(manager.get_readonly('missing'))
         message.stato = 'LETTA'
         self.assertEqual(self.repo().load()['one']['stato'], 'NON_LETTA')

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.437.50 — candidata, 16/10/2026
+
+- Ricerca PEC strutturata per giorno italiano, direzione e cestino, tramite il solo catalogo SQL autorizzato; distinta da ricerche per contenuto, cliente o allegati.
+- Percorso HTTP consultivo prima del contesto esteso e del modello; zero corrispondenze distinto da errore e da messaggi privi di data originale.
+- Paginazione firmata per studio e utente, filtri preservati, comando esistente e bozza del compositore conservata.
+- Proiezione atomica con scritture native, outbox condivisa per cambiamenti puntuali, retry finito e migrazione con backup e cursore persistente su SQLite/PostgreSQL.
+- Agenda, udienze, Scadenziario e notificazioni legali consultabili dai repository proprietari, con data pertinente, continuazione firmata e collegamento al singolo elemento.
+- Preparazione prima dell'avvio e per studi nuovi, con backup verificato, checkpoint e divieto di sostituire fonti storiche con caselle vuote.
+- Collaudo locale in corso; CI, commit e deploy ancora richiesti. Nessuna modifica ad addestramento o flussi congelati.
+
 ## 2.437.49 — candidata, 16/10/2026
 
 - Ricerca normativa applicativa limitata agli indici nativi già disponibili: precedenza all’archivio generale indicizzato, oppure biblioteca codici/leggi con perimetro dichiarato. Nessuna scansione o importazione durante la richiesta.
@@ -8,7 +18,7 @@
 - Richieste limitate esplicitamente al riferimento normativo acquisito governate dal resolver esistente; ricerche miste, giurisprudenza, Gazzetta e fascicoli collegati preservati.
 - Payload governato completo nel widget, avvisi/fonti/politica esportazione conservati nella cronologia e scroll coerente anche per risposte locali. Date visibili nel formato italiano condiviso.
 - Guardia di instradamento aggiornata al messaggio strutturato: verifica risposta decodificata, intento e fonte probatoria senza scambiare identificativi tecnici delle fonti per testo dell’editor. Conservati tutti i controlli sul contenuto.
-- Prime due immagini non accettate e prove negative conservate; guardie tecniche positive. Nuovo collaudo reale, CI e deploy ancora da eseguire. Gli altri incarichi restano aperti.
+- Prime immagini non accettate e prove negative conservate. Rilascio49 verificato sul commit41375ed64f: locale eHetzner2.437.49,9425sorgenti/asset senza differenze, unico container applicativo healthy, CI38904937371 e deploy38904937202 positivi. Copertura critica81,3663338%→81,6146599%, nessuna riga precedentemente coperta persa. Pulizia verificata; gli altri incarichi restano aperti.
 
 ## 2.437.48 — 16/10/2026
 

@@ -11,6 +11,8 @@ import re
 import sqlite3
 from typing import Any
 
+from pct.formatting import DISPLAY_TIMEZONE
+
 from .models import (
     OperationalObjectReference,
     OperationalQueryContext,
@@ -473,6 +475,149 @@ class OperationalKnowledgeTools:
             con_allegati=con_allegati,
             limit=limit,
         )
+
+    def query_pec_page(self, context: OperationalQueryContext, *, selection, limit=20, cursor=None) -> OperationalToolResult:
+        """Consulta la sola pagina SQL richiesta, senza costruire il gestore PEC."""
+        decision = self._decision("email_pec", context)
+        if not decision.allowed:
+            return self._blocked("email_pec", decision)
+        if selection.domain != "pec" or selection.error or selection.dates.error:
+            return OperationalToolResult(
+                False, "email_pec", permission=decision,
+                blocked_reason="invalid_query_selection",
+                coverage_gaps=[selection.error or selection.dates.error or "Selezione PEC non valida."],
+            )
+        try:
+            from flask import current_app
+            from web.services.tenant_paths import tenant_data_path
+            from web.services.email_mailbox_readonly import mailbox_reader
+
+            path = tenant_data_path("EMAIL_CASELLA_DB", current_app.config.get("EMAIL_CASELLA_DB", ""), require_tenant=True)
+            with mailbox_reader(path, expected_tenant=context.tenant_id) as repository:
+                page = repository.query_records(
+                    ranges=selection.dates.ranges, direction=selection.direction,
+                    folder="CESTINO" if selection.folder == "trash" else "",
+                    limit=limit, cursor=cursor,
+                )
+        except Exception as exc:
+            return self._unavailable("email_pec", f"Consultazione PEC non disponibile: {exc}")
+        if any(not self.guard.record_belongs_to_tenant(context, row) for row in page["rows"]):
+            return self._unavailable("email_pec", "Identità dello studio discordante nei messaggi: consultazione sospesa.")
+        messages = []
+        for row in page["rows"]:
+            message = serialize_email_message(row)
+            try:
+                datetime.fromisoformat(str(row.get('data') or '').replace('Z', '+00:00'))
+            except ValueError:
+                message['data'] = ''
+            messages.append(message)
+        result = self._plain_result("email_pec", context, messages, "email")
+        # Esito della consultazione, distinto dall'esistenza di messaggi.
+        result.ok = True
+        result.permission = decision
+        result.query_metadata = {
+            "executed": True,
+            "has_more": page["has_more"], "cursor": page["cursor"],
+            "unknown_date_count": page["unknown_date_count"],
+            "unknown_direction_count": page.get('unknown_direction_count', 0),
+            "date_axis": selection.date_axis,
+            "ranges": [[start.isoformat(), end.isoformat()] for start, end in selection.dates.ranges],
+            "direction": selection.direction, "folder": selection.folder,
+        }
+        if page["has_more"]:
+            result.warnings.append("È visualizzata una pagina dei risultati; sono presenti altri messaggi.")
+        if page["unknown_date_count"]:
+            count = page['unknown_date_count']
+            result.warnings.append('1 messaggio con questi filtri non ha una data originale valida e non è attribuibile a un giorno.' if count == 1 else
+                                   f'{count} messaggi con questi filtri non hanno una data originale valida e non sono attribuibili a un giorno.')
+        count = page.get('unknown_direction_count', 0)
+        if count:
+            result.warnings.append('1 messaggio nel periodo richiesto non ha una direzione verificata: non è conteggiato come ricevuto o inviato.' if count == 1 else
+                                   f'{count} messaggi nel periodo richiesto non hanno una direzione verificata: non sono conteggiati come ricevuti o inviati.')
+        return result
+
+    def query_legal_notifications_page(self, context: OperationalQueryContext, *, selection, limit=20, cursor=None) -> OperationalToolResult:
+        """Consulta esclusivamente i presìdi già persistiti, senza riconciliare PEC."""
+        decision = self._decision('legal_notifications', context)
+        if not decision.allowed:
+            return self._blocked('legal_notifications', decision)
+        mode = {'rac_received': 'accepted', 'pending': 'pending'}.get(
+            selection.states[0] if len(selection.states) == 1 else '')
+        if selection.domain != 'legal_notifications' or selection.error or selection.dates.error or not mode:
+            return OperationalToolResult(False, 'legal_notifications', permission=decision,
+                blocked_reason='invalid_query_selection', coverage_gaps=[selection.error or selection.dates.error or
+                'Indica notificazioni accettate oppure con attività da completare.'])
+        repo = None
+        try:
+            from web.services.notification_presidia_runtime import build_notification_presidio_repository
+            from web.services.notification_presidia_payloads import STATUS_LABELS
+            from urllib.parse import urlencode
+
+            repo = build_notification_presidio_repository(read_only=True)
+            if repo.tenant_id != context.tenant_id:
+                raise ValueError('Identità dello studio discordante: consultazione sospesa.')
+            page = repo.list_operational_page(mode=mode, ranges=selection.dates.ranges, limit=limit, cursor=cursor)
+            rows = [dict(row, titolo='Notificazione legale', stato=STATUS_LABELS.get(row['status'], row['status']),
+                         data=row['event_at'], action_url='/notifiche-legali?' + urlencode({'section': 'presidi', 'presidio': row['id']}))
+                    for row in page['rows']]
+        except Exception as exc:
+            return self._unavailable('legal_notifications', f'Consultazione notificazioni non disponibile: {exc}')
+        finally:
+            if repo is not None:
+                repo.close()
+        result = self._plain_result('legal_notifications', context, rows, 'notificazione')
+        result.ok = True
+        result.permission = decision
+        result.query_metadata = dict(domain='legal_notifications', executed=True, has_more=page['has_more'], cursor=page['cursor'],
+            unknown_date_count=page['unknown_date_count'], date_axis=selection.date_axis,
+            ranges=[[start.isoformat(), end.isoformat()] for start, end in selection.dates.ranges])
+        if page['unknown_date_count']:
+            count = page['unknown_date_count']
+            result.warnings.append(f"{count} {'notificazione' if count == 1 else 'notificazioni'} senza data probatoria disponibile per il filtro richiesto.")
+        return result
+
+    def query_calendar_page(self, context: OperationalQueryContext, *, selection, limit=20, cursor=None) -> OperationalToolResult:
+        domain = selection.domain
+        source_id = 'agenda' if domain == 'agenda' else 'scadenziario'
+        decision = self._decision(source_id, context)
+        if not decision.allowed:
+            return self._blocked(source_id, decision)
+        if domain not in {'agenda', 'deadlines'} or selection.error or selection.dates.error:
+            return OperationalToolResult(False, source_id, permission=decision, blocked_reason='invalid_query_selection',
+                coverage_gaps=[selection.error or selection.dates.error or 'Selezione calendario non valida.'])
+        try:
+            from flask import current_app
+            from urllib.parse import quote
+            from web.services.tenant_paths import tenant_data_path
+            from web.services.studio_readonly import request_studio_reader
+            from pct.calendar_query_repository import CalendarQueryRepository
+            from pct.calendar_sql_records import appointment_from_row, deadline_from_row
+
+            key = 'AGENDA_DB' if domain == 'agenda' else 'SCADENZIARIO_DB'
+            anchor = tenant_data_path(key, current_app.config.get(key, ''), require_tenant=True)
+            with request_studio_reader(anchor) as database:
+                page = CalendarQueryRepository(database, context.tenant_id).list_page(
+                    domain=domain, ranges=selection.dates.ranges, states=selection.states, kinds=selection.kinds, limit=limit, cursor=cursor)
+            reader = appointment_from_row if domain == 'agenda' else deadline_from_row
+            prefix = '/agenda/' if domain == 'agenda' else '/scadenziario/'
+            rows = [dict(reader(row).to_dict(), action_url=prefix + quote(str(row['id']), safe='')) for row in page['rows']]
+        except Exception as exc:
+            return self._unavailable(source_id, f'Consultazione calendario non disponibile: {exc}')
+        result = self._plain_result(source_id, context, rows, 'appuntamento' if domain == 'agenda' else 'scadenza')
+        result.ok, result.permission = True, decision
+        result.query_metadata = dict(domain=domain, executed=True, has_more=page['has_more'], cursor=page['cursor'],
+            unknown_date_count=page['unknown_date_count'], unreadable_count=page['unreadable_count'],
+            date_axis=selection.date_axis, states=list(selection.states), kinds=list(selection.kinds),
+            ranges=[[start.isoformat(), end.isoformat()] for start, end in selection.dates.ranges])
+        if page['unknown_date_count']:
+            count = page['unknown_date_count']
+            result.warnings.append('1 voce senza data disponibile: non attribuibile al periodo richiesto.' if count == 1 else
+                                   f'{count} voci senza data disponibile: non attribuibili al periodo richiesto.')
+        if page['unreadable_count']:
+            count = page['unreadable_count']
+            result.warnings.append('1 voce calendario non ricostruibile: il risultato non dimostra la sua assenza.' if count == 1 else
+                                   f'{count} voci calendario non ricostruibili: il risultato non dimostra la loro assenza.')
+        return result
 
     def get_pec_message(self, email_id: str, context: OperationalQueryContext) -> OperationalToolResult:
         return self._get_email_message("email_pec", email_id, context)
@@ -2581,7 +2726,10 @@ def _row_date(row: Any) -> date | None:
         if not text:
             continue
         try:
-            return datetime.fromisoformat(text.replace("Z", "+00:00")).date()
+            parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+            if parsed.tzinfo is not None:
+                parsed = parsed.astimezone(DISPLAY_TIMEZONE)
+            return parsed.date()
         except Exception:
             pass
         for pattern in ("%Y-%m-%d", "%d/%m/%Y"):
@@ -2615,4 +2763,4 @@ def _reference_today() -> date:
             return date.fromisoformat(value[:10])
         except ValueError:
             pass
-    return date.today()
+    return datetime.now(DISPLAY_TIMEZONE).date()

@@ -77,6 +77,13 @@ class OperationalResponseComposer:
 
         ok_results = [result for result in results if result.ok]
         if not ok_results:
+            if route.intent in {"pec_query_page", "notification_query_page", "calendar_query_page"}:
+                return OperationalAnswer(
+                    handled=True, answer="Non ho eseguito la consultazione richiesta. " + " ".join(gaps or ["Accesso alla fonte non disponibile."]),
+                    route=route, coverage_gaps=gaps, warnings=warnings,
+                    blocked_reason=blocked_reason or next((result.blocked_reason for result in results if result.blocked_reason), "query_not_executed"),
+                    permissions_applied=permissions, metadata={"operational_layer": True},
+                )
             if route.intent == "sources_overview":
                 answer_lines = self._sources_overview(results, gaps)
                 return OperationalAnswer(
@@ -141,6 +148,7 @@ class OperationalResponseComposer:
                 "operational_layer": True,
                 "question": clean_spaces(question),
                 "result_count": sum(len(list(result.data or [])) if isinstance(result.data, list) else int(bool(result.data)) for result in ok_results),
+                **({"query_page": dict(ok_results[0].query_metadata)} if route.intent in {"pec_query_page", "notification_query_page", "calendar_query_page"} else {}),
             },
         )
 
@@ -152,6 +160,77 @@ class OperationalResponseComposer:
         *,
         question: str = "",
     ) -> list[str]:
+        if route.intent == 'calendar_query_page':
+            result = results[0]
+            page = result.query_metadata
+            agenda = page.get('domain') == 'agenda'
+            lines = [('Agenda dello studio' if agenda else 'Scadenziario dello studio') +
+                     (' · udienze' if page.get('kinds') == ['UDIENZA'] else ''),
+                     'Data consultata: ' + ('appuntamento in ora italiana.' if agenda else 'termine registrato nel calendario legale.')]
+            for start, end in page.get('ranges') or []:
+                lines.append('Giorni richiesti: ' + (_format_italian_date(start) if start == end else
+                             f'dal {_format_italian_date(start)} al {_format_italian_date(end)}') + '.')
+            rows = list(result.data or [])
+            if rows:
+                lines.append(f"{len(rows)} {'voce' if len(rows) == 1 else 'voci'} in questa pagina" + ('; sono presenti altri risultati.' if page.get('has_more') else '.'))
+                for row in rows:
+                    stamp = row.get('data_ora') if agenda else row.get('data_scadenza') or row.get('legal_due_at')
+                    lines.append(f"- {_row_link(row) or _label(row)} · {_format_italian_date(stamp) or 'data non disponibile'} · {row.get('stato', '')}")
+            else:
+                lines.append('Nessuna corrispondenza tra le voci databili e leggibili.' if page.get('unknown_date_count') or page.get('unreadable_count') else
+                             'Nessuna voce corrisponde ai filtri indicati.')
+            return lines
+        if route.intent == 'notification_query_page':
+            result = results[0]
+            page = result.query_metadata
+            accepted = page.get('date_axis') == 'rac_at'
+            lines = ['Notificazioni legali · ' + ('accettate dal gestore PEC' if accepted else 'con attività da completare'),
+                     'Data consultata: ' + ('registrazione della RAC.' if accepted else 'scadenza esplicita del presidio.')]
+            for start, end in page.get('ranges') or []:
+                lines.append('Giorni richiesti (ora italiana): ' + (_format_italian_date(start) if start == end else
+                             f'dal {_format_italian_date(start)} al {_format_italian_date(end)}') + '.')
+            rows = list(result.data or [])
+            if rows:
+                lines.append(f"{len(rows)} {'notificazione' if len(rows) == 1 else 'notificazioni'} in questa pagina" + ('; sono presenti altri risultati.' if page.get('has_more') else '.'))
+                for row in rows:
+                    lines.append(f"- {_row_link(row) or _label(row)} · {row.get('stato', '')} · " +
+                                 (_format_italian_date(row.get('data')) or 'data non disponibile'))
+            else:
+                lines.append('Nessuna corrispondenza tra le notificazioni con data disponibile.' if page.get('unknown_date_count') else
+                             'Nessuna notificazione corrisponde ai filtri indicati.')
+            return lines
+        if route.intent == "pec_query_page":
+            result = results[0]
+            page = result.query_metadata
+            labels = {"received": "ricevute", "sent": "inviate", "": "tutte le direzioni"}
+            lines = ["PEC dello studio · " + labels.get(page.get("direction", ""), "direzione non determinata")]
+            if page.get("folder") == "trash":
+                lines.append("Cartella: cestino.")
+            periods = page.get("ranges") or []
+            if periods:
+                lines.append("Giorni richiesti (ora italiana): " + "; ".join(
+                    _format_italian_date(start) if start == end else f"dal {_format_italian_date(start)} al {_format_italian_date(end)}"
+                    for start, end in periods) + ".")
+            else:
+                lines.append("Periodo: tutte le date disponibili.")
+            rows = list(result.data or [])
+            if not rows:
+                if (page.get('unknown_date_count') or page.get('unknown_direction_count')) and periods:
+                    count = page['unknown_date_count']
+                    lines.append('Nessuna corrispondenza tra le PEC con data e direzione verificate.')
+                    if count:
+                        lines.append('Resta 1 messaggio non attribuibile al periodo richiesto.' if count == 1 else
+                                     f'Restano {count} messaggi non attribuibili al periodo richiesto.')
+                else:
+                    lines.append("Nessuna PEC corrisponde ai filtri indicati.")
+            else:
+                lines.append(f"{len(rows)} {'messaggio' if len(rows) == 1 else 'messaggi'} in questa pagina" + ("; sono presenti altri risultati." if page.get("has_more") else "."))
+                for row in rows:
+                    label = _row_link(row) or _label(row)
+                    stamp = _format_italian_date(row.get("data")) or "data originale non determinata"
+                    sender = clean_spaces(row.get("mittente_nome") or row.get("mittente"))
+                    lines.append(f"- {label} · {stamp}" + (f" · {sender}" if sender else ""))
+            return lines
         if route.intent in {"client_situation", "client_fascicoli", "client_economic_summary"}:
             return self._client_lines(route, results, gaps)
         if route.intent == "soggetti_lookup":

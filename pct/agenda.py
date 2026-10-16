@@ -184,25 +184,13 @@ class Agenda:
             self._salva_json_file()
 
     def _carica_sql(self) -> None:
-        import json
         from pct.agenda_sql_writer import encode_model
+        from pct.calendar_sql_records import appointment_from_row
 
         confirmed, original_rows = {}, {}
         for row in self._studio_db.fetchall_readonly("SELECT * FROM appuntamenti"):
             payload = dict(row)
-            data = {key: value for key, value in payload.items() if key in Appuntamento.__dataclass_fields__}
-            if payload.get("dati_json"):
-                # La migrazione storica conserva il JSON originale anche quando
-                # i campi obbligatori sono presenti soltanto nelle colonne SQL.
-                # Completa dai valori persistenti, senza inventare dati o
-                # sostituire i valori già presenti nella fonte JSON.
-                data.update(json.loads(payload["dati_json"]))
-            # Le colonne di compatibilità non sono campi del modello.
-            if not payload.get("dati_json"):
-                data = {key: value for key, value in data.items() if key in Appuntamento.__dataclass_fields__}
-            value = Appuntamento.from_dict(data)
-            if value.id != str(payload["id"]):
-                raise RuntimeError("Identità dell’appuntamento SQL discordante: recupero necessario.")
+            value = appointment_from_row(payload)
             confirmed[value.id], original_rows[value.id] = value, payload
         self._appuntamenti, self._sql_rows = confirmed, original_rows
         self._sql_models = {key: encode_model(value) for key, value in confirmed.items()}

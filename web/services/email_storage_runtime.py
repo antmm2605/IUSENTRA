@@ -92,6 +92,31 @@ def _initialize_empty_sql_catalog(backend, tenant_key, kind, path, source_of_tru
         repository.load(update_original=False)
 
 
+def prepare_empty_sql_mailboxes(backend, tenant_key, paths, source_of_truth):
+    """Solo creazione/provisione: le fonti storiche popolate restano da migrare."""
+    EmailMailboxRepository(backend, tenant_key, 'pec').ensure_schema()
+    status = {}
+    for kind, key in (('pec', 'EMAIL_CASELLA_DB'), ('ordinary', 'EMAIL_ORDINARIA_DB')):
+        repository = EmailMailboxRepository(backend, tenant_key, kind)
+        try:
+            repository._assert_initialized()
+            status[kind] = 'already_initialized'
+            continue
+        except MailboxNotInitialized:
+            pass
+        count = backend.conn.execute('SELECT COUNT(*) FROM email_mailbox_records WHERE tenant_key=? AND mailbox_kind=?',
+                                     (tenant_key, kind)).fetchone()[0]
+        if count:
+            status[kind] = 'verified_migration_required'
+            continue
+        try:
+            _initialize_empty_sql_catalog(backend, tenant_key, kind, Path(paths[key]), source_of_truth)
+            status[kind] = 'verified_empty_initialized'
+        except MailboxNotInitialized:
+            status[kind] = 'verified_migration_required'
+    return status
+
+
 def create_email_mailbox(db_path, *, actor_key=None, load_catalog=True, allow_initialize=True):
     path = Path(db_path).resolve()
     tenant, root = _context_for_path(path)

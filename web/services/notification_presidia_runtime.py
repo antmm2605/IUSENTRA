@@ -61,7 +61,7 @@ def _presidio_db_path() -> Path:
     return path
 
 
-def build_notification_presidio_repository():
+def build_notification_presidio_repository(*, read_only=False):
     from pct.pec_notification_presidio import NotificationPresidioRepository
 
     try:
@@ -70,7 +70,9 @@ def build_notification_presidio_repository():
         # PEC_AUDIT_DB SQLite tenant-aware. Il database PostgreSQL core dello
         # studio non è una fonte alternativa per questo repository verticale:
         # usarlo qui farebbe leggere alla UI un archivio diverso dal worker.
-        key = (_tenant_id(), str(db_path), False)
+        key = (_tenant_id(), str(db_path), bool(read_only))
+        if read_only:
+            return NotificationPresidioRepository(db_path, tenant_id=key[0], read_only=True)
         cache = current_app.extensions.setdefault("notification_presidio_repositories", {})
         cached = cache.get(key)
         if cached is not None:

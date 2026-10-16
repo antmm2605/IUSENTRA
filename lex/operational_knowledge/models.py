@@ -121,6 +121,7 @@ class OperationalToolResult:
     warnings: list[str] = field(default_factory=list)
     permission: PermissionDecision | None = None
     blocked_reason: str = ""
+    query_metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -133,6 +134,7 @@ class OperationalToolResult:
             "warnings": list(self.warnings),
             "permission": self.permission.to_dict() if self.permission else None,
             "blocked_reason": self.blocked_reason,
+            **({"query_metadata": dict(self.query_metadata)} if self.query_metadata else {}),
         }
 
 

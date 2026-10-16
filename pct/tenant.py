@@ -851,6 +851,13 @@ class GestioneTenant:
 
         # Crea directory dati isolata
         self._inizializza_directory(slug)
+        if studio.database.normalized_mode == DbMode.SQLITE:
+            from pct.storage import StudioDB
+            from web.services.email_storage_runtime import prepare_empty_sql_mailboxes
+
+            prepare_empty_sql_mailboxes(StudioDB.get(str(self._data_dir(slug) / 'studio.db')), slug,
+                {'EMAIL_CASELLA_DB': self._data_dir(slug) / 'email' / 'casella.json',
+                 'EMAIL_ORDINARIA_DB': self._data_dir(slug) / 'email' / 'ordinaria.json'}, 'sqlite')
 
         studi[slug] = studio
         self._salva(studi)
@@ -1324,6 +1331,10 @@ class GestioneTenant:
         prepare_document_ai_schema(StudioDB.get(str(base / 'studio.db')),
                                   base / 'fascicoli' / 'fascicoli.json',
                                   backup_dir=base / 'backup' / 'document-ai-schema')
+        from pct.calendar_query_preparation import prepare_calendar_query_catalog
+
+        prepare_calendar_query_catalog(StudioDB.get(str(base / 'studio.db')), tenant=slug,
+                                       backup_dir=base / 'backup' / 'calendar-query-index')
 
     def _ensure_runtime_baseline(self, slug: str, *, force: bool = False) -> Dict[str, Any]:
         base = self._data_dir(slug)
@@ -2103,6 +2114,13 @@ class GestioneTenant:
             payload['document_ai_schema_changed'] = prepare_document_ai_schema(
                 studio_db, paths['FASCICOLI_DB'],
                 backup_dir=self._data_dir(slug) / 'backup' / 'document-ai-schema')
+            from pct.calendar_query_preparation import prepare_calendar_query_catalog
+
+            payload['calendar_query_catalog_changed'] = prepare_calendar_query_catalog(
+                studio_db, tenant=slug, backup_dir=self._data_dir(slug) / 'backup' / 'calendar-query-index')
+            from web.services.email_storage_runtime import prepare_empty_sql_mailboxes
+
+            payload['mailbox_preparation'] = prepare_empty_sql_mailboxes(studio_db, slug, paths, 'sqlite')
             payload["sqlite_ready"] = bool(studio_db.db_path.exists()) and (
                 not migrate_existing or bool(payload.get("migrated"))
             )
@@ -2161,6 +2179,13 @@ class GestioneTenant:
                     from pct.document_intelligence.preparation import prepare_document_ai_schema
                     payload['document_ai_schema_changed'] = prepare_document_ai_schema(
                         postgres_store, paths['FASCICOLI_DB'])
+                    from pct.calendar_query_preparation import prepare_calendar_query_catalog
+
+                    payload['calendar_query_catalog_changed'] = prepare_calendar_query_catalog(
+                        postgres_store, tenant=slug, backup_dir=self._data_dir(slug) / 'backup' / 'calendar-query-index')
+                    from web.services.email_storage_runtime import prepare_empty_sql_mailboxes
+
+                    payload['mailbox_preparation'] = prepare_empty_sql_mailboxes(postgres_store, slug, paths, 'postgresql')
                 finally:
                     postgres_store.chiudi()
 

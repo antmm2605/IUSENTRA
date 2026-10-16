@@ -1,7 +1,9 @@
 {
-  "baseline_sha": "33048d2d5a0db23165d1a6f1aae95b0709f909eb",
-  "reason": "Selettore dei cataloghi Normattiva nativi già indicizzati, con diagnostica esplicita e revisione per invalidazione mirata della cache. Conservare copertura sul perimetro precedente e misurare il nuovo modulo separatamente.",
+  "baseline_sha": "41375ed64f1d79b2551f6096063ceed60f4df2dc",
+  "reason": "Interrogazioni consultive SQL per PEC, notificazioni e calendario: selettore deterministico, date italiane e cursori firmati. Il nuovo perimetro va misurato separatamente; restano bloccanti tutte le regressioni sul perimetro comune e sulle righe precedentemente coperte.",
   "files": {
-    "lex/retrieval/normativa_catalog.py": "6e14e855373af2169ea34447ccea15bb413254a2c78b515a0ec3a4c99c645499"
+    "lex/operational_knowledge/query_cursor.py": "e4d06eb1351ff7a6bcbd16d428f3904257ad0f4a5368cc20b2f97cefe2738bc3",
+    "lex/operational_knowledge/query_dates.py": "01d9843b821a6bf490801edb02e3e28f2889727f02bfae56a38a212dcb1fba8d",
+    "lex/operational_knowledge/query_selection.py": "7874528328f90d94dc5e665ecfd1f05013ade04b1ae4e4061d36fcc03565795c"
   }
 }

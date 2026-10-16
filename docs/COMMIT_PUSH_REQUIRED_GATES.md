@@ -8,6 +8,16 @@ Questa è la checklist operativa da usare ogni volta che Codex prepara un commit
 
 ## Regola operativa
 
+Prima di archiviare o rimuovere una copia di lavoro Windows, censire anche junction,
+symlink e collegamenti dei workspace nei moduli installati. Un collegamento verso
+la copia canonica non deve essere attraversato dalla pulizia, neppure tramite
+un'API di archiviazione: preservare i file ignorati necessari, verificare le copie
+e scollegare soltanto il collegamento dopo averne riscontrato tipo e destinazione.
+Non eliminare il contenuto della destinazione. Verificare poi sorgenti Git,
+dipendenze bloccate, typecheck e copia Docker reale. In caso di rimozione
+involontaria, ripristinare dalla copia verificata o dal commit esatto e reinstallare
+le sole dipendenze previste dal lock, senza aggiornamenti o pulizie globali.
+
 Prima di dichiarare concluso un lavoro:
 
 1. verificare `git status --short` e classificare subito ogni modifica non collegata: completare, testare e includere solo le implementazioni utili; ripristinare o rimuovere artefatti runtime/generati e modifiche non necessarie;

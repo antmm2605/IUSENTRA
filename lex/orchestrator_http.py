@@ -40,6 +40,41 @@ def clean_spaces(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
 
 
+def _structured_operational_http_payload(*, user, studio, data, question, attachments):
+    """Percorso consultivo prima di contesti estesi, cataloghi e modello AI."""
+    from .http_bounded_bridge import _manual_free_web_enabled
+    from .operational_knowledge.integration import build_operational_http_payload
+    from .operational_knowledge.query_selection import is_plain_pec_query, is_plain_notification_query, is_plain_calendar_query, has_scoped_query_context
+
+    if has_scoped_query_context(data) and not data.get('query_continuation'):
+        return None
+    if attachments or _manual_free_web_enabled(data) or not (is_plain_pec_query(question) or is_plain_notification_query(question) or is_plain_calendar_query(question)):
+        return None
+    focus, label = 'pec', 'PEC dello studio'
+    if is_plain_calendar_query(question):
+        focus = 'scadenze' if 'scadenz' in question.casefold() else 'agenda'
+        label = 'Scadenziario dello studio' if focus == 'scadenze' else 'Agenda dello studio'
+    elif is_plain_notification_query(question):
+        focus, label = 'notifiche', 'Notificazioni legali'
+    return build_operational_http_payload(
+        user=user, studio=studio, data=data,
+        current_user_message=question, resolved_effective_question=question,
+        studio_context={
+            'effective_question': question, 'focus_topic': focus, 'focus_label': label,
+            'request_profile': {'intent': 'comunicazioni_lookup', 'needs_internal_retrieval': True,
+                                'needs_external_validation': False},
+        },
+    )
+
+
+def _structured_query_stream(payload):
+    def generate():
+        yield f"data: {json.dumps({'payload': payload})}\n\n"
+        yield "data: [DONE]\n\n"
+    return Response(stream_with_context(generate()), mimetype='text/event-stream',
+                    headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no', 'Connection': 'keep-alive'})
+
+
 def _should_bypass_documentary_source_guard(studio_context: dict[str, Any]) -> bool:
     """Le ricerche sui dati dello studio non sono ricerche da fonte pubblica."""
     if bool(studio_context.get("free_web_enabled")):
@@ -251,6 +286,11 @@ def build_context_response(
     )
     if not current_user_message:
         return {"ok": False, "errore": "Domanda mancante.", "prompt": "", "sources": [], "citations": []}, 200
+
+    structured = _structured_operational_http_payload(user=user, studio=studio, data=data,
+                                              question=current_user_message, attachments=attachments)
+    if structured is not None:
+        return structured, 200
 
     routing = orchestrator.dependencies.resolve_social_and_operational_intent(
         current_user_message,
@@ -628,6 +668,10 @@ def chat_response(
         explicit_question="",
         messages=messages,
     )
+    structured = _structured_operational_http_payload(user=user, studio=studio, data=data,
+                                              question=current_user_message, attachments=attachments)
+    if structured is not None:
+        return _structured_query_stream(structured)
     routing = orchestrator.dependencies.resolve_social_and_operational_intent(
         current_user_message,
         previous_user_text=previous_user_text,

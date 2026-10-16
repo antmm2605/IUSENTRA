@@ -165,14 +165,20 @@ class StudioDB:
         clienti = db.conn.execute("SELECT dati_json FROM clienti").fetchall()
     """
 
-    def __init__(self, db_path: str, *, initialize_schema: bool = True) -> None:
+    def __init__(self, db_path: str, *, initialize_schema: bool = True, readonly: bool = False) -> None:
+        if readonly and initialize_schema:
+            raise ValueError("Una consultazione non può inizializzare lo schema SQL.")
         self.db_path = resolve_sqlite_path(db_path)
         self._local = threading.local()
+        self._readonly_only = bool(readonly)
         self._existing_only = not initialize_schema
         if initialize_schema:
             self._ensure_schema()
             from pct.operational_live import ensure_live_schema
             ensure_live_schema(self.conn)
+            from pct.email_mailbox_query_events import install_query_events
+            install_query_events(self.conn)
+            self.conn.commit()
 
     def _conn_query_only(self, conn: sqlite3.Connection) -> bool:
         try:
@@ -191,6 +197,8 @@ class StudioDB:
         self._local._conn = None
 
     def _conn_per_scrittura(self) -> sqlite3.Connection:
+        if getattr(self, '_readonly_only', False):
+            raise PermissionError("Connessione di consultazione: scrittura non consentita.")
         conn = getattr(self._local, "_conn", None)
         if conn is not None and not self._conn_query_only(conn):
             return conn
@@ -263,7 +271,7 @@ class StudioDB:
     def conn(self) -> sqlite3.Connection:
         """Connessione per-thread. Apre e configura al primo accesso."""
         if not hasattr(self._local, "_conn") or self._local._conn is None:
-            self._local._conn = self._connect()
+            self._local._conn = self._connect_readonly() if getattr(self, '_readonly_only', False) else self._connect()
         return self._local._conn
 
     def _connect(self) -> sqlite3.Connection:
@@ -284,6 +292,8 @@ class StudioDB:
             return self._connect_readonly()
 
     def _connect_writable(self) -> sqlite3.Connection:
+        if getattr(self, '_readonly_only', False):
+            raise PermissionError("Connessione di consultazione: scrittura non consentita.")
         existing_only = getattr(self, '_existing_only', False)
         c = sqlite3.connect(
             self.db_path.resolve().as_uri() + '?mode=rw' if existing_only else str(self.db_path),

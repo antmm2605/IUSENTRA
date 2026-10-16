@@ -134,3 +134,12 @@ rilascio restano aperti. JSON storico non adottato conserva il percorso preceden
 nessun fallback JSON dopo errore SQL. Riconciliazione bancaria e movimento sono
 atomici; reimportazione della stessa riga riconciliata restituisce il movimento
 esistente senza nuove proposte. Prove materiali e limiti nei registri pytest.
+
+### Proiezione consultiva posta, sviluppo16/10/2026
+
+- Proprietario: repository email_mailbox_records dello studio; JSON storico/mirror non è fonte di recupero della domanda.
+- Derivati SQLite/PostgreSQL: email_mailbox_query_index, bootstrap, versione schema e registro migrazioni con backup/cursore; DDL incrementali20261016 e composizione negli schemi core esistenti.
+- Aggiornamento: atomico con mutazioni native; outbox transazionale condivisa e consegne finite per variazioni puntuali. Le GET/consultazioni non inizializzano schemi e non importano archivi.
+- Parità tecnica provata su database controllati; nessuna migrazione dei dati reali o accettazione visibile della nuova tranche ancora eseguita. Runtime resta2.437.49; consegna end-to-end aperta.
+
+16/10/2026 — La casella PEC audit-grade resta nel database verticale proprietario configurato; due indici coprenti aggiunti allo schema nativo e preparati prima dello swap dopo backup verificato, senza variazioni delle201funzioni/classi del moduloPEC. Il riepilogo consultivo evita le pagine del MIME; nessun nuovo motore, evento di lettura o modifica dei flussi congelati. La provenienza SQL della casella principale e i controlli della notificazione restano distinti.

@@ -14,6 +14,7 @@ from .models import required_text
 from .repository_audit import NotificationPresidioAuditMixin
 from .repository_mutations import NotificationPresidioMutationMixin
 from .repository_queries import NotificationPresidioQueryMixin
+from .repository_consultations import NotificationPresidioConsultationMixin, CONSULTATION_INDEXES
 from .repository_receipts import NotificationPresidioReceiptMixin
 from .repository_transition_chain import NotificationPresidioTransitionChainMixin
 from .repository_transitions import NotificationPresidioTransitionMixin
@@ -54,6 +55,7 @@ class NotificationPresidioRepository(
     NotificationPresidioTransitionMixin,
     NotificationPresidioReceiptMixin,
     NotificationPresidioQueryMixin,
+    NotificationPresidioConsultationMixin,
     NotificationPresidioAuditMixin,
 ):
     """Repository tenant-bound; il tenant non è mai accettato dai payload pubblici."""
@@ -66,21 +68,29 @@ class NotificationPresidioRepository(
         postgres_dsn: str = "",
         sqlite_schema_path: str | Path = SQLITE_SCHEMA_PATH,
         postgres_schema_path: str | Path = POSTGRES_SCHEMA_PATH,
+        read_only: bool = False,
     ) -> None:
         self.tenant_id = required_text(tenant_id, "tenant_id")
         self.db_path = Path(db_path)
         self.postgres_dsn = str(postgres_dsn or "").strip()
         self.backend_kind = "postgresql" if self.postgres_dsn else "sqlite"
+        self.read_only = bool(read_only)
         self.sqlite_schema_path = Path(sqlite_schema_path)
         self.postgres_schema_path = Path(postgres_schema_path)
         self._postgres_backend = (
-            PostgresRepositoryBackend(self.postgres_dsn, self.postgres_schema_path)
+            (PostgresRepositoryBackend(self.postgres_dsn, self.postgres_schema_path,
+                                       initialize_schema=False, read_only=True)
+             if read_only else PostgresRepositoryBackend(self.postgres_dsn, self.postgres_schema_path))
             if self.postgres_dsn
             else None
         )
-        if self._postgres_backend is None:
+        if self._postgres_backend is None and not self.read_only:
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
             self._ensure_sqlite_schema()
+        if not self.read_only:
+            with self.connection() as conn:
+                for statement in CONSULTATION_INDEXES:
+                    conn.execute(statement)
 
     @contextmanager
     def connection(self) -> Iterator[Any]:
@@ -88,7 +98,11 @@ class NotificationPresidioRepository(
             with self._postgres_backend.connection() as conn:
                 yield conn
             return
-        conn = sqlite3.connect(str(self.db_path), timeout=30.0)
+        if self.read_only:
+            conn = sqlite3.connect(self.db_path.resolve().as_uri() + '?mode=ro', uri=True, timeout=30.0)
+            conn.execute('PRAGMA query_only=ON')
+        else:
+            conn = sqlite3.connect(str(self.db_path), timeout=30.0)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys=ON")
         conn.execute("PRAGMA busy_timeout=30000")

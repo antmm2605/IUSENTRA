@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from lex.operational_knowledge.audit import OperationalAuditRecorder
-from lex.operational_knowledge.models import OperationalQueryContext
+from lex.operational_knowledge.models import OperationalQueryContext, OperationalRoute
 from lex.operational_knowledge.permission_guard import resolve_query_context
 from lex.operational_knowledge.query_router import OperationalQueryRouter
 from lex.operational_knowledge.service import OperationalKnowledgeService
@@ -650,8 +650,11 @@ def test_rbac_blocks_client_without_permission():
     assert any("clienti" in gap for gap in answer.coverage_gaps)
 
 
-def test_deadline_and_agenda_retrieval_are_structured():
+def test_deadline_and_agenda_legacy_retrieval_are_structured(monkeypatch):
     service, user = _service(repositories=_base_repositories())
+    # Questo banco prova il ramo storico con gestori iniettati. Il nuovo
+    # percorso semplice è verificato su SQL reale in test_studio_readonly_request.
+    monkeypatch.setattr(service.router, 'route', lambda *a, **kw: OperationalRoute('deadlines_overview', 'deadlines_overview', ('agenda', 'scadenziario')))
 
     answer = service.answer(question="Quali scadenze ho questa settimana?", user=user, studio=SimpleNamespace(slug="tenant-a"))
 
@@ -660,7 +663,7 @@ def test_deadline_and_agenda_retrieval_are_structured():
     assert any(source.source_id in {"agenda", "scadenziario"} for source in answer.sources)
 
 
-def test_scadenziario_non_filtra_studio_id_tecnico_come_tenant():
+def test_scadenziario_non_filtra_studio_id_tecnico_come_tenant(monkeypatch):
     repositories = _base_repositories()
     repositories["scadenziario"] = _ScadenziarioManager(
         [
@@ -674,6 +677,7 @@ def test_scadenziario_non_filtra_studio_id_tecnico_come_tenant():
         ]
     )
     service, user = _service(repositories=repositories)
+    monkeypatch.setattr(service.router, 'route', lambda *a, **kw: OperationalRoute('deadlines_overview', 'deadlines_overview', ('agenda', 'scadenziario')))
 
     answer = service.answer(question="Quali scadenze ho questa settimana?", user=user, studio=SimpleNamespace(slug="tenant-a"))
 
@@ -1016,7 +1020,9 @@ def test_message_retrieval_uses_tenant_internal_sources_only():
 def test_pec_inventory_uses_dedicated_email_source_without_paths():
     service, user = _service(repositories=_base_repositories())
 
-    answer = service.answer(question="Mostrami le PEC ricevute", user=user, studio=SimpleNamespace(slug="tenant-a"))
+    # Il percorso storico "ultime" conserva fonti e scrubbing. Le selezioni
+    # strutturate per data usano il repository SQL reale nel test request.
+    answer = service.answer(question="Mostrami le ultime PEC ricevute", user=user, studio=SimpleNamespace(slug="tenant-a"))
 
     assert answer is not None
     payload = answer.to_dict()

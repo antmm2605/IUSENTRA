@@ -55,7 +55,7 @@ def ensure_core_storage_backend_contract(backend: Any):
     )
 
 
-def build_postgres_backend(config: Any) -> PostgresStudioDB | None:
+def build_postgres_backend(config: Any, *, readonly: bool = False, initialize_schema: bool = True) -> PostgresStudioDB | None:
     if _mode_value(config) != "POSTGRESQL":
         return None
 
@@ -76,13 +76,17 @@ def build_postgres_backend(config: Any) -> PostgresStudioDB | None:
         password=password,
         ssl=ssl,
     )
-    return ensure_core_storage_backend_contract(PostgresStudioDB.get(dsn))
+    backend = PostgresStudioDB(dsn, initialize_schema=False, readonly=readonly) if readonly or not initialize_schema else PostgresStudioDB.get(dsn)
+    return ensure_core_storage_backend_contract(backend)
 
 
-def build_core_storage_backend(config: Any, *, studio_db_path: str):
+def build_core_storage_backend(config: Any, *, studio_db_path: str, readonly: bool = False, initialize_schema: bool = True):
     mode = _mode_value(config)
     if mode == "SQLITE":
-        return ensure_core_storage_backend_contract(StudioDB.get(studio_db_path))
+        backend = StudioDB(studio_db_path, initialize_schema=False, readonly=readonly) if readonly or not initialize_schema else StudioDB.get(studio_db_path)
+        return ensure_core_storage_backend_contract(backend)
     if is_postgres_core_active(config):
-        return build_postgres_backend(config)
+        if not initialize_schema:
+            return build_postgres_backend(config, readonly=readonly, initialize_schema=False)
+        return build_postgres_backend(config, readonly=True) if readonly else build_postgres_backend(config)
     return None

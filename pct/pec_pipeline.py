@@ -459,6 +459,17 @@ CREATE INDEX IF NOT EXISTS idx_pec_messages_presidio_cover ON pec_messages(
     signature_status, linked_fascicolo_id, metadata_json
 );
 CREATE INDEX IF NOT EXISTS idx_pec_messages_header ON pec_messages(tenant_id, message_id_header);
+-- La casella legge il riepilogo senza attraversare le righe che contengono MIME.
+CREATE INDEX IF NOT EXISTS idx_pec_messages_header_summary ON pec_messages(
+    tenant_id, received_at DESC, message_id_header, id, quality_status,
+    signature_status, linked_fascicolo_id, linked_fascicolo_score
+);
+CREATE INDEX IF NOT EXISTS idx_pec_messages_list_summary ON pec_messages(
+    tenant_id, received_at DESC, id DESC, account_email, folder, imap_uid,
+    message_id_header, mime_sha256, mime_size, ingested_at, status,
+    quality_status, signature_status, linked_fascicolo_id, linked_fascicolo_score,
+    retention_policy_id, retention_until, metadata_json
+);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_fascicolo_received ON pec_messages(tenant_id, linked_fascicolo_id, received_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_quality ON pec_messages(tenant_id, quality_status);
 CREATE INDEX IF NOT EXISTS idx_pec_validation_reports_message ON pec_validation_reports(message_id);

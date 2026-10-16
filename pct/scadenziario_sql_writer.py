@@ -62,6 +62,8 @@ def write_changes(conn, *, original_rows, original_models, current):
 
     for key in changed:
         write(conn, key)
+    from pct.calendar_query_writer import project_if_registered
+    project_if_registered(conn, domain='deadlines', keys=changed)
     return len(changed)
 
 

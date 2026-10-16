@@ -473,6 +473,8 @@ def _confidence_label(value: float) -> str:
 
 
 def _confidence_reason(answer: OperationalAnswer) -> str:
+    if answer.blocked_reason in {'invalid_query_selection', 'invalid_query_cursor', 'query_session_unavailable'}:
+        return "Consultazione non eseguita: correggi i parametri della richiesta."
     if answer.blocked_reason:
         return "Richiesta bloccata dalla policy operativa Lex."
     if answer.coverage_gaps:

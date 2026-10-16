@@ -54,7 +54,8 @@ class NativeSchemaChecks(unittest.TestCase):
     def test_versioned_migration_matches_portable_runtime_ddl_and_is_idempotent(self):
         root = Path(os.environ.get('MAILBOX_SCHEMA_ROOT', str(Path(__file__).resolve().parents[1])))
         filename = '20261006_email_mailbox.sql' if self.backend == 'sqlite' else '20261006_email_mailbox_postgres.sql'
-        content = (root / 'pct/sql' / filename).read_text(encoding='utf-8')
+        incremental = '20261016_email_mailbox_query_index.sql' if self.backend == 'sqlite' else '20261016_email_mailbox_query_index_postgres.sql'
+        content = (root / 'pct/sql' / filename).read_text(encoding='utf-8') + '\n' + (root / 'pct/sql' / incremental).read_text(encoding='utf-8')
         statements = [statement.strip() for statement in '\n'.join(
             line for line in content.splitlines() if not line.lstrip().startswith('--')).split(';') if statement.strip()]
         self.assertEqual([' '.join(statement.split()) for statement in statements],

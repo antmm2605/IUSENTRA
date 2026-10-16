@@ -8,6 +8,33 @@ from lex.contracts import EvidenceItem, ProviderDraft
 from lex.http_bounded_bridge import _free_web_direct_payload, _free_web_payload_steps
 
 
+def test_read_page_without_relevant_passages_is_not_called_unreadable(monkeypatch):
+    monkeypatch.setattr('lex.retrieval.sources.official_web.OfficialWebSource.search', lambda *args: [])
+    result = _free_web_direct_payload(user=None, studio=None,
+        metadata={'public_web_visits': [{'url': 'https://example.org/atto', 'status': 'read',
+                                         'selection_status': 'no_relevant_passages'}]},
+        current_user_message='Confronta il rito civile', resolved_effective_question='Confronta il rito civile',
+        studio_context={}, request_profile={}, workflow_hint='fonti')
+    assert 'le pagine sono state lette' in result['answer'].lower()
+    assert 'non sono stati selezionati passaggi pertinenti' in result['answer']
+    assert result['disable_exports'] is True
+
+
+def test_out_of_scope_comparison_is_explicit_and_cannot_be_exported(monkeypatch):
+    item = EvidenceItem(source_type='web_libero', source_id='public-1', title='Fonte pubblica',
+                        content='Testo effettivamente letto.', score=1,
+                        metadata={'url': 'https://example.org/norma'})
+    monkeypatch.setattr('lex.retrieval.sources.official_web.OfficialWebSource.search', lambda *args: [item])
+    monkeypatch.setattr('lex.research.service.LexResearchService.summarize_public_pages',
+                        lambda *args: ProviderDraft(text='', metadata={'status': 'out_of_requested_scope'}))
+    result = _free_web_direct_payload(user=None, studio=None, metadata={},
+        current_user_message='Confronta il rito civile', resolved_effective_question='Confronta il rito civile',
+        studio_context={}, request_profile={}, workflow_hint='fonti')
+    assert 'ambito processuale non richiesto' in result['answer']
+    assert result['disable_exports'] is True
+    assert result['compared_sources'] == []
+
+
 def test_public_protocol_is_marked_before_acquisition(monkeypatch):
     def forbidden(*args, **kwargs):
         raise AssertionError("La prima fase non deve acquisire prima di dichiarare il percorso")

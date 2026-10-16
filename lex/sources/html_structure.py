@@ -112,6 +112,8 @@ def read_html_structure(content: bytes, content_type: str, *, url: str) -> dict:
                 level = int(node.name[1])
                 section = section[:level - 1] + [text]
         blocks.append({"index": len(blocks), "kind": kind, "text": text, "section": list(section),
+                       "technical_boilerplate": bool(re.fullmatch(
+                           r"(?:Pagina generata|Page generated)\s+in\s+[\d.,]+\s+(?:secondi|seconds?|sec|s)\.?", text, re.I)),
                        "form_context": node.find_parent("form") is not None,
                        "link_only_context": sum(len(_text(link)) for link in node.find_all("a")) > len(text) * 0.8,
                        "heading_level": int(node.name[1]) if kind == "heading" else None})

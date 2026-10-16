@@ -29,6 +29,39 @@ def is_plain_source_reading(question: str) -> bool:
     return bool(terms) and not (terms & compare_terms) and not (terms - _READING_DIRECTIVE_TERMS)
 
 
+def explicit_public_rites(text: str) -> set[str]:
+    """Ambiti processuali nominati nel testo, mai ricavati dal percorso URL.
+
+    Recinto della singola lettura pubblica, non un secondo classificatore
+    dello studio: riusa le categorie del catalogo fonti esistente.
+    """
+    from lex.sources.classifier import LEGAL_TOPICS
+
+    clean = re.sub(r"https?://[^\s<>'\")\]]+", "", str(text))
+    patterns = {"civile": r"civil[ei]", "penale": r"penal[ei]",
+                "amministrativo": r"amministrativ[aoie]", "tributario": r"tributari(?:o|a|e)?"}
+    rites = {key for key, pattern in patterns.items()
+             if key in LEGAL_TOPICS and re.search(r"\b" + pattern + r"\b", clean, re.I)}
+    from lex.ricerca_giuridica.testo import analizza_domanda
+
+    code = analizza_domanda(clean, usa_tesauro=False).codice
+    for rite in ("civile", "penale", "amministrativo"):
+        if code.endswith("_" + rite):
+            rites.add(rite)
+    return rites
+
+
+def public_response_in_scope(question: str, answer: str) -> bool:
+    requested = explicit_public_rites(question)
+    return not requested or not (explicit_public_rites(answer) - requested)
+
+
+def _eligible_block(block: dict) -> bool:
+    return bool(block.get("kind") != "heading" and block.get("text")
+                and not block.get("form_context") and not block.get("link_only_context")
+                and not block.get("technical_boilerplate"))
+
+
 def _url_path(match) -> str:
     try:
         return unquote(urlsplit(match.group()).path)
@@ -44,6 +77,16 @@ def _terms(value: str) -> set[str]:
 
 
 def _block_priority(block: dict, question: str) -> int:
+    requested = explicit_public_rites(question)
+    if requested:
+        # Il capitolo più specifico governa il passaggio; il titolo generale
+        # può elencare più riti senza renderli tutti oggetto della domanda.
+        for heading in reversed(block.get("section") or []):
+            rites = explicit_public_rites(heading)
+            if rites:
+                if not rites & requested:
+                    return 5
+                break
     section = " ".join(block.get("section") or []).casefold()
     if any(word in question.casefold() for word in ("consulenza", "quesito")):
         return 0 if "consulenz" in section or "quesit" in section else 1
@@ -77,8 +120,7 @@ def semantic_block_scores(pages: list[dict], question: str, *, embedder, max_can
         raise ValueError("La selezione pubblica richiede il modello embedding governato 300M.")
     pools = []
     for page in pages:
-        pool = [block for block in page.get("blocks", []) if block.get("kind") != "heading"
-                and not block.get("form_context") and not block.get("link_only_context")
+        pool = [block for block in page.get("blocks", []) if _eligible_block(block)
                 and _block_priority(block, question) <= 1 and len(str(block.get("text") or "")) >= 60]
         query_terms = _terms(question)
         pool.sort(key=lambda block: (-len(query_terms & _terms(block["text"] + " " + " ".join(block.get("section") or []))), block["index"]))
@@ -141,9 +183,9 @@ def select_passages(page: dict, question: str, *, max_chars: int = 6000, semanti
     tokens = _terms(intent)
     phrase_words = re.findall(r"\b[\wÀ-ÿ]{3,}\b", intent.casefold())
     phrases = {" ".join(pair) for pair in zip(phrase_words, phrase_words[1:], strict=False)}
-    blocks = [block for block in page.get("blocks", []) if block.get("kind") != "heading"
-              and block.get("text") and not block.get("form_context") and not block.get("link_only_context")]
-    if blocks and len(text) > max_chars:
+    blocks = [block for block in page.get("blocks", []) if _eligible_block(block)]
+    plain_reading = is_plain_source_reading(question)
+    if page.get("blocks"):
         candidates = []
         semantic_floor = max((semantic_scores or {}).values(), default=0.0) - 0.12
         for block in blocks:
@@ -156,18 +198,18 @@ def select_passages(page: dict, question: str, *, max_chars: int = 6000, semanti
             for piece_index, piece in enumerate(pieces):
                 if not piece.strip() or re.fullmatch(r"[\d\s().;:\-]+", piece):
                     continue
-                score = len(tokens & _terms(piece))
-                semantic = (semantic_scores or {}).get(block["index"])
-                if semantic_scores is not None and semantic is None:
+                score = 1 if plain_reading else len(tokens & _terms(piece))
+                semantic = None if plain_reading else (semantic_scores or {}).get(block["index"])
+                if not plain_reading and semantic_scores is not None and semantic is None:
                     continue
                 if semantic is not None and semantic < semantic_floor and _block_priority(block, question) > 0:
                     continue
                 if semantic is not None:
                     score = semantic + 0.03 * len(tokens & _terms(" ".join(block.get("section") or [])))
-                elif score:
+                elif score and not plain_reading:
                     score += 6 * len(tokens & _terms(" ".join(block.get("section") or [])))
                     score += 4 * sum(phrase in piece.casefold() for phrase in phrases)
-                if score:
+                if score or _block_priority(block, question) == 0:
                     candidates.append({**block, "text": piece, "piece_index": piece_index, "score": score})
         candidates.sort(key=lambda block: (_block_priority(block, question), -block["score"],
                                            int(block["index"]), block["piece_index"]))
@@ -187,7 +229,7 @@ def select_passages(page: dict, question: str, *, max_chars: int = 6000, semanti
         secondary = [block for block in [*heads, *rest] if _block_priority(block, question) != 0]
         for block in [*primary, *secondary]:
             passage = str(block["text"])
-            if not semantic_scores and not tokens & _terms(passage):
+            if not plain_reading and not semantic_scores and not tokens & _terms(passage) and _block_priority(block, question) != 0:
                 continue
             cost = len(_render_passage({"text": passage, "section": block.get("section")})) + (2 if passages else 0)
             if cost > remaining:
@@ -195,12 +237,15 @@ def select_passages(page: dict, question: str, *, max_chars: int = 6000, semanti
             passages.append({"block_index": block["index"], "piece_index": block["piece_index"], "text": passage,
                              "section": list(block.get("section") or [])})
             remaining -= cost
-        if passages:
-            passages.sort(key=lambda passage: (passage["block_index"], passage["piece_index"]))
-            return {"passages": passages, "total_characters": len(text),
-                    "selected_characters": sum(len(passage["text"]) for passage in passages),
-                    "selection_method": "shared_query_semantic_blocks_v2" if semantic_scores else "shared_query_complete_blocks_v1",
-                    "complete_context": False}
+        passages.sort(key=lambda passage: (passage["block_index"], passage["piece_index"]))
+        return {"passages": passages, "total_characters": len(text),
+                "selected_characters": sum(len(passage["text"]) for passage in passages),
+                "selection_method": "shared_query_semantic_blocks_v2" if semantic_scores and not plain_reading else "shared_query_complete_blocks_v1",
+                "selection_status": "selected" if passages else "no_relevant_passages",
+                "requested_rites": sorted(explicit_public_rites(question)),
+                "excluded_outside_rite": sum(_block_priority(block, question) == 5 for block in blocks),
+                "excluded_technical_blocks": sum(bool(block.get("technical_boilerplate")) for block in page.get("blocks", [])),
+                "complete_context": False}
     # Stesse finestre, domanda e punteggio per ogni sito; niente euristiche
     # di favore per un dominio e niente frammenti provenienti dagli snippet.
     windows = [(start, text[start:start + 1200]) for start in range(0, len(text), 1200)]
@@ -224,6 +269,8 @@ def page_evidence(page: dict, question: str, *, max_chars: int = 6000, semantic_
     if page.get("status") != "read" or not page.get("text"):
         return None
     selection = select_passages(page, question, max_chars=max_chars, semantic_scores=semantic_scores)
+    if not selection["passages"]:
+        return None
     url = str(page.get("final_url") or page.get("url") or "")
     return EvidenceItem(
         source_type="web_libero", source_id=url,
@@ -241,7 +288,7 @@ def _native_semantic_ranking(pages: list[dict], question: str) -> dict:
     from lex.ricerca_giuridica.embedding import OllamaEmbedder
 
     embedder = OllamaEmbedder(modello="embeddinggemma:300m", timeout=8, tentativi=1, paralleli=1)
-    return semantic_block_scores(pages, question, embedder=embedder)
+    return semantic_block_scores(pages, question, embedder=embedder, max_candidates=16)
 
 
 def acquire_pages(rows: list[dict], question: str, *, reader=None, passage_ranker=None,
@@ -280,7 +327,9 @@ def acquire_pages(rows: list[dict], question: str, *, reader=None, passage_ranke
             seen_hashes.setdefault(digest, url)
         visits.append(visit)
     ranking = {"status": "not_needed", "scores": {}}
-    if any(page.get("status") == "read" and len(page.get("text") or "") > max_chars and page.get("blocks") for page in pages):
+    if not is_plain_source_reading(question) and any(
+        page.get("status") == "read" and len(page.get("text") or "") > max_chars and page.get("blocks") for page in pages
+    ):
         try:
             ranking = (passage_ranker or _native_semantic_ranking)(pages, question)
         except Exception as exc:
@@ -293,6 +342,9 @@ def acquire_pages(rows: list[dict], question: str, *, reader=None, passage_ranke
             visit["selection"] = {key: value for key, value in item.metadata["selection"].items()
                                   if key != "passages"}
             item.metadata["semantic_selection_status"] = ranking["status"]
+        elif page.get("status") == "read":
+            visit["selection_status"] = "no_relevant_passages"
+            visit["reason"] = "Pagina letta, ma nessun passaggio pertinente rientra nella selezione richiesta."
     return {"items": evidence, "visits": visits, "pages": pages,
             "saved_to_db": False, "question_used": question,
             "semantic_selection": {key: value for key, value in ranking.items() if key != "scores"},

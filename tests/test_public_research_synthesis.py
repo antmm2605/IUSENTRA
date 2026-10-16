@@ -29,6 +29,28 @@ def request():
                       metadata={'studio_context_seed': {'private': 'dato riservato'}})
 
 
+def test_cited_but_unrequested_rite_is_not_published_as_the_requested_comparison():
+    from dataclasses import replace
+
+    query = ('Confronta termine breve e lungo per l’appello civile: '
+             'https://example.org/civile-amministrativo-tributario.php')
+    provider = Provider('Il termine lungo civile è di sei mesi [1]. '
+                        'Per revocazione e opposizione di terzo in amministrativo e tributario '
+                        'valgono sessanta giorni dalla scoperta dei vizi [2].')
+    result = LexResearchService.summarize_public_pages(replace(request(), query=query), sources(), provider=provider)
+    assert result.text == ''
+    assert result.metadata['status'] == 'out_of_requested_scope'
+
+
+def test_comparison_can_cover_both_rites_when_both_are_requested():
+    from dataclasses import replace
+
+    provider = Provider('La fonte civile indica sei mesi [1]. La fonte amministrativa indica sei mesi [2].')
+    result = LexResearchService.summarize_public_pages(
+        replace(request(), query='Confronta il processo civile e amministrativo'), sources(), provider=provider)
+    assert result.metadata['status'] == 'ok'
+
+
 def test_local_provider_receives_only_read_sources_and_no_case_context():
     provider = Provider('Il termine è di sei mesi [1]. La seconda fonte distingue una specifica eccezione [2].')
     result = LexResearchService.summarize_public_pages(request(), sources(), provider=provider)

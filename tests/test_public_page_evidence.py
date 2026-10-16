@@ -1,6 +1,140 @@
 """Il confronto riceve contenuti reali con criterio identico tra domini."""
 
+import pytest
+
 from lex.research.public_page_evidence import acquire_pages, page_evidence, select_passages
+
+
+@pytest.mark.parametrize('question,expected', [
+    ('Appello civile https://example.org/penale-amministrativo-tributario', {'civile'}),
+    ('Articolo 327 c.p.c.', {'civile'}),
+    ('Articolo 2043 c.c.', {'civile'}),
+    ('Articolo 10 c.p.p.', {'penale'}),
+    ('Termini del c.p.a.', {'amministrativo'}),
+    ('I riti tributari', {'tributario'}),
+    ('Confronta le fonti pubbliche', set()),
+])
+def test_explicit_rites_use_native_code_aliases_and_ignore_url_words(question, expected):
+    from lex.research.public_page_evidence import explicit_public_rites
+
+    assert explicit_public_rites(question) == expected
+
+
+def test_no_window_fallback_reintroduces_a_short_page_outside_requested_rite():
+    page = dict(status='read', url='https://example.org/atto', text='Il processo tributario ha un proprio termine.',
+                blocks=[dict(index=0, kind='p', section=['Processo tributario'],
+                             text='Il processo tributario ha un proprio termine.')])
+    assert select_passages(page, 'Appello civile', max_chars=6000)['passages'] == []
+    assert page_evidence(page, 'Appello civile', max_chars=6000) is None
+    assert page['text'] == 'Il processo tributario ha un proprio termine.'
+
+
+def test_specific_chapter_overrides_multi_rite_page_title():
+    page = dict(text='Testo civile. Testo amministrativo.', blocks=[
+        dict(index=0, kind='p', section=['Civile, amministrativo e tributario', 'Processo civile'],
+             text='Il termine civile decorre dalla notificazione della sentenza.'),
+        dict(index=1, kind='p', section=['Civile, amministrativo e tributario', 'Processo amministrativo'],
+             text='Il termine amministrativo segue la propria disciplina.'),
+    ])
+    assert [p['block_index'] for p in select_passages(page, 'Termine civile')['passages']] == [0]
+
+
+def test_short_dispositive_preserves_rule_and_condition_without_a_shared_keyword():
+    page = dict(text='Testo completo della disposizione.', blocks=[
+        dict(index=0, kind='p', section=['Articolo 327 codice di procedura civile', 'Dispositivo'],
+             text='Indipendentemente dalla notificazione, il ricorso non può proporsi dopo decorsi sei mesi.'),
+        dict(index=1, kind='p', section=['Articolo 327 codice di procedura civile', 'Dispositivo'],
+             text='Questa disposizione non si applica quando ricorrono tutte le condizioni indicate.'),
+    ])
+    result = select_passages(page, 'Qual è il termine lungo?', max_chars=6000)
+    assert [p['block_index'] for p in result['passages']] == [0, 1]
+
+
+def test_native_embedding_batch_is_bounded_and_represents_both_pages(monkeypatch):
+    import numpy as np
+
+    from lex.research.public_page_evidence import _native_semantic_ranking
+
+    calls = []
+
+    class Embedder:
+        modello = 'embeddinggemma:300m'
+
+        def __init__(self, **kwargs):
+            assert kwargs == dict(modello=self.modello, timeout=8, tentativi=1, paralleli=1)
+
+        def embed(self, texts):
+            calls.append(texts)
+            return np.ones((len(texts), 3))
+
+    monkeypatch.setattr('lex.ricerca_giuridica.embedding.OllamaEmbedder', Embedder)
+    pages = [dict(blocks=[dict(index=i, kind='p', section=[title],
+                              text=f'Il termine lungo della fonte {title} è descritto in questo passaggio completo numero {i}.')
+                         for i in range(30)]) for title in ('prima', 'seconda')]
+    result = _native_semantic_ranking(pages, 'termine lungo')
+    assert result['candidate_count'] == 16
+    assert len(calls) == 1 and len(calls[0]) == 17
+    assert len(result['scores'][0]) == len(result['scores'][1]) == 8
+    assert result['limited_pool'] is True
+
+
+def test_explicit_civil_request_does_not_import_other_rites_from_url_or_sections():
+    blocks = [
+        dict(index=0, kind='p', section=['Le impugnazioni nel processo civile'],
+             text='Il ricorso in appello deve essere proposto entro trenta giorni dalla notifica della sentenza.'),
+        dict(index=1, kind='p', section=['Le impugnazioni nel processo amministrativo'],
+             text='Per la revocazione nei casi indicati sono previsti sessanta giorni dalla scoperta dei vizi.'),
+        dict(index=2, kind='p', section=['Le impugnazioni nel processo tributario'],
+             text='Nel processo tributario si applicano i termini indicati dalla disposizione richiamata.'),
+    ]
+    question = 'Confronta il termine per l’appello civile: https://example.org/civile-amministrativo-tributario.php'
+    result = select_passages(dict(text='Inventario completo. ' * 100, blocks=blocks), question,
+                             max_chars=1200, semantic_scores={0: .8, 1: .9, 2: .9})
+    assert [p['block_index'] for p in result['passages']] == [0]
+    assert len(blocks) == 3  # l'inventario originale non viene riscritto
+
+
+def test_explicit_multiple_rites_are_preserved_without_an_unrequested_third_rite():
+    blocks = [dict(index=i, kind='p', section=[f'Processo {rite}'],
+                   text=f'Il termine per il processo {rite} è indicato nel testo della disposizione.')
+              for i, rite in enumerate(('civile', 'amministrativo', 'tributario'))]
+    result = select_passages(dict(text='Inventario completo. ' * 100, blocks=blocks),
+                             'Confronta civile e amministrativo', max_chars=1200,
+                             semantic_scores={0: .8, 1: .8, 2: .9})
+    assert [p['block_index'] for p in result['passages']] == [0, 1]
+
+
+def test_generic_reading_does_not_start_an_unnecessary_embedding_batch():
+    calls = []
+
+    class Reader:
+        def read(self, url):
+            return dict(url=url, status='read', text='Testo della pagina. ' * 100,
+                        blocks=[dict(index=0, kind='p', section=['Contenuto'],
+                                     text='La pagina presenta il contenuto effettivamente disponibile al lettore.')])
+
+    def ranker(*args):
+        calls.append(args)
+        raise AssertionError('La lettura generica non richiede una classifica semantica.')
+
+    result = acquire_pages([dict(url='https://example.org/a'), dict(url='https://other.example/b')],
+                           'Leggi queste due pagine pubbliche e indica quali informazioni riesci effettivamente a recuperare, citando separatamente i due link. Non usare dati dello studio.',
+                           reader=Reader(), passage_ranker=ranker)
+    assert calls == []
+    assert result['read_count'] == 2
+
+
+def test_short_page_selection_excludes_technical_footer_without_losing_original():
+    from lex.sources.html_structure import read_html_structure
+
+    page = read_html_structure(
+        b'<main><h1>Norma</h1><p>Il termine decorre dalla pubblicazione della sentenza.</p>'
+        b'<div>Pagina generata in 0.004 secondi</div></main>',
+        'text/html; charset=utf-8', url='https://example.org/norma')
+    result = select_passages(page, 'Leggi questa pagina pubblica', max_chars=6000)
+    assert 'Pagina generata' in page['full_text']
+    assert 'pubblicazione' in ' '.join(p['text'] for p in result['passages'])
+    assert 'Pagina generata' not in ' '.join(p['text'] for p in result['passages'])
 
 
 def test_same_content_and_question_receive_same_selection_on_different_sites():

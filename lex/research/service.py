@@ -96,7 +96,7 @@ class LexResearchService:
         rows = list(items or [])
         if not rows:
             return ProviderDraft(text="", metadata={"status": "no_read_sources"})
-        from .public_page_evidence import is_plain_source_reading
+        from .public_page_evidence import explicit_public_rites, is_plain_source_reading, public_response_in_scope
 
         if is_plain_source_reading(request.query):
             # Percorso primario di lettura, non sintesi generativa né ripiego:
@@ -137,6 +137,12 @@ class LexResearchService:
             "Non ripetere gli URL lunghi: i link sono collegati alle citazioni [n]. "
             "Rispondi soltanto agli ambiti e ai quesiti richiesti: non aggiungere altri riti solo perché presenti nelle evidenze. Se riporti una deroga, cita letteralmente il passaggio che ne contiene tutti i presupposti, senza riscriverne le congiunzioni. Mantieni integralmente le condizioni e le eccezioni pertinenti: non semplificare i presupposti di una deroga e non attribuire a tutti gli ambiti una regola letta per uno solo."
         )
+        requested_rites = explicit_public_rites(request.query)
+        if requested_rites:
+            prompt += (
+                "\nAmbiti processuali espressamente richiesti: " + ", ".join(sorted(requested_rites))
+                + ". Un URL o il titolo generale della pagina non aggiungono altri ambiti alla domanda."
+            )
         isolated = replace(request, query=prompt, fascicolo_id=None, document_id=None,
                            metadata={"source_mode": "free_web", "free_web_enabled": True},
                            require_citations=True, require_official_sources=False)
@@ -184,6 +190,9 @@ class LexResearchService:
                                                          "reasons": list(verdict.reasons)})
             if verdict.rewritten_draft is not None:
                 draft.text = verdict.rewritten_draft
+        if not public_response_in_scope(request.query, draft.text):
+            return ProviderDraft(text="", metadata={**metadata, "status": "out_of_requested_scope",
+                "reasons": ["La risposta introduce un ambito processuale non richiesto dalla domanda."]})
         used = {int(index) for match in _public_citation_matches(draft.text)
                 for index in re.findall(r"\[(\d+)\]", match.group())}
         if used != set(range(1, len(rows) + 1)):

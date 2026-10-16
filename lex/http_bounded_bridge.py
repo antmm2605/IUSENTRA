@@ -948,12 +948,21 @@ def _free_web_payload_steps(
                 }.get(visit.get("status"), "La pagina richiesta non è stata acquisita.")
             read_warnings.append(f"Fonte non letta: {visit.get('url') or 'indirizzo non disponibile'}. {reason}")
     if not synthesis_ok:
+        any_page_read = any(visit.get("status") == "read" for visit in visits)
         answer = (
             ("I passaggi disponibili sono stati letti, ma la risposta non è stata completata. "
              if source_reading else "Le pagine sono state lette, ma il confronto non è stato completato. ")
             + "Le fonti restano disponibili per la consultazione."
-            if sources else "Nessuna pagina pubblica leggibile acquisita: la ricerca non è conclusa."
+            if sources else (
+                "Le pagine sono state lette, ma non sono stati selezionati passaggi pertinenti alla domanda. La ricerca non è conclusa."
+                if any_page_read else "Nessuna pagina pubblica leggibile acquisita: la ricerca non è conclusa."
+            )
         )
+        if synthesis_metadata.get("status") == "out_of_requested_scope":
+            answer = (
+                "Il confronto è stato fermato: la risposta introduce un ambito processuale non richiesto. "
+                "Le fonti restano disponibili per la consultazione."
+            )
         if synthesis_metadata.get("status") == "unsupported_source_absence_claim":
             answer = (
                 "Il confronto è stato fermato: gli estratti selezionati non permettono di affermare "

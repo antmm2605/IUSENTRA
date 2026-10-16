@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.437.47 — candidata, 16/10/2026
+
+- Letture pubbliche esplicite con URL riconosciute dal server anche senza attivazione manuale: percorso anonimo condiviso prima del contesto interno e della ricerca normativa locale. Allegati e richieste miste conservano il percorso esistente.
+- La sola indicazione iniziale nel widget non forza permessi o classificazione sul server; avanzamento e scroll seguono il lavoro effettivo.
+- Chiusura dello stream pubblico senza esito finale, risposta vuota e interruzione della risposta ordinaria sono esplicite; nessuna esportazione dell'esito fallito. Conservata la risposta ordinaria a token quando arriva il marcatore finale.
+- Errori di rete comuni presentati in italiano. Rafforzati test storici del widget, isolamento dal contesto interno, allegati e interruzioni EOF/DONE.
+- Candidata46 non distribuita: CI fermata da un contratto testuale storico, deploy annullato prima di SSH. Necessari collaudo reale47, nuova CI/copertura e deploy.
+
 ## 2.437.46 — candidata, 16/10/2026
 
 - Correzioni emerse dal collaudo reale della candidata45, non rilasciata: la domanda generica di lettura usa un argomento comune ricavato dai titoli delle pagine, evitando di selezionare soltanto la guida del calcolatore.

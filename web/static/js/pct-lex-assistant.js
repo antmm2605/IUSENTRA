@@ -1454,7 +1454,8 @@
       stage: 0,
       receivedFirstToken: false,
       reflectionDurationMs: 0,
-      serverProgress: state.freeWebEnabled ? 'Avvio la lettura delle fonti pubbliche richieste.' : '',
+      serverProgress: state.freeWebEnabled || publicPageRequestHint(question)
+        ? 'Valuto la lettura delle pagine pubbliche indicate.' : '',
       statusTimer: window.setInterval(renderThinkingStatus, 250),
       stageOneTimer: null,
       stageTwoTimer: null,
@@ -1666,6 +1667,16 @@
     }
   }
 
+  // Solo presentazione: il server risolve l'intento e i permessi autonomamente.
+  function publicPageRequestHint(question) {
+    var value = String(question || '').toLowerCase();
+    if (!/https?:\/\/[^\s<>]+/.test(value)) return false;
+    value = value.replace(/https?:\/\/[^\s<>]+/g, ' ');
+    return /\b(leggi|leggere|confronta|confrontare|esamina|analizza|recupera)\b/.test(value)
+      && /\b(pagin[ae]|sit[oi]|url|link|font[ei])\b/.test(value)
+      && (/\b(pubblic(?:o|a|i|he)|web)\b/.test(value) || /\bnon\s+usare\s+(i\s+)?dati\s+dello\s+studio\b/.test(value));
+  }
+
   function sanitizeSpeechText(value) {
     return String(value || '')
       .replace(/```[\s\S]*?```/g, ' ')
@@ -1875,7 +1886,8 @@
 
   function buildAnswerHtml(payload, options) {
     var answer = payload && payload.answer ? renderMarkdown(payload.answer) : '<p>Nessuna risposta disponibile.</p>';
-    var includeExports = !(options && options.includeExports === false) && !(payload && payload.disableExports);
+    var includeExports = !(options && options.includeExports === false)
+      && !(payload && (payload.disableExports || payload.disable_exports));
     var unifiedRenderer = renderLexMessageRenderer(payload);
     if (unifiedRenderer) {
       return (
@@ -2255,10 +2267,17 @@
   }
 
   function conversationEntryPayload(entry) {
-    return Object.assign({}, entry.meta && entry.meta.publicAnswer || {}, {
+    var payload = Object.assign({}, entry.meta && entry.meta.publicAnswer || {}, {
       answer: entry.content || '',
       referenceLabel: entry.meta && entry.meta.referenceLabel ? entry.meta.referenceLabel : '',
     });
+    if (entry.meta && entry.meta.requestFailed) {
+      payload.disable_exports = true;
+      if (!Array.isArray(payload.warnings) || !payload.warnings.length) {
+        payload.warnings = ['La richiesta non è stata completata.'];
+      }
+    }
+    return payload;
   }
 
   function renderConversation() {
@@ -2572,6 +2591,9 @@
     if (!cleaned || looksLikeHtmlDocument(cleaned)) {
       return lexServiceUnavailableMessage();
     }
+    if (/^(failed to fetch|load failed|networkerror\b)/i.test(cleaned)) {
+      return 'Connessione al servizio non riuscita. Riprova la richiesta.';
+    }
     if (cleaned.length > 260) {
       return cleaned.slice(0, 257).trim() + '...';
     }
@@ -2645,9 +2667,33 @@
   }
 
   function sendLocal(text) {
-    var preservePublicScroll = Boolean(state.freeWebEnabled);
+    var publicProtocol = Boolean(state.freeWebEnabled);
+    var preservePublicScroll = Boolean(state.freeWebEnabled || publicPageRequestHint(text));
     var payload = buildChatRequestPayload(text);
     var referenceLabel = state.pendingFocus && state.pendingFocus.focusLabel ? String(state.pendingFocus.focusLabel) : '';
+    var finished = false;
+
+    function finish(finalPayload, ok) {
+      if (finished) {
+        return;
+      }
+      finished = true;
+      if (ok === false) finalPayload.disableExports = true;
+      var scrollState = preservePublicScroll ? captureConversationScroll() : null;
+      setAnswerPayload(state.currentBubble, finalPayload);
+      var historyMeta = { topic: state.pendingFocus && state.pendingFocus.topic || '', referenceLabel: referenceLabel };
+      if (ok === false) historyMeta.requestFailed = true;
+      var publicMemory = publicAnswerMemory(finalPayload);
+      if (publicMemory) historyMeta.publicAnswer = publicMemory;
+      state.history.push({ role: 'assistant', content: finalPayload.answer, meta: historyMeta });
+      saveConversationMemory();
+      speakAnswer(finalPayload.answer);
+      finalizeThinkingFeedback(ok !== false);
+      finalizeRequest(ok === false
+        ? 'Richiesta non completata: consulta l’esito della richiesta.'
+        : undefined, scrollState);
+    }
+
     return fetch(widget.dataset.chatUrl || '/api/assistente/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2666,46 +2712,29 @@
       var decoder = new TextDecoder();
       var buffer = '';
       var full = '';
-      var finished = false;
-
-      function finish(finalPayload, ok) {
-        if (finished) {
+      function finishStream(receivedDone) {
+        if (finished) return;
+        if (publicProtocol || !String(full).trim() || !receivedDone) {
+          finish(normalizeAssistantPayload({
+            answer: (!publicProtocol && String(full).trim() ? full + '\n\n' : '')
+              + 'La risposta si è interrotta prima dell’esito finale. Riprova la richiesta.',
+            source_mode: publicProtocol ? 'free_web' : undefined,
+            public_web_synthesis: publicProtocol ? { status: 'stream_incomplete' } : undefined,
+            disable_exports: true,
+            warnings: ['Esito finale della richiesta non ricevuto.'],
+          }, { question: text }), false);
           return;
         }
-        finished = true;
-        var scrollState = preservePublicScroll ? captureConversationScroll() : null;
-        setAnswerPayload(state.currentBubble, finalPayload);
-        var historyMeta = { topic: state.pendingFocus && state.pendingFocus.topic || '', referenceLabel: referenceLabel };
-        var publicMemory = publicAnswerMemory(finalPayload);
-        if (publicMemory) historyMeta.publicAnswer = publicMemory;
-        state.history.push({ role: 'assistant', content: finalPayload.answer, meta: historyMeta });
-        saveConversationMemory();
-        speakAnswer(finalPayload.answer);
-        finalizeThinkingFeedback(ok !== false);
-        var comparisonIncomplete = finalPayload.public_web_synthesis && finalPayload.public_web_synthesis.status !== 'ok';
-        finalizeRequest(ok === false
-          ? (comparisonIncomplete ? 'Richiesta non completata: consulta l’esito della richiesta.' : 'Assistente momentaneamente non disponibile.')
-          : undefined, scrollState);
+        finish(normalizeAssistantPayload(
+          { answer: full, citations: [], question: text, referenceLabel: referenceLabel },
+          { question: text }
+        ), true);
       }
 
       function readChunk() {
         return reader.read().then(function (result) {
           if (result.done) {
-            if (preservePublicScroll && !finished) {
-              finish(normalizeAssistantPayload({
-                answer: 'La risposta si è interrotta prima dell’esito finale. Riprova la richiesta.',
-                source_mode: 'free_web',
-                public_web_synthesis: { status: 'stream_incomplete' },
-                disable_exports: true,
-                warnings: ['Esito finale della richiesta non ricevuto.'],
-              }, { question: text }), false);
-              return;
-            }
-            var finalPayload = normalizeAssistantPayload(
-              { answer: full, citations: [], question: text, referenceLabel: referenceLabel },
-              { question: text }
-            );
-            finish(finalPayload, true);
+            finishStream(false);
             return;
           }
 
@@ -2714,22 +2743,23 @@
           buffer = lines.pop();
 
           lines.forEach(function (line) {
+            if (finished) return;
             if (line.indexOf('data: ') !== 0) {
               return;
             }
 
             var raw = line.slice(6).trim();
               if (raw === '[DONE]') {
-                var donePayload = normalizeAssistantPayload(
-                  { answer: full, citations: [], question: text, referenceLabel: referenceLabel },
-                  { question: text }
-                );
-                finish(donePayload, true);
+                finishStream(true);
                 return;
               }
 
             try {
               var data = JSON.parse(raw);
+              if (data.source_mode === 'free_web') {
+                publicProtocol = true;
+                preservePublicScroll = true;
+              }
               if (data.progress && state.thinking && !finished) {
                 state.thinking.serverProgress = String(data.progress);
                 renderThinkingStatus();
@@ -2742,12 +2772,11 @@
                 return;
               }
               if (data.errore) {
-                var errorScrollState = preservePublicScroll ? captureConversationScroll() : null;
-                setBubbleContent(state.currentBubble, 'Attenzione: ' + data.errore);
-                state.history.push({ role: 'assistant', content: data.errore, meta: { topic: state.pendingFocus && state.pendingFocus.topic || '' } });
-                saveConversationMemory();
-                finalizeThinkingFeedback(false);
-                finalizeRequest(undefined, errorScrollState);
+                finish(normalizeAssistantPayload({
+                  answer: 'Attenzione: ' + compactErrorText(data.errore),
+                  disable_exports: true,
+                  warnings: ['La richiesta non è stata completata.'],
+                }, { question: text }), false);
                 return;
               }
               if (data.token) {
@@ -2777,10 +2806,11 @@
 
       return readChunk();
     }).catch(function (error) {
-      var errorScrollState = preservePublicScroll ? captureConversationScroll() : null;
-      setBubbleContent(state.currentBubble, compactErrorText(error && error.message || lexServiceUnavailableMessage()));
-      finalizeThinkingFeedback(false);
-      finalizeRequest('Lex non ha completato la richiesta.', errorScrollState);
+      finish(normalizeAssistantPayload({
+        answer: compactErrorText(error && error.message || lexServiceUnavailableMessage()),
+        disable_exports: true,
+        warnings: ['La richiesta non è stata completata.'],
+      }, { question: text }), false);
     });
   }
 
@@ -3949,6 +3979,7 @@
       formatReflectionDuration: formatReflectionDuration,
       buildThinkingBubbleHtml: buildThinkingBubbleHtml,
       buildChatRequestPayload: buildChatRequestPayload,
+      publicPageRequestHint: publicPageRequestHint,
       renderLexMessageRenderer: renderLexMessageRenderer,
       normalizeLexActiveContext: normalizeLexActiveContext,
       currentActiveContextPayload: currentActiveContextPayload,

@@ -273,13 +273,22 @@ def build_context_response(
     social_prefix = str(routing.social_prefix or "").strip() if routing.is_social_with_request else ""
 
     from .http_bounded_bridge import _free_web_direct_payload, _manual_free_web_enabled
+    from .research.source_scope_policy import requests_explicit_public_pages
 
+    automatic_public = (not _manual_free_web_enabled(data) and not attachments
+                        and requests_explicit_public_pages(current_user_message))
+    if automatic_public:
+        data = {**data, "source_mode": "free_web", "free_web_enabled": True}
+        user_effective_question = current_user_message
     if _manual_free_web_enabled(data):
         public_context = apply_manual_free_web_context(data, {"effective_question": user_effective_question})
+        public_context["manual_free_web_enabled"] = not automatic_public
+        public_context["public_web_activation"] = "explicit_url_request" if automatic_public else "manual_toggle"
         public_payload = _free_web_direct_payload(
             user=user, studio=studio,
             metadata={"session_id": data.get("session_id"), "source_mode": "free_web",
-                      "free_web_enabled": True, "manual_free_web_enabled": True, "public_web_forced": True},
+                      "free_web_enabled": True, "manual_free_web_enabled": not automatic_public,
+                      "public_web_activation": public_context["public_web_activation"], "public_web_forced": True},
             current_user_message=current_user_message, resolved_effective_question=user_effective_question,
             studio_context=public_context,
             request_profile=dict(public_context.get("request_profile") or {}), workflow_hint="fonti",
@@ -647,15 +656,24 @@ def chat_response(
     user_effective_question = str(followup.effective_query or base_question).strip() or "Richiesta operativa"
     social_prefix = str(routing.social_prefix or "").strip() if routing.is_social_with_request else ""
     from .http_bounded_bridge import _free_web_payload_steps, _manual_free_web_enabled
+    from .research.source_scope_policy import requests_explicit_public_pages
 
+    automatic_public = (not _manual_free_web_enabled(data) and not attachments
+                        and requests_explicit_public_pages(current_user_message))
+    if automatic_public:
+        data = {**data, "source_mode": "free_web", "free_web_enabled": True}
+        user_effective_question = current_user_message
     if _manual_free_web_enabled(data):
         # Autorizzazione e interpretazione della richiesta sono già avvenute.
         # La consultazione pubblica non richiede il contesto privato del fascicolo.
         public_context = apply_manual_free_web_context(data, {"effective_question": user_effective_question})
+        public_context["manual_free_web_enabled"] = not automatic_public
+        public_context["public_web_activation"] = "explicit_url_request" if automatic_public else "manual_toggle"
         public_metadata = {
             "session_id": data.get("session_id"),
             "source_mode": "free_web", "free_web_enabled": True,
-            "manual_free_web_enabled": True, "public_web_forced": True,
+            "manual_free_web_enabled": not automatic_public,
+            "public_web_activation": public_context["public_web_activation"], "public_web_forced": True,
         }
 
         def generate_public():

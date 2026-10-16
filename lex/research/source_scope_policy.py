@@ -45,19 +45,22 @@ ALL_SCOPES = (
 # Pattern di classificazione
 # ---------------------------------------------------------------------------
 
-_STUDIO_INTERNAL_PATTERNS = (
+_STUDIO_ENTITY_PATTERNS = (
     r"\b(cliente|clienti|assistito|assistita)\b",
     r"\b(anagrafica|anagrafiche|recapit[io]|scheda cliente)\b",
     r"\b(codice fiscale|cf|c\.f\.|partita iva|p\.iva|piva)\b",
     r"\b(pec del cliente|email del cliente|telefono del cliente)\b",
     r"\b(fascicolo|fascicoli|rg\s*\d|pratica|causa mia)\b",
     r"\b(agenda|appuntamento|udienza di oggi|prossime udienze)\b",
-    r"\b(scadenza|scadenze|termine del fascicolo)\b",
     r"\b(parcella|fattura|preventivo|onorario mio)\b",
     r"\b(cosa ho oggi|cosa ho domani|prossimi appuntamenti)\b",
     r"\b(dati di|dati del|dati della|scheda di)\b",
     r"\b(trova il cliente|cerca il cliente|mostrami il cliente)\b",
     r"\b(dammi i dati|mostrami i dati|dimmi i dati)\b",
+)
+
+_STUDIO_INTERNAL_PATTERNS = _STUDIO_ENTITY_PATTERNS + (
+    r"\b(scadenza|scadenze|termine del fascicolo)\b",
 )
 
 _PUBLIC_LEGAL_PATTERNS = (
@@ -85,7 +88,7 @@ _PUBLIC_LEGAL_PATTERNS = (
     r"\bcerca\s+(?:la\s+)?(?:questa\s+)?sentenza\b",
 )
 
-_OPERATIONAL_NO_WEB_PATTERNS = (
+_OPERATIONAL_ACTION_PATTERNS = (
     r"\bscrivi\s+(?:una\s+)?(?:diffida|lettera|pec|bozza|atto)\b",
     r"\bbozza\s+(?:di\s+)?(?:lettera|atto|diffida|contratto|ricorso)\b",
     r"\bredigi\s+",
@@ -96,6 +99,9 @@ _OPERATIONAL_NO_WEB_PATTERNS = (
     r"\bdeposito\s+telematico\b",
     r"\bchecklist\s+deposito\b",
     r"\berrore\s+(?:pst|pdp|pat|ptt)\b",
+)
+
+_OPERATIONAL_NO_WEB_PATTERNS = _OPERATIONAL_ACTION_PATTERNS + (
     r"\btermini?\s+(?:per|processual)\b",
     r"\bgiorni\s+dalla\s+notifica\b",
     r"\bscadenza\s+(?:per\s+l[\'']appello|del\s+ricorso)\b",
@@ -133,6 +139,34 @@ def _match_any(text: str, patterns: tuple[str, ...]) -> bool:
         if re.search(pattern, text, re.IGNORECASE):
             return True
     return False
+
+
+def requests_explicit_public_pages(question: str) -> bool:
+    """Intento pubblico esplicito del messaggio corrente, senza usare la cronologia.
+
+    Non valida la rete: URL, indirizzi e redirect restano governati dal lettore.
+    Riferimenti interni o richieste miste conservano il percorso già previsto.
+    """
+    text = _clean(question)
+    if not re.search(r"https?://[^\s<>]+", text):
+        return False
+    instruction = re.sub(r"https?://[^\s<>]+", " ", text)
+    if not re.search(r"\b(?:leggi|leggere|confronta|confrontare|esamina|analizza|recupera)\b", instruction):
+        return False
+    if not re.search(r"\b(?:pagin[ae]|sit[oi]|url|link|font[ei])\b", instruction):
+        return False
+    if not (re.search(r"\b(?:pubblic(?:o|a|i|he)|web)\b", instruction)
+            or re.search(r"\bnon\s+usare\s+(?:i\s+)?dati\s+dello\s+studio\b", instruction)):
+        return False
+    # Termini e scadenze possono essere l'argomento delle pagine pubbliche:
+    # non sono, da soli, una richiesta di consultare lo scadenziario interno.
+    owned_deadlines = bool(
+        re.search(r"\b(?:scadenz[ae]|termini|udienz[ae])\b", instruction)
+        and (re.search(r"\b(?:mi(?:o|a|ei|e)|nostr[oaie])\b", instruction)
+             or re.search(r"\b(?:scadenz[ae]|termini|udienz[ae])\s+dello\s+studio\b", instruction)))
+    return not (owned_deadlines or _match_any(instruction, _STUDIO_ENTITY_PATTERNS)
+                or _match_any(instruction, _OPERATIONAL_ACTION_PATTERNS)
+                or _match_any(instruction, _MIXED_PATTERNS))
 
 
 # ---------------------------------------------------------------------------

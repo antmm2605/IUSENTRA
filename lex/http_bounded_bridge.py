@@ -893,7 +893,7 @@ def _free_web_payload_steps(
 
     acquisition_error = ""
     search_request = None
-    yield {"progress": "Leggo le pagine pubbliche e seleziono i passaggi pertinenti."}
+    yield {"source_mode": "free_web", "progress": "Leggo le pagine pubbliche e seleziono i passaggi pertinenti."}
     try:
 
         search_request = LexRequest(
@@ -924,7 +924,7 @@ def _free_web_payload_steps(
     synthesis_metadata: dict[str, Any] = {"status": "no_read_sources"}
     answer = ""
     if evidence and search_request is not None:
-        yield {"progress": "Preparo la risposta sui passaggi letti e controllo i riferimenti alle fonti."}
+        yield {"source_mode": "free_web", "progress": "Preparo la risposta sui passaggi letti e controllo i riferimenti alle fonti."}
         try:
             draft = LexResearchService.summarize_public_pages(search_request, evidence)
             synthesis_metadata = dict(draft.metadata or {})
@@ -1021,7 +1021,8 @@ def _free_web_payload_steps(
             "source_policy_summary": {},
             "source_mode": "free_web",
             "free_web_enabled": True,
-            "manual_free_web_enabled": True,
+            "manual_free_web_enabled": _payload_flag(studio_context.get("manual_free_web_enabled", True)),
+            "public_web_activation": studio_context.get("public_web_activation") or "manual_toggle",
             "force_free_web_search": True,
             "public_web_forced": True,
             "free_web_responsibility": "controllo_avvocato",

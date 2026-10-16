@@ -5,11 +5,25 @@ from types import SimpleNamespace
 import pytest
 
 from lex.contracts import EvidenceItem, ProviderDraft
-from lex.http_bounded_bridge import _free_web_direct_payload
+from lex.http_bounded_bridge import _free_web_direct_payload, _free_web_payload_steps
+
+
+def test_public_protocol_is_marked_before_acquisition(monkeypatch):
+    def forbidden(*args, **kwargs):
+        raise AssertionError("La prima fase non deve acquisire prima di dichiarare il percorso")
+
+    monkeypatch.setattr("lex.retrieval.sources.official_web.OfficialWebSource.search", forbidden)
+    steps = _free_web_payload_steps(user=None, studio=None, metadata={},
+        current_user_message="Leggi la pagina", resolved_effective_question="Leggi la pagina",
+        studio_context={}, request_profile={}, workflow_hint="fonti")
+    first = next(steps)
+    assert first["source_mode"] == "free_web" and first["progress"]
+    steps.close()
 
 
 @pytest.mark.parametrize("accepted", [True, False])
-def test_http_publishes_only_accepted_comparison(monkeypatch, accepted):
+@pytest.mark.parametrize("automatic", [True, False])
+def test_http_publishes_only_accepted_comparison(monkeypatch, accepted, automatic):
     item = EvidenceItem(source_type="web_libero", source_id="public-1", title="Fonte pubblica",
                         content="Il termine è di sei mesi.", score=1,
                         metadata={"url": "https://example.org/norma"})
@@ -25,7 +39,10 @@ def test_http_publishes_only_accepted_comparison(monkeypatch, accepted):
     monkeypatch.setattr("lex.research.service.LexResearchService.summarize_public_pages", summarize)
     result = _free_web_direct_payload(user=SimpleNamespace(username="tester"),
         studio=SimpleNamespace(slug="studio-a"), metadata={}, current_user_message="Confronta la fonte",
-        resolved_effective_question="Confronta la fonte", studio_context={}, request_profile={}, workflow_hint="fonti")
+        resolved_effective_question="Confronta la fonte", studio_context={
+            "manual_free_web_enabled": not automatic,
+            "public_web_activation": "explicit_url_request" if automatic else "manual_toggle",
+        }, request_profile={}, workflow_hint="fonti")
     assert len(calls) == 1
     assert calls[0][0].fascicolo_id is None
     assert result["evidence_summary"]["evidence_sufficient"] is accepted
@@ -35,6 +52,8 @@ def test_http_publishes_only_accepted_comparison(monkeypatch, accepted):
     assert result["sources"][0]["verified_reference"] is False
     assert result["free_web_saves_to_db"] is False
     assert result["disable_exports"] is not accepted
+    assert result["manual_free_web_enabled"] is not automatic
+    assert result["public_web_activation"] == ("explicit_url_request" if automatic else "manual_toggle")
     if not accepted:
         assert "non è stato completato" in result["answer"]
 

@@ -89,8 +89,8 @@ def test_widget_posts_chat_payload_to_canonical_route():
     assert "responseErrorMessage(response, body)" in widget_js
     assert "looksLikeHtmlDocument" in widget_js
     assert "Errore di connessione: ' + (error.message" not in widget_js
-    assert "var errorScrollState = preservePublicScroll ? captureConversationScroll() : null;" in widget_js
-    assert "finalizeRequest('Lex non ha completato la richiesta.', errorScrollState)" in widget_js
+    assert "Richiesta non completata: consulta l’esito della richiesta." in widget_js
+    assert "Connessione al servizio non riuscita. Riprova la richiesta." in widget_js
 
 
 def test_legacy_lex_links_open_floating_widget_without_navigation():

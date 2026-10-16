@@ -225,7 +225,10 @@ assert.equal((publicSourceHtml.match(/Fonte pubblica controllata/g) || []).lengt
 const unsafeSourceHtml = hooks.buildAnswerHtml({ answer: 'Fonte', sources: [{ title: 'Titolo', url: 'javascript:alert(1)' }] })
 assert.doesNotMatch(unsafeSourceHtml, /href="javascript:/)
 
-async function publicStreamCase({ incomplete = false, atBottom = false, publicMode = true, networkFailure = false } = {}) {
+async function publicStreamCase({ incomplete = false, atBottom = false, publicMode = true, networkFailure = false,
+  doneMarker = false, tokenOnly = false, serverError = false, question = 'Leggi la pagina pubblica',
+  publicResult = publicMode, networkMessage = 'Errore di rete controllato', malformed = false,
+  trailingToken = false } = {}) {
   const scroller = { scrollHeight: 1500, clientHeight: 400 }
   let position = atBottom ? 1100 : 400
   Object.defineProperty(scroller, 'scrollTop', {
@@ -240,26 +243,34 @@ async function publicStreamCase({ incomplete = false, atBottom = false, publicMo
   hooks.setRequestElementsForTest({ widget: { dataset: { chatUrl: '/controlled/chat', pagePath: '/' } },
     messages: scroller, bubble, status })
   hooks.setFreeWebEnabled(publicMode, { silent: true })
-  const frames = [{ progress: 'Leggo la pagina pubblica.' }]
-  if (!incomplete) frames.push({ payload: {
+  const frames = serverError ? [{ errore: 'Errore del servizio controllato' }]
+    : tokenOnly ? [{ token: 'Risposta ordinaria ricevuta.' }] : [{ progress: 'Leggo la pagina pubblica.', source_mode: publicResult ? 'free_web' : undefined }]
+  if (!incomplete && !tokenOnly && !serverError) frames.push({ payload: {
     answer: 'Il passaggio è disponibile [1].', disable_exports: true,
     sources: [{ title: 'Fonte conservata', url: 'https://example.org/norma', source_type: 'web_libero',
       selection: { complete_context: false }, sha256: 'a'.repeat(64) }],
     citations: ['Fonte conservata'], warnings: ['Estratto pubblico controllato.'],
     structured_context: { private: 'NON-CONSERVARE-CONTESTO' },
-    public_web_synthesis: publicMode ? { status: 'ok' } : undefined,
+    public_web_synthesis: publicResult ? { status: 'ok' } : undefined,
   } })
   const packets = frames.map(frame => ({ done: false,
     value: new TextEncoder().encode('data: ' + JSON.stringify(frame) + '\n\n') }))
+  if (malformed) packets[0] = { done: false, value: new TextEncoder().encode('data: invalid-json\n\n') }
+  if (trailingToken) packets.at(-1).value = new TextEncoder().encode(
+    'data: ' + JSON.stringify(frames.at(-1)) + '\n\ndata: {"token":"NON-SOVRASCRIVERE"}\n\n')
+  if (doneMarker) packets.push({ done: false, value: new TextEncoder().encode('data: [DONE]\n\n') })
   context.fetch = async () => {
-    if (networkFailure) throw new Error('Errore di rete controllato')
+    if (networkFailure) throw new Error(networkMessage)
     return { ok: true, body: { getReader: () => ({ read: async () => packets.shift() || { done: true } }) } }
   }
-  await hooks.sendLocalForTest('Leggi la pagina pubblica')
+  await hooks.sendLocalForTest(question)
   return { position, html: bubble.innerHTML, status: status.textContent, entry: hooks.historyForTest().at(-1) }
 }
 const preservedReading = await publicStreamCase()
 assert.equal(preservedReading.position, 400, 'the completed public reply preserves an older reading position')
+const finalizedReply = await publicStreamCase({ trailingToken: true })
+assert.match(finalizedReply.html, /Il passaggio è disponibile/)
+assert.doesNotMatch(finalizedReply.html, /NON-SOVRASCRIVERE/)
 const followingReply = await publicStreamCase({ atBottom: true })
 assert.equal(followingReply.position, 1800, 'a reader at the bottom follows the completed reply')
 const interruptedPublic = await publicStreamCase({ incomplete: true })
@@ -269,9 +280,53 @@ assert.doesNotMatch(interruptedPublic.html, /Scarica Word/)
 assert.equal(interruptedPublic.position, 400)
 const failedPublic = await publicStreamCase({ networkFailure: true })
 assert.equal(failedPublic.position, 400, 'a transport failure also preserves the public reading position')
-assert.match(failedPublic.status, /Lex non ha completato la richiesta/)
+assert.match(failedPublic.status, /non completata/)
 assert.match(failedPublic.html, /Errore di rete controllato/)
 assert.doesNotMatch(failedPublic.html, /Scarica Word/)
+const browserNetworkFailure = await publicStreamCase({ networkFailure: true, networkMessage: 'Failed to fetch' })
+assert.match(browserNetworkFailure.html, /Connessione al servizio non riuscita/)
+assert.doesNotMatch(browserNetworkFailure.html, /Failed to fetch|Scarica Word/)
+const restoredNetworkFailure = hooks.conversationEntryPayload(JSON.parse(JSON.stringify(browserNetworkFailure.entry)))
+assert.equal(restoredNetworkFailure.disable_exports, true)
+assert.match(restoredNetworkFailure.answer, /Connessione al servizio non riuscita/)
+assert.ok(restoredNetworkFailure.warnings.length)
+assert.doesNotMatch(hooks.buildAnswerHtml(restoredNetworkFailure), /Scarica Word/)
+const malformedReply = await publicStreamCase({ publicMode: false, malformed: true })
+assert.match(malformedReply.html, /Risposta non leggibile/)
+assert.match(malformedReply.status, /non completata/)
+assert.doesNotMatch(malformedReply.html, /Scarica Word/)
+const interruptedDone = await publicStreamCase({ incomplete: true, doneMarker: true })
+assert.match(interruptedDone.status, /non completata/)
+assert.doesNotMatch(interruptedDone.html, /Scarica Word/)
+const interruptedOrdinary = await publicStreamCase({ incomplete: true, publicMode: false, doneMarker: true })
+assert.match(interruptedOrdinary.html, /interrotta prima/)
+assert.match(interruptedOrdinary.status, /non completata/)
+assert.doesNotMatch(interruptedOrdinary.html, /Scarica Word/)
+const ordinaryTokens = await publicStreamCase({ publicMode: false, tokenOnly: true, doneMarker: true })
+assert.match(ordinaryTokens.html, /Risposta ordinaria ricevuta/)
+assert.doesNotMatch(ordinaryTokens.html, /interrotta prima/)
+const partialOrdinary = await publicStreamCase({ publicMode: false, tokenOnly: true })
+assert.match(partialOrdinary.html, /Risposta ordinaria ricevuta/)
+assert.match(partialOrdinary.html, /interrotta prima/)
+assert.match(partialOrdinary.status, /non completata/)
+assert.doesNotMatch(partialOrdinary.html, /Scarica Word/)
+const serviceFailure = await publicStreamCase({ serverError: true, doneMarker: true })
+assert.match(serviceFailure.html, /Errore del servizio controllato/)
+assert.match(serviceFailure.status, /non completata/)
+const automaticQuestion = 'Leggi queste pagine pubbliche https://example.org . Non usare dati dello studio.'
+const mixedOrdinary = await publicStreamCase({ publicMode: false, publicResult: false,
+  question: automaticQuestion + ' Per il cliente Mario Rossi.', tokenOnly: true, doneMarker: true })
+assert.match(mixedOrdinary.html, /Risposta ordinaria ricevuta/)
+assert.doesNotMatch(mixedOrdinary.html, /interrotta prima/)
+const automaticPublic = await publicStreamCase({ publicMode: false, publicResult: true, question: automaticQuestion })
+assert.equal(automaticPublic.position, 400)
+const automaticInterrupted = await publicStreamCase({ publicMode: false, publicResult: true,
+  question: automaticQuestion, incomplete: true, doneMarker: true })
+assert.match(automaticInterrupted.html, /interrotta prima/)
+assert.equal(automaticInterrupted.position, 400)
+assert.equal(hooks.publicPageRequestHint(automaticQuestion), true)
+assert.equal(hooks.buildChatRequestPayload(automaticQuestion).free_web_enabled, undefined,
+  'the presentation hint does not force server permissions or source classification')
 const legacyLocalReply = await publicStreamCase({ publicMode: false })
 assert.equal(legacyLocalReply.position, 1800, 'the existing non-public completion behavior is preserved')
 assert.equal('publicAnswer' in legacyLocalReply.entry.meta, false)

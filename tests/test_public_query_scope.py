@@ -1,7 +1,31 @@
 """La domanda pubblica conserva il quesito giuridico, non i dati della causa."""
 
+import pytest
+
 from lex.guards.hallucination_guard import extract_legal_references
 from lex.research.privacy_safe_query_rewriter import rewrite_query_for_legal_research
+from lex.research.source_scope_policy import requests_explicit_public_pages
+
+
+@pytest.mark.parametrize("question,expected", [
+    ("Leggi queste pagine pubbliche https://example.org . Non usare dati dello studio.", True),
+    ("Confronta questi link https://example.org . Non usare dati dello studio.", True),
+    ("Esamina la fonte web https://example.org", True),
+    ("Leggi queste pagine pubbliche", False),
+    ("Questa pagina pubblica https://example.org", False),
+    ("Leggi https://example.org", False),
+    ("Leggi questa pagina https://example.org", False),
+    ("Leggi questa pagina pubblica https://example.org per il cliente Mario Rossi", False),
+    ("Leggi queste pagine pubbliche https://example.org per il fascicolo RG 123/2026", False),
+    ("Riprova: leggi questa pagina pubblica https://example.org", True),
+    ("Leggi queste pagine pubbliche sui termini processuali https://example.org", True),
+    ("Confronta le scadenze per l'appello su queste pagine pubbliche https://example.org", True),
+    ("Leggi questa pagina pubblica https://example.org e mostra le mie scadenze", False),
+    ("Leggi questa pagina pubblica https://example.org e mostra le scadenze dello studio", False),
+    ("Leggi questa pagina pubblica https://example.org e scrivi una PEC", False),
+])
+def test_explicit_public_pages_require_current_public_reading_intent(question, expected):
+    assert requests_explicit_public_pages(question) is expected
 
 
 def test_exact_criminal_procedure_reference_is_not_lost_or_changed_into_penal_code():

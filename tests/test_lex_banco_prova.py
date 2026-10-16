@@ -11,7 +11,7 @@ from datetime import date
 
 import pytest
 
-from tests.lex_banco.valutazione import carica_domande, carica_soglia, esegui_banco, forme_data, testo_da_eventi, valuta
+from tests.lex_banco.valutazione import carica_domande, carica_soglia, esegui_banco, forme_data, testo_da_eventi as leggi_eventi_stream, valuta
 
 CATEGORIE = {"quando", "forma", "conteggio", "rg", "udienza", "settimana", "omonimi", "assenza", "fascicolo", "conferma"}
 
@@ -22,7 +22,7 @@ CATEGORIE = {"quando", "forma", "conteggio", "rg", "udienza", "settimana", "omon
     ('data: {"token":"Bozza"}\n\ndata: {"payload":{"answer":"Esito verificato"}}\n\ndata: [DONE]\n', "Esito verificato"),
 ])
 def test_banco_legge_lo_stesso_esito_finale_del_widget(wire, expected):
-    assert testo_da_eventi(wire) == expected
+    assert leggi_eventi_stream(wire) == expected
 
 
 def _attesi(caso: dict) -> list[str]:

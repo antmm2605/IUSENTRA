@@ -101,7 +101,7 @@ def _terms(value: str) -> set[str]:
     return set(termini_indice(" ".join(word for word in str(value).split() if word.casefold() not in scaffolding)))
 
 
-def _block_priority(block: dict, question: str) -> int:
+def _block_priority(block: dict, question: str, *, fragment: bool = False) -> int:
     requested = explicit_public_rites(question)
     if requested:
         # Il capitolo più specifico governa il passaggio; il titolo generale
@@ -113,9 +113,21 @@ def _block_priority(block: dict, question: str) -> int:
                     return 5
                 break
     remedies = explicit_public_remedies(question, question=True)
+    for heading in reversed(block.get("section") or []):
+        heading_remedies = explicit_public_remedies(heading)
+        if heading_remedies:
+            if remedies and not remedies & heading_remedies:
+                return 6
+            break
     mentioned = explicit_public_remedies(str(block.get("text") or ""))
     if remedies and mentioned and not remedies & mentioned:
         return 6
+    last_section = str((block.get("section") or [""])[-1]).casefold()
+    if fragment and remedies and mentioned - remedies and "dispositivo" not in last_section:
+        return 6
+    body_rites = explicit_public_rites(str(block.get("text") or ""))
+    if fragment and requested and body_rites - requested and "dispositivo" not in last_section:
+        return 5
     section = " ".join(block.get("section") or []).casefold()
     if any(word in question.casefold() for word in ("consulenza", "quesito")):
         return 0 if "consulenz" in section or "quesit" in section else 1
@@ -152,7 +164,7 @@ def semantic_block_scores(pages: list[dict], question: str, *, embedder, max_can
         pool = [block for block in page.get("blocks", []) if _eligible_block(block)
                 and _block_priority(block, question) <= 1 and len(str(block.get("text") or "")) >= 60]
         query_terms = _terms(question)
-        pool.sort(key=lambda block: (-len(query_terms & _terms(block["text"] + " " + " ".join(block.get("section") or []))), block["index"]))
+        pool.sort(key=lambda block: (_block_priority(block, question), -len(query_terms & _terms(block["text"] + " " + " ".join(block.get("section") or []))), block["index"]))
         pools.append(pool)
     selected = []
     for rank in range(max((len(pool) for pool in pools), default=0)):
@@ -225,11 +237,14 @@ def select_passages(page: dict, question: str, *, max_chars: int = 6000, semanti
             # perché il suo paragrafo intero supera il budget del modello.
             pieces = re.split(r"(?<=[.!?;])\s+(?=[A-ZÀ-Ý])", str(block["text"])) if len(block["text"]) > 350 else [str(block["text"])]
             for piece_index, piece in enumerate(pieces):
+                priority = _block_priority({**block, "text": piece}, question, fragment=True)
+                if priority > 1:
+                    continue
                 if not piece.strip() or re.fullmatch(r"[\d\s().;:\-]+", piece):
                     continue
                 score = 1 if plain_reading else len(tokens & _terms(piece))
                 semantic = None if plain_reading else (semantic_scores or {}).get(block["index"])
-                if not plain_reading and semantic_scores is not None and semantic is None:
+                if not plain_reading and semantic_scores is not None and semantic is None and _block_priority(block, question) > 0:
                     continue
                 if semantic is not None and semantic < semantic_floor and _block_priority(block, question) > 0:
                     continue
@@ -239,8 +254,8 @@ def select_passages(page: dict, question: str, *, max_chars: int = 6000, semanti
                     score += 6 * len(tokens & _terms(" ".join(block.get("section") or [])))
                     score += 4 * sum(phrase in piece.casefold() for phrase in phrases)
                 if score or _block_priority(block, question) == 0:
-                    candidates.append({**block, "text": piece, "piece_index": piece_index, "score": score})
-        candidates.sort(key=lambda block: (_block_priority(block, question), -block["score"],
+                    candidates.append({**block, "text": piece, "piece_index": piece_index, "score": score, "priority": priority})
+        candidates.sort(key=lambda block: (block["priority"], -block["score"],
                                            int(block["index"]), block["piece_index"]))
         # Prima un riscontro per sezione pertinente, poi gli approfondimenti:
         # un unico capitolo prolisso non può consumare tutto il contesto.
@@ -254,8 +269,12 @@ def select_passages(page: dict, question: str, *, max_chars: int = 6000, semanti
                 heads.append(block)
         remaining = max(0, max_chars)
         passages = []
-        primary = [block for block in candidates if _block_priority(block, question) == 0]
-        secondary = [block for block in [*heads, *rest] if _block_priority(block, question) != 0]
+        primary = [block for block in candidates if block["priority"] == 0]
+        primary_sections = [tuple(block.get("section") or []) for block in primary if block.get("section")]
+        secondary = [block for block in [*heads, *rest] if block["priority"] != 0
+                     and (not explicit_public_remedies(question, question=True) or not primary_sections
+                          or any(tuple(block.get("section") or [])[:len(section)] == section
+                                 for section in primary_sections))]
         for block in [*primary, *secondary]:
             passage = str(block["text"])
             if not plain_reading and not semantic_scores and not tokens & _terms(passage) and _block_priority(block, question) != 0:
@@ -266,9 +285,9 @@ def select_passages(page: dict, question: str, *, max_chars: int = 6000, semanti
             passages.append({"block_index": block["index"], "piece_index": block["piece_index"], "text": passage,
                              "section": list(block.get("section") or [])})
             remaining -= cost
-        priorities = {block["index"]: _block_priority(block, question) for block in blocks}
+        priorities = {(block["index"], block["piece_index"]): block["priority"] for block in candidates}
         passages.sort(key=lambda passage: (
-            0 if plain_reading else priorities[passage["block_index"]],
+            0 if plain_reading else priorities[(passage["block_index"], passage["piece_index"])],
             passage["block_index"], passage["piece_index"],
         ))
         return {"passages": passages, "total_characters": len(text),

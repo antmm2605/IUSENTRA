@@ -89,3 +89,14 @@ def test_generic_reading_instructions_use_one_common_subject_from_all_page_title
     assert len(result['query_sha256']) == 64
     assert calls[0][0] == ('task: search result | query: Contenuti delle pagine: '
                            'Termini impugnazioni civile amministrativo tributario | Articolo 327 codice procedura civile')
+
+
+def test_bounded_pool_ranks_requested_rule_before_keyword_heavy_commentary():
+    class Embedder:
+        modello = 'embeddinggemma:300m'
+        def embed(self, inputs):
+            return np.ones((len(inputs), 2))
+    blocks = [dict(index=i, kind='p', section=['Commento'], text='Confronta termine breve lungo civile decorrenza notifica pubblicazione. ' * 2) for i in range(20)]
+    blocks.append(dict(index=30, kind='p', section=['Processo civile'], text='Il ricorso in appello deve essere proposto entro trenta giorni dalla notificazione della sentenza.'))
+    result = semantic_block_scores([{'blocks': blocks}], 'Confronta termine breve lungo appello civile con decorrenze', embedder=Embedder(), max_candidates=2)
+    assert 30 in result['scores'][0]

@@ -311,3 +311,50 @@ def test_unscored_blocks_do_not_override_semantic_results_with_another_scale():
     result = select_passages(dict(text='Testo integrale. ' * 300, blocks=blocks), 'termine lungo impugnazione',
                              max_chars=400, semantic_scores={0: 0.7})
     assert all(passage['block_index'] == 0 for passage in result['passages'])
+
+
+def test_multi_remedy_tool_options_do_not_precede_the_requested_rule():
+    blocks = [
+        dict(index=0, kind='p', section=['Calcolatore'], text='Scegli Civile, Amministrativo o Tributario e Ricorso in Appello, Ricorso per Cassazione o Revocazione.'),
+        dict(index=1, kind='p', section=['Processo civile'], text='Il ricorso in appello decorre dalla notifica della sentenza.'),
+        dict(index=2, kind='p', section=['Dispositivo'], text='L’appello e il ricorso per cassazione non possono proporsi dopo sei mesi dalla pubblicazione.'),
+    ]
+    result = select_passages(dict(text='Inventario. ' * 300, blocks=blocks),
+                             'Confronta appello civile', semantic_scores={0: .9, 1: .8, 2: .8})
+    assert [p['block_index'] for p in result['passages']] == [1, 2]
+    assert 'Amministrativo' in blocks[0]['text']
+
+
+def test_exact_rule_is_preserved_when_bounded_semantic_pool_has_no_score_for_it():
+    blocks = [dict(index=0, kind='p', section=['Processo civile'],
+                   text='Il ricorso in appello decorre dalla notifica della sentenza.'),
+              dict(index=1, kind='p', section=['Commento'], text='Un approfondimento sul termine lungo.')]
+    result = select_passages(dict(text='Inventario. ' * 300, blocks=blocks),
+                             'Confronta appello civile', semantic_scores={1: .9})
+    assert result['passages'][0]['block_index'] == 0
+
+
+def test_long_paragraph_of_several_remedies_is_selected_by_sentence():
+    rule = 'Il ricorso in appello nel processo civile deve essere proposto entro trenta giorni dalla notifica della sentenza o sei mesi dalla sua pubblicazione.'
+    others = 'Il ricorso per cassazione segue un diverso termine e deve rispettare i requisiti specificamente previsti dalla relativa disposizione. Per la revocazione si applicano le condizioni e i termini dei diversi motivi previsti dalla disposizione pertinente.'
+    block = dict(index=40, kind='p', section=['Processo civile'], text=rule + ' ' + others)
+    result = select_passages(dict(text=block['text'], blocks=[block]), 'Confronta appello civile', semantic_scores={40: .8})
+    assert [p['text'] for p in result['passages']] == [rule]
+    assert block['text'] == rule + ' ' + others
+
+
+def test_other_remedy_heading_governs_its_fragments_without_repeating_name():
+    blocks = [dict(index=0, kind='p', section=['Art. 395 c.p.c. Casi di revocazione'],
+                   text='La decisione è fondata sulla supposizione di un fatto la cui verità è esclusa.'),
+              dict(index=1, kind='p', section=['Processo civile'],
+                   text='Il ricorso in appello decorre dalla notificazione della sentenza.')]
+    result = select_passages(dict(text='Inventario. ' * 300, blocks=blocks), 'Appello civile', semantic_scores={0: .9, 1: .8})
+    assert [p['block_index'] for p in result['passages']] == [1]
+
+
+def test_explicit_remedy_keeps_rule_context_without_filling_budget_with_other_sections():
+    blocks = [dict(index=0, kind='p', section=['Calcolatore'], text='Il risultato si può inserire in Google Calendar.'),
+              dict(index=1, kind='p', section=['Processo civile'], text='Il ricorso in appello decorre dalla notificazione della sentenza.'),
+              dict(index=2, kind='p', section=['Processo civile', 'Nota'], text='La condizione pertinente resta conservata con il proprio contesto.')]
+    result = select_passages(dict(text='Inventario. ' * 300, blocks=blocks), 'Appello civile', semantic_scores={0: .9, 1: .8, 2: .8})
+    assert [p['block_index'] for p in result['passages']] == [1, 2]

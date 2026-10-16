@@ -43,10 +43,12 @@ def test_public_reading_scope_is_server_owned_and_does_not_change_ordinary_resea
 
     monkeypatch.setattr("lex.providers.ollama_provider._call_ollama", call)
     request = LexRequest(tenant_id="controlled", user_id="tester", session_id="scope",
-                         query="Leggi la pagina", metadata={"source_mode": "free_web"} if public_mode else {})
+                         query="Confronta appello civile https://example.org/penale-tributario", metadata={"source_mode": "free_web"} if public_mode else {})
     item = EvidenceItem(source_type="web_libero", source_id="public", title="Fonte",
                         content="Il termine è di sei mesi.", score=1)
     OllamaProvider().generate(request, {}, {"items": [item], "citations": []}, "research")
     system = payloads[0]["messages"][0]["content"]
     assert ("Una regola nella sezione amministrativa resta amministrativa" in system) is public_mode
     assert "Per norme, sentenze e prassi usa SOLO le Fonti fornite" in system
+    assert ("Oggetto esclusivo della risposta: appello, civile." in system) is public_mode
+    assert "Oggetto esclusivo della risposta: penale" not in system

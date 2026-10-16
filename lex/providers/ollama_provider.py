@@ -15,16 +15,6 @@ from typing import Any
 
 import requests
 
-from pct.local_ai import OllamaHttpClient
-
-from .base import BaseProvider
-from .prompt_budget import (
-    build_rag_prompt,
-    check_prompt_eval,
-    evidence_items as _budget_evidence_items,
-    format_evidence_item,
-    strip_think,
-)
 from lex.contracts import ProviderDraft
 from lex.prompts.legal_rag_prompt import (
     LEGAL_AI_RESPONSE_CONTRACT,
@@ -32,6 +22,18 @@ from lex.prompts.legal_rag_prompt import (
     is_legal_rag_workflow,
 )
 from lex.settings import lex_generation_settings
+from pct.local_ai import OllamaHttpClient
+
+from .base import BaseProvider
+from .prompt_budget import (
+    build_rag_prompt,
+    check_prompt_eval,
+    format_evidence_item,
+    strip_think,
+)
+from .prompt_budget import (
+    evidence_items as _budget_evidence_items,
+)
 
 logger = logging.getLogger("lex.providers.ollama")
 
@@ -197,7 +199,7 @@ def _call_ollama(payload: dict[str, Any], api_base_url: str, timeout: int | None
             raise
         kwargs.pop("think", None)
         response = client.chat(model, **kwargs)
-    text = str(((response.get("message") or {}).get("content") or "")).strip()
+    text = str((response.get("message") or {}).get("content") or "").strip()
     stats = {
         key: response.get(key)
         for key in ("prompt_eval_count", "eval_count", "total_duration", "prompt_eval_duration", "eval_duration", "load_duration", "done", "done_reason")
@@ -300,6 +302,16 @@ class OllamaProvider(BaseProvider):
                 "su domande che l'utente non ha posto. Gli estratti non provano che una pagina "
                 "intera non contenga un dato. Non attestare vigenza o completezza non dimostrate."
             )
+            from lex.research.public_page_evidence import explicit_public_remedies, explicit_public_rites
+
+            rites = explicit_public_rites(request.query)
+            remedies = explicit_public_remedies(request.query, question=True)
+            if rites or remedies:
+                system_prompt += (
+                    "\nOggetto esclusivo della risposta: " + ", ".join(sorted(rites | remedies))
+                    + ". Tratta soltanto questo oggetto. I nomi di altri mezzi o riti nelle fonti "
+                    "sono contesto della citazione, non ulteriori domande: non svilupparne regole o termini."
+                )
         evidence_items = _evidence_items(evidence)
         runtime = _resolve_runtime()
         model = str(runtime.get("chat_model") or "mistral").strip() or "mistral"

@@ -288,6 +288,11 @@ prepare_client_case_index_before_start() {
     run --no-deps --rm --entrypoint python app \
     -m tools.prepare_operational_query_indexes --tenant-registry /data/tenants.json \
     --backup-dir /data/backup/operational-query-index-20261016
+  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" \
+    run --no-deps --rm --entrypoint python app \
+    -m scripts.fascicoli_list_query_index --tenant all --apply \
+    --backup-dir /data/backup/fascicoli-list-query-20261016 \
+    --report /data/backup/fascicoli-list-query-20261016/deploy-report.jsonl
 }
 
 CORE_BOOT_SERVICES=(redis)

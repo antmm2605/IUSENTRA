@@ -437,14 +437,20 @@ def _ensure_sqlite_runtime_from_json(profile: StorageRuntimeProfile) -> None:
         raise RuntimeError(message) from exc
 
 
-def get_request_studio_db(anchor_path: str):
-    profile = get_request_storage_runtime(anchor_path)
+def runtime_backend_cache_key(profile):
     cache_key = (profile.tenant_slug, profile.effective_mode, profile.studio_db_path)
-
     if profile.effective_mode == DbMode.POSTGRESQL:
         from web.services.storage_configuration_key import postgres_configuration_key
         database = getattr(getattr(g, 'tenant', None), 'database', None)
         cache_key += (postgres_configuration_key(database),)
+    return cache_key
+
+
+def get_request_studio_db(anchor_path: str):
+    profile = get_request_storage_runtime(anchor_path)
+    cache_key = runtime_backend_cache_key(profile)
+
+    if profile.effective_mode == DbMode.POSTGRESQL:
         cached = getattr(g, "_runtime_studio_db", None) if has_request_context() else None
         if cached is not None and getattr(cached, "backend_kind", "") == "postgresql" and getattr(g, "_runtime_studio_db_key", None) == cache_key:
             return cached

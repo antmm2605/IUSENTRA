@@ -57,3 +57,22 @@ def worker_studio_writer(anchor_path: str):
     """Sessione privata per consegne interne; mai dal comando di consultazione."""
     with _request_studio_connection(anchor_path, readonly=False) as backend:
         yield backend
+
+
+@contextmanager
+def borrowed_studio_backend(database, anchor_path):
+    """I servizi nativi annidati riusano la connessione consultiva già risolta."""
+    from web.services.storage_runtime import runtime_backend_cache_key
+    profile = get_request_storage_runtime(anchor_path)
+    missing = object()
+    previous = {name: getattr(g, name, missing) for name in ('_runtime_studio_db', '_runtime_studio_db_key')}
+    g._runtime_studio_db = database
+    g._runtime_studio_db_key = runtime_backend_cache_key(profile)
+    try:
+        yield
+    finally:
+        for name, value in previous.items():
+            if value is missing:
+                g.pop(name, None)
+            else:
+                setattr(g, name, value)

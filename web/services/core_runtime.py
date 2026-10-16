@@ -1461,7 +1461,13 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             base = "https://" + base[len("http://") :]
         return base
 
+    def build_fascicoli_list_payload(**params):
+        from web.services.fascicoli_list_runtime import build_fascicoli_list_request
+
+        return build_fascicoli_list_request(**params)
+
     return {
+        "build_fascicoli_list_payload": build_fascicoli_list_payload,
         "cfg_data_path": _cfg_data_path,
         "database_paths": _database_paths,
         "bootstrap_runtime_data_modules": _bootstrap_runtime_data_modules,

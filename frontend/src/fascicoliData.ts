@@ -3062,18 +3062,19 @@ async function safeFetch<T>(url: string, normalizer: (payload: unknown) => T, fa
 
 async function strictFetch<T>(url: string, normalizer: (payload: unknown) => T): Promise<T> {
   for (let attempt = 0; attempt < 3; attempt += 1) {
+    let response: Response
     try {
-      const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
-      if (response.ok) return normalizer(await response.json())
-      const errorPayload = await response.json().catch(() => ({}))
-      const serverMessage = isRecord(errorPayload) ? text(errorPayload.message ?? errorPayload.messaggio ?? errorPayload.errore ?? errorPayload.error) : ''
-      if (!transientFetchStatuses.has(response.status) || attempt === 2) {
-        throw new Error(serverMessage || `Dati non caricati dal server (${response.status}).`)
-      }
+      response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
     } catch (error) {
-      if (attempt === 2) {
-        throw error instanceof Error ? error : new Error('Dati non caricati dal server.')
-      }
+      if (attempt === 2) throw error instanceof Error ? error : new Error('Dati non caricati dal server.')
+      await retryDelay(attempt)
+      continue
+    }
+    if (response.ok) return normalizer(await response.json())
+    const errorPayload = await response.json().catch(() => ({}))
+    const serverMessage = isRecord(errorPayload) ? text(errorPayload.message ?? errorPayload.messaggio ?? errorPayload.errore ?? errorPayload.error) : ''
+    if (!transientFetchStatuses.has(response.status) || attempt === 2) {
+      throw new Error(serverMessage || `Dati non caricati dal server (${response.status}).`)
     }
     await retryDelay(attempt)
   }
@@ -3111,7 +3112,24 @@ function buildFascicoliQuery(params: FascicoliPageParams = {}): string {
 }
 
 export function getFascicoliPage(params: FascicoliPageParams = {}): Promise<FascicoliPageData> {
-  return safeFetch(`/api/v1/ui/fascicoli${buildFascicoliQuery(params)}`, normalizePagePayload, emptyFascicoliPage)
+  return strictFetch(`/api/v1/ui/fascicoli${buildFascicoliQuery(params)}`, (payload) => {
+    if (!isRecord(payload) || payload.source !== 'repository_reali' || !Array.isArray(payload.items) || !isRecord(payload.pagination) || !text(payload.generatedAt)) {
+      throw new Error('Non è stato possibile verificare l’elenco dei fascicoli. Riprova.')
+    }
+    const pagination = payload.pagination
+    const { page, pageSize, total, pages } = pagination
+    const valid = [page, pageSize, total, pages].every((value) => typeof value === 'number' && Number.isInteger(value))
+    if (!valid || Number(pageSize) < 1 || Number(pageSize) > 100 || Number(total) < 0
+      || Number(pages) !== Math.ceil(Number(total) / Number(pageSize)) || Number(page) < 1 || Number(page) > Math.max(1, Number(pages))
+      || payload.items.length !== Math.min(Number(pageSize), Math.max(0, Number(total) - (Number(page) - 1) * Number(pageSize)))) {
+      throw new Error('La pagina dei fascicoli non è confermata dal server. Riprova.')
+    }
+    return normalizePagePayload(payload)
+  }).catch((error: unknown) => {
+    if (error instanceof TypeError) throw new Error('Connessione non disponibile. Riprova a caricare i fascicoli.')
+    if (error instanceof SyntaxError) throw new Error('La risposta del server non è leggibile. Riprova.')
+    throw error
+  })
 }
 
 export function getFascicoliFilterPreferences(): Promise<FascicoliFilterPreferencesResult> {

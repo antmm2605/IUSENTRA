@@ -935,6 +935,7 @@ class GestioneFascicoli:
         studio_db=None,
         carica_tutto: bool = True,
         senza_documenti: bool = False,
+        prepara_cartelle: bool = True,
     ):
         self.db_path = Path(db_path)
         self.documents_dir = (
@@ -947,8 +948,9 @@ class GestioneFascicoli:
             if str(archive_dir or "").strip()
             else self.db_path.parent / "archivio"
         )
-        for d in (self.db_path.parent, self.documents_dir, self.archive_dir):
-            d.mkdir(parents=True, exist_ok=True)
+        if prepara_cartelle:
+            for d in (self.db_path.parent, self.documents_dir, self.archive_dir):
+                d.mkdir(parents=True, exist_ok=True)
         self._studio_db = studio_db
         self._fascicoli: dict[str, Fascicolo] = {}
         # Con `carica_tutto=False` l'archivio non viene letto all'avvio: il
@@ -1058,12 +1060,20 @@ class GestioneFascicoli:
         "FROM fascicoli"
     )
 
+    def _select_elenco_sql(self) -> str:
+        if getattr(self._studio_db, 'backend_kind', '') == 'postgresql':
+            return self._SELECT_SENZA_DOCUMENTI.replace(
+                "JSON_ARRAY_LENGTH(COALESCE(documenti_json, '[]'))",
+                "JSON_ARRAY_LENGTH(CAST(COALESCE(documenti_json, '[]') AS JSON))",
+            )
+        return self._SELECT_SENZA_DOCUMENTI
+
     def _carica(self) -> None:
         if self._studio_db is not None:
             rows = None
             if self._senza_documenti:
                 try:
-                    rows = self._studio_db.fetchall_readonly(self._SELECT_SENZA_DOCUMENTI)
+                    rows = self._studio_db.fetchall_readonly(self._select_elenco_sql())
                 except Exception:
                     # Senza JSON_ARRAY_LENGTH si torna alla lettura piena:
                     # meglio lenta che con un conteggio inventato.
@@ -4084,6 +4094,26 @@ class GestioneFascicoli:
         if letto is not None:
             self._fascicoli[letto.id] = letto
         return letto
+
+    def elenco_per_ids(self, ids: Iterable[str]) -> list[Fascicolo]:
+        """Lotto SQL puntuale senza documenti, senza caricare o mutare l'archivio."""
+        keys = list(dict.fromkeys(str(key).strip() for key in ids if str(key).strip()))
+        if len(keys) > 100:
+            raise ValueError("Il lotto dell'elenco non può superare cento fascicoli.")
+        if not keys:
+            return []
+        if self._studio_db is None:
+            raise RuntimeError("Il catalogo dell'elenco richiede il repository SQL dello studio.")
+        rows = self._studio_db.fetchall_readonly(
+            self._select_elenco_sql() + ' WHERE id IN (' + ','.join('?' for _ in keys) + ')', tuple(keys),
+        )
+        found = {}
+        for row in rows:
+            model = self._row_to_fascicolo(row)
+            if model is None or model.id != str(dict(row).get('id') or ''):
+                raise RuntimeError("Fonte SQL del fascicolo non ricostruibile: verifica necessaria.")
+            found[model.id] = model
+        return [found[key] for key in keys if key in found]
 
     def _carica_singolo(self, id_fasc: str) -> Optional[Fascicolo]:
         """Legge un solo fascicolo, completo, senza toccare gli altri."""

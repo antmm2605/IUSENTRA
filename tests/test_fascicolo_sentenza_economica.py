@@ -20,6 +20,46 @@ from pct.fatturazione import GestioneFatturazione, StatoParcella, VoceParcella
 from web.services.react_fascicoli_bridge import payment_summary_for_fascicolo, update_react_fascicolo_payment
 
 
+@pytest.mark.parametrize("kind", ["fondo_spese", "spese_esborsi", "contributo_unificato", "liquidazione_giudice"])
+def test_impronta_discordanza_seleziona_solo_campi_pertinenti_senza_cambiare_prove(monkeypatch, kind):
+    import hashlib
+    import json
+    from pct.archivio_letture import fatti_canonici
+    from pct.registro_letture import Fatto
+    from web.services import react_fascicoli_bridge as bridge
+
+    facts = [
+        Fatto(id=f"proof-{index}", fascicolo_id="F1", categoria=category,
+              campo=field, valore=value, verifica=verification,
+              tipo="documento", oggetto_id=f"source-{index}", sha256=f"sha-{index}")
+        for index, (category, field, value, verification) in enumerate([
+            ("importo", kind, "250.00", "verificata"),
+            ("importo", kind, "300.00", "corretta"),
+            ("evento", "fondo_spese_da_verificare", "discordanza", "plausibile"),
+            ("evento", kind, "riscontro", "verificata"),
+            ("data", "udienza", "2026-10-16", "verificata"),
+        ])
+    ]
+    calls = []
+
+    def read(_fascicolo, **filters):
+        calls.append(filters)
+        assert filters.get("campo"), "L'elenco non deve rileggere tutti i fatti per una voce."
+        return fatti_canonici([f for f in facts if f.campo == filters["campo"]])
+
+    monkeypatch.setattr(bridge, "_fatti_archivio", read)
+    relevant = [
+        (f.campo, f.id, f.oggetto_id, f.sha256, f.valore)
+        for f in fatti_canonici(facts)
+        if f.campo == kind or (kind == "fondo_spese" and f.campo == "fondo_spese_da_verificare")
+    ]
+    relevant.sort(key=lambda row: json.dumps(row, sort_keys=True, default=str))
+    expected = hashlib.sha256(json.dumps(relevant, ensure_ascii=False, sort_keys=True, default=str).encode()).hexdigest()
+    actual = bridge._economic_discordance_signature(SimpleNamespace(id="F1", pagamenti={}), kind)
+    assert actual == expected
+    assert len(calls) == (2 if kind == "fondo_spese" else 1)
+
+
 @pytest.mark.parametrize("provenienza", ["documento", "allegato_pec"])
 @pytest.mark.parametrize("discordanza", ["", "cliente", "numero_rg", "anno_rg", "ufficio", "anno_assente"])
 def test_sentenza_documento_o_pec_richiede_identita_congiunta(provenienza, discordanza):

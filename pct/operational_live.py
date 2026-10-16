@@ -35,6 +35,25 @@ TABLE_DOMAINS = {
     "settings_config": ("fascicoli", "clienti"),
 }
 
+
+def ensure_domain_signal_schema(conn, domain: str) -> None:
+    """Preparazione esplicita di un produttore nella regia già esistente."""
+    if domain not in {value for domains in TABLE_DOMAINS.values() for value in domains}:
+        raise ValueError('Dominio della sincronizzazione non previsto.')
+    conn.execute('CREATE TABLE IF NOT EXISTS operational_live_revisions '
+                 '(domain TEXT PRIMARY KEY,revision BIGINT NOT NULL DEFAULT 0)')
+    conn.execute('INSERT INTO operational_live_revisions(domain,revision) VALUES (?,0) '
+                 'ON CONFLICT(domain) DO NOTHING', (domain,))
+
+
+def signal_domain_changed(conn, domain: str) -> int:
+    """Conferma persistente nella stessa transazione della proiezione cambiata."""
+    row = conn.execute('UPDATE operational_live_revisions SET revision=revision+1 WHERE domain=? RETURNING revision',
+                       (domain,)).fetchone()
+    if row is None:
+        raise RuntimeError('Produttore di sincronizzazione non preparato.')
+    return int(row[0])
+
 # Archivi verticali: il segnale appartiene al tenant della riga e alla stessa
 # transazione della fonte. La migrazione è chiamata soltanto dagli scrittori.
 TENANT_TABLE_DOMAINS = {

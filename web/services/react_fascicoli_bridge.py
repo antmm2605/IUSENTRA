@@ -3613,6 +3613,10 @@ def _nome_oggetto_archivio(fascicolo: Any, oggetto_id: str) -> str:
     )
     if locale:
         return locale
+    from web.services.archivio_fatti_precaricati import nome_documento_precaricato
+    precaricato = nome_documento_precaricato(_text(getattr(fascicolo, "id", "")), identificativo)
+    if precaricato is not None:
+        return precaricato
     try:
         from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
 
@@ -4027,8 +4031,14 @@ def _economic_discordance_signature(fascicolo: Any, kind: str) -> str:
     """Impronta delle sole evidenze SQL correnti, mai riletture delle fonti."""
     from pct.fascicolo_sentenza_economica import AUTOMATION_KEY, _discordanza_identity
 
-    evidence = [(f.campo, f.id, f.oggetto_id, f.sha256, f.valore) for f in _fatti_archivio(fascicolo)
-                if f.campo == kind or (kind == "fondo_spese" and f.campo == "fondo_spese_da_verificare")]
+    # La deduplicazione separa sempre i campi: selezionarli prima conserva
+    # le stesse prove senza rileggere e fondere tutti i fatti del fascicolo
+    # per ogni singola voce economica dell'elenco.
+    fields = (kind, "fondo_spese_da_verificare") if kind == "fondo_spese" else (kind,)
+    evidence = [
+        (f.campo, f.id, f.oggetto_id, f.sha256, f.valore)
+        for field in fields for f in _fatti_archivio(fascicolo, campo=field)
+    ]
     payments = getattr(fascicolo, "pagamenti", {}) or {}
     audit = payments.get(AUTOMATION_KEY, {}) if isinstance(payments, dict) else {}
     if isinstance(audit, dict):
@@ -6675,32 +6685,38 @@ def _matches_list_filters(
     return True
 
 
+def _list_sort_key(item: dict[str, Any], key: str) -> tuple:
+    """Chiave nativa condivisa tra ordinamento storico e proiezione SQL."""
+    key = _text(key, "rg").strip().lower()
+    if key == "rg":
+        return _rg_order_from_item(item)
+    if key == "cliente":
+        return (_text(item.get("client")).casefold(), _text(item.get("title")).casefold(), _text(item.get("id")))
+    if key == "scadenza":
+        return (_text(item.get("nextDeadlineIso")) or "9999-12-31", _text(item.get("id")))
+    if key == "documenti":
+        return (-int(item.get("documents") or 0), _text(item.get("title")).casefold(), _text(item.get("id")))
+    if key == "titolo":
+        return (_text(item.get("title")).casefold(), _text(item.get("id")))
+    field = {"ufficio": "court", "stato": "status", "gruppo": "groupName", "responsabile": "responsible"}.get(key)
+    if field:
+        return (_text(item.get(field)).casefold(), _text(item.get("title")).casefold())
+    if key == "apertura":
+        return (_text(item.get("openedAt")) or "9999-12-31", _text(item.get("title")).casefold())
+    if key == "valore":
+        return (-float(item.get("value") or 0), _text(item.get("title")).casefold())
+    return (_text(item.get("updatedAt")) or _text(item.get("openedAt")) or "", _text(item.get("id")))
+
+
+def _list_sort_descending(key: str) -> bool:
+    return _text(key, "rg").strip().lower() not in {
+        "rg", "cliente", "scadenza", "documenti", "titolo", "ufficio", "apertura", "stato", "gruppo", "responsabile", "valore",
+    }
+
+
 def _sort_list_items(items: list[dict[str, Any]], sort: str, secondary_sort: str = "") -> list[dict[str, Any]]:
     def apply(rows: list[dict[str, Any]], key: str) -> list[dict[str, Any]]:
-        key = _text(key, "rg").strip().lower()
-        if key == "rg":
-            return sorted(rows, key=_rg_order_from_item)
-        if key == "cliente":
-            return sorted(rows, key=lambda item: (_text(item.get("client")).casefold(), _text(item.get("title")).casefold(), _text(item.get("id"))))
-        if key == "scadenza":
-            return sorted(rows, key=lambda item: (_text(item.get("nextDeadlineIso")) or "9999-12-31", _text(item.get("id"))))
-        if key == "documenti":
-            return sorted(rows, key=lambda item: (-int(item.get("documents") or 0), _text(item.get("title")).casefold(), _text(item.get("id"))))
-        if key == "titolo":
-            return sorted(rows, key=lambda item: (_text(item.get("title")).casefold(), _text(item.get("id"))))
-        if key == "ufficio":
-            return sorted(rows, key=lambda item: (_text(item.get("court")).casefold(), _text(item.get("title")).casefold()))
-        if key == "apertura":
-            return sorted(rows, key=lambda item: (_text(item.get("openedAt")) or "9999-12-31", _text(item.get("title")).casefold()))
-        if key == "stato":
-            return sorted(rows, key=lambda item: (_text(item.get("status")).casefold(), _text(item.get("title")).casefold()))
-        if key == "gruppo":
-            return sorted(rows, key=lambda item: (_text(item.get("groupName")).casefold(), _text(item.get("title")).casefold()))
-        if key == "responsabile":
-            return sorted(rows, key=lambda item: (_text(item.get("responsible")).casefold(), _text(item.get("title")).casefold()))
-        if key == "valore":
-            return sorted(rows, key=lambda item: (-float(item.get("value") or 0), _text(item.get("title")).casefold()))
-        return sorted(rows, key=lambda item: (_text(item.get("updatedAt")) or _text(item.get("openedAt")) or "", _text(item.get("id"))), reverse=True)
+        return sorted(rows, key=lambda item: _list_sort_key(item, key), reverse=_list_sort_descending(key))
 
     ordered = list(items)
     secondary = _text(secondary_sort).strip().lower()
@@ -6732,6 +6748,62 @@ def _pagination(page: int, page_size: int, total: int) -> dict[str, int]:
     pages = (total + page_size - 1) // page_size if total else 0
     current = min(max(1, page), max(1, pages))
     return {"page": current, "pageSize": page_size, "total": total, "pages": pages}
+
+
+def enrich_economic_list_items(items, *, gf, fascicoli_for_summary, duplicate_groups_by_key, parcelle_by_fasc):
+    """Procedura economica nativa, condivisa dal percorso paginato e dai controlli storici."""
+    fascicoli_by_id = {_text(getattr(value, "id", "")): value for value in fascicoli_for_summary}
+    enriched_items: list[dict[str, Any]] = []
+    for item in items:
+        fid = _text(item.get("id"))
+        fascicolo = fascicoli_by_id.get(fid)
+        if fascicolo is None:
+            enriched_items.append(item)
+            continue
+        enriched = dict(item)
+        # La vista economica legge davvero i documenti. Se il fascicolo
+        # arriva dall'elenco senza allegati va idratato adesso, altrimenti
+        # `has_documents` direbbe «nessun documento» — che non e' la
+        # stessa cosa di «non li ho letti» — e il ripiego darebbe una
+        # risposta sbagliata senza segnalare niente.
+        fascicolo = _idrata_documenti_se_serve(gf, fascicolo)
+        related_fascicoli = [
+            _idrata_documenti_se_serve(gf, riga)
+            for riga in _related_duplicate_fascicoli(fascicoli_for_summary, fascicolo)
+        ]
+        parcelle = parcelle_by_fasc.get(fid, [])
+        duplicate_group = duplicate_groups_by_key.get(normalise_practice_duplicate_key(fascicolo))
+        if getattr(fascicolo, "documenti_non_caricati", False):
+            # Idratazione non riuscita: non si puo' decidere. Meglio
+            # dichiararlo che far passare il ripiego per un risultato.
+            current_app.logger.warning(
+                "Vista economica: documenti non leggibili per il fascicolo %s, "
+                "riepilogo economico calcolato senza di essi.",
+                fid,
+            )
+        has_documents = bool(getattr(fascicolo, "documenti", []) or [])
+        if has_documents:
+            enriched["paymentSummary"] = payment_summary_for_fascicolo(
+                fascicolo,
+                automatic=True,
+                related_fascicoli=related_fascicoli,
+                parcelle=parcelle,
+                duplicate_group=duplicate_group,
+            )
+            automatic_deadline = _automatic_next_deadline_from_documents(fascicolo)
+            automatic_deadline_date = _next_deadline_date_value(fascicolo, automatic_deadline)
+            if automatic_deadline_date:
+                enriched["nextDeadline"] = _date_label(automatic_deadline_date)
+                enriched["nextDeadlineIso"] = automatic_deadline_date
+        else:
+            enriched["paymentSummary"] = payment_summary_for_fascicolo_fast(
+                fascicolo,
+                related_fascicoli=related_fascicoli,
+                parcelle=parcelle,
+                duplicate_group=duplicate_group,
+            )
+        enriched_items.append(enriched)
+    return enriched_items
 
 
 def build_react_fascicoli_payload(
@@ -6889,61 +6961,11 @@ def build_react_fascicoli_payload(
     if view_key == "economica" and items:
         gf = get_fascicoli()
         fascicoli_for_summary = _safe("fascicoli_economica_summary", lambda: gf.tutti(archiviati=False), [])
-        fascicoli_by_id = {_text(getattr(fascicolo, "id", "")): fascicolo for fascicolo in fascicoli_for_summary}
         duplicate_groups = duplicate_practice_groups(fascicoli_for_summary)
         duplicate_groups_by_key = {_text(group.get("key")): group for group in duplicate_groups if _text(group.get("key"))}
         parcelle_by_fasc = _parcelle_by_fascicolo(get_fatturazione)
-        enriched_items: list[dict[str, Any]] = []
-        for item in items:
-            fid = _text(item.get("id"))
-            fascicolo = fascicoli_by_id.get(fid)
-            if fascicolo is None:
-                enriched_items.append(item)
-                continue
-            enriched = dict(item)
-            # La vista economica legge davvero i documenti. Se il fascicolo
-            # arriva dall'elenco senza allegati va idratato adesso, altrimenti
-            # `has_documents` direbbe «nessun documento» — che non e' la
-            # stessa cosa di «non li ho letti» — e il ripiego darebbe una
-            # risposta sbagliata senza segnalare niente.
-            fascicolo = _idrata_documenti_se_serve(gf, fascicolo)
-            related_fascicoli = [
-                _idrata_documenti_se_serve(gf, riga)
-                for riga in _related_duplicate_fascicoli(fascicoli_for_summary, fascicolo)
-            ]
-            parcelle = parcelle_by_fasc.get(fid, [])
-            duplicate_group = duplicate_groups_by_key.get(normalise_practice_duplicate_key(fascicolo))
-            if getattr(fascicolo, "documenti_non_caricati", False):
-                # Idratazione non riuscita: non si puo' decidere. Meglio
-                # dichiararlo che far passare il ripiego per un risultato.
-                current_app.logger.warning(
-                    "Vista economica: documenti non leggibili per il fascicolo %s, "
-                    "riepilogo economico calcolato senza di essi.",
-                    fid,
-                )
-            has_documents = bool(getattr(fascicolo, "documenti", []) or [])
-            if has_documents:
-                enriched["paymentSummary"] = payment_summary_for_fascicolo(
-                    fascicolo,
-                    automatic=True,
-                    related_fascicoli=related_fascicoli,
-                    parcelle=parcelle,
-                    duplicate_group=duplicate_group,
-                )
-                automatic_deadline = _automatic_next_deadline_from_documents(fascicolo)
-                automatic_deadline_date = _next_deadline_date_value(fascicolo, automatic_deadline)
-                if automatic_deadline_date:
-                    enriched["nextDeadline"] = _date_label(automatic_deadline_date)
-                    enriched["nextDeadlineIso"] = automatic_deadline_date
-            else:
-                enriched["paymentSummary"] = payment_summary_for_fascicolo_fast(
-                    fascicolo,
-                    related_fascicoli=related_fascicoli,
-                    parcelle=parcelle,
-                    duplicate_group=duplicate_group,
-                )
-            enriched_items.append(enriched)
-        items = enriched_items
+        items = enrich_economic_list_items(items, gf=gf, fascicoli_for_summary=fascicoli_for_summary,
+            duplicate_groups_by_key=duplicate_groups_by_key, parcelle_by_fasc=parcelle_by_fasc)
     return {
         "source": "repository_reali",
         "generatedAt": _now(),

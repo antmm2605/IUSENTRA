@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import logging
 from dataclasses import replace
+from contextlib import contextmanager
+from functools import wraps
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
@@ -56,6 +58,8 @@ def registro_per_percorsi(paths: Mapping[str, Any] | None = None, *, sola_lettur
 
 def registro_corrente(*, sola_lettura: bool = False) -> RegistroLetture:
     if has_request_context():
+        sola_lettura = bool(sola_lettura or getattr(g, '_registro_letture_consultivo', False))
+    if has_request_context():
         # Riusa solo il gestore della richiesta: le query restano SQL correnti.
         # Percorso, studio e modalità diversi non condividono il repository.
         path, dsn = percorso_registro(), _dsn_postgres()
@@ -70,6 +74,40 @@ def registro_corrente(*, sola_lettura: bool = False) -> RegistroLetture:
     if sola_lettura:
         return registro_per_percorsi(None, sola_lettura=True)
     return registro_per_percorsi(None)
+
+
+@contextmanager
+def registro_consultivo():
+    """I proiettori consultivi non possono scrivere né inizializzare il registro."""
+    if not has_request_context():
+        raise RuntimeError('Contesto studio richiesto per la consultazione del registro.')
+    previous = getattr(g, '_registro_letture_consultivo', False)
+    g._registro_letture_consultivo = True
+    try:
+        yield
+    finally:
+        g._registro_letture_consultivo = previous
+
+
+def con_registro_consultivo(function):
+    @wraps(function)
+    def wrapped(*args, **kwargs):
+        with registro_consultivo():
+            return function(*args, **kwargs)
+    return wrapped
+
+
+@contextmanager
+def connessione_registro(registry):
+    """Chiude anche la connessione SQLite, oltre alla sua transazione."""
+    connection = registry.connection()
+    try:
+        with connection as conn:
+            yield conn
+    finally:
+        close = getattr(connection, 'close', None)
+        if callable(close):
+            close()
 
 
 def tenant_corrente() -> str:

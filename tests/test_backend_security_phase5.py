@@ -17,6 +17,8 @@ def _app(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
     app.config["API_KEY"] = "react-test-key"
+    from tests.fascicoli_list_test_support import prepare_list_catalog
+    prepare_list_catalog(app)
     return app
 
 

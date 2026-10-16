@@ -2648,6 +2648,21 @@ def start_scheduler(app):
             coalesce=True,
         )
 
+        def _fascicoli_list_projection_tick():
+            with app.app_context():
+                from web.services.fascicoli_list_events_runtime import resume_fascicoli_list_events
+
+                result = resume_fascicoli_list_events(app)
+                if result['failed']:
+                    logger.error('[scheduler] Catalogo fascicoli: %d consegne da recuperare.', result['failed'])
+
+        scheduler.add_job(
+            _fascicoli_list_projection_tick,
+            'interval', seconds=3,
+            id='fascicoli_list_projection', replace_existing=True,
+            max_instances=1, coalesce=True,
+        )
+
         # Seconda lettura di Lex sulla catalogazione: un documento per giro,
         # nel worker e non nelle richieste web, con il modello locale.
         def _catalogo_seconda_lettura():

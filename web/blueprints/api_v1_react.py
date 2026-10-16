@@ -174,7 +174,7 @@ from web.services.react_email_bridge import build_react_email_detail_payload, bu
 from web.services.react_fascicoli_bridge import (
     build_react_archivio_payload,
     build_react_fascicoli_export_payload,
-    build_react_fascicoli_payload,
+    build_react_fascicoli_payload as build_react_fascicoli_payload,
     build_react_fascicolo_detail_payload,
     build_react_fascicolo_form_payload,
     clear_react_fascicoli_base_cache,
@@ -8825,7 +8825,12 @@ def _fascicoli_list_cache_key() -> tuple | None:
 @api_v1_react.get("/fascicoli")
 @_richiedi_auth
 def fascicoli_react_list():
-    cache_key = _fascicoli_list_cache_key()
+    from pct.fascicoli_list_query import FascicoliListNotReady
+
+    provider = _core_runtime_func("build_fascicoli_list_payload")
+    if provider is None:
+        return jsonify({"ok": False, "message": "Catalogo fascicoli non disponibile. Riprova tra poco."}), 503
+    cache_key = _fascicoli_list_cache_key() if getattr(provider, "cacheable", False) else None
     if cache_key is not None:
         cached = _FASCICOLI_LIST_PAYLOAD_CACHE.get(cache_key)
         if cached is not None:
@@ -8833,10 +8838,7 @@ def fascicoli_react_list():
             response.headers["X-IUSENTRA-Cache"] = "HIT"
             return response
     inizio = time.monotonic()
-    response = jsonify(build_react_fascicoli_payload(
-        get_fascicoli=_fascicoli_elenco_loader(),
-        get_scadenziario=get_scadenziario,
-        get_fatturazione=get_fatturazione,
+    params = dict(
         page=_request_int("page", default=1),
         page_size=_request_int("page_size", "pageSize", default=5),
         query=request.args.get("q", ""),
@@ -8861,7 +8863,12 @@ def fascicoli_react_list():
             "parcella": request.args.get("parcella", ""),
         },
         field_filters=_fascicoli_request_field_filters(),
-    ))
+    )
+    try:
+        response = jsonify(provider(**params))
+    except FascicoliListNotReady:
+        current_app.logger.warning("Catalogo fascicoli non ancora confermato per la pagina richiesta.")
+        return jsonify({"ok": False, "message": "Aggiornamento dei fascicoli in corso. Riprova tra poco."}), 503
     # Quanto costa l'elenco e dove: leggibile negli strumenti del browser.
     fasi = ", ".join(f"{nome};dur={durata}" for nome, durata in list(fasi_lente(20).items())[:10])
     totale = f"elenco;dur={round(1000 * (time.monotonic() - inizio))}"

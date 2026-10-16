@@ -1271,10 +1271,12 @@ def test_fascicoli_frontend_contratto_query_params_e_lazy_tab():
     assert "fascicoliListCacheKey" in page_source
     assert "pageCacheRef" in page_source
     assert "pageRequestsRef" in page_source
-    assert "onPagePrefetch" in page_source
+    assert "onPagePrefetch" not in page_source
     assert "Caricamento pagina {pendingPage}..." in page_source
-    assert "warmEconomicFirstPages" in page_source
-    assert "[2, 3].forEach" in page_source
+    assert "warmEconomicFirstPages" not in page_source
+    assert "[2, 3].forEach" not in page_source
+    assert "[current + 1, current + 2]" not in page_source
+    assert "onPageChange(currentPage + 1)" in page_source
     assert "applyStatContext({ missingRgOnly: true })" in page_source
     assert "applyStatContext({ duplicatesOnly: true })" in page_source
     assert "syncListContextInUrl(next, { q: query, type, court, fieldFilters })" in page_source

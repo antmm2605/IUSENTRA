@@ -325,6 +325,35 @@ def test_elenco_errore_sql_non_diventa_dato_vuoto_o_raffica_di_letture(monkeypat
     assert len(calls) == 1
 
 
+def test_nomi_fonti_elenco_isolati_e_correnti_alla_richiesta(snapshot_registry, monkeypatch):
+    from web.services.archivio_fatti_precaricati import precaricati, nome_documento_precaricato
+    registry = snapshot_registry
+    source = Oggetto(tipo='documento', oggetto_id='D1', nome='Sentenza.pdf', sha256='a' * 64)
+    registry.registra_inventario('studio', 'F1', [source])
+    registry.registra_inventario('altro', 'F1', [Oggetto(tipo='documento', oggetto_id='D1', nome='Altro.pdf')])
+    monkeypatch.setattr(runtime, 'registro_corrente', lambda: registry)
+    monkeypatch.setattr(runtime, 'tenant_corrente', lambda: g.studio)
+    monkeypatch.setattr(runtime, 'percorso_registro', lambda: g.path)
+    app = Flask(__name__)
+    with app.test_request_context('/list'):
+        g.studio = 'studio'; g.path = 'facts.db'
+        assert nome_documento_precaricato('F1', 'D1') is None
+        with precaricati([SimpleNamespace(id='F1')], ('importo', 'evento')):
+            assert nome_documento_precaricato('F1', 'D1') == 'Sentenza.pdf'
+            assert nome_documento_precaricato('F1', 'assente') == ''
+            assert nome_documento_precaricato('F2', 'D1') is None
+            g.studio = 'altro'
+            assert nome_documento_precaricato('F1', 'D1') is None
+            g.studio = 'studio'; g.path = 'altro.db'
+            assert nome_documento_precaricato('F1', 'D1') is None
+        g.path = 'facts.db'
+        assert nome_documento_precaricato('F1', 'D1') is None
+        source.nome = 'Sentenza aggiornata.pdf'
+        registry.registra_inventario('studio', 'F1', [source])
+        with precaricati([SimpleNamespace(id='F1')], ('importo', 'evento')):
+            assert nome_documento_precaricato('F1', 'D1') == 'Sentenza aggiornata.pdf'
+
+
 @pytest.mark.parametrize('archive_changed', [False, True])
 def test_presidio_non_riscrive_orario_in_attesa_ma_reagisce_a_nuovi_fatti(monkeypatch, archive_changed):
     from web.services import react_fascicoli_bridge as bridge

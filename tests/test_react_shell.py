@@ -37,7 +37,7 @@ from web.bootstrap.blueprint_registry import BLUEPRINT_REGISTRY
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 
 
-def _app(tmp_path: Path):
+def _app(tmp_path: Path, *, sql_fascicoli_list: bool = False):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app({**_cfg_web(tmp_path), "MULTI_TENANT": False})
     app.config["API_KEY"] = "react-test-key"
@@ -46,6 +46,19 @@ def _app(tmp_path: Path):
     # nei test e' la cartella `instance/` della repository: senza questa riga un
     # test lascerebbe il proprio payload agli altri e alla copia di lavoro.
     app.config["LETTURA_FASCICOLO_CACHE_DIR"] = str(tmp_path / "cache" / "lettura-fascicolo")
+    # Questi casi verificano il contratto storico indipendentemente dal nuovo
+    # catalogo: i test SQL della pagina usano invece il provider primario reale.
+    def reference_list(**params):
+        from web.blueprints import api_v1_react as api
+        return api.build_react_fascicoli_payload(
+            get_fascicoli=api._fascicoli_elenco_loader(),
+            get_scadenziario=api.get_scadenziario,
+            get_fatturazione=api.get_fatturazione,
+            **params,
+        )
+    reference_list.cacheable = True
+    if not sql_fascicoli_list:
+        app.extensions["core_runtime"]["build_fascicoli_list_payload"] = reference_list
     return app
 
 

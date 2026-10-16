@@ -48,6 +48,10 @@ CORE_CI_ITEM_SPLIT_PHASES = set(CORE_CI_SUBSHARDS)
 #  La chiave e' il percorso, il valore il numero di fase come lo scrivono
 #  CORE_CI_SUBSHARDS e le "phase:" di ci.yml (numerazione da 1).
 CORE_CI_PINNED_PHASES: dict[str, int] = {
+    "tests/test_fascicoli_list_query.py": 7,
+    "tests/test_fascicoli_list_migration.py": 7,
+    "tests/test_fascicoli_list_writer.py": 7,
+    "tests/test_fascicoli_list_preparation.py": 7,
     "tests/test_operational_query_preparation.py": 7,
     "tests/test_calendar_query_preparation.py": 7,
     "tests/test_calendar_query_events.py": 7,
@@ -150,6 +154,10 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
         REPO_ROOT / "tests" / "test_tariffario.py",
     ),
     "coverage-critical": (
+        REPO_ROOT / "tests" / "test_fascicoli_list_query.py",
+        REPO_ROOT / "tests" / "test_fascicoli_list_migration.py",
+        REPO_ROOT / "tests" / "test_fascicoli_list_writer.py",
+        REPO_ROOT / "tests" / "test_fascicoli_list_preparation.py",
         REPO_ROOT / "tests" / "test_operational_query_preparation.py",
         REPO_ROOT / "tests" / "test_calendar_query_preparation.py",
         REPO_ROOT / "tests" / "test_calendar_query_events.py",
@@ -239,6 +247,10 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
     ),
 }
 CORE_TARGETS: tuple[Path, ...] = (
+    REPO_ROOT / "tests" / "test_fascicoli_list_query.py",
+    REPO_ROOT / "tests" / "test_fascicoli_list_migration.py",
+    REPO_ROOT / "tests" / "test_fascicoli_list_writer.py",
+    REPO_ROOT / "tests" / "test_fascicoli_list_preparation.py",
     REPO_ROOT / "tests" / "test_operational_query_preparation.py",
     REPO_ROOT / "tests" / "test_calendar_query_preparation.py",
     REPO_ROOT / "tests" / "test_calendar_query_events.py",

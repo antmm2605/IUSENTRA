@@ -371,6 +371,24 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
         filtro = "tenant_id = ? AND fascicolo_id = ? AND presente = 1" if solo_presenti else "tenant_id = ? AND fascicolo_id = ?"
         return [self._oggetto(riga) for riga in self._seleziona("letture_oggetti", filtro, (_testo(tenant_id), _testo(fascicolo_id)), ordine="tipo, nome")]
 
+    def nomi_documenti_per_fascicoli(self, tenant_id: str, fascicolo_ids: Iterable[str]) -> dict[tuple[str, str], str]:
+        """Soli nomi delle fonti per un elenco: nessun allegato o testo documentale."""
+        ids = list(dict.fromkeys(_testo(fid) for fid in fascicolo_ids if _testo(fid)))
+        result: dict[tuple[str, str], str] = {}
+        with self.connection() as conn:
+            for start in range(0, len(ids), 400):
+                block = ids[start:start + 400]
+                rows = conn.execute(
+                    'SELECT "fascicolo_id", "oggetto_id", "nome" FROM "letture_oggetti" '
+                    'WHERE "tenant_id" = ? AND "tipo" = ? AND "fascicolo_id" IN ('
+                    + ", ".join("?" for _ in block) + ")",
+                    (_testo(tenant_id), "documento", *block),
+                ).fetchall()
+                for row in rows:
+                    value = dict(row)
+                    result[(str(value["fascicolo_id"]), str(value["oggetto_id"]))] = str(value["nome"] or "")
+        return result
+
     @staticmethod
     def _oggetto(riga: dict[str, Any]) -> Oggetto:
         return Oggetto(

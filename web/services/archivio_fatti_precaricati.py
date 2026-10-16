@@ -43,13 +43,25 @@ def precaricati(fascicoli: Iterable[Any], categorie: Iterable[str]) -> Iterator[
         ids = [_testo(getattr(f, "id", "")) for f in fascicoli]
         tenant, path = tenant_corrente(), percorso_registro()
         grezzi = registro_corrente().fatti_per_fascicoli(tenant, ids, categorie, verifiche=None)
-        setattr(g, _CHIAVE, {'tenant': tenant, 'path': path, 'fatti': grezzi})
+        nomi = registro_corrente().nomi_documenti_per_fascicoli(tenant, ids)
+        setattr(g, _CHIAVE, {'tenant': tenant, 'path': path, 'fatti': grezzi, 'nomi': nomi, 'ids': frozenset(ids)})
     except Exception as exc:
         raise RuntimeError("Archivio delle letture non disponibile per l’elenco dei fascicoli.") from exc
     try:
         yield
     finally:
         setattr(g, _CHIAVE, precedente)
+
+
+def nome_documento_precaricato(fascicolo_id: str, documento_id: str) -> str | None:
+    """None fuori dall'istantanea; stringa vuota se il nome non è registrato."""
+    memoria = getattr(g, _CHIAVE, None) if has_request_context() else None
+    if not memoria or _testo(fascicolo_id) not in memoria['ids']:
+        return None
+    from web.services.registro_letture_runtime import tenant_corrente, percorso_registro
+    if memoria['tenant'] != tenant_corrente() or memoria['path'] != percorso_registro():
+        return None
+    return memoria['nomi'].get((_testo(fascicolo_id), _testo(documento_id)), '')
 
 
 def fatti_precaricati(fascicolo_id: str, filtri: dict[str, Any], canonico: bool) -> list[Any] | None:

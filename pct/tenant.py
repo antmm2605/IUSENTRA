@@ -1335,6 +1335,11 @@ class GestioneTenant:
 
         prepare_calendar_query_catalog(StudioDB.get(str(base / 'studio.db')), tenant=slug,
                                        backup_dir=base / 'backup' / 'calendar-query-index')
+        from pct.fascicoli_list_migration import prepare_empty_catalog
+
+        prepare_empty_catalog(StudioDB.get(str(base / 'studio.db')), tenant=slug,
+                              registry_path=base / 'intelligence' / 'registro_letture.db',
+                              backup_dir=base / 'backup' / 'fascicoli-list-query')
 
     def _ensure_runtime_baseline(self, slug: str, *, force: bool = False) -> Dict[str, Any]:
         base = self._data_dir(slug)

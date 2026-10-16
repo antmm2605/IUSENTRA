@@ -31,11 +31,12 @@ def _tenant_headers(api_key: str, slug: str) -> dict[str, str]:
 
 
 def _seed_fascicolo(paths: dict[str, str], title: str):
+    from pct.storage import StudioDB
     repo = GestioneFascicoli(
         db_path=paths["FASCICOLI_DB"],
         documents_dir=paths["FASCICOLI_DOCS"],
         archive_dir=paths["FASCICOLI_ARCH"],
-        studio_db=None,
+        studio_db=StudioDB.get(paths['STUDIO_DB']),
     )
     return repo.nuovo(title, TipoFascicolo.CIVILE, nome_cliente="Cliente matrice")
 
@@ -218,6 +219,8 @@ def test_ui_api_security_matrix_copre_auth_tenant_cross_tenant_success_e_audit_d
     _studio_a, paths_a = _tenant(app, nome="Studio A", slug="studio-a", api_key="studio-a-key")
     _studio_b, paths_b = _tenant(app, nome="Studio B", slug="studio-b", api_key="studio-b-key")
     fascicolo_b = _seed_fascicolo(paths_b, "Fascicolo riservato Studio B")
+    from tests.fascicoli_list_test_support import prepare_list_catalog
+    prepare_list_catalog(app, owner=_studio_b)
 
     with app.test_client() as client:
         anonymous = client.get("/api/v1/ui/fascicoli")

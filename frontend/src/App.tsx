@@ -563,7 +563,7 @@ const navSections: NavSection[] = [
   },
   {
     id: 'studio',
-    label: 'Studio',
+    label: 'Gestione e strumenti',
     icon: ChartColumn,
     items: studioNav
   },

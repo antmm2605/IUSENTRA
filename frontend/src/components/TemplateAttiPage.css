@@ -2760,13 +2760,13 @@ body.iu-template-pro-fullscreen .iu-page-heading {
 }
 
 /* Una sola intestazione per titolo e comandi del catalogo. */
-.iu-template-catalog-page > .iu-page-heading {
+.iusentra-preset-active .iu-template-catalog-page.iusentra-route-sequence > .iu-page-heading[data-iusentra-sequence-slot="page-header"] {
   padding: var(--iu-od-space-3) var(--iu-od-space-4);
   min-height: 0;
   gap: var(--iu-od-space-3);
 }
 
-.iu-template-catalog-page > .iu-page-heading h1 {
+.iusentra-preset-active .iu-template-catalog-page.iusentra-route-sequence > .iu-page-heading[data-iusentra-sequence-slot="page-header"] h1 {
   font-size: 1.25rem;
   line-height: 1.3;
   margin: 0;

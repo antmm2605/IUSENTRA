@@ -15,6 +15,33 @@ DDL = (
 )
 
 
+def prepare_empty_catalog(path, *, tenant, backup_dir):
+    """Provisioning governato: solo archivio nuovo o ancora privo di messaggi."""
+    import sqlite3
+    from pathlib import Path
+    from types import SimpleNamespace
+
+    from pct.pec_deposit_query_repository import install_deposit_query_events
+    from pct.pec_pipeline import PecAuditRepository
+    from scripts.query_index_backup import verified_backup
+
+    source = Path(path).resolve()
+    if not tenant:
+        raise ValueError('Studio delle ricevute non determinato.')
+    if source.is_file():
+        with sqlite3.connect(source.as_uri() + '?mode=ro', uri=True) as read:
+            exists = read.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='pec_messages'").fetchone()
+            if not exists or read.execute('SELECT 1 FROM pec_messages LIMIT 1').fetchone():
+                return False  # Fonti preesistenti: preparazione esplicita a lotti.
+    repository = PecAuditRepository(source, tenant_id=tenant)
+    with repository.connect() as conn:
+        verified_backup(SimpleNamespace(conn=conn, db_path=source, backend_kind='sqlite'), backup_dir)
+        install_deposit_query_events(conn)
+        conn.execute('INSERT INTO pec_deposit_query_bootstrap(tenant_id,version) VALUES (?,1) '
+                     'ON CONFLICT(tenant_id) DO NOTHING', (tenant,))
+    return True
+
+
 def begin(conn, *, tenant, backup_reference, backup_sha256, actor):
     if not tenant or not actor or not backup_reference or not re.fullmatch('[0-9a-f]{64}', backup_sha256):
         raise ValueError('Studio, autore e backup verificato sono obbligatori.')

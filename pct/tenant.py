@@ -1348,6 +1348,10 @@ class GestioneTenant:
             prepare_archive_receipts(receipts_registry, slug, base / 'backup' / 'receipt-query-index' / 'letture')
         finally:
             receipts_registry.close()
+        from pct.pec_deposit_query_migration import prepare_empty_catalog as prepare_empty_receipts
+
+        prepare_empty_receipts(base / 'email' / 'pec_audit.sqlite', tenant=slug,
+                               backup_dir=base / 'backup' / 'receipt-query-index' / 'pec')
 
     def _ensure_runtime_baseline(self, slug: str, *, force: bool = False) -> Dict[str, Any]:
         base = self._data_dir(slug)

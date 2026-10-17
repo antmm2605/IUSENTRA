@@ -35,6 +35,31 @@ Ruff sui nuovi moduli positivo. Preparazione con più di 50 eventi e budget
 insufficiente provata: nessun esito COMPLETED con consegne residue.
 Questi controlli non sono accettazione utente.
 
+Successiva esecuzione sul commit99173f6f6d, in contesto Git pulito e montato
+in sola lettura:185 casi nativi positivi, uscita0, nessuno skipped.
+Python3.12.15 e120pacchetti identici alla51 salvo il package applicativo52;
+9857 sorgenti Python/JavaScript/SQL dell'immagine corrispondenti a Git.
+Un gruppo più generale sulle fonti ufficiali è stato interrotto: attivava
+acquisizioni non pertinenti e generava tre artefatti sintetici nella root;
+questi sono stati preservati fuori dal repository con impronte, non inclusi
+nel commit e non presentati come prova positiva.
+
+Rifinitura del provisioning: il nuovo studio prepara anche l'archivio PEC
+vuoto mediante il repository nativo e backup verificato, senza avviare
+analisi o invii. La prima fonte produce poi la consegna della proiezione;
+un archivio già popolato richiede la migrazione esplicita esistente.
+Sette guardie native provisioning/migrazione/worker positive. Necessari
+nuova immagine e collaudo materiale prima del push.
+
+La preparazione locale iniziale è stata interrotta (uscita137) durante il
+backup PEC: aggiornamenti concorrenti e filesystem condiviso rallentavano
+la copia. Il parziale è conservato. Ripetuto lo stesso backup nativo su
+ext4 temporaneo, quick_check positivo; poi copia persistente di2789781504byte
+e confronto integrale SHA2564108dc8df9b28818aa70b646d29a5496bb362b7545f4ba4ae03e47c8ee1d0b21.
+Manifest nativo pubblicato soltanto dopo la verifica; ripresa con il
+preparatore originale. Nessuna cancellazione di backup o modifica al
+motore di acquisizione PEC, nessun intervento sull'addestramento.
+
 ## Stato della consegna
 
 Restano immagine canonica, prova materiale nel browser visibile su 8080,

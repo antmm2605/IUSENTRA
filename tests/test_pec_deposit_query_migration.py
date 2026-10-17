@@ -43,3 +43,29 @@ def test_schemi_gemelli_corrispondono_alle_definizioni_eseguite():
         path = Path(__file__).resolve().parents[1] / ('pct/sql/20261016_pec_deposit_query_index' + suffix + '.sql')
         sql = '\n'.join(line for line in path.read_text(encoding='utf-8').splitlines() if not line.startswith('--'))
         assert [statement.strip() for statement in sql.split(';') if statement.strip()] == expected
+
+
+def test_nuovo_studio_catalogo_pronto_prima_della_prima_pec(tmp_path):
+    import sqlite3
+
+    from pct.pec_deposit_query_migration import prepare_empty_catalog
+    from pct.pec_deposit_query_repository import PecDepositQueryRepository
+    from tests.test_pec_deposit_query_repository import add_receipt
+
+    path, backup = tmp_path / 'pec.sqlite', tmp_path / 'backup'
+    assert prepare_empty_catalog(path, tenant='study-a', backup_dir=backup)
+    assert (backup / 'manifest.json').is_file()
+    with sqlite3.connect(path) as conn:
+        conn.row_factory = sqlite3.Row
+        repo = PecDepositQueryRepository(conn, 'study-a')
+        assert repo.list_page(state='ACCETTATO_CANCELLERIA')['rows'] == []
+        assert conn.execute('SELECT COUNT(*) FROM pec_jobs').fetchone()[0] == 0
+        add_receipt(conn, 'first', 'accettazione_deposito')
+        conn.commit()
+        with pytest.raises(RuntimeError, match='non ancora confermato'):
+            repo.list_page(state='ACCETTATO_CANCELLERIA')
+        def finish(connection, *, rollback=False):
+            connection.rollback() if rollback else connection.commit()
+        assert repo.retry_events(finish=finish)['failed'] == 0
+        assert repo.list_page(state='ACCETTATO_CANCELLERIA')['rows'][0]['message_id'] == 'first'
+    assert not prepare_empty_catalog(path, tenant='study-a', backup_dir=backup)

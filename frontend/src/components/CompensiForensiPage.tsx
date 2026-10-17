@@ -1,15 +1,12 @@
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useState } from 'react'
-import { Banknote, Calculator, ExternalLink, Maximize2, Minimize2, RefreshCw, ShieldCheck } from 'lucide-react'
+import { Calculator, ExternalLink, Maximize2, Minimize2, RefreshCw } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
-import { KpiCard } from '../ui/KpiCard'
 import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
-import { openDesignContract } from '../ui/openDesign'
-import { displaySourceLabel } from '../displayText'
 import {
   calculateCompensiForensi,
   emptyCompensiForensiPage,
@@ -19,20 +16,6 @@ import {
 } from '../compensiForensiData'
 import './CompensiForensiPage.css'
 import { CompensiCatalogWindow } from './CompensiCatalogWindow'
-
-function ContractStrip({ data }: { data: CompensiForensiPageData }) {
-  return (
-    <aside className="iu-comp-contract iu-od-surface">
-      <ShieldCheck size={18} aria-hidden="true" />
-      <div>
-        <strong>{openDesignContract.system}</strong>
-        <span>
-          {displaySourceLabel(data.source)} - calcolo governato
-        </span>
-      </div>
-    </aside>
-  )
-}
 
 function WarningList({ data }: { data: CompensiForensiPageData }) {
   if (!data.warnings.length) return null
@@ -52,43 +35,13 @@ function Metrics({ data, onCatalog }: { data: CompensiForensiPageData; onCatalog
   return (
     <section className="iu-comp-metrics" aria-label="Indicatori compensi forensi">
       {data.metrics.map((metric) => (
-        <KpiCard
-          key={metric.id}
-          label={metric.label}
-          value={metric.value || 0}
-          note={metric.note}
-          onClick={metric.id === 'profili' || metric.id === 'regole' ? () => onCatalog(metric.id as 'profili' | 'regole') : undefined}
-          href={metric.id === 'preventivi' ? '/preventivi?metric=preventivi_totali' : metric.id === 'conferimenti' ? '/preventivi?metric=conferimenti' : undefined}
-          actionLabel={metric.id === 'profili' || metric.id === 'regole' ? 'Esamina e ricerca' : 'Apri archivio'}
-          badge={<Badge tone={metric.tone}>{metric.tone === 'neutral' ? 'Dato' : 'Attivo'}</Badge>}
-        />
-      ))}
-    </section>
-  )
-}
-
-function Sections({ data }: { data: CompensiForensiPageData }) {
-  if (!data.sections.length) return null
-  return (
-    <section className="iu-comp-section-grid" aria-label="Aree compensi forensi">
-      {data.sections.map((section) => (
-        <Panel title={section.title} subtitle={displaySourceLabel(section.kind)} key={section.id}>
-          {section.items.length ? (
-            <div className="iu-comp-list">
-              {section.items.map((item) => (
-                <div className="iu-comp-row" key={item.id}>
-                  <div>
-                    <strong>{item.label}</strong>
-                    {item.note ? <span>{item.note}</span> : null}
-                  </div>
-                  <Badge tone={item.tone}>{item.value || 'Dato'}</Badge>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState title={section.emptyMessage} />
-          )}
-        </Panel>
+        metric.id === 'profili' || metric.id === 'regole'
+          ? <Button key={metric.id} type="button" tone="neutral" onClick={() => onCatalog(metric.id as 'profili' | 'regole')}>
+              {metric.label}<Badge tone={metric.tone}>{metric.value || 0}</Badge>
+            </Button>
+          : <ButtonLink key={metric.id} tone="neutral" href={metric.id === 'preventivi' ? '/preventivi?metric=preventivi_totali' : '/preventivi?metric=conferimenti'}>
+              {metric.label}<Badge tone={metric.tone}>{metric.value || 0}</Badge>
+            </ButtonLink>
       ))}
     </section>
   )
@@ -215,39 +168,15 @@ export function CompensiForensiPage() {
 
   return (
     <Page
+      className="iu-comp-compact-page"
       title="Compensi forensi"
-      subtitle="Calcolo operativo con parametri e risultati governati dallo studio."
       actions={
         <>
           <Button type="button" tone="neutral" onClick={load}>
             <RefreshCw size={16} aria-hidden="true" />
             Aggiorna
           </Button>
-          <ButtonLink href="/tariffario" tone="primary">
-            <Banknote size={16} aria-hidden="true" />
-            Tariffario
-          </ButtonLink>
-        </>
-      }
-    >
-      <div className={`iu-comp-page iu-od-stack${fullscreen ? ' iu-comp-page--fullscreen' : ''}`}>
-        {calculating ? <LoadingState title="Calcolo compensi" message="Elaborazione del risultato in corso." /> : null}
-        {saving ? <div className="iu-comp-state" role="status">Salvataggio richiesta in corso.</div> : null}
-        {success ? <div className="iu-comp-state iu-comp-state--success" role="status">{success}</div> : null}
-        {error ? <div className="iu-comp-state iu-comp-state--error" role="alert">{error}</div> : null}
-        <ContractStrip data={data} />
-        <WarningList data={data} />
-        <Metrics data={data} onCatalog={kind => setCatalogs(current => ({ ...current, [kind]: (current[kind] || 0) + 1 }))} />
-        {(['profili', 'regole'] as const).map(kind => catalogs[kind] ? <CompensiCatalogWindow key={kind} kind={kind} records={data.records} focusToken={catalogs[kind] || 0} canOpenTariffario={data.actions.canOpenTariffario}
-          onClose={() => setCatalogs(current => { const next = { ...current }; delete next[kind]; return next })}/> : null)}
-        <section className="iu-comp-hero iu-od-surface">
-          <div>
-            <h2>Parametri di calcolo</h2>
-            <p>
-              Inserisci i parametri e ottieni un risultato tracciabile, pronto per verifica e salvataggio.
-            </p>
-          </div>
-          <div className="iu-comp-actions">
+
             <Button
               type="button"
               tone="neutral"
@@ -269,9 +198,20 @@ export function CompensiForensiPage() {
                 {action.label}
               </ButtonLink>
             ))}
-          </div>
-        </section>
-        <Panel title="Calcolo compensi" subtitle="Calcolo eseguito dal gestionale con parametri verificati.">
+        </>
+      }
+    >
+      <div className={`iu-comp-page iu-od-stack${fullscreen ? ' iu-comp-page--fullscreen' : ''}`}>
+        {fullscreen ? <Button type="button" tone="neutral" onClick={() => setFullscreen(false)}><Minimize2 size={16} aria-hidden="true" />Riduci</Button> : null}
+        {calculating ? <LoadingState title="Calcolo compensi" message="Elaborazione del risultato in corso." /> : null}
+        {saving ? <div className="iu-comp-state" role="status">Salvataggio richiesta in corso.</div> : null}
+        {success ? <div className="iu-comp-state iu-comp-state--success" role="status">{success}</div> : null}
+        {error ? <div className="iu-comp-state iu-comp-state--error" role="alert">{error}</div> : null}
+        <WarningList data={data} />
+        <Metrics data={data} onCatalog={kind => setCatalogs(current => ({ ...current, [kind]: (current[kind] || 0) + 1 }))} />
+        {(['profili', 'regole'] as const).map(kind => catalogs[kind] ? <CompensiCatalogWindow key={kind} kind={kind} records={data.records} focusToken={catalogs[kind] || 0} canOpenTariffario={data.actions.canOpenTariffario}
+          onClose={() => setCatalogs(current => { const next = { ...current }; delete next[kind]; return next })}/> : null)}
+        <Panel title="Calcolo compensi">
           {data.actions.canCalculate ? (
             <div className="iu-comp-form">
               <label>
@@ -318,7 +258,6 @@ export function CompensiForensiPage() {
           )}
         </Panel>
         <ResultPanel result={result} />
-        <Sections data={data} />
       </div>
     </Page>
   )

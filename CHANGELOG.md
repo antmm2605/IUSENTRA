@@ -1,3 +1,9 @@
+# 2.437.57 — Compensi forensi compatti
+
+Una sola intestazione con aggiornamento, tutto schermo, tariffario e preventivi. I conteggi diventano comandi compatti; rimossi i riquadri descrittivi Aree di calcolo e Presidi conservati e la dicitura statica Qualità studio. Avvisi effettivi, permessi, calcolo, cataloghi e riferimenti conservati.
+
+Collaudo locale 8080: visualizzati intestazione e modulo, eseguito calcolo civile su valore controllato di 10.000 euro, risultato 3.049,56 euro, provata apertura e riduzione a tutto schermo. Test tecnici frontend e catalogo positivi; rilascio e verifiche finali ancora da consolidare.
+
 # Changelog
 
 ## 2.437.56 — candidata, 17/10/2026

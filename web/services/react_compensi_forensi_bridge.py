@@ -175,9 +175,7 @@ def build_react_compensi_forensi_payload(
     get_preventivi: Callable[[], Any] | None = None,
     current_user: Any | None = None,
 ) -> dict[str, Any]:
-    warnings: list[dict[str, str]] = [
-        _warning("motore_calcolo", "Il calcolo dei compensi resta nei controlli operativi governati."),
-    ]
+    warnings: list[dict[str, str]] = []
     manager: Any | None = None
     try:
         manager = get_normative_tables()

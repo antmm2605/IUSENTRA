@@ -58,7 +58,7 @@ class TimesheetCommandJsonTests(unittest.TestCase):
         self.assertFalse(entry.fatturabile)
         self.assertEqual(entry.descrizione, "Studio interfaccia — attività interna")
         self.assertEqual(self.audit_events[0][0][0], "timesheet.crea")
-        status = self.client.post(f"/timesheet/{entry.id}/stato", headers=self.headers, data={"stato": "ANNULLATO"})
+        status = self.client.post(f"/timesheet/{entry.id}/stato", headers=self.headers, data={"stato": "ANNULLATO", "revision": entry.revisione})
         self.assertEqual(status.status_code, 200)
         self.assertEqual(status.get_json()["stato"], "ANNULLATO")
         loaded = GestioneTimesheet(str(self.base / "timesheet.json"), studio_db=self.db)
@@ -74,6 +74,40 @@ class TimesheetCommandJsonTests(unittest.TestCase):
         missing = self.client.post("/timesheet/missing/stato", headers=self.headers, data={"stato": "ANNULLATO"})
         self.assertEqual(missing.status_code, 404)
         self.assertFalse(missing.get_json()["ok"])
+        self.assertEqual(self.audit_events, [])
+
+    def test_conflict_reports_409_without_success_or_audit(self):
+        entry = self.repo.crea(descrizione="Voce condivisa", minuti=1)
+        newer = GestioneTimesheet(str(self.base / "timesheet.json"), studio_db=self.db)
+        newer.aggiorna(entry.id, note="Confermata da altro processo")
+        response = self.client.post(f"/timesheet/{entry.id}/stato", headers=self.headers, data={"stato": "ANNULLATO", "revision": entry.revisione})
+        self.assertEqual(response.status_code, 409)
+        self.assertFalse(response.get_json()["ok"])
+        self.assertIn("altro processo", response.get_json()["message"])
+        self.assertEqual(self.audit_events, [])
+        persisted = GestioneTimesheet(str(self.base / "timesheet.json"), studio_db=self.db).get(entry.id)
+        self.assertEqual(persisted.note, "Confermata da altro processo")
+        self.assertEqual(persisted.stato, StatoTimesheet.APERTO)
+
+    def test_old_ui_revision_is_rejected_even_with_fresh_repository(self):
+        entry = self.repo.crea(descrizione="Revisioni concorrenti", minuti=1)
+        old_revision = entry.revisione
+        self.repo.aggiorna(entry.id, note="Modifica successiva già confermata")
+        self.repo = GestioneTimesheet(str(self.base / "timesheet.json"), studio_db=self.db)
+        response = self.client.post(f"/timesheet/{entry.id}/stato", headers=self.headers,
+                                    data={"stato": "ANNULLATO", "revision": old_revision})
+        self.assertEqual(response.status_code, 409)
+        self.assertFalse(response.get_json()["ok"])
+        self.assertEqual(self.repo.get(entry.id).stato, StatoTimesheet.APERTO)
+        self.assertEqual(self.audit_events, [])
+
+    def test_missing_revision_does_not_confirm_a_state(self):
+        entry = self.repo.crea(descrizione="Scheda precedente al rilascio", minuti=1)
+        response = self.client.post(f"/timesheet/{entry.id}/stato", headers=self.headers,
+                                    data={"stato": "ANNULLATO"})
+        self.assertEqual(response.status_code, 409)
+        self.assertFalse(response.get_json()["ok"])
+        self.assertEqual(self.repo.get(entry.id).stato, StatoTimesheet.APERTO)
         self.assertEqual(self.audit_events, [])
 
     def test_normal_form_keeps_its_existing_redirect(self):

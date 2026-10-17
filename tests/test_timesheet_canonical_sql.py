@@ -68,8 +68,15 @@ class CanonicalMigrationTests(unittest.TestCase):
         self.assertEqual(self.target.conn.execute("SELECT count(*) FROM audit_log WHERE azione='timesheet.adozione_sql'").fetchone()[0], 1)
 
     def test_missing_case_reference_blocks_adoption(self):
-        self.old.crea(descrizione='Voce con collegamento storico', minuti=3,
-                      fatturabile=False, id_fascicolo='NON_PRESENTE')
+        historical = self.old.crea(descrizione='Voce con collegamento storico', minuti=3, fatturabile=False)
+        import json
+        payload = historical.to_dict()
+        payload['id_fascicolo'] = 'NON_PRESENTE'
+        self.source.conn.execute("PRAGMA foreign_keys=OFF")
+        self.source.conn.execute("UPDATE timesheet_entries SET id_fascicolo=?,dati_json=? WHERE id=?",
+                                 ('NON_PRESENTE', json.dumps(payload), historical.id))
+        self.source.conn.commit()
+        self.source.conn.execute("PRAGMA foreign_keys=ON")
         with self.assertRaisesRegex(ValueError, 'Riferimento Timesheet assente'):
             migration.migrate(self.root, self.root/'backup-rifiutato')
         self.assertEqual(self.target.conn.execute('SELECT count(*) FROM timesheet_entries').fetchone()[0], 0)

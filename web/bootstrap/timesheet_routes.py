@@ -10,6 +10,7 @@ from flask import Flask, flash, g, jsonify, redirect, render_template, request, 
 
 from pct.economic_pipeline import build_timesheet_billing_summary, genera_parcella_da_timesheet
 from pct.timesheet import StatoTimesheet
+from pct.timesheet_sql_writer import TimesheetConflict
 from web.blueprints.react_shell import render_react_shell_response
 
 
@@ -34,7 +35,7 @@ def register_timesheet_routes(
         )
 
     def _errore_json(exc: Exception):
-        status = 404 if isinstance(exc, KeyError) else 400 if isinstance(exc, ValueError) else 500
+        status = 409 if isinstance(exc, TimesheetConflict) else 404 if isinstance(exc, KeyError) else 400 if isinstance(exc, ValueError) else 500
         if status == 500:
             app.logger.exception("Comando timesheet non riuscito")
         message = str(exc) if status != 500 else "Operazione non riuscita. Verifica l’elenco prima di ripetere il comando."
@@ -210,6 +211,11 @@ def register_timesheet_routes(
         id_cliente = str(request.form.get("id_cliente", "") or "").strip()
         id_fascicolo = str(request.form.get("id_fascicolo", "") or "").strip()
         try:
+            entry = gestore.get(id_entry)
+            if entry is None:
+                raise KeyError(id_entry)
+            if request.form.get("revision") != entry.revisione:
+                raise TimesheetConflict("Voce Timesheet modificata o versione non disponibile: ricarica l’elenco prima di confermare; nessuno stato è stato cambiato.")
             nuovo_stato = StatoTimesheet(request.form.get("stato", StatoTimesheet.VALIDATO.value))
             gestore.cambia_stato(id_entry, nuovo_stato)
             audit("timesheet.stato", "timesheet", id_entry, dettagli=nuovo_stato.value)

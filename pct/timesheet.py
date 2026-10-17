@@ -48,6 +48,12 @@ class VoceTimesheet:
     dati_json: Dict[str, Any] = field(default_factory=dict)
 
     @property
+    def revisione(self) -> str:
+        import hashlib
+        from pct.timesheet_sql_writer import encode_model
+        return hashlib.sha256(encode_model(self).encode("utf-8")).hexdigest()
+
+    @property
     def ore(self) -> float:
         return round(self.minuti / 60.0, 2)
 
@@ -79,21 +85,18 @@ class GestioneTimesheet:
 
     def __init__(self, db_path: str = "./timesheet/entries.json", studio_db=None):
         self.db_path = Path(db_path)
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        if studio_db is None:
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._studio_db = studio_db
         self._entries: Dict[str, VoceTimesheet] = {}
         self._carica()
 
     def _carica(self) -> None:
         if self._studio_db is not None:
-            rows = self._studio_db.carica_tabella("timesheet_entries")
             self._entries = {}
-            for row in rows:
-                try:
-                    voce = VoceTimesheet.from_dict(row)
-                except Exception:
-                    continue
-                self._entries[voce.id] = voce
+            self._sql_rows = {}
+            self._sql_models = {}
+            self._all_loaded = False
             return
 
         if not self.db_path.exists():
@@ -113,38 +116,42 @@ class GestioneTimesheet:
             voce = VoceTimesheet.from_dict(payload)
             self._entries[voce.id] = voce
 
+    def _leggi_sql(self, id_entry: str | None = None) -> None:
+        from pct.timesheet_sql_writer import encode_model
+        sql = "SELECT * FROM timesheet_entries"
+        rows = self._studio_db.fetchall_readonly(sql + " WHERE id=?", (id_entry,)) if id_entry is not None else self._studio_db.fetchall_readonly(sql)
+        for row in rows:
+            payload = dict(row)
+            extra = json.loads(payload.get("dati_json") or "{}")
+            if not isinstance(extra, dict):
+                raise ValueError("Metadati Timesheet non validi: nessun dato ignorato.")
+            if extra.get("id") not in (None, payload["id"]):
+                raise ValueError("Identificativo Timesheet discordante dai metadati: verifica la fonte SQL.")
+            extra.update({key: value for key, value in payload.items() if key != "dati_json"})
+            for key in ("id_fascicolo", "id_cliente", "id_utente"):
+                extra[key] = payload.get(key) or ""
+            voce = VoceTimesheet.from_dict(extra)
+            # Non sostituire uno snapshot già letto o modificato localmente.
+            if voce.id not in self._entries:
+                self._entries[voce.id] = voce
+                self._sql_rows[voce.id] = payload
+                self._sql_models[voce.id] = encode_model(voce)
+        if id_entry is None:
+            self._all_loaded = True
+
     def _salva(self) -> None:
         if self._studio_db is not None:
-            def _insert(conn, voce: VoceTimesheet):
-                payload = voce.to_dict()
-                conn.execute(
-                    """
-                    INSERT INTO timesheet_entries
-                    (id, id_fascicolo, id_cliente, id_utente, username, data_attivita,
-                     descrizione, minuti, valore_unitario, fatturabile, stato, origine,
-                     creato_il, modificato_il, dati_json)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                    """,
-                    (
-                        voce.id,
-                        voce.id_fascicolo or None,
-                        voce.id_cliente or None,
-                        voce.id_utente or None,
-                        voce.username,
-                        voce.data_attivita,
-                        voce.descrizione,
-                        int(voce.minuti or 0),
-                        float(voce.valore_unitario or 0.0),
-                        1 if voce.fatturabile else 0,
-                        voce.stato.value,
-                        voce.origine,
-                        voce.creato_il,
-                        voce.modificato_il,
-                        json.dumps(payload, ensure_ascii=False),
-                    ),
-                )
-
-            self._studio_db.salva_tabella("timesheet_entries", list(self._entries.values()), _insert)
+            from pct.timesheet_sql_writer import save_changes
+            try:
+                confirmed = save_changes(self._studio_db, original_rows=self._sql_rows,
+                             original_models=self._sql_models, current=self._entries)
+            except Exception:
+                self._entries = {key: VoceTimesheet.from_dict(json.loads(value)) for key, value in self._sql_models.items()}
+                raise
+            from pct.timesheet_sql_writer import encode_model
+            for key, row in confirmed.items():
+                self._sql_rows[key] = row
+                self._sql_models[key] = encode_model(self._entries[key])
             return
 
         from pct import cache as _cache
@@ -194,9 +201,15 @@ class GestioneTimesheet:
         return voce
 
     def get(self, id_entry: str) -> Optional[VoceTimesheet]:
+        if not isinstance(id_entry, str) or not id_entry.strip():
+            return None
+        if self._studio_db is not None and id_entry not in self._entries and not self._all_loaded:
+            self._leggi_sql(id_entry)
         return self._entries.get(id_entry)
 
     def tutte(self) -> List[VoceTimesheet]:
+        if self._studio_db is not None and not self._all_loaded:
+            self._leggi_sql()
         return sorted(
             self._entries.values(),
             key=lambda item: (item.data_attivita, item.creato_il, item.id),
@@ -215,7 +228,11 @@ class GestioneTimesheet:
         return [item for item in self.tutte() if item.username == username]
 
     def aggiorna(self, id_entry: str, **kwargs) -> VoceTimesheet:
-        voce = self._entries[id_entry]
+        voce = self.get(id_entry)
+        if voce is None:
+            raise KeyError(id_entry)
+        if "id" in kwargs and kwargs["id"] != voce.id:
+            raise ValueError("L’identificativo della voce Timesheet non può essere modificato.")
         for key, value in kwargs.items():
             if not hasattr(voce, key):
                 continue

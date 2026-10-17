@@ -144,6 +144,22 @@
   display:grid;
   gap:4px;
 }
+/* Ricerca e gruppi del menu Studio, nella regia condivisa della shell. */
+.iu-studio-nav { display: grid; gap: 6px; min-width: 0; }
+.iu-studio-nav__search { display: flex; align-items: center; gap: 7px; margin: 2px 5px 5px; min-height: 40px; padding: 0 9px; border: 1px solid rgba(203,213,225,.25); border-radius: 9px; background: rgba(255,255,255,.06); color: #cbd5e1; }
+.iu-studio-nav__search:focus-within { outline: 2px solid var(--iu-focus-color, #e9b534); outline-offset: 2px; }
+.iu-studio-nav__search input { flex: 1; width: 0; min-width: 0; border: 0; outline: 0; padding: 9px 0; background: transparent; color: #f8fafc; font: inherit; font-size: 12px; }
+.iu-studio-nav__search input::placeholder { color: #b8c5d6; opacity: 1; }
+.iu-studio-nav__search input::-webkit-search-cancel-button { display: none; }
+.iu-studio-nav__search button { display: grid; place-items: center; flex: 0 0 32px; min-height: 36px; border: 0; border-radius: 6px; background: transparent; color: #e2e8f0; cursor: pointer; }
+.iu-studio-nav__toggle { display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; min-height: 40px; padding: 7px 10px; border: 0; border-radius: 7px; background: rgba(255,255,255,.035); color: #e2e8f0; text-align: left; font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; }
+.iu-studio-nav__toggle:hover, .iu-studio-nav__search button:hover { background: rgba(255,255,255,.09); }
+.iu-studio-nav__toggle:focus-visible, .iu-studio-nav__search button:focus-visible { outline: 2px solid var(--iu-focus-color, #e9b534); outline-offset: 2px; }
+.iu-studio-nav__toggle[aria-expanded="false"] svg { transform: rotate(-90deg); }
+.iu-studio-nav__links { display: grid; gap: 3px; padding: 3px 0 5px; }
+.iu-studio-nav__label { color: #cbd5e1; padding: 6px 10px 2px; font-size: 11px; font-weight: 650; }
+.iu-studio-nav__count, .iu-studio-nav__empty { margin: 0; padding: 3px 10px 5px; color: #cbd5e1; font-size: 11px; line-height: 1.5; }
+
 .iu-nav-link{
   position:relative;
   max-width:100%;

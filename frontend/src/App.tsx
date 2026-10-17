@@ -1,3 +1,5 @@
+import type { StudioNavGroup } from './studioNavigation'
+import { StudioNavigation } from './components/StudioNavigation'
 import { OperationalRefreshBridge } from './components/OperationalRefreshBridge'
 import { OperationalLiveSync } from './components/OperationalLiveSync'
 import { SourceWorkWindows } from './components/SourceWorkWindows'
@@ -259,6 +261,8 @@ function Logo() {
 }
 
 type NavItem = {
+  group?: StudioNavGroup
+  keywords?: string
   label: string
   href: string
   icon: LucideIcon
@@ -441,11 +445,33 @@ function readShellBootstrap(): ShellBootstrap {
   }
 }
 
+const studioNav: Array<NavItem & { group: StudioNavGroup }> = [
+      { group: 'gestione', keywords: 'profilo dati studio', label: 'Studio', icon: Building2, href: '/studio' },
+      { group: 'gestione', keywords: 'fatturazione fattura parcella incassi', label: 'Parcelle e Fatture', icon: FileText, href: '/fatturazione/' },
+      { group: 'gestione', keywords: 'recupero crediti insoluti debitori solleciti ingiunzioni', label: 'Recupero crediti in serie', icon: Gavel, href: '/recupero-crediti', requiresAnyPermission: ['fascicoli.leggi'] },
+      { group: 'gestione', keywords: 'entrate uscite movimenti incasso pagamento prima nota', label: 'Prima nota e contabilità', icon: Banknote, href: '/prima-nota', requiresAnyPermission: ['fatturazione.leggi'] },
+      { group: 'gestione', keywords: 'preventivo incarico mandato conferimento', label: 'Preventivi e Incarichi', icon: FileText, href: '/preventivi/' },
+      { group: 'gestione', keywords: 'compenso onorario tariffe parametri', label: 'Compensi Forensi', icon: Banknote, href: '/compensi-forensi' },
+      { group: 'documenti', keywords: 'documento file archivio pdf', label: 'Documenti', icon: FileText, href: '/documenti' },
+      { group: 'documenti', keywords: 'scrivi scrivere modifica testo word documento', label: 'Editor professionale', icon: FilePenLine, href: '/editor-professionale?modalita=editor' },
+      { group: 'documenti', keywords: 'scrivi scrivere testo libero modello', label: 'Editor libero', icon: FilePenLine, href: '/template-atti/editor' },
+      { group: 'documenti', keywords: 'atto atti modello template compilare ricorso memoria', label: 'Redazione Atti', icon: FilePenLine, href: '/redazione-atti' },
+      { group: 'gestione', keywords: 'produttività produttivita report risultati', label: 'Statistiche', icon: ChartColumn, href: '/statistiche/' },
+      { group: 'ricerca', keywords: 'norme normativa legge leggi sentenza sentenze ricerca', label: 'Ricerca Legale', icon: Building2, href: '/ricerca-legale' },
+      { group: 'ricerca', keywords: 'norma normativa articolo codice penale civile', label: 'Codici e leggi', icon: BookOpen, href: '/ricerca-legale/codici' },
+      { group: 'lex', keywords: 'procedure competenze guidate assistenza', label: 'Legal Skills', icon: BookOpenCheck, href: '/legal-skills', featureFlag: 'routes.appV2.legalSkills.catalog', requiresAnyPermission: ['legal_skills.leggi'] },
+      { group: 'lex', keywords: 'apprendere ai intelligenza artificiale', label: 'Apprendimento Lex', icon: BrainCircuit, href: '/lex-apprendimento', featureFlag: 'lex.autonomousLearning', requiresAnyPermission: ['ai.usa'] },
+      { group: 'lex', keywords: 'agenti automazione attività attivita flussi workflow', label: 'Regia Agentica', icon: Bot, href: '/workflow-agents', featureFlag: 'routes.appV2.workflowAgents.home', requiresAnyPermission: ['ai.usa', 'legal_skills.leggi'] },
+      { group: 'ricerca', keywords: 'sentenza sentenze decisioni pronunce cassazione', label: 'Archivio Giurisprudenza', icon: Landmark, href: '/giurisprudenza/' },
+      { group: 'ricerca', keywords: 'strumenti calcolo calcoli calcolatori utilità utilita', label: 'Utility', icon: Wrench, href: '/strumenti-legali/' },
+    ]
+
 const primaryNav: NavItem[] = [
   { label: 'Panoramica', icon: LayoutDashboard, href: '/' },
   { label: 'Oggi', icon: Sunrise, href: '/oggi', featureFlag: 'routes.appV2.dailyPlan.home', requiresAnyPermission: ['agenda.leggi', 'scadenziario.leggi'] },
   { label: 'Controllo Studio', icon: Sparkles, href: '/workspace-intelligente' },
-  { label: 'Ricerca Studio', icon: Search, href: '/global-search' }
+  { label: 'Ricerca Studio', icon: Search, href: '/global-search' },
+  { label: 'Timesheet', icon: Clock3, href: '/timesheet' }
 ]
 
 const navSections: NavSection[] = [
@@ -461,8 +487,7 @@ const navSections: NavSection[] = [
     icon: CalendarCheck,
     items: [
       { label: 'Calendario', icon: CalendarDays, href: '/agenda' },
-      { label: 'Nuovo Appuntamento', icon: CirclePlus, href: '/agenda/nuovo' },
-      { label: 'Timesheet', icon: Clock3, href: '/timesheet' }
+      { label: 'Nuovo Appuntamento', icon: CirclePlus, href: '/agenda/nuovo' }
     ]
   },
   {
@@ -473,7 +498,6 @@ const navSections: NavSection[] = [
       { label: 'Tutti i Fascicoli', icon: FolderOpen, href: '/fascicoli' },
       { label: 'Nuovo Fascicolo', icon: FolderPlus, href: '/fascicoli/nuovo' },
       { label: 'Preparazione Udienza Guidata', icon: Building2, href: '/wizard-pro/' },
-      { label: 'Recupero crediti in serie', icon: Gavel, href: '/recupero-crediti', requiresAnyPermission: ['fascicoli.leggi'] },
       { label: 'Archivio', icon: Archive, href: '/fascicoli/archivio' }
     ]
   },
@@ -540,32 +564,14 @@ const navSections: NavSection[] = [
     id: 'studio',
     label: 'Studio',
     icon: ChartColumn,
-    items: [
-      { label: 'Studio', icon: Building2, href: '/studio' },
-      { label: 'Parcelle e Fatture', icon: FileText, href: '/fatturazione/' },
-      { label: 'Prima nota e contabilità', icon: Banknote, href: '/prima-nota', requiresAnyPermission: ['fatturazione.leggi'] },
-      { label: 'Preventivi e Incarichi', icon: FileText, href: '/preventivi/' },
-      { label: 'Compensi Forensi', icon: Banknote, href: '/compensi-forensi' },
-      { label: 'Documenti', icon: FileText, href: '/documenti' },
-      { label: 'Editor professionale', icon: FilePenLine, href: '/editor-professionale?modalita=editor' },
-      { label: 'Editor libero', icon: FilePenLine, href: '/template-atti/editor' },
-      { label: 'Redazione Atti', icon: FilePenLine, href: '/redazione-atti' },
-      { label: 'Statistiche', icon: ChartColumn, href: '/statistiche/' },
-      { label: 'Ricerca Legale', icon: Building2, href: '/ricerca-legale' },
-      { label: 'Codici e leggi', icon: BookOpen, href: '/ricerca-legale/codici' },
-      { label: 'Legal Skills', icon: BookOpenCheck, href: '/legal-skills', featureFlag: 'routes.appV2.legalSkills.catalog', requiresAnyPermission: ['legal_skills.leggi'] },
-      { label: 'Apprendimento Lex', icon: BrainCircuit, href: '/lex-apprendimento', featureFlag: 'lex.autonomousLearning', requiresAnyPermission: ['ai.usa'] },
-      { label: 'Regia Agentica', icon: Bot, href: '/workflow-agents', featureFlag: 'routes.appV2.workflowAgents.home', requiresAnyPermission: ['ai.usa', 'legal_skills.leggi'] },
-      { label: 'Archivio Giurisprudenza', icon: Landmark, href: '/giurisprudenza/' },
-      { label: 'Utility', icon: Wrench, href: '/strumenti-legali/' },
-    ]
+    items: studioNav
   },
   {
     id: 'sito-studio',
-    label: 'Sito Studio',
+    label: 'Sito Web Studio',
     icon: Earth,
     items: [
-      { label: 'Sito Studio', icon: Earth, href: '/sito-studio/' },
+      { label: 'Sito Web Studio', icon: Earth, href: '/sito-studio/' },
       { label: 'Builder Sito', icon: FilePenLine, href: '/sito-studio/builder' },
       { label: 'Redazione AI Sito', icon: Bot, href: '/sito-studio/redazione-ai' },
       { label: 'Contatti Sito', icon: Mail, href: '/sito-studio/contatti' },
@@ -1085,7 +1091,11 @@ function Sidebar({ collapsed, mobileOpen, activePath, onToggle, onCloseMobile, b
                 <span><SectionIcon size={14}/>{section.label}</span>
                 <ChevronDown size={13}/>
               </button>
-              {open?<div className="iu-nav-section__items">{section.items.map(item=><NavLink key={`${section.id}-${item.label}`} item={item} collapsed={collapsed} activePath={activePath} onNavigate={onCloseMobile}/>)}</div>:null}
+              {open?<div className="iu-nav-section__items">{section.id === 'studio' ?
+                <StudioNavigation items={section.items} compact={collapsed && !mobileOpen}
+                  activeGroup={section.items.find(item => isActiveHref(item.href, activePath))?.group}
+                  renderItem={item => <NavLink key={`${section.id}-${item.label}`} item={item} collapsed={collapsed} activePath={activePath} onNavigate={onCloseMobile}/>} /> :
+                section.items.map(item=><NavLink key={`${section.id}-${item.label}`} item={item} collapsed={collapsed} activePath={activePath} onNavigate={onCloseMobile}/>)}</div>:null}
             </section>
           )
         })}
@@ -1511,7 +1521,7 @@ function AppStudio() {
             <a className={isFascicoliPage?'active':''} href="/fascicoli"><BriefcaseBusiness size={18}/><span>Fascicoli</span></a>
             <a className={isClientiPage||isClientFolderPage||isClientCollaboratorsPage||isClientEditPage||isNewClientPage||isCartelleCondivisePage||isSoggettiPage||isNewSubjectPage||isSubjectEditPage?'active':''} href="/clienti"><UsersRound size={18}/><span>Clienti</span></a>
             <a className={isEmailPage||isEmailOrdinariaPage||isNotificheLegaliPage||isMessagesPage||isNewMessagePage?'active':''} href="/email/"><Mail size={18}/><span>Posta</span></a>
-            <a className={isAgendaImportPage||isAgendaPage||isNewAppointmentPage||isAppointmentEditPage||isTimesheetPage||isScadenziarioPage||isCalculatorPage||isNewDeadlinePage||isDeadlineEditPage||isWizardProPage?'active':''} href="/agenda"><CalendarDays size={18}/><span>Agenda</span></a>
+            <a className={isAgendaImportPage||isAgendaPage||isNewAppointmentPage||isAppointmentEditPage||isScadenziarioPage||isCalculatorPage||isNewDeadlinePage||isDeadlineEditPage||isWizardProPage?'active':''} href="/agenda"><CalendarDays size={18}/><span>Agenda</span></a>
             <a className={isRegiaPage||isPrivacyRegistroPage||isAdminDatabasePage||isQuickOrganizerImportPage?'active':''} href="/workspace-intelligente"><Sparkles size={18}/><span>Controllo</span></a>
           </div>
           <button

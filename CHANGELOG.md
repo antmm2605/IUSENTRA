@@ -1,12 +1,19 @@
 # Changelog
 
-## 2.437.54 — candidata, 17/10/2026
+## 2.437.55 — candidata, 17/10/2026
+
+- Voci Timesheet SQL caricate per necessità e salvate puntualmente, con conflitti concorrenti espliciti, revisioni della pagina e conservazione dei metadati.
+- Collegamenti cliente–fascicolo verificati nel database proprietario; JSON storici delle voci preservati e non usati nel percorso SQL.
+- Timesheet sotto Ricerca Studio, Sito Web Studio come etichetta del menu; Studio organizzato per attività con ricerca locale delle funzioni. Recupero crediti in serie in Gestione e contabilità.
+- Test tecnici positivi. Commit, push e deploy autorizzati esplicitamente il 17/10/2026 nonostante il canale browser indisponibile; collaudo visivo non verificato su macchina reale.
+
+## 2.437.54 — rilasciata, 17/10/2026
 
 - Catalogo: cinque card operative filtrano i modelli reali; conteggi combinati con ricerca e filtri, selezione riconoscibile, esito vuoto esplicito e azzeramento.
 - Rendering limitato a 24 schede per pagina, mantenendo ricerca e conteggi sull'intero catalogo già acquisito: non è una nuova paginazione SQL del catalogo.
 - Redazione atti: intestazione unica compatta, card per modelli dello studio, percorso guidato, fascicoli e preventivi. Rimossi i riquadri descrittivi ripetuti.
 - Selezione cliente attivata dalla ricerca: nessuna anagrafica caricata all'apertura, query SQL proprietaria limitata a 20 risultati, conteggio dei fascicoli pertinenti, cancellazione delle risposte obsolete e recupero esplicito degli errori.
-- Collaudo e preparazione del rilascio in corso; la preview locale non sostituisce la verifica della successiva immagine definitiva.
+- Commit `d28bdf190670f3370d6e2ee591965e57e51cba46`: collaudo reale su 8080, CI e deploy Hetzner positivi; 10.403 sorgenti e 120 pacchetti uguali fra locale e server. Copertura critica omogenea invariata 28874/35288; pulizia verificata.
 
 ## 2.437.53 — rilasciata, 17/10/2026
 

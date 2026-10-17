@@ -75,6 +75,10 @@
        class="nav-link sb-link sb-top {% if request.blueprint == 'global_search' or request.endpoint == 'cerca' %}active{% endif %}">
       <i class="bi bi-search"></i><span class="sb-txt">Ricerca Studio</span>
     </a>
+    <a href="{{ url_for('timesheet_lista') }}"
+       class="nav-link sb-link sb-top {% if request.endpoint and request.endpoint.startswith('timesheet_') %}active{% endif %}">
+      <i class="bi bi-stopwatch"></i><span class="sb-txt">Timesheet</span>
+    </a>
 
     {# Recenti (solo se presenti) #}
     {% if recenti %}
@@ -88,7 +92,7 @@
     {% endif %}
 
     {# ---- Sezione: Agenda ---- #}
-    {% set _ag = request.endpoint in ('agenda_view','nuovo_appuntamento','timesheet_lista','timesheet_nuovo','timesheet_cambia_stato') %}
+    {% set _ag = request.endpoint in ('agenda_view','nuovo_appuntamento') %}
     <button class="sb-toggle {% if _ag %}open{% endif %}"
             data-bs-toggle="collapse" data-bs-target="#sb-agenda" aria-expanded="{{ 'true' if _ag else 'false' }}">
       <span><i class="bi bi-calendar3"></i>Agenda</span>
@@ -102,10 +106,6 @@
       <a href="{{ url_for('nuovo_appuntamento') }}"
          class="nav-link sb-link {% if request.endpoint == 'nuovo_appuntamento' %}active{% endif %}">
         <i class="bi bi-plus-circle"></i><span class="sb-txt">Nuovo Appuntamento</span>
-      </a>
-      <a href="{{ url_for('timesheet_lista') }}"
-         class="nav-link sb-link {% if request.endpoint in ('timesheet_lista','timesheet_nuovo','timesheet_cambia_stato') %}active{% endif %}">
-        <i class="bi bi-stopwatch"></i><span class="sb-txt">Timesheet</span>
       </a>
     </div>
 
@@ -330,7 +330,7 @@
       </a>
       <a href="{{ url_for('studio_site.dashboard') }}"
          class="nav-link sb-link {% if request.blueprint in ('studio_site','studio_site_builder') %}active{% endif %}">
-        <i class="bi bi-globe2"></i><span class="sb-txt">Sito Studio</span>
+        <i class="bi bi-globe2"></i><span class="sb-txt">Sito Web Studio</span>
       </a>
       <a href="{{ url_for('impostazioni.index', tab='notifiche') }}"
          class="nav-link sb-link {% if request.blueprint == 'notifiche' or (request.blueprint == 'impostazioni' and request.args.get('tab') == 'notifiche') %}active{% endif %}">

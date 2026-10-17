@@ -200,6 +200,7 @@ function NewEntryForm({ data, onDone }: { data: TimesheetData; onDone: () => Pro
 function StatusForm({ entry, data, onDone }: { entry: TimesheetEntry; data: TimesheetData; onDone: () => Promise<void> }) {
   return (
     <JsonPostForm className="iu-timesheet-status" action={entry.stateAction} successMessage="Stato salvato." onSuccess={onDone}>
+      <input type="hidden" name="revision" value={entry.revision} />
       <input type="hidden" name="_csrf_token" value={csrfToken()} />
       <input type="hidden" name="id_cliente" value={data.filters.id_cliente || entry.idCliente} />
       <input type="hidden" name="id_fascicolo" value={data.filters.id_fascicolo || entry.idFascicolo} />

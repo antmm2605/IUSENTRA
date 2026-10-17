@@ -23,6 +23,7 @@ export type TimesheetStatusOption = {
 
 export type TimesheetEntry = {
   id: string
+  revision: string
   date: string
   dateLabel: string
   description: string
@@ -265,6 +266,7 @@ function entryFrom(value: unknown): TimesheetEntry | null {
     notes: userText(value.notes),
     context: userText(value.context),
     stateAction: text(value.stateAction ?? value.state_action),
+    revision: text(value.revision),
     eligibleForInvoice: Boolean(value.eligibleForInvoice ?? value.eligible_for_invoice),
   }
 }

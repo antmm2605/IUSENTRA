@@ -124,6 +124,7 @@ def _entry_payload(entry: Any, clienti_by_id: dict[str, Any], fascicoli_by_id: d
     dati_json = getattr(entry, "dati_json", {}) if isinstance(getattr(entry, "dati_json", {}), dict) else {}
     return {
         "id": entry_id,
+        "revision": str(getattr(entry, "revisione", "")),
         "date": data,
         "dateLabel": format_date(data),
         "description": _safe_text(getattr(entry, "descrizione", ""), "Attivita senza descrizione"),

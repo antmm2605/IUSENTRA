@@ -218,12 +218,14 @@
               <div class="small text-muted">{{ row.valore_totale|euro }}</div>
               <div class="btn-group btn-group-sm mt-2">
                 <form method="post" action="{{ url_for('timesheet_cambia_stato', id_entry=row.id) }}">
+                  <input type="hidden" name="revision" value="{{ row.revisione }}">
                   <input type="hidden" name="stato" value="VALIDATO">
                   <input type="hidden" name="id_cliente" value="{{ row.id_cliente }}">
                   <input type="hidden" name="id_fascicolo" value="{{ row.id_fascicolo }}">
                   <button class="btn btn-outline-success" {% if row.stato.value == 'VALIDATO' %}disabled{% endif %}>Valida</button>
                 </form>
                 <form method="post" action="{{ url_for('timesheet_cambia_stato', id_entry=row.id) }}">
+                  <input type="hidden" name="revision" value="{{ row.revisione }}">
                   <input type="hidden" name="stato" value="FATTURATO">
                   <input type="hidden" name="id_cliente" value="{{ row.id_cliente }}">
                   <input type="hidden" name="id_fascicolo" value="{{ row.id_fascicolo }}">

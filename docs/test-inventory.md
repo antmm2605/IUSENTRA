@@ -6,7 +6,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 1028.
+- File pytest censiti: 1029.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
@@ -17,7 +17,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | E2E | 14 |
 | Frontend static gate | 1 |
 | Frontend/UI | 329 |
-| RBAC | 123 |
+| RBAC | 124 |
 | Security | 55 |
 | Smoke CLI | 6 |
 | Tenant isolation | 264 |
@@ -29,7 +29,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 00-ci-contracts | Contratti CI, packaging, sicurezza minima e guardrail tecnici rapidi. | 27 |
 | 01-flask-core | Bootstrap Flask, autenticazione, sicurezza web, osservabilita' e superfici operative. | 22 |
 | 02-react-ui | Contratti React, regia, topbar, layout mobile e coerenza design system. | 37 |
-| 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 79 |
+| 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 80 |
 | 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 30 |
 | 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 74 |
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 88 |
@@ -42,7 +42,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Suite | Target | Esempi |
 | --- | --- | --- |
 | acquisition-ocr | 20 | tests/test_document_ocr.py, tests/test_document_ocr_documento.py, tests/test_document_ocr_formato.py, tests/test_editor_html_docx.py, tests/test_document_tools.py ... |
-| coverage-critical | 146 | tests/test_template_catalog_preparation.py, tests/test_template_catalog_request_scope.py, tests/test_redazione_client_search_sql.py, tests/test_template_runtime_snapshot_sql.py, tests/test_deposit_query_worker_runtime.py ... |
+| coverage-critical | 148 | tests/test_template_catalog_preparation.py, tests/test_template_catalog_request_scope.py, tests/test_redazione_client_search_sql.py, tests/test_timesheet_sql_concurrency.py, tests/test_timesheet_command_json.py ... |
 | e2e-nightly | 4 | tests/e2e/test_studio_reale_flow.py, tests/e2e/test_ai_pipeline_full.py, tests/e2e/test_tenant_migration_full.py, tests/e2e/test_operational_crash_day.py |
 | e2e-smoke | 1 | tests/e2e/test_studio_reale_flow.py |
 | legal-tools | 8 | tests/test_strumenti_legali.py, tests/test_strumenti_legali_end_to_end.py, tests/test_strumenti_processuali.py, tests/test_termini_processuali.py, tests/test_normative_tables.py ... |
@@ -460,6 +460,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | RBAC | tests/test_stato_fascicolo.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_telematic_deposit_workflow.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_telematic_registry_fail_closed.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | RBAC | tests/test_timesheet_sql_concurrency.py | 403/RBAC | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_topbar_operational_api.py | 401 anonimo, 403/RBAC, tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_ufficio_amministrativo_e_profilo_pec.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_unlimited_ocr_integration.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |

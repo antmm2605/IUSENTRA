@@ -63,7 +63,7 @@ def test_timesheet_react_shell_api_e_post_operativi(tmp_path: Path):
         )
         status = client.post(
             f"/timesheet/{voce.id}/stato",
-            data={"stato": StatoTimesheet.VALIDATO.value, "id_cliente": cliente.id, "id_fascicolo": fascicolo.id},
+            data={"stato": StatoTimesheet.VALIDATO.value, "revision": voce.revisione, "id_cliente": cliente.id, "id_fascicolo": fascicolo.id},
         )
         invoice = client.post(
             "/timesheet/genera-parcella",

@@ -103,7 +103,7 @@ def get_fascicoli() -> GestioneFascicoli:
             return cached[1]
     single_document_command = (
         studio_db is not None and has_request_context()
-        and request.method == "POST" and request.endpoint == "rinomina_documento"
+        and request.method == "POST" and request.endpoint in {"rinomina_documento", "timesheet_nuovo"}
     )
     single_sql_projection = studio_db is not None and has_request_context() and request.method == "GET" and request.endpoint in {
         "api_v1_react.fascicolo_react_dettaglio", "api_v1_react.cliente_cartella_react", "editor_new_document_matters",

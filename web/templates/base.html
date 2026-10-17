@@ -110,7 +110,7 @@
     </div>
 
     {# ---- Sezione: Fascicoli ---- #}
-    {% set _fa = request.endpoint in ('lista_fascicoli','dettaglio_fascicolo','nuovo_fascicolo','modifica_fascicolo','lista_archivio') %}
+    {% set _fa = request.endpoint in ('lista_fascicoli','dettaglio_fascicolo','nuovo_fascicolo','modifica_fascicolo','lista_archivio') or request.path.startswith('/notifiche-legali') %}
     <button class="sb-toggle {% if _fa %}open{% endif %}"
             data-bs-toggle="collapse" data-bs-target="#sb-fascicoli" aria-expanded="{{ 'true' if _fa else 'false' }}">
       <span><i class="bi bi-folder2-open"></i>Fascicoli</span>
@@ -125,6 +125,12 @@
          class="nav-link sb-link {% if request.endpoint == 'nuovo_fascicolo' %}active{% endif %}">
         <i class="bi bi-folder-plus"></i><span class="sb-txt">Nuovo Fascicolo</span>
       </a>
+      {% if utente_corrente and utente_corrente.ha_permesso('messaggi.leggi') %}
+      <a href="/notifiche-legali"
+         class="nav-link sb-link {% if request.path.startswith('/notifiche-legali') %}active{% endif %}">
+        <i class="bi bi-shield-check"></i><span class="sb-txt">Notifiche legali</span>
+      </a>
+      {% endif %}
       <a href="{{ url_for('lista_archivio') }}"
          class="nav-link sb-link {% if request.endpoint == 'lista_archivio' %}active{% endif %}">
         <i class="bi bi-archive"></i><span class="sb-txt">Archivio</span>

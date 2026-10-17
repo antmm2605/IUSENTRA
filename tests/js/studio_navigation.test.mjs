@@ -20,3 +20,19 @@ test('il filtro conserva ordine e perimetro dei soli collegamenti già autorizza
   assert.deepEqual(filterStudioNavigation(items, 'Lex'), [])
   assert.deepEqual(items, before)
 })
+
+
+test('ricerca comune comprende fascicoli, PEC, agenda e impostazioni già autorizzati', () => {
+  const authorized = [
+    ...items,
+    { label: 'Nuovo Fascicolo', href: '/fascicoli/nuovo' },
+    { label: 'Email PEC', href: '/email/' },
+    { label: 'Agenda', href: '/agenda' },
+    { label: 'Impostazioni', href: '/impostazioni' },
+  ]
+  for (const [query, href] of [['fascicolo', '/fascicoli/nuovo'], ['PEC', '/email/'], ['agenda', '/agenda'], ['impostazioni', '/impostazioni']]) {
+    assert.equal(filterStudioNavigation(authorized, query)[0].href, href)
+  }
+  assert.equal(filterStudioNavigation(authorized, 'utenti amministrazione').length, 0)
+  assert.deepEqual(filterStudioNavigation(authorized, ''), authorized)
+})

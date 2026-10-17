@@ -931,3 +931,10 @@ La migrazione SQL delle proposte automatiche Timesheet resta aperta: riprodotto 
 ## Richiesta 17/10/2026 — Calcolo Tariffario, candidata 2.437.58
 
 Nome uniforme per menu, pagina, collegamenti Studio e Tariffario, conservando la route /compensi-forensi e il motore esistente. Controllo reale locale: osservati link di menu e titolo Calcolo Tariffario. Compattazione 2.437.57 su main 858f69cba5d5bebc561d665847365caedb6700fb, immagine locale verificata su 10813 file e 120 dipendenze, healthy. Pulizia locale: una immagine obsoleta e 8.975 GB di cache rimossi, tutti i volumi conservati; questo non dimostra spazio Windows restituito. CI/deploy57 ancora in attesa di gate finali. Proposte SQL: 42 test di integrazione/base e quattro test di migrazione con backup positivi; WIP non rilasciato, preservato con hash nella cartella privata tracking-sql-wip59, incluse schema, route, produttore scheduler e migrazione. Restano PostgreSQL, test route specifici/RBAC, regia deploy/migrazione reale, conferma visiva e persistenza, documentazione e rilascio.
+
+
+## Aggiornamento 17/10/2026 — navigazione generale e gate
+
+Notifiche legali spostate in Fascicoli dopo Nuovo Fascicolo: osservato nel browser reale 8080 e aperta la pagina esistente senza invii. Su richiesta successiva, ricerca delle funzioni trasferita sopra Panoramica ed estesa alle sole voci autorizzate di tutte le sezioni, usando il filtro locale esistente, senza caricamenti di route o dati aggiuntivi. Eliminata la ricerca duplicata interna a Studio. Typecheck, build e suite frontend positivi; nuova ricerca non verificata su macchina reale: il canale browser ha restituito uso locale disattivato. Rilascio ancora aperto.
+
+CI58: tre shard falliti per attese del vecchio nome Compensi Forensi nei test React; aspettative aggiornate al nome richiesto Calcolo Tariffario e tre casi mirati provati positivamente. Il quarto fallimento era il riepilogo dipendente. Copertura57 non confrontabile per artefatti cancellati dal push successivo, nessun calo misurato dimostrato da quel report. Deploy57/58 non confermati. SQL Timesheet WIP separato e non rilasciato; nessuna modifica ai dati reali o addestramenti.

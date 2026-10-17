@@ -1,3 +1,8 @@
+## 2.437.59
+
+- Ricerca locale delle funzioni sopra Panoramica, estesa alle voci autorizzate del menu.
+- Notifiche legali in Fascicoli dopo Nuovo Fascicolo; test allineati a Calcolo Tariffario.
+
 # 2.437.58 — Calcolo Tariffario
 
 Rinominati menu, titolo della pagina e collegamenti Studio/Tariffario da Compensi forensi a Calcolo Tariffario. Conservati indirizzi, permessi, calcolatore, parametri e risultati. Titolo e menu verificati nel browser reale su 8080; typecheck, build e suite frontend positivi.

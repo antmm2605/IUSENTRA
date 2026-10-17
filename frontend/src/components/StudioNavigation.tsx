@@ -2,8 +2,8 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { ChevronDown, Search, X } from 'lucide-react'
 import { filterStudioNavigation, STUDIO_NAV_GROUPS, type StudioNavEntry } from '../studioNavigation'
 
-export function StudioNavigation<T extends StudioNavEntry>({ items, compact, activeGroup, renderItem }: {
-  items: T[]; compact: boolean; activeGroup?: string; renderItem: (item: T) => ReactNode
+export function StudioNavigation<T extends StudioNavEntry>({ items, compact, activeGroup, renderItem, showSearch = true }: {
+  items: T[]; compact: boolean; activeGroup?: string; showSearch?: boolean; renderItem: (item: T) => ReactNode
 }) {
   const [query, setQuery] = useState('')
   const [openGroup, setOpenGroup] = useState(activeGroup || '')
@@ -14,14 +14,14 @@ export function StudioNavigation<T extends StudioNavEntry>({ items, compact, act
   const matches = filterStudioNavigation(items, query)
   const searching = query.trim().length > 0
   return <div className="iu-studio-nav">
-    <div className="iu-studio-nav__search">
+    {showSearch ? <div className="iu-studio-nav__search">
       <Search size={15} aria-hidden="true" />
       <input ref={input} type="search" aria-label="Cerca funzioni Studio" placeholder="Trova una funzione…" maxLength={80} value={query}
         onChange={event => setQuery(event.target.value)} onKeyDown={event => {
           if (event.key === 'Escape' && query) { event.stopPropagation(); setQuery('') }
         }} />
       {query ? <button type="button" aria-label="Azzera ricerca Studio" onClick={() => { setQuery(''); input.current?.focus() }}><X size={15} /></button> : null}
-    </div>
+    </div> : null}
     {searching ? <p className="iu-studio-nav__count" role="status">{matches.length === 1 ? '1 funzione trovata' : `${matches.length} funzioni trovate`}</p> : null}
     {STUDIO_NAV_GROUPS.map(group => {
       const grouped = matches.filter(item => item.group === group.key)

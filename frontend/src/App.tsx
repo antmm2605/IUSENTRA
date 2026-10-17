@@ -1,4 +1,4 @@
-import type { StudioNavGroup } from './studioNavigation'
+import { filterStudioNavigation, type StudioNavGroup } from './studioNavigation'
 import { StudioNavigation } from './components/StudioNavigation'
 import { OperationalRefreshBridge } from './components/OperationalRefreshBridge'
 import { OperationalLiveSync } from './components/OperationalLiveSync'
@@ -50,6 +50,7 @@ import {
   PanelLeftOpen,
   RefreshCw,
   Search,
+  X,
   Send,
   Settings2,
   ShieldCheck,
@@ -497,6 +498,7 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Tutti i Fascicoli', icon: FolderOpen, href: '/fascicoli' },
       { label: 'Nuovo Fascicolo', icon: FolderPlus, href: '/fascicoli/nuovo' },
+      { label: 'Notifiche legali', icon: ShieldCheck, href: '/notifiche-legali', badge: 'L.53' },
       { label: 'Preparazione Udienza Guidata', icon: Building2, href: '/wizard-pro/' },
       { label: 'Archivio', icon: Archive, href: '/fascicoli/archivio' }
     ]
@@ -528,7 +530,6 @@ const navSections: NavSection[] = [
     icon: MessageCircle,
     items: [
       { label: 'Email PEC', icon: Mail, href: '/email/', badge: 'PEC' },
-      { label: 'Notifiche legali', icon: ShieldCheck, href: '/notifiche-legali', badge: 'L.53' },
       { label: 'Email ordinaria', icon: Mail, href: '/email-ordinaria/', badge: 'SMTP' },
       { label: 'Messaggi', icon: MessageCircle, href: '/messaggi' },
       { label: 'Nuovo SMS/WA', icon: Send, href: '/messaggi/nuovo' }
@@ -1054,6 +1055,11 @@ function SidebarUser({ bootstrap }: { bootstrap: ShellBootstrap }) {
 function Sidebar({ collapsed, mobileOpen, activePath, onToggle, onCloseMobile, bootstrap, appV2Navigation }:{collapsed:boolean; mobileOpen:boolean; activePath:string; onToggle:()=>void; onCloseMobile:()=>void; bootstrap:ShellBootstrap; appV2Navigation:boolean}) {
   const primaryItems = visibleNavItems(primaryNav, bootstrap, appV2Navigation)
   const sectionItems = visibleNavSections(navSections, bootstrap, appV2Navigation)
+  const [navigationQuery, setNavigationQuery] = useState('')
+  const searchingNavigation = navigationQuery.trim().length > 0
+  const matchingPrimary = filterStudioNavigation(primaryItems, navigationQuery)
+  const matchingSections = sectionItems.map(section => ({ ...section, items: filterStudioNavigation(section.items, navigationQuery) })).filter(section => section.items.length > 0)
+  const matchCount = matchingPrimary.length + matchingSections.reduce((total, section) => total + section.items.length, 0)
   const activeSectionId = sectionItems.find(section => section.items.some(item => isActiveHref(item.href, activePath)))?.id || null
   const [openSectionId,setOpenSectionId]=useState<string | null>(activeSectionId)
   useEffect(()=>{
@@ -1079,20 +1085,28 @@ function Sidebar({ collapsed, mobileOpen, activePath, onToggle, onCloseMobile, b
         <button className="iu-sidebar__toggle" type="button" onClick={handleToggle} aria-label={toggleLabel} title={toggleLabel}><ToggleIcon size={18}/></button>
       </div>
       <nav className="iu-sidebar__nav" aria-label="Navigazione principale">
+        {(!collapsed || mobileOpen) ? <div className="iu-studio-nav__search">
+          <Search size={15} aria-hidden="true" />
+          <input type="search" aria-label="Cerca tutte le funzioni" placeholder="Cerca una funzione…" maxLength={80} value={navigationQuery}
+            onChange={event => setNavigationQuery(event.target.value)}
+            onKeyDown={event => { if (event.key === 'Escape' && navigationQuery) { event.stopPropagation(); setNavigationQuery('') } }} />
+          {navigationQuery ? <button type="button" aria-label="Azzera ricerca funzioni" onClick={event => { setNavigationQuery(''); event.currentTarget.parentElement?.querySelector('input')?.focus() }}><X size={15} /></button> : null}
+        </div> : null}
+        {searchingNavigation ? <p className="iu-studio-nav__count" role="status">{matchCount === 1 ? '1 funzione trovata' : `${matchCount} funzioni trovate`}</p> : null}
         <div className="iu-nav-primary">
-          {primaryItems.map(item=><NavLink key={item.label} item={item} collapsed={collapsed} activePath={activePath} onNavigate={onCloseMobile}/>)}
+          {matchingPrimary.map(item=><NavLink key={item.label} item={item} collapsed={collapsed} activePath={activePath} onNavigate={onCloseMobile}/>)}
         </div>
-        {sectionItems.map(section=>{
+        {matchingSections.map(section=>{
           const SectionIcon = section.icon || Folder
-          const open = openSectionId === section.id
+          const open = searchingNavigation || openSectionId === section.id
           return (
             <section className={`iu-nav-section ${section.tone==='admin'?'iu-nav-section--admin':''}`} key={section.id}>
               <button className="iu-nav-section__head" type="button" onClick={()=>toggleSection(section.id)} aria-expanded={open}>
                 <span><SectionIcon size={14}/>{section.label}</span>
                 <ChevronDown size={13}/>
               </button>
-              {open?<div className="iu-nav-section__items">{section.id === 'studio' ?
-                <StudioNavigation items={section.items} compact={collapsed && !mobileOpen}
+              {open?<div className="iu-nav-section__items">{section.id === 'studio' && !searchingNavigation ?
+                <StudioNavigation showSearch={false} items={section.items} compact={collapsed && !mobileOpen}
                   activeGroup={section.items.find(item => isActiveHref(item.href, activePath))?.group}
                   renderItem={item => <NavLink key={`${section.id}-${item.label}`} item={item} collapsed={collapsed} activePath={activePath} onNavigate={onCloseMobile}/>} /> :
                 section.items.map(item=><NavLink key={`${section.id}-${item.label}`} item={item} collapsed={collapsed} activePath={activePath} onNavigate={onCloseMobile}/>)}</div>:null}

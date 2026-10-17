@@ -431,7 +431,7 @@ class GestioneTemplateRepository:
                              expected_runtime_json: str | None = None) -> dict[str, Any]:
         normalized = [normalize_template_repository_item(template) for template in templates]
         with self._connection() as conn:
-            persistent = conn.execute("SELECT r.*, b.content AS corpo FROM template_repository r JOIN template_blocks b ON b.template_id = r.template_id AND b.block_key = 'corpo' WHERE r.collezione = ?", ("Editor personale",)).fetchall()
+            persistent = conn.execute("SELECT r.*, b.content AS corpo FROM template_repository r JOIN template_blocks b ON b.template_id = r.template_id AND b.block_key = 'corpo' WHERE r.collezione IN (?,?)", ("Editor personale", "Editor condiviso")).fetchall()
         editor_ids = {row['template_id'] for row in persistent}
         normalized = [item for item in normalized if item['template_id'] not in editor_ids]
         normalized += [normalize_template_repository_item({**dict(row), 'id': row['template_id']}) for row in persistent]
@@ -468,23 +468,25 @@ class GestioneTemplateRepository:
                 if current is None or current['templates_json'] != expected_runtime_json:
                     raise RuntimeError("I modelli sono stati modificati: proiezione obsoleta non applicata.")
             # I modelli dell'editor sono SQL primari, non rimpiazzabili dal mirror.
-            persistent = conn.execute("SELECT r.*, b.content AS corpo FROM template_repository r JOIN template_blocks b ON b.template_id = r.template_id AND b.block_key = 'corpo' WHERE r.collezione = ?", ("Editor personale",)).fetchall()
-            editor_ids = {row['template_id'] for row in persistent}
-            resources = conn.execute("SELECT b.* FROM template_blocks b JOIN template_repository r ON r.template_id=b.template_id WHERE r.collezione=? AND b.block_key='editor_fonts'", ('Editor personale',)).fetchall()
+            persistent = conn.execute("SELECT r.*, b.content AS corpo FROM template_repository r JOIN template_blocks b ON b.template_id = r.template_id AND b.block_key = 'corpo' WHERE r.collezione IN (?,?)", ("Editor personale", "Editor condiviso")).fetchall()
+            editor_ids = {row[0] for row in conn.execute(
+                "SELECT template_id FROM template_repository WHERE collezione IN (?,?)",
+                ('Editor personale', 'Editor condiviso')).fetchall()}
             templates = [item for item in templates if item.get('template_id') not in editor_ids]
             templates += [normalize_template_repository_item({**dict(row), 'id': row['template_id']}) for row in persistent]
-            conn.execute("DELETE FROM template_blocks")
-            conn.execute("DELETE FROM template_fields")
-            conn.execute("DELETE FROM template_checks")
-            conn.execute("DELETE FROM template_bindings")
-            conn.execute("DELETE FROM template_required_attachments")
-            conn.execute("DELETE FROM template_keywords")
-            conn.execute("DELETE FROM template_variants")
-            conn.execute("DELETE FROM template_repository")
+            # I record primari e tutti i loro figli restano fisicamente intatti:
+            # ricrearli cambierebbe ID/date e perderebbe metadati non derivati.
+            for table in ('template_blocks', 'template_fields', 'template_checks',
+                          'template_bindings', 'template_required_attachments',
+                          'template_keywords', 'template_variants'):
+                conn.execute(f"DELETE FROM {table} WHERE template_id NOT IN "
+                             "(SELECT template_id FROM template_repository WHERE collezione IN (?,?))",
+                             ('Editor personale', 'Editor condiviso'))
+            conn.execute("DELETE FROM template_repository WHERE collezione IS NULL OR collezione NOT IN (?,?)",
+                         ('Editor personale', 'Editor condiviso'))
             for template in templates:
-                self._insert_template(conn, template)
-            for resource in resources:
-                conn.execute("INSERT INTO template_blocks (template_id,block_key,block_type,content,ordine) VALUES (?,?,?,?,?)", tuple(resource[key] for key in ('template_id','block_key','block_type','content','ordine')))
+                if template.get('template_id') not in editor_ids:
+                    self._insert_template(conn, template)
             self._set_meta(conn, "source_signature", _payload_signature(templates))
             self._set_meta(conn, "source_label", source_label)
             if expected_runtime_json is not None:

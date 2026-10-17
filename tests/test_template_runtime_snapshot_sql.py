@@ -106,6 +106,30 @@ def test_prima_adozione_da_json_conserva_modelli_su_entrambi_backend(template_sq
     assert items[0]['id'] == 'old' and items[0]['extra'] == {'stile': 'corsivo'}
 
 
+def test_ricostruzione_non_riscrive_modelli_editor_e_risorse(template_sql):
+    from pct.template_atti_repository import normalize_template_repository_item
+
+    repository, _, _ = template_sql
+    repository.create_editor_template(dict(id='personal', titolo='Personale',
+        collezione='Editor personale', corpo='<p><strong>È intatto</strong></p>',
+        campi_guidati=[dict(name='cliente', label='Cliente', type='text')],
+        parole_chiave=['controllato']), font_source='{"fonts":["Carattere controllato"]}')
+    repository.create_shared_editor_template(dict(id='shared', titolo='Condiviso',
+        collezione='Editor condiviso', builtin=True, corpo='<p>Condiviso intatto</p>'))
+    tables = ('template_repository', 'template_blocks', 'template_fields', 'template_keywords')
+
+    def snapshot():
+        with repository._connection() as conn:
+            return {table: [dict(row) for row in conn.execute(
+                f"SELECT * FROM {table} WHERE template_id IN (?,?) ORDER BY id", ('personal', 'shared'))]
+                for table in tables}
+
+    before = snapshot()
+    repository.rebuild_from_payload([normalize_template_repository_item(
+        dict(id='builtin', titolo='Integrato', builtin=True, corpo='Testo integrato'))])
+    assert snapshot() == before
+
+
 def test_gestore_consultativo_non_legge_json_e_non_scrive(tmp_path, monkeypatch):
     import sqlite3
 

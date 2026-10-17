@@ -48,6 +48,14 @@ CORE_CI_ITEM_SPLIT_PHASES = set(CORE_CI_SUBSHARDS)
 #  La chiave e' il percorso, il valore il numero di fase come lo scrivono
 #  CORE_CI_SUBSHARDS e le "phase:" di ci.yml (numerazione da 1).
 CORE_CI_PINNED_PHASES: dict[str, int] = {
+    "tests/test_deposit_query_worker_runtime.py": 9,
+    "tests/test_lex_deposit_query_tool.py": 9,
+    "tests/test_pec_audit_query_connection.py": 9,
+    "tests/test_pec_deposit_query_migration.py": 9,
+    "tests/test_pec_deposit_query_projection.py": 9,
+    "tests/test_pec_deposit_query_repository.py": 9,
+    "tests/test_receipt_archive_query.py": 9,
+    "tests/test_receipt_sources_consultation.py": 9,
     "tests/test_fascicoli_list_query.py": 7,
     "tests/test_fascicoli_list_migration.py": 7,
     "tests/test_fascicoli_list_writer.py": 7,
@@ -154,6 +162,14 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
         REPO_ROOT / "tests" / "test_tariffario.py",
     ),
     "coverage-critical": (
+        REPO_ROOT / "tests" / "test_deposit_query_worker_runtime.py",
+        REPO_ROOT / "tests" / "test_lex_deposit_query_tool.py",
+        REPO_ROOT / "tests" / "test_pec_audit_query_connection.py",
+        REPO_ROOT / "tests" / "test_pec_deposit_query_migration.py",
+        REPO_ROOT / "tests" / "test_pec_deposit_query_projection.py",
+        REPO_ROOT / "tests" / "test_pec_deposit_query_repository.py",
+        REPO_ROOT / "tests" / "test_receipt_archive_query.py",
+        REPO_ROOT / "tests" / "test_receipt_sources_consultation.py",
         REPO_ROOT / "tests" / "test_fascicoli_list_query.py",
         REPO_ROOT / "tests" / "test_fascicoli_list_migration.py",
         REPO_ROOT / "tests" / "test_fascicoli_list_writer.py",
@@ -247,6 +263,14 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
     ),
 }
 CORE_TARGETS: tuple[Path, ...] = (
+    REPO_ROOT / "tests" / "test_deposit_query_worker_runtime.py",
+    REPO_ROOT / "tests" / "test_lex_deposit_query_tool.py",
+    REPO_ROOT / "tests" / "test_pec_audit_query_connection.py",
+    REPO_ROOT / "tests" / "test_pec_deposit_query_migration.py",
+    REPO_ROOT / "tests" / "test_pec_deposit_query_projection.py",
+    REPO_ROOT / "tests" / "test_pec_deposit_query_repository.py",
+    REPO_ROOT / "tests" / "test_receipt_archive_query.py",
+    REPO_ROOT / "tests" / "test_receipt_sources_consultation.py",
     REPO_ROOT / "tests" / "test_fascicoli_list_query.py",
     REPO_ROOT / "tests" / "test_fascicoli_list_migration.py",
     REPO_ROOT / "tests" / "test_fascicoli_list_writer.py",

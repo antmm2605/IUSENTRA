@@ -56,6 +56,26 @@ def is_plain_notification_query(question: str) -> bool:
     return is_plain_pec_query(translated)
 
 
+def is_plain_deposit_query(question: str) -> bool:
+    """La pagina strutturata non elimina filtri di cliente o contenuto."""
+    text = question.casefold().replace('’', "'")
+    if not re.search(r'\bdeposit[oi]\b', text):
+        return False
+    if not re.search(r'\baccettat[io]\b', text) and ' '.join(text.split()) != 'mostra altri depositi':
+        return False
+    translated = re.sub(r'\bdeposit[oi]\b', 'pec', text)
+    translated = re.sub(r'\b(?:accettat[io]|cancelleria|tribunale|gestore|rac|smtp)\b', '', translated)
+    return is_plain_pec_query(translated)
+
+
+def is_plain_receipt_query(question: str) -> bool:
+    text = question.casefold().replace('’', "'")
+    if not re.search(r'\bricevut[ae]\b', text) or not re.search(r'\b(?:accettazione|consegna|rac|rdac)\b', text):
+        return False
+    translated = re.sub(r'\b(?:accettazione|consegna|rac|rdac)\b', '', text)
+    return is_plain_pec_query(translated + ' pec')
+
+
 def is_plain_calendar_query(question: str) -> bool:
     text = question.casefold().replace('’', "'")
     words = set(re.findall(r'[^\W\d_]+', text, flags=re.UNICODE))
@@ -86,6 +106,13 @@ def resolve_query_selection(question: str, *, today: date) -> QuerySelection | N
     """
     text = " ".join(question.casefold().replace("’", "'").split())
     domains = []
+    if is_plain_receipt_query(question):
+        acceptance = bool(re.search(r'\b(?:accettazione|rac)\b', text))
+        delivery = bool(re.search(r'\b(?:consegna|rdac)\b', text))
+        selected = 'rac' if acceptance else 'rdac'
+        return QuerySelection('archived_receipts', resolve_query_dates(question, today=today),
+                              states=(selected,), date_axis='receipt_at',
+                              error='Indica ricevute di accettazione oppure di consegna.' if acceptance and delivery else '')
     if re.search(r"\bdeposit[oi]\b", text):
         domains.append("deposits")
     if re.search(r"\bnotific(?:a|he|azioni)\b", text) and not re.search(

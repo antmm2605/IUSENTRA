@@ -126,7 +126,7 @@ class IntentRouter:
         source_ids = {clean_spaces(source.get("source_id")) for source in sources}
         if route_intent == "draft_communication":
             return "draft_communication"
-        if route_intent in {"communications_lookup", "pec_query_page", "notification_query_page"}:
+        if route_intent in {"communications_lookup", "pec_query_page", "notification_query_page", "deposit_query_page", "receipt_archive_query_page"}:
             if context_type == "email" or ("email_ordinaria" in source_ids and "email_pec" not in source_ids and "pec" not in text):
                 return "consult_email"
             return "consult_pec"
@@ -370,7 +370,7 @@ def build_lex_unified_chat(
     )
     query_page = metadata.get('query_page') or {}
     if source_verification.get('allowed', True) and query_page.get('has_more') and query_page.get('continuation'):
-        next_prompt = {'legal_notifications': 'Mostra altre notificazioni', 'agenda': 'Mostra altri appuntamenti',
+        next_prompt = {'archived_receipts': 'Mostra altre ricevute archiviate', 'deposits': 'Mostra altri depositi', 'legal_notifications': 'Mostra altre notificazioni', 'agenda': 'Mostra altri appuntamenti',
                        'deadlines': 'Mostra altre scadenze'}.get(query_page.get('domain'), 'Mostra altre PEC')
         actions.insert(0, {
             'key': 'query_next_page', 'label': next_prompt,

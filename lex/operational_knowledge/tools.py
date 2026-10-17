@@ -536,6 +536,77 @@ class OperationalKnowledgeTools:
                                    f'{count} messaggi nel periodo richiesto non hanno una direzione verificata: non sono conteggiati come ricevuti o inviati.')
         return result
 
+    def query_archived_receipts_page(self, context: OperationalQueryContext, *, selection, limit=20, cursor=None) -> OperationalToolResult:
+        source = 'archived_receipts'
+        decision = self._decision(source, context)
+        if not decision.allowed:
+            return self._blocked(source, decision)
+        if selection.domain != 'archived_receipts' or selection.error or selection.dates.error or len(selection.states) != 1:
+            return OperationalToolResult(False, source, permission=decision, blocked_reason='invalid_query_selection',
+                coverage_gaps=[selection.error or selection.dates.error or 'Indica ricevute di accettazione oppure di consegna.'])
+        try:
+            from web.services.receipt_archive_payload import archived_receipt_page
+
+            page = archived_receipt_page(tenant=context.tenant_id, ranges=selection.dates.ranges,
+                                        kind=selection.states[0], limit=limit, cursor=cursor)
+        except Exception:
+            return self._unavailable(source, 'Consultazione delle prove archiviate non confermata: catalogo non disponibile o in aggiornamento.')
+        result = self._plain_result(source, context, page['rows'], 'ricevuta_archiviata')
+        result.ok, result.permission = True, decision
+        result.query_metadata = dict(domain='archived_receipts', executed=True, has_more=page['has_more'], cursor=page['cursor'],
+            states=list(selection.states), date_axis=selection.date_axis, unknown_date_count=page['unknown_date_count'],
+            ranges=[[start.isoformat(), end.isoformat()] for start, end in selection.dates.ranges])
+        if page['unknown_date_count']:
+            result.warnings.append(f"Prove archiviate senza data dell’evento confermata: {page['unknown_date_count']}.")
+        return result
+
+    def query_deposit_receipts_page(self, context: OperationalQueryContext, *, selection, limit=20, cursor=None) -> OperationalToolResult:
+        """Solo la pagina SQL degli esiti; nessuna pipeline o decisione legale."""
+        source = 'deposit_receipts'
+        decision = self._decision(source, context)
+        if not decision.allowed:
+            return self._blocked(source, decision)
+        state = selection.states[0] if len(selection.states) == 1 else ''
+        if selection.domain != 'deposits' or selection.error or selection.dates.error or state not in {'ACCETTATO_PEC', 'ACCETTATO_CANCELLERIA'}:
+            return OperationalToolResult(False, source, permission=decision, blocked_reason='invalid_query_selection',
+                coverage_gaps=[selection.error or selection.dates.error or
+                               'Indica depositi accettati dalla cancelleria oppure accettati dal gestore PEC.'])
+        try:
+            from pct.pec_deposit_query_repository import PecDepositQueryRepository
+            from web.services.pec_audit_query_connection import pec_audit_query_connection
+            from web.services.pec_source_links import pec_source_href
+
+            with pec_audit_query_connection(tenant=context.tenant_id) as conn:
+                page = PecDepositQueryRepository(conn, context.tenant_id).list_page(
+                    state=state, ranges=selection.dates.ranges, limit=limit, cursor=cursor)
+            label = 'Accettato dal gestore PEC' if state == 'ACCETTATO_PEC' else 'Accettato dalla cancelleria'
+            rows = [dict(id=row['message_id'], tenant_id=context.tenant_id, titolo=row['title'],
+                         stato=label, data=row['event_at'], id_fascicolo=row['case_id'],
+                         action_url=pec_source_href(row['message_id'], ''),
+                         source_revision=row['source_revision'], source_issue=row['issue']) for row in page['rows']]
+        except Exception:
+            return self._unavailable(source, 'Consultazione delle ricevute non confermata: archivio o proiezione non disponibili.')
+        result = self._plain_result(source, context, rows, 'ricevuta_deposito')
+        result.ok, result.permission = True, decision
+        result.query_metadata = dict(domain='deposits', executed=True, has_more=page['has_more'], cursor=page['cursor'],
+            states=list(selection.states), date_axis=selection.date_axis,
+            unknown_date_count=page['unknown_date_count'], unconfirmed_source_count=page['unconfirmed_source_count'],
+            ranges=[[start.isoformat(), end.isoformat()] for start, end in selection.dates.ranges])
+        try:
+            from web.services.receipt_archive_payload import archived_receipt_page
+            archive = archived_receipt_page(tenant=context.tenant_id, ranges=selection.dates.ranges,
+                                           kind='deposito_prova', limit=limit)
+            result.query_metadata.update(archive_executed=True, archive_evidence=archive['rows'],
+                                         archive_has_more=archive['has_more'])
+        except Exception:
+            result.warnings.append('La consultazione delle prove nei fascicoli non è confermata: il risultato PEC non dimostra la copertura dell’archivio documenti.')
+            result.query_metadata['archive_executed'] = False
+        if page['unknown_date_count']:
+            result.warnings.append(f"Ricevute senza data probatoria disponibile: {page['unknown_date_count']}.")
+        if page['unconfirmed_source_count']:
+            result.warnings.append(f"Analisi di ricevute non confermate, escluse dagli esiti certi: {page['unconfirmed_source_count']}.")
+        return result
+
     def query_legal_notifications_page(self, context: OperationalQueryContext, *, selection, limit=20, cursor=None) -> OperationalToolResult:
         """Consulta esclusivamente i presìdi già persistiti, senza riconciliare PEC."""
         decision = self._decision('legal_notifications', context)
@@ -574,6 +645,16 @@ class OperationalKnowledgeTools:
         if page['unknown_date_count']:
             count = page['unknown_date_count']
             result.warnings.append(f"{count} {'notificazione' if count == 1 else 'notificazioni'} senza data probatoria disponibile per il filtro richiesto.")
+        if mode == 'accepted':
+            try:
+                from web.services.receipt_archive_payload import archived_receipt_page
+                archive = archived_receipt_page(tenant=context.tenant_id, ranges=selection.dates.ranges,
+                                               kind='rac', limit=limit)
+                result.query_metadata.update(archive_executed=True, archive_evidence=archive['rows'],
+                                             archive_has_more=archive['has_more'])
+            except Exception:
+                result.query_metadata['archive_executed'] = False
+                result.warnings.append('Le ricevute nei fascicoli non sono state confermate: consultazione documentale da recuperare.')
         return result
 
     def query_calendar_page(self, context: OperationalQueryContext, *, selection, limit=20, cursor=None) -> OperationalToolResult:

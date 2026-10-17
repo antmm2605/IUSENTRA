@@ -99,22 +99,24 @@ class OperationalKnowledgeService:
         context_type = str(active_context.get("context_type") or metadata.get("context_type") or "").strip().lower()
         pec_id = str(active_context.get("pec_id") or metadata.get("pec_id") or metadata.get("email_id") or "").strip()
 
-        if route.intent in {"pec_query_page", "notification_query_page", "calendar_query_page"}:
+        if route.intent in {"pec_query_page", "notification_query_page", "calendar_query_page", "deposit_query_page", "receipt_archive_query_page"}:
             from .query_selection import resolve_query_selection
             from .query_cursor import decode_query_cursor, encode_query_cursor
 
             selection = resolve_query_selection(question, today=current_reference_date())
             notification = route.intent == 'notification_query_page'
             calendar = route.intent == 'calendar_query_page'
-            source_id = route.source_ids[0] if calendar else 'legal_notifications' if notification else 'email_pec'
-            next_question = ('mostra altre scadenze' if source_id == 'scadenziario' else 'mostra altri appuntamenti') if calendar else 'mostra altre notificazioni' if notification else 'mostra altre pec'
+            deposit = route.intent == 'deposit_query_page'
+            archive = route.intent == 'receipt_archive_query_page'
+            source_id = route.source_ids[0] if calendar or deposit or archive else 'legal_notifications' if notification else 'email_pec'
+            next_question = 'mostra altre ricevute archiviate' if archive else 'mostra altri depositi' if deposit else ('mostra altre scadenze' if source_id == 'scadenziario' else 'mostra altri appuntamenti') if calendar else 'mostra altre notificazioni' if notification else 'mostra altre pec'
             cursor = None
             if metadata.get('query_continuation'):
                 try:
                     if clean_spaces(question).casefold() != next_question:
                         raise ValueError('La continuazione non può cambiare i filtri della domanda. Avvia una nuova ricerca.')
                     selection, cursor = decode_query_cursor(metadata['query_continuation'], context)
-                    expected_domain = ('deadlines' if source_id == 'scadenziario' else 'agenda') if calendar else 'legal_notifications' if notification else 'pec'
+                    expected_domain = 'archived_receipts' if archive else 'deposits' if deposit else ('deadlines' if source_id == 'scadenziario' else 'agenda') if calendar else 'legal_notifications' if notification else 'pec'
                     if selection.domain != expected_domain:
                         raise ValueError('Il dominio della continuazione non coincide con la richiesta.')
                 except ValueError as exc:
@@ -122,7 +124,7 @@ class OperationalKnowledgeService:
             if selection is None:
                 return [OperationalToolResult(False, source_id, blocked_reason="invalid_query_selection",
                                               coverage_gaps=["Selezione della consultazione non determinata."])]
-            query_tool = self.tools.query_calendar_page if calendar else self.tools.query_legal_notifications_page if notification else self.tools.query_pec_page
+            query_tool = self.tools.query_archived_receipts_page if archive else self.tools.query_deposit_receipts_page if deposit else self.tools.query_calendar_page if calendar else self.tools.query_legal_notifications_page if notification else self.tools.query_pec_page
             result = query_tool(context, selection=selection, limit=self.settings.max_results, cursor=cursor)
             if result.ok and result.query_metadata.get('has_more'):
                 try:

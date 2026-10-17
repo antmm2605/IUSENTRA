@@ -2663,6 +2663,20 @@ def start_scheduler(app):
             max_instances=1, coalesce=True,
         )
 
+        def _receipt_query_projection_tick():
+            from web.services.deposit_query_events_runtime import resume_deposit_query_events
+            from web.services.receipt_archive_runtime import resume_receipt_archive_events
+
+            with app.app_context():
+                for resume in (resume_deposit_query_events, resume_receipt_archive_events):
+                    result = resume(app)
+                    if result['failed']:
+                        logger.error('[scheduler] Ricevute: %d consegne da recuperare.', result['failed'])
+
+        scheduler.add_job(_receipt_query_projection_tick, 'interval', seconds=3,
+                          id='receipt_query_projection', replace_existing=True,
+                          max_instances=1, coalesce=True)
+
         # Seconda lettura di Lex sulla catalogazione: un documento per giro,
         # nel worker e non nelle richieste web, con il modello locale.
         def _catalogo_seconda_lettura():

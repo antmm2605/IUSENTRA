@@ -262,9 +262,13 @@ class OperationalQueryRouter:
             )
 
         entity_query = self._entity_query(text)
-        from .query_selection import is_plain_pec_query, is_plain_notification_query, is_plain_calendar_query, has_scoped_query_context
+        from .query_selection import is_plain_pec_query, is_plain_notification_query, is_plain_calendar_query, is_plain_deposit_query, is_plain_receipt_query, has_scoped_query_context
 
         structured = not has_scoped_query_context(metadata) or bool(metadata.get('query_continuation'))
+        if structured and (is_plain_receipt_query(text) or text == 'mostra altre ricevute archiviate'):
+            return OperationalRoute('receipt_archive_query_page', 'receipt_archive_query_page', ('archived_receipts',))
+        if structured and is_plain_deposit_query(text):
+            return OperationalRoute('deposit_query_page', 'deposit_query_page', ('deposit_receipts',))
         if structured and is_plain_pec_query(text):
             return OperationalRoute("pec_query_page", "pec_query_page", ("email_pec",))
         if structured and is_plain_notification_query(text):

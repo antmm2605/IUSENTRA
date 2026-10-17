@@ -11,6 +11,21 @@ from pct.formatting import format_euro_it
 from .models import OperationalAnswer, OperationalRoute, OperationalSourceReference, OperationalToolResult
 from .serializers import clean_spaces
 
+
+def _archived_evidence_lines(page):
+    if not page.get('archive_executed'):
+        return []
+    evidence = page.get('archive_evidence') or []
+    if not evidence:
+        return ['Archivio dei fascicoli consultato: nessuna ulteriore prova di questo tipo nel periodo richiesto.']
+    lines = ['Prove di trasporto nei fascicoli, distinte dagli esiti del presidio:']
+    for row in evidence:
+        lines.append(f"- {_row_link(row) or _label(row)} · {_format_italian_date(row.get('data')) or 'data non confermata'}")
+    lines.append('Queste evidenze documentali non vengono sommate ai presìdi né trasformate automaticamente in notificazioni o depositi confermati.')
+    if page.get('archive_has_more'):
+        lines.append('Sono presenti altre prove archiviate: chiedi le ricevute di accettazione o di consegna per consultarne le pagine.')
+    return lines
+
 try:  # pragma: no cover - disponibile sulle versioni Python supportate
     from zoneinfo import ZoneInfo
 except Exception:  # pragma: no cover
@@ -77,7 +92,7 @@ class OperationalResponseComposer:
 
         ok_results = [result for result in results if result.ok]
         if not ok_results:
-            if route.intent in {"pec_query_page", "notification_query_page", "calendar_query_page"}:
+            if route.intent in {"pec_query_page", "notification_query_page", "calendar_query_page", "deposit_query_page", "receipt_archive_query_page"}:
                 return OperationalAnswer(
                     handled=True, answer="Non ho eseguito la consultazione richiesta. " + " ".join(gaps or ["Accesso alla fonte non disponibile."]),
                     route=route, coverage_gaps=gaps, warnings=warnings,
@@ -148,7 +163,7 @@ class OperationalResponseComposer:
                 "operational_layer": True,
                 "question": clean_spaces(question),
                 "result_count": sum(len(list(result.data or [])) if isinstance(result.data, list) else int(bool(result.data)) for result in ok_results),
-                **({"query_page": dict(ok_results[0].query_metadata)} if route.intent in {"pec_query_page", "notification_query_page", "calendar_query_page"} else {}),
+                **({"query_page": dict(ok_results[0].query_metadata)} if route.intent in {"pec_query_page", "notification_query_page", "calendar_query_page", "deposit_query_page", "receipt_archive_query_page"} else {}),
             },
         )
 
@@ -160,6 +175,49 @@ class OperationalResponseComposer:
         *,
         question: str = "",
     ) -> list[str]:
+        if route.intent == 'receipt_archive_query_page':
+            result = results[0]
+            page = result.query_metadata
+            lines = ['Ricevute archiviate · ' + ('accettazione PEC' if page.get('states') == ['rac'] else 'avvenuta consegna PEC'),
+                     'Prove già lette nei documenti e nelle PEC dei fascicoli, con fonte e data dell’evento.',
+                     'La classificazione della ricevuta non conferma da sola validità della notificazione, firma o accettazione della cancelleria.']
+            for start, end in page.get('ranges') or []:
+                lines.append('Giorni richiesti (ora italiana): ' + (_format_italian_date(start) if start == end else
+                             f'dal {_format_italian_date(start)} al {_format_italian_date(end)}') + '.')
+            rows = list(result.data or [])
+            lines.append(f"{len(rows)} {'prova' if len(rows) == 1 else 'prove'} in questa pagina" +
+                         ('; sono presenti altre prove.' if page.get('has_more') else '.'))
+            for row in rows:
+                lines.append(f"- {_row_link(row) or _label(row)} · {_format_italian_date(row.get('data')) or 'data non confermata'}")
+                if not row.get('verified'):
+                    lines.append('  Classificazione della fonte da verificare; nessun effetto legale attribuito.')
+                if len(row.get('evidence_sources') or []) > 1:
+                    lines.append(f"  {len(row['evidence_sources'])} copie identiche conservate come evidenze di un’unica prova.")
+            return lines
+        if route.intent == 'deposit_query_page':
+            result = results[0]
+            page = result.query_metadata
+            transport = page.get('date_axis') == 'pec_acceptance_at'
+            lines = ['Ricevute di deposito · ' + ('accettazione del gestore PEC' if transport else 'accettazione della cancelleria'),
+                     'La data è quella dell’esito registrato, non quella di importazione della fonte.']
+            if transport:
+                lines.append('L’accettazione del gestore PEC non dimostra l’accettazione del deposito da parte della cancelleria.')
+            for start, end in page.get('ranges') or []:
+                lines.append('Giorni richiesti (ora italiana): ' + (_format_italian_date(start) if start == end else
+                             f'dal {_format_italian_date(start)} al {_format_italian_date(end)}') + '.')
+            rows = list(result.data or [])
+            if rows:
+                lines.append(f"{len(rows)} {'ricevuta' if len(rows) == 1 else 'ricevute'} in questa pagina" +
+                             ('; sono presenti altri risultati.' if page.get('has_more') else '.'))
+                for row in rows:
+                    lines.append(f"- {_row_link(row) or _label(row)} · {_format_italian_date(row.get('data')) or 'data non disponibile'} · {row.get('stato', '')}")
+                    if not row.get('id_fascicolo'):
+                        lines.append('  Collegamento al fascicolo non confermato: nessuna attribuzione automatica eseguita.')
+            else:
+                lines.append('Nessuna ricevuta corrisponde tra gli esiti databili e confermati.' if page.get('unknown_date_count') or page.get('unconfirmed_source_count') else
+                             'Nessuna ricevuta corrisponde ai filtri indicati.')
+            lines.extend(_archived_evidence_lines(page))
+            return lines
         if route.intent == 'calendar_query_page':
             result = results[0]
             page = result.query_metadata
@@ -198,6 +256,7 @@ class OperationalResponseComposer:
             else:
                 lines.append('Nessuna corrispondenza tra le notificazioni con data disponibile.' if page.get('unknown_date_count') else
                              'Nessuna notificazione corrisponde ai filtri indicati.')
+            lines.extend(_archived_evidence_lines(page))
             return lines
         if route.intent == "pec_query_page":
             result = results[0]

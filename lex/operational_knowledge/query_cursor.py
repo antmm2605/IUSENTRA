@@ -32,7 +32,7 @@ def decode_query_cursor(token, context, *, max_age=1800):
             raise ValueError('Formato non valido.')
         value = _serializer().loads(token, max_age=max_age)
         domain = value.get('domain')
-        if value.get('v') != 1 or domain not in {'pec', 'legal_notifications', 'agenda', 'deadlines'}:
+        if value.get('v') != 1 or domain not in {'pec', 'legal_notifications', 'agenda', 'deadlines', 'deposits', 'archived_receipts'}:
             raise ValueError('Dominio non valido.')
         if value.get('tenant') != context.tenant_id or value.get('user') != context.user_id:
             raise ValueError('Sessione diversa.')
@@ -45,6 +45,18 @@ def decode_query_cursor(token, context, *, max_age=1800):
         direction, folder = value.get('direction', ''), value.get('folder', '')
         if direction not in {'', 'received', 'sent'} or folder not in {'', 'trash'}:
             raise ValueError('Filtri non validi.')
+        if domain == 'archived_receipts':
+            states = tuple(value.get('states') or ())
+            if len(states) != 1 or states[0] not in {'rac', 'rdac'} or direction or folder or value.get('date_axis') != 'receipt_at' or value.get('kinds'):
+                raise ValueError('Filtri delle prove archiviate non validi.')
+            return QuerySelection(domain, QueryDates(ranges), states=states, date_axis='receipt_at'), tuple(cursor)
+        if domain == 'deposits':
+            states = tuple(value.get('states') or ())
+            axis = {'ACCETTATO_PEC': 'pec_acceptance_at', 'ACCETTATO_CANCELLERIA': 'registry_acceptance_at'}.get(
+                states[0] if len(states) == 1 else '')
+            if not axis or direction or folder or value.get('date_axis') != axis or value.get('kinds'):
+                raise ValueError('Filtri delle ricevute di deposito non validi.')
+            return QuerySelection(domain, QueryDates(ranges), states=states, date_axis=axis), tuple(cursor)
         if domain in {'agenda', 'deadlines'}:
             states, kinds = tuple(value.get('states') or ()), tuple(value.get('kinds') or ())
             allowed = {'PROGRAMMATO', 'CONFERMATO', 'COMPLETATO', 'ANNULLATO', 'RINVIATO'} if domain == 'agenda' else {'APERTO', 'COMPLETATO', 'ANNULLATO', 'BOZZA', 'SCADUTO'}

@@ -1340,6 +1340,14 @@ class GestioneTenant:
         prepare_empty_catalog(StudioDB.get(str(base / 'studio.db')), tenant=slug,
                               registry_path=base / 'intelligence' / 'registro_letture.db',
                               backup_dir=base / 'backup' / 'fascicoli-list-query')
+        from pct.registro_letture import RegistroLetture
+        from web.services.receipt_archive_runtime import prepare_archive_receipts
+
+        receipts_registry = RegistroLetture(base / 'intelligence' / 'registro_letture.db', read_only=True)
+        try:
+            prepare_archive_receipts(receipts_registry, slug, base / 'backup' / 'receipt-query-index' / 'letture')
+        finally:
+            receipts_registry.close()
 
     def _ensure_runtime_baseline(self, slug: str, *, force: bool = False) -> Dict[str, Any]:
         base = self._data_dir(slug)

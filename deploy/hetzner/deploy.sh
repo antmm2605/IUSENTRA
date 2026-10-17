@@ -293,6 +293,10 @@ prepare_client_case_index_before_start() {
     -m scripts.fascicoli_list_query_index --tenant all --apply \
     --backup-dir /data/backup/fascicoli-list-query-20261016 \
     --report /data/backup/fascicoli-list-query-20261016/deploy-report.jsonl
+  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" \
+    run --no-deps --rm --entrypoint python app \
+    -m scripts.prepare_receipt_query_indexes --tenant all \
+    --backup-dir /data/backup/receipt-query-index-20261017
 }
 
 CORE_BOOT_SERVICES=(redis)

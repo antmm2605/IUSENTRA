@@ -106,3 +106,76 @@ def test_lex_archivio_senza_permessi_non_apre_repository(monkeypatch):
     result = OperationalKnowledgeTools().query_archived_receipts_page(
         OperationalQueryContext(tenant_id='study-a', user_id='controlled'), selection=selected)
     assert not result.ok
+
+
+@pytest.mark.parametrize('kind', ['rac', 'rdac'])
+def test_risposta_archivio_mostra_data_copie_e_limiti_della_prova(kind):
+    from lex.operational_knowledge.models import OperationalRoute, OperationalToolResult
+    from lex.operational_knowledge.response_composer import OperationalResponseComposer
+
+    source = dict(id='receipt', titolo='Ricevuta controllata', data='2026-10-14T09:30:00+02:00',
+                  action_url='/fascicoli/case-a/documenti/receipt/visualizza', verified=False,
+                  evidence_sources=[dict(id='original'), dict(id='copy')])
+    page = dict(states=[kind], ranges=[['2026-10-14', '2026-10-15']], has_more=True)
+    result = OperationalToolResult(True, 'archived_receipts', data=[source], query_metadata=page)
+    answer = OperationalResponseComposer().compose(question='ricevute archiviate',
+        route=OperationalRoute('controlled', 'receipt_archive_query_page', ('archived_receipts',)), results=[result])
+    assert '1 prova in questa pagina' in answer.answer
+    assert '14 ottobre 2026' in answer.answer and '15 ottobre 2026' in answer.answer
+    assert source['action_url'] in answer.answer
+    assert '2 copie identiche' in answer.answer
+    assert 'Classificazione della fonte da verificare' in answer.answer
+    assert 'non conferma da sola' in answer.answer
+    assert ('accettazione PEC' if kind == 'rac' else 'avvenuta consegna PEC') in answer.answer
+    assert answer.metadata['query_page'] == page
+
+
+@pytest.mark.parametrize('transport', [True, False])
+def test_risposta_deposito_non_confonde_gestore_cancelleria_e_documenti(transport):
+    from lex.operational_knowledge.models import OperationalRoute, OperationalToolResult
+    from lex.operational_knowledge.response_composer import OperationalResponseComposer
+
+    archive = dict(id='document', titolo='Prova archivio', data='2026-10-14',
+                   action_url='/fascicoli/case-a/documenti/document/visualizza')
+    source = dict(id='receipt', titolo='Ricevuta controllata', data='2026-10-14',
+                  action_url='/email/?audit_id=receipt', stato='ACCETTATO_PEC', id_fascicolo='')
+    page = dict(date_axis='pec_acceptance_at' if transport else 'registry_acceptance_at',
+                ranges=[['2026-10-14', '2026-10-14']], has_more=True,
+                archive_executed=True, archive_evidence=[archive], archive_has_more=True)
+    answer = OperationalResponseComposer().compose(question='depositi accettati',
+        route=OperationalRoute('controlled', 'deposit_query_page', ('deposit_receipts',)),
+        results=[OperationalToolResult(True, 'deposit_receipts', data=[source], query_metadata=page)])
+    assert '1 ricevuta in questa pagina' in answer.answer
+    assert 'Collegamento al fascicolo non confermato' in answer.answer
+    from urllib.parse import unquote
+    assert source['action_url'] in unquote(answer.answer) and archive['action_url'] in unquote(answer.answer)
+    assert 'non vengono sommate' in answer.answer and 'Sono presenti altre prove archiviate' in answer.answer
+    assert ('non dimostra l’accettazione del deposito' in answer.answer) is transport
+
+
+@pytest.mark.parametrize('unknown', [0, 1])
+def test_risposta_deposito_vuoto_distingue_assenza_esiti_da_data_non_provata(unknown):
+    from lex.operational_knowledge.models import OperationalRoute, OperationalToolResult
+    from lex.operational_knowledge.response_composer import OperationalResponseComposer
+
+    answer = OperationalResponseComposer().compose(question='depositi accettati oggi',
+        route=OperationalRoute('controlled', 'deposit_query_page', ('deposit_receipts',)),
+        results=[OperationalToolResult(True, 'deposit_receipts', data=[],
+            query_metadata=dict(unknown_date_count=unknown, archive_executed=True, archive_evidence=[]))])
+    assert ('tra gli esiti databili e confermati' in answer.answer) is bool(unknown)
+    assert 'nessuna ulteriore prova' in answer.answer
+    assert '0 ricevute' not in answer.answer
+
+
+def test_cursor_archivio_conserva_tipo_prova_e_rifiuta_filtri_estranei():
+    app = Flask(__name__)
+    app.secret_key = 'controlled-archive-cursor'
+    selected = resolve_query_selection('ricevute di consegna ieri', today=date(2026, 10, 15))
+    position = ('2026-10-14T08:00:00.000000+00:00', 'one')
+    with app.app_context():
+        token = encode_query_cursor(context(), selected, position)
+        assert decode_query_cursor(token, context()) == (selected, position)
+        for invalid in (replace(selected, states=('rac', 'rdac')), replace(selected, direction='sent'),
+                        replace(selected, date_axis='message_at')):
+            with pytest.raises(ValueError):
+                decode_query_cursor(encode_query_cursor(context(), invalid, position), context())

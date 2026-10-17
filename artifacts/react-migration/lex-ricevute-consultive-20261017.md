@@ -90,3 +90,26 @@ attraversando il lotto di migrazione. Passati inoltre 22 controlli mirati nativi
 SQLite/PostgreSQL di repository, migrazione e consegna. Backup verificato e
 cursore restano conservati per la ripresa; nessuna accettazione reale della
 candidata 52 è ancora dichiarata.
+
+## Gate copertura e correzione dei test
+
+Il primo push della candidata è stato fermato dal confronto critico:
+baseline 28741/35144 (81,7806738%), candidata 28828/35288 (81,6934935%).
+Gli altri 88 job erano positivi. I test delle ricevute erano già inclusi
+nella suite critica: mancavano prove sulla composizione delle risposte,
+non una voce nel manifest. Aggiunti controlli sui link originali, date italiane,
+distinzione gestore/cancelleria, copie identiche, fonti non confermate,
+assenza di risultati e continuazioni firmate. Il gruppo nativo passa 17 casi;
+46 istruzioni precedentemente mancanti risultano esercitate localmente.
+Questa indicazione non sostituisce il nuovo confronto CI dei dodici shard.
+Nessuna soglia o esclusione di misura modificata.
+
+La copia reale locale è stata aggiornata a39fe7d8037 e risponde2.437.52;
+app, scheduler e OCR healthy. Preparazione conclusa:590 messaggi esaminati,
+46 righe derivate, nessuna consegna PEC pendente. Le impronte dei sette
+insiemi di dati principali prima/dopo coincidono. Pulizia locale eseguita,
+backup e dieci volumi conservati. Verifica utente NON eseguita: il browser
+integrato restituisce disabilitato; Computer Use nativo interrompe la lettura
+perché non determina con sufficiente certezza l'URL di Chrome. L'utente,
+informato del vincolo, ha richiesto espressamente push e deploy comunque.
+Il collaudo materiale resta aperto e non viene sostituito dai test tecnici.

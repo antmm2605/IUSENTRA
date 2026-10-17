@@ -76,7 +76,7 @@ def rebuild_batch(conn, repository, *, migration_id, after_key, actor, limit=100
                          'ORDER BY id LIMIT ?', (repository.tenant, after_key, limit)).fetchall()
     for row in rows:
         key = row[0]
-        current = conn.execute('UPDATE pec_messages SET id=id WHERE tenant_id=? AND id=? RETURNING id',
+        current = conn.execute('SELECT id FROM pec_messages WHERE tenant_id=? AND id=?',
                                (repository.tenant, key)).fetchone()
         if current is None:
             raise ValueError('Fonte cambiata durante il lotto: ripetizione necessaria.')

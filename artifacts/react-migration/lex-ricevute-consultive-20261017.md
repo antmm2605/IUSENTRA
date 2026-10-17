@@ -77,3 +77,16 @@ trasferimento su D:. Nessuna copia locale del vecchio snapshot è stata
 verificata da questo incarico e non si attesta l'offload autorizzato.
 Il backup strutturato più recente e il baseline del deposito sono presenti.
 Nessuna ulteriore cancellazione di backup è stata eseguita durante questi controlli.
+
+## Aggiornamento preparazione del 17 ottobre
+
+La preparazione reale è stata fermata sul cursore persistito di 400 messaggi:
+l'aggiornamento identico dell'identità PEC riscriveva inutilmente righe contenenti
+il MIME. La proiezione SQLite ora serializza sul piccolo catalogo derivato;
+PostgreSQL acquisisce il blocco della sola identità con SELECT FOR UPDATE.
+La migrazione consulta la fonte senza aggiornarla. Il test negativo che vieta
+qualsiasi UPDATE dei messaggi falliva prima della correzione; ora passa anche
+attraversando il lotto di migrazione. Passati inoltre 22 controlli mirati nativi
+SQLite/PostgreSQL di repository, migrazione e consegna. Backup verificato e
+cursore restano conservati per la ripresa; nessuna accettazione reale della
+candidata 52 è ancora dichiarata.

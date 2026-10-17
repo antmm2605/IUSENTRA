@@ -134,3 +134,28 @@ def test_mime_sostituito_non_rivalida_report_vecchio_nei_retry(receipts):
         assert page['unconfirmed_sources'][0]['issue'] == 'receipt_source_revision_changed'
         repo.project_message(database.conn, 'registry')
         finish(database.conn)
+
+
+def test_proiezione_non_aggiorna_messaggi_neanche_a_valori_identici(tmp_path):
+    path = tmp_path / 'audit.sqlite'
+    with sqlite3.connect(path) as conn:
+        conn.row_factory = sqlite3.Row
+        schema = (Path(__file__).resolve().parents[1] / 'pct/sql/20260521_pec_audit_pipeline.sql').read_text()
+        conn.executescript(schema)
+        install_deposit_query_events(conn)
+        add_receipt(conn, 'one', 'accettazione_deposito')
+        conn.commit()
+
+        def authorize(action, table, _column, *_):
+            return sqlite3.SQLITE_DENY if action == sqlite3.SQLITE_UPDATE and table == 'pec_messages' else sqlite3.SQLITE_OK
+
+        conn.set_authorizer(authorize)
+        repo = PecDepositQueryRepository(conn, 'study-a')
+        repo.project_message(conn, 'one')
+        assert conn.execute('SELECT state FROM pec_deposit_query_index').fetchone()[0] == 'ACCETTATO_CANCELLERIA'
+        from pct.pec_deposit_query_migration import begin, rebuild_batch
+
+        state = begin(conn, tenant='study-a', backup_reference='verified-controlled-snapshot',
+                      backup_sha256='a' * 64, actor='controlled-migration')
+        result = rebuild_batch(conn, repo, migration_id=state['id'], after_key='', actor='controlled-migration')
+        assert result['processed'] == 1

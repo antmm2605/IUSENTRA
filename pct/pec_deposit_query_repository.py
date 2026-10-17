@@ -1,4 +1,5 @@
 """Catalogo derivato delle ricevute già lette nel repository PEC proprietario."""
+import sqlite3
 from datetime import UTC, datetime, time, timedelta
 
 from pct.formatting import DISPLAY_TIMEZONE
@@ -118,9 +119,15 @@ class PecDepositQueryRepository:
                                event_type=EVENT_TYPE, project=self.project_message, limit=limit)
 
     def project_message(self, conn, message_id):
-        # Serializza due consegne dello stesso messaggio senza cambiare la
-        # fonte; i trigger ignorano questo aggiornamento identico.
-        present = conn.execute('UPDATE pec_messages SET id=id WHERE tenant_id=? AND id=? RETURNING id',
+        # SQLite serializza sul piccolo catalogo derivato, non sulla riga
+        # sorgente che contiene anche il MIME. PostgreSQL blocca la sola
+        # identità della fonte senza materializzarne il contenuto.
+        if isinstance(conn, sqlite3.Connection):
+            conn.execute('UPDATE pec_deposit_query_bootstrap SET version=version WHERE tenant_id=?', (self.tenant,))
+            lock = ''
+        else:
+            lock = ' FOR UPDATE'
+        present = conn.execute('SELECT id FROM pec_messages WHERE tenant_id=? AND id=?' + lock,
                                (self.tenant, message_id)).fetchone()
         if present is None:
             conn.execute('DELETE FROM pec_deposit_query_index WHERE tenant_id=? AND message_id=?', (self.tenant, message_id))

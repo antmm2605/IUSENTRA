@@ -297,6 +297,20 @@ def _estimate_option(preventivo: Any, clienti: dict[str, Any]) -> dict[str, Any]
     }
 
 
+def _association_notice(item, clienti, fascicoli):
+    client_id = _text(getattr(item, "id_cliente", ""))
+    case_id = _text(getattr(item, "id_fascicolo", ""))
+    if client_id and client_id not in clienti:
+        return "Cliente collegato non presente nell’archivio dello studio: verifica il collegamento storico."
+    if case_id and case_id not in fascicoli:
+        return "Fascicolo collegato non presente nell’archivio dello studio: verifica il collegamento storico."
+    if case_id and _text(getattr(fascicoli[case_id], "id_cliente", "")) != client_id:
+        return "Cliente e fascicolo collegati non coincidono: verifica l’associazione."
+    if getattr(item, "_sql_discordanze", []):
+        return "Dati strutturati e contenuto storico discordanti: verifica il collegamento prima di modificarlo."
+    return ""
+
+
 def _preventivo_record(preventivo: Any, clienti: dict[str, Any], fascicoli: dict[str, Any]) -> dict[str, Any]:
     pid = _text(getattr(preventivo, "id", ""))
     status = _enum(getattr(preventivo, "stato", ""))
@@ -304,6 +318,8 @@ def _preventivo_record(preventivo: Any, clienti: dict[str, Any], fascicoli: dict
     id_fascicolo = _text(getattr(preventivo, "id_fascicolo", ""))
     return {
         "id": pid,
+        "revision": getattr(preventivo, "revisione", ""),
+        "associationNotice": _association_notice(preventivo, clienti, fascicoli),
         "kind": "preventivo",
         "number": _text(getattr(preventivo, "numero", "")) or pid,
         "subject": _text(getattr(preventivo, "oggetto", "")) or "Oggetto non indicato",
@@ -329,6 +345,8 @@ def _conferimento_record(conferimento: Any, clienti: dict[str, Any], fascicoli: 
     id_fascicolo = _text(getattr(conferimento, "id_fascicolo", ""))
     return {
         "id": cid,
+        "revision": getattr(conferimento, "revisione", ""),
+        "associationNotice": _association_notice(conferimento, clienti, fascicoli),
         "kind": "conferimento",
         "number": _text(getattr(conferimento, "numero", "")) or cid,
         "subject": _text(getattr(conferimento, "oggetto", "")) or "Oggetto non indicato",
@@ -488,8 +506,8 @@ def build_react_preventivi_payload(
         manager = get_preventivi()
         preventivi = list(getattr(manager, "tutti_preventivi", lambda: [])())
         conferimenti = list(getattr(manager, "tutti_conferimenti", lambda: [])())
-    except Exception as exc:
-        warnings.append({"code": "preventivi_non_disponibili", "message": f"Archivio preventivi non disponibile: {type(exc).__name__}."})
+    except Exception:
+        return build_react_preventivi_error_payload("Archivio preventivi non leggibile: verifica i dati originali. Nessun elemento è stato rimosso.", route=route)
 
     clienti_list = _safe_all(get_clienti, "tutti", warnings, "clienti")
     fascicoli_list = _safe_all(get_fascicoli, "tutti", warnings, "fascicoli")
@@ -1023,7 +1041,7 @@ def update_react_preventivo_status(
 ) -> tuple[dict[str, Any], int]:
     if not _can(current_user, "fatturazione.scrivi"):
         return {"ok": False, "message": "Permesso fatturazione.scrivi richiesto.", "errors": {"permission": "Operazione non autorizzata."}, "item": None}, 403
-    unknown = _unknown_fields(payload, {"stato", "note"})
+    unknown = _unknown_fields(payload, {"stato", "note", "revision"})
     errors: dict[str, str] = {}
     if unknown:
         errors["payload"] = "Campi non consentiti: " + ", ".join(sorted(unknown))
@@ -1037,8 +1055,16 @@ def update_react_preventivo_status(
         return {"ok": False, "message": "Controlla i campi evidenziati.", "errors": errors, "item": None}, 400
     try:
         manager = get_preventivi()
+        from pct.preventivi_sql_writer import PreventiviConflict
+        item = manager.get_preventivo(id_preventivo)
+        if item is None:
+            raise KeyError(id_preventivo)
+        if not payload.get("revision") or payload["revision"] != item.revisione:
+            raise PreventiviConflict("La scheda è cambiata: ricaricala prima di aggiornare lo stato.")
         manager.cambia_stato_preventivo(id_preventivo, status)
         item = manager.get_preventivo(id_preventivo)
+    except PreventiviConflict as exc:
+        return {"ok": False, "message": str(exc), "errors": {"revision": str(exc)}, "item": None}, 409
     except KeyError:
         return {"ok": False, "message": "Preventivo non trovato.", "errors": {"id_preventivo": "Identificativo non valido."}, "item": None}, 404
     _audit(get_utenti, current_user, "preventivi.stato", "preventivo", id_preventivo, ip_address)
@@ -1056,7 +1082,7 @@ def update_react_conferimento_status(
 ) -> tuple[dict[str, Any], int]:
     if not _can(current_user, "fatturazione.scrivi"):
         return {"ok": False, "message": "Permesso fatturazione.scrivi richiesto.", "errors": {"permission": "Operazione non autorizzata."}, "item": None}, 403
-    unknown = _unknown_fields(payload, {"stato", "note"})
+    unknown = _unknown_fields(payload, {"stato", "note", "revision"})
     errors: dict[str, str] = {}
     if unknown:
         errors["payload"] = "Campi non consentiti: " + ", ".join(sorted(unknown))
@@ -1070,8 +1096,16 @@ def update_react_conferimento_status(
         return {"ok": False, "message": "Controlla i campi evidenziati.", "errors": errors, "item": None}, 400
     try:
         manager = get_preventivi()
+        from pct.preventivi_sql_writer import PreventiviConflict
+        item = manager.get_conferimento(id_conferimento)
+        if item is None:
+            raise KeyError(id_conferimento)
+        if not payload.get("revision") or payload["revision"] != item.revisione:
+            raise PreventiviConflict("La scheda è cambiata: ricaricala prima di aggiornare lo stato.")
         manager.cambia_stato_conferimento(id_conferimento, status)
         item = manager.get_conferimento(id_conferimento)
+    except PreventiviConflict as exc:
+        return {"ok": False, "message": str(exc), "errors": {"revision": str(exc)}, "item": None}, 409
     except KeyError:
         return {"ok": False, "message": "Conferimento non trovato.", "errors": {"id_conferimento": "Identificativo non valido."}, "item": None}, 404
     _audit(get_utenti, current_user, "preventivi.conferimento.stato", "conferimento", id_conferimento, ip_address)

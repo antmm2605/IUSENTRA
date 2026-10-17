@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-Cumc1P1L.js";export{e as ImpostazioniPage};

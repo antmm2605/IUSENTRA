@@ -108,6 +108,8 @@ export type CreateConferimentoResult = CreatePreventivoResult
 export type PreventiviRecordKind = 'preventivo' | 'conferimento'
 
 export type PreventivoRow = {
+  associationNotice: string
+  revision: string
   id: string
   kind: PreventiviRecordKind
   number: string
@@ -210,6 +212,7 @@ export type ConferimentoDetail = PreventivoRow & {
 }
 
 export type UpdatePreventivoStatusPayload = {
+  revision: string
   stato: string
   note?: string
 }
@@ -526,6 +529,8 @@ function normaliseRecord(raw: unknown): PreventivoRow {
     customerName: display(item.customerName) || 'Cliente non indicato',
     caseTitle: display(item.caseTitle),
     amountDisplay: text(item.amountDisplay),
+    revision: text(item.revision),
+    associationNotice: text(item.associationNotice),
     issuedAt: text(item.issuedAt),
     dueAt: text(item.dueAt),
     engagementAt: text(item.engagementAt),

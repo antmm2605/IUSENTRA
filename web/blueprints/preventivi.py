@@ -51,6 +51,18 @@ from web.services.mediazione_dm150_runtime import (
 
 preventivi = Blueprint("preventivi", __name__, url_prefix="/preventivi")
 
+from pct.preventivi_sql_writer import PreventiviConflict
+
+
+@preventivi.errorhandler(PreventiviConflict)
+def conflitto_preventivi(error):
+    if request.is_json or request.accept_mimetypes.best == "application/json":
+        return {"ok": False, "message": str(error), "errors": {"revision": str(error)}}, 409
+    fields = [(name, value) for name, value in request.form.items(multi=True)
+              if name not in {"csrf_token", "revision"}]
+    return render_template("preventivi/conflitto.html", message=str(error), fields=fields), 409
+
+
 
 # ---------------------------------------------------------------- helpers
 

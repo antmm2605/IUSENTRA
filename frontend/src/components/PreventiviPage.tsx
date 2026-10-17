@@ -975,6 +975,7 @@ function RecordRow({
         <strong>{record.subject}</strong>
         <small>{record.customerName}</small>
         {record.caseTitle ? <small>{record.caseTitle}</small> : null}
+        {record.associationNotice ? <small role="status"><AlertTriangle size={15} aria-hidden="true" /> {record.associationNotice}</small> : null}
       </div>
       <div className="iu-prev-record__meta">
         <span>{dateLabel}</span>
@@ -1079,7 +1080,7 @@ function RecordsPanel({ data, onReload, metricFilter }: { data: PreventiviPageDa
     setSavingId(record.id)
     setMutationStatus('saving')
     setMutationErrors({})
-    const response = await updatePreventivoStatus(record.id, { stato })
+    const response = await updatePreventivoStatus(record.id, { stato, revision: record.revision })
     if (response.ok) {
       const refreshed = await getPreventiviPage()
       onReload(refreshed)
@@ -1255,7 +1256,7 @@ export function PreventiviPage() {
     if (!conferimentoDetail) return
     setDetailStatus('saving')
     setDetailErrors({})
-    const response = await updateConferimentoStatus(conferimentoDetail.id, { stato })
+    const response = await updateConferimentoStatus(conferimentoDetail.id, { stato, revision: conferimentoDetail.revision })
     if (response.ok) {
       const refreshed = await getConferimentoDetail(conferimentoDetail.id)
       setConferimentoDetail(refreshed.item)

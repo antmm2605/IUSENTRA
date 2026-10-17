@@ -480,6 +480,14 @@ from web.helpers import (
 )
 
 api_v1_react = Blueprint("api_v1_react", __name__, url_prefix="/api/v1/ui")
+
+from pct.preventivi_sql_writer import PreventiviConflict
+
+
+@api_v1_react.errorhandler(PreventiviConflict)
+def _preventivi_sql_conflict(error):
+    return jsonify({"ok": False, "message": str(error), "errors": {"revision": str(error)}, "item": None}), 409
+
 register_mailbox_errors(api_v1_react)
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]

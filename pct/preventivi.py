@@ -351,8 +351,16 @@ class VocePreventivo:
 
 # ================================================================ Preventivo
 
+class _SQLRevision:
+    @property
+    def revisione(self):
+        import hashlib
+        from pct.preventivi_sql_writer import encode_model
+        return hashlib.sha256(encode_model(self).encode("utf-8")).hexdigest()
+
+
 @dataclass
-class Preventivo:
+class Preventivo(_SQLRevision):
     """Preventivo professionale dello studio legale."""
     id:              str
     numero:          str            # es. "2025/001"
@@ -549,7 +557,7 @@ class Preventivo:
 # ================================================================ ConferimentoIncarico
 
 @dataclass
-class ConferimentoIncarico:
+class ConferimentoIncarico(_SQLRevision):
     """Lettera di conferimento di incarico professionale."""
     id:                  str
     numero:              str            # es. "2025/001"
@@ -677,18 +685,25 @@ class GestionePreventivi:
         self._preventivi:   Dict[str, Preventivo]          = {}
         self._conferimenti: Dict[str, ConferimentoIncarico] = {}
         self._repository: GestionePreventiviRepository | None = None
+        self._sql_rows = {}
+        self._sql_models = {}
         self._carica()
         self.repository_db_path = derive_preventivi_repository_db_path(self.db_path)
         self.repository_json_path = derive_preventivi_repository_json_path(self.db_path)
         self.repository_workflow_states_json_path = derive_preventivi_workflow_states_json_path(self.db_path)
         self.repository_field_map_json_path = derive_preventivi_field_map_json_path(self.db_path)
         self.repository_rules_json_path = derive_preventivi_rules_json_path(self.db_path)
-        self._repository = GestionePreventiviRepository(
+        repository_class = GestionePreventiviRepository
+        if self._studio_db is not None:
+            from pct.preventivi_repository import PreventiviSQLView
+            repository_class = PreventiviSQLView
+        self._repository = repository_class(
             self.repository_db_path,
             json_path=self.repository_json_path,
             workflow_states_json_path=self.repository_workflow_states_json_path,
             field_map_json_path=self.repository_field_map_json_path,
             rules_json_path=self.repository_rules_json_path,
+            **({"manager": self} if self._studio_db is not None else {}),
         )
         if sync_repository_on_init:
             self._sync_repository()
@@ -697,20 +712,17 @@ class GestionePreventivi:
 
     def _carica(self):
         if self._studio_db is not None:
-            self._preventivi = {}
-            for row in self._studio_db.carica_tabella("preventivi_records"):
-                try:
-                    preventivo = Preventivo.from_dict(row)
-                except Exception:
-                    continue
-                self._preventivi[preventivo.id] = preventivo
-            self._conferimenti = {}
-            for row in self._studio_db.carica_tabella("conferimenti_records"):
-                try:
-                    conferimento = ConferimentoIncarico.from_dict(row)
-                except Exception:
-                    continue
-                self._conferimenti[conferimento.id] = conferimento
+            from pct.preventivi_sql_writer import decode_row, encode_model, read_rows
+            for table, model, target, key in (
+                ("preventivi_records", Preventivo, self._preventivi, "preventivo_id"),
+                ("conferimenti_records", ConferimentoIncarico, self._conferimenti, "conferimento_id"),
+            ):
+                rows = read_rows(self._studio_db, table)
+                self._sql_rows[table] = {row[key]: row for row in rows}
+                for row in rows:
+                    item = decode_row(row, model, key)
+                    target[item.id] = item
+                self._sql_models[table] = {key: encode_model(value) for key, value in target.items()}
             return
         if os.path.exists(self.db_path):
             with open(self.db_path, encoding="utf-8") as f:
@@ -746,69 +758,25 @@ class GestionePreventivi:
                     continue
                 self._conferimenti[conferimento.id] = conferimento
 
+    def _salva_sql(self, table, current, model):
+        from pct.preventivi_sql_writer import encode_model, save_changes
+        try:
+            confirmed = save_changes(self._studio_db, table, self._sql_rows[table], self._sql_models[table], current)
+        except Exception:
+            current.clear()
+            current.update({key: model.from_dict(json.loads(value)) for key, value in self._sql_models[table].items()})
+            raise
+        for key, row in confirmed.items():
+            if row is None:
+                self._sql_rows[table].pop(key, None)
+                self._sql_models[table].pop(key, None)
+            else:
+                self._sql_rows[table][key] = row
+                self._sql_models[table][key] = encode_model(current[key])
+
     def _salva_preventivi(self):
         if self._studio_db is not None:
-            def _insert(conn, preventivo: Preventivo):
-                payload = preventivo.to_dict()
-                conn.execute(
-                    """
-                    INSERT INTO preventivi_records
-                    (preventivo_id, numero, id_cliente, id_fascicolo, data_emissione, data_scadenza,
-                     oggetto, stato, workflow_channel, tipo_compenso, tipo_procedimento,
-                     area_pratica, id_pratica, procedura_operativa_codice, procedura_operativa_nome,
-                     canale_operativo, registro_operativo, classificazioni_tassonomiche_json,
-                     criterio_arrotondamento_orario, minuti_stimati, ore_fatturabili_calcolate,
-                     compenso_orario_base, massimale_ore, soglia_preapprovazione_ore,
-                     warning_compenso_orario_json,
-                     totale, accettato_il, id_preventivo_precedente, token_portale, creato_il,
-                     profilo_deposito_json, dati_json)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                    """,
-                    (
-                        preventivo.id,
-                        preventivo.numero,
-                        preventivo.id_cliente,
-                        preventivo.id_fascicolo or None,
-                        preventivo.data_emissione,
-                        preventivo.data_scadenza or "",
-                        preventivo.oggetto,
-                        preventivo.stato.value,
-                        preventivo.workflow_channel,
-                        preventivo.tipo_compenso,
-                        preventivo.tipo_procedimento,
-                        preventivo.area_pratica,
-                        preventivo.id_pratica,
-                        preventivo.procedura_operativa_codice,
-                        preventivo.procedura_operativa_nome,
-                        preventivo.canale_operativo,
-                        preventivo.registro_operativo,
-                        json.dumps(
-                            preventivo.classificazioni_tassonomiche or [],
-                            ensure_ascii=False,
-                        ),
-                        preventivo.criterio_arrotondamento_orario or "",
-                        int(preventivo.minuti_stimati or 0),
-                        float(preventivo.ore_fatturabili_calcolate or 0.0),
-                        float(preventivo.compenso_orario_base or 0.0),
-                        float(preventivo.massimale_ore or 0.0),
-                        float(preventivo.soglia_preapprovazione_ore or 0.0),
-                        json.dumps(preventivo.warning_compenso_orario or [], ensure_ascii=False),
-                        float(preventivo.totale or 0.0),
-                        preventivo.accettato_il or "",
-                        preventivo.id_preventivo_precedente or "",
-                        preventivo.token_portale or "",
-                        preventivo.creato_il,
-                        json.dumps(preventivo.profilo_deposito or {}, ensure_ascii=False),
-                        json.dumps(payload, ensure_ascii=False),
-                    ),
-                )
-
-            self._studio_db.salva_tabella(
-                "preventivi_records",
-                list(self._preventivi.values()),
-                _insert,
-            )
-            self._sync_repository()
+            self._salva_sql("preventivi_records", self._preventivi, Preventivo)
             return
         os.makedirs(os.path.dirname(self.db_path) or ".", exist_ok=True)
         with open(self.db_path, "w", encoding="utf-8") as f:
@@ -820,62 +788,7 @@ class GestionePreventivi:
 
     def _salva_conferimenti(self):
         if self._studio_db is not None:
-            def _insert(conn, conferimento: ConferimentoIncarico):
-                payload = conferimento.to_dict()
-                conn.execute(
-                    """
-                    INSERT INTO conferimenti_records
-                    (conferimento_id, numero, id_preventivo, id_cliente, id_fascicolo,
-                     data_incarico, oggetto, stato, workflow_channel, tipo_compenso,
-                     tipo_procedimento, area_pratica, id_pratica, procedura_operativa_codice,
-                     procedura_operativa_nome, canale_operativo, registro_operativo,
-                     classificazioni_tassonomiche_json,
-                     criterio_arrotondamento_orario, massimale_ore, soglia_preapprovazione_ore,
-                     warning_compenso_orario_json, compenso_pattuito,
-                     firma_cliente_eseguita, fascicolo_aperto_il,
-                     profilo_deposito_json, dati_json)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                    """,
-                    (
-                        conferimento.id,
-                        conferimento.numero,
-                        conferimento.id_preventivo or "",
-                        conferimento.id_cliente,
-                        conferimento.id_fascicolo or None,
-                        conferimento.data_incarico,
-                        conferimento.oggetto,
-                        conferimento.stato.value,
-                        conferimento.workflow_channel,
-                        conferimento.tipo_compenso,
-                        conferimento.tipo_procedimento,
-                        conferimento.area_pratica,
-                        conferimento.id_pratica,
-                        conferimento.procedura_operativa_codice,
-                        conferimento.procedura_operativa_nome,
-                        conferimento.canale_operativo,
-                        conferimento.registro_operativo,
-                        json.dumps(
-                            conferimento.classificazioni_tassonomiche or [],
-                            ensure_ascii=False,
-                        ),
-                        conferimento.criterio_arrotondamento_orario or "",
-                        float(conferimento.massimale_ore or 0.0),
-                        float(conferimento.soglia_preapprovazione_ore or 0.0),
-                        json.dumps(conferimento.warning_compenso_orario or [], ensure_ascii=False),
-                        float(conferimento.compenso_pattuito or 0.0),
-                        1 if conferimento.firma_cliente_eseguita else 0,
-                        conferimento.fascicolo_aperto_il or "",
-                        json.dumps(conferimento.profilo_deposito or {}, ensure_ascii=False),
-                        json.dumps(payload, ensure_ascii=False),
-                    ),
-                )
-
-            self._studio_db.salva_tabella(
-                "conferimenti_records",
-                list(self._conferimenti.values()),
-                _insert,
-            )
-            self._sync_repository()
+            self._salva_sql("conferimenti_records", self._conferimenti, ConferimentoIncarico)
             return
         os.makedirs(os.path.dirname(self._conf_path) or ".", exist_ok=True)
         with open(self._conf_path, "w", encoding="utf-8") as f:
@@ -886,7 +799,7 @@ class GestionePreventivi:
         self._sync_repository()
 
     def _sync_repository(self) -> None:
-        if not self._repository:
+        if self._studio_db is not None or not self._repository:
             return
         self._repository.synchronize_runtime(
             preventivi=self.tutti_preventivi(),

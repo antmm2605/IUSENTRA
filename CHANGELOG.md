@@ -1,6 +1,13 @@
 # Changelog
 
-## 2.437.55 — candidata, 17/10/2026
+## 2.437.56 — candidata, 17/10/2026
+
+- Preventivi e Incarichi: scritture SQL puntuali con controllo dello snapshot, conflitti espliciti, rollback e numerazione assegnata nella transazione.
+- Catalogo operativo derivato dal SQL proprietario con le regole native e invalidazione tramite revisioni persistenti; nessuna riscrittura automatica dei mirror JSON durante letture e comandi SQL.
+- Stato modificabile dalla pagina soltanto con la revisione corrente; metadati storici e collegamenti discordanti conservati, con avviso specifico quando la pratica non è dimostrata.
+- Rilascio in verifica; collaudo visivo non verificato su macchina reale per indisponibilità del canale browser, prosecuzione autorizzata dall’utente.
+
+## 2.437.55 — rilasciata, 17/10/2026
 
 - Voci Timesheet SQL caricate per necessità e salvate puntualmente, con conflitti concorrenti espliciti, revisioni della pagina e conservazione dei metadati.
 - Collegamenti cliente–fascicolo verificati nel database proprietario; JSON storici delle voci preservati e non usati nel percorso SQL.

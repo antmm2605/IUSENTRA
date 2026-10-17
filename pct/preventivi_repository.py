@@ -1977,3 +1977,62 @@ class GestionePreventiviRepository:
             "alternatives": selected[1:],
             "matches": selected,
         }
+
+
+class PreventiviSQLView(GestionePreventiviRepository):
+    """Adattatore consultivo: stesse regole, dati dal SQL proprietario, nessun mirror."""
+
+    def __init__(self, db_path, *, manager, **paths):
+        self.manager = manager
+        self._cached_revision = None
+        self._cached_payload = None
+        self.db_path = str(getattr(manager._studio_db, "db_path", db_path))
+        self.json_path = paths.get("json_path", "")
+        self.workflow_states_json_path = paths.get("workflow_states_json_path", "")
+        self.field_map_json_path = paths.get("field_map_json_path", "")
+        self.rules_json_path = paths.get("rules_json_path", "")
+
+    def _connect(self):
+        raise RuntimeError("La vista SQL dei preventivi non scrive copie del repository.")
+
+    def load_repository_payload(self):
+        import copy
+        from pct.operational_live import read_live_revisions
+        from pct.preventivi_sql_writer import PreventiviConflict
+        for _ in range(2):
+            revision = read_live_revisions(self.manager._studio_db, {"preventivi"})
+            if revision == self._cached_revision and self._cached_payload is not None:
+                return copy.deepcopy(self._cached_payload)
+            payload = self._build_current_payload()
+            if revision == read_live_revisions(self.manager._studio_db, {"preventivi"}):
+                self._cached_revision, self._cached_payload = revision, payload
+                return copy.deepcopy(payload)
+        raise PreventiviConflict("Il catalogo preventivi sta cambiando: ricarica la vista aggiornata.")
+
+    def list_practices(self):
+        return _practice_catalog_rows()
+
+    def _build_current_payload(self):
+        from pct.preventivi import Preventivo, ConferimentoIncarico
+        from pct.preventivi_sql_writer import decode_row, read_rows
+        db = self.manager._studio_db
+        preventivi = [decode_row(row, Preventivo, "preventivo_id") for row in read_rows(db, "preventivi_records")]
+        conferimenti = [decode_row(row, ConferimentoIncarico, "conferimento_id") for row in read_rows(db, "conferimenti_records")]
+        payload = self._build_payload(preventivi=preventivi, conferimenti=conferimenti,
+                                      preventivo_model=Preventivo, conferimento_model=ConferimentoIncarico)
+        payload["source"] = "preventivi_runtime"
+        payload["counts"] = {key: (sum(len(rows) for rows in value.values()) if key == "field_map" else len(value))
+                             for key, value in payload.items() if key != "source"}
+        return payload
+
+    def storage_stats(self):
+        payload = self.load_repository_payload()
+        names = {"workflow_states": "preventivi_workflow_states", "field_map": "preventivi_field_map",
+                 "rules": "preventivi_rules", "wizard_steps": "preventivi_wizard_steps",
+                 "practice_catalog": "preventivi_practice_catalog", "preventivi": "preventivi_records",
+                 "conferimenti": "conferimenti_records"}
+        return {"db_path": self.db_path, "json_path": self.json_path,
+                "workflow_states_json_path": self.workflow_states_json_path,
+                "field_map_json_path": self.field_map_json_path, "rules_json_path": self.rules_json_path,
+                "source_signature": _payload_signature(payload),
+                **{names[key]: count for key, count in payload["counts"].items()}}

@@ -292,10 +292,7 @@ def build_react_template_atti_payload(
     page: str = "dashboard",
     studio_timbro: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    warnings: list[dict[str, str]] = [
-        _warning("produzione_disponibile", "Catalogo, scheda e avvio produzione sono disponibili nella pagina."),
-        _warning("verifica_finale", "I template pronti come modello richiedono i dati della pratica solo quando si avvia la compilazione."),
-    ]
+    warnings: list[dict[str, str]] = []
     catalog_rows = _safe_catalog_rows(warnings)
     studio_templates = _safe_studio_templates(get_template_manager, warnings)
     catalog_records = [_catalog_record(row, index) for index, row in enumerate(catalog_rows, start=1)]

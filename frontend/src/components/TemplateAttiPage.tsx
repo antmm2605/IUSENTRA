@@ -8,7 +8,6 @@ import { KpiCard } from '../ui/KpiCard'
 import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
-import { openDesignContract } from '../ui/openDesign'
 import {
   emptyTemplateAttiPage,
   emptyTemplateCompilerPage,
@@ -606,18 +605,6 @@ function fieldForPlaceholder(fields: TemplateCompilerField[], token: string) {
     placeholderTokens(field).some((placeholder) => placeholder.replace(/^\[|\]$/g, '').toLowerCase() === normalized)
     || field.name.toLowerCase() === normalized
   ))
-}
-
-function ContractStrip({ data }: { data: TemplateAttiPageData }) {
-  return (
-    <section className="iu-doc-contract iu-od-surface" aria-label="Garanzie del catalogo atti">
-      <ShieldCheck size={18} aria-hidden="true" />
-      <div>
-        <strong>{openDesignContract.system}</strong>
-        <span>Catalogo atti collegato ai dati dello studio</span>
-      </div>
-    </section>
-  )
 }
 
 function cartabiaStateLabel(state: string) {
@@ -3848,7 +3835,6 @@ function TemplateCatalogView() {
         }}
       />
       <div className="iu-template-page iu-od-stack">
-        <ContractStrip data={data} />
         <WarningList data={data} />
         <Metrics data={data} />
         <StudioStampPreview data={data} />

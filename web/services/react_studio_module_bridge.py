@@ -492,7 +492,7 @@ def _build_strumenti_forensi(
                 _metric("Pratiche collegabili", len(fascicoli)),
             ],
             records=all_records,
-            actions=[_action("Compensi forensi", "/compensi-forensi"), _action("Preventivo da calcolo", "/preventivi/wizard")],
+            actions=[_action("Calcolo Tariffario", "/compensi-forensi"), _action("Preventivo da calcolo", "/preventivi/wizard")],
         )
     ]
 
@@ -875,7 +875,7 @@ def _build_preventivi(
                 "percorso-compensi",
                 "Percorso compensi",
                 "Calcolo guidato compensi forensi collegato a cliente, fascicolo e conferimento.",
-                actions=[_action("Apri percorso", "/preventivi/wizard"), _action("Compensi Forensi", "/compensi-forensi")],
+                actions=[_action("Apri percorso", "/preventivi/wizard"), _action("Calcolo Tariffario", "/compensi-forensi")],
             ),
         ],
     }

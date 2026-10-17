@@ -114,12 +114,12 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Percorso compensi', body: 'Calcola e genera preventivo con parametri forensi e dati pratica.', href: '/preventivi/wizard', action: 'Apri percorso', icon: 'spark', tone: 'purple', meta: 'Guidato' },
     ],
     workflow: ['Qualifica cliente', 'Calcola compenso', 'Invia preventivo', 'Raccogli incarico e crea fascicolo'],
-    links: [{ label: 'Compensi Forensi', href: '/compensi-forensi' }, { label: 'Clienti', href: '/clienti' }, { label: 'Fatturazione', href: '/fatturazione' }],
+    links: [{ label: 'Calcolo Tariffario', href: '/compensi-forensi' }, { label: 'Clienti', href: '/clienti' }, { label: 'Fatturazione', href: '/fatturazione' }],
   },
   {
     id: 'compensi-forensi',
     routes: ['/compensi-forensi', '/tariffario'],
-    title: 'Compensi Forensi',
+    title: 'Calcolo Tariffario',
     section: 'Calcolo compensi',
     subtitle: 'Accesso professionale ai parametri forensi, fasi, complessità e generazione del preventivo collegato.',
     lexContext: 'compensi-forensi',
@@ -343,7 +343,7 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Preventivo da calcolo', body: 'Porta il risultato nel flusso guidato per preventivi e incarichi.', href: '/preventivi/wizard', action: 'Crea preventivo', icon: 'send', tone: 'primary', meta: 'Incarichi' },
     ],
     workflow: ['Cerca Comune o strumento', 'Collega fascicolo se utile', 'Calcola e verifica', 'Riporta risultato in pratica'],
-    links: [{ label: 'Compensi Forensi', href: '/compensi-forensi' }, { label: 'Fascicoli', href: '/fascicoli' }, { label: 'Notifiche legali', href: '/notifiche-legali' }],
+    links: [{ label: 'Calcolo Tariffario', href: '/compensi-forensi' }, { label: 'Fascicoli', href: '/fascicoli' }, { label: 'Notifiche legali', href: '/notifiche-legali' }],
   },
   {
     id: 'timesheet',

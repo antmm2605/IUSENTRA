@@ -231,7 +231,7 @@ def build_react_studio_payload(
         _module("preventivi", "Preventivi", "/preventivi", "mandato", "Lista preventivi e stati reali."),
         _module("preventivi-nuovo", "Nuovo preventivo", "/preventivi/nuovo", "mandato", "Creazione preventivo con controlli applicativi."),
         _module("conferimento", "Nuovo conferimento", "/preventivi/conferimento/nuovo", "mandato", "Percorso conferimento già servito dalla pagina."),
-        _module("compensi", "Compensi forensi", "/compensi-forensi", "economico", "Calcolo compensi governato."),
+        _module("compensi", "Calcolo Tariffario", "/compensi-forensi", "economico", "Calcolo compensi governato."),
         _module("tariffario", "Tariffario", "/tariffario", "economico", "Motore tariffario operativo."),
         _module("sito-studio", "Sito Studio", "/sito-studio", "comunicazione", "Cruscotto e contatti sito operativi."),
         _module("sito-contatti", "Contatti Sito Studio", "/sito-studio/contatti", "comunicazione", "Richieste contatto e prenotazioni governate."),

@@ -36,7 +36,7 @@ export const Preventivi: Story = createPageStory({ sourcePath: 'src/components/P
 export const WizardPreventivo: Story = createPageStory({ sourcePath: 'src/components/PreventivoWizardPage.tsx', title: 'Wizard preventivo', render: () => <PreventivoWizardPage /> })
 export const Fatturazione: Story = createPageStory({ sourcePath: 'src/components/FatturazionePage.tsx', title: 'Parcelle e fatture', render: () => <FatturazionePage /> })
 export const IncassiEPagamenti: Story = createPageStory({ sourcePath: 'src/components/IncassiPagamentiPage.tsx', title: 'Incassi e pagamenti', render: () => <IncassiPagamentiPage /> })
-export const CompensiForensi: Story = createPageStory({ sourcePath: 'src/components/CompensiForensiPage.tsx', title: 'Compensi forensi', render: () => <CompensiForensiPage /> })
+export const CompensiForensi: Story = createPageStory({ sourcePath: 'src/components/CompensiForensiPage.tsx', title: 'Calcolo Tariffario', render: () => <CompensiForensiPage /> })
 export const Tariffario: Story = createPageStory({ sourcePath: 'src/components/TariffarioPage.tsx', title: 'Tariffario', render: () => <TariffarioPage /> })
 export const PrimaNota: Story = createPageStory({ sourcePath: 'src/components/PrimaNotaPage.tsx', title: 'Prima nota', render: () => <PrimaNotaPage /> })
 export const ImportaPratiche: Story = createPageStory({ sourcePath: 'src/components/QuickOrganizerImportPage.tsx', title: 'Importa pratiche', render: () => <QuickOrganizerImportPage /> })

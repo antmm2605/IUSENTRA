@@ -290,7 +290,7 @@
       </a>
       <a href="{{ url_for('tariffario') }}"
          class="nav-link sb-link {% if request.endpoint == 'tariffario' %}active{% endif %}">
-        <i class="bi bi-calculator"></i><span class="sb-txt">Compensi Forensi</span>
+        <i class="bi bi-calculator"></i><span class="sb-txt">Calcolo Tariffario</span>
       </a>
       <a href="/documenti"
          class="nav-link sb-link {% if request.path in ('/documenti', '/editor-professionale') and request.args.get('modalita') != 'editor' %}active{% endif %}">

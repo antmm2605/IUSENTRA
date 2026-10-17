@@ -163,13 +163,13 @@ export function CompensiForensiPage() {
   }
 
   if (loading) {
-    return <LoadingState title="Caricamento compensi forensi" message="Recupero i dati reali." />
+    return <LoadingState title="Caricamento del Calcolo Tariffario" message="Recupero i dati reali." />
   }
 
   return (
     <Page
       className="iu-comp-compact-page"
-      title="Compensi forensi"
+      title="Calcolo Tariffario"
       actions={
         <>
           <Button type="button" tone="neutral" onClick={load}>

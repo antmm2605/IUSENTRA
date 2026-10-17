@@ -1909,7 +1909,7 @@ for (const label of [
   'Studio',
   'Parcelle e Fatture',
   'Preventivi e Incarichi',
-  'Compensi Forensi',
+  'Calcolo Tariffario',
   'Documenti',
   'Editor professionale',
   'Redazione Atti',

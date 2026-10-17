@@ -451,7 +451,7 @@ const studioNav: Array<NavItem & { group: StudioNavGroup }> = [
       { group: 'gestione', keywords: 'recupero crediti insoluti debitori solleciti ingiunzioni', label: 'Recupero crediti in serie', icon: Gavel, href: '/recupero-crediti', requiresAnyPermission: ['fascicoli.leggi'] },
       { group: 'gestione', keywords: 'entrate uscite movimenti incasso pagamento prima nota', label: 'Prima nota e contabilità', icon: Banknote, href: '/prima-nota', requiresAnyPermission: ['fatturazione.leggi'] },
       { group: 'gestione', keywords: 'preventivo incarico mandato conferimento', label: 'Preventivi e Incarichi', icon: FileText, href: '/preventivi/' },
-      { group: 'gestione', keywords: 'compenso onorario tariffe parametri', label: 'Compensi Forensi', icon: Banknote, href: '/compensi-forensi' },
+      { group: 'gestione', keywords: 'compenso onorario tariffe parametri', label: 'Calcolo Tariffario', icon: Banknote, href: '/compensi-forensi' },
       { group: 'documenti', keywords: 'documento file archivio pdf', label: 'Documenti', icon: FileText, href: '/documenti' },
       { group: 'documenti', keywords: 'scrivi scrivere modifica testo word documento', label: 'Editor professionale', icon: FilePenLine, href: '/editor-professionale?modalita=editor' },
       { group: 'documenti', keywords: 'scrivi scrivere testo libero modello', label: 'Editor libero', icon: FilePenLine, href: '/template-atti/editor' },

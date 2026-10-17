@@ -1,3 +1,7 @@
+# 2.437.58 — Calcolo Tariffario
+
+Rinominati menu, titolo della pagina e collegamenti Studio/Tariffario da Compensi forensi a Calcolo Tariffario. Conservati indirizzi, permessi, calcolatore, parametri e risultati. Titolo e menu verificati nel browser reale su 8080; typecheck, build e suite frontend positivi.
+
 # 2.437.57 — Compensi forensi compatti
 
 Una sola intestazione con aggiornamento, tutto schermo, tariffario e preventivi. I conteggi diventano comandi compatti; rimossi i riquadri descrittivi Aree di calcolo e Presidi conservati e la dicitura statica Qualità studio. Avvisi effettivi, permessi, calcolo, cataloghi e riferimenti conservati.

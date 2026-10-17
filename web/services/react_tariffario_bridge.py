@@ -462,7 +462,7 @@ def build_react_tariffario_payload(
         ],
         "records": records,
         "actions": [
-            _action("compensi", "Compensi forensi", "/compensi-forensi", "primary"),
+            _action("compensi", "Calcolo Tariffario", "/compensi-forensi", "primary"),
             _action("percorso_guidato", "Percorso preventivi", "/preventivi/wizard", "neutral"),
             _action("percorso_recupero", "Percorso di recupero", "/tariffario?_legacy=1", "warning"),
         ],

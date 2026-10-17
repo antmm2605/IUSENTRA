@@ -51,6 +51,16 @@ main() {
     head_sha="$(git -C "$repo_dir" rev-parse HEAD 2>/dev/null || true)"
     protect_release_tag "$head_sha"
   fi
+  local rollback_ref_file="${IUSENTRA_DOCKER_ROLLBACK_IMAGE_FILE:-$repo_dir/../.iusentra-rollback-image}"
+  if [ -f "$rollback_ref_file" ]; then
+    while IFS= read -r reference || [ -n "$reference" ]; do
+      if ! [[ "$reference" =~ ^[a-zA-Z0-9][a-zA-Z0-9._/-]*:[0-9a-f]{10,40}$ ]] || ! repository_allowed "${reference%:*}"; then
+        echo "Riferimento immagine di ripristino non valido: pulizia interrotta." >&2
+        return 1
+      fi
+      printf '%s\n' "$reference" >> "$protected_refs_file"
+    done < "$rollback_ref_file"
+  fi
   sort -u -o "$protected_refs_file" "$protected_refs_file"
 
   local repository

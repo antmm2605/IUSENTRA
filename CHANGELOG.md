@@ -1,5 +1,7 @@
 ## 2.437.60
 
+- Conservazione persistente dell’immagine di ripristino anche nelle pulizie successive del workflow.
+
 - Proposte Timesheet nel repository SQL dello studio: conferma atomica con la voce, ripetizioni senza doppioni, rollback e tutela delle decisioni.
 - Preparazione con backup verificato, conservazione del JSON storico e controllo della fonte; generazione periodica da audit SQL mirato.
 - Conservati i permessi finanziari dello studio e l’operatore originario, con tracciamento separato di chi conferma.

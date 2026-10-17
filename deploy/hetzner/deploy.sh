@@ -360,6 +360,13 @@ check_build_capacity() {
 # Conserva una sola immagine precedente per il ripristino operativo.
 if previous_image="$(docker container inspect --format '{{.Config.Image}}' iusentra-app 2>/dev/null)"; then
   export IUSENTRA_DOCKER_KEEP_REFS="${IUSENTRA_DOCKER_KEEP_REFS:-} ${previous_image}"
+  candidate_sha="$(git rev-parse HEAD)"
+  if [ "$previous_image" != "iusentra-app:$candidate_sha" ] && [ "$previous_image" != "iusentra-app:${candidate_sha:0:10}" ]; then
+    rollback_ref_file="${IUSENTRA_DOCKER_ROLLBACK_IMAGE_FILE:-$REPO_DIR/../.iusentra-rollback-image}"
+    rollback_ref_tmp="$(mktemp "${rollback_ref_file}.XXXXXX")"
+    printf '%s\n' "$previous_image" > "$rollback_ref_tmp"
+    mv -- "$rollback_ref_tmp" "$rollback_ref_file"
+  fi
 fi
 
 if [ "${IUSENTRA_DEPLOY_DRIVER:-compose}" = "portainer" ]; then

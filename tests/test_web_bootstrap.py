@@ -1771,7 +1771,7 @@ def test_preparazione_udienza_guidata_usa_componenti_modulari_e_js_esterno():
 
     assert "Preparazione Udienza Guidata" in base_template
     assert "Wizard Pro</span>" not in base_template
-    assert "Sito Studio" in base_template
+    assert "Sito Web Studio" in base_template
     assert "Siti studio" in admin_base_template
 
     assert '{% include "components/hearing_preparation_module_nav.html" %}' in index_template

@@ -433,39 +433,55 @@ def _ensure_redazione_guidata(tmpl: TemplateAtto) -> bool:
 
 class GestioneTemplateAtti:
 
-    def __init__(self, db_path: str = "./template_atti/templates.json", *, postgres_dsn: str = ""):
+    def __init__(self, db_path: str = "./template_atti/templates.json", *, postgres_dsn: str | None = None, read_only: bool = False):
+        self.read_only = bool(read_only)
         self.db_path = db_path
         self.repository_db_path = derive_template_repository_db_path(db_path)
         self.repository_json_path = derive_template_repository_json_path(db_path)
-        self.postgres_dsn = resolve_runtime_postgres_dsn(postgres_dsn)
+        self.postgres_dsn = (resolve_runtime_postgres_dsn() if postgres_dsn is None
+                             else str(postgres_dsn).strip())
         self._repository = GestioneTemplateRepository(
             self.repository_db_path,
             json_path=self.repository_json_path,
             postgres_dsn=self.postgres_dsn,
+            initialize_schema=not self.read_only,
+            read_only=self.read_only,
         )
         self._templates: Dict[str, TemplateAtto] = {}
+        self._original_templates: Dict[str, Dict[str, Any]] = {}
+        self._runtime_revision = None
         self._carica()
         self._inserisci_builtin()
-        self._sync_repository()
+        if not self.read_only:
+            self._salva()
+            self._sync_repository()
 
     def _carica(self):
-        if self.postgres_dsn:
-            raw = self._repository.load_runtime_state()
+        raw, revision = self._repository.read_runtime_snapshot()
+        self._runtime_revision = revision
+        if revision is not None or self.postgres_dsn or self.read_only:
+            if self.read_only and revision is None:
+                raise RuntimeError("Catalogo SQL dei modelli non ancora predisposto per questo studio.")
             self._templates = {
                 str(item.get("id") or ""): TemplateAtto.from_dict(item)
                 for item in raw
                 if item.get("id")
             }
+            self._original_templates = {str(item['id']): dict(item) for item in raw}
             return
         if os.path.exists(self.db_path):
             with open(self.db_path, encoding="utf-8") as f:
                 raw = json.load(f)
             self._templates = {k: TemplateAtto.from_dict(v) for k, v in raw.items()}
+            self._original_templates = {k: dict(v) for k, v in raw.items()}
 
     def _salva(self):
-        da_salvare = {k: v.to_dict() for k, v in self._templates.items() if not v.builtin}
+        self._richiedi_scrittura()
+        da_salvare = {k: {**self._original_templates.get(k, {}), **v.to_dict()}
+                      for k, v in self._templates.items() if not v.builtin}
+        self._runtime_revision = self._repository.compare_and_save_runtime_state(
+            list(da_salvare.values()), expected_json=self._runtime_revision)
         if self.postgres_dsn:
-            self._repository.save_runtime_state(list(da_salvare.values()))
             return
         os.makedirs(os.path.dirname(self.db_path) or ".", exist_ok=True)
         # Salva solo i template custom (non builtin) — i builtin si ricaricano sempre fresh
@@ -485,11 +501,17 @@ class GestioneTemplateAtti:
         for tmpl in self._templates.values():
             if _ensure_redazione_guidata(tmpl) and not tmpl.builtin:
                 changed_custom = True
-        if changed_custom:
+        if changed_custom and not self.read_only:
             self._salva()
 
     def _sync_repository(self):
-        self._repository.synchronize_templates(self.tutti())
+        self._richiedi_scrittura()
+        self._repository.synchronize_templates(self.tutti(), export_json=not bool(self.postgres_dsn),
+                                              expected_runtime_json=self._runtime_revision)
+
+    def _richiedi_scrittura(self):
+        if self.read_only:
+            raise PermissionError("Il catalogo dei modelli è aperto in sola lettura.")
 
     # ---- CRUD
 
@@ -509,6 +531,7 @@ class GestioneTemplateAtti:
         return self._templates.get(id_template)
 
     def crea(self, titolo: str, categoria: str, corpo: str, note: str = "", **metadata) -> TemplateAtto:
+        self._richiedi_scrittura()
         t = TemplateAtto(
             id=str(uuid.uuid4()),
             titolo=titolo,
@@ -546,6 +569,7 @@ class GestioneTemplateAtti:
         return t
 
     def aggiorna(self, id_template: str, **kwargs) -> TemplateAtto:
+        self._richiedi_scrittura()
         t = self._templates[id_template]
         if t.builtin:
             raise ValueError("I template built-in non possono essere modificati.")
@@ -559,6 +583,7 @@ class GestioneTemplateAtti:
         return t
 
     def elimina(self, id_template: str):
+        self._richiedi_scrittura()
         t = self._templates.get(id_template)
         if t and t.builtin:
             raise ValueError("I template built-in non possono essere eliminati.")
@@ -573,9 +598,11 @@ class GestioneTemplateAtti:
         return self._repository.load_repository_payload()
 
     def export_template_repository(self, path: Optional[str] = None) -> str:
+        self._richiedi_scrittura()
         return self._repository.export_repository_json(path or self.repository_json_path)
 
     def import_template_repository(self, path: str) -> Dict[str, Any]:
+        self._richiedi_scrittura()
         return self._repository.import_repository_json(path)
 
     def select_best_templates(

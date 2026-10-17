@@ -859,6 +859,11 @@ class GestioneTenant:
                 {'EMAIL_CASELLA_DB': self._data_dir(slug) / 'email' / 'casella.json',
                  'EMAIL_ORDINARIA_DB': self._data_dir(slug) / 'email' / 'ordinaria.json'}, 'sqlite')
 
+        from pct.template_atti_preparation import prepare_catalog
+
+        prepare_catalog(self._data_dir(slug) / 'template_atti' / 'templates.json',
+                        backup_dir=self._data_dir(slug) / 'backup' / 'template-catalog',
+                        postgres_dsn='', writers_drained=True)
         studi[slug] = studio
         self._salva(studi)
         self._scrivi_storage_manifest(slug, studio)
@@ -2203,6 +2208,12 @@ class GestioneTenant:
                     from web.services.email_storage_runtime import prepare_empty_sql_mailboxes
 
                     payload['mailbox_preparation'] = prepare_empty_sql_mailboxes(postgres_store, slug, paths, 'postgresql')
+                    from pct.template_atti_preparation import prepare_catalog
+
+                    payload['template_catalog_preparation'] = prepare_catalog(
+                        paths['TEMPLATE_ATTI_DB'], postgres_dsn=database_config_to_dsn(db),
+                        backup_dir=self._data_dir(slug) / 'backup' / 'template-catalog-postgres',
+                        writers_drained=True)
                 finally:
                     postgres_store.chiudi()
 

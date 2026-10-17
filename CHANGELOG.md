@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.437.53 — candidata, 17/10/2026
+
+- Catalogo React: inventario dei soli modelli distribuiti, senza enumerare archivi, backup o cartelle di altri studi.
+- Consultazione dei modelli da SQL senza salvataggi o importazioni implicite; originali e metadati preservati durante la preparazione esplicita con backup.
+- Salvataggi concorrenti e proiezioni obsolete rifiutati, conservando il modello più recente e i modelli personali dell'editor.
+- Preparazione degli studi esistenti prima del cambio versione e dei nuovi studi durante la creazione; controlli SQLite/PostgreSQL.
+- Prove tecniche in corso; rilascio e verifica delle prestazioni ancora da confermare. Verifica visiva dell'agente non eseguita, affidata all'utente come concordato.
+
+## 2.437.52 — rilasciata, 17/10/2026
+
+- Consultazione delle ricevute anche dall'archivio dei fascicoli, tramite proiezioni SQL e provenienza distinta dalla data d'importazione.
+- Corretta la contesa SQLite durante la preparazione: la proiezione riusa la transazione proprietaria senza aprire un lettore concorrente a se stessa.
+- Commit c8352eccb4: tutti i workflow GitHub positivi, deploy Hetzner e copia locale allineati; prova visiva dell'agente non eseguita, controllo affidato all'utente.
+
 ## 2.437.51 — candidata, 16/10/2026
 
 - Elenco fascicoli selezionato nel catalogo SQL prima del trasferimento: soltanto la pagina richiesta, ricerca e filtri sull’intero archivio.

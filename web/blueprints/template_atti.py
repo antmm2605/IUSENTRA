@@ -67,7 +67,8 @@ def _cfg_path(key: str, default: str = "") -> str:
 def _get_gt():
     from pct.template_atti import GestioneTemplateAtti
     return GestioneTemplateAtti(
-        db_path=_cfg_path("TEMPLATE_ATTI_DB", "./template_atti/templates.json")
+        db_path=_cfg_path("TEMPLATE_ATTI_DB", "./template_atti/templates.json"),
+        read_only=request.method == 'GET',
     )
 
 

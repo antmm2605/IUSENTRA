@@ -1171,7 +1171,8 @@ def _template_atti_loader() -> Any:
     from pct.template_atti import GestioneTemplateAtti
 
     return GestioneTemplateAtti(
-        db_path=_cfg_value("TEMPLATE_ATTI_DB", "./template_atti/templates.json")
+        db_path=_cfg_value("TEMPLATE_ATTI_DB", "./template_atti/templates.json"),
+        read_only=True,
     )
 
 

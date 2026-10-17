@@ -299,6 +299,27 @@ prepare_client_case_index_before_start() {
     --backup-dir /data/backup/receipt-query-index-20261017
 }
 
+prepare_template_catalog_before_start() {
+  local compose=(docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}")
+  local result=0 container service
+  "${compose[@]}" run --no-deps --rm --entrypoint python app \
+    -m tools.prepare_template_catalog --tenant-registry /data/tenants.json --check || result=$?
+  [ "$result" = "0" ] && return 0
+  [ "$result" = "2" ] || return "$result"
+  echo "Preparazione modelli: arresto degli scrittori prima del backup e dell'adozione SQL."
+  "${compose[@]}" stop app scheduler-worker ocr-worker
+  for service in app scheduler-worker ocr-worker; do
+    for container in $(docker ps -q --filter label=com.docker.compose.project=iusentra \
+      --filter "label=com.docker.compose.service=$service"); do
+      echo "Scrittore ancora attivo: $container" >&2
+      return 1
+    done
+  done
+  "${compose[@]}" run --no-deps --rm --entrypoint python app \
+    -m tools.prepare_template_catalog --tenant-registry /data/tenants.json --writers-drained \
+    --backup-dir /data/backup/template-catalog-20261017
+}
+
 CORE_BOOT_SERVICES=(redis)
 CORE_HEALTH_SERVICES=(redis app)
 if profile_enabled audit-worm; then
@@ -336,6 +357,7 @@ if [ "${IUSENTRA_DEPLOY_DRIVER:-compose}" = "portainer" ]; then
     adopt_termini_before_start
   fi
   prepare_client_case_index_before_start
+  prepare_template_catalog_before_start
   python3 deploy/hetzner/portainer_deploy.py
 else
   check_build_capacity
@@ -344,6 +366,7 @@ else
   python3 deploy/hetzner/check_runtime_sources.py --repo "$REPO_DIR" --target "$(git rev-parse HEAD)"
   adopt_termini_before_start
   prepare_client_case_index_before_start
+  prepare_template_catalog_before_start
   cleanup_compose_conflict_containers
   compose_up_with_cleanup -d --no-build --remove-orphans "${CORE_BOOT_SERVICES[@]}"
 

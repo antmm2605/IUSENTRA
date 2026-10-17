@@ -52,8 +52,8 @@ def _safe_inventory_stats() -> dict[str, Any]:
     try:
         from pct.template_atti_inventory import build_template_inventory, template_inventory_stats
 
-        records = build_template_inventory()
-        source_records = build_template_inventory(include_source_duplicates=True)
+        records = build_template_inventory(include_runtime_sources=False)
+        source_records = build_template_inventory(include_source_duplicates=True, include_runtime_sources=False)
         return template_inventory_stats(records, source_records=source_records)
     except Exception:
         return {
@@ -74,7 +74,7 @@ def _safe_inventory_by_code() -> dict[str, dict[str, Any]]:
 
         return {
             _text(record.get("codice")).upper(): record
-            for record in build_template_inventory()
+            for record in build_template_inventory(include_runtime_sources=False)
             if _text(record.get("codice"))
         }
     except Exception:

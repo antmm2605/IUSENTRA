@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
 import hashlib
 import json
 import sqlite3
+from collections.abc import Iterable
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from pct.postgres_runtime_support import PostgresRepositoryBackend
-
 
 SCHEMA_TEMPLATE_REPOSITORY = Path(__file__).with_name("sql") / "20260414_template_repository.sql"
 POSTGRES_SCHEMA_TEMPLATE_REPOSITORY = Path(__file__).with_name("sql") / "20260418_template_repository_postgres.sql"
@@ -339,6 +339,51 @@ class GestioneTemplateRepository:
         except Exception:
             return []
 
+    @staticmethod
+    def _runtime_items(payload: str) -> list[dict[str, Any]]:
+        try:
+            items = json.loads(payload)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Snapshot SQL dei modelli non valido.") from exc
+        if not isinstance(items, list) or any(not isinstance(item, dict) or not item.get("id") for item in items):
+            raise ValueError("Snapshot SQL dei modelli non valido.")
+        if len({str(item['id']) for item in items}) != len(items):
+            raise ValueError("Identità duplicate nello snapshot SQL dei modelli.")
+        return items
+
+    def read_runtime_snapshot(self) -> tuple[list[dict[str, Any]], str | None]:
+        """Nessuna migrazione o JSON storico nelle letture; assenza distinta dal vuoto."""
+        with self._connection() as conn:
+            row = conn.execute("SELECT templates_json FROM template_runtime_state WHERE state_id=?",
+                               ("templates",)).fetchone()
+        if row is None:
+            return [], None
+        payload = row['templates_json']
+        return self._runtime_items(payload), payload
+
+    def compare_and_save_runtime_state(self, templates: list[dict[str, Any]], *, expected_json: str | None) -> str:
+        """Conserva l'intero modello e rifiuta salvataggi basati su revisioni superate."""
+        if self.read_only:
+            raise PermissionError("Il catalogo dei modelli è aperto in sola lettura.")
+        payload = json.dumps(templates, ensure_ascii=False, sort_keys=True)
+        self._runtime_items(payload)
+        with self._connection() as conn:
+            if payload == expected_json:
+                row = conn.execute("SELECT templates_json FROM template_runtime_state WHERE state_id=? AND templates_json=?",
+                                   ("templates", expected_json)).fetchone()
+            elif expected_json is None:
+                row = conn.execute("INSERT INTO template_runtime_state (state_id,templates_json) VALUES (?,?) "
+                                   "ON CONFLICT(state_id) DO NOTHING RETURNING templates_json",
+                                   ("templates", payload)).fetchone()
+            else:
+                row = conn.execute("UPDATE template_runtime_state SET templates_json=?,updated_at=CURRENT_TIMESTAMP "
+                                   "WHERE state_id=? AND templates_json=? RETURNING templates_json",
+                                   (payload, "templates", expected_json)).fetchone()
+            if row is None:
+                raise RuntimeError("I modelli sono stati modificati da un altro processo. Ricarica prima di salvare.")
+            conn.commit()
+        return payload
+
     def save_runtime_state(self, templates: list[dict[str, Any]]) -> None:
         payload = json.dumps(list(templates or []), ensure_ascii=False)
         with self._connection() as conn:
@@ -382,7 +427,8 @@ class GestioneTemplateRepository:
             )
             conn.commit()
 
-    def synchronize_templates(self, templates: Iterable[Any], *, export_json: bool = True) -> dict[str, Any]:
+    def synchronize_templates(self, templates: Iterable[Any], *, export_json: bool = True,
+                             expected_runtime_json: str | None = None) -> dict[str, Any]:
         normalized = [normalize_template_repository_item(template) for template in templates]
         with self._connection() as conn:
             persistent = conn.execute("SELECT r.*, b.content AS corpo FROM template_repository r JOIN template_blocks b ON b.template_id = r.template_id AND b.block_key = 'corpo' WHERE r.collezione = ?", ("Editor personale",)).fetchall()
@@ -393,17 +439,34 @@ class GestioneTemplateRepository:
         current_signature = self._get_meta("source_signature")
         current_count = int(self.storage_stats().get("template_repository", 0))
         if signature == current_signature and current_count == len(normalized):
+            if expected_runtime_json is not None:
+                with self._connection() as conn:
+                    self._editor_template_lock(conn)
+                    current = conn.execute("SELECT templates_json FROM template_runtime_state WHERE state_id=?",
+                                           ('templates',)).fetchone()
+                    if current is None or current['templates_json'] != expected_runtime_json:
+                        raise RuntimeError('I modelli sono stati modificati: proiezione obsoleta non applicata.')
+                    self._set_meta(conn, 'runtime_snapshot_signature',
+                                   hashlib.sha256(expected_runtime_json.encode()).hexdigest())
+                    conn.commit()
             if export_json and self.json_path and not Path(self.json_path).exists():
                 self.export_repository_json(self.json_path)
             return self.storage_stats()
-        self.rebuild_from_payload(normalized, source_label="repo_builtin_templates")
+        self.rebuild_from_payload(normalized, source_label="repo_builtin_templates",
+                                  expected_runtime_json=expected_runtime_json)
         if export_json and self.json_path:
             self.export_repository_json(self.json_path)
         return self.storage_stats()
 
-    def rebuild_from_payload(self, templates: list[dict[str, Any]], *, source_label: str = "template_repository") -> None:
+    def rebuild_from_payload(self, templates: list[dict[str, Any]], *, source_label: str = "template_repository",
+                             expected_runtime_json: str | None = None) -> None:
         with self._connection() as conn:
             self._editor_template_lock(conn)
+            if expected_runtime_json is not None:
+                current = conn.execute("SELECT templates_json FROM template_runtime_state WHERE state_id=?",
+                                       ("templates",)).fetchone()
+                if current is None or current['templates_json'] != expected_runtime_json:
+                    raise RuntimeError("I modelli sono stati modificati: proiezione obsoleta non applicata.")
             # I modelli dell'editor sono SQL primari, non rimpiazzabili dal mirror.
             persistent = conn.execute("SELECT r.*, b.content AS corpo FROM template_repository r JOIN template_blocks b ON b.template_id = r.template_id AND b.block_key = 'corpo' WHERE r.collezione = ?", ("Editor personale",)).fetchall()
             editor_ids = {row['template_id'] for row in persistent}
@@ -424,6 +487,9 @@ class GestioneTemplateRepository:
                 conn.execute("INSERT INTO template_blocks (template_id,block_key,block_type,content,ordine) VALUES (?,?,?,?,?)", tuple(resource[key] for key in ('template_id','block_key','block_type','content','ordine')))
             self._set_meta(conn, "source_signature", _payload_signature(templates))
             self._set_meta(conn, "source_label", source_label)
+            if expected_runtime_json is not None:
+                self._set_meta(conn, 'runtime_snapshot_signature',
+                               hashlib.sha256(expected_runtime_json.encode()).hexdigest())
             conn.commit()
 
     def _editor_template_lock(self, conn):

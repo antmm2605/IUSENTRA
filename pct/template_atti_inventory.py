@@ -380,7 +380,7 @@ class TemplateInventoryRecord:
         return asdict(self)
 
 
-def discover_template_sources(data_root: str | Path | None = None) -> list[dict[str, Any]]:
+def discover_template_sources(data_root: str | Path | None = None, *, include_runtime_sources: bool = True) -> list[dict[str, Any]]:
     """Scopre le fonti template note senza assumere che siano tutte complete."""
     root = ROOT_DIR
     data_root_path = Path(data_root) if data_root else root / "data"
@@ -394,7 +394,7 @@ def discover_template_sources(data_root: str | Path | None = None) -> list[dict[
         TemplateSource("builtin_workspace", "Template integrati redazione atti", "repository", "builtin_templates", required=True),
     ]
 
-    if data_root_path.exists():
+    if include_runtime_sources and data_root_path.exists():
         for path in sorted(data_root_path.glob("**/template_atti/templates.json")):
             sources.append(
                 TemplateSource(
@@ -432,10 +432,10 @@ def discover_template_sources(data_root: str | Path | None = None) -> list[dict[
     return [source.to_dict() for source in sources]
 
 
-def load_all_template_sources(data_root: str | Path | None = None) -> dict[str, dict[str, Any]]:
+def load_all_template_sources(data_root: str | Path | None = None, *, include_runtime_sources: bool = True) -> dict[str, dict[str, Any]]:
     """Carica tutte le fonti scoperte mantenendo errori e assenze nel payload."""
     loaded: dict[str, dict[str, Any]] = {}
-    for source in discover_template_sources(data_root):
+    for source in discover_template_sources(data_root, include_runtime_sources=include_runtime_sources):
         source_id = source["source"]
         items: list[dict[str, Any]] = []
         error = ""
@@ -619,8 +619,9 @@ def build_template_inventory(
     data_root: str | Path | None = None,
     *,
     include_source_duplicates: bool = False,
+    include_runtime_sources: bool = True,
 ) -> list[dict[str, Any]]:
-    loaded = load_all_template_sources(data_root)
+    loaded = load_all_template_sources(data_root, include_runtime_sources=include_runtime_sources)
     enrichment = _internal_template_enrichment_index()
     records: list[dict[str, Any]] = []
     for payload in loaded.values():

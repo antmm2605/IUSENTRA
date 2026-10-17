@@ -164,13 +164,14 @@
 .iu-template-filters {
   display: grid;
   gap: var(--iu-od-doc-gap);
-  grid-template-columns: minmax(18rem, 1.5fr) repeat(4, minmax(11rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
   padding: var(--iu-od-space-4);
 }
 
 .iu-template-filter {
   display: grid;
   gap: var(--iu-od-space-2);
+  min-width: 0;
 }
 
 .iu-template-filter label,
@@ -185,12 +186,16 @@
 
 .iu-template-filter input,
 .iu-template-filter select {
+  box-sizing: border-box;
   background: var(--iu-od-surface);
   border: 1px solid var(--iu-od-border);
   border-radius: var(--iu-od-doc-card-radius);
   color: var(--iu-od-text);
   min-height: 2.55rem;
+  min-width: 0;
+  max-width: 100%;
   padding: var(--iu-od-space-2) var(--iu-od-space-3);
+  width: 100%;
 }
 
 .iu-template-filter input:focus,
@@ -2752,4 +2757,22 @@ body.iu-template-pro-fullscreen .iu-page-heading {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+}
+
+/* Una sola intestazione per titolo e comandi del catalogo. */
+.iu-template-catalog-page > .iu-page-heading {
+  padding: var(--iu-od-space-3) var(--iu-od-space-4);
+  min-height: 0;
+  gap: var(--iu-od-space-3);
+}
+
+.iu-template-catalog-page > .iu-page-heading h1 {
+  font-size: 1.25rem;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.iu-template-catalog-page > .iu-page-heading .ius-section-header__actions {
+  flex-wrap: wrap;
+  gap: var(--iu-od-space-2);
 }

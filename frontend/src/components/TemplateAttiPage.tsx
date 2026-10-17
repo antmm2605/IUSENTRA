@@ -3813,8 +3813,8 @@ function TemplateCatalogView() {
 
   return (
     <Page
+      className="iu-template-catalog-page"
       title={catalogo ? 'Catalogo template atti' : 'Template atti'}
-      subtitle="Catalogo operativo con scheda in pagina e avvio diretto della produzione atti."
       actions={
         <>
           <Button type="button" tone="neutral" onClick={load}>
@@ -3827,6 +3827,14 @@ function TemplateCatalogView() {
           <ButtonLink href={FREE_EDITOR_URL} tone="neutral">
             Editor libero
           </ButtonLink>
+          {data.actions.filter((action, index, actions) =>
+            !['/redazione-atti', FREE_EDITOR_URL, catalogo ? '/template-atti/catalogo' : '/template-atti'].includes(action.href)
+            && actions.findIndex((candidate) => candidate.href === action.href) === index,
+          ).map((action) => (
+            <ButtonLink key={action.id} href={action.href} tone="neutral">
+              {action.label}
+            </ButtonLink>
+          ))}
         </>
       }
     >
@@ -3843,24 +3851,6 @@ function TemplateCatalogView() {
         <ContractStrip data={data} />
         <WarningList data={data} />
         <Metrics data={data} />
-        <section className="iu-template-hero iu-od-surface">
-          <div>
-            <p className="iu-template-eyebrow">Documenti e modelli</p>
-            <h2>{catalogo ? 'Catalogo consultabile e pronto alla redazione' : 'Ingresso operativo ai template dello studio'}</h2>
-            <p>
-              La pagina mostra catalogo, categorie, materie, canali e variabili, apre la scheda senza uscire e porta
-              il modello selezionato nella produzione atti.
-            </p>
-          </div>
-          <div className="iu-od-action-row iu-template-hero__actions">
-            {data.actions.map((action) => (
-              <ButtonLink key={action.id} href={action.href} tone={action.tone === 'primary' ? 'primary' : 'neutral'}>
-                <ExternalLink size={16} aria-hidden="true" />
-                {action.label}
-              </ButtonLink>
-            ))}
-          </div>
-        </section>
         <StudioStampPreview data={data} />
         {!catalogo ? <Sections data={data} /> : null}
         {catalogo ? (

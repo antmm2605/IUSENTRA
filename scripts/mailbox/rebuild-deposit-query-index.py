@@ -13,12 +13,26 @@ from scripts.query_index_backup import verified_backup
 def rebuild(conn, *, tenant, path, destination, max_batches=100):
     if type(max_batches) is not int or not 1 <= max_batches <= 1000:
         raise ValueError('Budget di lotti non valido.')
-    snapshot, digest = verified_backup(SimpleNamespace(conn=conn, db_path=path, backend_kind='sqlite'), destination)
     actor = 'pec-deposit-query-migration'
     repository = PecDepositQueryRepository(conn, tenant)
     try:
-        install_deposit_query_events(conn)
-        state = begin(conn, tenant=tenant, backup_reference=str(snapshot), backup_sha256=digest, actor=actor)
+        exists = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='pec_deposit_query_migrations'").fetchone()
+        completed = conn.execute(
+            "SELECT m.id,m.phase,m.after_key,m.backup_sha256 FROM pec_deposit_query_migrations m "
+            "JOIN pec_deposit_query_bootstrap b ON b.tenant_id=m.tenant_id "
+            "WHERE m.tenant_id=? AND m.actor_key=? AND m.phase='COMPLETED' AND b.version=1 "
+            "AND NOT EXISTS (SELECT 1 FROM pec_deposit_query_migrations a WHERE a.tenant_id=m.tenant_id AND a.phase='BACKFILL') "
+            "ORDER BY m.updated_at DESC,m.id LIMIT 1", (tenant, actor)).fetchone() if exists else None
+        if completed:
+            install_deposit_query_events(conn)
+            # La preparazione conclusa non e' una nuova migrazione: conserva il
+            # riferimento storico e recupera soltanto gli eventi pendenti.
+            state = dict(id=completed[0], phase=completed[1], after_key=completed[2])
+            digest = completed[3]
+        else:
+            snapshot, digest = verified_backup(SimpleNamespace(conn=conn, db_path=path, backend_kind='sqlite'), destination)
+            install_deposit_query_events(conn)
+            state = begin(conn, tenant=tenant, backup_reference=str(snapshot), backup_sha256=digest, actor=actor)
         conn.commit()
         processed = 0
         for _ in range(max_batches):
@@ -43,7 +57,7 @@ def rebuild(conn, *, tenant, path, destination, max_batches=100):
                     raise RuntimeError('Consegne delle ricevute PEC in attesa di recupero.')
             else:
                 raise RuntimeError('Budget delle consegne PEC esaurito: riprendere la preparazione.')
-        return dict(migration_id=state['id'], phase=state['phase'], processed_this_run=processed, backup_sha256=digest)
+        return dict(migration_id=state['id'], phase=state['phase'], processed_this_run=processed, backup_sha256=digest, reused_completed=bool(completed))
     except Exception:
         conn.rollback()
         raise

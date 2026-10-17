@@ -1,5 +1,7 @@
 ## 2.437.59
 
+- Deploy: riuso della preparazione ricevute già conclusa, senza riavviare la migrazione storica; controlli di backup invariati sulle riprese incomplete.
+
 - Ricerca locale delle funzioni sopra Panoramica, estesa alle voci autorizzate del menu.
 - Notifiche legali in Fascicoli dopo Nuovo Fascicolo; test allineati a Calcolo Tariffario.
 

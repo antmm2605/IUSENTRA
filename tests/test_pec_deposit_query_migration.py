@@ -69,3 +69,44 @@ def test_nuovo_studio_catalogo_pronto_prima_della_prima_pec(tmp_path):
         assert repo.retry_events(finish=finish)['failed'] == 0
         assert repo.list_page(state='ACCETTATO_CANCELLERIA')['rows'][0]['message_id'] == 'first'
     assert not prepare_empty_catalog(path, tenant='study-a', backup_dir=backup)
+
+
+def test_preparazione_completata_riusata_senza_nuovo_backup_o_backfill(receipts, tmp_path, monkeypatch):
+    import importlib.util
+    database, repo = receipts
+    conn = database.conn
+    spec = importlib.util.spec_from_file_location('receipt_completed', Path(__file__).resolve().parents[1] / 'scripts/mailbox/rebuild-deposit-query-index.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    args = dict(tenant=repo.tenant, backup_reference='historical/verified.db', backup_sha256='a' * 64, actor='pec-deposit-query-migration')
+    state = begin(conn, **args)
+    while state['phase'] != 'COMPLETED':
+        state = rebuild_batch(conn, repo, migration_id=state['id'], after_key=state['after_key'], actor=args['actor'])
+    conn.commit()
+    before = [tuple(r) for r in conn.execute('SELECT id,mime_sha256,original_mime FROM pec_messages ORDER BY id')]
+    monkeypatch.setattr(module, 'verified_backup', lambda *a, **kw: pytest.fail('Backup non richiesto per migrazione conclusa'))
+    monkeypatch.setattr(module, 'rebuild_batch', lambda *a, **kw: pytest.fail('Backfill gia concluso'))
+    result = module.rebuild(conn, tenant=repo.tenant, path=tmp_path / 'unused.db', destination=tmp_path / 'new-backup')
+    assert result['reused_completed'] is True
+    assert result['migration_id'] == state['id']
+    assert result['processed_this_run'] == 0
+    assert result['backup_sha256'] == 'a' * 64
+    assert not (tmp_path / 'new-backup').exists()
+    assert [tuple(r) for r in conn.execute('SELECT id,mime_sha256,original_mime FROM pec_messages ORDER BY id')] == before
+
+
+def test_preparazione_incompleta_non_elude_backup_discordante(receipts, tmp_path, monkeypatch):
+    import importlib.util
+    database, repo = receipts
+    conn = database.conn
+    spec = importlib.util.spec_from_file_location('receipt_incomplete', Path(__file__).resolve().parents[1] / 'scripts/mailbox/rebuild-deposit-query-index.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    snapshot = tmp_path / 'original.db'
+    state = begin(conn, tenant=repo.tenant, backup_reference=str(snapshot), backup_sha256='a' * 64, actor='pec-deposit-query-migration')
+    conn.commit()
+    monkeypatch.setattr(module, 'verified_backup', lambda *a, **kw: (snapshot, 'b' * 64))
+    with pytest.raises(ValueError, match='discordante'):
+        module.rebuild(conn, tenant=repo.tenant, path=tmp_path / 'unused.db', destination=tmp_path / 'backup')
+    stored = conn.execute('SELECT phase,backup_sha256 FROM pec_deposit_query_migrations WHERE id=?', (state['id'],)).fetchone()
+    assert tuple(stored) == ('BACKFILL', 'a' * 64)

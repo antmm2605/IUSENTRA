@@ -8,9 +8,9 @@ fatturabile da solo — l'avvocato conferma, e solo allora nasce la
 ``VoceTimesheet`` (origine "tracking_passivo") agganciabile ai compensi a
 tempo ex art. 22-bis (``pct/compensi_a_tempo.py``, D.M. 55/2014).
 
-La documentazione dell'attivita' svolta e' anche la prova richiesta dalla
-disciplina dell'equo compenso: ogni proposta conserva il conteggio e i tipi
-delle operazioni rilevate, con orari di inizio e fine.
+Ogni proposta conserva conteggio e tipi delle operazioni rilevate, con orari
+di inizio e fine. Questi segnali non dimostrano da soli la durata effettiva
+o la fatturabilita': la conferma dell'avvocato resta necessaria.
 
 Fail-closed: idempotente per (utente, fascicolo, finestra); le sessioni sotto
 la durata minima non generano proposte; le proposte scartate non si
@@ -24,7 +24,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Iterable
 
 # Prassi configurabili dello studio (non norme): finestra di inattivita' che
 # chiude una sessione e durata minima perche' valga una proposta.
@@ -110,7 +110,7 @@ def _azione_rilevante(azione: str) -> str:
 
 
 def sessioni_da_eventi(
-    eventi: list[Any],
+    eventi: Iterable[Any],
     *,
     gap_minuti: int = GAP_SESSIONE_MINUTI,
     durata_minima_minuti: int = DURATA_MINIMA_MINUTI,
@@ -183,10 +183,16 @@ class StatoProposta:
 
 
 class GestioneTrackingPassivo:
-    """Repository tenant-aware delle proposte di time tracking passivo (JSON)."""
+    """Repository SQL delle proposte; JSON disponibile solo per strumenti storici espliciti."""
 
-    def __init__(self, db_path: str = "./timesheet/tracking_passivo.json"):
+    def __init__(self, db_path: str = "./timesheet/tracking_passivo.json", studio_db=None):
         self.db_path = Path(db_path)
+        self._sql = None
+        if studio_db is not None:
+            from pct.tracking_passivo_sql import TrackingPassivoSQL
+            self._sql = TrackingPassivoSQL(studio_db)
+            self._proposte = {}
+            return
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._proposte: dict[str, dict[str, Any]] = {}
         self._carica()
@@ -205,10 +211,10 @@ class GestioneTrackingPassivo:
         )
 
     # ------------------------------------------------------------------ genera
-    def genera_da_eventi(self, eventi: list[Any]) -> list[dict[str, Any]]:
+    def genera_da_eventi(self, eventi: Iterable[Any]) -> list[dict[str, Any]]:
         """Crea proposte BOZZA dalle sessioni rilevate. Idempotente per chiave."""
 
-        chiavi_note = {str(p.get("chiave") or "") for p in self._proposte.values()}
+        chiavi_note = set() if self._sql else {str(p.get("chiave") or "") for p in self._proposte.values()}
         nuove: list[dict[str, Any]] = []
         for sessione in sessioni_da_eventi(eventi):
             chiave = sessione.chiave()
@@ -228,15 +234,20 @@ class GestioneTrackingPassivo:
                 "descrizione": sessione.descrizione(),
                 "creato_il": datetime.now().isoformat(timespec="seconds"),
             }
-            self._proposte[proposta["id"]] = proposta
+            if self._sql is None:
+                self._proposte[proposta["id"]] = proposta
             chiavi_note.add(chiave)
             nuove.append(proposta)
+        if self._sql is not None:
+            return self._sql.insert(nuove)
         if nuove:
             self._salva()
         return nuove
 
     # ------------------------------------------------------------------ coda
-    def bozze(self, *, utente_id: str = "") -> list[dict[str, Any]]:
+    def bozze(self, *, utente_id: str = "", limit: int = 50) -> list[dict[str, Any]]:
+        if self._sql is not None:
+            return self._sql.bozze(utente_id=utente_id, limit=limit)
         rows = [
             dict(p) for p in self._proposte.values()
             if p.get("stato") == StatoProposta.BOZZA
@@ -246,6 +257,8 @@ class GestioneTrackingPassivo:
         return rows
 
     def get(self, proposta_id: str) -> dict[str, Any] | None:
+        if self._sql is not None:
+            return self._sql.get(proposta_id)
         row = self._proposte.get(proposta_id)
         return dict(row) if row else None
 
@@ -257,6 +270,9 @@ class GestioneTrackingPassivo:
         crea_voce_timesheet: Callable[[dict[str, Any]], Any],
         minuti: int | None = None,
         descrizione: str = "",
+        timesheet=None,
+        actor_id: str = "",
+        owner_id: str | None = None,
     ) -> dict[str, Any]:
         """Conferma dell'avvocato: crea la voce timesheet e chiude la proposta.
 
@@ -266,6 +282,9 @@ class GestioneTrackingPassivo:
         descrizione prima della conferma.
         """
 
+        if self._sql is not None:
+            return self._sql.transition(proposta_id, actor_id=actor_id, owner_id=owner_id, timesheet=timesheet,
+                create=crea_voce_timesheet, minutes=minuti, description=descrizione)
         proposta = self._proposte.get(proposta_id)
         if proposta is None:
             raise KeyError(f"Proposta {proposta_id} non trovata.")
@@ -294,7 +313,9 @@ class GestioneTrackingPassivo:
         self._salva()
         return dict(proposta)
 
-    def scarta(self, proposta_id: str, *, motivo: str = "") -> dict[str, Any]:
+    def scarta(self, proposta_id: str, *, motivo: str = "", actor_id: str = "", owner_id: str | None = None) -> dict[str, Any]:
+        if self._sql is not None:
+            return self._sql.transition(proposta_id, actor_id=actor_id, owner_id=owner_id, reason=motivo)
         proposta = self._proposte.get(proposta_id)
         if proposta is None:
             raise KeyError(f"Proposta {proposta_id} non trovata.")

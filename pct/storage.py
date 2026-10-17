@@ -363,6 +363,7 @@ class StudioDB:
 
     def _schema_gia_pronto_su_connessione(self, conn: sqlite3.Connection) -> bool:
         required_tables = {
+            "time_tracking_proposals",
             "fascicoli",
             "clienti",
             "appuntamenti",

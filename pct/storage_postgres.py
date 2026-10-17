@@ -34,6 +34,7 @@ import psycopg2
 import psycopg2.extras
 
 from pct.email_mailbox_repository import DDL as _EMAIL_MAILBOX_DDL
+from pct.tracking_passivo_sql import SCHEMA as _TRACKING_PROPOSALS_SCHEMA
 
 
 CORE_POSTGRES_SCHEMA_SQL = """
@@ -501,6 +502,7 @@ CREATE INDEX IF NOT EXISTS idx_transactional_outbox_tenant_aggregate ON transact
 """
 
 CORE_POSTGRES_SCHEMA_SQL += '\n' + ';\n'.join(_EMAIL_MAILBOX_DDL) + ';\n'
+CORE_POSTGRES_SCHEMA_SQL += '\n' + _TRACKING_PROPOSALS_SCHEMA
 
 
 CORE_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {

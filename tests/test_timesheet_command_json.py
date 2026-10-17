@@ -26,13 +26,14 @@ class TimesheetCommandJsonTests(unittest.TestCase):
 
         @self.app.before_request
         def user():
-            g.utente_corrente = SimpleNamespace(id="operatore", username="operatore")
+            g.utente_corrente = SimpleNamespace(id=getattr(self, "actor_id", "operatore"), username="operatore",
+                ha_permesso=lambda permission: getattr(self, "can_write", True))
 
         register_timesheet_routes(
             self.app,
             get_timesheet=lambda: self.repo,
             get_clienti=lambda: None,
-            get_fascicoli=lambda: None,
+            get_fascicoli=lambda: SimpleNamespace(get=lambda key: None),
             get_fatturazione=lambda: None,
             audit=lambda *args, **kwargs: self.audit_events.append((args, kwargs)),
         )
@@ -65,6 +66,63 @@ class TimesheetCommandJsonTests(unittest.TestCase):
         self.assertEqual(loaded.get(entry.id).stato, StatoTimesheet.ANNULLATO)
         self.assertEqual(loaded.statistiche()["totale_minuti"], 0)
         self.assertEqual(self.audit_events[-1][0][0], "timesheet.stato")
+
+    def seed_proposal(self):
+        from pct.tracking_passivo_sql import TrackingPassivoSQL
+        self.db.conn.execute("INSERT INTO fascicoli (id) VALUES (?)", ("case",))
+        self.db.conn.commit()
+        tracking = TrackingPassivoSQL(self.db)
+        tracking.insert([dict(id="proposal", chiave="operatore|case|2026-10-17T10:00", stato="BOZZA",
+            utente_id="operatore", fascicolo_id="case", inizio="2026-10-17T10:00:00", minuti=12,
+            descrizione="Studio della pratica", username="operatore")])
+        return tracking
+
+    def test_proposal_confirmation_repeated_returns_same_entry_and_one_audit(self):
+        self.seed_proposal()
+        first = self.client.post('/timesheet/proposte/proposal/conferma', headers=self.headers, json={})
+        again = self.client.post('/timesheet/proposte/proposal/conferma', headers=self.headers, json={})
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(again.status_code, 200)
+        self.assertEqual(first.json['proposta']['voce_timesheet_id'], again.json['proposta']['voce_timesheet_id'])
+        self.assertTrue(again.json['proposta']['gia_presente'])
+        self.assertEqual(len(self.repo.tutte()), 1)
+        self.assertEqual(len(self.audit_events), 1)
+        discard = self.client.post('/timesheet/proposte/proposal/scarta', headers=self.headers, json={})
+        self.assertEqual(discard.status_code, 409)
+        self.assertEqual(len(self.audit_events), 1)
+
+    def test_proposal_requires_permission_and_preserves_activity_owner(self):
+        tracking = self.seed_proposal()
+        self.can_write = False
+        forbidden = self.client.post('/timesheet/proposte/proposal/conferma', headers=self.headers, json={})
+        self.assertEqual(forbidden.status_code, 403)
+        self.can_write = True
+        self.actor_id = 'altro'
+        foreign = self.client.post('/timesheet/proposte/proposal/conferma', headers=self.headers, json={})
+        self.assertEqual(foreign.status_code, 200)
+        self.assertEqual(tracking.get('proposal')['stato'], 'CONFERMATA')
+        self.assertEqual(tracking.get('proposal')['definito_da'], 'altro')
+        entry = self.repo.get(foreign.get_json()['proposta']['voce_timesheet_id'])
+        self.assertEqual(entry.id_utente, 'operatore')
+        self.assertEqual(len(self.audit_events), 1)
+
+    def test_proposal_lookup_failure_returns_json_without_success(self):
+        from unittest.mock import patch
+        from pct.time_tracking_passivo import GestioneTrackingPassivo
+        with patch.object(GestioneTrackingPassivo, 'get', side_effect=RuntimeError('Repository non disponibile')):
+            for action in ('conferma', 'scarta'):
+                result = self.client.post(f'/timesheet/proposte/proposal/{action}', headers=self.headers, json={})
+                self.assertEqual(result.status_code, 500)
+                self.assertFalse(result.get_json()['ok'])
+        self.assertEqual(self.repo.tutte(), [])
+        self.assertEqual(self.audit_events, [])
+
+    def test_negative_minutes_are_rejected_without_confirming(self):
+        tracking = self.seed_proposal()
+        result = self.client.post('/timesheet/proposte/proposal/conferma', headers=self.headers, json={'minuti': '-1'})
+        self.assertEqual(result.status_code, 400)
+        self.assertEqual(tracking.get('proposal')['stato'], 'BOZZA')
+        self.assertEqual(self.repo.tutte(), [])
 
     def test_invalid_input_and_unknown_entry_do_not_report_success(self):
         response = self.client.post("/timesheet/nuovo", headers=self.headers, data={"descrizione": "Prova", "minuti": "0"})

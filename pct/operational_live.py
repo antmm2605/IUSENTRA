@@ -14,6 +14,7 @@ TABLE_DOMAINS = {
     "scadenze": ("scadenze", "fascicoli"),
     "termini_state": ("scadenze", "fascicoli"),
     "timesheet_entries": ("timesheet", "fascicoli"),
+    "time_tracking_proposals": ("timesheet", "fascicoli"),
     "preventivi_records": ("preventivi", "fascicoli"),
     "conferimenti_records": ("preventivi", "fascicoli"),
     "parcelle": ("fatturazione", "incassi", "fascicoli"),

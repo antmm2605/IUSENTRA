@@ -195,19 +195,23 @@ def _tracking_proposals_payload(
     timesheet: Any,
     fascicoli_by_id: dict[str, Any],
     fascicoli_manager: Any,
+    current_user: Any = None,
 ) -> list[dict[str, Any]]:
     """Coda delle proposte del time tracking passivo (bozze da confermare)."""
 
-    try:
-        from pathlib import Path
+    from pathlib import Path
+    from pct.time_tracking_passivo import GestioneTrackingPassivo
 
-        from pct.time_tracking_passivo import GestioneTrackingPassivo
-
-        base = Path(str(getattr(timesheet, "db_path", "./timesheet/entries.json")))
-        tracking = GestioneTrackingPassivo(db_path=str(base.parent / "tracking_passivo.json"))
-        bozze = tracking.bozze()
-    except Exception:
-        return []
+    database = getattr(timesheet, "_studio_db", None)
+    if database is None:
+        raise RuntimeError("Repository SQL delle proposte Timesheet non disponibile.")
+    actor_id = str(getattr(current_user, "id", "") or "")
+    if database is not None and not actor_id:
+        raise PermissionError("Utente delle proposte Timesheet non identificato.")
+    base = Path(str(getattr(timesheet, "db_path", "./timesheet/entries.json")))
+    tracking = GestioneTrackingPassivo(db_path=str(base.parent / "tracking_passivo.json"), studio_db=database)
+    # La coda dello studio conserva il perimetro finanziario gia autorizzato.
+    bozze = tracking.bozze(limit=50)
     rows: list[dict[str, Any]] = []
     for proposta in bozze[:50]:
         fascicolo_id = _safe_text(proposta.get("fascicolo_id"))
@@ -244,6 +248,7 @@ def build_react_timesheet_payload(
     get_clienti: Callable[[], Any],
     get_fascicoli: Callable[[], Any],
     query: dict[str, Any] | None = None,
+    current_user: Any = None,
 ) -> dict[str, Any]:
     params = query or {}
     filters = {
@@ -303,7 +308,7 @@ def build_react_timesheet_payload(
             "notBillable": int(stats.get("non_fatturabili") or 0),
         },
         "entries": [_entry_payload(entry, clienti_by_id, fascicoli_by_id) for entry in entries],
-        "trackingProposals": _tracking_proposals_payload(timesheet, fascicoli_by_id, fascicoli_manager),
+        "trackingProposals": _tracking_proposals_payload(timesheet, fascicoli_by_id, fascicoli_manager, current_user),
         "options": {
             "clients": clienti_options,
             "matters": fascicoli_options,

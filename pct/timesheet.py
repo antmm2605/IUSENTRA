@@ -14,6 +14,8 @@ from __future__ import annotations
 import json
 import os
 import uuid
+from contextlib import contextmanager
+from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from enum import Enum
@@ -88,6 +90,8 @@ class GestioneTimesheet:
         if studio_db is None:
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._studio_db = studio_db
+        self._sql_transaction = None
+        self._external_transaction_active = False
         self._entries: Dict[str, VoceTimesheet] = {}
         self._carica()
 
@@ -139,12 +143,44 @@ class GestioneTimesheet:
         if id_entry is None:
             self._all_loaded = True
 
+    @contextmanager
+    def transazione_condivisa(self):
+        """Include il commit del chiamante nella tutela dello snapshot locale.
+
+        Il chiamante deve usare il medesimo repository proprietario e legare la
+        connessione dentro il callback di salva_tabella, anche a ogni retry.
+        Nessun commit autonomo viene eseguito dalle scritture Timesheet.
+        """
+        if self._studio_db is None or self._external_transaction_active:
+            raise RuntimeError("Transazione Timesheet SQL non disponibile o già attiva.")
+        snapshot = deepcopy((self._entries, self._sql_rows, self._sql_models, self._all_loaded))
+        self._external_transaction_active = True
+
+        def bind(database, connection):
+            if database is not self._studio_db or connection is None:
+                raise ValueError("La transazione deve appartenere allo stesso studio Timesheet.")
+            # Il repository può ripetere il callback dopo un rollback SQLite.
+            self._entries, self._sql_rows, self._sql_models, self._all_loaded = deepcopy(snapshot)
+            self._sql_transaction = connection
+
+        try:
+            yield bind
+        except BaseException:
+            self._entries, self._sql_rows, self._sql_models, self._all_loaded = snapshot
+            raise
+        finally:
+            self._sql_transaction = None
+            self._external_transaction_active = False
+
     def _salva(self) -> None:
         if self._studio_db is not None:
             from pct.timesheet_sql_writer import save_changes
             try:
+                if self._external_transaction_active and self._sql_transaction is None:
+                    raise RuntimeError("Connessione della transazione Timesheet non associata.")
                 confirmed = save_changes(self._studio_db, original_rows=self._sql_rows,
-                             original_models=self._sql_models, current=self._entries)
+                             original_models=self._sql_models, current=self._entries,
+                             connection=self._sql_transaction)
             except Exception:
                 self._entries = {key: VoceTimesheet.from_dict(json.loads(value)) for key, value in self._sql_models.items()}
                 raise

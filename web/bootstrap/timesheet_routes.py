@@ -134,14 +134,27 @@ def register_timesheet_routes(
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fascicolo, focus=focus or "workflow"))
         return redirect(url_for("timesheet_lista", id_cliente=id_cliente, id_fascicolo=id_fascicolo))
 
-    def _tracking_passivo():
+    def _tracking_passivo(gestore=None):
         from pathlib import Path
 
         from pct.time_tracking_passivo import GestioneTrackingPassivo
 
-        gestore = get_timesheet()
+        gestore = gestore if gestore is not None else get_timesheet()
+        if getattr(gestore, "_studio_db", None) is None:
+            raise RuntimeError("Repository SQL delle proposte Timesheet non disponibile.")
         base = Path(str(getattr(gestore, "db_path", "./timesheet/entries.json")))
-        return GestioneTrackingPassivo(db_path=str(base.parent / "tracking_passivo.json"))
+        return GestioneTrackingPassivo(db_path=str(base.parent / "tracking_passivo.json"),
+                                       studio_db=getattr(gestore, "_studio_db", None))
+
+    def _proposta_autorizzata(tracking, key):
+        from flask import abort
+        user = g.get("utente_corrente")
+        if user is None or not user.ha_permesso("fatturazione.scrivi"):
+            abort(403)
+        proposal = tracking.get(key)
+        if proposal is None or not proposal.get("utente_id"):
+            abort(404)
+        return str(user.id), str(proposal["utente_id"])
 
     @app.route("/timesheet/proposte/<id_proposta>/conferma", methods=["POST"])
     def timesheet_proposta_conferma(id_proposta: str):
@@ -151,6 +164,14 @@ def register_timesheet_routes(
         payload = request.get_json(silent=True) or request.form
         gestore = get_timesheet()
         utente = g.utente_corrente
+        try:
+            tracking = _tracking_passivo(gestore)
+            actor_id, owner_id = _proposta_autorizzata(tracking, id_proposta)
+        except Exception as exc:
+            from werkzeug.exceptions import HTTPException
+            if isinstance(exc, HTTPException):
+                raise
+            return _errore_json(exc)
 
         def _crea_voce(dati: dict[str, Any]):
             fascicolo = get_fascicoli().get(dati.get("id_fascicolo") or "")
@@ -169,24 +190,24 @@ def register_timesheet_routes(
 
         try:
             minuti_raw = str(payload.get("minuti") or "").strip()
-            esito = _tracking_passivo().conferma(
+            esito = tracking.conferma(
                 id_proposta,
                 crea_voce_timesheet=_crea_voce,
-                minuti=int(minuti_raw) if minuti_raw.isdigit() else None,
+                minuti=int(minuti_raw) if minuti_raw else None,
                 descrizione=str(payload.get("descrizione") or ""),
+                timesheet=gestore,
+                actor_id=actor_id,
+                owner_id=owner_id,
             )
-        except (KeyError, ValueError) as exc:
-            return jsonify({"ok": False, "message": str(exc)}), 400
         except Exception as exc:
-            app.logger.exception("Errore conferma proposta timesheet %s: %s", id_proposta, exc)
-            return jsonify({"ok": False, "message": f"Conferma non riuscita: {exc}"}), 200
-        audit(
-            "timesheet.proposta_confermata",
-            "timesheet",
-            esito.get("voce_timesheet_id") or id_proposta,
-            dettagli=f"proposta={id_proposta} minuti={esito.get('minuti')}",
-        )
-        message = f"Voce timesheet creata: {esito.get('minuti')} minuti sul fascicolo."
+            return _errore_json(exc)
+        if not esito.get("gia_presente"):
+            audit(
+                "timesheet.proposta_confermata", "timesheet",
+                esito.get("voce_timesheet_id") or id_proposta,
+                dettagli=f"proposta={id_proposta} minuti={esito.get('minuti')}",
+            )
+        message = "Voce timesheet già presente." if esito.get("gia_presente") else f"Voce timesheet creata: {esito.get('minuti')} minuti sul fascicolo."
         return jsonify({"ok": True, "message": message, "messaggio": message, "proposta": esito})
 
     @app.route("/timesheet/proposte/<id_proposta>/scarta", methods=["POST"])
@@ -195,12 +216,19 @@ def register_timesheet_routes(
 
         payload = request.get_json(silent=True) or request.form
         try:
-            esito = _tracking_passivo().scarta(id_proposta, motivo=str(payload.get("motivo") or ""))
-        except KeyError as exc:
-            return jsonify({"ok": False, "message": str(exc)}), 404
+            tracking = _tracking_passivo()
+            actor_id, owner_id = _proposta_autorizzata(tracking, id_proposta)
         except Exception as exc:
-            return jsonify({"ok": False, "message": f"Scarto non riuscito: {exc}"}), 200
-        audit("timesheet.proposta_scartata", "timesheet", id_proposta, dettagli=esito.get("motivo_scarto") or "")
+            from werkzeug.exceptions import HTTPException
+            if isinstance(exc, HTTPException):
+                raise
+            return _errore_json(exc)
+        try:
+            esito = tracking.scarta(id_proposta, motivo=str(payload.get("motivo") or ""), actor_id=actor_id, owner_id=owner_id)
+        except Exception as exc:
+            return _errore_json(exc)
+        if not esito.get("gia_presente"):
+            audit("timesheet.proposta_scartata", "timesheet", id_proposta, dettagli=esito.get("motivo_scarto") or "")
         message = "Proposta scartata: non verra' riproposta."
         return jsonify({"ok": True, "message": message, "messaggio": message})
 

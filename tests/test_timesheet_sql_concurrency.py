@@ -57,6 +57,51 @@ def test_modifiche_su_voci_distinte_non_si_sovrascrivono(managers):
     assert rows[second]["note"] == "Nota secondo processo"
 
 
+def test_transazione_condivisa_conferma_solo_al_commit_esterno(managers):
+    db, open_manager, _, _ = managers
+    manager = open_manager()
+    created = []
+    with manager.transazione_condivisa() as bind:
+        def write(conn, _):
+            bind(db, conn)
+            created.append(manager.crea(descrizione="Conferma unica", minuti=12).id)
+        db.salva_tabella("timesheet_entries", [None], write, delete_all=False)
+    assert open_manager().get(created[-1]).minuti == 12
+
+
+def test_transazione_condivisa_rollback_ripristina_sql_e_snapshot(managers):
+    db, open_manager, first, _ = managers
+    manager = open_manager()
+    manager.get(first)
+    before = manager.get(first).to_dict()
+    created = []
+    with pytest.raises(ValueError, match="Esito proposta fallito"):
+        with manager.transazione_condivisa() as bind:
+            def write(conn, _):
+                bind(db, conn)
+                created.append(manager.crea(descrizione="Non confermata", minuti=12).id)
+                manager.aggiorna(first, note="Non persistita")
+                raise ValueError("Esito proposta fallito")
+            db.salva_tabella("timesheet_entries", [None], write, delete_all=False)
+    assert manager.get(first).to_dict() == before
+    assert open_manager().get(first).to_dict() == before
+    assert manager.get(created[-1]) is None
+    assert open_manager().get(created[-1]) is None
+
+
+def test_transazione_condivisa_vieta_connessione_di_altro_studio(managers):
+    db, open_manager, _, _ = managers
+    manager = open_manager()
+    with manager.transazione_condivisa() as bind:
+        with pytest.raises(ValueError, match="stesso studio"):
+            bind(object(), db.conn)
+        with pytest.raises(RuntimeError, match="non associata"):
+            manager.crea(descrizione="Non consentita", minuti=1)
+        with pytest.raises(RuntimeError, match="già attiva"):
+            with manager.transazione_condivisa():
+                pass
+
+
 def test_creazione_da_snapshot_precedente_non_cancella_nuove_voci(managers):
     db, open_manager, _, _ = managers
     left, right = open_manager(), open_manager()

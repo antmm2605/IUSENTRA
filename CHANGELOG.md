@@ -1,3 +1,9 @@
+## 2.437.60
+
+- Proposte Timesheet nel repository SQL dello studio: conferma atomica con la voce, ripetizioni senza doppioni, rollback e tutela delle decisioni.
+- Preparazione con backup verificato, conservazione del JSON storico e controllo della fonte; generazione periodica da audit SQL mirato.
+- Conservati i permessi finanziari dello studio e l’operatore originario, con tracciamento separato di chi conferma.
+
 ## 2.437.59
 
 - Deploy: riuso della preparazione ricevute già conclusa, senza riavviare la migrazione storica; controlli di backup invariati sulle riprese incomplete.

@@ -34,6 +34,7 @@ from pct.email_mailbox_repository import DDL as _EMAIL_MAILBOX_DDL
 from pct.pdp_penale_workflow import SCHEMA_SQL_PDP_PENALE
 from pct.path_security import resolve_sqlite_path
 from pct.telematico_workflow import SCHEMA_SQL_TELEMATICO
+from pct.tracking_passivo_sql import SCHEMA as _TRACKING_PROPOSALS_SCHEMA
 
 
 @contextmanager
@@ -669,6 +670,7 @@ CREATE TABLE IF NOT EXISTS search_ocr_cache (
 """ + "\n" + SCHEMA_SQL_PDP_PENALE + "\n" + SCHEMA_SQL_TELEMATICO
 
 SCHEMA_SQL += '\n' + ';\n'.join(_EMAIL_MAILBOX_DDL) + ';\n'
+SCHEMA_SQL += '\n' + _TRACKING_PROPOSALS_SCHEMA
 
 
 # ================================================================ GestioneDatabase

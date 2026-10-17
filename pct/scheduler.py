@@ -1037,7 +1037,7 @@ def start_scheduler(app):
             "source_of_truth": "registro studi e percorsi dati del worker scheduler",
         }
 
-    def _mailbox_sync_targets():
+    def _mailbox_sync_targets(*, ensure_baseline=None):
         if app.config.get("MULTI_TENANT"):
             try:
                 from pct.tenant import GestioneTenant, StatoTenant
@@ -1047,7 +1047,10 @@ def start_scheduler(app):
                 for studio in tm.lista():
                     if studio.stato == StatoTenant.SOSPESO:
                         continue
-                    paths = dict(tm.percorsi_dati(studio.slug, reconcile_aliases=False))
+                    path_options = {"reconcile_aliases": False}
+                    if ensure_baseline is not None:
+                        path_options["ensure_baseline"] = ensure_baseline
+                    paths = dict(tm.percorsi_dati(studio.slug, **path_options))
                     paths["_TENANT_DATABASE_CONFIG"] = studio.database
                     paths["_TENANT_PRESIDIO_ID"] = str(
                         getattr(studio, "slug", "")
@@ -2475,32 +2478,33 @@ def start_scheduler(app):
 
     @scheduler.scheduled_job(CronTrigger(hour="20", minute="30"), id="time_tracking_passivo")
     def _time_tracking_passivo():
-        """Proposte di timesheet dal segnale audit del giorno (conferma manuale)."""
+        """Proposte SQL per lo studio proprietario, mai voci fatturabili automatiche."""
         with app.app_context():
-            try:
-                from datetime import timedelta as _td
+            from datetime import timedelta as _td
+            from pct.core_storage_backend import build_core_storage_backend
+            from pct.tenant import DatabaseConfig
+            from pct.time_tracking_passivo import GestioneTrackingPassivo
+            from pct.tracking_passivo_sql import TrackingPassivoSQL
 
-                from pct.auth import GestioneUtenti
-                from pct.time_tracking_passivo import GestioneTrackingPassivo
-
-                gestore_utenti = GestioneUtenti(
-                    db_path=app.config.get("AUTH_DB", "./auth/utenti.json"),
-                    audit_path=app.config.get("AUDIT_DB", "./audit/audit.json"),
-                )
-                da = (datetime.now() - _td(days=1)).isoformat()
-                eventi = gestore_utenti.audit_log(da=da, limit=5000)
-                timesheet_db = app.config.get("TIMESHEET_DB", "./timesheet/entries.json")
-                tracking = GestioneTrackingPassivo(
-                    db_path=str(Path(timesheet_db).parent / "tracking_passivo.json"),
-                )
-                nuove = tracking.genera_da_eventi(eventi)
-                if nuove:
-                    logger.info(
-                        "[scheduler] Time tracking passivo: %d proposte in bozza da confermare",
-                        len(nuove),
-                    )
-            except Exception as e:
-                logger.error("[scheduler] Time tracking passivo fallito: %s", e)
+            da = (datetime.now() - _td(days=1)).isoformat()
+            for slug, paths in _mailbox_sync_targets(ensure_baseline=False):
+                database = None
+                try:
+                    database = build_core_storage_backend(
+                        paths.get("_TENANT_DATABASE_CONFIG") or DatabaseConfig(mode="SQLITE"),
+                        studio_db_path=paths["STUDIO_DB"], initialize_schema=False)
+                    if database is None:
+                        raise RuntimeError("Repository SQL dello studio non disponibile.")
+                    eventi = TrackingPassivoSQL(database).recent_events(da, datetime.now().isoformat())
+                    source = Path(paths.get("TIMESHEET_DB") or Path(paths["STUDIO_DB"]).parent / "timesheet" / "entries.json")
+                    tracking = GestioneTrackingPassivo(str(source.parent / "tracking_passivo.json"), studio_db=database)
+                    nuove = tracking.genera_da_eventi(eventi)
+                    logger.info("[scheduler] Tracking passivo studio %s: %d proposte SQL", slug, len(nuove))
+                except Exception:
+                    logger.exception("[scheduler] Tracking passivo studio %s non riuscito", slug)
+                finally:
+                    if database is not None:
+                        database.chiudi()
 
     @scheduler.scheduled_job(CronTrigger(minute="*/30", hour="7-20"), id="sync_polisweb_registri")
     def _sync_polisweb_registri():

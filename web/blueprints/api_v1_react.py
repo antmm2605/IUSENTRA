@@ -6309,6 +6309,7 @@ def timesheet_react_payload():
         get_clienti=get_clienti,
         get_fascicoli=get_fascicoli,
         query=dict(request.args),
+        current_user=g.get("utente_corrente"),
     ))
 
 

@@ -24,7 +24,7 @@ def row_values(entry):
             entry.modificato_il, json.dumps(entry.to_dict(), ensure_ascii=False))
 
 
-def save_changes(database, *, original_rows, original_models, current):
+def save_changes(database, *, original_rows, original_models, current, connection=None):
     encoded = {key: encode_model(value) for key, value in current.items()}
     changed = sorted(key for key in original_models.keys() | encoded.keys()
                      if original_models.get(key) != encoded.get(key))
@@ -64,5 +64,9 @@ def save_changes(database, *, original_rows, original_models, current):
 
         confirmed[key] = dict(conn.execute("SELECT * FROM timesheet_entries WHERE id=?", (key,)).fetchone())
 
-    database.salva_tabella("timesheet_entries", changed, write, delete_all=False)
+    if connection is None:
+        database.salva_tabella("timesheet_entries", changed, write, delete_all=False)
+    else:
+        for key in changed:
+            write(connection, key)
     return confirmed

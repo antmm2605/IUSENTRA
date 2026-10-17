@@ -78,7 +78,8 @@ class ReceiptArchiveQuery:
             (self.tenant, AGGREGATE, EVENT, case_id)).fetchall()]
         sources, cursor = [], ''
         for _ in range(20):
-            page = receipt_sources(registry, tenant=self.tenant, case_ids=[case_id], cursor=cursor, limit=500)
+            page = receipt_sources(registry, tenant=self.tenant, case_ids=[case_id], cursor=cursor,
+                                   limit=500, connection=self.conn)
             sources.extend(page['rows'])
             if not page['has_more']:
                 break

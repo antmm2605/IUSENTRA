@@ -160,3 +160,32 @@ def test_studio_vuoto_preparato_con_backup_reale_e_riapertura(tmp_path):
             assert ReceiptArchiveQuery(conn, 'new-study').list_page()['rows'] == []
     finally:
         registry.close()
+
+
+def test_proiezione_riusa_transazione_sotto_spill_sqlite(tmp_path):
+    """Un lotto ampio può detenere EXCLUSIVE: una seconda connessione si blocca da sola."""
+    import json
+
+    from pct.registro_letture import RegistroLetture
+    from web.services.fascicoli_list_events_runtime import registry_outbox_writer
+
+    registry = RegistroLetture(tmp_path / 'spill.db')
+    try:
+        put(registry, 'one', case='case-a')
+        put(registry, 'two', case='case-b')
+        with registry.connection() as source:
+            source.execute('UPDATE letture_fatti SET prove_json=? WHERE fascicolo_id=?',
+                           (json.dumps([{'text': 'evidenza sintetica ' * 8000}]), 'case-a'))
+        with registry_outbox_writer(registry) as writer:
+            install(writer, 'study-a')
+            writer.commit()
+            writer.execute('PRAGMA cache_size=1')
+            writer.execute('PRAGMA cache_spill=ON')
+            projection = ReceiptArchiveQuery(writer, 'study-a')
+            projection.project_case(registry, 'case-a')
+            projection.project_case(registry, 'case-b')
+            assert writer.execute('SELECT COUNT(*) FROM receipt_archive_query_rows').fetchone()[0] == 2
+            writer.rollback()
+            assert writer.execute('SELECT COUNT(*) FROM receipt_archive_query_rows').fetchone()[0] == 0
+    finally:
+        registry.close()

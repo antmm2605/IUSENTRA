@@ -1,5 +1,6 @@
 """Ricevute nei fascicoli e nelle PEC: riuso delle letture, nessuna nuova OCR."""
 import re
+from contextlib import nullcontext
 from datetime import UTC, date, datetime, time, timedelta
 
 from pct.formatting import DISPLAY_TIMEZONE
@@ -91,12 +92,14 @@ def _source_dates(conn, tenant, sources):
     return found
 
 
-def receipt_sources(registry, *, tenant, case_ids, limit=100, cursor=''):
+def receipt_sources(registry, *, tenant, case_ids, limit=100, cursor='', connection=None):
     """Una pagina di fonti, non una nuova attribuzione o conferma del deposito.
 
     Anche le prove non confermate restano visibili con motivo; una copia con
     impronta superata non può diventare una ricevuta verificata. I documenti
     presenti nel fascicolo non sono esclusi a favore delle sole PEC.
+    Se fornita, la connessione appartiene alla transazione del chiamante:
+    la lettura non la chiude e non ne conferma o annulla le scritture.
     """
     cases = list(dict.fromkeys(str(value).strip() for value in case_ids if str(value).strip()))
     if not tenant or not cases or len(cases) > 100:
@@ -111,15 +114,16 @@ def receipt_sources(registry, *, tenant, case_ids, limit=100, cursor=''):
         "AND f.verifica<>'ignorata' AND f.fascicolo_id IN (" + ','.join('?' for _ in cases) + ') '
         'AND f.id>? AND (o.presente IS NULL OR o.presente=1) ORDER BY f.id LIMIT ?'
     )
-    connection = None
+    owns_connection = connection is None
+    opened = None
     try:
-        with registry.connection() as conn:
-            connection = conn
+        with (registry.connection() if owns_connection else nullcontext(connection)) as conn:
+            opened = conn
             rows = conn.execute(sql, (tenant, *cases, cursor, size + 1)).fetchall()
             dates = _source_dates(conn, tenant, rows[:size])
     finally:
-        if connection is not None and registry.backend_kind == 'sqlite':
-            connection.close()
+        if owns_connection and opened is not None and registry.backend_kind == 'sqlite':
+            opened.close()
     result = []
     for source in rows[:size]:
         row = dict(source)

@@ -113,3 +113,18 @@ integrato restituisce disabilitato; Computer Use nativo interrompe la lettura
 perché non determina con sufficiente certezza l'URL di Chrome. L'utente,
 informato del vincolo, ha richiesto espressamente push e deploy comunque.
 Il collaudo materiale resta aperto e non viene sostituito dai test tecnici.
+
+## Blocco SQLite della preparazione su Hetzner
+
+La CI del commit d8b2f7441f è positiva: candidata28874/35288=81,8238495%,
+baseline28741/35144=81,7806738%, ambiente omogeneo. Il deploy si è invece
+fermato nella preparazione dell'archivio ricevute, lasciando la versione
+precedente healthy. Riprodotto database is locked con due fascicoli,
+prove sintetiche grandi e cache SQLite ridotta: dopo lo spill della prima
+scrittura, la seconda connessione di lettura era bloccata dalla transazione
+stessa. La proiezione riusa ora la propria connessione per lettura e datazione
+delle fonti. La funzione consultiva autonoma conserva apertura/chiusura native;
+la connessione fornita dal chiamante non viene chiusa, confermata o annullata.
+La prova include rollback completo delle righe derivate.59controlli nativi
+SQLite/PostgreSQL positivi dopo la correzione, nessuno skipped.
+Backup e cursore di produzione conservati; necessaria ripresa sul nuovo commit.

@@ -3574,3 +3574,35 @@ Harness generico lanciato sul contesto di confezionamento: fallisce per file pro
 17/10/2026 — Candidata69a9 su8080: adozione SQL riuscita per3studi, immagine9859sorgenti identici e120pacchetti invariati. Browser reale nuovamente disponibile: aperti Redazione atti e catalogo1320 con ricerca e timbro dello studio. Riscontro ulteriore dei record primari: nel tenant controllato accettazione-prima-nota la ricostruzione preesistente cambiava ID interni e date di2modelli, con testo/formattazione invariati; studio-montagnese6modelli/7blocchi identici. Deploy69a9 cancellato prima del rilascio; produzione resta52. Nuova guardia negativa riproduce su SQLite, correzione protegge fisicamente modelli personali/condivisi e tutti i figli. Due prove nativeSQLite/PostgreSQL positive. Restano ripristino verificato dei soli dati di collaudo dal backup, ripetizione su8080, nuova immagine/CI/deploy e pulizia.
 
 17/10/2026 — Correzione candidata53: eliminata la cancellazione/reinserzione dei record primari Editor personale/Editor condiviso e di tutti i figli durante rebuild. Guardie native negative e poi positive SQLite/PostgreSQL; ripetute12prove repository/API personali senza errori. Deploy69a9 cancellato intenzionalmente perché la candidata non deve arrivare in produzione; CI69a9 era invece già terminata positivamente quando è stato richiesto l'annullamento. I controlli automatici non dimostravano la conservazione degli ID/date, ora coperta dalla nuova guardia. Nuova CI sul commit correttivo richiesta. Contenuti dello studio reale identici; ripristino dei soli metadati dei2modelli controllati dal backup coerente previsto prima della nuova prova locale.
+
+
+## Catalogo operativo e Redazione compatta — 17/10/2026, candidata 2.437.54
+
+La 2.437.53 è rilasciata su `9c580444c09495759ba2beda76b0c877e18819b2`:
+CI `39037454116` e deploy `39037454061` positivi, sorgenti eseguibili locale/server
+10.267 senza differenze, app Hetzner unica e healthy, readiness 2.437.53. Verifica
+materiale del catalogo eseguita su 8080. Contenuti personali conservati dopo la
+ricostruzione nativa; due record del solo studio controllato avevano cambiato ID
+e date nella prima candidata: ripristinati i metadati originali con backup
+verificato e confermata l'uguaglianza dopo la nuova preparazione governata. Lo
+studio reale locale e gli originali restano preservati.
+
+In lavorazione 2.437.54: card catalogo realmente selezionabili e rendering a
+pagine; Redazione senza riquadri descrittivi, con azioni pertinenti; ricerca clienti
+SQL solo dopo la digitazione, con risultati limitati. Preview osservata su 8080:
+Studio 708, ricerca ingiuntivo Studio 15 / Catalogo 14; zero esplicito e reset;
+24 schede per pagina e passaggio alla seconda pagina. Redazione iniziale senza
+clienti, ricerca del cliente con un solo risultato, ricerca assente e singolo
+carattere senza risultati, selezione del cliente con il fascicolo SQL associato e
+preservazione della scelta dopo apertura e chiusura della lista dei 23 fascicoli.
+Verificato anche il collegamento Modelli dello studio: filtro Studio selezionato,
+708 risultati e pagina 1 di 30. La card Preventivi apre il filtro nativo
+`metric=preventivi_totali`: un preventivo visualizzato sui due elementi misti
+dell’archivio, con il conferimento escluso dal filtro. Questi sono esiti di preview, non
+accettazione della futura immagine di rilascio.
+
+Guardrail SQL SQLite/PostgreSQL positivi. Aggiornato il test di redazione completo
+per la ricerca esplicita e il contratto JSON dell'editor, verificando il testo HTML
+decodificato anziché confondere l'entità apostrofo con una perdita di contenuto.
+Resta da effettuare la prova definitiva della candidata, il commit/push, CI,
+deploy e pulizia. Gli altri incarichi generali rimangono aperti.

@@ -1,12 +1,21 @@
 # Changelog
 
-## 2.437.53 — candidata, 17/10/2026
+## 2.437.54 — candidata, 17/10/2026
+
+- Catalogo: cinque card operative filtrano i modelli reali; conteggi combinati con ricerca e filtri, selezione riconoscibile, esito vuoto esplicito e azzeramento.
+- Rendering limitato a 24 schede per pagina, mantenendo ricerca e conteggi sull'intero catalogo già acquisito: non è una nuova paginazione SQL del catalogo.
+- Redazione atti: intestazione unica compatta, card per modelli dello studio, percorso guidato, fascicoli e preventivi. Rimossi i riquadri descrittivi ripetuti.
+- Selezione cliente attivata dalla ricerca: nessuna anagrafica caricata all'apertura, query SQL proprietaria limitata a 20 risultati, conteggio dei fascicoli pertinenti, cancellazione delle risposte obsolete e recupero esplicito degli errori.
+- Collaudo e preparazione del rilascio in corso; la preview locale non sostituisce la verifica della successiva immagine definitiva.
+
+## 2.437.53 — rilasciata, 17/10/2026
 
 - Catalogo React: inventario dei soli modelli distribuiti, senza enumerare archivi, backup o cartelle di altri studi.
 - Consultazione dei modelli da SQL senza salvataggi o importazioni implicite; originali e metadati preservati durante la preparazione esplicita con backup.
 - Salvataggi concorrenti e proiezioni obsolete rifiutati, conservando il modello più recente e i modelli personali dell'editor.
 - Preparazione degli studi esistenti prima del cambio versione e dei nuovi studi durante la creazione; controlli SQLite/PostgreSQL.
-- Prove tecniche in corso; rilascio e verifica delle prestazioni ancora da confermare. Verifica visiva dell'agente non eseguita, affidata all'utente come concordato.
+- Commit `9c580444c09495759ba2beda76b0c877e18819b2`: CI e deploy Hetzner positivi, copia locale healthy e prova visiva del catalogo effettuata. Verificati 10.267 sorgenti eseguibili senza differenze fra immagine locale e server.
+- Unica intestazione compatta, campi Categoria e Canale separati; rimossi i pannelli descrittivi ridondanti. I controlli e gli avvisi operativi restano disponibili.
 
 ## 2.437.52 — rilasciata, 17/10/2026
 

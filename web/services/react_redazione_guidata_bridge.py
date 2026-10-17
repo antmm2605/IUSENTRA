@@ -41,37 +41,12 @@ def _etichetta_cliente(cliente: Any) -> str:
     return _testo(getattr(cliente, "nome_completo", "")) or _testo(getattr(cliente, "ragione_sociale", "")) or _testo(getattr(cliente, "nome", ""))
 
 
-def build_redazione_clienti_payload(
-    *,
-    get_clienti: Callable[[], Any],
-    get_fascicoli: Callable[[], Any],
-) -> dict[str, Any]:
-    """Clienti reali selezionabili nel passo 1 con il conteggio dei fascicoli attivi."""
-    clienti = list(get_clienti().tutti() or [])
-    conteggio_fascicoli: dict[str, int] = {}
-    try:
-        for fascicolo in get_fascicoli().tutti(archiviati=False) or []:
-            id_cliente = _testo(getattr(fascicolo, "id_cliente", ""))
-            if id_cliente:
-                conteggio_fascicoli[id_cliente] = conteggio_fascicoli.get(id_cliente, 0) + 1
-    except Exception:
-        conteggio_fascicoli = {}
-    voci = []
-    for cliente in clienti:
-        id_cliente = _testo(getattr(cliente, "id", ""))
-        if not id_cliente:
-            continue
-        voci.append(
-            {
-                "id": id_cliente,
-                "label": _etichetta_cliente(cliente) or id_cliente,
-                "tipo": _testo(getattr(cliente, "tipo", "")),
-                "codiceFiscale": _testo(getattr(cliente, "codice_fiscale", "")),
-                "fascicoli": conteggio_fascicoli.get(id_cliente, 0),
-            }
-        )
-    voci.sort(key=lambda voce: voce["label"].lower())
-    return {"ok": True, "generatedAt": _iso_now(), "clienti": voci, "totale": len(voci)}
+def build_redazione_clienti_payload(*, ricerca: str = '', studio_db: Any = None) -> dict[str, Any]:
+    """Risultati SQL limitati, soltanto dopo una ricerca esplicita del cliente."""
+    from pct.clienti import cerca_clienti_sql
+
+    result = cerca_clienti_sql(studio_db, ricerca)
+    return {'ok': True, 'generatedAt': _iso_now(), **result, 'totale': len(result['clienti'])}
 
 
 def build_redazione_fascicoli_payload(

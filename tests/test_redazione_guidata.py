@@ -8,6 +8,7 @@ cliente/fascicolo.
 """
 from __future__ import annotations
 
+from html import unescape
 from time import perf_counter
 from types import SimpleNamespace
 
@@ -113,14 +114,18 @@ def _utente():
 # ---------------------------------------------------------------------------
 
 
-def test_clienti_reali_con_conteggio_fascicoli(repos, cliente_mario, fascicolo_preliminare):
-    clienti, fascicoli = repos
-    payload = build_redazione_clienti_payload(get_clienti=lambda: clienti, get_fascicoli=lambda: fascicoli)
-    assert payload["ok"] is True
-    voci = {voce["id"]: voce for voce in payload["clienti"]}
-    assert cliente_mario.id in voci
-    assert voci[cliente_mario.id]["label"] == "Rossi Mario"
-    assert voci[cliente_mario.id]["fascicoli"] == 1
+def test_clienti_reali_con_conteggio_fascicoli(tmp_path):
+    db = StudioDB(str(tmp_path / 'redazione-selezione.db'))
+    clienti = GestioneClienti(db_path=str(tmp_path / 'clienti.json'), studio_db=db)
+    cliente = clienti.nuovo(TipoCliente.PERSONA_FISICA, nome='Mario', cognome='Rossi', codice_fiscale='RSSMRA70B10G288K')
+    fascicoli = GestioneFascicoli(db_path=str(tmp_path / 'fascicoli.json'), documents_dir=str(tmp_path / 'docs'), archive_dir=str(tmp_path / 'archive'), studio_db=db)
+    fascicoli.nuovo(titolo='Pratica controllata', tipo=TipoFascicolo.CIVILE, id_cliente=cliente.id, nome_cliente=cliente.nome_completo)
+    payload = build_redazione_clienti_payload(ricerca='Rossi', studio_db=db)
+    assert payload['ok'] is True
+    voci = {voce['id']: voce for voce in payload['clienti']}
+    assert voci[cliente.id]['label'] == 'Rossi Mario'
+    assert voci[cliente.id]['fascicoli'] == 1
+    db.conn.close()
 
 
 def test_fascicoli_filtrati_per_cliente(repos, cliente_mario, fascicolo_preliminare):
@@ -515,8 +520,10 @@ def test_flusso_completo_http_dal_cliente_all_editor(tmp_path):
     with app.test_client() as client:
         client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
 
-        # Passo 1: clienti reali
-        clienti_resp = client.get("/api/v1/ui/redazione-atti/clienti").get_json()
+        # Passo 1: nessuna enumerazione prima della ricerca esplicita.
+        assert client.get('/api/v1/ui/redazione-atti/clienti').get_json()['clienti'] == []
+        assert client.get('/api/v1/ui/redazione-atti/clienti?q=R').get_json()['clienti'] == []
+        clienti_resp = client.get("/api/v1/ui/redazione-atti/clienti?q=Rossi").get_json()
         assert clienti_resp["ok"] is True
         assert any(voce["id"] == cliente.id for voce in clienti_resp["clienti"])
 
@@ -604,7 +611,7 @@ def test_flusso_completo_http_dal_cliente_all_editor(tmp_path):
         # L'editor carica il documento con i dati reali, senza placeholder tecnici
         html_resp = client.get(f"/api/editor/{fascicolo.id}/{doc_id}/html")
         assert html_resp.status_code == 200
-        html = html_resp.get_data(as_text=True)
+        html = _html_editor(html_resp)
         assert "Rossi Mario" in html
         assert "Bianchi Costruzioni Srl" in html
         assert "TRIBUNALE DI PALMI" in html.upper()
@@ -634,6 +641,13 @@ def test_nome_file_contiene_cliente_fascicolo_tipo_e_data(tmp_path):
         assert "rossi_mario" in nome
         assert "atto_di_citazione" in nome
         assert nome.endswith(".html")
+
+
+def _html_editor(response):
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload.get('ok') is True
+    return str(payload.get('html') or '')
 
 
 def test_editor_salva_esporta_e_sezioni_atto(tmp_path):
@@ -669,7 +683,7 @@ def test_editor_salva_esporta_e_sezioni_atto(tmp_path):
         doc_id = esito["documentId"]
 
         # Sezioni formali dell'atto di citazione (intestazione, parti, fatto, diritto, conclusioni, valore, firma)
-        html = client.get(f"/api/editor/{fascicolo.id}/{doc_id}/html").get_data(as_text=True)
+        html = _html_editor(client.get(f"/api/editor/{fascicolo.id}/{doc_id}/html"))
         testo = html.upper()
         for sezione in ("TRIBUNALE DI PALMI", "FATTO", "DIRITTO", "CONCLUSIONI", "VALORE", "AVV."):
             assert sezione in testo, f"Sezione mancante nell'atto: {sezione}"
@@ -683,8 +697,8 @@ def test_editor_salva_esporta_e_sezioni_atto(tmp_path):
         )
         assert salvato.status_code == 200
         assert salvato.get_json().get("ok") is True
-        riletto = client.get(f"/api/editor/{fascicolo.id}/{doc_id}/html").get_data(as_text=True)
-        assert "Integrazione manuale dell'avvocato." in riletto
+        riletto = _html_editor(client.get(f"/api/editor/{fascicolo.id}/{doc_id}/html"))
+        assert "Integrazione manuale dell'avvocato." in unescape(riletto)
 
         # Export PDF e DOCX reali (gli endpoint editor ricevono l'HTML corrente)
         pdf = client.post(f"/api/editor/{fascicolo.id}/{doc_id}/pdf", json={"html": riletto})

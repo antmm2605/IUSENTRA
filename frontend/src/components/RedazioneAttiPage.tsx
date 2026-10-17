@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ExternalLink, RefreshCw, ShieldCheck } from 'lucide-react'
+import { BookOpen, BriefcaseBusiness, FileText, RefreshCw, Sparkles } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
@@ -7,7 +7,6 @@ import { KpiCard } from '../ui/KpiCard'
 import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
-import { openDesignContract } from '../ui/openDesign'
 import { RedazioneGuidataWizard } from '../features/documenti/RedazioneGuidataWizard'
 import {
   emptyRedazioneAttiPage,
@@ -15,18 +14,6 @@ import {
   type RedazioneAttiPageData,
 } from '../redazioneAttiData'
 import './RedazioneAttiPage.css'
-
-function ContractStrip({ data }: { data: RedazioneAttiPageData }) {
-  return (
-    <section className="iu-redazione-contract iu-od-surface" aria-label="Garanzie della redazione atti">
-      <ShieldCheck size={18} aria-hidden="true" />
-      <div>
-        <strong>{openDesignContract.system}</strong>
-        <span>Redazione collegata ai dati dello studio</span>
-      </div>
-    </section>
-  )
-}
 
 function WarningList({ data }: { data: RedazioneAttiPageData }) {
   if (!data.warnings.length) return null
@@ -42,45 +29,18 @@ function WarningList({ data }: { data: RedazioneAttiPageData }) {
 }
 
 function Metrics({ data }: { data: RedazioneAttiPageData }) {
-  if (!data.metrics.length) return null
+  const count = (id: string) => data.metrics.find(metric => metric.id === id)?.value ?? '—'
+  function focusWizard() {
+    const wizard = document.getElementById('redazione-guidata')
+    wizard?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    wizard?.focus({ preventScroll: true })
+  }
   return (
-    <section className="iu-redazione-metrics" aria-label="Indicatori redazione atti">
-      {data.metrics.map((metric) => (
-        <KpiCard
-          key={metric.id}
-          label={metric.label}
-          value={metric.value || 0}
-          note={metric.note}
-          badge={<Badge tone={metric.tone}>{metric.tone === 'neutral' ? 'Dato' : 'Attivo'}</Badge>}
-        />
-      ))}
-    </section>
-  )
-}
-
-function Sections({ data }: { data: RedazioneAttiPageData }) {
-  if (!data.sections.length) return null
-  return (
-    <section className="iu-redazione-section-grid" aria-label="Percorso redazione">
-      {data.sections.map((section) => (
-        <Panel title={section.title} subtitle={section.kind} key={section.id}>
-          {section.items.length ? (
-            <div className="iu-redazione-list">
-              {section.items.map((item) => (
-                <div className="iu-redazione-row" key={item.id}>
-                  <div>
-                    <strong>{item.label}</strong>
-                    {item.note ? <span>{item.note}</span> : null}
-                  </div>
-                  <Badge tone={item.tone}>{item.value || 'Dato'}</Badge>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState title={section.emptyMessage} />
-          )}
-        </Panel>
-      ))}
+    <section className="iu-redazione-metrics" aria-label="Azioni della redazione">
+      <KpiCard label="Modelli dello studio" value={count('template')} note="Scegli un modello da compilare" href="/template-atti/catalogo?scope=studio" icon={BookOpen} actionLabel="Mostra modelli" />
+      <KpiCard label="Redazione guidata" value="Compila" note="Cliente, fascicolo e tipo di atto" onClick={focusWizard} icon={Sparkles} actionLabel="Vai al percorso" />
+      <KpiCard label="Fascicoli" value={count('fascicoli')} note="Fascicoli non archiviati" href="/fascicoli?vista=operativa&status=tutti" icon={BriefcaseBusiness} actionLabel="Apri fascicoli" />
+      <KpiCard label="Preventivi" value={count('preventivi')} note="Preventivi registrati nello studio" href="/preventivi?metric=preventivi_totali" icon={FileText} actionLabel="Apri preventivi" />
     </section>
   )
 }
@@ -116,16 +76,13 @@ export function RedazioneAttiPage() {
   const [data, setData] = useState<RedazioneAttiPageData>(emptyRedazioneAttiPage)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
-  const [loadSuccess, setLoadSuccess] = useState(false)
 
   function load() {
     setLoading(true)
     setLoadError('')
-    setLoadSuccess(false)
     getRedazioneAttiPage()
       .then((payload) => {
         setData(payload)
-        setLoadSuccess(true)
       })
       .catch(() => {
         setData(emptyRedazioneAttiPage)
@@ -144,8 +101,8 @@ export function RedazioneAttiPage() {
 
   return (
     <Page
+      className="iu-redazione-compact-page"
       title="Redazione atti"
-      subtitle="Pagina unica per scegliere template, compilare modelli reali e controllare l'anteprima dell'atto."
       actions={
         <>
           <Button type="button" tone="neutral" onClick={load}>
@@ -158,42 +115,22 @@ export function RedazioneAttiPage() {
           <ButtonLink href="/documenti" tone="neutral">
             Documenti
           </ButtonLink>
+          {data.actions.filter((action, index, actions) =>
+            !['/template-atti/catalogo', '/documenti', '/redazione-atti', '/fascicoli', '/preventivi'].includes(action.href)
+            && actions.findIndex(candidate => candidate.href === action.href) === index,
+          ).map(action => <ButtonLink key={action.id} href={action.href} tone="neutral">{action.label}</ButtonLink>)}
         </>
       }
     >
       <div className="iu-redazione-page iu-od-stack">
-        <ContractStrip data={data} />
         {loadError ? (
           <p className="iu-redazione-warning iu-od-warning" role="alert">
             {loadError}
           </p>
         ) : null}
-        {loadSuccess ? (
-          <p className="iu-redazione-warning iu-od-success" role="status">
-            Aggiornamento riuscito: dati della redazione caricati dal tenant corrente.
-          </p>
-        ) : null}
         <WarningList data={data} />
-        <RedazioneGuidataWizard />
         <Metrics data={data} />
-        <section className="iu-redazione-hero iu-od-surface">
-          <div>
-            <p className="iu-redazione-eyebrow">Percorso documentale</p>
-            <h2>Ingresso governato alla redazione</h2>
-            <p>
-              {data.summary || 'La pagina coordina template, modelli e controlli operativi.'}
-            </p>
-          </div>
-          <div className="iu-od-action-row iu-redazione-hero__actions">
-            {data.actions.map((action) => (
-              <ButtonLink key={action.id} href={action.href} tone={action.tone === 'primary' ? 'primary' : 'neutral'}>
-                <ExternalLink size={16} aria-hidden="true" />
-                {action.label}
-              </ButtonLink>
-            ))}
-          </div>
-        </section>
-        <Sections data={data} />
+        <div id="redazione-guidata" tabIndex={-1}><RedazioneGuidataWizard /></div>
         <Records data={data} />
         <aside className="iu-redazione-source iu-od-meta">
           Stato collegamenti governato - aggiornato {data.generated_at || 'non indicato'}

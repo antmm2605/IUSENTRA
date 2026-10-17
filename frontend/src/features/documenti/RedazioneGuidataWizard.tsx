@@ -52,30 +52,27 @@ function PassoCliente({
   const [clienti, setClienti] = useState<RedazioneCliente[]>([])
   const [errore, setErrore] = useState('')
   const [ricerca, setRicerca] = useState('')
-  const [caricamento, setCaricamento] = useState(true)
+  const [caricamento, setCaricamento] = useState(false)
+  const [altriRisultati, setAltriRisultati] = useState(false)
+  const [tentativo, setTentativo] = useState(0)
+  const chiave = ricerca.trim()
 
   useEffect(() => {
-    getRedazioneClienti()
-      .then((esito) => {
-        setClienti(esito.clienti)
-        setErrore(esito.errore)
-      })
-      .finally(() => setCaricamento(false))
-  }, [])
-
-  const filtrati = useMemo(() => {
-    const chiave = ricerca.trim().toLowerCase()
-    if (!chiave) return clienti
-    return clienti.filter((cliente) =>
-      cliente.label.toLowerCase().includes(chiave) || cliente.codiceFiscale.toLowerCase().includes(chiave),
-    )
-  }, [clienti, ricerca])
-
-  if (caricamento) return <LoadingState title="Caricamento clienti" message="Recupero anagrafiche reali dello studio." />
-  if (errore) return <EmptyState title="Clienti non disponibili" message={errore} />
-  if (!clienti.length) {
-    return <EmptyState title="Nessun cliente in archivio" message="Registra prima il cliente: la redazione parte sempre dai dati reali." />
-  }
+    setClienti([]); setErrore(''); setAltriRisultati(false)
+    if (chiave.length < 2) { setCaricamento(false); return }
+    const controller = new AbortController()
+    setCaricamento(true)
+    const timer = window.setTimeout(() => {
+      getRedazioneClienti(chiave, controller.signal)
+        .then(esito => {
+          if (controller.signal.aborted) return
+          setClienti(esito.clienti); setErrore(esito.errore); setAltriRisultati(esito.altriRisultati)
+        })
+        .catch(() => { if (!controller.signal.aborted) setErrore('Ricerca clienti non riuscita. Riprova.') })
+        .finally(() => { if (!controller.signal.aborted) setCaricamento(false) })
+    }, 250)
+    return () => { window.clearTimeout(timer); controller.abort() }
+  }, [chiave, tentativo])
 
   return (
     <div className="iu-rg-panel">
@@ -83,14 +80,19 @@ function PassoCliente({
         <span>Cerca cliente</span>
         <input
           type="search"
+          maxLength={200}
           value={ricerca}
           onChange={(event) => setRicerca(event.target.value)}
           placeholder="Nome, denominazione o codice fiscale"
           aria-label="Cerca cliente"
         />
       </label>
+      {caricamento ? <p role="status">Ricerca clienti in corso…</p> : null}
+      {errore ? <div role="alert"><p>{errore}</p><Button type="button" tone="neutral" onClick={() => setTentativo(value => value + 1)}>Riprova ricerca</Button></div> : null}
+      {chiave.length < 2 ? <p>Digita almeno 2 caratteri del nome, della denominazione o del codice fiscale per cercare il cliente.</p> : null}
+      {altriRisultati ? <p role="status">Sono mostrati i primi 20 risultati. Aggiungi altri caratteri per affinare la ricerca.</p> : null}
       <div className="iu-rg-cards" role="list">
-        {filtrati.map((cliente) => (
+        {clienti.map((cliente) => (
           <button type="button" className="iu-rg-card iu-od-focus-ring" key={cliente.id} onClick={() => onSeleziona(cliente)} role="listitem">
             <UserRound size={18} aria-hidden="true" />
             <span className="iu-rg-card__body">
@@ -105,7 +107,7 @@ function PassoCliente({
             </Badge>
           </button>
         ))}
-        {!filtrati.length ? <EmptyState title="Nessun cliente corrisponde alla ricerca" /> : null}
+        {chiave.length >= 2 && !caricamento && !errore && !clienti.length ? <EmptyState title="Nessun cliente corrisponde alla ricerca" /> : null}
       </div>
     </div>
   )

@@ -15,6 +15,33 @@ from dataclasses import dataclass, field, asdict
 from enum import Enum
 
 
+def cerca_clienti_sql(studio_db, ricerca: str) -> dict:
+    """Selezione anagrafica puntuale sul database proprietario, senza caricare archivi."""
+    ricerca = str(ricerca or '').strip()[:200]
+    if len(ricerca) < 2:
+        return {'clienti': [], 'altriRisultati': False}
+    if studio_db is None:
+        raise ValueError('Archivio SQL dello studio non disponibile.')
+    limite = 20
+    colonne = "LOWER(COALESCE(c.cognome,'') || ' ' || COALESCE(c.nome,'') || ' ' || COALESCE(c.ragione_sociale,'') || ' ' || COALESCE(c.codice_fiscale,'') || ' ' || COALESCE(c.partita_iva,''))"
+    tokens = ricerca.lower().split()[:8]
+    parametri = ['%' + token.replace('!', '!!').replace('%', '!%').replace('_', '!_') + '%' for token in tokens]
+    condizioni = ' AND '.join(f"{colonne} LIKE ? ESCAPE '!'" for _ in tokens)
+    rows = studio_db.conn.execute(
+        "SELECT c.id,c.tipo,c.cognome,c.nome,c.ragione_sociale,c.codice_fiscale,"
+        "(SELECT COUNT(*) FROM fascicoli f WHERE f.id_cliente=c.id AND COALESCE(f.stato,'') <> 'ARCHIVIATO') "
+        f"FROM clienti c WHERE {condizioni} "
+        "ORDER BY LOWER(COALESCE(c.cognome,'') || ' ' || COALESCE(c.nome,'') || ' ' || COALESCE(c.ragione_sociale,'')),c.id LIMIT ?",
+        (*parametri, limite + 1),
+    ).fetchall()
+    clienti = []
+    for row in rows[:limite]:
+        identity, tipo, cognome, nome, ragione, codice, count = (row[index] for index in range(7))
+        label = ragione if tipo == 'PERSONA_GIURIDICA' else ' '.join(value for value in (cognome, nome) if value)
+        clienti.append({'id': identity, 'label': label or identity, 'tipo': tipo or '', 'codiceFiscale': codice or '', 'fascicoli': int(count)})
+    return {'clienti': clienti, 'altriRisultati': len(rows) > limite}
+
+
 class TipoCliente(str, Enum):
     PERSONA_FISICA = "PERSONA_FISICA"
     PERSONA_GIURIDICA = "PERSONA_GIURIDICA"

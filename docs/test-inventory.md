@@ -6,7 +6,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 1027.
+- File pytest censiti: 1028.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
@@ -17,7 +17,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | E2E | 14 |
 | Frontend static gate | 1 |
 | Frontend/UI | 329 |
-| RBAC | 122 |
+| RBAC | 123 |
 | Security | 55 |
 | Smoke CLI | 6 |
 | Tenant isolation | 264 |
@@ -35,14 +35,14 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 88 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 199 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 465 |
+| 09-misc | Test non classificati dalle fasi principali | 466 |
 
 ## Suite CI aggiuntive
 
 | Suite | Target | Esempi |
 | --- | --- | --- |
 | acquisition-ocr | 20 | tests/test_document_ocr.py, tests/test_document_ocr_documento.py, tests/test_document_ocr_formato.py, tests/test_editor_html_docx.py, tests/test_document_tools.py ... |
-| coverage-critical | 145 | tests/test_template_catalog_preparation.py, tests/test_template_catalog_request_scope.py, tests/test_template_runtime_snapshot_sql.py, tests/test_deposit_query_worker_runtime.py, tests/test_lex_deposit_query_tool.py ... |
+| coverage-critical | 146 | tests/test_template_catalog_preparation.py, tests/test_template_catalog_request_scope.py, tests/test_redazione_client_search_sql.py, tests/test_template_runtime_snapshot_sql.py, tests/test_deposit_query_worker_runtime.py ... |
 | e2e-nightly | 4 | tests/e2e/test_studio_reale_flow.py, tests/e2e/test_ai_pipeline_full.py, tests/e2e/test_tenant_migration_full.py, tests/e2e/test_operational_crash_day.py |
 | e2e-smoke | 1 | tests/e2e/test_studio_reale_flow.py |
 | legal-tools | 8 | tests/test_strumenti_legali.py, tests/test_strumenti_legali_end_to_end.py, tests/test_strumenti_processuali.py, tests/test_termini_processuali.py, tests/test_normative_tables.py ... |
@@ -956,6 +956,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Lex/Ricerca | RBAC | tests/test_giurisprudenza_classifica_estremi.py | 403/RBAC | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Lex/Ricerca | RBAC | tests/test_lex_daily_plan_tool.py | 403/RBAC, tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Lex/Ricerca | RBAC | tests/test_lex_tool_registry_governance.py | 403/RBAC, contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Lex/Ricerca | RBAC | tests/test_redazione_client_search_sql.py | 403/RBAC, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Lex/Ricerca | RBAC | tests/test_reginde_cache_search.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Lex/Ricerca | Security | lex/tests/test_routes.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Lex/Ricerca | Tenant isolation | lex/tests/unit/test_studio_context.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |

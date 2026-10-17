@@ -424,9 +424,12 @@ function normaliseRiferimenti(payload: Record<string, unknown>): RedazioneRiferi
   return risultato
 }
 
-export async function getRedazioneClienti(): Promise<{ clienti: RedazioneCliente[]; errore: string }> {
-  const payload = await apiJson<Record<string, unknown>>('/api/v1/ui/redazione-atti/clienti', { ok: false, clienti: [] })
+export async function getRedazioneClienti(ricerca: string, signal?: AbortSignal): Promise<{ clienti: RedazioneCliente[]; errore: string; altriRisultati: boolean }> {
+  const query = ricerca.trim()
+  if (query.length < 2) return { clienti: [], errore: '', altriRisultati: false }
+  const payload = await apiJson<Record<string, unknown>>(`/api/v1/ui/redazione-atti/clienti?q=${encodeURIComponent(query)}`, { ok: false, clienti: [] }, { signal, activity: false })
   return {
+    altriRisultati: payload.altriRisultati === true,
     errore: payload.ok === true ? '' : display(payload.errore) || 'Clienti non disponibili.',
     clienti: list(payload.clienti).map((input) => {
       const item = asRecord(input)

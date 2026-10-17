@@ -1,0 +1,1 @@
+import{t as e}from"./vendor-react-BaOuk6BU.js";import{WizardProStepPage as t}from"./WizardProStepPage-D1bFUcol.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as WizardProCompletePage,r as default};

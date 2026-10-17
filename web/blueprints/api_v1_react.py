@@ -14557,8 +14557,11 @@ def redazione_atti_clienti():
     try:
         from web.services.react_redazione_guidata_bridge import build_redazione_clienti_payload
 
+        from web.helpers import _studio_db
+
+        ricerca = str(request.args.get('q', '')).strip()[:200]
         return _jsonify_redacted(
-            build_redazione_clienti_payload(get_clienti=get_clienti, get_fascicoli=get_fascicoli)
+            build_redazione_clienti_payload(ricerca=ricerca, studio_db=_studio_db('CLIENTI_DB') if len(ricerca) >= 2 else None)
         )
     except Exception as exc:
         current_app.logger.exception("Errore elenco clienti redazione atti: %s", exc)

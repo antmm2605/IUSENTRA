@@ -33,6 +33,7 @@ import { PagedDocumentCanvas } from './templateEditor/PagedDocumentCanvas'
 import { isCompactViewport, isNarrowEditorViewport, useCompactLayout } from './templateEditor/useCompactLayout'
 import { useDocumentHistory } from './templateEditor/useDocumentHistory'
 import { useSelectionFormats, type BlockFormat } from './templateEditor/useSelectionFormats'
+import { catalogPage, catalogScopeFromQuery, catalogScopeCounts, matchesCatalogScope, type CatalogScope } from '../templateCatalogFilters'
 import './TemplateAttiPage.css'
 import './templateEditor/templateEditor.css'
 
@@ -631,17 +632,24 @@ function WarningList({ data }: { data: TemplateAttiPageData }) {
   )
 }
 
-function Metrics({ data }: { data: TemplateAttiPageData }) {
-  if (!data.metrics.length) return null
+function Metrics({ records, scope, onScope }: {
+  records: TemplateAttiRecord[]
+  scope: CatalogScope
+  onScope: (scope: CatalogScope) => void
+}) {
   return (
-    <section className="iu-doc-metrics" aria-label="Indicatori template atti">
-      {data.metrics.map((metric) => (
+    <section className="iu-doc-metrics iu-template-catalog-metrics" aria-label="Filtra i modelli">
+      {catalogScopeCounts(records).map(item => (
         <KpiCard
-          key={metric.id}
-          label={metric.label}
-          value={metric.value || 0}
-          note={metric.note}
-          badge={<Badge tone={metric.tone}>{metric.tone === 'neutral' ? 'Dato' : 'Attivo'}</Badge>}
+          key={item.id}
+          label={item.label}
+          value={item.count}
+          note={item.note}
+          icon={item.id === 'verifica' ? AlertTriangle : item.id === 'precompilabili' ? Sparkles : item.id === 'studio' ? BriefcaseBusiness : BookOpen}
+          tone={item.id === 'verifica' && item.count > 0 ? 'warning' : 'primary'}
+          active={scope === item.id}
+          onClick={() => onScope(item.id)}
+          actionLabel={scope === item.id ? 'Filtro selezionato' : 'Mostra modelli'}
         />
       ))}
     </section>
@@ -3742,6 +3750,9 @@ function TemplateCatalogView() {
   const [channel, setChannel] = useState('')
   const [cartabia, setCartabia] = useState('')
   const [prefill, setPrefill] = useState('')
+  const [scope, setScope] = useState<CatalogScope>(() => catalogScopeFromQuery(window.location.search))
+  const [page, setPage] = useState(1)
+  useEffect(() => setPage(1), [query, category, channel, cartabia, prefill, scope])
   const [selectedId, setSelectedId] = useState(new URLSearchParams(window.location.search).get('scheda') || '')
 
   function load() {
@@ -3772,7 +3783,7 @@ function TemplateCatalogView() {
     () => [...new Set(data.records.map((record) => record.prefillStatus).filter(Boolean))].sort(),
     [data.records],
   )
-  const filteredRecords = useMemo(() => {
+  const matchingRecords = useMemo(() => {
     const search = query.trim().toLowerCase()
     return data.records.filter((record) => {
       const matchesSearch = !search || [record.title, record.subtitle, record.description, record.category, record.matter, record.area]
@@ -3786,7 +3797,13 @@ function TemplateCatalogView() {
       return matchesSearch && matchesCategory && matchesChannel && matchesCartabia && matchesPrefill
     })
   }, [cartabia, category, channel, data.records, prefill, query])
-  const selectedRecord = data.records.find((record) => record.id === selectedId) || filteredRecords[0]
+  const filteredRecords = useMemo(() => matchingRecords.filter(record => matchesCatalogScope(record, scope)), [matchingRecords, scope])
+  const resultsPage = useMemo(() => catalogPage(filteredRecords, page), [filteredRecords, page])
+  const selectedRecord = filteredRecords.find((record) => record.id === selectedId) || resultsPage.items[0]
+  const hasFilters = Boolean(query || category || channel || cartabia || prefill || scope !== 'all')
+  function clearFilters() {
+    setQuery(''); setCategory(''); setChannel(''); setCartabia(''); setPrefill(''); setScope('all')
+  }
 
   const openRecord = (record: TemplateAttiRecord) => {
     setSelectedId(record.id)
@@ -3836,7 +3853,10 @@ function TemplateCatalogView() {
       />
       <div className="iu-template-page iu-od-stack">
         <WarningList data={data} />
-        <Metrics data={data} />
+        <Metrics records={matchingRecords} scope={scope} onScope={setScope} />
+        {data.metrics.some(metric => metric.id === 'scostamento' && Number(metric.value) !== 0) ? (
+          <p className="iu-doc-warning iu-od-warning" role="alert">Il catalogo presenta uno scostamento rispetto ai modelli attesi. Aggiorna il catalogo per verificarne la disponibilità.</p>
+        ) : null}
         <StudioStampPreview data={data} />
         {!catalogo ? <Sections data={data} /> : null}
         {catalogo ? (
@@ -3857,29 +3877,38 @@ function TemplateCatalogView() {
             onPrefill={setPrefill}
           />
         ) : null}
+        <div className="iu-template-results-summary">
+          <span role="status">{filteredRecords.length === 1 ? '1 modello disponibile' : `${filteredRecords.length} modelli disponibili`}</span>
+          {hasFilters ? <Button type="button" tone="neutral" onClick={clearFilters}>Azzera filtri</Button> : null}
+        </div>
         <TemplateDetail record={selectedRecord} />
         <Panel
           title={catalogo ? 'Template del catalogo' : 'Template principali'}
-          subtitle={catalogo ? 'Filtri applicati agli atti disponibili.' : 'Informazioni reali e collegamenti sicuri.'}
+          subtitle={filteredRecords.length ? `Modelli ${resultsPage.start}–${resultsPage.end} di ${filteredRecords.length}` : 'Nessun modello corrispondente ai filtri.'}
         >
           {filteredRecords.length ? (
             <div className="iu-template-grid">
-              {filteredRecords.map((record) => (
+              {resultsPage.items.map((record) => (
                 <TemplateCard record={record} onOpen={openRecord} key={record.id} />
               ))}
             </div>
           ) : (
             <EmptyState
               title="Nessun template disponibile"
-              message="La schermata resta neutra finché non sono disponibili template consultabili."
-              action={
-                <ButtonLink href="/documenti" tone="neutral">
-                  Apri documenti
-                </ButtonLink>
-              }
+              message={hasFilters ? "Nessun modello corrisponde ai filtri selezionati. Modifica i filtri oppure azzerali." : "Non sono disponibili modelli consultabili."}
+              action={hasFilters ? <Button type="button" tone="neutral" onClick={clearFilters}>Azzera filtri</Button> : (
+                <ButtonLink href="/documenti" tone="neutral">Apri documenti</ButtonLink>
+              )}
             />
           )}
         </Panel>
+        {resultsPage.totalPages > 1 ? (
+          <nav className="iu-template-results-summary" aria-label="Pagine dei modelli">
+            <Button type="button" tone="neutral" disabled={resultsPage.page === 1} onClick={() => setPage(resultsPage.page - 1)}>Precedente</Button>
+            <span role="status">Pagina {resultsPage.page} di {resultsPage.totalPages}</span>
+            <Button type="button" tone="neutral" disabled={resultsPage.page === resultsPage.totalPages} onClick={() => setPage(resultsPage.page + 1)}>Successiva</Button>
+          </nav>
+        ) : null}
         <aside className="iu-template-source iu-od-meta">
           Presidio dati: {displaySourceLabel(data.source)} - aggiornato {data.generated_at || 'non indicato'}
         </aside>

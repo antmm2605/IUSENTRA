@@ -164,6 +164,7 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
     "coverage-critical": (
         REPO_ROOT / "tests" / "test_template_catalog_preparation.py",
         REPO_ROOT / "tests" / "test_template_catalog_request_scope.py",
+        REPO_ROOT / "tests" / "test_redazione_client_search_sql.py",
         REPO_ROOT / "tests" / "test_template_runtime_snapshot_sql.py",
         REPO_ROOT / "tests" / "test_deposit_query_worker_runtime.py",
         REPO_ROOT / "tests" / "test_lex_deposit_query_tool.py",
@@ -372,6 +373,7 @@ CORE_TARGETS: tuple[Path, ...] = (
     REPO_ROOT / "tests" / "test_template_atti_repository.py",
     REPO_ROOT / "tests" / "test_template_catalog_preparation.py",
     REPO_ROOT / "tests" / "test_template_catalog_request_scope.py",
+    REPO_ROOT / "tests" / "test_redazione_client_search_sql.py",
     REPO_ROOT / "tests" / "test_template_runtime_snapshot_sql.py",
     REPO_ROOT / "tests" / "test_preventivi_repository.py",
     REPO_ROOT / "tests" / "test_applicazioni_repository.py",

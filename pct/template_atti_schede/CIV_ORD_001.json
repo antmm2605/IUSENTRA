@@ -93,6 +93,11 @@
      "articolo": "83",
      "perche": "procura"
     }
+   ],
+   "compilatore": [
+    "lawyer",
+    "lawyer_pec",
+    "lawyer_tax_code"
    ]
   },
   {
@@ -110,7 +115,10 @@
      "perche": "procura alle liti"
     }
    ],
-   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita"
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
   },
   {
    "campo": "data_luogo",
@@ -122,7 +130,11 @@
      "studio.citta",
      "today"
     ]
-   }
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
   },
   {
    "campo": "attore",
@@ -141,6 +153,10 @@
      "articolo": "163",
      "perche": "n. 2: parti e codici fiscali"
     }
+   ],
+   "compilatore": [
+    "plaintiff",
+    "client_or_sender"
    ]
   },
   {
@@ -159,6 +175,10 @@
      "articolo": "163",
      "perche": "n. 2"
     }
+   ],
+   "compilatore": [
+    "defendant",
+    "counterparty_or_recipient"
    ]
   },
   {
@@ -175,6 +195,10 @@
      "articolo": "163",
      "perche": "n. 1"
     }
+   ],
+   "compilatore": [
+    "court_name",
+    "recipient_or_court"
    ]
   },
   {
@@ -183,7 +207,7 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "avvocato",
-    "domanda": "quali domande vuole proporre (condanna, accertamento, risoluzione…)?"
+    "domanda": "Quali domande vuoi proporre (condanna, accertamento, risoluzione…)?"
    },
    "norma": [
     {
@@ -191,6 +215,9 @@
      "articolo": "163",
      "perche": "n. 3"
     }
+   ],
+   "compilatore": [
+    "claim_subject"
    ]
   },
   {
@@ -207,6 +234,14 @@
      "atto": "codice_procedura_civile",
      "articolo": "163",
      "perche": "n. 4: esposizione chiara e specifica"
+    }
+   ],
+   "compilatore": [
+    "facts"
+   ],
+   "fatti": [
+    {
+     "categoria": "evento"
     }
    ]
   },
@@ -231,7 +266,11 @@
      "perche": "materie con mediazione obbligatoria"
     }
    ],
-   "se_manca": "se la materia la richiede, segnalarlo prima di redigere"
+   "se_manca": "se la materia la richiede, segnalarlo prima di redigere",
+   "parole_documento": [
+    "mediazione",
+    "negoziazione"
+   ]
   },
   {
    "campo": "mezzi_di_prova",
@@ -250,7 +289,11 @@
      "perche": "n. 5"
     }
    ],
-   "note": "testimoni e capitoli li indica l’avvocato"
+   "note": "testimoni e capitoli li indica l’avvocato",
+   "compilatore": [
+    "evidence_means",
+    "documents_offered"
+   ]
   },
   {
    "campo": "testimoni",
@@ -258,7 +301,7 @@
    "obbligatorio": false,
    "fonte": {
     "tipo": "avvocato",
-    "domanda": "ci sono testimoni? su quali circostanze?"
+    "domanda": "Ci sono testimoni? Su quali circostanze?"
    }
   },
   {
@@ -275,6 +318,9 @@
      "articolo": "163bis",
      "perche": "termini a comparire"
     }
+   ],
+   "compilatore": [
+    "hearing_date"
    ]
   },
   {
@@ -291,6 +337,10 @@
      "articolo": "163",
      "perche": "n. 7"
     }
+   ],
+   "compilatore": [
+    "ritual_warnings",
+    "appearance_notice"
    ]
   },
   {
@@ -300,7 +350,10 @@
    "fonte": {
     "tipo": "calcolo",
     "regola": "artt. 10-14 c.p.c. e art. 13 D.P.R. 115/2002"
-   }
+   },
+   "compilatore": [
+    "case_value"
+   ]
   }
  ],
  "scrive_lex": [
@@ -327,5 +380,8 @@
   "materia con condizione di procedibilità non ancora esperita"
  ],
  "versione": "2026-10-19.1",
- "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca."
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": [
+  "CIV_CIT_001"
+ ]
 }

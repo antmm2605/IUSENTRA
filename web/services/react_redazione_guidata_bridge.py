@@ -147,6 +147,9 @@ def build_redazione_anteprima_payload(
         voce["name"]: voce["value"]
         for voce in anteprima["trovati"]
     }
+    from web.services.schede_compilazione_runtime import compilazione_per_modello
+
+    compilazione = compilazione_per_modello(model_code, payload, fascicolo)
     return {
         "ok": True,
         "generatedAt": _iso_now(),
@@ -161,6 +164,7 @@ def build_redazione_anteprima_payload(
         "normativa": normativa,
         "testoDirittoSuggerito": testo_diritto_da_riferimenti(normativa),
         "condizioniAttive": sorted([chiave for chiave, attiva in condizioni.items() if attiva]),
+        "compilazione": compilazione,
     }
 
 

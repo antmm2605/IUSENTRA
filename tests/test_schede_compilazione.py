@@ -25,3 +25,34 @@ def test_domande_solo_per_i_dati_mancanti():
     valori = {"difensore": "Avv. Rossi", "procura": "procura.pdf", "data_luogo": "Bari", "ricorrente": "Alfa srl",
               "debitore": "Beta srl", "fonte_credito": "contratto", "capitale": "1000", "prova_scritta": "fatture.pdf"}
     assert [m["campo"] for m in campi_da_chiedere(s, valori)] == ["interessi"]
+
+
+def test_risoluzione_usa_gestionale_letture_documenti_e_chiede_il_resto():
+    from pct.registro_letture.fatti_repository import Fatto
+    from pct.schede_compilazione import risolvi_scheda, scheda_per_modello
+
+    s = scheda_per_modello("CIV_COM_001")
+    assert s["id"] == "CIV_ORD_009"
+    fatti = [Fatto(categoria="ruolo", campo="rg_civile", valore="123/2026", etichetta="R.G. 123/2026"),
+             Fatto(categoria="data", campo="udienza", valore="2027-01-10", etichetta="Udienza", verifica="respinto")]
+    r = risolvi_scheda(s, {"defendant": "Rossi", "lawyer": "Avv. Bianchi", "place": "Bari"}, fatti=fatti,
+                       documenti=["Atto di citazione notificato.pdf", "Procura.pdf"])
+    stati = {c["campo"]: c["stato"] for c in r["campi"]}
+    assert stati["convenuto"] == "compilato" and stati["procura"] == "documento_presente"
+    assert stati["dati_causa"] == "da_confermare" and stati["termine_costituzione"] == "calcolo"
+    assert stati["eccezioni"] == "proposta_lex"
+    assert [d["campo"] for d in r["domande"]] == ["linea_difensiva", "fatti_contrari", "terzo"]
+
+
+def test_luogo_di_sottoscrizione_e_la_citta_dello_studio():
+    catalogo = json.loads(Path("pct/template_atti_catalogo_data/catalogo_master.json").read_text(encoding="utf-8"))
+    assert all(t["prefill_bindings"]["place"][0] == "studio.citta" for t in catalogo["template"])
+
+
+def test_registro_fonti_cita_rito_lavoro_e_precetto():
+    from pct.template_atti_legal_sources import template_atti_sources_for_model
+
+    lavoro = template_atti_sources_for_model(model_code="LAV_001", model_name="Ricorso rito lavoro", area="Diritto del lavoro")
+    precetto = template_atti_sources_for_model(model_code="ESE_001", model_name="Atto di precetto", area="Diritto civile")
+    assert any("414" in s["article"] for s in lavoro)
+    assert any("480" in s["article"] for s in precetto)

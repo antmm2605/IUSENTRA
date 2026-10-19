@@ -74,6 +74,11 @@
      "articolo": "83",
      "perche": "procura"
     }
+   ],
+   "compilatore": [
+    "lawyer",
+    "lawyer_pec",
+    "lawyer_tax_code"
    ]
   },
   {
@@ -91,7 +96,10 @@
      "perche": "procura alle liti"
     }
    ],
-   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita"
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
   },
   {
    "campo": "data_luogo",
@@ -103,7 +111,11 @@
      "studio.citta",
      "today"
     ]
-   }
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
   },
   {
    "campo": "titolo_esecutivo",
@@ -121,7 +133,16 @@
      "perche": "titoli esecutivi"
     }
    ],
-   "se_manca": "astensione: senza titolo esecutivo nel fascicolo non si intima"
+   "se_manca": "astensione: senza titolo esecutivo nel fascicolo non si intima",
+   "compilatore": [
+    "enforcement_title"
+   ],
+   "parole_documento": [
+    "sentenza",
+    "decreto ingiuntivo",
+    "titolo esecutivo",
+    "atto notarile"
+   ]
   },
   {
    "campo": "esecutivita",
@@ -137,6 +158,10 @@
      "articolo": "475",
      "perche": "forma del titolo"
     }
+   ],
+   "parole_documento": [
+    "conforme",
+    "esecutiv"
    ]
   },
   {
@@ -159,6 +184,15 @@
      "articolo": "480",
      "perche": "indicazione della data di notifica"
     }
+   ],
+   "compilatore": [
+    "title_service_date"
+   ],
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "notifica"
+    }
    ]
   },
   {
@@ -171,7 +205,11 @@
      "parti.assistito_principale",
      "cliente"
     ]
-   }
+   },
+   "compilatore": [
+    "creditor",
+    "client_or_sender"
+   ]
   },
   {
    "campo": "debitore",
@@ -182,7 +220,11 @@
     "percorsi": [
      "parti.controparte_principale"
     ]
-   }
+   },
+   "compilatore": [
+    "debtor",
+    "counterparty_or_recipient"
+   ]
   },
   {
    "campo": "somme",
@@ -198,6 +240,19 @@
      "atto": "codice_procedura_civile",
      "articolo": "480",
      "perche": "somma intimata"
+    }
+   ],
+   "compilatore": [
+    "principal_amount"
+   ],
+   "fatti": [
+    {
+     "categoria": "importo",
+     "campo": "beneficio_cliente"
+    },
+    {
+     "categoria": "importo",
+     "campo": "liquidazione_giudice"
     }
    ]
   },
@@ -215,6 +270,9 @@
      "articolo": "1282",
      "perche": "interessi"
     }
+   ],
+   "compilatore": [
+    "interest_amount"
    ]
   },
   {
@@ -224,7 +282,10 @@
    "fonte": {
     "tipo": "calcolo",
     "regola": "parametri D.M. 55/2014, fase precetto"
-   }
+   },
+   "compilatore": [
+    "costs_amount"
+   ]
   },
   {
    "campo": "termine",
@@ -245,6 +306,9 @@
      "articolo": "482",
      "perche": "termine ad adempiere"
     }
+   ],
+   "compilatore": [
+    "payment_deadline"
    ]
   },
   {
@@ -261,6 +325,9 @@
      "articolo": "480",
      "perche": "contenuto obbligatorio a pena di nullità"
     }
+   ],
+   "compilatore": [
+    "legal_warnings"
    ]
   }
  ],
@@ -280,5 +347,8 @@
   "precetto precedente notificato da oltre 90 giorni: segnalare la rinnovazione (art. 481)"
  ],
  "versione": "2026-10-19.1",
- "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca."
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": [
+  "CIV_PREC_001"
+ ]
 }

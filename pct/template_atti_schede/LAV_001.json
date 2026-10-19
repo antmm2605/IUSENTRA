@@ -81,6 +81,11 @@
      "articolo": "83",
      "perche": "procura"
     }
+   ],
+   "compilatore": [
+    "lawyer",
+    "lawyer_pec",
+    "lawyer_tax_code"
    ]
   },
   {
@@ -98,7 +103,10 @@
      "perche": "procura alle liti"
     }
    ],
-   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita"
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
   },
   {
    "campo": "data_luogo",
@@ -110,7 +118,11 @@
      "studio.citta",
      "today"
     ]
-   }
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
   },
   {
    "campo": "lavoratore",
@@ -129,6 +141,10 @@
      "articolo": "414",
      "perche": "n. 2"
     }
+   ],
+   "compilatore": [
+    "claimant",
+    "client_or_sender"
    ]
   },
   {
@@ -147,6 +163,10 @@
      "articolo": "414",
      "perche": "n. 2"
     }
+   ],
+   "compilatore": [
+    "defendant",
+    "counterparty_or_recipient"
    ]
   },
   {
@@ -163,6 +183,10 @@
      "articolo": "413",
      "perche": "competenza territoriale"
     }
+   ],
+   "compilatore": [
+    "court_name",
+    "recipient_or_court"
    ]
   },
   {
@@ -180,15 +204,24 @@
      "articolo": "414",
      "perche": "n. 4: fatti"
     }
+   ],
+   "compilatore": [
+    "facts"
+   ],
+   "parole_documento": [
+    "busta paga",
+    "cedolino",
+    "contratto di lavoro",
+    "unilav"
    ]
   },
   {
    "campo": "dimensione_datore",
    "etichetta": "Numero di dipendenti del datore",
-   "obbligatorio": false,
+   "obbligatorio": true,
    "fonte": {
     "tipo": "avvocato",
-    "domanda": "il datore occupa più di 15 dipendenti nell’unità o più di 60 in totale?"
+    "domanda": "Il datore occupa più di 15 dipendenti nell’unità produttiva o più di 60 in totale?"
    },
    "norma": [
     {
@@ -196,7 +229,8 @@
      "articolo": "18",
      "perche": "tutela applicabile"
     }
-   ]
+   ],
+   "se_manca": "senza questo dato non si individua la tutela applicabile al licenziamento"
   },
   {
    "campo": "licenziamento",
@@ -213,6 +247,9 @@
      "articolo": "6",
      "perche": "decorrenza dei termini"
     }
+   ],
+   "parole_documento": [
+    "licenziamento"
    ]
   },
   {
@@ -230,6 +267,9 @@
      "articolo": "6",
      "perche": "60 giorni dal licenziamento"
     }
+   ],
+   "parole_documento": [
+    "impugnazione"
    ]
   },
   {
@@ -254,7 +294,7 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "avvocato",
-    "domanda": "quali domande? con quali importi o conteggi?"
+    "domanda": "Quali domande proponi (illegittimità del licenziamento, differenze retributive, TFR…) e con quali importi?"
    },
    "norma": [
     {
@@ -262,6 +302,9 @@
      "articolo": "414",
      "perche": "n. 3 e n. 5"
     }
+   ],
+   "compilatore": [
+    "claim_subject"
    ]
   },
   {
@@ -270,8 +313,11 @@
    "obbligatorio": false,
    "fonte": {
     "tipo": "avvocato",
-    "domanda": "allegare i conteggi (anche del consulente del lavoro)"
-   }
+    "domanda": "Hai i conteggi delle differenze retributive (anche del consulente del lavoro)?"
+   },
+   "parole_documento": [
+    "conteggi"
+   ]
   },
   {
    "campo": "mezzi_di_prova",
@@ -290,7 +336,11 @@
      "perche": "n. 5: indicazione specifica dei mezzi di prova"
     }
    ],
-   "note": "nel rito del lavoro le prove vanno indicate subito"
+   "note": "nel rito del lavoro le prove vanno indicate subito",
+   "compilatore": [
+    "evidence_means",
+    "documents_offered"
+   ]
   }
  ],
  "scrive_lex": [
@@ -317,5 +367,9 @@
   "dimensione del datore ignota quando decide la tutela applicabile"
  ],
  "versione": "2026-10-19.1",
- "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca."
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": [
+  "CIV_LAVRIC_001",
+  "LAV_RIC_001"
+ ]
 }

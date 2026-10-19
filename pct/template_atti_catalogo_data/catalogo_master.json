@@ -392,8 +392,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -653,8 +652,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -914,8 +912,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -1175,8 +1172,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -1436,8 +1432,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -1697,8 +1692,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -1958,8 +1952,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -2220,8 +2213,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -2479,8 +2471,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -2738,8 +2729,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -2997,8 +2987,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -3256,8 +3245,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -3515,8 +3503,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -3774,8 +3761,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -4032,8 +4018,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -4290,8 +4275,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -4548,8 +4532,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -4808,8 +4791,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -5068,8 +5050,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -5330,8 +5311,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -5590,8 +5570,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -5850,8 +5829,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -6112,8 +6090,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -6372,8 +6349,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -6632,8 +6608,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -6892,8 +6867,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -7152,8 +7126,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -7412,8 +7385,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -7671,8 +7643,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -7930,8 +7901,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -8188,8 +8158,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -8448,8 +8417,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -8706,8 +8674,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -8962,8 +8929,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -9220,8 +9186,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -9478,8 +9443,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -9738,8 +9702,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -9998,8 +9961,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -10260,8 +10222,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -10522,8 +10483,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -10782,8 +10742,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -11040,8 +10999,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -11301,8 +11259,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -11570,8 +11527,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -11846,8 +11802,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -12108,8 +12063,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -12370,8 +12324,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -12631,8 +12584,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -12891,8 +12843,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -13150,8 +13101,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -13411,8 +13361,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -13672,8 +13621,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -13932,8 +13880,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -14193,8 +14140,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -14459,8 +14405,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -14739,8 +14684,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -15014,8 +14958,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -15289,8 +15232,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -15564,8 +15506,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -15839,8 +15780,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -16114,8 +16054,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -16387,8 +16326,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -16666,8 +16604,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -16945,8 +16882,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -17222,8 +17158,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -17503,8 +17438,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -17781,8 +17715,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -18060,8 +17993,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -18335,8 +18267,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -18625,8 +18556,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -18896,8 +18826,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -19177,8 +19106,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -19467,8 +19395,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -19756,8 +19683,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -20045,8 +19971,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -20338,8 +20263,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -20627,8 +20551,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -20916,8 +20839,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -21205,8 +21127,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -21494,8 +21415,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -21783,8 +21703,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -22072,8 +21991,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -22361,8 +22279,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -22650,8 +22567,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -22936,8 +22852,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -23197,8 +23112,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -23484,8 +23398,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -23776,8 +23689,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -24068,8 +23980,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -24352,8 +24263,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -24612,8 +24522,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -24897,8 +24806,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -25157,8 +25065,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -25444,8 +25351,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -25728,8 +25634,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -25986,8 +25891,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -26246,8 +26150,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -26506,8 +26409,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -26764,8 +26666,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -27022,8 +26923,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -27280,8 +27180,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -27538,8 +27437,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -27796,8 +27694,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -28056,8 +27953,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -28316,8 +28212,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -28577,8 +28472,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -28843,8 +28737,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -29110,8 +29003,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -29378,8 +29270,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -29644,8 +29535,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -29910,8 +29800,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -30180,8 +30069,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -30450,8 +30338,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -30720,8 +30607,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -30989,8 +30875,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -31258,8 +31143,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -31524,8 +31408,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -31790,8 +31673,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -32058,8 +31940,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -32327,8 +32208,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -32596,8 +32476,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -32865,8 +32744,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -33137,8 +33015,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -33414,8 +33291,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -33691,8 +33567,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -33968,8 +33843,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -34245,8 +34119,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -34522,8 +34395,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -34797,8 +34669,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -35072,8 +34943,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -35348,8 +35218,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -35624,8 +35493,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -35899,8 +35767,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -36174,8 +36041,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -36449,8 +36315,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -36725,8 +36590,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -36999,8 +36863,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -37272,8 +37135,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -37548,8 +37410,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -37822,8 +37683,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -38096,8 +37956,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -38371,8 +38230,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -38646,8 +38504,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -38916,8 +38773,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -39184,8 +39040,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -39457,8 +39312,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -39731,8 +39585,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -40004,8 +39857,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -40276,8 +40128,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -40548,8 +40399,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -40820,8 +40670,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -41092,8 +40941,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -41364,8 +41212,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -41636,8 +41483,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -41908,8 +41754,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -42179,8 +42024,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -42450,8 +42294,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -42718,8 +42561,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -42988,8 +42830,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -43260,8 +43101,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -43526,8 +43366,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -43794,8 +43633,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -44065,8 +43903,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -44337,8 +44174,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -44609,8 +44445,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -44881,8 +44716,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -45152,8 +44986,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -45413,8 +45246,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -45670,8 +45502,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -45929,8 +45760,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -46187,8 +46017,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -46446,8 +46275,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -46706,8 +46534,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -46978,8 +46805,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -47236,8 +47062,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -47493,8 +47318,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -47753,8 +47577,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -48012,8 +47835,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -48267,8 +48089,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -48527,8 +48348,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -48787,8 +48607,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -49045,8 +48864,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -49302,8 +49120,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -49559,8 +49376,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -49816,8 +49632,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -50073,8 +49888,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -50330,8 +50144,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -50591,8 +50404,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -50850,8 +50662,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -51112,8 +50923,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -51372,8 +51182,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -51633,8 +51442,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -51907,8 +51715,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -52167,8 +51974,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -52427,8 +52233,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -52687,8 +52492,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -52947,8 +52751,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -53207,8 +53010,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -53468,8 +53270,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -53728,8 +53529,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -53988,8 +53788,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -54248,8 +54047,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -54508,8 +54306,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -54766,8 +54563,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -55020,8 +54816,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -55291,8 +55086,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -55549,8 +55343,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -55805,8 +55598,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -56066,8 +55858,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -56326,8 +56117,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -56581,8 +56371,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -56839,8 +56628,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -57094,8 +56882,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -57349,8 +57136,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -57604,8 +57390,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -57859,8 +57644,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -58114,8 +57898,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -58372,8 +58155,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -58630,8 +58412,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -58887,8 +58668,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -59156,8 +58936,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -59413,8 +59192,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -59662,8 +59440,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -59918,8 +59695,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -60174,8 +59950,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -60432,8 +60207,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -60691,8 +60465,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -60947,8 +60720,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -61203,8 +60975,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -61459,8 +61230,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -61715,8 +61485,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -61971,8 +61740,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -62227,8 +61995,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -62483,8 +62250,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -62739,8 +62505,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -62998,8 +62763,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -63257,8 +63021,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -63513,8 +63276,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -63770,8 +63532,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -64027,8 +63788,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -64286,8 +64046,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -64546,8 +64305,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -64811,8 +64569,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -65066,8 +64823,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -65326,8 +65082,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -65586,8 +65341,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -65843,8 +65597,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -66100,8 +65853,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -66358,8 +66110,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -66615,8 +66366,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -66873,8 +66623,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -67131,8 +66880,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -67389,8 +67137,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -67649,8 +67396,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -67907,8 +67653,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -68166,8 +67911,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -68424,8 +68168,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -68680,8 +68423,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -68938,8 +68680,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -69195,8 +68936,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -69453,8 +69193,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -69708,8 +69447,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -69965,8 +69703,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -70222,8 +69959,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -70479,8 +70215,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -70736,8 +70471,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -70994,8 +70728,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -71252,8 +70985,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -71511,8 +71243,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -71776,8 +71507,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -72034,8 +71764,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -72292,8 +72021,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -72550,8 +72278,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -72808,8 +72535,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -73066,8 +72792,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -73324,8 +73049,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -73579,8 +73303,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -73834,8 +73557,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -74092,8 +73814,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -74349,8 +74070,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -74607,8 +74327,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -74863,8 +74582,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -75126,8 +74844,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -75384,8 +75101,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -75642,8 +75358,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -75894,8 +75609,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -76153,8 +75867,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -76412,8 +76125,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -76670,8 +76382,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -76928,8 +76639,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -77184,8 +76894,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -77443,8 +77152,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -77702,8 +77410,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -77958,8 +77665,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -78214,8 +77920,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -78474,8 +78179,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -78733,8 +78437,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -78992,8 +78695,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -79251,8 +78953,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -79507,8 +79208,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -79763,8 +79463,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -80019,8 +79718,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -80278,8 +79976,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -80534,8 +80231,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -80794,8 +80490,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -81050,8 +80745,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -81309,8 +81003,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -81565,8 +81258,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -81828,8 +81520,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -82093,8 +81784,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -82359,8 +82049,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -82626,8 +82315,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -82893,8 +82581,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -83158,8 +82845,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -83425,8 +83111,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -83688,8 +83373,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -83954,8 +83638,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -84221,8 +83904,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -84488,8 +84170,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -84753,8 +84434,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -85020,8 +84700,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -85287,8 +84966,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -85554,8 +85232,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -85821,8 +85498,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -86088,8 +85764,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -86356,8 +86031,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -86626,8 +86300,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -86893,8 +86566,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -87160,8 +86832,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -87427,8 +87098,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -87694,8 +87364,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -87960,8 +87629,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -88225,8 +87893,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -88495,8 +88162,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -88766,8 +88432,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -89038,8 +88703,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -89307,8 +88971,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -89578,8 +89241,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -89849,8 +89511,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -90120,8 +89781,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -90391,8 +90051,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -90660,8 +90319,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -90929,8 +90587,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -91202,8 +90859,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -91474,8 +91130,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -91746,8 +91401,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -92018,8 +91672,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -92290,8 +91943,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -92562,8 +92214,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -92835,8 +92486,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -93108,8 +92758,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -93378,8 +93027,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -93650,8 +93298,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -93923,8 +93570,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -94188,8 +93834,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -94456,8 +94101,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -94721,8 +94365,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -94988,8 +94631,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -95254,8 +94896,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -95521,8 +95162,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -95788,8 +95428,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -96056,8 +95695,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -96324,8 +95962,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -96591,8 +96228,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -96857,8 +96493,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -97125,8 +96760,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -97393,8 +97027,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -97662,8 +97295,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -97930,8 +97562,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -98199,8 +97830,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -98466,8 +98096,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -98724,8 +98353,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -98982,8 +98610,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -99238,8 +98865,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -99493,8 +99119,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -99748,8 +99373,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -100004,8 +99628,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -100260,8 +99883,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -100516,8 +100138,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -100771,8 +100392,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -101027,8 +100647,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -101282,8 +100901,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -101538,8 +101156,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -101794,8 +101411,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -102049,8 +101665,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -102315,8 +101930,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -102573,8 +102187,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -102833,8 +102446,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -103093,8 +102705,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -103353,8 +102964,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -103611,8 +103221,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -103872,8 +103481,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -104132,8 +103740,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -104390,8 +103997,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -104648,8 +104254,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -104905,8 +104510,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -105176,8 +104780,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -105434,8 +105037,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -105693,8 +105295,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -105953,8 +105554,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -106201,8 +105801,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -106456,8 +106055,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -106711,8 +106309,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -106966,8 +106563,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -107221,8 +106817,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -107476,8 +107071,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -107731,8 +107325,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -107986,8 +107579,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -108241,8 +107833,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -108496,8 +108087,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -108752,8 +108342,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -109007,8 +108596,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -109262,8 +108850,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -109517,8 +109104,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -109772,8 +109358,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -110027,8 +109612,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -110284,8 +109868,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -110539,8 +110122,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -110794,8 +110376,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [
@@ -111049,8 +110630,7 @@
           "legacy.attachments_list"
         ],
         "place": [
-          "studio.indirizzo",
-          "studio_timbro.indirizzo_riga",
+          "studio.citta",
           "legacy.place"
         ],
         "_lawyer_pec": [

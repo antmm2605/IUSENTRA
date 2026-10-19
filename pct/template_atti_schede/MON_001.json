@@ -86,6 +86,11 @@
      "articolo": "83",
      "perche": "procura"
     }
+   ],
+   "compilatore": [
+    "lawyer",
+    "lawyer_pec",
+    "lawyer_tax_code"
    ]
   },
   {
@@ -103,7 +108,10 @@
      "perche": "procura alle liti"
     }
    ],
-   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita"
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
   },
   {
    "campo": "data_luogo",
@@ -115,7 +123,11 @@
      "studio.citta",
      "today"
     ]
-   }
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
   },
   {
    "campo": "ricorrente",
@@ -134,6 +146,10 @@
      "articolo": "125",
      "perche": "indicazione delle parti"
     }
+   ],
+   "compilatore": [
+    "claimant",
+    "client_or_sender"
    ]
   },
   {
@@ -153,7 +169,11 @@
      "perche": "la residenza fonda la competenza"
     }
    ],
-   "se_manca": "chiedere residenza o sede del debitore: senza, la competenza non si determina"
+   "se_manca": "chiedere residenza o sede del debitore: senza, la competenza non si determina",
+   "compilatore": [
+    "debtor",
+    "counterparty_or_recipient"
+   ]
   },
   {
    "campo": "fonte_credito",
@@ -170,6 +190,14 @@
      "articolo": "633",
      "perche": "credito di somma liquida o cose fungibili"
     }
+   ],
+   "compilatore": [
+    "credit_source"
+   ],
+   "parole_documento": [
+    "contratto",
+    "fattura",
+    "ordine"
    ]
   },
   {
@@ -187,6 +215,9 @@
      "articolo": "633",
      "perche": "somma liquida"
     }
+   ],
+   "compilatore": [
+    "requested_amount"
    ]
   },
   {
@@ -195,7 +226,7 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "avvocato",
-    "domanda": "interessi legali o commerciali (D.Lgs. 231/2002)? da quale data?"
+    "domanda": "Quali interessi chiedi (legali o commerciali ex D.Lgs. 231/2002) e da quale data?"
    },
    "norma": [
     {
@@ -208,6 +239,9 @@
      "articolo": "4",
      "perche": "decorrenza nelle transazioni commerciali"
     }
+   ],
+   "compilatore": [
+    "interest_requested"
    ]
   },
   {
@@ -227,7 +261,16 @@
      "perche": "prova scritta"
     }
    ],
-   "se_manca": "astensione: senza prova scritta il ricorso non è ammissibile"
+   "se_manca": "astensione: senza prova scritta il ricorso non è ammissibile",
+   "compilatore": [
+    "written_evidence"
+   ],
+   "parole_documento": [
+    "fattura",
+    "estratto",
+    "contratto",
+    "riconoscimento"
+   ]
   },
   {
    "campo": "messa_in_mora",
@@ -244,6 +287,11 @@
      "articolo": "1219",
      "perche": "costituzione in mora"
     }
+   ],
+   "parole_documento": [
+    "diffida",
+    "messa in mora",
+    "sollecito"
    ]
   },
   {
@@ -270,6 +318,10 @@
      "articolo": "20",
      "perche": "foro facoltativo per le cause relative a diritti di obbligazione"
     }
+   ],
+   "compilatore": [
+    "competent_court",
+    "recipient_or_court"
    ]
   },
   {
@@ -278,7 +330,7 @@
    "obbligatorio": false,
    "fonte": {
     "tipo": "avvocato",
-    "domanda": "chiedere l’esecuzione provvisoria? su quale presupposto dell’art. 642?"
+    "domanda": "Vuoi chiedere l’esecuzione provvisoria? Su quale presupposto dell’art. 642 c.p.c.?"
    },
    "norma": [
     {
@@ -286,6 +338,9 @@
      "articolo": "642",
      "perche": "presupposti tassativi"
     }
+   ],
+   "compilatore": [
+    "provisional_enforceability_request"
    ]
   },
   {
@@ -304,7 +359,10 @@
    "fonte": {
     "tipo": "calcolo",
     "regola": "parametri D.M. 55/2014 fase monitoria"
-   }
+   },
+   "compilatore": [
+    "requested_costs"
+   ]
   }
  ],
  "scrive_lex": [
@@ -331,5 +389,8 @@
   "residenza o sede del debitore sconosciuta"
  ],
  "versione": "2026-10-19.1",
- "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca."
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": [
+  "CIV_RDI_001"
+ ]
 }

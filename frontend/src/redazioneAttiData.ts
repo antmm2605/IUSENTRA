@@ -341,6 +341,15 @@ export type RedazioneRiferimentoNormativo = {
   selezionato: boolean
 }
 
+export type RedazioneSchedaCampo = { campo: string; etichetta: string; stato: string; valore: string; fonte: string; norme: string[] }
+export type RedazioneSchedaDomanda = { campo: string; domanda: string; obbligatorio: boolean; seManca: string }
+export type RedazioneScheda = {
+  titolo: string
+  campi: RedazioneSchedaCampo[]
+  domande: RedazioneSchedaDomanda[]
+  astensione: string[]
+}
+
 export type RedazioneAnteprima = {
   ok: boolean
   errore: string
@@ -349,6 +358,7 @@ export type RedazioneAnteprima = {
   campiMancanti: RedazioneCampoAnteprima[]
   riferimenti: RedazioneRiferimentoNormativo[]
   condizioniAttive: string[]
+  scheda: RedazioneScheda | null
 }
 
 export type RedazioneGeneraEsito = {
@@ -392,6 +402,28 @@ function normaliseCampoAnteprima(input: unknown): RedazioneCampoAnteprima {
     value: typeof item.value === 'string' ? item.value : display(item.value),
     fonte: display(item.fonte),
     motivo: display(item.motivo),
+  }
+}
+
+// Scheda di compilazione (pct/schede_compilazione.py): stato dei campi e sole domande per l'avvocato.
+function normaliseScheda(input: unknown): RedazioneScheda | null {
+  const item = asRecord(input)
+  if (!text(item.scheda)) return null
+  return {
+    titolo: display(item.titolo),
+    campi: list(item.campi).map((raw) => {
+      const campo = asRecord(raw)
+      return {
+        campo: text(campo.campo), etichetta: display(campo.etichetta), stato: text(campo.stato),
+        valore: display(campo.valore), fonte: display(campo.fonte),
+        norme: list(campo.norma).map((n) => { const norma = asRecord(n); return `art. ${text(norma.articolo)} ${text(norma.atto).replace(/_/g, ' ')}` }),
+      }
+    }).filter((campo) => campo.campo),
+    domande: list(item.domande).map((raw) => {
+      const domanda = asRecord(raw)
+      return { campo: text(domanda.campo), domanda: display(domanda.domanda), obbligatorio: domanda.obbligatorio === true, seManca: display(domanda.se_manca) }
+    }).filter((domanda) => domanda.campo),
+    astensione: list(item.astensione).map((voce) => display(voce)).filter(Boolean),
   }
 }
 
@@ -545,6 +577,7 @@ export async function getRedazioneAnteprima(modelCode: string, fascicoloId: stri
     campiMancanti: list(payload.campiMancanti).map(normaliseCampoAnteprima).filter((item) => item.name),
     riferimenti: normaliseRiferimenti(payload),
     condizioniAttive: list(payload.condizioniAttive).map((item) => display(item)).filter(Boolean),
+    scheda: normaliseScheda(payload.compilazione),
   }
 }
 

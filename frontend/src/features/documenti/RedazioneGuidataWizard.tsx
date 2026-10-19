@@ -17,6 +17,7 @@ import {
 } from '../../redazioneAttiData'
 import { formatEuroIt } from '../../formatting'
 import '../../components/RedazioneAttiPage.css'
+import { SchedaCompilazionePanel } from './SchedaCompilazionePanel'
 
 type PassoWizard = 1 | 2 | 3 | 4
 
@@ -385,6 +386,7 @@ function PassoAnteprima({
           {!anteprima.campiTrovati.length ? <EmptyState title="Nessun campo precompilabile" message="Il fascicolo non contiene ancora dati utilizzabili per questo modello." /> : null}
         </div>
       </section>
+      {anteprima.scheda ? <SchedaCompilazionePanel scheda={anteprima.scheda} /> : null}
       <section aria-label="Campi mancanti">
         <h4 className="iu-rg-subtitle iu-rg-subtitle--warn"><FileWarning size={16} aria-hidden="true" /> Campi mancanti ({anteprima.campiMancanti.length})</h4>
         {anteprima.campiMancanti.length ? (

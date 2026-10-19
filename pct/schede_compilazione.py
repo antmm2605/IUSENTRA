@@ -42,3 +42,69 @@ def campi_da_chiedere(scheda: dict[str, Any], valori: dict[str, Any]) -> list[di
         mancanti.append({"campo": campo["campo"], "domanda": campo["fonte"].get("domanda") or campo["etichetta"],
                          "se_manca": campo.get("se_manca", "")})
     return mancanti
+
+
+def scheda_per_modello(model_code: str) -> dict[str, Any] | None:
+    """La scheda di un modello del compilatore o del catalogo, se esiste."""
+    return next((s for s in carica_schede().values()
+                 if model_code in s.get("modelli_compilatore", []) or model_code in s["template"]), None)
+
+
+def _vuoto(valore: Any) -> bool:
+    return not str(valore or "").strip()
+
+
+def _fatti_del_campo(campo: dict[str, Any], fatti: list[Any]) -> list[Any]:
+    selettori = campo.get("fatti") or []
+    trovati = []
+    for fatto in fatti:
+        if getattr(fatto, "verifica", "") == "respinto":
+            continue
+        for sel in selettori:
+            if getattr(fatto, "categoria", "") == sel["categoria"] and (not sel.get("campo") or getattr(fatto, "campo", "") == sel["campo"]):
+                trovati.append(fatto)
+                break
+    return trovati
+
+
+def risolvi_scheda(scheda: dict[str, Any], valori: dict[str, Any], *, fatti: list[Any] = (),
+                   documenti: list[str] = ()) -> dict[str, Any]:
+    """Stato di ogni campo della scheda e sole domande da fare all'avvocato.
+
+    Ordine delle fonti: dato del gestionale (``compilatore``), fatto letto dall'archivio (da confermare),
+    documento presente nel fascicolo (da verificare), regola di calcolo, proposta di Lex, domanda.
+    Nessun valore viene inventato: un campo senza fonte resta una domanda.
+    """
+    nomi_documenti = [str(n) for n in documenti]
+    campi, domande = [], []
+    for campo in scheda["campi"]:
+        voce = {"campo": campo["campo"], "etichetta": campo["etichetta"], "obbligatorio": campo["obbligatorio"],
+                "norma": campo.get("norma", [])}
+        valore = next((valori.get(k) for k in campo.get("compilatore", []) if not _vuoto(valori.get(k))), None)
+        letti = _fatti_del_campo(campo, list(fatti))
+        parole = [p.lower() for p in campo.get("parole_documento", [])]
+        trovati = [n for n in nomi_documenti if any(p in n.lower() for p in parole)] if parole else []
+        if not trovati and "documenti.nomi" in campo["fonte"].get("percorsi", []):
+            trovati = list(nomi_documenti)
+        if valore is not None:
+            voce.update(stato="compilato", valore=valore, fonte="gestionale")
+        elif letti:
+            voce.update(stato="da_confermare", fonte="documenti letti",
+                        valore="; ".join(getattr(f, "etichetta", "") or getattr(f, "valore", "") for f in letti[:3]))
+        elif trovati:
+            voce.update(stato="documento_presente", fonte="documenti del fascicolo", valore="; ".join(trovati))
+        elif campo["fonte"]["tipo"] == "calcolo":
+            voce.update(stato="calcolo", fonte="calcolo del software", regola=campo["fonte"]["regola"])
+        elif campo["fonte"]["tipo"] == "lex":
+            voce.update(stato="proposta_lex", fonte="proposta di Lex da confermare", compito=campo["fonte"]["compito"])
+        else:
+            voce.update(stato="da_chiedere" if campo["obbligatorio"] or campo["fonte"]["tipo"] == "avvocato" else "facoltativo")
+            if voce["stato"] == "da_chiedere":
+                domande.append({"campo": campo["campo"], "obbligatorio": campo["obbligatorio"],
+                                "domanda": campo["fonte"].get("domanda") or f"Indica: {campo['etichetta'][0].lower()}{campo['etichetta'][1:]}.",
+                                "se_manca": campo.get("se_manca", "")})
+        campi.append(voce)
+    domande.sort(key=lambda d: not d["obbligatorio"])
+    return {"scheda": scheda["id"], "titolo": scheda["titolo"], "campi": campi, "domande": domande,
+            "scrive_lex": scheda["scrive_lex"], "astensione": scheda["astensione"],
+            "base_normativa": scheda["base_normativa"]}

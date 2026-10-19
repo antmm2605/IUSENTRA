@@ -1,0 +1,271 @@
+{
+ "id": "CAU_014",
+ "titolo": "Istanza di sospensione della delibera impugnata",
+ "template": [
+  "CAU_014"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "1137",
+   "perche": "impugnazione delle deliberazioni dell’assemblea di condominio entro trenta giorni"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2377",
+   "perche": "annullabilità delle delibere societarie e termine di novanta giorni"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2378",
+   "perche": "istanza di sospensione con l’impugnazione"
+  },
+  {
+   "atto": "28/2010",
+   "articolo": "5",
+   "perche": "mediazione obbligatoria in materia condominiale"
+  },
+  {
+   "atto": "318/1942",
+   "articolo": "71quater",
+   "perche": "controversie condominiali soggette a mediazione"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Parte assistita (anagrafica e codice fiscale)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Condominio o società",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "delibera",
+   "etichetta": "Delibera impugnata",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "verbale di assemblea"
+   },
+   "se_manca": "astensione: serve la delibera",
+   "parole_documento": [
+    "verbale",
+    "delibera",
+    "assemblea"
+   ]
+  },
+  {
+   "campo": "tipo",
+   "etichetta": "Delibera condominiale o societaria",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Si tratta di una delibera di condominio o di società?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "1137",
+     "perche": "condominio"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "2378",
+     "perche": "società"
+    }
+   ]
+  },
+  {
+   "campo": "motivi",
+   "etichetta": "Vizi della delibera e pregiudizio",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quali vizi ha la delibera e quale pregiudizio deriverebbe dalla sua esecuzione?"
+   }
+  },
+  {
+   "campo": "data_delibera",
+   "etichetta": "Data della delibera o della sua comunicazione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "data_delibera",
+    "documento": "verbale e comunicazione"
+   },
+   "fatti": [
+    {
+     "categoria": "data"
+    }
+   ]
+  },
+  {
+   "campo": "termine_impugnazione",
+   "etichetta": "Termine per impugnare",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "condominio: 30 giorni dalla delibera per i presenti o dalla comunicazione per gli assenti, con sospensione feriale; la domanda di mediazione impedisce la decadenza; società: 90 giorni secondo l’art. 2377; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "1137",
+     "perche": "trenta giorni"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    },
+    {
+     "atto": "28/2010",
+     "articolo": "8",
+     "perche": "effetti della domanda di mediazione sulla decadenza"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "2377",
+     "perche": "novanta giorni"
+    }
+   ]
+  },
+  {
+   "campo": "impugnazione",
+   "etichetta": "Impugnazione proposta o da proporre",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "La sospensione si chiede con l’atto di impugnazione o in un giudizio già pendente? Per il condominio è stata avviata la mediazione?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "2378",
+     "perche": "istanza con l’impugnazione"
+    },
+    {
+     "atto": "28/2010",
+     "articolo": "5",
+     "perche": "mediazione"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Istanza",
+   "compito": "vizi della delibera e gravi motivi per sospenderla"
+  }
+ ],
+ "astensione": [
+  "delibera non presente",
+  "termine per impugnare scaduto"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

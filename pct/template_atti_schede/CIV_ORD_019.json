@@ -1,0 +1,208 @@
+{
+ "id": "CIV_ORD_019",
+ "titolo": "Istanza di ordine di esibizione",
+ "template": [
+  "CIV_ORD_019"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "210",
+   "perche": "ordine di esibizione"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "118",
+   "perche": "ispezione e poteri del giudice"
+  },
+  {
+   "atto": "1368/1941",
+   "articolo": "94",
+   "perche": "specifica indicazione del documento e prova del possesso"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Parte assistita (anagrafica e codice fiscale)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Controparte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "dati_causa",
+   "etichetta": "Ufficio, giudice e numero di ruolo della causa",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "fascicolo, PEC di cancelleria e verbali"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione dell’ufficio"
+    }
+   ],
+   "se_manca": "chiedere ufficio e numero di ruolo: senza la causa pendente l’atto non si deposita",
+   "compilatore": [
+    "recipient_or_court",
+    "case_reference_display"
+   ],
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "documento",
+   "etichetta": "Documento da esibire e chi lo detiene",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quale documento, specificamente individuato, e chi lo detiene (parte o terzo)?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "210",
+     "perche": "documento o cosa determinata"
+    }
+   ]
+  },
+  {
+   "campo": "necessita",
+   "etichetta": "Perché la prova non si acquisisce altrimenti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Perché il documento è necessario e non puoi produrlo tu?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "210",
+     "perche": "necessità dell’acquisizione"
+    }
+   ]
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Termine per l’istanza",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "memoria n. 2 dell’art. 171-ter (20 giorni prima dell’udienza), a ritroso con sospensione feriale; se l’ultimo giorno cade di sabato o festivo si anticipa al primo giorno non festivo precedente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "171ter",
+     "perche": "decadenza"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Istanza",
+   "compito": "individuazione del documento, rilevanza e indispensabilità"
+  }
+ ],
+ "astensione": [
+  "documento non individuato in modo specifico"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

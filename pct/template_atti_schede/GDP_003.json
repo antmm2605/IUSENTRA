@@ -1,0 +1,226 @@
+{
+ "id": "GDP_003",
+ "titolo": "Comparsa di costituzione davanti al giudice di pace",
+ "template": [
+  "GDP_003"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "319",
+   "perche": "costituzione delle parti"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "316",
+   "perche": "rito semplificato in quanto compatibile"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "281undecies",
+   "perche": "costituzione almeno dieci giorni prima dell’udienza, a pena di decadenza"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "1",
+   "perche": "sospensione feriale dei termini"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Resistente (anagrafica e codice fiscale)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Ricorrente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "ricorso",
+   "etichetta": "Ricorso avversario e decreto di fissazione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "ricorso notificato"
+   },
+   "se_manca": "astensione: serve l’atto introduttivo avversario",
+   "parole_documento": [
+    "ricorso",
+    "citazione",
+    "decreto"
+   ]
+  },
+  {
+   "campo": "udienza",
+   "etichetta": "Udienza fissata",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "udienza",
+    "documento": "decreto di fissazione"
+   },
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "udienza"
+    }
+   ]
+  },
+  {
+   "campo": "termine_costituzione",
+   "etichetta": "Ultimo giorno per costituirsi",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "almeno dieci giorni prima dell’udienza, con sospensione feriale; se l’ultimo giorno cade di sabato o festivo si anticipa al primo giorno non festivo precedente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "281undecies",
+     "perche": "termine e decadenze"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    }
+   ]
+  },
+  {
+   "campo": "difese",
+   "etichetta": "Difese",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Cosa contesti e cosa riconosci? Proponi domande riconvenzionali, eccezioni non rilevabili d’ufficio o chiamata di terzi?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "281undecies",
+     "perche": "decadenze"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Difese",
+   "compito": "presa di posizione sui fatti, eccezioni e riconvenzionali"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "rigetto con spese"
+  }
+ ],
+ "astensione": [
+  "atto introduttivo non presente",
+  "termine di costituzione scaduto: riconvenzionali ed eccezioni sono precluse"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

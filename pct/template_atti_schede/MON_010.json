@@ -1,0 +1,229 @@
+{
+ "id": "MON_010",
+ "titolo": "Rinnovazione della notifica del decreto ingiuntivo",
+ "template": [
+  "MON_010"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "644",
+   "perche": "inefficacia se la notifica non avviene entro sessanta giorni"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "647",
+   "perche": "rinnovazione ordinata dal giudice"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Creditore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Debitore ingiunto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "dati_causa",
+   "etichetta": "Ufficio e numero del decreto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "fascicolo, PEC di cancelleria e verbali"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione dell’ufficio"
+    }
+   ],
+   "se_manca": "chiedere ufficio e numero di ruolo: senza la causa pendente l’atto non si deposita",
+   "compilatore": [
+    "recipient_or_court",
+    "case_reference_display"
+   ],
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "decreto",
+   "etichetta": "Decreto ingiuntivo e relata di notifica",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "decreto ingiuntivo"
+   },
+   "se_manca": "astensione: serve il decreto ingiuntivo",
+   "parole_documento": [
+    "decreto",
+    "ingiunzione",
+    "ingiuntivo"
+   ]
+  },
+  {
+   "campo": "data_decreto",
+   "etichetta": "Data di pronuncia del decreto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "data_decreto",
+    "documento": "decreto"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "644",
+     "perche": "decorrenza del termine"
+    }
+   ],
+   "fatti": [
+    {
+     "categoria": "data"
+    }
+   ]
+  },
+  {
+   "campo": "scadenza_notifica",
+   "etichetta": "Ultimo giorno per notificare",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "60 giorni dalla pronuncia (90 se la notifica avviene all’estero); se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "644",
+     "perche": "termine"
+    }
+   ]
+  },
+  {
+   "campo": "esito",
+   "etichetta": "Esito della prima notifica",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quando hai tentato la prima notifica e perché non è andata a buon fine? Dipende da cause non imputabili al creditore?"
+   }
+  },
+  {
+   "campo": "ordine_giudice",
+   "etichetta": "Rinnovazione ordinata dal giudice",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Il giudice ha ordinato la rinnovazione perché l’intimato probabilmente non ha avuto conoscenza del decreto?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "647",
+     "perche": "rinnovazione"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Atto",
+   "compito": "entro i sessanta giorni: rinnovare direttamente la notifica; dopo, solo se il primo tentativo fu tempestivo e fallito senza colpa, motivando la ripresa immediata del procedimento notificatorio"
+  }
+ ],
+ "astensione": [
+  "termine di 60 giorni decorso senza un tentativo tempestivo: il decreto è inefficace e la domanda va riproposta",
+  "esito della prima notifica non documentato"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

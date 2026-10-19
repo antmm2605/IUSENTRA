@@ -1,0 +1,287 @@
+{
+ "id": "CAU_010",
+ "titolo": "Ricorso possessorio di reintegrazione o manutenzione",
+ "template": [
+  "CAU_010",
+  "CAU_011"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "1168",
+   "perche": "azione di reintegrazione"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1170",
+   "perche": "azione di manutenzione"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "703",
+   "perche": "procedimento possessorio"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "21",
+   "perche": "foro del luogo del fatto"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "705",
+   "perche": "divieto di proporre il giudizio petitorio"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "3",
+   "perche": "esclusione della sospensione feriale"
+  },
+  {
+   "atto": "12/1941",
+   "articolo": "92",
+   "perche": "affari urgenti esclusi dalla sospensione"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Ricorrente (possessore)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Autore dello spoglio o della molestia",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "ufficio",
+   "etichetta": "Giudice competente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "tribunale del luogo in cui è avvenuto il fatto"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "21",
+     "perche": "competenza"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "703",
+     "perche": "procedimento"
+    }
+   ]
+  },
+  {
+   "campo": "possesso",
+   "etichetta": "Possesso e sua durata",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Da quando e come il cliente possiede il bene? Per la manutenzione servono: immobile o universalità di mobili, possesso ultrannuale, continuo, non interrotto, non violento né clandestino"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "1170",
+     "perche": "presupposti della manutenzione"
+    }
+   ]
+  },
+  {
+   "campo": "spoglio",
+   "etichetta": "Data dello spoglio o della molestia",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "data_spoglio",
+    "documento": "denunce, fotografie, comunicazioni"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "1168",
+     "perche": "entro l’anno dallo spoglio"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "1170",
+     "perche": "entro l’anno dalla turbativa"
+    }
+   ],
+   "fatti": [
+    {
+     "categoria": "data"
+    },
+    {
+     "categoria": "evento"
+    }
+   ]
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Scadenza dell’anno",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "un anno dallo spoglio o dalla turbativa (dalla scoperta se clandestino); termine di decadenza che non si sospende"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "1168",
+     "perche": "termine annuale"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "1170",
+     "perche": "termine annuale"
+    }
+   ]
+  },
+  {
+   "campo": "fatti",
+   "etichetta": "Fatti rilevanti con date e documenti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "eventi_e_date",
+    "documento": "documenti del fascicolo"
+   },
+   "compilatore": [
+    "facts"
+   ],
+   "fatti": [
+    {
+     "categoria": "evento"
+    },
+    {
+     "categoria": "data"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatto",
+   "compito": "possesso, spoglio o molestia con date; la fase di merito si chiede entro 60 giorni dal provvedimento (art. 703)"
+  },
+  {
+   "blocco": "Diritto",
+   "compito": "presupposti degli artt. 1168 o 1170 c.c."
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "reintegrazione o cessazione delle molestie"
+  }
+ ],
+ "astensione": [
+  "anno dallo spoglio o dalla turbativa già decorso",
+  "data dello spoglio non nota"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

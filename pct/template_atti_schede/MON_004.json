@@ -1,0 +1,232 @@
+{
+ "id": "MON_004",
+ "titolo": "Ricorso monitorio per parcella professionale",
+ "template": [
+  "MON_004"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "633",
+   "perche": "crediti dei professionisti"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "636",
+   "perche": "parcella e parere dell’associazione professionale"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "637",
+   "perche": "giudice competente"
+  },
+  {
+   "atto": "55/2014",
+   "articolo": "2",
+   "perche": "compensi e spese"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Professionista ricorrente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Cliente debitore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "parcella",
+   "etichetta": "Parcella sottoscritta dal ricorrente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "parcella delle spese e prestazioni"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "636",
+     "perche": "parcella sottoscritta"
+    }
+   ],
+   "se_manca": "astensione: senza parcella il ricorso non è ammissibile",
+   "parole_documento": [
+    "parcella",
+    "notula",
+    "fattura"
+   ]
+  },
+  {
+   "campo": "parere",
+   "etichetta": "Parere della competente associazione professionale",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "parere di congruità del consiglio dell’ordine"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "636",
+     "perche": "parere, salvo tariffe obbligatorie"
+    }
+   ],
+   "se_manca": "chiedere il parere di congruità o indicare la tariffa obbligatoria applicata",
+   "parole_documento": [
+    "parere",
+    "congruità",
+    "ordine"
+   ]
+  },
+  {
+   "campo": "incarico",
+   "etichetta": "Incarico e prestazioni svolte",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "lettera d’incarico o documenti delle prestazioni"
+   },
+   "parole_documento": [
+    "incarico",
+    "mandato",
+    "preventivo"
+   ]
+  },
+  {
+   "campo": "ufficio",
+   "etichetta": "Giudice competente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "giudice che ha deciso la causa o del luogo del consiglio dell’ordine, secondo l’art. 637"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "637",
+     "perche": "competenza"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatto",
+   "compito": "incarico, prestazioni e mancato pagamento"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "ingiunzione di pagamento con interessi e spese"
+  }
+ ],
+ "astensione": [
+  "parcella non presente",
+  "parere di congruità mancante e tariffa non obbligatoria"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

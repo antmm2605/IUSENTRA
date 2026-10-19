@@ -7,9 +7,11 @@ from pct.schede_compilazione import FONTI, campi_da_chiedere, carica_schede, sch
 CATALOGO = {t["id"] for t in json.loads(Path("pct/template_atti_catalogo_data/catalogo_master.json").read_text(encoding="utf-8"))["template"]}
 
 
-def test_cinque_schede_coerenti_col_catalogo():
+def test_schede_coerenti_col_catalogo():
     schede = carica_schede()
-    assert sorted(schede) == ["CIV_ORD_001", "CIV_ORD_009", "ESE_001", "LAV_001", "MON_001"]
+    assert {"CIV_ORD_001", "CIV_ORD_009", "ESE_001", "LAV_001", "MON_001"} <= set(schede)
+    coperti = [t for s in schede.values() for t in s["template"]]
+    assert len(coperti) == len(set(coperti)), "ogni modello è coperto da una sola scheda"
     for s in schede.values():
         assert set(s["template"]) <= CATALOGO
         assert s["base_normativa"] and s["scrive_lex"] and s["astensione"]
@@ -73,3 +75,14 @@ def test_valori_zero_e_fatti_completi_non_vanno_persi():
     assert r["campi"][0]["valore"] == 0
     assert r["campi"][1]["valore"] == "R.G. 1; R.G. 2; R.G. 3; R.G. 4"
     assert r["domande"] == []
+
+
+def test_civile_ordinario_monitorio_cautelare_giudice_di_pace_coperti():
+    famiglie = ("CIV_ORD", "MON", "CAU", "GDP")
+    attesi = {t for t in CATALOGO if t.rsplit("_", 1)[0] in famiglie}
+    assert attesi <= {t for s in carica_schede().values() for t in s["template"]}
+
+
+def test_termini_cautelari_senza_sospensione_feriale():
+    reclamo = scheda_per_template("CAU_002")
+    assert any(n["atto"] == "legge_742_1969" and n["articolo"] == "3" for n in reclamo["base_normativa"])

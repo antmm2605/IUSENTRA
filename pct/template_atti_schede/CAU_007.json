@@ -1,0 +1,264 @@
+{
+ "id": "CAU_007",
+ "titolo": "Ricorso per accertamento tecnico preventivo",
+ "template": [
+  "CAU_007",
+  "CAU_008",
+  "CAU_009"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "696",
+   "perche": "accertamento tecnico e ispezione giudiziale"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "696bis",
+   "perche": "consulenza tecnica preventiva ai fini della composizione della lite"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "693",
+   "perche": "competenza"
+  },
+  {
+   "atto": "legge_24_2017",
+   "articolo": "8",
+   "perche": "consulenza preventiva come condizione di procedibilità nella responsabilità sanitaria"
+  },
+  {
+   "atto": "28/2010",
+   "articolo": "5",
+   "perche": "mediazione obbligatoria nelle materie indicate"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Parte assistita (anagrafica e codice fiscale)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Controparte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "ufficio",
+   "etichetta": "Giudice competente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "giudice competente per il merito; in caso di eccezionale urgenza, quello del luogo in cui deve eseguirsi la prova"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "693",
+     "perche": "competenza"
+    }
+   ]
+  },
+  {
+   "campo": "materia",
+   "etichetta": "Materia della lite",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Si tratta di responsabilità sanitaria? (la consulenza preventiva è condizione di procedibilità)"
+   },
+   "norma": [
+    {
+     "atto": "legge_24_2017",
+     "articolo": "8",
+     "perche": "tentativo obbligatorio di conciliazione"
+    }
+   ]
+  },
+  {
+   "campo": "tipo",
+   "etichetta": "Accertamento con urgenza o consulenza conciliativa",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Chiedi l’accertamento urgente (art. 696) o la consulenza preventiva conciliativa (art. 696-bis)?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "696",
+     "perche": "urgenza"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "696bis",
+     "perche": "anche senza urgenza"
+    }
+   ]
+  },
+  {
+   "campo": "oggetto",
+   "etichetta": "Stato dei luoghi o fatti da accertare",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Cosa deve accertare il consulente e perché?"
+   }
+  },
+  {
+   "campo": "quesiti",
+   "etichetta": "Quesiti proposti",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "proporre quesiti specifici al consulente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "696bis",
+     "perche": "quesiti"
+    }
+   ]
+  },
+  {
+   "campo": "fatti",
+   "etichetta": "Fatti rilevanti con date e documenti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "eventi_e_date",
+    "documento": "documenti del fascicolo"
+   },
+   "compilatore": [
+    "facts"
+   ],
+   "fatti": [
+    {
+     "categoria": "evento"
+    },
+    {
+     "categoria": "data"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatto",
+   "compito": "situazione da accertare"
+  },
+  {
+   "blocco": "Istanza",
+   "compito": "ragioni dell’accertamento e quesiti"
+  }
+ ],
+ "astensione": [
+  "per l’art. 696 non è indicata l’urgenza",
+  "oggetto dell’accertamento non indicato"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

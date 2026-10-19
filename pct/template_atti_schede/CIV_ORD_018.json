@@ -1,0 +1,208 @@
+{
+ "id": "CIV_ORD_018",
+ "titolo": "Istanza di interrogatorio formale",
+ "template": [
+  "CIV_ORD_018"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "230",
+   "perche": "modo dell’interrogatorio"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "228",
+   "perche": "confessione giudiziale"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2730",
+   "perche": "nozione di confessione"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Parte assistita (anagrafica e codice fiscale)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Controparte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "dati_causa",
+   "etichetta": "Ufficio, giudice e numero di ruolo della causa",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "fascicolo, PEC di cancelleria e verbali"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione dell’ufficio"
+    }
+   ],
+   "se_manca": "chiedere ufficio e numero di ruolo: senza la causa pendente l’atto non si deposita",
+   "compilatore": [
+    "recipient_or_court",
+    "case_reference_display"
+   ],
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "fatti",
+   "etichetta": "Fatti sfavorevoli alla controparte da far confessare",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Su quali fatti sfavorevoli alla controparte vuoi l’interrogatorio?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "2730",
+     "perche": "fatti sfavorevoli al dichiarante"
+    }
+   ]
+  },
+  {
+   "campo": "capitoli",
+   "etichetta": "Capitoli dell’interrogatorio",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "formulare i capitoli in articoli separati e specifici"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "230",
+     "perche": "articoli separati e specifici"
+    }
+   ]
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Termine per l’istanza",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "memoria n. 2 dell’art. 171-ter (20 giorni prima dell’udienza), a ritroso con sospensione feriale; se l’ultimo giorno cade di sabato o festivo si anticipa al primo giorno non festivo precedente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "171ter",
+     "perche": "decadenza"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Capitoli",
+   "compito": "capitoli dell’interrogatorio formale"
+  }
+ ],
+ "astensione": [
+  "fatti non indicati dall’avvocato"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

@@ -1,0 +1,294 @@
+{
+ "id": "CIV_ORD_012",
+ "titolo": "Memorie integrative ex art. 171-ter c.p.c.",
+ "template": [
+  "CIV_ORD_012",
+  "CIV_ORD_013",
+  "CIV_ORD_014",
+  "CIV_ORD_003",
+  "MON_016"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "171ter",
+   "perche": "contenuto e termini delle tre memorie; nella n. 1 le domande conseguenti alle difese del convenuto"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "281duodecies",
+   "perche": "nel rito semplificato termini di 20 e 10 giorni assegnati dal giudice"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "183",
+   "perche": "udienza di comparizione"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "155",
+   "perche": "computo dei termini"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "1",
+   "perche": "sospensione feriale dei termini"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Parte assistita (anagrafica e codice fiscale)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Controparte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "dati_causa",
+   "etichetta": "Ufficio, giudice e numero di ruolo della causa",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "fascicolo, PEC di cancelleria e verbali"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione dell’ufficio"
+    }
+   ],
+   "se_manca": "chiedere ufficio e numero di ruolo: senza la causa pendente l’atto non si deposita",
+   "compilatore": [
+    "recipient_or_court",
+    "case_reference_display"
+   ],
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "udienza",
+   "etichetta": "Udienza di comparizione e trattazione (art. 183)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "udienza",
+    "documento": "verbali e PEC di cancelleria"
+   },
+   "se_manca": "chiedere la data dell’udienza: i termini si contano da lì",
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "udienza"
+    }
+   ]
+  },
+  {
+   "campo": "rito",
+   "etichetta": "Rito della causa",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "La causa segue il rito ordinario o il semplificato (art. 281-decies)?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "281duodecies",
+     "perche": "termini nel rito semplificato"
+    }
+   ]
+  },
+  {
+   "campo": "numero_memoria",
+   "etichetta": "Memoria da depositare (n. 1, 2 o 3)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quale memoria depositiamo: n. 1, n. 2 o n. 3?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "171ter",
+     "perche": "contenuto diverso per ciascuna memoria"
+    }
+   ]
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Ultimo giorno per il deposito",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "rito ordinario: 40, 20 o 10 giorni prima dell’udienza dell’art. 183 secondo la memoria; rito semplificato: termini assegnati dal giudice; a ritroso, con sospensione feriale; se l’ultimo giorno cade di sabato o festivo si anticipa al primo giorno non festivo precedente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "171ter",
+     "perche": "termini a pena di decadenza"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    }
+   ]
+  },
+  {
+   "campo": "atti_avversari",
+   "etichetta": "Atti della controparte a cui rispondere",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "comparsa e memorie avversarie"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "171ter",
+     "perche": "replica alle domande ed eccezioni avversarie"
+    }
+   ],
+   "parole_documento": [
+    "comparsa",
+    "memoria"
+   ]
+  },
+  {
+   "campo": "contenuto",
+   "etichetta": "Domande, eccezioni, prove e documenti da indicare",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Cosa vuoi precisare o modificare, quali prove chiedi e quali documenti produci?"
+   }
+  },
+  {
+   "campo": "prove_proposte",
+   "etichetta": "Mezzi di prova proposti",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "proporre capitoli di prova e documenti coerenti con i fatti contestati"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "244",
+     "perche": "deduzione della prova per testimoni"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Domande ed eccezioni",
+   "compito": "precisazioni consentite dalla memoria scelta"
+  },
+  {
+   "blocco": "Istanze istruttorie",
+   "compito": "mezzi di prova e produzioni, con i capitoli"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "conclusioni aggiornate"
+  }
+ ],
+ "astensione": [
+  "udienza dell’art. 183 non nota",
+  "termine della memoria già scaduto: segnalarlo, la decadenza è automatica",
+  "per le memorie n. 2 e 3 manca la memoria avversaria a cui replicare"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

@@ -1,0 +1,193 @@
+{
+ "id": "CIV_ORD_036",
+ "titolo": "Istanza di prosecuzione dopo la sospensione",
+ "template": [
+  "CIV_ORD_036"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "295",
+   "perche": "sospensione necessaria"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "297",
+   "perche": "fissazione della nuova udienza"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Parte assistita (anagrafica e codice fiscale)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Controparte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "dati_causa",
+   "etichetta": "Ufficio, giudice e numero di ruolo della causa",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "fascicolo, PEC di cancelleria e verbali"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione dell’ufficio"
+    }
+   ],
+   "se_manca": "chiedere ufficio e numero di ruolo: senza la causa pendente l’atto non si deposita",
+   "compilatore": [
+    "recipient_or_court",
+    "case_reference_display"
+   ],
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "cessazione",
+   "etichetta": "Provvedimento che fa cessare la causa di sospensione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "sentenza passata in giudicato o altro provvedimento"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "297",
+     "perche": "decorrenza"
+    }
+   ],
+   "parole_documento": [
+    "sentenza",
+    "giudicato",
+    "provvedimento"
+   ]
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Ultimo giorno per chiedere la fissazione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "tre mesi dalla conoscenza del passaggio in giudicato, con sospensione feriale"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "297",
+     "perche": "termine perentorio"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Istanza",
+   "compito": "richiesta di fissazione dell’udienza di prosecuzione"
+  }
+ ],
+ "astensione": [
+  "termine già scaduto",
+  "provvedimento che fa cessare la sospensione non presente"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

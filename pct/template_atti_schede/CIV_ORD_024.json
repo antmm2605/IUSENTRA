@@ -1,0 +1,191 @@
+{
+ "id": "CIV_ORD_024",
+ "titolo": "Istanza sulla trattazione (anticipazione, rinvio, discussione orale, decisione)",
+ "template": [
+  "CIV_ORD_024",
+  "CIV_ORD_025",
+  "CIV_ORD_027",
+  "CIV_ORD_028",
+  "GDP_016"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "175",
+   "perche": "direzione del procedimento"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "189",
+   "perche": "rimessione della causa in decisione"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "281quinquies",
+   "perche": "decisione a seguito di trattazione scritta o mista"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "281sexies",
+   "perche": "decisione a seguito di discussione orale"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Parte assistita (anagrafica e codice fiscale)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Controparte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "dati_causa",
+   "etichetta": "Ufficio, giudice e numero di ruolo della causa",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "fascicolo, PEC di cancelleria e verbali"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione dell’ufficio"
+    }
+   ],
+   "se_manca": "chiedere ufficio e numero di ruolo: senza la causa pendente l’atto non si deposita",
+   "compilatore": [
+    "recipient_or_court",
+    "case_reference_display"
+   ],
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "udienza",
+   "etichetta": "Prossima udienza fissata",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "udienza",
+    "documento": "verbali e PEC di cancelleria"
+   },
+   "se_manca": "chiedere la data dell’udienza: i termini si contano da lì",
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "udienza"
+    }
+   ]
+  },
+  {
+   "campo": "richiesta",
+   "etichetta": "Cosa si chiede e perché",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Cosa chiedi (anticipare, rinviare, discutere oralmente, passare in decisione) e per quale motivo documentabile?"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Istanza",
+   "compito": "richiesta motivata con i fatti del fascicolo"
+  }
+ ],
+ "astensione": [
+  "motivo della richiesta non indicato",
+  "udienza non nota"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

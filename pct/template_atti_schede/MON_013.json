@@ -1,0 +1,277 @@
+{
+ "id": "MON_013",
+ "titolo": "Comparsa di costituzione dell’opposto",
+ "template": [
+  "MON_013"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "645",
+   "perche": "giudizio di opposizione"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "166",
+   "perche": "costituzione del convenuto"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "167",
+   "perche": "comparsa di risposta"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "648",
+   "perche": "provvisoria esecuzione in pendenza di opposizione"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Opposto (creditore)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Opponente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "opposizione",
+   "etichetta": "Atto di opposizione notificato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "citazione in opposizione"
+   },
+   "se_manca": "astensione: serve l’atto di opposizione",
+   "parole_documento": [
+    "opposizione",
+    "citazione"
+   ]
+  },
+  {
+   "campo": "udienza",
+   "etichetta": "Udienza indicata nell’opposizione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "udienza",
+    "documento": "atto di opposizione"
+   },
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "udienza"
+    }
+   ]
+  },
+  {
+   "campo": "rito",
+   "etichetta": "Rito dell’opposizione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quale rito segue l’opposizione: ordinario, semplificato, giudice di pace, lavoro o locazioni?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "645",
+     "perche": "rito dell’opposizione"
+    }
+   ]
+  },
+  {
+   "campo": "termine_costituzione",
+   "etichetta": "Ultimo giorno per costituirsi",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "rito ordinario: 70 giorni prima dell’udienza (art. 166); semplificato e giudice di pace: 10 giorni prima (artt. 281-undecies e 319); lavoro e locazioni: 10 giorni prima (art. 416); con sospensione feriale; se l’ultimo giorno cade di sabato o festivo si anticipa al primo giorno non festivo precedente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "166",
+     "perche": "rito ordinario"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "281undecies",
+     "perche": "rito semplificato"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "319",
+     "perche": "giudice di pace"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "416",
+     "perche": "lavoro e locazioni"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    }
+   ]
+  },
+  {
+   "campo": "provvisoria",
+   "etichetta": "Richiesta di provvisoria esecuzione",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Chiedi la provvisoria esecuzione del decreto?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "648",
+     "perche": "opposizione non fondata su prova scritta"
+    }
+   ]
+  },
+  {
+   "campo": "mediazione",
+   "etichetta": "Mediazione obbligatoria",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "La materia è soggetta a mediazione obbligatoria? In quel caso l’onere di avviarla è dell’opposto, a pena di revoca del decreto"
+   },
+   "norma": [
+    {
+     "atto": "28/2010",
+     "articolo": "5bis",
+     "perche": "onere della mediazione nell’opposizione"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatto",
+   "compito": "credito e prova scritta"
+  },
+  {
+   "blocco": "Diritto",
+   "compito": "infondatezza dei motivi di opposizione"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "rigetto dell’opposizione, conferma del decreto, eventuale provvisoria esecuzione"
+  }
+ ],
+ "astensione": [
+  "atto di opposizione non presente",
+  "termine di costituzione scaduto",
+  "materia soggetta a mediazione e mediazione non avviata: segnalare il rischio di revoca del decreto"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

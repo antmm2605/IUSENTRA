@@ -3,7 +3,9 @@
  "titolo": "Ricorso per decreto ingiuntivo",
  "template": [
   "MON_001",
-  "MON_002"
+  "MON_002",
+  "MON_003",
+  "MON_007"
  ],
  "base_normativa": [
   {

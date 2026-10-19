@@ -1,0 +1,229 @@
+{
+ "id": "MON_008",
+ "titolo": "Istanza di dichiarazione di esecutorietà del decreto",
+ "template": [
+  "MON_008"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "647",
+   "perche": "esecutorietà per mancata opposizione o costituzione; rinnovazione della notifica se l’intimato non ne ha avuto conoscenza"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "641",
+   "perche": "termine di opposizione"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Creditore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Debitore ingiunto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "dati_causa",
+   "etichetta": "Ufficio e numero del decreto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "fascicolo, PEC di cancelleria e verbali"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione dell’ufficio"
+    }
+   ],
+   "se_manca": "chiedere ufficio e numero di ruolo: senza la causa pendente l’atto non si deposita",
+   "compilatore": [
+    "recipient_or_court",
+    "case_reference_display"
+   ],
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "decreto",
+   "etichetta": "Decreto ingiuntivo e relata di notifica",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "decreto ingiuntivo"
+   },
+   "se_manca": "astensione: serve il decreto ingiuntivo",
+   "parole_documento": [
+    "decreto",
+    "ingiunzione",
+    "ingiuntivo"
+   ]
+  },
+  {
+   "campo": "notifica_decreto",
+   "etichetta": "Data di notifica del decreto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "notifica",
+    "documento": "relata di notifica del decreto"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "647",
+     "perche": "decorso del termine dalla notifica"
+    }
+   ],
+   "fatti": [
+    {
+     "categoria": "prova_notifica"
+    },
+    {
+     "categoria": "data",
+     "campo": "notifica"
+    }
+   ]
+  },
+  {
+   "campo": "scadenza_opposizione",
+   "etichetta": "Scadenza del termine di opposizione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "40 giorni dalla notifica (50 se l’intimato risiede in altri Stati dell’Unione europea, o il termine diverso indicato nel decreto), con sospensione feriale; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "641",
+     "perche": "termine"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    }
+   ]
+  },
+  {
+   "campo": "nessuna_opposizione",
+   "etichetta": "Mancata opposizione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Ti risulta che non sia stata proposta opposizione nel termine?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "647",
+     "perche": "mancata opposizione o mancata costituzione"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Istanza",
+   "compito": "richiesta di dichiarare esecutivo il decreto per decorso del termine"
+  }
+ ],
+ "astensione": [
+  "termine di opposizione non ancora decorso",
+  "notifica del decreto non documentata"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

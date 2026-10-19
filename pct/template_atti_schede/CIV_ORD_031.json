@@ -1,0 +1,204 @@
+{
+ "id": "CIV_ORD_031",
+ "titolo": "Nota spese",
+ "template": [
+  "CIV_ORD_031",
+  "MON_017"
+ ],
+ "base_normativa": [
+  {
+   "atto": "55/2014",
+   "articolo": "2",
+   "perche": "compensi e spese"
+  },
+  {
+   "atto": "55/2014",
+   "articolo": "4",
+   "perche": "parametri generali"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "91",
+   "perche": "condanna alle spese"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Parte assistita (anagrafica e codice fiscale)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Controparte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "dati_causa",
+   "etichetta": "Ufficio, giudice e numero di ruolo della causa",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "fascicolo, PEC di cancelleria e verbali"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione dell’ufficio"
+    }
+   ],
+   "se_manca": "chiedere ufficio e numero di ruolo: senza la causa pendente l’atto non si deposita",
+   "compilatore": [
+    "recipient_or_court",
+    "case_reference_display"
+   ],
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "valore",
+   "etichetta": "Valore della causa",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "fascicolo.valore_causa"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "55/2014",
+     "articolo": "5",
+     "perche": "determinazione del valore"
+    }
+   ]
+  },
+  {
+   "campo": "compensi",
+   "etichetta": "Compensi per fase secondo i parametri",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "fasi svolte e valori medi delle tabelle del D.M. 55/2014, da confermare"
+   },
+   "norma": [
+    {
+     "atto": "55/2014",
+     "articolo": "4",
+     "perche": "parametri"
+    }
+   ]
+  },
+  {
+   "campo": "spese",
+   "etichetta": "Spese vive documentate",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "ricevute del contributo unificato, notifiche e copie"
+   },
+   "parole_documento": [
+    "contributo",
+    "ricevuta",
+    "notifica"
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Nota",
+   "compito": "voci per fase con importi e spese documentate"
+  }
+ ],
+ "astensione": [
+  "valore della causa non determinabile"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

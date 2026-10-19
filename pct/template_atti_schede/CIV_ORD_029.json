@@ -1,0 +1,255 @@
+{
+ "id": "CIV_ORD_029",
+ "titolo": "Comparsa conclusionale e memoria di replica",
+ "template": [
+  "CIV_ORD_029",
+  "CIV_ORD_030"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "189",
+   "perche": "termini per note, conclusionali e repliche (collegio)"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "281quinquies",
+   "perche": "decisione davanti al giudice monocratico"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "190",
+   "perche": "comparse conclusionali e memorie"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "155",
+   "perche": "computo dei termini"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "1",
+   "perche": "sospensione feriale dei termini"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Parte assistita (anagrafica e codice fiscale)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Controparte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "dati_causa",
+   "etichetta": "Ufficio, giudice e numero di ruolo della causa",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "fascicolo, PEC di cancelleria e verbali"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione dell’ufficio"
+    }
+   ],
+   "se_manca": "chiedere ufficio e numero di ruolo: senza la causa pendente l’atto non si deposita",
+   "compilatore": [
+    "recipient_or_court",
+    "case_reference_display"
+   ],
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "udienza_rimessione",
+   "etichetta": "Udienza di rimessione della causa in decisione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "udienza",
+    "documento": "verbali e PEC di cancelleria"
+   },
+   "se_manca": "chiedere la data dell’udienza: i termini si contano da lì",
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "udienza"
+    }
+   ]
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Ultimo giorno per il deposito",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "60 giorni prima dell’udienza di rimessione per la precisazione delle conclusioni, 30 per la conclusionale, 15 per la replica, a ritroso con sospensione feriale; se l’ultimo giorno cade di sabato o festivo si anticipa al primo giorno non festivo precedente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "189",
+     "perche": "termini perentori"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    }
+   ]
+  },
+  {
+   "campo": "verbali",
+   "etichetta": "Conclusioni precisate e prove assunte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "note di precisazione delle conclusioni e verbali"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "189",
+     "perche": "precisazione delle conclusioni"
+    }
+   ],
+   "parole_documento": [
+    "conclusioni",
+    "verbale"
+   ]
+  },
+  {
+   "campo": "conclusionale_avversaria",
+   "etichetta": "Comparsa conclusionale avversaria (per la replica)",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "comparsa conclusionale della controparte"
+   },
+   "parole_documento": [
+    "conclusionale"
+   ]
+  },
+  {
+   "campo": "tesi",
+   "etichetta": "Punti da valorizzare",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Su quali prove e argomenti vuoi insistere?"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Svolgimento",
+   "compito": "sintesi del processo e delle prove assunte"
+  },
+  {
+   "blocco": "Diritto",
+   "compito": "fondatezza delle domande con le prove e le norme"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "conclusioni come precisate"
+  }
+ ],
+ "astensione": [
+  "udienza di rimessione non nota",
+  "termine già scaduto",
+  "per la replica manca la conclusionale avversaria"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

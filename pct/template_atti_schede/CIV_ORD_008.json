@@ -1,0 +1,226 @@
+{
+ "id": "CIV_ORD_008",
+ "titolo": "Atto di citazione per accertamento negativo del credito",
+ "template": [
+  "CIV_ORD_008"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "163",
+   "perche": "contenuto della citazione"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "100",
+   "perche": "interesse ad agire"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2697",
+   "perche": "onere della prova"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Attore (anagrafica e codice fiscale)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Convenuto che vanta il credito",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "pretesa",
+   "etichetta": "Atto con cui la controparte vanta il credito",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "diffida, fattura o richiesta di pagamento"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "100",
+     "perche": "interesse attuale ad agire"
+    }
+   ],
+   "se_manca": "astensione: senza una pretesa della controparte manca l’interesse ad agire",
+   "parole_documento": [
+    "diffida",
+    "fattura",
+    "richiesta",
+    "sollecito"
+   ]
+  },
+  {
+   "campo": "ragioni",
+   "etichetta": "Ragioni per cui il credito non esiste o è minore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Perché il credito non è dovuto (mai sorto, pagato, prescritto, minore)? Con quali documenti?"
+   }
+  },
+  {
+   "campo": "fatti",
+   "etichetta": "Fatti rilevanti con date e documenti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "eventi_e_date",
+    "documento": "documenti del fascicolo"
+   },
+   "compilatore": [
+    "facts"
+   ],
+   "fatti": [
+    {
+     "categoria": "evento"
+    },
+    {
+     "categoria": "data"
+    }
+   ]
+  },
+  {
+   "campo": "udienza_citazione",
+   "etichetta": "Udienza di prima comparizione e termini a comparire",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "data indicata dall’attore nel rispetto dei termini dell’art. 163-bis"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "163bis",
+     "perche": "termini per comparire"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatto",
+   "compito": "pretesa avversaria e circostanze che la escludono"
+  },
+  {
+   "blocco": "Diritto",
+   "compito": "interesse ad agire e infondatezza del credito"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "accertamento che il credito non è dovuto, in tutto o in parte, con spese"
+  }
+ ],
+ "astensione": [
+  "nessuna pretesa della controparte nel fascicolo",
+  "ragioni dell’inesistenza non indicate"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

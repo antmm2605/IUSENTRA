@@ -1,0 +1,337 @@
+{
+ "id": "MON_011",
+ "titolo": "Atto di opposizione a decreto ingiuntivo",
+ "template": [
+  "MON_011",
+  "MON_012"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "645",
+   "perche": "opposizione davanti all’ufficio che ha emesso il decreto; udienza anticipabile"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "641",
+   "perche": "termine di quaranta giorni"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "163",
+   "perche": "contenuto della citazione nel rito ordinario"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "316",
+   "perche": "ricorso davanti al giudice di pace"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "447bis",
+   "perche": "rito delle locazioni"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "650",
+   "perche": "opposizione tardiva"
+  },
+  {
+   "atto": "28/2010",
+   "articolo": "5bis",
+   "perche": "mediazione nell’opposizione a decreto ingiuntivo"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "1",
+   "perche": "sospensione feriale dei termini"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Opponente (debitore ingiunto)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Opposto (creditore ricorrente)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "decreto",
+   "etichetta": "Decreto ingiuntivo e relata di notifica",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "decreto ingiuntivo"
+   },
+   "se_manca": "astensione: serve il decreto ingiuntivo",
+   "parole_documento": [
+    "decreto",
+    "ingiunzione",
+    "ingiuntivo"
+   ]
+  },
+  {
+   "campo": "notifica_decreto",
+   "etichetta": "Data di notifica del decreto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "notifica",
+    "documento": "relata di notifica del decreto"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "641",
+     "perche": "decorrenza del termine"
+    }
+   ],
+   "fatti": [
+    {
+     "categoria": "prova_notifica"
+    },
+    {
+     "categoria": "data",
+     "campo": "notifica"
+    }
+   ]
+  },
+  {
+   "campo": "scadenza_opposizione",
+   "etichetta": "Ultimo giorno per l’opposizione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "40 giorni dalla notifica del decreto (o il termine diverso indicato), con sospensione feriale; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "641",
+     "perche": "termine"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    }
+   ]
+  },
+  {
+   "campo": "ufficio",
+   "etichetta": "Ufficio competente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "lo stesso ufficio giudiziario del giudice che ha emesso il decreto (competenza funzionale)"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "645",
+     "perche": "competenza"
+    }
+   ],
+   "compilatore": [
+    "recipient_or_court"
+   ]
+  },
+  {
+   "campo": "rito",
+   "etichetta": "Rito e forma dell’atto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quale rito segue la causa: ordinario (citazione), giudice di pace, lavoro o locazioni (ricorso)?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "645",
+     "perche": "forma dell’atto introduttivo"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "316",
+     "perche": "giudice di pace"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "447bis",
+     "perche": "locazioni"
+    }
+   ]
+  },
+  {
+   "campo": "motivi",
+   "etichetta": "Motivi di opposizione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Per quali ragioni il credito non è dovuto o è minore? Con quali documenti?"
+   }
+  },
+  {
+   "campo": "eccezioni",
+   "etichetta": "Eccezioni e domande riconvenzionali",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "proporre eccezioni e domande riconvenzionali dell’opponente, che vanno proposte nell’atto di opposizione"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "645",
+     "perche": "giudizio di opposizione"
+    }
+   ]
+  },
+  {
+   "campo": "fatti",
+   "etichetta": "Fatti rilevanti con date e documenti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "eventi_e_date",
+    "documento": "documenti del fascicolo"
+   },
+   "compilatore": [
+    "facts"
+   ],
+   "fatti": [
+    {
+     "categoria": "evento"
+    },
+    {
+     "categoria": "data"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatto",
+   "compito": "rapporto e contestazione del credito"
+  },
+  {
+   "blocco": "Diritto",
+   "compito": "motivi di opposizione con le norme"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "revoca del decreto, rigetto della domanda, spese"
+  }
+ ],
+ "astensione": [
+  "termine di opposizione scaduto: valutare solo l’opposizione tardiva dell’art. 650",
+  "decreto o notifica non presenti",
+  "rito non indicato: la forma dell’atto (citazione o ricorso) dipende dal rito"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

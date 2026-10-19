@@ -1,0 +1,226 @@
+{
+ "id": "CAU_012",
+ "titolo": "Denuncia di nuova opera o di danno temuto",
+ "template": [
+  "CAU_012",
+  "CAU_013"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "1171",
+   "perche": "denunzia di nuova opera"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1172",
+   "perche": "denunzia di danno temuto"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "688",
+   "perche": "procedimento di denuncia"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "3",
+   "perche": "esclusione della sospensione feriale"
+  },
+  {
+   "atto": "12/1941",
+   "articolo": "92",
+   "perche": "affari urgenti esclusi dalla sospensione"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Ricorrente (proprietario o possessore)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Controparte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "ufficio",
+   "etichetta": "Giudice competente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "tribunale del luogo in cui è stata intrapresa l’opera o si trova la cosa"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "688",
+     "perche": "competenza"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "21",
+     "perche": "foro del luogo"
+    }
+   ]
+  },
+  {
+   "campo": "pericolo",
+   "etichetta": "Opera o pericolo di danno",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quale opera nuova (iniziata da meno di un anno e non terminata) o quale pericolo di danno grave e prossimo?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "1171",
+     "perche": "opera non terminata e non decorso l’anno"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "1172",
+     "perche": "pericolo di danno grave e prossimo"
+    }
+   ]
+  },
+  {
+   "campo": "fatti",
+   "etichetta": "Fatti rilevanti con date e documenti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "eventi_e_date",
+    "documento": "documenti del fascicolo"
+   },
+   "compilatore": [
+    "facts"
+   ],
+   "fatti": [
+    {
+     "categoria": "evento"
+    },
+    {
+     "categoria": "data"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatto",
+   "compito": "opera o situazione di pericolo con date"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "sospensione dell’opera o misure per ovviare al pericolo"
+  }
+ ],
+ "astensione": [
+  "opera già terminata o iniziata da più di un anno"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

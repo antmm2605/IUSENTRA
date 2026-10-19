@@ -1,0 +1,286 @@
+{
+ "id": "CAU_005",
+ "titolo": "Ricorso per sequestro conservativo",
+ "template": [
+  "CAU_005"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "671",
+   "perche": "sequestro conservativo"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2905",
+   "perche": "sequestro conservativo a garanzia del credito"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "669bis",
+   "perche": "forma della domanda"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "669ter",
+   "perche": "competenza ante causam"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "669sexies",
+   "perche": "procedimento"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "669octies",
+   "perche": "provvedimento e inizio del merito"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "675",
+   "perche": "esecuzione entro trenta giorni"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "3",
+   "perche": "esclusione della sospensione feriale"
+  },
+  {
+   "atto": "12/1941",
+   "articolo": "92",
+   "perche": "affari urgenti esclusi dalla sospensione"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Creditore ricorrente (anagrafica e codice fiscale)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Debitore resistente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "ufficio",
+   "etichetta": "Giudice competente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "giudice competente per il merito o, in corso di causa, quello della causa"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "669ter",
+     "perche": "competenza ante causam"
+    }
+   ]
+  },
+  {
+   "campo": "fatti",
+   "etichetta": "Fatti rilevanti con date e documenti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "eventi_e_date",
+    "documento": "documenti del fascicolo"
+   },
+   "compilatore": [
+    "facts"
+   ],
+   "fatti": [
+    {
+     "categoria": "evento"
+    },
+    {
+     "categoria": "data"
+    }
+   ]
+  },
+  {
+   "campo": "credito",
+   "etichetta": "Credito da garantire e prova",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Qual è il credito, a quanto ammonta e con quali documenti lo provi?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "671",
+     "perche": "creditore"
+    }
+   ]
+  },
+  {
+   "campo": "garanzia",
+   "etichetta": "Timore di perdere la garanzia",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quali fatti fanno temere che il debitore disperda i beni?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "671",
+     "perche": "fondato timore di perdere la garanzia"
+    }
+   ]
+  },
+  {
+   "campo": "beni",
+   "etichetta": "Beni da sequestrare",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Su quali beni chiedi il sequestro e fino a quale importo?"
+   }
+  },
+  {
+   "campo": "termini_successivi",
+   "etichetta": "Termini dopo la concessione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "esecuzione entro 30 giorni dalla pronuncia, senza sospensione feriale; causa di merito entro 60 giorni se non già pendente, calcolati per prudenza senza sospensione feriale (la scadenza più vicina: iniziare il merito prima non è mai tardivo)"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "675",
+     "perche": "trenta giorni"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "669octies",
+     "perche": "sessanta giorni"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatto",
+   "compito": "credito e condotte del debitore"
+  },
+  {
+   "blocco": "Diritto",
+   "compito": "presupposti dell’art. 671 c.p.c."
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "autorizzazione al sequestro fino all’importo"
+  }
+ ],
+ "astensione": [
+  "credito non documentato",
+  "nessun elemento sul pericolo di dispersione"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

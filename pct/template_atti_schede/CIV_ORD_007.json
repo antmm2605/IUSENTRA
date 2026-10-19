@@ -1,0 +1,231 @@
+{
+ "id": "CIV_ORD_007",
+ "titolo": "Atto di citazione per arricchimento senza causa",
+ "template": [
+  "CIV_ORD_007"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "163",
+   "perche": "contenuto della citazione"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2041",
+   "perche": "azione generale di arricchimento"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2042",
+   "perche": "carattere sussidiario dell’azione"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2697",
+   "perche": "onere della prova"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Attore (anagrafica e codice fiscale)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Convenuto arricchito",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "arricchimento",
+   "etichetta": "Arricchimento del convenuto e impoverimento dell’attore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Di quanto si è arricchito il convenuto, di quanto si è impoverito il cliente e con quali documenti lo provi?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "2041",
+     "perche": "indennizzo nei limiti dell’arricchimento"
+    }
+   ]
+  },
+  {
+   "campo": "sussidiarieta",
+   "etichetta": "Mancanza di altre azioni",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Il cliente ha a disposizione un’altra azione (contrattuale, di ripetizione, risarcitoria) per lo stesso pregiudizio?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "2042",
+     "perche": "l’azione non è proponibile se ne esiste un’altra"
+    }
+   ],
+   "se_manca": "se esiste un’altra azione, proporre quella in via principale e l’arricchimento solo in via subordinata"
+  },
+  {
+   "campo": "fatti",
+   "etichetta": "Fatti rilevanti con date e documenti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "eventi_e_date",
+    "documento": "documenti del fascicolo"
+   },
+   "compilatore": [
+    "facts"
+   ],
+   "fatti": [
+    {
+     "categoria": "evento"
+    },
+    {
+     "categoria": "data"
+    }
+   ]
+  },
+  {
+   "campo": "udienza_citazione",
+   "etichetta": "Udienza di prima comparizione e termini a comparire",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "data indicata dall’attore nel rispetto dei termini dell’art. 163-bis"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "163bis",
+     "perche": "termini per comparire"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatto",
+   "compito": "spostamento patrimoniale con date e documenti"
+  },
+  {
+   "blocco": "Diritto",
+   "compito": "presupposti degli artt. 2041 e 2042 c.c."
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "indennizzo nei limiti dell’arricchimento, con interessi e spese"
+  }
+ ],
+ "astensione": [
+  "manca la prova dello spostamento patrimoniale"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

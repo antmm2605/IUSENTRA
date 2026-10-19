@@ -1,0 +1,278 @@
+{
+ "id": "GDP_014",
+ "titolo": "Opposizione a cartella o intimazione per sanzioni amministrative",
+ "template": [
+  "GDP_014",
+  "GDP_015"
+ ],
+ "base_normativa": [
+  {
+   "atto": "150/2011",
+   "articolo": "7",
+   "perche": "opposizione recuperatoria per verbali del codice della strada non notificati"
+  },
+  {
+   "atto": "150/2011",
+   "articolo": "6",
+   "perche": "opposizione recuperatoria per ordinanze-ingiunzione"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "615",
+   "perche": "fatti estintivi successivi al titolo"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "617",
+   "perche": "vizi formali dell’atto, venti giorni"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "1",
+   "perche": "sospensione feriale dei termini"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "3",
+   "perche": "esclusione della sospensione feriale"
+  },
+  {
+   "atto": "12/1941",
+   "articolo": "92",
+   "perche": "affari urgenti esclusi dalla sospensione"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Opponente (anagrafica e codice fiscale)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Ente creditore e agente della riscossione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "atto",
+   "etichetta": "Cartella o intimazione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "cartella di pagamento o intimazione"
+   },
+   "se_manca": "astensione: serve l’atto opposto",
+   "parole_documento": [
+    "cartella",
+    "intimazione"
+   ]
+  },
+  {
+   "campo": "natura",
+   "etichetta": "Natura del credito",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "La cartella riguarda sanzioni amministrative (non tributi)? Per i tributi è competente il giudice tributario"
+   }
+  },
+  {
+   "campo": "notifica",
+   "etichetta": "Data di notifica",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "notifica",
+    "documento": "relata"
+   },
+   "fatti": [
+    {
+     "categoria": "prova_notifica"
+    },
+    {
+     "categoria": "data"
+    }
+   ]
+  },
+  {
+   "campo": "vizio",
+   "etichetta": "Tipo di vizio",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Il verbale o l’ordinanza non ti erano mai stati notificati (opposizione recuperatoria, 30 giorni), il credito si è estinto dopo (prescrizione: art. 615) o l’atto ha vizi formali (art. 617, 20 giorni)?"
+   },
+   "norma": [
+    {
+     "atto": "150/2011",
+     "articolo": "7",
+     "perche": "recuperatoria"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "615",
+     "perche": "merito"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "617",
+     "perche": "vizi formali"
+    }
+   ]
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Termine e giudice secondo il vizio",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "recuperatoria: 30 giorni dalla notifica della cartella, con sospensione feriale, giudice di pace; art. 617: 20 giorni, senza sospensione feriale, davanti al tribunale del luogo di notifica (Cass. 3582/2022); art. 615: senza termine, giudice per valore, senza sospensione feriale"
+   },
+   "norma": [
+    {
+     "atto": "150/2011",
+     "articolo": "7",
+     "perche": "trenta giorni"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "617",
+     "perche": "venti giorni"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "3",
+     "perche": "esclusione della sospensione feriale"
+    },
+    {
+     "atto": "12/1941",
+     "articolo": "92",
+     "perche": "affari urgenti esclusi dalla sospensione"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Motivi",
+   "compito": "vizio indicato con lo strumento corrispondente"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "annullamento o accertamento"
+  }
+ ],
+ "astensione": [
+  "credito tributario: competente il giudice tributario",
+  "tipo di vizio non indicato",
+  "per i vizi formali il termine di venti giorni è scaduto"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

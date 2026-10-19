@@ -1,0 +1,235 @@
+{
+ "id": "CIV_ORD_016",
+ "titolo": "Deduzioni istruttorie e capitoli di prova",
+ "template": [
+  "CIV_ORD_016",
+  "CIV_ORD_017"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "244",
+   "perche": "indicazione dei testimoni e dei fatti in articoli separati"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "171ter",
+   "perche": "termini per le istanze istruttorie"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2697",
+   "perche": "onere della prova"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2721",
+   "perche": "limiti di valore della prova testimoniale"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Parte assistita (anagrafica e codice fiscale)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Controparte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "dati_causa",
+   "etichetta": "Ufficio, giudice e numero di ruolo della causa",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "fascicolo, PEC di cancelleria e verbali"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione dell’ufficio"
+    }
+   ],
+   "se_manca": "chiedere ufficio e numero di ruolo: senza la causa pendente l’atto non si deposita",
+   "compilatore": [
+    "recipient_or_court",
+    "case_reference_display"
+   ],
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "fatti_da_provare",
+   "etichetta": "Fatti da provare",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quali fatti contestati vuoi provare e con quali mezzi?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "2697",
+     "perche": "onere della prova"
+    }
+   ]
+  },
+  {
+   "campo": "testimoni",
+   "etichetta": "Testimoni (nome e indirizzo)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Chi sono i testimoni e su quali capitoli li chiami?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "244",
+     "perche": "indicazione delle persone"
+    }
+   ]
+  },
+  {
+   "campo": "capitoli",
+   "etichetta": "Capitoli di prova",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "formulare i capitoli in articoli separati, senza valutazioni, ciascuno su un fatto"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "244",
+     "perche": "articoli separati"
+    }
+   ]
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Termine per le istanze istruttorie",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "prova diretta nella memoria n. 2 (20 giorni prima dell’udienza), prova contraria nella memoria n. 3 (10 giorni prima), a ritroso con sospensione feriale; se l’ultimo giorno cade di sabato o festivo si anticipa al primo giorno non festivo precedente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "171ter",
+     "perche": "decadenza"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Capitoli",
+   "compito": "capitoli numerati, uno per fatto"
+  },
+  {
+   "blocco": "Istanze",
+   "compito": "mezzi di prova richiesti con i testimoni"
+  }
+ ],
+ "astensione": [
+  "fatti da provare non indicati",
+  "termine per le deduzioni già scaduto"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

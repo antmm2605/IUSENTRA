@@ -1,0 +1,226 @@
+{
+ "id": "GDP_001",
+ "titolo": "Ricorso davanti al giudice di pace",
+ "template": [
+  "GDP_001",
+  "GDP_002",
+  "GDP_008",
+  "GDP_009"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "316",
+   "perche": "forma della domanda nel rito semplificato"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "281undecies",
+   "perche": "ricorso, decreto di fissazione e termini a comparire"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "318",
+   "perche": "contenuto della domanda"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "7",
+   "perche": "competenza"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "113",
+   "perche": "pronuncia secondo equità"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Ricorrente (anagrafica e codice fiscale)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Resistente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "ufficio",
+   "etichetta": "Giudice di pace competente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "competenza per valore secondo i limiti vigenti dell’art. 7 (10.000 euro; 25.000 euro per la circolazione), per materia e per territorio, da confermare"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "7",
+     "perche": "competenza del giudice di pace"
+    }
+   ]
+  },
+  {
+   "campo": "domanda",
+   "etichetta": "Oggetto della domanda e valore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Cosa chiedi e per quale importo?"
+   }
+  },
+  {
+   "campo": "fatti",
+   "etichetta": "Fatti rilevanti con date e documenti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "eventi_e_date",
+    "documento": "documenti del fascicolo"
+   },
+   "compilatore": [
+    "facts"
+   ],
+   "fatti": [
+    {
+     "categoria": "evento"
+    },
+    {
+     "categoria": "data"
+    }
+   ]
+  },
+  {
+   "campo": "prove",
+   "etichetta": "Mezzi di prova e documenti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quali prove e documenti indichi?"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatto",
+   "compito": "fatti con date e documenti"
+  },
+  {
+   "blocco": "Diritto",
+   "compito": "norme applicabili o equità sotto i 1.100 euro"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "condanna o accertamento con spese"
+  }
+ ],
+ "astensione": [
+  "valore oltre la competenza del giudice di pace",
+  "domanda non indicata",
+  "si chiede una citazione: per le cause iniziate dal 28/02/2023 la domanda si propone con ricorso, quindi si redige il ricorso"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

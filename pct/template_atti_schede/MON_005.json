@@ -1,0 +1,225 @@
+{
+ "id": "MON_005",
+ "titolo": "Ricorso monitorio per canoni di locazione",
+ "template": [
+  "MON_005"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "633",
+   "perche": "condizioni di ammissibilità"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "634",
+   "perche": "prova scritta"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "447bis",
+   "perche": "rito locatizio dell’eventuale opposizione"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Locatore ricorrente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Conduttore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "contratto",
+   "etichetta": "Contratto di locazione registrato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "contratto di locazione"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "634",
+     "perche": "prova scritta"
+    }
+   ],
+   "se_manca": "astensione: senza contratto manca la prova scritta",
+   "parole_documento": [
+    "locazione",
+    "contratto"
+   ]
+  },
+  {
+   "campo": "canoni",
+   "etichetta": "Canoni scaduti e non pagati",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quali mensilità e oneri accessori sono scaduti e non pagati, per quale importo?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "633",
+     "perche": "credito liquido ed esigibile"
+    }
+   ]
+  },
+  {
+   "campo": "sfratto",
+   "etichetta": "Scelta dello strumento",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Vuoi anche la risoluzione e il rilascio? In quel caso valuta l’intimazione di sfratto per morosità invece del solo monitorio"
+   },
+   "norma": [
+    {
+     "atto": "legge_392_1978",
+     "articolo": "55",
+     "perche": "termine di grazia nello sfratto per morosità"
+    }
+   ]
+  },
+  {
+   "campo": "ufficio",
+   "etichetta": "Ufficio giudiziario competente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "competenza per materia, valore e territorio secondo le norme indicate; da confermare"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "447bis",
+     "perche": "competenza del tribunale del luogo dell’immobile"
+    }
+   ],
+   "compilatore": [
+    "recipient_or_court"
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatto",
+   "compito": "contratto, canoni scaduti e messa in mora"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "ingiunzione di pagamento con interessi e spese"
+  }
+ ],
+ "astensione": [
+  "contratto di locazione non presente",
+  "canoni non indicati"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

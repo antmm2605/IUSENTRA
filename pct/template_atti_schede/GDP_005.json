@@ -1,0 +1,251 @@
+{
+ "id": "GDP_005",
+ "titolo": "Opposizione a ordinanza-ingiunzione e sanzione amministrativa",
+ "template": [
+  "GDP_005",
+  "GDP_006"
+ ],
+ "base_normativa": [
+  {
+   "atto": "legge_689_1981",
+   "articolo": "22",
+   "perche": "opposizione all’ordinanza-ingiunzione"
+  },
+  {
+   "atto": "150/2011",
+   "articolo": "6",
+   "perche": "rito del lavoro, termine e competenza"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Opponente (anagrafica e codice fiscale)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Autorità che ha emesso l’ordinanza",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "ufficio",
+   "etichetta": "Giudice competente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "giudice del luogo della violazione; giudice di pace o tribunale secondo materia e importo"
+   },
+   "norma": [
+    {
+     "atto": "150/2011",
+     "articolo": "6",
+     "perche": "competenza"
+    }
+   ]
+  },
+  {
+   "campo": "provvedimento",
+   "etichetta": "Ordinanza-ingiunzione impugnato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "ordinanza-ingiunzione"
+   },
+   "se_manca": "astensione: serve ordinanza-ingiunzione",
+   "parole_documento": [
+    "ordinanza",
+    "ingiunzione",
+    "sanzione"
+   ]
+  },
+  {
+   "campo": "notifica",
+   "etichetta": "Data di notifica o contestazione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "notifica",
+    "documento": "relata o verbale"
+   },
+   "norma": [
+    {
+     "atto": "150/2011",
+     "articolo": "6",
+     "perche": "termine"
+    }
+   ],
+   "fatti": [
+    {
+     "categoria": "prova_notifica"
+    },
+    {
+     "categoria": "data"
+    }
+   ]
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Ultimo giorno per l’opposizione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "30 giorni dalla notifica (60 se residente all’estero), con sospensione feriale; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)"
+   },
+   "norma": [
+    {
+     "atto": "150/2011",
+     "articolo": "6",
+     "perche": "termine"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    }
+   ]
+  },
+  {
+   "campo": "motivi",
+   "etichetta": "Motivi di opposizione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quali vizi del provvedimento o dell’accertamento fai valere? Con quali prove?"
+   }
+  },
+  {
+   "campo": "sospensione",
+   "etichetta": "Richiesta di sospensione",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Chiedi la sospensione dell’efficacia esecutiva? Per quali gravi e circostanziate ragioni?"
+   },
+   "norma": [
+    {
+     "atto": "150/2011",
+     "articolo": "5",
+     "perche": "sospensione dell’efficacia esecutiva"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Motivi",
+   "compito": "vizi dell’ordinanza e del procedimento sanzionatorio"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "annullamento o riduzione della sanzione"
+  }
+ ],
+ "astensione": [
+  "termine per l’opposizione scaduto",
+  "materia di competenza del tribunale"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

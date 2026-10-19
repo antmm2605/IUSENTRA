@@ -173,7 +173,7 @@ function formatTime(value: Date): string {
 }
 
 function durationLabel(start: Date, end: Date): string {
-  const minutes = Math.max(15, Math.round((end.getTime() - start.getTime()) / 60000))
+  const minutes = Math.max(1, Math.round((end.getTime() - start.getTime()) / 60000))
   if (minutes < 60) return `${minutes} min`
   const hours = Math.floor(minutes / 60)
   const rest = minutes % 60
@@ -257,7 +257,8 @@ function pickFirst(record: Record<string, unknown>, keys: string[]): unknown {
 function fallbackEnd(start: Date, rawEnd: unknown, rawDuration: unknown): Date {
   const parsed = parseDate(rawEnd)
   if (parsed && parsed.getTime() > start.getTime()) return parsed
-  const minutes = Math.max(15, Number(rawDuration || 60))
+  const requestedMinutes = Number(rawDuration)
+  const minutes = Number.isFinite(requestedMinutes) && requestedMinutes > 0 ? requestedMinutes : 60
   return new Date(start.getTime() + minutes * 60000)
 }
 
@@ -469,7 +470,7 @@ export function moveEventToDateTime(event: AgendaEvent, dayIso: string, time?: s
   const targetTime = time ? timeParts(time) : null
   const movedStart = new Date(target)
   movedStart.setHours(targetTime?.hours ?? start.getHours(), targetTime?.minutes ?? start.getMinutes(), 0, 0)
-  const durationMs = Math.max(15 * 60000, end.getTime() - start.getTime())
+  const durationMs = Math.max(60000, end.getTime() - start.getTime())
   const movedEnd = new Date(movedStart.getTime() + durationMs)
   return {
     ...event,

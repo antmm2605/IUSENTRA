@@ -1,5 +1,6 @@
 """Preparazione esplicita del repository documentale; nessuna lettura di documenti."""
 from datetime import datetime, timezone
+from contextlib import closing
 from pathlib import Path
 import sqlite3
 import time
@@ -28,7 +29,9 @@ def prepare_document_ai_schema(backend, fascicoli_db_path, *, backup_dir=None):
         def progress(status, remaining, total):
             if time.monotonic() >= deadline:
                 raise TimeoutError('Backup SQL non concluso entro 30 minuti: preparazione interrotta.')
-        with sqlite3.connect(pending) as backup:
+        # Il context manager SQLite governa la transazione, non la chiusura:
+        # Windows impedisce la rinomina finché la connessione resta aperta.
+        with closing(sqlite3.connect(pending)) as backup, backup:
             backend.conn.backup(backup, pages=256, progress=progress)
             if backup.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
                 raise RuntimeError('Backup SQL non integro: preparazione documentale interrotta.')

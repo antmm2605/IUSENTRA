@@ -1524,6 +1524,7 @@ class GestioneDatabase:
         }
         try:
             target.execute("PRAGMA foreign_keys = OFF")
+            target.execute("BEGIN IMMEDIATE")
             for table_name in cls._sqlite_table_names_for_merge(source):
                 if not cls._sqlite_has_table(target, table_name):
                     cls._sqlite_copy_table_schema(source, target, table_name)
@@ -1558,6 +1559,7 @@ class GestioneDatabase:
                     f"({', '.join(cls._sqlite_identifier(column) for column in columns)}) "
                     f"VALUES ({', '.join('?' for _ in columns)})"
                 )
+                projected_keys = []
                 for row in source.execute(select_sql).fetchall():
                     existing = None
                     if pk_columns:
@@ -1578,6 +1580,8 @@ class GestioneDatabase:
                         target.execute(insert_sql, tuple(row[column] for column in columns))
                         table_report["imported"] += 1
                         report["records_imported"] += 1
+                        if table_name in {'appuntamenti', 'scadenze'}:
+                            projected_keys.append(str(row['id']))
                         continue
                     if cls._sqlite_row_canonical(existing, columns) == cls._sqlite_row_canonical(row, columns):
                         table_report["already_present"] += 1
@@ -1599,6 +1603,12 @@ class GestioneDatabase:
                         f"SELECT COUNT(*) FROM {cls._sqlite_identifier(table_name)}"
                     ).fetchone() or [0])[0] or 0
                 )
+                if target_after != target_before + table_report["imported"]:
+                    raise RuntimeError(f"Riconciliazione incompleta per {table_name}: nessuna modifica confermata.")
+                if projected_keys:
+                    from pct.calendar_query_writer import project_if_registered
+                    project_if_registered(target, domain='agenda' if table_name == 'appuntamenti' else 'deadlines',
+                                          keys=projected_keys)
                 table_report["preserved_existing"] = max(
                     target_before - table_report["already_present"],
                     0,
@@ -1612,6 +1622,9 @@ class GestioneDatabase:
                 ):
                     report["tables"][table_name] = table_report
             target.commit()
+        except BaseException:
+            target.rollback()
+            raise
         finally:
             try:
                 target.execute("PRAGMA foreign_keys = ON")
@@ -1621,13 +1634,46 @@ class GestioneDatabase:
             target.close()
         return report
 
+    def _calendari_sql_autorevoli(self, target_db_path: Path) -> Dict[str, Path]:
+        from pct.scadenziario_sql_owner import read_owner, resolve_owner
+        from pct.storage import StudioDB
+        protected: Dict[str, Path] = {}
+        backend = None
+        try:
+            for key, domain in (("appuntamenti", "agenda"), ("scadenze", "scadenziario")):
+                source = self.percorsi.get(key)
+                if not target_db_path.is_file():
+                    if source is not None and read_owner(source) is not None:
+                        raise RuntimeError("Archivio SQL adottato assente: ripristino governato necessario.")
+                    continue
+                if backend is None:
+                    backend = StudioDB(str(target_db_path), initialize_schema=False, readonly=True)
+                table = domain + '_sql_state'
+                exists = backend.conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone()
+                registered = backend.conn.execute(f'SELECT source FROM {table}').fetchall() if exists else []
+                if registered:
+                    if len(registered) != 1:
+                        raise RuntimeError('Calendario SQL con proprietà discordanti: migrazione sospesa.')
+                    native_source = Path(registered[0][0])
+                    _, confirmed = resolve_owner(native_source, backend, domain=domain)
+                    if not confirmed:
+                        raise RuntimeError('Collegamento del calendario SQL mancante: recupero necessario.')
+                    protected[key] = native_source
+                elif source is not None and read_owner(source) is not None:
+                    resolve_owner(source, backend, domain=domain)  # Fence non confermato: vietato ricreare il DB.
+        finally:
+            if backend is not None:
+                backend.chiudi()
+        return protected
+
     def riconcilia_verso_sqlite(self, percorso_db: str) -> RisultatoMigrazione:
         """Riconcilia SQLite preservando il database operativo come base."""
         t0 = time.monotonic()
         target_db_path = resolve_sqlite_path(percorso_db)
         target_db_path.parent.mkdir(parents=True, exist_ok=True)
+        protected = self._calendari_sql_autorevoli(target_db_path)
         precheck = self._anti_loss_precheck(target_db_path)
-        if not target_db_path.exists() or precheck.get("ok", True):
+        if not protected and (not target_db_path.exists() or precheck.get("ok", True)):
             risultato = self.migra_verso_sqlite(str(target_db_path))
             risultato.audit.setdefault("reconciliation", {"mode": "non necessaria"})
             return risultato
@@ -1664,16 +1710,23 @@ class GestioneDatabase:
             "backup_db": str(backup_db_path),
             "source_db": str(source_db_path),
             "staging_db": str(staging_db_path),
+            "sql_authoritative_domains": sorted(protected),
         }
+        historical = {key for key, path in self.percorsi.items()
+                      if key in protected and path.resolve() == protected[key].resolve()}
+        source_migrator = GestioneDatabase({key: str(path) for key, path in self.percorsi.items()
+                                           if key not in historical}) if protected else self
+        merge_target = target_db_path if protected else staging_db_path
 
         try:
             self._install_sqlite_database(target_db_path, backup_db_path)
-            self._install_sqlite_database(target_db_path, staging_db_path)
-            source_result = self.migra_verso_sqlite(str(source_db_path))
+            if not protected:
+                self._install_sqlite_database(target_db_path, staging_db_path)
+            source_result = source_migrator.migra_verso_sqlite(str(source_db_path))
             if not source_result.riuscita:
                 errori.extend(source_result.errori or ["Migrazione sorgente per riconciliazione non riuscita."])
             else:
-                merge_report = self._merge_sqlite_source_into_existing(source_db_path, staging_db_path)
+                merge_report = self._merge_sqlite_source_into_existing(source_db_path, merge_target)
                 reconciliation.update(merge_report)
                 reconciliation["executed"] = True
                 record_migrati = {
@@ -1686,7 +1739,7 @@ class GestioneDatabase:
                     avvisi.append(
                         f"Riconciliazione eseguita con {len(conflicts)} conflitti conservati per revisione."
                     )
-                validation = self._validate_sqlite_migration(staging_db_path)
+                validation = source_migrator._validate_sqlite_migration(merge_target)
                 blocking_validation_errors = [
                     str(item)
                     for item in validation.get("errors") or []
@@ -1696,7 +1749,8 @@ class GestioneDatabase:
                     errori.extend(blocking_validation_errors)
                 reconciliation["validation"] = validation
             if not errori:
-                self._install_sqlite_database(staging_db_path, target_db_path)
+                if not protected:
+                    self._install_sqlite_database(staging_db_path, target_db_path)
                 try:
                     from pct.storage import StudioDB
 
@@ -2651,6 +2705,9 @@ class GestioneDatabase:
         target_db_path = resolve_sqlite_path(percorso_db)
         target_db = str(target_db_path)
         target_db_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if self._calendari_sql_autorevoli(target_db_path):
+            return self.riconcilia_verso_sqlite(str(target_db_path))
 
         precheck = self._anti_loss_precheck(target_db_path)
         if not precheck.get("ok", True):

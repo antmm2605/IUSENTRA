@@ -485,10 +485,15 @@ def _migration_issue_mode(message: str) -> dict[str, str]:
     }
 
 
-def _build_diff_summary(*, inventory: dict[str, Any], target: str) -> dict[str, Any]:
+def _build_diff_summary(*, inventory: dict[str, Any], target: str,
+                        authoritative_counts: dict[str, int] | None = None) -> dict[str, Any]:
     source_key = "json_count" if target == "sqlite" else "sqlite_count"
     destination_key = "sqlite_count" if target == "sqlite" else "postgres_count"
     source_label = "JSON legacy" if target == "sqlite" else "SQL locale"
+    native = (inventory.get('sql_authoritative_counts', {}) if authoritative_counts is None
+              else authoritative_counts) if target == 'sqlite' else {}
+    if native:
+        source_label = 'JSON legacy e SQL autorevole'
     destination_label = "SQL locale" if target == "sqlite" else "PostgreSQL"
     rows: list[dict[str, Any]] = []
     by_domain: dict[str, dict[str, Any]] = {}
@@ -496,7 +501,9 @@ def _build_diff_summary(*, inventory: dict[str, Any], target: str) -> dict[str, 
         kind = str(domain.get("storage_kind") or "")
         if kind == "filesystem":
             continue
-        source_count = int(domain.get(source_key) or 0)
+        code = str(domain.get('code') or '')
+        source_count = int(native[code]) if code in native else int(domain.get(source_key) or 0)
+        row_source_label = 'SQL locale autorevole' if code in native else ('JSON legacy' if target == 'sqlite' else source_label)
         destination_count = int(domain.get(destination_key) or 0)
         delta = destination_count - source_count
         ok = source_count == destination_count
@@ -513,7 +520,7 @@ def _build_diff_summary(*, inventory: dict[str, Any], target: str) -> dict[str, 
             {
                 "code": str(domain.get("code") or ""),
                 "title": str(domain.get("title") or ""),
-                "source_label": source_label,
+                "source_label": row_source_label,
                 "source_count": source_count,
                 "destination_label": destination_label,
                 "destination_count": destination_count,
@@ -529,7 +536,7 @@ def _build_diff_summary(*, inventory: dict[str, Any], target: str) -> dict[str, 
             "prima": source_count,
             "dopo": destination_count,
             "delta": delta,
-            "source_label": source_label,
+            "source_label": row_source_label,
             "destination_label": destination_label,
             "loss_risk": loss_risk,
             "status": status,
@@ -565,6 +572,9 @@ def _repositories_ok(repositories: dict[str, Any]) -> bool:
 
 def _build_precheck_snapshot(*, inventory: dict[str, Any], target: str, paths: dict[str, str]) -> dict[str, Any]:
     source_label = "JSON legacy" if target == "sqlite" else "SQL locale"
+    native = inventory.get('sql_authoritative_counts', {}) if target == 'sqlite' else {}
+    if native:
+        source_label = 'JSON legacy e SQL autorevole'
     destination_label = "SQL locale" if target == "sqlite" else "PostgreSQL"
     counts_by_domain: dict[str, dict[str, Any]] = {}
     count_key = "json_count" if target == "sqlite" else "sqlite_count"
@@ -574,7 +584,8 @@ def _build_precheck_snapshot(*, inventory: dict[str, Any], target: str, paths: d
             continue
         counts_by_domain[code] = {
             "title": str(domain.get("title") or ""),
-            "conteggio": int(domain.get(count_key) or 0),
+            "conteggio": int(native[code]) if code in native else int(domain.get(count_key) or 0),
+            "source_label": 'SQL locale autorevole' if code in native else ('JSON legacy' if target == 'sqlite' else source_label),
             "storage_kind": str(domain.get("storage_kind") or ""),
         }
     return {
@@ -1163,7 +1174,8 @@ def migrate_full_storage_to_sqlite(
     )
     core_errors = [str(item) for item in core.get("errori") or []]
     core_warnings = [str(item) for item in core.get("avvisi") or []]
-    diff_summary = _build_diff_summary(inventory=inventory, target="sqlite")
+    diff_summary = _build_diff_summary(inventory=inventory, target="sqlite",
+                                     authoritative_counts=pre_inventory.get('sql_authoritative_counts', {}))
     loss_rows = _diff_loss_rows(diff_summary)
     success = bool(core.get("riuscita")) and _repositories_ok(repositories) and not loss_rows
     dirty_findings = _build_dirty_tenant_findings(
@@ -1526,9 +1538,17 @@ def build_full_storage_inventory(
             "note": "Pipeline SQL condivisa di piattaforma.",
         },
     ]
+    from pct.scadenziario_sql_owner import read_owner
+    sqlite_owner = any((owner := read_owner(paths[key])) is not None
+                       and not owner['backend'].startswith('postgresql:')
+                       for key in ('AGENDA_DB', 'SCADENZIARIO_DB') if paths.get(key))
+    protected = (GestioneDatabase(_base_sqlite_sources(paths))._calendari_sql_autorevoli(Path(paths['STUDIO_DB']))
+                 if sqlite_owner else {})
+    authoritative = {row['code']: int(row['sqlite_count']) for row in domains if row['code'] in protected}
     return {
         "generated_at": _now_iso(),
         "tenant_slug": tenant_slug,
         "postgres_online": postgres_online,
         "domains": domains,
+        "sql_authoritative_counts": authoritative,
     }

@@ -853,11 +853,21 @@ class GestioneTenant:
         self._inizializza_directory(slug)
         if studio.database.normalized_mode == DbMode.SQLITE:
             from pct.storage import StudioDB
+            from pct.scadenziario_sql_adoption import adopt
             from web.services.email_storage_runtime import prepare_empty_sql_mailboxes
 
-            prepare_empty_sql_mailboxes(StudioDB.get(str(self._data_dir(slug) / 'studio.db')), slug,
+            base = self._data_dir(slug)
+            backend = StudioDB.get(str(base / 'studio.db'))
+            prepare_empty_sql_mailboxes(backend, slug,
                 {'EMAIL_CASELLA_DB': self._data_dir(slug) / 'email' / 'casella.json',
                  'EMAIL_ORDINARIA_DB': self._data_dir(slug) / 'email' / 'ordinaria.json'}, 'sqlite')
+            # Lo studio non è ancora nel registro: nessun produttore può
+            # raggiungerlo. Preparare qui la proprietà, mai nella prima GET.
+            for domain, filename in (('agenda', 'appuntamenti.json'), ('scadenziario', 'scadenze.json')):
+                adopt(backend, base / domain / filename, tenant=slug,
+                      registry=str(self.registry_path.resolve()),
+                      destination=base / 'backup' / 'calendario-sql' / domain,
+                      data_root=base, writers_drained=True, domain=domain)
 
         from pct.template_atti_preparation import prepare_catalog
 

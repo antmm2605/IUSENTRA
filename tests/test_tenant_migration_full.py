@@ -23,7 +23,8 @@ def test_tenant_migration_full_generates_snapshot_diff_rollback_and_log(tmp_path
     assert report["success"] is True
     assert report["report_path"]
     assert Path(report["report_path"]).exists()
-    assert report["precheck_snapshot"]["source_label"] == "JSON legacy"
+    assert report["precheck_snapshot"]["source_label"] == "JSON legacy e SQL autorevole"
+    assert report["precheck_snapshot"]["counts_by_domain"]["appuntamenti"]["source_label"] == "SQL locale autorevole"
     assert report["rollback"]["status"] in {"success", "warning"}
     assert report["diff_summary"]["summary"]["rows_total"] >= 1
     assert report["operation_log"]

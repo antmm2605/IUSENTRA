@@ -1,3 +1,8 @@
+## 2.437.61
+
+- Riconciliazione persistente dei controlli CU in attesa con le ricevute o esenzioni già verificate nell’archivio corrente.
+- Riapertura della verifica quando la fonte cambia; preservati inviti, insufficienze, crediti e decisioni manuali. Nessuna scrittura aggiunta alle consultazioni.
+
 ## 2.437.60
 
 - Conservazione persistente dell’immagine di ripristino anche nelle pulizie successive del workflow.

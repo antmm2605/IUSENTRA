@@ -308,6 +308,7 @@ def ensure_fascicolo_sentenza_economic_analysis(fascicolo_id: str) -> dict[str, 
     if not da_analizzare:
         # Tutte le sentenze candidate sono gia' state analizzate con questa impronta:
         # i testi del catalogo non si caricano nemmeno.
+        report["riscontro_cu"] = _reconcile_archived_cu(fascicolo, repo, tenant_id)
         return report
     import json
     from pct.sentenza_economic_audit import (
@@ -342,7 +343,40 @@ def ensure_fascicolo_sentenza_economic_analysis(fascicolo_id: str) -> dict[str, 
             from flask import current_app
             current_app.logger.exception("Consegna economica dall’archivio non riuscita")
             report["errors"] += 1
+    report["riscontro_cu"] = _reconcile_archived_cu(fascicolo, repo, tenant_id)
     return report
+
+
+def _reconcile_archived_cu(fascicolo: Any, repo: Any, tenant_id: str) -> dict[str, int]:
+    """Il produttore riconcilia le richieste CU con le prove correnti, senza OCR."""
+    from pct.archivio_letture.presidio_economico import contributo_verificato
+    from web.services.archivio_letture_runtime import fatti_fascicolo
+    from web.services.registro_letture_runtime import registro_corrente
+
+    fascicolo_id = str(fascicolo.id)
+    events = repo.list_economic_events(tenant_id, fascicolo_id=fascicolo_id)
+    if not any(e.get("event_type") == "verifica_contributo_unificato"
+               and ((e.get("status") == "to_review" and not e.get("reviewed_by"))
+                    or e.get("reviewed_by") == "archivio_letture:riscontro_cu")
+               for e in events):
+        return {"resolved": 0, "reopened": 0, "unchanged": 0}
+    inventory = registro_corrente().oggetti(tenant_id, fascicolo_id)
+    current = {(o.tipo, o.oggetto_id, o.impronta) for o in inventory if o.presente}
+    facts = [f for f in fatti_fascicolo(fascicolo, canonico=False)
+             if f.fascicolo_id == fascicolo_id and (f.tipo, f.oggetto_id, f.sha256) in current]
+    proof = contributo_verificato(facts)
+    resolution = None
+    if proof and not proof["richiedeConferma"] and not proof["verificheMancanti"]:
+        sources = sorted(
+            ({"fact_id": f.id, "object_id": f.oggetto_id, "sha256": f.sha256, "field": f.campo}
+             for f in facts if f.campo in {"contributo_unificato", "esenzione_cu_dichiarata"}
+             and f.verifica in {"verificata", "corretta"} and len(f.sha256) == 64 and f.id),
+            key=lambda s: (s["object_id"], s["fact_id"]),
+        )
+        if sources and proof["status"] in {"pagato", "non_previsto"}:
+            resolution = {"status": proof["status"], "amount": proof["importo"],
+                          "payment_date": proof["data_pagamento"], "sources": sources}
+    return repo.reconcile_contributo_checks(tenant_id, fascicolo_id, resolution)
 
 
 def analyze_fascicolo_document(payload: dict[str, Any]) -> dict[str, Any]:

@@ -512,6 +512,61 @@ class SentenzaEconomicRepository:
             (tenant_id, event_id),
         )
 
+    def reconcile_contributo_checks(self, tenant_id: str, fascicolo_id: str,
+                                   resolution: dict[str, Any] | None) -> dict[str, int]:
+        """Riconcilia solo la richiesta automatica di prova CU mancante.
+
+        Non modifica crediti, inviti, insufficienze o decisioni dell'avvocato.
+        Il riscontro e la sua eventuale revoca restano nella stessa riga SQL.
+        Chiamata dal produttore delle letture, mai dalla proiezione GET.
+        """
+        actor = "archivio_letture:riscontro_cu"
+        if resolution is not None and (resolution.get("status") not in {"pagato", "non_previsto"}
+                                       or not resolution.get("sources")):
+            raise SentenzaEconomicError("Riscontro CU privo di fonte verificata.")
+        report = {"resolved": 0, "reopened": 0, "unchanged": 0}
+        with self.connection() as conn:
+            if self._pg_backend is None:
+                conn.execute("BEGIN IMMEDIATE")
+            self._prepare_live_write(conn)
+            query = ("SELECT * FROM fascicolo_economic_events WHERE tenant_id=? AND fascicolo_id=? "
+                     "AND event_type='verifica_contributo_unificato' AND source_type='sentenza_economic_audit'")
+            if self._pg_backend is not None:
+                query += " FOR UPDATE"
+            for raw in conn.execute(query, (tenant_id, fascicolo_id)).fetchall():
+                event = self._decode_event_row(_row_dict(raw))
+                automatic = event["status"] == "confirmed" and event["reviewed_by"] == actor
+                pending = event["status"] == "to_review" and not event["reviewed_by"]
+                if not (automatic or pending):
+                    continue
+                audit_row = conn.execute(
+                    "SELECT audit_json FROM sentenza_economic_audits WHERE tenant_id=? AND fascicolo_id=? AND id=?",
+                    (tenant_id, fascicolo_id, event["source_id"]),
+                ).fetchone()
+                audit = json_loads(audit_row[0], {}) if audit_row else {}
+                cu = audit.get("contributo_unificato") or {}
+                eligible = (cu.get("status") == "incerto" and not cu.get("invito_pagamento_rilevato")
+                            and audit.get("match", {}).get("safe_to_attach") is True)
+                current = resolution if eligible else None
+                if current and current["status"] == "pagato" and cu.get("importo_atteso") is not None:
+                    if float(current.get("amount") or 0) < float(cu["importo_atteso"]):
+                        current = None
+                evidence = event["evidence"]
+                last = next((e for e in reversed(evidence) if e.get("kind") == "riscontro_cu"), None)
+                acknowledgement = {"kind": "riscontro_cu", "resolution": current}
+                if (current and automatic and last == acknowledgement) or (not current and pending):
+                    report["unchanged"] += 1
+                    continue
+                evidence.append(acknowledgement)
+                conn.execute(
+                    "UPDATE fascicolo_economic_events SET status=?,reviewed_by=?,reviewed_at=?,evidence_json=? "
+                    "WHERE tenant_id=? AND fascicolo_id=? AND id=? AND status=? AND reviewed_by=?",
+                    ("confirmed" if current else "to_review", actor if current else "", utc_now(),
+                     json_dumps(evidence), tenant_id, fascicolo_id, event["id"], event["status"], event["reviewed_by"]),
+                )
+                report["resolved" if current else "reopened"] += 1
+        return report
+
     @staticmethod
     def _decode_event_row(row: dict[str, Any]) -> dict[str, Any]:
         data = dict(row)

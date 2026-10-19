@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-import pytest
 from flask import Flask, g
 
 import web.blueprints.api_v1_sentenza_economic as bp
@@ -25,6 +24,47 @@ def _fasc(**kw):
                 tribunale="Tribunale di Milano", controparte="Beta S.r.l.")
     base.update(kw)
     return SimpleNamespace(**base)
+
+
+def test_riscontro_cu_usa_prova_corrente_e_riapre_se_impronta_cambia(tmp_path, monkeypatch):
+    from pct.registro_letture.fatti_repository import Fatto
+    from web.services import archivio_letture_runtime, registro_letture_runtime
+    from web.services import sentenza_economic_runtime as runtime
+    from web.services.sentenza_economic_runtime import _reconcile_archived_cu
+
+    repo = SentenzaEconomicRepository(tmp_path / "cu.db")
+    audit = repo.save_sentenza_audit("studio-a", fascicolo_id="F1", audit={
+        "match": {"safe_to_attach": True}, "contributo_unificato": {"status": "incerto"},
+    })
+    repo.add_economic_event("studio-a", fascicolo_id="F1", source_id=audit["id"],
+                            event_type="verifica_contributo_unificato")
+    proof = [{"codice": c, "esito": "ok"} for c in
+             ("cliente_economico", "ufficio_economico", "cf_economico", "rg_economico")]
+    proof += [{"codice": "stato", "dettaglio": "pagato"},
+              {"codice": "data", "dettaglio": "13/10/2026"}]
+    fact = Fatto(categoria="importo", campo="contributo_unificato", valore="49.00",
+                 id="fact", fascicolo_id="F1", tipo="documento", oggetto_id="receipt",
+                 sha256="a" * 64, verifica="verificata", prove=proof)
+    obj = SimpleNamespace(tipo="documento", oggetto_id="receipt", impronta="a" * 64, presente=True)
+    monkeypatch.setattr(archivio_letture_runtime, "fatti_fascicolo", lambda *a, **kw: [fact])
+    monkeypatch.setattr(registro_letture_runtime, "registro_corrente",
+                        lambda: SimpleNamespace(oggetti=lambda *a: [obj]))
+    monkeypatch.setattr(runtime, "_flag_on", lambda: True)
+    monkeypatch.setattr(runtime, "_tenant_id", lambda: "studio-a")
+    monkeypatch.setattr(runtime, "_resolve_fascicolo", lambda *a: _fasc())
+    monkeypatch.setattr(runtime, "_repo", lambda: repo)
+    # Anche quando nessuna sentenza necessita di nuova lettura, il produttore
+    # deve consegnare il riscontro della ricevuta arrivata successivamente.
+    report = runtime.ensure_fascicolo_sentenza_economic_analysis("F1")
+    assert report["analyzed"] == 0
+    assert report["riscontro_cu"]["resolved"] == 1
+    assert _reconcile_archived_cu(_fasc(), repo, "studio-a")["unchanged"] == 1
+    obj.impronta = "b" * 64
+    assert _reconcile_archived_cu(_fasc(), repo, "studio-a")["reopened"] == 1
+    assert repo.list_economic_events("studio-a")[0]["status"] == "to_review"
+    obj.impronta = fact.sha256
+    fact.verifica = "plausibile"
+    assert _reconcile_archived_cu(_fasc(), repo, "studio-a")["resolved"] == 0
 
 
 def test_run_analysis_persiste_audit_eventi_e_decisione(tmp_path):

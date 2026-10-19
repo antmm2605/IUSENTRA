@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
+
+import pytest
 
 from pct.sentenza_economic_repository import (
     SCHEMA_SENTENZA_ECONOMIC_POSTGRES,
@@ -56,6 +59,45 @@ def test_economic_events_roundtrip_and_status(tmp_path: Path):
     assert rows[0]["reviewed_by"] == "avv"
     # isolamento tenant
     assert repo.list_economic_events("studio-b", fascicolo_id="F1") == []
+
+
+@pytest.mark.parametrize("backend", ["sqlite", "postgresql"])
+def test_cu_riscontro_persistente_ripetibile_revocabile_e_decisioni_preservate(tmp_path, backend):
+    dsn = os.environ.get("IUSENTRA_ECONOMIC_TEST_POSTGRES_DSN", "") if backend == "postgresql" else ""
+    if backend == "postgresql" and not dsn:
+        pytest.skip("Richiede PostgreSQL di collaudo esplicito.")
+    repo = SentenzaEconomicRepository(tmp_path / "cu.db", postgres_dsn=dsn,
+                                      decisions_path=tmp_path / "decisions.jsonl")
+    audit = repo.save_sentenza_audit("a", fascicolo_id="F", audit={
+        "match": {"safe_to_attach": True},
+        "contributo_unificato": {"status": "incerto", "importo_atteso": 49},
+    })
+    def event(tenant="a", source=audit["id"], beneficiary=""):
+        return repo.add_economic_event(tenant, fascicolo_id="F", source_id=source,
+            event_type="verifica_contributo_unificato", beneficiary_type=beneficiary,
+            evidence=[{"label": "Prova del versamento mancante"}])
+    pending = event()
+    manual = event(beneficiary="manuale")
+    repo.update_event_status("a", manual["id"], status="rejected", reviewed_by="avvocato")
+    other = event(tenant="b")
+    proof = {"status": "pagato", "amount": 49, "payment_date": "2026-10-13",
+             "sources": [{"fact_id": "f", "object_id": "doc", "sha256": "a" * 64}]}
+    assert repo.reconcile_contributo_checks("a", "F", proof)["resolved"] == 1
+    assert repo.reconcile_contributo_checks("a", "F", proof)["unchanged"] == 1
+    reopened = SentenzaEconomicRepository(tmp_path / "cu.db", postgres_dsn=dsn,
+                                          decisions_path=tmp_path / "decisions.jsonl")
+    rows = {e["id"]: e for e in reopened.list_economic_events("a", fascicolo_id="F")}
+    assert rows[pending["id"]]["status"] == "confirmed"
+    assert rows[pending["id"]]["evidence"][0]["label"] == "Prova del versamento mancante"
+    assert len(rows[pending["id"]]["evidence"]) == 2
+    assert rows[manual["id"]]["reviewed_by"] == "avvocato"
+    assert reopened.list_economic_events("b")[0]["id"] == other["id"]
+    assert reopened.list_economic_events("b")[0]["status"] == "to_review"
+    assert reopened.reconcile_contributo_checks("a", "F", None)["reopened"] == 1
+    assert reopened.reconcile_contributo_checks("a", "F", {**proof, "amount": 21.5})["resolved"] == 0
+    assert reopened.reconcile_contributo_checks("a", "F", {
+        **proof, "status": "non_previsto", "amount": None, "payment_date": "",
+    })["resolved"] == 1
 
 
 def test_signed_decision_register_detects_tamper(tmp_path: Path):

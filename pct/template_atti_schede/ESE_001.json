@@ -1,0 +1,284 @@
+{
+ "id": "ESE_001",
+ "titolo": "Atto di precetto",
+ "template": [
+  "ESE_001",
+  "ESE_003",
+  "ESE_004",
+  "ESE_005",
+  "MON_018"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "474",
+   "perche": "titolo esecutivo"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "475",
+   "perche": "spedizione del titolo in forma esecutiva"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "479",
+   "perche": "notificazione del titolo e del precetto"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "480",
+   "perche": "contenuto del precetto"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "481",
+   "perche": "cessazione dell’efficacia"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "482",
+   "perche": "termine ad adempiere"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1282",
+   "perche": "interessi"
+  },
+  {
+   "atto": "55/2014",
+   "articolo": "4",
+   "perche": "parametri generali dei compensi"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita"
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   }
+  },
+  {
+   "campo": "titolo_esecutivo",
+   "etichetta": "Titolo esecutivo (tipo, autorità, data, numero)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "titolo_esecutivo",
+    "documento": "sentenza, decreto ingiuntivo esecutivo, atto notarile, cambiale"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "474",
+     "perche": "titoli esecutivi"
+    }
+   ],
+   "se_manca": "astensione: senza titolo esecutivo nel fascicolo non si intima"
+  },
+  {
+   "campo": "esecutivita",
+   "etichetta": "Esecutività e copia attestata conforme",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "copia del titolo con attestazione di conformità"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "475",
+     "perche": "forma del titolo"
+    }
+   ]
+  },
+  {
+   "campo": "notifica_titolo",
+   "etichetta": "Data di notifica del titolo, se notificato prima",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "data_notifica",
+    "documento": "relata o ricevute PEC"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "479",
+     "perche": "notifica"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "480",
+     "perche": "indicazione della data di notifica"
+    }
+   ]
+  },
+  {
+   "campo": "creditore",
+   "etichetta": "Creditore intimante",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   }
+  },
+  {
+   "campo": "debitore",
+   "etichetta": "Debitore intimato e residenza",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale"
+    ]
+   }
+  },
+  {
+   "campo": "somme",
+   "etichetta": "Capitale, interessi, spese liquidate nel titolo",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "importi_titolo",
+    "documento": "dispositivo del titolo"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "480",
+     "perche": "somma intimata"
+    }
+   ]
+  },
+  {
+   "campo": "interessi",
+   "etichetta": "Interessi successivi al titolo",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "tasso e decorrenza dal titolo, calcolo fino alla data del precetto"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "1282",
+     "perche": "interessi"
+    }
+   ]
+  },
+  {
+   "campo": "compensi_precetto",
+   "etichetta": "Compensi e spese del precetto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "parametri D.M. 55/2014, fase precetto"
+   }
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Termine per adempiere",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "non meno di 10 giorni; diverso solo con autorizzazione del giudice"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "480",
+     "perche": "termine"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "482",
+     "perche": "termine ad adempiere"
+    }
+   ]
+  },
+  {
+   "campo": "avvertimenti",
+   "etichetta": "Avvertimenti al debitore e giudice dell’esecuzione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "testo fisso dell’art. 480: avvertimento sull’esecuzione forzata, avvertimento sul sovraindebitamento, giudice competente per l’esecuzione"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "480",
+     "perche": "contenuto obbligatorio a pena di nullità"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Premesse",
+   "compito": "descrizione del titolo e delle somme risultanti, solo dai dati del titolo"
+  },
+  {
+   "blocco": "Prospetto delle somme",
+   "compito": "verifica di coerenza fra titolo e calcoli del software; non inventa importi"
+  }
+ ],
+ "astensione": [
+  "titolo esecutivo assente o non esecutivo",
+  "importi del titolo non leggibili",
+  "precetto precedente notificato da oltre 90 giorni: segnalare la rinnovazione (art. 481)"
+ ],
+ "versione": "2026-10-19.1",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca."
+}

@@ -1,0 +1,331 @@
+{
+ "id": "CIV_ORD_001",
+ "titolo": "Atto di citazione ordinario",
+ "template": [
+  "CIV_ORD_001",
+  "CIV_ORD_004",
+  "CIV_ORD_005",
+  "CIV_ORD_006"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "163",
+   "perche": "contenuto della citazione"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "163bis",
+   "perche": "termini per comparire"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "164",
+   "perche": "nullità della citazione"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "166",
+   "perche": "costituzione del convenuto"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "167",
+   "perche": "comparsa di risposta e decadenze"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "171ter",
+   "perche": "memorie integrative"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "18",
+   "perche": "foro generale"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "20",
+   "perche": "foro delle obbligazioni"
+  },
+  {
+   "atto": "28/2010",
+   "articolo": "5",
+   "perche": "mediazione obbligatoria"
+  },
+  {
+   "atto": "dl_132_2014",
+   "articolo": "3",
+   "perche": "negoziazione assistita obbligatoria"
+  },
+  {
+   "atto": "legge_53_1994",
+   "articolo": "3bis",
+   "perche": "notifica in proprio via PEC"
+  },
+  {
+   "atto": "115/2002",
+   "articolo": "13",
+   "perche": "contributo unificato"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita"
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   }
+  },
+  {
+   "campo": "attore",
+   "etichetta": "Attore (anagrafica e codice fiscale)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "163",
+     "perche": "n. 2: parti e codici fiscali"
+    }
+   ]
+  },
+  {
+   "campo": "convenuto",
+   "etichetta": "Convenuto (anagrafica, codice fiscale, residenza)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "163",
+     "perche": "n. 2"
+    }
+   ]
+  },
+  {
+   "campo": "ufficio_giudiziario",
+   "etichetta": "Giudice adito",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "competenza per materia, valore e territorio → proposta da confermare"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "163",
+     "perche": "n. 1"
+    }
+   ]
+  },
+  {
+   "campo": "oggetto_domanda",
+   "etichetta": "Cosa si chiede (petitum) e perché (causa petendi)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "quali domande vuole proporre (condanna, accertamento, risoluzione…)?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "163",
+     "perche": "n. 3"
+    }
+   ]
+  },
+  {
+   "campo": "fatti",
+   "etichetta": "Fatti rilevanti con date",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "eventi_e_date",
+    "documento": "documenti del fascicolo e PEC"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "163",
+     "perche": "n. 4: esposizione chiara e specifica"
+    }
+   ]
+  },
+  {
+   "campo": "procedibilita",
+   "etichetta": "Condizione di procedibilità (mediazione o negoziazione) esperita",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "verbale_mediazione",
+    "documento": "verbale o invito di negoziazione"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "163",
+     "perche": "n. 3-bis"
+    },
+    {
+     "atto": "28/2010",
+     "articolo": "5",
+     "perche": "materie con mediazione obbligatoria"
+    }
+   ],
+   "se_manca": "se la materia la richiede, segnalarlo prima di redigere"
+  },
+  {
+   "campo": "mezzi_di_prova",
+   "etichetta": "Documenti offerti e prove richieste",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "documenti.nomi"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "163",
+     "perche": "n. 5"
+    }
+   ],
+   "note": "testimoni e capitoli li indica l’avvocato"
+  },
+  {
+   "campo": "testimoni",
+   "etichetta": "Testimoni e capitoli di prova",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "ci sono testimoni? su quali circostanze?"
+   }
+  },
+  {
+   "campo": "data_udienza",
+   "etichetta": "Udienza di prima comparizione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "data scelta dall’avvocato, verificata: almeno 120 giorni liberi dalla notifica (150 se all’estero)"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "163bis",
+     "perche": "termini a comparire"
+    }
+   ]
+  },
+  {
+   "campo": "avvertimenti",
+   "etichetta": "Avvertimenti al convenuto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "testo fisso dell’art. 163, n. 7, inserito dal software"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "163",
+     "perche": "n. 7"
+    }
+   ]
+  },
+  {
+   "campo": "valore_e_contributo",
+   "etichetta": "Valore della causa e contributo unificato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "artt. 10-14 c.p.c. e art. 13 D.P.R. 115/2002"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatto",
+   "compito": "esposizione cronologica chiara e specifica, ogni fatto con il documento da cui risulta"
+  },
+  {
+   "blocco": "Diritto",
+   "compito": "qualificazione della domanda e norme applicabili, solo articoli presenti in biblioteca e citati"
+  },
+  {
+   "blocco": "Istruttoria",
+   "compito": "elenco ordinato dei documenti e, se indicati, capitoli di prova"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "domande formulate in modo coerente con l’oggetto indicato dall’avvocato"
+  }
+ ],
+ "astensione": [
+  "oggetto della domanda non indicato",
+  "fatti essenziali privi di riscontro nei documenti",
+  "materia con condizione di procedibilità non ancora esperita"
+ ],
+ "versione": "2026-10-19.1",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca."
+}

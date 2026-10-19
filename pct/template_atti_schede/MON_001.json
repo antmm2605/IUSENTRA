@@ -1,0 +1,335 @@
+{
+ "id": "MON_001",
+ "titolo": "Ricorso per decreto ingiuntivo",
+ "template": [
+  "MON_001",
+  "MON_002"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "633",
+   "perche": "condizioni di ammissibilità"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "634",
+   "perche": "prova scritta"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "637",
+   "perche": "giudice competente"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "638",
+   "perche": "forma della domanda"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "641",
+   "perche": "accoglimento e termine di opposizione"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "642",
+   "perche": "esecuzione provvisoria"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "7",
+   "perche": "competenza del giudice di pace per valore"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1224",
+   "perche": "interessi moratori"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1219",
+   "perche": "costituzione in mora"
+  },
+  {
+   "atto": "231/2002",
+   "articolo": "5",
+   "perche": "saggio degli interessi nelle transazioni commerciali"
+  },
+  {
+   "atto": "115/2002",
+   "articolo": "13",
+   "perche": "contributo unificato"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita"
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   }
+  },
+  {
+   "campo": "ricorrente",
+   "etichetta": "Creditore ricorrente (anagrafica e codice fiscale)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ]
+  },
+  {
+   "campo": "debitore",
+   "etichetta": "Debitore (anagrafica, codice fiscale, residenza o sede)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "637",
+     "perche": "la residenza fonda la competenza"
+    }
+   ],
+   "se_manca": "chiedere residenza o sede del debitore: senza, la competenza non si determina"
+  },
+  {
+   "campo": "fonte_credito",
+   "etichetta": "Rapporto da cui nasce il credito (contratto, fatture, prestazioni)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "documento_credito",
+    "documento": "contratto, fatture, ordini"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "633",
+     "perche": "credito di somma liquida o cose fungibili"
+    }
+   ]
+  },
+  {
+   "campo": "capitale",
+   "etichetta": "Importo capitale",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "importo",
+    "documento": "fatture o estratto conto autentico"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "633",
+     "perche": "somma liquida"
+    }
+   ]
+  },
+  {
+   "campo": "interessi",
+   "etichetta": "Tipo di interessi e decorrenza",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "interessi legali o commerciali (D.Lgs. 231/2002)? da quale data?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "1224",
+     "perche": "interessi moratori"
+    },
+    {
+     "atto": "231/2002",
+     "articolo": "4",
+     "perche": "decorrenza nelle transazioni commerciali"
+    }
+   ]
+  },
+  {
+   "campo": "prova_scritta",
+   "etichetta": "Elenco delle prove scritte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "documenti.nomi"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "634",
+     "perche": "prova scritta"
+    }
+   ],
+   "se_manca": "astensione: senza prova scritta il ricorso non è ammissibile"
+  },
+  {
+   "campo": "messa_in_mora",
+   "etichetta": "Diffida o messa in mora (data e mezzo)",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "data_diffida",
+    "documento": "PEC o raccomandata"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "1219",
+     "perche": "costituzione in mora"
+    }
+   ]
+  },
+  {
+   "campo": "ufficio_giudiziario",
+   "etichetta": "Giudice competente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "valore (art. 7 c.p.c.) e luogo (artt. 18-20 c.p.c.) → proposta da confermare"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "637",
+     "perche": "competenza"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "18",
+     "perche": "foro generale delle persone fisiche"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "20",
+     "perche": "foro facoltativo per le cause relative a diritti di obbligazione"
+    }
+   ]
+  },
+  {
+   "campo": "provvisoria_esecuzione",
+   "etichetta": "Richiesta di esecuzione provvisoria e presupposti",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "chiedere l’esecuzione provvisoria? su quale presupposto dell’art. 642?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "642",
+     "perche": "presupposti tassativi"
+    }
+   ]
+  },
+  {
+   "campo": "valore_e_contributo",
+   "etichetta": "Valore della causa e contributo unificato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "capitale + interessi maturati; CU art. 13 D.P.R. 115/2002 ridotto alla metà per il monitorio"
+   }
+  },
+  {
+   "campo": "compensi",
+   "etichetta": "Liquidazione di compensi e spese richiesta",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "parametri D.M. 55/2014 fase monitoria"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatto",
+   "compito": "rapporto, prestazione, scadenze e solleciti, solo dai documenti e dall’archivio delle letture, ogni affermazione con il documento di riferimento"
+  },
+  {
+   "blocco": "Diritto",
+   "compito": "certezza, liquidità ed esigibilità del credito; prova scritta ex art. 634; interessi; competenza"
+  },
+  {
+   "blocco": "Esecuzione provvisoria",
+   "compito": "motivazione sul presupposto indicato dall’avvocato, solo se richiesta"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "ingiunzione di pagamento entro il termine dell’art. 641, interessi, spese e compensi"
+  }
+ ],
+ "astensione": [
+  "manca una prova scritta del credito",
+  "importo non liquido o non determinabile dai documenti",
+  "residenza o sede del debitore sconosciuta"
+ ],
+ "versione": "2026-10-19.1",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca."
+}

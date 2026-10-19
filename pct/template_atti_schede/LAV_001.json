@@ -1,0 +1,321 @@
+{
+ "id": "LAV_001",
+ "titolo": "Ricorso nel rito del lavoro",
+ "template": [
+  "LAV_001",
+  "LAV_012"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "409",
+   "perche": "controversie individuali di lavoro"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "413",
+   "perche": "giudice competente"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "414",
+   "perche": "forma della domanda"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "415",
+   "perche": "deposito e udienza"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "420",
+   "perche": "udienza di discussione"
+  },
+  {
+   "atto": "legge_604_1966",
+   "articolo": "6",
+   "perche": "termini di impugnazione del licenziamento"
+  },
+  {
+   "atto": "legge_300_1970",
+   "articolo": "18",
+   "perche": "tutela contro il licenziamento illegittimo"
+  },
+  {
+   "atto": "23/2015",
+   "articolo": "3",
+   "perche": "tutele crescenti"
+  },
+  {
+   "atto": "81/2015",
+   "articolo": "1",
+   "perche": "forma comune del rapporto"
+  },
+  {
+   "atto": "115/2002",
+   "articolo": "9",
+   "perche": "contributo unificato nelle cause di lavoro"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita"
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   }
+  },
+  {
+   "campo": "lavoratore",
+   "etichetta": "Lavoratore ricorrente (anagrafica e codice fiscale)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "414",
+     "perche": "n. 2"
+    }
+   ]
+  },
+  {
+   "campo": "datore",
+   "etichetta": "Datore di lavoro (denominazione, sede, partita IVA)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "414",
+     "perche": "n. 2"
+    }
+   ]
+  },
+  {
+   "campo": "ufficio_giudiziario",
+   "etichetta": "Tribunale in funzione di giudice del lavoro",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "luogo in cui è sorto il rapporto o si trova l’azienda o la dipendenza → proposta da confermare"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "413",
+     "perche": "competenza territoriale"
+    }
+   ]
+  },
+  {
+   "campo": "rapporto",
+   "etichetta": "Assunzione, cessazione, CCNL, livello, mansioni, orario, retribuzione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "dati_rapporto",
+    "documento": "contratto, buste paga, lettera di licenziamento, UniLav"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "414",
+     "perche": "n. 4: fatti"
+    }
+   ]
+  },
+  {
+   "campo": "dimensione_datore",
+   "etichetta": "Numero di dipendenti del datore",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "il datore occupa più di 15 dipendenti nell’unità o più di 60 in totale?"
+   },
+   "norma": [
+    {
+     "atto": "legge_300_1970",
+     "articolo": "18",
+     "perche": "tutela applicabile"
+    }
+   ]
+  },
+  {
+   "campo": "licenziamento",
+   "etichetta": "Data e motivo del licenziamento",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "data_licenziamento",
+    "documento": "lettera di licenziamento"
+   },
+   "norma": [
+    {
+     "atto": "legge_604_1966",
+     "articolo": "6",
+     "perche": "decorrenza dei termini"
+    }
+   ]
+  },
+  {
+   "campo": "impugnazione_stragiudiziale",
+   "etichetta": "Data dell’impugnazione stragiudiziale",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "data_impugnazione",
+    "documento": "PEC o raccomandata di impugnazione"
+   },
+   "norma": [
+    {
+     "atto": "legge_604_1966",
+     "articolo": "6",
+     "perche": "60 giorni dal licenziamento"
+    }
+   ]
+  },
+  {
+   "campo": "termine_deposito",
+   "etichetta": "Scadenza per il deposito del ricorso",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "180 giorni dall’impugnazione stragiudiziale (art. 6 L. 604/1966)"
+   },
+   "norma": [
+    {
+     "atto": "legge_604_1966",
+     "articolo": "6",
+     "perche": "decadenza"
+    }
+   ]
+  },
+  {
+   "campo": "oggetto_domande",
+   "etichetta": "Domande (illegittimità del licenziamento, differenze retributive, TFR…)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "quali domande? con quali importi o conteggi?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "414",
+     "perche": "n. 3 e n. 5"
+    }
+   ]
+  },
+  {
+   "campo": "conteggi",
+   "etichetta": "Conteggi delle differenze retributive",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "allegare i conteggi (anche del consulente del lavoro)"
+   }
+  },
+  {
+   "campo": "mezzi_di_prova",
+   "etichetta": "Documenti e testimoni, a pena di decadenza",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "documenti.nomi"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "414",
+     "perche": "n. 5: indicazione specifica dei mezzi di prova"
+    }
+   ],
+   "note": "nel rito del lavoro le prove vanno indicate subito"
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Rapporto di lavoro",
+   "compito": "ricostruzione dai documenti con date, livello e retribuzione"
+  },
+  {
+   "blocco": "Fatto",
+   "compito": "fatti rilevanti in ordine cronologico, ciascuno con il documento"
+  },
+  {
+   "blocco": "Diritto",
+   "compito": "norme applicabili alla tutela in base alla data di assunzione e alla dimensione del datore"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "domande coerenti con quelle indicate e con i conteggi forniti"
+  }
+ ],
+ "astensione": [
+  "data di assunzione o di licenziamento sconosciuta quando decide la tutela applicabile",
+  "termini di decadenza verosimilmente scaduti: segnalarlo invece di redigere",
+  "dimensione del datore ignota quando decide la tutela applicabile"
+ ],
+ "versione": "2026-10-19.1",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca."
+}

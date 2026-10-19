@@ -1,0 +1,252 @@
+{
+ "id": "CIV_ORD_009",
+ "titolo": "Comparsa di costituzione e risposta",
+ "template": [
+  "CIV_ORD_009",
+  "CIV_ORD_010",
+  "CIV_ORD_011"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "166",
+   "perche": "termine di costituzione"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "167",
+   "perche": "contenuto e decadenze"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "38",
+   "perche": "eccezione di incompetenza"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "269",
+   "perche": "chiamata del terzo"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "171ter",
+   "perche": "memorie integrative"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "115",
+   "perche": "non contestazione"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita"
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   }
+  },
+  {
+   "campo": "citazione_ricevuta",
+   "etichetta": "Atto di citazione notificato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "atto di citazione con relata di notifica"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "166",
+     "perche": "decorrenza dei termini"
+    }
+   ],
+   "se_manca": "astensione: senza la citazione non si può rispondere"
+  },
+  {
+   "campo": "dati_causa",
+   "etichetta": "Giudice, numero di ruolo, udienza indicata",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "udienza_e_rg",
+    "documento": "citazione e PEC di cancelleria"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "166",
+     "perche": ""
+    }
+   ]
+  },
+  {
+   "campo": "termine_costituzione",
+   "etichetta": "Ultimo giorno per costituirsi",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "70 giorni prima dell’udienza indicata in citazione o fissata dal giudice, con sospensione feriale"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "166",
+     "perche": "termine"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale"
+    }
+   ]
+  },
+  {
+   "campo": "convenuto",
+   "etichetta": "Convenuto assistito",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   }
+  },
+  {
+   "campo": "linea_difensiva",
+   "etichetta": "Linea difensiva",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "cosa contesta e cosa riconosce? domanda riconvenzionale o chiamata di terzo?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "167",
+     "perche": "presa di posizione sui fatti"
+    }
+   ]
+  },
+  {
+   "campo": "fatti_contrari",
+   "etichetta": "Fatti e documenti a supporto della difesa",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "eventi_e_date",
+    "documento": "documenti del fascicolo"
+   }
+  },
+  {
+   "campo": "eccezioni",
+   "etichetta": "Eccezioni processuali e di merito non rilevabili d’ufficio",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "proporre le eccezioni possibili (incompetenza, prescrizione…) da far confermare all’avvocato"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "38",
+     "perche": "incompetenza a pena di decadenza"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "167",
+     "perche": "decadenze"
+    }
+   ]
+  },
+  {
+   "campo": "terzo",
+   "etichetta": "Terzo da chiamare",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "chiamare in causa un terzo? chi e perché?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "269",
+     "perche": "chiamata del terzo"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatto",
+   "compito": "presa di posizione specifica su ciascun fatto allegato dall’attore, per evitare la non contestazione"
+  },
+  {
+   "blocco": "Eccezioni",
+   "compito": "eccezioni da proporre a pena di decadenza, ciascuna con la norma"
+  },
+  {
+   "blocco": "Diritto",
+   "compito": "infondatezza delle domande avversarie, con le norme della biblioteca"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "rigetto, eventuale riconvenzionale e chiamata del terzo come indicato dall’avvocato"
+  }
+ ],
+ "astensione": [
+  "citazione non presente nel fascicolo",
+  "linea difensiva non indicata",
+  "termine di costituzione già scaduto: segnalarlo invece di redigere"
+ ],
+ "versione": "2026-10-19.1",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca."
+}

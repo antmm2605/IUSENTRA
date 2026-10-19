@@ -22,6 +22,7 @@ _ALLOWED_STATUS_FIELDS = {
     "note",
     "confermaProforma",
     "conferma_proforma",
+    "expected_revision",
 }
 _ALLOWED_DETAIL_FIELDS = {"voci", "note", "data_emissione", "data_scadenza", "fiscal", "payment", "expected_revision"}
 _ALLOWED_DETAIL_FISCAL_FIELDS = {
@@ -269,6 +270,8 @@ def _safe_payload_fields(payload: dict[str, Any]) -> dict[str, str]:
     unknown = {key for key in payload if key not in _ALLOWED_STATUS_FIELDS}
     if unknown:
         errors["payload"] = "Campi non consentiti: " + ", ".join(sorted(unknown))
+    if "expected_revision" in payload and not re.fullmatch(r"[a-f0-9]{64}", _text(payload.get("expected_revision"))):
+        errors["revision"] = "Riapri il documento aggiornato prima di modificare lo stato."
     for field in sorted(_CANONICAL_AMOUNT_FIELDS & set(payload.keys())):
         errors[field] = "Importo calcolato non accettato dalla pagina."
     return errors
@@ -288,6 +291,8 @@ def _status_result(item: Any) -> dict[str, Any]:
         "paidAt": _date_label(getattr(item, "data_pagamento", "")),
         "paymentMethod": _text(getattr(item, "metodo_pagamento", "")),
     }
+    if callable(getattr(item, "to_dict", None)):
+        payload["revision"] = parcella_revision(item)
     payload.update(_sdi_status_payload(item))
     return payload
 
@@ -1346,6 +1351,10 @@ def update_react_fatturazione_status(
         current = manager.get(id_documento)
         if not current:
             raise KeyError(id_documento)
+        sql_storage = getattr(manager, "_studio_db", None) is not None
+        expected_revision = (
+            _text(payload.get("expected_revision")) or parcella_revision(current)
+        ) if sql_storage else None
         confirms_proforma = payload.get("confermaProforma") is True or payload.get("conferma_proforma") is True
         if status == StatoParcella.EMESSA and _is_proforma(current) and not confirms_proforma:
             return {
@@ -1360,7 +1369,7 @@ def update_react_fatturazione_status(
             result, result_status = registra_bonifico_ricevuto(
                 get_fascicoli=get_fascicoli, get_fatturazione=get_fatturazione,
                 id_fasc=_text(current.id_fascicolo),
-                payload={"parcella_id": id_documento, "importo": float(current.netto_a_pagare),
+                payload={**({"parcella_revision": expected_revision} if expected_revision else {}), "parcella_id": id_documento, "importo": float(current.netto_a_pagare),
                          "data_pagamento": _text(payload.get("data_pagamento")), "note": _text(payload.get("note"))},
                 actor=_text(getattr(current_user, "nome_completo", "") or getattr(current_user, "username", "") or getattr(current_user, "id", "")) or "Operatore",
                 metodo_pagamento=_text(payload.get("metodo_pagamento")) or _text(getattr(current, "metodo_pagamento", "")) or METODO_BONIFICO,
@@ -1374,8 +1383,12 @@ def update_react_fatturazione_status(
                 status,
                 data_pagamento=_text(payload.get("data_pagamento")) or None,
                 metodo_pagamento=_text(payload.get("metodo_pagamento")) or None,
+                **({"expected_revision": expected_revision} if expected_revision else {}),
             )
             item = manager.get(id_documento)
+    except ParcellaConcurrentUpdate as exc:
+        return {"ok": False, "message": "Modifica concorrente. Riapri il documento aggiornato.",
+                "errors": {"revision": str(exc)}, "item": None, "conflict": True}, 409
     except KeyError:
         return {"ok": False, "message": "Documento non trovato.", "errors": {"id_documento": "Identificativo non valido."}, "item": None}, 404
     _audit(get_utenti, current_user, "fatturazione.stato", id_documento, ip_address)

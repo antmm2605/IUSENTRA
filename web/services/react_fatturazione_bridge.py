@@ -8,7 +8,7 @@ from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache
 from typing import Any, Callable
 
-from pct.fatturazione import VoceParcella
+from pct.fatturazione import VoceParcella, parcella_revision
 from pct.formatting import format_euro_it
 from web.services.react_fatturazione_archive_actions import (
     build_react_fatturazione_detail_payload,
@@ -719,6 +719,7 @@ def _invoice_record(parcella: Any, clienti: dict[str, Any], fascicoli: dict[str,
     fascicolo = fascicoli.get(id_fascicolo)
     record = {
         "id": pid,
+        "revision": parcella_revision(parcella) if callable(getattr(parcella, "to_dict", None)) else "",
         "number": _text(getattr(parcella, "numero", "")) or pid,
         "customerName": _client_label(clienti.get(id_cliente)),
         "caseId": id_fascicolo,
@@ -749,6 +750,7 @@ def _created_item(parcella: Any) -> dict[str, Any]:
     status = _enum(getattr(parcella, "stato", ""))
     item = {
         "id": pid,
+        "revision": parcella_revision(parcella) if callable(getattr(parcella, "to_dict", None)) else "",
         "number": _text(getattr(parcella, "numero", "")) or pid,
         "amountDisplay": _money(getattr(parcella, "totale", 0)),
         "issuedAt": _date_label(getattr(parcella, "data_emissione", "")),

@@ -270,3 +270,127 @@ def test_parcella_sqlite_aggiorna_singolo_record_senza_full_replace(tmp_path: Pa
         assert "Aggiornata senza sostituire tutta la tabella" in payload[prima.id]
     finally:
         StudioDB.invalidate(str(studio_db_path))
+
+
+@pytest.fixture(params=['sqlite', 'postgresql'])
+def invoice_status_db(request, tmp_path):
+    if request.param == 'sqlite':
+        db = StudioDB.get(str(tmp_path / 'status.db'))
+        try:
+            yield db
+        finally:
+            db.chiudi()
+        return
+    import os
+    import re
+    if not os.getenv('AUDIT_POSTGRES_PASSWORD'):
+        pytest.skip('PostgreSQL controllato non configurato.')
+    from psycopg2.extensions import make_dsn
+    from pct.storage_postgres import PostgresStudioDB, CORE_POSTGRES_SCHEMA_SQL
+    from tests.test_condivisioni_sql_repository import SQLFactory
+    factory = SQLFactory('postgresql')
+    db = PostgresStudioDB(make_dsn(**factory.pg_parameters, options=f'-c search_path={factory.schema}'), initialize_schema=False)
+    try:
+        for table in ('clienti', 'fascicoli', 'parcelle'):
+            ddl = re.search(r'CREATE TABLE IF NOT EXISTS ' + table + r' \(.*?\);', CORE_POSTGRES_SCHEMA_SQL, re.S)
+            assert ddl is not None
+            db.conn.execute(ddl.group(0))
+        db.conn.execute("INSERT INTO clienti(id) VALUES ('cliente-1')")
+        db.raw_conn.commit()
+        yield db
+    finally:
+        db.chiudi()
+        factory.close()
+
+
+def test_sql_status_api_rejects_stale_manager_without_overwriting_notes(tmp_path, invoice_status_db):
+    from types import SimpleNamespace
+    from pct.fatturazione import parcella_revision, StatoParcella
+    from web.services.react_fatturazione_archive_actions import update_react_fatturazione_status
+    db = invoice_status_db
+    writer = GestioneFatturazione(str(tmp_path / 'parcelle.json'), studio_db=db)
+    item = writer.crea(id_cliente='cliente-1', note='Prima versione',
+        voci=[VoceParcella(descrizione='Compenso', quantita=1, prezzo_unitario=260)])
+    stale = GestioneFatturazione(str(tmp_path / 'parcelle.json'), studio_db=db)
+    writer.aggiorna(item.id, expected_revision=parcella_revision(item), note='Modifica confermata da altro utente')
+    events = []
+    result, status = update_react_fatturazione_status(
+        get_fatturazione=lambda: stale,
+        get_utenti=lambda: SimpleNamespace(registra_evento=lambda *a, **kw: events.append((a, kw))),
+        current_user=SimpleNamespace(id='op', username='op', ha_permesso=lambda p: True),
+        id_documento=item.id, payload={'stato': 'ANNULLATA'})
+    assert status == 409, result
+    saved = GestioneFatturazione(str(tmp_path / 'parcelle.json'), studio_db=db).get(item.id)
+    assert saved.note == 'Modifica confermata da altro utente'
+    assert saved.stato == StatoParcella.BOZZA
+    assert stale.get(item.id).stato == StatoParcella.BOZZA
+    assert not events
+
+
+def test_sql_status_api_keeps_client_revision_until_confirmation(tmp_path, invoice_status_db):
+    from types import SimpleNamespace
+    from pct.fatturazione import parcella_revision, StatoParcella
+    from web.services.react_fatturazione_archive_actions import update_react_fatturazione_status
+    db = invoice_status_db
+    manager = GestioneFatturazione(str(tmp_path / 'parcelle.json'), studio_db=db)
+    item = manager.crea(id_cliente='cliente-1', note='Prima versione',
+        voci=[VoceParcella(descrizione='Compenso', quantita=1, prezzo_unitario=260)])
+    read_revision = parcella_revision(item)
+    manager.aggiorna(item.id, expected_revision=read_revision, note='Nuova versione')
+    user = SimpleNamespace(id='op', username='op', ha_permesso=lambda p: True)
+    audit = SimpleNamespace(registra_evento=lambda *a, **kw: None)
+    result, status = update_react_fatturazione_status(get_fatturazione=lambda: manager,
+        get_utenti=lambda: audit, current_user=user, id_documento=item.id,
+        payload={'stato': 'ANNULLATA', 'expected_revision': read_revision})
+    assert status == 409, result
+    current_revision = parcella_revision(manager.get(item.id))
+    result, status = update_react_fatturazione_status(get_fatturazione=lambda: manager,
+        get_utenti=lambda: audit, current_user=user, id_documento=item.id,
+        payload={'stato': 'ANNULLATA', 'expected_revision': current_revision})
+    assert status == 200, result
+    saved = GestioneFatturazione(str(tmp_path / 'parcelle.json'), studio_db=db).get(item.id)
+    assert saved.note == 'Nuova versione' and saved.stato == StatoParcella.ANNULLATA
+    assert result['item']['revision'] == parcella_revision(saved)
+
+
+def test_legacy_status_with_exported_revision_persists_the_new_state(tmp_path):
+    from types import SimpleNamespace
+    from pct.fatturazione import parcella_revision, StatoParcella
+    from web.services.react_fatturazione_archive_actions import update_react_fatturazione_status
+    path = str(tmp_path / 'legacy.json')
+    manager = GestioneFatturazione(path)
+    item = manager.crea(id_cliente='controlled', voci=[VoceParcella(descrizione='Voce', prezzo_unitario=100)])
+    result, status = update_react_fatturazione_status(
+        get_fatturazione=lambda: manager,
+        get_utenti=lambda: SimpleNamespace(registra_evento=lambda *a, **kw: None),
+        current_user=SimpleNamespace(id='op', ha_permesso=lambda p: True),
+        id_documento=item.id, payload={'stato': 'ANNULLATA', 'expected_revision': parcella_revision(item)})
+    assert status == 200, result
+    assert GestioneFatturazione(path).get(item.id).stato == StatoParcella.ANNULLATA
+
+
+@pytest.mark.parametrize('command', ['incasso', 'pagamento'])
+def test_income_commands_preserve_the_displayed_invoice_revision(tmp_path, invoice_status_db, command):
+    from types import SimpleNamespace
+    from pct.fatturazione import parcella_revision, StatoParcella
+    from web.services.react_incassi_pagamenti_bridge import register_react_incasso, update_react_pagamento_status
+    manager = GestioneFatturazione(str(tmp_path / 'invoices.json'), studio_db=invoice_status_db)
+    invoice = manager.crea(id_cliente='cliente-1', voci=[VoceParcella(descrizione='Compenso', prezzo_unitario=100)])
+    original = parcella_revision(invoice)
+    manager.aggiorna(invoice.id, expected_revision=original, note='Ultima modifica confermata')
+    events = []
+    payment = SimpleNamespace(id='payment-controlled', id_parcella=invoice.id, provider_usato='manuale')
+    payments = SimpleNamespace(tutti_link=lambda: [payment],
+        segna_pagato=lambda *a: pytest.fail('Pagamento modificato dopo conflitto'))
+    kwargs = dict(get_fatturazione=lambda: manager, get_pagamenti=lambda: payments,
+        get_utenti=lambda: SimpleNamespace(registra_evento=lambda *a, **kw: events.append(a)),
+        current_user=SimpleNamespace(id='op', ha_permesso=lambda p: True), ip_address='')
+    if command == 'incasso':
+        result, status = register_react_incasso(**kwargs, payload={'id_parcella': invoice.id, 'expected_revision': original})
+    else:
+        result, status = update_react_pagamento_status(**kwargs, payment_id=payment.id,
+            payload={'stato': 'PAGATO', 'expected_revision': original})
+    assert status == 409, result
+    persisted = GestioneFatturazione(str(tmp_path / 'invoices.json'), studio_db=invoice_status_db).get(invoice.id)
+    assert persisted.stato == StatoParcella.BOZZA and persisted.note == 'Ultima modifica confermata'
+    assert not persisted.data_pagamento and not events

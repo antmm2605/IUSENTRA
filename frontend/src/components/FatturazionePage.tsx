@@ -2872,19 +2872,20 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
     await reloadAfter(await updateFatturazioneStatus(record.id, {
       stato,
       confermaProforma: confirmsProforma,
+      expected_revision: record.revision,
     }))
     setSavingId('')
   }
 
   async function cancelRecord(record: FatturazioneRecord) {
     setSavingId(record.id)
-    await reloadAfter(await cancelFatturazioneDocument(record.id))
+    await reloadAfter(await cancelFatturazioneDocument(record.id, { expected_revision: record.revision }))
     setSavingId('')
   }
 
   async function markPaid(record: FatturazioneRecord) {
     setSavingId(record.id)
-    await reloadAfter(await markFatturazionePaid(record.id))
+    await reloadAfter(await markFatturazionePaid(record.id, { expected_revision: record.revision }))
     setSavingId('')
   }
 

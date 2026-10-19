@@ -191,6 +191,7 @@ export function IncassiPagamentiPage() {
     setError('')
     const response = await registerIncasso({
       id_parcella: invoiceId,
+      expected_revision: data.records.find((record) => record.invoiceId === invoiceId)?.invoiceRevision,
       metodo_pagamento: method,
       data_pagamento: paidAt,
     })
@@ -207,7 +208,7 @@ export function IncassiPagamentiPage() {
     setSaving(true)
     setSuccess('')
     setError('')
-    const response = await updatePagamentoStatus(record.id, { stato, metodo_pagamento: method })
+    const response = await updatePagamentoStatus(record.id, { stato, metodo_pagamento: method, expected_revision: record.invoiceRevision })
     setSaving(false)
     if (!response.ok) {
       setError(response.message)

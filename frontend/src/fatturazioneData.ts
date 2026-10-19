@@ -13,6 +13,7 @@ export type FatturazioneContract = {
 }
 
 export type FatturazioneRecord = {
+  revision?: string
   id: string
   number: string
   customerName: string
@@ -178,6 +179,7 @@ export type FatturazioneWorkflowResult = {
 }
 
 export type UpdateFatturazioneStatusPayload = {
+  expected_revision?: string
   stato: string
   data_pagamento?: string
   metodo_pagamento?: string
@@ -749,6 +751,7 @@ function normaliseRecord(raw: unknown): FatturazioneRecord {
   const item = asRecord(raw)
   return {
     id: text(item.id),
+    revision: text(item.revision) || undefined,
     number: text(item.number),
     customerName: display(item.customerName) || 'Cliente non indicato',
     caseId: text(item.caseId ?? item.case_id ?? item.id_fascicolo),
@@ -1399,8 +1402,8 @@ export async function archiveFatturazioneDocument(): Promise<FatturazioneMutatio
   return { ...mutationFallback, message: 'Archiviazione non disponibile nella configurazione corrente.' }
 }
 
-export async function cancelFatturazioneDocument(idDocumento: string): Promise<FatturazioneMutationResult> {
-  const result = await apiPostJson<FatturazioneMutationResult>(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/annulla`, {}, mutationFallback)
+export async function cancelFatturazioneDocument(idDocumento: string, payload: Pick<UpdateFatturazioneStatusPayload, 'expected_revision'> = {}): Promise<FatturazioneMutationResult> {
+  const result = await apiPostJson<FatturazioneMutationResult>(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/annulla`, payload, mutationFallback)
   return normaliseMutationResult(result)
 }
 

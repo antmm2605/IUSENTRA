@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pct.fatturazione import parcella_revision
+
 
 from pct.formatting import format_euro_it, format_date_it, format_datetime_it, parse_datetime_rome
 from datetime import date, datetime, timezone
@@ -132,6 +134,7 @@ def _payment_record(row: Any, parcelle: dict[str, Any], clienti: dict[str, Any])
     return {
         "id": row_id,
         "invoiceId": id_parcella,
+        "invoiceRevision": parcella_revision(parcella) if callable(getattr(parcella, "to_dict", None)) else "",
         "invoiceNumber": _text(getattr(parcella, "numero", "")) or id_parcella,
         "customerName": _client_label(customer),
         "amountDisplay": _money(getattr(row, "importo", 0)),
@@ -159,6 +162,7 @@ def _manual_invoice_record(parcella: Any, clienti: dict[str, Any]) -> dict[str, 
     return {
         "id": "",
         "invoiceId": invoice_id,
+        "invoiceRevision": parcella_revision(parcella) if callable(getattr(parcella, "to_dict", None)) else "",
         "invoiceNumber": _text(getattr(parcella, "numero", "")) or invoice_id,
         "customerName": _client_label(clienti.get(id_cliente)),
         "amountDisplay": _money(getattr(parcella, "netto_a_pagare", 0) or getattr(parcella, "totale", 0)),
@@ -431,7 +435,7 @@ def register_react_incasso(
     ip_address: str,
     get_fascicoli: Callable[[], Any] | None = None,
 ) -> tuple[dict[str, Any], int]:
-    allowed = {"id_parcella", "id_pagamento", "metodo_pagamento", "data_pagamento", "note"}
+    allowed = {"id_parcella", "id_pagamento", "metodo_pagamento", "data_pagamento", "note", "expected_revision"}
     unknown = sorted(set(payload) - allowed)
     if unknown:
         return _json_error("Campi non ammessi nella richiesta.", {key: "Campo non previsto." for key in unknown})
@@ -457,7 +461,7 @@ def register_react_incasso(
     result, status = mark_react_fatturazione_paid(
         get_fatturazione=get_fatturazione, get_fascicoli=get_fascicoli, get_utenti=get_utenti,
         current_user=current_user, id_documento=invoice_id,
-        payload={"data_pagamento": paid_at, "metodo_pagamento": method, "note": _text(payload.get("note"))}, ip_address=ip_address,
+        payload={**({"expected_revision": payload["expected_revision"]} if "expected_revision" in payload else {}), "data_pagamento": paid_at, "metodo_pagamento": method, "note": _text(payload.get("note"))}, ip_address=ip_address,
     )
     if status >= 400:
         return result, status
@@ -486,7 +490,7 @@ def update_react_pagamento_status(
     ip_address: str,
     get_fascicoli: Callable[[], Any] | None = None,
 ) -> tuple[dict[str, Any], int]:
-    allowed = {"stato", "metodo_pagamento", "note"}
+    allowed = {"stato", "metodo_pagamento", "note", "expected_revision"}
     unknown = sorted(set(payload) - allowed)
     if unknown:
         return _json_error("Campi non ammessi nella richiesta.", {key: "Campo non previsto." for key in unknown})
@@ -506,7 +510,7 @@ def update_react_pagamento_status(
             result, status = mark_react_fatturazione_paid(
                 get_fatturazione=get_fatturazione, get_fascicoli=get_fascicoli, get_utenti=get_utenti,
                 current_user=current_user, id_documento=invoice_id,
-                payload={"metodo_pagamento": method, "note": _text(payload.get("note"))}, ip_address=ip_address,
+                payload={**({"expected_revision": payload["expected_revision"]} if "expected_revision" in payload else {}), "metodo_pagamento": method, "note": _text(payload.get("note"))}, ip_address=ip_address,
             )
             if status >= 400:
                 return result, status

@@ -3,6 +3,7 @@ import { apiJson, apiPostJson } from './lib/apiClient'
 import type { AdminAction, AdminContract, AdminMetric, AdminSection, AdminTone, AdminWarning } from './utentiData'
 
 export type PaymentRow = {
+  invoiceRevision?: string
   id: string
   invoiceId: string
   invoiceNumber: string
@@ -54,6 +55,7 @@ export type IncassiPagamentiPermissions = {
 }
 
 export type RegisterIncassoPayload = {
+  expected_revision?: string
   id_parcella: string
   id_pagamento?: string
   metodo_pagamento: string
@@ -62,6 +64,7 @@ export type RegisterIncassoPayload = {
 }
 
 export type UpdatePagamentoStatusPayload = {
+  expected_revision?: string
   stato: string
   metodo_pagamento?: string
   note?: string
@@ -246,6 +249,7 @@ function normalisePayment(raw: unknown): PaymentRow {
   return {
     id: text(item.id),
     invoiceId: text(item.invoiceId),
+    invoiceRevision: text(item.invoiceRevision) || undefined,
     invoiceNumber: text(item.invoiceNumber),
     customerName: text(item.customerName) || 'Cliente non indicato',
     amountDisplay: text(item.amountDisplay),

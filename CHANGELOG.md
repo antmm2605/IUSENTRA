@@ -1,3 +1,9 @@
+# 2.441.3 — Protezione delle modifiche concorrenti nelle fatture
+
+- Cambio stato, annullamento e registrazione dell’incasso conservano la revisione del documento mostrato nella pagina e riutilizzano il controllo SQL esistente.
+- Una revisione superata restituisce un conflitto senza sovrascrivere note e importi, modificare il pagamento o registrare un audit di successo.
+- Preservati la compatibilità del percorso JSON storico e il riscontro governato degli incassi già confermati nel fascicolo. Questa modifica non introduce gli incassi parziali.
+
 # 2.441.2 — Collegamenti alle fonti nelle risposte Lex
 
 - I nomi delle ricevute con parentesi quadre e barre restano integri e apribili dalla risposta principale.

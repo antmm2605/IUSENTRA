@@ -1008,7 +1008,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Mandato/economico | Backend | tests/test_fattura_pa.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Mandato/economico | Backend | tests/test_tariffario_fascia_alta.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Mandato/economico | Backend | tests/test_tassonomia_preventivi.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| Mandato/economico | Frontend/UI | tests/test_fatturazione.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Mandato/economico | Frontend/UI | tests/test_fatturazione.py | 403/RBAC, contratto, audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Mandato/economico | Frontend/UI | tests/test_preventivi_conferimento_route.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Mandato/economico | Frontend/UI | tests/test_preventivi_repository.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Mandato/economico | Frontend/UI | tests/test_preventivi_wizard_tariffario_audit.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |

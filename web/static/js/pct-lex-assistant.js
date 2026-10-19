@@ -152,8 +152,11 @@
   }
 
   function linkHtml(label, url) {
-    var safeUrl = escapeHtml(url);
-    return '<a href="' + safeUrl + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(label || url) + '</a>';
+    var documentUrl = String(url || '').replace(/%5f/gi, '_');
+    var nativeDocument = /^\/fascicoli\/[a-zA-Z0-9_-]+\/documenti\/[a-zA-Z0-9_-]+\/visualizza$/.test(documentUrl);
+    var safeUrl = escapeHtml(nativeDocument ? documentUrl : url);
+    // La shell intercetta il collegamento nella finestra Lex e riusa il lettore del fascicolo.
+    return '<a href="' + safeUrl + '"' + (nativeDocument ? '' : ' target="_blank"') + ' rel="noopener noreferrer">' + escapeHtml(label || url) + '</a>';
   }
 
   function renderInlineMarkdown(value) {

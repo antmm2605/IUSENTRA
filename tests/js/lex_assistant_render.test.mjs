@@ -99,6 +99,12 @@ assert.match(internalLinks, /href="\/agenda\/CONTROLLED%5FONE"/)
 assert.match(internalLinks, /href="\/email\/messaggio\/controlled"/)
 assert.match(internalLinks, /href="\/scadenziario\/controlled"/)
 assert.doesNotMatch(internalLinks, /\[Appuntamento\]/)
+const nativeDocumentLink = hooks.renderInlineMarkdown('[Ricevuta](/fascicoli/CASE%5FONE/documenti/DOC%5FONE/visualizza)')
+assert.match(nativeDocumentLink, /href="\/fascicoli\/CASE_ONE\/documenti\/DOC_ONE\/visualizza"/)
+assert.doesNotMatch(nativeDocumentLink, /target="_blank"/)
+for (const href of ['https://example.test/fascicoli/F1/documenti/D1/visualizza', '/fascicoli/F1/documenti/D1/scarica', '/fascicoli/F1/deposito']) {
+  assert.match(hooks.renderInlineMarkdown('[Collegamento](' + href + ')'), /target="_blank"/)
+}
 const bracketSource = String.raw`- [CONSEGNA_Documento \[JQ95-L01\] \[Notifica_ID:abc\].eml](/fascicoli/controlled/documenti/receipt/visualizza)`
 const bracketAnswer = hooks.buildAnswerHtml({ answer: hooks.sanitizeLexAnswer(bracketSource) }, { includeExports: false })
 assert.match(bracketAnswer, /href="\/fascicoli\/controlled\/documenti\/receipt\/visualizza"/)

@@ -6,7 +6,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 1038.
+- File pytest censiti: 1039.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
@@ -20,7 +20,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | RBAC | 128 |
 | Security | 54 |
 | Smoke CLI | 6 |
-| Tenant isolation | 265 |
+| Tenant isolation | 266 |
 
 ## Fasi pytest governate
 
@@ -29,7 +29,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 00-ci-contracts | Contratti CI, packaging, sicurezza minima e guardrail tecnici rapidi. | 28 |
 | 01-flask-core | Bootstrap Flask, autenticazione, sicurezza web, osservabilita' e superfici operative. | 22 |
 | 02-react-ui | Contratti React, regia, topbar, layout mobile e coerenza design system. | 37 |
-| 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 82 |
+| 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 83 |
 | 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 30 |
 | 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 74 |
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 88 |
@@ -79,6 +79,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Agenda | RBAC | tests/test_agenda_sql_concurrency.py | 403/RBAC, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Agenda | Security | tests/test_agenda_new_case_context.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Agenda | Tenant isolation | tests/test_agenda_archivio_source.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Agenda | Tenant isolation | tests/test_agenda_sql_adoption.py | 401 anonimo, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Agenda | Tenant isolation | tests/test_calendar_query_events.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Agenda | Tenant isolation | tests/test_calendar_query_preparation.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Agenda | Tenant isolation | tests/test_calendar_query_repository.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |

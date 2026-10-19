@@ -9,7 +9,9 @@ from pct.scadenziario_sql_adoption import adopt, read_source
 from pct.scadenziario_sql_owner import read_owner, resolve_owner
 
 
-def main():
+def main(*, domain='scadenziario'):
+    if domain not in ('scadenziario', 'agenda'):
+        raise ValueError('Dominio calendario non riconosciuto.')
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--tenant-registry', required=True)
     parser.add_argument('--backup-dir')
@@ -24,7 +26,7 @@ def main():
     ready = True
     for studio in registry.lista():
         paths = registry.percorsi_dati(studio.slug, reconcile_aliases=False, ensure_baseline=False)
-        source = paths['SCADENZIARIO_DB']
+        source = paths['AGENDA_DB' if domain == 'agenda' else 'SCADENZIARIO_DB']
         backend = build_core_storage_backend(studio.database, studio_db_path=paths['STUDIO_DB'], initialize_schema=False)
         if backend is None:
             raise RuntimeError('Archivio SQL proprietario non disponibile per lo scadenziario: ' + studio.slug)
@@ -32,12 +34,12 @@ def main():
             owner = read_owner(source)
             if args.check:
                 if owner is None:
-                    read_source(source)  # La verifica non avvia importazioni o scritture.
+                    read_source(source, domain=domain)  # Nessuna importazione o scrittura.
                     ready = False
                     result = {'ready': False}
                 else:
                     try:
-                        resolve_owner(source, backend)
+                        resolve_owner(source, backend, domain=domain)
                     except RuntimeError:
                         ready = False
                         result = {'ready': False, 'recovery_required': True}
@@ -47,7 +49,7 @@ def main():
                 result = adopt(backend, source, tenant=studio.slug, registry=str(registry_path),
                                destination=Path(args.backup_dir) / studio.slug,
                                data_root=os.environ.get('PCT_DATA_ROOT') or registry_path.parent,
-                               writers_drained=args.writers_drained)
+                               writers_drained=args.writers_drained, domain=domain)
             print(json.dumps({'tenant': studio.slug, **result}), flush=True)
         finally:
             if getattr(backend, 'backend_kind', '') == 'postgresql':

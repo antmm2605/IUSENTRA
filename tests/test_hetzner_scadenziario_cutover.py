@@ -8,7 +8,8 @@ import pytest
 
 @pytest.mark.parametrize('ready,running,failure,expected', [(0, '', '', 0), (2, '', '', 0),
                                                          (2, 'active', '', 1), (2, '', 'migration', 22)])
-def test_drain_e_adozione_sono_bloccanti(tmp_path, ready, running, failure, expected):
+@pytest.mark.parametrize('domain', ['scadenziario', 'agenda'])
+def test_drain_e_adozione_sono_bloccanti(tmp_path, ready, running, failure, expected, domain):
     script = (Path(__file__).parents[1] / 'deploy/hetzner/deploy.sh').read_text(encoding='utf-8')
     function = script[script.index('prepare_scadenziario_before_start() {'):script.index('\nprepare_tracking_proposals_before_start()')]
     stub = r'''
@@ -30,12 +31,13 @@ PROFILE_ARGS=()
 '''
     trace = tmp_path / 'trace.txt'
     bash = 'C:/Program Files/Git/bin/bash.exe' if os.name == 'nt' else 'bash'
-    result = subprocess.run([bash, '-euo', 'pipefail', '-c', stub + function + '\nprepare_scadenziario_before_start'],
+    result = subprocess.run([bash, '-euo', 'pipefail', '-c', stub + function + '\nprepare_scadenziario_before_start ' + domain],
                             capture_output=True, text=True,
                             env={**os.environ, 'TRACE': trace.as_posix(), 'READY': str(ready),
                                  'RUNNING': running, 'FAILURE': failure})
     assert result.returncode == expected, result.stderr
     lines = trace.read_text(encoding='utf-8').splitlines()
+    assert 'tools.prepare_' + domain + '_sql' in lines[0]
     if ready == 0:
         assert len(lines) == 1
     else:

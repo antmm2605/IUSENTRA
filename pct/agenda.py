@@ -118,14 +118,15 @@ class Agenda:
     """
     Agenda digitale dello studio legale.
 
-    Persiste gli appuntamenti su file JSON locale.
+    Usa il repository SQL proprietario dopo l'adozione esplicita dello storico.
     Supporta ricerca per data, cliente, tipo e stato.
     """
 
     def __init__(self, db_path: str = "./agenda/appuntamenti.json", studio_db=None):
+        from pct.scadenziario_sql_owner import resolve_owner
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._studio_db = studio_db
+        self._studio_db, self._sql_only = resolve_owner(self.db_path, studio_db, domain='agenda')
         self._appuntamenti: dict[str, Appuntamento] = {}
         self._sql_rows = {}
         self._sql_models = {}
@@ -162,13 +163,19 @@ class Agenda:
 
     def _salva_json_file(self) -> None:
         from pct import cache as _cache
-
-        _cache.save(self.db_path, {k: v.to_dict() for k, v in self._appuntamenti.items()})
+        from pct.prima_nota_transition import prima_nota_source_lock
+        from pct.scadenziario_sql_owner import read_owner
+        with prima_nota_source_lock(self.db_path):
+            if read_owner(self.db_path) is not None:
+                raise RuntimeError('Agenda adottata in SQL: scrittura JSON storica bloccata.')
+            _cache.save(self.db_path, {k: v.to_dict() for k, v in self._appuntamenti.items()})
 
     def _carica(self) -> None:
         if self._studio_db is not None:
-            json_appuntamenti = self._carica_json_file()
+            json_appuntamenti = {} if self._sql_only else self._carica_json_file()
             self._carica_sql()
+            if self._sql_only:
+                return
             merged = False
             for item_id, appuntamento in json_appuntamenti.items():
                 if item_id not in self._appuntamenti:
@@ -199,6 +206,8 @@ class Agenda:
         if self._studio_db is not None:
             import json
             from pct.agenda_sql_writer import save_changes
+            from pct.scadenziario_sql_owner import resolve_owner
+            self._studio_db, self._sql_only = resolve_owner(self.db_path, self._studio_db, domain='agenda')
 
             try:
                 save_changes(self._studio_db, original_rows=self._sql_rows,
@@ -208,7 +217,8 @@ class Agenda:
                                       for key, value in self._sql_models.items()}
                 raise
             self._carica_sql()
-            self._salva_json_file()
+            if not self._sql_only:
+                self._salva_json_file()
             return
         self._salva_json_file()
 

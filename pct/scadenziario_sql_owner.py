@@ -34,17 +34,21 @@ def read_owner(source):
     except FileNotFoundError:
         return None
     except (ValueError, OSError) as exc:
-        raise RuntimeError('Collegamento SQL dello scadenziario non leggibile: recupero necessario.') from exc
+        raise RuntimeError('Collegamento SQL del calendario non leggibile: recupero necessario.') from exc
     fields = {'version', 'source', 'tenant', 'backend', 'studio_db', 'registry', 'sha256', 'backup'}
     if (not isinstance(value, dict) or set(value) != fields or value['version'] != 1
             or value['source'] != str(Path(source).resolve())
             or any(not isinstance(value[key], str) or not value[key] for key in fields - {'version', 'registry'})
             or not isinstance(value['registry'], str)):
-        raise RuntimeError('Collegamento SQL dello scadenziario discordante: nessun ritorno al JSON.')
+        raise RuntimeError('Collegamento SQL del calendario discordante: nessun ritorno al JSON.')
     return value
 
 
-def resolve_owner(source, database=None):
+def resolve_owner(source, database=None, *, domain='scadenziario'):
+    # Identificatori chiusi: mai ricavare tabella o proprietario dal nome file.
+    if domain not in ('scadenziario', 'agenda'):
+        raise ValueError('Dominio calendario non riconosciuto.')
+    state_table = domain + '_sql_state'
     owner = read_owner(source)
     if owner is None:
         return database, False
@@ -55,30 +59,31 @@ def resolve_owner(source, database=None):
             registry = GestioneTenant(registry_path=owner['registry'])
             studio = registry.get(owner['tenant'])
             if studio is None:
-                raise RuntimeError('Studio proprietario dello scadenziario non disponibile.')
+                raise RuntimeError('Studio proprietario del calendario non disponibile.')
             paths = registry.percorsi_dati(studio.slug, reconcile_aliases=False, ensure_baseline=False)
-            if str(Path(paths['SCADENZIARIO_DB']).resolve()) != owner['source']:
-                raise RuntimeError('Fonte dello scadenziario appartenente a uno studio diverso.')
+            source_key = 'AGENDA_DB' if domain == 'agenda' else 'SCADENZIARIO_DB'
+            if str(Path(paths[source_key]).resolve()) != owner['source']:
+                raise RuntimeError('Fonte del calendario appartenente a uno studio diverso.')
             database = build_core_storage_backend(studio.database, studio_db_path=paths['STUDIO_DB'], initialize_schema=False)
         else:
             if not Path(owner['studio_db']).is_file():
-                raise RuntimeError('Archivio SQL dello scadenziario assente: recupero necessario.')
+                raise RuntimeError('Archivio SQL del calendario assente: recupero necessario.')
             database = _existing_sqlite(owner['studio_db'])
     if database is None or backend_identity(database) != owner['backend']:
-        raise RuntimeError('Archivio dello scadenziario diverso dal proprietario confermato.')
+        raise RuntimeError('Archivio del calendario diverso dal proprietario confermato.')
     try:
         # Non interrogare una tabella assente: su PostgreSQL l'errore
         # abortirebbe la transazione del chiamante impedendo la ripresa.
-        exists = database.conn.execute("SELECT to_regclass('scadenziario_sql_state')" if
+        exists = database.conn.execute(f"SELECT to_regclass('{state_table}')" if
                     getattr(database, 'backend_kind', '') == 'postgresql' else
-                    "SELECT name FROM sqlite_master WHERE type='table' AND name='scadenziario_sql_state'").fetchone()
+                    f"SELECT name FROM sqlite_master WHERE type='table' AND name='{state_table}'").fetchone()
         if not exists or not exists[0]:
             raise RuntimeError('Conferma SQL non ancora registrata.')
-        state = database.conn.execute('SELECT source_sha256 FROM scadenziario_sql_state WHERE tenant=? AND source=? '
-                                      'AND NOT EXISTS (SELECT 1 FROM scadenziario_sql_state WHERE tenant<>? OR source<>?)',
+        state = database.conn.execute(f'SELECT source_sha256 FROM {state_table} WHERE tenant=? AND source=? '
+                                      f'AND NOT EXISTS (SELECT 1 FROM {state_table} WHERE tenant<>? OR source<>?)',
                                       (owner['tenant'], owner['source'], owner['tenant'], owner['source'])).fetchone()
     except Exception as exc:
-        raise RuntimeError('Adozione SQL dello scadenziario non confermata: recupero necessario.') from exc
+        raise RuntimeError('Adozione SQL del calendario non confermata: recupero necessario.') from exc
     if state is None or state[0] != owner['sha256']:
-        raise RuntimeError('Adozione SQL dello scadenziario non confermata: recupero necessario.')
+        raise RuntimeError('Adozione SQL del calendario non confermata: recupero necessario.')
     return database, True

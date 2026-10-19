@@ -12,6 +12,7 @@ fascicolo leggono lo stesso record: nessuna doppia registrazione.
 from __future__ import annotations
 
 from datetime import datetime
+import math
 from typing import Any, Callable
 
 from web.services.react_dashboard_time import oggi_rome
@@ -25,11 +26,12 @@ def _text(value: Any) -> str:
 
 
 def _importo(value: Any) -> float | None:
-    if value is None or value == "":
+    if value is None or value == "" or isinstance(value, bool):
         return None
     try:
-        return round(float(str(value).replace("€", "").replace(".", "").replace(",", ".")) if isinstance(value, str) and "," in str(value) else float(value), 2)
-    except (TypeError, ValueError):
+        amount = float(str(value).replace("€", "").replace(".", "").replace(",", ".")) if isinstance(value, str) and "," in str(value) else float(value)
+        return round(amount, 2) if math.isfinite(amount) else None
+    except (TypeError, ValueError, OverflowError):
         return None
 
 
@@ -82,8 +84,9 @@ def registra_bonifico_ricevuto(
         return {"ok": False, "message": "Fascicolo non trovato.", "errors": {"fascicolo": "Fascicolo non trovato."}}, 404
     fid = _text(getattr(fascicolo, "id", ""))
     liquidazione = _liquidazione(fascicolo)
-    importo = _importo(payload.get("importo") if "importo" in payload else payload.get("amount"))
-    if importo is None:
+    raw_importo = payload.get("importo") if "importo" in payload else payload.get("amount")
+    importo = _importo(raw_importo)
+    if importo is None and (raw_importo is None or raw_importo == ""):
         importo = _importo(liquidazione.get("importo"))
     if importo is None or importo <= 0:
         return {"ok": False, "message": "Indica l'importo ricevuto.", "errors": {"importo": "Indica l'importo ricevuto (maggiore di zero)."}}, 400

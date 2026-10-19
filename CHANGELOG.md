@@ -1,3 +1,8 @@
+## 2.437.64
+
+- Registrazione incassi: importi espliciti non validi, booleani o non finiti rifiutati prima della fatturazione, senza sostituirli con la liquidazione.
+- Conservati il calcolo degli importi italiani, i saldi e i pagamenti già registrati.
+
 ## 2.437.63
 
 - Lex riconosce le ricevute di accettazione e consegna anche con il richiamo generico ai fascicoli, usando il catalogo SQL esistente di documenti e PEC.

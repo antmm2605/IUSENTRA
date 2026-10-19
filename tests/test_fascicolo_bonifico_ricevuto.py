@@ -239,3 +239,43 @@ def test_bonifico_usa_giorno_italiano_anche_quando_utc_e_ieri(monkeypatch):
     assert service._data_iso("") == ("2026-10-13", "")
     assert service._data_iso("13/10/2026") == ("2026-10-13", "")
     assert service._data_iso("14/10/2026")[1] == "La data del bonifico non può essere futura."
+
+
+@pytest.mark.parametrize('amount', ['NaN', 'Infinity', '-Infinity', '1e9999', float('nan'), float('inf'), True, 'errato', {}])
+def test_importo_esplicito_non_valido_non_usa_liquidazione_e_non_apre_fatturazione(monkeypatch, amount):
+    from types import SimpleNamespace
+    import web.services.fascicolo_bonifico_ricevuto as service
+
+    case = SimpleNamespace(id='controlled-case', pagamenti={})
+    monkeypatch.setattr('web.services.react_fascicoli_bridge._resolve_fascicolo', lambda *_: case)
+    monkeypatch.setattr(service, '_liquidazione', lambda _: {'importo': 4500})
+    result, status = service.registra_bonifico_ricevuto(
+        get_fascicoli=lambda: object(),
+        get_fatturazione=lambda: pytest.fail('Importo non valido arrivato alla fatturazione'),
+        id_fasc=case.id, payload={'importo': amount},
+    )
+    assert status == 400 and not result['ok']
+    assert 'importo' in result['errors']
+    assert case.pagamenti == {}
+
+
+@pytest.mark.parametrize('field,amount', [('importo', 'NaN'), ('amount', 'errato')])
+def test_api_importo_non_valido_preserva_parcella_e_liquidazione(tmp_path, field, amount):
+    app = _app(tmp_path)
+    with app.app_context():
+        case, invoice = _seed(app, con_parcella=True)
+        gf = app.extensions['core_runtime']['get_fascicoli']
+        gm = app.extensions['core_runtime']['get_fatturazione']
+        result, status = update_react_fascicolo_payment(
+            get_fascicoli=gf, get_fatturazione=gm, id_fasc=case.id,
+            kind='liquidazione_giudice', payload={'status': 'da_registrare', 'importo': 4500}, actor='test',
+        )
+        assert status == 200, result
+        before = deepcopy(gf().get(case.id).pagamenti)
+        response = app.test_client().post(
+            f'/api/v1/ui/fascicoli/{case.id}/bonifico-ricevuto', headers=HEADERS, json={field: amount},
+        )
+        assert response.status_code == 400 and not response.json['ok']
+        stored = GestioneFatturazione(db_path=app.config['FATTURAZIONE_DB']).get(invoice.id)
+        assert stored.stato == StatoParcella.EMESSA and not stored.data_pagamento
+        assert gf().get(case.id).pagamenti == before

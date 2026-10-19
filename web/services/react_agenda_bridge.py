@@ -985,7 +985,7 @@ def _agenda_event(item: Any, *, pec_profile: Mapping[str, Any] | None = None) ->
     hearing_dt = _extract_hearing_datetime(title, notes) if _is_pec_operational_text(title, notes) else None
     if hearing_dt and start.hour == 9 and start.minute == 0 and hearing_dt.date() == start.date():
         start = hearing_dt
-    duration = max(15, int(getattr(item, "durata_minuti", 60) or 60))
+    duration = max(1, int(getattr(item, "durata_minuti", 60) or 60))
     end = start + timedelta(minutes=duration)
     item_id = str(getattr(item, "id", "") or "")
     tipo = _enum_value(getattr(item, "tipo", ""))

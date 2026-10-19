@@ -55,6 +55,15 @@ assert.match(attachmentPayload.attachment_prompt_block, /DOCUMENTI CARICATI DALL
 assert.match(attachmentPayload.attachment_prompt_block, /memoria\.pdf/)
 hooks.setAttachmentsForTest([])
 
+for (const prompt of ['Mostra altre PEC', 'Mostra altre notificazioni', 'Mostra altri appuntamenti',
+  'Mostra altre scadenze', 'Mostra altri depositi', 'Mostra altre ricevute archiviate']) {
+  hooks.setQueryContinuationForTest('controlled-signed-cursor')
+  assert.equal(hooks.buildChatRequestPayload(prompt).query_continuation, 'controlled-signed-cursor',
+    'il pulsante deve trasportare il cursore senza perdere i filtri: ' + prompt)
+  assert.equal(hooks.buildChatRequestPayload('PEC ricevute oggi').query_continuation, undefined,
+    'il cursore vale solo per il comando di continuazione selezionato')
+}
+
 const rendered = hooks.renderMarkdown(`# Sintesi operativa
 
 Perch\u00e9 l'udienza \u00e8 gi\u00e0 fissata, Lex deve mantenere gli accenti: citt\u00e0, societ\u00e0, pi\u00f9, cos\u00ec.

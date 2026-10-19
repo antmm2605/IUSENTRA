@@ -1,3 +1,9 @@
+# 2.441.1 — Consultazione mirata delle ricevute in Lex
+
+- Le ricerche di depositi e ricevute archiviate usano subito il router SQL esistente, senza costruire contesti generali o avviare modelli e pipeline estranei alla domanda.
+- I pulsanti per le pagine successive trasportano il cursore firmato anche per depositi e ricevute; il backend conserva e verifica periodo, filtri, studio e permessi.
+- Conservati i percorsi specifici per cliente e fascicolo, gli allegati, la ricerca pubblica e i blocchi sulle azioni legali.
+
 # 2.441.0 — Schede di compilazione del civile di base, scadenze calcolate e precedenti
 
 - Schede di compilazione per 95 modelli (civile ordinario, monitorio, cautelare e giudice di pace), generate da `scripts/schede_compilazione/` con ogni articolo verificato nella biblioteca «Codici e leggi», sospensione feriale esplicita e casi di astensione; revisione giuridica indipendente.

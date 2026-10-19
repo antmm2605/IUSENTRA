@@ -2581,7 +2581,9 @@
       mode: mode,
       page_section: payload.page_context || mode,
     };
-    if (state.queryContinuation && ['Mostra altre PEC', 'Mostra altre notificazioni', 'Mostra altri appuntamenti', 'Mostra altre scadenze'].indexOf(currentText) >= 0) {
+    // Il pulsante trasporta il cursore opaco; il backend verifica domanda,
+    // filtri, studio e permessi, senza duplicare qui i nomi dei domini.
+    if (state.queryContinuation) {
       requestPayload.query_continuation = state.queryContinuation;
     }
     state.queryContinuation = null;
@@ -4063,6 +4065,9 @@
       },
       setAttachmentsForTest: function (attachments) {
         state.attachments = Array.isArray(attachments) ? attachments.slice(0, 4) : [];
+      },
+      setQueryContinuationForTest: function (token) {
+        state.queryContinuation = token;
       },
     };
   }

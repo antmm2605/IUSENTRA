@@ -44,18 +44,23 @@ def _structured_operational_http_payload(*, user, studio, data, question, attach
     """Percorso consultivo prima di contesti estesi, cataloghi e modello AI."""
     from .http_bounded_bridge import _manual_free_web_enabled
     from .operational_knowledge.integration import build_operational_http_payload
-    from .operational_knowledge.query_selection import is_plain_pec_query, is_plain_notification_query, is_plain_calendar_query, has_scoped_query_context
+    from .operational_knowledge.query_router import OperationalQueryRouter
 
-    if has_scoped_query_context(data) and not data.get('query_continuation'):
+    if attachments or _manual_free_web_enabled(data):
         return None
-    if attachments or _manual_free_web_enabled(data) or not (is_plain_pec_query(question) or is_plain_notification_query(question) or is_plain_calendar_query(question)):
+    route = OperationalQueryRouter().route(question, metadata=data)
+    labels = {
+        'pec_query_page': ('pec', 'PEC dello studio'),
+        'notification_query_page': ('notifiche', 'Notificazioni legali'),
+        'deposit_query_page': ('pec', 'Ricevute di deposito'),
+        'receipt_archive_query_page': ('pec', 'Ricevute archiviate'),
+    }
+    if route is not None and route.intent == 'calendar_query_page':
+        focus, label = ('scadenze', 'Scadenziario dello studio') if route.source_ids == ('scadenziario',) else ('agenda', 'Agenda dello studio')
+    elif route is not None and route.intent in labels:
+        focus, label = labels[route.intent]
+    else:
         return None
-    focus, label = 'pec', 'PEC dello studio'
-    if is_plain_calendar_query(question):
-        focus = 'scadenze' if 'scadenz' in question.casefold() else 'agenda'
-        label = 'Scadenziario dello studio' if focus == 'scadenze' else 'Agenda dello studio'
-    elif is_plain_notification_query(question):
-        focus, label = 'notifiche', 'Notificazioni legali'
     return build_operational_http_payload(
         user=user, studio=studio, data=data,
         current_user_message=question, resolved_effective_question=question,

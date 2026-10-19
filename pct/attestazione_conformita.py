@@ -118,7 +118,7 @@ class Esito:
 
 
 def cognome_nome(nome: str) -> str:
-    """«Giuseppe Montagnese» → «Montagnese Giuseppe», come si firma l'attestazione."""
+    """«Mario Rossi» → «Rossi Mario», come si firma l'attestazione."""
     parti = nome.split()
     return " ".join([parti[-1], *parti[:-1]]) if len(parti) == 2 else nome
 

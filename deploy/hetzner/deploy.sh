@@ -320,6 +320,27 @@ prepare_template_catalog_before_start() {
     --backup-dir /data/backup/template-catalog-20261017
 }
 
+prepare_scadenziario_before_start() {
+  local compose=(docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}")
+  local result=0 service container
+  "${compose[@]}" run --no-deps --rm --entrypoint python app \
+    -m tools.prepare_scadenziario_sql --tenant-registry /data/tenants.json --check || result=$?
+  [ "$result" = "0" ] && return 0
+  [ "$result" = "2" ] || return "$result"
+  echo "Scadenziario: arresto dei produttori prima del backup e dell'adozione SQL."
+  "${compose[@]}" stop app scheduler-worker ocr-worker
+  for service in app scheduler-worker ocr-worker; do
+    for container in $(docker ps -q --filter label=com.docker.compose.project=iusentra \
+      --filter "label=com.docker.compose.service=$service"); do
+      echo "Produttore ancora attivo: $container" >&2
+      return 1
+    done
+  done
+  "${compose[@]}" run --no-deps --rm --entrypoint python app \
+    -m tools.prepare_scadenziario_sql --tenant-registry /data/tenants.json \
+    --writers-drained --backup-dir /data/backup/scadenziario-sql-20261019
+}
+
 prepare_tracking_proposals_before_start() {
   local compose=(docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}")
   local result=0 container service
@@ -384,6 +405,7 @@ if [ "${IUSENTRA_DEPLOY_DRIVER:-compose}" = "portainer" ]; then
     export IUSENTRA_APP_IMAGE="iusentra-app:${RELEASE_SHA}"
     adopt_termini_before_start
   fi
+  prepare_scadenziario_before_start
   prepare_client_case_index_before_start
   prepare_template_catalog_before_start
   prepare_tracking_proposals_before_start
@@ -394,6 +416,7 @@ else
   test -z "$(git status --porcelain)"
   python3 deploy/hetzner/check_runtime_sources.py --repo "$REPO_DIR" --target "$(git rev-parse HEAD)"
   adopt_termini_before_start
+  prepare_scadenziario_before_start
   prepare_client_case_index_before_start
   prepare_template_catalog_before_start
   prepare_tracking_proposals_before_start

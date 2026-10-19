@@ -789,9 +789,10 @@ class Scadenza:
 
 class GestioneScadenziario:
     def __init__(self, db_path: str = "./scadenziario/scadenze.json", studio_db=None):
+        from pct.scadenziario_sql_owner import resolve_owner
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._studio_db = studio_db
+        self._studio_db, self._sql_only = resolve_owner(self.db_path, studio_db)
         self._scadenze: Dict[str, Scadenza] = {}
         self._sql_rows: Dict[str, Dict[str, Any]] = {}
         self._sql_models: Dict[str, str] = {}
@@ -826,14 +827,19 @@ class GestioneScadenziario:
 
     def _salva_json_file(self) -> None:
         from pct import cache as _cache
+        from pct.prima_nota_transition import prima_nota_source_lock
+        from pct.scadenziario_sql_owner import read_owner
 
-        _cache.save(self.db_path, {k: v.to_dict() for k, v in self._scadenze.items()})
+        with prima_nota_source_lock(self.db_path):
+            if read_owner(self.db_path) is not None:
+                raise RuntimeError("Scadenziario adottato in SQL: scrittura JSON storica bloccata.")
+            _cache.save(self.db_path, {k: v.to_dict() for k, v in self._scadenze.items()})
 
     def _carica(self) -> None:
         if self._studio_db is not None:
             from pct.scadenziario_sql_writer import encode_model
             from pct.calendar_sql_records import deadline_from_row
-            json_scadenze = self._carica_json_file()
+            json_scadenze = {} if self._sql_only else self._carica_json_file()
             try:
                 rows = self._studio_db.fetchall_readonly("SELECT * FROM scadenze")
                 self._scadenze = {}
@@ -850,6 +856,8 @@ class GestioneScadenziario:
                         raise RuntimeError("Scadenza SQL non leggibile: recupero necessario, nessun mirror usato come sostituzione.") from None
             except Exception:
                 raise RuntimeError("Lettura dello scadenziario SQL non riuscita: nessun dato riscritto da JSON.") from None
+            if self._sql_only:
+                return
             merged = False
             for item_id, scadenza in json_scadenze.items():
                 if item_id not in self._scadenze:
@@ -1009,6 +1017,8 @@ class GestioneScadenziario:
 
     def _salva(self) -> None:
         if self._studio_db is not None:
+            from pct.scadenziario_sql_owner import resolve_owner
+            self._studio_db, self._sql_only = resolve_owner(self.db_path, self._studio_db)
             from pct.scadenziario_sql_writer import encode_model, save_changes
             try:
                 save_changes(self._studio_db, original_rows=self._sql_rows,
@@ -1028,7 +1038,8 @@ class GestioneScadenziario:
                 confirmed[value.id], original_rows[value.id] = value, payload
             self._scadenze, self._sql_rows = confirmed, original_rows
             self._sql_models = {key: encode_model(value) for key, value in confirmed.items()}
-            self._salva_json_file()
+            if not self._sql_only:
+                self._salva_json_file()
             return
         self._salva_json_file()
 

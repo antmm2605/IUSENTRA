@@ -1,3 +1,8 @@
+## 2.437.65
+
+- Adozione esplicita dello scadenziario nel repository SQL nativo, con backup verificati, audit e blocco degli scrittori JSON storici.
+- Consultazioni senza importazioni o deduplicazioni; originali, collegamenti e protezioni contro modifiche concorrenti preservati.
+
 ## 2.437.64
 
 - Registrazione incassi: importi espliciti non validi, booleani o non finiti rifiutati prima della fatturazione, senza sostituirli con la liquidazione.

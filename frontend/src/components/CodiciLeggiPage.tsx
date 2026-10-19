@@ -8,8 +8,9 @@ import { Badge } from '../ui/Badge'
 import './LegalIntelligencePage.css'
 import { matchesCatalogueAct } from './codiciLeggiSearch'
 import { applyCatalogueResponse } from './codiciLeggiResults'
+import { CodiciLeggiMaterie } from './CodiciLeggiMaterie'
 
-type Act = { key?: string; id: number; title: string; label: string; category: string; articles: number; updated_at: string }
+type Act = { key?: string; id: number; title: string; label: string; category: string; articles: number; updated_at: string; materia?: string; tipo?: string }
 type Article = { id: number; number: string; title: string; act_title: string }
 type FullArticle = Article & { text: string; act_label: string; updated_at: string; source_url: string; source_label?: string; only_heading?: boolean; consolidated_at?: string }
 type Results = { items: Article[]; total: number; act_id?: number }
@@ -21,7 +22,6 @@ export function CodiciLeggiPage() {
   const initial = new URLSearchParams(window.location.search)
   const [acts, setActs] = useState<Act[]>([])
   const [catalogQuery, setCatalogQuery] = useState('')
-  const [codeQuery, setCodeQuery] = useState('')
   const [category, setCategory] = useState(initial.get('category') || '')
   const [act, setAct] = useState(initial.get('act') || '')
   const [query, setQuery] = useState(initial.get('q') || '')
@@ -38,8 +38,6 @@ export function CodiciLeggiPage() {
   const [readerError, setReaderError] = useState('')
   const [retry, setRetry] = useState(0)
   const visibleActs = useMemo(() => acts.filter(a => ((!category || a.category === category) && matchesCatalogueAct(a, catalogQuery)) || String(a.id) === act), [acts, catalogQuery, act, category])
-  const codes = useMemo(() => acts.filter(a => a.category === 'Codici').sort((a, b) => a.label.localeCompare(b.label, 'it')), [acts])
-  const visibleCodes = useMemo(() => codes.filter(a => matchesCatalogueAct(a, codeQuery)), [codes, codeQuery])
   const currentAct = acts.find(a => String(a.id) === String(results.act_id || filters.act))
 
   useEffect(() => {
@@ -65,16 +63,12 @@ export function CodiciLeggiPage() {
     return () => controller.abort()
   }, [selectedId])
   function chooseAct(value: string) { setCategory(''); setAct(value); setArticle(''); setQuery(''); setFilters({ act: value, query: '', article: '', category: '', offset: 0 }) }
-  function reset() { setAct(''); setQuery(''); setArticle(''); setCatalogQuery(''); setCodeQuery(''); setCategory(''); setFilters({ act: '', query: '', article: '', category: '', offset: 0 }) }
-  return <Page title="Codici e leggi" subtitle="Consulta i testi normativi integrali, con ricerca per atto e articolo." actions={<ButtonLink href="/ricerca-legale" tone="neutral">Ricerca legale</ButtonLink>}>
+  function reset() { setAct(''); setQuery(''); setArticle(''); setCatalogQuery(''); setCategory(''); setFilters({ act: '', query: '', article: '', category: '', offset: 0 }) }
+  return <Page title="Codici e leggi" subtitle="Codici, leggi e decreti per materia, con testo integrale e ricerca per articolo." actions={<ButtonLink href="/ricerca-legale" tone="neutral">Ricerca legale</ButtonLink>}>
     <div className="iu-li-page iu-li-normativa">
       <section className="iu-od-source-card iu-li-normativa-filters" aria-label="Ricerca nei codici e nelle leggi">
         <header className="iu-li-section-head"><BookOpen size={20} aria-hidden="true"/><div><h2>Biblioteca normativa</h2><p>{acts.length.toLocaleString('it-IT')} atti · {acts.reduce((n, a) => n + a.articles, 0).toLocaleString('it-IT')} articoli consultabili</p></div></header>
-        <section className="iu-li-normativa-catalogue" aria-label="Codici disponibili">
-          <div className="iu-li-normativa-catalogue-head"><div><h3>Codici disponibili <span>({codes.length})</span></h3><p>Scegli un codice per consultarne gli articoli. Per le altre leggi usa i filtri sotto.</p></div><label>Trova un codice<input value={codeQuery} onChange={e => setCodeQuery(e.target.value)} placeholder="Strada, consumo, privacy, ambiente…" type="search" /></label></div>
-          <div className="iu-li-normativa-code-grid">{visibleCodes.map(a => <button type="button" key={a.id} aria-pressed={act === String(a.id)} onClick={() => chooseAct(String(a.id))}><strong>{a.label}</strong><span>{a.articles.toLocaleString('it-IT')} articoli</span></button>)}</div>
-          {codes.length > 0 && visibleCodes.length === 0 ? <p role="status">Nessun codice corrisponde alla ricerca. Modifica le parole cercate.</p> : null}
-        </section>
+        <CodiciLeggiMaterie acts={acts} selected={act} onChoose={chooseAct} />
         <form onSubmit={e => { e.preventDefault(); setFilters({ act, query, article, category, offset: 0 }) }}>
           <label>Raccolta<select value={category} onChange={e => { const value = e.target.value; setCategory(value); setAct(''); setQuery(''); setArticle(''); setFilters({ act: '', query: '', article: '', category: value, offset: 0 }) }}><option value="">Tutte le raccolte</option>{Array.from(new Set(acts.map(a => a.category))).map(c => <option key={c}>{c}</option>)}</select></label>
           <label>Trova un codice o una legge<input value={catalogQuery} onChange={e => setCatalogQuery(e.target.value)} placeholder="Codice civile, privacy, lavoro…" /></label>

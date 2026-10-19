@@ -1,4 +1,4 @@
-type CatalogueAct = { key?: string; label: string; title: string }
+type CatalogueAct = { key?: string; label: string; title: string; materia?: string; tipo?: string }
 
 const aliases: Record<string, string> = {
   codice_privacy: 'privacy protezione dati personali',
@@ -27,5 +27,5 @@ const abbreviations = new Set(['cc', 'c.c.', 'cpc', 'c.p.c.', 'cp', 'c.p.', 'cpp
 export function matchesCatalogueAct(act: CatalogueAct, query: string) {
   const term = normaliseCatalogueText(query).trim()
   const synonyms = normaliseCatalogueText(aliases[act.key || ''] || '')
-  return normaliseCatalogueText(`${act.label} ${act.title}`).includes(term) || (abbreviations.has(term) ? synonyms.split(' ').includes(term) : synonyms.includes(term))
+  return normaliseCatalogueText(`${act.label} ${act.title} ${act.materia || ''} ${act.tipo || ''}`).includes(term) || (abbreviations.has(term) ? synonyms.split(' ').includes(term) : synonyms.includes(term))
 }

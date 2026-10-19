@@ -21,6 +21,8 @@ from lex.normativa.normattiva_importer import (
     ArticleRecord, DocumentRecord, ensure_schema, insert_articles_and_chunks,
     insert_document, migra_schema,
 )
+from lex.normativa.etichette_atti import ETICHETTE
+from lex.normativa.materie import materia, tipo
 from lex.ricerca_giuridica.indice_fts import sincronizza_fts
 from lex.ricerca_giuridica.testo import testo_indice
 
@@ -76,6 +78,8 @@ CODE_LABELS = {
 def _label(key: str, title: str) -> str:
     if key in CODE_LABELS:
         return CODE_LABELS[key]
+    if key in ETICHETTE:
+        return ETICHETTE[key]
     # Keep official titles intact in storage; use concise catalogue labels.
     label = re.split(r'\s+note:|\s+visualizza atto', title, maxsplit=1, flags=re.I)[0]
     label = re.sub(r'\s*\([0-9A-Z]{6,9}\)', '', label)
@@ -90,6 +94,8 @@ def _catalogue_row(row):
     item['key'] = key
     item['label'] = _label(key, item['title'])
     item['category'] = 'Regolamenti UE' if key.startswith('reg_ue_') else 'Deontologia' if key.startswith('codice_deontologico') else 'Codici' if (key.startswith('codice_') or (key in CODE_LABELS and item['label'].startswith('Codice ')) or key == '152/2006') else 'Regolamenti e attuazione' if item['label'].startswith('Regolamento ') else 'Costituzione e disposizioni' if key in ('costituzione', 'preleggi', '1368/1941', '318/1942', '271/1989', 'cpa_norme_attuazione', 'cpa_norme_transitorie', 'cpa_norme_coordinamento', 'militari_attuazione_1023_1941') else 'Leggi e testi unici'
+    item['materia'] = materia(key, item.get('urn') or '', item['title'])
+    item['tipo'] = tipo(item['category'], key, item.get('urn') or '')
     return item
 
 

@@ -1344,3 +1344,14 @@ main.iu-content.iu-li-fullscreen-mode .iu-li-page {
 .iu-li-normativa-code-grid button { display: flex; flex-direction: column; gap: 6px; text-align: left; border: 1px solid var(--iu-od-border); border-radius: 10px; padding: 14px; background: var(--iu-od-surface); color: inherit; cursor: pointer; }
 .iu-li-normativa-code-grid button[aria-pressed="true"] { outline: 2px solid var(--iu-od-accent); }
 .iu-li-normativa-code-grid span { font-size: 0.875rem; }
+.iu-li-normativa-materie-filtri { display: flex; gap: 1rem; align-items: end; justify-content: space-between; margin-top: 12px; }
+.iu-li-normativa-materie-filtri > label { width: min(100%, 14rem); flex-shrink: 0; }
+.iu-li-normativa-materie { display: flex; flex-wrap: wrap; gap: 6px; }
+.iu-li-normativa-materie button { border: 1px solid var(--iu-od-border); border-radius: 999px; padding: 5px 12px; background: var(--iu-od-surface); color: inherit; cursor: pointer; font-size: .85rem; }
+.iu-li-normativa-materie button span { color: var(--iu-od-muted); margin-left: 2px; }
+.iu-li-normativa-materie button[aria-pressed="true"] { background: var(--iu-od-surface-soft); outline: 2px solid var(--iu-od-accent); }
+.iu-li-normativa-materie button:focus-visible { outline: 2px solid var(--iu-od-accent); outline-offset: 2px; }
+.iu-li-normativa-materia { margin-top: 18px; }
+.iu-li-normativa-materia h4 { margin: 0; font-size: .95rem; }
+.iu-li-normativa-materia h4 span { color: var(--iu-od-muted); font-weight: 400; }
+@media (max-width: 700px) { .iu-li-normativa-materie-filtri { flex-direction: column; align-items: stretch; } .iu-li-normativa-materie-filtri > label { width: 100%; } }

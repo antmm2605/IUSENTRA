@@ -905,6 +905,20 @@ jobs:
             --suite e2e-smoke \
             --timeout-minutes 5
 
+      - name: Install document converter for compilation regression tests
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libreoffice-writer
+
+      - name: Compilation sheets and complete document flow
+        env:
+          PCT_MULTI_TENANT: "0"
+        run: |
+          python -m pytest -q --no-cov \
+            tests/test_schede_compilazione.py \
+            tests/test_patch_24410_guardrails.py \
+            tests/test_redazione_guidata.py
+
   signer-shards:
     name: Local Signer e PKCS#11 (${{ matrix.os }}) parte ${{ matrix.shard }}/4
     runs-on: ${{ matrix.os }}

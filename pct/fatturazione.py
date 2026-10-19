@@ -822,15 +822,19 @@ class GestioneFatturazione:
 
     def cambia_stato(self, id_parcella: str, stato: StatoParcella,
                      data_pagamento: Optional[str] = None,
-                     metodo_pagamento: Optional[str] = None):
+                     metodo_pagamento: Optional[str] = None,
+                     *, expected_revision: str | None = None):
         p = self._parcelle[id_parcella]
+        if expected_revision is not None:
+            p = Parcella.from_dict(p.to_dict())
         p.stato = stato
         if stato == StatoParcella.PAGATA:
             p.data_pagamento = data_pagamento or date.today().isoformat()
             if metodo_pagamento:
                 p.metodo_pagamento = metodo_pagamento
         self._converti_proforma_se_fiscale(p, stato)
-        self._salva_parcella(p)
+        self._salva_parcella(p, expected_revision=expected_revision)
+        self._parcelle[id_parcella] = p
 
     def elimina(self, id_parcella: str):
         if id_parcella in self._parcelle:

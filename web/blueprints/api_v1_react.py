@@ -8998,6 +8998,32 @@ def fascicolo_react_pagamento(id_fasc: str, kind: str):
     return redacted_json_response(result, status)
 
 
+@api_v1_react.get("/fascicoli/<id_fasc>/bonifico-ricevuto")
+@_richiedi_auth
+def fascicolo_react_bonifico_documenti(id_fasc: str):
+    """Documenti economici del solo fascicolo richiesto, senza avviare gestori."""
+    if not (_api_key_valida() or _session_user_can("fatturazione.scrivi") or _session_user_can("fascicoli.scrivi")):
+        return jsonify({"ok": False, "message": "Operazione non autorizzata."}), 403
+    from web.services.fascicolo_invoice_options import invoice_options
+    from web.services.studio_readonly import request_studio_reader
+
+    try:
+        raw_size = request.args.get("limit", "50")
+        if len(raw_size) > 3 or not raw_size.isascii() or not raw_size.isdecimal():
+            raise ValueError("Dimensione della pagina non valida.")
+        size = int(raw_size)
+        anchor = tenant_data_path("FATTURAZIONE_DB", "./fatturazione/parcelle.json", require_tenant=True)
+        with request_studio_reader(anchor) as database:
+            result = invoice_options(database, id_fasc, cursor=request.args.get("cursor", ""), limit=size)
+    except KeyError:
+        return jsonify({"ok": False, "message": "Fascicolo non trovato."}), 404
+    except ValueError as exc:
+        return jsonify({"ok": False, "message": str(exc)}), 400
+    response = redacted_json_response(result, 200)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @api_v1_react.post("/fascicoli/<id_fasc>/bonifico-ricevuto")
 @_richiedi_auth
 def fascicolo_react_bonifico_ricevuto(id_fasc: str):

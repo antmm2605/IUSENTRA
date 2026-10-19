@@ -317,3 +317,76 @@ def test_due_parcelle_distinte_per_un_centesimo_seleziona_importo_esatto(tmp_pat
         assert result['parcellaId'] == second.id
         assert gm().get(first.id).stato == StatoParcella.EMESSA
         assert gm().get(second.id).stato == StatoParcella.PAGATA
+
+def test_bonifico_rejects_a_document_changed_after_selection(tmp_path):
+    from pct.fatturazione import parcella_revision
+    app = _app(tmp_path)
+    with app.app_context():
+        fascicolo, parcella = _seed(app, con_parcella=True)
+        core = app.extensions['core_runtime']
+        manager = core['get_fatturazione']()
+        revision = parcella_revision(manager.get(parcella.id))
+        manager.aggiorna(parcella.id, note='Revisione successiva alla selezione')
+        before = core['get_fascicoli']().get(fascicolo.id).to_dict()
+        result, status = registra_bonifico_ricevuto(
+            get_fascicoli=core['get_fascicoli'], get_fatturazione=core['get_fatturazione'],
+            id_fasc=fascicolo.id, payload={'parcella_id':parcella.id, 'parcella_revision':revision,
+                                        'importo':4500, 'data_pagamento':'2026-09-10'}, actor='test')
+        assert status == 409 and result['conflict']
+        assert core['get_fatturazione']().get(parcella.id).stato == StatoParcella.EMESSA
+        assert core['get_fascicoli']().get(fascicolo.id).to_dict() == before
+
+
+def test_rejected_state_transition_does_not_mutate_loaded_invoice(tmp_path, monkeypatch):
+    from pct.fatturazione import ParcellaConcurrentUpdate, parcella_revision
+    app = _app(tmp_path)
+    with app.app_context():
+        _, parcella = _seed(app, con_parcella=True)
+        manager = app.extensions['core_runtime']['get_fatturazione']()
+        before = manager.get(parcella.id).to_dict()
+        def reject(*args, **kwargs):
+            raise ParcellaConcurrentUpdate('Aggiornamento concorrente')
+        monkeypatch.setattr(manager, '_salva_parcella', reject)
+        with pytest.raises(ParcellaConcurrentUpdate):
+            manager.cambia_stato(parcella.id, StatoParcella.PAGATA,
+                                expected_revision=parcella_revision(manager.get(parcella.id)))
+        assert manager.get(parcella.id).to_dict() == before
+
+def test_invoice_choices_api_returns_only_selected_case_and_disables_cache(tmp_path):
+    app = _app(tmp_path)
+    with app.app_context():
+        fascicolo, parcella = _seed(app, con_parcella=True)
+        from web.services.storage_runtime import get_request_studio_db
+        assert get_request_studio_db(app.config['FATTURAZIONE_DB']) is not None
+    client = app.test_client()
+    response = client.get(f'/api/v1/ui/fascicoli/{fascicolo.id}/bonifico-ricevuto', headers=HEADERS)
+    assert response.status_code == 200, response.get_json()
+    result = response.get_json()
+    assert result['ok'] and [item['id'] for item in result['items']] == [parcella.id]
+    assert response.headers['Cache-Control'] == 'no-store'
+    invalid = client.get(f'/api/v1/ui/fascicoli/{fascicolo.id}/bonifico-ricevuto?limit=all', headers=HEADERS)
+    assert invalid.status_code == 400 and invalid.get_json()['message'] == 'Dimensione della pagina non valida.'
+    denied = client.get(f'/api/v1/ui/fascicoli/{fascicolo.id}/bonifico-ricevuto')
+    assert denied.status_code in (401, 403)
+
+def test_bonifico_rejects_invoice_of_another_client(tmp_path):
+    app = _app(tmp_path)
+    with app.app_context():
+        fascicolo, parcella = _seed(app, con_parcella=True)
+        core = app.extensions['core_runtime']
+        manager = core['get_fatturazione']()
+        manager.aggiorna(parcella.id, id_cliente='foreign-client')
+        result, status = registra_bonifico_ricevuto(
+            get_fascicoli=core['get_fascicoli'], get_fatturazione=core['get_fatturazione'],
+            id_fasc=fascicolo.id, payload={'parcella_id':parcella.id, 'importo':4500}, actor='test')
+        assert status == 409 and 'Cliente' in result['message']
+        assert core['get_fatturazione']().get(parcella.id).stato == StatoParcella.EMESSA
+
+
+def test_invalid_invoice_revision_stops_before_reading_repositories():
+    def forbidden():
+        raise AssertionError('Repository non necessario per richiesta non valida')
+    result, status = registra_bonifico_ricevuto(
+        get_fascicoli=forbidden, get_fatturazione=forbidden, id_fasc='case',
+        payload={'parcella_id':'invoice', 'parcella_revision':'invalid'}, actor='test')
+    assert status == 400 and not result['ok']

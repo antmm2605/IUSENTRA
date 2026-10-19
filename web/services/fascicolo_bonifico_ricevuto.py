@@ -69,7 +69,7 @@ def registra_bonifico_ricevuto(
     actor: str = "IUSENTRA",
     metodo_pagamento: str = METODO_BONIFICO,
 ) -> tuple[dict[str, Any], int]:
-    from pct.fatturazione import StatoParcella
+    from pct.fatturazione import StatoParcella, ParcellaConcurrentUpdate, parcella_revision
     from web.services.react_fascicoli_bridge import (
         _create_review_proforma_from_fascicolo_amount,
         _resolve_fascicolo,
@@ -78,6 +78,11 @@ def registra_bonifico_ricevuto(
     )
 
     payload = dict(payload or {})
+    revision = payload.get("parcella_revision")
+    if revision is not None and (not isinstance(revision, str) or len(revision) != 64
+                                 or any(char not in "0123456789abcdef" for char in revision)
+                                 or not _text(payload.get("parcella_id") or payload.get("parcellaId"))):
+        return {"ok": False, "message": "Revisione del documento non valida."}, 400
     fascicoli = get_fascicoli()
     fascicolo = _resolve_fascicolo(fascicoli, id_fasc)
     if fascicolo is None:
@@ -140,6 +145,13 @@ def registra_bonifico_ricevuto(
         if parcella is None:
             return {"ok": False, "message": "Parcella creata ma non rileggibile.", "errors": {"parcella": "non rileggibile"}}, 500
     parcella_id = _text(getattr(parcella, "id", ""))
+    if (not _text(getattr(fascicolo, "id_cliente", ""))
+            or _text(getattr(parcella, "id_cliente", "")) != _text(getattr(fascicolo, "id_cliente", ""))):
+        return {"ok": False, "conflict": True,
+                "message": "Cliente del documento non concordante con il fascicolo: verifica il collegamento prima dell'incasso."}, 409
+    if revision is not None and parcella_revision(parcella) != revision:
+        return {"ok": False, "conflict": True,
+                "message": "Il documento è cambiato: ricarica le parcelle prima di confermare. I dati inseriti sono conservati."}, 409
     expected_amount = round(float(parcella.netto_a_pagare), 2)
     if _stato(parcella) != "PAGATA" and importo != expected_amount:
         return {"ok": False, "conflict": True,
@@ -162,7 +174,12 @@ def registra_bonifico_ricevuto(
     gia_collegato = not creata and _stato(parcella) == "PAGATA"
     if _stato(parcella) != "PAGATA" or getattr(parcella, "data_pagamento", "") != data_iso or getattr(parcella, "metodo_pagamento", "") != metodo:
         gia_collegato = False
-        manager.cambia_stato(parcella_id, StatoParcella.PAGATA, data_pagamento=data_iso, metodo_pagamento=metodo)
+        try:
+            arguments = {"expected_revision": revision} if revision is not None else {}
+            manager.cambia_stato(parcella_id, StatoParcella.PAGATA, data_pagamento=data_iso,
+                                 metodo_pagamento=metodo, **arguments)
+        except ParcellaConcurrentUpdate as exc:
+            return {"ok": False, "conflict": True, "message": str(exc)}, 409
 
     # La voce «Liquidazione giudice» del controllo pagamenti segue il bonifico.
     numero = _text(getattr(manager.get(parcella_id), "numero", "")) or parcella_id

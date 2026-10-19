@@ -6,7 +6,7 @@ const STATI: Record<string, { label: string; tone: 'success' | 'warning' | 'neut
   compilato: { label: 'Dal gestionale', tone: 'success' },
   da_confermare: { label: 'Letto nei documenti: conferma', tone: 'warning' },
   documento_presente: { label: 'Documento presente: verifica', tone: 'warning' },
-  calcolo: { label: 'Calcolato dal software', tone: 'neutral' },
+  calcolo: { label: 'Da calcolare dal software', tone: 'neutral' },
   proposta_lex: { label: 'Proposta di Lex da confermare', tone: 'neutral' },
   da_chiedere: { label: 'Da indicare', tone: 'danger' },
   facoltativo: { label: 'Facoltativo', tone: 'neutral' },
@@ -29,7 +29,7 @@ export function SchedaCompilazionePanel({ scheda }: { scheda: RedazioneScheda })
             ))}
           </ol>
         </div>
-      ) : <p className="iu-rg-hint">Il fascicolo contiene già tutti i dati che la scheda richiede.</p>}
+      ) : <p className="iu-rg-hint">Non ci sono altre domande da compilare. Verifica le fonti e completa le conferme e i calcoli indicati sotto.</p>}
       <details className="iu-rg-scheda-campi">
         <summary>Provenienza di ogni dato ({scheda.campi.length})</summary>
         <ul>
@@ -39,7 +39,7 @@ export function SchedaCompilazionePanel({ scheda }: { scheda: RedazioneScheda })
               <li key={campo.campo}>
                 <span>{campo.etichetta}</span>
                 <Badge tone={stato.tone}>{stato.label}</Badge>
-                {campo.valore ? <strong>{campo.valore.length > 80 ? `${campo.valore.slice(0, 80)}...` : campo.valore}</strong> : null}
+                {campo.valore ? <strong>{campo.valore}</strong> : null}
                 {campo.norme.length ? <small>{campo.norme.join('; ')}</small> : null}
               </li>
             )

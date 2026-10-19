@@ -56,3 +56,20 @@ def test_registro_fonti_cita_rito_lavoro_e_precetto():
     precetto = template_atti_sources_for_model(model_code="ESE_001", model_name="Atto di precetto", area="Diritto civile")
     assert any("414" in s["article"] for s in lavoro)
     assert any("480" in s["article"] for s in precetto)
+
+
+def test_valori_zero_e_fatti_completi_non_vanno_persi():
+    from types import SimpleNamespace
+    from copy import deepcopy
+    from pct.schede_compilazione import risolvi_scheda, scheda_per_modello
+    s = deepcopy(scheda_per_modello("CIV_COM_001"))
+    s["campi"] = [dict(campo="conteggio", etichetta="Conteggio", obbligatorio=True,
+                        fonte=dict(tipo="database"), compilatore=["conteggio"]),
+                  dict(campo="dati_causa", etichetta="Dati causa", obbligatorio=True,
+                       fonte=dict(tipo="archivio_letture"), fatti=[dict(categoria="ruolo", campo="rg_civile")])]
+    fatti = [SimpleNamespace(categoria="ruolo", campo="rg_civile", valore=str(i), etichetta=f"R.G. {i}", verifica="confermato") for i in range(1, 5)]
+    r = risolvi_scheda(s, {"conteggio": 0}, fatti=fatti)
+    assert r["campi"][0]["stato"] == "compilato"
+    assert r["campi"][0]["valore"] == 0
+    assert r["campi"][1]["valore"] == "R.G. 1; R.G. 2; R.G. 3; R.G. 4"
+    assert r["domande"] == []

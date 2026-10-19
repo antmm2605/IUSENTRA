@@ -415,7 +415,7 @@ function normaliseScheda(input: unknown): RedazioneScheda | null {
       const campo = asRecord(raw)
       return {
         campo: text(campo.campo), etichetta: display(campo.etichetta), stato: text(campo.stato),
-        valore: display(campo.valore), fonte: display(campo.fonte),
+        valore: display(typeof campo.valore === 'number' && Number.isFinite(campo.valore) ? campo.valore.toLocaleString('it-IT') : campo.valore), fonte: display(campo.fonte),
         norme: list(campo.norma).map((n) => { const norma = asRecord(n); return `art. ${text(norma.articolo)} ${text(norma.atto).replace(/_/g, ' ')}` }),
       }
     }).filter((campo) => campo.campo),

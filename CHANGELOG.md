@@ -1,3 +1,7 @@
+# 2.440.0 — Biblioteca per materia e schede di compilazione
+
+Integrazione sulla 2.437.65, conservando le modifiche a scadenziario, Timesheet, incassi e ricevute Lex. Biblioteca con 84 atti, cinque schede e pannello della redazione guidata; luogo di sottoscrizione dalla città dello studio. Le letture richiedono conferma e i calcoli non eseguiti restano espliciti. Nessun addestramento avviato.
+
 ## 2.437.65
 
 - Adozione esplicita dello scadenziario nel repository SQL nativo, con backup verificati, audit e blocco degli scrittori JSON storici.

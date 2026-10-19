@@ -51,7 +51,7 @@ def scheda_per_modello(model_code: str) -> dict[str, Any] | None:
 
 
 def _vuoto(valore: Any) -> bool:
-    return not str(valore or "").strip()
+    return valore is None or (isinstance(valore, str) and not valore.strip())
 
 
 def _fatti_del_campo(campo: dict[str, Any], fatti: list[Any]) -> list[Any]:
@@ -90,7 +90,7 @@ def risolvi_scheda(scheda: dict[str, Any], valori: dict[str, Any], *, fatti: lis
             voce.update(stato="compilato", valore=valore, fonte="gestionale")
         elif letti:
             voce.update(stato="da_confermare", fonte="documenti letti",
-                        valore="; ".join(getattr(f, "etichetta", "") or getattr(f, "valore", "") for f in letti[:3]))
+                        valore="; ".join(getattr(f, "etichetta", "") or getattr(f, "valore", "") for f in letti))
         elif trovati:
             voce.update(stato="documento_presente", fonte="documenti del fascicolo", valore="; ".join(trovati))
         elif campo["fonte"]["tipo"] == "calcolo":

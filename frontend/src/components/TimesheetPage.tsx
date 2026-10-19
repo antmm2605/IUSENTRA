@@ -1,4 +1,5 @@
 import { beginActivity } from '../ui/activity'
+import { formatDateIt } from '../formatting'
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, Banknote, CalendarDays, CheckCircle2, Clock3, Filter, Plus, Search } from 'lucide-react'
@@ -53,7 +54,7 @@ function TrackingProposalsSection({ proposals, onDone }:{proposals:TrackingPropo
           <li key={proposta.id}>
             <div className="iu-timesheet-proposals__info">
               <strong>{proposta.fascicoloLabel}</strong>
-              <span>{proposta.data} · {proposta.oraInizio}-{proposta.oraFine} · {proposta.username}</span>
+              <span>{formatDateIt(proposta.data, 'Data non disponibile')} · {proposta.oraInizio}-{proposta.oraFine} · {proposta.username}</span>
               <em>{proposta.descrizione}</em>
             </div>
             <div className="iu-timesheet-proposals__actions">

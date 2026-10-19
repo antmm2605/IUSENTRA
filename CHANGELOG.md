@@ -1,3 +1,7 @@
+## 2.437.62
+
+- Data italiana nelle proposte Timesheet tramite il formatter condiviso; fonte ISO e comandi di conferma invariati.
+
 ## 2.437.61
 
 - Riconciliazione persistente dei controlli CU in attesa con le ricevute o esenzioni già verificate nell’archivio corrente.

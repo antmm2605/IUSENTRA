@@ -6196,6 +6196,7 @@ function EconomicControlModal({
   const [bonificoRequestedCursor, setBonificoRequestedCursor] = useState('')
   const [bonificoOptionsRetry, setBonificoOptionsRetry] = useState(0)
   const bonificoInitializedRef = useRef(false)
+  const bonificoSuggestionRef = useRef('')
   useBusyActivity(bonificoBusy || bonificoOptionsLoading, bonificoOptionsLoading ? 'Caricamento documenti economici…' : 'Preparazione del documento di pagamento…')
   const [bonificoError, setBonificoError] = useState('')
   const [bonificoDone, setBonificoDone] = useState<{ message: string; href: string } | null>(null)
@@ -6212,7 +6213,8 @@ function EconomicControlModal({
   const importoSuggerito = amountSuggestion != null ? Number(amountSuggestion).toFixed(2).replace('.', ',') : ''
   const selectedPaidIncome = Boolean(bonificoParcelle.find(p => p.id === bonificoParcellaId)?.stato === 'PAGATA' || (knownPaidIncome && bonificoParcellaId === knownProformaId))
   const openBonifico = () => {
-    setBonifico({ importo: importoSuggerito, data: knownPaidIncome ? parcellaItem.dataPagamentoIso || liquidazioneItem.dataPagamentoIso || oggiIso : oggiIso, note: '' })
+    bonificoSuggestionRef.current = importoSuggerito
+    setBonifico({ importo: '', data: oggiIso, note: '' })
     setBonificoError('')
     setBonificoDone(null)
     setBonificoParcelle([])
@@ -6249,6 +6251,7 @@ function EconomicControlModal({
         setBonificoParcellaId(only?.id || '')
         if (only) setBonifico(current => ({ ...current, importo: Number(only.stato === 'PAGATA' ? only.registeredAmount : only.totale).toFixed(2).replace('.', ','), data: only.stato === 'PAGATA' ? only.dataPagamento || '' : oggiIso }))
         else if (items.length) setBonifico(current => ({ ...current, importo: '', data: oggiIso }))
+        else setBonifico(current => ({ ...current, importo: bonificoSuggestionRef.current }))
       }
       bonificoInitializedRef.current = true
     }).catch(error => {
@@ -6459,6 +6462,7 @@ function EconomicControlModal({
             <div>
               {bonificoParcelle.length ? <label>Documento economico<select aria-label="Documento economico" disabled={bonificoOptionsLoading} value={bonificoParcellaId} onChange={event => {
                 const id = event.currentTarget.value
+                setBonificoError('')
                 setBonificoParcellaId(id)
                 const scelta = bonificoParcelle.find(p => p.id === id)
                 if (scelta) setBonifico(current => ({ ...current, importo: Number(scelta.stato === 'PAGATA' ? scelta.registeredAmount : scelta.totale).toFixed(2).replace('.', ','), data: scelta.stato === 'PAGATA' ? scelta.dataPagamento || '' : selectedPaidIncome ? oggiIso : current.data }))

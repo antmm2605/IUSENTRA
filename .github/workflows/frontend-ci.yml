@@ -41,6 +41,8 @@ jobs:
           node-version: "24"
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
+      - name: Check published React source provenance
+        run: node frontend/scripts/check-published-react-sources.mjs
       - run: pnpm install --frozen-lockfile
       - run: ${{ matrix.command }}
 

@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { pruneReactAssets } from './vite/pruneReactAssets.ts'
 import { assertLazyPageBoundary } from './vite/lazyPageBoundary.ts'
+import { sourceProvenance } from './vite/sourceProvenance.ts'
 
 function sanitizeGeneratedText(): Plugin {
   const mojibakePattern = new RegExp(
@@ -53,7 +54,7 @@ export default defineConfig({
   plugins: [tailwindcss(), react(), sanitizeGeneratedText(), enforceBundleBudget(), {
     name: 'iusentra-lazy-page-boundary',
     generateBundle(_options, bundle) { assertLazyPageBoundary(bundle) },
-  }, pruneReactAssets()],
+  }, pruneReactAssets(), sourceProvenance()],
   base: '/static/react/',
   resolve: {
     alias: {

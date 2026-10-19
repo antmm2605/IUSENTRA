@@ -37,6 +37,14 @@ Le manutenzioni devono rispettare il lock `.iusentra-backup-maintenance.lock`. G
 
 Per verificare una copia esistente usare accesso in sola lettura: non invocare un creatore di backup come controllo. Una copia nuova non ricostruisce una copia storica eliminata e non può sostituirne retroattivamente l'impronta. La dismissione autorizzata di una copia storica deve registrare riferimento originale, copertura verificata e materiali conservati, distinguendo gli stati di migrazione ancora preparati da quelli già confermati.
 
+## Verifica del bundle React pubblicato
+
+Il runtime usa gli asset verificati e versionati in `web/static/react`; il builder Vite di Docker resta un guardrail. Prima del commit eseguire `npm --prefix frontend run build:vite` nel percorso predefinito e `node frontend/scripts/check-published-react-sources.mjs`. Una compilazione in una cartella esterna non aggiorna gli asset distribuiti.
+
+La build operativa registra in `.vite/source-provenance.json` le impronte degli input effettivi, della configurazione e del lockfile, insieme alle impronte degli asset emessi e del manifest. Il pre-push e la CI controllano questa provenienza prima di qualsiasi nuova compilazione: sorgenti cambiate, file mancanti o asset alterati fanno fallire il gate. Il controllo non viene eseguito nelle richieste dell'applicazione. Storybook e build isolate non modificano la provenienza operativa.
+
+La verifica tecnica non sostituisce il collaudo del comportamento nel browser reale su8080. I chunk delle sessioni aperte restano governati dal plugin di conservazione esistente; non sostituire questa procedura con la cancellazione indiscriminata della cartella degli asset.
+
 ## Build multi-stage del Dockerfile (da v2.243.0)
 
 L'immagine production e' costruita in 4 stage indipendenti:

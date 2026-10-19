@@ -56,6 +56,11 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
 
+      - name: Published React source provenance
+        run: |
+          node frontend/scripts/check-published-react-sources.mjs
+          node --test tests/js/published_react_sources.test.mjs
+
       - name: Install runtime deps
         run: |
           python -m pip install --upgrade pip wheel setuptools

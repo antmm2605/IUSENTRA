@@ -6,6 +6,7 @@ cd "$repo_root"
 
 echo "[git pre-push] Controllo packaging, contratti App V2 e whitespace..."
 python tools/sync_packaging_files.py --check
+node frontend/scripts/check-published-react-sources.mjs
 python scripts/react-migration/generate_api_contracts.py --check
 python scripts/react-migration/generate_app_v2_page_registry.py --check
 python scripts/react-migration/generate_app_v2_test_docs.py --check

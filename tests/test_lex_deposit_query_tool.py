@@ -108,6 +108,8 @@ def test_lex_ricevute_nei_documenti_usa_catalogo_e_link_originale(registry, monk
 @pytest.mark.parametrize('suffix', [
     'nel fascicolo Rossi', 'nei fascicoli del cliente Rossi',
     'nel fascicolo RG 123/2026', 'solo nei fascicoli',
+    'nei fascicoli 123/2026', 'nei fascicoli: 123/2026',
+    'nei fascicoli n. 123/2026',
 ])
 def test_ricevute_non_perdono_filtri_specifici_o_esclusivi(suffix):
     question = 'ricevute di consegna ieri ' + suffix

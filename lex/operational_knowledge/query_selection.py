@@ -77,6 +77,8 @@ def is_plain_receipt_query(question: str) -> bool:
     text = question.casefold().replace('’', "'")
     if not re.search(r'\bricevut[ae]\b', text) or not re.search(r'\b(?:accettazione|consegna|rac|rdac)\b', text):
         return False
+    if re.search(r'\bnei\s+fascicoli\b\s*[:#,]?\s*(?:n[.°]?\s*)?\d', text):
+        return False
     translated = re.sub(r'\b(?:accettazione|consegna|rac|rdac)\b', '', text)
     translated = re.sub(r'\b(?:anche\s+)?nei\s+fascicoli\b', '', translated)
     return is_plain_pec_query(translated + ' pec')

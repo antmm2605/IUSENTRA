@@ -2,6 +2,7 @@
 
 - I nomi delle ricevute con parentesi quadre e barre restano integri e apribili dalla risposta principale.
 - Compatibilità con le risposte archiviate e destinazioni interne conservate, senza ampliare gli indirizzi ammessi.
+- Le fonti del fascicolo si aprono nel lettore condiviso; l’export Word conserva paragrafi, titoli delle ricevute e collegamenti cliccabili riferiti alla copia da cui è stato esportato.
 
 # 2.441.1 — Consultazione mirata delle ricevute in Lex
 

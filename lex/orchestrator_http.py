@@ -8,7 +8,7 @@ from io import BytesIO
 from time import monotonic
 from typing import Any
 
-from flask import Response, current_app, send_file, stream_with_context
+from flask import Response, current_app, request, send_file, stream_with_context
 
 from .formatting.ui_payloads import (
     direct_answer_payload,
@@ -590,7 +590,7 @@ def attachments_response(orchestrator, *, files: list[dict[str, Any]]) -> tuple[
 
 
 def document_response(orchestrator, *, data: dict[str, Any]):
-    answer = clean_spaces(data.get("answer"))
+    answer = str(data.get("answer") or "").strip()
     if not answer:
         return {"ok": False, "errore": "Contenuto del documento mancante."}, 400
     title = orchestrator.dependencies.infer_export_title(
@@ -606,6 +606,7 @@ def document_response(orchestrator, *, data: dict[str, Any]):
         answer=answer,
         citations=citations if isinstance(citations, list) else [],
         context_label=context_label,
+        source_origin=request.host_url,
     )
     file_name = orchestrator.dependencies.build_export_filename(title, "docx")
     return send_file(

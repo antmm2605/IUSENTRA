@@ -7,8 +7,12 @@ import re
 import unicodedata
 from datetime import datetime
 from typing import Iterable
+from urllib.parse import urljoin, urlsplit
 
 from docx import Document
+from docx.opc.constants import RELATIONSHIP_TYPE
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
 from docx.shared import Pt
 
 _MONTHS_IT = (
@@ -95,6 +99,58 @@ def _iter_markdown_lines(answer: str) -> Iterable[str]:
         yield line.rstrip()
 
 
+_SOURCE_LINK = re.compile(r"\[((?:\\.|[^\[\]\\]|\[(?:\\.|[^\[\]\\])*\])+)\]\((https?://[^\s)]+|/(?![/\\])[^\s)\\]*)\)")
+
+
+def _link_destination(value: str, origin: str) -> str:
+    if re.search(r"[\x00-\x20<>\\]", value):
+        return ""
+    try:
+        url = urlsplit(value)
+        if not url.scheme:
+            base = urlsplit(origin)
+            if not value.startswith("/") or value.startswith("//") or base.scheme not in {"http", "https"} or not base.hostname or base.username or base.password:
+                return ""
+            value = urljoin(f"{base.scheme}://{base.netloc}/", value)
+            url = urlsplit(value)
+        if url.scheme not in {"http", "https"} or not url.hostname or url.username or url.password:
+            return ""
+        _ = url.port
+        return value
+    except ValueError:
+        return ""
+
+
+def _source_paragraph(document, text: str, *, style=None, origin=""):
+    paragraph = document.add_paragraph(style=style)
+    position = 0
+    for match in _SOURCE_LINK.finditer(text):
+        paragraph.add_run(re.sub(r"\s+", " ", _MARKDOWN_DECORATIONS_RE.sub("", text[position:match.start()])))
+        label = re.sub(r"\\([\\\[\]])", r"\1", match[1])
+        destination = _link_destination(match[2], origin)
+        if destination:
+            link = OxmlElement("w:hyperlink")
+            link.set(qn("r:id"), paragraph.part.relate_to(destination, RELATIONSHIP_TYPE.HYPERLINK, is_external=True))
+            run = OxmlElement("w:r")
+            properties = OxmlElement("w:rPr")
+            color = OxmlElement("w:color")
+            color.set(qn("w:val"), "0563C1")
+            underline = OxmlElement("w:u")
+            underline.set(qn("w:val"), "single")
+            properties.extend([color, underline])
+            run.append(properties)
+            value = OxmlElement("w:t")
+            value.text = label
+            run.append(value)
+            link.append(run)
+            paragraph._p.append(link)
+        else:
+            paragraph.add_run(f"{label} ({match[2]})")
+        position = match.end()
+    paragraph.add_run(re.sub(r"\s+", " ", _MARKDOWN_DECORATIONS_RE.sub("", text[position:])))
+    return paragraph
+
+
 def build_docx_bytes(
     *,
     title: str,
@@ -102,6 +158,7 @@ def build_docx_bytes(
     answer: str,
     citations: list[str] | None = None,
     context_label: str = "",
+    source_origin: str = "",
 ) -> bytes:
     document = Document()
     _apply_default_styles(document)
@@ -126,20 +183,20 @@ def build_docx_bytes(
         heading = _HEADING_RE.match(line)
         if heading:
             level = min(len(heading.group(1)) + 1, 3)
-            document.add_paragraph(_clean_line(heading.group(2)), style=f"Heading {level}")
+            _source_paragraph(document, heading.group(2), style=f"Heading {level}", origin=source_origin)
             continue
 
         bullet = _BULLET_RE.match(line)
         if bullet:
-            document.add_paragraph(_clean_line(bullet.group(1)), style="List Bullet")
+            _source_paragraph(document, bullet.group(1), style="List Bullet", origin=source_origin)
             continue
 
         numbered = _NUMBERED_RE.match(line)
         if numbered:
-            document.add_paragraph(_clean_line(numbered.group(1)), style="List Number")
+            _source_paragraph(document, numbered.group(1), style="List Number", origin=source_origin)
             continue
 
-        document.add_paragraph(_clean_line(line))
+        _source_paragraph(document, line, origin=source_origin)
 
     final_citations = [str(item or "").strip() for item in citations or [] if str(item or "").strip()]
     if final_citations:

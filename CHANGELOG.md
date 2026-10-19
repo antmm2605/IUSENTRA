@@ -1,3 +1,9 @@
+# 2.441.0 — Schede di compilazione del civile di base, scadenze calcolate e precedenti
+
+- Schede di compilazione per 95 modelli (civile ordinario, monitorio, cautelare e giudice di pace), generate da `scripts/schede_compilazione/` con ogni articolo verificato nella biblioteca «Codici e leggi», sospensione feriale esplicita e casi di astensione; revisione giuridica indipendente.
+- Scadenze dei termini calcolate dal software con il motore dello scadenziario (`pct/schede_termini.py`: art. 155 c.p.c., L. 742/1969); nella redazione guidata la scheda mostra la scadenza, la spiegazione e l'avviso di termine scaduto.
+- Strumenti di armonizzazione dei precedenti (`scripts/precedenti/`): open data della Corte costituzionale (pronunce, esiti, norme oggetto collegate alla biblioteca, massime) e della giustizia amministrativa (sentenze ed esiti per rito e per sede).
+
 # 2.440.0 — Biblioteca per materia e schede di compilazione
 
 Integrazione sulla 2.437.65, conservando le modifiche a scadenziario, Timesheet, incassi e ricevute Lex. Biblioteca con 84 atti, cinque schede e pannello della redazione guidata; luogo di sottoscrizione dalla città dello studio. Le letture richiedono conferma e i calcoli non eseguiti restano espliciti. Nessun addestramento avviato.

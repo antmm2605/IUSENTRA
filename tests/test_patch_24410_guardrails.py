@@ -57,6 +57,14 @@ def test_accoglimento_pieno_non_diventa_parziale():
     assert categoria('RESPINGE') == 'respinto'
 
 
+def test_spiegazione_termine_a_ritroso_coerente_con_la_data():
+    risultato = calcola(TERMINE, date(2025, 12, 2))
+    assert risultato['scadenza'] == '2025-09-23'
+    assert 'a ritroso' in risultato['spiegazione']
+    assert 'escludendo il giorno' in risultato['spiegazione']
+    assert 'giorno successivo' not in risultato['spiegazione']
+
+
 def test_dispositivo_costituzionale_conservato_integralmente(tmp_path):
     import json
     import sqlite3

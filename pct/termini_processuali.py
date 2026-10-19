@@ -707,7 +707,10 @@ class ItalianDeadlineCalculator:
         input_label = input_date.strftime("%d/%m/%Y")
         raw_label = raw.strftime("%d/%m/%Y")
         adjusted_label = adjusted.strftime("%d/%m/%Y")
-        parts = [f"Il termine decorre dal giorno successivo all'evento del {input_label}."]
+        if template.direction == "backward":
+            parts = [f"Il termine si computa a ritroso dall'evento del {input_label}, escludendo il giorno dell'evento."]
+        else:
+            parts = [f"Il termine decorre dal giorno successivo all'evento del {input_label}."]
         if template.period_type == "months":
             parts.append("Il periodo è computato a mesi secondo calendario comune.")
         if "ferial_suspension_1_31_august" in rules:

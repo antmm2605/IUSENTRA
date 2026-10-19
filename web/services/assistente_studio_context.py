@@ -39,6 +39,7 @@ from web.helpers import (
 )
 from web.services.assistente_context_cache import (
     build_file_fingerprint,
+    calendar_sql_fingerprint,
     cached_compute,
     question_signature,
 )
@@ -501,6 +502,11 @@ def _section_query_signature(title: str, question: str) -> str:
 
 def _cached_section_payload(title: str, question: str, builder) -> tuple[list[str], list[dict[str, Any]]]:
     fingerprint = build_file_fingerprint(_section_dependency_paths(title))
+    from web.services.storage_runtime import get_request_studio_db
+    calendar_domains = {'AGENDA_DB': 'agenda', 'SCADENZIARIO_DB': 'scadenziario'}
+    sql_fingerprint = calendar_sql_fingerprint({calendar_domains[key]: path
+        for key in _SECTION_DEPENDENCY_KEYS.get(title, ()) if key in calendar_domains
+        and (path := _cfg_data_path(key))}, backend_resolver=get_request_studio_db)
     payload = cached_compute(
         "lex-section",
         (
@@ -509,6 +515,7 @@ def _cached_section_payload(title: str, question: str, builder) -> tuple[list[st
             title,
             _section_query_signature(title, question),
             fingerprint,
+            sql_fingerprint,
         ),
         _SECTION_CACHE_TTLS.get(title, 90),
         lambda: (

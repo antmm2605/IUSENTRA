@@ -28,6 +28,12 @@ già esistenti. Il file storico non può resuscitare appuntamenti cancellati.
 Le conferme sono distinte per dominio ma il database non può essere adottato
 da studi differenti. La ripetizione della migrazione non aggiunge altri audit.
 
+Anche la cache del contesto Lex segue i contatori SQL persistenti della regia
+live per Agenda e Scadenziario adottati, oltre alle impronte delle altre fonti.
+Legge soltanto il contatore del dominio pertinente, riutilizzando il backend
+della richiesta: nessun caricamento dei gestori, inizializzazione o scansione.
+Una modifica SQL invalida il contesto pur lasciando invariato il JSON storico.
+
 Le prove automatiche coprono preservazione, concorrenza, isolamento, errore del
 backup e ripresa; la verifica materiale su 8080 e quella di produzione devono
 essere registrate separatamente prima di dichiarare chiusa la consegna.

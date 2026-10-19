@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from hashlib import sha1
 from pathlib import Path
@@ -80,6 +80,34 @@ def cached_compute(
         _prune_cache(now)
 
     return value
+
+
+def calendar_sql_fingerprint(sources: Mapping[str, str], *, backend_resolver=None) -> tuple:
+    """Legge soltanto i contatori confermati dei calendari già adottati.
+
+    I domini sono dichiarati dal chiamante, mai dedotti dal nome del file.
+    Nessun gestore, importazione, aggiornamento di schema o scansione di righe.
+    """
+    from pct.scadenziario_sql_owner import read_owner, resolve_owner
+    revisions = []
+    for domain, source in sorted(sources.items()):
+        if domain not in ('agenda', 'scadenziario'):
+            raise ValueError('Dominio calendario non riconosciuto.')
+        owner = read_owner(source)
+        if owner is None:
+            continue
+        supplied = backend_resolver(source) if backend_resolver else None
+        backend, _ = resolve_owner(source, supplied, domain=domain)
+        try:
+            signal = 'scadenze' if domain == 'scadenziario' else 'agenda'
+            row = backend.conn.execute('SELECT revision FROM operational_live_revisions WHERE domain=?', (signal,)).fetchone()
+            if row is None:
+                raise RuntimeError('Revisione SQL del calendario non disponibile: contesto non confermato.')
+            revisions.append((domain, owner['tenant'], owner['backend'], owner['source'], int(row[0])))
+        finally:
+            if supplied is None and getattr(backend, 'backend_kind', '') == 'postgresql':
+                backend.chiudi()
+    return tuple(revisions)
 
 
 def build_file_fingerprint(paths: Iterable[str]) -> str:

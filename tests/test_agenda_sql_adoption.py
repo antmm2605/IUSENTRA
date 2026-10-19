@@ -162,3 +162,39 @@ def test_altro_studio_non_puo_riassegnare_database_del_calendario(agenda, archiv
     with pytest.raises(RuntimeError, match='altro studio'):
         adopt(db, source, tenant='altro-studio', destination=tmp_path / 'backup/altro',
               data_root=tmp_path, writers_drained=True, domain='agenda')
+
+
+def test_cache_lex_segue_revisione_sql_senza_riscrivere_storico(agenda):
+    db, source, _, item, migrate = agenda
+    migrate()
+    from web.services.assistente_context_cache import calendar_sql_fingerprint
+    historical = source.read_bytes()
+    def fingerprint():
+        return calendar_sql_fingerprint({'agenda': str(source)}, backend_resolver=lambda path: db)
+    first = fingerprint()
+    assert first == fingerprint()
+    Agenda(str(source)).modifica(item.id, note='Aggiornamento successivo alla cache Lex')
+    assert source.read_bytes() == historical
+    assert first != fingerprint()
+
+
+def test_contesto_lex_invalida_cache_agenda_nella_richiesta(agenda, monkeypatch):
+    db, source, _, item, migrate = agenda
+    migrate()
+    from flask import Flask
+    from web.services import assistente_studio_context as context
+    from web.services.assistente_context_cache import clear_cached_values
+    monkeypatch.setattr(context, '_cfg_data_path', lambda key: str(source) if key == 'AGENDA_DB' else '')
+    monkeypatch.setattr('web.services.storage_runtime.get_request_studio_db', lambda path: db)
+    clear_cached_values('lex-section')
+    calls = []
+    def build():
+        calls.append(True)
+        return [Agenda(str(source), studio_db=db).get(item.id).note], []
+    with Flask(__name__).test_request_context('/'):
+        first = context._cached_section_payload('Agenda', 'udienze', build)
+        assert context._cached_section_payload('Agenda', 'udienze', build) == first
+        assert len(calls) == 1
+        Agenda(str(source), studio_db=db).modifica(item.id, note='Variazione SQL confermata')
+        assert context._cached_section_payload('Agenda', 'udienze', build)[0] == ['Variazione SQL confermata']
+        assert len(calls) == 2

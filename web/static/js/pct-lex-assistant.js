@@ -161,8 +161,8 @@
     var raw = String(value || '').replace(/`([^`\n]+)`/g, function (_match, code) {
       return tokenFor(tokens, '<code>' + escapeHtml(code) + '</code>');
     });
-    raw = raw.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+|\/(?![\/\\])[^)\s\\]*)\)/g, function (_match, label, url) {
-      return tokenFor(tokens, linkHtml(label, url));
+    raw = raw.replace(/\[((?:\\.|[^\[\]\\]|\[(?:\\.|[^\[\]\\])*\])+)\]\((https?:\/\/[^)\s]+|\/(?![\/\\])[^)\s\\]*)\)/g, function (_match, label, url) {
+      return tokenFor(tokens, linkHtml(label.replace(/\\([\\[\]])/g, '$1'), url));
     });
     raw = raw.replace(/(^|[\s(])((?:https?:\/\/)[^\s<)]+?)([.,;:!?)]?)(?=$|\s)/g, function (_match, prefix, url, suffix) {
       return prefix + tokenFor(tokens, linkHtml(url, url)) + (suffix || '');

@@ -2165,8 +2165,9 @@ def _markdown_link(url: str, *, label: str = "") -> str:
     clean = clean_spaces(url)
     if not clean:
         return ""
-    href = clean.replace("_", "%5F")
-    return f"[{label or clean}]({href})"
+    href = clean.replace("_", "%5F").replace("(", "%28").replace(")", "%29")
+    title = str(label or clean).replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
+    return f"[{title}]({href})"
 
 
 def _communication_attachment_act_lines(

@@ -99,6 +99,23 @@ assert.match(internalLinks, /href="\/agenda\/CONTROLLED%5FONE"/)
 assert.match(internalLinks, /href="\/email\/messaggio\/controlled"/)
 assert.match(internalLinks, /href="\/scadenziario\/controlled"/)
 assert.doesNotMatch(internalLinks, /\[Appuntamento\]/)
+const bracketSource = String.raw`- [CONSEGNA_Documento \[JQ95-L01\] \[Notifica_ID:abc\].eml](/fascicoli/controlled/documenti/receipt/visualizza)`
+const bracketAnswer = hooks.buildAnswerHtml({ answer: hooks.sanitizeLexAnswer(bracketSource) }, { includeExports: false })
+assert.match(bracketAnswer, /href="\/fascicoli\/controlled\/documenti\/receipt\/visualizza"/)
+assert.ok(bracketAnswer.includes('>CONSEGNA_Documento [JQ95-L01] [Notifica_ID:abc].eml</a>'))
+assert.doesNotMatch(bracketAnswer, /\]\(\/fascicoli/)
+const historicalBracketLink = hooks.renderInlineMarkdown('[CONSEGNA_Documento [JQ95-L01] [Notifica_ID:abc].eml](/fascicoli/controlled/documenti/receipt/visualizza)')
+assert.match(historicalBracketLink, /href="\/fascicoli\/controlled\/documenti\/receipt\/visualizza"/)
+assert.ok(historicalBracketLink.includes('>CONSEGNA_Documento [JQ95-L01] [Notifica_ID:abc].eml</a>'))
+const escapedPath = hooks.renderInlineMarkdown(String.raw`[Documento C:\\Cartella\\\[2\].pdf](/documenti/controlled)`)
+assert.ok(escapedPath.includes(String.raw`>Documento C:\Cartella\[2].pdf</a>`))
+const bracketHtml = hooks.renderInlineMarkdown(String.raw`[<img src=x onerror=alert(1)> \[2\]](https://example.test/a%281%29)`)
+assert.match(bracketHtml, /href="https:\/\/example\.test\/a%281%29"/)
+assert.doesNotMatch(bracketHtml, /<img/i)
+assert.ok(bracketHtml.includes('&lt;img'))
+for (const destination of ['javascript:alert%281%29', '//example.test', '/\\example.test', 'data:text/html,test']) {
+  assert.doesNotMatch(hooks.renderInlineMarkdown(String.raw`[Documento \[2\]](` + destination + ')'), /<a\b/)
+}
 const unsafeLinks = hooks.renderMarkdown('[Esterno](//example.invalid) [Backslash](/\\example.invalid) [Script](javascript:alert%281%29) [Data](data:text/html,test)')
 assert.doesNotMatch(unsafeLinks, /<a /)
 

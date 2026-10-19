@@ -1,3 +1,8 @@
+# 2.441.2 — Collegamenti alle fonti nelle risposte Lex
+
+- I nomi delle ricevute con parentesi quadre e barre restano integri e apribili dalla risposta principale.
+- Compatibilità con le risposte archiviate e destinazioni interne conservate, senza ampliare gli indirizzi ammessi.
+
 # 2.441.1 — Consultazione mirata delle ricevute in Lex
 
 - Le ricerche di depositi e ricevute archiviate usano subito il router SQL esistente, senza costruire contesti generali o avviare modelli e pipeline estranei alla domanda.

@@ -324,3 +324,20 @@ def test_http_pagine_ricevute_conservano_periodo_e_non_ripetono_fonti(registry, 
     second_ids = {source['id'] for source in second['sources']}
     assert len(first_ids) == 2 and len(second_ids) == 1
     assert not first_ids.intersection(second_ids)
+
+
+def test_collegamento_ricevuta_conserva_titolo_complesso_e_destinazione():
+    from lex.operational_knowledge.models import OperationalRoute, OperationalToolResult
+    from lex.operational_knowledge.response_composer import OperationalResponseComposer
+
+    title = r'CONSEGNA_Documento [JQ95-L01] [Notifica_ID:abc] C:\Cartella\[2].eml'
+    url = '/fascicoli/controlled/documenti/receipt(2)_copy/visualizza'
+    result = OperationalToolResult(True, 'archived_receipts', data=[dict(
+        id='controlled', titolo=title, data='2026-10-14', action_url=url)],
+        query_metadata=dict(states=['rdac'], has_more=False))
+    answer = OperationalResponseComposer().compose(question='ricevute di consegna',
+        route=OperationalRoute('controlled', 'receipt_archive_query_page', ('archived_receipts',)), results=[result])
+    assert r'\[JQ95-L01\]' in answer.answer
+    assert r'C:\\Cartella\\\[2\]' in answer.answer
+    assert '(2)' not in answer.answer.split('](')[1].split(')')[0]
+    assert '/receipt%282%29%5Fcopy/visualizza)' in answer.answer

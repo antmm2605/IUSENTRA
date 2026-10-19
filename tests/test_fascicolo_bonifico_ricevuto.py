@@ -390,3 +390,61 @@ def test_invalid_invoice_revision_stops_before_reading_repositories():
         get_fascicoli=forbidden, get_fatturazione=forbidden, id_fasc='case',
         payload={'parcella_id':'invoice', 'parcella_revision':'invalid'}, actor='test')
     assert status == 400 and not result['ok']
+
+def test_same_confirmed_receipt_with_original_revision_is_idempotent(tmp_path):
+    from pct.fatturazione import parcella_revision
+    app = _app(tmp_path)
+    with app.app_context():
+        fascicolo, parcella = _seed(app, con_parcella=True)
+        core = app.extensions['core_runtime']
+        payload = {'parcella_id':parcella.id,
+                   'parcella_revision':parcella_revision(core['get_fatturazione']().get(parcella.id)),
+                   'importo':4500, 'data_pagamento':'2026-09-10'}
+        first, status = registra_bonifico_ricevuto(get_fascicoli=core['get_fascicoli'],
+            get_fatturazione=core['get_fatturazione'], id_fasc=fascicolo.id, payload=payload, actor='test')
+        assert status == 200, first
+        before_case = core['get_fascicoli']().get(fascicolo.id).to_dict()
+        before_invoice = core['get_fatturazione']().get(parcella.id).to_dict()
+        second, status = registra_bonifico_ricevuto(get_fascicoli=core['get_fascicoli'],
+            get_fatturazione=core['get_fatturazione'], id_fasc=fascicolo.id, payload=payload, actor='test')
+        assert status == 200 and second['ok'] and second['alreadyPresent'], second
+        assert core['get_fascicoli']().get(fascicolo.id).to_dict() == before_case
+        assert core['get_fatturazione']().get(parcella.id).to_dict() == before_invoice
+
+@pytest.mark.parametrize('change', [{'importo':4501}, {'data_pagamento':'2026-09-11'}])
+def test_original_revision_does_not_confirm_discordant_receipts(tmp_path, change):
+    from pct.fatturazione import parcella_revision
+    app = _app(tmp_path)
+    with app.app_context():
+        fascicolo, parcella = _seed(app, con_parcella=True)
+        core = app.extensions['core_runtime']
+        payload = {'parcella_id':parcella.id,
+                   'parcella_revision':parcella_revision(core['get_fatturazione']().get(parcella.id)),
+                   'importo':4500,'data_pagamento':'2026-09-10'}
+        result, status = registra_bonifico_ricevuto(get_fascicoli=core['get_fascicoli'],
+            get_fatturazione=core['get_fatturazione'],id_fasc=fascicolo.id,payload=payload,actor='test')
+        assert status == 200, result
+        before_case = core['get_fascicoli']().get(fascicolo.id).to_dict()
+        before_invoice = core['get_fatturazione']().get(parcella.id).to_dict()
+        result, status = registra_bonifico_ricevuto(get_fascicoli=core['get_fascicoli'],
+            get_fatturazione=core['get_fatturazione'],id_fasc=fascicolo.id,payload=dict(payload,**change),actor='test')
+        assert status == 409 and result['conflict']
+        assert core['get_fascicoli']().get(fascicolo.id).to_dict() == before_case
+        assert core['get_fatturazione']().get(parcella.id).to_dict() == before_invoice
+
+def test_confirmed_receipt_api_audits_replay_without_global_refresh(tmp_path, monkeypatch):
+    from web.blueprints import api_v1_react as api
+    import web.services.fascicolo_bonifico_ricevuto as service
+    app = _app(tmp_path)
+    events = []
+    def forbidden(*args, **kwargs):
+        raise AssertionError('Un riscontro già presente non deve invalidare altre letture')
+    monkeypatch.setattr(service, 'registra_bonifico_ricevuto', lambda **kwargs: (
+        {'ok':True,'alreadyPresent':True,'message':'Incasso già presente.'},200))
+    monkeypatch.setattr(api, '_clear_fascicoli_list_payload_cache', forbidden)
+    from types import SimpleNamespace
+    monkeypatch.setattr(api, '_LETTURA_CACHE', SimpleNamespace(clear=forbidden))
+    monkeypatch.setattr(api, '_audit_event', lambda *args, **kwargs: events.append(args))
+    response = app.test_client().post('/api/v1/ui/fascicoli/controlled/bonifico-ricevuto',json={},headers=HEADERS)
+    assert response.status_code == 200 and response.get_json()['alreadyPresent']
+    assert len(events) == 1 and events[0][0] == 'fascicoli.bonifico_gia_presente'

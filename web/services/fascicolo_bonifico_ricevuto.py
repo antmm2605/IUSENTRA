@@ -60,6 +60,37 @@ def _liquidazione(fascicolo: Any) -> dict[str, Any]:
     return _payment_source_for_kind(getattr(fascicolo, "pagamenti", {}) or {}, "liquidazione_giudice")
 
 
+def _confirmed_receipt(fascicolo: Any, parcella: Any, importo: float, data_iso: str) -> dict[str, Any] | None:
+    """Riscontro consultivo del fatto già confermato, senza ripetere scritture."""
+    from web.services.react_fascicoli_bridge import _payment_source_for_kind, payment_summary_for_fascicolo
+
+    method = getattr(parcella, "metodo_pagamento", "")
+    if (_stato(parcella) != "PAGATA" or not method or method != _text(method)
+            or getattr(parcella, "data_pagamento", "") != data_iso):
+        return None
+    invoice_id = _text(getattr(parcella, "id", ""))
+    payments = getattr(fascicolo, "pagamenti", {}) or {}
+    kinds = ["parcella"]
+    if _liquidazione(fascicolo).get("importo") is not None:
+        kinds.append("liquidazione_giudice")
+    for kind in kinds:
+        source = _payment_source_for_kind(payments, kind)
+        if (source.get("status") != "pagato"
+                or _text(source.get("proforma_id") or source.get("proformaId")) != invoice_id
+                or source.get("data_pagamento") != data_iso or source.get("metodo") != method
+                or _importo(source.get("incasso_importo")) != importo):
+            return None
+    number = _text(getattr(parcella, "numero", "")) or invoice_id
+    return {
+        "ok": True,
+        "message": f"Incasso già collegato alla parcella {number}: importo e data originali conservati, nessun doppione.",
+        "parcellaId": invoice_id, "parcellaNumero": number, "parcellaCreata": False,
+        "alreadyPresent": True, "importo": importo, "dataPagamento": data_iso, "metodo": method,
+        "paymentSummary": payment_summary_for_fascicolo(fascicolo),
+        "redirectHref": f"/fatturazione?id_documento={invoice_id}",
+    }
+
+
 def registra_bonifico_ricevuto(
     *,
     get_fascicoli: Callable[[], Any],
@@ -150,6 +181,9 @@ def registra_bonifico_ricevuto(
         return {"ok": False, "conflict": True,
                 "message": "Cliente del documento non concordante con il fascicolo: verifica il collegamento prima dell'incasso."}, 409
     if revision is not None and parcella_revision(parcella) != revision:
+        confirmed = _confirmed_receipt(fascicolo, parcella, importo, data_iso)
+        if confirmed is not None:
+            return confirmed, 200
         return {"ok": False, "conflict": True,
                 "message": "Il documento è cambiato: ricarica le parcelle prima di confermare. I dati inseriti sono conservati."}, 409
     expected_amount = round(float(parcella.netto_a_pagare), 2)

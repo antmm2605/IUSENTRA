@@ -9040,9 +9040,13 @@ def fascicolo_react_bonifico_ricevuto(id_fasc: str):
         actor=_actor_label(),
     )
     if result.get("ok"):
-        _clear_fascicoli_list_payload_cache()
-        _LETTURA_CACHE.clear()
-        _audit_event("fascicoli.bonifico_registrato", "fascicolo", id_fasc, str(result.get("message") or "Bonifico registrato."))
+        if result.get("alreadyPresent"):
+            _audit_event("fascicoli.bonifico_gia_presente", "fascicolo", id_fasc,
+                         str(result.get("message") or "Incasso già presente."))
+        else:
+            _clear_fascicoli_list_payload_cache()
+            _LETTURA_CACHE.clear()
+            _audit_event("fascicoli.bonifico_registrato", "fascicolo", id_fasc, str(result.get("message") or "Bonifico registrato."))
     return redacted_json_response(result, status)
 
 

@@ -477,6 +477,17 @@ jobs:
             check_public_route "${path}"
           done
 
+      - name: Importa e verifica biblioteca pubblica 2.440.0
+        if: ${{ steps.gate.outputs.superato != 'true' }}
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^__version__ = "\([^" ]*\)"/\1/p' pct/__init__.py)
+          if [ "$version" != '2.440.0' ]; then exit 0; fi
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              'docker exec -i iusentra-app python -' < deploy/hetzner/importa_biblioteca_2440.py
+
       - name: Diagnosi Lex sulle domande di prova
         if: ${{ inputs.diagnosi_lex && steps.gate.outputs.superato != 'true' }}
         run: |

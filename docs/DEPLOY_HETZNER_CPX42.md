@@ -29,6 +29,14 @@ Railway puo' restare fase transitoria, ambiente di fallback o riferimento durant
 - `deploy/hetzner/backup.sh`: crea l'archivio completo dei dati e il relativo checksum quando lo storage di destinazione ha capacità sufficiente.
 - `deploy/hetzner/restore_data.sh`: verifica checksum se presente, ferma i servizi e ripristina i dati.
 
+## Continuità delle evidenze tecniche nella retention
+
+Il backup strutturato copre i database tenant `studio.db`, non tutti i documenti dello studio. Prima della rotazione conserva anche i file già presenti in `supplemental-technical` delle copie precedenti: copia verificata per dimensione e SHA-256, indice di provenienza, sincronizzazione su disco e pubblicazione prima della retention. Il margine di spazio comprende tali file. Una copia discordante, una fonte cambiata o una manutenzione concorrente interrompono la rotazione conservando i backup precedenti.
+
+Le manutenzioni devono rispettare il lock `.iusentra-backup-maintenance.lock`. Gli archivi tecnici conservati sono indirizzati per impronta; il manifest principale indica impronta e posizione dell'indice di conservazione. Non eliminare questo contenuto perché assente dai database correnti.
+
+Per verificare una copia esistente usare accesso in sola lettura: non invocare un creatore di backup come controllo. Una copia nuova non ricostruisce una copia storica eliminata e non può sostituirne retroattivamente l'impronta. La dismissione autorizzata di una copia storica deve registrare riferimento originale, copertura verificata e materiali conservati, distinguendo gli stati di migrazione ancora preparati da quelli già confermati.
+
 ## Build multi-stage del Dockerfile (da v2.243.0)
 
 L'immagine production e' costruita in 4 stage indipendenti:

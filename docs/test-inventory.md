@@ -853,7 +853,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Impostazioni | Frontend/UI | tests/test_hetzner_performance_config.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Impostazioni | Security | tests/test_postgres_backup.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Impostazioni | Tenant isolation | tests/test_hetzner_backup_retention.py | tenant, feature flag, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| Impostazioni | Tenant isolation | tests/test_hetzner_structured_backup.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Impostazioni | Tenant isolation | tests/test_hetzner_structured_backup.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Impostazioni | Tenant isolation | tests/test_impostazioni_firma.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Impostazioni | Tenant isolation | tests/test_impostazioni_sdi_config.py | tenant, feature flag, contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Lex/Ricerca | API contract | lex/tests/test_citation_guard_strict.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |

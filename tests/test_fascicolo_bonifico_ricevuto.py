@@ -279,3 +279,41 @@ def test_api_importo_non_valido_preserva_parcella_e_liquidazione(tmp_path, field
         stored = GestioneFatturazione(db_path=app.config['FATTURAZIONE_DB']).get(invoice.id)
         assert stored.stato == StatoParcella.EMESSA and not stored.data_pagamento
         assert gf().get(case.id).pagamenti == before
+
+@pytest.mark.parametrize('received', [999.99, 1000.01])
+def test_un_centesimo_discordante_non_dimostra_saldo(tmp_path, received):
+    app = _app(tmp_path)
+    with app.app_context():
+        case, invoice = _seed(app, con_parcella=True)
+        gf = app.extensions['core_runtime']['get_fascicoli']
+        gm = app.extensions['core_runtime']['get_fatturazione']
+        gm().aggiorna(invoice.id, voci=[VoceParcella(descrizione='Compenso controllato', quantita=1, prezzo_unitario=1000)])
+        before = deepcopy(gf().get(case.id).pagamenti)
+        result, status = registra_bonifico_ricevuto(
+            get_fascicoli=gf, get_fatturazione=gm, id_fasc=case.id,
+            payload={'parcella_id': invoice.id, 'importo': received}, actor='Collaudo',
+        )
+        assert status == 409 and result['conflict'], result
+        assert gm().get(invoice.id).stato == StatoParcella.EMESSA
+        assert gf().get(case.id).pagamenti == before
+
+def test_due_parcelle_distinte_per_un_centesimo_seleziona_importo_esatto(tmp_path):
+    app = _app(tmp_path)
+    with app.app_context():
+        case, first = _seed(app, con_parcella=True)
+        gf = app.extensions['core_runtime']['get_fascicoli']
+        gm = app.extensions['core_runtime']['get_fatturazione']
+        manager = gm()
+        manager.aggiorna(first.id, voci=[VoceParcella(descrizione='Primo compenso', quantita=1, prezzo_unitario=1000)])
+        second = manager.crea(id_cliente=case.id_cliente, id_fascicolo=case.id,
+            voci=[VoceParcella(descrizione='Secondo compenso', quantita=1, prezzo_unitario=1000.01)],
+            applica_iva=False, applica_cassa=False, applica_ritenuta=False, applica_bollo=False)
+        manager.cambia_stato(second.id, StatoParcella.EMESSA)
+        result, status = registra_bonifico_ricevuto(
+            get_fascicoli=gf, get_fatturazione=gm, id_fasc=case.id,
+            payload={'importo': 1000.01}, actor='Collaudo',
+        )
+        assert status == 200, result
+        assert result['parcellaId'] == second.id
+        assert gm().get(first.id).stato == StatoParcella.EMESSA
+        assert gm().get(second.id).stato == StatoParcella.PAGATA

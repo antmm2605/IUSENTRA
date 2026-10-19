@@ -109,7 +109,7 @@ def registra_bonifico_ricevuto(
     elif len(parcelle) == 1:
         parcella = parcelle[0]
     elif len(parcelle) > 1:
-        stesso_importo = [voce for voce in parcelle if abs(float(voce.netto_a_pagare) - importo) < 0.01]
+        stesso_importo = [voce for voce in parcelle if round(float(voce.netto_a_pagare), 2) == importo]
         if len(stesso_importo) == 1:
             parcella = stesso_importo[0]
         else:
@@ -141,7 +141,7 @@ def registra_bonifico_ricevuto(
             return {"ok": False, "message": "Parcella creata ma non rileggibile.", "errors": {"parcella": "non rileggibile"}}, 500
     parcella_id = _text(getattr(parcella, "id", ""))
     expected_amount = round(float(parcella.netto_a_pagare), 2)
-    if _stato(parcella) != "PAGATA" and abs(importo - expected_amount) > 0.01:
+    if _stato(parcella) != "PAGATA" and importo != expected_amount:
         return {"ok": False, "conflict": True,
                 "message": f"Versamento {_amount_label(importo)} diverso dal netto della parcella {_amount_label(expected_amount)}: saldo non confermato, importi e stati conservati.",
                 "errors": {"importo": "Il versamento non dimostra il saldo della parcella."},

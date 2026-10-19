@@ -69,10 +69,16 @@ def is_plain_deposit_query(question: str) -> bool:
 
 
 def is_plain_receipt_query(question: str) -> bool:
+    """Il richiamo generico ai fascicoli include il catalogo già consultato.
+
+    Non elimina nomi, ruoli o richieste esclusive: il catalogo comprende
+    documenti e PEC e non supporta ancora quei filtri nella pagina globale.
+    """
     text = question.casefold().replace('’', "'")
     if not re.search(r'\bricevut[ae]\b', text) or not re.search(r'\b(?:accettazione|consegna|rac|rdac)\b', text):
         return False
     translated = re.sub(r'\b(?:accettazione|consegna|rac|rdac)\b', '', text)
+    translated = re.sub(r'\b(?:anche\s+)?nei\s+fascicoli\b', '', translated)
     return is_plain_pec_query(translated + ' pec')
 
 

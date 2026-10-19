@@ -1,3 +1,8 @@
+## 2.437.63
+
+- Lex riconosce le ricevute di accettazione e consegna anche con il richiamo generico ai fascicoli, usando il catalogo SQL esistente di documenti e PEC.
+- Conservati i filtri specifici, i permessi, le date e i collegamenti alle fonti originali.
+
 ## 2.437.62
 
 - Data italiana nelle proposte Timesheet tramite il formatter condiviso; fonte ISO e comandi di conferma invariati.

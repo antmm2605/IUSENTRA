@@ -80,13 +80,19 @@ def test_continuazione_non_cambia_studio_o_fase():
             decode_query_cursor(invalid, context())
 
 
-def test_lex_ricevute_nei_documenti_usa_catalogo_e_link_originale(registry, monkeypatch):
+@pytest.mark.parametrize('question', [
+    'ricevute di accettazione il 14/10/26',
+    'Ricevute di accettazione del 14/10/2026, anche nei fascicoli',
+    'ricevute di accettazione nei fascicoli il 14.10.2026',
+])
+def test_lex_ricevute_nei_documenti_usa_catalogo_e_link_originale(registry, monkeypatch, question):
     put(registry, 'original-receipt')
     put(registry, 'same-bytes-copy')
     prepare(registry)
     monkeypatch.setattr('web.services.receipt_archive_payload.registro_corrente', lambda **_: registry)
     monkeypatch.setattr('web.services.receipt_archive_payload.tenant_corrente', lambda: 'study-a')
-    selection = resolve_query_selection('ricevute di accettazione il 14/10/26', today=date(2026, 10, 17))
+    selection = resolve_query_selection(question, today=date(2026, 10, 17))
+    assert selection is not None and selection.domain == 'archived_receipts'
     result = OperationalKnowledgeTools().query_archived_receipts_page(context(), selection=selection)
     assert result.ok and result.query_metadata['executed']
     assert len(result.data) == 1
@@ -96,7 +102,18 @@ def test_lex_ricevute_nei_documenti_usa_catalogo_e_link_originale(registry, monk
         '/fascicoli/case-a/documenti/original-receipt/visualizza',
         '/fascicoli/case-a/documenti/same-bytes-copy/visualizza',
     }
-    assert OperationalQueryRouter().route('ricevute di accettazione il 14/10/26').intent == 'receipt_archive_query_page'
+    assert OperationalQueryRouter().route(question).intent == 'receipt_archive_query_page'
+
+
+@pytest.mark.parametrize('suffix', [
+    'nel fascicolo Rossi', 'nei fascicoli del cliente Rossi',
+    'nel fascicolo RG 123/2026', 'solo nei fascicoli',
+])
+def test_ricevute_non_perdono_filtri_specifici_o_esclusivi(suffix):
+    question = 'ricevute di consegna ieri ' + suffix
+    route = OperationalQueryRouter().route(question)
+    assert route is None or route.intent != 'receipt_archive_query_page'
+    assert resolve_query_selection(question, today=date(2026, 10, 17)) is None
 
 
 def test_lex_archivio_senza_permessi_non_apre_repository(monkeypatch):

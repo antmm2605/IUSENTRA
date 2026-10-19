@@ -18,7 +18,9 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 csv.field_size_limit(10**8)
-CATEGORIE = [("ACCOLT", "accolto in parte"), ("PARTE ACCOGLIE", "accolto in parte"), ("ACCOGLIE", "accolto"),
+CATEGORIE = [("PARTE ACCOGLIE", "accolto in parte"), ("ACCOGLIE IN PARTE", "accolto in parte"),
+             ("ACCOLTO IN PARTE", "accolto in parte"), ("PARZIALMENTE", "accolto in parte"),
+             ("ACCOLT", "accolto"), ("ACCOGLIE", "accolto"),
              ("RESPINGE", "respinto"), ("RIGETTA", "respinto"), ("INAMMISSIBIL", "inammissibile"),
              ("IRRICEVIBIL", "irricevibile"), ("IMPROCEDIBIL", "improcedibile"), ("CESSATA MATERIA", "cessata materia del contendere"),
              ("DIFETTO DI GIURISDIZIONE", "difetto di giurisdizione"), ("ESTINT", "estinto"), ("RINUNZIA", "estinto"),
@@ -43,9 +45,11 @@ def ripulisci(oggetto: str) -> str:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--csv", required=True); ap.add_argument("--out", required=True)
+    ap.add_argument("--csv", required=True)
+    ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
-    out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
+    out = Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
     visti, righe = set(), 0
     per_rito: dict[str, Counter] = defaultdict(Counter)
     per_sede_rito: dict[str, Counter] = defaultdict(Counter)

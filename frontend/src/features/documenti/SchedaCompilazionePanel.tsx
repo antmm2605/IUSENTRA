@@ -35,7 +35,7 @@ export function SchedaCompilazionePanel({ scheda }: { scheda: RedazioneScheda })
         <summary>Provenienza di ogni dato ({scheda.campi.length})</summary>
         <ul>
           {scheda.campi.map((campo) => {
-            const stato = campo.scaduto ? { label: 'Termine scaduto', tone: 'danger' as const } : STATI[campo.stato] || { label: campo.stato, tone: 'neutral' as const }
+            const stato = campo.verificaAvvocato ? { label: 'Verifica scadenza e fonte', tone: 'warning' as const } : campo.scaduto ? { label: 'Termine scaduto', tone: 'danger' as const } : STATI[campo.stato] || { label: campo.stato, tone: 'neutral' as const }
             return (
               <li key={campo.campo}>
                 <span>{campo.etichetta}</span>

@@ -92,7 +92,8 @@ def main(argv=None) -> int:
         del esistenti[k]
     for s in nuove:
         if s["id"] in esistenti:
-            print(f"ERRORE: {s['id']} esiste già; usa ESTENSIONI"); return 1
+            print(f"ERRORE: {s['id']} esiste già; usa ESTENSIONI")
+            return 1
     for sid, extra in estensioni.items():
         esistenti[sid]["template"] = list(dict.fromkeys(esistenti[sid]["template"] + extra))
     tutte = list(esistenti.values()) + nuove

@@ -341,7 +341,7 @@ export type RedazioneRiferimentoNormativo = {
   selezionato: boolean
 }
 
-export type RedazioneSchedaCampo = { campo: string; etichetta: string; stato: string; valore: string; fonte: string; norme: string[]; spiegazione: string; scaduto: boolean }
+export type RedazioneSchedaCampo = { campo: string; etichetta: string; stato: string; valore: string; fonte: string; norme: string[]; spiegazione: string; scaduto: boolean; verificaAvvocato: boolean }
 export type RedazioneSchedaDomanda = { campo: string; domanda: string; obbligatorio: boolean; seManca: string }
 export type RedazioneScheda = {
   titolo: string
@@ -415,7 +415,7 @@ function normaliseScheda(input: unknown): RedazioneScheda | null {
       const campo = asRecord(raw)
       return {
         campo: text(campo.campo), etichetta: display(campo.etichetta), stato: text(campo.stato),
-        valore: display(typeof campo.valore === 'number' && Number.isFinite(campo.valore) ? campo.valore.toLocaleString('it-IT') : campo.valore), fonte: display(campo.fonte), spiegazione: display(campo.spiegazione), scaduto: campo.scaduto === true,
+        valore: display(typeof campo.valore === 'number' && Number.isFinite(campo.valore) ? campo.valore.toLocaleString('it-IT') : campo.valore), fonte: display(campo.fonte), spiegazione: display(campo.spiegazione), scaduto: campo.scaduto === true, verificaAvvocato: campo.verifica_avvocato === true,
         norme: list(campo.norma).map((n) => { const norma = asRecord(n); return `art. ${text(norma.articolo).replace(/^(\d+)([a-z]+)$/, '$1-$2')} ${text(norma.atto).replace(/_/g, ' ')}` }),
       }
     }).filter((campo) => campo.campo),

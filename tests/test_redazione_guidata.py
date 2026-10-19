@@ -18,7 +18,6 @@ from pct.clienti import GestioneClienti, Indirizzo, Recapiti, TipoCliente
 from pct.fascicoli import GestioneFascicoli, TipoFascicolo
 from pct.storage import StudioDB
 from pct.redazione_contesto import (
-    anteprima_campi_modello,
     applica_marcatori_dati_mancanti,
     condizioni_dal_fascicolo,
     contributo_unificato_da_fascicolo,
@@ -467,6 +466,8 @@ def _app_redazione(tmp_path):
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
+    cfg["MULTI_TENANT"] = False
+    cfg["TENANTS_REGISTRY"] = str(tmp_path / "tenants.json")
     cfg["STUDIO_AVVOCATO"] = "Avv. Giulia Verdi"
     cfg["STUDIO_CF"] = "VRDGLI80A41H501X"
     cfg["STUDIO_INDIRIZZO"] = "Corso Garibaldi 5, Palmi (RC)"

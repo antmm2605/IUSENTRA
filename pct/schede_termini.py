@@ -17,7 +17,7 @@ from pct.termini_processuali import ItalianDeadlineCalculator
 BASI = {
     "udienza": [{"categoria": "data", "campo": "udienza"}],
     "notifica": [{"categoria": "data", "campo": "notifica"}, {"categoria": "prova_notifica"}],
-    "comunicazione": [{"categoria": "data", "campo": "comunicazione"}, {"categoria": "prova_notifica"}],
+    "comunicazione": [{"categoria": "data", "campo": "comunicazione"}],
     "provvedimento": [{"categoria": "data", "campo": "provvedimento"}],
     "evento": [{"categoria": "data", "campo": "evento"}],
 }
@@ -31,6 +31,9 @@ def valida_termine(termine: dict[str, Any]) -> list[str]:
         errori.append(f"base non ammessa: {termine.get('base')}")
     if bool(termine.get("giorni")) == bool(termine.get("mesi")):
         errori.append("indicare giorni oppure mesi")
+    for unita in ("giorni", "mesi"):
+        if unita in termine and (type(termine[unita]) is not int or termine[unita] <= 0):
+            errori.append(f"{unita} deve essere un intero positivo")
     if termine.get("direzione") not in ("avanti", "ritroso"):
         errori.append("direzione deve essere avanti o ritroso")
     if not isinstance(termine.get("feriale"), bool):
@@ -45,22 +48,30 @@ def _data(valore: Any) -> date | None:
         return None
 
 
+def fatti_base(termine: dict[str, Any], fatti: Iterable[Any]) -> list[Any]:
+    """Fonti pertinenti e utilizzabili; nessuna scelta per ordine di lettura."""
+    from pct.registro_letture.fatti_repository import VERIFICHE_UTILI
+    return [fatto for fatto in fatti
+            if getattr(fatto, "verifica", "") in VERIFICHE_UTILI
+            and _data(getattr(fatto, "valore", "")) is not None
+            and any(getattr(fatto, "categoria", "") == sel["categoria"]
+                    and (not sel.get("campo") or getattr(fatto, "campo", "") == sel["campo"])
+                    for sel in BASI[termine["base"]])]
+
+
 def data_base(termine: dict[str, Any], fatti: Iterable[Any]) -> date | None:
-    """La data dell'evento di partenza letta dai fatti non respinti, se presente."""
-    for sel in BASI[termine["base"]]:
-        for fatto in fatti:
-            if getattr(fatto, "verifica", "") == "respinto" or getattr(fatto, "categoria", "") != sel["categoria"]:
-                continue
-            if sel.get("campo") and getattr(fatto, "campo", "") != sel["campo"]:
-                continue
-            giorno = _data(getattr(fatto, "valore", ""))
-            if giorno:
-                return giorno
-    return None
+    """Date discordanti richiedono riscontro: non si prende la prima disponibile."""
+    date_lette = {_data(fatto.valore) for fatto in fatti_base(termine, fatti)}
+    if len(date_lette) > 1:
+        raise ValueError("Più date di partenza discordanti: verificare la fonte pertinente prima del calcolo.")
+    return next(iter(date_lette), None)
 
 
 def calcola(termine: dict[str, Any], base: date) -> dict[str, Any]:
     """Scadenza e spiegazione del termine a partire dalla data base."""
+    errori = valida_termine(termine)
+    if errori:
+        raise ValueError("; ".join(errori))
     unita = "months" if termine.get("mesi") else "days"
     valore = int(termine.get("mesi") or termine.get("giorni"))
     r = ItalianDeadlineCalculator().calculate(

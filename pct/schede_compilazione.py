@@ -60,7 +60,7 @@ def _fatti_del_campo(campo: dict[str, Any], fatti: list[Any]) -> list[Any]:
     selettori = campo.get("fatti") or []
     trovati = []
     for fatto in fatti:
-        if getattr(fatto, "verifica", "") == "respinto":
+        if getattr(fatto, "verifica", "") in {"respinto", "respinta", "ignorata"}:
             continue
         for sel in selettori:
             if getattr(fatto, "categoria", "") == sel["categoria"] and (not sel.get("campo") or getattr(fatto, "campo", "") == sel["campo"]):
@@ -73,16 +73,22 @@ def _termine_calcolato(termine: dict[str, Any] | None, fatti: Any, oggi: date | 
     """Scadenza calcolata dal software quando la data di partenza è nell'archivio delle letture."""
     if not termine:
         return {}
-    from pct.schede_termini import calcola, data_base
+    from pct.schede_termini import calcola, data_base, fatti_base
 
-    base = data_base(termine, list(fatti))
+    fonti = fatti_base(termine, list(fatti))
+    try:
+        base = data_base(termine, fonti)
+    except ValueError as exc:
+        return {"spiegazione": str(exc), "verifica_avvocato": True}
     if base is None:
         return {}
     r = calcola(termine, base)
     scadenza = date.fromisoformat(r["scadenza"])
     oggi = oggi or datetime.now(ZoneInfo("Europe/Rome")).date()
     return {"stato": "calcolato", "valore": scadenza.strftime("%d/%m/%Y"), "spiegazione": r["spiegazione"],
-            "scaduto": scadenza < oggi, "verifica_avvocato": r["verifica_avvocato"]}
+            "scaduto": scadenza < oggi,
+            "verifica_avvocato": r["verifica_avvocato"] or not any(
+                getattr(fatto, "verifica", "") in {"verificata", "corretta"} for fatto in fonti)}
 
 
 def risolvi_scheda(scheda: dict[str, Any], valori: dict[str, Any], *, fatti: list[Any] = (),

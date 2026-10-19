@@ -43,10 +43,13 @@ def _carica(cartella: Path, schema: str) -> list[dict]:
 def _indice_biblioteca(db: Path) -> dict[tuple[str, str, str], str]:
     c = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
     indice = {}
-    for col, urn in c.execute("SELECT collection_name, urn FROM normative_documents"):
-        m = re.match(r"urn:nir:stato:([a-z.]+):(\d{4}-\d{2}-\d{2});(\d+)", urn or "")
-        if m:
-            indice[m.groups()] = col.removeprefix("Lex fonti: ")
+    try:
+        for col, urn in c.execute("SELECT collection_name, urn FROM normative_documents"):
+            m = re.match(r"urn:nir:stato:([a-z.]+):(\d{4}-\d{2}-\d{2});(\d+)", urn or "")
+            if m:
+                indice[m.groups()] = col.removeprefix("Lex fonti: ")
+    finally:
+        c.close()
     return indice
 
 
@@ -83,7 +86,9 @@ def esito(dispositivo: str) -> list[str]:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--raw", required=True); ap.add_argument("--db", required=True); ap.add_argument("--out", required=True)
+    ap.add_argument("--raw", required=True)
+    ap.add_argument("--db", required=True)
+    ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
     raw = Path(a.raw)
     indice = _indice_biblioteca(Path(a.db))
@@ -97,7 +102,7 @@ def main(argv=None) -> int:
             voce = {"ecli": p.get("ecli"), "anno": p["anno_pronuncia"], "numero": p["numero_pronuncia"],
                     "tipo": {"S": "sentenza", "O": "ordinanza"}.get(p.get("tipologia_pronuncia"), p.get("tipologia_pronuncia")),
                     "data_deposito": p.get("data_deposito"), "giudizio": m.get("tipologia_giudizio", ""),
-                    "esito": esito(disp), "norme_oggetto": norme, "dispositivo": disp[:3000],
+                    "esito": esito(disp), "norme_oggetto": norme, "dispositivo": disp,
                     "massime": [{"titolo": _pulisci(x.get("titolo")), "testo": _pulisci(x.get("testo"))} for x in m.get("massime", [])],
                     "fonte": "Corte costituzionale, open data (CC BY-SA 3.0)"}
             f.write(json.dumps(voce, ensure_ascii=False) + "\n")

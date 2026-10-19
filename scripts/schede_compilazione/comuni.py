@@ -46,8 +46,18 @@ def lex(nome, etichetta, compito, **kw) -> dict:
     return campo(nome, etichetta, {"tipo": "lex", "compito": compito}, **kw)
 
 
-def calcolo(nome, etichetta, regola, **kw) -> dict:
-    return campo(nome, etichetta, {"tipo": "calcolo", "regola": regola}, **kw)
+def calcolo(nome, etichetta, regola, termine=None, **kw) -> dict:
+    fonte = {"tipo": "calcolo", "regola": regola}
+    if termine:
+        fonte["termine"] = termine
+    return campo(nome, etichetta, fonte, **kw)
+
+
+def T(base, giorni=0, *, mesi=0, ritroso=False, feriale=True) -> dict:
+    """Termine calcolabile dal software (vedi ``pct/schede_termini.py``)."""
+    t = {"base": base, "direzione": "ritroso" if ritroso else "avanti", "feriale": feriale}
+    t.update({"mesi": mesi} if mesi else {"giorni": giorni})
+    return t
 
 
 def documento(nome, etichetta, descrizione, parole, **kw) -> dict:

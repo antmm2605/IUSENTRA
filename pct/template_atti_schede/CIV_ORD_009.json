@@ -161,7 +161,13 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "calcolo",
-    "regola": "70 giorni prima dell’udienza indicata in citazione o fissata dal giudice, con sospensione feriale"
+    "regola": "70 giorni prima dell’udienza indicata in citazione o fissata dal giudice, con sospensione feriale",
+    "termine": {
+     "base": "udienza",
+     "direzione": "ritroso",
+     "feriale": true,
+     "giorni": 70
+    }
    },
    "norma": [
     {

@@ -4,7 +4,7 @@ Base normativa: artt. 7, 113, 316-322 c.p.c. (procedimento davanti al giudice di
 semplificato dopo il D.Lgs. 149/2022); D.Lgs. 150/2011 artt. 5-7; L. 689/1981 art. 22; Codice della strada
 art. 204-bis; D.Lgs. 209/2005 artt. 145 e 148; art. 2054 c.c.
 """
-from scripts.schede_compilazione.comuni import (A_RITROSO, CC, CPC, FERIALE, IN_AVANTI, SENZA_FERIALE, assistito, avvocato, calcolo, causa_pendente, controparte, data_luogo,
+from scripts.schede_compilazione.comuni import (T, A_RITROSO, CC, CPC, FERIALE, IN_AVANTI, SENZA_FERIALE, assistito, avvocato, calcolo, causa_pendente, controparte, data_luogo,
                                                 difensore, documento, fatti_documentati, letto, procura)
 from scripts.schede_compilazione.costruisci import scheda
 
@@ -24,7 +24,7 @@ def _opposizione(provvedimento, parole, giorni_regola, norme):
                       se_manca=f"astensione: serve {provvedimento.lower()}"),
             letto("notifica", "Data di notifica o contestazione", "notifica", "relata o verbale", [{"categoria": "prova_notifica"}, {"categoria": "data"}],
                   norma=norme),
-            calcolo("termine", "Ultimo giorno per l’opposizione", giorni_regola + ", con sospensione feriale" + IN_AVANTI, norma=norme + [FERIALE]),
+            calcolo("termine", "Ultimo giorno per l’opposizione", termine=T("notifica", 30), regola=giorni_regola + ", con sospensione feriale" + IN_AVANTI, norma=norme + [FERIALE]),
             avvocato("motivi", "Motivi di opposizione", "Quali vizi del provvedimento o dell’accertamento fai valere? Con quali prove?"),
             avvocato("sospensione", "Richiesta di sospensione", "Chiedi la sospensione dell’efficacia esecutiva? Per quali gravi e circostanziate ragioni?",
                      obbligatorio=False, norma=[("150/2011", "5", "sospensione dell’efficacia esecutiva")])]
@@ -48,7 +48,7 @@ SCHEDE = [
             documento("ricorso", "Ricorso avversario e decreto di fissazione", "ricorso notificato", ["ricorso", "citazione", "decreto"],
                       se_manca="astensione: serve l’atto introduttivo avversario"),
             letto("udienza", "Udienza fissata", "udienza", "decreto di fissazione", [{"categoria": "data", "campo": "udienza"}]),
-            calcolo("termine_costituzione", "Ultimo giorno per costituirsi", "almeno dieci giorni prima dell’udienza, con sospensione feriale" + A_RITROSO,
+            calcolo("termine_costituzione", "Ultimo giorno per costituirsi", termine=T("udienza", 10, ritroso=True), regola="almeno dieci giorni prima dell’udienza, con sospensione feriale" + A_RITROSO,
                     norma=[(CPC, "281undecies", "termine e decadenze"), FERIALE]),
             avvocato("difese", "Difese", "Cosa contesti e cosa riconosci? Proponi domande riconvenzionali, eccezioni non rilevabili d’ufficio o chiamata di terzi?",
                      norma=[(CPC, "281undecies", "decadenze")])],

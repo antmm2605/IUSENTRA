@@ -181,7 +181,13 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "calcolo",
-    "regola": "40 giorni dalla notifica (50 se l’intimato risiede in altri Stati dell’Unione europea, o il termine diverso indicato nel decreto), con sospensione feriale; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)"
+    "regola": "40 giorni dalla notifica (50 se l’intimato risiede in altri Stati dell’Unione europea, o il termine diverso indicato nel decreto), con sospensione feriale; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
+    "termine": {
+     "base": "notifica",
+     "direzione": "avanti",
+     "feriale": true,
+     "giorni": 40
+    }
    },
    "norma": [
     {

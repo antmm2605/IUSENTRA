@@ -182,7 +182,13 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "calcolo",
-    "regola": "tre mesi dalla conoscenza legale dell’evento interruttivo da parte di chi riassume, con sospensione feriale"
+    "regola": "tre mesi dalla conoscenza legale dell’evento interruttivo da parte di chi riassume, con sospensione feriale",
+    "termine": {
+     "base": "evento",
+     "direzione": "avanti",
+     "feriale": true,
+     "mesi": 3
+    }
    },
    "norma": [
     {

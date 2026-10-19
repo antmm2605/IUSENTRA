@@ -3,7 +3,7 @@
 Base normativa: c.p.c. nel testo vigente al 19/10/2026 (riforma D.Lgs. 149/2022), c.c. per le azioni di
 arricchimento e di accertamento, D.M. 55/2014 per i compensi.
 """
-from scripts.schede_compilazione.comuni import (A_RITROSO, CC, CPC, FERIALE, assistito, avvocato, calcolo, causa_pendente,
+from scripts.schede_compilazione.comuni import (T, A_RITROSO, CC, CPC, FERIALE, assistito, avvocato, calcolo, causa_pendente,
                                                 controparte, data_luogo, database, difensore, documento, fatti_documentati,
                                                 lex, letto, procura, udienza)
 from scripts.schede_compilazione.costruisci import scheda
@@ -153,7 +153,7 @@ SCHEDE = [
             avvocato("motivi", "Gravi motivi della sostituzione", "Per quali gravi motivi chiedi la sostituzione? Se si tratta di incompatibilità (art. 51), serve la ricusazione",
                      norma=[(CPC, "196", "gravi motivi"), (CPC, "51", "motivi di astensione")]),
             udienza("Udienza di comparizione del consulente", "udienza_giuramento"),
-            calcolo("termine_ricusazione", "Ultimo giorno per la ricusazione", "almeno tre giorni prima dell’udienza di comparizione del consulente" + A_RITROSO,
+            calcolo("termine_ricusazione", "Ultimo giorno per la ricusazione", termine=T("udienza", 3, ritroso=True), regola="almeno tre giorni prima dell’udienza di comparizione del consulente" + A_RITROSO,
                     norma=[(CPC, "192", "ricusazione")])],
            [("Istanza", "gravi motivi o motivi di ricusazione con riferimento ai fatti")],
            ["motivi non indicati", "per l’incompatibilità il termine della ricusazione è scaduto: segnalarlo"]),
@@ -260,7 +260,7 @@ SCHEDE += [
            _base_endoprocessuale() + [
             letto("interruzione", "Data della conoscenza legale dell’evento interruttivo", "interruzione", "verbale di udienza o notifica dell’evento",
                   [{"categoria": "data"}], norma=[(CPC, "305", "decorrenza del termine")]),
-            calcolo("termine", "Ultimo giorno per la riassunzione", "tre mesi dalla conoscenza legale dell’evento interruttivo da parte di chi riassume, con sospensione feriale",
+            calcolo("termine", "Ultimo giorno per la riassunzione", termine=T("evento", mesi=3), regola="tre mesi dalla conoscenza legale dell’evento interruttivo da parte di chi riassume, con sospensione feriale",
                     norma=[(CPC, "305", "termine perentorio"), FERIALE]),
             avvocato("evento", "Evento interruttivo e soggetti da citare", "Quale evento ha interrotto il processo e chi sono gli eredi o i nuovi rappresentanti?"),
             avvocato("modo", "Prosecuzione o riassunzione", "Prosegue volontariamente la parte colpita dall’evento (comparsa, art. 302) o riassume l’altra parte (ricorso e notifica, art. 303)?",
@@ -272,7 +272,7 @@ SCHEDE += [
            _base_endoprocessuale() + [
             documento("cessazione", "Provvedimento che fa cessare la causa di sospensione", "sentenza passata in giudicato o altro provvedimento",
                       ["sentenza", "giudicato", "provvedimento"], norma=[(CPC, "297", "decorrenza")]),
-            calcolo("termine", "Ultimo giorno per chiedere la fissazione", "tre mesi dalla conoscenza del passaggio in giudicato, con sospensione feriale",
+            calcolo("termine", "Ultimo giorno per chiedere la fissazione", termine=T("provvedimento", mesi=3), regola="tre mesi dalla conoscenza del passaggio in giudicato, con sospensione feriale",
                     norma=[(CPC, "297", "termine perentorio"), FERIALE])],
            [("Istanza", "richiesta di fissazione dell’udienza di prosecuzione")],
            ["termine già scaduto", "provvedimento che fa cessare la sospensione non presente"]),

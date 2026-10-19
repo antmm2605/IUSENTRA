@@ -86,3 +86,33 @@ def test_civile_ordinario_monitorio_cautelare_giudice_di_pace_coperti():
 def test_termini_cautelari_senza_sospensione_feriale():
     reclamo = scheda_per_template("CAU_002")
     assert any(n["atto"] == "legge_742_1969" and n["articolo"] == "3" for n in reclamo["base_normativa"])
+
+
+def test_termine_calcolato_dal_software_con_festivi_e_ferie():
+    from datetime import date
+
+    from pct.registro_letture.fatti_repository import Fatto
+    from pct.schede_compilazione import risolvi_scheda
+
+    comparsa = scheda_per_template("CIV_ORD_009")
+    fatti = [Fatto(categoria="data", campo="udienza", valore="2027-04-18", etichetta="Udienza del 18/04/2027")]
+    r = risolvi_scheda(comparsa, {}, fatti=fatti, oggi=date(2026, 10, 19))
+    termine = next(c for c in r["campi"] if c["campo"] == "termine_costituzione")
+    # 70 giorni a ritroso: domenica 07/02/2027, anticipata a venerdì 05/02/2027
+    assert termine["stato"] == "calcolato" and termine["valore"] == "05/02/2027" and not termine["scaduto"]
+
+    opposizione = scheda_per_template("MON_011")
+    notifica = [Fatto(categoria="data", campo="notifica", valore="2026-07-20", etichetta="Notifica del decreto")]
+    r = risolvi_scheda(opposizione, {}, fatti=notifica, oggi=date(2026, 10, 19))
+    scadenza = next(c for c in r["campi"] if c["campo"] == "scadenza_opposizione")
+    # 40 giorni con agosto sospeso: martedì 29/09/2026, già passato al 19/10/2026
+    assert scadenza["valore"] == "29/09/2026" and scadenza["scaduto"]
+
+
+def test_termini_dichiarati_validi():
+    from pct.schede_termini import valida_termine
+
+    for s in carica_schede().values():
+        for c in s["campi"]:
+            if c["fonte"].get("termine"):
+                assert valida_termine(c["fonte"]["termine"]) == [], (s["id"], c["campo"])

@@ -2,7 +2,7 @@
 
 Base normativa: artt. 633-656 c.p.c. nel testo vigente al 19/10/2026; D.M. 55/2014 per le parcelle.
 """
-from scripts.schede_compilazione.comuni import (A_RITROSO, CC, CPC, FERIALE, IN_AVANTI, ufficio_da_adire, assistito, avvocato, calcolo, causa_pendente, controparte,
+from scripts.schede_compilazione.comuni import (T, A_RITROSO, CC, CPC, FERIALE, IN_AVANTI, ufficio_da_adire, assistito, avvocato, calcolo, causa_pendente, controparte,
                                                 data_luogo, difensore, documento, fatti_documentati, lex, letto, procura)
 from scripts.schede_compilazione.costruisci import scheda
 
@@ -72,8 +72,8 @@ SCHEDE = [
             (CPC, "641", "termine di opposizione")],
            [difensore(), data_luogo(), assistito("Creditore"), controparte("Debitore ingiunto"), causa_pendente("Ufficio e numero del decreto"),
             _decreto(), _notifica_decreto([(CPC, "647", "decorso del termine dalla notifica")]),
-            calcolo("scadenza_opposizione", "Scadenza del termine di opposizione",
-                    "40 giorni dalla notifica (50 se l’intimato risiede in altri Stati dell’Unione europea, o il termine diverso indicato nel decreto), con sospensione feriale" + IN_AVANTI,
+            calcolo("scadenza_opposizione", "Scadenza del termine di opposizione", termine=T("notifica", 40),
+                    regola="40 giorni dalla notifica (50 se l’intimato risiede in altri Stati dell’Unione europea, o il termine diverso indicato nel decreto), con sospensione feriale" + IN_AVANTI,
                     norma=[(CPC, "641", "termine"), FERIALE]),
             avvocato("nessuna_opposizione", "Mancata opposizione", "Ti risulta che non sia stata proposta opposizione nel termine?",
                      norma=[(CPC, "647", "mancata opposizione o mancata costituzione")])],
@@ -86,7 +86,7 @@ SCHEDE = [
             _decreto(),
             letto("data_decreto", "Data di pronuncia del decreto", "data_decreto", "decreto", [{"categoria": "data"}],
                   norma=[(CPC, "644", "decorrenza del termine")]),
-            calcolo("scadenza_notifica", "Ultimo giorno per notificare", "60 giorni dalla pronuncia (90 se la notifica avviene all’estero)" + IN_AVANTI,
+            calcolo("scadenza_notifica", "Ultimo giorno per notificare", termine=T("provvedimento", 60, feriale=False), regola="60 giorni dalla pronuncia (90 se la notifica avviene all’estero)" + IN_AVANTI,
                     norma=[(CPC, "644", "termine")]),
             avvocato("esito", "Esito della prima notifica", "Quando hai tentato la prima notifica e perché non è andata a buon fine? Dipende da cause non imputabili al creditore?"),
             avvocato("ordine_giudice", "Rinnovazione ordinata dal giudice", "Il giudice ha ordinato la rinnovazione perché l’intimato probabilmente non ha avuto conoscenza del decreto?",
@@ -101,8 +101,8 @@ SCHEDE = [
             (CPC, "447bis", "rito delle locazioni"), (CPC, "650", "opposizione tardiva"), ("28/2010", "5bis", "mediazione nell’opposizione a decreto ingiuntivo"), FERIALE],
            [difensore(), procura(), data_luogo(), assistito("Opponente (debitore ingiunto)"), controparte("Opposto (creditore ricorrente)"),
             _decreto(), _notifica_decreto([(CPC, "641", "decorrenza del termine")]),
-            calcolo("scadenza_opposizione", "Ultimo giorno per l’opposizione",
-                    "40 giorni dalla notifica del decreto (o il termine diverso indicato), con sospensione feriale" + IN_AVANTI,
+            calcolo("scadenza_opposizione", "Ultimo giorno per l’opposizione", termine=T("notifica", 40),
+                    regola="40 giorni dalla notifica del decreto (o il termine diverso indicato), con sospensione feriale" + IN_AVANTI,
                     norma=[(CPC, "641", "termine"), FERIALE]),
             calcolo("ufficio", "Ufficio competente", "lo stesso ufficio giudiziario del giudice che ha emesso il decreto (competenza funzionale)",
                     norma=[(CPC, "645", "competenza")], compilatore=["recipient_or_court"]),

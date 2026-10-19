@@ -68,6 +68,9 @@ def verifica(schede: list[dict], articoli: dict[str, set[str]]) -> list[str]:
             errori.append(f"{s['id']}: campi duplicati")
         norme = list(s["base_normativa"])
         for c in s["campi"]:
+            if c["fonte"].get("termine"):
+                from pct.schede_termini import valida_termine
+                errori += [f"{s['id']}.{c['campo']}: {e}" for e in valida_termine(c["fonte"]["termine"])]
             if c["fonte"]["tipo"] not in FONTI:
                 errori.append(f"{s['id']}.{c['campo']}: fonte {c['fonte']['tipo']}")
             norme += c.get("norma", [])

@@ -183,7 +183,13 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "calcolo",
-    "regola": "almeno tre giorni prima dell’udienza di comparizione del consulente; se l’ultimo giorno cade di sabato o festivo si anticipa al primo giorno non festivo precedente"
+    "regola": "almeno tre giorni prima dell’udienza di comparizione del consulente; se l’ultimo giorno cade di sabato o festivo si anticipa al primo giorno non festivo precedente",
+    "termine": {
+     "base": "udienza",
+     "direzione": "ritroso",
+     "feriale": true,
+     "giorni": 3
+    }
    },
    "norma": [
     {

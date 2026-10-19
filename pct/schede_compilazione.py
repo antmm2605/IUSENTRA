@@ -9,6 +9,8 @@ deve astenersi sono elencati nella scheda. Base normativa: c.p.c. e leggi citate
 from __future__ import annotations
 
 import json
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -67,8 +69,24 @@ def _fatti_del_campo(campo: dict[str, Any], fatti: list[Any]) -> list[Any]:
     return trovati
 
 
+def _termine_calcolato(termine: dict[str, Any] | None, fatti: Any, oggi: date | None) -> dict[str, Any]:
+    """Scadenza calcolata dal software quando la data di partenza è nell'archivio delle letture."""
+    if not termine:
+        return {}
+    from pct.schede_termini import calcola, data_base
+
+    base = data_base(termine, list(fatti))
+    if base is None:
+        return {}
+    r = calcola(termine, base)
+    scadenza = date.fromisoformat(r["scadenza"])
+    oggi = oggi or datetime.now(ZoneInfo("Europe/Rome")).date()
+    return {"stato": "calcolato", "valore": scadenza.strftime("%d/%m/%Y"), "spiegazione": r["spiegazione"],
+            "scaduto": scadenza < oggi, "verifica_avvocato": r["verifica_avvocato"]}
+
+
 def risolvi_scheda(scheda: dict[str, Any], valori: dict[str, Any], *, fatti: list[Any] = (),
-                   documenti: list[str] = ()) -> dict[str, Any]:
+                   documenti: list[str] = (), oggi: date | None = None) -> dict[str, Any]:
     """Stato di ogni campo della scheda e sole domande da fare all'avvocato.
 
     Ordine delle fonti: dato del gestionale (``compilatore``), fatto letto dall'archivio (da confermare),
@@ -95,6 +113,7 @@ def risolvi_scheda(scheda: dict[str, Any], valori: dict[str, Any], *, fatti: lis
             voce.update(stato="documento_presente", fonte="documenti del fascicolo", valore="; ".join(trovati))
         elif campo["fonte"]["tipo"] == "calcolo":
             voce.update(stato="calcolo", fonte="calcolo del software", regola=campo["fonte"]["regola"])
+            voce.update(_termine_calcolato(campo["fonte"].get("termine"), fatti, oggi))
         elif campo["fonte"]["tipo"] == "lex":
             voce.update(stato="proposta_lex", fonte="proposta di Lex da confermare", compito=campo["fonte"]["compito"])
         else:

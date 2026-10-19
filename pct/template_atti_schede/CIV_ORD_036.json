@@ -161,7 +161,13 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "calcolo",
-    "regola": "tre mesi dalla conoscenza del passaggio in giudicato, con sospensione feriale"
+    "regola": "tre mesi dalla conoscenza del passaggio in giudicato, con sospensione feriale",
+    "termine": {
+     "base": "provvedimento",
+     "direzione": "avanti",
+     "feriale": true,
+     "mesi": 3
+    }
    },
    "norma": [
     {

@@ -7,6 +7,7 @@ const STATI: Record<string, { label: string; tone: 'success' | 'warning' | 'neut
   da_confermare: { label: 'Letto nei documenti: conferma', tone: 'warning' },
   documento_presente: { label: 'Documento presente: verifica', tone: 'warning' },
   calcolo: { label: 'Da calcolare dal software', tone: 'neutral' },
+  calcolato: { label: 'Scadenza calcolata dal software', tone: 'success' },
   proposta_lex: { label: 'Proposta di Lex da confermare', tone: 'neutral' },
   da_chiedere: { label: 'Da indicare', tone: 'danger' },
   facoltativo: { label: 'Facoltativo', tone: 'neutral' },
@@ -34,12 +35,13 @@ export function SchedaCompilazionePanel({ scheda }: { scheda: RedazioneScheda })
         <summary>Provenienza di ogni dato ({scheda.campi.length})</summary>
         <ul>
           {scheda.campi.map((campo) => {
-            const stato = STATI[campo.stato] || { label: campo.stato, tone: 'neutral' as const }
+            const stato = campo.scaduto ? { label: 'Termine scaduto', tone: 'danger' as const } : STATI[campo.stato] || { label: campo.stato, tone: 'neutral' as const }
             return (
               <li key={campo.campo}>
                 <span>{campo.etichetta}</span>
                 <Badge tone={stato.tone}>{stato.label}</Badge>
                 {campo.valore ? <strong>{campo.valore}</strong> : null}
+                {campo.spiegazione ? <small>{campo.spiegazione}</small> : null}
                 {campo.norme.length ? <small>{campo.norme.join('; ')}</small> : null}
               </li>
             )

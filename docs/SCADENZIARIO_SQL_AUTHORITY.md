@@ -22,6 +22,9 @@ operativi o credenziali. La conferma è registrata nello stesso database in
 Una barriera senza conferma SQL impedisce il ritorno al JSON. La ripresa
 usa fonte, proprietario e backup originari; non rimuovere la barriera per
 aggirare un errore. Non riattivare immagini precedenti che non la rispettano.
+Il database non può essere adottato da un secondo studio o da una seconda
+fonte. La verifica avviene nella transazione; su PostgreSQL il lock della
+tabella di proprietà serializza anche adozioni concorrenti da fonti diverse.
 
 Tutti i costruttori nativi risolvono il collegamento confermato, inclusi CLI,
 scheduler e produttori storici privi del parametro database. Un backend
@@ -52,3 +55,11 @@ browser della sessione. Controlli tecnici, migrazione e deploy non sostituiscono
 click, scroll e osservazione dell'interfaccia reale su 127.0.0.1:8080.
 La chiusura funzionale resta aperta fino a tale prova; nessuna copertura globale
 di Agenda, PEC o degli altri incarichi è dichiarata da questo intervento.
+
+Prima applicazione locale: tre adozioni confermate, un solo audit per studio,
+backup coerenti con controllo di integrità e impronte SQL/JSON identiche a
+quelle precedenti. Confermata la lettura senza importazioni, deduplicazioni
+o scritture JSON anche nei costruttori senza database esplicito. Durante la
+revisione è stato aggiunto il caso di configurazione con due studi sullo
+stesso database: la seconda adozione deve essere respinta integralmente,
+preservando il primo proprietario. Non è una nuova riassegnazione dei dati.

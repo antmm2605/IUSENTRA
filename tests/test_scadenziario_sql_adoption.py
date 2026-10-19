@@ -179,3 +179,16 @@ def test_interruzione_dopo_backup_riprende_senza_doppio_audit(archive, monkeypat
     assert migrate()['changed'] is True
     assert GestioneScadenziario(str(source)).get(item.id).id == item.id
     assert db.conn.execute("SELECT COUNT(*) FROM audit_log WHERE azione='scadenziario.adozione_sql'").fetchone()[0] == 1
+
+
+def test_due_studi_non_possono_adottare_lo_stesso_archivio_sql(archive, tmp_path):
+    db, source, _, item, migrate = archive
+    migrate()
+    other = tmp_path / 'altro-studio/scadenziario/scadenze.json'
+    other.parent.mkdir(parents=True)
+    other.write_text('{}', encoding='utf-8')
+    with pytest.raises(RuntimeError, match='appartenente a un altro studio'):
+        adopt(db, other, tenant='altro-studio', destination=tmp_path / 'backup/altro-studio',
+              data_root=tmp_path, writers_drained=True)
+    assert db.conn.execute('SELECT COUNT(*) FROM scadenziario_sql_state').fetchone()[0] == 1
+    assert GestioneScadenziario(str(source)).get(item.id).id == item.id

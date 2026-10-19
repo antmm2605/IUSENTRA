@@ -97,6 +97,11 @@ def adopt(database, source, *, tenant, registry='', destination, data_root, writ
             conn.execute('CREATE TABLE IF NOT EXISTS scadenziario_sql_state (tenant TEXT NOT NULL, source TEXT NOT NULL, '
                          'source_sha256 TEXT NOT NULL, backup_reference TEXT NOT NULL, backup_sha256 TEXT NOT NULL, '
                          'PRIMARY KEY(tenant,source))')
+            if getattr(database, 'backend_kind', '') == 'postgresql':
+                conn.execute('LOCK TABLE scadenziario_sql_state IN SHARE ROW EXCLUSIVE MODE')
+            owners = conn.execute('SELECT tenant,source FROM scadenziario_sql_state').fetchall()
+            if any((row[0], row[1]) != (tenant, str(source)) for row in owners):
+                raise RuntimeError('Scadenziario SQL già appartenente a un altro studio o a una diversa fonte.')
             existing, models = {}, {}
             for row in conn.execute('SELECT * FROM scadenze').fetchall():
                 payload = dict(row)

@@ -74,8 +74,9 @@ def resolve_owner(source, database=None):
                     "SELECT name FROM sqlite_master WHERE type='table' AND name='scadenziario_sql_state'").fetchone()
         if not exists or not exists[0]:
             raise RuntimeError('Conferma SQL non ancora registrata.')
-        state = database.conn.execute('SELECT source_sha256 FROM scadenziario_sql_state WHERE tenant=? AND source=?',
-                                      (owner['tenant'], owner['source'])).fetchone()
+        state = database.conn.execute('SELECT source_sha256 FROM scadenziario_sql_state WHERE tenant=? AND source=? '
+                                      'AND NOT EXISTS (SELECT 1 FROM scadenziario_sql_state WHERE tenant<>? OR source<>?)',
+                                      (owner['tenant'], owner['source'], owner['tenant'], owner['source'])).fetchone()
     except Exception as exc:
         raise RuntimeError('Adozione SQL dello scadenziario non confermata: recupero necessario.') from exc
     if state is None or state[0] != owner['sha256']:

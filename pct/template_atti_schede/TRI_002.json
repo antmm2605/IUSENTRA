@@ -1,0 +1,199 @@
+{
+ "id": "TRI_002",
+ "titolo": "Reclamo-mediazione tributaria (istituto abrogato)",
+ "template": [
+  "TRI_002"
+ ],
+ "base_normativa": [
+  {
+   "atto": "175/2024",
+   "articolo": "64",
+   "perche": "ricorso"
+  },
+  {
+   "atto": "175/2024",
+   "articolo": "67",
+   "perche": "termine per ricorrere"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Contribuente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Ente impositore o agente della riscossione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "atto",
+   "etichetta": "Atto impugnato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "atto impugnato con relata o avviso di ricevimento"
+   },
+   "norma": [
+    {
+     "atto": "175/2024",
+     "articolo": "65",
+     "perche": "atti impugnabili"
+    }
+   ],
+   "se_manca": "astensione: serve l’atto impugnato",
+   "parole_documento": [
+    "avviso",
+    "cartella",
+    "intimazione",
+    "accertamento",
+    "ingiunzione",
+    "fermo",
+    "ipoteca",
+    "diniego"
+   ]
+  },
+  {
+   "campo": "notifica",
+   "etichetta": "Data di notifica dell’atto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "notifica",
+    "documento": "relata o ricevuta di consegna"
+   },
+   "se_manca": "chiedere la data di notifica: il termine decorre da lì",
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "notifica"
+    },
+    {
+     "categoria": "prova_notifica"
+    }
+   ]
+  },
+  {
+   "campo": "abrogato",
+   "etichetta": "Avviso",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "segnalare che il reclamo-mediazione è abrogato per gli atti notificati dal 4 gennaio 2024: proporre il ricorso ordinario o l’istanza di autotutela"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Avviso",
+   "compito": "istituto abrogato e alternativa"
+  }
+ ],
+ "astensione": [
+  "atto notificato dopo il 3 gennaio 2024: usare il ricorso"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

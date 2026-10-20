@@ -1,0 +1,206 @@
+{
+ "id": "PEN_003",
+ "titolo": "Memorie, istanze e richieste al giudice o al pubblico ministero",
+ "template": [
+  "PEN_003",
+  "PEN_004",
+  "PEN_005",
+  "PEN_015",
+  "PEN_016",
+  "PEN_024"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "121",
+   "perche": "memorie e richieste delle parti"
+  },
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "420ter",
+   "perche": "legittimo impedimento"
+  },
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "116",
+   "perche": "copie di atti"
+  },
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "415bis",
+   "perche": "avviso di conclusione delle indagini e accesso"
+  },
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "421",
+   "perche": "discussione in udienza preliminare"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, foro e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "96",
+     "perche": "difensore di fiducia"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Assistito (indagato, imputato o persona offesa)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "nomina",
+   "etichetta": "Nomina del difensore depositata",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "atto di nomina"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "96",
+     "perche": "nomina"
+    }
+   ],
+   "se_manca": "chiedere la nomina: senza non si deposita per l’assistito",
+   "parole_documento": [
+    "nomina"
+   ]
+  },
+  {
+   "campo": "procedimento",
+   "etichetta": "Autorità procedente e numero del procedimento (R.G.N.R. o R.G.)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "avvisi e notifiche"
+   },
+   "se_manca": "chiedere autorità e numero del procedimento",
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "istanza",
+   "etichetta": "Atto richiesto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Memoria, rinvio, legittimo impedimento (con prova), copie, accesso al fascicolo o memoria per l’udienza preliminare?"
+   }
+  },
+  {
+   "campo": "udienza",
+   "etichetta": "Udienza",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "udienza",
+    "documento": "decreti e avvisi"
+   },
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "udienza"
+    }
+   ]
+  },
+  {
+   "campo": "impedimento",
+   "etichetta": "Prova dell’impedimento",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "certificato medico o prova dell’impegno concomitante"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "420ter",
+     "perche": "assoluta impossibilità e comunicazione tempestiva"
+    }
+   ],
+   "parole_documento": [
+    "certificato",
+    "impedimento"
+   ]
+  },
+  {
+   "campo": "termine_415bis",
+   "etichetta": "Termine dell’avviso di conclusione",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Se c’è l’avviso dell’art. 415-bis: entro 20 giorni memorie, documenti, richiesta di interrogatorio"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "415bis",
+     "perche": "venti giorni"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Atto",
+   "compito": "richiesta motivata"
+  }
+ ],
+ "astensione": [
+  "procedimento non individuato"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

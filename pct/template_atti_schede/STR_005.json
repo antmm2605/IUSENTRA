@@ -1,0 +1,162 @@
+{
+ "id": "STR_005",
+ "titolo": "Diffida ad adempiere e intimazione finale",
+ "template": [
+  "STR_005",
+  "STR_006"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "1454",
+   "perche": "diffida: termine non inferiore a quindici giorni, risoluzione di diritto"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1219",
+   "perche": "mora"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Parte adempiente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Parte inadempiente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "contratto",
+   "etichetta": "Contratto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "contratto"
+   },
+   "se_manca": "astensione per la diffida ex art. 1454: serve un contratto a prestazioni corrispettive",
+   "parole_documento": [
+    "contratto"
+   ]
+  },
+  {
+   "campo": "inadempimento",
+   "etichetta": "Inadempimento",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quale obbligazione non è stata eseguita e da quando?"
+   }
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Termine",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Termine di adempimento (almeno 15 giorni salvo diversa pattuizione o natura del contratto)"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "1454",
+     "perche": "quindici giorni"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Diffida",
+   "compito": "obbligazione, termine, avvertimento della risoluzione"
+  }
+ ],
+ "astensione": [
+  "inadempimento di scarsa importanza: valutare"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

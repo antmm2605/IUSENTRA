@@ -1,0 +1,179 @@
+{
+ "id": "PEN_009",
+ "titolo": "Querela, denuncia-querela e remissione",
+ "template": [
+  "PEN_009",
+  "PEN_010",
+  "PEN_011"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_penale",
+   "articolo": "120",
+   "perche": "diritto di querela"
+  },
+  {
+   "atto": "codice_penale",
+   "articolo": "124",
+   "perche": "termine di tre mesi"
+  },
+  {
+   "atto": "codice_penale",
+   "articolo": "152",
+   "perche": "remissione"
+  },
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "336",
+   "perche": "querela"
+  },
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "337",
+   "perche": "forme"
+  },
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "340",
+   "perche": "remissione"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, foro e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "96",
+     "perche": "difensore di fiducia"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Persona offesa",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "fatto",
+   "etichetta": "Fatto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Cosa è accaduto, quando, dove, chi è il responsabile se noto, con testimoni e documenti"
+   }
+  },
+  {
+   "campo": "conoscenza",
+   "etichetta": "Data di conoscenza del fatto",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "evento",
+    "documento": "documenti"
+   },
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "evento"
+    }
+   ]
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Ultimo giorno per la querela",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "3 mesi dalla notizia del fatto; per i delitti sessuali 12 mesi (art. 609-septies c.p.): in quel caso la data calcolata non vale; termine sostanziale, senza sospensione feriale",
+    "termine": {
+     "base": "evento",
+     "direzione": "avanti",
+     "feriale": false,
+     "mesi": 3
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_penale",
+     "articolo": "124",
+     "perche": "tre mesi"
+    }
+   ]
+  },
+  {
+   "campo": "procedibilita",
+   "etichetta": "Reato procedibile a querela",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Il reato è procedibile a querela? Per la remissione: è stata accettata o non ricusata?"
+   },
+   "norma": [
+    {
+     "atto": "codice_penale",
+     "articolo": "152",
+     "perche": "remissione"
+    },
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "340",
+     "perche": "accettazione"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Atto",
+   "compito": "esposizione del fatto, istanza di punizione, richiesta di essere avvisati dell’archiviazione"
+  }
+ ],
+ "astensione": [
+  "reato procedibile d’ufficio: basta la denuncia"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

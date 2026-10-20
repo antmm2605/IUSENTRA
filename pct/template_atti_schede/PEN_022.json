@@ -1,0 +1,181 @@
+{
+ "id": "PEN_022",
+ "titolo": "Istanza di revoca o sostituzione di misura cautelare",
+ "template": [
+  "PEN_022",
+  "PEN_023"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "299",
+   "perche": "revoca e sostituzione"
+  },
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "274",
+   "perche": "esigenze cautelari"
+  },
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "275",
+   "perche": "proporzionalità e adeguatezza"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "2",
+   "perche": "sospensione esclusa con imputati detenuti"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, foro e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "96",
+     "perche": "difensore di fiducia"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Indagato o imputato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "nomina",
+   "etichetta": "Nomina del difensore depositata",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "atto di nomina"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "96",
+     "perche": "nomina"
+    }
+   ],
+   "se_manca": "chiedere la nomina: senza non si deposita per l’assistito",
+   "parole_documento": [
+    "nomina"
+   ]
+  },
+  {
+   "campo": "procedimento",
+   "etichetta": "Autorità procedente e numero del procedimento (R.G.N.R. o R.G.)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "avvisi e notifiche"
+   },
+   "se_manca": "chiedere autorità e numero del procedimento",
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "ordinanza",
+   "etichetta": "Ordinanza applicativa",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "ordinanza cautelare"
+   },
+   "se_manca": "chiedere l’ordinanza",
+   "parole_documento": [
+    "ordinanza"
+   ]
+  },
+  {
+   "campo": "fatti_nuovi",
+   "etichetta": "Fatti nuovi o attenuazione delle esigenze",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Cosa è cambiato (tempo trascorso, condotta, lavoro, domicilio)?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "299",
+     "perche": "presupposti"
+    }
+   ]
+  },
+  {
+   "campo": "notifica_po",
+   "etichetta": "Notifica alla persona offesa",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "ricordare che nei delitti con violenza alla persona l’istanza va notificata alla persona offesa a pena di inammissibilità"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "299",
+     "perche": "notifica alla persona offesa"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Istanza",
+   "compito": "fatti nuovi, esigenze, misura meno afflittiva"
+  }
+ ],
+ "astensione": [
+  "ordinanza non presente"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

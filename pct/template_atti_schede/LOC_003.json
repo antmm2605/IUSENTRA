@@ -1,0 +1,223 @@
+{
+ "id": "LOC_003",
+ "titolo": "Intimazione di licenza o sfratto per finita locazione",
+ "template": [
+  "LOC_003"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "657",
+   "perche": "licenza e sfratto per finita locazione"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "660",
+   "perche": "forma e termini liberi"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "661",
+   "perche": "competenza"
+  },
+  {
+   "atto": "legge_431_1998",
+   "articolo": "2",
+   "perche": "durata delle locazioni abitative"
+  },
+  {
+   "atto": "legge_431_1998",
+   "articolo": "3",
+   "perche": "diniego di rinnovo alla prima scadenza e preavviso di sei mesi"
+  },
+  {
+   "atto": "legge_392_1978",
+   "articolo": "29",
+   "perche": "diniego di rinnovo alla prima scadenza per uso non abitativo, preavviso di dodici mesi"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "3",
+   "perche": "esclusione della sospensione feriale"
+  },
+  {
+   "atto": "12/1941",
+   "articolo": "92",
+   "perche": "affari urgenti esclusi dalla sospensione"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Locatore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Conduttore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "contratto",
+   "etichetta": "Contratto di locazione registrato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "contratto di locazione"
+   },
+   "se_manca": "astensione: serve il contratto",
+   "parole_documento": [
+    "locazione",
+    "contratto"
+   ]
+  },
+  {
+   "campo": "disdetta",
+   "etichetta": "Disdetta inviata nei termini",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "lettera di disdetta con ricevuta"
+   },
+   "se_manca": "verificare che la disdetta sia stata data nei termini di legge o di contratto",
+   "parole_documento": [
+    "disdetta"
+   ]
+  },
+  {
+   "campo": "scadenza",
+   "etichetta": "Scadenza e motivo del diniego",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quale scadenza è (prima o successiva) e quale regime (4+4, 3+2, transitorio, commerciale 6+6)? Alla prima scadenza quale motivo di legge giustifica il diniego?"
+   },
+   "norma": [
+    {
+     "atto": "legge_431_1998",
+     "articolo": "3",
+     "perche": "motivi di diniego"
+    },
+    {
+     "atto": "legge_392_1978",
+     "articolo": "29",
+     "perche": "motivi per uso non abitativo"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Atto",
+   "compito": "scadenza, disdetta o diniego motivato, intimazione e citazione per la convalida"
+  }
+ ],
+ "astensione": [
+  "disdetta non data o tardiva",
+  "scadenza non indicata",
+  "diniego alla prima scadenza senza un motivo di legge"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

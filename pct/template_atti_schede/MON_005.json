@@ -2,7 +2,8 @@
  "id": "MON_005",
  "titolo": "Ricorso monitorio per canoni di locazione",
  "template": [
-  "MON_005"
+  "MON_005",
+  "LOC_007"
  ],
  "base_normativa": [
   {

@@ -1,0 +1,230 @@
+{
+ "id": "LOC_014",
+ "titolo": "Citazione per infiltrazioni e danni tra unità immobiliari",
+ "template": [
+  "LOC_014"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "2051",
+   "perche": "danno cagionato da cose in custodia"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1117",
+   "perche": "parti comuni"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1123",
+   "perche": "ripartizione delle spese"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "7",
+   "perche": "competenza per valore o del giudice di pace per le cause condominiali, efficacia da verificare"
+  },
+  {
+   "atto": "28/2010",
+   "articolo": "5",
+   "perche": "mediazione obbligatoria in materia di locazione, condominio e diritti reali"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Danneggiato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Responsabile (condominio o proprietario)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "fatti",
+   "etichetta": "Infiltrazioni: date, provenienza, danni",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "eventi_e_date",
+    "documento": "documenti del fascicolo"
+   },
+   "compilatore": [
+    "facts"
+   ],
+   "fatti": [
+    {
+     "categoria": "evento"
+    },
+    {
+     "categoria": "data"
+    }
+   ]
+  },
+  {
+   "campo": "origine",
+   "etichetta": "Origine dell’infiltrazione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Da dove provengono (parti comuni, unità sovrastante, impianti) e c’è una perizia?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "2051",
+     "perche": "custodia"
+    }
+   ]
+  },
+  {
+   "campo": "danni",
+   "etichetta": "Danni e quantificazione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quali danni chiedi, con preventivi o fatture?"
+   }
+  },
+  {
+   "campo": "mediazione",
+   "etichetta": "Mediazione obbligatoria",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "È stata esperita la mediazione? Indica organismo, data e verbale"
+   },
+   "norma": [
+    {
+     "atto": "28/2010",
+     "articolo": "5",
+     "perche": "mediazione obbligatoria in materia di locazione, condominio e diritti reali"
+    }
+   ],
+   "se_manca": "segnalare che la domanda è improcedibile senza mediazione"
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatto",
+   "compito": "infiltrazioni con documenti"
+  },
+  {
+   "blocco": "Diritto",
+   "compito": "responsabilità del custode"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "eliminazione delle cause e risarcimento"
+  }
+ ],
+ "astensione": [
+  "origine non indicata",
+  "mediazione non esperita"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

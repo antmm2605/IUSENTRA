@@ -1,0 +1,149 @@
+{
+ "id": "STD_016",
+ "titolo": "Compensi: sollecito, mora, accordo, proforma, fondo spese",
+ "template": [
+  "STD_016",
+  "STD_017",
+  "STD_018",
+  "STD_019",
+  "STD_020"
+ ],
+ "base_normativa": [
+  {
+   "atto": "legge_247_2012",
+   "articolo": "13",
+   "perche": "compensi"
+  },
+  {
+   "atto": "55/2014",
+   "articolo": "2",
+   "perche": "compensi e spese"
+  },
+  {
+   "atto": "codice_deontologico_forense_2026",
+   "articolo": "29",
+   "perche": "richiesta di pagamento"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2956",
+   "perche": "prescrizione presuntiva triennale"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2946",
+   "perche": "prescrizione estintiva decennale"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Cliente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "incarico",
+   "etichetta": "Incarico o preventivo",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "incarico firmato"
+   },
+   "parole_documento": [
+    "incarico",
+    "preventivo"
+   ]
+  },
+  {
+   "campo": "importi",
+   "etichetta": "Importi",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Compenso, spese generali 15%, CPA, IVA, acconti ricevuti"
+   },
+   "norma": [
+    {
+     "atto": "55/2014",
+     "articolo": "2",
+     "perche": "spese forfettarie"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Documento",
+   "compito": "importi, termini, conseguenze"
+  }
+ ],
+ "astensione": [
+  "compenso non concordato né determinabile"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

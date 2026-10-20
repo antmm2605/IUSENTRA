@@ -1,0 +1,200 @@
+{
+ "id": "CONC_001",
+ "titolo": "Domanda di ammissione al passivo, privilegio, rivendica e restituzione",
+ "template": [
+  "CONC_001",
+  "CONC_004",
+  "CONC_005",
+  "CONC_006"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_crisi",
+   "articolo": "201",
+   "perche": "domanda almeno trenta giorni prima dell’udienza, via PEC al curatore"
+  },
+  {
+   "atto": "codice_crisi",
+   "articolo": "210",
+   "perche": "rivendica e restituzione"
+  },
+  {
+   "atto": "codice_crisi",
+   "articolo": "9",
+   "perche": "sospensione feriale esclusa nei procedimenti del codice della crisi"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2745",
+   "perche": "privilegi: indicare la norma specifica"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Creditore o titolare del bene",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "procedura",
+   "etichetta": "Tribunale, numero della procedura e curatore o liquidatore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "sentenza e avviso del curatore"
+   },
+   "se_manca": "chiedere i dati della procedura",
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "udienza",
+   "etichetta": "Udienza di verifica dello stato passivo",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "udienza",
+    "documento": "avviso del curatore"
+   },
+   "se_manca": "chiedere la data dell’udienza dall’avviso del curatore",
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "udienza"
+    }
+   ]
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Ultimo giorno per trasmettere la domanda",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "almeno 30 giorni prima dell’udienza di verifica, senza sospensione feriale; se l’ultimo giorno cade di sabato o festivo si anticipa al primo giorno non festivo precedente",
+    "termine": {
+     "base": "udienza",
+     "direzione": "ritroso",
+     "feriale": false,
+     "giorni": 30
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_crisi",
+     "articolo": "201",
+     "perche": "trenta giorni"
+    }
+   ]
+  },
+  {
+   "campo": "titolo",
+   "etichetta": "Documenti del credito o del diritto sul bene",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "fatture, contratti, titoli"
+   },
+   "parole_documento": [
+    "fattura",
+    "contratto",
+    "decreto",
+    "sentenza"
+   ]
+  },
+  {
+   "campo": "credito",
+   "etichetta": "Credito, privilegio e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Importo, causa, privilegio o prelazione con la norma, PEC per le comunicazioni"
+   },
+   "norma": [
+    {
+     "atto": "codice_crisi",
+     "articolo": "201",
+     "perche": "contenuto a pena di inammissibilità"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Domanda",
+   "compito": "creditore, credito, prelazione, documenti, PEC"
+  }
+ ],
+ "astensione": [
+  "udienza di verifica non nota"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

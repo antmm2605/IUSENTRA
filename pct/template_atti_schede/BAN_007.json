@@ -1,0 +1,231 @@
+{
+ "id": "BAN_007",
+ "titolo": "Opposizione a decreto ingiuntivo su saldo di conto",
+ "template": [
+  "BAN_007"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "645",
+   "perche": "opposizione"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "641",
+   "perche": "quaranta giorni"
+  },
+  {
+   "atto": "385/1993",
+   "articolo": "50",
+   "perche": "estratto certificato"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "1",
+   "perche": "sospensione feriale dei termini"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Correntista o garante",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Banca",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "decreto",
+   "etichetta": "Decreto ingiuntivo notificato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "decreto ingiuntivo"
+   },
+   "se_manca": "astensione: serve il decreto",
+   "parole_documento": [
+    "decreto"
+   ]
+  },
+  {
+   "campo": "notifica",
+   "etichetta": "Notifica del decreto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "notifica",
+    "documento": "relata"
+   },
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "notifica"
+    }
+   ]
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Ultimo giorno per l’opposizione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "40 giorni dalla notifica, con sospensione feriale; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
+    "termine": {
+     "base": "notifica",
+     "direzione": "avanti",
+     "feriale": true,
+     "giorni": 40
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "641",
+     "perche": "quaranta giorni"
+    }
+   ]
+  },
+  {
+   "campo": "contratti",
+   "etichetta": "Contratti ed estratti conto integrali",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "contratti di conto, affidamento, mutuo ed estratti conto"
+   },
+   "norma": [
+    {
+     "atto": "385/1993",
+     "articolo": "117",
+     "perche": "forma scritta"
+    },
+    {
+     "atto": "385/1993",
+     "articolo": "119",
+     "perche": "estratti conto"
+    }
+   ],
+   "se_manca": "chiedere i documenti alla banca con l’art. 119 TUB prima di agire",
+   "parole_documento": [
+    "contratto",
+    "estratto",
+    "conto"
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Opposizione",
+   "compito": "contestazione del saldo, nullità, ricalcolo"
+  }
+ ],
+ "astensione": [
+  "decreto non presente"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

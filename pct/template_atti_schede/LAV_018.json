@@ -1,0 +1,212 @@
+{
+ "id": "LAV_018",
+ "titolo": "Verbale di conciliazione in sede protetta",
+ "template": [
+  "LAV_018"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "410",
+   "perche": "tentativo di conciliazione"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "411",
+   "perche": "processo verbale"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2113",
+   "perche": "rinunzie e transazioni"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Lavoratore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Datore di lavoro",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "contratto",
+   "etichetta": "Contratto, lettera di assunzione, buste paga",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "contratto di lavoro e buste paga"
+   },
+   "se_manca": "chiedere contratto o buste paga",
+   "parole_documento": [
+    "contratto",
+    "busta",
+    "cedolino",
+    "assunzione"
+   ]
+  },
+  {
+   "campo": "rapporto",
+   "etichetta": "Dati del rapporto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Date di inizio e fine, inquadramento e CCNL, mansioni effettive, orario, retribuzione"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "414",
+     "perche": "esposizione dei fatti e degli elementi di diritto"
+    }
+   ]
+  },
+  {
+   "campo": "accordo",
+   "etichetta": "Contenuto dell’accordo",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Somme, causali, rinunce, tempi di pagamento"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "2113",
+     "perche": "validità in sede protetta"
+    }
+   ]
+  },
+  {
+   "campo": "sede",
+   "etichetta": "Sede della conciliazione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Commissione presso l’ispettorato, sede sindacale, commissione di certificazione, giudice o negoziazione assistita (art. 2-ter D.L. 132/2014)?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "411",
+     "perche": "esecutività del verbale"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Verbale",
+   "compito": "parti, controversia, accordo e rinunce"
+  }
+ ],
+ "astensione": [
+  "sede non protetta: le rinunce restano impugnabili per sei mesi"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

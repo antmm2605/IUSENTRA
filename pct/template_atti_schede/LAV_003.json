@@ -1,0 +1,389 @@
+{
+ "id": "LAV_003",
+ "titolo": "Ricorso per impugnazione del licenziamento e reintegrazione",
+ "template": [
+  "LAV_003",
+  "LAV_004"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "414",
+   "perche": "ricorso"
+  },
+  {
+   "atto": "legge_604_1966",
+   "articolo": "6",
+   "perche": "impugnazione entro sessanta giorni e deposito entro centottanta"
+  },
+  {
+   "atto": "legge_604_1966",
+   "articolo": "2",
+   "perche": "forma scritta e motivazione"
+  },
+  {
+   "atto": "23/2015",
+   "articolo": "2",
+   "perche": "licenziamento nullo o discriminatorio"
+  },
+  {
+   "atto": "23/2015",
+   "articolo": "3",
+   "perche": "licenziamento ingiustificato"
+  },
+  {
+   "atto": "legge_300_1970",
+   "articolo": "18",
+   "perche": "tutela reintegratoria per gli assunti prima del 7 marzo 2015"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "3",
+   "perche": "esclusione della sospensione feriale"
+  },
+  {
+   "atto": "12/1941",
+   "articolo": "92",
+   "perche": "affari urgenti esclusi dalla sospensione"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Lavoratore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Datore di lavoro",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "contratto",
+   "etichetta": "Contratto, lettera di assunzione, buste paga",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "contratto di lavoro e buste paga"
+   },
+   "se_manca": "chiedere contratto o buste paga",
+   "parole_documento": [
+    "contratto",
+    "busta",
+    "cedolino",
+    "assunzione"
+   ]
+  },
+  {
+   "campo": "rapporto",
+   "etichetta": "Dati del rapporto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Date di inizio e fine, inquadramento e CCNL, mansioni effettive, orario, retribuzione"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "414",
+     "perche": "esposizione dei fatti e degli elementi di diritto"
+    }
+   ]
+  },
+  {
+   "campo": "lettera",
+   "etichetta": "Lettera di licenziamento",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "comunicazione di licenziamento"
+   },
+   "se_manca": "astensione: serve la lettera",
+   "parole_documento": [
+    "licenziamento"
+   ]
+  },
+  {
+   "campo": "impugnazione",
+   "etichetta": "Impugnazione stragiudiziale con prova della ricezione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "lettera o PEC di impugnazione"
+   },
+   "se_manca": "segnalare il termine di 60 giorni dalla comunicazione",
+   "parole_documento": [
+    "impugnazione"
+   ]
+  },
+  {
+   "campo": "termine_impugnazione",
+   "etichetta": "Ultimo giorno per l’impugnazione stragiudiziale",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "60 giorni dalla ricezione della comunicazione; termine sostanziale, senza sospensione feriale; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
+    "termine": {
+     "base": "comunicazione",
+     "direzione": "avanti",
+     "feriale": false,
+     "giorni": 60
+    }
+   },
+   "norma": [
+    {
+     "atto": "legge_604_1966",
+     "articolo": "6",
+     "perche": "sessanta giorni"
+    }
+   ]
+  },
+  {
+   "campo": "termine_deposito",
+   "etichetta": "Ultimo giorno per depositare il ricorso",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "180 giorni dalla trasmissione dell’impugnazione stragiudiziale (evento); se la conciliazione o l’arbitrato sono rifiutati o falliscono, 60 giorni da lì",
+    "termine": {
+     "base": "evento",
+     "direzione": "avanti",
+     "feriale": false,
+     "giorni": 180
+    }
+   },
+   "norma": [
+    {
+     "atto": "legge_604_1966",
+     "articolo": "6",
+     "perche": "centottanta giorni e sessanta dopo il rifiuto"
+    }
+   ]
+  },
+  {
+   "campo": "prioritario",
+   "etichetta": "Domanda di reintegra",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Si chiede la reintegra? Si applica la trattazione prioritaria"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "441bis",
+     "perche": "trattazione prioritaria dei licenziamenti con reintegra"
+    }
+   ]
+  },
+  {
+   "campo": "regime",
+   "etichetta": "Regime di tutela",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Data di assunzione, numero di dipendenti, tipo di vizio (nullità, discriminazione, giusta causa, giustificato motivo)"
+   },
+   "norma": [
+    {
+     "atto": "23/2015",
+     "articolo": "1",
+     "perche": "campo di applicazione"
+    },
+    {
+     "atto": "legge_300_1970",
+     "articolo": "18",
+     "perche": "requisiti dimensionali"
+    }
+   ]
+  },
+  {
+   "campo": "ufficio",
+   "etichetta": "Ufficio giudiziario competente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "competenza per materia, valore e territorio secondo le norme indicate; da confermare"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "413",
+     "perche": "giudice del lavoro del luogo in cui è sorto il rapporto o si trova l’azienda o la dipendenza"
+    }
+   ],
+   "compilatore": [
+    "recipient_or_court"
+   ]
+  },
+  {
+   "campo": "prove",
+   "etichetta": "Mezzi di prova",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Testimoni con capitoli, documenti, richieste di esibizione: vanno indicati a pena di decadenza"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "414",
+     "perche": "indicazione specifica dei mezzi di prova"
+    }
+   ]
+  },
+  {
+   "campo": "notifica",
+   "etichetta": "Notifica di ricorso e decreto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "almeno 30 giorni prima dell’udienza (40 se all’estero), entro 10 giorni dal decreto; senza sospensione feriale",
+    "termine": {
+     "base": "udienza",
+     "direzione": "ritroso",
+     "feriale": false,
+     "giorni": 30
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "415",
+     "perche": "termini di notifica"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "3",
+     "perche": "esclusione della sospensione feriale"
+    },
+    {
+     "atto": "12/1941",
+     "articolo": "92",
+     "perche": "affari urgenti esclusi dalla sospensione"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatti",
+   "compito": "rapporto, licenziamento e impugnazione"
+  },
+  {
+   "blocco": "Diritto",
+   "compito": "vizi del licenziamento e tutela applicabile"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "reintegra o indennità"
+  }
+ ],
+ "astensione": [
+  "lettera di licenziamento non presente",
+  "impugnazione oltre 60 giorni o ricorso oltre 180: segnalare la decadenza"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

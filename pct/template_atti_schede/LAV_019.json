@@ -1,0 +1,199 @@
+{
+ "id": "LAV_019",
+ "titolo": "Diffida e messa in mora del datore di lavoro",
+ "template": [
+  "LAV_019",
+  "LAV_020"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "1219",
+   "perche": "costituzione in mora"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2943",
+   "perche": "interruzione della prescrizione"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2948",
+   "perche": "prescrizione quinquennale"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Lavoratore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Datore di lavoro",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "contratto",
+   "etichetta": "Contratto, lettera di assunzione, buste paga",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "contratto di lavoro e buste paga"
+   },
+   "se_manca": "chiedere contratto o buste paga",
+   "parole_documento": [
+    "contratto",
+    "busta",
+    "cedolino",
+    "assunzione"
+   ]
+  },
+  {
+   "campo": "rapporto",
+   "etichetta": "Dati del rapporto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Date di inizio e fine, inquadramento e CCNL, mansioni effettive, orario, retribuzione"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "414",
+     "perche": "esposizione dei fatti e degli elementi di diritto"
+    }
+   ]
+  },
+  {
+   "campo": "crediti",
+   "etichetta": "Crediti o inadempimenti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quali somme o obblighi si chiedono, con quali scadenze?"
+   }
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Termine assegnato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Entro quanti giorni il datore deve adempiere?"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Diffida",
+   "compito": "crediti, termine, effetto interruttivo"
+  }
+ ],
+ "astensione": [
+  "crediti non indicati"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

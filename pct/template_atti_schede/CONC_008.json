@@ -1,0 +1,144 @@
+{
+ "id": "CONC_008",
+ "titolo": "Istanze, osservazioni e memorie dei creditori e del liquidatore",
+ "template": [
+  "CONC_008",
+  "CONC_013",
+  "CONC_014",
+  "CONC_015"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_crisi",
+   "articolo": "70",
+   "perche": "osservazioni nella ristrutturazione del consumatore: venti giorni"
+  },
+  {
+   "atto": "codice_crisi",
+   "articolo": "78",
+   "perche": "osservazioni nel concordato minore"
+  },
+  {
+   "atto": "codice_crisi",
+   "articolo": "275",
+   "perche": "attività del liquidatore"
+  },
+  {
+   "atto": "codice_crisi",
+   "articolo": "128",
+   "perche": "funzioni del curatore"
+  },
+  {
+   "atto": "codice_crisi",
+   "articolo": "9",
+   "perche": "sospensione feriale esclusa nei procedimenti del codice della crisi"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Creditore, curatore o liquidatore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "procedura",
+   "etichetta": "Tribunale, numero della procedura e curatore o liquidatore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "sentenza e avviso del curatore"
+   },
+   "se_manca": "chiedere i dati della procedura",
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "atto",
+   "etichetta": "Atto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Istanza al curatore, osservazioni al piano (termine assegnato), memoria o autorizzazione ad atti del liquidatore?"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Atto",
+   "compito": "richiesta motivata"
+  }
+ ],
+ "astensione": [
+  "procedura non individuata"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

@@ -1,0 +1,187 @@
+{
+ "id": "CON_001",
+ "titolo": "Diffide e reclami del consumatore (utenze, e-commerce, garanzia)",
+ "template": [
+  "CON_001",
+  "CON_002",
+  "CON_003",
+  "CON_007",
+  "CON_008",
+  "CON_009",
+  "CON_010"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_consumo",
+   "articolo": "61",
+   "perche": "consegna entro trenta giorni"
+  },
+  {
+   "atto": "codice_consumo",
+   "articolo": "52",
+   "perche": "recesso"
+  },
+  {
+   "atto": "codice_consumo",
+   "articolo": "128",
+   "perche": "garanzia legale"
+  },
+  {
+   "atto": "codice_consumo",
+   "articolo": "135bis",
+   "perche": "rimedi del consumatore"
+  },
+  {
+   "atto": "codice_consumo",
+   "articolo": "133",
+   "perche": "difetti manifestati entro due anni dalla consegna"
+  },
+  {
+   "atto": "codice_consumo",
+   "articolo": "141",
+   "perche": "definizioni ADR"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1219",
+   "perche": "mora"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Consumatore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Professionista",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "contratto",
+   "etichetta": "Contratto, ordine, fatture, reclami",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "contratto e corrispondenza"
+   },
+   "parole_documento": [
+    "contratto",
+    "ordine",
+    "fattura",
+    "reclamo"
+   ]
+  },
+  {
+   "campo": "problema",
+   "etichetta": "Problema e richiesta",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Mancata consegna, difetto, fatturazione errata, interruzione del servizio? Cosa si chiede?"
+   }
+  },
+  {
+   "campo": "conciliazione",
+   "etichetta": "Conciliazione",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "segnalare il tentativo obbligatorio presso il Corecom o le procedure ARERA per telefonia ed energia, da verificare"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Diffida",
+   "compito": "fatti, diritti del consumatore, richiesta, termine"
+  }
+ ],
+ "astensione": [
+  "acquirente non consumatore"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

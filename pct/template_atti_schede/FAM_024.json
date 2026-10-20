@@ -1,0 +1,210 @@
+{
+ "id": "FAM_024",
+ "titolo": "Istanza per passaporto del minore o trasferimento di residenza in caso di disaccordo",
+ "template": [
+  "FAM_024",
+  "FAM_025"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "316",
+   "perche": "contrasto tra genitori su questioni di particolare importanza"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "337ter",
+   "perche": "decisioni di maggiore interesse"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "473bis.12",
+   "perche": "ricorso"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "473bis.11",
+   "perche": "competenza del tribunale del luogo di residenza abituale del minore o del convenuto"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Ricorrente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Resistente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "figli",
+   "etichetta": "Figli: nomi, età, residenza abituale ed esigenze",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quali figli ci sono, quanti anni hanno, dove vivono abitualmente e con chi?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "337ter",
+     "perche": "affidamento condiviso e mantenimento"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.12",
+     "perche": "indicazione dei figli nel ricorso"
+    }
+   ],
+   "se_manca": "chiedere i dati dei figli: senza non si redigono domande su affidamento e mantenimento"
+  },
+  {
+   "campo": "questione",
+   "etichetta": "Questione e motivi",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Passaporto o trasferimento: dove, perché, con quali effetti su scuola e frequentazioni con l’altro genitore?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "337ter",
+     "perche": "residenza abituale e istruzione decise di comune accordo"
+    }
+   ]
+  },
+  {
+   "campo": "dissenso",
+   "etichetta": "Dissenso dell’altro genitore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "L’altro genitore ha negato l’assenso? Con quali motivi?"
+   }
+  },
+  {
+   "campo": "nota",
+   "etichetta": "Norma sul passaporto",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "segnalare che la legge sul passaporto (art. 3 L. 1185/1967, giudice tutelare) non è nella base normativa e va verificata dall’avvocato"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Ricorso",
+   "compito": "interesse del minore e ragioni del disaccordo"
+  }
+ ],
+ "astensione": [
+  "assenso dell’altro genitore già presente: il ricorso non serve"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

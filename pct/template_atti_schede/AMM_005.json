@@ -1,0 +1,302 @@
+{
+ "id": "AMM_005",
+ "titolo": "Memoria, replica e istanze di accesso al fascicolo o di oscuramento",
+ "template": [
+  "AMM_005",
+  "AMM_006",
+  "AMM_008",
+  "AMM_018"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_processo_amministrativo",
+   "articolo": "73",
+   "perche": "termini per documenti, memorie e repliche"
+  },
+  {
+   "atto": "codice_processo_amministrativo",
+   "articolo": "46",
+   "perche": "costituzione delle parti intimate"
+  },
+  {
+   "atto": "codice_privacy",
+   "articolo": "52",
+   "perche": "oscuramento dei dati"
+  },
+  {
+   "atto": "codice_processo_amministrativo",
+   "articolo": "54",
+   "perche": "sospensione feriale esclusa nel cautelare"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Parte assistita",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Controparte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "controinteressati",
+   "etichetta": "Controinteressati",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Chi trae vantaggio dall’atto? Almeno uno va evocato a pena di inammissibilità"
+   },
+   "norma": [
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "41",
+     "perche": "notifica ad almeno un controinteressato"
+    }
+   ]
+  },
+  {
+   "campo": "dati_causa",
+   "etichetta": "Ufficio, giudice e numero di ruolo della causa",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "fascicolo, PEC di cancelleria e verbali"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione dell’ufficio"
+    }
+   ],
+   "se_manca": "chiedere ufficio e numero di ruolo: senza la causa pendente l’atto non si deposita",
+   "compilatore": [
+    "recipient_or_court",
+    "case_reference_display"
+   ],
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "udienza",
+   "etichetta": "Udienza di discussione",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "udienza",
+    "documento": "avviso di fissazione"
+   },
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "udienza"
+    }
+   ]
+  },
+  {
+   "campo": "documenti",
+   "etichetta": "Ultimo giorno per i documenti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "40 giorni liberi prima dell’udienza (dimezzati nei riti accelerati)",
+    "termine": {
+     "base": "udienza",
+     "direzione": "ritroso",
+     "feriale": true,
+     "giorni": 41
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "73",
+     "perche": "documenti"
+    },
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "54",
+     "perche": "sospensione feriale esclusa nel cautelare"
+    }
+   ]
+  },
+  {
+   "campo": "memorie",
+   "etichetta": "Ultimo giorno per le memorie",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "30 giorni liberi prima dell’udienza",
+    "termine": {
+     "base": "udienza",
+     "direzione": "ritroso",
+     "feriale": true,
+     "giorni": 31
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "73",
+     "perche": "memorie"
+    }
+   ]
+  },
+  {
+   "campo": "repliche",
+   "etichetta": "Ultimo giorno per le repliche",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "20 giorni liberi prima dell’udienza",
+    "termine": {
+     "base": "udienza",
+     "direzione": "ritroso",
+     "feriale": true,
+     "giorni": 21
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "73",
+     "perche": "repliche"
+    }
+   ]
+  },
+  {
+   "campo": "atto",
+   "etichetta": "Atto richiesto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Memoria, replica, accesso al fascicolo o oscuramento dei dati identificativi?"
+   },
+   "norma": [
+    {
+     "atto": "codice_privacy",
+     "articolo": "52",
+     "perche": "motivi legittimi"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Atto",
+   "compito": "difese o istanza"
+  }
+ ],
+ "astensione": [
+  "udienza non nota per memorie e repliche"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

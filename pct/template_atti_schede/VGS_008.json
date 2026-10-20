@@ -1,0 +1,231 @@
+{
+ "id": "VGS_008",
+ "titolo": "Ricorso al giudice tutelare per autorizzazioni (riscossione, vendita, divisione)",
+ "template": [
+  "VGS_008",
+  "VGS_009",
+  "VGS_010",
+  "VGS_019"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "320",
+   "perche": "atti dei genitori"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "374",
+   "perche": "autorizzazioni del giudice tutelare"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "375",
+   "perche": "autorizzazioni, oggi del giudice tutelare dopo il D.Lgs. 149/2022"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "411",
+   "perche": "amministrazione di sostegno"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "732",
+   "perche": "alienazione di beni di minori e incapaci"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "733",
+   "perche": "vendita all’incanto"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "734",
+   "perche": "reimpiego"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "739",
+   "perche": "reclamo entro dieci giorni"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "720bis",
+   "perche": "reclamo dei decreti in materia di amministrazione di sostegno: verificare il giudice del reclamo nel testo vigente"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "la procura serve se si sta in giudizio con difensore; per l’amministrazione di sostegno il ricorso può essere depositato anche senza",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Genitore, tutore o amministratore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "beneficiario",
+   "etichetta": "Beneficiario, interdicendo o minore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Anagrafica, residenza o dimora abituale, condizioni di salute e di vita"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "404",
+     "perche": "beneficiario"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "407",
+     "perche": "contenuto del ricorso"
+    }
+   ]
+  },
+  {
+   "campo": "atto",
+   "etichetta": "Atto da autorizzare",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Riscossione, vendita, divisione, transazione: quale atto, con quale valore?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "374",
+     "perche": "atti soggetti ad autorizzazione"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "375",
+     "perche": "atti che richiedono il tribunale"
+    }
+   ]
+  },
+  {
+   "campo": "utilita",
+   "etichetta": "Utilità evidente e reimpiego",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Perché l’atto è necessario o utile e come si reimpiegano le somme?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "320",
+     "perche": "necessità o utilità evidente"
+    }
+   ]
+  },
+  {
+   "campo": "stima",
+   "etichetta": "Perizia di stima o progetto di divisione",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "perizia, progetto divisionale"
+   },
+   "parole_documento": [
+    "perizia",
+    "stima",
+    "divisione"
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Ricorso",
+   "compito": "atto, utilità evidente, valore e reimpiego; ricordare l’alternativa dell’autorizzazione notarile prevista dall’art. 21 D.Lgs. 149/2022"
+  }
+ ],
+ "astensione": [
+  "utilità o reimpiego non indicati"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

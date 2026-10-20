@@ -1,0 +1,340 @@
+{
+ "id": "ESE_007",
+ "titolo": "Atto di pignoramento presso terzi",
+ "template": [
+  "ESE_007",
+  "ESE_008",
+  "ESE_009",
+  "ESE_010",
+  "ESE_011"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "543",
+   "perche": "forma del pignoramento presso terzi"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "545",
+   "perche": "limiti di pignorabilità di stipendi, pensioni e conti"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "547",
+   "perche": "dichiarazione del terzo"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "548",
+   "perche": "mancata dichiarazione"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Creditore procedente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Debitore esecutato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "titolo",
+   "etichetta": "Titolo esecutivo in copia conforme",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "titolo esecutivo"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "474",
+     "perche": "titolo esecutivo"
+    }
+   ],
+   "se_manca": "astensione: senza titolo esecutivo non si procede",
+   "parole_documento": [
+    "sentenza",
+    "decreto",
+    "titolo",
+    "cambiale",
+    "assegno"
+   ]
+  },
+  {
+   "campo": "notifica_precetto",
+   "etichetta": "Data di notifica del precetto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "notifica",
+    "documento": "relata del precetto"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "480",
+     "perche": "precetto"
+    }
+   ],
+   "se_manca": "astensione: l’esecuzione va preceduta dalla notifica del precetto",
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "notifica"
+    },
+    {
+     "categoria": "prova_notifica"
+    }
+   ]
+  },
+  {
+   "campo": "termine_dilatorio",
+   "etichetta": "Primo giorno utile per l’esecuzione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "decorsi 10 giorni dalla notifica del precetto, salvo autorizzazione per pericolo nel ritardo",
+    "termine": {
+     "base": "notifica",
+     "direzione": "avanti",
+     "feriale": true,
+     "giorni": 10
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "482",
+     "perche": "termine dilatorio"
+    }
+   ]
+  },
+  {
+   "campo": "termine_precetto",
+   "etichetta": "Finestra per iniziare l’esecuzione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "non prima di 10 giorni dalla notifica del precetto (salvo autorizzazione) ed entro 90 giorni, con sospensione feriale; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
+    "termine": {
+     "base": "notifica",
+     "direzione": "avanti",
+     "feriale": true,
+     "giorni": 90
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "482",
+     "perche": "termine dilatorio di dieci giorni"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "481",
+     "perche": "inefficacia dopo novanta giorni"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    }
+   ]
+  },
+  {
+   "campo": "terzo",
+   "etichetta": "Terzo debitore e credito da pignorare",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Chi è il terzo (banca, datore di lavoro, ente pensionistico, cliente) e quale credito vanta il debitore verso di lui?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "543",
+     "perche": "indicazione del terzo e delle somme"
+    }
+   ]
+  },
+  {
+   "campo": "natura",
+   "etichetta": "Natura del credito pignorato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Si pignora uno stipendio, una pensione, un conto corrente o un credito commerciale?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "545",
+     "perche": "stipendi: un quinto (metà con più crediti concorrenti); pensioni: impignorabile il doppio dell’assegno sociale con minimo di 1.000 euro; somme già accreditate su conto: pignorabili oltre il triplo dell’assegno sociale"
+    }
+   ]
+  },
+  {
+   "campo": "altri_vincoli",
+   "etichetta": "Natura del credito e vincoli",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Il credito per cui si procede è alimentare o tributario? Ci sono cessioni del quinto o pignoramenti precedenti?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "545",
+     "perche": "crediti alimentari e concorso"
+    }
+   ]
+  },
+  {
+   "campo": "ufficio",
+   "etichetta": "Giudice competente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "tribunale del luogo di residenza, domicilio, dimora o sede del debitore"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "26bis",
+     "perche": "foro dell’esecuzione presso terzi"
+    }
+   ]
+  },
+  {
+   "campo": "iscrizione",
+   "etichetta": "Iscrizione a ruolo e avviso al terzo",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "nota di iscrizione entro 30 giorni dalla consegna dell’atto notificato, con sospensione feriale; avviso dell’iscrizione notificato al debitore e al terzo prima dell’udienza, a pena di inefficacia"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "543",
+     "perche": "trenta giorni e avviso di iscrizione"
+    }
+   ]
+  },
+  {
+   "campo": "importo",
+   "etichetta": "Importo per cui si procede",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "calcolare capitale, interessi e spese aumentati della metà come prevede l’art. 546"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "546",
+     "perche": "obblighi del terzo nei limiti dell’importo aumentato della metà"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Atto",
+   "compito": "indicazione del credito, del titolo e del precetto, ingiunzione e citazione del debitore secondo l’art. 543"
+  }
+ ],
+ "astensione": [
+  "titolo o notifica del precetto mancanti",
+  "terzo o credito non indicati",
+  "credito impignorabile secondo l’art. 545"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

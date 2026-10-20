@@ -1,0 +1,173 @@
+{
+ "id": "LOC_008",
+ "titolo": "Diffida per pagamento dei canoni o per rilascio",
+ "template": [
+  "LOC_008",
+  "LOC_009"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "1219",
+   "perche": "costituzione in mora"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1454",
+   "perche": "diffida ad adempiere: termine non inferiore a quindici giorni"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1587",
+   "perche": "obbligazioni del conduttore"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1591",
+   "perche": "danni per ritardata restituzione"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Locatore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Conduttore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "contratto",
+   "etichetta": "Contratto di locazione registrato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "contratto di locazione"
+   },
+   "se_manca": "astensione: serve il contratto",
+   "parole_documento": [
+    "locazione",
+    "contratto"
+   ]
+  },
+  {
+   "campo": "richiesta",
+   "etichetta": "Cosa si chiede",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Pagamento di canoni (quali, quanto) o rilascio dell’immobile (perché il contratto è cessato)?"
+   }
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Termine assegnato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Entro quanti giorni deve adempiere? Se vuoi la risoluzione di diritto il termine non può essere inferiore a 15 giorni"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "1454",
+     "perche": "quindici giorni"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Diffida",
+   "compito": "richiesta, termine e conseguenze dell’inadempimento"
+  }
+ ],
+ "astensione": [
+  "contratto non presente"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

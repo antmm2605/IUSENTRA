@@ -1,0 +1,299 @@
+{
+ "id": "LAV_010",
+ "titolo": "Ricorso per mobbing o demansionamento",
+ "template": [
+  "LAV_010",
+  "LAV_011"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "414",
+   "perche": "ricorso"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2087",
+   "perche": "tutela dell’integrità fisica e della personalità morale"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2103",
+   "perche": "mansioni"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "3",
+   "perche": "esclusione della sospensione feriale"
+  },
+  {
+   "atto": "12/1941",
+   "articolo": "92",
+   "perche": "affari urgenti esclusi dalla sospensione"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Lavoratore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Datore di lavoro",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "contratto",
+   "etichetta": "Contratto, lettera di assunzione, buste paga",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "contratto di lavoro e buste paga"
+   },
+   "se_manca": "chiedere contratto o buste paga",
+   "parole_documento": [
+    "contratto",
+    "busta",
+    "cedolino",
+    "assunzione"
+   ]
+  },
+  {
+   "campo": "rapporto",
+   "etichetta": "Dati del rapporto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Date di inizio e fine, inquadramento e CCNL, mansioni effettive, orario, retribuzione"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "414",
+     "perche": "esposizione dei fatti e degli elementi di diritto"
+    }
+   ]
+  },
+  {
+   "campo": "fatti",
+   "etichetta": "Condotte, mansioni prima e dopo, periodo, documenti e certificazioni",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "eventi_e_date",
+    "documento": "documenti del fascicolo"
+   },
+   "compilatore": [
+    "facts"
+   ],
+   "fatti": [
+    {
+     "categoria": "evento"
+    },
+    {
+     "categoria": "data"
+    }
+   ]
+  },
+  {
+   "campo": "danno",
+   "etichetta": "Danni lamentati",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Danno professionale, biologico, morale: con quali prove (certificazioni, testimoni)?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "2087",
+     "perche": "responsabilità del datore"
+    }
+   ]
+  },
+  {
+   "campo": "ufficio",
+   "etichetta": "Ufficio giudiziario competente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "competenza per materia, valore e territorio secondo le norme indicate; da confermare"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "413",
+     "perche": "giudice del lavoro del luogo in cui è sorto il rapporto o si trova l’azienda o la dipendenza"
+    }
+   ],
+   "compilatore": [
+    "recipient_or_court"
+   ]
+  },
+  {
+   "campo": "prove",
+   "etichetta": "Mezzi di prova",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Testimoni con capitoli, documenti, richieste di esibizione: vanno indicati a pena di decadenza"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "414",
+     "perche": "indicazione specifica dei mezzi di prova"
+    }
+   ]
+  },
+  {
+   "campo": "notifica",
+   "etichetta": "Notifica di ricorso e decreto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "almeno 30 giorni prima dell’udienza (40 se all’estero), entro 10 giorni dal decreto; senza sospensione feriale",
+    "termine": {
+     "base": "udienza",
+     "direzione": "ritroso",
+     "feriale": false,
+     "giorni": 30
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "415",
+     "perche": "termini di notifica"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "3",
+     "perche": "esclusione della sospensione feriale"
+    },
+    {
+     "atto": "12/1941",
+     "articolo": "92",
+     "perche": "affari urgenti esclusi dalla sospensione"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatti",
+   "compito": "condotte specifiche e collegamento con il danno"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "accertamento, reintegra nelle mansioni, risarcimento"
+  }
+ ],
+ "astensione": [
+  "condotte non specificate con date e fatti"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

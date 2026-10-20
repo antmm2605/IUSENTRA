@@ -1,0 +1,236 @@
+{
+ "id": "LAV_013",
+ "titolo": "Ricorso previdenziale e assistenziale (INPS, invalidità, accompagnamento)",
+ "template": [
+  "LAV_013",
+  "LAV_014",
+  "LAV_015"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "442",
+   "perche": "controversie previdenziali"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "443",
+   "perche": "domanda amministrativa e ricorso amministrativo"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "444",
+   "perche": "giudice competente: residenza dell’attore"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "445bis",
+   "perche": "accertamento tecnico preventivo obbligatorio solo per invalidità civile, handicap e prestazioni sanitarie"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "3",
+   "perche": "esclusione della sospensione feriale"
+  },
+  {
+   "atto": "12/1941",
+   "articolo": "92",
+   "perche": "affari urgenti esclusi dalla sospensione"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Assicurato o assistito",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Ente previdenziale",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "domanda",
+   "etichetta": "Domanda amministrativa e provvedimento dell’ente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "domanda, verbale o diniego dell’ente"
+   },
+   "se_manca": "astensione: la domanda giudiziale è improcedibile senza la domanda amministrativa",
+   "parole_documento": [
+    "domanda",
+    "verbale",
+    "diniego",
+    "inps"
+   ]
+  },
+  {
+   "campo": "sanitaria",
+   "etichetta": "Documentazione sanitaria o contributiva",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "certificati medici o estratto contributivo"
+   },
+   "parole_documento": [
+    "certificato",
+    "estratto",
+    "contributivo"
+   ]
+  },
+  {
+   "campo": "fase",
+   "etichetta": "Fase",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Ricorso per ATP, dichiarazione di dissenso o ricorso dopo l’ATP?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "445bis",
+     "perche": "dissenso entro il termine assegnato, ricorso entro trenta giorni dal deposito del dissenso"
+    }
+   ]
+  },
+  {
+   "campo": "decadenza",
+   "etichetta": "Decadenza",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "segnalare che la decadenza dell’art. 47 D.P.R. 639/1970 non è nella base normativa e va verificata dall’avvocato"
+   }
+  },
+  {
+   "campo": "ufficio",
+   "etichetta": "Giudice competente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "tribunale in funzione di giudice del lavoro del luogo di residenza dell’attore"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "444",
+     "perche": "competenza"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Ricorso",
+   "compito": "prestazione, domanda amministrativa, requisiti sanitari o contributivi"
+  }
+ ],
+ "astensione": [
+  "domanda amministrativa non presente"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

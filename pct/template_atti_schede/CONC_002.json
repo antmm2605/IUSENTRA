@@ -1,0 +1,171 @@
+{
+ "id": "CONC_002",
+ "titolo": "Domanda tardiva di ammissione al passivo",
+ "template": [
+  "CONC_002"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_crisi",
+   "articolo": "208",
+   "perche": "domande tardive entro sei mesi dall’esecutività dello stato passivo"
+  },
+  {
+   "atto": "codice_crisi",
+   "articolo": "9",
+   "perche": "sospensione feriale esclusa nei procedimenti del codice della crisi"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Creditore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "procedura",
+   "etichetta": "Tribunale, numero della procedura e curatore o liquidatore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "sentenza e avviso del curatore"
+   },
+   "se_manca": "chiedere i dati della procedura",
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "esecutivita",
+   "etichetta": "Deposito del decreto di esecutività dello stato passivo",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "provvedimento",
+    "documento": "comunicazione del curatore"
+   },
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "provvedimento"
+    }
+   ]
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Ultimo giorno per la tardiva",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "6 mesi dal deposito del decreto di esecutività; se la sentenza di apertura lo ha prorogato fino a 12 mesi la data calcolata non vale; oltre, solo se il ritardo non è imputabile; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
+    "termine": {
+     "base": "provvedimento",
+     "direzione": "avanti",
+     "feriale": false,
+     "mesi": 6
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_crisi",
+     "articolo": "208",
+     "perche": "sei mesi"
+    }
+   ]
+  },
+  {
+   "campo": "ritardo",
+   "etichetta": "Ragioni del ritardo",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Se oltre il termine: perché il ritardo non è imputabile?"
+   },
+   "norma": [
+    {
+     "atto": "codice_crisi",
+     "articolo": "208",
+     "perche": "ultratardive"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Domanda",
+   "compito": "credito, documenti, ragioni del ritardo"
+  }
+ ],
+ "astensione": [
+  "termine scaduto senza causa non imputabile"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

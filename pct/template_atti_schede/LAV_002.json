@@ -1,0 +1,286 @@
+{
+ "id": "LAV_002",
+ "titolo": "Memoria difensiva nel rito del lavoro",
+ "template": [
+  "LAV_002"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "416",
+   "perche": "costituzione del convenuto"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "418",
+   "perche": "domanda riconvenzionale"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "3",
+   "perche": "esclusione della sospensione feriale"
+  },
+  {
+   "atto": "12/1941",
+   "articolo": "92",
+   "perche": "affari urgenti esclusi dalla sospensione"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Parte convenuta",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Ricorrente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "dati_causa",
+   "etichetta": "Ufficio, giudice e numero di ruolo della causa",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "fascicolo, PEC di cancelleria e verbali"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione dell’ufficio"
+    }
+   ],
+   "se_manca": "chiedere ufficio e numero di ruolo: senza la causa pendente l’atto non si deposita",
+   "compilatore": [
+    "recipient_or_court",
+    "case_reference_display"
+   ],
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "udienza",
+   "etichetta": "Prossima udienza fissata",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "udienza",
+    "documento": "verbali e PEC di cancelleria"
+   },
+   "se_manca": "chiedere la data dell’udienza: i termini si contano da lì",
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "udienza"
+    }
+   ]
+  },
+  {
+   "campo": "ricorso",
+   "etichetta": "Ricorso e decreto notificati",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "ricorso introduttivo notificato"
+   },
+   "se_manca": "astensione: serve il ricorso",
+   "parole_documento": [
+    "ricorso"
+   ]
+  },
+  {
+   "campo": "costituzione",
+   "etichetta": "Ultimo giorno per costituirsi",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "almeno 10 giorni prima dell’udienza, senza sospensione feriale; se l’ultimo giorno cade di sabato o festivo si anticipa al primo giorno non festivo precedente",
+    "termine": {
+     "base": "udienza",
+     "direzione": "ritroso",
+     "feriale": false,
+     "giorni": 10
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "416",
+     "perche": "dieci giorni"
+    }
+   ]
+  },
+  {
+   "campo": "difese",
+   "etichetta": "Eccezioni e prese di posizione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Eccezioni processuali e di merito non rilevabili d’ufficio, presa di posizione precisa su ogni fatto"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "416",
+     "perche": "decadenza e onere di contestazione"
+    }
+   ]
+  },
+  {
+   "campo": "prove",
+   "etichetta": "Mezzi di prova",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Testimoni con capitoli e documenti: a pena di decadenza"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "416",
+     "perche": "mezzi di prova"
+    }
+   ]
+  },
+  {
+   "campo": "riconvenzionale",
+   "etichetta": "Domanda riconvenzionale",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "C’è una domanda riconvenzionale? Va chiesto lo spostamento dell’udienza"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "418",
+     "perche": "nuova udienza"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Difese",
+   "compito": "contestazione specifica dei fatti, eccezioni, prove"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "rigetto ed eventuale riconvenzionale"
+  }
+ ],
+ "astensione": [
+  "ricorso non presente",
+  "udienza non nota",
+  "costituzione tardiva: decadenza da eccezioni e prove"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

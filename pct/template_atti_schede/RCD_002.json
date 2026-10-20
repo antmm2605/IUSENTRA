@@ -1,0 +1,274 @@
+{
+ "id": "RCD_002",
+ "titolo": "Atto di citazione per risarcimento danni e sinistro stradale",
+ "template": [
+  "RCD_002",
+  "RCD_003"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "2043",
+   "perche": "fatto illecito"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2054",
+   "perche": "circolazione di veicoli"
+  },
+  {
+   "atto": "209/2005",
+   "articolo": "145",
+   "perche": "proponibilità dopo sessanta o novanta giorni"
+  },
+  {
+   "atto": "209/2005",
+   "articolo": "148",
+   "perche": "richiesta di risarcimento"
+  },
+  {
+   "atto": "209/2005",
+   "articolo": "144",
+   "perche": "azione diretta"
+  },
+  {
+   "atto": "209/2005",
+   "articolo": "149",
+   "perche": "indennizzo diretto: azione contro il proprio assicuratore"
+  },
+  {
+   "atto": "dl_132_2014",
+   "articolo": "3",
+   "perche": "negoziazione assistita obbligatoria"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Danneggiato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Responsabile e assicuratore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "fatti",
+   "etichetta": "Fatto, date, luoghi, testimoni e documenti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "eventi_e_date",
+    "documento": "documenti del fascicolo"
+   },
+   "compilatore": [
+    "facts"
+   ],
+   "fatti": [
+    {
+     "categoria": "evento"
+    },
+    {
+     "categoria": "data"
+    }
+   ]
+  },
+  {
+   "campo": "danni",
+   "etichetta": "Danni",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Danni patrimoniali (spese, mancati guadagni) e non patrimoniali (biologico con percentuale, morale) con documenti"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "2056",
+     "perche": "valutazione dei danni"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "2059",
+     "perche": "danni non patrimoniali"
+    }
+   ]
+  },
+  {
+   "campo": "richiesta",
+   "etichetta": "Richiesta all’assicuratore con ricevuta",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "richiesta di risarcimento"
+   },
+   "se_manca": "per i sinistri stradali: l’azione è improponibile senza la richiesta e il decorso di 60 o 90 giorni",
+   "parole_documento": [
+    "richiesta",
+    "raccomandata",
+    "pec"
+   ]
+  },
+  {
+   "campo": "sinistro",
+   "etichetta": "Sinistro stradale",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "È un sinistro stradale? Danni a cose (60 giorni) o a persone (90 giorni)? Negoziazione assistita esperita?"
+   },
+   "norma": [
+    {
+     "atto": "209/2005",
+     "articolo": "145",
+     "perche": "termini di proponibilità"
+    }
+   ]
+  },
+  {
+   "campo": "ufficio",
+   "etichetta": "Ufficio giudiziario competente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "competenza per materia, valore e territorio secondo le norme indicate; da confermare"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "7",
+     "perche": "competenza del giudice di pace per i sinistri fino al limite di valore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "20",
+     "perche": "foro dell’obbligazione"
+    }
+   ],
+   "compilatore": [
+    "recipient_or_court"
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatto",
+   "compito": "dinamica e danni"
+  },
+  {
+   "blocco": "Diritto",
+   "compito": "responsabilità"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "condanna"
+  }
+ ],
+ "astensione": [
+  "richiesta all’assicuratore mancante nei sinistri stradali"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

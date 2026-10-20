@@ -1,0 +1,288 @@
+{
+ "id": "TRI_005",
+ "titolo": "Memorie, documenti e istanze in corso di causa tributaria",
+ "template": [
+  "TRI_005",
+  "TRI_007",
+  "TRI_008",
+  "TRI_009",
+  "TRI_010"
+ ],
+ "base_normativa": [
+  {
+   "atto": "175/2024",
+   "articolo": "80",
+   "perche": "documenti e memorie"
+  },
+  {
+   "atto": "175/2024",
+   "articolo": "82",
+   "perche": "pubblica udienza"
+  },
+  {
+   "atto": "175/2024",
+   "articolo": "70",
+   "perche": "documenti e motivi aggiunti"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "1",
+   "perche": "sospensione feriale dei termini"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Parte assistita",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Controparte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "dati_causa",
+   "etichetta": "Ufficio, giudice e numero di ruolo della causa",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "fascicolo, PEC di cancelleria e verbali"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione dell’ufficio"
+    }
+   ],
+   "se_manca": "chiedere ufficio e numero di ruolo: senza la causa pendente l’atto non si deposita",
+   "compilatore": [
+    "recipient_or_court",
+    "case_reference_display"
+   ],
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "udienza",
+   "etichetta": "Data di trattazione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "udienza",
+    "documento": "avviso di trattazione"
+   },
+   "se_manca": "chiedere la data di trattazione",
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "udienza"
+    }
+   ]
+  },
+  {
+   "campo": "documenti",
+   "etichetta": "Ultimo giorno per depositare documenti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "20 giorni liberi prima della trattazione",
+    "termine": {
+     "base": "udienza",
+     "direzione": "ritroso",
+     "feriale": true,
+     "giorni": 21
+    }
+   },
+   "norma": [
+    {
+     "atto": "175/2024",
+     "articolo": "80",
+     "perche": "documenti"
+    }
+   ]
+  },
+  {
+   "campo": "memorie",
+   "etichetta": "Ultimo giorno per le memorie illustrative",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "10 giorni liberi prima della trattazione; nello stesso termine l’istanza di pubblica udienza notificata alle parti",
+    "termine": {
+     "base": "udienza",
+     "direzione": "ritroso",
+     "feriale": true,
+     "giorni": 11
+    }
+   },
+   "norma": [
+    {
+     "atto": "175/2024",
+     "articolo": "80",
+     "perche": "memorie"
+    },
+    {
+     "atto": "175/2024",
+     "articolo": "82",
+     "perche": "istanza di pubblica udienza"
+    }
+   ]
+  },
+  {
+   "campo": "repliche",
+   "etichetta": "Repliche (solo camera di consiglio)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "5 giorni liberi prima della camera di consiglio",
+    "termine": {
+     "base": "udienza",
+     "direzione": "ritroso",
+     "feriale": true,
+     "giorni": 6
+    }
+   },
+   "norma": [
+    {
+     "atto": "175/2024",
+     "articolo": "80",
+     "perche": "repliche"
+    }
+   ]
+  },
+  {
+   "campo": "istanza",
+   "etichetta": "Atto richiesto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Memoria, nota di deposito, istanza di pubblica udienza, rinvio o motivi aggiunti (entro 60 giorni dal deposito dei documenti che li giustificano)?"
+   },
+   "norma": [
+    {
+     "atto": "175/2024",
+     "articolo": "70",
+     "perche": "motivi aggiunti"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Atto",
+   "compito": "contenuto secondo l’istanza"
+  }
+ ],
+ "astensione": [
+  "data di trattazione non nota"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

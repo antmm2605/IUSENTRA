@@ -1,0 +1,294 @@
+{
+ "id": "LOC_015",
+ "titolo": "Azioni per vizi dell’immobile e dell’opera",
+ "template": [
+  "LOC_015",
+  "LOC_016",
+  "LOC_017"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "1490",
+   "perche": "garanzia per vizi della cosa venduta"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1495",
+   "perche": "denuncia entro otto giorni e prescrizione annuale"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1667",
+   "perche": "difformità e vizi dell’opera nell’appalto"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1669",
+   "perche": "rovina e gravi difetti degli edifici, anche verso il venditore-costruttore"
+  },
+  {
+   "atto": "codice_consumo",
+   "articolo": "132",
+   "perche": "termini del consumatore"
+  },
+  {
+   "atto": "codice_consumo",
+   "articolo": "133",
+   "perche": "prescrizione nella vendita al consumatore"
+  },
+  {
+   "atto": "28/2010",
+   "articolo": "5",
+   "perche": "mediazione obbligatoria per il contratto d’opera e i diritti reali"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Acquirente o committente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Venditore, appaltatore o costruttore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "fatti",
+   "etichetta": "Consegna, scoperta e denuncia dei vizi",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "eventi_e_date",
+    "documento": "documenti del fascicolo"
+   },
+   "compilatore": [
+    "facts"
+   ],
+   "fatti": [
+    {
+     "categoria": "evento"
+    },
+    {
+     "categoria": "data"
+    }
+   ]
+  },
+  {
+   "campo": "consumatore",
+   "etichetta": "Qualità dell’acquirente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "L’acquirente è un consumatore? (si applicano i termini del Codice del consumo)"
+   },
+   "norma": [
+    {
+     "atto": "codice_consumo",
+     "articolo": "132",
+     "perche": "termini"
+    }
+   ]
+  },
+  {
+   "campo": "rapporto",
+   "etichetta": "Rapporto e tipo di vizio",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Compravendita, appalto o gravi difetti di un edificio (art. 1669)? Quali vizi?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "1490",
+     "perche": "vendita"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "1667",
+     "perche": "appalto"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "1669",
+     "perche": "gravi difetti"
+    }
+   ]
+  },
+  {
+   "campo": "date",
+   "etichetta": "Date di consegna, scoperta e denuncia",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quando è avvenuta la consegna, quando hai scoperto i vizi e quando li hai denunciati?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "1495",
+     "perche": "otto giorni"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "1667",
+     "perche": "sessanta giorni"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "1669",
+     "perche": "un anno dalla scoperta"
+    }
+   ]
+  },
+  {
+   "campo": "termini",
+   "etichetta": "Termini di denuncia e prescrizione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "vendita: denuncia entro 8 giorni dalla scoperta, azione entro un anno dalla consegna; appalto: denuncia entro 60 giorni, azione entro due anni dalla consegna; art. 1669: vizi manifestati entro dieci anni dal compimento, denuncia entro un anno dalla scoperta e azione entro un anno dalla denuncia; per il consumatore valgono i termini del Codice del consumo"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "1495",
+     "perche": "vendita"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "1667",
+     "perche": "appalto"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "1669",
+     "perche": "rovina e gravi difetti"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatto",
+   "compito": "consegna, vizi, scoperta e denuncia"
+  },
+  {
+   "blocco": "Diritto",
+   "compito": "garanzia applicabile"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "eliminazione, riduzione del prezzo o risarcimento"
+  }
+ ],
+ "astensione": [
+  "termini di denuncia o di prescrizione scaduti",
+  "date non indicate"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

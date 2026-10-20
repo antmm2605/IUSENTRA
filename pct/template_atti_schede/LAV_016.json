@@ -1,0 +1,272 @@
+{
+ "id": "LAV_016",
+ "titolo": "Appello o reclamo in materia di lavoro",
+ "template": [
+  "LAV_016",
+  "LAV_017"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "433",
+   "perche": "appello"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "434",
+   "perche": "contenuto dell’appello"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "435",
+   "perche": "decreto e notifica"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "325",
+   "perche": "trenta giorni dalla notifica"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "327",
+   "perche": "sei mesi dalla pubblicazione"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "669terdecies",
+   "perche": "reclamo cautelare entro quindici giorni"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "3",
+   "perche": "esclusione della sospensione feriale"
+  },
+  {
+   "atto": "12/1941",
+   "articolo": "92",
+   "perche": "affari urgenti esclusi dalla sospensione"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Appellante o reclamante",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Appellato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "sentenza",
+   "etichetta": "Sentenza o ordinanza impugnata",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "provvedimento impugnato"
+   },
+   "se_manca": "astensione: serve il provvedimento",
+   "parole_documento": [
+    "sentenza",
+    "ordinanza"
+   ]
+  },
+  {
+   "campo": "notifica",
+   "etichetta": "Data di notifica del provvedimento",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "notifica",
+    "documento": "relata"
+   },
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "notifica"
+    },
+    {
+     "categoria": "prova_notifica"
+    }
+   ]
+  },
+  {
+   "campo": "termine_breve",
+   "etichetta": "Ultimo giorno per l’appello",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "30 giorni dalla notifica della sentenza, senza sospensione feriale; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
+    "termine": {
+     "base": "notifica",
+     "direzione": "avanti",
+     "feriale": false,
+     "giorni": 30
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "325",
+     "perche": "termine breve"
+    }
+   ]
+  },
+  {
+   "campo": "termine_lungo",
+   "etichetta": "Ultimo giorno senza notifica",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "6 mesi dalla pubblicazione, senza sospensione feriale; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
+    "termine": {
+     "base": "provvedimento",
+     "direzione": "avanti",
+     "feriale": false,
+     "mesi": 6
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "327",
+     "perche": "termine lungo"
+    }
+   ]
+  },
+  {
+   "campo": "motivi",
+   "etichetta": "Motivi",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Per ogni capo: parte impugnata, modifiche richieste, violazioni di legge e rilevanza"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "434",
+     "perche": "motivi specifici a pena di inammissibilità"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Motivi",
+   "compito": "censure specifiche per capo"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "riforma"
+  }
+ ],
+ "astensione": [
+  "provvedimento non presente",
+  "termini scaduti"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

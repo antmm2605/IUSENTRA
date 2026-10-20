@@ -1,0 +1,186 @@
+{
+ "id": "RCD_015",
+ "titolo": "Messa in mora dell’assicurazione",
+ "template": [
+  "RCD_015"
+ ],
+ "base_normativa": [
+  {
+   "atto": "209/2005",
+   "articolo": "148",
+   "perche": "termini per l’offerta"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1219",
+   "perche": "mora"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1917",
+   "perche": "assicurazione della responsabilità civile"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Danneggiato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Impresa di assicurazione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "fatti",
+   "etichetta": "Fatto, date, luoghi, testimoni e documenti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "eventi_e_date",
+    "documento": "documenti del fascicolo"
+   },
+   "compilatore": [
+    "facts"
+   ],
+   "fatti": [
+    {
+     "categoria": "evento"
+    },
+    {
+     "categoria": "data"
+    }
+   ]
+  },
+  {
+   "campo": "danni",
+   "etichetta": "Danni",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Danni patrimoniali (spese, mancati guadagni) e non patrimoniali (biologico con percentuale, morale) con documenti"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "2056",
+     "perche": "valutazione dei danni"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "2059",
+     "perche": "danni non patrimoniali"
+    }
+   ]
+  },
+  {
+   "campo": "sinistro",
+   "etichetta": "Numero di sinistro e richiesta già inviata",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Estremi del sinistro e della richiesta, termini scaduti per l’offerta"
+   },
+   "norma": [
+    {
+     "atto": "209/2005",
+     "articolo": "148",
+     "perche": "trenta, sessanta o novanta giorni"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Lettera",
+   "compito": "sinistro, termini scaduti, richiesta"
+  }
+ ],
+ "astensione": [
+  "richiesta originaria non inviata"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

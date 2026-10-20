@@ -1,0 +1,137 @@
+{
+ "id": "STD_005",
+ "titolo": "Documenti interni di pratica e comunicazioni al cliente",
+ "template": [
+  "STD_005",
+  "STD_006",
+  "STD_007",
+  "STD_008",
+  "STD_013",
+  "STD_014",
+  "STD_015"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_deontologico_forense_2026",
+   "articolo": "27",
+   "perche": "dovere di informazione"
+  },
+  {
+   "atto": "codice_deontologico_forense_2026",
+   "articolo": "26",
+   "perche": "adempimento del mandato"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Cliente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "fatti",
+   "etichetta": "Stato della pratica, documenti ricevuti e mancanti, scadenze",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "eventi_e_date",
+    "documento": "documenti del fascicolo"
+   },
+   "compilatore": [
+    "facts"
+   ],
+   "fatti": [
+    {
+     "categoria": "evento"
+    },
+    {
+     "categoria": "data"
+    }
+   ]
+  },
+  {
+   "campo": "comunicazione",
+   "etichetta": "Contenuto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Che documento serve: scheda documenti, checklist, aggiornamento, sollecito, piano, verbale, chiusura?"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Documento",
+   "compito": "contenuto secondo il tipo"
+  }
+ ],
+ "astensione": [
+  "tipo di documento non indicato"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

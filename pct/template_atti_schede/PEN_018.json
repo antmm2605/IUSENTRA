@@ -1,0 +1,245 @@
+{
+ "id": "PEN_018",
+ "titolo": "Appello penale e ricorso per cassazione",
+ "template": [
+  "PEN_018",
+  "PEN_019"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "581",
+   "perche": "forma dell’impugnazione"
+  },
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "585",
+   "perche": "termini"
+  },
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "593",
+   "perche": "casi di appello"
+  },
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "606",
+   "perche": "motivi di ricorso per cassazione"
+  },
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "613",
+   "perche": "ricorso sottoscritto da difensore cassazionista"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "1",
+   "perche": "sospensione feriale dei termini"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "2",
+   "perche": "sospensione esclusa con imputati detenuti"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, foro e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "96",
+     "perche": "difensore di fiducia"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Imputato o parte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "nomina",
+   "etichetta": "Nomina del difensore depositata",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "atto di nomina"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "96",
+     "perche": "nomina"
+    }
+   ],
+   "se_manca": "chiedere la nomina: senza non si deposita per l’assistito",
+   "parole_documento": [
+    "nomina"
+   ]
+  },
+  {
+   "campo": "procedimento",
+   "etichetta": "Autorità procedente e numero del procedimento (R.G.N.R. o R.G.)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "avvisi e notifiche"
+   },
+   "se_manca": "chiedere autorità e numero del procedimento",
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "detenuto",
+   "etichetta": "Assistito detenuto o in misura cautelare",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "L’assistito è detenuto o sottoposto a misura cautelare? (esclude la sospensione feriale)"
+   },
+   "norma": [
+    {
+     "atto": "legge_742_1969",
+     "articolo": "2",
+     "perche": "sospensione esclusa con imputati detenuti"
+    }
+   ]
+  },
+  {
+   "campo": "sentenza",
+   "etichetta": "Sentenza impugnata",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "sentenza"
+   },
+   "se_manca": "astensione: serve la sentenza",
+   "parole_documento": [
+    "sentenza"
+   ]
+  },
+  {
+   "campo": "motivazione",
+   "etichetta": "Tempi della motivazione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Motivazione contestuale, entro 15 giorni o entro il termine fissato fino a 90 giorni? Imputato giudicato in assenza?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "585",
+     "perche": "15, 30 o 45 giorni dalla decorrenza; +15 per l’assente"
+    }
+   ]
+  },
+  {
+   "campo": "decorrenza",
+   "etichetta": "Data da cui decorre il termine (lettura, scadenza per il deposito, avviso di deposito)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "provvedimento",
+    "documento": "sentenza e avvisi"
+   },
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "provvedimento"
+    }
+   ]
+  },
+  {
+   "campo": "motivi",
+   "etichetta": "Motivi e richieste",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Capi e punti impugnati, prove, richieste, ragioni di diritto"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "581",
+     "perche": "specificità a pena di inammissibilità"
+    }
+   ]
+  },
+  {
+   "campo": "elezione",
+   "etichetta": "Requisiti del difensore",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "per l’imputato giudicato in assenza e difeso d’ufficio serve lo specifico mandato a impugnare rilasciato dopo la sentenza, con dichiarazione o elezione di domicilio (comma 1-ter abrogato dalla L. 114/2024)"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "581",
+     "perche": "mandato specifico per l’assente difeso d’ufficio"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Impugnazione",
+   "compito": "capi, punti, motivi, richieste"
+  }
+ ],
+ "astensione": [
+  "sentenza non presente",
+  "termini scaduti"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

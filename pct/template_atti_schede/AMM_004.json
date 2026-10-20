@@ -1,0 +1,234 @@
+{
+ "id": "AMM_004",
+ "titolo": "Domanda cautelare e istanza di prelievo",
+ "template": [
+  "AMM_004",
+  "AMM_007"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_processo_amministrativo",
+   "articolo": "55",
+   "perche": "misure cautelari collegiali"
+  },
+  {
+   "atto": "codice_processo_amministrativo",
+   "articolo": "56",
+   "perche": "misure monocratiche"
+  },
+  {
+   "atto": "codice_processo_amministrativo",
+   "articolo": "71",
+   "perche": "istanza di prelievo"
+  },
+  {
+   "atto": "codice_processo_amministrativo",
+   "articolo": "54",
+   "perche": "sospensione feriale esclusa nel cautelare"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Parte assistita",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Controparte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "controinteressati",
+   "etichetta": "Controinteressati",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Chi trae vantaggio dall’atto? Almeno uno va evocato a pena di inammissibilità"
+   },
+   "norma": [
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "41",
+     "perche": "notifica ad almeno un controinteressato"
+    }
+   ]
+  },
+  {
+   "campo": "dati_causa",
+   "etichetta": "Ufficio, giudice e numero di ruolo della causa",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "fascicolo, PEC di cancelleria e verbali"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione dell’ufficio"
+    }
+   ],
+   "se_manca": "chiedere ufficio e numero di ruolo: senza la causa pendente l’atto non si deposita",
+   "compilatore": [
+    "recipient_or_court",
+    "case_reference_display"
+   ],
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "pregiudizio",
+   "etichetta": "Danno grave e irreparabile o urgenza",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quale pregiudizio, e perché non si può attendere?"
+   },
+   "norma": [
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "55",
+     "perche": "presupposti"
+    }
+   ]
+  },
+  {
+   "campo": "camera",
+   "etichetta": "Camera di consiglio",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "primo giorno utile dopo 20 giorni dall’ultima notifica e 10 dal deposito; senza sospensione feriale"
+   },
+   "norma": [
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "55",
+     "perche": "termini"
+    },
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "54",
+     "perche": "sospensione feriale esclusa nel cautelare"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Istanza",
+   "compito": "fumus, periculum e misure"
+  }
+ ],
+ "astensione": [
+  "urgenza non motivata"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

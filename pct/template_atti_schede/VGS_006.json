@@ -1,0 +1,189 @@
+{
+ "id": "VGS_006",
+ "titolo": "Ricorso per nomina del tutore o del curatore",
+ "template": [
+  "VGS_006",
+  "VGS_007"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "343",
+   "perche": "apertura della tutela"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "346",
+   "perche": "nomina del tutore"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "348",
+   "perche": "scelta del tutore"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "392",
+   "perche": "curatore dell’emancipato"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "424",
+   "perche": "tutela dell’interdetto e curatela dell’inabilitato"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "la procura serve se si sta in giudizio con difensore; per l’amministrazione di sostegno il ricorso può essere depositato anche senza",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Ricorrente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "beneficiario",
+   "etichetta": "Minore, interdetto o inabilitato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Anagrafica, residenza o dimora abituale, condizioni di salute e di vita"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "404",
+     "perche": "beneficiario"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "407",
+     "perche": "contenuto del ricorso"
+    }
+   ]
+  },
+  {
+   "campo": "titolo",
+   "etichetta": "Provvedimento o evento che apre la tutela",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "sentenza di interdizione, certificato di morte dei genitori"
+   },
+   "se_manca": "indicare perché la tutela o la curatela si apre",
+   "parole_documento": [
+    "sentenza",
+    "morte",
+    "decesso"
+   ]
+  },
+  {
+   "campo": "tutore",
+   "etichetta": "Persona proposta",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Chi si propone e con quali requisiti?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "348",
+     "perche": "criteri di scelta"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Ricorso",
+   "compito": "presupposti e persona proposta"
+  }
+ ],
+ "astensione": [
+  "presupposti non documentati"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

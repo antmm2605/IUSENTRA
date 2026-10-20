@@ -1,0 +1,118 @@
+{
+ "id": "STD_009",
+ "titolo": "Rinuncia all’incarico o revoca del mandato",
+ "template": [
+  "STD_009",
+  "STD_010"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_deontologico_forense_2026",
+   "articolo": "32",
+   "perche": "rinuncia al mandato con congruo preavviso"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "85",
+   "perche": "revoca e rinuncia alla procura"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Cliente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "motivo",
+   "etichetta": "Atto e preavviso",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Rinuncia o revoca? Termini in corso da segnalare al cliente?"
+   },
+   "norma": [
+    {
+     "atto": "codice_deontologico_forense_2026",
+     "articolo": "32",
+     "perche": "informazione su termini"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Lettera",
+   "compito": "dichiarazione, termini pendenti, restituzione dei documenti"
+  }
+ ],
+ "astensione": [
+  "termine processuale imminente senza preavviso congruo: segnalare"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

@@ -1,0 +1,162 @@
+{
+ "id": "CON_004",
+ "titolo": "Reclamo per trasporto aereo, ferroviario o pacchetto turistico",
+ "template": [
+  "CON_004",
+  "CON_005",
+  "CON_006"
+ ],
+ "base_normativa": [
+  {
+   "atto": "reg_ue_2004_261",
+   "articolo": "7",
+   "perche": "compensazione pecuniaria"
+  },
+  {
+   "atto": "reg_ue_2004_261",
+   "articolo": "5",
+   "perche": "cancellazione"
+  },
+  {
+   "atto": "reg_ue_2004_261",
+   "articolo": "8",
+   "perche": "rimborso"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Passeggero o viaggiatore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Vettore o organizzatore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "biglietto",
+   "etichetta": "Biglietto o contratto di viaggio",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "prenotazione"
+   },
+   "parole_documento": [
+    "biglietto",
+    "prenotazione",
+    "pacchetto"
+   ]
+  },
+  {
+   "campo": "disservizio",
+   "etichetta": "Disservizio",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Ritardo all’arrivo, cancellazione, negato imbarco, bagaglio o inadempimento del pacchetto"
+   }
+  },
+  {
+   "campo": "altre",
+   "etichetta": "Fonti non in archivio",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "segnalare che il regolamento sui diritti dei passeggeri ferroviari e il codice del turismo vanno verificati"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Reclamo",
+   "compito": "volo o viaggio, disservizio, compensazione o rimborso"
+  }
+ ],
+ "astensione": [
+  "circostanze eccezionali documentate dal vettore"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

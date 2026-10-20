@@ -1,0 +1,196 @@
+{
+ "id": "VGS_012",
+ "titolo": "Rinuncia all’eredità e relativa autorizzazione",
+ "template": [
+  "VGS_012",
+  "VGS_015"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "519",
+   "perche": "forma della rinuncia"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "520",
+   "perche": "rinuncia nulla se condizionata"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "521",
+   "perche": "effetti"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "525",
+   "perche": "revoca della rinuncia"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "320",
+   "perche": "autorizzazione per il minore"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "374",
+   "perche": "autorizzazione per il tutelato"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "la procura serve se si sta in giudizio con difensore; per l’amministrazione di sostegno il ricorso può essere depositato anche senza",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Chiamato all’eredità o suo rappresentante",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "defunto",
+   "etichetta": "Defunto e apertura della successione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Chi è il defunto, data e luogo di morte?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "456",
+     "perche": "apertura"
+    }
+   ]
+  },
+  {
+   "campo": "atti",
+   "etichetta": "Atti già compiuti sui beni ereditari",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Il chiamato ha già compiuto atti che importano accettazione o possiede beni da oltre tre mesi?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "476",
+     "perche": "accettazione tacita"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "485",
+     "perche": "possessore che non fa l’inventario"
+    }
+   ],
+   "se_manca": "segnalare il rischio di accettazione già avvenuta"
+  },
+  {
+   "campo": "incapace",
+   "etichetta": "Minore o incapace",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Se il rinunciante è minore o incapace: autorizzazione del giudice e utilità della rinuncia"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "320",
+     "perche": "autorizzazione"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Atto",
+   "compito": "dichiarazione di rinuncia davanti al notaio o al cancelliere, istanza di autorizzazione se necessaria"
+  }
+ ],
+ "astensione": [
+  "accettazione già avvenuta: la rinuncia non è più possibile"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

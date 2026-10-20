@@ -1,0 +1,176 @@
+{
+ "id": "SOC_008",
+ "titolo": "Esibizione dei libri, esclusione e recesso del socio",
+ "template": [
+  "SOC_008",
+  "SOC_009",
+  "SOC_010"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "2476",
+   "perche": "diritto di controllo del socio di s.r.l."
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2473",
+   "perche": "recesso nella s.r.l."
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2437",
+   "perche": "recesso nella s.p.a."
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2473bis",
+   "perche": "esclusione nella s.r.l."
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2286",
+   "perche": "esclusione nelle società di persone"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2287",
+   "perche": "opposizione entro trenta giorni"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Socio o società",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Controparte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "visura",
+   "etichetta": "Visura camerale, statuto e atti sociali",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "visura e statuto"
+   },
+   "se_manca": "chiedere visura e statuto",
+   "parole_documento": [
+    "visura",
+    "statuto",
+    "atto costitutivo"
+   ]
+  },
+  {
+   "campo": "atto",
+   "etichetta": "Atto e cause",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Esibizione dei libri, esclusione (giusta causa prevista) o recesso (causa legale o statutaria)? Termini statutari?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "2437bis",
+     "perche": "recesso entro quindici giorni dall’iscrizione della delibera"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Atto",
+   "compito": "presupposti e richiesta"
+  }
+ ],
+ "astensione": [
+  "causa di recesso o esclusione non prevista dalla legge o dallo statuto"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

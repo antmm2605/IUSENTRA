@@ -1,0 +1,193 @@
+{
+ "id": "ADR_002",
+ "titolo": "Istanza, adesione e verbali di mediazione",
+ "template": [
+  "ADR_002",
+  "ADR_003",
+  "ADR_004",
+  "ADR_005"
+ ],
+ "base_normativa": [
+  {
+   "atto": "28/2010",
+   "articolo": "4",
+   "perche": "domanda di mediazione"
+  },
+  {
+   "atto": "28/2010",
+   "articolo": "8",
+   "perche": "procedimento e presenza personale"
+  },
+  {
+   "atto": "28/2010",
+   "articolo": "11",
+   "perche": "conclusione"
+  },
+  {
+   "atto": "28/2010",
+   "articolo": "12",
+   "perche": "efficacia esecutiva"
+  },
+  {
+   "atto": "28/2010",
+   "articolo": "5",
+   "perche": "condizione di procedibilità"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Parte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Altra parte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "serve la procura sostanziale se la parte delega l’avvocato in mediazione",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "organismo",
+   "etichetta": "Organismo",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Organismo del luogo del giudice competente"
+   },
+   "norma": [
+    {
+     "atto": "28/2010",
+     "articolo": "4",
+     "perche": "competenza territoriale dell’organismo"
+    }
+   ]
+  },
+  {
+   "campo": "esito",
+   "etichetta": "Esito o contenuto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Domanda, adesione, accordo raggiunto (contenuto) o mancato accordo?"
+   },
+   "norma": [
+    {
+     "atto": "28/2010",
+     "articolo": "11",
+     "perche": "verbale"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Atto",
+   "compito": "parti, oggetto, ragioni o accordo"
+  }
+ ],
+ "astensione": [
+  "organismo fuori dal territorio del giudice competente"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

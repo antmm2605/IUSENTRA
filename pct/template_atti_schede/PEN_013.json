@@ -1,0 +1,176 @@
+{
+ "id": "PEN_013",
+ "titolo": "Istanza di dissequestro o restituzione di beni sequestrati",
+ "template": [
+  "PEN_013",
+  "PEN_014"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "262",
+   "perche": "restituzione delle cose sequestrate"
+  },
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "263",
+   "perche": "procedimento"
+  },
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "324",
+   "perche": "riesame del sequestro preventivo"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, foro e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "96",
+     "perche": "difensore di fiducia"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Assistito (indagato, imputato o persona offesa)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "nomina",
+   "etichetta": "Nomina del difensore depositata",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "atto di nomina"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "96",
+     "perche": "nomina"
+    }
+   ],
+   "se_manca": "chiedere la nomina: senza non si deposita per l’assistito",
+   "parole_documento": [
+    "nomina"
+   ]
+  },
+  {
+   "campo": "procedimento",
+   "etichetta": "Autorità procedente e numero del procedimento (R.G.N.R. o R.G.)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "avvisi e notifiche"
+   },
+   "se_manca": "chiedere autorità e numero del procedimento",
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "verbale",
+   "etichetta": "Verbale o decreto di sequestro",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "decreto di sequestro"
+   },
+   "se_manca": "chiedere il decreto o il verbale",
+   "parole_documento": [
+    "sequestro"
+   ]
+  },
+  {
+   "campo": "titolarita",
+   "etichetta": "Titolarità dei beni e cessazione delle esigenze",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Chi è proprietario e perché il vincolo non è più necessario?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "262",
+     "perche": "esigenze probatorie cessate"
+    }
+   ]
+  },
+  {
+   "campo": "riesame",
+   "etichetta": "Riesame",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "ricordare che il riesame del sequestro va chiesto entro 10 giorni dall’esecuzione o dalla conoscenza"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "324",
+     "perche": "dieci giorni"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Istanza",
+   "compito": "beni, titolarità, ragioni della restituzione"
+  }
+ ],
+ "astensione": [
+  "decreto di sequestro non presente"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

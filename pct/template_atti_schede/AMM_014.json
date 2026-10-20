@@ -1,0 +1,293 @@
+{
+ "id": "AMM_014",
+ "titolo": "Ricorso in materia di appalti pubblici ed esclusione da gara",
+ "template": [
+  "AMM_014",
+  "AMM_015"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_processo_amministrativo",
+   "articolo": "119",
+   "perche": "rito abbreviato"
+  },
+  {
+   "atto": "codice_processo_amministrativo",
+   "articolo": "120",
+   "perche": "rito degli appalti: trenta giorni; appello entro tre mesi dalla pubblicazione"
+  },
+  {
+   "atto": "codice_processo_amministrativo",
+   "articolo": "116",
+   "perche": "rito sull’accesso agli atti di gara: dieci giorni"
+  },
+  {
+   "atto": "36/2023",
+   "articolo": "90",
+   "perche": "comunicazioni dell’aggiudicazione"
+  },
+  {
+   "atto": "36/2023",
+   "articolo": "36",
+   "perche": "accesso agli atti di gara"
+  },
+  {
+   "atto": "codice_processo_amministrativo",
+   "articolo": "54",
+   "perche": "sospensione feriale esclusa nel cautelare"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Concorrente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Stazione appaltante",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "controinteressati",
+   "etichetta": "Controinteressati",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Chi trae vantaggio dall’atto? Almeno uno va evocato a pena di inammissibilità"
+   },
+   "norma": [
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "41",
+     "perche": "notifica ad almeno un controinteressato"
+    }
+   ]
+  },
+  {
+   "campo": "atto",
+   "etichetta": "Provvedimento impugnato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "provvedimento amministrativo"
+   },
+   "se_manca": "astensione: serve il provvedimento",
+   "parole_documento": [
+    "provvedimento",
+    "determina",
+    "decreto",
+    "delibera",
+    "aggiudicazione"
+   ]
+  },
+  {
+   "campo": "conoscenza",
+   "etichetta": "Notifica, comunicazione o piena conoscenza",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "notifica",
+    "documento": "notifica, PEC o pubblicazione"
+   },
+   "se_manca": "chiedere la data di piena conoscenza: il termine decorre da lì",
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "notifica"
+    },
+    {
+     "categoria": "data",
+     "campo": "comunicazione"
+    }
+   ]
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Ultimo giorno per notificare il ricorso",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "30 giorni dalla comunicazione o pubblicazione dell’aggiudicazione o dell’esclusione, con sospensione feriale; decorrenza da verificare con la disponibilità degli atti; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
+    "termine": {
+     "base": "comunicazione",
+     "direzione": "avanti",
+     "feriale": true,
+     "giorni": 30
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "120",
+     "perche": "trenta giorni"
+    },
+    {
+     "atto": "36/2023",
+     "articolo": "36",
+     "perche": "decorrenza"
+    }
+   ]
+  },
+  {
+   "campo": "motivi",
+   "etichetta": "Motivi",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Vizi dell’aggiudicazione o dell’esclusione e interesse strumentale"
+   }
+  },
+  {
+   "campo": "deposito",
+   "etichetta": "Deposito del ricorso",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "entro 30 giorni dall’ultima notifica (15 nei riti dimezzati), con sospensione feriale salvo cautelare"
+   },
+   "norma": [
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "45",
+     "perche": "deposito del ricorso"
+    },
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "119",
+     "perche": "termini dimezzati"
+    }
+   ]
+  },
+  {
+   "campo": "cautelare",
+   "etichetta": "Domanda cautelare",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Si chiede la sospensione dell’aggiudicazione o della stipula?"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatto",
+   "compito": "gara e provvedimento"
+  },
+  {
+   "blocco": "Diritto",
+   "compito": "motivi"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "annullamento, subentro o risarcimento"
+  }
+ ],
+ "astensione": [
+  "provvedimento o comunicazione non presenti",
+  "trenta giorni scaduti"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

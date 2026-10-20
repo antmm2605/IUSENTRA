@@ -1,0 +1,219 @@
+{
+ "id": "RCD_001",
+ "titolo": "Richiesta stragiudiziale di risarcimento e responsabilità speciali",
+ "template": [
+  "RCD_001",
+  "RCD_006",
+  "RCD_007",
+  "RCD_008",
+  "RCD_009",
+  "RCD_011",
+  "RCD_012"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "2043",
+   "perche": "fatto illecito"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2051",
+   "perche": "cose in custodia"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1218",
+   "perche": "responsabilità contrattuale del professionista"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2236",
+   "perche": "colpa grave nei problemi tecnici di speciale difficoltà"
+  },
+  {
+   "atto": "codice_consumo",
+   "articolo": "114",
+   "perche": "responsabilità del produttore"
+  },
+  {
+   "atto": "codice_consumo",
+   "articolo": "126",
+   "perche": "decadenza dopo dieci anni dalla messa in circolazione"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2947",
+   "perche": "prescrizione quinquennale"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1219",
+   "perche": "mora"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Danneggiato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Responsabile",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "fatti",
+   "etichetta": "Fatto, date, luoghi, testimoni e documenti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "eventi_e_date",
+    "documento": "documenti del fascicolo"
+   },
+   "compilatore": [
+    "facts"
+   ],
+   "fatti": [
+    {
+     "categoria": "evento"
+    },
+    {
+     "categoria": "data"
+    }
+   ]
+  },
+  {
+   "campo": "danni",
+   "etichetta": "Danni",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Danni patrimoniali (spese, mancati guadagni) e non patrimoniali (biologico con percentuale, morale) con documenti"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "2056",
+     "perche": "valutazione dei danni"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "2059",
+     "perche": "danni non patrimoniali"
+    }
+   ]
+  },
+  {
+   "campo": "titolo",
+   "etichetta": "Titolo della responsabilità",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Custodia, professionista, prodotto difettoso, infiltrazioni, diffamazione o lesione della reputazione?"
+   }
+  },
+  {
+   "campo": "rimozione",
+   "etichetta": "Contenuti online",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "per diffamazione o reputazione online, chiedere anche la rimozione dei contenuti con gli indirizzi URL"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Lettera",
+   "compito": "fatto, responsabilità, danni, richiesta, termine"
+  }
+ ],
+ "astensione": [
+  "fatto non documentato"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

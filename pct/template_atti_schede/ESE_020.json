@@ -1,0 +1,232 @@
+{
+ "id": "ESE_020",
+ "titolo": "Opposizione agli atti esecutivi",
+ "template": [
+  "ESE_020"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "617",
+   "perche": "opposizione agli atti esecutivi entro venti giorni"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "618",
+   "perche": "provvedimenti del giudice"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Opponente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Controparte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "fase",
+   "etichetta": "Atto contestato e fase",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Contesti vizi formali del titolo o del precetto prima dell’esecuzione (citazione al giudice competente) o un atto dell’esecuzione già iniziata (ricorso al giudice dell’esecuzione)?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "617",
+     "perche": "primo e secondo comma"
+    }
+   ]
+  },
+  {
+   "campo": "atto",
+   "etichetta": "Atto o provvedimento contestato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "atto esecutivo o provvedimento del giudice dell’esecuzione"
+   },
+   "se_manca": "astensione: serve l’atto contestato",
+   "parole_documento": [
+    "ordinanza",
+    "decreto",
+    "verbale",
+    "provvedimento",
+    "precetto",
+    "titolo"
+   ]
+  },
+  {
+   "campo": "conoscenza",
+   "etichetta": "Data di notifica del titolo o del precetto, del primo atto di esecuzione o del compimento dell’atto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "conoscenza",
+    "documento": "notifiche e comunicazioni"
+   },
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "comunicazione"
+    },
+    {
+     "categoria": "prova_notifica"
+    }
+   ]
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Ultimo giorno",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "20 giorni dalla notifica o dal compimento dell’atto; per prudenza calcolato senza sospensione feriale (scadenza più vicina): l’applicabilità della sospensione al termine dell’art. 617 è discussa; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
+    "termine": {
+     "base": "comunicazione",
+     "direzione": "avanti",
+     "feriale": false,
+     "giorni": 20
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "617",
+     "perche": "venti giorni"
+    }
+   ]
+  },
+  {
+   "campo": "vizio",
+   "etichetta": "Vizio formale",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quale vizio di forma o di regolarità dell’atto contesti?"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Motivi",
+   "compito": "vizi formali dell’atto"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "annullamento e provvedimenti indilazionabili"
+  }
+ ],
+ "astensione": [
+  "venti giorni scaduti anche contando la sospensione feriale (se il periodo feriale è compreso, non astenersi: indicare entrambe le date e segnalare la questione)",
+  "si contesta il diritto di procedere: è opposizione all’esecuzione, non agli atti"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

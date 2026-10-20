@@ -1,0 +1,252 @@
+{
+ "id": "TRI_019",
+ "titolo": "Ricorso contro il diniego, anche tacito, di rimborso",
+ "template": [
+  "TRI_019"
+ ],
+ "base_normativa": [
+  {
+   "atto": "175/2024",
+   "articolo": "65",
+   "perche": "rifiuto espresso o tacito della restituzione"
+  },
+  {
+   "atto": "175/2024",
+   "articolo": "67",
+   "perche": "ricorso dopo novanta giorni dalla domanda"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "1",
+   "perche": "sospensione feriale dei termini"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Contribuente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Ente impositore o agente della riscossione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "istanza",
+   "etichetta": "Istanza di rimborso con prova della presentazione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "istanza di rimborso"
+   },
+   "se_manca": "astensione: serve l’istanza di rimborso",
+   "parole_documento": [
+    "rimborso",
+    "istanza"
+   ]
+  },
+  {
+   "campo": "diniego",
+   "etichetta": "Diniego espresso o silenzio",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "C’è un diniego espresso (60 giorni dalla notifica) o il silenzio dopo 90 giorni?"
+   },
+   "norma": [
+    {
+     "atto": "175/2024",
+     "articolo": "67",
+     "perche": "termini"
+    }
+   ]
+  },
+  {
+   "campo": "motivi",
+   "etichetta": "Motivi",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Vizi formali (notifica, motivazione, decadenza, firma) e di merito; i motivi non proposti ora non si aggiungono dopo, salvo motivi aggiunti"
+   },
+   "norma": [
+    {
+     "atto": "175/2024",
+     "articolo": "64",
+     "perche": "contenuto del ricorso a pena di inammissibilità"
+    },
+    {
+     "atto": "175/2024",
+     "articolo": "70",
+     "perche": "motivi aggiunti"
+    }
+   ]
+  },
+  {
+   "campo": "valore",
+   "etichetta": "Valore della lite",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Imposta contestata al netto di interessi e sanzioni (o sanzioni se sole), per il contributo e il giudice monocratico"
+   },
+   "norma": [
+    {
+     "atto": "175/2024",
+     "articolo": "49",
+     "perche": "giudice monocratico fino a 10.000 euro, escluso il valore indeterminabile"
+    },
+    {
+     "atto": "175/2024",
+     "articolo": "57",
+     "perche": "assistenza tecnica"
+    }
+   ]
+  },
+  {
+   "campo": "ufficio",
+   "etichetta": "Corte competente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "corte di giustizia tributaria di primo grado della sede dell’ente impositore o dell’agente della riscossione"
+   },
+   "norma": [
+    {
+     "atto": "175/2024",
+     "articolo": "48",
+     "perche": "corte di giustizia tributaria di primo grado nella cui circoscrizione ha sede l’ente impositore o l’agente della riscossione"
+    }
+   ]
+  },
+  {
+   "campo": "costituzione",
+   "etichetta": "Deposito del ricorso notificato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "entro 30 giorni dalla notifica del ricorso, a pena di inammissibilità, con sospensione feriale"
+   },
+   "norma": [
+    {
+     "atto": "175/2024",
+     "articolo": "68",
+     "perche": "costituzione del ricorrente"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Ricorso",
+   "compito": "pagamento, istanza, diniego e motivi"
+  }
+ ],
+ "astensione": [
+  "istanza di rimborso tardiva rispetto ai termini di legge"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

@@ -1,0 +1,178 @@
+{
+ "id": "STR_017",
+ "titolo": "Invito a negoziazione assistita o a mediazione",
+ "template": [
+  "STR_017",
+  "STR_018",
+  "ADR_001",
+  "ADR_006"
+ ],
+ "base_normativa": [
+  {
+   "atto": "dl_132_2014",
+   "articolo": "2",
+   "perche": "convenzione di negoziazione"
+  },
+  {
+   "atto": "dl_132_2014",
+   "articolo": "3",
+   "perche": "negoziazione obbligatoria"
+  },
+  {
+   "atto": "dl_132_2014",
+   "articolo": "4",
+   "perche": "invito e risposta entro trenta giorni"
+  },
+  {
+   "atto": "28/2010",
+   "articolo": "5",
+   "perche": "mediazione obbligatoria"
+  },
+  {
+   "atto": "28/2010",
+   "articolo": "8",
+   "perche": "procedimento"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Assistito",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Controparte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "oggetto",
+   "etichetta": "Oggetto della lite e valore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Materia e valore: rientra nella negoziazione obbligatoria (veicoli, pagamenti fino a 50.000 euro) o nella mediazione obbligatoria?"
+   },
+   "norma": [
+    {
+     "atto": "dl_132_2014",
+     "articolo": "3",
+     "perche": "casi"
+    },
+    {
+     "atto": "28/2010",
+     "articolo": "5",
+     "perche": "materie"
+    }
+   ]
+  },
+  {
+   "campo": "avvertimento",
+   "etichetta": "Avvertimento",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "inserire l’avvertimento che la mancata risposta entro 30 giorni o il rifiuto può essere valutato dal giudice ai fini delle spese"
+   },
+   "norma": [
+    {
+     "atto": "dl_132_2014",
+     "articolo": "4",
+     "perche": "effetti della mancata risposta"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Invito",
+   "compito": "oggetto, domanda, avvertimenti"
+  }
+ ],
+ "astensione": [
+  "materia esclusa dalla procedura"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

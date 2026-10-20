@@ -1,0 +1,207 @@
+{
+ "id": "IPD_001",
+ "titolo": "Diffide su marchi, diritto d’autore, immagini, contraffazione e concorrenza sleale online",
+ "template": [
+  "IPD_001",
+  "IPD_002",
+  "IPD_003",
+  "IPD_004",
+  "IPD_005",
+  "IPD_006",
+  "IPD_009",
+  "IPD_014",
+  "IPD_015"
+ ],
+ "base_normativa": [
+  {
+   "atto": "30/2005",
+   "articolo": "20",
+   "perche": "diritti del titolare del marchio"
+  },
+  {
+   "atto": "30/2005",
+   "articolo": "22",
+   "perche": "nomi a dominio"
+  },
+  {
+   "atto": "30/2005",
+   "articolo": "133",
+   "perche": "tutela cautelare dei nomi a dominio"
+  },
+  {
+   "atto": "legge_633_1941",
+   "articolo": "12",
+   "perche": "diritti di utilizzazione economica"
+  },
+  {
+   "atto": "legge_633_1941",
+   "articolo": "96",
+   "perche": "ritratto"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2598",
+   "perche": "concorrenza sleale"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "10",
+   "perche": "abuso dell’immagine"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1218",
+   "perche": "inadempimento di licenze e accordi di riservatezza"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Titolare del diritto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Contraffattore o utilizzatore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "titolo",
+   "etichetta": "Titolo del diritto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "registrazione del marchio, opera, contratto di licenza o NDA"
+   },
+   "se_manca": "chiedere la prova della titolarità",
+   "parole_documento": [
+    "marchio",
+    "registrazione",
+    "licenza",
+    "riservatezza"
+   ]
+  },
+  {
+   "campo": "fatti",
+   "etichetta": "Violazioni con indirizzi, date e copie conservate",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "eventi_e_date",
+    "documento": "documenti del fascicolo"
+   },
+   "compilatore": [
+    "facts"
+   ],
+   "fatti": [
+    {
+     "categoria": "evento"
+    },
+    {
+     "categoria": "data"
+    }
+   ]
+  },
+  {
+   "campo": "richiesta",
+   "etichetta": "Richiesta",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Cessazione, rimozione, ritiro, trasferimento del dominio, risarcimento o penale"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Diffida",
+   "compito": "diritto, violazione, richiesta, termine"
+  }
+ ],
+ "astensione": [
+  "titolarità non provata"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

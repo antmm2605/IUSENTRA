@@ -18,7 +18,7 @@ from pathlib import Path
 RADICE = Path(__file__).resolve().parents[2]
 CARTELLA = RADICE / "pct" / "template_atti_schede"
 CATALOGO = RADICE / "pct" / "template_atti_catalogo_data" / "catalogo_master.json"
-GRUPPI = ["civile_ordinario", "monitorio", "cautelare", "giudice_pace"]
+GRUPPI = ["civile_ordinario", "monitorio", "cautelare", "giudice_pace", "esecuzioni", "locazioni", "famiglia", "volontaria", "lavoro", "tributario", "amministrativo", "penale", "stragiudiziale", "impresa", "tutele"]
 FONTI = {"database", "archivio_letture", "documento", "calcolo", "avvocato", "lex"}
 VERSIONE = "2026-10-19.2"
 PRINCIPIO = ("I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti "
@@ -94,8 +94,9 @@ def main(argv=None) -> int:
         if s["id"] in esistenti:
             print(f"ERRORE: {s['id']} esiste già; usa ESTENSIONI")
             return 1
+    per_id = {**esistenti, **{s["id"]: s for s in nuove}}
     for sid, extra in estensioni.items():
-        esistenti[sid]["template"] = list(dict.fromkeys(esistenti[sid]["template"] + extra))
+        per_id[sid]["template"] = list(dict.fromkeys(per_id[sid]["template"] + extra))
     tutte = list(esistenti.values()) + nuove
     errori = verifica(tutte, _articoli(Path(a.db)))
     for e in errori:

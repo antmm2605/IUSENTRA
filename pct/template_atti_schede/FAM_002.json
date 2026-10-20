@@ -1,0 +1,437 @@
+{
+ "id": "FAM_002",
+ "titolo": "Ricorso per separazione giudiziale o divorzio giudiziale",
+ "template": [
+  "FAM_002",
+  "FAM_004"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "473bis.12",
+   "perche": "forma e contenuto del ricorso"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "473bis.14",
+   "perche": "decreto e notifica"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "473bis.17",
+   "perche": "memorie"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "151",
+   "perche": "separazione giudiziale"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "156",
+   "perche": "assegno di mantenimento al coniuge"
+  },
+  {
+   "atto": "legge_898_1970",
+   "articolo": "3",
+   "perche": "casi di divorzio"
+  },
+  {
+   "atto": "legge_898_1970",
+   "articolo": "5",
+   "perche": "assegno divorzile"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "473bis.11",
+   "perche": "competenza del tribunale del luogo di residenza abituale del minore o del convenuto"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Ricorrente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Resistente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "matrimonio",
+   "etichetta": "Estratto per riassunto dell’atto di matrimonio",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "estratto dell’atto di matrimonio"
+   },
+   "se_manca": "chiedere l’estratto dell’atto di matrimonio",
+   "parole_documento": [
+    "matrimonio"
+   ]
+  },
+  {
+   "campo": "fatti",
+   "etichetta": "Fatti che rendono intollerabile la convivenza o presupposti del divorzio",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "eventi_e_date",
+    "documento": "documenti del fascicolo"
+   },
+   "compilatore": [
+    "facts"
+   ],
+   "fatti": [
+    {
+     "categoria": "evento"
+    },
+    {
+     "categoria": "data"
+    }
+   ]
+  },
+  {
+   "campo": "figli",
+   "etichetta": "Figli: nomi, età, residenza abituale ed esigenze",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quali figli ci sono, quanti anni hanno, dove vivono abitualmente e con chi?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "337ter",
+     "perche": "affidamento condiviso e mantenimento"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.12",
+     "perche": "indicazione dei figli nel ricorso"
+    }
+   ],
+   "se_manca": "chiedere i dati dei figli: senza non si redigono domande su affidamento e mantenimento"
+  },
+  {
+   "campo": "redditi",
+   "etichetta": "Dichiarazioni dei redditi degli ultimi tre anni e documentazione patrimoniale",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "dichiarazioni dei redditi, estratti conto, titolarità di beni"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.12",
+     "perche": "deposito obbligatorio con domande economiche"
+    }
+   ],
+   "se_manca": "segnalare che con domande economiche il deposito è obbligatorio",
+   "parole_documento": [
+    "redditi",
+    "730",
+    "unico",
+    "cud",
+    "estratto"
+   ]
+  },
+  {
+   "campo": "piano",
+   "etichetta": "Piano genitoriale",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Impegni e attività dei figli: scuola, percorso educativo, attività extrascolastiche, frequentazioni, vacanze"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.12",
+     "perche": "piano genitoriale con domande sui figli minori"
+    }
+   ]
+  },
+  {
+   "campo": "violenza",
+   "etichetta": "Allegazioni di violenza domestica o di genere",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Ci sono allegazioni di violenza domestica o di genere, procedimenti penali o ordini di protezione?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.40",
+     "perche": "disposizioni speciali in caso di violenza"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.42",
+     "perche": "procedimento"
+    }
+   ]
+  },
+  {
+   "campo": "domande",
+   "etichetta": "Domande",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Addebito, affidamento, collocamento, assegni per coniuge e figli, casa familiare, provvedimenti provvisori"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "151",
+     "perche": "addebito"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "337ter",
+     "perche": "affidamento e mantenimento"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.22",
+     "perche": "provvedimenti temporanei e urgenti"
+    }
+   ]
+  },
+  {
+   "campo": "ufficio",
+   "etichetta": "Ufficio giudiziario competente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "competenza per materia, valore e territorio secondo le norme indicate; da confermare"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.11",
+     "perche": "competenza del tribunale del luogo di residenza abituale del minore o del convenuto"
+    }
+   ],
+   "compilatore": [
+    "recipient_or_court"
+   ]
+  },
+  {
+   "campo": "udienza",
+   "etichetta": "Prima udienza fissata dal decreto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "udienza",
+    "documento": "verbali e PEC di cancelleria"
+   },
+   "se_manca": "chiedere la data dell’udienza: i termini si contano da lì",
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "udienza"
+    }
+   ]
+  },
+  {
+   "campo": "notifica",
+   "etichetta": "Ultimo giorno per notificare ricorso e decreto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "almeno 60 giorni liberi prima dell’udienza (esclusi il giorno della notifica e quello dell’udienza); sospensione feriale discussa per le domande di mantenimento: data calcolata nel modo più prudente, da verificare",
+    "termine": {
+     "base": "udienza",
+     "direzione": "ritroso",
+     "feriale": true,
+     "giorni": 61
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.14",
+     "perche": "notifica del ricorso"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    }
+   ]
+  },
+  {
+   "campo": "costituzione",
+   "etichetta": "Termine per la costituzione del resistente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "almeno 30 giorni prima dell’udienza; sospensione feriale discussa per le domande di mantenimento: data calcolata nel modo più prudente, da verificare",
+    "termine": {
+     "base": "udienza",
+     "direzione": "ritroso",
+     "feriale": true,
+     "giorni": 30
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.16",
+     "perche": "costituzione del convenuto"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    }
+   ]
+  },
+  {
+   "campo": "memorie",
+   "etichetta": "Memorie integrative prima dell’udienza",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "ricorrente entro 20 giorni, resistente entro 10, ricorrente entro 5 giorni prima dell’udienza; termini perentori"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.17",
+     "perche": "ulteriori difese"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatti",
+   "compito": "storia della coppia, figli, situazione economica con documenti"
+  },
+  {
+   "blocco": "Diritto",
+   "compito": "norme sulle domande proposte"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "domande principali e provvisorie"
+  },
+  {
+   "blocco": "Mezzi di prova",
+   "compito": "prove documentali e indicazione dei mezzi"
+  }
+ ],
+ "astensione": [
+  "mancano gli estremi del matrimonio",
+  "domande economiche senza documenti reddituali",
+  "divorzio prima dei termini dell’art. 3 L. 898/1970"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

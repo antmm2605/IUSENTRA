@@ -1,0 +1,205 @@
+{
+ "id": "PEN_020",
+ "titolo": "Esecuzione penale: misure alternative e sospensione dell’ordine di esecuzione",
+ "template": [
+  "PEN_020",
+  "PEN_021"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "656",
+   "perche": "sospensione dell’ordine di esecuzione e istanza entro trenta giorni"
+  },
+  {
+   "atto": "legge_354_1975",
+   "articolo": "47",
+   "perche": "affidamento in prova"
+  },
+  {
+   "atto": "legge_354_1975",
+   "articolo": "47ter",
+   "perche": "detenzione domiciliare"
+  },
+  {
+   "atto": "legge_354_1975",
+   "articolo": "50",
+   "perche": "semilibertà"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, foro e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "96",
+     "perche": "difensore di fiducia"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Condannato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "nomina",
+   "etichetta": "Nomina del difensore depositata",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "atto di nomina"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "96",
+     "perche": "nomina"
+    }
+   ],
+   "se_manca": "chiedere la nomina: senza non si deposita per l’assistito",
+   "parole_documento": [
+    "nomina"
+   ]
+  },
+  {
+   "campo": "procedimento",
+   "etichetta": "Autorità procedente e numero del procedimento (R.G.N.R. o R.G.)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "avvisi e notifiche"
+   },
+   "se_manca": "chiedere autorità e numero del procedimento",
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "ordine",
+   "etichetta": "Ordine di esecuzione e decreto di sospensione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "ordine di esecuzione"
+   },
+   "se_manca": "chiedere l’ordine di esecuzione",
+   "parole_documento": [
+    "esecuzione"
+   ]
+  },
+  {
+   "campo": "notifica",
+   "etichetta": "Notifica dell’ordine e del decreto di sospensione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "notifica",
+    "documento": "relata"
+   },
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "notifica"
+    }
+   ]
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Ultimo giorno per l’istanza di misura alternativa",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "30 giorni dalla notifica dell’ordine sospeso; prudenzialmente senza sospensione feriale; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
+    "termine": {
+     "base": "notifica",
+     "direzione": "avanti",
+     "feriale": false,
+     "giorni": 30
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "656",
+     "perche": "trenta giorni"
+    }
+   ]
+  },
+  {
+   "campo": "misura",
+   "etichetta": "Misura richiesta e requisiti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Pena residua, misura richiesta, lavoro, domicilio, percorso"
+   }
+  },
+  {
+   "campo": "nota",
+   "etichetta": "Esecuzione",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "segnalare che la sospensione feriale nell’esecuzione penale va verificata dall’avvocato"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Istanza",
+   "compito": "misura, requisiti, documenti"
+  }
+ ],
+ "astensione": [
+  "ordine di esecuzione non presente"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

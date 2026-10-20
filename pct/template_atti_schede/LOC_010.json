@@ -1,0 +1,256 @@
+{
+ "id": "LOC_010",
+ "titolo": "Impugnazione di delibera condominiale",
+ "template": [
+  "LOC_010"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "1137",
+   "perche": "impugnazione entro trenta giorni"
+  },
+  {
+   "atto": "28/2010",
+   "articolo": "5",
+   "perche": "mediazione obbligatoria in materia di locazione, condominio e diritti reali"
+  },
+  {
+   "atto": "318/1942",
+   "articolo": "71quater",
+   "perche": "controversie condominiali"
+  },
+  {
+   "atto": "28/2010",
+   "articolo": "8",
+   "perche": "la domanda di mediazione impedisce la decadenza una sola volta"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "7",
+   "perche": "competenza del giudice di pace per le cause condominiali, efficacia da verificare"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "1",
+   "perche": "sospensione feriale dei termini"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Condomino",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Condominio, in persona dell’amministratore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "verbale",
+   "etichetta": "Verbale della delibera",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "verbale di assemblea"
+   },
+   "se_manca": "astensione: serve la delibera",
+   "parole_documento": [
+    "verbale",
+    "delibera"
+   ]
+  },
+  {
+   "campo": "data",
+   "etichetta": "Data della delibera o della comunicazione agli assenti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "data_delibera",
+    "documento": "verbale e comunicazione"
+   },
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "evento"
+    }
+   ]
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Ultimo giorno per impugnare",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "30 giorni dalla delibera per i dissenzienti o astenuti, dalla comunicazione per gli assenti, con sospensione feriale; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
+    "termine": {
+     "base": "evento",
+     "direzione": "avanti",
+     "feriale": true,
+     "giorni": 30
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "1137",
+     "perche": "trenta giorni"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    }
+   ]
+  },
+  {
+   "campo": "vizi",
+   "etichetta": "Vizi della delibera",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quali vizi ha la delibera (annullabilità o nullità)? Il cliente era assente, dissenziente o astenuto?"
+   }
+  },
+  {
+   "campo": "mediazione",
+   "etichetta": "Mediazione obbligatoria",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "È stata esperita la mediazione? Indica organismo, data e verbale"
+   },
+   "norma": [
+    {
+     "atto": "28/2010",
+     "articolo": "5",
+     "perche": "mediazione obbligatoria in materia di locazione, condominio e diritti reali"
+    }
+   ],
+   "se_manca": "segnalare che la domanda è improcedibile senza mediazione"
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatto",
+   "compito": "assemblea e delibera"
+  },
+  {
+   "blocco": "Diritto",
+   "compito": "vizi con le norme"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "annullamento o nullità"
+  }
+ ],
+ "astensione": [
+  "termine di 30 giorni scaduto per i vizi di annullabilità",
+  "delibera non presente",
+  "azione proposta oltre i 30 giorni dal verbale negativo di mediazione"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

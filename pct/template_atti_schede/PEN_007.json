@@ -1,0 +1,219 @@
+{
+ "id": "PEN_007",
+ "titolo": "Opposizione a decreto penale di condanna",
+ "template": [
+  "PEN_007"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "461",
+   "perche": "opposizione"
+  },
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "459",
+   "perche": "decreto penale"
+  },
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "464",
+   "perche": "giudizio conseguente"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, foro e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "96",
+     "perche": "difensore di fiducia"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Imputato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "nomina",
+   "etichetta": "Nomina del difensore depositata",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "atto di nomina"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "96",
+     "perche": "nomina"
+    }
+   ],
+   "se_manca": "chiedere la nomina: senza non si deposita per l’assistito",
+   "parole_documento": [
+    "nomina"
+   ]
+  },
+  {
+   "campo": "procedimento",
+   "etichetta": "Autorità procedente e numero del procedimento (R.G.N.R. o R.G.)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "avvisi e notifiche"
+   },
+   "se_manca": "chiedere autorità e numero del procedimento",
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "decreto",
+   "etichetta": "Decreto penale notificato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "decreto penale di condanna"
+   },
+   "se_manca": "astensione: serve il decreto",
+   "parole_documento": [
+    "decreto"
+   ]
+  },
+  {
+   "campo": "notifica",
+   "etichetta": "Data di notifica del decreto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "notifica",
+    "documento": "relata"
+   },
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "notifica"
+    }
+   ]
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Ultimo giorno per l’opposizione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "15 giorni dalla notifica del decreto, con sospensione feriale; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
+    "termine": {
+     "base": "notifica",
+     "direzione": "avanti",
+     "feriale": true,
+     "giorni": 15
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "461",
+     "perche": "quindici giorni"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    }
+   ]
+  },
+  {
+   "campo": "rito",
+   "etichetta": "Rito richiesto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Giudizio immediato, abbreviato, patteggiamento, oblazione o messa alla prova?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "461",
+     "perche": "richieste con l’opposizione"
+    }
+   ]
+  },
+  {
+   "campo": "pagamento",
+   "etichetta": "Riduzione",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "ricordare la riduzione di un quinto della pena pecuniaria se si paga entro 15 giorni rinunciando all’opposizione"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "460",
+     "perche": "riduzione"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Opposizione",
+   "compito": "dichiarazione e richiesta di rito"
+  }
+ ],
+ "astensione": [
+  "decreto non presente",
+  "quindici giorni scaduti"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

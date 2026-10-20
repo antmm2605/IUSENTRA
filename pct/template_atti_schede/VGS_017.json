@@ -1,0 +1,165 @@
+{
+ "id": "VGS_017",
+ "titolo": "Ricorso per rettificazione di atti di stato civile o questioni sul nome",
+ "template": [
+  "VGS_017",
+  "VGS_018"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "453",
+   "perche": "annotazioni solo per legge o ordine del giudice"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "6",
+   "perche": "diritto al nome"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "7",
+   "perche": "tutela del nome"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "737",
+   "perche": "forma camerale"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "la procura serve se si sta in giudizio con difensore; per l’amministrazione di sostegno il ricorso può essere depositato anche senza",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Ricorrente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "atto",
+   "etichetta": "Atto di stato civile da rettificare",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "estratto o copia integrale dell’atto"
+   },
+   "se_manca": "chiedere l’atto da rettificare",
+   "parole_documento": [
+    "atto",
+    "estratto",
+    "nascita"
+   ]
+  },
+  {
+   "campo": "errore",
+   "etichetta": "Errore o domanda",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Qual è l’errore o il cambiamento chiesto, con quali prove?"
+   }
+  },
+  {
+   "campo": "competenza",
+   "etichetta": "Autorità competente",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "segnalare (artt. 95-96 e 89 D.P.R. 396/2000, da verificare) che il cambio volontario di nome o cognome si chiede al prefetto, mentre la rettifica degli errori al tribunale; la disciplina dello stato civile non è nella base normativa e va verificata"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Ricorso",
+   "compito": "atto, errore, prova e correzione richiesta"
+  }
+ ],
+ "astensione": [
+  "cambio volontario di nome o cognome: domanda al prefetto, non al tribunale"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

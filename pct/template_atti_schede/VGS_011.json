@@ -1,0 +1,256 @@
+{
+ "id": "VGS_011",
+ "titolo": "Accettazione con beneficio di inventario, autorizzazioni e inventario",
+ "template": [
+  "VGS_011",
+  "VGS_014",
+  "VGS_016"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "471",
+   "perche": "accettazione per minori e interdetti solo col beneficio"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "472",
+   "perche": "emancipati e inabilitati"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "484",
+   "perche": "forma dell’accettazione beneficiata"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "485",
+   "perche": "chiamato nel possesso dei beni: inventario entro tre mesi"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "487",
+   "perche": "chiamato non nel possesso"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "488",
+   "perche": "termini dopo l’inventario"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "769",
+   "perche": "inventario"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "775",
+   "perche": "processo verbale di inventario"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "la procura serve se si sta in giudizio con difensore; per l’amministrazione di sostegno il ricorso può essere depositato anche senza",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Chiamato all’eredità o suo rappresentante",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "defunto",
+   "etichetta": "Defunto e apertura della successione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Chi è il defunto, data e luogo di morte?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "456",
+     "perche": "apertura della successione"
+    }
+   ]
+  },
+  {
+   "campo": "possesso",
+   "etichetta": "Possesso dei beni ereditari",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Il chiamato è nel possesso di beni ereditari?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "485",
+     "perche": "tre mesi dall’apertura o dalla notizia"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "487",
+     "perche": "chiamato non possessore"
+    }
+   ]
+  },
+  {
+   "campo": "inventario",
+   "etichetta": "Termine per l’inventario del chiamato nel possesso",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "tre mesi dall’apertura della successione o dalla notizia della devoluzione, prorogabili; termine sostanziale, senza sospensione feriale",
+    "termine": {
+     "base": "evento",
+     "direzione": "avanti",
+     "feriale": false,
+     "mesi": 3
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "485",
+     "perche": "tre mesi"
+    }
+   ]
+  },
+  {
+   "campo": "deliberare",
+   "etichetta": "Termine per accettare o rinunciare dopo l’inventario",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "40 giorni dal compimento dell’inventario (evento = chiusura dell’inventario), altrimenti erede puro e semplice; termine sostanziale",
+    "termine": {
+     "base": "evento",
+     "direzione": "avanti",
+     "feriale": false,
+     "giorni": 40
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "485",
+     "perche": "quaranta giorni"
+    }
+   ]
+  },
+  {
+   "campo": "incapace",
+   "etichetta": "Minore o incapace chiamato",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Il chiamato è minore, interdetto o beneficiario? Serve l’autorizzazione?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "471",
+     "perche": "beneficio obbligatorio"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "320",
+     "perche": "autorizzazione"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Atto",
+   "compito": "dichiarazione davanti al notaio o al cancelliere, inventario, autorizzazione se necessaria"
+  }
+ ],
+ "astensione": [
+  "data di apertura o di notizia non indicata",
+  "chiamato nel possesso oltre tre mesi senza inventario: segnalare che si considera erede puro e semplice"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

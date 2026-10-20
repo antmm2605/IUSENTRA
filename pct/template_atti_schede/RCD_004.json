@@ -1,0 +1,247 @@
+{
+ "id": "RCD_004",
+ "titolo": "Responsabilità sanitaria: richiesta, diffida, ATP e consulenza preventiva",
+ "template": [
+  "RCD_004",
+  "RCD_005",
+  "RCD_013",
+  "RCD_014"
+ ],
+ "base_normativa": [
+  {
+   "atto": "legge_24_2017",
+   "articolo": "7",
+   "perche": "responsabilità della struttura e dell’esercente"
+  },
+  {
+   "atto": "legge_24_2017",
+   "articolo": "8",
+   "perche": "tentativo obbligatorio di conciliazione"
+  },
+  {
+   "atto": "legge_24_2017",
+   "articolo": "12",
+   "perche": "azione diretta contro l’assicuratore"
+  },
+  {
+   "atto": "legge_24_2017",
+   "articolo": "13",
+   "perche": "comunicazione all’esercente"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "696bis",
+   "perche": "consulenza tecnica preventiva ai fini della composizione della lite"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "696",
+   "perche": "accertamento tecnico preventivo"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Paziente o congiunti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Struttura sanitaria",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "fatti",
+   "etichetta": "Fatto, date, luoghi, testimoni e documenti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "eventi_e_date",
+    "documento": "documenti del fascicolo"
+   },
+   "compilatore": [
+    "facts"
+   ],
+   "fatti": [
+    {
+     "categoria": "evento"
+    },
+    {
+     "categoria": "data"
+    }
+   ]
+  },
+  {
+   "campo": "danni",
+   "etichetta": "Danni",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Danni patrimoniali (spese, mancati guadagni) e non patrimoniali (biologico con percentuale, morale) con documenti"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "2056",
+     "perche": "valutazione dei danni"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "2059",
+     "perche": "danni non patrimoniali"
+    }
+   ]
+  },
+  {
+   "campo": "cartella",
+   "etichetta": "Cartella clinica e referti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "cartella clinica"
+   },
+   "se_manca": "chiedere la cartella clinica alla struttura",
+   "parole_documento": [
+    "cartella",
+    "referto"
+   ]
+  },
+  {
+   "campo": "atto",
+   "etichetta": "Atto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Richiesta stragiudiziale, diffida, ricorso per consulenza preventiva o ATP? (sospensione feriale per la consulenza preventiva discussa: verificare)"
+   }
+  },
+  {
+   "campo": "giudizio",
+   "etichetta": "Termine dopo la consulenza",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "il giudizio di merito si introduce entro 90 giorni dal deposito della relazione o dalla scadenza del termine di sei mesi"
+   },
+   "norma": [
+    {
+     "atto": "legge_24_2017",
+     "articolo": "8",
+     "perche": "novanta giorni"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Atto",
+   "compito": "fatti clinici, danno, quesiti al consulente"
+  }
+ ],
+ "astensione": [
+  "cartella clinica non disponibile"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

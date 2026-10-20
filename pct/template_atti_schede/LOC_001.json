@@ -1,0 +1,252 @@
+{
+ "id": "LOC_001",
+ "titolo": "Intimazione di sfratto per morosità con citazione per la convalida",
+ "template": [
+  "LOC_001",
+  "LOC_002"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "658",
+   "perche": "sfratto per morosità e ingiunzione dei canoni"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "660",
+   "perche": "forma dell’intimazione e termini"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "663",
+   "perche": "convalida"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "661",
+   "perche": "competenza del tribunale del luogo dell’immobile"
+  },
+  {
+   "atto": "legge_392_1978",
+   "articolo": "5",
+   "perche": "morosità rilevante nelle locazioni abitative"
+  },
+  {
+   "atto": "legge_392_1978",
+   "articolo": "55",
+   "perche": "termine di grazia nelle locazioni abitative"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "3",
+   "perche": "esclusione della sospensione feriale"
+  },
+  {
+   "atto": "12/1941",
+   "articolo": "92",
+   "perche": "affari urgenti esclusi dalla sospensione"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Locatore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Conduttore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "contratto",
+   "etichetta": "Contratto di locazione registrato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "contratto di locazione"
+   },
+   "se_manca": "astensione: serve il contratto",
+   "parole_documento": [
+    "locazione",
+    "contratto"
+   ]
+  },
+  {
+   "campo": "morosita",
+   "etichetta": "Canoni e oneri non pagati",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quali canoni e oneri sono scaduti e non pagati, con importi e scadenze?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "658",
+     "perche": "canoni scaduti"
+    },
+    {
+     "atto": "legge_392_1978",
+     "articolo": "5",
+     "perche": "venti giorni o oneri oltre due mensilità"
+    }
+   ]
+  },
+  {
+   "campo": "uso",
+   "etichetta": "Uso dell’immobile",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Abitativo o commerciale? (per l’abitativo il conduttore può sanare in udienza, con termine di grazia fino a 90 giorni, 120 nei casi dell’art. 55)"
+   },
+   "norma": [
+    {
+     "atto": "legge_392_1978",
+     "articolo": "55",
+     "perche": "termine di grazia nelle locazioni abitative"
+    }
+   ]
+  },
+  {
+   "campo": "udienza",
+   "etichetta": "Udienza di convalida",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "almeno 20 giorni liberi tra notifica e udienza (non si contano il giorno iniziale e quello finale; dimezzabili con decreto), senza sospensione feriale"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "660",
+     "perche": "termini"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "3",
+     "perche": "esclusione della sospensione feriale"
+    },
+    {
+     "atto": "12/1941",
+     "articolo": "92",
+     "perche": "affari urgenti esclusi dalla sospensione"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Atto",
+   "compito": "contratto, morosità, intimazione di sfratto, ingiunzione dei canoni e citazione per la convalida"
+  }
+ ],
+ "astensione": [
+  "contratto non presente",
+  "morosità non indicata"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

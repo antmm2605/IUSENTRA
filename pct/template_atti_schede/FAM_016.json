@@ -1,0 +1,325 @@
+{
+ "id": "FAM_016",
+ "titolo": "Memoria nel procedimento unitario di famiglia",
+ "template": [
+  "FAM_016"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "473bis.16",
+   "perche": "costituzione del convenuto"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "473bis.17",
+   "perche": "ulteriori difese"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "1",
+   "perche": "sospensione feriale dei termini"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Parte assistita",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Controparte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "dati_causa",
+   "etichetta": "Ufficio, giudice e numero di ruolo della causa",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "fascicolo, PEC di cancelleria e verbali"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione dell’ufficio"
+    }
+   ],
+   "se_manca": "chiedere ufficio e numero di ruolo: senza la causa pendente l’atto non si deposita",
+   "compilatore": [
+    "recipient_or_court",
+    "case_reference_display"
+   ],
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "udienza",
+   "etichetta": "Prossima udienza fissata",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "udienza",
+    "documento": "verbali e PEC di cancelleria"
+   },
+   "se_manca": "chiedere la data dell’udienza: i termini si contano da lì",
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "udienza"
+    }
+   ]
+  },
+  {
+   "campo": "quale",
+   "etichetta": "Quale memoria",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Comparsa di costituzione o memoria dell’art. 473-bis.17 (prima, seconda o terza)?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.17",
+     "perche": "termini differenziati"
+    }
+   ]
+  },
+  {
+   "campo": "costituzione",
+   "etichetta": "Ultimo giorno per la costituzione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "almeno 30 giorni prima dell’udienza; sospensione feriale discussa per le domande di mantenimento: data calcolata nel modo più prudente, da verificare",
+    "termine": {
+     "base": "udienza",
+     "direzione": "ritroso",
+     "feriale": true,
+     "giorni": 30
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.16",
+     "perche": "costituzione"
+    }
+   ]
+  },
+  {
+   "campo": "memoria_20",
+   "etichetta": "Prima memoria del ricorrente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "entro 20 giorni prima dell’udienza; sospensione feriale discussa per le domande di mantenimento: data calcolata nel modo più prudente, da verificare",
+    "termine": {
+     "base": "udienza",
+     "direzione": "ritroso",
+     "feriale": true,
+     "giorni": 20
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.17",
+     "perche": "prima memoria"
+    }
+   ]
+  },
+  {
+   "campo": "memoria_10",
+   "etichetta": "Memoria del resistente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "entro 10 giorni prima dell’udienza; sospensione feriale discussa per le domande di mantenimento: data calcolata nel modo più prudente, da verificare",
+    "termine": {
+     "base": "udienza",
+     "direzione": "ritroso",
+     "feriale": true,
+     "giorni": 10
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.17",
+     "perche": "seconda memoria"
+    }
+   ]
+  },
+  {
+   "campo": "memoria_5",
+   "etichetta": "Ultima memoria del ricorrente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "entro 5 giorni prima dell’udienza; sospensione feriale discussa per le domande di mantenimento: data calcolata nel modo più prudente, da verificare",
+    "termine": {
+     "base": "udienza",
+     "direzione": "ritroso",
+     "feriale": true,
+     "giorni": 5
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.17",
+     "perche": "terza memoria"
+    }
+   ]
+  },
+  {
+   "campo": "redditi",
+   "etichetta": "Dichiarazioni dei redditi degli ultimi tre anni e documentazione patrimoniale",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "dichiarazioni dei redditi, estratti conto, titolarità di beni"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.12",
+     "perche": "deposito obbligatorio con domande economiche"
+    }
+   ],
+   "se_manca": "segnalare che con domande economiche il deposito è obbligatorio",
+   "parole_documento": [
+    "redditi",
+    "730",
+    "unico",
+    "cud",
+    "estratto"
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Difese",
+   "compito": "risposta ai fatti avversari, domande ed eccezioni consentite nella memoria"
+  },
+  {
+   "blocco": "Prove",
+   "compito": "mezzi di prova"
+  }
+ ],
+ "astensione": [
+  "udienza non nota",
+  "memoria fuori termine: segnalare la decadenza"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

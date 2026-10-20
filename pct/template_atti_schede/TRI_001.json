@@ -1,0 +1,400 @@
+{
+ "id": "TRI_001",
+ "titolo": "Ricorso tributario contro atti impositivi e della riscossione",
+ "template": [
+  "TRI_001",
+  "TRI_011",
+  "TRI_012",
+  "TRI_013",
+  "TRI_014",
+  "TRI_015",
+  "TRI_016",
+  "TRI_017",
+  "TRI_018"
+ ],
+ "base_normativa": [
+  {
+   "atto": "175/2024",
+   "articolo": "64",
+   "perche": "ricorso"
+  },
+  {
+   "atto": "175/2024",
+   "articolo": "65",
+   "perche": "atti impugnabili"
+  },
+  {
+   "atto": "175/2024",
+   "articolo": "66",
+   "perche": "proposizione"
+  },
+  {
+   "atto": "175/2024",
+   "articolo": "67",
+   "perche": "termine"
+  },
+  {
+   "atto": "175/2024",
+   "articolo": "68",
+   "perche": "costituzione"
+  },
+  {
+   "atto": "600/1973",
+   "articolo": "42",
+   "perche": "motivazione dell’avviso di accertamento"
+  },
+  {
+   "atto": "600/1973",
+   "articolo": "43",
+   "perche": "termini di decadenza dell’accertamento"
+  },
+  {
+   "atto": "602/1973",
+   "articolo": "25",
+   "perche": "cartella"
+  },
+  {
+   "atto": "602/1973",
+   "articolo": "50",
+   "perche": "intimazione"
+  },
+  {
+   "atto": "602/1973",
+   "articolo": "77",
+   "perche": "ipoteca"
+  },
+  {
+   "atto": "602/1973",
+   "articolo": "86",
+   "perche": "fermo"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "1",
+   "perche": "sospensione feriale dei termini"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Contribuente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Ente impositore o agente della riscossione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "atto",
+   "etichetta": "Atto impugnato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "atto impugnato con relata o avviso di ricevimento"
+   },
+   "norma": [
+    {
+     "atto": "175/2024",
+     "articolo": "65",
+     "perche": "atti impugnabili"
+    }
+   ],
+   "se_manca": "astensione: serve l’atto impugnato",
+   "parole_documento": [
+    "avviso",
+    "cartella",
+    "intimazione",
+    "accertamento",
+    "ingiunzione",
+    "fermo",
+    "ipoteca",
+    "diniego"
+   ]
+  },
+  {
+   "campo": "notifica",
+   "etichetta": "Data di notifica dell’atto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "notifica",
+    "documento": "relata o ricevuta di consegna"
+   },
+   "se_manca": "chiedere la data di notifica: il termine decorre da lì",
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "notifica"
+    },
+    {
+     "categoria": "prova_notifica"
+    }
+   ]
+  },
+  {
+   "campo": "tipo",
+   "etichetta": "Tipo di atto e tributo",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Avviso di accertamento, cartella, intimazione, fermo, ipoteca, IMU, TARI o altro tributo locale? Con quale annualità?"
+   },
+   "norma": [
+    {
+     "atto": "175/2024",
+     "articolo": "65",
+     "perche": "elenco degli atti"
+    }
+   ]
+  },
+  {
+   "campo": "prodromici",
+   "etichetta": "Atti presupposti notificati",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Per cartelle e atti della riscossione: gli atti presupposti sono stati notificati? Se no, si impugnano insieme"
+   },
+   "norma": [
+    {
+     "atto": "175/2024",
+     "articolo": "65",
+     "perche": "vizi propri e atti presupposti"
+    }
+   ]
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Ultimo giorno per notificare il ricorso",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "60 giorni dalla notifica dell’atto, con sospensione feriale; +90 giorni se è stata presentata istanza di accertamento con adesione; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
+    "termine": {
+     "base": "notifica",
+     "direzione": "avanti",
+     "feriale": true,
+     "giorni": 60
+    }
+   },
+   "norma": [
+    {
+     "atto": "175/2024",
+     "articolo": "67",
+     "perche": "sessanta giorni"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    },
+    {
+     "atto": "218/1997",
+     "articolo": "6",
+     "perche": "sospensione per l’adesione"
+    }
+   ]
+  },
+  {
+   "campo": "motivi",
+   "etichetta": "Motivi",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Vizi formali (notifica, motivazione, decadenza, firma) e di merito; i motivi non proposti ora non si aggiungono dopo, salvo motivi aggiunti"
+   },
+   "norma": [
+    {
+     "atto": "175/2024",
+     "articolo": "64",
+     "perche": "contenuto del ricorso a pena di inammissibilità"
+    },
+    {
+     "atto": "175/2024",
+     "articolo": "70",
+     "perche": "motivi aggiunti"
+    }
+   ]
+  },
+  {
+   "campo": "valore",
+   "etichetta": "Valore della lite",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Imposta contestata al netto di interessi e sanzioni (o sanzioni se sole), per il contributo e il giudice monocratico"
+   },
+   "norma": [
+    {
+     "atto": "175/2024",
+     "articolo": "49",
+     "perche": "giudice monocratico fino a 10.000 euro, escluso il valore indeterminabile"
+    },
+    {
+     "atto": "175/2024",
+     "articolo": "57",
+     "perche": "assistenza tecnica"
+    }
+   ]
+  },
+  {
+   "campo": "ufficio",
+   "etichetta": "Corte competente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "corte di giustizia tributaria di primo grado della sede dell’ente impositore o dell’agente della riscossione"
+   },
+   "norma": [
+    {
+     "atto": "175/2024",
+     "articolo": "48",
+     "perche": "corte di giustizia tributaria di primo grado nella cui circoscrizione ha sede l’ente impositore o l’agente della riscossione"
+    }
+   ]
+  },
+  {
+   "campo": "costituzione",
+   "etichetta": "Deposito del ricorso notificato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "entro 30 giorni dalla notifica del ricorso, a pena di inammissibilità, con sospensione feriale"
+   },
+   "norma": [
+    {
+     "atto": "175/2024",
+     "articolo": "68",
+     "perche": "costituzione del ricorrente"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatto",
+   "compito": "atto, notifica, pretesa"
+  },
+  {
+   "blocco": "Motivi",
+   "compito": "vizi dell’atto con norme"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "annullamento e spese"
+  },
+  {
+   "blocco": "Istanze",
+   "compito": "sospensione e trattazione in pubblica udienza se richieste"
+  }
+ ],
+ "astensione": [
+  "atto o notifica non presenti",
+  "termine di 60 giorni già scaduto",
+  "atto non impugnabile (es. comunicazione bonaria)"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

@@ -1,0 +1,172 @@
+{
+ "id": "SOC_001",
+ "titolo": "Diffide, convocazioni e verbali societari",
+ "template": [
+  "SOC_001",
+  "SOC_002",
+  "SOC_003",
+  "SOC_004"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "2366",
+   "perche": "convocazione dell’assemblea di s.p.a."
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2479bis",
+   "perche": "assemblea di s.r.l."
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2375",
+   "perche": "verbale"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2392",
+   "perche": "doveri degli amministratori"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Società, socio o amministratore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Destinatario",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "visura",
+   "etichetta": "Visura camerale, statuto e atti sociali",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "visura e statuto"
+   },
+   "se_manca": "chiedere visura e statuto",
+   "parole_documento": [
+    "visura",
+    "statuto",
+    "atto costitutivo"
+   ]
+  },
+  {
+   "campo": "atto",
+   "etichetta": "Atto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Diffida al socio o all’amministratore, convocazione o verbale? Ordine del giorno, data, maggioranze"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "2366",
+     "perche": "termini di convocazione"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "2479bis",
+     "perche": "otto giorni prima nelle s.r.l. salvo statuto"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Atto",
+   "compito": "contenuto secondo il tipo"
+  }
+ ],
+ "astensione": [
+  "statuto non disponibile per i quorum"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

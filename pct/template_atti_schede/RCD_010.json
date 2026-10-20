@@ -1,0 +1,158 @@
+{
+ "id": "RCD_010",
+ "titolo": "Richiesta danni per ritardo volo o trasporto",
+ "template": [
+  "RCD_010"
+ ],
+ "base_normativa": [
+  {
+   "atto": "reg_ue_2004_261",
+   "articolo": "7",
+   "perche": "compensazione"
+  },
+  {
+   "atto": "reg_ue_2004_261",
+   "articolo": "6",
+   "perche": "ritardo"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1681",
+   "perche": "responsabilità del vettore"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Passeggero",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Vettore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "biglietto",
+   "etichetta": "Biglietto e prova del ritardo",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "carta d’imbarco"
+   },
+   "se_manca": "chiedere biglietto e carta d’imbarco",
+   "parole_documento": [
+    "biglietto",
+    "imbarco"
+   ]
+  },
+  {
+   "campo": "ritardo",
+   "etichetta": "Ritardo e distanza",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Ore di ritardo all’arrivo e distanza della tratta"
+   },
+   "norma": [
+    {
+     "atto": "reg_ue_2004_261",
+     "articolo": "7",
+     "perche": "importi per fasce di distanza"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Richiesta",
+   "compito": "volo, ritardo, compensazione e danni ulteriori"
+  }
+ ],
+ "astensione": [
+  "ritardo inferiore a tre ore all’arrivo"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

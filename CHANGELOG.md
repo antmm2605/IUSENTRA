@@ -1,3 +1,9 @@
+# 2.442.3 — Estensione delle schede di compilazione
+
+- Integrate le nuove schede della patch utente per esecuzioni, locazioni, famiglia, lavoro, penale, amministrativo, tributario e attività stragiudiziale.
+- I 420 identificativi del catalogo hanno una scheda, senza duplicati; riutilizzati resolver e motore dei termini esistenti.
+- Conservate le correzioni successive alla patch originaria e la numerazione corrente del prodotto.
+
 # 2.442.2 — Riconoscimento dei ruoli senza ambiguità regex
 
 - Il controllo dei separatori tra numeri di ruolo usa confronti letterali, conservando punteggiatura, tabulazioni ed elenchi espliciti.

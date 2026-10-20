@@ -1,0 +1,382 @@
+{
+ "id": "FAM_007",
+ "titolo": "Ricorso per affidamento, frequentazione e mantenimento dei figli nati fuori dal matrimonio",
+ "template": [
+  "FAM_007",
+  "FAM_008"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "473bis.12",
+   "perche": "ricorso"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "316",
+   "perche": "responsabilità genitoriale"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "337ter",
+   "perche": "affidamento e mantenimento"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "337sexies",
+   "perche": "casa familiare"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "473bis.11",
+   "perche": "competenza del tribunale del luogo di residenza abituale del minore o del convenuto"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Ricorrente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Resistente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "figli",
+   "etichetta": "Figli: nomi, età, residenza abituale ed esigenze",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quali figli ci sono, quanti anni hanno, dove vivono abitualmente e con chi?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "337ter",
+     "perche": "affidamento condiviso e mantenimento"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.12",
+     "perche": "indicazione dei figli nel ricorso"
+    }
+   ],
+   "se_manca": "chiedere i dati dei figli: senza non si redigono domande su affidamento e mantenimento"
+  },
+  {
+   "campo": "nascita",
+   "etichetta": "Atti di nascita o riconoscimento dei figli",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "estratto di nascita"
+   },
+   "se_manca": "chiedere l’atto di nascita con il riconoscimento",
+   "parole_documento": [
+    "nascita",
+    "riconoscimento"
+   ]
+  },
+  {
+   "campo": "redditi",
+   "etichetta": "Dichiarazioni dei redditi degli ultimi tre anni e documentazione patrimoniale",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "dichiarazioni dei redditi, estratti conto, titolarità di beni"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.12",
+     "perche": "deposito obbligatorio con domande economiche"
+    }
+   ],
+   "se_manca": "segnalare che con domande economiche il deposito è obbligatorio",
+   "parole_documento": [
+    "redditi",
+    "730",
+    "unico",
+    "cud",
+    "estratto"
+   ]
+  },
+  {
+   "campo": "piano",
+   "etichetta": "Piano genitoriale",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Impegni e attività dei figli: scuola, percorso educativo, attività extrascolastiche, frequentazioni, vacanze"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.12",
+     "perche": "piano genitoriale con domande sui figli minori"
+    }
+   ]
+  },
+  {
+   "campo": "violenza",
+   "etichetta": "Allegazioni di violenza domestica o di genere",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Ci sono allegazioni di violenza domestica o di genere, procedimenti penali o ordini di protezione?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.40",
+     "perche": "disposizioni speciali in caso di violenza"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.42",
+     "perche": "procedimento"
+    }
+   ]
+  },
+  {
+   "campo": "domande",
+   "etichetta": "Domande",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Affidamento, collocamento, calendario di frequentazione, assegno, spese straordinarie, casa familiare"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "337ter",
+     "perche": "contenuto dei provvedimenti"
+    }
+   ]
+  },
+  {
+   "campo": "ufficio",
+   "etichetta": "Ufficio giudiziario competente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "competenza per materia, valore e territorio secondo le norme indicate; da confermare"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.11",
+     "perche": "competenza del tribunale del luogo di residenza abituale del minore o del convenuto"
+    }
+   ],
+   "compilatore": [
+    "recipient_or_court"
+   ]
+  },
+  {
+   "campo": "udienza",
+   "etichetta": "Prima udienza fissata dal decreto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "udienza",
+    "documento": "verbali e PEC di cancelleria"
+   },
+   "se_manca": "chiedere la data dell’udienza: i termini si contano da lì",
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "udienza"
+    }
+   ]
+  },
+  {
+   "campo": "notifica",
+   "etichetta": "Ultimo giorno per notificare ricorso e decreto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "almeno 60 giorni liberi prima dell’udienza (esclusi il giorno della notifica e quello dell’udienza); sospensione feriale discussa per le domande di mantenimento: data calcolata nel modo più prudente, da verificare",
+    "termine": {
+     "base": "udienza",
+     "direzione": "ritroso",
+     "feriale": true,
+     "giorni": 61
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.14",
+     "perche": "notifica del ricorso"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    }
+   ]
+  },
+  {
+   "campo": "costituzione",
+   "etichetta": "Termine per la costituzione del resistente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "almeno 30 giorni prima dell’udienza; sospensione feriale discussa per le domande di mantenimento: data calcolata nel modo più prudente, da verificare",
+    "termine": {
+     "base": "udienza",
+     "direzione": "ritroso",
+     "feriale": true,
+     "giorni": 30
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.16",
+     "perche": "costituzione del convenuto"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    }
+   ]
+  },
+  {
+   "campo": "memorie",
+   "etichetta": "Memorie integrative prima dell’udienza",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "ricorrente entro 20 giorni, resistente entro 10, ricorrente entro 5 giorni prima dell’udienza; termini perentori"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.17",
+     "perche": "ulteriori difese"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Fatti",
+   "compito": "nascita, convivenza o cessazione, abitudini dei figli"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "regime di affidamento e mantenimento"
+  }
+ ],
+ "astensione": [
+  "filiazione non documentata"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

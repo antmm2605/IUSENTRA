@@ -1,0 +1,165 @@
+{
+ "id": "PRI_003",
+ "titolo": "Diffide su trattamento illecito, marketing, profilazione, controlli sul lavoro",
+ "template": [
+  "PRI_003",
+  "PRI_005",
+  "PRI_007",
+  "PRI_008",
+  "PRI_011"
+ ],
+ "base_normativa": [
+  {
+   "atto": "reg_ue_2016_679",
+   "articolo": "6",
+   "perche": "liceità"
+  },
+  {
+   "atto": "reg_ue_2016_679",
+   "articolo": "21",
+   "perche": "opposizione al marketing"
+  },
+  {
+   "atto": "reg_ue_2016_679",
+   "articolo": "22",
+   "perche": "decisioni automatizzate e profilazione"
+  },
+  {
+   "atto": "codice_privacy",
+   "articolo": "130",
+   "perche": "comunicazioni indesiderate"
+  },
+  {
+   "atto": "legge_300_1970",
+   "articolo": "4",
+   "perche": "impianti di controllo a distanza"
+  },
+  {
+   "atto": "codice_privacy",
+   "articolo": "114",
+   "perche": "garanzie sul controllo a distanza"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Interessato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Titolare del trattamento",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "trattamento",
+   "etichetta": "Trattamento contestato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quali dati, quale trattamento, da quando, con quali prove?"
+   }
+  },
+  {
+   "campo": "richiesta",
+   "etichetta": "Diritto esercitato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Cessazione del trattamento, opposizione, cancellazione, risarcimento?"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Diffida",
+   "compito": "trattamento, norme violate, richiesta, termine"
+  }
+ ],
+ "astensione": [
+  "trattamento non descritto"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

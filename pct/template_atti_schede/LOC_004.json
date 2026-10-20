@@ -1,0 +1,232 @@
+{
+ "id": "LOC_004",
+ "titolo": "Opposizione del conduttore all’intimazione e comparsa",
+ "template": [
+  "LOC_004",
+  "LOC_005"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "665",
+   "perche": "opposizione e ordinanza di rilascio"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "667",
+   "perche": "mutamento del rito"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "447bis",
+   "perche": "rito locatizio"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "426",
+   "perche": "termine perentorio per integrare gli atti dopo il mutamento del rito"
+  },
+  {
+   "atto": "28/2010",
+   "articolo": "5",
+   "perche": "mediazione: non richiesta nella fase di convalida, condizione di procedibilità dopo il mutamento del rito, a carico del locatore"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Conduttore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Locatore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "intimazione",
+   "etichetta": "Intimazione notificata",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "atto di intimazione di sfratto"
+   },
+   "se_manca": "astensione: serve l’intimazione",
+   "parole_documento": [
+    "intimazione",
+    "sfratto"
+   ]
+  },
+  {
+   "campo": "udienza",
+   "etichetta": "Udienza di convalida o fissata dopo il mutamento del rito",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "udienza",
+    "documento": "atto e verbali"
+   },
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "udienza"
+    }
+   ]
+  },
+  {
+   "campo": "eccezioni",
+   "etichetta": "Eccezioni e prova scritta",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quali eccezioni opponi (pagamento, vizi, nullità) e con quale prova scritta?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "665",
+     "perche": "eccezioni fondate su prova scritta"
+    }
+   ]
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Termine assegnato per integrare gli atti",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "termine_integrazione",
+    "documento": "ordinanza di mutamento del rito"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "426",
+     "perche": "termine perentorio"
+    }
+   ],
+   "fatti": [
+    {
+     "categoria": "data"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Difese",
+   "compito": "eccezioni con prova scritta"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "rigetto della convalida e dell’ordinanza di rilascio"
+  }
+ ],
+ "astensione": [
+  "intimazione non presente",
+  "intimazione già convalidata: valutare solo l’opposizione tardiva o l’impugnazione"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

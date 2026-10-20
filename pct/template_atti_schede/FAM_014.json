@@ -1,0 +1,183 @@
+{
+ "id": "FAM_014",
+ "titolo": "Ricorso per autorizzazione ad atti di straordinaria amministrazione per il minore",
+ "template": [
+  "FAM_014"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "320",
+   "perche": "atti eccedenti l’ordinaria amministrazione: giudice tutelare"
+  },
+  {
+   "atto": "318/1942",
+   "articolo": "45",
+   "perche": "competenza del giudice tutelare"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "737",
+   "perche": "rito camerale"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "739",
+   "perche": "reclamo entro dieci giorni"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Genitori ricorrenti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "figli",
+   "etichetta": "Figli: nomi, età, residenza abituale ed esigenze",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quali figli ci sono, quanti anni hanno, dove vivono abitualmente e con chi?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "337ter",
+     "perche": "affidamento condiviso e mantenimento"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.12",
+     "perche": "indicazione dei figli nel ricorso"
+    }
+   ],
+   "se_manca": "chiedere i dati dei figli: senza non si redigono domande su affidamento e mantenimento"
+  },
+  {
+   "campo": "atto",
+   "etichetta": "Atto da autorizzare e utilità per il minore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quale atto (vendita, acquisto, mutuo, transazione, accettazione di eredità) e perché è utile o necessario per il minore?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "320",
+     "perche": "necessità o utilità evidente"
+    }
+   ]
+  },
+  {
+   "campo": "perizia",
+   "etichetta": "Stima o documenti dell’affare",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "perizia, preliminare, proposta"
+   },
+   "parole_documento": [
+    "perizia",
+    "stima",
+    "preliminare"
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Ricorso",
+   "compito": "atto, utilità evidente e reimpiego delle somme; alternativa dell’autorizzazione notarile (art. 21 D.Lgs. 149/2022)"
+  }
+ ],
+ "astensione": [
+  "utilità per il minore non indicata"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

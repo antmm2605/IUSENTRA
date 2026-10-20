@@ -116,3 +116,31 @@ def test_termini_dichiarati_validi():
         for c in s["campi"]:
             if c["fonte"].get("termine"):
                 assert valida_termine(c["fonte"]["termine"]) == [], (s["id"], c["campo"])
+
+
+def test_esecuzioni_e_locazioni_coperte():
+    attesi = {t for t in CATALOGO if t.rsplit("_", 1)[0] in ("ESE", "LOC")}
+    assert attesi <= {t for s in carica_schede().values() for t in s["template"]}
+    sfratto = scheda_per_template("LOC_001")
+    assert any(n["atto"] == "legge_742_1969" and n["articolo"] == "3" for n in sfratto["base_normativa"])
+
+
+def test_famiglia_volontaria_lavoro_coperti():
+    attesi = {t for t in CATALOGO if t.rsplit("_", 1)[0] in ("FAM", "VGS", "LAV")}
+    assert attesi <= {t for s in carica_schede().values() for t in s["template"]}
+    licenziamento = scheda_per_template("LAV_003")
+    assert any(n["atto"] == "legge_604_1966" and n["articolo"] == "6" for n in licenziamento["base_normativa"])
+    termine = next(c for c in licenziamento["campi"] if c["campo"] == "termine_impugnazione")
+    assert termine["fonte"]["termine"]["feriale"] is False
+
+
+def test_penale_amministrativo_tributario_coperti():
+    attesi = {t for t in CATALOGO if t.rsplit("_", 1)[0] in ("PEN", "AMM", "TRI")}
+    assert attesi <= {t for s in carica_schede().values() for t in s["template"]}
+    ricorso = scheda_per_template("TRI_018")
+    assert any(n["atto"] == "175/2024" and n["articolo"] == "67" for n in ricorso["base_normativa"])
+
+
+def test_tutti_i_modelli_del_catalogo_hanno_una_scheda():
+    coperti = {t for s in carica_schede().values() for t in s["template"]}
+    assert set(CATALOGO) - coperti == set()

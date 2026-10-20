@@ -2,7 +2,8 @@
  "id": "MON_006",
  "titolo": "Ricorso monitorio per contributi condominiali",
  "template": [
-  "MON_006"
+  "MON_006",
+  "LOC_011"
  ],
  "base_normativa": [
   {

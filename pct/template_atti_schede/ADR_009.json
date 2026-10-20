@@ -1,0 +1,197 @@
+{
+ "id": "ADR_009",
+ "titolo": "Arbitrato: clausola, domanda, nomina, difese",
+ "template": [
+  "ADR_009",
+  "ADR_010",
+  "ADR_011",
+  "ADR_012",
+  "ADR_013"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "806",
+   "perche": "controversie arbitrabili"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "807",
+   "perche": "compromesso"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "808",
+   "perche": "clausola compromissoria"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "810",
+   "perche": "nomina degli arbitri"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "816bis",
+   "perche": "svolgimento del procedimento"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "820",
+   "perche": "termine per il lodo"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Parte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Altra parte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "clausola",
+   "etichetta": "Clausola o compromesso",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "contratto con clausola arbitrale"
+   },
+   "parole_documento": [
+    "arbitr",
+    "clausola"
+   ]
+  },
+  {
+   "campo": "atto",
+   "etichetta": "Atto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Clausola, domanda di arbitrato con nomina dell’arbitro, nomina, comparsa o memoria?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "810",
+     "perche": "invito a nominare entro venti giorni"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Atto",
+   "compito": "contenuto secondo l’atto"
+  }
+ ],
+ "astensione": [
+  "diritti non disponibili",
+  "clausola non scritta"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

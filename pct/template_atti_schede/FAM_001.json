@@ -1,0 +1,323 @@
+{
+ "id": "FAM_001",
+ "titolo": "Ricorso congiunto per separazione consensuale o divorzio congiunto",
+ "template": [
+  "FAM_001",
+  "FAM_003"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "473bis.51",
+   "perche": "procedimento su domanda congiunta"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "158",
+   "perche": "separazione consensuale"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "155",
+   "perche": "provvedimenti per i figli"
+  },
+  {
+   "atto": "legge_898_1970",
+   "articolo": "4",
+   "perche": "domanda congiunta di divorzio"
+  },
+  {
+   "atto": "legge_898_1970",
+   "articolo": "3",
+   "perche": "casi di divorzio e termini dalla separazione"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "473bis.11",
+   "perche": "competenza del tribunale del luogo di residenza abituale del minore o del convenuto"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "serve la procura di entrambi i coniugi, anche con un solo difensore comune",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Primo coniuge",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "coniuge2",
+   "etichetta": "Secondo coniuge",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "matrimonio",
+   "etichetta": "Estratto per riassunto dell’atto di matrimonio",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "estratto dell’atto di matrimonio"
+   },
+   "se_manca": "chiedere l’estratto dell’atto di matrimonio",
+   "parole_documento": [
+    "matrimonio",
+    "estratto"
+   ]
+  },
+  {
+   "campo": "separazione",
+   "etichetta": "Provvedimento di separazione con data di comparizione",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "sentenza o omologa di separazione"
+   },
+   "norma": [
+    {
+     "atto": "legge_898_1970",
+     "articolo": "3",
+     "perche": "sei mesi dalla comparizione nella consensuale, dodici nella giudiziale"
+    }
+   ],
+   "se_manca": "per il divorzio: astensione se non è documentata la separazione con decorso dei termini",
+   "parole_documento": [
+    "separazione",
+    "omologa"
+   ]
+  },
+  {
+   "campo": "figli",
+   "etichetta": "Figli: nomi, età, residenza abituale ed esigenze",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quali figli ci sono, quanti anni hanno, dove vivono abitualmente e con chi?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "337ter",
+     "perche": "affidamento condiviso e mantenimento"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.12",
+     "perche": "indicazione dei figli nel ricorso"
+    }
+   ],
+   "se_manca": "chiedere i dati dei figli: senza non si redigono domande su affidamento e mantenimento"
+  },
+  {
+   "campo": "redditi",
+   "etichetta": "Dichiarazioni dei redditi degli ultimi tre anni e documentazione patrimoniale",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "dichiarazioni dei redditi, estratti conto, titolarità di beni"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.12",
+     "perche": "deposito obbligatorio con domande economiche"
+    }
+   ],
+   "se_manca": "segnalare che con domande economiche il deposito è obbligatorio",
+   "parole_documento": [
+    "redditi",
+    "730",
+    "unico",
+    "cud",
+    "estratto"
+   ]
+  },
+  {
+   "campo": "condizioni",
+   "etichetta": "Condizioni concordate",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Affidamento, collocamento, frequentazioni, assegni, casa familiare, spese straordinarie e rapporti patrimoniali"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.51",
+     "perche": "contenuto delle condizioni"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "337sexies",
+     "perche": "assegnazione della casa familiare"
+    }
+   ]
+  },
+  {
+   "campo": "cumulo",
+   "etichetta": "Cumulo di separazione e divorzio",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Si chiede anche il divorzio nello stesso ricorso (possibile, ma procedibile solo dopo i termini)?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.49",
+     "perche": "cumulo delle domande"
+    }
+   ]
+  },
+  {
+   "campo": "negoziazione",
+   "etichetta": "Via della negoziazione assistita",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Le parti vogliono concludere con negoziazione assistita invece del ricorso?"
+   },
+   "norma": [
+    {
+     "atto": "dl_132_2014",
+     "articolo": "6",
+     "perche": "negoziazione assistita in materia familiare"
+    }
+   ]
+  },
+  {
+   "campo": "ufficio",
+   "etichetta": "Ufficio giudiziario competente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "competenza per materia, valore e territorio secondo le norme indicate; da confermare"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.11",
+     "perche": "competenza del tribunale del luogo di residenza abituale del minore o del convenuto"
+    }
+   ],
+   "compilatore": [
+    "recipient_or_court"
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Ricorso",
+   "compito": "parti, matrimonio, figli, condizioni concordate e richiesta di omologa o di sentenza"
+  },
+  {
+   "blocco": "Allegati",
+   "compito": "documenti reddituali e patrimoniali"
+  }
+ ],
+ "astensione": [
+  "accordo non raggiunto su tutti i punti",
+  "divorzio senza separazione documentata o prima dei termini dell’art. 3 L. 898/1970",
+  "procura di un solo coniuge"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

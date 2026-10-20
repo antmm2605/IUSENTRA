@@ -1,0 +1,244 @@
+{
+ "id": "ESE_013",
+ "titolo": "Istanza di ricerca telematica dei beni",
+ "template": [
+  "ESE_013"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "492bis",
+   "perche": "ricerca con modalità telematiche"
+  },
+  {
+   "atto": "1368/1941",
+   "articolo": "155quinquies",
+   "perche": "accesso alle banche dati tramite i gestori"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Creditore procedente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Debitore esecutato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "titolo",
+   "etichetta": "Titolo esecutivo in copia conforme",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "titolo esecutivo"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "474",
+     "perche": "titolo esecutivo"
+    }
+   ],
+   "se_manca": "astensione: senza titolo esecutivo non si procede",
+   "parole_documento": [
+    "sentenza",
+    "decreto",
+    "titolo",
+    "cambiale",
+    "assegno"
+   ]
+  },
+  {
+   "campo": "notifica_precetto",
+   "etichetta": "Data di notifica del precetto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "notifica",
+    "documento": "relata del precetto"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "480",
+     "perche": "precetto"
+    }
+   ],
+   "se_manca": "astensione: l’esecuzione va preceduta dalla notifica del precetto",
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "notifica"
+    },
+    {
+     "categoria": "prova_notifica"
+    }
+   ]
+  },
+  {
+   "campo": "termine_dilatorio",
+   "etichetta": "Primo giorno utile per l’esecuzione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "decorsi 10 giorni dalla notifica del precetto, salvo autorizzazione per pericolo nel ritardo",
+    "termine": {
+     "base": "notifica",
+     "direzione": "avanti",
+     "feriale": true,
+     "giorni": 10
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "482",
+     "perche": "termine dilatorio"
+    }
+   ]
+  },
+  {
+   "campo": "termine_precetto",
+   "etichetta": "Finestra per iniziare l’esecuzione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "non prima di 10 giorni dalla notifica del precetto (salvo autorizzazione) ed entro 90 giorni, con sospensione feriale; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
+    "termine": {
+     "base": "notifica",
+     "direzione": "avanti",
+     "feriale": true,
+     "giorni": 90
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "482",
+     "perche": "termine dilatorio di dieci giorni"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "481",
+     "perche": "inefficacia dopo novanta giorni"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    }
+   ]
+  },
+  {
+   "campo": "pec",
+   "etichetta": "Indirizzi di posta del creditore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Indica la PEC e la posta ordinaria a cui ricevere l’esito"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "492bis",
+     "perche": "contenuto dell’istanza"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Istanza",
+   "compito": "richiesta all’ufficiale giudiziario del luogo di residenza del debitore"
+  }
+ ],
+ "astensione": [
+  "titolo o precetto mancanti"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

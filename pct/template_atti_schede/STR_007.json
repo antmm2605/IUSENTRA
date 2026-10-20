@@ -1,0 +1,196 @@
+{
+ "id": "STR_007",
+ "titolo": "Piano di rientro, ricognizione di debito, saldo e stralcio",
+ "template": [
+  "STR_007",
+  "STR_008",
+  "STR_009"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "1988",
+   "perche": "promessa di pagamento e ricognizione"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2944",
+   "perche": "interruzione per riconoscimento"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1236",
+   "perche": "remissione del debito"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1184",
+   "perche": "termine di adempimento"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Creditore o debitore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Altra parte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "titolo",
+   "etichetta": "Documento del credito",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "fattura, contratto, ordine o riconoscimento"
+   },
+   "se_manca": "chiedere il documento da cui nasce il credito",
+   "parole_documento": [
+    "fattura",
+    "contratto",
+    "ordine"
+   ]
+  },
+  {
+   "campo": "importo",
+   "etichetta": "Importo, scadenza e interessi",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Capitale, data di scadenza, interessi (legali o di mora commerciali) e spese"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "1224",
+     "perche": "interessi moratori"
+    },
+    {
+     "atto": "231/2002",
+     "articolo": "5",
+     "perche": "interessi nelle transazioni commerciali"
+    }
+   ]
+  },
+  {
+   "campo": "accordo",
+   "etichetta": "Condizioni",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Rate e scadenze, importo a saldo e stralcio, decadenza dal beneficio del termine, effetti sul residuo"
+   }
+  },
+  {
+   "campo": "decadenza",
+   "etichetta": "Clausola di decadenza",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Cosa accade se una rata non è pagata?"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "1186",
+     "perche": "decadenza dal termine"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Accordo",
+   "compito": "riconoscimento, piano, decadenza, quietanza"
+  }
+ ],
+ "astensione": [
+  "importo non concordato"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

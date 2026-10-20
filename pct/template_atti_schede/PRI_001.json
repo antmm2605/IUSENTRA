@@ -1,0 +1,174 @@
+{
+ "id": "PRI_001",
+ "titolo": "Esercizio dei diritti dell’interessato",
+ "template": [
+  "PRI_001",
+  "PRI_002",
+  "PRI_009"
+ ],
+ "base_normativa": [
+  {
+   "atto": "reg_ue_2016_679",
+   "articolo": "15",
+   "perche": "accesso"
+  },
+  {
+   "atto": "reg_ue_2016_679",
+   "articolo": "16",
+   "perche": "rettifica"
+  },
+  {
+   "atto": "reg_ue_2016_679",
+   "articolo": "17",
+   "perche": "cancellazione"
+  },
+  {
+   "atto": "reg_ue_2016_679",
+   "articolo": "12",
+   "perche": "risposta entro un mese, prorogabile di due"
+  },
+  {
+   "atto": "reg_ue_2016_679",
+   "articolo": "77",
+   "perche": "reclamo al Garante"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Interessato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Titolare del trattamento",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "trattamento",
+   "etichetta": "Trattamento contestato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quali dati, quale trattamento, da quando, con quali prove?"
+   }
+  },
+  {
+   "campo": "richiesta",
+   "etichetta": "Diritto esercitato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Accesso, rettifica, cancellazione, limitazione, portabilità od opposizione?"
+   }
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Termine di risposta del titolare",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "un mese dal ricevimento, prorogabile di due mesi con motivazione"
+   },
+   "norma": [
+    {
+     "atto": "reg_ue_2016_679",
+     "articolo": "12",
+     "perche": "termine"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Richiesta",
+   "compito": "identificazione, diritto, dati, termine"
+  }
+ ],
+ "astensione": [
+  "identità dell’interessato non verificabile"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

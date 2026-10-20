@@ -1,0 +1,255 @@
+{
+ "id": "AMM_002",
+ "titolo": "Motivi aggiunti e ricorso incidentale",
+ "template": [
+  "AMM_002",
+  "AMM_003",
+  "AMM_010"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_processo_amministrativo",
+   "articolo": "43",
+   "perche": "motivi aggiunti"
+  },
+  {
+   "atto": "codice_processo_amministrativo",
+   "articolo": "42",
+   "perche": "ricorso incidentale"
+  },
+  {
+   "atto": "codice_processo_amministrativo",
+   "articolo": "117",
+   "perche": "ricorso avverso il silenzio"
+  },
+  {
+   "atto": "legge_241_1990",
+   "articolo": "2",
+   "perche": "termini del procedimento"
+  },
+  {
+   "atto": "codice_processo_amministrativo",
+   "articolo": "54",
+   "perche": "sospensione feriale esclusa nel cautelare"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Parte assistita",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Controparte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "controinteressati",
+   "etichetta": "Controinteressati",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Chi trae vantaggio dall’atto? Almeno uno va evocato a pena di inammissibilità"
+   },
+   "norma": [
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "41",
+     "perche": "notifica ad almeno un controinteressato"
+    }
+   ]
+  },
+  {
+   "campo": "dati_causa",
+   "etichetta": "Ufficio, giudice e numero di ruolo della causa",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "fascicolo, PEC di cancelleria e verbali"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione dell’ufficio"
+    }
+   ],
+   "se_manca": "chiedere ufficio e numero di ruolo: senza la causa pendente l’atto non si deposita",
+   "compilatore": [
+    "recipient_or_court",
+    "case_reference_display"
+   ],
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "atto",
+   "etichetta": "Atto nuovo o ragione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Motivi aggiunti contro atti nuovi, ricorso incidentale del controinteressato, o ricorso contro il silenzio?"
+   },
+   "norma": [
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "43",
+     "perche": "atti connessi"
+    },
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "42",
+     "perche": "interesse sorto dal ricorso principale"
+    },
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "117",
+     "perche": "silenzio"
+    }
+   ]
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Termine (diverso per ciascuna azione)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "60 giorni dalla conoscenza dell’atto nuovo o dalla notifica del ricorso principale; contro il silenzio finché dura e non oltre un anno dalla scadenza del termine del procedimento"
+   },
+   "norma": [
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "43",
+     "perche": "termini del ricorso"
+    },
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "42",
+     "perche": "sessanta giorni"
+    },
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "31",
+     "perche": "un anno per il silenzio"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Atto",
+   "compito": "motivi o domanda con richiesta"
+  }
+ ],
+ "astensione": [
+  "causa non pendente per motivi aggiunti o incidentale"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

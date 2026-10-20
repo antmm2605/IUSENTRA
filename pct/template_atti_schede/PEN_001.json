@@ -1,0 +1,143 @@
+{
+ "id": "PEN_001",
+ "titolo": "Nomina, revoca o rinuncia del difensore",
+ "template": [
+  "PEN_001",
+  "PEN_002"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "96",
+   "perche": "difensore di fiducia: massimo due"
+  },
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "107",
+   "perche": "rinuncia e revoca"
+  },
+  {
+   "atto": "codice_procedura_penale",
+   "articolo": "100",
+   "perche": "difensore della parte civile e della persona offesa"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, foro e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "96",
+     "perche": "difensore di fiducia"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Assistito (indagato, imputato o persona offesa)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "procedimento",
+   "etichetta": "Autorità procedente e numero del procedimento (R.G.N.R. o R.G.)",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "avvisi e notifiche"
+   },
+   "se_manca": "chiedere autorità e numero del procedimento",
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "atto",
+   "etichetta": "Atto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Nomina, revoca o rinuncia? Con elezione di domicilio presso il difensore?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "161",
+     "perche": "elezione di domicilio"
+    }
+   ]
+  },
+  {
+   "campo": "rinuncia",
+   "etichetta": "Effetti della rinuncia",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "ricordare che la rinuncia non ha effetto finché la parte non ha un nuovo difensore e non è decorso il termine a difesa"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_penale",
+     "articolo": "107",
+     "perche": "efficacia"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Atto",
+   "compito": "dichiarazione sottoscritta e autenticata"
+  }
+ ],
+ "astensione": [
+  "autorità o numero del procedimento non noti"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

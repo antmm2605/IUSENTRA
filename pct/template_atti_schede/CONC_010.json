@@ -1,0 +1,168 @@
+{
+ "id": "CONC_010",
+ "titolo": "Domanda di esdebitazione",
+ "template": [
+  "CONC_010"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_crisi",
+   "articolo": "278",
+   "perche": "esdebitazione"
+  },
+  {
+   "atto": "codice_crisi",
+   "articolo": "280",
+   "perche": "condizioni"
+  },
+  {
+   "atto": "codice_crisi",
+   "articolo": "282",
+   "perche": "esdebitazione di diritto nel sovraindebitamento"
+  },
+  {
+   "atto": "codice_crisi",
+   "articolo": "283",
+   "perche": "debitore incapiente"
+  },
+  {
+   "atto": "codice_crisi",
+   "articolo": "9",
+   "perche": "sospensione feriale esclusa nei procedimenti del codice della crisi"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Debitore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "procedura",
+   "etichetta": "Tribunale, numero della procedura e curatore o liquidatore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "ufficio_e_rg",
+    "documento": "sentenza e avviso del curatore"
+   },
+   "se_manca": "chiedere i dati della procedura",
+   "fatti": [
+    {
+     "categoria": "ruolo"
+    }
+   ]
+  },
+  {
+   "campo": "condizioni",
+   "etichetta": "Condizioni",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Condanne ostative, collaborazione, assenza di esdebitazione nei cinque anni precedenti"
+   },
+   "norma": [
+    {
+     "atto": "codice_crisi",
+     "articolo": "280",
+     "perche": "condizioni"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Domanda",
+   "compito": "condizioni e richiesta"
+  }
+ ],
+ "astensione": [
+  "cause ostative"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

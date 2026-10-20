@@ -1,0 +1,276 @@
+{
+ "id": "ESE_012",
+ "titolo": "Atto di pignoramento immobiliare",
+ "template": [
+  "ESE_012"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "555",
+   "perche": "forma del pignoramento immobiliare e trascrizione"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "557",
+   "perche": "iscrizione a ruolo"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "567",
+   "perche": "istanza di vendita e documentazione ipocatastale"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "497",
+   "perche": "quarantacinque giorni"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Creditore procedente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Debitore esecutato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "titolo",
+   "etichetta": "Titolo esecutivo in copia conforme",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "titolo esecutivo"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "474",
+     "perche": "titolo esecutivo"
+    }
+   ],
+   "se_manca": "astensione: senza titolo esecutivo non si procede",
+   "parole_documento": [
+    "sentenza",
+    "decreto",
+    "titolo",
+    "cambiale",
+    "assegno"
+   ]
+  },
+  {
+   "campo": "notifica_precetto",
+   "etichetta": "Data di notifica del precetto",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "notifica",
+    "documento": "relata del precetto"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "480",
+     "perche": "precetto"
+    }
+   ],
+   "se_manca": "astensione: l’esecuzione va preceduta dalla notifica del precetto",
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "notifica"
+    },
+    {
+     "categoria": "prova_notifica"
+    }
+   ]
+  },
+  {
+   "campo": "termine_dilatorio",
+   "etichetta": "Primo giorno utile per l’esecuzione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "decorsi 10 giorni dalla notifica del precetto, salvo autorizzazione per pericolo nel ritardo",
+    "termine": {
+     "base": "notifica",
+     "direzione": "avanti",
+     "feriale": true,
+     "giorni": 10
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "482",
+     "perche": "termine dilatorio"
+    }
+   ]
+  },
+  {
+   "campo": "termine_precetto",
+   "etichetta": "Finestra per iniziare l’esecuzione",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "non prima di 10 giorni dalla notifica del precetto (salvo autorizzazione) ed entro 90 giorni, con sospensione feriale; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
+    "termine": {
+     "base": "notifica",
+     "direzione": "avanti",
+     "feriale": true,
+     "giorni": 90
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "482",
+     "perche": "termine dilatorio di dieci giorni"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "481",
+     "perche": "inefficacia dopo novanta giorni"
+    },
+    {
+     "atto": "legge_742_1969",
+     "articolo": "1",
+     "perche": "sospensione feriale dei termini"
+    }
+   ]
+  },
+  {
+   "campo": "immobili",
+   "etichetta": "Immobili e dati catastali",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Quali immobili pignori? Indica comune, foglio, particella, subalterno e titolarità"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "555",
+     "perche": "esatta indicazione dei beni"
+    }
+   ]
+  },
+  {
+   "campo": "termini",
+   "etichetta": "Termini successivi",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "iscrizione a ruolo entro 15 giorni dalla consegna dell’atto e della nota di trascrizione; istanza di vendita e documentazione entro i termini degli artt. 497 e 567"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "557",
+     "perche": "quindici giorni"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "567",
+     "perche": "documentazione"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Atto",
+   "compito": "indicazione del credito e dei beni con i dati catastali, ingiunzione al debitore"
+  }
+ ],
+ "astensione": [
+  "dati catastali non indicati",
+  "titolo o notifica del precetto mancanti"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

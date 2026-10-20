@@ -1,0 +1,165 @@
+{
+ "id": "BAN_001",
+ "titolo": "Richiesta di documentazione e diffide all’intermediario",
+ "template": [
+  "BAN_001",
+  "BAN_002",
+  "BAN_011",
+  "BAN_012"
+ ],
+ "base_normativa": [
+  {
+   "atto": "385/1993",
+   "articolo": "119",
+   "perche": "copia della documentazione degli ultimi dieci anni entro novanta giorni"
+  },
+  {
+   "atto": "385/1993",
+   "articolo": "128bis",
+   "perche": "Arbitro Bancario Finanziario"
+  },
+  {
+   "atto": "58/1998",
+   "articolo": "32ter",
+   "perche": "Arbitro per le Controversie Finanziarie"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Cliente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Banca o intermediario",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "rapporti",
+   "etichetta": "Rapporti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Conti, mutui, affidamenti, investimenti: numeri e periodi"
+   }
+  },
+  {
+   "campo": "termine",
+   "etichetta": "Termine per la consegna",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "entro 90 giorni dalla richiesta, per i documenti degli ultimi dieci anni"
+   },
+   "norma": [
+    {
+     "atto": "385/1993",
+     "articolo": "119",
+     "perche": "novanta giorni"
+    }
+   ]
+  },
+  {
+   "campo": "abf",
+   "etichetta": "ABF",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "ricordare che il ricorso all’ABF richiede il reclamo preventivo all’intermediario"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Lettera",
+   "compito": "rapporti, documenti richiesti, termine"
+  }
+ ],
+ "astensione": [
+  "rapporti non indicati"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

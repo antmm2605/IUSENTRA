@@ -1,0 +1,194 @@
+{
+ "id": "STR_016",
+ "titolo": "Lettera interruttiva della prescrizione",
+ "template": [
+  "STR_016"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "2943",
+   "perche": "interruzione con atto di costituzione in mora"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "2945",
+   "perche": "nuovo periodo di prescrizione"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "1219",
+   "perche": "mora"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Creditore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Debitore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "titolo",
+   "etichetta": "Documento del credito",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "fattura, contratto, ordine o riconoscimento"
+   },
+   "se_manca": "chiedere il documento da cui nasce il credito",
+   "parole_documento": [
+    "fattura",
+    "contratto",
+    "ordine"
+   ]
+  },
+  {
+   "campo": "importo",
+   "etichetta": "Importo, scadenza e interessi",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Capitale, data di scadenza, interessi (legali o di mora commerciali) e spese"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "1224",
+     "perche": "interessi moratori"
+    },
+    {
+     "atto": "231/2002",
+     "articolo": "5",
+     "perche": "interessi nelle transazioni commerciali"
+    }
+   ]
+  },
+  {
+   "campo": "prescrizione",
+   "etichetta": "Prescrizione applicabile",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Termine di prescrizione del diritto (10, 5, 2 anni) e data di decorrenza"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "2946",
+     "perche": "ordinaria"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "2948",
+     "perche": "quinquennale"
+    }
+   ]
+  },
+  {
+   "campo": "ricezione",
+   "etichetta": "Ricezione",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "ricordare che l’interruzione opera dalla ricezione: usare PEC o raccomandata con avviso"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Lettera",
+   "compito": "diritto, richiesta, effetto interruttivo"
+  }
+ ],
+ "astensione": [
+  "prescrizione già maturata"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

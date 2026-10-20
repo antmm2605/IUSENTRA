@@ -1,0 +1,167 @@
+{
+ "id": "STD_001",
+ "titolo": "Incarico, preventivo, procura e informative al cliente",
+ "template": [
+  "STD_001",
+  "STD_002",
+  "STD_003",
+  "STD_004",
+  "STD_011",
+  "STD_012"
+ ],
+ "base_normativa": [
+  {
+   "atto": "legge_247_2012",
+   "articolo": "13",
+   "perche": "compenso pattuito di regola per iscritto; comunicazione scritta della prevedibile misura del costo (c. 5)"
+  },
+  {
+   "atto": "55/2014",
+   "articolo": "4",
+   "perche": "parametri"
+  },
+  {
+   "atto": "codice_deontologico_forense_2026",
+   "articolo": "27",
+   "perche": "doveri di informazione"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "83",
+   "perche": "procura alle liti"
+  },
+  {
+   "atto": "reg_ue_2016_679",
+   "articolo": "13",
+   "perche": "informativa privacy"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Cliente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "oggetto",
+   "etichetta": "Oggetto dell’incarico",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Prestazione, fasi, complessità e valore"
+   }
+  },
+  {
+   "campo": "compenso",
+   "etichetta": "Compenso e spese",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Forfait, a tempo o a parametri; fondo spese; rischi e durata prevedibile"
+   },
+   "norma": [
+    {
+     "atto": "legge_247_2012",
+     "articolo": "13",
+     "perche": "preventivo scritto obbligatorio"
+    },
+    {
+     "atto": "55/2014",
+     "articolo": "4",
+     "perche": "parametri"
+    }
+   ]
+  },
+  {
+   "campo": "mediazione",
+   "etichetta": "Informativa ADR",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "inserire l’informativa scritta sulla mediazione sottoscritta dall’assistito: senza, il contratto con l’avvocato è annullabile"
+   },
+   "norma": [
+    {
+     "atto": "28/2010",
+     "articolo": "4",
+     "perche": "obbligo di informazione dell’avvocato"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Atto",
+   "compito": "incarico, compenso, informative, firma"
+  }
+ ],
+ "astensione": [
+  "oggetto dell’incarico non definito"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

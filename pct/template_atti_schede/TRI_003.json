@@ -1,0 +1,297 @@
+{
+ "id": "TRI_003",
+ "titolo": "Appello tributario e controdeduzioni",
+ "template": [
+  "TRI_003",
+  "TRI_004"
+ ],
+ "base_normativa": [
+  {
+   "atto": "175/2024",
+   "articolo": "104",
+   "perche": "mezzi di impugnazione"
+  },
+  {
+   "atto": "175/2024",
+   "articolo": "105",
+   "perche": "termini"
+  },
+  {
+   "atto": "175/2024",
+   "articolo": "107",
+   "perche": "forma dell’appello"
+  },
+  {
+   "atto": "175/2024",
+   "articolo": "108",
+   "perche": "controdeduzioni e appello incidentale"
+  },
+  {
+   "atto": "175/2024",
+   "articolo": "110",
+   "perche": "eccezioni non riproposte"
+  },
+  {
+   "atto": "175/2024",
+   "articolo": "111",
+   "perche": "domande ed eccezioni nuove"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "327",
+   "perche": "decadenza semestrale"
+  },
+  {
+   "atto": "legge_742_1969",
+   "articolo": "1",
+   "perche": "sospensione feriale dei termini"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Appellante o appellato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Controparte",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "sentenza",
+   "etichetta": "Sentenza di primo grado",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "sentenza"
+   },
+   "se_manca": "astensione: serve la sentenza",
+   "parole_documento": [
+    "sentenza"
+   ]
+  },
+  {
+   "campo": "notifica",
+   "etichetta": "Notifica della sentenza",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "archivio_letture",
+    "fatto": "notifica",
+    "documento": "relata"
+   },
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "notifica"
+    },
+    {
+     "categoria": "prova_notifica"
+    }
+   ]
+  },
+  {
+   "campo": "termine_breve",
+   "etichetta": "Appello dalla notifica",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "60 giorni dalla notifica della sentenza, con sospensione feriale; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
+    "termine": {
+     "base": "notifica",
+     "direzione": "avanti",
+     "feriale": true,
+     "giorni": 60
+    }
+   },
+   "norma": [
+    {
+     "atto": "175/2024",
+     "articolo": "105",
+     "perche": "sessanta giorni"
+    }
+   ]
+  },
+  {
+   "campo": "termine_lungo",
+   "etichetta": "Appello senza notifica",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "6 mesi dalla pubblicazione, con sospensione feriale; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
+    "termine": {
+     "base": "provvedimento",
+     "direzione": "avanti",
+     "feriale": true,
+     "mesi": 6
+    }
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "327",
+     "perche": "sei mesi"
+    }
+   ]
+  },
+  {
+   "campo": "motivi",
+   "etichetta": "Motivi specifici",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Capi impugnati e critiche specifiche; nell’appellato, eccezioni da riproporre"
+   },
+   "norma": [
+    {
+     "atto": "175/2024",
+     "articolo": "107",
+     "perche": "motivi specifici"
+    },
+    {
+     "atto": "175/2024",
+     "articolo": "110",
+     "perche": "riproposizione"
+    }
+   ]
+  },
+  {
+   "campo": "controdeduzioni",
+   "etichetta": "Costituzione dell’appellato",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "entro 60 giorni dalla notifica dell’appello, con sospensione feriale"
+   },
+   "norma": [
+    {
+     "atto": "175/2024",
+     "articolo": "108",
+     "perche": "controdeduzioni"
+    },
+    {
+     "atto": "175/2024",
+     "articolo": "69",
+     "perche": "modi e termini della costituzione"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Motivi",
+   "compito": "censure per capo"
+  },
+  {
+   "blocco": "Conclusioni",
+   "compito": "riforma o conferma"
+  }
+ ],
+ "astensione": [
+  "sentenza non presente",
+  "termini scaduti"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

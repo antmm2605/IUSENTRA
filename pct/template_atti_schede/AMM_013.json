@@ -1,0 +1,207 @@
+{
+ "id": "AMM_013",
+ "titolo": "Ricorso per l’ottemperanza",
+ "template": [
+  "AMM_013"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_processo_amministrativo",
+   "articolo": "112",
+   "perche": "azione di ottemperanza"
+  },
+  {
+   "atto": "codice_processo_amministrativo",
+   "articolo": "113",
+   "perche": "giudice competente"
+  },
+  {
+   "atto": "codice_processo_amministrativo",
+   "articolo": "114",
+   "perche": "procedimento e prescrizione decennale"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Ricorrente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "controparte",
+   "etichetta": "Amministrazione resistente",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.controparte_principale",
+     "fascicolo.controparte"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "counterparty_or_recipient"
+   ]
+  },
+  {
+   "campo": "controinteressati",
+   "etichetta": "Controinteressati",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Chi trae vantaggio dall’atto? Almeno uno va evocato a pena di inammissibilità"
+   },
+   "norma": [
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "41",
+     "perche": "notifica ad almeno un controinteressato"
+    }
+   ]
+  },
+  {
+   "campo": "titolo",
+   "etichetta": "Sentenza da eseguire con attestazione del passaggio in giudicato o esecutiva",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "sentenza"
+   },
+   "se_manca": "astensione: serve il titolo",
+   "parole_documento": [
+    "sentenza",
+    "giudicato"
+   ]
+  },
+  {
+   "campo": "diffida",
+   "etichetta": "Notifica della sentenza e diffida all’amministrazione",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "notifica e diffida"
+   },
+   "parole_documento": [
+    "diffida",
+    "notifica"
+   ]
+  },
+  {
+   "campo": "inadempimento",
+   "etichetta": "Inadempimento",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Cosa non ha fatto l’amministrazione? Per crediti, prudenzialmente, attendere 120 giorni dalla notifica del titolo"
+   },
+   "norma": [
+    {
+     "atto": "codice_processo_amministrativo",
+     "articolo": "114",
+     "perche": "procedimento"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Ricorso",
+   "compito": "titolo, inadempimento, nomina del commissario ad acta e penalità"
+  }
+ ],
+ "astensione": [
+  "titolo non presente"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

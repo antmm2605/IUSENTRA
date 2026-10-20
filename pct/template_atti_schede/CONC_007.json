@@ -1,0 +1,207 @@
+{
+ "id": "CONC_007",
+ "titolo": "Sovraindebitamento: liquidazione controllata, concordato minore, ristrutturazione del consumatore",
+ "template": [
+  "CONC_007",
+  "CONC_011",
+  "CONC_012"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_crisi",
+   "articolo": "268",
+   "perche": "liquidazione controllata"
+  },
+  {
+   "atto": "codice_crisi",
+   "articolo": "74",
+   "perche": "concordato minore"
+  },
+  {
+   "atto": "codice_crisi",
+   "articolo": "67",
+   "perche": "ristrutturazione dei debiti del consumatore"
+  },
+  {
+   "atto": "codice_crisi",
+   "articolo": "2",
+   "perche": "definizioni di sovraindebitamento e consumatore"
+  },
+  {
+   "atto": "codice_crisi",
+   "articolo": "9",
+   "perche": "sospensione feriale esclusa nei procedimenti del codice della crisi"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "chiedere il caricamento della procura; senza procura l’atto non si deposita",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Debitore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "relazione",
+   "etichetta": "Relazione dell’OCC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "relazione dell’organismo di composizione della crisi"
+   },
+   "se_manca": "chiedere la relazione dell’OCC: senza la domanda non si deposita",
+   "parole_documento": [
+    "occ",
+    "relazione"
+   ]
+  },
+  {
+   "campo": "elenco",
+   "etichetta": "Elenco creditori, beni, redditi, dichiarazioni dei redditi",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "elenco creditori e documenti"
+   },
+   "parole_documento": [
+    "creditori",
+    "redditi"
+   ]
+  },
+  {
+   "campo": "procedura",
+   "etichetta": "Procedura scelta",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Debitore consumatore o impresa minore? Proposta ai creditori o liquidazione?"
+   },
+   "norma": [
+    {
+     "atto": "codice_crisi",
+     "articolo": "2",
+     "perche": "definizioni"
+    }
+   ]
+  },
+  {
+   "campo": "meritevolezza",
+   "etichetta": "Meritevolezza",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Cause dell’indebitamento e diligenza"
+   },
+   "norma": [
+    {
+     "atto": "codice_crisi",
+     "articolo": "69",
+     "perche": "ostative per il consumatore"
+    },
+    {
+     "atto": "codice_crisi",
+     "articolo": "77",
+     "perche": "inammissibilità del concordato minore"
+    },
+    {
+     "atto": "codice_crisi",
+     "articolo": "283",
+     "perche": "incapiente"
+    }
+   ]
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Domanda",
+   "compito": "situazione, piano o proposta, documenti"
+  }
+ ],
+ "astensione": [
+  "relazione OCC mancante"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

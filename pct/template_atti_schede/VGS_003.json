@@ -1,0 +1,171 @@
+{
+ "id": "VGS_003",
+ "titolo": "Rendiconto dell’amministratore, del tutore o del curatore",
+ "template": [
+  "VGS_003"
+ ],
+ "base_normativa": [
+  {
+   "atto": "codice_civile",
+   "articolo": "380",
+   "perche": "rendiconto annuale"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "385",
+   "perche": "conto finale"
+  },
+  {
+   "atto": "codice_civile",
+   "articolo": "411",
+   "perche": "norme applicabili all’amministrazione di sostegno"
+  }
+ ],
+ "campi": [
+  {
+   "campo": "difensore",
+   "etichetta": "Difensore, codice fiscale e PEC",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.avvocato_titolare",
+     "studio_timbro.codice_fiscale",
+     "studio_timbro.pec"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "sottoscrizione del difensore"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura"
+    }
+   ],
+   "compilatore": [
+    "lawyer",
+    "_lawyer_pec",
+    "_lawyer_tax_id"
+   ]
+  },
+  {
+   "campo": "procura",
+   "etichetta": "Procura alle liti",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "procura sottoscritta dal cliente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "83",
+     "perche": "procura alle liti"
+    }
+   ],
+   "se_manca": "la procura serve se si sta in giudizio con difensore; per l’amministrazione di sostegno il ricorso può essere depositato anche senza",
+   "parole_documento": [
+    "procura"
+   ]
+  },
+  {
+   "campo": "data_luogo",
+   "etichetta": "Luogo e data",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "studio.citta",
+     "today"
+    ]
+   },
+   "compilatore": [
+    "place",
+    "document_date"
+   ]
+  },
+  {
+   "campo": "assistito",
+   "etichetta": "Amministratore o tutore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "database",
+    "percorsi": [
+     "parti.assistito_principale",
+     "cliente"
+    ]
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "125",
+     "perche": "indicazione delle parti"
+    }
+   ],
+   "compilatore": [
+    "client_or_sender"
+   ]
+  },
+  {
+   "campo": "beneficiario",
+   "etichetta": "Beneficiario, interdicendo o minore",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Anagrafica, residenza o dimora abituale, condizioni di salute e di vita"
+   },
+   "norma": [
+    {
+     "atto": "codice_civile",
+     "articolo": "404",
+     "perche": "beneficiario"
+    },
+    {
+     "atto": "codice_civile",
+     "articolo": "407",
+     "perche": "contenuto del ricorso"
+    }
+   ]
+  },
+  {
+   "campo": "movimenti",
+   "etichetta": "Estratti conto e giustificativi del periodo",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "documento",
+    "documento": "estratti conto, ricevute, fatture"
+   },
+   "se_manca": "senza giustificativi il rendiconto non si chiude",
+   "parole_documento": [
+    "estratto",
+    "ricevuta",
+    "fattura"
+   ]
+  },
+  {
+   "campo": "prospetto",
+   "etichetta": "Prospetto entrate e uscite",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "lex",
+    "compito": "riepilogare entrate, uscite e saldo dai documenti caricati, senza stime"
+   }
+  }
+ ],
+ "scrive_lex": [
+  {
+   "blocco": "Rendiconto",
+   "compito": "periodo, entrate, uscite, saldo e atti compiuti"
+  }
+ ],
+ "astensione": [
+  "periodo non indicato"
+ ],
+ "versione": "2026-10-19.2",
+ "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
+ "modelli_compilatore": []
+}

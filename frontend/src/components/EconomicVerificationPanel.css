@@ -12,4 +12,7 @@
 .iu-fas-economic-control-modal__rows .iu-economic-verification strong,.iu-fas-economic-control-modal__rows .iu-economic-verification small { white-space:normal; overflow:visible; text-overflow:clip; }
 .iu-economic-verification button { flex-shrink:0; min-height:44px; border:1px solid var(--iu-border); border-radius:8px; padding:8px 12px; background:var(--iu-surface,#f8fbff); color:var(--iu-blue-700); cursor:pointer; font-weight:800; }
 .iu-economic-verification button:hover { background:var(--iu-blue-50); }
+.iu-fas-economic-cell>.iu-economic-verification { grid-column:1/-1; min-width:0; padding:8px 0; }
+.iu-fas-economic-cell .iu-economic-verification button { display:flex; align-items:center; justify-content:center; width:auto; min-width:44px; height:auto; min-height:44px; padding:8px 12px; background:var(--iu-surface,#f8fbff); color:var(--iu-blue-700); }
+.iu-fas-economic-cell .iu-economic-source-action { grid-column:1/-1; display:flex; align-items:center; justify-content:center; gap:6px; width:auto; min-height:44px; height:auto; padding:8px 12px; background:var(--iu-bg-card); color:var(--iu-blue-700); }
 @media(max-width:720px) { .iu-economic-verification__sources>li { flex-direction:column; } }

@@ -8,6 +8,8 @@ import { useReaderDrag } from './useReaderDrag'
 import { OPERATIONAL_REFRESH_RETRY, useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { coversRevisionProof, type OperationalRevisions } from '../operationalRevisionProof'
 import { EconomicVerificationPanel } from './EconomicVerificationPanel'
+import { EconomicSourceWindow } from './EconomicSourceWindow'
+import { OperationalModal } from './OperationalModal'
 import { AvanzamentoCaricamento, caricaDocumentiConAvanzamento, type StatoCaricamento } from './fascicoli/caricaDocumenti'
 import { Fragment, Suspense, lazy, useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 const ViewerDocumentEditor = lazy(() => import('./ViewerDocumentEditor').then((module) => ({ default: module.ViewerDocumentEditor })))
@@ -2361,20 +2363,20 @@ function economicAnalysisMessage(analysis: FascicoloPaymentSummary['analysis']):
   return ''
 }
 
-function EconomicPaymentSummary({ payment, kind }:{payment:FascicoloPaymentItem; kind:FascicoloPaymentKind}) {
+function EconomicPaymentSummary({ payment, kind, context }:{payment:FascicoloPaymentItem; kind:FascicoloPaymentKind; context:string}) {
   const label = paymentColumnLabels[kind] || payment.displayLabel || payment.label
   const amount = payment.importoLabel || (payment.status === 'non_previsto' ? 'n.d.' : payment.status === 'da_emettere' ? 'Da calcolare' : 'Da verificare')
   const detail = payment.dataPagamento || visibleDocumentSource(payment.documentoFonte) || payment.updatedAtLabel || payment.metodo || payment.note || ''
   const title = [label, amount, payment.statusLabel, detail].filter(Boolean).join(' - ')
   return (
-    <div className={`iu-fas-economic-summary iu-fas-economic-summary--${payment.tone}`} title={title} aria-label={title}>
-      <div>
+    <EconomicSourceWindow payment={payment} context={context} className={`iu-fas-economic-summary iu-fas-economic-summary--${payment.tone}`} label={`${title} — Apri fonte`}>
+      <span className="iu-fas-economic-summary__value">
         <span>{label}</span>
         <strong>{amount}</strong>
-      </div>
+      </span>
       <Badge tone={payment.tone}>{payment.statusLabel}</Badge>
       {detail ? <small>{detail}</small> : null}
-    </div>
+    </EconomicSourceWindow>
   )
 }
 
@@ -2419,6 +2421,7 @@ function hasEconomicEvidence(row:FascicoloRow): boolean {
 }
 
 function EconomicEvidenceStrip({ row }:{row:FascicoloRow}) {
+  const [open, setOpen] = useState(false)
   const analysis = row.paymentSummary.analysis
   const proforma = row.paymentSummary.proformaPresidio
   const evidences = economicPaymentKinds
@@ -2439,6 +2442,9 @@ function EconomicEvidenceStrip({ row }:{row:FascicoloRow}) {
   const analysisMessage = economicAnalysisMessage(analysis)
   if (!evidences.length && !analysisVisible && !proformaVisible) return null
   return (
+    <>
+    <button type="button" className="iu-fas-economic-evidence-trigger" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}><FileCheck2 size={15}/> Controllo documenti</button>
+    {open ? <OperationalModal open ariaLabel={`Controllo documenti ${row.ref}`} eyebrow="Presidio economico" title="Controllo documenti" subtitle={`${row.ref} · ${row.client}`} onClose={() => setOpen(false)}>
     <div className="iu-fas-economic-evidence" aria-label={`Fonti economiche lette dai documenti per ${row.ref}`}>
       <span><FileCheck2 size={14}/> Controllo documenti</span>
       {proformaVisible ? (
@@ -2460,10 +2466,12 @@ function EconomicEvidenceStrip({ row }:{row:FascicoloRow}) {
         </small>
       ))}
     </div>
+    </OperationalModal> : null}
+    </>
   )
 }
 
-function EconomicPaymentCell({ row, kind, onSaved, onError, onDraftChange, forceLabel = false }:{row:FascicoloRow; kind:FascicoloPaymentKind; onSaved:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onError:(message:string)=>void; onDraftChange?:(kind:FascicoloPaymentKind, draft:FascicoloPaymentUpdatePayload | null)=>void; forceLabel?:boolean}) {
+function EconomicPaymentCell({ row, kind, onSaved, onError, onDraftChange, onSourceOpenChange, forceLabel = false }:{row:FascicoloRow; kind:FascicoloPaymentKind; onSaved:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onError:(message:string)=>void; onDraftChange?:(kind:FascicoloPaymentKind, draft:FascicoloPaymentUpdatePayload | null)=>void; onSourceOpenChange?:(open:boolean)=>void; forceLabel?:boolean}) {
   const payment = row.paymentSummary.items[kind]
   const paymentLabel = payment.displayLabel || payment.label || paymentFullLabels[kind]
   const paymentNatureLabel = payment.natura ? payment.natura.replace(/_/g, ' ') : ''
@@ -2575,9 +2583,9 @@ function EconomicPaymentCell({ row, kind, onSaved, onError, onDraftChange, force
           </label>
         </div>
       </details>
+      <EconomicSourceWindow payment={payment} context={`${row.ref} · ${row.client}`} onOpenChange={onSourceOpenChange}/>
       {payment.richiedeConferma ? (
         <div className="iu-fas-economic-cell__verification">
-          {(payment.verificheMancanti || []).map((message) => <p key={message}>{message}</p>)}
           <label>
             <input type="checkbox" checked={confirmedEvidence} onChange={(event) => setConfirmedEvidence(event.target.checked)}/>
             <span>Confermo l’importo di {paymentLabel.toLowerCase()} dopo aver verificato le fonti</span>
@@ -2606,7 +2614,7 @@ function economicProformaBasis(summary: FascicoloPaymentSummary): FascicoloProfo
   return undefined
 }
 
-function EconomicEditorPanel({ row, onSaved, onError }:{row:FascicoloRow; onSaved:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onError:(message:string)=>void}) {
+function EconomicEditorPanel({ row, onSaved, onError, onSourceOpenChange }:{row:FascicoloRow; onSaved:(id:string, paymentSummary:FascicoloRow['paymentSummary'], message?:string)=>void; onError:(message:string)=>void; onSourceOpenChange?:(open:boolean)=>void}) {
   const [drafts, setDrafts] = useState<EconomicPaymentDrafts>({})
   const [generating, setGenerating] = useState(false)
   const [operationMessage, setOperationMessage] = useState<{ tone: 'success' | 'error'; text: string } | null>(null)
@@ -2666,7 +2674,7 @@ function EconomicEditorPanel({ row, onSaved, onError }:{row:FascicoloRow; onSave
       <EconomicEvidenceStrip row={row}/>
       <div className="iu-fas-economic-edit-grid" data-fascicoli-economic-draft={dirtyCount || generating ? 'true' : undefined}>
         {economicPaymentKinds.map((kind) => (
-          <EconomicPaymentCell row={row} kind={kind} onSaved={onSaved} onError={onError} onDraftChange={registerDraft} forceLabel key={kind}/>
+          <EconomicPaymentCell row={row} kind={kind} onSaved={onSaved} onError={onError} onDraftChange={registerDraft} onSourceOpenChange={onSourceOpenChange} forceLabel key={kind}/>
         ))}
       </div>
       <div className="iu-fas-economic-editor__actions" aria-live="polite">
@@ -2721,9 +2729,11 @@ function DossierMobileCard({ item, checked, onToggle, archive = false, economic 
               const label = payment.displayLabel || payment.label || paymentFullLabels[kind]
               return (
                 <li key={kind}>
+                  <EconomicSourceWindow payment={payment} context={`${item.ref} · ${item.client}`} className="iu-fas-mobile-economic-source">
                   <span>{label}</span>
                   <strong>{payment.importoLabel || 'vuoto'}</strong>
                   <Badge tone={payment.tone}>{payment.statusLabel}</Badge>
+                  </EconomicSourceWindow>
                 </li>
               )
             })}
@@ -3267,7 +3277,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                         <td className="iu-fas-economic-matrix">
                           <div className="iu-fas-economic-summary-grid" aria-label={`Sintesi economica ${item.ref}`}>
                             {economicPaymentKinds.map((kind) => (
-                              <EconomicPaymentSummary payment={item.paymentSummary.items[kind]} kind={kind} key={kind}/>
+                              <EconomicPaymentSummary payment={item.paymentSummary.items[kind]} kind={kind} context={`${item.ref} · ${item.client}`} key={kind}/>
                             ))}
                           </div>
                         </td>
@@ -3331,7 +3341,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                     <div className="iu-fas-collection-economic">
                       <div className="iu-fas-economic-summary-grid">
                         {economicPaymentKinds.map((kind) => (
-                          <EconomicPaymentSummary payment={item.paymentSummary.items[kind]} kind={kind} key={kind}/>
+                          <EconomicPaymentSummary payment={item.paymentSummary.items[kind]} kind={kind} context={`${item.ref} · ${item.client}`} key={kind}/>
                         ))}
                       </div>
                       <EconomicEvidenceStrip row={item}/>
@@ -6409,7 +6419,7 @@ function EconomicControlModal({
               <span>{proformaEditorStatus}</span>
               <p>{proformaEditorMessage}</p>
             </div>
-            <EconomicEditorPanel row={f} onSaved={onPaymentSaved} onError={onError}/>
+            <EconomicEditorPanel row={f} onSaved={onPaymentSaved} onError={onError} onSourceOpenChange={setEconomicSourceOpen}/>
           </section>
         ) : (
           <>

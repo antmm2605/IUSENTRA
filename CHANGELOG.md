@@ -1,3 +1,11 @@
+# 2.442.1 — Fonti economiche nel lettore interno
+
+- Contributo e liquidazione aprono le fonti collegate dalla vista economica desktop e mobile; ricevuta, esenzione, mancanze e discordanze restano distinte.
+- Fonte raggiungibile anche accanto alla conferma nel form; lettura, chiusura e riapertura preservano la bozza e non confermano automaticamente importi.
+- Controllo documenti raccolto in una finestra, con accesso compatto nella lista.
+- Riconoscitore condiviso: un R.G. già letto nell'intestazione non qualifica una norma nel capoverso successivo; preservati gli elenchi espliciti di procedimenti.
+- Vecchio comando di incasso senza scritture parziali: nessuna bozza creata prima del rifiuto; il movimento appartiene al registro SQL nativo, distinto dall'emissione fiscale.
+
 # 2.442.0 — Incassi SQL e recupero delle letture (candidato)
 
 - Incassi parziali, saldo e storni collegati alla Prima nota nativa, con revisione concorrente, conferma recuperabile e conservazione delle prove.

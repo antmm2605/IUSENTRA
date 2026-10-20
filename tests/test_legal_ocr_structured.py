@@ -195,3 +195,19 @@ def test_adapter_esterni_degradano_senza_crash_se_non_installati():
         if "installed" not in run.version:  # libreria non presente nel sandbox
             assert run.tokens == []
             assert run.errors and "non disponibile" in run.errors[0].lower()
+
+
+def test_rg_intestazione_non_qualifica_norma_spezzata_tra_pagine():
+    from legal_ocr.ner_legal import extract_numero_ruolo
+
+    source = "RG n. 2313/2025\n37/2018 e dal DM n. 147/2022) ritenuta la causa"
+    assert extract_numero_ruolo(source) == [
+        {"numero": "2313", "anno": "2025", "testo": "2313/2025"},
+    ]
+
+
+def test_rg_distinti_in_elenco_e_nuovo_marcatore_restano_leggibili():
+    from legal_ocr.ner_legal import extract_numero_ruolo
+
+    source = "R.G. 12/2025 e 13/2025; procedimento R.G. n. 14/2025"
+    assert [item["numero"] for item in extract_numero_ruolo(source)] == ["12", "13", "14"]

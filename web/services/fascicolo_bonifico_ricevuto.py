@@ -1,13 +1,4 @@
-"""«Registra bonifico ricevuto» dal controllo economico del fascicolo.
-
-Quando la somma liquidata dal giudice (o comunque dovuta) arriva sul conto
-dello studio, l'avvocato la registra in un passaggio solo dal fascicolo: la
-parcella aperta del fascicolo viene segnata pagata con metodo bonifico e data;
-se non c'è, viene creata dal presidio economico (bozza da completare
-fiscalmente) e subito segnata pagata; la voce «Liquidazione giudice» del
-controllo pagamenti passa a «Pagato» con la stessa data. Fatturazione e
-fascicolo leggono lo stesso record: nessuna doppia registrazione.
-"""
+"""Compatibilità consultiva del vecchio comando: gli incassi usano il registro SQL nativo."""
 
 from __future__ import annotations
 
@@ -60,37 +51,6 @@ def _liquidazione(fascicolo: Any) -> dict[str, Any]:
     return _payment_source_for_kind(getattr(fascicolo, "pagamenti", {}) or {}, "liquidazione_giudice")
 
 
-def _confirmed_receipt(fascicolo: Any, parcella: Any, importo: float, data_iso: str) -> dict[str, Any] | None:
-    """Riscontro consultivo del fatto già confermato, senza ripetere scritture."""
-    from web.services.react_fascicoli_bridge import _payment_source_for_kind, payment_summary_for_fascicolo
-
-    method = getattr(parcella, "metodo_pagamento", "")
-    if (_stato(parcella) != "PAGATA" or not method or method != _text(method)
-            or getattr(parcella, "data_pagamento", "") != data_iso):
-        return None
-    invoice_id = _text(getattr(parcella, "id", ""))
-    payments = getattr(fascicolo, "pagamenti", {}) or {}
-    kinds = ["parcella"]
-    if _liquidazione(fascicolo).get("importo") is not None:
-        kinds.append("liquidazione_giudice")
-    for kind in kinds:
-        source = _payment_source_for_kind(payments, kind)
-        if (source.get("status") != "pagato"
-                or _text(source.get("proforma_id") or source.get("proformaId")) != invoice_id
-                or source.get("data_pagamento") != data_iso or source.get("metodo") != method
-                or _importo(source.get("incasso_importo")) != importo):
-            return None
-    number = _text(getattr(parcella, "numero", "")) or invoice_id
-    return {
-        "ok": True,
-        "message": f"Incasso già collegato alla parcella {number}: importo e data originali conservati, nessun doppione.",
-        "parcellaId": invoice_id, "parcellaNumero": number, "parcellaCreata": False,
-        "alreadyPresent": True, "importo": importo, "dataPagamento": data_iso, "metodo": method,
-        "paymentSummary": payment_summary_for_fascicolo(fascicolo),
-        "redirectHref": f"/fatturazione?id_documento={invoice_id}",
-    }
-
-
 def registra_bonifico_ricevuto(
     *,
     get_fascicoli: Callable[[], Any],
@@ -100,12 +60,9 @@ def registra_bonifico_ricevuto(
     actor: str = "IUSENTRA",
     metodo_pagamento: str = METODO_BONIFICO,
 ) -> tuple[dict[str, Any], int]:
-    from pct.fatturazione import StatoParcella, ParcellaConcurrentUpdate, parcella_revision
-    from pct.fatturazione_sql_commands import ParcellaPaymentRequiresReceipt
+    from pct.fatturazione import parcella_revision
     from web.services.react_fascicoli_bridge import (
-        _create_review_proforma_from_fascicolo_amount,
         _resolve_fascicolo,
-        update_react_fascicolo_payment,
         _amount_label,
     )
 
@@ -127,17 +84,15 @@ def registra_bonifico_ricevuto(
         importo = _importo(liquidazione.get("importo"))
     if importo is None or importo <= 0:
         return {"ok": False, "message": "Indica l'importo ricevuto.", "errors": {"importo": "Indica l'importo ricevuto (maggiore di zero)."}}, 400
-    data_iso, errore_data = _data_iso(payload.get("data_pagamento") or payload.get("dataPagamento") or payload.get("data"))
+    _, errore_data = _data_iso(payload.get("data_pagamento") or payload.get("dataPagamento") or payload.get("data"))
     if errore_data:
         return {"ok": False, "message": errore_data, "errors": {"dataPagamento": errore_data}}, 400
-    nota = _text(payload.get("note"))[:400]
 
     manager = get_fatturazione()
     tutte = list(manager.per_fascicolo(fid) or [])
     parcelle = [voce for voce in tutte if _stato(voce) in STATI_PARCELLA_APERTA]
     richiesta = _text(payload.get("parcella_id") or payload.get("parcellaId"))
     parcella = None
-    creata = False
     if richiesta:
         parcella = next((voce for voce in tutte if _text(getattr(voce, "id", "")) == richiesta
                          and _stato(voce) in STATI_PARCELLA_APERTA | {"PAGATA"}), None)
@@ -165,26 +120,15 @@ def registra_bonifico_ricevuto(
                          for voce in tutte if _stato(voce) == "PAGATA"],
         }, 409
     if parcella is None:
-        fonte = "bonifico ricevuto" + (" a fronte della liquidazione del giudice" if liquidazione.get("importo") else "")
-        esito = _create_review_proforma_from_fascicolo_amount(
-            fascicoli_repository=fascicoli, fatturazione_repository=manager, fascicolo=fascicolo,
-            amount=importo, amount_source=fonte, actor=actor,
-        )
-        if not esito.get("created"):
-            return {"ok": False, "message": f"Parcella non creata: {esito.get('reason') or 'cliente o importo mancanti'}", "errors": {"parcella": _text(esito.get("reason"))}}, 400
-        parcella = manager.get(_text(esito.get("proformaId") or esito.get("id")))
-        creata = True
-        if parcella is None:
-            return {"ok": False, "message": "Parcella creata ma non rileggibile.", "errors": {"parcella": "non rileggibile"}}, 500
+        return {"ok": False, "code": "receipt_required",
+                "message": "Crea esplicitamente il documento economico, poi registra l'incasso nella sezione Incassi.",
+                "redirectHref": f"/fatturazione/nuova?id_fascicolo={fid}"}, 409
     parcella_id = _text(getattr(parcella, "id", ""))
     if (not _text(getattr(fascicolo, "id_cliente", ""))
             or _text(getattr(parcella, "id_cliente", "")) != _text(getattr(fascicolo, "id_cliente", ""))):
         return {"ok": False, "conflict": True,
                 "message": "Cliente del documento non concordante con il fascicolo: verifica il collegamento prima dell'incasso."}, 409
     if revision is not None and parcella_revision(parcella) != revision:
-        confirmed = _confirmed_receipt(fascicolo, parcella, importo, data_iso)
-        if confirmed is not None:
-            return confirmed, 200
         return {"ok": False, "conflict": True,
                 "message": "Il documento è cambiato: ricarica le parcelle prima di confermare. I dati inseriti sono conservati."}, 409
     expected_amount = round(float(parcella.netto_a_pagare), 2)
@@ -193,83 +137,8 @@ def registra_bonifico_ricevuto(
                 "message": f"Versamento {_amount_label(importo)} diverso dal netto della parcella {_amount_label(expected_amount)}: saldo non confermato, importi e stati conservati.",
                 "errors": {"importo": "Il versamento non dimostra il saldo della parcella."},
                 "discordanza": {"parcellaId": parcella_id, "importoRicevuto": importo, "nettoParcella": expected_amount}}, 409
-    metodo = _text(metodo_pagamento) or METODO_BONIFICO
-    if _stato(parcella) == "PAGATA":
-        data_iso = _text(getattr(parcella, "data_pagamento", "")) or data_iso
-        metodo = _text(getattr(parcella, "metodo_pagamento", "")) or metodo
-        importo = float(parcella.netto_a_pagare)
-        from web.services.react_fascicoli_bridge import _payment_source_for_kind
-        for kind in ("parcella", "liquidazione_giudice"):
-            saved = _payment_source_for_kind(getattr(fascicolo, "pagamenti", {}) or {}, kind)
-            if saved.get("status") == "pagato" and _text(saved.get("proforma_id") or saved.get("proformaId")) == parcella_id:
-                registered = _importo(saved.get("incasso_importo"))
-                if registered is not None:
-                    importo = registered
-                    break
-    gia_collegato = not creata and _stato(parcella) == "PAGATA"
-    if _stato(parcella) != "PAGATA" or getattr(parcella, "data_pagamento", "") != data_iso or getattr(parcella, "metodo_pagamento", "") != metodo:
-        gia_collegato = False
-        try:
-            arguments = {"expected_revision": revision} if revision is not None else {}
-            manager.cambia_stato(parcella_id, StatoParcella.PAGATA, data_pagamento=data_iso,
-                                 metodo_pagamento=metodo, **arguments)
-        except ParcellaPaymentRequiresReceipt as exc:
-            return {"ok": False, "code": "receipt_required", "message": str(exc)}, 409
-        except ParcellaConcurrentUpdate as exc:
-            return {"ok": False, "conflict": True, "message": str(exc)}, 409
-
-    # La voce «Liquidazione giudice» del controllo pagamenti segue il bonifico.
-    numero = _text(getattr(manager.get(parcella_id), "numero", "")) or parcella_id
-    operazione = "Bonifico" if "bonifico" in metodo.casefold() else "Incasso"
-    nota_presidio = f"{operazione} ricevuto il {datetime.strptime(data_iso, '%Y-%m-%d').strftime('%d/%m/%Y')} (parcella {numero})" + (f": {nota}" if nota else "")
-    esito_presidio: dict[str, Any] = {}
-    stato_presidio = 200
-    from web.services.react_fascicoli_bridge import _payment_source_for_kind, payment_summary_for_fascicolo
-
-    voci = ["parcella"]
-    if liquidazione.get("importo") is not None:
-        voci.insert(0, "liquidazione_giudice")
-    for kind in voci:
-        corrente = get_fascicoli().get(fid)
-        raw = _payment_source_for_kind(getattr(corrente, "pagamenti", {}) or {}, kind)
-        # Il totale dell'incasso non sostituisce il capo liquidato dal giudice
-        # o un importo della parcella già registrato dall'avvocato.
-        amount = _importo(raw.get("importo")) or importo
-        gia_presente = (raw.get("status") == "pagato" and raw.get("data_pagamento") == data_iso
-                        and raw.get("metodo") == metodo
-                        and _text(raw.get("proforma_id") or raw.get("proformaId")) == parcella_id)
-        if gia_presente:
-            esito_presidio = {"paymentSummary": payment_summary_for_fascicolo(corrente)}
-            continue
-        gia_collegato = False
-        esito_presidio, stato_presidio = update_react_fascicolo_payment(
-            get_fascicoli=get_fascicoli, get_fatturazione=get_fatturazione, id_fasc=fid, kind=kind,
-            payload={"status": "pagato", "importo": amount, "dataPagamento": data_iso, "metodo": metodo,
-                     "note": nota_presidio[:400], "proforma_id": parcella_id}, actor=actor,
-        )
-        if stato_presidio >= 400:
-            break
-    if stato_presidio >= 400:
-        return {"ok": False, "message": f"Bonifico registrato sulla parcella {numero}, ma il controllo economico non è stato aggiornato: {esito_presidio.get('message')}", "errors": esito_presidio.get("errors") or {}, "parcellaId": parcella_id}, stato_presidio
-    messaggio = (
-        f"{operazione} di € {importo:,.2f}".replace(",", "\x00").replace(".", ",").replace("\x00", ".")
-        + f" registrato: parcella {numero} {'creata e ' if creata else ''}segnata pagata il {datetime.strptime(data_iso, '%Y-%m-%d').strftime('%d/%m/%Y')}; controllo economico aggiornato."
-    )
-    if gia_collegato:
-        messaggio = f"Incasso già collegato alla parcella {numero}: importo e data originali conservati, nessun doppione."
-    return {
-        "ok": True,
-        "message": messaggio,
-        "parcellaId": parcella_id,
-        "parcellaNumero": numero,
-        "parcellaCreata": creata,
-        "alreadyPresent": gia_collegato,
-        "importo": importo,
-        "dataPagamento": data_iso,
-        "metodo": metodo,
-        "paymentSummary": esito_presidio.get("paymentSummary") or esito_presidio.get("payment_summary") or {},
-        "redirectHref": f"/fatturazione?id_documento={parcella_id}",
-    }, 200
-
-
-__all__ = ["METODO_BONIFICO", "registra_bonifico_ricevuto"]
+    # Nessuna creazione di proforme, cambio di stato o conferma della liquidazione:
+    # solo un movimento del registro incassi può dimostrare l'evento di cassa.
+    return {"ok": False, "code": "receipt_required", "parcellaId": parcella_id,
+            "message": "Registra il pagamento effettivo nella sezione Incassi del documento economico.",
+            "redirectHref": f"/fatturazione?id_documento={parcella_id}"}, 409

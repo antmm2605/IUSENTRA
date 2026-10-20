@@ -76,7 +76,7 @@ export function OcrPageViewer({
   const riferimenti = numeriDiRuolo.length || uffici.length || date.length ? (
     <dl className="iu-ocr-viewer__riferimenti">
       {numeriDiRuolo.length ? <div><dt>Numero di ruolo letto</dt><dd>{numeriDiRuolo.join(' · ')}</dd></div> : null}
-      {uffici.length ? <div><dt>Ufficio giudiziario</dt><dd>{uffici.join(' · ')}</dd></div> : null}
+      {uffici.length ? <div><dt>Uffici citati nel testo</dt><dd>{uffici.join(' · ')}</dd></div> : null}
       {date.length ? <div><dt>Date nel testo</dt><dd>{date.slice(0, 3).join(' · ')}</dd></div> : null}
     </dl>
   ) : null

@@ -1,4 +1,8 @@
-"""«Registra bonifico ricevuto» dal controllo economico: parcella pagata e liquidazione a «Pagato» in un passaggio."""
+"""Il vecchio comando non simula incassi: nessuna scrittura prima del registro SQL nativo.
+
+I cicli positivi, parziali, storni, retry e concorrenza sono provati in
+test_parcella_incassi_repository.py e test_invoice_receipts_sql_lifecycle.py.
+"""
 
 from __future__ import annotations
 
@@ -30,50 +34,8 @@ def _seed(app, *, con_parcella: bool):
     return fascicolo, parcella
 
 
-def test_bonifico_su_parcella_aperta_segna_pagata_e_chiude_la_liquidazione(tmp_path: Path):
-    app = _app(tmp_path)
-    with app.app_context():
-        fascicolo, parcella = _seed(app, con_parcella=True)
-        get_fascicoli = app.extensions["core_runtime"]["get_fascicoli"]
-        get_fatturazione = app.extensions["core_runtime"]["get_fatturazione"]
-        esito, stato = update_react_fascicolo_payment(get_fascicoli=get_fascicoli, get_fatturazione=get_fatturazione, id_fasc=fascicolo.id, kind="liquidazione_giudice", payload={"status": "da_registrare", "importo": 4500, "documento_fonte": "Sentenza.pdf"}, actor="test")
-        assert stato == 200, esito
-
-        esito, stato = registra_bonifico_ricevuto(get_fascicoli=get_fascicoli, get_fatturazione=get_fatturazione, id_fasc=fascicolo.id, payload={"data_pagamento": "10/09/2026", "note": "bonifico Banca X"}, actor="avv. Bianchi")
-
-        assert stato == 200, esito
-        assert esito["ok"] and esito["parcellaId"] == parcella.id and esito["parcellaCreata"] is False
-        assert esito["importo"] == 4500.0 and esito["dataPagamento"] == "2026-09-10" and esito["metodo"] == METODO_BONIFICO
-        assert "registrato: parcella" in esito["message"] and "segnata pagata il 10/09/2026" in esito["message"]
-        pagata = get_fatturazione().get(parcella.id)
-        assert pagata.stato == StatoParcella.PAGATA and pagata.data_pagamento == "2026-09-10" and pagata.metodo_pagamento == METODO_BONIFICO
-        liquidazione = esito["paymentSummary"]["items"]["liquidazione_giudice"]
-        assert liquidazione["status"] == "pagato" and liquidazione["pagato"] is True and liquidazione["metodo"] == METODO_BONIFICO
-        assert "Bonifico ricevuto il 10/09/2026" in liquidazione["note"]
-
-        # La lettura del fascicolo legge la stessa fonte: liquidazione incassata, nessun passo di riscossione.
-        from lex.context.fascicolo_lettura_context import load_fascicolo_lettura_context
-
-        lettura = load_fascicolo_lettura_context(fascicolo_id=fascicolo.id)
-        assert lettura["economico"]["liquidazione_incasso"] == "incassata"
-        assert [voce["pagata_il"] for voce in lettura["economico"]["bonifici"]] == ["10/09/2026"]
-        assert not any(passo["azione"].startswith("Riscuotere") for passo in lettura["prossimi_passi"])
 
 
-def test_bonifico_senza_parcella_la_crea_e_la_segna_pagata(tmp_path: Path):
-    app = _app(tmp_path)
-    with app.app_context():
-        fascicolo, _ = _seed(app, con_parcella=False)
-        get_fascicoli = app.extensions["core_runtime"]["get_fascicoli"]
-        get_fatturazione = app.extensions["core_runtime"]["get_fatturazione"]
-        esito, stato = registra_bonifico_ricevuto(get_fascicoli=get_fascicoli, get_fatturazione=get_fatturazione, id_fasc=fascicolo.id, payload={"importo": "1.200,50"}, actor="test")
-        assert stato == 200, esito
-        assert esito["parcellaCreata"] is True and esito["importo"] == 1200.5
-        creata = get_fatturazione().get(esito["parcellaId"])
-        assert creata.stato == StatoParcella.PAGATA and creata.metodo_pagamento == METODO_BONIFICO and creata.id_fascicolo == fascicolo.id
-        assert abs(float(creata.totale) - 1200.5) < 0.01
-        parcella = esito["paymentSummary"]["items"]["parcella"]
-        assert parcella["status"] == "pagato"
 
 
 def test_bonifico_rifiuta_importo_mancante_e_data_futura(tmp_path: Path):
@@ -90,68 +52,8 @@ def test_bonifico_rifiuta_importo_mancante_e_data_futura(tmp_path: Path):
         assert stato == 404
 
 
-def test_endpoint_bonifico_ricevuto(tmp_path: Path):
-    app = _app(tmp_path)
-    with app.app_context():
-        fascicolo, parcella = _seed(app, con_parcella=True)
-    with app.test_client() as client:
-        risposta = client.post(f"/api/v1/ui/fascicoli/{fascicolo.id}/bonifico-ricevuto", headers=HEADERS, json={"importo": 4500, "data_pagamento": "2026-09-10"})
-    assert risposta.status_code == 200, risposta.get_data(as_text=True)
-    payload = risposta.get_json()
-    assert payload["ok"] is True and payload["parcellaId"] == parcella.id
-    assert payload["redirectHref"].endswith(parcella.id)
 
 
-@pytest.mark.parametrize("azione", ["segna-pagata", "stato", "incasso"])
-def test_incasso_da_fatturazione_aggiorna_fascicolo_senza_cambiare_liquidato(tmp_path, azione):
-    from tests.test_applicazioni import _crea_operatore, _login
-
-    app = _app(tmp_path)
-    _crea_operatore(app)
-    with app.app_context():
-        fascicolo, parcella = _seed(app, con_parcella=True)
-        gf = app.extensions["core_runtime"]["get_fascicoli"]
-        gm = app.extensions["core_runtime"]["get_fatturazione"]
-        risultato, stato = update_react_fascicolo_payment(
-            get_fascicoli=gf, get_fatturazione=gm, id_fasc=fascicolo.id, kind="liquidazione_giudice",
-            payload={"importo": 1100, "status": "da_registrare", "documento_fonte": "Sentenza.pdf"}, actor="Avvocato")
-        assert stato == 200, risultato
-    with app.test_client() as client:
-        _login(client)
-        body = {"stato": "PAGATA", "data_pagamento": "2026-09-10", "metodo_pagamento": METODO_BONIFICO}
-        url = f"/api/v1/ui/fatturazione/{parcella.id}/{azione}"
-        if azione == "incasso":
-            url = "/api/v1/ui/incassi-pagamenti/incasso"
-            body = {"id_parcella": parcella.id, "data_pagamento": "2026-09-10", "metodo_pagamento": METODO_BONIFICO}
-        response = client.post(url, json=body)
-        assert response.status_code == 200, response.get_data(as_text=True)
-        with app.app_context():
-            saved = gf().get(fascicolo.id)
-            liquidazione = saved.pagamenti["liquidazione_giudice"]
-            assert liquidazione["status"] == "pagato" and liquidazione["importo"] == 1100
-            assert liquidazione["documento_fonte"] == "Sentenza.pdf" and liquidazione["proforma_id"] == parcella.id
-            assert saved.pagamenti["parcella"]["status"] == "pagato"
-            assert saved.pagamenti["parcella"]["proforma_id"] == parcella.id
-            assert gm().get(parcella.id).stato == StatoParcella.PAGATA
-            # Due rappresentazioni dello stesso incasso non raddoppiano il totale.
-            from web.services.react_fascicoli_bridge import payment_summary_for_fascicolo
-            summary = payment_summary_for_fascicolo(saved)
-            assert summary["totaleRegistrato"] == 4500
-            assert "€ 4.500,00" in summary["items"]["liquidazione_giudice"]["note"]
-            assert summary["items"]["liquidazione_giudice"]["importo"] == 1100
-            result_cu, stato_cu = update_react_fascicolo_payment(
-                get_fascicoli=gf, get_fatturazione=gm, id_fasc=fascicolo.id, kind="contributo_unificato",
-                payload={"importo": 49, "status": "pagato", "documento_fonte": "Ricevuta CU.pdf"}, actor="Avvocato")
-            assert stato_cu == 200, result_cu
-            assert result_cu["paymentSummary"]["totaleRegistrato"] == 4549
-            assert result_cu["paymentSummary"]["items"]["contributo_unificato"]["importo"] == 49
-            saved = gf().get(fascicolo.id)
-            prima = deepcopy(saved.pagamenti)
-        repeat = client.post(url, json=body)
-        assert repeat.status_code == 200, repeat.get_data(as_text=True)
-        with app.app_context():
-            assert gf().get(fascicolo.id).pagamenti == prima
-            assert len(gm().per_fascicolo(fascicolo.id)) == 1
 
 
 def test_collegamento_incasso_ad_altro_fascicolo_non_scrive(tmp_path):
@@ -170,27 +72,6 @@ def test_collegamento_incasso_ad_altro_fascicolo_non_scrive(tmp_path):
         assert gm().get(parcella.id).stato == StatoParcella.EMESSA
 
 
-def test_incasso_gia_registrato_richiede_scelta_e_preserva_data_originale(tmp_path):
-    app = _app(tmp_path)
-    with app.app_context():
-        fascicolo, parcella = _seed(app, con_parcella=True)
-        gf = app.extensions["core_runtime"]["get_fascicoli"]
-        gm = app.extensions["core_runtime"]["get_fatturazione"]
-        gm().cambia_stato(parcella.id, StatoParcella.PAGATA, data_pagamento="2026-09-10", metodo_pagamento=METODO_BONIFICO)
-        args = dict(get_fascicoli=gf, get_fatturazione=gm, id_fasc=fascicolo.id, actor="Avvocato")
-        result, status = registra_bonifico_ricevuto(**args, payload={"importo": 4500})
-        assert status == 409 and result["parcelle"][0]["id"] == parcella.id
-        assert len(gm().per_fascicolo(fascicolo.id)) == 1
-        result, status = registra_bonifico_ricevuto(**args, payload={"parcella_id": parcella.id, "importo": 4500, "data_pagamento": "2026-10-12"})
-        assert status == 200, result
-        assert result["dataPagamento"] == "2026-09-10"
-        assert gf().get(fascicolo.id).pagamenti["parcella"]["data_pagamento"] == "2026-09-10"
-        assert len(gm().per_fascicolo(fascicolo.id)) == 1
-        before = deepcopy(gf().get(fascicolo.id).pagamenti)
-        repeat, status = registra_bonifico_ricevuto(**args, payload={"parcella_id": parcella.id, "importo": 4500})
-        assert status == 200 and repeat["alreadyPresent"] is True
-        assert "già collegato" in repeat["message"]
-        assert gf().get(fascicolo.id).pagamenti == before
 def test_versamento_discordante_non_diventa_saldo_ne_modifica_importi(tmp_path):
     app = _app(tmp_path)
     with app.app_context():
@@ -205,27 +86,6 @@ def test_versamento_discordante_non_diventa_saldo_ne_modifica_importi(tmp_path):
         assert gf().get(fascicolo.id).pagamenti == before
         assert gm().get(parcella.id).stato == StatoParcella.EMESSA
 
-def test_incasso_originale_non_cambia_con_revisione_successiva_documento(tmp_path):
-    from pct.fatturazione import VoceParcella
-    app = _app(tmp_path)
-    with app.app_context():
-        fascicolo, parcella = _seed(app, con_parcella=True)
-        gf = app.extensions["core_runtime"]["get_fascicoli"]
-        gm = app.extensions["core_runtime"]["get_fatturazione"]
-        args = dict(get_fascicoli=gf, get_fatturazione=gm, id_fasc=fascicolo.id, actor="Avvocato")
-        result, status = registra_bonifico_ricevuto(**args, payload={"parcella_id": parcella.id, "importo": 4500})
-        assert status == 200
-        before = deepcopy(gf().get(fascicolo.id).pagamenti)
-        gm().aggiorna(parcella.id, voci=[VoceParcella(descrizione="Revisione controllata", quantita=1, prezzo_unitario=5500)])
-        result, status = registra_bonifico_ricevuto(**args, payload={"parcella_id": parcella.id, "importo": 5500})
-        assert status == 200 and result["alreadyPresent"]
-        assert result["importo"] == 4500
-        assert gf().get(fascicolo.id).pagamenti == before
-        rejected, status = update_react_fascicolo_payment(get_fascicoli=gf, get_fatturazione=gm,
-            id_fasc=fascicolo.id, kind="contributo_unificato",
-            payload={"status": "pagato", "importo": 49, "proforma_id": parcella.id}, actor="Avvocato")
-        assert status == 400 and not rejected["ok"]
-        assert gf().get(fascicolo.id).pagamenti == before
 
 
 
@@ -297,26 +157,6 @@ def test_un_centesimo_discordante_non_dimostra_saldo(tmp_path, received):
         assert gm().get(invoice.id).stato == StatoParcella.EMESSA
         assert gf().get(case.id).pagamenti == before
 
-def test_due_parcelle_distinte_per_un_centesimo_seleziona_importo_esatto(tmp_path):
-    app = _app(tmp_path)
-    with app.app_context():
-        case, first = _seed(app, con_parcella=True)
-        gf = app.extensions['core_runtime']['get_fascicoli']
-        gm = app.extensions['core_runtime']['get_fatturazione']
-        manager = gm()
-        manager.aggiorna(first.id, voci=[VoceParcella(descrizione='Primo compenso', quantita=1, prezzo_unitario=1000)])
-        second = manager.crea(id_cliente=case.id_cliente, id_fascicolo=case.id,
-            voci=[VoceParcella(descrizione='Secondo compenso', quantita=1, prezzo_unitario=1000.01)],
-            applica_iva=False, applica_cassa=False, applica_ritenuta=False, applica_bollo=False)
-        manager.cambia_stato(second.id, StatoParcella.EMESSA)
-        result, status = registra_bonifico_ricevuto(
-            get_fascicoli=gf, get_fatturazione=gm, id_fasc=case.id,
-            payload={'importo': 1000.01}, actor='Collaudo',
-        )
-        assert status == 200, result
-        assert result['parcellaId'] == second.id
-        assert gm().get(first.id).stato == StatoParcella.EMESSA
-        assert gm().get(second.id).stato == StatoParcella.PAGATA
 
 def test_bonifico_rejects_a_document_changed_after_selection(tmp_path):
     from pct.fatturazione import parcella_revision
@@ -337,20 +177,6 @@ def test_bonifico_rejects_a_document_changed_after_selection(tmp_path):
         assert core['get_fascicoli']().get(fascicolo.id).to_dict() == before
 
 
-def test_rejected_state_transition_does_not_mutate_loaded_invoice(tmp_path, monkeypatch):
-    from pct.fatturazione import ParcellaConcurrentUpdate, parcella_revision
-    app = _app(tmp_path)
-    with app.app_context():
-        _, parcella = _seed(app, con_parcella=True)
-        manager = app.extensions['core_runtime']['get_fatturazione']()
-        before = manager.get(parcella.id).to_dict()
-        def reject(*args, **kwargs):
-            raise ParcellaConcurrentUpdate('Aggiornamento concorrente')
-        monkeypatch.setattr(manager, '_salva_parcella', reject)
-        with pytest.raises(ParcellaConcurrentUpdate):
-            manager.cambia_stato(parcella.id, StatoParcella.PAGATA,
-                                expected_revision=parcella_revision(manager.get(parcella.id)))
-        assert manager.get(parcella.id).to_dict() == before
 
 def test_invoice_choices_api_returns_only_selected_case_and_disables_cache(tmp_path):
     app = _app(tmp_path)
@@ -391,46 +217,7 @@ def test_invalid_invoice_revision_stops_before_reading_repositories():
         payload={'parcella_id':'invoice', 'parcella_revision':'invalid'}, actor='test')
     assert status == 400 and not result['ok']
 
-def test_same_confirmed_receipt_with_original_revision_is_idempotent(tmp_path):
-    from pct.fatturazione import parcella_revision
-    app = _app(tmp_path)
-    with app.app_context():
-        fascicolo, parcella = _seed(app, con_parcella=True)
-        core = app.extensions['core_runtime']
-        payload = {'parcella_id':parcella.id,
-                   'parcella_revision':parcella_revision(core['get_fatturazione']().get(parcella.id)),
-                   'importo':4500, 'data_pagamento':'2026-09-10'}
-        first, status = registra_bonifico_ricevuto(get_fascicoli=core['get_fascicoli'],
-            get_fatturazione=core['get_fatturazione'], id_fasc=fascicolo.id, payload=payload, actor='test')
-        assert status == 200, first
-        before_case = core['get_fascicoli']().get(fascicolo.id).to_dict()
-        before_invoice = core['get_fatturazione']().get(parcella.id).to_dict()
-        second, status = registra_bonifico_ricevuto(get_fascicoli=core['get_fascicoli'],
-            get_fatturazione=core['get_fatturazione'], id_fasc=fascicolo.id, payload=payload, actor='test')
-        assert status == 200 and second['ok'] and second['alreadyPresent'], second
-        assert core['get_fascicoli']().get(fascicolo.id).to_dict() == before_case
-        assert core['get_fatturazione']().get(parcella.id).to_dict() == before_invoice
 
-@pytest.mark.parametrize('change', [{'importo':4501}, {'data_pagamento':'2026-09-11'}])
-def test_original_revision_does_not_confirm_discordant_receipts(tmp_path, change):
-    from pct.fatturazione import parcella_revision
-    app = _app(tmp_path)
-    with app.app_context():
-        fascicolo, parcella = _seed(app, con_parcella=True)
-        core = app.extensions['core_runtime']
-        payload = {'parcella_id':parcella.id,
-                   'parcella_revision':parcella_revision(core['get_fatturazione']().get(parcella.id)),
-                   'importo':4500,'data_pagamento':'2026-09-10'}
-        result, status = registra_bonifico_ricevuto(get_fascicoli=core['get_fascicoli'],
-            get_fatturazione=core['get_fatturazione'],id_fasc=fascicolo.id,payload=payload,actor='test')
-        assert status == 200, result
-        before_case = core['get_fascicoli']().get(fascicolo.id).to_dict()
-        before_invoice = core['get_fatturazione']().get(parcella.id).to_dict()
-        result, status = registra_bonifico_ricevuto(get_fascicoli=core['get_fascicoli'],
-            get_fatturazione=core['get_fatturazione'],id_fasc=fascicolo.id,payload=dict(payload,**change),actor='test')
-        assert status == 409 and result['conflict']
-        assert core['get_fascicoli']().get(fascicolo.id).to_dict() == before_case
-        assert core['get_fatturazione']().get(parcella.id).to_dict() == before_invoice
 
 def test_confirmed_receipt_api_audits_replay_without_global_refresh(tmp_path, monkeypatch):
     from web.blueprints import api_v1_react as api
@@ -448,3 +235,92 @@ def test_confirmed_receipt_api_audits_replay_without_global_refresh(tmp_path, mo
     response = app.test_client().post('/api/v1/ui/fascicoli/controlled/bonifico-ricevuto',json={},headers=HEADERS)
     assert response.status_code == 200 and response.get_json()['alreadyPresent']
     assert len(events) == 1 and events[0][0] == 'fascicoli.bonifico_gia_presente'
+
+
+@pytest.mark.parametrize('con_parcella', [False, True])
+def test_vecchio_bonifico_rifiutato_non_crea_documenti_ne_scrive_presidi(tmp_path, con_parcella):
+    app = _app(tmp_path)
+    with app.app_context():
+        case, invoice = _seed(app, con_parcella=con_parcella)
+        core = app.extensions['core_runtime']
+        gf, gm = core['get_fascicoli'], core['get_fatturazione']
+        before_case = deepcopy(gf().get(case.id).to_dict())
+        before_invoices = [item.to_dict() for item in gm().per_fascicolo(case.id)]
+        body = {'importo':4500, 'data_pagamento':'2026-09-10'}
+        for _ in range(2):
+            result, status = registra_bonifico_ricevuto(get_fascicoli=gf, get_fatturazione=gm,
+                id_fasc=case.id, payload=body, actor='Collaudo')
+            assert status == 409 and result['code'] == 'receipt_required'
+            assert result['redirectHref'].startswith('/fatturazione')
+            assert gf().get(case.id).to_dict() == before_case
+            assert [item.to_dict() for item in gm().per_fascicolo(case.id)] == before_invoices
+
+
+@pytest.mark.parametrize('con_parcella', [False, True])
+def test_api_bonifico_non_lascia_bozza_dopo_rifiuto(tmp_path, con_parcella):
+    app = _app(tmp_path)
+    with app.app_context():
+        case, invoice = _seed(app, con_parcella=con_parcella)
+        core = app.extensions['core_runtime']
+        before = [item.to_dict() for item in core['get_fatturazione']().per_fascicolo(case.id)]
+        before_case = deepcopy(core['get_fascicoli']().get(case.id).to_dict())
+    response = app.test_client().post(f'/api/v1/ui/fascicoli/{case.id}/bonifico-ricevuto',
+        headers=HEADERS, json={'importo':4500,'data_pagamento':'2026-09-10'})
+    assert response.status_code == 409 and response.json['code'] == 'receipt_required'
+    with app.app_context():
+        assert [item.to_dict() for item in core['get_fatturazione']().per_fascicolo(case.id)] == before
+        assert core['get_fascicoli']().get(case.id).to_dict() == before_case
+
+
+@pytest.mark.parametrize('action', ['segna-pagata', 'stato', 'incasso'])
+def test_vecchi_stati_http_non_sostituiscono_il_movimento_sql(tmp_path, action):
+    from tests.test_applicazioni import _crea_operatore, _login
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    with app.app_context():
+        case, invoice = _seed(app, con_parcella=True)
+        core = app.extensions['core_runtime']
+        before = deepcopy(core['get_fatturazione']().get(invoice.id).to_dict())
+        before_case = deepcopy(core['get_fascicoli']().get(case.id).to_dict())
+    with app.test_client() as client:
+        _login(client)
+        url = f'/api/v1/ui/fatturazione/{invoice.id}/{action}'
+        body = {'stato':'PAGATA','data_pagamento':'2026-09-10','metodo_pagamento':METODO_BONIFICO}
+        if action == 'incasso':
+            url = '/api/v1/ui/incassi-pagamenti/incasso'
+            body = {'id_parcella': invoice.id, 'data_pagamento':'2026-09-10', 'metodo_pagamento':METODO_BONIFICO}
+        response = client.post(url, json=body)
+        assert response.status_code == 409 and response.json['code'] == 'receipt_required'
+    with app.app_context():
+        assert core['get_fatturazione']().get(invoice.id).to_dict() == before
+        assert core['get_fascicoli']().get(case.id).to_dict() == before_case
+
+
+def test_guardia_pagata_preserva_anche_oggetto_caricato(tmp_path):
+    from pct.fatturazione_sql_commands import ParcellaPaymentRequiresReceipt
+    app = _app(tmp_path)
+    with app.app_context():
+        _, invoice = _seed(app, con_parcella=True)
+        manager = app.extensions['core_runtime']['get_fatturazione']()
+        before = deepcopy(manager.get(invoice.id).to_dict())
+        with pytest.raises(ParcellaPaymentRequiresReceipt):
+            manager.cambia_stato(invoice.id, StatoParcella.PAGATA)
+        assert manager.get(invoice.id).to_dict() == before
+
+
+def test_scelta_importo_esatto_non_diventa_pagamento_implicito(tmp_path):
+    app = _app(tmp_path)
+    with app.app_context():
+        case, first = _seed(app, con_parcella=True)
+        core = app.extensions['core_runtime']
+        gm = core['get_fatturazione']
+        second = gm().crea(id_cliente=case.id_cliente, id_fascicolo=case.id,
+            voci=[VoceParcella(descrizione='Secondo compenso', quantita=1, prezzo_unitario=4500.01)],
+            applica_iva=False, applica_cassa=False, applica_ritenuta=False, applica_bollo=False)
+        gm().cambia_stato(second.id, StatoParcella.EMESSA)
+        before = [item.to_dict() for item in gm().per_fascicolo(case.id)]
+        result, status = registra_bonifico_ricevuto(get_fascicoli=core['get_fascicoli'],
+            get_fatturazione=gm,id_fasc=case.id,payload={'importo':4500.01},actor='Collaudo')
+        assert status == 409 and result['code'] == 'receipt_required'
+        assert result['parcellaId'] == second.id
+        assert [item.to_dict() for item in gm().per_fascicolo(case.id)] == before

@@ -1,0 +1,637 @@
+{
+  "published": "2026-07-22",
+  "productionFrom": "2026-10-19",
+  "productionNotice": "https://pst.giustizia.it/PST/page/it/processo_civile_telematico__comunicazione_alle_software_house_aggiornamento_specifiche_tecniche_deposito_atti_sicid_it_4?contentId=NWS5167&modelId=4",
+  "archiveUrl": "https://pst.giustizia.it/PST/resources/cms/documents/XSD_SICI_20260720.zip",
+  "archiveSha256": "83e5ca05691e9d1e0422de84695ed8fdab4aa1e080e2fcca9ddac9e9ba11a264",
+  "changedAgainstMay": [
+    "Atti/sici/eventi.xsd",
+    "Atti/sici/tipi-base.xsd"
+  ],
+  "files": [
+    {
+      "path": "Atti/sici/CorsoCausa.xsd",
+      "sha256": "2af999c7679286f2a3dbb461437b891609601e8443cbf6e52c8bfd0d1e1942f4"
+    },
+    {
+      "path": "Atti/sici/Cur-siecic-concorsuali.xsd",
+      "sha256": "165ec047a17b87c7fbc5679c89c722a7625b75d7dbb3cbc01a931bb396d607eb"
+    },
+    {
+      "path": "Atti/sici/Cus-siecic-esecuzioni.xsd",
+      "sha256": "2ac075aae877aa24433153a1d89e1a67ef7fc9d28f07864407d45918e78c7455"
+    },
+    {
+      "path": "Atti/sici/Del-siecic-esecuzioni.xsd",
+      "sha256": "1c442182d335ae56ab813e986aace5bc47995668c9972a7285f85668f6a2fce0"
+    },
+    {
+      "path": "Atti/sici/Introduttivi-siecic-concorsuali.xsd",
+      "sha256": "5d21e718e3245fc9002d5cb0aed21abd957d5701517f5beb7b940668908c09ea"
+    },
+    {
+      "path": "Atti/sici/Introduttivi.xsd",
+      "sha256": "56bef49cf131524f0f34e9d0019a781909fafb22f4ba6d19d289ad92583568e7"
+    },
+    {
+      "path": "Atti/sici/PagamentiTelematiciGiustizia-6.2.0.xsd",
+      "sha256": "d6986a25741bc9caec44aa1395965ac791a273c7071c44835a8ba6016957e8dc"
+    },
+    {
+      "path": "Atti/sici/Parte-siecic-concorsuali.xsd",
+      "sha256": "41a4f5a88a9516bbe716de4c3a34fdf133bbbc0245dae6f690e4637e1450960c"
+    },
+    {
+      "path": "Atti/sici/Parte-siecic-esecuzioni.xsd",
+      "sha256": "7c6b5df24a96d9ded92b1580d86c3baae25cc5a54abe6dc49c96a989501e29e5"
+    },
+    {
+      "path": "Atti/sici/Prof-siecic-concorsuali.xsd",
+      "sha256": "3d90895c4497ec8aed2bdf820ee6bfd3911ecb5023c7c4d46666b65b024d09fb"
+    },
+    {
+      "path": "Atti/sici/Prof-siecic-esecuzioni.xsd",
+      "sha256": "76bbb6acd41e22a75ef9f9224d8f05a700ac6ca442d19f27c9405411b0628c7b"
+    },
+    {
+      "path": "Atti/sici/Sistema-pubbl-sicid.xsd",
+      "sha256": "0c05501987f96452f78d256a25c7c5834ca62e678216ecc3e2f9d87c4c3548be"
+    },
+    {
+      "path": "Atti/sici/Sistema-pubbl-siecic.xsd",
+      "sha256": "c6070018f52dc636f873264c79eda6a61a3d2e817792cc26e4327378c22a22dc"
+    },
+    {
+      "path": "Atti/sici/Trasmissioni.xsd",
+      "sha256": "fb6217c4702f81f85915441d701e3d67d93bc169073fa3822926eba711295269"
+    },
+    {
+      "path": "Atti/sici/TrasmissioniSIECIC.xsd",
+      "sha256": "7d6e35a56b851d58ea480a34fff2bad526f1d87d69e55b5181340b4c4666a2f0"
+    },
+    {
+      "path": "Atti/sici/base_v1/tipi-allegati.xsd",
+      "sha256": "983c373d58c20157fe8151aafd7d1ba2f3cc11659c16bb7623cb5c4dcdff4a33"
+    },
+    {
+      "path": "Atti/sici/base_v1/tipi-atti.xsd",
+      "sha256": "d4ffa8484e555d5979fc5936cc5072150661be3029102a4693a6e51e72eb2f75"
+    },
+    {
+      "path": "Atti/sici/base_v1/tipi-procura.xsd",
+      "sha256": "8c7b35bb0cd3907d152d92cdeea890c249826f071466c2cd9588377c5284b8e5"
+    },
+    {
+      "path": "Atti/sici/base_v1/tipi-segnalazioni-minori.xsd",
+      "sha256": "a4bac75ba4bd40d4016d2d1e7c2ca82a82d050fd375beec235b12bed0806c071"
+    },
+    {
+      "path": "Atti/sici/base_v2/Sistema-pubbl-sicid.xsd",
+      "sha256": "88c3a55d4b8ad5b7da60f1bf636febb3b852c6010fcff798b3b7954cb737188b"
+    },
+    {
+      "path": "Atti/sici/base_v2/Sistema-pubbl-siecic.xsd",
+      "sha256": "8c1d60730ba9e7bfd6eac5f4bb98eabd6765c234433dc545b807fdda31e4cc4f"
+    },
+    {
+      "path": "Atti/sici/base_v2/tipi-allegati.xsd",
+      "sha256": "46f1543f856cefe43a9d2cbb7573b88f9645ce942985a7debe31ee477b573358"
+    },
+    {
+      "path": "Atti/sici/base_v2/tipi-anagrafiche.xsd",
+      "sha256": "10f13719eefcc89f59001d456969d8083162bac0a0d8533df419f11438b23ad1"
+    },
+    {
+      "path": "Atti/sici/base_v2/tipi-atti.xsd",
+      "sha256": "29d15b1978d21f11a5fb3cec22e0909c8dfc4773c705fa69f3820a46a7a3868e"
+    },
+    {
+      "path": "Atti/sici/base_v2/tipi-base-siecic.xsd",
+      "sha256": "143d8ef1a8be15ab515eef661fea69871703bfa15402327380c57dde5416d1af"
+    },
+    {
+      "path": "Atti/sici/base_v2/tipi-segnalazioni-minori.xsd",
+      "sha256": "0b061df29c445294ee4aeb483efc6b6b6dd9b3d2d5a057a3dd46da029936d404"
+    },
+    {
+      "path": "Atti/sici/base_v3/Sistema-pubbl-sicid.xsd",
+      "sha256": "5e2cc50894887e0db39ed5c3f188927c15fe8626cadfd3624d8da36e6f06999b"
+    },
+    {
+      "path": "Atti/sici/base_v3/Sistema-pubbl-siecic.xsd",
+      "sha256": "ecb90b8da18a1dcf7f9b9e6b1ec2ba2aca3fa830e47884a5600853381cdcc423"
+    },
+    {
+      "path": "Atti/sici/base_v3/tipi-anagrafiche.xsd",
+      "sha256": "420fe2725a779587d1f6627af5fb72f8ce3a9244f710f4208ac21ebffca30ff1"
+    },
+    {
+      "path": "Atti/sici/base_v3/tipi-atti.xsd",
+      "sha256": "b60fbd2003515b28cfcc9478d0917103003b1c9410fd258e4f5f2be0a3db89ac"
+    },
+    {
+      "path": "Atti/sici/base_v3/tipi-base-siecic.xsd",
+      "sha256": "70115afcadd4d79bfea865ee7bb0bad6442aeac0b697deabdad1ed9168d8f011"
+    },
+    {
+      "path": "Atti/sici/base_v4/tipi-anagrafiche.xsd",
+      "sha256": "27fb01f400989b721b77c9f0fe66534b3d31050d8651626b80b6946c4df8a417"
+    },
+    {
+      "path": "Atti/sici/base_v4/tipi-atti.xsd",
+      "sha256": "8098fc43796a2600c363152d8582f1999e996eb4cf448b490a511df004fdc7a9"
+    },
+    {
+      "path": "Atti/sici/base_v4/tipi-base-siecic.xsd",
+      "sha256": "dffff243a334f921bc90e8d46822c63ef37ee9956d5f744e07772240bfd08bd5"
+    },
+    {
+      "path": "Atti/sici/base_v5/tipi-atti.xsd",
+      "sha256": "d2f8c58f8a12214f1d59cdc9df90552f8506eed462f2e6866301ab188ff670ed"
+    },
+    {
+      "path": "Atti/sici/base_v6/tipi-atti.xsd",
+      "sha256": "d7d67b0046877eeee942aefe6924c4e8b34f50239a9a4b433aaf7720e8cb1356"
+    },
+    {
+      "path": "Atti/sici/base_v7/tipi-atti.xsd",
+      "sha256": "65dfe2b95b22ba2fb6721bef01b507ef8a8cf553238625d3cf628c5baabb045b"
+    },
+    {
+      "path": "Atti/sici/ecodex_v1/atti-introduttivi.xsd",
+      "sha256": "a27d56f5365a1865ccf14085b3f78f6922af3dd95688177d6dfcf2265aac1543"
+    },
+    {
+      "path": "Atti/sici/ecodex_v1/sistema.xsd",
+      "sha256": "795892b5292c7f0a1a4805c389c616ed453fec3708b1ac64c333947e72681bc7"
+    },
+    {
+      "path": "Atti/sici/enum/tipi-enum-siecic.xsd",
+      "sha256": "31734c9a958b14207f2d70694b5f92129a4588ce7db016f325a8f9e3bb300120"
+    },
+    {
+      "path": "Atti/sici/eventi-crisiimpresa.xsd",
+      "sha256": "3207cec1e0a2ee9d99a88c28b8a841d328a48c1c006b76ed7d8e2cf74455e05d"
+    },
+    {
+      "path": "Atti/sici/eventi-notaio.xsd",
+      "sha256": "64c1da00209ec8e7b3e36c0b3443a802e47fdc59571da2684fc030b761dde656"
+    },
+    {
+      "path": "Atti/sici/eventi-parte.xsd",
+      "sha256": "68d98c49b603452b996c7237c2247b010876452e772ff3b7f54a417eac3ce00e"
+    },
+    {
+      "path": "Atti/sici/eventi-professionista.xsd",
+      "sha256": "1af39e169e06fd9686a7af23d64207aea0e9a1c13760276619c2ab6cd3a36e47"
+    },
+    {
+      "path": "Atti/sici/eventi.xsd",
+      "sha256": "6698344b8b2a5ebad88782833a71eee2da9fe08df0047b8dea0d00e717d8c8e9"
+    },
+    {
+      "path": "Atti/sici/portale_v1/atti-portale-siecic.xsd",
+      "sha256": "fec9f3204044516d255bf745243cbe6bf4ced1bab5acd5e0a1ac0b7de9b77e4e"
+    },
+    {
+      "path": "Atti/sici/questionario-evoluto/Questionario.xsd",
+      "sha256": "c9071c9fe4323f45835d4ae505817a501e9d104fc25e8d6f8cae76021203de4f"
+    },
+    {
+      "path": "Atti/sici/questionario-evoluto/elementi/Elementi.xsd",
+      "sha256": "03d59077e0a643d93312054410be75cb9f1df38f00c9add3bbb429484a5f7bfc"
+    },
+    {
+      "path": "Atti/sici/questionario-evoluto/sezioni/AnalisiMezzoIndici.xsd",
+      "sha256": "5015b82f58bd39d12d2ed35b0e727074b146c5185d6aae9edcfc94aa993c8083"
+    },
+    {
+      "path": "Atti/sici/questionario-evoluto/sezioni/AssettoGoverno.xsd",
+      "sha256": "4ecac8a74e0fb3cf75272a4965ef5874599722217ecb168227b1fd8f7d6b9713"
+    },
+    {
+      "path": "Atti/sici/questionario-evoluto/sezioni/CauseFallimento.xsd",
+      "sha256": "35a52c7fd0f7f604eb17b617ce286d83dd6f8aef3dea02a2c8f2787911d0b73d"
+    },
+    {
+      "path": "Atti/sici/questionario-evoluto/sezioni/Classificazione.xsd",
+      "sha256": "0cd629ddc31af220061cd425950a72a72cee69a95d175e8c80afcb460a7470e4"
+    },
+    {
+      "path": "Atti/sici/questionario-evoluto/sezioni/ComportamentiOpportunistici.xsd",
+      "sha256": "9bdffd67c09894d031976a54d3dca8dc2ad57f261a1a9b25262aa92f6e84812b"
+    },
+    {
+      "path": "Atti/sici/questionario-evoluto/sezioni/DatiFallito.xsd",
+      "sha256": "210df19850fe87428a951184364f35c6d86328c140959696a91e0f5af4f2d993"
+    },
+    {
+      "path": "Atti/sici/questionario-evoluto/sezioni/Diligenza.xsd",
+      "sha256": "c93e40b803b3c3945be81163cdec535d358b3dae5f3bb2ee686b0655798858ed"
+    },
+    {
+      "path": "Atti/sici/questionario-evoluto/sezioni/ElementiBilancio.xsd",
+      "sha256": "cc1133270af95ad8956f518f0402ae738141a114b4527beb03369f5cd87abaf2"
+    },
+    {
+      "path": "Atti/sici/questionario-evoluto/sezioni/OrganiGestione.xsd",
+      "sha256": "428208266c95ca50634fae46bcba17c2ecc16b0b9b60890e0c200db32ed76e15"
+    },
+    {
+      "path": "Atti/sici/questionario-evoluto/sezioni/ProceduraFallimento.xsd",
+      "sha256": "061c2816ba9a2d16894e58b1e339f496936e3a8fa9c06f08bc6e2d798f2d649e"
+    },
+    {
+      "path": "Atti/sici/questionario-evoluto/sezioni/ProfiloProduttivo.xsd",
+      "sha256": "355dd6e25f926783c784820e857d3984d610e121402f938b3ded08ae96ec8239"
+    },
+    {
+      "path": "Atti/sici/questionario-evoluto/sezioni/RapportiGiuridiciPendenti.xsd",
+      "sha256": "de4ba49f5df9d64674c789b0712ec8a0dcc9e942187956d3f62429f341d736ed"
+    },
+    {
+      "path": "Atti/sici/questionario-evoluto/sezioni/Riclassificati.xsd",
+      "sha256": "c1cb0d80fe602e475ebaa9b53d32691282a9631120cadb3635bcd5643fe41727"
+    },
+    {
+      "path": "Atti/sici/questionario-evoluto/sezioni/VicendeAziendali.xsd",
+      "sha256": "fa321bcda01af8c45565bbbc0177db22292aa491464fe6e4891455b8b7e71595"
+    },
+    {
+      "path": "Atti/sici/questionario-evoluto/sezioni/VicendeGiudiziarie.xsd",
+      "sha256": "7a3b374ee630d839e70fcb2947bf948b2c6017ca2825275598bea50245b7b49f"
+    },
+    {
+      "path": "Atti/sici/questionario-evoluto/sezioni/VicendeSocietarie.xsd",
+      "sha256": "6dd824509db641286cef18582d33c062cb11c89db15d7a31d0b29a2aa8555ea4"
+    },
+    {
+      "path": "Atti/sici/questionario-evoluto/tipi/TipiGlobali.xsd",
+      "sha256": "14793c06d11961cdc4ddbeb92f46b4dfa1cc1d0dacd2bf9ebfb0deb145aa252c"
+    },
+    {
+      "path": "Atti/sici/sicid_v1/AnagraficaIstantiAdozione.xsd",
+      "sha256": "d0adced873d31e2cd161a949597c5f1b0f467f80eae7c9dc1c785b9ff0a83328"
+    },
+    {
+      "path": "Atti/sici/sicid_v1/Introduttivi-notaio.xsd",
+      "sha256": "1e5bd11b6d26e78e6d2a2169d7ad2978e40441a4724748fec8740357c191f28f"
+    },
+    {
+      "path": "Atti/sici/sicid_v1/Introduttivi-procura.xsd",
+      "sha256": "6c65c0667305edf92996730908c2c78eec95e3025c3ac0d9b08cb64f7ef320be"
+    },
+    {
+      "path": "Atti/sici/sicid_v1/Introduttivi.xsd",
+      "sha256": "15e6aa9547465f6c9368f326fc78a16610aa53203cc11a32e24d6a060b360dbf"
+    },
+    {
+      "path": "Atti/sici/sicid_v1/Notaio.xsd",
+      "sha256": "96639d1ab5043d31f77d0b3bc2ce875a2de5035048133f56b724b80b759c7870"
+    },
+    {
+      "path": "Atti/sici/sicid_v1/Parte-procura.xsd",
+      "sha256": "de09421775be0aac0bc6a85b83cfda948435e29e3b1f2a6b1d91813b16889bca"
+    },
+    {
+      "path": "Atti/sici/sicid_v1/Parte.xsd",
+      "sha256": "fdae0c6c17709bc68b7d92d8dd2bbf3c1c5333408a00407072d422cfc3b4ef8a"
+    },
+    {
+      "path": "Atti/sici/sicid_v1/Professionista.xsd",
+      "sha256": "9b6a3e1ca11faf7eb8ef80fed663f9320ce2d78d698825489c1c8cadf9888daa"
+    },
+    {
+      "path": "Atti/sici/sicid_v1/RappComune.xsd",
+      "sha256": "0ba5c2beebbd6db6fe2bebd6eba916e945118742f5ea671e4745696962e5bce9"
+    },
+    {
+      "path": "Atti/sici/sicid_v1/Trasmissioni.xsd",
+      "sha256": "21d18b6ba67a246f0f30a70e677f6eb95eae2e7ed4278e912048023270df8459"
+    },
+    {
+      "path": "Atti/sici/sicid_v1/segnalazioni-minori.xsd",
+      "sha256": "ac9219b4e72e84013367acfee142c1b60a81e71008e878f1536abef4eff57d82"
+    },
+    {
+      "path": "Atti/sici/sicid_v2/Introduttivi-notaio.xsd",
+      "sha256": "34aff36a3f1428f9aceba11f49e0dbfbf8e408fd9f619d2ad243ddc82c2f3631"
+    },
+    {
+      "path": "Atti/sici/sicid_v2/Introduttivi.xsd",
+      "sha256": "e77c702d2788a984c6f2ec91256f670fae3a675420c6c181c8ae0d90e3f636f0"
+    },
+    {
+      "path": "Atti/sici/sicid_v2/Notaio.xsd",
+      "sha256": "853fc04462cbb08411e64f82a2b0f40db15c0cf3d0f69e351b5a40452f10d6c6"
+    },
+    {
+      "path": "Atti/sici/sicid_v2/Parte.xsd",
+      "sha256": "0ee8f9ee167dcc79905f1b7d1f54fe7dbf36c7e5d8fcd13939f4e59d80ee841f"
+    },
+    {
+      "path": "Atti/sici/sicid_v2/Professionista.xsd",
+      "sha256": "372b6006bab30c698840b4157d04d7187318bc31471c94d013c460ba959a96c8"
+    },
+    {
+      "path": "Atti/sici/sicid_v2/Trasmissioni.xsd",
+      "sha256": "73a32d7d3dc65792967b587c4d0a455b75547245eb619faf24e52765a546d00e"
+    },
+    {
+      "path": "Atti/sici/sicid_v2/segnalazioni-minori.xsd",
+      "sha256": "bdfc51539aad83eda5ce6bfdf75eb8658b6ec6f84f6798ce49daafa5af328eb6"
+    },
+    {
+      "path": "Atti/sici/sicid_v3/Introduttivi.xsd",
+      "sha256": "ff9f257e11979776d843f7385e565a667de6b20a6ccc72561b07141047cacc94"
+    },
+    {
+      "path": "Atti/sici/sicid_v3/Parte.xsd",
+      "sha256": "27bde2591cf168e852e7b36d90a1a648e46deef41c324c2b2f5692642b9f5e0b"
+    },
+    {
+      "path": "Atti/sici/sicid_v4/Introduttivi.xsd",
+      "sha256": "89d69ebf8690f3617d7c321225bd5a9b3dfabc922468d206183252ac2b825f68"
+    },
+    {
+      "path": "Atti/sici/sicid_v4/Parte.xsd",
+      "sha256": "8e5f9f0e1ed752d3dcb1cc3b3a96d0082eface90f356b21fa5a7255b7425656e"
+    },
+    {
+      "path": "Atti/sici/sicid_v5/Introduttivi.xsd",
+      "sha256": "5f5448b58c3a8f0054ecdbe684969eac2322a3ac71a7f5e56ebf8900a4474439"
+    },
+    {
+      "path": "Atti/sici/sicid_v5/Parte.xsd",
+      "sha256": "898506f2c27362642bc8ed75671563843159fb07d191db1f9c930ed259193249"
+    },
+    {
+      "path": "Atti/sici/sicid_v6/Introduttivi.xsd",
+      "sha256": "356acd2117e3ad130cf1dd4fe0109861ab548c91d9f1d1d6a6ce457c6bba314d"
+    },
+    {
+      "path": "Atti/sici/sicid_v6/Parte.xsd",
+      "sha256": "3ff748063256cefe45740d7f8e05a288972b7daf0b71ec6edf19c54f25142eeb"
+    },
+    {
+      "path": "Atti/sici/sicid_v7/Introduttivi.xsd",
+      "sha256": "33637d5e48f8f5dab1ea8bae1036e58735f8c938a9b946b5f74ee8824bd06001"
+    },
+    {
+      "path": "Atti/sici/sicid_v7/Parte.xsd",
+      "sha256": "ccafde7659f0256b84c809bda6bd4e1935b7437193751c36c34d9971e5817d28"
+    },
+    {
+      "path": "Atti/sici/siecic_v1/TrasmissioniSIECIC.xsd",
+      "sha256": "c0307b62704b84260b5f54ab4ccea6c0fb2382a6b06c8c31c6f99e32433baec2"
+    },
+    {
+      "path": "Atti/sici/siecic_v10/Cur-siecic-concorsuali.xsd",
+      "sha256": "8fda45240a5d58a81939bb3cdb31044e5bfb438225f8986c302c314853a5c953"
+    },
+    {
+      "path": "Atti/sici/siecic_v11/Cur-siecic-concorsuali.xsd",
+      "sha256": "d9cf73f1b80e8bd9d85a1a32fd410d8508259830561f249f84e8e0cbe6fc4cb0"
+    },
+    {
+      "path": "Atti/sici/siecic_v2/Cur-siecic-concorsuali.xsd",
+      "sha256": "7c9ebac515ae6c280e0088fbaac688ab3aa92c4602f0b16b7e2d3e694680d4c4"
+    },
+    {
+      "path": "Atti/sici/siecic_v2/Cus-siecic-concorsuali.xsd",
+      "sha256": "222e5c053fc3ab71e5ce563aca9c8e065f4b356c31a82eee1acf67cc318c1e7d"
+    },
+    {
+      "path": "Atti/sici/siecic_v2/Cus-siecic-esecuzioni.xsd",
+      "sha256": "526c2734742f7e4b8c438e4fd3f222ad75fbe5ef64d260cdda406acdc4823d98"
+    },
+    {
+      "path": "Atti/sici/siecic_v2/Del-siecic-esecuzioni.xsd",
+      "sha256": "a17b9c746451412250368e01f0219c51d07666a04554044882e73468e457e2a0"
+    },
+    {
+      "path": "Atti/sici/siecic_v2/Introduttivi-siecic-concorsuali.xsd",
+      "sha256": "9a779c17344722531b1d5f434458be8fbe05ae99785a0f2c21180d63cb734bc6"
+    },
+    {
+      "path": "Atti/sici/siecic_v2/Parte-siecic-concorsuali.xsd",
+      "sha256": "10cc45f1508c64f092549eb8448f8238cb672df2e78531853c9a8b58544dacd9"
+    },
+    {
+      "path": "Atti/sici/siecic_v2/Parte-siecic-esecuzioni.xsd",
+      "sha256": "8d73cd948b4fdbccf4cd12c7bfb672ea2e00ad64c586352ee46e00909f4430b1"
+    },
+    {
+      "path": "Atti/sici/siecic_v2/Prof-siecic-concorsuali.xsd",
+      "sha256": "b2442a74f6ac8d556a8677bf8f2b6af7eb1a7897742f12cca354472fe3396c98"
+    },
+    {
+      "path": "Atti/sici/siecic_v2/Prof-siecic-esecuzioni.xsd",
+      "sha256": "ffa90b917d3b80a9c2bbf011103305241f68a79c0d5c19a0bb854d45a13605d3"
+    },
+    {
+      "path": "Atti/sici/siecic_v3/Cur-siecic-concorsuali.xsd",
+      "sha256": "207b3507abff23e883676710d4b834f60882fdd16c3bcfa4000ccd69d709c766"
+    },
+    {
+      "path": "Atti/sici/siecic_v3/Cus-siecic-concorsuali.xsd",
+      "sha256": "a2d1683d04be776ca3f1622579e70974100fd75682cdf48ae0d4eefe44fd6890"
+    },
+    {
+      "path": "Atti/sici/siecic_v3/Cus-siecic-esecuzioni.xsd",
+      "sha256": "88a8472213bc9e734189c57e2d2367b74bb2fc6eb1d728abd955fa67890fb25f"
+    },
+    {
+      "path": "Atti/sici/siecic_v3/Del-siecic-esecuzioni.xsd",
+      "sha256": "3b43315f11727cc2cbfedca88208faf90544457a7dfabe77638e35d285020de4"
+    },
+    {
+      "path": "Atti/sici/siecic_v3/Introduttivi-siecic-concorsuali.xsd",
+      "sha256": "632e70a4606a5cff13312a88c6de14d05afbf5552b3bd916d9d94595adfb8f87"
+    },
+    {
+      "path": "Atti/sici/siecic_v3/Introduttivi-siecic-esecuzioni.xsd",
+      "sha256": "c59403b45b4f1e0464d1474b6b41c0a7673b57d28f63ea719f0539f9a6ef4416"
+    },
+    {
+      "path": "Atti/sici/siecic_v3/Parte-siecic-concorsuali.xsd",
+      "sha256": "b1cb2ed358292c9661dfd16ff3ca34f8ae3b924495baa023b5d19a89918a6a43"
+    },
+    {
+      "path": "Atti/sici/siecic_v3/Parte-siecic-esecuzioni.xsd",
+      "sha256": "42889864f095afa6ed2197ff07d02a9618c396c94280c500907ad4bff037ee04"
+    },
+    {
+      "path": "Atti/sici/siecic_v3/Prof-siecic-concorsuali.xsd",
+      "sha256": "761227de585f5101211ec8ba9d644bde548e27124cfca60e59935b29cd7e21ae"
+    },
+    {
+      "path": "Atti/sici/siecic_v3/Prof-siecic-esecuzioni.xsd",
+      "sha256": "a225aea800c18a10e00c645d014751ff184a96a9390b042bfa7dfeab2a969429"
+    },
+    {
+      "path": "Atti/sici/siecic_v4/Cur-siecic-concorsuali.xsd",
+      "sha256": "9a151cd9c2c5f0307f32d19f42ebc55da47cd0b87459e9288f13470b4b6202b0"
+    },
+    {
+      "path": "Atti/sici/siecic_v4/Cus-siecic-esecuzioni.xsd",
+      "sha256": "22398f0009636b5076fc2b3b9928c84a02a2da82cf8bec5adf967a40c86e84ab"
+    },
+    {
+      "path": "Atti/sici/siecic_v4/Del-siecic-esecuzioni.xsd",
+      "sha256": "52d6762285d785c09b8c8905803860ecf4bb46b7c4c76d6c21c4519cdee66c16"
+    },
+    {
+      "path": "Atti/sici/siecic_v4/Introduttivi-siecic-concorsuali.xsd",
+      "sha256": "193040ae61d42fe3314323d11908b45fa7b0283637836afb514c5b6bdd4bb0a9"
+    },
+    {
+      "path": "Atti/sici/siecic_v4/Introduttivi-siecic-esecuzioni.xsd",
+      "sha256": "9c8dab3f7fa7bfe5e43b3089421b11eaa50932104aa559c9d9dd53eaf025e826"
+    },
+    {
+      "path": "Atti/sici/siecic_v4/Parte-siecic-concorsuali.xsd",
+      "sha256": "17b4818b42866a48faf3147f83028d962db399fb2b110993acaceef751e765fa"
+    },
+    {
+      "path": "Atti/sici/siecic_v4/Parte-siecic-esecuzioni.xsd",
+      "sha256": "a33b3edf251d96a4cae64c865f4e49917b17be2a19d39c165e9e726acbfe9272"
+    },
+    {
+      "path": "Atti/sici/siecic_v4/Prof-siecic-concorsuali.xsd",
+      "sha256": "1e9e0578b3ba2e2c7ba5d29762b2468a8d75ff480fedeb54c16a676b5d097128"
+    },
+    {
+      "path": "Atti/sici/siecic_v4/Prof-siecic-esecuzioni.xsd",
+      "sha256": "2f3663eeb76618c60daea93456c2fd5eaf8fb57b1cffdea9b67a7a62a9b81645"
+    },
+    {
+      "path": "Atti/sici/siecic_v5/Cur-siecic-concorsuali.xsd",
+      "sha256": "2708594268177234bf7233c621ab15248a2ac38bde4ad6a67d814426e5d6c7ad"
+    },
+    {
+      "path": "Atti/sici/siecic_v5/Del-siecic-esecuzioni.xsd",
+      "sha256": "f114fde9f63c1fa2df83c544b26d5f21178085c2e0c5f9e732bd84011b9256ac"
+    },
+    {
+      "path": "Atti/sici/siecic_v5/Introduttivi-siecic-concorsuali.xsd",
+      "sha256": "6bedbfa5a707f18409ff17e374a6188b701aabd8dcd9f7b101751996b4299922"
+    },
+    {
+      "path": "Atti/sici/siecic_v5/Introduttivi-siecic-esecuzioni.xsd",
+      "sha256": "56d3ea7f8657f043b103444509fe2b491cb43df84d691fedb13b5f921b8ae613"
+    },
+    {
+      "path": "Atti/sici/siecic_v5/Parte-siecic-concorsuali.xsd",
+      "sha256": "a459133bb7908fbd23259ed37c82e69f71c37bb70cb58f6916d9913cc73d4a91"
+    },
+    {
+      "path": "Atti/sici/siecic_v5/Parte-siecic-esecuzioni.xsd",
+      "sha256": "1680b31a35d7555c1f06b9c80e89031bfdd7fa26827ff11437c87092a16b68b3"
+    },
+    {
+      "path": "Atti/sici/siecic_v5/Prof-siecic-concorsuali.xsd",
+      "sha256": "a2381286a899cc40acda7a54d6bc5a5de9e05c38b616d9a485ec1bf34b288183"
+    },
+    {
+      "path": "Atti/sici/siecic_v5/Prof-siecic-esecuzioni.xsd",
+      "sha256": "ce4f3e9e0e71bfd5eb126a64679bebef7c62e2d1ec6e8aba9f29574736d44498"
+    },
+    {
+      "path": "Atti/sici/siecic_v6/Cur-siecic-concorsuali.xsd",
+      "sha256": "3b68f745c17011540340eed93b58500280113ff9915fc88d2fb4e7aaca1c93ee"
+    },
+    {
+      "path": "Atti/sici/siecic_v6/Del-siecic-esecuzioni.xsd",
+      "sha256": "3889b2d93acb76afd76f3d7fe1127f76a1c00c93182e968688d6829b2be9ca6a"
+    },
+    {
+      "path": "Atti/sici/siecic_v6/Introduttivi-siecic-concorsuali.xsd",
+      "sha256": "7e47496989860e68fcb3436e3fe2adf4a940a04bf70b0af6d07599448802b272"
+    },
+    {
+      "path": "Atti/sici/siecic_v6/Introduttivi-siecic-esecuzioni.xsd",
+      "sha256": "4bc1cccc2dad951e1a2e00fd8c1793e2b75817bd913c64611ca8990b1e3fc8b8"
+    },
+    {
+      "path": "Atti/sici/siecic_v6/Parte-siecic-concorsuali.xsd",
+      "sha256": "84b8b634b79b44bc97f3316aa8e9b49cbaaf51f68466ad198689fc84ee3c2dd0"
+    },
+    {
+      "path": "Atti/sici/siecic_v6/Parte-siecic-esecuzioni.xsd",
+      "sha256": "f1849029f27ad11d5b341739890132ae2e15a3443e5b9e38b859aa04a4503d56"
+    },
+    {
+      "path": "Atti/sici/siecic_v6/Prof-siecic-concorsuali.xsd",
+      "sha256": "5b5cfaaaac064ac01c173e6447dae53022ad5fa3d4ccc8639c2c97e1a2f0fc22"
+    },
+    {
+      "path": "Atti/sici/siecic_v6/Prof-siecic-esecuzioni.xsd",
+      "sha256": "c1c7e3c7236826907e06dafd8d6423ca73daec8edf5208fa7d481ac228123b00"
+    },
+    {
+      "path": "Atti/sici/siecic_v7/Cur-siecic-concorsuali.xsd",
+      "sha256": "4041d32fec0d4e4ae0b65fde3134a8bd9e394b6baf7eb5d9cf2aa1677f3dc6c8"
+    },
+    {
+      "path": "Atti/sici/siecic_v7/Del-siecic-esecuzioni.xsd",
+      "sha256": "87e06c988861a7980cc51babb5107b362623d91f6f0792159366fdc6b016dabc"
+    },
+    {
+      "path": "Atti/sici/siecic_v7/Introduttivi-siecic-concorsuali.xsd",
+      "sha256": "cf138bd9040a9950e652f128af76aa3da2c36f18729bc9ed12f7039c5b07478e"
+    },
+    {
+      "path": "Atti/sici/siecic_v7/Introduttivi-siecic-esecuzioni.xsd",
+      "sha256": "2e37a9c705d04c4e873c326a9f8c4ff3a65d363bee2ee9dcaa4061ff9842e828"
+    },
+    {
+      "path": "Atti/sici/siecic_v7/Parte-siecic-concorsuali.xsd",
+      "sha256": "6bec20a62ecacc1948ad03c47a234f1e7838a653b95ed8a15c5ffed64a3c6b17"
+    },
+    {
+      "path": "Atti/sici/siecic_v7/Parte-siecic-esecuzioni.xsd",
+      "sha256": "25de710cd9139762b4f0cf1ab00595b3e50e014419d996313b170c5dc875b6b6"
+    },
+    {
+      "path": "Atti/sici/siecic_v8/Cur-siecic-concorsuali.xsd",
+      "sha256": "e930824d4020d63740de5f7a0aedb408055dc92f4313eaeb82bb6de9e46e5b4d"
+    },
+    {
+      "path": "Atti/sici/siecic_v8/Introduttivi-siecic-esecuzioni.xsd",
+      "sha256": "4e86d89fac8ace7cb4cd130263bb4f48660ced8b918f42822b7d8d7f289863e4"
+    },
+    {
+      "path": "Atti/sici/siecic_v8/Parte-siecic-concorsuali.xsd",
+      "sha256": "0bba5037f9bacf3d08a2ee23b942d29dae7bc9588c26a6d20c22f045739c9187"
+    },
+    {
+      "path": "Atti/sici/siecic_v8/Parte-siecic-esecuzioni.xsd",
+      "sha256": "9b157b893578a7bd143e8ff6895e05307ee311480fad9edb60402f16f0bd4cd4"
+    },
+    {
+      "path": "Atti/sici/siecic_v9/Cur-siecic-concorsuali.xsd",
+      "sha256": "4f7e8f6cb0e1716a0fdf44c0cf80f3f39146de27fc0962fb9c374b20435c90fe"
+    },
+    {
+      "path": "Atti/sici/tipi-anagrafiche.xsd",
+      "sha256": "18ab88b88fbf5b189ce20f152975e0ae33bd6ed8d7d244a173cbdca7bd1f816f"
+    },
+    {
+      "path": "Atti/sici/tipi-atti.xsd",
+      "sha256": "6be1bb6b4bf07afc2261b5d0a4428f9d4858a07134341d33ba9fb6b447187e7b"
+    },
+    {
+      "path": "Atti/sici/tipi-base-siecic.xsd",
+      "sha256": "d17205789576af2a2c3cb7641e3e7a83e403383b657497f48497e79de469c052"
+    },
+    {
+      "path": "Atti/sici/tipi-base.xsd",
+      "sha256": "170728daedfd340fc77a039ac70c3b4dbb9ee028eb092309a1ade0a9dd07e63f"
+    },
+    {
+      "path": "Atti/sici/tipi-enum.xsd",
+      "sha256": "6619e142a0e3bc740db067b00245684b41f8fc40b45dd4d5f1bbbf2dd6029bfb"
+    }
+  ]
+}

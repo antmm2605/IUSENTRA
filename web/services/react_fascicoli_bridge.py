@@ -29,6 +29,7 @@ from zoneinfo import ZoneInfo
 
 from flask import current_app, has_app_context
 
+from web.services.deposito_participant_correction import participant_correction_sources
 from web.services.react_dashboard_time import oggi_rome
 from web.services.archivio_fatti_precaricati import istantanea_dettaglio
 
@@ -9593,6 +9594,12 @@ def build_react_fascicolo_detail_payload(
     preparation_workflow = deposito_workflow_state(preparation_raw)
     preparation_datiatto_extra = preparation_raw.get("datiatto_extra")
     preparation_datiatto_extra = preparation_datiatto_extra if isinstance(preparation_datiatto_extra, dict) else {}
+    citation_date = _text(getattr(fascicolo, "data_notifica_citazione", ""))
+    if citation_date and not _text(preparation_datiatto_extra.get("data_notifica_citazione")):
+        preparation_datiatto_extra = {
+            **preparation_datiatto_extra,
+            "data_notifica_citazione": citation_date,
+        }
     if not _text(preparation_datiatto_extra.get("professionista_ruolo")) and callable(get_config_studio):
         try:
             saved_role = _text(getattr(get_config_studio().config.studio, "deposito_telematico_role", ""))
@@ -9725,6 +9732,7 @@ def build_react_fascicolo_detail_payload(
         "operationalPresidio": operational_presidio,
         "deposits": visible_deposits if load_deposits else [],
         "requests": requests,
+        "participantCorrections": participant_correction_sources(parti, fid) if load_deposits else [],
         "parties": parties,
         "history": _history(fascicolo),
         "client": _client_payload(cliente),

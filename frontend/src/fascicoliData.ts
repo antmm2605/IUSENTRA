@@ -1048,6 +1048,7 @@ export type FascicoloDetailData = {
   operationalPresidio: FascicoloOperationalPresidio
   deposits: FascicoloDeposit[]
   requests: FascicoloActivity[]
+  participantCorrections: Array<{linkId: string; subjectId: string; name: string; role: string; taxCode: string; editHref: string; unlinkAction: string; revision: string}>
   parties: FascicoloParty[]
   history: FascicoloHistory[]
   client?: FascicoloPerson
@@ -1522,7 +1523,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
     hasConflicts: false, documentSyncEnabled: false,
     eventsSyncEnabled: false, complianceControlsEnabled: true, archiveReady: false,
   },
-  quickCounts: {}, lexIndexing: { total_documents: 0, ready: 0, queued: 0, indexing: 0, errors: 0, stale: 0, not_indexed: 0, archived: 0, last_indexed_at: null, status: 'ready', warnings: [] }, profile: [], documents: [], activities: [], technicalEvents: [], deadlines: [], appointments: [], documentPresidio: emptyDocumentPresidio, operationalPresidio: emptyOperationalPresidio, deposits: [], requests: [], parties: [], history: [],
+  quickCounts: {}, lexIndexing: { total_documents: 0, ready: 0, queued: 0, indexing: 0, errors: 0, stale: 0, not_indexed: 0, archived: 0, last_indexed_at: null, status: 'ready', warnings: [] }, profile: [], documents: [], activities: [], technicalEvents: [], deadlines: [], appointments: [], documentPresidio: emptyDocumentPresidio, operationalPresidio: emptyOperationalPresidio, deposits: [], requests: [], participantCorrections: [], parties: [], history: [],
   economics: [], sentenzeEconomiche: null, workflow: [], notificationRelata: emptyNotificationRelata, telematic: [], quality: [],
   depositOffice: emptyDepositOffice,
   depositCatalog: emptyDepositCatalog,
@@ -2574,6 +2575,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
       }
     }),
     requests: asArray(payload.requests).map(normalizeActivity),
+    participantCorrections: asArray(payload.participantCorrections).map(entry => { const row = isRecord(entry) ? entry : {}; return {linkId: text(row.linkId), subjectId: text(row.subjectId), name: text(row.name), role: text(row.role), taxCode: text(row.taxCode), editHref: text(row.editHref), unlinkAction: text(row.unlinkAction), revision: text(row.revision)} }),
     parties: asArray(payload.parties).map((entry, index) => { const row = isRecord(entry) ? entry : {}; return { id: text(row.id, `party-${index}`), name: text(row.name ?? row.nome, 'Soggetto'), role: text(row.role ?? row.ruolo), taxCode: text(row.taxCode ?? row.codice_fiscale), email: text(row.email), pec: text(row.pec), phone: text(row.phone ?? row.telefono), href: text(row.href, '/soggetti') } }),
     history: asArray(payload.history).map((entry) => { const row = isRecord(entry) ? entry : {}; return { date: text(row.date ?? row.data), description: text(row.description ?? row.descrizione), from: text(row.from ?? row.stato_precedente), to: text(row.to ?? row.stato_nuovo), notes: text(row.notes ?? row.note), lawyer: text(row.lawyer ?? row.avvocato) } }),
     client: isRecord(payload.client) ? { id: text(payload.client.id), name: text(payload.client.name ?? payload.client.nome, 'Cliente'), taxCode: text(payload.client.taxCode ?? payload.client.codice_fiscale), vat: text(payload.client.vat ?? payload.client.partita_iva), email: text(payload.client.email), pec: text(payload.client.pec), phone: text(payload.client.phone ?? payload.client.telefono), address: text(payload.client.address ?? payload.client.indirizzo), href: text(payload.client.href, '/clienti') } : undefined,

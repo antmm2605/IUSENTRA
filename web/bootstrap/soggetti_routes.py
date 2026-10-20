@@ -363,7 +363,28 @@ def register_soggetti_routes(
 
     @app.route("/fascicoli/<id_fasc>/parti/<id_parte>/rimuovi", methods=["POST"])
     def rimuovi_parte_fascicolo(id_fasc, id_parte):
-        get_soggetti().rimuovi_parte(id_fasc, id_parte)
+        from web.services.deposito_participant_correction import party_link_revision
+
+        if not get_fascicoli().get(id_fasc):
+            abort(404)
+        manager = get_soggetti()
+        linked = next(((parte, soggetto) for parte, soggetto in manager.parti_fascicolo(id_fasc)
+                       if str(parte.id) == id_parte), None)
+        if linked is None:
+            if _richiede_json():
+                return jsonify({"ok": False, "message": "Collegamento non presente. Aggiorna i partecipanti."}), 409
+            abort(404)
+        if _richiede_json() and request.form.get("expected_revision") != party_link_revision(*linked):
+            return jsonify({"ok": False, "message": "La parte è cambiata. Aggiorna i dati prima di scollegarla."}), 409
+        try:
+            manager.rimuovi_parte(id_fasc, id_parte)
+        except SoggettoConcurrentUpdate as exc:
+            if _richiede_json():
+                return jsonify({"ok": False, "message": str(exc)}), 409
+            raise
         audit("soggetti.rimuovi_parte", "fascicolo", id_fasc, dettagli=id_parte)
-        flash("Parte rimossa dal fascicolo.", "success")
+        message = "Collegamento rimosso dal fascicolo. L'anagrafica del soggetto è conservata."
+        if _richiede_json():
+            return jsonify({"ok": True, "message": message})
+        flash(message, "success")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))

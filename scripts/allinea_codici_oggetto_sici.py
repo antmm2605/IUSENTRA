@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Allinea catalogo codici oggetto, catalogo UI e Guida Pratica agli XSD SICI in esercizio.
 
-Fonte: PST, "Nuovi XSD SICI - 12/05/2026" (XSD_SICI_20260508.zip, in esercizio dal
-14/05/2026) e Nota modifiche XSD versione 1 dell'11/05/2026. Il pacchetto differisce dal
-precedente (XSD_SICI_20260116.zip) solo per `Atti/sici/tipi-base.xsd`: gli altri schemi sono
-identici, quindi i riferimenti di provenienza vengono aggiornati al pacchetto in esercizio.
+Fonte: PST, XSD_SICI_20260720.zip pubblicato il 22/07/2026 e attivato il
+19/10/2026 (NWS5167). Rispetto al pacchetto di maggio cambiano tipi-base.xsd
+(13 codici TSAP) ed eventi.xsd (Documentazione InfoCamere).
 
 Uso dalla root del repository:
     python scripts/allinea_codici_oggetto_sici.py            # scrive i file
@@ -30,18 +29,18 @@ from pct.guida_pratica.sici_catalog_alignment import (  # noqa: E402
     load_sici_codici_oggetto,
 )
 from pct.pst_catalog import (  # noqa: E402
-    PST_SICI_XSD_20260512_PACKAGE_NAME,
-    PST_SICI_XSD_20260512_PACKAGE_SHA256,
+    PST_SICI_XSD_20260722_PACKAGE_NAME,
+    PST_SICI_XSD_20260722_PACKAGE_SHA256,
     PST_SICI_XSD_ACTIVE_TIPI_BASE,
 )
 
 CATALOG = ROOT / "pct" / "data" / "cataloghi" / "codici_oggetto_pst.json"
 UI_CATALOG = ROOT / "pct" / "data" / "cataloghi" / "codici_oggetto_pst_ui.json"
 KB_MODULE = ROOT / "pct" / "data" / "legal_knowledge_base_modules" / "kb_99_completamento_codici_ufficiali.json"
-OLD_SOURCE = "XSD_SICI_20260116/XSD_SICI_20260116/Atti/sici/tipi-base.xsd"
-NEW_SOURCE = "XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/tipi-base.xsd"
-CATALOG_VERSION = "2026-09-11.pst-xsd-official"
-CATALOG_DATE = "2026-09-11"
+OLD_SOURCE = "XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/tipi-base.xsd"
+NEW_SOURCE = "XSD_SICI_20260720/Atti/sici/tipi-base.xsd"
+CATALOG_VERSION = "2026-10-19.pst-xsd-official"
+CATALOG_DATE = "2026-10-19"
 # Nota modifiche 11/05/2026: l'oggetto 171404 riguarda l'amministrazione straordinaria
 # delle grandi imprese in stato di insolvenza (D.L. 347/2003, conv. L. 39/2004).
 MARZANO_NORMATIVA = {
@@ -62,15 +61,30 @@ def dump_compact(payload: object) -> str:
 def align_sources(catalog: dict) -> None:
     for source in catalog.get("fonti") or []:
         if source.get("registro") == "SICID":
-            source["zipFonte"] = PST_SICI_XSD_20260512_PACKAGE_NAME
-            source["sha256Zip"] = PST_SICI_XSD_20260512_PACKAGE_SHA256
-            source["aggiornatoPst"] = "2026-05-12"
+            source["zipFonte"] = PST_SICI_XSD_20260722_PACKAGE_NAME
+            source["sha256Zip"] = PST_SICI_XSD_20260722_PACKAGE_SHA256
+            source["aggiornatoPst"] = "2026-07-22"
+            source["inEsercizioDal"] = "2026-10-19"
+            source["urlFonte"] = "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC5072"
 
 
 def build_outputs() -> tuple[dict[Path, str], dict]:
     official = load_sici_codici_oggetto(ROOT / PST_SICI_XSD_ACTIVE_TIPI_BASE)
     catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
     ui_previous = json.loads(UI_CATALOG.read_text(encoding="utf-8"))
+    present = {row["codice"] for row in catalog["records"]}
+    for code, description in official.items():
+        if code not in present:
+            parent = next((row for row in catalog["records"] if row["codice"][:3] == code[:3]), {})
+            catalog["records"].append({
+                "codice": code, "descrizione": description, "descrizioniAlternative": [],
+                "registri": ["SICID"], "descrizioniPerRegistro": {"SICID": description},
+                "area": parent.get("area", ""), "codicePadre": parent.get("codicePadre", code[:3]),
+                "descrizionePadre": parent.get("descrizionePadre", ""), "fonte": "PST_XSD", "fileFonte": NEW_SOURCE,
+                "fileFonti": [NEW_SOURCE], "attivo": True,
+                "validoDal": "2026-10-19", "validoAl": None,
+            })
+    catalog["records"].sort(key=lambda row: row["codice"])
     records, report = align_catalog_records(catalog["records"], official, old_source=OLD_SOURCE, new_source=NEW_SOURCE)
     catalog["records"] = records
     catalog["versione"] = CATALOG_VERSION

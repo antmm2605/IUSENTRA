@@ -96,10 +96,8 @@ PST_CASSAZIONE_XSD_20260611_PACKAGE_URL = (
     "https://pst.giustizia.it/PST/resources/cms/documents/XSD_Cassazione_20260611.zip"
 )
 PST_CASSAZIONE_XSD_20260615_STATUS = "anticipated_not_production"
-# SICI in esercizio: pacchetto pubblicato il 12/05/2026 (NWS4877), messo in esercizio
-# con la manutenzione del 14/05/2026. Rispetto al pacchetto del 26/01/2026 cambia solo
-# `Atti/sici/tipi-base.xsd` (tipo CodiceOggetto): descrizione dell'oggetto 171404 e
-# dieci nuovi oggetti CCI 4714xx (Nota modifiche XSD, versione 1 dell'11/05/2026).
+# Pacchetto storico di maggio, conservato come provenienza. Il runtime usa il
+# pacchetto di luglio, dichiarato in esercizio dal PST il 19 ottobre 2026.
 PST_SICI_XSD_20260512_NEWS_URL = (
     "https://pst.giustizia.it/PST/page/it/"
     "processo_civile_telematico__comunicazione_alle_software_house_"
@@ -118,7 +116,7 @@ PST_SICI_XSD_20260512_CHANGELOG_URL = (
 )
 PST_SICI_XSD_20260512_PRODUCTION_FROM = "2026-05-14"
 PST_SICI_XSD_ACTIVE_TIPI_BASE = (
-    "docs/specs/ministero/xsd/2026-05-12-sici/XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/tipi-base.xsd"
+    "docs/specs/ministero/xsd/2026-10-19-sici/XSD_SICI_20260720/Atti/sici/tipi-base.xsd"
 )
 PST_SICI_XSD_20260722_NEWS_URL = (
     "https://pst.giustizia.it/PST/page/it/"
@@ -136,7 +134,13 @@ PST_SICI_XSD_20260722_PACKAGE_SHA256 = "83E5CA05691E9D1E0422DE84695ED8FDAB4AA1E0
 PST_SICI_XSD_20260722_CHANGELOG_URL = (
     "https://pst.giustizia.it/PST/resources/cms/documents/modifiche_XSD_SICI_20260721.pdf"
 )
-PST_SICI_XSD_20260722_STATUS = "anticipated_not_production"
+PST_SICI_XSD_20260722_STATUS = "production"
+PST_SICI_XSD_20260722_PRODUCTION_FROM = "2026-10-19"
+PST_SICI_XSD_20261019_NEWS_URL = (
+    "https://pst.giustizia.it/PST/page/it/"
+    "processo_civile_telematico__comunicazione_alle_software_house_"
+    "aggiornamento_specifiche_tecniche_deposito_atti_sicid_it_4?contentId=NWS5167&modelId=4"
+)
 PST_SICI_XSD_20260722_NEW_OBJECT_CODES = (
     "118012", "118013", "118014", "118015", "118016", "118017", "118018",
     "118021", "118022", "118023", "118024", "418098", "418100",
@@ -165,8 +169,8 @@ PST_REGINDE_INTERROGAZIONI_EXT_NAMESPACE = (
     "http://www.giustizia.it/serviziTelematici/reginde/interrogazioniExt"
 )
 PST_XSD_DOWNLOAD_PAGE_URL = "https://pst.giustizia.it/PST/it/download.page"
-PST_CATALOG_VERSION = "PST-CATALOGO-SERVIZI-v1.69-2026.09.11.1"
-PST_SCHEMA_VERSION = "PST-SCHEMI-v1.69-2026.09.11.1"
+PST_CATALOG_VERSION = "PST-CATALOGO-SERVIZI-v1.69-2026.10.19.1"
+PST_SCHEMA_VERSION = "PST-SCHEMI-v1.69-2026.10.19.1"
 PST_MAX_BUSTA_MB = 60
 PST_MAX_BUSTA_BYTES = PST_MAX_BUSTA_MB * 1024 * 1024
 PST_FORMAL_ERROR_CODES = {
@@ -397,22 +401,19 @@ def get_xsd_channels() -> list[PSTXSDChannel]:
             key="SICI",
             label="XSD SICI",
             area="Civile ordinario / redattori area civile",
-            download_page_url=PST_SICI_XSD_20260512_DOWNLOAD_PAGE_URL,
-            package_name=PST_SICI_XSD_20260512_PACKAGE_NAME,
-            package_url=PST_SICI_XSD_20260512_PACKAGE_URL,
-            package_date="2026-05-12",
-            changelog_name="Nota modifiche XSD - 12/05/2026",
-            changelog_url=PST_SICI_XSD_20260512_CHANGELOG_URL,
+            download_page_url=PST_SICI_XSD_20260722_DOWNLOAD_PAGE_URL,
+            package_name=PST_SICI_XSD_20260722_PACKAGE_NAME,
+            package_url=PST_SICI_XSD_20260722_PACKAGE_URL,
+            package_date="2026-07-22",
+            changelog_name="Nota modifiche XSD SICI - 22/07/2026",
+            changelog_url=PST_SICI_XSD_20260722_CHANGELOG_URL,
             status="production",
-            status_source_news_date="2026-05-12",
-            status_source_news_url=PST_SICI_XSD_20260512_NEWS_URL,
+            status_source_news_date=PST_SICI_XSD_20260722_PRODUCTION_FROM,
+            status_source_news_url=PST_SICI_XSD_20261019_NEWS_URL,
             notes=(
-                "Pacchetto pubblicato il 12/05/2026; la news PST dello stesso giorno dichiara gli XSD "
-                "in esercizio dopo la manutenzione del 14/05/2026. Rispetto al pacchetto del 26/01/2026 "
-                "cambia solo tipi-base.xsd (CodiceOggetto): corretta la descrizione dell'oggetto 171404 "
-                "e aggiunti gli oggetti CCI 471404, 471405 e 471412-471419. Le anticipazioni SICI "
-                "dell'11/06/2026 e del 22/07/2026 non sono in esercizio: il validatore resta su questo "
-                "pacchetto finche il PST non comunica la messa in esercizio."
+                "Schemi pubblicati il 22/07/2026, in esercizio dal 19/10/2026 (NWS5167). "
+                "13 nuovi codici oggetto TSAP e Documentazione InfoCamere negli eventi. "
+                "L'anticipazione dell'11/06/2026 resta separata e non attivata."
             ),
             applies_to="Redattore civile SICI / SICID-SIECIC",
         ),
@@ -434,28 +435,6 @@ def get_xsd_channels() -> list[PSTXSDChannel]:
                 f"{PST_SICI_XSD_20260611_NEW_ACT} e il codice oggetto "
                 f"{PST_SICI_XSD_20260611_NEW_OBJECT_CODE}; il validatore deve continuare a usare gli "
                 "XSD SICI di produzione finche il PST non comunica la messa in esercizio."
-            ),
-            applies_to="Monitoraggio normativo deposito SICI / SICID",
-        ),
-        PSTXSDChannel(
-            key="SICI_20260722_PREVIEW",
-            label="XSD SICI - anticipazione 22 luglio 2026",
-            area="Civile ordinario / redattori area civile",
-            download_page_url=PST_SICI_XSD_20260722_DOWNLOAD_PAGE_URL,
-            package_name=PST_SICI_XSD_20260722_PACKAGE_NAME,
-            package_url=PST_SICI_XSD_20260722_PACKAGE_URL,
-            package_date="2026-07-22",
-            changelog_name="Nota modifiche XSD SICI - 22/07/2026",
-            changelog_url=PST_SICI_XSD_20260722_CHANGELOG_URL,
-            status="preview",
-            status_source_news_date="2026-07-22",
-            status_source_news_url=PST_SICI_XSD_20260722_NEWS_URL,
-            notes=(
-                "Fonte PST anticipata per la configurazione dei redattori, con test gia possibili su "
-                "Model Office; la messa in esercizio sara comunicata con successivo avviso. Rispetto al "
-                "pacchetto in esercizio cambiano tipi-base.xsd ed eventi.xsd: 13 nuovi codici oggetto "
-                "TSAP (118012-118018, 118021-118024, 418098, 418100). Il pacchetto non contiene le "
-                "novita dell'anticipazione dell'11/06/2026."
             ),
             applies_to="Monitoraggio normativo deposito SICI / SICID",
         ),
@@ -575,7 +554,8 @@ def get_xsd_channels() -> list[PSTXSDChannel]:
 
 def get_xsd_channel(key: str) -> PSTXSDChannel:
     lookup = {item.key: item for item in get_xsd_channels()}
-    return lookup[key]
+    # Compatibilità di lettura: una sola voce attiva, senza duplicarla nel catalogo.
+    return lookup["SICI" if key == "SICI_20260722_PREVIEW" else key]
 
 
 def get_catalog_sources() -> list[dict[str, str]]:

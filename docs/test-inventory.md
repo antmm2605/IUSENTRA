@@ -6,18 +6,18 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 1053.
+- File pytest censiti: 1055.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
 | Tipo test | Conteggio |
 | --- | --- |
 | API contract | 123 |
-| Backend | 127 |
-| E2E | 14 |
+| Backend | 128 |
+| E2E | 15 |
 | Frontend static gate | 1 |
-| Frontend/UI | 332 |
-| RBAC | 129 |
+| Frontend/UI | 331 |
+| RBAC | 130 |
 | Security | 55 |
 | Smoke CLI | 6 |
 | Tenant isolation | 273 |
@@ -32,7 +32,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 84 |
 | 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 31 |
 | 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 74 |
-| 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 88 |
+| 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 90 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 200 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
 | 09-misc | Test non classificati dalle fasi principali | 483 |
@@ -1062,8 +1062,10 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Smoke | Smoke CLI | scripts/smoke_backend_security.py | readiness, route, workflow o sicurezza runtime | autenticazione completa solo con env smoke dedicate | censito |
 | Smoke | Smoke CLI | scripts/smoke_lib.py | readiness, route, workflow o sicurezza runtime | autenticazione completa solo con env smoke dedicate | censito |
 | Telematico | API contract | tests/test_local_signer_deposito_regression.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| Telematico | Backend | tests/test_deposito_contributo_pertinente.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | Backend | tests/test_import_pst_xsd_codici_oggetto.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | Backend | tests/test_pst_services.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Telematico | E2E | tests/test_deposito_partecipanti_duplicati.py | contratto, audit | richiede ambiente/credenziali quando esce dal test client | censito |
 | Telematico | E2E | tests/test_deposito_sicid_campi.py | contratto, audit | richiede ambiente/credenziali quando esce dal test client | censito |
 | Telematico | E2E | tests/test_deposito_telematico_catalogo.py | tenant, feature flag, contratto, audit | richiede ambiente/credenziali quando esce dal test client | censito |
 | Telematico | Frontend/UI | tests/test_codici_oggetto_pst_catalog.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
@@ -1073,7 +1075,6 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Telematico | Frontend/UI | tests/test_deposito_route_helpers.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | Frontend/UI | tests/test_deposito_server_dry_run_audit.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | Frontend/UI | tests/test_pagopa_pst_receipts.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
-| Telematico | Frontend/UI | tests/test_profilo_deposito.py | 401 anonimo | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | Frontend/UI | tests/test_pst_xsd_catalog_importer.py | contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | Frontend/UI | tests/test_regia_deposito_receipts.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | Frontend/UI | tests/test_simulazione_deposito.py | contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
@@ -1089,6 +1090,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Telematico | RBAC | tests/test_pdp_penale_workflow.py | tenant, contratto, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | RBAC | tests/test_penale_pdp.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | RBAC | tests/test_penale_pdp_api.py | 401 anonimo, 403/RBAC, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Telematico | RBAC | tests/test_profilo_deposito.py | 401 anonimo | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | RBAC | tests/test_pst_ministerial_tables.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | RBAC | tests/test_sigp_integration.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | RBAC | tests/test_sigp_sync.py | 401 anonimo, contratto, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |

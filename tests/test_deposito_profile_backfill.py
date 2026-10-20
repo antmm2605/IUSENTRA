@@ -19,7 +19,7 @@ def test_backfill_sostituisce_provenienza_xsd_storica_con_catalogo_corrente():
 
     assert codice["codice_oggetto_pst"] == "471404"
     assert codice["fonte"] == "PST_XSD"
-    assert codice["file"] == "XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici/tipi-base.xsd"
+    assert codice["file"] == "XSD_SICI_20260720/Atti/sici/tipi-base.xsd"
     assert deposit_profile_needs_update(
         {
             **profile,

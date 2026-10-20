@@ -41,6 +41,7 @@ from pct.pst_catalog import (
     PST_SICI_XSD_20260722_NEW_OBJECT_CODES,
     PST_SICI_XSD_20260722_NEWS_URL,
     PST_SICI_XSD_20260722_PACKAGE_URL,
+    PST_SICI_XSD_20261019_NEWS_URL,
     get_xsd_channels,
 )
 from pct.pst_cifratura import canali_telematici_cifratura_policy
@@ -81,15 +82,15 @@ OFFICIAL_SOURCES: tuple[dict[str, str], ...] = (
         "id": "pst_xsd_sici_esercizio_20260512",
         "label": "PST - XSD SICI 12/05/2026 in esercizio",
         "url": PST_SICI_XSD_20260512_PACKAGE_URL,
-        "note": "Schemi SICI in esercizio dal 14/05/2026: base del validatore e del catalogo codici oggetto.",
+        "note": "Schemi storici del 14/05/2026, sostituiti dal pacchetto di luglio in esercizio dal 19/10/2026.",
     },
     {
         "id": "pst_xsd_sici_preview_20260722",
         "label": "PST - XSD SICI 22/07/2026 per software house",
         "url": PST_SICI_XSD_20260722_PACKAGE_URL,
         "note": (
-            "Anticipazione non ancora in esercizio (test su Model Office); 13 nuovi codici oggetto TSAP. "
-            f"Notizia PST: {PST_SICI_XSD_20260722_NEWS_URL}"
+            "In esercizio dal 19/10/2026; 13 nuovi codici oggetto TSAP. "
+            f"Messa in esercizio PST: {PST_SICI_XSD_20261019_NEWS_URL}"
         ),
     },
     {
@@ -1080,13 +1081,16 @@ def build_deposit_catalog_payload(
             "siciEsercizio20260512": {
                 "packageUrl": PST_SICI_XSD_20260512_PACKAGE_URL,
                 "newsUrl": PST_SICI_XSD_20260512_NEWS_URL,
-                "productionReady": True,
+                "productionReady": False,
+                "supersededFrom": "2026-10-19",
             },
             "siciPreview20260722": {
                 "packageUrl": PST_SICI_XSD_20260722_PACKAGE_URL,
                 "newsUrl": PST_SICI_XSD_20260722_NEWS_URL,
                 "newObjectCodes": list(PST_SICI_XSD_20260722_NEW_OBJECT_CODES),
-                "productionReady": False,
+                "productionReady": True,
+                "productionSince": "2026-10-19",
+                "productionNewsUrl": PST_SICI_XSD_20261019_NEWS_URL,
             },
             "cassazioneEsercizio": {
                 "schemaVersion": PST_CASSAZIONE_XSD_ACTIVE_VERSION,

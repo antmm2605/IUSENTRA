@@ -24,7 +24,7 @@ def test_inventario_contiene_solo_entry_point_in_esercizio():
     assert len(paths) == len(ACTIVE_MINISTERIAL_SCHEMAS) == 20
     assert all(path.is_file() for path in paths)
     assert all("preview" not in path.as_posix().casefold() for path in paths)
-    assert any("2026-05-12-sici" in path.as_posix() for path in paths)
+    assert any("2026-10-19-sici" in path.as_posix() for path in paths)
     assert any("parte_v21/Parte-cassazione.xsd" in path.as_posix() for path in paths)
     assert not any("parte_v13" in path.as_posix() for path in paths)
 

@@ -223,3 +223,42 @@ def test_party_identifier_collision_does_not_update_an_existing_role(subjects, m
         manager().aggiungi_parte('F1', person.id, RuoloSoggetto.CONTROPARTE)
     links = manager().parti_fascicolo('F1')
     assert len(links) == 1 and links[0][0].to_dict() == first.to_dict()
+
+
+def test_correction_unlinks_only_selected_revision_and_preserves_subjects(subjects):
+    from flask import Flask
+    from web.bootstrap.soggetti_routes import register_soggetti_routes
+    from web.services.deposito_participant_correction import participant_correction_sources
+
+    db, manager = subjects
+    for fid in ('F1', 'F2'):
+        db.conn.execute('INSERT INTO fascicoli(id) VALUES (?)', (fid,))
+    (getattr(db, 'raw_conn', None) or db.conn).commit()
+    entity = manager().crea(TipoSoggetto.PUBBLICA_AMMINISTRAZIONE, ragione_sociale='Ente collaudo', codice_fiscale='80078750587')
+    first = manager().aggiungi_parte('F1', entity.id, RuoloSoggetto.CONTROPARTE)
+    other = manager().aggiungi_parte('F1', entity.id, RuoloSoggetto.INTERVENIENTE)
+    manager().aggiungi_parte('F2', entity.id, RuoloSoggetto.CONTROPARTE)
+    sources = participant_correction_sources(manager().parti_fascicolo('F1'), 'F1')
+    assert len(sources) == 2  # stesso nome e CF: nessuna riga nascosta nella correzione
+    row = next(item for item in sources if item['linkId'] == first.id)
+    app = Flask(__name__)
+    app.secret_key = 'solo-collaudo'
+    events = []
+    register_soggetti_routes(app, get_soggetti=manager,
+        get_clienti=lambda: SimpleNamespace(tutti=lambda: []),
+        get_fascicoli=lambda: SimpleNamespace(get=lambda fid: SimpleNamespace(id=fid) if fid in {'F1','F2'} else None),
+        audit=lambda *args, **kwargs: events.append(args))
+    client = app.test_client()
+    headers = {'Accept': 'application/json'}
+    assert client.post(row['unlinkAction'], data={}, headers=headers).status_code == 409
+    assert client.post(row['unlinkAction'].replace('/F1/', '/F2/'),
+        data={'expected_revision': row['revision']}, headers=headers).status_code == 409
+    manager().aggiorna(entity.id, note='revisione concorrente')
+    assert client.post(row['unlinkAction'], data={'expected_revision': row['revision']}, headers=headers).status_code == 409
+    fresh = next(item for item in participant_correction_sources(manager().parti_fascicolo('F1'), 'F1') if item['linkId'] == first.id)
+    response = client.post(fresh['unlinkAction'], data={'expected_revision': fresh['revision']}, headers=headers)
+    assert response.status_code == 200 and response.json['ok'] is True
+    assert [parte.id for parte, _ in manager().parti_fascicolo('F1')] == [other.id]
+    assert len(manager().parti_fascicolo('F2')) == 1
+    assert manager().get(entity.id).note == 'revisione concorrente'
+    assert len(events) == 1

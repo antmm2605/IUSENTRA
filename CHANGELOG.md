@@ -1,3 +1,10 @@
+# 2.442.5 — XSD SICID in esercizio e correzione dei partecipanti
+
+- Attivazione del pacchetto ministeriale di luglio, in esercizio dal 19 ottobre: 13 nuovi codici oggetto e aggiornamento degli eventi InfoCamere.
+- Diagnostica dei partecipanti duplicati fondata sul rifiuto XSD, con nomi, riferimenti e correzione delle schede o del solo collegamento al fascicolo.
+- Conservazione dell'errore effettivo nel pannello deposito; controllo facoltativo senza firma né invio tramite il percorso esistente.
+- Nessun requisito aggiunto ai campi facoltativi e nessuna modifica a firma, cifratura o trasporto PEC.
+
 # 2.442.4 — Aggiornamento di sicurezza degli strumenti frontend
 
 - Aggiornata la dipendenza transitiva Hono alla 4.13.11, che impedisce la seconda decodifica di percorsi statici malformati.

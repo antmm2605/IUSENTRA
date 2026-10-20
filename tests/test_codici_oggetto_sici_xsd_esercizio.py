@@ -1,6 +1,6 @@
 """Il catalogo codici oggetto SICID deve coincidere con gli XSD SICI in esercizio.
 
-Fonte: PST, XSD_SICI_20260508 (pubblicato 12/05/2026, in esercizio dal 14/05/2026) e
+Fonte: PST, XSD_SICI_20260720 (pubblicato 22/07/2026, in esercizio dal 19/10/2026) e
 Nota modifiche XSD dell'11/05/2026: descrizione dell'oggetto 171404 corretta perche
 induceva in errore, nuovi oggetti CCI 471404, 471405, 471412-471419.
 """
@@ -40,13 +40,13 @@ def test_ogni_codice_oggetto_sici_ufficiale_e_nel_registro_sicid_con_descrizione
     official = _official()
     catalog = _records(CATALOG)
 
-    assert len(official) == 822
+    assert len(official) == 835
     for code, description in official.items():
         record = catalog[code]
         assert record["registri"][0] == "SICID", code
         assert record["descrizioniPerRegistro"]["SICID"] == description, code
         assert record["descrizione"] == description, code
-        assert record["fileFonte"].startswith("XSD_SICI_20260508/"), code
+        assert record["fileFonte"].startswith("XSD_SICI_20260720/"), code
 
 
 def test_registro_sicid_non_contiene_codici_assenti_dagli_xsd_in_esercizio():
@@ -74,7 +74,7 @@ def test_nuovi_oggetti_cci_sono_depositabili_sul_sicid():
         assert catalog[code]["registri"][:1] == ["SICID"], code
         assert "SICID" in ui_catalog[code]["registri"], code
     assert normalize_codice_oggetto_pst("Esdebitazione del Debitore Incapiente (CCI)") == "471404"
-    assert codice_oggetto_pst_payload("471404")["file_fonte_codice_oggetto"].startswith("XSD_SICI_20260508/")
+    assert codice_oggetto_pst_payload("471404")["file_fonte_codice_oggetto"].startswith("XSD_SICI_20260720/")
 
 
 def test_catalogo_ui_e_la_proiezione_esatta_del_catalogo_tecnico():
@@ -86,4 +86,54 @@ def test_catalogo_ui_e_la_proiezione_esatta_del_catalogo_tecnico():
     assert ui_catalog["totaleCodici"] == len(catalog["records"])
     assert ui_catalog["records"] == [{key: row.get(key) for key in keys} for row in catalog["records"]]
     sici_source = next(item for item in catalog["fonti"] if item["registro"] == "SICID")
-    assert sici_source["zipFonte"] == "XSD_SICI_20260508.zip"
+    assert sici_source["zipFonte"] == "XSD_SICI_20260720.zip"
+
+
+def test_tredici_nuovi_codici_luglio_sono_attivi_con_provenienza_e_decorrenza():
+    from pct.pst_catalog import PST_SICI_XSD_20260722_NEW_OBJECT_CODES
+
+    catalog = _records(CATALOG)
+    for code in PST_SICI_XSD_20260722_NEW_OBJECT_CODES:
+        row = catalog[code]
+        assert row["registri"] == ["SICID"]
+        assert row["validoDal"] == "2026-10-19"
+        assert row["descrizione"] == _official()[code]
+        assert codice_oggetto_pst_payload(code)["file_fonte_codice_oggetto"] == row["fileFonte"]
+
+
+def test_tutti_entry_point_attivi_compilano_con_xsd_ufficiali():
+    from lxml import etree
+    from pct.ministerial_xsd_catalog import active_schema_paths
+
+    for path in active_schema_paths():
+        etree.XMLSchema(etree.parse(str(path)))
+
+
+def test_eventi_ufficiali_comprendono_documentazione_infocamere():
+    from lxml import etree
+
+    path = (ROOT / PST_SICI_XSD_ACTIVE_TIPI_BASE).with_name("eventi.xsd")
+    root = etree.parse(str(path))
+    assert root.xpath(
+        "//xs:enumeration[@value='24']/xs:annotation/xs:documentation[text()='Documentazione InfoCamere']",
+        namespaces={"xs": "http://www.w3.org/2001/XMLSchema"},
+    )
+
+
+def test_pacchetto_ministeriale_conservato_senza_modifiche():
+    import hashlib
+
+    folder = ROOT / "docs/specs/ministero/xsd/2026-10-19-sici"
+    manifest = json.loads((folder / "source-manifest.json").read_text(encoding="utf-8"))
+    assert len(manifest["files"]) == 156
+    assert manifest["archiveSha256"] == "83e5ca05691e9d1e0422de84695ed8fdab4aa1e080e2fcca9ddac9e9ba11a264"
+    for row in manifest["files"]:
+        assert hashlib.sha256((folder / "XSD_SICI_20260720" / row["path"]).read_bytes()).hexdigest() == row["sha256"]
+
+
+def test_un_solo_canale_sici_attivo_e_alias_di_lettura_compatibile():
+    from pct.pst_catalog import get_xsd_channels
+
+    channels = get_xsd_channels()
+    assert sum(row.package_name == "XSD_SICI_20260720.zip" for row in channels) == 1
+    assert get_xsd_channel("SICI_20260722_PREVIEW") == get_xsd_channel("SICI")

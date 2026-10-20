@@ -18,10 +18,10 @@ from pct.pst_catalog import PST_CASSAZIONE_XSD_ACTIVE_VERSION
 
 _ROOT = Path(__file__).resolve().parents[1]
 _XSD_NS = "http://www.w3.org/2001/XMLSchema"
-_SICI_PACKAGE = "XSD_SICI_20260508.zip"
+_SICI_PACKAGE = "XSD_SICI_20260720.zip"
 _SICI_BASE = (
-    "docs/specs/ministero/xsd/2026-05-12-sici/"
-    "XSD_SICI_20260508/XSD_SICI_20260508/Atti/sici"
+    "docs/specs/ministero/xsd/2026-10-19-sici/"
+    "XSD_SICI_20260720/Atti/sici"
 )
 
 ROLE_AVVOCATO = "avvocato"
@@ -55,7 +55,7 @@ def _sici(
         generator_class=generator_class,
         relative_path=f"{_SICI_BASE}/{relative_path}",
         package_name=_SICI_PACKAGE,
-        production_since="14/05/2026",
+        production_since="19/10/2026",
         allowed_professional_roles=tuple(roles),
         system_only=system_only,
     )

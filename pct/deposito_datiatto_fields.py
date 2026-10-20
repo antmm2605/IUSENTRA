@@ -19,7 +19,7 @@ from pct.cassazione_atti_v21 import (
 )
 from pct.cassazione_xsd_tables import cassazione_enumeration, cassazione_parte_child_enumeration
 from pct.deposito_studio_telematico_contract import studio_telematico_type_contract
-from pct.deposito_sicid_campi import SICID_ATTI_SENZA_ISTANZA_MANUALE
+from pct.deposito_sicid_campi import SICID_ATTI_SENZA_ISTANZA_MANUALE, SICID_CITAZIONE_DATA_UNICA
 from pct.pst_catalog import PST_CASSAZIONE_XSD_ACTIVE_VERSION
 
 
@@ -324,9 +324,9 @@ def datiatto_input_fields(catalog_key: str, generator_class: str, root_name: str
         _append_unique(fields, _field("precedente_fascicolo_numero", "Numero del fascicolo precedente", group=common_group))
     if enabled("txtPrecedenteFascicoloAnno"):
         _append_unique(fields, _field("precedente_fascicolo_anno", "Anno del fascicolo precedente", "year", group=common_group))
-    if enabled("cboIstanze") and not scoped_sicid:
+    if enabled("cboIstanze") and not scoped_sicid and key not in SICID_CITAZIONE_DATA_UNICA:
         _append_unique(fields, _field("istanza", "Istanza", group=common_group))
-    if enabled("dtpDataAttoDaDepositare"):
+    if enabled("dtpDataAttoDaDepositare") and key not in SICID_CITAZIONE_DATA_UNICA:
         _append_unique(fields, _field("data_atto_deposito", "Data dell'atto", "date", group=common_group))
 
     if generator_class.startswith("Introduttivi") and (

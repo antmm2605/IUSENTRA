@@ -4,3 +4,4 @@
 *.pdf binary
 *.png binary
 docs/specs/ministero/xsd/** -whitespace
+docs/specs/ministero/xsd/2026-10-19-sici/XSD_SICI_20260720/** -text

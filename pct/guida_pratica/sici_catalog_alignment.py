@@ -1,8 +1,8 @@
 """Allineamento del registro SICID del catalogo codici oggetto agli XSD SICI in esercizio.
 
 Base: enumeration ``CodiceOggetto`` di ``Atti/sici/tipi-base.xsd`` del pacchetto PST in
-esercizio (XSD_SICI_20260508, pubblicato il 12/05/2026 e in esercizio dal 14/05/2026;
-Nota modifiche XSD, versione 1 dell'11/05/2026). Il deposito puo usare solo codici presenti
+esercizio (XSD_SICI_20260720, pubblicato il 22/07/2026 e in esercizio dal 19/10/2026;
+Nota modifiche XSD, versione 1 del 21/07/2026). Il deposito puo usare solo codici presenti
 nell'enumeration ufficiale e con la descrizione ministeriale: il catalogo non deve
 conservare descrizioni superate che il Ministero ha corretto perche inducevano in errore.
 

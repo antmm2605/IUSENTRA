@@ -2124,6 +2124,7 @@ class GestioneFascicoli:
         verifica_certificato: bool,
         richiedi_ufficio: bool,
     ) -> None:
+        preparazione = copy.deepcopy((f.profilo_deposito or {}).get("preparazione_busta"))
         f.profilo_deposito = costruisci_profilo_deposito(
             id_pratica=f.id_pratica,
             area_pratica=f.area_pratica,
@@ -2141,6 +2142,8 @@ class GestioneFascicoli:
             richiedi_ufficio=richiedi_ufficio,
             profilo_origine=f.profilo_deposito,
         )
+        if isinstance(preparazione, dict):
+            f.profilo_deposito["preparazione_busta"] = preparazione
 
     def nuovo(
         self,

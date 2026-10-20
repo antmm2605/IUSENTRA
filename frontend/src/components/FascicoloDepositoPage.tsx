@@ -1,3 +1,5 @@
+import { canCheckPctDeposit, depositActionMessage, depositCorrectionArea, duplicateParticipantTaxCode } from './depositCorrection'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import { formatDateIt } from '../formatting'
@@ -1384,9 +1386,12 @@ function DepositSpecificDataForm({
         </div>
         <small>La qualifica salvata viene riproposta nel deposito successivo.</small>
       </div>
-      {groups.map((group) => (
-        <div className="iu-fas-deposit-specific__group" key={`${entry?.key}-${group.label}`}>
-          <h4>{group.label}</h4>
+      {groups.map((group) => {
+        const optional = group.fields.every((field) => !field.required)
+        const Group = optional ? 'details' : 'div'
+        return (
+        <Group className="iu-fas-deposit-specific__group" key={`${entry?.key}-${group.label}`}>
+          {optional ? <summary>Altri dati, solo se pertinenti</summary> : <h4>{group.label}</h4>}
           <div className="iu-fas-deposit-specific__grid">
             {group.fields.filter((field) => !complexTypes.has(field.type)).map((field) => {
               const value = values[field.id]
@@ -1431,8 +1436,9 @@ function DepositSpecificDataForm({
               client={client}
             />
           ))}
-        </div>
-      ))}
+        </Group>
+        )
+      })}
     </section>
   )
 }
@@ -1831,6 +1837,7 @@ async function eseguiAzioneDeposito({
   completeLocalSignature,
   completeLocalPec,
   onAttesaLocale,
+  checkOnly = false,
 }: {
   action: string
   payload: DepositActionPayload
@@ -1838,8 +1845,12 @@ async function eseguiAzioneDeposito({
   completeLocalSignature?: (payload: ActionPayload, submittedPayload: DepositActionPayload) => Promise<LocalSignatureCompletion>
   completeLocalPec?: (payload: ActionPayload, submittedPayload: DepositActionPayload) => Promise<string | void>
   onAttesaLocale?: () => void
+  checkOnly?: boolean
 }): Promise<EsitoAzioneDeposito> {
   const handleJsonResult = async (result: ActionPayload, submittedPayload: DepositActionPayload, responseOk = true): Promise<EsitoAzioneDeposito> => {
+    if (checkOnly && result.requires_local_signature) {
+      return { tipo: 'fatto', messaggio: 'Dati del deposito conformi agli schemi. Per completare il pacchetto serve ancora la firma locale: nessuna firma o PEC è stata eseguita da questo controllo.' }
+    }
     if (result.requires_local_signature && completeLocalSignature) {
       onAttesaLocale?.()
       const completion = await completeLocalSignature(result, submittedPayload)
@@ -1862,6 +1873,8 @@ async function eseguiAzioneDeposito({
     }
     return { tipo: 'fatto', messaggio: String(result.messaggio || result.message || 'Operazione deposito completata.') }
   }
+  if (checkOnly && payload.prova_senza_invio !== '1') throw new Error('Controllo senza invio non configurato.')
+  if (checkOnly && !action.endsWith('/deposito/invia-pec')) throw new Error('Il controllo senza firma richiede il canale PCT dedicato.')
   if (beforeSubmit) await beforeSubmit()
   const form = new FormData()
   Object.entries(payload).forEach(([key, value]) => {
@@ -2131,6 +2144,12 @@ function DepositPreparePage({ id }:{id:string}) {
   const [activeDepositPanel, setActiveDepositPanel] = useState<DepositPhaseId>(initialDepositPhaseFromHash)
   const [depositActionNotice, setDepositActionNotice] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
   const [packagePreview, setPackagePreview] = useState<DepositPackagePreview | null>(null)
+  const [depositCorrectionMessage, setDepositCorrectionMessage] = useState('')
+  const [correctingParticipant, setCorrectingParticipant] = useState('')
+  const [checkingDeposit, setCheckingDeposit] = useState(false)
+  const [depositCheckMessage, setDepositCheckMessage] = useState('')
+  useBusyActivity(checkingDeposit, 'Controllo del deposito, senza invio…')
+  useBusyActivity(Boolean(correctingParticipant), 'Aggiornamento del collegamento…')
   const [depositProofCompleted, setDepositProofCompleted] = useState(false)
   const [depositSimulationCompleted, setDepositSimulationCompleted] = useState(false)
   const [depositSendCompleted, setDepositSendCompleted] = useState(false)
@@ -2141,6 +2160,7 @@ function DepositPreparePage({ id }:{id:string}) {
   const [additionalSignatureIds, setAdditionalSignatureIds] = useState<string[]>([])
   useEffect(() => {
     setAdditionalSignatureIds([])
+    setDepositCorrectionMessage('')
     setPackagePreview(null)
     setDepositProofCompleted(false)
     setDepositSimulationCompleted(false)
@@ -2179,6 +2199,38 @@ function DepositPreparePage({ id }:{id:string}) {
       setDepositActionNotice({ tone: 'danger', message: 'Non ho potuto aggiornare i dati del deposito.' })
     })
   }
+  const reloadCorrectedParties = async () => {
+    setDepositProofInvalidated(true)
+    setDepositProofCompleted(false)
+    setDepositSimulationCompleted(false)
+    setDepositSendCompleted(false)
+    setPackagePreview(null)
+    try {
+      const updated = await getFascicoloDetail(id, { include: [...DEPOSIT_DETAIL_INCLUDE] })
+      setData(updated)
+    } catch {
+      setToast({ tone: 'danger', message: 'Dati non aggiornati. La bozza è conservata: riprova.' })
+      throw new Error('Aggiornamento dei partecipanti non riuscito.')
+    }
+  }
+  const unlinkParticipant = async (participant: FascicoloDetailData['participantCorrections'][number]) => {
+    if (correctingParticipant || !window.confirm(`Scollegare ${participant.name} (${participant.role}) soltanto da questo fascicolo? La scheda anagrafica e gli altri fascicoli restano conservati. Verifica che sia il collegamento errato.`)) return
+    setCorrectingParticipant(participant.linkId)
+    try {
+      const form = new FormData()
+      form.set('expected_revision', participant.revision)
+      await submitFormJson(participant.unlinkAction, form)
+      await reloadCorrectedParties()
+      setToast({ tone: 'success', message: 'Collegamento rimosso. Ripeti i controlli del deposito prima di inviare.' })
+    } catch (error) {
+      setToast({ tone: 'danger', message: error instanceof Error ? error.message : 'Collegamento non modificato.' })
+    } finally {
+      setCorrectingParticipant('')
+    }
+  }
+  useOperationalRefresh(['clienti', 'soggetti', 'fascicoli'], async () => {
+    if (depositCorrectionMessage) await reloadCorrectedParties()
+  })
   const failDetail = (message: string) => {
     setToast({ tone: 'danger', message })
     setDepositActionNotice({ tone: 'danger', message })
@@ -2209,7 +2261,7 @@ function DepositPreparePage({ id }:{id:string}) {
       }
       corrente.handlePackageReady(prova.risultato, 'prova')
       if (!(prova.risultato.package_ready && !prova.risultato.requires_guided_completion)) {
-        throw new Error(String(prova.risultato.message || prova.risultato.messaggio || 'La verifica della busta ha segnalato controlli da completare: vedi il riepilogo.'))
+        throw new Error(depositActionMessage(prova.risultato))
       }
       await aggiornaDettaglioDeposito()
       if (!(await attendiCondizione(() => stato().packageReadyAfterProof))) {
@@ -2234,7 +2286,7 @@ function DepositPreparePage({ id }:{id:string}) {
       }
       corrente.handlePackageReady(simulazione.risultato, 'simulazione')
       if (!(simulazione.risultato.package_ready && !simulazione.risultato.requires_guided_completion && simulazione.risultato.simulazione === true)) {
-        throw new Error(String(simulazione.risultato.message || simulazione.risultato.messaggio || 'Il controllo del messaggio PEC non è positivo: vedi il riepilogo.'))
+        throw new Error(depositActionMessage(simulazione.risultato))
       }
       await aggiornaDettaglioDeposito()
       if (!(await attendiCondizione(() => stato().depositSimulationCompleted))) {
@@ -2316,7 +2368,7 @@ function DepositPreparePage({ id }:{id:string}) {
     }
   }
   const handlePackageReady = (payload: ActionPayload, stage: 'prova' | 'simulazione') => {
-    const message = String(payload.message || payload.messaggio || 'Pacchetto di controllo preparato. Nessun invio PEC reale eseguito.')
+    const message = depositActionMessage(payload)
     const packageStageCompleted = Boolean(payload.package_ready && !payload.requires_guided_completion)
     setPackagePreview({
       idDeposito: String(payload.id_deposito || ''),
@@ -2341,9 +2393,10 @@ function DepositPreparePage({ id }:{id:string}) {
       setPecBodyEdited(false)
       setPecBodyEditorOpen(false)
     }
-    setToast({ tone: 'success', message })
-    setDepositActionNotice({ tone: 'success', message })
-    setDepositProofInvalidated(false)
+    setToast({ tone: packageStageCompleted ? 'success' : 'danger', message })
+    setDepositActionNotice({ tone: packageStageCompleted ? 'success' : 'danger', message })
+    setDepositCorrectionMessage(packageStageCompleted ? '' : message)
+    setDepositProofInvalidated(!packageStageCompleted)
     setDepositProofCompleted(packageStageCompleted)
     setDepositSimulationCompleted(stage === 'simulazione' && packageStageCompleted && payload.simulazione === true)
     setDepositSendCompleted(false)
@@ -2366,6 +2419,7 @@ function DepositPreparePage({ id }:{id:string}) {
     return () => { active = false }
   }, [id])
 
+  const participantCorrectionMessage = depositCorrectionMessage
   const f = data.fascicolo
   const encodedId = encodeURIComponent(f.id || id)
   const detailHref = `/fascicoli/${encodedId}`
@@ -2413,6 +2467,7 @@ function DepositPreparePage({ id }:{id:string}) {
   const practiceProfileReason = recordText(regia.profile, 'reason')
   const deliveryNote = depositDeliveryNote(recordText(deliveryPolicy, 'note'), deliveryOfficialChannel, practiceProfileName, regia.header.channel)
   const selectedDepositType = data.depositCatalog.entries.find((entry) => entry.key === selectedDepositTypeKey)
+  const selectedPctCheckAvailable = canCheckPctDeposit(selectedDepositType?.payload.tipo_deposito_telematico_channel || '')
   const selectedDepositInputFields = selectedDepositType?.schema.inputFields || []
   const missingRequiredDepositSpecificFields = missingDepositSpecificFields(selectedDepositInputFields, depositSpecificData)
   const selectedDepositProfessionalRoleOptions = selectedDepositType?.key.startsWith('Parte_CASSAZIONE::')
@@ -3437,13 +3492,13 @@ function DepositPreparePage({ id }:{id:string}) {
     ? 'Deposito inviato'
     : incompleteDepositRequirementChecks.length
     ? `${incompleteDepositRequirementChecks.length} requisiti da completare`
-    : 'Pronto per l’invio locale'
+    : 'Dati preliminari completi'
   const preparationTone: FascicoloRow['tone'] = depositSendCompleted || !incompleteDepositRequirementChecks.length ? 'success' : 'warning'
   const depositMessage = depositSendCompleted
     ? 'Controlli della busta, del messaggio PEC e invio reale risultano completati e memorizzati per questo deposito.'
     : incompleteDepositRequirementChecks.length
     ? 'Completa i requisiti del deposito indicati sotto.'
-    : 'Requisiti completi: «Invia deposito reale» verifica busta e messaggio PEC e, se tutto è corretto, invia il deposito.'
+    : 'Dati preliminari completi: «Invia deposito reale» verifica busta e messaggio PEC e, se tutto è corretto, invia il deposito.'
   const documentPhaseTone: FascicoloRow['tone'] = !selectedDepositType ? 'warning' : !mainActDocument ? 'danger' : missingRequiredSlots.length ? 'warning' : packageDocuments.length ? 'success' : 'warning'
   const documentPhaseState = !selectedDepositType
     ? 'Tipo da scegliere'
@@ -4095,8 +4150,8 @@ function DepositPreparePage({ id }:{id:string}) {
                   <strong>Aggiungi documenti al deposito</strong>
                   <span>Se manca un file, puoi inserirlo dalla pratica o caricarlo dal PC senza uscire da questa fase.</span>
                 </div>
-                <Badge tone={packageAddAvailableDocuments.length ? 'primary' : 'success'}>
-                  {packageAddAvailableDocuments.length ? `${packageAddAvailableDocuments.length} disponibili` : 'Pacchetto completo'}
+                <Badge tone={packageAddAvailableDocuments.length ? 'primary' : packageDocuments.length ? 'info' : 'warning'}>
+                  {packageAddAvailableDocuments.length ? `${packageAddAvailableDocuments.length} disponibili` : packageDocuments.length ? 'Selezione documenti completa' : 'Nessun documento selezionato'}
                 </Badge>
               </header>
               {packageAddAvailableDocuments.length ? (
@@ -4145,7 +4200,7 @@ function DepositPreparePage({ id }:{id:string}) {
                   </button>
                 </div>
               ) : (
-                <p>Tutti i documenti selezionabili del fascicolo sono già nel pacchetto.</p>
+                <p>{packageDocuments.length ? 'Tutti i documenti selezionabili del fascicolo sono già nel pacchetto.' : 'Nessun documento selezionabile: carica o scegli l’atto principale.'}</p>
               )}
               {data.actions.uploadDocument ? (
                 <details className="iu-fas-package-document-tools__upload">
@@ -4281,6 +4336,21 @@ function DepositPreparePage({ id }:{id:string}) {
               ) : null}
             </div>
             <div id="azioni-deposito" className="iu-fas-package-actions" aria-label="Azioni del deposito">
+              {(directPecReady || guidedCompletion || pctJsonPackageChannel || selectedPctCheckAvailable) ? <button type="button" className="iu-fas-side-link" disabled={checkingDeposit || proofActionBlocked} onClick={async () => {
+                setCheckingDeposit(true)
+                setDepositCheckMessage('')
+                try {
+                  await submitDepositClassification()
+                  const result = await eseguiAzioneDeposito({ action: jsonPecAction, payload: depositDryRunActionPayload, checkOnly: true })
+                  if (result.tipo === 'pacchetto') handlePackageReady(result.risultato, 'prova')
+                  else setDepositCheckMessage(result.messaggio)
+                } catch (error) {
+                  const message = error instanceof Error ? error.message : 'Controllo non completato.'
+                  setDepositCorrectionMessage(message)
+                  failDetail(message)
+                } finally { setCheckingDeposit(false) }
+              }}><ClipboardCheck size={15}/> {checkingDeposit ? 'Controllo in corso…' : 'Controlla senza firmare né inviare'}</button> : null}
+              {depositCheckMessage ? <p role="status">{depositCheckMessage}</p> : null}
               <InvioDepositoRealeButton
                 disabled={Boolean(invioGuidatoDisabledReason)}
                 disabledReason={invioGuidatoDisabledReason}
@@ -4306,6 +4376,37 @@ function DepositPreparePage({ id }:{id:string}) {
               {requiredSpecificDataNotice ? <small>{requiredSpecificDataNotice}</small> : null}
               {actionBlocked ? <small>{depositUserFacingMessage(actionBlockedReason || depositActionBlockedReason(ready, mainActDocument, missingRequiredSlots, signaturesRequiredBeforeAction ? unsignedPackageDocuments.length : 0))}</small> : <small>{signatureBatchRequired ? `${unsignedPackageDocuments.length} documenti saranno firmati da IUSENTRA con firma multipla. ` : ''}{directPecReady ? 'Il software prepara pacchetto, invio PEC e presidio ricevute nel fascicolo.' : guidedCompletion ? 'Il software governa controlli, indice, firma dei dati deposito e invio dal PC locale; se manca un requisito lo indica prima dell’invio.' : 'Il software prepara il pacchetto e governa il caricamento finale sul portale ufficiale.'}</small>}
             </div>
+            {participantCorrectionMessage ? (
+              <section className="iu-fas-deposit-correction" role="alert" aria-label="Dati del deposito da correggere">
+                <strong><AlertTriangle size={17}/> {duplicateParticipantTaxCode(participantCorrectionMessage) ? 'Codice fiscale ripetuto nei partecipanti' : 'Deposito fermato: correggi i dati'}</strong>
+                {duplicateParticipantTaxCode(participantCorrectionMessage) ? (
+                  <p>Il codice fiscale <b>{duplicateParticipantTaxCode(participantCorrectionMessage)}</b> compare più volte nell’anagrafica del deposito. Se è un errore di digitazione, correggi il codice nella scheda della parte. Se è la stessa parte inserita due volte, verifica e correggi i collegamenti al fascicolo. Non cancellare l’anagrafica dell’ente.</p>
+                ) : <p>{depositUserFacingMessage(participantCorrectionMessage.split('Dettaglio ministeriale:')[0])}</p>}
+                {duplicateParticipantTaxCode(participantCorrectionMessage) ? <p>{depositUserFacingMessage(participantCorrectionMessage.split('Dettaglio ministeriale:')[0])}</p> : null}
+                <div className="iu-fas-deposit-correction__actions">
+                  {data.client?.taxCode.replace(/\s/g, '').toUpperCase() === duplicateParticipantTaxCode(participantCorrectionMessage) && data.client?.href ? <a className="iu-fas-side-link" href={`${data.client.href}/modifica`}><Edit3 size={15}/> Correggi cliente {data.client.name}</a> : null}
+                  {depositCorrectionArea(participantCorrectionMessage) === 'contributo'
+                    ? <a className="iu-fas-side-link" href={`${detailHref}#presidio-fascicolo`}><Edit3 size={15}/> Completa contributo o esenzione nel fascicolo</a>
+                    : depositCorrectionArea(participantCorrectionMessage) === 'parti'
+                      ? <a className="iu-fas-side-link" href={f.editHref || `${detailHref}/modifica`}><Edit3 size={15}/> Correggi parti del fascicolo</a>
+                      : depositCorrectionArea(participantCorrectionMessage) === 'fascicolo'
+                        ? <a className="iu-fas-side-link" href={f.editHref || `${detailHref}/modifica`}><Edit3 size={15}/> Completa dati del fascicolo</a>
+                      : <button type="button" className="iu-fas-side-link" onClick={() => goToDepositPhase('proposta-busta')}><Edit3 size={15}/> {depositCorrectionArea(participantCorrectionMessage) === 'documenti' ? 'Controlla documenti selezionati' : 'Completa dati del deposito'}</button>}
+                  {data.participantCorrections.filter(party => party.taxCode.replace(/\s/g, '').toUpperCase() === duplicateParticipantTaxCode(participantCorrectionMessage)).map(party => (
+                    <div key={party.linkId}>
+                      <span>{party.name} · {party.role}</span>
+                      <a className="iu-fas-side-link" href={party.editHref}><Edit3 size={15}/> Correggi scheda</a>
+                      {party.taxCode.replace(/\s/g, '').toUpperCase() !== f.counterpartyTaxCode.replace(/\s/g, '').toUpperCase()
+                        ? <button type="button" className="iu-fas-side-link" disabled={Boolean(correctingParticipant)} onClick={() => void unlinkParticipant(party)}><Trash2 size={15}/> {correctingParticipant === party.linkId ? 'Scollego…' : 'Scollega dal fascicolo'}</button>
+                        : <small>Il codice è presente anche nella controparte principale: verifica la scheda e i dati del fascicolo. Scollegare soltanto il soggetto non lo corregge.</small>}
+                    </div>
+                  ))}
+                  <button type="button" className="iu-fas-side-link" onClick={() => void reloadCorrectedParties().catch(() => undefined)}><RefreshCw size={15}/> Ho corretto: aggiorna i dati</button>
+                </div>
+                <p>La bozza resta aperta. Dopo il salvataggio ripeti «Controlla senza firmare né inviare» per verificare la correzione.</p>
+                <details><summary>Partecipanti coinvolti e dettaglio del controllo</summary><p>{participantCorrectionMessage}</p></details>
+              </section>
+            ) : null}
             {packagePreview ? (
               <div className="iu-fas-package-preview" role="status">
                 <header>

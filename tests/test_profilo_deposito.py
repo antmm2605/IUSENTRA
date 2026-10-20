@@ -9,6 +9,23 @@ from pct.storage import StudioDB
 from pct.workflow_onboarding import build_fascicolo_onboarding
 
 
+def test_modifica_fascicolo_conserva_preparazione_deposito_in_sql(tmp_path):
+    studio_db = StudioDB(str(tmp_path / "studio.db"))
+    gf = GestioneFascicoli(str(tmp_path / "fascicoli.json"), studio_db=studio_db)
+    fascicolo = gf.nuovo(titolo="Collaudo", tipo=TipoFascicolo.CIVILE,
+                         tribunale="Tribunale di Torino", codice_oggetto_pst="140038")
+    preparation = {"tipo_deposito_telematico_key": "Parte_SICID::Memoria171ter1",
+                   "datiatto_extra": {"professionista_ruolo": "Avv."},
+                   "documents": [{"documentId": "COLLAUDO", "selected": True}]}
+    profile = {**fascicolo.profilo_deposito, "preparazione_busta": preparation}
+    gf.aggiorna_preparazione_deposito(fascicolo.id, document_updates=[], profilo_deposito=profile)
+    gf.aggiorna(fascicolo.id, tribunale="Tribunale di Milano")
+    row = studio_db.conn.execute("SELECT profilo_deposito_json FROM fascicoli WHERE id=?", (fascicolo.id,)).fetchone()
+    persisted = json.loads(row["profilo_deposito_json"])
+    assert persisted["preparazione_busta"] == preparation
+    assert persisted["ufficio"]["nome"] == "Tribunale di Milano"
+
+
 def _fake_certificato_con_codice(monkeypatch):
     def fake_resolver(codice_ufficio, *, cache_dir=None, force_refresh=False):
         return CertificatoCifratura(

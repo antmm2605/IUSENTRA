@@ -5,17 +5,19 @@ from __future__ import annotations
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Iterable
+from collections.abc import Iterable
+from threading import RLock
 
 from lxml import etree
 
 from pct.ministerial_xsd_catalog import active_schema_paths
 from pct.pst_catalog import PST_CASSAZIONE_XSD_ACTIVE_VERSION
 
+_SCHEMA_VALIDATION_LOCK = RLock()
 _XSD_NS = "http://www.w3.org/2001/XMLSchema"
 _ROOT = Path(__file__).resolve().parents[1]
 _SCHEMA_ROOTS = (
-    _ROOT / "docs" / "specs" / "ministero" / "xsd" / "2026-05-12-sici",
+    _ROOT / "docs" / "specs" / "ministero" / "xsd" / "2026-10-19-sici",
     _ROOT / "docs" / "specs" / "ministero" / "schema" / "sigp_v3",
     _ROOT / "docs" / "specs" / "ministero" / "parte" / f"parte_{PST_CASSAZIONE_XSD_ACTIVE_VERSION}",
     _ROOT / "docs" / "specs" / "ministero" / "XSD PLO118 FASE2 per SW House" / "schema",
@@ -63,6 +65,48 @@ def _global_element_index() -> dict[tuple[str, str], tuple[Path, ...]]:
 @lru_cache(maxsize=256)
 def _compiled_schema(path: Path) -> etree.XMLSchema:
     return etree.XMLSchema(etree.parse(str(path)))
+
+
+def _explain_participant_duplicate(entry: etree._LogEntry, root: etree._Element) -> str:
+    """Annota solo il rifiuto XSD ufficiale, senza cambiare validità o dati."""
+    message = entry.message
+    if entry.type_name != "SCHEMAV_CVC_IDC" or "Duplicate key-sequence" not in message:
+        return message
+    if not any(f"}}{name}'" in message for name in ("AK_PARTECIPANTI", "AK_PARTECIPANTIPU")):
+        return message
+    # Il percorso dell'errore individua il partecipante rifiutato dallo schema.
+    try:
+        namespaces: dict[str, str] = {}
+        for element in root.iter():
+            for prefix, uri in element.nsmap.items():
+                if prefix:
+                    if prefix in namespaces and namespaces[prefix] != uri:
+                        return message
+                    namespaces[prefix] = uri
+        nodes = root.getroottree().xpath(entry.path, namespaces=namespaces) if entry.path else []
+    except etree.XPathError:
+        return message
+    if len(nodes) != 1:
+        return message
+    node = nodes[0]
+    values = node.xpath("./*[local-name()='codiceFiscale']/text()")
+    if len(values) != 1:
+        return message
+    cf = str(values[0]).strip()
+    siblings = [
+        candidate for candidate in node.getparent()
+        if candidate.xpath("./*[local-name()='codiceFiscale']/text()") == values
+    ]
+    labels = ", ".join(
+        " ".join(candidate.xpath("./*[local-name()='denominazione' or local-name()='nome']/text()"))
+        + f" ({etree.QName(candidate).localname}, riga {node.getparent().index(candidate) + 1}, {candidate.get('ID', '')})"
+        for candidate in siblings
+    )
+    return (
+        f"Codice fiscale {cf} ripetuto nei partecipanti ({labels}). "
+        "Correggere le parti prima della firma e dell'invio; nessuna parte è stata unita o rimossa. "
+        f"Dettaglio ministeriale: {message}"
+    )
 
 
 def validate_datiatto_xml(
@@ -115,7 +159,12 @@ def validate_datiatto_xml(
         except (OSError, etree.XMLSchemaParseError, etree.XMLSyntaxError) as exc:
             errors = (f"Schema non compilabile: {exc}",)
         else:
-            if schema.validate(root):
+            # Il validatore compilato è condiviso: esito e diagnostica devono
+            # appartenere alla stessa richiesta, anche fra tenant concorrenti.
+            with _SCHEMA_VALIDATION_LOCK:
+                valid = schema.validate(root)
+                errors = tuple(_explain_participant_duplicate(entry, root) for entry in schema.error_log)
+            if valid:
                 return DatiAttoXsdValidation(
                     ok=True,
                     root_namespace=namespace,
@@ -123,7 +172,6 @@ def validate_datiatto_xml(
                     schema_path=_relative(path),
                     errors=(),
                 )
-            errors = tuple(entry.message for entry in schema.error_log)
         if not best_errors or len(errors) < len(best_errors):
             best_path = path
             best_errors = errors

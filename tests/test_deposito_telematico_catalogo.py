@@ -61,7 +61,7 @@ def test_catalogo_studio_telematico_contiene_270_tipi_e_fonti_ministeriali():
     assert "pst_xsd_sici_preview_20260722" in fonte_ids
     assert "pst_xsd_cassazione_preview_20260909" in fonte_ids
     assert payload["ministerialSchemaEvidence"]["cassazioneEsercizio"]["schemaVersion"] == "v21"
-    assert payload["ministerialSchemaEvidence"]["siciPreview20260722"]["productionReady"] is False
+    assert payload["ministerialSchemaEvidence"]["siciPreview20260722"]["productionReady"] is True
     assert len(payload["referenceData"]["materieCassazione"]) >= 170
     assert len(payload["referenceData"]["classiImmobiliari"]) >= 50
     assert payload["referenceData"]["qualificheProfessionista"] == [
@@ -156,8 +156,6 @@ def test_catalogo_normalizza_chiave_mancante_e_canali_pct():
     assert "Create_DatiAtto_Introduttivi_SICID_Cartabia_Citazione" in citazione["schema"]["evidenceMethods"]
     assert citazione["payload"]["datiatto_root_name"] == "Citazione"
     assert [field["id"] for field in citazione["schema"]["inputFields"]] == [
-        "istanza",
-        "data_atto_deposito",
         "data_notifica_citazione",
     ]
 
@@ -537,7 +535,7 @@ def test_audit_catalogo_end_to_end_tutti_i_tipi_senza_falso_verde():
     assert report["pct_real_send_suspended_until_dedicated_generator"] == 0
     reference_tables = report["reference_tables"]
     assert reference_tables["studio_destination_tables"]["offices"] == 1442
-    assert reference_tables["ministerial_object_table"]["records"] == 1018
+    assert reference_tables["ministerial_object_table"]["records"] == 1031
     assert reference_tables["studio_mdb_schema_audit"]["table_count"] == 22
     assert reference_tables["studio_mdb_schema_audit"]["deposit_relevant_tables"] == [
         "EMAILS",

@@ -3689,3 +3689,10 @@ body.iu-fascicoli-table-expanded{
 @media (max-width:1100px),(pointer:coarse){
   .iu-fas-catalog__actions button{min-height:44px;min-width:44px}
 }
+
+.iu-fas-deposit-correction{display:grid;gap:10px;padding:14px;border:1px solid var(--iu-danger,#b91c1c);border-radius:10px;background:var(--iu-surface-subtle,#f8fbff);overflow-wrap:anywhere}
+.iu-fas-deposit-correction>strong{display:flex;align-items:center;gap:8px;color:var(--iu-danger,#b91c1c)}
+.iu-fas-deposit-correction p{margin:0;max-width:75ch}
+.iu-fas-deposit-correction__actions{display:flex;flex-wrap:wrap;gap:8px}
+.iu-fas-deposit-correction__actions .iu-fas-side-link{min-height:44px;white-space:normal}
+.iu-fas-deposit-correction summary{cursor:pointer;min-height:44px;display:list-item;align-content:center}

@@ -1,3 +1,9 @@
+# 2.442.2 — Riconoscimento dei ruoli senza ambiguità regex
+
+- Il controllo dei separatori tra numeri di ruolo usa confronti letterali, conservando punteggiatura, tabulazioni ed elenchi espliciti.
+- Preservata la distinzione tra intestazione del procedimento e riferimento normativo nella sentenza reale.
+- Aggiunti riscontri su elenchi e lunghe sequenze di tabulazioni; nessuna deroga al gate CodeQL.
+
 # 2.442.1 — Fonti economiche nel lettore interno
 
 - Contributo e liquidazione aprono le fonti collegate dalla vista economica desktop e mobile; ricevuta, esenzione, mancanze e discordanze restano distinte.

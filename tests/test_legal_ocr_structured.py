@@ -211,3 +211,18 @@ def test_rg_distinti_in_elenco_e_nuovo_marcatore_restano_leggibili():
 
     source = "R.G. 12/2025 e 13/2025; procedimento R.G. n. 14/2025"
     assert [item["numero"] for item in extract_numero_ruolo(source)] == ["12", "13", "14"]
+
+
+def test_rg_elenchi_con_punteggiatura_e_spazi_non_confondono_la_norma_successiva():
+    from legal_ocr.ner_legal import extract_numero_ruolo
+
+    for separator in [",", ";", "e", "ed", "e/o", "\t e\t n.\t", ", n"]:
+        source = f"R.G. 12/2025 {separator} 13/2025\n37/2018 e dal DM n. 147/2022"
+        assert [item["numero"] for item in extract_numero_ruolo(source)] == ["12", "13"]
+
+
+def test_rg_intestazione_con_moltissime_tabulazioni_non_si_estende_alla_norma():
+    from legal_ocr.ner_legal import extract_numero_ruolo
+
+    source = "RG n. 2313/2025\n" + "\t" * 200_000 + "37/2018 e dal DM n. 147/2022"
+    assert [item["numero"] for item in extract_numero_ruolo(source)] == ["2313"]

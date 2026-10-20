@@ -56,3 +56,11 @@ Nessun gate CI viene disabilitato o escluso.
 Questa nota registra le prove osservate; la chiusura del rilascio richiede ancora
 riscontro dello stesso commit nell'immagine locale e su Hetzner, gate remoti,
 servizi sani e pulizia governata con spazio prima/dopo.
+
+## Adeguamento CodeQL nella 2.442.2
+
+La CI applicativa della 2.442.1 è passata. CodeQL ha segnalato il controllo regex
+del separatore tra ruoli; la finestra del prefisso era già limitata a 90 caratteri,
+ma il controllo ora usa soltanto confronti letterali. Nessuna soppressione o
+modifica dei gate. Conservati gli elenchi con virgola, punto e virgola, congiunzioni
+e marcatore «n.»; provata anche una sequenza di 200.000 tabulazioni.

@@ -126,7 +126,12 @@ def extract_numero_ruolo(text: str) -> list[dict[str, str]]:
             # non può qualificare anche una norma nel capoverso successivo.
             # Conservare invece gli elenchi espliciti «R.G. 12/2025 e 13/2025».
             following = prefix[preceding_numbers[-1].end() :]
-            if not re.fullmatch(r"\s*(?:,|;|e|ed|e/o)\s*(?:n\.?\s*)?", following, re.IGNORECASE):
+            continuation = following.strip().lower()
+            if continuation.endswith("n."):
+                continuation = continuation[:-2].rstrip()
+            elif continuation.endswith("n"):
+                continuation = continuation[:-1].rstrip()
+            if continuation not in {",", ";", "e", "ed", "e/o"}:
                 prefix = following
         if not (_has_rg_context(prefix) or _has_rg_context_suffisso(suffix)):
             continue

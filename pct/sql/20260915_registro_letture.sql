@@ -224,9 +224,16 @@ CREATE INDEX IF NOT EXISTS idx_letture_eventi_stato
 
 
 CREATE TABLE IF NOT EXISTS letture_eventi_esiti (
-    id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, fascicolo_id TEXT NOT NULL,
-    generation BIGINT NOT NULL, attempt INTEGER NOT NULL, worker_id TEXT NOT NULL,
-    stato TEXT NOT NULL, error_code TEXT NOT NULL DEFAULT '', errore TEXT NOT NULL DEFAULT '',
-    iniziato_il TEXT NOT NULL, concluso_il TEXT NOT NULL DEFAULT '',
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    fascicolo_id TEXT NOT NULL,
+    generation BIGINT NOT NULL,
+    attempt INTEGER NOT NULL,
+    worker_id TEXT NOT NULL,
+    stato TEXT NOT NULL,
+    error_code TEXT NOT NULL DEFAULT '',
+    errore TEXT NOT NULL DEFAULT '',
+    iniziato_il TEXT NOT NULL,
+    concluso_il TEXT NOT NULL DEFAULT '',
     UNIQUE(tenant_id,fascicolo_id,generation,attempt));
 CREATE INDEX IF NOT EXISTS idx_letture_eventi_esiti_worker ON letture_eventi_esiti(tenant_id,fascicolo_id,worker_id,generation);

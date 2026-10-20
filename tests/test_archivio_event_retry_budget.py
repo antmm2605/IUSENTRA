@@ -1,5 +1,6 @@
 """Retry persistenti: attesa, arresto finito e ripresa per un nuovo evento."""
 import pytest
+
 from tests.test_receipt_sources_consultation import registry as registry
 
 
@@ -84,7 +85,7 @@ def test_preparation_recovery_is_targeted_idempotent_and_retains_history(registr
 
 
 def test_legacy_schema_requires_explicit_preparation_and_preserves_pending(registry):
-    from pct.registro_letture.event_retry import FIELDS, install, require_prepared, ReadingEventSchemaNotPrepared
+    from pct.registro_letture.event_retry import FIELDS, ReadingEventSchemaNotPrepared, install, require_prepared
     with registry.connection() as conn:
         conn.execute('DROP TABLE letture_eventi_esiti')
         for field in FIELDS:
@@ -107,6 +108,7 @@ def test_queue_preparation_backs_up_legacy_sqlite_before_ddl(tmp_path):
     import hashlib
     import json
     import sqlite3
+
     from pct.registro_letture import RegistroLetture
     from pct.registro_letture.event_retry import FIELDS, columns
     from tools.prepare_reading_runtime import prepare_queue

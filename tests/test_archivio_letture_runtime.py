@@ -542,7 +542,7 @@ def test_failed_queue_is_not_a_completed_or_unreadable_document(tmp_path, monkey
         registry = registro_corrente()
         tenant = tenant_corrente()
         registry.accoda_evento(tenant,fid)
-        for attempt in range(1,4):
+        for _attempt in range(1,4):
             event = registry.reclama_evento(tenant,fid,'worker')
             registry.concludi_evento(tenant,fid,'worker',event['generation'],riuscito=False,
                 errore='Schema documentale non preparato',codice_errore='DocumentAISchemaNotPrepared')

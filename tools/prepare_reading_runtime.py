@@ -9,7 +9,7 @@ from types import SimpleNamespace
 
 
 def prepare_queue(registry, tenant, destination):
-    from pct.registro_letture.event_retry import install, require_prepared, ReadingEventSchemaNotPrepared
+    from pct.registro_letture.event_retry import ReadingEventSchemaNotPrepared, install, require_prepared
     from scripts.query_index_backup import verified_backup
     from web.services.fascicoli_list_events_runtime import registry_outbox_writer
     from web.services.registro_letture_runtime import connessione_registro
@@ -43,15 +43,15 @@ def main():
     # La procedura nativa verifica firma dello schema e backup prima del DDL.
     subprocess.run([sys.executable, '-m', 'tools.prepare_document_ai_schema',
         '--tenant-registry', str(registry_path), '--backup-dir', str(args.backup_dir / 'documenti')], check=True)
-    from scripts.backfill_archivio_batches import _targets, _tenant_context
-    from web.app import create_app
-    from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
-    from web.services.storage_runtime import get_request_studio_db
-    from web.services.document_intelligence_runtime import fascicoli_db_path
     from pct.document_intelligence.repository import DocumentAIRepository
     from pct.registro_letture.event_retry import recover_prepared_schema_failures
     from pct.registro_letture.repository import _adesso
+    from scripts.backfill_archivio_batches import _targets, _tenant_context
+    from web.app import create_app
+    from web.services.document_intelligence_runtime import fascicoli_db_path
     from web.services.fascicoli_list_events_runtime import registry_outbox_writer
+    from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+    from web.services.storage_runtime import get_request_studio_db
     app = create_app({'SCHEDULER_ONLY': True, 'DISABLE_SCHEDULER': True,
                       'TENANTS_REGISTRY': str(registry_path), 'MULTI_TENANT': True})
     manager, owners = _targets(app, '')

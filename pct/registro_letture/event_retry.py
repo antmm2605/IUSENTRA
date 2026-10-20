@@ -11,10 +11,17 @@ FIELDS = {
 INDEX_SQL = ('CREATE INDEX IF NOT EXISTS idx_letture_eventi_retry '
              'ON letture_eventi(tenant_id,stato,available_at,lease_until)')
 HISTORY_SQL = """CREATE TABLE IF NOT EXISTS letture_eventi_esiti (
-    id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, fascicolo_id TEXT NOT NULL,
-    generation BIGINT NOT NULL, attempt INTEGER NOT NULL, worker_id TEXT NOT NULL,
-    stato TEXT NOT NULL, error_code TEXT NOT NULL DEFAULT '', errore TEXT NOT NULL DEFAULT '',
-    iniziato_il TEXT NOT NULL, concluso_il TEXT NOT NULL DEFAULT '',
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    fascicolo_id TEXT NOT NULL,
+    generation BIGINT NOT NULL,
+    attempt INTEGER NOT NULL,
+    worker_id TEXT NOT NULL,
+    stato TEXT NOT NULL,
+    error_code TEXT NOT NULL DEFAULT '',
+    errore TEXT NOT NULL DEFAULT '',
+    iniziato_il TEXT NOT NULL,
+    concluso_il TEXT NOT NULL DEFAULT '',
     UNIQUE(tenant_id,fascicolo_id,generation,attempt))"""
 HISTORY_INDEX_SQL = ('CREATE INDEX IF NOT EXISTS idx_letture_eventi_esiti_worker '
                      'ON letture_eventi_esiti(tenant_id,fascicolo_id,worker_id,generation)')

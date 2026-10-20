@@ -9,6 +9,7 @@ export type TemplateVariableMeta = {
 }
 
 export type TemplateAttiRecord = {
+  compilationGuideAvailable?: boolean
   id: string
   kind: string
   title: string
@@ -1136,6 +1137,7 @@ function normaliseRecord(input: unknown): TemplateAttiRecord {
   return {
     id: text(item.id) || text(item.title) || 'template',
     kind: text(item.kind) || 'catalogo',
+    compilationGuideAvailable: item.compilationGuideAvailable === true,
     title: visibleText(item.title) || 'Template',
     subtitle: visibleText(item.subtitle),
     description: visibleText(item.description),

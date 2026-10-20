@@ -819,7 +819,7 @@ function TemplateDetail({ record }: { record?: TemplateAttiRecord }) {
       ) : null}
       <div className="iu-od-action-row">
         <ButtonLink href={record.href} tone="primary">{record.primaryActionLabel}</ButtonLink>
-        {record.kind === 'catalogo' ? <Button type="button" tone="neutral" onClick={() => setGuideId(guideId === record.id ? '' : record.id)} aria-expanded={guideId === record.id}>Come si compila</Button> : null}
+        {record.compilationGuideAvailable ? <Button type="button" tone="neutral" onClick={() => setGuideId(guideId === record.id ? '' : record.id)} aria-expanded={guideId === record.id}>Come si compila</Button> : null}
       </div>
       {guideId === record.id ? <Suspense fallback={<p role="status">Caricamento della guida…</p>}><TemplateCompilationGuide templateId={record.id} /></Suspense> : null}
     </section>

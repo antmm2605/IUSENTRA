@@ -171,6 +171,7 @@ def _catalog_record(row: dict[str, Any], index: int) -> dict[str, Any]:
     return {
         "id": code,
         "kind": "catalogo",
+        "compilationGuideAvailable": row.get("fonte_catalogo") == "master",
         "title": _text(row.get("titolo")) or _text(row.get("name")) or "Template",
         "subtitle": _text(row.get("tipo_atto") or row.get("procedimento") or row.get("fase")),
         "description": _short(row.get("descrizione"), 220),

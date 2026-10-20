@@ -1,3 +1,8 @@
+# 2.442.6 — Aggiornamento di sicurezza Vite
+
+- Vite 8.2.4 in frontend, libreria UI, override e lockfile condiviso.
+- Guardrail sui permessi del server di sviluppo: query WASM e percorsi sicuri SSR, con casi vietati e controlli legittimi. I test riproducono entrambi i difetti sulla 8.2.2 e passano sulla 8.2.4.
+
 # 2.442.5 — XSD SICID in esercizio e correzione dei partecipanti
 
 - Attivazione del pacchetto ministeriale di luglio, in esercizio dal 19 ottobre: 13 nuovi codici oggetto e aggiornamento degli eventi InfoCamere.

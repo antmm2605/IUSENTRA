@@ -1,4 +1,5 @@
 import { beginActivity } from '../ui/activity'
+import { workWindowUrl } from './workWindowRoutes'
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
@@ -921,11 +922,6 @@ function NewInvoiceForm({
   const ivaLocked = isVatExcludedRegime(formState.dati_personalizzati.document.regime_fiscale)
   const isBankTransfer = formState.dati_personalizzati.payment.modalita_pagamento_codice === 'MP05'
     || formState.dati_personalizzati.payment.modalita_pagamento_label.toLowerCase().includes('bonifico')
-  const documentKindLabel = formState.dati_personalizzati.document.documento_operativo === 'PROFORMA'
-    ? 'proforma'
-    : formState.dati_personalizzati.document.documento_operativo === 'NOTA_CREDITO'
-      ? 'nota di credito'
-      : 'fattura'
   const bankDetailsDirty = normaliseIban(formState.dati_personalizzati.payment.iban) !== normaliseIban(data.studioProfile.iban || '')
     || formState.dati_personalizzati.payment.istituto_finanziario.trim() !== (data.studioProfile.istituto_finanziario || '').trim()
     || formState.dati_personalizzati.payment.beneficiario.trim() !== (data.studioProfile.nome_denominazione || '').trim()
@@ -1092,7 +1088,10 @@ function NewInvoiceForm({
       setSaveStatus('success')
       const redirectHref = response.redirect_href
       if (redirectHref) {
-        window.setTimeout(() => window.location.assign(redirectHref), 450)
+        const embedded = new URLSearchParams(window.location.search).get('embed') === 'source'
+        const destination = embedded ? workWindowUrl(redirectHref, window.location.origin)?.href : redirectHref
+        if (destination) window.setTimeout(() => window.location.assign(destination), 450)
+        else setErrors({ redirect: 'Documento salvato. Apertura automatica del dettaglio non consentita: consulta l’archivio.' })
       }
     } else if (response.status === 403 || response.errors?.permission) {
       setSaveStatus('permission')
@@ -1621,23 +1620,9 @@ function NewInvoiceForm({
           ) : null}
         </section>
 
-        <section className="iu-fatt-preview-card">
-          <div className="iu-fatt-section-head">
-            <div>
-              <span className="iu-fatt-kicker">Riepilogo</span>
-              <h3>Riepilogo economico della {documentKindLabel}</h3>
-            </div>
-            <Badge tone="warning">Conferma finale al salvataggio</Badge>
-          </div>
-          <EmptyState
-            title="Importi definitivi calcolati dal server"
-            message="La pagina raccoglie voci, opzioni fiscali e dati del cliente; numerazione, imponibile, CPA, IVA, ritenuta e totale vengono verificati e salvati dal backend tenant-aware."
-          />
-        </section>
-
         <section className="iu-fatt-form-note" aria-label="Calcolo definitivo">
-          <strong>Calcolo definitivo governato</strong>
-          <span>La pagina prepara i dati del documento; numerazione, imposte e importi finali vengono verificati prima del salvataggio definitivo.</span>
+          <strong>Importi e imposte</strong>
+          <span>Al salvataggio vengono verificati numerazione, imponibile, contributi, imposte e totale. Il riepilogo sarà disponibile nel documento salvato.</span>
         </section>
 
         <div className="iu-fatt-action-row">

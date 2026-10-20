@@ -4,6 +4,14 @@ import { readFileSync } from 'node:fs'
 import { workWindowUrl } from '../../frontend/src/components/workWindowRoutes.ts'
 const origin = 'https://app.iusentra.it'
 
+test('il dettaglio appena creato resta nella finestra di fatturazione con identità e sezione', () => {
+ const url = workWindowUrl('/fatturazione?id_documento=controlled-invoice#incassi', origin)
+ assert.equal(url?.searchParams.get('id_documento'), 'controlled-invoice')
+ assert.equal(url?.searchParams.get('embed'), 'source')
+ assert.equal(url?.hash, '#incassi')
+ assert.equal(workWindowUrl('https://altro.example/fatturazione?id_documento=controlled-invoice', origin), null)
+})
+
 test('gli export contabili restano download e non diventano finestre', () => {
  for (const path of ['/prima-nota/esporta.csv', '/prima-nota/esporta.csv?dal=2026-10-01', '/prima-nota/registro-iva.csv?anno=2026']) {
   assert.equal(workWindowUrl(path, origin), null)

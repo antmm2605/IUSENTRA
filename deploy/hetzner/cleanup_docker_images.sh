@@ -16,6 +16,15 @@ repository_allowed() {
 }
 
 main() {
+  local cache_id
+  # La cache del motore può appartenere ad altri progetti. Il chiamante
+  # passa soltanto gli ID registrati durante la propria build verificata.
+  for cache_id in ${IUSENTRA_DOCKER_CACHE_IDS:-}; do
+    if ! [[ "$cache_id" =~ ^[a-zA-Z0-9]{15,64}$ ]]; then
+      echo "Errore: identificativo cache non valido; nessuna pulizia eseguita." >&2
+      return 1
+    fi
+  done
   local active_ids_file
   local protected_refs_file
   local images_file
@@ -108,8 +117,17 @@ main() {
     fi
   done < "$images_file"
 
-  docker image prune --force >/dev/null || { echo "Errore: pulizia immagini dangling non completata." >&2; failed=1; }
-  docker builder prune --all --force || { echo "Errore: pulizia cache build Docker non completata." >&2; failed=1; }
+  # Le immagini senza nome non dimostrano appartenenza a IUSENTRA.
+  # Nessun prune globale di immagini, cache, container o volumi.
+  for cache_id in ${IUSENTRA_DOCKER_CACHE_IDS:-}; do
+    docker buildx prune --all --force --filter "id=$cache_id" || {
+      echo "Errore: cache attribuita alla build non rimossa: $cache_id" >&2
+      failed=1
+    }
+  done
+  if [ -z "${IUSENTRA_DOCKER_CACHE_IDS:-}" ]; then
+    echo "Cache non attribuita conservata: nessun identificativo di build fornito."
+  fi
 
   echo "Pulizia immagini IUSENTRA: rimosse=${removed}, conservate=${skipped}"
   return "$failed"

@@ -274,3 +274,23 @@ Il backup completo (`backup.sh`) include `/opt/iusentra/data/legal_intelligence/
 ## Gestione Portainer
 
 Procedura, stato e architettura: [PORTAINER.md](PORTAINER.md).
+
+
+## Pulizia limitata al progetto
+
+`cleanup_docker_images.sh` conserva le immagini usate dai container, i
+riferimenti di ripristino e gli alias senza una release consolidata.
+Non esegue prune globali: le immagini senza nome non dimostrano appartenenza
+al progetto e la cache del motore può essere condivisa con altri lavori.
+
+Per la cache il chiamante registra prima/dopo la build il censimento
+`docker buildx du --format '{{json .}}'` e la provenienza del lavoro. Passa in
+`IUSENTRA_DOCKER_CACHE_IDS` esclusivamente gli ID attribuiti a quella build,
+separati da spazi. La rimozione usa un filtro esatto per ogni ID; un
+identificativo non valido blocca tutto prima delle operazioni di pulizia,
+mentre un errore di rimozione restituisce un esito non positivo.
+L'assenza di ID conserva la cache non attribuita: non dimostra che la cache
+del lavoro sia stata pulita. Il responsabile del rilascio deve riconciliare
+l'inventario, conservare le parti richieste dalle immagini e registrare
+spazio, elementi protetti ed eventuali problemi prima di chiudere il lavoro.
+Volumi, database, dati e progetti estranei restano esclusi.

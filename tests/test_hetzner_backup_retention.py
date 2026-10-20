@@ -112,7 +112,9 @@ def test_deploy_pulisce_container_compose_temporanei_senza_toccare_dati():
     assert "cleanup_docker_images.sh" in deploy_script
     assert "IUSENTRA_DOCKER_IMAGE_REPOSITORIES" in image_cleanup_script
     assert "docker image rm \"$reference\"" in image_cleanup_script
-    assert "docker builder prune --all --force" in image_cleanup_script
+    assert 'docker buildx prune --all --force --filter "id=$cache_id"' in image_cleanup_script
+    assert "docker builder prune" not in image_cleanup_script
+    assert "docker image prune" not in image_cleanup_script
     # Anche il rilascio ripetuto passa dal deploy unico, che governa la pulizia.
     assert "bash /tmp/iusentra-deploy-${GITHUB_SHA}.sh" in workflow
     assert "cleanup_compose_conflicts.sh" in deploy_script
@@ -218,7 +220,7 @@ fi
 if [[ "${1:-}" == "image" && "${2:-}" == "prune" ]]; then
   exit 0
 fi
-if [[ "${1:-}" == "builder" && "${2:-}" == "prune" ]]; then
+if [[ "${1:-}" == "buildx" && "${2:-}" == "prune" ]]; then
   [[ "${FAIL_CLEANUP:-}" != "cache" ]] || exit 1
   exit 0
 fi
@@ -256,6 +258,7 @@ exit 64
             f"DOCKER_LOG={shlex.quote(_bash_path(log_path))}",
             f"IUSENTRA_REPO_DIR={shlex.quote(_bash_path(repo_dir))}",
             "EXPECTED_SHA=1111111111111111111111111111111111111111",
+            "IUSENTRA_DOCKER_CACHE_IDS=ownedcache1234567890",
             f"FAIL_CLEANUP={shlex.quote(fail_cleanup)}",
             f"bash {shlex.quote(_bash_path(script))}",
         ]
@@ -277,8 +280,9 @@ exit 64
     assert "image rm iusentra-app:1111111111111111111111111111111111111111" not in calls
     assert "image rm iusentra-app:2222222222222222222222222222222222222222" not in calls
     assert "image rm postgres:16-alpine" not in calls
-    assert "image prune --force" in calls
-    assert "builder prune --all --force" in calls
+    assert not any(call.startswith("image prune") for call in calls)
+    assert "buildx prune --all --force --filter id=ownedcache1234567890" in calls
+    assert not any(call.startswith("builder prune") for call in calls)
     assert "ps -aq" in calls
     assert any("--no-trunc" in call for call in calls)
     assert "image rm iusentra-app:3333333333333333333333333333333333333333" not in calls

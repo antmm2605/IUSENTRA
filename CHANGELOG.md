@@ -4,6 +4,7 @@
 - Conferme autenticate dei gestori conservate in SQL e consegnate allo stesso registro tramite la coda esistente, senza duplicare le transazioni.
 - Residuo aggiornato nei collegamenti di pagamento; bozze e proforme mantengono separati incasso ed emissione fiscale.
 - Riscontri mancanti o discordanti espliciti, senza ricostruire date e pagamenti dallo stato del documento.
+- Pulizia Docker limitata alle immagini del progetto e agli ID di cache attribuiti alla build; nessun prune globale.
 - Il rilascio resta soggetto al collaudo reale e ai controlli previsti; questa voce descrive il candidato.
 
 # 2.441.4 — Tentativi governati e preparazione della coda letture

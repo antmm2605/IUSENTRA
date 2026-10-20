@@ -132,3 +132,46 @@ def test_queue_preparation_backs_up_legacy_sqlite_before_ddl(tmp_path):
     with readonly.connection() as conn:
         assert set(FIELDS).issubset(columns(conn))
     readonly.close()
+
+
+def test_explicit_recovery_does_not_restart_pending_running_or_completed_delivery(registry):
+    state=registry.richiedi_recupero('study-a','case-a',generation=0)
+    assert state['generation']==1 and state['stato']=='pending'
+    assert registry.richiedi_recupero('study-a','case-a',generation=0)['generation']==1
+    event=registry.reclama_evento('study-a','case-a','worker')
+    assert registry.richiedi_recupero('study-a','case-a',generation=1)['attempts']==1
+    registry.concludi_evento('study-a','case-a','worker',event['generation'])
+    assert registry.richiedi_recupero('study-a','case-a',generation=0)['stato']=='idle'
+    assert registry.esito_evento('study-a','case-a')['generation']==1
+    assert registry.richiedi_recupero('study-a','case-a',generation=1)['generation']==2
+    assert registry.esito_evento('study-b','case-a')['generation']==0
+    assert registry.richiedi_recupero('study-a','missing',generation=99)['generation']==0
+
+
+def test_explicit_recovery_after_failure_preserves_history_and_deduplicates_retry(registry,clock):
+    registry.accoda_evento('study-a','case-a',presidi=True)
+    for _attempt in range(3):
+        event=registry.reclama_evento('study-a','case-a','worker')
+        registry.concludi_evento('study-a','case-a','worker',event['generation'],riuscito=False,errore='Causa conservata')
+        clock[0]=registry.esito_evento('study-a','case-a')['available_at'] or clock[0]
+    assert registry.esito_evento('study-a','case-a')['stato']=='failed'
+    assert registry.richiedi_recupero('study-a','case-a',generation=0)['stato']=='failed'
+    assert registry.richiedi_recupero('study-a','case-a',generation=1)['generation']==2
+    assert registry.richiedi_recupero('study-a','case-a',generation=1)['generation']==2
+    assert registry.reclama_evento('study-a','case-a','new-worker')['presidi']
+    with registry.connection() as conn:
+        assert conn.execute("SELECT count(*) FROM letture_eventi_esiti WHERE errore='Causa conservata'").fetchone()[0]==3
+
+
+def test_concurrent_recovery_delivery_creates_only_one_generation(registry):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+    registry.accoda_evento('study-a','schema-seed')
+    barrier=Barrier(2)
+    def send():
+        barrier.wait(timeout=10)
+        return registry.richiedi_recupero('study-a','concurrent',generation=0)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results=list(pool.map(lambda _: send(), range(2)))
+    assert [item['generation'] for item in results]==[1,1]
+    assert registry.esito_evento('study-a','concurrent')['attempts']==0

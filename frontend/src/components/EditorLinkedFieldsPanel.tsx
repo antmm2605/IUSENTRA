@@ -8,7 +8,7 @@ import { useBusyActivity } from '../ui/useBusyActivity'
 import { LoadingState } from '../ui/LoadingState'
 
 export type LinkedEditorField = { id: string; label: string; group: string; value: string; available: boolean; missing_reason?: string; conflict?: boolean }
-export type LinkedEditorContext = { matterId: string; clientId: string; clientLabel: string; matterLabel: string; revision: string; fields: LinkedEditorField[]; notice?: string }
+export type LinkedEditorContext = { matterId: string; clientId: string; clientLabel: string; matterLabel: string; revision: string; fields: LinkedEditorField[]; notice?: string; recoveryGeneration?: number }
 
 export function EditorLinkedFieldsPanel({ matterId, options, onMatterChange, onInsert, onClose, onRefreshFields, disabled, catalogLoading, catalogError }: {
   matterId: string; options?: FascicoloOption[]; onMatterChange?: (id: string) => void;
@@ -23,9 +23,9 @@ export function EditorLinkedFieldsPanel({ matterId, options, onMatterChange, onI
   const [changed, setChanged] = useState(false)
   const [recoveryPending, setRecoveryPending] = useState(false)
   const [recoveryError, setRecoveryError] = useState('')
-  const [recover, setRecover] = useState(0)
+  const [recoverySubmitting, setRecoverySubmitting] = useState(false)
+  const recoveryController = useRef<AbortController | null>(null)
   useBusyActivity(loading && !context, 'Caricamento dei dati collegati…')
-  useBusyActivity(recoveryPending, 'Recupero dei campi dalle fonti…')
   const revisionRef = useRef('')
   useEffect(() => {
     const refresh = () => setReload(value => value + 1)
@@ -34,21 +34,33 @@ export function EditorLinkedFieldsPanel({ matterId, options, onMatterChange, onI
   }, [])
   useEffect(() => {
     setContext(null); setChanged(false); revisionRef.current = ''
+    setRecoveryPending(false); setRecoverySubmitting(false); setRecoveryError('')
+    return () => recoveryController.current?.abort()
   }, [matterId])
-  useEffect(() => {
-    if (!matterId) return
+  const recoverFields = async () => {
+    if (!matterId || !context || recoveryPending || recoverySubmitting) return
     const controller = new AbortController()
-    setRecoveryError(''); setRecoveryPending(false)
-    fetch(`/api/editor/${encodeURIComponent(matterId)}/recupera-campi`, {
-      method: 'POST', credentials: 'same-origin', signal: controller.signal,
-      headers: { Accept: 'application/json', 'X-CSRFToken': csrfToken(), 'X-Requested-With': 'XMLHttpRequest' },
-    }).then(async response => {
+    recoveryController.current?.abort()
+    recoveryController.current = controller
+    setRecoveryError(''); setRecoverySubmitting(true)
+    try {
+      const response = await fetch(`/api/editor/${encodeURIComponent(matterId)}/recupera-campi`, {
+        method: 'POST', credentials: 'same-origin', signal: controller.signal,
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken(), 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ generation: context.recoveryGeneration ?? 0 }),
+      })
       const payload = await response.json()
       if (!response.ok || !payload.ok) throw new Error(payload.errore || 'Recupero non avviato.')
-      if (!controller.signal.aborted) { setRecoveryPending(true); setReload(value => value + 1) }
-    }).catch(error => { if (!controller.signal.aborted) setRecoveryError(error instanceof Error ? error.message : 'Recupero non avviato.') })
-    return () => controller.abort()
-  }, [matterId, recover])
+      if (!controller.signal.aborted) {
+        setRecoveryPending(payload.stato === 'pending' || payload.stato === 'running')
+        setReload(value => value + 1)
+      }
+    } catch (requestError) {
+      if (!controller.signal.aborted) setRecoveryError(requestError instanceof Error ? requestError.message : 'Recupero non avviato.')
+    } finally {
+      if (!controller.signal.aborted) setRecoverySubmitting(false)
+    }
+  }
   useEffect(() => {
     if (!recoveryPending) return
     let checks = 0
@@ -71,7 +83,8 @@ export function EditorLinkedFieldsPanel({ matterId, options, onMatterChange, onI
         if (revisionRef.current && revisionRef.current !== payload.revision) setChanged(true)
         revisionRef.current = payload.revision
         setContext(payload)
-        if (payload.recoveryState === 'idle') setRecoveryPending(false)
+        if (payload.recoveryState === 'idle') { setRecoveryPending(false); setRecoveryError('') }
+        if (payload.recoveryState === 'pending' || payload.recoveryState === 'running') setRecoveryPending(true)
         if (payload.recoveryState === 'failed') {
           setRecoveryPending(false)
           setRecoveryError(payload.recoveryError || 'Recupero interrotto dopo i tentativi previsti. I dati e il documento sono conservati.')
@@ -90,8 +103,9 @@ export function EditorLinkedFieldsPanel({ matterId, options, onMatterChange, onI
     {context && <div className="iu-linked-fields__context"><strong>{context.clientLabel || 'Cliente non associato'}</strong><span>{context.matterLabel}</span></div>}
     {matterId && <button className="iu-linked-fields__refresh" type="button" disabled={loading} onClick={() => setReload(value => value + 1)}><RefreshCw size={14}/> Aggiorna dati</button>}
     {loading && !recoveryPending && <LoadingState title="Caricamento dati collegati" message="Lettura dei campi del cliente e del fascicolo selezionati in corso."/>}
-    {recoveryPending && <LoadingState title="Recupero campi del fascicolo" message="Ricerca dei riscontri nelle fonti collegate in corso."/>}
-    {recoveryError && <p role="alert">{recoveryError} <button type="button" onClick={() => setRecover(value => value + 1)}>Riprova recupero</button></p>}
+    {recoveryPending && <p role="status">Recupero dei campi in corso. Puoi continuare a lavorare sul documento.</p>}
+    {recoveryError && <p role="alert">{recoveryError}</p>}
+    {context && (recoveryError || recoveryPending || recoverySubmitting || context.fields.some(field => !field.available && !field.conflict)) && <button type="button" className="iu-linked-fields__recovery" disabled={loading || recoverySubmitting || recoveryPending} aria-busy={recoverySubmitting || recoveryPending} onClick={() => void recoverFields()}>{recoverySubmitting ? 'Avvio recupero…' : recoveryPending ? 'Recupero in corso' : recoveryError ? 'Riprova recupero' : 'Recupera dalle fonti'}</button>}
     {error && <p role="alert" className="iu-linked-fields__error">{error}</p>}
     {context?.notice && <p>{context.notice}</p>}
     {changed && <p role="status">I dati di origine sono cambiati. Il testo del documento è preservato.</p>}

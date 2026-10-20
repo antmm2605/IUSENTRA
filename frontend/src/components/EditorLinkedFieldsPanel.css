@@ -25,3 +25,5 @@
 @media print{.iu-linked-fields{display:none}}
 .iu-de-editable [data-iu-linked-field]{background:#edf5ff;border-bottom:1px dotted #3568ad;border-radius:2px}
 @media print{.iu-de-editable [data-iu-linked-field]{background:transparent;border:0}}
+
+.iu-linked-fields .iu-linked-fields__recovery{min-height:44px;max-width:100%}

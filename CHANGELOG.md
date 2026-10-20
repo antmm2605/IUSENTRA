@@ -3,6 +3,7 @@
 - Coda SQL esistente con tre tentativi, attese persistenti di 30 e 60 secondi e storico degli esiti per generazione.
 - Nuove fonti riattivano soltanto il fascicolo interessato; gli errori esauriti conservano causa e risultati già acquisiti.
 - Preparazione esplicita condivisa prima dell’avvio, con backup verificato e recupero mirato degli errori di schema documentale dopo il riscontro della preparazione.
+- L’apertura dei dati collegati consulta il registro; il recupero esplicito usa la generazione osservata e conserva il budget dei lavori già attivi.
 - Il lavoro in background non blocca la pagina; fascicolo ed editor distinguono attesa, errore e risultato confermato.
 
 # 2.441.3 — Protezione delle modifiche concorrenti nelle fatture

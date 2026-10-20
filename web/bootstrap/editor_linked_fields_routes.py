@@ -4,7 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 
-from flask import g, jsonify
+from flask import g, jsonify, request
 from pct.editor_linked_fields import linked_fields_catalog
 
 
@@ -22,10 +22,25 @@ def register_editor_linked_fields_routes(app, *, get_fascicoli, get_clienti=None
                 raise RuntimeError("Archivio SQL non disponibile")
             if repository.get(id_fasc) is None:
                 return jsonify(ok=False, errore="Fascicolo non trovato."), 404
-            from web.services.archivio_letture_runtime import lettura_dopo_evento
-            if not lettura_dopo_evento(id_fasc):
-                raise RuntimeError("Recupero non accodato")
-            return jsonify(ok=True, stato="pending"), 202
+            from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+            registry, tenant = registro_corrente(sola_lettura=True), tenant_corrente()
+            payload = request.get_json(silent=True) if request.is_json else {}
+            if not isinstance(payload, dict) or set(payload) - {'generation'}:
+                return jsonify(ok=False, errore="Richiesta di recupero non valida."), 400
+            if 'generation' not in payload:
+                state = registry.esito_evento(tenant, id_fasc)
+                if state['stato'] == 'failed':
+                    return jsonify(ok=False, errore="La lettura si è fermata. Aggiorna la pagina per riprenderla; il documento è conservato."), 409
+                return jsonify(ok=True, stato=state['stato'], generation=state['generation']), 200
+            generation = payload['generation']
+            if type(generation) is not int or generation < 0:
+                return jsonify(ok=False, errore="Generazione del recupero non valida."), 400
+            if generation > registry.esito_evento(tenant, id_fasc)['generation']:
+                return jsonify(ok=False, errore="Ricarica i dati prima di riprendere la lettura; il documento è conservato."), 409
+            state = registro_corrente().richiedi_recupero(tenant, id_fasc, generation=generation)
+            if state['generation'] < generation:
+                return jsonify(ok=False, errore="Ricarica i dati prima di riprendere la lettura; il documento è conservato."), 409
+            return jsonify(ok=True, stato=state['stato'], generation=state['generation']), 202
         except Exception:
             app.logger.exception("Recupero campi del modello non avviato")
             return jsonify(ok=False, errore="Recupero non avviato. I dati e il documento sono preservati."), 503
@@ -63,6 +78,7 @@ def register_editor_linked_fields_routes(app, *, get_fascicoli, get_clienti=None
                 dates = get_process_dates(matter)
                 recovery_state = "idle"
                 recovery_error = ""
+                recovery_generation = 0
             else:
                 from pct.editor_linked_fields import date_modello_da_fatti
                 from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
@@ -70,6 +86,7 @@ def register_editor_linked_fields_routes(app, *, get_fascicoli, get_clienti=None
                 tenant = tenant_corrente()
                 recovery = registry.esito_evento(tenant, matter.id)
                 recovery_state, recovery_error = recovery["stato"], recovery["last_error"]
+                recovery_generation = int(recovery["generation"])
                 dates = date_modello_da_fatti(
                     registry.fatti(tenant, matter.id, categoria="metadato_fascicolo"),
                     fascicolo_id=matter.id, oggetti=registry.oggetti(tenant, matter.id),
@@ -80,7 +97,7 @@ def register_editor_linked_fields_routes(app, *, get_fascicoli, get_clienti=None
                            matterLabel=" · ".join(part for part in [matter.numero, matter.titolo] if part),
                            clientLabel=client.nome_completo if client else "",
                            notice="" if client else "Nessun cliente è collegato al fascicolo: sono disponibili soltanto i dati della pratica.",
-                           revision=revision, fields=fields, recoveryState=recovery_state, recoveryError=recovery_error)
+                           revision=revision, fields=fields, recoveryState=recovery_state, recoveryError=recovery_error, recoveryGeneration=recovery_generation)
         except Exception:
             app.logger.exception("Dati collegati dell’editor non disponibili")
             return jsonify(ok=False, errore="Dati non caricati. Riprova; il documento è preservato."), 503

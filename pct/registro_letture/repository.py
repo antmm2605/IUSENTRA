@@ -758,6 +758,26 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
         with self.connection() as conn:
             return self._accoda_evento_conn(conn, tenant, fascicolo, forza, adesso, presidi=presidi)
 
+    def richiedi_recupero(self, tenant_id: str, fascicolo_id: str, *, generation: int) -> dict[str, Any]:
+        """Ripresa esplicita con generazione osservata: nessun reset da doppioni."""
+        tenant, fascicolo = _testo(tenant_id), _testo(fascicolo_id)
+        if not tenant or not fascicolo or type(generation) is not int or generation < 0:
+            raise RegistroLettureError("Contesto o generazione del recupero non validi.")
+        now = _adesso()
+        with self.connection() as conn:
+            self._require_event_retry(conn)
+            self._prepare_live_write(conn)
+            conn.execute(
+                "INSERT INTO letture_eventi(id,tenant_id,fascicolo_id,generation,stato,creato_il,aggiornato_il) "
+                "SELECT ?,?,?,1,'pending',?,? WHERE ?=0 OR EXISTS "
+                "(SELECT 1 FROM letture_eventi WHERE tenant_id=? AND fascicolo_id=?) "
+                "ON CONFLICT(tenant_id,fascicolo_id) DO UPDATE SET generation=letture_eventi.generation+1,"
+                "stato='pending',attempts=0,available_at='',last_error='',last_error_code='',"
+                "worker_id='',lease_until='',claimed_force=0,claimed_presidi=0,aggiornato_il=excluded.aggiornato_il "
+                "WHERE letture_eventi.stato='idle' AND letture_eventi.generation=?",
+                (_nuovo_id('lev'),tenant,fascicolo,now,now,generation,tenant,fascicolo,generation))
+        return self.esito_evento(tenant, fascicolo)
+
     def presidi_in_corso(self, tenant_id: str, fascicolo_id: str) -> bool:
         """Il riscontro condiviso dei soli controlli richiesti, senza leggere fonti."""
         with self.connection() as conn:
@@ -838,14 +858,14 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
                 return None
             if expired:
                 conn.execute("UPDATE letture_eventi_esiti SET stato='expired',error_code='LeaseExpired',"
-                             "errore='Lease del worker scaduta.',concluso_il=? WHERE tenant_id=? AND fascicolo_id=? "
+                             "errore='Il servizio di lettura non ha concluso entro il tempo previsto.',concluso_il=? WHERE tenant_id=? AND fascicolo_id=? "
                              "AND worker_id=? AND generation=? AND stato='running'",
                              (now,tenant,fascicolo,row['worker_id'],int(row['claimed_generation'])))
             if int(row['attempts']) >= MAX_ATTEMPTS:
                 conn.execute("UPDATE letture_eventi SET stato='idle',worker_id='',lease_until='',available_at='',"
                              "pending_force=CASE WHEN claimed_force=1 THEN 1 ELSE pending_force END,"
                              "pending_presidi=CASE WHEN claimed_presidi=1 THEN 1 ELSE pending_presidi END,"
-                             "claimed_force=0,claimed_presidi=0,last_error='Lease del worker scaduta: tentativi esauriti.',"
+                             "claimed_force=0,claimed_presidi=0,last_error='Tempo disponibile per la lettura esaurito dopo tre tentativi.',"
                              "last_error_code='LeaseExpired',aggiornato_il=? WHERE tenant_id=? AND fascicolo_id=?", (now,tenant,fascicolo))
                 return None
             attempt = int(row['attempts']) + 1

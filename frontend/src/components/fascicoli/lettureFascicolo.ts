@@ -229,7 +229,7 @@ export function fraseCollaudo(collaudo: ArchivioLetture['collaudo_lettore'] | un
 
 export function fraseLetturaAutomatica(stato: ArchivioLetture['lettura_automatica'] | undefined): string {
   if (!stato) return ''
-  if (stato.stato_coda === 'failed') return `Elaborazione interrotta: ${stato.errore_evento || 'tentativi esauriti'}. Puoi riprovare dopo aver risolto la causa; i risultati già salvati sono conservati.`
+  if (stato.stato_coda === 'failed') return `Elaborazione interrotta: ${(stato.errore_evento || 'tentativi esauriti').replace(/[.!\s]+$/, '')}. Puoi riprovare dopo aver risolto la causa; i risultati già salvati sono conservati.`
   if (stato.stato_coda === 'pending' && stato.prossimo_tentativo_it) return `Ultimo tentativo non riuscito: ${stato.errore_evento || 'elaborazione non completata'}. Nuovo tentativo automatico alle ${stato.prossimo_tentativo_it}.`
   if (stato.errori) return `Lettura incompleta: ${stato.errori} esiti non leggibili. Consulta le cause registrate.`
   if (stato.in_corso) return 'Lettura automatica in corso.'

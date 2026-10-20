@@ -273,7 +273,7 @@ def test_stamp_alignment_and_position_survive_word_round_trip(tmp_path, position
     assert 'Corpo del documento' in converted
 
 
-def test_api_requires_both_permissions_and_tenant_and_native_fk(monkeypatch):
+def test_api_requires_both_permissions_and_tenant_and_native_fk(monkeypatch, tmp_path):
     client, matter = sources()
     app = Flask(__name__)
     permissions = {'clienti.leggi', 'fascicoli.leggi'}
@@ -287,10 +287,19 @@ def test_api_requires_both_permissions_and_tenant_and_native_fk(monkeypatch):
         get_fascicoli=lambda: SimpleNamespace(_studio_db=object(), get=lambda identifier: matter if identifier == 'F1' else None),
         get_clienti=lambda: SimpleNamespace(_studio_db=object(), get=lambda identifier: client if identifier == 'C1' else None))
     browser = app.test_client()
-    queued = []
-    monkeypatch.setattr('web.services.archivio_letture_runtime.lettura_dopo_evento', lambda fid: queued.append(fid) or True)
-    assert browser.post('/api/editor/F1/recupera-campi').status_code == 202
-    assert queued == ['F1']
+    from pct.registro_letture import RegistroLetture
+    registry = RegistroLetture(tmp_path / 'reading-requests.db')
+    monkeypatch.setattr('web.services.registro_letture_runtime.registro_corrente', lambda **kwargs: registry)
+    monkeypatch.setattr('web.services.registro_letture_runtime.tenant_corrente', lambda: 'study-a')
+    assert browser.post('/api/editor/F1/recupera-campi').status_code == 200
+    assert registry.esito_evento('study-a','F1')['generation'] == 0
+    assert browser.post('/api/editor/F1/recupera-campi',json={'generation':0}).status_code == 202
+    assert registry.esito_evento('study-a','F1')['generation'] == 1
+    assert browser.post('/api/editor/F1/recupera-campi',json={'generation':0}).status_code == 202
+    assert registry.esito_evento('study-a','F1')['generation'] == 1
+    for invalid in [True,-1,'0']:
+        assert browser.post('/api/editor/F1/recupera-campi',json={'generation':invalid}).status_code == 400
+    assert browser.post('/api/editor/F1/recupera-campi',json={'generation':99}).status_code == 409
     assert browser.post('/api/editor/ALTRO/recupera-campi').status_code == 404
     result = browser.get('/api/editor/F1/campi-collegati')
     assert result.status_code == 200 and result.json['clientId'] == 'C1'
@@ -395,3 +404,38 @@ def test_field_directly_in_blank_editor_keeps_native_binding(tmp_path):
     assert 'Anna Prova' in converted and '15/01/1980' in converted
     path.write_bytes(html_to_docx(converted))
     assert converti_docx(path).html.count('data-iu-linked-field=') == 2
+
+
+def test_failed_recovery_is_read_only_until_an_explicit_current_generation(tmp_path,monkeypatch):
+    from pct.registro_letture import RegistroLetture
+    client,matter=sources()
+    app=Flask(__name__)
+    @app.before_request
+    def authorize():
+        g.utente_corrente=SimpleNamespace(ha_permesso=lambda permission: True)
+        g.tenant_context_missing=False
+    register_editor_linked_fields_routes(app,
+        get_studio_context=lambda: {},
+        get_fascicoli=lambda: SimpleNamespace(_studio_db=object(),get=lambda key: matter if key=='F1' else None),
+        get_clienti=lambda: SimpleNamespace(_studio_db=object(),get=lambda key: client if key=='C1' else None))
+    registry=RegistroLetture(tmp_path/'explicit-recovery.db')
+    monkeypatch.setattr('web.services.registro_letture_runtime.registro_corrente',lambda **kwargs:registry)
+    monkeypatch.setattr('web.services.registro_letture_runtime.tenant_corrente',lambda:'study-a')
+    now=['2026-10-20T00:00:00Z']
+    monkeypatch.setattr('pct.registro_letture.repository._adesso',lambda:now[0])
+    registry.accoda_evento('study-a','F1')
+    for _ in range(3):
+        event=registry.reclama_evento('study-a','F1','worker')
+        registry.concludi_evento('study-a','F1','worker',event['generation'],riuscito=False,errore='Fonte non disponibile')
+        now[0]=registry.esito_evento('study-a','F1')['available_at'] or now[0]
+    before=registry.esito_evento('study-a','F1')
+    browser=app.test_client()
+    for _ in range(2):
+        response=browser.get('/api/editor/F1/campi-collegati')
+        assert response.status_code==200 and response.json['recoveryState']=='failed'
+        assert response.json['recoveryGeneration']==1
+    assert browser.post('/api/editor/F1/recupera-campi').status_code==409
+    assert registry.esito_evento('study-a','F1')==before
+    for _ in range(2):
+        assert browser.post('/api/editor/F1/recupera-campi',json={'generation':1}).status_code==202
+    assert registry.esito_evento('study-a','F1')['generation']==2

@@ -32,6 +32,10 @@ class SnapshotGuards(unittest.TestCase):
         self.assertEqual(set(result["files"]), {"module.py"})
         self.assertFalse((self.out / "source/private.py").exists())
         self.assertFalse(module.source_allowed("secrets/credentials.json", {".json"}))
+        self.assertFalse(module.source_allowed("clienti/anagrafica.json", {".json"}))
+        self.assertFalse(module.source_allowed("auth/utenti.json", {".json"}))
+        self.assertFalse(module.source_allowed("lex/training/dataset.json", {".json"}))
+        self.assertTrue(module.source_allowed("pct/template_atti_schede/schema.json", {".json"}))
         self.assertFalse(module.source_allowed("artifacts/proof.py", {".py"}))
         self.assertFalse(module.source_allowed("web/static/react/generated.js", {".js"}))
 

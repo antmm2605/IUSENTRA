@@ -12,14 +12,16 @@ Fonte ufficiale: https://github.com/Graphify-Labs/graphify.
 
 Eseguire `tools/agent_knowledge/build_graph.py --out <cartella esterna dedicata>` con il Python dell’ambiente Graphify. Il comando:
 
-1. Seleziona soltanto sorgenti e configurazioni JSON versionati, mantenendo i percorsi relativi originali. Registra HEAD, versione, SHA-256 e dimensione di ogni file della copia di lavoro: HEAD da solo non certifica modifiche non ancora committate.
-2. Esclude risultati e prove in `artifacts`, asset e bundle generati, patch, esempi e baseline storiche metaharness; non enumera database, volumi, allegati o addestramenti. Le esclusioni sono esplicite nel manifesto.
+1. Seleziona soltanto sorgenti versionati e configurazioni JSON esplicitamente ammesse, mantenendo i percorsi relativi originali. Registra HEAD, versione, SHA-256 e dimensione di ogni file della copia di lavoro: HEAD da solo non certifica modifiche non ancora committate.
+2. Esclude risultati e prove in `artifacts`, asset e bundle generati, patch, esempi, pacchetti già generati in tools/dist e baseline storiche metaharness; non enumera database, volumi, allegati o addestramenti. Le esclusioni sono esplicite nel manifesto.
 3. Aggiorna solo copie cambiate in una cartella di proprietà attestata, senza cancellazioni ricorsive. Una cartella estranea o un collegamento che esce dal perimetro viene rifiutato.
 4. Richiama l’estrazione ufficiale Graphify in modalità `--code-only`, con un solo processo di estrazione e cache persistente. Non avvia backend semantici, server, modelli o chiamate a fornitori AI.
 
-Destinazione locale: `C:/Users/antmm/.codex/knowledge/IUSENTRA/`. Il grafo è `graphify-out/graph.json`; `source-manifest.json` identifica i sorgenti realmente analizzati. `source/` è soltanto una copia per analisi, non è una copia applicativa e non va avviata, collaudata o distribuita. Tutte le modifiche e le prove del prodotto restano nella copia reale IUSENTRA.
+Destinazione locale: `C:/Users/antmm/.codex/knowledge/IUSENTRA/`. Il grafo è `graphify-out/graph.json`; `source-manifest.json` identifica i sorgenti selezionati; la diagnostica e l’indice distinguono quelli effettivamente riconosciuti. `source/` è soltanto una copia per analisi, non è una copia applicativa e non va avviata, collaudata o distribuita. Tutte le modifiche e le prove del prodotto restano nella copia reale IUSENTRA.
 
 Per comunità e rapporto usare il comando ufficiale `cluster-only <source> --graph <graph.json> --no-label --no-viz`; per la visualizzazione usare `export html --graph <graph.json>`. La visualizzazione aggregata non mostra ogni simbolo: il grafo JSON resta la fonte interrogabile completa dell’estrazione.
+
+Per creare l’indice navigabile eseguire `tools/agent_knowledge/index_graph.py --out <stessa cartella>`. Produce `SOFTWARE_INDEX.md` e `coverage-index.json`: settori, tassonomia delle materie e simboli per ogni file, con ID e posizione. Registra separatamente l’impronta del grafo e del manifesto, senza modificare il grafo originale o aggiungere relazioni inferite come se fossero estratte.
 
 ## Uso prima di intervenire
 
@@ -41,5 +43,5 @@ Gli inventari storici di route, SQL/JSON e sincronizzazione sono indizi da ricon
 
 - Copertura dei sorgenti, riconoscimento dei simboli, relazioni inferite e accettazione funzionale sono misure diverse.
 - File esclusi, non supportati, parzialmente estratti o senza simboli devono restare nel resoconto; non diventano automaticamente funzioni mancanti o errori del prodotto.
-- HTML/Jinja, YAML, documentazione e contenuti binari non sono analizzati semanticamente dalla modalità code-only. Quando servono a una modifica, leggerli e applicare il percorso semantico ufficiale soltanto al materiale tecnico pertinente, mantenendo fuori dati e documenti dello studio.
+- HTML/Jinja, YAML, documentazione e contenuti binari non sono analizzati semanticamente dalla modalità code-only. Anche i JSON con forma di dati e gli schemi non riconosciuti sono esclusi intenzionalmente dal passaggio AST ufficiale Graphify; il manifesto e l’indice li distinguono dai sorgenti con simboli. Quando servono a una modifica, leggerli e applicare il percorso semantico ufficiale soltanto al materiale tecnico pertinente, mantenendo fuori dati e documenti dello studio.
 - Nessuna dichiarazione di conoscenza perfetta o di assenza di regressioni può derivare dal solo grafo.

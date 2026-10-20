@@ -16,7 +16,9 @@ from pathlib import Path, PurePosixPath
 GRAPHIFY_VERSION = "0.9.93"
 # These contain runtime data/evidence, generated bundles or historical snapshots.
 EXCLUDED_ROOTS = {"artifacts", "assets", "patches", "examples"}
-EXCLUDED_PREFIXES = ("web/static/react/", "tools/metaharness/")
+EXCLUDED_PREFIXES = ("web/static/react/", "tools/metaharness/", "tools/dist/")
+JSON_CONFIG_FILES = {"package.json", "tokens.json", "turbo.json", ".github/required-checks.json", ".github/codeql/eccezioni.json", "tools/agent_knowledge/domains.json"}
+JSON_CONFIG_PREFIXES = ("pct/template_atti_schede/", "pct/template_atti_catalogo_data/")
 
 
 def source_allowed(name: str, extensions: set[str]) -> bool:
@@ -32,6 +34,10 @@ def source_allowed(name: str, extensions: set[str]) -> bool:
         and not any(part in {"node_modules", "__pycache__", ".venv", "venv"} for part in path.parts)
         and not path.name.startswith(".env")
         and path.suffix in extensions
+        and (path.suffix != ".json" or name in JSON_CONFIG_FILES
+             or name.startswith(JSON_CONFIG_PREFIXES)
+             or path.name in {"package.json", "tsconfig.json"}
+             or path.name.endswith(".schema.json"))
         and not _is_sensitive(Path(name))
     )
 
@@ -83,19 +89,24 @@ def snapshot(repo: Path, destination: Path) -> dict:
     # Only a specific previously inventoried source file may be removed. No recursive deletion.
     removed = set(previous.get("files", {})) - set(entries)
     for name in sorted(removed):
-        if not source_allowed(name, CODE_EXTENSIONS):
+        item = PurePosixPath(name)
+        if item.is_absolute() or ".." in item.parts or not item.parts:
             raise ValueError(f"Voce precedente non valida: {name}")
         target = source / name
         if target.is_symlink() or source.resolve() not in target.resolve().parents:
             raise ValueError(f"Rimozione fuori perimetro: {name}")
         if target.is_file():
+            if hashlib.sha256(target.read_bytes()).hexdigest() != previous["files"][name]["sha256"]:
+                raise ValueError(f"Copia locale cambiata: non rimuovere {name}")
             target.unlink()
     result = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "repository": str(repo),
         "head": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo).decode().strip(),
         "graphify_version": GRAPHIFY_VERSION,
-        "scope": "tracked code and JSON configuration; working tree hashes; no tenant data",
+        "scope": "tracked code and allowlisted JSON configuration; working tree hashes; no tenant data",
+        "json_config_files": sorted(JSON_CONFIG_FILES),
+        "json_config_prefixes": list(JSON_CONFIG_PREFIXES),
         "excluded_roots": sorted(EXCLUDED_ROOTS),
         "excluded_prefixes": list(EXCLUDED_PREFIXES),
         "files": entries,

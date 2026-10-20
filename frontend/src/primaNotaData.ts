@@ -14,6 +14,7 @@ export type PrimaNotaMovimento = {
   parcellaId: string
   note: string
   stornabile: boolean
+  incassoCollegato?: boolean
   actions: { storna: string }
 }
 
@@ -133,7 +134,7 @@ export async function getPrimaNotaPage(params?: Record<string, string>): Promise
       },
       movimenti: Array.isArray(payload.movimenti)
         ? payload.movimenti
-            .map((m) => isRecord(m) && text(m.id) ? {
+            .map((m): PrimaNotaMovimento | null => isRecord(m) && text(m.id) ? {
               id: text(m.id),
               data: text(m.data),
               tipo: text(m.tipo),
@@ -149,6 +150,7 @@ export async function getPrimaNotaPage(params?: Record<string, string>): Promise
               parcellaId: text(m.parcellaId),
               note: text(m.note),
               stornabile: Boolean(m.stornabile),
+              incassoCollegato: m.incassoCollegato === true,
               actions: { storna: text(isRecord(m.actions) ? m.actions.storna : '', `/prima-nota/${text(m.id)}/storna`) },
             } : null)
             .filter((m): m is PrimaNotaMovimento => Boolean(m))

@@ -137,18 +137,27 @@ def elimina_bozza(
     current_user: Any,
     id_parcella: str,
     ip_address: str = "",
+    expected_revision: str = "",
 ) -> tuple[dict[str, Any], int]:
     archivio = get_fatturazione()
     parcella = archivio.get(id_parcella)
     if not parcella:
         return _esito(False, "Parcella non trovata.", 404)
+    from pct.fatturazione import parcella_revision
+    if not expected_revision:
+        return _esito(False, "Aggiorna la scheda prima di eliminare la bozza.", 428)
+    if expected_revision != parcella_revision(parcella):
+        return _esito(False, "La bozza è cambiata. Confronta la versione aggiornata prima di eliminarla.", 409)
     if _stato(parcella) != StatoParcella.BOZZA.value:
         return _esito(
             False,
             "Una fattura emessa non si elimina: annullala o rettificala con nota di variazione (art. 26 D.P.R. 633/1972).",
             409,
         )
-    archivio.elimina(id_parcella)
+    try:
+        archivio.elimina(id_parcella)
+    except ValueError as exc:
+        return _esito(False, str(exc), 409)
     _audit(get_utenti, current_user, "parcella.elimina", id_parcella, ip_address)
     return _esito(True, "Bozza eliminata.", redirect_href="/fatturazione")
 

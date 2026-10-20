@@ -1,6 +1,6 @@
 import { beginActivity } from '../ui/activity'
 import { useBusyActivity } from '../ui/useBusyActivity'
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { ExternalLink, Link2, ReceiptText, RefreshCw, WalletCards } from 'lucide-react'
 import {
   createOrGetPaymentLink,
@@ -18,6 +18,7 @@ import { IncassiCardCatalog } from './IncassiCardCatalog'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { formatDateIt } from '../formatting'
 import { LoadingState } from '../ui/LoadingState'
+const InvoiceReceiptsPanel = lazy(() => import('./InvoiceReceiptsPanel'))
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
 import './IncassiPagamentiPage.css'
@@ -147,6 +148,7 @@ export function IncassiPagamentiPage() {
   const currentRecordsPage = Math.min(recordsPage, recordsPages)
   useEffect(() => { setRecordsPage(1) }, [filteredRecordIds])
   const requestedInvoiceId = selectedInvoiceFromLocation()
+  const selectedInvoiceRecord = data.records.find(record => record.invoiceId === invoiceId)
 
   function load(silent = false) {
     if (refreshFlight.current) return refreshFlight.current
@@ -156,7 +158,6 @@ export function IncassiPagamentiPage() {
       .then((payload) => {
         setData(payload)
         setRefreshError('')
-        setInvoiceId((current) => payload.records.some((record) => record.invoiceId === current) ? current : '')
         return true
       })
       .catch((cause) => { setRefreshError(cause instanceof Error ? cause.message : 'Impossibile aggiornare gli incassi.'); return false })
@@ -173,7 +174,6 @@ export function IncassiPagamentiPage() {
           setData(payload)
           const requested = requestedInvoiceId && payload.records.some((record) => record.invoiceId === requestedInvoiceId) ? requestedInvoiceId : ''
           if (requested) setInvoiceId(requested)
-          else if (!invoiceId && payload.records[0]?.invoiceId) setInvoiceId(payload.records[0].invoiceId)
         }
       })
       .catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : 'Impossibile caricare gli incassi.') })
@@ -309,6 +309,7 @@ export function IncassiPagamentiPage() {
                   <span>Parcella</span>
                   <select value={invoiceId} onChange={(event) => setInvoiceId(event.target.value)}>
                     <option value="">Seleziona parcella</option>
+                    {invoiceId && !data.records.some(record => record.invoiceId === invoiceId) ? <option value={invoiceId}>Documento già selezionato</option> : null}
                     {data.records.map((record) => (
                       <option value={record.invoiceId} key={`${record.id}-${record.invoiceId}`}>
                         {record.invoiceNumber || record.invoiceId} - {record.customerName}
@@ -316,6 +317,11 @@ export function IncassiPagamentiPage() {
                     ))}
                   </select>
                 </label>
+                {invoiceId && !selectedInvoiceRecord?.isProforma && selectedInvoiceRecord?.invoiceState !== 'BOZZA' ? (
+                  <Suspense fallback={<LoadingState title="Caricamento incassi" message="Lettura del documento selezionato." />}>
+                    <InvoiceReceiptsPanel key={invoiceId} invoiceId={invoiceId} onConfirmed={async () => { await load(true) }} />
+                  </Suspense>
+                ) : invoiceId ? <>
                 <label>
                   <span>Metodo</span>
                   <input value={method} onChange={(event) => setMethod(event.target.value)} />
@@ -328,6 +334,7 @@ export function IncassiPagamentiPage() {
                   <ReceiptText size={16} />
                   Registra incasso
                 </Button>
+                </> : null}
               </div>
             ) : (
               <EmptyState title="Permesso non disponibile" message="Questa sessione non consente registrazioni incasso." />

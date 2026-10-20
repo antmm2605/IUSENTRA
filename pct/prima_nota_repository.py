@@ -44,6 +44,10 @@ def _encode(payload):
 
 
 def validate_legacy_payload(raw):
+    return _validate_payload(raw)
+
+
+def _validate_payload(raw, verified_installments=frozenset()):
     """Verifica la fonte prima dell'adozione, senza inventare id, date o importi."""
     from pct.prima_nota import CATEGORIE, METODI, MovimentoPrimaNota
     if not isinstance(raw, dict):
@@ -80,7 +84,7 @@ def validate_legacy_payload(raw):
         if bool(value.get('riga_estratto_id')) != bool(value.get('riconciliato_il')):
             raise ValueError(f"Riconciliazione storica incompleta: {key}.")
         result[key] = MovimentoPrimaNota.from_dict(value).to_dict()
-    bank_rows, reversed_ids, parcels = set(), set(), set()
+    bank_rows, reversed_ids, parcels = set(), set(), {}
     for key, value in result.items():
         reverse = value.get('storno_di', '')
         # Recupera solo il collegamento esplicitamente scritto nel formato storico nativo.
@@ -101,9 +105,9 @@ def validate_legacy_payload(raw):
             bank_rows.add(bank)
         parcel = value.get('parcella_id', '')
         if parcel and value['tipo'] == 'INCASSO' and not reverse:
-            if parcel in parcels:
+            if parcel in parcels and not {parcels[parcel], key}.issubset(verified_installments):
                 raise ValueError(f"Incasso storico della parcella duplicato: {key}.")
-            parcels.add(parcel)
+            parcels.setdefault(parcel, key)
     return result
 
 
@@ -144,7 +148,15 @@ class PrimaNotaRepository:
         if not isinstance(result, dict) or set(result) != {'movement'} or not isinstance(result['movement'], dict):
             raise RuntimeError('Esito archiviato del comando Prima nota non valido.')
         movement = result['movement']
-        validate_legacy_payload({movement.get('id'): movement})
+        validation = {movement.get('id'): movement}
+        reverse = movement.get('storno_di', '')
+        if reverse:
+            original = self.db.conn.execute('SELECT payload_json FROM prima_nota_records WHERE tenant_key=? AND record_key=?',
+                                            (self.tenant, reverse)).fetchone()
+            if original is None:
+                raise RuntimeError('Movimento originale dello storno non riscontrato.')
+            validation[reverse] = json.loads(original[0])
+        validate_legacy_payload(validation)
         record = self.db.conn.execute('SELECT payload_json FROM prima_nota_records WHERE tenant_key=? AND record_key=?',
                                       (self.tenant, movement['id'])).fetchone()
         audit = self.db.conn.execute(
@@ -347,6 +359,23 @@ class PrimaNotaRepository:
             raise
         return self.load()
 
+    def _validate_sql_payload(self, payload):
+        if not isinstance(payload, dict):
+            return validate_legacy_payload(payload)
+        invoices = {}
+        for key, row in payload.items():
+            if (isinstance(row, dict) and isinstance(row.get('parcella_id'), str) and row['parcella_id']
+                    and row.get('tipo') == 'INCASSO' and not row.get('storno_di')
+                    and not str(row.get('note') or '').lower().startswith('storno di ')):
+                invoices.setdefault(row['parcella_id'], []).append(key)
+        duplicates = {invoice for invoice, keys in invoices.items() if len(keys) > 1}
+        if not duplicates:
+            return validate_legacy_payload(payload)
+        from pct.parcella_incassi_repository import verified_installment_keys
+        relevant = {key: row for key, row in payload.items() if isinstance(row, dict) and isinstance(row.get('parcella_id'), str) and row['parcella_id'] in duplicates}
+        verified = verified_installment_keys(self.db, self.tenant, relevant)
+        return _validate_payload(payload, verified)
+
     def load(self):
         # Una sola SELECT: la revisione e i movimenti appartengono allo stesso snapshot.
         rows = self.db.conn.execute(
@@ -357,20 +386,87 @@ class PrimaNotaRepository:
         if not rows:
             raise ValueError("Prima nota SQL non inizializzata: recupero dell'archivio necessario.")
         payload = {str(row[1]): json.loads(row[2]) for row in rows if row[1] is not None}
-        payload = validate_legacy_payload(payload)
+        payload = self._validate_sql_payload(payload)
         self.revision = int(rows[0][0])
         self.original = {key: _encode(value) for key, value in payload.items()}
         return payload
+
+    def _persist_changes(self, conn, changes, *, command=None):
+        """Scrive sul proprietario nativo; il chiamante conferma la transazione.
+
+        changes contiene movimenti già validati. Non carica l'intero registro,
+        non inizializza schema e non consegna effetti prima del commit.
+        """
+        stamp = datetime.now(timezone.utc).isoformat()
+        if command is not None:
+            self._validate_command(command)
+            result = command.get('result')
+            if not isinstance(result, dict) or set(result) != {'movement'} or not isinstance(result['movement'], dict):
+                raise ValueError('Esito del comando Prima nota non valido.')
+            movement = result['movement']
+            key = movement.get('id')
+            if not isinstance(key, str) or set(changes) != {key} or key in self.original or changes[key] != _encode(movement):
+                raise ValueError('Esito del comando discordante dal movimento registrato.')
+            result_json = _encode(command['result'])
+            # La prenotazione si conferma insieme al movimento e al suo audit.
+            inserted = conn.execute(
+                'INSERT INTO prima_nota_commands '
+                '(tenant_key,command_key,actor_key,operation,request_sha256,result_json,committed_revision,created_at) '
+                'VALUES (?,?,?,?,?,?,NULL,?) ON CONFLICT (tenant_key,command_key) DO NOTHING RETURNING command_key',
+                (self.tenant, command['key'], self.actor_key, command['operation'], command['request_sha256'], result_json, stamp),
+            ).fetchone()
+            if inserted is None:
+                row = conn.execute(
+                    'SELECT actor_key,operation,request_sha256,result_json,committed_revision '
+                    'FROM prima_nota_commands WHERE tenant_key=? AND command_key=?', (self.tenant, command['key']),
+                ).fetchone()
+                result = self._command_result(row, command)
+                return None, result, True
+        updated = conn.execute(
+            "UPDATE prima_nota_state SET revision=revision+1 WHERE tenant_key=? "
+            "AND revision=? RETURNING revision", (self.tenant, self.revision),
+        ).fetchone()
+        if updated is None:
+            raise PrimaNotaConflict("Prima nota aggiornata da un altro utente. La bozza non è stata registrata; ricarica il registro.")
+        for key, value in changes.items():
+            conn.execute(
+                "INSERT INTO prima_nota_records (tenant_key,record_key,payload_json,updated_at) "
+                "VALUES (?,?,?,?) ON CONFLICT (tenant_key,record_key) "
+                "DO UPDATE SET payload_json=excluded.payload_json,updated_at=excluded.updated_at",
+                (self.tenant, key, value, stamp),
+            )
+            conn.execute(
+                "INSERT INTO prima_nota_audit "
+                "(tenant_key,revision,record_key,actor_key,action,before_json,after_json,created_at) "
+                "VALUES (?,?,?,?,?,?,?,?)",
+                (self.tenant, int(updated[0]), key, self.actor_key,
+                 'riconciliazione' if key in self.original else 'registrazione',
+                 self.original.get(key, '{}'), value, stamp),
+            )
+            from pct.transactional_outbox import enqueue
+            delivery = self._audit_delivery_event(
+                revision=int(updated[0]), key=key,
+                action='riconciliazione' if key in self.original else 'registrazione',
+                before=self.original.get(key, '{}'), after=value, stamp=stamp,
+            )
+            enqueue(conn, delivery)
+            self._verify_audit_delivery(conn, delivery)
+        if command is not None:
+            conn.execute('UPDATE prima_nota_commands SET committed_revision=? WHERE tenant_key=? AND command_key=?',
+                         (int(updated[0]), self.tenant, command['key']))
+        return int(updated[0]), command['result'] if command is not None else None, False
 
     def save(self, payload, *, command=None):
         self.last_command_replayed = False
         if self.revision is None:
             raise ValueError("Leggi il registro SQL prima di modificarlo.")
-        payload = validate_legacy_payload(payload)
+        payload = self._validate_sql_payload(payload)
         encoded = {key: _encode(value) for key, value in payload.items()}
         if self.original.keys() - encoded.keys():
             raise ValueError("I movimenti non possono essere eliminati: usa lo storno.")
         changes = {key: value for key, value in encoded.items() if self.original.get(key) != value}
+        from pct.parcella_incassi_repository import guard_linked_receipt_reversals
+        guard_linked_receipt_reversals(self.db, self.tenant, {key: payload[key] for key in changes if key not in self.original})
         for key in self.original.keys() & changes.keys():
             before, after = json.loads(self.original[key]), payload[key]
             for field in before.keys() | after.keys():
@@ -384,70 +480,16 @@ class PrimaNotaRepository:
             raise ValueError("Attore della scrittura Prima nota mancante: comando non registrato.")
         conn = self._write_conn()
         try:
-            stamp = datetime.now(timezone.utc).isoformat()
-            if command is not None:
-                self._validate_command(command)
-                result = command.get('result')
-                if not isinstance(result, dict) or set(result) != {'movement'} or not isinstance(result['movement'], dict):
-                    raise ValueError('Esito del comando Prima nota non valido.')
-                movement = result['movement']
-                key = movement.get('id')
-                if not isinstance(key, str) or set(changes) != {key} or key in self.original or changes[key] != _encode(movement):
-                    raise ValueError('Esito del comando discordante dal movimento registrato.')
-                result_json = _encode(command['result'])
-                # La prenotazione si conferma insieme al movimento e al suo audit.
-                inserted = conn.execute(
-                    'INSERT INTO prima_nota_commands '
-                    '(tenant_key,command_key,actor_key,operation,request_sha256,result_json,committed_revision,created_at) '
-                    'VALUES (?,?,?,?,?,?,NULL,?) ON CONFLICT (tenant_key,command_key) DO NOTHING RETURNING command_key',
-                    (self.tenant, command['key'], self.actor_key, command['operation'], command['request_sha256'], result_json, stamp),
-                ).fetchone()
-                if inserted is None:
-                    row = conn.execute(
-                        'SELECT actor_key,operation,request_sha256,result_json,committed_revision '
-                        'FROM prima_nota_commands WHERE tenant_key=? AND command_key=?', (self.tenant, command['key']),
-                    ).fetchone()
-                    result = self._command_result(row, command)
-                    self._finish(conn, rollback=True)
-                    self.last_command_replayed = True
-                    return result
-            updated = conn.execute(
-                "UPDATE prima_nota_state SET revision=revision+1 WHERE tenant_key=? "
-                "AND revision=? RETURNING revision", (self.tenant, self.revision),
-            ).fetchone()
-            if updated is None:
-                raise PrimaNotaConflict("Prima nota aggiornata da un altro utente. La bozza non è stata registrata; ricarica il registro.")
-            for key, value in changes.items():
-                conn.execute(
-                    "INSERT INTO prima_nota_records (tenant_key,record_key,payload_json,updated_at) "
-                    "VALUES (?,?,?,?) ON CONFLICT (tenant_key,record_key) "
-                    "DO UPDATE SET payload_json=excluded.payload_json,updated_at=excluded.updated_at",
-                    (self.tenant, key, value, stamp),
-                )
-                conn.execute(
-                    "INSERT INTO prima_nota_audit "
-                    "(tenant_key,revision,record_key,actor_key,action,before_json,after_json,created_at) "
-                    "VALUES (?,?,?,?,?,?,?,?)",
-                    (self.tenant, int(updated[0]), key, self.actor_key,
-                     'riconciliazione' if key in self.original else 'registrazione',
-                     self.original.get(key, '{}'), value, stamp),
-                )
-                from pct.transactional_outbox import enqueue
-                delivery = self._audit_delivery_event(
-                    revision=int(updated[0]), key=key,
-                    action='riconciliazione' if key in self.original else 'registrazione',
-                    before=self.original.get(key, '{}'), after=value, stamp=stamp,
-                )
-                enqueue(conn, delivery)
-                self._verify_audit_delivery(conn, delivery)
-            if command is not None:
-                conn.execute('UPDATE prima_nota_commands SET committed_revision=? WHERE tenant_key=? AND command_key=?',
-                             (int(updated[0]), self.tenant, command['key']))
+            revision, result, replayed = self._persist_changes(conn, changes, command=command)
+            if replayed:
+                self._finish(conn, rollback=True)
+                self.last_command_replayed = True
+                return result
             self._finish(conn)
         except Exception:
             self._finish(conn, rollback=True)
             raise
-        self.revision = int(updated[0])
+        self.revision = revision
         self.original = encoded
         if command is not None:
-            return command['result']
+            return result

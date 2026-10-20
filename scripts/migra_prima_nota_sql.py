@@ -33,6 +33,7 @@ def canonical_sql_anchor(config):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--tenant', required=True)
+    parser.add_argument('--tenant-registry', help='Registro proprietario esplicito per la preparazione condivisa')
     parser.add_argument('--report', required=True)
     parser.add_argument('--apply', action='store_true')
     parser.add_argument('--backup-dir', default='')
@@ -48,7 +49,10 @@ def main():
     from web.services.prima_nota_runtime import get_existing_prima_nota_database
     from scripts.backfill_archivio_batches import _targets, _tenant_context
     # Profilo nativo senza wiring web/OCR o governance di avvio: solo contesto e repository.
-    app = create_app({'SCHEDULER_ONLY': True})
+    configuration = {'SCHEDULER_ONLY': True, 'DISABLE_SCHEDULER': True}
+    if args.tenant_registry:
+        configuration.update(TENANTS_REGISTRY=str(Path(args.tenant_registry).resolve(strict=True)), MULTI_TENANT=True)
+    app = create_app(configuration)
     manager, targets = _targets(app, args.tenant)
     output = Path(args.report)
     output.parent.mkdir(parents=True, exist_ok=True)

@@ -66,6 +66,7 @@ def elimina(id_parcella: str):
             get_utenti=get_utenti,
             current_user=g.get("utente_corrente"),
             id_parcella=id_parcella,
+            expected_revision=str((_payload or {}).get('expectedRevision') or ''),
             ip_address=request.remote_addr or "",
         )
         return jsonify(risultato), stato

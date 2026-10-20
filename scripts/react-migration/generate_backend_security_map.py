@@ -25,13 +25,15 @@ class Endpoint:
     function: str
     line: int
     auth: bool
+    api_prefix: str = "/api/v1/ui"
 
     @property
     def full_path(self) -> str:
-        return f"/api/v1/ui{self.path}"
+        return f"{self.api_prefix}{self.path}"
 
 
 AREA_RULES = (
+    ("/api/fatturazione", "Incassi del documento", "sessione + fatturazione.leggi; scritture anche fatturazione.scrivi", "P0", "prove immutabili e saldo SQL del documento"),
     ("/admin/database", "Amministrazione database", "utenti.leggi", "P0", "dati tecnici e path redatti"),
     ("/amministrazione", "Amministrazione", "utenti.leggi", "P0", "riepilogo governance studio"),
     ("/audit", "Registro attivita", "audit.leggi", "P0", "PII e log operativi redatti"),
@@ -126,10 +128,10 @@ def _decorator_text(node: ast.AST) -> str:
         return ""
 
 
-def _route_from_decorator(node: ast.AST) -> tuple[str, str] | None:
+def _route_from_decorator(node: ast.AST, blueprint: str = "api_v1_react") -> tuple[str, str] | None:
     if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
         return None
-    if _decorator_text(node.func.value) != "api_v1_react":
+    if _decorator_text(node.func.value) != blueprint:
         return None
     attr = node.func.attr
     if attr not in {"get", "post", "delete", "put", "patch", "route"}:
@@ -163,6 +165,16 @@ def endpoints() -> list[Endpoint]:
                 continue
             method, path = route
             items.append(Endpoint(method=method, path=path, function=node.name, line=node.lineno, auth=auth))
+    receipt_source = REPO_ROOT / "web" / "bootstrap" / "invoice_receipts_routes.py"
+    for node in ast.walk(ast.parse(receipt_source.read_text(encoding="utf-8"))):
+        if not isinstance(node, ast.FunctionDef):
+            continue
+        auth = any("_richiedi_auth" in _decorator_text(decorator) for decorator in node.decorator_list)
+        for decorator in node.decorator_list:
+            route = _route_from_decorator(decorator, "app")
+            if route:
+                method, path = route
+                items.append(Endpoint(method, path, node.name, node.lineno, auth, ""))
     return sorted(items, key=lambda item: (item.full_path, item.method))
 
 

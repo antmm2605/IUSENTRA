@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pct.fatturazione import parcella_revision
+from pct.fatturazione import GestioneFatturazione, parcella_revision
 
 
 from pct.formatting import format_euro_it, format_date_it, format_datetime_it, parse_datetime_rome
@@ -134,6 +134,8 @@ def _payment_record(row: Any, parcelle: dict[str, Any], clienti: dict[str, Any])
     return {
         "id": row_id,
         "invoiceId": id_parcella,
+        "isProforma": bool(parcella and GestioneFatturazione._is_proforma(parcella)),
+        "invoiceState": _enum(getattr(parcella, 'stato', '')),
         "invoiceRevision": parcella_revision(parcella) if callable(getattr(parcella, "to_dict", None)) else "",
         "invoiceNumber": _text(getattr(parcella, "numero", "")) or id_parcella,
         "customerName": _client_label(customer),
@@ -162,6 +164,8 @@ def _manual_invoice_record(parcella: Any, clienti: dict[str, Any]) -> dict[str, 
     return {
         "id": "",
         "invoiceId": invoice_id,
+        "isProforma": GestioneFatturazione._is_proforma(parcella),
+        "invoiceState": state,
         "invoiceRevision": parcella_revision(parcella) if callable(getattr(parcella, "to_dict", None)) else "",
         "invoiceNumber": _text(getattr(parcella, "numero", "")) or invoice_id,
         "customerName": _client_label(clienti.get(id_cliente)),
@@ -201,8 +205,11 @@ def _card_records(parcelle: list[Any], payment_rows: list[Any], clienti: dict[st
         if not pid:
             continue
         state = _enum(getattr(parcella, "stato", "")).upper()
+        balance = getattr(parcella, '_incassi_projection', None)
         metric_ids = []
-        if state == "PAGATA" and _text(getattr(parcella, "data_emissione", "")).startswith(str(anno)):
+        from pct.parcella_incassi_views import invoice_cash_year
+        annual_received = invoice_cash_year(parcella, anno)
+        if annual_received:
             metric_ids.append("incassato")
         if state == "EMESSA":
             metric_ids.append("da_incassare")
@@ -213,7 +220,10 @@ def _card_records(parcelle: list[Any], payment_rows: list[Any], clienti: dict[st
             "id": f"parcella:{pid}", "label": _text(getattr(parcella, "numero", "")) or "Parcella senza numero",
             "customer": _client_label(clienti.get(_text(getattr(parcella, "id_cliente", "")))),
             "kind": "Parcella", "state": state, "stateLabel": _label(state), "stateTone": _tone(state),
-            "amountDisplay": _money(amount), "dateLabel": _date_label(getattr(parcella, "data_emissione", "")),
+            "amountDisplay": 'Da riscontrare' if amount is None else _money(amount), "dateLabel": _date_label(getattr(parcella, "data_emissione", "")),
+            "receivedDisplay": ('Da riscontrare' if balance['paid_cents'] is None else _money(balance['paid_cents'] / 100)) if isinstance(balance, dict) else '',
+            "annualReceivedDisplay": _money(annual_received),
+            "residualDisplay": ('Da riscontrare' if balance['residual_cents'] is None else _money(balance['residual_cents'] / 100)) if isinstance(balance, dict) else '',
             "href": f"/fatturazione/{pid}", "metricIds": metric_ids,
         })
     for payment in payment_rows:
@@ -259,11 +269,16 @@ def export_incassi_selection_csv(rows: list[dict[str, Any]], selection: Any) -> 
         raise ValueError("Alcuni documenti non sono più disponibili. Aggiorna la ricerca e ripeti la selezione.")
     output = io.StringIO(newline="")
     writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_ALL)
-    writer.writerow(["Tipo", "Documento", "Cliente", "Stato", "Importo", "Data"])
+    headers = ["Tipo", "Documento", "Cliente", "Stato", "Importo", "Data"]
+    fields = ["kind", "label", "customer", "stateLabel", "amountDisplay", "dateLabel"]
+    if any(row.get('receivedDisplay') for row in rows if row['id'] in ids):
+        headers.extend(['Incassato', 'Residuo'])
+        fields.extend(['receivedDisplay', 'residualDisplay'])
+    writer.writerow(headers)
     for row in rows:
         if row["id"] not in ids:
             continue
-        values = [str(row.get(key) or "") for key in ("kind", "label", "customer", "stateLabel", "amountDisplay", "dateLabel")]
+        values = [str(row.get(key) or "") for key in fields]
         writer.writerow(["'" + value if value.startswith(("=", "+", "@", "-", "\t", "\r")) else value for value in values])
     return "\ufeff" + output.getvalue()
 
@@ -292,15 +307,17 @@ def build_react_incassi_pagamenti_payload(
     started = perf_counter()
     anno = date.today().year
     fatt_stats: dict[str, Any] = {}
+    financial_available = True
     parcelle: list[Any] = []
     try:
         fatturazione = get_fatturazione()
+        parcelle = list(fatturazione.tutte()) if callable(getattr(fatturazione, "tutte", None)) else []
         fatt_stats = fatturazione.statistiche(anno) if callable(getattr(fatturazione, "statistiche", None)) else {}
         crediti = fatturazione.crediti_aperti() if callable(getattr(fatturazione, "crediti_aperti", None)) else {}
         if crediti:
             fatt_stats = {**fatt_stats, "da_incassare": crediti.get("non_scaduto", 0), "scaduto": crediti.get("scaduto", 0)}
-        parcelle = list(fatturazione.tutte()) if callable(getattr(fatturazione, "tutte", None)) else []
     except Exception:
+        financial_available = False
         warnings.append({
             "code": "fatturazione_non_disponibile",
             "message": "Archivio fatturazione non disponibile in questo momento.",
@@ -347,11 +364,9 @@ def build_react_incassi_pagamenti_payload(
     records = payments + manual_invoices
     if selected_invoice_id:
         records.sort(key=lambda row: 0 if row.get("invoiceId") == selected_invoice_id else 1)
-    receipts = [
-        _receipt_record(parcella, clienti)
-        for parcella in parcelle
-        if _enum(getattr(parcella, "stato", "")) == "PAGATA"
-    ][:120]
+    from web.services.invoice_receipts_presenter import receipt_rows
+    receipt_history = receipt_rows(parcelle, clienti, _receipt_record)
+    receipts = receipt_history[:120]
     actions = _permissions(current_user)
 
     return {
@@ -360,14 +375,15 @@ def build_react_incassi_pagamenti_payload(
         "generated_at": _iso_now(),
         "contracts": _contracts(),
         "metrics": [
-            _metric("incassato", "Incassato anno", _money(fatt_stats.get("incassato", 0)), f"Anno {fatt_stats.get('anno', anno)}", "success"),
-            _metric("da_incassare", "Da incassare", _money(fatt_stats.get("da_incassare", 0)), "Parcelle emesse, non ancora scadute (tutti gli anni)", "warning"),
-            _metric("scaduto", "Scaduto", _money(fatt_stats.get("scaduto", 0)), "Parcelle scadute e non pagate (tutti gli anni)", "danger" if fatt_stats.get("scaduto", 0) else "neutral"),
+            _metric("incassato", "Incassato anno", _money(fatt_stats.get("incassato", 0)) if financial_available else "Da riscontrare", f"Anno {fatt_stats.get('anno', anno)}", "success"),
+            _metric("da_incassare", "Da incassare", _money(fatt_stats.get("da_incassare", 0)) if financial_available else "Da riscontrare", "Parcelle emesse, non ancora scadute (tutti gli anni)", "warning"),
+            _metric("scaduto", "Scaduto", _money(fatt_stats.get("scaduto", 0)) if financial_available else "Da riscontrare", "Parcelle scadute e non pagate (tutti gli anni)", "danger" if fatt_stats.get("scaduto", 0) else "neutral"),
             _metric("link_attesi", "Link attesi", pay_stats.get("attesi", 0), "Collegamenti di pagamento aperti", "primary"),
         ],
         "cardRecords": _card_records(parcelle, payment_rows, clienti, anno),
         "payments": records,
         "receipts": receipts,
+        "receiptsWindow": {"limit": 120, "hasMore": len(receipt_history) > 120},
         "providers": provider_items,
         "statuses": [
             {"value": "PAGATO", "label": "Pagato"},

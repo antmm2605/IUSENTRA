@@ -1,5 +1,8 @@
 {
   "schemaVersion": 1,
+  "approvedCssReasons": {
+    "frontend/src/components/InvoiceReceiptsPanel.css": "Pannello condiviso tra fatturazione, fascicolo e Prima nota: griglia responsive di saldi, campi e movimenti, con token del preset e controlli touch da 44px. Nessuna variante di pagina o nuovo tema."
+  },
   "policy": "IUSENTRA design system unico: il preset globale e i CSS esistenti sono governati da allowlist. Nuovi CSS locali, nuovi inline style o accenti grafici fuori preset devono essere approvati qui con motivazione.",
   "approvedPresetExceptions": [
     {
@@ -100,6 +103,7 @@
     "frontend/src/components/PreventiviPage.css",
     "frontend/src/components/PreventivoWizardPage.css",
     "frontend/src/components/PrimaNotaPage.css",
+    "frontend/src/components/InvoiceReceiptsPanel.css",
     "frontend/src/components/RecuperoCreditiPage.css",
     "frontend/src/components/PrivacyRegistroPage.css",
     "frontend/src/components/ProfiliPage.css",

@@ -101,6 +101,7 @@ def registra_bonifico_ricevuto(
     metodo_pagamento: str = METODO_BONIFICO,
 ) -> tuple[dict[str, Any], int]:
     from pct.fatturazione import StatoParcella, ParcellaConcurrentUpdate, parcella_revision
+    from pct.fatturazione_sql_commands import ParcellaPaymentRequiresReceipt
     from web.services.react_fascicoli_bridge import (
         _create_review_proforma_from_fascicolo_amount,
         _resolve_fascicolo,
@@ -212,6 +213,8 @@ def registra_bonifico_ricevuto(
             arguments = {"expected_revision": revision} if revision is not None else {}
             manager.cambia_stato(parcella_id, StatoParcella.PAGATA, data_pagamento=data_iso,
                                  metodo_pagamento=metodo, **arguments)
+        except ParcellaPaymentRequiresReceipt as exc:
+            return {"ok": False, "code": "receipt_required", "message": str(exc)}, 409
         except ParcellaConcurrentUpdate as exc:
             return {"ok": False, "conflict": True, "message": str(exc)}, 409
 

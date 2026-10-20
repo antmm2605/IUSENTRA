@@ -741,6 +741,11 @@ def _invoice_record(parcella: Any, clienti: dict[str, Any], fascicoli: dict[str,
         "pdfHref": f"/fatturazione/{pid}/pdf" if pid else "",
         "xmlHref": f"/fatturazione/{pid}/xml" if pid and not _is_proforma(parcella) else "",
     }
+    balance = getattr(parcella, '_incassi_projection', None)
+    if isinstance(balance, dict):
+        record.update(receiptStatus=balance['status'],
+            receivedDisplay='Da riscontrare' if balance['paid_cents'] is None else _money(balance['paid_cents'] / 100),
+            residualDisplay='Da riscontrare' if balance['residual_cents'] is None else _money(balance['residual_cents'] / 100))
     record.update(_sdi_status_payload(parcella))
     return record
 
@@ -1004,6 +1009,7 @@ def build_react_fatturazione_payload(
         anno = date.today().year
         warnings.append({"code": "anno_non_valido", "message": "Anno fatturazione fuori intervallo: uso l'anno corrente."})
     stats: dict[str, Any] = {}
+    financial_available = True
     parcelle: list[Any] = []
     next_number = f"{anno}/001"
     numbering: dict[str, Any] = {
@@ -1016,12 +1022,12 @@ def build_react_fatturazione_payload(
     }
     try:
         manager = get_fatturazione()
+        parcelle = list(manager.tutte()) if callable(getattr(manager, "tutte", None)) else []
         stats = manager.statistiche(anno) if callable(getattr(manager, "statistiche", None)) else {}
         crediti = manager.crediti_aperti() if callable(getattr(manager, "crediti_aperti", None)) else {}
         if crediti:
             # I crediti aperti non si azzerano col cambio d'anno: stessa misura di Panoramica e Incassi.
             stats = {**stats, "da_incassare": crediti.get("non_scaduto", 0), "scaduto": crediti.get("scaduto", 0)}
-        parcelle = list(manager.tutte()) if callable(getattr(manager, "tutte", None)) else []
         numbering_loader = getattr(manager, "carica_numerazione", None)
         if callable(numbering_loader):
             loaded_numbering = numbering_loader(anno)
@@ -1034,6 +1040,7 @@ def build_react_fatturazione_payload(
                 next_number = _text(next_builder(anno))
                 numbering["prossimoNumero"] = next_number
     except Exception as exc:
+        financial_available = False
         warnings.append({
             "code": "fatturazione_non_disponibile",
             "message": f"Archivio fatturazione non disponibile: {type(exc).__name__}.",
@@ -1067,7 +1074,8 @@ def build_react_fatturazione_payload(
         memberships = []
         if same_year and status not in {"BOZZA", "ANNULLATA"}:
             memberships.append("fatturato")
-        if same_year and status == "PAGATA":
+        from pct.parcella_incassi_views import invoice_cash_year
+        if invoice_cash_year(item, anno):
             memberships.append("incassato")
         if status == "EMESSA":
             memberships.append("da_incassare")
@@ -1119,10 +1127,10 @@ def build_react_fatturazione_payload(
         "actions": _actions_for(route, current_user),
         "warnings": warnings,
         "metrics": [
-            _metric("fatturato", "Fatturato anno", _money(stats.get("fatturato_lordo", 0)), f"Anno {stats.get('anno', anno)}", "primary"),
-            _metric("incassato", "Incassato", _money(stats.get("incassato", 0)), "Valori dal servizio fatturazione", "success"),
-            _metric("da_incassare", "Da incassare", _money(stats.get("da_incassare", 0)), "Parcelle emesse, non ancora scadute (tutti gli anni)", "warning"),
-            _metric("scaduto", "Scaduto", _money(stats.get("scaduto", 0)), "Parcelle scadute e non pagate (tutti gli anni)", "danger" if stats.get("scaduto", 0) else "neutral"),
+            _metric("fatturato", "Fatturato anno", _money(stats.get("fatturato_lordo", 0)) if financial_available else "Da riscontrare", f"Anno {stats.get('anno', anno)}", "primary"),
+            _metric("incassato", "Incassato", _money(stats.get("incassato", 0)) if financial_available else "Da riscontrare", "Valori dal servizio fatturazione", "success"),
+            _metric("da_incassare", "Da incassare", _money(stats.get("da_incassare", 0)) if financial_available else "Da riscontrare", "Parcelle emesse, non ancora scadute (tutti gli anni)", "warning"),
+            _metric("scaduto", "Scaduto", _money(stats.get("scaduto", 0)) if financial_available else "Da riscontrare", "Parcelle scadute e non pagate (tutti gli anni)", "danger" if stats.get("scaduto", 0) else "neutral"),
         ],
         "sections": [
             _section("stati", "Stato parcelle", "distribution", state_items, "Nessuna parcella nell'archivio."),

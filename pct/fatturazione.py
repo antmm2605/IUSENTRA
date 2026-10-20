@@ -332,6 +332,96 @@ class Parcella:
 
 # ================================================================ Gestore
 
+def _write_parcella_row(conn, item: Parcella, *, expected_revision: str | None = None, postgres: bool = False) -> None:
+    """Primitiva nativa senza commit, per scritture atomiche coordinate.
+
+    Il chiamante mantiene la transazione e conserva revisione, identità e audit.
+    Il percorso ordinario passa dalla medesima primitiva tramite salva_tabella.
+    """
+    payload = item.to_dict()
+    expected_json = None
+    if expected_revision is not None:
+        # SQLite holds the write transaction; PostgreSQL needs a row
+        # lock so deletion between the check and upsert cannot recreate it.
+        lock = ' FOR UPDATE' if postgres else ''
+        row = conn.execute('SELECT dati_json FROM parcelle WHERE id=?' + lock, (item.id,)).fetchone()
+        if row is None:
+            raise ParcellaConcurrentUpdate('La bozza non è più disponibile.')
+        expected_json = row['dati_json']
+        persisted = Parcella.from_dict(json.loads(expected_json))
+        if parcella_revision(persisted) != expected_revision:
+            raise ParcellaConcurrentUpdate('Il documento è stato aggiornato da un’altra finestra o utente. La tua bozza è conservata.')
+    result = conn.execute(
+        """
+        INSERT INTO parcelle
+        (id, numero, id_cliente, id_fascicolo, data_emissione, data_scadenza,
+         stato, totale, imponibile, origine, id_preventivo, id_pratica,
+         area_pratica, procedura_operativa_codice, procedura_operativa_nome,
+         canale_operativo, registro_operativo, tipo_compenso,
+         tipo_procedimento, valore_controversia, complessita,
+         data_pagamento, metodo_pagamento, creato_da, creato_il, dati_json)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(id) DO UPDATE SET
+            numero=excluded.numero,
+            id_cliente=excluded.id_cliente,
+            id_fascicolo=excluded.id_fascicolo,
+            data_emissione=excluded.data_emissione,
+            data_scadenza=excluded.data_scadenza,
+            stato=excluded.stato,
+            totale=excluded.totale,
+            imponibile=excluded.imponibile,
+            origine=excluded.origine,
+            id_preventivo=excluded.id_preventivo,
+            id_pratica=excluded.id_pratica,
+            area_pratica=excluded.area_pratica,
+            procedura_operativa_codice=excluded.procedura_operativa_codice,
+            procedura_operativa_nome=excluded.procedura_operativa_nome,
+            canale_operativo=excluded.canale_operativo,
+            registro_operativo=excluded.registro_operativo,
+            tipo_compenso=excluded.tipo_compenso,
+            tipo_procedimento=excluded.tipo_procedimento,
+            valore_controversia=excluded.valore_controversia,
+            complessita=excluded.complessita,
+            data_pagamento=excluded.data_pagamento,
+            metodo_pagamento=excluded.metodo_pagamento,
+            creato_da=excluded.creato_da,
+            creato_il=excluded.creato_il,
+            dati_json=excluded.dati_json
+        """ + (' WHERE parcelle.dati_json=? RETURNING id' if expected_revision is not None else ''),
+        (
+            item.id,
+            item.numero,
+            item.id_cliente,
+            item.id_fascicolo or None,
+            item.data_emissione,
+            item.data_scadenza or "",
+            item.stato.value,
+            float(item.totale or 0.0),
+            float(item.imponibile or 0.0),
+            item.origine,
+            item.id_preventivo or "",
+            item.id_pratica,
+            item.area_pratica,
+            item.procedura_operativa_codice,
+            item.procedura_operativa_nome,
+            item.canale_operativo,
+            item.registro_operativo,
+            item.tipo_compenso,
+            item.tipo_procedimento,
+            float(item.valore_controversia or 0.0),
+            item.complessita,
+            item.data_pagamento or "",
+            item.metodo_pagamento or "",
+            item.creato_da,
+            item.creato_il,
+            json.dumps(payload, ensure_ascii=False),
+        ) + ((expected_json,) if expected_revision is not None else ()),
+    )
+    if expected_revision is not None and result.fetchone() is None:
+        raise ParcellaConcurrentUpdate('Il documento è cambiato durante il salvataggio. La tua bozza è conservata.')
+
+
+
 class GestioneFatturazione:
     """Gestisce creazione, aggiornamento e ricerca delle parcelle."""
 
@@ -431,87 +521,8 @@ class GestioneFatturazione:
             return
 
         def _insert(conn, item: Parcella) -> None:
-            payload = item.to_dict()
-            expected_json = None
-            if expected_revision is not None:
-                # SQLite holds the write transaction; PostgreSQL needs a row
-                # lock so deletion between the check and upsert cannot recreate it.
-                lock = ' FOR UPDATE' if getattr(self._studio_db, 'backend_kind', '') == 'postgresql' else ''
-                row = conn.execute('SELECT dati_json FROM parcelle WHERE id=?' + lock, (item.id,)).fetchone()
-                if row is None:
-                    raise ParcellaConcurrentUpdate('La bozza non è più disponibile.')
-                expected_json = row['dati_json']
-                persisted = Parcella.from_dict(json.loads(expected_json))
-                if parcella_revision(persisted) != expected_revision:
-                    raise ParcellaConcurrentUpdate('Il documento è stato aggiornato da un’altra finestra o utente. La tua bozza è conservata.')
-            result = conn.execute(
-                """
-                INSERT INTO parcelle
-                (id, numero, id_cliente, id_fascicolo, data_emissione, data_scadenza,
-                 stato, totale, imponibile, origine, id_preventivo, id_pratica,
-                 area_pratica, procedura_operativa_codice, procedura_operativa_nome,
-                 canale_operativo, registro_operativo, tipo_compenso,
-                 tipo_procedimento, valore_controversia, complessita,
-                 data_pagamento, metodo_pagamento, creato_da, creato_il, dati_json)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                ON CONFLICT(id) DO UPDATE SET
-                    numero=excluded.numero,
-                    id_cliente=excluded.id_cliente,
-                    id_fascicolo=excluded.id_fascicolo,
-                    data_emissione=excluded.data_emissione,
-                    data_scadenza=excluded.data_scadenza,
-                    stato=excluded.stato,
-                    totale=excluded.totale,
-                    imponibile=excluded.imponibile,
-                    origine=excluded.origine,
-                    id_preventivo=excluded.id_preventivo,
-                    id_pratica=excluded.id_pratica,
-                    area_pratica=excluded.area_pratica,
-                    procedura_operativa_codice=excluded.procedura_operativa_codice,
-                    procedura_operativa_nome=excluded.procedura_operativa_nome,
-                    canale_operativo=excluded.canale_operativo,
-                    registro_operativo=excluded.registro_operativo,
-                    tipo_compenso=excluded.tipo_compenso,
-                    tipo_procedimento=excluded.tipo_procedimento,
-                    valore_controversia=excluded.valore_controversia,
-                    complessita=excluded.complessita,
-                    data_pagamento=excluded.data_pagamento,
-                    metodo_pagamento=excluded.metodo_pagamento,
-                    creato_da=excluded.creato_da,
-                    creato_il=excluded.creato_il,
-                    dati_json=excluded.dati_json
-                """ + (' WHERE parcelle.dati_json=? RETURNING id' if expected_revision is not None else ''),
-                (
-                    item.id,
-                    item.numero,
-                    item.id_cliente,
-                    item.id_fascicolo or None,
-                    item.data_emissione,
-                    item.data_scadenza or "",
-                    item.stato.value,
-                    float(item.totale or 0.0),
-                    float(item.imponibile or 0.0),
-                    item.origine,
-                    item.id_preventivo or "",
-                    item.id_pratica,
-                    item.area_pratica,
-                    item.procedura_operativa_codice,
-                    item.procedura_operativa_nome,
-                    item.canale_operativo,
-                    item.registro_operativo,
-                    item.tipo_compenso,
-                    item.tipo_procedimento,
-                    float(item.valore_controversia or 0.0),
-                    item.complessita,
-                    item.data_pagamento or "",
-                    item.metodo_pagamento or "",
-                    item.creato_da,
-                    item.creato_il,
-                    json.dumps(payload, ensure_ascii=False),
-                ) + ((expected_json,) if expected_revision is not None else ()),
-            )
-            if expected_revision is not None and result.fetchone() is None:
-                raise ParcellaConcurrentUpdate('Il documento è cambiato durante il salvataggio. La tua bozza è conservata.')
+            _write_parcella_row(conn, item, expected_revision=expected_revision,
+                                postgres=getattr(self._studio_db, 'backend_kind', '') == 'postgresql')
 
         self._studio_db.salva_tabella("parcelle", [parcella], _insert, delete_all=False)
 
@@ -808,6 +819,10 @@ class GestioneFatturazione:
         return [p for p in self.tutte() if p.id_fascicolo == id_fascicolo]
 
     def aggiorna(self, id_parcella: str, *, expected_revision: str | None = None, **kwargs) -> Parcella:
+        if self._studio_db is not None and kwargs.get('stato') in {StatoParcella.PAGATA, StatoParcella.BOZZA}:
+            from pct.fatturazione_sql_commands import guard_managed_payment
+            guard_managed_payment(self._studio_db, id_parcella, target=kwargs['stato'])
+            expected_revision = expected_revision or parcella_revision(self._parcelle[id_parcella])
         p = self._parcelle[id_parcella]
         if expected_revision is not None:
             if self._studio_db is None:
@@ -824,6 +839,10 @@ class GestioneFatturazione:
                      data_pagamento: Optional[str] = None,
                      metodo_pagamento: Optional[str] = None,
                      *, expected_revision: str | None = None):
+        if self._studio_db is not None and stato in {StatoParcella.PAGATA, StatoParcella.BOZZA}:
+            from pct.fatturazione_sql_commands import guard_managed_payment
+            guard_managed_payment(self._studio_db, id_parcella, target=stato)
+            expected_revision = expected_revision or parcella_revision(self._parcelle[id_parcella])
         p = self._parcelle[id_parcella]
         if expected_revision is not None:
             p = Parcella.from_dict(p.to_dict())
@@ -838,11 +857,18 @@ class GestioneFatturazione:
 
     def elimina(self, id_parcella: str):
         if id_parcella in self._parcelle:
+            if self._studio_db is not None:
+                from pct.fatturazione_sql_commands import delete_draft
+                delete_draft(self._studio_db, id_parcella, parcella_revision(self._parcelle[id_parcella]))
+                del self._parcelle[id_parcella]
+                return
             del self._parcelle[id_parcella]
             self._salva()
 
     def saldo_cliente(self, id_cliente: str) -> Dict[str, float]:
+        from pct.parcella_incassi_views import balances_for_invoices, balance_amount
         parcelle = self.per_cliente(id_cliente)
+        balances = balances_for_invoices(self._studio_db, {p.id: p for p in parcelle})
         fatturato = round(
             sum(
                 parcella.totale
@@ -852,12 +878,12 @@ class GestioneFatturazione:
             2,
         )
         incassato = round(
-            sum(parcella.totale for parcella in parcelle if parcella.stato == StatoParcella.PAGATA),
+            sum(balance_amount(p, balances, 'paid_cents', p.totale if p.stato == StatoParcella.PAGATA else 0) for p in parcelle),
             2,
         )
         insoluto = round(
             sum(
-                parcella.totale
+                balance_amount(parcella, balances, 'residual_cents', parcella.totale)
                 for parcella in parcelle
                 if parcella.stato in {StatoParcella.EMESSA, StatoParcella.SCADUTA}
             ),
@@ -872,6 +898,10 @@ class GestioneFatturazione:
 
     # ---------------------------------------------------------------- Statistiche
 
+    def incassi_periodo(self, dal: str, al: str) -> Dict[str, Any]:
+        from pct.parcella_incassi_period import period_totals
+        return period_totals(self._studio_db, self._parcelle, dal, al)
+
     def crediti_aperti(self) -> Dict[str, Any]:
         """Le parcelle emesse e non ancora pagate, di qualsiasi anno: l'unico «da incassare».
 
@@ -879,18 +909,23 @@ class GestioneFatturazione:
         non sono più dovute. Una parcella del 2025 non pagata resta da incassare
         anche nel 2026: il credito non si azzera con il cambio d'anno.
         """
+        from pct.parcella_incassi_views import balances_for_invoices, balance_amount
         in_scadenza = [p for p in self._parcelle.values() if p.stato == StatoParcella.EMESSA]
         scadute = [p for p in self._parcelle.values() if p.stato == StatoParcella.SCADUTA]
+        balances = balances_for_invoices(self._studio_db, {p.id: p for p in in_scadenza + scadute})
+        def residual(p):
+            return balance_amount(p, balances, 'residual_cents', p.netto_a_pagare)
         return {
-            "importo": round(sum(p.netto_a_pagare for p in in_scadenza + scadute), 2),
+            "importo": round(sum(residual(p) for p in in_scadenza + scadute), 2),
             "parcelle": len(in_scadenza) + len(scadute),
-            "non_scaduto": round(sum(p.netto_a_pagare for p in in_scadenza), 2),
+            "non_scaduto": round(sum(residual(p) for p in in_scadenza), 2),
             "parcelle_non_scadute": len(in_scadenza),
-            "scaduto": round(sum(p.netto_a_pagare for p in scadute), 2),
+            "scaduto": round(sum(residual(p) for p in scadute), 2),
             "parcelle_scadute": len(scadute),
         }
 
     def statistiche(self, anno: Optional[int] = None) -> Dict[str, Any]:
+        from pct.parcella_incassi_views import balances_for_invoices, balance_amount, receipts_in_period
         anno = anno or date.today().year
         parcelle_anno = [p for p in self._parcelle.values()
                          if p.data_emissione.startswith(str(anno))]
@@ -898,6 +933,8 @@ class GestioneFatturazione:
         pagate   = [p for p in emesse if p.stato == StatoParcella.PAGATA]
         scadute  = [p for p in emesse if p.stato == StatoParcella.SCADUTA]
         in_attesa = [p for p in emesse if p.stato == StatoParcella.EMESSA]
+        balances = balances_for_invoices(self._studio_db, self._parcelle)
+        received = receipts_in_period(self._parcelle, balances, f'{anno:04d}-01-01', f'{anno + 1:04d}-01-01')
         return {
             "anno":              anno,
             "totale_emesse":     len(emesse),
@@ -905,17 +942,25 @@ class GestioneFatturazione:
             "totale_scadute":    len(scadute),
             "totale_in_attesa":  len(in_attesa),
             "fatturato_lordo":   round(sum(p.totale for p in emesse), 2),
-            "incassato":         round(sum(p.totale for p in pagate), 2),
-            "da_incassare":      round(sum(p.totale for p in in_attesa), 2),
-            "scaduto":           round(sum(p.totale for p in scadute), 2),
+            "incassato":         received['importo'],
+            "da_incassare":      round(sum(balance_amount(p, balances, 'residual_cents', p.totale) for p in in_attesa), 2),
+            "scaduto":           round(sum(balance_amount(p, balances, 'residual_cents', p.totale) for p in scadute), 2),
         }
 
     def aggiorna_scadute(self):
         """Marca come SCADUTA le parcelle EMESSE con data_scadenza passata."""
         oggi = date.today().isoformat()
         modificato = False
-        for p in self._parcelle.values():
+        for cached in list(self._parcelle.values()):
+            p = cached
             if p.stato == StatoParcella.EMESSA and p.data_scadenza and p.data_scadenza < oggi:
+                if self._studio_db is not None:
+                    revision = parcella_revision(p)
+                    p = Parcella.from_dict(p.to_dict())
+                    p.stato = StatoParcella.SCADUTA
+                    self._salva_parcella(p, expected_revision=revision)
+                    self._parcelle[p.id] = p
+                    continue
                 p.stato = StatoParcella.SCADUTA
                 modificato = True
         if modificato:

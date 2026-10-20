@@ -63,6 +63,12 @@ def build_react_prima_nota_payload(
     registro = get_prima_nota()
     movimenti = registro.registro(dal=dal, al=al, tipo=tipo)
     saldi = registro.saldi(dal=dal, al=al)
+    linked = frozenset()
+    repository = getattr(registro, '_repository', None)
+    if repository is not None:
+        from pct.parcella_incassi_repository import verified_installment_keys
+        linked = verified_installment_keys(repository.db, repository.tenant,
+            {movement.id: movement.to_dict() for movement in movimenti})
     return {
         "source": "repository_reali",
         "writeProtocol": registro.write_protocol,
@@ -87,7 +93,7 @@ def build_react_prima_nota_payload(
                 for categoria, importo in sorted(saldi["per_categoria"].items(), key=lambda kv: -kv[1])
             ],
         },
-        "movimenti": [_movimento_payload(m) for m in reversed(movimenti)],
+        "movimenti": [{**_movimento_payload(m), "incassoCollegato": m.id in linked} for m in reversed(movimenti)],
         "options": {
             "categorieIncasso": [
                 {"value": c, "label": _CATEGORIA_LABEL.get(c, c)} for c in CATEGORIE["INCASSO"]

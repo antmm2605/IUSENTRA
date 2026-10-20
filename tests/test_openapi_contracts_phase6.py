@@ -29,6 +29,22 @@ def test_api_contracts_generati_e_allineati():
     assert result.returncode == 0, result.stdout + result.stderr
 
 
+def test_invoice_receipts_contract_requires_exact_command_and_session():
+    routes = _openapi()['paths']['/api/fatturazione/{invoice_id}/incassi']
+    for method in ('get', 'post'):
+        assert routes[method]['security'] == [{'cookieSession': []}]
+        assert '503' in routes[method]['responses']
+        summary = routes[method]['responses']['200']['content']['application/json']['schema']['properties']['summary']
+        assert summary['properties']['paid_cents']['nullable'] is True
+        assert 'REVIEW' in summary['properties']['status']['enum']
+    variants = routes['post']['requestBody']['content']['application/json']['schema']['oneOf']
+    assert len(variants) == 2
+    assert all(item['additionalProperties'] is False for item in variants)
+    assert all({'command_key', 'scope', 'expected_revision'} <= set(item['required']) for item in variants)
+    receipt = next(item for item in variants if item['properties']['operation']['enum'] == ['receipt'])
+    assert receipt['properties']['amount_cents']['minimum'] == 1
+
+
 def test_openapi_validazione_strutturale():
     result = subprocess.run(
         [sys.executable, "scripts/validate_openapi.py", "docs/openapi.yaml"],

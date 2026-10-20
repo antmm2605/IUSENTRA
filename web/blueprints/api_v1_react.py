@@ -1921,10 +1921,16 @@ def _count_fascicoli_attivi() -> int:
     return len(_safe("fascicoli", lambda: gestore_panoramica(get_fascicoli).tutti(archiviati=False), []))
 
 
-def _parcelle_da_incassare() -> float:
+def _crediti_panoramica():
+    return _safe("fatturazione", lambda: gestore_panoramica(get_fatturazione).crediti_aperti(), None)
+
+
+def _parcelle_da_incassare() -> float | None:
     # Stessa definizione di Fatturazione, Incassi e Statistiche: parcelle emesse
     # e non pagate di qualsiasi anno (le bozze non sono crediti).
-    crediti = _safe("fatturazione", lambda: gestore_panoramica(get_fatturazione).crediti_aperti(), {})
+    crediti = gestore_panoramica(_crediti_panoramica)
+    if crediti is None:
+        return None
     return round(float((crediti or {}).get("importo") or 0.0), 2)
 
 
@@ -2336,7 +2342,8 @@ def _economic_rows() -> list[dict[str, Any]]:
     oggi = oggi_rome()
     anno = oggi.year
     month_prefix = f"{anno:04d}-{oggi.month:02d}"
-    crediti = _safe("fatturazione", lambda: gestore_panoramica(get_fatturazione).crediti_aperti(), {}) or {}
+    credit_snapshot = gestore_panoramica(_crediti_panoramica)
+    crediti = credit_snapshot or {}
     parcelle = _safe("fatturazione", lambda: gestore_panoramica(get_fatturazione).tutte(), [])
     month_parcelle = [
         item
@@ -2344,12 +2351,10 @@ def _economic_rows() -> list[dict[str, Any]]:
         if str(getattr(item, "data_emissione", "") or "").startswith(month_prefix)
         and _enum_value(getattr(item, "stato", "")) not in {StatoParcella.BOZZA.value, StatoParcella.ANNULLATA.value}
     ]
-    month_paid = [
-        item
-        for item in parcelle
-        if str(getattr(item, "data_pagamento", "") or "").startswith(month_prefix)
-        and _enum_value(getattr(item, "stato", "")) == StatoParcella.PAGATA.value
-    ]
+    month_start = oggi.replace(day=1)
+    month_end = (month_start + timedelta(days=32)).replace(day=1)
+    month_receipts = _safe("fatturazione", lambda: gestore_panoramica(get_fatturazione).incassi_periodo(
+        month_start.isoformat(), month_end.isoformat()), None)
     timesheet_entries = _safe("timesheet", lambda: gestore_panoramica(get_timesheet).tutte(), [])
     month_time = [
         item
@@ -2366,13 +2371,13 @@ def _economic_rows() -> list[dict[str, Any]]:
         },
         {
             "label": "Incassi mese",
-            "value": _euro(sum(float(getattr(item, "totale", 0.0) or 0.0) for item in month_paid)),
-            "note": f"{len(month_paid)} pagamenti registrati",
+            "value": _euro(month_receipts['importo']) if month_receipts is not None else "Da riscontrare",
+            "note": f"{month_receipts['movimenti']} movimenti registrati" if month_receipts is not None else "Verifica gli incassi nel registro",
         },
         {
             "label": "Da incassare",
-            "value": _euro(float(crediti.get("importo", 0.0) or 0.0)),
-            "note": f"{int(crediti.get('parcelle', 0) or 0)} parcelle aperte",
+            "value": _euro(float(crediti.get("importo", 0.0) or 0.0)) if credit_snapshot is not None else "Da riscontrare",
+            "note": f"{int(crediti.get('parcelle', 0) or 0)} parcelle aperte" if credit_snapshot is not None else "Saldo non confermato",
         },
         {"label": "Ore lavorate", "value": f"{str(hours).replace('.', ',')} h", "note": f"{len(month_time)} voci timesheet"},
     ]
@@ -10334,11 +10339,12 @@ def _collect_dashboard_payload() -> dict[str, Any]:
         high_priority_matters=matter_rows,
     )
 
+    unpaid_amount = misura_sorgente("economico", _parcelle_da_incassare)
     stats = {
         "todayAppointments": misura_sorgente("agenda", _count_agenda_oggi),
         "urgentDeadlines": int(summary.get("scadenze_urgenti") or 0),
         "openMatters": misura_sorgente("fascicoli", _count_fascicoli_attivi),
-        "unpaidAmount": _euro(misura_sorgente("economico", _parcelle_da_incassare)),
+        "unpaidAmount": _euro(unpaid_amount) if unpaid_amount is not None else "Da riscontrare",
         "documentsToReview": int(summary.get("notifiche_scadenze") or 0),
         "urgentActions": urgent_actions,
         "pecUnread": pec_unread,

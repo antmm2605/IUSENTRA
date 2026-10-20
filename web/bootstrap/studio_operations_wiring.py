@@ -19,6 +19,7 @@ from web.bootstrap.ctu_compensi_routes import register_ctu_compensi_routes
 from web.bootstrap.ctu_routes import register_ctu_routes
 from web.bootstrap.preparazione_udienza_routes import register_preparazione_udienza_routes
 from web.bootstrap.prima_nota_routes import register_prima_nota_routes
+from web.bootstrap.invoice_receipts_routes import register_invoice_receipts_routes
 from web.bootstrap.recupero_crediti_routes import register_recupero_crediti_routes
 
 
@@ -27,6 +28,7 @@ def register_studio_operations(app: Flask, core: dict[str, Any]) -> None:
     register_ctu_compensi_routes(app, core)
     register_conservazione_routes(app, core)
     register_prima_nota_routes(app, core)
+    register_invoice_receipts_routes(app)
     register_contabilita_routes(app, core)
     register_antiriciclaggio_cliente_routes(app, core)
     register_recupero_crediti_routes(app, core)

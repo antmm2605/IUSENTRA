@@ -150,3 +150,36 @@ def test_sqlite_nativo_seleziona_solo_marker_concordante(tmp_path, sha):
             assert ledger._repository.actor_key == 'attore-test'
             assert ledger._repository.revision == 1
         assert source.read_bytes() == b'fonte-storica-non-rileggere'
+
+
+def test_point_repository_reuses_fence_and_owner_without_loading_the_register(tmp_path, monkeypatch):
+    from web.services.prima_nota_runtime import open_prima_nota_repository
+    from pct.prima_nota_transition import prima_nota_source_lock, prepare_transition_locked, commit_transition_locked
+    source = tmp_path / 'source.json'
+    source.write_bytes(b'Archivio storico non rileggere')
+    path = tmp_path / 'studio.db'
+    with sqlite3.connect(path) as conn:
+        conn.execute('CREATE TABLE settings_config (key TEXT)')
+        conn.execute("INSERT INTO settings_config VALUES ('profilo-controllato')")
+        conn.commit()
+        db = SimpleNamespace(conn=conn)
+        repo = PrimaNotaRepository(db, 'studio-test')
+        repo.ensure_schema()
+        repo.initialize({}, source_sha256='a' * 64, backup_reference='backup-controllato')
+        with prima_nota_source_lock(source):
+            prepare_transition_locked(source, tenant='studio-test', source_sha256='a' * 64)
+            commit_transition_locked(source, tenant='studio-test', source_sha256='a' * 64)
+        monkeypatch.setattr(PrimaNotaRepository, 'load', lambda self: pytest.fail('Lettura globale non richiesta'))
+        trace = []
+        conn.set_trace_callback(trace.append)
+        result = open_prima_nota_repository(source, anchor=tmp_path / 'clienti' / 'anagrafica.json',
+            tenant_key='studio-test', actor_key='operator',
+            get_profile=lambda _: SimpleNamespace(uses_sqlite=True, studio_db_path=str(path), tenant_slug='studio-test'),
+            get_database=lambda _: db)
+        assert result.db is db and result.tenant == 'studio-test' and result.actor_key == 'operator'
+        assert result.revision is None
+        assert not any('prima_nota_records' in statement for statement in trace)
+        assert source.read_bytes() == b'Archivio storico non rileggere'
+        with pytest.raises(RuntimeError, match='studio discordante'):
+            open_prima_nota_repository(source, anchor='clienti.json', tenant_key='unrelated', actor_key='operator',
+                get_profile=lambda _: pytest.fail('Profilo estraneo aperto'), get_database=lambda _: pytest.fail('Database estraneo aperto'))

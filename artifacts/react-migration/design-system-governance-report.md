@@ -2,7 +2,7 @@
 
 Fase 4 - Design system unico.
 
-- CSS approvati e governati: 136
+- CSS approvati e governati: 137
 - Eccezioni preset approvate: /sito-studio/builder, /fascicoli/<id>
 - Inline style autorizzati: 35
 - File con backdrop-filter autorizzato: 8

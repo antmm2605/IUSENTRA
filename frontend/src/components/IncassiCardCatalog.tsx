@@ -5,6 +5,13 @@ import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
 import { csrfToken } from '../formSubmit'
 
+function amountForMetric(row: IncassiCardRecord, metric: string): string {
+  if (metric === 'incassato' && row.annualReceivedDisplay) return row.annualReceivedDisplay
+  if (metric === 'incassato' && row.receivedDisplay) return row.receivedDisplay
+  if (['crediti', 'da_incassare', 'scaduto'].includes(metric) && row.residualDisplay) return row.residualDisplay
+  return row.amountDisplay
+}
+
 export function IncassiCardCatalog({ rows, metric, title, onClear, unavailable, onFilterChange }: { rows: IncassiCardRecord[]; metric: string; title: string; onClear: () => void; unavailable: boolean; onFilterChange: (ids: string[]) => void }) {
   const [search, setSearch] = useState('')
   const [state, setState] = useState('')
@@ -56,7 +63,7 @@ export function IncassiCardCatalog({ rows, metric, title, onClear, unavailable, 
     <div className="iu-pay-catalog__selection"><label><input type="checkbox" checked={allSelected} disabled={!matching.length || unavailable} onChange={selectAll}/>{matching.length === 1 ? 'Seleziona il risultato filtrato' : `Seleziona tutti i ${matching.length} risultati filtrati`}</label><span>{selected.length === 1 ? '1 selezionato' : `${selected.length} selezionati`}</span><Button tone="neutral" disabled={!selection.size} onClick={() => setOnlySelected((value) => !value)}>{onlySelected ? 'Mostra tutti' : 'Mostra selezionati'}</Button><Button tone="neutral" disabled={!selection.size || unavailable} onClick={downloadSelection}><Download size={15}/>Esporta selezionati</Button></div>
     {selection.size ? <div className="iu-pay-catalog__selection"><p>La selezione resta conservata quando cambi filtro. L’esportazione comprende tutti i documenti selezionati.</p><Button tone="neutral" onClick={() => { setSelection(new Set()); setOnlySelected(false) }}>Azzera selezione</Button></div> : null}
     {unavailable ? <p role="alert">Una parte degli archivi non è disponibile. I conteggi e la ricerca devono essere verificati prima di operare.</p> : null}
-    {!filtered.length ? <p role="status">{unavailable ? 'Elenco non verificabile in questo momento.' : 'Nessun documento corrisponde ai filtri selezionati.'}</p> : <div className="iu-pay-catalog__rows">{visible.map((row) => <article key={row.id}><input type="checkbox" aria-label={`Seleziona ${row.label}, ${row.customer}`} checked={selection.has(row.id)} onChange={(event) => setSelection((current) => { const next = new Set(current); if (event.target.checked) next.add(row.id); else next.delete(row.id); return next })}/><div data-allow-technical-text="true"><strong>{row.label}</strong><span>{row.customer}</span><small>{row.kind} · {row.dateLabel || 'Data non presente'}</small></div><Badge tone={row.stateTone}>{row.stateLabel}</Badge><strong>{row.amountDisplay}</strong>{row.href ? <ButtonLink href={row.href} tone="neutral">Apri parcella</ButtonLink> : <small>Parcella non collegata</small>}</article>)}</div>}
+    {!filtered.length ? <p role="status">{unavailable ? 'Elenco non verificabile in questo momento.' : 'Nessun documento corrisponde ai filtri selezionati.'}</p> : <div className="iu-pay-catalog__rows">{visible.map((row) => <article key={row.id}><input type="checkbox" aria-label={`Seleziona ${row.label}, ${row.customer}`} checked={selection.has(row.id)} onChange={(event) => setSelection((current) => { const next = new Set(current); if (event.target.checked) next.add(row.id); else next.delete(row.id); return next })}/><div data-allow-technical-text="true"><strong>{row.label}</strong><span>{row.customer}</span><small>{row.kind} · {row.dateLabel || 'Data non presente'}</small></div><Badge tone={row.stateTone}>{row.stateLabel}</Badge><strong>{amountForMetric(row, metric)}</strong><small>{row.receivedDisplay ? <>Incassato: {row.receivedDisplay} · Residuo: {row.residualDisplay}</> : null}</small>{row.href ? <ButtonLink href={row.href} tone="neutral">Apri parcella</ButtonLink> : <small>Parcella non collegata</small>}</article>)}</div>}
     <footer><span>{filtered.length} {filtered.length === 1 ? 'risultato' : 'risultati'} · Pagina {currentPage} di {pages}</span><Button tone="neutral" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>Precedente</Button><Button tone="neutral" disabled={currentPage >= pages} onClick={() => setPage(currentPage + 1)}>Successiva</Button></footer>
   </section>
 }

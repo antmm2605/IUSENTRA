@@ -1,6 +1,6 @@
 import { beginActivity } from '../ui/activity'
 import { useBusyActivity } from '../ui/useBusyActivity'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { mergeRegistryRefresh } from '../features/anagrafiche/mergeRegistryRefresh'
 import type { FormEvent } from 'react'
@@ -73,6 +73,8 @@ import { Panel } from '../ui/Panel'
 import { formatEuroInput, parseItalianAmount } from '../formatting'
 import './FatturazionePage.css'
 
+const InvoiceReceiptsPanel = lazy(() => import('./InvoiceReceiptsPanel'))
+
 type VoiceRow = FatturazioneVoiceDefault & {
   rowId: string
 }
@@ -95,7 +97,7 @@ type SaveStatus = 'idle' | 'saving' | 'success' | 'validation' | 'permission' | 
 type BankDetailsStatus = 'idle' | 'saving' | 'saved' | 'error'
 type PaymentFilter = 'all' | 'bonifico' | 'senza_bonifico'
 type IssueFilter = 'all' | 'emessa' | 'da_emettere'
-type DetailTab = 'dettaglio' | 'pdf' | 'xml' | 'commercialista'
+type DetailTab = 'dettaglio' | 'pdf' | 'xml' | 'commercialista' | 'incassi'
 type ActionNotice = { tone: 'success' | 'warning' | 'danger' | 'info'; text: string } | null
 const LOCAL_SECRET_FIELD = ['p', 'a', 's', 's', 'w', 'o', 'r', 'd'].join('')
 const SECRET_INPUT_TYPE = LOCAL_SECRET_FIELD
@@ -568,6 +570,7 @@ function InvoiceRow({
       </div>
       <div className="iu-fatt-record__amount">
         <strong>{record.amountDisplay || 'Importo non indicato'}</strong>
+        {record.receiptStatus ? <small>Incassato: {record.receivedDisplay} · Residuo: {record.residualDisplay}</small> : null}
         <Badge tone={record.stateTone}>{record.stateLabel}</Badge>
         {!record.isProforma && record.sdiStateLabel ? <Badge tone={record.sdiStateTone}>{record.sdiStateLabel}</Badge> : null}
         {!record.isProforma && record.sdiIdentifier ? <small>SdI {record.sdiIdentifier}</small> : null}
@@ -596,7 +599,7 @@ function InvoiceRow({
         {data.permissions.canMarkPaid && record.state !== 'PAGATA' ? (
           <Button type="button" tone="success" disabled={savingId === record.id || record.state === 'ANNULLATA'} title={record.state === 'ANNULLATA' ? 'Il documento è annullato: verifica o ripristina esplicitamente lo stato prima di registrare un incasso.' : undefined} onClick={() => onPaid(record)}>
             <CheckCircle2 size={15} />
-            {record.isProforma ? 'Registra bonifico' : 'Segna pagata'}
+            {record.isProforma ? 'Registra bonifico' : record.state === 'BOZZA' ? 'Segna pagata' : 'Registra incasso'}
           </Button>
         ) : null}
         {data.permissions.canCancel && record.state !== 'ANNULLATA' ? (
@@ -2271,6 +2274,7 @@ function ArchiveDetailPanel({
           {[
             ['dettaglio', editable ? `Modifica ${detail.documentKindLabel.toLowerCase()}` : 'Dettaglio'],
             ['pdf', 'Anteprima PDF'],
+            ...(detail.isProforma ? [] : [['incassi', 'Incassi']]),
             ...(detail.isProforma ? [] : [['xml', 'XML e SdI']]),
             ['commercialista', 'Commercialista'],
           ].map(([id, label]) => (
@@ -2436,6 +2440,9 @@ function ArchiveDetailPanel({
             </section>
           ) : null}
 
+          {activeTab === 'incassi' && !detail.isProforma ? <Suspense fallback={<LoadingState title="Caricamento incassi" message="Apertura dei movimenti del documento." />}>
+            <InvoiceReceiptsPanel key={detail.id} invoiceId={detail.id} onConfirmed={onReloadDetail} />
+          </Suspense> : null}
           {activeTab === 'pdf' ? (
             <section className="iu-fatt-pdf-panel" aria-label="Documento PDF e comandi di lettura">
               <iframe title={`Anteprima PDF ${detail.number || detail.id}`} src={`${detail.pdfHref}?viewer=mobile${pdfRevision ? `&v=${pdfRevision}` : ''}`} />
@@ -2866,6 +2873,7 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
   }, [autoOpenedId, data.records, requestedDetailId])
 
   async function updateStatus(record: FatturazioneRecord, stato: string) {
+    if (stato === 'PAGATA' && !record.isProforma && record.state !== 'BOZZA') { openDetailTab(record, 'incassi'); return }
     const confirmsProforma = record.isProforma && record.state === 'BOZZA' && stato === 'EMESSA'
     if (confirmsProforma && !window.confirm('Confermi la proforma e procedi con l’emissione della fattura?')) return
     setSavingId(record.id)
@@ -2884,6 +2892,7 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
   }
 
   async function markPaid(record: FatturazioneRecord) {
+    if (!record.isProforma && record.state !== 'BOZZA') { openDetailTab(record, 'incassi'); return }
     setSavingId(record.id)
     await reloadAfter(await markFatturazionePaid(record.id, { expected_revision: record.revision }))
     setSavingId('')

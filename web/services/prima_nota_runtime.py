@@ -32,17 +32,17 @@ def _postgres_request_dsn():
                               password=config.password, ssl=config.ssl)
 
 
-def get_existing_prima_nota_database(anchor):
+def get_existing_prima_nota_database(anchor, *, readonly=False):
     """Backend nativo della sola richiesta, senza bootstrap o cache globali."""
     from flask import g
     from web.services.storage_runtime import get_request_storage_runtime
     profile = get_request_storage_runtime(anchor)
     if profile.uses_sqlite:
         from pct.storage import StudioDB
-        database = StudioDB(profile.studio_db_path, initialize_schema=False)
+        database = StudioDB(profile.studio_db_path, initialize_schema=False, readonly=readonly)
     elif profile.effective_mode == 'POSTGRESQL':
         from pct.storage_postgres import PostgresStudioDB
-        database = PostgresStudioDB(_postgres_request_dsn(), initialize_schema=False)
+        database = PostgresStudioDB(_postgres_request_dsn(), initialize_schema=False, readonly=readonly)
     else:
         raise RuntimeError('Repository SQL Prima nota non configurato.')
     # Il teardown deve chiudere anche se lettura/validazione successive falliscono.
@@ -82,7 +82,7 @@ def probe_prima_nota_adoption(profile, tenant_key):
         connection.close()
 
 
-def open_prima_nota_runtime(source, *, anchor, tenant_key, actor_key,
+def _resolve_prima_nota_database(source, *, anchor, tenant_key,
                            get_profile, get_database, probe_adoption=probe_prima_nota_adoption):
     """Il marker non sceglie tenant, database o attore: arrivano dal runtime."""
     marker = read_transition(source)
@@ -96,7 +96,7 @@ def open_prima_nota_runtime(source, *, anchor, tenant_key, actor_key,
         if probe_adoption(profile, tenant_key) is not None:
             raise RuntimeError('Segnale di transizione Prima nota assente dopo adozione SQL: recupero necessario.')
         # Compatibilità prima dell'adozione esplicita, non fallback SQL.
-        return GestionePrimaNota(str(source))
+        return None
     if not tenant_key or marker['tenant'] != tenant_key:
         raise RuntimeError('Contesto studio discordante per la Prima nota: accesso sospeso.')
     if marker['phase'] != 'committed':
@@ -121,7 +121,27 @@ def open_prima_nota_runtime(source, *, anchor, tenant_key, actor_key,
     ).fetchone()
     if state is None or state[0] != marker['source_sha256'] or not str(state[1] or '').strip():
         raise RuntimeError('Adozione SQL Prima nota discordante: recupero necessario.')
+    return database
+
+
+def open_prima_nota_runtime(source, *, anchor, tenant_key, actor_key,
+                           get_profile, get_database, probe_adoption=probe_prima_nota_adoption):
+    database = _resolve_prima_nota_database(source, anchor=anchor, tenant_key=tenant_key,
+        get_profile=get_profile, get_database=get_database, probe_adoption=probe_adoption)
+    if database is None:
+        return GestionePrimaNota(str(source))
     return GestionePrimaNota(str(source), studio_db=database, tenant_key=tenant_key, actor_key=actor_key)
+
+
+def open_prima_nota_repository(source, *, anchor, tenant_key, actor_key,
+                              get_profile, get_database, probe_adoption=probe_prima_nota_adoption):
+    """Stessi controlli della procedura nativa, senza leggere tutto il registro."""
+    from pct.prima_nota_repository import PrimaNotaRepository
+    database = _resolve_prima_nota_database(source, anchor=anchor, tenant_key=tenant_key,
+        get_profile=get_profile, get_database=get_database, probe_adoption=probe_adoption)
+    if database is None:
+        raise RuntimeError('Adozione SQL Prima nota necessaria prima degli incassi collegati.')
+    return PrimaNotaRepository(database, tenant_key, actor_key=actor_key)
 
 
 def riprendi_audit_prima_nota(app, *, limit=50):

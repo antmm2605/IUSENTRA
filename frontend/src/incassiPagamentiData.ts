@@ -3,6 +3,8 @@ import { apiJson, apiPostJson } from './lib/apiClient'
 import type { AdminAction, AdminContract, AdminMetric, AdminSection, AdminTone, AdminWarning } from './utentiData'
 
 export type PaymentRow = {
+  isProforma?: boolean
+  invoiceState?: string
   invoiceRevision?: string
   id: string
   invoiceId: string
@@ -99,6 +101,9 @@ export type IncassiPagamentiPageData = {
 }
 
 export type IncassiCardRecord = {
+  receivedDisplay?: string
+  annualReceivedDisplay?: string
+  residualDisplay?: string
   id: string
   label: string
   customer: string
@@ -249,6 +254,8 @@ function normalisePayment(raw: unknown): PaymentRow {
   return {
     id: text(item.id),
     invoiceId: text(item.invoiceId),
+    isProforma: item.isProforma === true,
+    invoiceState: text(item.invoiceState),
     invoiceRevision: text(item.invoiceRevision) || undefined,
     invoiceNumber: text(item.invoiceNumber),
     customerName: text(item.customerName) || 'Cliente non indicato',
@@ -337,7 +344,7 @@ function normalisePage(raw: unknown): IncassiPagamentiPageData {
     warnings: list(page.warnings).map(normaliseWarning),
     cardRecords: list(page.cardRecords).map((raw) => {
       const row = asRecord(raw)
-      return { id: text(row.id), label: text(row.label), customer: text(row.customer), kind: text(row.kind), state: text(row.state), stateLabel: text(row.stateLabel), stateTone: text(row.stateTone) as AdminTone, amountDisplay: text(row.amountDisplay), dateLabel: text(row.dateLabel), href: text(row.href), metricIds: list(row.metricIds).map((item) => text(item)).filter(Boolean) }
+      return { annualReceivedDisplay: text(row.annualReceivedDisplay), receivedDisplay: text(row.receivedDisplay), residualDisplay: text(row.residualDisplay), id: text(row.id), label: text(row.label), customer: text(row.customer), kind: text(row.kind), state: text(row.state), stateLabel: text(row.stateLabel), stateTone: text(row.stateTone) as AdminTone, amountDisplay: text(row.amountDisplay), dateLabel: text(row.dateLabel), href: text(row.href), metricIds: list(row.metricIds).map((item) => text(item)).filter(Boolean) }
     }).filter((row) => row.id),
   }
 }

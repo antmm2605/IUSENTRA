@@ -11,6 +11,7 @@ import { EconomicVerificationPanel } from './EconomicVerificationPanel'
 import { AvanzamentoCaricamento, caricaDocumentiConAvanzamento, type StatoCaricamento } from './fascicoli/caricaDocumenti'
 import { Fragment, Suspense, lazy, useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 const ViewerDocumentEditor = lazy(() => import('./ViewerDocumentEditor').then((module) => ({ default: module.ViewerDocumentEditor })))
+const InvoiceReceiptsPanel = lazy(() => import('./InvoiceReceiptsPanel'))
 const FascicoloRedazioneWizard = lazy(() => import('../features/documenti/RedazioneGuidataWizard').then(module => ({ default: module.RedazioneGuidataWizard })))
 import {
   Archive,
@@ -6159,7 +6160,7 @@ function economicControlPaymentRow(item: FascicoloPaymentItem, label = item.disp
   }
 }
 
-type BonificoInvoiceOption = { id: string; numero: string; totale: number; stato: string; dataPagamento?: string; registeredAmount?: number | null; revision?: string; canRegister?: boolean; reason?: string }
+type BonificoInvoiceOption = { id: string; numero: string; totale: number; stato: string; dataPagamento?: string; registeredAmount?: number | null; revision?: string; canRegister?: boolean; canReadReceipts?: boolean; isProforma?: boolean; reason?: string }
 
 function EconomicControlModal({
   open,
@@ -6212,6 +6213,7 @@ function EconomicControlModal({
   const amountSuggestion = knownPaidIncome ? registeredIncome : invoiceAmount || parcellaItem.importo || liquidazioneItem.importo
   const importoSuggerito = amountSuggestion != null ? Number(amountSuggestion).toFixed(2).replace('.', ',') : ''
   const selectedPaidIncome = Boolean(bonificoParcelle.find(p => p.id === bonificoParcellaId)?.stato === 'PAGATA' || (knownPaidIncome && bonificoParcellaId === knownProformaId))
+  const useReceiptLedger = bonificoParcelle.find(p => p.id === bonificoParcellaId)?.canReadReceipts === true
   const openBonifico = () => {
     bonificoSuggestionRef.current = importoSuggerito
     setBonifico({ importo: '', data: oggiIso, note: '' })
@@ -6247,7 +6249,7 @@ function EconomicControlModal({
       setBonificoNextCursor(result.hasMore ? result.nextCursor || '' : '')
       setBonificoOptionsReady(true)
       if (!bonificoRequestedCursor && !bonificoInitializedRef.current) {
-        const only = items.length === 1 && !result.hasMore && items[0].canRegister !== false ? items[0] : null
+        const only = items.length === 1 && !result.hasMore && (items[0].canRegister !== false || items[0].canReadReceipts) ? items[0] : null
         setBonificoParcellaId(only?.id || '')
         if (only) setBonifico(current => ({ ...current, importo: Number(only.stato === 'PAGATA' ? only.registeredAmount : only.totale).toFixed(2).replace('.', ','), data: only.stato === 'PAGATA' ? only.dataPagamento || '' : oggiIso }))
         else if (items.length) setBonifico(current => ({ ...current, importo: '', data: oggiIso }))
@@ -6466,16 +6468,28 @@ function EconomicControlModal({
                 setBonificoParcellaId(id)
                 const scelta = bonificoParcelle.find(p => p.id === id)
                 if (scelta) setBonifico(current => ({ ...current, importo: Number(scelta.stato === 'PAGATA' ? scelta.registeredAmount : scelta.totale).toFixed(2).replace('.', ','), data: scelta.stato === 'PAGATA' ? scelta.dataPagamento || '' : selectedPaidIncome ? oggiIso : current.data }))
-              }}><option value="">Scegli il documento del fascicolo</option>{bonificoParcelle.map(p => <option key={p.id} value={p.id} disabled={p.canRegister === false}>{p.numero} · {formatEuroIt(p.totale)} · {p.canRegister === false ? p.reason || 'da verificare' : p.stato === 'PAGATA' ? 'già pagata' : p.stato === 'EMESSA' ? 'emessa' : p.stato === 'SCADUTA' ? 'scaduta' : 'bozza'}</option>)}</select></label> : null}
+              }}><option value="">Scegli il documento del fascicolo</option>{bonificoParcelle.map(p => <option key={p.id} value={p.id} disabled={p.canRegister === false && !p.canReadReceipts}>{p.numero} · {formatEuroIt(p.totale)} · {p.canRegister === false ? p.reason || 'da verificare' : p.stato === 'PAGATA' ? 'già pagata' : p.stato === 'EMESSA' ? 'emessa' : p.stato === 'SCADUTA' ? 'scaduta' : 'bozza'}</option>)}</select></label> : null}
+              {useReceiptLedger ? <Suspense fallback={<LoadingState title="Caricamento incassi" message="Lettura del documento del fascicolo." />}>
+                <InvoiceReceiptsPanel key={bonificoParcellaId} invoiceId={bonificoParcellaId} onConfirmed={async summary => {
+                  setBonificoDone({ message: 'Movimento registrato sul documento e in Prima nota.', href: `/fatturazione?id_documento=${encodeURIComponent(bonificoParcellaId)}` })
+                  const dates = summary.receipts.filter(row => row.direction === 1 && !row.reversed).map(row => row.paid_on).sort()
+                  setBonificoParcelle(previous => previous.map(row => row.id === summary.invoice_id ? { ...row,
+                    stato: summary.invoice_state, registeredAmount: summary.paid_cents === null ? null : summary.paid_cents / 100,
+                    dataPagamento: summary.status === 'PAID' ? dates.at(-1) || '' : '', reason: summary.reason || '',
+                    canRegister: ['OPEN', 'PARTIAL'].includes(summary.status),
+                  } : row))
+                }} />
+              </Suspense> : <>
               <label>Importo ricevuto (€)<input type="text" inputMode="decimal" readOnly={selectedPaidIncome || bonificoOptionsLoading || !bonificoOptionsReady} value={bonifico.importo} onChange={(event) => { const value = event.currentTarget.value; setBonifico((current) => ({ ...current, importo: value })) }} placeholder="es. 4500,00"/></label>
               <label>Data del bonifico<input type="date" readOnly={selectedPaidIncome || bonificoOptionsLoading || !bonificoOptionsReady} value={bonifico.data} max={oggiIso} onChange={(event) => { const value = event.currentTarget.value; setBonifico((current) => ({ ...current, data: value })) }}/></label>
               <label>Nota (facoltativa)<input type="text" value={bonifico.note} maxLength={400} onChange={(event) => { const value = event.currentTarget.value; setBonifico((current) => ({ ...current, note: value })) }} placeholder="es. banca, causale"/></label>
+              </>}
             </div>
             {bonificoOptionsError ? <p role="alert">{bonificoOptionsError} <button type="button" onClick={() => setBonificoOptionsRetry(value => value + 1)}>Riprova</button></p> : null}
             {bonificoNextCursor ? <button type="button" disabled={bonificoOptionsLoading} onClick={() => setBonificoRequestedCursor(bonificoNextCursor)}>Altri documenti</button> : null}
             {bonificoError ? <p role="alert">{bonificoError}</p> : null}
             <div>
-              <button type="button" disabled={bonificoBusy || bonificoOptionsLoading || !bonificoOptionsReady || Boolean(bonificoOptionsError) || !bonifico.importo || (bonificoParcelle.length > 0 && !bonificoParcellaId)} onClick={() => void submitBonifico()}><CheckCircle2 size={15}/> {bonificoBusy ? 'Registrazione…' : selectedPaidIncome ? 'Collega incasso già registrato' : 'Conferma bonifico ricevuto'}</button>
+              {!useReceiptLedger ? <button type="button" disabled={bonificoBusy || bonificoOptionsLoading || !bonificoOptionsReady || Boolean(bonificoOptionsError) || !bonifico.importo || (bonificoParcelle.length > 0 && !bonificoParcellaId)} onClick={() => void submitBonifico()}><CheckCircle2 size={15}/> {bonificoBusy ? 'Registrazione…' : selectedPaidIncome ? 'Collega incasso già registrato' : 'Conferma bonifico ricevuto'}</button> : null}
               <button type="button" disabled={bonificoBusy} onClick={() => setBonificoOpen(false)}>Annulla</button>
             </div>
           </section>

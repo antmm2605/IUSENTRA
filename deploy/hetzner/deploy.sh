@@ -321,16 +321,23 @@ prepare_template_catalog_before_start() {
 }
 
 prepare_scadenziario_before_start() {
-  local domain="${1:-scadenziario}" module
+  local domain="${1:-scadenziario}" module backup_dir
+  local check_args=()
   case "$domain" in
     scadenziario) module=tools.prepare_scadenziario_sql ;;
     agenda) module=tools.prepare_agenda_sql ;;
+    incassi)
+      module=tools.prepare_invoice_receipts
+      check_args=(--backup-dir /data/backup/incassi-sql-20261020)
+      ;;
     *) return 1 ;;
   esac
+  backup_dir="/data/backup/$domain-sql-20261019"
+  [ "$domain" != "incassi" ] || backup_dir=/data/backup/incassi-sql-20261020
   local compose=(docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}")
   local result=0 service container
   "${compose[@]}" run --no-deps --rm --entrypoint python app \
-    -m "$module" --tenant-registry /data/tenants.json --check || result=$?
+    -m "$module" --tenant-registry /data/tenants.json "${check_args[@]}" --check || result=$?
   [ "$result" = "0" ] && return 0
   [ "$result" = "2" ] || return "$result"
   echo "$domain: arresto dei produttori prima del backup e dell'adozione SQL."
@@ -344,7 +351,7 @@ prepare_scadenziario_before_start() {
   done
   "${compose[@]}" run --no-deps --rm --entrypoint python app \
     -m "$module" --tenant-registry /data/tenants.json \
-    --writers-drained --backup-dir "/data/backup/$domain-sql-20261019"
+    --writers-drained --backup-dir "$backup_dir"
 }
 
 prepare_tracking_proposals_before_start() {
@@ -414,6 +421,7 @@ if [ "${IUSENTRA_DEPLOY_DRIVER:-compose}" = "portainer" ]; then
   prepare_scadenziario_before_start agenda
   prepare_scadenziario_before_start
   prepare_client_case_index_before_start
+  prepare_scadenziario_before_start incassi
   prepare_template_catalog_before_start
   prepare_tracking_proposals_before_start
   python3 deploy/hetzner/portainer_deploy.py
@@ -426,6 +434,7 @@ else
   prepare_scadenziario_before_start agenda
   prepare_scadenziario_before_start
   prepare_client_case_index_before_start
+  prepare_scadenziario_before_start incassi
   prepare_template_catalog_before_start
   prepare_tracking_proposals_before_start
   cleanup_compose_conflict_containers

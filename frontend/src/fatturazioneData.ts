@@ -22,6 +22,9 @@ export type FatturazioneRecord = {
   caseRg: string
   caseTitle: string
   amountDisplay: string
+  receiptStatus?: string
+  receivedDisplay?: string
+  residualDisplay?: string
   issuedAt: string
   metricFilters?: string[]
   dueAt: string
@@ -759,6 +762,9 @@ function normaliseRecord(raw: unknown): FatturazioneRecord {
     caseRg: display(item.caseRg ?? item.case_rg ?? item.numero_rg),
     caseTitle: display(item.caseTitle),
     amountDisplay: display(item.amountDisplay),
+    receiptStatus: text(item.receiptStatus),
+    receivedDisplay: display(item.receivedDisplay),
+    residualDisplay: display(item.residualDisplay),
     issuedAt: text(item.issuedAt),
     metricFilters: list(item.metricFilters).map(value => text(value)).filter(Boolean),
     dueAt: text(item.dueAt),
@@ -1284,8 +1290,8 @@ export function createFatturazionePaymentLink(idDocumento: string, giorniValidit
   return sheetAction(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/link-pagamento`, { giorni_validita: giorniValidita })
 }
 
-export function deleteFatturazioneDraft(idDocumento: string): Promise<SheetActionResult> {
-  return sheetAction(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/elimina`, {})
+export function deleteFatturazioneDraft(idDocumento: string, expectedRevision: string): Promise<SheetActionResult> {
+  return sheetAction(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/elimina`, { expectedRevision })
 }
 
 export async function getFatturazioneDetail(idDocumento: string, options: ApiRequestOptions = {}): Promise<{ ok: boolean; item: FatturazioneDetail | null; message: string; errors: Record<string, string> }> {

@@ -1336,6 +1336,7 @@ def update_react_fatturazione_status(
     ip_address: str = "",
     get_fascicoli: Callable[[], Any] | None = None,
 ) -> tuple[dict[str, Any], int]:
+    from pct.fatturazione_sql_commands import ParcellaPaymentRequiresReceipt
     if not _can(current_user, "fatturazione.scrivi"):
         return {"ok": False, "message": "Permesso fatturazione.scrivi richiesto.", "errors": {"permission": "Operazione non autorizzata."}, "item": None}, 403
     errors = _safe_payload_fields(payload)
@@ -1386,6 +1387,9 @@ def update_react_fatturazione_status(
                 **({"expected_revision": expected_revision} if expected_revision else {}),
             )
             item = manager.get(id_documento)
+    except ParcellaPaymentRequiresReceipt as exc:
+        return {"ok": False, "message": str(exc), "errors": {"incassi": str(exc)},
+                "item": None, "code": "receipt_required"}, 409
     except ParcellaConcurrentUpdate as exc:
         return {"ok": False, "message": "Modifica concorrente. Riapri il documento aggiornato.",
                 "errors": {"revision": str(exc)}, "item": None, "conflict": True}, 409

@@ -9,7 +9,7 @@ import json
 import math
 from datetime import date
 
-from pct.fatturazione import Parcella, parcella_revision
+from pct.fatturazione import GestioneFatturazione, Parcella, parcella_revision
 
 
 def invoice_options(database, case_id: str, *, cursor: str = "", limit: int = 50):
@@ -89,6 +89,9 @@ def invoice_options(database, case_id: str, *, cursor: str = "", limit: int = 50
         items.append(
             {
                 "id": invoice.id,
+                "isProforma": GestioneFatturazione._is_proforma(invoice),
+                "canReadReceipts": invoice.stato.value != 'BOZZA' and not GestioneFatturazione._is_proforma(invoice)
+                    and bool(case_rows[0]['id_cliente']) and invoice.id_cliente == case_rows[0]['id_cliente'],
                 "numero": str(invoice.numero or invoice.id),
                 "totale": round(amount, 2),
                 "registeredAmount": registered_amount,

@@ -52,7 +52,7 @@ export function FatturazioneSheetActions({
   async function removeDraft() {
     if (!window.confirm(`Eliminare la bozza ${detail.number || ''}? L'operazione non è reversibile.`)) return
     setBusy('delete')
-    const result = await deleteFatturazioneDraft(detail.id)
+    const result = await deleteFatturazioneDraft(detail.id, detail.revision)
     setBusy('')
     setMessage({ ok: result.ok, text: result.message })
     if (result.ok) await onDeleted()

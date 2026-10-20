@@ -1,0 +1,22 @@
+.iu-invoice-receipts{display:grid;grid-column:1/-1;gap:12px;min-width:0;color:var(--iu-text,#17263c)}
+.iu-invoice-receipts header{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.iu-invoice-receipts h3,.iu-invoice-receipts h4,.iu-invoice-receipts p{margin:0}
+.iu-invoice-receipts h3 small{display:inline-block;margin-left:8px;font-size:12px;font-weight:500;color:var(--iu-muted,#52657a)}
+.iu-invoice-receipts__totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0}
+.iu-invoice-receipts__totals>div{min-width:0;padding:10px;border:1px solid var(--iu-border,#dde2e8);border-radius:8px;background:var(--iu-surface,#fff)}
+.iu-invoice-receipts__totals dt{font-size:12px;color:var(--iu-muted,#52657a)}
+.iu-invoice-receipts__totals dd{margin:4px 0 0;font-weight:700;overflow-wrap:anywhere}
+.iu-invoice-receipts__entry{display:grid;gap:10px;padding:12px;border:1px solid var(--iu-border,#dde2e8);border-radius:8px}
+.iu-invoice-receipts fieldset{padding:0;margin:0;border:0;min-width:0}
+.iu-invoice-receipts__fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.iu-invoice-receipts__fields label{display:grid;gap:5px;min-width:0;font-size:12px}
+.iu-invoice-receipts__fields input,.iu-invoice-receipts__fields select{width:100%;min-width:0;box-sizing:border-box;min-height:44px;border:1px solid var(--iu-border,#cbd5e1);border-radius:7px;padding:8px;font:inherit;background:var(--iu-surface,#fff);color:inherit}
+.iu-invoice-receipts__fields input:focus-visible,.iu-invoice-receipts__fields select:focus-visible{outline:2px solid var(--iu-primary,#1761df);outline-offset:2px}
+.iu-invoice-receipts__note{grid-column:1/-1}
+.iu-invoice-receipts__actions{display:flex;gap:8px;flex-wrap:wrap}
+.iu-invoice-receipts__list{display:grid;gap:8px;padding:0;margin:0;list-style:none}
+.iu-invoice-receipts__list li{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;padding:10px;border:1px solid var(--iu-border,#dde2e8);border-radius:8px;min-width:0}
+.iu-invoice-receipts__list li>div{display:grid;gap:4px;min-width:0;overflow-wrap:anywhere}
+.iu-invoice-receipts__list span,.iu-invoice-receipts__list small{font-size:12px;color:var(--iu-muted,#52657a)}
+.iu-invoice-receipts [role=alert]{padding:10px;border:1px solid var(--iu-warning-border,#dfbd76);border-radius:7px;background:var(--iu-warning-surface,#fff9ed);overflow-wrap:anywhere}
+@media(max-width:560px){.iu-invoice-receipts__fields{grid-template-columns:minmax(0,1fr)}.iu-invoice-receipts__totals>div{padding:8px}.iu-invoice-receipts__totals dd{font-size:13px}}

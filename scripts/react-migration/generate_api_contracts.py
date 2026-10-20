@@ -14,7 +14,10 @@ import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 API_BLUEPRINTS = (
+    (REPO_ROOT / "web" / "bootstrap" / "invoice_receipts_routes.py", "app", ""),
     (REPO_ROOT / "web" / "blueprints" / "api_v1_react.py", "api_v1_react", "/api/v1/ui"),
     (
         REPO_ROOT / "web" / "blueprints" / "api_v1_client_portal.py",
@@ -126,6 +129,12 @@ class ContractInfo:
 
 
 AREA_RULES: tuple[tuple[str, ContractInfo], ...] = (
+    (
+        "/api/fatturazione",
+        ContractInfo("Incassi del documento", "sessione + fatturazione.leggi; scrittura anche fatturazione.scrivi",
+                     "P0", "movimenti probatori e saldo verificato del documento nel tenant corrente",
+                     "DomainRecord", "Fatturazione"),
+    ),
     (
         ACCESSO_PUBBLICO_PREFIX,
         ContractInfo(
@@ -498,6 +507,9 @@ def _operation(endpoint: Endpoint, frontend_links: dict[str, tuple[str, str]]) -
             }}},
         }
         operation["responses"]["503"] = {"description": "Archivio temporaneamente non leggibile; messaggio senza dettagli interni."}
+    if endpoint.full_path.startswith('/api/fatturazione/'):
+        from tools.invoice_receipts_contract import apply_receipt_contract
+        apply_receipt_contract(operation, endpoint.method)
     return operation
 
 

@@ -1,6 +1,6 @@
 import { beginActivity } from '../ui/activity'
 import { useBusyActivity } from '../ui/useBusyActivity'
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { ArrowDownCircle, ArrowUpCircle, Banknote, CheckCircle2, AlertCircle, FileDown, Landmark, Link2, Plus, RefreshCw, RotateCcw, Scale, Upload } from 'lucide-react'
 import { FloatingLex } from './FloatingLex'
 import { getPrimaNotaPage, type PrimaNotaData, type PrimaNotaMovimento, type RiconciliazioneProposta } from '../primaNotaData'
@@ -9,6 +9,9 @@ import { formatDateInputIt, formatDateIt, formatEuroIt } from '../formatting'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { loadPendingCommand, savePendingCommand, clearPendingCommand, type PendingPrimaNotaCommand } from '../primaNotaCommand'
 import './PrimaNotaPage.css'
+import { LoadingState } from '../ui/LoadingState'
+
+const InvoiceReceiptsPanel = lazy(() => import('./InvoiceReceiptsPanel'))
 
 function csrfToken(): string {
   return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || ''
@@ -239,8 +242,10 @@ function BankReconciliation({ data, onDone, onMessage }:{data:PrimaNotaData; onD
   )
 }
 
-function MovementRow({ movimento, onDone, onMessage }:{movimento:PrimaNotaMovimento; onDone:()=>void; onMessage:(text:string, ok?:boolean)=>void}) {
-  const [showStorno, setShowStorno] = useState(false)
+function MovementRow({ movimento, onDone, onMessage, activeReversal, setActiveReversal }:{movimento:PrimaNotaMovimento; onDone:()=>void; onMessage:(text:string, ok?:boolean)=>void; activeReversal:string; setActiveReversal:(id:string)=>void}) {
+  const [localStorno, setLocalStorno] = useState(false)
+  const showStorno = movimento.incassoCollegato ? activeReversal === movimento.id : localStorno
+  const setShowStorno = (value: boolean) => movimento.incassoCollegato ? setActiveReversal(value ? movimento.id : '') : setLocalStorno(value)
   const [motivo, setMotivo] = useState('')
   const [busy, setBusy] = useState(false)
   useBusyActivity(busy, 'Operazione in corso…')
@@ -252,7 +257,7 @@ function MovementRow({ movimento, onDone, onMessage }:{movimento:PrimaNotaMovime
     if (result.ok) { setShowStorno(false); onDone() }
   }
   return (
-    <tr className={movimento.tipo === 'INCASSO' ? 'iu-pn-row--in' : 'iu-pn-row--out'}>
+    <><tr className={movimento.tipo === 'INCASSO' ? 'iu-pn-row--in' : 'iu-pn-row--out'}>
       <td>{formatDateIt(movimento.data)}</td>
       <td>
         <span className="iu-pn-tipo">
@@ -265,7 +270,9 @@ function MovementRow({ movimento, onDone, onMessage }:{movimento:PrimaNotaMovime
       <td className="iu-pn-desc"><strong>{movimento.controparte || '—'}</strong><span>{movimento.causale}</span></td>
       <td>{movimento.metodo}</td>
       <td>
-        {showStorno ? (
+        {showStorno && movimento.incassoCollegato ? (
+          <button type="button" onClick={() => setShowStorno(false)}>Chiudi incassi</button>
+        ) : showStorno ? (
           <span className="iu-pn-storno">
             <input value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Motivo storno"/>
             <button type="button" disabled={busy || !motivo.trim()} onClick={storna}>Conferma</button>
@@ -276,10 +283,17 @@ function MovementRow({ movimento, onDone, onMessage }:{movimento:PrimaNotaMovime
         ) : null}
       </td>
     </tr>
+    {showStorno && movimento.incassoCollegato && movimento.parcellaId ? <tr><td colSpan={7}>
+      <Suspense fallback={<LoadingState title="Caricamento incassi" message="Lettura del documento collegato." />}>
+        <InvoiceReceiptsPanel invoiceId={movimento.parcellaId} reverseMovementId={movimento.id}
+          onConfirmed={async () => { onMessage('Storno registrato insieme al saldo del documento.'); onDone() }} />
+      </Suspense>
+    </td></tr> : null}</>
   )
 }
 
 export function PrimaNotaPage() {
+  const [activeReversal, setActiveReversal] = useState('')
   const [data, setData] = useState<PrimaNotaData | null>(null)
   const [message, setMessage] = useState('')
   const [messageOk, setMessageOk] = useState(true)
@@ -372,7 +386,7 @@ export function PrimaNotaPage() {
             </thead>
             <tbody>
               {data.movimenti.length ? data.movimenti.map((movimento) => (
-                <MovementRow movimento={movimento} onDone={() => load()} onMessage={showMessage} key={movimento.id}/>
+                <MovementRow movimento={movimento} onDone={() => load()} onMessage={showMessage} key={movimento.id} activeReversal={activeReversal} setActiveReversal={setActiveReversal}/>
               )) : (
                 <tr><td colSpan={7} className="iu-pn-empty">Nessun movimento nel periodo: registra il primo o riconcilia le parcelle pagate.</td></tr>
               )}

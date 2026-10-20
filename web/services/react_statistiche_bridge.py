@@ -308,7 +308,7 @@ def build_react_statistiche_payload(
                 "fatturazione_crediti",
                 warnings,
                 lambda: float((fatturazione.crediti_aperti() or {}).get("importo") or 0) if fatturazione else 0,
-                fatturazione_stats.get("da_incassare", 0),
+                "Da riscontrare",
             ),
             "note": "Parcelle emesse e non pagate, scadute comprese",
             "tone": "primary",

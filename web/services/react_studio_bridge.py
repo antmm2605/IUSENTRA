@@ -215,7 +215,8 @@ def build_react_studio_payload(
     site_status = _site_status(warnings)
     backup_total = int(backup_stats.get("totale", backup_stats.get("totale_backup", 0)) or 0)
     open_quotes = _safe_read(lambda: sum(_enum(getattr(item, "stato", "")) in {"BOZZA", "GENERATO", "INVIATO", "APERTO"} for item in get_preventivi().tutti_preventivi()), "preventivi_aperti", warnings, 0) if get_preventivi else 0
-    unpaid = _safe_read(lambda: int(get_fatturazione().crediti_aperti()["parcelle"]), "crediti_aperti", warnings, 0) if get_fatturazione else 0
+    unpaid = _safe_read(lambda: sum(_enum(getattr(item, 'stato', '')) in {'EMESSA', 'SCADUTA'}
+        for item in get_fatturazione().tutte()), "crediti_aperti", warnings, 0) if get_fatturazione else 0
     pending_payments = int(pagamenti_stats.get("attesi", 0) or 0)
 
     operational_routes = [

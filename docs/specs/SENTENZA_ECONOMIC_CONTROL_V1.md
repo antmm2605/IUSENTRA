@@ -254,3 +254,38 @@ non costituiscono tale prova. La classificazione non riscontrata non afferma
 che un pagamento storico non sia avvenuto. Due guardrail SQL nativi verificano
 la sequenza contanti, bonifico a saldo e storno del solo bonifico, conservando
 l'incasso in contanti e aggiornando il medesimo filtro.
+
+
+### Semantica della data nelle specifiche del gestore
+
+Il campo `created` dell'evento Stripe descrive la creazione dell'evento,
+non l'istante di esecuzione del pagamento
+([specifica Event](https://docs.stripe.com/api/events/object)). È un limite
+superiore della conferma: insieme alla creazione della sessione può provare
+un giorno soltanto se l'intero intervallo ricade nello stesso giorno italiano.
+Un evento ricevuto in seguito conserva quel riscontro; un intervallo che
+attraversa giorni diversi rimane non determinato. Nessuna ora di pagamento
+viene ricostruita dall'evento.
+
+Per la cattura PayPal Payments v2, `create_time` è definito come istante in
+cui è avvenuta la transazione; `update_time` è il suo ultimo aggiornamento
+([schema ufficiale](https://developer.paypal.com/api/payments/v2/schema.json)).
+La data della cattura completata deriva dalla propria `create_time`, non
+dalla creazione dell'ordine o da un aggiornamento successivo. Una cronologia
+inversa, non valida o futura resta esplicitamente da verificare. I casi
+controllati includono notifiche tardive e passaggi della mezzanotte italiana.
+
+
+Quando SumUp restituisce la transazione riuscita collegata al checkout,
+il motore confronta anche il suo identificativo, importo e valuta e usa la
+sua creazione come limite inferiore più pertinente, anziché la creazione
+precedente del checkout. La conferma autenticata deve delimitare lo stesso
+giorno italiano; non si inventa un orario di esecuzione. Transazioni multiple
+o discordanti non autorizzano una somma o un nuovo incasso
+([specifica checkout e transazioni](https://developer.sumup.com/api/checkouts)).
+
+
+Anche il riepilogo del collegamento pubblico conserva solo la data di
+pagamento riscontrata: la data di ricezione della notifica resta nella fonte
+di audit e non viene esposta come data del pagamento. Una data non
+dimostrata rimane assente, anche se la conferma positiva è stata conservata.

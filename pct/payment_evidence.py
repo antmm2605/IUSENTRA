@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from decimal import Decimal, DecimalException
 from typing import Mapping
@@ -81,7 +81,7 @@ class ProviderPaymentFacts:
 
 
 def _facts(provider, transaction_id, link, amount, currency, source, *, timestamp=None, origin='', epoch=False,
-           lower_bound=None, lower_epoch=False, observed_at=None):
+           lower_bound=None, lower_epoch=False, observed_at=None, confirmation_only=False):
     if not isinstance(transaction_id, str) or not transaction_id.strip() or len(transaction_id) > 200:
         raise ValueError('Identificativo della transazione del gestore assente o non valido.')
     cents = exact_cents(amount)
@@ -101,7 +101,13 @@ def _facts(provider, transaction_id, link, amount, currency, source, *, timestam
         elif created and datetime.fromisoformat(paid_at) < datetime.fromisoformat(created):
             issue = 'La conferma precede la creazione del pagamento: verifica della fonte necessaria.'
         elif datetime.fromisoformat(paid_at) <= datetime.fromisoformat(observed):
-            day = datetime.fromisoformat(paid_at).astimezone(ZoneInfo('Europe/Rome')).date().isoformat()
+            upper_day = datetime.fromisoformat(paid_at).astimezone(ZoneInfo('Europe/Rome')).date()
+            if not confirmation_only:
+                day = upper_day.isoformat()
+            elif created and datetime.fromisoformat(created).astimezone(ZoneInfo('Europe/Rome')).date() == upper_day:
+                day, origin, issue = upper_day.isoformat(), 'verified_event_same_day_interval', ''
+            else:
+                issue = 'La data dell’evento non dimostra il giorno del pagamento: intervallo non univoco.'
         else:
             issue = 'Data del gestore successiva alla conferma osservata: verifica necessaria.'
     elif timestamp is None or timestamp == '':
@@ -116,7 +122,7 @@ def _facts(provider, transaction_id, link, amount, currency, source, *, timestam
             else:
                 issue = 'Data effettiva non specificata: creazione e conferma non delimitano un unico giorno.'
     return ProviderPaymentFacts(provider, transaction_id, link.id, link.id_parcella, link.id_cliente,
-        cents, currency.upper(), paid_at, origin if day else '', issue,
+        cents, currency.upper(), None if confirmation_only else paid_at, origin if day else '', issue,
         json.dumps(source, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False), day, observed)
 
 
@@ -142,7 +148,21 @@ def stripe_facts(session, link, *, verified_event_created=None, observed_at=None
         source['verified_event_type'] = verified_event_type
     return _facts('stripe', source['id'], link, Decimal(amount) / 100, source['currency'], source,
                   timestamp=verified_event_created, origin='stripe.event.created', epoch=True,
-                  lower_bound=source['created'], lower_epoch=True, observed_at=observed_at)
+                  lower_bound=source['created'], lower_epoch=True, observed_at=observed_at, confirmation_only=True)
+
+
+def _paypal_facts(capture, transaction_id, link, amount, currency, source, *, observed_at):
+    # Payments v2 definisce create_time come istante della transazione;
+    # update_time può riferirsi a un aggiornamento successivo.
+    facts = _facts('paypal', transaction_id, link, amount, currency, source,
+                   timestamp=capture.get('create_time'), origin='paypal.capture.create_time', observed_at=observed_at)
+    if capture.get('update_time') not in (None, ''):
+        updated, issue = _timestamp(capture['update_time'])
+        if (updated is None or facts.paid_at and datetime.fromisoformat(updated) < datetime.fromisoformat(facts.paid_at)
+                or updated and datetime.fromisoformat(updated) > datetime.fromisoformat(facts.observed_at)):
+            return replace(facts, paid_on=None, date_origin='',
+                           date_issue=issue or 'Cronologia della cattura PayPal discordante: verifica necessaria.')
+    return facts
 
 
 def paypal_capture_facts(capture, capture_id, link, *, observed_at=None):
@@ -154,11 +174,8 @@ def paypal_capture_facts(capture, capture_id, link, *, observed_at=None):
         raise ValueError('Importo della cattura PayPal non valido.')
     source = {key: capture.get(key) for key in ('id', 'status', 'custom_id', 'create_time', 'update_time')}
     source['amount'] = {key: amount.get(key) for key in ('value', 'currency_code')}
-    # La creazione non sostituisce update_time: può solo delimitare un
-    # intervallo verificato. L'ordine non sostituisce l'identità della cattura.
-    return _facts('paypal', capture_id, link, amount.get('value'), amount.get('currency_code'), source,
-                  timestamp=capture.get('update_time'), origin='paypal.capture.update_time',
-                  lower_bound=capture.get('create_time'), observed_at=observed_at)
+    return _paypal_facts(capture, capture_id, link, amount.get('value'), amount.get('currency_code'), source,
+                         observed_at=observed_at)
 
 
 def satispay_facts(payment, payment_id, link, *, observed_at=None):
@@ -211,9 +228,8 @@ def paypal_order_capture_facts(response, verified_order, link, *, observed_at=No
               'verified_order_amount': {key: amount.get(key) for key in ('value', 'currency_code')},
               'capture': {key: capture.get(key) for key in ('id', 'status', 'custom_id', 'create_time', 'update_time')}}
     source['capture']['amount'] = {key: capture_amount.get(key) for key in ('value', 'currency_code')}
-    return _facts('paypal', capture.get('id'), link, capture_amount.get('value'), capture_amount.get('currency_code'),
-                  source, timestamp=capture.get('update_time'), origin='paypal.capture.update_time',
-                  lower_bound=capture.get('create_time'), observed_at=observed_at)
+    return _paypal_facts(capture, capture.get('id'), link, capture_amount.get('value'), capture_amount.get('currency_code'),
+                         source, observed_at=observed_at)
 
 
 def sumup_checkout_facts(checkout, checkout_id, link, *, observed_at=None):
@@ -228,5 +244,16 @@ def sumup_checkout_facts(checkout, checkout_id, link, *, observed_at=None):
     source = {key: checkout.get(key) for key in ('id', 'status', 'checkout_reference', 'amount', 'currency', 'date')}
     source['transactions'] = [{key: item.get(key) for key in ('id', 'status', 'amount', 'currency', 'timestamp')}
                               for item in transactions]
+    successful = [item for item in transactions if item.get('status') == 'SUCCESSFUL']
+    if transactions and len(successful) != 1:
+        raise ValueError('Transazione SumUp completata non univoca: riconciliazione necessaria.')
+    lower = checkout.get('date')
+    if successful:
+        transaction = successful[0]
+        if (not isinstance(transaction.get('id'), str) or not transaction['id']
+                or exact_cents(transaction.get('amount')) != exact_cents(link.importo)
+                or transaction.get('currency') != link.valuta):
+            raise ValueError('Transazione SumUp discordante dal collegamento.')
+        lower = transaction.get('timestamp')
     return _facts('sumup', checkout_id, link, checkout.get('amount'), checkout.get('currency'), source,
-                  lower_bound=checkout.get('date'), observed_at=observed_at)
+                  lower_bound=lower, observed_at=observed_at)

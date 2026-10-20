@@ -27,9 +27,12 @@ def test_stripe_paid_confirmation_uses_verified_event_not_checkout_creation(link
     with pytest.raises(ValueError):
         missing.cash_date()
     timestamp = int(datetime(2026, 10, 19, 22, 30, tzinfo=timezone.utc).timestamp())
+    assert stripe_facts(session, link, verified_event_created=timestamp).paid_on is None
+    session['created'] = timestamp - 60
     facts = stripe_facts(session, link, verified_event_created=timestamp)
+    assert facts.paid_at is None
     assert facts.amount_cents == 60000 and facts.cash_date() == '2026-10-20'
-    assert facts.date_origin == 'stripe.event.created'
+    assert facts.date_origin == 'verified_event_same_day_interval'
     assert 'NEVER-STORE' not in facts.source_json
     assert facts.source_sha256 == stripe_facts(session, link, verified_event_created=timestamp).source_sha256
 
@@ -47,11 +50,12 @@ def test_stripe_foreign_or_unpaid_session_cannot_supply_cash_facts(link, change)
 def test_paypal_order_does_not_replace_capture_identity_or_its_effective_date(link):
     capture = dict(id='CAPTURE-1', status='COMPLETED', custom_id=link.id,
                    amount={'value': '600.00', 'currency_code': 'EUR'}, create_time='2025-12-31T22:00:00Z')
-    assert paypal_capture_facts(capture, 'CAPTURE-1', link).paid_at is None
+    assert paypal_capture_facts(capture, 'CAPTURE-1', link).cash_date() == '2025-12-31'
     with pytest.raises(ValueError):
         paypal_capture_facts(capture, 'ORDER-1', link)
     facts = paypal_capture_facts({**capture, 'update_time': '2026-10-19T23:30:00Z'}, 'CAPTURE-1', link)
-    assert facts.transaction_id == 'CAPTURE-1' and facts.cash_date() == '2026-10-20'
+    assert facts.transaction_id == 'CAPTURE-1' and facts.cash_date() == '2025-12-31'
+    assert facts.date_origin == 'paypal.capture.create_time'
 
 
 @pytest.mark.parametrize('created', ['not-a-date', '2099-01-01T00:00:00Z', '2026-10-19T13:00:00Z'])
@@ -191,3 +195,34 @@ def test_link_expiration_respects_timezone_and_rejects_invalid_dates(expiry, val
     from pct.pagamenti import LinkPagamento
     payment = LinkPagamento('L', 'T', 'I', 'C', 10, 'Controllato', scade_il=expiry)
     assert payment.is_valido is valid
+
+
+@pytest.mark.parametrize(('created', 'confirmed', 'expected'), [
+    ('2026-10-19T23:30:00+00:00', '2026-10-20T00:30:00+00:00', '2026-10-20'),
+    ('2026-10-19T21:59:00+00:00', '2026-10-19T22:01:00+00:00', None),
+    ('2026-10-18T10:00:00+00:00', '2026-10-19T10:00:00+00:00', None),
+])
+def test_stripe_delayed_notification_never_substitutes_event_time_for_payment(link, created, confirmed, expected):
+    session = {'id': 'cs_day', 'payment_status': 'paid', 'amount_total': 60000, 'currency': 'eur',
+               'created': int(datetime.fromisoformat(created).timestamp()), 'metadata': {'link_id': link.id}}
+    facts = stripe_facts(session, link, verified_event_created=int(datetime.fromisoformat(confirmed).timestamp()),
+                         observed_at='2026-10-20T06:00:00Z')
+    assert facts.paid_on == expected and facts.paid_at is None
+    if expected:
+        assert facts.cash_date() == expected
+    else:
+        with pytest.raises(ValueError): facts.cash_date()
+
+
+
+def test_sumup_reuses_the_relevant_successful_transaction_without_checkout_date_assumptions(link):
+    transaction = {'id': 'TX-REAL', 'status': 'SUCCESSFUL', 'amount': 600, 'currency': 'EUR',
+                   'timestamp': '2026-10-20T06:00:00Z'}
+    checkout = {'id': 'CHECKOUT-1', 'status': 'PAID', 'checkout_reference': link.id, 'amount': 600,
+                'currency': 'EUR', 'date': '2026-10-18T10:00:00Z', 'transactions': [transaction]}
+    facts = sumup_checkout_facts(checkout, 'CHECKOUT-1', link, observed_at='2026-10-20T07:00:00Z')
+    assert facts.cash_date() == '2026-10-20' and facts.paid_at is None
+    for invalid in ([{**transaction, 'amount': 599}], [transaction, {**transaction, 'id': 'ANOTHER'}],
+                    [{**transaction, 'status': 'PENDING'}]):
+        with pytest.raises(ValueError):
+            sumup_checkout_facts({**checkout, 'transactions': invalid}, 'CHECKOUT-1', link)

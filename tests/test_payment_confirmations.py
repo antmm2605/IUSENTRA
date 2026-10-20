@@ -30,7 +30,8 @@ def confirmed_payment(invoice_receipts, tmp_path):
     gp = GestionePagamenti(str(tmp_path / 'links'), studio_db=repo.db)
     link = gp.crea_link(invoice_id, 'cliente-1', 600, 'CONTROLLED-BALANCE')
     facts = stripe_facts(dict(id='cs_controlled', payment_status='paid', amount_total=60000, currency='eur',
-        metadata={'link_id': link.id, 'parcella': invoice_id}), link,
+        metadata={'link_id': link.id, 'parcella': invoice_id},
+        created=int(datetime(2026, 10, 19, 11, 59, tzinfo=timezone.utc).timestamp())), link,
         verified_event_created=int(datetime(2026, 10, 19, 12, tzinfo=timezone.utc).timestamp()),
         observed_at='2026-10-20T06:00:00Z', verified_event_id='evt_controlled',
         verified_event_type='checkout.session.completed')
@@ -42,6 +43,7 @@ def test_partial_manual_then_verified_balance_is_one_atomic_cash_fact(confirmed_
     repo, cash, gp, link, facts = confirmed_payment
     key = ingest(repo.db, repo.tenant, facts, verification_kind='signed_event')
     assert gp.get_by_id(link.id).stato == 'PAGATO'
+    assert gp.get_by_id(link.id).pagato_il == (facts.paid_at or facts.paid_on)
     assert repo.summary(link.id_parcella)['paid_cents'] == 40000
     assert deliver(repo.db, repo.tenant) == {'delivered': 1, 'failed': 0}
     assert repo.summary(link.id_parcella)['paid_cents'] == 100000
@@ -90,6 +92,8 @@ def test_sources_are_immutable_and_missing_day_is_not_invented(confirmed_payment
     repo, cash, _, link, facts = confirmed_payment
     unknown = replace(facts, paid_on=None, paid_at=None, date_origin='', date_issue='Data non dimostrata')
     key = ingest(repo.db, repo.tenant, unknown, verification_kind='authenticated_api')
+    from pct.payment_links_sql import read_link
+    assert read_link(repo.db, key=link.id)['pagato_il'] is None
     assert deliver(repo.db, repo.tenant) == {'delivered': 0, 'failed': 0}
     assert repo.summary(link.id_parcella)['paid_cents'] == 40000
     for sql in ('UPDATE ' + TABLE + " SET currency='USD' WHERE source_key=?",
@@ -127,7 +131,8 @@ def test_callback_delivery_does_not_process_an_unrelated_payment(confirmed_payme
     billing.cambia_stato(other.id, StatoParcella.EMESSA)
     other_link = gp.crea_link(other.id, 'cliente-1', 600, 'OTHER-CONTROLLED')
     other_facts = stripe_facts({'id': 'cs_other', 'payment_status': 'paid', 'amount_total': 60000, 'currency': 'eur',
-        'metadata': {'link_id': other_link.id}}, other_link,
+        'metadata': {'link_id': other_link.id},
+        'created': int(datetime(2026, 10, 19, 11, 59, tzinfo=timezone.utc).timestamp())}, other_link,
         verified_event_created=int(datetime(2026, 10, 19, 12, tzinfo=timezone.utc).timestamp()),
         verified_event_id='evt_other', verified_event_type='checkout.session.completed')
     ingest(repo.db, repo.tenant, other_facts, verification_kind='signed_event')

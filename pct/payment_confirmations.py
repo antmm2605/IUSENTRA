@@ -125,7 +125,7 @@ def ingest(database, tenant, facts, *, verification_kind):
     # Una conferma ulteriore non riscrive l'identità del pagamento già presente
     # né una decisione di annullamento. La fonte resta comunque conservata.
     if link.stato == 'ATTESO':
-        link.stato, link.pagato_il = 'PAGATO', facts.observed_at
+        link.stato, link.pagato_il = 'PAGATO', facts.paid_at or facts.paid_on
         labels = {'stripe': 'Stripe', 'paypal': 'PayPal', 'sumup': 'SumUp', 'satispay': 'Satispay'}
         link.provider_usato, link.provider_tx_id = labels[facts.provider], facts.transaction_id
     source_key = _key(tenant, facts)

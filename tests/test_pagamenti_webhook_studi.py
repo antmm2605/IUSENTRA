@@ -33,16 +33,18 @@ def _firma_stripe(payload: bytes, segreto: str) -> str:
 
 def _evento_stripe(link_id: str = "", *, tipo: str = "checkout.session.completed", sessione: str = "cs_test_1") -> bytes:
     metadata = {"link_id": link_id} if link_id else {}
+    created = int(time.time()) - 1
     return json.dumps({
         "id": "evt_2421",
         "object": "event",
         "type": tipo,
-        "created": int(time.time()) - 1,
+        "created": created,
         "data": {"object": {
             "id": sessione,
             "object": "checkout.session",
             "payment_status": "paid",
             "amount_total": 9900,
+            "created": created,
             "currency": "eur",
             "metadata": metadata,
         }},
@@ -209,6 +211,7 @@ def test_webhook_paypal_confermato_con_le_credenziali_dello_studio(due_studi, mo
             from pct.payment_evidence import paypal_capture_facts
             return paypal_capture_facts({'id': tx_id, 'status': 'COMPLETED', 'custom_id': lp.id,
                 'amount': {'value': '99.00', 'currency_code': 'EUR'},
+                'create_time': datetime.fromtimestamp(time.time() - 2, timezone.utc).isoformat(),
                 'update_time': datetime.fromtimestamp(time.time() - 1, timezone.utc).isoformat()}, tx_id, lp)
         return True
 

@@ -737,12 +737,16 @@ def _invoice_record(parcella: Any, clienti: dict[str, Any], fascicoli: dict[str,
         "documentKindLabel": _document_kind_label(parcella),
         "proformaSourceLabel": "Sentenza Lex AI" if _text(getattr(parcella, "origine", "")) == "lex_ai_sentenza_tribunale" else "",
         "paymentMethod": _text(getattr(parcella, "metodo_pagamento", "")),
+        "bankTransferReceived": False,
         "detailHref": f"/fatturazione?id_documento={pid}" if pid else "",
         "pdfHref": f"/fatturazione/{pid}/pdf" if pid else "",
         "xmlHref": f"/fatturazione/{pid}/xml" if pid and not _is_proforma(parcella) else "",
     }
     balance = getattr(parcella, '_incassi_projection', None)
     if isinstance(balance, dict):
+        record['bankTransferReceived'] = balance['status'] in {'OPEN', 'PARTIAL', 'PAID'} and any(
+            row['direction'] == 1 and row['method'] == 'banca' and not row['reversed']
+            for row in balance['receipts'])
         record.update(receiptStatus=balance['status'],
             receivedDisplay='Da riscontrare' if balance['paid_cents'] is None else _money(balance['paid_cents'] / 100),
             residualDisplay='Da riscontrare' if balance['residual_cents'] is None else _money(balance['residual_cents'] / 100))

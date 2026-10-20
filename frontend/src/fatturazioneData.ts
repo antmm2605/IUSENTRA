@@ -23,6 +23,7 @@ export type FatturazioneRecord = {
   caseTitle: string
   amountDisplay: string
   receiptStatus?: string
+  bankTransferReceived?: boolean
   receivedDisplay?: string
   residualDisplay?: string
   issuedAt: string
@@ -763,6 +764,7 @@ function normaliseRecord(raw: unknown): FatturazioneRecord {
     caseTitle: display(item.caseTitle),
     amountDisplay: display(item.amountDisplay),
     receiptStatus: text(item.receiptStatus),
+    bankTransferReceived: item.bankTransferReceived === true,
     receivedDisplay: display(item.receivedDisplay),
     residualDisplay: display(item.residualDisplay),
     issuedAt: text(item.issuedAt),

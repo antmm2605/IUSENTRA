@@ -245,3 +245,12 @@ verifica il backup della riconciliazione, i domini proprietari e la
 conservazione di clienti e fascicoli. La vera importazione JSON senza
 adozione SQL mantiene il proprio test di blocco anti-perdita.
 Nessuna modifica al comando di provisioning è rimasta nel candidato.
+
+
+Il filtro «Bonifico registrato» dell'archivio usa adesso solo una ricevuta
+nativa bancaria non stornata, collegata al documento e con saldo coerente.
+Una data di pagamento, lo stato «Pagata» o il metodo previsto nel documento
+non costituiscono tale prova. La classificazione non riscontrata non afferma
+che un pagamento storico non sia avvenuto. Due guardrail SQL nativi verificano
+la sequenza contanti, bonifico a saldo e storno del solo bonifico, conservando
+l'incasso in contanti e aggiornando il medesimo filtro.

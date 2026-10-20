@@ -411,8 +411,7 @@ function normalizeFilterValue(value: string | number | null | undefined) {
 }
 
 function hasRegisteredTransfer(record: FatturazioneRecord) {
-  const method = normalizeFilterValue(record.paymentMethod)
-  return record.state === 'PAGATA' && (Boolean(record.paidAt) || method.includes('bonifico'))
+  return record.bankTransferReceived === true
 }
 
 function isIssuedInvoice(record: FatturazioneRecord) {
@@ -2954,8 +2953,8 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
               onChange={(event) => setPaymentFilter(event.currentTarget.value as PaymentFilter)}
             >
               <option value="all">Tutti</option>
-              <option value="bonifico">Sì</option>
-              <option value="senza_bonifico">No</option>
+              <option value="bonifico">Riscontrato</option>
+              <option value="senza_bonifico">Non riscontrato</option>
             </select>
           </label>
           <label className="iu-fatt-filter-field">

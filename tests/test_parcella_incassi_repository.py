@@ -513,3 +513,25 @@ def test_proforma_emission_between_partial_and_balance_keeps_one_cash_ledger(inv
     result = _receive(repo, manager, invoice_id, 60000)
     assert result['status'] == 'PAID' and not result['fiscal_document_required']
     assert len(cash.load()) == 2
+
+
+
+def test_bank_filter_uses_active_native_bank_receipts_not_planned_method(invoice_receipts):
+    from pct.parcella_incassi_views import balances_for_invoices
+    from web.services.react_fatturazione_bridge import _invoice_record
+    repo, _, manager, invoice_id = invoice_receipts
+    def record():
+        invoice = _invoice(manager, invoice_id)
+        balances_for_invoices(repo.db, {invoice_id: invoice})
+        return _invoice_record(invoice, {}, {})
+    assert not record()['bankTransferReceived']
+    invoice = _invoice(manager, invoice_id)
+    repo.register(invoice_id=invoice_id, amount_cents=40000, paid_on='2026-10-19', method='cassa',
+        note='Contanti controllati', command_key=str(uuid4()), expected_revision=parcella_revision(invoice))
+    assert not record()['bankTransferReceived']
+    transfer = _receive(repo, manager, invoice_id, 60000)
+    assert record()['bankTransferReceived']
+    repo.reverse(invoice_id=invoice_id, movement_id=transfer['movement_id'], paid_on='2026-10-20',
+        reason='Storno controllato del bonifico', command_key=str(uuid4()),
+        expected_revision=parcella_revision(_invoice(manager, invoice_id)))
+    assert not record()['bankTransferReceived']

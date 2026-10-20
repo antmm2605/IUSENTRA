@@ -14,7 +14,7 @@ beautifulsoup4==4.15.0
 blinker==1.9.0
 boto3==1.43.114
 botocore==1.43.114
-certifi==2026.7.22
+certifi==2026.10.19
 cffi==2.1.1
 charset-normalizer==3.5.2
 click==8.5.0
@@ -66,7 +66,7 @@ pdf-inspector==1.17.0
 pdf2docx==0.5.13
 pdfminer-six==20260107
 pdfplumber==0.11.10
-pillow==12.3.0
+pillow==13.0.0
 pip==26.2.1
 platformdirs==4.13.3
 prometheus-client==0.26.0

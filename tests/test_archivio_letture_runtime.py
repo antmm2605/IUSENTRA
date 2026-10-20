@@ -552,3 +552,18 @@ def test_failed_queue_is_not_a_completed_or_unreadable_document(tmp_path, monkey
         assert not result['completa'] and not result['in_corso']
         assert result['tentativi'] == 3 and result['errori'] == 0
         assert result['errore_evento'] == 'Schema documentale non preparato'
+
+
+def test_unavailable_queue_schema_cannot_confirm_saved_readings(tmp_path, monkeypatch):
+    app = _app(tmp_path)
+    from web.services.registro_letture_runtime import stato_letture_payload
+    from pct.registro_letture.event_retry import ReadingEventSchemaNotPrepared
+    from pct.fascicoli import TipoFascicolo
+    with app.app_context():
+        matter = app.extensions['core_runtime']['get_fascicoli']().nuovo('Collaudo schema letture',TipoFascicolo.CIVILE)
+        def unavailable(*args, **kwargs):
+            raise ReadingEventSchemaNotPrepared('Coda letture non preparata')
+        monkeypatch.setattr('web.services.archivio_letture_runtime.stato_archivio_payload',unavailable)
+        payload = stato_letture_payload(matter,segna_visto=False)
+        assert not payload['tutto_letto']
+        assert any(row['passo'] == 'archivio delle letture' and 'Coda letture non preparata' in row['motivo'] for row in payload['degradato'])

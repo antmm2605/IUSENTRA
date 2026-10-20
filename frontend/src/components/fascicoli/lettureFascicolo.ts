@@ -96,6 +96,7 @@ export interface LettureFascicolo {
   impronta: string
   oggetti: number
   tutto_letto: boolean
+  degradato?: { passo: string; motivo: string }[]
   lettori: LettoreStato[]
   per_oggetto: OggettoLettura[]
   novita: NovitaLetture
@@ -129,6 +130,7 @@ export function riassuntoLetture(letture: LettureFascicolo): { testo: string; to
   const automatica = letture.archivio?.lettura_automatica
   if (automatica?.stato_coda === 'failed') return { testo: `Lettura interrotta dopo ${automatica.tentativi || 0} tentativi. I risultati già salvati sono conservati.`, tono: 'danger' }
   if (automatica?.stato_coda === 'pending' && automatica.prossimo_tentativo_it) return { testo: `Nuovo tentativo programmato per ${automatica.prossimo_tentativo_it}.`, tono: 'warning' }
+  if (letture.degradato?.length) return { testo: 'Verifica delle letture incompleta. Consulta le cause; i risultati già salvati sono conservati.', tono: 'warning' }
   if (!letture.oggetti) return { testo: 'Nessun documento o PEC da leggere.', tono: 'neutral' }
   const erroriArchivio = automatica?.errori || 0
   if (erroriArchivio) {

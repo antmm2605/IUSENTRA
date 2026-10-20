@@ -134,6 +134,7 @@ export function LettureFascicoloSection({ fascicoloId, active = true, refreshKey
     }
   }, [fascicoloId, onAggiornato])
 
+  const degradato = useMemo(() => (letture?.degradato || []).filter(voce => voce.passo !== 'elaborazione automatica' || letture?.archivio?.lettura_automatica.stato_coda !== 'failed'), [letture])
   const riassunto = useMemo(() => (letture ? riassuntoLetture(letture) : null), [letture])
   const archivio = useMemo(() => (letture ? riassuntoArchivio(letture.archivio) : null), [letture])
   const collaudo = useMemo(() => (letture ? fraseCollaudo(letture.archivio?.collaudo_lettore) : null), [letture])
@@ -152,6 +153,10 @@ export function LettureFascicoloSection({ fascicoloId, active = true, refreshKey
         <span>{riassunto ? <Badge tone={riassunto.tono}>{riassunto.testo}</Badge> : loading ? 'carico registro…' : ''}</span>
       </div>
       {error ? <p className="iu-fas-lettura__state iu-fas-lettura__state--error" role="alert"><AlertTriangle size={15}/> {error}</p> : null}
+      {degradato.length ? <div className="iu-fas-lettura__state iu-fas-lettura__state--error iu-fas-letture__degradato" role="alert">
+        <strong>Verifiche non concluse</strong>
+        <ul>{degradato.map((voce, index) => <li key={`${voce.passo}-${index}`}>{voce.passo}: {voce.motivo.replace(/^[A-Za-z][A-Za-z0-9_.]*:\s*/, '')}</li>)}</ul>
+      </div> : null}
       {novita ? <p className={`iu-fas-letture__novita${letture?.novita.nuovi.length || letture?.novita.cambiati.length ? ' is-nuove' : ''}`}>{novita}</p> : null}
       {archivio ? (
         <div className="iu-fas-letture__archivio" aria-label="Archivio delle letture">

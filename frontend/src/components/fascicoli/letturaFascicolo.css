@@ -174,3 +174,6 @@
 .iu-fas-letture__provenienza-riepilogo{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0;font-size:12px;color:#41617a}
 .iu-fas-letture__provenienza li .iu-button{align-self:flex-start;min-height:30px;font-size:12px}
 .iu-fas-letture__provenienza small.is-danger{color:var(--iu-danger, #b42318);font-weight:700}
+
+.iu-fas-lettura__state.iu-fas-letture__degradato{display:block;overflow-wrap:anywhere}
+.iu-fas-letture__degradato ul{margin:4px 0 0;padding-left:16px}

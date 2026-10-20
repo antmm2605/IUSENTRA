@@ -20,4 +20,11 @@ Usare lo stesso comando anche sulla copia Docker locale prima di attivare app, s
 
 ## Riscontri tecnici iniziali
 
-Undici prove native SQLite/PostgreSQL senza skip: backoff, arresto, lease scadute, nuovo evento durante vecchio lavoro, riferibilità al tenant, migrazione conservativa, backup antecedente al DDL e ripresa idempotente con storico conservato. Undici guardie Node dei riepiloghi e34guardie editor/stato positive; suite precedente di35prove runtime positiva con4skip PostgreSQL dell’esecuzione Windows, compensati dalle prove native dedicate. Typecheck e build frontend positivi. Questi controlli non sostituiscono il collaudo reale8080.
+Undici prove native SQLite/PostgreSQL senza skip: backoff, arresto, lease scadute, nuovo evento durante vecchio lavoro, riferibilità al tenant, migrazione conservativa, backup antecedente al DDL e ripresa idempotente con storico conservato. Dodici guardie Node dei riepiloghi e34guardie editor/stato positive; suite precedente di35prove runtime positiva con4skip PostgreSQL dell’esecuzione Windows, compensati dalle prove native dedicate. Typecheck e build frontend positivi. Questi controlli non sostituiscono il collaudo reale8080.
+
+
+## Dipendenze non disponibili
+
+La proiezione non conferma `tutto_letto` quando un passo del registro non è verificabile. Il pannello conserva i risultati salvati, mostra le cause e non riutilizza un riepilogo positivo storico come conferma della richiesta corrente. Due guardie dedicate provano errore terminale e schema non disponibile; il riepilogo ha una guardia specifica anche senza oggetti. Gli errori già esposti dalla lettura automatica non sono duplicati nel nuovo elenco delle cause.
+
+La verifica estesa ha intercettato una difformità di formattazione nel contratto delle colonne SQL; corretta e riprovata prima dell’attivazione. La prima immagine non è stata attivata; la seconda compilazione è stata interrotta per includere la correzione del riepilogo degradato. Nessun rilascio parziale di queste candidate sulla macchina dell’utente.

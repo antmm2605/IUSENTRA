@@ -148,3 +148,12 @@ test('errore della coda resta visibile anche senza oggetti e non diventa tutto l
   const pending = { ...failed, stato_coda: 'pending', prossimo_tentativo_it: '20/10/2026 10:30' }
   assert.match(fraseLetturaAutomatica(pending), /20\/10\/2026 10:30/)
 })
+
+
+test('un passo non verificato non mostra un esito positivo storico', () => {
+  const result = riassuntoLetture(letture({ oggetti: 0, tutto_letto: true,
+    degradato: [{ passo: 'archivio delle letture', motivo: 'Servizio non disponibile' }],
+    archivio: { lettura_automatica: { completa: true } } }))
+  assert.equal(result.tono,'warning')
+  assert.doesNotMatch(result.testo,/Tutto letto|Nessun documento/)
+})

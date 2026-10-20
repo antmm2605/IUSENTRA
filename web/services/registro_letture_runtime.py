@@ -474,7 +474,7 @@ def stato_letture_payload(fascicolo: Any, *, registro: RegistroLetture | None = 
     return {
         "impronta": stato.impronta,
         "oggetti": stato.oggetti,
-        "tutto_letto": stato.tutto_letto and not errore_coda,
+        "tutto_letto": stato.tutto_letto and not degradato,
         "degradato": degradato,
         "lettori": lettori,
         "archivio": archivio,

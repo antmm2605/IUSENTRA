@@ -2,6 +2,15 @@
 
 > Direttiva utente 13/10/2026: `main` è il solo branch operativo e predefinito per commit, push e deploy. Le istruzioni storiche sui branch gemelli e sul doppio push sono sostituite: nessun mirroring. I vecchi branch restano conservati come riferimenti storici; `chore/monorepo-foundation` resta intoccabile. Tutti i gate CI e le verifiche reali restano obbligatori.
 
+## Metodo di analisi Graphify per Codex — direttiva utente 20/10/2026
+
+- Riferimento metodologico: https://github.com/Graphify-Labs/graphify. Applicarlo al ragionamento dell’agente e all’analisi del codice; questa direttiva non introduce Graphify nel prodotto, nei servizi o nelle dipendenze di IUSENTRA.
+- Prima di una modifica ricostruire il sottografo pertinente: file e simboli, chiamanti e chiamati, import, repository e tabelle SQL, produttori ed eventi, job, API, componenti React, permessi, audit e test. Seguire il percorso dall’ingresso al risultato persistito e visibile; includere i consumatori indiretti e i confini condivisi interessati.
+- Ogni collegamento deve riportare evidenza verificabile (file, simbolo e righe o riferimento equivalente). Distinguere EXTRACTED, direttamente dimostrato dalla fonte, da INFERRED, dedotto e ancora da verificare. Non trasformare una relazione plausibile in una certezza e non usare il grafo come prova di funzionamento.
+- Consultare prima le mappe e gli inventari esistenti, verificarne revisione e attualità, poi leggere i sorgenti necessari. Aggiornare soltanto il perimetro cambiato; niente scansioni globali ripetute per ogni domanda. Relazioni dinamiche o mancanti richiedono riscontro nei percorsi reali, non l’assunzione che non esistano.
+- Usare il sottografo per individuare il proprietario della funzione, riutilizzare il motore già presente, valutare l’impatto e scegliere verifiche mirate dei comportamenti dipendenti. Le prove reali, i controlli di sicurezza e i gate già richiesti restano obbligatori.
+- L’analisi riguarda sorgenti e configurazioni pertinenti: escludere segreti, dati dei tenant, documenti dello studio, PEC, backup e addestramento. Non inviarli a servizi esterni per costruire grafi. Eventuali strumenti Graphify vanno prima verificati e usati in un ambiente di sviluppo separato dalle dipendenze applicative.
+
 ## Autorizzazioni generali
 
 - **Pulizia obbligatoria dopo ogni incarico, direttiva utente del 16/10/2026:** nessun incarico o rilascio è chiuso prima della pulizia verificata di immagini Docker obsolete, cache di build e artefatti temporanei creati dal lavoro. Prima di ogni build verificare lo spazio del motore Docker e del disco ospitante, dimensionare il margine per build, esportazioni e backup e fermare la build se insufficiente. Dopo ogni build e deploy ripetere la pulizia e registrare spazio prima/dopo, elementi conservati, errori ed esito dei servizi. Riutilizzare gli strumenti governati; una pulizia fallita non è un semplice avviso e mantiene aperto il lavoro. Conservare immagini richieste da container, collaudi e ripristino; prima di eliminare immagini hot con sorgenti non consolidati recuperarli e verificarli fuori da Docker. Non cancellare volumi, database, tenant, documenti, PEC, fonti, checkpoint o backup, non interrompere addestramenti e non spegnere o riavviare PC/WSL per compattare dischi. Distinguere lo spazio recuperato dentro Docker dallo spazio effettivo del disco Windows. Vietati prune indiscriminati di volumi, dati o progetti estranei.
@@ -1077,3 +1086,29 @@ python tools/codex_harness/run_codex_quality_gate.py --mode ui-support
 - **Continuità dei backup tecnici:** prima della retention preservare e verificare gli archivi `supplemental-technical`, con provenienza e SHA-256, nella nuova copia. Rispettare il lock di manutenzione condiviso. Le verifiche di backup sono in sola lettura e non devono richiamare procedure creatrici: una nuova copia non sostituisce una precedente impronta storica. Registrare esplicitamente le dismissioni autorizzate e la copertura verificata, preservando le copie necessarie alle migrazioni ancora preparate.
 
 - **Bundle React operativo:** Docker distribuisce il bundle verificato e versionato in `web/static/react`, non l'output del builder usato come guardrail. Dopo modifiche ai suoi input rigenerare questo bundle nel percorso predefinito, verificarne sorgenti e asset con `node frontend/scripts/check-published-react-sources.mjs`, includerlo nel commit e provarlo sulla copia reale8080. Una build Vite in una cartella diversa non aggiorna il prodotto. Il pre-push e la CI devono respingere provenienza mancante, sorgenti discordanti o asset alterati; preservare i chunk delle sessioni aperte tramite il plugin esistente.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
+
+Rules:
+- When graphify-out/graph.json exists, run `graphify query "<question>"` before your first grep, search or source-file read for a codebase question, and put this rule in every subagent prompt that explores code. Read raw files only for lines the graph or an earlier read already located. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+- A committed graphify-out/graph.json is rewritten whole on every build, so a large diff to it in a pull request is expected. Do not flag it as churn or suggest skipping the graph rebuild or its hooks.
+
+### Installazione e perimetro operativo locale Graphify
+
+- Installazione ufficiale verificata il 20/10/2026: pacchetto `graphifyy==0.9.93` in ambiente Python separato `C:/Users/antmm/.codex/tools/graphify-env`; eseguibile `C:/Users/antmm/.codex/tools/graphify-env/Scripts/graphify.exe`. Skill ufficiale, senza riscriverne il contenuto: `C:/Users/antmm/.codex/skills/graphify/SKILL.md`, con i relativi `references/`. Rileggere la skill prima di applicarla e verificare la versione installata se cambia l'ambiente.
+- Il blocco `## graphify` precedente è quello generato dal comando ufficiale `graphify codex install`. L'indicazione generica sul grafo del progetto non certifica la sua esistenza o copertura: verificarle sempre. Al momento le estrazioni locali sono limitate al codice, senza API né documenti dei tenant, e risiedono in `C:/Users/antmm/.codex/reading-event-retries-24414/graphify-documenti/graphify-out/` e `.../graphify-frontend/graphify-out/`; usare il parametro `--graph` con il percorso esatto. Non scambiarle per una mappa dell'intero backend o dei dati.
+- Aggiornare il solo grafo pertinente con i comandi ufficiali, mantenendo radice, esclusioni e provenienza; per la ricostruzione locale usare `extract <radice> --code-only --max-workers 1 --no-cluster --out <destinazione>` quando basta il grafo strutturale. Annotare file non riconosciuti e collegamenti esterni non risolti; integrare le evidenze mancanti leggendo il sorgente. Il grafo non sostituisce le prove reali.
+
+### Copertura dell’intero software — direttiva utente 20/10/2026
+
+- Applicare la skill ufficiale Graphify a tutti i settori del codice del software, non soltanto al frontend. La procedura comune è `docs/AGENT_KNOWLEDGE.md`; i punti d’ingresso verificabili per settore sono in `tools/agent_knowledge/domains.json`. Ogni agente che analizza codice deve seguire la medesima procedura; le baseline storiche conservate restano immutabili.
+- Grafo complessivo locale: `C:/Users/antmm/.codex/knowledge/IUSENTRA/graphify-out/graph.json`. Verificarne esistenza, manifesto, diagnostica e attualità prima di usarlo. Il costruttore `tools/agent_knowledge/build_graph.py` usa soltanto sorgenti versionati e Graphify ufficiale; non importa né avvia IUSENTRA. Usare le interrogazioni ufficiali con `--graph`, poi leggere i sorgenti dei passaggi pertinenti, senza dichiarare coperti quelli esclusi o non riconosciuti.
+- Per ogni funzione seguire chiamanti, dipendenze, repository, eventi, API, interfaccia e test. Per le materie riutilizzare `lex/normativa/materie.py`, i cataloghi e le procedure esistenti: l’indice dell’agente non introduce regole giuridiche o classificazioni applicative nuove. Aggiornare il grafo in modo incrementale dopo le modifiche e conservare prove e limiti dell’analisi.

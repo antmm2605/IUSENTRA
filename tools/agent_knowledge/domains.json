@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "purpose": "Agent navigation anchors; membership is an analysis aid, not a runtime contract or proof of legal coverage.",
+  "domains": [
+    {
+      "id": "shell",
+      "label": "Navigazione e pagine",
+      "anchors": [
+        "frontend/src/App.tsx",
+        "frontend/src/app/routes.ts",
+        "web/bootstrap/react_route_gate.py"
+      ],
+      "membership": "INFERRED; verify the actual calls and owners in Graphify"
+    },
+    {
+      "id": "clienti",
+      "label": "Clienti, anagrafiche e soggetti",
+      "anchors": [
+        "pct/clienti.py",
+        "pct/soggetti.py",
+        "pct/fascicoli_clienti_index.py"
+      ],
+      "membership": "INFERRED; verify the actual calls and owners in Graphify"
+    },
+    {
+      "id": "fascicoli",
+      "label": "Fascicoli e cartelle",
+      "anchors": [
+        "pct/fascicoli.py",
+        "pct/fascicoli_list_query.py",
+        "pct/fascicolo_workspace.py"
+      ],
+      "membership": "INFERRED; verify the actual calls and owners in Graphify"
+    },
+    {
+      "id": "agenda",
+      "label": "Agenda e udienze",
+      "anchors": [
+        "pct/agenda.py",
+        "pct/agenda_sql_writer.py",
+        "pct/udienze/"
+      ],
+      "membership": "INFERRED; verify the actual calls and owners in Graphify"
+    },
+    {
+      "id": "scadenze",
+      "label": "Scadenziario e termini",
+      "anchors": [
+        "pct/scadenziario.py",
+        "pct/scadenziario_sql_writer.py",
+        "pct/termini_penali/"
+      ],
+      "membership": "INFERRED; verify the actual calls and owners in Graphify"
+    },
+    {
+      "id": "timesheet",
+      "label": "Attivita e tempi",
+      "anchors": [
+        "pct/timesheet.py",
+        "pct/timesheet_sql_writer.py",
+        "web/services/react_timesheet_bridge.py"
+      ],
+      "membership": "INFERRED; verify the actual calls and owners in Graphify"
+    },
+    {
+      "id": "economia",
+      "label": "Preventivi, fatturazione e incassi",
+      "anchors": [
+        "preventivi/",
+        "pct/fatturazione.py",
+        "pct/fatturazione_sql_commands.py",
+        "pct/payment_confirmations.py",
+        "pct/payment_links_sql.py",
+        "pct/contabilita/"
+      ],
+      "membership": "INFERRED; verify the actual calls and owners in Graphify"
+    },
+    {
+      "id": "sentenze",
+      "label": "Sentenze e presidi economici",
+      "anchors": [
+        "pct/archivio_letture/",
+        "pct/sentenza_economic_repository.py",
+        "pct/sentenza_economic_workflow.py",
+        "pct/fascicolo_esenzione_cu.py"
+      ],
+      "membership": "INFERRED; verify the actual calls and owners in Graphify"
+    },
+    {
+      "id": "pec",
+      "label": "PEC, documenti e letture",
+      "anchors": [
+        "pct/registro_letture/",
+        "pct/pec_fascicolo_cliente.py",
+        "pct/email_sql_client.py",
+        "web/services/registro_letture_runtime.py"
+      ],
+      "membership": "INFERRED; verify the actual calls and owners in Graphify"
+    },
+    {
+      "id": "ocr",
+      "label": "OCR e fedelta documentale",
+      "anchors": [
+        "legal_ocr/",
+        "pct/document_intelligence/",
+        "pct/documento_fedele/"
+      ],
+      "membership": "INFERRED; verify the actual calls and owners in Graphify"
+    },
+    {
+      "id": "redazione",
+      "label": "Editor, modelli e redazione",
+      "anchors": [
+        "pct/template_atti_schede/",
+        "pct/template_atti_catalogo_data/",
+        "frontend/src/features/documenti/",
+        "pct/editor_ai/"
+      ],
+      "membership": "INFERRED; verify the actual calls and owners in Graphify"
+    },
+    {
+      "id": "telematico",
+      "label": "Depositi, firma e notifiche - baseline congelata",
+      "anchors": [
+        "legal_deposit/",
+        "local_signer_mod/",
+        "pct/firma_modulo/",
+        "pct/penale_pdp/",
+        "pct/pat_formweb/",
+        "pct/ptt_sigit/"
+      ],
+      "membership": "INFERRED; verify the actual calls and owners in Graphify"
+    },
+    {
+      "id": "lex",
+      "label": "Lex, fonti e ricerca",
+      "anchors": [
+        "lex/",
+        "legal_intelligence/",
+        "intelligence/"
+      ],
+      "membership": "INFERRED; verify the actual calls and owners in Graphify"
+    },
+    {
+      "id": "procedure",
+      "label": "Procedure, mediazione e CTU",
+      "anchors": [
+        "pct/practice_engine/",
+        "pct/procedure_completion/",
+        "pct/ctu_compensi/",
+        "pct/procedura_fasi/"
+      ],
+      "membership": "INFERRED; verify the actual calls and owners in Graphify"
+    },
+    {
+      "id": "sicurezza",
+      "label": "Tenant, permessi e audit",
+      "anchors": [
+        "auth/",
+        "audit/",
+        "privacy/",
+        "pct/compliance/"
+      ],
+      "membership": "INFERRED; verify the actual calls and owners in Graphify"
+    },
+    {
+      "id": "database",
+      "label": "Storage, migrazioni e SQL",
+      "anchors": [
+        "core/",
+        "db/",
+        "pct/sql/",
+        "pct/storage_migration.py",
+        "pct/storage_migration_full.py",
+        "pct/catalogo_strutturale.py"
+      ],
+      "membership": "INFERRED; verify the actual calls and owners in Graphify"
+    },
+    {
+      "id": "regia",
+      "label": "Eventi, regia e sincronizzazione",
+      "anchors": [
+        "pct/daily_plan/",
+        "pct/controllo_studio/",
+        "frontend/src/operationalRefresh.ts",
+        "lex/agents/"
+      ],
+      "membership": "INFERRED; verify the actual calls and owners in Graphify"
+    },
+    {
+      "id": "operazioni",
+      "label": "Build, test e rilascio",
+      "anchors": [
+        "deploy/",
+        "scripts/",
+        "tests/",
+        "tools/",
+        ".github/"
+      ],
+      "membership": "INFERRED; verify the actual calls and owners in Graphify"
+    }
+  ],
+  "legal_subjects_source": "lex/normativa/materie.py",
+  "legal_subjects_symbol": "MATERIE",
+  "procedures_source": "pct/practice_engine/",
+  "catalog_source": "pct/template_atti_catalogo_data/"
+}

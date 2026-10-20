@@ -10,6 +10,12 @@
 - A fine lavoro i branch `main`, locali e remoti, devono puntare allo stesso commit; se una protezione GitHub blocca il push diretto, correggere i check e documentare il push riuscito.
 - La configurazione `.claude/settings.json` usa hook locali in `.claude/hooks.py`: non deve contenere path esterni, nomi di altri progetti o comandi che operano fuori da questa repository.
 
+## Analisi condivisa con Graphify
+
+- Per ricostruire funzioni e dipendenze seguire la procedura canonica di [AGENTS.md](AGENTS.md) e [Conoscenza del software per gli agenti](docs/AGENT_KNOWLEDGE.md), consultando il grafo aggiornato prima delle ricerche estese.
+- I punti d’ingresso per settore sono in `tools/agent_knowledge/domains.json`; materie e procedure restano quelle dei cataloghi reali. Conservare provenienza e distinzione EXTRACTED/INFERRED; verificare manualmente i passaggi non risolti.
+- Non modificare la skill ufficiale, non introdurre Graphify nelle dipendenze del prodotto e non indicizzare dati dello studio. Il grafo non sostituisce i test reali o le baseline congelate.
+
 ## Autorizzazioni generali
 
 - **Procedi sempre senza chiedere conferma.** L'utente ha autorizzato tutte le operazioni in modo permanente.

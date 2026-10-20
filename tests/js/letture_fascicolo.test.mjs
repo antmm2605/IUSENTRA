@@ -137,3 +137,14 @@ test('esiti negativi conclusi non diventano tutto letto o in coda', () => {
   assert.doesNotMatch(riassuntoLetture(stato).testo, /Tutto letto|in coda/)
   assert.match(fraseLetturaAutomatica(automatica), /14 esiti non leggibili/)
 })
+
+
+test('errore della coda resta visibile anche senza oggetti e non diventa tutto letto', () => {
+  const failed = { stato_coda: 'failed', tentativi: 3, errore_evento: 'Schema non preparato', in_corso: false, completa: false }
+  const result = riassuntoLetture(letture({ oggetti: 0, tutto_letto: true, archivio: { lettura_automatica: failed } }))
+  assert.equal(result.tono, 'danger')
+  assert.doesNotMatch(result.testo, /Tutto letto|Nessun oggetto/)
+  assert.match(fraseLetturaAutomatica(failed), /Schema non preparato/)
+  const pending = { ...failed, stato_coda: 'pending', prossimo_tentativo_it: '20/10/2026 10:30' }
+  assert.match(fraseLetturaAutomatica(pending), /20\/10\/2026 10:30/)
+})

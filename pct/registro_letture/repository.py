@@ -18,6 +18,7 @@ from typing import Any, Iterable
 from pct.postgres_runtime_support import PostgresRepositoryBackend
 
 from .consegne import COLONNE_CONSEGNE, ConsegneMixin
+from .event_retry import MAX_ATTEMPTS, deadline, retry_deadline, require_prepared
 from .fatti_repository import CATEGORIE, COLONNE_FATTI, FattiMixin
 from .lettori import LETTORI, etichetta_lettore, livello_lettore, tipi_lettore, versione_compatibile_lettore, versione_lettore
 from .modello import (
@@ -37,7 +38,7 @@ from .modello import (
 SCHEMA_SQLITE = Path(__file__).resolve().parent.parent / "sql" / "20260915_registro_letture.sql"
 SCHEMA_POSTGRES = Path(__file__).resolve().parent.parent / "sql" / "20260915_registro_letture_postgres.sql"
 
-TABELLE = ("letture_oggetti", "letture", "letture_fascicoli", "letture_viste", "letture_anomalie", "letture_fatti", "letture_consegne", "letture_payload_cache", "letture_eventi")
+TABELLE = ("letture_oggetti", "letture", "letture_fascicoli", "letture_viste", "letture_anomalie", "letture_fatti", "letture_consegne", "letture_payload_cache", "letture_eventi", "letture_eventi_esiti")
 _TABELLA_SQL = {tabella: f'"{tabella}"' for tabella in TABELLE}
 COLONNE: dict[str, tuple[str, ...]] = {
     "letture_oggetti": (
@@ -62,7 +63,8 @@ COLONNE: dict[str, tuple[str, ...]] = {
     "letture_fatti": COLONNE_FATTI,
     "letture_consegne": COLONNE_CONSEGNE,
     "letture_payload_cache": ("id", "tenant_id", "fascicolo_id", "cache_key", "payload_json", "expires_at", "creato_il", "aggiornato_il"),
-    "letture_eventi": ("id", "tenant_id", "fascicolo_id", "generation", "claimed_generation", "stato", "pending_force", "claimed_force", "pending_presidi", "claimed_presidi", "worker_id", "lease_until", "creato_il", "aggiornato_il"),
+    "letture_eventi": ("id", "tenant_id", "fascicolo_id", "generation", "claimed_generation", "stato", "pending_force", "claimed_force", "pending_presidi", "claimed_presidi", "attempts", "available_at", "last_error", "last_error_code", "worker_id", "lease_until", "creato_il", "aggiornato_il"),
+    "letture_eventi_esiti": ("id", "tenant_id", "fascicolo_id", "generation", "attempt", "worker_id", "stato", "error_code", "errore", "iniziato_il", "concluso_il"),
 }
 _COLONNA_SQL = {colonna: f'"{colonna}"' for colonne in COLONNE.values() for colonna in colonne}
 _FILTRI_SQL = {
@@ -726,14 +728,26 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
 
     # ---- coda persistente delle letture puntuali -------------------------------
 
-    def stato_evento(self, tenant_id: str, fascicolo_id: str) -> str:
-        """Stato persistente di un solo lavoro, senza letture documentali."""
+    def _require_event_retry(self, conn):
+        if not getattr(self, '_event_retry_prepared', False):
+            require_prepared(conn, postgres=self.backend_kind == 'postgres')
+            self._event_retry_prepared = True
+
+    def esito_evento(self, tenant_id: str, fascicolo_id: str) -> dict[str, Any]:
+        """Stato ed esito corrente, senza leggere documenti o avviare lavori."""
         with self.connection() as conn:
+            self._require_event_retry(conn)
             row = conn.execute(
-                'SELECT stato FROM "letture_eventi" WHERE tenant_id = ? AND fascicolo_id = ?',
-                (_testo(tenant_id), _testo(fascicolo_id)),
+                'SELECT stato,generation,attempts,available_at,last_error,last_error_code FROM letture_eventi '
+                'WHERE tenant_id=? AND fascicolo_id=?', (_testo(tenant_id), _testo(fascicolo_id)),
             ).fetchone()
-        return _testo(row["stato"]) if row else "idle"
+        result = dict(row) if row else dict(stato='idle',generation=0,attempts=0,available_at='',last_error='',last_error_code='')
+        if result['stato'] == 'idle' and result['last_error']:
+            result['stato'] = 'failed'
+        return result
+
+    def stato_evento(self, tenant_id: str, fascicolo_id: str) -> str:
+        return self.esito_evento(tenant_id, fascicolo_id)['stato']
 
     def accoda_evento(self, tenant_id: str, fascicolo_id: str, *, forza: bool = False, presidi: bool = False) -> int:
         """Registra una generazione per un solo fascicolo, anche se è già in lavoro."""
@@ -754,6 +768,7 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
         return bool(row and row["stato"] in {"pending", "running"} and (row["pending_presidi"] or row["claimed_presidi"]))
 
     def _accoda_evento_conn(self, conn: Any, tenant: str, fascicolo: str, forza: bool, adesso: str, *, presidi: bool = False) -> int:
+        self._require_event_retry(conn)
         self._prepare_live_write(conn)
         conn.execute(
                 'INSERT INTO "letture_eventi" '
@@ -764,6 +779,7 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
                 'stato = CASE WHEN letture_eventi.stato = \'running\' THEN \'running\' ELSE \'pending\' END, '
                 'pending_force = CASE WHEN letture_eventi.pending_force = 1 OR excluded.pending_force = 1 THEN 1 ELSE 0 END, '
                 'pending_presidi = CASE WHEN letture_eventi.pending_presidi = 1 OR excluded.pending_presidi = 1 THEN 1 ELSE 0 END, '
+                "attempts=0, available_at='', last_error='', last_error_code='', "
                 'aggiornato_il = excluded.aggiornato_il',
                 (_nuovo_id("lev"), tenant, fascicolo, 1 if forza else 0, 1 if presidi else 0, adesso, adesso),
             )
@@ -803,71 +819,93 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
             return self._accoda_evento_conn(conn, tenant, fascicolo, False, adesso)
 
     def reclama_evento(self, tenant_id: str, fascicolo_id: str, worker_id: str, *, lease_seconds: int = 1800) -> dict[str, Any] | None:
-        """Reclama atomicamente la generazione pendente; una lease recupera processi interrotti."""
         tenant, fascicolo, worker = _testo(tenant_id), _testo(fascicolo_id), _testo(worker_id)
         if not tenant or not fascicolo or not worker:
             return None
-        adesso = _adesso()
-        lease = (datetime.now(timezone.utc) + timedelta(seconds=max(60, int(lease_seconds)))).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        now = _adesso()
         with self.connection() as conn:
+            self._require_event_retry(conn)
+            if self.backend_kind != 'postgres' and not conn.in_transaction:
+                conn.execute('BEGIN IMMEDIATE')
             self._prepare_live_write(conn)
-            conn.execute(
-                'UPDATE "letture_eventi" SET stato = \'running\', claimed_generation = generation, '
-                'claimed_force = CASE WHEN pending_force = 1 OR (stato = \'running\' AND claimed_force = 1) THEN 1 ELSE 0 END, pending_force = 0, '
-                'claimed_presidi = CASE WHEN pending_presidi = 1 OR (stato = \'running\' AND claimed_presidi = 1) THEN 1 ELSE 0 END, pending_presidi = 0, '
-                'worker_id = ?, lease_until = ?, aggiornato_il = ? '
-                'WHERE tenant_id = ? AND fascicolo_id = ? AND '
-                '(stato = \'pending\' OR (stato = \'running\' AND lease_until < ?))',
-                (worker, lease, adesso, tenant, fascicolo, adesso),
-            )
-            riga = conn.execute(
-                'SELECT generation, claimed_generation, claimed_force, claimed_presidi, worker_id FROM "letture_eventi" '
-                'WHERE tenant_id = ? AND fascicolo_id = ?',
-                (tenant, fascicolo),
-            ).fetchone()
-        if not riga or _testo(riga["worker_id"]) != worker:
-            return None
-        evento = {"generation": int(riga["claimed_generation"]), "forza": bool(riga["claimed_force"])}
-        if riga["claimed_presidi"]:
-            evento["presidi"] = True
-        return evento
+            row = conn.execute('SELECT * FROM letture_eventi WHERE tenant_id=? AND fascicolo_id=?'
+                               + (' FOR UPDATE' if self.backend_kind == 'postgres' else ''), (tenant,fascicolo)).fetchone()
+            if row is None:
+                return None
+            expired = row['stato'] == 'running' and row['lease_until'] < now
+            eligible = row['stato'] == 'pending' and (not row['available_at'] or row['available_at'] <= now)
+            if not expired and not eligible:
+                return None
+            if expired:
+                conn.execute("UPDATE letture_eventi_esiti SET stato='expired',error_code='LeaseExpired',"
+                             "errore='Lease del worker scaduta.',concluso_il=? WHERE tenant_id=? AND fascicolo_id=? "
+                             "AND worker_id=? AND generation=? AND stato='running'",
+                             (now,tenant,fascicolo,row['worker_id'],int(row['claimed_generation'])))
+            if int(row['attempts']) >= MAX_ATTEMPTS:
+                conn.execute("UPDATE letture_eventi SET stato='idle',worker_id='',lease_until='',available_at='',"
+                             "pending_force=CASE WHEN claimed_force=1 THEN 1 ELSE pending_force END,"
+                             "pending_presidi=CASE WHEN claimed_presidi=1 THEN 1 ELSE pending_presidi END,"
+                             "claimed_force=0,claimed_presidi=0,last_error='Lease del worker scaduta: tentativi esauriti.',"
+                             "last_error_code='LeaseExpired',aggiornato_il=? WHERE tenant_id=? AND fascicolo_id=?", (now,tenant,fascicolo))
+                return None
+            attempt = int(row['attempts']) + 1
+            claimed = conn.execute("UPDATE letture_eventi SET stato='running',claimed_generation=generation,attempts=?,"
+                "claimed_force=CASE WHEN pending_force=1 OR (stato='running' AND claimed_force=1) THEN 1 ELSE 0 END,pending_force=0,"
+                "claimed_presidi=CASE WHEN pending_presidi=1 OR (stato='running' AND claimed_presidi=1) THEN 1 ELSE 0 END,pending_presidi=0,"
+                "worker_id=?,lease_until=?,available_at='',aggiornato_il=? WHERE tenant_id=? AND fascicolo_id=? "
+                'RETURNING claimed_generation,claimed_force,claimed_presidi',
+                (attempt,worker,deadline(now,max(60,int(lease_seconds))),now,tenant,fascicolo)).fetchone()
+            conn.execute('INSERT INTO letture_eventi_esiti '
+                '(id,tenant_id,fascicolo_id,generation,attempt,worker_id,stato,iniziato_il) VALUES (?,?,?,?,?,?,?,?)',
+                (_nuovo_id('lea'),tenant,fascicolo,int(claimed['claimed_generation']),attempt,worker,'running',now))
+        result = dict(generation=int(claimed['claimed_generation']),forza=bool(claimed['claimed_force']))
+        if claimed['claimed_presidi']:
+            result['presidi'] = True
+        return result
 
-    def concludi_evento(self, tenant_id: str, fascicolo_id: str, worker_id: str, generation: int, *, riuscito: bool = True) -> bool:
-        """Chiude la generazione; vero indica un evento arrivato durante il lavoro."""
-        tenant, fascicolo, worker = _testo(tenant_id), _testo(fascicolo_id), _testo(worker_id)
-        adesso = _adesso()
+    def concludi_evento(self, tenant_id: str, fascicolo_id: str, worker_id: str, generation: int, *,
+                       riuscito: bool = True, errore: str = '', codice_errore: str = '') -> bool:
+        tenant,fascicolo,worker = _testo(tenant_id),_testo(fascicolo_id),_testo(worker_id)
+        now = _adesso()
+        error = '' if riuscito else (_testo(errore)[:1000] or 'Elaborazione non completata.')
+        code = '' if riuscito else (_testo(codice_errore)[:100] or 'ReadingEventFailed')
         with self.connection() as conn:
+            self._require_event_retry(conn)
             self._prepare_live_write(conn)
-            conn.execute(
-                'UPDATE "letture_eventi" SET '
-                'stato = CASE WHEN ? = 0 OR generation > claimed_generation THEN \'pending\' ELSE \'idle\' END, '
-                'pending_force = CASE WHEN ? = 0 AND claimed_force = 1 THEN 1 ELSE pending_force END, '
-                'pending_presidi = CASE WHEN ? = 0 AND claimed_presidi = 1 THEN 1 ELSE pending_presidi END, '
-                'worker_id = \'\', lease_until = \'\', claimed_force = 0, claimed_presidi = 0, aggiornato_il = ? '
-                'WHERE tenant_id = ? AND fascicolo_id = ? AND worker_id = ? AND claimed_generation = ?',
-                (1 if riuscito else 0, 1 if riuscito else 0, 1 if riuscito else 0, adesso, tenant, fascicolo, worker, int(generation)),
-            )
-            riga = conn.execute(
-                'SELECT stato FROM "letture_eventi" WHERE tenant_id = ? AND fascicolo_id = ?',
-                (tenant, fascicolo),
-            ).fetchone()
-        return bool(riga and _testo(riga["stato"]) == "pending")
+            row = conn.execute('SELECT attempts FROM letture_eventi WHERE tenant_id=? AND fascicolo_id=? '
+                               'AND worker_id=? AND claimed_generation=?', (tenant,fascicolo,worker,int(generation))).fetchone()
+            if row is None:
+                return False
+            next_try = retry_deadline(now,int(row['attempts']))
+            updated = conn.execute("UPDATE letture_eventi SET "
+                "stato=CASE WHEN generation>claimed_generation THEN 'pending' WHEN ?=1 OR attempts>=? THEN 'idle' ELSE 'pending' END,"
+                "available_at=CASE WHEN generation>claimed_generation OR ?=1 OR attempts>=? THEN '' ELSE ? END,"
+                "last_error=CASE WHEN generation>claimed_generation THEN '' ELSE ? END,"
+                "last_error_code=CASE WHEN generation>claimed_generation THEN '' ELSE ? END,"
+                "pending_force=CASE WHEN ?=0 AND claimed_force=1 THEN 1 ELSE pending_force END,"
+                "pending_presidi=CASE WHEN ?=0 AND claimed_presidi=1 THEN 1 ELSE pending_presidi END,"
+                "attempts=CASE WHEN generation>claimed_generation THEN 0 ELSE attempts END,"
+                "worker_id='',lease_until='',claimed_force=0,claimed_presidi=0,aggiornato_il=? "
+                'WHERE tenant_id=? AND fascicolo_id=? AND worker_id=? AND claimed_generation=? RETURNING stato',
+                (int(riuscito),MAX_ATTEMPTS,int(riuscito),MAX_ATTEMPTS,next_try,error,code,int(riuscito),int(riuscito),
+                 now,tenant,fascicolo,worker,int(generation))).fetchone()
+            if updated is None:
+                return False
+            conn.execute('UPDATE letture_eventi_esiti SET stato=?,error_code=?,errore=?,concluso_il=? '
+                         "WHERE tenant_id=? AND fascicolo_id=? AND worker_id=? AND generation=? AND stato='running'",
+                         ('succeeded' if riuscito else 'failed',code,error,now,tenant,fascicolo,worker,int(generation)))
+        return updated['stato'] == 'pending'
 
-    def eventi_da_riprendere(self, tenant_id: str = "", *, limite: int = 20) -> list[dict[str, Any]]:
-        """Restituisce solo eventi pending o con lease scaduta, senza leggere i fascicoli."""
-        tenant = _testo(tenant_id)
-        adesso = _adesso()
-        filtro_tenant = '"tenant_id" = ? AND ' if tenant else ""
-        parametri: list[Any] = [tenant] if tenant else []
-        parametri.extend((adesso, max(1, int(limite))))
-        sql = (
-            f'SELECT * FROM {self._tabella("letture_eventi")} WHERE {filtro_tenant}'
-            "(\"stato\" = 'pending' OR (\"stato\" = 'running' AND \"lease_until\" < ?)) "
-            'ORDER BY "aggiornato_il" ASC LIMIT ?'
-        )
+    def eventi_da_riprendere(self, tenant_id: str = '', *, limite: int = 20) -> list[dict[str, Any]]:
+        tenant,now = _testo(tenant_id),_adesso()
+        scope = 'tenant_id=? AND ' if tenant else ''
+        parameters = ([tenant] if tenant else []) + [MAX_ATTEMPTS,now,now,max(1,int(limite))]
         with self.connection() as conn:
-            righe = conn.execute(sql, tuple(parametri)).fetchall()
-        return [_riga(riga) for riga in righe]
+            self._require_event_retry(conn)
+            rows = conn.execute('SELECT * FROM letture_eventi WHERE ' + scope +
+                "((stato='pending' AND attempts<? AND (available_at='' OR available_at<=?)) "
+                "OR (stato='running' AND lease_until<?)) ORDER BY aggiornato_il ASC LIMIT ?", tuple(parameters)).fetchall()
+        return [_riga(row) for row in rows]
 
     # ---- viste dell'avvocato ---------------------------------------------------
 

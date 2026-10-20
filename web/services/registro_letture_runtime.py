@@ -468,10 +468,13 @@ def stato_letture_payload(fascicolo: Any, *, registro: RegistroLetture | None = 
         return stato_archivio_payload(fascicolo, registro=registro)
 
     archivio = passo("archivio delle letture", _archivio, {}) or {}
+    errore_coda = (archivio.get("lettura_automatica") or {}).get("stato_coda") == "failed"
+    if errore_coda:
+        degradato.append({"passo": "elaborazione automatica", "motivo": (archivio["lettura_automatica"].get("errore_evento") or "Tentativi esauriti.")})
     return {
         "impronta": stato.impronta,
         "oggetti": stato.oggetti,
-        "tutto_letto": stato.tutto_letto,
+        "tutto_letto": stato.tutto_letto and not errore_coda,
         "degradato": degradato,
         "lettori": lettori,
         "archivio": archivio,

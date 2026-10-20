@@ -237,8 +237,9 @@ def chiave_lettura(tenant_id: str, fascicolo_id: str, *, oggi: date | None = Non
         tenant = tenant_corrente()
         _, revisione_esito = RegistroDiscordanze(registro).esito(tenant, str(fascicolo_id or ""))
         # Prima che il worker scriva, l'esito è ancora quello del lavoro precedente.
-        stato_coda = registro.stato_evento(tenant, str(fascicolo_id or ""))
-    return ("lettura", f"{tenant_id or 'single-studio'}@{VERSIONE_LETTURA}@{giorno.isoformat()}@esiti-sql-v2@{revisione_esito}@coda-sql-v1@{stato_coda}", str(fascicolo_id or ""))
+        evento = registro.esito_evento(tenant, str(fascicolo_id or ""))
+        stato_coda = "@".join(str(evento[key]) for key in ("stato", "generation", "attempts", "available_at"))
+    return ("lettura", f"{tenant_id or 'single-studio'}@{VERSIONE_LETTURA}@{giorno.isoformat()}@esiti-sql-v2@{revisione_esito}@coda-sql-v2@{stato_coda}", str(fascicolo_id or ""))
 
 
 def invalida_lettura(fascicolo_id: str) -> int:

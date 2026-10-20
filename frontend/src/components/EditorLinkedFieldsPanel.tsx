@@ -72,6 +72,10 @@ export function EditorLinkedFieldsPanel({ matterId, options, onMatterChange, onI
         revisionRef.current = payload.revision
         setContext(payload)
         if (payload.recoveryState === 'idle') setRecoveryPending(false)
+        if (payload.recoveryState === 'failed') {
+          setRecoveryPending(false)
+          setRecoveryError(payload.recoveryError || 'Recupero interrotto dopo i tentativi previsti. I dati e il documento sono conservati.')
+        }
       }).catch(error => { if (!controller.signal.aborted) setError(error instanceof Error ? error.message : 'Dati non caricati.') })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
@@ -85,7 +89,7 @@ export function EditorLinkedFieldsPanel({ matterId, options, onMatterChange, onI
     {!matterId && <p>Scegli il fascicolo per visualizzare i suoi dati e quelli del cliente.</p>}
     {context && <div className="iu-linked-fields__context"><strong>{context.clientLabel || 'Cliente non associato'}</strong><span>{context.matterLabel}</span></div>}
     {matterId && <button className="iu-linked-fields__refresh" type="button" disabled={loading} onClick={() => setReload(value => value + 1)}><RefreshCw size={14}/> Aggiorna dati</button>}
-    {loading && <LoadingState title="Caricamento dati collegati" message="Lettura dei campi del cliente e del fascicolo selezionati in corso."/>}
+    {loading && !recoveryPending && <LoadingState title="Caricamento dati collegati" message="Lettura dei campi del cliente e del fascicolo selezionati in corso."/>}
     {recoveryPending && <LoadingState title="Recupero campi del fascicolo" message="Ricerca dei riscontri nelle fonti collegate in corso."/>}
     {recoveryError && <p role="alert">{recoveryError} <button type="button" onClick={() => setRecover(value => value + 1)}>Riprova recupero</button></p>}
     {error && <p role="alert" className="iu-linked-fields__error">{error}</p>}

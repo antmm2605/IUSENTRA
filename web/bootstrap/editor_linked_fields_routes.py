@@ -62,12 +62,14 @@ def register_editor_linked_fields_routes(app, *, get_fascicoli, get_clienti=None
             if get_process_dates is not None:
                 dates = get_process_dates(matter)
                 recovery_state = "idle"
+                recovery_error = ""
             else:
                 from pct.editor_linked_fields import date_modello_da_fatti
                 from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
-                registry = registro_corrente()
+                registry = registro_corrente(sola_lettura=True)
                 tenant = tenant_corrente()
-                recovery_state = registry.stato_evento(tenant, matter.id)
+                recovery = registry.esito_evento(tenant, matter.id)
+                recovery_state, recovery_error = recovery["stato"], recovery["last_error"]
                 dates = date_modello_da_fatti(
                     registry.fatti(tenant, matter.id, categoria="metadato_fascicolo"),
                     fascicolo_id=matter.id, oggetti=registry.oggetti(tenant, matter.id),
@@ -78,7 +80,7 @@ def register_editor_linked_fields_routes(app, *, get_fascicoli, get_clienti=None
                            matterLabel=" · ".join(part for part in [matter.numero, matter.titolo] if part),
                            clientLabel=client.nome_completo if client else "",
                            notice="" if client else "Nessun cliente è collegato al fascicolo: sono disponibili soltanto i dati della pratica.",
-                           revision=revision, fields=fields, recoveryState=recovery_state)
+                           revision=revision, fields=fields, recoveryState=recovery_state, recoveryError=recovery_error)
         except Exception:
             app.logger.exception("Dati collegati dell’editor non disponibili")
             return jsonify(ok=False, errore="Dati non caricati. Riprova; il documento è preservato."), 503

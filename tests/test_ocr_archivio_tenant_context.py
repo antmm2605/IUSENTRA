@@ -40,7 +40,7 @@ def test_cache_riepilogo_precedente_non_nasconde_presidi_accodati(tmp_path, monk
         assert not registro.presidi_in_corso("studio-a", "CASE")
 
 
-def test_presidi_evento_recuperato_preserva_richiesta_e_non_forza_documenti(tmp_path):
+def test_presidi_evento_recuperato_preserva_richiesta_e_non_forza_documenti(tmp_path, monkeypatch):
     from pct.registro_letture import RegistroLetture
 
     registro = RegistroLetture(tmp_path / "presidi.db")
@@ -56,6 +56,9 @@ def test_presidi_evento_recuperato_preserva_richiesta_e_non_forza_documenti(tmp_
     assert evento == {"generation": 1, "forza": False, "presidi": True}
     assert registro.concludi_evento("studio-a", "CASE", "worker-ripreso", 1, riuscito=False)
     assert registro.presidi_in_corso("studio-a", "CASE")
+    assert registro.reclama_evento("studio-a", "CASE", "worker-finale") is None
+    deadline = registro.esito_evento("studio-a", "CASE")["available_at"]
+    monkeypatch.setattr("pct.registro_letture.repository._adesso", lambda: deadline)
     assert registro.reclama_evento("studio-a", "CASE", "worker-finale") == evento
     assert not registro.concludi_evento("studio-a", "CASE", "worker-finale", 1)
     assert not registro.presidi_in_corso("studio-a", "CASE")

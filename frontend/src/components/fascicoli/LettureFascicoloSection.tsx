@@ -36,8 +36,8 @@ export function LettureFascicoloSection({ fascicoloId, active = true, refreshKey
   const [updating, setUpdating] = useState(false)
   const [dettagliRevision, setDettagliRevision] = useState(0)
   const letturaInCorso = Boolean(letture?.archivio?.lettura_automatica.in_corso)
-  const loading = requestLoading || updating || letturaInCorso
-  useBusyActivity(active && loading, letturaInCorso ? 'Lettura dei documenti in corso…' : 'Caricamento delle letture documentali…')
+  const loading = requestLoading || updating
+  useBusyActivity(active && loading, 'Caricamento delle letture documentali…')
   const [aggiornamento, setAggiornamento] = useState<EsitoAggiornamentoLetture | null>(null)
   const [error, setError] = useState('')
   const [correzione, setCorrezione] = useState<{ id: string; valore: string } | null>(null)
@@ -215,7 +215,7 @@ export function LettureFascicoloSection({ fascicoloId, active = true, refreshKey
         </div>
       ) : null}
       <div className="iu-fas-letture__azioni">
-        <button type="button" disabled={loading} onClick={() => void aggiorna()} title="Legge solo i documenti nuovi o cambiati: quelli già letti non si rileggono"><RefreshCw className={loading ? 'iu-spin' : ''} size={14}/> Leggi i nuovi</button>
+        <button type="button" disabled={loading || letturaInCorso} onClick={() => void aggiorna()} title="Legge solo i documenti nuovi o cambiati: quelli già letti non si rileggono"><RefreshCw className={loading ? 'iu-spin' : ''} size={14}/> {letture?.archivio?.lettura_automatica.stato_coda === 'failed' ? 'Riprova lettura' : 'Leggi i nuovi'}</button>
         {aggiornamento ? <span>{aggiornamento.messaggio}{aggiornamento.ocr_accodati ? ` · ${aggiornamento.ocr_accodati} in coda OCR` : ''}</span> : null}
       </div>
       {anomalie.length ? (

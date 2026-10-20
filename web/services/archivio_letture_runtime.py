@@ -997,14 +997,21 @@ def stato_archivio_payload(
         in_corso = fascicolo_id in _IN_CORSO
     # Il processo web non possiede il lavoro eseguito dallo scheduler.
     # La coda SQL è il riscontro condiviso, anche durante una lease attiva.
-    in_corso = in_corso or registro.stato_evento(tenant, fascicolo_id) in {"pending", "running"}
+    evento = registro.esito_evento(tenant, fascicolo_id)
+    in_corso = in_corso or evento["stato"] in {"pending", "running"}
     riassunto.update({
         "versione": {"documenti": VERSIONE_MOTORE_DOCUMENTI, "pec": VERSIONE_MOTORE_PEC},
         "lettura_automatica": {
             "in_corso": in_corso,
             "da_leggere": da_leggere,
             "errori": errori,
-            "completa": da_leggere == 0 and errori == 0 and not in_corso,
+            "completa": da_leggere == 0 and errori == 0 and not in_corso and evento["stato"] != "failed",
+            "stato_coda": evento["stato"],
+            "tentativi": int(evento["attempts"]),
+            "errore_evento": evento["last_error"],
+            "codice_errore_evento": evento["last_error_code"],
+            "prossimo_tentativo": evento["available_at"],
+            "prossimo_tentativo_it": format_datetime_it(evento["available_at"]) if evento["available_at"] else "",
             "ultima_lettura": ultima,
             "ultima_lettura_it": format_datetime_it(ultima) if ultima else "",
             "documenti": {"letti": lettori[LETTORE_DOCUMENTI].letti, "da_leggere": lettori[LETTORE_DOCUMENTI].da_leggere, "errori": lettori[LETTORE_DOCUMENTI].errori} if LETTORE_DOCUMENTI in lettori else {},
@@ -1094,6 +1101,7 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
             with _LOCK:
                 _IN_CORSO.add(fascicolo_id)
             riuscito = False
+            errore_evento = codice_errore = ""
             try:
                 with app.test_request_context("/__archivio-letture/" + fascicolo_id):
                     g.data_paths = dict(paths or {})
@@ -1150,11 +1158,13 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                         progresso += int((report.get("metadati") or {}).get("controllati") or 0)
                         if progresso <= 0:
                             raise RuntimeError(f"Lettura ferma con {restano} oggetti ancora da lavorare.")
-            except Exception:
+            except Exception as exc:
+                errore_evento, codice_errore = str(exc), type(exc).__name__
                 logger.exception("Lettura in sfondo del fascicolo %s interrotta", fascicolo_id)
             finally:
                 ancora_pendente = registro.concludi_evento(
-                    tenant_id, fascicolo_id, worker_id, int(evento["generation"]), riuscito=riuscito
+                    tenant_id, fascicolo_id, worker_id, int(evento["generation"]), riuscito=riuscito,
+                    **({"errore": errore_evento, "codice_errore": codice_errore} if not riuscito else {})
                 )
                 with _LOCK:
                     _IN_CORSO.discard(fascicolo_id)

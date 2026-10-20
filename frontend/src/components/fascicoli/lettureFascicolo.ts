@@ -79,7 +79,7 @@ export interface ArchivioLetture {
   eventi: number
   per_motore: { documenti: number; pec: number }
   da_confermare: FattoDaConfermare[]
-  lettura_automatica: { in_corso: boolean; errori?: number; da_leggere: number; completa: boolean; ultima_lettura: string; ultima_lettura_it: string; in_attesa?: OggettoInAttesa[] }
+  lettura_automatica: { stato_coda?: 'idle' | 'pending' | 'running' | 'failed'; tentativi?: number; errore_evento?: string; codice_errore_evento?: string; prossimo_tentativo?: string; prossimo_tentativo_it?: string; in_corso: boolean; errori?: number; da_leggere: number; completa: boolean; ultima_lettura: string; ultima_lettura_it: string; in_attesa?: OggettoInAttesa[] }
   collaudo_lettore: { eseguito: boolean; superato?: boolean; corretti?: number; totali?: number; eseguito_il_it?: string; casi_falliti?: string[] }
 }
 
@@ -126,8 +126,10 @@ export function tonoGravita(gravita: AnomaliaLettura['gravita']): TonoLettura {
 
 // Il riassunto in una riga: «tutto letto», oppure quanti oggetti aspettano quali lettori.
 export function riassuntoLetture(letture: LettureFascicolo): { testo: string; tono: TonoLettura } {
-  if (!letture.oggetti) return { testo: 'Nessun documento o PEC da leggere.', tono: 'neutral' }
   const automatica = letture.archivio?.lettura_automatica
+  if (automatica?.stato_coda === 'failed') return { testo: `Lettura interrotta dopo ${automatica.tentativi || 0} tentativi. I risultati già salvati sono conservati.`, tono: 'danger' }
+  if (automatica?.stato_coda === 'pending' && automatica.prossimo_tentativo_it) return { testo: `Nuovo tentativo programmato per ${automatica.prossimo_tentativo_it}.`, tono: 'warning' }
+  if (!letture.oggetti) return { testo: 'Nessun documento o PEC da leggere.', tono: 'neutral' }
   const erroriArchivio = automatica?.errori || 0
   if (erroriArchivio) {
     return { testo: `Lettura incompleta: ${erroriArchivio} esiti non leggibili. Consulta le cause; i tentativi conclusi non vengono riavviati automaticamente.`, tono: 'danger' }
@@ -225,6 +227,8 @@ export function fraseCollaudo(collaudo: ArchivioLetture['collaudo_lettore'] | un
 
 export function fraseLetturaAutomatica(stato: ArchivioLetture['lettura_automatica'] | undefined): string {
   if (!stato) return ''
+  if (stato.stato_coda === 'failed') return `Elaborazione interrotta: ${stato.errore_evento || 'tentativi esauriti'}. Puoi riprovare dopo aver risolto la causa; i risultati già salvati sono conservati.`
+  if (stato.stato_coda === 'pending' && stato.prossimo_tentativo_it) return `Ultimo tentativo non riuscito: ${stato.errore_evento || 'elaborazione non completata'}. Nuovo tentativo automatico alle ${stato.prossimo_tentativo_it}.`
   if (stato.errori) return `Lettura incompleta: ${stato.errori} esiti non leggibili. Consulta le cause registrate.`
   if (stato.in_corso) return 'Lettura automatica in corso.'
   if (stato.da_leggere) {

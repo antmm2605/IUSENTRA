@@ -208,6 +208,10 @@ CREATE TABLE IF NOT EXISTS letture_eventi (
     claimed_force INTEGER NOT NULL DEFAULT 0,
     pending_presidi INTEGER NOT NULL DEFAULT 0,
     claimed_presidi INTEGER NOT NULL DEFAULT 0,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    available_at TEXT NOT NULL DEFAULT '',
+    last_error TEXT NOT NULL DEFAULT '',
+    last_error_code TEXT NOT NULL DEFAULT '',
     worker_id TEXT NOT NULL DEFAULT '',
     lease_until TEXT NOT NULL DEFAULT '',
     creato_il TEXT NOT NULL,
@@ -217,3 +221,12 @@ CREATE TABLE IF NOT EXISTS letture_eventi (
 
 CREATE INDEX IF NOT EXISTS idx_letture_eventi_stato
     ON letture_eventi (tenant_id, stato, lease_until);
+
+
+CREATE TABLE IF NOT EXISTS letture_eventi_esiti (
+    id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, fascicolo_id TEXT NOT NULL,
+    generation BIGINT NOT NULL, attempt INTEGER NOT NULL, worker_id TEXT NOT NULL,
+    stato TEXT NOT NULL, error_code TEXT NOT NULL DEFAULT '', errore TEXT NOT NULL DEFAULT '',
+    iniziato_il TEXT NOT NULL, concluso_il TEXT NOT NULL DEFAULT '',
+    UNIQUE(tenant_id,fascicolo_id,generation,attempt));
+CREATE INDEX IF NOT EXISTS idx_letture_eventi_esiti_worker ON letture_eventi_esiti(tenant_id,fascicolo_id,worker_id,generation);

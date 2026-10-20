@@ -1,8 +1,8 @@
-"""La catena di alimentazione dentro l'app: documento â†’ motore â†’ archivio â†’ presÃ¬di; PEC â†’ motore â†’ archivio.
+"""La catena di alimentazione dentro l'app: documento → motore → archivio → presìdi; PEC → motore → archivio.
 
 Il primo giro legge, il secondo non rilegge nulla; il presidio documentale e
 il presidio notifiche attingono all'archivio senza rileggere i documenti; il
-pannello Â«Letture e verificheÂ» espone l'archivio e la decisione sui fatti.
+pannello «Letture e verifiche» espone l'archivio e la decisione sui fatti.
 """
 
 from __future__ import annotations
@@ -242,7 +242,7 @@ def test_il_caricamento_di_un_documento_fa_leggere_solo_quello(tmp_path: Path):
         assert {(f.oggetto_id, f.valore) for f in fatti_fascicolo(_fascicolo(app, fascicolo_id), campo="udienza")} >= {(nuovo.id, "2027-01-20T10:00")}
 
 
-# â”€â”€ Il ciclo chiuso: legge tutto, si ferma, riparte solo sugli eventi â”€â”€â”€â”€â”€â”€â”€â”€
+# Il ciclo chiuso: legge tutto, si ferma, riparte solo sugli eventi
 
 def test_il_ciclo_si_ferma_a_lettura_confermata_e_non_riapre_nulla(tmp_path: Path):
     """Secondo giro a fascicolo invariato: nessun inventario, nessun file aperto."""
@@ -256,7 +256,7 @@ def test_il_ciclo_si_ferma_a_lettura_confermata_e_non_riapre_nulla(tmp_path: Pat
         assert primo["restano"] == 0
         assert primo["ciclo"]["stato"] == "fermo"
 
-        # Il ciclo Ã¨ fermo: il secondo giro non deve nemmeno toccare l'inventario.
+        # Il ciclo è fermo: il secondo giro non deve nemmeno toccare l'inventario.
         chiamate: list[str] = []
         originale = runtime.aggiorna_inventario
         runtime.aggiorna_inventario = lambda *a, **k: chiamate.append("inventario") or originale(*a, **k)
@@ -342,7 +342,7 @@ def test_scheduler_salta_studio_fermo_ma_evento_legge_solo_il_fascicolo_cambiato
         monkeypatch.setattr(runtime, "leggi_fascicolo", conta)
         saltato = runtime.lettura_automatica_corrente(limite_oggetti=50, usa_marker_scheduler=True)
         assert saltato["esaminati"] == 0 and saltato["saltati"] == 1
-        assert chiamati == [], "il cron non deve richiamare i fascicoli quando lo studio Ã¨ fermo"
+        assert chiamati == [], "il cron non deve richiamare i fascicoli quando lo studio è fermo"
 
         app.extensions["core_runtime"]["get_fascicoli"]().aggiungi_documento(
             fascicolo_a,
@@ -398,7 +398,7 @@ def test_coda_evento_stesso_fascicolo_serializza_e_non_perde_eventi(tmp_path: Pa
     assert primo == {"generation": 1, "forza": False}
     assert secondo_processo.reclama_evento("studio", "09131014", "worker-2") is None
 
-    # L'evento arrivato mentre il primo Ã¨ in lavoro resta nella generazione 2.
+    # L'evento arrivato mentre il primo è in lavoro resta nella generazione 2.
     assert secondo_processo.accoda_evento("studio", "09131014", forza=True) == 2
     assert primo_processo.concludi_evento("studio", "09131014", "worker-1", 1) is True
     secondo = secondo_processo.reclama_evento("studio", "09131014", "worker-2")

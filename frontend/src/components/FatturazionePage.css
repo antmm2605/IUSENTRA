@@ -1776,13 +1776,19 @@
   }
 
   .iu-fatt-modal__body {
-    padding: 12px;
+    padding: 12px 12px calc(96px + env(safe-area-inset-bottom, 0px));
   }
 
   .iu-fatt-modal__tabs {
     overflow-x: auto;
     flex-wrap: nowrap;
     justify-content: flex-start;
+  }
+
+  .iu-fatt-modal__tabs button {
+    flex: 0 0 auto;
+    min-height: 44px;
+    white-space: nowrap;
   }
 
   .iu-fatt-edit-line,

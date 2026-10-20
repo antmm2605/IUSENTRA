@@ -32,16 +32,18 @@ def _firma_stripe(payload: bytes, segreto: str) -> str:
 
 
 def _evento_stripe(link_id: str = "", *, tipo: str = "checkout.session.completed", sessione: str = "cs_test_1") -> bytes:
-    metadata = {"link_id": link_id, "parcella": "parcella-x"} if link_id else {}
+    metadata = {"link_id": link_id} if link_id else {}
     return json.dumps({
         "id": "evt_2421",
         "object": "event",
         "type": tipo,
+        "created": int(time.time()) - 1,
         "data": {"object": {
             "id": sessione,
             "object": "checkout.session",
             "payment_status": "paid",
             "amount_total": 9900,
+            "currency": "eur",
             "metadata": metadata,
         }},
     }).encode()
@@ -92,8 +94,18 @@ def due_studi(tmp_path):
             return GestionePagamenti(db_dir=percorsi["PAGAMENTI_DIR"], studio_db=StudioDB.get(percorsi["STUDIO_DB"]))
 
         gp = _gestore()
+        gp._studio_db.conn.execute("INSERT INTO clienti(id,dati_json) VALUES (?,?) ON CONFLICT(id) DO NOTHING",
+            ('cliente-1', json.dumps({'id': 'cliente-1', 'nome': 'Cliente', 'cognome': 'Controllato'})))
+        gp._studio_db.conn.commit()
+        from pct.fatturazione import GestioneFatturazione, VoceParcella, StatoParcella
+        from tests.payment_fixtures import prepare_empty_receipts
+        invoice_manager = GestioneFatturazione(percorsi['FATTURAZIONE_DB'], studio_db=gp._studio_db)
+        invoice = invoice_manager.crea(id_cliente='cliente-1', voci=[VoceParcella(descrizione='CONTROLLED', prezzo_unitario=99)],
+            applica_iva=False, applica_cassa=False, applica_ritenuta=False, applica_bollo=False)
+        invoice_manager.cambia_stato(invoice.id, StatoParcella.EMESSA)
+        prepare_empty_receipts(gp._studio_db, slug, percorsi, tmp_path)
         gp.aggiorna_config(_config(segreto, paypal_secret=paypal, satispay=True))
-        lp = gp.crea_link(f"parcella-{slug}", "cliente-1", 99.0, f"Parcella {slug}")
+        lp = gp.crea_link(invoice.id, "cliente-1", 99.0, f"Parcella {slug}")
         studi[slug] = SimpleNamespace(slug=slug, link=lp, segreto=segreto, gestore=_gestore)
     yield SimpleNamespace(app=app, a=studi["studio-pay-a"], b=studi["studio-pay-b"])
     pagamenti_link_azioni._STUDIO_DEL_RIFERIMENTO.clear()
@@ -115,6 +127,14 @@ def test_webhook_stripe_registrato_solo_nello_studio_del_link(due_studi):
     pagato = next(lp for lp in due_studi.b.gestore().tutti_link() if lp.id == due_studi.b.link.id)
     assert pagato.provider_usato == "Stripe" and pagato.provider_tx_id == "cs_test_b"
     assert _stato(due_studi.a) == "ATTESO"
+    from pct.parcella_incassi_repository import ParcellaIncassiRepository
+    for studio, cents in ((due_studi.a, 0), (due_studi.b, 9900)):
+        repo = ParcellaIncassiRepository(studio.gestore()._studio_db, studio.slug, actor_key='controlled-check')
+        assert repo.summary(studio.link.id_parcella)['paid_cents'] == cents
+    with due_studi.app.test_client() as client:
+        assert _invia_stripe(client, payload, SEGRETO_B).status_code == 200
+    repo = ParcellaIncassiRepository(due_studi.b.gestore()._studio_db, due_studi.b.slug, actor_key='controlled-check')
+    assert len(repo.summary(due_studi.b.link.id_parcella)['receipts']) == 1
 
 
 def test_webhook_stripe_con_segreto_di_un_altro_studio_respinto(due_studi):
@@ -182,15 +202,22 @@ def test_webhook_paypal_confermato_con_le_credenziali_dello_studio(due_studi, mo
 
     chiamate = []
 
-    def _conferma(gp, tx_id, lp):
+    def _conferma(gp, tx_id, lp, *, evidence=False):
         chiamate.append((gp.config.paypal.client_secret, tx_id, lp.id))
+        if evidence:
+            from datetime import datetime, timezone
+            from pct.payment_evidence import paypal_capture_facts
+            return paypal_capture_facts({'id': tx_id, 'status': 'COMPLETED', 'custom_id': lp.id,
+                'amount': {'value': '99.00', 'currency_code': 'EUR'},
+                'update_time': datetime.fromtimestamp(time.time() - 1, timezone.utc).isoformat()}, tx_id, lp)
         return True
 
     monkeypatch.setattr(modulo, "paypal_pagamento_confermato", _conferma)
     notifica = {"event_type": "PAYMENT.CAPTURE.COMPLETED", "resource": {"id": "CAP-B", "custom_id": due_studi.b.link.id}}
     with due_studi.app.test_client() as client:
         risposta = client.post("/pagamenti/webhooks/paypal", json=notifica)
-        assert risposta.get_json() == {"received": True, "verified": True}
+        assert risposta.get_json()['received'] and risposta.get_json()['verified']
+        assert risposta.get_json()['delivered'] == 1 and risposta.get_json()['failed'] == 0
         # Link di nessuno studio: nessuna chiamata al gestore.
         ignoto = client.post("/pagamenti/webhooks/paypal", json={**notifica, "resource": {"id": "X", "custom_id": "ignoto"}})
         assert ignoto.status_code == 200 and ignoto.get_json() == {"received": True}
@@ -201,7 +228,7 @@ def test_webhook_paypal_confermato_con_le_credenziali_dello_studio(due_studi, mo
 def test_webhook_paypal_non_confermato_non_registra(due_studi, monkeypatch):
     import web.blueprints.pagamenti as modulo
 
-    monkeypatch.setattr(modulo, "paypal_pagamento_confermato", lambda gp, tx_id, lp: False)
+    monkeypatch.setattr(modulo, "paypal_pagamento_confermato", lambda gp, tx_id, lp, **kwargs: False)
     notifica = {"event_type": "PAYMENT.CAPTURE.COMPLETED", "resource": {"id": "CAP-B", "custom_id": due_studi.b.link.id}}
     with due_studi.app.test_client() as client:
         assert client.post("/pagamenti/webhooks/paypal", json=notifica).get_json() == {"received": True, "verified": False}
@@ -217,11 +244,45 @@ def test_callback_satispay_con_lo_studio_nell_indirizzo(due_studi, monkeypatch):
         lambda self, lp, callback_url: indirizzi.append(callback_url) or {"id": "S1", "redirect_url": "https://online.satispay.com/pay/S1"},
     )
     with due_studi.app.test_client() as client:
-        risposta = client.post(f"/api/v1/pubblico/pagamenti/{due_studi.b.link.token}/avvia", json={"provider": "satispay"})
+        revision = client.get(f"/api/v1/pubblico/pagamenti/{due_studi.b.link.token}").get_json()['payment_revision']
+        risposta = client.post(f"/api/v1/pubblico/pagamenti/{due_studi.b.link.token}/avvia",
+            json={"provider": "satispay", 'payment_revision': revision})
     assert risposta.status_code == 200, risposta.get_data(as_text=True)
     assert indirizzi and indirizzi[0].split("?")[0].endswith(f"/pagamenti/webhooks/satispay/{due_studi.b.slug}")
     # Satispay richiama con una GET: il link e il segnaposto del pagamento sono nell'indirizzo.
     assert f"link_id={due_studi.b.link.id}" in indirizzi[0] and indirizzi[0].endswith("payment_id={uuid}")
+
+
+def test_partial_receipt_refreshes_checkout_without_charging_old_amount(due_studi, monkeypatch):
+    from uuid import uuid4
+    from datetime import date
+    from pct.parcella_incassi_repository import ParcellaIncassiRepository
+    from pct.pagamenti import GestionePagamenti
+    studio = due_studi.b
+    url = f'/api/v1/pubblico/pagamenti/{studio.link.token}'
+    started = []
+    monkeypatch.setattr(GestionePagamenti, 'stripe_crea_sessione',
+        lambda self, lp, success, cancel: started.append(lp.to_dict()) or 'https://checkout.stripe.com/controlled')
+    with due_studi.app.test_client() as client:
+        before = client.get(url).get_json()
+        assert before['importo_cifra'] == '99.00'
+        repo = ParcellaIncassiRepository(studio.gestore()._studio_db, studio.slug, actor_key='controlled-operator')
+        repo.register(invoice_id=studio.link.id_parcella, amount_cents=4000, paid_on=date.today().isoformat(),
+            method='banca', note='CONTROLLED-PARTIAL', command_key=str(uuid4()),
+            expected_revision=repo.summary(studio.link.id_parcella)['revision'])
+        stale = client.post(url + '/avvia', json={'provider': 'stripe', 'payment_revision': before['payment_revision']})
+        assert stale.status_code == 409 and stale.get_json()['code'] == 'payment_changed'
+        assert started == [] and studio.gestore().get_by_id(studio.link.id).stato == 'ATTESO'
+        after = client.get(url).get_json()
+        assert after['importo_cifra'] == '59.00' and after['payment_revision'] != before['payment_revision']
+        assert 'residuo' in after['message']
+        response = client.post(url + '/avvia', json={'provider': 'stripe', 'payment_revision': after['payment_revision']})
+        assert response.status_code == 200, response.get_data(as_text=True)
+    assert len(started) == 1 and started[0]['importo'] == 59
+    assert started[0]['id'] != studio.link.id and started[0]['scade_il'] == studio.link.scade_il
+    old = studio.gestore().get_by_id(studio.link.id)
+    assert old.importo == 99 and old.stato == 'FALLITO'
+    assert repo.summary(studio.link.id_parcella)['paid_cents'] == 4000
 
 
 # ------------------------------------------------------------------ studio singolo

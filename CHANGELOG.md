@@ -1,3 +1,11 @@
+# 2.442.0 — Incassi SQL e recupero delle letture (candidato)
+
+- Incassi parziali, saldo e storni collegati alla Prima nota nativa, con revisione concorrente, conferma recuperabile e conservazione delle prove.
+- Conferme autenticate dei gestori conservate in SQL e consegnate allo stesso registro tramite la coda esistente, senza duplicare le transazioni.
+- Residuo aggiornato nei collegamenti di pagamento; bozze e proforme mantengono separati incasso ed emissione fiscale.
+- Riscontri mancanti o discordanti espliciti, senza ricostruire date e pagamenti dallo stato del documento.
+- Il rilascio resta soggetto al collaudo reale e ai controlli previsti; questa voce descrive il candidato.
+
 # 2.441.4 — Tentativi governati e preparazione della coda letture
 
 - Coda SQL esistente con tre tentativi, attese persistenti di 30 e 60 secondi e storico degli esiti per generazione.

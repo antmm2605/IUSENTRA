@@ -151,3 +151,97 @@ una prova positiva ai percorsi che non sono stati esercitati.
   anche il browser reale sulla copia Docker `127.0.0.1:8080`: i soli controlli
   automatici non costituiscono verifica su macchina reale né autorizzano una
   dichiarazione di rilascio.
+
+## Riscontri dei gestori di pagamento — analisi 20/10/2026
+
+L'integrazione degli incassi con le conferme dei gestori è ancora da
+completare e collaudare. Una modifica del solo stato del link non costituisce
+una prova sufficiente per creare un movimento di cassa: servono la conferma
+verificata del gestore, l'identità della transazione, importo, valuta,
+riferibilità al documento e una data dimostrata dalla fonte pertinente.
+Le conferme storiche non vanno ricostruite automaticamente dal totale attuale.
+
+Fonti tecniche ufficiali consultate:
+
+- [Stripe, Checkout Session](https://docs.stripe.com/api/checkout/sessions/object):
+  distinguere `payment_status` dallo stato della sessione; confrontare
+  `amount_total`, valuta e riferimenti con il link SQL dello studio.
+  `created` identifica la creazione della sessione, non dimostra da solo
+  la data di un pagamento successivo.
+- [PayPal, Capture](https://developer.paypal.com/sdk/orders/v2/definitions/capture/):
+  l'identificativo della cattura è distinto dall'ordine. Conservare il
+  riferimento della cattura e verificare stato, importo e valuta, evitando
+  di duplicare lo stesso incasso tra ritorno del cliente e notifica.
+- [Satispay, Callback S2S](https://developers.satispay.com/reference/callback-s2s):
+  il segnaposto `{uuid}` restituisce l'identificativo del pagamento; la
+  notifica richiede la successiva consultazione autenticata del dettaglio.
+  [Dettaglio pagamento](https://developers.satispay.com/reference/get-the-details-of-a-payment):
+  non confondere `insert_date` con una data di successiva accettazione.
+- [SumUp, Checkouts](https://developer.sumup.com/api/checkouts) e
+  [Transactions](https://developer.sumup.com/api/transactions): la notifica
+  rinvia alla consultazione dello stato; per esito e cronologia usare la
+  transazione pertinente. La data di creazione del checkout non dimostra
+  da sola la data del pagamento.
+
+La futura consegna alla cassa deve conservare la conferma verificata come
+fonte immutabile e utilizzare la outbox SQL esistente. Non deve partire da
+un'etichetta «Pagato» o da una scansione dello storico. Ritorni ripetuti e
+notifiche concorrenti devono confermare lo stesso fatto; mancanze e
+discordanze rimangono esplicite, senza date presunte o falsi saldi azzerati.
+
+Quando il gestore omette l'istante effettivo del pagamento, il giorno può
+essere determinato soltanto se la creazione del pagamento e l'osservazione
+autenticata dell'esito positivo delimitano lo stesso giorno in Europe/Rome.
+Questo riscontro dimostra il giorno, non un'ora inventata: `paid_at` resta
+assente. Un intervallo invertito o che attraversa la mezzanotte italiana
+mantiene la data non determinata. Un timestamp esplicito ma non valido non
+viene sostituito con questa deduzione. Conservare la prima osservazione
+immutabile: una notifica ripetuta il giorno successivo non deve alterare
+il riscontro già acquisito. I controlli automatici coprono anche intervalli
+che attraversano la mezzanotte UTC e il cambio di giorno italiano.
+
+
+## Implementazione candidata degli incassi — 20/10/2026
+
+La consegna usa il registro nativo di Prima nota e una fonte SQL immutabile
+per le conferme autenticate dei gestori. Firma o interrogazione autenticata,
+identità, importo, valuta e data pertinente precedono la registrazione.
+Fonte, aggiornamento del collegamento e accodamento sono atomici; movimento,
+prova, saldo e conferma della consegna condividono un secondo commit.
+Ripetizioni dello stesso identificativo del gestore non creano un secondo
+incasso. Una conferma senza data dimostrata resta esplicita, conservata e
+non conteggiata come cassa. Valute da convertire, rimborsi e discordanze
+richiedono riconciliazione; nessun movimento viene inventato o cancellato.
+
+Anche bozze e proforme possono ricevere incassi reali. Il loro stato e la
+loro natura restano invariati: la cassa non costituisce emissione fiscale.
+La successiva emissione esplicita usa il comando esistente, conserva gli
+incassi e applica le conferme già previste per la conversione della proforma.
+Le prove SQL riconoscono tale conversione solo con i metadati nativi
+concordanti; non consentono la trasformazione inversa della fattura.
+
+Il collegamento pubblico mostra il residuo corrente e ne richiede la
+revisione prima dell'avvio. Un importo cambiato produce un nuovo
+collegamento SQL, conservando quello precedente e la sua scadenza originale;
+la sostituzione e il confronto della revisione sono atomici.
+Le consultazioni non chiamano i gestori, non migrano dati e non avviano
+scansioni dello storico.
+
+Verifiche tecniche osservate: 80 controlli nativi SQLite/PostgreSQL,
+21 controlli sui comandi dell'interfaccia, typecheck, 406 controlli frontend,
+7 sulle dipendenze e controlli strutturali React. Build React riuscita con
+confine di caricamento per pagina e budget degli asset attivi.
+Restano obbligatori la conclusione dei controlli API/migrazione,
+l'accettazione visibile sulla copia reale 8080 e il rilascio del medesimo
+commit. Questa nota non attesta completamento o deploy.
+
+
+Verifiche successive: passati anche i 14 casi dei ritorni dei gestori,
+i 7 casi del portale pubblico e 44 controlli aggiuntivi su fonti, scadenza
+con fuso orario, emissione della proforma fra acconto e saldo e
+riconciliazione SQL. Il test storico che attendeva il blocco sui JSON vuoti
+è stato corretto per il caso con Agenda/Scadenziario già adottati in SQL:
+verifica il backup della riconciliazione, i domini proprietari e la
+conservazione di clienti e fascicoli. La vera importazione JSON senza
+adozione SQL mantiene il proprio test di blocco anti-perdita.
+Nessuna modifica al comando di provisioning è rimasta nel candidato.

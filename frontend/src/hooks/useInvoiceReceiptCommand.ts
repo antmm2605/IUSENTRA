@@ -61,6 +61,7 @@ export function useInvoiceReceiptCommand(data: InvoiceReceiptsSummary | null, up
   function change(field: keyof ReceiptFields, value: string) { preserve({ ...form, [field]: value }) }
   function startReversal(receipt: InvoiceReceipt) {
     if (!data || pending || busy) return
+    if (receipt.provider_confirmed) { setMessage('Il pagamento è confermato dal gestore. Un rimborso richiede il relativo riscontro, non uno storno manuale.'); return }
     if (revision) { setMessage('È aperta una bozza: completala o annullala prima dello storno.'); return }
     preserve({ ...empty(), movementId: receipt.movement_id }, data.revision)
   }

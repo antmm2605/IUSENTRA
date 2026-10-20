@@ -565,9 +565,18 @@ def build_or_get_react_payment_link(
     parcella = fatturazione.get(invoice_id)
     if not parcella:
         return _json_error("Parcella non trovata.", {"id_parcella": "Parcella inesistente."}, status=404)
+    from web.services.payment_confirmations_runtime import payment_link_amount
     pagamenti = get_pagamenti()
+    try:
+        amount = payment_link_amount(pagamenti, parcella)
+    except ValueError as exc:
+        return _json_error(str(exc), {"id_parcella": "Saldo da riscontrare."}, status=409)
     existing = pagamenti.get_by_parcella(invoice_id)
     link = existing
+    if link is not None:
+        from pct.payment_evidence import exact_cents
+        if exact_cents(link.importo) != exact_cents(amount):
+            link = None
     if not link:
         try:
             days = int(payload.get("giorni_validita") or 30)
@@ -576,9 +585,10 @@ def build_or_get_react_payment_link(
         link = pagamenti.crea_link(
             id_parcella=invoice_id,
             id_cliente=_text(getattr(parcella, "id_cliente", "")),
-            importo=float(getattr(parcella, "totale", 0) or 0),
+            importo=amount,
             descrizione=f"Parcella {_text(getattr(parcella, 'numero', '')) or invoice_id}",
             giorni_validita=max(1, min(days, 90)),
+            replace_pending=True, expected_invoice_revision=parcella_revision(parcella),
         )
     href = host_url.rstrip("/") + _payment_url(link)
     _audit(get_utenti, current_user, "pagamenti.link", _text(getattr(link, "id", "")), f"parcella={invoice_id}", ip_address)

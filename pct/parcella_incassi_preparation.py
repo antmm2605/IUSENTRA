@@ -48,19 +48,20 @@ def require_preparation_record(db, tenant):
 def require_live_signals(db):
     from pct.operational_live import TABLE_DOMAINS
     row = db.conn.execute("SELECT valore FROM _meta WHERE chiave='operational_live_v3'").fetchone()
-    expected = {table + ':' + ','.join(TABLE_DOMAINS[table]) for table in ('parcelle', 'prima_nota_state')}
+    tables = ('parcelle', 'prima_nota_state', 'payment_links', 'payment_confirmation_sources')
+    expected = {table + ':' + ','.join(TABLE_DOMAINS[table]) for table in tables}
     if row is None or not expected.issubset(set(str(row[0]).split('|'))):
         raise InvoiceReceiptsNotPrepared('Sincronizzazione degli incassi non preparata.')
     if getattr(db, 'backend_kind', '') == 'postgresql':
         triggers = {row[0] for row in db.conn.execute(
             "SELECT t.tgname FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid "
             "JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=current_schema() "
-            "AND c.relname IN ('parcelle','prima_nota_state') AND NOT t.tgisinternal").fetchall()}
-        names = {'iusentra_live_parcelle', 'iusentra_live_prima_nota_state'}
+            "AND c.relname IN ('parcelle','prima_nota_state','payment_links','payment_confirmation_sources') AND NOT t.tgisinternal").fetchall()}
+        names = {'iusentra_live_' + table for table in tables}
     else:
         triggers = {row[0] for row in db.conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='trigger' AND tbl_name IN ('parcelle','prima_nota_state')").fetchall()}
-        names = {'iusentra_live_' + table + '_' + action for table in ('parcelle', 'prima_nota_state')
+            "SELECT name FROM sqlite_master WHERE type='trigger' AND tbl_name IN ('parcelle','prima_nota_state','payment_links','payment_confirmation_sources')").fetchall()}
+        names = {'iusentra_live_' + table + '_' + action for table in tables
                  for action in ('insert', 'update', 'delete')}
     if not names.issubset(triggers):
         raise InvoiceReceiptsNotPrepared('Produttori della sincronizzazione mancanti: preparazione necessaria.')

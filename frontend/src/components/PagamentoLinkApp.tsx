@@ -1,5 +1,5 @@
 import { useBusyActivity } from '../ui/useBusyActivity'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { messaggiDaAttributo, type MessaggioPagina } from '../pubblicoTokenApi'
 import { avviaPagamento, caricaCheckout, caricaEsito, percorsoCheckout, type Provider, type StatoPagamento } from '../pagamentoLinkData'
 import { SumUpWidget } from './pagamentoLink/SumUpWidget'
@@ -39,6 +39,7 @@ const TITOLI: Record<StatoPagamento['tipo'], string> = {
 export default function PagamentoLinkApp() {
   const [radice] = useState(leggiRadice)
   const token = radice.token
+  const checkoutHref = useRef(percorsoCheckout(token))
   const [stato, setStato] = useState<StatoPagamento>(() => (radice.vista === 'scaduto' ? { tipo: 'scaduto' } : { tipo: 'caricamento' }))
   const [messaggi, setMessaggi] = useState<MessaggioPagina[]>(radice.messaggi)
   const [inCorso, setInCorso] = useState<Provider | null>(null)
@@ -63,16 +64,20 @@ export default function PagamentoLinkApp() {
   const scegli = useCallback(async (provider: Provider) => {
     setInCorso(provider)
     setMessaggi([])
-    const esito = await avviaPagamento(token, provider)
+    const esito = await avviaPagamento(token, provider, stato.tipo === 'checkout' ? stato.dati.paymentRevision : undefined)
     if (esito.tipo === 'redirect') {
       // Pagina del gestore: il pulsante resta occupato finché il browser non cambia pagina.
       window.location.assign(esito.url)
       return
     }
     setInCorso(null)
-    if (esito.tipo === 'scaduto') {
+    if (esito.tipo === 'aggiornato') {
+      setStato(await caricaCheckout(token))
+      setMessaggi([{categoria:'warning',testo:esito.messaggio}])
+    } else if (esito.tipo === 'scaduto') {
       setStato({ tipo: 'scaduto' })
     } else if (esito.tipo === 'sumup') {
+      checkoutHref.current = esito.urlEsito.replace(/\/successo(?:\?.*)?$/, '')
       setStato((corrente) => ({
         tipo: 'sumup',
         checkoutId: esito.checkoutId,
@@ -80,14 +85,19 @@ export default function PagamentoLinkApp() {
         importo: corrente.tipo === 'checkout' ? corrente.dati.importo : '',
       }))
     } else if (esito.tipo === 'bonifico') {
+      if (esito.urlEsito.replace(/\/successo(?:\?.*)?$/, '') !== percorsoCheckout(token)) {
+        window.location.assign(esito.urlEsito)
+        return
+      }
       if (esito.urlEsito) window.history.pushState({ vista: 'esito' }, '', esito.urlEsito)
       setStato({ tipo: 'esito', dati: esito.esito })
     } else {
       setMessaggi([{ categoria: 'danger', testo: esito.messaggio }])
     }
-  }, [token])
+  }, [token, stato])
 
   const tornaAlCheckout = useCallback(() => {
+    if (checkoutHref.current !== percorsoCheckout(token)) { window.location.assign(checkoutHref.current); return }
     if (window.location.pathname !== percorsoCheckout(token)) window.history.pushState({ vista: 'checkout' }, '', percorsoCheckout(token))
     setStato({ tipo: 'caricamento' })
     setRicarica((valore) => valore + 1)

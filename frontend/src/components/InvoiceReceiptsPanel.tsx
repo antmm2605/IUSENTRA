@@ -3,7 +3,7 @@ import { RefreshCw, RotateCcw } from 'lucide-react'
 import { getInvoiceReceipts, type InvoiceReceiptsSummary } from '../invoiceReceiptsData'
 import { useInvoiceReceiptCommand } from '../hooks/useInvoiceReceiptCommand'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
-import { formatDateIt, formatEuroIt } from '../formatting'
+import { formatDateIt, formatDecimalIt, formatEuroIt } from '../formatting'
 import { Button } from '../ui/Button'
 import { LoadingState } from '../ui/LoadingState'
 import './InvoiceReceiptsPanel.css'
@@ -51,8 +51,8 @@ export function InvoiceReceiptsPanel({ invoiceId, onConfirmed, reverseMovementId
   }, [data, invoiceId, reverseMovementId, command.ready, command.hasDraft, command.pending, command.startReversal])
   const pending = Boolean(command.pending)
   const reversing = Boolean(command.form.movementId)
-  const canRegister = Boolean(data?.can_write && !data.is_proforma && ['EMESSA', 'SCADUTA', 'PAGATA'].includes(data.invoice_state)
-    && ['OPEN', 'PARTIAL'].includes(data.status) && data.residual_cents && data.residual_cents > 0)
+  const canRegister = Boolean(data?.can_write && ['BOZZA', 'EMESSA', 'SCADUTA', 'PAGATA'].includes(data.invoice_state)
+    && ['DRAFT', 'OPEN', 'PARTIAL'].includes(data.status) && data.residual_cents && data.residual_cents > 0)
   const locked = pending || command.busy || Boolean(command.storageError) || !command.ready || Boolean(error)
   const original = data?.receipts.find(row => row.movement_id === command.form.movementId)
   if (!data && loading) return <LoadingState title="Caricamento incassi" message="Lettura dei movimenti del documento." />
@@ -68,6 +68,20 @@ export function InvoiceReceiptsPanel({ invoiceId, onConfirmed, reverseMovementId
         <div><dt>Residuo</dt><dd>{money(data.residual_cents)}</dd></div>
       </dl>
       {data.reason ? <p role="status">{data.reason}</p> : null}
+      {data.fiscal_document_required && (data.paid_cents ?? 0) > 0 ? <p role="status">Incasso registrato. Documento fiscale da predisporre nel percorso di emissione.</p> : null}
+      {data.provider_confirmations?.length ? <>
+        <h4>Conferme dei gestori</h4>
+        <ul className="iu-invoice-receipts__list">{data.provider_confirmations.map(source => <li key={source.source_key}>
+          <div>
+            <strong>{{ stripe: 'Stripe', paypal: 'PayPal', satispay: 'Satispay', sumup: 'SumUp' }[source.provider]} · {source.currency === 'EUR' ? money(source.amount_cents) : `${source.currency} ${formatDecimalIt(source.amount_cents / 100)}`}</strong>
+            <span>{{ RECORDED: 'Registrato in Prima nota', PENDING: 'Registrazione in attesa', DATE_REQUIRED: 'Data da riscontrare', REVIEW: 'Da riconciliare' }[source.status]}</span>
+            <small>Riferimento del gestore: {source.transaction_id}</small>
+            {source.paid_on ? <small>Data del pagamento: {formatDateIt(source.paid_on)}</small> : null}
+            {source.evidence_count > 1 ? <small>{source.evidence_count} conferme collegate allo stesso pagamento</small> : null}
+            {source.reason ? <p role={source.status === 'REVIEW' || source.status === 'DATE_REQUIRED' ? 'alert' : 'status'}>{source.reason}</p> : null}
+          </div>
+        </li>)}</ul>
+      </> : null}
       {reverseMovementId && reversing && reverseMovementId !== command.form.movementId ? <p role="status">È stata recuperata una bozza relativa a un altro incasso. Verificala o annullala prima di iniziare questo storno.</p> : null}
       {command.conflict && !pending ? <div role="alert"><p>Il documento o gli incassi sono cambiati. La tua bozza è conservata: confronta il nuovo riepilogo prima di confermare.</p>
         <Button type="button" tone="neutral" disabled={command.busy || Boolean(error)} onClick={command.review}>Usa il riepilogo aggiornato</Button></div> : null}
@@ -95,8 +109,9 @@ export function InvoiceReceiptsPanel({ invoiceId, onConfirmed, reverseMovementId
       {data.receipts.length ? <ul className="iu-invoice-receipts__list">{data.receipts.map(receipt => <li key={receipt.movement_id}>
         <div><strong>{receipt.direction === -1 ? 'Storno' : receipt.reversed ? 'Incasso stornato' : 'Incasso'} · {money(receipt.amount_cents)}</strong>
           <span>{formatDateIt(receipt.paid_on)} · {data.methods.find(method => method.value === receipt.method)?.label}</span>
-          {receipt.note ? <small>{receipt.note}</small> : null}</div>
-        {data.can_write && receipt.direction === 1 && !receipt.reversed ? <Button type="button" tone="neutral" disabled={locked || Boolean(command.form.movementId)} onClick={() => command.startReversal(receipt)}><RotateCcw size={14} /> Storna</Button> : null}
+          {receipt.note ? <small>{receipt.note}</small> : null}
+          {receipt.provider_confirmed ? <small>Confermato dal gestore: un eventuale rimborso richiede il relativo riscontro.</small> : null}</div>
+        {data.can_write && receipt.direction === 1 && !receipt.reversed && !receipt.provider_confirmed ? <Button type="button" tone="neutral" disabled={locked || Boolean(command.form.movementId)} onClick={() => command.startReversal(receipt)}><RotateCcw size={14} /> Storna</Button> : null}
       </li>)}</ul> : <p>{data.status === 'REVIEW' ? 'Nessun movimento verificato collegato a questo documento.' : 'Nessun incasso registrato.'}</p>}
     </> : null}
   </section>

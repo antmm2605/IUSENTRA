@@ -145,7 +145,7 @@ def open_prima_nota_repository(source, *, anchor, tenant_key, actor_key,
 
 
 def riprendi_audit_prima_nota(app, *, limit=50):
-    """Solo consegne pendenti degli studi attivi; nessuna lettura documentale."""
+    """Audit e incassi pendenti degli studi attivi; nessuna lettura documentale."""
     from flask import g
     from web.helpers import _cfg
     from web.services.fascicoli_presidi_runtime import _active_tenants, _attach_tenant_context
@@ -177,6 +177,10 @@ def riprendi_audit_prima_nota(app, *, limit=50):
                 result = PrimaNotaRepository(database,slug).retry_pending_audit(limit=limit)
                 for key in totals:
                     totals[key] += result[key]
+                from pct.payment_confirmations import deliver
+                payments = deliver(database, slug, limit=limit)
+                for key in totals:
+                    totals[key] += payments[key]
             finally:
                 close_prima_nota_database()
     return totals

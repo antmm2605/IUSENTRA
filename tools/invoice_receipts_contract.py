@@ -24,16 +24,28 @@ def apply_receipt_contract(operation, method):
                'properties': {'movement_id': text, 'amount_cents': {**cents, 'minimum': 1},
                               'direction': {'type': 'integer', 'enum': [1, -1]},
                               'paid_on': {'type': 'string', 'format': 'date'}, 'method': methods,
-                              'note': text, 'reverses_movement_id': text, 'reversed': {'type': 'boolean'}}}
+                              'note': text, 'reverses_movement_id': text, 'reversed': {'type': 'boolean'},
+                              'provider_confirmed': {'type': 'boolean'}}}
+    confirmation = {'type': 'object', 'additionalProperties': False, 'properties': {
+        'source_key': digest, 'provider': {'type': 'string', 'enum': ['stripe', 'paypal', 'satispay', 'sumup']},
+        'transaction_id': {'type': 'string', 'minLength': 1, 'maxLength': 200},
+        'amount_cents': {**cents, 'minimum': 1}, 'currency': {'type': 'string', 'pattern': '^[A-Z]{3}$'},
+        'paid_on': {'type': 'string', 'format': 'date', 'nullable': True},
+        'observed_at': {'type': 'string', 'format': 'date-time'}, 'date_origin': text, 'source_sha256': digest,
+        'status': {'type': 'string', 'enum': ['RECORDED', 'PENDING', 'DATE_REQUIRED', 'REVIEW']},
+        'reason': text, 'evidence_count': {'type': 'integer', 'minimum': 1}, 'movement_id': text}}
+    confirmation['required'] = list(confirmation['properties'])
     summary = {'type': 'object', 'required': ['invoice_id', 'status', 'paid_cents', 'residual_cents',
                                            'due_cents', 'revision', 'command_scope', 'can_write', 'receipts'],
-               'properties': {'invoice_id': text,
+               'properties': {'invoice_id': text, 'invoice_state': text,
+                              'is_proforma': {'type': 'boolean'}, 'fiscal_document_required': {'type': 'boolean'},
                               'status': {'type': 'string', 'enum': ['OPEN', 'PARTIAL', 'PAID', 'DRAFT', 'CANCELLED', 'REVIEW']},
                               **{key: {**cents, 'nullable': True} for key in
                                  ('paid_cents', 'residual_cents', 'due_cents')},
                               'revision': digest, 'command_scope': digest,
                               'can_write': {'type': 'boolean'}, 'reason': text,
-                              'receipts': {'type': 'array', 'items': receipt}}}
+                              'receipts': {'type': 'array', 'items': receipt},
+                              'provider_confirmations': {'type': 'array', 'items': confirmation}}}
     response = {'type': 'object', 'required': ['ok', 'summary'],
                 'properties': {'ok': {'type': 'boolean'}, 'summary': summary}}
     if method == 'POST':

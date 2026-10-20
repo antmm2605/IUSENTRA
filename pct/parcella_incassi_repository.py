@@ -141,6 +141,8 @@ class ParcellaIncassiRepository:
         require_preparation_record(self.db, self.tenant)
         require_live_signals(self.db)
         require_receipt_indexes(self.db)
+        from pct.payment_confirmations import require_schema
+        require_schema(self.db)
 
     def ensure_schema(self):
         """Solo migrazione esplicita, dopo backup e adozione di Prima nota."""
@@ -151,6 +153,8 @@ class ParcellaIncassiRepository:
             for statement in DDL:
                 conn.execute(statement)
             install_proof_guards(conn, postgres=self.postgres)
+            from pct.payment_confirmations import prepare_schema
+            prepare_schema(conn, postgres=self.postgres)
             expression = "(payload_json::jsonb->>'parcella_id')" if self.postgres else "json_extract(payload_json,'$.parcella_id')"
             conn.execute('CREATE INDEX IF NOT EXISTS idx_prima_nota_invoice_source '
                          'ON prima_nota_records(tenant_key,' + expression + ')')
@@ -187,7 +191,10 @@ class ParcellaIncassiRepository:
         expression = "(legacy.payload_json::jsonb->>'parcella_id')" if self.postgres else "json_extract(legacy.payload_json,'$.parcella_id')"
         rows = self.db.conn.execute(
             'SELECT i.dati_json,s.original_json,s.revision,p.movement_id,p.amount_cents,p.direction,p.cash_sha256,c.payload_json,'
-            'EXISTS(SELECT 1 FROM prima_nota_records legacy WHERE legacy.tenant_key=? AND ' + expression + '=i.id),s.due_cents,p.reverses_movement_id,i.id_cliente,i.id_fascicolo,i.id,p.paid_on '
+            'EXISTS(SELECT 1 FROM prima_nota_records legacy WHERE legacy.tenant_key=? AND ' + expression + '=i.id),s.due_cents,p.reverses_movement_id,i.id_cliente,i.id_fascicolo,i.id,p.paid_on,'
+            'EXISTS(SELECT 1 FROM payment_confirmation_sources source WHERE source.tenant_key=p.tenant_key '
+            'AND source.command_key=p.command_key AND EXISTS(SELECT 1 FROM prima_nota_commands command '
+            "WHERE command.tenant_key=p.tenant_key AND command.command_key=p.command_key AND command.actor_key='payment-verifier')) AS provider_confirmed "
             'FROM parcelle i LEFT JOIN parcella_incassi_state s ON s.parcella_id=i.id AND s.tenant_key=? '
             'LEFT JOIN parcella_incassi_proofs p ON p.tenant_key=s.tenant_key AND p.parcella_id=s.parcella_id '
             'LEFT JOIN prima_nota_records c ON c.tenant_key=p.tenant_key AND c.record_key=p.movement_id '
@@ -202,7 +209,8 @@ class ParcellaIncassiRepository:
         if (item.id != invoice_id or item.id_cliente != rows[0][11]
                 or (item.id_fascicolo or '') != (rows[0][12] or '')):
             raise ValueError('Identità del documento SQL discordante.')
-        identity = {'invoice_state': item.stato.value, 'is_proforma': GestioneFatturazione._is_proforma(item)}
+        identity = {'invoice_state': item.stato.value, 'is_proforma': GestioneFatturazione._is_proforma(item),
+                    'fiscal_document_required': item.stato == StatoParcella.BOZZA or GestioneFatturazione._is_proforma(item)}
         managed = rows[0][1] is not None
         if not managed and (item.stato == StatoParcella.PAGATA or item.data_pagamento or rows[0][8]):
             return {**identity, 'invoice_id': invoice_id, 'paid_cents': None, 'residual_cents': None,
@@ -210,16 +218,17 @@ class ParcellaIncassiRepository:
                     'reason': 'Pagamento storico da riscontrare, senza ricostruire un importo dal totale corrente.',
                     'receipts': [], 'due_cents': None}
         if not managed and item.stato == StatoParcella.BOZZA:
-            return {**identity, 'invoice_id': invoice_id, 'paid_cents': 0, 'residual_cents': 0,
+            return {**identity, 'invoice_id': invoice_id, 'paid_cents': 0, 'residual_cents': _cents(item.netto_a_pagare),
                     'status': 'DRAFT', 'revision': parcella_revision(item), 'receipts': [],
                     'due_cents': _cents(item.netto_a_pagare),
-                    'reason': 'Bozza non emessa: completa il documento prima di registrarne gli incassi.'}
+                    'reason': 'Documento non emesso: un incasso non costituisce emissione fiscale.'}
         paid = 0
         receipts = []
         for row in rows:
             if row[3] is None:
                 continue
             receipt = verified_receipt(invoice_id, row[3], row[4], row[5], row[6], row[7], row[10], row[14])
+            receipt['provider_confirmed'] = bool(row[15])
             paid += int(row[4]) * int(row[5])
             receipts.append(receipt)
         reversed_ids = {entry['reverses_movement_id'] for entry in receipts if entry['reverses_movement_id']}
@@ -229,7 +238,7 @@ class ParcellaIncassiRepository:
         if managed:
             original = Parcella.from_dict(json.loads(rows[0][1]))
             marker = (item.dati_personalizzati or {}).get('incassi_sql', {})
-            if (self._financial_identity(item) != self._financial_identity(original)
+            if (not self._same_financial_source(original, item)
                     or _cents(item.netto_a_pagare) != int(rows[0][9])
                     or not isinstance(marker, dict) or marker.get('owner') != 'prima_nota'
                     or marker.get('revision') != int(rows[0][2])):
@@ -256,8 +265,45 @@ class ParcellaIncassiRepository:
             payload.pop(key, None)
         custom = dict(payload.get('dati_personalizzati') or {})
         custom.pop('incassi_sql', None)
+        # Emissione/invio e incasso sono fatti distinti: la conferma fiscale
+        # aggiorna queste sole etichette, non cliente, voci o parametri economici.
+        for key in ('sdi_identificativo', 'sdi_stato', 'sdi_canale', 'sdi_data_invio', 'sdi_data_esito', 'sdi_ricevuta', 'sdi_note'):
+            payload.pop(key, None)
+        document = dict(custom.get('document') or {})
+        for key in ('documento_operativo', 'tipo_documento_label', 'numero_documento', 'data_conversione_proforma'):
+            document.pop(key, None)
+        if document:
+            custom['document'] = document
+        else:
+            custom.pop('document', None)
+        proforma = dict(custom.get('proforma') or {})
+        for key in ('convertita', 'convertita_il', 'stato_destinazione'):
+            proforma.pop(key, None)
+        if proforma:
+            custom['proforma'] = proforma
+        else:
+            custom.pop('proforma', None)
         payload['dati_personalizzati'] = custom
         return _encode(payload)
+
+    @classmethod
+    def _same_financial_source(cls, original, current):
+        if cls._financial_identity(original) != cls._financial_identity(current):
+            return False
+        old = GestioneFatturazione._document_payload(original)
+        new = GestioneFatturazione._document_payload(current)
+        kind = lambda value: str(value.get('documento_operativo') or '').strip().upper()
+        if kind(old) == kind(new):
+            return all(old.get(key) == new.get(key) for key in
+                       ('numero_documento', 'data_conversione_proforma'))
+        proof = (current.dati_personalizzati or {}).get('proforma', {})
+        return (GestioneFatturazione._is_proforma(original) and kind(new) == 'FATTURA'
+                and current.stato in {StatoParcella.EMESSA, StatoParcella.SCADUTA, StatoParcella.PAGATA}
+                and isinstance(proof, dict) and proof.get('convertita') is True
+                and proof.get('stato_destinazione') in {'EMESSA', 'PAGATA'}
+                and new.get('numero_documento') == current.numero
+                and bool(new.get('data_conversione_proforma'))
+                and proof.get('convertita_il') == new.get('data_conversione_proforma'))
 
     def _command(self, fields, command_key):
         if not isinstance(command_key, str) or str(UUID(command_key)) != command_key:
@@ -294,7 +340,8 @@ class ParcellaIncassiRepository:
         except Exception as exc:
             raise ParcellaIncassoOutcomeUnconfirmed('Conferma del comando non riscontrata: recupero necessario.') from exc
 
-    def register(self, *, invoice_id, amount_cents, paid_on, method, note, command_key, expected_revision):
+    def register(self, *, invoice_id, amount_cents, paid_on, method, note, command_key, expected_revision,
+                 _transaction=None):
         if type(amount_cents) is not int or not 0 < amount_cents <= 9007199254740991:
             raise ValueError('Importo positivo in centesimi richiesto.')
         if _cents(amount_cents / 100) != amount_cents:
@@ -305,7 +352,7 @@ class ParcellaIncassiRepository:
             raise ValueError('Metodo di incasso non valido.')
         fields = {'kind': 'invoice_receipt', 'invoice_id': invoice_id, 'amount_cents': amount_cents,
                   'paid_on': paid_on, 'method': method, 'note': note, 'expected_revision': expected_revision}
-        return self._execute(fields, command_key)
+        return self._execute(fields, command_key, transaction=_transaction)
 
     def reverse(self, *, invoice_id, movement_id, paid_on, reason, command_key, expected_revision):
         if not isinstance(movement_id, str) or not re.fullmatch('[A-Za-z0-9_-]{1,100}', movement_id):
@@ -316,7 +363,25 @@ class ParcellaIncassiRepository:
                   'paid_on': paid_on, 'reason': reason.strip(), 'expected_revision': expected_revision}
         return self._execute(fields, command_key)
 
-    def _execute(self, fields, command_key):
+    def _execute(self, fields, command_key, *, transaction=None):
+        if transaction is None and (not isinstance(command_key, str) or UUID(command_key).version != 4):
+            raise ValueError('Per i comandi manuali è richiesto un nuovo identificativo UUID casuale.')
+        # La outbox possiede già la transazione di consegna: cassa, documento
+        # e conferma dell'evento devono avere un solo commit/rollback esterno.
+        if transaction is not None:
+            same_owner = (getattr(transaction, '_backend', None) is self.db) if self.postgres else transaction is self.db.conn
+            if not same_owner:
+                raise ValueError('La consegna deve usare la connessione dello stesso archivio.')
+            if self.postgres and self.db.raw_conn.get_transaction_status() == 0:
+                raise ValueError('La consegna richiede una transazione già aperta.')
+            if not self.postgres and (not transaction.in_transaction
+                    or transaction.execute('PRAGMA foreign_keys').fetchone()[0] != 1):
+                raise ValueError('La consegna richiede una transazione già aperta.')
+
+        def finish(conn, *, rollback=False):
+            if transaction is None:
+                self.cash._finish(conn, rollback=rollback)
+
         if not isinstance(fields['expected_revision'], str) or not re.fullmatch('[a-f0-9]{64}', fields['expected_revision']):
             raise ValueError('Rileggi il documento prima di registrare il movimento.')
         if not isinstance(fields['paid_on'], str) or date.fromisoformat(fields['paid_on']).isoformat() != fields['paid_on']:
@@ -329,10 +394,13 @@ class ParcellaIncassiRepository:
             replay = self._replay(command)
             if replay is not None:
                 return self._result(invoice_id, replay['movement']['id'], already_present=True)
-            conn = self.cash._write_conn()
-            if not self.postgres:
+            conn = transaction if transaction is not None else self.cash._write_conn()
+            if not self.postgres and transaction is None:
                 if conn.in_transaction:
                     raise RuntimeError('Transazione estranea al comando incasso: nessuna scrittura eseguita.')
+                conn.execute('PRAGMA foreign_keys=ON')
+                if conn.execute('PRAGMA foreign_keys').fetchone()[0] != 1:
+                    raise RuntimeError('Vincoli SQL degli incassi non attivi.')
                 conn.execute('BEGIN IMMEDIATE')
             try:
                 item = self._invoice(invoice_id, lock=True)
@@ -340,7 +408,7 @@ class ParcellaIncassiRepository:
                 # del lock. Il replay precede sempre il confronto di revisione.
                 replay = self._replay(command)
                 if replay is not None:
-                    self.cash._finish(conn, rollback=True)
+                    finish(conn, rollback=True)
                     return self._result(invoice_id, replay['movement']['id'], already_present=True)
                 if parcella_revision(item) != fields['expected_revision']:
                     raise ParcellaIncassoConflict('Documento aggiornato da un altro operatore. La bozza è conservata.')
@@ -350,9 +418,12 @@ class ParcellaIncassiRepository:
                         + (' FOR SHARE' if self.postgres else ''), (item.id_fascicolo,)).fetchone()
                     if case is None or case[0] != item.id_cliente:
                         raise ValueError('Cliente del documento non concordante con il fascicolo: verifica il collegamento prima dell’incasso.')
-                if not reversing and (GestioneFatturazione._is_proforma(item) or item.stato not in {StatoParcella.EMESSA, StatoParcella.SCADUTA, StatoParcella.PAGATA}):
-                    raise ValueError('La procedura fiscale della proforma deve essere predisposta prima degli acconti.')
+                nonfiscal = item.stato == StatoParcella.BOZZA or GestioneFatturazione._is_proforma(item)
+                if not reversing and item.stato == StatoParcella.ANNULLATA:
+                    raise ValueError('Documento annullato: verifica la destinazione dell’incasso prima della registrazione.')
                 balance = self.summary(invoice_id)
+                if not reversing and balance['status'] == 'DRAFT':
+                    balance = {**balance, 'residual_cents': balance['due_cents']}
                 if balance['status'] == 'REVIEW' and (not reversing or balance['paid_cents'] is None):
                     raise ParcellaIncassoConflict(balance['reason'])
                 native_state = conn.execute('SELECT revision FROM prima_nota_state WHERE tenant_key=?'
@@ -374,11 +445,16 @@ class ParcellaIncassiRepository:
                     revision = int(state[0])
                     frozen_due = int(state[2])
                     original = Parcella.from_dict(json.loads(state[1]))
-                    if not reversing and self._financial_identity(item) != self._financial_identity(original):
+                    if not reversing and not self._same_financial_source(original, item):
                         raise ParcellaIncassoConflict('Dati economici modificati dopo gli incassi: riconciliazione necessaria.')
                 reverse_id = None
                 if fields['kind'] == 'invoice_receipt_reversal':
                     reverse_id = fields['movement_id']
+                    if conn.execute('SELECT 1 FROM payment_confirmation_sources source '
+                        'JOIN parcella_incassi_proofs p ON p.tenant_key=source.tenant_key AND p.command_key=source.command_key '
+                        'WHERE p.tenant_key=? AND p.parcella_id=? AND p.movement_id=? LIMIT 1',
+                        (self.tenant, invoice_id, reverse_id)).fetchone():
+                        raise ValueError('Incasso confermato dal gestore: lo storno contabile non prova un rimborso. Verifica il rimborso effettivo prima della riconciliazione.')
                     original_row = conn.execute('SELECT p.amount_cents,p.direction,r.payload_json,p.cash_sha256 '
                                                 'FROM parcella_incassi_proofs p JOIN prima_nota_records r '
                                                 'ON r.tenant_key=p.tenant_key AND r.record_key=p.movement_id '
@@ -417,9 +493,10 @@ class ParcellaIncassiRepository:
                             raise ValueError('Cliente e fascicolo del documento non concordanti nell’archivio SQL.')
                     label = client.get('ragione_sociale') or ' '.join(str(client.get(key) or '') for key in ('nome', 'cognome')).strip() or 'Cliente'
                     category = 'onorari' if all(voce.tipo == 'ONORARIO' for voce in item.voci) else 'altri_incassi'
+                    document_label = 'proforma' if GestioneFatturazione._is_proforma(item) else 'documento in bozza' if nonfiscal else 'fattura'
                     movement = MovimentoPrimaNota(data=fields['paid_on'], tipo='INCASSO', importo=cents / 100,
                         categoria=category, controparte=label, metodo=fields['method'],
-                        causale='Incasso fattura ' + item.numero, note=fields['note'],
+                        causale='Incasso ' + document_label + ' ' + item.numero, note=fields['note'],
                         parcella_id=item.id, fascicolo_id=item.id_fascicolo or '', cliente_id=item.id_cliente or '',
                         documento_riferimento=item.numero, creato_da=self.actor)
                     direction = 1
@@ -430,7 +507,7 @@ class ParcellaIncassiRepository:
                 command['result'] = {'movement': movement.to_dict()}
                 _, result, replayed = self.cash._persist_changes(conn, {movement.id: _encode(movement.to_dict())}, command=command)
                 if replayed:
-                    self.cash._finish(conn, rollback=True)
+                    finish(conn, rollback=True)
                     return self._result(invoice_id, result['movement']['id'], already_present=True)
                 conn.execute('INSERT INTO parcella_incassi_proofs '
                              '(tenant_key,movement_id,parcella_id,command_key,amount_cents,direction,paid_on,cash_sha256,reverses_movement_id,created_at) '
@@ -452,7 +529,8 @@ class ParcellaIncassiRepository:
                     # riemettere un documento annullato o riscriverne i valori.
                     pass
                 elif total_paid == due:
-                    item.stato = StatoParcella.PAGATA
+                    if not nonfiscal:
+                        item.stato = StatoParcella.PAGATA
                     item.data_pagamento = conn.execute('SELECT MAX(paid_on) FROM parcella_incassi_proofs p '
                         'WHERE tenant_key=? AND parcella_id=? AND direction=1 AND NOT EXISTS '
                         '(SELECT 1 FROM parcella_incassi_proofs reverse WHERE reverse.tenant_key=p.tenant_key AND reverse.reverses_movement_id=p.movement_id)',
@@ -461,12 +539,13 @@ class ParcellaIncassiRepository:
                     original_json = conn.execute('SELECT original_json FROM parcella_incassi_state WHERE tenant_key=? AND parcella_id=?',
                                                  (self.tenant, invoice_id)).fetchone()[0]
                     original = Parcella.from_dict(json.loads(original_json))
-                    item.stato = item.stato if item.stato in {StatoParcella.EMESSA, StatoParcella.SCADUTA} else original.stato
+                    if not nonfiscal:
+                        item.stato = item.stato if item.stato in {StatoParcella.EMESSA, StatoParcella.SCADUTA} else StatoParcella.EMESSA if original.stato == StatoParcella.BOZZA else original.stato
                     item.data_pagamento = None
                 _write_parcella_row(conn, item, expected_revision=fields['expected_revision'], postgres=self.postgres)
-                self.cash._finish(conn)
+                finish(conn)
             except Exception:
-                self.cash._finish(conn, rollback=True)
+                finish(conn, rollback=True)
                 raise
             return self._result(invoice_id, movement.id)
         except PrimaNotaConflict as exc:

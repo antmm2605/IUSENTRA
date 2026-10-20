@@ -52,7 +52,7 @@ paths:
       tags:
       - Fatturazione
       summary: 'Incassi del documento: GET /api/fatturazione/{invoice_id}/incassi'
-      description: 'Contratto fase 6 derivato da `invoice_receipts_read` in `web/bootstrap/invoice_receipts_routes.py:28`.
+      description: 'Contratto fase 6 derivato da `invoice_receipts_read` in `web/bootstrap/invoice_receipts_routes.py:30`.
         Pagina/area collegata: Incassi del documento. I dati sono sempre nel tenant corrente; il client non puo'' forzare
         tenant/studio/user.'
       operationId: reactUi_invoice_receipts_read_get
@@ -95,8 +95,13 @@ paths:
                     - can_write
                     - receipts
                     properties:
-                      invoice_id: &id002
+                      invoice_id: &id001
                         type: string
+                      invoice_state: *id001
+                      is_proforma:
+                        type: boolean
+                      fiscal_document_required:
+                        type: boolean
                       status:
                         type: string
                         enum:
@@ -121,13 +126,13 @@ paths:
                         minimum: 0
                         maximum: 9007199254740991
                         nullable: true
-                      revision: &id001
+                      revision: &id002
                         type: string
                         pattern: ^[a-f0-9]{64}$
-                      command_scope: *id001
+                      command_scope: *id002
                       can_write:
                         type: boolean
-                      reason: *id002
+                      reason: *id001
                       receipts:
                         type: array
                         items:
@@ -138,7 +143,7 @@ paths:
                           - direction
                           - paid_on
                           properties:
-                            movement_id: *id002
+                            movement_id: *id001
                             amount_cents:
                               type: integer
                               minimum: 1
@@ -158,10 +163,72 @@ paths:
                               - cassa
                               - pos
                               - altro
-                            note: *id002
-                            reverses_movement_id: *id002
+                            note: *id001
+                            reverses_movement_id: *id001
                             reversed:
                               type: boolean
+                            provider_confirmed:
+                              type: boolean
+                      provider_confirmations:
+                        type: array
+                        items:
+                          type: object
+                          additionalProperties: false
+                          properties:
+                            source_key: *id002
+                            provider:
+                              type: string
+                              enum:
+                              - stripe
+                              - paypal
+                              - satispay
+                              - sumup
+                            transaction_id:
+                              type: string
+                              minLength: 1
+                              maxLength: 200
+                            amount_cents:
+                              type: integer
+                              minimum: 1
+                              maximum: 9007199254740991
+                            currency:
+                              type: string
+                              pattern: ^[A-Z]{3}$
+                            paid_on:
+                              type: string
+                              format: date
+                              nullable: true
+                            observed_at:
+                              type: string
+                              format: date-time
+                            date_origin: *id001
+                            source_sha256: *id002
+                            status:
+                              type: string
+                              enum:
+                              - RECORDED
+                              - PENDING
+                              - DATE_REQUIRED
+                              - REVIEW
+                            reason: *id001
+                            evidence_count:
+                              type: integer
+                              minimum: 1
+                            movement_id: *id001
+                          required:
+                          - source_key
+                          - provider
+                          - transaction_id
+                          - amount_cents
+                          - currency
+                          - paid_on
+                          - observed_at
+                          - date_origin
+                          - source_sha256
+                          - status
+                          - reason
+                          - evidence_count
+                          - movement_id
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -191,7 +258,7 @@ paths:
       tags:
       - Fatturazione
       summary: 'Incassi del documento: POST /api/fatturazione/{invoice_id}/incassi'
-      description: 'Contratto fase 6 derivato da `invoice_receipts_write` in `web/bootstrap/invoice_receipts_routes.py:42`.
+      description: 'Contratto fase 6 derivato da `invoice_receipts_write` in `web/bootstrap/invoice_receipts_routes.py:44`.
         Pagina/area collegata: Incassi del documento. I dati sono sempre nel tenant corrente; il client non puo'' forzare
         tenant/studio/user.'
       operationId: reactUi_invoice_receipts_write_post
@@ -233,8 +300,13 @@ paths:
                     - can_write
                     - receipts
                     properties:
-                      invoice_id: &id004
+                      invoice_id: &id003
                         type: string
+                      invoice_state: *id003
+                      is_proforma:
+                        type: boolean
+                      fiscal_document_required:
+                        type: boolean
                       status:
                         type: string
                         enum:
@@ -259,13 +331,13 @@ paths:
                         minimum: 0
                         maximum: 9007199254740991
                         nullable: true
-                      revision: &id003
+                      revision: &id004
                         type: string
                         pattern: ^[a-f0-9]{64}$
-                      command_scope: *id003
+                      command_scope: *id004
                       can_write:
                         type: boolean
-                      reason: *id004
+                      reason: *id003
                       receipts:
                         type: array
                         items:
@@ -276,7 +348,7 @@ paths:
                           - direction
                           - paid_on
                           properties:
-                            movement_id: *id004
+                            movement_id: *id003
                             amount_cents:
                               type: integer
                               minimum: 1
@@ -296,11 +368,73 @@ paths:
                               - cassa
                               - pos
                               - altro
-                            note: *id004
-                            reverses_movement_id: *id004
+                            note: *id003
+                            reverses_movement_id: *id003
                             reversed:
                               type: boolean
-                  movement_id: *id004
+                            provider_confirmed:
+                              type: boolean
+                      provider_confirmations:
+                        type: array
+                        items:
+                          type: object
+                          additionalProperties: false
+                          properties:
+                            source_key: *id004
+                            provider:
+                              type: string
+                              enum:
+                              - stripe
+                              - paypal
+                              - satispay
+                              - sumup
+                            transaction_id:
+                              type: string
+                              minLength: 1
+                              maxLength: 200
+                            amount_cents:
+                              type: integer
+                              minimum: 1
+                              maximum: 9007199254740991
+                            currency:
+                              type: string
+                              pattern: ^[A-Z]{3}$
+                            paid_on:
+                              type: string
+                              format: date
+                              nullable: true
+                            observed_at:
+                              type: string
+                              format: date-time
+                            date_origin: *id003
+                            source_sha256: *id004
+                            status:
+                              type: string
+                              enum:
+                              - RECORDED
+                              - PENDING
+                              - DATE_REQUIRED
+                              - REVIEW
+                            reason: *id003
+                            evidence_count:
+                              type: integer
+                              minimum: 1
+                            movement_id: *id003
+                          required:
+                          - source_key
+                          - provider
+                          - transaction_id
+                          - amount_cents
+                          - currency
+                          - paid_on
+                          - observed_at
+                          - date_origin
+                          - source_sha256
+                          - status
+                          - reason
+                          - evidence_count
+                          - movement_id
+                  movement_id: *id003
                   already_present:
                     type: boolean
                   confirmed_command:
@@ -312,12 +446,12 @@ paths:
                     - invoice_id
                     - expected_revision
                     properties:
-                      scope: *id003
+                      scope: *id004
                       command_key: &id005
                         type: string
                         format: uuid
-                      invoice_id: *id004
-                      expected_revision: *id003
+                      invoice_id: *id003
+                      expected_revision: *id004
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -366,8 +500,8 @@ paths:
                     enum:
                     - receipt
                   command_key: *id005
-                  expected_revision: *id003
-                  scope: *id003
+                  expected_revision: *id004
+                  scope: *id004
                   paid_on: &id007
                     type: string
                     format: date
@@ -395,10 +529,10 @@ paths:
                     enum:
                     - reversal
                   command_key: *id005
-                  expected_revision: *id003
-                  scope: *id003
+                  expected_revision: *id004
+                  scope: *id004
                   paid_on: *id007
-                  movement_id: *id004
+                  movement_id: *id003
                   reason:
                     type: string
                     minLength: 1
@@ -808,7 +942,7 @@ paths:
       tags:
       - Mandato
       summary: 'Link di pagamento cliente: GET /api/v1/pubblico/pagamenti/{token}'
-      description: 'Contratto fase 6 derivato da `pagamento_checkout` in `web/blueprints/api_v1_portale_token.py:219`. Pagina/area
+      description: 'Contratto fase 6 derivato da `pagamento_checkout` in `web/blueprints/api_v1_portale_token.py:223`. Pagina/area
         collegata: Link di pagamento cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_pagamento_checkout_get
       security:
@@ -859,7 +993,7 @@ paths:
       tags:
       - Mandato
       summary: 'Link di pagamento cliente: POST /api/v1/pubblico/pagamenti/{token}/avvia'
-      description: 'Contratto fase 6 derivato da `pagamento_avvia` in `web/blueprints/api_v1_portale_token.py:231`. Pagina/area
+      description: 'Contratto fase 6 derivato da `pagamento_avvia` in `web/blueprints/api_v1_portale_token.py:235`. Pagina/area
         collegata: Link di pagamento cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_pagamento_avvia_post
       security:
@@ -913,7 +1047,7 @@ paths:
       tags:
       - Mandato
       summary: 'Link di pagamento cliente: GET /api/v1/pubblico/pagamenti/{token}/esito'
-      description: 'Contratto fase 6 derivato da `pagamento_esito` in `web/blueprints/api_v1_portale_token.py:253`. Pagina/area
+      description: 'Contratto fase 6 derivato da `pagamento_esito` in `web/blueprints/api_v1_portale_token.py:266`. Pagina/area
         collegata: Link di pagamento cliente. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_pagamento_esito_get
       security:
@@ -964,7 +1098,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale cliente con link personale: GET /api/v1/pubblico/portale/{token}'
-      description: 'Contratto fase 6 derivato da `portale_home` in `web/blueprints/api_v1_portale_token.py:128`. Pagina/area
+      description: 'Contratto fase 6 derivato da `portale_home` in `web/blueprints/api_v1_portale_token.py:132`. Pagina/area
         collegata: Portale cliente con link personale. I dati sono sempre nel tenant corrente; il client non puo'' forzare
         tenant/studio/user.'
       operationId: reactUi_portale_home_get
@@ -1016,7 +1150,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale cliente con link personale: GET /api/v1/pubblico/portale/{token}/anagrafica'
-      description: 'Contratto fase 6 derivato da `portale_anagrafica` in `web/blueprints/api_v1_portale_token.py:200`. Pagina/area
+      description: 'Contratto fase 6 derivato da `portale_anagrafica` in `web/blueprints/api_v1_portale_token.py:204`. Pagina/area
         collegata: Portale cliente con link personale. I dati sono sempre nel tenant corrente; il client non puo'' forzare
         tenant/studio/user.'
       operationId: reactUi_portale_anagrafica_get
@@ -1067,7 +1201,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale cliente con link personale: POST /api/v1/pubblico/portale/{token}/anagrafica'
-      description: 'Contratto fase 6 derivato da `portale_anagrafica_aggiorna` in `web/blueprints/api_v1_portale_token.py:206`.
+      description: 'Contratto fase 6 derivato da `portale_anagrafica_aggiorna` in `web/blueprints/api_v1_portale_token.py:210`.
         Pagina/area collegata: Portale cliente con link personale. I dati sono sempre nel tenant corrente; il client non puo''
         forzare tenant/studio/user.'
       operationId: reactUi_portale_anagrafica_aggiorna_post
@@ -1122,7 +1256,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale cliente con link personale: POST /api/v1/pubblico/portale/{token}/conferimenti/{id_conferimento}/firma'
-      description: 'Contratto fase 6 derivato da `portale_conferimento_firma` in `web/blueprints/api_v1_portale_token.py:192`.
+      description: 'Contratto fase 6 derivato da `portale_conferimento_firma` in `web/blueprints/api_v1_portale_token.py:196`.
         Pagina/area collegata: Portale cliente con link personale. I dati sono sempre nel tenant corrente; il client non puo''
         forzare tenant/studio/user.'
       operationId: reactUi_portale_conferimento_firma_post
@@ -1183,7 +1317,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale cliente con link personale: GET /api/v1/pubblico/portale/{token}/documenti'
-      description: 'Contratto fase 6 derivato da `portale_documenti` in `web/blueprints/api_v1_portale_token.py:152`. Pagina/area
+      description: 'Contratto fase 6 derivato da `portale_documenti` in `web/blueprints/api_v1_portale_token.py:156`. Pagina/area
         collegata: Portale cliente con link personale. I dati sono sempre nel tenant corrente; il client non puo'' forzare
         tenant/studio/user.'
       operationId: reactUi_portale_documenti_get
@@ -1235,7 +1369,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale cliente con link personale: POST /api/v1/pubblico/portale/{token}/documenti/upload'
-      description: 'Contratto fase 6 derivato da `portale_documenti_upload` in `web/blueprints/api_v1_portale_token.py:159`.
+      description: 'Contratto fase 6 derivato da `portale_documenti_upload` in `web/blueprints/api_v1_portale_token.py:163`.
         Pagina/area collegata: Portale cliente con link personale. I dati sono sempre nel tenant corrente; il client non puo''
         forzare tenant/studio/user.'
       operationId: reactUi_portale_documenti_upload_post
@@ -1294,7 +1428,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale cliente con link personale: GET /api/v1/pubblico/portale/{token}/economici'
-      description: 'Contratto fase 6 derivato da `portale_economici` in `web/blueprints/api_v1_portale_token.py:175`. Pagina/area
+      description: 'Contratto fase 6 derivato da `portale_economici` in `web/blueprints/api_v1_portale_token.py:179`. Pagina/area
         collegata: Portale cliente con link personale. I dati sono sempre nel tenant corrente; il client non puo'' forzare
         tenant/studio/user.'
       operationId: reactUi_portale_economici_get
@@ -1346,7 +1480,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale cliente con link personale: POST /api/v1/pubblico/portale/{token}/preventivi/{id_preventivo}/accetta'
-      description: 'Contratto fase 6 derivato da `portale_preventivo_accetta` in `web/blueprints/api_v1_portale_token.py:184`.
+      description: 'Contratto fase 6 derivato da `portale_preventivo_accetta` in `web/blueprints/api_v1_portale_token.py:188`.
         Pagina/area collegata: Portale cliente con link personale. I dati sono sempre nel tenant corrente; il client non puo''
         forzare tenant/studio/user.'
       operationId: reactUi_portale_preventivo_accetta_post
@@ -1407,7 +1541,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale cliente con link personale: GET /api/v1/pubblico/portale/{token}/privacy'
-      description: 'Contratto fase 6 derivato da `portale_privacy` in `web/blueprints/api_v1_portale_token.py:135`. Pagina/area
+      description: 'Contratto fase 6 derivato da `portale_privacy` in `web/blueprints/api_v1_portale_token.py:139`. Pagina/area
         collegata: Portale cliente con link personale. I dati sono sempre nel tenant corrente; il client non puo'' forzare
         tenant/studio/user.'
       operationId: reactUi_portale_privacy_get
@@ -1458,7 +1592,7 @@ paths:
       tags:
       - Portale Cliente
       summary: 'Portale cliente con link personale: POST /api/v1/pubblico/portale/{token}/privacy'
-      description: 'Contratto fase 6 derivato da `portale_privacy_consenso` in `web/blueprints/api_v1_portale_token.py:141`.
+      description: 'Contratto fase 6 derivato da `portale_privacy_consenso` in `web/blueprints/api_v1_portale_token.py:145`.
         Pagina/area collegata: Portale cliente con link personale. I dati sono sempre nel tenant corrente; il client non puo''
         forzare tenant/studio/user.'
       operationId: reactUi_portale_privacy_consenso_post

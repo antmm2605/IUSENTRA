@@ -24,6 +24,38 @@ def balance_amount(invoice, balances, field, legacy_amount):
     return value / 100
 
 
+def payment_link_amount(database, invoice, *, tenant_key=None):
+    """Il cliente paga il netto residuo, non di nuovo il totale originario."""
+    from pct.parcella_incassi_proofs import _cents
+    if database is not None:
+        if not tenant_key:
+            raise ValueError('Studio proprietario richiesto per determinare il residuo.')
+        from pct.payment_confirmations import require_schema
+        require_schema(database)
+        pending = database.conn.execute('SELECT 1 FROM payment_confirmation_sources s '
+            'LEFT JOIN parcella_incassi_proofs p ON p.tenant_key=s.tenant_key AND p.command_key=s.command_key '
+            'AND p.parcella_id=s.invoice_id AND p.direction=1 '
+            "AND EXISTS(SELECT 1 FROM prima_nota_commands command WHERE command.tenant_key=p.tenant_key "
+            "AND command.command_key=p.command_key AND command.actor_key='payment-verifier' AND command.operation='registrazione') "
+            'WHERE s.tenant_key=? AND s.invoice_id=? '
+            'AND p.movement_id IS NULL LIMIT 1', (tenant_key, invoice.id)).fetchone()
+        if pending:
+            raise ValueError('È già presente una conferma del gestore da registrare o riconciliare: non avviare un altro pagamento.')
+        from pct.parcella_incassi_repository import ParcellaIncassiRepository
+        from pct.fatturazione import parcella_revision, ParcellaConcurrentUpdate
+        summary = ParcellaIncassiRepository(database, tenant_key, actor_key='payment-link').summary(invoice.id)
+        if summary['revision'] != parcella_revision(invoice):
+            raise ParcellaConcurrentUpdate('Documento aggiornato: rileggi il residuo prima del pagamento.')
+        if summary['status'] == 'REVIEW':
+            raise ValueError(summary['reason'])
+        amount = invoice.netto_a_pagare if summary['status'] == 'DRAFT' else summary['residual_cents'] / 100
+    else:
+        amount = invoice.netto_a_pagare
+    if _cents(amount) <= 0 or getattr(invoice.stato, 'value', invoice.stato) in {'PAGATA', 'ANNULLATA'}:
+        raise ValueError('Il documento non ha un residuo da pagare.')
+    return amount
+
+
 def receipts_in_period(invoices, balances, start, end):
     from datetime import date
     from pct.parcella_incassi_repository import _cents

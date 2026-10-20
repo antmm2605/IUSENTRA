@@ -110,7 +110,7 @@ export function VistaCheckout({
           </div>
         )}
 
-        <Messaggi messaggi={messaggi} />
+        <Messaggi messaggi={[...(dati.notice ? [{categoria:'info' as const,testo:dati.notice}] : []), ...messaggi]} />
         <p className="iu-pgl-sicuro"><Lock size={14} aria-hidden="true" />Pagamento sicuro — connessione cifrata HTTPS</p>
       </div>
     </main>

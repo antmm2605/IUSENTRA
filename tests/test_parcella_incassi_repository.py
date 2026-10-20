@@ -108,6 +108,32 @@ def test_audit_failure_rolls_back_invoice_cash_command_and_allocation(invoice_re
     assert repo.summary(invoice_id)['paid_cents'] == 0
 
 
+@pytest.mark.parametrize('commit', [False, True])
+def test_outbox_transaction_owns_cash_invoice_and_delivery_together(invoice_receipts, commit):
+    from pct.transactional_outbox import OutboxEvent, enqueue
+    repo, cash, manager, invoice_id = invoice_receipts
+    revision = parcella_revision(_invoice(manager, invoice_id))
+    conn = repo.db.conn
+    if not repo.postgres:
+        conn.execute('PRAGMA foreign_keys=ON')
+        conn.execute('BEGIN IMMEDIATE')
+    # La scrittura della consegna apre anche la transazione PostgreSQL.
+    marker = 'controlled-provider-delivery'
+    enqueue(conn, OutboxEvent(tenant_id='controlled', aggregate_type='payment_confirmation', aggregate_id=marker,
+        aggregate_version=1, event_type='payment.confirmation_received', idempotency_key=marker,
+        actor_id='controlled-verifier', payload={}))
+    result = repo.register(invoice_id=invoice_id, amount_cents=40000, paid_on='2026-10-20',
+        method='banca', note='Conferma controllata', command_key=str(uuid4()),
+        expected_revision=revision, _transaction=conn)
+    assert result['paid_cents'] == 40000
+    conn.execute('UPDATE transactional_outbox SET status=? WHERE idempotency_key=?', ('PROCESSED', marker))
+    cash._finish(conn, rollback=not commit)
+    assert repo.summary(invoice_id)['paid_cents'] == (40000 if commit else 0)
+    assert len(cash.load()) == (1 if commit else 0)
+    observed = conn.execute('SELECT status FROM transactional_outbox WHERE idempotency_key=?', (marker,)).fetchone()
+    assert (observed[0] if observed else None) == ('PROCESSED' if commit else None)
+
+
 def test_changed_financial_source_stays_explicit_without_new_cash(invoice_receipts):
     repo, cash, manager, invoice_id = invoice_receipts
     _receive(repo, manager, invoice_id, 40000)
@@ -135,11 +161,28 @@ def test_other_actor_cannot_reuse_the_receipt_command(invoice_receipts):
 
 def test_legacy_paid_invoice_without_immutable_cash_is_not_reconstructed(invoice_receipts):
     repo, cash, manager, invoice_id = invoice_receipts
-    manager.cambia_stato(invoice_id, StatoParcella.PAGATA, data_pagamento='2026-10-19')
+    # Fonte storica da una versione precedente: non usare il nuovo comando
+    # corrente per simulare un pagamento avvenuto senza prova di cassa.
+    from pct.fatturazione import _write_parcella_row
+    historical = _invoice(manager, invoice_id)
+    revision = parcella_revision(historical)
+    historical.stato, historical.data_pagamento = StatoParcella.PAGATA, '2026-10-19'
+    _write_parcella_row(repo.db.conn, historical, expected_revision=revision, postgres=repo.postgres)
+    cash._finish(repo.db.conn)
     result = repo.summary(invoice_id)
     assert result['status'] == 'REVIEW' and result['paid_cents'] is None and result['residual_cents'] is None
     with pytest.raises(ParcellaIncassoConflict):
         _receive(repo, manager, invoice_id, 10000)
+    assert cash.load() == {}
+
+
+def test_issued_invoice_cannot_be_paid_by_only_changing_a_label(invoice_receipts):
+    from pct.fatturazione_sql_commands import ParcellaPaymentRequiresReceipt
+    repo, cash, manager, invoice_id = invoice_receipts
+    with pytest.raises(ParcellaPaymentRequiresReceipt, match='Incassi'):
+        manager.cambia_stato(invoice_id, StatoParcella.PAGATA, data_pagamento='2026-10-19')
+    assert repo.summary(invoice_id)['paid_cents'] == 0
+    assert _invoice(manager, invoice_id).stato == StatoParcella.EMESSA
     assert cash.load() == {}
 
 
@@ -415,3 +458,58 @@ def test_discordant_cash_source_is_not_reported_as_a_confirmed_balance(invoice_r
         repo.summary(invoice_id)
     with pytest.raises(ValueError, match='discordante'):
         cash.load()
+
+
+@pytest.mark.parametrize('proforma', [False, True])
+def test_draft_cash_survives_explicit_emission_without_duplicate(invoice_receipts, proforma):
+    repo, cash, manager, invoice_id = invoice_receipts
+    from pct.fatturazione import _write_parcella_row
+    item = _invoice(manager, invoice_id)
+    item.stato = StatoParcella.BOZZA
+    if proforma:
+        item.dati_personalizzati = {'document': {'documento_operativo': 'PROFORMA'}}
+    _write_parcella_row(repo.db.conn, item, postgres=repo.postgres)
+    (getattr(repo.db, 'raw_conn', None) or repo.db.conn).commit()
+    first = _receive(repo, manager, invoice_id, 40000)
+    assert first['status'] == 'PARTIAL' and first['fiscal_document_required']
+    result = _receive(repo, manager, invoice_id, 60000)
+    assert result['status'] == 'PAID' and result['paid_cents'] == 100000
+    assert _invoice(manager, invoice_id).stato == StatoParcella.BOZZA
+    assert GestioneFatturazione._is_proforma(_invoice(manager, invoice_id)) == proforma
+    fresh = GestioneFatturazione(manager.db_path, studio_db=repo.db)
+    fresh.cambia_stato(invoice_id, StatoParcella.EMESSA)
+    summary = repo.summary(invoice_id)
+    assert summary['status'] == 'PAID' and not summary['fiscal_document_required']
+    assert _invoice(manager, invoice_id).stato == StatoParcella.PAGATA
+    assert len(cash.load()) == 2
+    reversal = repo.reverse(invoice_id=invoice_id, movement_id=first['movement_id'],
+        paid_on='2026-10-20', reason='Storno controllato dopo emissione', command_key=str(uuid4()),
+        expected_revision=parcella_revision(_invoice(manager, invoice_id)))
+    assert reversal['status'] == 'PARTIAL' and reversal['paid_cents'] == 60000
+    assert _invoice(manager, invoice_id).stato == StatoParcella.EMESSA
+
+
+def test_fiscal_identity_does_not_allow_turning_invoice_into_proforma(invoice_receipts):
+    from pct.fatturazione import Parcella
+    repo, _, manager, invoice_id = invoice_receipts
+    original = _invoice(manager, invoice_id)
+    changed = Parcella.from_dict(original.to_dict())
+    changed.dati_personalizzati = {'document': {'documento_operativo': 'PROFORMA'}}
+    assert not repo._same_financial_source(original, changed)
+
+
+def test_proforma_emission_between_partial_and_balance_keeps_one_cash_ledger(invoice_receipts):
+    from pct.fatturazione import _write_parcella_row
+    repo, cash, manager, invoice_id = invoice_receipts
+    item = _invoice(manager, invoice_id)
+    item.stato = StatoParcella.BOZZA
+    item.dati_personalizzati = {'document': {'documento_operativo': 'PROFORMA'}}
+    _write_parcella_row(repo.db.conn, item, postgres=repo.postgres)
+    (getattr(repo.db, 'raw_conn', None) or repo.db.conn).commit()
+    _receive(repo, manager, invoice_id, 40000)
+    fresh = GestioneFatturazione(manager.db_path, studio_db=repo.db)
+    fresh.cambia_stato(invoice_id, StatoParcella.EMESSA)
+    assert repo.summary(invoice_id)['status'] == 'PARTIAL'
+    result = _receive(repo, manager, invoice_id, 60000)
+    assert result['status'] == 'PAID' and not result['fiscal_document_required']
+    assert len(cash.load()) == 2

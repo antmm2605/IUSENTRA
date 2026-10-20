@@ -441,7 +441,10 @@ def test_api_pagamento_avvio_per_gestore(tmp_path, monkeypatch):
     assert [c[0] for c in chiamate] == ["stripe", "paypal", "satispay", "sumup"]
     assert chiamate[0][1].endswith(f"/pagamenti/paga/{lp.token}/successo")
     assert chiamate[0][2].endswith(f"/pagamenti/paga/{lp.token}")
-    assert chiamate[2][1].endswith("/pagamenti/webhooks/satispay")
+    from urllib.parse import parse_qs, urlsplit
+    callback = urlsplit(chiamate[2][1])
+    assert callback.path == "/pagamenti/webhooks/satispay"
+    assert parse_qs(callback.query) == {"link_id": [lp.id], "payment_id": ["{uuid}"]}
 
 
 def test_api_pagamento_errori_dei_gestori_senza_segreti(tmp_path, monkeypatch):
@@ -579,7 +582,12 @@ def test_con_piu_studi_lo_studio_si_ricava_dal_token(tmp_path):
     studio_db = StudioDB.get(percorsi["STUDIO_DB"])
     cliente = GestioneClienti(db_path=percorsi["CLIENTI_DB"], studio_db=studio_db).nuovo(TipoCliente.PERSONA_FISICA, nome="Bianca", cognome="Studio B")
     token, _scheda_portale = GestionePortale(db_path=percorsi["PORTALE_DB"], uploads_dir=percorsi["PORTALE_UPLOADS"]).crea(cliente.id, creato_da="test")
-    lp = GestionePagamenti(db_dir=percorsi["PAGAMENTI_DIR"], studio_db=studio_db).crea_link("parcella-b", cliente.id, 99.0, "Parcella studio B")
+    from pct.fatturazione import GestioneFatturazione, VoceParcella
+    invoice = GestioneFatturazione(percorsi['FATTURAZIONE_DB'], studio_db=studio_db).crea(id_cliente=cliente.id,
+        voci=[VoceParcella(descrizione='CONTROLLED-LINK', prezzo_unitario=99)], applica_iva=False, applica_cassa=False)
+    lp = GestionePagamenti(db_dir=percorsi["PAGAMENTI_DIR"], studio_db=studio_db).crea_link(invoice.id, cliente.id, 99.0, "Parcella studio B")
+    from tests.payment_fixtures import prepare_empty_receipts
+    prepare_empty_receipts(studio_db, studio_b.slug, percorsi, tmp_path)
 
     with app.test_client() as client:
         portale = client.get(f"{API_PORTALE}/{token}")

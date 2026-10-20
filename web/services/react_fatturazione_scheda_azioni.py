@@ -98,29 +98,32 @@ def crea_link_pagamento(
     host_url: str,
     ip_address: str = "",
 ) -> tuple[dict[str, Any], int]:
-    parcella = get_fatturazione().get(id_parcella)
+    fatturazione = get_fatturazione()
+    parcella = fatturazione.get(id_parcella)
     if not parcella:
         return _esito(False, "Parcella non trovata.", 404)
     if _stato(parcella) in STATI_SENZA_LINK:
         return _esito(False, "La parcella è pagata o annullata: non serve un link di pagamento.", 409)
-    totale = float(getattr(parcella, "totale", 0) or 0)
+    from web.services.payment_confirmations_runtime import payment_link_amount
+    pagamenti = get_pagamenti()
+    try:
+        totale = payment_link_amount(pagamenti, parcella)
+    except ValueError as exc:
+        return _esito(False, str(exc), 409)
     if totale <= 0:
         return _esito(False, "La parcella non ha un importo da pagare.", 409)
     try:
         giorni = max(1, min(int(giorni_validita or 30), 90))
     except (TypeError, ValueError):
         giorni = 30
-    pagamenti = get_pagamenti()
-    precedente = pagamenti.get_by_parcella(id_parcella)
-    if precedente is not None:
-        # Un solo link valido per parcella: il nuovo sostituisce il precedente.
-        pagamenti.segna_fallito(precedente.id)
+    from pct.fatturazione import parcella_revision
     link = pagamenti.crea_link(
         id_parcella=id_parcella,
         id_cliente=_text(getattr(parcella, "id_cliente", "")),
         importo=totale,
         descrizione=f"Parcella {_text(getattr(parcella, 'numero', '')) or id_parcella}",
         giorni_validita=giorni,
+        replace_pending=True, expected_invoice_revision=parcella_revision(parcella),
     )
     _audit(get_utenti, current_user, "parcella.link_pagamento", id_parcella, ip_address)
     return _esito(

@@ -2622,9 +2622,9 @@ def start_scheduler(app):
 
                     audit_result = riprendi_audit_prima_nota(app)
                     if audit_result['failed']:
-                        logger.error('[scheduler] Audit Prima nota: %d consegne da recuperare.', audit_result['failed'])
+                        logger.error('[scheduler] Audit e incassi Prima nota: %d consegne da recuperare.', audit_result['failed'])
                 except Exception as exc:
-                    logger.error('[scheduler] Ripresa audit Prima nota non riuscita: %s', exc)
+                    logger.error('[scheduler] Ripresa audit e incassi Prima nota non riuscita: %s', exc)
                 try:
                     from web.services.mailbox_query_events_runtime import resume_mailbox_query_events
 

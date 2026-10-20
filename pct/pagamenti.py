@@ -177,10 +177,11 @@ class LinkPagamento:
             return False
         if self.scade_il:
             try:
-                if datetime.now() > datetime.fromisoformat(self.scade_il):
+                expires = datetime.fromisoformat(self.scade_il)
+                if datetime.now(expires.tzinfo) > expires:
                     return False
             except (ValueError, TypeError):
-                pass
+                return False
         return True
 
     def to_dict(self) -> Dict[str, Any]:
@@ -206,6 +207,8 @@ class GestionePagamenti:
         self._studio_db = studio_db
         self._config: ConfigPagamenti = ConfigPagamenti()
         self._link: Dict[str, LinkPagamento] = {}
+        self._original_links: Dict[str, dict] = {}
+        self._saved_links: Dict[str, dict] = {}
         self._carica()
 
     # ---- I/O
@@ -219,14 +222,8 @@ class GestionePagamenti:
                     self._config = ConfigPagamenti.from_dict(payload if isinstance(payload, dict) else {})
                 except Exception:
                     self._config = ConfigPagamenti()
-            link_rows = self._studio_db.carica_tabella("payment_links")
-            self._link = {}
-            for row in link_rows:
-                try:
-                    link = LinkPagamento.from_dict(row)
-                except Exception:
-                    continue
-                self._link[link.id] = link
+            # I collegamenti si leggono soltanto quando richiesti: i comandi
+            # del singolo pagamento non caricano l'archivio dello studio.
             return
         os.makedirs(self.db_dir, exist_ok=True)
         if os.path.exists(self._cfg_path):
@@ -274,35 +271,14 @@ class GestionePagamenti:
         with open(self._cfg_path, "w", encoding="utf-8") as f:
             json.dump(self._config.to_dict(), f, ensure_ascii=False, indent=2)
 
-    def _salva_link(self):
+    def _salva_link(self, link_id=None, *, replace_ids=(), before_write=None):
         if self._studio_db is not None:
-            def _insert(conn, link: LinkPagamento):
-                payload = link.to_dict()
-                conn.execute(
-                    """
-                    INSERT INTO payment_links
-                    (id, token, id_parcella, id_cliente, importo, valuta, stato,
-                     provider_usato, provider_tx_id, creato_il, scade_il, pagato_il, dati_json)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
-                    """,
-                    (
-                        link.id,
-                        link.token,
-                        link.id_parcella,
-                        link.id_cliente,
-                        float(link.importo or 0.0),
-                        link.valuta,
-                        link.stato,
-                        link.provider_usato or "",
-                        link.provider_tx_id or "",
-                        link.creato_il,
-                        link.scade_il or "",
-                        link.pagato_il or "",
-                        json.dumps(payload, ensure_ascii=False),
-                    ),
-                )
-
-            self._studio_db.salva_tabella("payment_links", list(self._link.values()), _insert)
+            from pct.payment_links_sql import save_links
+            selected = self._link if link_id is None else {key: self._link[key] for key in (*replace_ids, link_id)}
+            sources = {key: value for key, value in self._original_links.items() if key in selected}
+            saved = {key: value for key, value in self._saved_links.items() if key in selected}
+            self._original_links.update(save_links(self._studio_db, selected, sources, saved, before_write=before_write))
+            self._saved_links.update({key: value.to_dict() for key, value in selected.items()})
             return
         with open(self._tx_path, "w", encoding="utf-8") as f:
             json.dump({k: v.to_dict() for k, v in self._link.items()},
@@ -325,9 +301,13 @@ class GestionePagamenti:
                   id_cliente: str,
                   importo: float,
                   descrizione: str,
-                  giorni_validita: int = 30) -> LinkPagamento:
+                  giorni_validita: int = 30, *, replace_pending=False, expected_invoice_revision=None,
+                  _expires_at=None) -> LinkPagamento:
         token = secrets.token_urlsafe(32)
         scade = (datetime.now() + timedelta(days=giorni_validita)).isoformat()
+        if _expires_at is not None:
+            datetime.fromisoformat(_expires_at)
+            scade = _expires_at
         lp = LinkPagamento(
             id=str(uuid.uuid4()),
             token=token,
@@ -337,45 +317,136 @@ class GestionePagamenti:
             descrizione=descrizione,
             scade_il=scade,
         )
+        previous = (self._sql_links(invoice_id=id_parcella, pending=True) if self._studio_db is not None else
+                    [item for item in self._link.values() if item.id_parcella == id_parcella and item.stato == 'ATTESO']) if replace_pending else []
+        if any(item.id_cliente != id_cliente for item in previous):
+            raise ValueError('Un collegamento precedente indica un cliente discordante: verifica la provenienza prima di sostituirlo.')
+        snapshots = {item.id: item.to_dict() for item in previous}
+        for item in previous:
+            item.stato = StatoPagamento.FALLITO
         self._link[lp.id] = lp
-        self._salva_link()
+
+        def verify_invoice(conn):
+            if expected_invoice_revision is None:
+                return
+            from pct.fatturazione import Parcella, parcella_revision, ParcellaConcurrentUpdate
+            postgres = getattr(self._studio_db, 'backend_kind', '') == 'postgresql'
+            row = conn.execute('SELECT dati_json FROM parcelle WHERE id=?' + (' FOR UPDATE' if postgres else ''),
+                               (id_parcella,)).fetchone()
+            invoice = Parcella.from_dict(json.loads(row[0])) if row else None
+            if invoice is None or invoice.id_cliente != id_cliente or parcella_revision(invoice) != expected_invoice_revision:
+                raise ParcellaConcurrentUpdate('Documento aggiornato: rileggi il residuo prima di creare il pagamento.')
+        try:
+            self._salva_link(lp.id, replace_ids=tuple(snapshots), before_write=verify_invoice)
+        except Exception:
+            self._link.pop(lp.id, None)
+            for item in previous:
+                for key, value in snapshots[item.id].items():
+                    setattr(item, key, value)
+            raise
         return lp
 
     def get_by_token(self, token: str) -> Optional[LinkPagamento]:
+        if self._studio_db is not None:
+            from pct.payment_links_sql import read_link
+            payload = read_link(self._studio_db, token=token)
+            return self._remember_sql_link(payload) if payload is not None else None
         for lp in self._link.values():
             if hmac.compare_digest(lp.token, token):
                 return lp
         return None
 
+    def get_by_id(self, link_id: str) -> Optional[LinkPagamento]:
+        if self._studio_db is not None:
+            from pct.payment_links_sql import read_link
+            payload = read_link(self._studio_db, key=link_id)
+            return self._remember_sql_link(payload) if payload is not None else None
+        return self._link.get(link_id)
+
+    def _remember_sql_link(self, payload):
+        from pct.payment_links_sql import PaymentLinkConflict
+        # Un timestamp assente nella fonte resta non determinato: il default
+        # del costruttore serve alle nuove creazioni, non alla consultazione.
+        loaded = LinkPagamento.from_dict({**payload, 'creato_il': payload.get('creato_il')})
+        current = self._link.get(loaded.id)
+        if current is not None and current.to_dict() != self._saved_links.get(loaded.id):
+            if payload != self._original_links.get(loaded.id):
+                raise PaymentLinkConflict('Collegamento cambiato: le modifiche locali sono conservate.')
+            return current
+        if current is None:
+            current = loaded
+        else:
+            for key, value in loaded.to_dict().items():
+                setattr(current, key, value)
+        self._link[current.id] = current
+        self._original_links[current.id] = dict(payload)
+        self._saved_links[current.id] = current.to_dict()
+        return current
+
+    def _sql_links(self, **filters):
+        from pct.payment_links_sql import read_links
+        return [self._remember_sql_link(payload) for payload in read_links(self._studio_db, **filters)]
+
     def get_by_parcella(self, id_parcella: str) -> Optional[LinkPagamento]:
+        if self._studio_db is not None:
+            links = self._sql_links(invoice_id=id_parcella, pending=True, limit=1)
+            return links[0] if links else None
         for lp in self._link.values():
             if lp.id_parcella == id_parcella and lp.stato == StatoPagamento.ATTESO:
                 return lp
         return None
 
     def segna_pagato(self, id_link: str, provider: str, tx_id: str = ""):
-        lp = self._link.get(id_link)
+        lp = self.get_by_id(id_link)
         if lp:
+            if self._studio_db is not None:
+                from pct.payment_links_sql import confirmed_link
+                replay = confirmed_link(self._studio_db, id_link, provider, tx_id)
+                if replay is not None:
+                    restored = LinkPagamento.from_dict(replay)
+                    for key, value in restored.to_dict().items():
+                        setattr(lp, key, value)
+                    self._original_links[id_link] = replay
+                    self._saved_links[id_link] = lp.to_dict()
+                    return
+            previous = lp.to_dict()
             lp.stato          = StatoPagamento.PAGATO
             lp.pagato_il      = datetime.now().isoformat()
             lp.provider_usato = provider
             lp.provider_tx_id = tx_id
-            self._salva_link()
+            try:
+                self._salva_link(id_link)
+            except Exception:
+                for key, value in previous.items():
+                    setattr(lp, key, value)
+                raise
 
     def segna_fallito(self, id_link: str, provider: str = ""):
-        lp = self._link.get(id_link)
+        lp = self.get_by_id(id_link)
         if lp:
+            previous = lp.to_dict()
             lp.stato          = StatoPagamento.FALLITO
             lp.provider_usato = provider
-            self._salva_link()
+            try:
+                self._salva_link(id_link)
+            except Exception:
+                for key, value in previous.items():
+                    setattr(lp, key, value)
+                raise
 
     def tutti_link(self) -> List[LinkPagamento]:
-        return sorted(self._link.values(), key=lambda l: l.creato_il, reverse=True)
+        if self._studio_db is not None:
+            return self._sql_links()
+        return sorted(self._link.values(), key=lambda l: l.creato_il or '', reverse=True)
 
     def link_per_cliente(self, id_cliente: str) -> List[LinkPagamento]:
+        if self._studio_db is not None:
+            return self._sql_links(client_id=id_cliente)
         return [item for item in self.tutti_link() if item.id_cliente == id_cliente]
 
     def link_per_parcella(self, id_parcella: str) -> List[LinkPagamento]:
+        if self._studio_db is not None:
+            return self._sql_links(invoice_id=id_parcella)
         return [item for item in self.tutti_link() if item.id_parcella == id_parcella]
 
     def statistiche(self) -> Dict[str, Any]:
@@ -395,13 +466,14 @@ class GestionePagamenti:
     def stripe_crea_sessione(self, lp: LinkPagamento, success_url: str, cancel_url: str) -> str:
         """Crea una Stripe Checkout Session. Restituisce l'URL di checkout."""
         import stripe
+        from pct.payment_evidence import exact_cents
         stripe.api_key = self._config.stripe.sk
         session = stripe.checkout.Session.create(
             payment_method_types=["card", "sepa_debit"],
             line_items=[{
                 "price_data": {
                     "currency":     lp.valuta.lower(),
-                    "unit_amount":  int(lp.importo * 100),  # in centesimi
+                    "unit_amount":  exact_cents(lp.importo),
                     "product_data": {"name": lp.descrizione},
                 },
                 "quantity": 1,
@@ -480,21 +552,27 @@ class GestionePagamenti:
         except Exception:
             return None
 
-    def paypal_cattura_ordine(self, order_id: str) -> bool:
+    def paypal_cattura_ordine(self, order_id: str, *, evidence=False):
         """Cattura (completa) un ordine PayPal approvato."""
         import requests
+        from urllib.parse import quote
         token = self.paypal_token()
         if not token:
             return False
         cfg = self._config.paypal
         try:
             r = requests.post(
-                f"{cfg.base_url}/v2/checkout/orders/{order_id}/capture",
+                f"{cfg.base_url}/v2/checkout/orders/{quote(order_id, safe='')}/capture",
                 headers={"Authorization": f"Bearer {token}",
-                         "Content-Type": "application/json"},
+                         "Content-Type": "application/json",
+                         "Prefer": "return=representation",
+                         "PayPal-Request-Id": str(uuid.uuid5(uuid.NAMESPACE_URL, 'iusentra-paypal-capture:' + order_id))},
                 timeout=10,
             )
-            return r.json().get("status") == "COMPLETED"
+            response = r.json()
+            if evidence:
+                return response if r.status_code in (200, 201) and response.get('status') == 'COMPLETED' else False
+            return response.get("status") == "COMPLETED"
         except Exception:
             return False
 
@@ -532,12 +610,13 @@ class GestionePagamenti:
         import requests, time, base64
         from cryptography.hazmat.primitives import hashes, serialization
         from cryptography.hazmat.primitives.asymmetric import padding
+        from pct.payment_evidence import exact_cents
 
         cfg = self._config.satispay
         if not cfg.private_key_pem or not cfg.key_id:
             return None
         try:
-            amountUnit = int(lp.importo * 100)
+            amountUnit = exact_cents(lp.importo)
             body = json.dumps({
                 "flow":          "MATCH_CODE",
                 "amount_unit":   amountUnit,

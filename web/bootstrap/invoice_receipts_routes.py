@@ -17,10 +17,12 @@ def register_invoice_receipts_routes(app):
 
     def snapshot(repo, invoice_id, source=None):
         from pct.prima_nota import METODI
+        from pct.payment_confirmations import for_invoice
         labels = {'banca': 'Conto corrente', 'cassa': 'Contanti', 'pos': 'POS', 'altro': 'Altro'}
         summary = repo.summary(invoice_id) if source is None else {key: value for key, value in source.items()
             if key not in {'movement_id', 'already_present'}}
         return {**summary, 'command_scope': receipt_command_scope(repo, invoice_id),
+                'provider_confirmations': for_invoice(repo.db, repo.tenant, invoice_id),
                 'can_write': allowed(True), 'methods': [{'value': key, 'label': labels[key]} for key in METODI]}
 
     @app.get('/api/fatturazione/<invoice_id>/incassi')

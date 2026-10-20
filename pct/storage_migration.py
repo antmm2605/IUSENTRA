@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+import sqlite3
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -957,6 +958,23 @@ def _copy_core_state_to_target(
     _copy_transactional_outbox(sqlite_backend, target_backend)
 
 
+def _require_json_migration_source(paths):
+    """La procedura storica importa JSON: non sostituire un registro SQL adottato."""
+    source = Path(paths.get('STUDIO_DB') or '')
+    if not source.is_file():
+        return
+    connection = sqlite3.connect(source.resolve().as_uri() + '?mode=ro', uri=True, timeout=5)
+    try:
+        adopted = connection.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN "
+            "('prima_nota_state','parcella_incassi_state','payment_confirmation_sources') LIMIT 1").fetchone()
+        if adopted:
+            raise ValueError('Sono presenti archivi economici SQL da preservare. La migrazione storica da JSON '
+                'non ne verifica il trasferimento: predisporre la copia SQL nativa con backup e riscontri. '
+                'Nessuna destinazione è stata modificata.')
+    finally:
+        connection.close()
+
+
 def migrate_core_storage_to_postgres(
     *,
     paths: dict[str, str],
@@ -964,6 +982,7 @@ def migrate_core_storage_to_postgres(
     secret_key: str,
     tenant_slug: str,
 ) -> dict[str, Any]:
+    _require_json_migration_source(paths)
     stage_stamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     stage_db_path = str(
         Path(paths.get("BACKUP_DIR", "./backup")) / f"sqlite_stage_{tenant_slug}_{stage_stamp}.db"

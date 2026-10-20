@@ -5,6 +5,7 @@ from pathlib import Path
 import sqlite3
 import subprocess
 import sys
+import pytest
 
 from click.testing import CliRunner
 
@@ -20,6 +21,25 @@ from pct.storage import StudioDB
 from pct.storage_migration import migrate_core_storage_to_postgres
 from pct.storage_migration_full import _copy_legal_updates_to_postgres, migrate_full_storage_to_sqlite
 from pct.tenant import DatabaseConfig, DbMode, GestioneTenant
+
+
+@pytest.mark.parametrize('table', ['prima_nota_state', 'parcella_incassi_state', 'payment_confirmation_sources'])
+def test_json_migration_does_not_omit_native_financial_sources(tmp_path, monkeypatch, table):
+    database = tmp_path / 'native-studio.db'
+    with sqlite3.connect(database) as connection:
+        connection.execute('CREATE TABLE ' + table + ' (id TEXT PRIMARY KEY)')
+        connection.execute('INSERT INTO ' + table + " VALUES ('CONTROLLED-PRESERVED')")
+    before = database.read_bytes()
+
+    def no_target(*args, **kwargs):
+        pytest.fail('La migrazione non deve creare staging o destinazioni dopo il rilevamento della fonte SQL.')
+
+    monkeypatch.setattr('pct.storage_migration._ensure_sqlite_stage', no_target)
+    monkeypatch.setattr('pct.storage_migration.build_postgres_backend', no_target)
+    with pytest.raises(ValueError, match='archivi economici SQL da preservare'):
+        migrate_core_storage_to_postgres(paths={'STUDIO_DB': str(database)}, database_config=None,
+            secret_key='controlled', tenant_slug='controlled')
+    assert database.read_bytes() == before
 
 
 def _write_json(path: Path, payload) -> None:
@@ -517,7 +537,7 @@ def test_migrate_full_storage_to_sqlite_blocca_svuotamento_studio_db_operativo(t
     assert (clienti, fascicoli, timers) == (1, 1, 1)
 
 
-def test_provision_storage_backend_sqlite_blocca_cutover_su_json_vuoti(tmp_path: Path):
+def test_provision_storage_backend_preserva_sql_adottato_con_mirror_json_vuoti(tmp_path: Path):
     registry = tmp_path / "tenants.json"
     tm = GestioneTenant(str(registry))
     studio = tm.crea("Studio Anti Perdita", "studio-anti-perdita", db_config={"mode": "SQLITE"})
@@ -527,16 +547,23 @@ def test_provision_storage_backend_sqlite_blocca_cutover_su_json_vuoti(tmp_path:
     primo = tm.provision_storage_backend(studio.slug, migrate_existing=True)
     assert primo["ok"] is True
     assert primo["migrated"] is True
+    with sqlite3.connect(paths['STUDIO_DB']) as check:
+        assert check.execute('SELECT COUNT(*) FROM clienti').fetchone()[0] == 1, primo
+        assert check.execute('SELECT COUNT(*) FROM fascicoli').fetchone()[0] == 1, primo
 
     _write_json(Path(paths["CLIENTI_DB"]), [])
     _write_json(Path(paths["FASCICOLI_DB"]), [])
 
     secondo = tm.provision_storage_backend(studio.slug, migrate_existing=True)
 
-    assert secondo["ok"] is False
-    assert secondo["migrated"] is False
-    assert secondo["sqlite_ready"] is False
-    assert any("Blocco anti-perdita" in err for err in secondo["migration_errors"])
+    assert secondo["ok"] is True
+    assert secondo["migrated"] is True
+    assert secondo["sqlite_ready"] is True
+    assert not secondo['migration_errors']
+    reconciliation = secondo['migration_report']['core']['audit']['reconciliation']
+    assert reconciliation['mode'] == 'database_esistente_come_base'
+    assert set(reconciliation['sql_authoritative_domains']) == {'appuntamenti', 'scadenze'}
+    assert Path(reconciliation['backup_db']).is_file()
     conn = sqlite3.connect(paths["STUDIO_DB"])
     try:
         assert conn.execute("SELECT COUNT(*) FROM clienti").fetchone()[0] == 1

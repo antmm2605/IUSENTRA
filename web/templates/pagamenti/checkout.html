@@ -56,6 +56,8 @@
 
       {% if provider_attivi %}
       <form method="POST" action="{{ url_for('pagamenti.avvia_pagamento', token=lp.token) }}" id="pay-form">
+        <input type="hidden" name="payment_revision" value="{{ lp.payment_revision|default('') }}">
+        {% if payment_notice %}<p class="text-muted" role="status">{{ payment_notice }}</p>{% endif %}
         <p class="text-muted mb-2" style="font-size:.85rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Scegli il metodo di pagamento</p>
 
         <div class="d-flex flex-column gap-2 mb-3">

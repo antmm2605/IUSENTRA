@@ -9,6 +9,7 @@ blueprint `pagamenti`: di qui prendono solo lo studio del link (più studi).
 from __future__ import annotations
 
 from dataclasses import dataclass
+from copy import copy
 from typing import Any, Mapping
 
 from flask import current_app, g, request, session, url_for
@@ -36,6 +37,11 @@ class VistaLink:
     vista: str  # checkout | gia_pagato | scaduto
     link: Any = None
     status: int = 200
+    notice: str = ''
+
+
+class PaymentCheckoutReview(ValueError):
+    """Il residuo non autorizza un nuovo pagamento: nessun addebito avviato."""
 
 
 @dataclass
@@ -86,7 +92,7 @@ def _link_nello_studio(token: str):
 
 
 def _riferimento_nello_studio(link_id: str):
-    return _archivio_dello_studio(lambda gestore: any(lp.id == link_id for lp in gestore.tutti_link()))
+    return _archivio_dello_studio(lambda gestore: gestore.get_by_id(link_id) is not None)
 
 
 def risolvi_studio_pagamento(token: str) -> None:
@@ -147,6 +153,30 @@ def vista_link(gp, token: str) -> VistaLink:
         if lp.stato == STATO_PAGATO:
             return VistaLink("gia_pagato", lp, 200)
         return VistaLink("scaduto", None, 410)
+    if getattr(gp, '_studio_db', None) is not None:
+        from web.services.payment_confirmations_runtime import current_payment_repository
+        from pct.parcella_incassi_views import payment_link_amount
+        from pct.fatturazione import parcella_revision
+        from pct.payment_evidence import exact_cents
+        repo = current_payment_repository(gp._studio_db)
+        invoice = repo._invoice(lp.id_parcella)
+        if invoice.id_cliente != lp.id_cliente:
+            raise PaymentCheckoutReview('Il collegamento richiede una verifica dello studio prima del pagamento.')
+        summary = repo.summary(invoice.id)
+        if summary['status'] == 'PAID':
+            view = copy(lp)
+            view.importo, view.pagato_il = summary['due_cents'] / 100, invoice.data_pagamento or ''
+            view.provider_usato = 'Registrato dallo studio'
+            return VistaLink('gia_pagato', view)
+        try:
+            amount = payment_link_amount(gp._studio_db, invoice, tenant_key=repo.tenant)
+        except ValueError as exc:
+            raise PaymentCheckoutReview(str(exc)) from exc
+        view = copy(lp)
+        view.importo = amount
+        view.payment_revision = parcella_revision(invoice)
+        changed = exact_cents(amount) != exact_cents(lp.importo)
+        return VistaLink('checkout', view, notice='Importo aggiornato al residuo ancora da pagare.' if changed else '')
     return VistaLink("checkout", lp, 200)
 
 
@@ -182,6 +212,15 @@ def avvia_pagamento(gp, lp, provider: str) -> EsitoAvvio:
     provider = str(provider or "").strip()
     if provider not in gp.config.provider_attivi():
         return EsitoAvvio("provider_non_valido", messaggio="Metodo di pagamento non disponibile.")
+    if getattr(gp, '_studio_db', None) is not None:
+        from pct.payment_evidence import exact_cents
+        stored = gp.get_by_id(lp.id)
+        if stored is None or not stored.is_valido:
+            raise PaymentCheckoutReview('Il collegamento è cambiato: aggiorna la pagina prima del pagamento.')
+        if exact_cents(stored.importo) != exact_cents(lp.importo):
+            lp = gp.crea_link(lp.id_parcella, lp.id_cliente, lp.importo, lp.descrizione,
+                replace_pending=True, expected_invoice_revision=getattr(lp, 'payment_revision', None),
+                _expires_at=stored.scade_il)
     ritorno = indirizzi_ritorno(lp.token)
 
     if provider == "stripe":
@@ -235,9 +274,19 @@ def verifica_ritorno(gp, token: str, provider: str, argomenti: Mapping[str, Any]
     lp = link_del_token(gp, token)
     if not lp:
         return None
+    native = getattr(gp, '_studio_db', None) is not None
     if provider == "paypal" and lp.stato == STATO_ATTESO:
         order_id = argomenti.get("token") or session.pop(f"paypal_order_{lp.id}", None)
-        if order_id and paypal_ordine_del_link(gp, order_id, lp) and gp.paypal_cattura_ordine(order_id):
+        if order_id and native:
+            from pct.payment_evidence import paypal_order_capture_facts
+            from web.services.payment_confirmations_runtime import confirm_payment
+            order = paypal_ordine_del_link(gp, order_id, lp, evidence=True)
+            if order:
+                captured = order if order.get('status') == 'COMPLETED' else gp.paypal_cattura_ordine(order_id, evidence=True)
+                if captured:
+                    facts = paypal_order_capture_facts(captured, order, lp)
+                    confirm_payment(gp, facts, verification_kind='authenticated_api')
+        elif order_id and paypal_ordine_del_link(gp, order_id, lp) and gp.paypal_cattura_ordine(order_id):
             gp.segna_pagato(lp.id, "PayPal", tx_id=order_id)
             aggiorna_parcella_pagata(lp.id_parcella, "PayPal")
 
@@ -248,11 +297,17 @@ def verifica_ritorno(gp, token: str, provider: str, argomenti: Mapping[str, Any]
 
             stripe.api_key = gp.config.stripe.sk
             sess = stripe.checkout.Session.retrieve(session_id)
-            if stripe_sessione_del_link(sess, lp):
+            if native:
+                from web.services.payment_confirmations_runtime import confirm_payment
+                facts = stripe_sessione_del_link(sess, lp, evidence=True)
+                confirm_payment(gp, facts, verification_kind='authenticated_api')
+            elif stripe_sessione_del_link(sess, lp):
                 gp.segna_pagato(lp.id, "Stripe", tx_id=session_id)
                 aggiorna_parcella_pagata(lp.id_parcella, "Stripe")
         except Exception:
-            pass
+            if native:
+                current_app.logger.exception('Conferma Stripe non registrata: verifica del pagamento necessaria.')
+                raise
     return gp.get_by_token(token)
 
 

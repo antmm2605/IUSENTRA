@@ -90,7 +90,7 @@ def invoice_options(database, case_id: str, *, cursor: str = "", limit: int = 50
             {
                 "id": invoice.id,
                 "isProforma": GestioneFatturazione._is_proforma(invoice),
-                "canReadReceipts": invoice.stato.value != 'BOZZA' and not GestioneFatturazione._is_proforma(invoice)
+                "canReadReceipts": True
                     and bool(case_rows[0]['id_cliente']) and invoice.id_cliente == case_rows[0]['id_cliente'],
                 "numero": str(invoice.numero or invoice.id),
                 "totale": round(amount, 2),

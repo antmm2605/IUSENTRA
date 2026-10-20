@@ -291,7 +291,7 @@ def invoice_status_db(request, tmp_path):
     factory = SQLFactory('postgresql')
     db = PostgresStudioDB(make_dsn(**factory.pg_parameters, options=f'-c search_path={factory.schema}'), initialize_schema=False)
     try:
-        for table in ('clienti', 'fascicoli', 'parcelle'):
+        for table in ('clienti', 'fascicoli', 'parcelle', 'payment_links'):
             ddl = re.search(r'CREATE TABLE IF NOT EXISTS ' + table + r' \(.*?\);', CORE_POSTGRES_SCHEMA_SQL, re.S)
             assert ddl is not None
             db.conn.execute(ddl.group(0))

@@ -43,11 +43,14 @@ def payload_vista(vista: VistaLink, gp) -> dict[str, Any]:
     lp = vista.link
     payload.update(_importo(lp))
     payload["descrizione"] = _testo(lp.descrizione)
+    if vista.notice:
+        payload['message'] = vista.notice
     if vista.vista == "gia_pagato":
         payload.update({"data_pagamento": format_date_it(lp.pagato_il), "metodo": _testo(lp.provider_usato)})
         return payload
     payload.update({
         "scadenza": format_date_it(lp.scade_il),
+        "payment_revision": _testo(getattr(lp, 'payment_revision', '')),
         "cliente": _nome_cliente(lp.id_cliente),
         "provider_attivi": list(gp.config.provider_attivi()),
     })

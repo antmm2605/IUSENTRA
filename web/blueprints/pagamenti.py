@@ -23,6 +23,7 @@ from pct.pagamenti_verifica import (
 )
 from web.helpers import get_fatturazione as _shared_get_fatturazione, get_pagamenti as _shared_get_pagamenti
 from web.services.pagamenti_link_azioni import (
+    PaymentCheckoutReview,
     aggiorna_parcella_pagata,
     avvia_pagamento as _avvia_presso_gestore,
     entra_studio_webhook,
@@ -35,6 +36,12 @@ from web.services.pagamenti_link_azioni import (
 from web.services.pubblico_token_shell import render_pagamento_shell, vista_classica_richiesta
 
 pagamenti = Blueprint("pagamenti", __name__)
+
+
+@pagamenti.errorhandler(PaymentCheckoutReview)
+def _pagamento_da_riscontrare(exc):
+    return render_template('pagamenti/scaduto.html', studio_nome=_studio_nome(),
+        titolo_pagamento='Pagamento da verificare', messaggio_pagamento=str(exc)), 409
 
 # Pagine del cliente raggiunte con il token del link (i webhook restano esclusi).
 _ENDPOINT_CON_TOKEN = {"pagamenti.checkout", "pagamenti.avvia_pagamento", "pagamenti.successo"}
@@ -146,17 +153,17 @@ def crea_link_pagamento(id_parcella: str):
     p = gf.get(id_parcella)
     if not p:
         abort(404)
+    from web.services.payment_confirmations_runtime import payment_link_amount
+    amount = payment_link_amount(gp, p)
     giorni = int(request.form.get("giorni_validita", 30))
-    # Revoca link precedente se esistente
-    vecchio = gp.get_by_parcella(id_parcella)
-    if vecchio:
-        gp.segna_fallito(vecchio.id)
+    from pct.fatturazione import parcella_revision
     lp = gp.crea_link(
         id_parcella=id_parcella,
         id_cliente=p.id_cliente,
-        importo=p.totale,
+        importo=amount,
         descrizione=f"Parcella {p.numero} — {current_app.config.get('STUDIO_NOME', 'IUSENTRA')}",
         giorni_validita=giorni,
+        replace_pending=True, expected_invoice_revision=parcella_revision(p),
     )
     link = request.host_url.rstrip("/") + url_for("pagamenti.checkout", token=lp.token)
     flash(f"Link di pagamento creato. Scade tra {giorni} giorni.", "success")
@@ -201,6 +208,7 @@ def checkout(token: str):
     return render_template(
         "pagamenti/checkout.html",
         lp=lp,
+        payment_notice=stato.notice,
         cfg=cfg,
         cliente=cliente,
         studio_nome=_studio_nome(),
@@ -214,9 +222,14 @@ def checkout(token: str):
 def avvia_pagamento(token: str):
     gp = _get_gp()
     stato = vista_link(gp, token)
+    if stato.vista == 'gia_pagato':
+        return redirect(url_for('pagamenti.checkout', token=token, _legacy=1))
     if stato.vista != "checkout":
         return _pagina_scaduto()
     lp = stato.link
+    if getattr(gp, '_studio_db', None) is not None and request.form.get('payment_revision') != getattr(lp, 'payment_revision', None):
+        flash('Il residuo è cambiato. Verifica l’importo aggiornato prima di proseguire.', 'warning')
+        return redirect(url_for('pagamenti.checkout', token=token, _legacy=1))
 
     esito = _avvia_presso_gestore(gp, lp, request.form.get("provider", ""))
     if esito.tipo == "redirect":
@@ -318,13 +331,24 @@ def _evento_stripe():
     # Firma valida: il contenuto è quello dell'evento verificato. Si legge come
     # dizionario perché nelle librerie Stripe recenti l'evento non ha `.get`.
     event = json.loads(payload)
-    if event.get("type") == "checkout.session.completed":
+    if event.get("type") in {"checkout.session.completed", "checkout.session.async_payment_succeeded"}:
         sess = (event.get("data") or {}).get("object") or {}
         if sess.get("payment_status") == "paid":
             metadata = sess.get("metadata") or {}
             link_id = metadata.get("link_id", "")
             id_parcella = metadata.get("parcella", "")
-            if link_id and link_id in {l.id for l in gp.tutti_link()}:
+            lp = gp.get_by_id(link_id) if link_id else None
+            if lp is not None and getattr(gp, '_studio_db', None) is not None:
+                from pct.payment_evidence import stripe_facts
+                from web.services.payment_confirmations_runtime import confirm_payment
+                try:
+                    facts = stripe_facts(sess, lp, verified_event_created=event.get('created'),
+                        verified_event_id=event.get('id'), verified_event_type=event.get('type'))
+                except ValueError:
+                    return jsonify({'received': True, 'verified': False}), 400
+                outcome = confirm_payment(gp, facts, verification_kind='signed_event')
+                return jsonify({'received': True, 'verified': True, **outcome}), 200
+            if lp is not None:
                 gp.segna_pagato(link_id, "Stripe", tx_id=sess.get("id", ""))
                 if id_parcella:
                     _update_parcella_pagata(id_parcella, "Stripe")
@@ -335,7 +359,8 @@ def _link_in_attesa(gp, link_id: str):
     link_id = str(link_id or "").strip()
     if not link_id:
         return None
-    return next((l for l in gp.tutti_link() if l.id == link_id and l.stato == "ATTESO"), None)
+    link = gp.get_by_id(link_id)
+    return link if link is not None and (link.stato == "ATTESO" or getattr(gp, '_studio_db', None) is not None) else None
 
 
 def _registra_se_confermato(gp, lp, provider: str, tx_id: str, confermato: bool):
@@ -347,6 +372,13 @@ def _registra_se_confermato(gp, lp, provider: str, tx_id: str, confermato: bool)
             "Webhook %s non confermato dal gestore per il link %s: nessuna modifica.", provider, lp.id
         )
         return jsonify({"received": True, "verified": False}), 200
+    if getattr(gp, '_studio_db', None) is not None:
+        from pct.payment_evidence import ProviderPaymentFacts
+        from web.services.payment_confirmations_runtime import confirm_payment
+        if not isinstance(confermato, ProviderPaymentFacts):
+            raise ValueError('La conferma richiede la fonte autenticata del gestore.')
+        outcome = confirm_payment(gp, confermato, verification_kind='authenticated_api')
+        return jsonify({'received': True, 'verified': True, **outcome}), 200
     gp.segna_pagato(lp.id, provider, tx_id=tx_id)
     _update_parcella_pagata(lp.id_parcella, provider)
     return jsonify({"received": True, "verified": True}), 200
@@ -362,7 +394,8 @@ def _evento_paypal():
     gp = _get_gp()
     lp = _link_in_attesa(gp, resource.get("custom_id"))
     tx_id = str(resource.get("id") or "")
-    confermato = lp is not None and paypal_pagamento_confermato(gp, tx_id, lp)
+    confermato = lp is not None and paypal_pagamento_confermato(gp, tx_id, lp,
+        **({'evidence': True} if getattr(gp, '_studio_db', None) is not None else {}))
     return _registra_se_confermato(gp, lp, "PayPal", tx_id, confermato)
 
 
@@ -371,7 +404,8 @@ def _evento_satispay():
     payment_id = str(data.get("id") or request.args.get("payment_id") or "")
     gp = _get_gp()
     lp = _link_in_attesa(gp, (data.get("metadata") or {}).get("link_id") or request.args.get("link_id"))
-    confermato = lp is not None and satispay_pagamento_confermato(gp, payment_id, lp)
+    confermato = lp is not None and satispay_pagamento_confermato(gp, payment_id, lp,
+        **({'evidence': True} if getattr(gp, '_studio_db', None) is not None else {}))
     return _registra_se_confermato(gp, lp, "Satispay", payment_id, confermato)
 
 
@@ -380,7 +414,8 @@ def _evento_sumup():
     checkout_id = str(data.get("id") or "")
     gp = _get_gp()
     lp = _link_in_attesa(gp, data.get("checkout_reference"))
-    confermato = lp is not None and sumup_pagamento_confermato(gp, checkout_id, lp)
+    confermato = lp is not None and sumup_pagamento_confermato(gp, checkout_id, lp,
+        **({'evidence': True} if getattr(gp, '_studio_db', None) is not None else {}))
     return _registra_se_confermato(gp, lp, "SumUp", checkout_id, confermato)
 
 

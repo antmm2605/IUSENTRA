@@ -17,7 +17,7 @@ export const PROVIDER_NOTI: Provider[] = ['stripe', 'paypal', 'satispay', 'sumup
 
 export type Importo = { importo: string; valuta: string; descrizione: string }
 
-export type DatiCheckout = Importo & { scadenza: string; cliente: string; providerAttivi: Provider[] }
+export type DatiCheckout = Importo & { scadenza: string; cliente: string; providerAttivi: Provider[]; paymentRevision?: string; notice?: string }
 export type DatiGiaPagato = Importo & { dataPagamento: string; metodo: string }
 
 export type CoordinateBonifico = { intestazione: string; iban: string; banca: string; noteAggiuntive: string }
@@ -94,6 +94,7 @@ export async function caricaCheckout(token: string, signal?: AbortSignal): Promi
       ...importo(raw),
       scadenza: testo(raw.scadenza),
       cliente: testo(raw.cliente),
+      paymentRevision: testo(raw.payment_revision), notice: testo(raw.message),
       providerAttivi: elenco(raw.provider_attivi).map(provider).filter((p): p is Provider => p !== null),
     },
   }
@@ -108,14 +109,16 @@ export async function caricaEsito(token: string, providerScelto: string, signal?
 }
 
 export type AvvioPagamento =
+  | { tipo: 'aggiornato'; messaggio: string }
   | { tipo: 'redirect'; url: string }
   | { tipo: 'sumup'; checkoutId: string; urlEsito: string }
   | { tipo: 'bonifico'; urlEsito: string; esito: DatiEsito }
   | { tipo: 'scaduto' }
   | { tipo: 'errore'; messaggio: string }
 
-export async function avviaPagamento(token: string, scelto: Provider): Promise<AvvioPagamento> {
-  const risposta = await scriviPubblico(api(token, '/avvia'), { provider: scelto })
+export async function avviaPagamento(token: string, scelto: Provider, revision?: string): Promise<AvvioPagamento> {
+  const risposta = await scriviPubblico(api(token, '/avvia'), { provider: scelto, ...(revision ? {payment_revision: revision} : {}) })
+  if (risposta.status === 409 && testo(risposta.dati.code) === 'payment_changed') return {tipo:'aggiornato', messaggio:risposta.messaggio}
   if (risposta.status === 410) return { tipo: 'scaduto' }
   const raw = risposta.dati
   const errore = risposta.messaggio || 'Pagamento non avviato. Riprova o scegli un altro metodo.'

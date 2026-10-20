@@ -28,7 +28,7 @@ test('uno stato pagato non può confermare un riepilogo con residuo mancante', a
     respond({ok:true,summary:{...summary(),...change}})
     await assert.rejects(getInvoiceReceipts('INV1'))
   }
-  respond({ok:true,summary:{...summary(),invoice_state:'BOZZA',status:'DRAFT',paid_cents:0,residual_cents:0,receipts:[]}})
+  respond({ok:true,summary:{...summary(),invoice_state:'BOZZA',status:'DRAFT',paid_cents:0,residual_cents:100000,receipts:[],fiscal_document_required:true}})
   assert.equal((await getInvoiceReceipts('INV1')).status,'DRAFT')
 })
 
@@ -109,4 +109,39 @@ test('la lettura di un pagamento storico non inventa incassato o residuo',async(
   const result=await getInvoiceReceipts('INV1')
   assert.equal(result.paid_cents,null)
   assert.equal(result.residual_cents,null)
+})
+
+const providerConfirmation = () => ({source_key:'d'.repeat(64),provider:'stripe',transaction_id:'cs_controlled',
+  amount_cents:40000,currency:'EUR',paid_on:'2026-10-20',observed_at:'2026-10-20T06:00:00+00:00',
+  date_origin:'stripe.event.created',source_sha256:'e'.repeat(64),status:'RECORDED',reason:'',evidence_count:1,movement_id:'MOV1'})
+
+test('conferma ricevuta e incasso registrato restano distinti',async()=>{
+  const source={...providerConfirmation(),status:'DATE_REQUIRED',paid_on:null,movement_id:'',amount_cents:60000,reason:'Data da riscontrare'}
+  respond({ok:true,summary:{...summary(),provider_confirmations:[source]}})
+  const result=await getInvoiceReceipts('INV1')
+  assert.equal(result.paid_cents,40000)
+  assert.equal(result.residual_cents,60000)
+  assert.equal(result.provider_confirmations[0].status,'DATE_REQUIRED')
+})
+
+test('un gestore non risulta registrato senza il movimento concordante',async()=>{
+  for(const change of [{movement_id:'MISSING'}, {amount_cents:60000}, {paid_on:'2026-10-19'},
+    {provider:['stripe']}, {evidence_count:0}, {currency:'EU'}, {paid_on:'2026-02-31'}]) {
+    respond({ok:true,summary:{...summary(),provider_confirmations:[{...providerConfirmation(),...change}]}})
+    await assert.rejects(getInvoiceReceipts('INV1'))
+  }
+  respond({ok:true,summary:{...summary(),provider_confirmations:[providerConfirmation()]}})
+  const result=await getInvoiceReceipts('INV1')
+  assert.equal(result.provider_confirmations[0].movement_id,'MOV1')
+})
+
+
+test('la proforma incassata resta distinta dalla fattura emessa', async()=>{
+  respond({ok:true,summary:{...summary(),invoice_state:'BOZZA',is_proforma:true,fiscal_document_required:true}})
+  const value=await getInvoiceReceipts('INV1')
+  assert.equal(value.status,'PARTIAL')
+  assert.equal(value.fiscal_document_required,true)
+  assert.equal(value.invoice_state,'BOZZA')
+  respond({ok:true,summary:{...summary(),fiscal_document_required:'si'}})
+  await assert.rejects(getInvoiceReceipts('INV1'))
 })

@@ -839,6 +839,12 @@ class GestioneFatturazione:
                      data_pagamento: Optional[str] = None,
                      metodo_pagamento: Optional[str] = None,
                      *, expected_revision: str | None = None):
+        cash_balance = None
+        if self._studio_db is not None:
+            expected_revision = expected_revision or parcella_revision(self._parcelle[id_parcella])
+            if stato == StatoParcella.EMESSA:
+                from pct.parcella_incassi_views import balances_for_invoices
+                cash_balance = balances_for_invoices(self._studio_db, {id_parcella: self._parcelle[id_parcella]}).get(id_parcella)
         if self._studio_db is not None and stato in {StatoParcella.PAGATA, StatoParcella.BOZZA}:
             from pct.fatturazione_sql_commands import guard_managed_payment
             guard_managed_payment(self._studio_db, id_parcella, target=stato)
@@ -852,6 +858,8 @@ class GestioneFatturazione:
             if metodo_pagamento:
                 p.metodo_pagamento = metodo_pagamento
         self._converti_proforma_se_fiscale(p, stato)
+        if cash_balance and cash_balance['status'] == 'PAID':
+            p.stato = StatoParcella.PAGATA
         self._salva_parcella(p, expected_revision=expected_revision)
         self._parcelle[id_parcella] = p
 

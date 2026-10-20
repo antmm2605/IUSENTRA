@@ -4,13 +4,21 @@ import { publishOperationalRefresh } from './operationalRefresh'
 export type InvoiceReceipt = {
   movement_id: string; amount_cents: number; direction: 1 | -1; paid_on: string;
   method: string; note: string; reversed: boolean; reverses_movement_id: string;
+  provider_confirmed?: boolean;
+}
+export type ProviderConfirmation = {
+  source_key: string; provider: 'stripe' | 'paypal' | 'satispay' | 'sumup'; transaction_id: string;
+  amount_cents: number; currency: string; paid_on: string | null; observed_at: string;
+  date_origin: string; source_sha256: string; status: 'RECORDED' | 'PENDING' | 'DATE_REQUIRED' | 'REVIEW';
+  reason: string; evidence_count: number; movement_id: string;
 }
 export type InvoiceReceiptsSummary = {
-  invoice_id: string; invoice_state: string; is_proforma: boolean;
+  invoice_id: string; invoice_state: string; is_proforma: boolean; fiscal_document_required?: boolean;
   paid_cents: number | null; residual_cents: number | null; due_cents: number | null;
   status: 'OPEN' | 'PARTIAL' | 'PAID' | 'REVIEW' | 'CANCELLED' | 'DRAFT'; revision: string;
   command_scope: string; can_write: boolean; reason?: string; receipts: InvoiceReceipt[];
   methods: { value: string; label: string }[];
+  provider_confirmations?: ProviderConfirmation[];
 }
 export type ReceiptCommand = {
   invoice_id: string; scope: string; command_key: string; expected_revision: string; paid_on: string;
@@ -53,6 +61,7 @@ function parseSummary(value: unknown, invoiceId: string): InvoiceReceiptsSummary
   if (!object(value) || value.invoice_id !== invoiceId || typeof value.invoice_state !== 'string'
     || !['BOZZA', 'EMESSA', 'SCADUTA', 'PAGATA', 'ANNULLATA'].includes(value.invoice_state)
     || typeof value.is_proforma !== 'boolean' || typeof value.can_write !== 'boolean'
+    || (value.fiscal_document_required !== undefined && typeof value.fiscal_document_required !== 'boolean')
     || typeof value.status !== 'string' || !['OPEN', 'PARTIAL', 'PAID', 'REVIEW', 'CANCELLED', 'DRAFT'].includes(value.status)
     || typeof value.revision !== 'string' || !hash.test(value.revision)
     || typeof value.command_scope !== 'string' || !hash.test(value.command_scope)
@@ -67,8 +76,32 @@ function parseSummary(value: unknown, invoiceId: string): InvoiceReceiptsSummary
       || typeof row.direction !== 'number' || typeof row.paid_on !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(row.paid_on)
       || typeof row.method !== 'string' || !methods.has(row.method) || typeof row.note !== 'string'
       || typeof row.reversed !== 'boolean' || typeof row.reverses_movement_id !== 'string'
+      || (row.provider_confirmed !== undefined && typeof row.provider_confirmed !== 'boolean')
       || (row.reverses_movement_id && !identifier.test(row.reverses_movement_id))) {
       throw new Error('Movimento non riscontrato. Gli importi non vengono ricostruiti.')
+    }
+  }
+  if (value.provider_confirmations !== undefined) {
+    if (!Array.isArray(value.provider_confirmations)) throw new Error('Conferme dei gestori non disponibili.')
+    for (const row of value.provider_confirmations) {
+      if (!object(row) || typeof row.source_key !== 'string' || !hash.test(row.source_key)
+        || typeof row.provider !== 'string' || !['stripe', 'paypal', 'satispay', 'sumup'].includes(row.provider)
+        || typeof row.transaction_id !== 'string' || !row.transaction_id || row.transaction_id.length > 200
+        || !cents(row.amount_cents) || row.amount_cents === 0 || typeof row.currency !== 'string' || !/^[A-Z]{3}$/.test(row.currency)
+        || (row.paid_on !== null && (typeof row.paid_on !== 'string' || receiptDateKey(row.paid_on) !== row.paid_on))
+        || typeof row.observed_at !== 'string' || !Number.isFinite(Date.parse(row.observed_at))
+        || typeof row.date_origin !== 'string' || typeof row.source_sha256 !== 'string' || !hash.test(row.source_sha256)
+        || typeof row.status !== 'string' || !['RECORDED', 'PENDING', 'DATE_REQUIRED', 'REVIEW'].includes(row.status)
+        || typeof row.reason !== 'string' || typeof row.evidence_count !== 'number' || !Number.isSafeInteger(row.evidence_count) || row.evidence_count < 1
+        || typeof row.movement_id !== 'string' || (row.movement_id !== '' && !identifier.test(row.movement_id))
+        || (row.status === 'RECORDED' && !row.movement_id)) {
+        throw new Error('Conferma del gestore incompleta: aggiorna i riscontri del documento.')
+      }
+      if (row.status === 'RECORDED' && !value.receipts.some((receipt: InvoiceReceipt) =>
+        receipt.movement_id === row.movement_id && receipt.direction === 1 && receipt.amount_cents === row.amount_cents
+        && (row.paid_on === null || receipt.paid_on === row.paid_on))) {
+        throw new Error('Conferma del gestore senza il relativo movimento verificato.')
+      }
     }
   }
   if (value.methods.length !== methods.size || new Set(value.methods.map(row => object(row) ? row.value : null)).size !== methods.size
@@ -88,7 +121,8 @@ function parseSummary(value: unknown, invoiceId: string): InvoiceReceiptsSummary
       || (value.status === 'PAID' && !(value.residual_cents === 0 && value.due_cents > 0)))) {
     throw new Error('Riepilogo discordante tra importi e stato del pagamento.')
   }
-  if (['DRAFT', 'CANCELLED'].includes(value.status) && (value.paid_cents !== 0 || value.residual_cents !== 0)) {
+  if ((value.status === 'DRAFT' && (value.paid_cents !== 0 || value.residual_cents !== value.due_cents))
+    || (value.status === 'CANCELLED' && (value.paid_cents !== 0 || value.residual_cents !== 0))) {
     throw new Error('Bozza o documento annullato con saldo non riscontrato.')
   }
   return value as InvoiceReceiptsSummary

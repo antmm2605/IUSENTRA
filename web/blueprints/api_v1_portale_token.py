@@ -16,11 +16,13 @@ e `web/services/pagamenti_link_*`.
 from __future__ import annotations
 
 from functools import wraps
+from urllib.parse import urlsplit, urlunsplit
 from typing import Any
 
 from flask import Blueprint, current_app, jsonify, request, url_for
 
 from web.services.pagamenti_link_azioni import (
+    PaymentCheckoutReview,
     avvia_pagamento,
     gestore_pagamenti,
     link_del_token,
@@ -97,6 +99,8 @@ def _risposta_json(funzione):
             return _errore(exc.status, exc.codice, exc.messaggio)
         except RisorsaNonTrovata:
             return _errore(404, "non_trovato", "Documento non disponibile per questo accesso.")
+        except PaymentCheckoutReview as exc:
+            return _errore(409, 'payment_review', str(exc))
         except Exception:
             current_app.logger.exception("API pubblica %s non completata", request.endpoint)
             return _errore(500, "errore_interno", "Operazione non completata. Riprova o contatta lo studio.")
@@ -232,14 +236,23 @@ def pagamento_avvia(token: str):
     gp = gestore_pagamenti()
     stato = vista_link(gp, token)
     if stato.vista != "checkout":
+        if stato.link is not None and getattr(gp, '_studio_db', None) is not None:
+            return _errore(409, 'payment_changed', 'Il pagamento è cambiato. Verifica il riepilogo aggiornato.')
         return _link_scaduto()
     lp = stato.link
-    esito = avvia_pagamento(gp, lp, str(_dati_richiesta().get("provider") or ""))
+    payload = _dati_richiesta()
+    if getattr(gp, '_studio_db', None) is not None and payload.get('payment_revision') != getattr(lp, 'payment_revision', None):
+        return _errore(409, 'payment_changed', 'Il documento o il residuo sono cambiati. Verifica l’importo prima di proseguire.')
+    esito = avvia_pagamento(gp, lp, str(payload.get("provider") or ""))
     if esito.tipo == "redirect":
         return jsonify({"ok": True, "tipo": "redirect", "url": esito.url})
     if esito.tipo == "sumup":
         # Il widget SumUp usa solo l'identificativo del checkout: nessuna chiave al browser.
-        url_esito = url_for("pagamenti.successo", token=token) + "?provider=sumup"
+        destination = urlsplit(esito.url)
+        if destination.netloc != urlsplit(request.host_url).netloc or destination.scheme not in {'http', 'https'}:
+            raise RuntimeError('Destinazione interna del pagamento non concordante.')
+        url_esito = urlunsplit(('', '', destination.path, destination.query, ''))
+        url_esito += ('&' if destination.query else '?') + 'provider=sumup'
         return jsonify({"ok": True, "tipo": "sumup", "checkout_id": esito.checkout_id, "url_esito": url_esito})
     if esito.tipo == "bonifico":
         return jsonify({"ok": True, "tipo": "bonifico", "url_esito": esito.url, "esito": payload_esito(lp, "bonifico", gp)})

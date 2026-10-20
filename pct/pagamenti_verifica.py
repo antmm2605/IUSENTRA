@@ -29,7 +29,7 @@ def _importo_uguale(atteso: float, ricevuto: Any) -> bool:
         return False
 
 
-def paypal_pagamento_confermato(gp, capture_id: str, link) -> bool:
+def paypal_pagamento_confermato(gp, capture_id: str, link, *, evidence=False):
     """La cattura PayPal esiste, è COMPLETED e appartiene a questo link."""
     import requests
 
@@ -50,6 +50,9 @@ def paypal_pagamento_confermato(gp, capture_id: str, link) -> bool:
         dati = r.json()
     except Exception:
         return False
+    if evidence:
+        from pct.payment_evidence import paypal_capture_facts
+        return paypal_capture_facts(dati, capture_id, link)
     importo = (dati.get("amount") or {}).get("value")
     return (
         dati.get("status") == "COMPLETED"
@@ -58,7 +61,7 @@ def paypal_pagamento_confermato(gp, capture_id: str, link) -> bool:
     )
 
 
-def sumup_pagamento_confermato(gp, checkout_id: str, link) -> bool:
+def sumup_pagamento_confermato(gp, checkout_id: str, link, *, evidence=False):
     """Il checkout SumUp esiste, è PAID e porta il riferimento di questo link."""
     import requests
 
@@ -78,6 +81,9 @@ def sumup_pagamento_confermato(gp, checkout_id: str, link) -> bool:
         dati = r.json()
     except Exception:
         return False
+    if evidence:
+        from pct.payment_evidence import sumup_checkout_facts
+        return sumup_checkout_facts(dati, checkout_id, link)
     return (
         dati.get("status") == "PAID"
         and str(dati.get("checkout_reference") or "") == link.id
@@ -110,7 +116,7 @@ def _firma_satispay(cfg, metodo: str, percorso: str, corpo: bytes) -> dict[str, 
     }
 
 
-def satispay_pagamento_confermato(gp, payment_id: str, link) -> bool:
+def satispay_pagamento_confermato(gp, payment_id: str, link, *, evidence=False):
     """Il pagamento Satispay esiste, è ACCEPTED e porta il riferimento di questo link."""
     import requests
 
@@ -129,6 +135,9 @@ def satispay_pagamento_confermato(gp, payment_id: str, link) -> bool:
         dati = r.json()
     except Exception:
         return False
+    if evidence:
+        from pct.payment_evidence import satispay_facts
+        return satispay_facts(dati, payment_id, link)
     metadati = dati.get("metadata") or {}
     importo: Optional[float] = None
     try:
@@ -142,7 +151,7 @@ def satispay_pagamento_confermato(gp, payment_id: str, link) -> bool:
     )
 
 
-def paypal_ordine_del_link(gp, order_id: str, link) -> bool:
+def paypal_ordine_del_link(gp, order_id: str, link, *, evidence=False):
     """L'ordine PayPal da catturare è stato creato per questo link e per questo importo."""
     import requests
 
@@ -163,14 +172,30 @@ def paypal_ordine_del_link(gp, order_id: str, link) -> bool:
         dati = r.json()
     except Exception:
         return False
+    if evidence:
+        from pct.payment_evidence import exact_cents
+        units = dati.get('purchase_units') if isinstance(dati, dict) else None
+        if (not isinstance(units, list) or len(units) != 1 or not isinstance(units[0], dict)
+                or dati.get('id') != order_id or dati.get('status') not in {'APPROVED', 'COMPLETED'}):
+            raise ValueError('Ordine PayPal non concordante con il collegamento.')
+        unit = units[0]
+        amount = unit.get('amount') or {}
+        if (not isinstance(amount, dict) or unit.get('custom_id') != link.id
+                or amount.get('currency_code') != link.valuta
+                or exact_cents(amount.get('value')) != exact_cents(link.importo)):
+            raise ValueError('Importo o riferimenti dell’ordine PayPal discordanti.')
+        return dati
     unita = (dati.get("purchase_units") or [{}])[0]
     return str(unita.get("custom_id") or "") == link.id and _importo_uguale(
         link.importo, (unita.get("amount") or {}).get("value")
     )
 
 
-def stripe_sessione_del_link(sessione, link) -> bool:
+def stripe_sessione_del_link(sessione, link, *, evidence=False, verified_event_created=None):
     """La sessione Stripe pagata porta il riferimento di questo link e il suo importo."""
+    if evidence:
+        from pct.payment_evidence import stripe_facts
+        return stripe_facts(sessione, link, verified_event_created=verified_event_created)
     try:
         metadati = dict(getattr(sessione, "metadata", None) or {})
     except Exception:

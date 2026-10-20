@@ -18,6 +18,8 @@ TABLE_DOMAINS = {
     "preventivi_records": ("preventivi", "fascicoli"),
     "conferimenti_records": ("preventivi", "fascicoli"),
     "parcelle": ("fatturazione", "incassi", "fascicoli"),
+    "payment_links": ("fatturazione", "incassi"),
+    "payment_confirmation_sources": ("fatturazione", "incassi"),
     # Una revisione del registro per transazione: anche più movimenti producono
     # un solo segnale, confermato insieme alla scrittura governata.
     "prima_nota_state": ("incassi", "fascicoli"),

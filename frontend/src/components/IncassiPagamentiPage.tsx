@@ -6,7 +6,6 @@ import {
   createOrGetPaymentLink,
   emptyIncassiPagamentiPage,
   getIncassiPagamentiPage,
-  registerIncasso,
   updatePagamentoStatus,
   type IncassiPagamentiPageData,
   type IncassoPagamentoRecord,
@@ -16,7 +15,6 @@ import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
 import { IncassiCardCatalog } from './IncassiCardCatalog'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
-import { formatDateIt } from '../formatting'
 import { LoadingState } from '../ui/LoadingState'
 const InvoiceReceiptsPanel = lazy(() => import('./InvoiceReceiptsPanel'))
 import { Page } from '../ui/Page'
@@ -131,8 +129,6 @@ export function IncassiPagamentiPage() {
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
   const [invoiceId, setInvoiceId] = useState('')
-  const [method, setMethod] = useState('manuale')
-  const [paidAt, setPaidAt] = useState(() => formatDateIt(new Date()).split('/').reverse().join('-'))
   const [metricFilter, setMetricFilter] = useState(() => {
     const requested = new URLSearchParams(window.location.search).get('riepilogo') || ''
     return ['incassato', 'da_incassare', 'scaduto', 'crediti', 'link_totali', 'link_pagati', 'link_attesi', 'link_falliti'].includes(requested) ? requested : ''
@@ -148,7 +144,6 @@ export function IncassiPagamentiPage() {
   const currentRecordsPage = Math.min(recordsPage, recordsPages)
   useEffect(() => { setRecordsPage(1) }, [filteredRecordIds])
   const requestedInvoiceId = selectedInvoiceFromLocation()
-  const selectedInvoiceRecord = data.records.find(record => record.invoiceId === invoiceId)
 
   function load(silent = false) {
     if (refreshFlight.current) return refreshFlight.current
@@ -185,30 +180,12 @@ export function IncassiPagamentiPage() {
     }
   }, [requestedInvoiceId])
 
-  async function submitManualReceipt() {
-    setSaving(true)
-    setSuccess('')
-    setError('')
-    const response = await registerIncasso({
-      id_parcella: invoiceId,
-      expected_revision: data.records.find((record) => record.invoiceId === invoiceId)?.invoiceRevision,
-      metodo_pagamento: method,
-      data_pagamento: paidAt,
-    })
-    setSaving(false)
-    if (!response.ok) {
-      setError(response.message)
-      return
-    }
-    setSuccess(response.message)
-    load()
-  }
-
   async function mark(record: IncassoPagamentoRecord, stato: string) {
+    if (stato === 'PAGATO') { selectManualReceipt(record); return }
     setSaving(true)
     setSuccess('')
     setError('')
-    const response = await updatePagamentoStatus(record.id, { stato, metodo_pagamento: method, expected_revision: record.invoiceRevision })
+    const response = await updatePagamentoStatus(record.id, { stato, expected_revision: record.invoiceRevision })
     setSaving(false)
     if (!response.ok) {
       setError(response.message)
@@ -317,24 +294,11 @@ export function IncassiPagamentiPage() {
                     ))}
                   </select>
                 </label>
-                {invoiceId && !selectedInvoiceRecord?.isProforma && selectedInvoiceRecord?.invoiceState !== 'BOZZA' ? (
+                {invoiceId ? (
                   <Suspense fallback={<LoadingState title="Caricamento incassi" message="Lettura del documento selezionato." />}>
                     <InvoiceReceiptsPanel key={invoiceId} invoiceId={invoiceId} onConfirmed={async () => { await load(true) }} />
                   </Suspense>
-                ) : invoiceId ? <>
-                <label>
-                  <span>Metodo</span>
-                  <input value={method} onChange={(event) => setMethod(event.target.value)} />
-                </label>
-                <label>
-                  <span>Data incasso</span>
-                  <input type="date" value={paidAt} onChange={(event) => setPaidAt(event.target.value)} />
-                </label>
-                <Button type="button" tone="primary" onClick={submitManualReceipt} disabled={saving || !invoiceId}>
-                  <ReceiptText size={16} />
-                  Registra incasso
-                </Button>
-                </> : null}
+                ) : null}
               </div>
             ) : (
               <EmptyState title="Permesso non disponibile" message="Questa sessione non consente registrazioni incasso." />

@@ -9,6 +9,7 @@ from web.app import create_app
 def _app_cfg(tmp_path: Path) -> dict:
     return {
         "TESTING": True,
+        "TENANTS_REGISTRY": str(tmp_path / "tenants.json"),
         "AUTH_DB": str(tmp_path / "utenti.json"),
         "AUDIT_DB": str(tmp_path / "audit.json"),
         "CLIENTI_DB": str(tmp_path / "clienti.json"),
@@ -249,3 +250,24 @@ def test_template_atti_export_docx_reale_usa_testo_e_fallback_font(tmp_path: Pat
     assert response.mimetype == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     assert response.get_data()[:2] == b"PK"
     assert "comparsa_docx.docx" in response.headers.get("Content-Disposition", "")
+
+
+def test_guida_compilazione_catalogo_puntuale_e_autenticata(tmp_path, monkeypatch):
+    from web.services import archivio_letture_runtime
+
+    def vietata(*args, **kwargs):
+        raise AssertionError("La guida del catalogo non deve leggere i documenti del fascicolo")
+
+    monkeypatch.setattr(archivio_letture_runtime, "fatti_fascicolo", vietata)
+    client = _client(tmp_path)
+    base = "/api/v1/ui/template-atti/catalogo/"
+    result = client.get(base + "PEN_001/scheda-compilazione")
+    assert result.status_code == 200
+    guide = result.get_json()["compilazione"]
+    assert guide["scheda"] == "PEN_001"
+    assert guide["campi"] and guide["astensione"]
+    assert not any(campo.get("stato") == "compilato" for campo in guide["campi"])
+    assert client.get(base + "INESISTENTE/scheda-compilazione").status_code == 404
+    with client.session_transaction() as session:
+        session.clear()
+    assert client.get(base + "PEN_001/scheda-compilazione").status_code in (401, 403)

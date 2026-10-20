@@ -13217,6 +13217,18 @@ def template_atti_page():
         ), 200
 
 
+@api_v1_react.get("/template-atti/catalogo/<template_id>/scheda-compilazione")
+@_richiedi_auth
+def template_atti_scheda_compilazione(template_id: str):
+    """Consulta soltanto la guida del modello richiesto, senza dati di pratica."""
+    from pct.schede_compilazione import risolvi_scheda, scheda_per_template
+
+    scheda = scheda_per_template(template_id)
+    if scheda is None:
+        return jsonify({"ok": False, "errore": "Scheda di compilazione non disponibile per questo modello."}), 404
+    return jsonify({"ok": True, "compilazione": risolvi_scheda(scheda, {})})
+
+
 @api_v1_react.get("/template-atti/catalogo")
 @_richiedi_auth
 def template_atti_catalogo_page():

@@ -1,3 +1,4 @@
+import './SchedaCompilazionePanel.css'
 import { ClipboardCheck } from 'lucide-react'
 import { Badge } from '../../ui/Badge'
 import type { RedazioneScheda } from '../../redazioneAttiData'

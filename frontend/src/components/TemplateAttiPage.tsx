@@ -37,6 +37,8 @@ import { catalogPage, catalogScopeFromQuery, catalogScopeCounts, matchesCatalogS
 import './TemplateAttiPage.css'
 import './templateEditor/templateEditor.css'
 
+const TemplateCompilationGuide = lazy(() => import('../features/documenti/TemplateCompilationGuide'))
+
 const EDITABLE_DOM_PROPS = {
   ['content' + 'Editable']: true,
   suppressContentEditableWarning: true,
@@ -783,6 +785,7 @@ function TemplateCard({ record, onOpen }: { record: TemplateAttiRecord; onOpen: 
 }
 
 function TemplateDetail({ record }: { record?: TemplateAttiRecord }) {
+  const [guideId, setGuideId] = useState('')
   if (!record) return null
   return (
     <section className="iu-template-detail iu-od-card" aria-label="Scheda template">
@@ -816,7 +819,9 @@ function TemplateDetail({ record }: { record?: TemplateAttiRecord }) {
       ) : null}
       <div className="iu-od-action-row">
         <ButtonLink href={record.href} tone="primary">{record.primaryActionLabel}</ButtonLink>
+        {record.kind === 'catalogo' ? <Button type="button" tone="neutral" onClick={() => setGuideId(guideId === record.id ? '' : record.id)} aria-expanded={guideId === record.id}>Come si compila</Button> : null}
       </div>
+      {guideId === record.id ? <Suspense fallback={<p role="status">Caricamento della guida…</p>}><TemplateCompilationGuide templateId={record.id} /></Suspense> : null}
     </section>
   )
 }

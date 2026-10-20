@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 443.
-- Endpoint P0/P1 contrattualizzati: 376.
+- Endpoint React API contrattualizzati: 444.
+- Endpoint P0/P1 contrattualizzati: 377.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 400.
+- Endpoint con provider verification auth-error: 401.
 - Endpoint pubblici della pagina di accesso (stato 200, scritture in errore sicuro senza credenziali): 3.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 40.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
@@ -432,6 +432,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Telematico | `/api/v1/ui/telematico/surface/{surface}` | `GET` | Telematico | P0 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Template atti | `/api/v1/ui/template-atti` | `GET` | Documenti (/app/documenti) | P1 | verified | success+auth-error | `sessione/API tenant-aware` | `routes.appV2.documents.list` | current_tenant | verified |
 | Template atti | `/api/v1/ui/template-atti/catalogo` | `GET` | Template atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Template atti | `/api/v1/ui/template-atti/catalogo/{template_id}/scheda-compilazione` | `GET` | Template atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Template atti | `/api/v1/ui/template-atti/compila/{model_code}` | `GET` | Template atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Template atti | `/api/v1/ui/template-atti/studio/{id_template}` | `GET` | Template atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Template atti | `/api/v1/ui/template-atti/studio/{id_template}/clona` | `POST` | Template atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |

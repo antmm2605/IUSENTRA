@@ -406,7 +406,7 @@ function normaliseCampoAnteprima(input: unknown): RedazioneCampoAnteprima {
 }
 
 // Scheda di compilazione (pct/schede_compilazione.py): stato dei campi e sole domande per l'avvocato.
-function normaliseScheda(input: unknown): RedazioneScheda | null {
+export function normaliseScheda(input: unknown): RedazioneScheda | null {
   const item = asRecord(input)
   if (!text(item.scheda)) return null
   return {

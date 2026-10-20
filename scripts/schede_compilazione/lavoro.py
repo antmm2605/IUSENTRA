@@ -147,4 +147,3 @@ SCHEDE = [
                avvocato("termine", "Termine assegnato", "Entro quanti giorni il datore deve adempiere?")],
            [("Diffida", "crediti, termine, effetto interruttivo")], ["crediti non indicati"]),
 ]
-

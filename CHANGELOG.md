@@ -1,3 +1,9 @@
+# 2.442.4 — Aggiornamento di sicurezza degli strumenti frontend
+
+- Aggiornata la dipendenza transitiva Hono alla 4.13.11, che impedisce la seconda decodifica di percorsi statici malformati.
+- Aggiunto un controllo sul tentativo di aggirare la protezione di un prefisso, preservando i file pubblici e gli accessi autorizzati.
+- Invariati i flussi applicativi Python, i dati dello studio e l’addestramento.
+
 # 2.442.3 — Estensione delle schede di compilazione
 
 - Integrate le nuove schede della patch utente per esecuzioni, locazioni, famiglia, lavoro, penale, amministrativo, tributario e attività stragiudiziale.

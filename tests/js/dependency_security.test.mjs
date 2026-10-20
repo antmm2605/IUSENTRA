@@ -94,3 +94,28 @@ test('the MCP stdio server used by shadcn remains available', () => {
   assert.ok(new Server({ name: 'controlled-security-check', version: '1.0.0' }, { capabilities: { tools: {} } }));
   assert.ok(new StdioServerTransport());
 });
+
+
+test('Hono static files cannot bypass prefix authentication through a malformed encoded path', async () => {
+  const { Hono } = shadcnRequire('hono');
+  const { serveStatic } = shadcnRequire('hono/serve-static');
+  const app = new Hono();
+  const files = new Map([
+    ['/fixture/public.txt', 'PUBLIC'],
+    ['/fixture/private/secret.txt', 'PRIVATE_FIXTURE'],
+  ]);
+  app.use('/private/*', async (context, next) => context.req.header('Authorization') === 'Bearer fixture'
+    ? next() : context.text('denied', 401));
+  app.use('*', serveStatic({ root: '/fixture', getContent: async (path) => files.get(path) ?? null }));
+
+  const publicFile = await app.request('http://example.test/public.txt');
+  assert.equal(publicFile.status, 200);
+  assert.equal(await publicFile.text(), 'PUBLIC');
+  assert.equal((await app.request('http://example.test/private/secret.txt')).status, 401);
+  const malformed = await app.request('http://example.test/priv%6%31te/secret.txt');
+  assert.equal(malformed.status, 404);
+  assert.notEqual(await malformed.text(), 'PRIVATE_FIXTURE');
+  const authorized = await app.request('http://example.test/private/secret.txt', { headers: { Authorization: 'Bearer fixture' } });
+  assert.equal(authorized.status, 200);
+  assert.equal(await authorized.text(), 'PRIVATE_FIXTURE');
+});

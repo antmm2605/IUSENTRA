@@ -3,3 +3,6 @@
 .iu-rg-scheda-domande small, .iu-rg-scheda-campi small { display: block; color: var(--iu-od-muted, #6b7280); }
 .iu-rg-scheda-campi ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
 .iu-rg-scheda-campi li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.iu-rg-scheda .iu-rg-subtitle { align-items: center; display: flex; gap: var(--iu-od-space-2, 8px); margin: 0; }
+.iu-rg-scheda .iu-rg-subtitle svg { flex-shrink: 0; }
+.iu-rg-scheda .iu-rg-hint { color: var(--iu-od-muted, #6b7280); margin: 0; }

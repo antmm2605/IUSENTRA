@@ -208,7 +208,7 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "calcolo",
-    "regola": "30 giorni dalla comunicazione o pubblicazione dell’aggiudicazione o dell’esclusione, con sospensione feriale; decorrenza da verificare con la disponibilità degli atti; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
+    "regola": "30 giorni dalla ricezione della comunicazione dell’art. 90 D.Lgs. 36/2023 o dalla messa a disposizione degli atti di gara (art. 36), con sospensione feriale; per i bandi autonomamente lesivi dalla pubblicazione; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
     "termine": {
      "base": "comunicazione",
      "direzione": "avanti",
@@ -220,12 +220,17 @@
     {
      "atto": "codice_processo_amministrativo",
      "articolo": "120",
-     "perche": "trenta giorni"
+     "perche": "trenta giorni e decorrenza"
+    },
+    {
+     "atto": "36/2023",
+     "articolo": "90",
+     "perche": "comunicazione"
     },
     {
      "atto": "36/2023",
      "articolo": "36",
-     "perche": "decorrenza"
+     "perche": "messa a disposizione degli atti"
     }
    ]
   },

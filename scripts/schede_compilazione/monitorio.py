@@ -58,7 +58,7 @@ SCHEDE = [
                       ["verbale", "ripartizione", "riparto", "bilancio", "consuntivo"],
                       norma=[("318/1942", "63", "stato di ripartizione approvato")], se_manca="astensione: serve lo stato di ripartizione approvato dall’assemblea"),
             calcolo("ufficio", "Giudice competente",
-                    "giudice di pace per le cause sulla misura dei servizi condominiali (art. 7 n. 2, data di efficacia da verificare); altrimenti per valore",
+                    "per valore: la competenza del giudice di pace per tutte le cause condominiali (art. 7 n. 2) entra in vigore il 31 ottobre 2027 (art. 32 D.Lgs. 116/2017, come prorogato dal D.L. 100/2026); per i ricorsi depositati da quella data, giudice di pace",
                     norma=[(CPC, "7", "competenza del giudice di pace")], compilatore=["recipient_or_court"]),
             avvocato("importi", "Importi dovuti per esercizio", "Quali quote, di quali esercizi, sono scadute e non pagate?",
                      norma=[(CC, "1123", "ripartizione")]),

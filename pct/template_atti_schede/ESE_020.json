@@ -186,7 +186,7 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "calcolo",
-    "regola": "20 giorni dalla notifica o dal compimento dell’atto; per prudenza calcolato senza sospensione feriale (scadenza più vicina): l’applicabilità della sospensione al termine dell’art. 617 è discussa; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
+    "regola": "20 giorni dalla notifica o dal compimento dell’atto; senza sospensione feriale, che non si applica alle opposizioni esecutive in nessuna fase (Cass. 14972/2015, 11780/2020, 13797/2022); se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
     "termine": {
      "base": "comunicazione",
      "direzione": "avanti",

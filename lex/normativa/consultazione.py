@@ -5,28 +5,55 @@ L'importazione conserva versioni precedenti e usa l'importer/FTS già presenti.
 """
 from __future__ import annotations
 
-from contextlib import closing
-from urllib.parse import urlsplit
-from dataclasses import asdict
 import argparse
 import hashlib
 import io
 import json
 import re
 import sqlite3
-from datetime import date, datetime, timezone
+from contextlib import closing
+from dataclasses import asdict
+from datetime import UTC, date, datetime
 from pathlib import Path
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from lex.normativa.normattiva_importer import (
-    ArticleRecord, DocumentRecord, ensure_schema, insert_articles_and_chunks,
-    insert_document, migra_schema,
-)
 from lex.normativa.etichette_atti import ETICHETTE
 from lex.normativa.materie import materia, tipo
+from lex.normativa.normattiva_importer import (
+    ArticleRecord,
+    DocumentRecord,
+    ensure_schema,
+    insert_articles_and_chunks,
+    insert_document,
+    migra_schema,
+)
 from lex.ricerca_giuridica.indice_fts import sincronizza_fts
 from lex.ricerca_giuridica.testo import testo_indice
 
 COLLECTION = 'Lex fonti: '
+# Questi atti della nuova integrazione sono verificati come corpo principale,
+# senza numerazioni omonime di allegati. Le altre raccolte conservano il link
+# governato dell'atto: il numero da solo non identifica un articolo di allegato.
+_CORPI_PRINCIPALI_20261020 = frozenset({
+    'dpr_396_2000', 'legge_1185_1967', 'dpr_639_1970', 'dl_269_2003',
+    'dlgs_168_2003', 'legge_249_1997', 'legge_481_1995',
+})
+
+
+def _collegamento_articolo(url: str, chiave: str, numero: str) -> str:
+    parsed = urlsplit(url)
+    query = parse_qsl(parsed.query, keep_blank_values=True)
+    if (chiave not in _CORPI_PRINCIPALI_20261020
+            or not re.fullmatch(r'[1-9][0-9]*', numero)
+            or parsed.hostname != 'www.normattiva.it'
+            or parsed.path != '/atto/caricaDettaglioAtto'
+            or {key for key, _ in query} != {'atto.dataPubblicazioneGazzetta', 'atto.codiceRedazionale'}):
+        return url
+    query.extend([('atto.articolo.numero', numero), ('atto.articolo.sottoArticolo', '1'),
+                  ('atto.articolo.tipoArticolo', '0')])
+    return urlunsplit(parsed._replace(query=urlencode(query)))
+
+
 CODE_LABELS = {
     'codice_penale_militare_pace': 'Codice penale militare di pace',
     'codice_penale_militare_guerra': 'Codice penale militare di guerra',
@@ -135,7 +162,7 @@ def importa_fonti(directory: Path, db: Path, aggiornato_il: str) -> dict:
     db.parent.mkdir(parents=True, exist_ok=True)
     backup = None
     if db.exists():
-        backup = db.with_name(db.name + '.' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%f') + '.bak')
+        backup = db.with_name(db.name + '.' + datetime.now(UTC).strftime('%Y%m%dT%H%M%S%f') + '.bak')
         with sqlite3.connect(db) as source, sqlite3.connect(backup) as dest:
             source.backup(dest)
     report = {'files': len(prepared), 'articles': sum(len(r) for _, _, r in prepared),
@@ -277,10 +304,11 @@ def dettaglio(db: Path, article_id: int) -> dict | None:
         if provenance:
             provenance = json.loads(provenance) if isinstance(provenance, str) else provenance
             item['updated_at'] = provenance.get('vigenza_richiesta', item['updated_at'])
-    # The act link remains reliable also for annexes with repeated article numbers.
+    # Preservare i collegamenti degli allegati con numerazioni ripetute.
     links_path = Path(__file__).with_name('consultazione_link_ufficiali.json')
     links = json.loads(links_path.read_text(encoding='utf-8')) if links_path.exists() else {}
     item['source_url'] = source.get('url') or links.get(item['urn'], 'https://www.normattiva.it/uri-res/N2Ls?' + item['urn'])
+    item['source_url'] = _collegamento_articolo(item['source_url'], item['collection'][len(COLLECTION):], str(item['number']))
     item['updated_at'] = source.get('raccolto_il', item['updated_at']) if not provenance else item['updated_at']
     item['source_label'] = 'EUR-Lex' if 'europa.eu' in item['source_url'] else 'Gazzetta Ufficiale' if 'gazzettaufficiale.it' in item['source_url'] else 'CNF' if item['urn'].startswith('urn:cnf:') else 'Normattiva'
     item['consolidated_at'] = source.get('consolidato_al', '')

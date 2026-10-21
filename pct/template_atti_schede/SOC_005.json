@@ -33,9 +33,19 @@
    "perche": "procedimento e sospensione"
   },
   {
+   "atto": "dlgs_168_2003",
+   "articolo": "3",
+   "perche": "sezione specializzata in materia di impresa per società di capitali e rapporti societari"
+  },
+  {
+   "atto": "dlgs_168_2003",
+   "articolo": "4",
+   "perche": "sezione del capoluogo di regione o del distretto"
+  },
+  {
    "atto": "codice_procedura_civile",
    "articolo": "50bis",
-   "perche": "tribunale collegiale; sezione specializzata in materia di impresa (D.Lgs. 168/2003, da verificare)"
+   "perche": "tribunale collegiale"
   },
   {
    "atto": "legge_742_1969",
@@ -205,11 +215,11 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "calcolo",
-    "regola": "calcolo prudenziale senza sospensione feriale (la Cassazione la applica alle azioni di impugnazione); 90 giorni dalla delibera o dall’iscrizione o deposito nel registro delle imprese (s.r.l.: dalla trascrizione nel libro); termine sostanziale di decadenza",
+    "regola": "90 giorni dalla delibera o dall’iscrizione o deposito nel registro delle imprese (s.r.l.: dalla trascrizione nel libro), con sospensione feriale e proroga se il termine cade di sabato o festivo; il termine per proporre l’impugnazione giudiziale è soggetto alla L. 742/1969, art. 1 (Tribunale di Roma, sentenza 6452/2017, pp. 4-5: https://www.ilcaso.it/giurisprudenza/archivio/19100.pdf)",
     "termine": {
      "base": "evento",
      "direzione": "avanti",
-     "feriale": false,
+     "feriale": true,
      "giorni": 90
     }
    },
@@ -252,9 +262,19 @@
    },
    "norma": [
     {
+     "atto": "dlgs_168_2003",
+     "articolo": "3",
+     "perche": "sezione specializzata in materia di impresa per società di capitali e rapporti societari"
+    },
+    {
+     "atto": "dlgs_168_2003",
+     "articolo": "4",
+     "perche": "sezione del capoluogo di regione o del distretto"
+    },
+    {
      "atto": "codice_procedura_civile",
      "articolo": "50bis",
-     "perche": "tribunale collegiale; sezione specializzata in materia di impresa (D.Lgs. 168/2003, da verificare)"
+     "perche": "tribunale collegiale"
     }
    ],
    "compilatore": [

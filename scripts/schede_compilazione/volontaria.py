@@ -9,7 +9,7 @@ from scripts.schede_compilazione.comuni import (CC, CPC, SENZA_FERIALE, T, assis
                                                 lex, procura)
 from scripts.schede_compilazione.costruisci import scheda
 
-RECLAMO = [(CPC, "739", "reclamo entro dieci giorni"), (CPC, "720bis", "reclamo dei decreti in materia di amministrazione di sostegno: verificare il giudice del reclamo nel testo vigente")]
+RECLAMO = [(CPC, "739", "reclamo entro dieci giorni"), (CPC, "473bis.58", "reclamo al tribunale contro i decreti del giudice tutelare; ricorso per cassazione contro il decreto collegiale")]
 
 
 def _base(ric="Ricorrente"):
@@ -24,7 +24,7 @@ def _beneficiario(etichetta="Beneficiario, interdicendo o minore"):
 
 def _familiari():
     return avvocato("familiari", "Coniuge, parenti entro il quarto grado e affini entro il secondo",
-                    "Chi sono e dove risiedono (vanno indicati e sentiti)?", norma=[(CC, "407", "persone da indicare"), (CPC, "712", "contenuto del ricorso")])
+                    "Chi sono e dove risiedono (vanno indicati e sentiti)?", norma=[(CC, "407", "persone da indicare"), (CPC, "473bis.52", "contenuto del ricorso")])
 
 
 def _certificazione():
@@ -58,12 +58,12 @@ SCHEDE = [
 
     scheda("VGS_004", "Ricorso per interdizione o inabilitazione", ["VGS_004", "VGS_005"],
            [(CC, "414", "interdizione"), (CC, "415", "inabilitazione"), (CC, "417", "legittimazione"), (CC, "418", "poteri del giudice e amministrazione di sostegno"),
-            (CPC, "712", "forma della domanda"), (CPC, "713", "comparizione"), (CPC, "714", "esame dell’interdicendo"), *SENZA_FERIALE],
+            (CPC, "473bis.52", "forma della domanda"), (CPC, "473bis.53", "provvedimenti del presidente"), (CPC, "473bis.54", "udienza di comparizione ed esame"), *SENZA_FERIALE],
            _base() + [_beneficiario("Interdicendo o inabilitando"), _familiari(), _certificazione(),
                       avvocato("residualita", "Perché non basta l’amministrazione di sostegno", "Per quali ragioni la tutela meno invasiva non è adeguata?",
                                norma=[(CC, "418", "trasmissione al giudice tutelare"), (CC, "404", "misura preferibile")]),
                       calcolo("ufficio", "Tribunale competente", "tribunale del luogo di residenza o domicilio dell’interdicendo, con il pubblico ministero",
-                              norma=[(CPC, "712", "competenza")])],
+                              norma=[(CPC, "473bis.52", "competenza")])],
            [("Ricorso", "infermità abituale, incapacità, ragioni della misura, parenti")],
            ["non sono indicate le ragioni per cui l’amministrazione di sostegno non basta"]),
 
@@ -77,12 +77,12 @@ SCHEDE = [
            [("Ricorso", "presupposti e persona proposta")], ["presupposti non documentati"]),
 
     scheda("VGS_008", "Ricorso al giudice tutelare per autorizzazioni (riscossione, vendita, divisione)", ["VGS_008", "VGS_009", "VGS_010", "VGS_019"],
-           [(CC, "320", "atti dei genitori"), (CC, "374", "autorizzazioni del giudice tutelare"), (CC, "375", "autorizzazioni, oggi del giudice tutelare dopo il D.Lgs. 149/2022"),
-            (CC, "411", "amministrazione di sostegno"), (CPC, "732", "alienazione di beni di minori e incapaci"), (CPC, "733", "vendita all’incanto"), (CPC, "734", "reimpiego"),
+           [(CC, "320", "atti dei genitori"), (CC, "374", "autorizzazioni del giudice tutelare"), ("149/2022", "21", "autorizzazione alternativa del notaio"),
+            (CC, "411", "amministrazione di sostegno"), (CPC, "473bis.64", "provvedimenti su parere del giudice tutelare"), (CPC, "473bis.65", "vendita di beni"),
             *RECLAMO],
            _base("Genitore, tutore o amministratore") + [_beneficiario(),
                       avvocato("atto", "Atto da autorizzare", "Riscossione, vendita, divisione, transazione: quale atto, con quale valore?",
-                               norma=[(CC, "374", "atti soggetti ad autorizzazione"), (CC, "375", "atti che richiedono il tribunale")]),
+                               norma=[(CC, "374", "atti soggetti ad autorizzazione"), ("149/2022", "21", "autorizzazione del notaio rogante")]),
                       avvocato("utilita", "Utilità evidente e reimpiego", "Perché l’atto è necessario o utile e come si reimpiegano le somme?",
                                norma=[(CC, "320", "necessità o utilità evidente")]),
                       documento("stima", "Perizia di stima o progetto di divisione", "perizia, progetto divisionale", ["perizia", "stima", "divisione"], obbligatorio=False)],
@@ -129,10 +129,13 @@ SCHEDE = [
            [("Ricorso", "presupposti, interesse, beni noti")], ["chiamato nel possesso dei beni: non c’è giacenza"]),
 
     scheda("VGS_017", "Ricorso per rettificazione di atti di stato civile o questioni sul nome", ["VGS_017", "VGS_018"],
-           [(CC, "453", "annotazioni solo per legge o ordine del giudice"), (CC, "6", "diritto al nome"), (CC, "7", "tutela del nome"), (CPC, "737", "forma camerale")],
+           [(CC, "453", "annotazioni solo per legge o ordine del giudice"), ("dpr_396_2000", "95", "ricorso al tribunale del circondario dell’ufficio di stato civile"),
+            ("dpr_396_2000", "96", "procedimento camerale con il pubblico ministero"), ("dpr_396_2000", "89", "cambio volontario di nome o cognome: domanda al prefetto"),
+            (CC, "6", "diritto al nome"), (CPC, "737", "forma camerale")],
            _base() + [documento("atto", "Atto di stato civile da rettificare", "estratto o copia integrale dell’atto", ["atto", "estratto", "nascita"],
                                 se_manca="chiedere l’atto da rettificare"),
                       avvocato("errore", "Errore o domanda", "Qual è l’errore o il cambiamento chiesto, con quali prove?"),
-                      lex("competenza", "Autorità competente", "segnalare (artt. 95-96 e 89 D.P.R. 396/2000, da verificare) che il cambio volontario di nome o cognome si chiede al prefetto, mentre la rettifica degli errori al tribunale; la disciplina dello stato civile non è nella base normativa e va verificata")],
+                      calcolo("ufficio", "Autorità competente", "rettifica, ricostituzione o formazione dell’atto e opposizione al rifiuto dell’ufficiale: tribunale del circondario dell’ufficio dove l’atto è registrato; cambio volontario di nome o cognome: prefetto",
+                              norma=[("dpr_396_2000", "95", "tribunale"), ("dpr_396_2000", "89", "prefetto")])],
            [("Ricorso", "atto, errore, prova e correzione richiesta")], ["cambio volontario di nome o cognome: domanda al prefetto, non al tribunale"]),
 ]

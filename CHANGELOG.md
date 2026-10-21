@@ -1,3 +1,11 @@
+# 2.444.0 — Biblioteca normativa e schede di compilazione
+
+- Integrate le patch 2.443/2.444: nove atti da fonti ufficiali Normattiva e UE, consultabili nel catalogo SQL già esistente.
+- Aggiornati riferimenti e schede per materia, escludendo articoli abrogati dalle verifiche del costruttore.
+- Corretto il termine di impugnazione delle delibere societarie con sospensione feriale e proroga del giorno finale, sulla fonte giudiziaria verificata.
+- Collegamento Normattiva al singolo articolo numerico nei sette corpi principali verificati della nuova integrazione, preservando gli indirizzi governati di allegati e sottopartizioni.
+- Conservati i controlli, le fonti e i dati già presenti; aggiornamenti di sicurezza della 2.442.7 preservati.
+
 # 2.442.7 — Sicurezza certificati e immagini
 
 - Aggiornati certifi a 2026.10.19 e Pillow a 13.0.0 nel runtime Linux congelato.

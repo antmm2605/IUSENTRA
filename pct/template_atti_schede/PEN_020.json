@@ -155,7 +155,7 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "calcolo",
-    "regola": "30 giorni dalla notifica dell’ordine sospeso; prudenzialmente senza sospensione feriale; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
+    "regola": "30 giorni dalla notifica dell’ordine sospeso, calcolati senza sospensione feriale: è la data che non espone a decadenza; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
     "termine": {
      "base": "notifica",
      "direzione": "avanti",
@@ -178,15 +178,6 @@
    "fonte": {
     "tipo": "avvocato",
     "domanda": "Pena residua, misura richiesta, lavoro, domicilio, percorso"
-   }
-  },
-  {
-   "campo": "nota",
-   "etichetta": "Esecuzione",
-   "obbligatorio": false,
-   "fonte": {
-    "tipo": "lex",
-    "compito": "segnalare che la sospensione feriale nell’esecuzione penale va verificata dall’avvocato"
    }
   }
  ],

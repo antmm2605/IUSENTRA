@@ -61,8 +61,9 @@ def test_registro_fonti_cita_rito_lavoro_e_precetto():
 
 
 def test_valori_zero_e_fatti_completi_non_vanno_persi():
-    from types import SimpleNamespace
     from copy import deepcopy
+    from types import SimpleNamespace
+
     from pct.schede_compilazione import risolvi_scheda, scheda_per_modello
     s = deepcopy(scheda_per_modello("CIV_COM_001"))
     s["campi"] = [dict(campo="conteggio", etichetta="Conteggio", obbligatorio=True,
@@ -118,6 +119,32 @@ def test_termini_dichiarati_validi():
                 assert valida_termine(c["fonte"]["termine"]) == [], (s["id"], c["campo"])
 
 
+def test_impugnazione_delibera_societaria_comprende_la_sospensione_feriale():
+    from datetime import date
+
+    from pct.schede_termini import calcola
+    from scripts.schede_compilazione.impresa import SCHEDE
+
+    salvata = scheda_per_template("SOC_005")
+    generata = next(s for s in SCHEDE if s["id"] == "SOC_005")
+    for scheda in (salvata, generata):
+        campo = next(c for c in scheda["campi"] if c["campo"] == "termine")
+        termine = campo["fonte"]["termine"]
+        assert termine["feriale"] is True
+        assert calcola(termine, date(2026, 7, 29))["scadenza"] == "2026-11-27"
+
+
+def test_regola_di_calcolo_consultabile_anche_prima_della_data_di_partenza():
+    from pct.schede_compilazione import risolvi_scheda
+
+    risolta = risolvi_scheda(scheda_per_template("SOC_005"), {})
+    termine = next(c for c in risolta["campi"] if c["campo"] == "termine")
+    assert termine["stato"] == "calcolo"
+    assert "valore" not in termine
+    assert "con sospensione feriale" in termine["spiegazione"]
+    assert "19100.pdf" in termine["spiegazione"]
+
+
 def test_esecuzioni_e_locazioni_coperte():
     attesi = {t for t in CATALOGO if t.rsplit("_", 1)[0] in ("ESE", "LOC")}
     assert attesi <= {t for s in carica_schede().values() for t in s["template"]}
@@ -144,3 +171,28 @@ def test_penale_amministrativo_tributario_coperti():
 def test_tutti_i_modelli_del_catalogo_hanno_una_scheda():
     coperti = {t for s in carica_schede().values() for t in s["template"]}
     assert set(CATALOGO) - coperti == set()
+
+
+def test_norme_integrate_il_20_ottobre():
+    def atti(t):
+        return {(n["atto"], n["articolo"]) for n in scheda_per_template(t)["base_normativa"]}
+    assert ("dpr_639_1970", "47") in atti("LAV_013") and ("dl_269_2003", "42") in atti("LAV_014")
+    assert ("legge_1185_1967", "3") in atti("FAM_024")
+    assert ("dpr_396_2000", "95") in atti("VGS_017")
+    assert ("dlgs_168_2003", "3") in atti("SOC_005")
+
+
+def test_il_costruttore_scarta_gli_articoli_abrogati(tmp_path):
+    import sqlite3
+
+    from scripts.schede_compilazione.costruisci import _articoli
+    db = tmp_path / "n.sqlite"
+    c = sqlite3.connect(db)
+    c.execute("CREATE TABLE normative_documents (id INTEGER, collection_name TEXT)")
+    c.execute("CREATE TABLE normative_articles (document_id INTEGER, article_number TEXT, article_text TEXT)")
+    c.execute("INSERT INTO normative_documents VALUES (1, 'Lex fonti: codice_civile')")
+    c.executemany("INSERT INTO normative_articles VALUES (1, ?, ?)", [
+        ("2409", "Art. 2409. ((ARTICOLO ABROGATO DAL D.LGS. 27 MARZO 2026, N. 47))"),
+        ("2396quater", "Art. 2396-quater. (Denunzia al tribunale) Se vi è fondato sospetto...")])
+    c.commit()
+    assert _articoli(db)["codice_civile"] == {"2396quater"}

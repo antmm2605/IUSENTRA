@@ -12,14 +12,24 @@
    "perche": "annotazioni solo per legge o ordine del giudice"
   },
   {
-   "atto": "codice_civile",
-   "articolo": "6",
-   "perche": "diritto al nome"
+   "atto": "dpr_396_2000",
+   "articolo": "95",
+   "perche": "ricorso al tribunale del circondario dell’ufficio di stato civile"
+  },
+  {
+   "atto": "dpr_396_2000",
+   "articolo": "96",
+   "perche": "procedimento camerale con il pubblico ministero"
+  },
+  {
+   "atto": "dpr_396_2000",
+   "articolo": "89",
+   "perche": "cambio volontario di nome o cognome: domanda al prefetto"
   },
   {
    "atto": "codice_civile",
-   "articolo": "7",
-   "perche": "tutela del nome"
+   "articolo": "6",
+   "perche": "diritto al nome"
   },
   {
    "atto": "codice_procedura_civile",
@@ -141,13 +151,25 @@
    }
   },
   {
-   "campo": "competenza",
+   "campo": "ufficio",
    "etichetta": "Autorità competente",
-   "obbligatorio": false,
+   "obbligatorio": true,
    "fonte": {
-    "tipo": "lex",
-    "compito": "segnalare (artt. 95-96 e 89 D.P.R. 396/2000, da verificare) che il cambio volontario di nome o cognome si chiede al prefetto, mentre la rettifica degli errori al tribunale; la disciplina dello stato civile non è nella base normativa e va verificata"
-   }
+    "tipo": "calcolo",
+    "regola": "rettifica, ricostituzione o formazione dell’atto e opposizione al rifiuto dell’ufficiale: tribunale del circondario dell’ufficio dove l’atto è registrato; cambio volontario di nome o cognome: prefetto"
+   },
+   "norma": [
+    {
+     "atto": "dpr_396_2000",
+     "articolo": "95",
+     "perche": "tribunale"
+    },
+    {
+     "atto": "dpr_396_2000",
+     "articolo": "89",
+     "perche": "prefetto"
+    }
+   ]
   }
  ],
  "scrive_lex": [

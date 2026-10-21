@@ -37,9 +37,19 @@
    "perche": "affari urgenti esclusi dalla sospensione"
   },
   {
+   "atto": "dlgs_168_2003",
+   "articolo": "3",
+   "perche": "sezione specializzata in materia di impresa per società di capitali e rapporti societari"
+  },
+  {
+   "atto": "dlgs_168_2003",
+   "articolo": "4",
+   "perche": "sezione del capoluogo di regione o del distretto"
+  },
+  {
    "atto": "codice_procedura_civile",
    "articolo": "50bis",
-   "perche": "tribunale collegiale; sezione specializzata in materia di impresa (D.Lgs. 168/2003, da verificare)"
+   "perche": "tribunale collegiale"
   }
  ],
  "campi": [
@@ -215,9 +225,19 @@
    },
    "norma": [
     {
+     "atto": "dlgs_168_2003",
+     "articolo": "3",
+     "perche": "sezione specializzata in materia di impresa per società di capitali e rapporti societari"
+    },
+    {
+     "atto": "dlgs_168_2003",
+     "articolo": "4",
+     "perche": "sezione del capoluogo di regione o del distretto"
+    },
+    {
      "atto": "codice_procedura_civile",
      "articolo": "50bis",
-     "perche": "tribunale collegiale; sezione specializzata in materia di impresa (D.Lgs. 168/2003, da verificare)"
+     "perche": "tribunale collegiale"
     }
    ],
    "compilatore": [

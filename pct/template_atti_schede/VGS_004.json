@@ -28,18 +28,18 @@
   },
   {
    "atto": "codice_procedura_civile",
-   "articolo": "712",
+   "articolo": "473bis.52",
    "perche": "forma della domanda"
   },
   {
    "atto": "codice_procedura_civile",
-   "articolo": "713",
-   "perche": "comparizione"
+   "articolo": "473bis.53",
+   "perche": "provvedimenti del presidente"
   },
   {
    "atto": "codice_procedura_civile",
-   "articolo": "714",
-   "perche": "esame dell’interdicendo"
+   "articolo": "473bis.54",
+   "perche": "udienza di comparizione ed esame"
   },
   {
    "atto": "legge_742_1969",
@@ -178,7 +178,7 @@
     },
     {
      "atto": "codice_procedura_civile",
-     "articolo": "712",
+     "articolo": "473bis.52",
      "perche": "contenuto del ricorso"
     }
    ]
@@ -230,7 +230,7 @@
    "norma": [
     {
      "atto": "codice_procedura_civile",
-     "articolo": "712",
+     "articolo": "473bis.52",
      "perche": "competenza"
     }
    ]

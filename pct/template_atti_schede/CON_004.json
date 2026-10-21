@@ -21,6 +21,41 @@
    "atto": "reg_ue_2004_261",
    "articolo": "8",
    "perche": "rimborso"
+  },
+  {
+   "atto": "reg_ue_2021_782",
+   "articolo": "18",
+   "perche": "treno: rimborso o itinerario alternativo con ritardo di almeno 60 minuti"
+  },
+  {
+   "atto": "reg_ue_2021_782",
+   "articolo": "19",
+   "perche": "treno: indennizzo del 25% o del 50% del biglietto"
+  },
+  {
+   "atto": "reg_ue_2021_782",
+   "articolo": "28",
+   "perche": "treno: reclamo all’impresa ferroviaria"
+  },
+  {
+   "atto": "turismo_79_2011",
+   "articolo": "42",
+   "perche": "pacchetto: inesatta esecuzione"
+  },
+  {
+   "atto": "turismo_79_2011",
+   "articolo": "43",
+   "perche": "pacchetto: riduzione del prezzo e risarcimento"
+  },
+  {
+   "atto": "turismo_79_2011",
+   "articolo": "46",
+   "perche": "danno da vacanza rovinata"
+  },
+  {
+   "atto": "turismo_79_2011",
+   "articolo": "41",
+   "perche": "recesso del viaggiatore"
   }
  ],
  "campi": [
@@ -138,13 +173,30 @@
    }
   },
   {
-   "campo": "altre",
-   "etichetta": "Fonti non in archivio",
-   "obbligatorio": false,
+   "campo": "mezzo",
+   "etichetta": "Mezzo e richiesta",
+   "obbligatorio": true,
    "fonte": {
-    "tipo": "lex",
-    "compito": "segnalare che il regolamento sui diritti dei passeggeri ferroviari e il codice del turismo vanno verificati"
-   }
+    "tipo": "avvocato",
+    "domanda": "Aereo (compensazione per fasce di distanza), treno (indennizzo 25% da 60 a 119 minuti, 50% da 120 minuti) o pacchetto turistico (riduzione del prezzo, risarcimento, vacanza rovinata)?"
+   },
+   "norma": [
+    {
+     "atto": "reg_ue_2004_261",
+     "articolo": "7",
+     "perche": "aereo"
+    },
+    {
+     "atto": "reg_ue_2021_782",
+     "articolo": "19",
+     "perche": "treno"
+    },
+    {
+     "atto": "turismo_79_2011",
+     "articolo": "43",
+     "perche": "pacchetto"
+    }
+   ]
   }
  ],
  "scrive_lex": [

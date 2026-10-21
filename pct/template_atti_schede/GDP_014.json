@@ -226,7 +226,7 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "calcolo",
-    "regola": "recuperatoria: 30 giorni dalla notifica della cartella, con sospensione feriale, giudice di pace; art. 617: 20 giorni davanti al tribunale del luogo di notifica (Cass. 3582/2022), calcolati per prudenza senza sospensione feriale; art. 615: senza termine, giudice per valore, senza sospensione feriale"
+    "regola": "recuperatoria: 30 giorni dalla notifica della cartella, con sospensione feriale, giudice di pace; art. 617: 20 giorni davanti al tribunale del luogo di notifica (Cass. 3582/2022), senza sospensione feriale (Cass. 14972/2015); art. 615: senza termine, giudice per valore, senza sospensione feriale"
    },
    "norma": [
     {

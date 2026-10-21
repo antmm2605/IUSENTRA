@@ -130,8 +130,8 @@ SCHEDE = [
             ("36/2023", "36", "accesso agli atti di gara"), FERIALE_CPA],
            _parti("Concorrente", "Stazione appaltante") + _provvedimento() + [
                calcolo("termine", "Ultimo giorno per notificare il ricorso", termine=T("comunicazione", 30),
-                       regola="30 giorni dalla comunicazione o pubblicazione dell’aggiudicazione o dell’esclusione, con sospensione feriale; decorrenza da verificare con la disponibilità degli atti" + IN_AVANTI,
-                       norma=[(CPA, "120", "trenta giorni"), ("36/2023", "36", "decorrenza")]),
+                       regola="30 giorni dalla ricezione della comunicazione dell’art. 90 D.Lgs. 36/2023 o dalla messa a disposizione degli atti di gara (art. 36), con sospensione feriale; per i bandi autonomamente lesivi dalla pubblicazione" + IN_AVANTI,
+                       norma=[(CPA, "120", "trenta giorni e decorrenza"), ("36/2023", "90", "comunicazione"), ("36/2023", "36", "messa a disposizione degli atti")]),
                avvocato("motivi", "Motivi", "Vizi dell’aggiudicazione o dell’esclusione e interesse strumentale"),
                _deposito(), avvocato("cautelare", "Domanda cautelare", "Si chiede la sospensione dell’aggiudicazione o della stipula?", obbligatorio=False)],
            [("Fatto", "gara e provvedimento"), ("Diritto", "motivi"), ("Conclusioni", "annullamento, subentro o risarcimento")],

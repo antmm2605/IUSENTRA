@@ -212,7 +212,7 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "avvocato",
-    "domanda": "Richiesta stragiudiziale, diffida, ricorso per consulenza preventiva o ATP? (sospensione feriale per la consulenza preventiva discussa: verificare)"
+    "domanda": "Richiesta stragiudiziale, diffida, ricorso per consulenza preventiva o ATP?"
    }
   },
   {
@@ -221,7 +221,7 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "calcolo",
-    "regola": "il giudizio di merito si introduce entro 90 giorni dal deposito della relazione o dalla scadenza del termine di sei mesi"
+    "regola": "il giudizio di merito si introduce entro 90 giorni dal deposito della relazione o dalla scadenza del termine di sei mesi; contare i 90 giorni senza sospensione feriale. Se il termine è superato la domanda resta proponibile ma perde gli effetti di quella proposta con la consulenza (Cass. 15594/2025)"
    },
    "norma": [
     {

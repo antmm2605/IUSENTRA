@@ -10,10 +10,10 @@ from __future__ import annotations
 
 import json
 from datetime import date, datetime
-from zoneinfo import ZoneInfo
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 CARTELLA = Path(__file__).with_name("template_atti_schede")
 FONTI = ("database", "archivio_letture", "documento", "calcolo", "avvocato", "lex")
@@ -118,7 +118,8 @@ def risolvi_scheda(scheda: dict[str, Any], valori: dict[str, Any], *, fatti: lis
         elif trovati:
             voce.update(stato="documento_presente", fonte="documenti del fascicolo", valore="; ".join(trovati))
         elif campo["fonte"]["tipo"] == "calcolo":
-            voce.update(stato="calcolo", fonte="calcolo del software", regola=campo["fonte"]["regola"])
+            voce.update(stato="calcolo", fonte="calcolo del software", regola=campo["fonte"]["regola"],
+                        spiegazione=campo["fonte"]["regola"])
             voce.update(_termine_calcolato(campo["fonte"].get("termine"), fatti, oggi))
         elif campo["fonte"]["tipo"] == "lex":
             voce.update(stato="proposta_lex", fonte="proposta di Lex da confermare", compito=campo["fonte"]["compito"])

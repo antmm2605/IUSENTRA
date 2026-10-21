@@ -1,6 +1,8 @@
+import hashlib
 import json
 import sqlite3
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
@@ -32,6 +34,38 @@ def test_full_text_suffix_accents_and_provenance(tmp_path):
     assert len(article['text']) > 1800
     assert article['updated_at'] == '2026-10-07'
     assert 'atto.codiceRedazionale=042U0262' in article['source_url']
+
+
+def test_fonte_della_nuova_biblioteca_apre_articolo_scelto_senza_scrivere_sql(tmp_path):
+    package, rows = source(tmp_path)
+    rows[0].update(chiave='dpr_639_1970', articolo='47', atto='d.P.R. 639/1970',
+                   urn='urn:nir:stato:decreto.del.presidente.della.repubblica:1970-04-30;639',
+                   url='https://www.normattiva.it/atto/caricaDettaglioAtto?atto.dataPubblicazioneGazzetta=1970-09-08&atto.codiceRedazionale=070U0639')
+    (package / 'atti_codici' / 'civile.jsonl').write_text(json.dumps(rows[0]), encoding='utf-8')
+    db = tmp_path / 'normattiva.sqlite'
+    importa_fonti(package, db, '2026-10-20')
+    article_id = articoli(db, article='47')['items'][0]['id']
+    before = hashlib.sha256(db.read_bytes()).hexdigest()
+    item = dettaglio(db, article_id)
+    query = parse_qs(urlsplit(item['source_url']).query)
+    assert query['atto.articolo.numero'] == ['47']
+    assert query['atto.articolo.sottoArticolo'] == ['1']
+    assert query['atto.articolo.tipoArticolo'] == ['0']
+    assert query['atto.codiceRedazionale'] == ['070U0639']
+    assert item['text'] == rows[0]['testo']
+    assert hashlib.sha256(db.read_bytes()).hexdigest() == before
+
+
+@pytest.mark.parametrize(('chiave', 'numero', 'extra'), [
+    ('codice_civile', '47', ''),  # corpo/allegato non determinato da questa integrazione
+    ('dpr_639_1970', '47bis', ''),  # sottopartizione: non trasformarla nell'articolo principale
+    ('dpr_639_1970', '47', '&atto.articolo.numero=3&atto.articolo.tipoArticolo=1'),
+])
+def test_collegamenti_governati_e_sottopartizioni_non_vengono_reinterpretati(chiave, numero, extra):
+    from lex.normativa.consultazione import _collegamento_articolo
+
+    url = 'https://www.normattiva.it/atto/caricaDettaglioAtto?atto.dataPubblicazioneGazzetta=1970-09-08&atto.codiceRedazionale=070U0639' + extra
+    assert _collegamento_articolo(url, chiave, numero) == url
 
 
 def test_idempotency_and_saved_link_after_new_edition(tmp_path):

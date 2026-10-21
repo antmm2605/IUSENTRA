@@ -63,8 +63,8 @@ SCHEDE = [
             (CPC, "696bis", "consulenza tecnica preventiva ai fini della composizione della lite"), (CPC, "696", "accertamento tecnico preventivo")],
            _lettera("Paziente o congiunti", "Struttura sanitaria") + [procura()] + _danni() + [
                documento("cartella", "Cartella clinica e referti", "cartella clinica", ["cartella", "referto"], se_manca="chiedere la cartella clinica alla struttura"),
-               avvocato("atto", "Atto", "Richiesta stragiudiziale, diffida, ricorso per consulenza preventiva o ATP? (sospensione feriale per la consulenza preventiva discussa: verificare)"),
-               calcolo("giudizio", "Termine dopo la consulenza", "il giudizio di merito si introduce entro 90 giorni dal deposito della relazione o dalla scadenza del termine di sei mesi",
+               avvocato("atto", "Atto", "Richiesta stragiudiziale, diffida, ricorso per consulenza preventiva o ATP?"),
+               calcolo("giudizio", "Termine dopo la consulenza", "il giudizio di merito si introduce entro 90 giorni dal deposito della relazione o dalla scadenza del termine di sei mesi; contare i 90 giorni senza sospensione feriale. Se il termine è superato la domanda resta proponibile ma perde gli effetti di quella proposta con la consulenza (Cass. 15594/2025)",
                        norma=[("legge_24_2017", "8", "novanta giorni")])],
            [("Atto", "fatti clinici, danno, quesiti al consulente")], ["cartella clinica non disponibile"]),
 
@@ -96,7 +96,7 @@ SCHEDE = [
            [("Diffida", "diritto, violazione, richiesta, termine")], ["titolarità non provata"]),
 
     scheda("IPD_007", "Richiesta di rimozione, deindicizzazione e diffida al provider", ["IPD_007", "IPD_008", "IPD_010", "IPD_011"],
-           [("70/2003", "16", "responsabilità dell’hosting"), ("70/2003", "17", "assenza dell’obbligo generale di sorveglianza"), (GDPR, "17", "diritto alla cancellazione"),
+           [("reg_ue_2022_2065", "6", "responsabilità dell’hosting"), ("reg_ue_2022_2065", "8", "assenza dell’obbligo generale di sorveglianza"), ("reg_ue_2022_2065", "16", "segnalazione dei contenuti illegali"), (GDPR, "17", "diritto alla cancellazione"),
             (CC, "2043", "fatto illecito")],
            _lettera("Interessato", "Gestore o provider") + [
                fatti_documentati("Contenuti con indirizzi URL, date e copie"),
@@ -105,7 +105,7 @@ SCHEDE = [
 
     scheda("IPD_012", "Azione cautelare inibitoria e richiesta danni in materia di proprietà intellettuale", ["IPD_012", "IPD_013"],
            [(CPI, "131", "inibitoria"), (CPI, "129", "descrizione e sequestro"), (CPI, "125", "risarcimento e retroversione degli utili"), (LDA, "156", "inibitoria"),
-            (LDA, "158", "risarcimento"), (CPI, "120", "competenza delle sezioni specializzate"), *SENZA_FERIALE],
+            (LDA, "158", "risarcimento"), (CPI, "120", "competenza delle sezioni specializzate"), ("dlgs_168_2003", "3", "sezioni specializzate in materia di impresa"), *SENZA_FERIALE],
            [difensore(), procura(), data_luogo(), assistito("Titolare"), controparte("Contraffattore"),
             documento("titolo", "Titolo del diritto", "registrazione o prova della titolarità", ["registrazione", "marchio", "brevetto"], se_manca="astensione: serve il titolo"),
             fatti_documentati("Violazioni e prove"),

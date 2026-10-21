@@ -19,9 +19,9 @@
    "perche": "autorizzazioni del giudice tutelare"
   },
   {
-   "atto": "codice_civile",
-   "articolo": "375",
-   "perche": "autorizzazioni, oggi del giudice tutelare dopo il D.Lgs. 149/2022"
+   "atto": "149/2022",
+   "articolo": "21",
+   "perche": "autorizzazione alternativa del notaio"
   },
   {
    "atto": "codice_civile",
@@ -30,18 +30,13 @@
   },
   {
    "atto": "codice_procedura_civile",
-   "articolo": "732",
-   "perche": "alienazione di beni di minori e incapaci"
+   "articolo": "473bis.64",
+   "perche": "provvedimenti su parere del giudice tutelare"
   },
   {
    "atto": "codice_procedura_civile",
-   "articolo": "733",
-   "perche": "vendita all’incanto"
-  },
-  {
-   "atto": "codice_procedura_civile",
-   "articolo": "734",
-   "perche": "reimpiego"
+   "articolo": "473bis.65",
+   "perche": "vendita di beni"
   },
   {
    "atto": "codice_procedura_civile",
@@ -50,8 +45,8 @@
   },
   {
    "atto": "codice_procedura_civile",
-   "articolo": "720bis",
-   "perche": "reclamo dei decreti in materia di amministrazione di sostegno: verificare il giudice del reclamo nel testo vigente"
+   "articolo": "473bis.58",
+   "perche": "reclamo al tribunale contro i decreti del giudice tutelare; ricorso per cassazione contro il decreto collegiale"
   }
  ],
  "campi": [
@@ -179,9 +174,9 @@
      "perche": "atti soggetti ad autorizzazione"
     },
     {
-     "atto": "codice_civile",
-     "articolo": "375",
-     "perche": "atti che richiedono il tribunale"
+     "atto": "149/2022",
+     "articolo": "21",
+     "perche": "autorizzazione del notaio rogante"
     }
    ]
   },

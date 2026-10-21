@@ -2,18 +2,18 @@
 
 Base normativa: rito unificato artt. 473-bis ss. c.p.c. (D.Lgs. 149/2022 e correttivo D.Lgs. 164/2024); artt. 143-158,
 316-337-octies e 342-bis/342-ter c.c.; L. 898/1970 sul divorzio; art. 6 D.L. 132/2014 (negoziazione assistita).
-Sospensione feriale: si applica ai termini del rito unificato, salvo le cause in materia di alimenti e gli affari
-urgenti (art. 92 ord. giud.); per gli obblighi di mantenimento dei figli l’applicazione è discussa, quindi i termini
-a ritroso si calcolano con la sospensione (data più prudente) e quelli in avanti senza, con avviso all’avvocato.
+Sospensione feriale: si applica ai termini del rito unificato, anche quando si discute del mantenimento del coniuge
+o dei figli o dell’assegno divorzile (Cass. SU 13 maggio 2024 n. 12946); restano escluse le cause di soli alimenti
+e quelle dichiarate urgenti (art. 92 ord. giud.). Il passaporto del minore è regolato dalla L. 1185/1967.
 """
 from scripts.schede_compilazione.comuni import (CC, CPC, FERIALE, SENZA_FERIALE, T, assistito, avvocato, calcolo, causa_pendente,
-                                                controparte, data_luogo, difensore, documento, fatti_documentati, lex, procura, udienza,
+                                                controparte, data_luogo, difensore, documento, fatti_documentati, procura, udienza,
                                                 ufficio_da_adire)
 from scripts.schede_compilazione.costruisci import scheda
 
 L898 = "legge_898_1970"
 COMPETENZA = [(CPC, "473bis.11", "competenza del tribunale del luogo di residenza abituale del minore o del convenuto")]
-DISCUSSA = "; sospensione feriale discussa per le domande di mantenimento: data calcolata nel modo più prudente, da verificare"
+DISCUSSA = "; con sospensione feriale anche per il mantenimento di coniuge e figli (Cass. SU 12946/2024), salvo dichiarazione d’urgenza o cause di soli alimenti"
 
 
 def _parti(ric="Ricorrente", res="Resistente"):
@@ -62,7 +62,7 @@ def _negoziazione_familiare():
 SCHEDE = [
     scheda("FAM_001", "Ricorso congiunto per separazione consensuale o divorzio congiunto", ["FAM_001", "FAM_003"],
            [(CPC, "473bis.51", "procedimento su domanda congiunta"), (CC, "158", "separazione consensuale"), (CC, "155", "provvedimenti per i figli"),
-            (L898, "4", "domanda congiunta di divorzio"), (L898, "3", "casi di divorzio e termini dalla separazione"), *COMPETENZA],
+            (L898, "3", "casi di divorzio e termini dalla separazione"), *COMPETENZA],
            [difensore(), procura("serve la procura di entrambi i coniugi, anche con un solo difensore comune"), data_luogo(),
             assistito("Primo coniuge"), assistito("Secondo coniuge", nome="coniuge2"),
             documento("matrimonio", "Estratto per riassunto dell’atto di matrimonio", "estratto dell’atto di matrimonio", ["matrimonio", "estratto"],
@@ -173,7 +173,7 @@ SCHEDE = [
 
     scheda("FAM_017", "Istanze istruttorie per il minore: CTU, ascolto e curatore speciale", ["FAM_017", "FAM_018", "FAM_019"],
            [(CPC, "473bis.25", "consulenza tecnica"), (CPC, "473bis.4", "ascolto del minore"), (CPC, "473bis.5", "modalità dell’ascolto"),
-            (CPC, "473bis.8", "curatore speciale"), (CC, "336bis", "ascolto del minore")],
+            (CPC, "473bis.8", "curatore speciale"), (CPC, "473bis.6", "rifiuto del minore di incontrare il genitore")],
            _parti("Parte assistita", "Controparte") + [causa_pendente(), _figli(),
                        avvocato("istanza", "Istanza e ragioni", "Si chiede CTU, ascolto del minore o nomina del curatore speciale, e perché?",
                                 norma=[(CPC, "473bis.4", "ascolto del minore che ha compiuto dodici anni o capace di discernimento"),
@@ -182,11 +182,11 @@ SCHEDE = [
            [("Istanza", "ragioni dell’istanza e quesiti o modalità")], ["causa non pendente"]),
 
     scheda("FAM_020", "Ricorso per ordini di protezione contro gli abusi familiari e allontanamento", ["FAM_020", "FAM_021"],
-           [(CC, "342bis", "ordini di protezione"), (CC, "342ter", "contenuto e durata fino a un anno"), (CPC, "473bis.69", "ordini di protezione"),
+           [(CPC, "473bis.69", "ordini di protezione"),
             (CPC, "473bis.70", "contenuto"), (CPC, "473bis.71", "procedimento"), *SENZA_FERIALE],
            _parti() + [fatti_documentati("Condotte di grave pregiudizio con date, referti, denunce"), _violenza(), _figli(),
                        avvocato("misure", "Misure richieste", "Allontanamento dalla casa, divieto di avvicinamento a luoghi indicati, assegno, intervento dei servizi",
-                                norma=[(CC, "342ter", "misure e durata")])],
+                                norma=[(CPC, "473bis.70", "misure e durata fino a un anno")])],
            [("Fatti", "condotte e pregiudizio con documenti"), ("Conclusioni", "ordine di protezione, durata e misure")],
            ["nessun fatto di grave pregiudizio documentato"]),
 
@@ -203,11 +203,13 @@ SCHEDE = [
 
     scheda("FAM_024", "Istanza per passaporto del minore o trasferimento di residenza in caso di disaccordo", ["FAM_024", "FAM_025"],
            [(CC, "316", "contrasto tra genitori su questioni di particolare importanza"), (CC, "337ter", "decisioni di maggiore interesse"),
-            (CPC, "473bis.12", "ricorso"), *COMPETENZA],
+            ("legge_1185_1967", "3", "passaporto del minore: assenso dei genitori o, in difetto, autorizzazione del giudice tutelare"),
+            ("legge_1185_1967", "3bis", "inibitoria del rilascio o dell’uso del passaporto"), (CPC, "473bis.12", "ricorso"), *COMPETENZA],
            _parti() + [_figli(),
                        avvocato("questione", "Questione e motivi", "Passaporto o trasferimento: dove, perché, con quali effetti su scuola e frequentazioni con l’altro genitore?",
                                 norma=[(CC, "337ter", "residenza abituale e istruzione decise di comune accordo")]),
                        avvocato("dissenso", "Dissenso dell’altro genitore", "L’altro genitore ha negato l’assenso? Con quali motivi?"),
-                       lex("nota", "Norma sul passaporto", "segnalare che la legge sul passaporto (art. 3 L. 1185/1967, giudice tutelare) non è nella base normativa e va verificata dall’avvocato")],
+                       calcolo("ufficio_passaporto", "Giudice per il passaporto", "senza l’assenso dell’altro genitore decide il giudice tutelare del luogo di residenza del minore; se è pendente un giudizio di famiglia, il giudice di quel giudizio",
+                               norma=[("legge_1185_1967", "3", "autorizzazione del giudice tutelare"), *COMPETENZA])],
            [("Ricorso", "interesse del minore e ragioni del disaccordo")], ["assenso dell’altro genitore già presente: il ricorso non serve"]),
 ]

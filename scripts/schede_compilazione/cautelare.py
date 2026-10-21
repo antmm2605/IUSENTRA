@@ -126,11 +126,11 @@ SCHEDE = [
            ["anno dallo spoglio o dalla turbativa già decorso", "data dello spoglio non nota"]),
 
     scheda("CAU_015", "Ricorso cautelare in materia societaria", ["CAU_015"],
-           [(CC, "2378", "sospensione delle delibere impugnate"), (CC, "2409", "denunzia di gravi irregolarità: procedimento camerale"),
+           [(CC, "2378", "sospensione delle delibere impugnate"), (CC, "2396quater", "denunzia al tribunale di gravi irregolarità (dopo l’abrogazione dell’art. 2409)"),
             (CPC, "737", "forma camerale della denunzia dell’art. 2409"), (CPC, "700", "tutela atipica residuale"), *_PROCEDIMENTO],
            _ricorso("Socio o società ricorrente", "Società o amministratori") + [
             avvocato("misura", "Misura richiesta e rimedio tipico", "Chiedi la sospensione di una delibera (art. 2378), un controllo giudiziario per gravi irregolarità (art. 2409) o una misura atipica (art. 700)?",
-                     norma=[(CC, "2378", "sospensione"), (CC, "2409", "denunzia al tribunale"), (CPC, "700", "residualità")]),
+                     norma=[(CC, "2378", "sospensione"), (CC, "2396quater", "denunzia al tribunale"), (CPC, "700", "residualità")]),
             avvocato("legittimazione", "Legittimazione e quote", "Il cliente ha le quote o la qualità richieste per la misura scelta?",
                      norma=[(CC, "2378", "qualità del socio per l’impugnazione")]),
             avvocato("periculum", "Pericolo nel ritardo", "Per le misure cautelari (2378 e 700): quale pregiudizio grave deriverebbe dall’attesa? Per la denunzia dell’art. 2409 non serve: è un ricorso camerale",

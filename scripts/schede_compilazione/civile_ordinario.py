@@ -180,7 +180,6 @@ SCHEDE = [
 
     scheda("CIV_ORD_029", "Comparsa conclusionale e memoria di replica", ["CIV_ORD_029", "CIV_ORD_030"],
            [(CPC, "189", "termini per note, conclusionali e repliche (collegio)"), (CPC, "281quinquies", "decisione davanti al giudice monocratico"),
-            (CPC, "190", "comparse conclusionali e memorie"),
             (CPC, "155", "computo dei termini"), FERIALE],
            _base_endoprocessuale() + [
             udienza("Udienza di rimessione della causa in decisione", "udienza_rimessione"),

@@ -17,8 +17,8 @@
   },
   {
    "atto": "codice_procedura_civile",
-   "articolo": "563",
-   "perche": "tempestività negli immobili"
+   "articolo": "564",
+   "perche": "tempestività negli immobili: entro la prima udienza per l’autorizzazione della vendita"
   },
   {
    "atto": "codice_procedura_civile",
@@ -192,7 +192,7 @@
    "norma": [
     {
      "atto": "codice_procedura_civile",
-     "articolo": "563",
+     "articolo": "564",
      "perche": "intervento tempestivo"
     }
    ],

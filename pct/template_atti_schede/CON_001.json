@@ -45,6 +45,16 @@
    "atto": "codice_civile",
    "articolo": "1219",
    "perche": "mora"
+  },
+  {
+   "atto": "legge_249_1997",
+   "articolo": "1",
+   "perche": "Corecom: conciliazione obbligatoria nelle comunicazioni elettroniche"
+  },
+  {
+   "atto": "legge_481_1995",
+   "articolo": "2",
+   "perche": "conciliazione presso le autorità di regolazione"
   }
  ],
  "campi": [
@@ -163,13 +173,25 @@
    }
   },
   {
-   "campo": "conciliazione",
-   "etichetta": "Conciliazione",
-   "obbligatorio": false,
+   "campo": "settore",
+   "etichetta": "Settore e conciliazione obbligatoria",
+   "obbligatorio": true,
    "fonte": {
-    "tipo": "lex",
-    "compito": "segnalare il tentativo obbligatorio presso il Corecom o le procedure ARERA per telefonia ed energia, da verificare"
-   }
+    "tipo": "avvocato",
+    "domanda": "Telefonia o pay-tv (tentativo obbligatorio al Corecom prima del giudizio, da concludere in 30 giorni) o energia, gas e acqua (conciliazione presso l’autorità di regolazione)?"
+   },
+   "norma": [
+    {
+     "atto": "legge_249_1997",
+     "articolo": "1",
+     "perche": "tentativo obbligatorio di conciliazione per le comunicazioni elettroniche"
+    },
+    {
+     "atto": "legge_481_1995",
+     "articolo": "2",
+     "perche": "procedure di conciliazione per i servizi di pubblica utilità"
+    }
+   ]
   }
  ],
  "scrive_lex": [

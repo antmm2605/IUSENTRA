@@ -23,6 +23,16 @@
    "perche": "giudice competente: residenza dell’attore"
   },
   {
+   "atto": "dpr_639_1970",
+   "articolo": "47",
+   "perche": "decadenza previdenziale"
+  },
+  {
+   "atto": "dl_269_2003",
+   "articolo": "42",
+   "perche": "decadenza semestrale nell’invalidità civile"
+  },
+  {
    "atto": "codice_procedura_civile",
    "articolo": "445bis",
    "perche": "accertamento tecnico preventivo obbligatorio solo per invalidità civile, handicap e prestazioni sanitarie"
@@ -196,13 +206,58 @@
    ]
   },
   {
-   "campo": "decadenza",
-   "etichetta": "Decadenza",
-   "obbligatorio": false,
+   "campo": "comunicazione",
+   "etichetta": "Comunicazione del provvedimento o della decisione sul ricorso amministrativo",
+   "obbligatorio": true,
    "fonte": {
-    "tipo": "lex",
-    "compito": "segnalare che la decadenza dell’art. 47 D.P.R. 639/1970 non è nella base normativa e va verificata dall’avvocato"
-   }
+    "tipo": "archivio_letture",
+    "fatto": "comunicazione",
+    "documento": "lettera o PEC dell’ente"
+   },
+   "fatti": [
+    {
+     "categoria": "data",
+     "campo": "comunicazione"
+    }
+   ]
+  },
+  {
+   "campo": "decadenza_invalidita",
+   "etichetta": "Ultimo giorno per l’azione in invalidità civile",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "invalidità civile, handicap e accompagnamento: sei mesi dalla comunicazione del provvedimento amministrativo, a pena di decadenza; termine sostanziale",
+    "termine": {
+     "base": "comunicazione",
+     "direzione": "avanti",
+     "feriale": false,
+     "mesi": 6
+    }
+   },
+   "norma": [
+    {
+     "atto": "dl_269_2003",
+     "articolo": "42",
+     "perche": "sei mesi"
+    }
+   ]
+  },
+  {
+   "campo": "decadenza_inps",
+   "etichetta": "Decadenza nelle prestazioni previdenziali INPS",
+   "obbligatorio": true,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "pensioni: tre anni; altre prestazioni (gestione dell’art. 24 L. 88/1989): un anno; dalla comunicazione della decisione sul ricorso amministrativo o dalla scadenza dei termini per deciderlo, e per le prestazioni riconosciute in parte dal riconoscimento parziale"
+   },
+   "norma": [
+    {
+     "atto": "dpr_639_1970",
+     "articolo": "47",
+     "perche": "tre anni e un anno"
+    }
+   ]
   },
   {
    "campo": "ufficio",

@@ -86,7 +86,7 @@ SCHEDE = [
 
     scheda("LOC_010", "Impugnazione di delibera condominiale", ["LOC_010"],
            [(CC, "1137", "impugnazione entro trenta giorni"), MEDIAZIONE, ("318/1942", "71quater", "controversie condominiali"),
-            ("28/2010", "8", "la domanda di mediazione impedisce la decadenza una sola volta"), (CPC, "7", "competenza del giudice di pace per le cause condominiali, efficacia da verificare"), FERIALE],
+            ("28/2010", "8", "la domanda di mediazione impedisce la decadenza una sola volta"), (CPC, "7", "giudice di pace per le cause condominiali solo dal 31 ottobre 2027 (art. 32 D.Lgs. 116/2017, come prorogato dal D.L. 100/2026); prima, competenza per valore"), FERIALE],
            _parti("Condomino", "Condominio, in persona dell’amministratore") + [
             documento("verbale", "Verbale della delibera", "verbale di assemblea", ["verbale", "delibera"], se_manca="astensione: serve la delibera"),
             letto("data", "Data della delibera o della comunicazione agli assenti", "data_delibera", "verbale e comunicazione", [{"categoria": "data", "campo": "evento"}]),
@@ -107,7 +107,7 @@ SCHEDE = [
 
     scheda("LOC_014", "Citazione per infiltrazioni e danni tra unità immobiliari", ["LOC_014"],
            [(CC, "2051", "danno cagionato da cose in custodia"), (CC, "1117", "parti comuni"), (CC, "1123", "ripartizione delle spese"),
-            (CPC, "7", "competenza per valore o del giudice di pace per le cause condominiali, efficacia da verificare"), MEDIAZIONE],
+            (CPC, "7", "competenza per valore; giudice di pace per le cause condominiali solo dal 31 ottobre 2027"), MEDIAZIONE],
            _parti("Danneggiato", "Responsabile (condominio o proprietario)") + [fatti_documentati("Infiltrazioni: date, provenienza, danni"),
             avvocato("origine", "Origine dell’infiltrazione", "Da dove provengono (parti comuni, unità sovrastante, impianti) e c’è una perizia?",
                      norma=[(CC, "2051", "custodia")]),
@@ -140,7 +140,7 @@ SCHEDE = [
                      norma=[(CC, "1079", "servitù"), (CC, "950", "confini"), (CC, "873", "distanze"), (CC, "844", "immissioni")]),
             avvocato("titolo", "Titolo di proprietà e documenti", "Quali titoli, mappe, perizie o rilievi hai?"), _mediazione(),
             calcolo("ufficio", "Giudice competente",
-                    "confini: tribunale; apposizione di termini: giudice di pace; immissioni tra immobili adibiti a civile abitazione: giudice di pace; distanze nelle costruzioni: tribunale; servitù: secondo il valore. Verificare l’art. 7 vigente",
+                    "confini: tribunale; apposizione di termini e immissioni tra immobili adibiti a civile abitazione: giudice di pace (art. 7 nn. 1 e 3); distanze nelle costruzioni: tribunale; servitù: secondo il valore. Le modifiche all’art. 7 del D.Lgs. 116/2017 (cause condominiali) entrano in vigore il 31 ottobre 2027",
                     norma=[(CPC, "7", "competenza del giudice di pace")])],
            [("Fatto", "luoghi, titoli e violazione"), ("Diritto", "norma applicabile"), ("Conclusioni", "accertamento, riduzione in pristino o cessazione")],
            ["azione non indicata", "mediazione non esperita"]),

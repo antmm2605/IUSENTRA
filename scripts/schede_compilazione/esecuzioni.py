@@ -1,8 +1,8 @@
 """Schede dell'esecuzione forzata (ESE), oltre al precetto (ESE_001).
 
 Base normativa: artt. 474-632 c.p.c. nel testo vigente al 19/10/2026; art. 92 R.D. 12/1941 e art. 3 L. 742/1969
-per l'esclusione dei procedimenti di opposizione all'esecuzione dalla sospensione feriale; per l'art. 617 e l'art. 619
-il termine si calcola per prudenza senza sospensione (la scadenza più vicina). I termini interni al processo
+per l'esclusione dei procedimenti di opposizione all'esecuzione dalla sospensione feriale; l'esclusione vale anche per
+l'opposizione agli atti esecutivi (Cass. 14972/2015, 11780/2020, 13797/2022) e per l'opposizione di terzo (Cass. 15439/2020). I termini interni al processo
 esecutivo (artt. 481, 482, 497, 543, 557) seguono la sospensione feriale ordinaria.
 """
 from scripts.schede_compilazione.comuni import (CPC, FERIALE, IN_AVANTI, SENZA_FERIALE, T, assistito, avvocato, calcolo,
@@ -111,14 +111,14 @@ SCHEDE = [
            [("Istanza", "confronto tra valore dei beni e importo dovuto")], ["valori non indicati"]),
 
     scheda("ESE_018", "Atto di intervento del creditore", ["ESE_018"],
-           [(CPC, "499", "creditori che possono intervenire"), (CPC, "525", "tempestività nei mobili"), (CPC, "563", "tempestività negli immobili"),
+           [(CPC, "499", "creditori che possono intervenire"), (CPC, "525", "tempestività nei mobili"), (CPC, "564", "tempestività negli immobili: entro la prima udienza per l’autorizzazione della vendita"),
             (CPC, "551", "intervento nel pignoramento presso terzi")],
            [difensore(), procura(), data_luogo(), assistito("Creditore interveniente"), controparte("Debitore esecutato"),
             causa_pendente("Procedura esecutiva e numero di ruolo"),
             avvocato("titolo", "Titolo o causa di prelazione", "Il credito è fondato su un titolo esecutivo, su un sequestro, su una prelazione o su scritture contabili?",
                      norma=[(CPC, "499", "legittimazione")]),
             letto("udienza", "Udienza per l’autorizzazione della vendita o dell’assegnazione", "udienza", "fascicolo dell’esecuzione",
-                  [{"categoria": "data", "campo": "udienza"}], norma=[(CPC, "563", "intervento tempestivo")])],
+                  [{"categoria": "data", "campo": "udienza"}], norma=[(CPC, "564", "intervento tempestivo")])],
            [("Ricorso", "credito, titolo e importo")], ["credito senza titolo né causa di prelazione: l’intervento non è ammesso"]),
 
     scheda("ESE_019", "Opposizione all’esecuzione", ["ESE_019"],
@@ -145,7 +145,7 @@ SCHEDE = [
             letto("conoscenza", "Data di notifica del titolo o del precetto, del primo atto di esecuzione o del compimento dell’atto", "conoscenza", "notifiche e comunicazioni",
                   [{"categoria": "data", "campo": "comunicazione"}, {"categoria": "prova_notifica"}]),
             calcolo("termine", "Ultimo giorno", termine=T("comunicazione", 20, feriale=False),
-                    regola="20 giorni dalla notifica o dal compimento dell’atto; per prudenza calcolato senza sospensione feriale (scadenza più vicina): l’applicabilità della sospensione al termine dell’art. 617 è discussa" + IN_AVANTI, norma=[(CPC, "617", "venti giorni")]),
+                    regola="20 giorni dalla notifica o dal compimento dell’atto; senza sospensione feriale, che non si applica alle opposizioni esecutive in nessuna fase (Cass. 14972/2015, 11780/2020, 13797/2022)" + IN_AVANTI, norma=[(CPC, "617", "venti giorni")]),
             avvocato("vizio", "Vizio formale", "Quale vizio di forma o di regolarità dell’atto contesti?")],
            [("Motivi", "vizi formali dell’atto"), ("Conclusioni", "annullamento e provvedimenti indilazionabili")],
            ["venti giorni scaduti anche contando la sospensione feriale (se il periodo feriale è compreso, non astenersi: indicare entrambe le date e segnalare la questione)",
@@ -166,7 +166,7 @@ SCHEDE = [
            [("Motivi", "censure al provvedimento"), ("Conclusioni", "riforma")], ["termine scaduto", "provvedimento non reclamabile: valutare l’opposizione agli atti"]),
 
     scheda("ESE_021", "Opposizione di terzo all’esecuzione", ["ESE_021"],
-           [(CPC, "619", "opposizione di terzo"), (CPC, "620", "opposizione dopo la vendita"), ("12/1941", "92", "esclusione dalla sospensione feriale: estensione all’opposizione di terzo per orientamento giurisprudenziale, da verificare")],
+           [(CPC, "619", "opposizione di terzo"), (CPC, "620", "opposizione dopo la vendita"), ("12/1941", "92", "nessuna sospensione feriale per l’opposizione di terzo, anche nella fase di merito e nelle impugnazioni (Cass. 21 luglio 2020 n. 15439)")],
            [difensore(), procura(), data_luogo(), assistito("Terzo opponente"), controparte("Creditore procedente"),
             causa_pendente("Procedura esecutiva e numero di ruolo"),
             avvocato("diritto", "Diritto sui beni pignorati", "Quale proprietà o diritto reale hai sui beni pignorati e con quali documenti lo provi?",

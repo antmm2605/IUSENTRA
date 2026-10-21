@@ -48,8 +48,8 @@
   },
   {
    "atto": "codice_procedura_civile",
-   "articolo": "720bis",
-   "perche": "reclamo dei decreti in materia di amministrazione di sostegno: verificare il giudice del reclamo nel testo vigente"
+   "articolo": "473bis.58",
+   "perche": "reclamo al tribunale contro i decreti del giudice tutelare; ricorso per cassazione contro il decreto collegiale"
   },
   {
    "atto": "legge_742_1969",
@@ -188,7 +188,7 @@
     },
     {
      "atto": "codice_procedura_civile",
-     "articolo": "712",
+     "articolo": "473bis.52",
      "perche": "contenuto del ricorso"
     }
    ]

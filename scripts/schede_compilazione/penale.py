@@ -154,9 +154,9 @@ SCHEDE = [
                documento("ordine", "Ordine di esecuzione e decreto di sospensione", "ordine di esecuzione", ["esecuzione"], se_manca="chiedere l’ordine di esecuzione"),
                letto("notifica", "Notifica dell’ordine e del decreto di sospensione", "notifica", "relata", [{"categoria": "data", "campo": "notifica"}]),
                calcolo("termine", "Ultimo giorno per l’istanza di misura alternativa", termine=T("notifica", 30, feriale=False),
-                       regola="30 giorni dalla notifica dell’ordine sospeso; prudenzialmente senza sospensione feriale" + IN_AVANTI, norma=[(CPP, "656", "trenta giorni")]),
+                       regola="30 giorni dalla notifica dell’ordine sospeso, calcolati senza sospensione feriale: è la data che non espone a decadenza" + IN_AVANTI, norma=[(CPP, "656", "trenta giorni")]),
                avvocato("misura", "Misura richiesta e requisiti", "Pena residua, misura richiesta, lavoro, domicilio, percorso"),
-               lex("nota", "Esecuzione", "segnalare che la sospensione feriale nell’esecuzione penale va verificata dall’avvocato")],
+],
            [("Istanza", "misura, requisiti, documenti")], ["ordine di esecuzione non presente"]),
 
     scheda("PEN_022", "Istanza di revoca o sostituzione di misura cautelare", ["PEN_022", "PEN_023"],

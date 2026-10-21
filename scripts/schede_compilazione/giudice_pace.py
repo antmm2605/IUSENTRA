@@ -132,7 +132,7 @@ SCHEDE = [
                      "Il verbale o l’ordinanza non ti erano mai stati notificati (opposizione recuperatoria, 30 giorni), il credito si è estinto dopo (prescrizione: art. 615) o l’atto ha vizi formali (art. 617, 20 giorni)?",
                      norma=[("150/2011", "7", "recuperatoria"), (CPC, "615", "merito"), (CPC, "617", "vizi formali")]),
             calcolo("termine", "Termine e giudice secondo il vizio",
-                    "recuperatoria: 30 giorni dalla notifica della cartella, con sospensione feriale, giudice di pace; art. 617: 20 giorni davanti al tribunale del luogo di notifica (Cass. 3582/2022), calcolati per prudenza senza sospensione feriale; art. 615: senza termine, giudice per valore, senza sospensione feriale",
+                    "recuperatoria: 30 giorni dalla notifica della cartella, con sospensione feriale, giudice di pace; art. 617: 20 giorni davanti al tribunale del luogo di notifica (Cass. 3582/2022), senza sospensione feriale (Cass. 14972/2015); art. 615: senza termine, giudice per valore, senza sospensione feriale",
                     norma=[("150/2011", "7", "trenta giorni"), FERIALE, (CPC, "617", "venti giorni"), *SENZA_FERIALE])],
            [("Motivi", "vizio indicato con lo strumento corrispondente"), ("Conclusioni", "annullamento o accertamento")],
            ["credito tributario: competente il giudice tributario", "tipo di vizio non indicato",

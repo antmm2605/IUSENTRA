@@ -9,14 +9,19 @@
  ],
  "base_normativa": [
   {
-   "atto": "70/2003",
-   "articolo": "16",
+   "atto": "reg_ue_2022_2065",
+   "articolo": "6",
    "perche": "responsabilità dell’hosting"
   },
   {
-   "atto": "70/2003",
-   "articolo": "17",
+   "atto": "reg_ue_2022_2065",
+   "articolo": "8",
    "perche": "assenza dell’obbligo generale di sorveglianza"
+  },
+  {
+   "atto": "reg_ue_2022_2065",
+   "articolo": "16",
+   "perche": "segnalazione dei contenuti illegali"
   },
   {
    "atto": "reg_ue_2016_679",

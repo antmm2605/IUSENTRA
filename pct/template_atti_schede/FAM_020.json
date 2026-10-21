@@ -7,16 +7,6 @@
  ],
  "base_normativa": [
   {
-   "atto": "codice_civile",
-   "articolo": "342bis",
-   "perche": "ordini di protezione"
-  },
-  {
-   "atto": "codice_civile",
-   "articolo": "342ter",
-   "perche": "contenuto e durata fino a un anno"
-  },
-  {
    "atto": "codice_procedura_civile",
    "articolo": "473bis.69",
    "perche": "ordini di protezione"
@@ -227,9 +217,9 @@
    },
    "norma": [
     {
-     "atto": "codice_civile",
-     "articolo": "342ter",
-     "perche": "misure e durata"
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.70",
+     "perche": "misure e durata fino a un anno"
     }
    ]
   }

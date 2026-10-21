@@ -13,7 +13,8 @@ from scripts.schede_compilazione.costruisci import scheda
 CCII = "codice_crisi"
 TUB = "385/1993"
 CRISI_FERIALE = (CCII, "9", "sospensione feriale esclusa nei procedimenti del codice della crisi")
-SEZ_IMPRESA = [(CPC, "50bis", "tribunale collegiale; sezione specializzata in materia di impresa (D.Lgs. 168/2003, da verificare)")]
+SEZ_IMPRESA = [("dlgs_168_2003", "3", "sezione specializzata in materia di impresa per società di capitali e rapporti societari"),
+               ("dlgs_168_2003", "4", "sezione del capoluogo di regione o del distretto"), (CPC, "50bis", "tribunale collegiale")]
 
 
 def _parti(ric="Assistito", res="Controparte"):
@@ -56,8 +57,8 @@ SCHEDE = [
                documento("delibera", "Verbale della delibera", "verbale assembleare", ["verbale", "delibera"], se_manca="astensione: serve la delibera"),
                letto("iscrizione", "Data della delibera o della sua iscrizione o deposito nel registro delle imprese", "evento", "verbale e visura",
                      [{"categoria": "data", "campo": "evento"}]),
-               calcolo("termine", "Ultimo giorno per l’annullabilità", termine=T("evento", 90, feriale=False),
-                       regola="calcolo prudenziale senza sospensione feriale (la Cassazione la applica alle azioni di impugnazione); 90 giorni dalla delibera o dall’iscrizione o deposito nel registro delle imprese (s.r.l.: dalla trascrizione nel libro); termine sostanziale di decadenza",
+               calcolo("termine", "Ultimo giorno per l’annullabilità", termine=T("evento", 90),
+                       regola="90 giorni dalla delibera o dall’iscrizione o deposito nel registro delle imprese (s.r.l.: dalla trascrizione nel libro), con sospensione feriale e proroga se il termine cade di sabato o festivo; il termine per proporre l’impugnazione giudiziale è soggetto alla L. 742/1969, art. 1 (Tribunale di Roma, sentenza 6452/2017, pp. 4-5: https://www.ilcaso.it/giurisprudenza/archivio/19100.pdf)",
                        norma=[(CC, "2377", "novanta giorni"), (CC, "2479ter", "s.r.l.")]),
                avvocato("legittimazione", "Legittimazione e vizi", "Il socio era assente, dissenziente o astenuto? Possiede la quota minima? Quali vizi?",
                         norma=[(CC, "2377", "legittimazione e soglie")]),

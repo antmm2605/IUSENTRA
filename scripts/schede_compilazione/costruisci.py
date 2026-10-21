@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import json
+import re
 import sqlite3
 import sys
 from pathlib import Path
@@ -32,11 +33,16 @@ def scheda(id, titolo, template, base, campi, scrive_lex, astensione, modelli_co
             "versione": VERSIONE, "principio": PRINCIPIO, "modelli_compilatore": list(modelli_compilatore)}
 
 
+ABROGATO = re.compile(r"(ARTICOLO|PROVVEDIMENTO) ABROGATO")
+
+
 def _articoli(db: Path) -> dict[str, set[str]]:
     c = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
     out: dict[str, set[str]] = {}
-    for col, art in c.execute("SELECT d.collection_name, a.article_number FROM normative_articles a "
-                              "JOIN normative_documents d ON d.id = a.document_id"):
+    for col, art, testo in c.execute("SELECT d.collection_name, a.article_number, substr(a.article_text, 1, 160) FROM normative_articles a "
+                                     "JOIN normative_documents d ON d.id = a.document_id"):
+        if ABROGATO.search(testo or ""):
+            continue  # un articolo abrogato non può fondare una scheda
         out.setdefault(col.removeprefix("Lex fonti: "), set()).add(art)
     return out
 

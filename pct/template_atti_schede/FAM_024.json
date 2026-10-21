@@ -17,6 +17,16 @@
    "perche": "decisioni di maggiore interesse"
   },
   {
+   "atto": "legge_1185_1967",
+   "articolo": "3",
+   "perche": "passaporto del minore: assenso dei genitori o, in difetto, autorizzazione del giudice tutelare"
+  },
+  {
+   "atto": "legge_1185_1967",
+   "articolo": "3bis",
+   "perche": "inibitoria del rilascio o dell’uso del passaporto"
+  },
+  {
    "atto": "codice_procedura_civile",
    "articolo": "473bis.12",
    "perche": "ricorso"
@@ -186,13 +196,25 @@
    }
   },
   {
-   "campo": "nota",
-   "etichetta": "Norma sul passaporto",
-   "obbligatorio": false,
+   "campo": "ufficio_passaporto",
+   "etichetta": "Giudice per il passaporto",
+   "obbligatorio": true,
    "fonte": {
-    "tipo": "lex",
-    "compito": "segnalare che la legge sul passaporto (art. 3 L. 1185/1967, giudice tutelare) non è nella base normativa e va verificata dall’avvocato"
-   }
+    "tipo": "calcolo",
+    "regola": "senza l’assenso dell’altro genitore decide il giudice tutelare del luogo di residenza del minore; se è pendente un giudizio di famiglia, il giudice di quel giudizio"
+   },
+   "norma": [
+    {
+     "atto": "legge_1185_1967",
+     "articolo": "3",
+     "perche": "autorizzazione del giudice tutelare"
+    },
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "473bis.11",
+     "perche": "competenza del tribunale del luogo di residenza abituale del minore o del convenuto"
+    }
+   ]
   }
  ],
  "scrive_lex": [

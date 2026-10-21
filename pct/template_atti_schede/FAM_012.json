@@ -275,7 +275,7 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "calcolo",
-    "regola": "almeno 60 giorni liberi prima dell’udienza (esclusi il giorno della notifica e quello dell’udienza); sospensione feriale discussa per le domande di mantenimento: data calcolata nel modo più prudente, da verificare",
+    "regola": "almeno 60 giorni liberi prima dell’udienza (esclusi il giorno della notifica e quello dell’udienza); con sospensione feriale anche per il mantenimento di coniuge e figli (Cass. SU 12946/2024), salvo dichiarazione d’urgenza o cause di soli alimenti",
     "termine": {
      "base": "udienza",
      "direzione": "ritroso",
@@ -302,7 +302,7 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "calcolo",
-    "regola": "almeno 30 giorni prima dell’udienza; sospensione feriale discussa per le domande di mantenimento: data calcolata nel modo più prudente, da verificare",
+    "regola": "almeno 30 giorni prima dell’udienza; con sospensione feriale anche per il mantenimento di coniuge e figli (Cass. SU 12946/2024), salvo dichiarazione d’urgenza o cause di soli alimenti",
     "termine": {
      "base": "udienza",
      "direzione": "ritroso",

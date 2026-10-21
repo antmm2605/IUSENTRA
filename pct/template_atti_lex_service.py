@@ -262,7 +262,12 @@ class ActContext:
             "cliente": _as_dict(self.cliente),
             "fascicolo": _as_dict(self.fascicolo),
             "utente": _as_dict(self.utente),
-            "config": dict(self.config or {}),
+            # La configurazione interna resta nel compilatore: al browser
+            # vanno soltanto i dati pubblici dello studio effettivamente usati.
+            "config": {key: self.config[key] for key in (
+                "STUDIO_NOME", "STUDIO_AVVOCATO", "STUDIO_INDIRIZZO", "STUDIO_CF", "STUDIO_PIVA",
+                "STUDIO_CITTA", "PCT_STUDIO_PEC",
+            ) if isinstance(self.config.get(key), (str, int, float, bool))},
             "parti": [_as_dict(item) for item in self.parti],
             "documents": [_as_dict(item) for item in self.documents],
             "client_options": list(self.client_options),
@@ -1381,8 +1386,22 @@ def run_template_act_workflow(request: Any, context: dict[str, Any], evidence: d
         confidence = float(reliability or (0.78 if missing_labels else 0.88))
         answer_mode = "grounded" if not missing_labels else "needs_review"
 
+    deadline_result = {}
+    if (prefill is not None and act_context.fascicolo and not lookup_only
+            and not act_context.forbidden and not act_context.client_options and not act_context.case_options):
+        from pct.template_atti_lex_deadlines import completa_scadenze
+
+        answer, deadline_result = completa_scadenze(
+            answer, template.model_code, prefill.payload, _as_object(act_context.fascicolo), messaggio=query,
+        )
+        if deadline_result and (deadline_result["stato"] != "calcolato"
+                                or any(s["verifica_avvocato"] for s in deadline_result["scadenze"])):
+            answer_mode = "needs_review"
+            confidence = min(confidence, 0.55)
+
     return {
         "answer": answer,
+        "calculated_deadlines": deadline_result,
         "template": template.to_dict(),
         "act_context": act_context.to_dict(),
         "prefill": prefill.to_dict() if prefill else {},

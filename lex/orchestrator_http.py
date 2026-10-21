@@ -42,6 +42,11 @@ def clean_spaces(value: Any) -> str:
 
 def _structured_operational_http_payload(*, user, studio, data, question, attachments):
     """Percorso consultivo prima di contesti estesi, cataloghi e modello AI."""
+    from .http_template_bridge import template_http_payload
+
+    template = template_http_payload(user=user, studio=studio, data=data, question=question, attachments=attachments)
+    if template is not None:
+        return template
     from .http_bounded_bridge import _manual_free_web_enabled
     from .operational_knowledge.integration import build_operational_http_payload
     from .operational_knowledge.query_router import OperationalQueryRouter

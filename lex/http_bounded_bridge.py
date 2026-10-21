@@ -160,6 +160,7 @@ _TEMPLATE_ACT_TERMS = (
     "template atti",
     "atto da catalogo",
     "atto di citazione",
+    "comparsa di costituzione",
     "ricorso decreto ingiuntivo",
     "opposizione a decreto ingiuntivo",
     "decreto ingiuntivo",

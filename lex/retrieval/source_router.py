@@ -155,6 +155,10 @@ class SourceRouter:
             return [OfficialWebSource()]
         if requests_local_normative_only(request, workflow):
             return [NormativeSource(exact_reference_only=True)]
+        if workflow == "atto_da_template":
+            # Identità, campi e fonti del fascicolo vengono risolti dal servizio
+            # del template; una compilazione non è una nuova acquisizione OCR.
+            return [TemplateAttiSource(), ComplianceSource()]
 
         solo_giuridiche = workflow in _WORKFLOW_GIURIDICI and not request.fascicolo_id
         local_sources = [] if solo_giuridiche else [StudioDatabaseSource(), GuidaPraticaSource()]

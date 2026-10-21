@@ -6,7 +6,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 1055.
+- File pytest censiti: 1056.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
@@ -16,7 +16,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend | 128 |
 | E2E | 15 |
 | Frontend static gate | 1 |
-| Frontend/UI | 332 |
+| Frontend/UI | 333 |
 | RBAC | 130 |
 | Security | 54 |
 | Smoke CLI | 6 |
@@ -35,7 +35,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 90 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 200 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 483 |
+| 09-misc | Test non classificati dalle fasi principali | 484 |
 
 ## Suite CI aggiuntive
 
@@ -970,6 +970,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Lex/Ricerca | Frontend/UI | tests/test_lex_workflow_agents_planner.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Lex/Ricerca | Frontend/UI | tests/test_mediazione_channel_research.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Lex/Ricerca | Frontend/UI | tests/test_procedure_source_research.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Lex/Ricerca | Frontend/UI | tests/test_schede_lex.py | 403/RBAC, tenant | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Lex/Ricerca | Frontend/UI | tests/test_search_index.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Lex/Ricerca | RBAC | lex/tests/unit/test_social_intent_routing.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Lex/Ricerca | RBAC | tests/test_giurisprudenza.py | tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |

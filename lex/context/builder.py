@@ -65,6 +65,17 @@ class LexContextBuilder:
     def build_request_context(self, request, workflow: str) -> dict[str, Any]:
         pratica_id = str(request.fascicolo_id or "").strip()
         question = str(getattr(request, "query", "") or "").strip()
+        if workflow == "atto_da_template":
+            # Il servizio template risolve autonomamente fascicolo, parti e
+            # precompilazione con i repository proprietari e i relativi permessi.
+            # Non avviare qui contesti economici, agenda o letture documentali.
+            return self._privacy_guard.sanitize_sections({
+                "workflow": workflow,
+                "studio": dict(request.metadata.get("studio_context_seed") or {}),
+                "utente": build_user_context(request),
+                "permessi": build_permissions_context(request),
+                "sessione": build_session_context(request),
+            })
         if self._performance_smoke_requested(request):
             return {
                 "workflow": workflow,

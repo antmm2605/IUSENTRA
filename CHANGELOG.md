@@ -1,3 +1,8 @@
+# 2.445.0 — Scadenze delle schede nella risposta Lex
+
+- Il percorso Lex dei template riutilizza i fatti SQL e il calcolatore condiviso: date, incertezza della fonte e provenienza restano esplicite, senza creare atti o modificare fonti.
+- Il controllo della risposta segnala date estranee e riporta quelle calcolate. I termini dilatori trascorsi non sono presentati come decadenze.
+
 # 2.444.0 — Biblioteca normativa e schede di compilazione
 
 - Integrate le patch 2.443/2.444: nove atti da fonti ufficiali Normattiva e UE, consultabili nel catalogo SQL già esistente.

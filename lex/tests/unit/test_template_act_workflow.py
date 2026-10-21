@@ -79,6 +79,56 @@ def test_template_workflow_segnala_dati_mancanti_senza_inventare():
     assert "Nessuna bozza" in payload["answer"]
 
 
+def test_template_workflow_riporta_scadenza_del_calcolatore_senza_creare_atto(monkeypatch):
+    from pct.registro_letture.fatti_repository import Fatto
+    from web.services import archivio_letture_runtime
+
+    calls = []
+
+    def fatti(fascicolo):
+        calls.append(fascicolo.id)
+        return [Fatto(categoria="data", campo="udienza", valore="2027-04-09", verifica="verificata")]
+
+    monkeypatch.setattr(archivio_letture_runtime, "fatti_fascicolo", fatti)
+    payload = run_template_act_workflow(
+        _request("Prepara la comparsa di costituzione", metadata={
+            "active_context": {"model_code": "CIV_COM_001", "case_id": "fas-rossi"},
+        }), _base_context(), {"items": []},
+    )
+    assert calls == ["fas-rossi"]
+    assert "29/01/2027" in payload["answer"]
+    assert payload["calculated_deadlines"]["scadenze"][0]["valore"] == "29/01/2027"
+    assert payload["created_document"] == {}
+
+
+def test_template_workflow_permesso_negato_non_legge_scadenze(monkeypatch):
+    from web.services import archivio_letture_runtime
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("La richiesta non autorizzata non deve leggere fatti")
+
+    monkeypatch.setattr(archivio_letture_runtime, "fatti_fascicolo", forbidden)
+    payload = run_template_act_workflow(
+        _request("Prepara la comparsa", metadata={"active_context": {
+            "model_code": "CIV_COM_001", "case_id": "fas-rossi", "permissions_scope": ["nessun_accesso"],
+        }}), _base_context(), {"items": []},
+    )
+    assert payload["act_context"]["forbidden"]
+    assert payload["calculated_deadlines"] == {}
+
+
+def test_template_payload_json_non_espone_configurazione_interna():
+    import json
+    from datetime import timedelta
+
+    context = _base_context()
+    context["config"].update(SECRET_KEY="valore-riservato", PERMANENT_SESSION_LIFETIME=timedelta(days=1))
+    payload = run_template_act_workflow(_request("usa template diffida"), context, {"items": []})
+    encoded = json.dumps(payload)
+    assert "valore-riservato" not in encoded and "PERMANENT_SESSION_LIFETIME" not in encoded
+    assert payload["act_context"]["config"]["STUDIO_NOME"] == "Studio Verdi"
+
+
 def test_template_workflow_non_crea_documento_senza_conferma():
     metadata = {
         "template_payload": {

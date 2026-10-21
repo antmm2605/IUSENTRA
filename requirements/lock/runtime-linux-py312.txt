@@ -80,7 +80,7 @@ pyjwt==2.15.1
 pymupdf==1.28.2
 pymysql==1.2.3
 pyparsing==3.3.3
-pypdf==6.20.1
+pypdf==6.21.1
 pypdfium2==5.14.0
 pytesseract==0.3.13
 python-dateutil==2.9.0.post0

@@ -102,7 +102,7 @@ def register_editor_native_pdf_routes(app, *, get_fascicoli, decrypt_doc, encryp
                                 and str(getattr(document, "caricato_da", "")) == user.username)
                     if same_command and not repeated:
                         return jsonify(ok=False, message="Questa richiesta è già stata usata per una modifica diversa."), 409
-                if expected != document.hash_sha256 and not repeated:
+                if request.method == "POST" and expected != document.hash_sha256 and not repeated:
                     return jsonify(ok=False, message="Il documento è stato modificato da un’altra sessione. Le tue modifiche restano aperte: riapri la versione corrente prima di sostituirla."), 409
                 if request.method == "GET":
                     path = Path(repo.percorso_documento_lettura(fid, did))
@@ -114,6 +114,7 @@ def register_editor_native_pdf_routes(app, *, get_fascicoli, decrypt_doc, encryp
                     from urllib.parse import quote
 
                     response.headers["X-PDF-Name"] = quote(document.nome)
+                    response.headers["X-PDF-Revision"] = document.hash_sha256
                     response.headers["Cache-Control"] = "no-store"
                     return response
 

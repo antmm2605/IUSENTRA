@@ -61,3 +61,7 @@ Copia reale8080, candidato v16: prima sessione salva cerchio pieno dopo Annulla/
 Finestra380pixel: comandi ospitanti a capo e documento adattato dopo riapertura; finestra820pixel: barra forme su riga propria. Proprietà documento mostra nome,513,4KB,2pagine e209,9x297mm, senza modificare metadati. Corrette tre etichette residue nella barra compatta dopo Annulla. L’utente conferma nuovamente: «Spostamento e dimensioni corretti». Questa è conferma utente, distinta dalle prove dell’agente.
 
 Rilascio ancora aperto: verifica ultima traduzione, consolidamento commit, gate remoti, deploy e pulizia governata. Non si dichiara copertura globale di tutti i PDF e glifi.
+
+### Recupero concorrente: difetto emerso e correzione
+
+Il rientro nel lettore dopo il409 è riuscito, ma Riprova apertura richiedeva ancora la vecchia impronta e riceveva409. La GET ora restituisce la versione corrente e X-PDF-Revision sotto lo stesso lock e permessi; il POST continua a esigere l’impronta della versione realmente letta. Il frontend verifica il nuovo header prima di caricare i byte e lo usa per il successivo salvataggio. Undici test API positivi, compreso riapertura dopo conflitto e nuovo salvataggio. Registrato il CSS della cornice nel catalogo governato, con motivazione; check design system positivo. Prova reale finale e gate in corso.

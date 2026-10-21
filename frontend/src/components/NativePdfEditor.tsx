@@ -117,15 +117,19 @@ export default function NativePdfEditor({ endpoint, filename, expectedHash, onDi
         requested = true
         window.clearTimeout(openingTimeout)
         try {
-          const response = await fetch(`${endpoint}?expectedHash=${encodeURIComponent(revision.current)}`, {
+          const response = await fetch(endpoint, {
             credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
           })
           if (!response.ok) {
             const result = await response.json()
             throw new Error(result.message || 'Il PDF non è disponibile.')
           }
+          const currentRevision = response.headers.get('X-PDF-Revision') || ''
+          if (!/^[0-9a-f]{64}$/.test(currentRevision)) throw new Error('Revisione del PDF non verificabile. Riprova apertura.')
           const buffer = await response.arrayBuffer()
           if (controller.signal.aborted) return
+          revision.current = currentRevision
+          intent.current = null
           const name = decodeURIComponent(response.headers.get('X-PDF-Name') || encodeURIComponent(filename))
           setDisplayName(name)
           send('IUSENTRA_PDF_LOAD', { name, buffer }, [buffer])

@@ -145,3 +145,19 @@ def test_native_editor_rejects_unauthorized_or_invalid_save(native_editor, case)
     assert result.status_code in {400, 403, 404}
     assert writes == events == []
     assert path.read_bytes() == original
+
+
+def test_reopen_after_conflict_reads_current_revision_without_overwriting(native_editor):
+    app, doc, _, writes, events, _, _ = native_editor
+    previous = doc.hash_sha256
+    endpoint = '/api/v1/ui/fascicoli/case/documenti/doc/pdf-diretto'
+    edited = pdf_bytes('Versione corrente')
+    with app.test_client() as client:
+        assert save(client, edited, previous).status_code == 200
+        assert save(client, pdf_bytes('Bozza concorrente'), previous).status_code == 409
+        reopened = client.get(endpoint, query_string={'expectedHash': previous})
+        assert reopened.status_code == 200
+        assert reopened.data == edited
+        assert reopened.headers['X-PDF-Revision'] == doc.hash_sha256 != previous
+        assert len(writes) == len(events) == 1
+        assert save(client, pdf_bytes('Dopo riapertura'), reopened.headers['X-PDF-Revision']).status_code == 200

@@ -17,6 +17,7 @@ window.addEventListener('unhandledrejection', (e) => {
 import { PdfEngine, OBJ } from './core.js';
 import { embeddedFontIdentity, canUseEmbeddedFont } from './font-identity.mjs';
 import { shapePath } from './shape-path.mjs';
+import { registerStandaloneOffline } from './offline-registration.mjs';
 import { applyTagSurgery } from './tagsurgery.js';
 import { pageHasPatternFill, protectPatternArtwork } from './shadingsurgery.js';
 import {
@@ -9848,12 +9849,7 @@ function wireUI() {
   if (!hostedEditor) $('sysFonts').addEventListener('click', () => loadSystemFonts(false));
   if (!hostedEditor && !new URLSearchParams(location.search).get('noauto'))
     loadSystemFonts(true);
-  if ('serviceWorker' in navigator && location.protocol === 'https:') {
-    navigator.serviceWorker
-      .register('sw.js', { updateViaCache: 'none' })
-      .then((reg) => reg.update().catch(() => {}))
-      .catch(() => {});
-  }
+  void registerStandaloneOffline({ hosted: hostedEditor, protocol: location.protocol, navigator });
   window.addEventListener(
     'pointerdown',
     () => {

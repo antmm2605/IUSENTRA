@@ -1,3 +1,9 @@
+# 2.445.2 — Sicurezza degli strumenti di sviluppo
+
+- Aggiornato MCP SDK a 1.32.0 nel grafo degli strumenti shadcn, senza aggiungere servizi o dipendenze al runtime applicativo.
+- Verificati il rifiuto dei redirect HTTP verso origini diverse e la compatibilità del comando shadcn su stdio.
+- I controlli HTTP opzionali del pacchetto non vengono presentati come attivi nel prodotto: il percorso osservato usa stdio.
+
 # 2.445.1 — Consultazione del fascicolo in finestra
 
 - Il comando Windows di Local Signer si apre separatamente, preservando il fascicolo e la finestra di lavoro durante la consultazione PST.

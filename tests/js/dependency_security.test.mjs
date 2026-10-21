@@ -5,6 +5,7 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { probeMcpRedirect } from './support/mcp_redirect_probe.mjs';
 
 const frontendRequire = createRequire(new URL('../../frontend/package.json', import.meta.url));
 const shadcnRequire = createRequire(frontendRequire.resolve('shadcn'));
@@ -166,6 +167,40 @@ test('the MCP stdio server used by shadcn remains available', () => {
   const { StdioServerTransport } = shadcnRequire('@modelcontextprotocol/sdk/server/stdio.js');
   assert.ok(new Server({ name: 'controlled-security-check', version: '1.0.0' }, { capabilities: { tools: {} } }));
   assert.ok(new StdioServerTransport());
+});
+
+test('MCP HTTP redirects reject foreign origins and preserve same-origin calls', async () => {
+  for (const status of [307, 308]) {
+    const foreign = await probeMcpRedirect(true, status);
+    assert.equal(foreign.received, 0);
+    assert.equal(foreign.markerReceived, false);
+    assert.match(foreign.error, /Redirect.*not followed/);
+    const same = await probeMcpRedirect(false, status);
+    assert.equal(same.tools, 0);
+    assert.equal(same.error, '');
+  }
+});
+
+test('the installed shadcn MCP command initializes and lists tools over stdio', { timeout: 45000 }, async (t) => {
+  const { Client } = shadcnRequire('@modelcontextprotocol/sdk/client/index.js');
+  const { StdioClientTransport } = shadcnRequire('@modelcontextprotocol/sdk/client/stdio.js');
+  const fixture = await mkdtemp(path.join(tmpdir(), 'iusentra-mcp-stdio-'));
+  const client = new Client({ name: 'controlled-stdio-check', version: '1' }, { capabilities: {} });
+  t.after(async () => {
+    await client.close();
+    assert.equal(path.dirname(path.resolve(fixture)), path.resolve(tmpdir()));
+    assert.ok(path.basename(fixture).startsWith('iusentra-mcp-stdio-'));
+    await rm(fixture, { recursive: true });
+  });
+  await writeFile(path.join(fixture, 'package.json'), '{"name":"controlled-mcp-fixture","private":true}');
+  const transport = new StdioClientTransport({
+    command: process.execPath, args: [frontendRequire.resolve('shadcn'), 'mcp', '--cwd', fixture],
+    cwd: fixture, stderr: 'pipe', env: { NO_COLOR: '1' },
+  });
+  await client.connect(transport, { timeout: 30000 });
+  const { tools } = await client.listTools({}, { timeout: 10000 });
+  assert.ok(tools.length > 0);
+  assert.ok(tools.every((tool) => tool.name && tool.inputSchema));
 });
 
 

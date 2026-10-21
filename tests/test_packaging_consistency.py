@@ -113,7 +113,7 @@ def test_manifest_runtime_ed_extra_coprono_i_backend_e_gli_extra_ufficiali():
         # PyMuPDF e' AGPL-3.0 e il prodotto e' servito attraverso la rete.
         # PyMuPDF resta finche' gli altri moduli lo usano.
         "pypdfium2>=4.30.0",
-        "pypdf>=6.0.0",
+        "pypdf>=6.21.1",
         "asn1crypto>=1.5.0",
         "pytesseract>=0.3.10",
         "python-docx>=1.1.0",

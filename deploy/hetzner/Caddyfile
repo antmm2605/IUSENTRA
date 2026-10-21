@@ -63,6 +63,9 @@
 		defer
 		match status 2xx 3xx
 		Cache-Control "public, no-cache, must-revalidate, max-age=0"
+		Access-Control-Allow-Origin "*"
+		Cross-Origin-Resource-Policy "cross-origin"
+		Content-Security-Policy "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self' data:; connect-src 'self' blob:; frame-ancestors 'self'; base-uri 'none'; form-action 'none'; object-src 'none'"
 	}
 	# Un asset mancante deve essere richiesto di nuovo dopo il ripristino.
 	header /static/* {

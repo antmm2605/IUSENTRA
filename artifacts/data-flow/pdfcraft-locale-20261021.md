@@ -81,3 +81,13 @@ Caddy validate con la configurazione aggiornata nel container reale: configurazi
 Baseline accettata consultata in sola lettura: nginx.conf coincide prima della modifica (762ff9ad713fb6dd10fba87ad7d285af9e78a4096c1c7ab9b3096e5da22a16c0); Caddyfile accettato b4cf181c96941a1efd970348620489b1cf8682a93dfb461c61be836042d35e1d, già evoluto prima dell’intervento a589c4bd1e6778e1286eaaec5fbaf4c4cf0a01070a8ef898f503825cea197e144. Il diff nuovo modifica soltanto la cache del componente, senza alterare autenticazione, firme, deposito, PEC, TLS o destinazioni del proxy.
 
 La correzione cache richiede ancora commit, gate del nuovo SHA e verifica dell’intestazione HTTPS dopo il deploy. Questo aggiornamento prevale sulle precedenti sezioni cronologiche relative a prove non ancora eseguite; non certifica ogni PDF o ogni glifo esistente.
+
+## Diagnosi del servizio statico reale e distribuzione con impronta
+
+EXTRACTED: Caddy handle_path /static/* inoltra a static-assets:8090, senza attraversare Flask. Verifica HTTPS su b8: oltre a max-age604800 mancavano Access-Control-Allow-Origin, Cross-Origin-Resource-Policy e Content-Security-Policy. La sola intestazione Flask verificata su8080 non dimostrava la parità del server. Il deploy b8 era riuscito; non è una prova positiva dell’editor nel browser di produzione.
+
+Correzione del confine effettivo: Caddy applica ai soli file pubblici /static/vendor/pdfcraft-direct/* le stesse policy di isolamento già provate localmente. Un test confronta le due CSP e verifica che il CORS pubblico non sia esteso alle API. Caddy validate sul binario reale è positivo.
+
+I vecchi indirizzi possono essere già memorizzati con le vecchie intestazioni. Perciò l’editor ora usa /releases/d17d8e3b53ea1b08c087/editor: indirizzo derivato dalle impronte di tutti i file, binari preservati, terminatori testuali normalizzati come Git. tools/build_pdf_editor_release.py pubblica la nuova copia senza alterare le precedenti; --check respinge sorgente diversa, byte pubblicati alterati o file aggiunti. Il controllo entra nel pre-push e nel test frontend; nessuna dipendenza runtime o scansione dei documenti.
+
+Quattro guardrail del costruttore e dodici test API/policy passano. Bundle753sorgenti/296asset concordante. Sul browser reale8080 l’iframe usa il nuovo indirizzo e apre il documento tecnico completo con testo, immagine, cerchio e freccia. Conferma visiva conservata separatamente. L’ultima correzione richiede nuovo commit, CI e prova delle policy HTTPS sul nuovo indirizzo; il lavoro sul server resta formalmente aperto.

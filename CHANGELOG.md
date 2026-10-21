@@ -5,7 +5,7 @@
 - Selezione dei caratteri del PC e catalogo locale con lettura dei soli caratteri scelti.
 - Informazioni tecniche raccolte in una sezione chiusa.
 - Inserimento al punto scelto di immagini e forme vettoriali, comandi italiani e protezione delle modifiche concorrenti.
-- Asset non versionati rivalidati a ogni apertura, senza conservare codice superato nella cache settimanale.
+- Asset con indirizzo derivato dalle impronte e policy del servizio statico allineate all’editor isolato.
 - Prove e limiti documentati in artifacts/data-flow/pdfcraft-locale-20261021.md.
 
 # 2.447.1 — Bozze Word native e recupero Lex verificato

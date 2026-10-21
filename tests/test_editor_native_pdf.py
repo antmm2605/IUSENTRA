@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
@@ -96,6 +97,20 @@ def test_public_editor_is_network_restricted_without_exposing_document_api(nativ
     assert asset.headers['Access-Control-Allow-Origin'] == '*'
     assert asset.headers['Cache-Control'] == 'public, no-cache, must-revalidate, max-age=0'
     assert 'Access-Control-Allow-Origin' not in source.headers
+
+
+def test_dedicated_static_proxy_preserves_editor_policy_without_opening_private_api(native_editor):
+    app, *_ = native_editor
+    root = Path(__file__).resolve().parents[1]
+    caddy = (root / 'deploy/hetzner/Caddyfile').read_text(encoding='utf-8')
+    block = re.search(r'header @pdf_editor_assets\s*\{([^}]+)\}', caddy).group(1)
+    with app.test_client() as client:
+        policy = client.get('/static/vendor/pdfcraft-direct/editor/index.html').headers['Content-Security-Policy']
+    assert f'Content-Security-Policy "{policy}"' in block
+    assert 'Access-Control-Allow-Origin "*"' in block
+    assert 'Cross-Origin-Resource-Policy "cross-origin"' in block
+    assert '@pdf_editor_assets path /static/vendor/pdfcraft-direct/*' in caddy
+    assert caddy.count('Access-Control-Allow-Origin') == 1
 
 
 def test_signed_pdf_bytes_are_rejected_even_when_metadata_claims_editable(native_editor, monkeypatch):

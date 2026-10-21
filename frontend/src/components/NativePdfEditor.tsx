@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { LoadingState } from '../ui/LoadingState'
 import { csrfToken } from '../formSubmit'
+import { PDF_EDITOR_ASSET_BASE } from '../pdfEditorRelease'
 import './NativePdfEditor.css'
 
 type Props = {
@@ -219,7 +220,7 @@ export default function NativePdfEditor({ endpoint, filename, expectedHash, onDi
     <div className="iu-native-pdf__canvas">
       {loading ? <LoadingState title="Apertura del PDF" message="Preparazione del documento modificabile" /> : null}
       <iframe key={attempt} ref={iframe} title={`Modifica PDF ${filename}`} sandbox="allow-scripts"
-        src={`/static/vendor/pdfcraft-direct/editor/index.html?lang=it#host_token=${encodeURIComponent(token.current)}`} />
+        src={`${PDF_EDITOR_ASSET_BASE}/index.html?lang=it#host_token=${encodeURIComponent(token.current)}`} />
     </div>
     <footer><details><summary>Informazioni editor PDF</summary><a href="/static/vendor/pdfcraft-direct/NOTICE.md" target="_blank" rel="noopener noreferrer">Licenza e sorgenti del componente PDF</a></details></footer>
   </section>

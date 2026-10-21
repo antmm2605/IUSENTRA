@@ -50,10 +50,19 @@
 	@other_static {
 		path /static/*
 		not path /static/react/assets/*
+		not path /static/vendor/pdfcraft-direct/*
 	}
 	header @other_static {
 		match status 2xx 3xx
 		Cache-Control "public, max-age=604800"
+	}
+	# Il componente PDF usa nomi di file stabili: rivalidazione con ETag,
+	# senza mantenere per sette giorni codice di una release precedente.
+	@pdf_editor_assets path /static/vendor/pdfcraft-direct/*
+	header @pdf_editor_assets {
+		defer
+		match status 2xx 3xx
+		Cache-Control "public, no-cache, must-revalidate, max-age=0"
 	}
 	# Un asset mancante deve essere richiesto di nuovo dopo il ripristino.
 	header /static/* {

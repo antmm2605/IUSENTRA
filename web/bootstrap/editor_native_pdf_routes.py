@@ -41,6 +41,10 @@ def register_editor_native_pdf_routes(app, *, get_fascicoli, decrypt_doc, encryp
             # Solo risorse pubbliche del componente, mai API o documenti.
             response.headers["Access-Control-Allow-Origin"] = "*"
             response.headers["Cross-Origin-Resource-Policy"] = "cross-origin"
+            response.headers["Cache-Control"] = (
+                "no-store, max-age=0" if response.status_code >= 400
+                else "public, no-cache, must-revalidate, max-age=0"
+            )
             response.headers["Content-Security-Policy"] = (
                 "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; "
                 "style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; "

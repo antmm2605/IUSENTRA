@@ -69,3 +69,15 @@ Il rientro nel lettore dopo il409 è riuscito, ma Riprova apertura richiedeva an
 ### Riscontro candidato v18
 
 Su8080 riapertura riuscita della revisione corrente: cerchio pieno, freccia, caratteri e immagini salvati visibili; seconda pagina visitata e preservata. Corretto lo scroll ereditato dal lettore che nascondeva parzialmente la barra ospitante: all’apertura viene ripristinato lo scroll del contenitore, conservato per il ritorno al lettore. Barra completa osservata nella finestra reale, prova editor-ripresa-corrente.png. Build e typecheck positivi. CI/deploy/pulizia ancora in corso.
+
+## Rilascio b8c7ec53b6 e correzione della cache
+
+CI, frontend, CodeQL, supply chain, overlay e gate richiesti del commit b8c7ec53b636d381c8dc101c1cec89bf5df362e3 conclusi success. Deploy39652553930 success; server pronto2.447.2, Lex chat/gateway iusentra-lex-v3:9b, digest17f76afef984b98f460bf8bab67811949a4e774ae2e7ac58c61980688813766a, done=true, eval_count19. Pulizia server rimuove una immagine obsoleta e conserva due riferimenti; seconda pulizia success. Locale sullo stesso commit,752sorgenti e296asset concordanti, app/worker healthy. Rimossi18riferimenti intermedi del collaudo, senza volumi o dati; layer condivisi e cache non attribuita conservati, nessuna pretesa di GB recuperati sul disco Windows.
+
+Verifica HTTPS della risorsa pubblica dell’editor: Cache-Control public,max-age604800. La cache settimanale può mantenere vecchio codice ai successivi rilasci. Correzione mirata: dopo la richiesta Flask i soli asset del componente richiedono rivalidazione; Caddy li esclude dalla regola statica settimanale e mantiene ETag/304; Nginx li inoltra senza aggiungere expires7d. Risorse mancanti no-store; API private e asset React con impronta invariati.
+
+Caddy validate con la configurazione aggiornata nel container reale: configurazione valida, senza ricaricare il server prima del rilascio. Nginx test nella cornice HTTP corretta e poi sulla configurazione effettiva locale: positivo, reload riuscito. Su8080 e proxy locale intestazione public,must-revalidate,no-cache,max-age0. Apertura reale del PDF nel browser riuscita, testo/immagini/cerchio/freccia presenti; prova editor-cache-rivalidata.png. Undici test API passano, comprese intestazioni sulla risorsa reale e404non memorizzabile.
+
+Baseline accettata consultata in sola lettura: nginx.conf coincide prima della modifica (762ff9ad713fb6dd10fba87ad7d285af9e78a4096c1c7ab9b3096e5da22a16c0); Caddyfile accettato b4cf181c96941a1efd970348620489b1cf8682a93dfb461c61be836042d35e1d, già evoluto prima dell’intervento a589c4bd1e6778e1286eaaec5fbaf4c4cf0a01070a8ef898f503825cea197e144. Il diff nuovo modifica soltanto la cache del componente, senza alterare autenticazione, firme, deposito, PEC, TLS o destinazioni del proxy.
+
+La correzione cache richiede ancora commit, gate del nuovo SHA e verifica dell’intestazione HTTPS dopo il deploy. Questo aggiornamento prevale sulle precedenti sezioni cronologiche relative a prove non ancora eseguite; non certifica ogni PDF o ogni glifo esistente.

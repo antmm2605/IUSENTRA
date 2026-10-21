@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from io import BytesIO
+from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -46,7 +47,7 @@ def native_editor(tmp_path):
             doc.note, doc.caricato_da = values['note'], values['caricato_da']
             return doc
 
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder=str(Path(__file__).resolve().parents[1] / 'web/static'))
     app.config['TESTING'] = True
 
     @app.before_request
@@ -81,14 +82,19 @@ def test_public_editor_is_network_restricted_without_exposing_document_api(nativ
     app, doc, *_ = native_editor
     with app.test_client() as client:
         asset = client.get('/static/vendor/pdfcraft-direct/editor/index.html')
+        missing = client.get('/static/vendor/pdfcraft-direct/editor/missing-fixture.js')
         source = client.get('/api/v1/ui/fascicoli/case/documenti/doc/pdf-diretto',
                             query_string={'expectedHash': doc.hash_sha256})
     policy = asset.headers['Content-Security-Policy']
+    assert asset.status_code == 200
+    assert missing.status_code == 404
+    assert missing.headers['Cache-Control'] == 'no-store, max-age=0'
     assert "connect-src 'self' blob:" in policy
     assert "form-action 'none'" in policy
     assert "default-src 'none'" in policy
     assert 'https:' not in policy and 'http:' not in policy
     assert asset.headers['Access-Control-Allow-Origin'] == '*'
+    assert asset.headers['Cache-Control'] == 'public, no-cache, must-revalidate, max-age=0'
     assert 'Access-Control-Allow-Origin' not in source.headers
 
 

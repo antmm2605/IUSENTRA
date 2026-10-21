@@ -1187,7 +1187,8 @@ class PostgresStudioDB:
             return False
         return bool(row and int(row.get("n", 0) or 0) > 0)
 
-    def salva_tabella(self, table: str, rows: list[Any], inserter, delete_all: bool = True) -> None:
+    def salva_tabella(self, table: str, rows: list[Any], inserter, delete_all: bool = True, *, before_commit=None) -> None:
+        """Salvataggio nativo con eventuale registro SQL prima dello stesso commit."""
         compat_conn = self.conn
         raw_conn = self.raw_conn
         try:
@@ -1196,6 +1197,8 @@ class PostgresStudioDB:
                     cur.execute(f"DELETE FROM {table}")
             for row in rows:
                 inserter(compat_conn, row)
+            if before_commit is not None:
+                before_commit(compat_conn)
             raw_conn.commit()
         except Exception:
             raw_conn.rollback()

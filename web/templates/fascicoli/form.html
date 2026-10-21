@@ -42,6 +42,8 @@
 <div class="row g-4">
   <div class="col-lg-8">
     <form method="post">
+      {% if fascicolo %}<input type="hidden" name="base_revision" value="{{ fascicolo.revisione_modifica }}">{% endif %}
+      {% if edit_conflict %}<p>La bozza resta qui. <a href="{{ url_for('modifica_fascicolo', id_fasc=fascicolo.id) }}" target="_blank" rel="noopener noreferrer">Apri una scheda aggiornata per confrontare i dati.</a></p>{% endif %}
       {% if not fascicolo %}
       <input type="hidden" name="source_preventivo" value="{{ source_preventivo or '' }}">
       <input type="hidden" name="source_conferimento" value="{{ source_conferimento or '' }}">

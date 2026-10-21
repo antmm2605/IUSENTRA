@@ -23,6 +23,7 @@ from dataclasses import dataclass, field, asdict
 from enum import Enum
 
 from pct.profilo_deposito import costruisci_profilo_deposito
+from pct.fascicoli_document_transaction import serialized_documents
 from pct.pst_servizi_catalogo import SERVIZIO_PST_DOCUMENTI_FASCICOLO
 from pct.fascicolo_document_presidio import normalise_practice_duplicate_key
 
@@ -888,6 +889,10 @@ class Fascicolo:
             d["archivio"] = asdict(self.archivio)
         return d
 
+    @property
+    def revisione_modifica(self) -> str:
+        return str(getattr(self, '_edit_revision', ''))
+
     @classmethod
     def from_dict(cls, d: dict) -> "Fascicolo":
         d = dict(d)
@@ -952,6 +957,8 @@ class GestioneFascicoli:
             for d in (self.db_path.parent, self.documents_dir, self.archive_dir):
                 d.mkdir(parents=True, exist_ok=True)
         self._studio_db = studio_db
+        self._sql_rows: dict[str, dict[str, Any]] = {}
+        self._sql_models: dict[str, str] = {}
         self._fascicoli: dict[str, Fascicolo] = {}
         # Con `carica_tutto=False` l'archivio non viene letto all'avvio: il
         # fascicolo richiesto si prende con una query per chiave primaria.
@@ -1081,6 +1088,8 @@ class GestioneFascicoli:
             if rows is None:
                 rows = self._studio_db.fetchall_readonly("SELECT * FROM fascicoli")
             self._fascicoli = {}
+            self._sql_rows = {}
+            self._sql_models = {}
             if not rows:
                 for payload in self._payloads_da_json_bootstrap():
                     try:
@@ -1099,6 +1108,7 @@ class GestioneFascicoli:
                 f = self._row_to_fascicolo(row)
                 if f:
                     self._fascicoli[f.id] = f
+                    self._ricorda_snapshot_sql(row, f)
                     # Se era dati_json NULL (primo carico post-migrazione) → riscrivi
                     if not dict(row).get("dati_json") and not getattr(f, "documenti_non_caricati", False):
                         da_migrare.append(f)
@@ -1116,6 +1126,8 @@ class GestioneFascicoli:
             except Exception:
                 continue
             self._fascicoli[fascicolo.id] = fascicolo
+            from pct.fascicolo_edit_revision import edit_revision
+            fascicolo._edit_revision = edit_revision(payload)
         if migrato:
             self._salva()
 
@@ -1154,57 +1166,65 @@ class GestioneFascicoli:
                 "Salvataggio integrale bloccato: i documenti non sono stati caricati."
             )
         if self._studio_db is not None:
-            import json as _json
-
-            def _insert(conn, f):
-                d = f.to_dict()
-                conn.execute(
-                    """
-                    INSERT INTO fascicoli
-                    (id, numero, titolo, tipo, stato, id_cliente, nome_cliente,
-                     tribunale, sezione, giudice, numero_rg, anno_rg,
-                     controparte, avvocato_referente, avvocato_dominus,
-                     data_apertura, data_chiusura, oggetto, note, creato_il, modificato_il,
-                     attivita_json, documenti_json, scadenze_json,
-                     profilo_deposito_json, dati_json)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                    """,
-                    (
-                        f.id, f.numero, f.titolo,
-                        f.tipo.value, f.stato.value,
-                        f.id_cliente or None, f.nome_cliente,
-                        f.tribunale, f.sezione, f.giudice,
-                        f.numero_rg, str(f.anno_rg) if f.anno_rg else "",
-                        f.controparte, f.avvocato_referente, f.avvocato_dominus,
-                        f.data_apertura, f.data_chiusura,
-                        f.oggetto, f.note, f.creato_il,
-                        str(getattr(f, "modificato_il", "") or ""),
-                        _json.dumps(d.get("attivita", []), ensure_ascii=False),
-                        _json.dumps(d.get("documenti", []), ensure_ascii=False),
-                        _json.dumps(d.get("depositi_pct", []), ensure_ascii=False),
-                        _json.dumps(d.get("profilo_deposito", {}), ensure_ascii=False),
-                        _json.dumps(self._dati_json_snello(d), ensure_ascii=False),
-                    ),
-                )
-
-            self._studio_db.salva_tabella("fascicoli", list(self._fascicoli.values()), _insert)
-            try:
-                from pct import cache as _cache
-                _cache.save(self.db_path, {k: v.to_dict() for k, v in self._fascicoli.items()})
-            except Exception:
-                pass
+            self._salva_sql_changes()
+            self._rigenera_mirror_fascicoli_json()
             return
         from pct import cache as _cache
         _cache.save(self.db_path, {k: v.to_dict() for k, v in self._fascicoli.items()})
+
+    def _ricorda_snapshot_sql(self, row, model) -> None:
+        from pct.fascicoli_sql_writer import encode_model
+        from pct.fascicolo_edit_revision import edit_revision
+        payload = dict(row)
+        if str(payload.get('id') or '') != model.id:
+            raise ValueError('Identità dello snapshot SQL del fascicolo discordante.')
+        self._sql_rows[model.id] = payload
+        self._sql_models[model.id] = encode_model(model)
+        model._edit_revision = edit_revision(json.loads(payload.get('dati_json') or '{}'), row=payload)
+
+    def _salva_sql_changes(self, current=None, *, identifiers=None) -> None:
+        from pct.fascicoli_sql_writer import save_changes
+        models = self._fascicoli if current is None else current
+        targets = set(identifiers) if identifiers is not None else self._sql_models.keys() | models.keys()
+        try:
+            confirmed = save_changes(self._studio_db, original_rows=self._sql_rows,
+                                     original_models=self._sql_models, current=models,
+                                     identifiers=identifiers, mirror_path=self.db_path)
+        except Exception:
+            # Anche la cache del comando torna allo snapshot prima del tentativo.
+            # Non riproporre al comando seguente una modifica annullata in SQL.
+            for key in targets:
+                if key in self._sql_models:
+                    restored = Fascicolo.from_dict(json.loads(self._sql_models[key]))
+                    if 'documenti_json' not in self._sql_rows[key]:
+                        restored.documenti_non_caricati = True
+                        restored.documenti_conteggio = int(self._sql_rows[key].get('documenti_conteggio') or 0)
+                    self._ricorda_snapshot_sql(self._sql_rows[key], restored)
+                    self._fascicoli[key] = restored
+                else:
+                    self._fascicoli.pop(key, None)
+            raise
+        for key, row in confirmed.items():
+            if row is None:
+                self._sql_rows.pop(key, None)
+                self._sql_models.pop(key, None)
+                self._fascicoli.pop(key, None)
+            else:
+                self._ricorda_snapshot_sql(row, models[key])
+                self._fascicoli[key] = models[key]
 
     def _rigenera_mirror_fascicoli_json(self) -> None:
         if self._studio_db is None:
             return
         try:
-            from pct import cache as _cache
-            _cache.save(self.db_path, {k: v.to_dict() for k, v in self._fascicoli.items()})
+            from pct.fascicoli_sql_mirror import deliver
+            deliver(self._studio_db, self.db_path)
         except Exception:
-            pass
+            import logging
+            logging.getLogger(__name__).warning(
+                'Mirror storico dei fascicoli non aggiornato; dati confermati in SQL '
+                'e consegna conservata per la ripresa.', exc_info=True,
+            )
 
     @staticmethod
     def _nome_cliente_da_record_sql(record: dict[str, Any]) -> str:
@@ -1274,87 +1294,11 @@ class GestioneFascicoli:
         if self._studio_db is None:
             self._salva()
             return
-        import json as _json
-
         rows = list(fascicoli)
         self._allinea_stato_dalle_prove(rows)
         if not rows:
             return
-
-        def _upsert(conn, f):
-            d = f.to_dict()
-            conn.execute(
-                """
-                INSERT INTO fascicoli
-                (id, numero, titolo, tipo, stato, id_cliente, nome_cliente,
-                 tribunale, sezione, giudice, numero_rg, anno_rg,
-                 controparte, avvocato_referente, avvocato_dominus,
-                 data_apertura, data_chiusura, oggetto, note, creato_il, modificato_il,
-                 attivita_json, documenti_json, scadenze_json,
-                 profilo_deposito_json, dati_json)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                ON CONFLICT(id) DO UPDATE SET
-                    numero=excluded.numero,
-                    titolo=excluded.titolo,
-                    tipo=excluded.tipo,
-                    stato=excluded.stato,
-                    id_cliente=excluded.id_cliente,
-                    nome_cliente=excluded.nome_cliente,
-                    tribunale=excluded.tribunale,
-                    sezione=excluded.sezione,
-                    giudice=excluded.giudice,
-                    numero_rg=excluded.numero_rg,
-                    anno_rg=excluded.anno_rg,
-                    controparte=excluded.controparte,
-                    avvocato_referente=excluded.avvocato_referente,
-                    avvocato_dominus=excluded.avvocato_dominus,
-                    data_apertura=excluded.data_apertura,
-                    data_chiusura=excluded.data_chiusura,
-                    oggetto=excluded.oggetto,
-                    note=excluded.note,
-                    creato_il=excluded.creato_il,
-                    modificato_il=excluded.modificato_il,
-                    attivita_json=excluded.attivita_json,
-                    documenti_json=excluded.documenti_json,
-                    scadenze_json=excluded.scadenze_json,
-                    profilo_deposito_json=excluded.profilo_deposito_json,
-                    dati_json=excluded.dati_json
-                """,
-                (
-                    f.id,
-                    f.numero,
-                    f.titolo,
-                    f.tipo.value,
-                    f.stato.value,
-                    f.id_cliente or None,
-                    f.nome_cliente,
-                    f.tribunale,
-                    f.sezione,
-                    f.giudice,
-                    f.numero_rg,
-                    str(f.anno_rg) if f.anno_rg else "",
-                    f.controparte,
-                    f.avvocato_referente,
-                    f.avvocato_dominus,
-                    f.data_apertura,
-                    f.data_chiusura,
-                    f.oggetto,
-                    f.note,
-                    f.creato_il,
-                    # La colonna esisteva ma non veniva mai scritta: il valore
-                    # restava sepolto in dati_json. Senza di lei l'unico modo
-                    # di accorgersi di un cambiamento era pesare l'intero
-                    # archivio documentale a ogni controllo.
-                    str(getattr(f, "modificato_il", "") or ""),
-                    _json.dumps(d.get("attivita", []), ensure_ascii=False),
-                    _json.dumps(d.get("documenti", []), ensure_ascii=False),
-                    _json.dumps(d.get("depositi_pct", []), ensure_ascii=False),
-                    _json.dumps(d.get("profilo_deposito", {}), ensure_ascii=False),
-                    _json.dumps(self._dati_json_snello(d), ensure_ascii=False),
-                ),
-            )
-
-        self._studio_db.salva_tabella("fascicoli", rows, _upsert, delete_all=False)
+        self._salva_sql_changes({f.id: f for f in rows}, identifiers={f.id for f in rows})
         if rigenera_mirror:
             self._rigenera_mirror_fascicoli_json()
 
@@ -1364,21 +1308,19 @@ class GestioneFascicoli:
         *,
         rigenera_mirror: bool = True,
     ) -> None:
-        ids = [str(item or "").strip() for item in fascicoli_ids if str(item or "").strip()]
+        ids = list(dict.fromkeys(str(item).strip() for item in fascicoli_ids if str(item or '').strip()))
         if not ids:
             return
         if self._studio_db is None:
             self._salva()
             return
-        conn = self._studio_db.conn
-        conn.execute("PRAGMA busy_timeout=5000")
-        conn.execute("BEGIN IMMEDIATE")
-        try:
-            conn.executemany("DELETE FROM fascicoli WHERE id=?", [(item,) for item in ids])
-            conn.execute("COMMIT")
-        except Exception:
-            conn.execute("ROLLBACK")
-            raise
+        available = set()
+        for key in ids:
+            if key not in self._sql_rows:
+                if self._carica_singolo(key) is None:
+                    continue
+            available.add(key)
+        self._salva_sql_changes({}, identifiers=available)
         if rigenera_mirror:
             self._rigenera_mirror_fascicoli_json()
 
@@ -2244,14 +2186,31 @@ class GestioneFascicoli:
         self._salva()
         return f
 
+    @serialized_documents
     def elimina(self, id_fasc: str) -> None:
-        self._get_o_errore(id_fasc)
-        # elimina documenti fisici
+        original = self._get_o_errore(id_fasc)
         fasc_dir = self.documents_dir / id_fasc
+        base = self.documents_dir.resolve()
+        if fasc_dir.is_symlink() or fasc_dir.resolve().parent != base:
+            raise ValueError('Percorso dei documenti del fascicolo non valido.')
+        staged = None
         if fasc_dir.exists():
-            shutil.rmtree(fasc_dir)
+            staged = self.documents_dir / f'.iusentra-delete-{uuid.uuid4().hex}'
+            fasc_dir.rename(staged)
         del self._fascicoli[id_fasc]
-        self._salva()
+        try:
+            self._salva()
+        except Exception:
+            self._fascicoli[id_fasc] = original
+            if staged is not None:
+                if fasc_dir.exists():
+                    raise RuntimeError(
+                        'Eliminazione non confermata. I documenti precedenti sono conservati '
+                        'nella cartella di recupero: è presente un aggiornamento concorrente.')
+                staged.rename(fasc_dir)
+            raise
+        if staged is not None:
+            shutil.rmtree(staged)
 
     # ---------------------------------------------------------------- Stato
 
@@ -2314,6 +2273,7 @@ class GestioneFascicoli:
 
     # ---------------------------------------------------------------- Documenti
 
+    @serialized_documents
     def aggiungi_documento(
         self,
         id_fasc: str,
@@ -2498,52 +2458,66 @@ class GestioneFascicoli:
                 semantic_match
                 and str(getattr(existing_doc, "hash_sha256", "") or "").strip().casefold() != sha256.casefold()
             )
-            percorso_incoming = existing_doc.percorso
-            if conserva_file:
-                nome_safe = Path(nome_archivio or nome_file).name
-                dest = fasc_dir / nome_safe
-                if dest.exists():
-                    stem = Path(nome_safe).stem
-                    suffix = Path(nome_safe).suffix
-                    nome_safe = f"{stem}_{uuid.uuid4().hex[:4]}{suffix}"
+            original_doc = copy.deepcopy(existing_doc.__dict__)
+            original_modificato = f.modificato_il
+            original_pagamenti = copy.deepcopy(f.pagamenti)
+            created_path = None
+            try:
+                percorso_incoming = existing_doc.percorso
+                if conserva_file:
+                    nome_safe = Path(nome_archivio or nome_file).name
                     dest = fasc_dir / nome_safe
-                dest.write_bytes(contenuto)
-                percorso_incoming = str(dest.relative_to(self.documents_dir))
-            incoming_doc = Documento(
-                id=existing_doc.id,
-                nome=nome_file,
-                tipo=tipo,
-                percorso=percorso_incoming,
-                dimensione_bytes=len(contenuto),
-                hash_sha256=sha256,
-                hash_contenuto_sha256=raw_sha256 or sha256,
-                firmato_digitalmente=firmato,
-                note=note,
-                tags=list(tags or []),
-                data_documento=data_documento or date.today().isoformat(),
-                caricato_da=caricato_da,
-                id_deposito_pct=id_deposito_pct,
-                fonte_documento=str(fonte_documento or "").strip(),
-                nome_originale=str(nome_originale or nome_file or "").strip(),
-                nome_portale=str(nome_portale or "").strip(),
-                classificazione_portale=str(classificazione_portale or "").strip(),
-                tipo_atto_portale=str(tipo_atto_portale or "").strip(),
-                servizio_portale=str(servizio_portale or "").strip(),
-                mittente_portale=str(mittente_portale or "").strip(),
-                data_deposito_portale=str(data_deposito_portale or "").strip(),
-                id_documento_portale=str(id_documento_portale or "").strip(),
-                id_cat_portale=str(id_cat_portale or "").strip(),
-                id_repeatto_portale=str(id_repeatto_portale or "").strip(),
-                msg_id_portale=str(msg_id_portale or "").strip(),
-            )
-            if self._assorbi_metadati_documento(
-                existing_doc,
-                incoming_doc,
-                conserva_file_come_versione=conserva_file,
-            ):
-                f.modificato_il = datetime.now().isoformat()
-                self._salva()
-            return existing_doc
+                    if dest.exists():
+                        stem = Path(nome_safe).stem
+                        suffix = Path(nome_safe).suffix
+                        nome_safe = f"{stem}_{uuid.uuid4().hex[:4]}{suffix}"
+                        dest = fasc_dir / nome_safe
+                    created_path = dest
+                    dest.write_bytes(contenuto)
+                    percorso_incoming = str(dest.relative_to(self.documents_dir))
+                incoming_doc = Documento(
+                    id=existing_doc.id,
+                    nome=nome_file,
+                    tipo=tipo,
+                    percorso=percorso_incoming,
+                    dimensione_bytes=len(contenuto),
+                    hash_sha256=sha256,
+                    hash_contenuto_sha256=raw_sha256 or sha256,
+                    firmato_digitalmente=firmato,
+                    note=note,
+                    tags=list(tags or []),
+                    data_documento=data_documento or date.today().isoformat(),
+                    caricato_da=caricato_da,
+                    id_deposito_pct=id_deposito_pct,
+                    fonte_documento=str(fonte_documento or "").strip(),
+                    nome_originale=str(nome_originale or nome_file or "").strip(),
+                    nome_portale=str(nome_portale or "").strip(),
+                    classificazione_portale=str(classificazione_portale or "").strip(),
+                    tipo_atto_portale=str(tipo_atto_portale or "").strip(),
+                    servizio_portale=str(servizio_portale or "").strip(),
+                    mittente_portale=str(mittente_portale or "").strip(),
+                    data_deposito_portale=str(data_deposito_portale or "").strip(),
+                    id_documento_portale=str(id_documento_portale or "").strip(),
+                    id_cat_portale=str(id_cat_portale or "").strip(),
+                    id_repeatto_portale=str(id_repeatto_portale or "").strip(),
+                    msg_id_portale=str(msg_id_portale or "").strip(),
+                )
+                if self._assorbi_metadati_documento(
+                    existing_doc,
+                    incoming_doc,
+                    conserva_file_come_versione=conserva_file,
+                ):
+                    f.modificato_il = datetime.now().isoformat()
+                    self._salva()
+                return existing_doc
+            except Exception:
+                existing_doc.__dict__.clear()
+                existing_doc.__dict__.update(original_doc)
+                f.modificato_il = original_modificato
+                f.pagamenti = original_pagamenti
+                if created_path is not None:
+                    created_path.unlink(missing_ok=True)
+                raise
 
         # evita collisioni di nome
         nome_safe = Path(nome_archivio or nome_file).name
@@ -2630,6 +2604,7 @@ class GestioneFascicoli:
             raise
         return doc
 
+    @serialized_documents
     def sostituisci_documento(
         self,
         id_fasc: str,
@@ -2651,16 +2626,10 @@ class GestioneFascicoli:
         if not doc:
             raise KeyError(f"Documento '{id_doc}' non trovato nel fascicolo.")
 
-        if preserve_version_snapshot:
-            doc.versioni.append(DocumentoVersione(
-                hash_sha256=doc.hash_sha256,
-                percorso="" if reuse_existing_path else doc.percorso,
-                dimensione_bytes=doc.dimensione_bytes,
-                sostituito_il=datetime.now().isoformat(),
-                sostituito_da=caricato_da,
-            ))
-
-        # Salva nuovo file (path basato sul nuovo nome per evitare collisioni)
+        original_doc = copy.deepcopy(doc.__dict__)
+        original_pagamenti = copy.deepcopy(f.pagamenti)
+        original_modificato = f.modificato_il
+        # Risolve il medesimo percorso previsto dal flusso nativo.
         fasc_dir = self.documents_dir / id_fasc
         fasc_dir.mkdir(parents=True, exist_ok=True)
         if reuse_existing_path and doc.percorso:
@@ -2675,27 +2644,57 @@ class GestioneFascicoli:
                 stem, suffix = Path(nome_safe).stem, Path(nome_safe).suffix
                 nome_safe = f"{stem}_{uuid.uuid4().hex[:4]}{suffix}"
                 dest = fasc_dir / nome_safe
-        dest.write_bytes(contenuto)
+        # Il percorso compatto resta compatto: recupero in memoria, senza
+        # richiedere una seconda copia su disco al flusso di firma accettato.
+        existed = dest.exists()
+        previous_bytes = dest.read_bytes() if existed else None
+        try:
+            if preserve_version_snapshot:
+                doc.versioni.append(DocumentoVersione(
+                    hash_sha256=doc.hash_sha256,
+                    percorso="" if reuse_existing_path else doc.percorso,
+                    dimensione_bytes=doc.dimensione_bytes,
+                    sostituito_il=datetime.now().isoformat(),
+                    sostituito_da=caricato_da,
+                ))
 
-        if not (reuse_existing_path and doc.percorso):
-            doc.percorso = str(dest.relative_to(self.documents_dir))
-        doc.nome = nome_file
-        doc.dimensione_bytes = len(contenuto)
-        doc.hash_sha256 = hashlib.sha256(contenuto).hexdigest()
-        content_hash = str(hash_contenuto_sha256 or "").strip().lower()
-        doc.hash_contenuto_sha256 = content_hash if re.fullmatch(r"[0-9a-f]{64}", content_hash) else doc.hash_sha256
-        doc.caricato_da = caricato_da or doc.caricato_da
-        if note:
-            doc.note = note
-        doc.data_caricamento = datetime.now().isoformat()
+            dest.write_bytes(contenuto)
 
-        self._segna_analisi_fascicolo_da_rieseguire(
-            f,
-            reason="documento_sostituito",
-            document_id=doc.id,
-        )
-        f.modificato_il = datetime.now().isoformat()
-        self._salva()
+            if not (reuse_existing_path and doc.percorso):
+                doc.percorso = str(dest.relative_to(self.documents_dir))
+            doc.nome = nome_file
+            doc.dimensione_bytes = len(contenuto)
+            doc.hash_sha256 = hashlib.sha256(contenuto).hexdigest()
+            content_hash = str(hash_contenuto_sha256 or "").strip().lower()
+            doc.hash_contenuto_sha256 = content_hash if re.fullmatch(r"[0-9a-f]{64}", content_hash) else doc.hash_sha256
+            doc.caricato_da = caricato_da or doc.caricato_da
+            if note:
+                doc.note = note
+            doc.data_caricamento = datetime.now().isoformat()
+
+            self._segna_analisi_fascicolo_da_rieseguire(
+                f,
+                reason="documento_sostituito",
+                document_id=doc.id,
+            )
+            f.modificato_il = datetime.now().isoformat()
+            self._salva()
+        except Exception:
+            doc.__dict__.clear()
+            doc.__dict__.update(original_doc)
+            f.pagamenti = original_pagamenti
+            f.modificato_il = original_modificato
+            try:
+                if existed:
+                    dest.write_bytes(previous_bytes)
+                else:
+                    dest.unlink(missing_ok=True)
+            except OSError as recovery_error:
+                raise RuntimeError(
+                    'Salvataggio non confermato e ripristino del file non riuscito: '
+                    f'conservare la bozza e verificare il documento {id_doc}.'
+                ) from recovery_error
+            raise
         return doc
 
     @staticmethod
@@ -3076,6 +3075,7 @@ class GestioneFascicoli:
             raise
         return doc
 
+    @serialized_documents
     def elimina_documento_definitivamente(self, id_fasc: str, id_doc: str) -> None:
         """Cancella definitivamente un documento già spostato nel cestino."""
 
@@ -3221,6 +3221,7 @@ class GestioneFascicoli:
         self._salva_fascicoli_parziale([f])
         return f
 
+    @serialized_documents
     def rinomina_documento(self, id_fasc: str, id_doc: str, nome_file: str) -> Documento:
         if id_fasc not in self._fascicoli and self._studio_db is not None:
             # Un comando su un file non richiede l'archivio degli altri fascicoli.
@@ -3229,6 +3230,7 @@ class GestioneFascicoli:
                 loaded = self._row_to_fascicolo(row)
                 if loaded is not None and loaded.id == id_fasc:
                     self._fascicoli[id_fasc] = loaded
+                    self._ricorda_snapshot_sql(row, loaded)
         f = self._get_o_errore(id_fasc)
         doc = next((d for d in f.documenti if d.id == id_doc), None)
         if not doc:
@@ -3275,6 +3277,7 @@ class GestioneFascicoli:
             if self._studio_db is None:
                 self._salva()
             else:
+                confirmed_snapshot = {}
                 def persist_rename(conn, _fascicolo):
                     columns = ("documenti_json", "dati_json", "modificato_il")
                     row = conn.execute(
@@ -3312,9 +3315,17 @@ class GestioneFascicoli:
                     ).fetchone()
                     if updated is None:
                         raise ValueError("Fascicolo aggiornato durante la rinomina: nessuna modifica confermata.")
+                    from pct.fascicoli_sql_writer import encode_model
+                    confirmed_row = {**raw, 'documenti_json': json.dumps(documents, ensure_ascii=False),
+                                     'dati_json': json.dumps(metadata, ensure_ascii=False),
+                                     'modificato_il': f.modificato_il}
+                    stale = any(self._sql_rows[id_fasc].get(column) != raw[column] for column in columns)
+                    confirmed_snapshot.update(row=confirmed_row, encoded=encode_model(f), stale=stale)
                 # Transazione, retry e rollback del backend nativo; nessun full-replace,
                 # riallineamento di stati economici o riscrittura del mirror storico.
                 self._studio_db.salva_tabella("fascicoli", [f], persist_rename, delete_all=False)
+                if not confirmed_snapshot['stale']:
+                    self._ricorda_snapshot_sql({**self._sql_rows[id_fasc], **confirmed_snapshot['row']}, f)
         except Exception:
             doc.nome = old_nome
             doc.percorso = old_percorso
@@ -4134,6 +4145,7 @@ class GestioneFascicoli:
         for row in rows or []:
             letto = self._row_to_fascicolo(row)
             if letto is not None:
+                self._ricorda_snapshot_sql(row, letto)
                 return letto
         return None
 
@@ -4166,6 +4178,12 @@ class GestioneFascicoli:
             payload = fascicolo.to_dict()
             payload["documenti"] = documenti
             idratato = Fascicolo.from_dict(payload)
+            if fid in self._sql_rows and fid in self._sql_models:
+                self._sql_rows[fid]['documenti_json'] = grezzo
+                previous = _json.loads(self._sql_models[fid])
+                previous['documenti'] = idratato.to_dict()['documenti']
+                self._sql_models[fid] = _json.dumps(previous, sort_keys=True, separators=(',', ':'),
+                                                   ensure_ascii=False, allow_nan=False)
             # L'oggetto e' ora completo: il flag deve sparire, altrimenti
             # chi lo controlla continuerebbe a diffidare di dati buoni.
             return idratato

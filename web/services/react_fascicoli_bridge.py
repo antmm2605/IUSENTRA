@@ -7388,6 +7388,7 @@ def _form_fascicolo_payload(
     base = _item(fascicolo)
     base.update(
         {
+            "editRevision": _text(getattr(fascicolo, "revisione_modifica", "")),
             "object": _text(getattr(fascicolo, "oggetto", "")),
             "counterparty": _text(getattr(fascicolo, "controparte", "")),
             "counterpartyTaxCode": _text(getattr(fascicolo, "cf_controparte", "")),

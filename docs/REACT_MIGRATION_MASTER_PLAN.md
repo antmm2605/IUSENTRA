@@ -3244,3 +3244,8 @@ Ripristino deposito accettato consolidato in `2e1ea5912f`; successiva richiesta 
 ### 02/10/2026 — Consolidamento Controllo Studio 2.434.7
 
 Sorgenti server riallineati alla copia locale e verifiche mirate/visive sulla copia reale 8080. Registro esiti e discordanze SQL, apertura della singola PEC/termine e lettore interno; perimetro storico complessivo ancora aperto come descritto in artifacts/react-migration/controllo-studio-notifiche-20260930.md. Commit, CI e deploy seguono la procedura governata, senza certificazione preventiva.
+
+
+22/10/2026 — In verifica2.447.3: modifica fascicolo con revisione automatica e409preservando bozza, writerSQL puntuale e ripristino file. Stato e prove: artifacts/data-flow/fascicoli-sql-concorrenza-20261022.md. Nessuna dichiarazione di completamento offline o di accettazione reale prima delle prove8080/server.
+
+22/10/2026 — Accettazione reale candidata2.447.3 su8080: due schede,409senza perdita bozza,apertura confronto e nuovo salvataggio/riapertura; dati sintetici ripristinati. Finestra reale400/800pixel senza overflow, PDF2pagine modificato/salvato/riaperto conservando precedente. Rilascio remoto e pulizia ancora richiesti; replica completa disabilitata.

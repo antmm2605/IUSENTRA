@@ -1,4 +1,12 @@
 import { publishMutationRefresh } from './operationalRefresh'
+export class FormSubmitError extends Error {
+  readonly status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'FormSubmitError'
+    this.status = status
+  }
+}
 export type FormSubmitResult = {
   ok: boolean
   message?: string
@@ -40,7 +48,8 @@ function stringArray(value: unknown): string[] {
   return value.map((item) => String(item || '').trim()).filter(Boolean)
 }
 
-export async function submitFormJson(endpoint: string, formData: FormData): Promise<FormSubmitResult> {
+export async function submitFormJson(endpoint: string, formData: FormData,
+  options: { requireConfirmation?: boolean } = {}): Promise<FormSubmitResult> {
   const token = csrfToken()
   const response = await fetch(endpoint, {
     method: 'POST',
@@ -54,9 +63,16 @@ export async function submitFormJson(endpoint: string, formData: FormData): Prom
   })
   const contentType = response.headers.get('content-type') || ''
   const rawText = contentType.includes('application/json') ? '' : await response.text().catch(() => '')
-  const payload = contentType.includes('application/json')
-    ? await response.json().catch(() => ({})) as Partial<FormSubmitResult> & { errore?: string; error?: string; redirect_url?: string }
-    : {} as Partial<FormSubmitResult> & { errore?: string; error?: string; redirect_url?: string }
+  let payload: Partial<FormSubmitResult> & { errore?: string; error?: string; redirect_url?: string } = {}
+  if (contentType.includes('application/json')) {
+    let decoded: unknown
+    try { decoded = await response.json() }
+    catch { throw new FormSubmitError('Non è arrivata una conferma leggibile dal server. Verifica l’esito prima di ripetere l’operazione.', response.status) }
+    if (!decoded || typeof decoded !== 'object' || Array.isArray(decoded) || Object.keys(decoded).length === 0) {
+      throw new FormSubmitError('Il server non ha restituito una conferma leggibile. Verifica l’esito prima di ripetere l’operazione.', response.status)
+    }
+    payload = decoded as typeof payload
+  }
   const visibleText = rawText
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/<style[\s\S]*?<\/style>/gi, '')
@@ -78,7 +94,10 @@ export async function submitFormJson(endpoint: string, formData: FormData): Prom
     )
   }
   if (!response.ok || payload.ok === false) {
-    throw new Error(String(payload.message || payload.errore || payload.error || visibleText || 'Non ho potuto completare l\'operazione: controlla i campi richiesti e riprova.'))
+    throw new FormSubmitError(String(payload.message || payload.errore || payload.error || visibleText || 'Non ho potuto completare l\'operazione: controlla i campi richiesti e riprova.'), response.status)
+  }
+  if (options.requireConfirmation && payload.ok !== true) {
+    throw new FormSubmitError('La modifica non è stata confermata dal server. I dati inseriti restano nel modulo.', response.status)
   }
   const redirect = typeof payload.redirect === 'string'
     ? payload.redirect

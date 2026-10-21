@@ -583,6 +583,8 @@ class StudioDB:
         rows: list,
         inserter,
         delete_all: bool = True,
+        *,
+        before_commit=None,
     ) -> None:
         """
         Sostituisce atomicamente tutti i record di una tabella.
@@ -604,6 +606,10 @@ class StudioDB:
             Callable(conn, obj) che esegue la INSERT per un singolo record.
         delete_all:
             Se True (default) cancella tutto e reinserisce (full-replace).
+        before_commit:
+            Callback SQL opzionale nella stessa transazione, per registrare
+            mutazioni da sincronizzare. Può essere ritentata dopo un lock:
+            deve usare ID stabili e non produrre effetti esterni.
         """
         last_error: sqlite3.OperationalError | None = None
         for attempt in range(_SQLITE_WRITE_ATTEMPTS):
@@ -618,6 +624,8 @@ class StudioDB:
                     conn.execute(f"DELETE FROM {table}")
                 for row in rows:
                     inserter(conn, row)
+                if before_commit is not None:
+                    before_commit(conn)
                 conn.execute("COMMIT")
                 return
             except sqlite3.OperationalError as exc:

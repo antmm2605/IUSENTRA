@@ -81,6 +81,13 @@ def _fascicoli_repository(app) -> GestioneFascicoli:
         return app.extensions["core_runtime"]["get_fascicoli"]()
 
 
+def _fascicolo_edit_revision(client, case_id):
+    response = client.get(f"/api/v1/ui/fascicoli/{case_id}/modifica",
+                          headers={"X-API-Key": "react-test-key"})
+    assert response.status_code == 200
+    return response.get_json()["fascicolo"]["editRevision"]
+
+
 def _email_repository(app, key="EMAIL_CASELLA_DB"):
     """Prepara il catalogo SQL vuoto dello studio controllato e vi semina i dati.
 
@@ -9256,7 +9263,7 @@ def test_post_modifica_fascicolo_salva_avvocato_titolare_se_referente_vuoto(tmp_
         _login(client)
         response = client.post(
             f"/fascicoli/{fascicolo.id}/modifica",
-            data={
+            data={"base_revision": _fascicolo_edit_revision(client, fascicolo.id),
                 "titolo": "Monitorio aggiornato",
                 "tipo": TipoFascicolo.CIVILE.value,
                 "id_cliente": "",
@@ -10211,7 +10218,7 @@ def test_modifica_fascicolo_crea_controparte_inline_e_la_collega(tmp_path: Path)
         _login(client)
         response = client.post(
             f"/fascicoli/{fascicolo.id}/modifica",
-            data={
+            data={"base_revision": _fascicolo_edit_revision(client, fascicolo.id),
                 "titolo": "Bianchi c/ Beta",
                 "tipo": TipoFascicolo.CIVILE.value,
                 "controparte": "Beta Recuperi Srl",
@@ -10555,12 +10562,12 @@ def test_post_modifica_fascicolo_aggiunge_altre_controparti_senza_duplicare(tmp_
         _login(client)
         first = client.post(
             f"/fascicoli/{fascicolo.id}/modifica",
-            data={**base_form, "controparti_aggiuntive_json": json.dumps([comune])},
+            data={"base_revision": _fascicolo_edit_revision(client, fascicolo.id), **base_form, "controparti_aggiuntive_json": json.dumps([comune])},
             headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
         )
         second = client.post(
             f"/fascicoli/{fascicolo.id}/modifica",
-            data={
+            data={"base_revision": _fascicolo_edit_revision(client, fascicolo.id),
                 **base_form,
                 "controparte": "Comune di Milano",
                 "cf_controparte": "01199250158",

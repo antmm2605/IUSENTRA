@@ -9198,3 +9198,10 @@ Qualifica professionale, telefono, email studio e PEC selezionabili separatament
 Preparazione udienza collegata al repository SQL con adozione esplicita, backup, comandi persistenti, controllo della versione e conferma atomica dei seguiti in Agenda, Scadenziario e Fascicolo. Bozze conservate durante aggiornamenti concorrenti e risposte perse; scelta esplicita della versione e recupero del comando originale. Permessi distinti per lettura, preparazione ed esito. Il rinvio conserva il collegamento al fascicolo anche dopo eliminazione della sola preparazione; una data non viene più interpretata come numero di ruolo.
 
 Consolidati i sorgenti della biblioteca Codici e leggi recuperati dal server senza trasferire nuovi corpus in produzione. La ricerca del codice civile non seleziona la raccolta delle preleggi più recente dello stesso atto. Campagna fonti locale ed EmbeddingGemma300M invariati; flussi congelati preservati. Stato del rilascio e verifiche materiali nel rapporto Preparazione udienza SQL/live.
+
+
+### 2.447.3 — candidata22/10/2026
+
+- Protezione degli aggiornamenti concorrenti del fascicolo, con conservazione della bozza e delle fonti documentali.
+- Mirror storico aggiornato dalle sole righe SQL confermate, con ripresa delle consegne fallite.
+- Replica offline completa ancora in sviluppo e disabilitata.

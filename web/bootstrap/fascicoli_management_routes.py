@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import mimetypes
 import sqlite3
+from copy import copy
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
@@ -15,6 +16,7 @@ from flask import Flask, flash, jsonify, redirect, render_template, request, sen
 
 from pct.clienti import Recapiti
 from pct.fascicoli import StatoFascicolo, TipoFascicolo
+from pct.fascicoli_sql_writer import FascicoloConcurrentUpdate
 from pct.soggetti import RuoloSoggetto, TipoSoggetto, soggetto_coincide_con_cliente
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.fascicoli_management_runtime import build_quadro_fascicolo_context
@@ -254,11 +256,22 @@ def register_fascicoli_management_routes(
             flash("Fascicolo non trovato.", "warning")
             return redirect(url_for("lista_fascicoli"))
 
+        render_status = 200
         if request.method == "POST":
             form = request.form
             id_cliente = form.get("id_cliente", fascicolo.id_cliente).strip()
             nome_cliente = fascicolo.nome_cliente
             try:
+                expected_revision = str(form.get('base_revision') or '').strip()
+                actual_revision = str(getattr(fascicolo, 'revisione_modifica', '') or '')
+                if getattr(gf, '_studio_db', None) is not None and not expected_revision:
+                    raise FascicoloConcurrentUpdate(
+                        'La scheda deve essere aggiornata prima del salvataggio. La modifica non è stata salvata. '
+                        'I dati inseriti restano nel modulo: confrontali con una scheda aggiornata prima di riprovare.')
+                if expected_revision and expected_revision != actual_revision:
+                    raise FascicoloConcurrentUpdate(
+                        'Il fascicolo è cambiato rispetto alla scheda aperta. La modifica non è stata salvata. '
+                        'I dati inseriti restano nel modulo: confrontali con una scheda aggiornata prima di riprovare.')
                 if id_cliente:
                     cliente = gc.get(id_cliente)
                     if not cliente:
@@ -392,6 +405,24 @@ def register_fascicoli_management_routes(
                 if result is not None:
                     return result
                 return redirect(redirect_to)
+            except FascicoloConcurrentUpdate as exc:
+                app.logger.info('Conflitto modifica_fascicolo %s: %s', id_fasc, exc)
+                result = _form_result(str(exc), status=409)
+                if result is not None:
+                    return result
+                # La vista classica conserva la bozza soltanto nel rendering,
+                # senza mutare il repository o attribuire una revisione nuova.
+                from pct.fascicolo_edit_revision import EDIT_FIELDS
+                draft = copy(fascicolo)
+                for name in EDIT_FIELDS:
+                    if name in form and name != 'tipo':
+                        setattr(draft, name, form[name])
+                if form.get('tipo') in {item.value for item in TipoFascicolo}:
+                    draft.tipo = TipoFascicolo(form['tipo'])
+                draft.personalizzabile = form.get('personalizzabile') in {'1', 'true', 'on', 'si', 'sì'}
+                draft._edit_revision = expected_revision
+                fascicolo = draft
+                render_status = 409
             except (ValueError, KeyError) as exc:
                 app.logger.info("Validazione modifica_fascicolo %s non superata: %s", id_fasc, exc)
                 message = str(exc).strip() or "Dati fascicolo non validi."
@@ -413,6 +444,7 @@ def register_fascicoli_management_routes(
         return render_template(
             "fascicoli/form.html",
             fascicolo=fascicolo,
+            edit_conflict=render_status == 409,
             clienti=gc.tutti(stato=None),
             tipi=list(TipoFascicolo),
             stati=list(StatoFascicolo),
@@ -420,7 +452,7 @@ def register_fascicoli_management_routes(
             studio_avvocato_titolare=_avvocato_titolare_studio(),
             correction_context=fascicolo_form_correction_context(),
             oggi=date.today(),
-        )
+        ), render_status
 
     @app.route("/fascicoli/<id_fasc>/stato", methods=["POST"])
     def cambia_stato_fascicolo(id_fasc: str):

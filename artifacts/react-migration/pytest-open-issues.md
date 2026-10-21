@@ -3606,3 +3606,8 @@ per la ricerca esplicita e il contratto JSON dell'editor, verificando il testo H
 decodificato anziché confondere l'entità apostrofo con una perdita di contenuto.
 Resta da effettuare la prova definitiva della candidata, il commit/push, CI,
 deploy e pulizia. Gli altri incarichi generali rimangono aperti.
+
+
+22/10/2026 — Candidata2.447.3 aperta: confronto revisione modulo e SQL, protezione file/JSON. Due query di test PG con % letterale corrette usando parametri; nuova prova74casi positiva. Test legacy con registro tenant globale isolati dal processo di avvio generale, senza cambiare controlli prodotto. Mancano accettazione reale,rilascio e pulizia. Offline PC-online ancora disabilitato: trasporto,bootstrap,adattatori e collaudo integrale restano aperti.
+
+22/10/2026 — Harness supporto --mode code: setup.py protetto per solo commento versione e export privo di .git fisico. Non applicabile alla modifica prodotto autorizzata; non dichiarato positivo, checker invariato. Confermati invece guardrail di prodotto e accettazione8080descritti nel rapporto.

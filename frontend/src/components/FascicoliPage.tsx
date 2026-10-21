@@ -1,5 +1,5 @@
 import { ErrorState } from '../ui/ErrorState'
-import { Button as ActionButton } from '../ui/Button'
+import { Button as ActionButton, ButtonLink as ActionButtonLink } from '../ui/Button'
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { LoadingState } from '../ui/LoadingState'
 import { documentWorkPreview } from './documentWorkWindow'
@@ -178,7 +178,7 @@ import {
   codiceOggettoPstSource,
   findPraticaCollegata,
 } from '../data/praticheCollegateCatalog'
-import { csrfToken, redirectAfterSuccess, submitFormJson } from '../formSubmit'
+import { FormSubmitError, csrfToken, redirectAfterSuccess, submitFormJson } from '../formSubmit'
 import { formatDateInputIt, formatDateIt, formatDateTimeIt, formatEuroIt } from '../formatting'
 import { normaliseStudioRuntimeResult, type StudioRuntimeOffice, type StudioRuntimeResult } from '../studioModuleRuntime'
 import { CodiceOggettoPstSearch } from './CodiceOggettoPstSearch'
@@ -1555,6 +1555,7 @@ function JsonPostForm({
   encType,
   onDone,
   onError,
+  conflictHref,
 }: {
   action: string
   className?: string
@@ -1563,17 +1564,20 @@ function JsonPostForm({
   encType?: string
   onDone?: (message?: string) => void
   onError?: (message: string) => void
+  conflictHref?: string
 }) {
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  const [conflict, setConflict] = useState(false)
   useBusyActivity(busy, 'Operazione sul fascicolo in corso…')
   if (!action) return null
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setBusy(true)
     setMessage('Salvataggio in corso...')
+    setConflict(false)
     try {
-      const result = await submitFormJson(action, new FormData(event.currentTarget))
+      const result = await submitFormJson(action, new FormData(event.currentTarget), { requireConfirmation: Boolean(conflictHref) })
       const nextMessage = result.message || 'Operazione completata.'
       setMessage(nextMessage)
       if (onDone) {
@@ -1582,6 +1586,7 @@ function JsonPostForm({
         redirectAfterSuccess(result, redirectTo || window.location.href)
       }
     } catch (error) {
+      setConflict(error instanceof FormSubmitError && error.status === 409)
       const nextMessage = error instanceof Error ? error.message : 'Operazione non riuscita.'
       setMessage(nextMessage)
       onError?.(nextMessage)
@@ -1593,6 +1598,10 @@ function JsonPostForm({
     <form className={className} onSubmit={submit} encType={encType} data-busy={busy ? 'true' : undefined}>
       {children}
       {message ? <span className="iu-fas-inline-error" role="status">{message}</span> : null}
+      {conflict && conflictHref ? <div>
+        <p>La bozza resta qui. Apri i dati aggiornati in una nuova scheda per confrontarli.</p>
+        <ActionButtonLink href={conflictHref} target="_blank" rel="noopener noreferrer" tone="neutral">Apri scheda aggiornata</ActionButtonLink>
+      </div> : null}
     </form>
   )
 }
@@ -4875,7 +4884,8 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
       {loading ? <p className="iu-empty">Caricamento dati fascicolo...</p> : null}
       {data.correction?.active ? <section className="iu-fas-correction"><Badge tone="primary">Correzione</Badge><div><strong>{data.correction.title}</strong><span>{data.correction.help}</span></div></section> : null}
       {!loading ? <section className="iu-fas-form-layout">
-        <JsonPostForm key={`${mode}-${id || 'new'}-${data.generatedAt || getValue(data, 'id') || 'ready'}`} className="iu-fas-form" action={data.action || (mode === 'edit' && id ? `/fascicoli/${encodeURIComponent(id)}/modifica` : '/fascicoli/nuovo')} redirectTo={data.detailHref || data.backHref} encType="multipart/form-data">
+        <JsonPostForm key={`${mode}-${id || 'new'}-${data.generatedAt || getValue(data, 'id') || 'ready'}`} className="iu-fas-form" action={data.action || (mode === 'edit' && id ? `/fascicoli/${encodeURIComponent(id)}/modifica` : '/fascicoli/nuovo')} redirectTo={data.detailHref || data.backHref} conflictHref={mode === 'edit' && id ? `/fascicoli/${encodeURIComponent(id)}/modifica` : undefined} encType="multipart/form-data">
+          {mode === 'edit' ? <input type="hidden" name="base_revision" value={getValue(data, 'editRevision')}/> : null}
           {mode === 'new' ? <><input type="hidden" name="source_preventivo" value={data.query.source_preventivo || ''}/><input type="hidden" name="source_conferimento" value={data.query.source_conferimento || ''}/><input type="hidden" name="from_page" value={data.query.from_page || ''}/></> : null}
           <CollapsibleFormPanel title={labels.sections.datiGenerali} subtitle="Pratica, oggetto, stato e date principali" icon={<FolderOpen size={17}/>}>
             <div className="iu-fas-form-grid">

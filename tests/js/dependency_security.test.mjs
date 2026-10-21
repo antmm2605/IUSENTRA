@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
+import { execFileSync } from 'node:child_process';
 import test from 'node:test';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { probeMcpRedirect } from './support/mcp_redirect_probe.mjs';
 
 const frontendRequire = createRequire(new URL('../../frontend/package.json', import.meta.url));
@@ -13,6 +14,47 @@ const shadcnRequire = createRequire(frontendRequire.resolve('shadcn'));
 const globRequire = createRequire(shadcnRequire.resolve('fast-glob'));
 const matchRequire = createRequire(globRequire.resolve('micromatch'));
 const braces = matchRequire('braces');
+
+test('Storybook development preview rejects foreign origins and preserves local messages', () => {
+  const output = execFileSync(process.execPath,
+    [fileURLToPath(new URL('./support/storybook_origin_probe.mjs', import.meta.url))],
+    { encoding: 'utf8', timeout: 10000 });
+  const rows = JSON.parse(output.trim());
+  assert.equal(rows.length, 10);
+  for (const row of rows) {
+    const local = row.origin === 'http://localhost:6006' || row.origin === 'http://localhost:6007';
+    assert.equal(row.delivered, local ? 1 : 0, `${row.origin} / ${row.representation}`);
+  }
+});
+
+test('both workspace importers resolve patched and compatible Storybook package copies', () => {
+  const uiRequire = createRequire(new URL('../../packages/ui/package.json', import.meta.url));
+  const pending = [[frontendRequire, 'storybook'], [frontendRequire, '@storybook/addon-vitest'],
+    [frontendRequire, '@storybook/addon-a11y'], [frontendRequire, '@storybook/addon-docs'],
+    [frontendRequire, '@storybook/react-vite'], [uiRequire, '@storybook/react-vite']];
+  const visited = new Set();
+  while (pending.length) {
+    const [resolve, name] = pending.pop();
+    if (['@storybook/global', '@storybook/icons'].includes(name)) continue;
+    const source = resolve.resolve(`${name}/package.json`);
+    if (visited.has(source)) continue;
+    visited.add(source);
+    const metadata = resolve(`${name}/package.json`);
+    const version = /^10\.(\d+)\.(\d+)$/.exec(metadata.version);
+    assert.ok(version && (+version[1] > 6 || (+version[1] === 6 && +version[2] >= 2)),
+      `${name}@${metadata.version}: verify the advisory before changing the supported release line`);
+    const nested = createRequire(source);
+    for (const dependency of Object.keys({ ...metadata.dependencies, ...metadata.peerDependencies })) {
+      if (dependency === 'storybook' || dependency.startsWith('@storybook/')) {
+        if (metadata.peerDependenciesMeta?.[dependency]?.optional) {
+          try { nested.resolve(`${dependency}/package.json`); } catch { continue; }
+        }
+        pending.push([nested, dependency]);
+      }
+    }
+  }
+  assert.ok(visited.size >= 7, 'Inspect the reachable Storybook dependency family.');
+});
 
 test('Vite denies wasm-query reads outside fs.allow and inside fs.deny', async (t) => {
   const { createServer, normalizePath } = await import(pathToFileURL(frontendRequire.resolve('vite')));

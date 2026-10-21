@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sources": {
     "frontend/index.html": "620b11fb8cdc1ed85fa2c63e97f89d2f83c89bb386ccd114226144ec8f68acc0",
-    "frontend/package.json": "f1faa9c869ae65a4f9b19bc33a932587faf018b6e8dffa4659a5ca10c9155bfb",
+    "frontend/package.json": "0c4e32a9b0a3d204b1e0abcc2986108be699f26f4bdf38c3a266cdd55f5256b1",
     "frontend/src/App.tsx": "4fc0ea4c8512d3dd7f859303ca1bf7aa0b2a76ff7fe1f840b6805607729c2b8d",
     "frontend/src/accessoData.ts": "f03f0bb0b6bdf1d60e8feb21c6c954b341035b32085edaec23cb6ea2e6062830",
     "frontend/src/adminDatabaseData.ts": "8ea83a56d10c0237228cebc41e2901a5551514bca8c4e66f246acbe4a124b8fc",

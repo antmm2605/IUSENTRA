@@ -14,6 +14,31 @@ BASE = "https://servizipst.giustizia.it/PST/it/pagopa_nuovarich.wp"
 CAPTCHA = "do/consultazionepubblica/captcha/image"
 
 
+def test_bundle_pst_si_rinnova_quando_cambia_la_base_certifi(tmp_path, monkeypatch):
+    from web.blueprints import api_v1_react as routes
+
+    base = tmp_path / "certifi.pem"
+    extra = tmp_path / "intermedio.pem"
+    base.write_bytes(b"BASE PRECEDENTE\n")
+    extra.write_bytes(b"INTERMEDIO PST\n")
+    monkeypatch.setattr(routes.certifi, "where", lambda: str(base))
+    monkeypatch.setattr(routes, "PST_PAGOPA_EXTRA_CA_PATH", extra)
+    monkeypatch.setattr(routes.tempfile, "gettempdir", lambda: str(tmp_path))
+    routes._pst_pagopa_verify_bundle.cache_clear()
+    try:
+        precedente = routes.Path(routes._pst_pagopa_verify_bundle())
+        assert precedente.read_bytes() == b"BASE PRECEDENTE\n\nINTERMEDIO PST\n"
+        # Un nuovo processo perde la cache Python ma può ritrovare i file temporanei.
+        base.write_bytes(b"BASE AGGIORNATA\n")
+        routes._pst_pagopa_verify_bundle.cache_clear()
+        aggiornata = routes.Path(routes._pst_pagopa_verify_bundle())
+        assert aggiornata.read_bytes() == b"BASE AGGIORNATA\n\nINTERMEDIO PST\n"
+        assert aggiornata != precedente
+        assert precedente.read_bytes() == b"BASE PRECEDENTE\n\nINTERMEDIO PST\n"
+    finally:
+        routes._pst_pagopa_verify_bundle.cache_clear()
+
+
 def test_markup_ministeriale_preserva_src_vuoto_e_assegnazione_javascript():
     html = '''<img id="captchaImg" src="" alt="CAPTCHA" />
 <script>

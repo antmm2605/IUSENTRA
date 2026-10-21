@@ -1,3 +1,9 @@
+# 2.442.7 — Sicurezza certificati e immagini
+
+- Aggiornati certifi a 2026.10.19 e Pillow a 13.0.0 nel runtime Linux congelato.
+- Il bundle HTTPS del PST distingue anche la base certifi: una nuova base non riutilizza un file temporaneo con le vecchie radici, conservando l’intermedio ministeriale previsto.
+- Aggiunta regressione sul rinnovo del bundle e verificati TIFF, PNG a 16 bit, trasparenza, EXIF e miniature JPEG con le nuove librerie.
+
 # 2.442.6 — Aggiornamento di sicurezza Vite
 
 - Vite 8.2.4 in frontend, libreria UI, override e lockfile condiviso.

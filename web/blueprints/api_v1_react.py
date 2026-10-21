@@ -577,7 +577,7 @@ def _pst_pagopa_verify_bundle() -> str:
         return str(base_path)
     base = base_path.read_bytes()
     extra = extra_path.read_bytes()
-    digest = hashlib.sha256(extra).hexdigest()[:16]
+    digest = hashlib.sha256(base + b"\0" + extra).hexdigest()[:16]
     bundle_path = Path(tempfile.gettempdir()) / f"iusentra-pst-pagopa-ca-{digest}.pem"
     if not bundle_path.exists():
         bundle_path.write_bytes(base + b"\n" + extra)

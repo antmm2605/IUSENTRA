@@ -65,6 +65,52 @@ def test_gate_ok_restituisce_editor_url_e_scrive_editor():
     assert written["model_code"] == "CIV_CIT_001"
 
 
+def test_bozza_archiviata_come_docx_reale_con_stili():
+    from io import BytesIO
+    from types import SimpleNamespace
+    from zipfile import ZipFile
+
+    written = {}
+
+    class Repository:
+        def aggiungi_documento(self, case_id, filename, kind, content, **metadata):
+            written.update(filename=filename, content=content, metadata=metadata)
+            return SimpleNamespace(id="doc-word")
+
+    payload = _cit_payload()
+    result = create_editor_draft(
+        "CIV_CIT_001", payload, "fas-1", "utente-1",
+        rendered_text="Atto di citazione",
+        fascicoli_repo=Repository(), encrypt_func=lambda value: value,
+        editor_html_builder=lambda _: (
+            '<style>@page{margin:20mm}</style>'
+            '<p style="text-align:center"><strong>Atto di citazione</strong></p>'
+        ),
+        compliance_result=analyze_template_compliance("CIV_CIT_001", payload),
+    )
+
+    assert result.ok, result.errors
+    assert written["filename"].endswith(".docx")
+    with ZipFile(BytesIO(written["content"])) as archive:
+        body = archive.read("word/document.xml").decode("utf-8")
+        assert "Atto di citazione" in body
+        assert "@page" not in body
+        assert 'w:val="center"' in body
+        assert "<w:b" in body
+        assert b"doNotExpandShiftReturn" in archive.read("word/settings.xml")
+    assert written["metadata"]["fonte_documento"] == "TEMPLATE_ATTI_COMPILATORE"
+
+
+def test_word_conserva_richiesta_esplicita_di_espansione_ultima_riga():
+    from io import BytesIO
+    from zipfile import ZipFile
+    from pct.editor import html_to_docx
+
+    content = html_to_docx('<p style="text-align:justify;text-align-last:justify">Prima<br>Seconda</p>')
+    with ZipFile(BytesIO(content)) as archive:
+        assert b"doNotExpandShiftReturn" not in archive.read("word/settings.xml")
+
+
 def test_gate_block_impedisce_creazione_bozza_finale():
     written = {}
 

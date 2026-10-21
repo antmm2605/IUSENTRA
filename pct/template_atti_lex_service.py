@@ -743,7 +743,7 @@ def _safe_editor_filename(title: str, model_code: str) -> str:
     stem = re.sub(r"[^A-Za-z0-9._-]+", "_", clean_spaces(title).lower()).strip("._-")
     if not stem:
         stem = re.sub(r"[^A-Za-z0-9._-]+", "_", clean_spaces(model_code).lower()).strip("._-") or "atto"
-    return f"{stem[:70]}_{date.today().strftime('%Y%m%d')}.html"
+    return f"{stem[:70]}_{date.today().strftime('%Y%m%d')}.docx"
 
 
 def _to_editor_html(text: str) -> str:
@@ -927,11 +927,23 @@ def create_editor_draft(
     except Exception:
         pass
     try:
+        from pct.editor import html_to_docx
+        from lxml import html as document_html
+
+        # Usa lo stesso writer dell'editor: il file archiviato è un vero DOCX,
+        # con il layout e gli stili della bozza, non HTML con estensione Word.
+        fragment = document_html.fragment_fromstring(editor_html, create_parent="div")
+        # Le regole CSS di stampa non sono contenuto dell'atto. Gli stili dei
+        # singoli elementi restano invece disponibili al writer condiviso.
+        for technical in fragment.xpath(".//style | .//script"):
+            technical.drop_tree()
+        word_html = document_html.tostring(fragment, encoding="unicode")
+        document_bytes = html_to_docx(word_html, titolo=title)
         documento = fascicoli_repo.aggiungi_documento(
             case_id,
             filename,
             TipoDocumento.ATTO_GIUDIZIARIO,
-            encrypt_func(editor_html.encode("utf-8")),
+            encrypt_func(document_bytes),
             note=f"Bozza creata da Template Atti: {title}",
             tags=["template-atti", "bozza-editor", clean_spaces(model_code).lower()],
             caricato_da=clean_spaces(user_id),

@@ -688,6 +688,16 @@ def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None
     # Unicode reale conserva l'elenco anche nei convertitori locali.
     from docx.oxml.ns import qn
     from docx.oxml import OxmlElement
+    # CSS justify non espande le righe chiuse con <br>. Word lo fa per
+    # impostazione predefinita: conserva il comportamento visibile dell'editor,
+    # salvo che la fonte chieda espressamente l'espansione dell'ultima riga.
+    if not re.search(r"text-align-last\s*:\s*justify", html, re.I):
+        compat = doc.settings.element.find(qn("w:compat"))
+        if compat is None:
+            compat = OxmlElement("w:compat")
+            doc.settings.element.append(compat)
+        if compat.find(qn("w:doNotExpandShiftReturn")) is None:
+            compat.append(OxmlElement("w:doNotExpandShiftReturn"))
     for livello in doc.part.numbering_part.element.findall('.//' + qn('w:lvl')):
         formato = livello.find(qn('w:numFmt'))
         if formato is None:

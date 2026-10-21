@@ -1,3 +1,10 @@
+# 2.447.1 — Bozze Word native e recupero Lex verificato
+
+- Il compilatore archivia DOCX reali conservando stili e controlli normativi.
+- Le regole CSS di stampa restano fuori dal testo Word.
+- Esportazione Word/PDF coerente per le righe interrotte nei paragrafi giustificati.
+- Prove del recupero del runtime Lex dopo un errore, senza cambiare modello.
+
 # 2.447.0 — Lex v3 configurabile nel deploy
 
 - Modello e digest governati dalla configurazione di rilascio, verifica delle parti e dei blob, conservazione del modello precedente e prova reale di generazione dopo il deploy.

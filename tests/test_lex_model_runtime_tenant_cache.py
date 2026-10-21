@@ -6,6 +6,46 @@ from flask import Flask, g
 from lex.providers import local_ai_service, ollama_runtime
 
 
+def test_warmup_reports_failure_and_recovers_without_changing_selected_model(monkeypatch):
+    app = Flask(__name__)
+    selected = {'chat_model': 'iusentra-lex-v3:9b', 'keep_alive': '10m',
+                'api_base_url': 'http://127.0.0.1:11434/api', 'base_url': 'http://127.0.0.1:11434'}
+    monkeypatch.setattr(ollama_runtime, 'is_managed_cloud_runtime', lambda: False)
+    monkeypatch.setattr(ollama_runtime, 'refresh_live_ollama_runtime', lambda: dict(selected))
+    attempts = []
+
+    class Client:
+        def __init__(self, base):
+            assert base == selected['api_base_url']
+
+        def warmup_model(self, model, *, keep_alive):
+            attempts.append((model, keep_alive))
+            if len(attempts) == 1:
+                raise ConnectionError('Servizio temporaneamente non disponibile')
+            return {'load_duration': 120, 'prompt_eval_count': 0}
+
+    monkeypatch.setattr(ollama_runtime, 'OllamaHttpClient', Client)
+    with app.app_context():
+        app.extensions['ollama_runtime_resolution'] = {'obsolete': True}
+        failed = ollama_runtime.warm_ollama_chat_runtime(force_refresh=True)
+        assert failed['status'] == 'error'
+        assert 'temporaneamente' in failed['error']
+        assert failed['chat_model'] == selected['chat_model']
+        assert 'ollama_runtime_resolution' not in app.extensions
+        recovered = ollama_runtime.warm_ollama_chat_runtime()
+        assert recovered['status'] == 'ready'
+        assert recovered['chat_model'] == selected['chat_model']
+        assert recovered['load_duration'] == 120
+    assert attempts == [(selected['chat_model'], '10m')] * 2
+
+
+def test_warmup_without_selected_model_does_not_contact_service(monkeypatch):
+    monkeypatch.setattr(ollama_runtime, 'is_managed_cloud_runtime', lambda: False)
+    monkeypatch.setattr(ollama_runtime, 'refresh_live_ollama_runtime', lambda: {'chat_model': ''})
+    monkeypatch.setattr(ollama_runtime, 'OllamaHttpClient', lambda *_: pytest.fail('Nessun modello da avviare'))
+    assert ollama_runtime.warm_ollama_chat_runtime() == {'status': 'skipped', 'reason': 'missing_model'}
+
+
 def test_runtime_cache_does_not_reuse_model_from_another_tenant(monkeypatch):
     app = Flask(__name__)
     app.config.update(MULTI_TENANT=True, STUDIO_CONFIG='global.json', LOCAL_AI_DB='global.db')

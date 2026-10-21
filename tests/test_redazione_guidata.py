@@ -641,7 +641,15 @@ def test_nome_file_contiene_cliente_fascicolo_tipo_e_data(tmp_path):
         nome = str(editor_payload.get("document", {}).get("name", ""))
         assert "rossi_mario" in nome
         assert "atto_di_citazione" in nome
-        assert nome.endswith(".html")
+        assert nome.endswith(".docx")
+        # Verifica il formato reale scaricato, non soltanto l'estensione.
+        from io import BytesIO
+        from zipfile import ZipFile
+
+        downloaded = client.get(f"/fascicoli/{fascicolo.id}/documenti/{esito['documentId']}/scarica")
+        assert downloaded.status_code == 200
+        with ZipFile(BytesIO(downloaded.data)) as archive:
+            assert "Rossi Mario" in archive.read("word/document.xml").decode("utf-8")
 
 
 def _html_editor(response):

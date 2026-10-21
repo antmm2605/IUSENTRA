@@ -269,3 +269,21 @@ test('Hono static files cannot bypass prefix authentication through a malformed 
   assert.equal(authorized.status, 200);
   assert.equal(await authorized.text(), 'PRIVATE_FIXTURE');
 });
+
+test('Vitest manual mock generator treats the URL as data', async () => {
+  const { checkManualSource } = await import('./support/vitest_mocker_probe.mjs');
+  await checkManualSource();
+});
+
+test('Vitest redirect registration preserves the filesystem boundary on Windows', async () => {
+  const { checkRedirectBoundary } = await import('./support/vitest_mocker_probe.mjs');
+  const base = await mkdtemp(path.join(tmpdir(), 'iusentra-mocker-boundary-'));
+  const root = path.join(base, 'allowed');
+  try {
+    await mkdir(root);
+    await writeFile(path.join(root, 'allowed.txt'), 'ALLOWED_SYNTHETIC_CONTROL');
+    const outside = path.join(base, 'outside.txt');
+    await writeFile(outside, 'OUTSIDE_SYNTHETIC_CONTROL');
+    await checkRedirectBoundary(root, outside);
+  } finally { await rm(base, { recursive: true, force: true }); }
+});

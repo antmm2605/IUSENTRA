@@ -33,6 +33,9 @@ export function beginLocalSignerForegroundGrant(): LocalSignerForegroundGrant {
   const nonce = foregroundNonce()
   const link = document.createElement('a')
   link.href = `iusentra-local-signer://foreground?nonce=${encodeURIComponent(nonce)}`
+  // Il protocollo nativo non deve navigare il fascicolo o la sua finestra embedded.
+  link.target = '_blank'
+  link.rel = 'noopener noreferrer'
   link.hidden = true
   link.setAttribute('aria-hidden', 'true')
   document.body.appendChild(link)

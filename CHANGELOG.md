@@ -1,3 +1,8 @@
+# 2.445.1 — Consultazione del fascicolo in finestra
+
+- Il comando Windows di Local Signer si apre separatamente, preservando il fascicolo e la finestra di lavoro durante la consultazione PST.
+- Dichiarato il nuovo modulo Lex nel confronto della copertura, con gli stessi vincoli sulle regressioni.
+
 # 2.445.0 — Scadenze delle schede nella risposta Lex
 
 - Il percorso Lex dei template riutilizza i fatti SQL e il calcolatore condiviso: date, incertezza della fonte e provenienza restano esplicite, senza creare atti o modificare fonti.

@@ -2,7 +2,34 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { readFileSync } from 'node:fs'
 import { workWindowUrl } from '../../frontend/src/components/workWindowRoutes.ts'
+import { beginLocalSignerForegroundGrant } from '../../frontend/src/features/telematico/localSignerForeground.ts'
 const origin = 'https://app.iusentra.it'
+
+test('il comando nativo PST conserva la finestra del fascicolo anche quando è embedded', () => {
+ const originals = Object.fromEntries(['window', 'document', 'navigator'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
+ let clicked = false
+ let removed = false
+ const link = { setAttribute() {}, click() { clicked = true }, remove() { removed = true } }
+ try {
+  Object.defineProperty(globalThis, 'window', { configurable: true, value: {} })
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { userAgent: 'Windows', platform: 'Win32', userActivation: { isActive: true } } })
+  Object.defineProperty(globalThis, 'document', { configurable: true, value: { createElement(tag) { assert.equal(tag, 'a'); return link }, body: { appendChild(node) { assert.equal(node, link) } } } })
+  const grant = beginLocalSignerForegroundGrant()
+  assert.equal(grant.required, true)
+  assert.equal(grant.dispatched, true)
+  assert.match(grant.nonce, /^[a-f0-9]+$/)
+  assert.equal(link.href, `iusentra-local-signer://foreground?nonce=${grant.nonce}`)
+  assert.equal(link.target, '_blank', 'Il protocollo nativo non deve sostituire il documento della pratica')
+  assert.equal(link.rel, 'noopener noreferrer')
+  assert.equal(clicked, true)
+  assert.equal(removed, true)
+ } finally {
+  for (const [key, descriptor] of Object.entries(originals)) {
+   if (descriptor) Object.defineProperty(globalThis, key, descriptor)
+   else delete globalThis[key]
+  }
+ }
+})
 
 test('il dettaglio appena creato resta nella finestra di fatturazione con identità e sezione', () => {
  const url = workWindowUrl('/fatturazione?id_documento=controlled-invoice#incassi', origin)

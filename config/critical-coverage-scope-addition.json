@@ -1,9 +1,7 @@
 {
-  "baseline_sha": "41375ed64f1d79b2551f6096063ceed60f4df2dc",
-  "reason": "Interrogazioni consultive SQL per PEC, notificazioni e calendario: selettore deterministico, date italiane e cursori firmati. Il nuovo perimetro va misurato separatamente; restano bloccanti tutte le regressioni sul perimetro comune e sulle righe precedentemente coperte.",
+  "baseline_sha": "18e67b5f0910a43c0bf8b82235c264f34f63f783",
+  "reason": "Percorso dedicato dei template Lex: nuovo modulo misurato separatamente; regressioni e righe precedentemente coperte restano bloccanti.",
   "files": {
-    "lex/operational_knowledge/query_cursor.py": "e4d06eb1351ff7a6bcbd16d428f3904257ad0f4a5368cc20b2f97cefe2738bc3",
-    "lex/operational_knowledge/query_dates.py": "01d9843b821a6bf490801edb02e3e28f2889727f02bfae56a38a212dcb1fba8d",
-    "lex/operational_knowledge/query_selection.py": "7874528328f90d94dc5e665ecfd1f05013ade04b1ae4e4061d36fcc03565795c"
+    "lex/http_template_bridge.py": "d5eadb28abfe744b878d1573579db4a1ad35e75390f10a160a43bcedbda4d1ef"
   }
 }

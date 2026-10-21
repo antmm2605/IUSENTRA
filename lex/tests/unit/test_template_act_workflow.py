@@ -273,3 +273,21 @@ def test_template_lookup_decreto_ingiuntivo_non_crea_bozza():
     assert payload["lookup_only"] is True
     assert "CIV_RDI_001" in payload["answer"]
     assert payload["created_document"] == {}
+
+
+def test_template_http_command_preserva_contesto_e_confini(monkeypatch):
+    from lex import http_bounded_bridge
+    from lex.http_template_bridge import template_http_payload
+
+    calls = []
+    monkeypatch.setattr(http_bounded_bridge, "build_bounded_http_payload", lambda **kwargs: calls.append(kwargs) or {"ok": True})
+    base = dict(user=object(), studio=object(), question="Prepara una diffida", attachments=[])
+    data = {"active_context": {"model_code": "STR_DIFF_001", "case_id": "controlled"}}
+    assert template_http_payload(**base, data=data) == {"ok": True}
+    assert calls[0]["studio_context"]["active_context"] == data["active_context"]
+    assert calls[0]["attachments"] == []
+    assert len(calls) == 1
+    assert template_http_payload(**(base | {"attachments": ["controlled"]}), data=data) is None
+    assert template_http_payload(**(base | {"question": "Quali norme regolano una diffida?"}), data=data) is None
+    assert template_http_payload(**(base | {"question": "Prepara il caffè"}), data={}) is None
+    assert len(calls) == 1

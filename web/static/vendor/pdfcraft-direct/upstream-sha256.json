@@ -1,0 +1,25 @@
+{
+  "repository": "https://github.com/PDFCraftTool/pdfcraft",
+  "commit": "0503080d60a337e40cc9888a749890ff49ed6b11",
+  "files": {
+    "app.js": "a022ee2d542d1d64b332eb894347c2069937440a7e103b72c5f3a8c23ec04c1a",
+    "core.js": "157dd04f0c5b8db4d07a4ef05a657ff1f1cc73118fd87a930cede30bb76b8458",
+    "dock.js": "bc4054df892c58473fdf401683ec1df1382cb7b8d09c5cbcfd60b695a314426a",
+    "editcore.js": "8f7972892dbff399afa0e2bdf2268c2cd0010a0ca2eea3a1e2a6e32c7dfc6744",
+    "editcore.wasm": "1860f0b33a1c7d231b78fa9bfedace19739f06e80b1d5f654dd2ea77a7a893ce",
+    "engine-loader.js": "1a0c460c43e2e689edd27fba1f52666db993fd1e3ef97493c7d4ef5b78678544",
+    "index.html": "874dc2a71fac2ad96d42fb3e60a8835f6c3d1b71c421a5b6d865c7a8be5bd650",
+    "main.js": "7bd9a900a001ad6aa68f409a2081adfb3b457e253ae86c307f4ec8522c3d3838",
+    "shadingsurgery.js": "a2e0208e2bde031142b26cecb85c1fb389acebd7e78e33911e92097badaed751",
+    "streamsplice.js": "2bb02131be1a84e7c0cb55a62613642a0200b14567d6972238c028e35d1057ba",
+    "styles.css": "737b896dfa4a7c9bbb57118baab91da64ebee98bc6376abb8b2e7a6e7d7d8bfc",
+    "tagsurgery.js": "47226209702e7056ce622dc94d66f4c1877e261027785a1acab854e7e00ea48f",
+    "type3surgery.js": "059107cb2c911355673e50a0271511ed12d87605f048b0196e48d94bc8007180",
+    "phosphor/Phosphor.svg": "0c1a7fffebe8e17ef8b60b1c6127e158b0ab4f1a948cd4fa22847a16ceebe77a",
+    "phosphor/Phosphor.ttf": "06b91e022b7ee899a63efced879392a74f0bacbda54e4467e9f663220d173a10",
+    "phosphor/Phosphor.woff": "396c5eae7f2dfb4d1f5432edd87109eda2f92a451b2167e43a26165b82770f75",
+    "phosphor/Phosphor.woff2": "c2ea45ea05ff5c7df1936770c104725f2a68f43fd343f35f3da23a30b27de32a",
+    "phosphor/selection.json": "8c73cb8381734913bf3de45b0a2606527d9c96a3bddb2d3989b89d7aaeb090ce",
+    "phosphor/style.css": "df99a3d0dde587b14ba70c1586a9cef43d54b9a6cdc9d15ab6b988a1843b2ea7"
+  }
+}

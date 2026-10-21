@@ -1,3 +1,11 @@
+# 2.447.2 — Editor PDF locale (collaudo in corso)
+
+- Modifica nativa del PDF nel browser, con versioni, revisione concorrente e salvataggio idempotente nell’archivio SQL.
+- Componente isolato, asset locali e connessioni esterne escluse dalla sua policy.
+- Selezione dei caratteri del PC e catalogo locale con lettura dei soli caratteri scelti.
+- Informazioni tecniche raccolte in una sezione chiusa.
+- Accettazione completa, commit e deploy ancora da eseguire: vedere artifacts/data-flow/pdfcraft-locale-20261021.md.
+
 # 2.447.1 — Bozze Word native e recupero Lex verificato
 
 - Il compilatore archivia DOCX reali conservando stili e controlli normativi.

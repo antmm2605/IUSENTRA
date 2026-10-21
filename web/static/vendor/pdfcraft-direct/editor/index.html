@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>Editor PDF</title>
+    <link rel="stylesheet" href="./phosphor/style.css" />
+    <link rel="stylesheet" href="./styles.css" />
+    <style>
+      /* Ensure full viewport occupancy */
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background-color: var(--ecbg, #f8fafc);
+        font-family: var(--font-inter, 'Inter'), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      #text-editor-app {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      /* Custom modern subtle scrollbars */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.4);
+        border-radius: 999px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(148, 163, 184, 0.7);
+      }
+    </style>
+  </head>
+  <body class="antialiased">
+    <div id="text-editor-app">
+      <div id="toolbar">
+        <div class="tgroup">
+          <button
+            id="exitEditor"
+            class="btn icon"
+            title="Torna al lettore"
+            data-i18n-title="tools:editPdfText.tipBackToUpload"
+          >
+            <i class="ph ph-arrow-left"></i>
+          </button>
+          <label
+            class="btn"
+            for="file"
+            title="Apri un altro PDF"
+            data-i18n-title="tools:editPdfText.tipOpenAnotherPdf"
+          >
+            <i class="ph ph-folder-open"></i><span data-i18n="tools:editPdfText.open">Apri</span>
+          </label>
+          <input id="file" type="file" accept="application/pdf" hidden />
+          <button
+            id="save"
+            class="btn"
+            disabled
+            title="Salva nel fascicolo (Ctrl+S)"
+            data-i18n-title="tools:editPdfText.tipExportS"
+          >
+            <i class="ph ph-export"></i><span data-i18n="tools:editPdfText.export">Salva nel fascicolo</span>
+          </button>
+          <button
+            id="undo" aria-label="Annulla"
+            class="btn icon"
+            disabled
+            title="Annulla (Ctrl+Z)"
+            data-i18n-title="tools:editPdfText.tipUndoZ"
+          >
+            <i class="ph ph-arrow-u-up-left"></i>
+          </button>
+          <button
+            id="redo" aria-label="Ripeti"
+            class="btn icon"
+            disabled
+            title="Ripeti (Ctrl+Maiusc+Z)"
+            data-i18n-title="tools:editPdfText.tipRedoZ"
+          >
+            <i class="ph ph-arrow-u-up-right"></i>
+          </button>
+        </div>
+        <button
+          id="docName"
+          class="docname"
+          hidden
+          title="Dettagli del documento"
+          data-i18n-title="tools:editPdfText.tipFileDetails"
+        ></button>
+        <span class="sep"></span>
+        <div id="tools" class="segmented">
+          <button
+            data-tool="edit"
+            class="on"
+            title="Modifica contenuto esistente"
+            data-i18n-title="tools:editPdfText.tipEditExistingContent"
+          >
+            <i class="ph ph-pencil-simple"></i><span id="editLabel">Modifica tutto</span><i class="ph ph-caret-down editcaret"></i>
+          </button>
+          <select
+            id="editScope"
+            hidden
+            title="Scegli quali elementi modificare nella pagina"
+            data-i18n-title="tools:editPdfText.tipWhatTheEditToolTouchesNarrowTheScopeOnBus"
+          >
+            <option
+              value="all"
+              selected
+              data-i18n="tools:editPdfText.filterAll"
+            >Tutto</option>
+            <option value="text" data-i18n="tools:editPdfText.filterText">Testo</option>
+            <option value="image" data-i18n="tools:editPdfText.filterImages">Immagini</option>
+            <option value="shape" data-i18n="tools:editPdfText.filterShapes">Forme</option>
+          </select>
+          <button
+            data-tool="addText"
+            title="Fai clic sulla pagina per aggiungere una casella di testo"
+            data-i18n-title="tools:editPdfText.tipClickThePageToAddATextBox"
+          >
+            <i class="ph ph-textbox"></i><span data-i18n="tools:editPdfText.addText">Aggiungi testo</span>
+          </button>
+        </div>
+        <input id="imgFile" type="file" accept="image/*" hidden />
+        <div class="tgroup viewopts" hidden>
+          <label class="chk"
+            ><input id="spellchk" type="checkbox" />Ortografia</label>
+          <select
+            id="spellLang"
+            title="Lingua del controllo ortografico"
+            data-i18n-title="tools:editPdfText.tipSpellCheckLanguage"
+          >
+            <option value="" data-i18n="tools:editPdfText.langAuto">Automatico</option>
+            <option value="en">Inglese (Stati Uniti)</option>
+            <option value="en-GB">Inglese (Regno Unito)</option>
+            <option value="de">Tedesco</option>
+            <option value="fr">Francese</option>
+            <option value="es">Spagnolo</option>
+            <option value="it">Italiano</option>
+            <option value="pt">Portoghese</option>
+            <option value="ar">Arabo</option>
+            <option value="hi">Hindi</option>
+          </select>
+          <label class="chk"
+            ><input id="rulersChk" type="checkbox" />Righelli</label>
+        </div>
+        <span id="info" class="info"></span>
+        <div class="tgroup toolright">
+          <button
+            id="find"
+            class="btn icon"
+            title="Trova e sostituisci"
+            data-i18n-title="tools:editPdfText.tipFindAndReplace"
+          >
+            <i class="ph ph-magnifying-glass"></i>
+          </button>
+          <button
+            id="addImage"
+            class="btn icon"
+            title="Aggiungi immagine"
+            data-i18n-title="tools:editPdfText.tipAddAnImage"
+          >
+            <i class="ph ph-image"></i>
+          </button>
+          <button
+            id="copyText"
+            class="btn icon"
+            hidden
+            title="Copia il testo della pagina in ordine di lettura"
+            data-i18n-title="tools:editPdfText.tipCopyThisPageSTextInReadingOrder"
+          >
+            <i class="ph ph-clipboard-text"></i>
+          </button>
+          <button
+            id="spellPage"
+            class="btn icon"
+            hidden
+            title="Controlla l’ortografia della pagina"
+            data-i18n-title="tools:editPdfText.tipCheckTheSpellingOfThisPage"
+          >
+            <i class="ph ph-text-aa"></i>
+          </button>
+          <span class="sep"></span>
+          <button
+            id="toggleInspector"
+            class="btn icon"
+            title="Mostra o nascondi formato"
+            data-i18n-title="tools:editPdfText.tipShowOrHideTheFormatPanel"
+          >
+            <i class="ph ph-sidebar-simple"></i>
+          </button>
+        </div>
+      </div>
+
+      <div id="spellbar" hidden>
+        <i class="ph ph-text-aa barlead"></i>
+        <span id="spellWord" class="info"></span>
+        <input
+          id="spellFix"
+          placeholder="Sostituisci con"
+          data-i18n-placeholder="tools:editPdfText.phReplaceWith"
+        />
+        <button
+          id="spellChange"
+          class="btn"
+          data-i18n="tools:editPdfText.change"
+        >Correggi</button>
+        <button
+          id="spellIgnore"
+          class="btn"
+          data-i18n="tools:editPdfText.ignore"
+        >Ignora</button>
+        <button
+          id="spellAdd"
+          class="btn"
+          title="Aggiungi al dizionario personale"
+          data-i18n="common.add"
+          data-i18n-title="tools:editPdfText.tipAddToYourDictionary"
+        >Aggiungi</button>
+        <button id="spellNext" class="btn" data-i18n="tools:editPdfText.next">Successivo</button>
+        <span id="spellStatus" class="info"></span>
+        <button
+          id="spellDone"
+          class="btn icon"
+          title="Chiudi"
+          data-i18n-title="tools:editPdfText.tipClose"
+        >
+          <i class="ph ph-x"></i>
+        </button>
+      </div>
+
+      <div id="main">
+        <div id="findbar" hidden>
+          <div class="findhead">
+            <span class="findtitle"
+              ><i class="ph ph-magnifying-glass barlead"></i>Trova&amp;Sostituisci</span>
+            <button
+              id="findDone"
+              class="btn icon"
+              title="Chiudi"
+              data-i18n-title="tools:editPdfText.tipClose"
+            >
+              <i class="ph ph-x"></i>
+            </button>
+          </div>
+          <div class="findfield">
+            <input
+              id="findText"
+              placeholder="Trova"
+              data-i18n-placeholder="tools:editPdfText.phFind"
+            />
+            <button
+              id="findPrev"
+              class="btn icon"
+              title="Risultato precedente"
+              data-i18n-title="tools:editPdfText.tipPreviousMatch"
+            >
+              <i class="ph ph-caret-up"></i>
+            </button>
+            <button
+              id="findNext"
+              class="btn icon"
+              title="Risultato successivo"
+              data-i18n-title="tools:editPdfText.tipNextMatch"
+            >
+              <i class="ph ph-caret-down"></i>
+            </button>
+          </div>
+          <input
+            id="replText"
+            placeholder="Sostituisci con"
+            data-i18n-placeholder="tools:editPdfText.phReplaceWith"
+          />
+          <div class="findrow">
+            <button
+              id="replOne"
+              class="btn grow"
+              data-i18n="tools:editPdfText.replace"
+            >Sostituisci</button>
+            <button
+              id="replAll"
+              class="btn grow"
+              data-i18n="tools:editPdfText.replaceAll"
+            >Sostituisci tutto</button>
+          </div>
+          <label class="chk"
+            ><input id="caseSens" type="checkbox" />Distingui maiuscole</label>
+          <label class="chk"
+            ><input id="wholeWord" type="checkbox" />Parola intera</label>
+          <label class="chk"
+            ><input id="noAccents" type="checkbox" />Ignora accenti</label>
+          <span id="findStatus" class="findstatus"></span>
+        </div>
+        <div id="stage">
+          <div id="empty">
+            <h2 data-i18n="tools:editPdfText.name">Modifica PDF</h2>
+            <p data-i18n="tools:editPdfText.emptyState">Apri un PDF per modificarne testo, immagini e forme.</p>
+            <label
+              class="btn big"
+              for="file"
+              data-i18n="tools:editPdfText.choosePdf"
+              >Scegli un PDF…</label>
+            <p class="hint">L’elaborazione avviene sul PC. Nessun documento viene inviato a servizi esterni.</p>
+          </div>
+          <div id="pageWrap" hidden>
+            <canvas id="page"></canvas>
+            <div id="overlay"></div>
+          </div>
+        </div>
+        <div id="zoomHud" hidden></div>
+        <div id="contextbar">
+          <div class="tgroup">
+            <button
+              id="rotL"
+              class="btn icon objbtn"
+              hidden
+              title="Ruota a sinistra di 90°"
+              data-i18n-title="tools:editPdfText.tipRotateLeft90"
+            >
+              <i class="ph ph-arrow-counter-clockwise"></i>
+            </button>
+            <button
+              id="rotR"
+              class="btn icon objbtn"
+              hidden
+              title="Ruota a destra di 90°"
+              data-i18n-title="tools:editPdfText.tipRotateRight90"
+            >
+              <i class="ph ph-arrow-clockwise"></i>
+            </button>
+            <button
+              id="flipH"
+              class="btn icon objbtn"
+              hidden
+              title="Rifletti orizzontalmente"
+              data-i18n-title="tools:editPdfText.tipFlipHorizontal"
+            >
+              <i class="ph ph-flip-horizontal"></i>
+            </button>
+            <button
+              id="flipV"
+              class="btn icon objbtn"
+              hidden
+              title="Rifletti verticalmente"
+              data-i18n-title="tools:editPdfText.tipFlipVertical"
+            >
+              <i class="ph ph-flip-vertical"></i>
+            </button>
+            <span class="sep objsep" hidden></span>
+            <button
+              id="replImg"
+              class="btn icon objbtn"
+              hidden
+              title="Sostituisci l’immagine mantenendo la posizione"
+              data-i18n-title="tools:editPdfText.tipReplaceThisImageKeepingItsPlacement"
+            >
+              <i class="ph ph-image-square"></i>
+            </button>
+            <button
+              id="extEdit"
+              class="btn icon objbtn"
+              hidden
+              title="Salva l’immagine in PNG e modificala: le modifiche salvate vengono reimportate"
+            >
+              <i class="ph ph-arrow-square-out"></i>
+            </button>
+            <button
+              id="altText"
+              class="btn icon objbtn"
+              hidden
+              title="Testo alternativo per l’accessibilità del PDF"
+              data-i18n-title="tools:editPdfText.tipAlternateTextForAccessibilityTaggedPdfs"
+            >
+              <i class="ph ph-tag"></i>
+            </button>
+            <input id="replImgFile" type="file" accept="image/*" hidden />
+            <span class="sep objsep" hidden></span>
+            <button
+              id="front"
+              class="btn icon objbtn"
+              hidden
+              title="Porta in primo piano"
+              data-i18n-title="tools:editPdfText.tipBringToFront"
+            >
+              <i class="ph ph-arrow-line-up"></i>
+            </button>
+            <button
+              id="back"
+              class="btn icon objbtn"
+              hidden
+              title="Porta in secondo piano"
+              data-i18n-title="tools:editPdfText.tipSendToBack"
+            >
+              <i class="ph ph-arrow-line-down"></i>
+            </button>
+            <button
+              id="dupe"
+              class="btn icon objbtn"
+              hidden
+              title="Duplica"
+              data-i18n-title="tools:editPdfText.tipDuplicate"
+            >
+              <i class="ph ph-copy"></i>
+            </button>
+            <button
+              id="del"
+              class="btn icon objbtn"
+              hidden
+              title="Elimina"
+              data-i18n-title="tools:editPdfText.tipDelete"
+            >
+              <i class="ph ph-trash"></i>
+            </button>
+          </div>
+          <div id="alignTools" class="segmented" hidden>
+            <button
+              data-al="left"
+              title="Allinea i bordi sinistri"
+              data-i18n-title="tools:editPdfText.tipAlignLeftEdges"
+            >
+              <i class="ph ph-align-left"></i>
+            </button>
+            <button
+              data-al="hcenter"
+              title="Allinea i centri orizzontali"
+              data-i18n-title="tools:editPdfText.tipAlignHorizontalCenters"
+            >
+              <i class="ph ph-align-center-horizontal"></i>
+            </button>
+            <button
+              data-al="right"
+              title="Allinea i bordi destri"
+              data-i18n-title="tools:editPdfText.tipAlignRightEdges"
+            >
+              <i class="ph ph-align-right"></i>
+            </button>
+            <button
+              data-al="top"
+              title="Allinea in alto"
+              data-i18n-title="tools:editPdfText.tipAlignTops"
+            >
+              <i class="ph ph-align-top"></i>
+            </button>
+            <button
+              data-al="vcenter"
+              title="Allinea i centri verticali"
+              data-i18n-title="tools:editPdfText.tipAlignVerticalCenters"
+            >
+              <i class="ph ph-align-center-vertical"></i>
+            </button>
+            <button
+              data-al="bottom"
+              title="Allinea in basso"
+              data-i18n-title="tools:editPdfText.tipAlignBottoms"
+            >
+              <i class="ph ph-align-bottom"></i>
+            </button>
+            <button
+              data-al="disth"
+              title="Distribuisci orizzontalmente"
+              data-i18n-title="tools:editPdfText.tipDistributeHorizontally"
+            >
+              <i class="ph ph-columns"></i>
+            </button>
+            <button
+              data-al="distv"
+              title="Distribuisci verticalmente"
+              data-i18n-title="tools:editPdfText.tipDistributeVertically"
+            >
+              <i class="ph ph-rows"></i>
+            </button>
+          </div>
+        </div>
+
+        <aside id="inspector" hidden>
+          <h2><i class="ph ph-sliders-horizontal"></i>Formato</h2>
+          <h3 class="sect" data-i18n="tools:editPdfText.font">Carattere</h3>
+          <div class="row">
+            <select id="fFamily"></select>
+            <input
+              id="fSize"
+              type="number"
+              min="1"
+              max="400"
+              step="1"
+              class="num"
+              title="Dimensione carattere"
+              data-i18n-title="tools:editPdfText.tipFontSize"
+            />
+          </div>
+          <div class="row">
+            <button
+              id="sysFonts"
+              class="btn grow"
+              title="Scegli file TTF o OTF dal PC: restano nel browser"
+              data-i18n-title="tools:editPdfText.tipListFontsInstalledOnThisDeviceChromium"
+            >
+              <i class="ph ph-download-simple"></i><span data-i18n="tools:editPdfText.systemFonts"
+                >Carica caratteri dal PC</span>
+            </button>
+          </div>
+          <h3 class="sect" data-i18n="tools:editPdfText.color">Colore</h3>
+          <div class="row swatchrow">
+            <div class="swatches" id="fSwatches"></div>
+            <input
+              id="fColor"
+              type="color"
+              value="#000000"
+              title="Colore testo personalizzato"
+              data-i18n-title="tools:editPdfText.tipCustomTextColor"
+            />
+          </div>
+          <h3 class="sect" data-i18n="tools:editPdfText.alignment">Allineamento</h3>
+          <div class="row">
+            <div class="segmented small grow" id="fAlign">
+              <button
+                data-a="0"
+                title="Allinea a sinistra"
+                data-i18n-title="tools:editPdfText.tipAlignLeft"
+              >
+                <i class="ph ph-text-align-left"></i>
+              </button>
+              <button
+                data-a="1"
+                title="Allinea al centro"
+                data-i18n-title="tools:editPdfText.tipAlignCenter"
+              >
+                <i class="ph ph-text-align-center"></i>
+              </button>
+              <button
+                data-a="2"
+                title="Allinea a destra"
+                data-i18n-title="tools:editPdfText.tipAlignRight"
+              >
+                <i class="ph ph-text-align-right"></i>
+              </button>
+              <button
+                data-a="3"
+                title="Giustifica"
+                data-i18n-title="tools:editPdfText.tipJustify"
+              >
+                <i class="ph ph-text-align-justify"></i>
+              </button>
+            </div>
+          </div>
+          <h3 class="sect" data-i18n="tools:editPdfText.style">Stile</h3>
+          <div class="row toggles" id="fToggles">
+            <button
+              data-t="bold"
+              title="Grassetto"
+              data-i18n-title="tools:editPdfText.tipBold"
+            >
+              <i class="ph ph-text-b"></i>
+            </button>
+            <button
+              data-t="italic"
+              title="Corsivo"
+              data-i18n-title="tools:editPdfText.tipItalic"
+            >
+              <i class="ph ph-text-italic"></i>
+            </button>
+            <button
+              data-t="underline"
+              title="Sottolineato"
+              data-i18n-title="tools:editPdfText.tipUnderline"
+            >
+              <i class="ph ph-text-underline"></i>
+            </button>
+            <button
+              data-t="strike"
+              title="Barrato"
+              data-i18n-title="tools:editPdfText.tipStrikethrough"
+            >
+              <i class="ph ph-text-strikethrough"></i>
+            </button>
+            <button
+              data-t="sup"
+              title="Apice"
+              data-i18n-title="tools:editPdfText.tipSuperscript"
+            >
+              <i class="ph ph-text-superscript"></i>
+            </button>
+            <button
+              data-t="sub"
+              title="Pedice"
+              data-i18n-title="tools:editPdfText.tipSubscript"
+            >
+              <i class="ph ph-text-subscript"></i>
+            </button>
+          </div>
+          <h3 class="sect" data-i18n="tools:editPdfText.lists">Elenchi</h3>
+          <div class="row">
+            <div class="segmented small" id="fList">
+              <button
+                data-l="bullet"
+                title="Elenco puntato"
+                data-i18n-title="tools:editPdfText.tipToggleBulletedItem"
+              >
+                <i class="ph ph-list-bullets"></i>
+              </button>
+              <button
+                data-l="number"
+                title="Elenco numerato"
+                data-i18n-title="tools:editPdfText.tipToggleNumberedItem"
+              >
+                <i class="ph ph-list-numbers"></i>
+              </button>
+            </div>
+            <select
+              id="fMarkerStyle"
+              title="Stile numerazione"
+              data-i18n-title="tools:editPdfText.tipNumberedListMarkerStyle"
+            >
+              <option value="1">1. 2. 3.</option>
+              <option value="a">a. b. c.</option>
+              <option value="A">A. B. C.</option>
+              <option value="i">i. ii. iii.</option>
+              <option value="I">I. II. III.</option>
+            </select>
+            <div class="segmented small" id="fLevel">
+              <button
+                data-lv="-1"
+                title="Riduci rientro elenco (Maiusc+Tab)"
+                data-i18n-title="tools:editPdfText.tipDecreaseListIndentTab"
+              >
+                <i class="ph ph-text-outdent"></i>
+              </button>
+              <button
+                data-lv="1"
+                title="Aumenta rientro elenco (Tab)"
+                data-i18n-title="tools:editPdfText.tipIncreaseListIndentTab"
+              >
+                <i class="ph ph-text-indent"></i>
+              </button>
+            </div>
+          </div>
+          <h3 class="sect" data-i18n="tools:editPdfText.outline">Contorno</h3>
+          <div class="row">
+            <input
+              id="fStrokeColor"
+              type="color"
+              value="#000000"
+              title="Colore contorno testo"
+              data-i18n-title="tools:editPdfText.tipTextOutlineColor"
+            />
+            <input
+              id="fStrokeW"
+              type="number"
+              min="0"
+              max="20"
+              step="0.1"
+              class="num"
+              title="Spessore contorno (0 = nessuno)"
+              data-i18n-title="tools:editPdfText.tipOutlineWidth0None"
+            />
+          </div>
+          <h3 class="sect" data-i18n="tools:editPdfText.spacing">Spaziatura</h3>
+          <label class="field"
+            >Interlinea<input
+              id="fLine"
+              type="number"
+              min="0.6"
+              max="4"
+              step="0.05"
+              class="num"
+          /></label>
+          <label class="field"
+            >Spaziatura paragrafi<input
+              id="fPara"
+              type="number"
+              min="0"
+              max="200"
+              step="1"
+              class="num"
+          /></label>
+          <label class="field"
+            >Spaziatura caratteri<input
+              id="fChar"
+              type="number"
+              min="-3"
+              max="30"
+              step="0.1"
+              class="num"
+          /></label>
+          <label class="field"
+            >Spaziatura parole<input
+              id="fWordSp"
+              type="number"
+              min="-10"
+              max="100"
+              step="0.5"
+              class="num"
+          /></label>
+          <label class="field"
+            >Scala orizzontale %<input
+              id="fHScale"
+              type="number"
+              min="10"
+              max="400"
+              step="1"
+              class="num"
+          /></label>
+          <label class="field"
+            >Rientro prima riga<input
+              id="fFirstInd"
+              type="number"
+              min="0"
+              max="300"
+              step="1"
+              class="num"
+          /></label>
+          <label class="field"
+            >Rientro sporgente<input
+              id="fHangInd"
+              type="number"
+              min="0"
+              max="300"
+              step="1"
+              class="num"
+          /></label>
+          <h3 class="sect" data-i18n="tools:editPdfText.direction">Direzione</h3>
+          <div class="row">
+            <div class="segmented small grow" id="fDir">
+              <button
+                data-d="0"
+                title="Dal contenuto"
+                data-i18n="tools:editPdfText.dirAuto"
+                data-i18n-title="tools:editPdfText.tipFromContent"
+              >Automatico</button>
+              <button
+                data-d="1"
+                title="Da sinistra a destra"
+                data-i18n-title="tools:editPdfText.tipLeftToRight"
+              >Sinistra → destra</button>
+              <button
+                data-d="2"
+                title="Da destra a sinistra"
+                data-i18n-title="tools:editPdfText.tipRightToLeft"
+              >Destra → sinistra</button>
+            </div>
+          </div>
+          <div class="row" id="pStrokeRow" hidden>
+            <span class="chk" data-i18n="tools:editPdfText.pathStroke"
+              >Contorno della forma</span>
+            <input
+              id="pStrokeColor"
+              type="color"
+              value="#000000"
+              title="Colore contorno"
+              data-i18n-title="tools:editPdfText.tipStrokeColor"
+            />
+            <input
+              id="pStrokeW"
+              type="number"
+              min="0"
+              max="40"
+              step="0.5"
+              class="num"
+              title="Spessore contorno"
+              data-i18n-title="tools:editPdfText.tipStrokeWidth"
+            />
+          </div>
+        </aside>
+      </div>
+
+      <div id="viewbar">
+        <div class="vbzoom">
+          <button
+            id="zoomMenuBtn"
+            class="btn vbzoomlabel"
+            title="Livelli di zoom"
+            data-i18n-title="tools:editPdfText.tipZoomPresets"
+          >
+            <span id="zoomLabel" class="label">100%</span><i class="ph ph-caret-down editcaret"></i>
+          </button>
+          <button
+            id="zoomOut"
+            class="btn icon"
+            title="Riduci"
+            data-i18n-title="tools:editPdfText.tipZoomOut"
+          >
+            <i class="ph ph-minus-circle"></i>
+          </button>
+          <button
+            id="zoomIn"
+            class="btn icon"
+            title="Ingrandisci"
+            data-i18n-title="tools:editPdfText.tipZoomIn"
+          >
+            <i class="ph ph-plus-circle"></i>
+          </button>
+          <button
+            id="zoomFit"
+            class="btn icon"
+            title="Adatta alla larghezza"
+            data-i18n-title="tools:editPdfText.tipFitPage"
+          >
+            <i class="ph ph-frame-corners"></i>
+          </button>
+        </div>
+        <div class="vbcenter">
+          <button
+            id="prev"
+            class="btn icon"
+            title="Pagina precedente"
+            data-i18n-title="tools:editPdfText.tipPreviousPage"
+          >
+            <i class="ph ph-caret-left"></i>
+          </button>
+          <span id="pageLabel" class="label">0 / 0</span>
+          <input
+            id="pageInput"
+            class="pagebox"
+            type="number"
+            min="1"
+            step="1"
+            title="Inserisci pagina e premi Invio"
+            data-i18n-title="tools:editPdfText.tipTypeAPageNumberAndPressEnter"
+          />
+          <span id="pageTotal" class="label pagetotal">/ 0</span>
+          <button
+            id="next"
+            class="btn icon"
+            title="Pagina successiva"
+            data-i18n-title="tools:editPdfText.tipNextPage"
+          >
+            <i class="ph ph-caret-right"></i>
+          </button>
+        </div>
+        <div class="vbright">
+          <button
+            id="docInfoBtn"
+            class="btn icon"
+            title="Proprietà documento"
+            data-i18n-title="tools:editPdfText.tipDocumentProperties"
+          >
+            <i class="ph ph-info"></i>
+          </button>
+          <button
+            id="vbCollapse"
+            class="btn icon"
+            title="Nascondi barra"
+            data-i18n-title="tools:editPdfText.tipHideBar"
+          >
+            <i class="ph ph-caret-double-down"></i>
+          </button>
+        </div>
+      </div>
+      <button
+        id="vbRestore"
+        class="btn icon"
+        hidden
+        title="Mostra barra"
+        data-i18n-title="tools:editPdfText.tipShowBar"
+      >
+        <i class="ph ph-caret-double-up"></i>
+      </button>
+
+      <div id="toast" hidden></div>
+    </div>
+
+    <div
+      id="loader-modal"
+      class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+      style="background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(4px);"
+    >
+      <div
+        class="p-6 rounded-2xl flex flex-col items-center gap-4 shadow-xl"
+        style="background: var(--ecpanel, #fff); border: 1px solid var(--ecline, #e2e8f0); color: var(--ectext, #0f172a);"
+      >
+        <div class="solid-spinner"></div>
+        <p
+          id="loader-text"
+          class="text-base font-semibold"
+          style="color: var(--ectext, #0f172a);"
+          data-i18n="loader.processing"
+        >
+          Elaborazione…
+        </p>
+      </div>
+    </div>
+
+    <div
+      id="alert-modal"
+      class="fixed inset-0 flex items-center justify-center z-50 hidden"
+      style="background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(4px);"
+    >
+      <div
+        class="rounded-2xl shadow-xl p-6 max-w-sm w-full"
+        style="background: var(--ecpanel, #fff); border: 1px solid var(--ecline, #e2e8f0); color: var(--ectext, #0f172a);"
+      >
+        <h3
+          id="alert-title"
+          class="text-lg font-bold mb-2"
+          style="color: var(--ectext, #0f172a);"
+          data-i18n="alert.title"
+        >Avviso</h3>
+        <p id="alert-message" class="mb-6 text-sm" style="color: var(--ecmuted, #64748b);"></p>
+        <button
+          id="alert-ok"
+          class="btn grow w-full"
+          style="background: var(--ecaccent, #2563eb); color: #fff; font-weight: 600; border: none; height: 36px; border-radius: 8px;"
+          data-i18n="alert.ok"
+        >
+          OK
+        </button>
+      </div>
+    </div>
+
+    
+    <script type="module" src="./main.js"></script>
+    <script type="module" src="./host-adapter.js"></script>
+  </body>
+</html>

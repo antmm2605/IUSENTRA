@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent, type RefObject } from 'react'
-import { Pencil, Save, Undo2, Redo2, ZoomIn, ZoomOut, Signature, TextCursorInput, RefreshCw, FormInput } from 'lucide-react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type PointerEvent, type RefObject } from 'react'
+import { Pencil, FilePenLine, Save, Undo2, Redo2, ZoomIn, ZoomOut, Signature, TextCursorInput, RefreshCw, FormInput } from 'lucide-react'
 import { PdfModulo } from './mediazione/PdfModulo'
 import { ReaderInlineControls } from './ReaderInlineControls'
 import { SourceDocumentModal, SourceDocumentReader, type SourceDocument } from './SourceDocumentModal'
@@ -16,11 +16,17 @@ import { ViewerImageTools } from './ViewerImageTools'
 import { ViewerHandwrittenSignaturePanel } from './ViewerHandwrittenSignaturePanel'
 import { ViewerCanvasObjects } from './ViewerCanvasObjects'
 import { useBusyActivity } from '../ui/useBusyActivity'
+import { LoadingState } from '../ui/LoadingState'
+
+const NativePdfEditor = lazy(() => import('./NativePdfEditor'))
 type TextSpan = { id: number; text: string; x: number; y: number; width: number; height: number }
 
 export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation = 0, readerRef, compactReader = true }: { source: SourceDocument; onDirty: (value: boolean) => void; onSaving?: (value: boolean) => void; readerRotation?: number; readerRef?: RefObject<HTMLIFrameElement | null>; compactReader?: boolean }) {
   const endpoint = editorEndpoint(source.href)
   const [policy, setPolicy] = useState<Policy | null>(null)
+  const [nativeOpen, setNativeOpen] = useState(false)
+  const [nativeDirty, setNativeDirty] = useState(false)
+  const [nativeSaving, setNativeSaving] = useState(false)
   const [policyRequest, setPolicyRequest] = useState(0)
   const [open, setOpen] = useState(false)
   const [signatureOpen, setSignatureOpen] = useState(false)
@@ -82,15 +88,15 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
     })
     return () => controller.abort()
   }, [endpoint, policyRequest])
-  useEffect(() => { onDirty(Boolean(marks.length || saving || formDirty)) }, [marks.length, saving, formDirty, onDirty])
-  useEffect(() => { onSaving?.(saving) }, [saving, onSaving])
+  useEffect(() => { onDirty(Boolean(marks.length || saving || formDirty || nativeDirty)) }, [marks.length, saving, formDirty, nativeDirty, onDirty])
+  useEffect(() => { onSaving?.(saving || nativeSaving) }, [saving, nativeSaving, onSaving])
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {
-      if (marks.length || saving || formDirty) { event.preventDefault(); event.returnValue = '' }
+      if (marks.length || saving || formDirty || nativeDirty || nativeSaving) { event.preventDefault(); event.returnValue = '' }
     }
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
-  }, [marks.length, saving, formDirty])
+  }, [marks.length, saving, formDirty, nativeDirty, nativeSaving])
   useEffect(() => {
     if (!open || !policy?.editable || pages.length) return
     const controller = new AbortController()
@@ -214,6 +220,12 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
   }
   const readerUrl = new URL(source.href, window.location.origin)
   if (revision) readerUrl.searchParams.set('iuRevision', String(revision))
+  if (nativeOpen && endpoint && policy?.studio) return <Suspense fallback={<LoadingState title="Apertura editor PDF" />}>
+    <NativePdfEditor endpoint={endpoint.replace(/\/editor-visualizzatore$/, '/pdf-diretto')}
+      filename={source.label} expectedHash={policy.hash} onDirty={setNativeDirty} onSaving={setNativeSaving}
+      onSaved={() => { setRevision(value => value + 1); setPolicyRequest(value => value + 1) }}
+      onClose={() => { setNativeOpen(false); setNativeDirty(false); setNativeSaving(false) }} />
+  </Suspense>
   return <ViewerColorSampling.Provider value={sampler}><div className="iu-viewer-edit" onContextMenu={(event)=>{event.stopPropagation();if(open)event.preventDefault()}} onKeyDown={event=>{if(event.key==='Escape'&&sampler.active){event.preventDefault();event.stopPropagation();sampler.cancel()}else if(event.key==='Escape'&&armed){event.preventDefault();event.stopPropagation();setArmed(false);setDraft(null);drag.current=null}}}>
     {endpoint && !(compactReader && !policy?.editable && policy?.reason === 'Questo formato resta consultabile nel lettore e scaricabile.' && !error) ? <div className="iu-viewer-edit__bar">
       {policy?.editable ? <button type="button" title={open ? "Chiudi strumenti di modifica" : policy.studio ? "Modifica documento" : "Prepara copia per condivisione"} aria-label={open ? "Chiudi strumenti di modifica" : policy.studio ? "Modifica documento" : "Prepara copia per condivisione"} aria-expanded={open} aria-controls="iu-viewer-edit-workbench" onClick={() => {sampler.cancel();setArmed(false);setOpen((value) => !value)}} disabled={saving || formDirty}><Pencil size={16} aria-hidden="true"/></button>
@@ -221,6 +233,7 @@ export function ViewerDocumentEditor({ source, onDirty, onSaving, readerRotation
       {!policy && error ? <button type="button" title="Riprova caricamento" aria-label="Riprova caricamento" onClick={() => { setError(''); setPolicyRequest(value => value + 1); setRevision(value => value + 1) }}><RefreshCw size={16} aria-hidden="true"/></button> : null}
       {marks.length ? <span role="status">{marks.length} {marks.length === 1 ? 'intervento da salvare' : 'interventi da salvare'}</span> : null}
       {policy?.editable ? <><button type="button" disabled={saving || formDirty} title="Firma grafica" aria-label="Firma grafica" aria-expanded={signatureOpen} onClick={() => {sampler.cancel();setArmed(false);setSignatureOpenRequest(value => value + 1);setSignatureOpen(true)}}><Signature size={16} aria-hidden="true"/></button><button type="button" disabled={saving || formDirty || !policy.studio} aria-label="Modifica testo" title={policy.studio ? 'Seleziona la riga da modificare nel documento' : 'La modifica del testo è riservata ai PDF prodotti dallo studio e non firmati.'} onClick={() => {sampler.cancel();setSelectedInsertion(null);setSelected(null);setDraft(null);setTool('replace');setOpen(true);setArmed(true)}}><TextCursorInput size={16} aria-hidden="true"/></button>{!policy.studio ? <span className="iu-viewer-edit__protection" title="Testo protetto: PDF firmato, acquisito da fonte esterna o senza provenienza dello studio verificata.">Testo protetto</span> : null}</> : null}
+      {policy?.studio ? <button type="button" disabled={saving || formDirty || Boolean(marks.length)} title="Modifica testo, immagini e forme del PDF" aria-label="Editor PDF" onClick={() => {sampler.cancel();setArmed(false);setOpen(false);setNativeOpen(true)}}><FilePenLine size={16} aria-hidden="true"/></button> : null}
       {!open && !marks.length ? <ReaderInlineControls document={readerDocument}/> : null}
       {open || marks.length ? <div className="iu-viewer-edit__zoom" role="group" aria-label="Zoom della pagina"><button type="button" title="Riduci" aria-label="Riduci pagina" disabled={zoom<=.5} onClick={()=>setZoom(Math.max(.5,zoom-.25))}><ZoomOut size={16}/></button><button type="button" title="Adatta alla larghezza" onClick={()=>setZoom(1)}>Adatta</button><span>{Math.round(zoom*100)}%</span><button type="button" title="Ingrandisci" aria-label="Ingrandisci pagina" disabled={zoom>=2} onClick={()=>setZoom(Math.min(2,zoom+.25))}><ZoomIn size={16}/></button></div> : null}
     {policy?.editable && /\.pdf$/i.test(source.label) ? <button type="button" disabled={saving || Boolean(marks.length)} title={formOpen ? 'Chiudi compilazione modulo' : 'Compila modulo PDF'} aria-label={formOpen ? 'Chiudi compilazione modulo' : 'Compila modulo PDF'} aria-expanded={formOpen} onClick={() => { sampler.cancel(); setArmed(false); setOpen(false); setFormStarted(true); setFormOpen(value => !value) }}><FormInput size={16} aria-hidden="true"/></button> : null}

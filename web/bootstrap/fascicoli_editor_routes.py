@@ -99,6 +99,11 @@ def register_fascicoli_editor_routes(
         return studio_context_for_editor()['studio_timbro']
 
     register_editor_finalize_routes(app, get_fascicoli=get_fascicoli, audit=audit, encrypt_doc=encrypt_doc, get_timbro=_editor_tenant_timbro)
+    from web.bootstrap.editor_native_pdf_routes import register_editor_native_pdf_routes
+
+    register_editor_native_pdf_routes(app, get_fascicoli=get_fascicoli, audit=audit,
+                                     encrypt_doc=encrypt_doc, decrypt_doc=decrypt_doc,
+                                     document_updated=_registra_documento_aggiornato)
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/editor")
     def editor_documento(id_fasc, id_doc):

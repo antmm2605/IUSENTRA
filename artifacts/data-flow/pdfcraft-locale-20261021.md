@@ -65,3 +65,7 @@ Rilascio ancora aperto: verifica ultima traduzione, consolidamento commit, gate 
 ### Recupero concorrente: difetto emerso e correzione
 
 Il rientro nel lettore dopo il409 è riuscito, ma Riprova apertura richiedeva ancora la vecchia impronta e riceveva409. La GET ora restituisce la versione corrente e X-PDF-Revision sotto lo stesso lock e permessi; il POST continua a esigere l’impronta della versione realmente letta. Il frontend verifica il nuovo header prima di caricare i byte e lo usa per il successivo salvataggio. Undici test API positivi, compreso riapertura dopo conflitto e nuovo salvataggio. Registrato il CSS della cornice nel catalogo governato, con motivazione; check design system positivo. Prova reale finale e gate in corso.
+
+### Riscontro candidato v18
+
+Su8080 riapertura riuscita della revisione corrente: cerchio pieno, freccia, caratteri e immagini salvati visibili; seconda pagina visitata e preservata. Corretto lo scroll ereditato dal lettore che nascondeva parzialmente la barra ospitante: all’apertura viene ripristinato lo scroll del contenitore, conservato per il ritorno al lettore. Barra completa osservata nella finestra reale, prova editor-ripresa-corrente.png. Build e typecheck positivi. CI/deploy/pulizia ancora in corso.

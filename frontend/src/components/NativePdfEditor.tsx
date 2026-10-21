@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { LoadingState } from '../ui/LoadingState'
 import { csrfToken } from '../formSubmit'
 import './NativePdfEditor.css'
@@ -16,7 +16,15 @@ type PcFont = { family: string; style: string; fullName: string; blob: () => Pro
 type FontCheck = { family: string; style: string; ok: boolean; reason?: string }
 
 export default function NativePdfEditor({ endpoint, filename, expectedHash, onDirty, onSaving, onSaved, onClose }: Props) {
+  const section = useRef<HTMLElement>(null)
   const iframe = useRef<HTMLIFrameElement>(null)
+  useLayoutEffect(() => {
+    const container = section.current?.parentElement
+    if (!container) return
+    const previous = container.scrollTop
+    container.scrollTop = 0
+    return () => { container.scrollTop = previous }
+  }, [])
   const token = useRef(crypto.randomUUID())
   const revision = useRef(expectedHash)
   const intent = useRef<{ hash: string; command: string } | null>(null)
@@ -191,7 +199,7 @@ export default function NativePdfEditor({ endpoint, filename, expectedHash, onDi
     return () => { window.clearTimeout(openingTimeout); controller.abort(); window.removeEventListener('message', receive); frame?.removeEventListener('iusentra-close-pdf', exit) }
   }, [endpoint, filename, attempt])
 
-  return <section className="iu-native-pdf" aria-label="Editor PDF">
+  return <section ref={section} className="iu-native-pdf" aria-label="Editor PDF">
 
     <header><strong>{displayName}</strong><button type="button" disabled={loading || fontBusy} onClick={() => { void loadPcFontCatalog() }}>{fontBusy ? 'Lettura caratteri…' : 'Tutti i caratteri del PC'}</button><label className="iu-native-pdf__fonts">Da file<input type="file" aria-label="Carica file caratteri dal PC" accept=".ttf,.otf" multiple disabled={loading || fontBusy} onChange={event => { void loadFonts(event.currentTarget.files); event.currentTarget.value = '' }} /></label><label className="iu-native-pdf__fonts">Immagine<input type="file" aria-label="Inserisci immagine dal PC" accept="image/png,image/jpeg,image/webp" disabled={loading} onChange={event => { void loadImage(event.currentTarget.files?.[0]); event.currentTarget.value = '' }} /></label><button type="button" onClick={() => iframe.current?.dispatchEvent(new Event('iusentra-close-pdf'))}>Torna al lettore</button><button className="iu-native-pdf__fullscreen" type="button" title="Apri o chiudi l’editor a tutto schermo" aria-label="Editor a tutto schermo" onClick={event => {
       const section=event.currentTarget.closest('section')

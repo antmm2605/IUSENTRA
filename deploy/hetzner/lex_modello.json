@@ -1,0 +1,15 @@
+{
+  "modello": "iusentra-lex-v3:9b",
+  "digest": "17f76afef984b98f460bf8bab67811949a4e774ae2e7ac58c61980688813766a",
+  "release": "lex-v3-transfer-20261021",
+  "prefisso": "lex-v3",
+  "sha256sums": "deaafdff0593337a4c1e43efa295af567f6a08ddedb1f42652bdfbdcadfab6ff",
+  "attivo": true,
+  "ritorno": {
+    "modello": "iusentra-lex-v2:9b",
+    "digest": "a079f24b41a203f59bbd1482248c138b126de02dfeffe1cc57d3fe4387e1a3cb",
+    "release": "lex-v2-transfer-20261007",
+    "prefisso": "lex-v2",
+    "sha256sums": "5cc4a7c37adf022865078e081fbfefbb2dcdfb150b06f671377957c959f1492f"
+  }
+}

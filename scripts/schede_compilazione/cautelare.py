@@ -3,7 +3,7 @@
 Base normativa: artt. 669-bis e seguenti, 670, 671, 688, 696, 696-bis, 700, 703 c.p.c.; artt. 1137, 1168-1172,
 2378, 2905 c.c., nel testo vigente al 19/10/2026.
 """
-from scripts.schede_compilazione.comuni import (T, CC, CPC, FERIALE, IN_AVANTI, SENZA_FERIALE, assistito, avvocato, calcolo, causa_pendente, controparte, data_luogo,
+from scripts.schede_compilazione.comuni import (SOSTANZIALE, T, CC, CPC, FERIALE, IN_AVANTI, SENZA_FERIALE, assistito, avvocato, calcolo, causa_pendente, controparte, data_luogo,
                                                 difensore, documento, fatti_documentati, lex, letto, procura)
 from scripts.schede_compilazione.costruisci import scheda
 
@@ -118,7 +118,7 @@ SCHEDE = [
                      norma=[(CC, "1170", "presupposti della manutenzione")]),
             letto("spoglio", "Data dello spoglio o della molestia", "data_spoglio", "denunce, fotografie, comunicazioni", [{"categoria": "data"}, {"categoria": "evento"}],
                   norma=[(CC, "1168", "entro l’anno dallo spoglio"), (CC, "1170", "entro l’anno dalla turbativa")]),
-            calcolo("termine", "Scadenza dell’anno", termine=T("evento", mesi=12, feriale=False), regola="un anno dallo spoglio o dalla turbativa (dalla scoperta se clandestino); termine di decadenza che non si sospende",
+            calcolo("termine", "Scadenza dell’anno", termine=T("evento", mesi=12, feriale=False, sabato=False), regola="un anno dallo spoglio o dalla turbativa (dalla scoperta se clandestino); termine di decadenza che non si sospende" + SOSTANZIALE,
                     norma=[(CC, "1168", "termine annuale"), (CC, "1170", "termine annuale")]),
             fatti_documentati()],
            [("Fatto", "possesso, spoglio o molestia con date; la fase di merito si chiede entro 60 giorni dal provvedimento (art. 703)"), ("Diritto", "presupposti degli artt. 1168 o 1170 c.c."),

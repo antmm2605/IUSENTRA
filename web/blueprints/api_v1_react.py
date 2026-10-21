@@ -43,6 +43,7 @@ from pct import __version__ as APP_VERSION
 from pct.applicazioni_runtime import TOOL_SCHEMAS, build_tool_result
 from pct.auth import RuoloUtente, totp_uri
 from pct.busta import e_ricevuta_telematica_pagopa
+from pct.preventivi_sql_writer import PreventiviConflict
 from pct.clienti import Indirizzo, Recapiti, TipoCliente
 from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
 from pct.fatturazione import StatoParcella
@@ -275,7 +276,6 @@ from web.services.react_impostazioni_bridge import (
     update_react_impostazioni_firma_certificato,
     update_react_impostazioni_section,
 )
-from web.services.lex_dataset_training_status import build_lex_dataset_training_status
 from web.services.lex_dataset_review_queue import (
     load_lex_dataset_review_queue,
     update_lex_dataset_review_item,
@@ -480,9 +480,6 @@ from web.helpers import (
 )
 
 api_v1_react = Blueprint("api_v1_react", __name__, url_prefix="/api/v1/ui")
-
-from pct.preventivi_sql_writer import PreventiviConflict
-
 
 @api_v1_react.errorhandler(PreventiviConflict)
 def _preventivi_sql_conflict(error):
@@ -14040,6 +14037,7 @@ def _react_template_guide_preview_payload(
     if not enabled:
         return {
             "enabled": False,
+            "initialText": initial_text,
             "importEndpoint": url_for("template_atti.api_importa_documento"),
             "previewPdfHref": url_for("template_atti.compila_pdf", model_code=model_code),
             "wordHref": url_for("template_atti.compila_word", model_code=model_code),
@@ -14369,13 +14367,17 @@ def template_atti_compila_page(model_code: str):
         stamp = ctx.get("studio_timbro_preview") or {}
         guidance = ctx.get("guidance") if isinstance(ctx.get("guidance"), dict) else {}
         initial_text = ""
-        if guide_code or origin == "guida_pratica":
+        if not free_editor:
             try:
                 from pct.compilatore_atti import render_compiled_act
 
+                preview_payload = dict(ctx.get("payload") if isinstance(ctx.get("payload"), dict) else form_values)
+                for name in ("facts", "legal_arguments", "requests_or_conclusions"):
+                    if not str(preview_payload.get(name) or "").strip():
+                        preview_payload[name] = f"[{name.upper()}]"
                 initial_text = render_compiled_act(
                     model_code,
-                    ctx.get("payload") if isinstance(ctx.get("payload"), dict) else form_values,
+                    preview_payload,
                     include_timbro=False,
                 )
             except Exception:

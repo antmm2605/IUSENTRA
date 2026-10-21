@@ -131,6 +131,7 @@
      "base": "evento",
      "direzione": "avanti",
      "feriale": false,
+     "sabato": false,
      "mesi": 3
     }
    },

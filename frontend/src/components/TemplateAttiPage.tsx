@@ -28,7 +28,7 @@ import { displaySourceLabel } from '../displayText'
 import { csrfToken, submitFormJson } from '../formSubmit'
 import { FloatingLex } from './FloatingLex'
 import { DocumentToolbar } from './templateEditor/DocumentToolbar'
-import { cleanEditorHtml, PAGE_BREAK_HTML } from './templateEditor/editorArtifacts'
+import { cleanEditorHtml, PAGE_BREAK_HTML, snapshotEditorHtml } from './templateEditor/editorArtifacts'
 import { PagedDocumentCanvas } from './templateEditor/PagedDocumentCanvas'
 import { isCompactViewport, isNarrowEditorViewport, useCompactLayout } from './templateEditor/useCompactLayout'
 import { useDocumentHistory } from './templateEditor/useDocumentHistory'
@@ -256,6 +256,7 @@ function guideDraftFromData(data: TemplateCompilerData) {
   const place = tokenFor(['place', 'luogo'], '[LUOGO]')
   const date = tokenFor(['document_date', 'data_atto', 'data'], '[DATA_ATTO]')
   const signature = tokenFor(['signature', 'lawyer', 'difensore'], '[FIRMA]')
+  const lawyer = tokenFor(['lawyer', 'difensore', 'lawyer_name'], '[NOME_E_COGNOME_AVVOCATO]')
   const subject = tokenFor(['subject', 'oggetto', 'request_reason'], '[OGGETTO]')
   const appealedJudgment = tokenFor(['appealed_judgment', 'provvedimento_impugnato', 'sentenza_impugnata'], '[PROVVEDIMENTO_IMPUGNATO]')
   const appealGrounds = tokenFor(['grounds_of_appeal', 'specific_grounds_of_appeal', 'motivi_appello'], '[MOTIVI_APPELLO]')
@@ -330,7 +331,7 @@ function guideDraftFromData(data: TemplateCompilerData) {
       '',
       'ATTESTAZIONE DI CONFORMITA E RELATA DI NOTIFICA',
       '',
-      `${sender}, tramite il difensore indicato nel fascicolo, predispone la seguente attestazione e relata.`,
+      `${sender}, tramite ${lawyer}, predispone la seguente attestazione e relata.`,
       '',
       'Destinatario',
       '',
@@ -405,7 +406,7 @@ function guideDraftFromData(data: TemplateCompilerData) {
       '',
       appealTitle,
       '',
-      `${client}, rappresentato e difeso dall'avvocato indicato nel fascicolo, espone e propone impugnazione.`,
+      `${client}, rappresentato e difeso da ${lawyer}, espone e propone impugnazione.`,
       '',
       `Contro ${counterparty}.`,
       '',
@@ -477,7 +478,7 @@ function guideDraftFromData(data: TemplateCompilerData) {
     '',
     title,
     '',
-    `${client}, rappresentato e difeso dall'avvocato indicato nel fascicolo, con procura allegata e domicilio professionale presso lo studio.`,
+    `${client}, rappresentato e difeso da ${lawyer}, con procura allegata e domicilio professionale presso lo studio.`,
     '',
     `Contro ${counterparty}.`,
     '',
@@ -1642,10 +1643,8 @@ function ProfessionalTemplateEditorWorkspace({
   const visibleMultipleTemplates = data.templateExamples.slice(0, 10)
   const visibleMultipleCodes = new Set(visibleMultipleTemplates.map((item) => item.code || item.id).filter(Boolean))
   const selectedMultipleCount = visibleMultipleTemplates.filter((item) => multipleSelection[item.code || item.id] === true).length
-  const completedFields = showTemplateFields ? fields.filter((field) => (fieldValues[field.name] || field.value || '').trim()).length : 0
-  const completion = showTemplateFields && fields.length ? Math.round((completedFields / fields.length) * 100) : 100
   const lexActions = data.lexRevision.actions
-  const statusText = [workspaceStatus, importStatus, pdfStatus].filter(Boolean).join(' ')
+  const statusText = [...new Set([workspaceStatus, importStatus, pdfStatus].filter(Boolean))].join(' ')
   const baseDraftText = draftText
 
   useEffect(() => {
@@ -1817,7 +1816,7 @@ function ProfessionalTemplateEditorWorkspace({
   const editorHtml = () => editorRef.current?.innerHTML || draftToEditorHtml(baseDraftText)
   const editorPlainText = () => editorHtmlToPlainText(editorHtml())
   const exportPlainText = () => resolveDraftPlaceholders(stripFixedStampFromDraft(editorPlainText(), data), fields, fieldValues)
-  const exportHtml = () => resolveDraftHtmlPlaceholders(normaliseClipboardHtml(editorHtml(), data), fields, fieldValues)
+  const exportHtml = () => resolveDraftHtmlPlaceholders(normaliseClipboardHtml(editorRef.current ? snapshotEditorHtml(editorRef.current) : editorHtml(), data), fields, fieldValues)
 
   const syncEditorToDraft = (status?: string) => {
     const plain = editorPlainText()
@@ -1947,6 +1946,40 @@ function ProfessionalTemplateEditorWorkspace({
     const block = String(text || '').trim()
     if (!block) return
     insertEditorHtml(plainTextToEditorHtml(block), 'Testo inserito nel documento.')
+  }
+
+  const focusDocumentField = (field: TemplateCompilerField) => {
+    const editor = editorRef.current
+    if (!editor) return
+    const candidates = [...placeholderTokens(field), fieldValues[field.name], fieldDisplayValue(field)].filter(Boolean)
+    const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT)
+    const nodes: Text[] = []
+    while (walker.nextNode()) nodes.push(walker.currentNode as Text)
+    const text = nodes.map((node) => node.data).join('')
+    const candidate = candidates.find((value) => text.includes(value))
+    if (!candidate) {
+      setWorkspaceStatus(`La sezione «${field.label}» non è presente nel testo corrente. Puoi inserirla con «Inserisci campo», senza sostituire il lavoro già scritto.`)
+      return
+    }
+    const start = text.indexOf(candidate)
+    const end = start + candidate.length
+    const range = document.createRange()
+    let offset = 0
+    for (const node of nodes) {
+      const next = offset + node.length
+      if (start >= offset && start < next) range.setStart(node, start - offset)
+      if (end > offset && end <= next) { range.setEnd(node, end - offset); break }
+      offset = next
+    }
+    editor.focus()
+    const selection = window.getSelection()
+    selection?.removeAllRanges()
+    selection?.addRange(range)
+    savedSelectionRef.current = range.cloneRange()
+    const element = range.startContainer.parentElement
+    element?.scrollIntoView({ block: 'center', behavior: 'instant' })
+    if (compactLayout) setFieldsCollapsed(true)
+    setWorkspaceStatus(`Scrivi «${field.label}» direttamente nell'atto: testo e formattazione restano modificabili.`)
   }
 
   const insertFieldToken = (field: TemplateCompilerField) => {
@@ -2640,8 +2673,10 @@ function ProfessionalTemplateEditorWorkspace({
                     {group.fields.map((field) => (
                       <label key={field.name}>
                         <span>{field.label}</span>
-                        {field.type === 'textarea' ? (
-                          <textarea data-testid={`template-field-input-${field.name}`} value={fieldValues[field.name] || ''} placeholder={field.placeholder || field.label} onChange={(event) => updateField(field, event.currentTarget.value)} />
+                        {['textarea', 'richtext'].includes(field.type) ? (
+                          <button type="button" data-testid={`template-field-editor-${field.name}`} onClick={() => focusDocumentField(field)}>
+                            <FileText size={14} aria-hidden="true" /> Scrivi nell’atto
+                          </button>
                         ) : field.options.length ? (
                           <select data-testid={`template-field-input-${field.name}`} value={fieldValues[field.name] || ''} onChange={(event) => updateField(field, event.currentTarget.value)}>
                             <option value="">{field.placeholder || 'Seleziona'}</option>
@@ -2667,11 +2702,9 @@ function ProfessionalTemplateEditorWorkspace({
                     <p>Scrivi direttamente nel corpo del documento. Se serve una bozza guidata, scegli un modello dal catalogo a sinistra.</p>
                   </section>
                 )}
-                {showTemplateFields ? <div className="iu-template-pro-progress">
-                  <span>Compilazione</span>
-                  <progress value={completion} max={100} />
-                  <strong>{completion}%</strong>
-                </div> : null}
+                {showTemplateFields ? <p className="iu-template-pro-free-editor-note">
+                  Scrivi fatti, argomentazioni e conclusioni direttamente nell’atto. Qui trovi i dati collegati e i comandi per raggiungere le sezioni.
+                </p> : null}
               </>
             ) : null}
             {activeTab === 'Stile' ? (
@@ -3320,7 +3353,11 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
     getTemplateAttiCompilerPage(modelCode)
       .then((payload) => {
         setData(payload)
-        setGuideDraftText(isFreeEditorRoute() ? '' : guideDraftFromData(payload))
+        const initialDraft = guideDraftFromData(payload)
+        const initialFields = allCompilerFields(payload)
+        setGuideDraftText(isFreeEditorRoute() ? '' : looksLikeEditorHtml(initialDraft)
+          ? resolveDraftHtmlPlaceholders(initialDraft, initialFields, {})
+          : resolveDraftPlaceholders(initialDraft, initialFields, {}))
         setGuideFontSize(payload.guidePreview.editorLayout?.fontSize || payload.editorLayout.fontSize || 12)
         setGuideLineHeight(payload.guidePreview.editorLayout?.lineHeight || payload.editorLayout.lineHeight || 1.9)
       })
@@ -3393,7 +3430,7 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
     collectControlData(compilerRef.current).forEach((value, name) => formData.set(name, value))
     formData.set('_react_return', '1')
     formData.set('model_code', data.model.code || modelCode)
-    formData.set('title', guideDocumentTitle)
+    formData.set('title', String(formData.get('title') || guideDocumentTitle))
     formData.set('testo_generato', stripFixedStampFromDraft(editorHtmlToPlainText(richHtml), data))
     formData.set('testo_generato_html', stripHtmlStampFromDraft(richHtml, data))
     formData.set('testo_generato__editor_layout', JSON.stringify({
@@ -3607,6 +3644,14 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
 
   if (loading) {
     return <LoadingState title="Caricamento compilazione" message="Recupero campi, dati disponibili e controlli del modello." />
+  }
+
+  if (!data.ok) {
+    return <Page title="Compilazione non disponibile"><EmptyState
+      title="Dati del modello non caricati"
+      message={data.message || "Non è stato possibile caricare i dati del modello. La compilazione non è stata avviata."}
+      action={<Button type="button" tone="primary" onClick={load}>Riprova caricamento</Button>}
+    /></Page>
   }
 
   return (

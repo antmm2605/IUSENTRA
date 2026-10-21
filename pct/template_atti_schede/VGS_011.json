@@ -180,11 +180,12 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "calcolo",
-    "regola": "tre mesi dall’apertura della successione o dalla notizia della devoluzione, prorogabili; termine sostanziale, senza sospensione feriale",
+    "regola": "tre mesi dall’apertura della successione o dalla notizia della devoluzione, prorogabili; termine sostanziale, senza sospensione feriale; termine sostanziale (art. 2963 c.c.): si proroga se l’ultimo giorno è festivo, non se è sabato",
     "termine": {
      "base": "evento",
      "direzione": "avanti",
      "feriale": false,
+     "sabato": false,
      "mesi": 3
     }
    },
@@ -202,11 +203,12 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "calcolo",
-    "regola": "40 giorni dal compimento dell’inventario (evento = chiusura dell’inventario), altrimenti erede puro e semplice; termine sostanziale",
+    "regola": "40 giorni dal compimento dell’inventario (evento = chiusura dell’inventario), altrimenti erede puro e semplice; termine sostanziale; termine sostanziale (art. 2963 c.c.): si proroga se l’ultimo giorno è festivo, non se è sabato",
     "termine": {
      "base": "evento",
      "direzione": "avanti",
      "feriale": false,
+     "sabato": false,
      "giorni": 40
     }
    },

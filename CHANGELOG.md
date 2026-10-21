@@ -1,3 +1,16 @@
+# 2.447.0 — Lex v3 configurabile nel deploy
+
+- Modello e digest governati dalla configurazione di rilascio, verifica delle parti e dei blob, conservazione del modello precedente e prova reale di generazione dopo il deploy.
+
+# 2.446.0 — Regole delle schede e supporto alla redazione Lex
+
+- Compilazione: dati collegati visibili nell’atto, nome del difensore esplicito e scrittura di fatti, argomentazioni e conclusioni direttamente nell’editor.
+- Conservati HTML, carattere e margini della bozza salvata nel fascicolo; corretta la spaziatura iniziale causata dalle transizioni della geometria pagina.
+- La consultazione del modello non scrive analisi; gli errori di caricamento restano espliciti e riprovabili.
+- Integrate le funzioni della patch per ricavare domande, astensione e contesto di redazione dalla scheda risolta, senza inventare dati mancanti.
+- Distinta la proroga del sabato nelle dichiarazioni dei termini penali e stragiudiziali dal comportamento dei termini processuali civili.
+- Preservati i calcoli già corretti delle impugnazioni societarie e dei ricorsi giudiziali del lavoro e della previdenza; nessuna esclusione generalizzata del sabato.
+
 # 2.445.2 — Sicurezza degli strumenti di sviluppo
 
 - Aggiornato MCP SDK a 1.32.0 nel grafo degli strumenti shadcn, senza aggiungere servizi o dipendenze al runtime applicativo.

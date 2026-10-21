@@ -222,11 +222,12 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "calcolo",
-    "regola": "60 giorni dalla ricezione della comunicazione; termine sostanziale, senza sospensione feriale; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)",
+    "regola": "60 giorni dalla ricezione della comunicazione; termine sostanziale, senza sospensione feriale; termine sostanziale (art. 2963 c.c.): si proroga se l’ultimo giorno è festivo, non se è sabato",
     "termine": {
      "base": "comunicazione",
      "direzione": "avanti",
      "feriale": false,
+     "sabato": false,
      "giorni": 60
     }
    },

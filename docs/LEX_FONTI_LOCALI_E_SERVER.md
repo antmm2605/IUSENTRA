@@ -402,3 +402,21 @@ Rollback: ripristinare i due valori precedenti dalla copia riservata e distribui
 il precedente tag immutabile; non cancellare volumi o fonti. La bozza di trasferimento
 va eliminata dopo esito positivo. Lex v3 resta riservato alla futura 2.436.12;
 non attivare un modello v3 sulla 2.436.11.
+
+
+## Modello Lex sul server: `deploy/hetzner/lex_modello.json` (dalla 2.447.0)
+
+Il deploy Hetzner installa e attiva il modello indicato in `deploy/hetzner/lex_modello.json` (nome Ollama,
+digest del manifest accettato sul PC, release bozza GitHub con le parti `<prefisso>.tar.partNN`, impronta di
+`SHA256SUMS`). Se il modello con quel digest è già nel sidecar Ollama non scarica nulla; altrimenti scarica le parti,
+verifica `SHA256SUMS`, manifest e singoli blob, installa e imposta `PCT_LOCAL_AI_CHAT_MODEL` e `LEX_DEFAULT_MODEL`
+(copia della configurazione precedente in `/opt/iusentra/.env.hetzner.prima-<prefisso>`). Dopo il deploy
+`verify_lex_modello.py` controlla modello risolto, digest e una generazione reale.
+
+Preparazione sul PC (v3, 21/10/2026): merge dell'adapter con `soup merge` (bfloat16); i pesi MTP di Qwen3.5,
+scartati dal merge, si ricopiano dal Qwen3.5-9B originale in `model-mtp.safetensors` con il relativo indice;
+conversione con `convert_hf_to_gguf.py` della llama.cpp locale, `llama-quantize` Q4_K_M, `ollama create` con il
+Modelfile della v2 (`RENDERER`/`PARSER qwen3.5`); tar di manifest e blob diviso in parti da 1900 MB.
+
+Ritorno alla v2: impostare `"attivo": false` nel file (si usa il blocco `ritorno`, già installato sul server) e
+distribuire. La release bozza del modello va conservata finché il modello è in uso.

@@ -226,11 +226,12 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "calcolo",
-    "regola": "un anno dallo spoglio o dalla turbativa (dalla scoperta se clandestino); termine di decadenza che non si sospende",
+    "regola": "un anno dallo spoglio o dalla turbativa (dalla scoperta se clandestino); termine di decadenza che non si sospende; termine sostanziale (art. 2963 c.c.): si proroga se l’ultimo giorno è festivo, non se è sabato",
     "termine": {
      "base": "evento",
      "direzione": "avanti",
      "feriale": false,
+     "sabato": false,
      "mesi": 12
     }
    },

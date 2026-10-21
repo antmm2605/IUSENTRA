@@ -18,10 +18,7 @@ def _flask_app() -> Any:
 
 
 def normalize_ollama_api_base_url(value: str) -> str:
-    raw = str(value or "http://127.0.0.1:11434/api").strip().rstrip("/")
-    if raw.endswith("/api"):
-        return raw
-    return f"{raw}/api"
+    return f"{strip_api_suffix(value or 'http://127.0.0.1:11434/api')}/api"
 
 
 def _fallback_runtime_payload(default_model: str = "mistral") -> dict[str, str]:

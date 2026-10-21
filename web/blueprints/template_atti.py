@@ -87,7 +87,9 @@ def _get_assistente_redazionale():
     from pct.assistente_redazionale import AssistenteRedazionale
 
     return AssistenteRedazionale(
-        audit_db_path=_cfg_path("REDACTION_ASSISTANT_DB", "./intelligence/assistente_redazionale.json"),
+        # Una consultazione non crea un nuovo evento né modifica il registro.
+        audit_db_path=("" if request.method == "GET" else
+                       _cfg_path("REDACTION_ASSISTANT_DB", "./intelligence/assistente_redazionale.json")),
         office_cache_path=current_app.config.get("UFFICI_GIUDIZIARI_DB", "") or current_app.config.get("REGINDE_DB", ""),
         pst_wsdl_catalog_zip_path=current_app.config.get("PST_WSDL_CATALOG_ZIP", ""),
         pst_official_cache_path=current_app.config.get("PST_OFFICIAL_CACHE", ""),
@@ -689,6 +691,57 @@ def _sanitize_editor_html(value: str) -> str:
         return sanitize_editor_html(value)
     except Exception:
         return value or "<p></p>"
+
+
+def _compiled_editor_html_builder(text: str, html: str, layout: dict | None, timbro=None):
+    """Conserva il documento visibile usando il formato pagina dell'editor nativo."""
+    from pct.template_atti import font_editor, normalizza_editor_layout
+
+    clean = _sanitize_editor_html(html) if html else _sanitize_editor_html(_to_editor_html(text))
+    cfg = normalizza_editor_layout(layout or {})
+    font = escape(font_editor(cfg["font_family"])["css_stack"].replace("'", "").replace('"', ""), quote=True)
+    attrs = " ".join(
+        f'data-margine-{side}="{float(cfg[key]) * 72 / 25.4:.4f}"'
+        for side, key in (("alto", "margin_top_mm"), ("destro", "margin_right_mm"),
+                          ("basso", "margin_bottom_mm"), ("sinistro", "margin_left_mm"))
+    )
+    size = float(cfg["font_size_pt"])
+    height = float(cfg["line_height"])
+    from pct.studio_timbro import inject_timbro_html
+
+    clean = inject_timbro_html(clean, timbro)
+    if timbro:
+        from lxml import html as document_html
+
+        fragment = document_html.fragment_fromstring(clean, create_parent="div")
+        alignment = "right" if cfg["stamp_position"].endswith("right") else (
+            "center" if cfg["stamp_position"].endswith("center") else "left"
+        )
+        stamp_font = font_editor(cfg["stamp_font_family"])["css_stack"]
+        for block in fragment.xpath('.//*[@data-studio-timbro="true"]'):
+            block.set("style", f"text-align:{alignment};margin:0 0 12pt;width:100%;")
+            for line in block.xpath(".//p"):
+                line.set("style", (line.get("style") or "") + (
+                    f';text-align:{alignment};font-family:{stamp_font};'
+                    f'font-size:{cfg["stamp_font_size_pt"]}pt;line-height:{cfg["stamp_line_height"]};'
+                ))
+        clean = "".join(document_html.tostring(child, encoding="unicode") for child in fragment)
+
+    def build(rendered_text: str) -> str:
+        # Il servizio aggiunge l'avvertenza soltanto dopo il controllo normativo.
+        prefix = rendered_text[:-len(text)] if text and rendered_text.endswith(text) else ""
+        notice = (
+            '<p style="font-size:10pt;font-weight:bold">'
+            + escape(prefix.strip()) + '</p>'
+        ) if prefix.strip() else ""
+        return (
+            f'<section class="iu-doc-pagina" data-pagina="1" {attrs} '
+            f'data-allineamento="{cfg["text_align"]}" data-interlinea="{size * height:.4f}" '
+            f'style="font-family:{font};font-size:{size}pt;line-height:{height};'
+            f'text-align:{cfg["text_align"]}">{notice}{clean}</section>'
+        )
+
+    return build
 
 
 def _importa_compilazione_editor_professionale(
@@ -1747,7 +1800,7 @@ def compila_guida_pratica_salva(model_code: str):
             "message": "Seleziona prima il fascicolo: il documento deve rientrare in una pratica reale.",
         }), 400
 
-    testo_generato = request.form.get("testo_generato", "").strip()
+    testo_generato, editor_html = _request_editor_content()
     if not testo_generato:
         testo_generato = render_compiled_act(model_code, payload, include_timbro=False)
     payload["title"] = request.form.get("title", "").strip() or payload.get("title") or model.get("name") or model_code
@@ -1775,6 +1828,11 @@ def compila_guida_pratica_salva(model_code: str):
             compliance_result=compliance_result,
             requested_draft="working_draft",
             confirmed_warning=True,
+            editor_html_builder=_compiled_editor_html_builder(
+                testo_generato, editor_html,
+                _parse_editor_layout(request.form.get("testo_generato__editor_layout")),
+                _get_studio_timbro(),
+            ),
         )
     except Exception as exc:
         current_app.logger.exception("Salvataggio anteprima Guida Pratica non riuscito per %s: %s", model_code, exc)

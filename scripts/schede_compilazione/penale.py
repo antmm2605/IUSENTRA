@@ -5,7 +5,7 @@ Base normativa: codice di procedura penale (testo dopo D.Lgs. 150/2022 e L. 114/
 processuali penali, salvo i procedimenti con imputati detenuti o in misura cautelare e quelli in cui l’imputato
 rinuncia (art. 2 L. 742/1969; art. 91 ord. giud.); per questi i termini si calcolano senza sospensione.
 """
-from scripts.schede_compilazione.comuni import (FERIALE, IN_AVANTI, T, avvocato, calcolo, data_luogo, database, documento, letto, lex)
+from scripts.schede_compilazione.comuni import (FERIALE, PENALE, T, avvocato, calcolo, data_luogo, database, documento, letto, lex)
 from scripts.schede_compilazione.costruisci import scheda
 
 CPP = "codice_procedura_penale"
@@ -68,7 +68,7 @@ SCHEDE = [
            _base() + [
                letto("udienza", "Udienza dibattimentale", "udienza", "decreto che dispone il giudizio", [{"categoria": "data", "campo": "udienza"}],
                      se_manca="chiedere la data del dibattimento"),
-               calcolo("termine", "Ultimo giorno per depositare la lista", termine=T("udienza", 8, ritroso=True),
+               calcolo("termine", "Ultimo giorno per depositare la lista", termine=T("udienza", 8, ritroso=True, sabato=False),
                        regola="almeno 7 giorni prima del dibattimento, contati come liberi secondo la giurisprudenza prevalente, a pena di inammissibilità", norma=[(CPP, "468", "sette giorni liberi")]),
                avvocato("testi", "Testimoni e circostanze", "Nomi, recapiti e circostanze su cui ciascuno deve deporre", norma=[(CPP, "468", "indicazione delle circostanze")])],
            [("Lista", "testimoni e circostanze")], ["data del dibattimento non nota"]),
@@ -78,7 +78,7 @@ SCHEDE = [
            _base("Imputato") + [
                documento("decreto", "Decreto penale notificato", "decreto penale di condanna", ["decreto"], se_manca="astensione: serve il decreto"),
                letto("notifica", "Data di notifica del decreto", "notifica", "relata", [{"categoria": "data", "campo": "notifica"}]),
-               calcolo("termine", "Ultimo giorno per l’opposizione", termine=T("notifica", 15), regola="15 giorni dalla notifica del decreto, con sospensione feriale" + IN_AVANTI,
+               calcolo("termine", "Ultimo giorno per l’opposizione", termine=T("notifica", 15, sabato=False), regola="15 giorni dalla notifica del decreto, con sospensione feriale" + PENALE,
                        norma=[(CPP, "461", "quindici giorni"), FERIALE]),
                avvocato("rito", "Rito richiesto", "Giudizio immediato, abbreviato, patteggiamento, oblazione o messa alla prova?", norma=[(CPP, "461", "richieste con l’opposizione")]),
                lex("pagamento", "Riduzione", "ricordare la riduzione di un quinto della pena pecuniaria se si paga entro 15 giorni rinunciando all’opposizione",
@@ -89,8 +89,8 @@ SCHEDE = [
            [(CPP, "408", "avviso alla persona offesa e termine"), (CPP, "410", "opposizione con indagini suppletive"), FERIALE],
            _base("Persona offesa") + [
                letto("notifica", "Notifica dell’avviso di archiviazione", "notifica", "avviso", [{"categoria": "data", "campo": "notifica"}]),
-               calcolo("termine", "Ultimo giorno per l’opposizione", termine=T("notifica", 20),
-                       regola="20 giorni dalla notifica dell’avviso (30 per i delitti con violenza alla persona e furto in abitazione)" + IN_AVANTI,
+               calcolo("termine", "Ultimo giorno per l’opposizione", termine=T("notifica", 20, sabato=False),
+                       regola="20 giorni dalla notifica dell’avviso (30 per i delitti con violenza alla persona e furto in abitazione)" + PENALE,
                        norma=[(CPP, "408", "venti o trenta giorni")]),
                avvocato("indagini", "Indagini suppletive e prove", "Quali indagini integrative chiedi e quali elementi di prova le giustificano?",
                         norma=[(CPP, "410", "a pena di inammissibilità")])],
@@ -102,7 +102,7 @@ SCHEDE = [
            [_difensore(), data_luogo(), _assistito("Persona offesa"),
             avvocato("fatto", "Fatto", "Cosa è accaduto, quando, dove, chi è il responsabile se noto, con testimoni e documenti"),
             letto("conoscenza", "Data di conoscenza del fatto", "evento", "documenti", [{"categoria": "data", "campo": "evento"}], obbligatorio=False),
-            calcolo("termine", "Ultimo giorno per la querela", termine=T("evento", mesi=3, feriale=False),
+            calcolo("termine", "Ultimo giorno per la querela", termine=T("evento", mesi=3, feriale=False, sabato=False),
                     regola="3 mesi dalla notizia del fatto; per i delitti sessuali 12 mesi (art. 609-septies c.p.): in quel caso la data calcolata non vale; termine sostanziale, senza sospensione feriale",
                     norma=[(CP, "124", "tre mesi")]),
             avvocato("procedibilita", "Reato procedibile a querela", "Il reato è procedibile a querela? Per la remissione: è stata accettata o non ricusata?",
@@ -153,8 +153,8 @@ SCHEDE = [
            _base("Condannato") + [
                documento("ordine", "Ordine di esecuzione e decreto di sospensione", "ordine di esecuzione", ["esecuzione"], se_manca="chiedere l’ordine di esecuzione"),
                letto("notifica", "Notifica dell’ordine e del decreto di sospensione", "notifica", "relata", [{"categoria": "data", "campo": "notifica"}]),
-               calcolo("termine", "Ultimo giorno per l’istanza di misura alternativa", termine=T("notifica", 30, feriale=False),
-                       regola="30 giorni dalla notifica dell’ordine sospeso, calcolati senza sospensione feriale: è la data che non espone a decadenza" + IN_AVANTI, norma=[(CPP, "656", "trenta giorni")]),
+               calcolo("termine", "Ultimo giorno per l’istanza di misura alternativa", termine=T("notifica", 30, feriale=False, sabato=False),
+                       regola="30 giorni dalla notifica dell’ordine sospeso, calcolati senza sospensione feriale: è la data che non espone a decadenza" + PENALE, norma=[(CPP, "656", "trenta giorni")]),
                avvocato("misura", "Misura richiesta e requisiti", "Pena residua, misura richiesta, lavoro, domicilio, percorso"),
 ],
            [("Istanza", "misura, requisiti, documenti")], ["ordine di esecuzione non presente"]),

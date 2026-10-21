@@ -212,11 +212,12 @@
    "obbligatorio": true,
    "fonte": {
     "tipo": "calcolo",
-    "regola": "180 giorni dalla cessazione del singolo contratto, poi ricorso entro 180 giorni dall’impugnazione; senza sospensione feriale",
+    "regola": "180 giorni dalla cessazione del singolo contratto, poi ricorso entro 180 giorni dall’impugnazione; senza sospensione feriale; termine sostanziale (art. 2963 c.c.): si proroga se l’ultimo giorno è festivo, non se è sabato",
     "termine": {
      "base": "evento",
      "direzione": "avanti",
      "feriale": false,
+     "sabato": false,
      "giorni": 180
     }
    },

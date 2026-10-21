@@ -149,9 +149,7 @@ export function PagedDocumentCanvas({
       ? fitZoom
       : Math.min(1, fitZoom)
   const zoomRef = useRef(zoom)
-  zoomRef.current = zoom
   const metricsRef = useRef(metrics)
-  metricsRef.current = metrics
 
   const renderedPages = Math.min(MAX_RENDERED_PAGES, Math.max(1, pageCount))
   const pages = useMemo(() => Array.from({ length: renderedPages }, (_, index) => index), [renderedPages])
@@ -212,10 +210,15 @@ export function PagedDocumentCanvas({
     Object.entries(variables).forEach(([name, value]) => stack.style.setProperty(name, value))
     frame.style.setProperty('--iu-ted-frame-w', `${metrics.widthPx * zoom}px`)
     frame.style.setProperty('--iu-ted-frame-h', `${stackHeight(renderedPages, metrics) * zoom}px`)
+    // I riferimenti usati dal frame di impaginazione devono descrivere il DOM
+    // già applicato, non un render concorrente che non è ancora visibile.
+    metricsRef.current = metrics
+    zoomRef.current = zoom
+    schedulePagination(true)
     stack.querySelectorAll<HTMLElement>('[data-iu-sheet-index]').forEach((element) => {
       element.style.setProperty('--iu-ted-sheet-index', element.dataset.iuSheetIndex || '0')
     })
-  }, [metrics, renderedPages, zoom, stampAtTop, stampOffsetMm, stampFontFamily, stampFontSizePt, stampLineHeight])
+  }, [metrics, renderedPages, zoom, stampAtTop, stampOffsetMm, stampFontFamily, stampFontSizePt, stampLineHeight, schedulePagination])
 
   // Altezza reale del timbro: definisce dove inizia il testo su ogni pagina.
   useLayoutEffect(() => {

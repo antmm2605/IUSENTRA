@@ -3,7 +3,8 @@
 Un campo ``calcolo`` di una scheda può dichiarare ``termine``: evento da cui decorre (``base``), durata in
 giorni o mesi, direzione (``avanti`` o ``ritroso``) e applicazione della sospensione feriale. Il calcolo usa
 lo stesso motore dello scadenziario (``pct.termini_processuali.ItalianDeadlineCalculator``): art. 155 c.p.c.
-(dies a quo escluso, proroga o anticipo se l'ultimo giorno è sabato o festivo) e L. 742/1969 (sospensione
+(dies a quo escluso, proroga o anticipo se l'ultimo giorno è sabato o festivo; per i termini sostanziali, art. 2963
+c.c., e penali, art. 172 c.p.p., il sabato non proroga: ``sabato: false``) e L. 742/1969 (sospensione
 dal 1° al 31 agosto). Lex riceve la data già calcolata e si limita a spiegarla.
 """
 from __future__ import annotations
@@ -21,7 +22,7 @@ BASI = {
     "provvedimento": [{"categoria": "data", "campo": "provvedimento"}],
     "evento": [{"categoria": "data", "campo": "evento"}],
 }
-CHIAVI = {"base", "giorni", "mesi", "direzione", "feriale"}
+CHIAVI = {"base", "giorni", "mesi", "direzione", "feriale", "sabato"}
 
 
 def valida_termine(termine: dict[str, Any]) -> list[str]:
@@ -38,6 +39,8 @@ def valida_termine(termine: dict[str, Any]) -> list[str]:
         errori.append("direzione deve essere avanti o ritroso")
     if not isinstance(termine.get("feriale"), bool):
         errori.append("feriale deve essere vero o falso")
+    if "sabato" in termine and not isinstance(termine["sabato"], bool):
+        errori.append("sabato deve essere vero o falso")
     return errori
 
 
@@ -76,6 +79,6 @@ def calcola(termine: dict[str, Any], base: date) -> dict[str, Any]:
     valore = int(termine.get("mesi") or termine.get("giorni"))
     r = ItalianDeadlineCalculator().calculate(
         base, valore, "backward" if termine["direzione"] == "ritroso" else "forward",
-        suspend_august=termine["feriale"], period_type=unita)
+        suspend_august=termine["feriale"], period_type=unita, extend_saturday=termine.get("sabato", True))
     return {"scadenza": r["deadline"], "base": base.isoformat(), "spiegazione": r["explanation"],
             "verifica_avvocato": bool(r.get("requiresLegalReview"))}

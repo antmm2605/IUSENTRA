@@ -136,3 +136,54 @@ def test_contesto_template_non_legge_agenda_documenti_o_contabilita(monkeypatch)
     assert context["permessi"]["can_use_lex"]
     assert {type(s).__name__ for s in SourceRouter().resolve(request, context, "atto_da_template")} == {
         "TemplateAttiSource", "ComplianceSource"}
+
+
+def _risolta(con_lettera: bool):
+    from types import SimpleNamespace
+    from pct.schede_compilazione import risolvi_scheda, scheda_per_template
+    from datetime import date
+    s = scheda_per_template("LAV_003")
+    fatti = [SimpleNamespace(categoria="data", campo="comunicazione", valore="2026-09-01", etichetta="Comunicazione del 01/09/2026", verifica="plausibile")]
+    documenti = ["Lettera di licenziamento del 01/09/2026.pdf"] if con_lettera else []
+    return risolvi_scheda(s, {"lawyer": "Avv. Rossi", "client_or_sender": "Mario Bianchi"}, fatti=fatti, documenti=documenti, oggi=date(2026, 10, 1))
+
+
+def test_astensione_decisa_dal_software_senza_documento_obbligatorio():
+    from pct.schede_lex import decisione
+    d = decisione(_risolta(con_lettera=False))
+    assert d["esito"] == "astensione" and "non determinabile con le fonti disponibili" in d["messaggio"]
+    assert any(b["campo"] == "lettera" for b in d["bloccanti"])
+
+
+def test_messaggio_per_lex_contiene_scheda_scadenze_e_dati_mancanti():
+    from pct.schede_lex import decisione, messaggio_blocco
+    r = _risolta(con_lettera=True)
+    d = decisione(r)
+    assert d["esito"] in ("domande", "redazione") and d["domande"] == r["domande"]
+    m = messaggio_blocco(r, r["scrive_lex"][0], "[1] l. 604/1966 · art. 6")
+    assert "impugnazione stragiudiziale: 31/10/2026" in m and "[DATO MANCANTE" in m and "Mario Bianchi" in m
+
+
+def test_sabato_non_proroga_i_termini_sostanziali_e_penali():
+    from datetime import date
+    from pct.schede_termini import calcola
+    # 60 giorni dal 01/09/2026 = sabato 31/10/2026
+    civile = calcola({"base": "comunicazione", "giorni": 60, "direzione": "avanti", "feriale": False}, date(2026, 9, 1))
+    sostanziale = calcola({"base": "comunicazione", "giorni": 60, "direzione": "avanti", "feriale": False, "sabato": False}, date(2026, 9, 1))
+    assert civile["scadenza"] == "2026-11-02" and sostanziale["scadenza"] == "2026-10-31"
+
+
+def test_configurazione_del_modello_lex_sul_server():
+    import json
+    import re
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    config = json.loads((root / "deploy/hetzner/lex_modello.json").read_text(encoding="utf-8"))
+    for block in (config, config["ritorno"]):
+        assert re.fullmatch(r"[a-z0-9-]+:[a-z0-9.]+", block["modello"])
+        assert re.fullmatch(r"[0-9a-f]{64}", block["digest"])
+        assert re.fullmatch(r"[0-9a-f]{64}", block["sha256sums"])
+        assert re.fullmatch(r"[a-z0-9-]+", block["prefisso"])
+    workflow = (root / ".github/workflows/deploy-hetzner.yml").read_text(encoding="utf-8")
+    assert "deploy/hetzner/lex_modello.json" in workflow
+    assert "install_lex_modello.py" in workflow and "verify_lex_modello.py" in workflow

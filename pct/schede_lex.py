@@ -64,3 +64,61 @@ def ripara_risposta(risposta: str, risolta: dict[str, Any], messaggio: str = "")
     if esito["estranee"]:
         avviso = "\nDate da verificare perché non risultano dai dati né dal calcolo: " + ", ".join(esito["estranee"]) + "."
     return f"{risposta.rstrip()}\n\n{blocco}{avviso}" if blocco else f"{risposta.rstrip()}{avviso}"
+
+
+# --- Decisione del software e messaggio per Lex ------------------------------------------------------------
+# Banco v2 (21/10/2026, 23 schede mai viste in addestramento): con le scadenze già calcolate il modello le
+# riporta tutte giuste, ma non si astiene quando manca un documento obbligatorio (0 su 12) e inventa le domande
+# (47 su 304 coincidono con la scheda). Per questo domande e astensione le decide il software dalla scheda;
+# Lex riceve la scheda risolta e scrive soltanto i blocchi di testo dell'atto.
+
+ASTENSIONE = "non determinabile con le fonti disponibili"
+MANCANTE = "[DATO MANCANTE: {}]"
+
+
+def mancanti_bloccanti(risolta: dict[str, Any]) -> list[dict[str, str]]:
+    """Dati obbligatori senza i quali la scheda prescrive l'astensione («se manca: astensione…»)."""
+    out = []
+    for d in risolta.get("domande", []):
+        motivo = str(d.get("se_manca", ""))
+        if d.get("obbligatorio") and motivo.lower().startswith("astensione"):
+            etichetta = next((c["etichetta"] for c in risolta.get("campi", []) if c["campo"] == d["campo"]), d["campo"])
+            out.append({"campo": d["campo"], "etichetta": etichetta, "motivo": motivo.split(":", 1)[-1].strip()})
+    return out
+
+
+def decisione(risolta: dict[str, Any]) -> dict[str, Any]:
+    """Cosa fa la redazione guidata: astenersi, chiedere i dati obbligatori o far scrivere Lex.
+
+    Le domande sono quelle della scheda, nell'ordine della scheda: Lex non ne aggiunge e non ne toglie.
+    """
+    bloccanti = mancanti_bloccanti(risolta)
+    if bloccanti:
+        elenco = "; ".join(f"{b['etichetta']} ({b['motivo']})" for b in bloccanti)
+        return {"esito": "astensione", "messaggio": f"Redazione {ASTENSIONE}: manca {elenco}.",
+                "bloccanti": bloccanti, "domande": risolta.get("domande", []), "scadenze": scadenze_calcolate(risolta)}
+    obbligatorie = [d for d in risolta.get("domande", []) if d.get("obbligatorio")]
+    return {"esito": "domande" if obbligatorie else "redazione", "domande": risolta.get("domande", []),
+            "scadenze": scadenze_calcolate(risolta), "blocchi": risolta.get("scrive_lex", [])}
+
+
+def blocco_scheda(risolta: dict[str, Any]) -> str:
+    """La scheda risolta come la legge Lex: dati con la loro fonte, dati mancanti, scadenze."""
+    righe = [f"Scheda: {risolta.get('titolo', risolta.get('scheda', ''))}"]
+    fonti = {"compilato": "gestionale", "da_confermare": "letto nei documenti, da confermare",
+             "documento_presente": "documento del fascicolo, da verificare nel contenuto", "proposta_lex": "da proporre"}
+    for c in risolta.get("campi", []):
+        if c["stato"] in fonti and c.get("valore"):
+            righe.append(f"- {c['etichetta']}: {c['valore']} ({fonti[c['stato']]})")
+    mancanti = [c["etichetta"] for c in risolta.get("campi", []) if c["stato"] == "da_chiedere"]
+    if mancanti:
+        righe.append("Dati mancanti (nel testo scrivi " + MANCANTE.format("…") + ", non inventarli): " + "; ".join(mancanti))
+    scad = blocco_scadenze(risolta)
+    return "\n".join(righe + ([scad] if scad else []))
+
+
+def messaggio_blocco(risolta: dict[str, Any], blocco: dict[str, str], fonti: str) -> str:
+    """Messaggio per far scrivere a Lex un blocco dell'atto con i soli dati della scheda e le Fonti date."""
+    return (f"Domanda:\nScrivi il blocco «{blocco['blocco']}» di: {risolta.get('titolo', '')}. Contenuto: {blocco['compito']}. "
+            "Usa solo i dati della scheda e le Fonti; cita le norme con [n].\n\n"
+            f"{blocco_scheda(risolta)}\n\nFonti:\n{fonti}")

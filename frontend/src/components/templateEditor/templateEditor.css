@@ -812,3 +812,15 @@
     transform: translateX(-50%);
   }
 }
+
+/* Il primo blocco parte dall’area scrivibile, senza un secondo margine superiore. */
+.iu-ted-body > :first-child { margin-top: 0; }
+
+/* Le coordinate fisiche non devono interpolare tra due misure durante la paginazione. */
+.iu-ted-body,
+.iu-ted-stack,
+.iu-ted-frame,
+.iu-ted-stamp {
+  transition-property: none !important;
+  animation: none !important;
+}

@@ -5,7 +5,7 @@ D.Lgs. 81/2015 sui contratti a termine e sulle collaborazioni; artt. 2087, 2103,
 Sospensione feriale esclusa per le controversie di lavoro e previdenza (art. 3 L. 742/1969, art. 92 ord. giud.);
 i termini di impugnazione del licenziamento e del termine sono sostanziali e non si sospendono.
 """
-from scripts.schede_compilazione.comuni import (CC, CPC, IN_AVANTI, SENZA_FERIALE, T, A_RITROSO, assistito, avvocato, calcolo,
+from scripts.schede_compilazione.comuni import (SOSTANZIALE, CC, CPC, IN_AVANTI, SENZA_FERIALE, T, A_RITROSO, assistito, avvocato, calcolo,
                                                 causa_pendente, controparte, data_luogo, difensore, documento, fatti_documentati, letto, lex, procura,
                                                 udienza, ufficio_da_adire)
 from scripts.schede_compilazione.costruisci import scheda
@@ -61,8 +61,8 @@ SCHEDE = [
                documento("lettera", "Lettera di licenziamento", "comunicazione di licenziamento", ["licenziamento"], se_manca="astensione: serve la lettera"),
                documento("impugnazione", "Impugnazione stragiudiziale con prova della ricezione", "lettera o PEC di impugnazione", ["impugnazione"],
                          se_manca="segnalare il termine di 60 giorni dalla comunicazione"),
-               calcolo("termine_impugnazione", "Ultimo giorno per l’impugnazione stragiudiziale", termine=T("comunicazione", 60, feriale=False),
-                       regola="60 giorni dalla ricezione della comunicazione; termine sostanziale, senza sospensione feriale" + IN_AVANTI,
+               calcolo("termine_impugnazione", "Ultimo giorno per l’impugnazione stragiudiziale", termine=T("comunicazione", 60, feriale=False, sabato=False),
+                       regola="60 giorni dalla ricezione della comunicazione; termine sostanziale, senza sospensione feriale" + SOSTANZIALE,
                        norma=[("legge_604_1966", "6", "sessanta giorni")]),
                calcolo("termine_deposito", "Ultimo giorno per depositare il ricorso", termine=T("evento", 180, feriale=False),
                        regola="180 giorni dalla trasmissione dell’impugnazione stragiudiziale (evento); se la conciliazione o l’arbitrato sono rifiutati o falliscono, 60 giorni da lì",
@@ -88,8 +88,8 @@ SCHEDE = [
            [(CPC, "414", "ricorso"), (CC, "2094", "lavoro subordinato"), ("81/2015", "2", "collaborazioni etero-organizzate"),
             ("81/2015", "19", "durata e causali del contratto a termine"), ("81/2015", "28", "impugnazione entro centottanta giorni e indennità"), *SENZA_FERIALE],
            _parti() + _rapporto() + [fatti_documentati("Indici della subordinazione o vizi del termine"),
-               calcolo("termine", "Impugnazione del contratto a termine", termine=T("evento", 180, feriale=False),
-                       regola="180 giorni dalla cessazione del singolo contratto, poi ricorso entro 180 giorni dall’impugnazione; senza sospensione feriale",
+               calcolo("termine", "Impugnazione del contratto a termine", termine=T("evento", 180, feriale=False, sabato=False),
+                       regola="180 giorni dalla cessazione del singolo contratto, poi ricorso entro 180 giorni dall’impugnazione; senza sospensione feriale" + SOSTANZIALE,
                        norma=[("81/2015", "28", "impugnazione"), ("legge_604_1966", "6", "deposito del ricorso")])] + _ricorso_414(),
            [("Fatti", "modalità della prestazione o successione dei contratti"), ("Conclusioni", "accertamento, conversione, indennità")],
            ["contratto a termine impugnato oltre 180 giorni dalla cessazione"]),

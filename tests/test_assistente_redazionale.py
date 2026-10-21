@@ -20,6 +20,8 @@ def _fake_utente():
 def _cfg_web(tmp_path):
     return {
         "TESTING": True,
+        "MULTI_TENANT": False,
+        "TENANTS_REGISTRY": str(tmp_path / "tenants.json"),
         "AUTH_DB": str(tmp_path / "utenti.json"),
         "AUDIT_DB": str(tmp_path / "audit.json"),
         "CLIENTI_DB": str(tmp_path / "clienti.json"),

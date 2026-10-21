@@ -5,7 +5,7 @@ Base normativa: artt. 404-432 c.c. (amministrazione di sostegno, interdizione, i
 747-750, 769-782 c.p.c. Sospensione feriale esclusa per amministrazione di sostegno, interdizione e inabilitazione
 (art. 92 ord. giud.); i termini dell’accettazione e dell’inventario sono sostanziali e non si sospendono.
 """
-from scripts.schede_compilazione.comuni import (CC, CPC, SENZA_FERIALE, T, assistito, avvocato, calcolo, data_luogo, difensore, documento,
+from scripts.schede_compilazione.comuni import (SOSTANZIALE, CC, CPC, SENZA_FERIALE, T, assistito, avvocato, calcolo, data_luogo, difensore, documento,
                                                 lex, procura)
 from scripts.schede_compilazione.costruisci import scheda
 
@@ -96,11 +96,11 @@ SCHEDE = [
                avvocato("defunto", "Defunto e apertura della successione", "Chi è il defunto, data e luogo di morte?", norma=[(CC, "456", "apertura della successione")]),
                avvocato("possesso", "Possesso dei beni ereditari", "Il chiamato è nel possesso di beni ereditari?",
                         norma=[(CC, "485", "tre mesi dall’apertura o dalla notizia"), (CC, "487", "chiamato non possessore")]),
-               calcolo("inventario", "Termine per l’inventario del chiamato nel possesso", termine=T("evento", mesi=3, feriale=False),
-                       regola="tre mesi dall’apertura della successione o dalla notizia della devoluzione, prorogabili; termine sostanziale, senza sospensione feriale",
+               calcolo("inventario", "Termine per l’inventario del chiamato nel possesso", termine=T("evento", mesi=3, feriale=False, sabato=False),
+                       regola="tre mesi dall’apertura della successione o dalla notizia della devoluzione, prorogabili; termine sostanziale, senza sospensione feriale" + SOSTANZIALE,
                        norma=[(CC, "485", "tre mesi")]),
-               calcolo("deliberare", "Termine per accettare o rinunciare dopo l’inventario", termine=T("evento", 40, feriale=False),
-                       regola="40 giorni dal compimento dell’inventario (evento = chiusura dell’inventario), altrimenti erede puro e semplice; termine sostanziale",
+               calcolo("deliberare", "Termine per accettare o rinunciare dopo l’inventario", termine=T("evento", 40, feriale=False, sabato=False),
+                       regola="40 giorni dal compimento dell’inventario (evento = chiusura dell’inventario), altrimenti erede puro e semplice; termine sostanziale" + SOSTANZIALE,
                        norma=[(CC, "485", "quaranta giorni")]),
                avvocato("incapace", "Minore o incapace chiamato", "Il chiamato è minore, interdetto o beneficiario? Serve l’autorizzazione?",
                         obbligatorio=False, norma=[(CC, "471", "beneficio obbligatorio"), (CC, "320", "autorizzazione")])],

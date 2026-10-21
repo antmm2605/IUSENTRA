@@ -196,3 +196,19 @@ def test_il_costruttore_scarta_gli_articoli_abrogati(tmp_path):
         ("2396quater", "Art. 2396-quater. (Denunzia al tribunale) Se vi è fondato sospetto...")])
     c.commit()
     assert _articoli(db)["codice_civile"] == {"2396quater"}
+
+
+def test_patch_non_cambia_proroga_degli_atti_giudiziali_lavoro():
+    """La nuova opzione non deve generalizzare i termini stragiudiziali ai ricorsi."""
+    from datetime import date
+    from pct.schede_termini import calcola
+    from scripts.schede_compilazione.lavoro import SCHEDE
+
+    for code, field, base, expected in (
+        ("LAV_003", "termine_deposito", date(2020, 7, 20), "2021-01-18"),
+        ("LAV_013", "decadenza_invalidita", date(2026, 4, 24), "2026-10-26"),
+    ):
+        for scheda in (scheda_per_template(code), next(s for s in SCHEDE if s["id"] == code)):
+            termine = next(c for c in scheda["campi"] if c["campo"] == field)["fonte"]["termine"]
+            assert termine.get("sabato", True) is True
+            assert calcola(termine, base)["scadenza"] == expected

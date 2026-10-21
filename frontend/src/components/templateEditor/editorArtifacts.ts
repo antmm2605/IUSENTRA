@@ -16,6 +16,27 @@ const LEGACY_SPACER_VAR = '--iu-template-page-spacer'
 
 export const PAGE_BREAK_HTML = `<hr class="iu-ted-page-break" ${PAGE_BREAK_ATTR}="true">`
 
+/** Conserva gli stili visibili del documento senza incorporare gli spaziatori tecnici. */
+export function snapshotEditorHtml(editor: HTMLElement): string {
+  const copy = editor.cloneNode(true) as HTMLElement
+  const originals = editor.querySelectorAll<HTMLElement>('*')
+  const properties = ['font-family', 'font-size', 'font-weight', 'font-style', 'line-height',
+    'text-align', 'text-decoration', 'color', 'background-color', 'margin-top', 'margin-bottom',
+    'margin-left', 'margin-right', 'text-indent', 'letter-spacing']
+  copy.querySelectorAll<HTMLElement>('*').forEach((element, index) => {
+    const original = originals[index]
+    if (!original || original.hasAttribute(LINE_SPACER_ATTR)) return
+    const computed = getComputedStyle(original)
+    properties.forEach((property) => {
+      if (property === 'margin-top' && original.hasAttribute(BLOCK_PUSH_ATTR)) return
+      const value = computed.getPropertyValue(property)
+      element.style.setProperty(property, value.endsWith('px') ? `${Number.parseFloat(value) * 0.75}pt` : value)
+    })
+  })
+  clearPaginationArtifacts(copy)
+  return copy.innerHTML
+}
+
 export function isLineSpacer(node: Node | null | undefined): boolean {
   return Boolean(node && node.nodeType === Node.ELEMENT_NODE && (node as Element).hasAttribute(LINE_SPACER_ATTR))
 }

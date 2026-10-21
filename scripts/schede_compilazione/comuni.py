@@ -11,6 +11,8 @@ FERIALE = ("legge_742_1969", "1", "sospensione feriale dei termini")
 SENZA_FERIALE = [("legge_742_1969", "3", "esclusione della sospensione feriale"), ("12/1941", "92", "affari urgenti esclusi dalla sospensione")]
 A_RITROSO = "; se l’ultimo giorno cade di sabato o festivo si anticipa al primo giorno non festivo precedente"
 IN_AVANTI = "; se l’ultimo giorno cade di sabato o festivo si proroga al primo giorno non festivo seguente (art. 155 c.p.c.)"
+SOSTANZIALE = "; termine sostanziale (art. 2963 c.c.): si proroga se l’ultimo giorno è festivo, non se è sabato"
+PENALE = "; se l’ultimo giorno è festivo si proroga al giorno seguente non festivo (art. 172 c.p.p.); il sabato non proroga"
 
 
 def N(atto: str, articolo: str, perche: str = "") -> dict:
@@ -53,9 +55,15 @@ def calcolo(nome, etichetta, regola, termine=None, **kw) -> dict:
     return campo(nome, etichetta, fonte, **kw)
 
 
-def T(base, giorni=0, *, mesi=0, ritroso=False, feriale=True) -> dict:
-    """Termine calcolabile dal software (vedi ``pct/schede_termini.py``)."""
+def T(base, giorni=0, *, mesi=0, ritroso=False, feriale=True, sabato=True) -> dict:
+    """Termine calcolabile dal software (vedi ``pct/schede_termini.py``).
+
+    ``sabato=False`` per i termini sostanziali (art. 2963 c.c.) e per quelli penali (art. 172 c.p.p.): il sabato
+    non è festivo e non proroga; l’art. 155, quinto comma, c.p.c. vale per i termini processuali civili.
+    """
     t = {"base": base, "direzione": "ritroso" if ritroso else "avanti", "feriale": feriale}
+    if not sabato:
+        t["sabato"] = False
     t.update({"mesi": mesi} if mesi else {"giorni": giorni})
     return t
 

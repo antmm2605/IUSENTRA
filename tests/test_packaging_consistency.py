@@ -24,7 +24,7 @@ def test_runtime_docker_bloccato_su_profilo_accettato_e_verificato_in_build():
     assert len(pins) == 119 and APPLICATION not in pins
     assert pins['pillow'] == '13.0.0'
     assert pins['sqlalchemy'] == '2.1.4'
-    assert pins['pypdf'] == '6.20.1' and pins['xsdata'] == '26.2'
+    assert pins['pypdf'] == '6.21.1' and pins['xsdata'] == '26.2'
     docker = (REPO_ROOT / 'Dockerfile').read_text(encoding='utf-8')
     assert '-c requirements/lock/runtime-linux-py312.txt' in docker
     assert 'RUN python tools/check_runtime_lock.py --installed' in docker

@@ -32,7 +32,7 @@ redis<6
 rq<3
 Flask-Limiter<4
 prometheus-client<1
-pypdf<7
+pypdf>=6.21.1,<7
 pytest>=9.1.0,<10
 pytest-cov<7
 ruff<1

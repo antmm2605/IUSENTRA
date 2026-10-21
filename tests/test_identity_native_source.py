@@ -11,10 +11,10 @@ from legal_ocr.motore.fonte_identita import immagine_nativa_copertina
 
 
 def pdf_image(*, matrix=(160, 0, 0, 100, 25, 40), operations=None, image_fields=None,
-              page_fields=None, extra_unused=False, crop=None):
+              page_fields=None, extra_unused=False, crop=None, image_format='JPEG'):
     jpeg = BytesIO()
     with Image.new('RGB', (160, 100), '#123456') as image:
-        image.save(jpeg, format='JPEG')
+        image.save(jpeg, format=image_format)
     writer = PdfWriter()
     page = writer.add_blank_page(300, 400)
     obj = EncodedStreamObject()
@@ -38,6 +38,29 @@ def pdf_image(*, matrix=(160, 0, 0, 100, 25, 40), operations=None, image_fields=
     output = BytesIO()
     writer.write(output)
     return output.getvalue(), jpeg.getvalue()
+
+
+@pytest.mark.parametrize('image_format', ['JPEG', 'PNG', 'BMP', 'GIF', 'TIFF'])
+@pytest.mark.parametrize('array_filter', [False, True])
+def test_dct_source_only_selects_the_jpeg_parser(monkeypatch, image_format, array_filter):
+    fields = {NameObject('/Filter'): ArrayObject([NameObject('/DCTDecode')])} if array_filter else None
+    pdf, _ = pdf_image(image_format=image_format, image_fields=fields)
+    original = Image.open
+    formats = []
+
+    def observe(*args, **kwargs):
+        formats.append(kwargs.get('formats'))
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(Image, 'open', observe)
+    image, audit = immagine_nativa_copertina(pdf, 0)
+    assert formats == [('JPEG',)], 'Restrict parser selection before decoding DCT bytes.'
+    assert audit
+    if image_format == 'JPEG':
+        assert image is not None and image.size == (160, 100)
+        image.close()
+    else:
+        assert image is None
 
 
 @pytest.mark.parametrize('unused', [False, True])

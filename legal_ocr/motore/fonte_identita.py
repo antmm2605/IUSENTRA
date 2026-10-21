@@ -117,7 +117,7 @@ def immagine_nativa_copertina(pdf_bytes, page_index):
             with Image.frombytes(mode, (width, height), pixels) as source:
                 result = source.convert('RGB')
         else:
-            with Image.open(io.BytesIO(image_object.get_data())) as source:
+            with Image.open(io.BytesIO(image_object.get_data()), formats=('JPEG',)) as source:
                 if source.format != 'JPEG' or source.size != (width, height):
                     raise _FonteNonVerificata('Pixel discordanti con la struttura PDF.')
                 result = source.convert('RGB')

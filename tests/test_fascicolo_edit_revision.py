@@ -1,7 +1,7 @@
 import json
 
 import pytest
-from flask import Flask
+from flask import Flask, jsonify
 
 from pct.clienti import GestioneClienti
 from pct.fascicoli import GestioneFascicoli
@@ -18,7 +18,8 @@ def form_api(request, tmp_path):
     app = Flask(__name__)
     app.secret_key = 'controlled-session-only'
     app.add_url_rule('/fascicoli', endpoint='lista_fascicoli', view_func=lambda: 'controlled')
-    app.add_url_rule('/fascicoli/<id_fasc>', endpoint='dettaglio_fascicolo', view_func=lambda id_fasc: id_fasc)
+    app.add_url_rule('/fascicoli/<id_fasc>', endpoint='dettaglio_fascicolo',
+                     view_func=lambda id_fasc: jsonify(id=id_fasc))
 
     def cases():
         return GestioneFascicoli(str(tmp_path / 'fascicoli.json'), studio_db=db)
@@ -56,6 +57,14 @@ def test_edit_revision_ignores_background_work_and_generated_defaults():
     assert edit_revision({**source, 'note': 'Modifica di un altro avvocato'},
                          row={'data_apertura': '2024-01-01'}) != first
     assert edit_revision({**source, 'id': 'another-case'}, row={'data_apertura': '2024-01-01'}) != first
+
+
+def test_controlled_detail_route_never_interprets_identifier_as_html(form_api):
+    client, _, _, _, _ = form_api
+    identifier = '<img src=x onerror=alert(1)>'
+    result = client.get('/fascicoli/' + identifier)
+    assert result.status_code == 200 and result.mimetype == 'application/json'
+    assert result.json == {'id': identifier}
 
 
 def test_sql_form_without_known_revision_never_writes(form_api):

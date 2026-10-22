@@ -103,3 +103,5 @@ server sulla medesima revisione, pulizia governata. L'incarico offline completo
 rimane aperto e disabilitato; queste prove non certificano la replica PC-online.
 
 Preparazione Git: lock indice vuoto del21/10ore23:12, non aperto e con soli processi status, preservato fuori da.git dopo verifica; nessuna cancellazione o interruzione di Git. Whitespace dei nuovi test corretto dal controllo pre-commit.
+
+22/10/2026 — CI principale a0faa positiva; CodeQL ha fermato correttamente il deploy per eco HTML non protetta nel solo endpoint fittizio del test. Sostituita con risposta application/json e aggiunto guardrail con identificativo HTML ostile: sei casi del modulo passano. Nessuna deroga o modifica al gate. Nuovo commit e intera catena richiesti prima della prova produzione; il rilascio non è chiuso.
